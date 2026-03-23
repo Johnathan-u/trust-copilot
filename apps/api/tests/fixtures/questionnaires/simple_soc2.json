@@ -1,0 +1,35 @@
+[
+  {
+    "text": "q1. does the company maintain a written information security policy",
+    "section": "1.0 CONTROL ENVIRONMENT",
+    "answer_type": "yes_no",
+    "source_location": {
+      "sheet": "CC1",
+      "row": 2,
+      "col": 1
+    },
+    "confidence": 85
+  },
+  {
+    "text": "q2. is there a designated individual responsible for security",
+    "section": "1.0 CONTROL ENVIRONMENT",
+    "answer_type": "yes_no",
+    "source_location": {
+      "sheet": "CC1",
+      "row": 3,
+      "col": 1
+    },
+    "confidence": 85
+  },
+  {
+    "text": "q3. does the organization perform annual risk assessments",
+    "section": "2.0 RISK ASSESSMENT",
+    "answer_type": "yes_no",
+    "source_location": {
+      "sheet": "CC1",
+      "row": 5,
+      "col": 1
+    },
+    "confidence": 85
+  }
+]

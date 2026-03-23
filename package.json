@@ -1,0 +1,20 @@
+{
+  "name": "trust-copilot",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Trust Copilot monorepo — run dev:all to start Postgres, API, web, and worker",
+  "scripts": {
+    "dev:api": "node scripts/check-port-8000.js && node scripts/run-api.js",
+    "dev:web": "node scripts/check-port-3000.js && cd apps/web && npm run dev",
+    "dev:worker": "cd apps/api && cross-env DATABASE_URL=postgresql://postgres:postgres@localhost:5432/trustcopilot python -m app.worker",
+    "dev:full": "concurrently -k -n api,web,worker -c blue,green,magenta \"npm run dev:api\" \"npm run dev:web\" \"npm run dev:worker\"",
+    "dev:all": "node scripts/dev-all.js",
+    "del:all": "node scripts/del-all.js",
+    "test:e2e": "node scripts/e2e-run.js",
+    "test:e2e:registry": "node scripts/e2e-run.js e2e/registry-lifecycle.spec.ts e2e/priority-p10-p12.spec.ts"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.0",
+    "cross-env": "^10.1.0"
+  }
+}

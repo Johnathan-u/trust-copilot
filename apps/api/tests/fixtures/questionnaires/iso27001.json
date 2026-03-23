@@ -1,0 +1,16 @@
+[
+  {
+    "text": "Does the organization maintain an information security policy?",
+    "section": "A.5.1 Policies",
+    "answer_type": "yes_no",
+    "source_location": {"sheet": "ISO27001", "row": 2, "col": 1},
+    "confidence": 85
+  },
+  {
+    "text": "Are roles and responsibilities for information security assigned?",
+    "section": "A.6.1 Internal organization",
+    "answer_type": "yes_no",
+    "source_location": {"sheet": "ISO27001", "row": 3, "col": 1},
+    "confidence": 85
+  }
+]

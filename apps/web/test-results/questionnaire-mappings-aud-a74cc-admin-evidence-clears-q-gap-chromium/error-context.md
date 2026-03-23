@@ -1,0 +1,147 @@
+# Page snapshot
+
+```yaml
+- generic [active] [ref=e1]:
+  - alert [ref=e2]: Dashboard
+  - generic [ref=e3]:
+    - banner [ref=e5]:
+      - generic [ref=e6]:
+        - link "✓ Trust Copilot" [ref=e7] [cursor=pointer]:
+          - /url: /dashboard
+          - generic [ref=e8]: ✓
+          - generic [ref=e9]: Trust Copilot
+        - navigation "Primary" [ref=e10]:
+          - link "Dashboard" [ref=e11] [cursor=pointer]:
+            - /url: /dashboard
+          - link "Documents" [ref=e12] [cursor=pointer]:
+            - /url: /dashboard/documents
+          - link "Questionnaires" [ref=e13] [cursor=pointer]:
+            - /url: /dashboard/questionnaires
+          - link "Review" [ref=e14] [cursor=pointer]:
+            - /url: /dashboard/review
+          - link "Exports" [ref=e15] [cursor=pointer]:
+            - /url: /dashboard/exports
+          - link "Trust Center" [ref=e16] [cursor=pointer]:
+            - /url: /dashboard/trust-center
+          - link "Requests" [ref=e17] [cursor=pointer]:
+            - /url: /dashboard/trust-requests
+      - generic [ref=e18]:
+        - button "⌘K Search or jump to action ↵" [ref=e19] [cursor=pointer]:
+          - generic [ref=e20]: ⌘K Search or jump to action
+          - generic [ref=e21]: ↵
+        - button "Notifications" [ref=e23] [cursor=pointer]:
+          - text: 🔔
+          - generic [ref=e24]: "4"
+        - button "DU" [ref=e25] [cursor=pointer]
+    - complementary [ref=e26]:
+      - generic [ref=e27]:
+        - generic [ref=e28]: Workspace
+        - combobox "Workspace" [ref=e29] [cursor=pointer]:
+          - option "Default" [selected]
+          - option "Other"
+      - generic [ref=e30]:
+        - navigation [ref=e31]:
+          - link "◆ Home" [ref=e32] [cursor=pointer]:
+            - /url: /dashboard
+            - generic [ref=e33]: ◆
+            - text: Home
+          - link "📄 Documents" [ref=e34] [cursor=pointer]:
+            - /url: /dashboard/documents
+            - generic [ref=e35]: 📄
+            - text: Documents
+          - link "📋 Questionnaires" [ref=e36] [cursor=pointer]:
+            - /url: /dashboard/questionnaires
+            - generic [ref=e37]: 📋
+            - text: Questionnaires
+          - link "✅ Review" [ref=e38] [cursor=pointer]:
+            - /url: /dashboard/review
+            - generic [ref=e39]: ✅
+            - text: Review
+          - link "⬇ Exports" [ref=e40] [cursor=pointer]:
+            - /url: /dashboard/exports
+            - generic [ref=e41]: ⬇
+            - text: Exports
+        - navigation [ref=e43]:
+          - link "🛡 Trust Center" [ref=e44] [cursor=pointer]:
+            - /url: /dashboard/trust-center
+            - generic [ref=e45]: 🛡
+            - text: Trust Center
+          - link "📨 Requests" [ref=e46] [cursor=pointer]:
+            - /url: /dashboard/trust-requests
+            - generic [ref=e47]: 📨
+            - text: Requests
+        - button "Compliance ▼" [ref=e50] [cursor=pointer]:
+          - generic [ref=e51]: Compliance
+          - generic [ref=e52]: ▼
+        - navigation [ref=e54]:
+          - link "🔐 Security" [ref=e55] [cursor=pointer]:
+            - /url: /dashboard/security
+            - generic [ref=e56]: 🔐
+            - text: Security
+        - button "AI Settings ▼" [ref=e59] [cursor=pointer]:
+          - generic [ref=e60]: AI Settings
+          - generic [ref=e61]: ▼
+        - generic [ref=e62]:
+          - heading "Recent questionnaires" [level=4] [ref=e63]
+          - generic [ref=e64]:
+            - generic [ref=e65]:
+              - generic [ref=e66]: cludll_Version_.docx
+              - generic [ref=e67]: 160 questions · Draft
+            - link "Open" [ref=e68] [cursor=pointer]:
+              - /url: /dashboard/review/117
+          - generic [ref=e69]:
+            - generic [ref=e70]:
+              - generic [ref=e71]: FISMAN.docx
+              - generic [ref=e72]: 148 questions · Draft
+            - link "Open" [ref=e73] [cursor=pointer]:
+              - /url: /dashboard/review/116
+          - generic [ref=e74]:
+            - generic [ref=e75]:
+              - generic [ref=e76]: Vendor_Security_Questionnaire__Enterprise___Full_Version_.docx
+              - generic [ref=e77]: 155 questions · Draft
+            - link "Open" [ref=e78] [cursor=pointer]:
+              - /url: /dashboard/review/115
+        - generic [ref=e79]:
+          - heading "Last export" [level=4] [ref=e80]
+          - generic [ref=e81]: mock_soc2_questionnaire__2__answers.docx
+          - generic [ref=e82]: 3/18/2026, 4:22:08 AM
+    - main [ref=e83]:
+      - generic [ref=e84]:
+        - generic [ref=e86]:
+          - heading "Dashboard" [level=1] [ref=e87]
+          - paragraph [ref=e88]: Upload evidence and questionnaires, then generate and export answers.
+        - generic [ref=e89]:
+          - link "📄 Documents Upload and manage evidence documents." [ref=e91] [cursor=pointer]:
+            - /url: /dashboard/documents
+            - generic [ref=e93]:
+              - generic [ref=e94]: 📄
+              - generic [ref=e95]:
+                - heading "Documents" [level=3] [ref=e96]
+                - paragraph [ref=e97]: Upload and manage evidence documents.
+          - link "📋 Questionnaires Import and parse customer questionnaires." [ref=e99] [cursor=pointer]:
+            - /url: /dashboard/questionnaires
+            - generic [ref=e101]:
+              - generic [ref=e102]: 📋
+              - generic [ref=e103]:
+                - heading "Questionnaires" [level=3] [ref=e104]
+                - paragraph [ref=e105]: Import and parse customer questionnaires.
+          - link "⬇ Exports Export completed answers to XLSX or DOCX." [ref=e107] [cursor=pointer]:
+            - /url: /dashboard/exports
+            - generic [ref=e109]:
+              - generic [ref=e110]: ⬇
+              - generic [ref=e111]:
+                - heading "Exports" [level=3] [ref=e112]
+                - paragraph [ref=e113]: Export completed answers to XLSX or DOCX.
+          - link "🛡 Trust Center Manage trust articles and what customers see." [ref=e115] [cursor=pointer]:
+            - /url: /dashboard/trust-center
+            - generic [ref=e117]:
+              - generic [ref=e118]: 🛡
+              - generic [ref=e119]:
+                - heading "Trust Center" [level=3] [ref=e120]
+                - paragraph [ref=e121]: Manage trust articles and what customers see.
+          - link "📄 Gaps" [ref=e123] [cursor=pointer]:
+            - /url: /dashboard/compliance-gaps
+            - generic [ref=e125]:
+              - generic [ref=e126]: 📄
+              - heading "Gaps" [level=3] [ref=e128]
+```

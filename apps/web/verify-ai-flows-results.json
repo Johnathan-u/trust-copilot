@@ -1,0 +1,41 @@
+{
+  "baseUrl": "http://localhost:3000",
+  "startedAt": "2026-03-17T17:36:16.765Z",
+  "trustRequests": {
+    "ok": false,
+    "error": "page.goto: Timeout 15000ms exceeded.\nCall log:\n  - navigating to \"http://localhost:3000/login\", waiting until \"domcontentloaded\"\n",
+    "draftLength": 0,
+    "draftSnippet": "",
+    "consoleErrors": []
+  },
+  "questionnaires": {
+    "ok": false,
+    "questionnaireId": null,
+    "questionCount": 0,
+    "error": null,
+    "consoleErrors": []
+  },
+  "generateAnswers": {
+    "ok": false,
+    "jobCompleted": false,
+    "answersBefore": 0,
+    "answersAfter": 0,
+    "error": "page.goto: Timeout 15000ms exceeded.\nCall log:\n  - navigating to \"http://localhost:3000/login\", waiting until \"domcontentloaded\"\n",
+    "consoleErrors": []
+  },
+  "review": {
+    "ok": false,
+    "answersVisible": false,
+    "editWorked": false,
+    "error": null
+  },
+  "export": {
+    "ok": false,
+    "downloadFilename": null,
+    "downloadSize": 0,
+    "error": "page.goto: Timeout 15000ms exceeded.\nCall log:\n  - navigating to \"http://localhost:3000/login\", waiting until \"domcontentloaded\"\n",
+    "consoleErrors": []
+  },
+  "allConsoleErrors": [],
+  "allConsoleWarnings": []
+}

@@ -1,0 +1,41 @@
+[
+  {
+    "name": "NovaTech SOC 2",
+    "workspace_id": 20,
+    "questionnaire_id": 172,
+    "total_questions": 25,
+    "total_answers": 23,
+    "drafted": 22,
+    "insufficient": 1,
+    "no_answer": 0,
+    "generation_time_s": 6.1,
+    "throughput_qps": 4.1,
+    "job_status": "completed"
+  },
+  {
+    "name": "MediCore HIPAA",
+    "workspace_id": 21,
+    "questionnaire_id": 173,
+    "total_questions": 20,
+    "total_answers": 20,
+    "drafted": 2,
+    "insufficient": 18,
+    "no_answer": 0,
+    "generation_time_s": 6.0,
+    "throughput_qps": 3.3,
+    "job_status": "completed"
+  },
+  {
+    "name": "Enterprise 150Q",
+    "workspace_id": 22,
+    "questionnaire_id": 174,
+    "total_questions": 150,
+    "total_answers": 149,
+    "drafted": 55,
+    "insufficient": 94,
+    "no_answer": 0,
+    "generation_time_s": 9.0,
+    "throughput_qps": 16.6,
+    "job_status": "completed"
+  }
+]

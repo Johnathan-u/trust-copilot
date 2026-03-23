@@ -1,0 +1,481 @@
+mapping_id,question_id,confidence,confidence_band,framework_control_key,framework_control_title,preferred_workspace_control_id,status,domain_tags,question_text
+2527,2133,0.0,0.00,,,,suggested,,is dns filtering implemented
+2528,2134,0.354,0.01-0.38,164.312-e1,Transmission Security,20,suggested,,are ddos protections enabled
+2529,2135,0.399,0.39-0.59,PR.PS-04,Log Management,30,suggested,,are api gateways used
+2530,2136,0.399,0.39-0.59,GV.RM-01,Risk Management Strategy,26,suggested,,are rate limits enforced
+2531,2137,0.0,0.00,,,,suggested,,are waf rules configured
+2532,2138,0.399,0.39-0.59,PR.PS-04,Log Management,30,suggested,,are ip allowlists used
+2533,2139,0.701,0.60+,CC6.6,Encryption and Data Protection,50,suggested,,"are secrets stored in a secure vault (e.g., hashicorp vault)"
+2534,2140,0.605,0.60+,CC6.6,Encryption and Data Protection,50,suggested,,are secrets ever stored in code
+2535,2141,0.609,0.60+,CC6.6,Encryption and Data Protection,50,suggested,,are secrets rotated automatically
+2536,2142,0.635,0.60+,PR.DS-01,Data-at-Rest Protection,28,suggested,encryption,are encryption keys managed via kms
+2537,2143,0.373,0.01-0.38,CC6.6,Encryption and Data Protection,50,suggested,,are customer-managed keys supported
+2538,2144,0.418,0.39-0.59,CC6.6,Encryption and Data Protection,50,suggested,,are keys rotated periodically
+2539,2145,0.354,0.01-0.38,PR.PS-04,Log Management,30,suggested,,are hsm-backed keys used
+2540,2146,0.528,0.39-0.59,CC6.6,Encryption and Data Protection,50,suggested,iam_access,are secrets access-controlled via iam
+2541,2147,0.565,0.39-0.59,CC6.6,Encryption and Data Protection,50,suggested,logging;iam_access,are secrets logged when accessed
+2542,2148,0.564,0.39-0.59,CC6.6,Encryption and Data Protection,50,suggested,,are expired secrets revoked automatically
+2543,2149,0.49,0.39-0.59,PR.DS-01,Data-at-Rest Protection,28,suggested,encryption,is all data encrypted at rest
+2544,2150,0.95,0.60+,CC6.7,Transmission and Network Protections,51,suggested,encryption,is all data encrypted in transit
+2545,2151,0.474,0.39-0.59,PR.DS-01,Data-at-Rest Protection,28,suggested,,are storage buckets private by default
+2546,2152,0.418,0.39-0.59,CC6.1,Logical and Physical Access Controls,2,suggested,,are object storage policies enforced
+2547,2153,0.399,0.39-0.59,CC6.7,Transmission and Network Protections,51,suggested,encryption,are databases encrypted
+2548,2154,0.399,0.39-0.59,CC6.7,Transmission and Network Protections,51,suggested,encryption,are snapshots encrypted
+2549,2155,0.583,0.39-0.59,RC.RP-01,Recovery Planning,34,suggested,dr_backup,are backups immutable
+2550,2156,0.499,0.39-0.59,PR.PS-04,Log Management,30,suggested,logging,are data retention policies enforced
+2551,2157,0.354,0.01-0.38,CC6.1,Logical and Physical Access Controls,2,suggested,,is data classified automatically
+2552,2158,0.373,0.01-0.38,PR.DS-01,Data-at-Rest Protection,28,suggested,,is sensitive data masked/tokenized
+2553,2159,0.525,0.39-0.59,CC7.4,"Logging, Retention, and Incident Handling",53,suggested,logging;iam_access,are data access logs monitored
+2554,2160,0.354,0.01-0.38,CC6.1,Logical and Physical Access Controls,2,suggested,,are cross-tenant data leaks prevented
+2555,2161,0.373,0.01-0.38,CC3.1,Risk Assessment,49,suggested,,are data flows documented
+2556,2162,0.354,0.01-0.38,CC6.1,Logical and Physical Access Controls,2,suggested,,is data residency controlled
+2557,2163,0.0,0.00,,,,suggested,,are exports restricted
+2558,2164,0.0,0.00,,,,suggested,,do you use ci/cd pipelines
+2559,2165,0.354,0.01-0.38,CC1.1,Integrity and Ethical Values,1,suggested,,are pipelines secured with rbac
+2560,2166,0.0,0.00,,,,suggested,,are builds isolated
+2561,2167,0.399,0.39-0.59,164.308-a2,Assigned Security Responsibility,17,suggested,,are artifacts signed
+2562,2168,0.0,0.00,,,,suggested,,are dependencies scanned for vulnerabilities
+2563,2169,0.564,0.39-0.59,CC6.6,Encryption and Data Protection,50,suggested,,are secrets prevented in commits
+2564,2170,0.399,0.39-0.59,164.308-a2,Assigned Security Responsibility,17,suggested,,are commits signed
+2565,2171,0.0,0.00,,,,suggested,,are pipelines audited
+2566,2172,0.406,0.39-0.59,HITRUST-DEV-LOG-01,Logging and Monitoring (dev theme),39,suggested,logging,are build logs stored securely
+2567,2173,0.649,0.60+,CC8.1,Change Management,54,suggested,,are deployment approvals required
+2568,2174,0.605,0.60+,CC8.1,Change Management,54,suggested,,are production deployments restricted
+2569,2175,0.0,0.00,,,,suggested,,are rollback mechanisms implemented
+2570,2176,0.945,0.60+,GV.OC-05,Third-Party Risk,35,suggested,,are supply chain attacks mitigated
+2571,2177,0.0,0.00,,,,suggested,,are sboms generated
+2572,2178,0.464,0.39-0.59,CC8.1,Change Management,54,suggested,,are pipeline environments ephemeral
+2573,2179,0.495,0.39-0.59,CC8.1,Change Management,54,suggested,,are applications tested for owasp top 10
+2574,2180,0.399,0.39-0.59,PR.IP-01,Change and Configuration Management,36,suggested,,is input validation enforced
+2575,2181,0.0,0.00,,,,suggested,,are outputs sanitized
+2576,2182,0.418,0.39-0.59,CC6.1,Logical and Physical Access Controls,2,suggested,iam_access,are authentication tokens secure
+2577,2183,0.354,0.01-0.38,PR.DS-01,Data-at-Rest Protection,28,suggested,,are session cookies protected
+2578,2184,0.0,0.00,,,,suggested,,are apis authenticated and authorized
+2579,2185,0.0,0.00,,,,suggested,,are apis versioned
+2580,2186,0.0,0.00,,,,suggested,,are graphql endpoints secured
+2581,2187,0.354,0.01-0.38,164.312-e1,Transmission Security,20,suggested,,are ssrf protections implemented
+2582,2188,0.354,0.01-0.38,164.312-e1,Transmission Security,20,suggested,,are xss protections enforced
+2583,2189,0.354,0.01-0.38,164.312-e1,Transmission Security,20,suggested,,are csrf protections in place
+2584,2190,0.0,0.00,,,,suggested,,are deserialization attacks prevented
+2585,2191,0.373,0.01-0.38,CC9.2,Vendor Management and Business Continuity,55,suggested,logging,are business logic flaws tested
+2586,2192,0.0,0.00,,,,suggested,,are bug bounty programs active
+2587,2193,0.7,0.60+,ID.RA-07,Vulnerability Management,33,suggested,,are penetration tests conducted
+2588,2194,0.0,0.00,,,,suggested,,are container images scanned
+2589,2195,0.354,0.01-0.38,PR.IP-01,Change and Configuration Management,36,suggested,,are base images hardened
+2590,2196,0.0,0.00,,,,suggested,,are containers run as non-root
+2591,2197,0.418,0.39-0.59,CC6.1,Logical and Physical Access Controls,2,suggested,,are kubernetes rbac policies enforced
+2592,2198,0.0,0.00,,,,suggested,,are namespaces segmented
+2593,2199,0.605,0.60+,CC6.6,Encryption and Data Protection,50,suggested,,are secrets stored securely in k8s
+2594,2200,0.399,0.39-0.59,PR.PS-04,Log Management,30,suggested,,are admission controllers used
+2595,2201,0.437,0.39-0.59,CC6.1,Logical and Physical Access Controls,2,suggested,,are pod security policies enforced
+2596,2202,0.354,0.01-0.38,CC7.2,System Monitoring,3,suggested,,are runtime protections enabled
+2597,2203,0.373,0.01-0.38,CC7.2,System Monitoring,3,suggested,logging,are containers monitored for anomalies
+2598,2204,0.0,0.00,,,,suggested,,are cluster configurations audited
+2599,2205,0.0,0.00,,,,suggested,,are etcd databases secured
+2600,2206,0.406,0.39-0.59,HITRUST-DEV-LOG-01,Logging and Monitoring (dev theme),39,suggested,logging,are cluster logs centralized
+2601,2207,0.0,0.00,,,,suggested,,are nodes hardened
+2602,2208,0.0,0.00,,,,suggested,,are unused services disabled
+2603,2209,0.406,0.39-0.59,HITRUST-DEV-LOG-01,Logging and Monitoring (dev theme),39,suggested,logging,are logs centralized
+2604,2210,0.406,0.39-0.59,HITRUST-DEV-LOG-01,Logging and Monitoring (dev theme),39,suggested,logging,are logs correlated across systems
+2605,2211,0.639,0.60+,PR.PS-04,Log Management,30,suggested,logging,are siem tools used
+2606,2212,0.497,0.39-0.59,CC7.2,System Monitoring,3,suggested,,are anomaly detections implemented
+2607,2213,0.0,0.00,,,,suggested,,are alerts prioritized by severity
+2608,2214,0.0,0.00,,,,suggested,,are alerts actionable
+2609,2215,0.397,0.39-0.59,CC7.4,"Logging, Retention, and Incident Handling",53,suggested,,are playbooks automated
+2610,2216,0.354,0.01-0.38,CC1.1,Integrity and Ethical Values,1,suggested,incident,are incidents tracked in a system
+2632,2238,0.399,0.39-0.59,CC6.1,Logical and Physical Access Controls,2,suggested,,are dr drills performed
+2633,2239,0.0,0.00,,,,suggested,,are rto/rpo defined
+2634,2240,0.0,0.00,,,,suggested,,are dependencies mapped
+2635,2241,0.354,0.01-0.38,CC6.1,Logical and Physical Access Controls,2,suggested,,are fallback systems documented
+2636,2242,0.0,0.00,,,,suggested,,are outages simulated
+2637,2243,0.506,0.39-0.59,RC.RP-01,Recovery Planning,34,suggested,logging;dr_backup,are recovery logs maintained
+2638,2244,0.392,0.39-0.59,CC6.6,Encryption and Data Protection,50,suggested,,are ai services isolated from sensitive data
+2639,2245,0.0,0.00,,,,suggested,,are llm outputs filtered
+2640,2246,0.445,0.39-0.59,PR.IP-01,Change and Configuration Management,36,suggested,,are prompt injection attacks mitigated
+2641,2247,0.0,0.00,,,,suggested,,are embeddings secured
+2642,2248,0.418,0.39-0.59,CC6.1,Logical and Physical Access Controls,2,suggested,iam_access,are vector databases access-controlled
+2643,2249,0.406,0.39-0.59,HITRUST-DEV-LOG-01,Logging and Monitoring (dev theme),39,suggested,logging,are ai logs monitored
+2644,2250,0.399,0.39-0.59,PR.IP-01,Change and Configuration Management,36,suggested,,are ai hallucinations mitigated
+2645,2251,0.441,0.39-0.59,PR.IP-01,Change and Configuration Management,36,suggested,,are models version-controlled
+2646,2252,0.354,0.01-0.38,PR.DS-01,Data-at-Rest Protection,28,suggested,,are datasets protected
+2647,2253,0.354,0.01-0.38,RC.RP-01,Recovery Planning,34,suggested,,are adversarial attacks tested
+2368,2134,0.354,0.01-0.38,164.312-e1,Transmission Security,20,suggested,,are ddos protections enabled
+2369,2135,0.399,0.39-0.59,PR.PS-04,Log Management,30,suggested,,are api gateways used
+2370,2136,0.399,0.39-0.59,GV.RM-01,Risk Management Strategy,26,suggested,,are rate limits enforced
+2371,2137,0.0,0.00,,,,suggested,,are waf rules configured
+2372,2138,0.399,0.39-0.59,PR.PS-04,Log Management,30,suggested,,are ip allowlists used
+2373,2139,0.701,0.60+,CC6.6,Encryption and Data Protection,50,suggested,,"are secrets stored in a secure vault (e.g., hashicorp vault)"
+2374,2140,0.605,0.60+,CC6.6,Encryption and Data Protection,50,suggested,,are secrets ever stored in code
+2375,2141,0.609,0.60+,CC6.6,Encryption and Data Protection,50,suggested,,are secrets rotated automatically
+2376,2142,0.635,0.60+,PR.DS-01,Data-at-Rest Protection,28,suggested,encryption,are encryption keys managed via kms
+2377,2143,0.373,0.01-0.38,CC6.6,Encryption and Data Protection,50,suggested,,are customer-managed keys supported
+2378,2144,0.418,0.39-0.59,CC6.6,Encryption and Data Protection,50,suggested,,are keys rotated periodically
+2379,2145,0.354,0.01-0.38,PR.PS-04,Log Management,30,suggested,,are hsm-backed keys used
+2380,2146,0.528,0.39-0.59,CC6.6,Encryption and Data Protection,50,suggested,iam_access,are secrets access-controlled via iam
+2381,2147,0.565,0.39-0.59,CC6.6,Encryption and Data Protection,50,suggested,logging;iam_access,are secrets logged when accessed
+2382,2148,0.564,0.39-0.59,CC6.6,Encryption and Data Protection,50,suggested,,are expired secrets revoked automatically
+2383,2149,0.49,0.39-0.59,PR.DS-01,Data-at-Rest Protection,28,suggested,encryption,is all data encrypted at rest
+2384,2150,0.95,0.60+,CC6.7,Transmission and Network Protections,51,suggested,encryption,is all data encrypted in transit
+2385,2151,0.474,0.39-0.59,PR.DS-01,Data-at-Rest Protection,28,suggested,,are storage buckets private by default
+2386,2152,0.418,0.39-0.59,CC6.1,Logical and Physical Access Controls,2,suggested,,are object storage policies enforced
+2387,2153,0.399,0.39-0.59,CC6.7,Transmission and Network Protections,51,suggested,encryption,are databases encrypted
+2388,2154,0.399,0.39-0.59,CC6.7,Transmission and Network Protections,51,suggested,encryption,are snapshots encrypted
+2389,2155,0.583,0.39-0.59,RC.RP-01,Recovery Planning,34,suggested,dr_backup,are backups immutable
+2390,2156,0.499,0.39-0.59,PR.PS-04,Log Management,30,suggested,logging,are data retention policies enforced
+2391,2157,0.354,0.01-0.38,CC6.1,Logical and Physical Access Controls,2,suggested,,is data classified automatically
+2392,2158,0.373,0.01-0.38,PR.DS-01,Data-at-Rest Protection,28,suggested,,is sensitive data masked/tokenized
+2393,2159,0.525,0.39-0.59,CC7.4,"Logging, Retention, and Incident Handling",53,suggested,logging;iam_access,are data access logs monitored
+2394,2160,0.354,0.01-0.38,CC6.1,Logical and Physical Access Controls,2,suggested,,are cross-tenant data leaks prevented
+2395,2161,0.373,0.01-0.38,CC3.1,Risk Assessment,49,suggested,,are data flows documented
+2396,2162,0.354,0.01-0.38,CC6.1,Logical and Physical Access Controls,2,suggested,,is data residency controlled
+2397,2163,0.0,0.00,,,,suggested,,are exports restricted
+2398,2164,0.0,0.00,,,,suggested,,do you use ci/cd pipelines
+2399,2165,0.354,0.01-0.38,CC1.1,Integrity and Ethical Values,1,suggested,,are pipelines secured with rbac
+2400,2166,0.0,0.00,,,,suggested,,are builds isolated
+2401,2167,0.399,0.39-0.59,164.308-a2,Assigned Security Responsibility,17,suggested,,are artifacts signed
+2402,2168,0.0,0.00,,,,suggested,,are dependencies scanned for vulnerabilities
+2403,2169,0.564,0.39-0.59,CC6.6,Encryption and Data Protection,50,suggested,,are secrets prevented in commits
+2404,2170,0.399,0.39-0.59,164.308-a2,Assigned Security Responsibility,17,suggested,,are commits signed
+2405,2171,0.0,0.00,,,,suggested,,are pipelines audited
+2406,2172,0.406,0.39-0.59,HITRUST-DEV-LOG-01,Logging and Monitoring (dev theme),39,suggested,logging,are build logs stored securely
+2407,2173,0.649,0.60+,CC8.1,Change Management,54,suggested,,are deployment approvals required
+2408,2174,0.605,0.60+,CC8.1,Change Management,54,suggested,,are production deployments restricted
+2409,2175,0.0,0.00,,,,suggested,,are rollback mechanisms implemented
+2410,2176,0.945,0.60+,GV.OC-05,Third-Party Risk,35,suggested,,are supply chain attacks mitigated
+2411,2177,0.0,0.00,,,,suggested,,are sboms generated
+2412,2178,0.464,0.39-0.59,CC8.1,Change Management,54,suggested,,are pipeline environments ephemeral
+2413,2179,0.495,0.39-0.59,CC8.1,Change Management,54,suggested,,are applications tested for owasp top 10
+2414,2180,0.399,0.39-0.59,PR.IP-01,Change and Configuration Management,36,suggested,,is input validation enforced
+2415,2181,0.0,0.00,,,,suggested,,are outputs sanitized
+2416,2182,0.418,0.39-0.59,CC6.1,Logical and Physical Access Controls,2,suggested,iam_access,are authentication tokens secure
+2417,2183,0.354,0.01-0.38,PR.DS-01,Data-at-Rest Protection,28,suggested,,are session cookies protected
+2418,2184,0.0,0.00,,,,suggested,,are apis authenticated and authorized
+2419,2185,0.0,0.00,,,,suggested,,are apis versioned
+2420,2186,0.0,0.00,,,,suggested,,are graphql endpoints secured
+2421,2187,0.354,0.01-0.38,164.312-e1,Transmission Security,20,suggested,,are ssrf protections implemented
+2422,2188,0.354,0.01-0.38,164.312-e1,Transmission Security,20,suggested,,are xss protections enforced
+2423,2189,0.354,0.01-0.38,164.312-e1,Transmission Security,20,suggested,,are csrf protections in place
+2424,2190,0.0,0.00,,,,suggested,,are deserialization attacks prevented
+2425,2191,0.373,0.01-0.38,CC9.2,Vendor Management and Business Continuity,55,suggested,logging,are business logic flaws tested
+2426,2192,0.0,0.00,,,,suggested,,are bug bounty programs active
+2427,2193,0.7,0.60+,ID.RA-07,Vulnerability Management,33,suggested,,are penetration tests conducted
+2428,2194,0.0,0.00,,,,suggested,,are container images scanned
+2429,2195,0.354,0.01-0.38,PR.IP-01,Change and Configuration Management,36,suggested,,are base images hardened
+2430,2196,0.0,0.00,,,,suggested,,are containers run as non-root
+2431,2197,0.418,0.39-0.59,CC6.1,Logical and Physical Access Controls,2,suggested,,are kubernetes rbac policies enforced
+2432,2198,0.0,0.00,,,,suggested,,are namespaces segmented
+2433,2199,0.605,0.60+,CC6.6,Encryption and Data Protection,50,suggested,,are secrets stored securely in k8s
+2434,2200,0.399,0.39-0.59,PR.PS-04,Log Management,30,suggested,,are admission controllers used
+2435,2201,0.437,0.39-0.59,CC6.1,Logical and Physical Access Controls,2,suggested,,are pod security policies enforced
+2436,2202,0.354,0.01-0.38,CC7.2,System Monitoring,3,suggested,,are runtime protections enabled
+2437,2203,0.373,0.01-0.38,CC7.2,System Monitoring,3,suggested,logging,are containers monitored for anomalies
+2447,2213,0.0,0.00,,,,suggested,,are alerts prioritized by severity
+2448,2214,0.0,0.00,,,,suggested,,are alerts actionable
+2449,2215,0.397,0.39-0.59,CC7.4,"Logging, Retention, and Incident Handling",53,suggested,,are playbooks automated
+2450,2216,0.354,0.01-0.38,CC1.1,Integrity and Ethical Values,1,suggested,incident,are incidents tracked in a system
+2472,2238,0.399,0.39-0.59,CC6.1,Logical and Physical Access Controls,2,suggested,,are dr drills performed
+2474,2240,0.0,0.00,,,,suggested,,are dependencies mapped
+2475,2241,0.354,0.01-0.38,CC6.1,Logical and Physical Access Controls,2,suggested,,are fallback systems documented
+2476,2242,0.0,0.00,,,,suggested,,are outages simulated
+2477,2243,0.506,0.39-0.59,RC.RP-01,Recovery Planning,34,suggested,logging;dr_backup,are recovery logs maintained
+2478,2244,0.392,0.39-0.59,CC6.6,Encryption and Data Protection,50,suggested,,are ai services isolated from sensitive data
+2479,2245,0.0,0.00,,,,suggested,,are llm outputs filtered
+2480,2246,0.445,0.39-0.59,PR.IP-01,Change and Configuration Management,36,suggested,,are prompt injection attacks mitigated
+2481,2247,0.0,0.00,,,,suggested,,are embeddings secured
+2482,2248,0.418,0.39-0.59,CC6.1,Logical and Physical Access Controls,2,suggested,iam_access,are vector databases access-controlled
+2483,2249,0.406,0.39-0.59,HITRUST-DEV-LOG-01,Logging and Monitoring (dev theme),39,suggested,logging,are ai logs monitored
+2484,2250,0.399,0.39-0.59,PR.IP-01,Change and Configuration Management,36,suggested,,are ai hallucinations mitigated
+2485,2251,0.441,0.39-0.59,PR.IP-01,Change and Configuration Management,36,suggested,,are models version-controlled
+2486,2252,0.354,0.01-0.38,PR.DS-01,Data-at-Rest Protection,28,suggested,,are datasets protected
+2487,2253,0.354,0.01-0.38,RC.RP-01,Recovery Planning,34,suggested,,are adversarial attacks tested
+2169,2095,0.354,0.01-0.38,GV.PO-02,Policies and Procedures,24,suggested,,is your architecture documented (diagrams available)
+2170,2096,0.354,0.01-0.38,RC.RP-01,Recovery Planning,34,suggested,,are environments separated (dev/test/staging/prod)
+2171,2097,0.399,0.39-0.59,CC8.1,Change Management,54,suggested,,"is infrastructure defined using iac (terraform, cloudformation)"
+2172,2098,0.0,0.00,,,,suggested,,are architecture diagrams updated regularly
+2173,2099,0.0,0.00,,,,suggested,,are high-availability zones used
+2174,2100,0.354,0.01-0.38,CC6.1,Logical and Physical Access Controls,2,suggested,,are multi-region deployments implemented
+2175,2101,0.0,0.00,,,,suggested,,is autoscaling configured
+2176,2102,0.0,0.00,,,,suggested,,are microservices used
+2177,2103,0.0,0.00,,,,suggested,,are services containerized
+2178,2104,0.0,0.00,,,,suggested,,do you use kubernetes or orchestration tools
+2179,2105,0.399,0.39-0.59,CC2.2,Communication and Training,48,suggested,,is service-to-service communication secured
+2180,2106,0.0,0.00,,,,suggested,,are internal apis authenticated
+2181,2107,0.354,0.01-0.38,HITRUST-DEV-AC-01,Access Control (dev theme),37,suggested,,is zero trust architecture implemented
+2182,2108,0.354,0.01-0.38,PR.DS-02,Data-in-Transit Protection,29,suggested,,are network trust boundaries minimized
+2183,2109,0.0,0.00,,,,suggested,iam_access,is centralized iam used
+2184,2110,0.418,0.39-0.59,PR.AA-05,Access Control and Authentication,27,suggested,iam_access,are all identities verified before access
+2185,2111,0.855,0.60+,CC6.1,Logical and Physical Access Controls,2,suggested,iam_access,is least privilege enforced
+2186,2112,0.354,0.01-0.38,GV.PO-02,Policies and Procedures,24,suggested,iam_access,are iam roles used instead of static credentials
+2187,2113,0.0,0.00,,,,suggested,,are temporary credentials used (sts)
+2188,2114,0.0,0.00,,,,suggested,,are api keys rotated automatically
+2189,2115,0.418,0.39-0.59,CC6.1,Logical and Physical Access Controls,2,suggested,iam_access,is mfa enforced across all systems
+2190,2116,0.399,0.39-0.59,164.308-a5,Security Awareness and Training,18,suggested,,are service identities separated from user identities
+2191,2117,0.0,0.00,,,,suggested,,are machine identities managed securely
+2192,2118,0.537,0.39-0.59,CC6.1,Logical and Physical Access Controls,2,suggested,iam_access,are access policies audited regularly
+2193,2119,0.418,0.39-0.59,CC6.1,Logical and Physical Access Controls,2,suggested,logging;iam_access,are privilege escalations logged
+2194,2120,0.354,0.01-0.38,CC6.1,Logical and Physical Access Controls,2,suggested,,are break-glass accounts controlled
+2195,2121,0.354,0.01-0.38,HITRUST-DEV-AC-01,Access Control (dev theme),37,suggested,,is device trust enforced (zero trust endpoint checks)
+2196,2122,0.0,0.00,,,,suggested,,are session durations limited
+2197,2123,0.418,0.39-0.59,CC6.1,Logical and Physical Access Controls,2,suggested,iam_access,are identity providers integrated (sso)
+2198,2124,0.0,0.00,,,,suggested,,are vpcs/vnets segmented
+2199,2125,0.0,0.00,,,,suggested,,are subnets classified (public/private)
+2200,2126,0.0,0.00,CC1.1,Integrity and Ethical Values,1,suggested,,are security groups/firewalls restrictive by default
+2201,2127,0.0,0.00,,,,suggested,,are ingress/egress rules limited
+2202,2128,0.0,0.00,,,,suggested,,are load balancers secured
+2203,2129,0.418,0.39-0.59,PR.DS-02,Data-in-Transit Protection,29,suggested,encryption,is tls enforced everywhere
+2204,2130,0.0,0.00,,,,suggested,,are private endpoints used
+2205,2131,0.354,0.01-0.38,CC6.1,Logical and Physical Access Controls,2,suggested,,is east-west traffic controlled
+2206,2132,0.354,0.01-0.38,DE.CM-01,Continuous Monitoring,31,suggested,logging,are network logs enabled
+2207,2133,0.0,0.00,,,,suggested,,is dns filtering implemented
+2208,2134,0.354,0.01-0.38,164.312-e1,Transmission Security,20,suggested,,are ddos protections enabled
+2209,2135,0.0,0.00,,,,suggested,,are api gateways used
+2210,2136,0.399,0.39-0.59,GV.RM-01,Risk Management Strategy,26,suggested,,are rate limits enforced
+2211,2137,0.0,0.00,,,,suggested,,are waf rules configured
+2212,2138,0.0,0.00,,,,suggested,,are ip allowlists used
+2213,2139,0.399,0.39-0.59,PR.DS-01,Data-at-Rest Protection,28,suggested,,"are secrets stored in a secure vault (e.g., hashicorp vault)"
+2214,2140,0.399,0.39-0.59,PR.DS-01,Data-at-Rest Protection,28,suggested,,are secrets ever stored in code
+2215,2141,0.0,0.00,,,,suggested,,are secrets rotated automatically
+2216,2142,0.582,0.39-0.59,CC6.6,Encryption and Data Protection,50,suggested,encryption,are encryption keys managed via kms
+2217,2143,0.0,0.00,,,,suggested,,are customer-managed keys supported
+2218,2144,0.0,0.00,,,,suggested,,are keys rotated periodically
+2219,2145,0.0,0.00,,,,suggested,,are hsm-backed keys used
+2220,2146,0.418,0.39-0.59,CC6.1,Logical and Physical Access Controls,2,suggested,iam_access,are secrets access-controlled via iam
+2221,2147,0.399,0.39-0.59,164.312-a2-iv,Encryption and Decryption,19,suggested,logging;iam_access,are secrets logged when accessed
+2222,2148,0.0,0.00,,,,suggested,,are expired secrets revoked automatically
+2223,2149,0.437,0.39-0.59,PR.DS-01,Data-at-Rest Protection,28,suggested,encryption,is all data encrypted at rest
+2224,2150,0.71,0.60+,CC6.7,Transmission and Network Protections,51,suggested,encryption,is all data encrypted in transit
+2225,2151,0.0,0.00,,,,suggested,,are storage buckets private by default
+2226,2152,0.418,0.39-0.59,CC6.1,Logical and Physical Access Controls,2,suggested,,are object storage policies enforced
+2227,2153,0.399,0.39-0.59,CC6.7,Transmission and Network Protections,51,suggested,encryption,are databases encrypted
+2228,2154,0.399,0.39-0.59,CC6.7,Transmission and Network Protections,51,suggested,encryption,are snapshots encrypted
+2229,2155,0.492,0.39-0.59,RC.RP-01,Recovery Planning,34,suggested,dr_backup,are backups immutable
+2230,2156,0.418,0.39-0.59,CC6.1,Logical and Physical Access Controls,2,suggested,logging,are data retention policies enforced
+2231,2157,0.354,0.01-0.38,PR.DS-01,Data-at-Rest Protection,28,suggested,,is data classified automatically
+2232,2158,0.373,0.01-0.38,CC6.6,Encryption and Data Protection,50,suggested,,is sensitive data masked/tokenized
+2233,2159,0.418,0.39-0.59,CC6.1,Logical and Physical Access Controls,2,suggested,logging;iam_access,are data access logs monitored
+2234,2160,0.354,0.01-0.38,PR.DS-01,Data-at-Rest Protection,28,suggested,,are cross-tenant data leaks prevented
+2235,2161,0.354,0.01-0.38,164.400-theme,Breach Response (theme),23,suggested,,are data flows documented
+2236,2162,0.354,0.01-0.38,PR.DS-01,Data-at-Rest Protection,28,suggested,,is data residency controlled
+2237,2163,0.0,0.00,,,,suggested,,are exports restricted
+2238,2164,0.0,0.00,,,,suggested,,do you use ci/cd pipelines
+2239,2165,0.399,0.39-0.59,164.312-b,Audit Controls,21,suggested,,are pipelines secured with rbac
+2240,2166,0.0,0.00,,,,suggested,,are builds isolated
+2241,2167,0.399,0.39-0.59,164.308-a2,Assigned Security Responsibility,17,suggested,,are artifacts signed
+2242,2168,0.0,0.00,,,,suggested,,are dependencies scanned for vulnerabilities
+2243,2169,0.0,0.00,,,,suggested,,are secrets prevented in commits
+2244,2170,0.399,0.39-0.59,164.308-a2,Assigned Security Responsibility,17,suggested,,are commits signed
+2245,2171,0.0,0.00,,,,suggested,,are pipelines audited
+2246,2172,0.354,0.01-0.38,PR.DS-01,Data-at-Rest Protection,28,suggested,logging,are build logs stored securely
+2247,2173,0.373,0.01-0.38,CC8.1,Change Management,54,suggested,,are deployment approvals required
+2248,2174,0.0,0.00,,,,suggested,,are production deployments restricted
+2249,2175,0.0,0.00,,,,suggested,,are rollback mechanisms implemented
+2250,2176,0.945,0.60+,GV.OC-05,Third-Party Risk,35,suggested,,are supply chain attacks mitigated
+2251,2177,0.0,0.00,,,,suggested,,are sboms generated
+2252,2178,0.0,0.00,,,,suggested,,are pipeline environments ephemeral
+2253,2179,0.0,0.00,,,,suggested,,are applications tested for owasp top 10
+2254,2180,0.0,0.00,,,,suggested,,is input validation enforced
+2255,2181,0.0,0.00,,,,suggested,,are outputs sanitized
+2256,2182,0.418,0.39-0.59,PR.AA-05,Access Control and Authentication,27,suggested,iam_access,are authentication tokens secure
+2257,2183,0.0,0.00,,,,suggested,,are session cookies protected
+2258,2184,0.0,0.00,,,,suggested,,are apis authenticated and authorized
+2259,2185,0.0,0.00,,,,suggested,,are apis versioned
+2260,2186,0.0,0.00,,,,suggested,,are graphql endpoints secured
+2261,2187,0.354,0.01-0.38,164.312-e1,Transmission Security,20,suggested,,are ssrf protections implemented
+2262,2188,0.354,0.01-0.38,164.312-e1,Transmission Security,20,suggested,,are xss protections enforced
+2263,2189,0.354,0.01-0.38,164.312-e1,Transmission Security,20,suggested,,are csrf protections in place
+2264,2190,0.0,0.00,,,,suggested,,are deserialization attacks prevented
+2265,2191,0.354,0.01-0.38,CC6.1,Logical and Physical Access Controls,2,suggested,logging,are business logic flaws tested
+2266,2192,0.0,0.00,,,,suggested,,are bug bounty programs active
+2267,2193,0.7,0.60+,ID.RA-07,Vulnerability Management,33,suggested,,are penetration tests conducted
+2268,2194,0.0,0.00,,,,suggested,,are container images scanned
+2269,2195,0.399,0.39-0.59,PR.IP-01,Change and Configuration Management,36,suggested,,are base images hardened
+2270,2196,0.0,0.00,,,,suggested,,are containers run as non-root
+2271,2197,0.418,0.39-0.59,CC6.1,Logical and Physical Access Controls,2,suggested,,are kubernetes rbac policies enforced
+2272,2198,0.0,0.00,,,,suggested,,are namespaces segmented
+2273,2199,0.399,0.39-0.59,PR.DS-01,Data-at-Rest Protection,28,suggested,,are secrets stored securely in k8s
+2274,2200,0.0,0.00,,,,suggested,,are admission controllers used
+2275,2201,0.437,0.39-0.59,CC6.1,Logical and Physical Access Controls,2,suggested,,are pod security policies enforced
+2276,2202,0.354,0.01-0.38,164.312-e1,Transmission Security,20,suggested,,are runtime protections enabled
+2277,2203,0.354,0.01-0.38,CC7.2,System Monitoring,3,suggested,logging,are containers monitored for anomalies
+2278,2204,0.0,0.00,,,,suggested,,are cluster configurations audited
+2279,2205,0.0,0.00,,,,suggested,,are etcd databases secured
+2280,2206,0.399,0.39-0.59,CC7.4,"Logging, Retention, and Incident Handling",53,suggested,logging,are cluster logs centralized
+2281,2207,0.0,0.00,,,,suggested,,are nodes hardened
+2282,2208,0.0,0.00,,,,suggested,,are unused services disabled
+2283,2209,0.399,0.39-0.59,CC7.4,"Logging, Retention, and Incident Handling",53,suggested,logging,are logs centralized
+2284,2210,0.354,0.01-0.38,164.312-b,Audit Controls,21,suggested,logging,are logs correlated across systems
+2285,2211,0.0,0.00,,,,suggested,logging,are siem tools used
+2286,2212,0.399,0.39-0.59,CC7.4,"Logging, Retention, and Incident Handling",53,suggested,,are anomaly detections implemented
+2287,2213,0.0,0.00,,,,suggested,,are alerts prioritized by severity
+2288,2214,0.0,0.00,,,,suggested,,are alerts actionable
+2289,2215,0.0,0.00,,,,suggested,,are playbooks automated
+2290,2216,0.354,0.01-0.38,ISO-DEV-A-16-1,Incident Management (dev theme),45,suggested,incident,are incidents tracked in a system
+2291,2217,0.0,0.00,,,,suggested,,are metrics dashboards used
+2292,2218,0.354,0.01-0.38,RS.MA-01,Incident Management,32,suggested,incident,are response slas defined
+2293,2219,0.0,0.00,,,,suggested,,are alerts tested regularly
+2294,2220,0.354,0.01-0.38,DE.CM-01,Continuous Monitoring,31,suggested,,are detection rules updated
+2295,2221,0.0,0.00,,,,suggested,,are false positives minimized
+2296,2222,0.399,0.39-0.59,CC7.4,"Logging, Retention, and Incident Handling",53,suggested,logging,are logs immutable
+2297,2223,0.0,0.00,,,,suggested,,are threat intelligence feeds integrated
+2298,2224,0.0,0.00,,,,suggested,,are cloud configurations audited continuously
+2299,2225,0.0,0.00,,,,suggested,,are cspm tools used
+2300,2226,0.399,0.39-0.59,PR.IP-01,Change and Configuration Management,36,suggested,,are compliance baselines enforced
+2301,2227,0.418,0.39-0.59,CC1.1,Integrity and Ethical Values,1,suggested,governance,are policy violations auto-remediated
+2302,2228,0.0,0.00,,,,suggested,,are compliance reports generated
+2303,2229,0.418,0.39-0.59,CC1.1,Integrity and Ethical Values,1,suggested,governance,are tags used for governance
+2304,2230,0.0,0.00,CC1.1,Integrity and Ethical Values,1,suggested,,are cost/security tied together
+2305,2231,0.399,0.39-0.59,CC6.1,Logical and Physical Access Controls,2,suggested,,are cloud accounts segmented
+2306,2232,0.354,0.01-0.38,PR.AA-05,Access Control and Authentication,27,suggested,,are admin roles restricted
+2307,2233,0.399,0.39-0.59,ISO-DEV-A-6-1,Roles and Screening (dev theme),42,suggested,,are shadow it resources detected
+2308,2234,0.492,0.39-0.59,RC.RP-01,Recovery Planning,34,suggested,dr_backup,are backups automated
+2309,2235,0.492,0.39-0.59,RC.RP-01,Recovery Planning,34,suggested,dr_backup,are backups cross-region
+2310,2236,0.492,0.39-0.59,RC.RP-01,Recovery Planning,34,suggested,dr_backup,are backups tested
+2311,2237,0.0,0.00,,,,suggested,,are failovers automated
+2312,2238,0.0,0.00,,,,suggested,,are dr drills performed
+2313,2239,0.0,0.00,,,,suggested,,are rto/rpo defined
+2314,2240,0.0,0.00,,,,suggested,,are dependencies mapped
+2315,2241,0.354,0.01-0.38,164.312-b,Audit Controls,21,suggested,,are fallback systems documented
+2316,2242,0.0,0.00,,,,suggested,,are outages simulated
+2317,2243,0.418,0.39-0.59,RC.RP-01,Recovery Planning,34,suggested,logging;dr_backup,are recovery logs maintained
+2318,2244,0.373,0.01-0.38,CC6.6,Encryption and Data Protection,50,suggested,,are ai services isolated from sensitive data
+2319,2245,0.0,0.00,,,,suggested,,are llm outputs filtered
+2320,2246,0.418,0.39-0.59,164.400-theme,Breach Response (theme),23,suggested,,are prompt injection attacks mitigated
+2321,2247,0.0,0.00,,,,suggested,,are embeddings secured
+2322,2248,0.418,0.39-0.59,CC6.1,Logical and Physical Access Controls,2,suggested,iam_access,are vector databases access-controlled
+2323,2249,0.399,0.39-0.59,CC7.4,"Logging, Retention, and Incident Handling",53,suggested,logging,are ai logs monitored
+2324,2250,0.0,0.00,,,,suggested,,are ai hallucinations mitigated
+2325,2251,0.354,0.01-0.38,PR.IP-01,Change and Configuration Management,36,suggested,,are models version-controlled
+2326,2252,0.0,0.00,,,,suggested,,are datasets protected
+2327,2253,0.0,0.00,,,,suggested,,are adversarial attacks tested
+2328,2094,0.0,0.00,,,,suggested,,"which cloud providers do you use? (aws, azure, gcp)"
+2330,2096,0.354,0.01-0.38,RC.RP-01,Recovery Planning,34,suggested,,are environments separated (dev/test/staging/prod)
+2331,2097,0.399,0.39-0.59,CC8.1,Change Management,54,suggested,,"is infrastructure defined using iac (terraform, cloudformation)"
+2332,2098,0.0,0.00,,,,suggested,,are architecture diagrams updated regularly
+2333,2099,0.0,0.00,,,,suggested,,are high-availability zones used
+2334,2100,0.354,0.01-0.38,CC6.1,Logical and Physical Access Controls,2,suggested,,are multi-region deployments implemented
+2335,2101,0.0,0.00,,,,suggested,,is autoscaling configured
+2336,2102,0.0,0.00,,,,suggested,,are microservices used
+2337,2103,0.0,0.00,,,,suggested,,are services containerized
+2338,2104,0.0,0.00,,,,suggested,,do you use kubernetes or orchestration tools
+2339,2105,0.399,0.39-0.59,CC2.2,Communication and Training,48,suggested,,is service-to-service communication secured
+2340,2106,0.0,0.00,,,,suggested,,are internal apis authenticated
+2341,2107,0.354,0.01-0.38,HITRUST-DEV-AC-01,Access Control (dev theme),37,suggested,,is zero trust architecture implemented
+2342,2108,0.354,0.01-0.38,PR.DS-02,Data-in-Transit Protection,29,suggested,,are network trust boundaries minimized
+2343,2109,0.0,0.00,,,,suggested,iam_access,is centralized iam used
+2344,2110,0.418,0.39-0.59,PR.AA-05,Access Control and Authentication,27,suggested,iam_access,are all identities verified before access
+2345,2111,0.855,0.60+,CC6.1,Logical and Physical Access Controls,2,suggested,iam_access,is least privilege enforced
+2346,2112,0.354,0.01-0.38,GV.PO-02,Policies and Procedures,24,suggested,iam_access,are iam roles used instead of static credentials
+2347,2113,0.0,0.00,,,,suggested,,are temporary credentials used (sts)
+2348,2114,0.0,0.00,,,,suggested,,are api keys rotated automatically
+2349,2115,0.437,0.39-0.59,HITRUST-DEV-AC-01,Access Control (dev theme),37,suggested,iam_access,is mfa enforced across all systems
+2350,2116,0.399,0.39-0.59,164.308-a5,Security Awareness and Training,18,suggested,,are service identities separated from user identities
+2351,2117,0.0,0.00,,,,suggested,,are machine identities managed securely
+2352,2118,0.537,0.39-0.59,CC6.1,Logical and Physical Access Controls,2,suggested,iam_access,are access policies audited regularly
+2353,2119,0.418,0.39-0.59,CC6.1,Logical and Physical Access Controls,2,suggested,logging;iam_access,are privilege escalations logged
+2354,2120,0.354,0.01-0.38,CC6.1,Logical and Physical Access Controls,2,suggested,,are break-glass accounts controlled
+2355,2121,0.354,0.01-0.38,HITRUST-DEV-AC-01,Access Control (dev theme),37,suggested,,is device trust enforced (zero trust endpoint checks)
+2356,2122,0.0,0.00,,,,suggested,,are session durations limited
+2357,2123,0.418,0.39-0.59,CC6.1,Logical and Physical Access Controls,2,suggested,iam_access,are identity providers integrated (sso)
+2358,2124,0.0,0.00,,,,suggested,,are vpcs/vnets segmented
+2359,2125,0.0,0.00,,,,suggested,,are subnets classified (public/private)
+2360,2126,0.0,0.00,CC1.1,Integrity and Ethical Values,1,suggested,,are security groups/firewalls restrictive by default
+2361,2127,0.0,0.00,,,,suggested,,are ingress/egress rules limited
+2362,2128,0.0,0.00,,,,suggested,,are load balancers secured
+2363,2129,0.418,0.39-0.59,PR.DS-02,Data-in-Transit Protection,29,suggested,encryption,is tls enforced everywhere
+2364,2130,0.0,0.00,,,,suggested,,are private endpoints used
+2365,2131,0.354,0.01-0.38,CC6.1,Logical and Physical Access Controls,2,suggested,,is east-west traffic controlled
+2366,2132,0.354,0.01-0.38,DE.CM-01,Continuous Monitoring,31,suggested,logging,are network logs enabled
+2367,2133,0.0,0.00,,,,suggested,,is dns filtering implemented
+2438,2204,0.0,0.00,,,,suggested,,are cluster configurations audited
+2439,2205,0.0,0.00,,,,suggested,,are etcd databases secured
+2440,2206,0.406,0.39-0.59,HITRUST-DEV-LOG-01,Logging and Monitoring (dev theme),39,suggested,logging,are cluster logs centralized
+2441,2207,0.0,0.00,,,,suggested,,are nodes hardened
+2442,2208,0.0,0.00,,,,suggested,,are unused services disabled
+2443,2209,0.406,0.39-0.59,HITRUST-DEV-LOG-01,Logging and Monitoring (dev theme),39,suggested,logging,are logs centralized
+2444,2210,0.406,0.39-0.59,HITRUST-DEV-LOG-01,Logging and Monitoring (dev theme),39,suggested,logging,are logs correlated across systems
+2445,2211,0.639,0.60+,PR.PS-04,Log Management,30,suggested,logging,are siem tools used
+2446,2212,0.497,0.39-0.59,CC7.2,System Monitoring,3,suggested,,are anomaly detections implemented
+2451,2217,0.0,0.00,,,,suggested,,are metrics dashboards used
+2452,2218,0.354,0.01-0.38,RS.MA-01,Incident Management,32,suggested,incident,are response slas defined
+2453,2219,0.0,0.00,,,,suggested,,are alerts tested regularly
+2454,2220,0.354,0.01-0.38,DE.CM-01,Continuous Monitoring,31,suggested,,are detection rules updated
+2455,2221,0.0,0.00,,,,suggested,,are false positives minimized
+2456,2222,0.399,0.39-0.59,CC7.4,"Logging, Retention, and Incident Handling",53,suggested,logging,are logs immutable
+2457,2223,0.0,0.00,,,,suggested,,are threat intelligence feeds integrated
+2458,2224,0.0,0.00,,,,suggested,,are cloud configurations audited continuously
+2459,2225,0.0,0.00,,,,suggested,,are cspm tools used
+2460,2226,0.399,0.39-0.59,PR.IP-01,Change and Configuration Management,36,suggested,,are compliance baselines enforced
+2461,2227,0.418,0.39-0.59,CC1.1,Integrity and Ethical Values,1,suggested,governance,are policy violations auto-remediated
+2462,2228,0.0,0.00,,,,suggested,,are compliance reports generated
+2463,2229,0.418,0.39-0.59,CC1.1,Integrity and Ethical Values,1,suggested,governance,are tags used for governance
+2464,2230,0.0,0.00,CC1.1,Integrity and Ethical Values,1,suggested,,are cost/security tied together
+2465,2231,0.399,0.39-0.59,CC6.1,Logical and Physical Access Controls,2,suggested,,are cloud accounts segmented
+2466,2232,0.354,0.01-0.38,PR.AA-05,Access Control and Authentication,27,suggested,,are admin roles restricted
+2467,2233,0.399,0.39-0.59,ISO-DEV-A-6-1,Roles and Screening (dev theme),42,suggested,,are shadow it resources detected
+2468,2234,0.492,0.39-0.59,RC.RP-01,Recovery Planning,34,suggested,dr_backup,are backups automated
+2469,2235,0.492,0.39-0.59,RC.RP-01,Recovery Planning,34,suggested,dr_backup,are backups cross-region
+2470,2236,0.492,0.39-0.59,RC.RP-01,Recovery Planning,34,suggested,dr_backup,are backups tested
+2471,2237,0.0,0.00,,,,suggested,,are failovers automated
+2473,2239,0.0,0.00,,,,suggested,,are rto/rpo defined
+2488,2094,0.0,0.00,,,,suggested,,"which cloud providers do you use? (aws, azure, gcp)"
+2489,2095,0.354,0.01-0.38,GV.PO-02,Policies and Procedures,24,suggested,,is your architecture documented (diagrams available)
+2168,2094,0.0,0.00,,,,suggested,,"which cloud providers do you use? (aws, azure, gcp)"
+2329,2095,0.354,0.01-0.38,GV.PO-02,Policies and Procedures,24,suggested,,is your architecture documented (diagrams available)
+2490,2096,0.392,0.39-0.59,CC8.1,Change Management,54,suggested,,are environments separated (dev/test/staging/prod)
+2491,2097,0.671,0.60+,CC8.1,Change Management,54,suggested,,"is infrastructure defined using iac (terraform, cloudformation)"
+2492,2098,0.0,0.00,,,,suggested,,are architecture diagrams updated regularly
+2493,2099,0.354,0.01-0.38,GV.RM-01,Risk Management Strategy,26,suggested,,are high-availability zones used
+2494,2100,0.354,0.01-0.38,CC6.1,Logical and Physical Access Controls,2,suggested,,are multi-region deployments implemented
+2495,2101,0.0,0.00,,,,suggested,,is autoscaling configured
+2496,2102,0.399,0.39-0.59,PR.PS-04,Log Management,30,suggested,,are microservices used
+2497,2103,0.0,0.00,,,,suggested,,are services containerized
+2498,2104,0.0,0.00,,,,suggested,,do you use kubernetes or orchestration tools
+2499,2105,0.397,0.39-0.59,CC6.7,Transmission and Network Protections,51,suggested,,is service-to-service communication secured
+2500,2106,0.0,0.00,,,,suggested,,are internal apis authenticated
+2501,2107,0.456,0.39-0.59,CC6.7,Transmission and Network Protections,51,suggested,,is zero trust architecture implemented
+2502,2108,0.545,0.39-0.59,CC6.7,Transmission and Network Protections,51,suggested,,are network trust boundaries minimized
+2503,2109,0.478,0.39-0.59,CC6.1,Logical and Physical Access Controls,2,suggested,iam_access,is centralized iam used
+2504,2110,0.418,0.39-0.59,CC6.1,Logical and Physical Access Controls,2,suggested,iam_access,are all identities verified before access
+2505,2111,0.9,0.60+,CC6.1,Logical and Physical Access Controls,2,suggested,iam_access,is least privilege enforced
+2506,2112,0.478,0.39-0.59,CC6.1,Logical and Physical Access Controls,2,suggested,iam_access,are iam roles used instead of static credentials
+2507,2113,0.399,0.39-0.59,PR.PS-04,Log Management,30,suggested,,are temporary credentials used (sts)
+2508,2114,0.418,0.39-0.59,CC6.6,Encryption and Data Protection,50,suggested,,are api keys rotated automatically
+2509,2115,0.437,0.39-0.59,CC6.1,Logical and Physical Access Controls,2,suggested,iam_access,is mfa enforced across all systems
+2510,2116,0.373,0.01-0.38,CC6.6,Encryption and Data Protection,50,suggested,,are service identities separated from user identities
+2511,2117,0.354,0.01-0.38,CC6.1,Logical and Physical Access Controls,2,suggested,,are machine identities managed securely
+2512,2118,0.537,0.39-0.59,CC6.1,Logical and Physical Access Controls,2,suggested,iam_access,are access policies audited regularly
+2513,2119,0.418,0.39-0.59,CC6.1,Logical and Physical Access Controls,2,suggested,logging;iam_access,are privilege escalations logged
+2514,2120,0.354,0.01-0.38,CC6.1,Logical and Physical Access Controls,2,suggested,,are break-glass accounts controlled
+2515,2121,0.456,0.39-0.59,CC6.7,Transmission and Network Protections,51,suggested,,is device trust enforced (zero trust endpoint checks)
+2516,2122,0.0,0.00,,,,suggested,,are session durations limited
+2517,2123,0.52,0.39-0.59,CC6.1,Logical and Physical Access Controls,2,suggested,iam_access,are identity providers integrated (sso)
+2518,2124,0.0,0.00,,,,suggested,,are vpcs/vnets segmented
+2519,2125,0.0,0.00,,,,suggested,,are subnets classified (public/private)
+2520,2126,0.0,0.00,CC6.7,Transmission and Network Protections,51,suggested,,are security groups/firewalls restrictive by default
+2521,2127,0.0,0.00,,,,suggested,,are ingress/egress rules limited
+2522,2128,0.0,0.00,,,,suggested,,are load balancers secured
+2523,2129,0.418,0.39-0.59,164.312-e1,Transmission Security,20,suggested,encryption,is tls enforced everywhere
+2524,2130,0.399,0.39-0.59,PR.PS-04,Log Management,30,suggested,,are private endpoints used
+2525,2131,0.56,0.39-0.59,CC6.7,Transmission and Network Protections,51,suggested,,is east-west traffic controlled
+2526,2132,0.406,0.39-0.59,HITRUST-DEV-LOG-01,Logging and Monitoring (dev theme),39,suggested,logging,are network logs enabled
+2611,2217,0.354,0.01-0.38,CC6.1,Logical and Physical Access Controls,2,suggested,,are metrics dashboards used
+2612,2218,0.354,0.01-0.38,164.400-theme,Breach Response (theme),23,suggested,incident,are response slas defined
+2613,2219,0.354,0.01-0.38,RC.RP-01,Recovery Planning,34,suggested,,are alerts tested regularly
+2614,2220,0.45,0.39-0.59,DE.CM-01,Continuous Monitoring,31,suggested,,are detection rules updated
+2615,2221,0.0,0.00,,,,suggested,,are false positives minimized
+2616,2222,0.406,0.39-0.59,HITRUST-DEV-LOG-01,Logging and Monitoring (dev theme),39,suggested,logging,are logs immutable
+2617,2223,0.0,0.00,,,,suggested,,are threat intelligence feeds integrated
+2618,2224,0.0,0.00,,,,suggested,,are cloud configurations audited continuously
+2619,2225,0.399,0.39-0.59,PR.PS-04,Log Management,30,suggested,,are cspm tools used
+2620,2226,0.399,0.39-0.59,PR.IP-01,Change and Configuration Management,36,suggested,,are compliance baselines enforced
+2621,2227,0.471,0.39-0.59,CC1.1,Integrity and Ethical Values,1,suggested,governance,are policy violations auto-remediated
+2622,2228,0.0,0.00,,,,suggested,,are compliance reports generated
+2623,2229,0.471,0.39-0.59,CC1.1,Integrity and Ethical Values,1,suggested,governance,are tags used for governance
+2624,2230,0.0,0.00,CC1.1,Integrity and Ethical Values,1,suggested,,are cost/security tied together
+2625,2231,0.399,0.39-0.59,CC6.1,Logical and Physical Access Controls,2,suggested,,are cloud accounts segmented
+2626,2232,0.354,0.01-0.38,CC6.1,Logical and Physical Access Controls,2,suggested,,are admin roles restricted
+2627,2233,0.399,0.39-0.59,ISO-DEV-A-6-1,Roles and Screening (dev theme),42,suggested,,are shadow it resources detected
+2628,2234,0.583,0.39-0.59,RC.RP-01,Recovery Planning,34,suggested,dr_backup,are backups automated
+2629,2235,0.583,0.39-0.59,RC.RP-01,Recovery Planning,34,suggested,dr_backup,are backups cross-region
+2630,2236,0.602,0.60+,RC.RP-01,Recovery Planning,34,suggested,dr_backup,are backups tested
+2631,2237,0.0,0.00,PR.IP-01,Change and Configuration Management,36,suggested,,are failovers automated

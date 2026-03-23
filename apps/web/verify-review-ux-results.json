@@ -1,0 +1,16 @@
+{
+  "freezeGone": true,
+  "successPathWorks": true,
+  "timeoutErrorPath": false,
+  "exportWorks": true,
+  "uxRoughEdges": [],
+  "consoleErrors": [],
+  "details": [
+    "Login OK, url=http://localhost:3000/dashboard",
+    "Answer count before: 3",
+    "~1s after click: \"Generating…\" visible=false, button disabled=true, button text=\"Generate answers\"",
+    "PASS: Button disabled on click; Generating… visible=false (may clear quickly if job is fast). No freeze.",
+    "Success: answers updated (3), loading cleared, button back.",
+    "Export: Export XLSX completed; Download button present."
+  ]
+}

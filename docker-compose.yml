@@ -1,0 +1,133 @@
+services:
+  caddy:
+    image: caddy:2
+    container_name: trust-copilot-caddy
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./infra/caddy/Caddyfile:/etc/caddy/Caddyfile:ro
+    depends_on:
+      web:
+        condition: service_healthy
+      api:
+        condition: service_started
+    networks:
+      - trustnet
+
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+      target: dev
+    container_name: trust-copilot-web
+    env_file:
+      - .env
+    environment:
+      # Single local URL: http://localhost:3000 (Caddy serves on 3000; matches OAuth config).
+      NEXT_PUBLIC_APP_URL: http://localhost:3000
+      NEXT_PUBLIC_SHOW_DEMO_HINT: "true"
+      # SSR/rewrites from Next.js in container call API via this. Omit when running npm run dev locally.
+      API_UPSTREAM: http://api:8000
+    volumes:
+      - ./apps/web:/app
+      - /app/node_modules
+    expose:
+      - "3000"
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "require('http').get('http://127.0.0.1:3000/',(r)=>process.exit(r.statusCode<500?0:1)).on('error',()=>process.exit(1))",
+        ]
+      interval: 5s
+      timeout: 5s
+      retries: 8
+      start_period: 180s
+    networks:
+      - trustnet
+
+  api:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    container_name: trust-copilot-api
+    env_file:
+      - .env
+    environment:
+      # Local: OAuth redirect_uri must match (e.g. http://localhost:3000). Production: set APP_BASE_URL/FRONTEND_URL to HTTPS.
+      APP_BASE_URL: http://localhost:3000
+      TRUST_COPILOT_IN_DOCKER: "1"
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/trustcopilot
+      S3_ENDPOINT: http://minio:9000
+      # Production: set APP_ENV=production and SESSION_SECRET (min 32 chars) in .env or here
+    volumes:
+      - ./apps/api:/app
+    ports:
+      - "8000:8000"
+    expose:
+      - "8000"
+    depends_on:
+      - postgres
+      - minio
+    networks:
+      - trustnet
+
+  worker:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    container_name: trust-copilot-worker
+    env_file:
+      - .env
+    environment:
+      TRUST_COPILOT_IN_DOCKER: "1"
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/trustcopilot
+      S3_ENDPOINT: http://minio:9000
+    command: python -m app.worker
+    volumes:
+      - ./apps/api:/app
+    depends_on:
+      - postgres
+      - minio
+    networks:
+      - trustnet
+
+  postgres:
+    image: pgvector/pgvector:pg16
+    container_name: trust-copilot-postgres
+    environment:
+      POSTGRES_DB: trustcopilot
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./infra/postgres/init-create-test-db.sh:/docker-entrypoint-initdb.d/init-create-test-db.sh:ro
+    networks:
+      - trustnet
+
+  minio:
+    image: minio/minio:latest
+    container_name: trust-copilot-minio
+    environment:
+      MINIO_ROOT_USER: minio
+      MINIO_ROOT_PASSWORD: minio123
+    command: server /data --console-address ":9001"
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - minio_data:/data
+    networks:
+      - trustnet
+
+volumes:
+  postgres_data:
+  minio_data:
+
+networks:
+  trustnet:
+    driver: bridge

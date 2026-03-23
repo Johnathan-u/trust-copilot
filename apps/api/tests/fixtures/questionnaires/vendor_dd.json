@@ -1,0 +1,16 @@
+[
+  {
+    "text": "Describe your data processing practices.",
+    "section": "Data Handling",
+    "answer_type": "free_text",
+    "source_location": {"sheet": "Vendor", "row": 2, "col": 1},
+    "confidence": 80
+  },
+  {
+    "text": "Do you have a SOC 2 report?",
+    "section": "Certifications",
+    "answer_type": "yes_no",
+    "source_location": {"sheet": "Vendor", "row": 5, "col": 1},
+    "confidence": 85
+  }
+]

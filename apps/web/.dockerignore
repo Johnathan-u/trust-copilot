@@ -1,0 +1,3 @@
+# Avoid copying local .next into image (can cause "Cannot find module './161.js'" if stale)
+.next
+node_modules

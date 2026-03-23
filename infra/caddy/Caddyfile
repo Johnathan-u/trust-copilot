@@ -1,0 +1,50 @@
+:3000 {
+    # Security headers (apply to all responses)
+    header {
+        X-Frame-Options "SAMEORIGIN"
+        X-Content-Type-Options "nosniff"
+        Referrer-Policy "strict-origin-when-cross-origin"
+        # CSP: conservative default; tighten per app needs
+        Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self'; connect-src 'self' https:; frame-ancestors 'self';"
+        # HSTS: enable when serving over HTTPS (e.g. production with TLS)
+        # Uncomment and set max-age when using Caddy with HTTPS:
+        # Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+    }
+
+    # Caddy 2.11+ defaults Host on upstream to api:8000. Restore the browser's Host (e.g. localhost:3000)
+    # so the API CSRF check and URL building match TRUSTED_ORIGINS / FRONTEND_URL.
+
+    handle /healthz {
+        reverse_proxy api:8000 {
+            header_up Host {hostport}
+        }
+    }
+
+    handle /readyz {
+        reverse_proxy api:8000 {
+            header_up Host {hostport}
+        }
+    }
+
+    handle /workerz {
+        reverse_proxy api:8000 {
+            header_up Host {hostport}
+        }
+    }
+
+    handle /metrics {
+        reverse_proxy api:8000 {
+            header_up Host {hostport}
+        }
+    }
+
+    handle /api* {
+        reverse_proxy api:8000 {
+            header_up Host {hostport}
+        }
+    }
+
+    handle {
+        reverse_proxy web:3000
+    }
+}

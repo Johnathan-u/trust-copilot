@@ -1,0 +1,25 @@
+# Override for production: use production build targets and no source volume mounts.
+# Run: docker compose -f docker-compose.yml -f docker-compose.prod.yml up --build
+# Local dev (unchanged): docker compose up
+
+services:
+  api:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+      target: production
+    volumes: []
+
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+      target: production
+    volumes: []
+
+  worker:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+      target: production
+    volumes: []

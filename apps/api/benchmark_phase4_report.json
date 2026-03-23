@@ -1,0 +1,277 @@
+{
+  "scenarios": [
+    {
+      "scenario": "small_questionnaire",
+      "n_questions": 3,
+      "cache_n": 0,
+      "baseline": {
+        "count": 3,
+        "wall_sec": 0.593,
+        "answer_gen_count": 1.0,
+        "answer_gen_sum": 0.0,
+        "insufficient_evidence": 0.0,
+        "openai_completion_failures": 0.0,
+        "batch_fallback": 0
+      },
+      "adaptive": {
+        "count": 3,
+        "wall_sec": 0.016,
+        "answer_gen_count": 1.0,
+        "answer_gen_sum": 0.0,
+        "insufficient_evidence": 0.0,
+        "openai_completion_failures": 0.0,
+        "batch_fallback": 0,
+        "rate_limited_batches": 0.0,
+        "timeout_stepdown": 0.0,
+        "concurrency_current": 1.0
+      },
+      "comparison": {
+        "latency_delta_sec": -0.577,
+        "failure_delta": 0,
+        "insufficient_evidence_delta": 0
+      }
+    },
+    {
+      "scenario": "medium_questionnaire",
+      "n_questions": 10,
+      "cache_n": 0,
+      "baseline": {
+        "count": 10,
+        "wall_sec": 0.0,
+        "answer_gen_count": 1.0,
+        "answer_gen_sum": 0.0,
+        "insufficient_evidence": 0.0,
+        "openai_completion_failures": 0.0,
+        "batch_fallback": 0
+      },
+      "adaptive": {
+        "count": 10,
+        "wall_sec": 0.0,
+        "answer_gen_count": 1.0,
+        "answer_gen_sum": 0.0,
+        "insufficient_evidence": 0.0,
+        "openai_completion_failures": 0.0,
+        "batch_fallback": 0,
+        "rate_limited_batches": 0.0,
+        "timeout_stepdown": 0.0,
+        "concurrency_current": 1.0
+      },
+      "comparison": {
+        "latency_delta_sec": 0,
+        "failure_delta": 0,
+        "insufficient_evidence_delta": 0
+      }
+    },
+    {
+      "scenario": "large_questionnaire",
+      "n_questions": 25,
+      "cache_n": 0,
+      "baseline": {
+        "count": 25,
+        "wall_sec": 0.016,
+        "answer_gen_count": 1.0,
+        "answer_gen_sum": 0.0,
+        "insufficient_evidence": 0.0,
+        "openai_completion_failures": 0.0,
+        "batch_fallback": 0
+      },
+      "adaptive": {
+        "count": 25,
+        "wall_sec": 0.0,
+        "answer_gen_count": 1.0,
+        "answer_gen_sum": 0.0,
+        "insufficient_evidence": 0.0,
+        "openai_completion_failures": 0.0,
+        "batch_fallback": 0,
+        "rate_limited_batches": 0.0,
+        "timeout_stepdown": 0.0,
+        "concurrency_current": 1.0
+      },
+      "comparison": {
+        "latency_delta_sec": -0.016,
+        "failure_delta": 0,
+        "insufficient_evidence_delta": 0
+      }
+    },
+    {
+      "scenario": "repeated_similar_cache",
+      "n_questions": 10,
+      "cache_n": 5,
+      "baseline": {
+        "count": 10,
+        "wall_sec": 0.0,
+        "answer_gen_count": 1.0,
+        "answer_gen_sum": 0.0,
+        "insufficient_evidence": 0.0,
+        "openai_completion_failures": 0.0,
+        "batch_fallback": 0
+      },
+      "adaptive": {
+        "count": 10,
+        "wall_sec": 0.0,
+        "answer_gen_count": 1.0,
+        "answer_gen_sum": 0.0,
+        "insufficient_evidence": 0.0,
+        "openai_completion_failures": 0.0,
+        "batch_fallback": 0,
+        "rate_limited_batches": 0.0,
+        "timeout_stepdown": 0.0,
+        "concurrency_current": 1.0
+      },
+      "comparison": {
+        "latency_delta_sec": 0,
+        "failure_delta": 0,
+        "insufficient_evidence_delta": 0
+      }
+    },
+    {
+      "scenario": "mixed_cache_and_llm",
+      "n_questions": 10,
+      "cache_n": 4,
+      "baseline": {
+        "count": 10,
+        "wall_sec": 0.016,
+        "answer_gen_count": 1.0,
+        "answer_gen_sum": 0.0,
+        "insufficient_evidence": 0.0,
+        "openai_completion_failures": 0.0,
+        "batch_fallback": 0
+      },
+      "adaptive": {
+        "count": 10,
+        "wall_sec": 0.0,
+        "answer_gen_count": 1.0,
+        "answer_gen_sum": 0.0,
+        "insufficient_evidence": 0.0,
+        "openai_completion_failures": 0.0,
+        "batch_fallback": 0,
+        "rate_limited_batches": 0.0,
+        "timeout_stepdown": 0.0,
+        "concurrency_current": 1.0
+      },
+      "comparison": {
+        "latency_delta_sec": -0.016,
+        "failure_delta": 0,
+        "insufficient_evidence_delta": 0
+      }
+    },
+    {
+      "scenario": "simulated_429",
+      "n_questions": 3,
+      "baseline": {
+        "count": 3,
+        "wall_sec": 1.0,
+        "openai_completion_failures": 0.0,
+        "insufficient_evidence": 0.0
+      },
+      "adaptive": {
+        "count": 3,
+        "wall_sec": 1.015,
+        "openai_completion_failures": 0.0,
+        "insufficient_evidence": 0.0,
+        "rate_limited_batches": 0.0
+      },
+      "comparison": {
+        "latency_delta_sec": 0.015,
+        "failure_delta": 0,
+        "insufficient_evidence_delta": 0
+      }
+    },
+    {
+      "scenario": "simulated_transient_503",
+      "n_questions": 3,
+      "baseline": {
+        "count": 3,
+        "wall_sec": 1.0,
+        "openai_completion_failures": 0.0
+      },
+      "adaptive": {
+        "count": 3,
+        "wall_sec": 1.0,
+        "openai_completion_failures": 0.0,
+        "timeout_stepdown": 0.0
+      },
+      "comparison": {
+        "latency_delta_sec": 0.0,
+        "failure_delta": 0,
+        "insufficient_evidence_delta": 0
+      }
+    }
+  ],
+  "baseline_vs_adaptive": [
+    {
+      "scenario": "small_questionnaire",
+      "n": 3,
+      "baseline_wall_sec": 0.593,
+      "adaptive_wall_sec": 0.016,
+      "latency_delta_sec": -0.577,
+      "failure_delta": 0,
+      "adaptive_rate_limited": 0.0,
+      "adaptive_timeout_stepdown": 0.0
+    },
+    {
+      "scenario": "medium_questionnaire",
+      "n": 10,
+      "baseline_wall_sec": 0.0,
+      "adaptive_wall_sec": 0.0,
+      "latency_delta_sec": 0,
+      "failure_delta": 0,
+      "adaptive_rate_limited": 0.0,
+      "adaptive_timeout_stepdown": 0.0
+    },
+    {
+      "scenario": "large_questionnaire",
+      "n": 25,
+      "baseline_wall_sec": 0.016,
+      "adaptive_wall_sec": 0.0,
+      "latency_delta_sec": -0.016,
+      "failure_delta": 0,
+      "adaptive_rate_limited": 0.0,
+      "adaptive_timeout_stepdown": 0.0
+    },
+    {
+      "scenario": "repeated_similar_cache",
+      "n": 10,
+      "baseline_wall_sec": 0.0,
+      "adaptive_wall_sec": 0.0,
+      "latency_delta_sec": 0,
+      "failure_delta": 0,
+      "adaptive_rate_limited": 0.0,
+      "adaptive_timeout_stepdown": 0.0
+    },
+    {
+      "scenario": "mixed_cache_and_llm",
+      "n": 10,
+      "baseline_wall_sec": 0.016,
+      "adaptive_wall_sec": 0.0,
+      "latency_delta_sec": -0.016,
+      "failure_delta": 0,
+      "adaptive_rate_limited": 0.0,
+      "adaptive_timeout_stepdown": 0.0
+    },
+    {
+      "scenario": "simulated_429",
+      "n": 3,
+      "baseline_wall_sec": 1.0,
+      "adaptive_wall_sec": 1.015,
+      "latency_delta_sec": 0.015,
+      "failure_delta": 0,
+      "adaptive_rate_limited": 0.0,
+      "adaptive_timeout_stepdown": null
+    },
+    {
+      "scenario": "simulated_transient_503",
+      "n": 3,
+      "baseline_wall_sec": 1.0,
+      "adaptive_wall_sec": 1.0,
+      "latency_delta_sec": 0.0,
+      "failure_delta": 0,
+      "adaptive_rate_limited": null,
+      "adaptive_timeout_stepdown": 0.0
+    }
+  ],
+  "recommendation": "keep_off",
+  "summary": {
+    "all_scenarios_return_correct_count": true
+  }
+}
