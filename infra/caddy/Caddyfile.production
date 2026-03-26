@@ -1,0 +1,43 @@
+trustcopilot.app, www.trustcopilot.app {
+    header {
+        X-Frame-Options "SAMEORIGIN"
+        X-Content-Type-Options "nosniff"
+        Referrer-Policy "strict-origin-when-cross-origin"
+        Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self'; connect-src 'self' https:; frame-ancestors 'self';"
+        Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+    }
+
+    handle /healthz {
+        reverse_proxy api:8000 {
+            header_up Host {hostport}
+        }
+    }
+
+    handle /readyz {
+        reverse_proxy api:8000 {
+            header_up Host {hostport}
+        }
+    }
+
+    handle /workerz {
+        reverse_proxy api:8000 {
+            header_up Host {hostport}
+        }
+    }
+
+    handle /metrics {
+        reverse_proxy api:8000 {
+            header_up Host {hostport}
+        }
+    }
+
+    handle /api* {
+        reverse_proxy api:8000 {
+            header_up Host {hostport}
+        }
+    }
+
+    handle {
+        reverse_proxy web:3000
+    }
+}

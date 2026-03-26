@@ -349,7 +349,7 @@ class TestDefaultsPersist:
     def test_defaults_remain_after_adding_custom(self, client: TestClient):
         _login_admin_ws1(client)
         client.post("/api/dashboard/cards", json={
-            "title": "My Custom", "icon": "star", "target_route": "/dashboard/controls",
+            "title": "My Custom", "icon": "star", "target_route": "/dashboard/compliance-gaps",
         })
         r = client.get("/api/dashboard/cards")
         data = r.json()
@@ -376,7 +376,7 @@ class TestDefaultsPersist:
     def test_builtins_appear_before_custom(self, client: TestClient):
         _login_admin_ws1(client)
         client.post("/api/dashboard/cards", json={
-            "title": "Custom First?", "icon": "star", "target_route": "/dashboard/controls",
+            "title": "Custom First?", "icon": "star", "target_route": "/dashboard/compliance-gaps",
         })
         r = client.get("/api/dashboard/cards")
         cards = r.json()["cards"]

@@ -59,15 +59,6 @@ test.describe('P09 Registry lifecycle E2E', () => {
     await expect(page.getByRole('menuitem', { name: /^open$/i })).toBeVisible()
   })
 
-  test('Trust Requests: row action menu opens', async ({ page }) => {
-    await page.goto('/dashboard/trust-requests')
-    await page.waitForLoadState('networkidle')
-    const firstActions = page.getByRole('button', { name: /actions/i }).first()
-    await expect(firstActions).toBeVisible({ timeout: 10000 })
-    await firstActions.click()
-    await expect(page.getByRole('menu')).toBeVisible()
-  })
-
   test('Delete preview modal: opens and shows record label when Delete clicked', async ({ page }) => {
     await page.goto('/dashboard/documents')
     await page.waitForLoadState('networkidle')

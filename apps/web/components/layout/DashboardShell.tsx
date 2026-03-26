@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect } from 'react'
-import { useRouter, usePathname } from 'next/navigation'
+import { usePathname } from 'next/navigation'
 import { useAuth } from '@/contexts/AuthContext'
 import { MfaRequiredBanner } from './MfaRequiredBanner'
 import { SecurityAlertsBanner } from './SecurityAlertsBanner'
@@ -15,23 +15,57 @@ interface DashboardShellProps {
 }
 
 export function DashboardShell({ children }: DashboardShellProps) {
-  const { user, loading } = useAuth()
-  const router = useRouter()
+  const { user, loading, needs_onboarding, error, refresh } = useAuth()
   const pathname = usePathname()
 
   useEffect(() => {
     if (loading) return
-    if (!user) {
+    if (!user && !error) {
       const next = pathname ? `/login?next=${encodeURIComponent(pathname)}` : '/login'
-      router.replace(next)
+      window.location.href = next
+      return
     }
-  }, [user, loading, router, pathname])
+    if (needs_onboarding) {
+      window.location.href = '/onboarding'
+    }
+  }, [user, loading, needs_onboarding, error, pathname])
 
-  if (loading || !user) {
+  if (loading) {
     return (
       <div className="flex min-h-screen items-center justify-center gap-3">
         <Spinner size="lg" />
         <p className="text-[var(--tc-muted)] text-sm">Loading workspace…</p>
+      </div>
+    )
+  }
+
+  if (!user && error) {
+    return (
+      <div className="flex min-h-screen flex-col items-center justify-center gap-4 p-4">
+        <p className="text-[var(--tc-danger)] text-sm">{error}</p>
+        <div className="flex gap-3">
+          <button
+            onClick={() => refresh()}
+            className="rounded-lg bg-[var(--tc-primary)] px-4 py-2 text-sm font-medium text-white hover:opacity-90"
+          >
+            Retry
+          </button>
+          <button
+            onClick={() => { window.location.href = '/login' }}
+            className="rounded-lg border border-[var(--tc-border)] px-4 py-2 text-sm font-medium text-[var(--tc-text)] hover:bg-white/5"
+          >
+            Back to login
+          </button>
+        </div>
+      </div>
+    )
+  }
+
+  if (!user) {
+    return (
+      <div className="flex min-h-screen items-center justify-center gap-3">
+        <Spinner size="lg" />
+        <p className="text-[var(--tc-muted)] text-sm">Redirecting…</p>
       </div>
     )
   }

@@ -174,7 +174,7 @@ class TestVendorRequestsListIsolation:
         try:
             existing = db.query(VendorRequest).filter(VendorRequest.workspace_id == 2).first()
             if not existing:
-                db.add(VendorRequest(workspace_id=2, vendor_email="vendor@other.com", status="sent", link_token="tok123"))
+                db.add(VendorRequest(workspace_id=2, vendor_email="vendor@other.com", status="pending", link_token="tok123"))
                 db.commit()
         finally:
             db.close()

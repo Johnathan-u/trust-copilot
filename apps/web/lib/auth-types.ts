@@ -20,6 +20,11 @@ export interface AuthPermissions {
   can_export: boolean
 }
 
+export interface SubscriptionInfo {
+  status: string
+  plan: string | null
+}
+
 export interface AuthState {
   user: AuthUser | null
   workspace: AuthWorkspace | null
@@ -27,6 +32,8 @@ export interface AuthState {
   permissions: AuthPermissions
   loading: boolean
   error: string | null
+  needs_onboarding?: boolean
+  subscription?: SubscriptionInfo
   mfa_enrolled?: boolean
   mfa_required_for_workspace?: boolean
   workspace_auth_policy?: { mfa_required: boolean; session_max_age_seconds: number | null }
@@ -42,6 +49,8 @@ export interface MeResponse {
   role: string
   workspaces: { id: number; name: string; slug?: string; role: string }[]
   permissions: AuthPermissions
+  needs_onboarding?: boolean
+  subscription?: SubscriptionInfo
   mfa_enrolled?: boolean
   mfa_required_for_workspace?: boolean
   workspace_auth_policy?: { mfa_required: boolean; session_max_age_seconds: number | null }

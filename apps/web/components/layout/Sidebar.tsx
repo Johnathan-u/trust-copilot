@@ -59,6 +59,7 @@ function NavLink({ href, label, icon, pathname }: { href: string; label: string;
 export function Sidebar() {
   const pathname = usePathname()
   const { workspace, permissions, workspaces, switchWorkspace } = useAuth()
+  const canEdit = permissions.can_edit
   const isAdmin = permissions.can_admin
 
   const onWorkspaceChange = async (e: React.ChangeEvent<HTMLSelectElement>) => {
@@ -67,8 +68,8 @@ export function Sidebar() {
     await switchWorkspace(id)
   }
 
-  const complianceActive = ['/dashboard/compliance-gaps'].some(p => pathname.startsWith(p))
-  const adminActive = ['/dashboard/members', '/dashboard/notifications', '/dashboard/slack', '/dashboard/audit', '/dashboard/security', '/dashboard/settings', '/dashboard/ai-governance'].some(p => pathname.startsWith(p))
+  const complianceActive = ['/dashboard/compliance-gaps', '/dashboard/trust-center'].some(p => pathname.startsWith(p))
+  const adminActive = ['/dashboard/members', '/dashboard/notifications', '/dashboard/slack', '/dashboard/gmail', '/dashboard/audit', '/dashboard/security', '/dashboard/settings', '/dashboard/ai-governance'].some(p => pathname.startsWith(p))
 
   return (
     <aside
@@ -111,6 +112,7 @@ export function Sidebar() {
           <NavLink href="/dashboard/documents" label="Documents" icon="📄" pathname={pathname} />
           <NavLink href="/dashboard/questionnaires" label="Questionnaires" icon="📋" pathname={pathname} />
           <NavLink href="/dashboard/review" label="Review" icon="✅" pathname={pathname} />
+          {canEdit && <NavLink href="/dashboard/requests" label="Requests" icon="📨" pathname={pathname} />}
           <NavLink href="/dashboard/exports" label="Exports" icon="⬇" pathname={pathname} />
         </nav>
 
@@ -119,6 +121,7 @@ export function Sidebar() {
         {/* ── Compliance ── */}
         <NavSection title="Compliance" defaultOpen={complianceActive} storageKey="compliance">
           <NavLink href="/dashboard/compliance-gaps" label="Coverage" icon="📊" pathname={pathname} />
+          <NavLink href="/dashboard/trust-center" label="Trust Center" icon="🛡️" pathname={pathname} />
         </NavSection>
 
         <div className="border-t border-white/5" />
@@ -126,11 +129,11 @@ export function Sidebar() {
         {/* ── Admin (admin-only) ── */}
         {isAdmin && (
           <NavSection title="Admin" defaultOpen={adminActive} storageKey="admin">
-            <NavLink href="/dashboard/members" label="Members & Roles" icon="👥" pathname={pathname} />
-            <NavLink href="/dashboard/notifications" label="Alerts" icon="🔔" pathname={pathname} />
+            <NavLink href="/dashboard/members" label="Members" icon="👥" pathname={pathname} />
+            <NavLink href="/dashboard/notifications" label="Alerts / Notifications" icon="🔔" pathname={pathname} />
             <NavLink href="/dashboard/slack" label="Slack" icon="💬" pathname={pathname} />
             <NavLink href="/dashboard/gmail" label="Gmail" icon="📧" pathname={pathname} />
-            <NavLink href="/dashboard/audit" label="Activity" icon="📋" pathname={pathname} />
+            <NavLink href="/dashboard/audit" label="Activity" icon="📜" pathname={pathname} />
             <NavLink href="/dashboard/ai-governance" label="AI Insights" icon="🧠" pathname={pathname} />
             <NavLink href="/dashboard/settings" label="Settings" icon="⚙" pathname={pathname} />
           </NavSection>

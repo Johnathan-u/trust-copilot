@@ -173,11 +173,16 @@ export default function GmailPage() {
   return (
     <div className="min-w-0 space-y-6 pb-8">
       {/* Page header */}
-      <div>
-        <h1 className="text-2xl font-bold text-[var(--tc-text)]">Gmail Integration</h1>
-        <p className="mt-1 text-sm text-[var(--tc-muted)]">
-          Ingest compliance evidence directly from email.
-        </p>
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-[var(--tc-text)]">Gmail Integration</h1>
+          <p className="mt-1 text-sm text-[var(--tc-muted)]">
+            Ingest compliance evidence directly from email.
+          </p>
+        </div>
+        {!loading && !status.connected && (
+          <Button onClick={() => { setConnectOpen(true); setError(null) }}>Connect Gmail</Button>
+        )}
       </div>
 
       {loading ? (
@@ -187,7 +192,7 @@ export default function GmailPage() {
         <>
           {/* Section 1 — Value proposition */}
           <Card className="p-6">
-            <div className="flex items-center gap-3 mb-4">
+            <div className="flex items-center gap-3">
               <span className="text-3xl">📧</span>
               <div>
                 <h2 className="text-base font-semibold text-[var(--tc-text)]">Connect Gmail to capture evidence from email</h2>
@@ -197,7 +202,6 @@ export default function GmailPage() {
                 </p>
               </div>
             </div>
-            <Button onClick={() => { setConnectOpen(true); setError(null) }}>Connect Gmail</Button>
           </Card>
 
           {/* Section 2 — How it works */}

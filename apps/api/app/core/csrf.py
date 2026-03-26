@@ -7,6 +7,10 @@ from urllib.parse import urlparse
 
 # Fallback only when allowed_origins is not passed (e.g. tests). Production uses config.trusted_origins.
 DEFAULT_ALLOWED_ORIGINS = [
+    "https://localhost",
+    "https://localhost:3000",
+    "https://127.0.0.1",
+    "https://127.0.0.1:3000",
     "http://localhost",
     "http://localhost:3000",
     "http://127.0.0.1",

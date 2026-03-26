@@ -13,17 +13,25 @@ import {
 import { NotificationsPanel } from '@/components/layout/NotificationsPanel'
 
 const nav = [
-  { href: '/dashboard', label: 'Dashboard' },
+  { href: '/dashboard', label: 'Home' },
   { href: '/dashboard/documents', label: 'Documents' },
   { href: '/dashboard/questionnaires', label: 'Questionnaires' },
   { href: '/dashboard/review', label: 'Review' },
+  { href: '/dashboard/requests', label: 'Requests' },
   { href: '/dashboard/exports', label: 'Exports' },
 ]
 
 const sidebarOnlyRoutes = [
-  { href: '/dashboard/settings', label: 'Settings' },
-  { href: '/dashboard/security', label: 'Security' },
+  { href: '/dashboard/compliance-gaps', label: 'Coverage' },
+  { href: '/dashboard/trust-center', label: 'Trust Center' },
   { href: '/dashboard/members', label: 'Members' },
+  { href: '/dashboard/notifications', label: 'Alerts / Notifications' },
+  { href: '/dashboard/slack', label: 'Slack' },
+  { href: '/dashboard/gmail', label: 'Gmail' },
+  { href: '/dashboard/audit', label: 'Activity' },
+  { href: '/dashboard/ai-governance', label: 'AI Insights' },
+  { href: '/dashboard/settings', label: 'Settings' },
+  { href: '/dashboard/security', label: 'Account Security' },
 ]
 
 function initials(displayName: string | null, email: string): string {

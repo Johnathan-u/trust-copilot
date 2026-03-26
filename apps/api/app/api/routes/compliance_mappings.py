@@ -147,7 +147,7 @@ def confirm_mapping(
     except Exception:
         pass
     try:
-        notify_admins(db, ws, "Mapping confirmed", f"Question-to-control mapping confirmed.", category="info", link="/dashboard/mapping-review")
+        notify_admins(db, ws, "Mapping confirmed", f"Question-to-control mapping confirmed.", category="info", link="/dashboard/review")
     except Exception:
         pass
     return result
@@ -184,7 +184,7 @@ def override_mapping(
     except Exception:
         pass
     try:
-        notify_admins(db, ws, "Mapping overridden", f"Question-to-control mapping manually overridden.", category="warning", link="/dashboard/mapping-review")
+        notify_admins(db, ws, "Mapping overridden", f"Question-to-control mapping manually overridden.", category="warning", link="/dashboard/review")
     except Exception:
         pass
     return result

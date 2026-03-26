@@ -5,6 +5,7 @@ import Link from 'next/link'
 import {
   Card,
   Button,
+  Modal,
   QuestionnaireListSkeleton,
   EmptyState,
   DisplayIdText,
@@ -44,6 +45,10 @@ export default function QuestionnairesPage() {
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set())
   const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false)
   const [bulkDeleting, setBulkDeleting] = useState(false)
+  const [uploadFile, setUploadFile] = useState<File | null>(null)
+  const [uploadModalOpen, setUploadModalOpen] = useState(false)
+  const [uploadFrameworks, setUploadFrameworks] = useState<string[]>([])
+  const [uploadSubjects, setUploadSubjects] = useState<string[]>([])
 
   const activeQnrs = (Array.isArray(qnrs) ? qnrs : []).filter((q) => !q.deleted_at)
   const selectAll = activeQnrs.length > 0 && activeQnrs.every((q) => selectedIds.has(q.id))
@@ -102,14 +107,33 @@ export default function QuestionnairesPage() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [workspaceId, search, framework, subjectArea, status, createdFrom, createdTo, archivedMode])
 
-  const onUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const onFileSelected = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
-    if (!file || workspaceId == null) return
+    if (!file) return
+    e.target.value = ''
+    setUploadFile(file)
+    setUploadFrameworks([])
+    setUploadSubjects([])
+    setUploadModalOpen(true)
+  }
+
+  const toggleUploadFw = (fw: string) => {
+    setUploadFrameworks((prev) => prev.includes(fw) ? prev.filter((f) => f !== fw) : [...prev, fw])
+  }
+  const toggleUploadSubj = (s: string) => {
+    setUploadSubjects((prev) => prev.includes(s) ? prev.filter((x) => x !== s) : [...prev, s])
+  }
+
+  const confirmUpload = () => {
+    if (!uploadFile || workspaceId == null) return
     setUploading(true)
+    setUploadModalOpen(false)
+    setError(null)
     const fd = new FormData()
     fd.append('workspace_id', String(workspaceId))
-    fd.append('file', file)
-    setError(null)
+    fd.append('file', uploadFile)
+    if (uploadFrameworks.length > 0) fd.append('frameworks', uploadFrameworks.join(','))
+    if (uploadSubjects.length > 0) fd.append('subject_areas', uploadSubjects.join(','))
     fetch('/api/questionnaires/upload', { method: 'POST', credentials: 'include', body: fd })
       .then(async (r) => {
         const b = await r.json().catch(() => ({}))
@@ -123,7 +147,7 @@ export default function QuestionnairesPage() {
           .then((data) => setQnrs(Array.isArray(data) ? data : []))
       })
       .catch((err) => setError(err instanceof Error ? err.message : 'Upload failed'))
-      .finally(() => { setUploading(false); e.target.value = '' })
+      .finally(() => { setUploading(false); setUploadFile(null) })
   }
 
   const confirmDelete = async () => {
@@ -227,7 +251,7 @@ export default function QuestionnairesPage() {
               id="qnr-upload"
               type="file"
               className="hidden"
-              onChange={onUpload}
+              onChange={onFileSelected}
               disabled={uploading}
               accept=".xlsx,.xls,.docx,.doc"
             />
@@ -386,6 +410,53 @@ export default function QuestionnairesPage() {
           onSave={(payload) => saveMetadata(editQnr.id, payload)}
         />
       )}
+      <Modal isOpen={uploadModalOpen} onClose={() => { setUploadModalOpen(false); setUploadFile(null) }} title="Upload Questionnaire">
+        <div className="space-y-5">
+          <div className="flex items-center gap-3 rounded-xl border border-[var(--tc-border)] bg-white/5 px-4 py-3">
+            <span className="text-lg">📋</span>
+            <span className="text-sm font-medium text-[var(--tc-text)] truncate">{uploadFile?.name}</span>
+          </div>
+
+          <div>
+            <p className="mb-2 text-xs font-medium text-[var(--tc-muted)] uppercase tracking-wide">Frameworks</p>
+            <div className="flex flex-wrap gap-1.5">
+              {FRAMEWORK_OPTIONS.map((fw) => (
+                <button
+                  key={fw}
+                  type="button"
+                  onClick={() => toggleUploadFw(fw)}
+                  className={`rounded-full border px-3 py-1 text-xs font-medium transition ${
+                    uploadFrameworks.includes(fw)
+                      ? 'border-[var(--tc-primary)] bg-[rgba(91,124,255,0.15)] text-[var(--tc-primary)]'
+                      : 'border-[var(--tc-border)] text-[var(--tc-muted)] hover:border-[var(--tc-muted)]'
+                  }`}
+                >
+                  {fw}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div>
+            <p className="mb-2 text-xs font-medium text-[var(--tc-muted)] uppercase tracking-wide">Subject Areas</p>
+            <p className="rounded-xl border border-dashed border-[var(--tc-border)] bg-white/5 px-4 py-3 text-xs text-[var(--tc-muted)]">
+              Subject areas will be <span className="font-semibold text-[var(--tc-success)]">auto-detected</span> by AI after the questionnaire is parsed.
+            </p>
+          </div>
+
+          <div className="flex items-center justify-end gap-3 pt-2">
+            <button
+              onClick={() => { setUploadModalOpen(false); setUploadFile(null) }}
+              className="rounded-xl px-4 py-2 text-sm text-[var(--tc-muted)] transition hover:text-[var(--tc-text)]"
+            >
+              Cancel
+            </button>
+            <Button onClick={confirmUpload}>
+              Upload
+            </Button>
+          </div>
+        </div>
+      </Modal>
     </div>
   )
 }

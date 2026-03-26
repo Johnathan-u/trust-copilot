@@ -53,7 +53,7 @@ from app.models.ai_mapping import (
 )
 from app.models.question_mapping_signal import QuestionMappingSignal
 from app.models.workspace_ai_usage import WorkspaceAIUsage
-from app.models.evidence_gap import EvidenceGap, GAP_TYPES, GAP_STATUSES
+from app.models.subscription import Subscription
 
 __all__ = [
     "ApiKey",
@@ -126,7 +126,5 @@ __all__ = [
     "QuestionMappingPreference",
     "QuestionMappingSignal",
     "WorkspaceAIUsage",
-    "EvidenceGap",
-    "GAP_TYPES",
-    "GAP_STATUSES",
+    "Subscription",
 ]

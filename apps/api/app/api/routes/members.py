@@ -302,6 +302,7 @@ async def remove_member(
         ).count()
         if admin_count <= 1:
             raise HTTPException(status_code=400, detail="Transfer ownership to another admin before leaving")
+    removed_user_id = mem.user_id
     db.delete(mem)
     db.commit()
     persist_audit(
@@ -309,9 +310,18 @@ async def remove_member(
         "auth.member_removed",
         user_id=user_id,
         workspace_id=workspace_id,
-        details={"removed_user_id": mem.user_id},
+        details={"removed_user_id": removed_user_id},
     )
-    _fire_notif(db, workspace_id, "member.removed", detail=f"User {mem.user_id} removed")
+    _fire_notif(db, workspace_id, "member.removed", detail=f"User {removed_user_id} removed")
+
+    remaining = db.query(WorkspaceMember).filter(WorkspaceMember.user_id == removed_user_id).count()
+    if remaining == 0:
+        orphan = db.query(User).filter(User.id == removed_user_id).first()
+        if orphan:
+            db.delete(orphan)
+            db.commit()
+            logger.info("Deleted orphaned user %s (no workspace memberships remain)", removed_user_id)
+
     return {"ok": True}
 
 

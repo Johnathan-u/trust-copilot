@@ -3,17 +3,33 @@
 import re
 from datetime import datetime
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request, Response
 from pydantic import BaseModel
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from app.core.auth_deps import require_can_admin, require_session
+from app.core.config import get_settings
 from app.core.database import get_db
+from app.core.session import sign_session
 from app.models import Workspace, WorkspaceMember
 from app.services.answer_generation import resolve_model
 
 router = APIRouter(prefix="/workspaces", tags=["workspaces"])
+
+SESSION_COOKIE = "tc_session"
+SESSION_MAX_AGE = 86400 * 7
+
+
+def _session_cookie_kwargs(max_age: int) -> dict:
+    s = get_settings()
+    return {
+        "httponly": True,
+        "samesite": "lax",
+        "path": "/",
+        "secure": s.app_env == "production",
+        "max_age": max_age,
+    }
 
 
 class CreateWorkspaceBody(BaseModel):
@@ -23,10 +39,12 @@ class CreateWorkspaceBody(BaseModel):
 @router.post("")
 async def create_workspace(
     body: CreateWorkspaceBody,
+    request: Request,
+    response: Response,
     session: dict = Depends(require_session),
     db: Session = Depends(get_db),
 ):
-    """Create a new workspace; current user becomes admin (B3)."""
+    """Create a new workspace; current user becomes admin (B3). Reissues session cookie with new workspace context."""
     user_id = session.get("user_id")
     if not user_id:
         raise HTTPException(status_code=401, detail="Not authenticated")
@@ -44,6 +62,20 @@ async def create_workspace(
     db.add(WorkspaceMember(workspace_id=ws.id, user_id=user_id, role="admin"))
     db.commit()
     db.refresh(ws)
+    session_id = session.get("session_id")
+    if session_id:
+        token = sign_session(
+            user_id=user_id,
+            email=session.get("email", ""),
+            workspace_id=ws.id,
+            role="admin",
+            session_id=session_id,
+            max_age_seconds=SESSION_MAX_AGE,
+        )
+        response.set_cookie(
+            key=SESSION_COOKIE, value=token,
+            **_session_cookie_kwargs(SESSION_MAX_AGE),
+        )
     return {"id": ws.id, "name": ws.name, "slug": ws.slug}
 
 

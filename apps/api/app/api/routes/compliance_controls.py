@@ -409,7 +409,7 @@ def verify_control(
         extra={"control_id": control_id, "workspace_id": ws, "user_id": session.get("user_id")},
     )
     try:
-        notify_admins(db, ws, "Control verified", f"Control #{control_id} has been verified.", category="success", link=f"/dashboard/controls")
+        notify_admins(db, ws, "Control verified", f"Control #{control_id} has been verified.", category="success", link="/dashboard/compliance-gaps")
     except Exception:
         pass
     return _workspace_control_dict(wc, db)
@@ -622,7 +622,7 @@ def set_evidence_verified(
         pass
     if body.verified:
         try:
-            notify_admins(db, ws, "Evidence verified", f"Evidence link #{link_id} for control #{control_id} verified.", category="success", link="/dashboard/controls")
+            notify_admins(db, ws, "Evidence verified", f"Evidence link #{link_id} for control #{control_id} verified.", category="success", link="/dashboard/compliance-gaps")
         except Exception:
             pass
     ev = db.query(EvidenceItem).filter(EvidenceItem.id == link.evidence_id).first()

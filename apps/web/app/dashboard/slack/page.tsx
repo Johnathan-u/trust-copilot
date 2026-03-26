@@ -310,8 +310,8 @@ export default function SlackPage() {
     return (
       <div className="min-w-0 space-y-6">
         <div>
-          <h1 className="text-2xl font-bold text-[var(--tc-text)]">Slack Integration</h1>
-          <p className="mt-1 text-sm text-[var(--tc-muted)]">Admin access required.</p>
+          <h1 className="text-2xl font-bold text-[var(--tc-text)]">Slack Notifications</h1>
+          <p className="mt-1 text-sm text-[var(--tc-muted)]">Admin access required to manage Slack notifications.</p>
         </div>
       </div>
     )
@@ -319,11 +319,16 @@ export default function SlackPage() {
 
   return (
     <div className="min-w-0 space-y-6 pb-8">
-      <div>
-        <h1 className="text-2xl font-bold text-[var(--tc-text)]">Slack Integration</h1>
-        <p className="mt-1 text-sm text-[var(--tc-muted)]">
-          Send compliance alerts and system notifications to your Slack workspace.
-        </p>
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-[var(--tc-text)]">Slack Notifications</h1>
+          <p className="mt-1 text-sm text-[var(--tc-muted)]">
+            Receive compliance alerts, system updates, and team activity notifications in Slack.
+          </p>
+        </div>
+        {!loading && !status.connected && (
+          <Button onClick={() => { setConnectOpen(true); setError(null); setSelectedEvents([]) }}>Connect Slack</Button>
+        )}
       </div>
 
       {status.connected && (
@@ -340,18 +345,51 @@ export default function SlackPage() {
       {loading ? (
         <Card className="p-6"><p className="text-[var(--tc-muted)]">Loading...</p></Card>
       ) : !status.connected ? (
-        <Card className="p-6">
-          <div className="flex items-center gap-3 mb-3">
-            <span className="text-2xl">💬</span>
-            <div>
-              <h2 className="text-base font-semibold text-[var(--tc-text)]">Connect Slack</h2>
-              <p className="text-sm text-[var(--tc-muted)]">
-                Receive compliance alerts, system notifications, and team activity updates in a Slack channel.
-              </p>
+        <>
+          <Card className="p-6">
+            <div className="flex items-center gap-3">
+              <span className="text-2xl">💬</span>
+              <div>
+                <h2 className="text-base font-semibold text-[var(--tc-text)]">Get real-time compliance alerts in Slack</h2>
+                <p className="text-sm text-[var(--tc-muted)] mt-0.5">
+                  Stay on top of compliance coverage changes, evidence gaps, and team activity without leaving Slack.
+                </p>
+              </div>
+            </div>
+          </Card>
+
+          <div>
+            <h2 className="text-sm font-semibold text-[var(--tc-text)] mb-3">What you will receive</h2>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              {CATEGORIES.map(cat => (
+                <Card key={cat.key} className="p-4 flex gap-3">
+                  <span className="text-lg shrink-0">{cat.icon}</span>
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium text-[var(--tc-text)]">{cat.label}</p>
+                    <p className="text-xs text-[var(--tc-muted)] mt-0.5">{cat.description}</p>
+                  </div>
+                </Card>
+              ))}
             </div>
           </div>
-          <Button onClick={() => { setConnectOpen(true); setError(null); setSelectedEvents([]) }}>Connect Slack</Button>
-        </Card>
+
+          <Card className="p-5">
+            <h2 className="text-sm font-semibold text-[var(--tc-text)] mb-3">After connecting</h2>
+            <div className="space-y-2">
+              {[
+                'Choose which events trigger Slack notifications',
+                'Select a channel for alert delivery',
+                'Send a test message to verify the connection',
+                'Optionally ingest compliance evidence from Slack channels',
+              ].map((step, i) => (
+                <div key={i} className="flex items-start gap-2.5">
+                  <span className="text-xs font-bold text-[var(--tc-primary)] mt-0.5 w-5 text-center">{i + 1}</span>
+                  <p className="text-sm text-[var(--tc-muted)]">{step}</p>
+                </div>
+              ))}
+            </div>
+          </Card>
+        </>
       ) : tab === 'notifications' ? (
         <div className="space-y-6">
           {/* Connection status */}
@@ -411,8 +449,8 @@ export default function SlackPage() {
             {hasNoSelection && (
               <div className="rounded-lg border border-amber-500/20 bg-amber-500/[0.06] px-4 py-2.5 mb-4">
                 <p className="text-xs text-amber-300">
-                  <strong>No events selected.</strong> All events will be sent to Slack, which can be noisy.
-                  Select specific events below for a better experience.
+                  <strong>No events selected.</strong> All events will be sent to Slack by default.
+                  We recommend selecting specific events below to keep your channel focused and actionable.
                 </p>
               </div>
             )}

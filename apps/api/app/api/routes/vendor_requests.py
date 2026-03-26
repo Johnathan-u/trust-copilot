@@ -17,6 +17,11 @@ router = APIRouter(prefix="/vendor-requests", tags=["vendor-requests"])
 class VendorRequestCreate(BaseModel):
     vendor_email: str
     questionnaire_id: int | None = None
+    message: str | None = None
+
+
+class VendorRequestUpdate(BaseModel):
+    status: str | None = None
 
 
 def _to_dict(v: VendorRequest) -> dict:
@@ -25,6 +30,7 @@ def _to_dict(v: VendorRequest) -> dict:
         "workspace_id": v.workspace_id,
         "vendor_email": v.vendor_email,
         "questionnaire_id": v.questionnaire_id,
+        "message": v.message,
         "status": v.status,
         "link_token": v.link_token,
         "created_at": v.created_at.isoformat() if v.created_at else None,
@@ -63,13 +69,42 @@ def create_vendor_request(
         workspace_id=ws,
         vendor_email=email,
         questionnaire_id=body.questionnaire_id,
-        status="sent",
+        message=body.message,
+        status="pending",
         link_token=link_token,
     )
     db.add(v)
     db.commit()
     db.refresh(v)
     d = _to_dict(v)
-    # Frontend can build share URL from this
     d["share_url"] = f"/vendor-response?token={link_token}"
     return d
+
+
+@router.patch("/{request_id}")
+def update_vendor_request(
+    request_id: int,
+    body: VendorRequestUpdate,
+    session: dict = Depends(require_can_admin),
+    db: Session = Depends(get_db),
+):
+    """Update vendor request status."""
+    ws = session.get("workspace_id")
+    if not ws:
+        raise HTTPException(status_code=403, detail="No workspace")
+    v = db.query(VendorRequest).filter(
+        VendorRequest.id == request_id,
+        VendorRequest.workspace_id == ws,
+    ).first()
+    if not v:
+        raise HTTPException(status_code=404, detail="Request not found")
+    if body.status is not None:
+        if body.status not in VENDOR_REQUEST_STATUSES:
+            raise HTTPException(status_code=400, detail=f"Invalid status. Must be one of: {', '.join(VENDOR_REQUEST_STATUSES)}")
+        v.status = body.status
+    db.commit()
+    db.refresh(v)
+    return _to_dict(v)
+
+
+router.add_api_route("", create_vendor_request, methods=["POST"])

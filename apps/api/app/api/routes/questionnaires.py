@@ -86,6 +86,8 @@ def get_file_service(storage: StorageClient = Depends(get_storage)) -> FileServi
 def upload_questionnaire(
     workspace_id: int = Form(...),
     file: UploadFile = ...,
+    frameworks: str = Form(""),
+    subject_areas: str = Form(""),
     session: dict = Depends(require_session),
     db: Session = Depends(get_db),
     file_svc: FileService = Depends(get_file_service),
@@ -94,12 +96,16 @@ def upload_questionnaire(
     if session.get("workspace_id") != workspace_id:
         raise HTTPException(status_code=403, detail="Access denied")
     key, filename = file_svc.upload_raw(workspace_id, file)
+
+    fw_list = [f.strip() for f in frameworks.split(",") if f.strip()] or ["Other"]
+    sa_list = [s.strip() for s in subject_areas.split(",") if s.strip()] or ["Other"]
+
     qnr = Questionnaire(
         workspace_id=workspace_id,
         storage_key=key,
         filename=filename,
-        frameworks_json=json.dumps(["Other"]),
-        subject_areas_json=json.dumps(["Other"]),
+        frameworks_json=json.dumps(fw_list),
+        subject_areas_json=json.dumps(sa_list),
         status="uploaded",
     )
     db.add(qnr)

@@ -55,6 +55,7 @@ from app.core.invite_codes import hash_invite_code
 from app.services.email_service import (
     send_password_reset_email,
     send_suspicious_login_email,
+    send_verification_code_email,
     send_verification_email,
 )
 from app.services.oauth_service import (
@@ -192,7 +193,7 @@ def _token_hash(token: str) -> str:
 
 @router.post("/register")
 def register(req: RegisterRequest, request: Request, db: Session = Depends(get_db)):
-    """AUTH-207: Register; create user (email_verified=False), send verification email. Generic response to avoid enumeration."""
+    """AUTH-207: Register; create user (email_verified=False), send verification code + link."""
     email = (req.email or "").strip().lower()
     if not email or "@" not in email:
         raise HTTPException(status_code=400, detail="Invalid email")
@@ -201,8 +202,7 @@ def register(req: RegisterRequest, request: Request, db: Session = Depends(get_d
         raise HTTPException(status_code=400, detail="Password too short")
     existing = db.query(User).filter(User.email == email).first()
     if existing:
-        # Generic response - do not reveal that email exists
-        return {"message": "If that email is not yet registered, you will receive a verification link."}
+        return {"message": "If that email is not yet registered, you will receive a verification code."}
     user = User(
         email=email,
         password_hash=hash_password(password),
@@ -212,21 +212,54 @@ def register(req: RegisterRequest, request: Request, db: Session = Depends(get_d
     db.add(user)
     db.commit()
     db.refresh(user)
-    default_workspace_id = 1
-    mem = WorkspaceMember(workspace_id=default_workspace_id, user_id=user.id, role="editor")
-    db.add(mem)
-    db.commit()
-    token_raw = secrets.token_urlsafe(32)
-    token_hash_val = _token_hash(token_raw)
-    expires_at = datetime.now(timezone.utc) + timedelta(hours=24)
-    evt = EmailVerificationToken(user_id=user.id, token_hash=token_hash_val, expires_at=expires_at)
+    code = f"{secrets.randbelow(10**6):06d}"
+    code_hash = _token_hash(code)
+    expires_at = datetime.now(timezone.utc) + timedelta(minutes=15)
+    evt = EmailVerificationToken(user_id=user.id, token_hash=code_hash, expires_at=expires_at)
     db.add(evt)
     db.commit()
-    base = get_settings().frontend_url.rstrip("/")
-    verify_url = f"{base}/verify-email?token={token_raw}"
-    send_verification_email(email, verify_url)
+    send_verification_code_email(email, code)
     persist_audit(db, "auth.register", user_id=user.id, email=email)
-    return {"message": "If that email is not yet registered, you will receive a verification link."}
+    return {"message": "If that email is not yet registered, you will receive a verification code."}
+
+
+class VerifyCodeRequest(BaseModel):
+    email: str
+    code: str
+
+
+@router.post("/verify-code")
+def verify_code(req: VerifyCodeRequest, db: Session = Depends(get_db)):
+    """Verify email using a 6-digit code sent during registration."""
+    email = (req.email or "").strip().lower()
+    code = (req.code or "").strip()
+    if not email or not code:
+        raise HTTPException(status_code=400, detail="Email and code are required")
+    user = db.query(User).filter(User.email == email).first()
+    if not user:
+        raise HTTPException(status_code=400, detail="Invalid code")
+    if user.email_verified:
+        return {"message": "Email already verified."}
+    h = _token_hash(code)
+    evt = db.query(EmailVerificationToken).filter(
+        EmailVerificationToken.user_id == user.id,
+        EmailVerificationToken.token_hash == h,
+    ).first()
+    if not evt:
+        raise HTTPException(status_code=400, detail="Invalid code")
+    now = datetime.now(timezone.utc)
+    exp = evt.expires_at
+    if exp.tzinfo is None:
+        exp = exp.replace(tzinfo=timezone.utc)
+    if exp < now:
+        db.delete(evt)
+        db.commit()
+        raise HTTPException(status_code=400, detail="Code expired. Please register again.")
+    user.email_verified = True
+    db.delete(evt)
+    db.commit()
+    persist_audit(db, "auth.email_verified", user_id=user.id, email=user.email)
+    return {"message": "Email verified."}
 
 
 @router.post("/verify-email")
@@ -457,8 +490,26 @@ def _login_impl(req: LoginRequest, request: Request, response: Response, db: Ses
         .first()
     )
     if not member:
-        persist_audit(db, "auth.login_failed", user_id=user.id, email=user.email, details={"reason": "no_workspace"})
-        raise HTTPException(status_code=401, detail="No workspace access")
+        session_id = secrets.token_urlsafe(32)
+        db.add(UserSession(
+            user_id=user.id,
+            session_id=session_id,
+            user_agent=request.headers.get("user-agent"),
+            ip_address=get_client_ip(request),
+        ))
+        db.commit()
+        max_age = SESSION_MAX_AGE
+        token = sign_session(
+            user_id=user.id,
+            email=user.email,
+            workspace_id=0,
+            role="pending",
+            session_id=session_id,
+            max_age_seconds=max_age,
+        )
+        response.set_cookie(key=SESSION_COOKIE, value=token, **_session_cookie_kwargs(max_age, persistent=False))
+        persist_audit(db, "auth.login", user_id=user.id, email=user.email, details={"needs_onboarding": True})
+        return {"user": _user_response(user), "needs_onboarding": True}
 
     mfa_row = db.query(UserMfa).filter(UserMfa.user_id == user.id, UserMfa.enabled.is_(True)).first()
     if mfa_row:
@@ -1433,6 +1484,22 @@ def me(request: Request, db: Session = Depends(get_db)):
     user = db.query(User).filter(User.id == user_id).first()
     if not user:
         raise HTTPException(status_code=401, detail="User not found")
+    if workspace_id == 0 or role == "pending":
+        return {
+            "id": user.id,
+            "email": user.email or "",
+            "display_name": getattr(user, "display_name", None) or "User",
+            "workspace_id": 0,
+            "workspace_name": "",
+            "workspace_slug": "",
+            "role": "pending",
+            "workspaces": [],
+            "permissions": {"can_edit": False, "can_review": False, "can_admin": False, "can_export": False},
+            "needs_onboarding": True,
+            "mfa_enrolled": False,
+            "mfa_required_for_workspace": False,
+            "workspace_auth_policy": {"mfa_required": False, "session_max_age_seconds": None},
+        }
     current_ws = db.query(Workspace).filter(Workspace.id == workspace_id).first()
     memberships = (
         db.query(WorkspaceMember, Workspace)
@@ -1445,6 +1512,12 @@ def me(request: Request, db: Session = Depends(get_db)):
         {"id": ws.id, "name": getattr(ws, "name", "Workspace"), "slug": getattr(ws, "slug", ""), "role": mem.role}
         for mem, ws in memberships
     ]
+    from app.models import Subscription
+    active_sub = db.query(Subscription).filter(
+        Subscription.workspace_id == workspace_id,
+        Subscription.status.in_(["active", "trialing"]),
+    ).first()
+
     mfa_row = db.query(UserMfa).filter(UserMfa.user_id == user_id, UserMfa.enabled.is_(True)).first()
     user_has_mfa = bool(mfa_row)
     ws_mfa_required = bool(current_ws and getattr(current_ws, "mfa_required", False))
@@ -1463,6 +1536,10 @@ def me(request: Request, db: Session = Depends(get_db)):
         "workspace_auth_policy": {
             "mfa_required": ws_mfa_required,
             "session_max_age_seconds": getattr(current_ws, "session_max_age_seconds", None) if current_ws else None,
+        },
+        "subscription": {
+            "status": active_sub.status if active_sub else "none",
+            "plan": active_sub.plan if active_sub else None,
         },
     }
 

@@ -1,0 +1,42 @@
+# Page snapshot
+
+```yaml
+- generic [ref=e1]:
+  - main [ref=e2]:
+    - generic [ref=e3]:
+      - generic [ref=e4]:
+        - generic [ref=e5]: ✓
+        - heading "Trust Copilot" [level=1] [ref=e6]
+      - paragraph [ref=e7]: Answer compliance questionnaires with AI and evidence.
+      - generic [ref=e8]:
+        - generic [ref=e9]:
+          - generic [ref=e10]: Email
+          - textbox [ref=e11]: admin@trust.local
+        - generic [ref=e12]:
+          - generic [ref=e13]: Password
+          - textbox [ref=e14]: Admin123!
+        - generic [ref=e15] [cursor=pointer]:
+          - checkbox "Keep me signed in" [ref=e16]
+          - text: Keep me signed in
+        - paragraph [ref=e17]: Too many attempts. Try again later.
+        - button "Sign in" [active] [ref=e18] [cursor=pointer]
+        - generic [ref=e23]: or continue with
+        - generic [ref=e24]:
+          - link "Sign in with SSO" [ref=e25] [cursor=pointer]:
+            - /url: /api/auth/sso
+          - link "Sign in with Google" [ref=e26] [cursor=pointer]:
+            - /url: /api/auth/oauth/google
+            - img [ref=e27]
+            - text: Sign in with Google
+          - link "Sign in with GitHub" [ref=e32] [cursor=pointer]:
+            - /url: /api/auth/oauth/github
+            - img [ref=e33]
+            - text: Sign in with GitHub
+      - paragraph [ref=e35]:
+        - link "Create account" [ref=e36] [cursor=pointer]:
+          - /url: /register
+        - text: ·
+        - link "Forgot password?" [ref=e37] [cursor=pointer]:
+          - /url: /forgot-password
+  - alert [ref=e38]
+```

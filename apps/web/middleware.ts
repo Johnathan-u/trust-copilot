@@ -1,16 +1,7 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 
-const PROTECTED_PREFIXES = ['/dashboard', '/questionnaires']
-
 export function middleware(request: NextRequest) {
-  if (request.nextUrl.pathname === '/login') {
-    return NextResponse.next()
-  }
-  const isProtected = PROTECTED_PREFIXES.some((p) =>
-    request.nextUrl.pathname.startsWith(p)
-  )
-  if (!isProtected) return NextResponse.next()
   const hasSession = request.cookies.has('tc_session')
   if (!hasSession) {
     const login = new URL('/login', request.url)
@@ -18,4 +9,8 @@ export function middleware(request: NextRequest) {
     return NextResponse.redirect(login)
   }
   return NextResponse.next()
+}
+
+export const config = {
+  matcher: ['/dashboard/:path*', '/questionnaires/:path*', '/onboarding/:path*'],
 }

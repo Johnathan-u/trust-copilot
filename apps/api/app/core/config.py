@@ -168,6 +168,11 @@ class Settings:
         # Log level for app (e.g. INFO, DEBUG); structured JSON to stdout when APP_ENV=production
         self.log_level: str = os.getenv("LOG_LEVEL", "INFO").strip().upper() or "INFO"
 
+        # Stripe billing (Phase 2)
+        self.stripe_secret_key: str | None = os.getenv("STRIPE_SECRET_KEY", "").strip() or None
+        self.stripe_webhook_secret: str | None = os.getenv("STRIPE_WEBHOOK_SECRET", "").strip() or None
+        self.stripe_price_id: str | None = os.getenv("STRIPE_PRICE_ID", "").strip() or None
+        self.stripe_annual_price_id: str | None = os.getenv("STRIPE_ANNUAL_PRICE_ID", "").strip() or None
         # Sentry: set SENTRY_DSN to enable error tracking (optional)
         self.sentry_dsn: str | None = os.getenv("SENTRY_DSN", "").strip() or None
         self.sentry_environment: str = os.getenv("SENTRY_ENVIRONMENT", "").strip() or self.app_env
@@ -183,9 +188,13 @@ class Settings:
             _normalized = [_normalize_origin(o) for o in _origins if _normalize_origin(o)]
             self.trusted_origins: list[str] = list(dict.fromkeys(_normalized))
             # Non-production: also allow common local origins so TRUSTED_ORIGINS from a
-            # prod template does not break cookie auth + CSRF on http://localhost:3000.
+            # prod template does not break cookie auth + CSRF on localhost.
             if self.app_env != "production":
                 _dev_defaults = [
+                    "https://localhost",
+                    "https://localhost:3000",
+                    "https://127.0.0.1",
+                    "https://127.0.0.1:3000",
                     "http://localhost",
                     "http://localhost:3000",
                     "http://127.0.0.1",
@@ -202,6 +211,10 @@ class Settings:
                 self.trusted_origins = list(dict.fromkeys(_normalized))
                 if self.app_env != "production":
                     _dev_defaults = [
+                        "https://localhost",
+                        "https://localhost:3000",
+                        "https://127.0.0.1",
+                        "https://127.0.0.1:3000",
                         "http://localhost",
                         "http://localhost:3000",
                         "http://127.0.0.1",
@@ -217,6 +230,10 @@ class Settings:
                     self.trusted_origins = _base if _base else []
                 else:
                     _dev_defaults = [
+                        "https://localhost",
+                        "https://localhost:3000",
+                        "https://127.0.0.1",
+                        "https://127.0.0.1:3000",
                         "http://localhost",
                         "http://localhost:3000",
                         "http://127.0.0.1",

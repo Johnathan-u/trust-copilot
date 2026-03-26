@@ -40,6 +40,8 @@ def get_file_service(storage: StorageClient = Depends(get_storage)) -> FileServi
 def upload_document(
     workspace_id: int = Form(...),
     file: UploadFile = ...,
+    frameworks: str = Form(""),
+    subject_areas: str = Form(""),
     session: dict = Depends(require_can_edit),
     db: Session = Depends(get_db),
     file_svc: FileService = Depends(get_file_service),
@@ -48,13 +50,17 @@ def upload_document(
     if session.get("workspace_id") != workspace_id:
         raise HTTPException(status_code=403, detail="Access denied")
     key, filename = file_svc.upload_raw(workspace_id, file)
+
+    fw_list = [f.strip() for f in frameworks.split(",") if f.strip()] or ["Other"]
+    sa_list = [s.strip() for s in subject_areas.split(",") if s.strip()] or ["Other"]
+
     doc = Document(
         workspace_id=workspace_id,
         storage_key=key,
         filename=filename,
         content_type=file.content_type,
-        frameworks_json=json.dumps(["Other"]),
-        subject_areas_json=json.dumps(["Other"]),
+        frameworks_json=json.dumps(fw_list),
+        subject_areas_json=json.dumps(sa_list),
         status="uploaded",
     )
     db.add(doc)
@@ -78,8 +84,8 @@ def upload_document(
         "status": doc.status,
         "storage_key": doc.storage_key,
         "job_id": job.id,
-        "frameworks": ["Other"],
-        "subject_areas": ["Other"],
+        "frameworks": fw_list,
+        "subject_areas": sa_list,
     }
 
 

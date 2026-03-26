@@ -74,70 +74,7 @@ def set(
             "now": datetime.now(timezone.utc),
         },
     )
-
-
-def batch_get(
-    db: Session,
-    keys: list[tuple[int, str, str, str]],
-) -> dict[str, dict | None]:
-    """Batch lookup: keys are (workspace_id, question_hash, response_style, evidence_fp).
-    Returns {cache_key: {text, citations, confidence} or None}."""
-    if not keys:
-        return {}
-    cache_keys = {}
-    for ws, qh, style, efp in keys:
-        ck = _cache_key(ws, qh, style, efp)
-        cache_keys[ck] = (ws, qh, style, efp)
-
-    ck_list = list(cache_keys.keys())
-    placeholders = ", ".join(f":ck{i}" for i in range(len(ck_list)))
-    params = {f"ck{i}": ck for i, ck in enumerate(ck_list)}
-    rows = db.execute(
-        text(f"SELECT cache_key, answer_text, citations, confidence FROM answer_cache WHERE cache_key IN ({placeholders})"),
-        params,
-    ).fetchall()
-
-    result: dict[str, dict | None] = {}
-    for row in rows:
-        ck = row[0]
-        citations = []
-        if row[2]:
-            try:
-                citations = json.loads(row[2])
-            except Exception:
-                pass
-        result[ck] = {"text": row[1] or "", "citations": citations, "confidence": row[3] or 0}
-
-    return result
-
-
-def batch_set(
-    db: Session,
-    entries: list[tuple[int, str, str, str, str, list, int]],
-) -> None:
-    """Batch upsert cache entries. Each tuple: (workspace_id, q_hash, style, evidence_fp, text, citations, confidence).
-    Single commit at the end."""
-    if not entries:
-        return
-    for ws, qh, style, efp, answer_text, citations, confidence in entries:
-        ck = _cache_key(ws, qh, style, efp)
-        citations_json = json.dumps(citations) if citations else "[]"
-        db.execute(
-            text("""
-                INSERT INTO answer_cache (workspace_id, cache_key, response_style, evidence_fingerprint, answer_text, citations, confidence, created_at)
-                VALUES (:ws, :ck, :style, :efp, :text, :citations, :conf, :now)
-                ON CONFLICT (workspace_id, cache_key) DO UPDATE SET
-                    answer_text = EXCLUDED.answer_text,
-                    citations = EXCLUDED.citations,
-                    confidence = EXCLUDED.confidence,
-                    created_at = EXCLUDED.created_at
-            """),
-            {
-                "ws": ws, "ck": ck, "style": style, "efp": efp,
-                "text": answer_text, "citations": citations_json, "conf": confidence,
-                "now": datetime.now(timezone.utc),
-            },
-        )
+    db.commit()
 
 
 def invalidate_workspace(db: Session, workspace_id: int) -> int:

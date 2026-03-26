@@ -6,6 +6,8 @@ services:
       - "3000:3000"
     volumes:
       - ./infra/caddy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
     depends_on:
       web:
         condition: service_healthy
@@ -23,8 +25,8 @@ services:
     env_file:
       - .env
     environment:
-      # Single local URL: http://localhost:3000 (Caddy serves on 3000; matches OAuth config).
-      NEXT_PUBLIC_APP_URL: http://localhost:3000
+      # Single local URL: https://localhost:3000 (Caddy serves TLS on 3000; matches OAuth config).
+      NEXT_PUBLIC_APP_URL: https://localhost:3000
       NEXT_PUBLIC_SHOW_DEMO_HINT: "true"
       # SSR/rewrites from Next.js in container call API via this. Omit when running npm run dev locally.
       API_UPSTREAM: http://api:8000
@@ -56,8 +58,8 @@ services:
     env_file:
       - .env
     environment:
-      # Local: OAuth redirect_uri must match (e.g. http://localhost:3000). Production: set APP_BASE_URL/FRONTEND_URL to HTTPS.
-      APP_BASE_URL: http://localhost:3000
+      # OAuth redirect_uri must match. Caddy serves HTTPS locally.
+      APP_BASE_URL: https://localhost:3000
       TRUST_COPILOT_IN_DOCKER: "1"
       DATABASE_URL: postgresql://postgres:postgres@postgres:5432/trustcopilot
       S3_ENDPOINT: http://minio:9000
@@ -127,6 +129,8 @@ services:
 volumes:
   postgres_data:
   minio_data:
+  caddy_data:
+  caddy_config:
 
 networks:
   trustnet:

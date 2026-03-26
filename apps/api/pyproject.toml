@@ -34,6 +34,7 @@ dependencies = [
     "redis",
     "sentry-sdk[fastapi]",
     "prometheus-client",
+    "stripe",
 ]
 
 [tool.pytest.ini_options]

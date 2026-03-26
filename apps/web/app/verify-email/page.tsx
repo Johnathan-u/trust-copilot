@@ -1,6 +1,6 @@
 'use client'
 
-import { Suspense, useEffect, useState } from 'react'
+import { Suspense, useEffect, useRef, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { Card, Button } from '@/components/ui'
@@ -11,12 +11,15 @@ function VerifyEmailContent() {
   const [status, setStatus] = useState<'loading' | 'ok' | 'error'>('loading')
   const [message, setMessage] = useState('')
 
+  const called = useRef(false)
   useEffect(() => {
     if (!token) {
       setStatus('error')
       setMessage('Missing verification link.')
       return
     }
+    if (called.current) return
+    called.current = true
     fetch(`/api/auth/verify-email?token=${encodeURIComponent(token)}`, {
       method: 'POST',
       credentials: 'include',

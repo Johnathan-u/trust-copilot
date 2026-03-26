@@ -1,25 +1,137 @@
-# Override for production: use production build targets and no source volume mounts.
-# Run: docker compose -f docker-compose.yml -f docker-compose.prod.yml up --build
-# Local dev (unchanged): docker compose up
+# Production deploy: docker compose -f docker-compose.prod.yml up -d --build
+# Uses .env.production for all secrets and config.
 
 services:
-  api:
-    build:
-      context: .
-      dockerfile: apps/api/Dockerfile
-      target: production
-    volumes: []
+  caddy:
+    image: caddy:2
+    container_name: tc-caddy
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      - ./infra/caddy/Caddyfile.production:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      web:
+        condition: service_healthy
+      api:
+        condition: service_healthy
+    networks:
+      - trustnet
 
   web:
     build:
       context: .
       dockerfile: apps/web/Dockerfile
       target: production
-    volumes: []
+    container_name: tc-web
+    restart: unless-stopped
+    env_file:
+      - .env.production
+    environment:
+      NEXT_PUBLIC_APP_URL: https://trustcopilot.app
+      API_UPSTREAM: http://api:8000
+    expose:
+      - "3000"
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://127.0.0.1:3000/',(r)=>process.exit(r.statusCode<500?0:1)).on('error',()=>process.exit(1))"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    networks:
+      - trustnet
+
+  api:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+      target: production
+    container_name: tc-api
+    restart: unless-stopped
+    env_file:
+      - .env.production
+    environment:
+      APP_ENV: production
+      TRUST_COPILOT_IN_DOCKER: "1"
+      DATABASE_URL: postgresql://trustcopilot:rOuLU96NMChg6Z1UVekHLztlN4uDcmWA@postgres:5432/trustcopilot
+      S3_ENDPOINT: http://minio:9000
+      APP_BASE_URL: https://trustcopilot.app
+      FRONTEND_URL: https://trustcopilot.app
+    expose:
+      - "8000"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/healthz')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+    depends_on:
+      - postgres
+      - minio
+    networks:
+      - trustnet
 
   worker:
     build:
       context: .
       dockerfile: apps/api/Dockerfile
       target: production
-    volumes: []
+    container_name: tc-worker
+    restart: unless-stopped
+    env_file:
+      - .env.production
+    environment:
+      TRUST_COPILOT_IN_DOCKER: "1"
+      DATABASE_URL: postgresql://trustcopilot:rOuLU96NMChg6Z1UVekHLztlN4uDcmWA@postgres:5432/trustcopilot
+      S3_ENDPOINT: http://minio:9000
+    command: python -m app.worker
+    depends_on:
+      - postgres
+      - minio
+    networks:
+      - trustnet
+
+  postgres:
+    image: pgvector/pgvector:pg16
+    container_name: tc-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: trustcopilot
+      POSTGRES_USER: trustcopilot
+      POSTGRES_PASSWORD: rOuLU96NMChg6Z1UVekHLztlN4uDcmWA
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    expose:
+      - "5432"
+    networks:
+      - trustnet
+
+  minio:
+    image: minio/minio:latest
+    container_name: tc-minio
+    restart: unless-stopped
+    environment:
+      MINIO_ROOT_USER: minio
+      MINIO_ROOT_PASSWORD: minio123
+    command: server /data --console-address ":9001"
+    volumes:
+      - minio_data:/data
+    expose:
+      - "9000"
+      - "9001"
+    networks:
+      - trustnet
+
+volumes:
+  postgres_data:
+  minio_data:
+  caddy_data:
+  caddy_config:
+
+networks:
+  trustnet:
+    driver: bridge

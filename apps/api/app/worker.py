@@ -157,8 +157,69 @@ def run_parse_questionnaire(job: Job, session, payload: dict) -> None:
         qnr.status = "parsed"
         qnr.parse_metadata = json.dumps({"count": len(questions), "questions": questions[:50]})
         session.commit()
+
+        _auto_classify_questionnaire(session, qnr_id, job.workspace_id)
     finally:
         Path(path).unlink(missing_ok=True)
+
+
+def _auto_classify_questionnaire(session, qnr_id: int, workspace_id: int) -> None:
+    """Auto-detect frameworks and subject areas from parsed questions and update questionnaire metadata."""
+    try:
+        from app.services.mapping_llm_classify import bulk_classify_and_persist
+
+        questions = session.query(Question).filter(Question.questionnaire_id == qnr_id).all()
+        if not questions:
+            return
+
+        sample = questions[:60] if len(questions) > 60 else questions
+        stats = bulk_classify_and_persist(session, sample, workspace_id, questionnaire_id=qnr_id)
+        logging.getLogger(__name__).info(
+            "auto_classify questionnaire=%s classified=%s failed=%s",
+            qnr_id, stats.get("classified", 0), stats.get("failed", 0),
+        )
+
+        from app.models.question_mapping_signal import QuestionMappingSignal
+        signals = session.query(QuestionMappingSignal).filter(
+            QuestionMappingSignal.questionnaire_id == qnr_id,
+            QuestionMappingSignal.workspace_id == workspace_id,
+        ).all()
+
+        fw_set: set[str] = set()
+        subj_set: set[str] = set()
+        for sig in signals:
+            if sig.framework_labels_json:
+                for fw in json.loads(sig.framework_labels_json):
+                    if fw and fw not in ("Other", "Unknown"):
+                        fw_set.add(fw)
+            if sig.subject_labels_json:
+                for s in json.loads(sig.subject_labels_json):
+                    if s and s != "Other":
+                        subj_set.add(s)
+
+        qnr = session.query(Questionnaire).filter(Questionnaire.id == qnr_id).first()
+        if qnr:
+            existing_fw = json.loads(qnr.frameworks_json or "[]")
+            existing_sa = json.loads(qnr.subject_areas_json or "[]")
+            if existing_fw == ["Other"] and fw_set:
+                qnr.frameworks_json = json.dumps(sorted(fw_set))
+            elif fw_set:
+                merged = set(existing_fw) | fw_set
+                merged.discard("Other")
+                qnr.frameworks_json = json.dumps(sorted(merged))
+            if existing_sa == ["Other"] and subj_set:
+                qnr.subject_areas_json = json.dumps(sorted(subj_set))
+            elif subj_set:
+                merged = set(existing_sa) | subj_set
+                merged.discard("Other")
+                qnr.subject_areas_json = json.dumps(sorted(merged))
+            session.commit()
+            logging.getLogger(__name__).info(
+                "auto_classify questionnaire=%s frameworks=%s subjects=%s",
+                qnr_id, qnr.frameworks_json, qnr.subject_areas_json,
+            )
+    except Exception as e:
+        logging.getLogger(__name__).warning("auto_classify failed for questionnaire %s: %s", qnr_id, e)
 
 
 def run_index_document(job: Job, session, payload: dict) -> None:

@@ -94,7 +94,9 @@ export default function RegisterPage() {
           </Button>
         </form>
         <p className="mt-4 text-sm text-[var(--tc-muted)]">
-          Already have an account? <Link href="/login" className="text-[var(--tc-soft)] underline">Sign in</Link>
+          <Link href="/#features" className="text-[var(--tc-soft)] underline">Features</Link>
+          {' · '}
+          <Link href="/pricing" className="text-[var(--tc-soft)] underline">Pricing</Link>
         </p>
       </Card>
     </main>

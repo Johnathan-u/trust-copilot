@@ -318,7 +318,7 @@ def seed_vendor_requests(db: Session, workspace_id: int, questionnaire_id: int |
         workspace_id=workspace_id,
         vendor_email="vendor@example.com",
         questionnaire_id=questionnaire_id,
-        status="sent",
+        status="pending",
     ))
     db.commit()
 

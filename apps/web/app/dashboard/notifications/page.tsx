@@ -3,6 +3,13 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Button, Card, Modal } from '@/components/ui'
 import { useAuth } from '@/contexts/AuthContext'
+import {
+  CATEGORY_META,
+  getNotificationMeta,
+  getNotificationTitle,
+  getNotificationCategory,
+  type NotificationCategory,
+} from '@/lib/notification-labels'
 
 /* ──────────────────── Types ──────────────────── */
 
@@ -34,32 +41,7 @@ type LogEntry = {
   created_at: string | null
 }
 
-/* ──────────────────── Human-readable labels ──────────────────── */
-
-const EVENT_LABELS: Record<string, { label: string; category: 'compliance' | 'system' | 'team' }> = {
-  'compliance.coverage_drop': { label: 'Coverage dropped below threshold', category: 'compliance' },
-  'compliance.blind_spot': { label: 'New blind spot detected', category: 'compliance' },
-  'compliance.high_insufficient': { label: 'High insufficient-answer rate', category: 'compliance' },
-  'compliance.weak_evidence': { label: 'Weak evidence detected', category: 'compliance' },
-  'questionnaire.uploaded': { label: 'Questionnaire uploaded', category: 'system' },
-  'questionnaire.generated': { label: 'Questionnaire processed', category: 'system' },
-  'export.completed': { label: 'Export completed', category: 'system' },
-  'document.indexed': { label: 'Document processed', category: 'system' },
-  'member.invited': { label: 'Member invited', category: 'team' },
-  'member.joined': { label: 'Member joined', category: 'team' },
-  'member.removed': { label: 'Member removed', category: 'team' },
-  'member.suspended': { label: 'Member suspended', category: 'team' },
-  'member.role_changed': { label: 'Role changed', category: 'team' },
-  'role.created': { label: 'Role created', category: 'team' },
-  'role.updated': { label: 'Role updated', category: 'team' },
-  'role.deleted': { label: 'Role deleted', category: 'team' },
-}
-
-const CATEGORY_META: Record<string, { label: string; icon: string }> = {
-  compliance: { label: 'Compliance', icon: '🛡' },
-  system: { label: 'System', icon: '⚙' },
-  team: { label: 'Team', icon: '👥' },
-}
+/* ──────────────────── Helpers ──────────────────── */
 
 const RECIPIENT_TYPES = [
   { value: 'admins', label: 'Admins only' },
@@ -67,10 +49,6 @@ const RECIPIENT_TYPES = [
   { value: 'role', label: 'Specific role' },
   { value: 'user', label: 'Specific user' },
 ]
-
-function humanLabel(eventType: string): string {
-  return EVENT_LABELS[eventType]?.label ?? eventType.replace(/[._]/g, ' ')
-}
 
 function severityColor(severity: string): string {
   if (severity === 'high') return 'text-red-400'
@@ -88,13 +66,6 @@ function severityDot(severity: string): string {
   if (severity === 'high') return 'bg-red-400'
   if (severity === 'medium') return 'bg-amber-400'
   return 'bg-slate-400'
-}
-
-function logSeverity(eventType: string): 'high' | 'medium' | 'low' {
-  const cat = EVENT_LABELS[eventType]?.category
-  if (cat === 'compliance') return 'high'
-  if (cat === 'team' && ['member.removed', 'member.suspended'].includes(eventType)) return 'medium'
-  return 'low'
 }
 
 function timeAgo(iso: string | null): string {
@@ -167,7 +138,7 @@ export default function ComplianceAlertsPage() {
   }
 
   const deletePolicy = async (p: Policy) => {
-    if (!confirm(`Remove alert rule "${humanLabel(p.event_type)}"?`)) return
+    if (!confirm(`Remove alert rule "${getNotificationTitle(p.event_type)}"?`)) return
     await fetch(`/api/notifications/policies/${p.id}`, { method: 'DELETE', credentials: 'include' })
     load()
   }
@@ -193,7 +164,7 @@ export default function ComplianceAlertsPage() {
     return (
       <div className="min-w-0 space-y-6">
         <div>
-          <h1 className="text-2xl font-bold text-[var(--tc-text)]">Compliance Alerts</h1>
+          <h1 className="text-2xl font-bold text-[var(--tc-text)]">Alerts / Notifications</h1>
           <p className="mt-1 text-sm text-[var(--tc-muted)]">Admin access required to manage alerts.</p>
         </div>
       </div>
@@ -204,25 +175,25 @@ export default function ComplianceAlertsPage() {
   const availableEvents = eventTypes.filter(e => !configuredEvents.has(e))
   const logPages = Math.max(1, Math.ceil(logTotal / 25))
 
-  const groupedAvailable = {
-    compliance: availableEvents.filter(e => EVENT_LABELS[e]?.category === 'compliance'),
-    system: availableEvents.filter(e => EVENT_LABELS[e]?.category === 'system'),
-    team: availableEvents.filter(e => EVENT_LABELS[e]?.category === 'team'),
+  const groupedAvailable: Record<NotificationCategory, string[]> = {
+    compliance: availableEvents.filter(e => getNotificationCategory(e) === 'compliance'),
+    system: availableEvents.filter(e => getNotificationCategory(e) === 'system'),
+    team: availableEvents.filter(e => getNotificationCategory(e) === 'team'),
   }
 
-  const groupedPolicies = {
-    compliance: policies.filter(p => EVENT_LABELS[p.event_type]?.category === 'compliance'),
-    system: policies.filter(p => EVENT_LABELS[p.event_type]?.category === 'system'),
-    team: policies.filter(p => EVENT_LABELS[p.event_type]?.category === 'team'),
+  const groupedPolicies: Record<NotificationCategory, Policy[]> = {
+    compliance: policies.filter(p => getNotificationCategory(p.event_type) === 'compliance'),
+    system: policies.filter(p => getNotificationCategory(p.event_type) === 'system'),
+    team: policies.filter(p => getNotificationCategory(p.event_type) === 'team'),
   }
 
   return (
     <div className="min-w-0 space-y-6 pb-8">
       {/* Page header */}
       <div>
-        <h1 className="text-2xl font-bold text-[var(--tc-text)]">Compliance Alerts</h1>
+        <h1 className="text-2xl font-bold text-[var(--tc-text)]">Alerts / Notifications</h1>
         <p className="mt-1 text-sm text-[var(--tc-muted)]">
-          Stay informed about important changes in your compliance coverage and system activity.
+          Stay informed about important changes in your compliance coverage, system events, and team activity.
         </p>
       </div>
 
@@ -307,7 +278,7 @@ export default function ComplianceAlertsPage() {
                             <div className="flex items-center gap-3 min-w-0">
                               <span className={`inline-block h-2 w-2 rounded-full shrink-0 ${p.enabled ? 'bg-emerald-400' : 'bg-slate-500'}`} />
                               <div className="min-w-0">
-                                <span className="text-sm text-[var(--tc-text)]">{humanLabel(p.event_type)}</span>
+                                <span className="text-sm text-[var(--tc-text)]">{getNotificationTitle(p.event_type)}</span>
                                 <span className="text-xs text-[var(--tc-muted)] ml-2">
                                   → {p.recipient_type === 'admins' ? 'Admins' : p.recipient_type === 'all' ? 'All members' : `${p.recipient_type}: ${p.recipient_value || ''}`}
                                 </span>
@@ -347,16 +318,16 @@ export default function ComplianceAlertsPage() {
               <>
                 <div className="space-y-1">
                   {logEntries.map(entry => {
-                    const sev = logSeverity(entry.event_type)
+                    const meta = getNotificationMeta(entry.event_type)
                     return (
                       <div
                         key={entry.id}
                         className="flex items-center justify-between rounded-lg border border-[var(--tc-border)] px-4 py-2.5 hover:bg-white/[0.02] transition"
                       >
                         <div className="flex items-center gap-3 min-w-0">
-                          <span className={`inline-block h-2 w-2 rounded-full shrink-0 ${severityDot(sev)}`} />
+                          <span className={`inline-block h-2 w-2 rounded-full shrink-0 ${severityDot(meta.severity)}`} />
                           <div className="min-w-0">
-                            <span className="text-sm text-[var(--tc-text)]">{humanLabel(entry.event_type)}</span>
+                            <span className="text-sm text-[var(--tc-text)]">{meta.title}</span>
                             <span className="text-xs text-[var(--tc-muted)] ml-2">→ {entry.recipient_email}</span>
                           </div>
                         </div>
@@ -413,12 +384,15 @@ export default function ComplianceAlertsPage() {
                 return (
                   <optgroup key={cat} label={CATEGORY_META[cat].label}>
                     {items.map(et => (
-                      <option key={et} value={et}>{humanLabel(et)}</option>
+                      <option key={et} value={et}>{getNotificationTitle(et)}</option>
                     ))}
                   </optgroup>
                 )
               })}
             </select>
+            {addEvt && (
+              <p className="mt-1.5 text-xs text-[var(--tc-muted)]">{getNotificationMeta(addEvt).description}</p>
+            )}
           </div>
           <div>
             <label className="block text-sm font-medium text-[var(--tc-text)] mb-2">Recipients</label>

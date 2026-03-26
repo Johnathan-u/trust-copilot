@@ -20,14 +20,13 @@ const BASE_URL = process.env.BASE_URL || 'http://localhost:3000';
 const ROUTES = [
   '/login',
   '/dashboard',
-  '/dashboard/controls',
-  '/dashboard/trust-requests',
-  '/dashboard/trust-center',
-  '/dashboard/vendor-requests',
   '/dashboard/documents',
   '/dashboard/questionnaires',
   '/dashboard/review/1',
+  '/dashboard/requests',
   '/dashboard/exports',
+  '/dashboard/compliance-gaps',
+  '/dashboard/trust-center',
 ];
 
 /**
@@ -229,14 +228,13 @@ async function run() {
 
   const dashboardRoutes = [
     '/dashboard',
-    '/dashboard/controls',
-    '/dashboard/trust-requests',
-    '/dashboard/trust-center',
-    '/dashboard/vendor-requests',
     '/dashboard/documents',
     '/dashboard/questionnaires',
     '/dashboard/review/1',
+    '/dashboard/requests',
     '/dashboard/exports',
+    '/dashboard/compliance-gaps',
+    '/dashboard/trust-center',
   ];
   for (const route of dashboardRoutes) {
     currentRoute = 'afterLogin:' + route;
@@ -300,14 +298,13 @@ function toMarkdown(r) {
   lines.push(`- Logged in: ${r.loginThenRoutes.loggedIn}`);
   for (const route of [
     '/dashboard',
-    '/dashboard/controls',
-    '/dashboard/trust-requests',
-    '/dashboard/trust-center',
-    '/dashboard/vendor-requests',
     '/dashboard/documents',
     '/dashboard/questionnaires',
     '/dashboard/review/1',
+    '/dashboard/requests',
     '/dashboard/exports',
+    '/dashboard/compliance-gaps',
+    '/dashboard/trust-center',
   ]) {
     const d = r.loginThenRoutes[route];
     if (!d) continue;

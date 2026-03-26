@@ -2,19 +2,20 @@
 
 import { Suspense, useEffect, useState } from 'react'
 import Link from 'next/link'
-import { useRouter, useSearchParams } from 'next/navigation'
+import { useSearchParams } from 'next/navigation'
 import { Card, Button, Input } from '@/components/ui'
 
 type OAuthProviders = { google: boolean; github: boolean; microsoft?: boolean; sso?: boolean; idme?: boolean }
 
 function LoginContent() {
-  const router = useRouter()
   const searchParams = useSearchParams()
   const next = searchParams.get('next') || '/dashboard'
+  const isDemo = searchParams.get('demo') === 'true'
   const prefillEmail = searchParams.get('email') || ''
   const [email, setEmail] = useState(prefillEmail)
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
+  const [demoLoading, setDemoLoading] = useState(false)
   const [mfaStep, setMfaStep] = useState<boolean>(false)
   const [mfaToken, setMfaToken] = useState('')
   const [mfaCode, setMfaCode] = useState('')
@@ -55,7 +56,11 @@ function LoginContent() {
       setError(msg || `Login failed (${res.status})`)
       return
     }
-    router.push(next)
+    if (data.needs_onboarding) {
+      window.location.href = '/onboarding'
+      return
+    }
+    window.location.href = next
   }
 
   const onMfaSubmit = async (e: React.FormEvent) => {
@@ -73,7 +78,65 @@ function LoginContent() {
       else setError(Array.isArray(data.detail) ? data.detail[0]?.msg : data.detail || 'Invalid code')
       return
     }
-    router.push(next)
+    window.location.href = next
+  }
+
+  const onDemoClick = async () => {
+    setError('')
+    setDemoLoading(true)
+    try {
+      const res = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: 'demo@trust.local', password: 'j', remember_me: false }),
+        credentials: 'include',
+      })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) {
+        setError(data.detail || 'Demo login failed. Please try again.')
+        return
+      }
+      window.location.href = '/dashboard'
+    } catch {
+      setError('Network error. Please try again.')
+    } finally {
+      setDemoLoading(false)
+    }
+  }
+
+  if (isDemo) {
+    return (
+      <main className="flex min-h-screen items-center justify-center p-4">
+        <Card className="w-full max-w-md">
+          <div className="mb-2 flex items-center gap-3">
+            <div
+              className="grid h-10 w-10 place-items-center rounded-xl text-lg font-bold text-white"
+              style={{
+                background: 'linear-gradient(135deg, #7c96ff, #5b7cff 55%, #2dd4bf)',
+                boxShadow: '0 12px 30px rgba(91,124,255,0.35)',
+              }}
+            >
+              ✓
+            </div>
+            <h1 className="text-xl font-bold text-[var(--tc-text)]">Trust Copilot</h1>
+          </div>
+          <p className="mb-2 text-sm text-[var(--tc-muted)]">
+            Explore the full product with sample compliance data.
+          </p>
+          <p className="mb-6 text-xs text-[var(--tc-muted)]">
+            No account needed. You'll enter a pre-loaded demo workspace as an editor.
+          </p>
+          {error && <p className="mb-4 text-sm text-[var(--tc-danger)]">{error}</p>}
+          <Button onClick={onDemoClick} disabled={demoLoading} className="w-full">
+            {demoLoading ? 'Launching demo…' : 'Try the Demo'}
+          </Button>
+          <p className="mt-5 text-sm text-[var(--tc-muted)]">
+            Already have an account?{' '}
+            <Link href="/login" className="text-[var(--tc-soft)] underline">Sign in</Link>
+          </p>
+        </Card>
+      </main>
+    )
   }
 
   if (mfaStep) {
@@ -160,7 +223,7 @@ function LoginContent() {
           <Button type="submit" className="w-full">
             Sign in
           </Button>
-          {(oauthProviders.google || oauthProviders.github || oauthProviders.sso) && (
+          {(oauthProviders.google || oauthProviders.github) && (
             <div className="relative my-4">
               <div className="absolute inset-0 flex items-center">
                 <div className="w-full border-t border-[var(--tc-border)]" />
@@ -171,14 +234,6 @@ function LoginContent() {
             </div>
           )}
           <div className="flex flex-col gap-3 mt-2">
-            {oauthProviders.sso && (
-              <a
-                href="/api/auth/sso"
-                className="flex items-center justify-center gap-2 rounded-xl border border-[var(--tc-border)] bg-[var(--tc-panel)] px-4 py-3 text-sm font-medium text-[var(--tc-text)] hover:bg-white/10 transition-colors min-h-[44px]"
-              >
-                Sign in with SSO
-              </a>
-            )}
             {oauthProviders.google && (
               <a
                 href="/api/auth/oauth/google"
@@ -200,13 +255,11 @@ function LoginContent() {
           </div>
         </form>
         <p className="mt-4 text-sm text-[var(--tc-muted)]">
-          <Link href="/register" prefetch={false} className="text-[var(--tc-soft)] underline">Create account</Link>
-          {' · '}
           <Link href="/forgot-password" prefetch={false} className="text-[var(--tc-soft)] underline">Forgot password?</Link>
         </p>
-        {process.env.NEXT_PUBLIC_SHOW_DEMO_HINT === 'true' && (
-          <p className="mt-2 text-xs text-[var(--tc-muted)]">Demo: demo@trust.local / j</p>
-        )}
+        <p className="mt-2 text-xs text-[var(--tc-muted)]">
+          Want to explore? <a href="/login?demo=true" className="text-[var(--tc-soft)] underline">Try the demo</a>
+        </p>
       </Card>
     </main>
   )

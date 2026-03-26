@@ -26,6 +26,8 @@ function parseMe(data: MeResponse): AuthState {
     permissions: data.permissions ?? { can_edit: false, can_review: false, can_admin: false, can_export: false },
     loading: false,
     error: null,
+    needs_onboarding: data.needs_onboarding,
+    subscription: data.subscription,
     mfa_enrolled: data.mfa_enrolled,
     mfa_required_for_workspace: data.mfa_required_for_workspace,
     workspace_auth_policy: data.workspace_auth_policy,

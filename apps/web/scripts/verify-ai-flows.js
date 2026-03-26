@@ -14,7 +14,6 @@ const LOGIN_PASSWORD = process.env.LOGIN_PASSWORD || 'j';
 const results = {
   baseUrl: BASE_URL,
   startedAt: new Date().toISOString(),
-  trustRequests: { ok: false, error: null, draftLength: 0, draftSnippet: '', consoleErrors: [] },
   questionnaires: { ok: false, questionnaireId: null, questionCount: 0, error: null, consoleErrors: [] },
   generateAnswers: { ok: false, jobCompleted: false, answersBefore: 0, answersAfter: 0, error: null, consoleErrors: [] },
   review: { ok: false, answersVisible: false, editWorked: false, error: null },
@@ -48,26 +47,7 @@ async function run() {
       throw new Error('Login failed: did not reach dashboard');
     }
 
-    // --- 1) Trust Requests – Suggest Reply ---
-    await page.goto(BASE_URL + '/dashboard/trust-requests', { waitUntil: 'networkidle', timeout: 15000 });
-    const firstRow = page.locator('ul.divide-y li').first();
-    const rowCount = await firstRow.count();
-    if (rowCount === 0) {
-      results.trustRequests.error = 'No trust requests in list';
-    } else {
-      await firstRow.click();
-      await page.waitForTimeout(500);
-      const suggestBtn = page.getByRole('button', { name: /Suggest reply \(AI\)|Generating/ });
-      await suggestBtn.click();
-      await page.waitForTimeout(8000);
-      const textarea = page.locator('textarea[placeholder*="reply"]');
-      const draft = await textarea.inputValue().catch(() => '');
-      results.trustRequests.draftLength = draft.length;
-      results.trustRequests.draftSnippet = draft ? draft.slice(0, 200) + (draft.length > 200 ? '…' : '') : '';
-      results.trustRequests.ok = draft.length > 20 && !draft.toLowerCase().includes('error') && !draft.toLowerCase().includes('sorry, i cannot');
-    }
-
-    // --- 2) Questionnaires – get first questionnaire id from list ---
+    // --- 1) Questionnaires – get first questionnaire id from list ---
     await page.goto(BASE_URL + '/dashboard/questionnaires', { waitUntil: 'networkidle', timeout: 15000 });
     const firstQnrLink = page.locator('a[href*="/dashboard/questionnaires/"]').first();
     const href = await firstQnrLink.getAttribute('href').catch(() => null);
@@ -138,7 +118,6 @@ async function run() {
       }
     }
   } catch (e) {
-    if (!results.trustRequests.error) results.trustRequests.error = e.message;
     if (!results.generateAnswers.error) results.generateAnswers.error = e.message;
     if (!results.export.error) results.export.error = e.message;
   } finally {
@@ -150,7 +129,7 @@ async function run() {
   const md = toMarkdown(results);
   fs.writeFileSync(path.join(outDir, 'verify-ai-flows-results.md'), md);
   console.log(md);
-  process.exit(results.trustRequests.ok && results.generateAnswers.ok && results.export.ok ? 0 : 1);
+  process.exit(results.generateAnswers.ok && results.export.ok ? 0 : 1);
 }
 
 function toMarkdown(r) {
@@ -158,12 +137,6 @@ function toMarkdown(r) {
     '# AI flows verification results',
     `Base URL: ${r.baseUrl}`,
     `Started: ${r.startedAt}`,
-    '',
-    '## Trust Requests – Suggest Reply (AI)',
-    `- OK: ${r.trustRequests.ok}`,
-    r.trustRequests.error ? `- Error: ${r.trustRequests.error}` : '',
-    `- Draft length: ${r.trustRequests.draftLength}`,
-    `- Snippet: ${(r.trustRequests.draftSnippet || '(none)').slice(0, 300)}`,
     '',
     '## Questionnaires',
     `- OK: ${r.questionnaires.ok}`,

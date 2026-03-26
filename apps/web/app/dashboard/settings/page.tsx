@@ -5,6 +5,81 @@ import Link from 'next/link'
 import { Button, Card, Input } from '@/components/ui'
 import { useAuth } from '@/contexts/AuthContext'
 
+function BillingSection() {
+  const { subscription } = useAuth()
+  const [loading, setLoading] = useState(false)
+
+  const status = subscription?.status || 'none'
+  const plan = subscription?.plan
+
+  const openPortal = async () => {
+    setLoading(true)
+    try {
+      const res = await fetch('/api/billing/create-portal-session', {
+        method: 'POST',
+        credentials: 'include',
+      })
+      const data = await res.json().catch(() => ({}))
+      if (res.ok && data.portal_url) {
+        window.location.href = data.portal_url
+      }
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const startCheckout = async () => {
+    setLoading(true)
+    try {
+      const res = await fetch('/api/billing/create-checkout-session', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({}),
+      })
+      const data = await res.json().catch(() => ({}))
+      if (res.ok && data.checkout_url) {
+        window.location.href = data.checkout_url
+      }
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  if (status === 'active' || status === 'trialing') {
+    return (
+      <Card className="mb-6">
+        <h2 className="text-lg font-semibold text-[var(--tc-text)] mb-2">Billing</h2>
+        <div className="flex items-center gap-3 mb-3">
+          <span className="inline-flex items-center gap-1.5 rounded-full bg-[rgba(34,197,94,0.12)] border border-[rgba(34,197,94,0.18)] px-2.5 py-0.5 text-xs font-medium text-[var(--tc-success)]">
+            Active
+          </span>
+          <span className="text-sm text-[var(--tc-muted)]">Pro Plan — $25/month</span>
+        </div>
+        <Button onClick={openPortal} disabled={loading}>
+          {loading ? 'Loading…' : 'Manage Billing'}
+        </Button>
+      </Card>
+    )
+  }
+
+  return (
+    <Card className="mb-6">
+      <h2 className="text-lg font-semibold text-[var(--tc-text)] mb-2">Billing</h2>
+      <p className="text-sm text-[var(--tc-muted)] mb-3">
+        {status === 'past_due'
+          ? 'Your payment failed. Please update your payment method.'
+          : status === 'canceled'
+            ? 'Your subscription has been cancelled.'
+            : 'No active subscription. Subscribe to the Pro plan to unlock all features.'}
+      </p>
+      <Button onClick={startCheckout} disabled={loading}>
+        {loading ? 'Loading…' : status === 'past_due' ? 'Update Payment' : 'Subscribe — $25/mo'}
+      </Button>
+    </Card>
+  )
+}
+
 export default function SettingsPage() {
   const { permissions, refresh, switchWorkspace, workspace, workspaces } = useAuth()
   const [createWorkspaceName, setCreateWorkspaceName] = useState('')
@@ -87,6 +162,8 @@ export default function SettingsPage() {
           </Button>
         </form>
       </Card>
+
+      <BillingSection />
 
       <Card>
         <h2 className="text-lg font-semibold text-[var(--tc-text)] mb-2">Security</h2>

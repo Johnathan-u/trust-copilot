@@ -240,12 +240,12 @@ def test_frontend_page_loads():
         "/dashboard/slack",
         "/dashboard/gmail",
         "/dashboard/trust-center",
+        "/dashboard/requests",
     ]
     deleted_pages = [
         "/dashboard/controls",
         "/dashboard/compliance-audit",
         "/dashboard/trust-requests",
-        "/dashboard/vendor-requests",
     ]
 
     frontend_base = "http://caddy:3000"

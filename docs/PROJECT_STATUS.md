@@ -114,15 +114,9 @@ The `.env.example` has `SESSION_SECRET=placeholder` and `S3_ACCESS_KEY=placehold
 
 ## 4. Medium-Severity Issues
 
-### 4.1 `console.log` in Production Frontend Code
+### 4.1 ~~`console.log` in Production Frontend Code~~ RESOLVED
 
-**File**: `apps/web/app/dashboard/trust-requests/page.tsx`, line 347
-
-```typescript
-console.log('Suggest Reply clicked', payload)
-```
-
-Debug logging left in production code. Should be removed or replaced with a proper telemetry call.
+The `apps/web/app/dashboard/trust-requests/page.tsx` page was removed as part of product consolidation. Trust Requests are no longer exposed as a standalone dashboard page. The console.log is gone with the deleted file.
 
 ### 4.2 Incomplete Fetch Error Handling in Frontend
 
@@ -235,18 +229,9 @@ If tagging fails, the document is indexed but has no tags. Mapping will never ma
 
 There are 10+ `except Exception` blocks in the answer generation code. While most log the error, several use bare `except Exception:` followed by `pass` or minimal handling. In production, this makes debugging extremely difficult because failures are absorbed rather than surfaced.
 
-### 5.6 Sidebar Includes Pages That May Not Be Functional
+### 5.6 ~~Sidebar Includes Pages That May Not Be Functional~~ RESOLVED
 
-**File**: `apps/web/components/layout/Sidebar.tsx`
-
-The sidebar links to:
-- `/dashboard/gmail` — unclear if Gmail integration is implemented
-- `/dashboard/slack` — Slack integration tests were failing (deselected)
-- `/dashboard/vendor-requests` — unclear completion status
-- `/dashboard/trust-center` — unclear completion status
-- `/dashboard/notifications` — notification tests were failing (deselected)
-
-These pages exist but their backend integrations may be incomplete or non-functional.
+The sidebar has been cleaned and standardized. `/dashboard/vendor-requests` was renamed to `/dashboard/requests` (with a redirect in place). `/dashboard/trust-requests` was removed entirely. All sidebar links now point to existing, functional pages grouped into Core, Compliance, and Admin sections with role-based visibility.
 
 ### 5.7 Confidence Scores Are Arbitrary Constants
 
@@ -311,7 +296,7 @@ Setting `MAPPING_MODE=heuristic` is accepted as valid, but the mapping pipeline 
 | **Testing** | E2E tests in CI | Medium |
 | **Testing** | Full pipeline integration test | Large |
 | **Testing** | Fix or remove deselected tests | Medium |
-| **UX** | Verify Gmail, Slack, Notifications, Vendor Requests, Trust Center pages work | Large |
+| **UX** | Verify Gmail, Slack, Notifications, Requests, Trust Center pages work | Large |
 | **UX** | Surface document tagging failures to users | Medium |
 | **UX** | Calibrate or remove confidence scores | Medium |
 

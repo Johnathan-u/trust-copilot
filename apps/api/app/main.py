@@ -53,6 +53,7 @@ from app.api.routes import compliance_alerts as compliance_alerts_router
 from app.api.routes import compliance_export as compliance_export_router
 from app.api.routes import compliance_audit as compliance_audit_router
 from app.api.routes import vendor_requests as vendor_requests_router
+from app.api.routes import vendor_response as vendor_response_router
 from app.api.routes import audit as audit_router
 from app.api.routes import notifications as notifications_router
 from app.api.routes import slack as slack_router
@@ -63,6 +64,7 @@ from app.api.routes import dashboard_cards as dashboard_cards_router
 from app.api.routes import tags as tags_router
 from app.api.routes import ai_mappings as ai_mappings_router
 from app.api.routes import ai_insights as ai_insights_router
+from app.api.routes import billing as billing_router
 from app.services.storage import StorageClient
 
 
@@ -161,7 +163,7 @@ async def lifespan(app: FastAPI):
     yield
 
 
-app = FastAPI(title="Trust Copilot API", lifespan=lifespan)
+app = FastAPI(title="Trust Copilot API", lifespan=lifespan, redirect_slashes=False)
 
 
 class StructuredLoggingMiddleware(BaseHTTPMiddleware):
@@ -244,7 +246,7 @@ class GlobalRateLimitMiddleware(BaseHTTPMiddleware):
 
     async def dispatch(self, request: Request, call_next):
         path = (request.scope.get("path") or "").strip()
-        if path in ("/healthz", "/readyz", "/workerz", "/metrics"):
+        if path in ("/healthz", "/readyz", "/workerz", "/metrics", "/api/billing/webhook"):
             return await call_next(request)
         s = get_settings()
         if s.rate_limit_rpm_per_ip <= 0:
@@ -289,6 +291,7 @@ app.include_router(compliance_alerts_router.router, prefix="/api")
 app.include_router(compliance_export_router.router, prefix="/api")
 app.include_router(compliance_audit_router.router, prefix="/api")
 app.include_router(vendor_requests_router.router, prefix="/api")
+app.include_router(vendor_response_router.router, prefix="/api")
 app.include_router(documents_router.router, prefix="/api")
 app.include_router(questionnaires_router.router, prefix="/api")
 app.include_router(search_router.router, prefix="/api")
@@ -303,6 +306,7 @@ app.include_router(tags_router.router, prefix="/api")
 app.include_router(ai_mappings_router.router, prefix="/api")
 app.include_router(ai_mappings_router.gov_router, prefix="/api")
 app.include_router(ai_insights_router.router, prefix="/api")
+app.include_router(billing_router.router, prefix="/api")
 
 
 @app.get("/metrics")

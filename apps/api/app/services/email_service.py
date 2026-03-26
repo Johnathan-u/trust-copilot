@@ -132,6 +132,24 @@ def send_verification_email(to: str, verify_url: str) -> bool:
     return get_email_provider().send(msg)
 
 
+def send_verification_code_email(to: str, code: str) -> bool:
+    """Send a 6-digit verification code for email verification."""
+    msg = EmailMessage(
+        to=to,
+        subject=f"Your verification code: {code} - Trust Copilot",
+        body_text=f"Your Trust Copilot verification code is:\n\n  {code}\n\nEnter this code to verify your email. It expires in 15 minutes.",
+        body_html=(
+            f"<div style=\"font-family:sans-serif;max-width:400px;margin:0 auto;\">"
+            f"<h2 style=\"color:#e2e8f0;\">Verify your email</h2>"
+            f"<p style=\"color:#94a3b8;\">Your verification code is:</p>"
+            f"<p style=\"font-size:2rem;letter-spacing:0.15em;font-family:monospace;font-weight:bold;color:#5b7cff;text-align:center;padding:16px 0;\">{code}</p>"
+            f"<p style=\"color:#94a3b8;font-size:0.85rem;\">Enter this code to complete your registration. It expires in 15 minutes.</p>"
+            f"</div>"
+        ),
+    )
+    return get_email_provider().send(msg)
+
+
 def send_password_reset_email(to: str, reset_url: str) -> bool:
     """Send password reset link. Used by AUTH-209."""
     msg = EmailMessage(

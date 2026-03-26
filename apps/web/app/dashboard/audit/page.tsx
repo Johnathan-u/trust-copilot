@@ -3,6 +3,11 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Card } from '@/components/ui'
 import { useAuth } from '@/contexts/AuthContext'
+import { NOTIFICATION_LABELS } from '@/lib/notification-labels'
+
+const NOTIF_LABELS: Record<string, string> = Object.fromEntries(
+  Object.entries(NOTIFICATION_LABELS).map(([k, v]) => [k, v.title])
+)
 
 /* ──────────────────── Types ──────────────────── */
 
@@ -94,18 +99,18 @@ const EVENT_CONFIG: Record<string, EventConfig> = {
   'slack.evidence_ingested':      { label: 'Slack evidence ingested',     category: 'integration', severity: 'low' },
   'slack.suggestion_approved':    { label: 'Slack suggestion approved',   category: 'integration', severity: 'low' },
   'slack.suggestion_dismissed':   { label: 'Slack suggestion dismissed',  category: 'integration', severity: 'routine' },
-  'trust_request.update':         { label: 'Trust request updated',       category: 'system',      severity: 'low' },
-  'trust_request.soft_delete':    { label: 'Trust request deleted',       category: 'system',      severity: 'medium' },
-  'trust_request.restore':        { label: 'Trust request restored',      category: 'system',      severity: 'low' },
-  'trust_request.note_added':     { label: 'Note added to request',       category: 'system',      severity: 'routine' },
-  'trust_request.reply_added':    { label: 'Reply added to request',      category: 'system',      severity: 'routine' },
-  'trust_request.delete_preview': { label: 'Request deletion previewed',  category: 'system',      severity: 'routine' },
-  'trust_request.metadata_update':{ label: 'Request metadata updated',    category: 'system',      severity: 'routine' },
+  'trust_request.update':         { label: 'Request updated',              category: 'system',      severity: 'low' },
+  'trust_request.soft_delete':    { label: 'Request deleted',              category: 'system',      severity: 'medium' },
+  'trust_request.restore':        { label: 'Request restored',             category: 'system',      severity: 'low' },
+  'trust_request.note_added':     { label: 'Note added to request',        category: 'system',      severity: 'routine' },
+  'trust_request.reply_added':    { label: 'Reply added to request',       category: 'system',      severity: 'routine' },
+  'trust_request.delete_preview': { label: 'Request deletion previewed',   category: 'system',      severity: 'routine' },
+  'trust_request.metadata_update':{ label: 'Request metadata updated',     category: 'system',      severity: 'routine' },
   'dashboard.card_created':       { label: 'Dashboard card created',      category: 'admin',       severity: 'routine' },
   'dashboard.card_updated':       { label: 'Dashboard card updated',      category: 'admin',       severity: 'routine' },
   'dashboard.card_deleted':       { label: 'Dashboard card deleted',      category: 'admin',       severity: 'routine' },
   'dashboard.layout_reordered':   { label: 'Dashboard layout changed',    category: 'admin',       severity: 'routine' },
-  'ai_governance.settings.updated':{ label: 'AI governance updated',      category: 'ai',          severity: 'medium' },
+  'ai_governance.settings.updated':{ label: 'AI Insights settings updated', category: 'ai',          severity: 'medium' },
   'compliance.evidence.verified': { label: 'Evidence verified',           category: 'ai',          severity: 'low' },
   'compliance.control.verified':  { label: 'Control verified',            category: 'ai',          severity: 'low' },
   'compliance.mapping.confirmed': { label: 'Mapping confirmed',           category: 'ai',          severity: 'low' },
@@ -194,7 +199,10 @@ function formatDetails(action: string, raw: string | null): string {
   if (action === 'auth.login_failed' && reason) return reason
   if (action === 'auth.mfa_verify_failed' || action === 'auth.mfa_confirm_failed') return reason || 'Verification failed'
 
-  if (action.startsWith('notification.policy') && eventType) return eventType.replace(/[._]/g, ' ')
+  if (action.startsWith('notification.policy') && eventType) {
+    const label = NOTIF_LABELS[eventType]
+    return label ? label : eventType.replace(/[._]/g, ' ')
+  }
 
   if (action === 'document.soft_delete' && docName) return docName
   if (action === 'document.restore' && docName) return docName
