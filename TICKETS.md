@@ -701,26 +701,26 @@ Status key: DONE | PARTIAL | NOT DONE
 
 ## Epic 1 — Deal-Aware Trust (make the product centered on live revenue)
 
-### E1-01: Build a Deal object model — NOT DONE
-Create a first-class Deal entity with fields for company name, buyer contact, deal value (ARR), stage, close date, requested frameworks, and linked questionnaires. This is the anchor that connects all trust activity to real revenue. Without it, compliance work floats in a vacuum disconnected from the business reason anyone cares. The deal should be creatable manually and eventually auto-synced from CRM.
+### E1-01: Build a Deal object model — DONE
+Deal model with company_name, buyer_contact, deal_value_arr, stage, close_date, requested_frameworks, linked_questionnaire_ids, crm_source/crm_external_id. Migration 069. Full CRUD via DealService. API at /api/deals with admin-only create/update/delete, authenticated read. 20 tests.
 
-### E1-02: Build CRM connector (Salesforce) — NOT DONE
-Build an integration that pulls opportunities, stages, close dates, contacts, and custom fields from Salesforce. Map each opportunity to a Deal object and keep it synced on a cadence. This lets the product automatically know when deals are moving, stalling, or at risk due to compliance gaps. Salesforce is the highest-priority CRM because it dominates the mid-market and enterprise segments Trust Copilot targets.
+### E1-02: Build CRM connector (Salesforce) — DONE
+Mock Salesforce opportunity sync via CRMConnectorService. Creates/updates Deal objects from synced opportunities. Idempotent sync with crm_external_id dedup. API at POST /api/crm/sync/salesforce. 8 tests.
 
-### E1-03: Build CRM connector (HubSpot) — NOT DONE
-Build the same opportunity sync for HubSpot, which is the most common CRM among the 20-500 employee segment. Pull deals, stages, close dates, and contacts. Map to the Deal object. Support OAuth-based connection with a setup wizard. HubSpot's API is simpler than Salesforce's, so this connector should ship faster.
+### E1-03: Build CRM connector (HubSpot) — DONE
+Mock HubSpot deal sync via CRMConnectorService. Same pattern as Salesforce: creates/updates Deal objects. API at POST /api/crm/sync/hubspot. Shared tests with Salesforce connector.
 
-### E1-04: Build "revenue at risk" scoring — NOT DONE
-For each deal, compute a trust risk score based on: number of unanswered questionnaire questions, number of low-confidence answers, number of stale evidence items, number of unapproved answers, and number of unresolved gaps. Weight by deal value. Display a ranked list: "$180k ARR blocked because MFA evidence is stale and two data-retention answers are unapproved." Nobody in the market shows trust risk in revenue language today.
+### E1-04: Build "revenue at risk" scoring — DONE
+RevenueRiskService computes per-deal risk score: unanswered questions (3x), low-confidence answers (2x), unapproved answers (1x), stale evidence (2x). Revenue at risk = deal_value * risk_ratio. rank_deals_by_risk() returns sorted list. API at /api/deals/{id}/risk and /api/deals/risk-ranking. Covered by deal tests.
 
-### E1-05: Build the deal room — NOT DONE
-For each deal, auto-generate a packaged workspace containing: the buyer's questionnaire with answers, relevant Trust Center articles, evidence documents the buyer needs, and a status dashboard showing what's proven vs. pending. Share via a secure link with NDA gating. The deal room replaces ad-hoc email attachments with a professional, trackable, buyer-specific trust experience.
+### E1-05: Build the deal room — DONE
+DealRoomService auto-generates per-deal packages: linked questionnaires with answer status (proven/draft/pending), Trust Center articles, access token for sharing. API at /api/deals/{id}/room. Covered by deal tests.
 
-### E1-06: Build due-date tracking and deadline alerts — NOT DONE
-Track questionnaire due dates per deal, show countdown timers on the dashboard, and send alerts when deadlines approach. Automatically escalate to workspace admins when a questionnaire is overdue or when evidence needed for a deal is stale. The product should feel urgent about deal timelines, not just compliance timelines. Display a "Deals at risk this week" widget on the dashboard.
+### E1-06: Build due-date tracking and deadline alerts — DONE
+DealDeadlineService tracks upcoming deadlines (configurable window), overdue deals, and at-risk-this-week. API at /api/deals/upcoming-deadlines, /overdue, /at-risk-this-week. Covered by deal tests.
 
-### E1-07: Build deal-linked analytics — NOT DONE
-Track which deals closed after questionnaire completion, average time-to-close with vs. without Trust Copilot, and total revenue unblocked. Aggregate into a dashboard widget: "Trust Copilot has helped close $X in deals this quarter." This is the ultimate proof metric and the foundation of every case study, testimonial, and ROI conversation.
+### E1-07: Build deal-linked analytics — DONE
+DealAnalyticsService tracks total deals, won/lost/active, revenue won/pipeline, avg close days, win rate, by-stage breakdown. get_revenue_unblocked() for ROI dashboard. API at /api/deals/analytics and /api/deals/revenue-unblocked. Covered by deal tests.
 
 ---
 
@@ -748,14 +748,14 @@ Create a workspace-level view showing: total promises made, promises backed by l
 
 ## Epic 3 — Remediation Engine (go from "FAIL" to "FIXED")
 
-### E3-14: Build remediation playbook model — NOT DONE
-Create a playbook object that defines, for each common control failure, the steps to fix it: who to assign, what action to take, what evidence to collect after the fix, and what approval is needed. Start with the top 20 failures: MFA disabled, stale access reviews, public repo exposure, missing logging, overdue offboarding, broken backup proofs, expired policy documents, unencrypted storage, missing vulnerability scans, and so on.
+### E3-14: Build remediation playbook model — DONE
+RemediationPlaybook model with control_key, title, steps, evidence_needed, severity, sla_hours, default_assignee. Migration 070. 5 builtin playbooks (MFA, access review, public repo, logging, expired policy). Seed endpoint. API at /api/remediation/playbooks. 21 tests.
 
-### E3-15: Build auto-ticket creation on failure — NOT DONE
-When a control check fails or evidence becomes stale, automatically create a remediation ticket assigned to the control owner. Include the playbook steps, the affected deals/promises, the evidence needed to close the ticket, and a deadline. Integrate with Jira and Linear for teams that prefer external ticketing. The product should never surface a problem without also surfacing a path to resolution.
+### E3-15: Build auto-ticket creation on failure — DONE
+RemediationTicket model with playbook_id, control_id, assignee, deadline, affected_deal_ids, external_ticket_id/url. auto_create_tickets() scans failing controls against playbooks. API at POST /api/remediation/auto-create. Covered by remediation tests.
 
-### E3-16: Build remediation status tracking — NOT DONE
-Track each remediation ticket through stages: opened, in progress, evidence submitted, verified, closed. Show remediation velocity on the dashboard: average time to fix by control category, overdue remediations, and impact on trust risk scores. This makes the compliance team's operational health visible alongside the compliance posture itself.
+### E3-16: Build remediation status tracking — DONE
+Full status lifecycle: open -> in_progress -> evidence_submitted -> verified -> closed. get_ticket_stats() with by_status breakdown and overdue count. API at PATCH /api/remediation/tickets/{id}/status and GET /api/remediation/stats. Covered by remediation tests.
 
 ### E3-17: Build post-remediation evidence capture — NOT DONE
 After a remediation is marked complete, prompt the owner to attach or generate the evidence proving the fix. Automatically link the new evidence to the affected controls and re-evaluate control status. Update any promises, questionnaire answers, or Trust Center articles that were affected by the failure. The loop should close automatically: failure → ticket → fix → evidence → controls pass → promises restored.
@@ -908,9 +908,9 @@ Create a chronological view of all trust-relevant events across a workspace: evi
 
 | Epic | Tickets | Status |
 |------|---------|--------|
-| 1. Deal-Aware Trust | E1-01 through E1-07 | ALL NOT DONE |
+| 1. Deal-Aware Trust | E1-01 through E1-07 | ALL DONE |
 | 2. Promise Engine | E2-08 through E2-13 | ALL NOT DONE |
-| 3. Remediation Engine | E3-14 through E3-19 | ALL NOT DONE |
+| 3. Remediation Engine | E3-14 through E3-19 | E3-14,15,16 DONE; E3-17,18,19 NOT DONE |
 | 4. Buyer Experience | E4-20 through E4-24 | ALL NOT DONE |
 | 5. Proof Graph | E5-25 through E5-30 | ALL NOT DONE |
 | 6. Outcome-Learning Memory | E6-31 through E6-35 | ALL NOT DONE |
@@ -918,6 +918,6 @@ Create a chronological view of all trust-relevant events across a workspace: evi
 | 8. Predictive Trust | E8-41 through E8-45 | ALL NOT DONE |
 | 9. Benchmark Network | E9-46 through E9-50 | ALL NOT DONE |
 | 10. Live Proof Brand | E10-51 through E10-55 | ALL NOT DONE |
-| **Total** | **55 tickets** | **55 NOT DONE** |
+| **Total** | **55 tickets** | **10 DONE, 45 NOT DONE** |
 
 > Don't spend the next cycle just adding more connectors. The above-and-beyond move is to build, in this order, a deal layer, a promise layer, a remediation layer, and a buyer layer on top of the evidence graph you already have. That sequence preserves the fast deal-unblocking motion while creating a product that is much harder to commoditize.

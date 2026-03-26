@@ -71,6 +71,8 @@ from app.models.golden_answer import GoldenAnswer
 from app.models.answer_approval_event import AnswerApprovalEvent
 from app.models.freshness_policy import FreshnessPolicy
 from app.models.retention_policy import RetentionPolicy
+from app.models.deal import Deal, DEAL_STAGES
+from app.models.remediation_playbook import RemediationPlaybook, RemediationTicket, REMEDIATION_STATUSES
 
 __all__ = [
     "ApiKey",
@@ -166,4 +168,9 @@ __all__ = [
     "FreshnessPolicy",
     "RetentionPolicy",
     "EVIDENCE_APPROVAL_STATUSES",
+    "Deal",
+    "DEAL_STAGES",
+    "RemediationPlaybook",
+    "RemediationTicket",
+    "REMEDIATION_STATUSES",
 ]
