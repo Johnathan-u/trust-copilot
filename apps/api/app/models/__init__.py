@@ -64,6 +64,8 @@ from app.models.credential_store import CredentialStore
 from app.models.product_event import ProductEvent
 from app.models.case_study import CaseStudy
 from app.models.control_state import ControlStateSnapshot
+from app.models.alert_acknowledgment import AlertAcknowledgment
+from app.models.nda_access_request import NdaAccessRequest
 
 __all__ = [
     "ApiKey",
@@ -151,4 +153,6 @@ __all__ = [
     "ProductEvent",
     "CaseStudy",
     "ControlStateSnapshot",
+    "AlertAcknowledgment",
+    "NdaAccessRequest",
 ]

@@ -86,6 +86,12 @@ from app.api.routes import evidence_cards as evidence_cards_router
 from app.api.routes import knowledge_packs as knowledge_packs_router
 from app.api.routes import sla_tracking as sla_tracking_router
 from app.api.routes import credit_prompts as credit_prompts_router
+from app.api.routes import signal_mapping as signal_mapping_router
+from app.api.routes import monitoring as monitoring_router
+from app.api.routes import alert_management as alert_management_router
+from app.api.routes import trust_center_publish as trust_center_publish_router
+from app.api.routes import control_timeline as control_timeline_router
+from app.api.routes import nda_access as nda_access_router
 from app.services.storage import StorageClient
 
 
@@ -349,6 +355,12 @@ app.include_router(evidence_cards_router.router, prefix="/api")
 app.include_router(knowledge_packs_router.router, prefix="/api")
 app.include_router(sla_tracking_router.router, prefix="/api")
 app.include_router(credit_prompts_router.router, prefix="/api")
+app.include_router(signal_mapping_router.router, prefix="/api")
+app.include_router(monitoring_router.router, prefix="/api")
+app.include_router(alert_management_router.router, prefix="/api")
+app.include_router(trust_center_publish_router.router, prefix="/api")
+app.include_router(control_timeline_router.router, prefix="/api")
+app.include_router(nda_access_router.router, prefix="/api")
 
 
 @app.get("/metrics")

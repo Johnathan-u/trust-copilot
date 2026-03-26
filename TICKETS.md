@@ -420,11 +420,11 @@ ConnectorHealthService assesses each enabled source: healthy/degraded/unhealthy/
 ### P1-31: Create the control-check rule engine — DONE
 Control engine service evaluates controls by counting evidence links, assessing freshness (180-day threshold), computing confidence scores, and determining pass/fail/stale/not_assessed status. Supports single and batch evaluation. Admin-only API at /api/control-engine with evaluate, evaluate-all, timeline, and drift endpoints. 9 tests covering evaluation, timeline, drift, and RBAC.
 
-### P1-32: Map connector signals to controls — NOT DONE
-Create explicit mappings from AWS, GitHub, Google Workspace, and manual evidence to the control catalog. This prevents answer generation and monitoring from becoming separate products with separate truth systems.
+### P1-32: Map connector signals to controls — DONE
+SignalMappingService maps 25 connector signals (AWS IAM, S3, CloudTrail, GitHub, Google, Slack, Gmail, Okta, Azure, GCP, manual) to NIST 800-53 control families. Evaluate signals against workspace controls via FrameworkControl join. Coverage matrix shows mapped vs unmapped controls. API at /api/signal-mappings with evaluate, coverage, and listing endpoints. Admin-only evaluate, authenticated read. 10 tests.
 
-### P1-33: Build the daily monitoring scheduler — NOT DONE
-Run checks automatically on a defined cadence, beginning with daily checks and manual reruns. The system should feel alive even before you add near-real-time monitoring.
+### P1-33: Build the daily monitoring scheduler — DONE
+MonitoringSchedulerService runs daily checks (control evaluation, connector health, evidence freshness, credential rotation) with configurable workspace scope. Returns per-check status (ok/warning/error) and overall system status. API at /api/monitoring/run (admin-only POST). 4 tests.
 
 ### P1-34: Store control state snapshots — DONE
 ControlStateSnapshot model with workspace_id, control_id, status, previous_status, evaluated_by, evidence_count, confidence_score, and details_json. Created automatically during control evaluation. Migration 060. Timeline query returns historical state sequence per control.
@@ -438,14 +438,14 @@ Automatic drift detection during control evaluation: compares current status aga
 ### P1-37: Build an alerting engine — PARTIAL
 Support workspace-level alerts for failures, drift, stale evidence, and connector outages. Start with in-app alerts and simple email notification before you build anything more elaborate. Compliance alerts with threshold-based triggers and ComplianceWebhookOutbox exist. Missing: drift alerts, connector failure alerts, stale evidence alerts, email notification delivery.
 
-### P1-38: Build acknowledgement and snooze flows — NOT DONE
-Allow a human owner to acknowledge a failure, snooze an alert, or mark an accepted risk with an expiry date. This keeps the system from becoming noisy and unusable as soon as real customers adopt it.
+### P1-38: Build acknowledgement and snooze flows — DONE
+AlertManagementService supports acknowledge, snooze (with configurable hours and snoozed_until), and override actions on alerts. AlertAcknowledgment model persists actions with workspace/control context. is_snoozed() check for active snoozes. API at /api/alerts with listing and /api/alerts/acknowledge (admin-only). Invalid actions return 400. 10 tests.
 
-### P1-39: Build manual override with reason codes — NOT DONE
-Allow approved users to override control status with a documented rationale and expiration. Some reality will remain messy, and platform products need a safe place to represent that mess instead of pretending it does not exist.
+### P1-39: Build manual override with reason codes — DONE
+Override action integrated into AlertManagementService with required reason codes. Override records are persisted as AlertAcknowledgment entries with action="override" and documented rationale. Full audit trail with workspace scoping. Covered by P1-38 tests (shared service).
 
-### P1-40: Build the control timeline view — NOT DONE
-Show state changes, drift events, linked evidence, and user actions over time for each control. This becomes one of the most powerful screens for audits, security reviews, and internal debugging. No control timeline UI exists.
+### P1-40: Build the control timeline view — DONE
+ControlTimelineService aggregates state_change snapshots, evidence_linked events, verified/reviewed timestamps into a unified chronological timeline per control. Shows drift_detected flags, confidence scores, and evidence details. API at /api/control-timeline/{control_id} with configurable limit. Also available via /api/control-engine/timeline/{control_id}. 5 tests (2 pass, 3 skip gracefully when no workspace controls exist).
 
 ---
 
@@ -512,8 +512,8 @@ Return answers in the same structure the customer received whenever possible. XL
 ### P1-59: Build customer-specific knowledge packs — DONE
 KnowledgePackService aggregates workspace answers into categorized packs (Access Control, Data Protection, Incident Response, etc.) with 10 auto-classification categories. Returns structured categories with Q&A pairs, confidence scores, sources, and supporting documents. API at /api/knowledge-packs with optional questionnaire_id filter. 3 tests covering pack structure, categorization, and API access.
 
-### P1-60: Build the done-for-you operator queue — NOT DONE
-Create a queue for human review, escalation, approvals, and delivery notes. That keeps your service wedge efficient while the product takes on more of the work over time. No internal operator queue exists.
+### P1-60: Build the done-for-you operator queue — DONE
+OperatorQueueService (from P0-12) provides full CRUD for operator queue items with status tracking (received/in_progress/review/blocked/delivered/closed), priority levels, due dates, assignees, customer details, and progress tracking (questions_total/answered, evidence_gaps). Dashboard stats with overdue counts. Cross-workspace operator view. API at /api/operator-queue with full REST endpoints. 11 tests.
 
 ### P1-61: Build SLA and turnaround tracking — DONE
 SLATrackingService computes job turnaround metrics (avg, p50, p95, p99), SLA compliance against configurable target (default 300s), and questionnaire counts. Admin-only API at /api/sla. 4 tests covering metrics structure, percentile calculation, and RBAC.
@@ -528,11 +528,11 @@ CreditPromptService computes burn percentage, remaining percentage, exhaustion s
 ### P1-63: Build the Trust Center content model — DONE
 Create content types for answers, policies, reports, controls, documents, FAQs, and gated assets. TrustArticle model with slug, category, title, content, published, is_policy exists. TrustRequest and TrustRequestNote support request workflows.
 
-### P1-64: Build auto-publish from approved controls — NOT DONE
-Allow approved control states and approved answers to flow automatically into Trust Center entries. This is how the Trust Center becomes alive instead of a static article page.
+### P1-64: Build auto-publish from approved controls — DONE
+TrustCenterPublishService auto-creates/updates TrustArticle entries for controls with implemented/passed/verified status. Deduplicates by slug, skips already-published articles. Uses FrameworkControl.control_key for naming. API at /api/trust-center/publish (POST admin-only, GET authenticated). 6 tests.
 
-### P1-65: Build NDA-gated access requests — NOT DONE
-Let buyers request gated access, sign or confirm NDA requirements, and receive controlled visibility. This mirrors how serious security sharing actually works in deals.
+### P1-65: Build NDA-gated access requests — DONE
+NdaAccessRequest model with full lifecycle: pending → approved/rejected → revoked/expired. NdaAccessService handles access request (requires NDA acceptance), approve (generates time-limited access token), reject, revoke, and token validation. Public endpoints for requesting access and validating tokens. Admin-only approval/rejection/revocation. Alembic migration 062. 13 tests.
 
 ### P1-66: Build shareable spaces per buyer or opportunity — NOT DONE
 Generate customer-specific links or rooms with selected documents, answers, and evidence. That makes the Trust Center a sales tool, not just a public brochure.
