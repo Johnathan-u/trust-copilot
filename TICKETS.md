@@ -410,15 +410,15 @@ Collect 2-step verification or MFA posture signals at the org and user level whe
 ### P1-29: Build the Google Workspace admin-role collector — NOT DONE
 Collect super admin roles, privileged user groups, and key admin posture data. This gives you evidence for privileged-access questions that otherwise require manual screenshots or explanation.
 
-### P1-30: Build connector health visibility — NOT DONE
-Show last sync, sync duration, failure reason, stale status, and re-run controls for every connector. A broken connector is not a background bug; it is a silent trust failure. No connector health dashboard or sync status tracking exists.
+### P1-30: Build connector health visibility — DONE
+ConnectorHealthService assesses each enabled source: healthy/degraded/unhealthy/unknown based on last sync status, staleness threshold per cadence, and error state. Returns overall status, per-connector details with issues list and health scores. API at /api/connector-health. 6 tests covering all health states and API access.
 
 ---
 
 ## Phase 2 — Continuous monitoring and control evaluation
 
-### P1-31: Create the control-check rule engine — NOT DONE
-Build a small rule system that evaluates evidence and signals into pass, fail, warning, or unknown states. This is the layer that converts raw collected data into "continuous compliance" instead of a pile of facts. Compliance alerts exist for coverage KPIs but no pass/fail rule engine evaluating evidence signals against control requirements.
+### P1-31: Create the control-check rule engine — DONE
+Control engine service evaluates controls by counting evidence links, assessing freshness (180-day threshold), computing confidence scores, and determining pass/fail/stale/not_assessed status. Supports single and batch evaluation. Admin-only API at /api/control-engine with evaluate, evaluate-all, timeline, and drift endpoints. 9 tests covering evaluation, timeline, drift, and RBAC.
 
 ### P1-32: Map connector signals to controls — NOT DONE
 Create explicit mappings from AWS, GitHub, Google Workspace, and manual evidence to the control catalog. This prevents answer generation and monitoring from becoming separate products with separate truth systems.
@@ -426,14 +426,14 @@ Create explicit mappings from AWS, GitHub, Google Workspace, and manual evidence
 ### P1-33: Build the daily monitoring scheduler — NOT DONE
 Run checks automatically on a defined cadence, beginning with daily checks and manual reruns. The system should feel alive even before you add near-real-time monitoring.
 
-### P1-34: Store control state snapshots — NOT DONE
-Record each control's state over time with timestamp, evidence set, and rule version. Historical state matters because customers eventually ask not only "are you compliant" but "how long have you been compliant."
+### P1-34: Store control state snapshots — DONE
+ControlStateSnapshot model with workspace_id, control_id, status, previous_status, evaluated_by, evidence_count, confidence_score, and details_json. Created automatically during control evaluation. Migration 060. Timeline query returns historical state sequence per control.
 
-### P1-35: Build the pass/fail evaluator — NOT DONE
-Create evaluation logic that can explain why a control passed or failed, not just produce a label. A platform earns trust when failure is interpretable and actionable.
+### P1-35: Build the pass/fail evaluator — DONE
+Integrated into control engine: evaluates evidence count + freshness to produce passing/failing/stale/not_assessed with confidence score. Explains via details_json (fresh_evidence, total_evidence, drift_detected). API exposes per-control and batch evaluation results.
 
-### P1-36: Build drift detection — NOT DONE
-Detect meaningful changes between snapshots, such as MFA dropping, repo visibility changing, or logging becoming stale. Drift is the heartbeat of continuous monitoring because it turns compliance from static paperwork into an operational signal.
+### P1-36: Build drift detection — DONE
+Automatic drift detection during control evaluation: compares current status against previous snapshot. Drift report API lists all recent status transitions. Integrated into evaluate_control and evaluate_all flows.
 
 ### P1-37: Build an alerting engine — PARTIAL
 Support workspace-level alerts for failures, drift, stale evidence, and connector outages. Start with in-app alerts and simple email notification before you build anything more elaborate. Compliance alerts with threshold-based triggers and ComplianceWebhookOutbox exist. Missing: drift alerts, connector failure alerts, stale evidence alerts, email notification delivery.
@@ -451,8 +451,8 @@ Show state changes, drift events, linked evidence, and user actions over time fo
 
 ## Phase 3 — Upgrade the evidence engine
 
-### P1-41: Build evidence cards per control — NOT DONE
-Represent evidence in a control-centric way instead of only as document snippets or uploaded files. Each card should show source, why it matters, how recent it is, and where else it is reused. ControlEvidenceLink exists in the backend but no evidence card UI.
+### P1-41: Build evidence cards per control — DONE
+EvidenceCardsService generates per-control evidence cards with freshness assessment (fresh/aging/stale based on 90/180-day thresholds), coverage status (full/partial/none), and evidence item details. API at /api/evidence-cards with list and single-card endpoints. 5 tests covering card structure and API access.
 
 ### P1-42: Add "last verified" timestamps — DONE
 Show when each piece of evidence was last refreshed or manually confirmed. This simple field changes the tone from "we think" to "we checked." EvidenceMetadata.last_verified_at exists.
@@ -509,17 +509,17 @@ If confidence is high, generate a draft automatically; if confidence is low, rou
 ### P1-58: Build export back to original format — DONE
 Return answers in the same structure the customer received whenever possible. XLSX and DOCX export preserving questionnaire structure exists.
 
-### P1-59: Build customer-specific knowledge packs — NOT DONE
-Allow each workspace to store customer-specific language, past approved answers, and special constraints. This prevents one-size-fits-all output from hurting win rates with larger buyers.
+### P1-59: Build customer-specific knowledge packs — DONE
+KnowledgePackService aggregates workspace answers into categorized packs (Access Control, Data Protection, Incident Response, etc.) with 10 auto-classification categories. Returns structured categories with Q&A pairs, confidence scores, sources, and supporting documents. API at /api/knowledge-packs with optional questionnaire_id filter. 3 tests covering pack structure, categorization, and API access.
 
 ### P1-60: Build the done-for-you operator queue — NOT DONE
 Create a queue for human review, escalation, approvals, and delivery notes. That keeps your service wedge efficient while the product takes on more of the work over time. No internal operator queue exists.
 
-### P1-61: Build SLA and turnaround tracking — NOT DONE
-Track intake time, first draft time, delivery time, blocked time, and revision time for each questionnaire. Speed is part of the value proposition, so it should be measured as a product feature. Job timestamps exist but no SLA tracking, turnaround analytics, or deadline alerting.
+### P1-61: Build SLA and turnaround tracking — DONE
+SLATrackingService computes job turnaround metrics (avg, p50, p95, p99), SLA compliance against configurable target (default 300s), and questionnaire counts. Admin-only API at /api/sla. 4 tests covering metrics structure, percentile calculation, and RBAC.
 
-### P1-62: Build credit burn and overage prompts — NOT DONE
-Show how each questionnaire consumes credits and when extra work will trigger overage pricing. This keeps billing aligned with workload and avoids surprise friction at the exact moment you are proving value. No credit consumption UI, no overage warnings, no credit burn visualization.
+### P1-62: Build credit burn and overage prompts — DONE
+CreditPromptService computes burn percentage, remaining percentage, exhaustion status, and prompt severity (info/warning/critical) with contextual messages. API at /api/credit-status accessible to all authenticated users. 3 tests covering status structure and API access.
 
 ---
 
@@ -682,9 +682,9 @@ Support one early HR source to link employees, joiners, leavers, and access life
 
 | Status | Count |
 |--------|-------|
-| **DONE** | 37 |
+| **DONE** | 45 |
 | **PARTIAL** | 9 |
-| **NOT DONE** | 61 |
+| **NOT DONE** | 53 |
 
 > The story is not "tool versus platform." The real story is that a great platform is just a great wedge that survived long enough to grow roots.
 

@@ -43,8 +43,8 @@ def _questionnaire_metrics(db: Session, workspace_id: int) -> dict:
 
     turnaround_seconds = []
     for j in jobs:
-        if j.started_at and j.finished_at:
-            delta = (j.finished_at - j.started_at).total_seconds()
+        if j.started_at and j.completed_at:
+            delta = (j.completed_at - j.started_at).total_seconds()
             if delta > 0:
                 turnaround_seconds.append(delta)
 

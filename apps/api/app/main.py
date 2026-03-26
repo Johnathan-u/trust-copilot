@@ -80,6 +80,12 @@ from app.api.routes import product_events as product_events_router
 from app.api.routes import executive_dashboard as executive_dashboard_router
 from app.api.routes import roi_calculator as roi_calculator_router
 from app.api.routes import case_studies as case_studies_router
+from app.api.routes import connector_health as connector_health_router
+from app.api.routes import control_engine as control_engine_router
+from app.api.routes import evidence_cards as evidence_cards_router
+from app.api.routes import knowledge_packs as knowledge_packs_router
+from app.api.routes import sla_tracking as sla_tracking_router
+from app.api.routes import credit_prompts as credit_prompts_router
 from app.services.storage import StorageClient
 
 
@@ -337,6 +343,12 @@ app.include_router(product_events_router.router, prefix="/api")
 app.include_router(executive_dashboard_router.router, prefix="/api")
 app.include_router(roi_calculator_router.router, prefix="/api")
 app.include_router(case_studies_router.router, prefix="/api")
+app.include_router(connector_health_router.router, prefix="/api")
+app.include_router(control_engine_router.router, prefix="/api")
+app.include_router(evidence_cards_router.router, prefix="/api")
+app.include_router(knowledge_packs_router.router, prefix="/api")
+app.include_router(sla_tracking_router.router, prefix="/api")
+app.include_router(credit_prompts_router.router, prefix="/api")
 
 
 @app.get("/metrics")

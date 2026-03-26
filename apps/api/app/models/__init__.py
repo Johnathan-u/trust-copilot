@@ -63,6 +63,7 @@ from app.models.source_registry import SourceRegistry
 from app.models.credential_store import CredentialStore
 from app.models.product_event import ProductEvent
 from app.models.case_study import CaseStudy
+from app.models.control_state import ControlStateSnapshot
 
 __all__ = [
     "ApiKey",
@@ -149,4 +150,5 @@ __all__ = [
     "CredentialStore",
     "ProductEvent",
     "CaseStudy",
+    "ControlStateSnapshot",
 ]
