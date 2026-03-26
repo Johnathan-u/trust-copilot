@@ -31,6 +31,7 @@ from app.models.evidence_item import EvidenceItem, EVIDENCE_SOURCE_TYPES
 from app.models.control_evidence_link import ControlEvidenceLink
 from app.models.evidence_version import EvidenceVersion
 from app.models.evidence_metadata import EvidenceMetadata
+from app.models.evidence_gap import EvidenceGap, GAP_STATUSES
 from app.models.question_control_log import QuestionControlLog
 from app.models.control_mapping_override import ControlMappingOverride
 from app.models.compliance_webhook_outbox import ComplianceWebhookOutbox
@@ -54,6 +55,7 @@ from app.models.ai_mapping import (
 from app.models.question_mapping_signal import QuestionMappingSignal
 from app.models.workspace_ai_usage import WorkspaceAIUsage
 from app.models.subscription import Subscription
+from app.models.feature_flag import FeatureFlag
 
 __all__ = [
     "ApiKey",
@@ -96,6 +98,8 @@ __all__ = [
     "ControlEvidenceLink",
     "EvidenceVersion",
     "EvidenceMetadata",
+    "EvidenceGap",
+    "GAP_STATUSES",
     "QuestionControlLog",
     "ControlMappingOverride",
     "ComplianceWebhookOutbox",
@@ -127,4 +131,5 @@ __all__ = [
     "QuestionMappingSignal",
     "WorkspaceAIUsage",
     "Subscription",
+    "FeatureFlag",
 ]

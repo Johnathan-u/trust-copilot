@@ -228,7 +228,7 @@ class TestClassifier:
         mock_resp.choices[0].message.content = json.dumps({"frameworks": ["soc2"], "topics": ["access_control"], "document_types": ["report"]})
         mock_client = MagicMock()
         mock_client.chat.completions.create.return_value = mock_resp
-        with patch("app.services.tag_service._classify_document_llm") as mock_fn:
+        with patch("app.services.tag_service._classify_document_llm_tiebreak") as mock_fn:
             mock_fn.return_value = [
                 {"category": "framework", "key": "soc2", "confidence": 0.85},
                 {"category": "topic", "key": "access_control", "confidence": 0.80},
@@ -239,7 +239,7 @@ class TestClassifier:
 
     def test_topic_detection_access_control(self):
         from unittest.mock import patch
-        with patch("app.services.tag_service._classify_document_llm") as mock_fn:
+        with patch("app.services.tag_service._classify_document_llm_tiebreak") as mock_fn:
             mock_fn.return_value = [{"category": "topic", "key": "access_control", "confidence": 0.80}]
             results = classify_text("Role-based access control (RBAC) is enforced", "")
         keys = {r["key"] for r in results}
@@ -247,9 +247,10 @@ class TestClassifier:
 
     def test_topic_detection_encryption(self):
         from unittest.mock import patch
-        with patch("app.services.tag_service._classify_document_llm") as mock_fn:
-            mock_fn.return_value = [{"category": "topic", "key": "encryption", "confidence": 0.80}]
-            results = classify_text("All data is encrypted using AES-256 at rest and TLS in transit", "")
+        with patch("app.services.tag_service._classify_document_deterministic", return_value=([], True)):
+            with patch("app.services.tag_service._classify_document_llm_tiebreak") as mock_fn:
+                mock_fn.return_value = [{"category": "topic", "key": "encryption", "confidence": 0.80}]
+                results = classify_text("All data is encrypted using AES-256 at rest and TLS in transit", "")
         keys = {r["key"] for r in results}
         assert "encryption" in keys
 
@@ -259,18 +260,19 @@ class TestClassifier:
 
     def test_multiple_tags_detected(self):
         from unittest.mock import patch
-        with patch("app.services.tag_service._classify_document_llm") as mock_fn:
-            mock_fn.return_value = [
-                {"category": "framework", "key": "soc2", "confidence": 0.85},
-                {"category": "topic", "key": "access_control", "confidence": 0.80},
-                {"category": "topic", "key": "encryption", "confidence": 0.80},
-                {"category": "topic", "key": "incident_response", "confidence": 0.80},
-                {"category": "document_type", "key": "report", "confidence": 0.80},
-            ]
-            results = classify_text(
-                "This SOC 2 Type II report covers access control, encryption, and incident response procedures.",
-                "soc2-report.pdf",
-            )
+        with patch("app.services.tag_service._classify_document_deterministic", return_value=([], True)):
+            with patch("app.services.tag_service._classify_document_llm_tiebreak") as mock_fn:
+                mock_fn.return_value = [
+                    {"category": "framework", "key": "soc2", "confidence": 0.85},
+                    {"category": "topic", "key": "access_control", "confidence": 0.80},
+                    {"category": "topic", "key": "encryption", "confidence": 0.80},
+                    {"category": "topic", "key": "incident_response", "confidence": 0.80},
+                    {"category": "document_type", "key": "report", "confidence": 0.80},
+                ]
+                results = classify_text(
+                    "This SOC 2 Type II report covers access control, encryption, and incident response procedures.",
+                    "soc2-report.pdf",
+                )
         keys = {r["key"] for r in results}
         assert "soc2" in keys
         assert "access_control" in keys
@@ -280,7 +282,7 @@ class TestClassifier:
 
     def test_llm_failure_returns_empty(self):
         from unittest.mock import patch
-        with patch("app.services.tag_service._classify_document_llm", return_value=None):
+        with patch("app.services.tag_service._classify_document_llm_tiebreak", return_value=None):
             results = classify_text("Some text", "file.pdf")
         assert len(results) == 0
 
@@ -289,16 +291,24 @@ class TestClassifier:
 
 class TestAutoTag:
     def test_auto_tag_document(self, db_session: Session):
+        from unittest.mock import patch
         ensure_system_tags(db_session)
         doc = _create_doc(db_session)
         db_session.commit()
-        count = auto_tag_document(
-            db_session,
-            doc.id,
-            workspace_id=1,
-            filename="soc2-access-control-policy.pdf",
-            chunk_texts=["This policy establishes access control for SOC 2 compliance."],
-        )
+        mock_llm_result = [
+            {"key": "soc2", "category": "framework", "confidence": 0.85},
+            {"key": "access_control", "category": "topic", "confidence": 0.80},
+            {"key": "policy", "category": "document_type", "confidence": 0.80},
+        ]
+        with patch("app.services.tag_service._classify_document_deterministic", return_value=([], True)), \
+             patch("app.services.tag_service._classify_document_llm_tiebreak", return_value=mock_llm_result):
+            count = auto_tag_document(
+                db_session,
+                doc.id,
+                workspace_id=1,
+                filename="soc2-access-control-policy.pdf",
+                chunk_texts=["This policy establishes access control for SOC 2 compliance."],
+            )
         db_session.commit()
         assert count >= 2
         tags = list_tags_for_document(db_session, doc.id, 1)

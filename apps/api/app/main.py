@@ -65,6 +65,7 @@ from app.api.routes import tags as tags_router
 from app.api.routes import ai_mappings as ai_mappings_router
 from app.api.routes import ai_insights as ai_insights_router
 from app.api.routes import billing as billing_router
+from app.api.routes import feature_flags as feature_flags_router
 from app.services.storage import StorageClient
 
 
@@ -307,6 +308,7 @@ app.include_router(ai_mappings_router.router, prefix="/api")
 app.include_router(ai_mappings_router.gov_router, prefix="/api")
 app.include_router(ai_insights_router.router, prefix="/api")
 app.include_router(billing_router.router, prefix="/api")
+app.include_router(feature_flags_router.router, prefix="/api")
 
 
 @app.get("/metrics")

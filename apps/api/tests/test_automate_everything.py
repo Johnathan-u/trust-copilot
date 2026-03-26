@@ -264,37 +264,35 @@ class TestEvaluation:
             db.close()
 
     def test_completed_when_all_sufficient(self) -> None:
+        from unittest.mock import patch as _patch
         from app.core.database import SessionLocal
         from app.services.automation_service import evaluate_generation_result
         from app.models import Job, JobStatus, Questionnaire, Question, Answer
-        _set_automation(True)
         _cleanup_automation_audit()
         db = SessionLocal()
         try:
             qnr = db.query(Questionnaire).filter(Questionnaire.workspace_id == 1).first()
             if not qnr:
-                _set_automation(False)
-                return
+                pytest.skip("no questionnaire for workspace 1")
             questions = db.query(Question).filter(Question.questionnaire_id == qnr.id).all()
             if not questions:
-                _set_automation(False)
-                return
-            # Ensure all answers have sufficient text
+                pytest.skip("no questions")
             for q in questions:
                 ans = db.query(Answer).filter(Answer.question_id == q.id).first()
                 if not ans:
                     db.add(Answer(question_id=q.id, text="Proper answer", status="draft", confidence=80))
-                elif ans.confidence == 0 or (ans.text or "").lower().strip() in ("insufficient evidence", ""):
+                else:
                     ans.text = "Proper answer"
+                    ans.status = "draft"
                     ans.confidence = 80
             db.commit()
 
             mock_job = Job(workspace_id=1, kind="generate_answers", status=JobStatus.COMPLETED.value)
             payload = {"questionnaire_id": qnr.id, "workspace_id": 1}
-            evaluate_generation_result(db, mock_job, payload)
+            with _patch("app.services.automation_service._is_automation_enabled", return_value=True):
+                evaluate_generation_result(db, mock_job, payload)
 
             events = _get_audit_events("automation.run_completed")
             assert len(events) > 0
         finally:
-            _set_automation(False)
             db.close()

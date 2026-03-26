@@ -64,13 +64,13 @@ def test_per_question_success_logs_stats(caplog) -> None:
             patch("app.services.answer_generation.get_corpus_version", return_value=""),
             patch("app.services.answer_generation.retrieval_cache_get", return_value=None),
             patch("app.services.answer_generation.answer_cache_get", return_value=None),
-            patch("app.services.answer_generation.prioritize_evidence_for_answer", side_effect=lambda db, ev: ev),
+            patch("app.services.answer_generation.prioritize_evidence_for_answer", side_effect=lambda db, ev, **kw: ev),
             patch("openai.OpenAI") as MockOpenAI,
         ):
             mock_settings.return_value.openai_api_key = "test-key"
             mock_settings.return_value.completion_model = "gpt-4o-mini"
             mock_settings.return_value.openai_temperature = 0.35
-            MockRetrieval.return_value.search.return_value = list(FAKE_EVIDENCE)
+            MockRetrieval.return_value.batch_search.return_value = [list(FAKE_EVIDENCE)] * 3
             MockOpenAI.return_value.chat.completions.create = mock_create
 
             generate_answers_for_questionnaire(db, 1, workspace_id=1)
@@ -96,7 +96,7 @@ def test_gated_skip_no_evidence_no_llm(caplog) -> None:
             mock_settings.return_value.openai_api_key = "test-key"
             mock_settings.return_value.completion_model = "gpt-4o-mini"
             mock_settings.return_value.openai_temperature = 0.35
-            MockRetrieval.return_value.search.return_value = []
+            MockRetrieval.return_value.batch_search.return_value = [[]] * 3
             generate_answers_for_questionnaire(db, 1, workspace_id=1)
             MockOpenAI.return_value.chat.completions.create.assert_not_called()
 
@@ -116,13 +116,13 @@ def test_llm_exception_logs_single_question(caplog) -> None:
             patch("app.services.answer_generation.get_corpus_version", return_value=""),
             patch("app.services.answer_generation.retrieval_cache_get", return_value=None),
             patch("app.services.answer_generation.answer_cache_get", return_value=None),
-            patch("app.services.answer_generation.prioritize_evidence_for_answer", side_effect=lambda db, ev: ev),
+            patch("app.services.answer_generation.prioritize_evidence_for_answer", side_effect=lambda db, ev, **kw: ev),
             patch("openai.OpenAI") as MockOpenAI,
         ):
             mock_settings.return_value.openai_api_key = "test-key"
             mock_settings.return_value.completion_model = "gpt-4o-mini"
             mock_settings.return_value.openai_temperature = 0.35
-            MockRetrieval.return_value.search.return_value = list(FAKE_EVIDENCE)
+            MockRetrieval.return_value.batch_search.return_value = [list(FAKE_EVIDENCE)] * 3
             MockOpenAI.return_value.chat.completions.create.side_effect = RuntimeError("API error")
 
             generate_answers_for_questionnaire(db, 1, workspace_id=1)

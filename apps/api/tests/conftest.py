@@ -14,9 +14,10 @@ from sqlalchemy.orm import Session
 
 # Prevent database.py from loading .env which would override these test values
 os.environ["TRUST_COPILOT_TESTING"] = "1"
-os.environ["DATABASE_URL"] = "postgresql://postgres:postgres@localhost:5432/trustcopilot_test"
+_db_host = "postgres" if os.path.exists("/.dockerenv") else "localhost"
+os.environ["DATABASE_URL"] = f"postgresql://postgres:postgres@{_db_host}:5432/trustcopilot_test"
 os.environ["SESSION_SECRET"] = "test-secret"
-os.environ["S3_ENDPOINT"] = "http://localhost:9000"
+os.environ["S3_ENDPOINT"] = f"http://{'minio' if os.path.exists('/.dockerenv') else 'localhost'}:9000"
 os.environ["S3_ACCESS_KEY"] = "minio"
 os.environ["S3_SECRET_KEY"] = "minio123"
 os.environ["S3_BUCKET_RAW"] = "test-raw"
@@ -25,6 +26,20 @@ os.environ["TRUSTED_ORIGINS"] = "http://localhost,http://localhost:3000,http://1
 os.environ["RATE_LIMIT_RPM_PER_IP"] = "0"
 # Avoid real OpenAI calls from question_to_controls during most tests (enable in test_mapping_llm_rerank only).
 os.environ["MAPPING_LLM_RERANK"] = "0"
+# Load OPENAI_API_KEY from root .env if not already in environment
+if not os.environ.get("OPENAI_API_KEY"):
+    _root_env = Path(__file__).resolve().parents[3] / ".env"
+    if _root_env.exists():
+        for _line in _root_env.read_text().splitlines():
+            if _line.startswith("OPENAI_API_KEY="):
+                os.environ["OPENAI_API_KEY"] = _line.split("=", 1)[1].strip()
+                break
+# Clear cached settings so it picks up the env vars set above
+try:
+    from app.core.config import get_settings
+    get_settings.cache_clear()
+except Exception:
+    pass
 
 TEST_ORIGIN = "http://localhost"
 TEST_HEADERS = {"Origin": TEST_ORIGIN, "Referer": f"{TEST_ORIGIN}/"}

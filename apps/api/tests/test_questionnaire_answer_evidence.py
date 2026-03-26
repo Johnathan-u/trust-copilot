@@ -168,9 +168,9 @@ def test_generate_answers_passes_document_ids_to_retrieval(db_session: Session):
     qnr.answer_evidence_document_ids_json = json.dumps([doc.id])
     db_session.commit()
 
-    def fake_search(*args, **kwargs):
+    def fake_batch_search(*args, **kwargs):
         captured["document_ids"] = kwargs.get("document_ids")
-        return []
+        return [[]]
 
     try:
         with (
@@ -185,7 +185,7 @@ def test_generate_answers_passes_document_ids_to_retrieval(db_session: Session):
             mock_settings.return_value.openai_api_key = "test-key"
             mock_settings.return_value.completion_model = "gpt-4o-mini"
             mock_settings.return_value.openai_temperature = 0.35
-            MockRetrieval.return_value.search = fake_search
+            MockRetrieval.return_value.batch_search = fake_batch_search
 
             try:
                 generate_answers_for_questionnaire(db_session, qnr.id, workspace_id=1)

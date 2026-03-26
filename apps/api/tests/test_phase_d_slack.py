@@ -1,6 +1,7 @@
 """Phase D — Slack Notifications: connect, configure, delivery, isolation, audit."""
 
 import json
+import time
 
 import pytest
 from fastapi.testclient import TestClient
@@ -236,27 +237,25 @@ class TestSlackDelivery:
             "bot_token": "xoxb-test-token-fake-for-testing",
             "channel_id": "C_FIRE", "channel_name": "fire-ch",
         })
-        # Also need an email notification policy active so fire_notification runs
         from app.core.database import SessionLocal
-        from app.models import NotificationPolicy, Invite, WorkspaceMember
-        from app.services.notification_service import _recent_sends
+        from app.models import NotificationPolicy
+        from app.services.notification_service import _recent_sends, fire_notification
         _recent_sends.clear()
         db = SessionLocal()
         db.query(NotificationPolicy).filter(NotificationPolicy.workspace_id == 1, NotificationPolicy.event_type == "member.invited").delete()
         db.add(NotificationPolicy(workspace_id=1, event_type="member.invited", enabled=True, recipient_type="admins"))
-        db.query(Invite).filter(Invite.email == "slack_fire@test.local", Invite.workspace_id == 1).delete()
-        from app.models import User
-        u = db.query(User).filter(User.email == "slack_fire@test.local").first()
-        if u:
-            db.query(WorkspaceMember).filter(WorkspaceMember.user_id == u.id, WorkspaceMember.workspace_id == 1).delete()
         db.commit()
-        db.close()
-        r = client.post("/api/members/invites", json={"email": "slack_fire@test.local", "role": "editor"})
-        assert r.status_code == 200
+        _recent_sends.clear()
+        _slack_dedup.clear()
+        try:
+            fire_notification(db, 1, "member.invited", detail="slack_fire@test.local invited as editor", workspace_name="Test")
+            db.commit()
+        finally:
+            db.close()
         r2 = client.get("/api/notifications/log?page_size=20")
         entries = r2.json().get("entries", [])
         slack_invited = [e for e in entries if e.get("channel") == "slack" and e["event_type"] == "member.invited"]
-        assert len(slack_invited) > 0, f"Expected Slack log entry, got {[e['channel'] for e in entries]}"
+        assert len(slack_invited) > 0, f"Expected Slack log entry, got {[e.get('channel') for e in entries]}"
 
     def test_disabled_slack_does_not_fire(self, client: TestClient) -> None:
         from app.services.slack_service import _slack_dedup

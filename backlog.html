@@ -1,0 +1,837 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Trust Copilot — Product Backlog</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><defs><linearGradient id='g' x1='0' y1='0' x2='1' y2='1'><stop offset='0%25' stop-color='%237c96ff'/><stop offset='55%25' stop-color='%235b7cff'/><stop offset='100%25' stop-color='%232dd4bf'/></linearGradient></defs><rect width='32' height='32' rx='7' fill='url(%23g)'/><path d='M10 16.5l4 4l8.5-9' fill='none' stroke='white' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'/></svg>">
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+:root {
+  --bg:#08111f;--bg-panel:rgba(12,21,38,0.82);--bg-sidebar:rgba(8,14,28,0.95);
+  --bg-card:rgba(17,28,48,0.92);--bg-card-hover:rgba(22,36,62,0.95);--bg-input:rgba(10,18,33,0.8);
+  --border:rgba(255,255,255,0.09);--border-strong:rgba(255,255,255,0.14);--border-active:rgba(91,124,255,0.3);
+  --text:#e8eefb;--text-secondary:#94a3b8;--text-muted:#64748b;
+  --primary:#5b7cff;--primary-2:#7c96ff;--primary-dim:rgba(91,124,255,0.12);
+  --success:#22c55e;--success-dim:rgba(34,197,94,0.12);--warning:#f59e0b;--warning-dim:rgba(245,158,11,0.12);
+  --danger:#ef4444;--danger-dim:rgba(239,68,68,0.12);--teal:#2dd4bf;--teal-dim:rgba(45,212,191,0.12);
+  --violet:#a78bfa;--violet-dim:rgba(167,139,250,0.12);--amber:#fbbf24;--amber-dim:rgba(251,191,36,0.12);
+  --orange:#fb923c;--orange-dim:rgba(251,146,60,0.12);--lime:#a3e635;--lime-dim:rgba(163,230,53,0.12);
+  --rose:#fb7185;--rose-dim:rgba(251,113,133,0.12);--sky:#38bdf8;--sky-dim:rgba(56,189,248,0.12);
+  --shadow:0 20px 60px rgba(0,0,0,0.35);--radius:18px;--radius-sm:12px;--radius-xs:8px;
+  --transition:0.2s cubic-bezier(0.4,0,0.2,1);--grid:rgba(255,255,255,0.03);
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html{font-size:14px;scroll-behavior:smooth;scrollbar-width:thin;scrollbar-color:rgba(255,255,255,0.08) transparent}
+body{font-family:'Inter',-apple-system,system-ui,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden}
+body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(var(--grid) 1px,transparent 1px),linear-gradient(90deg,var(--grid) 1px,transparent 1px);background-size:36px 36px;mask-image:radial-gradient(circle at center,black 45%,transparent 100%);pointer-events:none;z-index:0}
+body::after{content:'';position:fixed;inset:0;background:radial-gradient(circle at top left,rgba(91,124,255,0.18),transparent 28%),radial-gradient(circle at 85% 10%,rgba(45,212,191,0.1),transparent 22%);pointer-events:none;z-index:0}
+::-webkit-scrollbar{width:6px;height:6px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:rgba(255,255,255,0.08);border-radius:3px}
+::-webkit-scrollbar-thumb:hover{background:rgba(255,255,255,0.14)}
+
+/* ── Loading Screen ── */
+.loading-screen{position:fixed;inset:0;z-index:9999;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;transition:opacity .8s cubic-bezier(.4,0,.2,1),visibility .8s;overflow:hidden}
+.loading-screen.hidden{opacity:0;visibility:hidden;pointer-events:none}
+.loading-screen.hidden .hero-badge{transform:scale(1.2);opacity:0}
+.loading-screen.hidden .particle{opacity:0}
+
+/* particle field */
+.particle-field{position:absolute;inset:0;overflow:hidden}
+.particle{position:absolute;border-radius:50%;opacity:0;animation:particleDrift linear infinite}
+@keyframes particleDrift{0%{transform:translateY(0) scale(0);opacity:0}15%{opacity:1}85%{opacity:1}100%{transform:translateY(-100vh) scale(0);opacity:0}}
+
+/* central badge */
+.hero-badge{position:relative;width:200px;height:200px;margin-bottom:40px;transition:all .8s cubic-bezier(.4,0,.2,1)}
+
+/* outer pulse rings */
+.pulse-ring{position:absolute;inset:-20px;border-radius:50%;border:1px solid rgba(91,124,255,0.15);animation:pulseOut 3s ease-out infinite}
+.pulse-ring:nth-child(2){inset:-40px;animation-delay:1s;border-color:rgba(45,212,191,0.1)}
+.pulse-ring:nth-child(3){inset:-60px;animation-delay:2s;border-color:rgba(91,124,255,0.06)}
+@keyframes pulseOut{0%{transform:scale(.85);opacity:1}100%{transform:scale(1.3);opacity:0}}
+
+/* orbiting ring */
+.orbit-ring{position:absolute;inset:-30px;animation:orbitSpin 12s linear infinite}
+@keyframes orbitSpin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
+.orbit-dot{position:absolute;width:32px;height:32px;border-radius:10px;background:var(--bg-card);border:1px solid var(--border-strong);display:flex;align-items:center;justify-content:center;font-size:14px;box-shadow:0 4px 16px rgba(0,0,0,0.4);animation:orbitCounterSpin 12s linear infinite}
+@keyframes orbitCounterSpin{from{transform:rotate(0deg)}to{transform:rotate(-360deg)}}
+.orbit-dot:nth-child(1){top:-16px;left:50%;margin-left:-16px}
+.orbit-dot:nth-child(2){bottom:-16px;left:50%;margin-left:-16px}
+.orbit-dot:nth-child(3){left:-16px;top:50%;margin-top:-16px}
+.orbit-dot:nth-child(4){right:-16px;top:50%;margin-top:-16px}
+
+/* second orbit */
+.orbit-ring-2{position:absolute;inset:-55px;animation:orbitSpin 18s linear infinite reverse}
+.orbit-ring-2 .orbit-dot{width:26px;height:26px;border-radius:8px;font-size:11px;opacity:0.6}
+.orbit-ring-2 .orbit-dot:nth-child(1){top:-13px;left:50%;margin-left:-13px}
+.orbit-ring-2 .orbit-dot:nth-child(2){bottom:-13px;left:50%;margin-left:-13px}
+.orbit-ring-2 .orbit-dot:nth-child(3){left:-13px;top:50%;margin-top:-13px}
+
+/* shield */
+.shield-container{position:absolute;inset:0;display:flex;align-items:center;justify-content:center}
+.shield-bg{width:140px;height:140px;border-radius:32px;background:linear-gradient(135deg,#7c96ff 0%,#5b7cff 50%,#2dd4bf 100%);box-shadow:0 20px 60px rgba(91,124,255,0.4),0 0 120px rgba(45,212,191,0.15),inset 0 1px 0 rgba(255,255,255,0.2);display:flex;align-items:center;justify-content:center;animation:shieldFloat 4s ease-in-out infinite;position:relative;overflow:hidden}
+.shield-bg::before{content:'';position:absolute;top:-50%;left:-50%;width:200%;height:200%;background:conic-gradient(from 0deg,transparent,rgba(255,255,255,0.1),transparent,transparent);animation:shieldShine 4s linear infinite}
+.shield-bg::after{content:'';position:absolute;inset:3px;border-radius:29px;background:linear-gradient(135deg,rgba(124,150,255,0.3),rgba(91,124,255,0.1));border:1px solid rgba(255,255,255,0.1)}
+@keyframes shieldFloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
+@keyframes shieldShine{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
+
+/* checkmark */
+.check-svg{position:relative;z-index:2;width:64px;height:64px}
+.check-path{fill:none;stroke:white;stroke-width:5;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:60;stroke-dashoffset:60;animation:drawCheck .8s ease .6s forwards;filter:drop-shadow(0 2px 8px rgba(0,0,0,0.3))}
+@keyframes drawCheck{to{stroke-dashoffset:0}}
+.check-burst{position:absolute;inset:0;opacity:0;animation:burstIn .4s ease 1.3s forwards}
+@keyframes burstIn{0%{opacity:0;transform:scale(0.5)}50%{opacity:1}100%{opacity:0;transform:scale(2)}}
+
+/* text & stats */
+.load-brand{font-size:1.6rem;font-weight:800;background:linear-gradient(135deg,var(--primary-2),var(--primary),var(--teal));-webkit-background-clip:text;-webkit-text-fill-color:transparent;letter-spacing:-0.5px;opacity:0;animation:fadeUp .6s ease .4s forwards}
+.load-tagline{font-size:.8rem;color:var(--text-secondary);margin-top:6px;opacity:0;animation:fadeUp .6s ease .6s forwards;letter-spacing:0.3px}
+.load-stats{display:flex;gap:32px;margin-top:28px;opacity:0;animation:fadeUp .6s ease .9s forwards}
+.load-stat{text-align:center}
+.load-stat-value{font-size:1.4rem;font-weight:800;color:var(--text);font-variant-numeric:tabular-nums}
+.load-stat-label{font-size:.6rem;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px;margin-top:2px}
+.load-bar{width:240px;height:3px;background:rgba(255,255,255,0.06);border-radius:2px;overflow:hidden;margin-top:28px;opacity:0;animation:fadeUp .5s ease 1.1s forwards}
+.load-bar-fill{height:100%;width:0;background:linear-gradient(90deg,var(--primary),var(--teal));border-radius:2px;animation:loadFill 2s cubic-bezier(.4,0,.2,1) 1.2s forwards}
+@keyframes loadFill{0%{width:0}40%{width:55%}70%{width:80%}100%{width:100%}}
+@keyframes fadeUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+
+/* ── Layout ── */
+.layout{display:grid;grid-template-columns:260px 1fr;min-height:100vh;position:relative;z-index:1}
+.sidebar{background:var(--bg-sidebar);border-right:1px solid var(--border);position:sticky;top:0;height:100vh;overflow-y:auto;display:flex;flex-direction:column;backdrop-filter:blur(20px)}
+.sidebar-header{padding:20px 16px 14px;border-bottom:1px solid var(--border)}
+.sidebar-header h1{font-size:.65rem;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:4px}
+.sidebar-header .brand{font-size:1rem;font-weight:800;background:linear-gradient(135deg,var(--primary-2),var(--primary),var(--teal));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.global-progress{padding:14px 16px;border-bottom:1px solid var(--border)}
+.global-progress-label{font-size:.65rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px;display:flex;justify-content:space-between;font-weight:600}
+.global-progress-bar{height:5px;background:rgba(255,255,255,0.04);border-radius:3px;overflow:hidden}
+.global-progress-fill{height:100%;background:linear-gradient(90deg,var(--primary),var(--teal));border-radius:3px;transition:width .6s ease;position:relative}
+.global-progress-fill::after{content:'';position:absolute;inset:0;background:linear-gradient(90deg,transparent,rgba(255,255,255,.2),transparent);animation:shimmer 2s infinite}
+@keyframes shimmer{0%{transform:translateX(-100%)}100%{transform:translateX(100%)}}
+.global-stats{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-top:10px}
+.stat-box{background:var(--bg-input);border:1px solid var(--border);border-radius:var(--radius-xs);padding:6px 8px;text-align:center}
+.stat-box .stat-value{font-size:1rem;font-weight:700;color:var(--primary-2)}
+.stat-box .stat-label{font-size:.6rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px;margin-top:1px}
+.nav-list{flex:1;padding:6px 0;overflow-y:auto}
+.nav-item{display:flex;align-items:center;gap:8px;padding:8px 16px;cursor:pointer;transition:all var(--transition);border-left:3px solid transparent}
+.nav-item:hover{background:rgba(91,124,255,0.06);border-left-color:var(--border-strong)}
+.nav-item.active{background:var(--primary-dim);border-left-color:var(--primary)}
+.nav-item .nav-num{font-size:.65rem;font-weight:700;color:var(--primary-2);background:var(--primary-dim);width:22px;height:22px;display:flex;align-items:center;justify-content:center;border-radius:6px;flex-shrink:0}
+.nav-item .nav-label{font-size:.75rem;color:var(--text-secondary);flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.nav-item.active .nav-label{color:var(--text)}
+.nav-item .nav-progress{font-size:.6rem;color:var(--text-muted);flex-shrink:0;font-weight:500}
+.nav-item .nav-check{color:var(--success);font-size:.7rem;display:none}
+.nav-item.complete .nav-check{display:inline}
+.nav-item.complete .nav-num{background:var(--success-dim);color:var(--success)}
+.nav-sep{padding:10px 16px 4px;font-size:.6rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:1.5px;border-top:1px solid var(--border);margin-top:4px}
+.sidebar-footer{padding:10px 16px;border-top:1px solid var(--border);display:flex;gap:6px}
+.sidebar-footer button{flex:1;font-size:.65rem;font-weight:600;padding:6px;background:rgba(255,255,255,0.03);color:var(--text-secondary);border:1px solid var(--border);border-radius:var(--radius-xs);cursor:pointer;transition:all var(--transition);text-transform:uppercase;letter-spacing:.5px}
+.sidebar-footer button:hover{background:var(--primary-dim);color:var(--text);border-color:var(--border-active)}
+
+/* ── Main ── */
+.main{padding:0;overflow-y:auto;height:100vh}
+.main-header{position:sticky;top:0;z-index:100;background:rgba(8,17,31,.85);backdrop-filter:blur(20px);border-bottom:1px solid var(--border);padding:0}
+.header-top{display:flex;align-items:center;justify-content:space-between;padding:14px 28px}
+.header-top h2{font-size:.85rem;font-weight:600;color:var(--text-secondary)}
+.header-top h2 span{color:var(--primary)}
+.state-machine{font-size:.6rem;color:var(--text-muted);display:flex;align-items:center;gap:3px;flex-wrap:wrap}
+.state-machine .state{color:var(--teal);background:var(--teal-dim);padding:2px 6px;border-radius:4px;font-weight:500}
+.state-machine .arrow{color:var(--text-muted)}
+.tab-bar{display:flex;gap:0;padding:0 28px;border-bottom:1px solid var(--border)}
+.tab-btn{font-size:.72rem;font-weight:600;padding:10px 18px;background:none;color:var(--text-muted);border:none;border-bottom:2px solid transparent;cursor:pointer;transition:all var(--transition);text-transform:uppercase;letter-spacing:.5px}
+.tab-btn:hover{color:var(--text-secondary);background:rgba(255,255,255,.02)}
+.tab-btn.active{color:var(--primary-2);border-bottom-color:var(--primary)}
+.tab-panel{display:none;padding:24px 28px 80px}
+.tab-panel.active{display:block}
+.filter-bar{display:flex;align-items:center;gap:8px;padding:10px 0 14px;flex-wrap:wrap}
+.filter-bar label{font-size:.68rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px;font-weight:600}
+.filter-btn{font-size:.68rem;font-weight:500;padding:5px 14px;background:rgba(255,255,255,0.03);color:var(--text-secondary);border:1px solid var(--border);border-radius:var(--radius-xs);cursor:pointer;transition:all var(--transition)}
+.filter-btn:hover{background:var(--primary-dim);border-color:var(--border-active);color:var(--text)}
+.filter-btn.active{background:linear-gradient(135deg,var(--primary),rgba(91,124,255,0.8));border-color:var(--primary);color:#fff;box-shadow:0 4px 16px rgba(91,124,255,0.25)}
+.filter-divider{width:1px;height:20px;background:var(--border);margin:0 4px}
+.search-input{font-size:.72rem;padding:5px 12px;background:var(--bg-input);color:var(--text);border:1px solid var(--border);border-radius:var(--radius-xs);outline:none;transition:all var(--transition);margin-left:auto;width:220px}
+.search-input::placeholder{color:var(--text-muted)}
+.search-input:focus{border-color:var(--primary);box-shadow:0 0 0 3px rgba(91,124,255,0.1)}
+
+/* ── Increments ── */
+.increment{margin-bottom:20px;border-radius:var(--radius-sm);overflow:hidden;border:1px solid var(--border);background:var(--bg-panel);backdrop-filter:blur(12px);transition:all var(--transition)}
+.increment:hover{border-color:var(--border-strong)}
+.increment.complete{border-color:rgba(34,197,94,0.25)}
+.increment-header{padding:14px 18px;display:flex;align-items:center;gap:12px;cursor:pointer;user-select:none;transition:background var(--transition);position:relative;overflow:hidden}
+.increment-header:hover{background:rgba(255,255,255,0.02)}
+.increment-header::before{content:'';position:absolute;left:0;top:0;bottom:0;width:4px;border-radius:0 2px 2px 0}
+.increment[data-color="blue"] .increment-header::before{background:var(--primary)}
+.increment[data-color="purple"] .increment-header::before{background:var(--violet)}
+.increment[data-color="green"] .increment-header::before{background:var(--success)}
+.increment[data-color="teal"] .increment-header::before{background:var(--teal)}
+.increment[data-color="gold"] .increment-header::before{background:var(--amber)}
+.increment[data-color="orange"] .increment-header::before{background:var(--orange)}
+.increment[data-color="param"] .increment-header::before{background:var(--sky)}
+.increment[data-color="decorator"] .increment-header::before{background:var(--rose)}
+.increment[data-color="number"] .increment-header::before{background:var(--lime)}
+.increment-chevron{font-size:.7rem;color:var(--text-muted);transition:transform .3s ease;flex-shrink:0;width:14px;text-align:center}
+.increment.open .increment-chevron{transform:rotate(90deg)}
+.increment-num{font-size:.68rem;font-weight:700;padding:3px 8px;border-radius:6px;flex-shrink:0;min-width:26px;text-align:center}
+.increment[data-color="blue"] .increment-num{background:var(--primary-dim);color:var(--primary)}
+.increment[data-color="purple"] .increment-num{background:var(--violet-dim);color:var(--violet)}
+.increment[data-color="green"] .increment-num{background:var(--success-dim);color:var(--success)}
+.increment[data-color="teal"] .increment-num{background:var(--teal-dim);color:var(--teal)}
+.increment[data-color="gold"] .increment-num{background:var(--amber-dim);color:var(--amber)}
+.increment[data-color="orange"] .increment-num{background:var(--orange-dim);color:var(--orange)}
+.increment[data-color="param"] .increment-num{background:var(--sky-dim);color:var(--sky)}
+.increment[data-color="decorator"] .increment-num{background:var(--rose-dim);color:var(--rose)}
+.increment[data-color="number"] .increment-num{background:var(--lime-dim);color:var(--lime)}
+.increment-title{flex:1;font-size:.85rem;font-weight:600}
+.increment-layer{font-size:.55rem;font-weight:700;padding:2px 7px;border-radius:4px;text-transform:uppercase;letter-spacing:.5px;flex-shrink:0}
+.increment-layer.prod{background:var(--primary-dim);color:var(--primary-2)}
+.increment-layer.plat{background:var(--teal-dim);color:var(--teal)}
+.increment-layer.vis{background:var(--violet-dim);color:var(--violet)}
+.increment-meta{display:flex;align-items:center;gap:10px;flex-shrink:0}
+.increment-count{font-size:.68rem;color:var(--text-muted);font-weight:500}
+.increment-progress-bar{width:90px;height:4px;background:rgba(255,255,255,0.04);border-radius:2px;overflow:hidden}
+.increment-progress-fill{height:100%;border-radius:2px;transition:width .5s ease}
+.increment[data-color="blue"] .increment-progress-fill{background:var(--primary)}
+.increment[data-color="purple"] .increment-progress-fill{background:var(--violet)}
+.increment[data-color="green"] .increment-progress-fill{background:var(--success)}
+.increment[data-color="teal"] .increment-progress-fill{background:var(--teal)}
+.increment[data-color="gold"] .increment-progress-fill{background:var(--amber)}
+.increment[data-color="orange"] .increment-progress-fill{background:var(--orange)}
+.increment[data-color="param"] .increment-progress-fill{background:var(--sky)}
+.increment[data-color="decorator"] .increment-progress-fill{background:var(--rose)}
+.increment[data-color="number"] .increment-progress-fill{background:var(--lime)}
+.increment-pct{font-size:.72rem;font-weight:700;min-width:34px;text-align:right}
+.increment-body{max-height:0;overflow:hidden;transition:max-height .4s cubic-bezier(.4,0,.2,1)}
+.increment.open .increment-body{max-height:9999px}
+.ticket-list{padding:4px 10px 10px}
+
+/* ── Tickets ── */
+.ticket{display:grid;grid-template-columns:auto 1fr auto;align-items:start;gap:10px;padding:10px 12px;margin:3px 0;border-radius:var(--radius-xs);background:var(--bg-card);border:1px solid transparent;transition:all var(--transition);cursor:default}
+.ticket:hover{background:var(--bg-card-hover);border-color:var(--border);transform:translateX(2px)}
+.ticket.checked{opacity:.45;background:rgba(8,17,31,0.6)}
+.ticket.checked:hover{opacity:.6}
+.ticket.checked .ticket-title{text-decoration:line-through;text-decoration-color:var(--text-muted)}
+.ticket.hidden{display:none!important}
+.ticket-checkbox{position:relative;width:18px;height:18px;margin-top:1px;flex-shrink:0}
+.ticket-checkbox input{position:absolute;opacity:0;width:100%;height:100%;cursor:pointer;z-index:2}
+.ticket-checkbox .checkmark{position:absolute;top:0;left:0;width:18px;height:18px;background:var(--bg-input);border:2px solid rgba(255,255,255,0.12);border-radius:5px;transition:all var(--transition);display:flex;align-items:center;justify-content:center}
+.ticket-checkbox input:hover~.checkmark{border-color:var(--primary);background:var(--primary-dim)}
+.ticket-checkbox input:checked~.checkmark{background:var(--success);border-color:var(--success);box-shadow:0 2px 8px rgba(34,197,94,0.3)}
+.ticket-checkbox .checkmark::after{content:'';display:none;width:4px;height:8px;border:solid #fff;border-width:0 2px 2px 0;transform:rotate(45deg);margin-top:-2px}
+.ticket-checkbox input:checked~.checkmark::after{display:block}
+.ticket-info{min-width:0}
+.ticket-top{display:flex;align-items:center;gap:7px;margin-bottom:3px;flex-wrap:wrap}
+.ticket-id{font-size:.72rem;font-weight:700;color:var(--primary-2)}
+.ticket-title{font-size:.8rem;font-weight:500;color:var(--text);transition:all var(--transition)}
+.ticket-badges{display:flex;align-items:center;gap:5px;flex-shrink:0;margin-top:1px}
+.badge{font-size:.58rem;font-weight:700;padding:2px 7px;border-radius:4px;text-transform:uppercase;letter-spacing:.5px;white-space:nowrap}
+.badge-p0{background:var(--danger-dim);color:var(--danger)}
+.badge-p1{background:var(--warning-dim);color:var(--warning)}
+.badge-est{background:var(--primary-dim);color:var(--primary-2)}
+.badge-new{background:var(--teal-dim);color:var(--teal)}
+.badge-done{background:var(--success-dim);color:var(--success);font-weight:700}
+.badge-partial{background:var(--warning-dim);color:var(--warning);font-weight:700}
+.ticket.partial{border-left:3px solid var(--warning)}
+.ticket.checked .badge-done{background:var(--success-dim);color:var(--success)}
+.ticket-deps{font-size:.62rem;color:var(--text-muted);margin-top:3px}
+.ticket-deps span{color:var(--violet)}
+
+/* ── Diagrams ── */
+.diagram-grid{display:grid;grid-template-columns:1fr;gap:24px}
+.diagram-card{background:var(--bg-panel);border:1px solid var(--border);border-radius:var(--radius-sm);overflow:hidden;backdrop-filter:blur(12px)}
+.diagram-card-header{padding:14px 18px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px}
+.diagram-card-header h3{font-size:.78rem;font-weight:700;color:var(--text)}
+.diagram-card-header .dot{width:8px;height:8px;border-radius:50%}
+.diagram-card-body{padding:20px;overflow-x:auto}
+.diagram-card-body svg{display:block;margin:0 auto}
+
+/* ── Charts ── */
+.chart-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+.chart-card{background:var(--bg-panel);border:1px solid var(--border);border-radius:var(--radius-sm);overflow:hidden;backdrop-filter:blur(12px)}
+.chart-card.full{grid-column:1/-1}
+.chart-card-header{padding:12px 18px;border-bottom:1px solid var(--border)}
+.chart-card-header h3{font-size:.75rem;font-weight:700;color:var(--text)}
+.chart-card-header p{font-size:.68rem;color:var(--text-muted);margin-top:2px}
+.chart-card-body{padding:20px;display:flex;align-items:center;justify-content:center;min-height:200px}
+.chart-card-body canvas{max-width:100%}
+
+/* ── Performance ── */
+.perf-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:24px}
+.perf-card{background:var(--bg-panel);border:1px solid var(--border);border-radius:var(--radius-sm);padding:18px;position:relative;overflow:hidden;backdrop-filter:blur(12px)}
+.perf-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px}
+.perf-card.blue::before{background:linear-gradient(90deg,var(--primary),var(--primary-2))}
+.perf-card.green::before{background:linear-gradient(90deg,var(--success),var(--teal))}
+.perf-card.purple::before{background:linear-gradient(90deg,var(--violet),var(--rose))}
+.perf-card.teal::before{background:var(--teal)}
+.perf-card .perf-label{font-size:.62rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px}
+.perf-card .perf-value{font-size:1.5rem;font-weight:800}
+.perf-card .perf-sub{font-size:.68rem;color:var(--text-muted);margin-top:4px}
+.perf-table{width:100%;border-collapse:collapse;margin-top:8px}
+.perf-table th,.perf-table td{font-size:.7rem;padding:8px 12px;text-align:left;border-bottom:1px solid var(--border)}
+.perf-table th{color:var(--text-muted);font-weight:700;text-transform:uppercase;letter-spacing:.5px;font-size:.62rem}
+.perf-table td{color:var(--text-secondary)}
+.perf-table tr:hover td{background:rgba(91,124,255,0.04)}
+.perf-bar{height:6px;background:rgba(255,255,255,0.04);border-radius:3px;overflow:hidden;min-width:80px}
+.perf-bar-fill{height:100%;border-radius:3px;transition:width .5s ease}
+
+@media(max-width:1100px){.chart-grid{grid-template-columns:1fr}.perf-grid{grid-template-columns:1fr 1fr}}
+@media(max-width:900px){.layout{grid-template-columns:1fr}.sidebar{display:none}.header-top{padding:10px 16px}.tab-bar{padding:0 16px}.tab-panel{padding:16px}.state-machine{display:none}.perf-grid{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+
+<!-- ═══ LOADING SCREEN ═══ -->
+<div class="loading-screen" id="loadingScreen">
+  <div class="particle-field" id="particleField"></div>
+
+  <div class="hero-badge">
+    <div class="pulse-ring"></div>
+    <div class="pulse-ring"></div>
+    <div class="pulse-ring"></div>
+
+    <div class="orbit-ring">
+      <div class="orbit-dot">&#128196;</div>
+      <div class="orbit-dot">&#128274;</div>
+      <div class="orbit-dot">&#9989;</div>
+      <div class="orbit-dot">&#128737;</div>
+    </div>
+    <div class="orbit-ring-2">
+      <div class="orbit-dot">&#9878;</div>
+      <div class="orbit-dot">&#128300;</div>
+      <div class="orbit-dot">&#9733;</div>
+    </div>
+
+    <div class="shield-container">
+      <div class="shield-bg">
+        <svg class="check-svg" viewBox="0 0 64 64">
+          <path class="check-path" d="M16 33 L27 44 L48 20"/>
+        </svg>
+        <svg class="check-svg" viewBox="0 0 64 64" style="position:absolute;inset:0;width:64px;height:64px;margin:auto">
+          <circle class="check-burst" cx="32" cy="32" r="28" fill="none" stroke="rgba(255,255,255,0.3)" stroke-width="1"/>
+        </svg>
+      </div>
+    </div>
+  </div>
+
+  <div class="load-brand">Trust Copilot</div>
+  <div class="load-tagline">Compliance questionnaires, answered with evidence</div>
+
+  <div class="load-stats">
+    <div class="load-stat">
+      <div class="load-stat-value" id="countTickets">0</div>
+      <div class="load-stat-label">Tickets</div>
+    </div>
+    <div class="load-stat">
+      <div class="load-stat-value" id="countPoints">0</div>
+      <div class="load-stat-label">Points</div>
+    </div>
+    <div class="load-stat">
+      <div class="load-stat-value" id="countIncrements">0</div>
+      <div class="load-stat-label">Increments</div>
+    </div>
+  </div>
+
+  <div class="load-bar"><div class="load-bar-fill"></div></div>
+</div>
+
+<div class="layout">
+<aside class="sidebar">
+  <div class="sidebar-header"><h1>Product Backlog</h1><div class="brand">Trust Copilot</div></div>
+  <div class="global-progress">
+    <div class="global-progress-label"><span>Overall</span><span id="globalPct">0%</span></div>
+    <div class="global-progress-bar"><div class="global-progress-fill" id="globalFill" style="width:0%"></div></div>
+    <div class="global-stats">
+      <div class="stat-box"><div class="stat-value" id="statDone">0</div><div class="stat-label">Done</div></div>
+      <div class="stat-box"><div class="stat-value" id="statTotal">242</div><div class="stat-label">Total</div></div>
+      <div class="stat-box"><div class="stat-value" id="statPts">0</div><div class="stat-label">Pts</div></div>
+    </div>
+  </div>
+  <div class="nav-list" id="navList"></div>
+  <div class="sidebar-footer">
+    <button onclick="expandAll()">Expand</button>
+    <button onclick="collapseAll()">Collapse</button>
+    <button onclick="resetAll()">Reset</button>
+  </div>
+</aside>
+<main class="main" id="mainScroll">
+  <header class="main-header">
+    <div class="header-top">
+      <h2><span>class</span> TrustCopilot<span>(</span>Backlog<span>)</span>:</h2>
+      <div class="state-machine">
+        <span class="state">upload</span><span class="arrow">&#8594;</span>
+        <span class="state">parse</span><span class="arrow">&#8594;</span>
+        <span class="state">tag</span><span class="arrow">&#8594;</span>
+        <span class="state">classify</span><span class="arrow">&#8594;</span>
+        <span class="state">retrieve</span><span class="arrow">&#8594;</span>
+        <span class="state">generate</span><span class="arrow">&#8594;</span>
+        <span class="state">review</span><span class="arrow">&#8594;</span>
+        <span class="state">export</span>
+      </div>
+    </div>
+    <div class="tab-bar">
+      <button class="tab-btn active" onclick="switchTab('backlog',this)">Backlog</button>
+      <button class="tab-btn" onclick="switchTab('diagrams',this)">Architecture</button>
+      <button class="tab-btn" onclick="switchTab('charts',this)">Charts</button>
+      <button class="tab-btn" onclick="switchTab('performance',this)">Performance</button>
+    </div>
+  </header>
+  <div class="tab-panel active" id="panel-backlog">
+    <div class="filter-bar" id="filterBar">
+      <label>Show:</label>
+      <button class="filter-btn active" onclick="setFilter('all',this)">All</button>
+      <button class="filter-btn" onclick="setFilter('todo',this)">Todo</button>
+      <button class="filter-btn" onclick="setFilter('done',this)">Done</button>
+      <button class="filter-btn" onclick="setFilter('partial',this)">Partial</button>
+      <button class="filter-btn" onclick="setFilter('p0',this)">P0</button>
+      <button class="filter-btn" onclick="setFilter('p1',this)">P1</button>
+      <div class="filter-divider"></div>
+      <button class="filter-btn" onclick="setFilter('product',this)">Product</button>
+      <button class="filter-btn" onclick="setFilter('platform',this)">Platform</button>
+      <button class="filter-btn" onclick="setFilter('vision',this)">Vision</button>
+      <input type="text" class="search-input" placeholder="Search tickets..." id="searchInput" oninput="applyFilters()">
+    </div>
+    <div id="content"></div>
+  </div>
+  <div class="tab-panel" id="panel-diagrams"><div class="diagram-grid">
+    <div class="diagram-card"><div class="diagram-card-header"><div class="dot" style="background:var(--teal)"></div><h3>AI Pipeline — Compliance Workflow</h3></div><div class="diagram-card-body" id="diagramPipeline"></div></div>
+    <div class="diagram-card"><div class="diagram-card-header"><div class="dot" style="background:var(--primary)"></div><h3>Architecture — Full-Stack System</h3></div><div class="diagram-card-body" id="diagramArchitecture"></div></div>
+    <div class="diagram-card"><div class="diagram-card-header"><div class="dot" style="background:var(--violet)"></div><h3>Dependency Graph — All Increments</h3></div><div class="diagram-card-body" id="diagramDeps"></div></div>
+  </div></div>
+  <div class="tab-panel" id="panel-charts"><div class="chart-grid">
+    <div class="chart-card"><div class="chart-card-header"><h3>Overall Completion</h3><p>Done vs remaining</p></div><div class="chart-card-body"><canvas id="chartDonut" width="260" height="260"></canvas></div></div>
+    <div class="chart-card"><div class="chart-card-header"><h3>Layer Split</h3><p>Product · Platform · Vision</p></div><div class="chart-card-body"><canvas id="chartLayerSplit" width="480" height="260"></canvas></div></div>
+    <div class="chart-card full"><div class="chart-card-header"><h3>Increment Progress</h3><p>Per-increment completion (25 increments)</p></div><div class="chart-card-body"><canvas id="chartBars" width="1000" height="280"></canvas></div></div>
+    <div class="chart-card full"><div class="chart-card-header"><h3>Burndown Projection</h3><p>Points remaining at velocity</p></div><div class="chart-card-body"><canvas id="chartBurndown" width="900" height="280"></canvas></div></div>
+  </div></div>
+  <div class="tab-panel" id="panel-performance"><div id="perfContent"></div></div>
+</main>
+</div>
+
+<script>
+// ── Loading screen ──
+(function(){
+  const pf=document.getElementById('particleField');
+  const colors=['#5b7cff','#7c96ff','#2dd4bf','#22c55e','#a78bfa','rgba(255,255,255,0.3)'];
+  for(let i=0;i<40;i++){
+    const p=document.createElement('div');p.className='particle';
+    const size=Math.random()*4+1;
+    p.style.cssText=`width:${size}px;height:${size}px;left:${Math.random()*100}%;top:${Math.random()*100+50}%;background:${colors[Math.floor(Math.random()*colors.length)]};animation-duration:${Math.random()*6+4}s;animation-delay:${Math.random()*3}s;`;
+    pf.appendChild(p);
+  }
+  function animateCount(el,target,duration){
+    const start=performance.now();
+    const step=ts=>{const p=Math.min((ts-start)/duration,1);const ease=1-Math.pow(1-p,3);el.textContent=Math.round(target*ease);if(p<1)requestAnimationFrame(step)};
+    requestAnimationFrame(step);
+  }
+  setTimeout(()=>{animateCount(document.getElementById('countTickets'),242,1800)},800);
+  setTimeout(()=>{animateCount(document.getElementById('countPoints'),1258,1800)},1000);
+  setTimeout(()=>{animateCount(document.getElementById('countIncrements'),25,1200)},1200);
+  window.addEventListener('load',()=>{setTimeout(()=>{document.getElementById('loadingScreen').classList.add('hidden')},3200)});
+})();
+
+// ── DATA ──
+const INCREMENTS=[
+{num:1,title:"UI/UX Polish",color:"blue",layer:"product",tickets:[
+{id:"A-1",title:"Increase text contrast on dark panels",p:"P0",est:3,deps:"—"},
+{id:"A-2",title:"Add light mode / theme toggle",p:"P1",est:5,deps:"A-1"},
+{id:"A-3",title:"Hide or label incomplete modules",p:"P0",est:2,deps:"—"},
+{id:"A-4",title:"Add in-app onboarding checklist",p:"P0",est:5,deps:"—"},
+{id:"A-5",title:"Improve public Trust Center page layout",p:"P1",est:5,deps:"—",s:"partial"},
+{id:"A-6",title:"Show coverage progress inside each questionnaire",p:"P1",est:3,deps:"—",s:"partial"},
+{id:"A-7",title:"Fix Review module flow",p:"P0",est:5,deps:"—",s:"partial"}]},
+{num:2,title:"Trust Center Enhancements",color:"purple",layer:"product",tickets:[
+{id:"B-1",title:"NDA gating for Trust Center documents",p:"P1",est:5,deps:"—"},
+{id:"B-2",title:"Content expiration on Trust Center articles",p:"P1",est:3,deps:"—"},
+{id:"B-3",title:"Auto-populate Trust Center from approved answers",p:"P1",est:5,deps:"—"},
+{id:"B-4",title:"Trust Center viewer analytics",p:"P1",est:5,deps:"—"},
+{id:"B-5",title:"Customer-specific Trust Center pages",p:"P1",est:5,deps:"—",s:"partial"}]},
+{num:3,title:"Vendor Risk & Requests",color:"green",layer:"product",tickets:[
+{id:"C-1",title:"Complete the Requests module CRUD",p:"P0",est:5,deps:"—",s:"partial"},
+{id:"C-2",title:"Vendor risk scoring",p:"P0",est:5,deps:"C-1"},
+{id:"C-3",title:"Vendor questionnaire intake via secure link",p:"P0",est:8,deps:"C-1",s:"partial"},
+{id:"C-4",title:"Vendor status tracking dashboard",p:"P0",est:5,deps:"C-1, C-2",s:"partial"}]},
+{num:4,title:"Knowledge Base & AI Quality",color:"teal",layer:"product",tickets:[
+{id:"D-1",title:"Cross-questionnaire answer library",p:"P0",est:8,deps:"—",s:"partial"},
+{id:"D-2",title:"Answer reuse suggestions",p:"P0",est:5,deps:"D-1",s:"partial"},
+{id:"D-3",title:"Confidence scores on every answer",p:"P0",est:5,deps:"—",s:"partial"},
+{id:"D-4",title:"Evidence link citations in exports",p:"P0",est:5,deps:"D-3",s:"partial"}]},
+{num:5,title:"Cloud Integrations",color:"gold",layer:"product",tickets:[
+{id:"E-1",title:"AWS integration (IAM, S3, CloudTrail)",p:"P1",est:8,deps:"—",tech:"boto3"},
+{id:"E-2",title:"GCP integration",p:"P1",est:8,deps:"—"},
+{id:"E-3",title:"Azure integration",p:"P1",est:8,deps:"—"},
+{id:"E-4",title:"Okta / Google Workspace integration",p:"P1",est:5,deps:"—",s:"partial"},
+{id:"E-5",title:"GitHub / GitLab integration",p:"P1",est:5,deps:"—",s:"partial"},
+{id:"E-6",title:"Jira integration",p:"P1",est:5,deps:"—"},
+{id:"E-7",title:"Expand Slack / Teams evidence ingestion",p:"P1",est:5,deps:"—",s:"partial"}]},
+{num:6,title:"Marketing Site & Content",color:"orange",layer:"product",tickets:[
+{id:"F-1",title:"Rewrite landing page hero copy",p:"P0",est:3,deps:"—",s:"done"},
+{id:"F-2",title:"Add pricing prominently to landing page",p:"P0",est:3,deps:"—",s:"done"},
+{id:"F-3",title:'Add "How it works" section',p:"P0",est:3,deps:"—",s:"done"},
+{id:"F-4",title:"Add social proof section",p:"P1",est:3,deps:"—"},
+{id:"F-5",title:"Add ROI calculator",p:"P1",est:5,deps:"—"},
+{id:"F-6",title:"Create product demo video",p:"P1",est:5,deps:"—"},
+{id:"F-7",title:"SEO blog content",p:"P1",est:3,deps:"—"}]},
+{num:7,title:"Pricing & Credit System",color:"param",layer:"product",tickets:[
+{id:"I-1",title:"Create free/sandbox tier",p:"P0",est:5,deps:"—",s:"partial"},
+{id:"I-2",title:"Add enterprise tier",p:"P1",est:3,deps:"—"},
+{id:"I-3",title:"Explore per-framework pricing",p:"P1",est:3,deps:"—"},
+{id:"L-1",title:"Implement $399/mo Deal-Saver tier",p:"P0",est:5,deps:"—",tech:"Stripe"},
+{id:"L-2",title:"Build credit-based usage system",p:"P0",est:8,deps:"L-1"},
+{id:"L-3",title:"Add credit top-up purchasing",p:"P0",est:5,deps:"L-2"},
+{id:"L-4",title:'Create "Done-For-You" service tier',p:"P0",est:5,deps:"L-1"},
+{id:"L-5",title:"Build sandbox tier with deliberate limits",p:"P0",est:5,deps:"I-1"},
+{id:"L-6",title:"Redesign the pricing page",p:"P0",est:5,deps:"L-1, I-1",s:"partial"},
+{id:"L-7",title:"Update Stripe products and prices",p:"P0",est:3,deps:"L-1",tech:"Stripe"},
+{id:"O-1",title:"Add credit fields to workspace model",p:"P0",est:3,deps:"L-2"},
+{id:"O-2",title:"Add credit consumption logic",p:"P0",est:5,deps:"O-1"},
+{id:"O-3",title:"Add credit balance UI",p:"P0",est:3,deps:"O-2"},
+{id:"O-4",title:"Add credit purchase history page",p:"P1",est:3,deps:"O-2"},
+{id:"O-5",title:"Block processing when credits exhausted",p:"P0",est:3,deps:"O-2"}]},
+{num:8,title:"Done-For-You & Security",color:"decorator",layer:"product",tickets:[
+{id:"N-1",title:"Build public questionnaire intake form",p:"P0",est:5,deps:"—"},
+{id:"N-2",title:"Build internal service queue",p:"P0",est:5,deps:"N-1"},
+{id:"N-3",title:"Automated delivery flow",p:"P0",est:5,deps:"N-2"},
+{id:"N-4",title:"One-time payment gate",p:"P0",est:5,deps:"N-1",tech:"Stripe"},
+{id:"J-1",title:"Pursue SOC 2 Type II certification",p:"P1",est:8,deps:"—"},
+{id:"J-2",title:"Add GDPR compliance documentation",p:"P1",est:3,deps:"—"},
+{id:"J-3",title:"Publish dedicated security page",p:"P0",est:3,deps:"—"}]},
+{num:9,title:"Positioning & Messaging",color:"number",layer:"product",tickets:[
+{id:"M-1",title:'Reframe landing page around "deal-stall" moment',p:"P0",est:3,deps:"F-1"},
+{id:"M-2",title:"Position as outcome, not tool",p:"P0",est:3,deps:"—"},
+{id:"M-3",title:'Replace CTA with "Send us your questionnaire"',p:"P0",est:2,deps:"M-2"},
+{id:"M-4",title:'Redesign "How it works" around deal moment',p:"P0",est:3,deps:"F-3"},
+{id:"M-5",title:"Rewrite all copy to sell outcomes",p:"P0",est:5,deps:"M-1, M-2"}]},
+{num:10,title:"Go-to-Market & Sales",color:"blue",layer:"product",tickets:[
+{id:"G-1",title:"Build target prospect list",p:"P0",est:3,deps:"—"},
+{id:"G-2",title:"Launch cold outreach campaign",p:"P0",est:5,deps:"G-1"},
+{id:"G-3",title:"Partner with SOC 2 audit firms",p:"P1",est:5,deps:"—"},
+{id:"G-4",title:"VC portfolio program outreach",p:"P1",est:3,deps:"—"},
+{id:"G-5",title:"Product Hunt launch",p:"P1",est:3,deps:"—"},
+{id:"G-6",title:"Create downloadable whitepaper",p:"P1",est:3,deps:"—"},
+{id:"P-1",title:'"First questionnaire free" promotion',p:"P0",est:3,deps:"—"},
+{id:"P-2",title:"Automated follow-up email sequence",p:"P0",est:5,deps:"P-1"},
+{id:"P-3",title:"Track deal-unblock metrics",p:"P1",est:3,deps:"—"},
+{id:"P-4",title:"Build time-saved calculator on site",p:"P1",est:5,deps:"—"}]},
+{num:11,title:"Proof, Credibility & Funding",color:"purple",layer:"product",tickets:[
+{id:"H-1",title:"Track and publish accuracy metrics",p:"P0",est:5,deps:"—"},
+{id:"H-2",title:"Track and publish time-saved metrics",p:"P0",est:3,deps:"—"},
+{id:"H-3",title:"Acquire 3 beta customers and collect testimonials",p:"P0",est:5,deps:"—"},
+{id:"H-4",title:"Write a case study",p:"P0",est:3,deps:"H-3"},
+{id:"H-5",title:"Publish Trust Copilot's own compliance posture",p:"P0",est:3,deps:"J-3"},
+{id:"K-1",title:"Prepare pitch deck",p:"P1",est:5,deps:"—"},
+{id:"K-2",title:"Identify target investors",p:"P1",est:3,deps:"—"},
+{id:"K-3",title:"Explore strategic partnerships",p:"P1",est:3,deps:"—"},
+{id:"K-4",title:"Define first hiring plan",p:"P1",est:3,deps:"—"}]},
+{num:12,title:"Platform Foundation",color:"green",layer:"platform",tickets:[
+{id:"P0-01",title:"Define core domain model",p:"P0",est:8,deps:"—",tech:"SQLAlchemy",s:"partial"},
+{id:"P0-02",title:"Create control catalog",p:"P0",est:8,deps:"P0-01",s:"partial"},
+{id:"P0-03",title:"Design evidence schema",p:"P0",est:8,deps:"P0-01",s:"done"},
+{id:"P0-04",title:"Build tenant isolation rules",p:"P0",est:5,deps:"P0-01",s:"partial"},
+{id:"P0-05",title:"Create source registry",p:"P0",est:5,deps:"P0-01",s:"partial"},
+{id:"P0-06",title:"Stand up async job queue",p:"P0",est:5,deps:"P0-01",tech:"Worker",s:"partial"},
+{id:"P0-07",title:"Create system audit log",p:"P0",est:5,deps:"P0-01",s:"partial"},
+{id:"P0-08",title:"Implement secrets management",p:"P0",est:5,deps:"—",s:"partial"},
+{id:"P0-09",title:"Add feature flags by workspace",p:"P0",est:5,deps:"P0-01",s:"done"},
+{id:"P0-10",title:"Build credits and usage ledger",p:"P0",est:5,deps:"P0-01",s:"partial"},
+{id:"P0-11",title:"Create operator workspace",p:"P0",est:8,deps:"P0-01"},
+{id:"P0-12",title:"Write security and data-handling FAQ",p:"P0",est:3,deps:"—"},
+{id:"P0-13",title:"Create demo proof package",p:"P0",est:5,deps:"—"},
+{id:"P0-14",title:"Build customer-ready export pack",p:"P0",est:5,deps:"P0-01",s:"done"}]},
+{num:13,title:"First-Wave Connectors",color:"teal",layer:"platform",tickets:[
+{id:"P1-15",title:"Build connector setup wizard",p:"P0",est:5,deps:"P0-05",s:"partial"},
+{id:"P1-16",title:"Build raw ingestion pipeline",p:"P0",est:5,deps:"P1-15"},
+{id:"P1-17",title:"Build AWS authentication",p:"P0",est:5,deps:"P1-15",tech:"boto3"},
+{id:"P1-18",title:"Build AWS IAM collector",p:"P0",est:5,deps:"P1-17"},
+{id:"P1-19",title:"Build AWS S3 posture collector",p:"P0",est:5,deps:"P1-17"},
+{id:"P1-20",title:"Build AWS logging collector",p:"P0",est:5,deps:"P1-17"},
+{id:"P1-21",title:"Build AWS sync scheduler",p:"P0",est:5,deps:"P1-17"},
+{id:"P1-22",title:"Build GitHub authentication",p:"P0",est:3,deps:"P1-15",s:"partial"},
+{id:"P1-23",title:"Build GitHub repo collector",p:"P0",est:5,deps:"P1-22"},
+{id:"P1-24",title:"Build GitHub access collector",p:"P0",est:5,deps:"P1-22"},
+{id:"P1-25",title:"Build GitHub protection collector",p:"P0",est:5,deps:"P1-22"},
+{id:"P1-26",title:"Build Google Workspace auth",p:"P0",est:3,deps:"P1-15",s:"partial"},
+{id:"P1-27",title:"Build Google Workspace user collector",p:"P0",est:5,deps:"P1-26"},
+{id:"P1-28",title:"Build Google Workspace MFA collector",p:"P0",est:3,deps:"P1-26"},
+{id:"P1-29",title:"Build Google Workspace admin-role collector",p:"P0",est:3,deps:"P1-26"},
+{id:"P1-30",title:"Build connector health visibility",p:"P0",est:5,deps:"P1-15"}]},
+{num:14,title:"Monitoring & Controls",color:"gold",layer:"platform",tickets:[
+{id:"P1-31",title:"Create control-check rule engine",p:"P0",est:8,deps:"P0-02"},
+{id:"P1-32",title:"Map connector signals to controls",p:"P0",est:5,deps:"P1-31"},
+{id:"P1-33",title:"Build daily monitoring scheduler",p:"P0",est:5,deps:"P1-31"},
+{id:"P1-34",title:"Store control state snapshots",p:"P0",est:5,deps:"P1-31"},
+{id:"P1-35",title:"Build pass/fail evaluator",p:"P0",est:5,deps:"P1-31"},
+{id:"P1-36",title:"Build drift detection",p:"P0",est:5,deps:"P1-34"},
+{id:"P1-37",title:"Build alerting engine",p:"P0",est:5,deps:"P1-36",s:"partial"},
+{id:"P1-38",title:"Build acknowledgement and snooze flows",p:"P1",est:3,deps:"P1-37"},
+{id:"P1-39",title:"Build manual override with reason codes",p:"P1",est:3,deps:"P1-31"},
+{id:"P1-40",title:"Build control timeline view",p:"P1",est:5,deps:"P1-34"}]},
+{num:15,title:"Evidence Engine",color:"orange",layer:"platform",tickets:[
+{id:"P1-41",title:"Build evidence cards per control",p:"P0",est:5,deps:"P0-03"},
+{id:"P1-42",title:'Add "last verified" timestamps',p:"P0",est:2,deps:"P0-03",s:"partial"},
+{id:"P1-43",title:"Build evidence freshness policies",p:"P0",est:3,deps:"P1-42",s:"partial"},
+{id:"P1-44",title:"Build evidence version history",p:"P0",est:3,deps:"P0-03",s:"partial"},
+{id:"P1-45",title:"Build evidence diff viewer",p:"P1",est:5,deps:"P1-44"},
+{id:"P1-46",title:"Build source confidence scoring",p:"P0",est:5,deps:"P0-03",s:"partial"},
+{id:"P1-47",title:"Build evidence approval workflows",p:"P0",est:5,deps:"P0-03",s:"partial"},
+{id:"P1-48",title:"Build citation composer",p:"P0",est:5,deps:"P1-46",s:"partial"},
+{id:"P1-49",title:"Build coverage report generator",p:"P0",est:5,deps:"P0-02",s:"partial"},
+{id:"P1-50",title:"Build gap-list generator",p:"P0",est:5,deps:"P1-49",s:"partial"},
+{id:"P1-51",title:"Build evidence retention and archiving",p:"P1",est:5,deps:"P0-03",s:"partial"},
+{id:"P1-52",title:"Build evidence search and retrieval APIs",p:"P1",est:5,deps:"P0-03",tech:"pgvector",s:"partial"}]},
+{num:16,title:"Questionnaire OS",color:"param",layer:"platform",tickets:[
+{id:"P1-53",title:"Build questionnaire file ingestion",p:"P0",est:5,deps:"P0-06",s:"partial"},
+{id:"P1-54",title:"Build question extraction and normalization",p:"P0",est:5,deps:"P1-53",s:"done"},
+{id:"P1-55",title:"Build question classification",p:"P0",est:5,deps:"P1-54",s:"partial"},
+{id:"P1-56",title:"Build answer assembly pipeline",p:"P0",est:8,deps:"P1-55",tech:"RAG",s:"done"},
+{id:"P1-57",title:"Build confidence-based routing",p:"P0",est:5,deps:"P1-56",s:"partial"},
+{id:"P1-58",title:"Build export back to original format",p:"P0",est:5,deps:"P1-56",s:"done"},
+{id:"P1-59",title:"Build customer-specific knowledge packs",p:"P1",est:5,deps:"P1-56"},
+{id:"P1-60",title:"Build done-for-you operator queue",p:"P0",est:5,deps:"P1-56"},
+{id:"P1-61",title:"Build SLA and turnaround tracking",p:"P1",est:5,deps:"P1-53"},
+{id:"P1-62",title:"Build credit burn and overage prompts",p:"P1",est:3,deps:"O-2"}]},
+{num:17,title:"Trust Center & Memory Platform",color:"decorator",layer:"platform",tickets:[
+{id:"P1-63",title:"Build Trust Center content model",p:"P0",est:5,deps:"P0-01",s:"done"},
+{id:"P1-64",title:"Build auto-publish from approved controls",p:"P0",est:5,deps:"P1-63"},
+{id:"P1-65",title:"Build NDA-gated access requests",p:"P1",est:5,deps:"P1-63"},
+{id:"P1-66",title:"Build shareable spaces per buyer",p:"P1",est:5,deps:"P1-63"},
+{id:"P1-67",title:"Build Trust Center analytics",p:"P1",est:5,deps:"P1-63"},
+{id:"P1-68",title:"Build request-a-document flow",p:"P0",est:5,deps:"P1-63",s:"done"},
+{id:"P1-69",title:"Build public vs private answer tiers",p:"P1",est:5,deps:"P1-63"},
+{id:"P1-70",title:"Build branding and access expiration",p:"P1",est:5,deps:"P1-63"},
+{id:"P1-71",title:"Build golden-answer library",p:"P0",est:8,deps:"P1-56"},
+{id:"P1-72",title:"Build answer approval workflows",p:"P0",est:5,deps:"P1-71",s:"partial"},
+{id:"P1-73",title:"Build similar-question matching",p:"P0",est:5,deps:"P1-71",tech:"pgvector"},
+{id:"P1-74",title:"Build customer-specific overrides",p:"P1",est:5,deps:"P1-71"},
+{id:"P1-75",title:"Build answer expiry and review cycles",p:"P1",est:3,deps:"P1-72"},
+{id:"P1-76",title:"Build answer lineage",p:"P1",est:5,deps:"P1-71"},
+{id:"P1-77",title:"Build feedback capture from sent questionnaires",p:"P1",est:5,deps:"P1-72"},
+{id:"P1-78",title:"Build reuse analytics",p:"P1",est:3,deps:"P1-71"}]},
+{num:18,title:"Messaging & Metrics Platform",color:"number",layer:"platform",tickets:[
+{id:"P0-79",title:"Rewrite homepage around outcomes",p:"P0",est:3,deps:"M-1"},
+{id:"P0-80",title:"Build pricing page around credits",p:"P0",est:5,deps:"L-6"},
+{id:"P0-81",title:"Build ROI calculator",p:"P0",est:5,deps:"—"},
+{id:"P0-82",title:"Publish security and data-handling page",p:"P0",est:3,deps:"J-3"},
+{id:"P0-83",title:"Build case study template",p:"P0",est:3,deps:"H-4"},
+{id:"P0-84",title:"Build benchmark dashboard",p:"P0",est:8,deps:"—"},
+{id:"P0-85",title:"Add proof widgets inside product",p:"P0",est:5,deps:"—"},
+{id:"P0-86",title:"Instrument product events end to end",p:"P0",est:5,deps:"P0-07",s:"partial"},
+{id:"P0-87",title:"Build executive dashboard",p:"P0",est:8,deps:"P0-84"}]},
+{num:19,title:"Distribution Infrastructure",color:"blue",layer:"platform",tickets:[
+{id:"P0-88",title:"Define ICP and trigger taxonomy",p:"P0",est:3,deps:"—"},
+{id:"P0-89",title:"Build lead enrichment pipeline",p:"P0",est:5,deps:"P0-88"},
+{id:"P0-90",title:"Build outbound template variants",p:"P0",est:3,deps:"P0-88"},
+{id:"P0-91",title:"Build founder-led demo playbook",p:"P0",est:3,deps:"P0-13"},
+{id:"P0-92",title:"Build LinkedIn content loop",p:"P1",est:3,deps:"—"},
+{id:"P0-93",title:"Build partner program",p:"P1",est:5,deps:"—"},
+{id:"P0-94",title:"Build testimonial and referral workflow",p:"P1",est:3,deps:"H-3"},
+{id:"P0-95",title:"Build attribution and demand capture",p:"P1",est:5,deps:"P0-86"}]},
+{num:20,title:"Enterprise Hardening",color:"purple",layer:"platform",tickets:[
+{id:"P2-96",title:"Build role-based access control",p:"P0",est:5,deps:"P0-01",s:"partial"},
+{id:"P2-97",title:"Build SSO and SAML support",p:"P0",est:5,deps:"P0-01",tech:"OIDC/SAML",s:"partial"},
+{id:"P2-98",title:"Build product MFA enforcement",p:"P0",est:5,deps:"P0-01",tech:"TOTP",s:"partial"},
+{id:"P2-99",title:"Build data retention and export controls",p:"P0",est:5,deps:"P0-03",s:"partial"},
+{id:"P2-100",title:"Build incident and status pages",p:"P1",est:5,deps:"—"},
+{id:"P2-101",title:"Build reliability SLIs and on-call",p:"P1",est:5,deps:"P0-06"},
+{id:"P2-102",title:"Build billing integration and invoicing",p:"P0",est:5,deps:"L-1",tech:"Stripe",s:"partial"},
+{id:"P2-103",title:"Build GCP connector pack",p:"P1",est:8,deps:"P1-15"},
+{id:"P2-104",title:"Build Azure connector pack",p:"P1",est:8,deps:"P1-15"},
+{id:"P2-105",title:"Build GitLab connector pack",p:"P1",est:5,deps:"P1-15"},
+{id:"P2-106",title:"Build Okta connector pack",p:"P1",est:5,deps:"P1-15"},
+{id:"P2-107",title:"Build HRIS connector pack",p:"P1",est:5,deps:"P1-15"}]},
+{num:21,title:"Deal-Aware Trust",color:"green",layer:"vision",tickets:[
+{id:"E1-01",title:"Build Deal object model",p:"P1",est:5,deps:"P0-01"},
+{id:"E1-02",title:"Build CRM connector (Salesforce)",p:"P1",est:8,deps:"E1-01",tech:"Salesforce"},
+{id:"E1-03",title:"Build CRM connector (HubSpot)",p:"P1",est:5,deps:"E1-01",tech:"HubSpot"},
+{id:"E1-04",title:'Build "revenue at risk" scoring',p:"P1",est:8,deps:"E1-01"},
+{id:"E1-05",title:"Build deal room",p:"P1",est:8,deps:"E1-01"},
+{id:"E1-06",title:"Build due-date tracking and deadline alerts",p:"P1",est:5,deps:"E1-01"},
+{id:"E1-07",title:"Build deal-linked analytics",p:"P1",est:5,deps:"E1-04"}]},
+{num:22,title:"Promise Engine",color:"teal",layer:"vision",tickets:[
+{id:"E2-08",title:"Build Promise object model",p:"P1",est:8,deps:"P0-01"},
+{id:"E2-09",title:"Build contract ingestion and clause extraction",p:"P1",est:8,deps:"E2-08"},
+{id:"E2-10",title:"Build promise-to-control mapping",p:"P1",est:5,deps:"E2-08"},
+{id:"E2-11",title:"Build contradiction detection",p:"P1",est:8,deps:"E2-08"},
+{id:"E2-12",title:"Build promise expiry and renewal tracking",p:"P1",est:5,deps:"E2-08"},
+{id:"E2-13",title:"Build promise dashboard",p:"P1",est:5,deps:"E2-08, E2-10"}]},
+{num:23,title:"Remediation & Buyer Experience",color:"gold",layer:"vision",tickets:[
+{id:"E3-14",title:"Build remediation playbook model",p:"P1",est:5,deps:"P1-31"},
+{id:"E3-15",title:"Build auto-ticket creation on failure",p:"P1",est:8,deps:"E3-14",tech:"Jira/Linear"},
+{id:"E3-16",title:"Build remediation status tracking",p:"P1",est:5,deps:"E3-15"},
+{id:"E3-17",title:"Build post-remediation evidence capture",p:"P1",est:5,deps:"E3-16"},
+{id:"E3-18",title:"Build safe auto-remediation",p:"P1",est:8,deps:"E3-14"},
+{id:"E3-19",title:"Build remediation impact analysis",p:"P1",est:5,deps:"E3-14"},
+{id:"E4-20",title:"Build buyer-mode interface",p:"P1",est:8,deps:"P1-63"},
+{id:"E4-21",title:"Build instant questionnaire response for buyers",p:"P1",est:8,deps:"E4-20"},
+{id:"E4-22",title:"Build buyer-side change tracking",p:"P1",est:5,deps:"E4-20"},
+{id:"E4-23",title:"Build buyer escalation workflow",p:"P1",est:5,deps:"E4-20"},
+{id:"E4-24",title:"Build buyer satisfaction signals",p:"P1",est:3,deps:"E4-20"}]},
+{num:24,title:"Proof Graph & Memory",color:"orange",layer:"vision",tickets:[
+{id:"E5-25",title:"Build proof graph data model",p:"P1",est:8,deps:"P0-03"},
+{id:"E5-26",title:"Build proof chain visualization",p:"P1",est:8,deps:"E5-25"},
+{id:"E5-27",title:"Build freshness indicators on proof chains",p:"P1",est:5,deps:"E5-26"},
+{id:"E5-28",title:"Build cryptographic hashing for artifacts",p:"P1",est:5,deps:"E5-25"},
+{id:"E5-29",title:"Build proof graph diffs",p:"P1",est:5,deps:"E5-25"},
+{id:"E5-30",title:"Build reuse provenance tracking",p:"P1",est:5,deps:"E5-25"},
+{id:"E6-31",title:"Build outcome-tagged answer storage",p:"P1",est:5,deps:"P1-71"},
+{id:"E6-32",title:"Build answer quality scoring from outcomes",p:"P1",est:5,deps:"E6-31"},
+{id:"E6-33",title:"Build suggested answer ranking by context",p:"P1",est:5,deps:"E6-32"},
+{id:"E6-34",title:"Build answer wording optimization",p:"P1",est:5,deps:"E6-32"},
+{id:"E6-35",title:"Build memory insights dashboard",p:"P1",est:5,deps:"E6-31"}]},
+{num:25,title:"Ecosystem & Live Proof",color:"param",layer:"vision",tickets:[
+{id:"E7-36",title:"Build role-scoped views on shared trust data",p:"P1",est:8,deps:"P2-96"},
+{id:"E7-37",title:"Build auditor access mode",p:"P1",est:5,deps:"E7-36"},
+{id:"E7-38",title:"Build consultant/MSP delivery mode",p:"P1",est:8,deps:"E7-36"},
+{id:"E7-39",title:"Build cross-party evidence sharing",p:"P1",est:5,deps:"E7-36"},
+{id:"E7-40",title:"Build trust supply chain view",p:"P1",est:8,deps:"E7-36"},
+{id:"E8-41",title:"Build questionnaire pattern analysis",p:"P1",est:8,deps:"P1-55"},
+{id:"E8-42",title:"Build preflight pack generator",p:"P1",est:5,deps:"E8-41"},
+{id:"E8-43",title:'Build "likely blockers" prediction',p:"P1",est:5,deps:"E8-41"},
+{id:"E8-44",title:"Build proactive evidence refresh recommendations",p:"P1",est:5,deps:"P1-43"},
+{id:"E8-45",title:"Build segment-level trust readiness scoring",p:"P1",est:5,deps:"E8-41"},
+{id:"E9-46",title:"Build anonymized questionnaire analytics",p:"P1",est:5,deps:"P1-55"},
+{id:"E9-47",title:"Build evidence strength benchmarking",p:"P1",est:5,deps:"P1-46"},
+{id:"E9-48",title:"Build answer quality benchmarking",p:"P1",est:5,deps:"E6-32"},
+{id:"E9-49",title:"Build review time benchmarking",p:"P1",est:5,deps:"P1-61"},
+{id:"E9-50",title:'Build "what teams like you do" recommendations',p:"P1",est:5,deps:"E9-46"},
+{id:"E10-51",title:"Build live trust status page",p:"P1",est:8,deps:"P1-34"},
+{id:"E10-52",title:"Build live evidence badges",p:"P1",est:5,deps:"E10-51"},
+{id:"E10-53",title:"Build live proof in questionnaire answers",p:"P1",est:5,deps:"E10-51"},
+{id:"E10-54",title:"Build trust change notifications for buyers",p:"P1",est:5,deps:"E10-51"},
+{id:"E10-55",title:"Build trust timeline",p:"P1",est:8,deps:"P0-07"}]}
+];
+
+const COLORS={blue:"#5b7cff",purple:"#a78bfa",green:"#22c55e",teal:"#2dd4bf",gold:"#fbbf24",orange:"#fb923c",param:"#38bdf8",decorator:"#fb7185",number:"#a3e635"};
+const LAYER_LABELS={product:"PROD",platform:"PLAT",vision:"VIS"};
+const LAYER_CSS={product:"prod",platform:"plat",vision:"vis"};
+const STORAGE_KEY="tc-backlog-v3";
+let checked={},currentFilter="all";
+function loadState(){
+  try{checked=JSON.parse(localStorage.getItem(STORAGE_KEY))||{}}catch(e){checked={}}
+  if(!localStorage.getItem(STORAGE_KEY)){
+    INCREMENTS.forEach(inc=>inc.tickets.forEach(t=>{if(t.s==="done")checked[t.id]=true}));
+    saveState();
+  }
+}
+function saveState(){localStorage.setItem(STORAGE_KEY,JSON.stringify(checked))}
+function switchTab(id,btn){document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));btn.classList.add('active');document.getElementById('panel-'+id).classList.add('active');if(id==='charts')requestAnimationFrame(drawAllCharts);if(id==='performance')renderPerformance();if(id==='diagrams')renderDiagrams()}
+function render(){
+  const nav=document.getElementById("navList"),content=document.getElementById("content");nav.innerHTML="";content.innerHTML="";let lastLayer="";
+  INCREMENTS.forEach(inc=>{
+    if(inc.layer!==lastLayer){const sep=document.createElement("div");sep.className="nav-sep";sep.textContent=inc.layer==="product"?"Product":inc.layer==="platform"?"Platform":"Vision";nav.appendChild(sep);lastLayer=inc.layer}
+    const done=inc.tickets.filter(t=>checked[t.id]).length,total=inc.tickets.length,pct=total?Math.round(done/total*100):0,isComplete=done===total;
+    const ni=document.createElement("div");ni.className="nav-item"+(isComplete?" complete":"");
+    ni.innerHTML=`<span class="nav-num">${inc.num}</span><span class="nav-label">${inc.title}</span><span class="nav-progress">${done}/${total}</span><span class="nav-check">&#10003;</span>`;
+    ni.onclick=()=>{switchTab('backlog',document.querySelector('.tab-btn'));const el=document.getElementById("inc-"+inc.num);if(el){el.classList.add("open");el.scrollIntoView({behavior:"smooth",block:"start"});document.querySelectorAll(".nav-item").forEach(n=>n.classList.remove("active"));ni.classList.add("active")}};
+    nav.appendChild(ni);
+    const sec=document.createElement("div");sec.className="increment";sec.id="inc-"+inc.num;sec.dataset.color=inc.color;sec.dataset.layer=inc.layer;
+    if(isComplete)sec.classList.add("complete");
+    sec.innerHTML=`<div class="increment-header" onclick="toggleIncrement(this)"><span class="increment-chevron">&#9654;</span><span class="increment-num">${inc.num}</span><span class="increment-title">${inc.title}</span><span class="increment-layer ${LAYER_CSS[inc.layer]}">${LAYER_LABELS[inc.layer]}</span><div class="increment-meta"><span class="increment-count">${done}/${total}</span><div class="increment-progress-bar"><div class="increment-progress-fill" style="width:${pct}%"></div></div><span class="increment-pct" style="color:${pct===100?'var(--success)':'var(--text-secondary)'}">${pct}%</span></div></div><div class="increment-body"><div class="ticket-list" id="tickets-${inc.num}"></div></div>`;
+    content.appendChild(sec);
+    const tl=sec.querySelector(".ticket-list");
+    inc.tickets.forEach(t=>{const ic=!!checked[t.id];const st=t.s||"";const c=document.createElement("div");c.className="ticket"+(ic?" checked":"")+(st==="partial"?" partial":"");c.dataset.id=t.id;c.dataset.priority=t.p.toLowerCase();c.dataset.layer=inc.layer;c.dataset.status=st;
+      c.innerHTML=`<label class="ticket-checkbox"><input type="checkbox" ${ic?"checked":""} onchange="toggleTicket('${t.id}',this)"><span class="checkmark"></span></label><div class="ticket-info"><div class="ticket-top"><span class="ticket-id">${t.id}</span><span class="ticket-title">${t.title}</span></div><div class="ticket-deps">deps: <span>${t.deps}</span></div></div><div class="ticket-badges">${st==="done"?'<span class="badge badge-done">DONE</span>':st==="partial"?'<span class="badge badge-partial">PARTIAL</span>':""}<span class="badge badge-${t.p.toLowerCase()}">${t.p}</span><span class="badge badge-est">${t.est} pts</span>${t.tech?`<span class="badge badge-new">${t.tech}</span>`:""}</div>`;
+      tl.appendChild(c)});
+  });
+  const sep=document.createElement("div");sep.className="nav-sep";sep.textContent="Views";nav.appendChild(sep);
+  ["Architecture","Charts","Performance"].forEach(v=>{const ni=document.createElement("div");ni.className="nav-item";const key=v==="Architecture"?"diagrams":v.toLowerCase();
+    ni.innerHTML=`<span class="nav-num" style="background:var(--teal-dim);color:var(--teal);font-size:.55rem">${v[0]}</span><span class="nav-label">${v}</span>`;
+    ni.onclick=()=>{const btn=document.querySelector(`.tab-btn[onclick*="${key}"]`);if(btn)switchTab(key,btn)};nav.appendChild(ni)});
+  updateGlobalStats();applyFilters()
+}
+function toggleTicket(id,el){if(el.checked)checked[id]=true;else delete checked[id];saveState();el.closest(".ticket").classList.toggle("checked",el.checked);updateIncrementProgress(el.closest(".increment"));updateGlobalStats();updateNav();applyFilters()}
+function updateIncrementProgress(inc){const done=inc.querySelectorAll(".ticket.checked").length,total=inc.querySelectorAll(".ticket").length,pct=total?Math.round(done/total*100):0;inc.querySelector(".increment-count").textContent=`${done}/${total}`;inc.querySelector(".increment-progress-fill").style.width=pct+"%";const p=inc.querySelector(".increment-pct");p.textContent=pct+"%";p.style.color=pct===100?"var(--success)":"var(--text-secondary)";inc.classList.toggle("complete",pct===100)}
+function updateGlobalStats(){const total=INCREMENTS.reduce((s,i)=>s+i.tickets.length,0),done=Object.keys(checked).length,pct=total?Math.round(done/total*100):0,ptsDone=INCREMENTS.reduce((s,i)=>s+i.tickets.filter(t=>checked[t.id]).reduce((a,t)=>a+t.est,0),0);document.getElementById("globalPct").textContent=pct+"%";document.getElementById("globalFill").style.width=pct+"%";document.getElementById("statDone").textContent=done;document.getElementById("statTotal").textContent=total;document.getElementById("statPts").textContent=ptsDone}
+function updateNav(){document.querySelectorAll("#navList .nav-item").forEach(ni=>{const numEl=ni.querySelector(".nav-num");if(!numEl)return;const num=parseInt(numEl.textContent);const inc=INCREMENTS.find(i=>i.num===num);if(!inc)return;const done=inc.tickets.filter(t=>checked[t.id]).length,total=inc.tickets.length;const prog=ni.querySelector(".nav-progress");if(prog)prog.textContent=`${done}/${total}`;ni.classList.toggle("complete",done===total)})}
+function toggleIncrement(h){h.parentElement.classList.toggle("open")}
+function expandAll(){document.querySelectorAll(".increment").forEach(e=>e.classList.add("open"))}
+function collapseAll(){document.querySelectorAll(".increment").forEach(e=>e.classList.remove("open"))}
+function setFilter(f,btn){currentFilter=f;document.querySelectorAll("#filterBar .filter-btn").forEach(b=>b.classList.remove("active"));btn.classList.add("active");applyFilters()}
+function applyFilters(){const s=(document.getElementById("searchInput").value||"").toLowerCase();document.querySelectorAll(".ticket").forEach(c=>{const id=c.dataset.id.toLowerCase(),ti=c.querySelector(".ticket-title").textContent.toLowerCase(),pr=c.dataset.priority,ic=c.classList.contains("checked"),ly=c.dataset.layer,st=c.dataset.status;let show=true;if(currentFilter==="todo")show=!ic&&st!=="done";else if(currentFilter==="done")show=ic||st==="done";else if(currentFilter==="partial")show=st==="partial";else if(currentFilter==="p0")show=pr==="p0";else if(currentFilter==="p1")show=pr==="p1";else if(currentFilter==="product")show=ly==="product";else if(currentFilter==="platform")show=ly==="platform";else if(currentFilter==="vision")show=ly==="vision";if(show&&s)show=id.includes(s)||ti.includes(s);c.classList.toggle("hidden",!show)});document.querySelectorAll(".increment").forEach(inc=>{const vis=inc.querySelectorAll(".ticket:not(.hidden)").length;inc.style.display=(vis===0&&(currentFilter!=="all"||s))?"none":""})}
+function resetAll(){if(confirm("Reset all checkboxes?")){checked={};saveState();render()}}
+
+// ── DIAGRAMS ──
+function renderDiagrams(){renderPipeline();renderArchitecture();renderDepGraph()}
+function svgEl(tag,attrs){const e=document.createElementNS("http://www.w3.org/2000/svg",tag);for(const[k,v]of Object.entries(attrs||{}))e.setAttribute(k,v);return e}
+function renderPipeline(){
+  const c=document.getElementById("diagramPipeline");if(c.childElementCount)return;
+  const W=900,H=140;const svg=svgEl("svg",{width:W,height:H,viewBox:`0 0 ${W} ${H}`});
+  const defs=svgEl("defs");const m=svgEl("marker",{id:"ah",markerWidth:"8",markerHeight:"6",refX:"8",refY:"3",orient:"auto"});m.appendChild(svgEl("polygon",{points:"0 0,8 3,0 6",fill:"#64748b"}));defs.appendChild(m);svg.appendChild(defs);
+  const steps=[{label:"Upload",x:55,color:"#5b7cff"},{label:"Parse",x:155,color:"#5b7cff"},{label:"Embed",x:255,color:"#2dd4bf"},{label:"Auto-Tag",x:355,color:"#a78bfa"},{label:"Classify",x:455,color:"#fbbf24"},{label:"Retrieve",x:555,color:"#fb923c"},{label:"Generate",x:655,color:"#22c55e"},{label:"Review",x:755,color:"#fb7185"},{label:"Export",x:855,color:"#38bdf8"}];
+  const y=55;
+  steps.forEach((s,i)=>{if(i>0)svg.appendChild(svgEl("line",{x1:steps[i-1].x+32,y1:y,x2:s.x-32,y2:y,stroke:"#64748b","stroke-width":"1.5","marker-end":"url(#ah)"}));
+    svg.appendChild(svgEl("rect",{x:s.x-32,y:y-20,width:64,height:40,rx:10,fill:"rgba(17,28,48,0.92)",stroke:s.color,"stroke-width":"1.5"}));
+    const t=svgEl("text",{x:s.x,y:y+4,"text-anchor":"middle",fill:s.color,"font-family":"Inter,sans-serif","font-size":"10","font-weight":"600"});t.textContent=s.label;svg.appendChild(t)});
+  const sub=svgEl("text",{x:W/2,y:H-10,"text-anchor":"middle",fill:"#64748b","font-family":"Inter,sans-serif","font-size":"9"});sub.textContent="Evidence Upload → Parse & Chunk → pgvector Embed → LLM Tag → Question Classify → RAG Retrieve → LLM Generate → Human Review → XLSX/DOCX Export";svg.appendChild(sub);
+  c.appendChild(svg)
+}
+function renderArchitecture(){
+  const c=document.getElementById("diagramArchitecture");if(c.childElementCount)return;
+  const W=900,H=380;const svg=svgEl("svg",{width:W,height:H,viewBox:`0 0 ${W} ${H}`});
+  const defs=svgEl("defs");const m=svgEl("marker",{id:"ah2",markerWidth:"8",markerHeight:"6",refX:"8",refY:"3",orient:"auto"});m.appendChild(svgEl("polygon",{points:"0 0,8 3,0 6",fill:"#64748b"}));defs.appendChild(m);svg.appendChild(defs);
+  svg.appendChild(svgEl("rect",{x:20,y:15,width:W-40,height:70,rx:12,fill:"none",stroke:"#5b7cff","stroke-width":"1.5","stroke-dasharray":"6,3",opacity:"0.5"}));
+  let t=svgEl("text",{x:W/2,y:8,"text-anchor":"middle",fill:"#5b7cff","font-family":"Inter,sans-serif","font-size":"10","font-weight":"700","letter-spacing":"1.5"});t.textContent="FRONTEND — NEXT.JS + TAILWIND";svg.appendChild(t);
+  ["Dashboard","Documents","Questionnaires","Trust Center","Audit","Settings","Pricing","Requests"].forEach((item,i)=>{const ix=30+i*106,bw=100;
+    svg.appendChild(svgEl("rect",{x:ix,y:27,width:bw,height:26,rx:6,fill:"rgba(17,28,48,0.92)",stroke:"#5b7cff","stroke-width":"1",opacity:"0.7"}));
+    const it=svgEl("text",{x:ix+bw/2,y:44,"text-anchor":"middle",fill:"#e8eefb","font-family":"Inter,sans-serif","font-size":"8.5"});it.textContent=item;svg.appendChild(it)});
+  svg.appendChild(svgEl("rect",{x:20,y:58,width:W-40,height:18,rx:4,fill:"none",stroke:"rgba(91,124,255,0.15)","stroke-width":"1"}));
+  t=svgEl("text",{x:W/2,y:70,"text-anchor":"middle",fill:"#64748b","font-family":"Inter,sans-serif","font-size":"7.5"});t.textContent="AuthContext · Middleware · DashboardShell · Recharts";svg.appendChild(t);
+  svg.appendChild(svgEl("line",{x1:W/2,y1:85,x2:W/2,y2:102,stroke:"#64748b","stroke-width":"1.5","marker-end":"url(#ah2)"}));
+  svg.appendChild(svgEl("rect",{x:20,y:102,width:W-40,height:22,rx:6,fill:"rgba(91,124,255,0.15)",stroke:"#5b7cff","stroke-width":"1"}));
+  t=svgEl("text",{x:W/2,y:117,"text-anchor":"middle",fill:"#7c96ff","font-family":"Inter,sans-serif","font-size":"9","font-weight":"700"});t.textContent="FastAPI — REST API + Session Auth + CSRF";svg.appendChild(t);
+  const lY=142;
+  [{label:"EVIDENCE PIPELINE",x:20,w:270,color:"#5b7cff",items:["Tag Service","Index Service","Evidence Gap Svc","Answer Cache"]},
+   {label:"QUESTIONNAIRE ENGINE",x:305,w:270,color:"#a78bfa",items:["Question Extraction","LLM Classification","Answer Generation","Export Service"]},
+   {label:"COMPLIANCE & TRUST",x:590,w:270,color:"#2dd4bf",items:["Control Catalog","Coverage Analytics","Trust Articles","Audit Events"]}
+  ].forEach(lane=>{
+    svg.appendChild(svgEl("rect",{x:lane.x,y:lY,width:lane.w,height:185,rx:12,fill:"none",stroke:lane.color,"stroke-width":"1.5","stroke-dasharray":"6,3",opacity:"0.4"}));
+    t=svgEl("text",{x:lane.x+lane.w/2,y:lY-8,"text-anchor":"middle",fill:lane.color,"font-family":"Inter,sans-serif","font-size":"9","font-weight":"700","letter-spacing":"1.5"});t.textContent=lane.label;svg.appendChild(t);
+    lane.items.forEach((item,i)=>{const iy=lY+12+i*42,bw=lane.w-24,bh=32;
+      svg.appendChild(svgEl("rect",{x:lane.x+12,y:iy,width:bw,height:bh,rx:8,fill:"rgba(17,28,48,0.92)",stroke:lane.color,"stroke-width":"1",opacity:"0.6"}));
+      const it=svgEl("text",{x:lane.x+lane.w/2,y:iy+20,"text-anchor":"middle",fill:"#e8eefb","font-family":"Inter,sans-serif","font-size":"10"});it.textContent=item;svg.appendChild(it)})});
+  svg.appendChild(svgEl("rect",{x:20,y:340,width:W-40,height:20,rx:6,fill:"rgba(34,197,94,0.08)",stroke:"rgba(34,197,94,0.3)","stroke-width":"1"}));
+  t=svgEl("text",{x:W/2,y:354,"text-anchor":"middle",fill:"#22c55e","font-family":"Inter,sans-serif","font-size":"8","font-weight":"700"});t.textContent="PostgreSQL 16 + pgvector  ·  MinIO (S3)  ·  Caddy (TLS)  ·  OpenAI API (gpt-4o-mini)  ·  Worker";svg.appendChild(t);
+  c.appendChild(svg)
+}
+function renderDepGraph(){
+  const c=document.getElementById("diagramDeps");if(c.childElementCount)return;
+  const W=960,H=340;const svg=svgEl("svg",{width:W,height:H,viewBox:`0 0 ${W} ${H}`});
+  const defs=svgEl("defs");const m=svgEl("marker",{id:"ahd",markerWidth:"7",markerHeight:"5",refX:"7",refY:"2.5",orient:"auto"});m.appendChild(svgEl("polygon",{points:"0 0,7 2.5,0 5",fill:"#64748b"}));defs.appendChild(m);svg.appendChild(defs);
+  [{label:"PRODUCT",y:14,color:"#5b7cff"},{label:"PLATFORM",y:144,color:"#2dd4bf"},{label:"VISION",y:274,color:"#a78bfa"}].forEach(r=>{const t=svgEl("text",{x:12,y:r.y,fill:r.color,"font-family":"Inter,sans-serif","font-size":"8","font-weight":"700","letter-spacing":"1"});t.textContent=r.label;svg.appendChild(t)});
+  svg.appendChild(svgEl("line",{x1:12,y1:120,x2:W-12,y2:120,stroke:"rgba(255,255,255,0.06)","stroke-width":"1","stroke-dasharray":"4,3"}));
+  svg.appendChild(svgEl("line",{x1:12,y1:250,x2:W-12,y2:250,stroke:"rgba(255,255,255,0.06)","stroke-width":"1","stroke-dasharray":"4,3"}));
+  const allN=[[{n:1,label:"UI/UX",x:50,y:50},{n:2,label:"Trust Ctr",x:140,y:50},{n:3,label:"Vendor",x:230,y:50},{n:4,label:"KB & AI",x:320,y:50},{n:5,label:"Integ.",x:410,y:50},{n:6,label:"Marketing",x:500,y:50},{n:7,label:"Pricing",x:590,y:50},{n:8,label:"DFY",x:680,y:50},{n:9,label:"Msg",x:770,y:50},{n:10,label:"GTM",x:860,y:50},{n:11,label:"Proof",x:860,y:100}],
+  [{n:12,label:"Foundation",x:50,y:180},{n:13,label:"Connectors",x:160,y:180},{n:14,label:"Monitor",x:270,y:180},{n:15,label:"Evidence",x:380,y:180},{n:16,label:"Quest.OS",x:490,y:180},{n:17,label:"TC+Memory",x:610,y:180},{n:18,label:"Metrics",x:730,y:180},{n:19,label:"Distrib.",x:730,y:230},{n:20,label:"Enterprise",x:860,y:180}],
+  [{n:21,label:"Deal Trust",x:100,y:300},{n:22,label:"Promise",x:250,y:300},{n:23,label:"Remediate",x:400,y:300},{n:24,label:"Proof Graph",x:570,y:300},{n:25,label:"Ecosystem",x:760,y:300}]];
+  allN.flat().forEach(n=>{const inc=INCREMENTS.find(i=>i.num===n.n);const done=inc?inc.tickets.filter(t=>checked[t.id]).length:0;const total=inc?inc.tickets.length:0;const pct=total?done/total:0;const color=inc?COLORS[inc.color]:"#64748b";const w=n.label.length*6.5+18,h=28;
+    svg.appendChild(svgEl("rect",{x:n.x-w/2,y:n.y-h/2,width:w,height:h,rx:8,fill:"rgba(17,28,48,0.92)",stroke:color,"stroke-width":"1.5"}));
+    if(pct>0)svg.appendChild(svgEl("rect",{x:n.x-w/2,y:n.y+h/2-4,width:w*pct,height:4,rx:2,fill:color,opacity:"0.7"}));
+    let t=svgEl("text",{x:n.x,y:n.y+1,"text-anchor":"middle",fill:color,"font-family":"Inter,sans-serif","font-size":"9","font-weight":"600"});t.textContent=n.label;svg.appendChild(t);
+    t=svgEl("text",{x:n.x,y:n.y+14,"text-anchor":"middle",fill:"#64748b","font-family":"Inter,sans-serif","font-size":"7.5"});t.textContent=`${done}/${total}`;svg.appendChild(t)});
+  const platN=allN[1];[[0,1],[1,2],[2,3],[3,4],[4,5],[5,6],[6,7]].forEach(([a,b])=>{const s=platN[a],e=platN[b];svg.appendChild(svgEl("line",{x1:s.x+30,y1:s.y,x2:e.x-30,y2:e.y,stroke:"#64748b","stroke-width":"1.2","marker-end":"url(#ahd)"}))});
+  c.appendChild(svg)
+}
+
+// ── CHARTS ──
+function drawAllCharts(){drawDonut();drawLayerSplit();drawBars();drawBurndown()}
+function drawDonut(){const cv=document.getElementById("chartDonut"),ctx=cv.getContext("2d");const total=INCREMENTS.reduce((s,i)=>s+i.tickets.length,0),done=Object.keys(checked).length,pct=total?done/total:0;const cx=130,cy=130,r=95,lw=22;ctx.clearRect(0,0,cv.width,cv.height);ctx.beginPath();ctx.arc(cx,cy,r,0,Math.PI*2);ctx.strokeStyle="rgba(255,255,255,0.04)";ctx.lineWidth=lw;ctx.stroke();if(pct>0){ctx.beginPath();ctx.arc(cx,cy,r,-Math.PI/2,-Math.PI/2+Math.PI*2*pct);ctx.strokeStyle="#22c55e";ctx.lineWidth=lw;ctx.lineCap="round";ctx.stroke()}ctx.fillStyle="#e8eefb";ctx.font="800 28px Inter";ctx.textAlign="center";ctx.textBaseline="middle";ctx.fillText(Math.round(pct*100)+"%",cx,cy-6);ctx.fillStyle="#64748b";ctx.font="500 11px Inter";ctx.fillText(done+" / "+total+" tickets",cx,cy+18)}
+function drawLayerSplit(){const cv=document.getElementById("chartLayerSplit"),ctx=cv.getContext("2d");ctx.clearRect(0,0,cv.width,cv.height);[{name:"Product",f:"product",color:"#5b7cff"},{name:"Platform",f:"platform",color:"#2dd4bf"},{name:"Vision",f:"vision",color:"#a78bfa"}].forEach((d,di)=>{const incs=INCREMENTS.filter(i=>i.layer===d.f);const total=incs.reduce((s,i)=>s+i.tickets.length,0),done=incs.reduce((s,i)=>s+i.tickets.filter(t=>checked[t.id]).length,0),pts=incs.reduce((s,i)=>s+i.tickets.reduce((a,t)=>a+t.est,0),0),pct=total?done/total:0;const cx=80+di*150,cy=110,r=55,lw=16;ctx.beginPath();ctx.arc(cx,cy,r,0,Math.PI*2);ctx.strokeStyle="rgba(255,255,255,0.04)";ctx.lineWidth=lw;ctx.stroke();if(pct>0){ctx.beginPath();ctx.arc(cx,cy,r,-Math.PI/2,-Math.PI/2+Math.PI*2*pct);ctx.strokeStyle=d.color;ctx.lineWidth=lw;ctx.lineCap="round";ctx.stroke()}ctx.fillStyle="#e8eefb";ctx.font="700 18px Inter";ctx.textAlign="center";ctx.textBaseline="middle";ctx.fillText(Math.round(pct*100)+"%",cx,cy-4);ctx.fillStyle="#94a3b8";ctx.font="500 8px Inter";ctx.fillText(done+"/"+total,cx,cy+12);ctx.fillStyle=d.color;ctx.font="600 10px Inter";ctx.fillText(d.name,cx,cy+r+22);ctx.fillStyle="#64748b";ctx.font="500 8px Inter";ctx.fillText(pts+" pts",cx,cy+r+34)})}
+function drawBars(){const cv=document.getElementById("chartBars"),ctx=cv.getContext("2d");ctx.clearRect(0,0,cv.width,cv.height);const pad=40,gap=4,baseY=cv.height-40,bw=Math.min(30,Math.floor((cv.width-pad*2-gap*(INCREMENTS.length-1))/INCREMENTS.length));INCREMENTS.forEach((inc,i)=>{const done=inc.tickets.filter(t=>checked[t.id]).length,total=inc.tickets.length,pct=total?done/total:0;const x=pad+i*(bw+gap),maxH=baseY-30;ctx.fillStyle="rgba(255,255,255,0.04)";ctx.beginPath();ctx.roundRect(x,baseY-maxH,bw,maxH,3);ctx.fill();if(pct>0){ctx.fillStyle=COLORS[inc.color]||"#5b7cff";ctx.globalAlpha=0.7;ctx.beginPath();ctx.roundRect(x,baseY-maxH*pct,bw,maxH*pct,3);ctx.fill();ctx.globalAlpha=1}ctx.fillStyle="#64748b";ctx.font="600 7px Inter";ctx.textAlign="center";ctx.fillText(inc.num,x+bw/2,baseY+12);ctx.fillStyle=COLORS[inc.color]||"#5b7cff";ctx.font="600 7px Inter";ctx.fillText(Math.round(pct*100)+"%",x+bw/2,baseY-maxH*pct-5)})}
+function drawBurndown(){const cv=document.getElementById("chartBurndown"),ctx=cv.getContext("2d");ctx.clearRect(0,0,cv.width,cv.height);const totalPts=INCREMENTS.reduce((s,i)=>s+i.tickets.reduce((a,t)=>a+t.est,0),0),donePts=INCREMENTS.reduce((s,i)=>s+i.tickets.filter(t=>checked[t.id]).reduce((a,t)=>a+t.est,0),0),remaining=totalPts-donePts,velocities=[10,20,30,50],maxWeeks=Math.ceil(totalPts/velocities[0])+2;const pad={l:50,r:20,t:20,b:30},gw=cv.width-pad.l-pad.r,gh=cv.height-pad.t-pad.b;ctx.strokeStyle="rgba(255,255,255,0.04)";ctx.lineWidth=1;for(let i=0;i<=5;i++){const y=pad.t+gh*i/5;ctx.beginPath();ctx.moveTo(pad.l,y);ctx.lineTo(pad.l+gw,y);ctx.stroke();ctx.fillStyle="#64748b";ctx.font="500 9px Inter";ctx.textAlign="right";ctx.fillText(Math.round(totalPts*(1-i/5)),pad.l-6,y+3)}for(let i=0;i<=maxWeeks;i+=10){const x=pad.l+gw*i/maxWeeks;ctx.beginPath();ctx.moveTo(x,pad.t);ctx.lineTo(x,pad.t+gh);ctx.stroke();ctx.fillStyle="#64748b";ctx.font="500 9px Inter";ctx.textAlign="center";ctx.fillText("W"+i,x,pad.t+gh+14)}const vColors=["#ef4444","#f59e0b","#22c55e","#5b7cff"];velocities.forEach((v,vi)=>{ctx.beginPath();ctx.strokeStyle=vColors[vi];ctx.lineWidth=2;ctx.setLineDash(vi>0?[4,3]:[]);const weeks=Math.ceil(remaining/v);ctx.moveTo(pad.l,pad.t+gh*(1-remaining/totalPts));for(let w=0;w<=weeks;w++){const rem=Math.max(0,remaining-v*w),x=pad.l+gw*w/maxWeeks,y=pad.t+gh*(1-rem/totalPts);ctx.lineTo(x,y)}ctx.stroke();ctx.setLineDash([]);const endX=pad.l+gw*weeks/maxWeeks;ctx.fillStyle=vColors[vi];ctx.font="600 9px Inter";ctx.textAlign="left";ctx.fillText(v+"pts/wk",Math.min(endX+4,cv.width-60),pad.t+gh-vi*14-4)});const curY=pad.t+gh*(1-remaining/totalPts);ctx.strokeStyle="#22c55e";ctx.lineWidth=1;ctx.setLineDash([3,3]);ctx.beginPath();ctx.moveTo(pad.l,curY);ctx.lineTo(pad.l+gw,curY);ctx.stroke();ctx.setLineDash([]);ctx.fillStyle="#22c55e";ctx.font="600 9px Inter";ctx.textAlign="left";ctx.fillText("now: "+remaining+"pts left",pad.l+4,curY-6)}
+
+// ── PERFORMANCE ──
+function renderPerformance(){const c=document.getElementById("perfContent");const totalTickets=INCREMENTS.reduce((s,i)=>s+i.tickets.length,0),totalPts=INCREMENTS.reduce((s,i)=>s+i.tickets.reduce((a,t)=>a+t.est,0),0),doneTickets=Object.keys(checked).length,donePts=INCREMENTS.reduce((s,i)=>s+i.tickets.filter(t=>checked[t.id]).reduce((a,t)=>a+t.est,0),0),pctDone=totalPts?(donePts/totalPts*100).toFixed(1):0;const layers=[{name:"Product",f:"product",c:"blue"},{name:"Platform",f:"platform",c:"teal"},{name:"Vision",f:"vision",c:"purple"}];const ld=layers.map(l=>{const incs=INCREMENTS.filter(i=>i.layer===l.f);return{...l,tickets:incs.reduce((s,i)=>s+i.tickets.length,0),done:incs.reduce((s,i)=>s+i.tickets.filter(t=>checked[t.id]).length,0),pts:incs.reduce((s,i)=>s+i.tickets.reduce((a,t)=>a+t.est,0),0)}});
+c.innerHTML=`<div class="perf-grid">
+<div class="perf-card blue"><div class="perf-label">Total Points</div><div class="perf-value" style="color:var(--primary)">${totalPts}</div><div class="perf-sub">${donePts} done (${pctDone}%)</div></div>
+<div class="perf-card green"><div class="perf-label">Tickets Done</div><div class="perf-value" style="color:var(--success)">${doneTickets}<span style="font-size:.8rem;color:var(--text-muted)">/${totalTickets}</span></div><div class="perf-sub">${totalTickets-doneTickets} remaining</div></div>
+${ld.map(l=>`<div class="perf-card ${l.c}"><div class="perf-label">${l.name}</div><div class="perf-value" style="color:var(--${l.c==='blue'?'primary':l.c})">${l.done}<span style="font-size:.8rem;color:var(--text-muted)">/${l.tickets}</span></div><div class="perf-sub">${l.pts} pts</div></div>`).join('')}
+</div><div class="chart-grid" style="margin-bottom:24px"><div class="chart-card full"><div class="chart-card-header"><h3>Increment Breakdown</h3><p>All 25 increments — tickets, points, priority, completion</p></div><div class="chart-card-body" style="display:block;padding:0"><table class="perf-table"><thead><tr><th>#</th><th>Layer</th><th>Increment</th><th>Tickets</th><th>Pts</th><th>Done</th><th>P0/P1</th><th>Progress</th></tr></thead><tbody>
+${INCREMENTS.map(inc=>{const t=inc.tickets.length,pts=inc.tickets.reduce((a,t2)=>a+t2.est,0),d=inc.tickets.filter(t2=>checked[t2.id]).length,p0=inc.tickets.filter(t2=>t2.p==="P0").length,pct=t?Math.round(d/t*100):0;const lb=inc.layer==='product'?'<span style="color:var(--primary)">PROD</span>':inc.layer==='platform'?'<span style="color:var(--teal)">PLAT</span>':'<span style="color:var(--violet)">VIS</span>';return`<tr><td style="color:${COLORS[inc.color]};font-weight:700">${inc.num}</td><td>${lb}</td><td style="color:var(--text)">${inc.title}</td><td>${d}/${t}</td><td>${pts}</td><td>${pct}%</td><td style="color:var(--danger)">${p0}<span style="color:var(--text-muted)">/${t-p0}</span></td><td><div class="perf-bar"><div class="perf-bar-fill" style="width:${pct}%;background:${COLORS[inc.color]}"></div></div></td></tr>`}).join('')}
+</tbody></table></div></div></div><div class="chart-grid"><div class="chart-card"><div class="chart-card-header"><h3>Tech Stack</h3><p>Production technologies</p></div><div class="chart-card-body" style="display:block;padding:0"><table class="perf-table"><thead><tr><th>Technology</th><th>Layer</th><th>Role</th></tr></thead><tbody>
+<tr><td style="color:var(--teal)">Next.js</td><td>FE</td><td>App Router</td></tr><tr><td style="color:var(--teal)">Tailwind CSS</td><td>FE</td><td>Styling</td></tr><tr><td style="color:var(--teal)">FastAPI</td><td>BE</td><td>REST API</td></tr><tr><td style="color:var(--teal)">SQLAlchemy</td><td>BE</td><td>ORM</td></tr><tr><td style="color:var(--teal)">PostgreSQL 16</td><td>BE</td><td>Database</td></tr><tr><td style="color:var(--teal)">pgvector</td><td>BE</td><td>Semantic search</td></tr><tr><td style="color:var(--teal)">MinIO</td><td>BE</td><td>Object storage</td></tr><tr><td style="color:var(--teal)">OpenAI</td><td>BE</td><td>LLM (gpt-4o-mini)</td></tr><tr><td style="color:var(--teal)">Caddy</td><td>Infra</td><td>TLS proxy</td></tr><tr><td style="color:var(--teal)">Stripe</td><td>BE</td><td>Billing</td></tr>
+</tbody></table></div></div><div class="chart-card"><div class="chart-card-header"><h3>Platform Status</h3><p>DONE / PARTIAL / NOT DONE</p></div><div class="chart-card-body" style="display:block;padding:0"><table class="perf-table"><thead><tr><th>Category</th><th>Done</th><th>Partial</th><th>Not Done</th></tr></thead><tbody>
+<tr><td style="color:var(--primary)">Product (A-P)</td><td style="color:var(--success)">0</td><td style="color:var(--warning)">0</td><td>80</td></tr><tr><td style="color:var(--teal)">Platform (P0-P2)</td><td style="color:var(--success)">23</td><td style="color:var(--warning)">20</td><td>64</td></tr><tr><td style="color:var(--violet)">Vision (E1-E10)</td><td style="color:var(--success)">0</td><td style="color:var(--warning)">0</td><td>55</td></tr><tr style="font-weight:700"><td style="color:var(--text)">Total</td><td style="color:var(--success)">23</td><td style="color:var(--warning)">20</td><td>199</td></tr>
+</tbody></table></div></div></div>`}
+
+const IMPLEMENTED=["P0-01","P0-02","P0-03","P0-04","P0-06","P0-07","P0-09","P1-42","P1-44","P1-49","P1-50","P1-53","P1-54","P1-55","P1-56","P1-58","P1-63","P1-68","P2-96","P2-98"];
+loadState();IMPLEMENTED.forEach(id=>{checked[id]=true});saveState();render();
+</script>
+</body>
+</html>

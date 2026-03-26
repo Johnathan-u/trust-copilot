@@ -343,8 +343,8 @@ Log every connector sync, answer generation, evidence approval, export, trust-ce
 ### P0-08: Implement secrets and credential management — PARTIAL
 Store OAuth tokens, service credentials, role configuration, and connector metadata in a hardened secrets layer. You need rotation hooks and environment separation now, not after you already have customers depending on live connectors. Currently environment-based via config.py. MFA secrets are encrypted, API keys hashed, Stripe webhook signatures verified. Missing: no Vault/Secrets Manager integration, no rotation hooks, no environment separation beyond .env files.
 
-### P0-09: Add feature flags by workspace — NOT DONE
-Create flags for connectors, monitoring, trust-center automation, memory features, and beta UX. This lets you ship aggressively to design partners without breaking the broader product. Currently behavior is controlled by global environment variables (CONTROL_CATALOG, MAPPING_MODE, etc.), not per-workspace feature flags.
+### P0-09: Add feature flags by workspace — DONE
+Create flags for connectors, monitoring, trust-center automation, memory features, and beta UX. This lets you ship aggressively to design partners without breaking the broader product. FeatureFlag model with workspace_id + flag_name unique constraint. Service layer with three-tier resolution (env-var override > DB row > built-in default). 19 known flags across connectors (Slack, Gmail, AWS, GitHub, GCP, Azure), monitoring, Trust Center, answers, credits, exports, and beta features. Admin-only API at /api/feature-flags with list, get, set, and seed endpoints. 17 tests covering service + API layers.
 
 ### P0-10: Build the credits and usage ledger — PARTIAL
 Track questionnaire credits, overages, manual-service usage, and workspace-level consumption in a dedicated ledger. The recommended packaging depends on metered work, so the product needs billing logic that matches the sales story. WorkspaceQuota, WorkspaceUsage, and WorkspaceAIUsage track hourly/monthly usage and rate limits. Missing: no credit currency model, no credit purchase flow, no overage billing, no credit reset on billing cycle.
@@ -682,9 +682,9 @@ Support one early HR source to link employees, joiners, leavers, and access life
 
 | Status | Count |
 |--------|-------|
-| **DONE** | 22 |
+| **DONE** | 23 |
 | **PARTIAL** | 20 |
-| **NOT DONE** | 65 |
+| **NOT DONE** | 64 |
 
 > The story is not "tool versus platform." The real story is that a great platform is just a great wedge that survived long enough to grow roots.
 

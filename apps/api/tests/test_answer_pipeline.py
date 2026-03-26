@@ -80,10 +80,7 @@ def test_retrieval_cache_and_corpus_version(db_session: Session):
     db = db_session
     workspace_id = 1
     q_hash = question_cache_hash("retrieval test")
-    try:
-        version = get_corpus_version(db, workspace_id)
-    except Exception:
-        pytest.skip("workspace_corpus_versions table may not exist")
+    version = get_corpus_version(db, workspace_id)
     retrieval_cache_set(db, workspace_id, q_hash, version, [{"id": 1, "text": "chunk", "score": 0.9}])
     out = retrieval_cache_get(db, workspace_id, q_hash)
     assert out is not None
@@ -109,7 +106,13 @@ def test_partial_completion_progress(db_session: Session):
         pytest.skip("no workspace")
     qnr = db.query(Questionnaire).filter(Questionnaire.workspace_id == ws.id).first()
     if not qnr:
-        pytest.skip("no questionnaire")
+        qnr = Questionnaire(workspace_id=ws.id, filename="test_pipeline.xlsx", status="parsed")
+        db.add(qnr)
+        db.flush()
+        db.add(Question(questionnaire_id=qnr.id, text="How do you handle access control?"))
+        db.add(Question(questionnaire_id=qnr.id, text="Describe your backup procedures."))
+        db.commit()
+        db.refresh(qnr)
     job = Job(
         workspace_id=ws.id,
         kind="generate_answers",
@@ -120,11 +123,16 @@ def test_partial_completion_progress(db_session: Session):
     db.commit()
     db.refresh(job)
     try:
-        with patch("app.services.answer_generation.embed_texts", return_value=[[0.0] * 1536] * 10):
-            with patch("app.services.answer_generation.get_corpus_version", return_value="v1"):
-                count = generate_answers_for_questionnaire(
-                    db, qnr.id, ws.id, job=job
-                )
+        mock_chat = MagicMock()
+        mock_chat.completions.create.return_value = MagicMock(
+            choices=[MagicMock(message=MagicMock(content="Test answer based on evidence."))]
+        )
+        with patch("app.services.answer_generation.embed_texts", return_value=[[0.0] * 1536] * 10), \
+             patch("app.services.answer_generation.get_corpus_version", return_value="v1"), \
+             patch("openai.OpenAI", return_value=mock_chat):
+            count = generate_answers_for_questionnaire(
+                db, qnr.id, ws.id, job=job
+            )
         if job.result:
             data = json.loads(job.result)
             assert "generated" in data or "count" in data

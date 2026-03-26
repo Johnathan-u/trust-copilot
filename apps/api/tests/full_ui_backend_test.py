@@ -31,6 +31,9 @@ Coverage:
     - 5 deleted frontend pages (confirm no page.tsx)
     Total: ~64 checks
 """
+"""Not a pytest suite — run as: python tests/full_ui_backend_test.py"""
+__test__ = False
+
 import json
 import time
 import sys

@@ -63,8 +63,8 @@ def test_should_skip_llm_noise_floor(monkeypatch):
     from app.services import answer_evidence_policy as aep
 
     monkeypatch.setattr(aep, "only_low_tier_evidence", lambda db, ev, **kw: False)
-    monkeypatch.setattr(aep, "evidence_top_score", lambda ev: 0.20)
-    skip, reason = aep.should_skip_llm(MagicMock(), [{"score": 0.2}], True)
+    monkeypatch.setattr(aep, "evidence_top_score", lambda ev: 0.10)
+    skip, reason = aep.should_skip_llm(MagicMock(), [{"score": 0.1}], True)
     assert skip and reason == "retrieval_noise_floor"
 
 
@@ -72,8 +72,8 @@ def test_should_skip_llm_weak_despite_control_mapping(monkeypatch):
     from app.services import answer_evidence_policy as aep
 
     monkeypatch.setattr(aep, "only_low_tier_evidence", lambda db, ev, **kw: False)
-    monkeypatch.setattr(aep, "evidence_top_score", lambda ev: 0.28)
-    skip, reason = aep.should_skip_llm(MagicMock(), [{"score": 0.28}], True)
+    monkeypatch.setattr(aep, "evidence_top_score", lambda ev: 0.22)
+    skip, reason = aep.should_skip_llm(MagicMock(), [{"score": 0.22}], True)
     assert skip and reason == "weak_control_path"
 
 

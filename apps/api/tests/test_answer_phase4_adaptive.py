@@ -18,13 +18,13 @@ FAKE_EVIDENCE = [{"id": 1, "text": "Evidence.", "metadata": {}, "score": 0.8}]
 
 
 def test_step_down_on_429():
-    """On 429, concurrency steps down (min 2)."""
+    """On 429, concurrency steps down to min."""
     pool = AdaptivePool(initial=ADAPTIVE_INITIAL)
     assert pool.max_workers == ADAPTIVE_INITIAL
     pool.release(success=False, was_rate_limited=True, was_timeout=False, was_transient=False)
     assert pool.max_workers == ADAPTIVE_INITIAL - 1
-    pool.release(success=False, was_rate_limited=True, was_timeout=False, was_transient=False)
-    pool.release(success=False, was_rate_limited=True, was_timeout=False, was_transient=False)
+    for _ in range(ADAPTIVE_INITIAL - ADAPTIVE_MIN_WORKERS - 1):
+        pool.release(success=False, was_rate_limited=True, was_timeout=False, was_transient=False)
     assert pool.max_workers == ADAPTIVE_MIN_WORKERS
 
 

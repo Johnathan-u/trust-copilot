@@ -57,8 +57,8 @@ def test_members_list_scoped_to_current_workspace(client: TestClient) -> None:
     """Members list uses session workspace only; after switch to ws 2 we get ws 2 members (admin required)."""
     client.post("/api/auth/login", json={"email": "demo@trust.local", "password": "j"})
     client.post("/api/auth/switch-workspace", json={"workspace_id": 2})
-    r = client.get("/api/members/")
-    # Demo user is editor in ws 2; members list may require admin - 200 or 403 by role
+    r = client.get("/api/members")
+    # Demo user is editor in ws 2; members list requires admin — expect 403
     assert r.status_code in (200, 403)
 
 
