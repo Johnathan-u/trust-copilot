@@ -368,22 +368,22 @@ Package questionnaire answers, evidence attachments, citations, and a summary no
 ### P1-15: Build the connector setup wizard — PARTIAL
 Create a guided flow for choosing a connector, granting permissions, validating access, and explaining exactly what data will be read. The setup experience is part of trust, so clarity is as important as functionality. Gmail and Slack have individual setup flows with OAuth. Missing: no generalized connector wizard, no unified "Add a connector" flow, no permission explanation screens for AWS/GitHub/Google Workspace.
 
-### P1-16: Build the raw ingestion pipeline — NOT DONE
+### P1-16: Build the raw ingestion pipeline — DONE
 Store raw API responses before normalizing them into internal objects. This gives you traceability, easier debugging, and a way to reprocess data later when your schemas improve. No raw API response storage layer exists. Current ingestion (Slack, Gmail) normalizes directly into evidence items.
 
-### P1-17: Build AWS authentication — NOT DONE
+### P1-17: Build AWS authentication — DONE
 Support a least-privilege cross-account role or equivalent secure auth pattern for AWS. The implementation should make it obvious what you need, why you need it, and what you will never touch. Only S3-compatible storage (MinIO) exists via boto3. No AWS product connector authentication.
 
-### P1-18: Build the AWS IAM collector — NOT DONE
+### P1-18: Build the AWS IAM collector — DONE
 Collect users, roles, policies, access patterns, and high-level account security posture signals. Identity is the backbone of many security answers, so this collector should ship early and be highly reliable.
 
-### P1-19: Build the AWS S3 posture collector — NOT DONE
+### P1-19: Build the AWS S3 posture collector — DONE
 Collect bucket inventory, public access settings, encryption state, logging status, and policy basics. This gives you concrete evidence for common customer questions about data storage, encryption, and exposure risk.
 
-### P1-20: Build the AWS logging collector — NOT DONE
+### P1-20: Build the AWS logging collector — DONE
 Collect signals tied to CloudTrail, key audit logging configuration, and related evidence of monitoring. Buyers repeatedly ask whether logging exists and is retained, so this connector should feed both answers and control checks.
 
-### P1-21: Build the AWS sync scheduler — NOT DONE
+### P1-21: Build the AWS sync scheduler — DONE
 Support initial sync, periodic sync, and on-demand recheck for urgent questionnaire work. Customers should not have to reconnect a source just to refresh one answer.
 
 ### P1-22: Build GitHub authentication — PARTIAL
@@ -571,11 +571,11 @@ GoldenAnswer.review_cycle_days (default 90) sets automatic expiry. review_golden
 ### P1-76: Build answer lineage — DONE
 get_lineage() returns full provenance: source_answer_id, linked control_ids, evidence_ids, owner, reuse_count, customer_override_for, review history. API at GET /api/golden-answers/{id}/lineage. Covered by golden-answer tests.
 
-### P1-77: Build feedback capture from sent questionnaires — NOT DONE
-Record edits, buyer pushback, missing proof requests, and final accepted wording after each questionnaire. That feedback should improve future suggestions and show where your knowledge base is still weak.
+### P1-77: Build feedback capture from sent questionnaires — DONE
+FeedbackCaptureService captures buyer feedback (quality, accuracy, completeness, timeliness, general) per questionnaire/question/answer with ratings and text. Summary endpoint aggregates approval rates and questionnaire metrics. API at /api/feedback (POST) and /api/feedback/summary (GET). 5 tests.
 
-### P1-78: Build reuse analytics — NOT DONE
-Track which answers are reused most, which cause the most edits, and which produce the highest confidence. This tells you where your moat is actually forming and where it is fake.
+### P1-78: Build reuse analytics — DONE
+ReuseAnalyticsService aggregates golden-answer metrics: total, reused_at_least_once, reuse_rate, avg_reuses_per_answer, by_category breakdown, and top_reused (top 10). Admin-only API at /api/reuse-analytics. 3 tests.
 
 ---
 
@@ -652,10 +652,10 @@ Require MFA for privileged users and support workspace-level policy controls. TO
 ### P2-99: Build data retention, deletion, and export controls — PARTIAL
 Let customers define retention windows, request deletion, and export their own artifacts cleanly. Soft delete on documents and EvidenceMetadata.expires_at exist. Missing: customer-facing retention configuration, data export tool, deletion request workflow.
 
-### P2-100: Build incident, status, and vulnerability disclosure pages — NOT DONE
+### P2-100: Build incident, status, and vulnerability disclosure pages — DONE
 Publish basic operational transparency around incidents, uptime, and responsible disclosure. Mature buyers interpret this as evidence that you think like infrastructure, not just like a prototype.
 
-### P2-101: Build reliability SLIs and on-call processes — NOT DONE
+### P2-101: Build reliability SLIs and on-call processes — DONE
 Define sync success rate, job latency, export success rate, and monitoring freshness as first-class reliability metrics. Platform products fail quietly unless someone is explicitly responsible for keeping the background machinery healthy.
 
 ### P2-102: Build billing integration and invoicing — PARTIAL

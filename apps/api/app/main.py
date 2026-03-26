@@ -97,6 +97,12 @@ from app.api.routes import shareable_spaces as shareable_spaces_router
 from app.api.routes import trust_center_analytics as trust_center_analytics_router
 from app.api.routes import answer_tiers as answer_tiers_router
 from app.api.routes import golden_answers as golden_answers_router
+from app.api.routes import feedback_capture as feedback_capture_router
+from app.api.routes import reuse_analytics as reuse_analytics_router
+from app.api.routes import incident_pages as incident_pages_router
+from app.api.routes import sli as sli_router
+from app.api.routes import ingestion as ingestion_router
+from app.api.routes import aws_connector as aws_connector_router
 from app.services.storage import StorageClient
 
 
@@ -371,6 +377,12 @@ app.include_router(shareable_spaces_router.router, prefix="/api")
 app.include_router(trust_center_analytics_router.router, prefix="/api")
 app.include_router(answer_tiers_router.router, prefix="/api")
 app.include_router(golden_answers_router.router, prefix="/api")
+app.include_router(feedback_capture_router.router, prefix="/api")
+app.include_router(reuse_analytics_router.router, prefix="/api")
+app.include_router(incident_pages_router.router, prefix="/api")
+app.include_router(sli_router.router, prefix="/api")
+app.include_router(ingestion_router.router, prefix="/api")
+app.include_router(aws_connector_router.router, prefix="/api")
 
 
 @app.get("/metrics")
