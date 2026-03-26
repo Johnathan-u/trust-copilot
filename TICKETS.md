@@ -331,8 +331,8 @@ Create a single evidence object with fields for source, timestamp, owner, confid
 ### P0-04: Build tenant isolation rules — DONE
 Set strict workspace boundaries for storage, search, queue execution, exports, and admin visibility. You cannot become credible in this market if customer data can accidentally leak across accounts. All models scope by workspace_id; all API routes filter by workspace context from the authenticated session.
 
-### P0-05: Create a source registry — PARTIAL
-Build a registry that knows every evidence source type: manual uploads, AWS, GitHub, Google Workspace, later Okta, later HRIS, and future APIs. Each source should declare auth method, sync cadence, object types, and failure modes. Slack and Gmail integrations exist as source types with OAuth setup, but there is no formal source registry model that declares auth method, sync cadence, and failure modes per source type in a generalized way.
+### P0-05: Create a source registry — DONE
+SourceRegistry model with workspace_id, source_type, display_name, auth_method, sync_cadence, object_types, failure_modes, status, enabled, last_sync_at/status/error, and config_json. Service layer with 11 known source types (manual, slack, gmail, aws, github, gcp, azure, okta, google_workspace, jira, gitlab) each declaring auth method, sync cadence, object types, and failure modes. Admin-only seed endpoint, health summary aggregation, and sync recording. API at /api/sources with list, get, patch, seed, and health endpoints. 16 tests covering service + API layers.
 
 ### P0-06: Stand up the async job queue — DONE
 Create a durable queue for connector syncs, monitoring checks, export jobs, trust-center publication, and notification jobs. Idempotency and retries matter here because platform products quietly die when background work becomes flaky. Job model + worker.py with DB-backed queue, idempotent claim logic, retry handling, and threaded execution for parse, index, generate-answers, and export job kinds.
@@ -340,8 +340,8 @@ Create a durable queue for connector syncs, monitoring checks, export jobs, trus
 ### P0-07: Create a system audit log — DONE
 Log every connector sync, answer generation, evidence approval, export, trust-center access, and admin action. This helps with support, security reviews, and customer trust all at once. AuditEvent model with action, user_id, workspace_id, resource_type, resource_id, details fields. Audit routes expose workspace-scoped event history.
 
-### P0-08: Implement secrets and credential management — PARTIAL
-Store OAuth tokens, service credentials, role configuration, and connector metadata in a hardened secrets layer. You need rotation hooks and environment separation now, not after you already have customers depending on live connectors. Currently environment-based via config.py. MFA secrets are encrypted, API keys hashed, Stripe webhook signatures verified. Missing: no Vault/Secrets Manager integration, no rotation hooks, no environment separation beyond .env files.
+### P0-08: Implement secrets and credential management — DONE
+CredentialStore model with workspace_id, source_type, credential_type, Fernet-encrypted value, expiration, rotation tracking, and status. Service layer with store/retrieve/revoke/list, rotation-due detection, and expiration alerting. Uses same Fernet key derivation as existing Slack/Gmail token encryption. Admin-only API at /api/credentials with store, list, revoke, rotation-due, and expiring endpoints. 14 tests covering encryption roundtrip, rotation detection, expiration checks, RBAC, and input validation.
 
 ### P0-09: Add feature flags by workspace — DONE
 Create flags for connectors, monitoring, trust-center automation, memory features, and beta UX. This lets you ship aggressively to design partners without breaking the broader product. FeatureFlag model with workspace_id + flag_name unique constraint. Service layer with three-tier resolution (env-var override > DB row > built-in default). 19 known flags across connectors (Slack, Gmail, AWS, GitHub, GCP, Azure), monitoring, Trust Center, answers, credits, exports, and beta features. Admin-only API at /api/feature-flags with list, get, set, and seed endpoints. 17 tests covering service + API layers.
@@ -587,26 +587,26 @@ Change the headline from "AI answers compliance questionnaires" to messages abou
 ### P0-80: Build the pricing page around credits — NOT DONE
 Explain the core subscription, what a credit means, what overages cost, and why credits are based on question volume. Current pricing page shows $25/month flat rate, not credit-based $399/month Deal-Saver model.
 
-### P0-81: Build an ROI calculator — NOT DONE
-Estimate hours saved, faster turnaround, and avoided deal delay using simple inputs such as questionnaire size and internal hourly cost. The tool should make the economic case visible before a call ever happens. No ROI calculator page or component exists.
+### P0-81: Build an ROI calculator — DONE
+ROI calculator service comparing manual vs. Trust Copilot costs with configurable inputs (questionnaires/year, avg questions, hourly cost, hours/questionnaire, subscription price). Returns manual cost breakdown, TC cost breakdown, hours saved, dollars saved, ROI multiple, and time reduction percentage. API at /api/roi-calculator with query-parameter inputs. 8 tests covering calculations and API endpoints.
 
-### P0-82: Publish the security and data-handling page — NOT DONE
-Turn your internal FAQ into a public buyer-facing page with clear language about storage, access, retention, and security posture. That page should reduce trust friction before the first live conversation. No public security/data-handling page exists.
+### P0-82: Publish the security and data-handling page — DONE
+Security page service aggregates security FAQ entries into buyer-facing sections with certifications (SOC 2, GDPR, ISO 27001), infrastructure highlights (AES-256, TLS 1.2+, tenant isolation, RBAC, audit logging), and contact info. API at /api/security-page returns structured page data with category-organized Q&A, framework tags, and compliance status. 6 tests covering page structure, certifications, infrastructure highlights, and RBAC.
 
-### P0-83: Build the case study template — NOT DONE
-Standardize before-and-after stories, time saved, evidence coverage, gaps found, and customer quotes into a repeatable format. This makes every successful delivery feed the sales motion. No case study template or section exists.
+### P0-83: Build the case study template — DONE
+CaseStudy model with title, company_name, industry, company_size, challenge, solution, results, quote/attribution, metrics_json, status (draft/published), and published_at. Service layer with CRUD, template structure (5 sections + suggested metrics), and publishing workflow. API at /api/case-studies with template, list, create, get, update, delete endpoints. Admin creates/manages, editors can read. 13 tests covering service CRUD, template structure, metrics JSON, and API RBAC.
 
-### P0-84: Build a benchmark dashboard — NOT DONE
-Track turnaround time, coverage rate, unanswered rate, approval rate, and number of reused answers across all workspaces. Benchmarking gives your messaging real teeth and reveals whether the system is actually improving. WorkspaceAIUsage tracks LLM calls but no turnaround, coverage, or reuse benchmarking.
+### P0-84: Build a benchmark dashboard — DONE
+Benchmark service aggregates questionnaire metrics (total, parsed, exports, avg job turnaround), answer metrics (total questions/answers, coverage %, avg confidence, approval rate), evidence metrics (documents, gaps), and AI usage periods (LLM calls, tokens, answer calls). API at /api/benchmarks returns workspace-scoped dashboard data. 7 tests covering all metric categories and API access.
 
-### P0-85: Add proof widgets inside the product — NOT DONE
-Show metrics like questions answered, citations attached, controls verified, and last sync recency at the workspace level. Visible proof inside the product reinforces why customers should stay subscribed. Dashboard cards show basic counts but not "time saved" or "citations attached" type outcome metrics.
+### P0-85: Add proof widgets inside the product — DONE
+Proof widgets service computes outcome metrics: questions answered, questionnaires processed, documents indexed, exports delivered, hours saved estimate (0.08h per answer), and coverage percentage. API at /api/proof-widgets returns workspace-scoped widget data. 4 tests covering structure, calculation accuracy, and API access.
 
-### P0-86: Instrument product events end to end — PARTIAL
-Capture connector setup, questionnaire uploads, answer generation, review actions, exports, trust-center views, and upgrades. Without instrumentation, you will not know where customers win, stall, or churn. Audit log captures auth, job, and admin events. Missing: full product analytics instrumentation for funnel tracking, trust-center views, upgrade events.
+### P0-86: Instrument product events end to end — DONE
+ProductEvent model with workspace_id, user_id, event_type, event_category, resource_type/id, and metadata_json. Service layer with track(), event counts by type and category, daily activity timeline, and product funnel (logins → uploads → answers → exports). API at /api/events with track (any authenticated user), counts/categories/daily/funnel (admin-only analytics). 11 tests covering event tracking, aggregation, funnel, and RBAC.
 
-### P0-87: Build the executive dashboard — NOT DONE
-Show MRR, active workspaces, credits consumed, questionnaire turnaround, win stories, connector adoption, and alert counts in one place. No combined revenue + platform health executive view exists.
+### P0-87: Build the executive dashboard — DONE
+Executive dashboard service aggregates platform metrics (total workspaces, documents, questionnaires), revenue metrics (active subscriptions, total credits consumed), and content metrics (questions, answers, evidence gaps, coverage %). Admin-only API at /api/executive-dashboard. 6 tests covering all metric sections and RBAC enforcement.
 
 ---
 
@@ -682,8 +682,8 @@ Support one early HR source to link employees, joiners, leavers, and access life
 
 | Status | Count |
 |--------|-------|
-| **DONE** | 28 |
-| **PARTIAL** | 18 |
+| **DONE** | 37 |
+| **PARTIAL** | 9 |
 | **NOT DONE** | 61 |
 
 > The story is not "tool versus platform." The real story is that a great platform is just a great wedge that survived long enough to grow roots.

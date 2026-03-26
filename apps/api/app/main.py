@@ -71,6 +71,15 @@ from app.api.routes import operator_queue as operator_queue_router
 from app.api.routes import security_faq as security_faq_router
 from app.api.routes import demo_proof as demo_proof_router
 from app.api.routes import export_pack as export_pack_router
+from app.api.routes import source_registry as source_registry_router
+from app.api.routes import credentials as credentials_router
+from app.api.routes import security_page as security_page_router
+from app.api.routes import benchmarks as benchmarks_router
+from app.api.routes import proof_widgets as proof_widgets_router
+from app.api.routes import product_events as product_events_router
+from app.api.routes import executive_dashboard as executive_dashboard_router
+from app.api.routes import roi_calculator as roi_calculator_router
+from app.api.routes import case_studies as case_studies_router
 from app.services.storage import StorageClient
 
 
@@ -319,6 +328,15 @@ app.include_router(operator_queue_router.router, prefix="/api")
 app.include_router(security_faq_router.router, prefix="/api")
 app.include_router(demo_proof_router.router, prefix="/api")
 app.include_router(export_pack_router.router, prefix="/api")
+app.include_router(source_registry_router.router, prefix="/api")
+app.include_router(credentials_router.router, prefix="/api")
+app.include_router(security_page_router.router, prefix="/api")
+app.include_router(benchmarks_router.router, prefix="/api")
+app.include_router(proof_widgets_router.router, prefix="/api")
+app.include_router(product_events_router.router, prefix="/api")
+app.include_router(executive_dashboard_router.router, prefix="/api")
+app.include_router(roi_calculator_router.router, prefix="/api")
+app.include_router(case_studies_router.router, prefix="/api")
 
 
 @app.get("/metrics")

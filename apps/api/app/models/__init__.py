@@ -59,6 +59,10 @@ from app.models.feature_flag import FeatureFlag
 from app.models.credit_ledger import CreditLedger, CreditTransaction
 from app.models.operator_queue import OperatorQueueItem, OPERATOR_ITEM_STATUSES, OPERATOR_ITEM_PRIORITIES
 from app.models.security_faq import SecurityFAQ
+from app.models.source_registry import SourceRegistry
+from app.models.credential_store import CredentialStore
+from app.models.product_event import ProductEvent
+from app.models.case_study import CaseStudy
 
 __all__ = [
     "ApiKey",
@@ -141,4 +145,8 @@ __all__ = [
     "OPERATOR_ITEM_STATUSES",
     "OPERATOR_ITEM_PRIORITIES",
     "SecurityFAQ",
+    "SourceRegistry",
+    "CredentialStore",
+    "ProductEvent",
+    "CaseStudy",
 ]
