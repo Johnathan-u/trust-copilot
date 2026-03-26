@@ -365,8 +365,8 @@ Package questionnaire answers, evidence attachments, citations, and a summary no
 
 ## Phase 1 — First-wave connectors: AWS, GitHub, Google Workspace
 
-### P1-15: Build the connector setup wizard — PARTIAL
-Create a guided flow for choosing a connector, granting permissions, validating access, and explaining exactly what data will be read. The setup experience is part of trust, so clarity is as important as functionality. Gmail and Slack have individual setup flows with OAuth. Missing: no generalized connector wizard, no unified "Add a connector" flow, no permission explanation screens for AWS/GitHub/Google Workspace.
+### P1-15: Build the connector setup wizard — DONE
+Generalized connector setup wizard with unified "Add a connector" flow. ConnectorWizardService provides catalog of 8 connector types (AWS, GitHub, Google Workspace, Okta, Azure, GitLab, Slack, Gmail) with permission explanations, data collected/not-collected transparency, and multi-step setup (start, validate, disable). API at /api/connector-wizard with admin-only setup and public catalog. 13 tests.
 
 ### P1-16: Build the raw ingestion pipeline — DONE
 Store raw API responses before normalizing them into internal objects. This gives you traceability, easier debugging, and a way to reprocess data later when your schemas improve. No raw API response storage layer exists. Current ingestion (Slack, Gmail) normalizes directly into evidence items.
@@ -389,25 +389,25 @@ Support initial sync, periodic sync, and on-demand recheck for urgent questionna
 ### P1-22: Build GitHub authentication — PARTIAL
 Support OAuth or app-based installation with clearly scoped permissions and installation feedback. The UI should explain exactly which repo and org data is read and what is ignored. GitHub OAuth exists for login only. Missing: GitHub App installation with repo/org scope for evidence collection.
 
-### P1-23: Build the GitHub repo collector — NOT DONE
+### P1-23: Build the GitHub repo collector — DONE
 Collect repository inventory, visibility, ownership, and basic settings. This supports frequent diligence questions around code hosting, repo privacy, and engineering hygiene.
 
-### P1-24: Build the GitHub access collector — NOT DONE
+### P1-24: Build the GitHub access collector — DONE
 Collect collaborators, teams, admin rights, and user-to-repo access relationships. Access control is one of the most repeated due-diligence themes, so this data must normalize cleanly into the evidence model.
 
-### P1-25: Build the GitHub protection collector — NOT DONE
+### P1-25: Build the GitHub protection collector — DONE
 Collect branch protection, merge rules, and any security-related repo setting you can reliably support early. This moves the product from generic answering toward evidence-backed statements about real engineering controls.
 
 ### P1-26: Build Google Workspace authentication — PARTIAL
 Support admin-consented connection with clear scope disclosure and a straightforward rollback path. Admin-facing trust is critical here because Google Workspace feels especially sensitive to smaller companies. Gmail OAuth exists. Missing: full Google Workspace admin-consented directory/admin SDK connection.
 
-### P1-27: Build the Google Workspace user collector — NOT DONE
+### P1-27: Build the Google Workspace user collector — DONE
 Collect user inventory, status, and basic organizational membership data. This powers answers around employee access, provisioning, offboarding, and account accountability.
 
-### P1-28: Build the Google Workspace MFA collector — NOT DONE
+### P1-28: Build the Google Workspace MFA collector — DONE
 Collect 2-step verification or MFA posture signals at the org and user level where possible. MFA is one of the highest-frequency questions in security reviews, so this connector delivers outsized value fast.
 
-### P1-29: Build the Google Workspace admin-role collector — NOT DONE
+### P1-29: Build the Google Workspace admin-role collector — DONE
 Collect super admin roles, privileged user groups, and key admin posture data. This gives you evidence for privileged-access questions that otherwise require manual screenshots or explanation.
 
 ### P1-30: Build connector health visibility — DONE
@@ -435,8 +435,8 @@ Integrated into control engine: evaluates evidence count + freshness to produce 
 ### P1-36: Build drift detection — DONE
 Automatic drift detection during control evaluation: compares current status against previous snapshot. Drift report API lists all recent status transitions. Integrated into evaluate_control and evaluate_all flows.
 
-### P1-37: Build an alerting engine — PARTIAL
-Support workspace-level alerts for failures, drift, stale evidence, and connector outages. Start with in-app alerts and simple email notification before you build anything more elaborate. Compliance alerts with threshold-based triggers and ComplianceWebhookOutbox exist. Missing: drift alerts, connector failure alerts, stale evidence alerts, email notification delivery.
+### P1-37: Build an alerting engine — DONE
+Full alerting engine with drift detection (ControlStateSnapshot vs current WorkspaceControl status), connector failure/staleness alerts (SourceRegistry sync status), and stale evidence alerts (EvidenceMetadata freshness). Email digest generation. API at /api/alerting-engine with drift, connector, stale-evidence, all, and email-digest endpoints. 11 tests.
 
 ### P1-38: Build acknowledgement and snooze flows — DONE
 AlertManagementService supports acknowledge, snooze (with configurable hours and snoozed_until), and override actions on alerts. AlertAcknowledgment model persists actions with workspace/control context. is_snoozed() check for active snoozes. API at /api/alerts with listing and /api/alerts/acknowledge (admin-only). Invalid actions return 400. 10 tests.
@@ -457,8 +457,8 @@ EvidenceCardsService generates per-control evidence cards with freshness assessm
 ### P1-42: Add "last verified" timestamps — DONE
 Show when each piece of evidence was last refreshed or manually confirmed. This simple field changes the tone from "we think" to "we checked." EvidenceMetadata.last_verified_at exists.
 
-### P1-43: Build evidence freshness policies — PARTIAL
-Define how long each source remains trusted before being marked stale. Static PDFs and live API signals should not be treated the same way. EvidenceMetadata.expires_at and workspace-level evidence_staleness_days exist. Missing: per-source-type differentiated freshness policies.
+### P1-43: Build evidence freshness policies — DONE
+Per-source-type freshness policies with defaults (integration=7d, document=180d, etc.). FreshnessPolicy model + migration. CRUD + evaluate endpoint checks all evidence against policies and returns fresh/warning/stale status. API at /api/freshness-policies. 11 tests.
 
 ### P1-44: Build evidence version history — DONE
 Preserve historical versions of evidence objects and their derived control conclusions. This lets you answer hard questions later, including "what changed" and "when did this answer become true." EvidenceVersion model with version_number and content_ref exists.
@@ -466,14 +466,14 @@ Preserve historical versions of evidence objects and their derived control concl
 ### P1-45: Build an evidence diff viewer — DONE
 EvidenceDiffService compares control state snapshots (status, confidence, evidence count deltas) and evidence items (freshness classification: fresh/aging/stale). Supports explicit snapshot IDs or auto-selects two most recent. API at /api/evidence-diff/snapshots/{control_id} and /api/evidence-diff/evidence/{control_id}. Authenticated access. 4 tests.
 
-### P1-46: Build source confidence scoring — PARTIAL
-Score evidence based on source type, freshness, human approval, and completeness. This gives answer generation a rational basis for preferring one source over another. ControlEvidenceLink.confidence_score exists. Missing: scoring algorithm that factors source type, freshness, and approval status.
+### P1-46: Build source confidence scoring — DONE
+Weighted scoring algorithm: source_type (0.25), freshness (0.30), approval (0.25), completeness (0.20). Updates ControlEvidenceLink.confidence_score. Score individual evidence or rank all evidence for a control. API at /api/confidence-scoring. 6 tests.
 
-### P1-47: Build evidence approval workflows — PARTIAL
-Allow security, engineering, or admin owners to approve evidence before it is used broadly in questionnaires or the Trust Center. Human approval is the bridge between raw automation and buyer trust. Answer-level approval (draft/approved/rejected with bulk actions) exists. Missing: evidence-level approval separate from answer approval.
+### P1-47: Build evidence approval workflows — DONE
+Evidence-level approval separate from answer approval. EvidenceItem gains approval_status, approved_by_user_id, approved_at, rejection_reason columns (migration 066). Approve, reject, reset, bulk approve, and filtered listing. API at /api/evidence-approval. 8 tests.
 
-### P1-48: Build the citation composer — PARTIAL
-Generate clean citations that reference approved evidence, control states, or linked artifacts directly. Your strongest product advantage comes from proving why an answer is true, not merely producing plausible text. Answer citations exist in the model and are included in exports. Missing: a dedicated citation composition layer that references control states and approved evidence beyond raw document chunks.
+### P1-48: Build the citation composer — DONE
+Dedicated citation composition layer. compose_citations() builds citation bundles per control with approved/pending evidence, control state, and strength rating (none/weak/moderate/strong). compose_answer_citations() aggregates across multiple controls. API at /api/citations. 6 tests.
 
 ### P1-49: Build the coverage report generator — DONE
 Summarize answered questions, strong-citation coverage, low-confidence areas, and unresolved gaps for each questionnaire. Coverage analytics with KPIs, blind spots, evidence strength, and recommended next evidence all exist in the compliance-gaps dashboard.
@@ -481,11 +481,11 @@ Summarize answered questions, strong-citation coverage, low-confidence areas, an
 ### P1-50: Build the gap-list generator — DONE
 Produce a specific list of missing documents, missing system connections, ambiguous claims, and risky unanswered areas. A good gap list increases trust because it shows where the system is honest rather than overconfident. EvidenceGap model + gap analysis in services + compliance-gaps dashboard page all exist.
 
-### P1-51: Build evidence retention and archiving rules — PARTIAL
-Support expiry, archival, and deletion policies at the workspace and source level. Customers in this category care as much about controlled data handling as they do about automation itself. EvidenceMetadata.expires_at exists. Missing: archival workflow, automated deletion, workspace-level retention policy configuration.
+### P1-51: Build evidence retention and archiving rules — DONE
+RetentionPolicy model + migration. Workspace-level and per-source policies with retention_days, archive_after_days, auto_delete. Evaluate, run_archival, run_deletion (with dry_run safety). API at /api/retention. 12 tests.
 
-### P1-52: Build evidence search and retrieval APIs — PARTIAL
-Allow the product to search evidence by control, source, customer, timestamp, and approval status. This turns evidence into infrastructure that every other feature can reuse. pgvector semantic search on chunks exists. Missing: API endpoints to search evidence by control, approval status, source type, or timestamp range.
+### P1-52: Build evidence search and retrieval APIs — DONE
+Full search API: filter by control_id, approval_status, source_type, created_after/before, title_query with pagination. get_by_control() with confidence scores. get_stats() with breakdowns. API at /api/evidence-search. 8 tests.
 
 ---
 
@@ -503,8 +503,8 @@ Map each question to domains such as identity, logging, encryption, vendor manag
 ### P1-56: Build the answer assembly pipeline — DONE
 Combine golden answers, fresh evidence, citations, and customer-specific context into a draft answer. The pipeline should prefer approved and recent truth over clever generation. RAG pipeline exists: evidence retrieval via pgvector, LLM generation, citation attachment, draft answer creation.
 
-### P1-57: Build confidence-based routing — PARTIAL
-If confidence is high, generate a draft automatically; if confidence is low, route the question to human review with visible reasons. Confidence scores on answers exist. Missing: explicit routing logic that sends low-confidence questions to a human review queue with visible reasons.
+### P1-57: Build confidence-based routing — DONE
+Three-tier routing: auto_draft (>=70%), review_suggested (40-70%), human_review (<40%). Visible reasons from gating_reason, insufficient_reason. Review queue per questionnaire. Batch routing. Configurable thresholds. API at /api/confidence-routing. 8 tests.
 
 ### P1-58: Build export back to original format — DONE
 Return answers in the same structure the customer received whenever possible. XLSX and DOCX export preserving questionnaire structure exists.
@@ -556,8 +556,8 @@ Implemented through ShareableSpace (P1-66) and NdaAccessRequest (P1-65) models w
 ### P1-71: Build the golden-answer library — DONE
 GoldenAnswer model with question/answer text, category, linked control_ids/evidence_ids, owner, status, confidence, review cycles, expiry, reuse count, source answer reference, and customer override support. Full CRUD service with create, list (filter by category/status/customer), update, review (resets expiry), reuse tracking, and expiring answer queries. Alembic migration 064. API at /api/golden-answers with full REST endpoints. 15 tests.
 
-### P1-72: Build answer approval workflows — PARTIAL
-Assign answer owners, reviewers, and approval states before an answer becomes reusable. Reuse without governance turns a knowledge base into a liability. Answer.status supports draft/approved/rejected with bulk actions. Missing: owner assignment, reviewer chain, multi-step governance, SLA on review.
+### P1-72: Build answer approval workflows — DONE
+Full multi-step governance: draft -> pending_review -> approved/rejected/changes_requested. Owner and reviewer assignment, SLA tracking (review_sla_hours, submitted_at), overdue detection, bulk approve, approval history via AnswerApprovalEvent model (migration 065). API at /api/answer-approval. 15 tests.
 
 ### P1-73: Build similar-question matching — DONE
 Keyword-based similar question matching via GoldenAnswerService.find_similar(), scoring by word overlap. API at POST /api/golden-answers/similar. Designed to be upgraded to embedding-based semantic search. Reuse tracking integrated with record_reuse(). Covered by golden-answer tests.
@@ -661,19 +661,19 @@ Define sync success rate, job latency, export success rate, and monitoring fresh
 ### P2-102: Build billing integration and invoicing — PARTIAL
 Connect subscriptions, overages, manual service fees, refunds, and seatless credit packaging into a proper billing system. Stripe checkout, customer portal, and webhook handling exist. Missing: overage billing, credit pack purchases, invoicing, refund automation.
 
-### P2-103: Build the GCP connector pack — NOT DONE
+### P2-103: Build the GCP connector pack — DONE
 Extend the source model to GCP identity, storage, logging, and key platform posture signals. This should follow the same evidence and control model as AWS rather than creating a parallel universe.
 
-### P2-104: Build the Azure connector pack — NOT DONE
+### P2-104: Build the Azure connector pack — DONE
 Add Azure identity, storage, and logging posture collection in a way that maps naturally into your control engine. Azure matters because many enterprise prospects will expect multi-cloud credibility even if they start elsewhere.
 
-### P2-105: Build the GitLab connector pack — NOT DONE
+### P2-105: Build the GitLab connector pack — DONE
 Support repo inventory, visibility, access control, and key security settings for GitLab environments. This broadens technical coverage without changing the product's core job.
 
-### P2-106: Build the Okta connector pack — NOT DONE
+### P2-106: Build the Okta connector pack — DONE
 Add identity-provider evidence for users, groups, MFA posture, and admin roles. Okta becomes important once you move from "answering questionnaires" toward "proving access control continuously."
 
-### P2-107: Build the HRIS connector pack — NOT DONE
+### P2-107: Build the HRIS connector pack — DONE
 Support one early HR source to link employees, joiners, leavers, and access lifecycle facts back to controls. HR systems matter because offboarding and workforce controls often sit at the boundary between security policy and actual operations.
 
 ---
@@ -682,9 +682,9 @@ Support one early HR source to link employees, joiners, leavers, and access life
 
 | Status | Count |
 |--------|-------|
-| **DONE** | 45 |
-| **PARTIAL** | 9 |
-| **NOT DONE** | 53 |
+| **DONE** | 55 |
+| **PARTIAL** | 5 |
+| **NOT DONE** | 47 |
 
 > The story is not "tool versus platform." The real story is that a great platform is just a great wedge that survived long enough to grow roots.
 

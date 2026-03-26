@@ -103,6 +103,19 @@ from app.api.routes import incident_pages as incident_pages_router
 from app.api.routes import sli as sli_router
 from app.api.routes import ingestion as ingestion_router
 from app.api.routes import aws_connector as aws_connector_router
+from app.api.routes import github_connector as github_connector_router
+from app.api.routes import google_connector as google_connector_router
+from app.api.routes import cloud_connectors as cloud_connectors_router
+from app.api.routes import answer_approval as answer_approval_router
+from app.api.routes import evidence_approval as evidence_approval_router
+from app.api.routes import confidence_scoring as confidence_scoring_router
+from app.api.routes import freshness_policies as freshness_policies_router
+from app.api.routes import citation_composer as citation_composer_router
+from app.api.routes import retention as retention_router
+from app.api.routes import evidence_search as evidence_search_router
+from app.api.routes import confidence_routing as confidence_routing_router
+from app.api.routes import alerting_engine as alerting_engine_router
+from app.api.routes import connector_wizard as connector_wizard_router
 from app.services.storage import StorageClient
 
 
@@ -383,6 +396,19 @@ app.include_router(incident_pages_router.router, prefix="/api")
 app.include_router(sli_router.router, prefix="/api")
 app.include_router(ingestion_router.router, prefix="/api")
 app.include_router(aws_connector_router.router, prefix="/api")
+app.include_router(github_connector_router.router, prefix="/api")
+app.include_router(google_connector_router.router, prefix="/api")
+app.include_router(cloud_connectors_router.router, prefix="/api")
+app.include_router(answer_approval_router.router, prefix="/api")
+app.include_router(evidence_approval_router.router, prefix="/api")
+app.include_router(confidence_scoring_router.router, prefix="/api")
+app.include_router(freshness_policies_router.router, prefix="/api")
+app.include_router(citation_composer_router.router, prefix="/api")
+app.include_router(retention_router.router, prefix="/api")
+app.include_router(evidence_search_router.router, prefix="/api")
+app.include_router(confidence_routing_router.router, prefix="/api")
+app.include_router(alerting_engine_router.router, prefix="/api")
+app.include_router(connector_wizard_router.router, prefix="/api")
 
 
 @app.get("/metrics")

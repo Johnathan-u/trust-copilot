@@ -26,5 +26,8 @@ class GoldenAnswer(Base):
     reuse_count = Column(Integer, default=0, nullable=False)
     source_answer_id = Column(Integer, nullable=True)
     customer_override_for = Column(String(255), nullable=True)
+    reviewer_user_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    review_sla_hours = Column(Integer, nullable=True, default=48)
+    submitted_at = Column(DateTime, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)

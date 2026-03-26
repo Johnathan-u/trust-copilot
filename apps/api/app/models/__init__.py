@@ -27,7 +27,7 @@ from app.models.framework import Framework
 from app.models.framework_control import FrameworkControl
 from app.models.workspace_control import WorkspaceControl, WORKSPACE_CONTROL_STATUSES
 from app.models.control_mapping import ControlMapping
-from app.models.evidence_item import EvidenceItem, EVIDENCE_SOURCE_TYPES
+from app.models.evidence_item import EvidenceItem, EVIDENCE_SOURCE_TYPES, EVIDENCE_APPROVAL_STATUSES
 from app.models.control_evidence_link import ControlEvidenceLink
 from app.models.evidence_version import EvidenceVersion
 from app.models.evidence_metadata import EvidenceMetadata
@@ -68,6 +68,9 @@ from app.models.alert_acknowledgment import AlertAcknowledgment
 from app.models.nda_access_request import NdaAccessRequest
 from app.models.shareable_space import ShareableSpace
 from app.models.golden_answer import GoldenAnswer
+from app.models.answer_approval_event import AnswerApprovalEvent
+from app.models.freshness_policy import FreshnessPolicy
+from app.models.retention_policy import RetentionPolicy
 
 __all__ = [
     "ApiKey",
@@ -159,4 +162,8 @@ __all__ = [
     "NdaAccessRequest",
     "ShareableSpace",
     "GoldenAnswer",
+    "AnswerApprovalEvent",
+    "FreshnessPolicy",
+    "RetentionPolicy",
+    "EVIDENCE_APPROVAL_STATUSES",
 ]
