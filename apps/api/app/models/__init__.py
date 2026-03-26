@@ -75,6 +75,20 @@ from app.models.deal import Deal, DEAL_STAGES
 from app.models.remediation_playbook import RemediationPlaybook, RemediationTicket, REMEDIATION_STATUSES
 from app.models.remediation_audit import RemediationAuditEvent, RemediationAutomationSetting
 from app.models.trust_promise import ContractDocument, TrustPromise, PROMISE_SOURCE_TYPES, PROMISE_STATUSES
+from app.models.buyer_portal import (
+    BuyerChangeSubscription,
+    BuyerEscalation,
+    BuyerPortal,
+    BuyerPortalSnapshot,
+    BuyerSatisfactionSignal,
+)
+from app.models.proof_graph import (
+    AnswerReuseProvenance,
+    ArtifactIntegrityHash,
+    ProofGraphDiff,
+    ProofGraphEdge,
+    ProofGraphNode,
+)
 
 __all__ = [
     "ApiKey",
@@ -181,4 +195,14 @@ __all__ = [
     "TrustPromise",
     "PROMISE_SOURCE_TYPES",
     "PROMISE_STATUSES",
+    "BuyerPortal",
+    "BuyerPortalSnapshot",
+    "BuyerEscalation",
+    "BuyerSatisfactionSignal",
+    "BuyerChangeSubscription",
+    "ProofGraphNode",
+    "ProofGraphEdge",
+    "ArtifactIntegrityHash",
+    "ProofGraphDiff",
+    "AnswerReuseProvenance",
 ]

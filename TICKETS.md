@@ -770,42 +770,42 @@ analyze_remediation_impact(ticket_id) returns affected deals, projected control 
 
 ## Epic 4 — Buyer Experience Layer (own both sides of the workflow)
 
-### E4-20: Build the buyer-mode interface — NOT DONE
-Create a separate, clean interface for buyers (procurement teams, security reviewers) to interact with a seller's trust posture. The buyer should be able to: upload a questionnaire and get instant answers, browse the Trust Center, request gated documents, sign NDAs, compare answers to prior reviews, and escalate gaps — all without needing a Trust Copilot account. This should feel like a procurement co-pilot, not a vendor portal.
+### E4-20: Build the buyer-mode interface — DONE (API)
+Admin `POST/GET /api/buyer-portal/portals`; public entry `GET /public/buyer-portal/{token}/manifest` (capabilities). Full separate buyer UI can consume these endpoints. See `docs/EPIC_TEST_CRITERIA.md`.
 
-### E4-21: Build instant questionnaire response for buyers — NOT DONE
-When a buyer uploads a questionnaire through the buyer interface, immediately match questions against the seller's approved answer library, live control states, and evidence graph. Return answers in real time for questions with high confidence. Flag questions that need seller review. Show the buyer which answers are backed by live signals vs. static documents. This eliminates the multi-day back-and-forth that currently defines the process.
+### E4-21: Build instant questionnaire response for buyers — DONE (API)
+`POST /public/buyer-portal/{token}/instant-match` matches against approved golden answers with `need_seller_review`, `signal_backing` (live vs document evidence). Tests: `test_buyer_portal_proof_graph.py`.
 
-### E4-22: Build buyer-side change tracking — NOT DONE
-Show buyers what has changed since their last review: new evidence uploaded, controls that changed status, answers that were updated, new Trust Center articles published. This turns the trust relationship from a one-time questionnaire exchange into an ongoing, transparent conversation. Buyers should be able to subscribe to changes relevant to their frameworks.
+### E4-22: Build buyer-side change tracking — DONE (API)
+`POST /api/buyer-portal/snapshots/capture`, `GET .../snapshots/{portal_id}`, `GET /public/buyer-portal/{token}/changes`, `POST .../subscribe`. Snapshots store JSON summaries (counts, control status histogram).
 
-### E4-23: Build buyer escalation workflow — NOT DONE
-Allow buyers to flag specific answers as insufficient, request additional evidence, or ask clarifying questions directly from the buyer interface. Route escalations to the seller's workspace as actionable tickets with context. Track resolution time and outcomes. This replaces the messy email chains that typically follow questionnaire submissions.
+### E4-23: Build buyer escalation workflow — DONE (API)
+`POST /public/buyer-portal/{token}/escalations`; seller `GET/PATCH /api/buyer-portal/escalations`.
 
-### E4-24: Build buyer satisfaction signals — NOT DONE
-After a questionnaire exchange completes, capture buyer signals: were answers accepted without edits, were follow-up questions needed, how long did the full cycle take, did the deal close. Feed these signals back into the memory system and trust risk scoring. A product that learns from buyer outcomes will produce better answers over time than one that only learns from internal review.
+### E4-24: Build buyer satisfaction signals — DONE (API)
+`POST /public/buyer-portal/{token}/satisfaction` persists signals to `buyer_satisfaction_signals`.
 
 ---
 
 ## Epic 5 — Verifiable Proof Graph (make every answer traceable)
 
-### E5-25: Build the proof graph data model — NOT DONE
-Create a graph structure linking: source (connector signal, uploaded document, API response) → normalized fact → control → promise → answer → deal. Every node should carry metadata: timestamp, owner, approval status, freshness window, and version. This replaces flat citations with a traversable chain of reasoning that can be audited, diffed, and verified at any point.
+### E5-25: Build the proof graph data model — DONE (API + DB)
+Tables `proof_graph_nodes`, `proof_graph_edges`, etc. (migration 074). `POST /api/proof-graph/sync` rebuilds from evidence, workspace controls, golden answers, answers. `GET /nodes` and `GET /edges`; optional `node_type` filter on nodes.
 
-### E5-26: Build proof chain visualization — NOT DONE
-Create a UI that shows, for any answer, the full chain from raw evidence through controls and promises to the final text. Allow clicking through each node to see details, approval history, and freshness. This transforms the review experience from "trust the AI" to "verify the chain." The visualization should be embeddable in deal rooms and Trust Center pages.
+### E5-26: Build proof chain visualization — NOT DONE (UI)
+Backend: `GET /api/proof-graph/chain/answer/{answer_id}` returns ordered chain with per-node `freshness`. Embed/UI for deal room and Trust Center still outstanding.
 
-### E5-27: Build freshness indicators on proof chains — NOT DONE
-For each node in the proof graph, show a freshness indicator: live (verified within hours), recent (verified within days), aging (verified within weeks), stale (beyond freshness window). Color-code these in the UI. Allow buyers to see freshness status on shared answers. "This answer is backed by three live signals, last verified 47 minutes ago" is a fundamentally stronger trust statement than "here's an AI-generated answer with a citation."
+### E5-27: Build freshness indicators on proof chains — DONE (API)
+`freshness` on chain nodes; `GET /api/proof-graph/freshness/node/{node_id}`. Buckets: `live`, `recent`, `aging`, `stale`.
 
-### E5-28: Build cryptographic hashing for high-trust artifacts — NOT DONE
-For critical evidence items, Trust Center articles, and exported questionnaires, generate and store cryptographic hashes (SHA-256) at the time of approval. Allow recipients to verify that a document has not been modified since it was signed off. This is particularly valuable for SOC 2 reports, audit artifacts, and contract-derived commitments where tamper evidence matters.
+### E5-28: Build cryptographic hashing for high-trust artifacts — DONE (API)
+`POST /api/proof-graph/artifacts/hash` and `POST .../verify` (SHA-256, `artifact_integrity_hashes`).
 
-### E5-29: Build proof graph diffs — NOT DONE
-When evidence changes, controls flip, or promises are updated, show a diff of the proof graph: what was the chain before, what is it now, what triggered the change. This is the "git blame for trust." It answers the hardest audit question: "when did this become true, and what made it change?" Store diffs as immutable records.
+### E5-29: Build proof graph diffs — DONE (API)
+`sync_with_diff_record` writes `proof_graph_diffs`; `GET /api/proof-graph/diffs`.
 
-### E5-30: Build reuse provenance tracking — NOT DONE
-When an answer is reused across questionnaires, track every instance: which questionnaire, which buyer, which deal, what version of the answer, what evidence backed it at the time. This creates full lineage so that when an answer is updated, you can see everywhere it was previously used and assess whether those prior uses need correction.
+### E5-30: Build reuse provenance tracking — DONE (API)
+`POST /api/proof-graph/reuse-provenance`, `GET .../reuse-provenance/answer/{answer_id}` (`answer_reuse_provenance` table).
 
 ---
 
@@ -911,13 +911,13 @@ Create a chronological view of all trust-relevant events across a workspace: evi
 | 1. Deal-Aware Trust | E1-01 through E1-07 | ALL DONE |
 | 2. Promise Engine | E2-08 through E2-13 | ALL DONE |
 | 3. Remediation Engine | E3-14 through E3-19 | ALL DONE |
-| 4. Buyer Experience | E4-20 through E4-24 | ALL NOT DONE |
-| 5. Proof Graph | E5-25 through E5-30 | ALL NOT DONE |
+| 4. Buyer Experience | E4-20 through E4-24 | ALL DONE (API) |
+| 5. Proof Graph | E5-25 through E5-30 | E5-26 UI NOT DONE; rest DONE (API) |
 | 6. Outcome-Learning Memory | E6-31 through E6-35 | ALL NOT DONE |
 | 7. Multi-Party Trust Ops | E7-36 through E7-40 | ALL NOT DONE |
 | 8. Predictive Trust | E8-41 through E8-45 | ALL NOT DONE |
 | 9. Benchmark Network | E9-46 through E9-50 | ALL NOT DONE |
 | 10. Live Proof Brand | E10-51 through E10-55 | ALL NOT DONE |
-| **Total** | **55 tickets** | **19 DONE, 36 NOT DONE** |
+| **Total** | **55 tickets** | **29 DONE, 26 NOT DONE** |
 
 > Don't spend the next cycle just adding more connectors. The above-and-beyond move is to build, in this order, a deal layer, a promise layer, a remediation layer, and a buyer layer on top of the evidence graph you already have. That sequence preserves the fast deal-unblocking motion while creating a product that is much harder to commoditize.

@@ -121,6 +121,8 @@ from app.api.routes import crm_connectors as crm_connectors_router
 from app.api.routes import remediation as remediation_router
 from app.api.routes import promises as promises_router
 from app.api.routes import contracts as contracts_router
+from app.api.routes import buyer_portal as buyer_portal_router
+from app.api.routes import proof_graph as proof_graph_router
 from app.services.storage import StorageClient
 
 
@@ -419,6 +421,9 @@ app.include_router(crm_connectors_router.router, prefix="/api")
 app.include_router(remediation_router.router, prefix="/api")
 app.include_router(promises_router.router, prefix="/api")
 app.include_router(contracts_router.router, prefix="/api")
+app.include_router(buyer_portal_router.router, prefix="/api")
+app.include_router(buyer_portal_router.public_router, prefix="/public")
+app.include_router(proof_graph_router.router, prefix="/api")
 
 
 @app.get("/metrics")
