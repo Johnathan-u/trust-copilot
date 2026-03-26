@@ -92,6 +92,11 @@ from app.api.routes import alert_management as alert_management_router
 from app.api.routes import trust_center_publish as trust_center_publish_router
 from app.api.routes import control_timeline as control_timeline_router
 from app.api.routes import nda_access as nda_access_router
+from app.api.routes import evidence_diff as evidence_diff_router
+from app.api.routes import shareable_spaces as shareable_spaces_router
+from app.api.routes import trust_center_analytics as trust_center_analytics_router
+from app.api.routes import answer_tiers as answer_tiers_router
+from app.api.routes import golden_answers as golden_answers_router
 from app.services.storage import StorageClient
 
 
@@ -361,6 +366,11 @@ app.include_router(alert_management_router.router, prefix="/api")
 app.include_router(trust_center_publish_router.router, prefix="/api")
 app.include_router(control_timeline_router.router, prefix="/api")
 app.include_router(nda_access_router.router, prefix="/api")
+app.include_router(evidence_diff_router.router, prefix="/api")
+app.include_router(shareable_spaces_router.router, prefix="/api")
+app.include_router(trust_center_analytics_router.router, prefix="/api")
+app.include_router(answer_tiers_router.router, prefix="/api")
+app.include_router(golden_answers_router.router, prefix="/api")
 
 
 @app.get("/metrics")

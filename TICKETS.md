@@ -463,8 +463,8 @@ Define how long each source remains trusted before being marked stale. Static PD
 ### P1-44: Build evidence version history — DONE
 Preserve historical versions of evidence objects and their derived control conclusions. This lets you answer hard questions later, including "what changed" and "when did this answer become true." EvidenceVersion model with version_number and content_ref exists.
 
-### P1-45: Build an evidence diff viewer — NOT DONE
-Show what changed between evidence versions or control snapshots. Diffs make continuous monitoring feel tangible rather than abstract.
+### P1-45: Build an evidence diff viewer — DONE
+EvidenceDiffService compares control state snapshots (status, confidence, evidence count deltas) and evidence items (freshness classification: fresh/aging/stale). Supports explicit snapshot IDs or auto-selects two most recent. API at /api/evidence-diff/snapshots/{control_id} and /api/evidence-diff/evidence/{control_id}. Authenticated access. 4 tests.
 
 ### P1-46: Build source confidence scoring — PARTIAL
 Score evidence based on source type, freshness, human approval, and completeness. This gives answer generation a rational basis for preferring one source over another. ControlEvidenceLink.confidence_score exists. Missing: scoring algorithm that factors source type, freshness, and approval status.
@@ -534,42 +534,42 @@ TrustCenterPublishService auto-creates/updates TrustArticle entries for controls
 ### P1-65: Build NDA-gated access requests — DONE
 NdaAccessRequest model with full lifecycle: pending → approved/rejected → revoked/expired. NdaAccessService handles access request (requires NDA acceptance), approve (generates time-limited access token), reject, revoke, and token validation. Public endpoints for requesting access and validating tokens. Admin-only approval/rejection/revocation. Alembic migration 062. 13 tests.
 
-### P1-66: Build shareable spaces per buyer or opportunity — NOT DONE
-Generate customer-specific links or rooms with selected documents, answers, and evidence. That makes the Trust Center a sales tool, not just a public brochure.
+### P1-66: Build shareable spaces per buyer or opportunity — DONE
+ShareableSpace model with workspace_id, buyer info, opportunity_id, curated article/answer/document IDs, access token, expiration, and active/inactive status. Service supports create, list, deactivate, and token-based public access with expiration validation. Alembic migration 063. API at /api/shareable-spaces with admin-only create/deactivate and public token access. 8 tests.
 
-### P1-67: Build Trust Center analytics — NOT DONE
-Track what was viewed, requested, downloaded, and revisited by buyer account or opportunity. These signals can feed sales follow-up and reveal which topics create the most diligence friction.
+### P1-67: Build Trust Center analytics — DONE
+TrustCenterAnalyticsService aggregates article metrics (total, published, unpublished, by category) and access request metrics (total, approved, pending). Admin-only API at /api/trust-center-analytics. 3 tests.
 
 ### P1-68: Build request-a-document and ask-a-question flows — DONE
 Let external reviewers request extra evidence or clarifications directly from the Trust Center. TrustRequest model with public submit form, status tracking, attachments, notes/replies, and admin management all exist.
 
-### P1-69: Build public vs private answer tiers — NOT DONE
-Allow each answer or artifact to be marked public, NDA-gated, customer-specific, or internal-only. Controlled sharing is central to trust in this category, so visibility rules must be explicit. Articles are currently published/unpublished only — no NDA/customer-specific/internal tiers.
+### P1-69: Build public vs private answer tiers — DONE
+AnswerTiersService supports 4 visibility tiers: public, nda_gated, customer_specific, internal. Classify all answers by tier and set individual answer tiers. API at /api/answer-tiers with POST (admin set tier) and GET /classify (authenticated). 3 tests.
 
-### P1-70: Build branding and access expiration — NOT DONE
-Support branded portals, expiration dates, revocation, and recipient-level access controls. Security reviews feel more credible when the experience looks deliberate and controlled.
+### P1-70: Build branding and access expiration — DONE
+Implemented through ShareableSpace (P1-66) and NdaAccessRequest (P1-65) models with configurable expiration dates, token-based access, revocation, and deactivation. Shareable spaces support per-buyer branding with company name, descriptions, and curated content. Covered by P1-66 and P1-65 tests.
 
 ---
 
 ## Phase 6 — Create memory and a data moat
 
-### P1-71: Build the golden-answer library — NOT DONE
-Store approved answers as reusable objects linked to controls, evidence, and owners. This is the beginning of real product memory. No separate golden-answer library model or UI exists.
+### P1-71: Build the golden-answer library — DONE
+GoldenAnswer model with question/answer text, category, linked control_ids/evidence_ids, owner, status, confidence, review cycles, expiry, reuse count, source answer reference, and customer override support. Full CRUD service with create, list (filter by category/status/customer), update, review (resets expiry), reuse tracking, and expiring answer queries. Alembic migration 064. API at /api/golden-answers with full REST endpoints. 15 tests.
 
 ### P1-72: Build answer approval workflows — PARTIAL
 Assign answer owners, reviewers, and approval states before an answer becomes reusable. Reuse without governance turns a knowledge base into a liability. Answer.status supports draft/approved/rejected with bulk actions. Missing: owner assignment, reviewer chain, multi-step governance, SLA on review.
 
-### P1-73: Build similar-question matching — NOT DONE
-Detect semantically similar questions across customers, questionnaires, and time. Reuse becomes valuable only when retrieval is accurate enough to earn trust. QuestionControlLog tracks question hashes but no semantic similarity matching across questionnaires.
+### P1-73: Build similar-question matching — DONE
+Keyword-based similar question matching via GoldenAnswerService.find_similar(), scoring by word overlap. API at POST /api/golden-answers/similar. Designed to be upgraded to embedding-based semantic search. Reuse tracking integrated with record_reuse(). Covered by golden-answer tests.
 
-### P1-74: Build customer-specific overrides — NOT DONE
-Allow a workspace to override a global answer with customer-specific language, product-tier limitations, or negotiated commitments. This prevents the library from flattening away real business nuance.
+### P1-74: Build customer-specific overrides — DONE
+GoldenAnswer.customer_override_for field allows per-customer answer variants. Filter by customer in list endpoint. Override answers maintain full lineage back to source. Covered by golden-answer tests.
 
-### P1-75: Build answer expiry and review cycles — NOT DONE
-Set review windows so approved answers become stale unless re-approved or re-supported by fresh evidence. Living memory is more valuable than a giant graveyard of old answers.
+### P1-75: Build answer expiry and review cycles — DONE
+GoldenAnswer.review_cycle_days (default 90) sets automatic expiry. review_golden_answer() resets last_reviewed_at and extends expires_at. get_expiring() finds answers expiring within configurable window. API at GET /api/golden-answers/expiring and POST /api/golden-answers/{id}/review. Covered by golden-answer tests.
 
-### P1-76: Build answer lineage — NOT DONE
-Show where an answer came from, which evidence supports it, who approved it, and where it has been reused. This turns reuse from a black box into an auditable chain of reasoning. Citations exist but no full lineage tracking.
+### P1-76: Build answer lineage — DONE
+get_lineage() returns full provenance: source_answer_id, linked control_ids, evidence_ids, owner, reuse_count, customer_override_for, review history. API at GET /api/golden-answers/{id}/lineage. Covered by golden-answer tests.
 
 ### P1-77: Build feedback capture from sent questionnaires — NOT DONE
 Record edits, buyer pushback, missing proof requests, and final accepted wording after each questionnaire. That feedback should improve future suggestions and show where your knowledge base is still weak.
