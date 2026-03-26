@@ -66,6 +66,11 @@ from app.api.routes import ai_mappings as ai_mappings_router
 from app.api.routes import ai_insights as ai_insights_router
 from app.api.routes import billing as billing_router
 from app.api.routes import feature_flags as feature_flags_router
+from app.api.routes import credits as credits_router
+from app.api.routes import operator_queue as operator_queue_router
+from app.api.routes import security_faq as security_faq_router
+from app.api.routes import demo_proof as demo_proof_router
+from app.api.routes import export_pack as export_pack_router
 from app.services.storage import StorageClient
 
 
@@ -309,6 +314,11 @@ app.include_router(ai_mappings_router.gov_router, prefix="/api")
 app.include_router(ai_insights_router.router, prefix="/api")
 app.include_router(billing_router.router, prefix="/api")
 app.include_router(feature_flags_router.router, prefix="/api")
+app.include_router(credits_router.router, prefix="/api")
+app.include_router(operator_queue_router.router, prefix="/api")
+app.include_router(security_faq_router.router, prefix="/api")
+app.include_router(demo_proof_router.router, prefix="/api")
+app.include_router(export_pack_router.router, prefix="/api")
 
 
 @app.get("/metrics")

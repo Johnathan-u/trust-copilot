@@ -217,6 +217,14 @@ def _handle_checkout_completed(data: dict, db: Session):
         db.add(sub)
 
     db.commit()
+
+    try:
+        from app.services import credit_service
+        credit_service.get_or_create_ledger(db, workspace_id)
+        db.commit()
+    except Exception:
+        logger.warning("Failed to initialize credit ledger for workspace %s", workspace_id, exc_info=True)
+
     logger.info("Subscription created/activated: workspace=%s customer=%s", workspace_id, customer_id)
 
 

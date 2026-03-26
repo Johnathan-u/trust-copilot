@@ -56,6 +56,9 @@ from app.models.question_mapping_signal import QuestionMappingSignal
 from app.models.workspace_ai_usage import WorkspaceAIUsage
 from app.models.subscription import Subscription
 from app.models.feature_flag import FeatureFlag
+from app.models.credit_ledger import CreditLedger, CreditTransaction
+from app.models.operator_queue import OperatorQueueItem, OPERATOR_ITEM_STATUSES, OPERATOR_ITEM_PRIORITIES
+from app.models.security_faq import SecurityFAQ
 
 __all__ = [
     "ApiKey",
@@ -132,4 +135,10 @@ __all__ = [
     "WorkspaceAIUsage",
     "Subscription",
     "FeatureFlag",
+    "CreditLedger",
+    "CreditTransaction",
+    "OperatorQueueItem",
+    "OPERATOR_ITEM_STATUSES",
+    "OPERATOR_ITEM_PRIORITIES",
+    "SecurityFAQ",
 ]

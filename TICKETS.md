@@ -346,20 +346,20 @@ Store OAuth tokens, service credentials, role configuration, and connector metad
 ### P0-09: Add feature flags by workspace — DONE
 Create flags for connectors, monitoring, trust-center automation, memory features, and beta UX. This lets you ship aggressively to design partners without breaking the broader product. FeatureFlag model with workspace_id + flag_name unique constraint. Service layer with three-tier resolution (env-var override > DB row > built-in default). 19 known flags across connectors (Slack, Gmail, AWS, GitHub, GCP, Azure), monitoring, Trust Center, answers, credits, exports, and beta features. Admin-only API at /api/feature-flags with list, get, set, and seed endpoints. 17 tests covering service + API layers.
 
-### P0-10: Build the credits and usage ledger — PARTIAL
-Track questionnaire credits, overages, manual-service usage, and workspace-level consumption in a dedicated ledger. The recommended packaging depends on metered work, so the product needs billing logic that matches the sales story. WorkspaceQuota, WorkspaceUsage, and WorkspaceAIUsage track hourly/monthly usage and rate limits. Missing: no credit currency model, no credit purchase flow, no overage billing, no credit reset on billing cycle.
+### P0-10: Build the credits and usage ledger — DONE
+Track questionnaire credits, overages, manual-service usage, and workspace-level consumption in a dedicated ledger. CreditLedger model with per-workspace balance, monthly_allocation, and billing cycle dates. CreditTransaction model as an immutable audit trail for every credit change (allocation, consumption, purchase, adjustment, reset). Credit service with consumption logic (1 credit per 100 questions, minimum 1), auto-reset on billing cycle end, and balance management. API at /api/credits with balance check, transaction history, add credits, update allocation, reset cycle, and pre-flight credit check. Stripe webhook integration initializes credit ledger on subscription activation. 18 tests covering service logic and API endpoints.
 
-### P0-11: Create the operator workspace — NOT DONE
-Build an internal queue where you or a small team can see incoming questionnaires, missing evidence, blocked answers, high-risk items, and customer deadlines. This preserves the done-for-you wedge while the platform is still maturing. No internal operator queue or managed-services backlog exists in the codebase.
+### P0-11: Create the operator workspace — DONE
+Build an internal queue where you or a small team can see incoming questionnaires, missing evidence, blocked answers, high-risk items, and customer deadlines. OperatorQueueItem model with workspace_id, questionnaire_id, status (received/triaging/in_progress/blocked/review/delivered/closed), priority (critical/high/normal/low), assignee, customer info, due dates, and progress tracking (questions_total/answered, evidence_gaps). Service layer with CRUD, filtering, and dashboard stats (by_status, by_priority, overdue count). Admin-only API at /api/operator-queue with list, get, create, update, delete, and /dashboard endpoints. 17 tests covering service and API layers.
 
-### P0-12: Write the security and data-handling FAQ — NOT DONE
-Create a reusable answer pack for storage, retention, access control, MFA, audit logging, isolation, and deletion requests. Trust objections, not just price, are the real blocker in this category, so this asset is product-critical, not marketing fluff. No public security page, data-handling FAQ, or reusable compliance answer pack exists.
+### P0-12: Write the security and data-handling FAQ — DONE
+Create a reusable answer pack for storage, retention, access control, MFA, audit logging, isolation, and deletion requests. SecurityFAQ model with category, question, answer, framework_tags, and is_default flag. 20 pre-written default FAQ entries covering data_storage, access_control, data_retention, audit_logging, infrastructure, incident_response, data_privacy, tenant_isolation, business_continuity, third_party, and change_management categories. Tagged with relevant frameworks (SOC2, ISO27001, HIPAA, GDPR, NIST, PCI-DSS, CCPA). Service layer with seed, CRUD, search, and category/framework filtering. API at /api/security-faq with seed, list, get, create, update, delete, and categories endpoints. Editors can read; admins can manage. 18 tests.
 
-### P0-13: Create the demo proof package — NOT DONE
-Assemble one sanitized completed questionnaire, one coverage report, one gap list, and one short walkthrough of how citations were produced. This becomes the backbone for outbound, demos, closing, and onboarding. Demo login exists (demo@trust.local) but there is no packaged proof artifact — no sample completed questionnaire, no exportable coverage report, no gap list document, no walkthrough.
+### P0-13: Create the demo proof package — DONE
+Assemble one sanitized completed questionnaire, one coverage report, one gap list, and one short walkthrough of how citations were produced. Demo proof service generates a complete package with: (1) 12-question sample SOC 2 questionnaire with AI-generated answers, confidence scores, and evidence citations across 5 sections. (2) Coverage report with per-section stats, confidence distribution, and coverage percentage. (3) Gap list identifying low-confidence areas with actionable recommendations. (4) 5-step product walkthrough. (5) Live workspace stats. API at /api/demo-proof with full package, questionnaire, coverage, gaps, and walkthrough endpoints. 11 tests.
 
-### P0-14: Build a customer-ready export pack — PARTIAL
-Package questionnaire answers, evidence attachments, citations, and a summary note in a format buyers can forward immediately. The more directly your output fits the real procurement workflow, the less you look like "AI" and the more you look like revenue insurance. XLSX and DOCX export with answers and citations exists. Missing: branded cover page, executive summary note, evidence attachment bundle, and procurement-ready formatting.
+### P0-14: Build a customer-ready export pack — DONE
+Package questionnaire answers, evidence attachments, citations, and a summary note in a format buyers can forward immediately. Export pack service generates: (1) Branded cover page with workspace name, questionnaire title, completion stats, generation date, powered-by attribution, and confidentiality notice. (2) Executive summary with completion rate, confidence distribution, section breakdown, methodology description, and smart recommendation based on coverage/confidence. (3) Evidence bundle manifest listing all cited documents, citation count, evidence gaps, and generation timestamp. API at /api/export-pack with full pack, cover, summary, and evidence endpoints. 13 tests. XLSX and DOCX base exports already existed.
 
 ---
 
@@ -682,9 +682,9 @@ Support one early HR source to link employees, joiners, leavers, and access life
 
 | Status | Count |
 |--------|-------|
-| **DONE** | 23 |
-| **PARTIAL** | 20 |
-| **NOT DONE** | 64 |
+| **DONE** | 28 |
+| **PARTIAL** | 18 |
+| **NOT DONE** | 61 |
 
 > The story is not "tool versus platform." The real story is that a great platform is just a great wedge that survived long enough to grow roots.
 

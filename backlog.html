@@ -530,10 +530,10 @@ const INCREMENTS=[
 {id:"P0-07",title:"Create system audit log",p:"P0",est:5,deps:"P0-01",s:"partial"},
 {id:"P0-08",title:"Implement secrets management",p:"P0",est:5,deps:"—",s:"partial"},
 {id:"P0-09",title:"Add feature flags by workspace",p:"P0",est:5,deps:"P0-01",s:"done"},
-{id:"P0-10",title:"Build credits and usage ledger",p:"P0",est:5,deps:"P0-01",s:"partial"},
-{id:"P0-11",title:"Create operator workspace",p:"P0",est:8,deps:"P0-01"},
-{id:"P0-12",title:"Write security and data-handling FAQ",p:"P0",est:3,deps:"—"},
-{id:"P0-13",title:"Create demo proof package",p:"P0",est:5,deps:"—"},
+{id:"P0-10",title:"Build credits and usage ledger",p:"P0",est:5,deps:"P0-01",s:"done"},
+{id:"P0-11",title:"Create operator workspace",p:"P0",est:8,deps:"P0-01",s:"done"},
+{id:"P0-12",title:"Write security and data-handling FAQ",p:"P0",est:3,deps:"—",s:"done"},
+{id:"P0-13",title:"Create demo proof package",p:"P0",est:5,deps:"—",s:"done"},
 {id:"P0-14",title:"Build customer-ready export pack",p:"P0",est:5,deps:"P0-01",s:"done"}]},
 {num:13,title:"First-Wave Connectors",color:"teal",layer:"platform",tickets:[
 {id:"P1-15",title:"Build connector setup wizard",p:"P0",est:5,deps:"P0-05",s:"partial"},
@@ -827,10 +827,10 @@ ${INCREMENTS.map(inc=>{const t=inc.tickets.length,pts=inc.tickets.reduce((a,t2)=
 </tbody></table></div></div></div><div class="chart-grid"><div class="chart-card"><div class="chart-card-header"><h3>Tech Stack</h3><p>Production technologies</p></div><div class="chart-card-body" style="display:block;padding:0"><table class="perf-table"><thead><tr><th>Technology</th><th>Layer</th><th>Role</th></tr></thead><tbody>
 <tr><td style="color:var(--teal)">Next.js</td><td>FE</td><td>App Router</td></tr><tr><td style="color:var(--teal)">Tailwind CSS</td><td>FE</td><td>Styling</td></tr><tr><td style="color:var(--teal)">FastAPI</td><td>BE</td><td>REST API</td></tr><tr><td style="color:var(--teal)">SQLAlchemy</td><td>BE</td><td>ORM</td></tr><tr><td style="color:var(--teal)">PostgreSQL 16</td><td>BE</td><td>Database</td></tr><tr><td style="color:var(--teal)">pgvector</td><td>BE</td><td>Semantic search</td></tr><tr><td style="color:var(--teal)">MinIO</td><td>BE</td><td>Object storage</td></tr><tr><td style="color:var(--teal)">OpenAI</td><td>BE</td><td>LLM (gpt-4o-mini)</td></tr><tr><td style="color:var(--teal)">Caddy</td><td>Infra</td><td>TLS proxy</td></tr><tr><td style="color:var(--teal)">Stripe</td><td>BE</td><td>Billing</td></tr>
 </tbody></table></div></div><div class="chart-card"><div class="chart-card-header"><h3>Platform Status</h3><p>DONE / PARTIAL / NOT DONE</p></div><div class="chart-card-body" style="display:block;padding:0"><table class="perf-table"><thead><tr><th>Category</th><th>Done</th><th>Partial</th><th>Not Done</th></tr></thead><tbody>
-<tr><td style="color:var(--primary)">Product (A-P)</td><td style="color:var(--success)">0</td><td style="color:var(--warning)">0</td><td>80</td></tr><tr><td style="color:var(--teal)">Platform (P0-P2)</td><td style="color:var(--success)">23</td><td style="color:var(--warning)">20</td><td>64</td></tr><tr><td style="color:var(--violet)">Vision (E1-E10)</td><td style="color:var(--success)">0</td><td style="color:var(--warning)">0</td><td>55</td></tr><tr style="font-weight:700"><td style="color:var(--text)">Total</td><td style="color:var(--success)">23</td><td style="color:var(--warning)">20</td><td>199</td></tr>
+<tr><td style="color:var(--primary)">Product (A-P)</td><td style="color:var(--success)">0</td><td style="color:var(--warning)">0</td><td>80</td></tr><tr><td style="color:var(--teal)">Platform (P0-P2)</td><td style="color:var(--success)">28</td><td style="color:var(--warning)">18</td><td>61</td></tr><tr><td style="color:var(--violet)">Vision (E1-E10)</td><td style="color:var(--success)">0</td><td style="color:var(--warning)">0</td><td>55</td></tr><tr style="font-weight:700"><td style="color:var(--text)">Total</td><td style="color:var(--success)">28</td><td style="color:var(--warning)">18</td><td>196</td></tr>
 </tbody></table></div></div></div>`}
 
-const IMPLEMENTED=["P0-01","P0-02","P0-03","P0-04","P0-06","P0-07","P0-09","P1-42","P1-44","P1-49","P1-50","P1-53","P1-54","P1-55","P1-56","P1-58","P1-63","P1-68","P2-96","P2-98"];
+const IMPLEMENTED=["P0-01","P0-02","P0-03","P0-04","P0-06","P0-07","P0-09","P0-10","P0-11","P0-12","P0-13","P0-14","P1-42","P1-44","P1-49","P1-50","P1-53","P1-54","P1-55","P1-56","P1-58","P1-63","P1-68","P2-96","P2-98"];
 loadState();IMPLEMENTED.forEach(id=>{checked[id]=true});saveState();render();
 </script>
 </body>
