@@ -792,8 +792,8 @@ Admin `POST/GET /api/buyer-portal/portals`; public entry `GET /public/buyer-port
 ### E5-25: Build the proof graph data model — DONE (API + DB)
 Tables `proof_graph_nodes`, `proof_graph_edges`, etc. (migration 074). `POST /api/proof-graph/sync` rebuilds from evidence, workspace controls, golden answers, answers. `GET /nodes` and `GET /edges`; optional `node_type` filter on nodes.
 
-### E5-26: Build proof chain visualization — NOT DONE (UI)
-Backend: `GET /api/proof-graph/chain/answer/{answer_id}` returns ordered chain with per-node `freshness`. Embed/UI for deal room and Trust Center still outstanding.
+### E5-26: Build proof chain visualization — DONE
+Web `/dashboard/proof-chain` (load by answer ID, freshness-colored steps); Review links **View chain** per answer. API `GET /api/proof-graph/chain/answer/{id}`. Test: `test_proof_chain_answer_has_multi_node_chain`. Optional: embed same view in deal room / public Trust Center later.
 
 ### E5-27: Build freshness indicators on proof chains — DONE (API)
 `freshness` on chain nodes; `GET /api/proof-graph/freshness/node/{node_id}`. Buckets: `live`, `recent`, `aging`, `stale`.
@@ -912,12 +912,12 @@ Create a chronological view of all trust-relevant events across a workspace: evi
 | 2. Promise Engine | E2-08 through E2-13 | ALL DONE |
 | 3. Remediation Engine | E3-14 through E3-19 | ALL DONE |
 | 4. Buyer Experience | E4-20 through E4-24 | ALL DONE (API) |
-| 5. Proof Graph | E5-25 through E5-30 | E5-26 UI NOT DONE; rest DONE (API) |
+| 5. Proof Graph | E5-25 through E5-30 | ALL DONE |
 | 6. Outcome-Learning Memory | E6-31 through E6-35 | ALL NOT DONE |
 | 7. Multi-Party Trust Ops | E7-36 through E7-40 | ALL NOT DONE |
 | 8. Predictive Trust | E8-41 through E8-45 | ALL NOT DONE |
 | 9. Benchmark Network | E9-46 through E9-50 | ALL NOT DONE |
 | 10. Live Proof Brand | E10-51 through E10-55 | ALL NOT DONE |
-| **Total** | **55 tickets** | **29 DONE, 26 NOT DONE** |
+| **Total** | **55 tickets** | **30 DONE, 25 NOT DONE** |
 
 > Don't spend the next cycle just adding more connectors. The above-and-beyond move is to build, in this order, a deal layer, a promise layer, a remediation layer, and a buyer layer on top of the evidence graph you already have. That sequence preserves the fast deal-unblocking motion while creating a product that is much harder to commoditize.

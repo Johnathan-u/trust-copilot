@@ -68,7 +68,7 @@ export function Sidebar() {
     await switchWorkspace(id)
   }
 
-  const complianceActive = ['/dashboard/compliance-gaps', '/dashboard/trust-center'].some(p => pathname.startsWith(p))
+  const complianceActive = ['/dashboard/compliance-gaps', '/dashboard/trust-center', '/dashboard/proof-chain'].some(p => pathname.startsWith(p))
   const adminActive = ['/dashboard/members', '/dashboard/notifications', '/dashboard/slack', '/dashboard/gmail', '/dashboard/audit', '/dashboard/security', '/dashboard/settings', '/dashboard/ai-governance'].some(p => pathname.startsWith(p))
 
   return (
@@ -122,6 +122,7 @@ export function Sidebar() {
         <NavSection title="Compliance" defaultOpen={complianceActive} storageKey="compliance">
           <NavLink href="/dashboard/compliance-gaps" label="Coverage" icon="📊" pathname={pathname} />
           <NavLink href="/dashboard/trust-center" label="Trust Center" icon="🛡️" pathname={pathname} />
+          <NavLink href="/dashboard/proof-chain" label="Proof chain" icon="🔗" pathname={pathname} />
         </NavSection>
 
         <div className="border-t border-white/5" />

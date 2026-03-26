@@ -42,6 +42,7 @@ const ROUTE_LABELS: Record<string, string> = {
   '/dashboard/exports': 'Exports',
   '/dashboard/trust-center': 'Trust Center',
   '/dashboard/compliance-gaps': 'Coverage',
+  '/dashboard/proof-chain': 'Proof chain',
   '/dashboard/members': 'Members',
   '/dashboard/notifications': 'Alerts / Notifications',
   '/dashboard/slack': 'Slack',

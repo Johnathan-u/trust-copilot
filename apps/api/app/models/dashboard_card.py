@@ -17,6 +17,7 @@ ALLOWED_ROUTES = [
     "/dashboard/exports",
     "/dashboard/compliance-gaps",
     "/dashboard/trust-center",
+    "/dashboard/proof-chain",
     "/dashboard/members",
     "/dashboard/notifications",
     "/dashboard/slack",

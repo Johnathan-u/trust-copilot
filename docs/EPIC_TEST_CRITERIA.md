@@ -108,15 +108,16 @@ This document maps backlog tickets to verifiable criteria. Primary automated cov
 
 ### E5-26: Proof chain visualization
 
-**Intent:** UI shows a chain from evidence through controls/promises to answers. **API foundation only in repo:** chain payload for embedding.
+**Intent:** UI shows a chain from evidence through controls/promises to answers; embeddable from review workflow.
 
-**Acceptance criteria (API)**
+**Acceptance criteria**
 
-- GET `/api/proof-graph/chain/answer/{answer_id}` returns `404` if the answer is not represented in the graph after sync; otherwise returns ordered `chain` with node metadata.
+- GET `/api/proof-graph/chain/answer/{answer_id}` returns `404` if the answer is not in the graph after sync; otherwise returns ordered `chain` with `freshness` on each node.
+- Web: `/dashboard/proof-chain` loads chain by answer ID; Review table links **View chain** to `/dashboard/proof-chain?answer_id=…`.
 
 **Automated tests**
 
-- Add a dedicated test when a seed questionnaire+answer exists in workspace 1, or create via API in test setup, then assert `chain` length ≥ 2.
+- `TestProofGraphAPI.test_proof_chain_answer_has_multi_node_chain`: creates questionnaire + question + golden + answer, syncs, asserts `len(chain) >= 2` and `freshness` on all nodes.
 
 ---
 
@@ -190,7 +191,7 @@ This document maps backlog tickets to verifiable criteria. Primary automated cov
 | E4-23 | `test_escalation_and_satisfaction` |
 | E4-24 | `test_escalation_and_satisfaction` (satisfaction POST) |
 | E5-25 | `TestProofGraphAPI` (sync + nodes) |
-| E5-26 | Manual / future test with seeded answer chain |
+| E5-26 | `test_proof_chain_answer_has_multi_node_chain`; UI manual smoke on `/dashboard/proof-chain` |
 | E5-27 | `TestProofGraphAPI` (freshness) |
 | E5-28 | `TestProofGraphAPI` (hash + verify) |
 | E5-29 | `TestProofGraphAPI` (diffs) |

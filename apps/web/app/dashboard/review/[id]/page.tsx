@@ -718,6 +718,9 @@ export default function ReviewPage() {
                     <th className="w-[140px] px-6 py-3.5 text-left text-xs font-semibold uppercase tracking-wider text-[var(--tc-muted)]">
                       Supporting evidence
                     </th>
+                    <th className="w-[100px] px-6 py-3.5 text-left text-xs font-semibold uppercase tracking-wider text-[var(--tc-muted)]">
+                      Proof
+                    </th>
                     <th className="w-28 px-6 py-3.5 text-left text-xs font-semibold uppercase tracking-wider text-[var(--tc-muted)]">Autosave</th>
                   </tr>
                 </thead>
@@ -799,6 +802,18 @@ export default function ReviewPage() {
                             >
                               View {citations.length} snippet{citations.length !== 1 ? 's' : ''}
                             </button>
+                          ) : (
+                            <span className="text-xs text-[var(--tc-muted)]">—</span>
+                          )}
+                        </td>
+                        <td className="px-6 py-4">
+                          {q.answer?.id ? (
+                            <Link
+                              href={`/dashboard/proof-chain?answer_id=${q.answer.id}`}
+                              className="text-xs font-medium text-[var(--tc-soft)] underline decoration-[var(--tc-border)] underline-offset-2 hover:decoration-[var(--tc-soft)]"
+                            >
+                              View chain
+                            </Link>
                           ) : (
                             <span className="text-xs text-[var(--tc-muted)]">—</span>
                           )}

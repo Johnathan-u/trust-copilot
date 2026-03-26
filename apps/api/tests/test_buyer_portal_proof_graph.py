@@ -130,6 +130,47 @@ class TestBuyerPortalAPI:
 
 
 class TestProofGraphAPI:
+    def test_proof_chain_answer_has_multi_node_chain(self, admin_client, db_session):
+        """E5-26: questionnaire answer linked to matching golden answer yields chain length >= 2 after sync."""
+        from app.models.answer import Answer
+        from app.models.questionnaire import Question, Questionnaire
+
+        ws_id = 1
+        qtext = "unique_proof_chain_multi_node_998877"
+        qnr = Questionnaire(
+            workspace_id=ws_id,
+            filename="proof-chain-unit.csv",
+            status="uploaded",
+        )
+        db_session.add(qnr)
+        db_session.flush()
+        qu = Question(questionnaire_id=qnr.id, text=qtext, section=None)
+        db_session.add(qu)
+        db_session.flush()
+        ga.create_golden_answer(
+            db_session,
+            ws_id,
+            qtext,
+            "Golden response for proof chain.",
+            confidence=0.92,
+        )
+        db_session.flush()
+        ans = Answer(question_id=qu.id, text="Draft answer body", status="draft")
+        db_session.add(ans)
+        db_session.flush()
+        aid = ans.id
+        db_session.commit()
+
+        admin_client.post(
+            "/api/proof-graph/sync",
+            headers={"Origin": "http://localhost", "Referer": "http://localhost/"},
+        )
+        r = admin_client.get(f"/api/proof-graph/chain/answer/{aid}")
+        assert r.status_code == 200, r.text
+        chain = r.json().get("chain") or []
+        assert len(chain) >= 2, chain
+        assert all("freshness" in n for n in chain)
+
     def test_sync_chain_freshness_hash_diff_reuse(self, admin_client):
         gr = admin_client.post(
             "/api/golden-answers",
