@@ -181,6 +181,21 @@ This document maps backlog tickets to verifiable criteria. Primary automated cov
 
 ---
 
+## Epic 6 — Outcome memory (partial)
+
+### E6-31: Outcome-tagged answer storage
+
+**Acceptance criteria**
+
+- Persist per-delivery outcome rows scoped to workspace and linked to `answers.id`.
+- Editors can create records via `POST /api/answer-outcomes`; any session member can list by answer or recent workspace feed.
+
+**Automated tests**
+
+- `tests/test_answer_outcomes.py`: service record/list, workspace mismatch rejected, HTTP POST/GET.
+
+---
+
 ## Traceability matrix
 
 | Ticket | Primary pytest reference |
@@ -196,3 +211,4 @@ This document maps backlog tickets to verifiable criteria. Primary automated cov
 | E5-28 | `TestProofGraphAPI` (hash + verify) |
 | E5-29 | `TestProofGraphAPI` (diffs) |
 | E5-30 | `TestProofGraphAPI` (reuse provenance) |
+| E6-31 | `test_answer_outcomes.py` |

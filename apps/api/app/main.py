@@ -123,6 +123,7 @@ from app.api.routes import promises as promises_router
 from app.api.routes import contracts as contracts_router
 from app.api.routes import buyer_portal as buyer_portal_router
 from app.api.routes import proof_graph as proof_graph_router
+from app.api.routes import answer_outcomes as answer_outcomes_router
 from app.services.storage import StorageClient
 
 
@@ -424,6 +425,7 @@ app.include_router(contracts_router.router, prefix="/api")
 app.include_router(buyer_portal_router.router, prefix="/api")
 app.include_router(buyer_portal_router.public_router, prefix="/public")
 app.include_router(proof_graph_router.router, prefix="/api")
+app.include_router(answer_outcomes_router.router, prefix="/api")
 
 
 @app.get("/metrics")

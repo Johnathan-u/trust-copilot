@@ -68,6 +68,7 @@ from app.models.alert_acknowledgment import AlertAcknowledgment
 from app.models.nda_access_request import NdaAccessRequest
 from app.models.shareable_space import ShareableSpace
 from app.models.golden_answer import GoldenAnswer
+from app.models.answer_delivery_outcome import AnswerDeliveryOutcome, OUTCOME_CHANNELS
 from app.models.answer_approval_event import AnswerApprovalEvent
 from app.models.freshness_policy import FreshnessPolicy
 from app.models.retention_policy import RetentionPolicy
@@ -180,6 +181,8 @@ __all__ = [
     "NdaAccessRequest",
     "ShareableSpace",
     "GoldenAnswer",
+    "AnswerDeliveryOutcome",
+    "OUTCOME_CHANNELS",
     "AnswerApprovalEvent",
     "FreshnessPolicy",
     "RetentionPolicy",

@@ -811,8 +811,8 @@ Web `/dashboard/proof-chain` (load by answer ID, freshness-colored steps); Revie
 
 ## Epic 6 — Outcome-Learning Memory (answers that get smarter)
 
-### E6-31: Build outcome-tagged answer storage — NOT DONE
-When an answer is delivered to a buyer, tag it with outcome metadata: was it accepted without edits, was it edited (store the diff), was follow-up requested, did the buyer push back, did the deal close, how long did the review take. This goes beyond "golden answers" into "answers with track records." Over time, the system learns which wording, evidence depth, and packaging actually works.
+### E6-31: Build outcome-tagged answer storage — DONE
+Table `answer_delivery_outcomes` (migration 075). `POST /api/answer-outcomes` (editors), `GET /api/answer-outcomes/answer/{answer_id}`, `GET /api/answer-outcomes/recent`. Fields: accepted_without_edits, was_edited, edit_diff_json, follow_up_requested, buyer_pushback, deal_closed, review_cycle_hours, channel (`manual` | `buyer_portal` | `export` | `api`), optional deal/golden links. Tests: `test_answer_outcomes.py`.
 
 ### E6-32: Build answer quality scoring from outcomes — NOT DONE
 Score each answer in the library based on its outcome history: acceptance rate, edit frequency, follow-up rate, and correlation with deal closure. Surface high-performing answers as preferred defaults and flag low-performing answers for review. This creates a feedback loop where the answer library continuously improves based on real buyer behavior, not just internal reviewer judgment.
@@ -913,11 +913,11 @@ Create a chronological view of all trust-relevant events across a workspace: evi
 | 3. Remediation Engine | E3-14 through E3-19 | ALL DONE |
 | 4. Buyer Experience | E4-20 through E4-24 | ALL DONE (API) |
 | 5. Proof Graph | E5-25 through E5-30 | ALL DONE |
-| 6. Outcome-Learning Memory | E6-31 through E6-35 | ALL NOT DONE |
+| 6. Outcome-Learning Memory | E6-31 through E6-35 | E6-31 DONE; E6-32–35 NOT DONE |
 | 7. Multi-Party Trust Ops | E7-36 through E7-40 | ALL NOT DONE |
 | 8. Predictive Trust | E8-41 through E8-45 | ALL NOT DONE |
 | 9. Benchmark Network | E9-46 through E9-50 | ALL NOT DONE |
 | 10. Live Proof Brand | E10-51 through E10-55 | ALL NOT DONE |
-| **Total** | **55 tickets** | **30 DONE, 25 NOT DONE** |
+| **Total** | **55 tickets** | **31 DONE, 24 NOT DONE** |
 
 > Don't spend the next cycle just adding more connectors. The above-and-beyond move is to build, in this order, a deal layer, a promise layer, a remediation layer, and a buyer layer on top of the evidence graph you already have. That sequence preserves the fast deal-unblocking motion while creating a product that is much harder to commoditize.
