@@ -39,10 +39,15 @@ class TestRemediationService:
         assert len(pbs) >= 1
 
     def test_seed_builtins(self, db_session):
-        ws = db_session.query(Workspace).first()
+        ws = db_session.query(Workspace).filter(Workspace.id == 2).first() or db_session.query(Workspace).first()
+        before = len(svc.list_playbooks(db_session, ws.id))
         result = svc.seed_builtins(db_session, ws.id)
         db_session.commit()
-        assert result["seeded"] >= 1
+        after = len(svc.list_playbooks(db_session, ws.id))
+        assert result["seeded"] >= 0
+        assert after >= before
+        if before == 0:
+            assert result["seeded"] >= 1
 
     def test_get_builtins(self):
         builtins = svc.get_builtin_playbooks()

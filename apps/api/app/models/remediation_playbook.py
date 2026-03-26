@@ -43,5 +43,6 @@ class RemediationTicket(Base):
     external_ticket_id = Column(String(255), nullable=True)  # Jira/Linear ID
     external_ticket_url = Column(String(512), nullable=True)
     resolved_at = Column(DateTime, nullable=True)
+    linked_evidence_ids_json = Column(Text, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)

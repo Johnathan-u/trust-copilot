@@ -119,6 +119,8 @@ from app.api.routes import connector_wizard as connector_wizard_router
 from app.api.routes import deals as deals_router
 from app.api.routes import crm_connectors as crm_connectors_router
 from app.api.routes import remediation as remediation_router
+from app.api.routes import promises as promises_router
+from app.api.routes import contracts as contracts_router
 from app.services.storage import StorageClient
 
 
@@ -415,6 +417,8 @@ app.include_router(connector_wizard_router.router, prefix="/api")
 app.include_router(deals_router.router, prefix="/api")
 app.include_router(crm_connectors_router.router, prefix="/api")
 app.include_router(remediation_router.router, prefix="/api")
+app.include_router(promises_router.router, prefix="/api")
+app.include_router(contracts_router.router, prefix="/api")
 
 
 @app.get("/metrics")

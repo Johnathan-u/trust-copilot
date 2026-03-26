@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 from app.core.auth_deps import require_can_admin, require_session
 from app.core.database import get_db
 from app.services import remediation_service as svc
+from app.services import remediation_loop_service as loop_svc
 
 router = APIRouter(prefix="/remediation", tags=["remediation"])
 
@@ -34,6 +35,20 @@ class CreateTicketBody(BaseModel):
 
 class UpdateStatusBody(BaseModel):
     status: str
+
+
+class SubmitEvidenceBody(BaseModel):
+    evidence_ids: list[int]
+    bump_control_to: str | None = "implemented"
+
+
+class AutomationEnableBody(BaseModel):
+    enabled: bool
+
+
+class RunAutomationBody(BaseModel):
+    dry_run: bool = True
+    ticket_id: int | None = None
 
 
 @router.post("/playbooks")
@@ -95,3 +110,67 @@ async def auto_create(session: dict = Depends(require_can_admin), db: Session = 
 @router.get("/stats")
 async def stats(session: dict = Depends(require_session), db: Session = Depends(get_db)):
     return svc.get_ticket_stats(db, session["workspace_id"])
+
+
+@router.post("/tickets/{ticket_id}/evidence")
+async def submit_evidence(
+    ticket_id: int,
+    body: SubmitEvidenceBody,
+    session: dict = Depends(require_can_admin),
+    db: Session = Depends(get_db),
+):
+    result = loop_svc.submit_post_remediation_evidence(
+        db, ticket_id, body.evidence_ids, session.get("user_id"), body.bump_control_to
+    )
+    if not result:
+        raise HTTPException(status_code=404)
+    db.commit()
+    return result
+
+
+@router.get("/tickets/{ticket_id}/impact")
+async def ticket_impact(ticket_id: int, session: dict = Depends(require_session), db: Session = Depends(get_db)):
+    result = loop_svc.analyze_remediation_impact(db, ticket_id)
+    if not result:
+        raise HTTPException(status_code=404)
+    return result
+
+
+@router.get("/automations")
+async def list_automations(session: dict = Depends(require_session), db: Session = Depends(get_db)):
+    return {"automations": loop_svc.list_automations(db, session["workspace_id"])}
+
+
+@router.post("/automations/{automation_key}/enable")
+async def enable_automation(
+    automation_key: str,
+    body: AutomationEnableBody,
+    session: dict = Depends(require_can_admin),
+    db: Session = Depends(get_db),
+):
+    result = loop_svc.set_automation_enabled(db, session["workspace_id"], automation_key, body.enabled)
+    if "error" in result:
+        raise HTTPException(status_code=400, detail=result["error"])
+    db.commit()
+    return result
+
+
+@router.post("/automations/{automation_key}/run")
+async def run_automation(
+    automation_key: str,
+    body: RunAutomationBody,
+    session: dict = Depends(require_can_admin),
+    db: Session = Depends(get_db),
+):
+    result = loop_svc.run_safe_automation(
+        db, session["workspace_id"], automation_key, body.ticket_id, body.dry_run, session.get("user_id")
+    )
+    if "error" in result:
+        raise HTTPException(status_code=400, detail=result["error"])
+    db.commit()
+    return result
+
+
+@router.get("/audit")
+async def audit_log(session: dict = Depends(require_can_admin), db: Session = Depends(get_db)):
+    return {"events": loop_svc.list_audit_events(db, session["workspace_id"])}

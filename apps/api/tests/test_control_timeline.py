@@ -47,7 +47,8 @@ class TestControlTimelineService:
 
 class TestControlTimelineAPI:
     def test_get_timeline(self, admin_client, db_session):
-        ws = db_session.query(Workspace).first()
+        # Admin session is always workspace_id=1 (see conftest seed).
+        ws = db_session.query(Workspace).filter(Workspace.id == 1).first()
         wc = db_session.query(WorkspaceControl).filter(
             WorkspaceControl.workspace_id == ws.id
         ).first()

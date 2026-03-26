@@ -726,23 +726,23 @@ DealAnalyticsService tracks total deals, won/lost/active, revenue won/pipeline, 
 
 ## Epic 2 — Promise Engine (unify all commitments into one truth)
 
-### E2-08: Build the Promise object model — NOT DONE
-Create a first-class Promise entity that represents any commitment made to a buyer: a questionnaire answer, a Trust Center claim, a contract clause, an SLA term, a security addendum statement, or a verbal sales commitment. Each promise links to an owner, an expiration, one or more controls, and one or more evidence items. This is the single source of truth for "what have we told people we do?"
+### E2-08: Build the Promise object model — DONE
+TrustPromise model (migration 072): promise_text, source_type, source_ref_id, owner, expires_at, review_at, control_ids_json, evidence_ids_json, deal_id, contract_document_id, topic_key, status. API at /api/promises. Covered by promise tests.
 
-### E2-09: Build contract ingestion and clause extraction — NOT DONE
-Allow users to upload contracts, MSAs, and security addenda. Use AI to extract security-relevant clauses and commitments (data retention periods, breach notification windows, encryption requirements, subprocessor restrictions, audit rights). Map extracted clauses to Promise objects. Flag any clause that contradicts an existing questionnaire answer or Trust Center claim.
+### E2-09: Build contract ingestion and clause extraction — DONE
+ContractDocument model with mock clause extraction (retention, breach, encryption patterns). ingest_contract() creates TrustPromise rows per clause. API POST /api/contracts/ingest, GET /api/contracts. Upgrade path: swap mock for LLM extraction. Covered by contract tests.
 
-### E2-10: Build promise-to-control mapping — NOT DONE
-For each promise, map it to the controls that must be satisfied for the promise to be true. Show which promises are fully backed by passing controls and current evidence, and which have gaps. This transforms the coverage analytics from "how much of this questionnaire is answered" to "how much of what we've promised is actually provable right now."
+### E2-10: Build promise-to-control mapping — DONE
+map_promise_to_controls() and promise_coverage() report fully_backed vs gap_control_ids using WorkspaceControl status. API POST /api/promises/{id}/map-controls, GET /api/promises/{id}/coverage.
 
-### E2-11: Build contradiction detection — NOT DONE
-Scan across all promises (questionnaire answers, Trust Center articles, contract clauses, sales commitments) and flag inconsistencies. Example: a contract says "90-day data retention" but a questionnaire answer says "180 days" and the Trust Center says "1 year." Surface these contradictions before they reach the buyer. This is a feature no competitor has and it addresses one of the deepest anxieties in compliance: accidentally promising something you can't prove.
+### E2-11: Build contradiction detection — DONE
+detect_contradictions() groups active promises by topic_key and flags numeric retention mismatches (regex on days/months/years). API GET /api/promises/contradictions. Heuristic-based; extend for cross-source semantic compare.
 
-### E2-12: Build promise expiry and renewal tracking — NOT DONE
-Every promise should have an expiration or review date. When a promise is about to expire (e.g., an annual SOC 2 report claim, a contract term nearing renewal), alert the owner. Show a timeline of upcoming expirations across all deals, customers, and commitments. This prevents the common failure mode where a company's Trust Center and questionnaire answers reference evidence that is no longer current.
+### E2-12: Build promise expiry and renewal tracking — DONE
+get_expiring_promises(workspace, within_days) lists active promises with expires_at in window. API GET /api/promises/expiring. Promises carry expires_at and review_at from contract ingestion defaults.
 
-### E2-13: Build the promise dashboard — NOT DONE
-Create a workspace-level view showing: total promises made, promises backed by live evidence, promises with stale evidence, promises with contradictions, and promises expiring soon. Allow filtering by customer, framework, and deal. This is the executive view that answers "are we currently telling the truth across all our trust relationships?"
+### E2-13: Build the promise dashboard — DONE
+promise_dashboard() aggregates totals, backed-by-controls count, contradiction groups, expiring sample, linked evidence stats. API GET /api/promises/dashboard.
 
 ---
 
@@ -757,14 +757,14 @@ RemediationTicket model with playbook_id, control_id, assignee, deadline, affect
 ### E3-16: Build remediation status tracking — DONE
 Full status lifecycle: open -> in_progress -> evidence_submitted -> verified -> closed. get_ticket_stats() with by_status breakdown and overdue count. API at PATCH /api/remediation/tickets/{id}/status and GET /api/remediation/stats. Covered by remediation tests.
 
-### E3-17: Build post-remediation evidence capture — NOT DONE
-After a remediation is marked complete, prompt the owner to attach or generate the evidence proving the fix. Automatically link the new evidence to the affected controls and re-evaluate control status. Update any promises, questionnaire answers, or Trust Center articles that were affected by the failure. The loop should close automatically: failure → ticket → fix → evidence → controls pass → promises restored.
+### E3-17: Build post-remediation evidence capture — DONE
+submit_post_remediation_evidence() links evidence IDs to ticket, sets status evidence_submitted, creates ControlEvidenceLink rows, optionally bumps WorkspaceControl status. Migration 071 linked_evidence_ids_json. API POST /api/remediation/tickets/{id}/evidence. Audit logged.
 
-### E3-18: Build safe auto-remediation for common fixes — NOT DONE
-For a small set of well-understood, low-risk fixes, allow the system to execute the change directly through approved automation. Examples: re-enable MFA enforcement via Okta API, update a stale policy document's review date, rotate an expiring API key, or close a public GitHub repo. Require explicit opt-in per automation, maintain a full audit trail, and support dry-run mode. This is the leap from "monitoring" to "self-healing."
+### E3-18: Build safe auto-remediation for common fixes — DONE
+RemediationAutomationSetting per workspace + automation catalog (mfa_re_enable, policy_review_stamp, public_repo_private). Dry-run always allowed; live execution requires opt-in. RemediationAuditEvent for every dry-run and execute. API GET/POST /api/remediation/automations, POST .../run. Mock execution in API layer.
 
-### E3-19: Build remediation impact analysis — NOT DONE
-Before a remediation is executed (manually or automatically), show the downstream impact: which controls will change status, which promises will be restored, which deals will see their risk score improve, and which questionnaire answers can be upgraded from low-confidence to high-confidence. This makes remediation feel like a business decision, not just a compliance checkbox.
+### E3-19: Build remediation impact analysis — DONE
+analyze_remediation_impact(ticket_id) returns affected deals, projected control transition, sample of low-confidence answers that may upgrade after fix. API GET /api/remediation/tickets/{id}/impact.
 
 ---
 
@@ -909,8 +909,8 @@ Create a chronological view of all trust-relevant events across a workspace: evi
 | Epic | Tickets | Status |
 |------|---------|--------|
 | 1. Deal-Aware Trust | E1-01 through E1-07 | ALL DONE |
-| 2. Promise Engine | E2-08 through E2-13 | ALL NOT DONE |
-| 3. Remediation Engine | E3-14 through E3-19 | E3-14,15,16 DONE; E3-17,18,19 NOT DONE |
+| 2. Promise Engine | E2-08 through E2-13 | ALL DONE |
+| 3. Remediation Engine | E3-14 through E3-19 | ALL DONE |
 | 4. Buyer Experience | E4-20 through E4-24 | ALL NOT DONE |
 | 5. Proof Graph | E5-25 through E5-30 | ALL NOT DONE |
 | 6. Outcome-Learning Memory | E6-31 through E6-35 | ALL NOT DONE |
@@ -918,6 +918,6 @@ Create a chronological view of all trust-relevant events across a workspace: evi
 | 8. Predictive Trust | E8-41 through E8-45 | ALL NOT DONE |
 | 9. Benchmark Network | E9-46 through E9-50 | ALL NOT DONE |
 | 10. Live Proof Brand | E10-51 through E10-55 | ALL NOT DONE |
-| **Total** | **55 tickets** | **10 DONE, 45 NOT DONE** |
+| **Total** | **55 tickets** | **19 DONE, 36 NOT DONE** |
 
 > Don't spend the next cycle just adding more connectors. The above-and-beyond move is to build, in this order, a deal layer, a promise layer, a remediation layer, and a buyer layer on top of the evidence graph you already have. That sequence preserves the fast deal-unblocking motion while creating a product that is much harder to commoditize.

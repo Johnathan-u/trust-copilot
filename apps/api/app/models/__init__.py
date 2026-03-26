@@ -73,6 +73,8 @@ from app.models.freshness_policy import FreshnessPolicy
 from app.models.retention_policy import RetentionPolicy
 from app.models.deal import Deal, DEAL_STAGES
 from app.models.remediation_playbook import RemediationPlaybook, RemediationTicket, REMEDIATION_STATUSES
+from app.models.remediation_audit import RemediationAuditEvent, RemediationAutomationSetting
+from app.models.trust_promise import ContractDocument, TrustPromise, PROMISE_SOURCE_TYPES, PROMISE_STATUSES
 
 __all__ = [
     "ApiKey",
@@ -173,4 +175,10 @@ __all__ = [
     "RemediationPlaybook",
     "RemediationTicket",
     "REMEDIATION_STATUSES",
+    "RemediationAuditEvent",
+    "RemediationAutomationSetting",
+    "ContractDocument",
+    "TrustPromise",
+    "PROMISE_SOURCE_TYPES",
+    "PROMISE_STATUSES",
 ]

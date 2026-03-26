@@ -189,4 +189,5 @@ def _serialize_ticket(t: RemediationTicket) -> dict:
         "external_ticket_id": t.external_ticket_id,
         "resolved_at": t.resolved_at.isoformat() if t.resolved_at else None,
         "created_at": t.created_at.isoformat() if t.created_at else None,
+        "linked_evidence_ids": json.loads(getattr(t, "linked_evidence_ids_json", None) or "[]"),
     }
