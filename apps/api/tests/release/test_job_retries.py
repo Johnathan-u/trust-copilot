@@ -994,4 +994,13 @@ def test_migration_downgrade_and_upgrade_roundtrip(_ensure_test_data):
         alembic("upgrade", "head")
     assert {"error_code", "next_attempt_at"} <= cols()
     heads = alembic("heads")
-    assert "tc10002_job_retries" in heads and len(heads.strip().splitlines()) == 1
+    assert len(heads.strip().splitlines()) == 1
+    # Later revisions may chain on top of this one, so check ancestry rather than the head's name.
+    from alembic.config import Config
+    from alembic.script import ScriptDirectory
+
+    cfg = Config(str(api_dir / "alembic.ini"))
+    cfg.set_main_option("script_location", str(api_dir / "alembic"))
+    script = ScriptDirectory.from_config(cfg)
+    (head,) = script.get_heads()
+    assert "tc10002_job_retries" in {r.revision for r in script.walk_revisions("base", head)}

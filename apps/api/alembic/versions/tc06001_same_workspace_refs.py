@@ -10,13 +10,13 @@ this upgrade cannot fail on them. NULL references are allowed, which keeps ON DE
 working. No data is read, changed or deleted by this revision.
 
 Revision ID: tc06001_same_workspace_refs
-Revises: tc25005_case_study_consent
+Revises: tc10002_job_retries
 """
 
 from alembic import op
 
 revision = "tc06001_same_workspace_refs"
-down_revision = "tc25005_case_study_consent"
+down_revision = "tc10002_job_retries"
 branch_labels = None
 depends_on = None
 
