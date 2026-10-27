@@ -1,0 +1,9 @@
+FAILED tests/test_answer_pipeline.py::test_partial_completion_progress - Valu...
+FAILED tests/test_p1_multi_tenant_hardening.py::TestAPIQuotaEnforcement::test_generate_answers_blocked_at_quota
+SKIPPED [1] tests/test_trust_scoring_blind.py:27: Blind test pack not found (local-only file)
+SKIPPED [1] tests/test_control_timeline.py:42: No reviewed workspace controls
+SKIPPED [1] tests/test_feedback_capture.py:22: No questionnaires
+2 failed, 1359 passed, 3 skipped, 2 errors in 66.80s (0:01:06)
+exit=1
+ERROR collecting tests/test_alerts_api.py (pre-existing, same on master f72def3)
+ERROR collecting tests/test_coverage_api.py (pre-existing, same on master f72def3)

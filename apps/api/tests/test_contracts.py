@@ -17,7 +17,9 @@ class TestContractService:
     def test_ingest_extracts_clauses(self, db_session):
         ws = db_session.query(Workspace).first()
         result = cs.ingest_contract(
-            db_session, ws.id, "MSA 2026",
+            db_session,
+            ws.id,
+            "MSA 2026",
             body_text="Customer data retention 90 days. Breach notification within 72 hours. AES-256 encryption.",
         )
         db_session.commit()
@@ -35,10 +37,13 @@ class TestContractService:
 
 class TestContractAPI:
     def test_ingest(self, admin_client):
-        r = admin_client.post("/api/contracts/ingest", json={
-            "title": "Security Addendum",
-            "body_text": "90 day retention and encryption at rest",
-        })
+        r = admin_client.post(
+            "/api/contracts/ingest",
+            json={
+                "title": "Security Addendum",
+                "body_text": "90 day retention and encryption at rest",
+            },
+        )
         assert r.status_code == 200
         assert "promise_ids" in r.json()
 

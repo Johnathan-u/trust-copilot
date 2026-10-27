@@ -42,8 +42,13 @@ async def store_credential(
     if not req.value.strip():
         raise HTTPException(status_code=400, detail="Value is required")
     result = cs.store_credential(
-        db, session["workspace_id"], req.source_type, req.credential_type,
-        req.value, rotation_interval_days=req.rotation_interval_days, expires_at=req.expires_at,
+        db,
+        session["workspace_id"],
+        req.source_type,
+        req.credential_type,
+        req.value,
+        rotation_interval_days=req.rotation_interval_days,
+        expires_at=req.expires_at,
     )
     db.commit()
     return result

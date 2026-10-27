@@ -16,11 +16,7 @@ def get_vendor_response(
     db: Session = Depends(get_db),
 ):
     """Public endpoint — no auth required. Resolves a secure link token."""
-    vr = (
-        db.query(VendorRequest)
-        .filter(VendorRequest.link_token == token)
-        .first()
-    )
+    vr = db.query(VendorRequest).filter(VendorRequest.link_token == token).first()
     if not vr:
         raise HTTPException(status_code=404, detail="This link is invalid or has expired.")
 
@@ -31,9 +27,15 @@ def get_vendor_response(
     }
 
     if vr.questionnaire_id:
+        # Only expose a live questionnaire from the request's own workspace. Anything else
+        # (another workspace, soft-deleted, missing) is treated as "no questionnaire".
         qnr = (
             db.query(Questionnaire)
-            .filter(Questionnaire.id == vr.questionnaire_id)
+            .filter(
+                Questionnaire.id == vr.questionnaire_id,
+                Questionnaire.workspace_id == vr.workspace_id,
+                Questionnaire.deleted_at.is_(None),
+            )
             .first()
         )
         if qnr:

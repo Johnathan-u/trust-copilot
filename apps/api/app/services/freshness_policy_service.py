@@ -5,7 +5,7 @@ while static PDFs might be trusted for 180 days.
 """
 
 import logging
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta, timezone  # noqa: F401
 
 from sqlalchemy.orm import Session
 
@@ -32,10 +32,14 @@ def set_policy(
     max_age_days: int,
     warn_before_days: int = 14,
 ) -> dict:
-    existing = db.query(FreshnessPolicy).filter(
-        FreshnessPolicy.workspace_id == workspace_id,
-        FreshnessPolicy.source_type == source_type,
-    ).first()
+    existing = (
+        db.query(FreshnessPolicy)
+        .filter(
+            FreshnessPolicy.workspace_id == workspace_id,
+            FreshnessPolicy.source_type == source_type,
+        )
+        .first()
+    )
     if existing:
         existing.max_age_days = max_age_days
         existing.warn_before_days = warn_before_days
@@ -53,22 +57,35 @@ def set_policy(
 
 
 def get_policies(db: Session, workspace_id: int) -> list[dict]:
-    policies = db.query(FreshnessPolicy).filter(
-        FreshnessPolicy.workspace_id == workspace_id,
-    ).order_by(FreshnessPolicy.source_type.asc()).all()
+    policies = (
+        db.query(FreshnessPolicy)
+        .filter(
+            FreshnessPolicy.workspace_id == workspace_id,
+        )
+        .order_by(FreshnessPolicy.source_type.asc())
+        .all()
+    )
     return [_serialize(p) for p in policies]
 
 
 def get_effective_policy(db: Session, workspace_id: int, source_type: str) -> dict:
-    policy = db.query(FreshnessPolicy).filter(
-        FreshnessPolicy.workspace_id == workspace_id,
-        FreshnessPolicy.source_type == source_type,
-    ).first()
+    policy = (
+        db.query(FreshnessPolicy)
+        .filter(
+            FreshnessPolicy.workspace_id == workspace_id,
+            FreshnessPolicy.source_type == source_type,
+        )
+        .first()
+    )
     if policy:
         return _serialize(policy)
     defaults = DEFAULT_POLICIES.get(source_type, {"max_age_days": 90, "warn_before_days": 14})
-    return {"source_type": source_type, "max_age_days": defaults["max_age_days"],
-            "warn_before_days": defaults["warn_before_days"], "is_default": True}
+    return {
+        "source_type": source_type,
+        "max_age_days": defaults["max_age_days"],
+        "warn_before_days": defaults["warn_before_days"],
+        "is_default": True,
+    }
 
 
 def evaluate_freshness(db: Session, workspace_id: int) -> list[dict]:
@@ -103,22 +120,28 @@ def evaluate_freshness(db: Session, workspace_id: int) -> list[dict]:
         else:
             status = "fresh"
 
-        results.append({
-            "evidence_id": item.id,
-            "title": item.title,
-            "source_type": item.source_type,
-            "age_days": age_days,
-            "max_age_days": max_age,
-            "freshness_status": status,
-        })
+        results.append(
+            {
+                "evidence_id": item.id,
+                "title": item.title,
+                "source_type": item.source_type,
+                "age_days": age_days,
+                "max_age_days": max_age,
+                "freshness_status": status,
+            }
+        )
     return results
 
 
 def delete_policy(db: Session, workspace_id: int, source_type: str) -> bool:
-    policy = db.query(FreshnessPolicy).filter(
-        FreshnessPolicy.workspace_id == workspace_id,
-        FreshnessPolicy.source_type == source_type,
-    ).first()
+    policy = (
+        db.query(FreshnessPolicy)
+        .filter(
+            FreshnessPolicy.workspace_id == workspace_id,
+            FreshnessPolicy.source_type == source_type,
+        )
+        .first()
+    )
     if not policy:
         return False
     db.delete(policy)

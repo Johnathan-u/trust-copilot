@@ -1,0 +1,4 @@
+# SHA 0aff48c40cbbc7595fed893147d2d01b8a99aefa; cmd: python -m pytest tests/test_api_contracts.py tests/test_alerting_verification.py -q -p no:cacheprovider --deselect tests/test_alerting_verification.py::test_openai_failure_logs_ALERT_OPENAI_FAILURE (deselected: real invalid-key OpenAI call on master; mocked in ci-repair)
+.............                                                            [100%]
+13 passed, 1 deselected in 1.74s
+# exit status: 0

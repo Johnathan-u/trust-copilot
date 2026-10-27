@@ -73,7 +73,9 @@ async def slack_connect(
     provider = get_slack_provider()
     auth_result = provider.test_auth(token)
     if not auth_result.get("ok"):
-        raise HTTPException(status_code=400, detail=f"Slack auth failed: {auth_result.get('error', 'unknown')}")
+        raise HTTPException(
+            status_code=400, detail=f"Slack auth failed: {auth_result.get('error', 'unknown')}"
+        )
 
     valid_events = [e for e in (req.event_types or []) if e in NOTIFICATION_EVENT_TYPES]
 
@@ -99,8 +101,17 @@ async def slack_connect(
         db.commit()
         db.refresh(si)
 
-    persist_audit(db, "slack.connected", user_id=session.get("user_id"), workspace_id=ws,
-                  details={"channel_id": channel_id, "channel_name": req.channel_name, "event_count": len(valid_events)})
+    persist_audit(
+        db,
+        "slack.connected",
+        user_id=session.get("user_id"),
+        workspace_id=ws,
+        details={
+            "channel_id": channel_id,
+            "channel_name": req.channel_name,
+            "event_count": len(valid_events),
+        },
+    )
 
     return {"connected": True, "channel_id": channel_id, "channel_name": req.channel_name}
 
@@ -135,8 +146,13 @@ async def slack_configure(
     db.refresh(si)
 
     if changes:
-        persist_audit(db, "slack.configured", user_id=session.get("user_id"), workspace_id=ws,
-                      details={"changes": changes})
+        persist_audit(
+            db,
+            "slack.configured",
+            user_id=session.get("user_id"),
+            workspace_id=ws,
+            details={"changes": changes},
+        )
 
     event_types = []
     if si.event_types:
@@ -145,7 +161,12 @@ async def slack_configure(
         except (json.JSONDecodeError, TypeError):
             pass
 
-    return {"enabled": bool(si.enabled), "channel_id": si.channel_id, "channel_name": si.channel_name, "event_types": event_types}
+    return {
+        "enabled": bool(si.enabled),
+        "channel_id": si.channel_id,
+        "channel_name": si.channel_name,
+        "event_types": event_types,
+    }
 
 
 @router.delete("/disconnect")
@@ -177,22 +198,29 @@ async def slack_test(
 
     token = decrypt_token(si.bot_token_encrypted)
     provider = get_slack_provider()
-    result = provider.send_message(token, si.channel_id, "Trust Copilot test message — Slack integration is working.")
+    result = provider.send_message(
+        token, si.channel_id, "Trust Copilot test message — Slack integration is working."
+    )
 
     from app.models import NotificationLog
-    db.add(NotificationLog(
-        workspace_id=ws,
-        event_type="slack.test",
-        channel="slack",
-        recipient_email=f"#{si.channel_name or si.channel_id}",
-        subject="Test message",
-        status="sent" if result.get("ok") else "failed",
-        error=result.get("error", "")[:500] if not result.get("ok") else None,
-    ))
+
+    db.add(
+        NotificationLog(
+            workspace_id=ws,
+            event_type="slack.test",
+            channel="slack",
+            recipient_email=f"#{si.channel_name or si.channel_id}",
+            subject="Test message",
+            status="sent" if result.get("ok") else "failed",
+            error=result.get("error", "")[:500] if not result.get("ok") else None,
+        )
+    )
     db.commit()
 
     if not result.get("ok"):
-        raise HTTPException(status_code=502, detail=f"Slack delivery failed: {result.get('error', 'unknown')}")
+        raise HTTPException(
+            status_code=502, detail=f"Slack delivery failed: {result.get('error', 'unknown')}"
+        )
 
     return {"ok": True, "message": "Test message sent to Slack"}
 

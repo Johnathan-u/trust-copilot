@@ -13,14 +13,20 @@ def _normalize_xlsx_for_golden(questions: list[dict]) -> list[dict]:
     """Normalize parser output for comparison (strip file path from source_location)."""
     out = []
     for q in questions:
-        sl = json.loads(q["source_location"]) if isinstance(q["source_location"], str) else q["source_location"]
-        out.append({
-            "text": q["text"],
-            "section": q.get("section"),
-            "answer_type": q["answer_type"],
-            "source_location": {"sheet": sl["sheet"], "row": sl["row"], "col": sl["col"]},
-            "confidence": q["confidence"],
-        })
+        sl = (
+            json.loads(q["source_location"])
+            if isinstance(q["source_location"], str)
+            else q["source_location"]
+        )
+        out.append(
+            {
+                "text": q["text"],
+                "section": q.get("section"),
+                "answer_type": q["answer_type"],
+                "source_location": {"sheet": sl["sheet"], "row": sl["row"], "col": sl["col"]},
+                "confidence": q["confidence"],
+            }
+        )
     return out
 
 
@@ -28,14 +34,20 @@ def _normalize_docx_for_golden(questions: list[dict]) -> list[dict]:
     """Normalize DOCX parser output (source_location has type/paragraph or table/row/col)."""
     out = []
     for q in questions:
-        sl = json.loads(q["source_location"]) if isinstance(q["source_location"], str) else q["source_location"]
-        out.append({
-            "text": q["text"],
-            "section": q.get("section"),
-            "answer_type": q["answer_type"],
-            "source_location": sl,
-            "confidence": q["confidence"],
-        })
+        sl = (
+            json.loads(q["source_location"])
+            if isinstance(q["source_location"], str)
+            else q["source_location"]
+        )
+        out.append(
+            {
+                "text": q["text"],
+                "section": q.get("section"),
+                "answer_type": q["answer_type"],
+                "source_location": sl,
+                "confidence": q["confidence"],
+            }
+        )
     return out
 
 
@@ -66,7 +78,7 @@ def test_parse_iso27001_xlsx() -> None:
     """Parse ISO27001 fixture (EXP-09)."""
     path = FIXTURES / "iso27001.xlsx"
     if not path.exists():
-        pytest.skip("Run scripts/generate-fixtures.py first")
+        pytest.skip("Run scripts/generate-fixtures.py first")  # noqa: F821
     questions = parse_xlsx_questionnaire(path)
     assert len(questions) >= 1
     assert all("source_location" in q for q in questions)
@@ -76,6 +88,6 @@ def test_parse_vendor_dd_xlsx() -> None:
     """Parse vendor DD fixture (EXP-09)."""
     path = FIXTURES / "vendor_dd.xlsx"
     if not path.exists():
-        pytest.skip("Run scripts/generate-fixtures.py first")
+        pytest.skip("Run scripts/generate-fixtures.py first")  # noqa: F821
     questions = parse_xlsx_questionnaire(path)
     assert len(questions) >= 1

@@ -5,6 +5,7 @@ import logging
 
 from sqlalchemy.orm import Session
 
+from app.core.logging_config import request_id_ctx
 from app.models import Job, JobStatus, Questionnaire
 from app.services.answer_generation import (
     is_allowed_model,
@@ -39,11 +40,13 @@ def enqueue_export_job(
         workspace_id=workspace_id,
         kind="export",
         status=JobStatus.QUEUED.value,
-        payload=json.dumps({
-            "questionnaire_id": questionnaire_id,
-            "workspace_id": workspace_id,
-            "format": format,
-        }),
+        payload=json.dumps(
+            {
+                "questionnaire_id": questionnaire_id,
+                "workspace_id": workspace_id,
+                "format": format,
+            }
+        ),
     )
     db.add(job)
     db.commit()
@@ -67,7 +70,9 @@ def enqueue_generate_answers_job(
     """Create and enqueue a generate_answers job. Validates model/response_style if provided."""
     if model_override is not None and not is_allowed_model(model_override):
         raise ValueError("Unsupported model")
-    if response_style_override is not None and not is_allowed_response_style(response_style_override):
+    if response_style_override is not None and not is_allowed_response_style(
+        response_style_override
+    ):
         raise ValueError("Unsupported response style")
     qnr = (
         db.query(Questionnaire)
@@ -84,6 +89,10 @@ def enqueue_generate_answers_job(
         payload["model"] = resolve_model(model_override)
     if response_style_override is not None:
         payload["response_style"] = resolve_response_style(response_style_override)
+    rid = request_id_ctx.get()
+    if rid:
+        # TC-11-001: lets a failed job's ApiError carry the originating request_id.
+        payload["request_id"] = str(rid)
     job = Job(
         workspace_id=workspace_id,
         kind="generate_answers",

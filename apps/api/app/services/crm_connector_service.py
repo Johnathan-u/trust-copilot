@@ -99,6 +99,8 @@ def _reject_demo_sync(
         "source": provider,
         "synced": 0,
         "details": details,
+        "mock": True,
+        "data_basis": "synthetic_example",
         "observation_contract": observation_envelope(
             adapter.descriptor(),
             observations,

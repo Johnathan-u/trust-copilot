@@ -88,6 +88,14 @@ services:
       DATABASE_URL: postgresql://postgres:postgres@postgres:5432/trustcopilot
       S3_ENDPOINT: http://minio:9000
     command: python -m app.worker
+    # TC-03-003: the worker has no HTTP server, so it is probed via its heartbeat file
+    # (no HTTP, no DB). Fresh while the claim loop or a job within WORKER_JOB_MAX_RUNTIME_SEC is progressing.
+    healthcheck:
+      test: ["CMD", "python", "-m", "app.probe", "worker"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 60s
     volumes:
       - ./apps/api:/app
     depends_on:

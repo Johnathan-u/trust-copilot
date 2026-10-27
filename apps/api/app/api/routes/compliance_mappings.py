@@ -6,7 +6,13 @@ from sqlalchemy.orm import Session
 
 from app.core.auth_deps import require_can_admin, require_can_review
 from app.core.database import get_db
-from app.models import ControlMapping, FrameworkControl, Framework, WorkspaceControl, ControlMappingOverride
+from app.models import (
+    ControlMapping,
+    FrameworkControl,
+    Framework,
+    WorkspaceControl,
+    ControlMappingOverride,
+)
 from app.services.question_normalizer import normalize_question, question_cache_hash
 from app.services.compliance_hooks import question_to_controls
 from app.core.compliance_rate_limit import check_compliance_write_allowed
@@ -31,7 +37,10 @@ class OverrideMappingBody(BaseModel):
 
 
 def _framework_id_by_name(db: Session, name: str) -> list[int]:
-    return [r[0] for r in db.query(Framework.id).filter(Framework.name == name).all()]
+    """Exact stored name. A dev row does not resolve when an advertised row shares it."""
+    from app.services.framework_catalog import framework_ids_for_exact_name
+
+    return framework_ids_for_exact_name(db, name)
 
 
 def _fc_ids_for_framework(db: Session, framework_name: str) -> list[int]:
@@ -40,7 +49,9 @@ def _fc_ids_for_framework(db: Session, framework_name: str) -> list[int]:
         return []
     return [
         r[0]
-        for r in db.query(FrameworkControl.id).filter(FrameworkControl.framework_id.in_(fw_ids)).all()
+        for r in db.query(FrameworkControl.id)
+        .filter(FrameworkControl.framework_id.in_(fw_ids))
+        .all()
     ]
 
 
@@ -66,36 +77,58 @@ def list_control_mappings(
     rows = q.all()
     out = []
     for r in rows:
-        src_fc = db.query(FrameworkControl).filter(FrameworkControl.id == r.source_control_id).first()
-        src_fw = db.query(Framework).filter(Framework.id == src_fc.framework_id).first() if src_fc else None
-        tgt_fc = db.query(FrameworkControl).filter(FrameworkControl.id == r.target_control_id).first()
-        tgt_fw = db.query(Framework).filter(Framework.id == tgt_fc.framework_id).first() if tgt_fc else None
-        out.append({
-            "id": r.id,
-            "source_control_id": r.source_control_id,
-            "target_control_id": r.target_control_id,
-            "source_key": src_fc.control_key if src_fc else None,
-            "source_framework": src_fw.name if src_fw else None,
-            "target_key": tgt_fc.control_key if tgt_fc else None,
-            "target_framework": tgt_fw.name if tgt_fw else None,
-        })
+        src_fc = (
+            db.query(FrameworkControl).filter(FrameworkControl.id == r.source_control_id).first()
+        )
+        src_fw = (
+            db.query(Framework).filter(Framework.id == src_fc.framework_id).first()
+            if src_fc
+            else None
+        )
+        tgt_fc = (
+            db.query(FrameworkControl).filter(FrameworkControl.id == r.target_control_id).first()
+        )
+        tgt_fw = (
+            db.query(Framework).filter(Framework.id == tgt_fc.framework_id).first()
+            if tgt_fc
+            else None
+        )
+        out.append(
+            {
+                "id": r.id,
+                "source_control_id": r.source_control_id,
+                "target_control_id": r.target_control_id,
+                "source_key": src_fc.control_key if src_fc else None,
+                "source_framework": src_fw.name if src_fw else None,
+                "target_key": tgt_fc.control_key if tgt_fc else None,
+                "target_framework": tgt_fw.name if tgt_fw else None,
+            }
+        )
     return out
 
 
-def _upsert_mapping_override(db: Session, workspace_id: int, question: str, control_ids: list[int]) -> dict:
+def _upsert_mapping_override(
+    db: Session, workspace_id: int, question: str, control_ids: list[int]
+) -> dict:
     norm = normalize_question(question or "")
     q_hash = question_cache_hash(norm) if norm else ""
     if not q_hash:
         raise HTTPException(status_code=400, detail="question is required")
     ids = [int(x) for x in control_ids if x is not None]
     if ids:
-        valid = db.query(WorkspaceControl.id).filter(
-            WorkspaceControl.workspace_id == workspace_id,
-            WorkspaceControl.id.in_(ids),
-        ).all()
+        valid = (
+            db.query(WorkspaceControl.id)
+            .filter(
+                WorkspaceControl.workspace_id == workspace_id,
+                WorkspaceControl.id.in_(ids),
+            )
+            .all()
+        )
         valid_ids = {r[0] for r in valid}
         if set(ids) != valid_ids:
-            raise HTTPException(status_code=400, detail="All control_ids must belong to this workspace")
+            raise HTTPException(
+                status_code=400, detail="All control_ids must belong to this workspace"
+            )
     existing = (
         db.query(ControlMappingOverride)
         .filter(
@@ -109,7 +142,9 @@ def _upsert_mapping_override(db: Session, workspace_id: int, question: str, cont
         db.commit()
         db.refresh(existing)
         return {"question_hash": q_hash, "control_ids": ids, "updated": True}
-    row = ControlMappingOverride(workspace_id=workspace_id, question_hash=q_hash, override_control_ids=ids)
+    row = ControlMappingOverride(
+        workspace_id=workspace_id, question_hash=q_hash, override_control_ids=ids
+    )
     db.add(row)
     db.commit()
     db.refresh(row)
@@ -147,7 +182,14 @@ def confirm_mapping(
     except Exception:
         pass
     try:
-        notify_admins(db, ws, "Mapping confirmed", f"Question-to-control mapping confirmed.", category="info", link="/dashboard/review")
+        notify_admins(
+            db,
+            ws,
+            "Mapping confirmed",
+            "Question-to-control mapping confirmed.",
+            category="info",
+            link="/dashboard/review",
+        )
     except Exception:
         pass
     return result
@@ -184,7 +226,14 @@ def override_mapping(
     except Exception:
         pass
     try:
-        notify_admins(db, ws, "Mapping overridden", f"Question-to-control mapping manually overridden.", category="warning", link="/dashboard/review")
+        notify_admins(
+            db,
+            ws,
+            "Mapping overridden",
+            "Question-to-control mapping manually overridden.",
+            category="warning",
+            link="/dashboard/review",
+        )
     except Exception:
         pass
     return result
@@ -223,5 +272,7 @@ def mapping_suggest(
         "control_ids": ids,
         "confidence": match_confidence,
         "has_override": False,
-        "reason": "Matched by keywords/category to framework controls." if ids else "No matching controls found.",
+        "reason": "Matched by keywords/category to framework controls."
+        if ids
+        else "No matching controls found.",
     }

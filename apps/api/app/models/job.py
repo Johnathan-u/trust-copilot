@@ -33,12 +33,16 @@ class Job(Base):
     __tablename__ = "jobs"
 
     id = Column(Integer, primary_key=True, index=True)
-    workspace_id = Column(Integer, ForeignKey("workspaces.id", ondelete="CASCADE"), nullable=False, index=True)
+    workspace_id = Column(
+        Integer, ForeignKey("workspaces.id", ondelete="CASCADE"), nullable=False, index=True
+    )
     kind = Column(String(64), nullable=False, index=True)
     status = Column(String(32), nullable=False, default=JobStatus.QUEUED.value, index=True)
     payload = Column(Text, nullable=True)
     result = Column(Text, nullable=True)
     error = Column(Text, nullable=True)
+    # TC-11-001: stable typed error code for failed jobs (safe message lives in ``error``).
+    error_code = Column(String(64), nullable=True)
     attempt = Column(Integer, default=0)
     max_attempts = Column(Integer, default=3)
     started_at = Column(DateTime, nullable=True)

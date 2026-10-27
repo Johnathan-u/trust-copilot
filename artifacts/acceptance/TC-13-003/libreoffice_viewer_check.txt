@@ -1,0 +1,15 @@
+# LibreOffice headless (soffice --convert-to csv) of the same synthetic export, baseline vs branch
+== base
+Synthetic Q1?,2,100
+Synthetic Q2?,+2+3,
+Synthetic Q3?,-4+5,
+Synthetic Q4?,"@SUM(1,2)",
+Synthetic Q5?,x,
+Synthetic Q6?,Yes,
+== branch
+Synthetic Q1?,=1+1,100
+Synthetic Q2?,+2+3,
+Synthetic Q3?,-4+5,
+Synthetic Q4?,"@SUM(1,2)",
+Synthetic Q5?,"=HYPERLINK(""http://example.invalid"",""x"")",
+Synthetic Q6?,Yes,

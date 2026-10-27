@@ -21,32 +21,40 @@ def run_daily_checks(db: Session, workspace_id: int) -> dict:
 
     try:
         eval_result = ce.evaluate_all_controls(db, workspace_id)
-        results["checks"].append({
-            "name": "control_evaluation",
-            "status": "completed",
-            "total_controls": eval_result["total_controls"],
-            "passing": eval_result["passing"],
-            "failing": eval_result["failing"],
-            "drift_count": eval_result["drift_count"],
-        })
+        results["checks"].append(
+            {
+                "name": "control_evaluation",
+                "status": "completed",
+                "total_controls": eval_result["total_controls"],
+                "passing": eval_result["passing"],
+                "failing": eval_result["failing"],
+                "drift_count": eval_result["drift_count"],
+            }
+        )
     except Exception as e:
         logger.error("Control evaluation failed for workspace %s: %s", workspace_id, e)
-        results["checks"].append({"name": "control_evaluation", "status": "failed", "error": str(e)})
+        results["checks"].append(
+            {"name": "control_evaluation", "status": "failed", "error": str(e)}
+        )
 
     try:
         health = sr.get_health_summary(db, workspace_id)
-        results["checks"].append({
-            "name": "connector_health",
-            "status": "completed",
-            "total_sources": health["total_sources"],
-            "healthy": health["healthy"],
-            "failed": health["failed"],
-        })
+        results["checks"].append(
+            {
+                "name": "connector_health",
+                "status": "completed",
+                "total_sources": health["total_sources"],
+                "healthy": health["healthy"],
+                "failed": health["failed"],
+            }
+        )
     except Exception as e:
         logger.error("Connector health check failed for workspace %s: %s", workspace_id, e)
         results["checks"].append({"name": "connector_health", "status": "failed", "error": str(e)})
 
     results["completed_at"] = datetime.now(timezone.utc).isoformat()
-    results["overall_status"] = "completed" if all(c["status"] == "completed" for c in results["checks"]) else "partial"
+    results["overall_status"] = (
+        "completed" if all(c["status"] == "completed" for c in results["checks"]) else "partial"
+    )
 
     return results

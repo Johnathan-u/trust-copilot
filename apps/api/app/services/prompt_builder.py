@@ -104,7 +104,11 @@ def build_batched_prompt(
         for i, q in enumerate(questions):
             ev_text = _format_evidence(per_question_evidence[i], limit=6)
             label_line = ""
-            if classification_labels and i < len(classification_labels) and classification_labels[i]:
+            if (
+                classification_labels
+                and i < len(classification_labels)
+                and classification_labels[i]
+            ):
                 labels = classification_labels[i]
                 parts = []
                 fw = labels.get("frameworks", [])
@@ -122,7 +126,9 @@ def build_batched_prompt(
                         style_hints.append(hint)
                 if style_hints:
                     label_line += f"\n  Style: {' '.join(style_hints)}"
-            q_blocks.append(f"Question {i+1}: {q}{label_line}\n  Evidence for Question {i+1}:\n  {ev_text}")
+            q_blocks.append(
+                f"Question {i+1}: {q}{label_line}\n  Evidence for Question {i+1}:\n  {ev_text}"
+            )
         questions_section = "\n\n".join(q_blocks)
     else:
         evidence_text = _format_evidence(evidence)
