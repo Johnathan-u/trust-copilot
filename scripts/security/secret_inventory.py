@@ -31,6 +31,7 @@ import os
 import re
 import subprocess
 import sys
+import urllib.parse
 from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Iterable, Iterator
@@ -233,18 +234,70 @@ _PLACEHOLDER_RE = re.compile(
 )
 
 # RFC 2606 / RFC 6761 reserved names: a URL credential for one of these hosts can never reach a
-# real system, so it is inventoried as a synthetic review finding instead of blocking.
-_RESERVED_HOST_RE = re.compile(
-    r"(?:^|\.)(?:invalid|example|test|localhost|example\.(?:com|net|org))$", re.IGNORECASE
+# real system, so it is downgraded to a review finding (reason recorded) instead of blocking.
+# Matched against the hostname parsed by urllib.parse (never a substring of the raw text): the
+# host must equal one of these names or be a subdomain of one.
+RESERVED_HOST_SUFFIXES = (
+    "invalid",
+    "example",
+    "test",
+    "localhost",
+    "example.com",
+    "example.net",
+    "example.org",
 )
+REASON_RESERVED_HOST = "downgraded: reserved-host (RFC 2606/6761) URL credential"
+REASON_SYNTHETIC = "downgraded: '# secret-inventory: synthetic' marker in a test/e2e/fixture path"
+
 # A test fixture line may carry this marker to declare an intentionally fake credential
 # (canary values, simulated driver errors, a redacted-value digest). The finding stays in the
-# inventory as "review"; the marker is ignored in application code and config/deploy files.
+# inventory as "review"; the marker is ignored outside test/e2e/fixture paths and always in
+# application code and config/deploy files.
 SYNTHETIC_PRAGMA = "secret-inventory: synthetic"
+# Directory components that make a path a test path (exact component match only, so
+# ``tests_helper.py`` or ``attest/`` never count).
+PRAGMA_DIR_COMPONENTS = frozenset(
+    {"test", "tests", "__tests__", "e2e", "fixture", "fixtures", "__fixtures__"}
+)
+# Directory components and file names that are deploy/CI surfaces: the marker never applies.
+DEPLOY_DIR_COMPONENTS = frozenset({"deploy", "deployment", "infra", ".github", "k8s", "helm"})
+
+
+def _url_host_is_reserved(url: str) -> bool:
+    """True only when the parsed hostname is an RFC 2606/6761 reserved name (or subdomain)."""
+    try:
+        host = urllib.parse.urlsplit(url).hostname
+    except ValueError:
+        return False
+    if not host:
+        return False
+    host = host.lower()
+    return any(host == s or host.endswith("." + s) for s in RESERVED_HOST_SUFFIXES)
+
+
+def _is_deploy_path(norm: str) -> bool:
+    parts = [p for p in norm.split("!", 1)[0].split("/") if p]
+    if not parts:
+        return False
+    name = parts[-1].lower()
+    if any(p.lower() in DEPLOY_DIR_COMPONENTS for p in parts[:-1]):
+        return True
+    return name.startswith(("docker-compose", "compose.", "dockerfile", "caddyfile"))
+
+
+def _is_config_like(norm: str) -> bool:
+    """Config surfaces beyond _is_config's suffixes, e.g. next.config.js, *.config.ts, *.json."""
+    name = norm.rsplit("/", 1)[-1].lower()
+    return ".config." in name or name.endswith((".json", ".env.example", ".example"))
 
 
 def _pragma_allowed(norm: str) -> bool:
-    return "/tests/" in f"/{norm}" or "/e2e/" in f"/{norm}"
+    if norm.startswith(APP_CODE_PREFIXES) or _is_config(norm) or _is_config_like(norm):
+        return False
+    if _is_deploy_path(norm):
+        return False
+    dirs = [p for p in norm.split("!", 1)[0].split("/") if p][:-1]
+    return any(p.lower() in PRAGMA_DIR_COMPONENTS for p in dirs)
 
 
 SKIP_DIRS = {
@@ -295,6 +348,7 @@ class Finding:
     kind: str
     severity: str
     commit: str = ""  # first commit (short SHA) where the blob was seen, for history findings
+    reason: str = ""  # why a block-rule match was downgraded to review (never a value)
 
     def location(self) -> str:
         loc = f"{self.path}:{self.line}"
@@ -425,22 +479,30 @@ def scan_text(text: str, path: str, source: str = "tree", commit: str = "") -> l
             for m in rule.pattern.finditer(line):
                 if not _value_ok(rule, m.groupdict().get("val")):
                     continue
+                severity, reason = rule.severity, ""
                 if rule.rule_id == "url-embedded-credential":
-                    host = re.match(r"[^/:\s\"'?#]*", line[m.end() :]).group(0)
-                    if _RESERVED_HOST_RE.search(host):
-                        continue  # url-credential-review records it
+                    url = re.match(r"[^\s\"'`<>]*", line[m.start() :]).group(0)
+                    if _url_host_is_reserved(url):
+                        severity, reason = "review", REASON_RESERVED_HOST
                 key = (lineno, rule.rule_id)
                 if key in seen:
                     continue
                 seen.add(key)
                 findings.append(
-                    Finding(source, norm, lineno, rule.rule_id, rule.kind, rule.severity, commit)
+                    Finding(source, norm, lineno, rule.rule_id, rule.kind, severity, commit, reason)
                 )
     if not is_app and not is_cfg and _pragma_allowed(norm) and SYNTHETIC_PRAGMA in text:
         lines = text.splitlines()
         findings = [
             Finding(
-                f.source, f.path, f.line, f.rule, f.kind + " [marked synthetic]", "review", f.commit
+                f.source,
+                f.path,
+                f.line,
+                f.rule,
+                f.kind + " [marked synthetic]",
+                "review",
+                f.commit,
+                REASON_SYNTHETIC,
             )
             if f.severity == "block"
             and 0 < f.line <= len(lines)
@@ -448,9 +510,12 @@ def scan_text(text: str, path: str, source: str = "tree", commit: str = "") -> l
             else f
             for f in findings
         ]
-    # A block finding supersedes a review finding on the same line.
+    # A block finding supersedes a plain review finding on the same line; a downgraded finding
+    # (one with a reason) is always kept so a downgrade is never silently dropped.
     blocked = {f.line for f in findings if f.severity == "block"}
-    return [f for f in findings if not (f.severity == "review" and f.line in blocked)]
+    return [
+        f for f in findings if not (f.severity == "review" and not f.reason and f.line in blocked)
+    ]
 
 
 def _should_skip(rel: str) -> bool:
@@ -641,6 +706,7 @@ def summarize(findings: list[Finding]) -> dict:
         "total": len(findings),
         "by_source_severity": by,
         "block": sum(1 for f in findings if f.severity == "block"),
+        "downgraded": sum(1 for f in findings if f.reason),
     }
 
 
@@ -665,7 +731,8 @@ def main(argv: list[str] | None = None) -> int:
     if args.mode == "all":
         findings += scan_paths(root, [d for d in DEFAULT_ARTIFACT_DIRS if (root / d).exists()])
     for f in sorted(findings, key=lambda x: (x.source, x.severity, x.path, x.line)):
-        print(f"{f.severity.upper():6} {f.source:8} {f.location()}  {f.rule}  ({f.kind})")
+        why = f"  [{f.reason}]" if f.reason else ""
+        print(f"{f.severity.upper():6} {f.source:8} {f.location()}  {f.rule}  ({f.kind}){why}")
     summary = summarize(findings)
     print(json.dumps(summary, sort_keys=True))
     if args.json_out:
