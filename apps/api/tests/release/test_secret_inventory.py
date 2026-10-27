@@ -412,3 +412,96 @@ def test_dev_compose_credentials_are_overridable():
     for line in text.splitlines():
         if line.strip().startswith("DATABASE_URL:"):
             assert "${POSTGRES_PASSWORD" in line
+
+
+# ---------------------------------------------------------------------------
+# Deploy docs: operators generate every secret; committed values are retired
+# (AC2 owner statement 2026-10-27). Cheap text checks, no values involved.
+# ---------------------------------------------------------------------------
+
+import re  # noqa: E402
+
+DEPLOY_ENTRYPOINTS = ("README.md", ".env.example", "docker-compose.prod.yml")
+
+_CRED_PAIR = re.compile(r"[\w.+-]+@[\w-]+(?:\.[\w-]+)+`?\s*/\s*`[^`\s]+`")
+_MD_ASSIGN = re.compile(
+    r"(?i)\b[A-Z0-9_]*(?:PASSWORD|PASSWD|SECRET|API_KEY|ACCESS_KEY|TOKEN)[A-Z0-9_]*\s*[=:]\s*`?([^\s`|,;)]+)"
+)
+_PLACEHOLDER = re.compile(r"(?i)^(<.*>|\$\{.*|\$[A-Z_]+|\.\.\.|placeholder\S*|changeme|change-me|x+|\*+|\"\"|''|none|null|unset)$")
+_REUSE = re.compile(
+    r"(?i)\b(re-?use|keep|copy|use)\s+(the\s+)?(same|existing|committed|default|example|old|sample|demo|dev)\s+"
+    r"(passwords?|secrets?|keys?|credentials?|tokens?|values?)"
+)
+_NEGATION = re.compile(r"(?i)\b(never|not|don't|do not|must not|no)\b")
+
+
+def _deploy_doc_paths() -> list[Path]:
+    paths = [REPO_ROOT / p for p in DEPLOY_ENTRYPOINTS]
+    paths += [REPO_ROOT / "scripts" / "README.md", REPO_ROOT / "apps" / "api" / "scripts" / "README.md"]
+    for p in sorted((REPO_ROOT / "docs").rglob("*.md")):
+        rel = p.relative_to(REPO_ROOT).as_posix()
+        if rel.startswith("docs/release/tickets/"):
+            continue  # ticket docs describe the exposure inventory (paths only), not deploy steps
+        paths.append(p)
+    return [p for p in paths if p.exists()]
+
+
+def deploy_doc_problems(text: str, *, markdown: bool) -> list[str]:
+    """Return line-numbered problem descriptions (never the matched value)."""
+    problems: list[str] = []
+    for n, line in enumerate(text.splitlines(), 1):
+        if _CRED_PAIR.search(line):
+            problems.append(f"line {n}: login/password literal pair")
+        if _REUSE.search(line) and not _NEGATION.search(line):
+            problems.append(f"line {n}: tells the operator to reuse an existing/committed credential")
+        if markdown:
+            for m in _MD_ASSIGN.finditer(line):
+                if not _PLACEHOLDER.match(m.group(1)):
+                    problems.append(f"line {n}: credential assignment with a literal value")
+    return problems
+
+
+def test_deploy_entrypoints_require_operator_generated_secrets():
+    for rel in DEPLOY_ENTRYPOINTS:
+        text = (REPO_ROOT / rel).read_text()
+        assert "openssl rand" in text, f"{rel} must tell operators to generate secrets (e.g. openssl rand)"
+        flat = re.sub(r"\s*\n\s*#?\s*", " ", text)  # join wrapped comment lines
+        assert re.search(r"(?i)generate every secret", flat), f"{rel} must say every secret is operator-generated"
+        assert re.search(r"(?i)\bretired\b", flat), f"{rel} must state previously exposed values are retired"
+        assert re.search(r"(?i)never be reused", flat), f"{rel} must say retired values must never be reused"
+
+
+def test_deploy_docs_never_point_at_committed_values():
+    failures = []
+    for p in _deploy_doc_paths():
+        rel = p.relative_to(REPO_ROOT).as_posix()
+        for problem in deploy_doc_problems(p.read_text(errors="replace"), markdown=p.suffix == ".md"):
+            failures.append(f"{rel} {problem}")
+    assert not failures, "Deploy docs must not hand out or reuse credentials:\n" + "\n".join(failures)
+
+
+@pytest.mark.parametrize(
+    "template",
+    [
+        "- **Demo login:** `ops@example.test` / `{v}` (after seed)",
+        "For production, reuse the committed secret from docker-compose.yml.",
+        "Copy the example password into .env.production.",
+        "Set SESSION_SECRET={v} before deploying.",
+        "Use `MINIO_ROOT_PASSWORD: {v}` in production.",
+    ],
+)
+def test_deploy_doc_checker_flags_bad_guidance(template):
+    bad = template.format(v=secrets.token_hex(8))
+    assert deploy_doc_problems(bad, markdown=True), "checker must flag this guidance"
+
+
+@pytest.mark.parametrize(
+    "line",
+    [
+        "Generate every secret with `openssl rand -hex 32`; never reuse a committed value.",
+        "Set SESSION_SECRET=<generated> and S3_SECRET_KEY=${S3_SECRET_KEY}.",
+        "Do not copy the example password into production.",
+    ],
+)
+def test_deploy_doc_checker_allows_good_guidance(line):
+    assert deploy_doc_problems(line, markdown=True) == []
