@@ -161,6 +161,14 @@ class Settings:
         self.idme_redirect_path: str = os.getenv("IDME_REDIRECT_PATH", "/api/auth/idme/callback")
 
         # Use pgvector index for semantic search when True (requires migration 024)
+        # TC-08-005: max worker threads for RetrievalService.batch_search. Each thread uses its own
+        # Session/connection; the effective value is further capped by the DB pool size.
+        try:
+            self.retrieval_max_threads: int = max(
+                1, min(32, int(os.getenv("RETRIEVAL_MAX_THREADS", "8")))
+            )
+        except ValueError:
+            self.retrieval_max_threads = 8
         self.use_pgvector_index: bool = os.getenv("USE_PGVECTOR_INDEX", "1").lower() in (
             "1",
             "true",
