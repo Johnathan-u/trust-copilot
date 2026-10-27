@@ -3,16 +3,35 @@
 Flow: client sends Idempotency-Key header. First request claims the key (insert),
 runs the handler, then stores the response. Duplicate requests see the key
 already claimed and either get the cached response or 409 until the first completes.
+
+An in-progress claim holds only a short lease. ``set`` extends that lease to the
+full TTL when the response is stored. An expired row (crash, or TTL elapsed) can
+be claimed again. ``cleanup_expired`` deletes rows past their lease or TTL.
 """
 
 import json
+import logging
+import re
 from datetime import datetime, timedelta, timezone
 
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
-_DEFAULT_TTL_SEC = 86400  # 24 hours
-_KEY_MAX_LEN = 256
+logger = logging.getLogger(__name__)
+
+_DEFAULT_TTL_SEC = 86400  # 24 hours, applied when the response is stored
+_IN_PROGRESS_LEASE_SEC = 60  # crash recovery: an unfinished claim expires quickly
+_KEY_MAX_LEN = 256  # idempotency_keys.idempotency_key
+# Client header, before workspace/route scoping. 1-255 of the safe token alphabet.
+_CLIENT_KEY_RE = re.compile(r"^[A-Za-z0-9._:-]{1,255}$")
+_CLIENT_KEY_MESSAGE = (
+    "Idempotency-Key must be 1-255 characters and contain only "
+    "letters, digits, and the characters . _ : -."
+)
+
+
+class IdempotencyKeyError(ValueError):
+    """The client sent an Idempotency-Key that is empty, too long, or illegal."""
 
 
 def _now() -> datetime:
@@ -48,26 +67,40 @@ def get(db: Session, key: str) -> tuple[int, dict] | None:
 
 
 def try_claim(db: Session, key: str, ttl_sec: int = _DEFAULT_TTL_SEC) -> bool:
-    """Try to claim the idempotency key. Returns True if we inserted (caller must run handler and call set).
-    Returns False if key already exists (another request is handling or already completed)."""
+    """Claim the key for this request. Returns True if this caller now owns it.
+
+    A new row, and a row whose ``expires_at`` has passed, are claimed. The in-progress
+    ``expires_at`` is a short lease (not ``ttl_sec``). ``set`` extends it to ``ttl_sec``
+    when the response is stored. An unexpired row — in progress or already completed —
+    is left untouched and this returns False.
+
+    ``ttl_sec`` is accepted for callers that share the completion-TTL default; the
+    in-progress lease does not use it.
+    """
+    del ttl_sec  # completion TTL is applied by set(), not by the in-progress lease
     if not _valid_key(key):
         return False
     k = key.strip()
-    expires = _now() + timedelta(seconds=ttl_sec)
+    lease_expires = _now() + timedelta(seconds=_IN_PROGRESS_LEASE_SEC)
     try:
         result = db.execute(
             text("""
                 INSERT INTO idempotency_keys (idempotency_key, status_code, response_body, expires_at)
                 VALUES (:k, 0, NULL, :expires_at)
-                ON CONFLICT (idempotency_key) DO NOTHING
+                ON CONFLICT (idempotency_key) DO UPDATE
+                SET status_code = 0,
+                    response_body = NULL,
+                    expires_at = EXCLUDED.expires_at
+                WHERE idempotency_keys.expires_at <= now()
                 RETURNING id
             """),
-            {"k": k, "expires_at": expires},
+            {"k": k, "expires_at": lease_expires},
         )
         row = result.fetchone()
         db.commit()
         return row is not None
     except Exception:
+        logger.warning("idempotency try_claim failed", exc_info=True)
         db.rollback()
         return False
 
@@ -75,7 +108,7 @@ def try_claim(db: Session, key: str, ttl_sec: int = _DEFAULT_TTL_SEC) -> bool:
 def set(
     db: Session, key: str, status_code: int, response_body: dict, ttl_sec: int = _DEFAULT_TTL_SEC
 ) -> None:
-    """Store response for key. Call after successful handler execution. Updates existing row (from try_claim)."""
+    """Store the response and extend the short in-progress lease to the full TTL."""
     if not _valid_key(key):
         return
     k = key.strip()
@@ -96,17 +129,47 @@ def set(
         raise
 
 
-def scoped_key(workspace_id: int, route: str, resource_id: int | str, client_key: str) -> str:
+def scoped_key(
+    workspace_id: int, route: str, resource_id: int | str, client_key: str | None
+) -> str:
     """Scope a client Idempotency-Key to workspace + route + resource (TC-10-003).
 
     Keys are stored in one global table; without scoping, the same client key used in two workspaces or on two
-    routes would replay the other request's response. Returns "" for an empty/oversized client key.
+    routes would replay the other request's response.
+
+    Returns "" when the header is absent (``client_key is None``): idempotency is optional.
+    Raises IdempotencyKeyError when the header is present but empty, longer than 255 characters,
+    outside ``[A-Za-z0-9._:-]``, or too long to store once scoped (column limit 256).
     """
-    k = (client_key or "").strip()
-    if not k:
+    if client_key is None:
         return ""
-    scoped = f"ws:{int(workspace_id)}:{route}:{resource_id}:{k}"
-    return scoped if _valid_key(scoped) else ""
+    if not _CLIENT_KEY_RE.fullmatch(client_key):
+        raise IdempotencyKeyError(_CLIENT_KEY_MESSAGE)
+    scoped = f"ws:{int(workspace_id)}:{route}:{resource_id}:{client_key}"
+    if len(scoped) > _KEY_MAX_LEN:
+        raise IdempotencyKeyError(
+            "Idempotency-Key is too long to store for this route "
+            f"(stored key limit is {_KEY_MAX_LEN} characters)."
+        )
+    return scoped
+
+
+def cleanup_expired(db: Session) -> int:
+    """Delete idempotency rows whose lease or TTL has passed. Returns how many were removed.
+
+    Called from the worker's hourly maintenance loop (alongside quota usage cleanup).
+    """
+    try:
+        result = db.execute(
+            text("DELETE FROM idempotency_keys WHERE expires_at <= :now"),
+            {"now": _now()},
+        )
+        db.commit()
+        return int(result.rowcount or 0)
+    except Exception:
+        logger.warning("idempotency cleanup_expired failed", exc_info=True)
+        db.rollback()
+        raise
 
 
 def release(db: Session, key: str) -> None:

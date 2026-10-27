@@ -2,7 +2,7 @@
 
 from enum import Enum
 
-from sqlalchemy import Column, DateTime, ForeignKey, Integer, String, Text
+from sqlalchemy import Column, DateTime, ForeignKey, Index, Integer, String, Text, text
 
 from app.core.database import Base, utc_now
 
@@ -31,6 +31,16 @@ class Job(Base):
     """Background job for async processing."""
 
     __tablename__ = "jobs"
+    __table_args__ = (
+        Index(
+            "uq_jobs_queued_idempotency_key",
+            "workspace_id",
+            "kind",
+            "idempotency_key",
+            unique=True,
+            postgresql_where=text("status = 'queued' AND idempotency_key IS NOT NULL"),
+        ),
+    )
 
     id = Column(Integer, primary_key=True, index=True)
     workspace_id = Column(

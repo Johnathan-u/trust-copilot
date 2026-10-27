@@ -46,7 +46,7 @@ def upgrade() -> None:
             nullable=False,
         ),
         sa.Column("effect", sa.String(64), nullable=False),
-        sa.Column("attempt", sa.Integer(), nullable=False, server_default="0"),
+        sa.Column("attempt", sa.Integer(), nullable=False, server_default=sa.text("0")),
         sa.Column("state", sa.String(16), nullable=False),
         sa.Column("detail", sa.Text(), nullable=True),
         sa.Column("created_at", sa.DateTime(), nullable=True),

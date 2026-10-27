@@ -12,7 +12,16 @@ One row records one side effect of one job:
   failure) becomes ``uncertain``: the provider may have charged for work we did not keep.
 """
 
-from sqlalchemy import Column, DateTime, ForeignKey, Integer, String, Text, UniqueConstraint
+from sqlalchemy import (
+    Column,
+    DateTime,
+    ForeignKey,
+    Integer,
+    String,
+    Text,
+    UniqueConstraint,
+    text,
+)
 
 from app.core.database import Base, utc_now
 
@@ -36,7 +45,7 @@ class JobEffect(Base):
         Integer, ForeignKey("workspaces.id", ondelete="CASCADE"), nullable=False, index=True
     )
     effect = Column(String(64), nullable=False)
-    attempt = Column(Integer, nullable=False, default=0)
+    attempt = Column(Integer, nullable=False, default=0, server_default=text("0"))
     state = Column(String(16), nullable=False)
     detail = Column(Text, nullable=True)
     created_at = Column(DateTime, default=utc_now)

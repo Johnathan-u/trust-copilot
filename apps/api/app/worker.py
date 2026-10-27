@@ -215,9 +215,12 @@ def run_parse_questionnaire(job: Job, session, payload: dict) -> None:
         else:
             questions = parse_xlsx_questionnaire(path)
         # Serialize concurrent parses of the same questionnaire and re-check under the lock.
+        # populate_existing: FOR UPDATE alone returns the identity-map row, which can
+        # still show the pre-lock storage key / deleted_at and miss a concurrent parse.
         qnr = (
             session.query(Questionnaire)
             .filter(Questionnaire.id == qnr_id)
+            .populate_existing()
             .with_for_update()
             .first()
         )
@@ -361,7 +364,17 @@ def run_index_document(job: Job, session, payload: dict) -> None:
         _bump_corpus_version_best_effort(session, doc.workspace_id)
         return
     # Serialize concurrent index jobs for the same document; re-check under the lock.
-    doc = session.query(Document).filter(Document.id == doc_id).with_for_update().first() or doc
+    # populate_existing: FOR UPDATE alone returns the identity-map row. A concurrent
+    # index that already committed would look un-indexed, so this job would re-embed
+    # and then collide on the applied-marker unique key.
+    doc = (
+        session.query(Document)
+        .filter(Document.id == doc_id)
+        .populate_existing()
+        .with_for_update()
+        .first()
+        or doc
+    )
     if getattr(doc, "deleted_at", None) is not None:
         session.rollback()
         _set_outcome(job, "superseded", reason="document_deleted")
@@ -677,6 +690,13 @@ def _process_one_job() -> bool:
                     session.commit()
             except Exception:
                 session.rollback()
+            try:
+                from app.core.idempotency import cleanup_expired
+
+                cleanup_expired(session)
+            except Exception:
+                session.rollback()
+                logging.getLogger(__name__).warning("idempotency key cleanup failed", exc_info=True)
             finally:
                 last_usage_cleanup_run = time.time()
         if time.time() - last_compliance_webhook_run >= COMPLIANCE_WEBHOOK_INTERVAL_SEC:

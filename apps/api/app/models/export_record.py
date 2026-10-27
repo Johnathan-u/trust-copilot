@@ -2,7 +2,7 @@
 
 from datetime import datetime
 
-from sqlalchemy import Column, DateTime, ForeignKey, Integer, String, Text  # noqa: F401
+from sqlalchemy import Column, DateTime, ForeignKey, Index, Integer, String, text
 
 from app.core.database import Base
 
@@ -11,6 +11,14 @@ class ExportRecord(Base):
     """Export artifact for history and download."""
 
     __tablename__ = "export_records"
+    __table_args__ = (
+        Index(
+            "uq_export_records_job_id",
+            "job_id",
+            unique=True,
+            postgresql_where=text("job_id IS NOT NULL"),
+        ),
+    )
 
     id = Column(Integer, primary_key=True, index=True)
     workspace_id = Column(

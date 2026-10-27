@@ -13,7 +13,7 @@ import os
 import subprocess
 import sys
 import uuid
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from unittest.mock import patch
 
@@ -324,7 +324,7 @@ class FakeEmbed:
         self.calls = 0
         self.fail = fail
 
-    def __call__(self, texts):
+    def __call__(self, texts, on_failure=None):
         self.calls += 1
         if self.fail:
             raise Crash("provider call interrupted")
@@ -405,6 +405,47 @@ def test_index_second_job_same_version_reconciles_without_embedding(db, store):
     _run_index(db, job2, embed)
     assert json.loads(job2.result)["outcome"] == "reconciled"
     assert embed.calls == 0 and _n_chunks(db, doc.id) == n
+
+
+def test_concurrent_index_second_job_sees_applied_state_without_reembedding(db, store):
+    """Second session already holds the document, so FOR UPDATE must refresh it.
+
+    Without populate_existing the locked re-query returns the stale identity-map row.
+    The second job then re-embeds (a second paid call) and can fail on the applied marker.
+    """
+    from app import worker
+
+    doc = _doc_with_file(db, store)
+    second = SessionLocal()
+    try:
+        stale = second.query(Document).filter(Document.id == doc.id).one()
+        assert stale.status == "uploaded"
+
+        first = _claimed_job(db, "index_document", {"document_id": doc.id}, doc.storage_key)
+        first_embed = FakeEmbed()
+        _run_index(db, first, first_embed)
+        assert first_embed.calls == 1
+        db.expire_all()
+        assert db.query(Document).filter(Document.id == doc.id).one().status == "indexed"
+        # The other session's identity map still has the pre-index row until it is refreshed.
+        assert second.query(Document).filter(Document.id == doc.id).one() is stale
+        assert stale.status == "uploaded"
+
+        job2 = _claimed_job(db, "index_document", {"document_id": doc.id}, doc.storage_key)
+        job2_in_second = second.query(Job).filter(Job.id == job2.id).one()
+        embed = FakeEmbed()
+        with (
+            patch("app.services.index_service.embed_texts", embed),
+            patch("app.services.tag_service.auto_tag_document", return_value=0),
+        ):
+            worker.run_index_document(job2_in_second, second, {"document_id": doc.id})
+        second.commit()
+        assert embed.calls == 0
+        assert json.loads(job2_in_second.result)["outcome"] == "reconciled"
+        assert _n_chunks(db, doc.id) > 0
+    finally:
+        second.rollback()
+        second.close()
 
 
 def test_index_stale_input_version_is_superseded(db, store):
@@ -735,6 +776,124 @@ def test_export_route_idempotency_key_scoped_and_released_on_429(client: TestCli
         .all()
     )
     assert all(s.startswith("ws:1:export:") for s in stored) and len(stored) == 2
+
+
+def _idem_row(db, key: str):
+    from app.core import idempotency
+
+    return db.execute(
+        idempotency.text(
+            "SELECT response_body, expires_at FROM idempotency_keys WHERE idempotency_key = :k"
+        ),
+        {"k": key},
+    ).one()
+
+
+def _as_utc(value: datetime) -> datetime:
+    if value.tzinfo is None:
+        return value.replace(tzinfo=timezone.utc)
+    return value.astimezone(timezone.utc)
+
+
+def test_expired_idempotency_claim_can_be_reclaimed(db):
+    from app.core import idempotency
+
+    key = f"reclaim-{uuid.uuid4().hex}"
+    assert idempotency.try_claim(db, key) is True
+    row = _idem_row(db, key)
+    assert row.response_body is None
+    # In progress: a short lease, not the 24h completion TTL.
+    assert _as_utc(row.expires_at) < datetime.now(timezone.utc) + timedelta(minutes=10)
+    db.execute(
+        idempotency.text("UPDATE idempotency_keys SET expires_at = :t WHERE idempotency_key = :k"),
+        {"t": datetime.now(timezone.utc) - timedelta(seconds=5), "k": key},
+    )
+    db.commit()
+    assert idempotency.try_claim(db, key) is True
+    reclaimed = _idem_row(db, key)
+    assert reclaimed.response_body is None
+    assert _as_utc(reclaimed.expires_at) > datetime.now(timezone.utc)
+    idempotency.set(db, key, 200, {"ok": True})
+    stored = _idem_row(db, key)
+    assert json.loads(stored.response_body) == {"ok": True}
+    assert _as_utc(stored.expires_at) > datetime.now(timezone.utc) + timedelta(hours=1)
+
+
+def test_unexpired_in_progress_idempotency_claim_returns_409(client: TestClient, db):
+    from app.core import idempotency
+
+    _login(client)
+    qnr = _route_qnr(db)
+    k = f"busy-{uuid.uuid4().hex}"
+    scoped = idempotency.scoped_key(WS, "export", qnr.id, k)
+    assert idempotency.try_claim(db, scoped) is True
+    assert idempotency.try_claim(db, scoped) is False
+    r = client.post(f"/api/exports/export/{qnr.id}?workspace_id=1", headers={"Idempotency-Key": k})
+    assert r.status_code == 409
+    assert "in progress" in r.json()["detail"].lower()
+
+
+def test_cleanup_expired_idempotency_keys_deletes_only_expired_rows(db):
+    from app.core import idempotency
+
+    fresh = f"fresh-{uuid.uuid4().hex}"
+    expired = f"expired-{uuid.uuid4().hex}"
+    assert idempotency.try_claim(db, fresh) is True
+    assert idempotency.try_claim(db, expired) is True
+    db.execute(
+        idempotency.text("UPDATE idempotency_keys SET expires_at = :t WHERE idempotency_key = :k"),
+        {"t": datetime.now(timezone.utc) - timedelta(hours=1), "k": expired},
+    )
+    db.commit()
+    deleted = idempotency.cleanup_expired(db)
+    assert deleted >= 1
+    left = (
+        db.execute(
+            idempotency.text(
+                "SELECT idempotency_key FROM idempotency_keys "
+                "WHERE idempotency_key IN (:fresh, :expired)"
+            ),
+            {"fresh": fresh, "expired": expired},
+        )
+        .scalars()
+        .all()
+    )
+    assert fresh in left and expired not in left
+
+
+@pytest.mark.parametrize(
+    "bad_key",
+    ["", "   ", "has space", "bad/key", "a" * 256, "a" * 255],
+)
+def test_idempotency_key_rejects_empty_oversized_and_bad_characters(
+    client: TestClient, db, bad_key: str
+):
+    from app.core import idempotency
+
+    _login(client)
+    qnr = _route_qnr(db)
+    before = db.execute(idempotency.text("SELECT count(*) FROM idempotency_keys")).scalar()
+    r = client.post(
+        f"/api/exports/export/{qnr.id}?workspace_id=1",
+        headers={"Idempotency-Key": bad_key},
+    )
+    assert r.status_code == 400
+    body = r.json()
+    assert body["error"]["code"] == "invalid_idempotency_key"
+    assert body["detail"] == body["error"]["message"]
+    assert body["error"]["field_errors"][0]["field"] == "Idempotency-Key"
+    after = db.execute(idempotency.text("SELECT count(*) FROM idempotency_keys")).scalar()
+    assert after == before
+
+
+def test_idempotency_key_accepts_token_characters(client: TestClient, db):
+    _login(client)
+    qnr = _route_qnr(db)
+    r = client.post(
+        f"/api/exports/export/{qnr.id}?workspace_id=1",
+        headers={"Idempotency-Key": "Ok.key_1:part-9"},
+    )
+    assert r.status_code == 200
 
 
 def test_export_route_without_key_reuses_identical_queued_job(client: TestClient, db):
