@@ -15,12 +15,10 @@ export function EmptyState({
 }: EmptyStateProps) {
   return (
     <div
-      className={`flex flex-col items-center justify-center py-12 px-6 text-center ${className}`}
+      className={`flex flex-col items-center justify-center px-tc-6 py-tc-12 text-center ${className}`}
     >
-      <p className="text-base font-medium text-[var(--tc-text)] mb-1">
-        {title}
-      </p>
-      <p className="text-sm text-[var(--tc-muted)] max-w-sm mb-4">
+      <p className="mb-tc-1 text-tc-body font-medium text-tc-text">{title}</p>
+      <p className="mb-tc-4 max-w-sm text-tc-label text-tc-muted">
         {description}
       </p>
       {action && <div className="flex justify-center">{action}</div>}

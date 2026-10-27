@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 
 from app.core.auth_deps import require_can_admin, require_session
 from app.core.database import get_db
+from app.core.workspace_refs import require_in_workspace, require_refs
 from app.services import promise_service as svc
 
 router = APIRouter(prefix="/promises", tags=["promises"])
@@ -32,6 +33,16 @@ async def create(
     session: dict = Depends(require_can_admin),
     db: Session = Depends(get_db),
 ):
+    require_refs(
+        db,
+        session["workspace_id"],
+        [
+            ("deal", body.deal_id),
+            ("user", body.owner_user_id),
+            ("control", body.control_ids),
+            ("evidence", body.evidence_ids),
+        ],
+    )
     result = svc.create_promise(
         db,
         session["workspace_id"],
@@ -81,6 +92,7 @@ async def expiring(
 async def get_one(
     promise_id: int, session: dict = Depends(require_session), db: Session = Depends(get_db)
 ):
+    require_in_workspace(db, session["workspace_id"], "promise", promise_id)
     result = svc.get_promise(db, promise_id)
     if not result:
         raise HTTPException(status_code=404)
@@ -91,6 +103,7 @@ async def get_one(
 async def coverage(
     promise_id: int, session: dict = Depends(require_session), db: Session = Depends(get_db)
 ):
+    require_in_workspace(db, session["workspace_id"], "promise", promise_id)
     result = svc.promise_coverage(db, promise_id)
     if "error" in result:
         raise HTTPException(status_code=404, detail=result["error"])
@@ -104,6 +117,8 @@ async def map_controls(
     session: dict = Depends(require_can_admin),
     db: Session = Depends(get_db),
 ):
+    require_in_workspace(db, session["workspace_id"], "promise", promise_id)
+    require_in_workspace(db, session["workspace_id"], "control", body.control_ids)
     result = svc.map_promise_to_controls(db, promise_id, body.control_ids)
     if not result:
         raise HTTPException(status_code=404)
