@@ -11,7 +11,10 @@ $root = Split-Path -Parent $PSScriptRoot
 $api = Join-Path $root "apps\api"
 
 $env:DATABASE_URL = "postgresql://postgres:postgres@localhost:5432/trustcopilot_test"
-$env:SESSION_SECRET = "test-secret"
+# TC-07-001: per-run random signing key; never a committed literal.
+$secretBytes = New-Object byte[] 48
+[System.Security.Cryptography.RandomNumberGenerator]::Create().GetBytes($secretBytes)
+$env:SESSION_SECRET = [Convert]::ToBase64String($secretBytes)
 
 Set-Location $api
 Write-Host "Running migrations on test DB..." -ForegroundColor Cyan

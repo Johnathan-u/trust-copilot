@@ -1,0 +1,77 @@
+{
+  "ticket": "TC-25-011",
+  "command": "python -m pytest tests/release/test_domain_demo_proof.py -q",
+  "working_directory": "apps/api",
+  "git_sha": "1c8c458f4e9b230388b3e0a332a157dce788099f",
+  "git_branch": "tc/ca/TC-25-011",
+  "exit_status": 0,
+  "totals": {
+    "passed": 14,
+    "failed": 0,
+    "skipped": 0,
+    "errors": 0,
+    "warnings": 44,
+    "duration_seconds": 4.74
+  },
+  "additional_runs": [
+    {
+      "command": "python -m pytest tests/release/test_demo_proof_unit.py -q",
+      "working_directory": "apps/api",
+      "exit_status": 0,
+      "marker": "unit",
+      "totals": {
+        "passed": 3,
+        "failed": 0,
+        "skipped": 0,
+        "errors": 0,
+        "warnings": 0,
+        "duration_seconds": 0.11
+      }
+    },
+    {
+      "command": "python -m pytest tests/test_demo_proof.py -q",
+      "working_directory": "apps/api",
+      "exit_status": 0,
+      "totals": {
+        "passed": 11,
+        "failed": 0,
+        "skipped": 0,
+        "errors": 0,
+        "warnings": 10,
+        "duration_seconds": 1.66
+      }
+    },
+    {
+      "command": "npm run test:unit",
+      "working_directory": "apps/web",
+      "exit_status": 0,
+      "totals": {
+        "passed": 6,
+        "failed": 0,
+        "skipped": 0,
+        "errors": 0,
+        "warnings": 0,
+        "duration_seconds": 0.29
+      }
+    }
+  ],
+  "alembic_heads": "tc25011_demo_proof_summaries (head)",
+  "environment": {
+    "python": "3.12.3",
+    "pytest": "9.1.1",
+    "sqlalchemy": "2.0.55",
+    "postgresql": "16.15",
+    "node": "22.23.4",
+    "ruff": "0.5.6",
+    "platform": "Linux 6.12.94+ x86_64"
+  },
+  "notes": [
+    "PostgreSQL database trustcopilot_test. No credentials are recorded.",
+    "ruff 0.5.6 format --check and ruff check passed.",
+    "alembic heads printed a single head: tc25011_demo_proof_summaries (head). down_revision is tc11001_model_outcome_codes.",
+    "Master merged in this run is 1a0e6145cb579954c6d8733199063764ed1c054e.",
+    "Vitest ran the existing web unit file. A presenter vitest is follow-up TC-25-011a.",
+    "The UI presenter was executed with node --input-type=module. No experimental type-stripping flag is used.",
+    "This evidence file is committed after the tested SHA. It does not change product behavior."
+  ]
+}
