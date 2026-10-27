@@ -3,7 +3,15 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useParams } from 'next/navigation'
 import Link from 'next/link'
-import { Button, Modal, Skeleton, TableSkeleton, Toast, ToastViewport, TagList } from '@/components/ui'
+import {
+  Button,
+  Modal,
+  Skeleton,
+  TableSkeleton,
+  Toast,
+  ToastViewport,
+  TagList,
+} from '@/components/ui'
 import type { TagData } from '@/components/ui'
 import { useAuth } from '@/contexts/AuthContext'
 import { useAISettings } from '@/contexts/AISettingsContext'
@@ -356,9 +364,14 @@ export default function ReviewPage() {
       if (r.ok && data?.job_id) {
         exportPollStartedAt.current = Date.now()
         setExportJobId(data.job_id)
-      }
-      else setErrorToast((data?.detail as string) || (Array.isArray(data?.detail) ? data.detail.map((x: { msg?: string }) => x.msg).join(', ') : 'Export failed'))
-    } catch (e) {
+      } else
+        setErrorToast(
+          (data?.detail as string) ||
+            (Array.isArray(data?.detail)
+              ? data.detail.map((x: { msg?: string }) => x.msg).join(', ')
+              : 'Export failed')
+        )
+    } catch {
       setErrorToast('Network error. Try again.')
     }
   }
@@ -428,7 +441,11 @@ export default function ReviewPage() {
               setGenJobBackendStatus(null)
             }
             if (kind === 'export') clearExportPollTimer()
-            setErrorToast(status >= 500 ? 'Server error. Try again later.' : 'Could not check job status. Try refreshing.')
+            setErrorToast(
+              status >= 500
+                ? 'Server error. Try again later.'
+                : 'Could not check job status. Try refreshing.'
+            )
             return
           }
           if (
@@ -466,8 +483,14 @@ export default function ReviewPage() {
               apiErrorMessage(j.error_detail as ApiErrorInfo | undefined) ||
               (j.error ? String(j.error).slice(0, 160) : '')
             const fallback =
-              kind === 'gen' ? 'Answer generation did not finish. Check that the worker is running and try again.' : 'Export did not finish. Try again.'
-            setErrorToast(detail ? `${kind === 'gen' ? 'Answer generation failed' : 'Export failed'}: ${detail}` : fallback)
+              kind === 'gen'
+                ? 'Answer generation did not finish. Check that the worker is running and try again.'
+                : 'Export did not finish. Try again.'
+            setErrorToast(
+              detail
+                ? `${kind === 'gen' ? 'Answer generation failed' : 'Export failed'}: ${detail}`
+                : fallback
+            )
           }
         })
         .catch(() => {
@@ -516,7 +539,9 @@ export default function ReviewPage() {
         ) {
           exportPollStartedAt.current = null
           setExportJobId(null)
-          setErrorToast('Export is taking too long. Ensure the worker is running, then refresh and try again.')
+          setErrorToast(
+            'Export is taking too long. Ensure the worker is running, then refresh and try again.'
+          )
           return
         }
         pollJob(exportJobId, 'export')

@@ -6,7 +6,10 @@
  * be absent while the disclosure is collapsed.
  */
 
-export function disclosureTriggerProps(open: boolean, panelId: string): {
+export function disclosureTriggerProps(
+  open: boolean,
+  panelId: string
+): {
   'aria-expanded': boolean
   'aria-controls': string
 } {

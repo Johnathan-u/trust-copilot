@@ -1,7 +1,11 @@
 'use client'
 
 import { useEffect, useRef, type RefObject } from 'react'
-import { dialogAttributes, nextTabbableIndex, type DialogRole } from '@/lib/dialog'
+import {
+  dialogAttributes,
+  nextTabbableIndex,
+  type DialogRole,
+} from '@/lib/dialog'
 
 const TABBABLE_SELECTOR = [
   'a[href]',
@@ -21,7 +25,9 @@ function isHidden(el: HTMLElement): boolean {
 }
 
 export function listTabbables(container: HTMLElement): HTMLElement[] {
-  const nodes = Array.from(container.querySelectorAll<HTMLElement>(TABBABLE_SELECTOR))
+  const nodes = Array.from(
+    container.querySelectorAll<HTMLElement>(TABBABLE_SELECTOR)
+  )
   const seen = new Set<HTMLElement>()
   const result: HTMLElement[] = []
   for (const el of nodes) {
@@ -36,7 +42,11 @@ export function listTabbables(container: HTMLElement): HTMLElement[] {
   return result
 }
 
-function resolveInitialFocus(dialog: HTMLElement, explicit: HTMLElement | null, role: DialogRole): HTMLElement {
+function resolveInitialFocus(
+  dialog: HTMLElement,
+  explicit: HTMLElement | null,
+  role: DialogRole
+): HTMLElement {
   if (explicit && dialog.contains(explicit)) return explicit
   if (role === 'alertdialog') {
     const dismiss = dialog.querySelector<HTMLElement>(
@@ -45,7 +55,9 @@ function resolveInitialFocus(dialog: HTMLElement, explicit: HTMLElement | null, 
     if (dismiss && !dismiss.hasAttribute('disabled')) return dismiss
   }
   const tabbables = listTabbables(dialog)
-  const preferred = tabbables.find((el) => !el.hasAttribute(dialogAttributes.close))
+  const preferred = tabbables.find(
+    (el) => !el.hasAttribute(dialogAttributes.close)
+  )
   return preferred ?? tabbables[0] ?? dialog
 }
 
@@ -100,9 +112,11 @@ export function useDialogBehavior({
   lockScroll?: boolean
 }) {
   const onCloseRef = useRef(onClose)
-  onCloseRef.current = onClose
   const roleRef = useRef(role)
-  roleRef.current = role
+  useEffect(() => {
+    onCloseRef.current = onClose
+    roleRef.current = role
+  }, [onClose, role])
 
   useEffect(() => {
     if (!open) return
@@ -111,7 +125,8 @@ export function useDialogBehavior({
     const boundary = boundaryRef?.current ?? dialog
 
     const previous =
-      document.activeElement instanceof HTMLElement && !dialog.contains(document.activeElement)
+      document.activeElement instanceof HTMLElement &&
+      !dialog.contains(document.activeElement)
         ? document.activeElement
         : null
     const explicitReturn = returnFocusRef?.current ?? null
@@ -123,7 +138,11 @@ export function useDialogBehavior({
     const focusInitial = () => {
       const node = dialogRef.current
       if (!node) return
-      const target = resolveInitialFocus(node, initialFocusRef?.current ?? null, roleRef.current)
+      const target = resolveInitialFocus(
+        node,
+        initialFocusRef?.current ?? null,
+        roleRef.current
+      )
       target.focus()
     }
     focusInitial()
@@ -146,10 +165,13 @@ export function useDialogBehavior({
         return
       }
       const active = document.activeElement
-      const index = active instanceof HTMLElement ? tabbables.indexOf(active) : -1
+      const index =
+        active instanceof HTMLElement ? tabbables.indexOf(active) : -1
       if (tabbables.length === 1 || index === -1) {
         event.preventDefault()
-        const edge = event.shiftKey ? tabbables[tabbables.length - 1] : tabbables[0]
+        const edge = event.shiftKey
+          ? tabbables[tabbables.length - 1]
+          : tabbables[0]
         ;(index === -1 ? edge : tabbables[0]).focus()
         return
       }
@@ -157,7 +179,9 @@ export function useDialogBehavior({
       const atEnd = index === tabbables.length - 1
       if ((event.shiftKey && atStart) || (!event.shiftKey && atEnd)) {
         event.preventDefault()
-        tabbables[nextTabbableIndex(index, tabbables.length, event.shiftKey)].focus()
+        tabbables[
+          nextTabbableIndex(index, tabbables.length, event.shiftKey)
+        ].focus()
       }
     }
 
@@ -177,8 +201,19 @@ export function useDialogBehavior({
       document.removeEventListener('focusin', onFocusIn)
       restoreInert(inerted)
       if (lockScroll) document.body.style.overflow = previousOverflow
-      const back = explicitReturn && document.contains(explicitReturn) ? explicitReturn : previous
+      const back =
+        explicitReturn && document.contains(explicitReturn)
+          ? explicitReturn
+          : previous
       if (back && document.contains(back)) back.focus()
     }
-  }, [open, closeOnEscape, lockScroll, dialogRef, boundaryRef, initialFocusRef, returnFocusRef])
+  }, [
+    open,
+    closeOnEscape,
+    lockScroll,
+    dialogRef,
+    boundaryRef,
+    initialFocusRef,
+    returnFocusRef,
+  ])
 }

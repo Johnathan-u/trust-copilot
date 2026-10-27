@@ -178,7 +178,10 @@ export default function ComplianceAlertsPage() {
       description: `Remove alert rule "${label}"?`,
       confirmLabel: 'Remove',
       onConfirm: async () => {
-        await fetch(`/api/notifications/policies/${p.id}`, { method: 'DELETE', credentials: 'include' })
+        await fetch(`/api/notifications/policies/${p.id}`, {
+          method: 'DELETE',
+          credentials: 'include',
+        })
         load()
       },
     })

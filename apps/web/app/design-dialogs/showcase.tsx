@@ -32,9 +32,17 @@ export function DialogShowcase({ theme }: { theme: ThemeName }) {
   const onNotes = (value: string) => {
     setNotes(value)
     if (value.endsWith(' ok')) {
-      showNotice({ title: 'Saved', message: 'Synthetic status saved.', type: 'success' })
+      showNotice({
+        title: 'Saved',
+        message: 'Synthetic status saved.',
+        type: 'success',
+      })
     } else if (value.endsWith(' err')) {
-      showNotice({ title: 'Save failed', message: 'Synthetic error stayed on screen.', type: 'error' })
+      showNotice({
+        title: 'Save failed',
+        message: 'Synthetic error stayed on screen.',
+        type: 'error',
+      })
     }
   }
 
@@ -48,15 +56,23 @@ export function DialogShowcase({ theme }: { theme: ThemeName }) {
     >
       <div className="mx-auto flex max-w-3xl flex-col gap-tc-6 px-tc-4 py-tc-6">
         <header className="flex flex-col gap-tc-3">
-          <p className="text-tc-caption font-semibold uppercase tracking-wider text-tc-muted">Trust Copilot</p>
-          <h1 className="text-tc-headline font-bold">Dialogs and notifications</h1>
+          <p className="text-tc-caption font-semibold uppercase tracking-wider text-tc-muted">
+            Trust Copilot
+          </p>
+          <h1 className="text-tc-headline font-bold">
+            Dialogs and notifications
+          </h1>
           <p className="max-w-2xl text-tc-body text-tc-muted">
-            Synthetic sample for focus trap, destructive confirmation and live announcements. No customer data is shown.
+            Synthetic sample for focus trap, destructive confirmation and live
+            announcements. No customer data is shown.
           </p>
         </header>
 
         <div className="flex flex-col gap-tc-2">
-          <label htmlFor="working-notes" className="text-tc-label font-medium text-tc-text">
+          <label
+            htmlFor="working-notes"
+            className="text-tc-label font-medium text-tc-text"
+          >
             Working notes
           </label>
           <input
@@ -93,7 +109,13 @@ export function DialogShowcase({ theme }: { theme: ThemeName }) {
           <button
             type="button"
             className="inline-flex min-h-tc-8 items-center rounded-tc-sm border border-tc-border-strong px-tc-4 text-tc-label font-semibold text-tc-text"
-            onClick={() => showNotice({ title: 'Saved', message: 'Synthetic status saved.', type: 'success' })}
+            onClick={() =>
+              showNotice({
+                title: 'Saved',
+                message: 'Synthetic status saved.',
+                type: 'success',
+              })
+            }
           >
             Show status
           </button>
@@ -101,7 +123,11 @@ export function DialogShowcase({ theme }: { theme: ThemeName }) {
             type="button"
             className="inline-flex min-h-tc-8 items-center rounded-tc-sm border border-tc-border-strong px-tc-4 text-tc-label font-semibold text-tc-text"
             onClick={() =>
-              showNotice({ title: 'Save failed', message: 'Synthetic error stayed on screen.', type: 'error' })
+              showNotice({
+                title: 'Save failed',
+                message: 'Synthetic error stayed on screen.',
+                type: 'error',
+              })
             }
           >
             Show error
@@ -129,7 +155,13 @@ export function DialogShowcase({ theme }: { theme: ThemeName }) {
           <button
             type="button"
             className="inline-flex min-h-tc-8 items-center rounded-tc-sm border border-tc-border-strong px-tc-4 text-tc-label font-semibold text-tc-text"
-            onClick={() => showNotice({ title: 'Copied', message: 'Synthetic info saved.', type: 'info' })}
+            onClick={() =>
+              showNotice({
+                title: 'Copied',
+                message: 'Synthetic info saved.',
+                type: 'info',
+              })
+            }
           >
             Show info
           </button>
@@ -139,7 +171,10 @@ export function DialogShowcase({ theme }: { theme: ThemeName }) {
               className="inline-flex min-h-tc-8 min-w-tc-8 items-center justify-center rounded-full border border-tc-border-strong px-tc-3 text-tc-label"
               aria-label="Notifications"
               onClick={() => setNotificationsOpen((open) => !open)}
-              {...disclosureTriggerProps(notificationsOpen, NOTIFICATIONS_PANEL_ID)}
+              {...disclosureTriggerProps(
+                notificationsOpen,
+                NOTIFICATIONS_PANEL_ID
+              )}
             >
               🔔
             </button>
@@ -183,10 +218,17 @@ export function DialogShowcase({ theme }: { theme: ThemeName }) {
             Field help
           </a>
           <div className="flex justify-end gap-tc-2">
-            <button type="button" className="min-h-tc-6 px-tc-3 text-tc-label" onClick={() => setRenameOpen(false)}>
+            <button
+              type="button"
+              className="min-h-tc-6 px-tc-3 text-tc-label"
+              onClick={() => setRenameOpen(false)}
+            >
               Cancel
             </button>
-            <button type="submit" className="min-h-tc-6 rounded-tc-sm bg-tc-primary-solid px-tc-3 text-tc-label font-semibold text-tc-on-primary">
+            <button
+              type="submit"
+              className="min-h-tc-6 rounded-tc-sm bg-tc-primary-solid px-tc-3 text-tc-label font-semibold text-tc-on-primary"
+            >
               Save name
             </button>
           </div>
@@ -211,7 +253,10 @@ export function DialogShowcase({ theme }: { theme: ThemeName }) {
         title="Navigation"
         description="Synthetic side panel. A later navigation drawer can adopt this placement."
       >
-        <nav className="flex flex-col gap-tc-3" aria-label="Sample destinations">
+        <nav
+          className="flex flex-col gap-tc-3"
+          aria-label="Sample destinations"
+        >
           <a href="#dialog-showcase" className="text-tc-label text-tc-primary">
             Documents
           </a>

@@ -1,7 +1,14 @@
 'use client'
 
 import { useEffect, useState, useCallback } from 'react'
-import { Button, Card, Input, Modal, ToastNotice, TableSkeleton } from '@/components/ui'
+import {
+  Button,
+  Card,
+  Input,
+  Modal,
+  ToastNotice,
+  TableSkeleton,
+} from '@/components/ui'
 import { useAuth } from '@/contexts/AuthContext'
 import { apiErrorAnnouncement, formatApiErrorDetail } from '@/lib/api-error'
 import { dialogAttributes } from '@/lib/dialog'
@@ -82,9 +89,16 @@ export default function MembersPage() {
     setToast(null)
   }, [])
 
-  const showToast = useCallback((title: string, message: string, type: 'success' | 'error' | 'info' = 'success') => {
-    setToast({ title, message, type })
-  }, [])
+  const showToast = useCallback(
+    (
+      title: string,
+      message: string,
+      type: 'success' | 'error' | 'info' = 'success'
+    ) => {
+      setToast({ title, message, type })
+    },
+    []
+  )
 
   const load = () => {
     if (members.length === 0) setLoading(true)
@@ -212,7 +226,11 @@ export default function MembersPage() {
       load()
     } else {
       const data = await res.json().catch(() => ({}))
-      showToast('Error', apiErrorAnnouncement(data, 'Failed to update role').message, 'error')
+      showToast(
+        'Error',
+        apiErrorAnnouncement(data, 'Failed to update role').message,
+        'error'
+      )
     }
   }
 
@@ -594,21 +612,27 @@ export default function MembersPage() {
       {/* Confirmation modal — replaces all native alert/confirm */}
       <Modal
         isOpen={!!confirmAction}
-        onClose={() => { if (!confirmBusy) setConfirmAction(null) }}
+        onClose={() => {
+          if (!confirmBusy) setConfirmAction(null)
+        }}
         title={confirmAction?.title}
         description={confirmAction?.body}
         role={confirmIsDestructive ? 'alertdialog' : 'dialog'}
         closeDisabled={confirmBusy}
       >
         <div className="space-y-4">
-          {confirmError && <p className="text-sm text-[var(--tc-danger)]">{confirmError}</p>}
+          {confirmError && (
+            <p className="text-sm text-[var(--tc-danger)]">{confirmError}</p>
+          )}
           <div className="flex gap-2 justify-end">
             <Button
               type="button"
               variant="ghost"
               onClick={() => setConfirmAction(null)}
               disabled={confirmBusy}
-              {...{ [dialogAttributes.initial]: dialogAttributes.initialDismiss }}
+              {...{
+                [dialogAttributes.initial]: dialogAttributes.initialDismiss,
+              }}
             >
               Cancel
             </Button>
@@ -773,7 +797,14 @@ export default function MembersPage() {
       </Modal>
 
       {/* Toast notification */}
-      {toast && <ToastNotice title={toast.title} message={toast.message} type={toast.type} onDismiss={dismissToast} />}
+      {toast && (
+        <ToastNotice
+          title={toast.title}
+          message={toast.message}
+          type={toast.type}
+          onDismiss={dismissToast}
+        />
+      )}
     </div>
   )
 }

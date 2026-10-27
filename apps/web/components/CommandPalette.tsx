@@ -130,8 +130,12 @@ export function CommandPalette({
         aria-describedby={descriptionId}
         tabIndex={-1}
       >
-        <h2 id={titleId} className="sr-only">Command palette</h2>
-        <p id={descriptionId} className="sr-only">Search or jump to a page or action.</p>
+        <h2 id={titleId} className="sr-only">
+          Command palette
+        </h2>
+        <p id={descriptionId} className="sr-only">
+          Search or jump to a page or action.
+        </p>
         <div className="border-b border-[var(--tc-border)] px-4 py-3">
           <input
             ref={inputRef}

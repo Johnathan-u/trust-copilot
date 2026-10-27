@@ -60,7 +60,11 @@ export default function WorkspaceTrustPage() {
   const [loading, setLoading] = useState(true)
 
   const [articles, setArticles] = useState<Article[]>([])
-  const [selected, setSelected] = useState<{ title: string; content: string; category?: string | null } | null>(null)
+  const [selected, setSelected] = useState<{
+    title: string
+    content: string
+    category?: string | null
+  } | null>(null)
   const [showForm, setShowForm] = useState(false)
   const [form, setForm] = useState({
     requester_email: '',
@@ -105,11 +109,16 @@ export default function WorkspaceTrustPage() {
     const listed = articles.find((article) => article.id === id)
     fetch(`/api/trust-articles/${id}?workspace_id=${workspace.id}`)
       .then((r) => (r.ok ? r.json() : null))
-      .then((d) => d && setSelected({
-        title: d.title,
-        content: d.content || '',
-        category: typeof d.category === 'string' ? d.category : listed?.category,
-      }))
+      .then(
+        (d) =>
+          d &&
+          setSelected({
+            title: d.title,
+            content: d.content || '',
+            category:
+              typeof d.category === 'string' ? d.category : listed?.category,
+          })
+      )
   }
 
   const submitRequest = async (e: React.FormEvent) => {
@@ -413,11 +422,18 @@ export default function WorkspaceTrustPage() {
           isOpen={!!selected}
           onClose={() => setSelected(null)}
           title={selected?.title || 'Article'}
-          description={selected?.category ? `Category: ${selected.category}` : 'Published trust article'}
+          description={
+            selected?.category
+              ? `Category: ${selected.category}`
+              : 'Published trust article'
+          }
           size="lg"
         >
           <div className="min-h-0 max-h-[60vh] overflow-y-auto">
-            <MarkdownContent content={selected?.content || ''} className="text-[var(--tc-text)] [&_a]:text-[var(--tc-primary)] [&_a]:hover:underline" />
+            <MarkdownContent
+              content={selected?.content || ''}
+              className="text-[var(--tc-text)] [&_a]:text-[var(--tc-primary)] [&_a]:hover:underline"
+            />
           </div>
         </Modal>
       </main>

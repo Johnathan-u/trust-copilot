@@ -624,7 +624,14 @@ export default function AIInsightsPage() {
         {advOpen && <AdvancedSettings onToast={setToast} />}
       </section>
 
-      {toast && <ToastNotice title="Info" message={toast} type="success" onDismiss={() => setToast(null)} />}
+      {toast && (
+        <ToastNotice
+          title="Info"
+          message={toast}
+          type="success"
+          onDismiss={() => setToast(null)}
+        />
+      )}
     </div>
   )
 }

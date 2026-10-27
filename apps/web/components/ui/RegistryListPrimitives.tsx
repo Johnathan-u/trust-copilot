@@ -113,8 +113,16 @@ export function DeleteConfirmationModal({
           <p className="text-xs text-[var(--tc-muted)]">ID: {displayId}</p>
         </div>
         {depEntries.length > 0 && (
-          <div className="rounded-xl border border-tc-border-strong p-3" style={{ background: 'var(--tc-warning-surface)', color: 'var(--tc-warning)' }}>
-            <p className="mb-1 text-xs font-medium">This record is linked to:</p>
+          <div
+            className="rounded-xl border border-tc-border-strong p-3"
+            style={{
+              background: 'var(--tc-warning-surface)',
+              color: 'var(--tc-warning)',
+            }}
+          >
+            <p className="mb-1 text-xs font-medium">
+              This record is linked to:
+            </p>
             <ul className="space-y-1 text-xs">
               {depEntries.map(([key, count]) => (
                 <li key={key}>
@@ -125,7 +133,9 @@ export function DeleteConfirmationModal({
           </div>
         )}
         {unmodeledWarning && (
-          <p className="text-xs" style={{ color: 'var(--tc-warning)' }}>{unmodeledWarning}</p>
+          <p className="text-xs" style={{ color: 'var(--tc-warning)' }}>
+            {unmodeledWarning}
+          </p>
         )}
         <div className="flex justify-end gap-2">
           <Button
@@ -209,20 +219,31 @@ export function BulkDeleteConfirmationModal({
   onClose: () => void
   onConfirm: () => void
 }) {
-  const truncated = displayIds.length > 8 ? displayIds.slice(0, 8).join(', ') + ` and ${displayIds.length - 8} more` : displayIds.join(', ')
+  const truncated =
+    displayIds.length > 8
+      ? displayIds.slice(0, 8).join(', ') + ` and ${displayIds.length - 8} more`
+      : displayIds.join(', ')
   const description = `You are about to archive ${displayIds.length} ${itemLabel}${displayIds.length === 1 ? '' : 's'}. This is a soft delete and can be restored later.`
   return (
     <Modal
       isOpen={isOpen}
       onClose={onClose}
-      title={title || `Delete ${displayIds.length} ${itemLabel}${displayIds.length === 1 ? '' : 's'}?`}
+      title={
+        title ||
+        `Delete ${displayIds.length} ${itemLabel}${displayIds.length === 1 ? '' : 's'}?`
+      }
       description={description}
       role="alertdialog"
       closeDisabled={deleting}
     >
       <div className="space-y-3">
-        <div className="max-h-32 overflow-y-auto rounded-xl border border-[var(--tc-border)] px-3 py-2" style={{ background: 'var(--tc-surface-sunken)' }}>
-          <p className="text-xs text-[var(--tc-muted)] font-mono">{truncated}</p>
+        <div
+          className="max-h-32 overflow-y-auto rounded-xl border border-[var(--tc-border)] px-3 py-2"
+          style={{ background: 'var(--tc-surface-sunken)' }}
+        >
+          <p className="text-xs text-[var(--tc-muted)] font-mono">
+            {truncated}
+          </p>
         </div>
         <p className="text-xs text-[var(--tc-muted)]">
           Deleting may remove active references. This action archives the

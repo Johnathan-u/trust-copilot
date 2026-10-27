@@ -10,7 +10,11 @@
 export const DIALOG_ROLES = ['dialog', 'alertdialog'] as const
 export type DialogRole = (typeof DIALOG_ROLES)[number]
 
-export const DIALOG_PLACEMENTS = ['center', 'drawer-start', 'drawer-end'] as const
+export const DIALOG_PLACEMENTS = [
+  'center',
+  'drawer-start',
+  'drawer-end',
+] as const
 export type DialogPlacement = (typeof DIALOG_PLACEMENTS)[number]
 
 export const DIALOG_SIZES = ['sm', 'md', 'lg'] as const
@@ -33,7 +37,11 @@ export function dialogRoleForDestructive(destructive: boolean): DialogRole {
  * Next index in a tab cycle. `count` 0 returns 0 so callers can bail out
  * before focusing. A single stop stays put. Otherwise Tab wraps at the ends.
  */
-export function nextTabbableIndex(current: number, count: number, shift: boolean): number {
+export function nextTabbableIndex(
+  current: number,
+  count: number,
+  shift: boolean
+): number {
   if (count <= 0) return 0
   if (count === 1) return 0
   const index = Number.isFinite(current) ? current : -1
@@ -45,7 +53,10 @@ const centerPanel =
   'relative z-10 flex max-h-[calc(100dvh-3rem)] w-full flex-col overflow-y-auto overscroll-contain rounded-tc border border-tc-border p-tc-6 shadow-[var(--tc-shadow)]'
 
 /** Class fragments for each placement. Drawer widths are for a later adopter. */
-export const dialogPlacementClass: Record<DialogPlacement, { root: string; panel: string }> = {
+export const dialogPlacementClass: Record<
+  DialogPlacement,
+  { root: string; panel: string }
+> = {
   center: {
     root: 'fixed inset-0 z-50 flex items-center justify-center p-tc-4',
     panel: centerPanel,

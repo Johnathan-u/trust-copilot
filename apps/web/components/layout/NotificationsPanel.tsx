@@ -93,11 +93,19 @@ function focusTrigger(anchor: HTMLElement | null) {
  * no aria-modal. Escape and a pointer event outside the anchor close it
  * and return focus to the bell button.
  */
-export function NotificationsPanel({ open, onClose, onUnreadCountChange, anchorRef, panelId }: NotificationsPanelProps) {
+export function NotificationsPanel({
+  open,
+  onClose,
+  onUnreadCountChange,
+  anchorRef,
+  panelId,
+}: NotificationsPanelProps) {
   const titleId = useId()
   const descriptionId = useId()
   const onCloseRef = useRef(onClose)
-  onCloseRef.current = onClose
+  useEffect(() => {
+    onCloseRef.current = onClose
+  }, [onClose])
   const [notifications, setNotifications] = useState<InAppNotification[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(false)
@@ -179,8 +187,16 @@ export function NotificationsPanel({ open, onClose, onUnreadCountChange, anchorR
     >
       <div className="flex items-start justify-between gap-tc-2 border-b border-[var(--tc-border)] px-4 py-3">
         <div>
-          <h3 id={titleId} className="text-sm font-semibold text-[var(--tc-text)]">Notifications</h3>
-          <p id={descriptionId} className="mt-0.5 text-xs text-[var(--tc-muted)]">
+          <h3
+            id={titleId}
+            className="text-sm font-semibold text-[var(--tc-text)]"
+          >
+            Notifications
+          </h3>
+          <p
+            id={descriptionId}
+            className="mt-0.5 text-xs text-[var(--tc-muted)]"
+          >
             {unreadCount > 0 ? `${unreadCount} unread` : 'All caught up'}
           </p>
         </div>
@@ -214,7 +230,9 @@ export function NotificationsPanel({ open, onClose, onUnreadCountChange, anchorR
             Loading...
           </div>
         ) : error ? (
-          <div className="px-4 py-8 text-center text-sm text-[var(--tc-danger)]">Failed to load notifications</div>
+          <div className="px-4 py-8 text-center text-sm text-[var(--tc-danger)]">
+            Failed to load notifications
+          </div>
         ) : notifications.length === 0 ? (
           <div className="px-4 py-10 text-center">
             <div className="text-2xl mb-2 opacity-40">🔔</div>

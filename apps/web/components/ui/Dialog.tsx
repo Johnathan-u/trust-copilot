@@ -75,7 +75,11 @@ export function Dialog({
   }
 
   return (
-    <div ref={boundaryRef} className={placementClass.root} {...{ [dialogAttributes.root]: '' }}>
+    <div
+      ref={boundaryRef}
+      className={placementClass.root}
+      {...{ [dialogAttributes.root]: '' }}
+    >
       <div
         className="absolute inset-0 backdrop-blur-sm"
         style={{ background: 'var(--tc-overlay)' }}

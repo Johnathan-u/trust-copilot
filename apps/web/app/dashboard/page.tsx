@@ -2,7 +2,13 @@
 
 import { useCallback, useEffect, useState } from 'react'
 import Link from 'next/link'
-import { Card, Button, Modal, ToastNotice, useDestructiveConfirm } from '@/components/ui'
+import {
+  Card,
+  Button,
+  Modal,
+  ToastNotice,
+  useDestructiveConfirm,
+} from '@/components/ui'
 import { useAuth } from '@/contexts/AuthContext'
 
 type DashboardCard = {
@@ -90,7 +96,10 @@ export default function DashboardPage() {
   const [showCustomize, setShowCustomize] = useState(false)
   const [editCard, setEditCard] = useState<DashboardCard | null>(null)
   const [showAddModal, setShowAddModal] = useState(false)
-  const [toast, setToast] = useState<{ type: 'success' | 'error'; message: string } | null>(null)
+  const [toast, setToast] = useState<{
+    type: 'success' | 'error'
+    message: string
+  } | null>(null)
   const { confirm, dialog: confirmDialog } = useDestructiveConfirm()
 
   const [allowedMeta, setAllowedMeta] = useState<AllowedMeta | null>(null)
@@ -139,7 +148,8 @@ export default function DashboardPage() {
   const requestDelete = (id: number) => {
     confirm({
       title: 'Delete this dashboard card?',
-      description: 'Delete this dashboard card? This only removes the card from the dashboard.',
+      description:
+        'Delete this dashboard card? This only removes the card from the dashboard.',
       confirmLabel: 'Delete',
       onConfirm: () => handleDelete(id),
     })
@@ -335,8 +345,15 @@ export default function DashboardPage() {
                       setShowAddModal(true)
                     }}
                     className="rounded px-1.5 py-0.5 text-xs text-[var(--tc-muted)] hover:bg-white/10"
-                    title="Edit">✏️</button>
-                  <button onClick={(e) => { e.preventDefault(); requestDelete(card.id!) }}
+                    title="Edit"
+                  >
+                    ✏️
+                  </button>
+                  <button
+                    onClick={(e) => {
+                      e.preventDefault()
+                      requestDelete(card.id!)
+                    }}
                     className="rounded px-1.5 py-0.5 text-xs text-red-400 hover:bg-red-500/10"
                     title="Delete"
                   >
@@ -371,7 +388,12 @@ export default function DashboardPage() {
 
       {confirmDialog}
       {toast && (
-        <ToastNotice title={toast.type === 'success' ? 'Success' : 'Error'} message={toast.message} type={toast.type} onDismiss={dismissToast} />
+        <ToastNotice
+          title={toast.type === 'success' ? 'Success' : 'Error'}
+          message={toast.message}
+          type={toast.type}
+          onDismiss={dismissToast}
+        />
       )}
     </div>
   )

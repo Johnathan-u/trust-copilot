@@ -3,7 +3,10 @@ import path from 'path'
 import { expect, test, type Locator, type Page } from '@playwright/test'
 import AxeBuilder from '@axe-core/playwright'
 
-const evidenceDir = path.resolve(process.cwd(), '../../artifacts/acceptance/TC-14-003')
+const evidenceDir = path.resolve(
+  process.cwd(),
+  '../../artifacts/acceptance/TC-14-003'
+)
 const screenshotDir = path.join(evidenceDir, 'screenshots')
 
 const viewports = [
@@ -39,7 +42,9 @@ function watchRequests(page: Page): string[] {
 
 function assertSelfHostedFonts(pageUrl: string, urls: string[]) {
   const pageHost = new URL(pageUrl).hostname
-  const fontUrls = urls.filter((url) => /\.(?:woff2?|ttf|otf|eot)(?:$|\?)/i.test(url))
+  const fontUrls = urls.filter((url) =>
+    /\.(?:woff2?|ttf|otf|eot)(?:$|\?)/i.test(url)
+  )
   expect(fontUrls, 'expected a same-origin font file').not.toEqual([])
   for (const url of urls) {
     let host = ''
@@ -48,7 +53,9 @@ function assertSelfHostedFonts(pageUrl: string, urls: string[]) {
     } catch {
       continue
     }
-    const blocked = thirdPartyFontHosts.some((name) => host === name || host.endsWith(`.${name}`))
+    const blocked = thirdPartyFontHosts.some(
+      (name) => host === name || host.endsWith(`.${name}`)
+    )
     expect(blocked, url).toBe(false)
   }
   for (const url of fontUrls) {
@@ -61,7 +68,10 @@ async function openTheme(page: Page, theme: (typeof themes)[number]) {
     document.documentElement.setAttribute('data-theme', value)
   }, theme)
   await page.goto(`/design-dialogs?theme=${theme}`)
-  await expect(page.getByTestId('dialog-showcase')).toHaveAttribute('data-expected-theme', theme)
+  await expect(page.getByTestId('dialog-showcase')).toHaveAttribute(
+    'data-expected-theme',
+    theme
+  )
   await expect(page.locator('html')).toHaveAttribute('data-theme', theme)
 }
 
@@ -72,7 +82,9 @@ async function focused(locator: Locator) {
 test.describe('dialog focus and notifications', () => {
   test.describe.configure({ timeout: 120_000 })
 
-  test('traps focus, restores it, and announces toasts without stealing the field', async ({ page }) => {
+  test('traps focus, restores it, and announces toasts without stealing the field', async ({
+    page,
+  }) => {
     await page.setViewportSize({ width: 1440, height: 900 })
     await openTheme(page, 'dark')
 
@@ -80,11 +92,15 @@ test.describe('dialog focus and notifications', () => {
     await rename.click()
     const dialog = page.getByRole('dialog', { name: 'Rename sample record' })
     await expect(dialog).toBeVisible()
-    await expect(dialog).toHaveAttribute('aria-describedby', /.+/ )
-    await expect(dialog.getByText('Choose a new name for the synthetic sample record.')).toBeVisible()
+    await expect(dialog).toHaveAttribute('aria-describedby', /.+/)
+    await expect(
+      dialog.getByText('Choose a new name for the synthetic sample record.')
+    ).toBeVisible()
     const name = page.getByLabel('Record name')
     await focused(name)
-    const notesInert = await page.locator('#working-notes').evaluate((el) => el.closest('[inert]') !== null)
+    const notesInert = await page
+      .locator('#working-notes')
+      .evaluate((el) => el.closest('[inert]') !== null)
     expect(notesInert).toBe(true)
 
     await page.keyboard.press('Shift+Tab')
@@ -104,7 +120,9 @@ test.describe('dialog focus and notifications', () => {
 
     const remove = page.getByRole('button', { name: 'Delete sample record' })
     await remove.click()
-    const confirm = page.getByRole('alertdialog', { name: 'Delete sample record?' })
+    const confirm = page.getByRole('alertdialog', {
+      name: 'Delete sample record?',
+    })
     await expect(confirm).toBeVisible()
     await expect(confirm.getByText('archived as a soft delete')).toBeVisible()
     await focused(page.getByRole('button', { name: 'Cancel' }))
@@ -128,7 +146,9 @@ test.describe('dialog focus and notifications', () => {
     await notes.click()
     await notes.fill('draft')
     await notes.type(' ok')
-    const status = page.getByRole('status').filter({ hasText: 'Synthetic status saved.' })
+    const status = page
+      .getByRole('status')
+      .filter({ hasText: 'Synthetic status saved.' })
     await expect(status).toBeVisible()
     await expect(status).toHaveAttribute('aria-live', 'polite')
     await focused(notes)
@@ -137,7 +157,9 @@ test.describe('dialog focus and notifications', () => {
 
     await notes.fill('draft')
     await notes.type(' err')
-    const alert = page.getByRole('alert').filter({ hasText: 'Synthetic error stayed on screen.' })
+    const alert = page
+      .getByRole('alert')
+      .filter({ hasText: 'Synthetic error stayed on screen.' })
     await expect(alert).toBeVisible()
     await expect(alert).toHaveAttribute('aria-live', 'assertive')
     await focused(notes)
@@ -145,7 +167,12 @@ test.describe('dialog focus and notifications', () => {
     await expect(alert).toBeVisible()
     const dismiss = page.getByRole('button', { name: 'Dismiss Save failed' })
     for (let i = 0; i < 16; i += 1) {
-      if (await dismiss.evaluate((el) => el === document.activeElement).catch(() => false)) break
+      if (
+        await dismiss
+          .evaluate((el) => el === document.activeElement)
+          .catch(() => false)
+      )
+        break
       await page.keyboard.press('Tab')
     }
     await focused(dismiss)
@@ -157,21 +184,34 @@ test.describe('dialog focus and notifications', () => {
     await page.emulateMedia({ reducedMotion: 'reduce' })
     await openTheme(page, 'dark')
     await page.getByRole('button', { name: 'Show status' }).click()
-    const duration = await page.getByRole('status').evaluate((el) => getComputedStyle(el).transitionDuration)
+    const duration = await page
+      .getByRole('status')
+      .evaluate((el) => getComputedStyle(el).transitionDuration)
     expect(duration === '0s' || duration.startsWith('0s')).toBe(true)
   })
 
-  test('an unknown theme query keeps the default dark theme', async ({ page }) => {
+  test('an unknown theme query keeps the default dark theme', async ({
+    page,
+  }) => {
     await page.goto('/design-dialogs?theme=nope')
-    await expect(page.locator('html')).not.toHaveAttribute('data-theme', 'light')
-    await expect(page.getByTestId('dialog-showcase')).toHaveAttribute('data-expected-theme', 'dark')
+    await expect(page.locator('html')).not.toHaveAttribute(
+      'data-theme',
+      'light'
+    )
+    await expect(page.getByTestId('dialog-showcase')).toHaveAttribute(
+      'data-expected-theme',
+      'dark'
+    )
   })
 
   test('notifications panel is a disclosure popover', async ({ page }) => {
     await page.setViewportSize({ width: 1440, height: 900 })
     await openTheme(page, 'dark')
 
-    const bell = page.getByRole('button', { name: 'Notifications', exact: true })
+    const bell = page.getByRole('button', {
+      name: 'Notifications',
+      exact: true,
+    })
     const panel = page.locator('#sample-notifications')
     await expect(bell).toHaveAttribute('aria-expanded', 'false')
     await expect(bell).toHaveAttribute('aria-controls', 'sample-notifications')
@@ -183,7 +223,9 @@ test.describe('dialog focus and notifications', () => {
     await expect(panel).not.toHaveAttribute('aria-modal')
     await expect(page.getByRole('dialog')).toHaveCount(0)
     await expect(page.getByRole('alertdialog')).toHaveCount(0)
-    const notesInert = await page.locator('#working-notes').evaluate((el) => el.closest('[inert]') !== null)
+    const notesInert = await page
+      .locator('#working-notes')
+      .evaluate((el) => el.closest('[inert]') !== null)
     expect(notesInert).toBe(false)
     expect(await page.locator('[inert]').count()).toBe(0)
 
@@ -197,7 +239,9 @@ test.describe('dialog focus and notifications', () => {
     await page.getByRole('link', { name: 'Notification settings' }).focus()
     await page.keyboard.press('Tab')
     await focused(page.getByRole('link', { name: 'Page help' }))
-    const leftPanel = await panel.evaluate((el) => !el.contains(document.activeElement))
+    const leftPanel = await panel.evaluate(
+      (el) => !el.contains(document.activeElement)
+    )
     expect(leftPanel).toBe(true)
 
     await page.getByRole('link', { name: 'View audit log' }).focus()
@@ -212,23 +256,31 @@ test.describe('dialog focus and notifications', () => {
     await expect(panel).toHaveCount(0)
     await focused(bell)
     await expect(bell).toHaveAttribute('aria-expanded', 'false')
-    const notesInertAfter = await page.locator('#working-notes').evaluate((el) => el.closest('[inert]') !== null)
+    const notesInertAfter = await page
+      .locator('#working-notes')
+      .evaluate((el) => el.closest('[inert]') !== null)
     expect(notesInertAfter).toBe(false)
   })
 
-  test('info toasts leave after 4000ms and action toasts stay', async ({ page }) => {
+  test('info toasts leave after 4000ms and action toasts stay', async ({
+    page,
+  }) => {
     await page.setViewportSize({ width: 1440, height: 900 })
     await openTheme(page, 'dark')
 
     await page.getByRole('button', { name: 'Show info' }).click()
-    const info = page.getByRole('status').filter({ hasText: 'Synthetic info saved.' })
+    const info = page
+      .getByRole('status')
+      .filter({ hasText: 'Synthetic info saved.' })
     await expect(info).toBeVisible()
     await expect(info).toHaveAttribute('aria-live', 'polite')
     await page.waitForTimeout(4500)
     await expect(info).toHaveCount(0)
 
     await page.getByRole('button', { name: 'Show undo' }).click()
-    const undoToast = page.getByRole('status').filter({ hasText: 'Synthetic sample can be restored.' })
+    const undoToast = page
+      .getByRole('status')
+      .filter({ hasText: 'Synthetic sample can be restored.' })
     const undo = page.getByRole('button', { name: 'Undo', exact: true })
     await expect(undoToast).toBeVisible()
     await expect(undo).toBeVisible()
@@ -240,7 +292,9 @@ test.describe('dialog focus and notifications', () => {
   })
 
   for (const theme of themes) {
-    test(`${theme} dialogs and toasts have no axe violations at 360, 768 and 1440`, async ({ page }) => {
+    test(`${theme} dialogs and toasts have no axe violations at 360, 768 and 1440`, async ({
+      page,
+    }) => {
       test.setTimeout(180_000)
       const requests = watchRequests(page)
       await page.setViewportSize({ width: 1440, height: 900 })
@@ -253,14 +307,20 @@ test.describe('dialog focus and notifications', () => {
           open: async () => {
             await page.getByRole('button', { name: 'Show status' }).click()
             await page.getByRole('button', { name: 'Rename sample' }).click()
-            await expect(page.getByRole('dialog', { name: 'Rename sample record' })).toBeVisible()
-            const status = page.locator('.tc-toast').filter({ hasText: 'Synthetic status saved.' })
+            await expect(
+              page.getByRole('dialog', { name: 'Rename sample record' })
+            ).toBeVisible()
+            const status = page
+              .locator('.tc-toast')
+              .filter({ hasText: 'Synthetic status saved.' })
             await expect(status).toBeAttached()
             expect(await status.boundingBox()).not.toBeNull()
           },
           close: async () => {
             await page.keyboard.press('Escape')
-            await expect(page.getByRole('dialog', { name: 'Rename sample record' })).toHaveCount(0)
+            await expect(
+              page.getByRole('dialog', { name: 'Rename sample record' })
+            ).toHaveCount(0)
             const dismiss = page.getByRole('button', { name: 'Dismiss Saved' })
             if (await dismiss.count()) await dismiss.click()
           },
@@ -269,50 +329,76 @@ test.describe('dialog focus and notifications', () => {
           id: 'confirm',
           open: async () => {
             await page.getByRole('button', { name: 'Show error' }).click()
-            await page.getByRole('button', { name: 'Delete sample record' }).click()
+            await page
+              .getByRole('button', { name: 'Delete sample record' })
+              .click()
             await expect(page.getByRole('alertdialog')).toBeVisible()
-            const alert = page.locator('.tc-toast').filter({ hasText: 'Synthetic error stayed on screen.' })
+            const alert = page
+              .locator('.tc-toast')
+              .filter({ hasText: 'Synthetic error stayed on screen.' })
             await expect(alert).toBeAttached()
             expect(await alert.boundingBox()).not.toBeNull()
           },
           close: async () => {
             await page.keyboard.press('Escape')
             await expect(page.getByRole('alertdialog')).toHaveCount(0)
-            await page.getByRole('button', { name: 'Dismiss Save failed' }).click()
+            await page
+              .getByRole('button', { name: 'Dismiss Save failed' })
+              .click()
           },
         },
         {
           id: 'toast',
           open: async () => {
             await page.getByRole('button', { name: 'Show error' }).click()
-            await expect(page.getByRole('alert').filter({ hasText: 'Synthetic error stayed on screen.' })).toBeVisible()
+            await expect(
+              page
+                .getByRole('alert')
+                .filter({ hasText: 'Synthetic error stayed on screen.' })
+            ).toBeVisible()
           },
           close: async () => {
-            await page.getByRole('button', { name: 'Dismiss Save failed' }).click()
+            await page
+              .getByRole('button', { name: 'Dismiss Save failed' })
+              .click()
           },
         },
       ] as const
 
       for (const viewport of viewports) {
-        await page.setViewportSize({ width: viewport.width, height: viewport.height })
+        await page.setViewportSize({
+          width: viewport.width,
+          height: viewport.height,
+        })
         for (const state of states) {
           await state.open()
           const overflow = await page.evaluate(() => ({
             scroll: document.documentElement.scrollWidth,
             client: document.documentElement.clientWidth,
           }))
-          expect(overflow.scroll, `${theme} ${viewport.name} ${state.id}`).toBeLessThanOrEqual(overflow.client + 1)
+          expect(
+            overflow.scroll,
+            `${theme} ${viewport.name} ${state.id}`
+          ).toBeLessThanOrEqual(overflow.client + 1)
 
           if (state.id !== 'toast') {
             await page.screenshot({
-              path: path.join(screenshotDir, `${state.id}-${theme}-${viewport.name}.png`),
+              path: path.join(
+                screenshotDir,
+                `${state.id}-${theme}-${viewport.name}.png`
+              ),
               fullPage: true,
             })
           }
 
-          const axe = await new AxeBuilder({ page }).include('#dialog-showcase').analyze()
+          const axe = await new AxeBuilder({ page })
+            .include('#dialog-showcase')
+            .analyze()
           writeFileSync(
-            path.join(evidenceDir, `axe-${state.id}-${theme}-${viewport.name}.json`),
+            path.join(
+              evidenceDir,
+              `axe-${state.id}-${theme}-${viewport.name}.json`
+            ),
             JSON.stringify(
               {
                 theme,
@@ -328,9 +414,12 @@ test.describe('dialog focus and notifications', () => {
               },
               null,
               2
-            )
+            ) + '\n'
           )
-          expect(axe.violations, JSON.stringify(axe.violations, null, 2)).toEqual([])
+          expect(
+            axe.violations,
+            JSON.stringify(axe.violations, null, 2)
+          ).toEqual([])
           await state.close()
         }
       }

@@ -33,13 +33,18 @@ export interface AutoDismissOptions {
 /** Non-error toasts without an action. */
 export const DEFAULT_STATUS_DISMISS_MS = 4000
 
-export function liveRegionForSeverity(severity: ToastSeverity): ToastLiveRegion {
+export function liveRegionForSeverity(
+  severity: ToastSeverity
+): ToastLiveRegion {
   if (severity === 'error') return { role: 'alert', ariaLive: 'assertive' }
   return { role: 'status', ariaLive: 'polite' }
 }
 
 /** `null` means the toast stays until the user dismisses it or uses its action. */
-export function autoDismissMs(severity: ToastSeverity, options?: AutoDismissOptions): number | null {
+export function autoDismissMs(
+  severity: ToastSeverity,
+  options?: AutoDismissOptions
+): number | null {
   if (severity === 'error') return null
   if (options?.hasAction) return null
   return DEFAULT_STATUS_DISMISS_MS

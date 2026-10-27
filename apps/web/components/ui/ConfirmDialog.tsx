@@ -23,7 +23,14 @@ export function ConfirmDialog({
   busy?: boolean
 }) {
   return (
-    <Dialog open={open} onClose={onClose} title={title} description={description} role="alertdialog" closeDisabled={busy}>
+    <Dialog
+      open={open}
+      onClose={onClose}
+      title={title}
+      description={description}
+      role="alertdialog"
+      closeDisabled={busy}
+    >
       <div className="flex justify-end gap-tc-2">
         <Button
           type="button"
@@ -35,7 +42,13 @@ export function ConfirmDialog({
         >
           Cancel
         </Button>
-        <Button type="button" variant="danger" size="sm" onClick={onConfirm} disabled={busy}>
+        <Button
+          type="button"
+          variant="danger"
+          size="sm"
+          onClick={onConfirm}
+          disabled={busy}
+        >
           {busy ? 'Working…' : confirmLabel}
         </Button>
       </div>

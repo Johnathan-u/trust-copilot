@@ -1,7 +1,13 @@
 'use client'
 
 import { useCallback, useEffect, useState } from 'react'
-import { Button, Card, Input, Modal, useDestructiveConfirm } from '@/components/ui'
+import {
+  Button,
+  Card,
+  Input,
+  Modal,
+  useDestructiveConfirm,
+} from '@/components/ui'
 import { useAuth } from '@/contexts/AuthContext'
 
 /* ──────────────────── Types ──────────────────── */
@@ -298,7 +304,10 @@ export default function SlackPage() {
       description: 'Notifications will stop.',
       confirmLabel: 'Disconnect',
       onConfirm: async () => {
-        await fetch('/api/slack/disconnect', { method: 'DELETE', credentials: 'include' })
+        await fetch('/api/slack/disconnect', {
+          method: 'DELETE',
+          credentials: 'include',
+        })
         load()
       },
     })
@@ -385,7 +394,10 @@ export default function SlackPage() {
       description: 'Remove this channel from evidence ingestion?',
       confirmLabel: 'Remove',
       onConfirm: async () => {
-        await fetch(`/api/slack/ingest/channels/${id}`, { method: 'DELETE', credentials: 'include' })
+        await fetch(`/api/slack/ingest/channels/${id}`, {
+          method: 'DELETE',
+          credentials: 'include',
+        })
         load()
       },
     })

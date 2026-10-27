@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { disclosureTriggerProps } from './disclosure'
+import { disclosureTriggerProps } from '@/lib/disclosure'
 
 describe('disclosure popover trigger', () => {
   it('exposes aria-expanded and aria-controls for the panel', () => {
@@ -11,9 +11,8 @@ describe('disclosure popover trigger', () => {
       'aria-expanded': false,
       'aria-controls': 'sample-notifications',
     })
-    expect(Object.keys(disclosureTriggerProps(true, 'sample-notifications'))).toEqual([
-      'aria-expanded',
-      'aria-controls',
-    ])
+    expect(
+      Object.keys(disclosureTriggerProps(true, 'sample-notifications'))
+    ).toEqual(['aria-expanded', 'aria-controls'])
   })
 })

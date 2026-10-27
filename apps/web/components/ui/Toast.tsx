@@ -1,7 +1,11 @@
 'use client'
 
 import { useEffect, useRef, type ReactNode } from 'react'
-import { autoDismissMs, liveRegionForSeverity, type ToastSeverity } from '@/lib/toast'
+import {
+  autoDismissMs,
+  liveRegionForSeverity,
+  type ToastSeverity,
+} from '@/lib/toast'
 
 export interface ToastAction {
   label: string
@@ -18,9 +22,17 @@ interface ToastProps {
 }
 
 const tone: Record<ToastSeverity, { bg: string; fg: string; glyph: string }> = {
-  success: { bg: 'var(--tc-success-surface)', fg: 'var(--tc-success)', glyph: '✓' },
+  success: {
+    bg: 'var(--tc-success-surface)',
+    fg: 'var(--tc-success)',
+    glyph: '✓',
+  },
   info: { bg: 'var(--tc-info-surface)', fg: 'var(--tc-info)', glyph: 'i' },
-  warning: { bg: 'var(--tc-warning-surface)', fg: 'var(--tc-warning)', glyph: '!' },
+  warning: {
+    bg: 'var(--tc-warning-surface)',
+    fg: 'var(--tc-warning)',
+    glyph: '!',
+  },
   error: { bg: 'var(--tc-danger-surface)', fg: 'var(--tc-danger)', glyph: '!' },
 }
 
@@ -29,9 +41,17 @@ const tone: Record<ToastSeverity, { bg: string; fg: string; glyph: string }> = {
  * any toast with an action button, stay until dismiss. This component does not
  * move focus. Callers should not start a second dismiss timer.
  */
-export function Toast({ title, message, type = 'success', onDismiss, action }: ToastProps) {
+export function Toast({
+  title,
+  message,
+  type = 'success',
+  onDismiss,
+  action,
+}: ToastProps) {
   const onDismissRef = useRef(onDismiss)
-  onDismissRef.current = onDismiss
+  useEffect(() => {
+    onDismissRef.current = onDismiss
+  }, [onDismiss])
   const hasAction = action != null
 
   useEffect(() => {
@@ -60,7 +80,9 @@ export function Toast({ title, message, type = 'success', onDismiss, action }: T
       </div>
       <div className="min-w-0">
         <strong className="block text-tc-label text-tc-text">{title}</strong>
-        <span className="mt-tc-1 block text-tc-caption text-tc-muted">{message}</span>
+        <span className="mt-tc-1 block text-tc-caption text-tc-muted">
+          {message}
+        </span>
         {action ? (
           <button
             type="button"

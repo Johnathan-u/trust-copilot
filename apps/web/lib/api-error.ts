@@ -1,6 +1,11 @@
 /** Normalize FastAPI / proxy error JSON for display. */
 
-import { autoDismissMs, liveRegionForSeverity, type ToastLiveRegion, type ToastSeverity } from './toast'
+import {
+  autoDismissMs,
+  liveRegionForSeverity,
+  type ToastLiveRegion,
+  type ToastSeverity,
+} from './toast'
 
 /**
  * API failures and denials are shown with the danger status token
@@ -28,8 +33,14 @@ export function apiErrorPresentation(
 export function apiErrorAnnouncement(
   data: unknown,
   fallback = 'Request failed'
-): { message: string; severity: Extract<ToastSeverity, 'error'>; live: ToastLiveRegion; autoDismissMs: null } {
-  if (autoDismissMs('error') !== null) throw new Error('error announcements must stay until dismissed')
+): {
+  message: string
+  severity: Extract<ToastSeverity, 'error'>
+  live: ToastLiveRegion
+  autoDismissMs: null
+} {
+  if (autoDismissMs('error') !== null)
+    throw new Error('error announcements must stay until dismissed')
   return {
     message: formatApiErrorDetail(data, fallback),
     severity: 'error',
@@ -38,7 +49,10 @@ export function apiErrorAnnouncement(
   }
 }
 
-export function formatApiErrorDetail(data: unknown, fallback = 'Request failed'): string {
+export function formatApiErrorDetail(
+  data: unknown,
+  fallback = 'Request failed'
+): string {
   if (!data || typeof data !== 'object') return fallback
   const rec = data as Record<string, unknown>
   const d = rec.detail

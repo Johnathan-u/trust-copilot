@@ -7,7 +7,7 @@ import {
   dialogRoleForDestructive,
   dialogSizeClass,
   nextTabbableIndex,
-} from './dialog'
+} from '@/lib/dialog'
 
 describe('dialog primitive contract', () => {
   it('uses alertdialog only for destructive confirms', () => {

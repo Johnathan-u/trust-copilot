@@ -1,7 +1,13 @@
 'use client'
 
 import { useCallback, useEffect, useState } from 'react'
-import { Button, Card, Input, Modal, useDestructiveConfirm } from '@/components/ui'
+import {
+  Button,
+  Card,
+  Input,
+  Modal,
+  useDestructiveConfirm,
+} from '@/components/ui'
 import { useAuth } from '@/contexts/AuthContext'
 
 /* ──────────────────── Types ──────────────────── */
@@ -180,7 +186,10 @@ export default function GmailPage() {
       description: 'Evidence ingestion will stop.',
       confirmLabel: 'Disconnect',
       onConfirm: async () => {
-        await fetch('/api/gmail/disconnect', { method: 'DELETE', credentials: 'include' })
+        await fetch('/api/gmail/disconnect', {
+          method: 'DELETE',
+          credentials: 'include',
+        })
         load()
       },
     })
@@ -228,7 +237,10 @@ export default function GmailPage() {
       description: 'Remove this label from ingestion?',
       confirmLabel: 'Remove',
       onConfirm: async () => {
-        await fetch(`/api/gmail/ingest/labels/${id}`, { method: 'DELETE', credentials: 'include' })
+        await fetch(`/api/gmail/ingest/labels/${id}`, {
+          method: 'DELETE',
+          credentials: 'include',
+        })
         load()
       },
     })
