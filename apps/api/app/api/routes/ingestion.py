@@ -32,8 +32,12 @@ async def ingest(
 ):
     try:
         result = ips.ingest_evidence(
-            db, session["workspace_id"], body.source_type, body.title,
-            body.source_metadata, body.document_id,
+            db,
+            session["workspace_id"],
+            body.source_type,
+            body.title,
+            body.source_metadata,
+            body.document_id,
         )
     except CollectedEvidenceRejected as exc:
         db.rollback()
