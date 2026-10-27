@@ -37,7 +37,8 @@ from app.core.audit import persist_audit  # noqa: E402
 from app.services.file_service import FileService  # noqa: E402
 from app.services.storage import StorageClient  # noqa: E402
 from app.services.docx_questionnaire_parser import parse_docx_questionnaire  # noqa: E402
-from app.services.pdf_questionnaire_parser import parse_pdf_questionnaire  # noqa: E402
+from app.services.pdf_questionnaire_parser import parse_pdf_questionnaire  # noqa: E402  (hard-imports pypdf: fails at worker startup if missing)
+from app.services.pdf_text import PdfTextError  # noqa: E402
 from app.services.xlsx_questionnaire_parser import parse_xlsx_questionnaire  # noqa: E402
 from app.services.compliance_webhook_delivery import process_compliance_webhook_outbox  # noqa: E402
 from app.services.in_app_notification_service import notify_admins, notify_workspace  # noqa: E402
@@ -815,6 +816,16 @@ def _process_one_job() -> bool:
                         doc.status = "failed"
                         doc.index_error = (str(e))[:512] if str(e) else None
                         session.merge(doc)
+            if job.kind == "parse_questionnaire" and isinstance(e, PdfTextError):
+                # Image-only / encrypted / corrupt PDF (TC-01-003a): surface the readable
+                # message on the questionnaire too, instead of leaving it "uploaded".
+                qnr_id = payload.get("questionnaire_id")
+                if qnr_id:
+                    qnr = session.query(Questionnaire).filter(Questionnaire.id == qnr_id).first()
+                    if qnr:
+                        qnr.status = "failed"
+                        qnr.parse_metadata = json.dumps({"count": 0, "error": str(e)})
+                        session.merge(qnr)
             session.commit()
         return True
     except Exception as e:

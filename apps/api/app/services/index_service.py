@@ -17,6 +17,7 @@ from app.services.chunking import chunk_evidence  # noqa: E402
 from app.services.embedding_service import EMBEDDING_DIM, embed_texts  # noqa: E402, F401
 from app.services.evidence_parser import parse_evidence  # noqa: E402
 from app.services.file_service import FileService  # noqa: E402
+from app.services.pdf_text import PdfTextError  # noqa: E402
 from app.services.storage import StorageClient  # noqa: E402
 from app.services.vector_util import embedding_to_vector_literal, validate_embedding_dimension  # noqa: E402
 
@@ -57,7 +58,25 @@ def index_document(
         f.write(content)
         path = f.name
     try:
-        parsed = parse_evidence(path)
+        try:
+            parsed = parse_evidence(path)
+        except PdfTextError as e:
+            # Image-only, encrypted or corrupt PDF (TC-01-003a). str(e) is a fixed,
+            # user-readable message (no path, no backend exception text).
+            doc.status = "failed"
+            doc.index_error = str(e)[:512]
+            db.commit()
+            duration_ms = (time.monotonic() - started) * 1000
+            log_index_failure(
+                document_id,
+                doc.workspace_id,
+                type(e).__name__,
+                duration_ms,
+                job_id=job_id,
+            )
+            INDEX_DOCUMENT_TOTAL.labels(status="failure").inc()
+            INDEX_DURATION_SECONDS.observe(duration_ms / 1000)
+            raise
         if not parsed:
             # No false "indexed": 0 chunks => mark failed (Fix 2).
             doc.status = "failed"
