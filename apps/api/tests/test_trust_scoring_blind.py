@@ -142,7 +142,7 @@ def test_blind_report():
     within_25 = sum(1 for d in abs_diffs if d <= 25) / len(abs_diffs) * 100
 
     print(f"\n{'=' * 56}")
-    print(f"  BLIND VALIDATION REPORT  (100 cases, frozen weights)")
+    print("  BLIND VALIDATION REPORT  (100 cases, frozen weights)")
     print(f"{'=' * 56}")
     print(f"  MAE           = {mae:.2f}   (target <= 6.0)")
     print(f"  within +/-4   = {within_4:.0f}%    (target >= 65%)")
@@ -160,7 +160,7 @@ def test_blind_report():
         print(f"{cid:<6} {cat:<14} {exp:>4} {got:>4} {diff:>+5}  {grade}{marker}")
 
     print(f"\n{'=' * 56}")
-    print(f"  MAE BY CATEGORY")
+    print("  MAE BY CATEGORY")
     print(f"{'=' * 56}")
     for cat in sorted(cat_errors):
         errs = cat_errors[cat]

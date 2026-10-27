@@ -1,4 +1,6 @@
-import base64, hmac, json
+import base64
+import hmac
+import json
 import requests
 
 SECRET = "zDWud8xGEkOl_7ceEhfvrGeTNehTp3ttPHo9uYEcCGoyZUOlYvYBCiDHjp1stF_0"

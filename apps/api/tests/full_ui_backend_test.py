@@ -67,7 +67,7 @@ def login():
     if r.status_code == 200:
         data = r.json()
         if data.get("mfa_required"):
-            log("WARN", f"MFA required for login - skipping MFA step")
+            log("WARN", "MFA required for login - skipping MFA step")
             return False
         log("PASS", f"Login successful as {data.get('user', {}).get('email', '?')}")
         return True
@@ -278,7 +278,7 @@ def test_frontend_page_loads():
     try:
         r = SESSION.get(f"{frontend_base}/dashboard/questionnaires/1/mappings", timeout=10, allow_redirects=True)
         if r.status_code == 404:
-            log("PASS", f"Deleted mappings page -> 404 (correct)")
+            log("PASS", "Deleted mappings page -> 404 (correct)")
         else:
             log("WARN", f"Deleted mappings page -> {r.status_code}")
     except Exception as e:
@@ -294,12 +294,12 @@ def print_summary():
     print(f"  Warnings: {len(results['warn'])}")
 
     if results["fail"]:
-        print(f"\n  FAILURES:")
+        print("\n  FAILURES:")
         for f in results["fail"]:
             print(f"    - {f}")
 
     if results["warn"]:
-        print(f"\n  WARNINGS:")
+        print("\n  WARNINGS:")
         for w in results["warn"]:
             print(f"    - {w}")
 

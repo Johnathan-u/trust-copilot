@@ -325,7 +325,7 @@ def main():
     # ── Framework coverage detail ──
     fw_cov = after_coverage.get("framework_coverage", [])
     if fw_cov:
-        print(f"\n  Framework coverage:")
+        print("\n  Framework coverage:")
         for f in fw_cov:
             print(f"    {f['framework']:<20} {f['drafted']}/{f['total']} ({f['coverage_pct']}%)")
 
@@ -364,7 +364,7 @@ def main():
         compliance_entries = [e for e in entries if e.get("event_type", "").startswith("compliance.")]
         check("Compliance events in delivery log", len(compliance_entries) > 0, f"{len(compliance_entries)} compliance events")
         if compliance_entries:
-            print(f"\n  Compliance delivery log entries:")
+            print("\n  Compliance delivery log entries:")
             for e in compliance_entries[:5]:
                 print(f"    [{e.get('status')}] {e.get('event_type')} -> {e.get('channel', 'email')} ({e.get('recipient_email', '?')})")
                 if e.get("subject"):
@@ -411,13 +411,13 @@ def main():
 
         weak = ins.get("weak_subjects", [])
         if weak:
-            print(f"\n  Weakest subjects:")
+            print("\n  Weakest subjects:")
             for w in weak[:5]:
                 print(f"    {w['subject']:<30} avg_conf={w['avg_confidence']}%, count={w['count']}, insufficient={w['insufficient']}")
 
         failures = ins.get("failure_reasons", [])
         if failures:
-            print(f"\n  Failure reasons:")
+            print("\n  Failure reasons:")
             for f in failures:
                 print(f"    {f.get('label', f.get('reason', '?')):<40} count={f['count']}")
 
@@ -453,7 +453,7 @@ def main():
         print(f"  With citations: {with_citations}")
 
         # Show first 3 Q&A pairs
-        print(f"\n  Sample answers:")
+        print("\n  Sample answers:")
         shown = 0
         for q in questions:
             ans = q.get("answer")

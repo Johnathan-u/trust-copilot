@@ -413,7 +413,7 @@ def main() -> None:
             seed_custom_role(db, ws_id, "qa-custom")
             seed_notification_policies(db, ws_id, prefix)
             seed_audit_events(db, ws_id, admin_u.id, admin_u.email)
-            print(f"  Audit events: 5")
+            print("  Audit events: 5")
 
         print("\n--- QA test accounts ---", flush=True)
         print(f"  Admin:    {ADMIN_EMAIL} / {ADMIN_PASSWORD}", flush=True)

@@ -84,7 +84,8 @@ class HttpSlackProvider:
             return {"ok": False, "error": str(e)[:200]}
 
     def _get(self, bot_token: str, method: str, params: dict | None = None) -> dict:
-        import urllib.request, urllib.parse
+        import urllib.request
+        import urllib.parse
         qs = urllib.parse.urlencode(params or {})
         url = f"{self.API_BASE}/{method}" + (f"?{qs}" if qs else "")
         headers = {"Authorization": f"Bearer {bot_token}"}

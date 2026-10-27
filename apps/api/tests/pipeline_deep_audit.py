@@ -2,7 +2,9 @@
 Deep audit: check actual data shapes from API and DB to determine
 what the pipeline actually produces.
 """
-import json, sys, requests
+import json
+import sys
+import requests
 
 BASE = "http://localhost:8000"
 S = requests.Session()

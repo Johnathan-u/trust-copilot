@@ -1,4 +1,6 @@
-import base64, hmac, json
+import base64
+import hmac
+import json
 import requests
 
 SECRET = "zDWud8xGEkOl_7ceEhfvrGeTNehTp3ttPHo9uYEcCGoyZUOlYvYBCiDHjp1stF_0"
@@ -17,7 +19,7 @@ if r.status_code != 200:
 else:
     data = r.json()
     kpi = data.get("kpi", {})
-    print(f"\n=== KPI Cards ===")
+    print("\n=== KPI Cards ===")
     print(f"  Total Questions: {kpi.get('total_questions')}")
     print(f"  Total Drafted:   {kpi.get('total_drafted')}")
     print(f"  Insufficient:    {kpi.get('total_insufficient')}")

@@ -290,7 +290,7 @@ def run_dataset(name: str, evidence_docs: list[tuple[str, str]], questions: list
     qnr_id = qnr["id"]
     print(f"  Questionnaire uploaded: id={qnr_id}")
     wait_qnr_parsed(ws_id, qnr_id)
-    print(f"  Questionnaire parsed")
+    print("  Questionnaire parsed")
 
     t_start = time.monotonic()
     gen = generate_answers(ws_id, qnr_id, doc_ids)

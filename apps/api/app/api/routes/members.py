@@ -365,7 +365,7 @@ async def suspend_member(
     if req.suspended:
         _fire_notif(db, workspace_id, "member.suspended", detail=f"User {mem.user_id} suspended")
         try:
-            notify_admins(db, workspace_id, f"Member suspended", f"User {mem.user_id} has been suspended", category="warning", link="/dashboard/members")
+            notify_admins(db, workspace_id, "Member suspended", f"User {mem.user_id} has been suspended", category="warning", link="/dashboard/members")
         except Exception:
             pass
     return {"id": mem.id, "user_id": mem.user_id, "suspended": bool(mem.suspended)}

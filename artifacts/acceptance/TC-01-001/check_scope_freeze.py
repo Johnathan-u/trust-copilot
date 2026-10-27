@@ -3,7 +3,8 @@
 in docs/acceptance/scope-freeze.md with an owner epic and a delivery ticket.
 Run from the repo root: python3 artifacts/acceptance/TC-01-001/check_scope_freeze.py
 """
-import re, sys
+import re
+import sys
 from pathlib import Path
 
 root = Path(__file__).resolve().parents[3]

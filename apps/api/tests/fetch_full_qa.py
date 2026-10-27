@@ -1,4 +1,6 @@
-import base64, hmac, json
+import base64
+import hmac
+import json
 import requests
 
 API = "http://localhost:8000"

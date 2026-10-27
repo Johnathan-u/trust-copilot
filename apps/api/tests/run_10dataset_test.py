@@ -468,7 +468,7 @@ def run_dataset(name: str, evidence_docs: list[tuple[str, str]], questions: list
     qnr_id = qnr["id"]
     print(f"  Questionnaire: id={qnr_id}")
     wait_qnr_parsed(ws_id, qnr_id)
-    print(f"  Parsed")
+    print("  Parsed")
 
     t_start = time.monotonic()
     gen = generate_answers(ws_id, qnr_id)
@@ -485,7 +485,7 @@ def run_dataset(name: str, evidence_docs: list[tuple[str, str]], questions: list
     no_answer = [a for a in answers if a.get("status") == "no_answer"]
     print(f"  Results: {len(answers)} total, {len(drafted)} drafted, {len(insufficient)} insufficient, {len(no_answer)} no_answer")
 
-    print(f"\n  --- Answers ---")
+    print("\n  --- Answers ---")
     for a in answers:
         q = a.get("question_text", "?")[:70]
         a_text = (a.get("text") or "(no answer)")[:140]

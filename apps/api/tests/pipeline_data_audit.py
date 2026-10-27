@@ -3,7 +3,9 @@ AI Pipeline Data Audit
 Checks whether the AI pipeline is producing real data and feeding it
 to every page/endpoint that consumes it.
 """
-import json, sys, requests
+import json
+import sys
+import requests
 
 BASE = "http://localhost:8000"
 S = requests.Session()

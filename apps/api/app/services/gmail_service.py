@@ -75,7 +75,8 @@ class HttpGmailProvider:
     API_BASE = "https://gmail.googleapis.com/gmail/v1/users/me"
 
     def _get(self, access_token: str, path: str, params: dict | None = None) -> dict:
-        import urllib.request, urllib.parse
+        import urllib.request
+        import urllib.parse
         qs = urllib.parse.urlencode(params or {})
         url = f"{self.API_BASE}/{path}" + (f"?{qs}" if qs else "")
         headers = {"Authorization": f"Bearer {access_token}"}
