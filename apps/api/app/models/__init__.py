@@ -37,10 +37,14 @@ from app.models.control_mapping_override import ControlMappingOverride
 from app.models.compliance_webhook_outbox import ComplianceWebhookOutbox
 from app.models.custom_role import CustomRole
 from app.models.notification import (
+    DELIVERY_STATES,
+    NOTIFICATION_CHANNELS,
+    NOTIFICATION_EVENT_TYPES,
+    NotificationChannelPreference,
+    NotificationDeliveryAttempt,
     NotificationLog,
     NotificationPolicy,
     NotificationUnsubscribe,
-    NOTIFICATION_EVENT_TYPES,
 )
 from app.models.slack_integration import SlackIntegration
 from app.models.slack_ingest import SlackControlSuggestion, SlackIngestChannel
@@ -159,7 +163,11 @@ __all__ = [
     "NotificationPolicy",
     "NotificationLog",
     "NotificationUnsubscribe",
+    "NotificationChannelPreference",
+    "NotificationDeliveryAttempt",
     "NOTIFICATION_EVENT_TYPES",
+    "NOTIFICATION_CHANNELS",
+    "DELIVERY_STATES",
     "SlackIntegration",
     "SlackIngestChannel",
     "SlackControlSuggestion",

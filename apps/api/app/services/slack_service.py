@@ -90,11 +90,12 @@ class ConsoleSlackProvider:
             return dev_stub_forbidden_result("slack")
         return None
 
-    def send_message(self, bot_token: str, channel_id: str, text: str) -> dict:
+    def send_message(self, bot_token: str, channel_id: str, text: str, on_attempt=None) -> dict:
+        del on_attempt  # the stub does not retry; the caller records the single outcome
         refused = self._refused()
         if refused:
             return refused
-        logger.info("[SLACK DEV-STUB] channel=%s text=%s", channel_id, text[:100])
+        logger.info("[SLACK DEV-STUB] channel=%s text_len=%s", channel_id, len(text or ""))
         return _stub_label({"ok": True, "ts": str(time.time()), "provider": "slack"})
 
     def list_channels(self, bot_token: str) -> list[dict] | dict:
@@ -171,13 +172,16 @@ class HttpSlackProvider:
             headers["Content-Type"] = "application/json; charset=utf-8"
         return headers
 
-    def _post(self, bot_token: str, method: str, payload: dict | None = None) -> dict:
+    def _post(
+        self, bot_token: str, method: str, payload: dict | None = None, on_attempt=None
+    ) -> dict:
         result = self._http.call(
             "POST",
             f"{self.API_BASE}/{method}",
             provider="slack",
             headers=self._headers(bot_token, json_body=True),
             content=json.dumps(payload or {}).encode(),
+            on_attempt=on_attempt,
         )
         return call_result_to_dict(result, "slack")
 
@@ -191,8 +195,13 @@ class HttpSlackProvider:
         )
         return call_result_to_dict(result, "slack")
 
-    def send_message(self, bot_token: str, channel_id: str, text: str) -> dict:
-        return self._post(bot_token, "chat.postMessage", {"channel": channel_id, "text": text})
+    def send_message(self, bot_token: str, channel_id: str, text: str, on_attempt=None) -> dict:
+        return self._post(
+            bot_token,
+            "chat.postMessage",
+            {"channel": channel_id, "text": text},
+            on_attempt=on_attempt,
+        )
 
     def list_channels(self, bot_token: str) -> list[dict] | dict:
         result = self._get(

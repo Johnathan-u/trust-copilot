@@ -351,6 +351,27 @@ def call_result_to_dict(result: ProviderCallResult, provider: str) -> dict:
     )
 
 
+def _observe(on_attempt, result: ProviderCallResult, *, will_retry: bool) -> None:
+    if on_attempt is None:
+        return
+    on_attempt(result, will_retry)
+
+
+def _finish_attempt(
+    last: ProviderCallResult,
+    *,
+    attempt: int,
+    max_attempts: int,
+    on_attempt,
+) -> tuple[ProviderCallResult, bool]:
+    """Apply the exhaustion flag and report whether another try is allowed."""
+    will_retry = (not last.ok) and last.retryable and attempt < max_attempts
+    if not last.ok and last.retryable and not will_retry:
+        last = replace(last, exhausted=True)
+    _observe(on_attempt, last, will_retry=will_retry)
+    return last, will_retry
+
+
 class BoundedRetrySeam:
     def __init__(self, max_attempts: int = DEFAULT_MAX_ATTEMPTS, sleeper=None) -> None:
         if max_attempts < 1:
@@ -358,13 +379,13 @@ class BoundedRetrySeam:
         self.max_attempts = max_attempts
         self._sleeper = sleeper if sleeper is not None else (lambda _attempt, _retry_after: None)
 
-    def execute(self, call, *, provider: str) -> ProviderCallResult:
+    def execute(self, call, *, provider: str, on_attempt=None) -> ProviderCallResult:
         last: ProviderCallResult | None = None
         for attempt in range(1, self.max_attempts + 1):
             try:
                 response = call()
             except OutboundHttpDenied:
-                return _fail(
+                denied = _fail(
                     status_code=None,
                     error_code=ERROR_DENIED,
                     attempts=attempt,
@@ -372,6 +393,8 @@ class BoundedRetrySeam:
                     retryable=False,
                     message="Outbound call blocked by the message-provider allowlist.",
                 )
+                _observe(on_attempt, denied, will_retry=False)
+                return denied
             except httpx.TimeoutException:
                 last = _fail(
                     status_code=None,
@@ -392,10 +415,69 @@ class BoundedRetrySeam:
                 )
             else:
                 last = classify_response(response, provider, attempt)
-            if last.ok or not last.retryable:
+            last, will_retry = _finish_attempt(
+                last,
+                attempt=attempt,
+                max_attempts=self.max_attempts,
+                on_attempt=on_attempt,
+            )
+            if not will_retry:
                 return last
-            if attempt >= self.max_attempts:
-                return replace(last, exhausted=True)
+            self._sleeper(attempt, last.retry_after)
+        assert last is not None
+        return replace(last, exhausted=True)
+
+    def run_results(self, attempt_call, *, on_attempt=None) -> ProviderCallResult:
+        """Bound a callable that already returns ``ProviderCallResult``.
+
+        ``attempt_call(attempt)`` performs one try. The cap, sleeper, and
+        exhaustion flag match ``execute``. This is the same seam, used by
+        callers that are not HTTP responses (notification email).
+        """
+        last: ProviderCallResult | None = None
+        for attempt in range(1, self.max_attempts + 1):
+            try:
+                last = attempt_call(attempt)
+            except OutboundHttpDenied:
+                denied = _fail(
+                    status_code=None,
+                    error_code=ERROR_DENIED,
+                    attempts=attempt,
+                    provider_error="outbound_not_allowlisted",
+                    retryable=False,
+                    message="Outbound call blocked by the message-provider allowlist.",
+                )
+                _observe(on_attempt, denied, will_retry=False)
+                return denied
+            except httpx.TimeoutException:
+                last = _fail(
+                    status_code=None,
+                    error_code=ERROR_UNKNOWN,
+                    attempts=attempt,
+                    provider_error="timeout",
+                    retryable=True,
+                    message="The provider request timed out.",
+                )
+            except httpx.TransportError:
+                last = _fail(
+                    status_code=None,
+                    error_code=ERROR_UNKNOWN,
+                    attempts=attempt,
+                    provider_error="transport",
+                    retryable=True,
+                    message="The provider request could not be sent.",
+                )
+            else:
+                if last.attempts != attempt:
+                    last = replace(last, attempts=attempt)
+            last, will_retry = _finish_attempt(
+                last,
+                attempt=attempt,
+                max_attempts=self.max_attempts,
+                on_attempt=on_attempt,
+            )
+            if not will_retry:
+                return last
             self._sleeper(attempt, last.retry_after)
         assert last is not None
         return replace(last, exhausted=True)
