@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 
 from app.core.auth_deps import require_can_admin, require_session  # noqa: F401
 from app.core.database import get_db
+from app.core.workspace_refs import require_in_workspace
 from app.models.buyer_portal import BuyerPortal
 from app.services import buyer_portal_service as bps
 
@@ -177,6 +178,7 @@ def public_escalation(
     db: Session = Depends(get_db),
 ):
     p = _portal_from_token(db, token)
+    require_in_workspace(db, p.workspace_id, "answer", body.answer_id)
     out = bps.create_escalation(
         db,
         p.workspace_id,
@@ -207,6 +209,7 @@ def public_satisfaction(
     db: Session = Depends(get_db),
 ):
     p = _portal_from_token(db, token)
+    require_in_workspace(db, p.workspace_id, "questionnaire", body.questionnaire_id)
     out = bps.record_satisfaction(
         db,
         p.workspace_id,

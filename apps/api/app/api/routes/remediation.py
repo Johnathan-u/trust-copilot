@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 
 from app.core.auth_deps import require_can_admin, require_session
 from app.core.database import get_db
+from app.core.workspace_refs import require_in_workspace, require_refs
 from app.services import remediation_service as svc
 from app.services import remediation_loop_service as loop_svc
 
@@ -95,6 +96,16 @@ async def create_ticket(
     session: dict = Depends(require_can_admin),
     db: Session = Depends(get_db),
 ):
+    require_refs(
+        db,
+        session["workspace_id"],
+        [
+            ("control", body.control_id),
+            ("playbook", body.playbook_id),
+            ("user", body.assignee_user_id),
+            ("deal", body.affected_deal_ids),
+        ],
+    )
     data = body.model_dump(exclude_none=True)
     result = svc.create_ticket(db, session["workspace_id"], **data)
     db.commit()
@@ -117,6 +128,7 @@ async def update_status(
     session: dict = Depends(require_can_admin),
     db: Session = Depends(get_db),
 ):
+    require_in_workspace(db, session["workspace_id"], "remediation_ticket", ticket_id)
     result = svc.update_ticket_status(db, ticket_id, body.status)
     if not result:
         raise HTTPException(status_code=404)
@@ -143,6 +155,8 @@ async def submit_evidence(
     session: dict = Depends(require_can_admin),
     db: Session = Depends(get_db),
 ):
+    require_in_workspace(db, session["workspace_id"], "remediation_ticket", ticket_id)
+    require_in_workspace(db, session["workspace_id"], "evidence", body.evidence_ids)
     result = loop_svc.submit_post_remediation_evidence(
         db, ticket_id, body.evidence_ids, session.get("user_id"), body.bump_control_to
     )
@@ -156,6 +170,7 @@ async def submit_evidence(
 async def ticket_impact(
     ticket_id: int, session: dict = Depends(require_session), db: Session = Depends(get_db)
 ):
+    require_in_workspace(db, session["workspace_id"], "remediation_ticket", ticket_id)
     result = loop_svc.analyze_remediation_impact(db, ticket_id)
     if not result:
         raise HTTPException(status_code=404)
@@ -190,6 +205,7 @@ async def run_automation(
     session: dict = Depends(require_can_admin),
     db: Session = Depends(get_db),
 ):
+    require_in_workspace(db, session["workspace_id"], "remediation_ticket", body.ticket_id)
     result = loop_svc.run_safe_automation(
         db,
         session["workspace_id"],
