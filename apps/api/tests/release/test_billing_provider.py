@@ -528,11 +528,13 @@ def test_invalid_json_is_rejected_only_after_a_valid_signature(billing_client, s
 
 def test_expired_and_future_timestamps(billing_client, stripe_settings, bag):
     body = checkout_body(new_event_id(bag, "time"), 1_700_000_000, bag["sub"])
-    now = int(time.time())
-    expired = post_webhook(billing_client, body, SECRET_A, timestamp=now - 301)
+    # Default tolerance is 300s. One second past that is inside the window
+    # once the first request has taken longer than a second.
+    outside = 3600
+    expired = post_webhook(billing_client, body, SECRET_A, timestamp=int(time.time()) - outside)
     assert expired.status_code == 400
     assert "expired" in expired.json()["detail"]
-    future = post_webhook(billing_client, body, SECRET_A, timestamp=now + 301)
+    future = post_webhook(billing_client, body, SECRET_A, timestamp=int(time.time()) + outside)
     assert future.status_code == 400
     assert "future" in future.json()["detail"]
     assert sub_state(bag["sub"]) is None

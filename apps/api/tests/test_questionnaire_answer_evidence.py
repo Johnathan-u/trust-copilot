@@ -174,10 +174,13 @@ def test_generate_answers_passes_document_ids_to_retrieval(db_session: Session):
         captured["document_ids"] = kwargs.get("document_ids")
         return [[]]
 
+    def fake_embed(texts, *args, **kwargs):
+        return [[0.1] * 1536 for _ in texts]
+
     try:
         with (
             patch("app.core.config.get_settings") as mock_settings,
-            patch("app.services.answer_generation.embed_texts", return_value=[[0.1] * 1536]),
+            patch("app.services.answer_generation.embed_texts", side_effect=fake_embed),
             patch("app.services.answer_generation.RetrievalService") as MockRetrieval,
             patch("app.services.answer_generation.get_corpus_version", return_value=""),
             patch("app.services.answer_generation.retrieval_cache_get", return_value=None),
