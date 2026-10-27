@@ -54,7 +54,7 @@ def decrypt_token(encrypted: str) -> str:
 
 
 class SlackProvider(Protocol):
-    def send_message(self, bot_token: str, channel_id: str, text: str) -> dict:
+    def send_message(self, bot_token: str, channel_id: str, text: str, on_attempt=None) -> dict:
         """Post a message. Return {"ok": True/False, "error": "...", "ts": "..."}."""
         ...
 
@@ -90,7 +90,8 @@ class ConsoleSlackProvider:
             return dev_stub_forbidden_result("slack")
         return None
 
-    def send_message(self, bot_token: str, channel_id: str, text: str) -> dict:
+    def send_message(self, bot_token: str, channel_id: str, text: str, on_attempt=None) -> dict:
+        del on_attempt  # the stub does not retry; the caller records the single outcome
         refused = self._refused()
         if refused:
             return refused
@@ -171,13 +172,16 @@ class HttpSlackProvider:
             headers["Content-Type"] = "application/json; charset=utf-8"
         return headers
 
-    def _post(self, bot_token: str, method: str, payload: dict | None = None) -> dict:
+    def _post(
+        self, bot_token: str, method: str, payload: dict | None = None, on_attempt=None
+    ) -> dict:
         result = self._http.call(
             "POST",
             f"{self.API_BASE}/{method}",
             provider="slack",
             headers=self._headers(bot_token, json_body=True),
             content=json.dumps(payload or {}).encode(),
+            on_attempt=on_attempt,
         )
         return call_result_to_dict(result, "slack")
 
@@ -191,8 +195,13 @@ class HttpSlackProvider:
         )
         return call_result_to_dict(result, "slack")
 
-    def send_message(self, bot_token: str, channel_id: str, text: str) -> dict:
-        return self._post(bot_token, "chat.postMessage", {"channel": channel_id, "text": text})
+    def send_message(self, bot_token: str, channel_id: str, text: str, on_attempt=None) -> dict:
+        return self._post(
+            bot_token,
+            "chat.postMessage",
+            {"channel": channel_id, "text": text},
+            on_attempt=on_attempt,
+        )
 
     def list_channels(self, bot_token: str) -> list[dict] | dict:
         result = self._get(
@@ -269,28 +278,3 @@ def set_slack_provider(provider: SlackProvider | None) -> None:
 
 def reset_slack_provider() -> None:
     set_slack_provider(None)
-
-
-# ---------------------------------------------------------------------------
-# Dedup for Slack messages
-# ---------------------------------------------------------------------------
-
-_slack_dedup: dict[str, float] = {}
-SLACK_DEDUP_WINDOW = 60
-
-
-def _slack_dedup_key(workspace_id: int, event_type: str) -> str:
-    return f"slack:{workspace_id}:{event_type}"
-
-
-def is_slack_duplicate(workspace_id: int, event_type: str) -> bool:
-    key = _slack_dedup_key(workspace_id, event_type)
-    now = time.monotonic()
-    last = _slack_dedup.get(key)
-    if last and (now - last) < SLACK_DEDUP_WINDOW:
-        return True
-    _slack_dedup[key] = now
-    stale = [k for k, v in _slack_dedup.items() if now - v > SLACK_DEDUP_WINDOW * 2]
-    for k in stale:
-        _slack_dedup.pop(k, None)
-    return False
