@@ -3,6 +3,8 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Button, Card, Modal, useDestructiveConfirm } from '@/components/ui'
 import { useAuth } from '@/contexts/AuthContext'
+import { throwIfResponseNotOk } from '@/lib/api-error'
+import { deleteNotificationPolicy } from '@/lib/notification-policy-delete'
 import {
   CATEGORY_META,
   getNotificationMeta,
@@ -223,12 +225,13 @@ export default function ComplianceAlertsPage() {
   }, [canAdmin, load])
 
   const togglePolicy = async (p: Policy) => {
-    await fetch(`/api/notifications/policies/${p.id}`, {
+    const r = await fetch(`/api/notifications/policies/${p.id}`, {
       method: 'PATCH',
       credentials: 'include',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ enabled: !p.enabled }),
     })
+    await throwIfResponseNotOk(r)
     load()
   }
 
@@ -238,13 +241,7 @@ export default function ComplianceAlertsPage() {
       title: 'Remove alert rule?',
       description: `Remove alert rule "${label}"?`,
       confirmLabel: 'Remove',
-      onConfirm: async () => {
-        await fetch(`/api/notifications/policies/${p.id}`, {
-          method: 'DELETE',
-          credentials: 'include',
-        })
-        load()
-      },
+      onConfirm: () => deleteNotificationPolicy(p.id, load),
     })
   }
 
