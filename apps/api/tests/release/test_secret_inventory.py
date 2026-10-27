@@ -86,7 +86,16 @@ def test_scanner_cli_exit_code_is_zero_on_tree(tmp_path):
     assert data["summary"]["block"] == 0
     # Report contains locations and rule names only, never a value field.
     for f in data["findings"]:
-        assert set(f) <= {"source", "path", "line", "rule", "kind", "severity", "commit"}
+        assert set(f) <= {
+            "source",
+            "path",
+            "line",
+            "rule",
+            "kind",
+            "severity",
+            "commit",
+            "reason",
+        }
 
 
 # ---------------------------------------------------------------------------
@@ -213,6 +222,218 @@ def test_reserved_hosts_and_synthetic_pragma_are_review_only(scanner):
     # It only covers its own line.
     two = marked + f'OTHER = "{tok}"\n'
     assert _blocks(scanner.scan_text(two, "apps/api/tests/release/test_x.py"))
+
+
+# ---------------------------------------------------------------------------
+# Coordinator conditions on the reserved-host / synthetic-marker relaxation (7e976c5)
+# ---------------------------------------------------------------------------
+
+_RESERVED_OK = [
+    "invalid",
+    "db.invalid",
+    "a.b.example",
+    "x.test",
+    "localhost",
+    "api.localhost",
+    "example.com",
+    "db.example.com",
+    "EXAMPLE.NET",
+    "pg.example.org",
+]
+_LOOKALIKE_HOSTS = [
+    "example.com.evil.io",
+    "notexample.com",
+    "test.attacker.com",
+    "example.attacker.com",
+    "localhost.evil.io",
+    "invalid.co",
+    "myexample.org",
+    "example.co",
+    "example.comx",
+    "testing",
+    "db.acme.io",
+]
+
+
+@pytest.mark.parametrize("host", _RESERVED_OK)
+def test_condition_a_reserved_parsed_host_is_review(scanner, host):
+    pw = secrets.token_urlsafe(24)
+    found = scanner.scan_text(f'DSN = "postgresql://svc:{pw}@{host}:5432/db"\n', "notes.md")
+    assert found and not _blocks(found), host
+    assert any(
+        f.rule == "url-embedded-credential"
+        and f.severity == "review"
+        and f.reason == scanner.REASON_RESERVED_HOST
+        for f in found
+    ), host
+
+
+@pytest.mark.parametrize("host", _LOOKALIKE_HOSTS)
+def test_condition_a_lookalike_hosts_still_block(scanner, host):
+    pw = secrets.token_urlsafe(24)
+    for path in ("notes.md", "apps/api/tests/test_x.py"):
+        found = scanner.scan_text(f'DSN = "postgresql://svc:{pw}@{host}:5432/db"\n', path)
+        assert any(f.rule == "url-embedded-credential" for f in _blocks(found)), (host, path)
+
+
+@pytest.mark.parametrize(
+    "template",
+    [
+        # 'example.com' only in the userinfo: the parsed host is the real one.
+        "postgresql://example.com:{pw}@db.acme.io:5432/db",
+        # 'example.com' only in the path, query or fragment.
+        "postgresql://svc:{pw}@db.acme.io:5432/example.com",
+        "https://svc:{pw}@db.acme.io/x?next=https://example.com/",
+        "https://svc:{pw}@db.acme.io/#example.com",
+        # A second '@': urllib.parse takes the last one, so the host is evil.io.
+        "https://svc:{pw}@example.com@evil.io/",
+        "https://svc:{pw}@db.example.com.evil.io:443/",
+    ],
+)
+def test_condition_a_reserved_name_outside_the_parsed_host_still_blocks(scanner, template):
+    url = template.format(pw=secrets.token_urlsafe(24))
+    found = scanner.scan_text(f'DSN = "{url}"\n', "notes.md")
+    assert any(f.rule == "url-embedded-credential" for f in _blocks(found)), template
+
+
+def test_condition_a_host_check_uses_urllib_parse(scanner):
+    assert scanner._url_host_is_reserved("postgresql://u:p@db.example.com:5432/x")
+    assert not scanner._url_host_is_reserved("postgresql://u:p@example.com.evil.io/x")
+    assert not scanner._url_host_is_reserved("postgresql://example.com:p@evil.io/x")
+    assert not scanner._url_host_is_reserved("https://u:p@[::1/")  # unparsable: fail closed
+    assert not hasattr(scanner, "_RESERVED_HOST_RE"), "no substring/regex host matching"
+
+
+_MARKER = "  # secret-inventory: synthetic"
+
+
+def _marked_line() -> str:
+    return f'OPENAI_API_KEY = "sk-{secrets.token_urlsafe(40)}"{_MARKER}\n'
+
+
+@pytest.mark.parametrize(
+    "path",
+    [
+        "apps/api/tests/release/test_x.py",
+        "apps/api/tests/test_x.py",
+        "tests/x.py",
+        "apps/web/e2e/login.spec.ts",
+        "apps/web/__tests__/x.test.ts",
+        "apps/api/tests/fixtures/sample.py",
+        "fixtures/x.py",
+    ],
+)
+def test_condition_b_marker_honored_in_test_e2e_fixture_paths(scanner, path):
+    found = scanner.scan_text(_marked_line(), path)
+    assert found and not _blocks(found), path
+
+
+@pytest.mark.parametrize(
+    "path",
+    [
+        # application code
+        "apps/api/app/core/x.py",
+        "apps/api/app/tests/x.py",
+        "apps/web/app/login/page.tsx",
+        "apps/web/lib/x.ts",
+        # look-alike names: path components, not substrings
+        "apps/api/app/tests_helper.py",
+        "app/attest/x.py",
+        "apps/api/latest/x.py",
+        "apps/api/tests_helper.py",
+        "apps/api/contests/x.py",
+        "apps/api/e2e_tools/x.py",
+        "apps/api/fixtures_loader.py",
+        "scripts/x.py",
+        "apps/api/test_x.py",
+        # config
+        ".env.example",
+        "apps/api/.env.example",
+        "apps/api/tests/.env.example",
+        "config.yml",
+        "apps/api/tests/settings.yml",
+        "apps/web/next.config.js",
+        "apps/web/next.config.mjs",
+        "apps/web/e2e/playwright.config.ts",
+        "apps/web/tests/fixture.json",
+        # deploy / CI
+        "docker-compose.yml",
+        "docker-compose.prod.yml",
+        "tests/docker-compose.test.yml",
+        "deploy/run.py",
+        "deploy/tests/x.py",
+        "infra/tests/x.py",
+        "infra/main.tf",
+        ".github/workflows/ci.yml",
+        ".github/workflows/tests/x.py",
+        "tests/Dockerfile",
+    ],
+)
+def test_condition_b_marker_ignored_outside_test_paths(scanner, path):
+    found = scanner.scan_text(_marked_line(), path)
+    assert _blocks(found), path
+    assert not any(f.reason == scanner.REASON_SYNTHETIC for f in found), path
+
+
+def test_condition_b_marker_in_config_value_still_blocks(scanner):
+    pw = secrets.token_urlsafe(24)
+    yml = f"      POSTGRES_PASSWORD: {pw}{_MARKER}\n"
+    for path in ("docker-compose.yml", ".github/workflows/ci.yml", "deploy/values.yml"):
+        assert _blocks(scanner.scan_text(yml, path)), path
+    env = f"SESSION_SECRET={pw}{_MARKER}\n"
+    assert _blocks(scanner.scan_text(env, ".env.example"))
+    js = f'const SESSION_SECRET = "{pw}"; // secret-inventory: synthetic\n'
+    assert _blocks(scanner.scan_text(js, "apps/web/next.config.js"))
+
+
+def _downgrade_fixture(tmp_path):
+    pw = secrets.token_urlsafe(24)
+    tok = "sk-" + secrets.token_urlsafe(40)
+    (tmp_path / "tests").mkdir()
+    (tmp_path / "tests" / "test_fake.py").write_text(
+        f'OPENAI = "{tok}"{_MARKER}\n' f'DSN = "postgresql://svc:{pw}@db.example.com:5432/x"\n'
+    )
+    return pw, tok
+
+
+def test_condition_c_downgrades_reported_as_review_in_json(scanner, tmp_path, capsys):
+    pw, tok = _downgrade_fixture(tmp_path)
+    out = tmp_path / "o.json"
+    rc = scanner.main(["paths", "tests", "--root", str(tmp_path), "--json", str(out)])
+    assert rc == 0
+    raw = out.read_text()
+    assert pw not in raw and tok not in raw
+    data = json.loads(raw)
+    reasons = {
+        (f["rule"], f["line"], f["severity"], f["reason"]) for f in data["findings"] if f["reason"]
+    }
+    assert ("openai-api-key", 1, "review", scanner.REASON_SYNTHETIC) in reasons
+    assert ("url-embedded-credential", 2, "review", scanner.REASON_RESERVED_HOST) in reasons
+    assert "synthetic" in scanner.REASON_SYNTHETIC and "downgraded" in scanner.REASON_SYNTHETIC
+    assert "reserved-host" in scanner.REASON_RESERVED_HOST
+    assert data["summary"]["block"] == 0 and data["summary"]["downgraded"] == 2
+
+
+def test_condition_c_downgrades_reported_as_review_in_text(scanner, tmp_path, capsys):
+    pw, tok = _downgrade_fixture(tmp_path)
+    rc = scanner.main(["paths", "tests", "--root", str(tmp_path)])
+    out = capsys.readouterr().out
+    assert rc == 0
+    assert pw not in out and tok not in out
+    lines = out.splitlines()
+    syn = [ln for ln in lines if "test_fake.py:1" in ln and "openai-api-key" in ln]
+    host = [ln for ln in lines if "test_fake.py:2" in ln and "url-embedded-credential" in ln]
+    assert syn and syn[0].startswith("REVIEW") and scanner.REASON_SYNTHETIC in syn[0]
+    assert host and host[0].startswith("REVIEW") and scanner.REASON_RESERVED_HOST in host[0]
+
+
+def test_condition_c_downgrade_kept_next_to_a_block_on_the_same_line(scanner):
+    pw = secrets.token_urlsafe(24)
+    tok = secrets.token_urlsafe(32)
+    line = f'DSN = "postgresql://svc:{pw}@db.example.com/x"; TOKEN = "{tok}"\n'
+    found = scanner.scan_text(line, "notes.md")
+    assert _blocks(found)
+    assert any(f.reason == scanner.REASON_RESERVED_HOST and f.severity == "review" for f in found)
 
 
 def test_scanner_output_never_contains_values(scanner, capsys, tmp_path):
