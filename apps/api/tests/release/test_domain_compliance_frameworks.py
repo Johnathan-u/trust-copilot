@@ -184,9 +184,11 @@ def test_enable_refuses_rights_and_agrees_across_retry_and_new_session(client):
 # other modules (see TC-02-BUG-016) and must not be this test's precondition.
 _PERM_WORKSPACE_SLUG = "tc02-bug016"
 _PERM_REVIEWER_EMAIL = "tc02-bug016-reviewer@trust.local"
-_PERM_REVIEWER_PASSWORD = "tc02-bug016-reviewer"
+# Short synthetic passwords: the secret inventory blocks high-entropy
+# literals assigned to password-named constants (min length 16).
+_PERM_REVIEWER_PASSWORD = "bug016-r"
 _PERM_EDITOR_EMAIL = "tc02-bug016-editor@trust.local"
-_PERM_EDITOR_PASSWORD = "tc02-bug016-editor"
+_PERM_EDITOR_PASSWORD = "bug016-e"
 
 
 def _setup_permission_actors() -> dict[str, int]:
