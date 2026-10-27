@@ -1,26 +1,28 @@
 Working directory: apps/api
-Command: python -m pytest tests/release/test_domain_compliance_frameworks.py -q
+Command: python -m pytest tests/release/test_domain_compliance_frameworks.py tests/release/test_domain_compliance_frameworks_unit.py -q
 Exit status: 0
-Passed: 12
+Passed: 14
 Failed: 0
 Skipped: 0
 Errors: 0
-Warnings: 205 (DeprecationWarning from datetime.utcnow; not failures)
+Warnings: 41 (DeprecationWarning from datetime.utcnow column defaults; not failures)
 
 Ruff, matching master CI (ruff 0.5.6), from apps/api:
 Command: ruff format --check .
 Command: ruff check .
 Exit status: 0
 
+Alembic heads on this branch: tc21001_framework_catalog_rights (head)
+Master's current head revision: 075
+
 Additional consumer check, not a substitute for the command above:
 Working directory: apps/web
 Command: npx vitest run lib/frameworkCatalog.test.ts
 Exit status: 0
-Passed: 5
+Passed: 6
 Failed: 0
 Skipped: 0
 
-Tested commit: 1daf94af85805f4140b0cf80212fe6a320698e72
-Merged master: d57821e8084d5aea9e8da509d58d0e23e26e2bf9
-Also merged earlier master: 6641e02b91fae6d9f8b854122f7a35f73439c0ea
+Tested commit: 5d4536b18e475fe12d5f3b12411037403555fa28
+Merged master: 5c8f1dce33ed568ad35c0904824699211628ae6e
 Required skips: none

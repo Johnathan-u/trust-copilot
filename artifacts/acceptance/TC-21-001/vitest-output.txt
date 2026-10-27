@@ -1,10 +1,10 @@
  RUN  v2.1.9 /workspace/apps/web
 
- ✓ lib/frameworkCatalog.test.ts (5 tests) 3ms
+ ✓ lib/frameworkCatalog.test.ts (6 tests) 13ms
 
  Test Files  1 passed (1)
-      Tests  5 passed (5)
-   Start at  10:27:40
-   Duration  660ms (transform 127ms, setup 0ms, collect 120ms, tests 3ms, environment 0ms, prepare 284ms)
+      Tests  6 passed (6)
+   Start at  10:47:17
+   Duration  736ms (transform 115ms, setup 0ms, collect 112ms, tests 13ms, environment 0ms, prepare 237ms)
 
 EXIT:0

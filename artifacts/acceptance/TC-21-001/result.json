@@ -1,16 +1,17 @@
 {
   "ticket": "TC-21-001",
-  "tested_commit": "1daf94af85805f4140b0cf80212fe6a320698e72",
-  "merged_master": "d57821e8084d5aea9e8da509d58d0e23e26e2bf9",
-  "prior_master_merge": "6641e02b91fae6d9f8b854122f7a35f73439c0ea",
-  "command": "python -m pytest tests/release/test_domain_compliance_frameworks.py -q",
+  "tested_commit": "5d4536b18e475fe12d5f3b12411037403555fa28",
+  "merged_master": "5c8f1dce33ed568ad35c0904824699211628ae6e",
+  "master_alembic_head": "075",
+  "branch_alembic_heads": "tc21001_framework_catalog_rights (head)",
+  "command": "python -m pytest tests/release/test_domain_compliance_frameworks.py tests/release/test_domain_compliance_frameworks_unit.py -q",
   "cwd": "apps/api",
   "exit_status": 0,
-  "passed": 12,
+  "passed": 14,
   "failed": 0,
   "skipped": 0,
   "errors": 0,
-  "warnings": 205,
+  "warnings": 41,
   "required_skips": [],
   "ruff": {
     "version": "0.5.6",
@@ -23,17 +24,17 @@
     "command": "npx vitest run lib/frameworkCatalog.test.ts",
     "cwd": "apps/web",
     "exit_status": 0,
-    "passed": 5,
+    "passed": 6,
     "failed": 0,
     "skipped": 0
   },
   "ui_browser": {
     "tool": "Playwright Chromium headless",
     "viewports": ["1440x900", "390x844"],
-    "admin_list": "all nine advertised frameworks shown blocked pending TC-01-007",
+    "admin_list": "all nine advertised frameworks shown blocked pending content licensing",
     "admin_enable": "SOC 2 enablement refused; production enabled count stayed 0",
     "reviewer": "blocked list visible; enable button absent; admin permission noted",
     "mobile_page_overflow": false,
-    "note": "Browser check is from the scaffold commit. Master merges changed formatting only on the catalog page."
+    "note": "Browser screenshots are from the earlier scaffold check. This revision changes copy and disables enablement on dev rows; vitest covers that consumer."
   }
 }
