@@ -88,7 +88,6 @@ class _RedisBackend:
 
 def _get_backend():
     redis_url = (os.getenv("REDIS_URL") or "").strip()
-    app_env = os.getenv("APP_ENV", "development").lower()
     if redis_url:
         try:
             backend = _RedisBackend(redis_url.strip())
@@ -101,7 +100,9 @@ def _get_backend():
             _rl_logger.warning(
                 "REDIS_URL is set but redis package is not installed; falling back to in-memory rate limiting"
             )
-    if app_env == "production":
+    from app.core.session import is_production_env  # local: session imports nothing from here
+
+    if is_production_env():
         _rl_logger.warning(
             "Rate limiting is using in-memory backend in production. "
             "This is per-process only and will not protect against distributed attacks. "

@@ -17,6 +17,10 @@ RUN npm ci --ignore-scripts --no-audit --no-fund
 # Stage: builder (production build)
 FROM deps AS builder
 COPY apps/web ./
+# TC-03-001: production images never enable the one-click demo login, even if an .env file in the
+# build context sets it (process env takes precedence over .env files in Next.js).
+ENV NEXT_PUBLIC_DEMO_LOGIN_EMAIL="" \
+    NEXT_PUBLIC_DEMO_LOGIN_PASSWORD=""
 # Avoid stale .next causing "Cannot find module './161.js'" (server chunk path mismatch)
 RUN rm -rf .next && npm run build
 
