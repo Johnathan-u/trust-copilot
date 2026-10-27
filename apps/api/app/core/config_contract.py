@@ -89,14 +89,19 @@ CONTRACT: tuple[ConfigVar, ...] = (
     ConfigVar("CORS_ORIGINS", "comma-separated origins", "optional", False, "unset", "Legacy alias of TRUSTED_ORIGINS."),
     ConfigVar("OPENAI_API_KEY", "secret string", "required", True, "unset (AI features return 503/empty)",
               "Model/embedding provider key. Production: required, placeholders rejected.", "OpenAI (or configured provider) account"),
-    ConfigVar("SMTP_HOST", "hostname", "required", False, "unset (emails printed to stdout)",
-              "Outbound mail. Production: required, otherwise reset/invite links would be written to logs.",
-              "SMTP relay account"),
+    ConfigVar("EMAIL_DELIVERY_ENABLED", "bool", "conditional", False, "auto: enabled when SMTP_HOST is set",
+              "Whether the deployment sends email (verification, invites, password resets, notifications). "
+              "true/1/yes/on or false/0/no/off; unset = enabled iff SMTP_HOST is set. Production with email "
+              "enabled requires SMTP_HOST and SMTP_FROM; production with email disabled suppresses all email "
+              "(never printed to logs).", "SMTP relay account (only if email is enabled)"),
+    ConfigVar("SMTP_HOST", "hostname", "conditional", False, "unset (dev: emails printed to stdout)",
+              "Outbound mail relay. Production: required when email delivery is enabled (see EMAIL_DELIVERY_ENABLED).",
+              "SMTP relay account (only if email is enabled)"),
     ConfigVar("SMTP_PORT", "int", "optional", False, "587", "SMTP port."),
     ConfigVar("SMTP_USE_TLS", "bool", "optional", False, "true", "STARTTLS."),
     ConfigVar("SMTP_USER", "string", "optional", False, "unset", "SMTP username."),
     ConfigVar("SMTP_PASSWORD", "secret string", "optional", True, "unset", "SMTP password; placeholders rejected in production."),
-    ConfigVar("SMTP_FROM", "email", "required", False, "unset", "From address. Production: required."),
+    ConfigVar("SMTP_FROM", "email", "conditional", False, "unset", "From address. Production: required when email delivery is enabled."),
     ConfigVar("REDIS_URL", "URL", "optional", True, "unset (in-memory rate limiting)", "Shared rate-limit store."),
     ConfigVar("RATE_LIMIT_RPM_PER_IP", "int >= 0", "optional", False, "120", "Per-IP request limit (0 disables)."),
     ConfigVar("TRUSTED_PROXY_IPS", "comma-separated IPs", "optional", False, "unset", "Proxies allowed to set X-Forwarded-For."),
@@ -264,6 +269,37 @@ def _parse_int(name: str, raw: str) -> bool:
         return False
 
 
+_TRUE = ("1", "true", "yes", "on")
+_FALSE = ("0", "false", "no", "off")
+
+
+def _parse_email_flag(raw: str | None) -> str:
+    v = (raw or "").strip().lower()
+    if not v:
+        return "auto"
+    if v in _TRUE:
+        return "on"
+    if v in _FALSE:
+        return "off"
+    return "invalid"
+
+
+def email_delivery_enabled(env: Mapping[str, str] | None = None) -> bool:
+    """Single source of truth for whether this deployment sends email.
+
+    EMAIL_DELIVERY_ENABLED=true/false wins; unset means "enabled iff SMTP_HOST is set" (the pre-existing
+    behaviour of email_service.get_email_provider). An unparseable value counts as enabled (fail closed:
+    production then requires SMTP), and is reported separately as a type problem.
+    """
+    env = os.environ if env is None else env
+    flag = _parse_email_flag(env.get("EMAIL_DELIVERY_ENABLED"))
+    if flag == "on" or flag == "invalid":
+        return True
+    if flag == "off":
+        return False
+    return bool((env.get("SMTP_HOST") or "").strip())
+
+
 def validate_environment(env: Mapping[str, str] | None = None) -> list[Problem]:
     """Return contract problems for ``env`` (defaults to os.environ). Never includes values."""
     env = os.environ if env is None else env
@@ -293,6 +329,8 @@ def validate_environment(env: Mapping[str, str] | None = None) -> list[Problem]:
                 float(raw)
             except ValueError:
                 problems.append(Problem(name, "must be a number", fatal=production))
+    if _parse_email_flag(env.get("EMAIL_DELIVERY_ENABLED")) == "invalid":
+        problems.append(Problem("EMAIL_DELIVERY_ENABLED", "must be true/false (1/0, yes/no, on/off) or unset", fatal=production))
     lvl = env.get("LOG_LEVEL")
     if lvl and lvl.strip() and lvl.strip().upper() not in ("DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"):
         problems.append(Problem("LOG_LEVEL", "must be DEBUG, INFO, WARNING, ERROR or CRITICAL", fatal=production))
@@ -346,10 +384,11 @@ def validate_environment(env: Mapping[str, str] | None = None) -> list[Problem]:
         problems.append(Problem("OPENAI_API_KEY", "is required in production (model provider account)"))
     elif is_known_default_or_placeholder(api_key):
         problems.append(Problem("OPENAI_API_KEY", "is a placeholder"))
-    if not (env.get("SMTP_HOST") or "").strip():
-        problems.append(Problem("SMTP_HOST", "is required in production (otherwise reset/invite links go to logs)"))
-    if not (env.get("SMTP_FROM") or "").strip():
-        problems.append(Problem("SMTP_FROM", "is required in production"))
+    if email_delivery_enabled(env):
+        if not (env.get("SMTP_HOST") or "").strip():
+            problems.append(Problem("SMTP_HOST", "is required in production when email delivery is enabled"))
+        if not (env.get("SMTP_FROM") or "").strip():
+            problems.append(Problem("SMTP_FROM", "is required in production when email delivery is enabled"))
     if (env.get("SMTP_PASSWORD") or "").strip() and is_known_default_or_placeholder(env.get("SMTP_PASSWORD")):
         problems.append(Problem("SMTP_PASSWORD", "is a known default or placeholder"))
     for cid, csec in _OAUTH_PAIRS:

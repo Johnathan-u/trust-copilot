@@ -22,7 +22,7 @@ Source of truth: `apps/api/app/core/config_contract.py`. The table between the m
 | PostgreSQL 16 + pgvector with a generated password | DATABASE_URL, POSTGRES_USER, POSTGRES_PASSWORD | explicit DSN, strong non-default password |
 | Private S3-compatible storage with dedicated keys | S3_ENDPOINT, S3_ACCESS_KEY, S3_SECRET_KEY, MINIO_ROOT_USER, MINIO_ROOT_PASSWORD | required, non-default |
 | Model provider account | OPENAI_API_KEY | required, not placeholder |
-| SMTP relay account | SMTP_HOST, SMTP_FROM (+ SMTP_USER/SMTP_PASSWORD) | required |
+| SMTP relay account (only if email delivery is enabled) | EMAIL_DELIVERY_ENABLED, SMTP_HOST, SMTP_FROM (+ SMTP_USER/SMTP_PASSWORD) | required when EMAIL_DELIVERY_ENABLED is true (or unset with SMTP_HOST set); not needed for Slack-only / no-email deploys, which suppress all email |
 | Optional identity providers / billing | OAUTH_*, OIDC_*, IDME_*, STRIPE_* | id/secret pairs complete; webhook secret with Stripe key |
 | Initial owner account | — (no seed in production) | demo/QA/E2E seed scripts refuse `APP_ENV=production` with no override |
 
@@ -49,12 +49,13 @@ Source of truth: `apps/api/app/core/config_contract.py`. The table between the m
 | `TRUSTED_ORIGINS` | comma-separated origins | optional | no | FRONTEND_URL (+ localhost variants outside production) | CORS/CSRF allow-list. Production: every entry must be an https origin. |  |
 | `CORS_ORIGINS` | comma-separated origins | optional | no | unset | Legacy alias of TRUSTED_ORIGINS. |  |
 | `OPENAI_API_KEY` | secret string | required | yes | unset (AI features return 503/empty) | Model/embedding provider key. Production: required, placeholders rejected. | OpenAI (or configured provider) account |
-| `SMTP_HOST` | hostname | required | no | unset (emails printed to stdout) | Outbound mail. Production: required, otherwise reset/invite links would be written to logs. | SMTP relay account |
+| `EMAIL_DELIVERY_ENABLED` | bool | conditional | no | auto: enabled when SMTP_HOST is set | Whether the deployment sends email (verification, invites, password resets, notifications). true/1/yes/on or false/0/no/off; unset = enabled iff SMTP_HOST is set. Production with email enabled requires SMTP_HOST and SMTP_FROM; production with email disabled suppresses all email (never printed to logs). | SMTP relay account (only if email is enabled) |
+| `SMTP_HOST` | hostname | conditional | no | unset (dev: emails printed to stdout) | Outbound mail relay. Production: required when email delivery is enabled (see EMAIL_DELIVERY_ENABLED). | SMTP relay account (only if email is enabled) |
 | `SMTP_PORT` | int | optional | no | 587 | SMTP port. |  |
 | `SMTP_USE_TLS` | bool | optional | no | true | STARTTLS. |  |
 | `SMTP_USER` | string | optional | no | unset | SMTP username. |  |
 | `SMTP_PASSWORD` | secret string | optional | yes | unset | SMTP password; placeholders rejected in production. |  |
-| `SMTP_FROM` | email | required | no | unset | From address. Production: required. |  |
+| `SMTP_FROM` | email | conditional | no | unset | From address. Production: required when email delivery is enabled. |  |
 | `REDIS_URL` | URL | optional | yes | unset (in-memory rate limiting) | Shared rate-limit store. |  |
 | `RATE_LIMIT_RPM_PER_IP` | int >= 0 | optional | no | 120 | Per-IP request limit (0 disables). |  |
 | `TRUSTED_PROXY_IPS` | comma-separated IPs | optional | no | unset | Proxies allowed to set X-Forwarded-For. |  |

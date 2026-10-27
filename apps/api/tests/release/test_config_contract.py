@@ -23,7 +23,7 @@ API_ROOT = Path(__file__).resolve().parents[2]
 REPO_ROOT = API_ROOT.parents[1]
 
 PROD_REQUIRED = ("SESSION_SECRET", "DATABASE_URL", "S3_ACCESS_KEY", "S3_SECRET_KEY", "S3_ENDPOINT",
-                 "APP_BASE_URL", "FRONTEND_URL", "OPENAI_API_KEY", "SMTP_HOST", "SMTP_FROM")
+                 "APP_BASE_URL", "FRONTEND_URL", "OPENAI_API_KEY")
 
 
 def _dsn(user: str, password: str | None, host: str = "postgres:5432/trustcopilot", scheme: str = "postgresql") -> str:
@@ -56,6 +56,10 @@ def good_production_env() -> dict[str, str]:
         "SMTP_HOST": "smtp.trust.test",
         "SMTP_FROM": "noreply@trust.test",
     }
+
+
+def fatal(problems) -> list:
+    return [p for p in problems if p.fatal]
 
 
 def names(problems) -> set[str]:
@@ -452,3 +456,137 @@ def test_app_env_is_case_and_space_insensitive_for_production():
     env.pop("SESSION_SECRET")
     with pytest.raises(cc.ConfigContractError):
         cc.enforce_startup_contract("api", env)
+
+
+# ---------------------------------------------------------------- email delivery is conditional (Coordinator ruling)
+
+def _prod_without_smtp() -> dict:
+    env = good_production_env()
+    for n in ("SMTP_HOST", "SMTP_FROM", "SMTP_USER", "SMTP_PASSWORD", "EMAIL_DELIVERY_ENABLED"):
+        env.pop(n, None)
+    return env
+
+
+@pytest.mark.parametrize("flag", [None, "", "false", "0", "no", "off", "FALSE"])
+def test_production_boots_with_email_disabled_and_no_smtp(flag):
+    """Slack-only / no-notification production deploys must boot."""
+    env = _prod_without_smtp()
+    if flag is not None:
+        env["EMAIL_DELIVERY_ENABLED"] = flag
+    assert cc.email_delivery_enabled(env) is False
+    assert fatal(cc.validate_environment(env)) == []
+    cc.enforce_startup_contract("api", env)  # does not raise
+
+
+@pytest.mark.parametrize("flag", ["true", "1", "yes", "on", "TRUE"])
+@pytest.mark.parametrize("missing", [("SMTP_HOST",), ("SMTP_FROM",), ("SMTP_HOST", "SMTP_FROM")])
+def test_production_email_enabled_without_smtp_fails_closed(flag, missing):
+    env = good_production_env()
+    env["EMAIL_DELIVERY_ENABLED"] = flag
+    for n in missing:
+        env.pop(n)
+    with pytest.raises(cc.ConfigContractError) as ei:
+        cc.enforce_startup_contract("api", env)
+    for n in missing:
+        assert n in str(ei.value)
+
+
+@pytest.mark.parametrize("value", ["", "   "])
+def test_production_email_enabled_with_empty_smtp_fails_closed(value):
+    env = good_production_env()
+    env["EMAIL_DELIVERY_ENABLED"] = "true"
+    env["SMTP_HOST"] = value
+    assert "SMTP_HOST" in names(cc.validate_environment(env))
+
+
+def test_production_email_enabled_with_valid_smtp_passes():
+    env = good_production_env()
+    env["EMAIL_DELIVERY_ENABLED"] = "true"
+    assert cc.email_delivery_enabled(env) is True
+    assert fatal(cc.validate_environment(env)) == []
+    cc.enforce_startup_contract("api", env)
+
+
+def test_production_smtp_host_without_flag_implies_email_enabled_and_needs_from():
+    """Unset flag keeps the pre-existing signal (SMTP_HOST set => email on), so SMTP_FROM is then required."""
+    env = good_production_env()
+    env.pop("EMAIL_DELIVERY_ENABLED", None)
+    env.pop("SMTP_FROM")
+    assert cc.email_delivery_enabled(env) is True
+    assert "SMTP_FROM" in names(cc.validate_environment(env))
+
+
+def test_invalid_email_flag_fails_closed_in_production():
+    env = _prod_without_smtp()
+    env["EMAIL_DELIVERY_ENABLED"] = "maybe"
+    assert cc.email_delivery_enabled(env) is True  # unparseable counts as enabled
+    found = names(cc.validate_environment(env))
+    assert {"EMAIL_DELIVERY_ENABLED", "SMTP_HOST", "SMTP_FROM"} <= found
+
+
+def test_invalid_email_flag_is_only_a_warning_in_development():
+    problems = cc.enforce_startup_contract("api", {"APP_ENV": "development", "EMAIL_DELIVERY_ENABLED": "maybe"})
+    assert "EMAIL_DELIVERY_ENABLED" in {p.name for p in problems}
+
+
+def test_email_flag_documented_in_contract_and_docs():
+    by = {v.name: v for v in cc.CONTRACT}
+    assert by["EMAIL_DELIVERY_ENABLED"].type == "bool"
+    assert by["SMTP_HOST"].production == "conditional" and by["SMTP_FROM"].production == "conditional"
+    doc = (REPO_ROOT / "docs/release/config-contract.md").read_text()
+    assert "EMAIL_DELIVERY_ENABLED" in doc
+    assert re.search(r"^#?\s*EMAIL_DELIVERY_ENABLED=", (REPO_ROOT / ".env.example").read_text(), re.M)
+
+
+def _fresh_provider(monkeypatch, env: dict):
+    from app.services import email_service as es
+    for n in ("APP_ENV", "SMTP_HOST", "SMTP_FROM", "SMTP_USER", "SMTP_PASSWORD", "EMAIL_DELIVERY_ENABLED"):
+        monkeypatch.delenv(n, raising=False)
+    for k, v in env.items():
+        monkeypatch.setenv(k, v)
+    es.set_email_provider(None)
+    try:
+        return es, es.get_email_provider()
+    finally:
+        es.set_email_provider(None)
+
+
+def test_production_email_disabled_never_prints_message(monkeypatch, capsys):
+    es, provider = _fresh_provider(monkeypatch, {"APP_ENV": "production", "EMAIL_DELIVERY_ENABLED": "false"})
+    assert isinstance(provider, es.DisabledEmailProvider)
+    marker = "https://app.trust.test/reset?token=" + secrets.token_urlsafe(24)
+    to = "user-" + secrets.token_hex(4) + "@trust.test"
+    assert provider.send(es.EmailMessage(to=to, subject="Reset", body_text=marker)) is False
+    out = capsys.readouterr().out
+    assert marker not in out and to not in out
+
+
+def test_production_without_smtp_host_never_uses_console(monkeypatch):
+    es, provider = _fresh_provider(monkeypatch, {"APP_ENV": "production"})
+    assert not isinstance(provider, es.ConsoleEmailProvider)
+
+
+def test_production_email_enabled_uses_smtp(monkeypatch):
+    es, provider = _fresh_provider(monkeypatch, {"APP_ENV": "production", "EMAIL_DELIVERY_ENABLED": "true",
+                                                 "SMTP_HOST": "smtp.trust.test", "SMTP_FROM": "noreply@trust.test"})
+    assert isinstance(provider, es.SmtpEmailProvider)
+
+
+def test_development_keeps_console_provider(monkeypatch):
+    es, provider = _fresh_provider(monkeypatch, {"APP_ENV": "development"})
+    assert isinstance(provider, es.ConsoleEmailProvider)
+
+
+def test_production_smtp_failure_does_not_print_body(monkeypatch, capsys):
+    from app.services import email_service as es
+    monkeypatch.setenv("APP_ENV", "production")
+
+    class Boom:
+        def __init__(self, *a, **k):
+            raise OSError("unreachable (synthetic)")
+
+    monkeypatch.setattr(es.smtplib, "SMTP", Boom)
+    p = es.SmtpEmailProvider("smtp.trust.test", 587, None, None, "noreply@trust.test")
+    marker = "https://app.trust.test/reset?token=" + secrets.token_urlsafe(24)
+    assert p.send(es.EmailMessage(to="x@trust.test", subject="Reset", body_text=marker)) is False
+    assert marker not in capsys.readouterr().out

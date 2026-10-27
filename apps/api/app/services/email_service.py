@@ -81,20 +81,42 @@ class SmtpEmailProvider:
             return True
         except Exception as e:
             print(f"[EMAIL] SMTP send failed ({self.host}:{self.port}): {e}", flush=True)
-            print(f"[EMAIL-FALLBACK] To: {message.to}\nSubject: {message.subject}\n\n{message.body_text}\n", flush=True)
+            if os.getenv("APP_ENV", "development").strip().lower() != "production":
+                # Dev convenience only; in production the body may carry reset/invite links (TC-03-001).
+                print(f"[EMAIL-FALLBACK] To: {message.to}\nSubject: {message.subject}\n\n{message.body_text}\n", flush=True)
             return False
+
+
+class DisabledEmailProvider:
+    """Production with email delivery disabled (TC-03-001): drop the message, never print it.
+
+    Reset/invite/verification links must not end up in production logs, so nothing about the message
+    (recipient, subject or body) is logged.
+    """
+
+    def send(self, message: EmailMessage) -> bool:
+        print("[EMAIL] Suppressed: email delivery is disabled in this deployment", flush=True)
+        return False
 
 
 _default_provider: EmailProvider | None = None
 
 
 def get_email_provider() -> EmailProvider:
-    """Return the configured email provider (SMTP if SMTP_HOST set, else console stub)."""
+    """Return the configured email provider: SMTP when enabled and SMTP_HOST is set; Disabled in production
+    when email delivery is off; otherwise the console stub (dev/test only)."""
     global _default_provider
     if _default_provider is not None:
         return _default_provider
+    from app.core.config_contract import email_delivery_enabled
+
     host = os.getenv("SMTP_HOST", "").strip()
-    if host:
+    production = os.getenv("APP_ENV", "development").strip().lower() == "production"
+    if production and not (email_delivery_enabled() and host):
+        # Startup validation refuses "enabled but SMTP_HOST missing"; this branch is defence in depth.
+        _default_provider = DisabledEmailProvider()
+        print("[EMAIL] Provider: Disabled (email delivery off in production; nothing is sent or logged)", flush=True)
+    elif host and email_delivery_enabled():
         port = int(os.getenv("SMTP_PORT", "587").strip() or "587")
         user = os.getenv("SMTP_USER", "").strip() or None
         password = os.getenv("SMTP_PASSWORD", "").strip() or None
