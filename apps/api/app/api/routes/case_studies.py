@@ -13,6 +13,7 @@ from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
 from app.core.audit import audit_log
+from app.core.auth_deps import _resolve_permission
 from app.core.auth_deps import require_can_admin, require_can_review, require_session
 from app.core.database import get_db
 from app.core.idempotency import get as idempotency_get
@@ -149,7 +150,7 @@ class UpdateCaseStudyRequest(BaseModel):
     status: str | None = None
     synthetic: bool | None = None
     quoted_organizations: list[str] | None = None
-    expected_revision: int | None = None
+    expected_revision: int
 
 
 class RevisionBody(BaseModel):
@@ -198,6 +199,30 @@ def _idempotency_storage_key(request: Request, workspace_id: int, case_id: int) 
     return f"case-study:{workspace_id}:{case_id}:{raw}"
 
 
+def _sees_consent_reference(session: dict, db: Session) -> bool:
+    return _resolve_permission(session.get("role"), "can_admin", session.get("workspace_id"), db)
+
+
+def _audit(action: str, session: dict, case_id: int, details: dict) -> None:
+    audit_log(
+        action,
+        user_id=session.get("user_id"),
+        email=session.get("email"),
+        workspace_id=session.get("workspace_id"),
+        resource_type="case_study",
+        resource_id=case_id,
+        details=details,
+    )
+
+
+def _active_consent(result: dict, organization_name: str) -> dict | None:
+    target = organization_name.strip()
+    for item in result["consents"]:
+        if item["active"] and item["organization_name"] == target:
+            return item
+    return None
+
+
 def _load_cached(db: Session, key: str | None) -> JSONResponse | None:
     if not key:
         return None
@@ -224,12 +249,14 @@ async def list_case_studies(
     session: dict = Depends(require_session),
     db: Session = Depends(get_db),
 ):
-    payload = {
+    return {
         "schema_version": cs.SCHEMA_VERSION,
-        "case_studies": cs.list_all(db, session["workspace_id"]),
+        "case_studies": cs.list_all(
+            db,
+            session["workspace_id"],
+            include_consent_reference=_sees_consent_reference(session, db),
+        ),
     }
-    db.commit()
-    return payload
 
 
 @router.post("", response_model=CaseStudyResponse)
@@ -267,10 +294,14 @@ async def get_case_study(
     session: dict = Depends(require_session),
     db: Session = Depends(get_db),
 ):
-    result = cs.get(db, session["workspace_id"], case_id)
+    result = cs.get(
+        db,
+        session["workspace_id"],
+        case_id,
+        include_consent_reference=_sees_consent_reference(session, db),
+    )
     if not result:
         raise HTTPException(status_code=404, detail="Case study not found")
-    db.commit()
     return result
 
 
@@ -299,9 +330,15 @@ async def delete_case_study(
     session: dict = Depends(require_can_admin),
     db: Session = Depends(get_db),
 ):
-    if not cs.delete(db, session["workspace_id"], case_id):
+    try:
+        deleted = cs.delete(db, session["workspace_id"], case_id)
+    except CaseStudyError as exc:
+        db.rollback()
+        return _json_error(exc)
+    if not deleted:
         raise HTTPException(status_code=404, detail="Case study not found")
     db.commit()
+    _audit("case_study.delete", session, case_id, {})
     return {"deleted": True}
 
 
@@ -326,14 +363,16 @@ async def grant_consent(
         db.rollback()
         return _json_error(exc)
     db.commit()
-    audit_log(
+    granted = _active_consent(result, req.organization_name)
+    _audit(
         "case_study.consent",
-        user_id=session.get("user_id"),
-        email=session.get("email"),
-        workspace_id=session.get("workspace_id"),
-        resource_type="case_study",
-        resource_id=case_id,
-        details={"revision": result["revision"]},
+        session,
+        case_id,
+        {
+            "organization_name": granted["organization_name"] if granted else req.organization_name,
+            "consent_id": granted["id"] if granted else None,
+            "revision": result["revision"],
+        },
     )
     return result
 
@@ -358,6 +397,17 @@ async def revoke_consent(
         db.rollback()
         return _json_error(exc)
     db.commit()
+    revoked = next((item for item in result["consents"] if item["id"] == consent_id), None)
+    _audit(
+        "case_study.consent_revoke",
+        session,
+        case_id,
+        {
+            "organization_name": revoked["organization_name"] if revoked else None,
+            "consent_id": consent_id,
+            "revision": result["revision"],
+        },
+    )
     return result
 
 
@@ -382,6 +432,27 @@ async def grant_permission(
         db.rollback()
         return _json_error(exc)
     db.commit()
+    granted = next(
+        (
+            item
+            for item in result["result_permissions"]
+            if item["consent_id"] == req.consent_id
+            and item["result_key"] == req.result_key
+            and item["active"]
+        ),
+        None,
+    )
+    _audit(
+        "case_study.result_permission",
+        session,
+        case_id,
+        {
+            "consent_id": req.consent_id,
+            "result_key": req.result_key,
+            "permission_id": granted["id"] if granted else None,
+            "revision": result["revision"],
+        },
+    )
     return result
 
 
@@ -408,6 +479,21 @@ async def revoke_permission(
         db.rollback()
         return _json_error(exc)
     db.commit()
+    revoked = next(
+        (item for item in result["result_permissions"] if item["id"] == permission_id),
+        None,
+    )
+    _audit(
+        "case_study.result_permission_revoke",
+        session,
+        case_id,
+        {
+            "permission_id": permission_id,
+            "consent_id": revoked["consent_id"] if revoked else None,
+            "result_key": revoked["result_key"] if revoked else None,
+            "revision": result["revision"],
+        },
+    )
     return result
 
 
@@ -429,6 +515,12 @@ async def submit_review(
         db.rollback()
         return _json_error(exc)
     db.commit()
+    _audit(
+        "case_study.submit_review",
+        session,
+        case_id,
+        {"revision": result["revision"], "review_status": result["review_status"]},
+    )
     return result
 
 

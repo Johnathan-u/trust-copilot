@@ -142,32 +142,38 @@ def create(db: Session, workspace_id: int, title: str, **fields) -> dict:
     return _serialize(db, row)
 
 
-def list_all(db: Session, workspace_id: int) -> list[dict]:
+def list_all(
+    db: Session, workspace_id: int, *, include_consent_reference: bool = False
+) -> list[dict]:
     rows = (
         db.query(CaseStudy)
         .filter(CaseStudy.workspace_id == workspace_id)
         .order_by(CaseStudy.created_at.desc(), CaseStudy.id.desc())
         .all()
     )
-    for row in rows:
-        reconcile(db, row)
-    return [_serialize(db, row) for row in rows]
+    return [
+        _serialize(db, row, include_consent_reference=include_consent_reference) for row in rows
+    ]
 
 
-def get(db: Session, workspace_id: int, case_id: int) -> dict | None:
+def get(
+    db: Session,
+    workspace_id: int,
+    case_id: int,
+    *,
+    include_consent_reference: bool = False,
+) -> dict | None:
     row = _get_row(db, workspace_id, case_id)
     if not row:
         return None
-    reconcile(db, row)
-    return _serialize(db, row)
+    return _serialize(db, row, include_consent_reference=include_consent_reference)
 
 
 def update(db: Session, workspace_id: int, case_id: int, **updates) -> dict | None:
     row = _get_row(db, workspace_id, case_id)
     if not row:
         return None
-    if "expected_revision" in updates and updates["expected_revision"] is not None:
-        _require_revision(row, updates["expected_revision"])
+    _require_revision(row, updates.get("expected_revision"))
     _reject_status_bypass(row, updates.get("status"))
     changed = _apply_content(row, updates, creating=False)
     if changed:
@@ -182,6 +188,28 @@ def delete(db: Session, workspace_id: int, case_id: int) -> bool:
     row = _get_row(db, workspace_id, case_id)
     if not row:
         return False
+    consent_kept = (
+        db.query(CaseStudyOrganizationConsent.id)
+        .filter(
+            CaseStudyOrganizationConsent.case_study_id == row.id,
+            CaseStudyOrganizationConsent.workspace_id == row.workspace_id,
+        )
+        .first()
+    )
+    permission_kept = (
+        db.query(CaseStudyResultPermission.id)
+        .filter(
+            CaseStudyResultPermission.case_study_id == row.id,
+            CaseStudyResultPermission.workspace_id == row.workspace_id,
+        )
+        .first()
+    )
+    if consent_kept or permission_kept:
+        raise CaseStudyError(
+            "consent_history_retained",
+            "This case study cannot be deleted while consent or result-permission records exist. That history is kept.",
+            status_code=409,
+        )
     db.delete(row)
     db.flush()
     return True
@@ -621,7 +649,7 @@ def display_label(*, customer_claim: bool, synthetic: bool, data_basis: str) -> 
     return "Not a customer claim."
 
 
-def _serialize(db: Session, row: CaseStudy) -> dict:
+def _serialize(db: Session, row: CaseStudy, *, include_consent_reference: bool = True) -> dict:
     metrics, _broken = _metrics(row)
     claim = bool(row.customer_claim) and _derived_customer_claim(db, row)
     basis = (
@@ -666,7 +694,7 @@ def _serialize(db: Session, row: CaseStudy) -> dict:
                 "id": item.id,
                 "organization_name": item.organization_name,
                 "granted_revision": item.granted_revision,
-                "consent_reference": item.consent_reference,
+                "consent_reference": item.consent_reference if include_consent_reference else None,
                 "active": item.revoked_at is None and item.consent_granted,
             }
             for item in _consents(db, row)

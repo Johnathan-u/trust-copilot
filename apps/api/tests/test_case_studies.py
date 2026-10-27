@@ -72,13 +72,25 @@ class TestCaseStudyService:
             ws = self._get_workspace(db)
             created = cs.create(db, ws.id, "Update Test")
             db.commit()
-            updated = cs.update(db, ws.id, created["id"], challenge="Updated challenge")
+            updated = cs.update(
+                db,
+                ws.id,
+                created["id"],
+                challenge="Updated challenge",
+                expected_revision=created["revision"],
+            )
             db.commit()
             assert updated["challenge"] == "Updated challenge"
             assert updated["status"] == "draft"
             assert updated["customer_claim"] is False
             with pytest.raises(cs.CaseStudyError) as raised:
-                cs.update(db, ws.id, created["id"], status="published")
+                cs.update(
+                    db,
+                    ws.id,
+                    created["id"],
+                    status="published",
+                    expected_revision=updated["revision"],
+                )
             assert raised.value.code == "publish_requires_workflow"
             again = cs.get(db, ws.id, created["id"])
             assert again["status"] == "draft"
@@ -142,7 +154,11 @@ class TestCaseStudyAPI:
     def test_update_case_study(self, admin_client):
         r = admin_client.post("/api/case-studies", json={"title": "Patch Test"})
         case_id = r.json()["id"]
-        r = admin_client.patch(f"/api/case-studies/{case_id}", json={"challenge": "Updated"})
+        revision = r.json()["revision"]
+        r = admin_client.patch(
+            f"/api/case-studies/{case_id}",
+            json={"challenge": "Updated", "expected_revision": revision},
+        )
         assert r.status_code == 200
         assert r.json()["challenge"] == "Updated"
 

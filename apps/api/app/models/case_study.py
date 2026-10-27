@@ -46,12 +46,13 @@ class CaseStudy(Base):
     """Structured case study following the standard template."""
 
     __tablename__ = "case_studies"
-    __table_args__ = (UniqueConstraint("id", "workspace_id", name="uq_case_studies_id_workspace"),)
+    __table_args__ = (
+        UniqueConstraint("id", "workspace_id", name="uq_case_studies_id_workspace"),
+        Index("ix_case_studies_workspace_id", "workspace_id"),
+    )
 
     id = Column(Integer, primary_key=True, autoincrement=True)
-    workspace_id = Column(
-        Integer, ForeignKey("workspaces.id", ondelete="CASCADE"), nullable=False, index=True
-    )
+    workspace_id = Column(Integer, ForeignKey("workspaces.id", ondelete="CASCADE"), nullable=False)
     title = Column(String(512), nullable=False)
     company_name = Column(String(255), nullable=True)
     industry = Column(String(128), nullable=True)
@@ -105,6 +106,8 @@ class CaseStudyOrganizationConsent(Base):
             ondelete="CASCADE",
             name="fk_case_study_consent_case_workspace",
         ),
+        Index("ix_case_study_org_consent_workspace", "workspace_id"),
+        Index("ix_case_study_org_consent_case", "case_study_id"),
         Index(
             "uq_case_study_org_consent_active",
             "case_study_id",
@@ -115,10 +118,8 @@ class CaseStudyOrganizationConsent(Base):
     )
 
     id = Column(Integer, primary_key=True, autoincrement=True)
-    workspace_id = Column(
-        Integer, ForeignKey("workspaces.id", ondelete="CASCADE"), nullable=False, index=True
-    )
-    case_study_id = Column(Integer, nullable=False, index=True)
+    workspace_id = Column(Integer, ForeignKey("workspaces.id", ondelete="CASCADE"), nullable=False)
+    case_study_id = Column(Integer, nullable=False)
     organization_name = Column(String(255), nullable=False)
     consent_reference = Column(String(255), nullable=True)
     consent_granted = Column(Boolean, nullable=False, default=True, server_default="true")
@@ -148,6 +149,9 @@ class CaseStudyResultPermission(Base):
             ondelete="CASCADE",
             name="fk_case_study_perm_consent_case",
         ),
+        Index("ix_case_study_result_perm_workspace", "workspace_id"),
+        Index("ix_case_study_result_perm_case", "case_study_id"),
+        Index("ix_case_study_result_perm_consent", "consent_id"),
         Index(
             "uq_case_study_result_perm_active",
             "consent_id",
@@ -158,11 +162,9 @@ class CaseStudyResultPermission(Base):
     )
 
     id = Column(Integer, primary_key=True, autoincrement=True)
-    workspace_id = Column(
-        Integer, ForeignKey("workspaces.id", ondelete="CASCADE"), nullable=False, index=True
-    )
-    case_study_id = Column(Integer, nullable=False, index=True)
-    consent_id = Column(Integer, nullable=False, index=True)
+    workspace_id = Column(Integer, ForeignKey("workspaces.id", ondelete="CASCADE"), nullable=False)
+    case_study_id = Column(Integer, nullable=False)
+    consent_id = Column(Integer, nullable=False)
     result_key = Column(String(128), nullable=False)
     permitted = Column(Boolean, nullable=False, default=True, server_default="true")
     granted_revision = Column(Integer, nullable=False)

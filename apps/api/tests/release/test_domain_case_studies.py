@@ -24,6 +24,7 @@ REPO_ROOT = Path(__file__).resolve().parents[4]
 API_ROOT = Path(__file__).resolve().parents[2]
 CONSUMER_RUNNER = Path(__file__).resolve().parent / "run_case_study_consumer.mjs"
 MIGRATION_PATH = REPO_ROOT / "apps/api/alembic/versions/tc25005_case_study_consent.py"
+PARENT_REVISION = "tc11001_model_outcome_codes"
 
 ORG = "SYNTHETIC-ORG-PLACEHOLDER"
 ORG_2 = "SYNTHETIC-ORG-PLACEHOLDER-2"
@@ -162,6 +163,40 @@ def _stored_flags(case_id: int) -> dict:
         }
     finally:
         db.close()
+
+
+def _row_snapshot(case_id: int) -> dict:
+    engine.dispose()
+    db = SessionLocal()
+    try:
+        row = db.query(CaseStudy).filter(CaseStudy.id == case_id).one()
+        return {
+            "status": row.status,
+            "customer_claim": bool(row.customer_claim),
+            "synthetic": bool(row.synthetic),
+            "data_basis": row.data_basis,
+            "publication_authorized": bool(row.publication_authorized),
+            "revision": int(row.revision),
+            "review_status": row.review_status,
+            "published_at": row.published_at,
+            "quote": row.quote,
+            "title": row.title,
+            "company_name": row.company_name,
+            "updated_at": row.updated_at,
+        }
+    finally:
+        db.close()
+
+
+def _audit_events(caplog) -> list[dict]:
+    events = []
+    for record in caplog.records:
+        if record.name != "trustcopilot.audit":
+            continue
+        message = record.getMessage()
+        payload = message.split("audit ", 1)[1]
+        events.append(json.loads(payload))
+    return events
 
 
 def _times_match(api_value, db_value) -> bool:
@@ -328,17 +363,24 @@ def test_ac1_tampered_row_cannot_appear_as_a_customer_claim(admin_client):
     finally:
         db.close()
 
+    before = _row_snapshot(study["id"])
     response = admin_client.get(f"/api/case-studies/{study['id']}")
     assert response.status_code == 200
     body = response.json()
     assert body["customer_claim"] is False
     assert body["data_basis"] != "consented_customer"
-    assert body["status"] != "published"
+    assert body["publication_authorized"] is False
+    assert body["status"] == "published"
     assert body["display_label"] == "Not a customer claim."
-    stored = _stored_flags(study["id"])
-    assert stored["customer_claim"] is False
-    assert stored["status"] != "published"
-    assert stored["data_basis"] != "consented_customer"
+    listed = admin_client.get("/api/case-studies")
+    assert listed.status_code == 200
+    listed_row = next(item for item in listed.json()["case_studies"] if item["id"] == study["id"])
+    assert listed_row["customer_claim"] is False
+    assert listed_row["data_basis"] != "consented_customer"
+    after = _row_snapshot(study["id"])
+    assert after == before
+    assert after["customer_claim"] is True
+    assert after["status"] == "published"
 
 
 def test_ac1_sources_do_not_seed_a_customer_claim():
@@ -360,10 +402,13 @@ def test_ac1_sources_do_not_seed_a_customer_claim():
     assert "def seed" not in service
     migration = MIGRATION_PATH.read_text()
     assert 'revision = "tc25005_case_study_consent"' in migration
-    assert 'down_revision = "075"' in migration
+    assert f'down_revision = "{PARENT_REVISION}"' in migration
     assert "INSERT INTO case_studies" not in migration
     assert "DELETE FROM case_studies" not in migration
     assert "TRUNCATE case_studies" not in migration
+    assert "NOT IN" not in migration
+    assert "from app" not in migration
+    assert "import app" not in migration
     assert "case_study_consent_archive" in migration
     assert "case_study_result_permission_archive" in migration
     assert "case_study_review_archive" in migration
@@ -686,9 +731,242 @@ def _alembic(*args: str) -> None:
     assert completed.returncode == 0, completed.stderr or completed.stdout
 
 
+def test_get_does_not_change_stored_row(admin_client):
+    study = _create(admin_client, title="Read only placeholder")
+    before = _row_snapshot(study["id"])
+    listed = admin_client.get("/api/case-studies")
+    assert listed.status_code == 200
+    fetched = admin_client.get(f"/api/case-studies/{study['id']}")
+    assert fetched.status_code == 200
+    assert fetched.json()["title"] == study["title"]
+    again = admin_client.get(f"/api/case-studies/{study['id']}")
+    assert again.status_code == 200
+    after = _row_snapshot(study["id"])
+    assert after == before
+
+
+def test_content_patch_requires_expected_revision(admin_client):
+    study = _create(
+        admin_client,
+        title="Revision required placeholder",
+        quote=None,
+        results=None,
+        metrics=None,
+    )
+    missing = admin_client.patch(
+        f"/api/case-studies/{study['id']}",
+        json={"challenge": "SYNTHETIC-CHALLENGE-PLACEHOLDER"},
+    )
+    assert missing.status_code == 422
+    assert _stored_flags(study["id"])["revision"] == study["revision"]
+    assert _row_snapshot(study["id"])["quote"] is None
+
+
+def test_consent_reference_hidden_from_non_admins(client):
+    _admin(client)
+    study = _create(
+        client, title="Reference visibility placeholder", quote=None, results=None, metrics=None
+    )
+    granted = client.post(
+        f"/api/case-studies/{study['id']}/consents",
+        json={
+            "organization_name": ORG,
+            "consent_reference": CONSENT_REF,
+            "expected_revision": study["revision"],
+        },
+    )
+    assert granted.status_code == 200, granted.status_code
+    study = granted.json()
+    assert study["consents"][0]["consent_reference"] == CONSENT_REF
+    admin_body = client.get(f"/api/case-studies/{study['id']}").json()
+    assert admin_body["consents"][0]["consent_reference"] == CONSENT_REF
+
+    _editor(client)
+    editor_body = client.get(f"/api/case-studies/{study['id']}")
+    assert editor_body.status_code == 200
+    assert editor_body.json()["consents"][0]["consent_reference"] is None
+    listed = client.get("/api/case-studies").json()
+    listed_row = next(item for item in listed["case_studies"] if item["id"] == study["id"])
+    assert listed_row["consents"][0]["consent_reference"] is None
+    assert CONSENT_REF not in json.dumps(editor_body.json())
+    assert CONSENT_REF not in json.dumps(listed_row)
+
+    _reviewer(client)
+    reviewer_body = client.get(f"/api/case-studies/{study['id']}").json()
+    assert reviewer_body["consents"][0]["consent_reference"] is None
+    assert CONSENT_REF not in json.dumps(reviewer_body)
+
+
+def test_consent_actions_are_audited_and_delete_keeps_history(client, caplog):
+    import logging
+
+    caplog.set_level(logging.INFO, logger="trustcopilot.audit")
+    _admin(client)
+    study = _create(client, title="Audit placeholder", quote=QUOTE, results=None, metrics=None)
+    caplog.clear()
+    granted = client.post(
+        f"/api/case-studies/{study['id']}/consents",
+        json={
+            "organization_name": ORG,
+            "consent_reference": CONSENT_REF,
+            "expected_revision": study["revision"],
+        },
+    )
+    assert granted.status_code == 200, granted.status_code
+    study = granted.json()
+    consent = next(item for item in study["consents"] if item["active"])
+    consent_audit = next(
+        item for item in _audit_events(caplog) if item["action"] == "case_study.consent"
+    )
+    assert consent_audit["organization_name"] == ORG
+    assert consent_audit["consent_id"] == consent["id"]
+    assert consent_audit["revision"] == study["revision"]
+    assert "consent_reference" not in consent_audit
+    assert CONSENT_REF not in json.dumps(consent_audit)
+
+    caplog.clear()
+    permitted = client.post(
+        f"/api/case-studies/{study['id']}/result-permissions",
+        json={
+            "consent_id": consent["id"],
+            "result_key": "quote",
+            "expected_revision": study["revision"],
+        },
+    )
+    assert permitted.status_code == 200, permitted.status_code
+    study = permitted.json()
+    permission = next(item for item in study["result_permissions"] if item["active"])
+    permission_audit = next(
+        item for item in _audit_events(caplog) if item["action"] == "case_study.result_permission"
+    )
+    assert permission_audit["consent_id"] == consent["id"]
+    assert permission_audit["result_key"] == "quote"
+    assert permission_audit["permission_id"] == permission["id"]
+    assert permission_audit["revision"] == study["revision"]
+    assert "consent_reference" not in permission_audit
+    assert CONSENT_REF not in json.dumps(permission_audit)
+
+    caplog.clear()
+    revoked_permission = client.post(
+        f"/api/case-studies/{study['id']}/result-permissions/{permission['id']}/revoke",
+        json={"expected_revision": study["revision"]},
+    )
+    assert revoked_permission.status_code == 200, revoked_permission.status_code
+    revoke_permission_audit = next(
+        item
+        for item in _audit_events(caplog)
+        if item["action"] == "case_study.result_permission_revoke"
+    )
+    assert revoke_permission_audit["permission_id"] == permission["id"]
+    assert revoke_permission_audit["result_key"] == "quote"
+    assert revoke_permission_audit["consent_id"] == consent["id"]
+    assert CONSENT_REF not in json.dumps(revoke_permission_audit)
+
+    caplog.clear()
+    study = revoked_permission.json()
+    revoked_consent = client.post(
+        f"/api/case-studies/{study['id']}/consents/{consent['id']}/revoke",
+        json={"expected_revision": study["revision"]},
+    )
+    assert revoked_consent.status_code == 200, revoked_consent.status_code
+    revoke_consent_audit = next(
+        item for item in _audit_events(caplog) if item["action"] == "case_study.consent_revoke"
+    )
+    assert revoke_consent_audit["consent_id"] == consent["id"]
+    assert revoke_consent_audit["organization_name"] == ORG
+    assert CONSENT_REF not in json.dumps(revoke_consent_audit)
+
+    caplog.clear()
+    study = revoked_consent.json()
+    submitted = client.post(
+        f"/api/case-studies/{study['id']}/submit-review",
+        json={"expected_revision": study["revision"]},
+    )
+    assert submitted.status_code == 200, submitted.status_code
+    submit_audit = next(
+        item for item in _audit_events(caplog) if item["action"] == "case_study.submit_review"
+    )
+    assert submit_audit["revision"] == study["revision"]
+    assert submit_audit["review_status"] == "pending"
+    assert CONSENT_REF not in json.dumps(submit_audit)
+
+    caplog.clear()
+    blocked = client.delete(f"/api/case-studies/{study['id']}")
+    assert blocked.status_code == 409
+    assert blocked.json()["detail"]["code"] == "consent_history_retained"
+    assert "consent" in blocked.json()["detail"]["message"].lower()
+    engine.dispose()
+    db = SessionLocal()
+    try:
+        remaining = db.execute(
+            text("SELECT count(*) FROM case_study_organization_consents WHERE case_study_id = :id"),
+            {"id": study["id"]},
+        ).scalar()
+        permissions = db.execute(
+            text("SELECT count(*) FROM case_study_result_permissions WHERE case_study_id = :id"),
+            {"id": study["id"]},
+        ).scalar()
+    finally:
+        db.close()
+    assert remaining >= 1
+    assert permissions >= 1
+    assert all(item["action"] != "case_study.delete" for item in _audit_events(caplog))
+
+    caplog.clear()
+    plain = _create(
+        client,
+        title="Deletable placeholder",
+        company_name=None,
+        quote=None,
+        results=None,
+        metrics=None,
+    )
+    deleted = client.delete(f"/api/case-studies/{plain['id']}")
+    assert deleted.status_code == 200, deleted.status_code
+    delete_audit = next(
+        item for item in _audit_events(caplog) if item["action"] == "case_study.delete"
+    )
+    assert delete_audit["resource_id"] == plain["id"]
+    assert "consent_reference" not in delete_audit
+
+
+def test_case_study_index_names_match_the_database():
+    from alembic.autogenerate import compare_metadata
+    from alembic.migration import MigrationContext
+    from sqlalchemy import inspect
+
+    from app.core.database import Base
+    from app.models.case_study import (
+        CaseStudy,
+        CaseStudyOrganizationConsent,
+        CaseStudyResultPermission,
+    )
+
+    tables = (
+        CaseStudy.__table__,
+        CaseStudyOrganizationConsent.__table__,
+        CaseStudyResultPermission.__table__,
+    )
+    inspector = inspect(engine)
+    for table in tables:
+        model_indexes = {index.name for index in table.indexes}
+        constraint_names = {constraint.name for constraint in table.constraints if constraint.name}
+        db_indexes = {row["name"] for row in inspector.get_indexes(table.name)}
+        assert model_indexes
+        assert model_indexes <= db_indexes
+        assert db_indexes - model_indexes - constraint_names == set()
+    with engine.connect() as connection:
+        context = MigrationContext.configure(connection)
+        diffs = compare_metadata(context, Base.metadata)
+    index_diffs = [
+        diff for diff in diffs if "case_stud" in repr(diff) and "index" in repr(diff).lower()
+    ]
+    assert index_diffs == []
+
+
 def test_migration_backfill_and_rollback(admin_client):
     try:
-        _alembic("downgrade", "075")
+        _alembic("downgrade", PARENT_REVISION)
         db = SessionLocal()
         try:
             inserted = db.execute(
@@ -726,7 +1004,7 @@ def test_migration_backfill_and_rollback(admin_client):
         finally:
             db.close()
 
-        _alembic("downgrade", "075")
+        _alembic("downgrade", PARENT_REVISION)
         db = SessionLocal()
         try:
             restored = db.execute(
@@ -810,6 +1088,9 @@ def test_migration_downgrade_round_trip_is_lossless(admin_client):
     survive in archive tables and come back. Snapshot status is restored only
     for a row still in the exact post-upgrade state. A later workflow change
     is not overwritten. A published claim with no consent is not resurrected.
+    A study unpublished on the parent revision, and a study whose quote changed
+    there, come back as drafts at revision+1 so the old consent does not cover
+    them. Re-upgrade drops the archive tables.
     """
     exact_published_at = datetime(2026, 10, 27, 12, 0, tzinfo=timezone.utc)
     changed_snapshot_at = datetime(2026, 10, 27, 15, 30, tzinfo=timezone.utc)
@@ -839,6 +1120,21 @@ def test_migration_downgrade_round_trip_is_lossless(admin_client):
         metrics=None,
     )
     tampered = _create(admin_client, title="roundtrip-unconsented-claim-placeholder")
+    unpublished_later = _create(admin_client, title="roundtrip-unpublished-at-parent-placeholder")
+    unpublished_later = _grant_matrix(admin_client, unpublished_later)
+    unpublished_later = _submit_and_approve(admin_client, unpublished_later)
+    unpublished_published = _publish(admin_client, unpublished_later)
+    assert unpublished_published.status_code == 200, unpublished_published.status_code
+    unpublished_later = unpublished_published.json()
+    edited_later = _create(admin_client, title="roundtrip-quote-edited-at-parent-placeholder")
+    edited_later = _grant_matrix(admin_client, edited_later)
+    edited_later = _submit_and_approve(admin_client, edited_later)
+    edited_published = _publish(admin_client, edited_later)
+    assert edited_published.status_code == 200, edited_published.status_code
+    edited_later = edited_published.json()
+    edited_quote = "SYNTHETIC-QUOTE-PLACEHOLDER-EDITED"
+    unpublished_revision = unpublished_later["revision"]
+    edited_revision = edited_later["revision"]
 
     db = SessionLocal()
     try:
@@ -999,7 +1295,7 @@ def test_migration_downgrade_round_trip_is_lossless(admin_client):
         db.close()
 
     try:
-        _alembic("downgrade", "075")
+        _alembic("downgrade", PARENT_REVISION)
         db = SessionLocal()
         try:
             assert _case_study_ids(db) == before_ids
@@ -1115,6 +1411,32 @@ def test_migration_downgrade_round_trip_is_lossless(admin_client):
             )[0]
             assert changed_flag["snapshot_restored"] is False
             assert exact_flag["snapshot_restored"] is True
+            fingerprint = _rows(
+                db,
+                """
+                SELECT title, quote, company_name, challenge, solution, results, metrics_json
+                FROM case_study_review_archive WHERE case_study_id = :id
+                """,
+                {"id": consented["id"]},
+            )[0]
+            assert fingerprint["title"] == review_before["title"]
+            assert fingerprint["quote"] == review_before["quote"]
+            assert fingerprint["company_name"] == ORG
+            db.execute(
+                text(
+                    """
+                    UPDATE case_studies
+                    SET status = 'draft', published_at = NULL
+                    WHERE id = :id
+                    """
+                ),
+                {"id": unpublished_later["id"]},
+            )
+            db.execute(
+                text("UPDATE case_studies SET quote = :quote WHERE id = :id"),
+                {"id": edited_later["id"], "quote": edited_quote},
+            )
+            db.commit()
         finally:
             db.close()
 
@@ -1214,6 +1536,58 @@ def test_migration_downgrade_round_trip_is_lossless(admin_client):
                 ).scalar()
                 == 0
             )
+            restored_unpublished = _rows(
+                db,
+                """
+                SELECT status, published_at, customer_claim, publication_authorized, revision
+                FROM case_studies WHERE id = :id
+                """,
+                {"id": unpublished_later["id"]},
+            )[0]
+            assert restored_unpublished["status"] == "draft"
+            assert restored_unpublished["published_at"] is None
+            assert restored_unpublished["publication_authorized"] is False
+            assert restored_unpublished["customer_claim"] is False
+            assert restored_unpublished["revision"] == unpublished_revision + 1
+            unpublished_grants = _rows(
+                db,
+                """
+                SELECT granted_revision FROM case_study_organization_consents
+                WHERE case_study_id = :id AND revoked_at IS NULL
+                """,
+                {"id": unpublished_later["id"]},
+            )
+            assert unpublished_grants
+            assert all(
+                row["granted_revision"] != restored_unpublished["revision"]
+                for row in unpublished_grants
+            )
+            restored_edited = _rows(
+                db,
+                """
+                SELECT status, published_at, customer_claim, publication_authorized, revision, quote
+                FROM case_studies WHERE id = :id
+                """,
+                {"id": edited_later["id"]},
+            )[0]
+            assert restored_edited["status"] == "draft"
+            assert restored_edited["published_at"] is None
+            assert restored_edited["publication_authorized"] is False
+            assert restored_edited["customer_claim"] is False
+            assert restored_edited["revision"] == edited_revision + 1
+            assert restored_edited["quote"] == edited_quote
+            edited_grants = _rows(
+                db,
+                """
+                SELECT granted_revision FROM case_study_organization_consents
+                WHERE case_study_id = :id AND revoked_at IS NULL
+                """,
+                {"id": edited_later["id"]},
+            )
+            assert edited_grants
+            assert all(
+                row["granted_revision"] != restored_edited["revision"] for row in edited_grants
+            )
             for table in (
                 "case_study_consent_archive",
                 "case_study_result_permission_archive",
@@ -1224,7 +1598,7 @@ def test_migration_downgrade_round_trip_is_lossless(admin_client):
                         text("SELECT to_regclass(:name)"),
                         {"name": f"public.{table}"},
                     ).scalar()
-                    is not None
+                    is None
                 )
         finally:
             db.close()
