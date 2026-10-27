@@ -1,4 +1,6 @@
-import base64, hmac, json
+import base64
+import hmac
+import json
 import requests
 
 SECRET = "zDWud8xGEkOl_7ceEhfvrGeTNehTp3ttPHo9uYEcCGoyZUOlYvYBCiDHjp1stF_0"
@@ -33,7 +35,9 @@ r = S.get("http://localhost:8000/api/notifications/policies")
 print(f"Status: {r.status_code}")
 if r.status_code == 200:
     for p in r.json().get("policies", []):
-        print(f"  {p['event_type']}: {'Active' if p['enabled'] else 'Disabled'} -> {p['recipient_type']}")
+        print(
+            f"  {p['event_type']}: {'Active' if p['enabled'] else 'Disabled'} -> {p['recipient_type']}"
+        )
 
 print("\n=== Delivery Log ===")
 r = S.get("http://localhost:8000/api/notifications/log?page=1&page_size=5")

@@ -11,31 +11,36 @@ export type NotificationMeta = {
 export const NOTIFICATION_LABELS: Record<string, NotificationMeta> = {
   'compliance.coverage_drop': {
     title: 'Coverage dropped below threshold',
-    description: 'Your compliance coverage has fallen below the configured minimum.',
+    description:
+      'Your compliance coverage has fallen below the configured minimum.',
     severity: 'high',
     category: 'compliance',
   },
   'compliance.blind_spot': {
     title: 'Blind spots detected',
-    description: 'Areas with no supporting evidence were found in your compliance coverage.',
+    description:
+      'Areas with no supporting evidence were found in your compliance coverage.',
     severity: 'high',
     category: 'compliance',
   },
   'compliance.high_insufficient': {
     title: 'High number of insufficient answers',
-    description: 'Many questions lack sufficient evidence to meet compliance requirements.',
+    description:
+      'Many questions lack sufficient evidence to meet compliance requirements.',
     severity: 'medium',
     category: 'compliance',
   },
   'compliance.weak_evidence': {
     title: 'Weak evidence areas',
-    description: 'Some areas have low-confidence supporting evidence that may need attention.',
+    description:
+      'Some areas have low-confidence supporting evidence that may need attention.',
     severity: 'medium',
     category: 'compliance',
   },
   'questionnaire.uploaded': {
     title: 'Questionnaire uploaded',
-    description: 'A new questionnaire has been uploaded and is ready for processing.',
+    description:
+      'A new questionnaire has been uploaded and is ready for processing.',
     severity: 'low',
     category: 'system',
   },
@@ -47,13 +52,15 @@ export const NOTIFICATION_LABELS: Record<string, NotificationMeta> = {
   },
   'export.completed': {
     title: 'Export ready',
-    description: 'Your requested export has finished and is available for download.',
+    description:
+      'Your requested export has finished and is available for download.',
     severity: 'low',
     category: 'system',
   },
   'document.indexed': {
     title: 'Document processed',
-    description: 'A document has been indexed and is now searchable as evidence.',
+    description:
+      'A document has been indexed and is now searchable as evidence.',
     severity: 'low',
     category: 'system',
   },
@@ -77,13 +84,13 @@ export const NOTIFICATION_LABELS: Record<string, NotificationMeta> = {
   },
   'member.suspended': {
     title: 'Member suspended',
-    description: 'A team member\'s access has been suspended.',
+    description: "A team member's access has been suspended.",
     severity: 'medium',
     category: 'team',
   },
   'member.role_changed': {
     title: 'Role changed',
-    description: 'A team member\'s role has been updated.',
+    description: "A team member's role has been updated.",
     severity: 'low',
     category: 'team',
   },
@@ -95,7 +102,7 @@ export const NOTIFICATION_LABELS: Record<string, NotificationMeta> = {
   },
   'role.updated': {
     title: 'Role updated',
-    description: 'A custom role\'s permissions have been updated.',
+    description: "A custom role's permissions have been updated.",
     severity: 'low',
     category: 'team',
   },
@@ -113,10 +120,13 @@ export const NOTIFICATION_LABELS: Record<string, NotificationMeta> = {
   },
 }
 
-export const CATEGORY_META: Record<NotificationCategory, { label: string; icon: string }> = {
+export const CATEGORY_META: Record<
+  NotificationCategory,
+  { label: string; icon: string }
+> = {
   compliance: { label: 'Compliance Alerts', icon: '🛡' },
-  system:     { label: 'System Events',     icon: '⚙' },
-  team:       { label: 'Team Activity',     icon: '👥' },
+  system: { label: 'System Events', icon: '⚙' },
+  team: { label: 'Team Activity', icon: '👥' },
 }
 
 const FALLBACK: NotificationMeta = {
@@ -134,6 +144,8 @@ export function getNotificationTitle(eventType: string): string {
   return NOTIFICATION_LABELS[eventType]?.title ?? FALLBACK.title
 }
 
-export function getNotificationCategory(eventType: string): NotificationCategory {
+export function getNotificationCategory(
+  eventType: string
+): NotificationCategory {
   return NOTIFICATION_LABELS[eventType]?.category ?? FALLBACK.category
 }

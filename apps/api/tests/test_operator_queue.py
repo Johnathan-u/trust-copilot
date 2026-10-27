@@ -27,9 +27,12 @@ class TestOperatorQueueService:
             pytest.skip("Postgres not available")
         from app.core.database import SessionLocal
         from app.services.operator_queue_service import create_item, get_item
+
         db = SessionLocal()
         try:
-            item = create_item(db, 1, "Test questionnaire from Acme", customer_name="Acme Corp", priority="high")
+            item = create_item(
+                db, 1, "Test questionnaire from Acme", customer_name="Acme Corp", priority="high"
+            )
             db.commit()
             assert item["title"] == "Test questionnaire from Acme"
             assert item["status"] == "received"
@@ -47,11 +50,14 @@ class TestOperatorQueueService:
             pytest.skip("Postgres not available")
         from app.core.database import SessionLocal
         from app.services.operator_queue_service import create_item, update_item
+
         db = SessionLocal()
         try:
             item = create_item(db, 1, "Update test", priority="normal")
             db.commit()
-            updated = update_item(db, item["id"], status="in_progress", assignee="operator@test.local")
+            updated = update_item(
+                db, item["id"], status="in_progress", assignee="operator@test.local"
+            )
             db.commit()
             assert updated["status"] == "in_progress"
             assert updated["assignee"] == "operator@test.local"
@@ -63,6 +69,7 @@ class TestOperatorQueueService:
             pytest.skip("Postgres not available")
         from app.core.database import SessionLocal
         from app.services.operator_queue_service import create_item, update_item
+
         db = SessionLocal()
         try:
             item = create_item(db, 1, "Bad status test")
@@ -78,10 +85,11 @@ class TestOperatorQueueService:
             pytest.skip("Postgres not available")
         from app.core.database import SessionLocal
         from app.services.operator_queue_service import create_item, list_items, update_item
+
         db = SessionLocal()
         try:
             item1 = create_item(db, 1, "Filter A", priority="critical")
-            item2 = create_item(db, 1, "Filter B", priority="low")
+            item2 = create_item(db, 1, "Filter B", priority="low")  # noqa: F841
             db.commit()
             update_item(db, item1["id"], status="in_progress")
             db.commit()
@@ -99,6 +107,7 @@ class TestOperatorQueueService:
             pytest.skip("Postgres not available")
         from app.core.database import SessionLocal
         from app.services.operator_queue_service import create_item, delete_item, get_item
+
         db = SessionLocal()
         try:
             item = create_item(db, 1, "Delete me")
@@ -114,6 +123,7 @@ class TestOperatorQueueService:
             pytest.skip("Postgres not available")
         from app.core.database import SessionLocal
         from app.services.operator_queue_service import dashboard_stats
+
         db = SessionLocal()
         try:
             stats = dashboard_stats(db, 1)
@@ -129,11 +139,14 @@ class TestOperatorQueueAPI:
     """HTTP-level tests."""
 
     def test_create_item(self, admin_client):
-        r = admin_client.post("/api/operator-queue", json={
-            "title": "SOC 2 questionnaire from BigCo",
-            "customer_name": "BigCo Inc",
-            "priority": "high",
-        })
+        r = admin_client.post(
+            "/api/operator-queue",
+            json={
+                "title": "SOC 2 questionnaire from BigCo",
+                "customer_name": "BigCo Inc",
+                "priority": "high",
+            },
+        )
         assert r.status_code == 200
         data = r.json()
         assert data["title"] == "SOC 2 questionnaire from BigCo"
@@ -156,10 +169,13 @@ class TestOperatorQueueAPI:
     def test_update_item(self, admin_client):
         r1 = admin_client.post("/api/operator-queue", json={"title": "Update test"})
         item_id = r1.json()["id"]
-        r2 = admin_client.patch(f"/api/operator-queue/{item_id}", json={
-            "status": "in_progress",
-            "assignee": "me@test.local",
-        })
+        r2 = admin_client.patch(
+            f"/api/operator-queue/{item_id}",
+            json={
+                "status": "in_progress",
+                "assignee": "me@test.local",
+            },
+        )
         assert r2.status_code == 200
         assert r2.json()["status"] == "in_progress"
         assert r2.json()["assignee"] == "me@test.local"

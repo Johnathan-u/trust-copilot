@@ -11,7 +11,17 @@ from app.models.product_event import ProductEvent
 
 logger = logging.getLogger(__name__)
 
-EVENT_CATEGORIES = ("auth", "document", "questionnaire", "answer", "export", "trust_center", "connector", "billing", "admin")
+EVENT_CATEGORIES = (
+    "auth",
+    "document",
+    "questionnaire",
+    "answer",
+    "export",
+    "trust_center",
+    "connector",
+    "billing",
+    "admin",
+)
 
 
 def track(
@@ -26,15 +36,17 @@ def track(
     metadata: dict | None = None,
 ) -> None:
     """Record a product event."""
-    db.add(ProductEvent(
-        workspace_id=workspace_id,
-        user_id=user_id,
-        event_type=event_type,
-        event_category=event_category,
-        resource_type=resource_type,
-        resource_id=resource_id,
-        metadata_json=json.dumps(metadata) if metadata else None,
-    ))
+    db.add(
+        ProductEvent(
+            workspace_id=workspace_id,
+            user_id=user_id,
+            event_type=event_type,
+            event_category=event_category,
+            resource_type=resource_type,
+            resource_id=resource_id,
+            metadata_json=json.dumps(metadata) if metadata else None,
+        )
+    )
     db.flush()
 
 
@@ -90,7 +102,11 @@ def get_funnel(db: Session, workspace_id: int, days: int = 30) -> dict:
     return {
         "logins": base.filter(ProductEvent.event_type == "auth.login").scalar() or 0,
         "document_uploads": base.filter(ProductEvent.event_type == "document.upload").scalar() or 0,
-        "questionnaire_uploads": base.filter(ProductEvent.event_type == "questionnaire.upload").scalar() or 0,
-        "answers_generated": base.filter(ProductEvent.event_type == "answer.generate").scalar() or 0,
+        "questionnaire_uploads": base.filter(
+            ProductEvent.event_type == "questionnaire.upload"
+        ).scalar()
+        or 0,
+        "answers_generated": base.filter(ProductEvent.event_type == "answer.generate").scalar()
+        or 0,
         "exports": base.filter(ProductEvent.event_type == "export.complete").scalar() or 0,
     }

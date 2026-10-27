@@ -4,7 +4,7 @@ import json
 import logging
 from copy import copy
 from io import BytesIO
-from pathlib import Path
+from pathlib import Path  # noqa: F401
 from typing import Any
 
 import openpyxl
@@ -17,8 +17,16 @@ _logger = logging.getLogger(__name__)
 # Includes the full-width variants some locales/IMEs produce, and tab/CR per
 # the OWASP CSV-injection guidance.
 FORMULA_TRIGGER_CHARS: tuple[str, ...] = (
-    "=", "+", "-", "@", "\t", "\r",
-    "\uff1d", "\uff0b", "\uff0d", "\uff20",
+    "=",
+    "+",
+    "-",
+    "@",
+    "\t",
+    "\r",
+    "\uff1d",
+    "\uff0b",
+    "\uff0d",
+    "\uff20",
 )
 
 
@@ -135,11 +143,13 @@ def place_answers_into_workbook(
                 answer_cell.coordinate,
             )
             if skipped is not None:
-                skipped.append({
-                    "sheet": sheet_name,
-                    "cell": answer_cell.coordinate,
-                    "reason": "target_has_formula",
-                })
+                skipped.append(
+                    {
+                        "sheet": sheet_name,
+                        "cell": answer_cell.coordinate,
+                        "reason": "target_has_formula",
+                    }
+                )
             continue
         _copy_cell_style(question_cell, answer_cell)
         write_literal_text(answer_cell, text)
@@ -168,12 +178,14 @@ def placements_from_questions_and_answers(
             loc = json.loads(loc_raw) if isinstance(loc_raw, str) else loc_raw
         except (json.JSONDecodeError, TypeError):
             continue
-        placements.append({
-            "sheet": loc.get("sheet"),
-            "row": loc.get("row", 1),
-            "col": loc.get("col", 1),
-            "text": text,
-        })
+        placements.append(
+            {
+                "sheet": loc.get("sheet"),
+                "row": loc.get("row", 1),
+                "col": loc.get("col", 1),
+                "text": text,
+            }
+        )
     return placements
 
 

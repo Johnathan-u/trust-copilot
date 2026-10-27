@@ -18,7 +18,9 @@ def admin_client(client):
 class TestPromiseService:
     def test_create_list(self, db_session):
         ws = db_session.query(Workspace).first()
-        p = ps.create_promise(db_session, ws.id, "We use MFA everywhere", "trust_article", topic_key="mfa")
+        p = ps.create_promise(
+            db_session, ws.id, "We use MFA everywhere", "trust_article", topic_key="mfa"
+        )
         db_session.commit()
         assert p["source_type"] == "trust_article"
         lst = ps.list_promises(db_session, ws.id)
@@ -40,8 +42,20 @@ class TestPromiseService:
 
     def test_contradictions(self, db_session):
         ws = db_session.query(Workspace).first()
-        ps.create_promise(db_session, ws.id, "Data retained 90 days", "contract_clause", topic_key="data_retention")
-        ps.create_promise(db_session, ws.id, "Retention period is 180 days", "questionnaire_answer", topic_key="data_retention")
+        ps.create_promise(
+            db_session,
+            ws.id,
+            "Data retained 90 days",
+            "contract_clause",
+            topic_key="data_retention",
+        )
+        ps.create_promise(
+            db_session,
+            ws.id,
+            "Retention period is 180 days",
+            "questionnaire_answer",
+            topic_key="data_retention",
+        )
         db_session.commit()
         c = ps.detect_contradictions(db_session, ws.id)
         assert len(c) >= 1
@@ -50,8 +64,12 @@ class TestPromiseService:
         ws = db_session.query(Workspace).first()
         soon = datetime.now(timezone.utc) + timedelta(days=10)
         ps.create_promise(
-            db_session, ws.id, "SOC2 attestation", "trust_article",
-            expires_at=soon, topic_key="compliance",
+            db_session,
+            ws.id,
+            "SOC2 attestation",
+            "trust_article",
+            expires_at=soon,
+            topic_key="compliance",
         )
         db_session.commit()
         ex = ps.get_expiring_promises(db_session, ws.id, 30)
@@ -71,10 +89,13 @@ class TestPromiseAPI:
         assert "total_promises" in r.json()
 
     def test_create(self, admin_client):
-        r = admin_client.post("/api/promises", json={
-            "promise_text": "We encrypt data at rest",
-            "source_type": "trust_article",
-        })
+        r = admin_client.post(
+            "/api/promises",
+            json={
+                "promise_text": "We encrypt data at rest",
+                "source_type": "trust_article",
+            },
+        )
         assert r.status_code == 200
 
     def test_contradictions_api(self, admin_client):

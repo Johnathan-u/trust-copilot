@@ -27,7 +27,7 @@ from app.services.xlsx_writer import (
 
 FORMULA_LIKE_ANSWERS = [
     "=1+1",
-    "=HYPERLINK(\"http://example.invalid/x\",\"click\")",
+    '=HYPERLINK("http://example.invalid/x","click")',
     "+SUM(A1:A3)",
     "-2+3",
     "@SUM(A1)",
@@ -50,7 +50,7 @@ def _template(extra=None) -> bytes:
         ws.cell(row=i + 2, column=1, value=f"Synthetic question {i + 1}?")
     # Original, legitimate template formulas (must survive export).
     ws["D1"] = "=COUNTA(B2:B20)"
-    ws["D2"] = "=IF(B2=\"Yes\",1,0)"
+    ws["D2"] = '=IF(B2="Yes",1,0)'
     if extra:
         extra(ws)
     buf = io.BytesIO()
@@ -128,7 +128,9 @@ def test_ac1_plain_answers_unchanged_without_quote_prefix() -> None:
 def test_ac1_write_answers_to_sheet_literal() -> None:
     wb = create_workbook()
     ws = wb.active
-    write_answers_to_sheet(ws, [{"row": 1, "col": 1, "text": "=2*3"}, {"row": 2, "col": 1, "text": "@x"}])
+    write_answers_to_sheet(
+        ws, [{"row": 1, "col": 1, "text": "=2*3"}, {"row": 2, "col": 1, "text": "@x"}]
+    )
     buf = io.BytesIO()
     wb.save(buf)
     xml = _sheet_xml(buf.getvalue())
@@ -137,10 +139,24 @@ def test_ac1_write_answers_to_sheet_literal() -> None:
     assert ws2["A1"].value == "=2*3" and ws2["A1"].data_type == "s"
 
 
-@pytest.mark.parametrize("value,expected", [
-    ("=x", True), ("+x", True), ("-x", True), ("@x", True), ("\tx", True), ("\rx", True),
-    ("  =x", True), ("\uff20x", True), ("x=1", False), ("Yes", False), ("", False), (None, False), (5, False),
-])
+@pytest.mark.parametrize(
+    "value,expected",
+    [
+        ("=x", True),
+        ("+x", True),
+        ("-x", True),
+        ("@x", True),
+        ("\tx", True),
+        ("\rx", True),
+        ("  =x", True),
+        ("\uff20x", True),
+        ("x=1", False),
+        ("Yes", False),
+        ("", False),
+        (None, False),
+        (5, False),
+    ],
+)
 def test_is_formula_like(value, expected) -> None:
     assert is_formula_like(value) is expected
 
@@ -197,7 +213,9 @@ def test_ac2_array_formula_target_not_overwritten() -> None:
     ws["A1"] = "Q?"
     ws["B1"] = ArrayFormula("B1", "=SUM(C1:C2)")
     skipped: list[dict] = []
-    place_answers_into_workbook(wb, [{"sheet": "S", "row": 1, "col": 1, "text": "x"}], skipped=skipped)
+    place_answers_into_workbook(
+        wb, [{"sheet": "S", "row": 1, "col": 1, "text": "x"}], skipped=skipped
+    )
     assert isinstance(ws["B1"].value, ArrayFormula)
     assert skipped and skipped[0]["cell"] == "B1"
 

@@ -25,10 +25,14 @@ def capture_feedback(
     submitted_by: str | None = None,
 ) -> dict:
     """Record feedback from a buyer who received a completed questionnaire."""
-    q = db.query(Questionnaire).filter(
-        Questionnaire.id == questionnaire_id,
-        Questionnaire.workspace_id == workspace_id,
-    ).first()
+    q = (
+        db.query(Questionnaire)
+        .filter(
+            Questionnaire.id == questionnaire_id,
+            Questionnaire.workspace_id == workspace_id,
+        )
+        .first()
+    )
     if not q:
         return {"error": "Questionnaire not found"}
 
@@ -51,26 +55,49 @@ def capture_feedback(
 
 def get_feedback_summary(db: Session, workspace_id: int) -> dict:
     """Aggregate feedback metrics for a workspace."""
-    total_questionnaires = db.query(func.count(Questionnaire.id)).filter(
-        Questionnaire.workspace_id == workspace_id,
-    ).scalar() or 0
+    total_questionnaires = (
+        db.query(func.count(Questionnaire.id))
+        .filter(
+            Questionnaire.workspace_id == workspace_id,
+        )
+        .scalar()
+        or 0
+    )
 
-    total_answers = db.query(func.count(Answer.id)).join(
-        Question, Answer.question_id == Question.id,
-    ).join(
-        Questionnaire, Question.questionnaire_id == Questionnaire.id,
-    ).filter(
-        Questionnaire.workspace_id == workspace_id,
-    ).scalar() or 0
+    total_answers = (
+        db.query(func.count(Answer.id))
+        .join(
+            Question,
+            Answer.question_id == Question.id,
+        )
+        .join(
+            Questionnaire,
+            Question.questionnaire_id == Questionnaire.id,
+        )
+        .filter(
+            Questionnaire.workspace_id == workspace_id,
+        )
+        .scalar()
+        or 0
+    )
 
-    approved = db.query(func.count(Answer.id)).join(
-        Question, Answer.question_id == Question.id,
-    ).join(
-        Questionnaire, Question.questionnaire_id == Questionnaire.id,
-    ).filter(
-        Questionnaire.workspace_id == workspace_id,
-        Answer.status == "approved",
-    ).scalar() or 0
+    approved = (
+        db.query(func.count(Answer.id))
+        .join(
+            Question,
+            Answer.question_id == Question.id,
+        )
+        .join(
+            Questionnaire,
+            Question.questionnaire_id == Questionnaire.id,
+        )
+        .filter(
+            Questionnaire.workspace_id == workspace_id,
+            Answer.status == "approved",
+        )
+        .scalar()
+        or 0
+    )
 
     return {
         "total_questionnaires": total_questionnaires,

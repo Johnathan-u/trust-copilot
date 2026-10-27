@@ -16,9 +16,21 @@ def collect_users(domain: str | None = None) -> dict:
         "domain": domain,
         "collected_at": datetime.now(timezone.utc).isoformat(),
         "findings": [
-            {"signal": "google.total_users", "description": "Total user accounts", "status": "check_required"},
-            {"signal": "google.suspended_users", "description": "Suspended accounts", "status": "check_required"},
-            {"signal": "google.sso_configured", "description": "SSO configuration", "status": "check_required"},
+            {
+                "signal": "google.total_users",
+                "description": "Total user accounts",
+                "status": "check_required",
+            },
+            {
+                "signal": "google.suspended_users",
+                "description": "Suspended accounts",
+                "status": "check_required",
+            },
+            {
+                "signal": "google.sso_configured",
+                "description": "SSO configuration",
+                "status": "check_required",
+            },
         ],
     }
 
@@ -30,8 +42,16 @@ def collect_mfa_enrollment(domain: str | None = None) -> dict:
         "domain": domain,
         "collected_at": datetime.now(timezone.utc).isoformat(),
         "findings": [
-            {"signal": "google.mfa_enrollment", "description": "MFA enrollment rate", "status": "check_required"},
-            {"signal": "google.password_policy", "description": "Password policy strength", "status": "check_required"},
+            {
+                "signal": "google.mfa_enrollment",
+                "description": "MFA enrollment rate",
+                "status": "check_required",
+            },
+            {
+                "signal": "google.password_policy",
+                "description": "Password policy strength",
+                "status": "check_required",
+            },
         ],
     }
 
@@ -43,8 +63,16 @@ def collect_admin_roles(domain: str | None = None) -> dict:
         "domain": domain,
         "collected_at": datetime.now(timezone.utc).isoformat(),
         "findings": [
-            {"signal": "google.admin_roles", "description": "Admin role assignments", "status": "check_required"},
-            {"signal": "google.super_admins", "description": "Super admin count", "status": "check_required"},
+            {
+                "signal": "google.admin_roles",
+                "description": "Admin role assignments",
+                "status": "check_required",
+            },
+            {
+                "signal": "google.super_admins",
+                "description": "Super admin count",
+                "status": "check_required",
+            },
         ],
     }
 

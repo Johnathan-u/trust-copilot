@@ -49,17 +49,21 @@ def _create_questionnaire_with_questions(db: Session, workspace_id: int = 1) -> 
     db.commit()
     db.refresh(qnr)
 
-    for i, text in enumerate([
-        "How do you manage access control for your systems?",
-        "What encryption standards do you use for data at rest?",
-        "Describe your incident response process.",
-    ]):
-        db.add(Question(
-            questionnaire_id=qnr.id,
-            text=text,
-            section=f"Section {i + 1}",
-            answer_type="text",
-        ))
+    for i, text in enumerate(
+        [
+            "How do you manage access control for your systems?",
+            "What encryption standards do you use for data at rest?",
+            "Describe your incident response process.",
+        ]
+    ):
+        db.add(
+            Question(
+                questionnaire_id=qnr.id,
+                text=text,
+                section=f"Section {i + 1}",
+                answer_type="text",
+            )
+        )
     db.commit()
     return qnr.id
 
@@ -67,6 +71,7 @@ def _create_questionnaire_with_questions(db: Session, workspace_id: int = 1) -> 
 def _cleanup_questionnaire(db: Session, qnr_id: int):
     from app.models.questionnaire import Question, Questionnaire
     from app.models.ai_mapping import QuestionMappingPreference
+
     db.query(QuestionMappingPreference).filter(
         QuestionMappingPreference.questionnaire_id == qnr_id,
     ).delete()
@@ -84,6 +89,7 @@ def qnr_with_questions(db_session: Session):
 
 # -- auth tests --
 
+
 def test_generate_mappings_requires_auth(client: TestClient):
     r = client.post("/api/questionnaires/1/generate-mappings?workspace_id=1")
     assert r.status_code == 401
@@ -95,6 +101,7 @@ def test_list_mappings_requires_auth(client: TestClient):
 
 
 # -- generate tests --
+
 
 def test_generate_mappings_creates_rows(client: TestClient, qnr_with_questions: int):
     _login(client)
@@ -114,6 +121,7 @@ def test_generate_mappings_not_found(client: TestClient):
 
 
 # -- list tests --
+
 
 def test_list_mappings_returns_shape(client: TestClient, qnr_with_questions: int):
     _login(client)
@@ -149,7 +157,9 @@ def test_list_mappings_returns_shape(client: TestClient, qnr_with_questions: int
 
 
 @patch("app.api.routes.questionnaires.suggest_documents_for_mapping_review")
-def test_list_mappings_omits_suggested_evidence_by_default(mock_suggest, client: TestClient, qnr_with_questions: int):
+def test_list_mappings_omits_suggested_evidence_by_default(
+    mock_suggest, client: TestClient, qnr_with_questions: int
+):
     """Large list loads must not run per-row retrieval (embed + search)."""
     _login(client)
     qnr_id = qnr_with_questions
@@ -161,13 +171,20 @@ def test_list_mappings_omits_suggested_evidence_by_default(mock_suggest, client:
         assert m.get("suggested_evidence") == []
 
 
-def test_list_mappings_include_suggested_evidence_param_accepted(client: TestClient, qnr_with_questions: int):
+def test_list_mappings_include_suggested_evidence_param_accepted(
+    client: TestClient, qnr_with_questions: int
+):
     """include_suggested_evidence=true is accepted; suggest runs only for rows with a control and no links."""
     _login(client)
     qnr_id = qnr_with_questions
     client.post(f"/api/questionnaires/{qnr_id}/generate-mappings?workspace_id=1")
-    with patch("app.api.routes.questionnaires.batch_supporting_evidence_for_workspace_controls", return_value={}):
-        with patch("app.api.routes.questionnaires.suggest_documents_for_mapping_review") as mock_suggest:
+    with patch(
+        "app.api.routes.questionnaires.batch_supporting_evidence_for_workspace_controls",
+        return_value={},
+    ):
+        with patch(
+            "app.api.routes.questionnaires.suggest_documents_for_mapping_review"
+        ) as mock_suggest:
             mock_suggest.return_value = []
             r = client.get(
                 f"/api/questionnaires/{qnr_id}/mappings",
@@ -180,18 +197,23 @@ def test_list_mappings_include_suggested_evidence_param_accepted(client: TestCli
 
 
 def test_get_mapping_suggested_evidence_requires_auth(client: TestClient, qnr_with_questions: int):
-    r = client.get(f"/api/questionnaires/{qnr_with_questions}/mappings/1/suggested-evidence?workspace_id=1")
+    r = client.get(
+        f"/api/questionnaires/{qnr_with_questions}/mappings/1/suggested-evidence?workspace_id=1"
+    )
     assert r.status_code == 401
 
 
 # -- update tests --
+
 
 def test_approve_mapping(client: TestClient, qnr_with_questions: int):
     _login(client)
     qnr_id = qnr_with_questions
 
     client.post(f"/api/questionnaires/{qnr_id}/generate-mappings?workspace_id=1")
-    mappings = client.get(f"/api/questionnaires/{qnr_id}/mappings?workspace_id=1").json()["mappings"]
+    mappings = client.get(f"/api/questionnaires/{qnr_id}/mappings?workspace_id=1").json()[
+        "mappings"
+    ]
     m_id = mappings[0]["id"]
 
     r = client.patch(
@@ -208,7 +230,9 @@ def test_reject_mapping(client: TestClient, qnr_with_questions: int):
     qnr_id = qnr_with_questions
 
     client.post(f"/api/questionnaires/{qnr_id}/generate-mappings?workspace_id=1")
-    mappings = client.get(f"/api/questionnaires/{qnr_id}/mappings?workspace_id=1").json()["mappings"]
+    mappings = client.get(f"/api/questionnaires/{qnr_id}/mappings?workspace_id=1").json()[
+        "mappings"
+    ]
     m_id = mappings[1]["id"]
 
     r = client.patch(
@@ -225,7 +249,9 @@ def test_invalid_status_rejected(client: TestClient, qnr_with_questions: int):
     qnr_id = qnr_with_questions
 
     client.post(f"/api/questionnaires/{qnr_id}/generate-mappings?workspace_id=1")
-    mappings = client.get(f"/api/questionnaires/{qnr_id}/mappings?workspace_id=1").json()["mappings"]
+    mappings = client.get(f"/api/questionnaires/{qnr_id}/mappings?workspace_id=1").json()[
+        "mappings"
+    ]
     m_id = mappings[0]["id"]
 
     r = client.patch(
@@ -247,12 +273,15 @@ def test_update_mapping_not_found(client: TestClient, qnr_with_questions: int):
 
 # -- regeneration skips approved/manual --
 
+
 def test_regenerate_skips_approved(client: TestClient, qnr_with_questions: int):
     _login(client)
     qnr_id = qnr_with_questions
 
     client.post(f"/api/questionnaires/{qnr_id}/generate-mappings?workspace_id=1")
-    mappings = client.get(f"/api/questionnaires/{qnr_id}/mappings?workspace_id=1").json()["mappings"]
+    mappings = client.get(f"/api/questionnaires/{qnr_id}/mappings?workspace_id=1").json()[
+        "mappings"
+    ]
 
     client.patch(
         f"/api/questionnaires/{qnr_id}/mappings/{mappings[0]['id']}?workspace_id=1",
@@ -271,12 +300,15 @@ def test_regenerate_skips_approved(client: TestClient, qnr_with_questions: int):
 
 # -- regenerate single --
 
+
 def test_regenerate_single_mapping(client: TestClient, qnr_with_questions: int):
     _login(client)
     qnr_id = qnr_with_questions
 
     client.post(f"/api/questionnaires/{qnr_id}/generate-mappings?workspace_id=1")
-    mappings = client.get(f"/api/questionnaires/{qnr_id}/mappings?workspace_id=1").json()["mappings"]
+    mappings = client.get(f"/api/questionnaires/{qnr_id}/mappings?workspace_id=1").json()[
+        "mappings"
+    ]
 
     client.patch(
         f"/api/questionnaires/{qnr_id}/mappings/{mappings[0]['id']}?workspace_id=1",
@@ -299,6 +331,7 @@ def test_regenerate_single_not_found(client: TestClient, qnr_with_questions: int
 
 
 # -- persistence --
+
 
 def test_list_mappings_supporting_evidence_via_control_link(
     client: TestClient,
@@ -344,7 +377,9 @@ def test_list_mappings_supporting_evidence_via_control_link(
     db_session.commit()
     db_session.refresh(ev)
     db_session.add(
-        ControlEvidenceLink(control_id=cid, evidence_id=ev.id, confidence_score=0.91, verified=True),
+        ControlEvidenceLink(
+            control_id=cid, evidence_id=ev.id, confidence_score=0.91, verified=True
+        ),
     )
     db_session.commit()
 
@@ -384,7 +419,9 @@ def test_patch_mapping_preference_subject_areas(client: TestClient, qnr_with_que
     assert r_all.json()["mapping_preferred_subject_areas"] == []
 
 
-def test_patch_mapping_preference_unknown_labels_filtered(client: TestClient, qnr_with_questions: int):
+def test_patch_mapping_preference_unknown_labels_filtered(
+    client: TestClient, qnr_with_questions: int
+):
     _login(client)
     qnr_id = qnr_with_questions
     r = client.patch(
@@ -400,7 +437,9 @@ def test_mappings_persist_after_refresh(client: TestClient, qnr_with_questions: 
     qnr_id = qnr_with_questions
 
     client.post(f"/api/questionnaires/{qnr_id}/generate-mappings?workspace_id=1")
-    mappings = client.get(f"/api/questionnaires/{qnr_id}/mappings?workspace_id=1").json()["mappings"]
+    mappings = client.get(f"/api/questionnaires/{qnr_id}/mappings?workspace_id=1").json()[
+        "mappings"
+    ]
 
     client.patch(
         f"/api/questionnaires/{qnr_id}/mappings/{mappings[0]['id']}?workspace_id=1",
@@ -427,9 +466,13 @@ def test_bulk_generate_does_not_call_maybe_rerank_when_bulk_disabled(
     qnr_id = qnr_with_questions
 
     def _fail(*_a, **_k):
-        raise AssertionError("maybe_rerank should not run for bulk when MAPPING_LLM_RERANK_BULK is 0")
+        raise AssertionError(
+            "maybe_rerank should not run for bulk when MAPPING_LLM_RERANK_BULK is 0"
+        )
 
-    with patch("app.services.compliance_hooks.maybe_rerank_framework_controls_with_llm", side_effect=_fail):
+    with patch(
+        "app.services.compliance_hooks.maybe_rerank_framework_controls_with_llm", side_effect=_fail
+    ):
         r = client.post(f"/api/questionnaires/{qnr_id}/generate-mappings?workspace_id=1")
     assert r.status_code == 200
 
@@ -444,10 +487,14 @@ def test_regenerate_single_passes_skip_llm_rerank_false(
     qnr_id = qnr_with_questions
     from app.services.mapping_llm_classify import classify_and_persist
 
-    with patch("app.api.routes.questionnaires.classify_question_signal", wraps=classify_and_persist) as m_cls:
+    with patch(
+        "app.api.routes.questionnaires.classify_question_signal", wraps=classify_and_persist
+    ) as m_cls:
         client.post(f"/api/questionnaires/{qnr_id}/generate-mappings?workspace_id=1")
         m_cls.reset_mock()
-        mappings = client.get(f"/api/questionnaires/{qnr_id}/mappings?workspace_id=1").json()["mappings"]
+        mappings = client.get(f"/api/questionnaires/{qnr_id}/mappings?workspace_id=1").json()[
+            "mappings"
+        ]
         r = client.post(
             f"/api/questionnaires/{qnr_id}/mappings/{mappings[0]['id']}/regenerate?workspace_id=1",
         )

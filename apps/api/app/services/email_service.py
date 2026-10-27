@@ -29,7 +29,10 @@ class ConsoleEmailProvider:
     """Stub provider that logs to stdout. Use in dev/tests when SMTP_HOST is unset."""
 
     def send(self, message: EmailMessage) -> bool:
-        print(f"[EMAIL] To: {message.to}\nSubject: {message.subject}\n\n{message.body_text}\n", flush=True)
+        print(
+            f"[EMAIL] To: {message.to}\nSubject: {message.subject}\n\n{message.body_text}\n",
+            flush=True,
+        )
         return True
 
 
@@ -81,7 +84,10 @@ class SmtpEmailProvider:
             return True
         except Exception as e:
             print(f"[EMAIL] SMTP send failed ({self.host}:{self.port}): {e}", flush=True)
-            print(f"[EMAIL-FALLBACK] To: {message.to}\nSubject: {message.subject}\n\n{message.body_text}\n", flush=True)
+            print(
+                f"[EMAIL-FALLBACK] To: {message.to}\nSubject: {message.subject}\n\n{message.body_text}\n",
+                flush=True,
+            )
             return False
 
 
@@ -108,7 +114,9 @@ def get_email_provider() -> EmailProvider:
             from_addr=from_addr,
             use_tls=use_tls,
         )
-        print(f"[EMAIL] Provider: SMTP ({host}:{port}, from={from_addr}, tls={use_tls})", flush=True)
+        print(
+            f"[EMAIL] Provider: SMTP ({host}:{port}, from={from_addr}, tls={use_tls})", flush=True
+        )
     else:
         _default_provider = ConsoleEmailProvider()
         print("[EMAIL] Provider: Console (SMTP_HOST not set; emails logged to stdout)", flush=True)
@@ -127,7 +135,7 @@ def send_verification_email(to: str, verify_url: str) -> bool:
         to=to,
         subject="Verify your email - Trust Copilot",
         body_text=f"Click to verify your email: {verify_url}\n\nThis link expires in 24 hours.",
-        body_html=f"<p>Click to verify your email: <a href=\"{verify_url}\">{verify_url}</a></p><p>This link expires in 24 hours.</p>",
+        body_html=f'<p>Click to verify your email: <a href="{verify_url}">{verify_url}</a></p><p>This link expires in 24 hours.</p>',
     )
     return get_email_provider().send(msg)
 
@@ -139,11 +147,11 @@ def send_verification_code_email(to: str, code: str) -> bool:
         subject=f"Your verification code: {code} - Trust Copilot",
         body_text=f"Your Trust Copilot verification code is:\n\n  {code}\n\nEnter this code to verify your email. It expires in 15 minutes.",
         body_html=(
-            f"<div style=\"font-family:sans-serif;max-width:400px;margin:0 auto;\">"
-            f"<h2 style=\"color:#e2e8f0;\">Verify your email</h2>"
-            f"<p style=\"color:#94a3b8;\">Your verification code is:</p>"
-            f"<p style=\"font-size:2rem;letter-spacing:0.15em;font-family:monospace;font-weight:bold;color:#5b7cff;text-align:center;padding:16px 0;\">{code}</p>"
-            f"<p style=\"color:#94a3b8;font-size:0.85rem;\">Enter this code to complete your registration. It expires in 15 minutes.</p>"
+            f'<div style="font-family:sans-serif;max-width:400px;margin:0 auto;">'
+            f'<h2 style="color:#e2e8f0;">Verify your email</h2>'
+            f'<p style="color:#94a3b8;">Your verification code is:</p>'
+            f'<p style="font-size:2rem;letter-spacing:0.15em;font-family:monospace;font-weight:bold;color:#5b7cff;text-align:center;padding:16px 0;">{code}</p>'
+            f'<p style="color:#94a3b8;font-size:0.85rem;">Enter this code to complete your registration. It expires in 15 minutes.</p>'
             f"</div>"
         ),
     )
@@ -156,7 +164,7 @@ def send_password_reset_email(to: str, reset_url: str) -> bool:
         to=to,
         subject="Reset your password - Trust Copilot",
         body_text=f"Click to reset your password: {reset_url}\n\nThis link expires in 1 hour.",
-        body_html=f"<p>Click to reset your password: <a href=\"{reset_url}\">{reset_url}</a></p><p>This link expires in 1 hour.</p>",
+        body_html=f'<p>Click to reset your password: <a href="{reset_url}">{reset_url}</a></p><p>This link expires in 1 hour.</p>',
     )
     return get_email_provider().send(msg)
 
@@ -173,7 +181,7 @@ def send_invite_email(
         to=to,
         subject=f"You're invited to {workspace_name} - Trust Copilot",
         body_text=(
-            f"{inviter_name} invited you to join the workspace \"{workspace_name}\" on Trust Copilot.\n\n"
+            f'{inviter_name} invited you to join the workspace "{workspace_name}" on Trust Copilot.\n\n'
             f"Your verification code:\n  {verification_code}\n\n"
             f"Open this link and enter the email address this invite was sent to plus the code above:\n  {verify_page_url}\n\n"
             f"The code expires when the invite expires (typically 7 days)."
@@ -181,9 +189,9 @@ def send_invite_email(
         body_html=(
             f"<p>{inviter_name} invited you to join <strong>{workspace_name}</strong> on Trust Copilot.</p>"
             f"<p>Your verification code:</p>"
-            f"<p style=\"font-size:1.25rem;letter-spacing:0.05em;font-family:monospace;font-weight:bold;\">{verification_code}</p>"
+            f'<p style="font-size:1.25rem;letter-spacing:0.05em;font-family:monospace;font-weight:bold;">{verification_code}</p>'
             f"<p>Open the link below, then enter your email and this code to continue:</p>"
-            f"<p><a href=\"{verify_page_url}\">{verify_page_url}</a></p>"
+            f'<p><a href="{verify_page_url}">{verify_page_url}</a></p>'
         ),
     )
     return get_email_provider().send(msg)

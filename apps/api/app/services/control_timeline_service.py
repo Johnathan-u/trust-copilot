@@ -5,7 +5,7 @@ evidence links, and user actions for each control.
 """
 
 import logging
-from datetime import datetime, timezone
+from datetime import datetime, timezone  # noqa: F401
 
 from sqlalchemy.orm import Session
 
@@ -24,19 +24,29 @@ def get_control_timeline(
     limit: int = 50,
 ) -> dict:
     """Build a comprehensive timeline for a control combining multiple event sources."""
-    control = db.query(WorkspaceControl).filter(
-        WorkspaceControl.id == control_id,
-        WorkspaceControl.workspace_id == workspace_id,
-    ).first()
+    control = (
+        db.query(WorkspaceControl)
+        .filter(
+            WorkspaceControl.id == control_id,
+            WorkspaceControl.workspace_id == workspace_id,
+        )
+        .first()
+    )
     if not control:
         return {"error": "Control not found"}
 
     events: list[dict] = []
 
-    snapshots = db.query(ControlStateSnapshot).filter(
-        ControlStateSnapshot.workspace_id == workspace_id,
-        ControlStateSnapshot.control_id == control_id,
-    ).order_by(ControlStateSnapshot.created_at.desc()).limit(limit).all()
+    snapshots = (
+        db.query(ControlStateSnapshot)
+        .filter(
+            ControlStateSnapshot.workspace_id == workspace_id,
+            ControlStateSnapshot.control_id == control_id,
+        )
+        .order_by(ControlStateSnapshot.created_at.desc())
+        .limit(limit)
+        .all()
+    )
 
     for s in snapshots:
         event = {
@@ -51,32 +61,43 @@ def get_control_timeline(
         }
         events.append(event)
 
-    evidence_links = db.query(ControlEvidenceLink).filter(
-        ControlEvidenceLink.control_id == control_id,
-    ).all()
+    evidence_links = (
+        db.query(ControlEvidenceLink)
+        .filter(
+            ControlEvidenceLink.control_id == control_id,
+        )
+        .all()
+    )
 
     for link in evidence_links:
         evidence = db.query(EvidenceItem).filter(EvidenceItem.id == link.evidence_id).first()
         if evidence:
-            events.append({
-                "type": "evidence_linked",
-                "timestamp": evidence.created_at.isoformat() if evidence.created_at else None,
-                "evidence_id": evidence.id,
-                "evidence_title": getattr(evidence, "title", None) or getattr(evidence, "source_name", None),
-            })
+            events.append(
+                {
+                    "type": "evidence_linked",
+                    "timestamp": evidence.created_at.isoformat() if evidence.created_at else None,
+                    "evidence_id": evidence.id,
+                    "evidence_title": getattr(evidence, "title", None)
+                    or getattr(evidence, "source_name", None),
+                }
+            )
 
     if control.verified_at:
-        events.append({
-            "type": "verified",
-            "timestamp": control.verified_at.isoformat(),
-            "verified_by_user_id": control.verified_by_user_id,
-        })
+        events.append(
+            {
+                "type": "verified",
+                "timestamp": control.verified_at.isoformat(),
+                "verified_by_user_id": control.verified_by_user_id,
+            }
+        )
 
     if control.last_reviewed_at:
-        events.append({
-            "type": "reviewed",
-            "timestamp": control.last_reviewed_at.isoformat(),
-        })
+        events.append(
+            {
+                "type": "reviewed",
+                "timestamp": control.last_reviewed_at.isoformat(),
+            }
+        )
 
     events.sort(key=lambda e: e.get("timestamp") or "", reverse=True)
 

@@ -18,9 +18,13 @@ class IngestBody(BaseModel):
 
 
 @router.post("/ingest")
-async def ingest(body: IngestBody, session: dict = Depends(require_can_admin), db: Session = Depends(get_db)):
+async def ingest(
+    body: IngestBody, session: dict = Depends(require_can_admin), db: Session = Depends(get_db)
+):
     result = svc.ingest_contract(
-        db, session["workspace_id"], body.title,
+        db,
+        session["workspace_id"],
+        body.title,
         uploaded_by_user_id=session.get("user_id"),
         original_filename=body.original_filename,
         body_text=body.body_text,

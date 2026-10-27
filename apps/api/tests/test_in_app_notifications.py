@@ -1,19 +1,22 @@
 """In-app notification center: API tests for list, unread count, mark read, permissions, isolation."""
 
-import pytest
+import pytest  # noqa: F401
 from fastapi.testclient import TestClient
 
 
 def _login_admin(client: TestClient) -> dict:
     from app.core.database import SessionLocal
     from app.models import WorkspaceMember, User
+
     db = SessionLocal()
     try:
         user = db.query(User).filter(User.email == "demo@trust.local").first()
         uid = user.id
-        mem = db.query(WorkspaceMember).filter(
-            WorkspaceMember.user_id == uid, WorkspaceMember.workspace_id == 1
-        ).first()
+        mem = (
+            db.query(WorkspaceMember)
+            .filter(WorkspaceMember.user_id == uid, WorkspaceMember.workspace_id == 1)
+            .first()
+        )
         if mem.role != "admin":
             mem.role = "admin"
             db.commit()
@@ -24,14 +27,27 @@ def _login_admin(client: TestClient) -> dict:
     return r.json()
 
 
-def _seed_notification(workspace_id=1, user_id=None, title="Test notification", category="info", admin_only=False, is_read=False):
+def _seed_notification(
+    workspace_id=1,
+    user_id=None,
+    title="Test notification",
+    category="info",
+    admin_only=False,
+    is_read=False,
+):
     from app.core.database import SessionLocal
     from app.models import InAppNotification
+
     db = SessionLocal()
     try:
         n = InAppNotification(
-            workspace_id=workspace_id, user_id=user_id, title=title,
-            body="Test body", category=category, admin_only=admin_only, is_read=is_read,
+            workspace_id=workspace_id,
+            user_id=user_id,
+            title=title,
+            body="Test body",
+            category=category,
+            admin_only=admin_only,
+            is_read=is_read,
         )
         db.add(n)
         db.commit()
@@ -44,6 +60,7 @@ def _seed_notification(workspace_id=1, user_id=None, title="Test notification", 
 def _cleanup(workspace_id=1):
     from app.core.database import SessionLocal
     from app.models import InAppNotification
+
     db = SessionLocal()
     try:
         db.query(InAppNotification).filter(InAppNotification.workspace_id == workspace_id).delete()
@@ -55,6 +72,7 @@ def _cleanup(workspace_id=1):
 def _get_admin_user_id():
     from app.core.database import SessionLocal
     from app.models import User
+
     db = SessionLocal()
     try:
         u = db.query(User).filter(User.email == "demo@trust.local").first()
@@ -157,10 +175,15 @@ class TestPermissions:
     def test_admin_only_hidden_from_non_admin(self, client: TestClient) -> None:
         from app.core.database import SessionLocal
         from app.models import WorkspaceMember, User
+
         db = SessionLocal()
         user = db.query(User).filter(User.email == "demo@trust.local").first()
         uid = user.id
-        mem = db.query(WorkspaceMember).filter(WorkspaceMember.user_id == uid, WorkspaceMember.workspace_id == 1).first()
+        mem = (
+            db.query(WorkspaceMember)
+            .filter(WorkspaceMember.user_id == uid, WorkspaceMember.workspace_id == 1)
+            .first()
+        )
         orig = mem.role
         db.close()
         _cleanup()
@@ -168,7 +191,11 @@ class TestPermissions:
         _seed_notification(user_id=uid, title="Public note", admin_only=False)
         # As editor
         db2 = SessionLocal()
-        m2 = db2.query(WorkspaceMember).filter(WorkspaceMember.user_id == uid, WorkspaceMember.workspace_id == 1).first()
+        m2 = (
+            db2.query(WorkspaceMember)
+            .filter(WorkspaceMember.user_id == uid, WorkspaceMember.workspace_id == 1)
+            .first()
+        )
         m2.role = "editor"
         db2.commit()
         db2.close()
@@ -180,7 +207,11 @@ class TestPermissions:
             assert "Admin secret" not in titles
         finally:
             db3 = SessionLocal()
-            m3 = db3.query(WorkspaceMember).filter(WorkspaceMember.user_id == uid, WorkspaceMember.workspace_id == 1).first()
+            m3 = (
+                db3.query(WorkspaceMember)
+                .filter(WorkspaceMember.user_id == uid, WorkspaceMember.workspace_id == 1)
+                .first()
+            )
             m3.role = orig
             db3.commit()
             db3.close()
@@ -191,10 +222,15 @@ class TestPermissions:
         from app.core.database import SessionLocal
         from app.core.password import hash_password
         from app.models import User
+
         db = SessionLocal()
         other = db.query(User).filter(User.email != "demo@trust.local").first()
         if not other:
-            other = User(email="other_notif@test.local", password_hash=hash_password("x"), display_name="Other")
+            other = User(
+                email="other_notif@test.local",
+                password_hash=hash_password("x"),
+                display_name="Other",
+            )
             db.add(other)
             db.commit()
             db.refresh(other)
@@ -225,15 +261,23 @@ class TestFirePoints:
         _cleanup()
         from app.core.database import SessionLocal
         from app.models import Invite, WorkspaceMember
+
         db = SessionLocal()
-        db.query(Invite).filter(Invite.email == "notif_bell@test.local", Invite.workspace_id == 1).delete()
+        db.query(Invite).filter(
+            Invite.email == "notif_bell@test.local", Invite.workspace_id == 1
+        ).delete()
         from app.models import User
+
         u = db.query(User).filter(User.email == "notif_bell@test.local").first()
         if u:
-            db.query(WorkspaceMember).filter(WorkspaceMember.user_id == u.id, WorkspaceMember.workspace_id == 1).delete()
+            db.query(WorkspaceMember).filter(
+                WorkspaceMember.user_id == u.id, WorkspaceMember.workspace_id == 1
+            ).delete()
         db.commit()
         db.close()
-        r = client.post("/api/members/invites", json={"email": "notif_bell@test.local", "role": "editor"})
+        r = client.post(
+            "/api/members/invites", json={"email": "notif_bell@test.local", "role": "editor"}
+        )
         assert r.status_code == 200
         r2 = client.get("/api/in-app-notifications?limit=10")
         titles = [n["title"] for n in r2.json()["notifications"]]
