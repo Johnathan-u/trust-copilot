@@ -27,3 +27,23 @@ See `docs/release/tickets/TC-03-003.md` §Acceptance criteria → evidence. AC1:
 
 ## Not verified here
 Real Docker `HEALTHCHECK` execution in a built image / compose stack (verified by static tests on the Dockerfile and compose files plus the probe CLI end-to-end against a temp heartbeat file). Reviewer sign-off (DoD) is outstanding.
+
+## After merging ci-repair (which includes ci-mechanical), the CI-green head
+
+Merge `02a07e8` (tc/platform/ci-repair 3ee20da into this branch) uses the resolution in
+`TC-03-003-after-ci-repair.diff`: `app/main.py` and `app/worker.py` take this ticket's side, then
+the safe ruff recipe runs. Follow-up `8f444d3` untracks an `apps/web/node_modules` symlink, a
+local tool link, that the merge picked up by accident. Both logs below come from tested SHA `8f444d3`
+and live in `after-ci-repair/`. They were run through a local mirror of the CI `build` job:
+fresh Python 3.11 venv, digest-pinned `pgvector/pgvector:pg16` in a fresh container, a per-run `*_test`
+DB with generated credentials, `TC_REQUIRE_DB=1` and `OPENAI_API_KEY` unset.
+
+| # | Check | Exit | Totals | File |
+|---|---|---|---|---|
+| 7 | `pre-commit run --all-files` | 0 | all hooks Passed, 0 files modified | `after-ci-repair/precommit.txt` |
+| 8 | `ruff check .` (0.5.6) and `alembic upgrade head` | 0 / 0 | All checks passed; migrations OK (pgvector 0.8.7) | `after-ci-repair/ci-local.txt` |
+| 9 | release test `python -m pytest tests/release/test_health_probes.py -q` | 0 | **24 passed** | `after-ci-repair/ci-local.txt` |
+| 10 | full suite `python -m pytest -rs -q`, with nothing ignored or deselected | 0 | **1311 passed, 3 skipped** (seed-data skips only, none about the DB) | `after-ci-repair/ci-local.txt` |
+| 11 | `npm run build` (apps/web) | 0 | Compiled successfully | `after-ci-repair/ci-local.txt` |
+
+Rows 7–11 supersede the pre-existing failures noted in #4–#5: ci-repair fixed the import-time HTTP calls, the real-OpenAI calls and the shared-DB issues.
