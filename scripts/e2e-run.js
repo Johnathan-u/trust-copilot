@@ -11,6 +11,17 @@ const net = require('net');
 const path = require('path');
 
 const REPO_ROOT = path.resolve(__dirname, '..');
+
+// TC-07-001: seed-account passwords are never committed. Generate per-run values (inherited by the
+// seed scripts and Playwright via process.env) unless the caller already exported them.
+const crypto = require('crypto');
+for (const who of ['DEMO', 'ADMIN', 'EDITOR', 'REVIEWER', 'SUSPENDED']) {
+  const key = `TC_SEED_${who}_PASSWORD`;
+  if (!process.env[key]) {
+    process.env[key] = crypto.randomBytes(18).toString('base64url');
+    process.env.TC_SEED_RESET_PASSWORDS = '1'; // local e2e DB: align existing seed users with this run
+  }
+}
 const API_DIR = path.join(REPO_ROOT, 'apps/api');
 const WEB_DIR = path.join(REPO_ROOT, 'apps/web');
 const POSTGRES_PORT = 5432;
