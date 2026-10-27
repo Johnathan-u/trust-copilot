@@ -14,6 +14,7 @@ from app.models.trust_article import TrustArticle
 from app.models.trust_request import TrustRequest
 from app.models.trust_request_note import TrustRequestNote
 from app.models.control import Control
+from app.models.control_contract_event import ControlContractEvent
 from app.models.control_evidence import ControlEvidence
 from app.models.policy_acknowledgment import PolicyAcknowledgment
 from app.models.vendor_request import VendorRequest
@@ -143,6 +144,7 @@ __all__ = [
     "TrustRequest",
     "TrustRequestNote",
     "Control",
+    "ControlContractEvent",
     "ControlEvidence",
     "PolicyAcknowledgment",
     "VendorRequest",
