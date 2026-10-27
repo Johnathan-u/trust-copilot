@@ -5,6 +5,7 @@ from pydantic import BaseModel, Field
 
 from app.core.auth_deps import require_can_edit, require_session
 from app.core.database import get_db
+from app.core.workspace_refs import require_refs
 from app.services import answer_outcome_service as aos
 from sqlalchemy.orm import Session
 
@@ -33,6 +34,16 @@ def record_outcome(
     session: dict = Depends(require_can_edit),
     db: Session = Depends(get_db),
 ):
+    require_refs(
+        db,
+        session["workspace_id"],
+        [
+            ("answer", body.answer_id),
+            ("questionnaire", body.questionnaire_id),
+            ("deal", body.deal_id),
+            ("golden_answer", body.golden_answer_id),
+        ],
+    )
     out = aos.record_outcome(
         db,
         session["workspace_id"],
@@ -54,7 +65,7 @@ def record_outcome(
     if not out:
         raise HTTPException(
             status_code=400,
-            detail="Invalid channel, unknown answer, or answer not in this workspace",
+            detail="Invalid channel",
         )
     db.commit()
     return out
