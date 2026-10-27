@@ -47,7 +47,7 @@ from app.services.cross_workspace_audit import CHECKS, run_audit
 OWN_WS = 1
 OTHER_WS = 2
 ADMIN_EMAIL = "admin-xws-refs@trust.local"
-ADMIN_PASSWORD = "xws-r"
+ADMIN_PASSWORD = "example-synthetic-test-xws-admin-pw"
 API_ROOT = Path(__file__).resolve().parents[2]
 TRIGGER_REVISION = "tc06001_same_workspace_refs"
 
