@@ -5,7 +5,9 @@ from datetime import date
 
 from app.services.trust_scoring import compute_trust_score
 
-BLIND_PATH = r"C:\Users\John\Downloads\trust_scoring_blind_100_pack\trust_scoring_blind_100_cases.json"
+BLIND_PATH = (
+    r"C:\Users\John\Downloads\trust_scoring_blind_100_pack\trust_scoring_blind_100_cases.json"
+)
 AS_OF = date(2026, 3, 23)
 
 
@@ -48,21 +50,23 @@ def _convert(raw):
                 dup = True
             else:
                 seen.add(grp)
-        items.append({
-            "description": ev.get("title", ""),
-            "source_type": _map_source(
-                ev.get("source_type", ""),
-                ev.get("channel", ""),
-                ev.get("confidence_hint", "medium"),
-            ),
-            "recency_days": _recency(ev.get("issued_at")),
-            "relevance": ev.get("relevance", "supporting"),
-            "is_duplicate": dup,
-            "contradicts": "contradiction" in fl,
-            "negative_signal": "expired" in fl and "contradiction" not in fl,
-            "tampering": "tampering" in fl,
-            "inconsistency": "inconsistency" in fl,
-        })
+        items.append(
+            {
+                "description": ev.get("title", ""),
+                "source_type": _map_source(
+                    ev.get("source_type", ""),
+                    ev.get("channel", ""),
+                    ev.get("confidence_hint", "medium"),
+                ),
+                "recency_days": _recency(ev.get("issued_at")),
+                "relevance": ev.get("relevance", "supporting"),
+                "is_duplicate": dup,
+                "contradicts": "contradiction" in fl,
+                "negative_signal": "expired" in fl and "contradiction" not in fl,
+                "tampering": "tampering" in fl,
+                "inconsistency": "inconsistency" in fl,
+            }
+        )
     return items, raw.get("critical_gaps", [])
 
 
@@ -122,11 +126,14 @@ def main():
     for c, r, ev, miss in results:
         diff = r["score"] - c["expected_score"]
         print()
-        print(f"--- {c['case_id']} [{c['scenario_category']}] "
-              f"Entity: {c['profile']['name']} ---")
+        print(
+            f"--- {c['case_id']} [{c['scenario_category']}] " f"Entity: {c['profile']['name']} ---"
+        )
         print(f"  Q: {c['question']}")
-        print(f"  Expected: {c['expected_score']} (band {c['expected_band']})  "
-              f"| Got: {r['score']} (grade {r['grade']})  | Diff: {diff:+d}")
+        print(
+            f"  Expected: {c['expected_score']} (band {c['expected_band']})  "
+            f"| Got: {r['score']} (grade {r['grade']})  | Diff: {diff:+d}"
+        )
         print(f"  Rationale: {'; '.join(c.get('golden_rationale', []))}")
         print(f"  Critical gaps: {miss if miss else 'none'}")
         print(f"  Breakdown: {r['breakdown']}")

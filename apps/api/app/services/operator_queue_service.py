@@ -110,9 +110,19 @@ def update_item(db: Session, item_id: int, **updates) -> dict | None:
     if not item:
         return None
     allowed_fields = {
-        "status", "priority", "title", "description", "assignee",
-        "customer_name", "customer_email", "due_date", "blocked_reason",
-        "internal_notes", "questions_total", "questions_answered", "evidence_gaps",
+        "status",
+        "priority",
+        "title",
+        "description",
+        "assignee",
+        "customer_name",
+        "customer_email",
+        "due_date",
+        "blocked_reason",
+        "internal_notes",
+        "questions_total",
+        "questions_answered",
+        "evidence_gaps",
     }
     for key, value in updates.items():
         if key in allowed_fields:

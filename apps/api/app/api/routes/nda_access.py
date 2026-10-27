@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
-from app.core.auth_deps import require_can_admin, require_session
+from app.core.auth_deps import require_can_admin, require_session  # noqa: F401
 from app.core.database import get_db
 from app.services import nda_access_service as nda
 

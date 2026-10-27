@@ -13,12 +13,18 @@ class AnswerDeliveryOutcome(Base):
     __tablename__ = "answer_delivery_outcomes"
 
     id = Column(Integer, primary_key=True, index=True)
-    workspace_id = Column(Integer, ForeignKey("workspaces.id", ondelete="CASCADE"), nullable=False, index=True)
-    answer_id = Column(Integer, ForeignKey("answers.id", ondelete="CASCADE"), nullable=False, index=True)
+    workspace_id = Column(
+        Integer, ForeignKey("workspaces.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    answer_id = Column(
+        Integer, ForeignKey("answers.id", ondelete="CASCADE"), nullable=False, index=True
+    )
     questionnaire_id = Column(
         Integer, ForeignKey("questionnaires.id", ondelete="SET NULL"), nullable=True, index=True
     )
-    deal_id = Column(Integer, ForeignKey("deals.id", ondelete="SET NULL"), nullable=True, index=True)
+    deal_id = Column(
+        Integer, ForeignKey("deals.id", ondelete="SET NULL"), nullable=True, index=True
+    )
     golden_answer_id = Column(
         Integer, ForeignKey("golden_answers.id", ondelete="SET NULL"), nullable=True, index=True
     )

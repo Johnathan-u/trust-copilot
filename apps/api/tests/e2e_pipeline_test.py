@@ -25,16 +25,19 @@ S = requests.Session()
 
 # ── Helpers ──
 
+
 def section(title):
     print(f"\n{'='*70}")
     print(f"  {title}")
     print(f"{'='*70}")
+
 
 def check(label, ok, detail=""):
     icon = "OK" if ok else "FAIL"
     d = f" — {detail}" if detail else ""
     print(f"  [{icon:>4}] {label}{d}")
     return ok
+
 
 def wait_job(job_id, ws_id, label, timeout=300):
     """Poll job status until completed/failed or timeout."""
@@ -63,11 +66,14 @@ def wait_job(job_id, ws_id, label, timeout=300):
     print(f"       TIMEOUT after {timeout}s")
     return None
 
+
 # ── Create mock XLSX questionnaire ──
+
 
 def create_mock_questionnaire_xlsx():
     """Create a minimal XLSX questionnaire in memory."""
     from openpyxl import Workbook
+
     wb = Workbook()
     ws = wb.active
     ws.title = "Questions"
@@ -91,11 +97,14 @@ def create_mock_questionnaire_xlsx():
     buf.seek(0)
     return buf
 
+
 # ── Create mock evidence document ──
+
 
 def create_mock_evidence_docx():
     """Create a minimal DOCX evidence document in memory."""
     from docx import Document
+
     doc = Document()
     doc.add_heading("E2E Test — Security Policy Summary", level=1)
     doc.add_paragraph(
@@ -142,11 +151,12 @@ def create_mock_evidence_docx():
 
 # ── Main test flow ──
 
+
 def main():
-    print("\n" + "="*70)
+    print("\n" + "=" * 70)
     print("  TRUST COPILOT — END-TO-END PIPELINE TEST")
     print("  Push mock data through the full AI pipeline")
-    print("="*70)
+    print("=" * 70)
 
     # ── Login ──
     section("1. AUTHENTICATION")
@@ -191,7 +201,13 @@ def main():
         r = S.post(
             f"{BASE}/api/documents/upload",
             data={"workspace_id": ws_id},
-            files={"file": ("e2e_security_policy.docx", evidence_buf, "application/vnd.openxmlformats-officedocument.wordprocessingml.document")},
+            files={
+                "file": (
+                    "e2e_security_policy.docx",
+                    evidence_buf,
+                    "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                )
+            },
         )
         if r.status_code in (200, 201):
             doc_data = r.json()
@@ -225,7 +241,13 @@ def main():
         r = S.post(
             f"{BASE}/api/questionnaires/upload",
             data={"workspace_id": ws_id},
-            files={"file": ("e2e_test_questionnaire.xlsx", qnr_buf, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")},
+            files={
+                "file": (
+                    "e2e_test_questionnaire.xlsx",
+                    qnr_buf,
+                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                )
+            },
         )
         if r.status_code in (200, 201):
             qnr_data = r.json()
@@ -282,7 +304,11 @@ def main():
                         result_data = {}
                 generated = result_data.get("generated", result_data.get("count", "?"))
                 total = result_data.get("total", "?")
-                check("Answers generated", status == "completed", f"generated={generated}, total={total}")
+                check(
+                    "Answers generated",
+                    status == "completed",
+                    f"generated={generated}, total={total}",
+                )
             else:
                 check("Answers generated", False, "timeout")
     else:
@@ -311,7 +337,14 @@ def main():
 
     print(f"  {'Metric':<25} {'Before':<15} {'After':<15} {'Change'}")
     print(f"  {'-'*70}")
-    for key in ["total_questions", "total_drafted", "total_insufficient", "coverage_pct", "insufficient_pct", "blind_spot_count"]:
+    for key in [
+        "total_questions",
+        "total_drafted",
+        "total_insufficient",
+        "coverage_pct",
+        "insufficient_pct",
+        "blind_spot_count",
+    ]:
         before_val = baseline_kpi.get(key, 0) or 0
         after_val = after_kpi.get(key, 0) or 0
         if isinstance(before_val, float):
@@ -320,12 +353,15 @@ def main():
             delta = f"{after_val - before_val:+d}" if isinstance(after_val, int) else f"{after_val}"
         print(f"  {key:<25} {str(before_val):<15} {str(after_val):<15} {delta}")
 
-    check("Coverage KPIs updated", after_kpi.get("total_questions", 0) >= baseline_kpi.get("total_questions", 0))
+    check(
+        "Coverage KPIs updated",
+        after_kpi.get("total_questions", 0) >= baseline_kpi.get("total_questions", 0),
+    )
 
     # ── Framework coverage detail ──
     fw_cov = after_coverage.get("framework_coverage", [])
     if fw_cov:
-        print(f"\n  Framework coverage:")
+        print("\n  Framework coverage:")
         for f in fw_cov:
             print(f"    {f['framework']:<20} {f['drafted']}/{f['total']} ({f['coverage_pct']}%)")
 
@@ -334,7 +370,9 @@ def main():
     if blind:
         print(f"\n  Blind spots ({len(blind)}):")
         for b in blind[:5]:
-            print(f"    {b['subject']:<30} {b['insufficient_count']} insufficient / {b['total']} total")
+            print(
+                f"    {b['subject']:<30} {b['insufficient_count']} insufficient / {b['total']} total"
+            )
 
     # ── In-app notifications after generation ──
     section("10. POST-GENERATION — NOTIFICATIONS")
@@ -342,7 +380,11 @@ def main():
     unread_before = baseline_unread.get("count", 0)
     unread_after = after_unread.get("count", 0)
     new_notifs = unread_after - unread_before
-    check("New notifications created", new_notifs > 0, f"before={unread_before}, after={unread_after}, new={new_notifs}")
+    check(
+        "New notifications created",
+        new_notifs > 0,
+        f"before={unread_before}, after={unread_after}, new={new_notifs}",
+    )
 
     after_notifs = S.get(f"{BASE}/api/in-app-notifications?limit=10").json()
     recent = after_notifs.get("notifications", [])
@@ -361,19 +403,31 @@ def main():
     if r.status_code == 200:
         log_data = r.json()
         entries = log_data.get("entries", [])
-        compliance_entries = [e for e in entries if e.get("event_type", "").startswith("compliance.")]
-        check("Compliance events in delivery log", len(compliance_entries) > 0, f"{len(compliance_entries)} compliance events")
+        compliance_entries = [
+            e for e in entries if e.get("event_type", "").startswith("compliance.")
+        ]
+        check(
+            "Compliance events in delivery log",
+            len(compliance_entries) > 0,
+            f"{len(compliance_entries)} compliance events",
+        )
         if compliance_entries:
-            print(f"\n  Compliance delivery log entries:")
+            print("\n  Compliance delivery log entries:")
             for e in compliance_entries[:5]:
-                print(f"    [{e.get('status')}] {e.get('event_type')} -> {e.get('channel', 'email')} ({e.get('recipient_email', '?')})")
+                print(
+                    f"    [{e.get('status')}] {e.get('event_type')} -> {e.get('channel', 'email')} ({e.get('recipient_email', '?')})"
+                )
                 if e.get("subject"):
                     print(f"            Subject: {e['subject'][:100]}")
-        system_entries = [e for e in entries if not e.get("event_type", "").startswith("compliance.")]
+        system_entries = [
+            e for e in entries if not e.get("event_type", "").startswith("compliance.")
+        ]
         if system_entries:
             print(f"\n  Other delivery log entries ({len(system_entries)}):")
             for e in system_entries[:5]:
-                print(f"    [{e.get('status')}] {e.get('event_type')} -> {e.get('channel', 'email')}")
+                print(
+                    f"    [{e.get('status')}] {e.get('event_type')} -> {e.get('channel', 'email')}"
+                )
     elif r.status_code == 403:
         check("Notification log", False, "403 — admin only, cannot inspect with demo user")
     else:
@@ -407,17 +461,21 @@ def main():
         print(f"  Insufficient:       {perf.get('insufficient')}")
         print(f"  Avg confidence:     {perf.get('avg_confidence')}")
         cdist = perf.get("confidence_distribution", {})
-        print(f"  Confidence dist:    high={cdist.get('high')}, med={cdist.get('medium')}, low={cdist.get('low')}, none={cdist.get('none')}")
+        print(
+            f"  Confidence dist:    high={cdist.get('high')}, med={cdist.get('medium')}, low={cdist.get('low')}, none={cdist.get('none')}"
+        )
 
         weak = ins.get("weak_subjects", [])
         if weak:
-            print(f"\n  Weakest subjects:")
+            print("\n  Weakest subjects:")
             for w in weak[:5]:
-                print(f"    {w['subject']:<30} avg_conf={w['avg_confidence']}%, count={w['count']}, insufficient={w['insufficient']}")
+                print(
+                    f"    {w['subject']:<30} avg_conf={w['avg_confidence']}%, count={w['count']}, insufficient={w['insufficient']}"
+                )
 
         failures = ins.get("failure_reasons", [])
         if failures:
-            print(f"\n  Failure reasons:")
+            print("\n  Failure reasons:")
             for f in failures:
                 print(f"    {f.get('label', f.get('reason', '?')):<40} count={f['count']}")
 
@@ -453,7 +511,7 @@ def main():
         print(f"  With citations: {with_citations}")
 
         # Show first 3 Q&A pairs
-        print(f"\n  Sample answers:")
+        print("\n  Sample answers:")
         shown = 0
         for q in questions:
             ans = q.get("answer")
@@ -468,7 +526,11 @@ def main():
             cit_count = 0
             if ans.get("citations"):
                 try:
-                    cits = json.loads(ans["citations"]) if isinstance(ans["citations"], str) else ans["citations"]
+                    cits = (
+                        json.loads(ans["citations"])
+                        if isinstance(ans["citations"], str)
+                        else ans["citations"]
+                    )
                     cit_count = len(cits) if isinstance(cits, list) else 0
                 except Exception:
                     pass

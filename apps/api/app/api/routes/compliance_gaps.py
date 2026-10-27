@@ -38,12 +38,18 @@ def _truncate_question_text(text: str | None, max_len: int = _QUESTION_TEXT_PREV
     return t[: max_len - 1] + "…"
 
 
-def _control_display_fields(db: Session, wc: WorkspaceControl) -> tuple[str | None, str | None, str | None]:
+def _control_display_fields(
+    db: Session, wc: WorkspaceControl
+) -> tuple[str | None, str | None, str | None]:
     framework_name = None
     control_key = None
     title = wc.custom_name or None
     if wc.framework_control_id:
-        fc = db.query(FrameworkControl).filter(FrameworkControl.id == wc.framework_control_id).first()
+        fc = (
+            db.query(FrameworkControl)
+            .filter(FrameworkControl.id == wc.framework_control_id)
+            .first()
+        )
         if fc:
             control_key = fc.control_key
             title = title or fc.title
@@ -59,11 +65,7 @@ def global_gaps_list(
     low_confidence_threshold: float,
 ) -> list[dict]:
     """Workspace-wide control gaps (no / low-confidence evidence)."""
-    rows = (
-        db.query(WorkspaceControl)
-        .filter(WorkspaceControl.workspace_id == workspace_id)
-        .all()
-    )
+    rows = db.query(WorkspaceControl).filter(WorkspaceControl.workspace_id == workspace_id).all()
 
     out = []
     for wc in rows:
@@ -71,8 +73,7 @@ def global_gaps_list(
             db.query(
                 func.count(ControlEvidenceLink.id),
                 func.max(ControlEvidenceLink.confidence_score),
-            )
-            .filter(ControlEvidenceLink.control_id == wc.id)
+            ).filter(ControlEvidenceLink.control_id == wc.id)
         ).first()
         evidence_count = link_stats[0] or 0
         max_conf = link_stats[1]
@@ -88,15 +89,17 @@ def global_gaps_list(
 
         control_key, title, framework_name = _control_display_fields(db, wc)
 
-        out.append({
-            "control_id": wc.id,
-            "control_key": control_key,
-            "name": title,
-            "framework": framework_name,
-            "evidence_count": evidence_count,
-            "max_confidence": round(max_conf, 4) if max_conf is not None else None,
-            "gap_reason": gap_reason,
-        })
+        out.append(
+            {
+                "control_id": wc.id,
+                "control_key": control_key,
+                "name": title,
+                "framework": framework_name,
+                "evidence_count": evidence_count,
+                "max_confidence": round(max_conf, 4) if max_conf is not None else None,
+                "gap_reason": gap_reason,
+            }
+        )
 
     return out
 
@@ -141,7 +144,9 @@ def questionnaire_evidence_gaps_list(db: Session, workspace_id: int) -> list[dic
     question_ids = {m.question_id for m in mappings if m.question_id is not None}
     qnr_by_id: dict[int, Questionnaire] = {}
     if qnr_ids:
-        qnr_by_id = {q.id: q for q in db.query(Questionnaire).filter(Questionnaire.id.in_(qnr_ids)).all()}
+        qnr_by_id = {
+            q.id: q for q in db.query(Questionnaire).filter(Questionnaire.id.in_(qnr_ids)).all()
+        }
     q_by_id: dict[int, Question] = {}
     if question_ids:
         q_by_id = {q.id: q for q in db.query(Question).filter(Question.id.in_(question_ids)).all()}
@@ -178,22 +183,26 @@ def questionnaire_evidence_gaps_list(db: Session, workspace_id: int) -> list[dic
                 qtitle = "Questionnaire"
             qrow = q_by_id.get(m.question_id) if m.question_id else None
             qtext = qrow.text if qrow else m.normalized_question_text
-            refs.append({
-                "questionnaire_id": m.questionnaire_id,
-                "questionnaire_title": qtitle,
-                "question_id": m.question_id,
-                "question_text_preview": _truncate_question_text(qtext),
-            })
+            refs.append(
+                {
+                    "questionnaire_id": m.questionnaire_id,
+                    "questionnaire_title": qtitle,
+                    "question_id": m.question_id,
+                    "question_text_preview": _truncate_question_text(qtext),
+                }
+            )
 
-        out.append({
-            "gap_kind": "questionnaire_mapping_no_evidence",
-            "control_id": wc.id,
-            "control_key": control_key,
-            "name": title,
-            "framework": framework_name,
-            "evidence_link_count": 0,
-            "questionnaire_refs": refs,
-        })
+        out.append(
+            {
+                "gap_kind": "questionnaire_mapping_no_evidence",
+                "control_id": wc.id,
+                "control_key": control_key,
+                "name": title,
+                "framework": framework_name,
+                "evidence_link_count": 0,
+                "questionnaire_refs": refs,
+            }
+        )
 
     out.sort(key=lambda r: ((r.get("control_key") or ""), r.get("control_id") or 0))
     return out
@@ -247,7 +256,14 @@ def scan_and_notify_gaps(
             no_ev = sum(1 for g in gaps if g["gap_reason"] == "no_evidence")
             low_conf = sum(1 for g in gaps if g["gap_reason"] == "low_confidence")
             body = f"{no_ev} control(s) missing evidence, {low_conf} with low confidence."
-            notify_admins(db, ws, f"{len(gaps)} compliance gap(s) detected", body, category="warning", link="/dashboard/compliance-gaps")
+            notify_admins(
+                db,
+                ws,
+                f"{len(gaps)} compliance gap(s) detected",
+                body,
+                category="warning",
+                link="/dashboard/compliance-gaps",
+            )
             _last_gap_notify[ws] = now
         except Exception:
             pass

@@ -23,9 +23,23 @@ def upgrade() -> None:
     op.create_table(
         "operator_queue_items",
         sa.Column("id", sa.Integer(), primary_key=True, autoincrement=True),
-        sa.Column("workspace_id", sa.Integer(), sa.ForeignKey("workspaces.id", ondelete="CASCADE"), nullable=False, index=True),
-        sa.Column("questionnaire_id", sa.Integer(), sa.ForeignKey("questionnaires.id", ondelete="SET NULL"), nullable=True, index=True),
-        sa.Column("item_type", sa.String(32), nullable=False, server_default="questionnaire", index=True),
+        sa.Column(
+            "workspace_id",
+            sa.Integer(),
+            sa.ForeignKey("workspaces.id", ondelete="CASCADE"),
+            nullable=False,
+            index=True,
+        ),
+        sa.Column(
+            "questionnaire_id",
+            sa.Integer(),
+            sa.ForeignKey("questionnaires.id", ondelete="SET NULL"),
+            nullable=True,
+            index=True,
+        ),
+        sa.Column(
+            "item_type", sa.String(32), nullable=False, server_default="questionnaire", index=True
+        ),
         sa.Column("status", sa.String(32), nullable=False, server_default="received", index=True),
         sa.Column("priority", sa.String(16), nullable=False, server_default="normal"),
         sa.Column("title", sa.String(512), nullable=False),

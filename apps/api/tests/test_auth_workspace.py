@@ -1,6 +1,6 @@
 """TEST-01: Auth and workspace isolation integration tests."""
 
-import pytest
+import pytest  # noqa: F401
 from fastapi.testclient import TestClient
 
 

@@ -17,15 +17,19 @@ depends_on = None
 
 
 def _backfill_table(conn, table_name: str, prefix: str) -> None:
-    rows = conn.execute(
-        sa.text(
-            f"""
+    rows = (
+        conn.execute(
+            sa.text(
+                f"""
             SELECT id, created_at, updated_at, frameworks_json, subject_areas_json
             FROM {table_name}
             ORDER BY id
             """
+            )
         )
-    ).mappings().all()
+        .mappings()
+        .all()
+    )
     for row in rows:
         created_at = row["created_at"] or row["updated_at"] or datetime.now(timezone.utc)
         frameworks = row["frameworks_json"] or json.dumps(["Other"])
@@ -53,16 +57,20 @@ def _backfill_table(conn, table_name: str, prefix: str) -> None:
 
 
 def _backfill_documents_from_tags(conn) -> None:
-    doc_rows = conn.execute(
-        sa.text(
-            """
+    doc_rows = (
+        conn.execute(
+            sa.text(
+                """
             SELECT dt.document_id, t.category, t.label
             FROM document_tags dt
             JOIN tags t ON t.id = dt.tag_id
             WHERE t.category IN ('framework', 'topic')
             """
+            )
         )
-    ).mappings().all()
+        .mappings()
+        .all()
+    )
     by_doc: dict[int, dict[str, list[str]]] = {}
     for row in doc_rows:
         doc_id = int(row["document_id"])
@@ -96,7 +104,14 @@ def upgrade() -> None:
     op.add_column("documents", sa.Column("subject_areas_json", sa.Text(), nullable=True))
     op.add_column("documents", sa.Column("deleted_at", sa.DateTime(), nullable=True))
     op.add_column("documents", sa.Column("deleted_by", sa.Integer(), nullable=True))
-    op.create_foreign_key("fk_documents_deleted_by_users", "documents", "users", ["deleted_by"], ["id"], ondelete="SET NULL")
+    op.create_foreign_key(
+        "fk_documents_deleted_by_users",
+        "documents",
+        "users",
+        ["deleted_by"],
+        ["id"],
+        ondelete="SET NULL",
+    )
     op.create_index("ix_documents_display_id", "documents", ["display_id"], unique=True)
     op.create_index("ix_documents_created_at", "documents", ["created_at"], unique=False)
     op.create_index("ix_documents_status", "documents", ["status"], unique=False)
@@ -107,11 +122,20 @@ def upgrade() -> None:
     op.add_column("trust_requests", sa.Column("subject_areas_json", sa.Text(), nullable=True))
     op.add_column("trust_requests", sa.Column("deleted_at", sa.DateTime(), nullable=True))
     op.add_column("trust_requests", sa.Column("deleted_by", sa.Integer(), nullable=True))
-    op.create_foreign_key("fk_trust_requests_deleted_by_users", "trust_requests", "users", ["deleted_by"], ["id"], ondelete="SET NULL")
+    op.create_foreign_key(
+        "fk_trust_requests_deleted_by_users",
+        "trust_requests",
+        "users",
+        ["deleted_by"],
+        ["id"],
+        ondelete="SET NULL",
+    )
     op.create_index("ix_trust_requests_display_id", "trust_requests", ["display_id"], unique=True)
     op.create_index("ix_trust_requests_created_at", "trust_requests", ["created_at"], unique=False)
     # ix_trust_requests_status already exists from 008; use if_not_exists for idempotency
-    op.create_index("ix_trust_requests_status", "trust_requests", ["status"], unique=False, if_not_exists=True)
+    op.create_index(
+        "ix_trust_requests_status", "trust_requests", ["status"], unique=False, if_not_exists=True
+    )
     op.create_index("ix_trust_requests_deleted_at", "trust_requests", ["deleted_at"], unique=False)
 
     op.add_column("questionnaires", sa.Column("display_id", sa.String(length=32), nullable=True))
@@ -119,7 +143,14 @@ def upgrade() -> None:
     op.add_column("questionnaires", sa.Column("subject_areas_json", sa.Text(), nullable=True))
     op.add_column("questionnaires", sa.Column("deleted_at", sa.DateTime(), nullable=True))
     op.add_column("questionnaires", sa.Column("deleted_by", sa.Integer(), nullable=True))
-    op.create_foreign_key("fk_questionnaires_deleted_by_users", "questionnaires", "users", ["deleted_by"], ["id"], ondelete="SET NULL")
+    op.create_foreign_key(
+        "fk_questionnaires_deleted_by_users",
+        "questionnaires",
+        "users",
+        ["deleted_by"],
+        ["id"],
+        ondelete="SET NULL",
+    )
     op.create_index("ix_questionnaires_display_id", "questionnaires", ["display_id"], unique=True)
     op.create_index("ix_questionnaires_created_at", "questionnaires", ["created_at"], unique=False)
     op.create_index("ix_questionnaires_status", "questionnaires", ["status"], unique=False)

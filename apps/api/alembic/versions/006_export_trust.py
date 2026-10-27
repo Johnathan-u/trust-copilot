@@ -5,6 +5,7 @@ Revises: 005
 Create Date: 2025-01-01 00:05:00
 
 """
+
 from alembic import op
 import sqlalchemy as sa
 
@@ -18,8 +19,18 @@ def upgrade() -> None:
     op.create_table(
         "export_records",
         sa.Column("id", sa.Integer(), primary_key=True, autoincrement=True),
-        sa.Column("workspace_id", sa.Integer(), sa.ForeignKey("workspaces.id", ondelete="CASCADE"), nullable=False),
-        sa.Column("questionnaire_id", sa.Integer(), sa.ForeignKey("questionnaires.id", ondelete="SET NULL"), nullable=True),
+        sa.Column(
+            "workspace_id",
+            sa.Integer(),
+            sa.ForeignKey("workspaces.id", ondelete="CASCADE"),
+            nullable=False,
+        ),
+        sa.Column(
+            "questionnaire_id",
+            sa.Integer(),
+            sa.ForeignKey("questionnaires.id", ondelete="SET NULL"),
+            nullable=True,
+        ),
         sa.Column("storage_key", sa.String(512), nullable=False),
         sa.Column("filename", sa.String(255), nullable=False),
         sa.Column("status", sa.String(32), server_default="completed"),
@@ -30,7 +41,12 @@ def upgrade() -> None:
     op.create_table(
         "trust_articles",
         sa.Column("id", sa.Integer(), primary_key=True, autoincrement=True),
-        sa.Column("workspace_id", sa.Integer(), sa.ForeignKey("workspaces.id", ondelete="CASCADE"), nullable=True),
+        sa.Column(
+            "workspace_id",
+            sa.Integer(),
+            sa.ForeignKey("workspaces.id", ondelete="CASCADE"),
+            nullable=True,
+        ),
         sa.Column("slug", sa.String(128), nullable=False),
         sa.Column("title", sa.String(255), nullable=False),
         sa.Column("content", sa.Text(), nullable=True),

@@ -8,6 +8,7 @@ Run from apps/api:
 
 Also invoked from scripts.seed_demo_workspace after questionnaire/documents seed.
 """
+
 from __future__ import annotations
 
 import argparse
@@ -18,16 +19,16 @@ API_ROOT = Path(__file__).resolve().parent.parent
 if str(API_ROOT) not in sys.path:
     sys.path.insert(0, str(API_ROOT))
 
-from dotenv import load_dotenv
+from dotenv import load_dotenv  # noqa: E402
 
 load_dotenv(API_ROOT / ".env")
 
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session  # noqa: E402
 
-from app.core.database import SessionLocal
-from app.models import Framework, FrameworkControl, Workspace, WorkspaceControl
+from app.core.database import SessionLocal  # noqa: E402
+from app.models import Framework, FrameworkControl, Workspace, WorkspaceControl  # noqa: E402
 
-from scripts.dev_compliance_catalog import DEV_COMPLIANCE_CATALOG
+from scripts.dev_compliance_catalog import DEV_COMPLIANCE_CATALOG  # noqa: E402
 
 
 def _normalize_framework_key(name: str) -> str:

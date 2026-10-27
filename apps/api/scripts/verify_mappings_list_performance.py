@@ -7,6 +7,7 @@ Run from apps/api with DATABASE_URL and a valid session cookie, or from Docker:
 
 Uses GET /mappings?include_suggested_evidence=false (default) and reports response time + row count.
 """
+
 from __future__ import annotations
 
 import argparse
@@ -18,14 +19,14 @@ API_ROOT = Path(__file__).resolve().parent.parent
 if str(API_ROOT) not in sys.path:
     sys.path.insert(0, str(API_ROOT))
 
-from dotenv import load_dotenv
+from dotenv import load_dotenv  # noqa: E402
 
 load_dotenv(API_ROOT / ".env")
 
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session  # noqa: E402
 
-from app.core.database import SessionLocal
-from app.models import Question, Questionnaire
+from app.core.database import SessionLocal  # noqa: E402
+from app.models import Question, Questionnaire  # noqa: E402
 
 
 def main() -> None:
@@ -48,11 +49,7 @@ def main() -> None:
         if not qnr:
             print(f"No questionnaire id={args.questionnaire_id} in workspace {args.workspace_id}")
             sys.exit(1)
-        nq = (
-            db.query(Question)
-            .filter(Question.questionnaire_id == args.questionnaire_id)
-            .count()
-        )
+        nq = db.query(Question).filter(Question.questionnaire_id == args.questionnaire_id).count()
         print(f"Questionnaire {args.questionnaire_id}: ~{nq} questions (approx)")
     finally:
         db.close()
@@ -72,9 +69,13 @@ def main() -> None:
         )
         elapsed = time.perf_counter() - t0
         n = len(out.get("mappings", []))
-        print(f"list_questionnaire_mappings(include_suggested_evidence=False): {elapsed:.3f}s, {n} mapping rows")
+        print(
+            f"list_questionnaire_mappings(include_suggested_evidence=False): {elapsed:.3f}s, {n} mapping rows"
+        )
         if elapsed > 30:
-            print("WARNING: still slow; check DB size, match_keywords, or supporting_evidence batch.")
+            print(
+                "WARNING: still slow; check DB size, match_keywords, or supporting_evidence batch."
+            )
     finally:
         db2.close()
 

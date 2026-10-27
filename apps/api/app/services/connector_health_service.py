@@ -9,25 +9,31 @@ from app.models.source_registry import SourceRegistry
 
 def get_connector_health(db: Session, workspace_id: int) -> dict:
     """Get comprehensive health status for all connectors in a workspace."""
-    sources = db.query(SourceRegistry).filter(
-        SourceRegistry.workspace_id == workspace_id,
-        SourceRegistry.enabled.is_(True),
-    ).all()
+    sources = (
+        db.query(SourceRegistry)
+        .filter(
+            SourceRegistry.workspace_id == workspace_id,
+            SourceRegistry.enabled.is_(True),
+        )
+        .all()
+    )
 
     connectors = []
     for s in sources:
         health = _assess_health(s)
-        connectors.append({
-            "source_type": s.source_type,
-            "display_name": s.display_name,
-            "status": health["status"],
-            "health_score": health["score"],
-            "last_sync_at": s.last_sync_at.isoformat() if s.last_sync_at else None,
-            "last_sync_status": s.last_sync_status,
-            "last_error": s.last_error,
-            "sync_cadence": s.sync_cadence,
-            "issues": health["issues"],
-        })
+        connectors.append(
+            {
+                "source_type": s.source_type,
+                "display_name": s.display_name,
+                "status": health["status"],
+                "health_score": health["score"],
+                "last_sync_at": s.last_sync_at.isoformat() if s.last_sync_at else None,
+                "last_sync_status": s.last_sync_status,
+                "last_error": s.last_error,
+                "sync_cadence": s.sync_cadence,
+                "issues": health["issues"],
+            }
+        )
 
     healthy = sum(1 for c in connectors if c["status"] == "healthy")
     degraded = sum(1 for c in connectors if c["status"] == "degraded")
@@ -64,6 +70,7 @@ def _assess_health(source: SourceRegistry) -> dict:
     last_sync = source.last_sync_at
     if last_sync.tzinfo is None:
         from datetime import timezone as tz
+
         last_sync = last_sync.replace(tzinfo=tz.utc)
 
     if source.last_sync_status == "failed":

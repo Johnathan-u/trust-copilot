@@ -4,15 +4,31 @@ import json
 from unittest.mock import MagicMock, patch
 
 import pytest
-from sqlalchemy import text
+from sqlalchemy import text  # noqa: F401
 from sqlalchemy.orm import Session
 
 from app.core.corpus_version import bump_corpus_version, get_corpus_version
-from app.services.answer_cache import get as answer_cache_get, set as answer_cache_set, invalidate_workspace as answer_cache_invalidate
-from app.services.retrieval_cache import get as retrieval_cache_get, set as retrieval_cache_set, invalidate_workspace as retrieval_cache_invalidate
-from app.services.question_normalizer import normalize_question, question_cache_hash, evidence_fingerprint_hash
-from app.services.evidence_processor import process_evidence, compress_to_token_budget, deduplicate_by_chunk_id
-from app.services.batch_assembler import assemble_batches, estimate_tokens
+from app.services.answer_cache import (
+    get as answer_cache_get,
+    set as answer_cache_set,
+    invalidate_workspace as answer_cache_invalidate,
+)
+from app.services.retrieval_cache import (
+    get as retrieval_cache_get,
+    set as retrieval_cache_set,
+    invalidate_workspace as retrieval_cache_invalidate,
+)
+from app.services.question_normalizer import (
+    normalize_question,
+    question_cache_hash,
+    evidence_fingerprint_hash,
+)
+from app.services.evidence_processor import (
+    process_evidence,
+    compress_to_token_budget,
+    deduplicate_by_chunk_id,
+)
+from app.services.batch_assembler import assemble_batches, estimate_tokens  # noqa: F401
 
 
 def test_normalize_question():
@@ -44,8 +60,9 @@ def test_evidence_processor_dedup_and_compress():
 
 def test_batch_assembler():
     class Q:
-        def __init__(self, text):
+        def __init__(self, text):  # noqa: F811
             self.text = text
+
     questions = [Q("short"), Q("x" * 500), Q("y" * 500)]
     batches = assemble_batches(questions, evidence_token_estimate=500, max_total_tokens=2000)
     assert len(batches) >= 1
@@ -60,7 +77,9 @@ def test_answer_cache_get_set(db_session: Session):
     style = "balanced"
     efp = evidence_fingerprint_hash([1, 2])
     try:
-        answer_cache_set(db, workspace_id, q_hash, style, efp, "Cached answer", [{"chunk_id": 1}], 80)
+        answer_cache_set(
+            db, workspace_id, q_hash, style, efp, "Cached answer", [{"chunk_id": 1}], 80
+        )
     except Exception as e:
         if "does not exist" in str(e) or "UndefinedTable" in str(type(e).__name__):
             pytest.skip("answer_cache table not present (run migration 028)")
@@ -81,7 +100,9 @@ def test_retrieval_cache_and_corpus_version(db_session: Session):
     workspace_id = 1
     q_hash = question_cache_hash("retrieval test")
     version = get_corpus_version(db, workspace_id)
-    retrieval_cache_set(db, workspace_id, q_hash, version, [{"id": 1, "text": "chunk", "score": 0.9}])
+    retrieval_cache_set(
+        db, workspace_id, q_hash, version, [{"id": 1, "text": "chunk", "score": 0.9}]
+    )
     out = retrieval_cache_get(db, workspace_id, q_hash)
     assert out is not None
     assert len(out) == 1
@@ -100,6 +121,7 @@ def test_partial_completion_progress(db_session: Session, synthetic_openai_key):
     """Job.result gets updated with generated/total during run (integration: generate_answers with job)."""
     from app.models import Job, JobStatus, Questionnaire, Question, Workspace
     from app.services.answer_generation import generate_answers_for_questionnaire
+
     db = db_session
     ws = db.query(Workspace).first()
     if not ws:
@@ -127,12 +149,12 @@ def test_partial_completion_progress(db_session: Session, synthetic_openai_key):
         mock_chat.completions.create.return_value = MagicMock(
             choices=[MagicMock(message=MagicMock(content="Test answer based on evidence."))]
         )
-        with patch("app.services.answer_generation.embed_texts", return_value=[[0.0] * 1536] * 10), \
-             patch("app.services.answer_generation.get_corpus_version", return_value="v1"), \
-             patch("openai.OpenAI", return_value=mock_chat):
-            count = generate_answers_for_questionnaire(
-                db, qnr.id, ws.id, job=job
-            )
+        with (
+            patch("app.services.answer_generation.embed_texts", return_value=[[0.0] * 1536] * 10),
+            patch("app.services.answer_generation.get_corpus_version", return_value="v1"),
+            patch("openai.OpenAI", return_value=mock_chat),
+        ):
+            count = generate_answers_for_questionnaire(db, qnr.id, ws.id, job=job)  # noqa: F841
         if job.result:
             data = json.loads(job.result)
             assert "generated" in data or "count" in data

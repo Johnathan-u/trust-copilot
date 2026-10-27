@@ -21,7 +21,11 @@ async def connectors(session: dict = Depends(require_session), db: Session = Dep
 
 
 @router.get("/stale-evidence")
-async def stale(staleness_days: int = Query(90, ge=1), session: dict = Depends(require_session), db: Session = Depends(get_db)):
+async def stale(
+    staleness_days: int = Query(90, ge=1),
+    session: dict = Depends(require_session),
+    db: Session = Depends(get_db),
+):
     return {"alerts": svc.check_stale_evidence_alerts(db, session["workspace_id"], staleness_days)}
 
 

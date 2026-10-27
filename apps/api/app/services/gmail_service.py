@@ -5,7 +5,7 @@ import logging
 import time
 from typing import Protocol
 
-from app.services.slack_service import encrypt_token, decrypt_token  # reuse Fernet
+from app.services.slack_service import encrypt_token, decrypt_token  # reuse Fernet  # noqa: F401
 
 logger = logging.getLogger(__name__)
 
@@ -58,12 +58,21 @@ class ConsoleGmailProvider:
             "snippet": "Please review the updated access control policy attached to this email.",
             "body": "Please review the updated access control policy.",
             "attachments": [
-                {"id": f"att_{message_id}_1", "filename": "access_control_policy_v3.pdf", "mime_type": "application/pdf", "size": 245000},
+                {
+                    "id": f"att_{message_id}_1",
+                    "filename": "access_control_policy_v3.pdf",
+                    "mime_type": "application/pdf",
+                    "size": 245000,
+                },
             ],
         }
 
     def get_attachment(self, access_token: str, message_id: str, attachment_id: str) -> dict:
-        return {"filename": "stub_attachment.pdf", "data": b"stub-content", "mime_type": "application/pdf"}
+        return {
+            "filename": "stub_attachment.pdf",
+            "data": b"stub-content",
+            "mime_type": "application/pdf",
+        }
 
     def get_profile(self, access_token: str) -> dict:
         return {"email": "stub@example.com"}
@@ -75,7 +84,9 @@ class HttpGmailProvider:
     API_BASE = "https://gmail.googleapis.com/gmail/v1/users/me"
 
     def _get(self, access_token: str, path: str, params: dict | None = None) -> dict:
-        import urllib.request, urllib.parse
+        import urllib.request
+        import urllib.parse
+
         qs = urllib.parse.urlencode(params or {})
         url = f"{self.API_BASE}/{path}" + (f"?{qs}" if qs else "")
         headers = {"Authorization": f"Bearer {access_token}"}
@@ -88,10 +99,12 @@ class HttpGmailProvider:
 
     def list_labels(self, access_token: str) -> list[dict]:
         result = self._get(access_token, "labels")
-        return [{"id": l["id"], "name": l.get("name", "")} for l in result.get("labels", [])]
+        return [{"id": l["id"], "name": l.get("name", "")} for l in result.get("labels", [])]  # noqa: E741
 
     def list_messages(self, access_token: str, label_id: str, max_results: int = 20) -> list[dict]:
-        result = self._get(access_token, "messages", {"labelIds": label_id, "maxResults": str(max_results)})
+        result = self._get(
+            access_token, "messages", {"labelIds": label_id, "maxResults": str(max_results)}
+        )
         return result.get("messages", [])
 
     def get_message(self, access_token: str, message_id: str) -> dict:
@@ -103,12 +116,14 @@ class HttpGmailProvider:
         attachments = []
         for part in result.get("payload", {}).get("parts", []):
             if part.get("filename") and part.get("body", {}).get("attachmentId"):
-                attachments.append({
-                    "id": part["body"]["attachmentId"],
-                    "filename": part["filename"],
-                    "mime_type": part.get("mimeType", ""),
-                    "size": part.get("body", {}).get("size", 0),
-                })
+                attachments.append(
+                    {
+                        "id": part["body"]["attachmentId"],
+                        "filename": part["filename"],
+                        "mime_type": part.get("mimeType", ""),
+                        "size": part.get("body", {}).get("size", 0),
+                    }
+                )
         return {
             "id": result.get("id"),
             "threadId": result.get("threadId"),
@@ -122,6 +137,7 @@ class HttpGmailProvider:
 
     def get_attachment(self, access_token: str, message_id: str, attachment_id: str) -> dict:
         import base64
+
         result = self._get(access_token, f"messages/{message_id}/attachments/{attachment_id}")
         data = base64.urlsafe_b64decode(result.get("data", "")) if result.get("data") else b""
         return {"filename": "", "data": data, "mime_type": ""}

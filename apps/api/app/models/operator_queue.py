@@ -12,7 +12,15 @@ from sqlalchemy import (
 
 from app.core.database import Base
 
-OPERATOR_ITEM_STATUSES = ("received", "triaging", "in_progress", "blocked", "review", "delivered", "closed")
+OPERATOR_ITEM_STATUSES = (
+    "received",
+    "triaging",
+    "in_progress",
+    "blocked",
+    "review",
+    "delivered",
+    "closed",
+)
 OPERATOR_ITEM_PRIORITIES = ("critical", "high", "normal", "low")
 
 

@@ -13,11 +13,23 @@ from logging.config import fileConfig
 
 from alembic import context
 from sqlalchemy import engine_from_config, pool
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session  # noqa: F401
 
 from app.core.config import get_settings
 from app.core.database import Base
-from app.models import Answer, AuditEvent, Chunk, Document, EmailVerificationToken, ExportRecord, Job, PasswordResetToken, TrustArticle, TrustRequest, Workspace  # noqa: F401 - register models
+from app.models import (
+    Answer,  # noqa: F401
+    AuditEvent,  # noqa: F401
+    Chunk,  # noqa: F401
+    Document,  # noqa: F401
+    EmailVerificationToken,  # noqa: F401
+    ExportRecord,  # noqa: F401
+    Job,  # noqa: F401
+    PasswordResetToken,  # noqa: F401
+    TrustArticle,  # noqa: F401
+    TrustRequest,  # noqa: F401
+    Workspace,  # noqa: F401
+)  # noqa: F401 - register models
 
 config = context.config
 if config.config_file_name is not None:
