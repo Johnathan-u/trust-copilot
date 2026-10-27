@@ -30,12 +30,14 @@ def parse_xlsx_questionnaire(path: str | Path) -> list[dict]:
                     if len(norm) < 10:
                         continue
                     source = {"file": str(path), "sheet": sheet_name, "row": ri + 1, "col": ci + 1}
-                    results.append({
-                        "text": norm,
-                        "section": section,
-                        "answer_type": infer_answer_type(text),
-                        "source_location": json.dumps(source),
-                        "confidence": 85,
-                    })
+                    results.append(
+                        {
+                            "text": norm,
+                            "section": section,
+                            "answer_type": infer_answer_type(text),
+                            "source_location": json.dumps(source),
+                            "confidence": 85,
+                        }
+                    )
                     break
     return results

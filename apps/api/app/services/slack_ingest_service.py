@@ -22,21 +22,27 @@ def _make_source_metadata(
     sender: str | None = None,
     channel_name: str | None = None,
 ) -> str:
-    return json.dumps({
-        "slack_team_id": slack_team_id,
-        "channel_id": channel_id,
-        "channel_name": channel_name,
-        "message_ts": message_ts,
-        "sender": sender,
-    })
+    return json.dumps(
+        {
+            "slack_team_id": slack_team_id,
+            "channel_id": channel_id,
+            "channel_name": channel_name,
+            "message_ts": message_ts,
+            "sender": sender,
+        }
+    )
 
 
 def _evidence_exists(db: Session, workspace_id: int, channel_id: str, message_ts: str) -> bool:
     """Check for duplicate by stable Slack identifier (channel_id + message_ts)."""
-    rows = db.query(EvidenceItem).filter(
-        EvidenceItem.workspace_id == workspace_id,
-        EvidenceItem.source_type == "slack",
-    ).all()
+    rows = (
+        db.query(EvidenceItem)
+        .filter(
+            EvidenceItem.workspace_id == workspace_id,
+            EvidenceItem.source_type == "slack",
+        )
+        .all()
+    )
     for r in rows:
         if not r.source_metadata:
             continue
@@ -64,16 +70,22 @@ def ingest_message(
     Ingest a single Slack message as evidence.
     Returns the created EvidenceItem, or None if the channel is not approved or the message is a duplicate.
     """
-    ich = db.query(SlackIngestChannel).filter(
-        SlackIngestChannel.workspace_id == workspace_id,
-        SlackIngestChannel.channel_id == channel_id,
-        SlackIngestChannel.enabled == True,
-    ).first()
+    ich = (
+        db.query(SlackIngestChannel)
+        .filter(
+            SlackIngestChannel.workspace_id == workspace_id,
+            SlackIngestChannel.channel_id == channel_id,
+            SlackIngestChannel.enabled == True,
+        )
+        .first()
+    )
     if not ich:
         return None
 
     if _evidence_exists(db, workspace_id, channel_id, message_ts):
-        logger.debug("Slack ingest dedup skip: ws=%s ch=%s ts=%s", workspace_id, channel_id, message_ts)
+        logger.debug(
+            "Slack ingest dedup skip: ws=%s ch=%s ts=%s", workspace_id, channel_id, message_ts
+        )
         return None
 
     title = (text or "").strip()[:500] or f"Slack message from #{channel_name or channel_id}"
@@ -95,7 +107,8 @@ def ingest_message(
     db.refresh(ev)
 
     persist_audit(
-        db, "slack.evidence_ingested",
+        db,
+        "slack.evidence_ingested",
         user_id=admin_user_id,
         workspace_id=workspace_id,
         resource_type="evidence_item",
@@ -117,18 +130,26 @@ def fetch_and_ingest_channel(
     Fetch recent messages from an approved Slack channel and ingest them as evidence.
     Returns {"ingested": N, "skipped": N, "errors": [...]}.
     """
-    ich = db.query(SlackIngestChannel).filter(
-        SlackIngestChannel.workspace_id == workspace_id,
-        SlackIngestChannel.channel_id == channel_id,
-        SlackIngestChannel.enabled == True,
-    ).first()
+    ich = (
+        db.query(SlackIngestChannel)
+        .filter(
+            SlackIngestChannel.workspace_id == workspace_id,
+            SlackIngestChannel.channel_id == channel_id,
+            SlackIngestChannel.enabled == True,
+        )
+        .first()
+    )
     if not ich:
         return {"ingested": 0, "skipped": 0, "errors": ["Channel not approved for ingestion"]}
 
-    si = db.query(SlackIntegration).filter(
-        SlackIntegration.workspace_id == workspace_id,
-        SlackIntegration.enabled == True,
-    ).first()
+    si = (
+        db.query(SlackIntegration)
+        .filter(
+            SlackIntegration.workspace_id == workspace_id,
+            SlackIntegration.enabled == True,
+        )
+        .first()
+    )
     if not si:
         return {"ingested": 0, "skipped": 0, "errors": ["Slack not connected"]}
 
@@ -166,8 +187,13 @@ def fetch_and_ingest_channel(
             continue
         try:
             ev = ingest_message(
-                db, workspace_id, channel_id, ts, text,
-                sender=sender, slack_team_id=team_id,
+                db,
+                workspace_id,
+                channel_id,
+                ts,
+                text,
+                sender=sender,
+                slack_team_id=team_id,
                 channel_name=ich.channel_name,
                 admin_user_id=admin_user_id,
             )
@@ -184,10 +210,15 @@ def fetch_and_ingest_channel(
 def _stub_fetch_messages(channel_id: str, limit: int) -> dict:
     """Stub for ConsoleSlackProvider which doesn't have fetch_messages."""
     import time
+
     return {
         "ok": True,
         "messages": [
-            {"ts": f"stub.{time.time()}.{i}", "text": f"Stub message {i} from #{channel_id}", "user": "U_STUB"}
+            {
+                "ts": f"stub.{time.time()}.{i}",
+                "text": f"Stub message {i} from #{channel_id}",
+                "user": "U_STUB",
+            }
             for i in range(min(limit, 3))
         ],
     }
@@ -205,10 +236,14 @@ def suggest_controls_for_evidence(
     """
     from app.models import WorkspaceControl, FrameworkControl
 
-    ev = db.query(EvidenceItem).filter(
-        EvidenceItem.id == evidence_id,
-        EvidenceItem.workspace_id == workspace_id,
-    ).first()
+    ev = (
+        db.query(EvidenceItem)
+        .filter(
+            EvidenceItem.id == evidence_id,
+            EvidenceItem.workspace_id == workspace_id,
+        )
+        .first()
+    )
     if not ev:
         return []
 
@@ -234,10 +269,14 @@ def suggest_controls_for_evidence(
                 score += 0.3
         if score > 0:
             score = min(score, 0.9)
-            existing = db.query(SlackControlSuggestion).filter(
-                SlackControlSuggestion.evidence_id == evidence_id,
-                SlackControlSuggestion.control_id == wc.id,
-            ).first()
+            existing = (
+                db.query(SlackControlSuggestion)
+                .filter(
+                    SlackControlSuggestion.evidence_id == evidence_id,
+                    SlackControlSuggestion.control_id == wc.id,
+                )
+                .first()
+            )
             if not existing:
                 sug = SlackControlSuggestion(
                     workspace_id=workspace_id,
@@ -253,8 +292,10 @@ def suggest_controls_for_evidence(
         db.commit()
         try:
             from app.services.in_app_notification_service import notify_admins
+
             notify_admins(
-                db, workspace_id,
+                db,
+                workspace_id,
                 f"{len(suggestions)} control suggestion(s) from Slack evidence",
                 f"Evidence #{evidence_id} matched {len(suggestions)} control(s). Review and approve or dismiss.",
                 category="info",

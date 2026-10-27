@@ -15,20 +15,34 @@ def get_public_security_page(db: Session, workspace_id: int) -> dict:
         cat = faq["category"]
         if cat not in sections:
             sections[cat] = {"title": _category_title(cat), "items": []}
-        sections[cat]["items"].append({
-            "question": faq["question"],
-            "answer": faq["answer"],
-            "frameworks": faq["framework_tags"].split(",") if faq["framework_tags"] else [],
-        })
+        sections[cat]["items"].append(
+            {
+                "question": faq["question"],
+                "answer": faq["answer"],
+                "frameworks": faq["framework_tags"].split(",") if faq["framework_tags"] else [],
+            }
+        )
 
     return {
         "title": "Security & Data Handling",
         "subtitle": "How we protect your data and maintain compliance",
         "sections": [{"category": k, **v} for k, v in sections.items()],
         "certifications": [
-            {"name": "SOC 2 Type II", "status": "in_progress", "description": "Trust service criteria audit underway"},
-            {"name": "GDPR", "status": "compliant", "description": "Data processing compliant with EU regulations"},
-            {"name": "ISO 27001", "status": "planned", "description": "Information security management planned"},
+            {
+                "name": "SOC 2 Type II",
+                "status": "in_progress",
+                "description": "Trust service criteria audit underway",
+            },
+            {
+                "name": "GDPR",
+                "status": "compliant",
+                "description": "Data processing compliant with EU regulations",
+            },
+            {
+                "name": "ISO 27001",
+                "status": "planned",
+                "description": "Information security management planned",
+            },
         ],
         "infrastructure_highlights": [
             "AES-256 encryption at rest",

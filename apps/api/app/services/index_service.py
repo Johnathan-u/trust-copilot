@@ -59,7 +59,13 @@ def index_document(
             doc.index_error = ("Parse returned no content; document not indexed")[:512]
             db.commit()
             duration_ms = (time.monotonic() - started) * 1000
-            log_index_failure(document_id, doc.workspace_id, "Parse returned no content", duration_ms, job_id=job_id)
+            log_index_failure(
+                document_id,
+                doc.workspace_id,
+                "Parse returned no content",
+                duration_ms,
+                job_id=job_id,
+            )
             INDEX_DOCUMENT_TOTAL.labels(status="failure").inc()
             INDEX_DURATION_SECONDS.observe(duration_ms / 1000)
             raise ValueError("Parse returned no content; document not indexed")
@@ -104,10 +110,18 @@ def index_document(
         # No false "indexed": require at least one embedded chunk (Fix 2). Single commit (Fix 3).
         if embedded_count == 0:
             doc.status = "failed"
-            doc.index_error = ("No embeddings could be written (API error or dimension mismatch); document not indexed")[:512]
+            doc.index_error = (
+                "No embeddings could be written (API error or dimension mismatch); document not indexed"
+            )[:512]
             db.commit()
             duration_ms = (time.monotonic() - started) * 1000
-            log_index_failure(document_id, doc.workspace_id, "No embeddings could be written", duration_ms, job_id=job_id)
+            log_index_failure(
+                document_id,
+                doc.workspace_id,
+                "No embeddings could be written",
+                duration_ms,
+                job_id=job_id,
+            )
             INDEX_DOCUMENT_TOTAL.labels(status="failure").inc()
             INDEX_DURATION_SECONDS.observe(duration_ms / 1000)
             raise ValueError(
@@ -119,8 +133,11 @@ def index_document(
         # Auto-tag: best-effort, never blocks indexing
         try:
             from app.services.tag_service import auto_tag_document
+
             chunk_texts = [c.text for c in chunks if c.text]
-            tag_count = auto_tag_document(db, document_id, doc.workspace_id, doc.filename or "", chunk_texts)
+            tag_count = auto_tag_document(
+                db, document_id, doc.workspace_id, doc.filename or "", chunk_texts
+            )
             if tag_count:
                 logger.info("auto_tagged document_id=%s tags=%s", document_id, tag_count)
         except Exception:
@@ -130,7 +147,10 @@ def index_document(
         # Invalidate retrieval cache when evidence corpus changes (answer pipeline)
         try:
             from app.core.corpus_version import bump_corpus_version
-            from app.services.retrieval_cache import invalidate_workspace as retrieval_cache_invalidate
+            from app.services.retrieval_cache import (
+                invalidate_workspace as retrieval_cache_invalidate,
+            )
+
             bump_corpus_version(db, doc.workspace_id)
             retrieval_cache_invalidate(db, doc.workspace_id)
         except Exception:

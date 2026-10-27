@@ -40,7 +40,9 @@ def _make_mock_db(num_questions: int = 3):
     answer_query.filter.return_value.first.return_value = None
 
     db = MagicMock()
-    db.query.side_effect = [query_ret_qnr, query_ret_questions, query_ret_workspace] + [answer_query] * 40
+    db.query.side_effect = [query_ret_qnr, query_ret_questions, query_ret_workspace] + [
+        answer_query
+    ] * 40
     return db
 
 
@@ -56,15 +58,23 @@ def test_per_question_success_logs_stats(caplog) -> None:
     """Each question gets its own LLM call; final log includes llm_calls and drafted counts."""
     with caplog.at_level("INFO"):
         db = _make_mock_db(3)
-        mock_create = _make_mock_openai_create("We meet this requirement through documented controls.")
+        mock_create = _make_mock_openai_create(
+            "We meet this requirement through documented controls."
+        )
         with (
             patch("app.core.config.get_settings") as mock_settings,
-            patch("app.services.answer_generation.embed_texts", return_value=[FAKE_EMB, FAKE_EMB, FAKE_EMB]),
+            patch(
+                "app.services.answer_generation.embed_texts",
+                return_value=[FAKE_EMB, FAKE_EMB, FAKE_EMB],
+            ),
             patch("app.services.answer_generation.RetrievalService") as MockRetrieval,
             patch("app.services.answer_generation.get_corpus_version", return_value=""),
             patch("app.services.answer_generation.retrieval_cache_get", return_value=None),
             patch("app.services.answer_generation.answer_cache_get", return_value=None),
-            patch("app.services.answer_generation.prioritize_evidence_for_answer", side_effect=lambda db, ev, **kw: ev),
+            patch(
+                "app.services.answer_generation.prioritize_evidence_for_answer",
+                side_effect=lambda db, ev, **kw: ev,
+            ),
             patch("openai.OpenAI") as MockOpenAI,
         ):
             mock_settings.return_value.openai_api_key = "test-key"
@@ -86,7 +96,10 @@ def test_gated_skip_no_evidence_no_llm(caplog) -> None:
         db = _make_mock_db(3)
         with (
             patch("app.core.config.get_settings") as mock_settings,
-            patch("app.services.answer_generation.embed_texts", return_value=[FAKE_EMB, FAKE_EMB, FAKE_EMB]),
+            patch(
+                "app.services.answer_generation.embed_texts",
+                return_value=[FAKE_EMB, FAKE_EMB, FAKE_EMB],
+            ),
             patch("app.services.answer_generation.RetrievalService") as MockRetrieval,
             patch("app.services.answer_generation.get_corpus_version", return_value=""),
             patch("app.services.answer_generation.retrieval_cache_get", return_value=None),
@@ -111,12 +124,18 @@ def test_llm_exception_logs_single_question(caplog) -> None:
         db = _make_mock_db(3)
         with (
             patch("app.core.config.get_settings") as mock_settings,
-            patch("app.services.answer_generation.embed_texts", return_value=[FAKE_EMB, FAKE_EMB, FAKE_EMB]),
+            patch(
+                "app.services.answer_generation.embed_texts",
+                return_value=[FAKE_EMB, FAKE_EMB, FAKE_EMB],
+            ),
             patch("app.services.answer_generation.RetrievalService") as MockRetrieval,
             patch("app.services.answer_generation.get_corpus_version", return_value=""),
             patch("app.services.answer_generation.retrieval_cache_get", return_value=None),
             patch("app.services.answer_generation.answer_cache_get", return_value=None),
-            patch("app.services.answer_generation.prioritize_evidence_for_answer", side_effect=lambda db, ev, **kw: ev),
+            patch(
+                "app.services.answer_generation.prioritize_evidence_for_answer",
+                side_effect=lambda db, ev, **kw: ev,
+            ),
             patch("openai.OpenAI") as MockOpenAI,
         ):
             mock_settings.return_value.openai_api_key = "test-key"

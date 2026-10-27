@@ -11,7 +11,9 @@ router = APIRouter(prefix="/crm", tags=["crm"])
 
 
 @router.post("/sync/salesforce")
-async def sync_salesforce(session: dict = Depends(require_can_admin), db: Session = Depends(get_db)):
+async def sync_salesforce(
+    session: dict = Depends(require_can_admin), db: Session = Depends(get_db)
+):
     result = svc.sync_salesforce(db, session["workspace_id"])
     db.commit()
     return result

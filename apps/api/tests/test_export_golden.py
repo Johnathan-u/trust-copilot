@@ -8,7 +8,10 @@ import openpyxl
 import pytest
 
 from app.services.docx_writer import create_export_from_questionnaire_docx
-from app.services.xlsx_writer import create_export_from_questionnaire, placements_from_questions_and_answers
+from app.services.xlsx_writer import (
+    create_export_from_questionnaire,
+    placements_from_questions_and_answers,
+)
 
 FIXTURES = Path(__file__).resolve().parent / "fixtures" / "questionnaires"
 

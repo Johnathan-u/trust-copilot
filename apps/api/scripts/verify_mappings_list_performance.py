@@ -7,6 +7,7 @@ Run from apps/api with DATABASE_URL and a valid session cookie, or from Docker:
 
 Uses GET /mappings?include_suggested_evidence=false (default) and reports response time + row count.
 """
+
 from __future__ import annotations
 
 import argparse
@@ -48,11 +49,7 @@ def main() -> None:
         if not qnr:
             print(f"No questionnaire id={args.questionnaire_id} in workspace {args.workspace_id}")
             sys.exit(1)
-        nq = (
-            db.query(Question)
-            .filter(Question.questionnaire_id == args.questionnaire_id)
-            .count()
-        )
+        nq = db.query(Question).filter(Question.questionnaire_id == args.questionnaire_id).count()
         print(f"Questionnaire {args.questionnaire_id}: ~{nq} questions (approx)")
     finally:
         db.close()
@@ -72,9 +69,13 @@ def main() -> None:
         )
         elapsed = time.perf_counter() - t0
         n = len(out.get("mappings", []))
-        print(f"list_questionnaire_mappings(include_suggested_evidence=False): {elapsed:.3f}s, {n} mapping rows")
+        print(
+            f"list_questionnaire_mappings(include_suggested_evidence=False): {elapsed:.3f}s, {n} mapping rows"
+        )
         if elapsed > 30:
-            print("WARNING: still slow; check DB size, match_keywords, or supporting_evidence batch.")
+            print(
+                "WARNING: still slow; check DB size, match_keywords, or supporting_evidence batch."
+            )
     finally:
         db2.close()
 

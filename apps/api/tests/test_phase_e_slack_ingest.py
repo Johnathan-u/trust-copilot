@@ -10,13 +10,16 @@ from sqlalchemy.orm import Session
 def _login_admin(client: TestClient) -> dict:
     from app.core.database import SessionLocal
     from app.models import WorkspaceMember, User
+
     db = SessionLocal()
     try:
         user = db.query(User).filter(User.email == "demo@trust.local").first()
         uid = user.id
-        mem = db.query(WorkspaceMember).filter(
-            WorkspaceMember.user_id == uid, WorkspaceMember.workspace_id == 1
-        ).first()
+        mem = (
+            db.query(WorkspaceMember)
+            .filter(WorkspaceMember.user_id == uid, WorkspaceMember.workspace_id == 1)
+            .first()
+        )
         if mem.role != "admin":
             mem.role = "admin"
             db.commit()
@@ -32,6 +35,7 @@ def _ensure_slack_connected(client: TestClient):
     from app.core.database import SessionLocal
     from app.models import SlackIntegration
     from app.services.slack_service import encrypt_token
+
     db = SessionLocal()
     try:
         si = db.query(SlackIntegration).filter(SlackIntegration.workspace_id == 1).first()
@@ -54,11 +58,18 @@ def _ensure_slack_connected(client: TestClient):
 def _cleanup_ingest(workspace_id: int = 1):
     from app.core.database import SessionLocal
     from app.models import SlackIngestChannel, SlackControlSuggestion, EvidenceItem
+
     db = SessionLocal()
     try:
-        db.query(SlackControlSuggestion).filter(SlackControlSuggestion.workspace_id == workspace_id).delete()
-        db.query(SlackIngestChannel).filter(SlackIngestChannel.workspace_id == workspace_id).delete()
-        db.query(EvidenceItem).filter(EvidenceItem.workspace_id == workspace_id, EvidenceItem.source_type == "slack").delete()
+        db.query(SlackControlSuggestion).filter(
+            SlackControlSuggestion.workspace_id == workspace_id
+        ).delete()
+        db.query(SlackIngestChannel).filter(
+            SlackIngestChannel.workspace_id == workspace_id
+        ).delete()
+        db.query(EvidenceItem).filter(
+            EvidenceItem.workspace_id == workspace_id, EvidenceItem.source_type == "slack"
+        ).delete()
         db.commit()
     finally:
         db.close()
@@ -67,11 +78,16 @@ def _cleanup_ingest(workspace_id: int = 1):
 def _get_audit_events(action: str, workspace_id: int = 1) -> list:
     from app.core.database import SessionLocal
     from app.models import AuditEvent
+
     db = SessionLocal()
     try:
-        return db.query(AuditEvent).filter(
-            AuditEvent.action == action, AuditEvent.workspace_id == workspace_id
-        ).order_by(AuditEvent.occurred_at.desc()).limit(5).all()
+        return (
+            db.query(AuditEvent)
+            .filter(AuditEvent.action == action, AuditEvent.workspace_id == workspace_id)
+            .order_by(AuditEvent.occurred_at.desc())
+            .limit(5)
+            .all()
+        )
     finally:
         db.close()
 
@@ -80,12 +96,16 @@ def _get_audit_events(action: str, workspace_id: int = 1) -> list:
 # Approved channels
 # ---------------------------------------------------------------------------
 
+
 class TestIngestChannels:
     def test_approve_channel(self, client: TestClient) -> None:
         _login_admin(client)
         si_id = _ensure_slack_connected(client)
         _cleanup_ingest()
-        r = client.post("/api/slack/ingest/channels", json={"channel_id": "C_INGEST_1", "channel_name": "evidence-ch"})
+        r = client.post(
+            "/api/slack/ingest/channels",
+            json={"channel_id": "C_INGEST_1", "channel_name": "evidence-ch"},
+        )
         assert r.status_code == 200
         assert r.json()["channel_id"] == "C_INGEST_1"
         assert r.json()["enabled"] is True
@@ -94,6 +114,7 @@ class TestIngestChannels:
         _login_admin(client)
         from app.core.database import SessionLocal
         from app.models import SlackIntegration, SlackIngestChannel
+
         db = SessionLocal()
         db.query(SlackIngestChannel).filter(SlackIngestChannel.workspace_id == 1).delete()
         db.query(SlackIntegration).filter(SlackIntegration.workspace_id == 1).delete()
@@ -115,7 +136,9 @@ class TestIngestChannels:
         _login_admin(client)
         _ensure_slack_connected(client)
         _cleanup_ingest()
-        client.post("/api/slack/ingest/channels", json={"channel_id": "C_LIST", "channel_name": "list-ch"})
+        client.post(
+            "/api/slack/ingest/channels", json={"channel_id": "C_LIST", "channel_name": "list-ch"}
+        )
         r = client.get("/api/slack/ingest/channels")
         assert r.status_code == 200
         channels = r.json()["channels"]
@@ -145,12 +168,15 @@ class TestIngestChannels:
 # Ingest and evidence creation
 # ---------------------------------------------------------------------------
 
+
 class TestIngestRun:
     def test_run_ingest_creates_evidence(self, client: TestClient) -> None:
         _login_admin(client)
         _ensure_slack_connected(client)
         _cleanup_ingest()
-        r = client.post("/api/slack/ingest/channels", json={"channel_id": "C_RUN", "channel_name": "run-ch"})
+        r = client.post(
+            "/api/slack/ingest/channels", json={"channel_id": "C_RUN", "channel_name": "run-ch"}
+        )
         rec_id = r.json()["id"]
         r2 = client.post(f"/api/slack/ingest/run/{rec_id}?limit=3")
         assert r2.status_code == 200
@@ -161,7 +187,9 @@ class TestIngestRun:
         _login_admin(client)
         _ensure_slack_connected(client)
         _cleanup_ingest()
-        r = client.post("/api/slack/ingest/channels", json={"channel_id": "C_SRC", "channel_name": "src-ch"})
+        r = client.post(
+            "/api/slack/ingest/channels", json={"channel_id": "C_SRC", "channel_name": "src-ch"}
+        )
         rec_id = r.json()["id"]
         client.post(f"/api/slack/ingest/run/{rec_id}?limit=2")
         r2 = client.get("/api/slack/ingest/evidence?page_size=10")
@@ -196,6 +224,7 @@ class TestIngestRun:
 # Deduplication
 # ---------------------------------------------------------------------------
 
+
 class TestDedup:
     def test_duplicate_messages_not_ingested(self, client: TestClient) -> None:
         _login_admin(client)
@@ -210,6 +239,7 @@ class TestDedup:
         # Stub generates unique timestamps, so for true dedup we test via the service directly
         from app.core.database import SessionLocal
         from app.services.slack_ingest_service import ingest_message
+
         db = SessionLocal()
         try:
             ev1 = ingest_message(db, 1, "C_DEDUP", "fixed.ts.001", "Test dedup message")
@@ -224,6 +254,7 @@ class TestDedup:
 # Permissions and workspace isolation
 # ---------------------------------------------------------------------------
 
+
 class TestIngestPermissions:
     def test_unauthenticated_cannot_approve(self, client: TestClient) -> None:
         r = client.post("/api/slack/ingest/channels", json={"channel_id": "C_UNAUTH"})
@@ -236,10 +267,15 @@ class TestIngestPermissions:
     def test_non_admin_cannot_approve(self, client: TestClient) -> None:
         from app.core.database import SessionLocal
         from app.models import WorkspaceMember, User
+
         db = SessionLocal()
         user = db.query(User).filter(User.email == "demo@trust.local").first()
         uid = user.id
-        mem = db.query(WorkspaceMember).filter(WorkspaceMember.user_id == uid, WorkspaceMember.workspace_id == 1).first()
+        mem = (
+            db.query(WorkspaceMember)
+            .filter(WorkspaceMember.user_id == uid, WorkspaceMember.workspace_id == 1)
+            .first()
+        )
         orig = mem.role
         mem.role = "editor"
         db.commit()
@@ -250,7 +286,11 @@ class TestIngestPermissions:
             assert r.status_code == 403
         finally:
             db2 = SessionLocal()
-            m2 = db2.query(WorkspaceMember).filter(WorkspaceMember.user_id == uid, WorkspaceMember.workspace_id == 1).first()
+            m2 = (
+                db2.query(WorkspaceMember)
+                .filter(WorkspaceMember.user_id == uid, WorkspaceMember.workspace_id == 1)
+                .first()
+            )
             m2.role = orig
             db2.commit()
             db2.close()
@@ -264,11 +304,26 @@ class TestIngestPermissions:
         client.post("/api/slack/ingest/channels", json={"channel_id": "C_WS1_ONLY"})
         from app.core.database import SessionLocal
         from app.models import SlackIngestChannel
+
         db = SessionLocal()
         try:
-            ws1 = db.query(SlackIngestChannel).filter(SlackIngestChannel.workspace_id == 1, SlackIngestChannel.channel_id == "C_WS1_ONLY").first()
+            ws1 = (
+                db.query(SlackIngestChannel)
+                .filter(
+                    SlackIngestChannel.workspace_id == 1,
+                    SlackIngestChannel.channel_id == "C_WS1_ONLY",
+                )
+                .first()
+            )
             assert ws1 is not None
-            ws2 = db.query(SlackIngestChannel).filter(SlackIngestChannel.workspace_id == 2, SlackIngestChannel.channel_id == "C_WS1_ONLY").first()
+            ws2 = (
+                db.query(SlackIngestChannel)
+                .filter(
+                    SlackIngestChannel.workspace_id == 2,
+                    SlackIngestChannel.channel_id == "C_WS1_ONLY",
+                )
+                .first()
+            )
             assert ws2 is None
         finally:
             db.close()
@@ -283,10 +338,19 @@ class TestIngestPermissions:
         client.post(f"/api/slack/ingest/run/{rec_id}?limit=1")
         from app.core.database import SessionLocal
         from app.models import EvidenceItem
+
         db = SessionLocal()
         try:
-            ws1 = db.query(EvidenceItem).filter(EvidenceItem.workspace_id == 1, EvidenceItem.source_type == "slack").count()
-            ws2 = db.query(EvidenceItem).filter(EvidenceItem.workspace_id == 2, EvidenceItem.source_type == "slack").count()
+            ws1 = (
+                db.query(EvidenceItem)
+                .filter(EvidenceItem.workspace_id == 1, EvidenceItem.source_type == "slack")
+                .count()
+            )
+            ws2 = (
+                db.query(EvidenceItem)
+                .filter(EvidenceItem.workspace_id == 2, EvidenceItem.source_type == "slack")
+                .count()
+            )
             assert ws1 > 0
             assert ws2 == 0
         finally:
@@ -296,6 +360,7 @@ class TestIngestPermissions:
 # ---------------------------------------------------------------------------
 # Control suggestions
 # ---------------------------------------------------------------------------
+
 
 class TestControlSuggestions:
     def test_list_suggestions(self, client: TestClient) -> None:
@@ -315,16 +380,25 @@ class TestControlSuggestions:
         # Create suggestion manually since keyword matching needs real controls
         from app.core.database import SessionLocal
         from app.models import EvidenceItem, SlackControlSuggestion, WorkspaceControl
+
         db = SessionLocal()
         try:
-            ev = db.query(EvidenceItem).filter(EvidenceItem.workspace_id == 1, EvidenceItem.source_type == "slack").first()
+            ev = (
+                db.query(EvidenceItem)
+                .filter(EvidenceItem.workspace_id == 1, EvidenceItem.source_type == "slack")
+                .first()
+            )
             if not ev:
                 return  # Skip if no evidence
             wc = db.query(WorkspaceControl).filter(WorkspaceControl.workspace_id == 1).first()
             if not wc:
                 return  # Skip if no controls
             sug = SlackControlSuggestion(
-                workspace_id=1, evidence_id=ev.id, control_id=wc.id, confidence=0.5, status="pending",
+                workspace_id=1,
+                evidence_id=ev.id,
+                control_id=wc.id,
+                confidence=0.5,
+                status="pending",
             )
             db.add(sug)
             db.commit()
@@ -345,13 +419,24 @@ class TestControlSuggestions:
         client.post(f"/api/slack/ingest/run/{rec_id}?limit=1")
         from app.core.database import SessionLocal
         from app.models import EvidenceItem, SlackControlSuggestion, WorkspaceControl
+
         db = SessionLocal()
         try:
-            ev = db.query(EvidenceItem).filter(EvidenceItem.workspace_id == 1, EvidenceItem.source_type == "slack").first()
+            ev = (
+                db.query(EvidenceItem)
+                .filter(EvidenceItem.workspace_id == 1, EvidenceItem.source_type == "slack")
+                .first()
+            )
             wc = db.query(WorkspaceControl).filter(WorkspaceControl.workspace_id == 1).first()
             if not ev or not wc:
                 return
-            sug = SlackControlSuggestion(workspace_id=1, evidence_id=ev.id, control_id=wc.id, confidence=0.4, status="pending")
+            sug = SlackControlSuggestion(
+                workspace_id=1,
+                evidence_id=ev.id,
+                control_id=wc.id,
+                confidence=0.4,
+                status="pending",
+            )
             db.add(sug)
             db.commit()
             db.refresh(sug)

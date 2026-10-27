@@ -19,8 +19,17 @@ class PolicyBody(BaseModel):
 
 
 @router.post("/policies")
-async def set_policy(body: PolicyBody, session: dict = Depends(require_can_admin), db: Session = Depends(get_db)):
-    result = svc.set_policy(db, session["workspace_id"], body.retention_days, body.archive_after_days, body.auto_delete, body.source_type)
+async def set_policy(
+    body: PolicyBody, session: dict = Depends(require_can_admin), db: Session = Depends(get_db)
+):
+    result = svc.set_policy(
+        db,
+        session["workspace_id"],
+        body.retention_days,
+        body.archive_after_days,
+        body.auto_delete,
+        body.source_type,
+    )
     db.commit()
     return result
 
@@ -43,7 +52,11 @@ async def archive(session: dict = Depends(require_can_admin), db: Session = Depe
 
 
 @router.post("/delete")
-async def delete(dry_run: bool = Query(True), session: dict = Depends(require_can_admin), db: Session = Depends(get_db)):
+async def delete(
+    dry_run: bool = Query(True),
+    session: dict = Depends(require_can_admin),
+    db: Session = Depends(get_db),
+):
     result = svc.run_deletion(db, session["workspace_id"], dry_run=dry_run)
     if not dry_run:
         db.commit()

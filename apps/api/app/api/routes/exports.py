@@ -13,7 +13,11 @@ from sqlalchemy import func
 from app.core.auth_deps import require_can_export, require_can_review
 from app.core.config import get_settings
 from app.core.database import get_db
-from app.core.idempotency import get as idempotency_get, set as idempotency_set, try_claim as idempotency_try_claim
+from app.core.idempotency import (
+    get as idempotency_get,
+    set as idempotency_set,
+    try_claim as idempotency_try_claim,
+)
 from app.models import ExportRecord, Question, Questionnaire
 from app.services.export_service import enqueue_export_job, enqueue_generate_answers_job
 from app.services.storage import get_storage, StorageClient
@@ -24,6 +28,7 @@ _log = logging.getLogger(__name__)
 
 class GenerateAnswersBody(BaseModel):
     """Optional overrides for answer generation (AI-02, AI-05, AI-06)."""
+
     model: str | None = None
     response_style: str | None = None
 
@@ -47,7 +52,9 @@ def trigger_generate(
             cached2 = idempotency_get(db, idem_key)
             if cached2:
                 return JSONResponse(content=cached2[1], status_code=cached2[0])
-            raise HTTPException(status_code=409, detail="Request in progress; retry with same Idempotency-Key")
+            raise HTTPException(
+                status_code=409, detail="Request in progress; retry with same Idempotency-Key"
+            )
     if session.get("workspace_id") != workspace_id:
         if idem_key:
             idempotency_set(db, idem_key, 403, {"detail": "Access denied"})
@@ -77,9 +84,12 @@ def trigger_generate(
             idempotency_set(db, idem_key, 503, {"detail": detail})
         raise HTTPException(status_code=503, detail=detail)
     from app.services.quota_service import check_quota
+
     allowed, current, limit = check_quota(db, workspace_id, "ai_jobs")
     if not allowed:
-        raise HTTPException(status_code=429, detail=f"AI job quota exceeded ({current}/{limit} per hour)")
+        raise HTTPException(
+            status_code=429, detail=f"AI job quota exceeded ({current}/{limit} per hour)"
+        )
     try:
         job = enqueue_generate_answers_job(
             db,
@@ -97,8 +107,21 @@ def trigger_generate(
             raise HTTPException(status_code=404, detail="Questionnaire not found")
         raise HTTPException(status_code=400, detail=msg)
     from app.core.audit import audit_log
-    audit_log("export.generate", email=session.get("email"), workspace_id=workspace_id, resource_type="questionnaire", resource_id=questionnaire_id, details={"job_id": job.id})
-    _log.info("GENERATE_ANSWERS: job created job_id=%s questionnaire_id=%s questions=%s", job.id, questionnaire_id, n_questions)
+
+    audit_log(
+        "export.generate",
+        email=session.get("email"),
+        workspace_id=workspace_id,
+        resource_type="questionnaire",
+        resource_id=questionnaire_id,
+        details={"job_id": job.id},
+    )
+    _log.info(
+        "GENERATE_ANSWERS: job created job_id=%s questionnaire_id=%s questions=%s",
+        job.id,
+        questionnaire_id,
+        n_questions,
+    )
     result = {"job_id": job.id, "status": "queued"}
     if idem_key:
         idempotency_set(db, idem_key, 200, result)
@@ -107,6 +130,7 @@ def trigger_generate(
 
 class ExportBody(BaseModel):
     """Optional format override for export (xlsx or docx)."""
+
     format: str | None = None
 
 
@@ -129,15 +153,20 @@ def trigger_export(
             cached2 = idempotency_get(db, idem_key)
             if cached2:
                 return JSONResponse(content=cached2[1], status_code=cached2[0])
-            raise HTTPException(status_code=409, detail="Request in progress; retry with same Idempotency-Key")
+            raise HTTPException(
+                status_code=409, detail="Request in progress; retry with same Idempotency-Key"
+            )
     if session.get("workspace_id") != workspace_id:
         if idem_key:
             idempotency_set(db, idem_key, 403, {"detail": "Access denied"})
         raise HTTPException(status_code=403, detail="Access denied")
     from app.services.quota_service import check_quota
+
     allowed, current, limit = check_quota(db, workspace_id, "exports")
     if not allowed:
-        raise HTTPException(status_code=429, detail=f"Export quota exceeded ({current}/{limit} per hour)")
+        raise HTTPException(
+            status_code=429, detail=f"Export quota exceeded ({current}/{limit} per hour)"
+        )
     fmt = (body.format or "xlsx").lower() if body else "xlsx"
     try:
         job = enqueue_export_job(db, workspace_id, questionnaire_id, format=fmt)
@@ -150,7 +179,15 @@ def trigger_export(
             raise HTTPException(status_code=404, detail="Questionnaire not found")
         raise HTTPException(status_code=400, detail=msg)
     from app.core.audit import audit_log
-    audit_log("export.trigger", email=session.get("email"), workspace_id=workspace_id, resource_type="questionnaire", resource_id=questionnaire_id, details={"job_id": job.id})
+
+    audit_log(
+        "export.trigger",
+        email=session.get("email"),
+        workspace_id=workspace_id,
+        resource_type="questionnaire",
+        resource_id=questionnaire_id,
+        details={"job_id": job.id},
+    )
     result = {"job_id": job.id, "status": "queued"}
     if idem_key:
         idempotency_set(db, idem_key, 200, result)
@@ -166,7 +203,13 @@ def list_export_records(
     """List export records for workspace."""
     if session.get("workspace_id") != workspace_id:
         raise HTTPException(status_code=403, detail="Access denied")
-    recs = db.query(ExportRecord).filter(ExportRecord.workspace_id == workspace_id).order_by(ExportRecord.created_at.desc()).limit(50).all()
+    recs = (
+        db.query(ExportRecord)
+        .filter(ExportRecord.workspace_id == workspace_id)
+        .order_by(ExportRecord.created_at.desc())
+        .limit(50)
+        .all()
+    )
     return [
         {
             "id": r.id,
@@ -190,21 +233,34 @@ def get_download_url(
     """Stream export file so the browser can download it (same-origin; presigned URLs are not reachable from the client)."""
     if session.get("workspace_id") != workspace_id:
         raise HTTPException(status_code=403, detail="Access denied")
-    rec = db.query(ExportRecord).filter(
-        ExportRecord.id == record_id,
-        ExportRecord.workspace_id == workspace_id,
-    ).first()
+    rec = (
+        db.query(ExportRecord)
+        .filter(
+            ExportRecord.id == record_id,
+            ExportRecord.workspace_id == workspace_id,
+        )
+        .first()
+    )
     if not rec:
         raise HTTPException(status_code=404, detail="Export not found")
     from app.core.audit import audit_log
-    audit_log("export.download", email=session.get("email"), workspace_id=workspace_id, resource_type="export_record", resource_id=record_id, details={"filename": rec.filename})
+
+    audit_log(
+        "export.download",
+        email=session.get("email"),
+        workspace_id=workspace_id,
+        resource_type="export_record",
+        resource_id=record_id,
+        details={"filename": rec.filename},
+    )
     from app.services.file_service import validate_storage_key
+
     validate_storage_key(rec.storage_key)
     if not storage.exists(storage.bucket_exports, rec.storage_key):
         raise HTTPException(status_code=404, detail="Export file not found")
     stream = storage.download_stream(storage.bucket_exports, rec.storage_key)
     safe_filename = rec.filename or "export.xlsx"
-    disposition = f'attachment; filename*=UTF-8\'\'{quote(safe_filename)}'
+    disposition = f"attachment; filename*=UTF-8''{quote(safe_filename)}"
     ext = (safe_filename.rsplit(".", 1)[-1].lower() if "." in safe_filename else "") or "xlsx"
     media_type = (
         "application/vnd.openxmlformats-officedocument.wordprocessingml.document"

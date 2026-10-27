@@ -129,14 +129,21 @@ def test_suggest_reply_returns_draft(client: TestClient) -> None:
     """POST /api/trust-requests/{id}/suggest-reply returns draft (mocked) (TC-R-B4)."""
     create = client.post(
         "/api/trust-requests/",
-        json={"requester_email": "draft@example.com", "message": "Please share compliance docs.", "workspace_id": 1},
+        json={
+            "requester_email": "draft@example.com",
+            "message": "Please share compliance docs.",
+            "workspace_id": 1,
+        },
     )
     assert create.status_code == 200
     rid = create.json()["id"]
 
     client.post("/api/auth/login", json={"email": "demo@trust.local", "password": "j"})
 
-    with patch("app.services.trust_request_draft.suggest_reply_draft", return_value="Thank you for your request. We will provide the information shortly."):
+    with patch(
+        "app.services.trust_request_draft.suggest_reply_draft",
+        return_value="Thank you for your request. We will provide the information shortly.",
+    ):
         r = client.post(f"/api/trust-requests/{rid}/suggest-reply")
     assert r.status_code == 200
     data = r.json()
@@ -256,6 +263,7 @@ def test_trust_request_update_audit_persisted(client: TestClient, db_session: Se
     )
     assert len(events) == 1
     import json
+
     details = events[0].details
     if isinstance(details, str):
         details = json.loads(details) if details else {}
@@ -316,7 +324,10 @@ def test_create_reply_without_email(client: TestClient) -> None:
     rid = create.json()["id"]
     client.post("/api/auth/login", json={"email": "demo@trust.local", "password": "j"})
 
-    r = client.post(f"/api/trust-requests/{rid}/replies", json={"body": "We will send the report soon.", "send_email": False})
+    r = client.post(
+        f"/api/trust-requests/{rid}/replies",
+        json={"body": "We will send the report soon.", "send_email": False},
+    )
     assert r.status_code == 200
     data = r.json()
     assert data["body"] == "We will send the report soon."
@@ -338,7 +349,9 @@ def test_create_reply_with_email_mocked(client: TestClient) -> None:
     rid = create.json()["id"]
     client.post("/api/auth/login", json={"email": "demo@trust.local", "password": "j"})
 
-    with patch("app.api.routes.trust_requests.send_trust_reply_email", return_value=True) as mock_send:
+    with patch(
+        "app.api.routes.trust_requests.send_trust_reply_email", return_value=True
+    ) as mock_send:
         r = client.post(
             f"/api/trust-requests/{rid}/replies",
             json={"body": "Reply with email.", "send_email": True},
@@ -350,7 +363,9 @@ def test_create_reply_with_email_mocked(client: TestClient) -> None:
     assert "Reply with email" in (kwargs.get("body") or "")
 
 
-def test_reply_email_failure_does_not_break_db_write(client: TestClient, db_session: Session) -> None:
+def test_reply_email_failure_does_not_break_db_write(
+    client: TestClient, db_session: Session
+) -> None:
     """When send_email=True and email fails, reply is still stored and audit has email_sent false. TC-H-B2."""
     create = client.post(
         "/api/trust-requests/",
@@ -360,7 +375,9 @@ def test_reply_email_failure_does_not_break_db_write(client: TestClient, db_sess
     rid = create.json()["id"]
     client.post("/api/auth/login", json={"email": "demo@trust.local", "password": "j"})
 
-    with patch("app.api.routes.trust_requests.send_trust_reply_email", side_effect=Exception("SMTP error")):
+    with patch(
+        "app.api.routes.trust_requests.send_trust_reply_email", side_effect=Exception("SMTP error")
+    ):
         r = client.post(
             f"/api/trust-requests/{rid}/replies",
             json={"body": "Reply despite email fail.", "send_email": True},
@@ -369,12 +386,23 @@ def test_reply_email_failure_does_not_break_db_write(client: TestClient, db_sess
     data = r.json()
     assert data["body"] == "Reply despite email fail."
 
-    note = db_session.query(TrustRequestNote).filter(TrustRequestNote.trust_request_id == rid, TrustRequestNote.body == "Reply despite email fail.").first()
+    note = (
+        db_session.query(TrustRequestNote)
+        .filter(
+            TrustRequestNote.trust_request_id == rid,
+            TrustRequestNote.body == "Reply despite email fail.",
+        )
+        .first()
+    )
     assert note is not None
     import json
+
     ev = (
         db_session.query(AuditEvent)
-        .filter(AuditEvent.action == "trust_request.reply_added", AuditEvent.resource_id == str(data["id"]))
+        .filter(
+            AuditEvent.action == "trust_request.reply_added",
+            AuditEvent.resource_id == str(data["id"]),
+        )
         .order_by(AuditEvent.id.desc())
         .first()
     )
@@ -396,9 +424,12 @@ def test_notes_audit_persisted(client: TestClient, db_session: Session) -> None:
     client.post("/api/auth/login", json={"email": "demo@trust.local", "password": "j"})
 
     client.post(f"/api/trust-requests/{rid}/notes", json={"body": "Audit note"})
-    client.post(f"/api/trust-requests/{rid}/replies", json={"body": "Audit reply", "send_email": False})
+    client.post(
+        f"/api/trust-requests/{rid}/replies", json={"body": "Audit reply", "send_email": False}
+    )
 
     import json
+
     note_ev = (
         db_session.query(AuditEvent)
         .filter(AuditEvent.action == "trust_request.note_added")
@@ -445,7 +476,9 @@ def test_notes_cross_workspace_forbidden(client: TestClient, db_session: Session
     assert r_get.status_code == 403
     r_post = client.post(f"/api/trust-requests/{rid}/notes", json={"body": "Forbidden note"})
     assert r_post.status_code == 403
-    r_reply = client.post(f"/api/trust-requests/{rid}/replies", json={"body": "Forbidden reply", "send_email": False})
+    r_reply = client.post(
+        f"/api/trust-requests/{rid}/replies", json={"body": "Forbidden reply", "send_email": False}
+    )
     assert r_reply.status_code == 403
 
 
@@ -463,5 +496,3 @@ def test_notes_empty_body_rejected(client: TestClient) -> None:
     assert r1.status_code == 400
     r2 = client.post(f"/api/trust-requests/{rid}/replies", json={"body": "", "send_email": False})
     assert r2.status_code == 400
-
-

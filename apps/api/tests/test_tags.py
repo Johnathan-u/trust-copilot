@@ -23,31 +23,47 @@ from app.services.tag_service import (
 
 # ── Schema presence ─────────────────────────────────────────────────────────
 
+
 class TestSchemaPresence:
     def test_tags_table_exists(self, db_session: Session):
         from sqlalchemy import inspect
+
         insp = inspect(db_session.bind)
         assert "tags" in insp.get_table_names()
 
     def test_document_tags_table_exists(self, db_session: Session):
         from sqlalchemy import inspect
+
         insp = inspect(db_session.bind)
         assert "document_tags" in insp.get_table_names()
 
     def test_tags_columns(self, db_session: Session):
         from sqlalchemy import inspect
+
         insp = inspect(db_session.bind)
         cols = {c["name"] for c in insp.get_columns("tags")}
         assert {"id", "workspace_id", "category", "key", "label", "is_system", "created_at"} <= cols
 
     def test_document_tags_columns(self, db_session: Session):
         from sqlalchemy import inspect
+
         insp = inspect(db_session.bind)
         cols = {c["name"] for c in insp.get_columns("document_tags")}
-        assert {"id", "workspace_id", "document_id", "tag_id", "source", "confidence", "approved", "created_by_user_id", "created_at"} <= cols
+        assert {
+            "id",
+            "workspace_id",
+            "document_id",
+            "tag_id",
+            "source",
+            "confidence",
+            "approved",
+            "created_by_user_id",
+            "created_at",
+        } <= cols
 
 
 # ── System tag catalog ──────────────────────────────────────────────────────
+
 
 class TestSystemTags:
     def test_ensure_system_tags_idempotent(self, db_session: Session):
@@ -71,6 +87,7 @@ class TestSystemTags:
 
 
 # ── Tag creation & resolution ──────────────────────────────────────────────
+
 
 class TestTagCRUD:
     def test_get_or_create_tag_new(self, db_session: Session):
@@ -105,6 +122,7 @@ class TestTagCRUD:
 
 # ── Tag assignment ──────────────────────────────────────────────────────────
 
+
 def _create_doc(db_session: Session, workspace_id: int = 1) -> Document:
     doc = Document(
         workspace_id=workspace_id,
@@ -134,7 +152,15 @@ class TestTagAssignment:
         doc = _create_doc(db_session)
         tag = resolve_tag(db_session, "framework", "soc2")
         assign_tag(db_session, doc.id, tag.id, workspace_id=1, source="ai", confidence=0.7)
-        assign_tag(db_session, doc.id, tag.id, workspace_id=1, source="manual", confidence=None, approved=True)
+        assign_tag(
+            db_session,
+            doc.id,
+            tag.id,
+            workspace_id=1,
+            source="manual",
+            confidence=None,
+            approved=True,
+        )
         db_session.commit()
         tags = list_tags_for_document(db_session, doc.id, 1)
         assert len(tags) == 1
@@ -187,6 +213,7 @@ class TestTagAssignment:
 
 # ── Workspace isolation ─────────────────────────────────────────────────────
 
+
 class TestWorkspaceIsolation:
     def test_tags_not_visible_cross_workspace(self, db_session: Session):
         ensure_system_tags(db_session)
@@ -208,24 +235,34 @@ class TestWorkspaceIsolation:
 
 # ── LLM classifier tests (mocked) ──────────────────────────────────────────
 
+
 class TestClassifier:
     def _mock_llm(self, response_json: dict):
         """Helper: mock the LLM to return a specific JSON response."""
         import json
         from unittest.mock import patch, MagicMock
+
         mock_resp = MagicMock()
         mock_resp.choices = [MagicMock()]
         mock_resp.choices[0].message.content = json.dumps(response_json)
         mock_client = MagicMock()
         mock_client.chat.completions.create.return_value = mock_resp
-        return patch("app.services.tag_service._get_client" if False else "app.services.mapping_llm_classify._get_client", return_value=mock_client)
+        return patch(
+            "app.services.tag_service._get_client"
+            if False
+            else "app.services.mapping_llm_classify._get_client",
+            return_value=mock_client,
+        )
 
     def test_framework_detection_soc2(self):
         from unittest.mock import patch, MagicMock
         import json
+
         mock_resp = MagicMock()
         mock_resp.choices = [MagicMock()]
-        mock_resp.choices[0].message.content = json.dumps({"frameworks": ["soc2"], "topics": ["access_control"], "document_types": ["report"]})
+        mock_resp.choices[0].message.content = json.dumps(
+            {"frameworks": ["soc2"], "topics": ["access_control"], "document_types": ["report"]}
+        )
         mock_client = MagicMock()
         mock_client.chat.completions.create.return_value = mock_resp
         with patch("app.services.tag_service._classify_document_llm_tiebreak") as mock_fn:
@@ -239,18 +276,28 @@ class TestClassifier:
 
     def test_topic_detection_access_control(self):
         from unittest.mock import patch
+
         with patch("app.services.tag_service._classify_document_llm_tiebreak") as mock_fn:
-            mock_fn.return_value = [{"category": "topic", "key": "access_control", "confidence": 0.80}]
+            mock_fn.return_value = [
+                {"category": "topic", "key": "access_control", "confidence": 0.80}
+            ]
             results = classify_text("Role-based access control (RBAC) is enforced", "")
         keys = {r["key"] for r in results}
         assert "access_control" in keys
 
     def test_topic_detection_encryption(self):
         from unittest.mock import patch
-        with patch("app.services.tag_service._classify_document_deterministic", return_value=([], True)):
+
+        with patch(
+            "app.services.tag_service._classify_document_deterministic", return_value=([], True)
+        ):
             with patch("app.services.tag_service._classify_document_llm_tiebreak") as mock_fn:
-                mock_fn.return_value = [{"category": "topic", "key": "encryption", "confidence": 0.80}]
-                results = classify_text("All data is encrypted using AES-256 at rest and TLS in transit", "")
+                mock_fn.return_value = [
+                    {"category": "topic", "key": "encryption", "confidence": 0.80}
+                ]
+                results = classify_text(
+                    "All data is encrypted using AES-256 at rest and TLS in transit", ""
+                )
         keys = {r["key"] for r in results}
         assert "encryption" in keys
 
@@ -260,7 +307,10 @@ class TestClassifier:
 
     def test_multiple_tags_detected(self):
         from unittest.mock import patch
-        with patch("app.services.tag_service._classify_document_deterministic", return_value=([], True)):
+
+        with patch(
+            "app.services.tag_service._classify_document_deterministic", return_value=([], True)
+        ):
             with patch("app.services.tag_service._classify_document_llm_tiebreak") as mock_fn:
                 mock_fn.return_value = [
                     {"category": "framework", "key": "soc2", "confidence": 0.85},
@@ -282,6 +332,7 @@ class TestClassifier:
 
     def test_llm_failure_returns_empty(self):
         from unittest.mock import patch
+
         with patch("app.services.tag_service._classify_document_llm_tiebreak", return_value=None):
             results = classify_text("Some text", "file.pdf")
         assert len(results) == 0
@@ -289,9 +340,11 @@ class TestClassifier:
 
 # ── Auto-tagging integration ────────────────────────────────────────────────
 
+
 class TestAutoTag:
     def test_auto_tag_document(self, db_session: Session):
         from unittest.mock import patch
+
         ensure_system_tags(db_session)
         doc = _create_doc(db_session)
         db_session.commit()
@@ -300,8 +353,15 @@ class TestAutoTag:
             {"key": "access_control", "category": "topic", "confidence": 0.80},
             {"key": "policy", "category": "document_type", "confidence": 0.80},
         ]
-        with patch("app.services.tag_service._classify_document_deterministic", return_value=([], True)), \
-             patch("app.services.tag_service._classify_document_llm_tiebreak", return_value=mock_llm_result):
+        with (
+            patch(
+                "app.services.tag_service._classify_document_deterministic", return_value=([], True)
+            ),
+            patch(
+                "app.services.tag_service._classify_document_llm_tiebreak",
+                return_value=mock_llm_result,
+            ),
+        ):
             count = auto_tag_document(
                 db_session,
                 doc.id,
@@ -323,17 +383,22 @@ class TestAutoTag:
 
 # ── Shared test helpers ─────────────────────────────────────────────────────
 
+
 def _login(client, email="admin@trust.local", password="a"):
     client.post("/api/auth/login", json={"email": email, "password": password})
 
 
 # ── Document vs Evidence validation ─────────────────────────────────────────
 
+
 class TestDocumentEvidenceValidation:
     def test_evidence_without_document_returns_empty_tags(self, db_session: Session):
         """Evidence with no document_id should return tags=[] safely."""
         from app.services.tag_service import list_tags_for_document
-        ev = EvidenceItem(workspace_id=1, title="Manual evidence", source_type="manual", document_id=None)
+
+        ev = EvidenceItem(
+            workspace_id=1, title="Manual evidence", source_type="manual", document_id=None
+        )
         db_session.add(ev)
         db_session.flush()
         tags = list_tags_for_document(db_session, ev.document_id, 1) if ev.document_id else []
@@ -342,7 +407,9 @@ class TestDocumentEvidenceValidation:
     def test_evidence_api_without_document_returns_empty_tags(self, client, db_session: Session):
         """GET evidence detail for evidence without document should include tags=[]."""
         _login(client, email="admin@trust.local", password="a")
-        ev = EvidenceItem(workspace_id=1, title="No-doc evidence", source_type="manual", document_id=None)
+        ev = EvidenceItem(
+            workspace_id=1, title="No-doc evidence", source_type="manual", document_id=None
+        )
         db_session.add(ev)
         db_session.commit()
         db_session.refresh(ev)
@@ -353,6 +420,7 @@ class TestDocumentEvidenceValidation:
 
 
 # ── Seeding hardening ───────────────────────────────────────────────────────
+
 
 class TestSeedingHardening:
     def test_ensure_system_tags_triple_call_no_duplicates(self, db_session: Session):
@@ -366,6 +434,7 @@ class TestSeedingHardening:
 
 
 # ── Retrieval boost validation ──────────────────────────────────────────────
+
 
 class TestRetrievalBoost:
     def test_boost_only_for_framework_topic(self, db_session: Session):
@@ -411,6 +480,7 @@ class TestRetrievalBoost:
 
 # ── Filtering validation ────────────────────────────────────────────────────
 
+
 class TestFiltering:
     def test_filter_by_framework(self, client, db_session: Session):
         _login(client, email="admin@trust.local", password="a")
@@ -431,7 +501,9 @@ class TestFiltering:
         tag_ac = resolve_tag(db_session, "topic", "access_control")
         assign_tag(db_session, doc.id, tag_ac.id, workspace_id=1)
         db_session.commit()
-        resp = client.get("/api/documents/?workspace_id=1&tag_category=topic&tag_key=access_control")
+        resp = client.get(
+            "/api/documents/?workspace_id=1&tag_category=topic&tag_key=access_control"
+        )
         assert resp.status_code == 200
         ids = [d["id"] for d in resp.json()]
         assert doc.id in ids
@@ -458,6 +530,7 @@ class TestFiltering:
 
 
 # ── API endpoints ────────────────────────────────────────────────────────────
+
 
 class TestTagAPI:
     def test_documents_list_includes_tags(self, client, db_session: Session):
@@ -510,7 +583,9 @@ class TestTagAPI:
         ensure_system_tags(db_session)
         doc = _create_doc(db_session)
         tag = resolve_tag(db_session, "framework", "nist")
-        assign_tag(db_session, doc.id, tag.id, workspace_id=1, source="ai", confidence=0.8, approved=False)
+        assign_tag(
+            db_session, doc.id, tag.id, workspace_id=1, source="ai", confidence=0.8, approved=False
+        )
         db_session.commit()
         resp = client.get(f"/api/tags/documents/{doc.id}")
         assert resp.status_code == 200
@@ -527,7 +602,9 @@ class TestTagAPI:
         ensure_system_tags(db_session)
         doc = _create_doc(db_session)
         db_session.commit()
-        resp = client.post(f"/api/tags/documents/{doc.id}", json={"category": "framework", "key": "soc2"})
+        resp = client.post(
+            f"/api/tags/documents/{doc.id}", json={"category": "framework", "key": "soc2"}
+        )
         assert resp.status_code == 200
 
     def test_admin_can_remove_tags(self, client, db_session: Session):
@@ -559,7 +636,9 @@ class TestTagAPI:
         ensure_system_tags(db_session)
         doc = _create_doc(db_session)
         db_session.commit()
-        resp = client.post(f"/api/tags/documents/{doc.id}", json={"category": "framework", "key": "soc2"})
+        resp = client.post(
+            f"/api/tags/documents/{doc.id}", json={"category": "framework", "key": "soc2"}
+        )
         assert resp.status_code == 200
 
     def test_reviewer_can_remove_tags(self, client, db_session: Session):
@@ -590,7 +669,9 @@ class TestTagAPI:
         ensure_system_tags(db_session)
         doc = _create_doc(db_session)
         db_session.commit()
-        resp = client.post(f"/api/tags/documents/{doc.id}", json={"category": "framework", "key": "soc2"})
+        resp = client.post(
+            f"/api/tags/documents/{doc.id}", json={"category": "framework", "key": "soc2"}
+        )
         assert resp.status_code == 403
 
     def test_editor_cannot_remove_tags(self, client, db_session: Session):
@@ -619,7 +700,9 @@ class TestTagAPI:
         ensure_system_tags(db_session)
         doc = _create_doc(db_session)
         db_session.commit()
-        resp = client.post(f"/api/tags/documents/{doc.id}", json={"category": "framework", "key": "soc2"})
+        resp = client.post(
+            f"/api/tags/documents/{doc.id}", json={"category": "framework", "key": "soc2"}
+        )
         assert resp.status_code == 401
 
     # ── Cross-workspace isolation via API ──
@@ -629,7 +712,9 @@ class TestTagAPI:
         ensure_system_tags(db_session)
         doc = _create_doc(db_session, workspace_id=3)
         db_session.commit()
-        resp = client.post(f"/api/tags/documents/{doc.id}", json={"category": "framework", "key": "soc2"})
+        resp = client.post(
+            f"/api/tags/documents/{doc.id}", json={"category": "framework", "key": "soc2"}
+        )
         assert resp.status_code == 404
 
     # ── API consistency: tags shape ──
@@ -639,12 +724,23 @@ class TestTagAPI:
         ensure_system_tags(db_session)
         doc = _create_doc(db_session)
         tag = resolve_tag(db_session, "framework", "soc2")
-        assign_tag(db_session, doc.id, tag.id, workspace_id=1, source="ai", confidence=0.85, approved=False)
+        assign_tag(
+            db_session, doc.id, tag.id, workspace_id=1, source="ai", confidence=0.85, approved=False
+        )
         db_session.commit()
         resp = client.get(f"/api/tags/documents/{doc.id}")
         assert resp.status_code == 200
         t = resp.json()[0]
-        for field in ("id", "tag_id", "category", "key", "label", "source", "confidence", "approved"):
+        for field in (
+            "id",
+            "tag_id",
+            "category",
+            "key",
+            "label",
+            "source",
+            "confidence",
+            "approved",
+        ):
             assert field in t, f"Missing field: {field}"
 
     def test_documents_list_empty_tags_array(self, client, db_session: Session):

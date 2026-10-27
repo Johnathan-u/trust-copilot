@@ -14,6 +14,7 @@ Merge duplicate SOC 2 vs SOC2 framework rows in a local/dev database.
 
 Safety: refuses --apply unless TRUST_COPILOT_MERGE_SOC2=1 is set (or pass --i-know-what-im-doing for local scripts).
 """
+
 from __future__ import annotations
 
 import argparse
@@ -78,10 +79,14 @@ def repoint_workspace_control_id(db: Session, old_id: int, new_id: int) -> None:
     for table, col in updates:
         if not _table_exists(db, table):
             continue
-        db.execute(text(f"UPDATE {table} SET {col} = :n WHERE {col} = :o"), {"n": new_id, "o": old_id})
+        db.execute(
+            text(f"UPDATE {table} SET {col} = :n WHERE {col} = :o"), {"n": new_id, "o": old_id}
+        )
     if _table_exists(db, "question_mapping_preferences"):
         db.execute(
-            text("UPDATE question_mapping_preferences SET preferred_control_id = :n WHERE preferred_control_id = :o"),
+            text(
+                "UPDATE question_mapping_preferences SET preferred_control_id = :n WHERE preferred_control_id = :o"
+            ),
             {"n": new_id, "o": old_id},
         )
     db.commit()
@@ -90,7 +95,9 @@ def repoint_workspace_control_id(db: Session, old_id: int, new_id: int) -> None:
 def remap_control_mapping_override_json(db: Session, old_wc: int, new_wc: int) -> None:
     if not _table_exists(db, "control_mapping_override"):
         return
-    rows = db.execute(text("SELECT id, override_control_ids FROM control_mapping_override")).fetchall()
+    rows = db.execute(
+        text("SELECT id, override_control_ids FROM control_mapping_override")
+    ).fetchall()
     for rid, raw in rows:
         if not isinstance(raw, list):
             continue
@@ -98,7 +105,9 @@ def remap_control_mapping_override_json(db: Session, old_wc: int, new_wc: int) -
             continue
         new_list = [new_wc if x == old_wc else x for x in raw]
         db.execute(
-            text("UPDATE control_mapping_override SET override_control_ids = CAST(:j AS json) WHERE id = :i"),
+            text(
+                "UPDATE control_mapping_override SET override_control_ids = CAST(:j AS json) WHERE id = :i"
+            ),
             {"j": json.dumps(new_list), "i": rid},
         )
     db.commit()
@@ -222,17 +231,23 @@ def run_merge(db: Session, apply: bool) -> None:
                 )
                 if kw:
                     if apply:
-                        print(f"  Merge WC workspace={dw.workspace_id}: drop wc={dw.id} -> keep wc={kw.id}")
+                        print(
+                            f"  Merge WC workspace={dw.workspace_id}: drop wc={dw.id} -> keep wc={kw.id}"
+                        )
                         merge_duplicate_workspace_controls(db, kw.id, dw.id)
                     else:
-                        print(f"  [dry-run] Would merge WC workspace={dw.workspace_id}: drop wc={dw.id} -> keep wc={kw.id}")
+                        print(
+                            f"  [dry-run] Would merge WC workspace={dw.workspace_id}: drop wc={dw.id} -> keep wc={kw.id}"
+                        )
                 else:
                     if apply:
                         print(f"  Relink WC {dw.id} to canonical FC {cfc.id} ({cfc.control_key})")
                         dw.framework_control_id = cfc.id
                         db.commit()
                     else:
-                        print(f"  [dry-run] Would relink WC {dw.id} to canonical FC {cfc.id} ({cfc.control_key})")
+                        print(
+                            f"  [dry-run] Would relink WC {dw.id} to canonical FC {cfc.id} ({cfc.control_key})"
+                        )
             if apply:
                 remap_framework_control_ids_in_control_mappings(db, {dfc.id: cfc.id})
                 db.delete(dfc)
@@ -242,11 +257,15 @@ def run_merge(db: Session, apply: bool) -> None:
                 print(f"  [dry-run] Would delete duplicate FC id={dfc.id} key={dfc.control_key}")
         else:
             if apply:
-                print(f"  Move FC id={dfc.id} key={dfc.control_key} to canonical framework {canonical.id}")
+                print(
+                    f"  Move FC id={dfc.id} key={dfc.control_key} to canonical framework {canonical.id}"
+                )
                 dfc.framework_id = canonical.id
                 db.commit()
             else:
-                print(f"  [dry-run] Would move FC id={dfc.id} key={dfc.control_key} to canonical framework")
+                print(
+                    f"  [dry-run] Would move FC id={dfc.id} key={dfc.control_key} to canonical framework"
+                )
 
     if apply:
         remap_framework_control_ids_in_control_mappings(db, fc_id_remap)
@@ -259,7 +278,9 @@ def run_merge(db: Session, apply: bool) -> None:
 
 def main() -> None:
     p = argparse.ArgumentParser(description="Merge SOC2 duplicate framework into SOC 2 (dev only).")
-    p.add_argument("--dry-run", action="store_true", help="Print actions only (default if neither flag)")
+    p.add_argument(
+        "--dry-run", action="store_true", help="Print actions only (default if neither flag)"
+    )
     p.add_argument("--apply", action="store_true", help="Perform merge")
     p.add_argument(
         "--i-know-what-im-doing",

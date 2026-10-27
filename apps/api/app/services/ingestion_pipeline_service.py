@@ -33,9 +33,13 @@ def ingest_evidence(
     db.add(evidence)
     db.flush()
 
-    source = db.query(SourceRegistry).filter(
-        SourceRegistry.source_type == source_type,
-    ).first()
+    source = (
+        db.query(SourceRegistry)
+        .filter(
+            SourceRegistry.source_type == source_type,
+        )
+        .first()
+    )
     if source:
         source.last_sync_at = datetime.now(timezone.utc)
         source.last_error = None
@@ -59,7 +63,9 @@ def ingest_batch(
     results = []
     for item in items:
         result = ingest_evidence(
-            db, workspace_id, source_type,
+            db,
+            workspace_id,
+            source_type,
             title=item.get("title", "Untitled"),
             source_metadata=item.get("source_metadata"),
             document_id=item.get("document_id"),
@@ -75,12 +81,18 @@ def ingest_batch(
 def get_ingestion_stats(db: Session, workspace_id: int) -> dict:
     """Get ingestion statistics per source type."""
     from sqlalchemy import func
-    stats = db.query(
-        EvidenceItem.source_type,
-        func.count(EvidenceItem.id),
-    ).filter(
-        EvidenceItem.workspace_id == workspace_id,
-    ).group_by(EvidenceItem.source_type).all()
+
+    stats = (
+        db.query(
+            EvidenceItem.source_type,
+            func.count(EvidenceItem.id),
+        )
+        .filter(
+            EvidenceItem.workspace_id == workspace_id,
+        )
+        .group_by(EvidenceItem.source_type)
+        .all()
+    )
 
     return {
         "by_source": {st: cnt for st, cnt in stats},

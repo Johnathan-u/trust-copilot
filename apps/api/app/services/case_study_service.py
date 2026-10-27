@@ -8,11 +8,31 @@ from app.models.case_study import CaseStudy
 
 TEMPLATE = {
     "sections": [
-        {"name": "Company Background", "field": "company_name", "prompt": "Company name, industry, size, and relevant context."},
-        {"name": "The Challenge", "field": "challenge", "prompt": "How many questionnaires? How long did they take? What was the impact on deals?"},
-        {"name": "The Solution", "field": "solution", "prompt": "How Trust Copilot was deployed, what was uploaded, how answers were generated."},
-        {"name": "The Results", "field": "results", "prompt": "Time saved, questionnaires completed, deals unblocked, accuracy rate."},
-        {"name": "Customer Quote", "field": "quote", "prompt": "A direct quote from the customer about their experience."},
+        {
+            "name": "Company Background",
+            "field": "company_name",
+            "prompt": "Company name, industry, size, and relevant context.",
+        },
+        {
+            "name": "The Challenge",
+            "field": "challenge",
+            "prompt": "How many questionnaires? How long did they take? What was the impact on deals?",
+        },
+        {
+            "name": "The Solution",
+            "field": "solution",
+            "prompt": "How Trust Copilot was deployed, what was uploaded, how answers were generated.",
+        },
+        {
+            "name": "The Results",
+            "field": "results",
+            "prompt": "Time saved, questionnaires completed, deals unblocked, accuracy rate.",
+        },
+        {
+            "name": "Customer Quote",
+            "field": "quote",
+            "prompt": "A direct quote from the customer about their experience.",
+        },
     ],
     "suggested_metrics": [
         "questionnaires_completed",
@@ -31,7 +51,16 @@ def get_template() -> dict:
 
 def create(db: Session, workspace_id: int, title: str, **fields) -> dict:
     cs = CaseStudy(workspace_id=workspace_id, title=title)
-    for key in ("company_name", "industry", "company_size", "challenge", "solution", "results", "quote", "quote_attribution"):
+    for key in (
+        "company_name",
+        "industry",
+        "company_size",
+        "challenge",
+        "solution",
+        "results",
+        "quote",
+        "quote_attribution",
+    ):
         if key in fields and fields[key] is not None:
             setattr(cs, key, fields[key])
     if "metrics" in fields and fields["metrics"]:
@@ -42,7 +71,12 @@ def create(db: Session, workspace_id: int, title: str, **fields) -> dict:
 
 
 def list_all(db: Session, workspace_id: int) -> list[dict]:
-    rows = db.query(CaseStudy).filter(CaseStudy.workspace_id == workspace_id).order_by(CaseStudy.created_at.desc()).all()
+    rows = (
+        db.query(CaseStudy)
+        .filter(CaseStudy.workspace_id == workspace_id)
+        .order_by(CaseStudy.created_at.desc())
+        .all()
+    )
     return [_serialize(r) for r in rows]
 
 
@@ -55,7 +89,18 @@ def update(db: Session, case_id: int, **updates) -> dict | None:
     row = db.query(CaseStudy).filter(CaseStudy.id == case_id).first()
     if not row:
         return None
-    for key in ("title", "company_name", "industry", "company_size", "challenge", "solution", "results", "quote", "quote_attribution", "status"):
+    for key in (
+        "title",
+        "company_name",
+        "industry",
+        "company_size",
+        "challenge",
+        "solution",
+        "results",
+        "quote",
+        "quote_attribution",
+        "status",
+    ):
         if key in updates and updates[key] is not None:
             setattr(row, key, updates[key])
     if "metrics" in updates and updates["metrics"] is not None:

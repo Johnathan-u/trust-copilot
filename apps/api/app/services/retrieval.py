@@ -9,7 +9,11 @@ from sqlalchemy import and_, or_, text
 from sqlalchemy.orm import Session
 
 from app.core.config import get_settings
-from app.core.pipeline_logging import log_retrieval_failure, log_retrieval_start, log_retrieval_success
+from app.core.pipeline_logging import (
+    log_retrieval_failure,
+    log_retrieval_start,
+    log_retrieval_success,
+)
 from app.core.metrics import RETRIEVAL_DURATION_SECONDS
 from app.models import Chunk
 from app.services.vector_util import embedding_to_vector_literal, validate_embedding_dimension
@@ -20,9 +24,38 @@ logger = logging.getLogger(__name__)
 FALLBACK_MAX_CHUNKS = 10_000
 
 _STOPWORDS = frozenset(
-    {"the", "and", "for", "are", "does", "is", "has", "can", "how", "who", "what",
-     "when", "where", "which", "that", "this", "with", "from", "your", "have",
-     "been", "there", "into", "than", "not", "but", "was", "were", "did", "do"}
+    {
+        "the",
+        "and",
+        "for",
+        "are",
+        "does",
+        "is",
+        "has",
+        "can",
+        "how",
+        "who",
+        "what",
+        "when",
+        "where",
+        "which",
+        "that",
+        "this",
+        "with",
+        "from",
+        "your",
+        "have",
+        "been",
+        "there",
+        "into",
+        "than",
+        "not",
+        "but",
+        "was",
+        "were",
+        "did",
+        "do",
+    }
 )
 
 
@@ -76,7 +109,9 @@ class RetrievalService:
         try:
             if query_embedding and len(query_embedding) > 0:
                 validate_embedding_dimension(query_embedding, context="retrieval_query")
-                results = self._semantic_search(workspace_id, query_embedding, limit, min_score, doc_scope)
+                results = self._semantic_search(
+                    workspace_id, query_embedding, limit, min_score, doc_scope
+                )
             else:
                 results = []
             keyword_results = self._keyword_search(workspace_id, query, limit * 2, doc_scope)
@@ -132,7 +167,9 @@ class RetrievalService:
         md.setdefault("document_id", document_id)
         return md
 
-    def _filter_chunks_by_document_scope(self, chunks: list[dict], doc_scope: frozenset[int]) -> list[dict]:
+    def _filter_chunks_by_document_scope(
+        self, chunks: list[dict], doc_scope: frozenset[int]
+    ) -> list[dict]:
         """Keep only chunks whose resolved document_id is in doc_scope."""
         out: list[dict] = []
         for r in chunks:
@@ -177,12 +214,7 @@ class RetrievalService:
                         r.metadata_ if isinstance(r.metadata_, dict) else None, r.document_id
                     )
                     out.append({"id": r.id, "text": r.text, "metadata": md, "score": 0.85})
-        rows = (
-            self._db.query(Chunk)
-            .filter(base, all_cond)
-            .limit(limit)
-            .all()
-        )
+        rows = self._db.query(Chunk).filter(base, all_cond).limit(limit).all()
         for r in rows:
             if r.id not in seen_ids:
                 seen_ids.add(r.id)
@@ -203,7 +235,9 @@ class RetrievalService:
         """Semantic search (RET-01). Uses pgvector index when enabled, else in-memory cosine."""
         settings = get_settings()
         if settings.use_pgvector_index and embedding:
-            return self._semantic_search_pgvector(workspace_id, embedding, limit, min_score, doc_scope)
+            return self._semantic_search_pgvector(
+                workspace_id, embedding, limit, min_score, doc_scope
+            )
         return self._semantic_search_fallback(workspace_id, embedding, limit, min_score, doc_scope)
 
     def _semantic_search_pgvector(
@@ -257,16 +291,20 @@ class RetrievalService:
         """Fallback: load chunks (capped) and compute cosine in Python. Use pgvector in production."""
         logger.warning(
             "retrieval using semantic fallback (pgvector disabled or unavailable) workspace_id=%s limit=%s",
-            workspace_id, limit,
+            workspace_id,
+            limit,
         )
-        q = self._db.query(Chunk).filter(Chunk.workspace_id == workspace_id, Chunk.embedding.isnot(None))
+        q = self._db.query(Chunk).filter(
+            Chunk.workspace_id == workspace_id, Chunk.embedding.isnot(None)
+        )
         if doc_scope:
             q = q.filter(Chunk.document_id.in_(list(doc_scope)))
         rows = q.limit(FALLBACK_MAX_CHUNKS).all()
         if len(rows) >= FALLBACK_MAX_CHUNKS:
             logger.warning(
                 "retrieval fallback hit cap workspace_id=%s cap=%s",
-                workspace_id, FALLBACK_MAX_CHUNKS,
+                workspace_id,
+                FALLBACK_MAX_CHUNKS,
             )
         scored = [
             {
@@ -283,9 +321,7 @@ class RetrievalService:
         scored.sort(key=lambda x: x["score"], reverse=True)
         return scored[:limit]
 
-    def _merge_rerank(
-        self, semantic: list[dict], keyword: list[dict], limit: int
-    ) -> list[dict]:
+    def _merge_rerank(self, semantic: list[dict], keyword: list[dict], limit: int) -> list[dict]:
         """Merge and rerank (RET-03) - interleave semantic and keyword for better coverage."""
         seen = set()
         out = []
@@ -315,8 +351,13 @@ class RetrievalService:
             return results
         try:
             from app.services.ai_mapping_service import compute_retrieval_adjustments
+
             adjustments = compute_retrieval_adjustments(
-                self._db, workspace_id, query, results, question_id=question_id,
+                self._db,
+                workspace_id,
+                query,
+                results,
+                question_id=question_id,
             )
             if not adjustments:
                 return results

@@ -89,11 +89,15 @@ async def mark_read(
     """Mark a single notification as read."""
     ws = session["workspace_id"]
     uid = session.get("user_id")
-    n = db.query(InAppNotification).filter(
-        InAppNotification.id == notification_id,
-        InAppNotification.workspace_id == ws,
-        or_(InAppNotification.user_id == uid, InAppNotification.user_id.is_(None)),
-    ).first()
+    n = (
+        db.query(InAppNotification)
+        .filter(
+            InAppNotification.id == notification_id,
+            InAppNotification.workspace_id == ws,
+            or_(InAppNotification.user_id == uid, InAppNotification.user_id.is_(None)),
+        )
+        .first()
+    )
     if not n:
         raise HTTPException(status_code=404, detail="Notification not found")
     n.is_read = True
@@ -113,6 +117,10 @@ async def mark_all_read(
         return {"updated": 0}
     is_admin = can_admin(session.get("role"))
     filt = and_(_user_filter(ws, uid, is_admin), InAppNotification.is_read == False)
-    updated = db.query(InAppNotification).filter(filt).update({"is_read": True}, synchronize_session=False)
+    updated = (
+        db.query(InAppNotification)
+        .filter(filt)
+        .update({"is_read": True}, synchronize_session=False)
+    )
     db.commit()
     return {"updated": updated}

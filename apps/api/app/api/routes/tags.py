@@ -160,6 +160,7 @@ def get_tags_by_chunks(
     if ws is None:
         raise HTTPException(status_code=403, detail="No workspace")
     from app.models import Chunk
+
     chunk_ids = body.chunk_ids[:100]
     chunks = db.query(Chunk).filter(Chunk.id.in_(chunk_ids), Chunk.workspace_id == ws).all()
     doc_ids = list({c.document_id for c in chunks if c.document_id})

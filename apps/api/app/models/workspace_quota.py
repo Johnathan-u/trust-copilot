@@ -13,7 +13,13 @@ class WorkspaceQuota(Base):
     __tablename__ = "workspace_quotas"
 
     id = Column(Integer, primary_key=True, index=True)
-    workspace_id = Column(Integer, ForeignKey("workspaces.id", ondelete="CASCADE"), nullable=False, unique=True, index=True)
+    workspace_id = Column(
+        Integer,
+        ForeignKey("workspaces.id", ondelete="CASCADE"),
+        nullable=False,
+        unique=True,
+        index=True,
+    )
     max_documents = Column(Integer, nullable=False, default=500)
     max_questionnaires = Column(Integer, nullable=False, default=100)
     max_jobs_per_hour = Column(Integer, nullable=False, default=50)
@@ -32,7 +38,9 @@ class WorkspaceUsage(Base):
     __tablename__ = "workspace_usage"
 
     id = Column(Integer, primary_key=True, index=True)
-    workspace_id = Column(Integer, ForeignKey("workspaces.id", ondelete="CASCADE"), nullable=False, index=True)
+    workspace_id = Column(
+        Integer, ForeignKey("workspaces.id", ondelete="CASCADE"), nullable=False, index=True
+    )
     resource_type = Column(String(64), nullable=False)
     window_start = Column(DateTime, nullable=False)
     count = Column(Integer, nullable=False, default=0)

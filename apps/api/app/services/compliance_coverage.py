@@ -31,7 +31,8 @@ def get_compliance_coverage(db: Session, workspace_id: int) -> dict:
     total_questions = (
         db.query(func.count(Question.id))
         .filter(Question.questionnaire_id.in_(db.query(base_qnr.c.id)))
-        .scalar() or 0
+        .scalar()
+        or 0
     )
 
     answer_rows = (
@@ -63,7 +64,10 @@ def get_compliance_coverage(db: Session, workspace_id: int) -> dict:
         try:
             fw = json.loads(fw_json or "[]")
             subj = json.loads(subj_json or "[]")
-            signal_map[qid] = (fw if isinstance(fw, list) else [], subj if isinstance(subj, list) else [])
+            signal_map[qid] = (
+                fw if isinstance(fw, list) else [],
+                subj if isinstance(subj, list) else [],
+            )
         except Exception:
             signal_map[qid] = ([], [])
 
@@ -73,12 +77,18 @@ def get_compliance_coverage(db: Session, workspace_id: int) -> dict:
     high_conf = 0
     total_answered = 0
 
-    fw_stats: dict[str, dict[str, int]] = defaultdict(lambda: {"total": 0, "drafted": 0, "insufficient": 0})
+    fw_stats: dict[str, dict[str, int]] = defaultdict(
+        lambda: {"total": 0, "drafted": 0, "insufficient": 0}
+    )
     subj_insuff: Counter[str] = Counter()
     subj_conf: dict[str, list[int]] = defaultdict(list)
     subj_evidence: dict[str, list[int]] = defaultdict(list)
-    daily_stats: dict[str, dict[str, int]] = defaultdict(lambda: {"drafted": 0, "insufficient": 0, "total": 0, "low_conf": 0})
-    drill_data: dict[tuple[str, str], dict[str, int]] = defaultdict(lambda: {"questions": 0, "answered": 0, "low_conf": 0, "insufficient": 0})
+    daily_stats: dict[str, dict[str, int]] = defaultdict(
+        lambda: {"drafted": 0, "insufficient": 0, "total": 0, "low_conf": 0}
+    )
+    drill_data: dict[tuple[str, str], dict[str, int]] = defaultdict(
+        lambda: {"questions": 0, "answered": 0, "low_conf": 0, "insufficient": 0}
+    )
 
     for aid, qid, status, conf, cats_json, citations_json, created_at in answer_rows:
         total_answered += 1
@@ -153,7 +163,11 @@ def get_compliance_coverage(db: Session, workspace_id: int) -> dict:
                     drill_data[key]["low_conf"] += 1
 
         if created_at:
-            day = created_at.strftime("%Y-%m-%d") if isinstance(created_at, datetime) else str(created_at)[:10]
+            day = (
+                created_at.strftime("%Y-%m-%d")
+                if isinstance(created_at, datetime)
+                else str(created_at)[:10]
+            )
             daily_stats[day]["total"] += 1
             if is_draft:
                 daily_stats[day]["drafted"] += 1
@@ -237,9 +251,7 @@ def get_compliance_coverage(db: Session, workspace_id: int) -> dict:
             .all()
         )
         gap_suggestions = [
-            {"title": title, "improves_questions": int(cnt)}
-            for title, cnt in gap_rows
-            if title
+            {"title": title, "improves_questions": int(cnt)} for title, cnt in gap_rows if title
         ]
     except Exception:
         pass
@@ -260,12 +272,20 @@ def get_compliance_coverage(db: Session, workspace_id: int) -> dict:
             running_insuff += ds["insufficient"]
             running_total += ds["total"]
             running_low_conf += ds["low_conf"]
-            trends.append({
-                "date": day,
-                "coverage_pct": round(running_drafted / running_total * 100, 1) if running_total > 0 else 0,
-                "insufficient_pct": round(running_insuff / running_total * 100, 1) if running_total > 0 else 0,
-                "low_confidence_pct": round(running_low_conf / running_total * 100, 1) if running_total > 0 else 0,
-            })
+            trends.append(
+                {
+                    "date": day,
+                    "coverage_pct": round(running_drafted / running_total * 100, 1)
+                    if running_total > 0
+                    else 0,
+                    "insufficient_pct": round(running_insuff / running_total * 100, 1)
+                    if running_total > 0
+                    else 0,
+                    "low_confidence_pct": round(running_low_conf / running_total * 100, 1)
+                    if running_total > 0
+                    else 0,
+                }
+            )
 
     # ---------- Drill-down ----------
     drill_down = sorted(

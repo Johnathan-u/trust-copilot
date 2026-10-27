@@ -9,17 +9,25 @@ from app.services.embedding_service import embed_text
 
 def get_control_search_query(db: Session, control_id: int, workspace_id: int) -> str:
     """Build a search query string from control title/description for retrieval."""
-    wc = db.query(WorkspaceControl).filter(
-        WorkspaceControl.id == control_id,
-        WorkspaceControl.workspace_id == workspace_id,
-    ).first()
+    wc = (
+        db.query(WorkspaceControl)
+        .filter(
+            WorkspaceControl.id == control_id,
+            WorkspaceControl.workspace_id == workspace_id,
+        )
+        .first()
+    )
     if not wc:
         return ""
     parts = []
     if wc.custom_name and wc.custom_name.strip():
         parts.append(wc.custom_name.strip())
     if wc.framework_control_id:
-        fc = db.query(FrameworkControl).filter(FrameworkControl.id == wc.framework_control_id).first()
+        fc = (
+            db.query(FrameworkControl)
+            .filter(FrameworkControl.id == wc.framework_control_id)
+            .first()
+        )
         if fc:
             if fc.title and fc.title.strip():
                 parts.append(fc.title.strip())
@@ -66,10 +74,17 @@ def suggest_evidence(
     try:
         from app.services.tag_service import list_tags_for_documents as _batch_tags
         from app.models.tag import DocumentTag
-        doc_ids_in_results = list({
-            db.query(Chunk.document_id).filter(Chunk.id == r.get("id"), Chunk.workspace_id == workspace_id).scalar()
-            for r in results if r.get("id")
-        } - {None})
+
+        doc_ids_in_results = list(
+            {
+                db.query(Chunk.document_id)
+                .filter(Chunk.id == r.get("id"), Chunk.workspace_id == workspace_id)
+                .scalar()
+                for r in results
+                if r.get("id")
+            }
+            - {None}
+        )
         if doc_ids_in_results:
             tags_by_doc = _batch_tags(db, doc_ids_in_results, workspace_id)
             for did, tags in tags_by_doc.items():
@@ -83,7 +98,9 @@ def suggest_evidence(
         chunk_id = r.get("id")
         if chunk_id is None:
             continue
-        ch = db.query(Chunk).filter(Chunk.id == chunk_id, Chunk.workspace_id == workspace_id).first()
+        ch = (
+            db.query(Chunk).filter(Chunk.id == chunk_id, Chunk.workspace_id == workspace_id).first()
+        )
         if not ch:
             continue
         score = r.get("score") or 0.0
@@ -92,11 +109,13 @@ def suggest_evidence(
         if score < min_confidence:
             continue
         text = (r.get("text") or ch.text or "")[:500]
-        out.append({
-            "document_id": ch.document_id,
-            "chunk_id": chunk_id,
-            "snippet": text,
-            "confidence": round(score, 4),
-        })
+        out.append(
+            {
+                "document_id": ch.document_id,
+                "chunk_id": chunk_id,
+                "snippet": text,
+                "confidence": round(score, 4),
+            }
+        )
     out.sort(key=lambda x: x["confidence"], reverse=True)
     return out[:limit]

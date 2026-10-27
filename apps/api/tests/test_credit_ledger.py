@@ -25,11 +25,13 @@ def editor_client(client):
 # Service-layer unit tests
 # ---------------------------------------------------------------------------
 
+
 class TestCreditServiceUnit:
     """Direct service-layer tests (no HTTP)."""
 
     def test_credits_required_calculation(self):
         from app.services.credit_service import credits_required
+
         assert credits_required(1) == 1
         assert credits_required(100) == 1
         assert credits_required(101) == 2
@@ -43,6 +45,7 @@ class TestCreditServiceUnit:
             pytest.skip("Postgres not available")
         from app.core.database import SessionLocal
         from app.services.credit_service import get_or_create_ledger
+
         db = SessionLocal()
         try:
             ledger = get_or_create_ledger(db, 1)
@@ -59,8 +62,12 @@ class TestCreditServiceUnit:
             pytest.skip("Postgres not available")
         from app.core.database import SessionLocal
         from app.services.credit_service import (
-            add_credits, consume, get_balance, get_or_create_ledger,
+            add_credits,
+            consume,
+            get_balance,
+            get_or_create_ledger,
         )
+
         db = SessionLocal()
         try:
             ledger = get_or_create_ledger(db, 1)
@@ -123,7 +130,13 @@ class TestCreditServiceUnit:
             db.commit()
             txns = get_transactions(db, 1, limit=5)
             assert len(txns) > 0
-            assert txns[0]["kind"] in ("purchase", "allocation", "consumption", "reset", "adjustment")
+            assert txns[0]["kind"] in (
+                "purchase",
+                "allocation",
+                "consumption",
+                "reset",
+                "adjustment",
+            )
         finally:
             db.close()
 
@@ -131,6 +144,7 @@ class TestCreditServiceUnit:
 # ---------------------------------------------------------------------------
 # API endpoint tests
 # ---------------------------------------------------------------------------
+
 
 class TestCreditAPI:
     """HTTP-level tests for credit endpoints."""

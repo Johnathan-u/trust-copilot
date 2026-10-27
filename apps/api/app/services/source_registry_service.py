@@ -106,7 +106,9 @@ def seed_sources(db: Session, workspace_id: int) -> int:
     """Seed known source types for a workspace. Skip existing."""
     existing = {
         r.source_type
-        for r in db.query(SourceRegistry.source_type).filter(SourceRegistry.workspace_id == workspace_id).all()
+        for r in db.query(SourceRegistry.source_type)
+        .filter(SourceRegistry.workspace_id == workspace_id)
+        .all()
     }
     created = 0
     for src in KNOWN_SOURCES:
@@ -126,33 +128,55 @@ def list_sources(db: Session, workspace_id: int, enabled_only: bool = False) -> 
 
 
 def get_source(db: Session, workspace_id: int, source_type: str) -> dict | None:
-    row = db.query(SourceRegistry).filter(
-        SourceRegistry.workspace_id == workspace_id,
-        SourceRegistry.source_type == source_type,
-    ).first()
+    row = (
+        db.query(SourceRegistry)
+        .filter(
+            SourceRegistry.workspace_id == workspace_id,
+            SourceRegistry.source_type == source_type,
+        )
+        .first()
+    )
     return _serialize(row) if row else None
 
 
 def update_source(db: Session, workspace_id: int, source_type: str, **updates) -> dict | None:
-    row = db.query(SourceRegistry).filter(
-        SourceRegistry.workspace_id == workspace_id,
-        SourceRegistry.source_type == source_type,
-    ).first()
+    row = (
+        db.query(SourceRegistry)
+        .filter(
+            SourceRegistry.workspace_id == workspace_id,
+            SourceRegistry.source_type == source_type,
+        )
+        .first()
+    )
     if not row:
         return None
-    for key in ("enabled", "sync_cadence", "status", "config_json", "last_sync_at", "last_sync_status", "last_error"):
+    for key in (
+        "enabled",
+        "sync_cadence",
+        "status",
+        "config_json",
+        "last_sync_at",
+        "last_sync_status",
+        "last_error",
+    ):
         if key in updates:
             setattr(row, key, updates[key])
     db.flush()
     return _serialize(row)
 
 
-def record_sync(db: Session, workspace_id: int, source_type: str, success: bool, error: str | None = None) -> None:
+def record_sync(
+    db: Session, workspace_id: int, source_type: str, success: bool, error: str | None = None
+) -> None:
     """Record sync result for a source."""
-    row = db.query(SourceRegistry).filter(
-        SourceRegistry.workspace_id == workspace_id,
-        SourceRegistry.source_type == source_type,
-    ).first()
+    row = (
+        db.query(SourceRegistry)
+        .filter(
+            SourceRegistry.workspace_id == workspace_id,
+            SourceRegistry.source_type == source_type,
+        )
+        .first()
+    )
     if row:
         row.last_sync_at = datetime.now(timezone.utc)
         row.last_sync_status = "success" if success else "failed"

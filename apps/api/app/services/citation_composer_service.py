@@ -19,14 +19,22 @@ logger = logging.getLogger(__name__)
 
 def compose_citations(db: Session, workspace_id: int, control_id: int) -> dict:
     """Build a citation bundle for a workspace control, referencing approved evidence and control state."""
-    wc = db.query(WorkspaceControl).filter(
-        WorkspaceControl.id == control_id,
-        WorkspaceControl.workspace_id == workspace_id,
-    ).first()
+    wc = (
+        db.query(WorkspaceControl)
+        .filter(
+            WorkspaceControl.id == control_id,
+            WorkspaceControl.workspace_id == workspace_id,
+        )
+        .first()
+    )
     if not wc:
         return {"error": "Control not found"}
 
-    fc = db.query(FrameworkControl).filter(FrameworkControl.id == wc.framework_control_id).first() if wc.framework_control_id else None
+    fc = (
+        db.query(FrameworkControl).filter(FrameworkControl.id == wc.framework_control_id).first()
+        if wc.framework_control_id
+        else None
+    )
 
     links = db.query(ControlEvidenceLink).filter(ControlEvidenceLink.control_id == control_id).all()
     evidence_citations = []
@@ -41,7 +49,9 @@ def compose_citations(db: Session, workspace_id: int, control_id: int) -> dict:
             "approval_status": getattr(ev, "approval_status", "pending"),
             "confidence_score": link.confidence_score,
             "verified": link.verified,
-            "last_verified_at": link.last_verified_at.isoformat() if link.last_verified_at else None,
+            "last_verified_at": link.last_verified_at.isoformat()
+            if link.last_verified_at
+            else None,
         }
         evidence_citations.append(citation)
 
@@ -66,7 +76,9 @@ def compose_citations(db: Session, workspace_id: int, control_id: int) -> dict:
     }
 
 
-def compose_answer_citations(db: Session, workspace_id: int, answer_text: str, control_ids: list[int]) -> dict:
+def compose_answer_citations(
+    db: Session, workspace_id: int, answer_text: str, control_ids: list[int]
+) -> dict:
     """Compose citations for an answer, pulling from multiple controls."""
     all_citations = []
     controls = []
@@ -88,7 +100,9 @@ def compose_answer_citations(db: Session, workspace_id: int, answer_text: str, c
 def _calculate_strength(approved_evidence: list[dict], wc: WorkspaceControl) -> str:
     if not approved_evidence:
         return "none"
-    avg_confidence = sum(c.get("confidence_score") or 0 for c in approved_evidence) / len(approved_evidence)
+    avg_confidence = sum(c.get("confidence_score") or 0 for c in approved_evidence) / len(
+        approved_evidence
+    )
     verified_count = sum(1 for c in approved_evidence if c.get("verified"))
     if wc.status == "verified" and verified_count > 0 and avg_confidence >= 0.7:
         return "strong"

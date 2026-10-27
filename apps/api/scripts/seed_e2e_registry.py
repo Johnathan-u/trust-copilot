@@ -9,6 +9,7 @@ Creates:
 Run from apps/api: python -m scripts.seed_e2e_registry
 Requires: demo user/workspace from seed_demo_workspace; Postgres; MinIO for document storage.
 """
+
 from __future__ import annotations
 
 import json
@@ -40,7 +41,11 @@ def ensure_e2e_documents(db: Session, storage: StorageClient) -> None:
 
     Two active E2E rows are required so bulk-select Playwright tests never skip.
     """
-    for display_id, archived in [("DOC-E2E001", False), ("DOC-E2E002", True), ("DOC-E2E003", False)]:
+    for display_id, archived in [
+        ("DOC-E2E001", False),
+        ("DOC-E2E002", True),
+        ("DOC-E2E003", False),
+    ]:
         existing = db.query(Document).filter(Document.display_id == display_id).first()
         if existing:
             existing.deleted_at = E2E_NOW if archived else None

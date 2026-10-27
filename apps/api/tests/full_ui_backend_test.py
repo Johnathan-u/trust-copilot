@@ -31,6 +31,7 @@ Coverage:
     - 5 deleted frontend pages (confirm no page.tsx)
     Total: ~64 checks
 """
+
 """Not a pytest suite — run as: python tests/full_ui_backend_test.py"""
 __test__ = False
 
@@ -45,6 +46,7 @@ SESSION = requests.Session()
 
 results = {"pass": [], "fail": [], "warn": []}
 
+
 def log(status, msg):
     icon = {"PASS": "OK", "FAIL": "FAIL", "WARN": "WARN", "INFO": "    "}[status]
     print(f"  [{icon}] {msg}")
@@ -55,10 +57,12 @@ def log(status, msg):
     elif status == "WARN":
         results["warn"].append(msg)
 
+
 def section(title):
     print(f"\n{'='*60}")
     print(f"  {title}")
     print(f"{'='*60}")
+
 
 # ── Auth ──
 def login():
@@ -74,6 +78,7 @@ def login():
     else:
         log("FAIL", f"Login failed: {r.status_code} {r.text[:200]}")
         return False
+
 
 # ── API Endpoint Tests ──
 def test_api(method, path, desc, expected_codes=None, json_body=None, admin_only=False):
@@ -99,16 +104,26 @@ def test_api(method, path, desc, expected_codes=None, json_body=None, admin_only
                 detail = r.json().get("detail", "")[:100]
             except Exception:
                 detail = r.text[:100]
-            log("FAIL", f"{method} {path} -> {r.status_code} expected {expected_codes} ({desc}) {detail}")
+            log(
+                "FAIL",
+                f"{method} {path} -> {r.status_code} expected {expected_codes} ({desc}) {detail}",
+            )
             return r
     except Exception as e:
         log("FAIL", f"{method} {path} -> EXCEPTION: {e} ({desc})")
         return None
 
+
 def test_legacy_routes():
     """Check status of legacy backend routes (still mounted, not used by frontend)."""
     section("LEGACY BACKEND ROUTES (still mounted, unused by frontend)")
-    test_api("GET", "/api/controls", "legacy controls endpoint (still mounted, not used by UI)", expected_codes=[200, 403])
+    test_api(
+        "GET",
+        "/api/controls",
+        "legacy controls endpoint (still mounted, not used by UI)",
+        expected_codes=[200, 403],
+    )
+
 
 def test_auth_endpoints():
     section("AUTH ENDPOINTS")
@@ -117,6 +132,7 @@ def test_auth_endpoints():
     test_api("GET", "/api/auth/mfa/status", "MFA status")
     test_api("GET", "/api/auth/oauth/providers", "OAuth providers")
     test_api("GET", "/api/auth/alerts", "security alerts")
+
 
 def test_workspace_endpoints():
     section("WORKSPACE ENDPOINTS")
@@ -128,9 +144,11 @@ def test_workspace_endpoints():
         return ws_id
     return None
 
+
 def test_document_endpoints(ws_id):
     section("DOCUMENTS")
     test_api("GET", f"/api/documents/?workspace_id={ws_id}", "list documents")
+
 
 def test_questionnaire_endpoints(ws_id):
     section("QUESTIONNAIRES")
@@ -142,33 +160,49 @@ def test_questionnaire_endpoints(ws_id):
             log("INFO", f"  Found {len(qnrs)} questionnaires")
             qnr_ids = [q["id"] for q in qnrs[:3]]
             for qid in qnr_ids:
-                test_api("GET", f"/api/questionnaires/{qid}?workspace_id={ws_id}", f"questionnaire detail #{qid}")
+                test_api(
+                    "GET",
+                    f"/api/questionnaires/{qid}?workspace_id={ws_id}",
+                    f"questionnaire detail #{qid}",
+                )
     return qnr_ids
+
 
 def test_answer_stats(qnr_ids):
     section("ANSWER STATS (per questionnaire)")
     for qid in qnr_ids:
-        test_api("GET", f"/api/ai-governance/questionnaire-answer-stats/{qid}", f"answer stats for qnr #{qid}")
+        test_api(
+            "GET",
+            f"/api/ai-governance/questionnaire-answer-stats/{qid}",
+            f"answer stats for qnr #{qid}",
+        )
+
 
 def test_export_endpoints(ws_id):
     section("EXPORTS")
     test_api("GET", f"/api/exports/records?workspace_id={ws_id}", "list exports")
+
 
 def test_compliance_endpoints():
     section("COMPLIANCE / COVERAGE")
     test_api("GET", "/api/compliance-coverage", "compliance coverage dashboard")
     test_api("GET", "/api/compliance-alerts/active", "active compliance alerts", admin_only=True)
 
+
 def test_notification_endpoints():
     section("NOTIFICATIONS")
     test_api("GET", "/api/notifications/event-types", "notification event types")
     test_api("GET", "/api/notifications/policies", "notification policies", admin_only=True)
-    test_api("GET", "/api/notifications/log?page=1&page_size=5", "notification log", admin_only=True)
+    test_api(
+        "GET", "/api/notifications/log?page=1&page_size=5", "notification log", admin_only=True
+    )
     test_api("GET", "/api/in-app-notifications/unread-count", "unread count")
+
 
 def test_audit_endpoints():
     section("AUDIT / ACTIVITY")
     test_api("GET", "/api/audit/events?page=1&page_size=5", "audit events", admin_only=True)
+
 
 def test_member_endpoints():
     section("MEMBERS")
@@ -176,31 +210,40 @@ def test_member_endpoints():
     test_api("GET", "/api/members/invites", "list invites", admin_only=True)
     test_api("GET", "/api/members/roles", "list roles", admin_only=True)
 
+
 def test_slack_endpoints():
     section("SLACK")
     test_api("GET", "/api/slack/status", "slack status", admin_only=True)
 
+
 def test_gmail_endpoints():
     section("GMAIL")
     test_api("GET", "/api/gmail/status", "gmail status", admin_only=True)
+
 
 def test_ai_governance_endpoints():
     section("AI GOVERNANCE / INSIGHTS")
     test_api("GET", "/api/ai-insights", "AI insights dashboard", admin_only=True)
     test_api("GET", "/api/ai-governance/settings", "AI governance settings")
 
+
 def test_dashboard_cards():
     section("DASHBOARD CARDS")
     test_api("GET", "/api/dashboard/cards", "dashboard cards")
-    test_api("GET", "/api/dashboard/cards/allowed-routes", "allowed routes for cards", admin_only=True)
+    test_api(
+        "GET", "/api/dashboard/cards/allowed-routes", "allowed routes for cards", admin_only=True
+    )
+
 
 def test_trust_center(ws_id):
     section("TRUST CENTER")
     test_api("GET", f"/api/trust-articles?workspace_id={ws_id}", "trust articles")
 
+
 def test_vendor_requests():
     section("VENDOR REQUESTS (backend)")
     test_api("GET", "/api/vendor-requests", "list vendor requests")
+
 
 def test_deleted_frontend_routes_dont_break_backend():
     """
@@ -211,11 +254,13 @@ def test_deleted_frontend_routes_dont_break_backend():
     test_api("GET", "/api/trust-requests", "trust requests list (backend alive)")
     test_api("GET", "/api/compliance/controls", "compliance controls (backend alive)")
 
+
 def test_health():
     section("HEALTH / READINESS")
     test_api("GET", "/healthz", "health check")
     test_api("GET", "/readyz", "readiness check")
     test_api("GET", "/workerz", "worker heartbeat")
+
 
 def test_frontend_page_loads():
     """
@@ -268,7 +313,10 @@ def test_frontend_page_loads():
             if r.status_code == 404:
                 log("PASS", f"Deleted page {page} -> 404 (correct)")
             elif r.status_code in [200, 307, 302]:
-                log("WARN", f"Deleted page {page} -> {r.status_code} (Next.js may still serve shell; check if page.tsx is gone)")
+                log(
+                    "WARN",
+                    f"Deleted page {page} -> {r.status_code} (Next.js may still serve shell; check if page.tsx is gone)",
+                )
             else:
                 log("WARN", f"Deleted page {page} -> {r.status_code}")
         except Exception as e:
@@ -276,7 +324,9 @@ def test_frontend_page_loads():
 
     # Test that deleted mappings page 404s
     try:
-        r = SESSION.get(f"{frontend_base}/dashboard/questionnaires/1/mappings", timeout=10, allow_redirects=True)
+        r = SESSION.get(
+            f"{frontend_base}/dashboard/questionnaires/1/mappings", timeout=10, allow_redirects=True
+        )
         if r.status_code == 404:
             log("PASS", "Deleted mappings page -> 404 (correct)")
         else:
@@ -312,9 +362,9 @@ def print_summary():
 
 
 def main():
-    print("\n" + "="*60)
+    print("\n" + "=" * 60)
     print("  TRUST COPILOT - FULL UI + BACKEND INTEGRATION TEST")
-    print("="*60)
+    print("=" * 60)
 
     test_health()
 
@@ -351,6 +401,7 @@ def main():
     print_summary()
 
     sys.exit(1 if results["fail"] else 0)
+
 
 if __name__ == "__main__":
     main()

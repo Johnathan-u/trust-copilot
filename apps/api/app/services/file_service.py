@@ -50,13 +50,29 @@ class FileService:
         content = file.file.read()
         max_bytes = get_settings().max_upload_bytes
         if len(content) > max_bytes:
-            logger.warning("upload_rejected workspace_id=%s filename=%s reason=size_exceeded max_bytes=%s", workspace_id, getattr(file, "filename", ""), max_bytes)
-            raise HTTPException(status_code=413, detail=f"File exceeds max size ({max_bytes // (1024*1024)}MB)")
+            logger.warning(
+                "upload_rejected workspace_id=%s filename=%s reason=size_exceeded max_bytes=%s",
+                workspace_id,
+                getattr(file, "filename", ""),
+                max_bytes,
+            )
+            raise HTTPException(
+                status_code=413, detail=f"File exceeds max size ({max_bytes // (1024*1024)}MB)"
+            )
         safe_name = sanitize_filename(file.filename)
         ext = Path(safe_name).suffix.lower()
         if not ext or ext not in ALLOWED_RAW_EXTENSIONS:
-            logger.warning("upload_rejected workspace_id=%s filename=%s ext=%s reason=extension_not_allowed allowed=%s", workspace_id, safe_name, ext, sorted(ALLOWED_RAW_EXTENSIONS))
-            raise HTTPException(status_code=400, detail=f"File must have an allowed extension. Allowed: {', '.join(sorted(ALLOWED_RAW_EXTENSIONS))}")
+            logger.warning(
+                "upload_rejected workspace_id=%s filename=%s ext=%s reason=extension_not_allowed allowed=%s",
+                workspace_id,
+                safe_name,
+                ext,
+                sorted(ALLOWED_RAW_EXTENSIONS),
+            )
+            raise HTTPException(
+                status_code=400,
+                detail=f"File must have an allowed extension. Allowed: {', '.join(sorted(ALLOWED_RAW_EXTENSIONS))}",
+            )
         key = make_key(workspace_id, "raw", safe_name)
         self._storage.upload(
             self._storage.bucket_raw,
@@ -73,13 +89,28 @@ class FileService:
         content = file.file.read()
         max_bytes = get_settings().max_upload_bytes
         if len(content) > max_bytes:
-            logger.warning("upload_rejected trust_request workspace_id=%s request_id=%s filename=%s reason=size_exceeded", workspace_id, request_id, getattr(file, "filename", ""))
-            raise HTTPException(status_code=413, detail=f"File exceeds max size ({max_bytes // (1024*1024)}MB)")
+            logger.warning(
+                "upload_rejected trust_request workspace_id=%s request_id=%s filename=%s reason=size_exceeded",
+                workspace_id,
+                request_id,
+                getattr(file, "filename", ""),
+            )
+            raise HTTPException(
+                status_code=413, detail=f"File exceeds max size ({max_bytes // (1024*1024)}MB)"
+            )
         safe_name = sanitize_filename(file.filename)
         ext = Path(safe_name).suffix.lower()
         if not ext or ext not in ALLOWED_RAW_EXTENSIONS:
-            logger.warning("upload_rejected trust_request workspace_id=%s filename=%s ext=%s reason=extension_not_allowed", workspace_id, safe_name, ext)
-            raise HTTPException(status_code=400, detail=f"File must have an allowed extension. Allowed: {', '.join(sorted(ALLOWED_RAW_EXTENSIONS))}")
+            logger.warning(
+                "upload_rejected trust_request workspace_id=%s filename=%s ext=%s reason=extension_not_allowed",
+                workspace_id,
+                safe_name,
+                ext,
+            )
+            raise HTTPException(
+                status_code=400,
+                detail=f"File must have an allowed extension. Allowed: {', '.join(sorted(ALLOWED_RAW_EXTENSIONS))}",
+            )
         key = f"trust-requests/{workspace_id}/{request_id}/{uuid.uuid4().hex}{ext}"
         self._storage.upload(
             self._storage.bucket_raw,

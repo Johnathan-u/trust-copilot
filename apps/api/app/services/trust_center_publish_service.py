@@ -37,10 +37,14 @@ def auto_publish_approved_controls(db: Session, workspace_id: int) -> dict:
             continue
         seen_slugs.add(slug)
 
-        existing = db.query(TrustArticle).filter(
-            TrustArticle.workspace_id == workspace_id,
-            TrustArticle.slug == slug,
-        ).first()
+        existing = (
+            db.query(TrustArticle)
+            .filter(
+                TrustArticle.workspace_id == workspace_id,
+                TrustArticle.slug == slug,
+            )
+            .first()
+        )
 
         title = f"Control {label}: {ctrl.status.title()}"
         content = f"This control has been evaluated and is currently in **{ctrl.status}** status."
@@ -75,11 +79,15 @@ def auto_publish_approved_controls(db: Session, workspace_id: int) -> dict:
 
 def get_published_controls(db: Session, workspace_id: int) -> list[dict]:
     """Get all published Trust Center articles for controls."""
-    articles = db.query(TrustArticle).filter(
-        TrustArticle.workspace_id == workspace_id,
-        TrustArticle.slug.like("control-%"),
-        TrustArticle.published == 1,
-    ).all()
+    articles = (
+        db.query(TrustArticle)
+        .filter(
+            TrustArticle.workspace_id == workspace_id,
+            TrustArticle.slug.like("control-%"),
+            TrustArticle.published == 1,
+        )
+        .all()
+    )
     return [
         {
             "id": a.id,

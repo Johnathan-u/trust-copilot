@@ -21,7 +21,9 @@ async def collect_access(org: str | None = Query(None), session: dict = Depends(
 
 
 @router.get("/protection")
-async def collect_protection(org: str | None = Query(None), session: dict = Depends(require_can_admin)):
+async def collect_protection(
+    org: str | None = Query(None), session: dict = Depends(require_can_admin)
+):
     return gh.collect_branch_protection(org)
 
 

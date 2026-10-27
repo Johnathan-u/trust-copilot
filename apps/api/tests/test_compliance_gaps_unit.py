@@ -39,10 +39,14 @@ class TestScanAndNotifyCooldown:
         db = MagicMock()
         session = _fake_session()
 
-        with patch.object(gaps_mod, "global_gaps_list", side_effect=_fake_gaps), \
-             patch.object(gaps_mod, "notify_admins"):
+        with (
+            patch.object(gaps_mod, "global_gaps_list", side_effect=_fake_gaps),
+            patch.object(gaps_mod, "notify_admins"),
+        ):
             result = gaps_mod.scan_and_notify_gaps(
-                low_confidence_threshold=0.5, session=session, db=db,
+                low_confidence_threshold=0.5,
+                session=session,
+                db=db,
             )
         assert result["notified"] is True
         assert result["gaps"] == 2
@@ -56,7 +60,9 @@ class TestScanAndNotifyCooldown:
 
         with patch.object(gaps_mod, "global_gaps_list", side_effect=_fake_gaps):
             result = gaps_mod.scan_and_notify_gaps(
-                low_confidence_threshold=0.5, session=session, db=db,
+                low_confidence_threshold=0.5,
+                session=session,
+                db=db,
             )
         assert result["reason"] == "cooldown"
         assert result["notified"] is False
@@ -70,7 +76,9 @@ class TestScanAndNotifyCooldown:
 
         with patch.object(gaps_mod, "global_gaps_list", side_effect=_fake_no_gaps):
             result = gaps_mod.scan_and_notify_gaps(
-                low_confidence_threshold=0.5, session=session, db=db,
+                low_confidence_threshold=0.5,
+                session=session,
+                db=db,
             )
         assert result["gaps"] == 0
         assert result["reason"] == "cooldown"
@@ -78,6 +86,8 @@ class TestScanAndNotifyCooldown:
     def test_no_workspace_returns_zero(self):
         db = MagicMock()
         result = gaps_mod.scan_and_notify_gaps(
-            low_confidence_threshold=0.5, session={}, db=db,
+            low_confidence_threshold=0.5,
+            session={},
+            db=db,
         )
         assert result == {"gaps": 0, "notified": False}

@@ -26,9 +26,14 @@ async def acknowledge_alert(
     db: Session = Depends(get_db),
 ):
     result = am.acknowledge(
-        db, session["workspace_id"], req.alert_type, req.action,
-        control_id=req.control_id, reason=req.reason,
-        snooze_hours=req.snooze_hours, user_id=session.get("user_id"),
+        db,
+        session["workspace_id"],
+        req.alert_type,
+        req.action,
+        control_id=req.control_id,
+        reason=req.reason,
+        snooze_hours=req.snooze_hours,
+        user_id=session.get("user_id"),
     )
     if "error" in result:
         raise HTTPException(status_code=400, detail=result["error"])
@@ -43,4 +48,8 @@ async def list_acknowledgments(
     session: dict = Depends(require_can_admin),
     db: Session = Depends(get_db),
 ):
-    return {"acknowledgments": am.list_acknowledgments(db, session["workspace_id"], control_id, active_only)}
+    return {
+        "acknowledgments": am.list_acknowledgments(
+            db, session["workspace_id"], control_id, active_only
+        )
+    }

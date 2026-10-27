@@ -34,13 +34,17 @@ def _platform_metrics(db: Session) -> dict:
 
 
 def _revenue_metrics(db: Session) -> dict:
-    active_subs = db.query(func.count(Subscription.id)).filter(
-        Subscription.status.in_(["active", "trialing"])
-    ).scalar() or 0
+    active_subs = (
+        db.query(func.count(Subscription.id))
+        .filter(Subscription.status.in_(["active", "trialing"]))
+        .scalar()
+        or 0
+    )
     total_credits_consumed = (
         db.query(func.coalesce(func.sum(CreditTransaction.amount), 0))
         .filter(CreditTransaction.kind == "consumption")
-        .scalar() or 0
+        .scalar()
+        or 0
     )
     return {
         "active_subscriptions": active_subs,

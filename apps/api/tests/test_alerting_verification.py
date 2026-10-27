@@ -26,22 +26,36 @@ def test_workerz_503_logs_ALERT_WORKER_DOWN():
         # Force "worker not alive" by making first query return a stale timestamp
         stale = datetime.now(timezone.utc) - timedelta(minutes=3)
         from app.core import database
+
         real_connect = database.engine.connect
         call_count = [0]
+
         def connect_with_stale_heartbeat(*a, **k):
             conn = real_connect(*a, **k)
             real_execute = conn.execute
+
             def execute(stmt, *args, **kwargs):
                 s = str(stmt)
                 call_count[0] += 1
+
                 class FakeResult:
-                    def fetchone(self): return (stale,) if "worker_heartbeat" in s else real_execute(stmt, *args, **kwargs).fetchone()
-                    def scalar(self): return 0
+                    def fetchone(self):
+                        return (
+                            (stale,)
+                            if "worker_heartbeat" in s
+                            else real_execute(stmt, *args, **kwargs).fetchone()
+                        )
+
+                    def scalar(self):
+                        return 0
+
                 if "worker_heartbeat" in s:
                     return FakeResult()
                 return real_execute(stmt, *args, **kwargs)
+
             conn.execute = execute
             return conn
+
         with patch.object(database.engine, "connect", side_effect=connect_with_stale_heartbeat):
             client = TestClient(app)
             r = client.get("/workerz")
@@ -58,7 +72,10 @@ def test_job_failure_log_format_matches_docs(caplog):
     with caplog.at_level(logging.WARNING):
         logging.getLogger("trustcopilot.alert").warning(
             "ALERT_JOB_FAILURE job_id=%s kind=%s workspace_id=%s error=%s",
-            42, "index_document", 1, "Document not found"[:200],
+            42,
+            "index_document",
+            1,
+            "Document not found"[:200],
         )
     assert any("ALERT_JOB_FAILURE" in rec.message for rec in caplog.records)
     assert "job_id=" in caplog.text and "kind=" in caplog.text and "workspace_id=" in caplog.text
@@ -70,6 +87,7 @@ def test_openai_failure_logs_ALERT_OPENAI_FAILURE(caplog):
         m.return_value.openai_api_key = "invalid-key-for-test"
         with caplog.at_level(logging.WARNING):
             from app.services.embedding_service import embed_text
+
             result = embed_text("hello world")
         assert result is None
         assert any("ALERT_OPENAI_FAILURE" in rec.message for rec in caplog.records)

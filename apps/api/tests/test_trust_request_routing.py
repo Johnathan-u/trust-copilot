@@ -1,4 +1,5 @@
 """Tests for trust request workspace routing and attachment handling."""
+
 import io
 import pytest
 from unittest.mock import MagicMock, patch
@@ -61,11 +62,14 @@ class TestResolveWorkspace:
         _mock_db.refresh = MagicMock()
 
         with patch("app.api.routes.trust_requests.TrustRequest", return_value=mock_req):
-            r = client.post("/api/trust-requests/", json={
-                "requester_email": "a@b.com",
-                "message": "test",
-                "workspace_id": 1,
-            })
+            r = client.post(
+                "/api/trust-requests/",
+                json={
+                    "requester_email": "a@b.com",
+                    "message": "test",
+                    "workspace_id": 1,
+                },
+            )
 
         assert r.status_code == 200
         data = r.json()
@@ -75,21 +79,27 @@ class TestResolveWorkspace:
     def test_invalid_workspace_id_returns_404(self, _mock_db):
         _mock_db.query.return_value.filter.return_value.first.return_value = None
 
-        r = client.post("/api/trust-requests/", json={
-            "requester_email": "a@b.com",
-            "message": "test",
-            "workspace_id": 999,
-        })
+        r = client.post(
+            "/api/trust-requests/",
+            json={
+                "requester_email": "a@b.com",
+                "message": "test",
+                "workspace_id": 999,
+            },
+        )
         assert r.status_code == 404
 
     def test_bad_slug_returns_404(self, _mock_db):
         _mock_db.query.return_value.filter.return_value.first.return_value = None
 
-        r = client.post("/api/trust-requests/", json={
-            "requester_email": "a@b.com",
-            "message": "test",
-            "workspace_slug": "nonexistent",
-        })
+        r = client.post(
+            "/api/trust-requests/",
+            json={
+                "requester_email": "a@b.com",
+                "message": "test",
+                "workspace_slug": "nonexistent",
+            },
+        )
         assert r.status_code == 404
         assert "slug" in r.json()["detail"].lower()
 
@@ -174,7 +184,9 @@ class TestResolveWorkspaceFunction:
         ws.id = 7
         db.query.return_value.filter.return_value.first.return_value = ws
 
-        wid, method = resolve_workspace_for_trust_request(db, workspace_id=99, workspace_slug="other")
+        wid, method = resolve_workspace_for_trust_request(
+            db, workspace_id=99, workspace_slug="other"
+        )
         assert wid == 7
         assert method == "slug"
 

@@ -30,16 +30,24 @@ def get_benchmarks(db: Session, workspace_id: int) -> dict:
 
 def _questionnaire_metrics(db: Session, workspace_id: int) -> dict:
     total = db.query(Questionnaire).filter(Questionnaire.workspace_id == workspace_id).count()
-    parsed = db.query(Questionnaire).filter(
-        Questionnaire.workspace_id == workspace_id,
-        Questionnaire.status == "parsed",
-    ).count()
+    parsed = (
+        db.query(Questionnaire)
+        .filter(
+            Questionnaire.workspace_id == workspace_id,
+            Questionnaire.status == "parsed",
+        )
+        .count()
+    )
     exports = db.query(ExportRecord).filter(ExportRecord.workspace_id == workspace_id).count()
 
-    jobs = db.query(Job).filter(
-        Job.workspace_id == workspace_id,
-        Job.kind.in_(["generate-answers", "export"]),
-    ).all()
+    jobs = (
+        db.query(Job)
+        .filter(
+            Job.workspace_id == workspace_id,
+            Job.kind.in_(["generate-answers", "export"]),
+        )
+        .all()
+    )
 
     turnaround_seconds = []
     for j in jobs:
@@ -48,7 +56,9 @@ def _questionnaire_metrics(db: Session, workspace_id: int) -> dict:
             if delta > 0:
                 turnaround_seconds.append(delta)
 
-    avg_turnaround = round(sum(turnaround_seconds) / len(turnaround_seconds), 1) if turnaround_seconds else 0
+    avg_turnaround = (
+        round(sum(turnaround_seconds) / len(turnaround_seconds), 1) if turnaround_seconds else 0
+    )
 
     return {
         "total_questionnaires": total,

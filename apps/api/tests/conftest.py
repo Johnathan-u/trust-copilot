@@ -17,12 +17,16 @@ os.environ["TRUST_COPILOT_TESTING"] = "1"
 _db_host = "postgres" if os.path.exists("/.dockerenv") else "localhost"
 os.environ["DATABASE_URL"] = f"postgresql://postgres:postgres@{_db_host}:5432/trustcopilot_test"
 os.environ["SESSION_SECRET"] = "test-secret"
-os.environ["S3_ENDPOINT"] = f"http://{'minio' if os.path.exists('/.dockerenv') else 'localhost'}:9000"
+os.environ["S3_ENDPOINT"] = (
+    f"http://{'minio' if os.path.exists('/.dockerenv') else 'localhost'}:9000"
+)
 os.environ["S3_ACCESS_KEY"] = "minio"
 os.environ["S3_SECRET_KEY"] = "minio123"
 os.environ["S3_BUCKET_RAW"] = "test-raw"
 os.environ["S3_BUCKET_EXPORTS"] = "test-exports"
-os.environ["TRUSTED_ORIGINS"] = "http://localhost,http://localhost:3000,http://127.0.0.1,http://127.0.0.1:3000"
+os.environ["TRUSTED_ORIGINS"] = (
+    "http://localhost,http://localhost:3000,http://127.0.0.1,http://127.0.0.1:3000"
+)
 os.environ["RATE_LIMIT_RPM_PER_IP"] = "0"
 # Avoid real OpenAI calls from question_to_controls during most tests (enable in test_mapping_llm_rerank only).
 os.environ["MAPPING_LLM_RERANK"] = "0"
@@ -37,6 +41,7 @@ if not os.environ.get("OPENAI_API_KEY"):
 # Clear cached settings so it picks up the env vars set above
 try:
     from app.core.config import get_settings
+
     get_settings.cache_clear()
 except Exception:
     pass
@@ -50,11 +55,14 @@ _API_ROOT = Path(__file__).resolve().parent.parent
 def pytest_configure(config):
     """Ensure test env vars survive any .env loading and settings caching that happens during collection."""
     os.environ["TRUST_COPILOT_TESTING"] = "1"
-    os.environ["TRUSTED_ORIGINS"] = "http://localhost,http://localhost:3000,http://127.0.0.1,http://127.0.0.1:3000"
+    os.environ["TRUSTED_ORIGINS"] = (
+        "http://localhost,http://localhost:3000,http://127.0.0.1,http://127.0.0.1:3000"
+    )
     os.environ["RATE_LIMIT_RPM_PER_IP"] = "0"
     os.environ["MAPPING_LLM_RERANK"] = "0"
     try:
         from app.core.config import get_settings
+
         get_settings.cache_clear()
     except Exception:
         pass
@@ -63,6 +71,7 @@ def pytest_configure(config):
 def _create_test_db_if_needed():
     """Create the trustcopilot_test database if it does not exist."""
     import sqlalchemy
+
     admin_url = os.environ["DATABASE_URL"].rsplit("/", 1)[0] + "/postgres"
     try:
         eng = sqlalchemy.create_engine(admin_url, isolation_level="AUTOCOMMIT")
@@ -155,6 +164,7 @@ def _ensure_db_schema():
     try:
         # Clear any cached settings so they pick up test env vars
         from app.core.config import get_settings
+
         get_settings.cache_clear()
 
         _create_test_db_if_needed()
@@ -162,6 +172,7 @@ def _ensure_db_schema():
 
         # Verify registry columns exist; if not, schema drift from stamp-on-error.
         import sqlalchemy
+
         engine = sqlalchemy.create_engine(os.environ["DATABASE_URL"])
         if not _verify_registry_schema(engine):
             engine.dispose()
@@ -194,6 +205,7 @@ def _disable_rate_limit():
     """Reset in-memory rate limit counters and settings cache between tests."""
     from app.core import rate_limit as _rl
     from app.core.config import get_settings
+
     _rl._store.clear()
     _rl._backend = None
     get_settings.cache_clear()
@@ -210,6 +222,7 @@ def _ensure_test_data():
         from app.core.database import SessionLocal
         from app.core.password import hash_password
         from app.models import User, Workspace, WorkspaceMember
+
         session = SessionLocal()
         try:
             ws = session.query(Workspace).filter(Workspace.id == 1).first()
@@ -226,10 +239,14 @@ def _ensure_test_data():
                 session.add(user)
                 session.commit()
                 session.refresh(user)
-            mem = session.query(WorkspaceMember).filter(
-                WorkspaceMember.user_id == user.id,
-                WorkspaceMember.workspace_id == 1,
-            ).first()
+            mem = (
+                session.query(WorkspaceMember)
+                .filter(
+                    WorkspaceMember.user_id == user.id,
+                    WorkspaceMember.workspace_id == 1,
+                )
+                .first()
+            )
             if not mem:
                 session.add(WorkspaceMember(workspace_id=1, user_id=user.id, role="editor"))
                 session.commit()
@@ -237,10 +254,14 @@ def _ensure_test_data():
             if not ws2:
                 session.add(Workspace(id=2, name="Other", slug="other"))
                 session.commit()
-            mem2 = session.query(WorkspaceMember).filter(
-                WorkspaceMember.user_id == user.id,
-                WorkspaceMember.workspace_id == 2,
-            ).first()
+            mem2 = (
+                session.query(WorkspaceMember)
+                .filter(
+                    WorkspaceMember.user_id == user.id,
+                    WorkspaceMember.workspace_id == 2,
+                )
+                .first()
+            )
             if not mem2:
                 session.add(WorkspaceMember(workspace_id=2, user_id=user.id, role="editor"))
                 session.commit()
@@ -259,10 +280,14 @@ def _ensure_test_data():
                 session.add(reviewer)
                 session.commit()
                 session.refresh(reviewer)
-            rev_mem = session.query(WorkspaceMember).filter(
-                WorkspaceMember.user_id == reviewer.id,
-                WorkspaceMember.workspace_id == 1,
-            ).first()
+            rev_mem = (
+                session.query(WorkspaceMember)
+                .filter(
+                    WorkspaceMember.user_id == reviewer.id,
+                    WorkspaceMember.workspace_id == 1,
+                )
+                .first()
+            )
             if not rev_mem:
                 session.add(WorkspaceMember(workspace_id=1, user_id=reviewer.id, role="reviewer"))
                 session.commit()
@@ -277,10 +302,14 @@ def _ensure_test_data():
                 session.add(admin_u)
                 session.commit()
                 session.refresh(admin_u)
-            admin_mem = session.query(WorkspaceMember).filter(
-                WorkspaceMember.user_id == admin_u.id,
-                WorkspaceMember.workspace_id == 1,
-            ).first()
+            admin_mem = (
+                session.query(WorkspaceMember)
+                .filter(
+                    WorkspaceMember.user_id == admin_u.id,
+                    WorkspaceMember.workspace_id == 1,
+                )
+                .first()
+            )
             if not admin_mem:
                 session.add(WorkspaceMember(workspace_id=1, user_id=admin_u.id, role="admin"))
                 session.commit()
@@ -298,10 +327,14 @@ def _ensure_test_data():
                 session.add(editor_u)
                 session.commit()
                 session.refresh(editor_u)
-            editor_mem = session.query(WorkspaceMember).filter(
-                WorkspaceMember.user_id == editor_u.id,
-                WorkspaceMember.workspace_id == 1,
-            ).first()
+            editor_mem = (
+                session.query(WorkspaceMember)
+                .filter(
+                    WorkspaceMember.user_id == editor_u.id,
+                    WorkspaceMember.workspace_id == 1,
+                )
+                .first()
+            )
             if not editor_mem:
                 session.add(WorkspaceMember(workspace_id=1, user_id=editor_u.id, role="editor"))
                 session.commit()
@@ -319,8 +352,11 @@ def _ensure_test_data():
 def client(_ensure_test_data) -> Generator[TestClient, None, None]:
     """FastAPI TestClient with CSRF-safe headers and test data ensured. Skips when Postgres unavailable."""
     if not _ensure_test_data:
-        pytest.skip("Postgres not available (start Docker or set DATABASE_URL to trustcopilot_test)")
+        pytest.skip(
+            "Postgres not available (start Docker or set DATABASE_URL to trustcopilot_test)"
+        )
     from app.main import app
+
     yield TestClient(app, base_url=TEST_ORIGIN, headers=TEST_HEADERS)
 
 
@@ -329,6 +365,7 @@ def db_session() -> Generator[Session, None, None]:
     """Database session for direct DB access in tests."""
     _ensure_db_schema()
     from app.core.database import SessionLocal
+
     session = SessionLocal()
     try:
         yield session
@@ -341,6 +378,7 @@ def db_session() -> Generator[Session, None, None]:
 def test_workspace(db_session: Session) -> dict:
     """Test workspace (id=1) from seed. Must exist after migrations."""
     from app.models import Workspace
+
     ws = db_session.query(Workspace).filter(Workspace.id == 1).first()
     if ws:
         return {"id": ws.id, "name": ws.name, "slug": ws.slug}

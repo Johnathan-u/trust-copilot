@@ -58,16 +58,24 @@ async def create_checkout_session(
 
     workspace_id = body.workspace_id or session.get("workspace_id", 0)
 
-    existing = db.query(Subscription).filter(
-        Subscription.workspace_id == workspace_id,
-        Subscription.status.in_(["active", "trialing"]),
-    ).first()
+    existing = (
+        db.query(Subscription)
+        .filter(
+            Subscription.workspace_id == workspace_id,
+            Subscription.status.in_(["active", "trialing"]),
+        )
+        .first()
+    )
     if existing:
         raise HTTPException(status_code=400, detail="Workspace already has an active subscription")
 
-    sub_row = db.query(Subscription).filter(
-        Subscription.user_id == user_id,
-    ).first()
+    sub_row = (
+        db.query(Subscription)
+        .filter(
+            Subscription.user_id == user_id,
+        )
+        .first()
+    )
     customer_id = sub_row.stripe_customer_id if sub_row else None
 
     if not customer_id:
@@ -109,9 +117,14 @@ async def get_subscription(
 ):
     """Return the current workspace's subscription status."""
     workspace_id = session.get("workspace_id", 0)
-    sub = db.query(Subscription).filter(
-        Subscription.workspace_id == workspace_id,
-    ).order_by(Subscription.created_at.desc()).first()
+    sub = (
+        db.query(Subscription)
+        .filter(
+            Subscription.workspace_id == workspace_id,
+        )
+        .order_by(Subscription.created_at.desc())
+        .first()
+    )
 
     if not sub:
         return {"status": "none", "plan": None}
@@ -119,7 +132,9 @@ async def get_subscription(
     return {
         "status": sub.status,
         "plan": sub.plan,
-        "current_period_end": sub.current_period_end.isoformat() if sub.current_period_end else None,
+        "current_period_end": sub.current_period_end.isoformat()
+        if sub.current_period_end
+        else None,
         "cancel_at_period_end": bool(sub.cancel_at_period_end),
     }
 
@@ -134,9 +149,13 @@ async def create_portal_session(
     s = get_settings()
     workspace_id = session.get("workspace_id", 0)
 
-    sub = db.query(Subscription).filter(
-        Subscription.workspace_id == workspace_id,
-    ).first()
+    sub = (
+        db.query(Subscription)
+        .filter(
+            Subscription.workspace_id == workspace_id,
+        )
+        .first()
+    )
     if not sub or not sub.stripe_customer_id:
         raise HTTPException(status_code=400, detail="No billing account found")
 
@@ -198,9 +217,13 @@ def _handle_checkout_completed(data: dict, db: Session):
         logger.warning("checkout.session.completed missing customer or subscription")
         return
 
-    existing = db.query(Subscription).filter(
-        Subscription.stripe_subscription_id == subscription_id,
-    ).first()
+    existing = (
+        db.query(Subscription)
+        .filter(
+            Subscription.stripe_subscription_id == subscription_id,
+        )
+        .first()
+    )
 
     if existing:
         existing.status = "active"
@@ -220,12 +243,17 @@ def _handle_checkout_completed(data: dict, db: Session):
 
     try:
         from app.services import credit_service
+
         credit_service.get_or_create_ledger(db, workspace_id)
         db.commit()
     except Exception:
-        logger.warning("Failed to initialize credit ledger for workspace %s", workspace_id, exc_info=True)
+        logger.warning(
+            "Failed to initialize credit ledger for workspace %s", workspace_id, exc_info=True
+        )
 
-    logger.info("Subscription created/activated: workspace=%s customer=%s", workspace_id, customer_id)
+    logger.info(
+        "Subscription created/activated: workspace=%s customer=%s", workspace_id, customer_id
+    )
 
 
 def _handle_subscription_updated(data: dict, db: Session):

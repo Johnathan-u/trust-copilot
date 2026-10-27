@@ -40,7 +40,9 @@ class PreviewResult:
     unmodeled_warning: str | None = None
 
 
-def _deps_for_document(db: Session, workspace_id: int, entity_id: int) -> tuple[dict[str, int | str], bool]:
+def _deps_for_document(
+    db: Session, workspace_id: int, entity_id: int
+) -> tuple[dict[str, int | str], bool]:
     linked_questionnaires = int(
         db.query(func.count(Questionnaire.id))
         .filter(
@@ -88,13 +90,23 @@ def _deps_for_trust_request(db: Session, entity_id: int) -> tuple[dict[str, int 
     return deps, True
 
 
-def _deps_for_questionnaire(db: Session, workspace_id: int, entity_id: int) -> tuple[dict[str, int | str], bool]:
+def _deps_for_questionnaire(
+    db: Session, workspace_id: int, entity_id: int
+) -> tuple[dict[str, int | str], bool]:
     question_ids_subq = db.query(Question.id).filter(Question.questionnaire_id == entity_id)
     deps: dict[str, int | str] = {
         "generated_answers": int(
-            db.query(func.count(Answer.id)).filter(Answer.question_id.in_(question_ids_subq)).scalar() or 0
+            db.query(func.count(Answer.id))
+            .filter(Answer.question_id.in_(question_ids_subq))
+            .scalar()
+            or 0
         ),
-        "mappings": int(db.query(func.count(Question.id)).filter(Question.questionnaire_id == entity_id).scalar() or 0),
+        "mappings": int(
+            db.query(func.count(Question.id))
+            .filter(Question.questionnaire_id == entity_id)
+            .scalar()
+            or 0
+        ),
         "exports": int(
             db.query(func.count(ExportRecord.id))
             .filter(
@@ -109,7 +121,9 @@ def _deps_for_questionnaire(db: Session, workspace_id: int, entity_id: int) -> t
     return deps, True
 
 
-def build_delete_preview(kind: RegistryKind, db: Session, workspace_id: int, entity_id: int) -> PreviewResult:
+def build_delete_preview(
+    kind: RegistryKind, db: Session, workspace_id: int, entity_id: int
+) -> PreviewResult:
     if kind == "document":
         deps, has_unmodeled = _deps_for_document(db, workspace_id, entity_id)
         display = build_display_id(kind, entity_id)

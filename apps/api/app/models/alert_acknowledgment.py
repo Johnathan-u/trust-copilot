@@ -11,7 +11,9 @@ class AlertAcknowledgment(Base):
     __tablename__ = "alert_acknowledgments"
 
     id = Column(Integer, primary_key=True, autoincrement=True)
-    workspace_id = Column(Integer, ForeignKey("workspaces.id", ondelete="CASCADE"), nullable=False, index=True)
+    workspace_id = Column(
+        Integer, ForeignKey("workspaces.id", ondelete="CASCADE"), nullable=False, index=True
+    )
     control_id = Column(Integer, nullable=True, index=True)
     alert_type = Column(String(64), nullable=False)
     action = Column(String(32), nullable=False)

@@ -12,8 +12,8 @@ class Role(str, Enum):
 BUILTIN_ROLES = {Role.ADMIN.value, Role.EDITOR.value, Role.REVIEWER.value}
 
 BUILTIN_PERMISSIONS = {
-    "admin":    {"can_edit": True, "can_review": True, "can_export": True, "can_admin": True},
-    "editor":   {"can_edit": True, "can_review": True, "can_export": True, "can_admin": False},
+    "admin": {"can_edit": True, "can_review": True, "can_export": True, "can_admin": True},
+    "editor": {"can_edit": True, "can_review": True, "can_export": True, "can_admin": False},
     "reviewer": {"can_edit": False, "can_review": True, "can_export": False, "can_admin": False},
 }
 

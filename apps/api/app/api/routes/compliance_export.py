@@ -29,7 +29,11 @@ def _control_row(wc: WorkspaceControl, db: Session) -> dict:
     category = None
     title = (wc.custom_name or "").strip() or None
     if wc.framework_control_id:
-        fc = db.query(FrameworkControl).filter(FrameworkControl.id == wc.framework_control_id).first()
+        fc = (
+            db.query(FrameworkControl)
+            .filter(FrameworkControl.id == wc.framework_control_id)
+            .first()
+        )
         if fc:
             control_key = fc.control_key
             title = title or fc.title
@@ -37,7 +41,9 @@ def _control_row(wc: WorkspaceControl, db: Session) -> dict:
             fw = db.query(Framework).filter(Framework.id == fc.framework_id).first()
             if fw:
                 framework_name = fw.name
-    evidence_count = db.query(ControlEvidenceLink).filter(ControlEvidenceLink.control_id == wc.id).count()
+    evidence_count = (
+        db.query(ControlEvidenceLink).filter(ControlEvidenceLink.control_id == wc.id).count()
+    )
     max_conf_row = (
         db.query(func.max(ControlEvidenceLink.confidence_score))
         .filter(ControlEvidenceLink.control_id == wc.id)
@@ -80,7 +86,10 @@ def export_controls(
     data = [_control_row(wc, db) for wc in rows]
     if (format or "").lower() == "csv":
         if not data:
-            return Response(content="id,control_key,name,framework,category,status,evidence_count,max_confidence,has_verified,verified_at,verified_by_user_id,created_at\n", media_type="text/csv")
+            return Response(
+                content="id,control_key,name,framework,category,status,evidence_count,max_confidence,has_verified,verified_at,verified_by_user_id,created_at\n",
+                media_type="text/csv",
+            )
         out = io.StringIO()
         writer = csv.DictWriter(out, fieldnames=list(data[0].keys()), extrasaction="ignore")
         writer.writeheader()
@@ -93,7 +102,9 @@ def _gaps_data(db: Session, ws: int, low_confidence_threshold: float) -> list:
     out = []
     for wc in db.query(WorkspaceControl).filter(WorkspaceControl.workspace_id == ws).all():
         link_stats = (
-            db.query(func.count(ControlEvidenceLink.id), func.max(ControlEvidenceLink.confidence_score))
+            db.query(
+                func.count(ControlEvidenceLink.id), func.max(ControlEvidenceLink.confidence_score)
+            )
             .filter(ControlEvidenceLink.control_id == wc.id)
             .first()
         )
@@ -109,22 +120,28 @@ def _gaps_data(db: Session, ws: int, low_confidence_threshold: float) -> list:
         control_key = None
         title = wc.custom_name or None
         if wc.framework_control_id:
-            fc = db.query(FrameworkControl).filter(FrameworkControl.id == wc.framework_control_id).first()
+            fc = (
+                db.query(FrameworkControl)
+                .filter(FrameworkControl.id == wc.framework_control_id)
+                .first()
+            )
             if fc:
                 control_key = fc.control_key
                 title = title or fc.title
                 fw = db.query(Framework).filter(Framework.id == fc.framework_id).first()
                 if fw:
                     framework_name = fw.name
-        out.append({
-            "control_id": wc.id,
-            "control_key": control_key,
-            "name": title,
-            "framework": framework_name,
-            "evidence_count": evidence_count,
-            "max_confidence": round(max_conf, 4),
-            "gap_reason": gap_reason,
-        })
+        out.append(
+            {
+                "control_id": wc.id,
+                "control_key": control_key,
+                "name": title,
+                "framework": framework_name,
+                "evidence_count": evidence_count,
+                "max_confidence": round(max_conf, 4),
+                "gap_reason": gap_reason,
+            }
+        )
     return out
 
 
@@ -142,7 +159,10 @@ def export_gaps(
     data = _gaps_data(db, ws, low_confidence_threshold)
     if (format or "").lower() == "csv":
         if not data:
-            return Response(content="control_id,control_key,name,framework,evidence_count,max_confidence,gap_reason\n", media_type="text/csv")
+            return Response(
+                content="control_id,control_key,name,framework,evidence_count,max_confidence,gap_reason\n",
+                media_type="text/csv",
+            )
         out = io.StringIO()
         writer = csv.DictWriter(out, fieldnames=list(data[0].keys()), extrasaction="ignore")
         writer.writeheader()
@@ -170,27 +190,36 @@ def export_control_evidence_summary(
         control_key = None
         title = (wc.custom_name or "").strip() or None
         if wc.framework_control_id:
-            fc = db.query(FrameworkControl).filter(FrameworkControl.id == wc.framework_control_id).first()
+            fc = (
+                db.query(FrameworkControl)
+                .filter(FrameworkControl.id == wc.framework_control_id)
+                .first()
+            )
             if fc:
                 control_key = fc.control_key
                 title = title or fc.title
                 fw = db.query(Framework).filter(Framework.id == fc.framework_id).first()
                 if fw:
                     framework_name = fw.name
-        data.append({
-            "control_id": wc.id,
-            "control_key": control_key,
-            "name": title,
-            "framework": framework_name,
-            "status": wc.status,
-            "evidence_count": evidence_count,
-            "verified_evidence_count": verified_count,
-            "verified_at": wc.verified_at.isoformat() if wc.verified_at else None,
-            "verified_by_user_id": wc.verified_by_user_id,
-        })
+        data.append(
+            {
+                "control_id": wc.id,
+                "control_key": control_key,
+                "name": title,
+                "framework": framework_name,
+                "status": wc.status,
+                "evidence_count": evidence_count,
+                "verified_evidence_count": verified_count,
+                "verified_at": wc.verified_at.isoformat() if wc.verified_at else None,
+                "verified_by_user_id": wc.verified_by_user_id,
+            }
+        )
     if (format or "").lower() == "csv":
         if not data:
-            return Response(content="control_id,control_key,name,framework,status,evidence_count,verified_evidence_count,verified_at,verified_by_user_id\n", media_type="text/csv")
+            return Response(
+                content="control_id,control_key,name,framework,status,evidence_count,verified_evidence_count,verified_at,verified_by_user_id\n",
+                media_type="text/csv",
+            )
         out = io.StringIO()
         writer = csv.DictWriter(out, fieldnames=list(data[0].keys()), extrasaction="ignore")
         writer.writeheader()

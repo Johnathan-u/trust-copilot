@@ -33,11 +33,15 @@ def search(
     if control_id is not None:
         evidence_ids = [
             link.evidence_id
-            for link in db.query(ControlEvidenceLink.evidence_id).filter(
-                ControlEvidenceLink.control_id == control_id
-            ).all()
+            for link in db.query(ControlEvidenceLink.evidence_id)
+            .filter(ControlEvidenceLink.control_id == control_id)
+            .all()
         ]
-        q = q.filter(EvidenceItem.id.in_(evidence_ids)) if evidence_ids else q.filter(EvidenceItem.id == -1)
+        q = (
+            q.filter(EvidenceItem.id.in_(evidence_ids))
+            if evidence_ids
+            else q.filter(EvidenceItem.id == -1)
+        )
 
     if approval_status:
         q = q.filter(EvidenceItem.approval_status == approval_status)
@@ -69,10 +73,14 @@ def get_by_control(db: Session, workspace_id: int, control_id: int) -> list[dict
     links = db.query(ControlEvidenceLink).filter(ControlEvidenceLink.control_id == control_id).all()
     results = []
     for link in links:
-        ev = db.query(EvidenceItem).filter(
-            EvidenceItem.id == link.evidence_id,
-            EvidenceItem.workspace_id == workspace_id,
-        ).first()
+        ev = (
+            db.query(EvidenceItem)
+            .filter(
+                EvidenceItem.id == link.evidence_id,
+                EvidenceItem.workspace_id == workspace_id,
+            )
+            .first()
+        )
         if ev:
             d = _serialize(ev)
             d["confidence_score"] = link.confidence_score

@@ -71,8 +71,16 @@ def update_golden_answer(db: Session, ga_id: int, **updates) -> dict | None:
     ga = db.query(GoldenAnswer).filter(GoldenAnswer.id == ga_id).first()
     if not ga:
         return None
-    allowed = {"question_text", "answer_text", "category", "status", "confidence",
-               "review_cycle_days", "customer_override_for", "owner_user_id"}
+    allowed = {
+        "question_text",
+        "answer_text",
+        "category",
+        "status",
+        "confidence",
+        "review_cycle_days",
+        "customer_override_for",
+        "owner_user_id",
+    }
     for k, v in updates.items():
         if k in allowed:
             setattr(ga, k, v)
@@ -96,12 +104,17 @@ def review_golden_answer(db: Session, ga_id: int) -> dict | None:
 def get_expiring(db: Session, workspace_id: int, within_days: int = 14) -> list[dict]:
     """Get answers expiring soon (P1-75)."""
     threshold = datetime.now(timezone.utc) + timedelta(days=within_days)
-    answers = db.query(GoldenAnswer).filter(
-        GoldenAnswer.workspace_id == workspace_id,
-        GoldenAnswer.expires_at.isnot(None),
-        GoldenAnswer.expires_at <= threshold,
-        GoldenAnswer.status != "expired",
-    ).order_by(GoldenAnswer.expires_at.asc()).all()
+    answers = (
+        db.query(GoldenAnswer)
+        .filter(
+            GoldenAnswer.workspace_id == workspace_id,
+            GoldenAnswer.expires_at.isnot(None),
+            GoldenAnswer.expires_at <= threshold,
+            GoldenAnswer.status != "expired",
+        )
+        .order_by(GoldenAnswer.expires_at.asc())
+        .all()
+    )
     return [_serialize(ga) for ga in answers]
 
 
@@ -143,10 +156,14 @@ def find_similar(db: Session, workspace_id: int, question_text: str, limit: int 
     words = set(question_text.lower().split())
     if not words:
         return []
-    candidates = db.query(GoldenAnswer).filter(
-        GoldenAnswer.workspace_id == workspace_id,
-        GoldenAnswer.status.in_(["approved", "draft"]),
-    ).all()
+    candidates = (
+        db.query(GoldenAnswer)
+        .filter(
+            GoldenAnswer.workspace_id == workspace_id,
+            GoldenAnswer.status.in_(["approved", "draft"]),
+        )
+        .all()
+    )
 
     scored = []
     for ga in candidates:

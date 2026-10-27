@@ -11,6 +11,7 @@ from app.services.trust_scoring import compute_trust_score
 
 # -- Helper -----------------------------------------------------------------
 
+
 def _e(desc, src, days, rel, **flags):
     """Shorthand evidence-item builder."""
     return {
@@ -38,7 +39,6 @@ CASES = [
             _e("Phone number matches public directory listing", "public", 0, "supporting"),
         ],
     },
-
     # -- C002  Strong with minor freshness issue (expected 84) --------------
     {
         "id": "C002",
@@ -53,7 +53,6 @@ CASES = [
         ],
         "missing_critical": ["recent_address_proof"],
     },
-
     # -- C003  Good with one soft inconsistency (expected 91) ---------------
     {
         "id": "C003",
@@ -66,7 +65,6 @@ CASES = [
             _e("Employer letter shows address", "official", 0, "supporting"),
         ],
     },
-
     # -- C004  Moderate with incomplete evidence (expected 68) ---------------
     {
         "id": "C004",
@@ -79,7 +77,6 @@ CASES = [
         ],
         "missing_critical": ["hr_verification"],
     },
-
     # -- C005  Moderate with stale evidence (expected 57) --------------------
     {
         "id": "C005",
@@ -92,7 +89,6 @@ CASES = [
         ],
         "missing_critical": ["recent_bills", "tax_notices"],
     },
-
     # -- C006  Mixed with direct contradiction (expected 49) -----------------
     {
         "id": "C006",
@@ -100,12 +96,17 @@ CASES = [
         "expected": 49,
         "evidence": [
             _e("Employer letter implies $8,200/month gross", "official", 0, "direct"),
-            _e("Bank deposits average $5,100/month (last 3 months)", "official", 0, "direct", contradicts=True),
+            _e(
+                "Bank deposits average $5,100/month (last 3 months)",
+                "official",
+                0,
+                "direct",
+                contradicts=True,
+            ),
             _e("Payslips show one-time bonus in January", "official", 60, "supporting"),
             _e("Applicant explanation: seasonal commissions", "self_reported", 0, "supporting"),
         ],
     },
-
     # -- C007  Weak, only self-reported (expected 28) ------------------------
     {
         "id": "C007",
@@ -117,7 +118,6 @@ CASES = [
         ],
         "missing_critical": ["independent_order_verification"],
     },
-
     # -- C008  Strong despite one weak contradictory signal (expected 88) ----
     {
         "id": "C008",
@@ -127,10 +127,15 @@ CASES = [
             _e("Charity commission registry: active as of 2026-03-01", "primary", 14, "direct"),
             _e("Annual filing accepted", "official", 30, "direct"),
             _e("Bank letter matches entity details", "official", 14, "direct"),
-            _e("One old directory site: status 'unknown'", "public", 365, "supporting", contradicts=True),
+            _e(
+                "One old directory site: status 'unknown'",
+                "public",
+                365,
+                "supporting",
+                contradicts=True,
+            ),
         ],
     },
-
     # -- C009  Duplicate evidence pretending to be multiple (expected 42) ----
     {
         "id": "C009",
@@ -139,10 +144,15 @@ CASES = [
         "evidence": [
             _e("PDF bank statement", "official", 0, "direct"),
             _e("JPG image of the same bank statement", "official", 0, "direct", is_duplicate=True),
-            _e("Cropped screenshot of same statement header", "official", 0, "direct", is_duplicate=True),
+            _e(
+                "Cropped screenshot of same statement header",
+                "official",
+                0,
+                "direct",
+                is_duplicate=True,
+            ),
         ],
     },
-
     # -- C010  Missing critical fields (expected 12) -------------------------
     {
         "id": "C010",
@@ -155,7 +165,6 @@ CASES = [
         ],
         "missing_critical": ["registration_docs", "tax_id", "verified_address"],
     },
-
     # -- C011  High-quality with multilingual variance (expected 86) ---------
     {
         "id": "C011",
@@ -163,24 +172,46 @@ CASES = [
         "expected": 86,
         "evidence": [
             _e("Domestic registry uses Spanish legal name", "primary", 30, "direct"),
-            _e("International invoice uses English trade name", "independent", 30, "direct", inconsistency=True),
+            _e(
+                "International invoice uses English trade name",
+                "independent",
+                30,
+                "direct",
+                inconsistency=True,
+            ),
             _e("Tax certificate with same registration number", "primary", 30, "direct"),
-            _e("Bank letter references abbreviated name 'Tec del Norte'", "official", 30, "supporting", inconsistency=True),
+            _e(
+                "Bank letter references abbreviated name 'Tec del Norte'",
+                "official",
+                30,
+                "supporting",
+                inconsistency=True,
+            ),
         ],
     },
-
     # -- C012  Fraud-suspected document tampering (expected 6) ---------------
     {
         "id": "C012",
         "claim": "Bank statement proves cash reserves of $240,000.",
         "expected": 6,
         "evidence": [
-            _e("Submitted PDF bank statement (image editor metadata, font mismatch)", "official", 0, "direct", tampering=True),
-            _e("Prior month balance pattern inconsistent", "official", 30, "direct", contradicts=True),
+            _e(
+                "Submitted PDF bank statement (image editor metadata, font mismatch)",
+                "official",
+                0,
+                "direct",
+                tampering=True,
+            ),
+            _e(
+                "Prior month balance pattern inconsistent",
+                "official",
+                30,
+                "direct",
+                contradicts=True,
+            ),
         ],
         "missing_critical": ["direct_bank_verification"],
     },
-
     # -- C013  Conflicting primary sources (expected 34) ---------------------
     {
         "id": "C013",
@@ -188,24 +219,34 @@ CASES = [
         "expected": 34,
         "evidence": [
             _e("State agency portal A: 'Active' as of 2026-02-28", "primary", 16, "direct"),
-            _e("Renewal enforcement portal B: 'Suspended for non-payment' 2026-03-09", "primary", 7, "direct", contradicts=True),
+            _e(
+                "Renewal enforcement portal B: 'Suspended for non-payment' 2026-03-09",
+                "primary",
+                7,
+                "direct",
+                contradicts=True,
+            ),
             _e("Old renewal receipt from 2025", "official", 365, "supporting"),
         ],
     },
-
     # -- C014  Partial mismatch with plausible explanation (expected 82) -----
     {
         "id": "C014",
         "claim": "Owner identity is verified.",
         "expected": 82,
         "evidence": [
-            _e("Passport: 'Sameer Alhadi' (transliteration variant)", "primary", 0, "direct", inconsistency=True),
+            _e(
+                "Passport: 'Sameer Alhadi' (transliteration variant)",
+                "primary",
+                0,
+                "direct",
+                inconsistency=True,
+            ),
             _e("Tax record: 'Samir Al-Hadi'", "primary", 0, "direct"),
             _e("Facial match passes", "independent", 0, "direct"),
             _e("Address matches across records", "independent", 0, "supporting"),
         ],
     },
-
     # -- C015  Poor case, stale-only evidence (expected 21) ------------------
     {
         "id": "C015",
@@ -219,7 +260,6 @@ CASES = [
             _e("Website no longer loads", "public", 0, "direct", negative_signal=True),
         ],
     },
-
     # -- C016  Strong with third-party corroboration (expected 93) -----------
     {
         "id": "C016",
@@ -236,7 +276,6 @@ CASES = [
             _e("Insurance certificates current", "official", 0, "supporting"),
         ],
     },
-
     # -- C017  Borderline with irrelevant evidence padding (expected 46) -----
     {
         "id": "C017",
@@ -247,9 +286,13 @@ CASES = [
             _e("8 product photos", "self_reported", 0, "tangential"),
             _e("1 warehouse lease", "official", 0, "direct"),
         ],
-        "missing_critical": ["shipping_sla", "order_throughput", "carrier_accounts", "delivery_performance"],
+        "missing_critical": [
+            "shipping_sla",
+            "order_throughput",
+            "carrier_accounts",
+            "delivery_performance",
+        ],
     },
-
     # -- C018  Excellent with recency and primary evidence (expected 95) -----
     {
         "id": "C018",
@@ -262,7 +305,6 @@ CASES = [
             _e("Accounts receivable aging 2026-03-17", "official", 4, "direct"),
         ],
     },
-
     # -- C019  Evidence supports existence, not specific claim (expected 31) -
     {
         "id": "C019",
@@ -276,7 +318,6 @@ CASES = [
         ],
         "missing_critical": ["financial_statements", "tax_filings", "bank_inflow_summaries"],
     },
-
     # -- C020  Very strong with one unresolved small gap (expected 78) -------
     {
         "id": "C020",
@@ -288,7 +329,9 @@ CASES = [
             _e("Warehouse contract active", "official", 30, "direct"),
             _e("Insurance active", "official", 0, "supporting"),
             _e("Prior import entries in customs history", "primary", 30, "direct"),
-            _e("Safety certificate expired 10 days ago", "official", 10, "direct", contradicts=True),
+            _e(
+                "Safety certificate expired 10 days ago", "official", 10, "direct", contradicts=True
+            ),
         ],
         "missing_critical": ["valid_safety_certificate"],
     },
@@ -320,6 +363,7 @@ def test_trust_score(case):
 
 
 # -- Report runner (use `pytest -s -k report` to see table) -----------------
+
 
 def test_report_all_cases():
     """Print a comparison table of all 20 cases."""

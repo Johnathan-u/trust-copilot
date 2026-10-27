@@ -165,6 +165,7 @@ def _verify_db_connectivity():
     import logging
     from sqlalchemy import text
     from app.core.database import engine
+
     log = logging.getLogger("app.main")
     try:
         with engine.connect() as conn:
@@ -186,6 +187,7 @@ async def lifespan(app: FastAPI):
         storage.ensure_buckets()
     except Exception as e:
         import logging
+
         logging.getLogger("app.main").warning("S3/MinIO bucket init skipped or failed: %s", e)
     configure_logging(s.log_level, use_json=(s.app_env == "production"))
     if s.app_env == "production":
@@ -195,22 +197,30 @@ async def lifespan(app: FastAPI):
                 "Use a cryptographically secure value (min 32 chars)."
             )
         if len(s.session_secret) < 32:
-            raise RuntimeError(
-                "SESSION_SECRET must be at least 32 characters in production."
-            )
+            raise RuntimeError("SESSION_SECRET must be at least 32 characters in production.")
     else:
         if not s.session_secret or s.session_secret == "change_me_dev_secret":
             import logging
+
             logging.getLogger("app.main").warning(
                 "SESSION_SECRET is default or unset. Set SESSION_SECRET to a secure value for non-local use."
             )
-    print("OpenAI: configured" if s.openai_api_key else "OpenAI: not configured (Suggest Reply will return 503 or empty)", flush=True)
+    print(
+        "OpenAI: configured"
+        if s.openai_api_key
+        else "OpenAI: not configured (Suggest Reply will return 503 or empty)",
+        flush=True,
+    )
     if s.oauth_google_client_id:
         google_redirect = f"{s.app_base_url.rstrip('/')}/api/auth/oauth/google/callback"
-        print(f"Google OAuth: add this exact Authorized redirect URI in Google Cloud Console: {google_redirect}", flush=True)
+        print(
+            f"Google OAuth: add this exact Authorized redirect URI in Google Cloud Console: {google_redirect}",
+            flush=True,
+        )
     try:
         from app.core.database import SessionLocal
         from app.services.tag_service import ensure_system_tags
+
         _db = SessionLocal()
         try:
             ensure_system_tags(_db)
@@ -218,6 +228,7 @@ async def lifespan(app: FastAPI):
             _db.close()
     except Exception:
         import logging
+
         logging.getLogger("app.main").debug("System tag seeding skipped", exc_info=True)
     yield
 
@@ -230,6 +241,7 @@ class StructuredLoggingMiddleware(BaseHTTPMiddleware):
 
     async def dispatch(self, request: Request, call_next):
         import logging
+
         request_id = str(uuid.uuid4())
         request.state.request_id = request_id
         token = request_id_ctx.set(request_id)
@@ -242,13 +254,22 @@ class StructuredLoggingMiddleware(BaseHTTPMiddleware):
             elapsed = time.perf_counter() - start
             latency_ms = round(elapsed * 1000)
             try:
-                wid = getattr(request.state, "workspace_id", None) if hasattr(request, "state") else None
+                wid = (
+                    getattr(request.state, "workspace_id", None)
+                    if hasattr(request, "state")
+                    else None
+                )
             except Exception:
                 wid = None
             workspace_id_ctx.set(wid)
             logging.getLogger("app.request").info(
                 "request",
-                extra={"route": path, "method": method, "status_code": status, "latency_ms": latency_ms},
+                extra={
+                    "route": path,
+                    "method": method,
+                    "status_code": status,
+                    "latency_ms": latency_ms,
+                },
             )
             metrics_record_request(method, path, status, elapsed)
             return response
@@ -288,11 +309,16 @@ class CSRFMiddleware(BaseHTTPMiddleware):
                     x_forwarded_proto=xfp,
                 ):
                     import logging
+
                     logging.getLogger("app.main").warning(
                         "CSRF reject: Origin=%r Referer=%r trusted_origins=%r path=%s",
-                        origin, referer, s.trusted_origins, request.scope.get("path"),
+                        origin,
+                        referer,
+                        s.trusted_origins,
+                        request.scope.get("path"),
                     )
                     from starlette.responses import JSONResponse
+
                     return JSONResponse(
                         status_code=403,
                         content={"detail": "Invalid or missing Origin/Referer"},
@@ -314,6 +340,7 @@ class GlobalRateLimitMiddleware(BaseHTTPMiddleware):
         key = f"api_ip:{ip}"
         if is_rate_limited(key, max_attempts=s.rate_limit_rpm_per_ip, window_sec=60.0):
             from starlette.responses import JSONResponse
+
             return JSONResponse(status_code=429, content={"detail": "Too many requests"})
         record_attempt(key, max_attempts=s.rate_limit_rpm_per_ip, window_sec=60.0)
         return await call_next(request)
@@ -433,6 +460,7 @@ def metrics():
     """Prometheus scrape endpoint. Request count, latency histogram, 5xx count."""
     from starlette.responses import Response
     from app.core.metrics import get_metrics_body, get_metrics_content_type
+
     return Response(content=get_metrics_body(), media_type=get_metrics_content_type())
 
 
@@ -446,11 +474,13 @@ def db_test():
     """Debug: verify DB connection. Only available in dev/test environments."""
     from fastapi.responses import JSONResponse
     from app.core.config import get_settings
+
     if get_settings().app_env == "production":
         return JSONResponse({"detail": "Not available"}, status_code=404)
     from sqlalchemy import text
     from sqlalchemy.exc import OperationalError
     from app.core.database import engine
+
     try:
         with engine.connect() as conn:
             conn.execute(text("SELECT 1"))
@@ -469,6 +499,7 @@ def readyz():
     errors = []
     try:
         from app.core.database import engine
+
         with engine.connect() as conn:
             conn.execute(text("SELECT 1"))
     except OperationalError as e:
@@ -499,23 +530,33 @@ def workerz():
 
     try:
         with engine.connect() as conn:
-            row = conn.execute(text("SELECT last_seen_utc FROM worker_heartbeat WHERE id = 1")).fetchone()
-            queued = conn.execute(text("SELECT COUNT(*) FROM jobs WHERE status = 'queued'")).scalar() or 0
-            running = conn.execute(text("SELECT COUNT(*) FROM jobs WHERE status = 'running'")).scalar() or 0
+            row = conn.execute(
+                text("SELECT last_seen_utc FROM worker_heartbeat WHERE id = 1")
+            ).fetchone()
+            queued = (
+                conn.execute(text("SELECT COUNT(*) FROM jobs WHERE status = 'queued'")).scalar()
+                or 0
+            )
+            running = (
+                conn.execute(text("SELECT COUNT(*) FROM jobs WHERE status = 'running'")).scalar()
+                or 0
+            )
         last_seen = row[0] if row else None
         now_utc = datetime.now(timezone.utc)
         if last_seen is not None and hasattr(last_seen, "replace"):
-            last_seen_utc = last_seen.replace(tzinfo=timezone.utc) if last_seen.tzinfo is None else last_seen
+            last_seen_utc = (
+                last_seen.replace(tzinfo=timezone.utc) if last_seen.tzinfo is None else last_seen
+            )
         else:
             last_seen_utc = last_seen
         threshold_sec = 120
         worker_alive = (
-            last_seen_utc is not None
-            and (now_utc - last_seen_utc).total_seconds() < threshold_sec
+            last_seen_utc is not None and (now_utc - last_seen_utc).total_seconds() < threshold_sec
         )
         body = {"worker_alive": worker_alive, "queued": queued, "running": running}
         if not worker_alive:
             import logging
+
             logging.getLogger("trustcopilot.alert").warning(
                 "ALERT_WORKER_DOWN queued=%s running=%s", queued, running
             )
@@ -523,7 +564,9 @@ def workerz():
         return body
     except Exception as e:
         import logging
-        logging.getLogger("trustcopilot.alert").warning(
-            "ALERT_WORKER_DOWN error=%s", str(e)[:200]
+
+        logging.getLogger("trustcopilot.alert").warning("ALERT_WORKER_DOWN error=%s", str(e)[:200])
+        return JSONResponse(
+            status_code=503,
+            content={"worker_alive": False, "queued": None, "running": None, "error": str(e)},
         )
-        return JSONResponse(status_code=503, content={"worker_alive": False, "queued": None, "running": None, "error": str(e)})

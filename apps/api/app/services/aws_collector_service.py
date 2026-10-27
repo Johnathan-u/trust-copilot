@@ -41,9 +41,21 @@ def collect_iam_posture(region: str = "us-east-1") -> dict:
         "region": region,
         "collected_at": datetime.now(timezone.utc).isoformat(),
         "findings": [
-            {"signal": "aws.iam.mfa_enabled", "description": "MFA enforcement status", "status": "check_required"},
-            {"signal": "aws.iam.password_policy", "description": "Password policy compliance", "status": "check_required"},
-            {"signal": "aws.iam.root_access_key", "description": "Root account access key", "status": "check_required"},
+            {
+                "signal": "aws.iam.mfa_enabled",
+                "description": "MFA enforcement status",
+                "status": "check_required",
+            },
+            {
+                "signal": "aws.iam.password_policy",
+                "description": "Password policy compliance",
+                "status": "check_required",
+            },
+            {
+                "signal": "aws.iam.root_access_key",
+                "description": "Root account access key",
+                "status": "check_required",
+            },
         ],
     }
 
@@ -55,9 +67,21 @@ def collect_s3_posture(region: str = "us-east-1") -> dict:
         "region": region,
         "collected_at": datetime.now(timezone.utc).isoformat(),
         "findings": [
-            {"signal": "aws.s3.public_access", "description": "Public access block status", "status": "check_required"},
-            {"signal": "aws.s3.encryption", "description": "Default encryption", "status": "check_required"},
-            {"signal": "aws.s3.versioning", "description": "Versioning enabled", "status": "check_required"},
+            {
+                "signal": "aws.s3.public_access",
+                "description": "Public access block status",
+                "status": "check_required",
+            },
+            {
+                "signal": "aws.s3.encryption",
+                "description": "Default encryption",
+                "status": "check_required",
+            },
+            {
+                "signal": "aws.s3.versioning",
+                "description": "Versioning enabled",
+                "status": "check_required",
+            },
         ],
     }
 
@@ -69,8 +93,16 @@ def collect_logging_posture(region: str = "us-east-1") -> dict:
         "region": region,
         "collected_at": datetime.now(timezone.utc).isoformat(),
         "findings": [
-            {"signal": "aws.cloudtrail.enabled", "description": "CloudTrail enabled", "status": "check_required"},
-            {"signal": "aws.cloudtrail.multi_region", "description": "Multi-region trails", "status": "check_required"},
+            {
+                "signal": "aws.cloudtrail.enabled",
+                "description": "CloudTrail enabled",
+                "status": "check_required",
+            },
+            {
+                "signal": "aws.cloudtrail.multi_region",
+                "description": "Multi-region trails",
+                "status": "check_required",
+            },
         ],
     }
 

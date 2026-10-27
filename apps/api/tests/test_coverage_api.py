@@ -30,7 +30,9 @@ else:
 
     print(f"\n=== Framework Coverage ({len(data.get('framework_coverage', []))}) ===")
     for fc in data.get("framework_coverage", []):
-        print(f"  {fc['framework']}: {fc['coverage_pct']}% ({fc['drafted']}/{fc['total']} drafted, {fc['insufficient']} insufficient)")
+        print(
+            f"  {fc['framework']}: {fc['coverage_pct']}% ({fc['drafted']}/{fc['total']} drafted, {fc['insufficient']} insufficient)"
+        )
 
     print(f"\n=== Blind Spots ({len(data.get('blind_spots', []))}) ===")
     for bs in data.get("blind_spots", []):
@@ -42,7 +44,9 @@ else:
 
     print(f"\n=== Evidence Strength ({len(data.get('evidence_strength', []))}) ===")
     for es in data.get("evidence_strength", []):
-        print(f"  {es['subject']}: avg {es['avg_evidence_count']} citations ({es['total_answers']} answers)")
+        print(
+            f"  {es['subject']}: avg {es['avg_evidence_count']} citations ({es['total_answers']} answers)"
+        )
 
     print(f"\n=== Recommended Evidence ({len(data.get('recommended_evidence', []))}) ===")
     for re_item in data.get("recommended_evidence", []):
@@ -54,4 +58,6 @@ else:
 
     print(f"\n=== Drill-Down ({len(data.get('drill_down', []))}) ===")
     for dd in data.get("drill_down", [])[:10]:
-        print(f"  {dd['subject']} / {dd['framework']}: {dd['answered']}/{dd['questions_seen']} answered, {dd['insufficient']} insuff")
+        print(
+            f"  {dd['subject']} / {dd['framework']}: {dd['answered']}/{dd['questions_seen']} answered, {dd['insufficient']} insuff"
+        )

@@ -22,10 +22,14 @@ def generate_cover_page(
 ) -> dict:
     """Generate data for a branded cover page."""
     ws = db.query(Workspace).filter(Workspace.id == workspace_id).first()
-    qnr = db.query(Questionnaire).filter(
-        Questionnaire.id == questionnaire_id,
-        Questionnaire.workspace_id == workspace_id,
-    ).first()
+    qnr = (
+        db.query(Questionnaire)
+        .filter(
+            Questionnaire.id == questionnaire_id,
+            Questionnaire.workspace_id == workspace_id,
+        )
+        .first()
+    )
 
     if not qnr:
         raise ValueError("Questionnaire not found")
@@ -60,10 +64,14 @@ def generate_executive_summary(
     questionnaire_id: int,
 ) -> dict:
     """Generate an executive summary for the completed questionnaire."""
-    qnr = db.query(Questionnaire).filter(
-        Questionnaire.id == questionnaire_id,
-        Questionnaire.workspace_id == workspace_id,
-    ).first()
+    qnr = (
+        db.query(Questionnaire)
+        .filter(
+            Questionnaire.id == questionnaire_id,
+            Questionnaire.workspace_id == workspace_id,
+        )
+        .first()
+    )
     if not qnr:
         raise ValueError("Questionnaire not found")
 
@@ -91,7 +99,9 @@ def generate_executive_summary(
 
     return {
         "questionnaire": qnr.filename or f"Questionnaire #{qnr.id}",
-        "framework_detected": qnr.framework if hasattr(qnr, "framework") and qnr.framework else "General",
+        "framework_detected": qnr.framework
+        if hasattr(qnr, "framework") and qnr.framework
+        else "General",
         "total_questions": total_q,
         "total_answers": total_a,
         "completion_rate": round(total_a / total_q * 100, 1) if total_q else 0,
@@ -131,6 +141,7 @@ def generate_evidence_bundle(
         if a.citations:
             try:
                 import json
+
                 cites = json.loads(a.citations) if isinstance(a.citations, str) else a.citations
                 if isinstance(cites, list):
                     for cite in cites:
@@ -138,11 +149,13 @@ def generate_evidence_bundle(
                             did = cite.get("document_id")
                             if did:
                                 doc_ids.add(did)
-                            cited_sources.append({
-                                "question_id": a.question_id,
-                                "document_id": did,
-                                "chunk_text": cite.get("text", "")[:200],
-                            })
+                            cited_sources.append(
+                                {
+                                    "question_id": a.question_id,
+                                    "document_id": did,
+                                    "chunk_text": cite.get("text", "")[:200],
+                                }
+                            )
             except Exception:
                 pass
 
@@ -150,22 +163,23 @@ def generate_evidence_bundle(
     if doc_ids:
         docs = db.query(Document).filter(Document.id.in_(doc_ids)).all()
         for d in docs:
-            documents.append({
-                "id": d.id,
-                "filename": d.filename,
-                "upload_date": d.created_at.isoformat() if d.created_at else None,
-            })
+            documents.append(
+                {
+                    "id": d.id,
+                    "filename": d.filename,
+                    "upload_date": d.created_at.isoformat() if d.created_at else None,
+                }
+            )
 
-    gaps = (
-        db.query(EvidenceGap)
-        .filter(EvidenceGap.workspace_id == workspace_id)
-        .limit(20)
-        .all()
-    )
+    gaps = db.query(EvidenceGap).filter(EvidenceGap.workspace_id == workspace_id).limit(20).all()
     gap_list = [
         {
             "control_area": g.control_area if hasattr(g, "control_area") else None,
-            "description": g.description if hasattr(g, "description") else str(g.gap_type) if hasattr(g, "gap_type") else "Evidence gap",
+            "description": g.description
+            if hasattr(g, "description")
+            else str(g.gap_type)
+            if hasattr(g, "gap_type")
+            else "Evidence gap",
             "status": g.status if hasattr(g, "status") else "open",
         }
         for g in gaps

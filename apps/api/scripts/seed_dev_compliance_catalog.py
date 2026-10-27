@@ -8,6 +8,7 @@ Run from apps/api:
 
 Also invoked from scripts.seed_demo_workspace after questionnaire/documents seed.
 """
+
 from __future__ import annotations
 
 import argparse

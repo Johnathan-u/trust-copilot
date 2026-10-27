@@ -6,6 +6,7 @@ Run inside API container:
 
 Does not print secret values — only presence and optional length.
 """
+
 from __future__ import annotations
 
 import sys

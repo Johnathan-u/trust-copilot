@@ -24,6 +24,7 @@ def _login(client: TestClient, email: str = "admin@trust.local", password: str =
 # Schema presence
 # ---------------------------------------------------------------------------
 
+
 class TestSchemaPresence:
     def test_framework_control_mappings_table(self, db_session: Session):
         assert db_session.query(FrameworkControlMapping).count() >= 0
@@ -45,6 +46,7 @@ class TestSchemaPresence:
 # Governance settings CRUD
 # ---------------------------------------------------------------------------
 
+
 class TestGovernanceSettings:
     def test_default_settings(self, db_session: Session):
         settings = svc.get_governance_settings(db_session, 1)
@@ -59,7 +61,9 @@ class TestGovernanceSettings:
         result2 = svc.upsert_governance_settings(db_session, 1, {"require_approved_mappings": True})
         assert result2["require_approved_mappings"] is True
         assert result2["manual_mapping_boost"] == 0.1
-        svc.upsert_governance_settings(db_session, 1, {"manual_mapping_boost": 0.05, "require_approved_mappings": False})
+        svc.upsert_governance_settings(
+            db_session, 1, {"manual_mapping_boost": 0.05, "require_approved_mappings": False}
+        )
 
     def test_workspace_isolation(self, db_session: Session):
         svc.upsert_governance_settings(db_session, 1, {"manual_mapping_boost": 0.09})
@@ -73,6 +77,7 @@ class TestGovernanceSettings:
 # ---------------------------------------------------------------------------
 # API permissions
 # ---------------------------------------------------------------------------
+
 
 class TestAPIPermissions:
     def test_admin_can_read_mappings(self, client: TestClient):
@@ -88,7 +93,9 @@ class TestAPIPermissions:
 
     def test_editor_cannot_create_mapping(self, client: TestClient):
         _login(client, email="editor@trust.local", password="e")
-        r = client.post("/api/ai-mappings/framework-controls", json={"framework_key": "SOC 2", "control_id": 1})
+        r = client.post(
+            "/api/ai-mappings/framework-controls", json={"framework_key": "SOC 2", "control_id": 1}
+        )
         assert r.status_code == 403
 
     def test_unauthenticated_rejected(self, client: TestClient):
@@ -132,10 +139,12 @@ class TestAPIPermissions:
 # Framework-Control mapping CRUD via API
 # ---------------------------------------------------------------------------
 
+
 class TestFrameworkControlAPI:
     def test_create_and_list(self, client: TestClient, db_session: Session):
         _login(client)
         from app.models import WorkspaceControl, FrameworkControl, Framework
+
         fc = db_session.query(FrameworkControl).first()
         if not fc:
             fw = Framework(name="TestFW", version="1.0")
@@ -152,7 +161,10 @@ class TestFrameworkControlAPI:
             db_session.add(wc)
             db_session.commit()
             db_session.refresh(wc)
-        r = client.post("/api/ai-mappings/framework-controls", json={"framework_key": "SOC 2", "control_id": wc.id})
+        r = client.post(
+            "/api/ai-mappings/framework-controls",
+            json={"framework_key": "SOC 2", "control_id": wc.id},
+        )
         assert r.status_code == 200
         data = r.json()
         assert data["framework_key"] == "SOC 2"
@@ -161,26 +173,41 @@ class TestFrameworkControlAPI:
         r2 = client.get("/api/ai-mappings/framework-controls")
         assert r2.status_code == 200
         assert any(m["id"] == mid for m in r2.json())
-        r3 = client.post("/api/ai-mappings/framework-controls", json={"framework_key": "SOC 2", "control_id": wc.id})
+        r3 = client.post(
+            "/api/ai-mappings/framework-controls",
+            json={"framework_key": "SOC 2", "control_id": wc.id},
+        )
         assert r3.status_code == 400
         client.delete(f"/api/ai-mappings/framework-controls/{mid}")
 
     def test_approve_reject(self, client: TestClient, db_session: Session):
         _login(client)
         from app.models import WorkspaceControl
+
         wc = db_session.query(WorkspaceControl).filter(WorkspaceControl.workspace_id == 1).first()
         if not wc:
             return
-        r = client.post("/api/ai-mappings/framework-controls",
-                        json={"framework_key": "ISO 27001", "control_id": wc.id, "approved": False, "source": "ai"})
+        r = client.post(
+            "/api/ai-mappings/framework-controls",
+            json={
+                "framework_key": "ISO 27001",
+                "control_id": wc.id,
+                "approved": False,
+                "source": "ai",
+            },
+        )
         if r.status_code != 200:
             return
         mid = r.json()["id"]
         assert r.json()["approved"] is False
-        ra = client.patch(f"/api/ai-mappings/framework-controls/{mid}/approve", json={"approved": True})
+        ra = client.patch(
+            f"/api/ai-mappings/framework-controls/{mid}/approve", json={"approved": True}
+        )
         assert ra.status_code == 200
         assert ra.json()["approved"] is True
-        rr = client.patch(f"/api/ai-mappings/framework-controls/{mid}/approve", json={"approved": False})
+        rr = client.patch(
+            f"/api/ai-mappings/framework-controls/{mid}/approve", json={"approved": False}
+        )
         assert rr.status_code == 200
         assert rr.json()["approved"] is False
         client.delete(f"/api/ai-mappings/framework-controls/{mid}")
@@ -188,11 +215,14 @@ class TestFrameworkControlAPI:
     def test_delete(self, client: TestClient, db_session: Session):
         _login(client)
         from app.models import WorkspaceControl
+
         wc = db_session.query(WorkspaceControl).filter(WorkspaceControl.workspace_id == 1).first()
         if not wc:
             return
-        r = client.post("/api/ai-mappings/framework-controls",
-                        json={"framework_key": "NIST", "control_id": wc.id})
+        r = client.post(
+            "/api/ai-mappings/framework-controls",
+            json={"framework_key": "NIST", "control_id": wc.id},
+        )
         if r.status_code != 200:
             return
         mid = r.json()["id"]
@@ -206,10 +236,13 @@ class TestFrameworkControlAPI:
 # Retrieval boost calculation
 # ---------------------------------------------------------------------------
 
+
 class TestRetrievalBoost:
     def test_empty_when_no_mappings(self, db_session: Session):
         result = svc.compute_retrieval_adjustments(
-            db_session, 1, "How do you manage access?",
+            db_session,
+            1,
+            "How do you manage access?",
             [{"id": 1, "text": "policy", "score": 0.8}],
         )
         assert result == {}
@@ -229,42 +262,65 @@ class TestRetrievalBoost:
 # Governance enforcement
 # ---------------------------------------------------------------------------
 
+
 class TestGovernanceEnforcement:
     def test_require_approved_blocks_unapproved(self, db_session: Session):
         from app.models.ai_mapping import FrameworkControlMapping
+
         m = FrameworkControlMapping(
-            workspace_id=1, framework_key="test", control_id=1,
-            source="ai", approved=False, confidence=0.5,
+            workspace_id=1,
+            framework_key="test",
+            control_id=1,
+            source="ai",
+            approved=False,
+            confidence=0.5,
         )
         gov = {"require_approved_mappings": True, "allow_ai_unapproved_for_retrieval": True}
         assert svc._passes_governance(m, gov) is False
 
     def test_approved_passes(self, db_session: Session):
         from app.models.ai_mapping import FrameworkControlMapping
+
         m = FrameworkControlMapping(
-            workspace_id=1, framework_key="test", control_id=1,
-            source="ai", approved=True, confidence=0.9,
+            workspace_id=1,
+            framework_key="test",
+            control_id=1,
+            source="ai",
+            approved=True,
+            confidence=0.9,
         )
         gov = {"require_approved_mappings": True, "allow_ai_unapproved_for_retrieval": True}
         assert svc._passes_governance(m, gov) is True
 
     def test_confidence_threshold(self, db_session: Session):
         from app.models.ai_mapping import ControlEvidenceMapping
+
         m = ControlEvidenceMapping(
-            workspace_id=1, control_id=1, evidence_id=1,
-            source="ai", approved=True, confidence=0.3,
+            workspace_id=1,
+            control_id=1,
+            evidence_id=1,
+            source="ai",
+            approved=True,
+            confidence=0.3,
         )
-        gov = {"require_approved_mappings": False, "allow_ai_unapproved_for_retrieval": True,
-               "minimum_ai_mapping_confidence": 0.5}
+        gov = {
+            "require_approved_mappings": False,
+            "allow_ai_unapproved_for_retrieval": True,
+            "minimum_ai_mapping_confidence": 0.5,
+        }
         assert svc._passes_governance(m, gov) is False
         m.confidence = 0.7
         assert svc._passes_governance(m, gov) is True
 
     def test_block_unapproved_ai(self, db_session: Session):
         from app.models.ai_mapping import EvidenceTagMapping
+
         m = EvidenceTagMapping(
-            workspace_id=1, evidence_id=1, tag_id=1,
-            source="ai", approved=False,
+            workspace_id=1,
+            evidence_id=1,
+            tag_id=1,
+            source="ai",
+            approved=False,
         )
         gov = {"require_approved_mappings": False, "allow_ai_unapproved_for_retrieval": False}
         assert svc._passes_governance(m, gov) is False
@@ -273,9 +329,13 @@ class TestGovernanceEnforcement:
 
     def test_manual_always_passes_unapproved_check(self, db_session: Session):
         from app.models.ai_mapping import FrameworkControlMapping
+
         m = FrameworkControlMapping(
-            workspace_id=1, framework_key="test", control_id=1,
-            source="manual", approved=False,
+            workspace_id=1,
+            framework_key="test",
+            control_id=1,
+            source="manual",
+            approved=False,
         )
         gov = {"require_approved_mappings": False, "allow_ai_unapproved_for_retrieval": False}
         assert svc._passes_governance(m, gov) is True
@@ -284,6 +344,7 @@ class TestGovernanceEnforcement:
 # ---------------------------------------------------------------------------
 # Control-Evidence API
 # ---------------------------------------------------------------------------
+
 
 class TestControlEvidenceAPI:
     def test_list_empty(self, client: TestClient):
@@ -297,6 +358,7 @@ class TestControlEvidenceAPI:
 # Evidence-Tag API
 # ---------------------------------------------------------------------------
 
+
 class TestEvidenceTagAPI:
     def test_list_empty(self, client: TestClient):
         _login(client)
@@ -309,13 +371,17 @@ class TestEvidenceTagAPI:
 # Question Preferences API
 # ---------------------------------------------------------------------------
 
+
 class TestQuestionPrefsAPI:
     def test_create_and_delete(self, client: TestClient):
         _login(client)
-        r = client.post("/api/ai-mappings/question-preferences", json={
-            "normalized_question_text": "How do you handle encryption?",
-            "preferred_framework_key": "SOC 2",
-        })
+        r = client.post(
+            "/api/ai-mappings/question-preferences",
+            json={
+                "normalized_question_text": "How do you handle encryption?",
+                "preferred_framework_key": "SOC 2",
+            },
+        )
         assert r.status_code == 200
         pid = r.json()["id"]
         assert r.json()["normalized_question_text"] == "How do you handle encryption?"
@@ -332,6 +398,7 @@ class TestQuestionPrefsAPI:
 # ---------------------------------------------------------------------------
 # AI Suggestion endpoints
 # ---------------------------------------------------------------------------
+
 
 class TestAISuggestions:
     def test_suggest_framework_controls(self, client: TestClient):

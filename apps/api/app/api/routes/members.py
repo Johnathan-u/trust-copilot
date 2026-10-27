@@ -16,7 +16,17 @@ from app.core.invite_codes import generate_invite_code_pair, hash_invite_code
 from app.core.config import get_settings
 from app.core.database import get_db
 from app.core.roles import BUILTIN_ROLES
-from app.models import ApiKey, CustomRole, Invite, MfaRecoveryCode, User, UserMfa, UserSession, Workspace, WorkspaceMember
+from app.models import (
+    ApiKey,
+    CustomRole,
+    Invite,
+    MfaRecoveryCode,
+    User,
+    UserMfa,
+    UserSession,
+    Workspace,
+    WorkspaceMember,
+)
 from app.services.email_service import send_invite_email
 from app.services.notification_service import fire_notification
 from app.services.in_app_notification_service import notify_admins, notify_user
@@ -41,10 +51,17 @@ def _validate_role(role: str, workspace_id: int, db: Session) -> str:
     role = (role or "").strip().lower()
     if role in BUILTIN_ROLES:
         return role
-    cr = db.query(CustomRole).filter(CustomRole.workspace_id == workspace_id, CustomRole.name == role).first()
+    cr = (
+        db.query(CustomRole)
+        .filter(CustomRole.workspace_id == workspace_id, CustomRole.name == role)
+        .first()
+    )
     if cr:
         return cr.name
-    raise HTTPException(status_code=400, detail=f"Invalid role: '{role}'. Must be a built-in role or an existing custom role.")
+    raise HTTPException(
+        status_code=400,
+        detail=f"Invalid role: '{role}'. Must be a built-in role or an existing custom role.",
+    )
 
 
 def _token_hash(token: str) -> str:
@@ -146,7 +163,9 @@ async def create_invite(
     )
     if existing:
         raise HTTPException(status_code=400, detail="User is already a member")
-    pending = db.query(Invite).filter(Invite.workspace_id == workspace_id, Invite.email == email).first()
+    pending = (
+        db.query(Invite).filter(Invite.workspace_id == workspace_id, Invite.email == email).first()
+    )
     if pending:
         raise HTTPException(status_code=400, detail="Invite already sent to this email")
     token_raw = secrets.token_urlsafe(32)
@@ -175,7 +194,14 @@ async def create_invite(
         details={"invite_email": email, "role": role},
     )
     try:
-        notify_admins(db, workspace_id, f"New invite: {email}", f"Invited as {role}", category="admin", link="/dashboard/members")
+        notify_admins(
+            db,
+            workspace_id,
+            f"New invite: {email}",
+            f"Invited as {role}",
+            category="admin",
+            link="/dashboard/members",
+        )
     except Exception:
         pass
 
@@ -193,9 +219,12 @@ async def create_invite(
             logger.warning("Invite email background send failed for %s: %s", email, exc)
         try:
             from app.core.database import SessionLocal
+
             bg_db = SessionLocal()
             try:
-                _fire_notif(bg_db, workspace_id, "member.invited", detail=f"{email} invited as {role}")
+                _fire_notif(
+                    bg_db, workspace_id, "member.invited", detail=f"{email} invited as {role}"
+                )
                 bg_db.commit()
             finally:
                 bg_db.close()
@@ -220,10 +249,14 @@ async def revoke_invite(
 ):
     """AUTH-208: Revoke a pending invite."""
     workspace_id = session["workspace_id"]
-    inv = db.query(Invite).filter(
-        Invite.id == invite_id,
-        Invite.workspace_id == workspace_id,
-    ).first()
+    inv = (
+        db.query(Invite)
+        .filter(
+            Invite.id == invite_id,
+            Invite.workspace_id == workspace_id,
+        )
+        .first()
+    )
     if not inv:
         raise HTTPException(status_code=404, detail="Invite not found")
     db.delete(inv)
@@ -249,19 +282,30 @@ async def update_member_role(
     workspace_id = session["workspace_id"]
     user_id = session.get("user_id")
     role = _validate_role(req.role, workspace_id, db)
-    mem = db.query(WorkspaceMember).filter(
-        WorkspaceMember.id == member_id,
-        WorkspaceMember.workspace_id == workspace_id,
-    ).first()
+    mem = (
+        db.query(WorkspaceMember)
+        .filter(
+            WorkspaceMember.id == member_id,
+            WorkspaceMember.workspace_id == workspace_id,
+        )
+        .first()
+    )
     if not mem:
         raise HTTPException(status_code=404, detail="Member not found")
     if mem.user_id == user_id:
-        admin_count = db.query(WorkspaceMember).filter(
-            WorkspaceMember.workspace_id == workspace_id,
-            WorkspaceMember.role == "admin",
-        ).count()
+        admin_count = (
+            db.query(WorkspaceMember)
+            .filter(
+                WorkspaceMember.workspace_id == workspace_id,
+                WorkspaceMember.role == "admin",
+            )
+            .count()
+        )
         if admin_count <= 1 and role != "admin":
-            raise HTTPException(status_code=400, detail="Transfer ownership to another admin before changing your role")
+            raise HTTPException(
+                status_code=400,
+                detail="Transfer ownership to another admin before changing your role",
+            )
     mem.role = role
     db.commit()
     db.refresh(mem)
@@ -272,9 +316,18 @@ async def update_member_role(
         workspace_id=workspace_id,
         details={"target_user_id": mem.user_id, "new_role": role},
     )
-    _fire_notif(db, workspace_id, "member.role_changed", detail=f"User {mem.user_id} role changed to {role}")
+    _fire_notif(
+        db, workspace_id, "member.role_changed", detail=f"User {mem.user_id} role changed to {role}"
+    )
     try:
-        notify_user(db, workspace_id, mem.user_id, f"Your role changed to {role}", category="admin", link="/dashboard/members")
+        notify_user(
+            db,
+            workspace_id,
+            mem.user_id,
+            f"Your role changed to {role}",
+            category="admin",
+            link="/dashboard/members",
+        )
     except Exception:
         pass
     return {"id": mem.id, "user_id": mem.user_id, "role": mem.role}
@@ -289,19 +342,29 @@ async def remove_member(
     """AUTH-216: Remove member from workspace. AUTH-215: Last admin cannot remove self."""
     workspace_id = session["workspace_id"]
     user_id = session.get("user_id")
-    mem = db.query(WorkspaceMember).filter(
-        WorkspaceMember.id == member_id,
-        WorkspaceMember.workspace_id == workspace_id,
-    ).first()
+    mem = (
+        db.query(WorkspaceMember)
+        .filter(
+            WorkspaceMember.id == member_id,
+            WorkspaceMember.workspace_id == workspace_id,
+        )
+        .first()
+    )
     if not mem:
         raise HTTPException(status_code=404, detail="Member not found")
     if mem.user_id == user_id:
-        admin_count = db.query(WorkspaceMember).filter(
-            WorkspaceMember.workspace_id == workspace_id,
-            WorkspaceMember.role == "admin",
-        ).count()
+        admin_count = (
+            db.query(WorkspaceMember)
+            .filter(
+                WorkspaceMember.workspace_id == workspace_id,
+                WorkspaceMember.role == "admin",
+            )
+            .count()
+        )
         if admin_count <= 1:
-            raise HTTPException(status_code=400, detail="Transfer ownership to another admin before leaving")
+            raise HTTPException(
+                status_code=400, detail="Transfer ownership to another admin before leaving"
+            )
     removed_user_id = mem.user_id
     db.delete(mem)
     db.commit()
@@ -320,7 +383,9 @@ async def remove_member(
         if orphan:
             db.delete(orphan)
             db.commit()
-            logger.info("Deleted orphaned user %s (no workspace memberships remain)", removed_user_id)
+            logger.info(
+                "Deleted orphaned user %s (no workspace memberships remain)", removed_user_id
+            )
 
     return {"ok": True}
 
@@ -335,20 +400,28 @@ async def suspend_member(
     """Suspend or unsuspend a workspace member. Suspended members cannot access the workspace."""
     workspace_id = session["workspace_id"]
     user_id = session.get("user_id")
-    mem = db.query(WorkspaceMember).filter(
-        WorkspaceMember.id == member_id,
-        WorkspaceMember.workspace_id == workspace_id,
-    ).first()
+    mem = (
+        db.query(WorkspaceMember)
+        .filter(
+            WorkspaceMember.id == member_id,
+            WorkspaceMember.workspace_id == workspace_id,
+        )
+        .first()
+    )
     if not mem:
         raise HTTPException(status_code=404, detail="Member not found")
     if mem.user_id == user_id:
         raise HTTPException(status_code=400, detail="Cannot suspend yourself")
     if mem.role == "admin" and req.suspended:
-        admin_count = db.query(WorkspaceMember).filter(
-            WorkspaceMember.workspace_id == workspace_id,
-            WorkspaceMember.role == "admin",
-            WorkspaceMember.suspended == False,
-        ).count()
+        admin_count = (
+            db.query(WorkspaceMember)
+            .filter(
+                WorkspaceMember.workspace_id == workspace_id,
+                WorkspaceMember.role == "admin",
+                WorkspaceMember.suspended == False,
+            )
+            .count()
+        )
         if admin_count <= 1:
             raise HTTPException(status_code=400, detail="Cannot suspend the last active admin")
     mem.suspended = req.suspended
@@ -365,7 +438,14 @@ async def suspend_member(
     if req.suspended:
         _fire_notif(db, workspace_id, "member.suspended", detail=f"User {mem.user_id} suspended")
         try:
-            notify_admins(db, workspace_id, "Member suspended", f"User {mem.user_id} has been suspended", category="warning", link="/dashboard/members")
+            notify_admins(
+                db,
+                workspace_id,
+                "Member suspended",
+                f"User {mem.user_id} has been suspended",
+                category="warning",
+                link="/dashboard/members",
+            )
         except Exception:
             pass
     return {"id": mem.id, "user_id": mem.user_id, "suspended": bool(mem.suspended)}
@@ -379,15 +459,23 @@ async def admin_revoke_member_sessions(
 ):
     """Admin-triggered session revocation for a workspace member."""
     workspace_id = session["workspace_id"]
-    mem = db.query(WorkspaceMember).filter(
-        WorkspaceMember.id == member_id,
-        WorkspaceMember.workspace_id == workspace_id,
-    ).first()
+    mem = (
+        db.query(WorkspaceMember)
+        .filter(
+            WorkspaceMember.id == member_id,
+            WorkspaceMember.workspace_id == workspace_id,
+        )
+        .first()
+    )
     if not mem:
         raise HTTPException(status_code=404, detail="Member not found")
-    deleted = db.query(UserSession).filter(
-        UserSession.user_id == mem.user_id,
-    ).delete(synchronize_session=False)
+    deleted = (
+        db.query(UserSession)
+        .filter(
+            UserSession.user_id == mem.user_id,
+        )
+        .delete(synchronize_session=False)
+    )
     db.commit()
     persist_audit(
         db,
@@ -408,10 +496,14 @@ async def admin_reset_mfa(
     """AUTH-212: Admin-assisted MFA recovery. Reset target user's MFA (same workspace). Strong audit."""
     workspace_id = session["workspace_id"]
     admin_uid = session.get("user_id")
-    target_mem = db.query(WorkspaceMember).filter(
-        WorkspaceMember.user_id == user_id,
-        WorkspaceMember.workspace_id == workspace_id,
-    ).first()
+    target_mem = (
+        db.query(WorkspaceMember)
+        .filter(
+            WorkspaceMember.user_id == user_id,
+            WorkspaceMember.workspace_id == workspace_id,
+        )
+        .first()
+    )
     if not target_mem:
         raise HTTPException(status_code=404, detail="User not found in this workspace")
     db.query(UserMfa).filter(UserMfa.user_id == user_id).delete()
@@ -429,6 +521,7 @@ async def admin_reset_mfa(
 
 
 # --- API keys (machine auth) ---
+
 
 class CreateApiKeyRequest(BaseModel):
     label: str | None = None
@@ -473,7 +566,12 @@ async def list_api_keys(
 ):
     """List API keys for the current workspace (keys are not returned)."""
     workspace_id = session["workspace_id"]
-    keys = db.query(ApiKey).filter(ApiKey.workspace_id == workspace_id).order_by(ApiKey.created_at.desc()).all()
+    keys = (
+        db.query(ApiKey)
+        .filter(ApiKey.workspace_id == workspace_id)
+        .order_by(ApiKey.created_at.desc())
+        .all()
+    )
     return {
         "api_keys": [
             {
@@ -545,11 +643,17 @@ async def list_roles(
     """List built-in and custom roles for this workspace."""
     workspace_id = session["workspace_id"]
     from app.core.roles import BUILTIN_PERMISSIONS
+
     builtin = [
         {"id": None, "name": name, "description": f"Built-in {name} role", "builtin": True, **perms}
         for name, perms in BUILTIN_PERMISSIONS.items()
     ]
-    custom = db.query(CustomRole).filter(CustomRole.workspace_id == workspace_id).order_by(CustomRole.name).all()
+    custom = (
+        db.query(CustomRole)
+        .filter(CustomRole.workspace_id == workspace_id)
+        .order_by(CustomRole.name)
+        .all()
+    )
     custom_list = [{**_role_to_dict(cr), "builtin": False} for cr in custom]
     return {"roles": builtin + custom_list}
 
@@ -567,7 +671,11 @@ async def create_custom_role(
         raise HTTPException(status_code=400, detail="Role name must be 2-64 characters")
     if name in BUILTIN_ROLES:
         raise HTTPException(status_code=400, detail=f"Cannot use built-in role name '{name}'")
-    existing = db.query(CustomRole).filter(CustomRole.workspace_id == workspace_id, CustomRole.name == name).first()
+    existing = (
+        db.query(CustomRole)
+        .filter(CustomRole.workspace_id == workspace_id, CustomRole.name == name)
+        .first()
+    )
     if existing:
         raise HTTPException(status_code=400, detail=f"Role '{name}' already exists")
     cr = CustomRole(
@@ -589,7 +697,13 @@ async def create_custom_role(
         workspace_id=workspace_id,
         resource_type="custom_role",
         resource_id=cr.id,
-        details={"name": name, "can_edit": req.can_edit, "can_review": req.can_review, "can_export": req.can_export, "can_admin": req.can_admin},
+        details={
+            "name": name,
+            "can_edit": req.can_edit,
+            "can_review": req.can_review,
+            "can_export": req.can_export,
+            "can_admin": req.can_admin,
+        },
     )
     return _role_to_dict(cr)
 
@@ -603,7 +717,11 @@ async def update_custom_role(
 ):
     """Update permissions on a custom role."""
     workspace_id = session["workspace_id"]
-    cr = db.query(CustomRole).filter(CustomRole.id == role_id, CustomRole.workspace_id == workspace_id).first()
+    cr = (
+        db.query(CustomRole)
+        .filter(CustomRole.id == role_id, CustomRole.workspace_id == workspace_id)
+        .first()
+    )
     if not cr:
         raise HTTPException(status_code=404, detail="Custom role not found")
     changes = {}
@@ -638,14 +756,22 @@ async def delete_custom_role(
 ):
     """Delete a custom role. Members using it are reverted to 'reviewer'."""
     workspace_id = session["workspace_id"]
-    cr = db.query(CustomRole).filter(CustomRole.id == role_id, CustomRole.workspace_id == workspace_id).first()
+    cr = (
+        db.query(CustomRole)
+        .filter(CustomRole.id == role_id, CustomRole.workspace_id == workspace_id)
+        .first()
+    )
     if not cr:
         raise HTTPException(status_code=404, detail="Custom role not found")
     role_name = cr.name
-    reverted = db.query(WorkspaceMember).filter(
-        WorkspaceMember.workspace_id == workspace_id,
-        WorkspaceMember.role == role_name,
-    ).update({"role": "reviewer"}, synchronize_session=False)
+    reverted = (
+        db.query(WorkspaceMember)
+        .filter(
+            WorkspaceMember.workspace_id == workspace_id,
+            WorkspaceMember.role == role_name,
+        )
+        .update({"role": "reviewer"}, synchronize_session=False)
+    )
     db.delete(cr)
     db.commit()
     persist_audit(

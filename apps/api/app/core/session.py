@@ -52,7 +52,9 @@ def sign_token(payload: dict) -> str:
     try:
         data = base64.urlsafe_b64encode(json.dumps(payload, default=str).encode()).decode()
     except (TypeError, ValueError):
-        data = base64.urlsafe_b64encode(json.dumps({k: str(v) for k, v in payload.items()}).encode()).decode()
+        data = base64.urlsafe_b64encode(
+            json.dumps({k: str(v) for k, v in payload.items()}).encode()
+        ).decode()
     secret = _get_session_secret()
     sig = hmac.new(
         secret.encode("utf-8", "replace"),

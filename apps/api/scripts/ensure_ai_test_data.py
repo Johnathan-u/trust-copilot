@@ -3,6 +3,7 @@ Ensure test data for AI verification: one trust request, and index the seed docu
 Run from repo root: python -m apps.api.scripts.ensure_ai_test_data
 Or from apps/api: python -m scripts.ensure_ai_test_data (with PYTHONPATH or sys.path)
 """
+
 import json
 import os
 import sys
@@ -16,12 +17,14 @@ if str(api_root) not in sys.path:
 os.chdir(api_root)
 
 from dotenv import load_dotenv
+
 load_dotenv(api_root / ".env")
 load_dotenv(repo_root / ".env")
 
 from sqlalchemy.orm import Session
 from app.core.database import SessionLocal
 from app.models import Document, Job, JobStatus, TrustRequest
+
 
 def main():
     db = SessionLocal()
@@ -44,7 +47,11 @@ def main():
             print(f"Trust request already exists id={existing.id}")
 
         # 2) Enqueue index_document for any uploaded document in workspace 1 so generate_answers has evidence
-        for doc in db.query(Document).filter(Document.workspace_id == 1, Document.status == "uploaded").all():
+        for doc in (
+            db.query(Document)
+            .filter(Document.workspace_id == 1, Document.status == "uploaded")
+            .all()
+        ):
             job = Job(
                 workspace_id=1,
                 kind="index_document",
@@ -57,6 +64,7 @@ def main():
         db.commit()
     finally:
         db.close()
+
 
 if __name__ == "__main__":
     main()

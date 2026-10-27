@@ -35,17 +35,30 @@ def test_generate_to_export_flow(client: TestClient) -> None:
     with patch("app.services.storage.StorageClient.upload", side_effect=fake_upload):
         with patch("app.services.storage.StorageClient.download", side_effect=fake_download):
             with patch("app.services.storage.StorageClient.exists", side_effect=fake_exists):
-                with patch("app.services.storage.StorageClient.download_stream", side_effect=fake_download_stream):
-                    r = client.post("/api/auth/login", json={"email": "demo@trust.local", "password": "j"})
+                with patch(
+                    "app.services.storage.StorageClient.download_stream",
+                    side_effect=fake_download_stream,
+                ):
+                    r = client.post(
+                        "/api/auth/login", json={"email": "demo@trust.local", "password": "j"}
+                    )
                     assert r.status_code == 200
 
-                    fixture = Path(__file__).parent / "fixtures" / "questionnaires" / "simple_soc2.xlsx"
+                    fixture = (
+                        Path(__file__).parent / "fixtures" / "questionnaires" / "simple_soc2.xlsx"
+                    )
                     assert fixture.exists()
                     with open(fixture, "rb") as f:
                         r = client.post(
                             "/api/questionnaires/upload",
                             data={"workspace_id": "1"},
-                            files={"file": ("simple_soc2.xlsx", f, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")},
+                            files={
+                                "file": (
+                                    "simple_soc2.xlsx",
+                                    f,
+                                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                                )
+                            },
                         )
                     assert r.status_code == 200
                     data = r.json()
@@ -59,7 +72,11 @@ def test_generate_to_export_flow(client: TestClient) -> None:
                         run_parse_questionnaire(job, session, json.loads(job.payload))
                         session.commit()
 
-                        questions = session.query(Question).filter(Question.questionnaire_id == qnr_id).all()
+                        questions = (
+                            session.query(Question)
+                            .filter(Question.questionnaire_id == qnr_id)
+                            .all()
+                        )
                         for q in questions:
                             a = Answer(question_id=q.id, text="Test answer", status="approved")
                             session.add(a)
@@ -80,7 +97,11 @@ def test_generate_to_export_flow(client: TestClient) -> None:
                         session.merge(job)
                         session.commit()
 
-                        recs = session.query(ExportRecord).filter(ExportRecord.questionnaire_id == qnr_id).all()
+                        recs = (
+                            session.query(ExportRecord)
+                            .filter(ExportRecord.questionnaire_id == qnr_id)
+                            .all()
+                        )
                         assert len(recs) >= 1
                         rec = recs[0]
                         assert rec.status == "completed"

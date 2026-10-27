@@ -33,11 +33,14 @@ class TestIncidentPagesAPI:
         assert "scope" in r.json()
 
     def test_report_public(self, client):
-        r = client.post("/api/status/vulnerability-report", json={
-            "reporter_name": "Bug Hunter",
-            "reporter_email": "hunter@test.com",
-            "description": "Found XSS",
-            "severity": "medium",
-        })
+        r = client.post(
+            "/api/status/vulnerability-report",
+            json={
+                "reporter_name": "Bug Hunter",
+                "reporter_email": "hunter@test.com",
+                "description": "Found XSS",
+                "severity": "medium",
+            },
+        )
         assert r.status_code == 200
         assert r.json()["status"] == "received"

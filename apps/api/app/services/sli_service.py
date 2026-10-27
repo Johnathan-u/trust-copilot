@@ -24,21 +24,38 @@ def get_slis(db: Session) -> dict:
     window_7d = now - timedelta(days=7)
     window_30d = now - timedelta(days=30)
 
-    total_jobs_7d = db.query(func.count(Job.id)).filter(
-        Job.created_at >= window_7d,
-    ).scalar() or 0
+    total_jobs_7d = (
+        db.query(func.count(Job.id))
+        .filter(
+            Job.created_at >= window_7d,
+        )
+        .scalar()
+        or 0
+    )
 
-    completed_jobs_7d = db.query(func.count(Job.id)).filter(
-        Job.created_at >= window_7d,
-        Job.status == "completed",
-    ).scalar() or 0
+    completed_jobs_7d = (
+        db.query(func.count(Job.id))
+        .filter(
+            Job.created_at >= window_7d,
+            Job.status == "completed",
+        )
+        .scalar()
+        or 0
+    )
 
-    failed_jobs_7d = db.query(func.count(Job.id)).filter(
-        Job.created_at >= window_7d,
-        Job.status == "failed",
-    ).scalar() or 0
+    failed_jobs_7d = (
+        db.query(func.count(Job.id))
+        .filter(
+            Job.created_at >= window_7d,
+            Job.status == "failed",
+        )
+        .scalar()
+        or 0
+    )
 
-    job_completion_rate = round(completed_jobs_7d / total_jobs_7d * 100, 2) if total_jobs_7d else 100.0
+    job_completion_rate = (
+        round(completed_jobs_7d / total_jobs_7d * 100, 2) if total_jobs_7d else 100.0
+    )
 
     error_budget_used = 0.0
     if total_jobs_7d:
@@ -55,7 +72,9 @@ def get_slis(db: Session) -> dict:
                 "current": job_completion_rate,
                 "target": SLO_TARGETS["job_completion_rate"]["target"],
                 "window": SLO_TARGETS["job_completion_rate"]["window"],
-                "status": "met" if job_completion_rate >= SLO_TARGETS["job_completion_rate"]["target"] else "breached",
+                "status": "met"
+                if job_completion_rate >= SLO_TARGETS["job_completion_rate"]["target"]
+                else "breached",
             },
             "api_availability": {
                 "current": 100.0,
@@ -67,7 +86,11 @@ def get_slis(db: Session) -> dict:
         "error_budget": {
             "used_percent": error_budget_used,
             "remaining_percent": round(100 - error_budget_used, 2),
-            "status": "healthy" if error_budget_used < 80 else "warning" if error_budget_used < 100 else "exhausted",
+            "status": "healthy"
+            if error_budget_used < 80
+            else "warning"
+            if error_budget_used < 100
+            else "exhausted",
         },
         "jobs_7d": {
             "total": total_jobs_7d,

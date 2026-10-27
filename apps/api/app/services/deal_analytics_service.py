@@ -52,10 +52,14 @@ def get_analytics(db: Session, workspace_id: int) -> dict:
 
 
 def get_revenue_unblocked(db: Session, workspace_id: int) -> dict:
-    won = db.query(Deal).filter(
-        Deal.workspace_id == workspace_id,
-        Deal.stage == "closed_won",
-    ).all()
+    won = (
+        db.query(Deal)
+        .filter(
+            Deal.workspace_id == workspace_id,
+            Deal.stage == "closed_won",
+        )
+        .all()
+    )
     total_unblocked = sum(d.deal_value_arr or 0 for d in won)
     return {
         "total_revenue_unblocked": total_unblocked,

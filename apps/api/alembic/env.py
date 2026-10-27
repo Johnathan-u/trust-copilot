@@ -17,7 +17,19 @@ from sqlalchemy.orm import Session
 
 from app.core.config import get_settings
 from app.core.database import Base
-from app.models import Answer, AuditEvent, Chunk, Document, EmailVerificationToken, ExportRecord, Job, PasswordResetToken, TrustArticle, TrustRequest, Workspace  # noqa: F401 - register models
+from app.models import (
+    Answer,
+    AuditEvent,
+    Chunk,
+    Document,
+    EmailVerificationToken,
+    ExportRecord,
+    Job,
+    PasswordResetToken,
+    TrustArticle,
+    TrustRequest,
+    Workspace,
+)  # noqa: F401 - register models
 
 config = context.config
 if config.config_file_name is not None:

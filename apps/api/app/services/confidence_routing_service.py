@@ -24,9 +24,14 @@ def route_question(db: Session, question_id: int) -> dict:
     if not question:
         return {"error": "Question not found"}
 
-    answer = db.query(Answer).filter(
-        Answer.question_id == question_id,
-    ).order_by(Answer.created_at.desc()).first()
+    answer = (
+        db.query(Answer)
+        .filter(
+            Answer.question_id == question_id,
+        )
+        .order_by(Answer.created_at.desc())
+        .first()
+    )
 
     if not answer:
         return {

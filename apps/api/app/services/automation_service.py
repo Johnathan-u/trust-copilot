@@ -32,9 +32,11 @@ def maybe_auto_generate(session: Session, parse_job: Job, payload: dict) -> None
     if not qnr_id:
         return
 
-    qnr = session.query(Questionnaire).filter(
-        Questionnaire.id == qnr_id, Questionnaire.workspace_id == ws_id
-    ).first()
+    qnr = (
+        session.query(Questionnaire)
+        .filter(Questionnaire.id == qnr_id, Questionnaire.workspace_id == ws_id)
+        .first()
+    )
     if not qnr:
         return
 
@@ -42,12 +44,16 @@ def maybe_auto_generate(session: Session, parse_job: Job, payload: dict) -> None
     if questions == 0:
         return
 
-    existing = session.query(Job).filter(
-        Job.workspace_id == ws_id,
-        Job.kind == "generate_answers",
-        Job.status.in_([JobStatus.QUEUED.value, JobStatus.RUNNING.value]),
-        Job.payload.contains(f'"questionnaire_id": {qnr_id}'),
-    ).first()
+    existing = (
+        session.query(Job)
+        .filter(
+            Job.workspace_id == ws_id,
+            Job.kind == "generate_answers",
+            Job.status.in_([JobStatus.QUEUED.value, JobStatus.RUNNING.value]),
+            Job.payload.contains(f'"questionnaire_id": {qnr_id}'),
+        )
+        .first()
+    )
     if existing:
         return
 
@@ -62,14 +68,20 @@ def maybe_auto_generate(session: Session, parse_job: Job, payload: dict) -> None
     session.refresh(gen_job)
 
     persist_audit(
-        session, "automation.run_started",
+        session,
+        "automation.run_started",
         workspace_id=ws_id,
         resource_type="questionnaire",
         resource_id=qnr_id,
         details={"job_id": gen_job.id, "questionnaire": qnr.filename, "question_count": questions},
     )
 
-    logger.info("automation: auto-enqueued generate_answers job=%s for qnr=%s ws=%s", gen_job.id, qnr_id, ws_id)
+    logger.info(
+        "automation: auto-enqueued generate_answers job=%s for qnr=%s ws=%s",
+        gen_job.id,
+        qnr_id,
+        ws_id,
+    )
 
 
 def evaluate_generation_result(session: Session, gen_job: Job, payload: dict) -> None:
@@ -82,9 +94,11 @@ def evaluate_generation_result(session: Session, gen_job: Job, payload: dict) ->
     if not qnr_id:
         return
 
-    qnr = session.query(Questionnaire).filter(
-        Questionnaire.id == qnr_id, Questionnaire.workspace_id == ws_id
-    ).first()
+    qnr = (
+        session.query(Questionnaire)
+        .filter(Questionnaire.id == qnr_id, Questionnaire.workspace_id == ws_id)
+        .first()
+    )
     if not qnr:
         return
 
@@ -118,16 +132,20 @@ def evaluate_generation_result(session: Session, gen_job: Job, payload: dict) ->
 
     if insufficient_count == 0:
         persist_audit(
-            session, "automation.run_completed",
+            session,
+            "automation.run_completed",
             workspace_id=ws_id,
             resource_type="questionnaire",
             resource_id=qnr_id,
             details={"questionnaire": qnr_name, "total": total, "status": "completed"},
         )
-        logger.info("automation: qnr=%s completed, all %s questions have sufficient evidence", qnr_id, total)
+        logger.info(
+            "automation: qnr=%s completed, all %s questions have sufficient evidence", qnr_id, total
+        )
     else:
         persist_audit(
-            session, "automation.run_needs_review",
+            session,
+            "automation.run_needs_review",
             workspace_id=ws_id,
             resource_type="questionnaire",
             resource_id=qnr_id,
@@ -149,7 +167,9 @@ def evaluate_generation_result(session: Session, gen_job: Job, payload: dict) ->
 
         logger.info(
             "automation: qnr=%s needs_review, %s/%s insufficient",
-            qnr_id, insufficient_count, total,
+            qnr_id,
+            insufficient_count,
+            total,
         )
 
 
@@ -168,6 +188,7 @@ def _notify_needs_review(
     # In-app notification
     try:
         from app.services.in_app_notification_service import notify_admins
+
         notify_admins(session, workspace_id, title, body, category="warning", link=link)
     except Exception:
         pass
@@ -175,8 +196,11 @@ def _notify_needs_review(
     # Email notification
     try:
         from app.services.notification_service import fire_notification
+
         ws = session.query(Workspace).filter(Workspace.id == workspace_id).first()
         ws_name = ws.name if ws else "Workspace"
-        fire_notification(session, workspace_id, "questionnaire.generated", detail=body, workspace_name=ws_name)
+        fire_notification(
+            session, workspace_id, "questionnaire.generated", detail=body, workspace_name=ws_name
+        )
     except Exception:
         pass

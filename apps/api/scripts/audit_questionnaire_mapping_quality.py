@@ -6,6 +6,7 @@ Run inside API container:
 
 Does not change ranking logic.
 """
+
 from __future__ import annotations
 
 import argparse
@@ -46,7 +47,9 @@ def _band_for_row(mapped: bool, conf: float | None) -> str:
 def _keywords(s: str) -> list[str]:
     low = (s or "").lower()
     tags: list[str] = []
-    if any(x in low for x in ("encrypt", "tls", "ssl", "crypto", "cipher", "at rest", "in transit")):
+    if any(
+        x in low for x in ("encrypt", "tls", "ssl", "crypto", "cipher", "at rest", "in transit")
+    ):
         tags.append("encryption")
     if any(x in low for x in ("log", "siem", "audit trail", "retention", "monitor")):
         tags.append("logging")
@@ -56,7 +59,10 @@ def _keywords(s: str) -> list[str]:
         tags.append("iam_access")
     if any(x in low for x in ("incident", "breach", "response")):
         tags.append("incident")
-    if any(x in low for x in ("policy", "governance", "risk register", "security program", "written policy")):
+    if any(
+        x in low
+        for x in ("policy", "governance", "risk register", "security program", "written policy")
+    ):
         tags.append("governance")
     return tags
 
@@ -84,8 +90,7 @@ def main() -> None:
             .all()
         )
         q_by_id = {
-            q.id: q
-            for q in db.query(Question).filter(Question.questionnaire_id == qnr_id).all()
+            q.id: q for q in db.query(Question).filter(Question.questionnaire_id == qnr_id).all()
         }
 
         for m in mappings:

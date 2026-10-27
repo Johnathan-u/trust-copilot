@@ -35,7 +35,9 @@ class NotificationPolicy(Base):
     __tablename__ = "notification_policies"
 
     id = Column(Integer, primary_key=True, index=True)
-    workspace_id = Column(Integer, ForeignKey("workspaces.id", ondelete="CASCADE"), nullable=False, index=True)
+    workspace_id = Column(
+        Integer, ForeignKey("workspaces.id", ondelete="CASCADE"), nullable=False, index=True
+    )
     event_type = Column(String(64), nullable=False)
     enabled = Column(Boolean, nullable=False, default=True)
     recipient_type = Column(String(32), nullable=False, default="admins")
@@ -50,7 +52,9 @@ class NotificationLog(Base):
     __tablename__ = "notification_log"
 
     id = Column(Integer, primary_key=True, index=True)
-    workspace_id = Column(Integer, ForeignKey("workspaces.id", ondelete="CASCADE"), nullable=False, index=True)
+    workspace_id = Column(
+        Integer, ForeignKey("workspaces.id", ondelete="CASCADE"), nullable=False, index=True
+    )
     event_type = Column(String(64), nullable=False, index=True)
     channel = Column(String(16), nullable=False, default="email")
     recipient_email = Column(String(255), nullable=False)

@@ -53,20 +53,25 @@ def list_acknowledgments(
     if active_only:
         now = datetime.now(timezone.utc)
         q = q.filter(
-            (AlertAcknowledgment.snoozed_until.is_(None)) |
-            (AlertAcknowledgment.snoozed_until > now)
+            (AlertAcknowledgment.snoozed_until.is_(None))
+            | (AlertAcknowledgment.snoozed_until > now)
         )
     return [_serialize(a) for a in q.order_by(AlertAcknowledgment.created_at.desc()).all()]
 
 
 def is_snoozed(db: Session, workspace_id: int, control_id: int) -> bool:
     now = datetime.now(timezone.utc)
-    return db.query(AlertAcknowledgment).filter(
-        AlertAcknowledgment.workspace_id == workspace_id,
-        AlertAcknowledgment.control_id == control_id,
-        AlertAcknowledgment.action == "snooze",
-        AlertAcknowledgment.snoozed_until > now,
-    ).first() is not None
+    return (
+        db.query(AlertAcknowledgment)
+        .filter(
+            AlertAcknowledgment.workspace_id == workspace_id,
+            AlertAcknowledgment.control_id == control_id,
+            AlertAcknowledgment.action == "snooze",
+            AlertAcknowledgment.snoozed_until > now,
+        )
+        .first()
+        is not None
+    )
 
 
 def _serialize(ack: AlertAcknowledgment) -> dict:

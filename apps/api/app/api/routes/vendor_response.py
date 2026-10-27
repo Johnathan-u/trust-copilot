@@ -16,11 +16,7 @@ def get_vendor_response(
     db: Session = Depends(get_db),
 ):
     """Public endpoint — no auth required. Resolves a secure link token."""
-    vr = (
-        db.query(VendorRequest)
-        .filter(VendorRequest.link_token == token)
-        .first()
-    )
+    vr = db.query(VendorRequest).filter(VendorRequest.link_token == token).first()
     if not vr:
         raise HTTPException(status_code=404, detail="This link is invalid or has expired.")
 
@@ -31,11 +27,7 @@ def get_vendor_response(
     }
 
     if vr.questionnaire_id:
-        qnr = (
-            db.query(Questionnaire)
-            .filter(Questionnaire.id == vr.questionnaire_id)
-            .first()
-        )
+        qnr = db.query(Questionnaire).filter(Questionnaire.id == vr.questionnaire_id).first()
         if qnr:
             question_count = (
                 db.query(func.count(Question.id))

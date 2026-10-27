@@ -24,6 +24,7 @@ def suggest_reply_draft(
     model = resolve_model(model_override or getattr(settings, "completion_model", None))
     try:
         from openai import OpenAI
+
         client = OpenAI(api_key=settings.openai_api_key)
         user_content = f"A prospect or customer sent this trust information request:\n\nFrom: {requester_email}\n"
         if subject:

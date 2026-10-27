@@ -9,7 +9,9 @@ from app.models import Control
 
 def test_controls_cross_tenant_update_returns_404(client: TestClient, db_session: Session) -> None:
     """Update a control in workspace 1 while session is workspace 2 returns 404 (control not found)."""
-    c = Control(workspace_id=1, framework="SOC 2", control_id="CC1", name="Test", status="in_review")
+    c = Control(
+        workspace_id=1, framework="SOC 2", control_id="CC1", name="Test", status="in_review"
+    )
     db_session.add(c)
     db_session.commit()
     db_session.refresh(c)
@@ -26,7 +28,9 @@ def test_controls_cross_tenant_update_returns_404(client: TestClient, db_session
 
 def test_controls_cross_tenant_delete_returns_404(client: TestClient, db_session: Session) -> None:
     """Delete a control in workspace 1 while session is workspace 2 returns 404."""
-    c = Control(workspace_id=1, framework="SOC 2", control_id="CC2", name="Test", status="in_review")
+    c = Control(
+        workspace_id=1, framework="SOC 2", control_id="CC2", name="Test", status="in_review"
+    )
     db_session.add(c)
     db_session.commit()
     db_session.refresh(c)

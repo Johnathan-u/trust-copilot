@@ -20,7 +20,9 @@ import pytest
 
 from app.services.trust_scoring import compute_trust_score
 
-BLIND_PATH = Path(r"C:\Users\John\Downloads\trust_scoring_blind_100_pack\trust_scoring_blind_100_cases.json")
+BLIND_PATH = Path(
+    r"C:\Users\John\Downloads\trust_scoring_blind_100_pack\trust_scoring_blind_100_cases.json"
+)
 AS_OF = date(2026, 3, 23)
 
 if not BLIND_PATH.exists():
@@ -28,6 +30,7 @@ if not BLIND_PATH.exists():
 
 
 # -- Schema mapping ---------------------------------------------------------
+
 
 def _map_source_type(source_type: str, channel: str, confidence_hint: str) -> str:
     if channel == "self_reported":
@@ -73,27 +76,30 @@ def _map_case(raw: dict) -> tuple[list[dict], list[str]]:
             else:
                 seen_dup_groups.add(grp)
 
-        items.append({
-            "description": ev.get("title", ""),
-            "source_type": _map_source_type(
-                ev.get("source_type", ""),
-                ev.get("channel", ""),
-                ev.get("confidence_hint", "medium"),
-            ),
-            "recency_days": _recency_days(ev.get("issued_at")),
-            "relevance": ev.get("relevance", "supporting"),
-            "is_duplicate": is_dup,
-            "contradicts": "contradiction" in flags,
-            "negative_signal": "expired" in flags and "contradiction" not in flags,
-            "tampering": "tampering" in flags,
-            "inconsistency": "inconsistency" in flags,
-        })
+        items.append(
+            {
+                "description": ev.get("title", ""),
+                "source_type": _map_source_type(
+                    ev.get("source_type", ""),
+                    ev.get("channel", ""),
+                    ev.get("confidence_hint", "medium"),
+                ),
+                "recency_days": _recency_days(ev.get("issued_at")),
+                "relevance": ev.get("relevance", "supporting"),
+                "is_duplicate": is_dup,
+                "contradicts": "contradiction" in flags,
+                "negative_signal": "expired" in flags and "contradiction" not in flags,
+                "tampering": "tampering" in flags,
+                "inconsistency": "inconsistency" in flags,
+            }
+        )
 
     missing = raw.get("critical_gaps", [])
     return items, missing
 
 
 # -- Load cases -------------------------------------------------------------
+
 
 def _load_cases() -> list[dict]:
     with open(BLIND_PATH, encoding="utf-8") as f:
@@ -105,6 +111,7 @@ CASES = _load_cases()
 
 
 # -- Individual parametrised test -------------------------------------------
+
 
 @pytest.mark.parametrize("case", CASES, ids=[c["case_id"] for c in CASES])
 def test_blind_case(case):
@@ -121,6 +128,7 @@ def test_blind_case(case):
 
 
 # -- Full report (run with pytest -s -k blind_report) -----------------------
+
 
 def test_blind_report():
     """Print metrics table for all 100 blind cases."""

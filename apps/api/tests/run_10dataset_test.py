@@ -27,7 +27,12 @@ SESSION_SECRET = os.environ.get(
 
 
 def _make_session_cookie(workspace_id: int = 1) -> str:
-    payload = {"user_id": 1, "email": "reinhartjm294@gmail.com", "workspace_id": workspace_id, "role": "admin"}
+    payload = {
+        "user_id": 1,
+        "email": "reinhartjm294@gmail.com",
+        "workspace_id": workspace_id,
+        "role": "admin",
+    }
     data = base64.urlsafe_b64encode(json.dumps(payload).encode()).decode()
     sig = hmac.new(SESSION_SECRET.encode("utf-8"), data.encode("utf-8"), "sha256").hexdigest()
     return f"{data}.{sig}"
@@ -320,6 +325,7 @@ D10_QUESTIONS = [
 # API helpers
 # ═══════════════════════════════════════════════════════════════════════════
 
+
 def create_workspace(name: str) -> dict:
     r = S.post(f"{API}/api/workspaces", json={"name": name})
     r.raise_for_status()
@@ -362,6 +368,7 @@ def get_doc_metadata(ws_id: int, doc_id: int) -> dict:
 def upload_questionnaire(ws_id: int, filename: str, questions: list[str]) -> dict:
     _set_ws(ws_id)
     from openpyxl import Workbook
+
     wb = Workbook()
     ws = wb.active
     ws.title = "Questions"
@@ -371,7 +378,9 @@ def upload_questionnaire(ws_id: int, filename: str, questions: list[str]) -> dic
     buf = io.BytesIO()
     wb.save(buf)
     buf.seek(0)
-    files = {"file": (filename, buf, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")}
+    files = {
+        "file": (filename, buf, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+    }
     r = S.post(f"{API}/api/questionnaires/upload", data={"workspace_id": str(ws_id)}, files=files)
     r.raise_for_status()
     return r.json()
@@ -419,25 +428,30 @@ def get_answers(ws_id: int, qnr_id: int) -> list[dict]:
     for q in data.get("questions", []):
         a = q.get("answer")
         if a:
-            answers.append({
-                "question_id": q["id"],
-                "question_text": q.get("text", ""),
-                "text": a.get("text"),
-                "status": a.get("status"),
-            })
+            answers.append(
+                {
+                    "question_id": q["id"],
+                    "question_text": q.get("text", ""),
+                    "text": a.get("text"),
+                    "status": a.get("status"),
+                }
+            )
         else:
-            answers.append({
-                "question_id": q["id"],
-                "question_text": q.get("text", ""),
-                "text": None,
-                "status": "no_answer",
-            })
+            answers.append(
+                {
+                    "question_id": q["id"],
+                    "question_text": q.get("text", ""),
+                    "text": None,
+                    "status": "no_answer",
+                }
+            )
     return answers
 
 
 # ═══════════════════════════════════════════════════════════════════════════
 # Dataset runner
 # ═══════════════════════════════════════════════════════════════════════════
+
 
 def run_dataset(name: str, evidence_docs: list[tuple[str, str]], questions: list[str]) -> dict:
     print(f"\n{'='*70}")
@@ -483,7 +497,9 @@ def run_dataset(name: str, evidence_docs: list[tuple[str, str]], questions: list
     drafted = [a for a in answers if a.get("status") == "draft"]
     insufficient = [a for a in answers if a.get("status") == "insufficient_evidence"]
     no_answer = [a for a in answers if a.get("status") == "no_answer"]
-    print(f"  Results: {len(answers)} total, {len(drafted)} drafted, {len(insufficient)} insufficient, {len(no_answer)} no_answer")
+    print(
+        f"  Results: {len(answers)} total, {len(drafted)} drafted, {len(insufficient)} insufficient, {len(no_answer)} no_answer"
+    )
 
     print("\n  --- Answers ---")
     for a in answers:
@@ -634,9 +650,13 @@ def main():
         status = "PASS" if r["job_status"] == "completed" else "FAIL"
         if r["job_status"] != "completed":
             all_pass = False
-        print(f"  [{status}] {r['name']}: {r['drafted']} drafted, {r['insufficient']} insufficient, {r['generation_time_s']}s")
+        print(
+            f"  [{status}] {r['name']}: {r['drafted']} drafted, {r['insufficient']} insufficient, {r['generation_time_s']}s"
+        )
 
-        fw_summary = "; ".join(f"doc {did}: {fws}" for did, fws in r.get("doc_frameworks", {}).items())
+        fw_summary = "; ".join(
+            f"doc {did}: {fws}" for did, fws in r.get("doc_frameworks", {}).items()
+        )
         if fw_summary:
             print(f"        Frameworks: {fw_summary}")
 
