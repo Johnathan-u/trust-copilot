@@ -130,10 +130,20 @@ class FileService:
         validate_storage_key(key)
         self._storage.delete(self._storage.bucket_raw, key)
 
-    def upload_export(self, workspace_id: int, content: bytes, filename: str) -> str:
-        """Upload export artifact, return key."""
+    def upload_export(
+        self, workspace_id: int, content: bytes, filename: str, job_id: int | None = None
+    ) -> str:
+        """Upload export artifact, return key.
+
+        With ``job_id`` (TC-10-003) the key is deterministic per job (``exports/{ws}/job-{id}{ext}``), so a
+        re-run of the same export job overwrites its own object instead of leaving an orphan.
+        """
         safe_name = sanitize_filename(filename)
-        key = make_key(workspace_id, "exports", safe_name)
+        if job_id is not None:
+            key = f"exports/{int(workspace_id)}/job-{int(job_id)}{Path(safe_name).suffix}"
+            validate_storage_key(key)
+        else:
+            key = make_key(workspace_id, "exports", safe_name)
         self._storage.upload(
             self._storage.bucket_exports,
             key,
