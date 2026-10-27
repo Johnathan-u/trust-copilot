@@ -62,9 +62,11 @@ def test_retrieval_pgvector_sql_uses_safe_cast():
 
     session = MagicMock()
     executed_sql = []
+
     def capture_execute(statement, params=None):
         executed_sql.append(str(statement))
         return MagicMock(fetchall=MagicMock(return_value=[]))
+
     session.execute.side_effect = capture_execute
 
     with patch("app.services.retrieval.get_settings") as mock_settings:
@@ -110,21 +112,21 @@ def test_worker_sets_document_failed_on_index_exception():
         raise ValueError("simulated failure")
 
     with patch("app.services.index_service.index_document", index_document_raise):
-            try:
-                run_job(job, session)
-            except ValueError:
-                pass
-            # Simulate worker exception block (same as in main())
-            session.rollback()
-            job.status = "failed"
-            job.error = "simulated failure"
-            session.merge(job)
-            payload = json.loads(job.payload) if job.payload else {}
-            doc_id = payload.get("document_id")
-            if doc_id:
-                session.query.return_value.filter.return_value.first.return_value = doc
-                doc.status = "failed"
-                session.merge(doc)
-            session.commit()
+        try:
+            run_job(job, session)
+        except ValueError:
+            pass
+        # Simulate worker exception block (same as in main())
+        session.rollback()
+        job.status = "failed"
+        job.error = "simulated failure"
+        session.merge(job)
+        payload = json.loads(job.payload) if job.payload else {}
+        doc_id = payload.get("document_id")
+        if doc_id:
+            session.query.return_value.filter.return_value.first.return_value = doc
+            doc.status = "failed"
+            session.merge(doc)
+        session.commit()
     assert doc.status == "failed"
     session.merge.assert_any_call(doc)

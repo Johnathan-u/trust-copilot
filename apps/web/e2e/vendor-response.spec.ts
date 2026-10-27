@@ -1,7 +1,7 @@
 import { test, expect, type Page } from '@playwright/test'
+import { ADMIN_EMAIL, adminPassword } from './credentials'
 
-const ADMIN_EMAIL = 'admin@trust.local'
-const ADMIN_PASSWORD = 'Admin123!'
+const ADMIN_PASSWORD = adminPassword()
 
 async function loginAsAdmin(page: Page) {
   await page.goto('/login', { waitUntil: 'load' })
@@ -14,7 +14,11 @@ async function loginAsAdmin(page: Page) {
   await expect(page).toHaveURL(/\/dashboard/, { timeout: 30_000 })
 }
 
-async function createRequestViaAPI(page: Page, email?: string, message?: string): Promise<{ link_token: string; share_url: string }> {
+async function createRequestViaAPI(
+  page: Page,
+  email?: string,
+  message?: string
+): Promise<{ link_token: string; share_url: string }> {
   const res = await page.request.post('/api/vendor-requests/', {
     data: {
       vendor_email: email ?? `e2e-vr-${Date.now()}@test.com`,
@@ -27,12 +31,13 @@ async function createRequestViaAPI(page: Page, email?: string, message?: string)
 }
 
 test.describe('Vendor Response landing page — public, unauthenticated', () => {
-
   test('invalid token shows error state', async ({ page }) => {
     await page.goto('/vendor-response?token=this-token-does-not-exist-at-all')
     await page.waitForLoadState('networkidle')
 
-    await expect(page.getByText(/invalid|expired/i)).toBeVisible({ timeout: 10_000 })
+    await expect(page.getByText(/invalid|expired/i)).toBeVisible({
+      timeout: 10_000,
+    })
     await expect(page.getByText(/Link Not Found/i)).toBeVisible()
     await expect(page.getByText(/contact.*person.*sent/i)).toBeVisible()
   })
@@ -41,19 +46,29 @@ test.describe('Vendor Response landing page — public, unauthenticated', () => 
     await page.goto('/vendor-response')
     await page.waitForLoadState('networkidle')
 
-    await expect(page.getByText(/no token|invalid|check your link/i)).toBeVisible({ timeout: 10_000 })
+    await expect(
+      page.getByText(/no token|invalid|check your link/i)
+    ).toBeVisible({ timeout: 10_000 })
   })
 
   test('valid token loads request details', async ({ page }) => {
     await loginAsAdmin(page)
-    const { link_token } = await createRequestViaAPI(page, undefined, 'Please review our security controls.')
+    const { link_token } = await createRequestViaAPI(
+      page,
+      undefined,
+      'Please review our security controls.'
+    )
 
     await page.goto(`/vendor-response?token=${link_token}`)
     await page.waitForLoadState('networkidle')
 
-    await expect(page.getByText(/Vendor Request/i)).toBeVisible({ timeout: 10_000 })
+    await expect(page.getByText(/Vendor Request/i)).toBeVisible({
+      timeout: 10_000,
+    })
     await expect(page.getByText(/security questionnaire/i)).toBeVisible()
-    await expect(page.getByText('Please review our security controls.')).toBeVisible()
+    await expect(
+      page.getByText('Please review our security controls.')
+    ).toBeVisible()
     await expect(page.getByText(/Pending/i)).toBeVisible()
   })
 
@@ -64,7 +79,9 @@ test.describe('Vendor Response landing page — public, unauthenticated', () => 
     await page.goto(`/vendor-response?token=${link_token}`)
     await page.waitForLoadState('networkidle')
 
-    await expect(page.getByText('Trust Copilot')).toBeVisible({ timeout: 10_000 })
+    await expect(page.getByText('Trust Copilot')).toBeVisible({
+      timeout: 10_000,
+    })
     await expect(page.getByText('TC')).toBeVisible()
   })
 
@@ -74,7 +91,9 @@ test.describe('Vendor Response landing page — public, unauthenticated', () => 
 
     await page.goto(`/vendor-response?token=${link_token}`)
     await page.waitForLoadState('networkidle')
-    await expect(page.getByText(/Vendor Request/i)).toBeVisible({ timeout: 10_000 })
+    await expect(page.getByText(/Vendor Request/i)).toBeVisible({
+      timeout: 10_000,
+    })
 
     const bodyText = await page.locator('body').textContent()
     expect(bodyText).not.toContain('VendorRequest')
@@ -90,17 +109,23 @@ test.describe('Vendor Response landing page — public, unauthenticated', () => 
     await page.goto(`/vendor-response?token=${link_token}`)
     await page.waitForLoadState('networkidle')
 
-    await expect(page.getByText(/secure link.*do not share/i)).toBeVisible({ timeout: 10_000 })
+    await expect(page.getByText(/secure link.*do not share/i)).toBeVisible({
+      timeout: 10_000,
+    })
   })
 
-  test('request without questionnaire shows no-questionnaire message', async ({ page }) => {
+  test('request without questionnaire shows no-questionnaire message', async ({
+    page,
+  }) => {
     await loginAsAdmin(page)
     const { link_token } = await createRequestViaAPI(page)
 
     await page.goto(`/vendor-response?token=${link_token}`)
     await page.waitForLoadState('networkidle')
 
-    await expect(page.getByText(/no questionnaire.*attached/i)).toBeVisible({ timeout: 10_000 })
+    await expect(page.getByText(/no questionnaire.*attached/i)).toBeVisible({
+      timeout: 10_000,
+    })
   })
 
   test('completed request shows completion state', async ({ page }) => {
@@ -109,7 +134,9 @@ test.describe('Vendor Response landing page — public, unauthenticated', () => 
 
     const listRes = await page.request.get('/api/vendor-requests/')
     const items = await listRes.json()
-    const match = items.find((i: { link_token: string }) => i.link_token === link_token)
+    const match = items.find(
+      (i: { link_token: string }) => i.link_token === link_token
+    )
     expect(match).toBeTruthy()
 
     await page.request.patch(`/api/vendor-requests/${match.id}`, {
@@ -119,7 +146,9 @@ test.describe('Vendor Response landing page — public, unauthenticated', () => 
     await page.goto(`/vendor-response?token=${link_token}`)
     await page.waitForLoadState('networkidle')
 
-    await expect(page.getByText(/already been completed/i)).toBeVisible({ timeout: 10_000 })
+    await expect(page.getByText(/already been completed/i)).toBeVisible({
+      timeout: 10_000,
+    })
     await expect(page.getByText(/no further action/i)).toBeVisible()
   })
 
@@ -132,24 +161,33 @@ test.describe('Vendor Response landing page — public, unauthenticated', () => 
     await expect(page.getByText(/Pending/i)).toBeVisible({ timeout: 10_000 })
 
     const listRes = await page.request.get('/api/vendor-requests/')
-    const match = (await listRes.json()).find((i: { link_token: string }) => i.link_token === link_token)
+    const match = (await listRes.json()).find(
+      (i: { link_token: string }) => i.link_token === link_token
+    )
     await page.request.patch(`/api/vendor-requests/${match.id}`, {
       data: { status: 'in_progress' },
     })
 
     await page.reload()
     await page.waitForLoadState('networkidle')
-    await expect(page.getByText(/In Progress/i)).toBeVisible({ timeout: 10_000 })
+    await expect(page.getByText(/In Progress/i)).toBeVisible({
+      timeout: 10_000,
+    })
   })
 
-  test('end-to-end: create on dashboard → open vendor link → see details', async ({ page }) => {
+  test('end-to-end: create on dashboard → open vendor link → see details', async ({
+    page,
+  }) => {
     await loginAsAdmin(page)
 
     await page.goto('/dashboard/requests')
     await page.waitForLoadState('networkidle')
 
     await page.getByRole('button', { name: /Create Request/i }).click()
-    const modal = page.getByRole('dialog').or(page.locator('[class*="Modal"]')).first()
+    const modal = page
+      .getByRole('dialog')
+      .or(page.locator('[class*="Modal"]'))
+      .first()
     await expect(modal).toBeVisible({ timeout: 5_000 })
 
     const vendorEmail = `e2e-full-${Date.now()}@vendor.com`
@@ -171,12 +209,16 @@ test.describe('Vendor Response landing page — public, unauthenticated', () => 
     await page.goto(`/vendor-response?token=${token}`)
     await page.waitForLoadState('networkidle')
 
-    await expect(page.getByText(/Vendor Request/i)).toBeVisible({ timeout: 10_000 })
+    await expect(page.getByText(/Vendor Request/i)).toBeVisible({
+      timeout: 10_000,
+    })
     await expect(page.getByText('Full end-to-end test message')).toBeVisible()
     await expect(page.getByText(/Pending/i)).toBeVisible()
   })
 
-  test('integrated flow: dashboard create → vendor page → status transitions → vendor page reflects all states', async ({ page }) => {
+  test('integrated flow: dashboard create → vendor page → status transitions → vendor page reflects all states', async ({
+    page,
+  }) => {
     await loginAsAdmin(page)
 
     // ── Step 1: Create request on dashboard UI ──────────────────────────
@@ -184,7 +226,10 @@ test.describe('Vendor Response landing page — public, unauthenticated', () => 
     await page.waitForLoadState('networkidle')
 
     await page.getByRole('button', { name: /Create Request/i }).click()
-    const modal = page.getByRole('dialog').or(page.locator('[class*="Modal"]')).first()
+    const modal = page
+      .getByRole('dialog')
+      .or(page.locator('[class*="Modal"]'))
+      .first()
     await expect(modal).toBeVisible({ timeout: 5_000 })
 
     const vendorEmail = `e2e-integrated-${Date.now()}@vendor.com`
@@ -211,7 +256,9 @@ test.describe('Vendor Response landing page — public, unauthenticated', () => 
     await page.goto(`/vendor-response?token=${token}`)
     await page.waitForLoadState('networkidle')
 
-    await expect(page.getByText(/Vendor Request/i)).toBeVisible({ timeout: 10_000 })
+    await expect(page.getByText(/Vendor Request/i)).toBeVisible({
+      timeout: 10_000,
+    })
     await expect(page.getByText('Integrated flow test')).toBeVisible()
     await expect(page.getByText(/Pending/i)).toBeVisible()
     // No internal names leaked
@@ -229,13 +276,17 @@ test.describe('Vendor Response landing page — public, unauthenticated', () => 
     await expect(statusSelect).toBeVisible({ timeout: 5_000 })
     await statusSelect.selectOption('in_progress')
     await page.waitForLoadState('networkidle')
-    await expect(rowAfter.getByText(/In Progress/i)).toBeVisible({ timeout: 10_000 })
+    await expect(rowAfter.getByText(/In Progress/i)).toBeVisible({
+      timeout: 10_000,
+    })
 
     // ── Step 5: Vendor page — verify In Progress state ──────────────────
     await page.goto(`/vendor-response?token=${token}`)
     await page.waitForLoadState('networkidle')
 
-    await expect(page.getByText(/In Progress/i)).toBeVisible({ timeout: 10_000 })
+    await expect(page.getByText(/In Progress/i)).toBeVisible({
+      timeout: 10_000,
+    })
     await expect(page.getByText('Integrated flow test')).toBeVisible()
 
     // ── Step 6: Admin updates status → Completed on dashboard ───────────
@@ -248,7 +299,9 @@ test.describe('Vendor Response landing page — public, unauthenticated', () => 
     await expect(finalSelect).toBeVisible({ timeout: 5_000 })
     await finalSelect.selectOption('completed')
     await page.waitForLoadState('networkidle')
-    await expect(rowFinal.getByText(/Completed/i)).toBeVisible({ timeout: 10_000 })
+    await expect(rowFinal.getByText(/Completed/i)).toBeVisible({
+      timeout: 10_000,
+    })
     // Completed rows should not have a status dropdown
     await expect(rowFinal.locator('select')).toHaveCount(0)
 
@@ -256,7 +309,9 @@ test.describe('Vendor Response landing page — public, unauthenticated', () => 
     await page.goto(`/vendor-response?token=${token}`)
     await page.waitForLoadState('networkidle')
 
-    await expect(page.getByText(/already been completed/i)).toBeVisible({ timeout: 10_000 })
+    await expect(page.getByText(/already been completed/i)).toBeVisible({
+      timeout: 10_000,
+    })
     await expect(page.getByText(/no further action/i)).toBeVisible()
     // Message should NOT be shown on completed page (clean terminal state)
     await expect(page.getByText('Integrated flow test')).not.toBeVisible()

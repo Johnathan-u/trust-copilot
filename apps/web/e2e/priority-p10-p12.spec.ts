@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test'
+import { DEMO_EMAIL, demoPassword } from './credentials'
 
-const DEMO_EMAIL = 'demo@trust.local'
-const DEMO_PASSWORD = 'j'
+const DEMO_PASSWORD = demoPassword()
 
 async function login(page: import('@playwright/test').Page) {
   await page.goto('/login')
@@ -22,7 +22,9 @@ test.describe('P10 Bulk archive E2E', () => {
     }
   })
 
-  test('Documents: bulk selection bar and bulk delete modal (cancel)', async ({ page }) => {
+  test('Documents: bulk selection bar and bulk delete modal (cancel)', async ({
+    page,
+  }) => {
     await page.goto('/dashboard/documents')
     await page.waitForLoadState('networkidle')
     const rowChecks = page.locator('ul li input[type="checkbox"]')
@@ -32,7 +34,9 @@ test.describe('P10 Bulk archive E2E', () => {
       .toBeGreaterThanOrEqual(2)
     await rowChecks.nth(0).check()
     await rowChecks.nth(1).check()
-    await expect(page.getByText(/\d+ document(s)? selected/i)).toBeVisible({ timeout: 5000 })
+    await expect(page.getByText(/\d+ document(s)? selected/i)).toBeVisible({
+      timeout: 5000,
+    })
     await page.getByRole('button', { name: /delete selected/i }).click()
     const dialog = page.getByRole('dialog')
     await expect(dialog).toBeVisible()
@@ -53,7 +57,9 @@ test.describe('P11 Archived filter + restore E2E', () => {
     }
   })
 
-  test('Documents: archived filter modes switch without error', async ({ page }) => {
+  test('Documents: archived filter modes switch without error', async ({
+    page,
+  }) => {
     await page.goto('/dashboard/documents')
     await page.waitForLoadState('networkidle')
     const archivedSelect = page
@@ -69,7 +75,9 @@ test.describe('P11 Archived filter + restore E2E', () => {
     await page.waitForLoadState('networkidle')
   })
 
-  test('Documents: restore appears in row menu when archived rows exist', async ({ page }) => {
+  test('Documents: restore appears in row menu when archived rows exist', async ({
+    page,
+  }) => {
     await page.goto('/dashboard/documents')
     await page.waitForLoadState('networkidle')
     const archivedSelect = page
@@ -104,7 +112,9 @@ test.describe('P12 Metadata editor + row action menu E2E', () => {
     }
   })
 
-  test('Questionnaires: row menu and metadata editor opens', async ({ page }) => {
+  test('Questionnaires: row menu and metadata editor opens', async ({
+    page,
+  }) => {
     await page.goto('/dashboard/questionnaires')
     await page.waitForLoadState('networkidle')
     const firstActions = page.getByRole('button', { name: /actions/i }).first()

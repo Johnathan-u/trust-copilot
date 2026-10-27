@@ -9,9 +9,12 @@ repos:
     hooks:
       - id: prettier
         name: prettier
-        entry: npx --prefix apps/web prettier --check
+        # TC-02-006: runs from the repo root, so point at the app's ignore file explicitly.
+        entry: npx --prefix apps/web prettier --check --ignore-path apps/web/.prettierignore
         language: system
         files: ^apps/web/.*\.(ts|tsx|js|jsx|json|md)$
+        # Generated and rewritten by `next build`/`next dev` ("should not be edited").
+        exclude: ^apps/web/next-env\.d\.ts$
 
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v4.6.0

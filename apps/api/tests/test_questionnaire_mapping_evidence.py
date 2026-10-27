@@ -12,7 +12,9 @@ from app.services.questionnaire_mapping_evidence import (
 
 @pytest.fixture
 def temp_workspace_control(db_session: Session) -> int:
-    wc = WorkspaceControl(workspace_id=1, framework_control_id=None, custom_name="Temp WC for evidence test")
+    wc = WorkspaceControl(
+        workspace_id=1, framework_control_id=None, custom_name="Temp WC for evidence test"
+    )
     db_session.add(wc)
     db_session.commit()
     db_session.refresh(wc)
@@ -23,7 +25,9 @@ def temp_workspace_control(db_session: Session) -> int:
         db_session.query(ControlEvidenceLink).filter(ControlEvidenceLink.control_id == wid).delete(
             synchronize_session=False
         )
-        db_session.query(WorkspaceControl).filter(WorkspaceControl.id == wid).delete(synchronize_session=False)
+        db_session.query(WorkspaceControl).filter(WorkspaceControl.id == wid).delete(
+            synchronize_session=False
+        )
         db_session.commit()
 
 
@@ -38,7 +42,9 @@ def test_batch_returns_empty_without_links(db_session: Session, temp_workspace_c
     assert out[temp_workspace_control] == []
 
 
-def test_batch_excludes_evidence_from_other_workspace(db_session: Session, temp_workspace_control: int):
+def test_batch_excludes_evidence_from_other_workspace(
+    db_session: Session, temp_workspace_control: int
+):
     """Links to evidence in workspace 2 must not appear when querying workspace 1."""
     doc = Document(workspace_id=2, storage_key="x", filename="wrong.pdf")
     db_session.add(doc)
@@ -144,8 +150,12 @@ def test_duplicate_links_same_evidence_deduped(db_session: Session, temp_workspa
     db_session.refresh(ev)
     db_session.add_all(
         [
-            ControlEvidenceLink(control_id=temp_workspace_control, evidence_id=ev.id, confidence_score=0.5),
-            ControlEvidenceLink(control_id=temp_workspace_control, evidence_id=ev.id, confidence_score=0.9),
+            ControlEvidenceLink(
+                control_id=temp_workspace_control, evidence_id=ev.id, confidence_score=0.5
+            ),
+            ControlEvidenceLink(
+                control_id=temp_workspace_control, evidence_id=ev.id, confidence_score=0.9
+            ),
         ]
     )
     db_session.commit()

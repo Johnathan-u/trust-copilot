@@ -4,12 +4,14 @@ Covers the full outbound request lifecycle:
   create → list → status update → edge cases
 """
 
+from collections.abc import Generator
+
 import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 
 from app.core.password import hash_password
-from app.models import User, WorkspaceMember
+from app.models import Questionnaire, User, WorkspaceMember
 from app.models.vendor_request import VENDOR_REQUEST_STATUSES
 
 
@@ -23,9 +25,11 @@ def admin_user(db_session: Session) -> User:
         db_session.add(user)
         db_session.commit()
         db_session.refresh(user)
-    mem = db_session.query(WorkspaceMember).filter(
-        WorkspaceMember.user_id == user.id, WorkspaceMember.workspace_id == 1
-    ).first()
+    mem = (
+        db_session.query(WorkspaceMember)
+        .filter(WorkspaceMember.user_id == user.id, WorkspaceMember.workspace_id == 1)
+        .first()
+    )
     if not mem:
         db_session.add(WorkspaceMember(workspace_id=1, user_id=user.id, role="admin"))
         db_session.commit()
@@ -35,11 +39,36 @@ def admin_user(db_session: Session) -> User:
     return user
 
 
+@pytest.fixture
+def own_questionnaire(db_session: Session) -> Generator[int, None, None]:
+    """Synthetic questionnaire owned by this test in the admin user's workspace (1).
+
+    vendor_requests.questionnaire_id is a real FK to questionnaires.id, so the test must not
+    assume any particular row (e.g. id 1) already exists: on a fresh DB it does not.
+    """
+    qnr = Questionnaire(
+        workspace_id=1,
+        filename="vendor-request-own-questionnaire.xlsx",
+        status="parsed",
+        display_id="QNR-VREQ-OWN",
+    )
+    db_session.add(qnr)
+    db_session.commit()
+    db_session.refresh(qnr)
+    qnr_id = qnr.id
+    yield qnr_id
+    # FK is ON DELETE SET NULL, so removing the row never breaks the vendor request it created.
+    db_session.rollback()
+    db_session.query(Questionnaire).filter(Questionnaire.id == qnr_id).delete()
+    db_session.commit()
+
+
 def _login_admin(client: TestClient, admin_user: User) -> None:
     client.post("/api/auth/login", json={"email": admin_user.email, "password": "a"})
 
 
 # ── Auth ──────────────────────────────────────────────────────────────────
+
 
 def test_list_vendor_requests_requires_auth(client: TestClient) -> None:
     """GET /api/vendor-requests without auth returns 401."""
@@ -67,6 +96,7 @@ def test_create_vendor_request_requires_admin(client: TestClient, admin_user: Us
 
 # ── Create ────────────────────────────────────────────────────────────────
 
+
 def test_create_returns_pending_status_and_link(client: TestClient, admin_user: User) -> None:
     """POST creates request with status=pending, link_token, and share_url."""
     _login_admin(client, admin_user)
@@ -87,17 +117,20 @@ def test_create_returns_pending_status_and_link(client: TestClient, admin_user: 
     assert data["link_token"] in data["share_url"]
 
 
-def test_create_with_questionnaire_id(client: TestClient, admin_user: User) -> None:
-    """POST can include optional questionnaire_id."""
+def test_create_with_questionnaire_id(
+    client: TestClient, admin_user: User, own_questionnaire: int
+) -> None:
+    """POST can include optional questionnaire_id (a questionnaire this test created)."""
     _login_admin(client, admin_user)
     r = client.post(
         "/api/vendor-requests/",
-        json={"vendor_email": "v2@example.com", "questionnaire_id": 1},
+        json={"vendor_email": "v2@example.com", "questionnaire_id": own_questionnaire},
     )
     assert r.status_code in (200, 201)
     data = r.json()
     assert data["vendor_email"] == "v2@example.com"
-    assert data.get("questionnaire_id") == 1
+    assert data["workspace_id"] == 1
+    assert data.get("questionnaire_id") == own_questionnaire
 
 
 def test_create_with_message(client: TestClient, admin_user: User) -> None:
@@ -144,6 +177,7 @@ def test_each_create_gets_unique_token(client: TestClient, admin_user: User) -> 
 
 # ── List ──────────────────────────────────────────────────────────────────
 
+
 def test_list_returns_created_requests(client: TestClient, admin_user: User) -> None:
     """Created requests appear in list, ordered newest first."""
     _login_admin(client, admin_user)
@@ -178,11 +212,21 @@ def test_list_response_shape(client: TestClient, admin_user: User) -> None:
     items = r.json()
     assert len(items) >= 1
     item = items[0]
-    expected_keys = {"id", "workspace_id", "vendor_email", "questionnaire_id", "message", "status", "link_token", "created_at"}
+    expected_keys = {
+        "id",
+        "workspace_id",
+        "vendor_email",
+        "questionnaire_id",
+        "message",
+        "status",
+        "link_token",
+        "created_at",
+    }
     assert expected_keys <= set(item.keys())
 
 
 # ── Status update ─────────────────────────────────────────────────────────
+
 
 def test_update_status_to_in_progress(client: TestClient, admin_user: User) -> None:
     """PATCH transitions pending → in_progress."""
@@ -244,6 +288,7 @@ def test_status_persists_across_list(client: TestClient, admin_user: User) -> No
 
 # ── Full lifecycle ────────────────────────────────────────────────────────
 
+
 def test_full_lifecycle_create_update_list(client: TestClient, admin_user: User) -> None:
     """End-to-end: create → verify pending → update in_progress → update completed → list confirms."""
     _login_admin(client, admin_user)
@@ -274,6 +319,7 @@ def test_full_lifecycle_create_update_list(client: TestClient, admin_user: User)
 
 
 # ── Model statuses match spec ────────────────────────────────────────────
+
 
 def test_model_statuses_match_spec() -> None:
     """VENDOR_REQUEST_STATUSES = pending, in_progress, completed."""

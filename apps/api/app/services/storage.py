@@ -1,6 +1,6 @@
 """MinIO/S3 object storage client (FILE-01)."""
 
-import io
+import io  # noqa: F401
 from typing import BinaryIO
 
 import boto3
@@ -15,6 +15,10 @@ class StorageClient:
 
     def __init__(self):
         settings = get_settings()
+        if not settings.s3_access_key or not settings.s3_secret_key:
+            # TC-07-001: no literal fallback credentials, and never fall through to boto3's
+            # ambient credential chain (instance profile, ~/.aws) by passing None.
+            raise RuntimeError("S3_ACCESS_KEY and S3_SECRET_KEY must be set (see .env.example).")
         self._client = boto3.client(
             "s3",
             endpoint_url=settings.s3_endpoint,

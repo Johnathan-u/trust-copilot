@@ -14,6 +14,7 @@ Run from apps/api: python scripts/seed_qa_test_data.py
 Requires: Postgres running (e.g. docker compose up -d postgres). Optional: MinIO for document storage;
 if MinIO is down, documents are still created with placeholder keys so lists and controls seed correctly.
 """
+
 from __future__ import annotations
 
 import json
@@ -25,14 +26,15 @@ API_ROOT = Path(__file__).resolve().parent.parent
 if str(API_ROOT) not in sys.path:
     sys.path.insert(0, str(API_ROOT))
 
-from dotenv import load_dotenv
+from dotenv import load_dotenv  # noqa: E402
+
 load_dotenv(API_ROOT / ".env")
 
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session  # noqa: E402
 
-from app.core.database import SessionLocal
-from app.core.password import hash_password
-from app.models import (
+from app.core.database import SessionLocal  # noqa: E402
+from app.core.password import hash_password  # noqa: E402
+from app.models import (  # noqa: E402
     Answer,
     AuditEvent,
     Control,
@@ -49,20 +51,37 @@ from app.models import (
     Workspace,
     WorkspaceMember,
 )
-from app.services.file_service import make_key
-from app.services.storage import StorageClient
-from app.services.xlsx_questionnaire_parser import parse_xlsx_questionnaire
+from app.services.file_service import make_key  # noqa: E402
+from app.services.storage import StorageClient  # noqa: E402
+from app.services.xlsx_questionnaire_parser import parse_xlsx_questionnaire  # noqa: E402
+
+try:
+    from scripts._seed_credentials import (
+        describe,
+        refuse_production_seed,
+        seed_password,
+        should_reset_passwords,
+        write_generated_credentials,
+    )
+except ImportError:  # run as `python scripts/<name>.py`
+    from _seed_credentials import (
+        describe,
+        refuse_production_seed,
+        seed_password,
+        should_reset_passwords,
+        write_generated_credentials,
+    )
 
 DEMO_EMAIL = "demo@trust.local"
-DEMO_PASSWORD = "j"
+DEMO_PASSWORD = seed_password("TC_SEED_DEMO_PASSWORD")
 ADMIN_EMAIL = "admin@trust.local"
-ADMIN_PASSWORD = "Admin123!"
+ADMIN_PASSWORD = seed_password("TC_SEED_ADMIN_PASSWORD")
 EDITOR_EMAIL = "editor@trust.local"
-EDITOR_PASSWORD = "Editor123!"
+EDITOR_PASSWORD = seed_password("TC_SEED_EDITOR_PASSWORD")
 REVIEWER_EMAIL = "reviewer@trust.local"
-REVIEWER_PASSWORD = "Reviewer123!"
+REVIEWER_PASSWORD = seed_password("TC_SEED_REVIEWER_PASSWORD")
 SUSPENDED_EMAIL = "suspended@trust.local"
-SUSPENDED_PASSWORD = "Suspended123!"
+SUSPENDED_PASSWORD = seed_password("TC_SEED_SUSPENDED_PASSWORD")
 
 WORKSPACE_1_ID = 1
 WORKSPACE_2_ID = 2
@@ -81,6 +100,9 @@ def ensure_user(db: Session, email: str, password: str, display_name: str) -> Us
         db.commit()
         db.refresh(user)
         print(f"  Created user: {email}")
+    elif should_reset_passwords():
+        user.password_hash = hash_password(password)
+        db.commit()
     return user
 
 
@@ -95,11 +117,17 @@ def ensure_workspace(db: Session, id: int, name: str, slug: str) -> Workspace:
     return ws
 
 
-def ensure_member(db: Session, user_id: int, workspace_id: int, role: str, suspended: bool = False) -> None:
-    m = db.query(WorkspaceMember).filter(
-        WorkspaceMember.user_id == user_id,
-        WorkspaceMember.workspace_id == workspace_id,
-    ).first()
+def ensure_member(
+    db: Session, user_id: int, workspace_id: int, role: str, suspended: bool = False
+) -> None:
+    m = (
+        db.query(WorkspaceMember)
+        .filter(
+            WorkspaceMember.user_id == user_id,
+            WorkspaceMember.workspace_id == workspace_id,
+        )
+        .first()
+    )
     if not m:
         m = WorkspaceMember(
             user_id=user_id,
@@ -109,7 +137,10 @@ def ensure_member(db: Session, user_id: int, workspace_id: int, role: str, suspe
         )
         db.add(m)
         db.commit()
-        print(f"  Added member to workspace {workspace_id} as {role}" + (" (suspended)" if suspended else ""))
+        print(
+            f"  Added member to workspace {workspace_id} as {role}"
+            + (" (suspended)" if suspended else "")
+        )
     else:
         m.role = role
         m.suspended = suspended
@@ -136,16 +167,32 @@ def seed_users_and_workspaces(db: Session) -> tuple[User, User, User, User, User
     return admin_u, editor_u, reviewer_u, suspended_u, demo_u
 
 
-def seed_documents(db: Session, storage: StorageClient | None, workspace_id: int, prefix: str) -> list[Document]:
+def seed_documents(
+    db: Session, storage: StorageClient | None, workspace_id: int, prefix: str
+) -> list[Document]:
     docs = []
-    for i, (name, content, ctype) in enumerate([
-        (f"{prefix}_evidence_1.txt", f"Evidence document 1 for workspace {workspace_id}.", "text/plain"),
-        (f"{prefix}_evidence_2.txt", f"Evidence document 2 for workspace {workspace_id}.", "text/plain"),
-    ]):
-        existing = db.query(Document).filter(
-            Document.workspace_id == workspace_id,
-            Document.filename == name,
-        ).first()
+    for i, (name, content, ctype) in enumerate(
+        [
+            (
+                f"{prefix}_evidence_1.txt",
+                f"Evidence document 1 for workspace {workspace_id}.",
+                "text/plain",
+            ),
+            (
+                f"{prefix}_evidence_2.txt",
+                f"Evidence document 2 for workspace {workspace_id}.",
+                "text/plain",
+            ),
+        ]
+    ):
+        existing = (
+            db.query(Document)
+            .filter(
+                Document.workspace_id == workspace_id,
+                Document.filename == name,
+            )
+            .first()
+        )
         if existing:
             docs.append(existing)
             continue
@@ -169,7 +216,9 @@ def seed_documents(db: Session, storage: StorageClient | None, workspace_id: int
     return docs
 
 
-def seed_questionnaires(db: Session, storage: StorageClient | None, workspace_id: int, prefix: str) -> list[Questionnaire]:
+def seed_questionnaires(
+    db: Session, storage: StorageClient | None, workspace_id: int, prefix: str
+) -> list[Questionnaire]:
     qnrs = []
     if not FIXTURE_XLSX.exists():
         q = Questionnaire(
@@ -183,7 +232,13 @@ def seed_questionnaires(db: Session, storage: StorageClient | None, workspace_id
         db.commit()
         db.refresh(q)
         for i, text in enumerate(["Question A?", "Question B?", "Question C?"], 1):
-            qu = Question(questionnaire_id=q.id, text=text, section="Seed", source_location=json.dumps({}), confidence=90)
+            qu = Question(
+                questionnaire_id=q.id,
+                text=text,
+                section="Seed",
+                source_location=json.dumps({}),
+                confidence=90,
+            )
             db.add(qu)
         db.commit()
         qnrs.append(q)
@@ -196,13 +251,22 @@ def seed_questionnaires(db: Session, storage: StorageClient | None, workspace_id
         key = make_key(workspace_id, "raw", name)
         if storage:
             try:
-                storage.upload(storage.bucket_raw, key, xlsx_content, content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+                storage.upload(
+                    storage.bucket_raw,
+                    key,
+                    xlsx_content,
+                    content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                )
             except Exception:
                 pass
-        existing = db.query(Questionnaire).filter(
-            Questionnaire.workspace_id == workspace_id,
-            Questionnaire.filename == name,
-        ).first()
+        existing = (
+            db.query(Questionnaire)
+            .filter(
+                Questionnaire.workspace_id == workspace_id,
+                Questionnaire.filename == name,
+            )
+            .first()
+        )
         if existing:
             qnrs.append(existing)
             continue
@@ -248,30 +312,44 @@ def seed_answers(db: Session, questionnaire: Questionnaire) -> None:
     db.commit()
 
 
-def seed_controls_and_evidence(db: Session, workspace_id: int, documents: list[Document], prefix: str) -> list[Control]:
+def seed_controls_and_evidence(
+    db: Session, workspace_id: int, documents: list[Document], prefix: str
+) -> list[Control]:
     controls = []
-    for i, (fw, cid, name, status) in enumerate([
-        (f"{prefix} SOC2", "CC6.1", "Logical access", "implemented"),
-        (f"{prefix} SOC2", "CC6.2", "Access removal", "in_review"),
-        (f"{prefix} ISO27001", "A.9.2.1", "Registration", "implemented"),
-    ]):
-        c = db.query(Control).filter(
-            Control.workspace_id == workspace_id,
-            Control.framework == fw,
-            Control.control_id == cid,
-        ).first()
+    for i, (fw, cid, name, status) in enumerate(
+        [
+            (f"{prefix} SOC2", "CC6.1", "Logical access", "implemented"),
+            (f"{prefix} SOC2", "CC6.2", "Access removal", "in_review"),
+            (f"{prefix} ISO27001", "A.9.2.1", "Registration", "implemented"),
+        ]
+    ):
+        c = (
+            db.query(Control)
+            .filter(
+                Control.workspace_id == workspace_id,
+                Control.framework == fw,
+                Control.control_id == cid,
+            )
+            .first()
+        )
         if not c:
-            c = Control(workspace_id=workspace_id, framework=fw, control_id=cid, name=name, status=status)
+            c = Control(
+                workspace_id=workspace_id, framework=fw, control_id=cid, name=name, status=status
+            )
             db.add(c)
             db.commit()
             db.refresh(c)
         controls.append(c)
 
     if documents and controls:
-        ce = db.query(ControlEvidence).filter(
-            ControlEvidence.control_id == controls[0].id,
-            ControlEvidence.document_id == documents[0].id,
-        ).first()
+        ce = (
+            db.query(ControlEvidence)
+            .filter(
+                ControlEvidence.control_id == controls[0].id,
+                ControlEvidence.document_id == documents[0].id,
+            )
+            .first()
+        )
         if not ce:
             db.add(ControlEvidence(control_id=controls[0].id, document_id=documents[0].id))
             db.commit()
@@ -283,48 +361,62 @@ def seed_trust_articles(db: Session, workspace_id: int, prefix: str) -> None:
         (f"{prefix}-published", f"{prefix} Published Article", True),
         (f"{prefix}-draft", f"{prefix} Unpublished Article", False),
     ]:
-        if db.query(TrustArticle).filter(TrustArticle.workspace_id == workspace_id, TrustArticle.slug == slug).first():
+        if (
+            db.query(TrustArticle)
+            .filter(TrustArticle.workspace_id == workspace_id, TrustArticle.slug == slug)
+            .first()
+        ):
             continue
-        db.add(TrustArticle(
-            workspace_id=workspace_id,
-            slug=slug,
-            title=title,
-            content=f"Content for {title}.",
-            published=1 if published else 0,
-            category="Security",
-        ))
+        db.add(
+            TrustArticle(
+                workspace_id=workspace_id,
+                slug=slug,
+                title=title,
+                content=f"Content for {title}.",
+                published=1 if published else 0,
+                category="Security",
+            )
+        )
     db.commit()
 
 
 def seed_trust_requests(db: Session, workspace_id: int, assignee_id: int | None) -> None:
     if db.query(TrustRequest).filter(TrustRequest.workspace_id == workspace_id).first():
         return
-    db.add(TrustRequest(
-        workspace_id=workspace_id,
-        assignee_id=assignee_id,
-        requester_email="requester@example.com",
-        requester_name="QA Requester",
-        subject="SOC 2 questionnaire",
-        message="Please share your SOC 2 report.",
-        status="in_progress",
-    ))
+    db.add(
+        TrustRequest(
+            workspace_id=workspace_id,
+            assignee_id=assignee_id,
+            requester_email="requester@example.com",
+            requester_name="QA Requester",
+            subject="SOC 2 questionnaire",
+            message="Please share your SOC 2 report.",
+            status="in_progress",
+        )
+    )
     db.commit()
 
 
 def seed_vendor_requests(db: Session, workspace_id: int, questionnaire_id: int | None) -> None:
     if db.query(VendorRequest).filter(VendorRequest.workspace_id == workspace_id).first():
         return
-    db.add(VendorRequest(
-        workspace_id=workspace_id,
-        vendor_email="vendor@example.com",
-        questionnaire_id=questionnaire_id,
-        status="pending",
-    ))
+    db.add(
+        VendorRequest(
+            workspace_id=workspace_id,
+            vendor_email="vendor@example.com",
+            questionnaire_id=questionnaire_id,
+            status="pending",
+        )
+    )
     db.commit()
 
 
 def seed_custom_role(db: Session, workspace_id: int, name: str) -> CustomRole:
-    r = db.query(CustomRole).filter(CustomRole.workspace_id == workspace_id, CustomRole.name == name).first()
+    r = (
+        db.query(CustomRole)
+        .filter(CustomRole.workspace_id == workspace_id, CustomRole.name == name)
+        .first()
+    )
     if r:
         return r
     r = CustomRole(
@@ -344,18 +436,24 @@ def seed_custom_role(db: Session, workspace_id: int, name: str) -> CustomRole:
 
 def seed_notification_policies(db: Session, workspace_id: int, prefix: str) -> None:
     for event_type in ["member.invited", "export.completed"]:
-        if db.query(NotificationPolicy).filter(
-            NotificationPolicy.workspace_id == workspace_id,
-            NotificationPolicy.event_type == event_type,
-        ).first():
+        if (
+            db.query(NotificationPolicy)
+            .filter(
+                NotificationPolicy.workspace_id == workspace_id,
+                NotificationPolicy.event_type == event_type,
+            )
+            .first()
+        ):
             continue
-        db.add(NotificationPolicy(
-            workspace_id=workspace_id,
-            event_type=event_type,
-            enabled=True,
-            recipient_type="admins",
-            recipient_value=None,
-        ))
+        db.add(
+            NotificationPolicy(
+                workspace_id=workspace_id,
+                event_type=event_type,
+                enabled=True,
+                recipient_type="admins",
+                recipient_value=None,
+            )
+        )
     db.commit()
 
 
@@ -384,6 +482,7 @@ def seed_audit_events(db: Session, workspace_id: int, user_id: int, email: str) 
 
 
 def main() -> None:
+    refuse_production_seed()
     print("QA seed starting...", flush=True)
     db = SessionLocal()
     storage = None
@@ -413,14 +512,20 @@ def main() -> None:
             seed_custom_role(db, ws_id, "qa-custom")
             seed_notification_policies(db, ws_id, prefix)
             seed_audit_events(db, ws_id, admin_u.id, admin_u.email)
-            print(f"  Audit events: 5")
+            print("  Audit events: 5")
 
         print("\n--- QA test accounts ---", flush=True)
-        print(f"  Admin:    {ADMIN_EMAIL} / {ADMIN_PASSWORD}", flush=True)
-        print(f"  Editor:   {EDITOR_EMAIL} / {EDITOR_PASSWORD}", flush=True)
-        print(f"  Reviewer: {REVIEWER_EMAIL} / {REVIEWER_PASSWORD}", flush=True)
-        print(f"  Suspended:{SUSPENDED_EMAIL} / {SUSPENDED_PASSWORD} (blocked from app)", flush=True)
-        print(f"  Demo:     {DEMO_EMAIL} / {DEMO_PASSWORD} (admin in Workspace 1, editor in Workspace 2)", flush=True)
+        print(f"  Admin:    {ADMIN_EMAIL} / {describe('TC_SEED_ADMIN_PASSWORD')}", flush=True)
+        print(f"  Editor:   {EDITOR_EMAIL} / {describe('TC_SEED_EDITOR_PASSWORD')}", flush=True)
+        print(f"  Reviewer: {REVIEWER_EMAIL} / {describe('TC_SEED_REVIEWER_PASSWORD')}", flush=True)
+        print(
+            f"  Suspended:{SUSPENDED_EMAIL} / {describe('TC_SEED_SUSPENDED_PASSWORD')} (blocked from app)",
+            flush=True,
+        )
+        print(
+            f"  Demo:     {DEMO_EMAIL} / {describe('TC_SEED_DEMO_PASSWORD')} (admin in Workspace 1, editor in Workspace 2)",
+            flush=True,
+        )
         print("---", flush=True)
         print("Slack/Gmail: Connect manually in the app for those QA checks.", flush=True)
         print("QA seed complete.", flush=True)
@@ -429,4 +534,7 @@ def main() -> None:
 
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    finally:
+        write_generated_credentials()

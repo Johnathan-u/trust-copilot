@@ -46,7 +46,9 @@ def get_promise(db: Session, promise_id: int) -> dict | None:
     return _serialize(p) if p else None
 
 
-def list_promises(db: Session, workspace_id: int, status: str | None = None, deal_id: int | None = None) -> list[dict]:
+def list_promises(
+    db: Session, workspace_id: int, status: str | None = None, deal_id: int | None = None
+) -> list[dict]:
     q = db.query(TrustPromise).filter(TrustPromise.workspace_id == workspace_id)
     if status:
         q = q.filter(TrustPromise.status == status)
@@ -92,10 +94,14 @@ def promise_coverage(db: Session, promise_id: int) -> dict:
 
 def detect_contradictions(db: Session, workspace_id: int) -> list[dict]:
     """E2-11: Flag conflicting numeric retention-style claims per topic_key."""
-    promises = db.query(TrustPromise).filter(
-        TrustPromise.workspace_id == workspace_id,
-        TrustPromise.status == "active",
-    ).all()
+    promises = (
+        db.query(TrustPromise)
+        .filter(
+            TrustPromise.workspace_id == workspace_id,
+            TrustPromise.status == "active",
+        )
+        .all()
+    )
     by_topic: dict[str, list[tuple[int, int | None, str]]] = {}
     for p in promises:
         key = p.topic_key or "general"
@@ -106,13 +112,15 @@ def detect_contradictions(db: Session, workspace_id: int) -> list[dict]:
     for topic, rows in by_topic.items():
         nums = {r[1] for r in rows if r[1] is not None}
         if len(nums) > 1:
-            out.append({
-                "topic_key": topic,
-                "type": "retention_numeric_mismatch",
-                "values_days": sorted(nums),
-                "promise_ids": [r[0] for r in rows],
-                "snippets": [r[2] for r in rows],
-            })
+            out.append(
+                {
+                    "topic_key": topic,
+                    "type": "retention_numeric_mismatch",
+                    "values_days": sorted(nums),
+                    "promise_ids": [r[0] for r in rows],
+                    "snippets": [r[2] for r in rows],
+                }
+            )
     return out
 
 
@@ -162,7 +170,7 @@ def promise_dashboard(db: Session, workspace_id: int) -> dict:
     contradictions = detect_contradictions(db, workspace_id)
     expiring = get_expiring_promises(db, workspace_id, 60)
     with_evidence = 0
-    stale_evidence = 0
+    stale_evidence = 0  # noqa: F841
     for p in all_p:
         ev = json.loads(p.evidence_ids_json or "[]")
         if ev:

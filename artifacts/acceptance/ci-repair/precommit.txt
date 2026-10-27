@@ -1,0 +1,10 @@
+# branch tc/platform/ci-repair, SHA ae2bf6244d7f79e5ea690693e8e679db4aaad0c8 (tree 28291a9a77531bcd0e799d312e48d48e12197142)
+# cmd: pre-commit run --all-files (pre-commit 4.7.0; hooks per .pre-commit-config.yaml)
+ruff.....................................................................Passed
+ruff-format..............................................................Passed
+prettier.................................................................Passed
+trim trailing whitespace.................................................Passed
+fix end of files.........................................................Passed
+check yaml...............................................................Passed
+exit=0
+# tracked files modified by hooks: 0 (git diff --stat empty)

@@ -6,33 +6,48 @@ import localFont from 'next/font/local'
 const inter = localFont({
   src: [
     { path: './fonts/InterVariable.woff2', weight: '100 900', style: 'normal' },
-    { path: './fonts/InterVariable-Italic.woff2', weight: '100 900', style: 'italic' },
+    {
+      path: './fonts/InterVariable-Italic.woff2',
+      weight: '100 900',
+      style: 'italic',
+    },
   ],
   variable: '--font-inter',
   display: 'swap',
   adjustFontFallback: false,
-  fallback: ['ui-sans-serif', 'system-ui', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'sans-serif'],
+  fallback: [
+    'ui-sans-serif',
+    'system-ui',
+    '-apple-system',
+    'BlinkMacSystemFont',
+    'Segoe UI',
+    'sans-serif',
+  ],
 })
 
 export const metadata: Metadata = {
   title: {
-    default: 'Trust Copilot — Compliance questionnaires, answered with evidence',
+    default:
+      'Trust Copilot — Compliance questionnaires, answered with evidence',
     template: '%s | Trust Copilot',
   },
-  description: 'Upload your evidence documents and compliance questionnaires. Get AI-generated answers grounded in your real evidence — not hallucinations.',
+  description:
+    'Upload your evidence documents and compliance questionnaires. Get AI-drafted answers that cite your uploaded evidence, for your team to review before sending.',
   icons: {
     icon: '/icon.svg',
   },
   openGraph: {
     title: 'Trust Copilot — Compliance questionnaires, answered with evidence',
-    description: 'Evidence-grounded AI for security and compliance questionnaire automation. Upload evidence, upload the questionnaire, get answers.',
+    description:
+      'Evidence-grounded AI for security and compliance questionnaire automation. Upload evidence, upload the questionnaire, get answers.',
     type: 'website',
     siteName: 'Trust Copilot',
   },
   twitter: {
     card: 'summary_large_image',
     title: 'Trust Copilot',
-    description: 'Evidence-grounded AI for compliance questionnaire automation.',
+    description:
+      'Evidence-grounded AI for compliance questionnaire automation.',
   },
   robots: {
     index: true,
@@ -43,11 +58,15 @@ export const metadata: Metadata = {
 export default function RootLayout({
   children,
 }: {
-  children: React.ReactNode;
+  children: React.ReactNode
 }) {
   return (
     <html lang="en" className={inter.variable}>
-      <body className={`${inter.className} antialiased min-h-full overflow-x-hidden`}>{children}</body>
+      <body
+        className={`${inter.className} antialiased min-h-full overflow-x-hidden`}
+      >
+        {children}
+      </body>
     </html>
-  );
+  )
 }

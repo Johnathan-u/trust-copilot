@@ -14,6 +14,14 @@ from app.services import deal_analytics_service as das
 
 router = APIRouter(prefix="/deals", tags=["deals"])
 
+# One body for "no such deal" and "deal in another workspace", so ids can't be probed.
+DEAL_NOT_FOUND = "Deal not found"
+QUESTIONNAIRE_NOT_FOUND = "Questionnaire not found"
+
+
+def _deal_not_found() -> HTTPException:
+    return HTTPException(status_code=404, detail=DEAL_NOT_FOUND)
+
 
 class CreateDealBody(BaseModel):
     company_name: str
@@ -40,7 +48,9 @@ class LinkBody(BaseModel):
 
 
 @router.post("")
-async def create(body: CreateDealBody, session: dict = Depends(require_can_admin), db: Session = Depends(get_db)):
+async def create(
+    body: CreateDealBody, session: dict = Depends(require_can_admin), db: Session = Depends(get_db)
+):
     data = body.model_dump(exclude_none=True)
     result = ds.create_deal(db, session["workspace_id"], **data)
     db.commit()
@@ -48,7 +58,11 @@ async def create(body: CreateDealBody, session: dict = Depends(require_can_admin
 
 
 @router.get("")
-async def list_all(stage: str | None = Query(None), session: dict = Depends(require_session), db: Session = Depends(get_db)):
+async def list_all(
+    stage: str | None = Query(None),
+    session: dict = Depends(require_session),
+    db: Session = Depends(get_db),
+):
     return {"deals": ds.list_deals(db, session["workspace_id"], stage)}
 
 
@@ -58,7 +72,9 @@ async def analytics(session: dict = Depends(require_session), db: Session = Depe
 
 
 @router.get("/revenue-unblocked")
-async def revenue_unblocked(session: dict = Depends(require_session), db: Session = Depends(get_db)):
+async def revenue_unblocked(
+    session: dict = Depends(require_session), db: Session = Depends(get_db)
+):
     return das.get_revenue_unblocked(db, session["workspace_id"])
 
 
@@ -68,7 +84,11 @@ async def risk_ranking(session: dict = Depends(require_session), db: Session = D
 
 
 @router.get("/upcoming-deadlines")
-async def upcoming(within_days: int = Query(14, ge=1), session: dict = Depends(require_session), db: Session = Depends(get_db)):
+async def upcoming(
+    within_days: int = Query(14, ge=1),
+    session: dict = Depends(require_session),
+    db: Session = Depends(get_db),
+):
     return {"deadlines": dds.get_upcoming_deadlines(db, session["workspace_id"], within_days)}
 
 
@@ -83,51 +103,74 @@ async def at_risk(session: dict = Depends(require_session), db: Session = Depend
 
 
 @router.get("/{deal_id}")
-async def get_one(deal_id: int, session: dict = Depends(require_session), db: Session = Depends(get_db)):
-    result = ds.get_deal(db, deal_id)
+async def get_one(
+    deal_id: int, session: dict = Depends(require_session), db: Session = Depends(get_db)
+):
+    result = ds.get_deal(db, deal_id, workspace_id=session["workspace_id"])
     if not result:
-        raise HTTPException(status_code=404)
+        raise _deal_not_found()
     return result
 
 
 @router.get("/{deal_id}/risk")
-async def risk_score(deal_id: int, session: dict = Depends(require_session), db: Session = Depends(get_db)):
-    result = rrs.score_deal(db, deal_id)
+async def risk_score(
+    deal_id: int, session: dict = Depends(require_session), db: Session = Depends(get_db)
+):
+    result = rrs.score_deal(db, deal_id, workspace_id=session["workspace_id"])
     if "error" in result:
-        raise HTTPException(status_code=404, detail=result["error"])
+        raise _deal_not_found()
     return result
 
 
 @router.get("/{deal_id}/room")
-async def deal_room(deal_id: int, session: dict = Depends(require_session), db: Session = Depends(get_db)):
-    result = drs.generate_deal_room(db, deal_id)
+async def deal_room(
+    deal_id: int, session: dict = Depends(require_session), db: Session = Depends(get_db)
+):
+    result = drs.generate_deal_room(db, deal_id, workspace_id=session["workspace_id"])
     if "error" in result:
-        raise HTTPException(status_code=404, detail=result["error"])
+        raise _deal_not_found()
     return result
 
 
 @router.patch("/{deal_id}")
-async def update(deal_id: int, body: UpdateDealBody, session: dict = Depends(require_can_admin), db: Session = Depends(get_db)):
+async def update(
+    deal_id: int,
+    body: UpdateDealBody,
+    session: dict = Depends(require_can_admin),
+    db: Session = Depends(get_db),
+):
     updates = {k: v for k, v in body.model_dump().items() if v is not None}
-    result = ds.update_deal(db, deal_id, **updates)
+    result = ds.update_deal(db, deal_id, workspace_id=session["workspace_id"], **updates)
     if not result:
-        raise HTTPException(status_code=404)
+        raise _deal_not_found()
     db.commit()
     return result
 
 
 @router.post("/{deal_id}/link-questionnaire")
-async def link_q(deal_id: int, body: LinkBody, session: dict = Depends(require_can_admin), db: Session = Depends(get_db)):
-    result = ds.link_questionnaire(db, deal_id, body.questionnaire_id)
-    if not result:
-        raise HTTPException(status_code=404)
+async def link_q(
+    deal_id: int,
+    body: LinkBody,
+    session: dict = Depends(require_can_admin),
+    db: Session = Depends(get_db),
+):
+    try:
+        result = ds.link_questionnaire(
+            db, deal_id, body.questionnaire_id, workspace_id=session["workspace_id"]
+        )
+    except ds.DealNotFound:
+        raise _deal_not_found() from None
+    except ds.QuestionnaireNotFound:
+        raise HTTPException(status_code=404, detail=QUESTIONNAIRE_NOT_FOUND) from None
     db.commit()
     return result
 
 
 @router.delete("/{deal_id}")
-async def delete(deal_id: int, session: dict = Depends(require_can_admin), db: Session = Depends(get_db)):
-    if not ds.delete_deal(db, deal_id):
-        raise HTTPException(status_code=404)
+async def delete(
+    deal_id: int, session: dict = Depends(require_can_admin), db: Session = Depends(get_db)
+):
+    if not ds.delete_deal(db, deal_id, workspace_id=session["workspace_id"]):
+        raise _deal_not_found()
     db.commit()
     return {"deleted": True}

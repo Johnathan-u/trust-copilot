@@ -14,6 +14,7 @@ def test_schema_has_registry_columns(client: TestClient) -> None:  # noqa: ARG00
     """Assert documents, trust_requests, questionnaires have registry metadata columns."""
     import os
     from sqlalchemy import text
+
     engine = sqlalchemy.create_engine(os.environ["DATABASE_URL"])
     required = [
         ("documents", "display_id"),
@@ -130,10 +131,13 @@ def test_questionnaires_lifecycle_endpoints(client: TestClient) -> None:
     assert client.get(f"/api/questionnaires/{qid}/delete-preview?workspace_id=1").status_code == 200
     assert client.delete(f"/api/questionnaires/{qid}?workspace_id=1").status_code == 200
     _login(client)
-    assert client.patch(
-        f"/api/questionnaires/{qid}/metadata?workspace_id=1",
-        json={"frameworks": ["NIST"], "subject_areas": ["Risk Management"]},
-    ).status_code == 200
+    assert (
+        client.patch(
+            f"/api/questionnaires/{qid}/metadata?workspace_id=1",
+            json={"frameworks": ["NIST"], "subject_areas": ["Risk Management"]},
+        ).status_code
+        == 200
+    )
     _login(client)
     assert client.post(f"/api/questionnaires/{qid}/restore?workspace_id=1").status_code == 200
 
@@ -175,10 +179,13 @@ def test_trust_requests_lifecycle_endpoints(client: TestClient) -> None:
     _login(client)
     assert client.delete(f"/api/trust-requests/{tid}?workspace_id=1").status_code == 200
     _login(client)
-    assert client.patch(
-        f"/api/trust-requests/{tid}/metadata?workspace_id=1",
-        json={"frameworks": ["GDPR"], "subject_areas": ["Vendor Management"]},
-    ).status_code == 200
+    assert (
+        client.patch(
+            f"/api/trust-requests/{tid}/metadata?workspace_id=1",
+            json={"frameworks": ["GDPR"], "subject_areas": ["Vendor Management"]},
+        ).status_code
+        == 200
+    )
     _login(client)
     assert client.post(f"/api/trust-requests/{tid}/restore?workspace_id=1").status_code == 200
 
@@ -262,7 +269,9 @@ def test_questionnaires_bulk_delete(client: TestClient) -> None:
         session.close()
 
     _login(client)
-    r = client.post("/api/questionnaires/bulk-delete", params={"workspace_id": 1}, json={"ids": ids})
+    r = client.post(
+        "/api/questionnaires/bulk-delete", params={"workspace_id": 1}, json={"ids": ids}
+    )
     assert r.status_code == 200
     data = r.json()
     assert data["deleted"] == 2
@@ -304,7 +313,9 @@ def test_trust_requests_bulk_delete(client: TestClient) -> None:
         session.close()
 
     _login(client)
-    r = client.post("/api/trust-requests/bulk-delete", params={"workspace_id": 1}, json={"ids": ids})
+    r = client.post(
+        "/api/trust-requests/bulk-delete", params={"workspace_id": 1}, json={"ids": ids}
+    )
     assert r.status_code == 200
     data = r.json()
     assert data["deleted"] == 2

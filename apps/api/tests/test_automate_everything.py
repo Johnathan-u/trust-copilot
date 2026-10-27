@@ -9,13 +9,16 @@ from fastapi.testclient import TestClient
 def _login_admin(client: TestClient) -> dict:
     from app.core.database import SessionLocal
     from app.models import WorkspaceMember, User
+
     db = SessionLocal()
     try:
         user = db.query(User).filter(User.email == "demo@trust.local").first()
         uid = user.id
-        mem = db.query(WorkspaceMember).filter(
-            WorkspaceMember.user_id == uid, WorkspaceMember.workspace_id == 1
-        ).first()
+        mem = (
+            db.query(WorkspaceMember)
+            .filter(WorkspaceMember.user_id == uid, WorkspaceMember.workspace_id == 1)
+            .first()
+        )
         if mem.role != "admin":
             mem.role = "admin"
             db.commit()
@@ -29,6 +32,7 @@ def _login_admin(client: TestClient) -> dict:
 def _set_automation(enabled: bool):
     from app.core.database import SessionLocal
     from app.models.workspace import Workspace
+
     db = SessionLocal()
     try:
         ws = db.query(Workspace).filter(Workspace.id == 1).first()
@@ -42,11 +46,16 @@ def _set_automation(enabled: bool):
 def _get_audit_events(action: str, workspace_id: int = 1) -> list:
     from app.core.database import SessionLocal
     from app.models import AuditEvent
+
     db = SessionLocal()
     try:
-        return db.query(AuditEvent).filter(
-            AuditEvent.action == action, AuditEvent.workspace_id == workspace_id
-        ).order_by(AuditEvent.occurred_at.desc()).limit(5).all()
+        return (
+            db.query(AuditEvent)
+            .filter(AuditEvent.action == action, AuditEvent.workspace_id == workspace_id)
+            .order_by(AuditEvent.occurred_at.desc())
+            .limit(5)
+            .all()
+        )
     finally:
         db.close()
 
@@ -54,9 +63,12 @@ def _get_audit_events(action: str, workspace_id: int = 1) -> list:
 def _cleanup_automation_audit():
     from app.core.database import SessionLocal
     from app.models import AuditEvent
+
     db = SessionLocal()
     try:
-        db.query(AuditEvent).filter(AuditEvent.action.like("automation.%")).delete(synchronize_session=False)
+        db.query(AuditEvent).filter(AuditEvent.action.like("automation.%")).delete(
+            synchronize_session=False
+        )
         db.commit()
     finally:
         db.close()
@@ -65,6 +77,7 @@ def _cleanup_automation_audit():
 # ---------------------------------------------------------------------------
 # Setting persistence
 # ---------------------------------------------------------------------------
+
 
 class TestSettingPersistence:
     def test_enable_automation(self, client: TestClient) -> None:
@@ -92,10 +105,15 @@ class TestSettingPersistence:
     def test_non_admin_cannot_set(self, client: TestClient) -> None:
         from app.core.database import SessionLocal
         from app.models import WorkspaceMember, User
+
         db = SessionLocal()
         user = db.query(User).filter(User.email == "demo@trust.local").first()
         uid = user.id
-        mem = db.query(WorkspaceMember).filter(WorkspaceMember.user_id == uid, WorkspaceMember.workspace_id == 1).first()
+        mem = (
+            db.query(WorkspaceMember)
+            .filter(WorkspaceMember.user_id == uid, WorkspaceMember.workspace_id == 1)
+            .first()
+        )
         orig = mem.role
         mem.role = "editor"
         db.commit()
@@ -106,7 +124,11 @@ class TestSettingPersistence:
             assert r.status_code == 403
         finally:
             db2 = SessionLocal()
-            m2 = db2.query(WorkspaceMember).filter(WorkspaceMember.user_id == uid, WorkspaceMember.workspace_id == 1).first()
+            m2 = (
+                db2.query(WorkspaceMember)
+                .filter(WorkspaceMember.user_id == uid, WorkspaceMember.workspace_id == 1)
+                .first()
+            )
             m2.role = orig
             db2.commit()
             db2.close()
@@ -115,6 +137,7 @@ class TestSettingPersistence:
 # ---------------------------------------------------------------------------
 # Audit events
 # ---------------------------------------------------------------------------
+
 
 class TestAutomationAudit:
     def test_enable_creates_audit_event(self, client: TestClient) -> None:
@@ -139,22 +162,30 @@ class TestAutomationAudit:
 # Auto-trigger logic (unit test)
 # ---------------------------------------------------------------------------
 
+
 class TestAutoTrigger:
     def test_no_trigger_when_disabled(self) -> None:
         from app.core.database import SessionLocal
         from app.services.automation_service import maybe_auto_generate
         from app.models import Job, JobStatus, Questionnaire
+
         _set_automation(False)
         db = SessionLocal()
         try:
             qnr = db.query(Questionnaire).filter(Questionnaire.workspace_id == 1).first()
             if not qnr:
                 return
-            mock_job = Job(workspace_id=1, kind="parse_questionnaire", status=JobStatus.COMPLETED.value)
+            mock_job = Job(
+                workspace_id=1, kind="parse_questionnaire", status=JobStatus.COMPLETED.value
+            )
             payload = {"questionnaire_id": qnr.id}
-            initial_count = db.query(Job).filter(Job.kind == "generate_answers", Job.workspace_id == 1).count()
+            initial_count = (
+                db.query(Job).filter(Job.kind == "generate_answers", Job.workspace_id == 1).count()
+            )
             maybe_auto_generate(db, mock_job, payload)
-            after_count = db.query(Job).filter(Job.kind == "generate_answers", Job.workspace_id == 1).count()
+            after_count = (
+                db.query(Job).filter(Job.kind == "generate_answers", Job.workspace_id == 1).count()
+            )
             assert after_count == initial_count
         finally:
             db.close()
@@ -163,6 +194,7 @@ class TestAutoTrigger:
         from app.core.database import SessionLocal
         from app.services.automation_service import maybe_auto_generate
         from app.models import Job, JobStatus, Question, Questionnaire
+
         _set_automation(True)
         db = SessionLocal()
         try:
@@ -182,14 +214,21 @@ class TestAutoTrigger:
                 Job.status.in_([JobStatus.QUEUED.value, JobStatus.RUNNING.value]),
             ).delete(synchronize_session=False)
             db.commit()
-            mock_job = Job(workspace_id=1, kind="parse_questionnaire", status=JobStatus.COMPLETED.value)
+            mock_job = Job(
+                workspace_id=1, kind="parse_questionnaire", status=JobStatus.COMPLETED.value
+            )
             payload = {"questionnaire_id": qnr.id}
             maybe_auto_generate(db, mock_job, payload)
-            gen_job = db.query(Job).filter(
-                Job.kind == "generate_answers",
-                Job.workspace_id == 1,
-                Job.status == JobStatus.QUEUED.value,
-            ).order_by(Job.created_at.desc()).first()
+            gen_job = (
+                db.query(Job)
+                .filter(
+                    Job.kind == "generate_answers",
+                    Job.workspace_id == 1,
+                    Job.status == JobStatus.QUEUED.value,
+                )
+                .order_by(Job.created_at.desc())
+                .first()
+            )
             assert gen_job is not None
             p = json.loads(gen_job.payload)
             assert p["questionnaire_id"] == qnr.id
@@ -205,11 +244,13 @@ class TestAutoTrigger:
 # Evaluation logic (unit test)
 # ---------------------------------------------------------------------------
 
+
 class TestEvaluation:
     def test_needs_review_when_insufficient(self) -> None:
         from app.core.database import SessionLocal
         from app.services.automation_service import evaluate_generation_result
         from app.models import Job, JobStatus, Questionnaire, Question, Answer, InAppNotification
+
         _set_automation(True)
         _cleanup_automation_audit()
         db = SessionLocal()
@@ -231,16 +272,25 @@ class TestEvaluation:
                 ans.confidence = 0
                 db.commit()
             else:
-                ans = Answer(question_id=first_q.id, text="Insufficient evidence", status="draft", confidence=0)
+                ans = Answer(
+                    question_id=first_q.id,
+                    text="Insufficient evidence",
+                    status="draft",
+                    confidence=0,
+                )
                 db.add(ans)
                 db.commit()
                 orig_text, orig_conf = None, None
 
-            mock_job = Job(workspace_id=1, kind="generate_answers", status=JobStatus.COMPLETED.value)
+            mock_job = Job(
+                workspace_id=1, kind="generate_answers", status=JobStatus.COMPLETED.value
+            )
             payload = {"questionnaire_id": qnr.id, "workspace_id": 1}
 
             # Clear notifications before eval
-            db.query(InAppNotification).filter(InAppNotification.workspace_id == 1, InAppNotification.title.like("%Review needed%")).delete(synchronize_session=False)
+            db.query(InAppNotification).filter(
+                InAppNotification.workspace_id == 1, InAppNotification.title.like("%Review needed%")
+            ).delete(synchronize_session=False)
             db.commit()
 
             evaluate_generation_result(db, mock_job, payload)
@@ -248,10 +298,14 @@ class TestEvaluation:
             events = _get_audit_events("automation.run_needs_review")
             assert len(events) > 0
 
-            notifs = db.query(InAppNotification).filter(
-                InAppNotification.workspace_id == 1,
-                InAppNotification.title.like("%Review needed%"),
-            ).all()
+            notifs = (
+                db.query(InAppNotification)
+                .filter(
+                    InAppNotification.workspace_id == 1,
+                    InAppNotification.title.like("%Review needed%"),
+                )
+                .all()
+            )
             assert len(notifs) > 0
 
             # Restore
@@ -268,6 +322,7 @@ class TestEvaluation:
         from app.core.database import SessionLocal
         from app.services.automation_service import evaluate_generation_result
         from app.models import Job, JobStatus, Questionnaire, Question, Answer
+
         _cleanup_automation_audit()
         db = SessionLocal()
         try:
@@ -280,16 +335,24 @@ class TestEvaluation:
             for q in questions:
                 ans = db.query(Answer).filter(Answer.question_id == q.id).first()
                 if not ans:
-                    db.add(Answer(question_id=q.id, text="Proper answer", status="draft", confidence=80))
+                    db.add(
+                        Answer(
+                            question_id=q.id, text="Proper answer", status="draft", confidence=80
+                        )
+                    )
                 else:
                     ans.text = "Proper answer"
                     ans.status = "draft"
                     ans.confidence = 80
             db.commit()
 
-            mock_job = Job(workspace_id=1, kind="generate_answers", status=JobStatus.COMPLETED.value)
+            mock_job = Job(
+                workspace_id=1, kind="generate_answers", status=JobStatus.COMPLETED.value
+            )
             payload = {"questionnaire_id": qnr.id, "workspace_id": 1}
-            with _patch("app.services.automation_service._is_automation_enabled", return_value=True):
+            with _patch(
+                "app.services.automation_service._is_automation_enabled", return_value=True
+            ):
                 evaluate_generation_result(db, mock_job, payload)
 
             events = _get_audit_events("automation.run_completed")

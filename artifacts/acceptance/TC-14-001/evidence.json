@@ -1,29 +1,37 @@
 {
   "ticket": "TC-14-001",
   "branch": "tc/web/TC-14-001",
-  "testedCommit": "75e565a702f60f7ec838bae451cadf0839ddc032",
+  "testedCommit": "556c7a3c9a8f86d464af545d4399f585d138e475",
+  "mergedMaster": "a64db44c2e467f6f92f62eef1e80f926f5b66dbf",
   "baseline": "c20f949161ac12a619b396d30904448ffd74d532",
-  "mergedMaster": "f72def39245abf5cb46c7b3693f687114fa4b1b5",
   "environment": {
     "os": "Linux 6.12.94+ x86_64",
-    "node": "v22.23.4",
-    "npm": "10.9.9",
-    "next": "14.2.15",
-    "vitest": "2.1.9",
-    "playwright": "1.58.2",
-    "chromium": "chromium-1208",
+    "node": "v24.22.1",
+    "npm": "11.19.1",
+    "next": "16.4.3",
+    "typescript": "6.0.3",
+    "eslint": "10.13.0",
+    "prettier": "3.9.10",
+    "vitest": "5.0.5",
+    "playwright": "1.64.1",
+    "chromium": "chromium-1248",
     "axePlaywright": "4.14.0",
     "cwd": "apps/web"
   },
   "runs": [
+    { "command": "npm run lint", "exitStatus": 0 },
+    { "command": "npm run format:check", "exitStatus": 0 },
+    { "command": "npm run typecheck", "exitStatus": 0 },
     {
       "command": "npm run test:unit",
       "exitStatus": 0,
-      "passed": 15,
+      "filesPassed": 10,
+      "passed": 91,
       "failed": 0,
-      "skipped": 0,
-      "filesPassed": 2
+      "skipped": 0
     },
+    { "command": "npm run build", "exitStatus": 0 },
+    { "command": "npm audit --omit=dev --audit-level=high", "exitStatus": 0, "vulnerabilities": 0 },
     {
       "command": "npx playwright test e2e/release/design-tokens.spec.ts",
       "exitStatus": 0,
@@ -33,9 +41,15 @@
       "themes": ["dark", "light"],
       "viewports": [360, 768, 1440],
       "axeCriticalOrSerious": 0,
-      "thirdPartyFontRequests": 0,
-      "sameOriginFontRequests": true
+      "thirdPartyFontRequests": 0
+    },
+    {
+      "command": "TC_REQUIRE_WEB_TOOLCHAIN=1 python3 -m pytest --noconftest apps/api/tests/release/test_web_quality.py apps/api/tests/release/test_web_lock.py -q",
+      "exitStatus": 0,
+      "passed": 44,
+      "failed": 0,
+      "skipped": 0
     }
   ],
-  "notes": "Evidence files were committed after the tested SHA and do not change the suite. Dark remains the default. Inter 4.1 is SIL OFL 1.1 and self-hosted. No credentials or customer data."
+  "notes": "Evidence files were committed after the tested merge SHA and do not change the suite. Node 24. TC-02-006 has landed. No credentials or customer data."
 }

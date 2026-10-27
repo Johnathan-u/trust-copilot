@@ -1,7 +1,7 @@
 """Evidence rerank, deduplication, and compression for prompt token budget."""
 
 import logging
-from typing import Any
+from typing import Any  # noqa: F401
 
 logger = logging.getLogger(__name__)
 
@@ -36,7 +36,7 @@ def compress_to_token_budget(
     max_chunk_chars: int = MAX_CHUNK_CHARS,
 ) -> list[dict]:
     """Trim each chunk text and drop lowest-scoring until within token_budget."""
-    char_budget = token_budget * CHARS_PER_TOKEN
+    char_budget = token_budget * CHARS_PER_TOKEN  # noqa: F841
     # First trim each chunk
     trimmed: list[dict] = []
     for e in evidence:

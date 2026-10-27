@@ -67,7 +67,12 @@ export default function MembersPage() {
   const [error, setError] = useState<string | null>(null)
   const [roleModalOpen, setRoleModalOpen] = useState(false)
   const [newRoleName, setNewRoleName] = useState('')
-  const [newRolePerms, setNewRolePerms] = useState({ can_edit: false, can_review: true, can_export: false, can_admin: false })
+  const [newRolePerms, setNewRolePerms] = useState({
+    can_edit: false,
+    can_review: true,
+    can_export: false,
+    can_admin: false,
+  })
   const [confirmAction, setConfirmAction] = useState<ConfirmAction | null>(null)
   const [confirmBusy, setConfirmBusy] = useState(false)
   const [confirmError, setConfirmError] = useState<string | null>(null)
@@ -89,25 +94,36 @@ export default function MembersPage() {
       fetch('/api/members/invites', { credentials: 'include' }),
       fetch('/api/members/roles', { credentials: 'include' }),
     ])
-      .then(([r1, r2, r3]) => Promise.all([
-        r1.ok ? r1.json() : { members: [] },
-        r2.ok ? r2.json() : { invites: [] },
-        r3.ok ? r3.json() : { roles: [] },
-      ]))
+      .then(([r1, r2, r3]) =>
+        Promise.all([
+          r1.ok ? r1.json() : { members: [] },
+          r2.ok ? r2.json() : { invites: [] },
+          r3.ok ? r3.json() : { roles: [] },
+        ])
+      )
       .then(([d1, d2, d3]) => {
         setMembers(d1.members ?? [])
         setInvites(d2.invites ?? [])
         setRoles(d3.roles ?? [])
       })
-      .catch(() => { setMembers([]); setInvites([]); setRoles([]) })
-      .finally(() => { setLoading(false); setRefreshing(false) })
+      .catch(() => {
+        setMembers([])
+        setInvites([])
+        setRoles([])
+      })
+      .finally(() => {
+        setLoading(false)
+        setRefreshing(false)
+      })
   }
 
-  const allRoleNames = roles.length > 0 ? roles.map(r => r.name) : BUILTIN_ROLES
+  const allRoleNames =
+    roles.length > 0 ? roles.map((r) => r.name) : BUILTIN_ROLES
 
   useEffect(() => {
     if (canAdmin) load()
     else setLoading(false)
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- pre-existing: load() is re-created every render; adding it would refetch in a loop (TC-02-006 follow-up)
   }, [canAdmin, workspace?.id])
 
   const openConfirm = (action: ConfirmAction) => {
@@ -170,7 +186,10 @@ export default function MembersPage() {
       confirmLabel: 'Revoke',
       variant: 'danger',
       onConfirm: async () => {
-        const res = await fetch(`/api/members/invites/${id}`, { method: 'DELETE', credentials: 'include' })
+        const res = await fetch(`/api/members/invites/${id}`, {
+          method: 'DELETE',
+          credentials: 'include',
+        })
         if (!res.ok) {
           const data = await res.json().catch(() => ({}))
           throw new Error(data.detail || 'Failed to revoke invite')
@@ -204,12 +223,18 @@ export default function MembersPage() {
       confirmLabel: 'Remove',
       variant: 'danger',
       onConfirm: async () => {
-        const res = await fetch(`/api/members/${member.id}`, { method: 'DELETE', credentials: 'include' })
+        const res = await fetch(`/api/members/${member.id}`, {
+          method: 'DELETE',
+          credentials: 'include',
+        })
         if (!res.ok) {
           const data = await res.json().catch(() => ({}))
           throw new Error(data.detail || 'Failed to remove member')
         }
-        showToast('Member removed', `${member.display_name || member.email} has been removed.`)
+        showToast(
+          'Member removed',
+          `${member.display_name || member.email} has been removed.`
+        )
         load()
       },
     })
@@ -233,9 +258,14 @@ export default function MembersPage() {
         })
         if (!res.ok) {
           const data = await res.json().catch(() => ({}))
-          throw new Error(data.detail || `Failed to ${action.toLowerCase()} member`)
+          throw new Error(
+            data.detail || `Failed to ${action.toLowerCase()} member`
+          )
         }
-        showToast(`Member ${action.toLowerCase()}ed`, `${member.display_name || member.email} has been ${action.toLowerCase()}ed.`)
+        showToast(
+          `Member ${action.toLowerCase()}ed`,
+          `${member.display_name || member.email} has been ${action.toLowerCase()}ed.`
+        )
         load()
       },
     })
@@ -254,7 +284,10 @@ export default function MembersPage() {
         })
         const data = await res.json().catch(() => ({}))
         if (!res.ok) throw new Error(data.detail || 'Failed to revoke sessions')
-        showToast('Sessions revoked', `Revoked ${data.revoked ?? 0} session(s) for ${member.display_name || member.email}.`)
+        showToast(
+          'Sessions revoked',
+          `Revoked ${data.revoked ?? 0} session(s) for ${member.display_name || member.email}.`
+        )
       },
     })
   }
@@ -266,7 +299,10 @@ export default function MembersPage() {
       confirmLabel: 'Delete role',
       variant: 'danger',
       onConfirm: async () => {
-        const res = await fetch(`/api/members/roles/${role.id}`, { method: 'DELETE', credentials: 'include' })
+        const res = await fetch(`/api/members/roles/${role.id}`, {
+          method: 'DELETE',
+          credentials: 'include',
+        })
         if (!res.ok) {
           const data = await res.json().catch(() => ({}))
           throw new Error(data.detail || 'Failed to delete role')
@@ -280,9 +316,13 @@ export default function MembersPage() {
   if (!canAdmin) {
     return (
       <div>
-        <h1 className="text-2xl font-bold text-[var(--tc-text)] mb-6">Members</h1>
+        <h1 className="text-2xl font-bold text-[var(--tc-text)] mb-6">
+          Members
+        </h1>
         <Card>
-          <p className="text-[var(--tc-muted)]">You need admin access to manage members.</p>
+          <p className="text-[var(--tc-muted)]">
+            You need admin access to manage members.
+          </p>
         </Card>
       </div>
     )
@@ -291,8 +331,12 @@ export default function MembersPage() {
   if (loading) {
     return (
       <div>
-        <h1 className="text-2xl font-bold text-[var(--tc-text)] mb-6">Members</h1>
-        <Card><TableSkeleton rows={4} cols={5} /></Card>
+        <h1 className="text-2xl font-bold text-[var(--tc-text)] mb-6">
+          Members
+        </h1>
+        <Card>
+          <TableSkeleton rows={4} cols={5} />
+        </Card>
       </div>
     )
   }
@@ -303,13 +347,24 @@ export default function MembersPage() {
     <div>
       <div className="mb-6 flex items-center gap-3">
         <h1 className="text-2xl font-bold text-[var(--tc-text)]">Members</h1>
-        {refreshing && !loading && <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-[var(--tc-muted)] border-t-[var(--tc-primary)]" />}
+        {refreshing && !loading && (
+          <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-[var(--tc-muted)] border-t-[var(--tc-primary)]" />
+        )}
       </div>
 
       <Card className="mb-6">
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-semibold text-[var(--tc-text)]">Workspace members</h2>
-          <Button onClick={() => { setInviteOpen(true); setError(null) }}>Invite</Button>
+          <h2 className="text-lg font-semibold text-[var(--tc-text)]">
+            Workspace members
+          </h2>
+          <Button
+            onClick={() => {
+              setInviteOpen(true)
+              setError(null)
+            }}
+          >
+            Invite
+          </Button>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
@@ -324,30 +379,51 @@ export default function MembersPage() {
             </thead>
             <tbody>
               {members.map((m) => (
-                <tr key={m.id} className={`border-b border-white/5 ${m.suspended ? 'opacity-50' : ''}`}>
+                <tr
+                  key={m.id}
+                  className={`border-b border-white/5 ${m.suspended ? 'opacity-50' : ''}`}
+                >
                   <td className="py-3 pr-4 text-[var(--tc-text)]">
                     {m.display_name || m.email}
-                    {user?.id === m.user_id && <span className="ml-2 text-xs text-[var(--tc-muted)]">(you)</span>}
+                    {user?.id === m.user_id && (
+                      <span className="ml-2 text-xs text-[var(--tc-muted)]">
+                        (you)
+                      </span>
+                    )}
                   </td>
                   <td className="py-3 pr-4">
                     <select
                       className="rounded border border-[var(--tc-border)] px-2 py-1 text-[var(--tc-text)]"
                       value={m.role}
                       onChange={(e) => updateRole(m.id, e.target.value)}
-                      disabled={m.suspended || (user?.id === m.user_id && members.filter((x) => x.role === 'admin').length <= 1)}
+                      disabled={
+                        m.suspended ||
+                        (user?.id === m.user_id &&
+                          members.filter((x) => x.role === 'admin').length <= 1)
+                      }
                     >
                       {allRoleNames.map((r) => (
-                        <option key={r} value={r}>{r}</option>
+                        <option key={r} value={r}>
+                          {r}
+                        </option>
                       ))}
                     </select>
                   </td>
                   <td className="py-3 pr-4">
-                    {m.suspended
-                      ? <span className="inline-block rounded-full bg-red-500/15 px-2 py-0.5 text-xs font-medium text-red-400">Suspended</span>
-                      : <span className="inline-block rounded-full bg-emerald-500/15 px-2 py-0.5 text-xs font-medium text-emerald-400">Active</span>}
+                    {m.suspended ? (
+                      <span className="inline-block rounded-full bg-red-500/15 px-2 py-0.5 text-xs font-medium text-red-400">
+                        Suspended
+                      </span>
+                    ) : (
+                      <span className="inline-block rounded-full bg-emerald-500/15 px-2 py-0.5 text-xs font-medium text-emerald-400">
+                        Active
+                      </span>
+                    )}
                   </td>
                   <td className="py-3 pr-4 text-[var(--tc-muted)]">
-                    {m.created_at ? new Date(m.created_at).toLocaleDateString() : '—'}
+                    {m.created_at
+                      ? new Date(m.created_at).toLocaleDateString()
+                      : '—'}
                   </td>
                   <td className="py-3 flex gap-1 flex-wrap">
                     {user?.id !== m.user_id && (
@@ -371,7 +447,10 @@ export default function MembersPage() {
                     <Button
                       variant="ghost"
                       className="text-xs text-[var(--tc-danger)]"
-                      disabled={user?.id === m.user_id && members.filter((x) => x.role === 'admin').length <= 1}
+                      disabled={
+                        user?.id === m.user_id &&
+                        members.filter((x) => x.role === 'admin').length <= 1
+                      }
                       onClick={() => removeMember(m)}
                     >
                       Remove
@@ -385,7 +464,9 @@ export default function MembersPage() {
       </Card>
 
       <Card className="mb-6">
-        <h2 className="text-lg font-semibold text-[var(--tc-text)] mb-4">Pending invites</h2>
+        <h2 className="text-lg font-semibold text-[var(--tc-text)] mb-4">
+          Pending invites
+        </h2>
         {invites.length === 0 ? (
           <p className="text-sm text-[var(--tc-muted)]">No pending invites.</p>
         ) : (
@@ -403,25 +484,44 @@ export default function MembersPage() {
               </thead>
               <tbody>
                 {invites.map((inv) => {
-                  const expired = inv.expires_at ? new Date(inv.expires_at) < new Date() : false
+                  const expired = inv.expires_at
+                    ? new Date(inv.expires_at) < new Date()
+                    : false
                   return (
-                    <tr key={inv.id} className={`border-b border-white/5 ${expired ? 'opacity-50' : ''}`}>
+                    <tr
+                      key={inv.id}
+                      className={`border-b border-white/5 ${expired ? 'opacity-50' : ''}`}
+                    >
                       <td className="py-3 pr-4 text-[var(--tc-text)]">
                         {inv.email}
-                        {expired && <span className="ml-2 text-xs text-[var(--tc-danger)]">expired</span>}
+                        {expired && (
+                          <span className="ml-2 text-xs text-[var(--tc-danger)]">
+                            expired
+                          </span>
+                        )}
                       </td>
-                      <td className="py-3 pr-4 text-[var(--tc-muted)]">{inv.role}</td>
                       <td className="py-3 pr-4 text-[var(--tc-muted)]">
-                        {inv.created_at ? new Date(inv.created_at).toLocaleDateString() : '—'}
+                        {inv.role}
                       </td>
                       <td className="py-3 pr-4 text-[var(--tc-muted)]">
-                        {inv.expires_at ? new Date(inv.expires_at).toLocaleDateString() : '—'}
+                        {inv.created_at
+                          ? new Date(inv.created_at).toLocaleDateString()
+                          : '—'}
+                      </td>
+                      <td className="py-3 pr-4 text-[var(--tc-muted)]">
+                        {inv.expires_at
+                          ? new Date(inv.expires_at).toLocaleDateString()
+                          : '—'}
                       </td>
                       <td className="py-3 pr-4 text-[var(--tc-muted)]">
                         {inv.invited_by || '—'}
                       </td>
                       <td className="py-3">
-                        <Button variant="ghost" className="text-xs text-[var(--tc-danger)]" onClick={() => revokeInvite(inv.id, inv.email)}>
+                        <Button
+                          variant="ghost"
+                          className="text-xs text-[var(--tc-danger)]"
+                          onClick={() => revokeInvite(inv.id, inv.email)}
+                        >
                           Revoke
                         </Button>
                       </td>
@@ -437,7 +537,14 @@ export default function MembersPage() {
       <Card className="mt-6">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-lg font-semibold text-[var(--tc-text)]">Roles</h2>
-          <Button onClick={() => { setRoleModalOpen(true); setError(null) }}>Create role</Button>
+          <Button
+            onClick={() => {
+              setRoleModalOpen(true)
+              setError(null)
+            }}
+          >
+            Create role
+          </Button>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
@@ -456,7 +563,11 @@ export default function MembersPage() {
                 <tr key={r.name} className="border-b border-white/5">
                   <td className="py-3 pr-4 text-[var(--tc-text)]">
                     {r.name}
-                    {r.builtin && <span className="ml-2 text-xs text-[var(--tc-muted)]">(built-in)</span>}
+                    {r.builtin && (
+                      <span className="ml-2 text-xs text-[var(--tc-muted)]">
+                        (built-in)
+                      </span>
+                    )}
                   </td>
                   <td className="py-3 pr-4">{r.can_edit ? '✓' : '—'}</td>
                   <td className="py-3 pr-4">{r.can_review ? '✓' : '—'}</td>
@@ -464,7 +575,11 @@ export default function MembersPage() {
                   <td className="py-3 pr-4">{r.can_admin ? '✓' : '—'}</td>
                   <td className="py-3">
                     {!r.builtin && r.id && (
-                      <Button variant="ghost" className="text-xs text-[var(--tc-danger)]" onClick={() => deleteRole(r)}>
+                      <Button
+                        variant="ghost"
+                        className="text-xs text-[var(--tc-danger)]"
+                        onClick={() => deleteRole(r)}
+                      >
                         Delete
                       </Button>
                     )}
@@ -510,45 +625,109 @@ export default function MembersPage() {
       </Modal>
 
       {/* Create role modal */}
-      <Modal isOpen={roleModalOpen} onClose={() => setRoleModalOpen(false)} title="Create custom role">
-        <form onSubmit={async (e) => {
-          e.preventDefault()
-          const name = newRoleName.trim().toLowerCase()
-          if (!name) { setError('Enter a role name'); return }
-          setSubmitting(true); setError(null)
-          try {
-            const res = await fetch('/api/members/roles', {
-              method: 'POST', credentials: 'include',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ name, ...newRolePerms }),
-            })
-            const data = await res.json().catch(() => ({}))
-            if (!res.ok) { setError(data.detail || 'Failed'); return }
-            setRoleModalOpen(false); setNewRoleName(''); setNewRolePerms({ can_edit: false, can_review: true, can_export: false, can_admin: false })
-            showToast('Role created', `Custom role "${name}" has been created.`)
-            load()
-          } finally { setSubmitting(false) }
-        }} className="space-y-4">
-          <Input label="Role name" value={newRoleName} onChange={(e) => setNewRoleName(e.target.value)} placeholder="e.g. auditor" required />
+      <Modal
+        isOpen={roleModalOpen}
+        onClose={() => setRoleModalOpen(false)}
+        title="Create custom role"
+      >
+        <form
+          onSubmit={async (e) => {
+            e.preventDefault()
+            const name = newRoleName.trim().toLowerCase()
+            if (!name) {
+              setError('Enter a role name')
+              return
+            }
+            setSubmitting(true)
+            setError(null)
+            try {
+              const res = await fetch('/api/members/roles', {
+                method: 'POST',
+                credentials: 'include',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name, ...newRolePerms }),
+              })
+              const data = await res.json().catch(() => ({}))
+              if (!res.ok) {
+                setError(data.detail || 'Failed')
+                return
+              }
+              setRoleModalOpen(false)
+              setNewRoleName('')
+              setNewRolePerms({
+                can_edit: false,
+                can_review: true,
+                can_export: false,
+                can_admin: false,
+              })
+              showToast(
+                'Role created',
+                `Custom role "${name}" has been created.`
+              )
+              load()
+            } finally {
+              setSubmitting(false)
+            }
+          }}
+          className="space-y-4"
+        >
+          <Input
+            label="Role name"
+            value={newRoleName}
+            onChange={(e) => setNewRoleName(e.target.value)}
+            placeholder="e.g. auditor"
+            required
+          />
           <div className="space-y-2">
-            <label className="block text-sm font-medium text-[var(--tc-text)]">Permissions</label>
-            {(['can_review', 'can_edit', 'can_export', 'can_admin'] as const).map((perm) => (
-              <label key={perm} className="flex items-center gap-2 text-sm text-[var(--tc-text)]">
-                <input type="checkbox" checked={newRolePerms[perm]} onChange={(e) => setNewRolePerms({ ...newRolePerms, [perm]: e.target.checked })} className="h-4 w-4" />
+            <label className="block text-sm font-medium text-[var(--tc-text)]">
+              Permissions
+            </label>
+            {(
+              ['can_review', 'can_edit', 'can_export', 'can_admin'] as const
+            ).map((perm) => (
+              <label
+                key={perm}
+                className="flex items-center gap-2 text-sm text-[var(--tc-text)]"
+              >
+                <input
+                  type="checkbox"
+                  checked={newRolePerms[perm]}
+                  onChange={(e) =>
+                    setNewRolePerms({
+                      ...newRolePerms,
+                      [perm]: e.target.checked,
+                    })
+                  }
+                  className="h-4 w-4"
+                />
                 {perm.replace('can_', '')}
               </label>
             ))}
           </div>
           {error && <p className="text-sm text-[var(--tc-danger)]">{error}</p>}
           <div className="flex gap-2 justify-end">
-            <Button type="button" variant="ghost" onClick={() => setRoleModalOpen(false)}>Cancel</Button>
-            <Button type="submit" disabled={submitting}>{submitting ? 'Creating…' : 'Create role'}</Button>
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={() => setRoleModalOpen(false)}
+            >
+              Cancel
+            </Button>
+            <Button type="submit" disabled={submitting}>
+              {submitting ? 'Creating…' : 'Create role'}
+            </Button>
           </div>
         </form>
       </Modal>
 
       {/* Invite modal */}
-      <Modal isOpen={inviteOpen} onClose={() => { if (!submitting) setInviteOpen(false) }} title="Invite to workspace">
+      <Modal
+        isOpen={inviteOpen}
+        onClose={() => {
+          if (!submitting) setInviteOpen(false)
+        }}
+        title="Invite to workspace"
+      >
         <form onSubmit={createInvite} className="space-y-4">
           <Input
             label="Email"
@@ -560,7 +739,9 @@ export default function MembersPage() {
             disabled={submitting}
           />
           <div>
-            <label className="block text-sm font-medium text-[var(--tc-text)] mb-1">Role</label>
+            <label className="block text-sm font-medium text-[var(--tc-text)] mb-1">
+              Role
+            </label>
             <select
               className="w-full rounded border border-[var(--tc-border)] px-3 py-2 text-[var(--tc-text)]"
               value={inviteRole}
@@ -568,14 +749,25 @@ export default function MembersPage() {
               disabled={submitting}
             >
               {allRoleNames.map((r) => (
-                <option key={r} value={r}>{r}</option>
+                <option key={r} value={r}>
+                  {r}
+                </option>
               ))}
             </select>
           </div>
           {error && <p className="text-sm text-[var(--tc-danger)]">{error}</p>}
           <div className="flex gap-2 justify-end">
-            <Button type="button" variant="ghost" onClick={() => setInviteOpen(false)} disabled={submitting}>Cancel</Button>
-            <Button type="submit" disabled={submitting}>{submitting ? 'Sending…' : 'Send invite'}</Button>
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={() => setInviteOpen(false)}
+              disabled={submitting}
+            >
+              Cancel
+            </Button>
+            <Button type="submit" disabled={submitting}>
+              {submitting ? 'Sending…' : 'Send invite'}
+            </Button>
           </div>
         </form>
       </Modal>

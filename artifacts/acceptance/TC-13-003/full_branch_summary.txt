@@ -1,0 +1,5 @@
+FAILED tests/test_answer_pipeline.py::test_partial_completion_progress - Valu...
+FAILED tests/test_p1_multi_tenant_hardening.py::TestAPIQuotaEnforcement::test_generate_answers_blocked_at_quota
+FAILED tests/test_questionnaire_answer_evidence.py::test_generate_answers_passes_document_ids_to_retrieval
+3 failed, 1317 passed, 2 skipped, 2 errors in 65.97s (0:01:05)
+exit=1

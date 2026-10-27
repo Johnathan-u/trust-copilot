@@ -1,0 +1,71 @@
+
+> trust-copilot-web@0.1.0 build
+> next build
+
+  ▲ Next.js 14.2.15
+
+   Creating an optimized production build ...
+Browserslist: browsers data (caniuse-lite) is 7 months old. Please run:
+  npx update-browserslist-db@latest
+  Why you should do it regularly: https://github.com/browserslist/update-db#readme
+Browserslist: caniuse-lite is outdated. Please run:
+  npx update-browserslist-db@latest
+  Why you should do it regularly: https://github.com/browserslist/update-db#readme
+ ✓ Compiled successfully
+   Linting and checking validity of types ...
+   Collecting page data ...
+   Generating static pages (0/34) ...
+   Generating static pages (8/34)
+   Generating static pages (16/34)
+   Generating static pages (25/34)
+ ✓ Generating static pages (34/34)
+   Finalizing page optimization ...
+   Collecting build traces ...
+
+Route (app)                              Size     First Load JS
+┌ ○ /                                    8.29 kB         102 kB
+├ ○ /_not-found                          880 B          88.2 kB
+├ ○ /accept-invite                       2.31 kB         102 kB
+├ ƒ /api/[[...path]]                     0 B                0 B
+├ ○ /checkout                            4.05 kB        98.2 kB
+├ ○ /dashboard                           4.77 kB         105 kB
+├ ○ /dashboard/ai-governance             5.88 kB        98.9 kB
+├ ○ /dashboard/audit                     6.51 kB        99.5 kB
+├ ○ /dashboard/compliance-gaps           120 kB          213 kB
+├ ○ /dashboard/documents                 4.9 kB         97.9 kB
+├ ○ /dashboard/exports                   2.73 kB         103 kB
+├ ○ /dashboard/gmail                     5.29 kB        98.3 kB
+├ ○ /dashboard/members                   5.07 kB        98.1 kB
+├ ○ /dashboard/notifications             5.3 kB         98.3 kB
+├ ○ /dashboard/proof-chain               2.6 kB          102 kB
+├ ○ /dashboard/questionnaires            5.21 kB         105 kB
+├ ƒ /dashboard/questionnaires/[id]       4.41 kB         104 kB
+├ ○ /dashboard/requests                  4.12 kB        97.1 kB
+├ ○ /dashboard/review                    355 B           100 kB
+├ ƒ /dashboard/review/[id]               9.08 kB         109 kB
+├ ○ /dashboard/security                  6.49 kB        99.5 kB
+├ ○ /dashboard/settings                  3.02 kB         103 kB
+├ ○ /dashboard/slack                     6.54 kB        99.5 kB
+├ ○ /dashboard/trust-center              4.46 kB        97.4 kB
+├ ○ /dashboard/vendor-requests           387 B          87.7 kB
+├ ○ /forgot-password                     1.91 kB         102 kB
+├ ○ /icon.svg                            0 B                0 B
+├ ○ /login                               3.68 kB         104 kB
+├ ○ /onboarding                          1.57 kB        94.6 kB
+├ ○ /pricing                             2.8 kB           97 kB
+├ ○ /register                            1.73 kB         102 kB
+├ ○ /reset-password                      1.58 kB         101 kB
+├ ○ /trust                               2.33 kB         102 kB
+├ ƒ /trust/[slug]                        37.9 kB         138 kB
+├ ○ /vendor-response                     2.11 kB        89.5 kB
+└ ○ /verify-email                        1.27 kB         101 kB
++ First Load JS shared by all            87.4 kB
+  ├ chunks/2117-8d91511e83723489.js      31.8 kB
+  ├ chunks/fd9d1056-d738174ad1c5ea52.js  53.6 kB
+  └ other shared chunks (total)          1.96 kB
+
+
+ƒ Middleware                             26.5 kB
+
+○  (Static)   prerendered as static content
+ƒ  (Dynamic)  server-rendered on demand

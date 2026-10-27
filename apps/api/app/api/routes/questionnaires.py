@@ -1,8 +1,8 @@
 """Questionnaire API (QNR-01, QNR-02, QNR-13, AI-05)."""
 
 import json
-import os
-import re
+import os  # noqa: F401
+import re  # noqa: F401
 import logging
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -10,15 +10,25 @@ from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, Form, HTTPException, Query, UploadFile
 from pydantic import BaseModel, Field
-from sqlalchemy import func
+from sqlalchemy import func  # noqa: F401
 from sqlalchemy.orm import Session
 
 from app.api.schemas import BulkDeleteBody, MetadataUpdateBody
+from app.core.api_errors import current_request_id, outcome_payload
 from app.core.audit import audit_log
 from app.core.config import get_settings
 from app.core.auth_deps import require_can_edit, require_can_review, require_session
 from app.core.database import get_db
-from app.models import Answer, Document, ExportRecord, Framework, FrameworkControl, Job, JobStatus, Question, Questionnaire, WorkspaceControl
+from app.models import (
+    Answer,
+    Document,
+    ExportRecord,  # noqa: F401
+    Framework,
+    FrameworkControl,
+    Question,
+    Questionnaire,
+    WorkspaceControl,
+)
 from app.models.ai_mapping import QuestionMappingPreference
 from app.services.compliance_hooks import (
     get_mapping_timing_snapshot,
@@ -28,6 +38,7 @@ from app.services.compliance_hooks import (
 )
 from app.services.mapping_llm_rerank import get_rerank_perf_snapshot, reset_rerank_perf_stats
 from app.services.file_service import FileService
+from app.services.job_effects import enqueue_job, job_idempotency_key
 from app.services.questionnaire_mapping_evidence import (
     batch_supporting_evidence_for_workspace_controls,
     suggest_documents_for_mapping_review,
@@ -39,7 +50,7 @@ from app.services.registry_metadata import (
     build_display_id,
     normalize_labels,
     parse_json_list,
-    to_json,
+    to_json,  # noqa: F401
 )
 from app.services.registry_lifecycle import (
     build_delete_preview,
@@ -48,7 +59,12 @@ from app.services.registry_lifecycle import (
     update_metadata_json_fields,
 )
 from app.services.storage import get_storage, StorageClient
-from app.services.mapping_llm_classify import classify_and_persist as classify_question_signal, _preload_existing_signals, _classify_one_thread_safe, _PARALLEL_WORKERS
+from app.services.mapping_llm_classify import (
+    classify_and_persist as classify_question_signal,
+    _preload_existing_signals,
+    _classify_one_thread_safe,
+    _PARALLEL_WORKERS,
+)
 from app.services.workspace_usage import record_mapping_calls
 
 _log = logging.getLogger(__name__)
@@ -113,16 +129,30 @@ def upload_questionnaire(
     qnr.display_id = build_display_id("questionnaire", qnr.id)
     db.commit()
     db.refresh(qnr)
-    job = Job(
+    # TC-10-003: input_version pins the job to this upload's object; a stale job is superseded, not applied.
+    job, _created = enqueue_job(
+        db,
         workspace_id=workspace_id,
         kind="parse_questionnaire",
-        status=JobStatus.QUEUED.value,
-        payload=json.dumps({"questionnaire_id": qnr.id, "storage_key": key}),
+        payload={"questionnaire_id": qnr.id, "storage_key": key},
+        idempotency_key=job_idempotency_key("parse_questionnaire", workspace_id, qnr.id, key),
+        input_version=key,
     )
-    db.add(job)
-    db.commit()
-    audit_log("questionnaire.upload", email=session.get("email"), workspace_id=workspace_id, resource_type="questionnaire", resource_id=qnr.id, details={"filename": qnr.filename})
-    return {"id": qnr.id, "display_id": qnr.display_id, "filename": qnr.filename, "status": qnr.status, "job_id": job.id}
+    audit_log(
+        "questionnaire.upload",
+        email=session.get("email"),
+        workspace_id=workspace_id,
+        resource_type="questionnaire",
+        resource_id=qnr.id,
+        details={"filename": qnr.filename},
+    )
+    return {
+        "id": qnr.id,
+        "display_id": qnr.display_id,
+        "filename": qnr.filename,
+        "status": qnr.status,
+        "job_id": job.id,
+    }
 
 
 _SEARCH_QUERY_MAX_LEN = 200
@@ -149,7 +179,7 @@ def _list_questionnaires_impl(
         query = query.filter(Questionnaire.deleted_at.is_(None))
     elif mode == "only":
         query = query.filter(Questionnaire.deleted_at.is_not(None))
-    if search_q and (q_strip := search_q.strip()[: _SEARCH_QUERY_MAX_LEN]):
+    if search_q and (q_strip := search_q.strip()[:_SEARCH_QUERY_MAX_LEN]):
         like = f"%{q_strip}%"
         query = query.filter(
             Questionnaire.filename.ilike(like)
@@ -185,8 +215,12 @@ def _list_questionnaires_impl(
             "parse_metadata": q.parse_metadata,
             "created_at": q.created_at.isoformat() if q.created_at else None,
             "deleted_at": q.deleted_at.isoformat() if q.deleted_at else None,
-            "frameworks": normalize_labels(parse_json_list(q.frameworks_json), allowed=FRAMEWORK_LABELS),
-            "subject_areas": normalize_labels(parse_json_list(q.subject_areas_json), allowed=SUBJECT_AREA_LABELS),
+            "frameworks": normalize_labels(
+                parse_json_list(q.frameworks_json), allowed=FRAMEWORK_LABELS
+            ),
+            "subject_areas": normalize_labels(
+                parse_json_list(q.subject_areas_json), allowed=SUBJECT_AREA_LABELS
+            ),
         }
         for q in qnrs
     ]
@@ -197,7 +231,9 @@ def _list_questionnaires_impl(
 def list_questionnaires(
     workspace_id: int,
     q: str | None = Query(None, description="Filter by filename (case-insensitive substring)"),
-    search: str | None = Query(None, description="Search by display id, filename, framework, subject, status"),
+    search: str | None = Query(
+        None, description="Search by display id, filename, framework, subject, status"
+    ),
     framework: str | None = Query(None),
     subject_area: str | None = Query(None),
     status: str | None = Query(None),
@@ -222,7 +258,6 @@ def list_questionnaires(
     )
 
 
-
 @router.get("/{qnr_id}")
 def get_questionnaire(
     qnr_id: int,
@@ -233,16 +268,24 @@ def get_questionnaire(
     """Get single questionnaire (QNR-02)."""
     if session.get("workspace_id") != workspace_id:
         raise HTTPException(status_code=403, detail="Access denied")
-    qnr = db.query(Questionnaire).filter(
-        Questionnaire.id == qnr_id,
-        Questionnaire.workspace_id == workspace_id,
-        Questionnaire.deleted_at.is_(None),
-    ).first()
+    qnr = (
+        db.query(Questionnaire)
+        .filter(
+            Questionnaire.id == qnr_id,
+            Questionnaire.workspace_id == workspace_id,
+            Questionnaire.deleted_at.is_(None),
+        )
+        .first()
+    )
     if not qnr:
         raise HTTPException(status_code=404, detail="Questionnaire not found")
     questions = db.query(Question).filter(Question.questionnaire_id == qnr_id).all()
     qids = [q.id for q in questions]
-    answers = {a.question_id: a for a in db.query(Answer).filter(Answer.question_id.in_(qids)).all()} if qids else {}
+    answers = (
+        {a.question_id: a for a in db.query(Answer).filter(Answer.question_id.in_(qids)).all()}
+        if qids
+        else {}
+    )
     _log.info(
         "API: questionnaire fetched questionnaire_id=%s workspace_id=%s questions=%s answers=%s",
         qnr_id,
@@ -250,6 +293,7 @@ def get_questionnaire(
         len(questions),
         len(answers),
     )
+    _rid = current_request_id()
     return {
         "id": qnr.id,
         "display_id": qnr.display_id or build_display_id("questionnaire", qnr.id),
@@ -257,8 +301,12 @@ def get_questionnaire(
         "filename": qnr.filename,
         "status": qnr.status,
         "parse_metadata": qnr.parse_metadata,
-        "frameworks": normalize_labels(parse_json_list(qnr.frameworks_json), allowed=FRAMEWORK_LABELS),
-        "subject_areas": normalize_labels(parse_json_list(qnr.subject_areas_json), allowed=SUBJECT_AREA_LABELS),
+        "frameworks": normalize_labels(
+            parse_json_list(qnr.frameworks_json), allowed=FRAMEWORK_LABELS
+        ),
+        "subject_areas": normalize_labels(
+            parse_json_list(qnr.subject_areas_json), allowed=SUBJECT_AREA_LABELS
+        ),
         "questions": [
             {
                 "id": q.id,
@@ -272,8 +320,14 @@ def get_questionnaire(
                         "text": answers[q.id].text,
                         "status": answers[q.id].status,
                         "citations": answers[q.id].citations,
+                        # TC-11-001: typed generation outcome (null for legacy/manual answers).
+                        "outcome_code": getattr(answers[q.id], "outcome_code", None),
+                        "outcome": outcome_payload(
+                            getattr(answers[q.id], "outcome_code", None), _rid
+                        ),
                     }
-                    if q.id in answers else None
+                    if q.id in answers
+                    else None
                 ),
             }
             for q in questions
@@ -329,14 +383,20 @@ def update_questionnaire_answer_evidence(
     """Restrict draft-answer generation to specific workspace documents (truthfulness / source isolation)."""
     if session.get("workspace_id") != workspace_id:
         raise HTTPException(status_code=403, detail="Access denied")
-    qnr = db.query(Questionnaire).filter(
-        Questionnaire.id == qnr_id,
-        Questionnaire.workspace_id == workspace_id,
-        Questionnaire.deleted_at.is_(None),
-    ).first()
+    qnr = (
+        db.query(Questionnaire)
+        .filter(
+            Questionnaire.id == qnr_id,
+            Questionnaire.workspace_id == workspace_id,
+            Questionnaire.deleted_at.is_(None),
+        )
+        .first()
+    )
     if not qnr:
         raise HTTPException(status_code=404, detail="Questionnaire not found")
-    validated = validate_answer_evidence_document_ids(db, workspace_id, qnr_id, body.document_ids or [])
+    validated = validate_answer_evidence_document_ids(
+        db, workspace_id, qnr_id, body.document_ids or []
+    )
     qnr.answer_evidence_document_ids_json = json.dumps(validated) if validated else None
     qnr.updated_at = datetime.now(timezone.utc)
     db.commit()
@@ -363,11 +423,15 @@ def update_questionnaire_mapping_preference(
     """Set subject-area preferences for AI mapping (categories align with evidence subject tags, not frameworks)."""
     if session.get("workspace_id") != workspace_id:
         raise HTTPException(status_code=403, detail="Access denied")
-    qnr = db.query(Questionnaire).filter(
-        Questionnaire.id == qnr_id,
-        Questionnaire.workspace_id == workspace_id,
-        Questionnaire.deleted_at.is_(None),
-    ).first()
+    qnr = (
+        db.query(Questionnaire)
+        .filter(
+            Questionnaire.id == qnr_id,
+            Questionnaire.workspace_id == workspace_id,
+            Questionnaire.deleted_at.is_(None),
+        )
+        .first()
+    )
     if not qnr:
         raise HTTPException(status_code=404, detail="Questionnaire not found")
     areas = _normalize_mapping_subject_areas(body.mapping_preferred_subject_areas)
@@ -453,7 +517,12 @@ def delete_questionnaire(
         resource_id=qnr_id,
         details={"display_id": qnr.display_id, "dependencies": preview.dependencies},
     )
-    return {"ok": True, "id": qnr.id, "display_id": qnr.display_id or build_display_id("questionnaire", qnr.id), "dependencies": preview.dependencies}
+    return {
+        "ok": True,
+        "id": qnr.id,
+        "display_id": qnr.display_id or build_display_id("questionnaire", qnr.id),
+        "dependencies": preview.dependencies,
+    }
 
 
 @router.get("/{qnr_id}/delete-preview")
@@ -465,7 +534,11 @@ def delete_preview_questionnaire(
 ):
     if session.get("workspace_id") != workspace_id:
         raise HTTPException(status_code=403, detail="Access denied")
-    qnr = db.query(Questionnaire).filter(Questionnaire.id == qnr_id, Questionnaire.workspace_id == workspace_id).first()
+    qnr = (
+        db.query(Questionnaire)
+        .filter(Questionnaire.id == qnr_id, Questionnaire.workspace_id == workspace_id)
+        .first()
+    )
     if not qnr:
         raise HTTPException(status_code=404, detail="Questionnaire not found")
     preview = build_delete_preview("questionnaire", db, workspace_id, qnr_id)
@@ -541,7 +614,11 @@ def update_questionnaire_metadata(
         workspace_id=workspace_id,
         resource_type="questionnaire",
         resource_id=qnr_id,
-        details={"display_id": qnr.display_id, "frameworks": body.frameworks, "subject_areas": body.subject_areas},
+        details={
+            "display_id": qnr.display_id,
+            "frameworks": body.frameworks,
+            "subject_areas": body.subject_areas,
+        },
     )
     return {"ok": True}
 
@@ -549,6 +626,7 @@ def update_questionnaire_metadata(
 # ---------------------------------------------------------------------------
 # Questionnaire Mapping Endpoints
 # ---------------------------------------------------------------------------
+
 
 def _mapping_to_dict(m: QuestionMappingPreference) -> dict:
     return {
@@ -583,17 +661,26 @@ def generate_questionnaire_mappings(
     ws = session.get("workspace_id")
     if not ws:
         raise HTTPException(status_code=403, detail="No workspace")
-    qnr = db.query(Questionnaire).filter(
-        Questionnaire.id == qnr_id,
-        Questionnaire.workspace_id == ws,
-        Questionnaire.deleted_at.is_(None),
-    ).first()
+    qnr = (
+        db.query(Questionnaire)
+        .filter(
+            Questionnaire.id == qnr_id,
+            Questionnaire.workspace_id == ws,
+            Questionnaire.deleted_at.is_(None),
+        )
+        .first()
+    )
     if not qnr:
         raise HTTPException(status_code=404, detail="Questionnaire not found")
 
-    questions = db.query(Question).filter(
-        Question.questionnaire_id == qnr_id,
-    ).order_by(Question.id).all()
+    questions = (
+        db.query(Question)
+        .filter(
+            Question.questionnaire_id == qnr_id,
+        )
+        .order_by(Question.id)
+        .all()
+    )
     if not questions:
         raise HTTPException(status_code=400, detail="No parsed questions in this questionnaire")
 
@@ -603,10 +690,14 @@ def generate_questionnaire_mappings(
         _t_gen_start = time.perf_counter()
 
     protected_question_ids = set()
-    existing = db.query(QuestionMappingPreference).filter(
-        QuestionMappingPreference.questionnaire_id == qnr_id,
-        QuestionMappingPreference.workspace_id == ws,
-    ).all()
+    existing = (
+        db.query(QuestionMappingPreference)
+        .filter(
+            QuestionMappingPreference.questionnaire_id == qnr_id,
+            QuestionMappingPreference.workspace_id == ws,
+        )
+        .all()
+    )
     existing_by_qid: dict[int, QuestionMappingPreference] = {}
     for m in existing:
         if m.question_id is not None:
@@ -624,13 +715,17 @@ def generate_questionnaire_mappings(
     skipped = len(questions) - len(eligible)
 
     # Phase 1: parallel LLM classification (all eligible questions at once)
-    signal_by_qid: dict[int, Any] = {}
+    signal_by_qid: dict[int, Any] = {}  # noqa: F821
     if eligible:
         prompt_ver = settings.mapping_classification_prompt_version
         q_ids = [q.id for q in eligible]
         preloaded = _preload_existing_signals(db, q_ids, ws, prompt_ver)
 
-        needs_llm = [(q.id, q.text or "") for q in eligible if (q.text or "").strip() and q.id not in preloaded]
+        needs_llm = [
+            (q.id, q.text or "")
+            for q in eligible
+            if (q.text or "").strip() and q.id not in preloaded
+        ]
         for qid, sig in preloaded.items():
             signal_by_qid[qid] = sig
 
@@ -651,6 +746,7 @@ def generate_questionnaire_mappings(
                         parsed, raw = None, None
                     quality = "llm_structured" if parsed else "heuristic_fallback"
                     from app.models.question_mapping_signal import QuestionMappingSignal
+
                     sig = QuestionMappingSignal(
                         question_id=qid,
                         workspace_id=ws,
@@ -671,6 +767,7 @@ def generate_questionnaire_mappings(
     # Phase 2: tag-based matching — match question subjects/frameworks to document tags
     # (No heuristic scoring — both questions and documents are LLM-tagged)
     from app.models.tag import DocumentTag, Tag
+
     doc_tags_raw = (
         db.query(DocumentTag.document_id, Tag.category, Tag.key, Tag.id)
         .join(Tag, DocumentTag.tag_id == Tag.id)
@@ -700,8 +797,11 @@ def generate_questionnaire_mappings(
         matched_tag_id = None
         confidence = 0.0
         from app.services.registry_metadata import SUBJECT_AREA_LABEL_TO_KEY
+
         for subj_label in q_subjects:
-            subj_key = SUBJECT_AREA_LABEL_TO_KEY.get(subj_label, subj_label.lower().replace(" ", "_"))
+            subj_key = SUBJECT_AREA_LABEL_TO_KEY.get(
+                subj_label, subj_label.lower().replace(" ", "_")
+            )
             if subj_key in docs_by_tag_key:
                 matched_tag_id = tag_id_by_key.get(subj_key)
                 confidence = 0.75
@@ -754,7 +854,11 @@ def generate_questionnaire_mappings(
     _total_ms = (time.perf_counter() - _t_gen_start) * 1000 if mapping_timing_enabled() else 0.0
     _log.info(
         "generate_mappings qnr=%s created=%s updated=%s skipped=%s classification_calls=%s",
-        qnr_id, created, updated, skipped, classification_calls,
+        qnr_id,
+        created,
+        updated,
+        skipped,
+        classification_calls,
     )
     audit_log(
         "mapping.generate",
@@ -762,9 +866,21 @@ def generate_questionnaire_mappings(
         workspace_id=ws,
         resource_type="questionnaire",
         resource_id=qnr_id,
-        details={"created": created, "updated": updated, "skipped": skipped, "classification_calls": classification_calls, "mode": settings.mapping_mode},
+        details={
+            "created": created,
+            "updated": updated,
+            "skipped": skipped,
+            "classification_calls": classification_calls,
+            "mode": settings.mapping_mode,
+        },
     )
-    out: dict = {"created": created, "updated": updated, "skipped": skipped, "total_questions": len(questions), "classification_calls": classification_calls}
+    out: dict = {
+        "created": created,
+        "updated": updated,
+        "skipped": skipped,
+        "total_questions": len(questions),
+        "classification_calls": classification_calls,
+    }
     if mapping_timing_enabled():
         mt = get_mapping_timing_snapshot()
         rp = get_rerank_perf_snapshot()
@@ -816,11 +932,15 @@ def list_questionnaire_mappings(
     ws = session.get("workspace_id")
     if not ws:
         raise HTTPException(status_code=403, detail="No workspace")
-    qnr = db.query(Questionnaire).filter(
-        Questionnaire.id == qnr_id,
-        Questionnaire.workspace_id == ws,
-        Questionnaire.deleted_at.is_(None),
-    ).first()
+    qnr = (
+        db.query(Questionnaire)
+        .filter(
+            Questionnaire.id == qnr_id,
+            Questionnaire.workspace_id == ws,
+            Questionnaire.deleted_at.is_(None),
+        )
+        .first()
+    )
     if not qnr:
         raise HTTPException(status_code=404, detail="Questionnaire not found")
 
@@ -855,7 +975,9 @@ def list_questionnaire_mappings(
             for fc in db.query(FrameworkControl).filter(FrameworkControl.id.in_(fc_ids)).all():
                 fc_by_id[fc.id] = fc
 
-    framework_names_by_id = {f.id: (f.name or "") for f in db.query(Framework).all()}
+    from app.services.framework_catalog import display_name_for_framework
+
+    framework_names_by_id = {f.id: display_name_for_framework(f) for f in db.query(Framework).all()}
 
     result = []
     for m in mappings:
@@ -868,7 +990,11 @@ def list_questionnaire_mappings(
         linked = evidence_by_control.get(int(cid), []) if cid is not None else []
         d["supporting_evidence"] = linked
         wc_row = wc_by_id.get(int(cid)) if cid is not None else None
-        fc_row = fc_by_id.get(wc_row.framework_control_id) if wc_row and wc_row.framework_control_id else None
+        fc_row = (
+            fc_by_id.get(wc_row.framework_control_id)
+            if wc_row and wc_row.framework_control_id
+            else None
+        )
         fw_name = framework_names_by_id.get(fc_row.framework_id) if fc_row else None
         d["match_keywords"] = match_keywords_for_mapping_row(
             qtext or "", wc_row, fc_row, framework_name=fw_name
@@ -889,9 +1015,7 @@ def list_questionnaire_mappings(
         result.append(d)
 
     # Count rows with a real control id (matches serialized mappings / UI "Mapped").
-    mapped_count = sum(
-        1 for d in result if d.get("preferred_control_id") is not None
-    )
+    mapped_count = sum(1 for d in result if d.get("preferred_control_id") is not None)
     return {
         "mappings": result,
         "total_questions": len(questions),
@@ -911,19 +1035,27 @@ def get_mapping_suggested_evidence(
     ws = session.get("workspace_id")
     if not ws:
         raise HTTPException(status_code=403, detail="No workspace")
-    qnr = db.query(Questionnaire).filter(
-        Questionnaire.id == qnr_id,
-        Questionnaire.workspace_id == ws,
-        Questionnaire.deleted_at.is_(None),
-    ).first()
+    qnr = (
+        db.query(Questionnaire)
+        .filter(
+            Questionnaire.id == qnr_id,
+            Questionnaire.workspace_id == ws,
+            Questionnaire.deleted_at.is_(None),
+        )
+        .first()
+    )
     if not qnr:
         raise HTTPException(status_code=404, detail="Questionnaire not found")
 
-    m = db.query(QuestionMappingPreference).filter(
-        QuestionMappingPreference.id == mapping_id,
-        QuestionMappingPreference.questionnaire_id == qnr_id,
-        QuestionMappingPreference.workspace_id == ws,
-    ).first()
+    m = (
+        db.query(QuestionMappingPreference)
+        .filter(
+            QuestionMappingPreference.id == mapping_id,
+            QuestionMappingPreference.questionnaire_id == qnr_id,
+            QuestionMappingPreference.workspace_id == ws,
+        )
+        .first()
+    )
     if not m:
         raise HTTPException(status_code=404, detail="Mapping not found")
 
@@ -968,18 +1100,24 @@ def update_questionnaire_mapping(
     ws = session.get("workspace_id")
     if not ws:
         raise HTTPException(status_code=403, detail="No workspace")
-    m = db.query(QuestionMappingPreference).filter(
-        QuestionMappingPreference.id == mapping_id,
-        QuestionMappingPreference.questionnaire_id == qnr_id,
-        QuestionMappingPreference.workspace_id == ws,
-    ).first()
+    m = (
+        db.query(QuestionMappingPreference)
+        .filter(
+            QuestionMappingPreference.id == mapping_id,
+            QuestionMappingPreference.questionnaire_id == qnr_id,
+            QuestionMappingPreference.workspace_id == ws,
+        )
+        .first()
+    )
     if not m:
         raise HTTPException(status_code=404, detail="Mapping not found")
 
     valid_statuses = {"suggested", "approved", "rejected", "manual"}
     if body.status is not None:
         if body.status not in valid_statuses:
-            raise HTTPException(status_code=400, detail=f"Invalid status. Allowed: {sorted(valid_statuses)}")
+            raise HTTPException(
+                status_code=400, detail=f"Invalid status. Allowed: {sorted(valid_statuses)}"
+            )
         m.status = body.status
         m.approved = body.status in ("approved", "manual")
 
@@ -1013,19 +1151,27 @@ def regenerate_single_mapping(
     ws = session.get("workspace_id")
     if not ws:
         raise HTTPException(status_code=403, detail="No workspace")
-    m = db.query(QuestionMappingPreference).filter(
-        QuestionMappingPreference.id == mapping_id,
-        QuestionMappingPreference.questionnaire_id == qnr_id,
-        QuestionMappingPreference.workspace_id == ws,
-    ).first()
+    m = (
+        db.query(QuestionMappingPreference)
+        .filter(
+            QuestionMappingPreference.id == mapping_id,
+            QuestionMappingPreference.questionnaire_id == qnr_id,
+            QuestionMappingPreference.workspace_id == ws,
+        )
+        .first()
+    )
     if not m:
         raise HTTPException(status_code=404, detail="Mapping not found")
 
-    qnr = db.query(Questionnaire).filter(
-        Questionnaire.id == qnr_id,
-        Questionnaire.workspace_id == ws,
-        Questionnaire.deleted_at.is_(None),
-    ).first()
+    qnr = (
+        db.query(Questionnaire)
+        .filter(
+            Questionnaire.id == qnr_id,
+            Questionnaire.workspace_id == ws,
+            Questionnaire.deleted_at.is_(None),
+        )
+        .first()
+    )
     if not qnr:
         raise HTTPException(status_code=404, detail="Questionnaire not found")
 
@@ -1033,7 +1179,12 @@ def regenerate_single_mapping(
     text = q.text if q else (m.normalized_question_text or "")
 
     signal = classify_question_signal(
-        db, m.question_id, text, ws, questionnaire_id=qnr_id, force=True,
+        db,
+        m.question_id,
+        text,
+        ws,
+        questionnaire_id=qnr_id,
+        force=True,
     )
 
     q_subjects: list[str] = []
@@ -1045,13 +1196,18 @@ def regenerate_single_mapping(
 
     from app.models.tag import DocumentTag, Tag
     from app.services.registry_metadata import SUBJECT_AREA_LABEL_TO_KEY
+
     matched_tag_id = None
     confidence = 0.0
     for subj_label in q_subjects:
         subj_key = SUBJECT_AREA_LABEL_TO_KEY.get(subj_label, subj_label.lower().replace(" ", "_"))
         tag = db.query(Tag).filter(Tag.key == subj_key, Tag.category == "topic").first()
         if tag:
-            has_docs = db.query(DocumentTag).filter(DocumentTag.tag_id == tag.id, DocumentTag.workspace_id == ws).first()
+            has_docs = (
+                db.query(DocumentTag)
+                .filter(DocumentTag.tag_id == tag.id, DocumentTag.workspace_id == ws)
+                .first()
+            )
             if has_docs:
                 matched_tag_id = tag.id
                 confidence = 0.75

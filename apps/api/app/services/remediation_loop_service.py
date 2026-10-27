@@ -86,8 +86,20 @@ def submit_post_remediation_evidence(
                 .first()
             )
             if not link:
-                db.add(ControlEvidenceLink(control_id=ticket.control_id, evidence_id=eid, verified=True))
-    _audit(db, ticket.workspace_id, "post_remediation_evidence", actor_user_id, ticket_id, False, {"evidence_ids": evidence_ids})
+                db.add(
+                    ControlEvidenceLink(
+                        control_id=ticket.control_id, evidence_id=eid, verified=True
+                    )
+                )
+    _audit(
+        db,
+        ticket.workspace_id,
+        "post_remediation_evidence",
+        actor_user_id,
+        ticket_id,
+        False,
+        {"evidence_ids": evidence_ids},
+    )
     db.flush()
     from app.services import remediation_service as rs
 
@@ -101,25 +113,49 @@ def analyze_remediation_impact(db: Session, ticket_id: int) -> dict | None:
         return None
     control = None
     if ticket.control_id:
-        control = db.query(WorkspaceControl).filter(WorkspaceControl.id == ticket.control_id).first()
+        control = (
+            db.query(WorkspaceControl).filter(WorkspaceControl.id == ticket.control_id).first()
+        )
     deal_ids = json.loads(ticket.affected_deal_ids_json or "[]")
     answers_upgradable: list[dict] = []
     if ticket.workspace_id:
         from app.models.questionnaire import Questionnaire
 
-        qids = [q.id for q in db.query(Questionnaire).filter(Questionnaire.workspace_id == ticket.workspace_id).all()]
+        qids = [
+            q.id
+            for q in db.query(Questionnaire)
+            .filter(Questionnaire.workspace_id == ticket.workspace_id)
+            .all()
+        ]
         for qn_id in qids[:50]:
             for q in db.query(Question).filter(Question.questionnaire_id == qn_id).limit(100).all():
-                ans = db.query(Answer).filter(Answer.question_id == q.id).order_by(Answer.created_at.desc()).first()
+                ans = (
+                    db.query(Answer)
+                    .filter(Answer.question_id == q.id)
+                    .order_by(Answer.created_at.desc())
+                    .first()
+                )
                 if ans and ans.status in ("draft", "flagged") and (ans.confidence or 0) < 70:
-                    answers_upgradable.append({"answer_id": ans.id, "question_id": q.id, "reason": "may_re_review_after_control_fix"})
+                    answers_upgradable.append(
+                        {
+                            "answer_id": ans.id,
+                            "question_id": q.id,
+                            "reason": "may_re_review_after_control_fix",
+                        }
+                    )
                     if len(answers_upgradable) >= 20:
                         break
             if len(answers_upgradable) >= 20:
                 break
     return {
         "ticket_id": ticket.id,
-        "control": {"id": control.id, "current_status": control.status, "would_move_to": "implemented"} if control else None,
+        "control": {
+            "id": control.id,
+            "current_status": control.status,
+            "would_move_to": "implemented",
+        }
+        if control
+        else None,
         "affected_deal_ids": deal_ids,
         "deals_risk_score_may_improve": len(deal_ids),
         "answers_may_upgrade_confidence": answers_upgradable[:20],
@@ -130,9 +166,9 @@ def analyze_remediation_impact(db: Session, ticket_id: int) -> dict | None:
 def list_automations(db: Session, workspace_id: int) -> list[dict]:
     settings = {
         row.automation_key: row.enabled
-        for row in db.query(RemediationAutomationSetting).filter(
-            RemediationAutomationSetting.workspace_id == workspace_id
-        ).all()
+        for row in db.query(RemediationAutomationSetting)
+        .filter(RemediationAutomationSetting.workspace_id == workspace_id)
+        .all()
     }
     out = []
     for key, meta in AUTOMATION_CATALOG.items():
@@ -140,7 +176,9 @@ def list_automations(db: Session, workspace_id: int) -> list[dict]:
     return out
 
 
-def set_automation_enabled(db: Session, workspace_id: int, automation_key: str, enabled: bool) -> dict:
+def set_automation_enabled(
+    db: Session, workspace_id: int, automation_key: str, enabled: bool
+) -> dict:
     if automation_key not in AUTOMATION_CATALOG:
         return {"error": f"Unknown automation: {automation_key}"}
     row = (
@@ -154,7 +192,9 @@ def set_automation_enabled(db: Session, workspace_id: int, automation_key: str, 
     if row:
         row.enabled = enabled
     else:
-        row = RemediationAutomationSetting(workspace_id=workspace_id, automation_key=automation_key, enabled=enabled)
+        row = RemediationAutomationSetting(
+            workspace_id=workspace_id, automation_key=automation_key, enabled=enabled
+        )
         db.add(row)
     db.flush()
     return {"automation_key": automation_key, "enabled": enabled}
@@ -172,7 +212,15 @@ def run_safe_automation(
     if automation_key not in AUTOMATION_CATALOG:
         return {"error": f"Unknown automation: {automation_key}"}
     if dry_run:
-        _audit(db, workspace_id, f"automation_dry_run:{automation_key}", actor_user_id, ticket_id, True, {"automation_key": automation_key})
+        _audit(
+            db,
+            workspace_id,
+            f"automation_dry_run:{automation_key}",
+            actor_user_id,
+            ticket_id,
+            True,
+            {"automation_key": automation_key},
+        )
         db.flush()
         return {
             "dry_run": True,
@@ -189,8 +237,18 @@ def run_safe_automation(
         .first()
     )
     if not setting or not setting.enabled:
-        return {"error": "Automation not enabled for this workspace. Opt in via settings before live execution."}
-    _audit(db, workspace_id, f"automation_execute:{automation_key}", actor_user_id, ticket_id, False, {"automation_key": automation_key})
+        return {
+            "error": "Automation not enabled for this workspace. Opt in via settings before live execution."
+        }
+    _audit(
+        db,
+        workspace_id,
+        f"automation_execute:{automation_key}",
+        actor_user_id,
+        ticket_id,
+        False,
+        {"automation_key": automation_key},
+    )
     db.flush()
     return {
         "dry_run": False,

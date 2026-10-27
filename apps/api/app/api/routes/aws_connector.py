@@ -23,7 +23,9 @@ async def authenticate(
     body: AwsAuthBody,
     session: dict = Depends(require_can_admin),
 ):
-    return aws.authenticate_aws(body.access_key_id, body.secret_access_key, body.region, body.role_arn)
+    return aws.authenticate_aws(
+        body.access_key_id, body.secret_access_key, body.region, body.role_arn
+    )
 
 
 @router.get("/iam")
