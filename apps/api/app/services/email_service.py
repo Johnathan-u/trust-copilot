@@ -8,6 +8,8 @@ from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from typing import Protocol
 
+from app.core.session import is_production_env
+
 
 @dataclass
 class EmailMessage:
@@ -84,7 +86,7 @@ class SmtpEmailProvider:
             return True
         except Exception as e:
             print(f"[EMAIL] SMTP send failed ({self.host}:{self.port}): {e}", flush=True)
-            if os.getenv("APP_ENV", "development").strip().lower() != "production":
+            if not is_production_env():
                 # Dev convenience only; in production the body may carry reset/invite links (TC-03-001).
                 print(
                     f"[EMAIL-FALLBACK] To: {message.to}\nSubject: {message.subject}\n\n{message.body_text}\n",
@@ -117,7 +119,8 @@ def get_email_provider() -> EmailProvider:
     from app.core.config_contract import email_delivery_enabled
 
     host = os.getenv("SMTP_HOST", "").strip()
-    production = os.getenv("APP_ENV", "development").strip().lower() == "production"
+    # Same detector as the startup checks: settings-based APP_ENV and the process env, normalised.
+    production = is_production_env()
     if production and not (email_delivery_enabled() and host):
         # Startup validation refuses "enabled but SMTP_HOST missing"; this branch is defence in depth.
         _default_provider = DisabledEmailProvider()

@@ -742,6 +742,88 @@ def test_production_smtp_failure_does_not_print_body(monkeypatch, capsys):
     assert marker not in capsys.readouterr().out
 
 
+def _settings_only_production(monkeypatch, tmp_path, source: str):
+    """Production visible only to the settings object, never to the process env.
+
+    ``settings``: a settings object that says production. ``dotenv``: real Settings built from a
+    .env file containing APP_ENV=production, after which the process variable is removed again.
+    """
+    import types
+
+    from app.core import config as config_mod
+    from app.core import session as session_mod
+
+    if source == "settings":
+        settings = types.SimpleNamespace(app_env=" Production ")
+    else:
+        from dotenv import load_dotenv
+
+        dotenv_file = tmp_path / ".env"
+        dotenv_file.write_text("APP_ENV=production\n")
+        monkeypatch.setenv("APP_ENV", "")  # records the original value so teardown restores it
+        load_dotenv(dotenv_file, override=True)
+        settings = config_mod.Settings()
+    monkeypatch.delenv("APP_ENV", raising=False)
+    os.environ.pop("APP_ENV", None)
+    assert settings.app_env.strip().lower() == "production"
+    assert "APP_ENV" not in os.environ
+    monkeypatch.setattr(session_mod, "get_settings", lambda: settings)
+
+
+@pytest.mark.parametrize("source", ["settings", "dotenv"])
+def test_settings_only_production_never_uses_dev_email_fallback(
+    monkeypatch, tmp_path, capsys, source
+):
+    from app.services import email_service as es
+
+    for n in ("SMTP_HOST", "SMTP_FROM", "SMTP_USER", "SMTP_PASSWORD", "EMAIL_DELIVERY_ENABLED"):
+        monkeypatch.delenv(n, raising=False)
+    _settings_only_production(monkeypatch, tmp_path, source)
+    marker = "https://app.trust.test/reset?token=" + secrets.token_urlsafe(24)
+    to = "user-" + secrets.token_hex(4) + "@trust.test"
+
+    # Provider selection: never the console stub that prints the message.
+    es.set_email_provider(None)
+    try:
+        provider = es.get_email_provider()
+        assert isinstance(provider, es.DisabledEmailProvider)
+        assert provider.send(es.EmailMessage(to=to, subject="Invite", body_text=marker)) is False
+    finally:
+        es.set_email_provider(None)
+
+    # SMTP failure: no [EMAIL-FALLBACK] dump of the body.
+    class Boom:
+        def __init__(self, *a, **k):
+            raise OSError("unreachable (synthetic)")
+
+    monkeypatch.setattr(es.smtplib, "SMTP", Boom)
+    p = es.SmtpEmailProvider("smtp.trust.test", 587, None, None, "noreply@trust.test")
+    assert p.send(es.EmailMessage(to=to, subject="Reset", body_text=marker)) is False
+    out = capsys.readouterr().out
+    assert marker not in out and to not in out and "EMAIL-FALLBACK" not in out
+
+
+@pytest.mark.parametrize("rel", ["app/services/email_service.py", "app/core/rate_limit.py"])
+def test_security_paths_use_the_shared_production_detector(rel):
+    src = (API_ROOT / rel).read_text()
+    assert "is_production_env()" in src
+    assert not re.search(r"(getenv|environ\.get)\(\s*[\"']APP_ENV", src)
+
+
+def test_rate_limit_production_warning_follows_settings_only_production(
+    monkeypatch, tmp_path, caplog
+):
+    import logging
+
+    from app.core import rate_limit
+
+    monkeypatch.delenv("REDIS_URL", raising=False)
+    _settings_only_production(monkeypatch, tmp_path, "settings")
+    with caplog.at_level(logging.INFO, logger=rate_limit._rl_logger.name):
+        rate_limit._get_backend()
+    assert "in-memory backend in production" in caplog.text
+
+
 # ---------------------------------------------------------------- .env.example credentials vs production
 # (Coordinator: production must refuse every credential .env.example ships, including the dev MinIO S3
 # pair, and must use master's is_production_env() as the only production detector.) Values are read from
