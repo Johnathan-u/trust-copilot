@@ -68,7 +68,7 @@ export function Sidebar() {
     await switchWorkspace(id)
   }
 
-  const complianceActive = ['/dashboard/compliance-gaps', '/dashboard/trust-center', '/dashboard/proof-chain'].some(p => pathname.startsWith(p))
+  const complianceActive = ['/dashboard/compliance-gaps', '/dashboard/trust-center', '/dashboard/proof-chain', '/dashboard/demo-proof'].some(p => pathname.startsWith(p))
   const adminActive = ['/dashboard/members', '/dashboard/notifications', '/dashboard/slack', '/dashboard/gmail', '/dashboard/audit', '/dashboard/security', '/dashboard/settings', '/dashboard/ai-governance'].some(p => pathname.startsWith(p))
 
   return (
@@ -123,6 +123,7 @@ export function Sidebar() {
           <NavLink href="/dashboard/compliance-gaps" label="Coverage" icon="📊" pathname={pathname} />
           <NavLink href="/dashboard/trust-center" label="Trust Center" icon="🛡️" pathname={pathname} />
           <NavLink href="/dashboard/proof-chain" label="Proof chain" icon="🔗" pathname={pathname} />
+          <NavLink href="/dashboard/demo-proof" label="Demo proof" icon="🧪" pathname={pathname} />
         </NavSection>
 
         <div className="border-t border-white/5" />

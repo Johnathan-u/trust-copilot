@@ -73,6 +73,7 @@ from app.models.answer_approval_event import AnswerApprovalEvent
 from app.models.freshness_policy import FreshnessPolicy
 from app.models.retention_policy import RetentionPolicy
 from app.models.deal import Deal, DEAL_STAGES
+from app.models.demo_proof_summary import DemoProofSummary
 from app.models.remediation_playbook import RemediationPlaybook, RemediationTicket, REMEDIATION_STATUSES
 from app.models.remediation_audit import RemediationAuditEvent, RemediationAutomationSetting
 from app.models.trust_promise import ContractDocument, TrustPromise, PROMISE_SOURCE_TYPES, PROMISE_STATUSES
@@ -189,6 +190,7 @@ __all__ = [
     "EVIDENCE_APPROVAL_STATUSES",
     "Deal",
     "DEAL_STAGES",
+    "DemoProofSummary",
     "RemediationPlaybook",
     "RemediationTicket",
     "REMEDIATION_STATUSES",

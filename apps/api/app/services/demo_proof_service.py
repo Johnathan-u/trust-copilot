@@ -1,15 +1,83 @@
-"""Demo proof package generator — sample questionnaire, coverage report, gap list."""
+"""Demo proof package and evidence-backed demonstration summaries.
 
+The sample questionnaire, coverage report, gap list and walkthrough are a
+synthetic placeholder. They are labeled as such and are not measurements of a
+workspace. Proof summary metrics are counts of rows stored for that workspace.
+Where a count cannot be read, the value is null and the state is unavailable.
+Customers, revenue and traffic are unsupported. Nothing here is commercial
+traction.
+
+Schema version of the proof summary is "1". Legacy package keys are unchanged.
+"""
+
+import hashlib
+import json
 import logging
 from datetime import datetime, timezone
 
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
-from app.models.questionnaire import Question, Questionnaire
 from app.models.answer import Answer
+from app.models.demo_proof_summary import DemoProofSummary
+from app.models.document import Document
 from app.models.evidence_gap import EvidenceGap
+from app.models.evidence_item import EvidenceItem
+from app.models.export_record import ExportRecord
+from app.models.questionnaire import Question, Questionnaire
+from app.models.user import User
 
 logger = logging.getLogger(__name__)
+
+SCHEMA_VERSION = "1"
+SYNTHETIC_DISCLAIMER = (
+    "Synthetic placeholder for demonstration layout only. These figures are not "
+    "stored evidence, not a measurement of this workspace, and not commercial traction."
+)
+TRACTION_REASON = (
+    "This demonstration summary is not commercial traction. Stored counts are "
+    "workspace records, not customers, revenue, or usage claims. Synthetic "
+    "placeholders are excluded from these counts."
+)
+
+# name, collector, source table, denominator metric name
+METRIC_SPEC = (
+    ("questionnaires_stored", "questionnaires", "questionnaires", None),
+    ("questions_stored", "questions", "questions", None),
+    ("answers_stored", "answers", "answers", None),
+    ("answers_approved", "answers", "answers", "answers_stored"),
+    ("documents_stored", "documents", "documents", None),
+    ("documents_indexed", "documents", "documents", "documents_stored"),
+    ("evidence_items_stored", "evidence_items", "evidence_items", None),
+    ("evidence_items_approved", "evidence_items", "evidence_items", "evidence_items_stored"),
+    ("exports_stored", "exports", "export_records", None),
+    ("exports_completed", "exports", "export_records", "exports_stored"),
+    ("evidence_gaps_stored", "evidence_gaps", "evidence_gaps", None),
+)
+
+UNSUPPORTED_FACTS = (
+    ("customers", "No customer register is stored. This summary does not infer customers."),
+    ("revenue", "No revenue evidence is stored. This summary does not infer revenue."),
+    ("traffic", "No traffic evidence is stored. This summary does not infer traffic."),
+    (
+        "commercial_usage",
+        "Workspace activity counts are not a commercial usage claim.",
+    ),
+)
+
+
+class WindowError(ValueError):
+    """The caller sent a data window this summary cannot interpret."""
+
+    def __init__(self, field: str, message: str):
+        super().__init__(message)
+        self.field = field
+        self.message = message
+
+
+class SummaryUnreadable(Exception):
+    """A stored snapshot exists but its JSON cannot be read. Do not replace it."""
+
 
 SAMPLE_QUESTIONNAIRE = {
     "title": "Sample SOC 2 Security Questionnaire",
@@ -110,23 +178,235 @@ SAMPLE_QUESTIONNAIRE = {
 }
 
 
-def generate_demo_package(db: Session, workspace_id: int) -> dict:
-    """Generate a complete demo proof package for sales and onboarding."""
+def _synthetic_fields() -> dict:
+    return {
+        "origin": "synthetic",
+        "basis": "not_measured",
+        "measured": False,
+        "estimated": False,
+        "commercial_traction": False,
+        "data_basis": "synthetic_example",
+        "data_window": _empty_window(
+            applicable=False,
+            reason="Synthetic placeholder has no observation window.",
+        ),
+        "disclaimer": SYNTHETIC_DISCLAIMER,
+    }
+
+
+def generate_demo_package(
+    db: Session,
+    workspace_id: int,
+    user_id: int | None = None,
+    window_start: datetime | None = None,
+    window_end: datetime | None = None,
+) -> dict:
+    """Return the legacy package plus the persisted proof summary.
+
+    The sample blocks stay in the response so existing clients keep their keys.
+    They are labeled synthetic and are not inputs to the proof summary.
+    """
     questionnaire = _build_sample_questionnaire()
     coverage = _build_coverage_report(questionnaire)
     gaps = _build_gap_list(questionnaire)
     walkthrough = _build_walkthrough()
-    live_stats = _get_live_stats(db, workspace_id)
-
+    proof = build_proof_summary(
+        db,
+        workspace_id,
+        user_id=user_id,
+        window_start=window_start,
+        window_end=window_end,
+    )
     return {
-        "generated_at": datetime.now(timezone.utc).isoformat(),
+        "schema_version": SCHEMA_VERSION,
+        "generated_at": _iso(datetime.now(timezone.utc)),
         "workspace_id": workspace_id,
+        "commercial_traction": False,
+        "sample_data_origin": "synthetic",
         "sample_questionnaire": questionnaire,
         "coverage_report": coverage,
         "gap_list": gaps,
         "walkthrough": walkthrough,
-        "live_stats": live_stats,
+        "live_stats": _live_stats_from_summary(proof),
+        "proof_summary": proof,
     }
+
+
+def build_proof_summary(
+    db: Session,
+    workspace_id: int,
+    user_id: int | None = None,
+    window_start: datetime | None = None,
+    window_end: datetime | None = None,
+) -> dict:
+    """Build or reuse the evidence-backed summary for this workspace and window."""
+    window = (window_start, window_end)
+    collected = {}
+    unavailable = []
+    for name, fn in COLLECTORS.items():
+        result = _invoke_collector(db, name, fn, workspace_id, window)
+        collected[name] = result
+        if result.get("unavailable"):
+            unavailable.append(name)
+
+    raw_counts = {}
+    foreign = []
+    for name, result in collected.items():
+        if result.get("unavailable"):
+            continue
+        raw_counts.update(result.get("counts") or {})
+        foreign.extend(result.get("failures") or [])
+
+    observed = _observed_bounds(raw_counts)
+    if window_start is None and window_end is None:
+        if observed[0] is None:
+            data_window = _empty_window(
+                applicable=True,
+                reason="No stored records. Nothing was backfilled.",
+            )
+        else:
+            data_window = _window_dict(
+                observed[0],
+                observed[1],
+                applicable=True,
+                reason="Span of stored records included in this summary.",
+                observed_start=observed[0],
+                observed_end=observed[1],
+            )
+    else:
+        data_window = _window_dict(
+            window_start,
+            window_end,
+            applicable=True,
+            reason="Caller-requested window. Records outside it are excluded.",
+            observed_start=observed[0],
+            observed_end=observed[1],
+        )
+
+    any_positive = any((item.get("value") or 0) > 0 for item in raw_counts.values())
+    metrics = []
+    for metric_name, collector, source, denominator_name in METRIC_SPEC:
+        if collector in unavailable:
+            metrics.append(_unavailable_metric(metric_name, source, data_window))
+            continue
+        raw = raw_counts.get(metric_name) or {
+            "value": 0,
+            "numerator": 0,
+            "denominator": None,
+            "freshness": None,
+            "exclusions": _empty_exclusions(),
+        }
+        value = int(raw["value"])
+        if value == 0 and not any_positive:
+            state = "no_data"
+        else:
+            state = "measured"
+        denominator = raw.get("denominator")
+        if denominator_name is not None:
+            denom_raw = raw_counts.get(denominator_name)
+            denominator = None if denom_raw is None else int(denom_raw["value"])
+        metrics.append(
+            {
+                "name": metric_name,
+                "value": value,
+                "unit": "count",
+                "source": source,
+                "origin": "real",
+                "basis": "measured",
+                "measured": True,
+                "estimated": False,
+                "data_window": data_window,
+                "numerator": int(raw["numerator"]) if raw.get("numerator") is not None else value,
+                "denominator": denominator,
+                "currency": None,
+                "freshness": _iso(raw.get("freshness")),
+                "exclusions": raw.get("exclusions") or _empty_exclusions(),
+                "commercial_traction": False,
+                "state": state,
+            }
+        )
+
+    partial = _partial_failures(foreign, unavailable)
+    if unavailable or foreign:
+        status = "partial"
+    elif not any_positive:
+        status = "no_data"
+    else:
+        status = "complete"
+
+    body = {
+        "schema_version": SCHEMA_VERSION,
+        "workspace_id": workspace_id,
+        "status": status,
+        "commercial_traction": False,
+        "commercial_traction_reason": TRACTION_REASON,
+        "data_window": data_window,
+        "metrics": metrics,
+        "synthetic_placeholders": _synthetic_placeholders(),
+        "unsupported": _unsupported(data_window),
+        "partial_failures": partial,
+    }
+    return _persist_summary(db, workspace_id, user_id, body)
+
+
+def load_summary(db: Session, workspace_id: int, summary_id: int) -> dict:
+    """Return one persisted snapshot for this workspace, or raise if unreadable."""
+    row = (
+        db.query(DemoProofSummary)
+        .filter(
+            DemoProofSummary.id == summary_id,
+            DemoProofSummary.workspace_id == workspace_id,
+        )
+        .one_or_none()
+    )
+    if row is None:
+        return None
+    try:
+        data = json.loads(row.summary_json)
+    except json.JSONDecodeError as exc:
+        logger.warning("demo proof summary %s is not valid JSON", summary_id)
+        raise SummaryUnreadable() from exc
+    if not isinstance(data, dict):
+        raise SummaryUnreadable()
+    return data
+
+
+def parse_window(
+    window_start: str | None,
+    window_end: str | None,
+) -> tuple[datetime | None, datetime | None]:
+    """Parse an explicit UTC window. Both bounds are required together."""
+    start_blank = window_start is None or window_start.strip() == ""
+    end_blank = window_end is None or window_end.strip() == ""
+    if start_blank and end_blank:
+        return None, None
+    if start_blank or end_blank:
+        missing = "window_start" if start_blank else "window_end"
+        raise WindowError(
+            missing,
+            "window_start and window_end must both be set, or both omitted.",
+        )
+    start = _parse_bound(window_start, "window_start")
+    end = _parse_bound(window_end, "window_end")
+    if end < start:
+        raise WindowError("window_end", "window_end must be on or after window_start.")
+    return start, end
+
+
+def _parse_bound(value: str, field: str) -> datetime:
+    text = value.strip()
+    if text.endswith("Z"):
+        text = text[:-1] + "+00:00"
+    try:
+        parsed = datetime.fromisoformat(text)
+    except ValueError as exc:
+        raise WindowError(
+            field,
+            "Use an ISO-8601 timestamp with a numeric UTC offset.",
+        ) from exc
+    if parsed.tzinfo is None:
+        raise WindowError(field, "Timestamp must include a numeric UTC offset.")
+    return parsed.astimezone(timezone.utc)
 
 
 def _build_sample_questionnaire() -> dict:
@@ -139,12 +419,18 @@ def _build_sample_questionnaire() -> dict:
                 "answer": q["answer"],
                 "confidence": q["confidence"],
                 "evidence_sources": q["evidence"],
+                "confidence_basis": "illustrative hardcoded values, not model output",
+                "evidence_sources_are_real": False,
+                "citation_status": "not_a_source_locator",
+                **_synthetic_fields(),
             })
     return {
         "title": SAMPLE_QUESTIONNAIRE["title"],
         "framework": SAMPLE_QUESTIONNAIRE["framework"],
         "total_questions": len(questions),
         "questions": questions,
+        "confidence_basis": "illustrative hardcoded values, not model output",
+        **_synthetic_fields(),
     }
 
 
@@ -172,6 +458,7 @@ def _build_coverage_report(questionnaire: dict) -> dict:
             "section": name,
             "questions": data["total"],
             "avg_confidence": round(avg, 1),
+            **_synthetic_fields(),
         })
 
     return {
@@ -183,6 +470,7 @@ def _build_coverage_report(questionnaire: dict) -> dict:
         "medium_confidence": med_conf,
         "low_confidence": low_conf,
         "by_section": section_summary,
+        **_synthetic_fields(),
     }
 
 
@@ -195,17 +483,23 @@ def _build_gap_list(questionnaire: dict) -> dict:
                 "question": q["question"],
                 "confidence": q["confidence"],
                 "recommendation": _gap_recommendation(q["section"], q["confidence"]),
+                **_synthetic_fields(),
             })
     return {
         "total_gaps": len(gaps),
         "gaps": gaps,
+        **_synthetic_fields(),
     }
 
 
 def _gap_recommendation(section: str, confidence: int) -> str:
     if confidence < 70:
-        return f"Upload supporting documentation for {section}. This area needs additional evidence to meet buyer expectations."
-    return f"Review and strengthen evidence for {section}. Consider uploading recent audit reports or policy documents."
+        return (
+            f"Synthetic placeholder only. This is not a measured gap for {section}."
+        )
+    return (
+        f"Synthetic placeholder only. This is not a measured gap for {section}."
+    )
 
 
 def _build_walkthrough() -> dict:
@@ -214,45 +508,711 @@ def _build_walkthrough() -> dict:
             {
                 "step": 1,
                 "title": "Upload Evidence Documents",
-                "description": "Upload your compliance documents (SOC 2 reports, policies, certifications) to the Documents module. Trust Copilot automatically indexes and classifies them by framework and control area.",
+                "description": (
+                    "Upload compliance documents to the Documents module. "
+                    "Indexing depends on the pipeline completing for that file."
+                ),
             },
             {
                 "step": 2,
                 "title": "Upload the Questionnaire",
-                "description": "Upload the security questionnaire you received (XLSX, DOCX, or PDF). Trust Copilot extracts individual questions, detects the framework, and classifies each question by subject area.",
+                "description": (
+                    "Upload a questionnaire file the product can parse. "
+                    "Extraction depends on the file being a supported format."
+                ),
             },
             {
                 "step": 3,
                 "title": "Generate AI Answers with Citations",
-                "description": "Trust Copilot's RAG pipeline retrieves relevant evidence from your uploaded documents and generates draft answers with citations. Each answer includes a confidence score based on evidence strength.",
+                "description": (
+                    "Draft answers are generated from retrieved workspace evidence. "
+                    "A confidence figure is a heuristic unless a separate calibration "
+                    "result says otherwise."
+                ),
             },
             {
                 "step": 4,
                 "title": "Review and Approve",
-                "description": "Review generated answers in the Review module. Approve high-confidence answers, edit medium-confidence ones, and manually address low-confidence areas. All reviewed answers feed the reusable answer library.",
+                "description": (
+                    "Review generated answers before they are treated as approved. "
+                    "Approval is a stored review state, not a certification."
+                ),
             },
             {
                 "step": 5,
                 "title": "Export and Send",
-                "description": "Export the completed questionnaire in XLSX or DOCX format with answers, citations, and evidence references. Send it back to the requesting party and close the deal.",
+                "description": (
+                    "Export writes a file from approved content. "
+                    "A stored export record is not proof the file was delivered."
+                ),
             },
         ],
+        **_synthetic_fields(),
     }
 
 
-def _get_live_stats(db: Session, workspace_id: int) -> dict:
-    """Pull real workspace stats to demonstrate the product with actual data."""
-    try:
-        q_count = db.query(Questionnaire).filter(Questionnaire.workspace_id == workspace_id).count()
-        question_count = db.query(Question).join(Questionnaire).filter(Questionnaire.workspace_id == workspace_id).count()
-        answer_count = db.query(Answer).join(Question).join(Questionnaire).filter(Questionnaire.workspace_id == workspace_id).count()
-        gap_count = db.query(EvidenceGap).filter(EvidenceGap.workspace_id == workspace_id).count()
-    except Exception:
-        q_count = question_count = answer_count = gap_count = 0
+def _live_stats_from_summary(summary: dict) -> dict:
+    by_name = {metric["name"]: metric for metric in summary["metrics"]}
+
+    def _value(name: str):
+        metric = by_name[name]
+        if metric["state"] == "unavailable":
+            return None
+        return metric["value"]
 
     return {
-        "questionnaires_processed": q_count,
-        "questions_answered": question_count,
-        "ai_answers_generated": answer_count,
-        "evidence_gaps_identified": gap_count,
+        "questionnaires_processed": _value("questionnaires_stored"),
+        "questions_answered": _value("questions_stored"),
+        "ai_answers_generated": _value("answers_stored"),
+        "evidence_gaps_identified": _value("evidence_gaps_stored"),
+        "origin": "real",
+        "basis": "measured",
+        "measured": True,
+        "estimated": False,
+        "commercial_traction": False,
+        "data_window": summary["data_window"],
+        "state": summary["status"],
+        "schema_version": SCHEMA_VERSION,
+        "legacy_field_notes": {
+            "questions_answered": (
+                "Counts stored questions in the data window, not approved answers. "
+                "Not commercial traction."
+            ),
+        },
+        "agrees_with": "proof_summary.metrics",
     }
+
+
+def _synthetic_placeholders() -> list[dict]:
+    names = (
+        "sample_questionnaire",
+        "sample_coverage_report",
+        "sample_gap_list",
+        "sample_walkthrough",
+    )
+    placeholders = []
+    for name in names:
+        placeholders.append({
+            "name": name,
+            "value": None,
+            "unit": None,
+            "origin": "synthetic",
+            "basis": "not_measured",
+            "measured": False,
+            "estimated": False,
+            "commercial_traction": False,
+            "state": "synthetic_placeholder",
+            "data_window": _empty_window(
+                applicable=False,
+                reason="Synthetic placeholder has no observation window.",
+            ),
+            "disclaimer": SYNTHETIC_DISCLAIMER,
+        })
+    return placeholders
+
+
+def _unsupported(data_window: dict) -> list[dict]:
+    rows = []
+    for name, reason in UNSUPPORTED_FACTS:
+        rows.append({
+            "name": name,
+            "value": None,
+            "unit": None,
+            "source": None,
+            "origin": None,
+            "basis": None,
+            "measured": False,
+            "estimated": False,
+            "data_window": data_window,
+            "numerator": None,
+            "denominator": None,
+            "currency": None,
+            "freshness": None,
+            "commercial_traction": False,
+            "state": "unsupported",
+            "reason": reason,
+        })
+    return rows
+
+
+def _unavailable_metric(name: str, source: str, data_window: dict) -> dict:
+    return {
+        "name": name,
+        "value": None,
+        "unit": "count",
+        "source": source,
+        "origin": None,
+        "basis": None,
+        "measured": False,
+        "estimated": False,
+        "data_window": data_window,
+        "numerator": None,
+        "denominator": None,
+        "currency": None,
+        "freshness": None,
+        "exclusions": _empty_exclusions(),
+        "commercial_traction": False,
+        "state": "unavailable",
+    }
+
+
+def _empty_exclusions() -> dict:
+    return {
+        "deleted": 0,
+        "outside_window": 0,
+        "missing_timestamp": 0,
+        "foreign_reference": 0,
+    }
+
+
+def _empty_window(*, applicable: bool, reason: str) -> dict:
+    return _window_dict(
+        None,
+        None,
+        applicable=applicable,
+        reason=reason,
+        observed_start=None,
+        observed_end=None,
+    )
+
+
+def _window_dict(
+    start: datetime | None,
+    end: datetime | None,
+    *,
+    applicable: bool,
+    reason: str,
+    observed_start: datetime | None = None,
+    observed_end: datetime | None = None,
+) -> dict:
+    return {
+        "start": _iso(start),
+        "end": _iso(end),
+        "timezone": "UTC",
+        "applicable": applicable,
+        "reason": reason,
+        "observed_start": _iso(observed_start),
+        "observed_end": _iso(observed_end),
+    }
+
+
+def _observed_bounds(raw_counts: dict) -> tuple[datetime | None, datetime | None]:
+    earliest = [
+        item["earliest"] for item in raw_counts.values() if item.get("earliest") is not None
+    ]
+    latest = [
+        item["freshness"] for item in raw_counts.values() if item.get("freshness") is not None
+    ]
+    if not earliest or not latest:
+        return None, None
+    return min(earliest), max(latest)
+
+
+def _partial_failures(foreign: list[dict], unavailable: list[str]) -> list[dict]:
+    grouped: dict[str, list[dict]] = {}
+    for item in foreign:
+        grouped.setdefault(item["source"], []).append(item)
+    rows = []
+    for source in sorted(grouped):
+        records = sorted(grouped[source], key=lambda row: (row["reason"], row["record_id"]))
+        reasons: dict[str, int] = {}
+        for record in records:
+            reasons[record["reason"]] = reasons.get(record["reason"], 0) + 1
+        count = len(records)
+        rows.append({
+            "code": "foreign_reference_rejected",
+            "source": source,
+            "retryable": False,
+            "count": count,
+            "reasons": reasons,
+            "record_ids": [record["record_id"] for record in records],
+            "message": (
+                f"{count} {source} record(s) reference an object that is missing, "
+                "deleted, or outside this workspace. They are excluded from the proof count."
+            ),
+        })
+    for source in sorted(unavailable):
+        rows.append({
+            "code": "source_unavailable",
+            "source": source,
+            "retryable": True,
+            "count": None,
+            "message": f"{source} could not be read. This count is unavailable, not zero.",
+        })
+    rows.sort(key=lambda row: (row["code"], row["source"]))
+    return rows
+
+
+def _persist_summary(db: Session, workspace_id: int, user_id: int | None, body: dict) -> dict:
+    digest = hashlib.sha256(
+        json.dumps(body, sort_keys=True, separators=(",", ":"), ensure_ascii=True).encode("utf-8")
+    ).hexdigest()
+    existing = _find_snapshot(db, workspace_id, digest)
+    if existing is not None:
+        return existing
+    actor = _actor_id(db, user_id)
+    window = body["data_window"]
+    row = DemoProofSummary(
+        workspace_id=workspace_id,
+        schema_version=SCHEMA_VERSION,
+        idempotency_key=digest,
+        content_hash=digest,
+        status=body["status"],
+        window_start=_from_iso(window.get("start")),
+        window_end=_from_iso(window.get("end")),
+        timezone="UTC",
+        summary_json="{}",
+        created_by_user_id=actor,
+    )
+    payload = {
+        **body,
+        "generated_at": _iso(datetime.now(timezone.utc)),
+        "content_hash": digest,
+        "idempotency_key": digest,
+        "summary_id": None,
+    }
+    try:
+        db.add(row)
+        db.flush()
+        payload["summary_id"] = row.id
+        row.summary_json = json.dumps(payload, sort_keys=True)
+        db.commit()
+    except IntegrityError:
+        db.rollback()
+        raced = _find_snapshot(db, workspace_id, digest)
+        if raced is None:
+            raise
+        return raced
+    return payload
+
+
+def _find_snapshot(db: Session, workspace_id: int, digest: str) -> dict | None:
+    row = (
+        db.query(DemoProofSummary)
+        .filter(
+            DemoProofSummary.workspace_id == workspace_id,
+            DemoProofSummary.idempotency_key == digest,
+        )
+        .one_or_none()
+    )
+    if row is None:
+        return None
+    data = json.loads(row.summary_json)
+    if not data.get("summary_id"):
+        # The winning transaction had not stored the id. This request lost the race
+        # before the winner committed a readable snapshot. Caller retries the lookup
+        # only when summary_id is present.
+        return None
+    return data
+
+
+def _actor_id(db: Session, user_id: int | None) -> int | None:
+    if user_id is None:
+        return None
+    found = db.query(User.id).filter(User.id == user_id).first()
+    if found is None:
+        return None
+    return user_id
+
+
+def _invoke_collector(db: Session, name: str, fn, workspace_id: int, window) -> dict:
+    nested = db.begin_nested()
+    try:
+        result = fn(db, workspace_id, window)
+        nested.commit()
+        return result
+    except Exception:
+        logger.exception("demo proof collector %s failed", name)
+        nested.rollback()
+        return {"unavailable": True, "counts": {}, "failures": []}
+
+
+def _collect_questionnaires(db: Session, workspace_id: int, window) -> dict:
+    rows = db.query(Questionnaire).filter(Questionnaire.workspace_id == workspace_id).all()
+    included, exclusions = _split_timed(rows, window, deleted=True)
+    return _count_result(
+        "questionnaires_stored",
+        included,
+        exclusions,
+        numerator=len(included),
+        denominator=None,
+    )
+
+
+def _collect_questions(db: Session, workspace_id: int, window) -> dict:
+    rows = (
+        db.query(Question)
+        .join(Questionnaire, Question.questionnaire_id == Questionnaire.id)
+        .filter(
+            Questionnaire.workspace_id == workspace_id,
+            Questionnaire.deleted_at.is_(None),
+        )
+        .all()
+    )
+    included = []
+    exclusions = _empty_exclusions()
+    for row in rows:
+        parent = db.get(Questionnaire, row.questionnaire_id)
+        parent_slot = _time_slot(parent, window) if parent is not None else "missing_timestamp"
+        if parent_slot != "included":
+            exclusions[parent_slot] += 1
+            continue
+        slot = _time_slot(row, window)
+        if slot != "included":
+            exclusions[slot] += 1
+            continue
+        included.append(row)
+    return _count_result(
+        "questions_stored",
+        included,
+        exclusions,
+        numerator=len(included),
+        denominator=None,
+    )
+
+
+def _collect_answers(db: Session, workspace_id: int, window) -> dict:
+    rows = (
+        db.query(Answer)
+        .join(Question, Answer.question_id == Question.id)
+        .join(Questionnaire, Question.questionnaire_id == Questionnaire.id)
+        .filter(
+            Questionnaire.workspace_id == workspace_id,
+            Questionnaire.deleted_at.is_(None),
+        )
+        .all()
+    )
+    included = []
+    exclusions = _empty_exclusions()
+    for row in rows:
+        question = db.get(Question, row.question_id)
+        parent = db.get(Questionnaire, question.questionnaire_id) if question is not None else None
+        parent_slot = _time_slot(parent, window) if parent is not None else "missing_timestamp"
+        if parent_slot != "included":
+            exclusions[parent_slot] += 1
+            continue
+        slot = _time_slot(row, window)
+        if slot != "included":
+            exclusions[slot] += 1
+            continue
+        included.append(row)
+    approved = [row for row in included if row.status == "approved"]
+    stored = _count_payload(included, exclusions, numerator=len(included), denominator=None)
+    approved_payload = _count_payload(
+        approved,
+        exclusions,
+        numerator=len(approved),
+        denominator=len(included),
+    )
+    return {
+        "unavailable": False,
+        "counts": {
+            "answers_stored": stored,
+            "answers_approved": approved_payload,
+        },
+        "failures": [],
+    }
+
+
+def _collect_documents(db: Session, workspace_id: int, window) -> dict:
+    rows = db.query(Document).filter(Document.workspace_id == workspace_id).all()
+    included, exclusions = _split_timed(rows, window, deleted=True)
+    indexed = [row for row in included if row.status == "indexed"]
+    stored = _count_payload(included, exclusions, numerator=len(included), denominator=None)
+    indexed_payload = _count_payload(
+        indexed,
+        exclusions,
+        numerator=len(indexed),
+        denominator=len(included),
+    )
+    return {
+        "unavailable": False,
+        "counts": {
+            "documents_stored": stored,
+            "documents_indexed": indexed_payload,
+        },
+        "failures": [],
+    }
+
+
+def _collect_evidence(db: Session, workspace_id: int, window) -> dict:
+    rows = db.query(EvidenceItem).filter(EvidenceItem.workspace_id == workspace_id).all()
+    return _collect_referenced(
+        db,
+        workspace_id,
+        window,
+        rows,
+        source="evidence_items",
+        stored_name="evidence_items_stored",
+        approved_name="evidence_items_approved",
+        approved_attr="approval_status",
+        approved_value="approved",
+        ref_problem=_evidence_problem,
+    )
+
+
+def _collect_exports(db: Session, workspace_id: int, window) -> dict:
+    rows = db.query(ExportRecord).filter(ExportRecord.workspace_id == workspace_id).all()
+    included = []
+    exclusions = _empty_exclusions()
+    failures = []
+    for row in rows:
+        problem = _questionnaire_problem(db, workspace_id, row.questionnaire_id)
+        if problem is not None:
+            exclusions["foreign_reference"] += 1
+            failures.append({
+                "source": "exports",
+                "reason": problem,
+                "record_id": row.id,
+            })
+            continue
+        slot = _time_slot(row, window)
+        if slot != "included":
+            exclusions[slot] += 1
+            continue
+        included.append(row)
+    completed = [row for row in included if row.status == "completed"]
+    return {
+        "unavailable": False,
+        "counts": {
+            "exports_stored": _count_payload(
+                included, exclusions, numerator=len(included), denominator=None
+            ),
+            "exports_completed": _count_payload(
+                completed, exclusions, numerator=len(completed), denominator=len(included)
+            ),
+        },
+        "failures": failures,
+    }
+
+
+def _collect_gaps(db: Session, workspace_id: int, window) -> dict:
+    rows = db.query(EvidenceGap).filter(EvidenceGap.workspace_id == workspace_id).all()
+    included = []
+    exclusions = _empty_exclusions()
+    failures = []
+    for row in rows:
+        problem = _gap_problem(db, workspace_id, row)
+        if problem is not None:
+            exclusions["foreign_reference"] += 1
+            failures.append({
+                "source": "evidence_gaps",
+                "reason": problem,
+                "record_id": row.id,
+            })
+            continue
+        slot = _time_slot(row, window)
+        if slot != "included":
+            exclusions[slot] += 1
+            continue
+        included.append(row)
+    return _count_result(
+        "evidence_gaps_stored",
+        included,
+        exclusions,
+        numerator=len(included),
+        denominator=None,
+        failures=failures,
+    )
+
+
+def _collect_referenced(
+    db,
+    workspace_id,
+    window,
+    rows,
+    *,
+    source,
+    stored_name,
+    approved_name,
+    approved_attr,
+    approved_value,
+    ref_problem,
+):
+    included = []
+    exclusions = _empty_exclusions()
+    failures = []
+    for row in rows:
+        problem = ref_problem(db, workspace_id, row)
+        if problem is not None:
+            exclusions["foreign_reference"] += 1
+            failures.append({"source": source, "reason": problem, "record_id": row.id})
+            continue
+        slot = _time_slot(row, window)
+        if slot != "included":
+            exclusions[slot] += 1
+            continue
+        included.append(row)
+    approved = [row for row in included if getattr(row, approved_attr) == approved_value]
+    return {
+        "unavailable": False,
+        "counts": {
+            stored_name: _count_payload(
+                included, exclusions, numerator=len(included), denominator=None
+            ),
+            approved_name: _count_payload(
+                approved, exclusions, numerator=len(approved), denominator=len(included)
+            ),
+        },
+        "failures": failures,
+    }
+
+
+def _count_result(name, included, exclusions, *, numerator, denominator, failures=None) -> dict:
+    return {
+        "unavailable": False,
+        "counts": {
+            name: _count_payload(
+                included, exclusions, numerator=numerator, denominator=denominator
+            ),
+        },
+        "failures": failures or [],
+    }
+
+
+def _count_payload(included, exclusions, *, numerator, denominator) -> dict:
+    earliest, latest = _bounds(included)
+    return {
+        "value": len(included),
+        "numerator": numerator,
+        "denominator": denominator,
+        "freshness": latest,
+        "earliest": earliest,
+        "exclusions": dict(exclusions),
+    }
+
+
+def _split_timed(rows, window, *, deleted: bool):
+    included = []
+    exclusions = _empty_exclusions()
+    for row in rows:
+        if deleted and getattr(row, "deleted_at", None) is not None:
+            exclusions["deleted"] += 1
+            continue
+        slot = _time_slot(row, window)
+        if slot != "included":
+            exclusions[slot] += 1
+            continue
+        included.append(row)
+    return included, exclusions
+
+
+def _time_slot(row, window) -> str:
+    if getattr(row, "created_at", None) is None:
+        return "missing_timestamp"
+    if not _in_window(row.created_at, window):
+        return "outside_window"
+    return "included"
+
+
+def _in_window(value: datetime, window: tuple[datetime | None, datetime | None]) -> bool:
+    start, end = window
+    current = _as_utc(value)
+    if current is None:
+        return False
+    if start is not None and current < start:
+        return False
+    if end is not None and current > end:
+        return False
+    return True
+
+
+def _bounds(rows) -> tuple[datetime | None, datetime | None]:
+    stamps = []
+    for row in rows:
+        if getattr(row, "created_at", None) is None:
+            continue
+        stamps.append(_as_utc(row.created_at))
+    stamps = [stamp for stamp in stamps if stamp is not None]
+    if not stamps:
+        return None, None
+    return min(stamps), max(stamps)
+
+
+def _evidence_problem(db: Session, workspace_id: int, row: EvidenceItem) -> str | None:
+    return _document_problem(db, workspace_id, row.document_id)
+
+
+def _document_problem(db: Session, workspace_id: int, document_id: int | None) -> str | None:
+    if document_id is None:
+        return None
+    document = db.get(Document, document_id)
+    if document is None:
+        return "missing"
+    if document.workspace_id != workspace_id:
+        return "other_workspace"
+    if document.deleted_at is not None:
+        return "deleted"
+    return None
+
+
+def _questionnaire_problem(db: Session, workspace_id: int, questionnaire_id: int | None):
+    if questionnaire_id is None:
+        return None
+    row = db.get(Questionnaire, questionnaire_id)
+    if row is None:
+        return "missing"
+    if row.workspace_id != workspace_id:
+        return "other_workspace"
+    if row.deleted_at is not None:
+        return "deleted"
+    return None
+
+
+def _question_problem(db: Session, workspace_id: int, question_id: int | None) -> str | None:
+    if question_id is None:
+        return None
+    row = db.get(Question, question_id)
+    if row is None:
+        return "missing"
+    return _questionnaire_problem(db, workspace_id, row.questionnaire_id)
+
+
+def _answer_problem(db: Session, workspace_id: int, answer_id: int | None) -> str | None:
+    if answer_id is None:
+        return None
+    row = db.get(Answer, answer_id)
+    if row is None:
+        return "missing"
+    return _question_problem(db, workspace_id, row.question_id)
+
+
+def _gap_problem(db: Session, workspace_id: int, row: EvidenceGap) -> str | None:
+    return (
+        _questionnaire_problem(db, workspace_id, row.questionnaire_id)
+        or _question_problem(db, workspace_id, row.question_id)
+        or _answer_problem(db, workspace_id, row.answer_id)
+    )
+
+
+def _as_utc(value: datetime | None) -> datetime | None:
+    if value is None:
+        return None
+    if value.tzinfo is None:
+        return value.replace(tzinfo=timezone.utc)
+    return value.astimezone(timezone.utc)
+
+
+def _iso(value: datetime | None) -> str | None:
+    current = _as_utc(value)
+    if current is None:
+        return None
+    return current.isoformat().replace("+00:00", "Z")
+
+
+def _from_iso(value: str | None) -> datetime | None:
+    if value is None:
+        return None
+    text = value[:-1] + "+00:00" if value.endswith("Z") else value
+    return datetime.fromisoformat(text)
+
+
+COLLECTORS = {
+    "questionnaires": _collect_questionnaires,
+    "questions": _collect_questions,
+    "answers": _collect_answers,
+    "documents": _collect_documents,
+    "evidence_items": _collect_evidence,
+    "exports": _collect_exports,
+    "evidence_gaps": _collect_gaps,
+}
