@@ -1,0 +1,75 @@
+$ alembic upgrade head
+INFO  [alembic.runtime.migration] Context impl PostgresqlImpl.
+INFO  [alembic.runtime.migration] Will assume transactional DDL.
+$ sh /repo/.rt_tmp.sh
+$ alembic heads
+tc10003b_idempotency_owner_token (head)
+$ alembic current
+INFO  [alembic.runtime.migration] Context impl PostgresqlImpl.
+INFO  [alembic.runtime.migration] Will assume transactional DDL.
+tc10003b_idempotency_owner_token (head)
+idempotency_keys.owner_token present: True
+$ alembic downgrade tc24001_stripe_webhook_events
+INFO  [alembic.runtime.migration] Context impl PostgresqlImpl.
+INFO  [alembic.runtime.migration] Will assume transactional DDL.
+INFO  [alembic.runtime.migration] Running downgrade tc10003b_idempotency_owner_token -> tc24001_stripe_webhook_events, TC-10-003b: owner token on idempotency claims.
+INFO  [alembic.runtime.migration] Context impl PostgresqlImpl.
+INFO  [alembic.runtime.migration] Will assume transactional DDL.
+tc24001_stripe_webhook_events
+idempotency_keys.owner_token present: False
+$ alembic upgrade head
+INFO  [alembic.runtime.migration] Context impl PostgresqlImpl.
+INFO  [alembic.runtime.migration] Will assume transactional DDL.
+INFO  [alembic.runtime.migration] Running upgrade tc24001_stripe_webhook_events -> tc10003b_idempotency_owner_token, TC-10-003b: owner token on idempotency claims.
+INFO  [alembic.runtime.migration] Context impl PostgresqlImpl.
+INFO  [alembic.runtime.migration] Will assume transactional DDL.
+tc10003b_idempotency_owner_token (head)
+idempotency_keys.owner_token present: True
+$ alembic downgrade -1
+INFO  [alembic.runtime.migration] Context impl PostgresqlImpl.
+INFO  [alembic.runtime.migration] Will assume transactional DDL.
+INFO  [alembic.runtime.migration] Running downgrade tc10003b_idempotency_owner_token -> tc24001_stripe_webhook_events, TC-10-003b: owner token on idempotency claims.
+INFO  [alembic.runtime.migration] Context impl PostgresqlImpl.
+INFO  [alembic.runtime.migration] Will assume transactional DDL.
+tc24001_stripe_webhook_events
+idempotency_keys.owner_token present: False
+$ alembic upgrade head
+INFO  [alembic.runtime.migration] Context impl PostgresqlImpl.
+INFO  [alembic.runtime.migration] Will assume transactional DDL.
+INFO  [alembic.runtime.migration] Running upgrade tc24001_stripe_webhook_events -> tc10003b_idempotency_owner_token, TC-10-003b: owner token on idempotency claims.
+INFO  [alembic.runtime.migration] Context impl PostgresqlImpl.
+INFO  [alembic.runtime.migration] Will assume transactional DDL.
+tc10003b_idempotency_owner_token (head)
+idempotency_keys.owner_token present: True
+--- offline: alembic upgrade tc24001_stripe_webhook_events:tc10003b_idempotency_owner_token --sql ---
+BEGIN;
+
+INFO  [alembic.runtime.migration] Context impl PostgresqlImpl.
+INFO  [alembic.runtime.migration] Generating static SQL
+INFO  [alembic.runtime.migration] Will assume transactional DDL.
+-- Running upgrade tc24001_stripe_webhook_events -> tc10003b_idempotency_owner_token
+
+INFO  [alembic.runtime.migration] Running upgrade tc24001_stripe_webhook_events -> tc10003b_idempotency_owner_token, TC-10-003b: owner token on idempotency claims.
+ALTER TABLE idempotency_keys ADD COLUMN owner_token VARCHAR(64);
+
+UPDATE alembic_version SET version_num='tc10003b_idempotency_owner_token' WHERE alembic_version.version_num = 'tc24001_stripe_webhook_events';
+
+COMMIT;
+
+--- offline: alembic downgrade tc10003b_idempotency_owner_token:tc24001_stripe_webhook_events --sql ---
+BEGIN;
+
+INFO  [alembic.runtime.migration] Context impl PostgresqlImpl.
+INFO  [alembic.runtime.migration] Generating static SQL
+INFO  [alembic.runtime.migration] Will assume transactional DDL.
+INFO  [alembic.runtime.migration] Running downgrade tc10003b_idempotency_owner_token -> tc24001_stripe_webhook_events, TC-10-003b: owner token on idempotency claims.
+-- Running downgrade tc10003b_idempotency_owner_token -> tc24001_stripe_webhook_events
+
+ALTER TABLE idempotency_keys DROP COLUMN owner_token;
+
+UPDATE alembic_version SET version_num='tc24001_stripe_webhook_events' WHERE alembic_version.version_num = 'tc10003b_idempotency_owner_token';
+
+COMMIT;
+
+ROUNDTRIP_OK
+PYTEST_EXIT 0

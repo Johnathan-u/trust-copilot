@@ -22,11 +22,11 @@ from app.core.config import get_settings
 from app.core.database import get_db
 from app.core.idempotency import (
     IdempotencyKeyError,
+    claim as idempotency_claim,
     get as idempotency_get,
     release as idempotency_release,
     scoped_key as idempotency_scoped_key,
     set as idempotency_set,
-    try_claim as idempotency_try_claim,
 )
 from app.models import ExportRecord, Question, Questionnaire
 from app.services.export_service import enqueue_export_job, enqueue_generate_answers_job
@@ -54,7 +54,7 @@ def _scoped_idempotency_key(request: Request, workspace_id: int, route: str, res
         return api_error_response(error, 400)
 
 
-def _store_and_raise_client_error(db: Session, idem_key: str, msg: str):
+def _store_and_raise_client_error(db: Session, idem_key: str, idem_owner: str | None, msg: str):
     """Raise the 4xx for an enqueue ValueError, storing exactly the same body for idempotent replay.
 
     TC-10-003a: the status and ``detail`` are computed once and used for both the live response and the
@@ -65,7 +65,7 @@ def _store_and_raise_client_error(db: Session, idem_key: str, msg: str):
     else:
         status_code, detail = 400, msg
     if idem_key:
-        idempotency_set(db, idem_key, status_code, {"detail": detail})
+        idempotency_set(db, idem_key, status_code, {"detail": detail}, owner=idem_owner)
     raise HTTPException(status_code=status_code, detail=detail)
 
 
@@ -93,11 +93,15 @@ def trigger_generate(
     idem_key = _scoped_idempotency_key(request, workspace_id, "generate", questionnaire_id)
     if isinstance(idem_key, JSONResponse):
         return idem_key
+    idem_owner: str | None = None
     if idem_key:
         cached = idempotency_get(db, idem_key)
         if cached:
             return JSONResponse(content=cached[1], status_code=cached[0])
-        if not idempotency_try_claim(db, idem_key):
+        # TC-10-003b: keep the owner token so set/release cannot touch a claim that was reclaimed after
+        # this request's lease expired.
+        idem_owner = idempotency_claim(db, idem_key)
+        if idem_owner is None:
             cached2 = idempotency_get(db, idem_key)
             if cached2:
                 return JSONResponse(content=cached2[1], status_code=cached2[0])
@@ -106,16 +110,19 @@ def trigger_generate(
             )
     try:
         return _generate_claimed(
-            request, questionnaire_id, workspace_id, body, session, db, idem_key
+            request, questionnaire_id, workspace_id, body, session, db, idem_key, idem_owner
         )
     except Exception:
-        # Anything that did not store a response (429, unexpected error) must not leave the key stuck at 409.
+        # Anything that did not store a response (429, enqueue conflict, unexpected error) must not leave the
+        # key stuck at 409. Only this request's own claim is released (TC-10-003b).
         if idem_key:
-            idempotency_release(db, idem_key)
+            idempotency_release(db, idem_key, owner=idem_owner)
         raise
 
 
-def _generate_claimed(request, questionnaire_id, workspace_id, body, session, db, idem_key):
+def _generate_claimed(
+    request, questionnaire_id, workspace_id, body, session, db, idem_key, idem_owner
+):
     n_questions = (
         db.query(func.count(Question.id))
         .join(Questionnaire, Questionnaire.id == Question.questionnaire_id)
@@ -146,7 +153,7 @@ def _generate_claimed(request, questionnaire_id, workspace_id, body, session, db
         if idem_key:
             # TC-10-003a: a 5xx is not a final answer; free the claim so the client can retry once the
             # server is configured, instead of replaying the 503 for the whole TTL.
-            idempotency_release(db, idem_key)
+            idempotency_release(db, idem_key, owner=idem_owner)
         return JSONResponse(
             status_code=503, content=body, headers={"X-Request-ID": error.request_id}
         )
@@ -166,7 +173,7 @@ def _generate_claimed(request, questionnaire_id, workspace_id, body, session, db
             response_style_override=body.response_style if body else None,
         )
     except ValueError as e:
-        _store_and_raise_client_error(db, idem_key, str(e))
+        _store_and_raise_client_error(db, idem_key, idem_owner, str(e))
     from app.core.audit import audit_log
 
     audit_log(
@@ -185,7 +192,7 @@ def _generate_claimed(request, questionnaire_id, workspace_id, body, session, db
     )
     result = {"job_id": job.id, "status": "queued"}
     if idem_key:
-        idempotency_set(db, idem_key, 200, result)
+        idempotency_set(db, idem_key, 200, result, owner=idem_owner)
     return result
 
 
@@ -212,11 +219,15 @@ def trigger_export(
     idem_key = _scoped_idempotency_key(request, workspace_id, "export", questionnaire_id)
     if isinstance(idem_key, JSONResponse):
         return idem_key
+    idem_owner: str | None = None
     if idem_key:
         cached = idempotency_get(db, idem_key)
         if cached:
             return JSONResponse(content=cached[1], status_code=cached[0])
-        if not idempotency_try_claim(db, idem_key):
+        # TC-10-003b: keep the owner token so set/release cannot touch a claim that was reclaimed after
+        # this request's lease expired.
+        idem_owner = idempotency_claim(db, idem_key)
+        if idem_owner is None:
             cached2 = idempotency_get(db, idem_key)
             if cached2:
                 return JSONResponse(content=cached2[1], status_code=cached2[0])
@@ -224,15 +235,18 @@ def trigger_export(
                 status_code=409, detail="Request in progress; retry with same Idempotency-Key"
             )
     try:
-        return _export_claimed(questionnaire_id, workspace_id, body, session, db, idem_key)
+        return _export_claimed(
+            questionnaire_id, workspace_id, body, session, db, idem_key, idem_owner
+        )
     except Exception:
-        # Anything that did not store a response (429, unexpected error) must not leave the key stuck at 409.
+        # Anything that did not store a response (429, enqueue conflict, unexpected error) must not leave the
+        # key stuck at 409. Only this request's own claim is released (TC-10-003b).
         if idem_key:
-            idempotency_release(db, idem_key)
+            idempotency_release(db, idem_key, owner=idem_owner)
         raise
 
 
-def _export_claimed(questionnaire_id, workspace_id, body, session, db, idem_key):
+def _export_claimed(questionnaire_id, workspace_id, body, session, db, idem_key, idem_owner):
     from app.services.quota_service import check_quota
 
     allowed, current, limit = check_quota(db, workspace_id, "exports")
@@ -244,7 +258,7 @@ def _export_claimed(questionnaire_id, workspace_id, body, session, db, idem_key)
     try:
         job = enqueue_export_job(db, workspace_id, questionnaire_id, format=fmt)
     except ValueError as e:
-        _store_and_raise_client_error(db, idem_key, str(e))
+        _store_and_raise_client_error(db, idem_key, idem_owner, str(e))
     from app.core.audit import audit_log
 
     audit_log(
@@ -257,7 +271,7 @@ def _export_claimed(questionnaire_id, workspace_id, body, session, db, idem_key)
     )
     result = {"job_id": job.id, "status": "queued"}
     if idem_key:
-        idempotency_set(db, idem_key, 200, result)
+        idempotency_set(db, idem_key, 200, result, owner=idem_owner)
     return result
 
 

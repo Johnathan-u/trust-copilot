@@ -13,7 +13,8 @@ $apiDir = Join-Path (Join-Path $PSScriptRoot "..") "apps\api"
 Set-Location -Path $apiDir
 
 # Ensure package is installed so app imports resolve
-pip install -q -e . 2>$null
+pip install -q --require-hashes -r requirements.lock
+pip install -q --no-deps -e . 2>$null
 
 python scripts/seed_qa_test_data.py
 if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
