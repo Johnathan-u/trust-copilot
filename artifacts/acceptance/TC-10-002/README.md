@@ -68,3 +68,18 @@ Lint: `ruff==0.5.6 check .` and `ruff format --check .` pass in `apps/api`; ther
   - `test_index_retry_keeps_document_pending_and_terminal_marks_failed`, `test_safe_error_message_never_contains_provider_body`.
 - **Migration rollback:** `test_migration_downgrade_and_upgrade_roundtrip` (also asserts a single head and that
   `error_code` is not owned by this revision) and `migration_rollback.txt`.
+
+## Coordinator-requested follow-up from #16: TC-11-001 tests moved to tests/release
+
+This is a separate commit on top of the TC-10-002 commit. It runs `git mv apps/api/tests/test_model_outcomes_threaded.py` and
+`apps/api/tests/test_provider_adapter.py` into `apps/api/tests/release/`. That is allowed now that TC-02-001 (`1661bd5`)
+lifted the old "no tests in tests/release" rule. The only content change is path depth in `test_provider_adapter.py`:
+`parents[1]` → `parents[2]` for `apps/api` and `parents[3]` → `parents[4]` for the web page. Both files stay
+fakes-only (fake provider exceptions and `provider.invalid` URLs, Python sockets blocked, `OPENAI_API_KEY` empty) and
+use the conftest-pinned side `*_test` database.
+
+| Artifact | Command | Result |
+|---|---|---|
+| `release_tests_moved.txt` | `python -m pytest tests/release/test_safe_collection.py -q`, `pytest --collect-only -q tests/release`, then `TC_REQUIRE_DB=1 SESSION_SECRET=test-secret pytest -rs -v tests/release/test_model_outcomes_threaded.py tests/release/test_provider_adapter.py` | guard 25 passed, 1 skipped (node not installed); 132 release tests collected; **46 passed** (1 + 45), exit 0; the old paths are gone |
+
+The full-suite runs above include the move (`full_suite_branch.txt` collects `tests/release/test_provider_adapter.py`).

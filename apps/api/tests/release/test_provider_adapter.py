@@ -515,7 +515,7 @@ def _alembic_script():
     from alembic.config import Config
     from alembic.script import ScriptDirectory
 
-    api_dir = Path(__file__).resolve().parents[1]
+    api_dir = Path(__file__).resolve().parents[2]
     cfg = Config(str(api_dir / "alembic.ini"))
     cfg.set_main_option("script_location", str(api_dir / "alembic"))
     return ScriptDirectory.from_config(cfg)
@@ -695,7 +695,7 @@ def test_review_page_shows_badge_for_everything_but_verified_grounded():
     """The review page hides the outcome badge only for 'grounded' (never for cache hits)."""
     from pathlib import Path
 
-    page = Path(__file__).resolve().parents[3] / "apps/web/app/dashboard/review/[id]/page.tsx"
+    page = Path(__file__).resolve().parents[4] / "apps/web/app/dashboard/review/[id]/page.tsx"
     if not page.exists():
         pytest.skip("web app not mounted")
     src = page.read_text()
