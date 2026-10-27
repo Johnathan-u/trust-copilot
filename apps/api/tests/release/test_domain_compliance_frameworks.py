@@ -186,15 +186,17 @@ def test_enable_refuses_rights_and_agrees_across_retry_and_new_session(client):
 # other modules (see TC-02-BUG-016) and must not be this test's precondition.
 _PERM_WORKSPACE_SLUG = "tc02-bug016"
 _PERM_REVIEWER_EMAIL = "tc02-bug016-reviewer@trust.local"
-# Short synthetic passwords: the secret inventory blocks high-entropy
-# literals assigned to password-named constants (min length 16).
-_PERM_REVIEWER_PASSWORD = "bug016-r"
+_PERM_REVIEWER_PASSWORD = "test-r"
 _PERM_EDITOR_EMAIL = "tc02-bug016-editor@trust.local"
-_PERM_EDITOR_PASSWORD = "bug016-e"
+_PERM_EDITOR_PASSWORD = "test-e"
 
 
 def _setup_permission_actors() -> dict[str, int]:
-    """Create this test's workspace, reviewer, editor, and the HIPAA catalog row."""
+    """Create this test's workspace, reviewer, and editor.
+
+    The seeded HIPAA catalog row is a precondition. This test reads it and
+    does not rewrite it.
+    """
     from app.core.password import hash_password
     from app.models import Framework, User, Workspace, WorkspaceMember
 
@@ -254,25 +256,9 @@ def _setup_permission_actors() -> dict[str, int]:
         editor = ensure_member(
             _PERM_EDITOR_EMAIL, _PERM_EDITOR_PASSWORD, "TC02 BUG016 Editor", "editor"
         )
-        hipaa_rows = session.query(Framework).filter(Framework.catalog_key == "HIPAA").all()
-        if not hipaa_rows:
-            session.add(
-                Framework(
-                    name="HIPAA",
-                    version="rights-pending",
-                    catalog_key="HIPAA",
-                    rights_status="blocked_pending_rights",
-                    licence_status="not_cleared",
-                    enablement_state="blocked",
-                    catalog_kind="advertised_blocked",
-                    production_catalog=False,
-                    scaffold_inserted=False,
-                )
-            )
-        else:
-            for row in hipaa_rows:
-                row.enablement_state = "blocked"
-                row.production_catalog = False
+        hipaa = session.query(Framework).filter(Framework.catalog_key == "HIPAA").one()
+        assert hipaa.enablement_state == "blocked"
+        assert hipaa.production_catalog is False
         session.commit()
         return {
             "workspace_id": workspace.id,
