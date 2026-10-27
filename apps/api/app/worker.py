@@ -40,6 +40,7 @@ from app.services.compliance_webhook_delivery import process_compliance_webhook_
 from app.services.in_app_notification_service import notify_admins, notify_workspace  # noqa: E402
 from app.services.automation_service import maybe_auto_generate, evaluate_generation_result  # noqa: E402
 from app.services.compliance_event_service import evaluate_and_fire_compliance_events  # noqa: E402
+from app.services.model_outcomes import failure_from_exception  # noqa: E402
 
 settings = get_settings()
 COMPLIANCE_WEBHOOK_INTERVAL_SEC = 30
@@ -523,18 +524,24 @@ def _process_one_job() -> bool:
             session.commit()
         except Exception as e:
             session.rollback()
+            # TC-11-001: typed model failures persist a stable code and the catalog's safe
+            # message only; provider text never reaches job.error, audit, alerts or notifications.
+            # Untyped exceptions keep legacy str(e) (full typing deferred to TC-10-002).
+            model_failure = failure_from_exception(e)
+            error_text = model_failure.message if model_failure is not None else str(e)
             job.status = JobStatus.FAILED.value
-            job.error = str(e)
+            job.error = error_text
+            job.error_code = model_failure.code.value if model_failure is not None else None
             job.completed_at = datetime.now(timezone.utc)
             session.merge(job)
             duration_ms = (time.monotonic() - job_started_at) * 1000
-            log_job_failure(job.kind, job.id, job.workspace_id, str(e), duration_ms, document_id=payload.get("document_id"), questionnaire_id=payload.get("questionnaire_id"))
+            log_job_failure(job.kind, job.id, job.workspace_id, error_text, duration_ms, document_id=payload.get("document_id"), questionnaire_id=payload.get("questionnaire_id"))
             JOB_COMPLETED_TOTAL.labels(kind=job.kind, status="failed").inc()
             logging.getLogger("trustcopilot.alert").warning(
                 "ALERT_JOB_FAILURE job_id=%s kind=%s workspace_id=%s error=%s",
-                job.id, job.kind, job.workspace_id, (str(e))[:200],
+                job.id, job.kind, job.workspace_id, error_text[:200],
             )
-            _persist_job_audit(session, job, "job.failed", payload, error=str(e))
+            _persist_job_audit(session, job, "job.failed", payload, error=error_text)
             if job.kind in ("export", "generate_answers"):
                 try:
                     label = "Export" if job.kind == "export" else "Draft answer generation"
@@ -542,7 +549,7 @@ def _process_one_job() -> bool:
                         session,
                         job.workspace_id,
                         f"{label} failed",
-                        str(e)[:200],
+                        error_text[:200],
                         category="error",
                         link="/dashboard/exports" if job.kind == "export" else "/dashboard/review",
                     )
@@ -554,7 +561,7 @@ def _process_one_job() -> bool:
                     doc = session.query(Document).filter(Document.id == doc_id).first()
                     if doc:
                         doc.status = "failed"
-                        doc.index_error = (str(e))[:512] if str(e) else None
+                        doc.index_error = error_text[:512] if error_text else None
                         session.merge(doc)
             session.commit()
         return True

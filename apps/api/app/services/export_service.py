@@ -5,6 +5,7 @@ import logging
 
 from sqlalchemy.orm import Session
 
+from app.core.logging_config import request_id_ctx
 from app.models import Job, JobStatus, Questionnaire
 from app.services.answer_generation import (
     is_allowed_model,
@@ -84,6 +85,10 @@ def enqueue_generate_answers_job(
         payload["model"] = resolve_model(model_override)
     if response_style_override is not None:
         payload["response_style"] = resolve_response_style(response_style_override)
+    rid = request_id_ctx.get()
+    if rid:
+        # TC-11-001: lets a failed job's ApiError carry the originating request_id.
+        payload["request_id"] = str(rid)
     job = Job(
         workspace_id=workspace_id,
         kind="generate_answers",

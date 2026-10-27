@@ -47,6 +47,8 @@ def create_answer(
         raise HTTPException(status_code=403, detail="Access denied")
     existing = db.query(Answer).filter(Answer.question_id == body.question_id).first()
     if existing:
+        if body.text and body.text != existing.text:
+            existing.outcome_code = None  # TC-11-001: human-authored text has no model outcome
         existing.text = body.text or existing.text
         existing.status = body.status or existing.status
         db.commit()
@@ -76,6 +78,8 @@ def update_answer(
         if qnr and qnr.workspace_id != session.get("workspace_id"):
             raise HTTPException(status_code=403, detail="Access denied")
     if body.text is not None:
+        if body.text != a.text:
+            a.outcome_code = None  # TC-11-001: human-authored text has no model outcome
         a.text = body.text
     if body.status is not None:
         a.status = body.status

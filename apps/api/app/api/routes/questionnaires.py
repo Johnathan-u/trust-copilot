@@ -14,6 +14,7 @@ from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from app.api.schemas import BulkDeleteBody, MetadataUpdateBody
+from app.core.api_errors import current_request_id, outcome_payload
 from app.core.audit import audit_log
 from app.core.config import get_settings
 from app.core.auth_deps import require_can_edit, require_can_review, require_session
@@ -250,6 +251,7 @@ def get_questionnaire(
         len(questions),
         len(answers),
     )
+    _rid = current_request_id()
     return {
         "id": qnr.id,
         "display_id": qnr.display_id or build_display_id("questionnaire", qnr.id),
@@ -272,6 +274,9 @@ def get_questionnaire(
                         "text": answers[q.id].text,
                         "status": answers[q.id].status,
                         "citations": answers[q.id].citations,
+                        # TC-11-001: typed generation outcome (null for legacy/manual answers).
+                        "outcome_code": getattr(answers[q.id], "outcome_code", None),
+                        "outcome": outcome_payload(getattr(answers[q.id], "outcome_code", None), _rid),
                     }
                     if q.id in answers else None
                 ),

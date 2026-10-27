@@ -28,6 +28,8 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.core.config import get_settings
 from app.core.logging_config import configure_logging, request_id_ctx, workspace_id_ctx
+from app.core.api_errors import model_call_error_handler
+from app.services.model_outcomes import ModelCallError
 from app.core.metrics import record_request as metrics_record_request
 from app.core.rate_limit import get_client_ip, is_rate_limited, record_attempt
 from app.api.routes import auth as auth_router
@@ -251,6 +253,9 @@ class StructuredLoggingMiddleware(BaseHTTPMiddleware):
                 extra={"route": path, "method": method, "status_code": status, "latency_ms": latency_ms},
             )
             metrics_record_request(method, path, status, elapsed)
+            if "x-request-id" not in response.headers:
+                # TC-11-001: correlate the ApiError request_id with the response.
+                response.headers["X-Request-ID"] = request_id
             return response
         except Exception:
             path = request.scope.get("path") or ""
@@ -319,6 +324,7 @@ class GlobalRateLimitMiddleware(BaseHTTPMiddleware):
         return await call_next(request)
 
 
+app.add_exception_handler(ModelCallError, model_call_error_handler)  # TC-11-001
 app.add_middleware(StructuredLoggingMiddleware)
 app.add_middleware(GlobalRateLimitMiddleware)
 app.add_middleware(CSRFMiddleware)

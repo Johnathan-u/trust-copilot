@@ -12,7 +12,7 @@ import logging
 import re
 import time
 from concurrent.futures import ThreadPoolExecutor
-from typing import Any, Iterable
+from typing import Any, Iterable, NamedTuple
 
 from sqlalchemy.orm import Session
 
@@ -57,6 +57,14 @@ from app.core.adaptive_concurrency import (
     ADAPTIVE_INITIAL,
     AdaptivePool,
 )
+from app.services.model_outcomes import (
+    ModelCallError,
+    ModelFailure,
+    ModelOutcomeCode,
+    classify_provider_exception,
+    completion_failure,
+    read_completion,
+)
 
 
 logger = logging.getLogger(__name__)
@@ -88,6 +96,17 @@ BANNED_PREFIXES: tuple[str, ...] = (
     "as an artificial intelligence",
     "<",
 )
+# TC-11-001: the subset of BANNED_PREFIXES that signals a model refusal (vs. malformed output).
+REFUSAL_PREFIXES: tuple[str, ...] = (
+    "sorry",
+    "i cannot",
+    "i'm unable",
+    "as an ai",
+    "as a language model",
+    "as a large language model",
+    "i am an ai",
+    "as an artificial intelligence",
+)
 LEADING_META_PHRASES: tuple[str, ...] = (
     "based on the evidence provided,",
     "based on the evidence above,",
@@ -108,6 +127,9 @@ COMPLETION_MAX_RETRIES = 3
 
 def _is_transient_completion_error(e: Exception) -> bool:
     """True if completion error is worth retrying (timeout, rate limit, server error)."""
+    if classify_provider_exception(e).fatal:
+        # TC-11-001: never retry credentials/model-unavailable/quota-exhausted failures.
+        return False
     msg = (getattr(e, "message", "") or str(e)).lower()
     if "timeout" in msg or "timed out" in msg:
         return True
@@ -198,24 +220,69 @@ def _strip_leading_phrases(text: str, phrases: Iterable[str]) -> str:
     return t or original
 
 
-def validate_answer_text(content: str | None) -> str:
-    """Validate and sanitize model output (AI-03). Returns safe text or empty string."""
+def assess_answer_text(content: str | None) -> tuple[ModelOutcomeCode, str]:
+    """Classify and sanitize one answer's model text (TC-11-001).
+
+    Returns ``(code, text)``. ``text`` is empty for refusal/malformed output. For usable text the
+    code is GROUNDED, or MODEL_ABSTAINED when the model itself declined for lack of evidence.
+    """
     if content is None:
-        return ""
+        return ModelOutcomeCode.MODEL_MALFORMED_OUTPUT, ""
     text = str(content).strip()
     if len(text) > MAX_ANSWER_LENGTH:
         text = text[:MAX_ANSWER_LENGTH]
     text = _strip_leading_phrases(text, LEADING_META_PHRASES)
+    if not text:
+        return ModelOutcomeCode.MODEL_MALFORMED_OUTPUT, ""
     lower = text.lower()
     if any(lower.startswith(p) for p in BANNED_PREFIXES):
         logger.debug(
             "answer_generation: blocked answer due to banned prefix: %s",
             lower[:120],
         )
-        return ""
+        if any(lower.startswith(p) for p in REFUSAL_PREFIXES):
+            return ModelOutcomeCode.MODEL_REFUSAL, ""
+        return ModelOutcomeCode.MODEL_MALFORMED_OUTPUT, ""
     if text.startswith("{") or text.startswith("["):
-        return ""
-    return text
+        return ModelOutcomeCode.MODEL_MALFORMED_OUTPUT, ""
+    if classify_answer_status_from_text(text) == "insufficient_evidence":
+        return ModelOutcomeCode.MODEL_ABSTAINED, text
+    return ModelOutcomeCode.GROUNDED, text
+
+
+def validate_answer_text(content: str | None) -> str:
+    """Validate and sanitize model output (AI-03). Returns safe text or empty string."""
+    return assess_answer_text(content)[1]
+
+
+class GeneratedAnswer(NamedTuple):
+    """Typed per-question generation result (TC-11-001)."""
+
+    q_id: int
+    text: str
+    citations: list[dict]
+    confidence: int
+    answer_status: str
+    outcome: ModelOutcomeCode
+    failure: ModelFailure | None = None
+
+
+def _answer_from_text(
+    q_id: int, content: str | None, citations: list[dict], top_score: float
+) -> GeneratedAnswer:
+    code, text = assess_answer_text(content)
+    if code == ModelOutcomeCode.GROUNDED:
+        conf = min(95, int(75 + top_score * 20))
+        return GeneratedAnswer(q_id, text, citations, conf, "draft", code)
+    if code == ModelOutcomeCode.MODEL_ABSTAINED:
+        return GeneratedAnswer(q_id, text, citations, 0, "insufficient_evidence", code)
+    return GeneratedAnswer(q_id, INSUFFICIENT_EVIDENCE_TEXT, citations, 0, "insufficient_evidence", code)
+
+
+def _failed_answer(q_id: int, citations: list[dict], failure: ModelFailure) -> GeneratedAnswer:
+    return GeneratedAnswer(
+        q_id, INSUFFICIENT_EVIDENCE_TEXT, citations, 0, "insufficient_evidence", failure.code, failure
+    )
 
 
 def is_allowed_model(candidate: str | None) -> bool:
@@ -302,8 +369,12 @@ def _generate_single_question_answer(
     temperature: float,
     system_msg: str,
     openai_client: Any,
-) -> tuple[int, str, list[dict], int, str]:
-    """One question, its own evidence pool, one LLM call. Returns (q_id, text, citations, confidence, answer_status)."""
+) -> GeneratedAnswer:
+    """One question, its own evidence pool, one LLM call. Returns a typed GeneratedAnswer.
+
+    Fatal provider failures (credentials, model unavailable, quota) raise ModelCallError so the
+    job stops explicitly instead of marking every question "insufficient evidence".
+    """
     evidence_processed = process_evidence(evidence)
     top_score = (evidence_processed[0].get("score", 0) or 0) if evidence_processed else 0
     citations_base = [
@@ -324,7 +395,9 @@ def _generate_single_question_answer(
             questionnaire_id,
             q.id,
         )
-        return (q.id, INSUFFICIENT_EVIDENCE_TEXT, [], 0, "insufficient_evidence")
+        return GeneratedAnswer(
+            q.id, INSUFFICIENT_EVIDENCE_TEXT, [], 0, "insufficient_evidence", ModelOutcomeCode.NO_EVIDENCE
+        )
 
     prompt = build_prompt(q.text or "", evidence_processed)
     try:
@@ -338,19 +411,20 @@ def _generate_single_question_answer(
             max_tokens=400,
             temperature=temperature,
         )
-        raw = (r.choices[0].message.content or "").strip()
-        content = validate_answer_text(raw)
-        if not content:
-            return (q.id, INSUFFICIENT_EVIDENCE_TEXT, citations_base, 0, "insufficient_evidence")
-        answer_status = classify_answer_status_from_text(content)
-        if answer_status == "insufficient_evidence":
-            return (q.id, content, citations_base, 0, "insufficient_evidence")
-        conf = min(95, int(75 + top_score * 20))
-        return (q.id, content, citations_base, conf, "draft")
     except Exception as exc:
         OPENAI_COMPLETION_FAILURES_TOTAL.inc()
-        logger.warning("ALERT_OPENAI_FAILURE completion single question: %s", str(exc)[:200])
-        return (q.id, INSUFFICIENT_EVIDENCE_TEXT, citations_base, 0, "insufficient_evidence")
+        failure = classify_provider_exception(exc)
+        logger.warning("ALERT_OPENAI_FAILURE completion single question: %s", failure.log_summary())
+        if failure.fatal:
+            raise ModelCallError(failure) from None
+        return _failed_answer(q.id, citations_base, failure)
+    view = read_completion(r)
+    envelope_code = completion_failure(view)
+    if envelope_code is not None:
+        return GeneratedAnswer(
+            q.id, INSUFFICIENT_EVIDENCE_TEXT, citations_base, 0, "insufficient_evidence", envelope_code
+        )
+    return _answer_from_text(q.id, view.content, citations_base, top_score)
 
 
 def _generate_batched_answers(
@@ -362,7 +436,7 @@ def _generate_batched_answers(
     system_msg: str,
     openai_client: Any,
     q_labels: dict[int, dict] | None = None,
-) -> list[tuple[int, str, list[dict], int, str]]:
+) -> list[GeneratedAnswer]:
     """Multiple questions in one LLM call with per-question evidence sections.
 
     Each question gets its own evidence block so the model can ground each answer
@@ -395,7 +469,9 @@ def _generate_batched_answers(
 
     if not any_has_evidence:
         return [
-            (q.id, INSUFFICIENT_EVIDENCE_TEXT, [], 0, "insufficient_evidence")
+            GeneratedAnswer(
+                q.id, INSUFFICIENT_EVIDENCE_TEXT, [], 0, "insufficient_evidence", ModelOutcomeCode.NO_EVIDENCE
+            )
             for q, _ in batch
         ]
 
@@ -421,29 +497,37 @@ def _generate_batched_answers(
             max_tokens=350 * len(batch),
             temperature=temperature,
         )
-        raw = (r.choices[0].message.content or "").strip()
-        parsed = _parse_batched_answers(raw, len(batch))
+        view = read_completion(r)
+        parsed = (
+            _parse_batched_answers((view.content or "").strip(), len(batch))
+            if completion_failure(view) is None
+            else None
+        )
 
         if parsed:
             results = []
             for i, (q, _) in enumerate(batch):
-                content = validate_answer_text(parsed[i])
                 cits = per_q_citations.get(q.id, [])
-                top_s = per_q_top_score.get(q.id, 0)
-                if not content:
-                    results.append((q.id, INSUFFICIENT_EVIDENCE_TEXT, cits, 0, "insufficient_evidence"))
-                else:
-                    st = classify_answer_status_from_text(content)
-                    if st == "insufficient_evidence":
-                        results.append((q.id, content, cits, 0, "insufficient_evidence"))
-                    else:
-                        conf = min(95, int(75 + top_s * 20))
-                        results.append((q.id, content, cits, conf, "draft"))
+                if not per_q_processed[i]:
+                    # TC-11-001: a question without its own evidence is never "grounded" by a
+                    # neighbour's evidence in the same batch.
+                    results.append(
+                        GeneratedAnswer(
+                            q.id, INSUFFICIENT_EVIDENCE_TEXT, [], 0, "insufficient_evidence",
+                            ModelOutcomeCode.NO_EVIDENCE,
+                        )
+                    )
+                    continue
+                results.append(_answer_from_text(q.id, parsed[i], cits, per_q_top_score.get(q.id, 0)))
             return results
 
         logger.info("answer_generation: batched parse failed for %d questions, falling back to single", len(batch))
     except Exception as exc:
-        logger.warning("answer_generation: batched call failed, falling back to single: %s", str(exc)[:200])
+        failure = classify_provider_exception(exc)
+        if failure.fatal:
+            logger.warning("ALERT_OPENAI_FAILURE batched completion fatal: %s", failure.log_summary())
+            raise ModelCallError(failure) from None
+        logger.warning("answer_generation: batched call failed, falling back to single: %s", failure.log_summary())
 
     results = []
     for q, ev in batch:
@@ -491,9 +575,7 @@ def generate_answers_for_questionnaire(
     api_key_ok = bool((settings.openai_api_key or "").strip())
     if not api_key_ok:
         if total_questions > 0:
-            raise ValueError(
-                "OPENAI_API_KEY is not set or empty. Set it in the environment (.env) for the API and worker, then restart."
-            )
+            raise ModelCallError(ModelFailure(code=ModelOutcomeCode.MODEL_CREDENTIALS_MISSING))
         if job:
             job.result = _job_payload(0, 0, {"drafted": 0, "insufficient_evidence": 0, "skipped_gated": 0, "llm_calls": 0, "duration_ms": 0})
             db.commit()
@@ -568,8 +650,14 @@ def generate_answers_for_questionnaire(
     # Batch embed all questions
     question_texts = [q.text for q in questions]
     _t0 = time.monotonic()
-    all_embeddings = embed_texts(question_texts)
+    embedding_failures: list[ModelFailure] = []
+    all_embeddings = embed_texts(question_texts, on_failure=embedding_failures.append)
     embed_time_ms = (time.monotonic() - _t0) * 1000
+    fatal_embedding = next((f for f in embedding_failures if f.fatal), None)
+    if fatal_embedding is not None:
+        # TC-11-001: credentials/model failures are not "no evidence"; stop before any completion call.
+        logger.warning("answer_generation: embedding failure stops job: %s", fatal_embedding.log_summary())
+        raise ModelCallError(fatal_embedding)
 
     # Retrieve evidence for each question via batch search
     _t0 = time.monotonic()
@@ -667,17 +755,24 @@ def generate_answers_for_questionnaire(
         count += len(_skipped_unchanged)
     to_generate = _new_to_generate
 
-    run_stats: dict[str, int | float] = {
+    run_stats: dict[str, Any] = {
         "drafted": 0,
         "insufficient_evidence": 0,
         "skipped_gated": 0,
         "llm_calls": 0,
     }
+    # TC-11-001: per-outcome counts so a run that "completed" with provider failures is visible.
+    outcome_counts: dict[str, int] = {}
+
+    def _count_outcome(code: ModelOutcomeCode) -> None:
+        outcome_counts[code.value] = outcome_counts.get(code.value, 0) + 1
 
     # Persist cached answers and progress
     for q_id, (text, citations, conf) in cached_results.items():
         st = classify_answer_status_from_text(text)
-        _upsert_answer(db, q_id, text, citations, conf if st == "draft" else 0, st)
+        cached_code = ModelOutcomeCode.GROUNDED if st == "draft" else ModelOutcomeCode.MODEL_ABSTAINED
+        _upsert_answer(db, q_id, text, citations, conf if st == "draft" else 0, st, outcome_code=cached_code)
+        _count_outcome(cached_code)
         count += 1
         if st == "draft":
             run_stats["drafted"] += 1
@@ -693,6 +788,7 @@ def generate_answers_for_questionnaire(
         swept = _sweep_draft_insufficient_narratives(db, questionnaire_id)
         _adjust_run_stats_after_sweep(run_stats, swept)
         run_stats["duration_ms"] = duration_ms
+        run_stats["outcomes"] = dict(outcome_counts)
         log_answer_gen_success(workspace_id, questionnaire_id, count, duration_ms)
         ANSWER_GEN_DURATION_SECONDS.observe(duration_ms / 1000)
         logger.info(
@@ -807,7 +903,9 @@ def generate_answers_for_questionnaire(
                 insufficient_reason=skip_reason,
                 gating_reason=skip_reason,
                 primary_categories_json=_categories_json_for_question(q.id),
+                outcome_code=ModelOutcomeCode.NO_EVIDENCE,
             )
+            _count_outcome(ModelOutcomeCode.NO_EVIDENCE)
             count += 1
             run_stats["insufficient_evidence"] += 1
             run_stats["skipped_gated"] += 1
@@ -841,23 +939,32 @@ def generate_answers_for_questionnaire(
             batches.append(tasks[i:i + bs])
         return batches
 
+    fatal_failure: ModelFailure | None = None
+
     def _apply_one_result(
         q: Any,
         ev: list[dict],
-        result: tuple[int, str, list[dict], int, str] | None,
+        result: GeneratedAnswer | None,
         exc: Exception | None,
     ) -> None:
-        nonlocal count
+        nonlocal count, fatal_failure
         chunk_ids = [e.get("id") for e in ev if e.get("id") is not None]
         evidence_fp_one = evidence_fingerprint_hash(chunk_ids)
         if exc is not None:
-            logger.warning("answer_generation single_question failed question_id=%s: %s", q.id, exc)
+            failure = classify_provider_exception(exc)
+            logger.warning(
+                "answer_generation single_question failed question_id=%s: %s", q.id, failure.log_summary()
+            )
+            if failure.fatal and fatal_failure is None:
+                fatal_failure = failure
             _upsert_answer(
                 db, q.id, INSUFFICIENT_EVIDENCE_TEXT, [], 0, "insufficient_evidence",
                 insufficient_reason="llm_error",
                 primary_categories_json=_categories_json_for_question(q.id),
                 evidence_fingerprint=evidence_fp_one,
+                outcome_code=failure.code,
             )
+            _count_outcome(failure.code)
             count += 1
             run_stats["insufficient_evidence"] += 1
             was_429, was_timeout, was_transient = adaptive.classify_exception(exc)
@@ -867,14 +974,18 @@ def generate_answers_for_questionnaire(
             if was_timeout:
                 ADAPTIVE_TIMEOUT_STEPDOWN_TOTAL.inc()
         elif result is not None:
-            _qid, text, citations, conf, answer_status = result
-            insuf_reason = "llm_declined" if answer_status == "insufficient_evidence" else None
+            _qid, text, citations, conf, answer_status = result[:5]
+            insuf_reason = None
+            if answer_status == "insufficient_evidence":
+                insuf_reason = "llm_error" if result.failure is not None else "llm_declined"
             _upsert_answer(
                 db, _qid, text, citations, conf, answer_status,
                 insufficient_reason=insuf_reason,
                 primary_categories_json=_categories_json_for_question(_qid),
                 evidence_fingerprint=evidence_fp_one,
+                outcome_code=result.outcome,
             )
+            _count_outcome(result.outcome)
             count += 1
             run_stats["llm_calls"] += 1
             if answer_status == "draft":
@@ -937,7 +1048,11 @@ def generate_answers_for_questionnaire(
                     logger.info("answer_generation: backoff %.1fs (rate limit cooldown)", wait)
                     time.sleep(wait)
 
-                while batch_idx < len(batches) and len(futures) < adaptive.max_workers:
+                while (
+                    fatal_failure is None
+                    and batch_idx < len(batches)
+                    and len(futures) < adaptive.max_workers
+                ):
                     batch = batches[batch_idx]
                     batch_idx += 1
                     fut = executor.submit(
@@ -966,6 +1081,11 @@ def generate_answers_for_questionnaire(
             if job:
                 job.result = _job_payload(count, total_questions, {**run_stats, "duration_ms": (time.monotonic() - started) * 1000})
             _uncommitted = 0
+
+        if fatal_failure is not None:
+            # TC-11-001: stop explicitly with a typed error; answers already written keep their
+            # typed outcome_code. Remaining batches were never submitted (no further paid calls).
+            raise ModelCallError(fatal_failure)
 
         pool_stats = adaptive.stats()
         run_stats["adaptive_final_workers"] = pool_stats["workers"]
@@ -1003,6 +1123,7 @@ def generate_answers_for_questionnaire(
     run_stats["retrieval_time_ms"] = round(retrieval_time_ms, 1)
     run_stats["gating_time_ms"] = round(gating_time_ms, 1)
     run_stats["llm_time_ms"] = round(llm_time_ms, 1)
+    run_stats["outcomes"] = dict(outcome_counts)
     log_answer_gen_success(workspace_id, questionnaire_id, count, duration_ms)
     ANSWER_GEN_DURATION_SECONDS.observe(duration_ms / 1000)
     logger.info(
@@ -1077,6 +1198,10 @@ def _sweep_draft_insufficient_narratives(db: Session, questionnaire_id: int) -> 
             a.status = "insufficient_evidence"
             if no_citations and not a.insufficient_reason:
                 a.insufficient_reason = "no_citations"
+            if getattr(a, "outcome_code", None) in (None, ModelOutcomeCode.GROUNDED.value):
+                a.outcome_code = (
+                    ModelOutcomeCode.NO_EVIDENCE.value if no_citations else ModelOutcomeCode.MODEL_ABSTAINED.value
+                )
             a.confidence = 0
             n += 1
     if n:
@@ -1102,8 +1227,10 @@ def _upsert_answer(
     gating_reason: str | None = None,
     primary_categories_json: str | None = None,
     evidence_fingerprint: str | None = None,
+    outcome_code: ModelOutcomeCode | str | None = None,
 ) -> None:
     """Create or update an Answer for a question."""
+    outcome_value = outcome_code.value if isinstance(outcome_code, ModelOutcomeCode) else outcome_code
     with db.no_autoflush:
         existing = db.query(Answer).filter(Answer.question_id == question_id).first()
     if existing:
@@ -1114,6 +1241,7 @@ def _upsert_answer(
         existing.insufficient_reason = insufficient_reason
         existing.gating_reason = gating_reason
         existing.primary_categories_json = primary_categories_json
+        existing.outcome_code = outcome_value
         if evidence_fingerprint is not None:
             existing.evidence_fingerprint = evidence_fingerprint
     else:
@@ -1127,5 +1255,6 @@ def _upsert_answer(
             gating_reason=gating_reason,
             primary_categories_json=primary_categories_json,
             evidence_fingerprint=evidence_fingerprint,
+            outcome_code=outcome_value,
         )
         db.add(a)
