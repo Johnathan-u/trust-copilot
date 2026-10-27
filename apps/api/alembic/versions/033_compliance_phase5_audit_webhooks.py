@@ -21,7 +21,13 @@ def upgrade() -> None:
     op.create_table(
         "compliance_webhook_outbox",
         sa.Column("id", sa.Integer(), primary_key=True, autoincrement=True),
-        sa.Column("workspace_id", sa.Integer(), sa.ForeignKey("workspaces.id", ondelete="CASCADE"), nullable=False, index=True),
+        sa.Column(
+            "workspace_id",
+            sa.Integer(),
+            sa.ForeignKey("workspaces.id", ondelete="CASCADE"),
+            nullable=False,
+            index=True,
+        ),
         sa.Column("event_type", sa.String(64), nullable=False, index=True),
         sa.Column("payload_json", sa.Text(), nullable=True),
         sa.Column("created_at", sa.DateTime(), server_default=sa.func.now(), nullable=False),

@@ -57,7 +57,7 @@ class TestEvidenceApprovalService:
         assert result["approved_by_user_id"] is None
 
     def test_get_pending(self, db_session):
-        ev = self._make_evidence(db_session)
+        ev = self._make_evidence(db_session)  # noqa: F841
         db_session.commit()
         ws = db_session.query(Workspace).first()
         pending = svc.get_pending(db_session, ws.id)

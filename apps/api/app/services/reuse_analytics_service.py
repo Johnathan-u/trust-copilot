@@ -12,31 +12,57 @@ logger = logging.getLogger(__name__)
 
 def get_reuse_analytics(db: Session, workspace_id: int) -> dict:
     """Aggregate reuse metrics for golden answers."""
-    total = db.query(func.count(GoldenAnswer.id)).filter(
-        GoldenAnswer.workspace_id == workspace_id,
-    ).scalar() or 0
+    total = (
+        db.query(func.count(GoldenAnswer.id))
+        .filter(
+            GoldenAnswer.workspace_id == workspace_id,
+        )
+        .scalar()
+        or 0
+    )
 
-    total_reuses = db.query(func.coalesce(func.sum(GoldenAnswer.reuse_count), 0)).filter(
-        GoldenAnswer.workspace_id == workspace_id,
-    ).scalar() or 0
+    total_reuses = (
+        db.query(func.coalesce(func.sum(GoldenAnswer.reuse_count), 0))
+        .filter(
+            GoldenAnswer.workspace_id == workspace_id,
+        )
+        .scalar()
+        or 0
+    )
 
-    reused_at_least_once = db.query(func.count(GoldenAnswer.id)).filter(
-        GoldenAnswer.workspace_id == workspace_id,
-        GoldenAnswer.reuse_count > 0,
-    ).scalar() or 0
+    reused_at_least_once = (
+        db.query(func.count(GoldenAnswer.id))
+        .filter(
+            GoldenAnswer.workspace_id == workspace_id,
+            GoldenAnswer.reuse_count > 0,
+        )
+        .scalar()
+        or 0
+    )
 
-    by_category = db.query(
-        GoldenAnswer.category,
-        func.count(GoldenAnswer.id),
-        func.coalesce(func.sum(GoldenAnswer.reuse_count), 0),
-    ).filter(
-        GoldenAnswer.workspace_id == workspace_id,
-    ).group_by(GoldenAnswer.category).all()
+    by_category = (
+        db.query(
+            GoldenAnswer.category,
+            func.count(GoldenAnswer.id),
+            func.coalesce(func.sum(GoldenAnswer.reuse_count), 0),
+        )
+        .filter(
+            GoldenAnswer.workspace_id == workspace_id,
+        )
+        .group_by(GoldenAnswer.category)
+        .all()
+    )
 
-    top_reused = db.query(GoldenAnswer).filter(
-        GoldenAnswer.workspace_id == workspace_id,
-        GoldenAnswer.reuse_count > 0,
-    ).order_by(GoldenAnswer.reuse_count.desc()).limit(10).all()
+    top_reused = (
+        db.query(GoldenAnswer)
+        .filter(
+            GoldenAnswer.workspace_id == workspace_id,
+            GoldenAnswer.reuse_count > 0,
+        )
+        .order_by(GoldenAnswer.reuse_count.desc())
+        .limit(10)
+        .all()
+    )
 
     return {
         "total_golden_answers": total,

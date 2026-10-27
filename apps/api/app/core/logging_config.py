@@ -15,9 +15,28 @@ workspace_id_ctx: ContextVar[int | None] = ContextVar("workspace_id", default=No
 # Standard LogRecord attributes to skip when merging extra
 _RESERVED = frozenset(
     {
-        "name", "msg", "args", "created", "filename", "funcName", "levelname", "levelno",
-        "lineno", "module", "msecs", "pathname", "process", "processName", "relativeCreated",
-        "stack_info", "exc_info", "exc_text", "thread", "threadName", "message", "taskName",
+        "name",
+        "msg",
+        "args",
+        "created",
+        "filename",
+        "funcName",
+        "levelname",
+        "levelno",
+        "lineno",
+        "module",
+        "msecs",
+        "pathname",
+        "process",
+        "processName",
+        "relativeCreated",
+        "stack_info",
+        "exc_info",
+        "exc_text",
+        "thread",
+        "threadName",
+        "message",
+        "taskName",
     }
 )
 

@@ -7,8 +7,6 @@ Usage:
   python -u tests/run_10dataset_test.py
 """
 
-import base64
-import hmac
 import io
 import json
 import os
@@ -18,9 +16,9 @@ import time
 import requests
 
 try:  # run as `python tests/<script>.py` or as `python -m tests.<script>`
-    from _live_session import forge_session_cookie, live_api
+    from _live_session import forge_session_cookie
 except ImportError:  # pragma: no cover
-    from tests._live_session import forge_session_cookie, live_api
+    from tests._live_session import forge_session_cookie
 
 API = os.environ.get("TC_API", "http://localhost:8000")
 POLL_INTERVAL = 3
@@ -319,6 +317,7 @@ D10_QUESTIONS = [
 # API helpers
 # ═══════════════════════════════════════════════════════════════════════════
 
+
 def create_workspace(name: str) -> dict:
     r = S.post(f"{API}/api/workspaces", json={"name": name})
     r.raise_for_status()
@@ -361,6 +360,7 @@ def get_doc_metadata(ws_id: int, doc_id: int) -> dict:
 def upload_questionnaire(ws_id: int, filename: str, questions: list[str]) -> dict:
     _set_ws(ws_id)
     from openpyxl import Workbook
+
     wb = Workbook()
     ws = wb.active
     ws.title = "Questions"
@@ -370,7 +370,9 @@ def upload_questionnaire(ws_id: int, filename: str, questions: list[str]) -> dic
     buf = io.BytesIO()
     wb.save(buf)
     buf.seek(0)
-    files = {"file": (filename, buf, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")}
+    files = {
+        "file": (filename, buf, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+    }
     r = S.post(f"{API}/api/questionnaires/upload", data={"workspace_id": str(ws_id)}, files=files)
     r.raise_for_status()
     return r.json()
@@ -418,25 +420,30 @@ def get_answers(ws_id: int, qnr_id: int) -> list[dict]:
     for q in data.get("questions", []):
         a = q.get("answer")
         if a:
-            answers.append({
-                "question_id": q["id"],
-                "question_text": q.get("text", ""),
-                "text": a.get("text"),
-                "status": a.get("status"),
-            })
+            answers.append(
+                {
+                    "question_id": q["id"],
+                    "question_text": q.get("text", ""),
+                    "text": a.get("text"),
+                    "status": a.get("status"),
+                }
+            )
         else:
-            answers.append({
-                "question_id": q["id"],
-                "question_text": q.get("text", ""),
-                "text": None,
-                "status": "no_answer",
-            })
+            answers.append(
+                {
+                    "question_id": q["id"],
+                    "question_text": q.get("text", ""),
+                    "text": None,
+                    "status": "no_answer",
+                }
+            )
     return answers
 
 
 # ═══════════════════════════════════════════════════════════════════════════
 # Dataset runner
 # ═══════════════════════════════════════════════════════════════════════════
+
 
 def run_dataset(name: str, evidence_docs: list[tuple[str, str]], questions: list[str]) -> dict:
     print(f"\n{'='*70}")
@@ -467,7 +474,7 @@ def run_dataset(name: str, evidence_docs: list[tuple[str, str]], questions: list
     qnr_id = qnr["id"]
     print(f"  Questionnaire: id={qnr_id}")
     wait_qnr_parsed(ws_id, qnr_id)
-    print(f"  Parsed")
+    print("  Parsed")
 
     t_start = time.monotonic()
     gen = generate_answers(ws_id, qnr_id)
@@ -482,9 +489,11 @@ def run_dataset(name: str, evidence_docs: list[tuple[str, str]], questions: list
     drafted = [a for a in answers if a.get("status") == "draft"]
     insufficient = [a for a in answers if a.get("status") == "insufficient_evidence"]
     no_answer = [a for a in answers if a.get("status") == "no_answer"]
-    print(f"  Results: {len(answers)} total, {len(drafted)} drafted, {len(insufficient)} insufficient, {len(no_answer)} no_answer")
+    print(
+        f"  Results: {len(answers)} total, {len(drafted)} drafted, {len(insufficient)} insufficient, {len(no_answer)} no_answer"
+    )
 
-    print(f"\n  --- Answers ---")
+    print("\n  --- Answers ---")
     for a in answers:
         q = a.get("question_text", "?")[:70]
         a_text = (a.get("text") or "(no answer)")[:140]
@@ -634,15 +643,19 @@ def main():
         status = "PASS" if r["job_status"] == "completed" else "FAIL"
         if r["job_status"] != "completed":
             all_pass = False
-        print(f"  [{status}] {r['name']}: {r['drafted']} drafted, {r['insufficient']} insufficient, {r['generation_time_s']}s")
+        print(
+            f"  [{status}] {r['name']}: {r['drafted']} drafted, {r['insufficient']} insufficient, {r['generation_time_s']}s"
+        )
 
-        fw_summary = "; ".join(f"doc {did}: {fws}" for did, fws in r.get("doc_frameworks", {}).items())
+        fw_summary = "; ".join(
+            f"doc {did}: {fws}" for did, fws in r.get("doc_frameworks", {}).items()
+        )
         if fw_summary:
             print(f"        Frameworks: {fw_summary}")
 
         label = r["name"]
         min_d = r["expect_min_drafted"]
-        max_i = r["expect_max_insufficient"]
+        max_i = r["expect_max_insufficient"]  # noqa: F841
 
         drafted_ok = r["drafted"] >= min_d
         checks.append((f"{label}: >= {min_d} drafted (got {r['drafted']})", drafted_ok))

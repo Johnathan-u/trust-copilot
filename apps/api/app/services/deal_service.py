@@ -2,7 +2,7 @@
 
 import json
 import logging
-from datetime import datetime, timezone
+from datetime import datetime, timezone  # noqa: F401
 
 from sqlalchemy.orm import Session
 
@@ -15,7 +15,9 @@ def create_deal(db: Session, workspace_id: int, company_name: str, **kwargs) -> 
     deal = Deal(workspace_id=workspace_id, company_name=company_name, **kwargs)
     if "requested_frameworks" in kwargs and isinstance(kwargs["requested_frameworks"], list):
         deal.requested_frameworks = json.dumps(kwargs["requested_frameworks"])
-    if "linked_questionnaire_ids" in kwargs and isinstance(kwargs["linked_questionnaire_ids"], list):
+    if "linked_questionnaire_ids" in kwargs and isinstance(
+        kwargs["linked_questionnaire_ids"], list
+    ):
         deal.linked_questionnaire_ids = json.dumps(kwargs["linked_questionnaire_ids"])
     db.add(deal)
     db.flush()
@@ -38,8 +40,18 @@ def update_deal(db: Session, deal_id: int, **updates) -> dict | None:
     deal = db.query(Deal).filter(Deal.id == deal_id).first()
     if not deal:
         return None
-    allowed = {"company_name", "buyer_contact_name", "buyer_contact_email", "deal_value_arr",
-               "stage", "close_date", "notes", "owner_user_id", "crm_source", "crm_external_id"}
+    allowed = {
+        "company_name",
+        "buyer_contact_name",
+        "buyer_contact_email",
+        "deal_value_arr",
+        "stage",
+        "close_date",
+        "notes",
+        "owner_user_id",
+        "crm_source",
+        "crm_external_id",
+    }
     for k, v in updates.items():
         if k in allowed:
             setattr(deal, k, v)

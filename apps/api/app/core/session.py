@@ -11,10 +11,10 @@ from app.core.config import get_settings
 SESSION_MAX_AGE = 86400 * 7
 
 
-import logging as _logging
-import os as _os
-import secrets as _secrets
-import threading as _threading
+import logging as _logging  # noqa: E402
+import os as _os  # noqa: E402
+import secrets as _secrets  # noqa: E402
+import threading as _threading  # noqa: E402
 
 _session_logger = _logging.getLogger(__name__)
 
@@ -28,10 +28,22 @@ _EPHEMERAL_LOCK = _threading.Lock()
 MIN_PRODUCTION_SECRET_LENGTH = 32
 
 # Values that are obviously not secrets (copied from examples / docs / tests).
-_PLACEHOLDER_SECRETS = frozenset({
-    "placeholder", "changeme", "change-me", "change_me", "secret", "test-secret", "dev-secret",
-    "your-secret-here", "replace-me", "session-secret", "development", "default",
-})
+_PLACEHOLDER_SECRETS = frozenset(
+    {
+        "placeholder",
+        "changeme",
+        "change-me",
+        "change_me",
+        "secret",
+        "test-secret",
+        "dev-secret",
+        "your-secret-here",
+        "replace-me",
+        "session-secret",
+        "development",
+        "default",
+    }
+)
 
 
 def is_weak_secret(value: str | None, min_length: int = MIN_PRODUCTION_SECRET_LENGTH) -> bool:
@@ -97,7 +109,9 @@ def sign_token(payload: dict) -> str:
     try:
         data = base64.urlsafe_b64encode(json.dumps(payload, default=str).encode()).decode()
     except (TypeError, ValueError):
-        data = base64.urlsafe_b64encode(json.dumps({k: str(v) for k, v in payload.items()}).encode()).decode()
+        data = base64.urlsafe_b64encode(
+            json.dumps({k: str(v) for k, v in payload.items()}).encode()
+        ).decode()
     secret = _get_session_secret()
     sig = hmac.new(
         secret.encode("utf-8", "replace"),

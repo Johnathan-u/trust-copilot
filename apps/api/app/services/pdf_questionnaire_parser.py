@@ -32,12 +32,14 @@ def parse_pdf_questionnaire(path: str | Path) -> list[dict]:
                 if len(norm) < 10:
                     continue
                 source = {"file": str(path), "type": "pdf", "page": i + 1}
-                results.append({
-                    "text": norm,
-                    "section": section,
-                    "answer_type": infer_answer_type(line),
-                    "source_location": json.dumps(source),
-                    "confidence": 70,
-                })
+                results.append(
+                    {
+                        "text": norm,
+                        "section": section,
+                        "answer_type": infer_answer_type(line),
+                        "source_location": json.dumps(source),
+                        "confidence": 70,
+                    }
+                )
     doc.close()
     return results

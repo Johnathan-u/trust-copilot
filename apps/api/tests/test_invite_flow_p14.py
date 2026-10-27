@@ -21,10 +21,14 @@ def _promote_demo_admin() -> None:
         user = db.query(User).filter(User.email == "demo@trust.local").first()
         if not user:
             return
-        mem = db.query(WorkspaceMember).filter(
-            WorkspaceMember.user_id == user.id,
-            WorkspaceMember.workspace_id == 1,
-        ).first()
+        mem = (
+            db.query(WorkspaceMember)
+            .filter(
+                WorkspaceMember.user_id == user.id,
+                WorkspaceMember.workspace_id == 1,
+            )
+            .first()
+        )
         if mem and mem.role != "admin":
             mem.role = "admin"
             db.commit()
@@ -115,7 +119,12 @@ class TestInviteP14Backend:
             return True
 
         with patch("app.api.routes.members.send_invite_email", side_effect=_cap):
-            assert client.post("/api/members/invites", json={"email": email, "role": "editor"}).status_code == 200
+            assert (
+                client.post(
+                    "/api/members/invites", json={"email": email, "role": "editor"}
+                ).status_code
+                == 200
+            )
 
         raw = captured["code"]
         loose = raw.replace("-", "").lower()
@@ -130,7 +139,12 @@ class TestInviteP14Backend:
         _delete_user(email)
 
         with patch("app.api.routes.members.send_invite_email", return_value=True):
-            assert client.post("/api/members/invites", json={"email": email, "role": "editor"}).status_code == 200
+            assert (
+                client.post(
+                    "/api/members/invites", json={"email": email, "role": "editor"}
+                ).status_code
+                == 200
+            )
 
         rv = client.post(
             "/api/auth/verify-invite-code",
@@ -166,10 +180,14 @@ class TestInviteP14Backend:
         assert rv.status_code == 200
         new_tok = rv.json()["token"]
 
-        bad = client.post("/api/auth/accept-invite", json={"token": pre_token, "password": "rotatepass123"})
+        bad = client.post(
+            "/api/auth/accept-invite", json={"token": pre_token, "password": "rotatepass123"}
+        )
         assert bad.status_code == 400
 
-        ok = client.post("/api/auth/accept-invite", json={"token": new_tok, "password": "rotatepass123"})
+        ok = client.post(
+            "/api/auth/accept-invite", json={"token": new_tok, "password": "rotatepass123"}
+        )
         assert ok.status_code == 200
 
     def test_legacy_invite_null_code_hash_accepts_token_directly(self, client: TestClient) -> None:
@@ -195,7 +213,9 @@ class TestInviteP14Backend:
         finally:
             db.close()
 
-        r = client.post("/api/auth/accept-invite", json={"token": raw_tok, "password": "legacypass123"})
+        r = client.post(
+            "/api/auth/accept-invite", json={"token": raw_tok, "password": "legacypass123"}
+        )
         assert r.status_code == 200
         login_r = client.post("/api/auth/login", json={"email": email, "password": "legacypass123"})
         assert login_r.status_code == 200
@@ -223,7 +243,12 @@ class TestInviteP14Backend:
         _delete_user(email)
         with patch("app.api.routes.members.send_invite_email", return_value=True):
             _login_admin(client)
-            assert client.post("/api/members/invites", json={"email": email, "role": "editor"}).status_code == 200
+            assert (
+                client.post(
+                    "/api/members/invites", json={"email": email, "role": "editor"}
+                ).status_code
+                == 200
+            )
 
         for _ in range(10):
             r = client.post(
@@ -271,9 +296,16 @@ class TestInviteP14Backend:
             return True
 
         with patch("app.api.routes.members.send_invite_email", side_effect=_cap):
-            assert client.post("/api/members/invites", json={"email": email, "role": "reviewer"}).status_code == 200
+            assert (
+                client.post(
+                    "/api/members/invites", json={"email": email, "role": "reviewer"}
+                ).status_code
+                == 200
+            )
 
-        rv = client.post("/api/auth/verify-invite-code", json={"email": email, "code": captured["code"]})
+        rv = client.post(
+            "/api/auth/verify-invite-code", json={"email": email, "code": captured["code"]}
+        )
         assert rv.status_code == 200
         tok = rv.json()["token"]
         ra = client.post("/api/auth/accept-invite", json={"token": tok})

@@ -4,14 +4,14 @@ from __future__ import annotations
 
 import json
 import logging
-import re
+import re  # noqa: F401
 import time
-from typing import Sequence
+from typing import Sequence  # noqa: F401
 
 from sqlalchemy.orm import Session
 
 from app.core.config import get_settings
-from app.models.tag import DocumentTag, Tag, TAG_CATEGORIES, TAG_SOURCES
+from app.models.tag import DocumentTag, Tag, TAG_CATEGORIES, TAG_SOURCES  # noqa: F401
 
 logger = logging.getLogger(__name__)
 
@@ -42,7 +42,11 @@ SYSTEM_TAGS: list[dict] = [
     {"category": "topic", "key": "business_continuity", "label": "Business Continuity"},
     {"category": "topic", "key": "change_management", "label": "Change Management"},
     {"category": "topic", "key": "cloud_security", "label": "Cloud Security"},
-    {"category": "topic", "key": "confidentiality_data_protection", "label": "Confidentiality & Data Protection"},
+    {
+        "category": "topic",
+        "key": "confidentiality_data_protection",
+        "label": "Confidentiality & Data Protection",
+    },
     {"category": "topic", "key": "configuration_management", "label": "Configuration Management"},
     {"category": "topic", "key": "cryptography", "label": "Cryptography"},
     {"category": "topic", "key": "data_classification", "label": "Data Classification"},
@@ -50,7 +54,11 @@ SYSTEM_TAGS: list[dict] = [
     {"category": "topic", "key": "data_retention_disposal", "label": "Data Retention & Disposal"},
     {"category": "topic", "key": "encryption", "label": "Encryption"},
     {"category": "topic", "key": "endpoint_security", "label": "Endpoint Security"},
-    {"category": "topic", "key": "governance_risk_compliance", "label": "Governance & Risk Compliance"},
+    {
+        "category": "topic",
+        "key": "governance_risk_compliance",
+        "label": "Governance & Risk Compliance",
+    },
     {"category": "topic", "key": "hr_security", "label": "HR Security"},
     {"category": "topic", "key": "identity_authentication", "label": "Identity & Authentication"},
     {"category": "topic", "key": "incident_response", "label": "Incident Response"},
@@ -66,7 +74,11 @@ SYSTEM_TAGS: list[dict] = [
     {"category": "topic", "key": "supply_chain_risk", "label": "Supply Chain Risk"},
     {"category": "topic", "key": "vendor_management", "label": "Vendor Management"},
     {"category": "topic", "key": "vendor_risk", "label": "Vendor Risk"},
-    {"category": "topic", "key": "workforce_security_training", "label": "Workforce Security & Training"},
+    {
+        "category": "topic",
+        "key": "workforce_security_training",
+        "label": "Workforce Security & Training",
+    },
     {"category": "topic", "key": "ai_governance", "label": "AI Governance"},
     # Document types
     {"category": "document_type", "key": "policy", "label": "Policy"},
@@ -85,6 +97,7 @@ def ensure_system_tags(db: Session) -> None:
     concurrent startup across multiple app instances without duplicate errors.
     """
     from sqlalchemy.exc import IntegrityError
+
     inserted = 0
     for t in SYSTEM_TAGS:
         existing = (
@@ -95,7 +108,15 @@ def ensure_system_tags(db: Session) -> None:
         if existing:
             continue
         try:
-            db.add(Tag(workspace_id=None, category=t["category"], key=t["key"], label=t["label"], is_system=True))
+            db.add(
+                Tag(
+                    workspace_id=None,
+                    category=t["category"],
+                    key=t["key"],
+                    label=t["label"],
+                    is_system=True,
+                )
+            )
             db.flush()
             inserted += 1
         except IntegrityError:
@@ -107,16 +128,28 @@ def ensure_system_tags(db: Session) -> None:
         logger.debug("ensure_system_tags: all %d system tags already present", len(SYSTEM_TAGS))
 
 
-def resolve_tag(db: Session, category: str, key: str, workspace_id: int | None = None) -> Tag | None:
+def resolve_tag(
+    db: Session, category: str, key: str, workspace_id: int | None = None
+) -> Tag | None:
     """Look up a tag by category+key.  Checks workspace-scoped first, then global system tags."""
     if workspace_id is not None:
-        tag = db.query(Tag).filter(Tag.workspace_id == workspace_id, Tag.category == category, Tag.key == key).first()
+        tag = (
+            db.query(Tag)
+            .filter(Tag.workspace_id == workspace_id, Tag.category == category, Tag.key == key)
+            .first()
+        )
         if tag:
             return tag
-    return db.query(Tag).filter(Tag.workspace_id.is_(None), Tag.category == category, Tag.key == key).first()
+    return (
+        db.query(Tag)
+        .filter(Tag.workspace_id.is_(None), Tag.category == category, Tag.key == key)
+        .first()
+    )
 
 
-def get_or_create_tag(db: Session, category: str, key: str, label: str, workspace_id: int | None = None) -> Tag:
+def get_or_create_tag(
+    db: Session, category: str, key: str, label: str, workspace_id: int | None = None
+) -> Tag:
     """Return existing tag or create a new one."""
     tag = resolve_tag(db, category, key, workspace_id)
     if tag:
@@ -128,6 +161,7 @@ def get_or_create_tag(db: Session, category: str, key: str, label: str, workspac
 
 
 # ── Assignment helpers ──────────────────────────────────────────────────────
+
 
 def assign_tag(
     db: Session,
@@ -185,7 +219,9 @@ def remove_tag(db: Session, document_id: int, tag_id: int, workspace_id: int) ->
     return True
 
 
-def approve_tag(db: Session, document_tag_id: int, workspace_id: int, approved: bool = True) -> DocumentTag | None:
+def approve_tag(
+    db: Session, document_tag_id: int, workspace_id: int, approved: bool = True
+) -> DocumentTag | None:
     """Approve or reject an AI-suggested tag."""
     dt = (
         db.query(DocumentTag)
@@ -210,7 +246,9 @@ def list_tags_for_document(db: Session, document_id: int, workspace_id: int) -> 
     return [_tag_assignment_dict(dt, tag) for dt, tag in rows]
 
 
-def list_tags_for_documents(db: Session, document_ids: list[int], workspace_id: int) -> dict[int, list[dict]]:
+def list_tags_for_documents(
+    db: Session, document_ids: list[int], workspace_id: int
+) -> dict[int, list[dict]]:
     """Batch-load tags for multiple documents.  Returns {document_id: [tag_dict, ...]}."""
     if not document_ids:
         return {}
@@ -267,9 +305,14 @@ _ALLOWED_DOCTYPE_KEYS = [t["key"] for t in SYSTEM_TAGS if t["category"] == "docu
 
 # Mapping from deterministic classifier framework keys to tag keys
 _FRAMEWORK_KEY_TO_TAG: dict[str, str] = {
-    "SOC2": "soc2", "HIPAA": "hipaa", "ISO27001": "iso27001",
-    "NIST_CSF_2_0": "nist_csf_2_0", "NIST_SP_800_53_REV5": "nist_sp_800_53",
-    "NIST_SP_800_171_REV3": "nist_sp_800_171", "SIG": "sig", "CAIQ": "caiq",
+    "SOC2": "soc2",
+    "HIPAA": "hipaa",
+    "ISO27001": "iso27001",
+    "NIST_CSF_2_0": "nist_csf_2_0",
+    "NIST_SP_800_53_REV5": "nist_sp_800_53",
+    "NIST_SP_800_171_REV3": "nist_sp_800_171",
+    "SIG": "sig",
+    "CAIQ": "caiq",
 }
 
 _DOC_TIEBREAK_PROMPT = (
@@ -304,21 +347,31 @@ def _classify_document_deterministic(text: str, filename: str) -> tuple[list[dic
 
     if result.framework in _FRAMEWORK_KEY_TO_TAG:
         tag_key = _FRAMEWORK_KEY_TO_TAG[result.framework]
-        suggestions.append({
-            "category": "framework", "key": tag_key, "confidence": result.confidence,
-        })
+        suggestions.append(
+            {
+                "category": "framework",
+                "key": tag_key,
+                "confidence": result.confidence,
+            }
+        )
 
     for subj_key in result.subjects[:8]:
         if subj_key in set(_ALLOWED_TOPIC_KEYS):
-            suggestions.append({
-                "category": "topic", "key": subj_key, "confidence": result.confidence * 0.9,
-            })
+            suggestions.append(
+                {
+                    "category": "topic",
+                    "key": subj_key,
+                    "confidence": result.confidence * 0.9,
+                }
+            )
 
     return suggestions, result.needs_llm_tiebreak
 
 
 def _classify_document_llm_tiebreak(
-    text: str, filename: str, candidates: list[str],
+    text: str,
+    filename: str,
+    candidates: list[str],
 ) -> list[dict] | None:
     """Phase 2: LLM tiebreak with constrained prompt. Only called for non-HIGH confidence."""
     if not (text or "").strip() and not (filename or "").strip():
@@ -372,12 +425,14 @@ def _classify_document_llm_tiebreak(
             fw_val = obj.get("framework")
             if isinstance(fw_val, str) and fw_val in fw_set:
                 results.append({"category": "framework", "key": fw_val, "confidence": conf})
-            for k in (obj.get("topics") or []):
+            for k in obj.get("topics") or []:
                 if k in topic_set:
                     results.append({"category": "topic", "key": k, "confidence": conf * 0.9})
-            for k in (obj.get("document_types") or []):
+            for k in obj.get("document_types") or []:
                 if k in doc_set:
-                    results.append({"category": "document_type", "key": k, "confidence": conf * 0.9})
+                    results.append(
+                        {"category": "document_type", "key": k, "confidence": conf * 0.9}
+                    )
             return results
         except Exception as exc:
             logger.warning("classify_document_llm_tiebreak: attempt %d failed: %s", attempt, exc)
@@ -407,7 +462,9 @@ def classify_text(text: str, filename: str = "") -> list[dict]:
     return det_results
 
 
-def auto_tag_document(db: Session, document_id: int, workspace_id: int, filename: str, chunk_texts: list[str]) -> int:
+def auto_tag_document(
+    db: Session, document_id: int, workspace_id: int, filename: str, chunk_texts: list[str]
+) -> int:
     """Classify a document via LLM and persist tags + update JSON fields. Returns tag count."""
     combined_text = "\n".join(chunk_texts[:20])
     suggestions = classify_text(combined_text, filename)
@@ -417,7 +474,9 @@ def auto_tag_document(db: Session, document_id: int, workspace_id: int, filename
     for s in suggestions:
         tag = resolve_tag(db, s["category"], s["key"])
         if not tag:
-            tag = get_or_create_tag(db, s["category"], s["key"], s["key"].replace("_", " ").title(), workspace_id)
+            tag = get_or_create_tag(
+                db, s["category"], s["key"], s["key"].replace("_", " ").title(), workspace_id
+            )
         assign_tag(
             db,
             document_id=document_id,
@@ -436,6 +495,7 @@ def auto_tag_document(db: Session, document_id: int, workspace_id: int, filename
     # Update the JSON fields on the document so tier/display reflect LLM tags
     if framework_labels or topic_labels:
         from app.models import Document
+
         doc = db.query(Document).filter(Document.id == document_id).first()
         if doc:
             if framework_labels:

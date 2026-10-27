@@ -4,18 +4,23 @@ Uses mock DB (no real commits) for progress and count assertions. Integration-st
 that need real DB are skipped when questionnaire/workspace not available.
 """
 
-import itertools
+import itertools  # noqa: F401
 import json
 from unittest.mock import MagicMock, patch
 
-import pytest
-from sqlalchemy.orm import Session
+import pytest  # noqa: F401
+from sqlalchemy.orm import Session  # noqa: F401
 
 from app.services.answer_generation import generate_answers_for_questionnaire
 
 FAKE_EMB = [0.1] * 1536
 FAKE_EVIDENCE = [
-    {"id": 1, "text": "We have documented access controls.", "metadata": {"filename": "policy.docx"}, "score": 0.8}
+    {
+        "id": 1,
+        "text": "We have documented access controls.",
+        "metadata": {"filename": "policy.docx"},
+        "score": 0.8,
+    }
 ]
 
 
@@ -104,17 +109,22 @@ def test_progress_after_cache_hits():
     job = MagicMock()
     job.result = None
     call_count = [0]
+
     def answer_cache_get_side_effect(*a, **k):
         call_count[0] += 1
         if call_count[0] == 1:
             return {"text": "Cached", "citations": [], "confidence": 80}
         return None
+
     with (
         patch("app.core.config.get_settings") as mock_settings,
         patch("app.services.answer_generation.embed_texts", return_value=[FAKE_EMB] * 3),
         patch("app.services.answer_generation.get_corpus_version", return_value=""),
         patch("app.services.answer_generation.retrieval_cache_get", return_value=None),
-        patch("app.services.answer_generation.answer_cache_get", side_effect=answer_cache_get_side_effect),
+        patch(
+            "app.services.answer_generation.answer_cache_get",
+            side_effect=answer_cache_get_side_effect,
+        ),
         patch("app.services.answer_generation.RetrievalService") as MockRetrieval,
         patch("openai.OpenAI") as MockOpenAI,
     ):
@@ -151,17 +161,22 @@ def test_no_double_count_cached_and_generated():
     job = MagicMock()
     job.result = None
     cache_hits = [0]
+
     def answer_cache_get_side_effect(*a, **k):
         cache_hits[0] += 1
         if cache_hits[0] <= 2:
             return {"text": "Cached", "citations": [], "confidence": 80}
         return None
+
     with (
         patch("app.core.config.get_settings") as mock_settings,
         patch("app.services.answer_generation.embed_texts", return_value=[FAKE_EMB] * 4),
         patch("app.services.answer_generation.get_corpus_version", return_value=""),
         patch("app.services.answer_generation.retrieval_cache_get", return_value=None),
-        patch("app.services.answer_generation.answer_cache_get", side_effect=answer_cache_get_side_effect),
+        patch(
+            "app.services.answer_generation.answer_cache_get",
+            side_effect=answer_cache_get_side_effect,
+        ),
         patch("app.services.answer_generation.RetrievalService") as MockRetrieval,
         patch("openai.OpenAI") as MockOpenAI,
     ):
@@ -185,13 +200,19 @@ def test_failure_mid_batch_records_insufficient_and_continues():
     job = MagicMock()
     job.result = None
     call_count = [0]
+
     def create_side_effect(*a, **kw):
         call_count[0] += 1
         if call_count[0] == 1:
-            return MagicMock(choices=[MagicMock(message=MagicMock(
-                content="Answer 1: A1.\n\nAnswer 2: A2.\n\nAnswer 3: A3."
-            ))])
+            return MagicMock(
+                choices=[
+                    MagicMock(
+                        message=MagicMock(content="Answer 1: A1.\n\nAnswer 2: A2.\n\nAnswer 3: A3.")
+                    )
+                ]
+            )
         raise RuntimeError("API error")
+
     with (
         patch("app.core.config.get_settings") as mock_settings,
         patch("app.services.answer_generation.embed_texts", return_value=[FAKE_EMB] * 5),
@@ -241,7 +262,11 @@ def test_idempotency_upsert_semantics():
     qnr.mapping_preferred_subject_areas_json = None
     questions = [MagicMock(id=i + 1, text=f"Q{i+1}?") for i in range(2)]
     ws = MagicMock(ai_completion_model=None, ai_temperature=None)
-    from app.models import Answer as AnswerModel, Question as QuestionModel, Questionnaire as QnrModel
+    from app.models import (
+        Answer as AnswerModel,
+        Question as QuestionModel,
+        Questionnaire as QnrModel,
+    )
     from app.models.workspace import Workspace as WsModel
     from app.models.question_mapping_signal import QuestionMappingSignal
     from app.models.document import Document as DocModel

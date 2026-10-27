@@ -19,10 +19,14 @@ setup('authenticate as demo user', async ({ page }) => {
   // Controlled inputs: clear then type so React state always matches (fill alone can race hydration).
   await page.locator('input[type="email"]').click()
   await page.locator('input[type="email"]').fill('')
-  await page.locator('input[type="email"]').pressSequentially(DEMO_EMAIL, { delay: 5 })
+  await page
+    .locator('input[type="email"]')
+    .pressSequentially(DEMO_EMAIL, { delay: 5 })
   await page.locator('input[type="password"]').click()
   await page.locator('input[type="password"]').fill('')
-  await page.locator('input[type="password"]').pressSequentially(DEMO_PASSWORD, { delay: 5 })
+  await page
+    .locator('input[type="password"]')
+    .pressSequentially(DEMO_PASSWORD, { delay: 5 })
 
   const signIn = page.getByRole('button', { name: 'Sign in' })
   await signIn.waitFor({ state: 'visible' })

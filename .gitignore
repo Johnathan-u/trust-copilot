@@ -44,3 +44,9 @@ blob-report/
 trace.zip
 apps/api/.seed-credentials.local
 .seed-credentials.local
+# Generated local/test output — never commit (CI repair: these broke pre-commit end-of-file-fixer)
+*.tsbuildinfo
+apps/web/verify-ai-flows-results.json
+apps/web/verify-review-ux-results.json
+apps/api/test_results*.json
+apps/api/seed-qa-out.txt

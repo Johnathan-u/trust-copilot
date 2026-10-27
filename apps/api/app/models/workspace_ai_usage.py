@@ -11,7 +11,9 @@ class WorkspaceAIUsage(Base):
     __tablename__ = "workspace_ai_usage"
 
     id = Column(Integer, primary_key=True, autoincrement=True)
-    workspace_id = Column(Integer, ForeignKey("workspaces.id", ondelete="CASCADE"), nullable=False, index=True)
+    workspace_id = Column(
+        Integer, ForeignKey("workspaces.id", ondelete="CASCADE"), nullable=False, index=True
+    )
     period = Column(String(16), nullable=False)
     llm_calls = Column(Integer, nullable=False, server_default=text("0"))
     tokens_used = Column(Integer, nullable=False, server_default=text("0"))

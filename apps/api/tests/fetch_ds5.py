@@ -24,11 +24,11 @@ r.raise_for_status()
 data = r.json()
 print("5. NIST 800-53 / FederalEdge")
 print(f"{len(data.get('questions',[]))} questions | all drafted")
-print("="*60)
+print("=" * 60)
 for i, q in enumerate(data.get("questions", []), 1):
     a = q.get("answer")
-    st = a.get("status","?") if a else "no_answer"
-    txt = a.get("text","") if a else ""
+    st = a.get("status", "?") if a else "no_answer"
+    txt = a.get("text", "") if a else ""
     print(f"Q{i}. {q.get('text','')}")
     print(f"[{'DRAFT' if st=='draft' else 'INSUFFICIENT' if st=='insufficient_evidence' else st}]")
     print(txt)

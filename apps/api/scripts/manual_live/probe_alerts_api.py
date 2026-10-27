@@ -1,14 +1,16 @@
 """Manual live-API check against a LOCAL stack (not a pytest test; TC-07-001).
 
-Usage: TC_SESSION_SECRET=... python tests/test_alerts_api.py
+Usage (from apps/api): TC_SESSION_SECRET=... python scripts/manual_live/probe_alerts_api.py
 """
+
+import sys
+from pathlib import Path
 
 import requests
 
-try:  # run as `python tests/<script>.py` or as `python -m tests.<script>`
-    from _live_session import forge_session_cookie, live_api
-except ImportError:  # pragma: no cover
-    from tests._live_session import forge_session_cookie, live_api
+# Moved from tests/ to scripts/manual_live/ by ci-repair; the TC-07-001 helper stays in tests/_live_session.py.
+sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "tests"))
+from _live_session import forge_session_cookie, live_api  # noqa: E402
 
 __test__ = False  # never collected as a test module
 
@@ -41,7 +43,9 @@ def main() -> None:
     print(f"Status: {r.status_code}")
     if r.status_code == 200:
         for p in r.json().get("policies", []):
-            print(f"  {p['event_type']}: {'Active' if p['enabled'] else 'Disabled'} -> {p['recipient_type']}")
+            print(
+                f"  {p['event_type']}: {'Active' if p['enabled'] else 'Disabled'} -> {p['recipient_type']}"
+            )
 
     print("\n=== Delivery Log ===")
     r = S.get(f"{API}/api/notifications/log?page=1&page_size=5")

@@ -16,6 +16,7 @@ from unittest.mock import MagicMock
 # Mock helpers
 # ---------------------------------------------------------------------------
 
+
 class _Chain(list):
     """Chainable mock mimicking the SQLAlchemy query builder interface.
 
@@ -75,13 +76,13 @@ def _make_db(total_questions, answer_rows, signal_rows, gap_rows):
     7. EvidenceGap rows          → all
     """
     chains = [
-        _Chain(),                    # 1
-        _Chain(total_questions),     # 2
-        _Chain(),                    # 3
-        _Chain(answer_rows),         # 4
-        _Chain(),                    # 5
-        _Chain(signal_rows),         # 6
-        _Chain(gap_rows),            # 7
+        _Chain(),  # 1
+        _Chain(total_questions),  # 2
+        _Chain(),  # 3
+        _Chain(answer_rows),  # 4
+        _Chain(),  # 5
+        _Chain(signal_rows),  # 6
+        _Chain(gap_rows),  # 7
     ]
     idx = {"n": 0}
 
@@ -104,27 +105,107 @@ TOTAL_Q = 20
 ANSWERS = [
     # (id, question_id, status, confidence, primary_categories_json, citations, created_at)
     # --- day 1 (2026-03-20): 3 drafts ---
-    ( 1,  1, "draft",                 85, _cats(["SOC 2"], ["Access Control"]),                              _cits(3), datetime(2026, 3, 20)),
-    ( 2,  2, "draft",                 45, _cats(["SOC 2"], ["Access Control"]),                              _cits(1), datetime(2026, 3, 20)),
-    ( 3,  3, "draft",                 90, _cats(["SOC 2", "ISO 27001"], ["Encryption"]),                     _cits(5), datetime(2026, 3, 20)),
+    (1, 1, "draft", 85, _cats(["SOC 2"], ["Access Control"]), _cits(3), datetime(2026, 3, 20)),
+    (2, 2, "draft", 45, _cats(["SOC 2"], ["Access Control"]), _cits(1), datetime(2026, 3, 20)),
+    (
+        3,
+        3,
+        "draft",
+        90,
+        _cats(["SOC 2", "ISO 27001"], ["Encryption"]),
+        _cits(5),
+        datetime(2026, 3, 20),
+    ),
     # --- day 2 (2026-03-21): 3 approved, 2 drafts, 1 insufficient ---
-    ( 4,  4, "approved",              80, _cats(["ISO 27001"], ["Risk Assessment"]),                         _cits(2), datetime(2026, 3, 21)),
-    ( 5,  5, "approved",              75, _cats(["ISO 27001"], ["Risk Assessment"]),                         _cits(4), datetime(2026, 3, 21)),
-    ( 6,  6, "approved",              92, _cats(["GDPR"], ["Privacy / Data Governance"]),                    _cits(6), datetime(2026, 3, 21)),
-    ( 7,  7, "draft",                 30, _cats(["SOC 2"], ["Vendor Management"]),                           _cits(0), datetime(2026, 3, 21)),
-    ( 8,  8, "draft",                 55, _cats(["SOC 2"], ["Vendor Management"]),                           _cits(1), datetime(2026, 3, 21)),
-    ( 9,  9, "insufficient_evidence", 20, _cats(["ISO 27001"], ["Business Continuity / Disaster Recovery"]), _cits(0), datetime(2026, 3, 21)),
+    (
+        4,
+        4,
+        "approved",
+        80,
+        _cats(["ISO 27001"], ["Risk Assessment"]),
+        _cits(2),
+        datetime(2026, 3, 21),
+    ),
+    (
+        5,
+        5,
+        "approved",
+        75,
+        _cats(["ISO 27001"], ["Risk Assessment"]),
+        _cits(4),
+        datetime(2026, 3, 21),
+    ),
+    (
+        6,
+        6,
+        "approved",
+        92,
+        _cats(["GDPR"], ["Privacy / Data Governance"]),
+        _cits(6),
+        datetime(2026, 3, 21),
+    ),
+    (7, 7, "draft", 30, _cats(["SOC 2"], ["Vendor Management"]), _cits(0), datetime(2026, 3, 21)),
+    (8, 8, "draft", 55, _cats(["SOC 2"], ["Vendor Management"]), _cits(1), datetime(2026, 3, 21)),
+    (
+        9,
+        9,
+        "insufficient_evidence",
+        20,
+        _cats(["ISO 27001"], ["Business Continuity / Disaster Recovery"]),
+        _cits(0),
+        datetime(2026, 3, 21),
+    ),
     # --- day 3 (2026-03-22): 3 drafts, 3 insufficient (one with no categories) ---
-    (10, 10, "insufficient_evidence", 15, _cats(["SOC 2"], ["Incident Response"]),                           _cits(0), datetime(2026, 3, 22)),
-    (11, 11, "insufficient_evidence", 25, _cats(["GDPR"], ["Breach Notification"]),                          _cits(0), datetime(2026, 3, 22)),
-    (12, 12, "draft",                 70, _cats(["HIPAA"], ["Access Control"]),                              _cits(2), datetime(2026, 3, 22)),
-    (13, 13, "draft",                 88, _cats(["HIPAA"], ["Encryption"]),                                  _cits(3), datetime(2026, 3, 22)),
-    (14, 14, "insufficient_evidence", 10, None, None, datetime(2026, 3, 22)),  # no categories → signal fallback
-    (15, 15, "draft",                 95, _cats(["SOC 2"], ["Change Management"]),                           _cits(4), datetime(2026, 3, 22)),
+    (
+        10,
+        10,
+        "insufficient_evidence",
+        15,
+        _cats(["SOC 2"], ["Incident Response"]),
+        _cits(0),
+        datetime(2026, 3, 22),
+    ),
+    (
+        11,
+        11,
+        "insufficient_evidence",
+        25,
+        _cats(["GDPR"], ["Breach Notification"]),
+        _cits(0),
+        datetime(2026, 3, 22),
+    ),
+    (12, 12, "draft", 70, _cats(["HIPAA"], ["Access Control"]), _cits(2), datetime(2026, 3, 22)),
+    (13, 13, "draft", 88, _cats(["HIPAA"], ["Encryption"]), _cits(3), datetime(2026, 3, 22)),
+    (
+        14,
+        14,
+        "insufficient_evidence",
+        10,
+        None,
+        None,
+        datetime(2026, 3, 22),
+    ),  # no categories → signal fallback
+    (15, 15, "draft", 95, _cats(["SOC 2"], ["Change Management"]), _cits(4), datetime(2026, 3, 22)),
     # --- day 4 (2026-03-23): 2 drafts, 1 insufficient ---
-    (16, 16, "draft",                 35, _cats(["GDPR"], ["Privacy / Data Governance"]),                    _cits(1), datetime(2026, 3, 23)),
-    (17, 17, "insufficient_evidence", 18, _cats(["SOC 2"], ["Physical Security"]),                           _cits(0), datetime(2026, 3, 23)),
-    (18, 18, "draft",                 60, _cats(["SOC 2"], ["Secure SDLC"]),                                 _cits(2), datetime(2026, 3, 23)),
+    (
+        16,
+        16,
+        "draft",
+        35,
+        _cats(["GDPR"], ["Privacy / Data Governance"]),
+        _cits(1),
+        datetime(2026, 3, 23),
+    ),
+    (
+        17,
+        17,
+        "insufficient_evidence",
+        18,
+        _cats(["SOC 2"], ["Physical Security"]),
+        _cits(0),
+        datetime(2026, 3, 23),
+    ),
+    (18, 18, "draft", 60, _cats(["SOC 2"], ["Secure SDLC"]), _cits(2), datetime(2026, 3, 23)),
 ]
 
 SIGNALS = [
@@ -144,11 +225,13 @@ GAPS = [
 # Tests
 # ---------------------------------------------------------------------------
 
+
 class TestComplianceCoverageComputation:
     """Push mock data through get_compliance_coverage and verify every section."""
 
     def _run(self, total_q=TOTAL_Q, answers=ANSWERS, signals=SIGNALS, gaps=GAPS):
         from app.services.compliance_coverage import get_compliance_coverage
+
         db = _make_db(total_q, answers, signals, gaps)
         return get_compliance_coverage(db, workspace_id=1)
 
@@ -159,7 +242,7 @@ class TestComplianceCoverageComputation:
         kpi = r["kpi"]
         assert kpi["total_questions"] == 20
         assert kpi["total_answered"] == 18
-        assert kpi["total_drafted"] == 13   # draft + approved
+        assert kpi["total_drafted"] == 13  # draft + approved
         assert kpi["total_insufficient"] == 5
 
     def test_kpi_coverage_pct(self):
@@ -317,7 +400,7 @@ class TestComplianceCoverageComputation:
         r = self._run()
         t = r["trends"][1]
         assert t["date"] == "2026-03-21"
-        assert t["coverage_pct"] == 88.9   # 8/9
+        assert t["coverage_pct"] == 88.9  # 8/9
         assert t["insufficient_pct"] == 11.1  # 1/9
         assert t["low_confidence_pct"] == 11.1  # 1/9
 
@@ -326,7 +409,7 @@ class TestComplianceCoverageComputation:
         r = self._run()
         t = r["trends"][2]
         assert t["date"] == "2026-03-22"
-        assert t["coverage_pct"] == 73.3   # 11/15
+        assert t["coverage_pct"] == 73.3  # 11/15
         assert t["insufficient_pct"] == 26.7  # 4/15
         assert t["low_confidence_pct"] == 6.7  # 1/15
 
@@ -335,7 +418,7 @@ class TestComplianceCoverageComputation:
         r = self._run()
         t = r["trends"][3]
         assert t["date"] == "2026-03-23"
-        assert t["coverage_pct"] == 72.2   # 13/18
+        assert t["coverage_pct"] == 72.2  # 13/18
         assert t["insufficient_pct"] == 27.8  # 5/18
         assert t["low_confidence_pct"] == 11.1  # 2/18
 
@@ -352,8 +435,11 @@ class TestComplianceCoverageComputation:
 
     def test_drill_down_vendor_management_soc2(self):
         r = self._run()
-        vm = next(d for d in r["drill_down"]
-                  if d["subject"] == "Vendor Management" and d["framework"] == "SOC 2")
+        vm = next(
+            d
+            for d in r["drill_down"]
+            if d["subject"] == "Vendor Management" and d["framework"] == "SOC 2"
+        )
         assert vm["questions_seen"] == 2
         assert vm["answered"] == 2
         assert vm["low_confidence"] == 1
@@ -361,8 +447,7 @@ class TestComplianceCoverageComputation:
 
     def test_drill_down_incident_response_soc2(self):
         r = self._run()
-        ir = next(d for d in r["drill_down"]
-                  if d["subject"] == "Incident Response")
+        ir = next(d for d in r["drill_down"] if d["subject"] == "Incident Response")
         assert ir["framework"] == "SOC 2"
         assert ir["questions_seen"] == 1
         assert ir["answered"] == 0
@@ -371,8 +456,7 @@ class TestComplianceCoverageComputation:
     def test_drill_down_data_retention_pci(self):
         """Answer 14's signal fallback → PCI DSS framework in drill-down."""
         r = self._run()
-        dr = next(d for d in r["drill_down"]
-                  if d["subject"] == "Data Retention / Disposal")
+        dr = next(d for d in r["drill_down"] if d["subject"] == "Data Retention / Disposal")
         assert dr["framework"] == "PCI DSS"
         assert dr["insufficient"] == 1
 
@@ -419,8 +503,24 @@ class TestComplianceCoverageComputation:
 
     def test_all_insufficient_zero_coverage(self):
         answers = [
-            (1, 1, "insufficient_evidence", 10, _cats(["SOC 2"], ["Access Control"]), None, datetime(2026, 3, 20)),
-            (2, 2, "insufficient_evidence", 15, _cats(["SOC 2"], ["Encryption"]),     None, datetime(2026, 3, 20)),
+            (
+                1,
+                1,
+                "insufficient_evidence",
+                10,
+                _cats(["SOC 2"], ["Access Control"]),
+                None,
+                datetime(2026, 3, 20),
+            ),
+            (
+                2,
+                2,
+                "insufficient_evidence",
+                15,
+                _cats(["SOC 2"], ["Encryption"]),
+                None,
+                datetime(2026, 3, 20),
+            ),
         ]
         r = self._run(total_q=5, answers=answers, signals=[], gaps=[])
         kpi = r["kpi"]
@@ -445,8 +545,24 @@ class TestComplianceCoverageComputation:
     def test_null_confidence_excluded_from_high_conf(self):
         """Answers with confidence=None should not count as high-confidence."""
         answers = [
-            (1, 1, "draft", None, _cats(["SOC 2"], ["Access Control"]), _cits(1), datetime(2026, 3, 20)),
-            (2, 2, "draft", None, _cats(["SOC 2"], ["Access Control"]), _cits(1), datetime(2026, 3, 20)),
+            (
+                1,
+                1,
+                "draft",
+                None,
+                _cats(["SOC 2"], ["Access Control"]),
+                _cits(1),
+                datetime(2026, 3, 20),
+            ),
+            (
+                2,
+                2,
+                "draft",
+                None,
+                _cats(["SOC 2"], ["Access Control"]),
+                _cits(1),
+                datetime(2026, 3, 20),
+            ),
         ]
         r = self._run(total_q=2, answers=answers, signals=[], gaps=[])
         assert r["kpi"]["total_drafted"] == 2
@@ -455,8 +571,24 @@ class TestComplianceCoverageComputation:
     def test_other_unknown_frameworks_excluded(self):
         """Frameworks named 'Other' or 'Unknown' are filtered out."""
         answers = [
-            (1, 1, "draft", 80, _cats(["Other", "SOC 2"], ["Access Control"]),   _cits(1), datetime(2026, 3, 20)),
-            (2, 2, "draft", 80, _cats(["Unknown"],         ["Access Control"]),   _cits(1), datetime(2026, 3, 20)),
+            (
+                1,
+                1,
+                "draft",
+                80,
+                _cats(["Other", "SOC 2"], ["Access Control"]),
+                _cits(1),
+                datetime(2026, 3, 20),
+            ),
+            (
+                2,
+                2,
+                "draft",
+                80,
+                _cats(["Unknown"], ["Access Control"]),
+                _cits(1),
+                datetime(2026, 3, 20),
+            ),
         ]
         r = self._run(total_q=2, answers=answers, signals=[], gaps=[])
         fws = {fc["framework"] for fc in r["framework_coverage"]}
