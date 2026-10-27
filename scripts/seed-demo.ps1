@@ -7,5 +7,6 @@ $env:S3_SECRET_KEY = "minio123"
 $env:S3_BUCKET_RAW = "trustcopilot-raw"
 $env:S3_BUCKET_EXPORTS = "trustcopilot-exports"
 Set-Location -Path "$PSScriptRoot\..\apps\api"
-pip install -q -e .
+pip install -q --require-hashes -r requirements.lock
+pip install -q --no-deps -e .
 python scripts/seed_demo_workspace.py

@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useMemo, useState, useRef } from 'react'
+import { useCallback, useEffect, useId, useMemo, useState, useRef } from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { useAuth } from '@/contexts/AuthContext'
@@ -16,6 +16,7 @@ import {
   appNavItemsFor,
   isAppNavActive,
 } from '@/lib/app-navigation'
+import { disclosureTriggerProps } from '@/lib/disclosure'
 
 function initials(displayName: string | null, email: string): string {
   if (displayName?.trim()) {
@@ -78,6 +79,7 @@ export function Topbar({ navOpen, onToggleNav, menuButtonRef }: TopbarProps) {
   const [notificationsOpen, setNotificationsOpen] = useState(false)
   const [unreadCount, setUnreadCount] = useState(0)
   const notificationsAnchorRef = useRef<HTMLDivElement>(null)
+  const notificationsPanelId = useId()
   const searchDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const [menuOpen, setMenuOpen] = useState(false)
@@ -451,7 +453,7 @@ export function Topbar({ navOpen, onToggleNav, menuButtonRef }: TopbarProps) {
             onClick={() => setNotificationsOpen((o) => !o)}
             className="relative grid h-10 w-10 place-items-center rounded-full border border-tc-border bg-tc-surface-raised transition hover:bg-[var(--tc-hover)]"
             aria-label="Notifications"
-            aria-expanded={notificationsOpen}
+            {...disclosureTriggerProps(notificationsOpen, notificationsPanelId)}
           >
             <span aria-hidden>🔔</span>
             {unreadCount > 0 && (
@@ -468,6 +470,7 @@ export function Topbar({ navOpen, onToggleNav, menuButtonRef }: TopbarProps) {
             onClose={() => setNotificationsOpen(false)}
             onUnreadCountChange={setUnreadCount}
             anchorRef={notificationsAnchorRef}
+            panelId={notificationsPanelId}
           />
         </div>
 
