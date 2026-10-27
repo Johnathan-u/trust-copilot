@@ -376,7 +376,7 @@ export default function ReviewPage() {
               : 'Export failed')
         )
       if (!r.ok) setTimeout(() => setErrorToast(null), 6000)
-    } catch (e) {
+    } catch {
       setErrorToast('Network error. Try again.')
       setTimeout(() => setErrorToast(null), 5000)
     }
@@ -983,6 +983,7 @@ export default function ReviewPage() {
                   </tr>
                 </thead>
                 <tbody>
+                  {/* eslint-disable-next-line react-hooks/refs -- pre-existing row ref registration during render; tracked as a TC-02-006 follow-up */}
                   {filtered.map((q, i) => {
                     const status = q.answer?.status ?? 'pending'
                     const statusClass =
