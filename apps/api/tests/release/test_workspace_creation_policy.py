@@ -71,9 +71,7 @@ def make_user(db_session: Session) -> Generator[Callable[..., User], None, None]
         created.append(user.id)
         for ws_id, role in memberships:
             db_session.add(
-                WorkspaceMember(
-                    workspace_id=ws_id, user_id=user.id, role=role, suspended=suspended
-                )
+                WorkspaceMember(workspace_id=ws_id, user_id=user.id, role=role, suspended=suspended)
             )
         db_session.commit()
         return user
@@ -110,7 +108,9 @@ def _login(client: TestClient, user: User) -> None:
 
 
 def _create(client: TestClient, label: str = "ws"):
-    return client.post("/api/workspaces", json={"name": f"Synthetic {label} {secrets.token_hex(4)}"})
+    return client.post(
+        "/api/workspaces", json={"name": f"Synthetic {label} {secrets.token_hex(4)}"}
+    )
 
 
 def _admin_memberships(db: Session, user: User) -> int:
