@@ -25,7 +25,8 @@ class TestNdaAccessService:
     def test_request_access(self, db_session):
         ws = db_session.query(Workspace).first()
         result = nda.request_access(
-            db_session, ws.id,
+            db_session,
+            ws.id,
             requester_name="Jane Buyer",
             requester_email="jane@acme.com",
             nda_accepted=True,
@@ -39,7 +40,8 @@ class TestNdaAccessService:
     def test_request_without_nda_rejected(self, db_session):
         ws = db_session.query(Workspace).first()
         result = nda.request_access(
-            db_session, ws.id,
+            db_session,
+            ws.id,
             requester_name="No NDA",
             requester_email="no@nda.com",
             nda_accepted=False,
@@ -49,7 +51,8 @@ class TestNdaAccessService:
     def test_approve_generates_token(self, db_session):
         ws = db_session.query(Workspace).first()
         req = nda.request_access(
-            db_session, ws.id,
+            db_session,
+            ws.id,
             requester_name="Token Test",
             requester_email="token@test.com",
             nda_accepted=True,
@@ -64,7 +67,8 @@ class TestNdaAccessService:
     def test_validate_token(self, db_session):
         ws = db_session.query(Workspace).first()
         req = nda.request_access(
-            db_session, ws.id,
+            db_session,
+            ws.id,
             requester_name="Validate",
             requester_email="validate@test.com",
             nda_accepted=True,
@@ -79,7 +83,8 @@ class TestNdaAccessService:
     def test_reject_request(self, db_session):
         ws = db_session.query(Workspace).first()
         req = nda.request_access(
-            db_session, ws.id,
+            db_session,
+            ws.id,
             requester_name="Reject",
             requester_email="reject@test.com",
             nda_accepted=True,
@@ -92,7 +97,8 @@ class TestNdaAccessService:
     def test_revoke_access(self, db_session):
         ws = db_session.query(Workspace).first()
         req = nda.request_access(
-            db_session, ws.id,
+            db_session,
+            ws.id,
             requester_name="Revoke",
             requester_email="revoke@test.com",
             nda_accepted=True,
@@ -107,7 +113,8 @@ class TestNdaAccessService:
     def test_validate_revoked_token_fails(self, db_session):
         ws = db_session.query(Workspace).first()
         req = nda.request_access(
-            db_session, ws.id,
+            db_session,
+            ws.id,
             requester_name="Revoke Check",
             requester_email="rcheck@test.com",
             nda_accepted=True,
@@ -130,21 +137,27 @@ class TestNdaAccessService:
 
 class TestNdaAccessAPI:
     def test_request_access_public(self, client):
-        r = client.post("/api/nda-access/request", json={
-            "requester_name": "API Buyer",
-            "requester_email": "api@buyer.com",
-            "nda_accepted": True,
-            "requester_company": "API Corp",
-        })
+        r = client.post(
+            "/api/nda-access/request",
+            json={
+                "requester_name": "API Buyer",
+                "requester_email": "api@buyer.com",
+                "nda_accepted": True,
+                "requester_company": "API Corp",
+            },
+        )
         assert r.status_code == 200
         assert r.json()["status"] == "pending"
 
     def test_request_without_nda(self, client):
-        r = client.post("/api/nda-access/request", json={
-            "requester_name": "No NDA",
-            "requester_email": "no@nda.com",
-            "nda_accepted": False,
-        })
+        r = client.post(
+            "/api/nda-access/request",
+            json={
+                "requester_name": "No NDA",
+                "requester_email": "no@nda.com",
+                "nda_accepted": False,
+            },
+        )
         assert r.status_code == 400
 
     def test_list_requests(self, admin_client):
@@ -153,11 +166,14 @@ class TestNdaAccessAPI:
         assert "requests" in r.json()
 
     def test_approve_and_validate(self, admin_client, client):
-        r = client.post("/api/nda-access/request", json={
-            "requester_name": "Approve Test",
-            "requester_email": "approve@test.com",
-            "nda_accepted": True,
-        })
+        r = client.post(
+            "/api/nda-access/request",
+            json={
+                "requester_name": "Approve Test",
+                "requester_email": "approve@test.com",
+                "nda_accepted": True,
+            },
+        )
         req_id = r.json()["id"]
         r = admin_client.post(f"/api/nda-access/approve/{req_id}")
         assert r.status_code == 200
@@ -168,11 +184,14 @@ class TestNdaAccessAPI:
         assert r.json()["valid"] is True
 
     def test_editor_cannot_approve(self, editor_client, client):
-        r = client.post("/api/nda-access/request", json={
-            "requester_name": "Editor Test",
-            "requester_email": "editor@test.com",
-            "nda_accepted": True,
-        })
+        r = client.post(
+            "/api/nda-access/request",
+            json={
+                "requester_name": "Editor Test",
+                "requester_email": "editor@test.com",
+                "nda_accepted": True,
+            },
+        )
         req_id = r.json()["id"]
         r = editor_client.post(f"/api/nda-access/approve/{req_id}")
         assert r.status_code == 403

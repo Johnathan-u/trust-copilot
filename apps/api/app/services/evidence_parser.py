@@ -40,6 +40,7 @@ def parse_docx(path: str | Path) -> Iterator[dict]:
 def parse_xlsx_evidence(path: str | Path) -> Iterator[dict]:
     """Extract text from XLSX evidence (DOC-05)."""
     from app.services.xlsx_parser import iter_sheets
+
     for sheet_name, rows in iter_sheets(path):
         for ri, row in enumerate(rows):
             cells = [str(c).strip() for c in row if c is not None and str(c).strip()]

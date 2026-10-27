@@ -11,7 +11,9 @@ class FreshnessPolicy(Base):
     __tablename__ = "freshness_policies"
 
     id = Column(Integer, primary_key=True, index=True)
-    workspace_id = Column(Integer, ForeignKey("workspaces.id", ondelete="CASCADE"), nullable=False, index=True)
+    workspace_id = Column(
+        Integer, ForeignKey("workspaces.id", ondelete="CASCADE"), nullable=False, index=True
+    )
     source_type = Column(String(64), nullable=False)
     max_age_days = Column(Integer, nullable=False, default=90)
     warn_before_days = Column(Integer, nullable=False, default=14)

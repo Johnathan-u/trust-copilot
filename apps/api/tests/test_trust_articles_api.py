@@ -69,13 +69,18 @@ def test_create_trust_article_requires_admin(
     client: TestClient, admin_user: User, db_session: Session
 ) -> None:
     """Editor cannot create; admin can."""
-    from app.models import WorkspaceMember
+    from app.models import WorkspaceMember  # noqa: F401
 
     # Editor user cannot create
     client.post("/api/auth/login", json={"email": "editor@trust.local", "password": "e"})
     r = client.post(
         "/api/trust-articles/",
-        json={"slug": _unique_slug("editor-blocked"), "title": "X", "content": "", "workspace_id": 1},
+        json={
+            "slug": _unique_slug("editor-blocked"),
+            "title": "X",
+            "content": "",
+            "workspace_id": 1,
+        },
     )
     assert r.status_code == 403
 
@@ -185,7 +190,13 @@ def test_list_trust_articles_policy_only(client: TestClient, admin_user: User) -
     client.post("/api/auth/login", json={"email": "admin-tc@trust.local", "password": "a"})
     client.post(
         "/api/trust-articles/",
-        json={"slug": slug, "title": "Policy Article", "content": "Policy text", "workspace_id": 1, "is_policy": True},
+        json={
+            "slug": slug,
+            "title": "Policy Article",
+            "content": "Policy text",
+            "workspace_id": 1,
+            "is_policy": True,
+        },
     )
     r = client.get("/api/trust-articles?workspace_id=1&policy_only=true")
     assert r.status_code == 200
@@ -202,7 +213,13 @@ def test_acknowledge_policy_requires_auth(client: TestClient, admin_user: User) 
     client.post("/api/auth/login", json={"email": "admin-tc@trust.local", "password": "a"})
     create = client.post(
         "/api/trust-articles/",
-        json={"slug": slug, "title": "Ack Policy", "content": "C", "workspace_id": 1, "is_policy": True},
+        json={
+            "slug": slug,
+            "title": "Ack Policy",
+            "content": "C",
+            "workspace_id": 1,
+            "is_policy": True,
+        },
     )
     assert create.status_code in (200, 201)
     aid = create.json()["id"]
@@ -224,7 +241,13 @@ def test_acknowledge_policy_rejects_non_policy(client: TestClient, admin_user: U
     client.post("/api/auth/login", json={"email": "admin-tc@trust.local", "password": "a"})
     create = client.post(
         "/api/trust-articles/",
-        json={"slug": slug, "title": "Not Policy", "content": "C", "workspace_id": 1, "is_policy": False},
+        json={
+            "slug": slug,
+            "title": "Not Policy",
+            "content": "C",
+            "workspace_id": 1,
+            "is_policy": False,
+        },
     )
     assert create.status_code in (200, 201)
     aid = create.json()["id"]

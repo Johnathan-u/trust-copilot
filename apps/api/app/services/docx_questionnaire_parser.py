@@ -33,13 +33,15 @@ def parse_docx_questionnaire(path: str | Path) -> list[dict]:
             if len(norm) < 10:
                 continue
             source = {"file": str(path), "type": "paragraph", "index": i + 1}
-            results.append({
-                "text": norm,
-                "section": section,
-                "answer_type": infer_answer_type(text),
-                "source_location": json.dumps(source),
-                "confidence": 80,
-            })
+            results.append(
+                {
+                    "text": norm,
+                    "section": section,
+                    "answer_type": infer_answer_type(text),
+                    "source_location": json.dumps(source),
+                    "confidence": 80,
+                }
+            )
 
     for ti, tbl in enumerate(doc.tables):
         tbl_section = section
@@ -55,14 +57,22 @@ def parse_docx_questionnaire(path: str | Path) -> list[dict]:
                     norm = normalize(text)
                     if len(norm) < 10:
                         continue
-                    source = {"file": str(path), "type": "table", "table": ti + 1, "row": ri + 1, "col": ci + 1}
-                    results.append({
-                        "text": norm,
-                        "section": tbl_section,
-                        "answer_type": infer_answer_type(text),
-                        "source_location": json.dumps(source),
-                        "confidence": 80,
-                    })
+                    source = {
+                        "file": str(path),
+                        "type": "table",
+                        "table": ti + 1,
+                        "row": ri + 1,
+                        "col": ci + 1,
+                    }
+                    results.append(
+                        {
+                            "text": norm,
+                            "section": tbl_section,
+                            "answer_type": infer_answer_type(text),
+                            "source_location": json.dumps(source),
+                            "confidence": 80,
+                        }
+                    )
                     break
 
     return results

@@ -28,7 +28,8 @@ export function generationPhaseMessage(jobStatus: string | null | undefined): {
   if (s === 'queued') {
     return {
       title: 'Queued',
-      subtitle: 'Your request is in line. Processing usually starts within a few seconds.',
+      subtitle:
+        'Your request is in line. Processing usually starts within a few seconds.',
     }
   }
   if (s === 'running') {
@@ -69,12 +70,13 @@ const HEDGE_INSUFFICIENT_NEEDLES = [
  */
 export function isInsufficientAnswerText(
   text: string | null | undefined,
-  status?: string | null,
+  status?: string | null
 ): boolean {
   if (status === 'insufficient_evidence') return true
   const t = (text ?? '').trim().toLowerCase().replace(/\s+/g, ' ')
   if (!t) return true
-  if (t === 'insufficient evidence' || t === 'insufficient evidence.') return true
+  if (t === 'insufficient evidence' || t === 'insufficient evidence.')
+    return true
   if (t.startsWith('insufficient evidence') && t.length < 80) return true
   if (t.startsWith('insufficient evidence')) return true
   const head = t.slice(0, 360)

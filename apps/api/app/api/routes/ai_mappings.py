@@ -20,6 +20,7 @@ gov_router = APIRouter(prefix="/ai-governance", tags=["ai-governance"])
 # Request bodies
 # ---------------------------------------------------------------------------
 
+
 class FrameworkControlBody(BaseModel):
     framework_key: str
     control_id: int
@@ -80,6 +81,7 @@ class GovernanceBody(BaseModel):
 # Framework ↔ Controls
 # ---------------------------------------------------------------------------
 
+
 @router.get("/framework-controls")
 def list_framework_controls(
     framework_key: str | None = Query(None),
@@ -102,15 +104,26 @@ def create_framework_control(
     if not ws:
         raise HTTPException(status_code=403, detail="No workspace")
     result = svc.create_framework_control_mapping(
-        db, ws, body.framework_key, body.control_id,
-        source=body.source, confidence=body.confidence, approved=body.approved,
+        db,
+        ws,
+        body.framework_key,
+        body.control_id,
+        source=body.source,
+        confidence=body.confidence,
+        approved=body.approved,
         user_id=session.get("user_id"),
     )
     if not result:
         raise HTTPException(status_code=400, detail="Mapping already exists")
-    persist_audit(db, "ai_mapping.framework_control.created", user_id=session.get("user_id"),
-                  email=session.get("email"), workspace_id=ws,
-                  resource_type="framework_control_mapping", resource_id=result["id"])
+    persist_audit(
+        db,
+        "ai_mapping.framework_control.created",
+        user_id=session.get("user_id"),
+        email=session.get("email"),
+        workspace_id=ws,
+        resource_type="framework_control_mapping",
+        resource_id=result["id"],
+    )
     return result
 
 
@@ -125,9 +138,15 @@ def delete_framework_control(
         raise HTTPException(status_code=403, detail="No workspace")
     if not svc.delete_framework_control_mapping(db, mapping_id, ws):
         raise HTTPException(status_code=404, detail="Not found")
-    persist_audit(db, "ai_mapping.framework_control.deleted", user_id=session.get("user_id"),
-                  email=session.get("email"), workspace_id=ws,
-                  resource_type="framework_control_mapping", resource_id=mapping_id)
+    persist_audit(
+        db,
+        "ai_mapping.framework_control.deleted",
+        user_id=session.get("user_id"),
+        email=session.get("email"),
+        workspace_id=ws,
+        resource_type="framework_control_mapping",
+        resource_id=mapping_id,
+    )
     return {"ok": True}
 
 
@@ -145,15 +164,22 @@ def approve_framework_control(
     if not result:
         raise HTTPException(status_code=404, detail="Not found")
     action = "approved" if body.approved else "rejected"
-    persist_audit(db, f"ai_mapping.framework_control.{action}", user_id=session.get("user_id"),
-                  email=session.get("email"), workspace_id=ws,
-                  resource_type="framework_control_mapping", resource_id=mapping_id)
+    persist_audit(
+        db,
+        f"ai_mapping.framework_control.{action}",
+        user_id=session.get("user_id"),
+        email=session.get("email"),
+        workspace_id=ws,
+        resource_type="framework_control_mapping",
+        resource_id=mapping_id,
+    )
     return result
 
 
 # ---------------------------------------------------------------------------
 # Control ↔ Evidence
 # ---------------------------------------------------------------------------
+
 
 @router.get("/control-evidence")
 def list_control_evidence(
@@ -177,15 +203,27 @@ def create_control_evidence(
     if not ws:
         raise HTTPException(status_code=403, detail="No workspace")
     result = svc.create_control_evidence_mapping(
-        db, ws, body.control_id, body.evidence_id,
-        source=body.source, confidence=body.confidence, approved=body.approved,
-        override_priority=body.override_priority, user_id=session.get("user_id"),
+        db,
+        ws,
+        body.control_id,
+        body.evidence_id,
+        source=body.source,
+        confidence=body.confidence,
+        approved=body.approved,
+        override_priority=body.override_priority,
+        user_id=session.get("user_id"),
     )
     if not result:
         raise HTTPException(status_code=400, detail="Mapping already exists")
-    persist_audit(db, "ai_mapping.control_evidence.created", user_id=session.get("user_id"),
-                  email=session.get("email"), workspace_id=ws,
-                  resource_type="control_evidence_mapping", resource_id=result["id"])
+    persist_audit(
+        db,
+        "ai_mapping.control_evidence.created",
+        user_id=session.get("user_id"),
+        email=session.get("email"),
+        workspace_id=ws,
+        resource_type="control_evidence_mapping",
+        resource_id=result["id"],
+    )
     return result
 
 
@@ -200,9 +238,15 @@ def delete_control_evidence(
         raise HTTPException(status_code=403, detail="No workspace")
     if not svc.delete_control_evidence_mapping(db, mapping_id, ws):
         raise HTTPException(status_code=404, detail="Not found")
-    persist_audit(db, "ai_mapping.control_evidence.deleted", user_id=session.get("user_id"),
-                  email=session.get("email"), workspace_id=ws,
-                  resource_type="control_evidence_mapping", resource_id=mapping_id)
+    persist_audit(
+        db,
+        "ai_mapping.control_evidence.deleted",
+        user_id=session.get("user_id"),
+        email=session.get("email"),
+        workspace_id=ws,
+        resource_type="control_evidence_mapping",
+        resource_id=mapping_id,
+    )
     return {"ok": True}
 
 
@@ -220,15 +264,22 @@ def approve_control_evidence(
     if not result:
         raise HTTPException(status_code=404, detail="Not found")
     action = "approved" if body.approved else "rejected"
-    persist_audit(db, f"ai_mapping.control_evidence.{action}", user_id=session.get("user_id"),
-                  email=session.get("email"), workspace_id=ws,
-                  resource_type="control_evidence_mapping", resource_id=mapping_id)
+    persist_audit(
+        db,
+        f"ai_mapping.control_evidence.{action}",
+        user_id=session.get("user_id"),
+        email=session.get("email"),
+        workspace_id=ws,
+        resource_type="control_evidence_mapping",
+        resource_id=mapping_id,
+    )
     return result
 
 
 # ---------------------------------------------------------------------------
 # Evidence ↔ Tags
 # ---------------------------------------------------------------------------
+
 
 @router.get("/evidence-tags")
 def list_evidence_tags(
@@ -252,15 +303,26 @@ def create_evidence_tag(
     if not ws:
         raise HTTPException(status_code=403, detail="No workspace")
     result = svc.create_evidence_tag_mapping(
-        db, ws, body.evidence_id, body.tag_id,
-        source=body.source, confidence=body.confidence, approved=body.approved,
+        db,
+        ws,
+        body.evidence_id,
+        body.tag_id,
+        source=body.source,
+        confidence=body.confidence,
+        approved=body.approved,
         user_id=session.get("user_id"),
     )
     if not result:
         raise HTTPException(status_code=400, detail="Mapping already exists")
-    persist_audit(db, "ai_mapping.evidence_tag.created", user_id=session.get("user_id"),
-                  email=session.get("email"), workspace_id=ws,
-                  resource_type="evidence_tag_mapping", resource_id=result["id"])
+    persist_audit(
+        db,
+        "ai_mapping.evidence_tag.created",
+        user_id=session.get("user_id"),
+        email=session.get("email"),
+        workspace_id=ws,
+        resource_type="evidence_tag_mapping",
+        resource_id=result["id"],
+    )
     return result
 
 
@@ -275,9 +337,15 @@ def delete_evidence_tag(
         raise HTTPException(status_code=403, detail="No workspace")
     if not svc.delete_evidence_tag_mapping(db, mapping_id, ws):
         raise HTTPException(status_code=404, detail="Not found")
-    persist_audit(db, "ai_mapping.evidence_tag.deleted", user_id=session.get("user_id"),
-                  email=session.get("email"), workspace_id=ws,
-                  resource_type="evidence_tag_mapping", resource_id=mapping_id)
+    persist_audit(
+        db,
+        "ai_mapping.evidence_tag.deleted",
+        user_id=session.get("user_id"),
+        email=session.get("email"),
+        workspace_id=ws,
+        resource_type="evidence_tag_mapping",
+        resource_id=mapping_id,
+    )
     return {"ok": True}
 
 
@@ -295,15 +363,22 @@ def approve_evidence_tag(
     if not result:
         raise HTTPException(status_code=404, detail="Not found")
     action = "approved" if body.approved else "rejected"
-    persist_audit(db, f"ai_mapping.evidence_tag.{action}", user_id=session.get("user_id"),
-                  email=session.get("email"), workspace_id=ws,
-                  resource_type="evidence_tag_mapping", resource_id=mapping_id)
+    persist_audit(
+        db,
+        f"ai_mapping.evidence_tag.{action}",
+        user_id=session.get("user_id"),
+        email=session.get("email"),
+        workspace_id=ws,
+        resource_type="evidence_tag_mapping",
+        resource_id=mapping_id,
+    )
     return result
 
 
 # ---------------------------------------------------------------------------
 # Question preferences
 # ---------------------------------------------------------------------------
+
 
 @router.get("/question-preferences")
 def list_question_prefs(
@@ -327,20 +402,31 @@ def create_question_pref(
     if not ws:
         raise HTTPException(status_code=403, detail="No workspace")
     result = svc.create_question_preference(
-        db, ws,
-        questionnaire_id=body.questionnaire_id, question_id=body.question_id,
+        db,
+        ws,
+        questionnaire_id=body.questionnaire_id,
+        question_id=body.question_id,
         normalized_question_text=body.normalized_question_text,
         preferred_control_id=body.preferred_control_id,
         preferred_tag_id=body.preferred_tag_id,
         preferred_framework_key=body.preferred_framework_key,
-        weight=body.weight, source=body.source, confidence=body.confidence,
-        approved=body.approved, user_id=session.get("user_id"),
+        weight=body.weight,
+        source=body.source,
+        confidence=body.confidence,
+        approved=body.approved,
+        user_id=session.get("user_id"),
     )
     if not result:
         raise HTTPException(status_code=400, detail="Failed to create preference")
-    persist_audit(db, "ai_mapping.question_pref.created", user_id=session.get("user_id"),
-                  email=session.get("email"), workspace_id=ws,
-                  resource_type="question_mapping_preference", resource_id=result["id"])
+    persist_audit(
+        db,
+        "ai_mapping.question_pref.created",
+        user_id=session.get("user_id"),
+        email=session.get("email"),
+        workspace_id=ws,
+        resource_type="question_mapping_preference",
+        resource_id=result["id"],
+    )
     return result
 
 
@@ -355,9 +441,15 @@ def delete_question_pref(
         raise HTTPException(status_code=403, detail="No workspace")
     if not svc.delete_question_preference(db, pref_id, ws):
         raise HTTPException(status_code=404, detail="Not found")
-    persist_audit(db, "ai_mapping.question_pref.deleted", user_id=session.get("user_id"),
-                  email=session.get("email"), workspace_id=ws,
-                  resource_type="question_mapping_preference", resource_id=pref_id)
+    persist_audit(
+        db,
+        "ai_mapping.question_pref.deleted",
+        user_id=session.get("user_id"),
+        email=session.get("email"),
+        workspace_id=ws,
+        resource_type="question_mapping_preference",
+        resource_id=pref_id,
+    )
     return {"ok": True}
 
 
@@ -375,15 +467,22 @@ def approve_question_pref(
     if not result:
         raise HTTPException(status_code=404, detail="Not found")
     action = "approved" if body.approved else "rejected"
-    persist_audit(db, f"ai_mapping.question_pref.{action}", user_id=session.get("user_id"),
-                  email=session.get("email"), workspace_id=ws,
-                  resource_type="question_mapping_preference", resource_id=pref_id)
+    persist_audit(
+        db,
+        f"ai_mapping.question_pref.{action}",
+        user_id=session.get("user_id"),
+        email=session.get("email"),
+        workspace_id=ws,
+        resource_type="question_mapping_preference",
+        resource_id=pref_id,
+    )
     return result
 
 
 # ---------------------------------------------------------------------------
 # AI suggestions (generate mappings from existing data)
 # ---------------------------------------------------------------------------
+
 
 @router.post("/suggest/framework-controls")
 def suggest_framework_controls(
@@ -394,9 +493,14 @@ def suggest_framework_controls(
     if not ws:
         raise HTTPException(status_code=403, detail="No workspace")
     created = svc.suggest_framework_control_mappings(db, ws)
-    persist_audit(db, "ai_mapping.suggest.framework_controls", user_id=session.get("user_id"),
-                  email=session.get("email"), workspace_id=ws,
-                  details={"created": len(created)})
+    persist_audit(
+        db,
+        "ai_mapping.suggest.framework_controls",
+        user_id=session.get("user_id"),
+        email=session.get("email"),
+        workspace_id=ws,
+        details={"created": len(created)},
+    )
     return {"created": len(created), "mappings": created}
 
 
@@ -409,9 +513,14 @@ def suggest_control_evidence(
     if not ws:
         raise HTTPException(status_code=403, detail="No workspace")
     created = svc.suggest_control_evidence_mappings(db, ws)
-    persist_audit(db, "ai_mapping.suggest.control_evidence", user_id=session.get("user_id"),
-                  email=session.get("email"), workspace_id=ws,
-                  details={"created": len(created)})
+    persist_audit(
+        db,
+        "ai_mapping.suggest.control_evidence",
+        user_id=session.get("user_id"),
+        email=session.get("email"),
+        workspace_id=ws,
+        details={"created": len(created)},
+    )
     return {"created": len(created), "mappings": created}
 
 
@@ -424,9 +533,14 @@ def suggest_evidence_tags(
     if not ws:
         raise HTTPException(status_code=403, detail="No workspace")
     created = svc.suggest_evidence_tag_mappings(db, ws)
-    persist_audit(db, "ai_mapping.suggest.evidence_tags", user_id=session.get("user_id"),
-                  email=session.get("email"), workspace_id=ws,
-                  details={"created": len(created)})
+    persist_audit(
+        db,
+        "ai_mapping.suggest.evidence_tags",
+        user_id=session.get("user_id"),
+        email=session.get("email"),
+        workspace_id=ws,
+        details={"created": len(created)},
+    )
     return {"created": len(created), "mappings": created}
 
 
@@ -505,6 +619,7 @@ def workspace_usage(
 # Governance settings
 # ---------------------------------------------------------------------------
 
+
 @gov_router.get("/settings")
 def get_governance(
     session: dict = Depends(require_can_review),
@@ -527,7 +642,12 @@ def update_governance(
         raise HTTPException(status_code=403, detail="No workspace")
     data = body.model_dump(exclude_none=True)
     result = svc.upsert_governance_settings(db, ws, data)
-    persist_audit(db, "ai_governance.settings.updated", user_id=session.get("user_id"),
-                  email=session.get("email"), workspace_id=ws,
-                  details=data)
+    persist_audit(
+        db,
+        "ai_governance.settings.updated",
+        user_id=session.get("user_id"),
+        email=session.get("email"),
+        workspace_id=ws,
+        details=data,
+    )
     return result

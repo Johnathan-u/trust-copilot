@@ -22,111 +22,112 @@ if not _in_docker and not _in_test:
 
 # Bootstrap: ensure DB/config are initialized with current env before any route or config consumer runs.
 import app.core.database  # noqa: E402
+
 # Fail fast at startup (not per request) if the PDF backend (pypdf) is missing (TC-01-003a).
 import app.services.pdf_text  # noqa: E402,F401
 
-from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware
+from fastapi import FastAPI  # noqa: E402
+from fastapi.middleware.cors import CORSMiddleware  # noqa: E402
 
-from app.core.config import get_settings
-from app.core.logging_config import configure_logging, request_id_ctx, workspace_id_ctx
-from app.core.metrics import record_request as metrics_record_request
-from app.core.rate_limit import get_client_ip, is_rate_limited, record_attempt
-from app.api.routes import auth as auth_router
-from app.api.routes import members as members_router
-from app.api.routes import workspaces as workspaces_router
-from app.core.csrf import is_csrf_safe
-from app.api.routes import answers as answers_router
-from app.api.routes import documents as documents_router
-from app.api.routes import exports as exports_router
-from app.api.routes import jobs as jobs_router
-from app.api.routes import questionnaires as questionnaires_router
-from app.api.routes import search as search_router
-from app.api.routes import trust_articles as trust_articles_router
-from app.api.routes import trust_requests as trust_requests_router
-from app.api.routes import controls as controls_router
-from app.api.routes import compliance_controls as compliance_controls_router
-from app.api.routes import compliance_evidence as compliance_evidence_router
-from app.api.routes import compliance_frameworks as compliance_frameworks_router
-from app.api.routes import compliance_mappings as compliance_mappings_router
-from app.api.routes import compliance_gaps as compliance_gaps_router
-from app.api.routes import compliance_coverage as compliance_coverage_router
-from app.api.routes import compliance_alerts as compliance_alerts_router
-from app.api.routes import compliance_export as compliance_export_router
-from app.api.routes import compliance_audit as compliance_audit_router
-from app.api.routes import vendor_requests as vendor_requests_router
-from app.api.routes import vendor_response as vendor_response_router
-from app.api.routes import audit as audit_router
-from app.api.routes import notifications as notifications_router
-from app.api.routes import slack as slack_router
-from app.api.routes import slack_ingest as slack_ingest_router
-from app.api.routes import in_app_notifications as in_app_notifications_router
-from app.api.routes import gmail as gmail_router
-from app.api.routes import dashboard_cards as dashboard_cards_router
-from app.api.routes import tags as tags_router
-from app.api.routes import ai_mappings as ai_mappings_router
-from app.api.routes import ai_insights as ai_insights_router
-from app.api.routes import billing as billing_router
-from app.api.routes import feature_flags as feature_flags_router
-from app.api.routes import credits as credits_router
-from app.api.routes import operator_queue as operator_queue_router
-from app.api.routes import security_faq as security_faq_router
-from app.api.routes import demo_proof as demo_proof_router
-from app.api.routes import export_pack as export_pack_router
-from app.api.routes import source_registry as source_registry_router
-from app.api.routes import credentials as credentials_router
-from app.api.routes import security_page as security_page_router
-from app.api.routes import benchmarks as benchmarks_router
-from app.api.routes import proof_widgets as proof_widgets_router
-from app.api.routes import product_events as product_events_router
-from app.api.routes import executive_dashboard as executive_dashboard_router
-from app.api.routes import roi_calculator as roi_calculator_router
-from app.api.routes import case_studies as case_studies_router
-from app.api.routes import connector_health as connector_health_router
-from app.api.routes import control_engine as control_engine_router
-from app.api.routes import evidence_cards as evidence_cards_router
-from app.api.routes import knowledge_packs as knowledge_packs_router
-from app.api.routes import sla_tracking as sla_tracking_router
-from app.api.routes import credit_prompts as credit_prompts_router
-from app.api.routes import signal_mapping as signal_mapping_router
-from app.api.routes import monitoring as monitoring_router
-from app.api.routes import alert_management as alert_management_router
-from app.api.routes import trust_center_publish as trust_center_publish_router
-from app.api.routes import control_timeline as control_timeline_router
-from app.api.routes import nda_access as nda_access_router
-from app.api.routes import evidence_diff as evidence_diff_router
-from app.api.routes import shareable_spaces as shareable_spaces_router
-from app.api.routes import trust_center_analytics as trust_center_analytics_router
-from app.api.routes import answer_tiers as answer_tiers_router
-from app.api.routes import golden_answers as golden_answers_router
-from app.api.routes import feedback_capture as feedback_capture_router
-from app.api.routes import reuse_analytics as reuse_analytics_router
-from app.api.routes import incident_pages as incident_pages_router
-from app.api.routes import sli as sli_router
-from app.api.routes import ingestion as ingestion_router
-from app.api.routes import aws_connector as aws_connector_router
-from app.api.routes import github_connector as github_connector_router
-from app.api.routes import google_connector as google_connector_router
-from app.api.routes import cloud_connectors as cloud_connectors_router
-from app.api.routes import answer_approval as answer_approval_router
-from app.api.routes import evidence_approval as evidence_approval_router
-from app.api.routes import confidence_scoring as confidence_scoring_router
-from app.api.routes import freshness_policies as freshness_policies_router
-from app.api.routes import citation_composer as citation_composer_router
-from app.api.routes import retention as retention_router
-from app.api.routes import evidence_search as evidence_search_router
-from app.api.routes import confidence_routing as confidence_routing_router
-from app.api.routes import alerting_engine as alerting_engine_router
-from app.api.routes import connector_wizard as connector_wizard_router
-from app.api.routes import deals as deals_router
-from app.api.routes import crm_connectors as crm_connectors_router
-from app.api.routes import remediation as remediation_router
-from app.api.routes import promises as promises_router
-from app.api.routes import contracts as contracts_router
-from app.api.routes import buyer_portal as buyer_portal_router
-from app.api.routes import proof_graph as proof_graph_router
-from app.api.routes import answer_outcomes as answer_outcomes_router
-from app.services.storage import StorageClient
+from app.core.config import get_settings  # noqa: E402
+from app.core.logging_config import configure_logging, request_id_ctx, workspace_id_ctx  # noqa: E402
+from app.core.metrics import record_request as metrics_record_request  # noqa: E402
+from app.core.rate_limit import get_client_ip, is_rate_limited, record_attempt  # noqa: E402
+from app.api.routes import auth as auth_router  # noqa: E402
+from app.api.routes import members as members_router  # noqa: E402
+from app.api.routes import workspaces as workspaces_router  # noqa: E402
+from app.core.csrf import is_csrf_safe  # noqa: E402
+from app.api.routes import answers as answers_router  # noqa: E402
+from app.api.routes import documents as documents_router  # noqa: E402
+from app.api.routes import exports as exports_router  # noqa: E402
+from app.api.routes import jobs as jobs_router  # noqa: E402
+from app.api.routes import questionnaires as questionnaires_router  # noqa: E402
+from app.api.routes import search as search_router  # noqa: E402
+from app.api.routes import trust_articles as trust_articles_router  # noqa: E402
+from app.api.routes import trust_requests as trust_requests_router  # noqa: E402
+from app.api.routes import controls as controls_router  # noqa: E402
+from app.api.routes import compliance_controls as compliance_controls_router  # noqa: E402
+from app.api.routes import compliance_evidence as compliance_evidence_router  # noqa: E402
+from app.api.routes import compliance_frameworks as compliance_frameworks_router  # noqa: E402
+from app.api.routes import compliance_mappings as compliance_mappings_router  # noqa: E402
+from app.api.routes import compliance_gaps as compliance_gaps_router  # noqa: E402
+from app.api.routes import compliance_coverage as compliance_coverage_router  # noqa: E402
+from app.api.routes import compliance_alerts as compliance_alerts_router  # noqa: E402
+from app.api.routes import compliance_export as compliance_export_router  # noqa: E402
+from app.api.routes import compliance_audit as compliance_audit_router  # noqa: E402
+from app.api.routes import vendor_requests as vendor_requests_router  # noqa: E402
+from app.api.routes import vendor_response as vendor_response_router  # noqa: E402
+from app.api.routes import audit as audit_router  # noqa: E402
+from app.api.routes import notifications as notifications_router  # noqa: E402
+from app.api.routes import slack as slack_router  # noqa: E402
+from app.api.routes import slack_ingest as slack_ingest_router  # noqa: E402
+from app.api.routes import in_app_notifications as in_app_notifications_router  # noqa: E402
+from app.api.routes import gmail as gmail_router  # noqa: E402
+from app.api.routes import dashboard_cards as dashboard_cards_router  # noqa: E402
+from app.api.routes import tags as tags_router  # noqa: E402
+from app.api.routes import ai_mappings as ai_mappings_router  # noqa: E402
+from app.api.routes import ai_insights as ai_insights_router  # noqa: E402
+from app.api.routes import billing as billing_router  # noqa: E402
+from app.api.routes import feature_flags as feature_flags_router  # noqa: E402
+from app.api.routes import credits as credits_router  # noqa: E402
+from app.api.routes import operator_queue as operator_queue_router  # noqa: E402
+from app.api.routes import security_faq as security_faq_router  # noqa: E402
+from app.api.routes import demo_proof as demo_proof_router  # noqa: E402
+from app.api.routes import export_pack as export_pack_router  # noqa: E402
+from app.api.routes import source_registry as source_registry_router  # noqa: E402
+from app.api.routes import credentials as credentials_router  # noqa: E402
+from app.api.routes import security_page as security_page_router  # noqa: E402
+from app.api.routes import benchmarks as benchmarks_router  # noqa: E402
+from app.api.routes import proof_widgets as proof_widgets_router  # noqa: E402
+from app.api.routes import product_events as product_events_router  # noqa: E402
+from app.api.routes import executive_dashboard as executive_dashboard_router  # noqa: E402
+from app.api.routes import roi_calculator as roi_calculator_router  # noqa: E402
+from app.api.routes import case_studies as case_studies_router  # noqa: E402
+from app.api.routes import connector_health as connector_health_router  # noqa: E402
+from app.api.routes import control_engine as control_engine_router  # noqa: E402
+from app.api.routes import evidence_cards as evidence_cards_router  # noqa: E402
+from app.api.routes import knowledge_packs as knowledge_packs_router  # noqa: E402
+from app.api.routes import sla_tracking as sla_tracking_router  # noqa: E402
+from app.api.routes import credit_prompts as credit_prompts_router  # noqa: E402
+from app.api.routes import signal_mapping as signal_mapping_router  # noqa: E402
+from app.api.routes import monitoring as monitoring_router  # noqa: E402
+from app.api.routes import alert_management as alert_management_router  # noqa: E402
+from app.api.routes import trust_center_publish as trust_center_publish_router  # noqa: E402
+from app.api.routes import control_timeline as control_timeline_router  # noqa: E402
+from app.api.routes import nda_access as nda_access_router  # noqa: E402
+from app.api.routes import evidence_diff as evidence_diff_router  # noqa: E402
+from app.api.routes import shareable_spaces as shareable_spaces_router  # noqa: E402
+from app.api.routes import trust_center_analytics as trust_center_analytics_router  # noqa: E402
+from app.api.routes import answer_tiers as answer_tiers_router  # noqa: E402
+from app.api.routes import golden_answers as golden_answers_router  # noqa: E402
+from app.api.routes import feedback_capture as feedback_capture_router  # noqa: E402
+from app.api.routes import reuse_analytics as reuse_analytics_router  # noqa: E402
+from app.api.routes import incident_pages as incident_pages_router  # noqa: E402
+from app.api.routes import sli as sli_router  # noqa: E402
+from app.api.routes import ingestion as ingestion_router  # noqa: E402
+from app.api.routes import aws_connector as aws_connector_router  # noqa: E402
+from app.api.routes import github_connector as github_connector_router  # noqa: E402
+from app.api.routes import google_connector as google_connector_router  # noqa: E402
+from app.api.routes import cloud_connectors as cloud_connectors_router  # noqa: E402
+from app.api.routes import answer_approval as answer_approval_router  # noqa: E402
+from app.api.routes import evidence_approval as evidence_approval_router  # noqa: E402
+from app.api.routes import confidence_scoring as confidence_scoring_router  # noqa: E402
+from app.api.routes import freshness_policies as freshness_policies_router  # noqa: E402
+from app.api.routes import citation_composer as citation_composer_router  # noqa: E402
+from app.api.routes import retention as retention_router  # noqa: E402
+from app.api.routes import evidence_search as evidence_search_router  # noqa: E402
+from app.api.routes import confidence_routing as confidence_routing_router  # noqa: E402
+from app.api.routes import alerting_engine as alerting_engine_router  # noqa: E402
+from app.api.routes import connector_wizard as connector_wizard_router  # noqa: E402
+from app.api.routes import deals as deals_router  # noqa: E402
+from app.api.routes import crm_connectors as crm_connectors_router  # noqa: E402
+from app.api.routes import remediation as remediation_router  # noqa: E402
+from app.api.routes import promises as promises_router  # noqa: E402
+from app.api.routes import contracts as contracts_router  # noqa: E402
+from app.api.routes import buyer_portal as buyer_portal_router  # noqa: E402
+from app.api.routes import proof_graph as proof_graph_router  # noqa: E402
+from app.api.routes import answer_outcomes as answer_outcomes_router  # noqa: E402
+from app.services.storage import StorageClient  # noqa: E402
 
 
 def _init_sentry() -> None:
@@ -167,6 +168,7 @@ def _verify_db_connectivity():
     import logging
     from sqlalchemy import text
     from app.core.database import engine
+
     log = logging.getLogger("app.main")
     try:
         with engine.connect() as conn:
@@ -188,6 +190,7 @@ async def lifespan(app: FastAPI):
         storage.ensure_buckets()
     except Exception as e:
         import logging
+
         logging.getLogger("app.main").warning("S3/MinIO bucket init skipped or failed: %s", e)
     configure_logging(s.log_level, use_json=(s.app_env == "production"))
     if s.app_env == "production":
@@ -197,22 +200,30 @@ async def lifespan(app: FastAPI):
                 "Use a cryptographically secure value (min 32 chars)."
             )
         if len(s.session_secret) < 32:
-            raise RuntimeError(
-                "SESSION_SECRET must be at least 32 characters in production."
-            )
+            raise RuntimeError("SESSION_SECRET must be at least 32 characters in production.")
     else:
         if not s.session_secret or s.session_secret == "change_me_dev_secret":
             import logging
+
             logging.getLogger("app.main").warning(
                 "SESSION_SECRET is default or unset. Set SESSION_SECRET to a secure value for non-local use."
             )
-    print("OpenAI: configured" if s.openai_api_key else "OpenAI: not configured (Suggest Reply will return 503 or empty)", flush=True)
+    print(
+        "OpenAI: configured"
+        if s.openai_api_key
+        else "OpenAI: not configured (Suggest Reply will return 503 or empty)",
+        flush=True,
+    )
     if s.oauth_google_client_id:
         google_redirect = f"{s.app_base_url.rstrip('/')}/api/auth/oauth/google/callback"
-        print(f"Google OAuth: add this exact Authorized redirect URI in Google Cloud Console: {google_redirect}", flush=True)
+        print(
+            f"Google OAuth: add this exact Authorized redirect URI in Google Cloud Console: {google_redirect}",
+            flush=True,
+        )
     try:
         from app.core.database import SessionLocal
         from app.services.tag_service import ensure_system_tags
+
         _db = SessionLocal()
         try:
             ensure_system_tags(_db)
@@ -220,6 +231,7 @@ async def lifespan(app: FastAPI):
             _db.close()
     except Exception:
         import logging
+
         logging.getLogger("app.main").debug("System tag seeding skipped", exc_info=True)
     yield
 
@@ -232,6 +244,7 @@ class StructuredLoggingMiddleware(BaseHTTPMiddleware):
 
     async def dispatch(self, request: Request, call_next):
         import logging
+
         request_id = str(uuid.uuid4())
         request.state.request_id = request_id
         token = request_id_ctx.set(request_id)
@@ -244,13 +257,22 @@ class StructuredLoggingMiddleware(BaseHTTPMiddleware):
             elapsed = time.perf_counter() - start
             latency_ms = round(elapsed * 1000)
             try:
-                wid = getattr(request.state, "workspace_id", None) if hasattr(request, "state") else None
+                wid = (
+                    getattr(request.state, "workspace_id", None)
+                    if hasattr(request, "state")
+                    else None
+                )
             except Exception:
                 wid = None
             workspace_id_ctx.set(wid)
             logging.getLogger("app.request").info(
                 "request",
-                extra={"route": path, "method": method, "status_code": status, "latency_ms": latency_ms},
+                extra={
+                    "route": path,
+                    "method": method,
+                    "status_code": status,
+                    "latency_ms": latency_ms,
+                },
             )
             metrics_record_request(method, path, status, elapsed)
             return response
@@ -290,11 +312,16 @@ class CSRFMiddleware(BaseHTTPMiddleware):
                     x_forwarded_proto=xfp,
                 ):
                     import logging
+
                     logging.getLogger("app.main").warning(
                         "CSRF reject: Origin=%r Referer=%r trusted_origins=%r path=%s",
-                        origin, referer, s.trusted_origins, request.scope.get("path"),
+                        origin,
+                        referer,
+                        s.trusted_origins,
+                        request.scope.get("path"),
                     )
                     from starlette.responses import JSONResponse
+
                     return JSONResponse(
                         status_code=403,
                         content={"detail": "Invalid or missing Origin/Referer"},
@@ -316,6 +343,7 @@ class GlobalRateLimitMiddleware(BaseHTTPMiddleware):
         key = f"api_ip:{ip}"
         if is_rate_limited(key, max_attempts=s.rate_limit_rpm_per_ip, window_sec=60.0):
             from starlette.responses import JSONResponse
+
             return JSONResponse(status_code=429, content={"detail": "Too many requests"})
         record_attempt(key, max_attempts=s.rate_limit_rpm_per_ip, window_sec=60.0)
         return await call_next(request)
@@ -435,6 +463,7 @@ def metrics():
     """Prometheus scrape endpoint. Request count, latency histogram, 5xx count."""
     from starlette.responses import Response
     from app.core.metrics import get_metrics_body, get_metrics_content_type
+
     return Response(content=get_metrics_body(), media_type=get_metrics_content_type())
 
 
@@ -448,11 +477,13 @@ def db_test():
     """Debug: verify DB connection. Only available in dev/test environments."""
     from fastapi.responses import JSONResponse
     from app.core.config import get_settings
+
     if get_settings().app_env == "production":
         return JSONResponse({"detail": "Not available"}, status_code=404)
     from sqlalchemy import text
     from sqlalchemy.exc import OperationalError
     from app.core.database import engine
+
     try:
         with engine.connect() as conn:
             conn.execute(text("SELECT 1"))
@@ -471,6 +502,7 @@ def readyz():
     errors = []
     try:
         from app.core.database import engine
+
         with engine.connect() as conn:
             conn.execute(text("SELECT 1"))
     except OperationalError as e:
@@ -494,30 +526,40 @@ def readyz():
 @app.get("/workerz")
 def workerz():
     """Worker and queue visibility: worker alive (heartbeat within 2 min) and queue depth. Returns 503 if worker not seen."""
-    from datetime import datetime, timedelta, timezone
+    from datetime import datetime, timedelta, timezone  # noqa: F401
     from fastapi.responses import JSONResponse
     from sqlalchemy import text
     from app.core.database import engine
 
     try:
         with engine.connect() as conn:
-            row = conn.execute(text("SELECT last_seen_utc FROM worker_heartbeat WHERE id = 1")).fetchone()
-            queued = conn.execute(text("SELECT COUNT(*) FROM jobs WHERE status = 'queued'")).scalar() or 0
-            running = conn.execute(text("SELECT COUNT(*) FROM jobs WHERE status = 'running'")).scalar() or 0
+            row = conn.execute(
+                text("SELECT last_seen_utc FROM worker_heartbeat WHERE id = 1")
+            ).fetchone()
+            queued = (
+                conn.execute(text("SELECT COUNT(*) FROM jobs WHERE status = 'queued'")).scalar()
+                or 0
+            )
+            running = (
+                conn.execute(text("SELECT COUNT(*) FROM jobs WHERE status = 'running'")).scalar()
+                or 0
+            )
         last_seen = row[0] if row else None
         now_utc = datetime.now(timezone.utc)
         if last_seen is not None and hasattr(last_seen, "replace"):
-            last_seen_utc = last_seen.replace(tzinfo=timezone.utc) if last_seen.tzinfo is None else last_seen
+            last_seen_utc = (
+                last_seen.replace(tzinfo=timezone.utc) if last_seen.tzinfo is None else last_seen
+            )
         else:
             last_seen_utc = last_seen
         threshold_sec = 120
         worker_alive = (
-            last_seen_utc is not None
-            and (now_utc - last_seen_utc).total_seconds() < threshold_sec
+            last_seen_utc is not None and (now_utc - last_seen_utc).total_seconds() < threshold_sec
         )
         body = {"worker_alive": worker_alive, "queued": queued, "running": running}
         if not worker_alive:
             import logging
+
             logging.getLogger("trustcopilot.alert").warning(
                 "ALERT_WORKER_DOWN queued=%s running=%s", queued, running
             )
@@ -525,7 +567,9 @@ def workerz():
         return body
     except Exception as e:
         import logging
-        logging.getLogger("trustcopilot.alert").warning(
-            "ALERT_WORKER_DOWN error=%s", str(e)[:200]
+
+        logging.getLogger("trustcopilot.alert").warning("ALERT_WORKER_DOWN error=%s", str(e)[:200])
+        return JSONResponse(
+            status_code=503,
+            content={"worker_alive": False, "queued": None, "running": None, "error": str(e)},
         )
-        return JSONResponse(status_code=503, content={"worker_alive": False, "queued": None, "running": None, "error": str(e)})

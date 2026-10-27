@@ -66,9 +66,14 @@ class TestFreshnessPolicyService:
 
 class TestFreshnessPolicyAPI:
     def test_set_policy(self, admin_client):
-        r = admin_client.post("/api/freshness-policies", json={
-            "source_type": "integration", "max_age_days": 7, "warn_before_days": 2,
-        })
+        r = admin_client.post(
+            "/api/freshness-policies",
+            json={
+                "source_type": "integration",
+                "max_age_days": 7,
+                "warn_before_days": 2,
+            },
+        )
         assert r.status_code == 200
         assert r.json()["source_type"] == "integration"
 
@@ -88,7 +93,11 @@ class TestFreshnessPolicyAPI:
         assert "results" in r.json()
 
     def test_editor_cannot_set(self, editor_client):
-        r = editor_client.post("/api/freshness-policies", json={
-            "source_type": "ai", "max_age_days": 30,
-        })
+        r = editor_client.post(
+            "/api/freshness-policies",
+            json={
+                "source_type": "ai",
+                "max_age_days": 30,
+            },
+        )
         assert r.status_code == 403

@@ -5,6 +5,7 @@ Revises: 024
 Create Date: 2025-01-01 00:25:00
 
 """
+
 from alembic import op
 import sqlalchemy as sa
 
@@ -18,7 +19,12 @@ def upgrade() -> None:
     op.create_table(
         "api_keys",
         sa.Column("id", sa.Integer(), primary_key=True, autoincrement=True),
-        sa.Column("workspace_id", sa.Integer(), sa.ForeignKey("workspaces.id", ondelete="CASCADE"), nullable=False),
+        sa.Column(
+            "workspace_id",
+            sa.Integer(),
+            sa.ForeignKey("workspaces.id", ondelete="CASCADE"),
+            nullable=False,
+        ),
         sa.Column("key_hash", sa.String(64), nullable=False),
         sa.Column("label", sa.String(255), nullable=True),
         sa.Column("role", sa.String(32), nullable=False, server_default="editor"),

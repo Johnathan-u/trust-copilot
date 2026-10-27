@@ -18,7 +18,10 @@ type ChainNode = {
 
 type ChainResponse = { answer_id: number; chain: ChainNode[] }
 
-const FRESHNESS_STYLE: Record<string, { bg: string; border: string; label: string }> = {
+const FRESHNESS_STYLE: Record<
+  string,
+  { bg: string; border: string; label: string }
+> = {
   live: {
     bg: 'rgba(34, 197, 94, 0.12)',
     border: 'rgba(34, 197, 94, 0.35)',
@@ -60,41 +63,38 @@ export default function ProofChainPage() {
   const [error, setError] = useState<string | null>(null)
   const [data, setData] = useState<ChainResponse | null>(null)
 
-  const loadChain = useCallback(
-    async (raw: string) => {
-      const id = parseInt(raw, 10)
-      if (Number.isNaN(id) || id < 1) {
-        setError('Enter a valid answer ID (positive integer).')
-        setData(null)
+  const loadChain = useCallback(async (raw: string) => {
+    const id = parseInt(raw, 10)
+    if (Number.isNaN(id) || id < 1) {
+      setError('Enter a valid answer ID (positive integer).')
+      setData(null)
+      return
+    }
+    setLoading(true)
+    setError(null)
+    setData(null)
+    try {
+      const r = await fetch(`/api/proof-graph/chain/answer/${id}`, {
+        credentials: 'include',
+      })
+      if (r.status === 404) {
+        setError(
+          'No proof chain for this answer. Run proof graph sync (API POST /api/proof-graph/sync) after linking answers to your golden library, or use Review after generation.'
+        )
         return
       }
-      setLoading(true)
-      setError(null)
-      setData(null)
-      try {
-        const r = await fetch(`/api/proof-graph/chain/answer/${id}`, {
-          credentials: 'include',
-        })
-        if (r.status === 404) {
-          setError(
-            'No proof chain for this answer. Run proof graph sync (API POST /api/proof-graph/sync) after linking answers to your golden library, or use Review after generation.',
-          )
-          return
-        }
-        if (!r.ok) {
-          setError(`Could not load chain (${r.status}).`)
-          return
-        }
-        const body = (await r.json()) as ChainResponse
-        setData(body)
-      } catch {
-        setError('Network error loading proof chain.')
-      } finally {
-        setLoading(false)
+      if (!r.ok) {
+        setError(`Could not load chain (${r.status}).`)
+        return
       }
-    },
-    [],
-  )
+      const body = (await r.json()) as ChainResponse
+      setData(body)
+    } catch {
+      setError('Network error loading proof chain.')
+    } finally {
+      setLoading(false)
+    }
+  }, [])
 
   useEffect(() => {
     if (initialId) void loadChain(initialId)
@@ -105,19 +105,29 @@ export default function ProofChainPage() {
   return (
     <div className="max-w-3xl">
       <div className="mb-6">
-        <Link href="/dashboard" className="text-sm text-[var(--tc-muted)] hover:text-[var(--tc-text)]">
+        <Link
+          href="/dashboard"
+          className="text-sm text-[var(--tc-muted)] hover:text-[var(--tc-text)]"
+        >
           ← Dashboard
         </Link>
       </div>
-      <h1 className="text-2xl font-bold text-[var(--tc-text)] mb-1">Proof chain</h1>
+      <h1 className="text-2xl font-bold text-[var(--tc-text)] mb-1">
+        Proof chain
+      </h1>
       <p className="text-sm text-[var(--tc-muted)] mb-6 max-w-xl">
-        Trace how a questionnaire answer connects to golden answers, controls, and evidence. Use this in reviews and deal rooms to verify the reasoning path behind an answer.
+        Trace how a questionnaire answer connects to golden answers, controls,
+        and evidence. Use this in reviews and deal rooms to verify the reasoning
+        path behind an answer.
       </p>
 
       <Card className="mb-8 p-5">
         <div className="flex flex-wrap items-end gap-3">
           <div className="min-w-[200px] flex-1">
-            <label htmlFor="proof-answer-id" className="mb-1.5 block text-xs font-medium text-[var(--tc-muted)]">
+            <label
+              htmlFor="proof-answer-id"
+              className="mb-1.5 block text-xs font-medium text-[var(--tc-muted)]"
+            >
               Answer ID
             </label>
             <Input
@@ -131,7 +141,11 @@ export default function ProofChainPage() {
               }}
             />
           </div>
-          <Button type="button" onClick={() => void loadChain(answerIdInput)} disabled={loading}>
+          <Button
+            type="button"
+            onClick={() => void loadChain(answerIdInput)}
+            disabled={loading}
+          >
             {loading ? 'Loading…' : 'Load chain'}
           </Button>
         </div>
@@ -150,13 +164,18 @@ export default function ProofChainPage() {
       {!loading && data && steps.length > 0 && (
         <div>
           <p className="mb-4 text-xs font-semibold uppercase tracking-wider text-[var(--tc-muted)]">
-            Chain for answer #{data.answer_id} ({steps.length} nodes) — source → answer
+            Chain for answer #{data.answer_id} ({steps.length} nodes) — source →
+            answer
           </p>
           <ol className="relative grid gap-0 border-l-2 border-[var(--tc-border)] pl-6 ml-2">
             {steps.map((node, idx) => {
-              const fs = FRESHNESS_STYLE[node.freshness] ?? FRESHNESS_STYLE.aging
+              const fs =
+                FRESHNESS_STYLE[node.freshness] ?? FRESHNESS_STYLE.aging
               return (
-                <li key={`${node.id}-${idx}`} className="relative pb-8 last:pb-0">
+                <li
+                  key={`${node.id}-${idx}`}
+                  className="relative pb-8 last:pb-0"
+                >
                   <span
                     className="absolute -left-[calc(0.5rem+5px)] top-1.5 h-2.5 w-2.5 rounded-full border-2 border-[var(--tc-bg)]"
                     style={{ background: fs.border }}
@@ -183,7 +202,10 @@ export default function ProofChainPage() {
                       )}
                     </div>
                     {node.label && (
-                      <p className="text-sm leading-snug text-[var(--tc-text)] line-clamp-4" title={node.label}>
+                      <p
+                        className="text-sm leading-snug text-[var(--tc-text)] line-clamp-4"
+                        title={node.label}
+                      >
                         {node.label}
                       </p>
                     )}
@@ -201,7 +223,9 @@ export default function ProofChainPage() {
       )}
 
       {!loading && data && steps.length === 0 && (
-        <p className="text-sm text-[var(--tc-muted)]">Chain is empty for this answer.</p>
+        <p className="text-sm text-[var(--tc-muted)]">
+          Chain is empty for this answer.
+        </p>
       )}
     </div>
   )

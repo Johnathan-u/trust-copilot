@@ -24,9 +24,11 @@ def vendor_admin_ws1(db_session: Session) -> User:
         db_session.add(user)
         db_session.commit()
         db_session.refresh(user)
-    mem = db_session.query(WorkspaceMember).filter(
-        WorkspaceMember.user_id == user.id, WorkspaceMember.workspace_id == 1
-    ).first()
+    mem = (
+        db_session.query(WorkspaceMember)
+        .filter(WorkspaceMember.user_id == user.id, WorkspaceMember.workspace_id == 1)
+        .first()
+    )
     if not mem:
         db_session.add(WorkspaceMember(workspace_id=1, user_id=user.id, role="admin"))
         db_session.commit()
