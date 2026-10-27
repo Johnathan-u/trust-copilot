@@ -1,6 +1,7 @@
 """Tests for deal management and analytics (E1-01, E1-04, E1-05, E1-06, E1-07)."""
 
 import pytest
+from app.models.questionnaire import Questionnaire
 from app.models.workspace import Workspace
 from app.services import deal_service as ds
 from app.services import revenue_risk_service as rrs
@@ -54,7 +55,7 @@ class TestDealService:
         ws = db_session.query(Workspace).first()
         created = ds.create_deal(db_session, ws.id, "Update Corp")
         db_session.commit()
-        updated = ds.update_deal(db_session, created["id"], stage="closed_won")
+        updated = ds.update_deal(db_session, created["id"], workspace_id=ws.id, stage="closed_won")
         db_session.commit()
         assert updated["stage"] == "closed_won"
 
@@ -62,17 +63,20 @@ class TestDealService:
         ws = db_session.query(Workspace).first()
         created = ds.create_deal(db_session, ws.id, "Delete Corp")
         db_session.commit()
-        assert ds.delete_deal(db_session, created["id"]) is True
+        assert ds.delete_deal(db_session, created["id"], workspace_id=ws.id) is True
         db_session.commit()
-        assert ds.get_deal(db_session, created["id"]) is None
+        assert ds.get_deal(db_session, created["id"], workspace_id=ws.id) is None
 
     def test_link_questionnaire(self, db_session):
         ws = db_session.query(Workspace).first()
         created = ds.create_deal(db_session, ws.id, "Link Corp")
         db_session.commit()
-        result = ds.link_questionnaire(db_session, created["id"], 42)
+        qnr = Questionnaire(workspace_id=ws.id, filename="link-corp.xlsx", status="parsed")
+        db_session.add(qnr)
         db_session.commit()
-        assert 42 in result["linked_questionnaire_ids"]
+        result = ds.link_questionnaire(db_session, created["id"], qnr.id, workspace_id=ws.id)
+        db_session.commit()
+        assert qnr.id in result["linked_questionnaire_ids"]
 
 
 class TestRevenueRiskService:
@@ -80,7 +84,7 @@ class TestRevenueRiskService:
         ws = db_session.query(Workspace).first()
         created = ds.create_deal(db_session, ws.id, "Risk Corp", deal_value_arr=200000)
         db_session.commit()
-        score = rrs.score_deal(db_session, created["id"])
+        score = rrs.score_deal(db_session, created["id"], workspace_id=ws.id)
         assert "risk_score" in score
         assert "revenue_at_risk" in score
         assert "breakdown" in score
@@ -99,7 +103,7 @@ class TestDealRoomService:
         ws = db_session.query(Workspace).first()
         created = ds.create_deal(db_session, ws.id, "Room Corp")
         db_session.commit()
-        room = drs.generate_deal_room(db_session, created["id"])
+        room = drs.generate_deal_room(db_session, created["id"], workspace_id=ws.id)
         assert "access_token" in room
         assert "questionnaires" in room
         assert "trust_center_articles" in room
