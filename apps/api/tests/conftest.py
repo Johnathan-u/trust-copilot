@@ -28,7 +28,10 @@ os.environ["DATABASE_URL"] = _safety.validate_test_database_url(
     os.environ.get("TC_TEST_DATABASE_URL")
     or f"postgresql://postgres:postgres@{_db_host}:5432/trustcopilot_test"
 )
-os.environ["SESSION_SECRET"] = "test-secret"
+# TC-07-001: generated per test run; never a committed literal.
+import secrets as _secrets  # noqa: E402
+
+os.environ["SESSION_SECRET"] = _secrets.token_urlsafe(48)
 os.environ["S3_ENDPOINT"] = _safety.validate_test_s3_endpoint(
     f"http://{'minio' if _in_docker_env else 'localhost'}:9000"
 )

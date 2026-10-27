@@ -1,5 +1,9 @@
 # Production deploy: docker compose -f docker-compose.prod.yml up -d --build
 # Uses .env.production for all secrets and config.
+# Operators must generate every secret in .env.production for each deployment (SESSION_SECRET, POSTGRES_PASSWORD and the
+# DATABASE_URL password, MINIO_ROOT_USER/MINIO_ROOT_PASSWORD, S3_ACCESS_KEY/S3_SECRET_KEY, provider secrets), e.g. with
+# `openssl rand -hex 32`. Every credential value ever committed to this repository is RETIRED (TC-07-001) and must never
+# be reused. This file must never contain credential literals; a release test enforces it.
 
 services:
   caddy:
@@ -57,7 +61,8 @@ services:
     environment:
       APP_ENV: production
       TRUST_COPILOT_IN_DOCKER: "1"
-      DATABASE_URL: postgresql://trustcopilot:rOuLU96NMChg6Z1UVekHLztlN4uDcmWA@postgres:5432/trustcopilot
+      SESSION_SECRET: ${SESSION_SECRET:?SESSION_SECRET must be set in .env.production (see docs/release/tickets/TC-07-001.md)}
+      # TC-07-001: DATABASE_URL comes from .env.production (env_file); never inline credentials here.
       S3_ENDPOINT: http://minio:9000
       APP_BASE_URL: https://trustcopilot.app
       FRONTEND_URL: https://trustcopilot.app
@@ -85,8 +90,10 @@ services:
     env_file:
       - .env.production
     environment:
+      APP_ENV: production
       TRUST_COPILOT_IN_DOCKER: "1"
-      DATABASE_URL: postgresql://trustcopilot:rOuLU96NMChg6Z1UVekHLztlN4uDcmWA@postgres:5432/trustcopilot
+      SESSION_SECRET: ${SESSION_SECRET:?SESSION_SECRET must be set in .env.production (see docs/release/tickets/TC-07-001.md)}
+      # TC-07-001: DATABASE_URL comes from .env.production (env_file); never inline credentials here.
       S3_ENDPOINT: http://minio:9000
       # TC-10-002: job-level retry backoff for transient failures (429/timeout/5xx/connection). Delay after
       # attempt n = jitter in [d/2, d], d = min(MAX, BASE * 2^(n-1)); Retry-After honoured up to MAX.
@@ -115,8 +122,8 @@ services:
     restart: unless-stopped
     environment:
       POSTGRES_DB: trustcopilot
-      POSTGRES_USER: trustcopilot
-      POSTGRES_PASSWORD: rOuLU96NMChg6Z1UVekHLztlN4uDcmWA
+      POSTGRES_USER: ${POSTGRES_USER:?POSTGRES_USER must be set in .env.production (see docs/release/tickets/TC-07-001.md)}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set in .env.production (see docs/release/tickets/TC-07-001.md)}
     volumes:
       - postgres_data:/var/lib/postgresql/data
     expose:
@@ -129,8 +136,8 @@ services:
     container_name: tc-minio
     restart: unless-stopped
     environment:
-      MINIO_ROOT_USER: minio
-      MINIO_ROOT_PASSWORD: minio123
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:?MINIO_ROOT_USER must be set in .env.production (see docs/release/tickets/TC-07-001.md)}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:?MINIO_ROOT_PASSWORD must be set in .env.production (see docs/release/tickets/TC-07-001.md)}
     command: server /data --console-address ":9001"
     volumes:
       - minio_data:/data

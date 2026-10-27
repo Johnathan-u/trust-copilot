@@ -7,6 +7,7 @@
 - Data: synthetic only. Storage is an in-memory fake, embeddings and retrieval are fakes, and the LLM is never invoked (patched to fail the test if
   it is called). `OPENAI_API_KEY` is empty, or a placeholder string in 2 tests. No outside service was contacted.
 - Test location: `apps/api/tests/test_job_idempotency.py`. It is not under `tests/release/`, per Coordinator ruling Q3.
+  TC-10-003a moved it to `apps/api/tests/release/test_job_idempotency.py` after TC-02-001 landed (ruling retired); the commands below show the original path.
 
 | Artifact | Command | Result |
 |---|---|---|
