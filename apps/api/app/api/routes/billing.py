@@ -1,22 +1,26 @@
 """Stripe billing API routes."""
 
+import logging
 from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import JSONResponse
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 from sqlalchemy.orm import Session
 
-from app.core.auth_deps import require_session
+from app.core.auth_deps import require_can_admin, require_session
 from app.core.config import get_settings
 from app.core.database import get_db
 from app.models import Subscription, User
 from app.services.billing_provider import (
+    BILLING_UNAVAILABLE,
     first_fatal_message,
     price_and_plan_for_interval,
     process_stripe_webhook,
 )
 from app.services.billing_seams import principal_for_billing_session
+
+logger = logging.getLogger(__name__)
 
 # TC-24-002 owns trial length. This fixed date is intentionally unchanged.
 FREE_TRIAL_END = datetime(2026, 4, 5, 23, 59, 59, tzinfo=timezone.utc)
@@ -30,23 +34,32 @@ def _get_stripe():
 
     s = get_settings()
     if not s.stripe_secret_key:
-        raise HTTPException(status_code=503, detail="Stripe is not configured")
+        raise HTTPException(status_code=503, detail=BILLING_UNAVAILABLE)
     blocked = first_fatal_message(s)
     if blocked:
-        raise HTTPException(status_code=503, detail=blocked)
+        logger.warning("billing unavailable: %s", blocked)
+        raise HTTPException(status_code=503, detail=BILLING_UNAVAILABLE)
     stripe.api_key = s.stripe_secret_key
     return stripe
 
 
 class CreateCheckoutBody(BaseModel):
-    workspace_id: int | None = None
+    model_config = ConfigDict(extra="ignore")
+
     interval: str = "monthly"
+
+
+def _session_workspace_id(session: dict) -> int:
+    actor = principal_for_billing_session(session)
+    if not actor.workspace_id:
+        raise HTTPException(status_code=404, detail="Workspace not found")
+    return actor.workspace_id
 
 
 @router.post("/create-checkout-session")
 async def create_checkout_session(
     body: CreateCheckoutBody,
-    session: dict = Depends(require_session),
+    session: dict = Depends(require_can_admin),
     db: Session = Depends(get_db),
 ):
     """Create a Stripe Checkout Session for the configured plan. Returns the checkout URL."""
@@ -63,7 +76,7 @@ async def create_checkout_session(
     if not user:
         raise HTTPException(status_code=401, detail="User not found")
 
-    workspace_id = body.workspace_id or actor.workspace_id or 0
+    workspace_id = _session_workspace_id(session)
 
     existing = (
         db.query(Subscription)
@@ -79,8 +92,10 @@ async def create_checkout_session(
     sub_row = (
         db.query(Subscription)
         .filter(
-            Subscription.user_id == user_id,
+            Subscription.workspace_id == workspace_id,
+            Subscription.stripe_customer_id.isnot(None),
         )
+        .order_by(Subscription.id.desc())
         .first()
     )
     customer_id = sub_row.stripe_customer_id if sub_row else None
@@ -133,8 +148,7 @@ async def get_subscription(
     db: Session = Depends(get_db),
 ):
     """Return the current workspace's subscription status."""
-    actor = principal_for_billing_session(session)
-    workspace_id = actor.workspace_id or 0
+    workspace_id = _session_workspace_id(session)
     sub = (
         db.query(Subscription)
         .filter(
@@ -159,14 +173,13 @@ async def get_subscription(
 
 @router.post("/create-portal-session")
 async def create_portal_session(
-    session: dict = Depends(require_session),
+    session: dict = Depends(require_can_admin),
     db: Session = Depends(get_db),
 ):
     """Create a Stripe Customer Portal session for managing billing."""
     stripe = _get_stripe()
     s = get_settings()
-    actor = principal_for_billing_session(session)
-    workspace_id = actor.workspace_id or 0
+    workspace_id = _session_workspace_id(session)
 
     sub = (
         db.query(Subscription)

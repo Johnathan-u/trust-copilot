@@ -22,8 +22,8 @@ import pytest
 from app.core.config import get_settings
 
 API_ROOT = Path(__file__).resolve().parents[2]
-SECRET_A = "whsec_tc24001_primary"
-SECRET_B = "whsec_tc24001_rotated"
+SECRET_A = "whsec_fake_tc24001_primary"
+SECRET_B = "whsec_fake_tc24001_rotated"
 TEST_KEY = "sk_test_tc24001_not_a_real_key"
 LIVE_KEY = "sk_live_tc24001_not_a_real_key"
 KNOWN_VECTOR_DIGEST = "181799648840baa60956d37e46cb72457fb28dce5554adddad16d051a935454d"
@@ -125,6 +125,34 @@ def bag(_ensure_test_data):
 def reload_settings():
     get_settings.cache_clear()
     return get_settings()
+
+
+def _set_demo_role(role: str) -> None:
+    from app.core.database import SessionLocal
+    from app.models import User, WorkspaceMember
+
+    db = SessionLocal()
+    try:
+        user = db.query(User).filter(User.email == "demo@trust.local").one()
+        member = (
+            db.query(WorkspaceMember)
+            .filter(WorkspaceMember.user_id == user.id, WorkspaceMember.workspace_id == 1)
+            .one()
+        )
+        member.role = role
+        db.commit()
+    finally:
+        db.close()
+
+
+def _login(client, role: str) -> dict:
+    _set_demo_role(role)
+    response = client.post(
+        "/api/auth/login",
+        json={"email": "demo@trust.local", "password": "j"},
+    )
+    assert response.status_code == 200, response.text
+    return response.json()
 
 
 def new_event_id(bag, suffix: str) -> str:
@@ -375,7 +403,7 @@ def test_signature_matches_stripe_sdk_v1_scheme():
 
     from app.services.billing_provider import verify_stripe_signature
 
-    secret = "whsec_sdk_oracle_not_real"
+    secret = "whsec_fake_sdk_oracle"
     payload = dumps(
         {
             "id": "evt_sdk_oracle",
@@ -878,7 +906,7 @@ def test_production_lifespan_reports_missing_webhook_secret(_ensure_test_data, m
     monkeypatch.setenv("SESSION_SECRET", "p" * 40)
     monkeypatch.delenv("STRIPE_WEBHOOK_SECRET", raising=False)
     monkeypatch.delenv("STRIPE_WEBHOOK_SECRETS", raising=False)
-    monkeypatch.delenv("STRIPE_SECRET_KEY", raising=False)
+    monkeypatch.setenv("STRIPE_SECRET_KEY", TEST_KEY)
     monkeypatch.setenv("STRIPE_MODE", "test")
     reload_settings()
 
@@ -913,6 +941,171 @@ def test_development_without_stripe_does_not_fail_preflight():
     from app.services.billing_provider import raise_for_stripe_preflight
 
     raise_for_stripe_preflight(reload_settings())
+
+
+def test_missing_key_disables_billing_and_mode_unresolved_is_not_fatal(monkeypatch):
+    from app.services.billing_provider import raise_for_stripe_preflight, stripe_preflight_issues
+
+    monkeypatch.setenv("APP_ENV", "production")
+    monkeypatch.delenv("STRIPE_SECRET_KEY", raising=False)
+    monkeypatch.delenv("STRIPE_MODE", raising=False)
+    monkeypatch.delenv("STRIPE_WEBHOOK_SECRET", raising=False)
+    monkeypatch.delenv("STRIPE_WEBHOOK_SECRETS", raising=False)
+    settings = reload_settings()
+    issues = stripe_preflight_issues(settings)
+    assert any(issue.code == "billing_disabled" and not issue.fatal for issue in issues)
+    assert not any(issue.code == "mode_unresolved" and issue.fatal for issue in issues)
+    raise_for_stripe_preflight(settings)
+
+
+def test_key_without_webhook_secret_fails_closed(monkeypatch):
+    from app.services.billing_provider import raise_for_stripe_preflight, stripe_preflight_issues
+
+    monkeypatch.setenv("APP_ENV", "development")
+    monkeypatch.setenv("STRIPE_SECRET_KEY", TEST_KEY)
+    monkeypatch.delenv("STRIPE_WEBHOOK_SECRET", raising=False)
+    monkeypatch.delenv("STRIPE_WEBHOOK_SECRETS", raising=False)
+    settings = reload_settings()
+    assert any(
+        issue.code == "webhook_secret_missing" and issue.fatal
+        for issue in stripe_preflight_issues(settings)
+    )
+    with pytest.raises(RuntimeError, match="STRIPE_WEBHOOK_SECRET"):
+        raise_for_stripe_preflight(settings)
+
+
+def test_billing_routes_without_a_key_return_generic_503(billing_client):
+    try:
+        _login(billing_client, "admin")
+        checkout = billing_client.post(
+            "/api/billing/create-checkout-session",
+            json={"interval": "monthly"},
+        )
+        assert checkout.status_code == 503
+        assert checkout.json()["detail"] == "Billing is not available."
+        assert "STRIPE_" not in checkout.text
+        webhook = billing_client.post("/api/billing/webhook", content=b"{}")
+        assert webhook.status_code == 503
+        assert webhook.json()["detail"] == "Billing is not available."
+        assert "STRIPE_" not in webhook.text
+    finally:
+        _set_demo_role("admin")
+
+
+def test_checkout_ignores_foreign_workspace_and_reuses_workspace_customer(
+    billing_client, stripe_settings, monkeypatch
+):
+    import stripe
+
+    from app.core.database import SessionLocal
+    from app.models import Subscription
+
+    captured: dict = {}
+
+    def create_customer(**kwargs):
+        captured["customer"] = kwargs
+        captured["created"] = captured.get("created", 0) + 1
+        return type("Customer", (), {"id": "cus_fake_tc24001_new"})()
+
+    def create_session(**kwargs):
+        captured["session"] = kwargs
+        return type("Session", (), {"url": "https://example.test/checkout", "id": "cs_fake"})()
+
+    monkeypatch.setattr(stripe.Customer, "create", staticmethod(create_customer))
+    monkeypatch.setattr(stripe.checkout.Session, "create", staticmethod(create_session))
+    created_ids: list[str] = []
+    try:
+        login = _login(billing_client, "admin")
+        user_id = login["user"]["id"]
+        workspace_id = login["workspace_id"]
+        foreign_id = workspace_id + 50
+        db = SessionLocal()
+        try:
+            other_sub = f"sub_foreign_{uuid.uuid4().hex[:8]}"
+            created_ids.append(other_sub)
+            db.add(
+                Subscription(
+                    workspace_id=foreign_id,
+                    user_id=user_id,
+                    stripe_customer_id="cus_fake_other_workspace",
+                    stripe_subscription_id=other_sub,
+                    status="active",
+                    plan="pro",
+                )
+            )
+            db.commit()
+        finally:
+            db.close()
+
+        ignored = billing_client.post(
+            "/api/billing/create-checkout-session",
+            json={"interval": "monthly", "workspace_id": foreign_id},
+        )
+        assert ignored.status_code == 200, ignored.text
+        assert captured["session"]["metadata"]["workspace_id"] == str(workspace_id)
+        assert captured["customer"]["metadata"]["workspace_id"] == str(workspace_id)
+        assert captured["session"]["customer"] == "cus_fake_tc24001_new"
+
+        own_sub = f"sub_own_{uuid.uuid4().hex[:8]}"
+        created_ids.append(own_sub)
+        db = SessionLocal()
+        try:
+            db.add(
+                Subscription(
+                    workspace_id=workspace_id,
+                    user_id=user_id,
+                    stripe_customer_id="cus_fake_this_workspace",
+                    stripe_subscription_id=own_sub,
+                    status="canceled",
+                    plan="pro",
+                )
+            )
+            db.commit()
+        finally:
+            db.close()
+        captured.pop("customer", None)
+        reused = billing_client.post(
+            "/api/billing/create-checkout-session",
+            json={"interval": "monthly", "workspace_id": foreign_id},
+        )
+        assert reused.status_code == 200, reused.text
+        assert "customer" not in captured
+        assert captured["session"]["customer"] == "cus_fake_this_workspace"
+        assert captured["session"]["metadata"]["workspace_id"] == str(workspace_id)
+    finally:
+        _set_demo_role("admin")
+        db = SessionLocal()
+        try:
+            if created_ids:
+                db.query(Subscription).filter(
+                    Subscription.stripe_subscription_id.in_(created_ids)
+                ).delete(synchronize_session=False)
+                db.commit()
+        finally:
+            db.close()
+
+
+def test_checkout_and_portal_require_admin(billing_client, stripe_settings):
+    try:
+        _login(billing_client, "member")
+        checkout = billing_client.post(
+            "/api/billing/create-checkout-session",
+            json={"interval": "monthly"},
+        )
+        portal = billing_client.post("/api/billing/create-portal-session")
+        assert checkout.status_code == 403
+        assert portal.status_code == 403
+    finally:
+        _set_demo_role("admin")
+
+
+def test_checkout_missing_workspace_is_rejected(billing_client, stripe_settings, bag):
+    body = checkout_body(new_event_id(bag, "nows"), 1_700_000_000, bag["sub"])
+    del body["data"]["object"]["metadata"]["workspace_id"]
+    response = post_webhook(billing_client, body, SECRET_A)
+    assert response.status_code == 200, response.text
+    assert response.json()["outcome"] == "ignored_incomplete"
+    assert sub_state(bag["sub"]) is None
 
 
 def test_retention_floor_and_prune_keep_the_tolerance_window(stripe_settings, _ensure_test_data):
@@ -1014,30 +1207,30 @@ def test_prune_does_not_allow_a_stale_event_to_regress(billing_client, stripe_se
 
 
 def test_migration_fresh_install_upgrade_and_downgrade():
-    url = _database_url("trustcopilot_tc24001_mig")
-    _recreate_database("trustcopilot_tc24001_mig")
+    url = _database_url("trustcopilot_tc24001_migration_test")
+    _recreate_database("trustcopilot_tc24001_migration_test")
     try:
         heads = _alembic(url, "heads")
         assert heads.returncode == 0, heads.stderr
         assert heads.stdout.count("(head)") == 1
-        assert "tc24001_billing_stripe" in heads.stdout
+        assert "tc24001_stripe_webhook_events" in heads.stdout
         fresh = _alembic(url, "upgrade", "head")
         assert fresh.returncode == 0, fresh.stderr
         _assert_webhook_schema(url, present=True)
-        down = _alembic(url, "downgrade", "tc21001_framework_catalog_rights")
+        down = _alembic(url, "downgrade", "tc11001_model_outcome_codes")
         assert down.returncode == 0, down.stderr
         _assert_webhook_schema(url, present=False)
         parent = _alembic(url, "current")
         assert parent.returncode == 0, parent.stderr
-        assert "tc21001_framework_catalog_rights" in parent.stdout
+        assert "tc11001_model_outcome_codes" in parent.stdout
         again = _alembic(url, "upgrade", "head")
         assert again.returncode == 0, again.stderr
         _assert_webhook_schema(url, present=True)
         current = _alembic(url, "current")
         assert current.returncode == 0, current.stderr
-        assert "tc24001_billing_stripe" in current.stdout
+        assert "tc24001_stripe_webhook_events" in current.stdout
     finally:
-        _drop_database("trustcopilot_tc24001_mig")
+        _drop_database("trustcopilot_tc24001_migration_test")
 
 
 def _prune_row(event_id: str, processed_at: datetime):
@@ -1145,6 +1338,12 @@ def _assert_webhook_schema(url: str, *, present: bool) -> None:
                 )
             )
         }
+        indexes = {
+            row[0]
+            for row in conn.execute(
+                text("SELECT indexname FROM pg_indexes WHERE tablename = 'stripe_webhook_events'")
+            )
+        }
     engine.dispose()
     expected_columns = {
         "stripe_event_created",
@@ -1155,7 +1354,11 @@ def _assert_webhook_schema(url: str, *, present: bool) -> None:
         assert table == "stripe_webhook_events"
         assert constraint == 1
         assert columns == expected_columns
+        assert "ix_stripe_webhook_events_processed_at" in indexes
+        assert "ix_stripe_webhook_events_stripe_object_id" in indexes
+        assert "ix_stripe_webhook_events_id" not in indexes
     else:
         assert table is None
         assert constraint is None
         assert columns == set()
+        assert indexes == set()

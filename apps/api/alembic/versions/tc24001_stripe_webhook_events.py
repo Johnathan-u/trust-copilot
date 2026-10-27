@@ -1,11 +1,11 @@
 """Stripe webhook replay store and subscription event watermarks.
 
-Revision ID: tc24001_billing_stripe
-Revises: tc21001_framework_catalog_rights
+Revision ID: tc24001_stripe_webhook_events
+Revises: tc11001_model_outcome_codes
 
-Master's Alembic head is tc21001_framework_catalog_rights. This revision
-re-parents onto that head only. Sibling revisions tc11001, tc25005, and
-tc10003 also sit on 075 and are not parents of this revision.
+Master's Alembic head is tc11001_model_outcome_codes. This revision
+re-parents onto that head only. Sibling revisions tc25005 and tc10003
+also sit on 075 and are not parents of this revision.
 """
 
 import sqlalchemy as sa
@@ -16,8 +16,8 @@ from alembic import op
 # Intentionally duplicated so later app changes cannot break upgrade or downgrade.
 # This module must not import the application package.
 
-revision = "tc24001_billing_stripe"
-down_revision = "tc21001_framework_catalog_rights"
+revision = "tc24001_stripe_webhook_events"
+down_revision = "tc11001_model_outcome_codes"
 branch_labels = None
 depends_on = None
 

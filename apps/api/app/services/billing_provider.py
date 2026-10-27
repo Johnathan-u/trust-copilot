@@ -63,6 +63,7 @@ SIG_INVALID = "Invalid Stripe signature"
 SIG_EXPIRED = "Stripe-Signature timestamp is outside the tolerance window (expired)"
 SIG_FUTURE = "Stripe-Signature timestamp is outside the tolerance window (future)"
 SECRET_MISSING = "Stripe webhook secret is not configured"
+BILLING_UNAVAILABLE = "Billing is not available."
 PAYLOAD_INVALID = "Invalid payload"
 LIVEMODE_MISMATCH = "event livemode does not match configured Stripe mode"
 MODE_UNCONFIGURED = "Stripe mode is not configured"
@@ -154,8 +155,19 @@ def stripe_preflight_issues(settings) -> list[PreflightIssue]:
             )
         )
 
-    key_mode = secret_key_mode(getattr(settings, "stripe_secret_key", None))
+    secret_key = getattr(settings, "stripe_secret_key", None)
+    key_mode = secret_key_mode(secret_key)
     mode = configured_stripe_mode(settings)
+    if not secret_key:
+        # No key: billing is off. An unresolved mode is the same disabled state.
+        issues.append(
+            PreflightIssue(
+                "billing_disabled",
+                "Stripe billing is disabled because STRIPE_SECRET_KEY is unset",
+                False,
+            )
+        )
+        return issues
     if key_mode == "unknown":
         issues.append(
             PreflightIssue(
@@ -190,32 +202,12 @@ def stripe_preflight_issues(settings) -> list[PreflightIssue]:
         )
 
     secrets = tuple(getattr(settings, "stripe_webhook_secrets", ()) or ())
-    if getattr(settings, "app_env", "") == "production" and not secrets:
+    if not secrets:
         issues.append(
             PreflightIssue(
                 "webhook_secret_missing",
-                "STRIPE_WEBHOOK_SECRET is required in production",
+                "STRIPE_WEBHOOK_SECRET is required when STRIPE_SECRET_KEY is set",
                 True,
-            )
-        )
-    if getattr(settings, "app_env", "") == "production" and mode is None and key_mode != "unknown":
-        issues.append(
-            PreflightIssue(
-                "mode_unresolved",
-                "Stripe mode is unresolved in production; set STRIPE_MODE to test or live",
-                True,
-            )
-        )
-    if (
-        getattr(settings, "app_env", "") != "production"
-        and getattr(settings, "stripe_secret_key", None)
-        and not secrets
-    ):
-        issues.append(
-            PreflightIssue(
-                "webhook_secret_missing",
-                "STRIPE_WEBHOOK_SECRET is unset while a Stripe secret key is set",
-                False,
             )
         )
     return issues
@@ -319,6 +311,8 @@ def process_stripe_webhook(
 ) -> WebhookResult:
     """Verify, dedupe, and apply one webhook. ``payload`` is the raw body."""
     moment = now or datetime.now(timezone.utc)
+    if not getattr(settings, "stripe_secret_key", None):
+        return WebhookResult(503, {"detail": BILLING_UNAVAILABLE})
     secrets = tuple(getattr(settings, "stripe_webhook_secrets", ()) or ())
     if not secrets:
         return WebhookResult(503, {"detail": SECRET_MISSING})
@@ -572,9 +566,12 @@ def _apply_checkout(db: Session, obj: dict, created: int, settings) -> tuple[str
         _mark(sub, created, "checkout.session.completed", terminal=False)
         return OUTCOME_APPLIED, sub.workspace_id
 
+    if not actor.workspace_id:
+        logger.warning("checkout.session.completed rejected: missing workspace_id in metadata")
+        return OUTCOME_INCOMPLETE, None
     plan = _plan_for_checkout(obj, settings)
     sub = Subscription(
-        workspace_id=actor.workspace_id or 0,
+        workspace_id=actor.workspace_id,
         user_id=actor.user_id or 0,
         stripe_customer_id=customer_id,
         stripe_subscription_id=subscription_id,

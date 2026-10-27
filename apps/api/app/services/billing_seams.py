@@ -55,15 +55,13 @@ def principal_for_stripe_event(metadata: dict | None) -> BillingActor:
     """TC-06-001 seam for a signature-verified Stripe event.
 
     user_id and workspace_id come from metadata this API wrote at checkout.
-    They are not authorized against a membership row. Missing values become 0,
-    matching the previous webhook handlers.
+    They are not authorized against a membership row. Missing values stay
+    None. Callers must not substitute workspace 0.
     """
     raw = metadata if isinstance(metadata, dict) else {}
-    user_id = _optional_int(raw.get("user_id"))
-    workspace_id = _optional_int(raw.get("workspace_id"))
     return BillingActor(
-        user_id=0 if user_id is None else user_id,
-        workspace_id=0 if workspace_id is None else workspace_id,
+        user_id=_optional_int(raw.get("user_id")),
+        workspace_id=_optional_int(raw.get("workspace_id")),
         source="stripe_event",
     )
 

@@ -20,11 +20,13 @@ class StripeWebhookEvent(Base):
         UniqueConstraint("stripe_event_id", name="uq_stripe_webhook_events_event_id"),
     )
 
-    id = Column(Integer, primary_key=True, index=True)
+    id = Column(Integer, primary_key=True)
     stripe_event_id = Column(String(255), nullable=False)
     event_type = Column(String(128), nullable=False)
     livemode = Column(Boolean, nullable=False)
     stripe_created = Column(BigInteger, nullable=False)
     stripe_object_id = Column(String(255), nullable=True, index=True)
     outcome = Column(String(32), nullable=False)
-    processed_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now())
+    processed_at = Column(
+        DateTime(timezone=True), nullable=False, server_default=func.now(), index=True
+    )
