@@ -2,6 +2,7 @@
 import '@/app/globals.css'
 import type { Metadata } from 'next'
 import localFont from 'next/font/local'
+import { ToastLiveRegions } from '@/components/ui/Toast'
 
 const inter = localFont({
   src: [
@@ -65,6 +66,7 @@ export default function RootLayout({
       <body
         className={`${inter.className} antialiased min-h-full overflow-x-hidden`}
       >
+        <ToastLiveRegions />
         {children}
       </body>
     </html>
