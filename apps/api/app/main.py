@@ -208,6 +208,9 @@ async def lifespan(app: FastAPI):
                 "SESSION_SECRET is unset; a random per-process key is used (dev/test only). "
                 "Set SESSION_SECRET in .env for stable local sessions."
             )
+    from app.services.message_providers.selection import assert_message_provider_preflight
+
+    assert_message_provider_preflight()
     print(
         "OpenAI: configured"
         if s.openai_api_key

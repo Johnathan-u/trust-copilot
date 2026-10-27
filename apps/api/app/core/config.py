@@ -188,6 +188,19 @@ class Settings:
         self.rate_limit_rpm_per_ip: int = max(0, int(_rpm)) if _rpm.isdigit() else 120
 
         self.app_env: str = os.getenv("APP_ENV", "development").strip().lower()
+        # Slack/Gmail provider selection (TC-19-001). Unset runtime follows APP_ENV.
+        # Production never selects the dev stub. See message_providers.selection.
+        _provider_mode = os.getenv("MESSAGE_PROVIDER_RUNTIME_MODE", "").strip().lower()
+        self.message_provider_runtime_mode: str | None = _provider_mode or None
+        self.message_provider_dev_stub_raw: str = (
+            os.getenv("MESSAGE_PROVIDER_DEV_STUB", "").strip().lower()
+        )
+        if self.message_provider_dev_stub_raw in ("1", "true", "yes"):
+            self.message_provider_dev_stub: bool | None = True
+        elif self.message_provider_dev_stub_raw in ("0", "false", "no"):
+            self.message_provider_dev_stub = False
+        else:
+            self.message_provider_dev_stub = None
 
         # Health probes (TC-03-003). Worker values are read by app.worker_health (stdlib-only probe);
         # mirrored here for discoverability. See docs/release/tickets/TC-03-003.md.

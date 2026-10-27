@@ -12,6 +12,8 @@ import logging
 import re
 import time
 from concurrent.futures import ThreadPoolExecutor
+from contextvars import ContextVar
+from datetime import datetime, timezone
 from typing import Any, Iterable, NamedTuple
 
 from sqlalchemy.orm import Session
@@ -126,18 +128,21 @@ MAX_PARALLEL_BATCHES = 10  # run up to 10 batches concurrently (I/O bound; stay 
 COMPLETION_MAX_RETRIES = 3
 
 
+COMPLETION_RETRY_BASE_SECONDS = 1.0
+COMPLETION_RETRY_MAX_SECONDS = 10.0
+
+
 def _is_transient_completion_error(e: Exception) -> bool:
-    """True if completion error is worth retrying (timeout, rate limit, server error)."""
+    """True if completion error is worth retrying (TC-10-002 classifier: 429, timeout, 5xx, connection)."""
+    from app.core.job_errors import classify, is_retryable_code
+
     if classify_provider_exception(e).fatal:
         # TC-11-001: never retry credentials/model-unavailable/quota-exhausted failures.
         return False
-    msg = (getattr(e, "message", "") or str(e)).lower()
-    if "timeout" in msg or "timed out" in msg:
+    if is_retryable_code(classify(e)):
         return True
-    code = getattr(e, "status_code", None) or getattr(
-        getattr(e, "response", None), "status_code", None
-    )
-    return code in (429, 503, 502, 504)
+    msg = (getattr(e, "message", "") or str(e)).lower()
+    return "timeout" in msg or "timed out" in msg
 
 
 def _extract_retry_after(e: Exception) -> float | None:
@@ -166,8 +171,15 @@ def _completion_create_with_retry(client: Any, **kwargs: Any) -> Any:
         except Exception as e:
             last_err = e
             if attempt < COMPLETION_MAX_RETRIES and _is_transient_completion_error(e):
-                retry_after = _extract_retry_after(e)
-                delay = retry_after if retry_after is not None else min(1.5**attempt, 10.0)
+                from app.core.job_errors import backoff_delay
+
+                # Bounded exponential backoff with jitter; Retry-After honoured up to the cap (TC-10-002).
+                delay = backoff_delay(
+                    attempt + 1,
+                    base=COMPLETION_RETRY_BASE_SECONDS,
+                    cap=COMPLETION_RETRY_MAX_SECONDS,
+                    retry_after=_extract_retry_after(e),
+                )
                 logger.info(
                     "answer_generation retry attempt=%d/%d delay=%.1fs error=%s",
                     attempt + 1,
@@ -605,6 +617,52 @@ def _job_payload(
     return json.dumps(payload)
 
 
+class AnswerWriteGuard:
+    """TC-10-003: answers a generation run must never overwrite.
+
+    Protected = status ``approved`` (human-approved work), or ``updated_at`` later than the run's cutoff
+    (the generating job's ``created_at``): such an answer was written by a human edit or a newer run after
+    this run's input was requested, so this (stale) run must not overwrite it.
+
+    TC-10-002: a non-approved ``insufficient_evidence`` placeholder left by a provider error
+    (``insufficient_reason == "llm_error"``) is never protected, so a job-level retry regenerates exactly the
+    questions an earlier attempt failed on (no human or model work is lost: it holds no answer text).
+    """
+
+    def __init__(self, cutoff: datetime | None):
+        self.cutoff = _naive_utc(cutoff)
+        self.protected_qids: set[int] = set()
+        self.written: set[int] = (
+            set()
+        )  # written by this run (its own updated_at bump is not "newer work")
+
+    def is_protected(self, answer: Any) -> bool:
+        if answer is None:
+            return False
+        if getattr(answer, "status", None) == "approved":
+            return True
+        if (
+            getattr(answer, "status", None) == "insufficient_evidence"
+            and getattr(answer, "insufficient_reason", None) == "llm_error"
+        ):
+            return False
+        upd = getattr(answer, "updated_at", None)
+        if self.cutoff is not None and isinstance(upd, datetime):
+            return _naive_utc(upd) > self.cutoff
+        return False
+
+
+_WRITE_GUARD: ContextVar[AnswerWriteGuard | None] = ContextVar("answer_write_guard", default=None)
+
+
+def _naive_utc(dt: datetime | None) -> datetime | None:
+    if not isinstance(dt, datetime):
+        return None
+    if dt.tzinfo is not None:
+        dt = dt.astimezone(timezone.utc).replace(tzinfo=None)
+    return dt
+
+
 def generate_answers_for_questionnaire(
     db: Session,
     questionnaire_id: int,
@@ -612,8 +670,43 @@ def generate_answers_for_questionnaire(
     model_override: str | None = None,
     response_style_override: str | None = None,
     job: Job | None = None,
+    effects: Any = None,
 ) -> int:
-    """Generate answers for all questions. Returns count of answers created."""
+    """Generate answers for all questions. Returns count of answers created (protected answers count as done).
+
+    TC-10-003: with a real ``Session``, approved answers and answers changed after ``job.created_at`` are never
+    overwritten (``AnswerWriteGuard``). ``effects`` (optional ``JobEffects``) records the paid-provider marker
+    before the first OpenAI call and settles it when the run completes.
+    """
+    guard = None
+    if isinstance(db, Session):
+        guard = AnswerWriteGuard(getattr(job, "created_at", None) if isinstance(job, Job) else None)
+    token = _WRITE_GUARD.set(guard)
+    try:
+        return _generate_answers_impl(
+            db,
+            questionnaire_id,
+            workspace_id,
+            model_override,
+            response_style_override,
+            job,
+            effects,
+            guard,
+        )
+    finally:
+        _WRITE_GUARD.reset(token)
+
+
+def _generate_answers_impl(
+    db: Session,
+    questionnaire_id: int,
+    workspace_id: int,
+    model_override: str | None,
+    response_style_override: str | None,
+    job: Job | None,
+    effects: Any,
+    guard: AnswerWriteGuard | None,
+) -> int:
     qnr = (
         db.query(Questionnaire)
         .filter(
@@ -626,6 +719,36 @@ def generate_answers_for_questionnaire(
         raise ValueError(f"Questionnaire {questionnaire_id} not found")
     questions = db.query(Question).filter(Question.questionnaire_id == questionnaire_id).all()
     total_questions = len(questions)
+    protected_count = 0
+    if guard is not None and questions:
+        _qids = [q.id for q in questions]
+        for a in db.query(Answer).filter(Answer.question_id.in_(_qids)).all():
+            if guard.is_protected(a):
+                guard.protected_qids.add(a.question_id)
+        if guard.protected_qids:
+            protected_count = len(guard.protected_qids)
+            questions = [q for q in questions if q.id not in guard.protected_qids]
+            logger.info(
+                "answer_generation: %d protected answer(s) (approved or newer than job) left untouched qnr=%s",
+                protected_count,
+                questionnaire_id,
+            )
+            if not questions:
+                if job:
+                    job.result = _job_payload(
+                        protected_count,
+                        total_questions,
+                        {
+                            "drafted": 0,
+                            "insufficient_evidence": 0,
+                            "skipped_gated": 0,
+                            "llm_calls": 0,
+                            "skipped_protected": protected_count,
+                            "duration_ms": 0,
+                        },
+                    )
+                    db.commit()
+                return protected_count
     if not questions:
         if job:
             job.result = _job_payload(
@@ -759,6 +882,8 @@ def generate_answers_for_questionnaire(
     # Batch embed all questions
     question_texts = [q.text for q in questions]
     _t0 = time.monotonic()
+    if effects is not None:
+        effects.provider_call_started("openai")
     embedding_failures: list[ModelFailure] = []
     all_embeddings = embed_texts(question_texts, on_failure=embedding_failures.append)
     embed_time_ms = (time.monotonic() - _t0) * 1000
@@ -841,7 +966,7 @@ def generate_answers_for_questionnaire(
             to_generate.append((q, evidence, has_evidence_scope))
     retrieval_time_ms = (time.monotonic() - _t0) * 1000
 
-    count = 0
+    count = protected_count
 
     # D6: Skip re-generation for questions with unchanged evidence fingerprint
     _gen_qids = [q.id for q, _, _ in to_generate]
@@ -877,6 +1002,8 @@ def generate_answers_for_questionnaire(
         "skipped_gated": 0,
         "llm_calls": 0,
     }
+    if protected_count:
+        run_stats["skipped_protected"] = protected_count
     # TC-11-001: per-outcome counts so a run that "completed" with provider failures is visible.
     outcome_counts: dict[str, int] = {}
 
@@ -913,7 +1040,7 @@ def generate_answers_for_questionnaire(
             db.commit()
     if not to_generate:
         duration_ms = (time.monotonic() - started) * 1000
-        swept = _sweep_draft_insufficient_narratives(db, questionnaire_id)
+        swept = _sweep_draft_insufficient_narratives(db, questionnaire_id, guard=guard)
         _adjust_run_stats_after_sweep(run_stats, swept)
         run_stats["duration_ms"] = duration_ms
         run_stats["outcomes"] = dict(outcome_counts)
@@ -927,6 +1054,7 @@ def generate_answers_for_questionnaire(
             workspace_id,
             run_stats,
         )
+        _settle_provider(effects, guard, run_stats)
         if job:
             job.result = _job_payload(count, total_questions, run_stats)
             db.commit()
@@ -1123,6 +1251,7 @@ def generate_answers_for_questionnaire(
             _count_outcome(failure.code)
             count += 1
             run_stats["insufficient_evidence"] += 1
+            _count_llm_error(run_stats, exc)
             was_429, was_timeout, was_transient = adaptive.classify_exception(exc)
             adaptive.release(
                 success=False,
@@ -1278,7 +1407,7 @@ def generate_answers_for_questionnaire(
     llm_time_ms = (time.monotonic() - _t0) * 1000
 
     duration_ms = (time.monotonic() - started) * 1000
-    swept = _sweep_draft_insufficient_narratives(db, questionnaire_id)
+    swept = _sweep_draft_insufficient_narratives(db, questionnaire_id, guard=guard)
     _adjust_run_stats_after_sweep(run_stats, swept)
 
     # Evidence gaps use their own Session (TC-08-005). A typed model failure raised on that
@@ -1395,15 +1524,56 @@ def generate_answers_for_questionnaire(
             "duration_ms": round(duration_ms, 1),
         },
     )
+    _settle_provider(effects, guard, run_stats)
     if job:
         job.result = _job_payload(count, total_questions, run_stats)
         db.commit()
     return count
 
 
-def _sweep_draft_insufficient_narratives(db: Session, questionnaire_id: int) -> int:
+def _citations_lack_direct_evidence(
+    db: Session, cits: list, doc_tier_cache: dict[int, int]
+) -> bool:
+    """True when every citation resolves to an export-like (tier 3) document, e.g. a prior questionnaire
+    response, so nothing cited is direct evidence. Citations without a resolvable document count as possibly
+    direct (same convention as ``only_low_tier_evidence``)."""
+    from app.services.answer_evidence_policy import only_low_tier_evidence
+
+    as_evidence: list[dict] = []
+    for c in cits:
+        if not isinstance(c, dict):
+            return False
+        did = c.get("document_id")
+        if did is None:
+            return False
+        try:
+            as_evidence.append({"metadata": {"document_id": int(did)}})
+        except (TypeError, ValueError):
+            return False
+    if not as_evidence:
+        return False
+    # only_low_tier_evidence looks at the first 12 entries; check every citation.
+    return all(
+        only_low_tier_evidence(db, as_evidence[i : i + 12], doc_tier_cache=doc_tier_cache)
+        for i in range(0, len(as_evidence), 12)
+    )
+
+
+def _settle_provider(effects: Any, guard: AnswerWriteGuard | None, run_stats: dict) -> None:
+    if guard is not None and len(guard.protected_qids) > int(
+        run_stats.get("skipped_protected", 0) or 0
+    ):
+        run_stats["skipped_protected"] = len(guard.protected_qids)
+    if effects is not None:
+        effects.settle("openai", {"llm_calls": int(run_stats.get("llm_calls", 0) or 0)})
+
+
+def _sweep_draft_insufficient_narratives(
+    db: Session, questionnaire_id: int, guard: AnswerWriteGuard | None = None
+) -> int:
     """Reclassify draft rows whose text is insufficient, have zero citations,
-    or whose primary subject requires direct evidence that wasn't provided."""
+    or whose primary subject requires direct evidence that wasn't provided
+    (TC-02-BUG-005: every citation is from an export-like / prior-response document)."""
     from app.services.answer_evidence_policy import subject_requires_direct_evidence
     from app.services.registry_metadata import SUBJECT_AREA_LABEL_TO_KEY
 
@@ -1413,16 +1583,28 @@ def _sweep_draft_insufficient_narratives(db: Session, questionnaire_id: int) -> 
         .filter(Question.questionnaire_id == questionnaire_id, Answer.status == "draft")
         .all()
     )
+    doc_tier_cache: dict[int, int] = {}
     n = 0
     for a in answers:
+        # TC-10-003: never reclassify protected work. Also skip a stale row this run did not
+        # write (updated_at after the job cutoff). Rows in guard.written keep the sweep: their
+        # updated_at bump is this run's own write, same rule as _upsert_answer.
+        if guard is not None:
+            owned_by_run = a.question_id in guard.written
+            if a.question_id in guard.protected_qids or (
+                not owned_by_run and guard.is_protected(a)
+            ):
+                guard.protected_qids.add(a.question_id)
+                continue
         no_citations = False
+        cits: list = []
         try:
             cits = json.loads(a.citations or "[]") if a.citations else []
             no_citations = len(cits) == 0
         except Exception:
             no_citations = True
 
-        direct_ev_missing = False
+        direct_subject: str | None = None
         if a.primary_categories_json and not no_citations:
             try:
                 cats = json.loads(a.primary_categories_json)
@@ -1432,23 +1614,30 @@ def _sweep_draft_insufficient_narratives(db: Session, questionnaire_id: int) -> 
                         s_label, s_label.lower().replace(" ", "_")
                     )
                     if subject_requires_direct_evidence(s_key):
-                        direct_ev_missing = True  # noqa: F841
+                        direct_subject = s_key
                         break
             except Exception:
                 pass
+        direct_ev_missing = direct_subject is not None and _citations_lack_direct_evidence(
+            db, cits, doc_tier_cache
+        )
 
-        if is_insufficient_answer_text(a.text) or no_citations:
+        if is_insufficient_answer_text(a.text) or no_citations or direct_ev_missing:
             a.status = "insufficient_evidence"
             if no_citations and not a.insufficient_reason:
                 a.insufficient_reason = "no_citations"
+            elif direct_ev_missing and not a.insufficient_reason:
+                # Same reason format as the pre-LLM gate in generate_answers_for_questionnaire.
+                a.insufficient_reason = f"direct_evidence_required:{direct_subject}"
             if getattr(a, "outcome_code", None) in (
                 None,
                 ModelOutcomeCode.GROUNDED.value,
                 ModelOutcomeCode.GROUNDED_UNVERIFIED.value,
             ):
                 a.outcome_code = (
+                    # No direct evidence: same outcome as the pre-LLM direct-evidence gate.
                     ModelOutcomeCode.NO_EVIDENCE.value
-                    if no_citations
+                    if no_citations or direct_ev_missing
                     else ModelOutcomeCode.MODEL_ABSTAINED.value
                 )
             a.confidence = 0
@@ -1456,6 +1645,24 @@ def _sweep_draft_insufficient_narratives(db: Session, questionnaire_id: int) -> 
     if n:
         db.commit()
     return n
+
+
+def _count_llm_error(run_stats: dict, exc: Exception) -> None:
+    """TC-10-002: count per-question provider failures by class so the worker can retry or stop explicitly."""
+    from app.core.job_errors import classify, is_fatal_code, is_retryable_code
+
+    code = classify(exc)  # TC-11-001 model_* code for provider exceptions
+    run_stats["llm_errors"] = int(run_stats.get("llm_errors", 0) or 0) + 1
+    if is_fatal_code(code):
+        run_stats["llm_errors_auth_config"] = (
+            int(run_stats.get("llm_errors_auth_config", 0) or 0) + 1
+        )
+        run_stats["llm_error_code_auth_config"] = code
+    elif is_retryable_code(code):
+        run_stats["llm_errors_retryable"] = int(run_stats.get("llm_errors_retryable", 0) or 0) + 1
+        run_stats["llm_error_code_retryable"] = code
+    else:
+        run_stats["llm_errors_other"] = int(run_stats.get("llm_errors_other", 0) or 0) + 1
 
 
 def _adjust_run_stats_after_sweep(run_stats: dict[str, int | float], swept: int) -> None:
@@ -1478,12 +1685,32 @@ def _upsert_answer(
     evidence_fingerprint: str | None = None,
     outcome_code: ModelOutcomeCode | str | None = None,
 ) -> None:
-    """Create or update an Answer for a question."""
+    """Create or update an Answer for a question (never overwrites a protected answer, TC-10-003)."""
+    guard = _WRITE_GUARD.get()
     outcome_value = (
         outcome_code.value if isinstance(outcome_code, ModelOutcomeCode) else outcome_code
     )
     with db.no_autoflush:
-        existing = db.query(Answer).filter(Answer.question_id == question_id).first()
+        q = db.query(Answer).filter(Answer.question_id == question_id)
+        if guard is not None and question_id not in guard.written:
+            q = (
+                q.populate_existing()
+            )  # re-read: a human may have approved/edited it during this run
+        existing = q.first()
+    if (
+        guard is not None
+        and existing is not None
+        and question_id not in guard.written
+        and guard.is_protected(existing)
+    ):
+        guard.protected_qids.add(question_id)
+        logger.info(
+            "answer_generation: question_id=%s answer became protected mid-run; not overwritten",
+            question_id,
+        )
+        return
+    if guard is not None:
+        guard.written.add(question_id)
     if existing:
         existing.text = text
         existing.citations = json.dumps(citations)

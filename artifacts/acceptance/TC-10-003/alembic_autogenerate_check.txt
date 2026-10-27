@@ -1,0 +1,10 @@
+=== catalog ===
+uq_export_records_job_id: CREATE UNIQUE INDEX uq_export_records_job_id ON public.export_records USING btree (job_id) WHERE (job_id IS NOT NULL)
+uq_jobs_queued_idempotency_key: CREATE UNIQUE INDEX uq_jobs_queued_idempotency_key ON public.jobs USING btree (workspace_id, kind, idempotency_key) WHERE (((status)::text = 'queued'::text) AND (idempotency_key IS NOT NULL))
+job_effects.attempt default='0' nullable=NO
+=== compare_metadata log lines for these objects ===
+(none)
+=== compare_metadata ops mentioning these objects ===
+(none — no drop, add, or alter for uq_jobs_queued_idempotency_key,
+ uq_export_records_job_id, or job_effects.attempt)
+=== total autogenerate ops (whole metadata, including pre-existing drift): 138 ===

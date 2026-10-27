@@ -1,0 +1,10 @@
+# full suite, branch (tc/core/TC-01-003b working tree), image tc-core-api-test:c20f949-sa20-nopymupdf
+# python -m pytest tests -q -rfs -p no:randomly -p no:cacheprovider --continue-on-collection-errors
+__________________ ERROR collecting tests/test_alerts_api.py ___________________
+_________________ ERROR collecting tests/test_coverage_api.py __________________
+FAILED tests/test_answer_pipeline.py::test_partial_completion_progress - Valu...
+FAILED tests/test_p1_multi_tenant_hardening.py::TestAPIQuotaEnforcement::test_generate_answers_blocked_at_quota
+SKIPPED [1] tests/test_trust_scoring_blind.py:27: Blind test pack not found (local-only file)
+SKIPPED [1] tests/test_control_timeline.py:42: No reviewed workspace controls
+2 failed, 1433 passed, 2 skipped, 2 errors in 64.69s (0:01:04)
+exit=1

@@ -100,6 +100,27 @@ export default function ComplianceAlertsPage() {
   const [addRecipVal, setAddRecipVal] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [formError, setFormError] = useState<string | null>(null)
+  const [stubProviders, setStubProviders] = useState<string[]>([])
+
+  useEffect(() => {
+    if (!canAdmin) return
+    Promise.all([
+      fetch('/api/slack/status', { credentials: 'include' }).then((r) =>
+        r.ok ? r.json() : null
+      ),
+      fetch('/api/gmail/status', { credentials: 'include' }).then((r) =>
+        r.ok ? r.json() : null
+      ),
+    ])
+      .then(([slack, gmail]) => {
+        const stubs = [
+          slack?.provider_mode === 'dev-stub' ? 'Slack' : null,
+          gmail?.provider_mode === 'dev-stub' ? 'Gmail' : null,
+        ].filter((name): name is string => Boolean(name))
+        setStubProviders(stubs)
+      })
+      .catch(() => {})
+  }, [canAdmin])
 
   const load = useCallback(() => {
     setLoading(true)
@@ -246,6 +267,19 @@ export default function ComplianceAlertsPage() {
           system events, and team activity.
         </p>
       </div>
+
+      {stubProviders.length > 0 && (
+        <div
+          role="status"
+          className="rounded-lg border border-amber-500/40 bg-amber-500/10 px-4 py-3 text-sm text-amber-100"
+        >
+          <strong className="font-semibold">Development stub.</strong>{' '}
+          {stubProviders.join(' and ')}{' '}
+          {stubProviders.length === 1 ? 'is' : 'are'} not called. A log row from
+          the stub is not delivery to that provider. Production preflight
+          rejects this mode.
+        </div>
+      )}
 
       {loading ? (
         <Card className="p-6">
