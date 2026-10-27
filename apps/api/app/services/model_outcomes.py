@@ -30,6 +30,10 @@ class ModelOutcomeCode(str, Enum):
     """Stable outcome/error codes for model-backed answer generation."""
 
     GROUNDED = "grounded"
+    # Answer-cache hit: the text was reused from an earlier run and its citations were NOT
+    # re-validated against the current evidence. Never reported as "grounded" until
+    # claim-level citation checks (TC-11-003) and version-scoped caches (TC-08-004) land.
+    GROUNDED_UNVERIFIED = "grounded_unverified"
     NO_EVIDENCE = "no_evidence"
     MODEL_ABSTAINED = "model_abstained"
     MODEL_REFUSAL = "model_refusal"
@@ -76,6 +80,13 @@ OUTCOME_CATALOG: dict[ModelOutcomeCode, OutcomeSpec] = {
         _spec(
             _C.GROUNDED,
             "Draft answer generated from the supplied evidence. Review the citations before approving.",
+            is_failure=False,
+            http_status=200,
+        ),
+        _spec(
+            _C.GROUNDED_UNVERIFIED,
+            "Draft answer reused from an earlier run. Its citations have not been re-checked "
+            "against the current evidence. Verify them before approving.",
             is_failure=False,
             http_status=200,
         ),

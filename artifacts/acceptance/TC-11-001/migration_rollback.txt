@@ -1,33 +1,43 @@
-== pre-base downgrade
+== alembic heads
+tc11001_model_outcome_codes (head)
+== history (075 -> head)
+075 -> tc11001_model_outcome_codes (head), Typed model outcome and job error codes (TC-11-001)
+074 -> 075, Answer delivery outcome tags (E6-31)
+== current
 INFO  [alembic.runtime.migration] Context impl PostgresqlImpl.
 INFO  [alembic.runtime.migration] Will assume transactional DDL.
-INFO  [alembic.runtime.migration] Running downgrade 076 -> 075, Typed model outcome and job error codes (TC-11-001)
+tc11001_model_outcome_codes (head)
+answers.outcome_code: True | jobs.error_code: True
+== downgrade 075
+INFO  [alembic.runtime.migration] Context impl PostgresqlImpl.
+INFO  [alembic.runtime.migration] Will assume transactional DDL.
+INFO  [alembic.runtime.migration] Running downgrade tc11001_model_outcome_codes -> 075, Typed model outcome and job error codes (TC-11-001)
 INFO  [alembic.runtime.migration] Context impl PostgresqlImpl.
 INFO  [alembic.runtime.migration] Will assume transactional DDL.
 075
-== post-branch current
+answers.outcome_code: False | jobs.error_code: False
+== upgrade head
 INFO  [alembic.runtime.migration] Context impl PostgresqlImpl.
 INFO  [alembic.runtime.migration] Will assume transactional DDL.
-076 (head)
+INFO  [alembic.runtime.migration] Running upgrade 075 -> tc11001_model_outcome_codes, Typed model outcome and job error codes (TC-11-001)
+INFO  [alembic.runtime.migration] Context impl PostgresqlImpl.
+INFO  [alembic.runtime.migration] Will assume transactional DDL.
+tc11001_model_outcome_codes (head)
+answers.outcome_code: True | jobs.error_code: True
 == downgrade 075 (rollback evidence)
 INFO  [alembic.runtime.migration] Context impl PostgresqlImpl.
 INFO  [alembic.runtime.migration] Will assume transactional DDL.
-INFO  [alembic.runtime.migration] Running downgrade 076 -> 075, Typed model outcome and job error codes (TC-11-001)
+INFO  [alembic.runtime.migration] Running downgrade tc11001_model_outcome_codes -> 075, Typed model outcome and job error codes (TC-11-001)
 INFO  [alembic.runtime.migration] Context impl PostgresqlImpl.
 INFO  [alembic.runtime.migration] Will assume transactional DDL.
 075
-== re-upgrade head
+answers.outcome_code: False | jobs.error_code: False
+== upgrade head (restore for the full suite)
 INFO  [alembic.runtime.migration] Context impl PostgresqlImpl.
 INFO  [alembic.runtime.migration] Will assume transactional DDL.
-INFO  [alembic.runtime.migration] Running upgrade 075 -> 076, Typed model outcome and job error codes (TC-11-001)
+INFO  [alembic.runtime.migration] Running upgrade 075 -> tc11001_model_outcome_codes, Typed model outcome and job error codes (TC-11-001)
 INFO  [alembic.runtime.migration] Context impl PostgresqlImpl.
 INFO  [alembic.runtime.migration] Will assume transactional DDL.
-076 (head)
-== final downgrade 075
-INFO  [alembic.runtime.migration] Context impl PostgresqlImpl.
-INFO  [alembic.runtime.migration] Will assume transactional DDL.
-INFO  [alembic.runtime.migration] Running downgrade 076 -> 075, Typed model outcome and job error codes (TC-11-001)
-INFO  [alembic.runtime.migration] Context impl PostgresqlImpl.
-INFO  [alembic.runtime.migration] Will assume transactional DDL.
-075
-DONE
+tc11001_model_outcome_codes (head)
+answers.outcome_code: True | jobs.error_code: True
+exit=0

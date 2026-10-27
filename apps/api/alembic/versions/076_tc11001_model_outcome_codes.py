@@ -2,14 +2,18 @@
 
 Additive, nullable columns only. Legacy rows keep NULL (rendered as "no typed outcome").
 
-Revision ID: 076
+Revision ID: tc11001_model_outcome_codes
 Revises: 075
+
+The revision id is descriptive rather than "076" because another team's TC-25-005 also adds a
+migration after 075. Whichever merges second adds an alembic merge revision (or re-points its
+down_revision); neither id collides.
 """
 
 import sqlalchemy as sa
 from alembic import op
 
-revision = "076"
+revision = "tc11001_model_outcome_codes"
 down_revision = "075"
 branch_labels = None
 depends_on = None

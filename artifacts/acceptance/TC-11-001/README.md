@@ -13,8 +13,8 @@ an `--internal` Docker network (no egress) with `OPENAI_API_KEY` empty; the prob
 - Test image: `apps/api/Dockerfile` target `base` (python 3.11, `openai` 3.39.0 on `httpx2`) plus
   `sqlalchemy<2.1` (pre-existing psycopg2/SQLAlchemy 2.1 environment finding from TC-08-005,
   worked around in the image only).
-- DB: `pgvector/pgvector:pg16`; conftest migrates to alembic head (`075` on baseline, `076` on
-  branch). The DB was downgraded to `075` before the baseline run and after the branch run.
+- DB: `pgvector/pgvector:pg16`; conftest migrates to alembic head (`075` on baseline,
+  `tc11001_model_outcome_codes` on branch). The DB was downgraded to `075` before the baseline run and after the branch run.
 
 ## Commands (from `apps/api`)
 ```
@@ -32,7 +32,7 @@ lives in `tests/` because `tests/release/` is owned by TC-02-001.
 | New tests, branch (`new_tests_branch.txt`) | 0 | 38 passed |
 | Full `tests/` baseline f72def3 (`full_base_summary.txt`) | 1 | 2 failed, 1285 passed, 2 skipped, 2 errors |
 | Full `tests/` branch (`full_branch_summary.txt`) | 1 | 2 failed, 1323 passed, 2 skipped, 2 errors |
-| Migration 076 down/up/down (`migration_rollback.txt`) | 0 | 076 → 075 → 076 → 075 |
+| Migration 076 down/up/down, original commit (superseded by the review follow-up below) | 0 | 076 → 075 → 076 → 075 |
 
 Same failures/errors on baseline and branch (pre-existing on master):
 - `test_answer_pipeline.py::test_partial_completion_progress` – needs a real `OPENAI_API_KEY`
@@ -60,3 +60,18 @@ typed outcome, 404/401 stop the run with a safe `ModelCallError`, and the log li
 ## Rollback
 Revert the commit and run `alembic downgrade 075` (drops nullable `answers.outcome_code` and
 `jobs.error_code`; no data migration). Verified in `migration_rollback.txt`.
+
+## Review follow-up (Coordinator review of PR #16)
+Run with the same image against an isolated Postgres (`tc-core-11001-pg` on the internal network
+`tc-core-11001-net`), `OPENAI_API_KEY` empty, fakes only.
+- **Item 2:** answer-cache hits now get `grounded_unverified`, never `grounded`.
+- **Item 3:** the migration is renamed to `076_tc11001_model_outcome_codes.py`, revision id
+  `tc11001_model_outcome_codes`, down_revision `075`.
+
+| Run | Exit | Totals |
+|---|---|---|
+| `tests/test_provider_adapter.py` (`new_tests_branch.txt`) | 0 | 45 passed (38 before, plus 7 new; the migration test was renamed and tightened) |
+| Related suites (`followup_related_tests.txt`) | 1 | 90 passed, 1 failed (`test_partial_completion_progress`, which also fails on master), 3 skipped (no fixture document on a fresh DB) |
+| Full `tests/` (`full_followup_summary.txt`) | 1 | 1330 passed, 2 failed, 2 skipped, 2 errors. f72def3 on the same DB: 1284 passed, 2 failed, 3 skipped, 2 errors, with the same failures and errors |
+| Migration round-trip (`migration_rollback.txt`, regenerated) | 0 | head → 075 → head → 075 → head; columns are checked after each step |
+| Collision check (`migration_collision_check.txt`) | 0 | A simulated TC-25-005 `076` next to ours gives two heads, which merge cleanly |

@@ -32,6 +32,12 @@ type Question = {
   } | null
 }
 
+/**
+ * TC-11-001: only a freshly generated draft is 'grounded'. Every other outcome, including
+ * 'grounded_unverified' (answer-cache hit whose citations were not re-checked), shows its badge.
+ */
+const VERIFIED_GROUNDED_OUTCOME = 'grounded'
+
 function apiErrorMessage(err: ApiErrorInfo | null | undefined): string {
   if (!err?.message) return ''
   return err.request_id ? `${err.message} (ref ${err.request_id.slice(0, 8)})` : err.message
@@ -794,7 +800,7 @@ export default function ReviewPage() {
                                   ? `${citations.length} supporting source${citations.length !== 1 ? 's' : ''}`
                                   : 'No supporting evidence linked yet'}
                               </span>
-                              {q.answer?.outcome && q.answer.outcome.code !== 'grounded' ? (
+                              {q.answer?.outcome && q.answer.outcome.code !== VERIFIED_GROUNDED_OUTCOME ? (
                                 <>
                                   <span>·</span>
                                   <span data-outcome-code={q.answer.outcome.code} title={q.answer.outcome.code}>

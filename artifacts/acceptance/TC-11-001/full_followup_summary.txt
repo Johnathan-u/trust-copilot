@@ -1,0 +1,24 @@
+# Full apps/api suite, review follow-up. Image tc-core-api-test:c20f949-sa20, isolated tc-core-11001-pg (internal net), OPENAI_API_KEY empty, fakes only.
+# Same DB, run back to back: baseline f72def3 (after 'alembic downgrade 075'), then the branch (upgrades to tc11001_model_outcome_codes).
+# pytest tests -q -rfs -p no:randomly --continue-on-collection-errors --ignore=tests/test_session_concurrency.py
+
+## f72def3
+__________________ ERROR collecting tests/test_alerts_api.py ___________________
+_________________ ERROR collecting tests/test_coverage_api.py __________________
+FAILED tests/test_answer_pipeline.py::test_partial_completion_progress - Valu...
+FAILED tests/test_vendor_requests_api.py::test_create_with_questionnaire_id
+SKIPPED [1] tests/test_trust_scoring_blind.py:27: Blind test pack not found (local-only file)
+SKIPPED [1] tests/test_control_timeline.py:42: No reviewed workspace controls
+SKIPPED [1] tests/test_feedback_capture.py:22: No questionnaires
+2 failed, 1284 passed, 3 skipped, 2 errors
+exit=1
+
+## follow-up
+__________________ ERROR collecting tests/test_alerts_api.py ___________________
+_________________ ERROR collecting tests/test_coverage_api.py __________________
+FAILED tests/test_answer_pipeline.py::test_partial_completion_progress - app....
+FAILED tests/test_vendor_requests_api.py::test_create_with_questionnaire_id
+SKIPPED [1] tests/test_trust_scoring_blind.py:27: Blind test pack not found (local-only file)
+SKIPPED [1] tests/test_control_timeline.py:42: No reviewed workspace controls
+2 failed, 1330 passed, 2 skipped, 1 warning, 2 errors
+exit=1

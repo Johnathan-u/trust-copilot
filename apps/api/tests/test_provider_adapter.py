@@ -7,6 +7,7 @@ and Python-level outbound sockets are blocked for every test in this module. Syn
 
 from __future__ import annotations
 
+import contextlib
 import json
 import socket
 import uuid
@@ -277,17 +278,22 @@ def _mock_db(n: int):
     return db
 
 
-def _run_pipeline(client, n=3, embed=None, key="synthetic-not-a-key", job=None):
+def _run_pipeline(
+    client, n=3, embed=None, key="synthetic-not-a-key", job=None, cache_get=None, upsert=None
+):
     db = _mock_db(n)
+    cache_get = cache_get or (lambda *_a, **_k: None)
+    extra = [patch.object(ag, "_upsert_answer", side_effect=upsert)] if upsert else []
     embed = embed or (lambda texts, on_failure=None: [FAKE_EMB] * len(texts))
     with (
         patch("app.core.config.get_settings") as gs,
         patch("app.services.answer_generation.embed_texts", side_effect=embed),
         patch("app.services.answer_generation.get_corpus_version", return_value=""),
         patch("app.services.answer_generation.retrieval_cache_get", return_value=None),
-        patch("app.services.answer_generation.answer_cache_get", return_value=None),
+        patch("app.services.answer_generation.answer_cache_get", side_effect=cache_get),
         patch("app.services.answer_generation.answer_cache_set"),
         patch("app.services.answer_generation.RetrievalService") as rs,
+        contextlib.ExitStack() as stack,
         patch(
             "app.services.answer_generation.prioritize_evidence_for_answer",
             side_effect=lambda _db, ev, **_k: ev,
@@ -295,6 +301,8 @@ def _run_pipeline(client, n=3, embed=None, key="synthetic-not-a-key", job=None):
         patch("app.services.answer_generation.should_skip_llm", return_value=(False, None)),
         patch("openai.OpenAI", return_value=client),
     ):
+        for cm in extra:
+            stack.enter_context(cm)
         gs.return_value.openai_api_key = key
         gs.return_value.completion_model = "gpt-4o-mini"
         gs.return_value.openai_temperature = 0.2
@@ -496,12 +504,36 @@ def test_worker_persists_safe_typed_job_error_and_jobs_api(client, db_session):
         db_session.commit()
 
 
-def test_migration_076_columns_present(db_session):
-    from sqlalchemy import inspect
+MIGRATION_REVISION = "tc11001_model_outcome_codes"
+
+
+def test_migration_columns_present(db_session):
+    from sqlalchemy import inspect, text
 
     insp = inspect(db_session.get_bind())
     assert "outcome_code" in {c["name"] for c in insp.get_columns("answers")}
     assert "error_code" in {c["name"] for c in insp.get_columns("jobs")}
+    assert db_session.execute(text("SELECT version_num FROM alembic_version")).scalar() == (
+        MIGRATION_REVISION
+    )
+
+
+def test_migration_has_unique_descriptive_revision_after_075():
+    """Review item 3: TC-25-005 also adds a migration after 075, so ours must not be "076"."""
+    from pathlib import Path
+
+    from alembic.config import Config
+    from alembic.script import ScriptDirectory
+
+    api_dir = Path(__file__).resolve().parents[1]
+    cfg = Config(str(api_dir / "alembic.ini"))
+    cfg.set_main_option("script_location", str(api_dir / "alembic"))
+    script = ScriptDirectory.from_config(cfg)
+    rev = script.get_revision(MIGRATION_REVISION)
+    assert rev.down_revision == "075"
+    assert Path(rev.path).name == "076_tc11001_model_outcome_codes.py"
+    assert "076" not in {r.revision for r in script.walk_revisions()}
+    assert script.get_heads() == [MIGRATION_REVISION]
 
 
 def test_request_ids_are_unique_per_request(client):
@@ -509,3 +541,143 @@ def test_request_ids_are_unique_per_request(client):
     b = client.get("/healthz").headers.get("x-request-id")
     assert a and b and a != b
     uuid.UUID(a)
+
+
+# ---------------------------------------------------------------------------
+# Review item 2: answer-cache hits are never "grounded" (no citation checks until TC-11-003)
+# ---------------------------------------------------------------------------
+
+CACHED = {
+    "text": "Yes. Access reviews are performed quarterly.",
+    "citations": [{"chunk_id": 101, "snippet": "Synthetic policy: access reviews are quarterly."}],
+    "confidence": 88,
+}
+
+
+def test_grounded_unverified_catalog_entry():
+    spec = OUTCOME_CATALOG[ModelOutcomeCode.GROUNDED_UNVERIFIED]
+    assert ModelOutcomeCode.GROUNDED_UNVERIFIED.value == "grounded_unverified"
+    assert ModelOutcomeCode.GROUNDED_UNVERIFIED != ModelOutcomeCode.GROUNDED
+    assert spec.is_failure is False and spec.fatal is False and spec.http_status == 200
+    assert spec.message != OUTCOME_CATALOG[ModelOutcomeCode.GROUNDED].message
+    assert "not been re-checked" in spec.message
+    p = outcome_payload("grounded_unverified", "rid")
+    assert set(p) == API_ERROR_KEYS
+    assert p["code"] == "grounded_unverified" and p["message"] == spec.message
+    ApiError(**p)
+
+
+def test_cache_hit_is_grounded_unverified_never_grounded():
+    stored: dict[int, str] = {}
+
+    def upsert(_db, q_id, *_a, outcome_code=None, **_k):
+        stored[q_id] = outcome_code
+
+    job = MagicMock()
+    job.result = None
+    client = FakeClient(_completion("unused"))
+    count = _run_pipeline(
+        client, n=3, job=job, cache_get=lambda *_a, **_k: dict(CACHED), upsert=upsert
+    )
+    assert count == 3
+    assert client.calls == 0  # every question served from the answer cache
+    assert stored == {i: ModelOutcomeCode.GROUNDED_UNVERIFIED for i in (1, 2, 3)}
+    assert ModelOutcomeCode.GROUNDED not in stored.values()
+    outcomes = json.loads(job.result)["stats"]["outcomes"]
+    assert outcomes == {"grounded_unverified": 3}
+    assert "grounded" not in outcomes
+
+
+def test_cache_hit_and_fresh_generation_are_distinguished():
+    stored: dict[int, str] = {}
+    hits = iter([dict(CACHED), None])
+
+    def upsert(_db, q_id, *_a, outcome_code=None, **_k):
+        stored[q_id] = outcome_code
+
+    job = MagicMock()
+    job.result = None
+    client = FakeClient(_completion("Yes. Access reviews are performed quarterly."))
+    _run_pipeline(client, n=2, job=job, cache_get=lambda *_a, **_k: next(hits), upsert=upsert)
+    assert stored[1] == ModelOutcomeCode.GROUNDED_UNVERIFIED  # cache hit
+    assert stored[2] == ModelOutcomeCode.GROUNDED  # freshly generated this run
+    assert client.calls >= 1  # the uncached question went to the (fake) model
+    outcomes = json.loads(job.result)["stats"]["outcomes"]
+    assert outcomes == {"grounded_unverified": 1, "grounded": 1}
+
+
+def test_sweep_relabels_uncited_cached_answer():
+    """A cached draft without citations is swept to no_evidence, like a fresh grounded one."""
+    a = SimpleNamespace(
+        text="Yes. Access reviews are performed quarterly.",
+        citations="[]",
+        primary_categories_json=None,
+        status="draft",
+        insufficient_reason=None,
+        outcome_code=ModelOutcomeCode.GROUNDED_UNVERIFIED.value,
+        confidence=80,
+    )
+    db = MagicMock()
+    db.query.return_value.join.return_value.filter.return_value.all.return_value = [a]
+    assert ag._sweep_draft_insufficient_narratives(db, 1) == 1
+    assert a.status == "insufficient_evidence"
+    assert a.outcome_code == ModelOutcomeCode.NO_EVIDENCE.value
+
+
+def test_questionnaire_api_reports_grounded_unverified(client, db_session):
+    from app.models import Answer, Question, Questionnaire
+
+    qnr = Questionnaire(
+        workspace_id=1, filename="tc11_cache_synth.xlsx", status="parsed", storage_key="tc11-cache"
+    )
+    db_session.add(qnr)
+    db_session.commit()
+    q = Question(questionnaire_id=qnr.id, text="Synthetic cached question?")
+    db_session.add(q)
+    db_session.commit()
+    db_session.add(
+        Answer(
+            question_id=q.id,
+            text=CACHED["text"],
+            status="draft",
+            citations=json.dumps(CACHED["citations"]),
+            outcome_code="grounded_unverified",
+        )
+    )
+    db_session.commit()
+    try:
+        assert (
+            client.post(
+                "/api/auth/login", json={"email": "demo@trust.local", "password": "j"}
+            ).status_code
+            == 200
+        )
+        r = client.get(f"/api/questionnaires/{qnr.id}?workspace_id=1")
+        assert r.status_code == 200
+        ans = r.json()["questions"][0]["answer"]
+        assert ans["outcome_code"] == "grounded_unverified"
+        assert ans["outcome"]["code"] == "grounded_unverified"
+        assert ans["outcome"]["message"] == (
+            OUTCOME_CATALOG[ModelOutcomeCode.GROUNDED_UNVERIFIED].message
+        )
+        assert ans["status"] == "draft"  # legacy status/text unchanged
+    finally:
+        db_session.query(Answer).filter(Answer.question_id == q.id).delete()
+        db_session.query(Question).filter(Question.questionnaire_id == qnr.id).delete()
+        db_session.delete(qnr)
+        db_session.commit()
+
+
+def test_review_page_shows_badge_for_everything_but_verified_grounded():
+    """The review page hides the outcome badge only for 'grounded' (never for cache hits)."""
+    from pathlib import Path
+
+    page = Path(__file__).resolve().parents[3] / "apps/web/app/dashboard/review/[id]/page.tsx"
+    if not page.exists():
+        pytest.skip("web app not mounted")
+    src = page.read_text()
+    assert "const VERIFIED_GROUNDED_OUTCOME = 'grounded'" in src
+    assert "q.answer.outcome.code !== VERIFIED_GROUNDED_OUTCOME ?" in src
+    # no code path special-cases the cache-hit outcome as if it were grounded
+    assert "=== 'grounded_unverified'" not in src
+    assert src.count("!== 'grounded'") == 0 and src.count("=== 'grounded'") == 0

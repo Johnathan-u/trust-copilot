@@ -770,7 +770,9 @@ def generate_answers_for_questionnaire(
     # Persist cached answers and progress
     for q_id, (text, citations, conf) in cached_results.items():
         st = classify_answer_status_from_text(text)
-        cached_code = ModelOutcomeCode.GROUNDED if st == "draft" else ModelOutcomeCode.MODEL_ABSTAINED
+        # TC-11-001 review: a cache hit is never "grounded"; its citations are not re-checked
+        # (claim-level citation validation is TC-11-003), so it gets GROUNDED_UNVERIFIED.
+        cached_code = ModelOutcomeCode.GROUNDED_UNVERIFIED if st == "draft" else ModelOutcomeCode.MODEL_ABSTAINED
         _upsert_answer(db, q_id, text, citations, conf if st == "draft" else 0, st, outcome_code=cached_code)
         _count_outcome(cached_code)
         count += 1
@@ -1198,7 +1200,11 @@ def _sweep_draft_insufficient_narratives(db: Session, questionnaire_id: int) -> 
             a.status = "insufficient_evidence"
             if no_citations and not a.insufficient_reason:
                 a.insufficient_reason = "no_citations"
-            if getattr(a, "outcome_code", None) in (None, ModelOutcomeCode.GROUNDED.value):
+            if getattr(a, "outcome_code", None) in (
+                None,
+                ModelOutcomeCode.GROUNDED.value,
+                ModelOutcomeCode.GROUNDED_UNVERIFIED.value,
+            ):
                 a.outcome_code = (
                     ModelOutcomeCode.NO_EVIDENCE.value if no_citations else ModelOutcomeCode.MODEL_ABSTAINED.value
                 )

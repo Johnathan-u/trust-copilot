@@ -1,0 +1,97 @@
+........................................................................ [ 76%]
+..........F.......sss.                                                   [100%]
+=================================== FAILURES ===================================
+_______________________ test_partial_completion_progress _______________________
+
+db_session = <sqlalchemy.orm.session.Session object at 0x7f3d609d5890>
+
+    def test_partial_completion_progress(db_session: Session):
+        """Job.result gets updated with generated/total during run (integration: generate_answers with job)."""
+        from app.models import Job, JobStatus, Questionnaire, Question, Workspace
+        from app.services.answer_generation import generate_answers_for_questionnaire
+        db = db_session
+        ws = db.query(Workspace).first()
+        if not ws:
+            pytest.skip("no workspace")
+        qnr = db.query(Questionnaire).filter(Questionnaire.workspace_id == ws.id).first()
+        if not qnr:
+            qnr = Questionnaire(workspace_id=ws.id, filename="test_pipeline.xlsx", status="parsed")
+            db.add(qnr)
+            db.flush()
+            db.add(Question(questionnaire_id=qnr.id, text="How do you handle access control?"))
+            db.add(Question(questionnaire_id=qnr.id, text="Describe your backup procedures."))
+            db.commit()
+            db.refresh(qnr)
+        job = Job(
+            workspace_id=ws.id,
+            kind="generate_answers",
+            status=JobStatus.RUNNING.value,
+            payload=json.dumps({"questionnaire_id": qnr.id, "workspace_id": ws.id}),
+        )
+        db.add(job)
+        db.commit()
+        db.refresh(job)
+        try:
+            mock_chat = MagicMock()
+            mock_chat.completions.create.return_value = MagicMock(
+                choices=[MagicMock(message=MagicMock(content="Test answer based on evidence."))]
+            )
+            with patch("app.services.answer_generation.embed_texts", return_value=[[0.0] * 1536] * 10), \
+                 patch("app.services.answer_generation.get_corpus_version", return_value="v1"), \
+                 patch("openai.OpenAI", return_value=mock_chat):
+>               count = generate_answers_for_questionnaire(
+                    db, qnr.id, ws.id, job=job
+                )
+
+tests/test_answer_pipeline.py:133: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+db = <sqlalchemy.orm.session.Session object at 0x7f3d609d5890>
+questionnaire_id = 7, workspace_id = 1, model_override = None
+response_style_override = None
+job = <app.models.job.Job object at 0x7f3d60ccc9d0>
+
+    def generate_answers_for_questionnaire(
+        db: Session,
+        questionnaire_id: int,
+        workspace_id: int,
+        model_override: str | None = None,
+        response_style_override: str | None = None,
+        job: Job | None = None,
+    ) -> int:
+        """Generate answers for all questions. Returns count of answers created."""
+        qnr = db.query(Questionnaire).filter(
+            Questionnaire.id == questionnaire_id,
+            Questionnaire.workspace_id == workspace_id,
+        ).first()
+        if not qnr:
+            raise ValueError(f"Questionnaire {questionnaire_id} not found")
+        questions = db.query(Question).filter(Question.questionnaire_id == questionnaire_id).all()
+        total_questions = len(questions)
+        if not questions:
+            if job:
+                job.result = _job_payload(0, 0, {"drafted": 0, "insufficient_evidence": 0, "skipped_gated": 0, "llm_calls": 0, "duration_ms": 0})
+                db.commit()
+            return 0
+    
+        from app.core.config import get_settings
+        settings = get_settings()
+        api_key_ok = bool((settings.openai_api_key or "").strip())
+        if not api_key_ok:
+            if total_questions > 0:
+>               raise ModelCallError(ModelFailure(code=ModelOutcomeCode.MODEL_CREDENTIALS_MISSING))
+E               app.services.model_outcomes.ModelCallError: Model provider credentials are not configured. Set OPENAI_API_KEY for the API and worker services, then restart.
+
+app/services/answer_generation.py:578: ModelCallError
+=============================== warnings summary ===============================
+tests/test_provider_adapter.py::test_migration_has_unique_descriptive_revision_after_075
+  /usr/local/lib/python3.11/site-packages/alembic/config.py:604: DeprecationWarning: No path_separator found in configuration; falling back to legacy splitting on spaces, commas, and colons for prepend_sys_path.  Consider adding path_separator=os to Alembic config.
+    util.warn_deprecated(
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED tests/test_answer_pipeline.py::test_partial_completion_progress - app....
+SKIPPED [1] tests/test_questionnaire_answer_evidence.py:92: need a distinct workspace document
+SKIPPED [1] tests/test_questionnaire_answer_evidence.py:121: need a document distinct from questionnaire document_id
+SKIPPED [1] tests/test_questionnaire_answer_evidence.py:161: no document
+1 failed, 90 passed, 3 skipped, 1 warning
