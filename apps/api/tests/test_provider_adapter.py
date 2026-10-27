@@ -521,7 +521,7 @@ def test_migration_columns_present(db_session):
 
 
 def test_migration_has_unique_descriptive_revision_after_075():
-    """Review item 3: TC-25-005 also adds a migration after 075, so ours must not be "076"."""
+    """Revision id stays descriptive. Parent is master's TC-21-001 head, not 075."""
     from pathlib import Path
 
     from alembic.config import Config
@@ -532,7 +532,7 @@ def test_migration_has_unique_descriptive_revision_after_075():
     cfg.set_main_option("script_location", str(api_dir / "alembic"))
     script = ScriptDirectory.from_config(cfg)
     rev = script.get_revision(MIGRATION_REVISION)
-    assert rev.down_revision == "075"
+    assert rev.down_revision == "tc21001_framework_catalog_rights"
     assert Path(rev.path).name == "076_tc11001_model_outcome_codes.py"
     assert "076" not in {r.revision for r in script.walk_revisions()}
     assert script.get_heads() == [MIGRATION_REVISION]

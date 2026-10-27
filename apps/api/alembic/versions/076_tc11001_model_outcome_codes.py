@@ -2,19 +2,21 @@
 
 Additive, nullable columns only. Legacy rows keep NULL (rendered as "no typed outcome").
 
-Revision ID: tc11001_model_outcome_codes
-Revises: 075
+Adds answers.outcome_code and jobs.error_code. TC-21-001's framework_catalog_events.error_code
+is a different table, so these columns do not collide with that revision.
 
-The revision id is descriptive rather than "076" because another team's TC-25-005 also adds a
-migration after 075. Whichever merges second adds an alembic merge revision (or re-points its
-down_revision); neither id collides.
+Revision ID: tc11001_model_outcome_codes
+Revises: tc21001_framework_catalog_rights
+
+The revision id is descriptive rather than "076" so it does not collide with another migration
+that also follows 075. This revision is parented on master's head after TC-21-001.
 """
 
 import sqlalchemy as sa
 from alembic import op
 
 revision = "tc11001_model_outcome_codes"
-down_revision = "075"
+down_revision = "tc21001_framework_catalog_rights"
 branch_labels = None
 depends_on = None
 
