@@ -10,7 +10,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from app.services.synthetic_pdf import Page, TextItem, build_pdf, text_block
+from app.services.synthetic_pdf import Page, TextItem, bt_row, build_pdf, text_block, tj_row
 
 FIXTURE_PDF = Path(__file__).parent / "fixtures" / "documents" / "security_policy.pdf"
 
@@ -34,6 +34,11 @@ class Case:
     outcome: str = "text"
     # questionnaire expectations: (question substring, page, section)
     questions: list[tuple[str, int, str | None]] = field(default_factory=list)
+    # TC-01-003b expected output: the parser's full question list, in order, as
+    # (normalized text, page, section); None means "not asserted"
+    exact_questions: list[tuple[str, int, str | None]] | None = None
+    # TC-01-003b expected cell splits: every row split into >1 cell, in page order
+    split_rows: list[tuple[str, ...]] | None = None
 
 
 def _multipage_blank() -> Case:
@@ -184,14 +189,20 @@ def _questionnaire_table() -> Case:
     for r, (q, a, b) in enumerate(rows):
         y = 110 + r * 20
         texts += [TextItem(60, y, q), TextItem(400, y, a), TextItem(460, y, b)]
+    sec = "SECTION D: OPERATIONS"
     return Case(
         "questionnaire_table_cells",
         build_pdf([Page(texts=texts)]),
         page_markers={1: ["encrypt backups", "MFA required"]},
         questions=[
-            ("encrypt backups at rest", 1, "SECTION D: OPERATIONS"),
-            ("mfa required for remote access", 1, "SECTION D: OPERATIONS"),
+            ("encrypt backups at rest", 1, sec),
+            ("mfa required for remote access", 1, sec),
         ],
+        exact_questions=[
+            ("do you encrypt backups at rest", 1, sec),
+            ("is mfa required for remote access", 1, sec),
+        ],
+        split_rows=[tuple(r) for r in rows],
     )
 
 
@@ -315,6 +326,245 @@ def corpus(include_encrypted: bool = True) -> list[Case]:
     if include_encrypted:
         cases += encrypted_cases()
     return cases
+
+
+# --- TC-01-003b: same-line table rows -------------------------------------------------
+# Not part of corpus(): corpus() is the TC-01-003a set with a recorded PyMuPDF baseline
+# (tests/fixtures/pdf_locator/baseline_pymupdf.json) and 149 scored checks.
+
+
+def _rows_one_bt_per_row() -> Case:
+    """Whole row in one BT block (Td moves), header row, Yes/No/N/A and checkbox cells."""
+    sec = "SECTION E: DATA PROTECTION"
+    xs = [60, 380, 430, 480]
+    rows = [
+        ("Question", "Yes", "No", "N/A"),
+        ("Do you encrypt backups at rest?", "Yes", "No", "N/A"),
+        ("Are encryption keys rotated at least annually?", "[X]", "[ ]", "[ ]"),
+    ]
+    raw = [bt_row(110 + r * 20, list(zip(xs, row))) for r, row in enumerate(rows)]
+    raw.append(bt_row(170, [(60, "Describe how backup restores are tested.")]))
+    return Case(
+        "table_rows_one_bt_yes_no_na",
+        build_pdf([Page(texts=[TextItem(60, 80, sec)], raw=b"\n".join(raw))]),
+        page_markers={1: ["encrypt backups", "rotated at least annually", "restores are tested"]},
+        exact_questions=[
+            ("do you encrypt backups at rest", 1, sec),
+            ("are encryption keys rotated at least annually", 1, sec),
+            ("describe how backup restores are tested", 1, sec),
+        ],
+        split_rows=[tuple(c for c in row if c.strip()) for row in rows],
+    )
+
+
+def _rows_tj_kerning() -> Case:
+    """Cells placed by TJ kerning; questions of different lengths, so answer columns do not
+    line up and only the wide-gap rule (>= 3 em) applies. Word-level kerning inside a
+    question (0.4 em) must not split it."""
+    sec = "SECTION F: IDENTITY"
+    raw = [
+        tj_row(60, 110, ["Is MFA required for remote access?", -20000, "Yes", -3000, "No"]),
+        tj_row(60, 130, ["Is SSO enforced for all staff?", -24000, "Yes", -3500, "No"]),
+        tj_row(60, 150, ["Do", -400, "you", -400, "log", -400, "administrator", -400, "actions?"]),
+    ]
+    return Case(
+        "table_rows_tj_kerning",
+        build_pdf([Page(texts=[TextItem(60, 80, sec)], raw=b"\n".join(raw))]),
+        page_markers={1: ["MFA required", "SSO enforced", "administrator"]},
+        exact_questions=[
+            ("is mfa required for remote access", 1, sec),
+            ("is sso enforced for all staff", 1, sec),
+            ("do you log administrator actions", 1, sec),
+        ],
+        split_rows=[
+            ("Is MFA required for remote access?", "Yes", "No"),
+            ("Is SSO enforced for all staff?", "Yes", "No"),
+        ],
+    )
+
+
+def _rows_answers_first() -> Case:
+    """Answer cells come before the question cell in the content stream (same baseline)."""
+    sec = "SECTION G: LOGGING"
+    rows = [
+        ("Are audit logs retained for at least one year?", "Yes", "No"),
+        ("Is log access restricted to the security team?", "Yes", "No"),
+    ]
+    texts = [TextItem(60, 80, sec)]
+    for r, (q, a, b) in enumerate(rows):
+        y = 110 + r * 20
+        texts += [TextItem(400, y, a), TextItem(460, y, b), TextItem(60, y, q)]
+    return Case(
+        "table_rows_answers_first_in_stream",
+        build_pdf([Page(texts=texts)]),
+        page_markers={1: ["audit logs retained", "log access restricted"]},
+        exact_questions=[
+            ("are audit logs retained for at least one year", 1, sec),
+            ("is log access restricted to the security team", 1, sec),
+        ],
+        # pypdf's plain text has no space before the question here ("Yes NoAre ..."), a
+        # pre-existing pypdf quirk left as is in evidence text; the cut is still made at
+        # the run boundary, so no characters move between cells.
+        split_rows=[(a, b, q) for q, a, b in rows],
+    )
+
+
+def _rows_prefilled_answers() -> Case:
+    """A filled-in free-text answer column to the right of the question column."""
+    sec = "SECTION H: VENDORS"
+    rows = [
+        ("Is customer data encrypted in transit?", "Yes - TLS 1.2 or later on all endpoints."),
+        ("How are vendor risks assessed?", "Annual review against the vendor policy."),
+    ]
+    texts = [TextItem(60, 80, sec)]
+    for r, (q, a) in enumerate(rows):
+        texts += [TextItem(60, 110 + r * 20, q), TextItem(330, 110 + r * 20, a)]
+    return Case(
+        "table_rows_prefilled_answers",
+        build_pdf([Page(texts=texts)]),
+        page_markers={1: ["encrypted in transit", "vendor risks"]},
+        exact_questions=[
+            ("is customer data encrypted in transit", 1, sec),
+            ("how are vendor risks assessed", 1, sec),
+        ],
+        split_rows=rows,
+    )
+
+
+def _rows_two_question_cells() -> Case:
+    """Two question columns on shared baselines, written row by row (left, right, left, ...).
+    Plain text joins each pair on one line; both questions must be kept, in stream order."""
+    sec = "SECTION J: PHYSICAL SECURITY"
+    left = ["Are data centre visitors escorted?", "Is CCTV footage kept for 90 days?"]
+    right = ["Do badges expire after 12 months?", "Are server racks locked?"]
+    texts = [TextItem(60, 80, sec)]
+    for r in range(2):
+        texts += [TextItem(60, 110 + r * 20, left[r]), TextItem(320, 110 + r * 20, right[r])]
+    return Case(
+        "table_rows_two_question_columns",
+        build_pdf([Page(texts=texts)]),
+        page_markers={1: ["visitors escorted", "CCTV", "badges expire", "racks locked"]},
+        exact_questions=[
+            ("are data centre visitors escorted", 1, sec),
+            ("do badges expire after 12 months", 1, sec),
+            ("is cctv footage kept for 90 days", 1, sec),
+            ("are server racks locked", 1, sec),
+        ],
+        split_rows=[(left[0], right[0]), (left[1], right[1])],
+    )
+
+
+def _rows_numbered() -> Case:
+    """Question-number cell, question cell, answer cell. Joined, "1.1 Do ..." was read as a
+    section header (question_detector quirk); cell by cell the question is kept."""
+    sec = "SECTION K: ASSETS"
+    rows = [
+        ("1.1", "Do you maintain an asset inventory?", "Yes"),
+        ("1.2", "Are assets assigned an owner?", "No"),
+    ]
+    raw = [bt_row(110 + r * 20, list(zip([60, 90, 400], row))) for r, row in enumerate(rows)]
+    return Case(
+        "table_rows_numbered",
+        build_pdf([Page(texts=[TextItem(60, 80, sec)], raw=b"\n".join(raw))]),
+        page_markers={1: ["asset inventory", "assigned an owner"]},
+        exact_questions=[
+            ("do you maintain an asset inventory", 1, sec),
+            ("are assets assigned an owner", 1, sec),
+        ],
+        split_rows=rows,
+    )
+
+
+def _rows_not_split() -> Case:
+    """Guards: nothing here may be split or lose text.
+
+    * a justified question (0.8 em word gaps, one text object per word);
+    * a lone row whose second cell is 2 em away and lines up with nothing (below the
+      3 em lone-gap rule): stays joined, so the trailing text stays in the question;
+    * aligned rows whose cells are not questions on their own but whose joined line is:
+      the joined line is used.
+    """
+    sec = "SECTION L: GUARDS"
+    texts = [TextItem(60, 80, sec)]
+    x = 60.0
+    for w in "Is the backup encryption key rotated annually?".split():
+        texts.append(TextItem(x, 110, w))
+        x += {
+            "Is": 9.2,
+            "the": 16.5,
+            "backup": 37.3,
+            "encryption": 53.2,
+            "key": 18.3,
+            "rotated": 37.3,
+            "annually?": 48.9,
+        }[w] + 0.8 * 11
+    texts.append(TextItem(60, 130, "Describe your incident response process"))
+    texts.append(TextItem(60 + 198.7 + 22, 130, "See IR-1"))  # 2 em after the question
+    texts += [TextItem(60, 150, "Backups tested"), TextItem(300, 150, "(yes/no)?")]
+    texts += [TextItem(60, 170, "Restores logged"), TextItem(300, 170, "(yes/no)?")]
+    return Case(
+        "table_rows_guards_not_split",
+        build_pdf([Page(texts=texts)]),
+        page_markers={1: ["backup encryption key", "IR-1", "Backups tested"]},
+        exact_questions=[
+            ("is the backup encryption key rotated annually", 1, sec),
+            ("describe your incident response process see ir-1", 1, sec),
+            ("backups tested (yes/no)", 1, sec),
+            ("restores logged (yes/no)", 1, sec),
+        ],
+        split_rows=[("Backups tested", "(yes/no)?"), ("Restores logged", "(yes/no)?")],
+    )
+
+
+def _rows_two_column_blocks() -> Case:
+    """Two-column questionnaire written column by column on shared baselines: reading
+    order must stay left column then right column, sections per column."""
+    left = text_block(
+        50,
+        80,
+        [
+            "SECTION M: NETWORK",
+            "Are firewalls reviewed quarterly?",
+            "Is network traffic segmented?",
+        ],
+    )
+    right = text_block(
+        320,
+        80,
+        [
+            "SECTION N: PEOPLE",
+            "Do staff receive security training?",
+            "Are background checks performed?",
+        ],
+    )
+    return Case(
+        "table_rows_two_column_blocks",
+        build_pdf([Page(texts=left + right)]),
+        page_markers={1: ["firewalls reviewed", "segmented", "security training", "background"]},
+        ordered=[["firewalls reviewed", "segmented", "security training", "background"]],
+        exact_questions=[
+            ("are firewalls reviewed quarterly", 1, "SECTION M: NETWORK"),
+            ("is network traffic segmented", 1, "SECTION M: NETWORK"),
+            ("do staff receive security training", 1, "SECTION N: PEOPLE"),
+            ("are background checks performed", 1, "SECTION N: PEOPLE"),
+        ],
+        split_rows=[],
+    )
+
+
+def table_row_corpus() -> list[Case]:
+    """TC-01-003b cases: same-line table rows with expected questions and cell splits."""
+    return [
+        _questionnaire_table(),
+        _rows_one_bt_per_row(),
+        _rows_tj_kerning(),
+        _rows_answers_first(),
+        _rows_prefilled_answers(),
+        _rows_two_question_cells(),
+        _rows_numbered(),
+        _rows_not_split(),
+        _rows_two_column_blocks(),
+    ]
 
 
 def write_case(case: Case, directory: Path) -> Path:

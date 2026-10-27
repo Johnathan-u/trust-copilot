@@ -198,16 +198,10 @@ def test_questionnaire_parity_with_pymupdf_baseline(case: Case, paths):
         loc = json.loads(q["source_location"])
         assert loc["file"] == str(paths[case.name])
         q["source_location"] = dict(loc, file="<path>")
-    old = base["ok"]
-    if case.name == "questionnaire_table_cells":
-        # Answer cells on the question's baseline now trail the question text.
-        assert len(new) == len(old)
-        for n, o in zip(new, old):
-            assert n["text"].startswith(o["text"]) and n["text"] != o["text"]
-            for k in ("section", "answer_type", "source_location", "confidence"):
-                assert n[k] == o[k], k
-        return
-    assert new == old
+    # Exact parity for every case, including questionnaire_table_cells: since TC-01-003b
+    # the parser reads same-baseline table cells separately, so answer cells no longer
+    # trail the question text (tests/test_pdf_table_cells.py).
+    assert new == base["ok"]
 
 
 def test_repo_fixture_pdf_still_parses():
