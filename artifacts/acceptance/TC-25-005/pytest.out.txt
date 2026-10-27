@@ -1,9 +1,8 @@
-............                                                             [100%]
+.................                                                        [100%]
 =============================== warnings summary ===============================
-tests/release/test_domain_case_studies.py: 92 warnings
+tests/release/test_domain_case_studies.py: 120 warnings
   /home/ubuntu/.local/lib/python3.12/site-packages/sqlalchemy/sql/schema.py:3627: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
     return util.wrap_callable(lambda ctx: fn(), fn)  # type: ignore
 
 -- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
-12 passed, 92 warnings in 9.55s
-EXIT:0
+17 passed, 120 warnings in 12.94s
