@@ -2,7 +2,7 @@
   "ticket": "TC-25-011",
   "command": "python -m pytest tests/release/test_domain_demo_proof.py -q",
   "working_directory": "apps/api",
-  "git_sha": "c82a455e9846ce7f78390fbf2f1a0706ce1bfeda",
+  "git_sha": "ad803bd7d83c206e4f506a0031178b51757ec11b",
   "git_branch": "tc/ca/TC-25-011",
   "exit_status": 0,
   "totals": {
@@ -10,21 +10,38 @@
     "failed": 0,
     "skipped": 0,
     "errors": 0,
-    "warnings": 36,
-    "duration_seconds": 4.62
+    "warnings": 38,
+    "duration_seconds": 5.05
   },
+  "additional_runs": [
+    {
+      "command": "python -m pytest tests/test_demo_proof.py -q",
+      "working_directory": "apps/api",
+      "exit_status": 0,
+      "totals": {
+        "passed": 11,
+        "failed": 0,
+        "skipped": 0,
+        "errors": 0,
+        "warnings": 10,
+        "duration_seconds": 1.76
+      }
+    }
+  ],
   "environment": {
     "python": "3.12.3",
     "pytest": "9.1.1",
     "sqlalchemy": "2.0.55",
     "postgresql": "16.15",
     "node": "22.23.4",
+    "ruff": "0.5.6",
     "platform": "Linux 6.12.94+ x86_64"
   },
   "notes": [
     "PostgreSQL database trustcopilot_test. No credentials are recorded.",
     "The UI consumer was executed with Node against apps/web/lib/demoProofSummary.mjs inside the pytest file.",
     "Deprecation warnings come from existing utcnow defaults in other models, not from failed assertions.",
+    "ruff 0.5.6 format --check and ruff check passed, matching the ruff version pinned in master's CI.",
     "This evidence file is committed after the tested SHA. It does not change product behavior."
   ]
 }

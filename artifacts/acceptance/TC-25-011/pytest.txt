@@ -1,7 +1,15 @@
 python -m pytest tests/release/test_domain_demo_proof.py -q
 working_directory: apps/api
-git_sha: c82a455e9846ce7f78390fbf2f1a0706ce1bfeda
+git_sha: ad803bd7d83c206e4f506a0031178b51757ec11b
 
 ...............                                                          [100%]
-15 passed, 36 warnings in 4.62s
+15 passed, 38 warnings in 5.05s
+exit_status: 0
+
+python -m pytest tests/test_demo_proof.py -q
+working_directory: apps/api
+git_sha: ad803bd7d83c206e4f506a0031178b51757ec11b
+
+...........                                                              [100%]
+11 passed, 10 warnings in 1.76s
 exit_status: 0
