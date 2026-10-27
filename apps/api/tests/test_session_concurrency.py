@@ -55,15 +55,21 @@ def two_tenants(pg_ready) -> Iterator[dict]:
     try:
         # Seed rows in some migrations use explicit ids; make sure sequences are past them.
         for tbl in ("workspaces", "documents", "chunks"):
-            db.execute(text(
-                f"SELECT setval(pg_get_serial_sequence('{tbl}', 'id'), "
-                f"GREATEST((SELECT COALESCE(MAX(id), 0) FROM {tbl}), 1))"
-            ))
+            db.execute(
+                text(
+                    f"SELECT setval(pg_get_serial_sequence('{tbl}', 'id'), "
+                    f"GREATEST((SELECT COALESCE(MAX(id), 0) FROM {tbl}), 1))"
+                )
+            )
         for name in ("a", "b"):
             ws = Workspace(name=f"tc08005-{name}-{tag}", slug=f"tc08005-{name}-{tag}")
             db.add(ws)
             db.flush()
-            doc = Document(workspace_id=ws.id, storage_key=f"synthetic/{tag}/{name}.txt", filename=f"{name}.txt")
+            doc = Document(
+                workspace_id=ws.id,
+                storage_key=f"synthetic/{tag}/{name}.txt",
+                filename=f"{name}.txt",
+            )
             db.add(doc)
             db.flush()
             ids = []
@@ -73,7 +79,9 @@ def two_tenants(pg_ready) -> Iterator[dict]:
                     document_id=doc.id,
                     text=f"Synthetic tenant {name} policy about {term} controls number {i}.",
                     metadata_={"synthetic": True, "tenant": name},
-                    embedding=_vec(i),  # identical vectors across tenants -> isolation must come from filters
+                    embedding=_vec(
+                        i
+                    ),  # identical vectors across tenants -> isolation must come from filters
                 )
                 db.add(c)
                 db.flush()
@@ -92,7 +100,9 @@ def two_tenants(pg_ready) -> Iterator[dict]:
 
 
 def _queries(n: int = 12) -> list[tuple[str, list[float] | None]]:
-    return [(f"What {TERMS[i % len(TERMS)]} controls exist?", _vec(i % len(TERMS))) for i in range(n)]
+    return [
+        (f"What {TERMS[i % len(TERMS)]} controls exist?", _vec(i % len(TERMS))) for i in range(n)
+    ]
 
 
 class _SessionSpy:
@@ -163,7 +173,9 @@ def test_batch_search_never_uses_caller_session_off_thread(two_tenants, monkeypa
         assert len(out) == 12 and all(out)
         worker_calls = [(t, s) for t, s in spy.calls if t != main]
         assert worker_calls, "expected parallel execution on a pooled engine"
-        assert all(s is not caller for _, s in spy.calls), "caller Session used inside worker thread"
+        assert all(
+            s is not caller for _, s in spy.calls
+        ), "caller Session used inside worker thread"
         # each task session is used by exactly one thread, and is closed afterwards
         owners: dict[int, set[int]] = {}
         for t, s in spy.calls:
@@ -191,7 +203,9 @@ def test_pool_usage_bounded_and_returned(two_tenants, monkeypatch):
     try:
         caller.execute(text("SELECT 1"))  # caller holds one connection, like a real request
         RetrievalService(caller).batch_search(two_tenants["a"]["ws"], _queries(16), limit=5)
-        assert meter.peak <= 1 + 3, f"pool peak {meter.peak} exceeded caller + RETRIEVAL_MAX_THREADS"
+        assert (
+            meter.peak <= 1 + 3
+        ), f"pool peak {meter.peak} exceeded caller + RETRIEVAL_MAX_THREADS"
         caller.close()
         assert engine.pool.checkedout() == baseline
     finally:
@@ -202,6 +216,7 @@ def test_pool_usage_bounded_and_returned(two_tenants, monkeypatch):
 
 def test_pool_thread_budget_respects_pool_capacity():
     from app.core.database import pool_thread_budget, supports_thread_isolation
+
     small = create_engine(os.environ["DATABASE_URL"], pool_size=2, max_overflow=1)
     try:
         assert supports_thread_isolation(small)
@@ -237,11 +252,17 @@ def test_connection_bound_session_runs_serially_on_caller_thread(two_tenants, mo
         s = Session(bind=conn)
         try:
             ws = two_tenants["b"]["ws"]
-            c = Chunk(workspace_id=ws, document_id=two_tenants["b"]["doc"],
-                      text="Uncommitted synthetic zebrafish note", embedding=_vec(99))
+            c = Chunk(
+                workspace_id=ws,
+                document_id=two_tenants["b"]["doc"],
+                text="Uncommitted synthetic zebrafish note",
+                embedding=_vec(99),
+            )
             s.add(c)
             s.flush()
-            out = RetrievalService(s).batch_search(ws, [("zebrafish note", None), ("encryption", _vec(0))], limit=5)
+            out = RetrievalService(s).batch_search(
+                ws, [("zebrafish note", None), ("encryption", _vec(0))], limit=5
+            )
             assert c.id in {r["id"] for r in out[0]}  # sees caller's uncommitted state
             assert {t for t, _ in spy.calls} == {main}
             assert all(x is s for _, x in spy.calls)
@@ -302,7 +323,9 @@ def test_concurrent_two_tenant_retrieval_isolated(two_tenants, search_mode):
                 db = SessionLocal()  # one Session per simulated request
                 try:
                     doc_ids = [t["doc"]] if r % 2 else None
-                    out = RetrievalService(db).batch_search(t["ws"], _queries(10), limit=6, document_ids=doc_ids)
+                    out = RetrievalService(db).batch_search(
+                        t["ws"], _queries(10), limit=6, document_ids=doc_ids
+                    )
                     assert len(out) == 10
                     for res in out:
                         assert res, f"tenant {name} got empty results"
