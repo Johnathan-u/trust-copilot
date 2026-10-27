@@ -41,6 +41,8 @@ class Job(Base):
     payload = Column(Text, nullable=True)
     result = Column(Text, nullable=True)
     error = Column(Text, nullable=True)
+    # TC-11-001: stable typed error code for failed jobs (safe message lives in ``error``).
+    error_code = Column(String(64), nullable=True)
     attempt = Column(Integer, default=0)
     max_attempts = Column(Integer, default=3)
     started_at = Column(DateTime, nullable=True)
