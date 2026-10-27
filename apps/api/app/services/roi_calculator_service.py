@@ -45,4 +45,14 @@ def calculate_roi(
             "roi_multiple": roi_multiple,
             "time_reduction_pct": time_reduction_pct,
         },
+        # TC-01-005: these figures are an illustrative model, not measured results.
+        "estimate_basis": {
+            "type": "illustrative",
+            "assumed_trust_copilot_hours_per_questionnaire": tc_hours_per_q,
+            "note": (
+                "Illustrative estimate computed from the inputs above and a fixed "
+                "assumption of hours per questionnaire with Trust Copilot. "
+                "Not measured customer results."
+            ),
+        },
     }

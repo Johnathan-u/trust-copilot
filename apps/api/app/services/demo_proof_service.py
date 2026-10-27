@@ -1,4 +1,10 @@
-"""Demo proof package generator — sample questionnaire, coverage report, gap list."""
+"""Demo proof package generator — sample questionnaire, coverage report, gap list.
+
+TC-01-005: everything produced from SAMPLE_QUESTIONNAIRE is synthetic example
+data. The answers and confidence values are hardcoded illustrations, not
+output from a real workspace, a real audit, or a verified deployment. Outputs
+carry ``data_basis`` / ``disclaimer`` fields so they cannot be shown as real.
+"""
 
 import logging
 from datetime import datetime, timezone
@@ -10,6 +16,12 @@ from app.models.answer import Answer
 from app.models.evidence_gap import EvidenceGap
 
 logger = logging.getLogger(__name__)
+
+SYNTHETIC_DATA_BASIS = "synthetic_example"
+SYNTHETIC_DISCLAIMER = (
+    "Example data for demonstration only. Answers and confidence values are "
+    "hardcoded illustrations, not results from a real customer, audit, or deployment."
+)
 
 SAMPLE_QUESTIONNAIRE = {
     "title": "Sample SOC 2 Security Questionnaire",
@@ -55,7 +67,7 @@ SAMPLE_QUESTIONNAIRE = {
                 },
                 {
                     "text": "How do you ensure data isolation between tenants?",
-                    "answer": "Workspace-level tenant isolation is enforced at the application layer. Every database query is scoped to the authenticated user's workspace_id. Storage paths include workspace identifiers. Vector search is filtered by workspace_id. Background jobs are workspace-scoped. Isolation is validated by automated integration tests.",
+                    "answer": "Workspace-level tenant isolation is enforced at the application layer. Every database query is scoped to the authenticated user's workspace_id. Storage paths include workspace identifiers. Vector search is filtered by workspace_id. Background jobs are workspace-scoped.",
                     "confidence": 97,
                     "evidence": "Workspace scoping in all API routes; test_tenant_isolation.py; auth_deps.py workspace filtering",
                 },
@@ -111,7 +123,7 @@ SAMPLE_QUESTIONNAIRE = {
 
 
 def generate_demo_package(db: Session, workspace_id: int) -> dict:
-    """Generate a complete demo proof package for sales and onboarding."""
+    """Generate a demo package for onboarding. Sample content is synthetic example data."""
     questionnaire = _build_sample_questionnaire()
     coverage = _build_coverage_report(questionnaire)
     gaps = _build_gap_list(questionnaire)
@@ -126,6 +138,8 @@ def generate_demo_package(db: Session, workspace_id: int) -> dict:
         "gap_list": gaps,
         "walkthrough": walkthrough,
         "live_stats": live_stats,
+        "data_basis": SYNTHETIC_DATA_BASIS,
+        "disclaimer": SYNTHETIC_DISCLAIMER,
     }
 
 
@@ -147,6 +161,9 @@ def _build_sample_questionnaire() -> dict:
         "framework": SAMPLE_QUESTIONNAIRE["framework"],
         "total_questions": len(questions),
         "questions": questions,
+        "data_basis": SYNTHETIC_DATA_BASIS,
+        "confidence_basis": "illustrative hardcoded values, not model output",
+        "disclaimer": SYNTHETIC_DISCLAIMER,
     }
 
 
@@ -187,6 +204,8 @@ def _build_coverage_report(questionnaire: dict) -> dict:
         "medium_confidence": med_conf,
         "low_confidence": low_conf,
         "by_section": section_summary,
+        "data_basis": SYNTHETIC_DATA_BASIS,
+        "disclaimer": SYNTHETIC_DISCLAIMER,
     }
 
 
@@ -205,6 +224,8 @@ def _build_gap_list(questionnaire: dict) -> dict:
     return {
         "total_gaps": len(gaps),
         "gaps": gaps,
+        "data_basis": SYNTHETIC_DATA_BASIS,
+        "disclaimer": SYNTHETIC_DISCLAIMER,
     }
 
 
