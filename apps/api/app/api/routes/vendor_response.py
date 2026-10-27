@@ -27,7 +27,17 @@ def get_vendor_response(
     }
 
     if vr.questionnaire_id:
-        qnr = db.query(Questionnaire).filter(Questionnaire.id == vr.questionnaire_id).first()
+        # Only expose a live questionnaire from the request's own workspace. Anything else
+        # (another workspace, soft-deleted, missing) is treated as "no questionnaire".
+        qnr = (
+            db.query(Questionnaire)
+            .filter(
+                Questionnaire.id == vr.questionnaire_id,
+                Questionnaire.workspace_id == vr.workspace_id,
+                Questionnaire.deleted_at.is_(None),
+            )
+            .first()
+        )
         if qnr:
             question_count = (
                 db.query(func.count(Question.id))
