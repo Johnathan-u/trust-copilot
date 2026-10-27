@@ -9,6 +9,9 @@ import logging
 from sqlalchemy.orm import Session
 
 from app.models.source_registry import SourceRegistry
+from app.services.provider_adapter.adapters import describe_source
+from app.services.provider_adapter.contract import ObservationState, ProvenanceKind
+from app.services.provider_adapter.surfaces import action_contract
 
 logger = logging.getLogger(__name__)
 
@@ -126,24 +129,45 @@ CONNECTOR_CATALOG = {
 }
 
 
+def _with_adapter(connector_type: str, info: dict) -> dict:
+    return {
+        "connector_type": connector_type,
+        **info,
+        "adapter_contract": describe_source(connector_type),
+    }
+
+
 def get_catalog() -> list[dict]:
-    return [
-        {"connector_type": k, **v}
-        for k, v in CONNECTOR_CATALOG.items()
-    ]
+    return [_with_adapter(key, value) for key, value in CONNECTOR_CATALOG.items()]
 
 
 def get_connector_details(connector_type: str) -> dict | None:
     info = CONNECTOR_CATALOG.get(connector_type)
     if not info:
         return None
-    return {"connector_type": connector_type, **info}
+    return _with_adapter(connector_type, info)
+
+
+def _setup_contract(workspace_id: int, connector_type: str, action: str) -> dict:
+    return action_contract(
+        provider=connector_type,
+        resource_id=f"wizard:{action}:{connector_type}",
+        state=ObservationState.UNKNOWN,
+        provenance_kind=ProvenanceKind.ABSENT,
+        workspace_id=workspace_id,
+        error_code="setup_not_collection",
+        safe_message="Connector setup does not record collected evidence",
+        note=action,
+    )
 
 
 def start_setup(db: Session, workspace_id: int, connector_type: str) -> dict:
     info = CONNECTOR_CATALOG.get(connector_type)
     if not info:
-        return {"error": f"Unknown connector type: {connector_type}"}
+        return {
+            "error": f"Unknown connector type: {connector_type}",
+            "observation_contract": _setup_contract(workspace_id, connector_type, "unknown"),
+        }
 
     existing = db.query(SourceRegistry).filter(
         SourceRegistry.workspace_id == workspace_id,
@@ -151,7 +175,13 @@ def start_setup(db: Session, workspace_id: int, connector_type: str) -> dict:
     ).first()
 
     if existing and existing.enabled:
-        return {"error": f"Connector '{connector_type}' is already enabled", "source_id": existing.id}
+        return {
+            "error": f"Connector '{connector_type}' is already enabled",
+            "source_id": existing.id,
+            "observation_contract": _setup_contract(
+                workspace_id, connector_type, "already_enabled"
+            ),
+        }
 
     if not existing:
         reg = SourceRegistry(
@@ -179,6 +209,8 @@ def start_setup(db: Session, workspace_id: int, connector_type: str) -> dict:
         "permissions_required": info["permissions_required"],
         "data_collected": info["data_collected"],
         "data_not_collected": info["data_not_collected"],
+        "adapter_contract": describe_source(connector_type),
+        "observation_contract": _setup_contract(workspace_id, connector_type, "start"),
     }
 
 
@@ -188,7 +220,10 @@ def validate_setup(db: Session, workspace_id: int, connector_type: str) -> dict:
         SourceRegistry.source_type == connector_type,
     ).first()
     if not reg:
-        return {"error": "Connector not found. Please start setup first."}
+        return {
+            "error": "Connector not found. Please start setup first.",
+            "observation_contract": _setup_contract(workspace_id, connector_type, "missing"),
+        }
 
     reg.status = "available"
     reg.enabled = True
@@ -198,6 +233,7 @@ def validate_setup(db: Session, workspace_id: int, connector_type: str) -> dict:
         "connector_type": connector_type,
         "status": "validated",
         "enabled": True,
+        "observation_contract": _setup_contract(workspace_id, connector_type, "validate"),
     }
 
 
@@ -207,8 +243,17 @@ def disable_connector(db: Session, workspace_id: int, connector_type: str) -> di
         SourceRegistry.source_type == connector_type,
     ).first()
     if not reg:
-        return {"error": "Connector not found"}
+        return {
+            "error": "Connector not found",
+            "observation_contract": _setup_contract(workspace_id, connector_type, "missing"),
+        }
     reg.enabled = False
     reg.status = "disabled"
     db.flush()
-    return {"source_id": reg.id, "connector_type": connector_type, "status": "disabled", "enabled": False}
+    return {
+        "source_id": reg.id,
+        "connector_type": connector_type,
+        "status": "disabled",
+        "enabled": False,
+        "observation_contract": _setup_contract(workspace_id, connector_type, "disable"),
+    }

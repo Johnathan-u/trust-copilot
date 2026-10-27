@@ -23,7 +23,13 @@ async def authenticate(
     body: AwsAuthBody,
     session: dict = Depends(require_can_admin),
 ):
-    return aws.authenticate_aws(body.access_key_id, body.secret_access_key, body.region, body.role_arn)
+    return aws.authenticate_aws(
+        body.access_key_id,
+        body.secret_access_key,
+        body.region,
+        body.role_arn,
+        workspace_id=session["workspace_id"],
+    )
 
 
 @router.get("/iam")
@@ -31,7 +37,7 @@ async def collect_iam(
     region: str = Query("us-east-1"),
     session: dict = Depends(require_can_admin),
 ):
-    return aws.collect_iam_posture(region)
+    return aws.collect_iam_posture(region, workspace_id=session["workspace_id"])
 
 
 @router.get("/s3")
@@ -39,7 +45,7 @@ async def collect_s3(
     region: str = Query("us-east-1"),
     session: dict = Depends(require_can_admin),
 ):
-    return aws.collect_s3_posture(region)
+    return aws.collect_s3_posture(region, workspace_id=session["workspace_id"])
 
 
 @router.get("/logging")
@@ -47,7 +53,7 @@ async def collect_logging(
     region: str = Query("us-east-1"),
     session: dict = Depends(require_can_admin),
 ):
-    return aws.collect_logging_posture(region)
+    return aws.collect_logging_posture(region, workspace_id=session["workspace_id"])
 
 
 @router.post("/sync")

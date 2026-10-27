@@ -10,27 +10,27 @@ router = APIRouter(prefix="/connectors/cloud", tags=["cloud-connectors"])
 
 @router.get("/gcp")
 async def collect_gcp(project_id: str | None = Query(None), session: dict = Depends(require_can_admin)):
-    return cc.collect_gcp(project_id)
+    return cc.collect_gcp(project_id, workspace_id=session["workspace_id"])
 
 
 @router.get("/azure")
 async def collect_azure(tenant_id: str | None = Query(None), session: dict = Depends(require_can_admin)):
-    return cc.collect_azure(tenant_id)
+    return cc.collect_azure(tenant_id, workspace_id=session["workspace_id"])
 
 
 @router.get("/gitlab")
 async def collect_gitlab(group: str | None = Query(None), session: dict = Depends(require_can_admin)):
-    return cc.collect_gitlab(group)
+    return cc.collect_gitlab(group, workspace_id=session["workspace_id"])
 
 
 @router.get("/okta")
 async def collect_okta(domain: str | None = Query(None), session: dict = Depends(require_can_admin)):
-    return cc.collect_okta(domain)
+    return cc.collect_okta(domain, workspace_id=session["workspace_id"])
 
 
 @router.get("/hris")
 async def collect_hris(provider: str | None = Query(None), session: dict = Depends(require_can_admin)):
-    return cc.collect_hris(provider)
+    return cc.collect_hris(provider, workspace_id=session["workspace_id"])
 
 
 @router.post("/sync/{connector}")

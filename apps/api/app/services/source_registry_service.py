@@ -7,6 +7,9 @@ from datetime import datetime, timezone
 from sqlalchemy.orm import Session
 
 from app.models.source_registry import SourceRegistry
+from app.services.provider_adapter.adapters import describe_source
+from app.services.provider_adapter.contract import ObservationState, ProvenanceKind, rejection_code
+from app.services.provider_adapter.surfaces import action_contract
 
 logger = logging.getLogger(__name__)
 
@@ -147,8 +150,20 @@ def update_source(db: Session, workspace_id: int, source_type: str, **updates) -
     return _serialize(row)
 
 
-def record_sync(db: Session, workspace_id: int, source_type: str, success: bool, error: str | None = None) -> None:
-    """Record sync result for a source."""
+def record_sync(
+    db: Session,
+    workspace_id: int,
+    source_type: str,
+    success: bool,
+    error: str | None = None,
+    observation=None,
+) -> None:
+    """Record sync bookkeeping. A non-success observation cannot be stored as success."""
+    if observation is not None:
+        code = rejection_code(observation)
+        if code:
+            success = False
+            error = error or f"observation_rejected:{code}"
     row = db.query(SourceRegistry).filter(
         SourceRegistry.workspace_id == workspace_id,
         SourceRegistry.source_type == source_type,
@@ -174,6 +189,7 @@ def get_health_summary(db: Session, workspace_id: int) -> dict:
         "healthy": healthy,
         "failed": failed,
         "never_synced": never_synced,
+        "observation_contract": registry_observation(workspace_id, "health"),
     }
 
 
@@ -193,4 +209,20 @@ def _serialize(row: SourceRegistry) -> dict:
         "last_sync_status": row.last_sync_status,
         "last_error": row.last_error,
         "created_at": row.created_at.isoformat() if row.created_at else None,
+        "adapter_contract": describe_source(row.source_type),
     }
+
+
+def registry_observation(workspace_id: int, action: str) -> dict:
+    """Registry metadata is not collected evidence. Seed rows use seeded provenance."""
+    provenance = ProvenanceKind.SEEDED if action == "seed" else ProvenanceKind.ABSENT
+    return action_contract(
+        provider="source_registry",
+        resource_id=f"registry:{action}",
+        state=ObservationState.UNKNOWN,
+        provenance_kind=provenance,
+        workspace_id=workspace_id,
+        error_code="not_evidence",
+        safe_message="Source registry state is not collected evidence",
+        note=action,
+    )

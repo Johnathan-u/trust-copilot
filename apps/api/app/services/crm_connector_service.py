@@ -1,113 +1,161 @@
 """CRM connector service for Salesforce and HubSpot (E1-02, E1-03).
 
-Provides mock sync for both CRM platforms. Real implementations would use
-the respective REST APIs with OAuth.
+Demo opportunity rows are returned as rejected observations. They are not
+inserted into deals and are not successful collected evidence. No CRM API calls.
 """
 
-import json
 import logging
-from datetime import datetime, timezone
+from typing import Any
 
 from sqlalchemy.orm import Session
 
 from app.models.deal import Deal
+from app.services.provider_adapter.adapters import HUBSPOT, SALESFORCE
+from app.services.provider_adapter.contract import (
+    ObservationState,
+    ProvenanceKind,
+    ProviderObservation,
+    make_observation,
+    observation_envelope,
+)
+from app.services.provider_adapter.demo_fixtures import (
+    DEMO_HUBSPOT_DEALS,
+    DEMO_SALESFORCE_OPPORTUNITIES,
+)
+from app.services.provider_adapter.persistence import (
+    CollectedEvidenceRejected,
+    assert_storable,
+)
 
 logger = logging.getLogger(__name__)
 
 
-def sync_salesforce(db: Session, workspace_id: int) -> dict:
-    """Mock Salesforce opportunity sync."""
-    mock_opps = [
-        {
-            "external_id": "sf-opp-001",
-            "company_name": "Acme Corp",
-            "contact_name": "Jane Buyer",
-            "contact_email": "jane@acme.com",
-            "deal_value": 150000,
-            "stage": "evaluation",
-            "close_date": "2026-06-30",
-        },
-        {
-            "external_id": "sf-opp-002",
-            "company_name": "Globex Industries",
-            "contact_name": "Bob Procurement",
-            "contact_email": "bob@globex.com",
-            "deal_value": 85000,
-            "stage": "negotiation",
-            "close_date": "2026-05-15",
-        },
-    ]
-    synced = []
-    for opp in mock_opps:
-        existing = db.query(Deal).filter(
-            Deal.workspace_id == workspace_id,
-            Deal.crm_external_id == opp["external_id"],
-        ).first()
-        if existing:
-            existing.company_name = opp["company_name"]
-            existing.deal_value_arr = opp["deal_value"]
-            existing.stage = opp["stage"]
-            synced.append({"action": "updated", "external_id": opp["external_id"]})
+def _demo_observation(
+    provider: str,
+    workspace_id: int,
+    record: dict,
+) -> ProviderObservation:
+    observation, _connection = make_observation(
+        provider=provider,
+        resource_id=str(record["external_id"]),
+        signal=f"{provider}.demo",
+        state=ObservationState.UNKNOWN,
+        provenance_kind=ProvenanceKind.DEMO,
+        workspace_id=workspace_id,
+        external_account_id=None,
+        object_revision="demo",
+        error_code="demo_value",
+        safe_message="Demo CRM fixture is not collected evidence",
+        note="Hand-built demo fixture; provider was not contacted",
+    )
+    return observation
+
+
+def _poisoned_success(provider: str, workspace_id: int, record: dict) -> ProviderObservation:
+    """A success-shaped demo observation used only to prove the store rejects it."""
+    observation, _connection = make_observation(
+        provider=provider,
+        resource_id=str(record["external_id"]),
+        signal=f"{provider}.demo",
+        state=ObservationState.SUCCESS,
+        provenance_kind=ProvenanceKind.DEMO,
+        workspace_id=workspace_id,
+        object_revision="demo",
+        normalized_value={"external_id": record["external_id"], "demo": True},
+        note="Poisoned demo success must be rejected",
+    )
+    return observation
+
+
+def _reject_demo_sync(
+    db: Session,
+    workspace_id: int,
+    provider: str,
+    records: tuple[dict, ...],
+    adapter,
+) -> dict[str, Any]:
+    if db is None:
+        raise CollectedEvidenceRejected("not_success", "workspace session is required")
+    observations: list[ProviderObservation] = []
+    details: list[dict[str, str]] = []
+    for record in records:
+        poisoned = _poisoned_success(provider, workspace_id, record)
+        try:
+            assert_storable(poisoned)
+        except CollectedEvidenceRejected as exc:
+            reason = exc.code
         else:
-            deal = Deal(
-                workspace_id=workspace_id,
-                company_name=opp["company_name"],
-                buyer_contact_name=opp["contact_name"],
-                buyer_contact_email=opp["contact_email"],
-                deal_value_arr=opp["deal_value"],
-                stage=opp["stage"],
-                crm_source="salesforce",
-                crm_external_id=opp["external_id"],
-            )
-            db.add(deal)
-            synced.append({"action": "created", "external_id": opp["external_id"]})
-    db.flush()
-    return {"source": "salesforce", "synced": len(synced), "details": synced}
+            reason = "demo_value"
+        public = _demo_observation(provider, workspace_id, record)
+        observations.append(public)
+        details.append(
+            {
+                "action": "rejected",
+                "external_id": str(record["external_id"]),
+                "reason": reason,
+            }
+        )
+    return {
+        "source": provider,
+        "synced": 0,
+        "details": details,
+        "observation_contract": observation_envelope(
+            adapter.descriptor(),
+            observations,
+        ),
+    }
+
+
+def sync_salesforce(db: Session, workspace_id: int) -> dict:
+    """Reject demo Salesforce rows. Does not write deals."""
+    return _reject_demo_sync(
+        db,
+        workspace_id,
+        "salesforce",
+        DEMO_SALESFORCE_OPPORTUNITIES,
+        SALESFORCE,
+    )
 
 
 def sync_hubspot(db: Session, workspace_id: int) -> dict:
-    """Mock HubSpot deal sync."""
-    mock_deals = [
-        {
-            "external_id": "hs-deal-001",
-            "company_name": "StartupCo",
-            "contact_name": "Alice Security",
-            "contact_email": "alice@startupco.io",
-            "deal_value": 45000,
-            "stage": "discovery",
-            "close_date": "2026-07-31",
-        },
-    ]
-    synced = []
-    for d in mock_deals:
-        existing = db.query(Deal).filter(
-            Deal.workspace_id == workspace_id,
-            Deal.crm_external_id == d["external_id"],
-        ).first()
-        if existing:
-            existing.company_name = d["company_name"]
-            existing.deal_value_arr = d["deal_value"]
-            existing.stage = d["stage"]
-            synced.append({"action": "updated", "external_id": d["external_id"]})
-        else:
-            deal = Deal(
-                workspace_id=workspace_id,
-                company_name=d["company_name"],
-                buyer_contact_name=d["contact_name"],
-                buyer_contact_email=d["contact_email"],
-                deal_value_arr=d["deal_value"],
-                stage=d["stage"],
-                crm_source="hubspot",
-                crm_external_id=d["external_id"],
-            )
-            db.add(deal)
-            synced.append({"action": "created", "external_id": d["external_id"]})
-    db.flush()
-    return {"source": "hubspot", "synced": len(synced), "details": synced}
+    """Reject demo HubSpot rows. Does not write deals."""
+    return _reject_demo_sync(
+        db,
+        workspace_id,
+        "hubspot",
+        DEMO_HUBSPOT_DEALS,
+        HUBSPOT,
+    )
 
 
 def get_sync_status(db: Session, workspace_id: int) -> dict:
-    sf_count = db.query(Deal).filter(Deal.workspace_id == workspace_id, Deal.crm_source == "salesforce").count()
-    hs_count = db.query(Deal).filter(Deal.workspace_id == workspace_id, Deal.crm_source == "hubspot").count()
-    manual = db.query(Deal).filter(Deal.workspace_id == workspace_id, Deal.crm_source.is_(None)).count()
-    return {"salesforce": sf_count, "hubspot": hs_count, "manual": manual, "total": sf_count + hs_count + manual}
+    sf_count = (
+        db.query(Deal)
+        .filter(
+            Deal.workspace_id == workspace_id,
+            Deal.crm_source == "salesforce",
+        )
+        .count()
+    )
+    hs_count = (
+        db.query(Deal)
+        .filter(
+            Deal.workspace_id == workspace_id,
+            Deal.crm_source == "hubspot",
+        )
+        .count()
+    )
+    manual = (
+        db.query(Deal)
+        .filter(
+            Deal.workspace_id == workspace_id,
+            Deal.crm_source.is_(None),
+        )
+        .count()
+    )
+    return {
+        "salesforce": sf_count,
+        "hubspot": hs_count,
+        "manual": manual,
+        "total": sf_count + hs_count + manual,
+    }

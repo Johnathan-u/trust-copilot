@@ -26,7 +26,11 @@ async def list_credentials(
     session: dict = Depends(require_can_admin),
     db: Session = Depends(get_db),
 ):
-    return {"credentials": cs.list_credentials(db, session["workspace_id"])}
+    workspace_id = session["workspace_id"]
+    return {
+        "credentials": cs.list_credentials(db, workspace_id),
+        "observation_contract": cs.list_observation_contract(workspace_id),
+    }
 
 
 @router.post("")
