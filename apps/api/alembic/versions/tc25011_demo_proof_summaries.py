@@ -7,15 +7,19 @@ read, built only from rows stored at that time.
 Rollback drops this table and the snapshots in it. Questionnaires, documents,
 evidence, exports and other workspace records are left in place.
 
-Revision ID: 076
+Revision ID: tc25011_demo_proof_summaries
 Revises: 075
+
+down_revision stays 075 until this branch merges. Whoever merges second
+re-parents down_revision onto master's head. The numeric id 076 is not used:
+it collides with TC-25-005 and with Core PR #16.
 """
 
 import sqlalchemy as sa
 
 from alembic import op
 
-revision = "076"
+revision = "tc25011_demo_proof_summaries"
 down_revision = "075"
 branch_labels = None
 depends_on = None

@@ -15,8 +15,7 @@ from sqlalchemy.orm import Session
 
 from app.core.auth_deps import require_session
 from app.core.database import get_db
-from app.core.roles import BUILTIN_ROLES
-from app.models import CustomRole, Workspace, WorkspaceMember
+from app.models import Workspace, WorkspaceMember
 from app.services.demo_proof_service import (
     SummaryUnreadable,
     WindowError,
@@ -28,6 +27,10 @@ from app.services.demo_proof_service import (
     load_summary,
     parse_window,
 )
+
+# api_keys.role is the only scope field. "read" is the read scope.
+# editor, reviewer, admin and custom roles are not read-scoped.
+READ_SCOPED_API_KEY_ROLE = "read"
 
 router = APIRouter(prefix="/demo-proof", tags=["demo-proof"])
 
@@ -80,19 +83,13 @@ def _guard(request: Request, db: Session, session: dict, workspace_id: int | Non
         )
     user_id = session.get("user_id")
     if user_id is None:
-        role = session.get("role")
-        if role in BUILTIN_ROLES:
-            return None
-        custom = (
-            db.query(CustomRole)
-            .filter(CustomRole.workspace_id == session_workspace, CustomRole.name == role)
-            .first()
-        )
-        if custom is None:
+        # Workspace mismatch was already rejected. A key may read only its own
+        # workspace, and only when the key itself is read-scoped.
+        if session.get("role") != READ_SCOPED_API_KEY_ROLE:
             return _api_error(
                 403,
-                "not_a_member",
-                "This credential is not a current member of the workspace.",
+                "api_key_not_read_scoped",
+                "A workspace API key can read this summary only when it is read-scoped.",
                 request,
             )
         return None

@@ -916,7 +916,9 @@ def test_permission_and_api_key_checks(client):
     lonely_email = f"tc25011-lonely-{token}@example.com"
     workspace_ids: list[int] = []
     user_ids: list[int] = []
-    raw_key = f"tc25011-synthetic-key-{token}"
+    raw_read_key = f"tc25011-synthetic-read-{token}"
+    raw_reviewer_key = f"tc25011-synthetic-reviewer-{token}"
+    raw_editor_key = f"tc25011-synthetic-editor-{token}"
     raw_bad_key = f"tc25011-synthetic-bad-{token}"
     db = SessionLocal()
     try:
@@ -929,21 +931,33 @@ def test_permission_and_api_key_checks(client):
         suspended = _new_user(db, suspended_email, workspace.id, "admin")
         lonely = _new_user(db, lonely_email, None, None)
         user_ids.extend([member.id, removed.id, suspended.id, lonely.id])
-        db.add(
-            ApiKey(
-                workspace_id=workspace.id,
-                key_hash=hashlib.sha256(raw_key.encode()).hexdigest(),
-                label="SYNTHETIC TEST PLACEHOLDER key",
-                role="reviewer",
-            )
-        )
-        db.add(
-            ApiKey(
-                workspace_id=workspace.id,
-                key_hash=hashlib.sha256(raw_bad_key.encode()).hexdigest(),
-                label="SYNTHETIC TEST PLACEHOLDER unknown role",
-                role="not-a-role",
-            )
+        db.add_all(
+            [
+                ApiKey(
+                    workspace_id=workspace.id,
+                    key_hash=hashlib.sha256(raw_read_key.encode()).hexdigest(),
+                    label="SYNTHETIC TEST PLACEHOLDER read key",
+                    role="read",
+                ),
+                ApiKey(
+                    workspace_id=workspace.id,
+                    key_hash=hashlib.sha256(raw_reviewer_key.encode()).hexdigest(),
+                    label="SYNTHETIC TEST PLACEHOLDER reviewer key",
+                    role="reviewer",
+                ),
+                ApiKey(
+                    workspace_id=workspace.id,
+                    key_hash=hashlib.sha256(raw_editor_key.encode()).hexdigest(),
+                    label="SYNTHETIC TEST PLACEHOLDER editor key",
+                    role="editor",
+                ),
+                ApiKey(
+                    workspace_id=workspace.id,
+                    key_hash=hashlib.sha256(raw_bad_key.encode()).hexdigest(),
+                    label="SYNTHETIC TEST PLACEHOLDER unknown role",
+                    role="not-a-role",
+                ),
+            ]
         )
         db.query(WorkspaceMember).filter(WorkspaceMember.user_id == suspended.id).update(
             {"suspended": True}
@@ -975,21 +989,22 @@ def test_permission_and_api_key_checks(client):
         assert lonely_response.json()["code"] == "not_a_member"
 
         client.cookies.clear()
-        allowed = client.get("/api/demo-proof", headers={"Authorization": f"Bearer {raw_key}"})
+        allowed = client.get("/api/demo-proof", headers={"Authorization": f"Bearer {raw_read_key}"})
         assert allowed.status_code == 200, allowed.text
         assert allowed.json()["workspace_id"] == workspace_ids[0]
         assert allowed.json()["commercial_traction"] is False
         mismatch = client.get(
             "/api/demo-proof",
             params={"workspace_id": 1},
-            headers={"Authorization": f"Bearer {raw_key}"},
+            headers={"Authorization": f"Bearer {raw_read_key}"},
         )
         assert mismatch.status_code == 403
         assert mismatch.json()["code"] == "workspace_mismatch"
-        client.cookies.clear()
-        unknown = client.get("/api/demo-proof", headers={"Authorization": f"Bearer {raw_bad_key}"})
-        assert unknown.status_code == 403
-        assert unknown.json()["code"] == "not_a_member"
+        for raw_key in (raw_reviewer_key, raw_editor_key, raw_bad_key):
+            client.cookies.clear()
+            rejected = client.get("/api/demo-proof", headers={"Authorization": f"Bearer {raw_key}"})
+            assert rejected.status_code == 403, rejected.text
+            assert rejected.json()["code"] == "api_key_not_read_scoped"
     finally:
         _cleanup(workspace_ids, user_ids)
 

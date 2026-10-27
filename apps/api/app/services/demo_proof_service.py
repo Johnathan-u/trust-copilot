@@ -413,17 +413,19 @@ def _build_sample_questionnaire() -> dict:
     questions = []
     for section in SAMPLE_QUESTIONNAIRE["sections"]:
         for q in section["questions"]:
-            questions.append({
-                "section": section["name"],
-                "question": q["text"],
-                "answer": q["answer"],
-                "confidence": q["confidence"],
-                "evidence_sources": q["evidence"],
-                "confidence_basis": "illustrative hardcoded values, not model output",
-                "evidence_sources_are_real": False,
-                "citation_status": "not_a_source_locator",
-                **_synthetic_fields(),
-            })
+            questions.append(
+                {
+                    "section": section["name"],
+                    "question": q["text"],
+                    "answer": q["answer"],
+                    "confidence": q["confidence"],
+                    "evidence_sources": q["evidence"],
+                    "confidence_basis": "illustrative hardcoded values, not model output",
+                    "evidence_sources_are_real": False,
+                    "citation_status": "not_a_source_locator",
+                    **_synthetic_fields(),
+                }
+            )
     return {
         "title": SAMPLE_QUESTIONNAIRE["title"],
         "framework": SAMPLE_QUESTIONNAIRE["framework"],
@@ -454,12 +456,14 @@ def _build_coverage_report(questionnaire: dict) -> dict:
     section_summary = []
     for name, data in sections.items():
         avg = sum(data["confidences"]) / len(data["confidences"]) if data["confidences"] else 0
-        section_summary.append({
-            "section": name,
-            "questions": data["total"],
-            "avg_confidence": round(avg, 1),
-            **_synthetic_fields(),
-        })
+        section_summary.append(
+            {
+                "section": name,
+                "questions": data["total"],
+                "avg_confidence": round(avg, 1),
+                **_synthetic_fields(),
+            }
+        )
 
     return {
         "total_questions": total,
@@ -478,13 +482,15 @@ def _build_gap_list(questionnaire: dict) -> dict:
     gaps = []
     for q in questionnaire["questions"]:
         if q["confidence"] < 85:
-            gaps.append({
-                "section": q["section"],
-                "question": q["question"],
-                "confidence": q["confidence"],
-                "recommendation": _gap_recommendation(q["section"], q["confidence"]),
-                **_synthetic_fields(),
-            })
+            gaps.append(
+                {
+                    "section": q["section"],
+                    "question": q["question"],
+                    "confidence": q["confidence"],
+                    "recommendation": _gap_recommendation(q["section"], q["confidence"]),
+                    **_synthetic_fields(),
+                }
+            )
     return {
         "total_gaps": len(gaps),
         "gaps": gaps,
@@ -494,12 +500,8 @@ def _build_gap_list(questionnaire: dict) -> dict:
 
 def _gap_recommendation(section: str, confidence: int) -> str:
     if confidence < 70:
-        return (
-            f"Synthetic placeholder only. This is not a measured gap for {section}."
-        )
-    return (
-        f"Synthetic placeholder only. This is not a measured gap for {section}."
-    )
+        return f"Synthetic placeholder only. This is not a measured gap for {section}."
+    return f"Synthetic placeholder only. This is not a measured gap for {section}."
 
 
 def _build_walkthrough() -> dict:
@@ -592,46 +594,50 @@ def _synthetic_placeholders() -> list[dict]:
     )
     placeholders = []
     for name in names:
-        placeholders.append({
-            "name": name,
-            "value": None,
-            "unit": None,
-            "origin": "synthetic",
-            "basis": "not_measured",
-            "measured": False,
-            "estimated": False,
-            "commercial_traction": False,
-            "state": "synthetic_placeholder",
-            "data_window": _empty_window(
-                applicable=False,
-                reason="Synthetic placeholder has no observation window.",
-            ),
-            "disclaimer": SYNTHETIC_DISCLAIMER,
-        })
+        placeholders.append(
+            {
+                "name": name,
+                "value": None,
+                "unit": None,
+                "origin": "synthetic",
+                "basis": "not_measured",
+                "measured": False,
+                "estimated": False,
+                "commercial_traction": False,
+                "state": "synthetic_placeholder",
+                "data_window": _empty_window(
+                    applicable=False,
+                    reason="Synthetic placeholder has no observation window.",
+                ),
+                "disclaimer": SYNTHETIC_DISCLAIMER,
+            }
+        )
     return placeholders
 
 
 def _unsupported(data_window: dict) -> list[dict]:
     rows = []
     for name, reason in UNSUPPORTED_FACTS:
-        rows.append({
-            "name": name,
-            "value": None,
-            "unit": None,
-            "source": None,
-            "origin": None,
-            "basis": None,
-            "measured": False,
-            "estimated": False,
-            "data_window": data_window,
-            "numerator": None,
-            "denominator": None,
-            "currency": None,
-            "freshness": None,
-            "commercial_traction": False,
-            "state": "unsupported",
-            "reason": reason,
-        })
+        rows.append(
+            {
+                "name": name,
+                "value": None,
+                "unit": None,
+                "source": None,
+                "origin": None,
+                "basis": None,
+                "measured": False,
+                "estimated": False,
+                "data_window": data_window,
+                "numerator": None,
+                "denominator": None,
+                "currency": None,
+                "freshness": None,
+                "commercial_traction": False,
+                "state": "unsupported",
+                "reason": reason,
+            }
+        )
     return rows
 
 
@@ -719,26 +725,30 @@ def _partial_failures(foreign: list[dict], unavailable: list[str]) -> list[dict]
         for record in records:
             reasons[record["reason"]] = reasons.get(record["reason"], 0) + 1
         count = len(records)
-        rows.append({
-            "code": "foreign_reference_rejected",
-            "source": source,
-            "retryable": False,
-            "count": count,
-            "reasons": reasons,
-            "record_ids": [record["record_id"] for record in records],
-            "message": (
-                f"{count} {source} record(s) reference an object that is missing, "
-                "deleted, or outside this workspace. They are excluded from the proof count."
-            ),
-        })
+        rows.append(
+            {
+                "code": "foreign_reference_rejected",
+                "source": source,
+                "retryable": False,
+                "count": count,
+                "reasons": reasons,
+                "record_ids": [record["record_id"] for record in records],
+                "message": (
+                    f"{count} {source} record(s) reference an object that is missing, "
+                    "deleted, or outside this workspace. They are excluded from the proof count."
+                ),
+            }
+        )
     for source in sorted(unavailable):
-        rows.append({
-            "code": "source_unavailable",
-            "source": source,
-            "retryable": True,
-            "count": None,
-            "message": f"{source} could not be read. This count is unavailable, not zero.",
-        })
+        rows.append(
+            {
+                "code": "source_unavailable",
+                "source": source,
+                "retryable": True,
+                "count": None,
+                "message": f"{source} could not be read. This count is unavailable, not zero.",
+            }
+        )
     rows.sort(key=lambda row: (row["code"], row["source"]))
     return rows
 
@@ -960,11 +970,13 @@ def _collect_exports(db: Session, workspace_id: int, window) -> dict:
         problem = _questionnaire_problem(db, workspace_id, row.questionnaire_id)
         if problem is not None:
             exclusions["foreign_reference"] += 1
-            failures.append({
-                "source": "exports",
-                "reason": problem,
-                "record_id": row.id,
-            })
+            failures.append(
+                {
+                    "source": "exports",
+                    "reason": problem,
+                    "record_id": row.id,
+                }
+            )
             continue
         slot = _time_slot(row, window)
         if slot != "included":
@@ -995,11 +1007,13 @@ def _collect_gaps(db: Session, workspace_id: int, window) -> dict:
         problem = _gap_problem(db, workspace_id, row)
         if problem is not None:
             exclusions["foreign_reference"] += 1
-            failures.append({
-                "source": "evidence_gaps",
-                "reason": problem,
-                "record_id": row.id,
-            })
+            failures.append(
+                {
+                    "source": "evidence_gaps",
+                    "reason": problem,
+                    "record_id": row.id,
+                }
+            )
             continue
         slot = _time_slot(row, window)
         if slot != "included":
