@@ -204,6 +204,9 @@ async def lifespan(app: FastAPI):
             logging.getLogger("app.main").warning(
                 "SESSION_SECRET is default or unset. Set SESSION_SECRET to a secure value for non-local use."
             )
+    from app.services.billing_provider import raise_for_stripe_preflight
+
+    raise_for_stripe_preflight(s)
     print("OpenAI: configured" if s.openai_api_key else "OpenAI: not configured (Suggest Reply will return 503 or empty)", flush=True)
     if s.oauth_google_client_id:
         google_redirect = f"{s.app_base_url.rstrip('/')}/api/auth/oauth/google/callback"
