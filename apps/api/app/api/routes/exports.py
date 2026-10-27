@@ -54,6 +54,21 @@ def _scoped_idempotency_key(request: Request, workspace_id: int, route: str, res
         return api_error_response(error, 400)
 
 
+def _store_and_raise_client_error(db: Session, idem_key: str, msg: str):
+    """Raise the 4xx for an enqueue ValueError, storing exactly the same body for idempotent replay.
+
+    TC-10-003a: the status and ``detail`` are computed once and used for both the live response and the
+    stored one, so a replay with the same Idempotency-Key returns the same error text as the original.
+    """
+    if "not found" in msg.lower():
+        status_code, detail = 404, "Questionnaire not found"
+    else:
+        status_code, detail = 400, msg
+    if idem_key:
+        idempotency_set(db, idem_key, status_code, {"detail": detail})
+    raise HTTPException(status_code=status_code, detail=detail)
+
+
 class GenerateAnswersBody(BaseModel):
     """Optional overrides for answer generation (AI-02, AI-05, AI-06)."""
 
@@ -129,7 +144,9 @@ def _generate_claimed(request, questionnaire_id, workspace_id, body, session, db
         )
         body = {"detail": detail, "error": error.model_dump(exclude_none=True)}
         if idem_key:
-            idempotency_set(db, idem_key, 503, body)
+            # TC-10-003a: a 5xx is not a final answer; free the claim so the client can retry once the
+            # server is configured, instead of replaying the 503 for the whole TTL.
+            idempotency_release(db, idem_key)
         return JSONResponse(
             status_code=503, content=body, headers={"X-Request-ID": error.request_id}
         )
@@ -149,13 +166,7 @@ def _generate_claimed(request, questionnaire_id, workspace_id, body, session, db
             response_style_override=body.response_style if body else None,
         )
     except ValueError as e:
-        msg = str(e)
-        if idem_key:
-            sc = 404 if "not found" in msg.lower() else 400
-            idempotency_set(db, idem_key, sc, {"detail": msg})
-        if "not found" in msg.lower():
-            raise HTTPException(status_code=404, detail="Questionnaire not found")
-        raise HTTPException(status_code=400, detail=msg)
+        _store_and_raise_client_error(db, idem_key, str(e))
     from app.core.audit import audit_log
 
     audit_log(
@@ -233,13 +244,7 @@ def _export_claimed(questionnaire_id, workspace_id, body, session, db, idem_key)
     try:
         job = enqueue_export_job(db, workspace_id, questionnaire_id, format=fmt)
     except ValueError as e:
-        msg = str(e)
-        if idem_key:
-            sc = 404 if "not found" in msg.lower() else 400
-            idempotency_set(db, idem_key, sc, {"detail": msg})
-        if "not found" in msg.lower():
-            raise HTTPException(status_code=404, detail="Questionnaire not found")
-        raise HTTPException(status_code=400, detail=msg)
+        _store_and_raise_client_error(db, idem_key, str(e))
     from app.core.audit import audit_log
 
     audit_log(

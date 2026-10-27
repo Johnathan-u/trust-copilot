@@ -542,7 +542,7 @@ def test_migration_columns_present(db_session):
     insp = inspect(db_session.get_bind())
     assert "outcome_code" in {c["name"] for c in insp.get_columns("answers")}
     assert "error_code" in {c["name"] for c in insp.get_columns("jobs")}
-    # Later revisions (TC-10-003) may be the stamped head; this one must still be applied.
+    # Later revisions may be the stamped head; this one must still be applied.
     head = _single_head_reaches(_alembic_script(), MIGRATION_REVISION)
     assert db_session.execute(text("SELECT version_num FROM alembic_version")).scalar() == head
 

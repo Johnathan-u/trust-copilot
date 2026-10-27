@@ -40,10 +40,27 @@ from app.services.file_service import make_key  # noqa: E402
 from app.services.storage import StorageClient  # noqa: E402
 from app.services.xlsx_questionnaire_parser import parse_xlsx_questionnaire  # noqa: E402
 
+try:
+    from scripts._seed_credentials import (
+        describe,
+        refuse_production_seed,
+        seed_password,
+        should_reset_passwords,
+        write_generated_credentials,
+    )
+except ImportError:  # run as `python scripts/<name>.py`
+    from _seed_credentials import (
+        describe,
+        refuse_production_seed,
+        seed_password,
+        should_reset_passwords,
+        write_generated_credentials,
+    )
+
 DEMO_EMAIL = "demo@trust.local"
-DEMO_PASSWORD = "j"
+DEMO_PASSWORD = seed_password("TC_SEED_DEMO_PASSWORD")
 ADMIN_EMAIL = "admin@trust.local"
-ADMIN_PASSWORD = "Admin123!"
+ADMIN_PASSWORD = seed_password("TC_SEED_ADMIN_PASSWORD")
 DEFAULT_WORKSPACE_ID = 1
 FIXTURE_XLSX = API_ROOT / "tests" / "fixtures" / "questionnaires" / "simple_soc2.xlsx"
 
@@ -61,6 +78,9 @@ def seed_demo_user(db: Session) -> None:
         db.commit()
         db.refresh(user)
         print(f"Created demo user: {user.email} (id={user.id})")
+    elif should_reset_passwords():
+        user.password_hash = hash_password(DEMO_PASSWORD)
+        db.commit()
     existing = (
         db.query(WorkspaceMember)
         .filter(
@@ -99,6 +119,9 @@ def seed_admin_user(db: Session) -> None:
         db.commit()
         db.refresh(user)
         print(f"Created admin user: {user.email} (id={user.id})")
+    elif should_reset_passwords():
+        user.password_hash = hash_password(ADMIN_PASSWORD)
+        db.commit()
     mem = (
         db.query(WorkspaceMember)
         .filter(
@@ -118,7 +141,7 @@ def seed_admin_user(db: Session) -> None:
     print("")
     print("--- Admin login credentials ---")
     print(f"  Email:    {ADMIN_EMAIL}")
-    print(f"  Password: {ADMIN_PASSWORD}")
+    print(f"  Password: {describe('TC_SEED_ADMIN_PASSWORD')}")
     print("  Use these to sign in at /login and access Trust Center, Settings, Members, etc.")
     print("---")
 
@@ -306,6 +329,7 @@ def seed_dev_compliance_catalog_for_demo(
 
 
 def main() -> None:
+    refuse_production_seed()
     db = SessionLocal()
     try:
         seed_demo_user(db)
@@ -325,4 +349,7 @@ def main() -> None:
 
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    finally:
+        write_generated_credentials()

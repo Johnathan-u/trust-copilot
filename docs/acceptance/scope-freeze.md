@@ -16,7 +16,7 @@ Deliver the **complete** existing Trust Copilot product, meaning every inventori
 4. **New findings.** Runtime route enumeration, provider discovery, or security qualification may turn up surfaces not listed here. Each one gets a linked ticket with an estimate and dependency under the change-control rule (`release-decisions.md`). A finding is never ignored because of backlog size.
 5. **Out of scope** (§7) means not part of this release contract. Building any of it requires change control first.
 
-## 3. API route modules (94 modules, 489 static operations)
+## 3. API route modules (94 modules, 497 static operations)
 
 | # | Module | Path | Ops | Owner epic | Delivery tickets | Security |
 |---|---|---|---|---|---|---|
@@ -34,7 +34,7 @@ Deliver the **complete** existing Trust Copilot product, meaning every inventori
 | 12 | `benchmarks` | `apps/api/app/api/routes/benchmarks.py` | 1 | E25 Product reporting and analytics | TC-25-003 | TC-06-005 |
 | 13 | `billing` | `apps/api/app/api/routes/billing.py` | 4 | E24 Billing entitlements and credit ledger | TC-24-001, TC-24-002, TC-24-005 | TC-06-005 |
 | 14 | `buyer_portal` | `apps/api/app/api/routes/buyer_portal.py` | 13 | E17 Trust center public sharing and NDA | TC-17-007 | TC-06-005 |
-| 15 | `case_studies` | `apps/api/app/api/routes/case_studies.py` | 6 | E25 Product reporting and analytics | TC-25-005 | TC-06-005 |
+| 15 | `case_studies` | `apps/api/app/api/routes/case_studies.py` | 14 | E25 Product reporting and analytics | TC-25-005 | TC-06-005 |
 | 16 | `citation_composer` | `apps/api/app/api/routes/citation_composer.py` | 2 | E12 Review approval and reusable knowledge | TC-12-010 | TC-06-005 |
 | 17 | `cloud_connectors` | `apps/api/app/api/routes/cloud_connectors.py` | 6 | E20 Cloud directory code and CRM integrations | TC-20-005, TC-20-006, TC-20-007, TC-20-025, TC-20-026, TC-20-027, TC-20-028, TC-20-029, TC-20-030, TC-20-031, TC-20-032, TC-20-033, TC-20-034, TC-20-035, TC-20-036, TC-20-037, TC-20-038, TC-20-039, TC-20-040, TC-20-041, TC-20-042, TC-20-043, TC-20-044, TC-20-045 | TC-06-005 |
 | 18 | `compliance_alerts` | `apps/api/app/api/routes/compliance_alerts.py` | 1 | E21 Compliance controls mappings and gaps | TC-21-008 | TC-06-005 |
@@ -117,7 +117,9 @@ Deliver the **complete** existing Trust Copilot product, meaning every inventori
 
 Note: `evidence_gaps` declares 0 static operations at baseline but stays in scope (TC-21-013). Static counts are a baseline only. Runtime enumeration (TC-02 CI and TC-28-001) is mandatory.
 
-## 4. Pages (33 existing page files)
+scope-freeze amendment approved by coordinator 2026-10-27: `case_studies` is 14 static operations (baseline was 6). The eight added routes are `POST /api/case-studies/{id}/consents`, `POST /api/case-studies/{id}/consents/{consent_id}/revoke`, `POST /api/case-studies/{id}/result-permissions`, `POST /api/case-studies/{id}/result-permissions/{permission_id}/revoke`, `POST /api/case-studies/{id}/submit-review`, `POST /api/case-studies/{id}/review`, `POST /api/case-studies/{id}/publish`, and `POST /api/case-studies/{id}/withdraw`. The section total is 497 (baseline was 489).
+
+## 4. Pages (34 page files)
 
 | # | Route | Path | Owner epic | Delivery tickets | Security |
 |---|---|---|---|---|---|
@@ -154,6 +156,9 @@ Note: `evidence_gaps` declares 0 static operations at baseline but stays in scop
 | 31 | `/trust` | `apps/web/app/trust/page.tsx` | E15 Every screen and missing workflow UI | TC-15-011 | TC-06-005 |
 | 32 | `/vendor-response` | `apps/web/app/vendor-response/page.tsx` | E15 Every screen and missing workflow UI | TC-15-013, TC-15-014 | TC-06-005 |
 | 33 | `/verify-email` | `apps/web/app/verify-email/page.tsx` | E15 Every screen and missing workflow UI | TC-15-008 | TC-06-005 |
+| 34 | `/dashboard/case-studies` | `apps/web/app/dashboard/case-studies/page.tsx` | E15 Every screen and missing workflow UI | TC-25-005 | TC-06-005 |
+
+scope-freeze amendment approved by coordinator 2026-10-27: `/dashboard/case-studies` is in this inventory. Baseline was 33 existing page files.
 
 E15 also creates the *missing* workflow UI surfaces defined in its tickets (for example TC-15-036 connector setup, TC-15-038 job and activity center, TC-15-060 privacy, cookies, terms, subprocessors, and contact pages). Those are in scope through their tickets even though they are not existing page files.
 
@@ -248,7 +253,7 @@ These rulings change dependency edges in the package backlog. The package JSON i
 | E10 Jobs storage and consistency | 1 |
 | E12 Review approval and reusable knowledge | 11 |
 | E13 Workbook and evidence exports | 2 |
-| E15 Every screen and missing workflow UI | 33 |
+| E15 Every screen and missing workflow UI | 34 |
 | E16 Workspace administration audit and API usability | 4 |
 | E17 Trust center public sharing and NDA | 7 |
 | E18 Trust requests and vendor responses | 3 |
@@ -259,10 +264,10 @@ These rulings change dependency edges in the package backlog. The package JSON i
 | E23 Deals contracts promises and proof | 6 |
 | E24 Billing entitlements and credit ledger | 3 |
 | E25 Product reporting and analytics | 11 |
-| **Total** | **127** |
+| **Total** | **128** |
 
 ## 10. Acceptance mapping
 
-- **TC-01-001-AC1:** §3 covers all 94 route modules (489 operations), §4 all 33 pages, §5 the dispatchers, and §6 the registered or advertised providers. Each has an owner epic and named acceptance tickets. Mechanical check: `artifacts/acceptance/TC-01-001/check_scope_freeze.py`.
+- **TC-01-001-AC1:** §3 covers all 94 route modules (497 operations after the scope-freeze amendment approved by coordinator 2026-10-27; baseline was 489), §4 all 34 pages (baseline was 33), §5 the dispatchers, and §6 the registered or advertised providers. Each has an owner epic and named acceptance tickets. Mechanical check: `artifacts/acceptance/TC-01-001/check_scope_freeze.py`.
 - **TC-01-001-AC2:** Freeze rule 2 forbids silent disabling as completion. §7 lists the out-of-scope extensions explicitly.
 - Owner acceptance: per the ticket DoD, the named accountable owner reviews this file. The Coordinator signs for scope; the Owner/seller signs for R3/R4 rights gating (`release-decisions.md`).
