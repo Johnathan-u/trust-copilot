@@ -317,7 +317,8 @@ def _probe_env() -> dict[str, str]:
     env = {k: v for k, v in os.environ.items() if not k.startswith(("OPENAI", "STRIPE"))}
     env.update(
         TRUST_COPILOT_TESTING="1",  # never read a .env file
-        SESSION_SECRET=secrets.token_urlsafe(32),  # per-run random key, no committed literal (TC-07-001)
+        # per-run random key, no committed literal (TC-07-001)
+        SESSION_SECRET=secrets.token_urlsafe(32),
         APP_ENV="development",
         PYTHONDONTWRITEBYTECODE="1",
     )
