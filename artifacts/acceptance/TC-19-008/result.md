@@ -8,7 +8,7 @@ Real Slack, Gmail, and SMTP qualification is **BLOCKED**. No mailbox, Slack work
 - pytest 9.1.1, ruff 0.5.6, SQLAlchemy 2.0.55, psycopg2 2.9.13
 - Local PostgreSQL 16 with the `vector` extension, database `trustcopilot_tc19008_suite_test`
 - Master pins `sqlalchemy>=2.0,<2.1`. psycopg v3 was not added.
-- `alembic heads`: `tc19008_notification_channel_delivery (head)`. Parent revision is `tc11001_model_outcome_codes`.
+- `alembic heads`: `tc19008_notification_delivery (head)`. Parent revision is `tc10003b_idempotency_owner_token`, master's head after #43.
 
 ## Release tests
 
@@ -20,9 +20,9 @@ TC_REQUIRE_DB=1 SESSION_SECRET=test-secret /tmp/tc-venv/bin/python -m pytest tes
 
 Exit status: **0**
 
-Totals: **12 passed**, 0 failed, 0 skipped. The file covers distinct event ids, dead-letter key release, and the widened `alembic_version.version_num` column.
+Totals: **22 passed**, 0 failed, 0 skipped. The file covers distinct event ids, a missing event id, a 15-minute lease and the 24-hour extension, a Slack write failure after acceptance, an in-app claim that rolls back with the caller, genuine repeats for role changes and generation jobs, the compliance cooldown (one job fires once, a new job inside 30 minutes is suppressed, a new job after the cooldown fires), two sessions racing one key, worker prune, and a fresh-database upgrade. `alembic_version.version_num` stays varchar(32). The migration check walks descendants and downgrades to the parent stored on the revision.
 
-That file includes a fresh-database upgrade to `tc19008_notification_channel_delivery`, downgrade to `tc11001_model_outcome_codes`, and upgrade again. The side database name ends in `_test` and is created with the same role as `TC_TEST_DATABASE_URL` or `DATABASE_URL`.
+That file includes a fresh-database upgrade to `tc19008_notification_delivery`, downgrade to the parent recorded on the revision (`tc10003b_idempotency_owner_token`), and upgrade again. The side database name ends in `_test` and is created with the same role as `TC_TEST_DATABASE_URL` or `DATABASE_URL`.
 
 ## Existing notification, in-app, Slack, and Gmail tests
 
@@ -59,7 +59,7 @@ Exit status: **0** (ruff 0.5.6, ruff-format, prettier, trailing whitespace, end 
 cd apps/api && alembic heads
 ```
 
-Output: `tc19008_notification_channel_delivery (head)`.
+Output: `tc19008_notification_delivery (head)`.
 
 ```bash
 cd apps/api && TC_REQUIRE_DB=1 SESSION_SECRET=test-secret /tmp/tc-venv/bin/python -m pytest -rs -q --tb=line -p no:warnings
@@ -67,15 +67,13 @@ cd apps/api && TC_REQUIRE_DB=1 SESSION_SECRET=test-secret /tmp/tc-venv/bin/pytho
 
 Exit status: **0**
 
-Totals: **1589 passed**, 3 skipped, 0 failed.
+Totals: **1713 passed**, 2 skipped, 0 failed, after merging master `e86812b`. Database: `trustcopilot_tc19008_suite_test`.
 
-Skips: blind pack not found, no reviewed workspace controls, no questionnaires.
+Skips: blind pack not found, no reviewed workspace controls.
 
-```bash
-cd apps/web && npm run build
-```
+`tests/release/test_safe_collection.py`: **26 passed**.
 
-Exit status: **0**. Next.js compiled and generated 35 pages. The notifications page is in that build.
+This revision does not change `apps/web`. The previous `npm run build` (35 pages) was not repeated.
 
 ## Browser
 

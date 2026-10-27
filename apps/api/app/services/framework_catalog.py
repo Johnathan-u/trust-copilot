@@ -45,7 +45,6 @@ from app.services.framework_catalog_registry import (
     provenance_for,
     provenance_json,
     resolve_advertised,
-    rights_are_cleared,
 )
 
 logger = logging.getLogger(__name__)
@@ -93,15 +92,11 @@ def label_dev_framework_row(row: Framework) -> None:
     _stamp_common(row, KIND_DEV)
 
 
-def reconcile_catalog(db: Session) -> None:
-    """Do not call this from GET or enable. It performs no writes and never renames rows.
-
-    Missing advertised rows are inserted by the migration. The list endpoint
-    projects a blocked state in memory when a stored row is missing or tampered.
-    """
-    del db
-    if rights_are_cleared():
-        raise RuntimeError("rights gate must stay closed until TC-01-007 is decided")
+def _public_provenance(kind: str) -> dict[str, object]:
+    """Provenance for an API response. The rights ticket stays in logs and storage."""
+    payload = dict(provenance_for(kind))
+    payload.pop("rights_ticket", None)
+    return payload
 
 
 def _iso(value: datetime | None) -> str | None:
@@ -153,13 +148,12 @@ def _virtual_blocked(spec: AdvertisedCatalog) -> dict[str, Any]:
         "version": None,
         "created_at": None,
         "catalog_key": spec.catalog_key,
-        "source_provenance": provenance_for(KIND_ADVERTISED),
+        "source_provenance": _public_provenance(KIND_ADVERTISED),
         "rights_status": RIGHTS_BLOCKED,
         "licence_status": LICENCE_NOT_CLEARED,
         "enablement_state": ENABLEMENT_BLOCKED,
         "catalog_kind": KIND_ADVERTISED,
         "production_catalog": False,
-        "rights_ticket": RIGHTS_TICKET,
         "contract_version": CATALOG_CONTRACT_VERSION,
         "content_version": None,
         "content_origin": CONTENT_NONE,
@@ -210,13 +204,12 @@ def serialize_framework(row: Framework, control_keys: list[str]) -> dict[str, An
         "version": row.version,
         "created_at": _iso(row.created_at),
         "catalog_key": None if dev_only else row.catalog_key,
-        "source_provenance": provenance_for(kind),
+        "source_provenance": _public_provenance(kind),
         "rights_status": rights_status,
         "licence_status": licence_status,
         "enablement_state": enablement_state,
         "catalog_kind": catalog_kind,
         "production_catalog": False,
-        "rights_ticket": RIGHTS_TICKET,
         "contract_version": row.contract_version or CATALOG_CONTRACT_VERSION,
         "content_version": None,
         "content_origin": row.content_origin,
@@ -281,7 +274,6 @@ def _error(
         "rights_status": rights_status,
         "licence_status": licence_status,
         "enablement_state": enablement_state,
-        "rights_ticket": RIGHTS_TICKET,
         "partial_failure": partial_failure,
         "steps": steps or [],
     }

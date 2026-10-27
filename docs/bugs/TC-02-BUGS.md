@@ -45,7 +45,7 @@ title only:
 | ID | Title | Epic | Status |
 |---|---|---|---|
 | TC-06-BUG-012 | Deals: scope deal and linked-questionnaire lookups to the caller's workspace | E06 | Fixed in TC-06-BUG-012 PR (pending merge) |
-| TC-06-BUG-013 | Shared same-workspace validation for ids referenced in request bodies | E06 | Tracked |
+| TC-06-BUG-013 | Shared same-workspace validation for ids referenced in request bodies | E06 | Fixed in TC-06-BUG-013 PR (pending merge) |
 
 ## Details
 
@@ -120,6 +120,32 @@ title only:
 - Verified on a fresh `*_test` DB with a throwaway test (not committed). Create returned `200`. The public GET, with no cookies, returned
   `200 {'questionnaire': {'name': '<ws2 filename>', 'question_count': 0}, ...}`. With `questionnaire_id: 999999`
   the TestClient raised `IntegrityError`.
+
+## Test-suite isolation findings
+
+| ID | file:line | Kind | Runtime effect | Path | Epic | Severity |
+|---|---|---|---|---|---|---|
+| TC-02-BUG-014 | `apps/api/tests/release/test_health_probes.py:155,167,178,187,386` | order-dependent test | The 4 DB-backed `/workerz` tests fail when the file runs alone on a fresh DB (`relation "worker_heartbeat" does not exist`) | test-only (covers `GET /workerz`) | E02 | Low |
+| TC-02-BUG-017 | `apps/api/tests/test_phase_d_slack.py` (`test_disabled_slack_does_not_fire`, `test_event_type_filter_respected`) | order-dependent test | Both tests patched the first non-demo user's role and never restored it, so a later test could see a changed admin, editor, or reviewer | test-only | E02 | Low |
+
+### TC-02-BUG-014: `/workerz` release tests need migrations they never request
+- `_set_db_heartbeat()` writes to `worker_heartbeat` (migration 026), but the four tests that call it
+  (`test_workerz_fresh_heartbeat_is_alive`, `test_workerz_stale_heartbeat_is_503`,
+  `test_workerz_staleness_threshold_is_configurable`, `test_worker_db_heartbeat_write_is_read_as_fresh`)
+  only use a bare `TestClient`, so nothing in the file migrates the DB.
+- They passed only because something else migrated first: an earlier test using `client`/`_ensure_test_data`
+  in full-suite order, or the `pytest_sessionstart` hook, which migrates up front only when `TC_REQUIRE_DB=1`.
+- Repro (fresh, never-migrated `*_test` DB, `TC_REQUIRE_DB` unset): `pytest tests/release/test_health_probes.py`
+  gives `4 failed, 20 passed`.
+- Fix: the tests request the shared `migrated_db` fixture (`tests/conftest.py`, built on `_ensure_test_data`).
+  `tests/release/test_health_probes_isolation.py` reruns the file alone on a throwaway fresh DB in CI.
+
+### TC-02-BUG-017: Slack delivery tests changed a shared member's role
+- `test_disabled_slack_does_not_fire` set that role to `editor`. `test_event_type_filter_respected`
+  set it to `reviewer`. Neither restored the original role. The row came from
+  `User.email != "demo@trust.local"` with no `order_by`, so which seeded user moved depended on the plan.
+- Fix: both tests patch `disposable_member`, a function-scoped user deleted on teardown. Seeded roles stay put.
+  Fixed on `tc/int/TC-02-BUG-017`.
 
 ## Verified not bugs (no entry)
 - F841 with no hidden logic: `tags.py:87` `dt`, `automation_service.py:161` `summary` (the

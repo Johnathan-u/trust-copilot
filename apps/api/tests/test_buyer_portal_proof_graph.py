@@ -171,7 +171,7 @@ class TestProofGraphAPI:
         assert len(chain) >= 2, chain
         assert all("freshness" in n for n in chain)
 
-    def test_sync_chain_freshness_hash_diff_reuse(self, admin_client):
+    def test_sync_chain_freshness_hash_diff_reuse(self, admin_client, db_session):
         gr = admin_client.post(
             "/api/golden-answers",
             json={"question_text": "Q graph unique xyz", "answer_text": "A graph"},
@@ -199,39 +199,78 @@ class TestProofGraphAPI:
         assert fr.status_code == 200
         assert fr.json()["freshness"] in ("live", "recent", "aging", "stale")
 
-        hr = admin_client.post(
-            "/api/proof-graph/artifacts/hash",
-            json={
-                "artifact_kind": "evidence_item",
-                "artifact_id": 1,
-                "content_text": "hello proof",
-            },
-            headers={"Origin": "http://localhost", "Referer": "http://localhost/"},
-        )
-        assert hr.status_code == 200
+        from app.models.answer import Answer
+        from app.models.evidence_item import EvidenceItem
+        from app.models.proof_graph import AnswerReuseProvenance, ArtifactIntegrityHash
+        from app.models.questionnaire import Question, Questionnaire
 
-        vr = admin_client.post(
-            "/api/proof-graph/artifacts/verify",
-            json={
-                "artifact_kind": "evidence_item",
-                "artifact_id": 1,
-                "content_text": "hello proof",
-            },
-        )
-        assert vr.status_code == 200
-        assert vr.json()["ok"] is True
+        qnr = Questionnaire(workspace_id=1, filename="reuse-prov.csv", status="uploaded")
+        db_session.add(qnr)
+        db_session.flush()
+        qu = Question(questionnaire_id=qnr.id, text="reuse provenance q", section=None)
+        db_session.add(qu)
+        db_session.flush()
+        ans = Answer(question_id=qu.id, text="reuse provenance a", status="draft")
+        ev = EvidenceItem(workspace_id=1, title="reuse provenance evidence")
+        db_session.add_all([ans, ev])
+        db_session.commit()
+        qnr_id, qu_id, ans_id, ev_id = qnr.id, qu.id, ans.id, ev.id
 
-        dr = admin_client.get("/api/proof-graph/diffs")
-        assert dr.status_code == 200
-        assert len(dr.json()["diffs"]) >= 1
+        try:
+            hr = admin_client.post(
+                "/api/proof-graph/artifacts/hash",
+                json={
+                    "artifact_kind": "evidence_item",
+                    "artifact_id": ev_id,
+                    "content_text": "hello proof",
+                },
+                headers={"Origin": "http://localhost", "Referer": "http://localhost/"},
+            )
+            assert hr.status_code == 200, hr.text
 
-        rr = admin_client.post(
-            "/api/proof-graph/reuse-provenance",
-            json={"answer_id": 42, "buyer_ref": "buyer@x.com", "evidence_ids": [1, 2]},
-            headers={"Origin": "http://localhost", "Referer": "http://localhost/"},
-        )
-        assert rr.status_code == 200
+            vr = admin_client.post(
+                "/api/proof-graph/artifacts/verify",
+                json={
+                    "artifact_kind": "evidence_item",
+                    "artifact_id": ev_id,
+                    "content_text": "hello proof",
+                },
+            )
+            assert vr.status_code == 200
+            assert vr.json()["ok"] is True
 
-        lr = admin_client.get("/api/proof-graph/reuse-provenance/answer/42")
-        assert lr.status_code == 200
-        assert len(lr.json()["instances"]) >= 1
+            dr = admin_client.get("/api/proof-graph/diffs")
+            assert dr.status_code == 200
+            assert len(dr.json()["diffs"]) >= 1
+
+            rr = admin_client.post(
+                "/api/proof-graph/reuse-provenance",
+                json={"answer_id": ans_id, "buyer_ref": "buyer@x.com", "evidence_ids": [ev_id]},
+                headers={"Origin": "http://localhost", "Referer": "http://localhost/"},
+            )
+            assert rr.status_code == 200
+
+            lr = admin_client.get(f"/api/proof-graph/reuse-provenance/answer/{ans_id}")
+            assert lr.status_code == 200
+            assert len(lr.json()["instances"]) >= 1
+        finally:
+            db_session.rollback()
+            db_session.query(AnswerReuseProvenance).filter(
+                AnswerReuseProvenance.answer_id == ans_id
+            ).delete(synchronize_session=False)
+            db_session.query(ArtifactIntegrityHash).filter(
+                ArtifactIntegrityHash.workspace_id == 1,
+                ArtifactIntegrityHash.artifact_kind == "evidence_item",
+                ArtifactIntegrityHash.artifact_id == ev_id,
+            ).delete(synchronize_session=False)
+            db_session.query(Answer).filter(Answer.id == ans_id).delete(synchronize_session=False)
+            db_session.query(EvidenceItem).filter(EvidenceItem.id == ev_id).delete(
+                synchronize_session=False
+            )
+            db_session.query(Question).filter(Question.id == qu_id).delete(
+                synchronize_session=False
+            )
+            db_session.query(Questionnaire).filter(Questionnaire.id == qnr_id).delete(
+                synchronize_session=False
+            )
+            db_session.commit()

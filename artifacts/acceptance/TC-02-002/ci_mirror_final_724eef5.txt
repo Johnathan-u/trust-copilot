@@ -1,0 +1,106 @@
+### Tree 724eef5 node v24.22.1 npm 11.19.1
+### Install frontend deps (npm ci --ignore-scripts)
+exit=0
+### Run pre-commit --all-files
+ruff.....................................................................Passed
+ruff-format..............................................................Passed
+prettier.................................................................Passed
+trim trailing whitespace.................................................Passed
+fix end of files.........................................................Passed
+check yaml...............................................................Passed
+exit=0
+### pre-commit modifications
+modified files=0
+exit=0
+### Format check frontend (run before typecheck/build so generated .next output is not checked)
+[warn] next-env.d.ts
+[warn] Code style issues found in the above file. Run Prettier with --write to fix.
+exit=1
+### Type-check frontend
+Generating route types...
+✓ Types generated successfully
+exit=0
+### Lint frontend (eslint --max-warnings=0)
+NOT AVAILABLE on this base: no eslint dependency/config/script (they land with TC-02-006, #10); see the #10 merge-preview run
+exit=n/a
+### Unit test frontend (vitest)
+ ✓ lib/frameworkCatalog.test.ts > framework catalog consumer > keeps the historical list fields and treats the blocked payload as not enabled 1ms
+ ✓ lib/frameworkCatalog.test.ts > framework catalog consumer > does not treat a version string or a dev row as a production catalog 0ms
+ ✓ lib/frameworkCatalog.test.ts > framework catalog consumer > requires every production gate before reporting enabled 0ms
+ ✓ lib/frameworkCatalog.test.ts > framework catalog consumer > parses the versioned enablement error and never counts it as success 0ms
+ ✓ lib/frameworkCatalog.test.ts > framework catalog consumer > sends catalog_key only and does not enable a dev row 1ms
+ ✓ lib/frameworkCatalog.test.ts > framework catalog consumer > reads a list payload and keeps blocked and dev rows distinct 1ms
+ Test Files  1 passed (1)
+      Tests  6 passed (6)
+exit=0
+### Start isolated Postgres: image pgvector/pgvector:pg16@sha256:7b822b0aac60967beb1ea5e576b8602c94c300a157d187f385ae3e0da199b90a db=tc_ci_merge_t0202g_1793107299_test user=tc_ci password=<generated, not shown>
+### Install backend deps (from lock)
+No broken requirements found.
+exit=0
+python 3.11.17 sqlalchemy 2.0.55
+### Run migrations
+exit=0
+INFO  [alembic.runtime.migration] Running upgrade tc25011_demo_proof_summaries -> tc25005_case_study_consent, Consent-backed case study publication (TC-25-005).
+pgvector 0.8.7
+### Lint backend
+ruff 0.5.6
+All checks passed!
+exit=0
+### Safe test collection (TC-02-001)
+1992 tests collected in 1.79s
+exit=0
+26 passed in 8.46s
+exit=0
+### Python dependency lock (TC-02-002) / release test: python -m pytest tests/release/test_python_lock.py -q (TC_REQUIRE_DB=1)
+20 passed in 2.77s
+exit=0
+### Focused tests: python -m pytest tests/test_pdf_text_locator_corpus.py tests/test_pdf_failure_surfacing.py tests/pdf_locator -q (TC_REQUIRE_DB=1)
+75 passed in 6.00s
+exit=0
+installed pypdf 6.21.3
+### Run backend tests
+........................................................................ [  3%]
+........................................................................ [  7%]
+........................................................................ [ 10%]
+........................................................................ [ 14%]
+........................................................................ [ 18%]
+........................................................................ [ 21%]
+........................................................................ [ 25%]
+........................................................................ [ 28%]
+........................................................................ [ 32%]
+........................................................................ [ 36%]
+........................................................................ [ 39%]
+........................................................................ [ 43%]
+........................................................................ [ 46%]
+........................................................................ [ 50%]
+........................................................................ [ 54%]
+........................................................................ [ 57%]
+........................................................................ [ 61%]
+........................................................................ [ 65%]
+........................................................................ [ 68%]
+........................................................................ [ 72%]
+........................................................................ [ 75%]
+........................................................................ [ 79%]
+........................................................................ [ 83%]
+........................................................................ [ 86%]
+........................................................................ [ 90%]
+........................................................................ [ 93%]
+........................................................................ [ 97%]
+................................................                         [100%]
+=============================== warnings summary ===============================
+tests/test_provider_adapter.py::test_migration_columns_present
+tests/test_provider_adapter.py::test_migration_has_unique_descriptive_revision_after_075
+  /workspace/wt-run/venv-t0202g/lib/python3.11/site-packages/alembic/config.py:604: DeprecationWarning: No path_separator found in configuration; falling back to legacy splitting on spaces, commas, and colons for prepend_sys_path.  Consider adding path_separator=os to Alembic config.
+    util.warn_deprecated(
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+SKIPPED [1] tests/test_trust_scoring_blind.py:33: external_data: blind test pack not checked in; set TC_TRUST_SCORING_BLIND_PACK to run
+1992 passed, 1 skipped, 2 warnings in 137.17s (0:02:17)
+exit=0
+### Build frontend
+exit=0
+✓ Compiled successfully in 5.4s
+### Audit frontend runtime dependencies (npm audit --omit=dev --audit-level=high)
+found 0 vulnerabilities
+exit=0

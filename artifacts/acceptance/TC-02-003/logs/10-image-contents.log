@@ -1,0 +1,19 @@
+user=node
+node=v24.22.1
+top-level-modules: @img @next @swc client-only detect-libc next react react-dom semver sharp styled-jsx
+absent typescript
+absent vitest
+absent playwright
+absent @playwright
+absent prettier
+absent tailwindcss
+absent postcss
+absent autoprefixer
+absent esbuild
+absent vite
+absent eslint
+absent npm
+absent npx
+absent corepack
+absent next-cli
+47M	/app

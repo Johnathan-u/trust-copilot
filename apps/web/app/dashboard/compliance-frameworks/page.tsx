@@ -5,6 +5,7 @@ import { Button, Card } from '@/components/ui'
 import { useAuth } from '@/contexts/AuthContext'
 import {
   catalogStatusLabel,
+  catalogRightsLabel,
   catalogDisplayState,
   enableRequestBody,
   isDevTestOnly,
@@ -186,7 +187,7 @@ export default function ComplianceFrameworksPage() {
                       </span>
                     </td>
                     <td className="py-3 pr-4 text-[var(--tc-text)]">
-                      {item.rights_status || 'unknown'}
+                      {catalogRightsLabel(item)}
                     </td>
                     <td className="py-3 pr-4 text-[var(--tc-text)]">
                       <span>{catalogStatusLabel(item)}</span>

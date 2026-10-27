@@ -1,0 +1,157 @@
+$ alembic upgrade head
+INFO  [alembic.runtime.migration] Context impl PostgresqlImpl.
+INFO  [alembic.runtime.migration] Will assume transactional DDL.
+INFO  [alembic.runtime.migration] Running upgrade  -> 001, Initial schema: workspaces, jobs, documents.
+INFO  [alembic.runtime.migration] Running upgrade 001 -> 002, Users, workspace_members, questionnaires, questions.
+INFO  [alembic.runtime.migration] Running upgrade 002 -> 003, Seed default workspace for dev.
+INFO  [alembic.runtime.migration] Running upgrade 003 -> 004, Chunks table with pgvector for semantic search (DOC-08, RET-01).
+INFO  [alembic.runtime.migration] Running upgrade 004 -> 005, Add storage_key to questionnaires.
+INFO  [alembic.runtime.migration] Running upgrade 005 -> 006, Export records and trust articles (EXP-01, TC-01).
+INFO  [alembic.runtime.migration] Running upgrade 006 -> 007, Answers table (AI-05).
+INFO  [alembic.runtime.migration] Running upgrade 007 -> 008, Trust requests table (TC-04).
+INFO  [alembic.runtime.migration] Running upgrade 008 -> 009, Audit events table (AUD-201).
+INFO  [alembic.runtime.migration] Running upgrade 009 -> 010, Email verified + verification and reset tokens (AUTH-207, AUTH-209).
+INFO  [alembic.runtime.migration] Running upgrade 010 -> 011, Invites table (AUTH-208).
+INFO  [alembic.runtime.migration] Running upgrade 011 -> 012, User MFA tables (AUTH-211, AUTH-212).
+INFO  [alembic.runtime.migration] Running upgrade 012 -> 013, User sessions table for list/revoke (AUTH-213).
+INFO  [alembic.runtime.migration] Running upgrade 013 -> 014, User OAuth accounts table (ENT-201).
+INFO  [alembic.runtime.migration] Running upgrade 014 -> 015, Workspace auth policy columns (ENT-202).
+INFO  [alembic.runtime.migration] Running upgrade 015 -> 016, Workspace AI settings (model + temperature).
+INFO  [alembic.runtime.migration] Running upgrade 016 -> 017, Trust request assignee (TC-H-B1).
+INFO  [alembic.runtime.migration] Running upgrade 017 -> 018, Trust request notes (TC-H-B2).
+INFO  [alembic.runtime.migration] Running upgrade 018 -> 019, Trust article category/section (TC-R-B1).
+INFO  [alembic.runtime.migration] Running upgrade 019 -> 020, Trust Center: controls, evidence linking, policy flag, acknowledgments, vendor requests (TC-R-B2, B3, B5, B6).
+INFO  [alembic.runtime.migration] Running upgrade 020 -> 021, Add optional attachment to trust requests (public form upload).
+INFO  [alembic.runtime.migration] Running upgrade 021 -> 022, TC-H-B1: Trust request status workflow — canonical statuses, default new.
+INFO  [alembic.runtime.migration] Running upgrade 022 -> 023, TC-H-B2: Add note_type to trust_request_notes (internal_note vs reply).
+INFO  [alembic.runtime.migration] Running upgrade 023 -> 024, Add hnsw index on chunks.embedding for scalable semantic search.
+INFO  [alembic.runtime.migration] Running upgrade 024 -> 025, API keys table for machine auth.
+INFO  [alembic.runtime.migration] Running upgrade 025 -> 026, Worker heartbeat table for /workerz visibility.
+INFO  [alembic.runtime.migration] Running upgrade 026 -> 027, Document index_error for failure reason (pre-pilot).
+INFO  [alembic.runtime.migration] Running upgrade 027 -> 028, Answer pipeline caches and corpus version.
+INFO  [alembic.runtime.migration] Running upgrade 028 -> 029, Idempotency keys table for shared store across API replicas.
+INFO  [alembic.runtime.migration] Running upgrade 029 -> 030, Compliance foundation: frameworks, framework_controls, workspace_controls, evidence, mappings.
+INFO  [alembic.runtime.migration] Running upgrade 030 -> 031, Phase 2: question-control mapping log and manual overrides. No changes to Phase 1 tables.
+INFO  [alembic.runtime.migration] Running upgrade 031 -> 032, Phase 4: Evidence last_verified_at; control verified_at / verified_by_user_id.
+INFO  [alembic.runtime.migration] Running upgrade 032 -> 033, Phase 5: Workspace staleness config, compliance webhook outbox.
+INFO  [alembic.runtime.migration] Running upgrade 033 -> 034, Phase 6: Webhook outbox delivery fields, workspace webhook URL.
+INFO  [alembic.runtime.migration] Running upgrade 034 -> 035, Add 14 missing tables (Phase A-F, dashboard, quotas) and 3 missing columns.
+INFO  [alembic.runtime.migration] Running upgrade 035 -> 036, Add tags and document_tags tables for enterprise document tagging.
+INFO  [alembic.runtime.migration] Running upgrade 036 -> 037, AI mapping and governance tables.
+INFO  [alembic.runtime.migration] Running upgrade 037 -> 038, Registry list metadata across core modules.
+INFO  [alembic.runtime.migration] Running upgrade 038 -> 039, Add invite_code_hash for email verification step before accept (AUTH-208).
+INFO  [alembic.runtime.migration] Running upgrade 039 -> 040, Add routing debug fields and attachment_size to trust_requests.
+INFO  [alembic.runtime.migration] Running upgrade 040 -> 041, Add status and updated_at to question_mapping_preferences for questionnaire mapping flow.
+INFO  [alembic.runtime.migration] Running upgrade 041 -> 042, Questionnaire soft framework preference for AI control mapping.
+INFO  [alembic.runtime.migration] Running upgrade 042 -> 043, Questionnaire-scoped answer evidence (document allowlist for AI answers).
+INFO  [alembic.runtime.migration] Running upgrade 043 -> 044, Questionnaire AI mapping prefers subject areas (categories), not frameworks.
+INFO  [alembic.runtime.migration] Running upgrade 044 -> 045, Enterprise AI pipeline: question mapping signals, answer outcome fields, workspace usage tracking.
+INFO  [alembic.runtime.migration] Running upgrade 045 -> 046, Placeholder migration to fix chain (046 was missing).
+INFO  [alembic.runtime.migration] Running upgrade 046 -> 047, Evidence gaps table for AI-generated gap analysis.
+INFO  [alembic.runtime.migration] Running upgrade 047 -> 048, Add evidence_fingerprint to answers table.
+INFO  [alembic.runtime.migration] Running upgrade 048 -> 049, Add message column to vendor_requests table.
+INFO  [alembic.runtime.migration] Running upgrade 049 -> 050, Create evidence_gaps table.
+INFO  [alembic.runtime.migration] Running upgrade 050 -> 051, Create subscriptions table for Stripe billing.
+INFO  [alembic.runtime.migration] Running upgrade 051 -> 052, Per-workspace feature flags.
+INFO  [alembic.runtime.migration] Running upgrade 052 -> 053, Create credit_ledgers and credit_transactions tables.
+INFO  [alembic.runtime.migration] Running upgrade 053 -> 054, Create operator_queue_items table.
+INFO  [alembic.runtime.migration] Running upgrade 054 -> 055, Create security_faq table.
+INFO  [alembic.runtime.migration] Running upgrade 055 -> 056, Create source_registry table.
+INFO  [alembic.runtime.migration] Running upgrade 056 -> 057, Create credential_store table.
+INFO  [alembic.runtime.migration] Running upgrade 057 -> 058, Create product_events table.
+INFO  [alembic.runtime.migration] Running upgrade 058 -> 059, Create case_studies table.
+INFO  [alembic.runtime.migration] Running upgrade 059 -> 060, Create control_state_snapshots table.
+INFO  [alembic.runtime.migration] Running upgrade 060 -> 061, Create alert_acknowledgments table.
+INFO  [alembic.runtime.migration] Running upgrade 061 -> 062, Create nda_access_requests table.
+INFO  [alembic.runtime.migration] Running upgrade 062 -> 063, Create shareable_spaces table.
+INFO  [alembic.runtime.migration] Running upgrade 063 -> 064, Create golden_answers table.
+INFO  [alembic.runtime.migration] Running upgrade 064 -> 065, answer approval events and golden_answers reviewer columns
+INFO  [alembic.runtime.migration] Running upgrade 065 -> 066, evidence item approval columns
+INFO  [alembic.runtime.migration] Running upgrade 066 -> 067, freshness policies table
+INFO  [alembic.runtime.migration] Running upgrade 067 -> 068, retention policies table
+INFO  [alembic.runtime.migration] Running upgrade 068 -> 069, deals table
+INFO  [alembic.runtime.migration] Running upgrade 069 -> 070, remediation playbooks and tickets
+INFO  [alembic.runtime.migration] Running upgrade 070 -> 071, remediation evidence linkage, audit log, automation opt-in
+INFO  [alembic.runtime.migration] Running upgrade 071 -> 072, trust promises and contract documents (E2-08, E2-09)
+INFO  [alembic.runtime.migration] Running upgrade 072 -> 073, Buyer portal, escalations, satisfaction, snapshots (E4-20..E4-24)
+INFO  [alembic.runtime.migration] Running upgrade 073 -> 074, Proof graph, artifact hashes, diffs, reuse provenance (E5-25..E5-30)
+INFO  [alembic.runtime.migration] Running upgrade 074 -> 075, Answer delivery outcome tags (E6-31)
+INFO  [alembic.runtime.migration] Running upgrade 075 -> tc21001_framework_catalog_rights, Framework catalog version, provenance, rights, and enablement.
+INFO  [alembic.runtime.migration] Running upgrade tc21001_framework_catalog_rights -> tc11001_model_outcome_codes, Typed model outcome and job error codes (TC-11-001)
+INFO  [alembic.runtime.migration] Running upgrade tc11001_model_outcome_codes -> tc10003_job_idempotency, TC-10-003: idempotent job side effects.
+INFO  [alembic.runtime.migration] Running upgrade tc10003_job_idempotency -> tc10002_job_retries, TC-10-002: scheduled job retries.
+$ sh /tcci/release.sh
+$ python -m pytest tests/release/test_safe_collection.py -q
+.........................s                                               [100%]
+25 passed, 1 skipped in 15.81s
+$ python -m pytest --collect-only -q tests/release
+tests/release/test_vendor_request_questionnaire_scope.py::test_public_link_hides_out_of_scope_questionnaire_in_existing_row[own_deleted]
+
+132 tests collected in 1.77s
+$ TC_REQUIRE_DB=1 SESSION_SECRET=test-secret pytest -rs -v tests/release/test_model_outcomes_threaded.py tests/release/test_provider_adapter.py
+============================= test session starts ==============================
+platform linux -- Python 3.11.18, pytest-9.1.1, pluggy-1.7.0 -- /usr/local/bin/python
+rootdir: /repo/apps/api
+configfile: pyproject.toml
+plugins: anyio-4.15.1
+collecting ... collected 46 items
+
+tests/release/test_model_outcomes_threaded.py::test_threaded_workers_keep_typed_outcomes_and_hide_raw_errors PASSED [  2%]
+tests/release/test_provider_adapter.py::test_ac1_six_outcomes_are_distinct PASSED [  4%]
+tests/release/test_provider_adapter.py::test_no_evidence_makes_no_model_call PASSED [  6%]
+tests/release/test_provider_adapter.py::test_classify_provider_exceptions[auth-model_credentials_invalid-True] PASSED [  8%]
+tests/release/test_provider_adapter.py::test_classify_provider_exceptions[forbidden-model_credentials_invalid-True] PASSED [ 10%]
+tests/release/test_provider_adapter.py::test_classify_provider_exceptions[not_found-model_unavailable-True] PASSED [ 13%]
+tests/release/test_provider_adapter.py::test_classify_provider_exceptions[quota-model_quota_exhausted-True] PASSED [ 15%]
+tests/release/test_provider_adapter.py::test_classify_provider_exceptions[rate-model_rate_limited-False] PASSED [ 17%]
+tests/release/test_provider_adapter.py::test_classify_provider_exceptions[server-model_server_error-False] PASSED [ 19%]
+tests/release/test_provider_adapter.py::test_classify_provider_exceptions[timeout-model_timeout-False] PASSED [ 21%]
+tests/release/test_provider_adapter.py::test_classify_provider_exceptions[connection-model_server_error-False] PASSED [ 23%]
+tests/release/test_provider_adapter.py::test_classify_provider_exceptions[bad_request-model_request_rejected-False] PASSED [ 26%]
+tests/release/test_provider_adapter.py::test_classify_provider_exceptions[runtime-model_error-False] PASSED [ 28%]
+tests/release/test_provider_adapter.py::test_retryable_flags_follow_catalog PASSED [ 30%]
+tests/release/test_provider_adapter.py::test_completion_envelope_checks PASSED [ 32%]
+tests/release/test_provider_adapter.py::test_assess_answer_text[Yes. Quarterly access reviews are documented.-grounded] PASSED [ 34%]
+tests/release/test_provider_adapter.py::test_assess_answer_text[Sorry, I cannot answer that.-model_refusal] PASSED [ 36%]
+tests/release/test_provider_adapter.py::test_assess_answer_text[As an AI, I don't have access.-model_refusal] PASSED [ 39%]
+tests/release/test_provider_adapter.py::test_assess_answer_text[Error: something-model_malformed_output] PASSED [ 41%]
+tests/release/test_provider_adapter.py::test_assess_answer_text[<html>-model_malformed_output] PASSED [ 43%]
+tests/release/test_provider_adapter.py::test_assess_answer_text[[1, 2]-model_malformed_output] PASSED [ 45%]
+tests/release/test_provider_adapter.py::test_assess_answer_text[-model_malformed_output] PASSED [ 47%]
+tests/release/test_provider_adapter.py::test_model_abstained_is_not_no_evidence PASSED [ 50%]
+tests/release/test_provider_adapter.py::test_transient_failure_is_typed_not_insufficient_evidence_success PASSED [ 52%]
+tests/release/test_provider_adapter.py::test_fatal_single_failure_raises_typed_error_without_provider_text PASSED [ 54%]
+tests/release/test_provider_adapter.py::test_missing_credentials_is_typed_and_makes_no_call PASSED [ 56%]
+tests/release/test_provider_adapter.py::test_fatal_failure_stops_job_with_bounded_calls[auth] PASSED [ 58%]
+tests/release/test_provider_adapter.py::test_fatal_failure_stops_job_with_bounded_calls[not_found] PASSED [ 60%]
+tests/release/test_provider_adapter.py::test_fatal_failure_stops_job_with_bounded_calls[quota] PASSED [ 63%]
+tests/release/test_provider_adapter.py::test_fatal_embedding_failure_stops_before_completion PASSED [ 65%]
+tests/release/test_provider_adapter.py::test_transient_failures_record_outcome_counts PASSED [ 67%]
+tests/release/test_provider_adapter.py::test_embedding_service_reports_typed_failure PASSED [ 69%]
+tests/release/test_provider_adapter.py::test_failure_from_exception_only_types_provider_errors PASSED [ 71%]
+tests/release/test_provider_adapter.py::test_job_error_payload_schema_and_request_id PASSED [ 73%]
+tests/release/test_provider_adapter.py::test_answer_outcome_payload_schema PASSED [ 76%]
+tests/release/test_provider_adapter.py::test_generate_503_has_typed_error_and_request_id PASSED [ 78%]
+tests/release/test_provider_adapter.py::test_worker_persists_safe_typed_job_error_and_jobs_api PASSED [ 80%]
+tests/release/test_provider_adapter.py::test_migration_columns_present PASSED [ 82%]
+tests/release/test_provider_adapter.py::test_migration_has_unique_descriptive_revision_after_075 PASSED [ 84%]
+tests/release/test_provider_adapter.py::test_request_ids_are_unique_per_request PASSED [ 86%]
+tests/release/test_provider_adapter.py::test_grounded_unverified_catalog_entry PASSED [ 89%]
+tests/release/test_provider_adapter.py::test_cache_hit_is_grounded_unverified_never_grounded PASSED [ 91%]
+tests/release/test_provider_adapter.py::test_cache_hit_and_fresh_generation_are_distinguished PASSED [ 93%]
+tests/release/test_provider_adapter.py::test_sweep_relabels_uncited_cached_answer PASSED [ 95%]
+tests/release/test_provider_adapter.py::test_questionnaire_api_reports_grounded_unverified PASSED [ 97%]
+tests/release/test_provider_adapter.py::test_review_page_shows_badge_for_everything_but_verified_grounded PASSED [100%]
+
+=============================== warnings summary ===============================
+tests/release/test_provider_adapter.py::test_migration_columns_present
+tests/release/test_provider_adapter.py::test_migration_has_unique_descriptive_revision_after_075
+  /usr/local/lib/python3.11/site-packages/alembic/config.py:604: DeprecationWarning: No path_separator found in configuration; falling back to legacy splitting on spaces, commas, and colons for prepend_sys_path.  Consider adding path_separator=os to Alembic config.
+    util.warn_deprecated(
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+======================== 46 passed, 2 warnings in 2.92s ========================
+$ ls tests/test_model_outcomes_threaded.py tests/test_provider_adapter.py (must be gone)
+ls: cannot access 'tests/test_model_outcomes_threaded.py': No such file or directory
+ls: cannot access 'tests/test_provider_adapter.py': No such file or directory
+PYTEST_EXIT 0

@@ -371,7 +371,7 @@ async def get_channel_preferences(
     """Channel switches for the current user. Schema version 1.
 
     Existing policy and unsubscribe routes are unchanged. This is the
-    per-user email, Slack, and in-app preference TC-19-008 needs.
+    per-user email, Slack, and in-app preference.
     """
     uid = session.get("user_id")
     ws = session["workspace_id"]
@@ -444,10 +444,7 @@ async def list_delivery_attempts(
         db.query(NotificationDeliveryAttempt, InAppNotification)
         .outerjoin(
             InAppNotification,
-            and_(
-                InAppNotification.id == NotificationDeliveryAttempt.in_app_notification_id,
-                InAppNotification.workspace_id == NotificationDeliveryAttempt.workspace_id,
-            ),
+            InAppNotification.id == NotificationDeliveryAttempt.in_app_notification_id,
         )
         .filter(NotificationDeliveryAttempt.workspace_id == ws)
     )

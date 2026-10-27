@@ -262,6 +262,56 @@ class TestSlackConfigure:
 # ---------------------------------------------------------------------------
 
 
+@pytest.fixture
+def disposable_member() -> int:
+    """Member created for this test only, then deleted.
+
+    The role-change tests used to patch ``User.email != demo`` with ``.first()``
+    and never restore that role. That row is a seeded admin, editor, or reviewer,
+    so the change leaked into later tests.
+    """
+    from uuid import uuid4
+
+    from app.core.database import SessionLocal
+    from app.core.password import hash_password
+    from app.models import User, WorkspaceMember
+
+    email = f"slack-role-{uuid4().hex}@test.local"
+    user_id: int | None = None
+    try:
+        db = SessionLocal()
+        try:
+            user = User(
+                email=email,
+                password_hash=hash_password("testpass123"),
+                display_name="Slack role fixture",
+            )
+            db.add(user)
+            db.commit()
+            db.refresh(user)
+            user_id = user.id
+            mem = WorkspaceMember(workspace_id=1, user_id=user_id, role="reviewer")
+            db.add(mem)
+            db.commit()
+            db.refresh(mem)
+            member_id = mem.id
+        finally:
+            db.close()
+        yield member_id
+    finally:
+        if user_id is None:
+            return
+        db = SessionLocal()
+        try:
+            db.query(WorkspaceMember).filter(WorkspaceMember.user_id == user_id).delete()
+            row = db.query(User).filter(User.id == user_id).first()
+            if row is not None:
+                db.delete(row)
+            db.commit()
+        finally:
+            db.close()
+
+
 class TestSlackDelivery:
     def test_test_message(self, client: TestClient) -> None:
         _login_admin(client)
@@ -285,9 +335,6 @@ class TestSlackDelivery:
 
     def test_event_fires_to_slack(self, client: TestClient) -> None:
         """When Slack is connected and an event fires, it appears in the delivery log."""
-        from app.services.slack_service import _slack_dedup
-
-        _slack_dedup.clear()
         _login_admin(client)
         _cleanup_slack()
         _cleanup_slack_log()
@@ -301,9 +348,8 @@ class TestSlackDelivery:
         )
         from app.core.database import SessionLocal
         from app.models import NotificationPolicy
-        from app.services.notification_service import _recent_sends, fire_notification
+        from app.services.notification_service import fire_notification
 
-        _recent_sends.clear()
         db = SessionLocal()
         db.query(NotificationPolicy).filter(
             NotificationPolicy.workspace_id == 1, NotificationPolicy.event_type == "member.invited"
@@ -314,8 +360,6 @@ class TestSlackDelivery:
             )
         )
         db.commit()
-        _recent_sends.clear()
-        _slack_dedup.clear()
         try:
             fire_notification(
                 db,
@@ -338,10 +382,7 @@ class TestSlackDelivery:
             len(slack_invited) > 0
         ), f"Expected Slack log entry, got {[e.get('channel') for e in entries]}"
 
-    def test_disabled_slack_does_not_fire(self, client: TestClient) -> None:
-        from app.services.slack_service import _slack_dedup
-
-        _slack_dedup.clear()
+    def test_disabled_slack_does_not_fire(self, client: TestClient, disposable_member: int) -> None:
         _login_admin(client)
         _cleanup_slack()
         _cleanup_slack_log()
@@ -356,9 +397,7 @@ class TestSlackDelivery:
         # Trigger event
         from app.core.database import SessionLocal
         from app.models import NotificationPolicy
-        from app.services.notification_service import _recent_sends
 
-        _recent_sends.clear()
         db = SessionLocal()
         db.query(NotificationPolicy).filter(
             NotificationPolicy.workspace_id == 1,
@@ -374,19 +413,8 @@ class TestSlackDelivery:
         )
         db.commit()
         db.close()
-        from app.models import User, WorkspaceMember
-
-        db2 = SessionLocal()
-        u = db2.query(User).filter(User.email != "demo@trust.local").first()
-        if u:
-            mem = (
-                db2.query(WorkspaceMember)
-                .filter(WorkspaceMember.user_id == u.id, WorkspaceMember.workspace_id == 1)
-                .first()
-            )
-            if mem:
-                client.patch(f"/api/members/{mem.id}", json={"role": "editor"})
-        db2.close()
+        patched = client.patch(f"/api/members/{disposable_member}", json={"role": "editor"})
+        assert patched.status_code == 200
         r = client.get("/api/notifications/log?page_size=20")
         entries = r.json().get("entries", [])
         slack_role = [
@@ -396,11 +424,8 @@ class TestSlackDelivery:
         ]
         assert len(slack_role) == 0
 
-    def test_event_type_filter_respected(self, client: TestClient) -> None:
+    def test_event_type_filter_respected(self, client: TestClient, disposable_member: int) -> None:
         """When event_types are set, only matching events go to Slack."""
-        from app.services.slack_service import _slack_dedup
-
-        _slack_dedup.clear()
         _login_admin(client)
         _cleanup_slack()
         _cleanup_slack_log()
@@ -414,9 +439,7 @@ class TestSlackDelivery:
         )
         from app.core.database import SessionLocal
         from app.models import NotificationPolicy
-        from app.services.notification_service import _recent_sends
 
-        _recent_sends.clear()
         db = SessionLocal()
         db.query(NotificationPolicy).filter(
             NotificationPolicy.workspace_id == 1,
@@ -432,19 +455,8 @@ class TestSlackDelivery:
         )
         db.commit()
         db.close()
-        from app.models import User, WorkspaceMember
-
-        db2 = SessionLocal()
-        u = db2.query(User).filter(User.email != "demo@trust.local").first()
-        if u:
-            mem = (
-                db2.query(WorkspaceMember)
-                .filter(WorkspaceMember.user_id == u.id, WorkspaceMember.workspace_id == 1)
-                .first()
-            )
-            if mem:
-                client.patch(f"/api/members/{mem.id}", json={"role": "reviewer"})
-        db2.close()
+        patched = client.patch(f"/api/members/{disposable_member}", json={"role": "reviewer"})
+        assert patched.status_code == 200
         r = client.get("/api/notifications/log?page_size=20")
         entries = r.json().get("entries", [])
         slack_role = [

@@ -26,14 +26,44 @@ jobs:
         with:
           python-version: "3.11"
 
+      - name: Secret inventory tree scan (TC-07-001)
+        # Early, dependency-free gate: fails the run on any block finding in tracked files. Output is
+        # path, line, rule and kind only (never a value).
+        run: python scripts/security/secret_inventory.py tree --root .
+
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: "20"
+          # TC-02-003: single source of truth for the frontend Node version.
+          node-version-file: apps/web/.nvmrc
 
       - name: Install frontend deps
         working-directory: apps/web
-        run: npm install
+        # TC-02-003: install exactly the lockfile; no dependency lifecycle scripts.
+        run: npm ci --ignore-scripts
+
+      - name: Frontend tool versions
+        working-directory: apps/web
+        # TC-02-006: record the exact gate toolchain in the CI log.
+        run: |
+          node --version
+          npm --version
+          npx --no-install tsc --version
+          npx --no-install eslint --version
+          npx --no-install prettier --version
+          npx --no-install vitest --version
+
+      - name: Lint frontend
+        working-directory: apps/web
+        run: npm run lint
+
+      - name: Format check frontend
+        working-directory: apps/web
+        run: npm run format:check
+
+      - name: Unit test frontend
+        working-directory: apps/web
+        run: npm run test:unit
 
       - name: Run pre-commit
         run: |
@@ -67,10 +97,11 @@ jobs:
         working-directory: apps/api
         run: |
           pip install -U pip
-          # Pin ruff to the pre-commit hook rev (.pre-commit-config.yaml) so both
-          # lint gates use the same rules; unpinned ruff pulls newer default rule sets.
-          pip install ruff==0.5.6 pytest
-          pip install -e .
+          # TC-02-002: exact, hashed versions from the lock (runtime + dev extra; ruff is pinned
+          # there to the pre-commit hook rev). The project itself adds no unlocked dependency.
+          pip install --require-hashes -r requirements-dev.lock
+          pip install --no-deps -e .
+          pip check
 
       - name: Run migrations
         working-directory: apps/api
@@ -88,15 +119,148 @@ jobs:
           python -m pytest --collect-only -q
           python -m pytest tests/release/test_safe_collection.py -q
 
+      - name: Python dependency lock (TC-02-002)
+        # Installed versions must equal the lock; the app must import and reach the DB through the
+        # explicitly installed psycopg2 driver.
+        working-directory: apps/api
+        env:
+          TC_REQUIRE_DB: "1"
+        run: python -m pytest tests/release/test_python_lock.py -q
+
       - name: Run backend tests
         working-directory: apps/api
         env:
           SESSION_SECRET: test-secret
-          # Fail (never skip) when the disposable service DB is unavailable or incompatible.
+          # Fail (never skip) when the disposable service DB is unavailable or incompatible, and
+          # turn any skip of a DB (integration) test into a failure (tests/conftest.py).
           TC_REQUIRE_DB: "1"
+          # TC-02-006: release tests must execute the web gates, not skip them.
+          TC_REQUIRE_WEB_TOOLCHAIN: "1"
         # DATABASE_URL / TC_TEST_DATABASE_URL come from the isolated Postgres step via GITHUB_ENV.
         run: pytest -rs
+
+      - name: Type-check frontend
+        working-directory: apps/web
+        run: npm run typecheck
 
       - name: Build frontend
         working-directory: apps/web
         run: npm run build
+
+      - name: Audit frontend runtime dependencies
+        working-directory: apps/web
+        run: npm audit --omit=dev --audit-level=high
+
+  # TC-14-001b. Separate job so the build job's web-quality gates and the
+  # TC-07-001 secret tree scan stay in place and in order. npm ci --ignore-scripts
+  # matches the lockfile policy. No new packages.
+  web-release-e2e:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+    env:
+      # Same directory actions/cache restores. Playwright's default on the
+      # GitHub-hosted Ubuntu runner is this path; pin it so install and test agree.
+      PLAYWRIGHT_BROWSERS_PATH: /home/runner/.cache/ms-playwright
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: apps/web/.nvmrc
+
+      - name: Install frontend deps
+        working-directory: apps/web
+        run: npm ci --ignore-scripts
+
+      - name: Frontend tool versions
+        working-directory: apps/web
+        run: |
+          node --version
+          npm --version
+          npx --no-install playwright --version
+
+      - name: Cache Playwright browsers
+        uses: actions/cache@v4
+        with:
+          path: /home/runner/.cache/ms-playwright
+          key: ${{ runner.os }}-playwright-chromium-${{ hashFiles('apps/web/package-lock.json') }}
+
+      - name: Install Playwright Chromium
+        working-directory: apps/web
+        run: npx --no-install playwright install --with-deps chromium
+
+      - name: Run release Playwright specs
+        working-directory: apps/web
+        env:
+          NEXT_TELEMETRY_DISABLED: "1"
+          PLAYWRIGHT_HTML_OPEN: never
+          PLAYWRIGHT_HTML_OUTPUT_DIR: playwright-report
+          PLAYWRIGHT_JSON_OUTPUT_FILE: test-results/release-e2e.json
+        run: |
+          set -euo pipefail
+          mkdir -p test-results
+          # The spec rewrites these files. Remove the checkout copies first so a
+          # stale committed report cannot satisfy the axe gate. This does not
+          # change tracked TC-14-001 evidence; the job never commits.
+          rm -f ../../artifacts/acceptance/TC-14-001/axe-*.json
+
+          # Release specs to run once the file is on this revision. Append a path
+          # when a later spec lands on master. A missing path is skipped.
+          #   e2e/release/responsive-shell.spec.ts
+          #   e2e/release/dialog-toast.spec.ts
+          candidates=(
+            e2e/release/design-tokens.spec.ts
+          )
+          specs=()
+          for spec in "${candidates[@]}"; do
+            if [[ -f "$spec" ]]; then
+              echo "Running release spec: $spec"
+              specs+=("$spec")
+            else
+              echo "Skipping $spec (not on this revision)"
+            fi
+          done
+          if [[ ${#specs[@]} -eq 0 ]]; then
+            echo "ERROR: no release e2e specs exist to run"
+            exit 1
+          fi
+
+          set +e
+          npx --no-install playwright test "${specs[@]}" --retries=0 --reporter=list,html,json
+          playwright_status=$?
+          node ../../scripts/ci/check-release-e2e-report.mjs \
+            --report test-results/release-e2e.json \
+            --axe-dir ../../artifacts/acceptance/TC-14-001 \
+            --html-report playwright-report \
+            --require-spec e2e/release/design-tokens.spec.ts \
+            --min-tests 4
+          checker_status=$?
+          set -e
+          echo "playwright exit ${playwright_status}; axe check exit ${checker_status}"
+          if [[ "$playwright_status" -ne 0 || "$checker_status" -ne 0 ]]; then
+            exit 1
+          fi
+
+      - name: Upload Playwright HTML report
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-html-report
+          path: apps/web/playwright-report/
+          if-no-files-found: warn
+          retention-days: 14
+
+      - name: Upload axe JSON
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: design-tokens-axe-json
+          path: artifacts/acceptance/TC-14-001/axe-*.json
+          if-no-files-found: warn
+          retention-days: 14

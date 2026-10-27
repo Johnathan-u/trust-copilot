@@ -2,7 +2,13 @@
 
 import { useCallback, useEffect, useState } from 'react'
 import Link from 'next/link'
-import { Card, Button, Modal, Toast } from '@/components/ui'
+import {
+  Card,
+  Button,
+  Modal,
+  ToastNotice,
+  useDestructiveConfirm,
+} from '@/components/ui'
 import { useAuth } from '@/contexts/AuthContext'
 
 type DashboardCard = {
@@ -84,7 +90,7 @@ export default function DashboardPage() {
   const isAdmin = permissions.can_admin
 
   const [cards, setCards] = useState<DashboardCard[]>([])
-  const [hasCustom, setHasCustom] = useState(false)
+  const [, setHasCustom] = useState(false)
   const [loading, setLoading] = useState(true)
 
   const [showCustomize, setShowCustomize] = useState(false)
@@ -94,6 +100,7 @@ export default function DashboardPage() {
     type: 'success' | 'error'
     message: string
   } | null>(null)
+  const { confirm, dialog: confirmDialog } = useDestructiveConfirm()
 
   const [allowedMeta, setAllowedMeta] = useState<AllowedMeta | null>(null)
 
@@ -132,13 +139,23 @@ export default function DashboardPage() {
     if (isAdmin) fetchMeta()
   }, [isAdmin, fetchMeta])
 
+  const dismissToast = () => setToast(null)
+
   const showToast = (type: 'success' | 'error', message: string) => {
     setToast({ type, message })
-    setTimeout(() => setToast(null), 3000)
+  }
+
+  const requestDelete = (id: number) => {
+    confirm({
+      title: 'Delete this dashboard card?',
+      description:
+        'Delete this dashboard card? This only removes the card from the dashboard.',
+      confirmLabel: 'Delete',
+      onConfirm: () => handleDelete(id),
+    })
   }
 
   const handleDelete = async (id: number) => {
-    if (!confirm('Delete this dashboard card?')) return
     try {
       const res = await fetch(`/api/dashboard/cards/${id}`, {
         method: 'DELETE',
@@ -266,9 +283,9 @@ export default function DashboardPage() {
                       {ICON_MAP[card.icon] ?? '◆'}
                     </span>
                     <div className="min-w-0">
-                      <h3 className="font-semibold text-[var(--tc-text)]">
+                      <h2 className="font-semibold text-[var(--tc-text)]">
                         {card.title}
-                      </h3>
+                      </h2>
                       {card.description && (
                         <p className="mt-1 text-sm text-[var(--tc-muted)] line-clamp-2">
                           {card.description}
@@ -335,7 +352,7 @@ export default function DashboardPage() {
                   <button
                     onClick={(e) => {
                       e.preventDefault()
-                      handleDelete(card.id!)
+                      requestDelete(card.id!)
                     }}
                     className="rounded px-1.5 py-0.5 text-xs text-red-400 hover:bg-red-500/10"
                     title="Delete"
@@ -369,15 +386,14 @@ export default function DashboardPage() {
         />
       )}
 
+      {confirmDialog}
       {toast && (
-        <div className="fixed bottom-4 right-4 z-50">
-          <Toast
-            title={toast.type === 'success' ? 'Success' : 'Error'}
-            message={toast.message}
-            type={toast.type}
-            onDismiss={() => setToast(null)}
-          />
-        </div>
+        <ToastNotice
+          title={toast.type === 'success' ? 'Success' : 'Error'}
+          message={toast.message}
+          type={toast.type}
+          onDismiss={dismissToast}
+        />
       )}
     </div>
   )

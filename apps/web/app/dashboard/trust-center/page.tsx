@@ -1,7 +1,15 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { Button, Card, EmptyState, Input, Modal, Toast } from '@/components/ui'
+import {
+  Button,
+  Card,
+  EmptyState,
+  Input,
+  Modal,
+  ToastNotice,
+  useDestructiveConfirm,
+} from '@/components/ui'
 import { ListSkeleton } from '@/components/ui/Skeleton'
 import { useAuth } from '@/contexts/AuthContext'
 
@@ -73,7 +81,7 @@ export default function TrustCenterPage() {
   const canAdmin = permissions.can_admin
   const [articles, setArticles] = useState<TrustArticle[]>([])
   const [loading, setLoading] = useState(true)
-  const [refreshing, setRefreshing] = useState(false)
+  const [, setRefreshing] = useState(false)
   const [formOpen, setFormOpen] = useState(false)
   const [editId, setEditId] = useState<number | null>(null)
   const [form, setForm] = useState(emptyForm)
@@ -81,6 +89,14 @@ export default function TrustCenterPage() {
   const [error, setError] = useState<string | null>(null)
   const [toast, setToast] = useState<string | null>(null)
   const [toastType, setToastType] = useState<'success' | 'error'>('error')
+  const { confirm, dialog: confirmDialog } = useDestructiveConfirm()
+
+  const dismissToast = () => setToast(null)
+
+  const showToast = (type: 'success' | 'error', message: string) => {
+    setToastType(type)
+    setToast(message)
+  }
   const [policies, setPolicies] = useState<TrustArticle[]>([])
   const [acknowledged, setAcknowledged] = useState<Set<number>>(new Set())
   const load = () => {
@@ -104,6 +120,7 @@ export default function TrustCenterPage() {
 
   useEffect(() => {
     load()
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- pre-existing: load() is re-created every render; adding it would refetch in a loop (TC-02-006 follow-up)
   }, [workspaceId])
 
   useEffect(() => {
@@ -215,33 +232,33 @@ export default function TrustCenterPage() {
     if (res.ok) setAcknowledged((prev) => new Set(prev).add(articleId))
     else {
       const data = await res.json().catch(() => ({}))
-      setToastType('error')
-      setToast((data?.detail as string) || 'Failed to acknowledge')
-      setTimeout(() => setToast(null), 5000)
+      showToast('error', (data?.detail as string) || 'Failed to acknowledge')
     }
   }
 
-  const onDelete = async (id: number) => {
-    if (!confirm('Delete this article?')) return
-    try {
-      const res = await fetch(`/api/trust-articles/${id}`, {
-        method: 'DELETE',
-        credentials: 'include',
-      })
-      if (res.ok) {
-        load()
-        setToast(null)
-      } else {
-        const data = await res.json().catch(() => ({}))
-        setToastType('error')
-        setToast((data?.detail as string) || 'Delete failed')
-        setTimeout(() => setToast(null), 5000)
-      }
-    } catch {
-      setToastType('error')
-      setToast('Delete failed. Try again.')
-      setTimeout(() => setToast(null), 5000)
-    }
+  const onDelete = (id: number) => {
+    confirm({
+      title: 'Delete this article?',
+      description: 'Delete this article?',
+      confirmLabel: 'Delete',
+      onConfirm: async () => {
+        try {
+          const res = await fetch(`/api/trust-articles/${id}`, {
+            method: 'DELETE',
+            credentials: 'include',
+          })
+          if (res.ok) {
+            load()
+            dismissToast()
+          } else {
+            const data = await res.json().catch(() => ({}))
+            showToast('error', (data?.detail as string) || 'Delete failed')
+          }
+        } catch {
+          showToast('error', 'Delete failed. Try again.')
+        }
+      },
+    })
   }
 
   const workspaceSlug = workspace?.slug || ''
@@ -253,14 +270,10 @@ export default function TrustCenterPage() {
     if (!publicTrustUrl) return
     navigator.clipboard.writeText(publicTrustUrl).then(
       () => {
-        setToastType('success')
-        setToast('Public link copied to clipboard')
-        setTimeout(() => setToast(null), 3000)
+        showToast('success', 'Public link copied to clipboard')
       },
       () => {
-        setToastType('error')
-        setToast('Could not copy')
-        setTimeout(() => setToast(null), 3000)
+        showToast('error', 'Could not copy')
       }
     )
   }
@@ -509,12 +522,13 @@ export default function TrustCenterPage() {
           </div>
         </form>
       </Modal>
+      {confirmDialog}
       {toast && (
-        <Toast
+        <ToastNotice
           title={toastType === 'success' ? 'Copied' : 'Error'}
           message={toast}
           type={toastType}
-          onDismiss={() => setToast(null)}
+          onDismiss={dismissToast}
         />
       )}
     </div>

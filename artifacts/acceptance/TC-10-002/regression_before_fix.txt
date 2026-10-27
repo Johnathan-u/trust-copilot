@@ -1,0 +1,262 @@
+$ alembic upgrade head
+INFO  [alembic.runtime.migration] Context impl PostgresqlImpl.
+INFO  [alembic.runtime.migration] Will assume transactional DDL.
+INFO  [alembic.runtime.migration] Running upgrade  -> 001, Initial schema: workspaces, jobs, documents.
+INFO  [alembic.runtime.migration] Running upgrade 001 -> 002, Users, workspace_members, questionnaires, questions.
+INFO  [alembic.runtime.migration] Running upgrade 002 -> 003, Seed default workspace for dev.
+INFO  [alembic.runtime.migration] Running upgrade 003 -> 004, Chunks table with pgvector for semantic search (DOC-08, RET-01).
+INFO  [alembic.runtime.migration] Running upgrade 004 -> 005, Add storage_key to questionnaires.
+INFO  [alembic.runtime.migration] Running upgrade 005 -> 006, Export records and trust articles (EXP-01, TC-01).
+INFO  [alembic.runtime.migration] Running upgrade 006 -> 007, Answers table (AI-05).
+INFO  [alembic.runtime.migration] Running upgrade 007 -> 008, Trust requests table (TC-04).
+INFO  [alembic.runtime.migration] Running upgrade 008 -> 009, Audit events table (AUD-201).
+INFO  [alembic.runtime.migration] Running upgrade 009 -> 010, Email verified + verification and reset tokens (AUTH-207, AUTH-209).
+INFO  [alembic.runtime.migration] Running upgrade 010 -> 011, Invites table (AUTH-208).
+INFO  [alembic.runtime.migration] Running upgrade 011 -> 012, User MFA tables (AUTH-211, AUTH-212).
+INFO  [alembic.runtime.migration] Running upgrade 012 -> 013, User sessions table for list/revoke (AUTH-213).
+INFO  [alembic.runtime.migration] Running upgrade 013 -> 014, User OAuth accounts table (ENT-201).
+INFO  [alembic.runtime.migration] Running upgrade 014 -> 015, Workspace auth policy columns (ENT-202).
+INFO  [alembic.runtime.migration] Running upgrade 015 -> 016, Workspace AI settings (model + temperature).
+INFO  [alembic.runtime.migration] Running upgrade 016 -> 017, Trust request assignee (TC-H-B1).
+INFO  [alembic.runtime.migration] Running upgrade 017 -> 018, Trust request notes (TC-H-B2).
+INFO  [alembic.runtime.migration] Running upgrade 018 -> 019, Trust article category/section (TC-R-B1).
+INFO  [alembic.runtime.migration] Running upgrade 019 -> 020, Trust Center: controls, evidence linking, policy flag, acknowledgments, vendor requests (TC-R-B2, B3, B5, B6).
+INFO  [alembic.runtime.migration] Running upgrade 020 -> 021, Add optional attachment to trust requests (public form upload).
+INFO  [alembic.runtime.migration] Running upgrade 021 -> 022, TC-H-B1: Trust request status workflow — canonical statuses, default new.
+INFO  [alembic.runtime.migration] Running upgrade 022 -> 023, TC-H-B2: Add note_type to trust_request_notes (internal_note vs reply).
+INFO  [alembic.runtime.migration] Running upgrade 023 -> 024, Add hnsw index on chunks.embedding for scalable semantic search.
+INFO  [alembic.runtime.migration] Running upgrade 024 -> 025, API keys table for machine auth.
+INFO  [alembic.runtime.migration] Running upgrade 025 -> 026, Worker heartbeat table for /workerz visibility.
+INFO  [alembic.runtime.migration] Running upgrade 026 -> 027, Document index_error for failure reason (pre-pilot).
+INFO  [alembic.runtime.migration] Running upgrade 027 -> 028, Answer pipeline caches and corpus version.
+INFO  [alembic.runtime.migration] Running upgrade 028 -> 029, Idempotency keys table for shared store across API replicas.
+INFO  [alembic.runtime.migration] Running upgrade 029 -> 030, Compliance foundation: frameworks, framework_controls, workspace_controls, evidence, mappings.
+INFO  [alembic.runtime.migration] Running upgrade 030 -> 031, Phase 2: question-control mapping log and manual overrides. No changes to Phase 1 tables.
+INFO  [alembic.runtime.migration] Running upgrade 031 -> 032, Phase 4: Evidence last_verified_at; control verified_at / verified_by_user_id.
+INFO  [alembic.runtime.migration] Running upgrade 032 -> 033, Phase 5: Workspace staleness config, compliance webhook outbox.
+INFO  [alembic.runtime.migration] Running upgrade 033 -> 034, Phase 6: Webhook outbox delivery fields, workspace webhook URL.
+INFO  [alembic.runtime.migration] Running upgrade 034 -> 035, Add 14 missing tables (Phase A-F, dashboard, quotas) and 3 missing columns.
+INFO  [alembic.runtime.migration] Running upgrade 035 -> 036, Add tags and document_tags tables for enterprise document tagging.
+INFO  [alembic.runtime.migration] Running upgrade 036 -> 037, AI mapping and governance tables.
+INFO  [alembic.runtime.migration] Running upgrade 037 -> 038, Registry list metadata across core modules.
+INFO  [alembic.runtime.migration] Running upgrade 038 -> 039, Add invite_code_hash for email verification step before accept (AUTH-208).
+INFO  [alembic.runtime.migration] Running upgrade 039 -> 040, Add routing debug fields and attachment_size to trust_requests.
+INFO  [alembic.runtime.migration] Running upgrade 040 -> 041, Add status and updated_at to question_mapping_preferences for questionnaire mapping flow.
+INFO  [alembic.runtime.migration] Running upgrade 041 -> 042, Questionnaire soft framework preference for AI control mapping.
+INFO  [alembic.runtime.migration] Running upgrade 042 -> 043, Questionnaire-scoped answer evidence (document allowlist for AI answers).
+INFO  [alembic.runtime.migration] Running upgrade 043 -> 044, Questionnaire AI mapping prefers subject areas (categories), not frameworks.
+INFO  [alembic.runtime.migration] Running upgrade 044 -> 045, Enterprise AI pipeline: question mapping signals, answer outcome fields, workspace usage tracking.
+INFO  [alembic.runtime.migration] Running upgrade 045 -> 046, Placeholder migration to fix chain (046 was missing).
+INFO  [alembic.runtime.migration] Running upgrade 046 -> 047, Evidence gaps table for AI-generated gap analysis.
+INFO  [alembic.runtime.migration] Running upgrade 047 -> 048, Add evidence_fingerprint to answers table.
+INFO  [alembic.runtime.migration] Running upgrade 048 -> 049, Add message column to vendor_requests table.
+INFO  [alembic.runtime.migration] Running upgrade 049 -> 050, Create evidence_gaps table.
+INFO  [alembic.runtime.migration] Running upgrade 050 -> 051, Create subscriptions table for Stripe billing.
+INFO  [alembic.runtime.migration] Running upgrade 051 -> 052, Per-workspace feature flags.
+INFO  [alembic.runtime.migration] Running upgrade 052 -> 053, Create credit_ledgers and credit_transactions tables.
+INFO  [alembic.runtime.migration] Running upgrade 053 -> 054, Create operator_queue_items table.
+INFO  [alembic.runtime.migration] Running upgrade 054 -> 055, Create security_faq table.
+INFO  [alembic.runtime.migration] Running upgrade 055 -> 056, Create source_registry table.
+INFO  [alembic.runtime.migration] Running upgrade 056 -> 057, Create credential_store table.
+INFO  [alembic.runtime.migration] Running upgrade 057 -> 058, Create product_events table.
+INFO  [alembic.runtime.migration] Running upgrade 058 -> 059, Create case_studies table.
+INFO  [alembic.runtime.migration] Running upgrade 059 -> 060, Create control_state_snapshots table.
+INFO  [alembic.runtime.migration] Running upgrade 060 -> 061, Create alert_acknowledgments table.
+INFO  [alembic.runtime.migration] Running upgrade 061 -> 062, Create nda_access_requests table.
+INFO  [alembic.runtime.migration] Running upgrade 062 -> 063, Create shareable_spaces table.
+INFO  [alembic.runtime.migration] Running upgrade 063 -> 064, Create golden_answers table.
+INFO  [alembic.runtime.migration] Running upgrade 064 -> 065, answer approval events and golden_answers reviewer columns
+INFO  [alembic.runtime.migration] Running upgrade 065 -> 066, evidence item approval columns
+INFO  [alembic.runtime.migration] Running upgrade 066 -> 067, freshness policies table
+INFO  [alembic.runtime.migration] Running upgrade 067 -> 068, retention policies table
+INFO  [alembic.runtime.migration] Running upgrade 068 -> 069, deals table
+INFO  [alembic.runtime.migration] Running upgrade 069 -> 070, remediation playbooks and tickets
+INFO  [alembic.runtime.migration] Running upgrade 070 -> 071, remediation evidence linkage, audit log, automation opt-in
+INFO  [alembic.runtime.migration] Running upgrade 071 -> 072, trust promises and contract documents (E2-08, E2-09)
+INFO  [alembic.runtime.migration] Running upgrade 072 -> 073, Buyer portal, escalations, satisfaction, snapshots (E4-20..E4-24)
+INFO  [alembic.runtime.migration] Running upgrade 073 -> 074, Proof graph, artifact hashes, diffs, reuse provenance (E5-25..E5-30)
+INFO  [alembic.runtime.migration] Running upgrade 074 -> 075, Answer delivery outcome tags (E6-31)
+INFO  [alembic.runtime.migration] Running upgrade 075 -> tc21001_framework_catalog_rights, Framework catalog version, provenance, rights, and enablement.
+INFO  [alembic.runtime.migration] Running upgrade tc21001_framework_catalog_rights -> tc11001_model_outcome_codes, Typed model outcome and job error codes (TC-11-001)
+INFO  [alembic.runtime.migration] Running upgrade tc11001_model_outcome_codes -> tc10003_job_idempotency, TC-10-003: idempotent job side effects.
+INFO  [alembic.runtime.migration] Running upgrade tc10003_job_idempotency -> tc10002_job_retries, TC-10-002: scheduled job retries.
+$ TC_REQUIRE_DB=1 SESSION_SECRET=test-secret pytest -p no:cacheprovider -rs -q tests/test_job_retries.py -k completed or completion or stale_attempt
+..FFFFFF                                                                 [100%]
+=================================== FAILURES ===================================
+_______ test_success_keeps_error_code_the_handler_set_on_a_completed_job _______
+
+db = <sqlalchemy.orm.session.Session object at 0x7f5c5cd33650>
+fast_backoff = None
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7f5c447dc4d0>
+
+    def test_success_keeps_error_code_the_handler_set_on_a_completed_job(db, fast_backoff, monkeypatch):
+        job_id = _queued_job(db)
+        worker = _worker_loop_for(monkeypatch, job_id)
+
+        def fake_run(j, s):
+            j.error_code = GAPS_CODE
+            j.error = "Evidence gap generation failed (answers were saved)."
+
+        monkeypatch.setattr(worker, "run_job", fake_run)
+        assert worker._process_one_job() is True
+        db.expire_all()
+        j = db.get(Job, job_id)
+>       assert (j.status, j.error_code) == ("completed", GAPS_CODE)
+E       AssertionError: assert ('completed', None) == ('completed',..._gaps_failed')
+E
+E         At index 1 diff: None != 'evidence_gaps_failed'
+E         Use -v to get more diff
+
+tests/test_job_retries.py:571: AssertionError
+_________ test_retry_then_success_clears_only_the_stale_attempt_error __________
+
+db = <sqlalchemy.orm.session.Session object at 0x7f5c447ab5d0>
+fast_backoff = None
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7f5c580db490>
+
+    def test_retry_then_success_clears_only_the_stale_attempt_error(db, fast_backoff, monkeypatch):
+        job_id = _queued_job(db)
+        worker = _worker_loop_for(monkeypatch, job_id)
+        outcomes = iter([APIConnectionError("synthetic"), None])
+
+        def fake_run(j, s):
+            exc = next(outcomes)
+            if exc:
+                raise exc
+            j.error_code = GAPS_CODE  # set by this (successful) run, not left over from attempt 1
+
+        monkeypatch.setattr(worker, "run_job", fake_run)
+        assert worker._process_one_job() is True
+        j = db.get(Job, job_id)
+        assert (j.status, j.error_code) == ("queued", je.CONNECTION_ERROR)
+        j.next_attempt_at = datetime.utcnow() - timedelta(seconds=1)
+        db.commit()
+        assert worker._process_one_job() is True
+        db.expire_all()
+        j = db.get(Job, job_id)
+>       assert (j.status, j.attempt, j.error_code) == ("completed", 2, GAPS_CODE)
+E       AssertionError: assert ('completed', 2, None) == ('completed',..._gaps_failed')
+E
+E         At index 2 diff: None != 'evidence_gaps_failed'
+E         Use -v to get more diff
+
+tests/test_job_retries.py:595: AssertionError
+------------------------------ Captured log call -------------------------------
+WARNING  trustcopilot.pipeline:pipeline_logging.py:69 pipeline job_failure {'event': 'job_failure', 'job_id': 3, 'workspace_id': 1, 'questionnaire_id': 0, 'duration_ms': 0.06, 'error': 'Attempt 1 of 3 failed (connection_error): APIConnectionError. Next attempt scheduled at 2026-10-27T12:22:29Z.', 'kind': 'export'}
+WARNING  app.worker:worker.py:811 JOB_RETRY_SCHEDULED job_id=3 kind=export workspace_id=1 error_code=connection_error attempt=1/3 delay=16.2s
+______ test_failure_handler_never_overwrites_a_committed_completion[exc0] ______
+
+db = <sqlalchemy.orm.session.Session object at 0x7f5c580fb250>
+fast_backoff = None, exc = APIConnectionError('synthetic')
+
+    @pytest.mark.parametrize(
+        "exc", [APIConnectionError("synthetic"), RuntimeError("boom"), AuthenticationError()]
+    )
+    def test_failure_handler_never_overwrites_a_committed_completion(db, fast_backoff, exc):
+        job = _running_job(db, attempt=1, max_attempts=3)
+        job.status = JobStatus.COMPLETED.value
+        job.error_code = GAPS_CODE
+        job.completed_at = datetime.utcnow()
+        db.commit()
+        j = _fail(db, job, exc)
+>       assert (j.status, j.error_code, j.next_attempt_at) == ("completed", GAPS_CODE, None)
+E       AssertionError: assert ('queued', 'c..., 31, 395116)) == ('completed',...failed', None)
+E
+E         At index 0 diff: 'queued' != 'completed'
+E         Use -v to get more diff
+
+tests/test_job_retries.py:609: AssertionError
+------------------------------ Captured log call -------------------------------
+WARNING  trustcopilot.pipeline:pipeline_logging.py:69 pipeline job_failure {'event': 'job_failure', 'job_id': 4, 'workspace_id': 1, 'questionnaire_id': 0, 'duration_ms': 1.0, 'error': 'Attempt 1 of 3 failed (connection_error): APIConnectionError. Next attempt scheduled at 2026-10-27T12:22:31Z.', 'kind': 'export'}
+WARNING  app.worker:worker.py:811 JOB_RETRY_SCHEDULED job_id=4 kind=export workspace_id=1 error_code=connection_error attempt=1/3 delay=18.4s
+______ test_failure_handler_never_overwrites_a_committed_completion[exc1] ______
+
+db = <sqlalchemy.orm.session.Session object at 0x7f5c60c029d0>
+fast_backoff = None, exc = RuntimeError('boom')
+
+    @pytest.mark.parametrize(
+        "exc", [APIConnectionError("synthetic"), RuntimeError("boom"), AuthenticationError()]
+    )
+    def test_failure_handler_never_overwrites_a_committed_completion(db, fast_backoff, exc):
+        job = _running_job(db, attempt=1, max_attempts=3)
+        job.status = JobStatus.COMPLETED.value
+        job.error_code = GAPS_CODE
+        job.completed_at = datetime.utcnow()
+        db.commit()
+        j = _fail(db, job, exc)
+>       assert (j.status, j.error_code, j.next_attempt_at) == ("completed", GAPS_CODE, None)
+E       AssertionError: assert ('failed', 'i..._error', None) == ('completed',...failed', None)
+E
+E         At index 0 diff: 'failed' != 'completed'
+E         Use -v to get more diff
+
+tests/test_job_retries.py:609: AssertionError
+------------------------------ Captured log call -------------------------------
+WARNING  trustcopilot.pipeline:pipeline_logging.py:69 pipeline job_failure {'event': 'job_failure', 'job_id': 5, 'workspace_id': 1, 'questionnaire_id': 0, 'duration_ms': 1.0, 'error': 'boom', 'kind': 'export'}
+WARNING  trustcopilot.alert:worker.py:872 ALERT_JOB_FAILURE job_id=5 kind=export workspace_id=1 error_code=internal_error error=boom
+______ test_failure_handler_never_overwrites_a_committed_completion[exc2] ______
+
+db = <sqlalchemy.orm.session.Session object at 0x7f5c580c2090>
+fast_backoff = None
+exc = AuthenticationError("Error code: 401 - {'error': 'synthetic invalid key body sk-SYNTHETIC'}")
+
+    @pytest.mark.parametrize(
+        "exc", [APIConnectionError("synthetic"), RuntimeError("boom"), AuthenticationError()]
+    )
+    def test_failure_handler_never_overwrites_a_committed_completion(db, fast_backoff, exc):
+        job = _running_job(db, attempt=1, max_attempts=3)
+        job.status = JobStatus.COMPLETED.value
+        job.error_code = GAPS_CODE
+        job.completed_at = datetime.utcnow()
+        db.commit()
+        j = _fail(db, job, exc)
+>       assert (j.status, j.error_code, j.next_attempt_at) == ("completed", GAPS_CODE, None)
+E       AssertionError: assert ('failed', 'a...failed', None) == ('completed',...failed', None)
+E
+E         At index 0 diff: 'failed' != 'completed'
+E         Use -v to get more diff
+
+tests/test_job_retries.py:609: AssertionError
+------------------------------ Captured log call -------------------------------
+WARNING  trustcopilot.pipeline:pipeline_logging.py:69 pipeline job_failure {'event': 'job_failure', 'job_id': 6, 'workspace_id': 1, 'questionnaire_id': 0, 'duration_ms': 1.0, 'error': 'AuthenticationError (HTTP 401)', 'kind': 'export'}
+WARNING  trustcopilot.alert:worker.py:872 ALERT_JOB_FAILURE job_id=6 kind=export workspace_id=1 error_code=auth_failed error=AuthenticationError (HTTP 401)
+_____ test_post_commit_exception_in_worker_loop_keeps_completed_error_code _____
+
+db = <sqlalchemy.orm.session.Session object at 0x7f5c445d7290>
+fast_backoff = None
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7f5c445d6b90>
+
+    def test_post_commit_exception_in_worker_loop_keeps_completed_error_code(
+        db, fast_backoff, monkeypatch
+    ):
+        """A handler that commits the completion (with a non-fatal code) and then raises stays completed."""
+        job_id = _queued_job(db)
+        worker = _worker_loop_for(monkeypatch, job_id)
+
+        def fake_run(j, s):
+            j.status = JobStatus.COMPLETED.value
+            j.error_code = GAPS_CODE
+            s.commit()
+            raise APIConnectionError("synthetic: raised after the completion was committed")
+
+        monkeypatch.setattr(worker, "run_job", fake_run)
+        assert worker._process_one_job() is True
+        db.expire_all()
+        j = db.get(Job, job_id)
+>       assert (j.status, j.attempt, j.error_code, j.next_attempt_at) == (
+            "completed",
+            1,
+            GAPS_CODE,
+            None,
+        )
+E       AssertionError: assert ('queued', 1,..., 23, 352717)) == ('completed',...failed', None)
+E
+E         At index 0 diff: 'queued' != 'completed'
+E         Use -v to get more diff
+
+tests/test_job_retries.py:631: AssertionError
+------------------------------ Captured log call -------------------------------
+WARNING  trustcopilot.pipeline:pipeline_logging.py:69 pipeline job_failure {'event': 'job_failure', 'job_id': 7, 'workspace_id': 1, 'questionnaire_id': 0, 'duration_ms': 2.23, 'error': 'Attempt 1 of 3 failed (connection_error): APIConnectionError. Next attempt scheduled at 2026-10-27T12:22:23Z.', 'kind': 'export'}
+WARNING  app.worker:worker.py:811 JOB_RETRY_SCHEDULED job_id=7 kind=export workspace_id=1 error_code=connection_error attempt=1/3 delay=10.2s
+6 failed, 2 passed, 60 deselected in 2.00s
+PYTEST_EXIT 1

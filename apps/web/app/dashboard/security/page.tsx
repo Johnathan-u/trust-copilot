@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState, useCallback } from 'react'
-import { Button, Card, Input } from '@/components/ui'
+import { Button, Card, Input, useDestructiveConfirm } from '@/components/ui'
 import { useAuth } from '@/contexts/AuthContext'
 
 /* ── Types ── */
@@ -151,7 +151,6 @@ export default function SecurityPage() {
   }, [loadAll])
 
   const mfaEnabled = mfaStatus?.enabled ?? mfa_enrolled ?? false
-  const sessionCount = sessions.length
   const otherSessions = sessions.filter((s) => !s.current)
 
   /* ── Security Health Score ── */
@@ -787,79 +786,86 @@ function SessionsSection({
 }) {
   const [revoking, setRevoking] = useState(false)
   const [error, setError] = useState('')
+  const { confirm, dialog: confirmDialog } = useDestructiveConfirm()
 
-  const revokeOthers = async () => {
-    if (
-      !confirm(
-        'Sign out all other sessions? You will stay signed in on this device.'
-      )
-    )
-      return
-    setError('')
-    setRevoking(true)
-    try {
-      const res = await fetch('/api/auth/sessions/revoke-others', {
-        method: 'POST',
-        credentials: 'include',
-      })
-      const data = await res.json().catch(() => ({}))
-      if (!res.ok) {
-        setError(data.detail || 'Failed')
-        return
-      }
-      onReload()
-    } finally {
-      setRevoking(false)
-    }
+  const revokeOthers = () => {
+    confirm({
+      title: 'Sign out all other sessions?',
+      description: 'You will stay signed in on this device.',
+      confirmLabel: 'Sign out others',
+      onConfirm: async () => {
+        setError('')
+        setRevoking(true)
+        try {
+          const res = await fetch('/api/auth/sessions/revoke-others', {
+            method: 'POST',
+            credentials: 'include',
+          })
+          const data = await res.json().catch(() => ({}))
+          if (!res.ok) {
+            setError(data.detail || 'Failed')
+            return
+          }
+          onReload()
+        } finally {
+          setRevoking(false)
+        }
+      },
+    })
   }
 
   const currentSession = sessions.find((s) => s.current)
   const others = sessions.filter((s) => !s.current)
 
   return (
-    <Card className="p-4">
-      <div className="flex items-center justify-between mb-1">
-        <div className="flex items-center gap-2">
-          <span className="text-base">💻</span>
-          <h3 className="text-sm font-semibold text-[var(--tc-text)]">
-            Active Sessions
-          </h3>
+    <>
+      <Card className="p-4">
+        <div className="flex items-center justify-between mb-1">
+          <div className="flex items-center gap-2">
+            <span className="text-base">💻</span>
+            <h3 className="text-sm font-semibold text-[var(--tc-text)]">
+              Active Sessions
+            </h3>
+          </div>
+          <span className="text-xs text-[var(--tc-muted)]">
+            {sessions.length} active session{sessions.length !== 1 ? 's' : ''}
+          </span>
         </div>
-        <span className="text-xs text-[var(--tc-muted)]">
-          {sessions.length} active session{sessions.length !== 1 ? 's' : ''}
-        </span>
-      </div>
-      <p className="text-xs text-[var(--tc-muted)] mb-4">
-        Devices and browsers where your account is currently signed in.
-      </p>
+        <p className="text-xs text-[var(--tc-muted)] mb-4">
+          Devices and browsers where your account is currently signed in.
+        </p>
 
-      <div className="space-y-2">
-        {/* Current session first */}
-        {currentSession && <SessionRow session={currentSession} isCurrent />}
+        <div className="space-y-2">
+          {/* Current session first */}
+          {currentSession && <SessionRow session={currentSession} isCurrent />}
 
-        {/* Other sessions */}
-        {others.map((s) => (
-          <SessionRow key={s.id} session={s} isCurrent={false} />
-        ))}
-      </div>
-
-      {otherSessions.length > 0 && (
-        <div className="mt-4 pt-3 border-t border-white/10">
-          <Button
-            size="sm"
-            variant="ghost"
-            className="text-red-400"
-            onClick={revokeOthers}
-            disabled={revoking}
-          >
-            {revoking
-              ? 'Signing out...'
-              : `Sign out all other devices (${otherSessions.length})`}
-          </Button>
+          {/* Other sessions */}
+          {others.map((s) => (
+            <SessionRow key={s.id} session={s} isCurrent={false} />
+          ))}
         </div>
-      )}
-      {error && <p className="mt-2 text-xs text-[var(--tc-danger)]">{error}</p>}
-    </Card>
+
+        {otherSessions.length > 0 && (
+          <div className="mt-4 pt-3 border-t border-white/10">
+            <Button
+              size="sm"
+              variant="ghost"
+              className="text-red-400"
+              onClick={revokeOthers}
+              disabled={revoking}
+            >
+              {revoking
+                ? 'Signing out...'
+                : `Sign out all other devices (${otherSessions.length})`}
+            </Button>
+          </div>
+        )}
+        {error && (
+          <p className="mt-2 text-xs text-[var(--tc-danger)]">{error}</p>
+        )}
+      </Card>
+      {confirmDialog}
+    </>
   )
 }
 
@@ -870,7 +876,7 @@ function SessionRow({
   session: Session
   isCurrent: boolean
 }) {
-  const { browser, os, device } = parseUA(session.user_agent)
+  const { os, device } = parseUA(session.user_agent)
 
   const deviceIcon = /Windows/i.test(os)
     ? '🖥️'

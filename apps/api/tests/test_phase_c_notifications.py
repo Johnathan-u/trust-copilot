@@ -208,9 +208,8 @@ class TestPolicyCRUD:
 class TestNotificationDelivery:
     def test_fire_notification_creates_log_entry(self, client: TestClient) -> None:
         """When a policy is active and an event fires, a log entry is created."""
-        from app.services.notification_service import _recent_sends, fire_notification
+        from app.services.notification_service import fire_notification
 
-        _recent_sends.clear()
         _login_admin(client)
         _cleanup_policies()
         _cleanup_log()

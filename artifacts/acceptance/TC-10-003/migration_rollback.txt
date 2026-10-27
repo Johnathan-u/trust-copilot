@@ -1,0 +1,88 @@
+$ alembic heads
+tc10003_job_idempotency (head)
+$ alembic current
+tc10003_job_idempotency (head)
+$ alembic downgrade 075
+INFO  [alembic.runtime.migration] Running downgrade tc10003_job_idempotency -> 075, TC-10-003: idempotent job side effects.
+$ alembic current
+075
+job_effects table present: False
+jobs.idempotency_key/input_version present: []
+export_records.job_id present: False
+$ alembic upgrade head
+INFO  [alembic.runtime.migration] Running upgrade 075 -> tc10003_job_idempotency, TC-10-003: idempotent job side effects.
+$ alembic current
+tc10003_job_idempotency (head)
+job_effects columns: ['id', 'job_id', 'workspace_id', 'effect', 'attempt', 'state', 'detail', 'created_at', 'updated_at']
+job_effects unique: [('uq_job_effects_job_effect_attempt', ['job_id', 'effect', 'attempt'])]
+jobs partial unique: [('uq_jobs_queued_idempotency_key', ['workspace_id', 'kind', 'idempotency_key'], "(((status)::text = 'queued'::text) AND (idempotency_key IS NOT NULL))")]
+export_records partial unique: [('uq_export_records_job_id', ['job_id'], '(job_id IS NOT NULL)')]
+$ alembic upgrade 075:tc10003_job_idempotency --sql
+BEGIN;
+
+-- Running upgrade 075 -> tc10003_job_idempotency
+
+ALTER TABLE jobs ADD COLUMN idempotency_key VARCHAR(128);
+
+ALTER TABLE jobs ADD COLUMN input_version VARCHAR(512);
+
+CREATE UNIQUE INDEX uq_jobs_queued_idempotency_key ON jobs (workspace_id, kind, idempotency_key) WHERE status = 'queued' AND idempotency_key IS NOT NULL;
+
+CREATE TABLE job_effects (
+    id SERIAL NOT NULL,
+    job_id INTEGER NOT NULL,
+    workspace_id INTEGER NOT NULL,
+    effect VARCHAR(64) NOT NULL,
+    attempt INTEGER DEFAULT '0' NOT NULL,
+    state VARCHAR(16) NOT NULL,
+    detail TEXT,
+    created_at TIMESTAMP WITHOUT TIME ZONE,
+    updated_at TIMESTAMP WITHOUT TIME ZONE,
+    PRIMARY KEY (id),
+    CONSTRAINT uq_job_effects_job_effect_attempt UNIQUE (job_id, effect, attempt),
+    FOREIGN KEY(job_id) REFERENCES jobs (id) ON DELETE CASCADE,
+    FOREIGN KEY(workspace_id) REFERENCES workspaces (id) ON DELETE CASCADE
+);
+
+CREATE INDEX ix_job_effects_id ON job_effects (id);
+
+CREATE INDEX ix_job_effects_job_id ON job_effects (job_id);
+
+CREATE INDEX ix_job_effects_workspace_id ON job_effects (workspace_id);
+
+ALTER TABLE export_records ADD COLUMN job_id INTEGER;
+
+ALTER TABLE export_records ADD FOREIGN KEY(job_id) REFERENCES jobs (id) ON DELETE SET NULL;
+
+CREATE UNIQUE INDEX uq_export_records_job_id ON export_records (job_id) WHERE job_id IS NOT NULL;
+
+UPDATE alembic_version SET version_num='tc10003_job_idempotency' WHERE alembic_version.version_num = '075';
+
+COMMIT;
+
+$ alembic downgrade tc10003_job_idempotency:075 --sql
+BEGIN;
+
+-- Running downgrade tc10003_job_idempotency -> 075
+
+DROP INDEX uq_export_records_job_id;
+
+ALTER TABLE export_records DROP COLUMN job_id;
+
+DROP INDEX ix_job_effects_workspace_id;
+
+DROP INDEX ix_job_effects_job_id;
+
+DROP INDEX ix_job_effects_id;
+
+DROP TABLE job_effects;
+
+DROP INDEX uq_jobs_queued_idempotency_key;
+
+ALTER TABLE jobs DROP COLUMN input_version;
+
+ALTER TABLE jobs DROP COLUMN idempotency_key;
+
+UPDATE alembic_version SET version_num='075' WHERE alembic_version.version_num = 'tc10003_job_idempotency';
+
+COMMIT;

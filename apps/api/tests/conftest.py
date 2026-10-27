@@ -28,7 +28,10 @@ os.environ["DATABASE_URL"] = _safety.validate_test_database_url(
     os.environ.get("TC_TEST_DATABASE_URL")
     or f"postgresql://postgres:postgres@{_db_host}:5432/trustcopilot_test"
 )
-os.environ["SESSION_SECRET"] = "test-secret"
+# TC-07-001: generated per test run; never a committed literal.
+import secrets as _secrets  # noqa: E402
+
+os.environ["SESSION_SECRET"] = _secrets.token_urlsafe(48)
 os.environ["S3_ENDPOINT"] = _safety.validate_test_s3_endpoint(
     f"http://{'minio' if _in_docker_env else 'localhost'}:9000"
 )
@@ -61,7 +64,9 @@ _API_ROOT = Path(__file__).resolve().parent.parent
 
 # Module classification (TC-02-001). A test is `integration` if it uses a DB/app fixture or its
 # module touches the database / ASGI app directly; otherwise `unit`. Explicit markers win.
-_INTEGRATION_FIXTURES = frozenset({"client", "db_session", "test_workspace", "_ensure_test_data"})
+_INTEGRATION_FIXTURES = frozenset(
+    {"client", "db_session", "test_workspace", "_ensure_test_data", "migrated_db"}
+)
 _INTEGRATION_SOURCE_HINTS = (
     "SessionLocal",
     "TestClient",
@@ -131,6 +136,26 @@ def pytest_collection_finish(session):
 
 def pytest_runtest_setup(item):
     _safety.set_phase(f"run {item.nodeid}")
+
+
+# TC-02-002: with TC_REQUIRE_DB=1 (CI) a DB-backed test must run. A skip of an `integration` test
+# (fixture skip, "Postgres not available", missing seed rows, ...) is reported as a failure.
+# Only the explicit opt-in categories keep their skips; they carry their own marker and reason.
+_SKIP_ALLOWED_MARKERS = frozenset({"provider", "live_stack", "external_data"})
+
+
+@pytest.hookimpl(hookwrapper=True)
+def pytest_runtest_makereport(item, call):
+    outcome = yield
+    rep = outcome.get_result()
+    if not rep.skipped or hasattr(rep, "wasxfail") or not _db_required():
+        return
+    names = {m.name for m in item.iter_markers()}
+    if "integration" not in names or names & _SKIP_ALLOWED_MARKERS:
+        return
+    reason = rep.longrepr[2] if isinstance(rep.longrepr, tuple) else str(rep.longrepr)
+    rep.outcome = "failed"
+    rep.longrepr = f"TC_REQUIRE_DB=1: DB (integration) test skipped instead of running: {reason}"
 
 
 def pytest_terminal_summary(terminalreporter, exitstatus, config):
@@ -486,6 +511,20 @@ def client(_ensure_test_data) -> Generator[TestClient, None, None]:
     from app.main import app
 
     yield TestClient(app, base_url=TEST_ORIGIN, headers=TEST_HEADERS)
+
+
+@pytest.fixture
+def migrated_db(_ensure_test_data) -> bool:
+    """Require the test DB at alembic head, for tests that query tables directly (no client).
+
+    Do not rely on another test (or the TC_REQUIRE_DB=1 session hook) having migrated first:
+    the file must pass alone on a fresh DB (TC-02-BUG-014). Same skip/fail policy as `client`.
+    """
+    if not _ensure_test_data:
+        if _db_required():
+            pytest.fail(f"TC_REQUIRE_DB=1: {_DB_UNAVAILABLE_MSG}")
+        pytest.skip(_DB_UNAVAILABLE_MSG)
+    return True
 
 
 @pytest.fixture

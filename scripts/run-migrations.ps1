@@ -3,5 +3,6 @@
 # Or with docker: docker compose up -d postgres minio; .\scripts\run-migrations.ps1
 $env:DATABASE_URL = "postgresql://postgres:postgres@localhost:5432/trustcopilot"
 Set-Location -Path "$PSScriptRoot\..\apps\api"
-pip install -q alembic sqlalchemy psycopg2-binary
+# Locked runtime deps (TC-02-002); regenerate with scripts/lock-python-deps.sh.
+pip install -q --require-hashes -r requirements.lock
 alembic upgrade head

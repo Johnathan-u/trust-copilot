@@ -7,6 +7,7 @@ from app.models.chunk import Chunk
 from app.models.document import Document
 from app.models.export_record import ExportRecord
 from app.models.job import Job, JobKind, JobStatus
+from app.models.job_effect import JobEffect
 from app.models.questionnaire import Question, Questionnaire
 from app.models.user import User, WorkspaceMember
 from app.models.trust_article import TrustArticle
@@ -42,6 +43,7 @@ from app.models.notification import (
     NOTIFICATION_CHANNELS,
     NOTIFICATION_EVENT_TYPES,
     NotificationChannelPreference,
+    NotificationDedupeClaim,
     NotificationDeliveryAttempt,
     NotificationLog,
     NotificationPolicy,
@@ -65,6 +67,7 @@ from app.models.ai_mapping import (
 from app.models.question_mapping_signal import QuestionMappingSignal
 from app.models.workspace_ai_usage import WorkspaceAIUsage
 from app.models.subscription import Subscription
+from app.models.stripe_webhook_event import StripeWebhookEvent
 from app.models.feature_flag import FeatureFlag
 from app.models.credit_ledger import CreditLedger, CreditTransaction
 from app.models.operator_queue import (
@@ -76,7 +79,11 @@ from app.models.security_faq import SecurityFAQ
 from app.models.source_registry import SourceRegistry
 from app.models.credential_store import CredentialStore
 from app.models.product_event import ProductEvent
-from app.models.case_study import CaseStudy
+from app.models.case_study import (
+    CaseStudy,
+    CaseStudyOrganizationConsent,
+    CaseStudyResultPermission,
+)
 from app.models.control_state import ControlStateSnapshot
 from app.models.alert_acknowledgment import AlertAcknowledgment
 from app.models.nda_access_request import NdaAccessRequest
@@ -87,6 +94,7 @@ from app.models.answer_approval_event import AnswerApprovalEvent
 from app.models.freshness_policy import FreshnessPolicy
 from app.models.retention_policy import RetentionPolicy
 from app.models.deal import Deal, DEAL_STAGES
+from app.models.demo_proof_summary import DemoProofSummary
 from app.models.remediation_playbook import (
     RemediationPlaybook,
     RemediationTicket,
@@ -130,6 +138,7 @@ __all__ = [
     "ExportRecord",
     "Job",
     "JobKind",
+    "JobEffect",
     "JobStatus",
     "Question",
     "Questionnaire",
@@ -167,6 +176,7 @@ __all__ = [
     "NotificationUnsubscribe",
     "NotificationChannelPreference",
     "NotificationDeliveryAttempt",
+    "NotificationDedupeClaim",
     "NOTIFICATION_EVENT_TYPES",
     "NOTIFICATION_CHANNELS",
     "DELIVERY_STATES",
@@ -193,6 +203,7 @@ __all__ = [
     "QuestionMappingSignal",
     "WorkspaceAIUsage",
     "Subscription",
+    "StripeWebhookEvent",
     "FeatureFlag",
     "CreditLedger",
     "CreditTransaction",
@@ -204,6 +215,8 @@ __all__ = [
     "CredentialStore",
     "ProductEvent",
     "CaseStudy",
+    "CaseStudyOrganizationConsent",
+    "CaseStudyResultPermission",
     "ControlStateSnapshot",
     "AlertAcknowledgment",
     "NdaAccessRequest",
@@ -217,6 +230,7 @@ __all__ = [
     "EVIDENCE_APPROVAL_STATUSES",
     "Deal",
     "DEAL_STAGES",
+    "DemoProofSummary",
     "RemediationPlaybook",
     "RemediationTicket",
     "REMEDIATION_STATUSES",

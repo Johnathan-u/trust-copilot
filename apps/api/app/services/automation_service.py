@@ -4,7 +4,6 @@ Enqueues the same ``generate_answers`` job kind and worker path as ``POST /api/e
 (see ``export_service.enqueue_generate_answers_job``).
 """
 
-import json
 import logging
 
 from sqlalchemy.orm import Session
@@ -57,15 +56,18 @@ def maybe_auto_generate(session: Session, parse_job: Job, payload: dict) -> None
     if existing:
         return
 
-    gen_job = Job(
+    from app.services.job_effects import enqueue_job, job_idempotency_key
+
+    # TC-10-003: same key as a manual generate with default model/style, so the two cannot both queue.
+    gen_job, created = enqueue_job(
+        session,
         workspace_id=ws_id,
         kind="generate_answers",
-        status=JobStatus.QUEUED.value,
-        payload=json.dumps({"questionnaire_id": qnr_id, "workspace_id": ws_id}),
+        payload={"questionnaire_id": qnr_id, "workspace_id": ws_id},
+        idempotency_key=job_idempotency_key("generate_answers", ws_id, qnr_id, None, None),
     )
-    session.add(gen_job)
-    session.commit()
-    session.refresh(gen_job)
+    if not created:
+        return
 
     persist_audit(
         session,
@@ -163,7 +165,15 @@ def evaluate_generation_result(session: Session, gen_job: Job, payload: dict) ->
             f"All answers are preserved. Please review."
         )
 
-        _notify_needs_review(session, ws_id, qnr_name, insufficient_count, total, link)
+        _notify_needs_review(
+            session,
+            ws_id,
+            qnr_name,
+            insufficient_count,
+            total,
+            link,
+            event_id=f"job:{gen_job.id}",
+        )
 
         logger.info(
             "automation: qnr=%s needs_review, %s/%s insufficient",
@@ -180,6 +190,7 @@ def _notify_needs_review(
     insufficient_count: int,
     total: int,
     link: str,
+    event_id: str,
 ) -> None:
     """Send a single summary notification via in-app, email, and Slack."""
     title = f"Review needed: {qnr_name}"
@@ -200,7 +211,12 @@ def _notify_needs_review(
         ws = session.query(Workspace).filter(Workspace.id == workspace_id).first()
         ws_name = ws.name if ws else "Workspace"
         fire_notification(
-            session, workspace_id, "questionnaire.generated", detail=body, workspace_name=ws_name
+            session,
+            workspace_id,
+            "questionnaire.generated",
+            detail=body,
+            workspace_name=ws_name,
+            event_id=event_id,
         )
     except Exception:
         pass

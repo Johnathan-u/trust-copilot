@@ -7,6 +7,7 @@ from sqlalchemy import (
     Column,
     DateTime,
     ForeignKey,
+    Index,
     Integer,
     String,
     Text,
@@ -107,6 +108,25 @@ class NotificationUnsubscribe(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
 
 
+class NotificationDedupeClaim(Base):
+    """One database claim for a dedupe key.
+
+    Attempt rows stay non-unique. A live claim blocks a second send until it
+    is released or ``expires_at`` passes.
+    """
+
+    __tablename__ = "notification_dedupe_claims"
+    __table_args__ = (
+        Index("ix_notification_dedupe_claims_expires_at", "expires_at"),
+        Index("ix_notification_dedupe_claims_released_at", "released_at"),
+    )
+
+    dedupe_key = Column(String(512), primary_key=True)
+    claimed_at = Column(DateTime(timezone=True), nullable=False)
+    expires_at = Column(DateTime(timezone=True), nullable=False)
+    released_at = Column(DateTime(timezone=True), nullable=True)
+
+
 class NotificationChannelPreference(Base):
     """Per-user email, Slack, or in-app preference.
 
@@ -143,9 +163,9 @@ class NotificationDeliveryAttempt(Base):
     """One visible state of a delivery try.
 
     States are queued, sent, retrying, deduped, dead-lettered, and
-    suppressed-by-preference. ``deduped`` is per-process only: several rows
-    share one dedupe key, so the column is indexed and not unique. Stored
-    text is redacted before insert.
+    suppressed-by-preference. ``deduped`` means a database claim was already
+    held. Several rows share one dedupe key, so the column is indexed and
+    not unique. Stored text is redacted before insert.
     """
 
     __tablename__ = "notification_delivery_attempts"

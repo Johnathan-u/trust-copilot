@@ -1,0 +1,20 @@
+### Unlocked install of master 1a0e614 (old CI step: ruff==0.5.6 pytest + -e .) vs requirements-dev.lock
+exit=0
+Using Python 3.11.17 environment at: /tmp/venv-m0202
+master unlocked: 67 packages; dev lock: 70 entries
+diff (< master only, > lock only):
+6a7
+> async-timeout==5.0.1
+12a14
+> colorama==0.4.6
+20a23
+> httpx2-jsfetch==1.0
+43c46
+< pypdf==6.21.3
+---
+> pypdf==6.21.2
+lock-only entries are platform-marker packages:
+async-timeout==5.0.1 ; python_full_version < '3.11.3'
+colorama==0.4.6 ; sys_platform == 'win32'
+httpx2-jsfetch==1.0 ; python_full_version >= '3.12' and sys_platform == 'emscripten'
+pypdf==6.21.2

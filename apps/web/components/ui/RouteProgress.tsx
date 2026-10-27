@@ -8,8 +8,8 @@ export function RouteProgress() {
   const [progress, setProgress] = useState(0)
   const [visible, setVisible] = useState(false)
   const prevPathname = useRef(pathname)
-  const timerRef = useRef<ReturnType<typeof setTimeout>>()
-  const frameRef = useRef<ReturnType<typeof setInterval>>()
+  const timerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
+  const frameRef = useRef<ReturnType<typeof setInterval> | undefined>(undefined)
 
   const start = useCallback(() => {
     clearTimeout(timerRef.current)
@@ -45,12 +45,17 @@ export function RouteProgress() {
 
   useEffect(() => {
     const orig = history.pushState.bind(history)
+    let startTimer: ReturnType<typeof setTimeout> | undefined
     history.pushState = function (...args) {
-      start()
+      // Next's app router calls pushState from useInsertionEffect. setState
+      // there is illegal in React 19, so start the bar on the next turn.
+      clearTimeout(startTimer)
+      startTimer = setTimeout(() => start(), 0)
       return orig(...args)
     }
     return () => {
       history.pushState = orig
+      clearTimeout(startTimer)
       clearTimeout(timerRef.current)
       clearInterval(frameRef.current)
     }
