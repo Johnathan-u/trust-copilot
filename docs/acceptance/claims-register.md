@@ -1,6 +1,6 @@
 # Claims register (TC-01-005)
 
-Baseline: `c20f949` (master). Branch: `tc/coord/TC-01-005`. Last reviewed: 2026-10-27.
+Baseline: `c20f949` (master). Branch: `tc/coord/TC-01-005`. Last reviewed: 2026-10-27. A4 was updated on `tc/ca/TC-25-005` after master (including PR #2) was merged into that branch.
 
 This file lists every capability, traction, customer, testimonial, revenue, pricing, security, and compliance claim found in `README.md`, the public web pages (`/`, `/pricing`, `/checkout`, root metadata), and API copy that is returned to users. Each claim has one status.
 
@@ -8,7 +8,7 @@ This file lists every capability, traction, customer, testimonial, revenue, pric
 
 | Status | Meaning |
 |---|---|
-| **Supported** | A passing acceptance result is linked. **Count at baseline: 0.** No ticket in the backlog has passing acceptance evidence yet, so nothing can be marked Supported. |
+| **Supported** | A passing acceptance result is linked (`artifacts/acceptance/<ticket>/`). Baseline count was 0. A row is Supported only for the part the linked evidence actually covers. |
 | **Withheld pending _ticket_** | The feature exists in code, but the claim is **not release-qualified**. The copy is kept only as a plain, non-absolute product description, with no guarantee, metric, or certification language. It may not appear in sales or buyer material as a verified capability until the linked ticket's acceptance passes and this row moves to Supported. |
 | **Removed** | The claim was deleted or reworded in this PR because it was false, unverifiable, absolute ("never", "no hallucinations"), expired, or pointed at material that does not exist. |
 | **Labeled example** | Synthetic or heuristic data that could pass as real. It now carries an explicit example, illustrative, or heuristic label in the source and output. |
@@ -22,14 +22,15 @@ Line numbers in the **Location** column refer to this branch, after the edit. Fo
 | A1 | (whole repo) | Customer logos, customer counts, testimonials, "trusted by", usage or traction numbers | **None found.** Nothing to remove. Do not add any without signed consent and evidence. | TC-25-005, TC-26-015 |
 | A2 | `apps/api/app/services/crm_connector_service.py:23,32,73` (`@c20f949` :23,:32,:73) | Mock CRM sync inserts deals as real `Deal` rows: "Acme Corp" $150,000 ARR, "Globex Industries", "StartupCo" $45,000. These feed `/api/deals/revenue-unblocked` and risk ranking as if they were real pipeline revenue. | **Labeled example.** Company names now end in "(example data)". Sync responses include `"mock": true, "data_basis": "synthetic_example"`. Docstrings say the deals are synthetic. Real sync is withheld. | TC-20-049..054, TC-15-049 |
 | A3 | `apps/api/app/services/deal_analytics_service.py:54-67`, `revenue_risk_service.py:49-59` | "Revenue unblocked" and "revenue at risk" amounts | **Withheld.** These are heuristic, user-data-derived numbers, not traction. They must not appear in marketing. | TC-23-008 |
-| A4 | `apps/api/app/services/case_study_service.py:14-19` | Case study template prompts for "Time saved", "Customer Quote", and `hours_saved` | **Withheld.** This is a template only, with no seeded case studies or quotes. Publication needs consent. | TC-25-005 |
+| A4 | `apps/api/app/services/case_study_service.py:55-97`; workflow in `apps/api/app/api/routes/case_studies.py` | naming an organization is a customer claim and requires consent before publishing. | **Supported** for the blank template and the consent gate only. The template is `data_basis: blank_template` and `customer_claim: false`, and its notice says it contains no customer, quote, or result. `hours_saved` and the other suggested metrics are field names (`metrics_are_field_names_not_results: true`), not measured results. Publish checks that every quoted organization has consented and that the consent permits every quoted result. Naming an organization is a customer claim and requires consent before publishing. Synthetic rows stay `synthetic_example` with `customer_claim: false`. No seed inserts a case study. Evidence: `tests/release/test_domain_case_studies.py`, `tests/test_case_studies.py`, and `artifacts/acceptance/TC-25-005/`. **Withheld** beyond that. `consent_reference` is an operator string, not a signed document (TC-26-015). Reviewer signoff other than the implementer is still open. This change publishes no real customer name, logo, quote, or result. Per-org attribution (each result belonging to one organization) is follow-up TC-25-005a and is not part of this row. | TC-25-005, TC-26-015, TC-25-005a |
 | A5 | `apps/api/app/services/roi_calculator_service.py:15,49-58` (`@c20f949` :15) | ROI output shows `time_reduction_pct` above 90%, `roi_multiple`, and dollars saved, based on a hardcoded 0.5 h per questionnaire. The route is public. | **Labeled example.** Output adds `estimate_basis: {type: "illustrative", ...}` with "Not measured customer results." | TC-25-004 |
 | A6 | `apps/api/app/services/roi_calculator_service.py:9` | Default `subscription_monthly = 399.0` contradicts the public $25/mo price | **Withheld pending owner pricing decision.** Not changed because pricing is an owner decision (see release-decisions log). | TC-25-004, TC-01-006 (pricing) |
 | A7 | `apps/api/app/services/proof_widgets_service.py:45,52-54` | `hours_saved_estimate` is answers × 0.08 h | **Labeled example.** Adds `hours_saved_basis: "heuristic ... not measured"`. | TC-23-005 |
-| A8 | `apps/api/app/services/demo_proof_service.py:27-28, 30-120, 141-164` | "Sample SOC 2 Security Questionnaire" with hardcoded confidence values (78–97), plus coverage report and gap list derived from them. The package was described as "for sales". | **Labeled example.** All outputs carry `data_basis: "synthetic_example"` and `disclaimer`. The questionnaire also carries `confidence_basis: "illustrative hardcoded values, not model output"`. The "for sales" wording was removed. | TC-25-011, TC-11-006 |
+| A8 | `apps/api/app/services/demo_proof_service.py` sample questionnaire, coverage report, gap list, and walkthrough | "Sample SOC 2 Security Questionnaire" with hardcoded confidence values (78–97), plus coverage report and gap list derived from them. The package was described as "for sales". | **Labeled example.** Those sample outputs carry `data_basis: "synthetic_example"` and the claims-register disclaimer. The questionnaire also carries `confidence_basis: "illustrative hardcoded values, not model output"`. The "for sales" wording was removed. The sentence that isolation is validated by automated tests stays removed. This row is not the measured proof summary (see A12). | TC-25-011, TC-11-006 |
 | A9 | `apps/api/app/services/demo_proof_service.py:70` (`@c20f949` :58) | "Isolation is validated by automated integration tests." | **Removed.** No such qualified test evidence exists. | TC-06-005 |
 | A10 | `apps/api/app/services/demo_proof_service.py:30-120` | Sample answers state AES-256 at rest, DigitalOcean managed-DB encryption, TLS 1.2+, Sentry/Prometheus | **Labeled example.** Covered by the synthetic disclaimer. Deployment facts are unverified. | TC-27-008, TC-20-010, TC-25-011 |
 | A11 | `apps/api/app/services/ai_insights.py:143,162` | Average "confidence" percentages | **Withheld.** These are heuristic model scores, not accuracy. | TC-11-006, TC-21-012 |
+| A12 | `apps/api/app/services/demo_proof_service.py` `proof_summary` | Evidence-backed demonstration summary: counts of rows stored in the caller's workspace, with a UTC window. The synthetic sample is not copied into those counts. Customers, revenue, traffic, and commercial usage are unsupported. `commercial_traction` is false. | **Supported** only for the behavior covered by `artifacts/acceptance/TC-25-011/` on branch `tc/ca/TC-25-011`: measured workspace counts, synthetic sample excluded from those counts, no commercial-usage figure, UTC storage and reporting, and a read-scoped API key limited to its own workspace. Reviewer signoff: **Withheld**. | TC-25-011 |
 
 ## B. Pricing and commercial terms
 
@@ -91,13 +92,13 @@ Line numbers in the **Location** column refer to this branch, after the edit. Fo
 
 | Status | Rows |
 |---|---|
-| Supported | 0 |
+| Supported | 2 (A4-part: blank template and consent gate; A12 only as far as `artifacts/acceptance/TC-25-011/` goes, reviewer signoff Withheld) |
 | Removed (deleted or honestly reworded) | 20 (A9, B1, B6-part, C1, C2, C4, C5, C6, C7, C9, C10-part, C20, C21, D1, D2, D3, D8, D9-part, D10, D13) |
 | Labeled example (synthetic or heuristic) | 6 (A2, A5, A7, A8, A10, D12) |
-| Withheld pending ticket or owner decision | 27 (A3, A4, A6, A11, B2-B6, C3, C8, C10-part, C11-C19, D4-D7, D9-part, D14) |
+| Withheld pending ticket or owner decision | 27 (A3, A4-part, A6, A11, B2-B6, C3, C8, C10-part, C11-C19, D4-D7, D9-part, D14) |
 | No claim present | 1 (A1: no testimonials, customer logos, or traction figures exist) |
 
-Total: 52 rows (A1–A11, B1–B6, C1–C21, D1–D14). D11 is a notice added by this PR, not a claim. B6, C10, and D9 are split between two statuses, so the counts add up to 54.
+Total: 53 rows (A1–A12, B1–B6, C1–C21, D1–D14). D11 is a notice added by the claims-register change, not a claim. A4, B6, C10, and D9 are split between two statuses, so the status counts add up to 56. A4-part is Supported only for the blank template and the consent gate in `artifacts/acceptance/TC-25-005/`. Signed consent evidence (TC-26-015) and reviewer signoff stay withheld. A12 is Supported only for the linked acceptance evidence in `artifacts/acceptance/TC-25-011/`. Reviewer signoff for A12 stays Withheld.
 
 ## Rules going forward
 

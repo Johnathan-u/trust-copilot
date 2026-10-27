@@ -162,8 +162,6 @@ def fetch_and_ingest_channel(
 
     try:
         result = provider.fetch_messages(token, channel_id, limit=limit)
-    except AttributeError:
-        result = _stub_fetch_messages(channel_id, limit)
     except Exception as e:
         return {"ingested": 0, "skipped": 0, "errors": [f"Slack API error: {str(e)[:200]}"]}
 
@@ -205,23 +203,6 @@ def fetch_and_ingest_channel(
             errors.append(f"ts={ts}: {str(e)[:100]}")
 
     return {"ingested": ingested, "skipped": skipped, "errors": errors}
-
-
-def _stub_fetch_messages(channel_id: str, limit: int) -> dict:
-    """Stub for ConsoleSlackProvider which doesn't have fetch_messages."""
-    import time
-
-    return {
-        "ok": True,
-        "messages": [
-            {
-                "ts": f"stub.{time.time()}.{i}",
-                "text": f"Stub message {i} from #{channel_id}",
-                "user": "U_STUB",
-            }
-            for i in range(min(limit, 3))
-        ],
-    }
 
 
 def suggest_controls_for_evidence(

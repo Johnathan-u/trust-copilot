@@ -1,0 +1,33 @@
+$ TC_REQUIRE_DB=1 pytest -rs -v tests/test_job_idempotency.py
+============================= test session starts ==============================
+platform linux -- Python 3.11.18, pytest-9.1.1, pluggy-1.7.0 -- /usr/local/bin/python3.11
+rootdir: /repo/apps/api
+configfile: pyproject.toml
+plugins: anyio-4.15.1
+collecting ... collected 22 items
+
+tests/test_job_idempotency.py::test_enqueue_dedupes_only_queued_jobs PASSED [  4%]
+tests/test_job_idempotency.py::test_enqueue_race_returns_winner_via_unique_index PASSED [  9%]
+tests/test_job_idempotency.py::test_parse_crash_after_commit_does_not_duplicate_questions PASSED [ 13%]
+tests/test_job_idempotency.py::test_parse_crash_before_commit_applies_exactly_once PASSED [ 18%]
+tests/test_job_idempotency.py::test_parse_second_job_reconciles_instead_of_duplicating PASSED [ 22%]
+tests/test_job_idempotency.py::test_parse_stale_input_is_superseded[storage_key] PASSED [ 27%]
+tests/test_job_idempotency.py::test_parse_stale_input_is_superseded[deleted] PASSED [ 31%]
+tests/test_job_idempotency.py::test_index_rerun_after_commit_does_not_reembed_or_duplicate PASSED [ 36%]
+tests/test_job_idempotency.py::test_index_crash_during_provider_call_records_uncertain_charge PASSED [ 40%]
+tests/test_job_idempotency.py::test_failure_path_marks_unsettled_provider_calls_uncertain PASSED [ 45%]
+tests/test_job_idempotency.py::test_index_second_job_same_version_reconciles_without_embedding PASSED [ 50%]
+tests/test_job_idempotency.py::test_index_stale_input_version_is_superseded PASSED [ 54%]
+tests/test_job_idempotency.py::test_generate_never_overwrites_approved_or_newer_answers PASSED [ 59%]
+tests/test_job_idempotency.py::test_generate_rerun_is_idempotent_and_counts_usage_once PASSED [ 63%]
+tests/test_job_idempotency.py::test_upsert_guard_rechecks_answer_approved_mid_run PASSED [ 68%]
+tests/test_job_idempotency.py::test_export_crash_after_upload_before_record_reuses_key PASSED [ 72%]
+tests/test_job_idempotency.py::test_export_record_job_id_is_unique PASSED [ 77%]
+tests/test_job_idempotency.py::test_export_route_idempotency_key_scoped_and_released_on_429 PASSED [ 81%]
+tests/test_job_idempotency.py::test_export_route_without_key_reuses_identical_queued_job PASSED [ 86%]
+tests/test_job_idempotency.py::test_jobs_api_reports_charge_uncertain PASSED [ 90%]
+tests/test_job_idempotency.py::test_upload_routes_set_input_version PASSED [ 95%]
+tests/test_job_idempotency.py::test_migration_downgrade_and_upgrade_roundtrip PASSED [100%]
+
+============================== 22 passed in 4.68s ==============================
+EXIT 0

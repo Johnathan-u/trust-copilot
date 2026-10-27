@@ -30,6 +30,9 @@ class Page:
     lines: list[tuple[float, float, float, float]] = field(default_factory=list)
     # Draw an 8x8 grayscale raster image at (x, y, w, h), top-origin; no text layer.
     image: tuple[float, float, float, float] | None = None
+    # Extra content-stream operators appended verbatim (font /F1 is available), e.g. one
+    # BT block that positions several table cells with Td moves or TJ kerning (TC-01-003b).
+    raw: bytes = b""
 
 
 def _esc(s: str) -> bytes:
@@ -54,6 +57,8 @@ def _content(page: Page) -> bytes:
             + _esc(t.text)
             + b") Tj ET"
         )
+    if page.raw:
+        out.append(page.raw)
     return b"\n".join(out)
 
 
@@ -128,3 +133,32 @@ def text_block(
 ) -> list[TextItem]:
     """Lay out ``lines`` top-down starting at baseline ``y``."""
     return [TextItem(x, y + i * leading, s, size) for i, s in enumerate(lines)]
+
+
+def bt_row(y: float, cells: list[tuple[float, str]], size: float = 11) -> bytes:
+    """One BT block placing ``(x, text)`` cells on baseline ``y`` with relative Td moves.
+
+    Mirrors generators that write a whole table row in one text object (TC-01-003b).
+    """
+    out = [b"BT /F1 " + f"{size:g}".encode() + b" Tf"]
+    px, py = 0.0, 0.0
+    for x, text in cells:
+        ty = PAGE_H - y
+        out.append(f"{x - px:.2f} {ty - py:.2f} Td (".encode() + _esc(text) + b") Tj")
+        px, py = x, ty
+    out.append(b"ET")
+    return b" ".join(out)
+
+
+def tj_row(x: float, y: float, parts: list[str | float], size: float = 11) -> bytes:
+    """One TJ array at ``(x, y)``: strings plus kerning numbers (thousandths of an em)."""
+    items = [b"(" + _esc(p) + b")" if isinstance(p, str) else f"{p:g}".encode() for p in parts]
+    return (
+        b"BT /F1 "
+        + f"{size:g}".encode()
+        + b" Tf "
+        + f"{x:.2f} {PAGE_H - y:.2f}".encode()
+        + b" Td ["
+        + b" ".join(items)
+        + b"] TJ ET"
+    )
