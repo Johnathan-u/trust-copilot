@@ -994,4 +994,7 @@ def test_migration_downgrade_and_upgrade_roundtrip(_ensure_test_data):
         alembic("upgrade", "head")
     assert {"error_code", "next_attempt_at"} <= cols()
     heads = alembic("heads")
-    assert "tc10002_job_retries" in heads and len(heads.strip().splitlines()) == 1
+    # A later revision (tc24001_stripe_webhook_events) may be the single head.
+    # next_attempt_at above is what proves this revision was reapplied.
+    assert len(heads.strip().splitlines()) == 1
+    assert "(head)" in heads
