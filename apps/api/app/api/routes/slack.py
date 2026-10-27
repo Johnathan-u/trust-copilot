@@ -215,6 +215,9 @@ async def slack_test(
 
     from app.models import NotificationLog
 
+    mode = result.get("provider_mode") if isinstance(result.get("provider_mode"), str) else None
+    delivered = bool(accepted and result.get("delivered_to_provider") is True)
+    attempts = result.get("attempts") if isinstance(result.get("attempts"), int) else 1
     db.add(
         NotificationLog(
             workspace_id=ws,
@@ -224,6 +227,10 @@ async def slack_test(
             subject="Test message",
             status="sent" if accepted else "failed",
             error=None if accepted else public_error_detail(result, "unknown")[:500],
+            delivery_state="sent" if accepted else "dead-lettered",
+            delivered_to_provider=delivered,
+            provider_mode=mode,
+            attempt_count=attempts,
         )
     )
     db.commit()

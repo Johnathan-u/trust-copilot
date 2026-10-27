@@ -7,11 +7,29 @@ from sqlalchemy.orm import Session
 
 from app.core.auth_deps import require_can_admin, require_session
 from app.core.database import get_db
-from app.core.workspace_refs import require_refs
+from app.core.workspace_refs import require_in_workspace, require_refs
 from app.models.proof_graph import ProofGraphNode
 from app.services import proof_graph_service as pgs
 
 router = APIRouter(prefix="/proof-graph", tags=["proof-graph"])
+
+# artifact_kind -> workspace_refs kind used to check artifact_id. Both the singular name and
+# the proof-graph ref_table name are accepted.
+_ARTIFACT_REF_KINDS = {
+    "answer": "answer",
+    "contract_document": "contract_document",
+    "document": "document",
+    "evidence_item": "evidence",
+    "golden_answer": "golden_answer",
+    "questionnaire": "questionnaire",
+    "trust_article": "trust_article",
+    "trust_promise": "promise",
+    "workspace_control": "control",
+}
+ARTIFACT_REF_KINDS = {
+    **_ARTIFACT_REF_KINDS,
+    **{f"{name}s": kind for name, kind in _ARTIFACT_REF_KINDS.items()},
+}
 
 
 @router.post("/sync")
@@ -101,6 +119,10 @@ def record_hash(
         raw = body.content_text.encode("utf-8")
     else:
         raise HTTPException(status_code=400, detail="Provide content_base64 or content_text")
+    ref_kind = ARTIFACT_REF_KINDS.get(body.artifact_kind)
+    if ref_kind is None:
+        raise HTTPException(status_code=422, detail="Unsupported artifact_kind")
+    require_in_workspace(db, session["workspace_id"], ref_kind, body.artifact_id)
     out = pgs.record_artifact_hash(
         db,
         session["workspace_id"],
@@ -138,6 +160,11 @@ def verify_hash(
         raw = body.content_text.encode("utf-8")
     else:
         raise HTTPException(status_code=400, detail="Provide content_base64 or content_text")
+    # Hashes are only recorded for supported kinds; an unknown kind falls through to the
+    # workspace-filtered lookup below (read-only, finds nothing outside this workspace).
+    ref_kind = ARTIFACT_REF_KINDS.get(body.artifact_kind)
+    if ref_kind is not None:
+        require_in_workspace(db, session["workspace_id"], ref_kind, body.artifact_id)
     return pgs.verify_artifact_hash(
         db,
         session["workspace_id"],

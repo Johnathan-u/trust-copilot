@@ -335,9 +335,6 @@ class TestSlackDelivery:
 
     def test_event_fires_to_slack(self, client: TestClient) -> None:
         """When Slack is connected and an event fires, it appears in the delivery log."""
-        from app.services.slack_service import _slack_dedup
-
-        _slack_dedup.clear()
         _login_admin(client)
         _cleanup_slack()
         _cleanup_slack_log()
@@ -351,9 +348,8 @@ class TestSlackDelivery:
         )
         from app.core.database import SessionLocal
         from app.models import NotificationPolicy
-        from app.services.notification_service import _recent_sends, fire_notification
+        from app.services.notification_service import fire_notification
 
-        _recent_sends.clear()
         db = SessionLocal()
         db.query(NotificationPolicy).filter(
             NotificationPolicy.workspace_id == 1, NotificationPolicy.event_type == "member.invited"
@@ -364,8 +360,6 @@ class TestSlackDelivery:
             )
         )
         db.commit()
-        _recent_sends.clear()
-        _slack_dedup.clear()
         try:
             fire_notification(
                 db,
@@ -389,9 +383,6 @@ class TestSlackDelivery:
         ), f"Expected Slack log entry, got {[e.get('channel') for e in entries]}"
 
     def test_disabled_slack_does_not_fire(self, client: TestClient, disposable_member: int) -> None:
-        from app.services.slack_service import _slack_dedup
-
-        _slack_dedup.clear()
         _login_admin(client)
         _cleanup_slack()
         _cleanup_slack_log()
@@ -406,9 +397,7 @@ class TestSlackDelivery:
         # Trigger event
         from app.core.database import SessionLocal
         from app.models import NotificationPolicy
-        from app.services.notification_service import _recent_sends
 
-        _recent_sends.clear()
         db = SessionLocal()
         db.query(NotificationPolicy).filter(
             NotificationPolicy.workspace_id == 1,
@@ -437,9 +426,6 @@ class TestSlackDelivery:
 
     def test_event_type_filter_respected(self, client: TestClient, disposable_member: int) -> None:
         """When event_types are set, only matching events go to Slack."""
-        from app.services.slack_service import _slack_dedup
-
-        _slack_dedup.clear()
         _login_admin(client)
         _cleanup_slack()
         _cleanup_slack_log()
@@ -453,9 +439,7 @@ class TestSlackDelivery:
         )
         from app.core.database import SessionLocal
         from app.models import NotificationPolicy
-        from app.services.notification_service import _recent_sends
 
-        _recent_sends.clear()
         db = SessionLocal()
         db.query(NotificationPolicy).filter(
             NotificationPolicy.workspace_id == 1,
