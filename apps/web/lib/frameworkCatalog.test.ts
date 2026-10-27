@@ -10,7 +10,7 @@ import {
   parseCatalogList,
   parseEnableError,
   type FrameworkCatalogItem,
-} from './frameworkCatalog'
+} from '@/lib/frameworkCatalog'
 
 function item(
   overrides: Partial<FrameworkCatalogItem> = {}
