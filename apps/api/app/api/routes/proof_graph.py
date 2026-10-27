@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 
 from app.core.auth_deps import require_can_admin, require_session
 from app.core.database import get_db
+from app.core.workspace_refs import require_refs
 from app.models.proof_graph import ProofGraphNode
 from app.services import proof_graph_service as pgs
 
@@ -169,6 +170,16 @@ def record_reuse(
     session: dict = Depends(require_can_admin),
     db: Session = Depends(get_db),
 ):
+    require_refs(
+        db,
+        session["workspace_id"],
+        [
+            ("answer", body.answer_id),
+            ("questionnaire", body.questionnaire_id),
+            ("deal", body.deal_id),
+            ("evidence", body.evidence_ids),
+        ],
+    )
     out = pgs.record_reuse_provenance(
         db,
         session["workspace_id"],

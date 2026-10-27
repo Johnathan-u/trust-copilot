@@ -8,6 +8,7 @@ from sqlalchemy.orm import Session
 
 from app.core.auth_deps import require_can_admin
 from app.core.database import get_db
+from app.core.workspace_refs import require_in_workspace
 from app.services import operator_queue_service as oq
 
 router = APIRouter(prefix="/operator-queue", tags=["operator-queue"])
@@ -82,11 +83,8 @@ async def get_item(
     db: Session = Depends(get_db),
 ):
     """Get a single operator queue item."""
+    require_in_workspace(db, session["workspace_id"], "operator_queue_item", item_id)
     item = oq.get_item(db, item_id)
-    if not item:
-        raise HTTPException(status_code=404, detail="Item not found")
-    if item["workspace_id"] != session["workspace_id"]:
-        raise HTTPException(status_code=403, detail="Not your workspace")
     return item
 
 
@@ -100,6 +98,7 @@ async def create_item(
     workspace_id = session["workspace_id"]
     if not req.title.strip():
         raise HTTPException(status_code=400, detail="Title is required")
+    require_in_workspace(db, workspace_id, "questionnaire", req.questionnaire_id)
     item = oq.create_item(
         db,
         workspace_id,
@@ -124,11 +123,7 @@ async def update_item(
     db: Session = Depends(get_db),
 ):
     """Update an operator queue item."""
-    existing = oq.get_item(db, item_id)
-    if not existing:
-        raise HTTPException(status_code=404, detail="Item not found")
-    if existing["workspace_id"] != session["workspace_id"]:
-        raise HTTPException(status_code=403, detail="Not your workspace")
+    require_in_workspace(db, session["workspace_id"], "operator_queue_item", item_id)
     updates = {k: v for k, v in req.model_dump().items() if v is not None}
     result = oq.update_item(db, item_id, **updates)
     db.commit()
@@ -142,11 +137,7 @@ async def delete_item(
     db: Session = Depends(get_db),
 ):
     """Delete an operator queue item."""
-    existing = oq.get_item(db, item_id)
-    if not existing:
-        raise HTTPException(status_code=404, detail="Item not found")
-    if existing["workspace_id"] != session["workspace_id"]:
-        raise HTTPException(status_code=403, detail="Not your workspace")
+    require_in_workspace(db, session["workspace_id"], "operator_queue_item", item_id)
     oq.delete_item(db, item_id)
     db.commit()
     return {"deleted": True}
