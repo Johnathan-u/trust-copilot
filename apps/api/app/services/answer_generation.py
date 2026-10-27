@@ -9,6 +9,7 @@ Architecture rules:
 
 import json
 import logging
+import os
 import re
 import time
 from concurrent.futures import ThreadPoolExecutor
@@ -55,6 +56,7 @@ from app.models.question_mapping_signal import QuestionMappingSignal
 from app.services.workspace_usage import record_answer_calls
 from app.core.audit import audit_log
 from app.services.evidence_processor import process_evidence
+from app.services.evidence_gap_service import generate_gaps_for_questionnaire
 from app.core.adaptive_concurrency import (
     ADAPTIVE_INITIAL,
     AdaptivePool,
@@ -71,6 +73,20 @@ from app.services.model_outcomes import (
 
 
 logger = logging.getLogger(__name__)
+
+# TC-02-BUG-015: a non-model failure in evidence-gap generation no longer disappears. The
+# answers stay (the job completes) but the job carries this stable code and safe message;
+# exception text goes to the log only, never to job.error or job.result.
+GAP_GENERATION_FAILED_CODE = "evidence_gaps_failed"
+GAP_GENERATION_FAILED_MESSAGE = (
+    "Answers were generated, but evidence gap analysis failed. Re-run generation to retry."
+)
+
+
+def _gap_failures_raise() -> bool:
+    """Under tests, gap-generation defects fail the run instead of only marking the job."""
+    return os.environ.get("TRUST_COPILOT_TESTING") == "1"
+
 
 # AI-01: Supported models; unsupported values are defaulted to DEFAULT_MODEL with logging.
 DEFAULT_MODEL = "gpt-4o-mini"
@@ -128,18 +144,21 @@ MAX_PARALLEL_BATCHES = 10  # run up to 10 batches concurrently (I/O bound; stay 
 COMPLETION_MAX_RETRIES = 3
 
 
+COMPLETION_RETRY_BASE_SECONDS = 1.0
+COMPLETION_RETRY_MAX_SECONDS = 10.0
+
+
 def _is_transient_completion_error(e: Exception) -> bool:
-    """True if completion error is worth retrying (timeout, rate limit, server error)."""
+    """True if completion error is worth retrying (TC-10-002 classifier: 429, timeout, 5xx, connection)."""
+    from app.core.job_errors import classify, is_retryable_code
+
     if classify_provider_exception(e).fatal:
         # TC-11-001: never retry credentials/model-unavailable/quota-exhausted failures.
         return False
-    msg = (getattr(e, "message", "") or str(e)).lower()
-    if "timeout" in msg or "timed out" in msg:
+    if is_retryable_code(classify(e)):
         return True
-    code = getattr(e, "status_code", None) or getattr(
-        getattr(e, "response", None), "status_code", None
-    )
-    return code in (429, 503, 502, 504)
+    msg = (getattr(e, "message", "") or str(e)).lower()
+    return "timeout" in msg or "timed out" in msg
 
 
 def _extract_retry_after(e: Exception) -> float | None:
@@ -168,8 +187,15 @@ def _completion_create_with_retry(client: Any, **kwargs: Any) -> Any:
         except Exception as e:
             last_err = e
             if attempt < COMPLETION_MAX_RETRIES and _is_transient_completion_error(e):
-                retry_after = _extract_retry_after(e)
-                delay = retry_after if retry_after is not None else min(1.5**attempt, 10.0)
+                from app.core.job_errors import backoff_delay
+
+                # Bounded exponential backoff with jitter; Retry-After honoured up to the cap (TC-10-002).
+                delay = backoff_delay(
+                    attempt + 1,
+                    base=COMPLETION_RETRY_BASE_SECONDS,
+                    cap=COMPLETION_RETRY_MAX_SECONDS,
+                    retry_after=_extract_retry_after(e),
+                )
                 logger.info(
                     "answer_generation retry attempt=%d/%d delay=%.1fs error=%s",
                     attempt + 1,
@@ -613,6 +639,10 @@ class AnswerWriteGuard:
     Protected = status ``approved`` (human-approved work), or ``updated_at`` later than the run's cutoff
     (the generating job's ``created_at``): such an answer was written by a human edit or a newer run after
     this run's input was requested, so this (stale) run must not overwrite it.
+
+    TC-10-002: a non-approved ``insufficient_evidence`` placeholder left by a provider error
+    (``insufficient_reason == "llm_error"``) is never protected, so a job-level retry regenerates exactly the
+    questions an earlier attempt failed on (no human or model work is lost: it holds no answer text).
     """
 
     def __init__(self, cutoff: datetime | None):
@@ -627,6 +657,11 @@ class AnswerWriteGuard:
             return False
         if getattr(answer, "status", None) == "approved":
             return True
+        if (
+            getattr(answer, "status", None) == "insufficient_evidence"
+            and getattr(answer, "insufficient_reason", None) == "llm_error"
+        ):
+            return False
         upd = getattr(answer, "updated_at", None)
         if self.cutoff is not None and isinstance(upd, datetime):
             return _naive_utc(upd) > self.cutoff
@@ -1232,6 +1267,7 @@ def _generate_answers_impl(
             _count_outcome(failure.code)
             count += 1
             run_stats["insufficient_evidence"] += 1
+            _count_llm_error(run_stats, exc)
             was_429, was_timeout, was_transient = adaptive.classify_exception(exc)
             adaptive.release(
                 success=False,
@@ -1391,19 +1427,19 @@ def _generate_answers_impl(
     _adjust_run_stats_after_sweep(run_stats, swept)
 
     # Evidence gaps use their own Session (TC-08-005). A typed model failure raised on that
-    # worker must reach this caller as ModelCallError; other gap errors stay best-effort and
-    # never carry provider body text into the job.
+    # worker must reach this caller as ModelCallError. Any other gap error is logged at ERROR
+    # and marks the job (GAP_GENERATION_FAILED_CODE); under tests it is re-raised (BUG-015).
     import threading as _threading
 
     from app.core.database import isolated_session, supports_thread_isolation
 
     _gap_bind = db.get_bind()
+    _gap_state: dict[str, Any] = {"generated": 0, "failed": False}
 
     def _gap_work(gap_db) -> None:
-        from app.services.evidence_gap_service import generate_gaps_for_questionnaire
-
         result = generate_gaps_for_questionnaire(gap_db, workspace_id, questionnaire_id)
-        generated = result.get("generated", 0)
+        generated = int(result.get("generated", 0) or 0)
+        _gap_state["generated"] = generated
         if generated > 0:
             logger.info(
                 "answer_generation: generated %d evidence gaps for qnr=%d (background)",
@@ -1433,24 +1469,32 @@ def _generate_answers_impl(
                     failure.log_summary(),
                 )
                 raise ModelCallError(failure) from None
-            logger.warning(
-                "answer_generation: gap generation failed for qnr=%d (%s)",
+            try:
+                gap_db.rollback()
+            except Exception:
+                pass
+            logger.error(
+                "answer_generation: gap generation failed for qnr=%d (%s) code=%s",
                 questionnaire_id,
                 where,
+                GAP_GENERATION_FAILED_CODE,
                 exc_info=True,
             )
+            if _gap_failures_raise():
+                raise
+            _gap_state["failed"] = True
 
     if supports_thread_isolation(_gap_bind):
-        _gap_errors: list[ModelCallError] = []
+        _gap_errors: list[BaseException] = []
 
         def _run_gap_generation() -> None:
             try:
                 with isolated_session(_gap_bind) as gap_db:
                     _run_gap(gap_db, "background")
-            except ModelCallError as exc:
+            except BaseException as exc:  # re-raised on the caller thread below
                 _gap_errors.append(exc)
 
-        # Joined so a typed failure is not dropped when the daemon thread exits.
+        # Joined so a gap failure is not dropped when the daemon thread exits.
         _gap_thread = _threading.Thread(
             target=_run_gap_generation, daemon=True, name="gap-generation"
         )
@@ -1461,12 +1505,18 @@ def _generate_answers_impl(
     else:
         from sqlalchemy.orm import Session as _Ses
 
-        gap_db = _Ses(bind=_gap_bind)  # same Connection, but used on this thread only
+        # Same Connection, used on this thread only. The caller's transaction is already open
+        # there, so join it through a SAVEPOINT explicitly (SQLAlchemy's default for this case,
+        # stated so it does not warn now that gaps are really written).
+        gap_db = _Ses(bind=_gap_bind, join_transaction_mode="create_savepoint")
         try:
             _run_gap(gap_db, "inline")
         finally:
             gap_db.close()
-    run_stats["gaps_generated"] = 0
+    run_stats["gaps_generated"] = _gap_state["generated"]
+    if _gap_state["failed"]:
+        run_stats["gap_generation"] = "failed"
+        run_stats["gap_generation_error_code"] = GAP_GENERATION_FAILED_CODE
 
     run_stats["duration_ms"] = duration_ms
     run_stats["embed_time_ms"] = round(embed_time_ms, 1)
@@ -1507,6 +1557,9 @@ def _generate_answers_impl(
     _settle_provider(effects, guard, run_stats)
     if job:
         job.result = _job_payload(count, total_questions, run_stats)
+        if _gap_state["failed"]:
+            job.error_code = GAP_GENERATION_FAILED_CODE
+            job.error = GAP_GENERATION_FAILED_MESSAGE
         db.commit()
     return count
 
@@ -1625,6 +1678,24 @@ def _sweep_draft_insufficient_narratives(
     if n:
         db.commit()
     return n
+
+
+def _count_llm_error(run_stats: dict, exc: Exception) -> None:
+    """TC-10-002: count per-question provider failures by class so the worker can retry or stop explicitly."""
+    from app.core.job_errors import classify, is_fatal_code, is_retryable_code
+
+    code = classify(exc)  # TC-11-001 model_* code for provider exceptions
+    run_stats["llm_errors"] = int(run_stats.get("llm_errors", 0) or 0) + 1
+    if is_fatal_code(code):
+        run_stats["llm_errors_auth_config"] = (
+            int(run_stats.get("llm_errors_auth_config", 0) or 0) + 1
+        )
+        run_stats["llm_error_code_auth_config"] = code
+    elif is_retryable_code(code):
+        run_stats["llm_errors_retryable"] = int(run_stats.get("llm_errors_retryable", 0) or 0) + 1
+        run_stats["llm_error_code_retryable"] = code
+    else:
+        run_stats["llm_errors_other"] = int(run_stats.get("llm_errors_other", 0) or 0) + 1
 
 
 def _adjust_run_stats_after_sweep(run_stats: dict[str, int | float], swept: int) -> None:

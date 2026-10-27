@@ -182,11 +182,6 @@ export default function QuestionnairesPage() {
       prev.includes(fw) ? prev.filter((f) => f !== fw) : [...prev, fw]
     )
   }
-  const toggleUploadSubj = (s: string) => {
-    setUploadSubjects((prev) =>
-      prev.includes(s) ? prev.filter((x) => x !== s) : [...prev, s]
-    )
-  }
 
   const confirmUpload = () => {
     if (!uploadFile || workspaceId == null) return

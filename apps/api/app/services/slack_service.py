@@ -9,7 +9,6 @@ from typing import Protocol
 
 import httpx
 
-from app.core.config import get_settings
 from app.services.message_providers.errors import (
     DEV_STUB_LABEL,
     DEV_STUB_MODE,
@@ -34,8 +33,9 @@ logger = logging.getLogger(__name__)
 
 def _fernet():
     from cryptography.fernet import Fernet
+    from app.core.session import get_session_secret
 
-    raw = hashlib.sha256(get_settings().session_secret.encode()).digest()
+    raw = hashlib.sha256(get_session_secret().encode()).digest()
     key = base64.urlsafe_b64encode(raw)
     return Fernet(key)
 

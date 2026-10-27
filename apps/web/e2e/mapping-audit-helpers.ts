@@ -2,11 +2,16 @@
  * Shared helpers for questionnaire mapping / compliance audit E2E specs.
  */
 import { expect, type APIRequestContext, type Page } from '@playwright/test'
+import {
+  DEMO_EMAIL,
+  demoPassword,
+  ADMIN_EMAIL,
+  adminPassword,
+} from './credentials'
+export { DEMO_EMAIL, ADMIN_EMAIL }
 
-export const DEMO_EMAIL = 'demo@trust.local'
-export const DEMO_PASSWORD = 'j'
-export const ADMIN_EMAIL = 'admin@trust.local'
-export const ADMIN_PASSWORD = 'Admin123!'
+export const DEMO_PASSWORD = demoPassword()
+export const ADMIN_PASSWORD = adminPassword()
 
 export type ParsedQuestionnairePick = {
   id: number

@@ -26,6 +26,11 @@ jobs:
         with:
           python-version: "3.11"
 
+      - name: Secret inventory tree scan (TC-07-001)
+        # Early, dependency-free gate: fails the run on any block finding in tracked files. Output is
+        # path, line, rule and kind only (never a value).
+        run: python scripts/security/secret_inventory.py tree --root .
+
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
@@ -36,6 +41,29 @@ jobs:
         working-directory: apps/web
         # TC-02-003: install exactly the lockfile; no dependency lifecycle scripts.
         run: npm ci --ignore-scripts
+
+      - name: Frontend tool versions
+        working-directory: apps/web
+        # TC-02-006: record the exact gate toolchain in the CI log.
+        run: |
+          node --version
+          npm --version
+          npx --no-install tsc --version
+          npx --no-install eslint --version
+          npx --no-install prettier --version
+          npx --no-install vitest --version
+
+      - name: Lint frontend
+        working-directory: apps/web
+        run: npm run lint
+
+      - name: Format check frontend
+        working-directory: apps/web
+        run: npm run format:check
+
+      - name: Unit test frontend
+        working-directory: apps/web
+        run: npm run test:unit
 
       - name: Run pre-commit
         run: |
@@ -96,6 +124,8 @@ jobs:
           SESSION_SECRET: test-secret
           # Fail (never skip) when the disposable service DB is unavailable or incompatible.
           TC_REQUIRE_DB: "1"
+          # TC-02-006: release tests must execute the web gates, not skip them.
+          TC_REQUIRE_WEB_TOOLCHAIN: "1"
         # DATABASE_URL / TC_TEST_DATABASE_URL come from the isolated Postgres step via GITHUB_ENV.
         run: pytest -rs
 

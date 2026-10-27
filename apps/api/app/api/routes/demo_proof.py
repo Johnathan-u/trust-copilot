@@ -30,7 +30,7 @@ from app.services.demo_proof_service import (
 
 # api_keys.role is the only scope field. "read" is the read scope.
 # editor, reviewer, admin and custom roles are not read-scoped.
-READ_SCOPED_API_KEY_ROLE = "read"
+READ_SCOPE_ROLE = "read"
 
 router = APIRouter(prefix="/demo-proof", tags=["demo-proof"])
 
@@ -85,7 +85,7 @@ def _guard(request: Request, db: Session, session: dict, workspace_id: int | Non
     if user_id is None:
         # Workspace mismatch was already rejected. A key may read only its own
         # workspace, and only when the key itself is read-scoped.
-        if session.get("role") != READ_SCOPED_API_KEY_ROLE:
+        if session.get("role") != READ_SCOPE_ROLE:
             return _api_error(
                 403,
                 "api_key_not_read_scoped",
