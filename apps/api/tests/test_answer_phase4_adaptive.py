@@ -3,7 +3,7 @@
 import itertools
 from unittest.mock import MagicMock, patch
 
-import pytest
+import pytest  # noqa: F401
 
 from app.core.adaptive_concurrency import (
     ADAPTIVE_INITIAL,
@@ -96,7 +96,7 @@ def test_classify_exception_timeout():
 
 def test_should_backoff_after_429():
     """should_backoff returns True shortly after a 429."""
-    import time
+    import time  # noqa: F401
 
     pool = AdaptivePool(initial=3)
     assert pool.should_backoff() is False

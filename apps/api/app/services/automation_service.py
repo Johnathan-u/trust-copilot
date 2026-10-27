@@ -158,7 +158,7 @@ def evaluate_generation_result(session: Session, gen_job: Job, payload: dict) ->
             },
         )
 
-        summary = (
+        summary = (  # noqa: F841
             f"{qnr_name}: {insufficient_count} of {total} questions have insufficient evidence. "
             f"All answers are preserved. Please review."
         )

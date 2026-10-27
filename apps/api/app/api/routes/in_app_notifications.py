@@ -19,7 +19,7 @@ def _user_filter(ws: int, uid: int, is_admin: bool):
         or_(InAppNotification.user_id == uid, InAppNotification.user_id.is_(None)),
     )
     if not is_admin:
-        return and_(base, InAppNotification.admin_only == False)
+        return and_(base, InAppNotification.admin_only == False)  # noqa: E712
     return base
 
 
@@ -75,7 +75,7 @@ async def unread_count(
     if not uid:
         return {"count": 0}
     is_admin = can_admin(session.get("role"))
-    filt = and_(_user_filter(ws, uid, is_admin), InAppNotification.is_read == False)
+    filt = and_(_user_filter(ws, uid, is_admin), InAppNotification.is_read == False)  # noqa: E712
     count = db.query(InAppNotification).filter(filt).count()
     return {"count": count}
 
@@ -116,7 +116,7 @@ async def mark_all_read(
     if not uid:
         return {"updated": 0}
     is_admin = can_admin(session.get("role"))
-    filt = and_(_user_filter(ws, uid, is_admin), InAppNotification.is_read == False)
+    filt = and_(_user_filter(ws, uid, is_admin), InAppNotification.is_read == False)  # noqa: E712
     updated = (
         db.query(InAppNotification)
         .filter(filt)

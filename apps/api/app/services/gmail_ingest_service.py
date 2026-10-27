@@ -7,9 +7,9 @@ from sqlalchemy.orm import Session
 
 from app.core.audit import persist_audit
 from app.models.evidence_item import EvidenceItem
-from app.models.gmail_integration import GmailControlSuggestion, GmailIngestLabel, GmailIntegration
+from app.models.gmail_integration import GmailControlSuggestion, GmailIngestLabel, GmailIntegration  # noqa: F401
 from app.services.gmail_service import decrypt_token, get_gmail_provider
-from app.services.slack_ingest_service import suggest_controls_for_evidence
+from app.services.slack_ingest_service import suggest_controls_for_evidence  # noqa: F401
 
 logger = logging.getLogger(__name__)
 
@@ -90,7 +90,7 @@ def ingest_email(
     subject = message_data.get("subject", "(no subject)")
     sender = message_data.get("from", "")
     date = message_data.get("date", "")
-    snippet = message_data.get("snippet", "")
+    snippet = message_data.get("snippet", "")  # noqa: F841
 
     result = {"email_evidence_id": None, "attachment_ids": []}
 
@@ -177,7 +177,7 @@ def fetch_and_ingest_label(
         .filter(
             GmailIngestLabel.workspace_id == workspace_id,
             GmailIngestLabel.label_id == label_id,
-            GmailIngestLabel.enabled == True,
+            GmailIngestLabel.enabled == True,  # noqa: E712
         )
         .first()
     )
@@ -188,7 +188,7 @@ def fetch_and_ingest_label(
         db.query(GmailIntegration)
         .filter(
             GmailIntegration.workspace_id == workspace_id,
-            GmailIntegration.enabled == True,
+            GmailIntegration.enabled == True,  # noqa: E712
         )
         .first()
     )

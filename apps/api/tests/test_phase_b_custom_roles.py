@@ -1,8 +1,8 @@
 """Phase B — Role Customization: custom roles CRUD, permission enforcement, audit."""
 
-import pytest
+import pytest  # noqa: F401
 from fastapi.testclient import TestClient
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session  # noqa: F401
 
 
 def _login_admin(client: TestClient) -> dict:

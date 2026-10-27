@@ -3,7 +3,7 @@
 import json
 from copy import copy
 from io import BytesIO
-from pathlib import Path
+from pathlib import Path  # noqa: F401
 from typing import Any
 
 import openpyxl

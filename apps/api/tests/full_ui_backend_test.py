@@ -35,11 +35,11 @@ Coverage:
 """Not a pytest suite — run as: python tests/full_ui_backend_test.py"""
 __test__ = False
 
-import json
-import time
-import sys
-import requests
-from collections import defaultdict
+import json  # noqa: E402, F401
+import time  # noqa: E402, F401
+import sys  # noqa: E402
+import requests  # noqa: E402
+from collections import defaultdict  # noqa: E402, F401
 
 BASE = "http://localhost:8000"
 SESSION = requests.Session()

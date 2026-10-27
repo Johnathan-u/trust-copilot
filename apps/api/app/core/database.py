@@ -22,10 +22,10 @@ if not _in_docker and not _in_test:
     load_dotenv(_api_root / ".env", override=True)
     load_dotenv(_repo_root / ".env")
 
-from sqlalchemy import create_engine
-from sqlalchemy.orm import declarative_base, sessionmaker
+from sqlalchemy import create_engine  # noqa: E402
+from sqlalchemy.orm import declarative_base, sessionmaker  # noqa: E402
 
-from app.core.config import get_settings
+from app.core.config import get_settings  # noqa: E402
 
 settings = get_settings()
 engine = create_engine(

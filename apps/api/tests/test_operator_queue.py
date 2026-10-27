@@ -89,7 +89,7 @@ class TestOperatorQueueService:
         db = SessionLocal()
         try:
             item1 = create_item(db, 1, "Filter A", priority="critical")
-            item2 = create_item(db, 1, "Filter B", priority="low")
+            item2 = create_item(db, 1, "Filter B", priority="low")  # noqa: F841
             db.commit()
             update_item(db, item1["id"], status="in_progress")
             db.commit()

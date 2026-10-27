@@ -4,14 +4,14 @@ from __future__ import annotations
 
 import json
 import logging
-import re
+import re  # noqa: F401
 import time
-from typing import Sequence
+from typing import Sequence  # noqa: F401
 
 from sqlalchemy.orm import Session
 
 from app.core.config import get_settings
-from app.models.tag import DocumentTag, Tag, TAG_CATEGORIES, TAG_SOURCES
+from app.models.tag import DocumentTag, Tag, TAG_CATEGORIES, TAG_SOURCES  # noqa: F401
 
 logger = logging.getLogger(__name__)
 

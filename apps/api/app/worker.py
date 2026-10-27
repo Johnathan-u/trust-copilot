@@ -13,13 +13,13 @@ if not _in_docker:
     load_dotenv(_api_root / ".env", override=True)
     load_dotenv(_repo_root / ".env")
 
-import io  # noqa: E402
+import io  # noqa: E402, F401
 import json  # noqa: E402
 import logging  # noqa: E402
 import tempfile  # noqa: E402
 import threading  # noqa: E402
 import time  # noqa: E402
-from concurrent.futures import ThreadPoolExecutor, as_completed  # noqa: E402
+from concurrent.futures import ThreadPoolExecutor, as_completed  # noqa: E402, F401
 from datetime import datetime, timezone  # noqa: E402
 from pathlib import Path  # noqa: E402
 
@@ -256,7 +256,7 @@ def run_generate_answers(job: Job, session, payload: dict) -> None:
     """Generate answers for questionnaire."""
     import json
 
-    from app.core.config import get_settings
+    from app.core.config import get_settings  # noqa: F401
     from app.services.answer_generation import generate_answers_for_questionnaire
 
     qnr_id = payload.get("questionnaire_id")

@@ -12,7 +12,7 @@ from sqlalchemy.orm import Session
 
 from app.api.schemas import BulkDeleteBody, MetadataUpdateBody
 from app.core.auth_deps import require_can_review
-from app.core.audit import audit_log, persist_audit
+from app.core.audit import audit_log, persist_audit  # noqa: F401
 from app.core.database import get_db
 from app.models import TrustRequest, TrustRequestNote, User, Workspace, WorkspaceMember
 from app.models.trust_request_note import NOTE_TYPE_INTERNAL, NOTE_TYPE_REPLY

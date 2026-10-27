@@ -4,12 +4,12 @@ Uses mock DB (no real commits) for progress and count assertions. Integration-st
 that need real DB are skipped when questionnaire/workspace not available.
 """
 
-import itertools
+import itertools  # noqa: F401
 import json
 from unittest.mock import MagicMock, patch
 
-import pytest
-from sqlalchemy.orm import Session
+import pytest  # noqa: F401
+from sqlalchemy.orm import Session  # noqa: F401
 
 from app.services.answer_generation import generate_answers_for_questionnaire
 

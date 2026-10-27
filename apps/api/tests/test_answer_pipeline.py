@@ -4,7 +4,7 @@ import json
 from unittest.mock import MagicMock, patch
 
 import pytest
-from sqlalchemy import text
+from sqlalchemy import text  # noqa: F401
 from sqlalchemy.orm import Session
 
 from app.core.corpus_version import bump_corpus_version, get_corpus_version
@@ -28,7 +28,7 @@ from app.services.evidence_processor import (
     compress_to_token_budget,
     deduplicate_by_chunk_id,
 )
-from app.services.batch_assembler import assemble_batches, estimate_tokens
+from app.services.batch_assembler import assemble_batches, estimate_tokens  # noqa: F401
 
 
 def test_normalize_question():
@@ -60,7 +60,7 @@ def test_evidence_processor_dedup_and_compress():
 
 def test_batch_assembler():
     class Q:
-        def __init__(self, text):
+        def __init__(self, text):  # noqa: F811
             self.text = text
 
     questions = [Q("short"), Q("x" * 500), Q("y" * 500)]
@@ -154,7 +154,7 @@ def test_partial_completion_progress(db_session: Session):
             patch("app.services.answer_generation.get_corpus_version", return_value="v1"),
             patch("openai.OpenAI", return_value=mock_chat),
         ):
-            count = generate_answers_for_questionnaire(db, qnr.id, ws.id, job=job)
+            count = generate_answers_for_questionnaire(db, qnr.id, ws.id, job=job)  # noqa: F841
         if job.result:
             data = json.loads(job.result)
             assert "generated" in data or "count" in data

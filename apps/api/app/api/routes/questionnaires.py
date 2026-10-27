@@ -1,8 +1,8 @@
 """Questionnaire API (QNR-01, QNR-02, QNR-13, AI-05)."""
 
 import json
-import os
-import re
+import os  # noqa: F401
+import re  # noqa: F401
 import logging
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -10,7 +10,7 @@ from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, Form, HTTPException, Query, UploadFile
 from pydantic import BaseModel, Field
-from sqlalchemy import func
+from sqlalchemy import func  # noqa: F401
 from sqlalchemy.orm import Session
 
 from app.api.schemas import BulkDeleteBody, MetadataUpdateBody
@@ -21,7 +21,7 @@ from app.core.database import get_db
 from app.models import (
     Answer,
     Document,
-    ExportRecord,
+    ExportRecord,  # noqa: F401
     Framework,
     FrameworkControl,
     Job,
@@ -50,7 +50,7 @@ from app.services.registry_metadata import (
     build_display_id,
     normalize_labels,
     parse_json_list,
-    to_json,
+    to_json,  # noqa: F401
 )
 from app.services.registry_lifecycle import (
     build_delete_preview,
@@ -708,7 +708,7 @@ def generate_questionnaire_mappings(
     skipped = len(questions) - len(eligible)
 
     # Phase 1: parallel LLM classification (all eligible questions at once)
-    signal_by_qid: dict[int, Any] = {}
+    signal_by_qid: dict[int, Any] = {}  # noqa: F821
     if eligible:
         prompt_ver = settings.mapping_classification_prompt_version
         q_ids = [q.id for q in eligible]

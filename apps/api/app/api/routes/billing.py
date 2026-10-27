@@ -11,7 +11,7 @@ from sqlalchemy.orm import Session
 from app.core.auth_deps import require_session
 from app.core.config import get_settings
 from app.core.database import get_db
-from app.models import Subscription, User, Workspace
+from app.models import Subscription, User, Workspace  # noqa: F401
 
 FREE_TRIAL_END = datetime(2026, 4, 5, 23, 59, 59, tzinfo=timezone.utc)
 

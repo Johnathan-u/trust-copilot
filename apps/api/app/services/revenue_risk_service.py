@@ -12,8 +12,8 @@ from sqlalchemy.orm import Session
 from app.models.answer import Answer
 from app.models.deal import Deal
 from app.models.evidence_item import EvidenceItem
-from app.models.golden_answer import GoldenAnswer
-from app.models.questionnaire import Question, Questionnaire
+from app.models.golden_answer import GoldenAnswer  # noqa: F401
+from app.models.questionnaire import Question, Questionnaire  # noqa: F401
 
 logger = logging.getLogger(__name__)
 

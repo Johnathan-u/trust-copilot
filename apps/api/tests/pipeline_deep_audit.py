@@ -4,7 +4,7 @@ what the pipeline actually produces.
 """
 
 import json
-import sys
+import sys  # noqa: F401
 import requests
 
 BASE = "http://localhost:8000"

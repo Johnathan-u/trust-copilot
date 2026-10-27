@@ -16,14 +16,14 @@ if str(api_root) not in sys.path:
     sys.path.insert(0, str(api_root))
 os.chdir(api_root)
 
-from dotenv import load_dotenv
+from dotenv import load_dotenv  # noqa: E402
 
 load_dotenv(api_root / ".env")
 load_dotenv(repo_root / ".env")
 
-from sqlalchemy.orm import Session
-from app.core.database import SessionLocal
-from app.models import Document, Job, JobStatus, TrustRequest
+from sqlalchemy.orm import Session  # noqa: E402, F401
+from app.core.database import SessionLocal  # noqa: E402
+from app.models import Document, Job, JobStatus, TrustRequest  # noqa: E402
 
 
 def main():

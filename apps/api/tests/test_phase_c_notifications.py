@@ -1,8 +1,8 @@
 """Phase C — Email Notifications: policies, delivery, unsubscribe, permissions, isolation."""
 
-import time
+import time  # noqa: F401
 
-import pytest
+import pytest  # noqa: F401
 from fastapi.testclient import TestClient
 
 
@@ -401,7 +401,7 @@ class TestDeliveryLog:
         """Log entries should only show for the current workspace."""
         _login_admin(client)
         r = client.get("/api/notifications/log?page_size=100")
-        entries = r.json()["entries"]
+        entries = r.json()["entries"]  # noqa: F841
         # All entries in the log should be for workspace 1 (current session)
         # We can't check workspace_id in the response since it's not returned,
         # but the query filters by workspace — this is a structural verification

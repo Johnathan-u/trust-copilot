@@ -185,7 +185,7 @@ def export_control_evidence_summary(
     for wc in db.query(WorkspaceControl).filter(WorkspaceControl.workspace_id == ws).all():
         links = db.query(ControlEvidenceLink).filter(ControlEvidenceLink.control_id == wc.id).all()
         evidence_count = len(links)
-        verified_count = sum(1 for l in links if l.verified)
+        verified_count = sum(1 for l in links if l.verified)  # noqa: E741
         framework_name = None
         control_key = None
         title = (wc.custom_name or "").strip() or None

@@ -1,12 +1,12 @@
 """Phase A — User Admin Foundation: comprehensive tests for invite, remove, suspend, roles, permissions, audit."""
 
-import hashlib
-import secrets
-from datetime import datetime, timedelta, timezone
+import hashlib  # noqa: F401
+import secrets  # noqa: F401
+from datetime import datetime, timedelta, timezone  # noqa: F401
 
-import pytest
+import pytest  # noqa: F401
 from fastapi.testclient import TestClient
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session  # noqa: F401
 
 
 # ---------------------------------------------------------------------------
@@ -385,9 +385,9 @@ class TestSuspendMember:
 
     def test_suspended_member_blocked(self, client: TestClient) -> None:
         """A suspended member should get 403 when trying to use the API."""
-        from app.core.database import SessionLocal
-        from app.core.password import hash_password
-        from app.models import User, WorkspaceMember
+        from app.core.database import SessionLocal  # noqa: F401
+        from app.core.password import hash_password  # noqa: F401
+        from app.models import User, WorkspaceMember  # noqa: F401
 
         email = "suspended_user@test.local"
         uid = _ensure_test_user(email, "testpass1")

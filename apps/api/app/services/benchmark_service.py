@@ -3,7 +3,7 @@
 import logging
 from datetime import datetime, timezone
 
-from sqlalchemy import func
+from sqlalchemy import func  # noqa: F401
 from sqlalchemy.orm import Session
 
 from app.models.answer import Answer

@@ -170,7 +170,7 @@ def promise_dashboard(db: Session, workspace_id: int) -> dict:
     contradictions = detect_contradictions(db, workspace_id)
     expiring = get_expiring_promises(db, workspace_id, 60)
     with_evidence = 0
-    stale_evidence = 0
+    stale_evidence = 0  # noqa: F841
     for p in all_p:
         ev = json.loads(p.evidence_ids_json or "[]")
         if ev:

@@ -5,7 +5,7 @@ from io import BytesIO
 from pathlib import Path
 
 import openpyxl
-import pytest
+import pytest  # noqa: F401
 
 from app.services.docx_writer import create_export_from_questionnaire_docx
 from app.services.xlsx_writer import (

@@ -15,28 +15,28 @@ from urllib.parse import urlsplit
 from fastapi import APIRouter, Depends, HTTPException, Request, Response
 
 logger = logging.getLogger(__name__)
-from fastapi.responses import RedirectResponse
+from fastapi.responses import RedirectResponse  # noqa: E402
 
-from pydantic import BaseModel
-from sqlalchemy.exc import OperationalError, SQLAlchemyError
-from sqlalchemy.orm import Session
+from pydantic import BaseModel  # noqa: E402
+from sqlalchemy.exc import OperationalError, SQLAlchemyError  # noqa: E402
+from sqlalchemy.orm import Session  # noqa: E402
 
-from app.core.audit import audit_log, persist_audit
-from app.core.debug_session_log import append_session_debug
-from app.core.auth_deps import get_session, require_session, require_valid_session
-from app.core.config import get_settings
-from app.core.database import get_db
-from app.core.mfa import (
+from app.core.audit import audit_log, persist_audit  # noqa: E402
+from app.core.debug_session_log import append_session_debug  # noqa: E402
+from app.core.auth_deps import get_session, require_session, require_valid_session  # noqa: E402
+from app.core.config import get_settings  # noqa: E402
+from app.core.database import get_db  # noqa: E402
+from app.core.mfa import (  # noqa: E402
     decrypt_totp_secret,
     encrypt_totp_secret,
     generate_totp_secret,
     get_totp_uri,
     verify_totp,
 )
-from app.core.password import hash_password, verify_password
-from app.core.rate_limit import get_client_ip, is_rate_limited, record_attempt
-from app.core.session import sign_session, verify_token
-from app.models import (
+from app.core.password import hash_password, verify_password  # noqa: E402
+from app.core.rate_limit import get_client_ip, is_rate_limited, record_attempt  # noqa: E402
+from app.core.session import sign_session, verify_token  # noqa: E402
+from app.models import (  # noqa: E402
     AuditEvent,
     EmailVerificationToken,
     Invite,
@@ -50,15 +50,15 @@ from app.models import (
     Workspace,
     WorkspaceMember,
 )
-from app.core import roles
-from app.core.invite_codes import hash_invite_code
-from app.services.email_service import (
+from app.core import roles  # noqa: E402
+from app.core.invite_codes import hash_invite_code  # noqa: E402
+from app.services.email_service import (  # noqa: E402
     send_password_reset_email,
     send_suspicious_login_email,
     send_verification_code_email,
-    send_verification_email,
+    send_verification_email,  # noqa: F401
 )
-from app.services.oauth_service import (
+from app.services.oauth_service import (  # noqa: E402
     generate_state,
     google_authorize_url,
     google_exchange_code,
@@ -67,7 +67,7 @@ from app.services.oauth_service import (
     microsoft_authorize_url,
     microsoft_exchange_code,
 )
-from app.services.sso_service import (
+from app.services.sso_service import (  # noqa: E402
     idme_authorize_url,
     idme_exchange_code,
     oidc_authorize_url,

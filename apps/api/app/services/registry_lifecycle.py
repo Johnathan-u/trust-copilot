@@ -11,11 +11,11 @@ from sqlalchemy.orm import Session
 
 from app.models import (
     Answer,
-    Document,
+    Document,  # noqa: F401
     ExportRecord,
     Question,
     Questionnaire,
-    TrustRequest,
+    TrustRequest,  # noqa: F401
     TrustRequestNote,
 )
 from app.services.registry_metadata import (

@@ -20,18 +20,18 @@ _api_root = Path(__file__).resolve().parent.parent
 if str(_api_root) not in sys.path:
     sys.path.insert(0, str(_api_root))
 
-from dotenv import load_dotenv
+from dotenv import load_dotenv  # noqa: E402
 
 _in_docker = Path("/.dockerenv").exists() or os.environ.get("TRUST_COPILOT_IN_DOCKER") == "1"
 if not _in_docker:
     load_dotenv(_api_root / ".env", override=True)
     load_dotenv(_api_root.parent.parent / ".env")
 
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy import create_engine  # noqa: E402
+from sqlalchemy.orm import sessionmaker  # noqa: E402
 
-from app.core.config import get_settings
-from app.models import Job, JobStatus
+from app.core.config import get_settings  # noqa: E402
+from app.models import Job, JobStatus  # noqa: E402
 
 STUCK_THRESHOLD_MINUTES = 30
 

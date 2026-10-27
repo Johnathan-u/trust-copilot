@@ -78,7 +78,7 @@ def test_parse_iso27001_xlsx() -> None:
     """Parse ISO27001 fixture (EXP-09)."""
     path = FIXTURES / "iso27001.xlsx"
     if not path.exists():
-        pytest.skip("Run scripts/generate-fixtures.py first")
+        pytest.skip("Run scripts/generate-fixtures.py first")  # noqa: F821
     questions = parse_xlsx_questionnaire(path)
     assert len(questions) >= 1
     assert all("source_location" in q for q in questions)
@@ -88,6 +88,6 @@ def test_parse_vendor_dd_xlsx() -> None:
     """Parse vendor DD fixture (EXP-09)."""
     path = FIXTURES / "vendor_dd.xlsx"
     if not path.exists():
-        pytest.skip("Run scripts/generate-fixtures.py first")
+        pytest.skip("Run scripts/generate-fixtures.py first")  # noqa: F821
     questions = parse_xlsx_questionnaire(path)
     assert len(questions) >= 1

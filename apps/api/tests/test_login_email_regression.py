@@ -3,7 +3,7 @@
 import os
 from unittest.mock import MagicMock, patch
 
-import pytest
+import pytest  # noqa: F401
 
 os.environ.setdefault("TRUST_COPILOT_TESTING", "1")
 

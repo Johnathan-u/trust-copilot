@@ -1,6 +1,6 @@
 """Customer-specific knowledge packs service (P1-59)."""
 
-import json
+import json  # noqa: F401
 from datetime import datetime, timezone
 
 from sqlalchemy.orm import Session

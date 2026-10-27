@@ -1,6 +1,6 @@
 """Enterprise auth flow tests: register, forgot-password, reset-password, accept-invite validation."""
 
-import pytest
+import pytest  # noqa: F401
 from fastapi.testclient import TestClient
 
 

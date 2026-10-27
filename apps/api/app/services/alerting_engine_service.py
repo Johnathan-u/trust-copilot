@@ -56,7 +56,7 @@ def check_connector_failure_alerts(db: Session, workspace_id: int) -> list[dict]
         db.query(SourceRegistry)
         .filter(
             SourceRegistry.workspace_id == workspace_id,
-            SourceRegistry.enabled == True,
+            SourceRegistry.enabled == True,  # noqa: E712
         )
         .all()
     )

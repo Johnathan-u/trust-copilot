@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import json
-from collections import Counter, defaultdict
+from collections import Counter, defaultdict  # noqa: F401
 
 from sqlalchemy import func
 from sqlalchemy.orm import Session

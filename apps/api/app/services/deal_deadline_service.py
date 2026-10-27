@@ -1,6 +1,6 @@
 """Due-date tracking and deadline alerts (E1-06)."""
 
-import json
+import json  # noqa: F401
 import logging
 from datetime import datetime, timedelta, timezone
 

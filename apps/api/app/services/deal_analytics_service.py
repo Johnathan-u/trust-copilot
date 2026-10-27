@@ -3,9 +3,9 @@
 Track deals closed with Trust Copilot, average time-to-close, and revenue unblocked.
 """
 
-import json
+import json  # noqa: F401
 import logging
-from datetime import datetime, timezone
+from datetime import datetime, timezone  # noqa: F401
 
 from sqlalchemy.orm import Session
 

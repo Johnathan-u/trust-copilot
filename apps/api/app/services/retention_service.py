@@ -5,7 +5,7 @@ and policy configuration.
 """
 
 import logging
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta, timezone  # noqa: F401
 
 from sqlalchemy.orm import Session
 

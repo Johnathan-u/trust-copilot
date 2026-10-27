@@ -4,9 +4,9 @@ Provides mock sync for both CRM platforms. Real implementations would use
 the respective REST APIs with OAuth.
 """
 
-import json
+import json  # noqa: F401
 import logging
-from datetime import datetime, timezone
+from datetime import datetime, timezone  # noqa: F401
 
 from sqlalchemy.orm import Session
 

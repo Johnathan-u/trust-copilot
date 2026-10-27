@@ -1,6 +1,6 @@
 """Tests for incident/status/vulnerability disclosure pages (P2-100)."""
 
-import pytest
+import pytest  # noqa: F401
 from app.services import incident_page_service as ips
 
 

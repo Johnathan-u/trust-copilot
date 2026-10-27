@@ -5,7 +5,7 @@ evidence links, and user actions for each control.
 """
 
 import logging
-from datetime import datetime, timezone
+from datetime import datetime, timezone  # noqa: F401
 
 from sqlalchemy.orm import Session
 

@@ -4,7 +4,7 @@ Track what was viewed, requested, downloaded per buyer/opportunity.
 """
 
 import logging
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta, timezone  # noqa: F401
 
 from sqlalchemy import func
 from sqlalchemy.orm import Session

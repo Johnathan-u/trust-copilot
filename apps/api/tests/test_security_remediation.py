@@ -2,8 +2,8 @@
 
 import asyncio
 import os
-import time
-from unittest.mock import AsyncMock, MagicMock, patch
+import time  # noqa: F401
+from unittest.mock import AsyncMock, MagicMock, patch  # noqa: F401
 
 import pytest
 from fastapi.testclient import TestClient
@@ -248,7 +248,7 @@ class TestDbTestEndpoint:
         """In production mode, /db-test returns 404."""
         from app.core.config import get_settings
 
-        original_env = get_settings().app_env
+        original_env = get_settings().app_env  # noqa: F841
         with patch.object(get_settings(), "app_env", "production"):
             from app.core.config import get_settings as gs
 
@@ -447,7 +447,7 @@ class TestRateLimitBackendSelection:
         ):
             with patch("app.core.rate_limit._RedisBackend") as mock_redis_cls:
                 mock_redis_cls.return_value = MagicMock(spec=_RedisBackend)
-                backend = _get_backend()
+                backend = _get_backend()  # noqa: F841
                 mock_redis_cls.assert_called_once()
 
     def test_rate_limit_key_uses_safe_client_ip(self, client: TestClient):

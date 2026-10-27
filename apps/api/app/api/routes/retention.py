@@ -1,6 +1,6 @@
 """Evidence retention and archiving API (P1-51)."""
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query  # noqa: F401
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 

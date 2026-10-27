@@ -3,7 +3,7 @@
 import json
 import logging
 import time
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta, timezone  # noqa: F401
 
 from sqlalchemy.orm import Session
 
@@ -57,7 +57,8 @@ def resolve_recipients(
             db.query(User.email)
             .join(WorkspaceMember, WorkspaceMember.user_id == User.id)
             .filter(
-                WorkspaceMember.workspace_id == workspace_id, WorkspaceMember.suspended == False
+                WorkspaceMember.workspace_id == workspace_id,
+                WorkspaceMember.suspended == False,  # noqa: E712
             )
             .all()
         )
@@ -70,7 +71,7 @@ def resolve_recipients(
             .filter(
                 WorkspaceMember.workspace_id == workspace_id,
                 WorkspaceMember.role == "admin",
-                WorkspaceMember.suspended == False,
+                WorkspaceMember.suspended == False,  # noqa: E712
             )
             .all()
         )
@@ -86,7 +87,7 @@ def resolve_recipients(
             .filter(
                 WorkspaceMember.workspace_id == workspace_id,
                 WorkspaceMember.role == role_name,
-                WorkspaceMember.suspended == False,
+                WorkspaceMember.suspended == False,  # noqa: E712
             )
             .all()
         )
@@ -105,7 +106,7 @@ def resolve_recipients(
             .filter(
                 WorkspaceMember.user_id == uid,
                 WorkspaceMember.workspace_id == workspace_id,
-                WorkspaceMember.suspended == False,
+                WorkspaceMember.suspended == False,  # noqa: E712
             )
             .first()
         )
@@ -174,7 +175,7 @@ def fire_notification(
         .filter(
             NotificationPolicy.workspace_id == workspace_id,
             NotificationPolicy.event_type == event_type,
-            NotificationPolicy.enabled == True,
+            NotificationPolicy.enabled == True,  # noqa: E712
         )
         .first()
     )
@@ -258,7 +259,7 @@ def _fire_slack_notification(
             db.query(SlackIntegration)
             .filter(
                 SlackIntegration.workspace_id == workspace_id,
-                SlackIntegration.enabled == True,
+                SlackIntegration.enabled == True,  # noqa: E712
             )
             .first()
         )

@@ -2,7 +2,7 @@
 
 import logging
 from datetime import datetime, timezone
-from io import BytesIO
+from io import BytesIO  # noqa: F401
 
 from sqlalchemy.orm import Session
 

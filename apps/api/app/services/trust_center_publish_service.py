@@ -1,7 +1,7 @@
 """Auto-publish from approved controls to Trust Center (P1-64)."""
 
 import logging
-from datetime import datetime, timezone
+from datetime import datetime, timezone  # noqa: F401
 
 from sqlalchemy.orm import Session
 

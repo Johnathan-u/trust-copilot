@@ -1,10 +1,10 @@
 """GitHub connector API (P1-23, P1-24, P1-25)."""
 
 from fastapi import APIRouter, Depends, Query
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session  # noqa: F401
 
 from app.core.auth_deps import require_can_admin
-from app.core.database import get_db
+from app.core.database import get_db  # noqa: F401
 from app.services import github_collector_service as gh
 
 router = APIRouter(prefix="/connectors/github", tags=["github-connector"])

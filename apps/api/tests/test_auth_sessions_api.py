@@ -1,6 +1,6 @@
 """TC-V-B4: Auth sessions API verification. GET /api/auth/sessions and POST revoke-others with require_valid_session."""
 
-import pytest
+import pytest  # noqa: F401
 from fastapi.testclient import TestClient
 
 

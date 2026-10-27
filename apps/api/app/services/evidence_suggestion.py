@@ -73,7 +73,7 @@ def suggest_evidence(
     tagged_doc_ids: set[int] = set()
     try:
         from app.services.tag_service import list_tags_for_documents as _batch_tags
-        from app.models.tag import DocumentTag
+        from app.models.tag import DocumentTag  # noqa: F401
 
         doc_ids_in_results = list(
             {

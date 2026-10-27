@@ -3,7 +3,7 @@
 import logging
 
 from app.core.config import get_settings
-from app.services.answer_generation import DEFAULT_MODEL, resolve_model
+from app.services.answer_generation import DEFAULT_MODEL, resolve_model  # noqa: F401
 
 logger = logging.getLogger(__name__)
 

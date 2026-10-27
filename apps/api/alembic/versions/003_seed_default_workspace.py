@@ -7,7 +7,7 @@ Create Date: 2025-01-01 00:02:00
 """
 
 from alembic import op
-import sqlalchemy as sa
+import sqlalchemy as sa  # noqa: F401
 from sqlalchemy.sql import text
 
 revision = "003"

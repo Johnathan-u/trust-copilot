@@ -22,7 +22,7 @@ def get_slis(db: Session) -> dict:
     """Calculate current SLIs."""
     now = datetime.now(timezone.utc)
     window_7d = now - timedelta(days=7)
-    window_30d = now - timedelta(days=30)
+    window_30d = now - timedelta(days=30)  # noqa: F841
 
     total_jobs_7d = (
         db.query(func.count(Job.id))

@@ -69,7 +69,7 @@ def test_create_trust_article_requires_admin(
     client: TestClient, admin_user: User, db_session: Session
 ) -> None:
     """Editor cannot create; admin can."""
-    from app.models import WorkspaceMember
+    from app.models import WorkspaceMember  # noqa: F401
 
     # Editor user cannot create
     client.post("/api/auth/login", json={"email": "editor@trust.local", "password": "e"})

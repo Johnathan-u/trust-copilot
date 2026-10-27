@@ -70,7 +70,7 @@ class TestCreditServiceUnit:
 
         db = SessionLocal()
         try:
-            ledger = get_or_create_ledger(db, 1)
+            ledger = get_or_create_ledger(db, 1)  # noqa: F841
             add_credits(db, 1, 50, description="test top-up")
             db.commit()
 

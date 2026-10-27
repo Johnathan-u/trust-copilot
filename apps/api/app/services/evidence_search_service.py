@@ -5,13 +5,13 @@ Turns evidence into reusable infrastructure.
 """
 
 import logging
-from datetime import datetime, timezone
+from datetime import datetime, timezone  # noqa: F401
 
 from sqlalchemy.orm import Session
 
 from app.models.control_evidence_link import ControlEvidenceLink
 from app.models.evidence_item import EvidenceItem
-from app.models.evidence_metadata import EvidenceMetadata
+from app.models.evidence_metadata import EvidenceMetadata  # noqa: F401
 
 logger = logging.getLogger(__name__)
 

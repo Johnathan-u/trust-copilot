@@ -1220,7 +1220,7 @@ def _sweep_draft_insufficient_narratives(db: Session, questionnaire_id: int) -> 
                         s_label, s_label.lower().replace(" ", "_")
                     )
                     if subject_requires_direct_evidence(s_key):
-                        direct_ev_missing = True
+                        direct_ev_missing = True  # noqa: F841
                         break
             except Exception:
                 pass

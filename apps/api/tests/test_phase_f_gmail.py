@@ -1,8 +1,8 @@
 """Phase F — Gmail Integration: connect, labels, ingest, dedup, suggestions, permissions, isolation."""
 
-import json
+import json  # noqa: F401
 
-import pytest
+import pytest  # noqa: F401
 from fastapi.testclient import TestClient
 
 
@@ -171,7 +171,7 @@ class TestGmailLabels:
         )
         r = client.get("/api/gmail/ingest/labels")
         assert r.status_code == 200
-        assert any(l["label_id"] == "Label_List" for l in r.json()["labels"])
+        assert any(l["label_id"] == "Label_List" for l in r.json()["labels"])  # noqa: E741
 
     def test_remove_label(self, client: TestClient) -> None:
         _login_admin(client)

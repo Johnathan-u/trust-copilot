@@ -1,11 +1,11 @@
 """AI Mapping & Governance tests: schema, CRUD, permissions, retrieval boost, governance settings."""
 
-import pytest
+import pytest  # noqa: F401
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 
-from app.core.password import hash_password
-from app.models import User, WorkspaceMember
+from app.core.password import hash_password  # noqa: F401
+from app.models import User, WorkspaceMember  # noqa: F401
 from app.models.ai_mapping import (
     AIGovernanceSettings,
     ControlEvidenceMapping,

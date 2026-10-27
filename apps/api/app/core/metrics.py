@@ -118,7 +118,7 @@ def update_compliance_gauges(db_session) -> None:
     """Set compliance gauges from DB. Call with a SQLAlchemy session (e.g. at /metrics scrape)."""
     try:
         from app.models import WorkspaceControl, ControlEvidenceLink, EvidenceItem
-        from sqlalchemy import func
+        from sqlalchemy import func  # noqa: F401
 
         total = db_session.query(WorkspaceControl).count()
         COMPLIANCE_CONTROLS_TOTAL.set(total)

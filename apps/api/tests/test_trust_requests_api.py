@@ -2,7 +2,7 @@
 
 from unittest.mock import patch
 
-import pytest
+import pytest  # noqa: F401
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 
@@ -242,7 +242,7 @@ def test_patch_assignee_not_in_workspace_rejected(client: TestClient, db_session
 
 def test_trust_request_update_audit_persisted(client: TestClient, db_session: Session) -> None:
     """PATCH status change persists an audit event with old/new. TC-H-B1."""
-    from app.models import AuditEvent, TrustRequest
+    from app.models import AuditEvent, TrustRequest  # noqa: F401
 
     create = client.post(
         "/api/trust-requests/",

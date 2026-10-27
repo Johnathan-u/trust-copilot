@@ -16,11 +16,11 @@ API_ROOT = Path(__file__).resolve().parent.parent
 if str(API_ROOT) not in sys.path:
     sys.path.insert(0, str(API_ROOT))
 
-from dotenv import load_dotenv
+from dotenv import load_dotenv  # noqa: E402
 
 load_dotenv(API_ROOT / ".env")
 
-from app.core.config import get_settings
+from app.core.config import get_settings  # noqa: E402
 
 get_settings.cache_clear()
 

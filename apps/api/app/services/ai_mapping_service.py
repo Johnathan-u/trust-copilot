@@ -651,7 +651,7 @@ def suggest_framework_control_mappings(db: Session, workspace_id: int) -> list[d
 
 def suggest_control_evidence_mappings(db: Session, workspace_id: int) -> list[dict]:
     """Infer control ↔ evidence from existing ControlEvidenceLink rows."""
-    from app.models import ControlEvidenceLink, EvidenceItem, WorkspaceControl
+    from app.models import ControlEvidenceLink, EvidenceItem, WorkspaceControl  # noqa: F401
 
     links = (
         db.query(ControlEvidenceLink)

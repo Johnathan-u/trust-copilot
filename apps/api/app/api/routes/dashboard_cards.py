@@ -2,7 +2,7 @@
 
 from datetime import datetime
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query  # noqa: F401
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
@@ -102,7 +102,7 @@ def list_cards(
 
     is_admin = session.get("role") in ("admin",)
     if not is_admin:
-        from app.core.roles import can_admin
+        from app.core.roles import can_admin  # noqa: F401
         from app.models import CustomRole
 
         role = session.get("role")

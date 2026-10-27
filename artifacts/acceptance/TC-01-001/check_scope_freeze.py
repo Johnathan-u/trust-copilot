@@ -46,5 +46,5 @@ if bad:
     print("FAIL")
     sys.exit(1)
 print(
-    "PASS: all route modules and pages frozen with owner epic and delivery tickets; dispatcher, provider, out-of-scope sections present"
+    "PASS: all route modules and pages frozen with owner epic and delivery tickets; dispatcher, provider, out-of-scope sections present"  # noqa: E501
 )

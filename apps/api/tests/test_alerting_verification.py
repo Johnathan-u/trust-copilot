@@ -2,16 +2,16 @@
 
 import io
 import logging
-import sys
+import sys  # noqa: F401
 from datetime import datetime, timedelta, timezone
 from unittest.mock import patch
 
-import pytest
+import pytest  # noqa: F401
 from fastapi.testclient import TestClient
-from sqlalchemy import text
+from sqlalchemy import text  # noqa: F401
 
 from app.main import app
-from app.core.database import engine
+from app.core.database import engine  # noqa: F401
 
 
 def test_workerz_503_logs_ALERT_WORKER_DOWN():

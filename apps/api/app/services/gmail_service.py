@@ -5,7 +5,7 @@ import logging
 import time
 from typing import Protocol
 
-from app.services.slack_service import encrypt_token, decrypt_token  # reuse Fernet
+from app.services.slack_service import encrypt_token, decrypt_token  # reuse Fernet  # noqa: F401
 
 logger = logging.getLogger(__name__)
 
@@ -99,7 +99,7 @@ class HttpGmailProvider:
 
     def list_labels(self, access_token: str) -> list[dict]:
         result = self._get(access_token, "labels")
-        return [{"id": l["id"], "name": l.get("name", "")} for l in result.get("labels", [])]
+        return [{"id": l["id"], "name": l.get("name", "")} for l in result.get("labels", [])]  # noqa: E741
 
     def list_messages(self, access_token: str, label_id: str, max_results: int = 20) -> list[dict]:
         result = self._get(

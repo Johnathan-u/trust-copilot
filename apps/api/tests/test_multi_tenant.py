@@ -4,7 +4,7 @@ Every test creates resources in workspace 1 (as admin) then attempts to access
 them from workspace 2 (after switching workspace), verifying 404/403.
 """
 
-import pytest
+import pytest  # noqa: F401
 from fastapi.testclient import TestClient
 
 

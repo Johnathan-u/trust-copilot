@@ -55,7 +55,7 @@ def notify_admins(
             .filter(
                 WorkspaceMember.workspace_id == workspace_id,
                 WorkspaceMember.role == "admin",
-                WorkspaceMember.suspended == False,
+                WorkspaceMember.suspended == False,  # noqa: E712
             )
             .all()
         )
@@ -95,7 +95,7 @@ def notify_workspace(
             db.query(WorkspaceMember)
             .filter(
                 WorkspaceMember.workspace_id == workspace_id,
-                WorkspaceMember.suspended == False,
+                WorkspaceMember.suspended == False,  # noqa: E712
             )
             .all()
         )

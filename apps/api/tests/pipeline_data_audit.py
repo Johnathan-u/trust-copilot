@@ -4,7 +4,7 @@ Checks whether the AI pipeline is producing real data and feeding it
 to every page/endpoint that consumes it.
 """
 
-import json
+import json  # noqa: F401
 import sys
 import requests
 
@@ -365,7 +365,7 @@ def main():
     print("  Is the pipeline built and feeding data to all pages?")
     print("=" * 70)
 
-    me = login()
+    me = login()  # noqa: F841
     core = audit_pipeline_core()
     audit_answer_stats(core)
     audit_compliance_coverage()

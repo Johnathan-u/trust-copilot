@@ -6,7 +6,7 @@ from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from app.models.answer import Answer
-from app.models.credit_ledger import CreditLedger, CreditTransaction
+from app.models.credit_ledger import CreditLedger, CreditTransaction  # noqa: F401
 from app.models.document import Document
 from app.models.evidence_gap import EvidenceGap
 from app.models.questionnaire import Question, Questionnaire

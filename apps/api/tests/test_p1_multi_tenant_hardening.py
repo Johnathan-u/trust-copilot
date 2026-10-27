@@ -2,7 +2,7 @@
 
 import json
 from datetime import datetime, timezone
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch, MagicMock  # noqa: F401
 
 import pytest
 from fastapi.testclient import TestClient

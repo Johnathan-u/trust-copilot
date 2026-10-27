@@ -28,15 +28,15 @@ API_ROOT = Path(__file__).resolve().parent.parent
 if str(API_ROOT) not in sys.path:
     sys.path.insert(0, str(API_ROOT))
 
-from dotenv import load_dotenv
+from dotenv import load_dotenv  # noqa: E402
 
 load_dotenv(API_ROOT / ".env")
 
-from sqlalchemy import text
-from sqlalchemy.orm import Session
+from sqlalchemy import text  # noqa: E402
+from sqlalchemy.orm import Session  # noqa: E402
 
-from app.core.database import SessionLocal
-from app.models import Framework, FrameworkControl, WorkspaceControl
+from app.core.database import SessionLocal  # noqa: E402
+from app.models import Framework, FrameworkControl, WorkspaceControl  # noqa: E402
 
 
 def _norm_fw(name: str) -> str:

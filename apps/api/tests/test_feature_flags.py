@@ -3,7 +3,7 @@
 import os
 from unittest.mock import patch
 
-import pytest
+import pytest  # noqa: F401
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 

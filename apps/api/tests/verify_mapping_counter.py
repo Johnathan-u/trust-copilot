@@ -22,11 +22,11 @@ _tests_dir = Path(__file__).resolve().parent
 if sys.path and Path(sys.path[0]).resolve() == _tests_dir:
     sys.path.insert(0, str(_api_root))
 
-from fastapi.testclient import TestClient
-from app.main import app
-from app.core.database import SessionLocal
-from app.models.questionnaire import Questionnaire, Question
-from app.models.ai_mapping import QuestionMappingPreference
+from fastapi.testclient import TestClient  # noqa: E402
+from app.main import app  # noqa: E402
+from app.core.database import SessionLocal  # noqa: E402
+from app.models.questionnaire import Questionnaire, Question  # noqa: E402
+from app.models.ai_mapping import QuestionMappingPreference  # noqa: E402
 
 c = TestClient(app, base_url="http://localhost")
 H = {"Origin": "http://localhost", "Referer": "http://localhost/"}

@@ -11,8 +11,8 @@ from app.core.config import get_settings
 SESSION_MAX_AGE = 86400 * 7
 
 
-import logging as _logging
-import os as _os
+import logging as _logging  # noqa: E402
+import os as _os  # noqa: E402
 
 _session_logger = _logging.getLogger(__name__)
 _DEV_SECRET = "change_me_dev_secret"

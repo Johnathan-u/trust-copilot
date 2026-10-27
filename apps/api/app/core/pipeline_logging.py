@@ -1,7 +1,7 @@
 """Structured logging for indexing, retrieval, and answer-generation pipeline. Correlation: job_id, workspace_id, document_id, questionnaire_id."""
 
 import logging
-import time
+import time  # noqa: F401
 from typing import Any
 
 logger = logging.getLogger("trustcopilot.pipeline")

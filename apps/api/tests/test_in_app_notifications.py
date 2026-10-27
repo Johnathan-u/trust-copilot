@@ -1,6 +1,6 @@
 """In-app notification center: API tests for list, unread count, mark read, permissions, isolation."""
 
-import pytest
+import pytest  # noqa: F401
 from fastapi.testclient import TestClient
 
 

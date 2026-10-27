@@ -19,15 +19,15 @@ if str(API_ROOT) not in sys.path:
     sys.path.insert(0, str(API_ROOT))
 
 # Load apps/api/.env so DATABASE_URL and S3_* are set when run from apps/api
-from dotenv import load_dotenv
+from dotenv import load_dotenv  # noqa: E402
 
 load_dotenv(API_ROOT / ".env")
 
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session  # noqa: E402
 
-from app.core.database import SessionLocal
-from app.core.password import hash_password
-from app.models import (
+from app.core.database import SessionLocal  # noqa: E402
+from app.core.password import hash_password  # noqa: E402
+from app.models import (  # noqa: E402
     Document,
     Question,
     Questionnaire,
@@ -36,9 +36,9 @@ from app.models import (
     Workspace,
     WorkspaceMember,
 )
-from app.services.file_service import make_key
-from app.services.storage import StorageClient
-from app.services.xlsx_questionnaire_parser import parse_xlsx_questionnaire
+from app.services.file_service import make_key  # noqa: E402
+from app.services.storage import StorageClient  # noqa: E402
+from app.services.xlsx_questionnaire_parser import parse_xlsx_questionnaire  # noqa: E402
 
 DEMO_EMAIL = "demo@trust.local"
 DEMO_PASSWORD = "j"

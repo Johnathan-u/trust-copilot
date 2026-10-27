@@ -71,7 +71,7 @@ class SetEvidenceVerifiedBody(BaseModel):
     verified: bool
 
 
-from app.api.constants import LOW_CONFIDENCE_THRESHOLD
+from app.api.constants import LOW_CONFIDENCE_THRESHOLD  # noqa: E402
 
 
 def _workspace_control_dict(
@@ -192,7 +192,7 @@ def control_stats(
             .filter(ControlEvidenceLink.control_id.in_(wc_ids_list))
             .all()
         )
-        evidence_ids = list({l.evidence_id for l in links})
+        evidence_ids = list({l.evidence_id for l in links})  # noqa: E741
         expires_by_evidence = {}
         for meta in (
             db.query(EvidenceMetadata).filter(EvidenceMetadata.evidence_id.in_(evidence_ids)).all()
@@ -485,7 +485,7 @@ def verify_control(
     return _workspace_control_dict(wc, db)
 
 
-from app.api.helpers import evidence_dict as _evidence_dict
+from app.api.helpers import evidence_dict as _evidence_dict  # noqa: E402
 
 
 # Default staleness thresholds (days) when workspace has no config
@@ -541,7 +541,7 @@ def accept_suggested_evidence(
     wc = _ensure_workspace_control(db, control_id, ws)
     if not wc:
         raise HTTPException(status_code=404, detail="Control not found")
-    from app.models import Chunk, Document
+    from app.models import Chunk, Document  # noqa: F401
 
     ch = (
         db.query(Chunk)

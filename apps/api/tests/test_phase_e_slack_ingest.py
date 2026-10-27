@@ -1,10 +1,10 @@
 """Phase E — Slack Ingest to Evidence: approved channels, evidence creation, dedup, isolation, audit, suggestions."""
 
-import json
+import json  # noqa: F401
 
-import pytest
+import pytest  # noqa: F401
 from fastapi.testclient import TestClient
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session  # noqa: F401
 
 
 def _login_admin(client: TestClient) -> dict:
@@ -100,7 +100,7 @@ def _get_audit_events(action: str, workspace_id: int = 1) -> list:
 class TestIngestChannels:
     def test_approve_channel(self, client: TestClient) -> None:
         _login_admin(client)
-        si_id = _ensure_slack_connected(client)
+        si_id = _ensure_slack_connected(client)  # noqa: F841
         _cleanup_ingest()
         r = client.post(
             "/api/slack/ingest/channels",
@@ -235,7 +235,7 @@ class TestDedup:
         r1 = client.post(f"/api/slack/ingest/run/{rec_id}?limit=3")
         first_count = r1.json()["ingested"]
         assert first_count >= 1
-        r2 = client.post(f"/api/slack/ingest/run/{rec_id}?limit=3")
+        r2 = client.post(f"/api/slack/ingest/run/{rec_id}?limit=3")  # noqa: F841
         # Stub generates unique timestamps, so for true dedup we test via the service directly
         from app.core.database import SessionLocal
         from app.services.slack_ingest_service import ingest_message

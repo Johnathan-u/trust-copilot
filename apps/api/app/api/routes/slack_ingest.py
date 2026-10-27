@@ -175,7 +175,7 @@ async def run_ingest(
         .filter(
             SlackIngestChannel.id == channel_record_id,
             SlackIngestChannel.workspace_id == ws,
-            SlackIngestChannel.enabled == True,
+            SlackIngestChannel.enabled == True,  # noqa: E712
         )
         .first()
     )

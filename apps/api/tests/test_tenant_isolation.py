@@ -1,6 +1,6 @@
 """Tenant isolation: cross-workspace access attempts must return 403 or 404."""
 
-import pytest
+import pytest  # noqa: F401
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 

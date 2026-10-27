@@ -4,9 +4,9 @@
 def test_imports() -> None:
     """Core imports work."""
     from app.services.xlsx_writer import create_export_from_questionnaire
-    from app.services.docx_writer import create_export_from_questionnaire_docx
-    from app.services.fallback_export import create_fallback_pack_docx
-    from app.services.retrieval import RetrievalService
+    from app.services.docx_writer import create_export_from_questionnaire_docx  # noqa: F401
+    from app.services.fallback_export import create_fallback_pack_docx  # noqa: F401
+    from app.services.retrieval import RetrievalService  # noqa: F401
     from app.services.prompt_builder import build_prompt
     from app.services.question_classifier import classify_question
 

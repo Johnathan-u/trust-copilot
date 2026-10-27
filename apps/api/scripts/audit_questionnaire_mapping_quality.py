@@ -20,15 +20,15 @@ API_ROOT = Path(__file__).resolve().parent.parent
 if str(API_ROOT) not in sys.path:
     sys.path.insert(0, str(API_ROOT))
 
-from dotenv import load_dotenv
+from dotenv import load_dotenv  # noqa: E402
 
 load_dotenv(API_ROOT / ".env")
 
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session  # noqa: E402
 
-from app.core.database import SessionLocal
-from app.models import FrameworkControl, Question, Questionnaire, WorkspaceControl
-from app.models.ai_mapping import QuestionMappingPreference
+from app.core.database import SessionLocal  # noqa: E402
+from app.models import FrameworkControl, Question, Questionnaire, WorkspaceControl  # noqa: E402
+from app.models.ai_mapping import QuestionMappingPreference  # noqa: E402
 
 
 def _band_for_row(mapped: bool, conf: float | None) -> str:

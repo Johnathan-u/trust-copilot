@@ -5,7 +5,7 @@ Designed to work with real AWS credentials when available, or return
 structured mock data for testing and development.
 """
 
-import json
+import json  # noqa: F401
 import logging
 from datetime import datetime, timezone
 

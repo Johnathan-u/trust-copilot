@@ -19,9 +19,9 @@ if not os.environ.get("TRUST_COPILOT_IN_DOCKER"):
     except ImportError:
         pass
 
-from app.core.config import get_settings
-from app.models import AuditEvent
-from app.core.database import SessionLocal
+from app.core.config import get_settings  # noqa: E402
+from app.models import AuditEvent  # noqa: E402
+from app.core.database import SessionLocal  # noqa: E402
 
 
 def main() -> None:

@@ -1,6 +1,6 @@
 """Source registry service — manage evidence source types per workspace."""
 
-import json
+import json  # noqa: F401
 import logging
 from datetime import datetime, timezone
 

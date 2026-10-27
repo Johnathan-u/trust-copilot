@@ -255,7 +255,7 @@ async def run_ingest(
         .filter(
             GmailIngestLabel.id == label_record_id,
             GmailIngestLabel.workspace_id == ws,
-            GmailIngestLabel.enabled == True,
+            GmailIngestLabel.enabled == True,  # noqa: E712
         )
         .first()
     )

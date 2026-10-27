@@ -1,12 +1,12 @@
 """Tests for trust request workspace routing and attachment handling."""
 
-import io
+import io  # noqa: F401
 import pytest
 from unittest.mock import MagicMock, patch
 from fastapi.testclient import TestClient
 
 from app.main import app
-from app.models import Workspace
+from app.models import Workspace  # noqa: F401
 
 
 client = TestClient(app)

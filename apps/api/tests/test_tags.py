@@ -4,7 +4,7 @@ import pytest
 from sqlalchemy.orm import Session
 
 from app.models import Document, EvidenceItem
-from app.models.tag import DocumentTag, Tag
+from app.models.tag import DocumentTag, Tag  # noqa: F401
 from app.services.tag_service import (
     SYSTEM_TAGS,
     approve_tag,

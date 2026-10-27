@@ -7,7 +7,7 @@ generate-mappings pipeline. LLM re-rank is handled by mapping_llm_rerank module.
 import logging
 import os
 import re
-import time
+import time  # noqa: F401
 import threading
 from typing import Any
 

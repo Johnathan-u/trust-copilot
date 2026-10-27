@@ -662,7 +662,7 @@ def main():
 
         label = r["name"]
         min_d = r["expect_min_drafted"]
-        max_i = r["expect_max_insufficient"]
+        max_i = r["expect_max_insufficient"]  # noqa: F841
 
         drafted_ok = r["drafted"] >= min_d
         checks.append((f"{label}: >= {min_d} drafted (got {r['drafted']})", drafted_ok))

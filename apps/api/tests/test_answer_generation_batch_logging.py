@@ -5,7 +5,7 @@ Covers: successful LLM rounds, gated skip (no evidence), OpenAI failures per que
 
 from unittest.mock import MagicMock, patch
 
-import pytest
+import pytest  # noqa: F401
 
 from app.services.answer_generation import generate_answers_for_questionnaire
 

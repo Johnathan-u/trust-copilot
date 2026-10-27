@@ -11,7 +11,7 @@ from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
 from app.core.audit import persist_audit
-from app.core.auth_deps import require_can_admin, require_session
+from app.core.auth_deps import require_can_admin, require_session  # noqa: F401
 from app.core.invite_codes import generate_invite_code_pair, hash_invite_code
 from app.core.config import get_settings
 from app.core.database import get_db
@@ -418,7 +418,7 @@ async def suspend_member(
             .filter(
                 WorkspaceMember.workspace_id == workspace_id,
                 WorkspaceMember.role == "admin",
-                WorkspaceMember.suspended == False,
+                WorkspaceMember.suspended == False,  # noqa: E712
             )
             .count()
         )

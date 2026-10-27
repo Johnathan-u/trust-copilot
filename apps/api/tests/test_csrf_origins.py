@@ -1,6 +1,6 @@
 """Tests for CSRF trusted-origin validation (SEC-201). Ensures allowed/disallowed origins behave correctly."""
 
-import pytest
+import pytest  # noqa: F401
 
 from app.core.csrf import is_csrf_safe
 

@@ -9,8 +9,8 @@ from fastapi import HTTPException, UploadFile
 
 logger = logging.getLogger(__name__)
 
-from app.core.config import get_settings
-from app.services.storage import StorageClient
+from app.core.config import get_settings  # noqa: E402
+from app.services.storage import StorageClient  # noqa: E402
 
 PRESIGNED_EXPORT_EXPIRY = 900  # 15 min
 ALLOWED_RAW_EXTENSIONS = {".pdf", ".docx", ".doc", ".xlsx", ".xls", ".txt"}

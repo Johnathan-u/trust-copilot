@@ -1,6 +1,6 @@
 """Tests for in-app notification fire points across all wired events."""
 
-import pytest
+import pytest  # noqa: F401
 from fastapi.testclient import TestClient
 
 

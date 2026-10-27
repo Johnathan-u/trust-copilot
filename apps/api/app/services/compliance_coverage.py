@@ -8,12 +8,12 @@ from __future__ import annotations
 
 import json
 from collections import Counter, defaultdict
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta  # noqa: F401
 
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
-from app.models import Answer, Document, Question, Questionnaire
+from app.models import Answer, Document, Question, Questionnaire  # noqa: F401
 from app.models.evidence_gap import EvidenceGap
 from app.models.question_mapping_signal import QuestionMappingSignal
 

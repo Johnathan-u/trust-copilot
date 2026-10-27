@@ -9,7 +9,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 from app.core.database import SessionLocal
-from app.models import Answer, ExportRecord, Job, JobStatus, Question, Questionnaire
+from app.models import Answer, ExportRecord, Job, JobStatus, Question, Questionnaire  # noqa: F401
 from app.worker import run_export, run_parse_questionnaire
 
 

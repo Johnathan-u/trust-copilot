@@ -7,18 +7,18 @@ from pathlib import Path
 
 logger = logging.getLogger(__name__)
 
-from sqlalchemy import text
-from sqlalchemy.orm import Session
+from sqlalchemy import text  # noqa: E402
+from sqlalchemy.orm import Session  # noqa: E402
 
-from app.core.pipeline_logging import log_index_failure, log_index_start, log_index_success
-from app.core.metrics import INDEX_DOCUMENT_TOTAL, INDEX_DURATION_SECONDS
-from app.models import Chunk, Document
-from app.services.chunking import chunk_evidence
-from app.services.embedding_service import EMBEDDING_DIM, embed_texts
-from app.services.evidence_parser import parse_evidence
-from app.services.file_service import FileService
-from app.services.storage import StorageClient
-from app.services.vector_util import embedding_to_vector_literal, validate_embedding_dimension
+from app.core.pipeline_logging import log_index_failure, log_index_start, log_index_success  # noqa: E402
+from app.core.metrics import INDEX_DOCUMENT_TOTAL, INDEX_DURATION_SECONDS  # noqa: E402
+from app.models import Chunk, Document  # noqa: E402
+from app.services.chunking import chunk_evidence  # noqa: E402
+from app.services.embedding_service import EMBEDDING_DIM, embed_texts  # noqa: E402, F401
+from app.services.evidence_parser import parse_evidence  # noqa: E402
+from app.services.file_service import FileService  # noqa: E402
+from app.services.storage import StorageClient  # noqa: E402
+from app.services.vector_util import embedding_to_vector_literal, validate_embedding_dimension  # noqa: E402
 
 
 def index_document(

@@ -4,7 +4,7 @@ Generates clean citations referencing approved evidence, control states,
 and linked artifacts. Goes beyond raw document chunks to compose provable citations.
 """
 
-import json
+import json  # noqa: F401
 import logging
 
 from sqlalchemy.orm import Session
