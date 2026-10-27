@@ -67,7 +67,8 @@ async def create_checkout_session(
     s = get_settings()
     selected = price_and_plan_for_interval(s, body.interval)
     if not selected:
-        raise HTTPException(status_code=503, detail="Stripe price not configured")
+        logger.warning("billing unavailable: Stripe price not configured")
+        raise HTTPException(status_code=503, detail=BILLING_UNAVAILABLE)
     plan_key, price_id = selected
 
     actor = principal_for_billing_session(session)
@@ -186,6 +187,7 @@ async def create_portal_session(
         .filter(
             Subscription.workspace_id == workspace_id,
         )
+        .order_by(Subscription.id.desc())
         .first()
     )
     if not sub or not sub.stripe_customer_id:

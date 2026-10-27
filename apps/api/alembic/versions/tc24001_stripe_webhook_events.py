@@ -3,9 +3,8 @@
 Revision ID: tc24001_stripe_webhook_events
 Revises: tc11001_model_outcome_codes
 
-Master's Alembic head is tc11001_model_outcome_codes. This revision
-re-parents onto that head only. Sibling revisions tc25005 and tc10003
-also sit on 075 and are not parents of this revision.
+Parent is master's Alembic head, tc11001_model_outcome_codes.
+Other open revisions are not parents of this migration.
 """
 
 import sqlalchemy as sa

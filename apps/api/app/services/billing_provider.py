@@ -315,7 +315,8 @@ def process_stripe_webhook(
         return WebhookResult(503, {"detail": BILLING_UNAVAILABLE})
     secrets = tuple(getattr(settings, "stripe_webhook_secrets", ()) or ())
     if not secrets:
-        return WebhookResult(503, {"detail": SECRET_MISSING})
+        logger.warning("billing unavailable: %s", SECRET_MISSING)
+        return WebhookResult(503, {"detail": BILLING_UNAVAILABLE})
     if not sig_header or not str(sig_header).strip():
         return WebhookResult(400, {"detail": SIG_MISSING})
 
@@ -332,7 +333,8 @@ def process_stripe_webhook(
 
     fatal = first_fatal_message(settings)
     if fatal:
-        return WebhookResult(503, {"detail": fatal})
+        logger.warning("billing unavailable: %s", fatal)
+        return WebhookResult(503, {"detail": BILLING_UNAVAILABLE})
 
     try:
         event = _parse_event(decoded)
@@ -415,10 +417,12 @@ def _signature_result(exc: StripeSignatureError) -> WebhookResult:
         "mismatch": (400, SIG_INVALID),
         "timestamp_expired": (400, SIG_EXPIRED),
         "timestamp_future": (400, SIG_FUTURE),
-        "missing_secret": (503, SECRET_MISSING),
+        "missing_secret": (503, BILLING_UNAVAILABLE),
         "undecodable": (400, PAYLOAD_INVALID),
     }
     status, detail = messages.get(exc.code, (400, SIG_INVALID))
+    if status == 503:
+        logger.warning("billing unavailable: %s", SECRET_MISSING)
     return WebhookResult(status, {"detail": detail})
 
 

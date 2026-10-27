@@ -831,7 +831,9 @@ def test_live_mode_accepts_only_live_events(billing_client, stripe_settings, bag
     assert sub_state(bag["sub"])["status"] == "active"
 
 
-def test_test_key_with_live_mode_is_rejected(billing_client, stripe_settings, bag, monkeypatch):
+def test_test_key_with_live_mode_is_rejected(
+    billing_client, stripe_settings, bag, monkeypatch, caplog
+):
     from app.services.billing_provider import stripe_preflight_issues
 
     monkeypatch.setenv("STRIPE_MODE", "live")
@@ -845,11 +847,15 @@ def test_test_key_with_live_mode_is_rejected(billing_client, stripe_settings, ba
         SECRET_A,
     )
     assert response.status_code == 503
-    assert "test key" in response.json()["detail"]
+    assert response.json()["detail"] == "Billing is not available."
+    assert "STRIPE_" not in response.text
+    assert "test key" in caplog.text
     assert sub_state(bag["sub"]) is None
 
 
-def test_live_key_outside_production_is_rejected(billing_client, stripe_settings, bag, monkeypatch):
+def test_live_key_outside_production_is_rejected(
+    billing_client, stripe_settings, bag, monkeypatch, caplog
+):
     from app.services.billing_provider import raise_for_stripe_preflight, stripe_preflight_issues
 
     monkeypatch.setenv("APP_ENV", "development")
@@ -866,12 +872,14 @@ def test_live_key_outside_production_is_rejected(billing_client, stripe_settings
         SECRET_A,
     )
     assert response.status_code == 503
-    assert "outside production" in response.json()["detail"]
+    assert response.json()["detail"] == "Billing is not available."
+    assert "STRIPE_" not in response.text
+    assert "outside production" in caplog.text
     assert sub_state(bag["sub"]) is None
 
 
 def test_production_missing_webhook_secret_fails_closed(
-    billing_client, stripe_settings, bag, monkeypatch
+    billing_client, stripe_settings, bag, monkeypatch, caplog
 ):
     from app.services.billing_provider import raise_for_stripe_preflight
 
@@ -891,7 +899,9 @@ def test_production_missing_webhook_secret_fails_closed(
         SECRET_A,
     )
     assert response.status_code == 503
-    assert response.json()["detail"] == "Stripe webhook secret is not configured"
+    assert response.json()["detail"] == "Billing is not available."
+    assert "STRIPE_" not in response.text
+    assert "webhook secret" in caplog.text
     assert sub_state(bag["sub"]) is None
     assert _event_table_count() == before
 
@@ -1208,6 +1218,42 @@ def test_prune_does_not_allow_a_stale_event_to_regress(billing_client, stripe_se
     assert event_rows(delete_id) == []
 
 
+def _revision_token(output: str) -> str:
+    for line in output.splitlines():
+        token = line.strip().split()[0] if line.strip() else ""
+        if token and not token.startswith("INFO"):
+            return token
+    raise AssertionError(f"no revision in alembic output: {output!r}")
+
+
+def _revision_is_applied(head: str, revision: str) -> bool:
+    """True when ``head`` is ``revision`` or a later revision on its chain.
+
+    Same walk as ``tests/test_provider_adapter.py``.
+    """
+    from pathlib import Path
+
+    from alembic.config import Config
+    from alembic.script import ScriptDirectory
+
+    api_dir = Path(__file__).resolve().parents[2]
+    cfg = Config(str(api_dir / "alembic.ini"))
+    cfg.set_main_option("script_location", str(api_dir / "alembic"))
+    script = ScriptDirectory.from_config(cfg)
+    current: str | None = head
+    seen: set[str] = set()
+    while current and current not in seen:
+        if current == revision:
+            return True
+        seen.add(current)
+        rev = script.get_revision(current)
+        parent = rev.down_revision if rev is not None else None
+        if isinstance(parent, tuple):
+            return any(_revision_is_applied(item, revision) for item in parent if item)
+        current = parent
+    return False
+
+
 def test_migration_fresh_install_upgrade_and_downgrade():
     url = _database_url("trustcopilot_tc24001_migration_test")
     _recreate_database("trustcopilot_tc24001_migration_test")
@@ -1215,7 +1261,7 @@ def test_migration_fresh_install_upgrade_and_downgrade():
         heads = _alembic(url, "heads")
         assert heads.returncode == 0, heads.stderr
         assert heads.stdout.count("(head)") == 1
-        assert "tc24001_stripe_webhook_events" in heads.stdout
+        assert _revision_is_applied(_revision_token(heads.stdout), "tc24001_stripe_webhook_events")
         fresh = _alembic(url, "upgrade", "head")
         assert fresh.returncode == 0, fresh.stderr
         _assert_webhook_schema(url, present=True)
@@ -1230,7 +1276,9 @@ def test_migration_fresh_install_upgrade_and_downgrade():
         _assert_webhook_schema(url, present=True)
         current = _alembic(url, "current")
         assert current.returncode == 0, current.stderr
-        assert "tc24001_stripe_webhook_events" in current.stdout
+        assert _revision_is_applied(
+            _revision_token(current.stdout), "tc24001_stripe_webhook_events"
+        )
     finally:
         _drop_database("trustcopilot_tc24001_migration_test")
 
