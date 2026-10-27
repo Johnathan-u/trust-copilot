@@ -27,7 +27,7 @@ Tests ran on `d3145d20b53cc99481f3b6af03d8c5f15e2b25a7` (merge of `1c8456be724f6
 - SQLAlchemy 2.0.55
 - Alembic 1.20.1
 - Node 24.22.1 for the UI reader imported by the agreement test
-- `alembic heads`: `tc21002_control_contract (head)`, parent `tc24001_stripe_webhook_events`
+- `alembic heads`: `tc21002_control_contract (head)`, parent `tc10003b_idempotency_owner_token`
 
 ## Totals
 
@@ -36,3 +36,17 @@ Tests ran on `d3145d20b53cc99481f3b6af03d8c5f15e2b25a7` (merge of `1c8456be724f6
 | `python -m pytest tests/release/test_domain_controls.py -q` | 0 | 6 passed, 0 skipped, 63 warnings, 5.04s |
 
 No test in that file was skipped.
+
+## CI repair
+
+The first push of `e4e983619387be84c8fa0e0527660de03f42d71a` failed because the agreement test launched Node from `~/.nvm/versions/node/v24.22.1/bin/node`. GitHub Actions installs Node 24 from `apps/web/.nvmrc` onto `PATH` and does not create that path. The same `FileNotFoundError` failed push run 40522261910 and pull_request run 40522329512.
+
+The test now uses `node` on `PATH` and requires a `v24` version. Re-run from `apps/api` with Node 24.22.1 first on `PATH`:
+
+```text
+python -m pytest tests/release/test_domain_controls.py -q
+```
+
+Exit 0. 6 passed, 0 skipped, 63 warnings, 4.40s.
+
+Master then added `tc10003b_idempotency_owner_token` (parent `tc24001_stripe_webhook_events`). `tc21002_control_contract` was re-parented onto that revision. `alembic heads` showed one head, `tc21002_control_contract (head)`. The same pytest command passed again: exit 0, 6 passed, 0 skipped, 63 warnings, 4.29s.

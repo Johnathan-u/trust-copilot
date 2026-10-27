@@ -5,14 +5,14 @@ content_version is a null slot until TC-01-007; this revision does not store a
 licensed version and does not insert framework text.
 
 Revision ID: tc21002_control_contract
-Revises: tc24001_stripe_webhook_events
+Revises: tc10003b_idempotency_owner_token
 """
 
 from alembic import op
 import sqlalchemy as sa
 
 revision = "tc21002_control_contract"
-down_revision = "tc24001_stripe_webhook_events"
+down_revision = "tc10003b_idempotency_owner_token"
 branch_labels = None
 depends_on = None
 

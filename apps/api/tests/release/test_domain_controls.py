@@ -5,6 +5,7 @@ Runs on PostgreSQL. Synthetic control ids are test labels, not framework text.
 
 import json
 import os
+import shutil
 import subprocess
 import sys
 import uuid
@@ -17,7 +18,7 @@ from app.models import Control, User, Workspace, WorkspaceMember
 
 API_ROOT = Path(__file__).resolve().parents[2]
 REPO_ROOT = API_ROOT.parents[1]
-PARENT_REVISION = "tc24001_stripe_webhook_events"
+PARENT_REVISION = "tc10003b_idempotency_owner_token"
 REVISION = "tc21002_control_contract"
 SLUG = "tc21002"
 EDITOR_EMAIL = "tc21002-editor@trust.local"
@@ -229,7 +230,13 @@ def test_routes_agree_on_canonical_contract_and_retry(client):
     finally:
         session.close()
 
-    node = Path.home() / ".nvm/versions/node/v24.22.1/bin/node"
+    # CI installs Node from apps/web/.nvmrc onto PATH (actions/setup-node).
+    # A home-directory nvm path is not present on that runner.
+    node = shutil.which("node")
+    assert node, "node is not on PATH"
+    version = subprocess.run([node, "--version"], capture_output=True, text=True, check=False)
+    assert version.returncode == 0, version.stderr
+    assert version.stdout.startswith("v24."), version.stdout
     script = (
         "import { sameCanonicalControl } from './apps/web/lib/controlContract.ts';"
         "const fs = await import('node:fs');"
