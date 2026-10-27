@@ -1,0 +1,40 @@
+{
+  "ticket": "TC-21-001",
+  "tested_commit": "5d4536b18e475fe12d5f3b12411037403555fa28",
+  "merged_master": "5c8f1dce33ed568ad35c0904824699211628ae6e",
+  "master_alembic_head": "075",
+  "branch_alembic_heads": "tc21001_framework_catalog_rights (head)",
+  "command": "python -m pytest tests/release/test_domain_compliance_frameworks.py tests/release/test_domain_compliance_frameworks_unit.py -q",
+  "cwd": "apps/api",
+  "exit_status": 0,
+  "passed": 14,
+  "failed": 0,
+  "skipped": 0,
+  "errors": 0,
+  "warnings": 41,
+  "required_skips": [],
+  "ruff": {
+    "version": "0.5.6",
+    "format_check": "ruff format --check .",
+    "lint": "ruff check .",
+    "cwd": "apps/api",
+    "exit_status": 0
+  },
+  "web_unit": {
+    "command": "npx vitest run lib/frameworkCatalog.test.ts",
+    "cwd": "apps/web",
+    "exit_status": 0,
+    "passed": 6,
+    "failed": 0,
+    "skipped": 0
+  },
+  "ui_browser": {
+    "tool": "Playwright Chromium headless",
+    "viewports": ["1440x900", "390x844"],
+    "admin_list": "all nine advertised frameworks shown blocked pending content licensing",
+    "admin_enable": "SOC 2 enablement refused; production enabled count stayed 0",
+    "reviewer": "blocked list visible; enable button absent; admin permission noted",
+    "mobile_page_overflow": false,
+    "note": "Browser screenshots are from the earlier scaffold check. This revision changes copy and disables enablement on dev rows; vitest covers that consumer."
+  }
+}

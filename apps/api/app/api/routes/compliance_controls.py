@@ -258,7 +258,10 @@ def list_controls(
             FrameworkControl, WorkspaceControl.framework_control_id == FrameworkControl.id
         ).outerjoin(Framework, FrameworkControl.framework_id == Framework.id)
         if framework is not None:
-            q = q.filter(Framework.name == framework)
+            from app.services.framework_catalog import framework_ids_for_exact_name
+
+            matched_ids = framework_ids_for_exact_name(db, framework)
+            q = q.filter(Framework.id.in_(matched_ids or [-1]))
         if category is not None:
             q = q.filter(FrameworkControl.category == category)
     rows = q.all()
