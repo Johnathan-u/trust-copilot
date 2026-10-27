@@ -1,0 +1,17 @@
+# tests/release/test_evidence_gap_generation.py (branch tests) with evidence_gap_service.py and models/evidence_gap.py checked out from ce4d861 (unchanged through de33203)
+# pytest -q --tb=line
+/repo/apps/api/tests/release/test_evidence_gap_generation.py:199: AssertionError: assert {'generated':...ufficient': 1} == {'generated':...'resolved': 0}
+/repo/apps/api/tests/release/test_evidence_gap_generation.py:305: AssertionError: assert {'generated':...ufficient': 1} == {'generated':...'resolved': 0}
+/repo/apps/api/tests/release/test_evidence_gap_generation.py:429: AssertionError: assert 'open' == 'resolved'
+/repo/apps/api/tests/release/test_evidence_gap_generation.py:471: AssertionError: assert 'open' == 'resolved'
+/repo/apps/api/tests/release/test_evidence_gap_generation.py:499: AssertionError: assert 'open' == 'resolved'
+/repo/apps/api/tests/release/test_evidence_gap_generation.py:538: AssertionError: assert 'open' == 'resolved'
+/repo/apps/api/tests/release/test_evidence_gap_generation.py:606: AssertionError: trial 0: open gaps for [34, 35]
+FAILED tests/release/test_evidence_gap_generation.py::test_generator_skips_model_failures_and_existing_gaps
+FAILED tests/release/test_evidence_gap_generation.py::test_generator_skips_llm_error_placeholders
+FAILED tests/release/test_evidence_gap_generation.py::test_regeneration_resolves_gap_when_answer_becomes_sufficient
+FAILED tests/release/test_evidence_gap_generation.py::test_regeneration_resolves_gap_when_question_is_removed
+FAILED tests/release/test_evidence_gap_generation.py::test_regeneration_preserves_manually_accepted_and_dismissed_gaps
+FAILED tests/release/test_evidence_gap_generation.py::test_regeneration_leaves_llm_error_placeholders_untouched
+FAILED tests/release/test_evidence_gap_generation.py::test_concurrent_regeneration_resolves_once_and_keeps_one_open_gap
+7 failed, 6 passed in 4.10s

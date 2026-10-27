@@ -1,0 +1,62 @@
+# New and updated gap tests copied onto clean master a702056 (service/model unchanged = master)
+tc10003b_idempotency_owner_token (head)
+>       assert metrics["evidence_gaps"] == 2
+E       assert 4 == 2
+
+tests/release/test_gap_totals_exclude_resolved.py:105: AssertionError
+_____________ test_executive_dashboard_gap_total_excludes_resolved _____________
+
+db_session = <sqlalchemy.orm.session.Session object at 0x7f41b581ab10>
+
+    def test_executive_dashboard_gap_total_excludes_resolved(db_session: Session):
+        """Platform-wide count, so the test compares before/after deltas around its own rows."""
+        from app.services import executive_dashboard_service as eds
+    
+        before = eds.get_executive_dashboard(db_session)["content"]
+        with _seeded_workspace(db_session):
+            after = eds.get_executive_dashboard(db_session)["content"]
+>       assert after["evidence_gaps"] - before["evidence_gaps"] == 2
+E       assert (4 - 0) == 2
+
+tests/release/test_gap_totals_exclude_resolved.py:116: AssertionError
+___________________ test_gap_summary_total_excludes_resolved ___________________
+
+db_session = <sqlalchemy.orm.session.Session object at 0x7f41b5661ad0>
+gap_ws = (9, 618)
+
+    def test_gap_summary_total_excludes_resolved(db_session: Session, gap_ws):
+        from app.services.evidence_gap_service import gap_summary
+    
+        ws_id, _qnr_id = gap_ws
+>       assert gap_summary(db_session, ws_id) == {
+            "open": 1,
+            "accepted": 1,
+            "dismissed": 0,
+            "resolved": 2,
+            "total": 2,
+        }
+E       AssertionError: assert {'open': 1, '...lved': 2, ...} == {'open': 1, '...lved': 2, ...}
+E         
+E         Omitting 4 identical items, use -vv to show
+E         Differing items:
+E         {'total': 4} != {'total': 2}
+E         Use -v to get more diff
+
+tests/release/test_gap_totals_exclude_resolved.py:124: AssertionError
+=========================== short test summary info ============================
+FAILED tests/release/test_evidence_gap_generation.py::test_generator_skips_model_failures_and_existing_gaps
+FAILED tests/release/test_evidence_gap_generation.py::test_generator_skips_llm_error_placeholders
+FAILED tests/release/test_evidence_gap_generation.py::test_regeneration_resolves_gap_when_answer_becomes_sufficient
+FAILED tests/release/test_evidence_gap_generation.py::test_regeneration_resolves_gap_when_question_is_removed
+FAILED tests/release/test_evidence_gap_generation.py::test_regeneration_preserves_manually_accepted_and_dismissed_gaps
+FAILED tests/release/test_evidence_gap_generation.py::test_regeneration_leaves_llm_error_placeholders_untouched
+FAILED tests/release/test_evidence_gap_generation.py::test_concurrent_regeneration_resolves_once_and_keeps_one_open_gap
+FAILED tests/release/test_evidence_gap_generation.py::test_regeneration_keeps_gap_open_when_answer_is_rejected_or_flagged[rejected]
+FAILED tests/release/test_evidence_gap_generation.py::test_regeneration_keeps_gap_open_when_answer_is_rejected_or_flagged[flagged]
+FAILED tests/release/test_evidence_gap_generation.py::test_resolution_note_format_is_delimited_and_keeps_reason
+FAILED tests/release/test_gap_totals_exclude_resolved.py::test_export_pack_evidence_bundle_lists_resolved_separately
+FAILED tests/release/test_gap_totals_exclude_resolved.py::test_demo_proof_gap_metric_excludes_resolved
+FAILED tests/release/test_gap_totals_exclude_resolved.py::test_benchmark_evidence_metrics_exclude_resolved
+FAILED tests/release/test_gap_totals_exclude_resolved.py::test_executive_dashboard_gap_total_excludes_resolved
+FAILED tests/release/test_gap_totals_exclude_resolved.py::test_gap_summary_total_excludes_resolved
+15 failed, 6 passed in 3.82s
