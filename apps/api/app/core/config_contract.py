@@ -481,6 +481,14 @@ CONTRACT: tuple[ConfigVar, ...] = (
         "Heartbeat file read by the worker container probe.",
     ),
     ConfigVar(
+        "RETRIEVAL_MAX_THREADS",
+        "int",
+        "optional",
+        False,
+        "8",
+        "Max worker threads for batched retrieval (1-32); also capped by the DB pool size.",
+    ),
+    ConfigVar(
         "TRUST_COPILOT_IN_DOCKER",
         "bool",
         "optional",
