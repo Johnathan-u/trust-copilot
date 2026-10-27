@@ -18,7 +18,7 @@ from app.models import Control, User, Workspace, WorkspaceMember
 
 API_ROOT = Path(__file__).resolve().parents[2]
 REPO_ROOT = API_ROOT.parents[1]
-PARENT_REVISION = "tc10003b_idempotency_owner_token"
+PARENT_REVISION = "tc19008_notification_delivery"
 REVISION = "tc21002_control_contract"
 SLUG = "tc21002"
 EDITOR_EMAIL = "tc21002-editor@trust.local"
