@@ -10,7 +10,6 @@ function BillingSection() {
   const [loading, setLoading] = useState(false)
 
   const status = subscription?.status || 'none'
-  const plan = subscription?.plan
 
   const openPortal = async () => {
     setLoading(true)
@@ -91,8 +90,7 @@ function BillingSection() {
 }
 
 export default function SettingsPage() {
-  const { permissions, refresh, switchWorkspace, workspace, workspaces } =
-    useAuth()
+  const { refresh, switchWorkspace, workspace, workspaces } = useAuth()
   const [createWorkspaceName, setCreateWorkspaceName] = useState('')
   const [createWorkspaceLoading, setCreateWorkspaceLoading] = useState(false)
   const [createWorkspaceError, setCreateWorkspaceError] = useState('')
