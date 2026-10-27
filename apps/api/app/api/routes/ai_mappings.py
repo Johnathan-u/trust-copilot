@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 from app.core.audit import persist_audit
 from app.core.auth_deps import require_can_admin, require_can_review
 from app.core.database import get_db
+from app.core.workspace_refs import require_refs
 from app.services import ai_mapping_service as svc
 from app.services.pipeline_stats import get_workspace_ai_pipeline_stats
 from app.services.answer_stats import get_questionnaire_answer_stats, get_workspace_gap_analytics
@@ -103,6 +104,7 @@ def create_framework_control(
     ws = session.get("workspace_id")
     if not ws:
         raise HTTPException(status_code=403, detail="No workspace")
+    require_refs(db, ws, [("control", body.control_id)])
     result = svc.create_framework_control_mapping(
         db,
         ws,
@@ -202,6 +204,7 @@ def create_control_evidence(
     ws = session.get("workspace_id")
     if not ws:
         raise HTTPException(status_code=403, detail="No workspace")
+    require_refs(db, ws, [("control", body.control_id), ("evidence", body.evidence_id)])
     result = svc.create_control_evidence_mapping(
         db,
         ws,
@@ -302,6 +305,7 @@ def create_evidence_tag(
     ws = session.get("workspace_id")
     if not ws:
         raise HTTPException(status_code=403, detail="No workspace")
+    require_refs(db, ws, [("evidence", body.evidence_id), ("tag", body.tag_id)])
     result = svc.create_evidence_tag_mapping(
         db,
         ws,
@@ -401,6 +405,16 @@ def create_question_pref(
     ws = session.get("workspace_id")
     if not ws:
         raise HTTPException(status_code=403, detail="No workspace")
+    require_refs(
+        db,
+        ws,
+        [
+            ("questionnaire", body.questionnaire_id),
+            ("question", body.question_id),
+            ("control", body.preferred_control_id),
+            ("tag", body.preferred_tag_id),
+        ],
+    )
     result = svc.create_question_preference(
         db,
         ws,
