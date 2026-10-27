@@ -549,9 +549,7 @@ def disposable_role_member() -> int:
             if row is not None:
                 db.delete(row)
             db.commit()
-            assert (
-                db.query(WorkspaceMember).filter(WorkspaceMember.user_id == user_id).count() == 0
-            )
+            assert db.query(WorkspaceMember).filter(WorkspaceMember.user_id == user_id).count() == 0
             assert db.query(User).filter(User.id == user_id).count() == 0
             assert db.query(User).filter(User.email == email).count() == 0
         finally:
