@@ -25,7 +25,7 @@ dependencies = [
     "boto3",
     "python-docx",
     "openpyxl",
-    "pypdf>=6.21.2,<7",  # BSD-3-Clause; replaced pymupdf (AGPL), TC-01-003a
+    "pypdf>=6.21.3,<7",  # BSD-3-Clause; replaced pymupdf (AGPL), TC-01-003a; >=6.21.3 security fix (TC-02-002)
     "httpx",
     "python-multipart",
     "python-dotenv",

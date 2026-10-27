@@ -1,0 +1,72 @@
+### Start isolated Postgres: image pgvector/pgvector:pg16@sha256:7b822b0aac60967beb1ea5e576b8602c94c300a157d187f385ae3e0da199b90a db=tc_ci_merge_t0202p_1793106531_test user=tc_ci password=<generated, not shown>
+### Install backend deps (from lock)
+No broken requirements found.
+exit=0
+python 3.11.17 sqlalchemy 2.0.55
+### Run migrations
+exit=0
+INFO  [alembic.runtime.migration] Running upgrade tc21001_framework_catalog_rights -> tc11001_model_outcome_codes, Typed model outcome and job error codes (TC-11-001)
+pgvector 0.8.7
+### Lint backend
+ruff 0.5.6
+All checks passed!
+exit=0
+### Safe test collection (TC-02-001)
+1557 tests collected in 1.75s
+exit=0
+26 passed in 7.57s
+exit=0
+### Python dependency lock (TC-02-002) / release test: python -m pytest tests/release/test_python_lock.py -q (TC_REQUIRE_DB=1)
+20 passed in 2.86s
+exit=0
+### Focused tests: python -m pytest tests/test_pdf_text_locator_corpus.py tests/test_pdf_failure_surfacing.py tests/pdf_locator -q (TC_REQUIRE_DB=1)
+75 passed in 5.80s
+exit=0
+installed pypdf 6.21.3
+### Run backend tests
+........................................................................ [  4%]
+........................................................................ [  9%]
+........................................................................ [ 13%]
+........................................................................ [ 18%]
+........................................................................ [ 23%]
+........................................................................ [ 27%]
+........................................................................ [ 32%]
+........................................................................ [ 36%]
+........................................................................ [ 41%]
+........................................................................ [ 46%]
+........................................................................ [ 50%]
+........................................................................ [ 55%]
+........................................................................ [ 60%]
+........................................................................ [ 64%]
+........................................................................ [ 69%]
+........................................................................ [ 73%]
+...........F............................................................ [ 78%]
+........................................................................ [ 83%]
+........................................................................ [ 87%]
+........................................................................ [ 92%]
+........................................................................ [ 97%]
+.............................................                            [100%]
+=================================== FAILURES ===================================
+____________ test_generate_answers_passes_document_ids_to_retrieval ____________
+TC_REQUIRE_DB=1: DB (integration) test skipped instead of running: Skipped: no questions
+=============================== warnings summary ===============================
+tests/test_provider_adapter.py::test_migration_has_unique_descriptive_revision_after_075
+  /workspace/wt-run/venv-t0202p/lib/python3.11/site-packages/alembic/config.py:604: DeprecationWarning: No path_separator found in configuration; falling back to legacy splitting on spaces, commas, and colons for prepend_sys_path.  Consider adding path_separator=os to Alembic config.
+    util.warn_deprecated(
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+SKIPPED [1] tests/test_trust_scoring_blind.py:33: external_data: blind test pack not checked in; set TC_TRUST_SCORING_BLIND_PACK to run
+1 failed, 1556 passed, 1 skipped, 1 warning in 89.39s (0:01:29)
+exit=1
+### Build frontend
+exit=0
+ ✓ Compiled successfully
+
+### Notes (TC-02-002 pypdf bump, run on the uncommitted bump over 2a569c2, base 1a0e614)
+# Lock command: scripts/lock-python-deps.sh --upgrade-package pypdf -> only pypdf 6.21.2 -> 6.21.3 changes in both locks;
+#   a second plain run is byte-identical. Hashes equal PyPI's published sha256 (wheel c8ca4d9a..., sdist 11e1ca6d...).
+# Lock test 20 passed; PDF tests (corpus, failure surfacing, pdf_locator) 75 passed at pypdf 6.21.3.
+# The single backend failure is test_questionnaire_answer_evidence::test_generate_answers_passes_document_ids_to_retrieval
+#   ("no questions" order-dependent skip -> fail under TC_REQUIRE_DB=1). It is unrelated to pypdf and is fixed on master
+#   by TC-02-BUG-014 (d527863); it passes after the master merge (see ci_mirror_merge_*.txt).
