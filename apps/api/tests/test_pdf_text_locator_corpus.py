@@ -35,7 +35,7 @@ from app.services.pdf_text import (
 )
 
 sys.path.insert(0, str(Path(__file__).parent))
-from pdf_locator_corpus import FIXTURE_PDF, Case, corpus, write_case  # noqa: E402
+from pdf_locator import FIXTURE_PDF, Case, corpus, write_case  # noqa: E402
 
 API_ROOT = Path(__file__).resolve().parent.parent
 BASELINE = json.loads(

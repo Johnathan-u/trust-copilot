@@ -12,7 +12,7 @@ from pathlib import Path
 
 from app.services.synthetic_pdf import Page, TextItem, build_pdf, text_block
 
-FIXTURE_PDF = Path(__file__).parent / "fixtures" / "documents" / "security_policy.pdf"
+FIXTURE_PDF = Path(__file__).resolve().parents[1] / "fixtures" / "documents" / "security_policy.pdf"
 
 
 @dataclass

@@ -13,7 +13,7 @@ Everything here uses synthetic data only. There were no model calls, and every P
 
 ## Corpus
 No locator corpus existed in the package or repo, so a synthetic one is built in
-`apps/api/tests/pdf_locator_corpus.py` with the pure-Python `app/services/synthetic_pdf.py`. It
+`apps/api/tests/pdf_locator` with the pure-Python `app/services/synthetic_pdf.py`. It
 has 17 cases:
 - page numbering with a blank page;
 - 20 span markers on one page, checking order and offsets;

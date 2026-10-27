@@ -11,7 +11,7 @@ the result is read back through the API. Each case asserts:
 * no traceback, file path, temp dir, backend name or backend exception text leaks.
 
 Also: a missing pypdf fails at import / startup (API and worker), not per request.
-Synthetic PDFs from tests/pdf_locator_corpus.py only; no network, no model calls.
+Synthetic PDFs from tests/pdf_locator only; no network, no model calls.
 """
 
 from __future__ import annotations
@@ -29,7 +29,7 @@ import pytest
 from app.services.pdf_text import ENCRYPTED_MESSAGE, NO_TEXT_MESSAGE, UNREADABLE_MESSAGE
 
 sys.path.insert(0, str(Path(__file__).parent))
-from pdf_locator_corpus import corpus  # noqa: E402
+from pdf_locator import corpus  # noqa: E402
 
 API_ROOT = Path(__file__).resolve().parent.parent
 _CASES = {c.name: c for c in corpus()}
