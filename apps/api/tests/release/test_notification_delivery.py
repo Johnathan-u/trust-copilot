@@ -522,6 +522,12 @@ def disposable_role_member() -> int:
     try:
         db = SessionLocal()
         try:
+            leaked = db.query(User).filter(User.email == "repeat-role@test.local").first()
+            if leaked is not None:
+                db.query(WorkspaceMember).filter(WorkspaceMember.user_id == leaked.id).delete()
+                db.delete(leaked)
+                db.commit()
+            assert db.query(User).filter(User.email == "repeat-role@test.local").count() == 0
             user = User(
                 email=email,
                 password_hash=hash_password("testpass123"),
