@@ -44,6 +44,7 @@ type CoverageData = {
   recommended_evidence: { title: string; improves_questions: number }[]
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- pre-existing loose settings payload; typing it is tracked as a follow-up (TC-02-006)
 type GovSettings = Record<string, any>
 
 const QUALITY_LABELS: Record<string, { label: string; color: string }> = {
@@ -593,9 +594,10 @@ export default function AIInsightsPage() {
                     <Button
                       size="sm"
                       variant="secondary"
-                      onClick={() =>
-                        (window.location.href = '/dashboard/documents')
-                      }
+                      onClick={() => {
+                        // eslint-disable-next-line @next/next/no-location-assign-relative-destination -- intentional full page load to reset client auth/workspace state (pre-existing; TC-02-006)
+                        window.location.href = '/dashboard/documents'
+                      }}
                     >
                       Upload
                     </Button>
@@ -690,7 +692,7 @@ function AdvancedSettings({ onToast }: { onToast: (m: string) => void }) {
       .finally(() => setSaving(false))
   }
 
-  const update = (key: string, value: any) =>
+  const update = (key: string, value: unknown) =>
     setSettings((s) => ({ ...s, [key]: value }))
 
   if (loading)

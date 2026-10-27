@@ -102,7 +102,6 @@ async function run() {
         waitUntil: 'networkidle',
         timeout: 15000,
       })
-      const answerCountEl = page.locator('text=Answers').first()
       await page.waitForTimeout(1000)
       const answersText = await page
         .locator('strong:has-text("/")')

@@ -48,7 +48,6 @@ class FrameworkCatalogItem(BaseModel):
     enablement_state: str | None = None
     catalog_kind: str | None = None
     production_catalog: bool = False
-    rights_ticket: str | None = None
     contract_version: str = CATALOG_CONTRACT_VERSION
     content_version: str | None = None
     content_origin: str | None = None

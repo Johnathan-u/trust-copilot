@@ -1,0 +1,373 @@
+[
+ {
+  "filePath": "apps/web/app/api/[[...path]]/route.ts",
+  "errorCount": 1,
+  "warningCount": 0,
+  "messages": [
+   {
+    "ruleId": "@typescript-eslint/no-unused-vars",
+    "severity": 2,
+    "line": 105,
+    "column": 12,
+    "message": "'err' is defined but never used. Allowed unused caught errors must match /^_/u."
+   }
+  ]
+ },
+ {
+  "filePath": "apps/web/app/checkout/page.tsx",
+  "errorCount": 2,
+  "warningCount": 0,
+  "messages": [
+   {
+    "ruleId": "@typescript-eslint/no-unused-vars",
+    "severity": 2,
+    "line": 65,
+    "column": 9,
+    "message": "'price' is assigned a value but never used. Allowed unused vars must match /^_/u."
+   },
+   {
+    "ruleId": "@typescript-eslint/no-unused-vars",
+    "severity": 2,
+    "line": 66,
+    "column": 9,
+    "message": "'interval' is assigned a value but never used. Allowed unused vars must match /^_/u."
+   }
+  ]
+ },
+ {
+  "filePath": "apps/web/app/dashboard/ai-governance/page.tsx",
+  "errorCount": 2,
+  "warningCount": 1,
+  "messages": [
+   {
+    "ruleId": "@typescript-eslint/no-explicit-any",
+    "severity": 2,
+    "line": 34,
+    "column": 35,
+    "message": "Unexpected any. Specify a different type."
+   },
+   {
+    "ruleId": "@next/next/no-location-assign-relative-destination",
+    "severity": 1,
+    "line": 374,
+    "column": 38,
+    "message": "Do not use `window.location.href` to navigate to internal Next.js pages. Use `redirect()` in the render phase, or `useRouter().push()` in Client Components' event handlers instead. See: https://nextjs.org/docs/messages/no-location-assign-relative-destination"
+   },
+   {
+    "ruleId": "@typescript-eslint/no-explicit-any",
+    "severity": 2,
+    "line": 443,
+    "column": 39,
+    "message": "Unexpected any. Specify a different type."
+   }
+  ]
+ },
+ {
+  "filePath": "apps/web/app/dashboard/members/page.tsx",
+  "errorCount": 0,
+  "warningCount": 1,
+  "messages": [
+   {
+    "ruleId": "react-hooks/exhaustive-deps",
+    "severity": 1,
+    "line": 107,
+    "column": 6,
+    "message": "React Hook useEffect has a missing dependency: 'load'. Either include it or remove the dependency array."
+   }
+  ]
+ },
+ {
+  "filePath": "apps/web/app/dashboard/page.tsx",
+  "errorCount": 1,
+  "warningCount": 0,
+  "messages": [
+   {
+    "ruleId": "@typescript-eslint/no-unused-vars",
+    "severity": 2,
+    "line": 67,
+    "column": 10,
+    "message": "'hasCustom' is assigned a value but never used. Allowed unused vars must match /^_/u."
+   }
+  ]
+ },
+ {
+  "filePath": "apps/web/app/dashboard/questionnaires/page.tsx",
+  "errorCount": 1,
+  "warningCount": 0,
+  "messages": [
+   {
+    "ruleId": "@typescript-eslint/no-unused-vars",
+    "severity": 2,
+    "line": 123,
+    "column": 9,
+    "message": "'toggleUploadSubj' is assigned a value but never used. Allowed unused vars must match /^_/u."
+   }
+  ]
+ },
+ {
+  "filePath": "apps/web/app/dashboard/requests/page.tsx",
+  "errorCount": 2,
+  "warningCount": 0,
+  "messages": [
+   {
+    "ruleId": "@typescript-eslint/no-explicit-any",
+    "severity": 2,
+    "line": 81,
+    "column": 28,
+    "message": "Unexpected any. Specify a different type."
+   },
+   {
+    "ruleId": "@typescript-eslint/no-explicit-any",
+    "severity": 2,
+    "line": 117,
+    "column": 34,
+    "message": "Unexpected any. Specify a different type."
+   }
+  ]
+ },
+ {
+  "filePath": "apps/web/app/dashboard/review/[id]/page.tsx",
+  "errorCount": 2,
+  "warningCount": 0,
+  "messages": [
+   {
+    "ruleId": "@typescript-eslint/no-unused-vars",
+    "severity": 2,
+    "line": 268,
+    "column": 14,
+    "message": "'e' is defined but never used. Allowed unused caught errors must match /^_/u."
+   },
+   {
+    "ruleId": "react-hooks/refs",
+    "severity": 2,
+    "line": 728,
+    "column": 33,
+    "message": "Error: Cannot access refs during render\n\nReact refs are values that are not needed for rendering. Refs should only be accessed outside of render, such as in event handlers or effects. Accessing a ref value (the `current` property) during render can cause your component not to update as expected (https://react.dev/reference/react/useRef).\n\n/tmp/tc006-baseline/apps/web/app/dashboard/review/[id]/page.tsx:728:33\n  726 |                 </thead>\n  727 |                 <tbody>\n> 728 |                   {filtered.map((q, i) => {\n      |                                 ^^^^^^^^^^^\n> 729 |                     const status = q.answer?.status ?? 'pending'\n      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n> 730 |                     const statusClass =\n      \u2026\n      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n> 823 |                     )\n      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n> 824 |                   })}\n      | ^^^^^^^^^^^^^^^^^^^^ Cannot access ref value during render\n  825 |                 </tbody>\n  826 |               </table>\n  827 |             </div>"
+   }
+  ]
+ },
+ {
+  "filePath": "apps/web/app/dashboard/security/page.tsx",
+  "errorCount": 2,
+  "warningCount": 0,
+  "messages": [
+   {
+    "ruleId": "@typescript-eslint/no-unused-vars",
+    "severity": 2,
+    "line": 140,
+    "column": 9,
+    "message": "'sessionCount' is assigned a value but never used. Allowed unused vars must match /^_/u."
+   },
+   {
+    "ruleId": "@typescript-eslint/no-unused-vars",
+    "severity": 2,
+    "line": 595,
+    "column": 11,
+    "message": "'browser' is assigned a value but never used. Allowed unused vars must match /^_/u."
+   }
+  ]
+ },
+ {
+  "filePath": "apps/web/app/dashboard/settings/page.tsx",
+  "errorCount": 2,
+  "warningCount": 0,
+  "messages": [
+   {
+    "ruleId": "@typescript-eslint/no-unused-vars",
+    "severity": 2,
+    "line": 13,
+    "column": 9,
+    "message": "'plan' is assigned a value but never used. Allowed unused vars must match /^_/u."
+   },
+   {
+    "ruleId": "@typescript-eslint/no-unused-vars",
+    "severity": 2,
+    "line": 84,
+    "column": 11,
+    "message": "'permissions' is assigned a value but never used. Allowed unused vars must match /^_/u."
+   }
+  ]
+ },
+ {
+  "filePath": "apps/web/app/dashboard/slack/page.tsx",
+  "errorCount": 2,
+  "warningCount": 0,
+  "messages": [
+   {
+    "ruleId": "react-hooks/static-components",
+    "severity": 2,
+    "line": 458,
+    "column": 14,
+    "message": "Error: Cannot create components during render\n\nComponents created during render will reset their state each time they are created. Declare components outside of render.\n\n/tmp/tc006-baseline/apps/web/app/dashboard/slack/page.tsx:458:14\n  456 |             )}\n  457 |\n> 458 |             <EventCheckboxGroup\n      |              ^^^^^^^^^^^^^^^^^^ This component is created during render\n  459 |               events={allEvents}\n  460 |               checked={currentEvents}\n  461 |               onChange={updateEvents}\n\n/tmp/tc006-baseline/apps/web/app/dashboard/slack/page.tsx:249:3\n  247 |\n  248 |   /* \u2500\u2500 Event checkbox group \u2500\u2500 */\n> 249 |   function EventCheckboxGroup({\n      |   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n> 250 |     events,\n      | ^^^^^^^^^^^\n> 251 |     checked,\n      \u2026\n      | ^^^^^^^^^^^\n> 306 |     )\n      | ^^^^^^^^^^^\n> 307 |   }\n      | ^^^^ The component is created during render here\n  308 |\n  309 |   if (!canAdmin) {\n  310 |     return ("
+   },
+   {
+    "ruleId": "react-hooks/static-components",
+    "severity": 2,
+    "line": 616,
+    "column": 16,
+    "message": "Error: Cannot create components during render\n\nComponents created during render will reset their state each time they are created. Declare components outside of render.\n\n/tmp/tc006-baseline/apps/web/app/dashboard/slack/page.tsx:616:16\n  614 |             </p>\n  615 |             <div className=\"max-h-56 overflow-y-auto pr-1\">\n> 616 |               <EventCheckboxGroup\n      |                ^^^^^^^^^^^^^^^^^^ This component is created during render\n  617 |                 events={allEvents}\n  618 |                 checked={selectedEvents}\n  619 |                 onChange={setSelectedEvents}\n\n/tmp/tc006-baseline/apps/web/app/dashboard/slack/page.tsx:249:3\n  247 |\n  248 |   /* \u2500\u2500 Event checkbox group \u2500\u2500 */\n> 249 |   function EventCheckboxGroup({\n      |   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n> 250 |     events,\n      | ^^^^^^^^^^^\n> 251 |     checked,\n      \u2026\n      | ^^^^^^^^^^^\n> 306 |     )\n      | ^^^^^^^^^^^\n> 307 |   }\n      | ^^^^ The component is created during render here\n  308 |\n  309 |   if (!canAdmin) {\n  310 |     return ("
+   }
+  ]
+ },
+ {
+  "filePath": "apps/web/app/dashboard/trust-center/page.tsx",
+  "errorCount": 1,
+  "warningCount": 1,
+  "messages": [
+   {
+    "ruleId": "@typescript-eslint/no-unused-vars",
+    "severity": 2,
+    "line": 63,
+    "column": 10,
+    "message": "'refreshing' is assigned a value but never used. Allowed unused vars must match /^_/u."
+   },
+   {
+    "ruleId": "react-hooks/exhaustive-deps",
+    "severity": 1,
+    "line": 86,
+    "column": 6,
+    "message": "React Hook useEffect has a missing dependency: 'load'. Either include it or remove the dependency array."
+   }
+  ]
+ },
+ {
+  "filePath": "apps/web/app/error.tsx",
+  "errorCount": 0,
+  "warningCount": 1,
+  "messages": [
+   {
+    "ruleId": "@next/next/no-location-assign-relative-destination",
+    "severity": 1,
+    "line": 25,
+    "column": 49,
+    "message": "Do not use `window.location.href` to navigate to internal Next.js pages. Use `redirect()` in the render phase, or `useRouter().push()` in Client Components' event handlers instead. See: https://nextjs.org/docs/messages/no-location-assign-relative-destination"
+   }
+  ]
+ },
+ {
+  "filePath": "apps/web/app/login/page.tsx",
+  "errorCount": 2,
+  "warningCount": 2,
+  "messages": [
+   {
+    "ruleId": "@next/next/no-location-assign-relative-destination",
+    "severity": 1,
+    "line": 60,
+    "column": 7,
+    "message": "Do not use `window.location.href` to navigate to internal Next.js pages. Use `redirect()` in the render phase, or `useRouter().push()` in Client Components' event handlers instead. See: https://nextjs.org/docs/messages/no-location-assign-relative-destination"
+   },
+   {
+    "ruleId": "@next/next/no-location-assign-relative-destination",
+    "severity": 1,
+    "line": 99,
+    "column": 7,
+    "message": "Do not use `window.location.href` to navigate to internal Next.js pages. Use `redirect()` in the render phase, or `useRouter().push()` in Client Components' event handlers instead. See: https://nextjs.org/docs/messages/no-location-assign-relative-destination"
+   },
+   {
+    "ruleId": "@next/next/no-html-link-for-pages",
+    "severity": 2,
+    "line": 238,
+    "column": 15,
+    "message": "Do not use an `<a>` element to navigate to `/api/auth/oauth/google/`. Use `<Link />` from `next/link` instead. See: https://nextjs.org/docs/messages/no-html-link-for-pages"
+   },
+   {
+    "ruleId": "@next/next/no-html-link-for-pages",
+    "severity": 2,
+    "line": 247,
+    "column": 15,
+    "message": "Do not use an `<a>` element to navigate to `/api/auth/oauth/github/`. Use `<Link />` from `next/link` instead. See: https://nextjs.org/docs/messages/no-html-link-for-pages"
+   }
+  ]
+ },
+ {
+  "filePath": "apps/web/app/pricing/page.tsx",
+  "errorCount": 1,
+  "warningCount": 0,
+  "messages": [
+   {
+    "ruleId": "@typescript-eslint/no-unused-vars",
+    "severity": 2,
+    "line": 30,
+    "column": 9,
+    "message": "'savings' is assigned a value but never used. Allowed unused vars must match /^_/u."
+   }
+  ]
+ },
+ {
+  "filePath": "apps/web/app/register/page.tsx",
+  "errorCount": 1,
+  "warningCount": 0,
+  "messages": [
+   {
+    "ruleId": "@typescript-eslint/no-unused-vars",
+    "severity": 2,
+    "line": 9,
+    "column": 9,
+    "message": "'router' is assigned a value but never used. Allowed unused vars must match /^_/u."
+   }
+  ]
+ },
+ {
+  "filePath": "apps/web/components/layout/DashboardShell.tsx",
+  "errorCount": 0,
+  "warningCount": 2,
+  "messages": [
+   {
+    "ruleId": "@next/next/no-location-assign-relative-destination",
+    "severity": 1,
+    "line": 29,
+    "column": 7,
+    "message": "Do not use `window.location.href` to navigate to internal Next.js pages. Use `redirect()` in the render phase, or `useRouter().push()` in Client Components' event handlers instead. See: https://nextjs.org/docs/messages/no-location-assign-relative-destination"
+   },
+   {
+    "ruleId": "@next/next/no-location-assign-relative-destination",
+    "severity": 1,
+    "line": 54,
+    "column": 30,
+    "message": "Do not use `window.location.href` to navigate to internal Next.js pages. Use `redirect()` in the render phase, or `useRouter().push()` in Client Components' event handlers instead. See: https://nextjs.org/docs/messages/no-location-assign-relative-destination"
+   }
+  ]
+ },
+ {
+  "filePath": "apps/web/contexts/AISettingsContext.tsx",
+  "errorCount": 1,
+  "warningCount": 0,
+  "messages": [
+   {
+    "ruleId": "@typescript-eslint/no-unused-vars",
+    "severity": 2,
+    "line": 3,
+    "column": 57,
+    "message": "'useEffect' is defined but never used. Allowed unused vars must match /^_/u."
+   }
+  ]
+ },
+ {
+  "filePath": "apps/web/e2e/requests-page.spec.ts",
+  "errorCount": 1,
+  "warningCount": 0,
+  "messages": [
+   {
+    "ruleId": "@typescript-eslint/no-unused-vars",
+    "severity": 2,
+    "line": 19,
+    "column": 16,
+    "message": "'loginAsEditor' is defined but never used. Allowed unused vars must match /^_/u."
+   }
+  ]
+ },
+ {
+  "filePath": "apps/web/scripts/verify-ai-flows.js",
+  "errorCount": 1,
+  "warningCount": 0,
+  "messages": [
+   {
+    "ruleId": "@typescript-eslint/no-unused-vars",
+    "severity": 2,
+    "line": 69,
+    "column": 13,
+    "message": "'answerCountEl' is assigned a value but never used. Allowed unused vars must match /^_/u."
+   }
+  ]
+ }
+]
