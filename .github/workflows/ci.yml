@@ -105,6 +105,8 @@ jobs:
         env:
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/trustcopilot_test
           SESSION_SECRET: test-secret
+          # TC-02-006: release tests must execute the web gates, not skip them.
+          TC_REQUIRE_WEB_TOOLCHAIN: "1"
         run: pytest
 
       - name: Type-check frontend
