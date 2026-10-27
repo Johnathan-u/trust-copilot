@@ -131,6 +131,9 @@ def seed_dev_compliance_catalog(db: Session, workspace_id: int = 1) -> tuple[int
 
 
 def main() -> None:
+    from app.core.config_contract import refuse_demo_seed_in_production
+
+    refuse_demo_seed_in_production()  # TC-03-001: never seed demo/E2E data in production
     p = argparse.ArgumentParser(description="Seed dev compliance catalog + workspace links.")
     p.add_argument("--workspace-id", type=int, default=1, help="Target workspace (default: 1)")
     args = p.parse_args()

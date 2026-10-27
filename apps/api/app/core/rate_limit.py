@@ -72,7 +72,7 @@ class _RedisBackend:
 
 def _get_backend():
     redis_url = (os.getenv("REDIS_URL") or "").strip()
-    app_env = os.getenv("APP_ENV", "development").lower()
+    app_env = os.getenv("APP_ENV", "development").strip().lower()
     if redis_url:
         try:
             backend = _RedisBackend(redis_url.strip())

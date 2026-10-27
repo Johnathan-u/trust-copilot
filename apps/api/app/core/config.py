@@ -161,7 +161,7 @@ class Settings:
         _rpm = os.getenv("RATE_LIMIT_RPM_PER_IP", "120").strip()
         self.rate_limit_rpm_per_ip: int = max(0, int(_rpm)) if _rpm.isdigit() else 120
 
-        self.app_env: str = os.getenv("APP_ENV", "development").lower()
+        self.app_env: str = os.getenv("APP_ENV", "development").strip().lower()
         # Audit retention: delete events older than this many days (0 = disable purge)
         _audit_days = os.getenv("AUDIT_RETENTION_DAYS", "90").strip()
         self.audit_retention_days: int = max(0, int(_audit_days)) if _audit_days.isdigit() else 90

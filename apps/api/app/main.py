@@ -178,6 +178,12 @@ def _verify_db_connectivity():
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    # TC-03-001: validate the configuration contract before touching the database (fails closed in production).
+    from app.core.config_contract import enforce_startup_contract
+
+    for _problem in enforce_startup_contract("api"):
+        import logging
+        logging.getLogger("app.main").warning("config contract: %s", _problem)
     s = get_settings()
     print(f"FRONTEND_URL={s.frontend_url!r} trusted_origins={s.trusted_origins!r}", flush=True)
     _verify_db_connectivity()

@@ -74,7 +74,7 @@ def _get_session_secret() -> str:
     except Exception:
         s = None
 
-    app_env = _os.getenv("APP_ENV", "development").lower()
+    app_env = _os.getenv("APP_ENV", "development").strip().lower()
     if app_env == "production":
         if is_weak_secret(s):
             raise RuntimeError(

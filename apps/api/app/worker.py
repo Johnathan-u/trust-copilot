@@ -566,6 +566,11 @@ def _process_one_job() -> bool:
 
 
 def main():
+    # TC-03-001: fail closed on an invalid production configuration before polling jobs.
+    from app.core.config_contract import enforce_startup_contract
+
+    for _problem in enforce_startup_contract("worker"):
+        print(f"config warning: {_problem}", flush=True)
     print(f"Trust Copilot worker started (threads: {WORKER_MIN_THREADS}-{WORKER_MAX_THREADS}, initial: {WORKER_INITIAL_THREADS})")
     session = SessionFactory()
     try:

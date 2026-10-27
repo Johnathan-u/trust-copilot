@@ -85,6 +85,7 @@ services:
     env_file:
       - .env.production
     environment:
+      APP_ENV: production  # TC-03-001: worker enforces the production config contract too
       TRUST_COPILOT_IN_DOCKER: "1"
       # TC-07-001: DATABASE_URL comes from .env.production (env_file); never inline credentials here.
       S3_ENDPOINT: http://minio:9000

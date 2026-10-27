@@ -25,6 +25,12 @@ if config.config_file_name is not None:
 
 target_metadata = Base.metadata
 
+# TC-03-001: in production, refuse to migrate with default/placeholder credentials (values never printed).
+from app.core.config_contract import enforce_startup_contract  # noqa: E402
+
+if os.environ.get("TRUST_COPILOT_TESTING") != "1":
+    enforce_startup_contract("migrations")
+
 # Use resolved URL (postgres Docker hostname -> localhost when API runs on host).
 database_url = get_settings().database_url
 config.set_main_option("sqlalchemy.url", database_url)
