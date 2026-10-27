@@ -8,7 +8,7 @@ Needs no database, no network and no running stack.
 from __future__ import annotations
 
 import ast
-import hashlib
+import importlib.util
 import os
 import re
 import secrets
@@ -31,10 +31,11 @@ REPO_ROOT = API_ROOT.parents[1]
 TESTS_DIR = API_ROOT / "tests"
 MANUAL_DIR = API_ROOT / "scripts" / "manual_live"
 
-# sha256 digest (not a credential) of the session-signing value that used to be hardcoded in
-# tests/ (value redacted). Named as a digest so the secret-name rule does not treat it as a
-# credential; replacing it with a non-derivable check is follow-up TC-07-001a.
-RETIRED_SESSION_KEY_DIGEST = "9368da3761b0d4fe8b487f86225b803f39d5b37b26e1ab064e1808e4d471d6c8"
+# TC-07-001a: the session-signing value that used to be hardcoded in tests/ is no longer matched by
+# a digest (which could be derived from the value). Instead every tests/ and manual_live file must
+# have zero block findings from the repo secret scanner, which flags that value in each shape it was
+# used (secret-named assignment, env default, HMAC literal key, signed cookie) and any other one.
+SCANNER_PATH = REPO_ROOT / "scripts" / "security" / "secret_inventory.py"
 
 # Former tests/ residents that performed live HTTP / forged cookies / read local-only paths.
 FORMER_UNSAFE_SCRIPTS = {
@@ -306,10 +307,54 @@ def test_no_checked_in_credentials_or_personal_identities(root):
                 if _SYNTHETIC.search(m.group(0)):
                     continue  # clearly synthetic fixture value (e.g. xoxb-test-token)
                 offenders.append(f"{path.relative_to(API_ROOT)}: {pat.pattern[:30]}")
-        for token in set(re.findall(r"[A-Za-z0-9_\-]{40,}", text)):
-            if hashlib.sha256(token.encode()).hexdigest() == RETIRED_SESSION_KEY_DIGEST:
-                offenders.append(f"{path.relative_to(API_ROOT)}: formerly hardcoded session secret")
     assert offenders == []
+
+
+def _load_secret_scanner():
+    spec = importlib.util.spec_from_file_location("tc_secret_inventory_sc", SCANNER_PATH)
+    assert spec and spec.loader, f"scanner missing at {SCANNER_PATH}"
+    mod = importlib.util.module_from_spec(spec)
+    sys.modules[spec.name] = mod
+    spec.loader.exec_module(mod)
+    return mod
+
+
+def _scanner_blocks(scanner, root: Path) -> list[str]:
+    out = []
+    for path in sorted(root.rglob("*.py")):
+        if "__pycache__" in path.parts:
+            continue
+        rel = path.relative_to(REPO_ROOT).as_posix()
+        text = path.read_text(encoding="utf-8", errors="ignore")
+        out += [
+            f"{rel}:{f.line} {f.rule}"
+            for f in scanner.scan_text(text, rel)
+            if f.severity == "block"
+        ]
+    return out
+
+
+@pytest.mark.parametrize("root", [TESTS_DIR, MANUAL_DIR], ids=["tests", "scripts-manual_live"])
+def test_no_signing_literal_by_scanner(root):
+    """Replaces the retired-value digest check (TC-07-001a): no block finding at all."""
+    assert _scanner_blocks(_load_secret_scanner(), root) == []
+
+
+def test_scanner_gate_catches_a_reintroduced_signing_literal():
+    """The gate above catches the retired value in every shape it was used, without a digest."""
+    scanner = _load_secret_scanner()
+    key = secrets.token_hex(32)  # same shape as the retired value; generated per run
+    q = '"'
+    name = "SESSION_" + "SECRET"
+    shapes = [
+        name + " = " + q + key + q + "\n",
+        "os.environ.setdefault(" + q + name + q + ", " + q + key + q + ")\n",
+        "os.getenv(" + q + name + q + ", " + q + key + q + ")\n",
+        "sig = hmac.new(b" + q + key + q + ', payload, "sha256")\n',
+    ]
+    for i, src in enumerate(shapes):
+        rel = f"apps/api/tests/test_reintroduced_{i}.py"
+        assert [f for f in scanner.scan_text(src, rel) if f.severity == "block"], f"shape {i}"
 
 
 _NET_ROOTS = {"requests", "httpx", "urllib", "urllib3", "socket", "http", "aiohttp", "boto3"}
