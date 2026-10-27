@@ -1014,7 +1014,7 @@ def test_prune_does_not_allow_a_stale_event_to_regress(billing_client, stripe_se
 
 
 def test_migration_fresh_install_upgrade_and_downgrade():
-    url = "postgresql://postgres:postgres@127.0.0.1:5432/trustcopilot_tc24001_mig"
+    url = _database_url("trustcopilot_tc24001_mig")
     _recreate_database("trustcopilot_tc24001_mig")
     try:
         fresh = _alembic(url, "upgrade", "head")
@@ -1058,14 +1058,27 @@ def _event_table_count() -> int:
         db.close()
 
 
+def _database_url(name: str) -> str:
+    """Same server as this run's test database, with a different database name.
+
+    CI creates a disposable role and password. The local default stays
+    postgres/postgres when neither URL is set.
+    """
+    import os
+
+    from sqlalchemy.engine import make_url
+
+    raw = os.environ.get("TC_TEST_DATABASE_URL") or os.environ.get("DATABASE_URL")
+    if not raw:
+        raw = "postgresql://postgres:postgres@127.0.0.1:5432/trustcopilot_test"
+    return make_url(raw).set(database=name).render_as_string(hide_password=False)
+
+
 def _recreate_database(name: str) -> None:
     _drop_database(name)
     from sqlalchemy import create_engine, text
 
-    engine = create_engine(
-        "postgresql://postgres:postgres@127.0.0.1:5432/postgres",
-        isolation_level="AUTOCOMMIT",
-    )
+    engine = create_engine(_database_url("postgres"), isolation_level="AUTOCOMMIT")
     with engine.connect() as conn:
         conn.execute(text(f'CREATE DATABASE "{name}"'))
     engine.dispose()
@@ -1074,10 +1087,7 @@ def _recreate_database(name: str) -> None:
 def _drop_database(name: str) -> None:
     from sqlalchemy import create_engine, text
 
-    engine = create_engine(
-        "postgresql://postgres:postgres@127.0.0.1:5432/postgres",
-        isolation_level="AUTOCOMMIT",
-    )
+    engine = create_engine(_database_url("postgres"), isolation_level="AUTOCOMMIT")
     with engine.connect() as conn:
         conn.execute(
             text(
