@@ -80,6 +80,14 @@ Source of truth: `apps/api/app/core/config_contract.py`. The table between the m
 | `STRIPE_SECRET_KEY` | secret string | optional | yes | unset | Billing; production requires STRIPE_WEBHOOK_SECRET with it. |  |
 | `STRIPE_WEBHOOK_SECRET` | secret string | optional | yes | unset | Stripe webhook signing secret. |  |
 | `SENTRY_DSN` | URL | optional | yes | unset | Error tracking. |  |
+| `PORT` | int | optional | no | 8000 | API port the container probe targets. |  |
+| `TC_PROCESS_ROLE` | enum(api|worker) | optional | no | api | Selects the container health probe (`python -m app.probe`): API /healthz or worker heartbeat. |  |
+| `READINESS_TIMEOUT_SEC` | float (>=0.1) | optional | no | 3 | Per-check DB/S3 timeout for /readyz; 503 when exceeded. |  |
+| `WORKER_HEARTBEAT_INTERVAL_SEC` | int | optional | no | 15 | How often the worker refreshes its heartbeat. |  |
+| `WORKER_HEARTBEAT_STALE_SEC` | int | optional | no | 120 | Heartbeat age after which /workerz and the worker probe report unhealthy. |  |
+| `WORKER_JOB_MAX_RUNTIME_SEC` | int | optional | no | 3600 | A single job running longer than this stops refreshing the heartbeat. |  |
+| `WORKER_LOOP_STALL_SEC` | int | optional | no | 120 | Claim-loop stall after which the heartbeat stops being refreshed. |  |
+| `WORKER_HEARTBEAT_FILE` | path | optional | no | /tmp/trustcopilot-worker.heartbeat | Heartbeat file read by the worker container probe. |  |
 | `TRUST_COPILOT_IN_DOCKER` | bool | optional | no | auto (/.dockerenv) | Keeps `postgres` hostname in DATABASE_URL. |  |
 | `COMPLETION_MODEL` | string | optional | no | gpt-4o-mini | Answer-generation model. |  |
 | `MAPPING_LLM_RERANK` | bool | optional | no | 1 | LLM rerank for control mapping. |  |

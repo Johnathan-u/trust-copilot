@@ -184,6 +184,7 @@ async def lifespan(app: FastAPI):
 
     for _problem in enforce_startup_contract("api"):
         import logging
+
         logging.getLogger("app.main").warning("config contract: %s", _problem)
     s = get_settings()
     print(f"FRONTEND_URL={s.frontend_url!r} trusted_origins={s.trusted_origins!r}", flush=True)
