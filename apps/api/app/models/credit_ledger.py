@@ -51,10 +51,10 @@ class CreditTransaction(Base):
     kind = Column(String(32), nullable=False, index=True)
     amount = Column(Integer, nullable=False)
     balance_after = Column(Integer, nullable=False)
-    questionnaire_id = Column(Integer, ForeignKey("questionnaires.id", ondelete="SET NULL"), nullable=True)
+    questionnaire_id = Column(
+        Integer, ForeignKey("questionnaires.id", ondelete="SET NULL"), nullable=True
+    )
     description = Column(Text, nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
-    __table_args__ = (
-        UniqueConstraint("workspace_id", "id", name="uq_credit_tx_ws_id"),
-    )
+    __table_args__ = (UniqueConstraint("workspace_id", "id", name="uq_credit_tx_ws_id"),)

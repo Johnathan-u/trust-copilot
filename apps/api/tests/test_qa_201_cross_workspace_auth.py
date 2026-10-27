@@ -5,7 +5,7 @@ from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 
 from app.core.password import hash_password
-from app.models import User, Workspace, WorkspaceMember
+from app.models import User, Workspace, WorkspaceMember  # noqa: F401
 
 
 @pytest.fixture
@@ -43,7 +43,10 @@ def test_documents_list_other_workspace_returns_403(client: TestClient) -> None:
     client.post("/api/auth/login", json={"email": "demo@trust.local", "password": "j"})
     r = client.get("/api/documents/?workspace_id=2")
     assert r.status_code == 403
-    assert "denied" in (r.json().get("detail") or "").lower() or "access" in (r.json().get("detail") or "").lower()
+    assert (
+        "denied" in (r.json().get("detail") or "").lower()
+        or "access" in (r.json().get("detail") or "").lower()
+    )
 
 
 def test_questionnaires_list_other_workspace_returns_403(client: TestClient) -> None:
@@ -75,7 +78,10 @@ def test_reviewer_cannot_upload_document(
         files={"file": ("test.pdf", b"fake pdf content", "application/pdf")},
     )
     assert r2.status_code == 403
-    assert "permission" in (r2.json().get("detail") or "").lower() or "insufficient" in (r2.json().get("detail") or "").lower()
+    assert (
+        "permission" in (r2.json().get("detail") or "").lower()
+        or "insufficient" in (r2.json().get("detail") or "").lower()
+    )
 
 
 def test_reviewer_can_list_documents(client: TestClient, reviewer_user: User) -> None:

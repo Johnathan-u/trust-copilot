@@ -45,9 +45,15 @@ class TestConfidenceScoringService:
 
     def test_score_all_for_control(self, db_session):
         ws = db_session.query(Workspace).first()
-        wc = db_session.query(WorkspaceControl).filter(WorkspaceControl.workspace_id == ws.id).first()
+        wc = (
+            db_session.query(WorkspaceControl)
+            .filter(WorkspaceControl.workspace_id == ws.id)
+            .first()
+        )
         if not wc:
-            wc = WorkspaceControl(workspace_id=ws.id, custom_name="Score Test", status="implemented")
+            wc = WorkspaceControl(
+                workspace_id=ws.id, custom_name="Score Test", status="implemented"
+            )
             db_session.add(wc)
             db_session.flush()
         ev = EvidenceItem(workspace_id=ws.id, title="Link Test", source_type="manual")

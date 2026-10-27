@@ -34,7 +34,14 @@ def get_or_create_ledger(db: Session, workspace_id: int) -> CreditLedger:
     )
     db.add(ledger)
     db.flush()
-    _record_tx(db, workspace_id, TX_ALLOCATION, DEFAULT_MONTHLY_CREDITS, ledger.balance, description="Initial credit allocation")
+    _record_tx(
+        db,
+        workspace_id,
+        TX_ALLOCATION,
+        DEFAULT_MONTHLY_CREDITS,
+        ledger.balance,
+        description="Initial credit allocation",
+    )
     return ledger
 
 
@@ -80,7 +87,11 @@ def consume(
     ledger.balance -= required
     db.flush()
     _record_tx(
-        db, workspace_id, TX_CONSUMPTION, -required, ledger.balance,
+        db,
+        workspace_id,
+        TX_CONSUMPTION,
+        -required,
+        ledger.balance,
         questionnaire_id=questionnaire_id,
         description=f"Consumed {required} credit(s) for {question_count} questions",
     )
@@ -100,7 +111,14 @@ def add_credits(
     ledger = get_or_create_ledger(db, workspace_id)
     ledger.balance += amount
     db.flush()
-    _record_tx(db, workspace_id, kind, amount, ledger.balance, description=description or f"Added {amount} credits")
+    _record_tx(
+        db,
+        workspace_id,
+        kind,
+        amount,
+        ledger.balance,
+        description=description or f"Added {amount} credits",
+    )
     return {"added": amount, "balance": ledger.balance}
 
 
@@ -114,12 +132,18 @@ def reset_cycle(db: Session, workspace_id: int) -> dict:
     ledger.cycle_end = now + timedelta(days=30)
     db.flush()
     _record_tx(
-        db, workspace_id, TX_RESET,
+        db,
+        workspace_id,
+        TX_RESET,
         ledger.monthly_allocation - old_balance,
         ledger.balance,
         description=f"Billing cycle reset: {old_balance} -> {ledger.monthly_allocation}",
     )
-    return {"balance": ledger.balance, "cycle_start": now.isoformat(), "cycle_end": ledger.cycle_end.isoformat()}
+    return {
+        "balance": ledger.balance,
+        "cycle_start": now.isoformat(),
+        "cycle_end": ledger.cycle_end.isoformat(),
+    }
 
 
 def auto_reset_if_due(db: Session, workspace_id: int) -> bool:

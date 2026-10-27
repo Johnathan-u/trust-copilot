@@ -3,7 +3,7 @@
 import json
 import logging
 import time
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta, timezone  # noqa: F401
 
 from sqlalchemy.orm import Session
 
@@ -58,7 +58,10 @@ def resolve_recipients(
         rows = (
             db.query(User.email)
             .join(WorkspaceMember, WorkspaceMember.user_id == User.id)
-            .filter(WorkspaceMember.workspace_id == workspace_id, WorkspaceMember.suspended == False)
+            .filter(
+                WorkspaceMember.workspace_id == workspace_id,
+                WorkspaceMember.suspended == False,  # noqa: E712
+            )
             .all()
         )
         return list({r[0] for r in rows if r[0]})
@@ -70,7 +73,7 @@ def resolve_recipients(
             .filter(
                 WorkspaceMember.workspace_id == workspace_id,
                 WorkspaceMember.role == "admin",
-                WorkspaceMember.suspended == False,
+                WorkspaceMember.suspended == False,  # noqa: E712
             )
             .all()
         )
@@ -86,7 +89,7 @@ def resolve_recipients(
             .filter(
                 WorkspaceMember.workspace_id == workspace_id,
                 WorkspaceMember.role == role_name,
-                WorkspaceMember.suspended == False,
+                WorkspaceMember.suspended == False,  # noqa: E712
             )
             .all()
         )
@@ -100,19 +103,21 @@ def resolve_recipients(
         u = db.query(User).filter(User.id == uid).first()
         if not u or not u.email:
             return []
-        mem = db.query(WorkspaceMember).filter(
-            WorkspaceMember.user_id == uid,
-            WorkspaceMember.workspace_id == workspace_id,
-            WorkspaceMember.suspended == False,
-        ).first()
+        mem = (
+            db.query(WorkspaceMember)
+            .filter(
+                WorkspaceMember.user_id == uid,
+                WorkspaceMember.workspace_id == workspace_id,
+                WorkspaceMember.suspended == False,  # noqa: E712
+            )
+            .first()
+        )
         return [u.email] if mem else []
 
     return []
 
 
-def get_unsubscribed_emails(
-    db: Session, workspace_id: int, event_type: str
-) -> set[str]:
+def get_unsubscribed_emails(db: Session, workspace_id: int, event_type: str) -> set[str]:
     """Return emails of users who have unsubscribed from this event type."""
     rows = (
         db.query(User.email)
@@ -167,11 +172,15 @@ def fire_notification(
     if event_type not in NOTIFICATION_EVENT_TYPES:
         return 0
 
-    policy = db.query(NotificationPolicy).filter(
-        NotificationPolicy.workspace_id == workspace_id,
-        NotificationPolicy.event_type == event_type,
-        NotificationPolicy.enabled == True,
-    ).first()
+    policy = (
+        db.query(NotificationPolicy)
+        .filter(
+            NotificationPolicy.workspace_id == workspace_id,
+            NotificationPolicy.event_type == event_type,
+            NotificationPolicy.enabled == True,  # noqa: E712
+        )
+        .first()
+    )
 
     if not policy:
         return 0
@@ -201,23 +210,29 @@ def fire_notification(
         status = "sent"
         error_msg = None
         try:
-            ok = provider.send(EmailMessage(to=email, subject=subject, body_text=body_text, body_html=body_html))
+            ok = provider.send(
+                EmailMessage(to=email, subject=subject, body_text=body_text, body_html=body_html)
+            )
             if not ok:
                 status = "failed"
                 error_msg = "Provider returned false"
         except Exception as exc:
             status = "failed"
             error_msg = str(exc)[:500]
-            logger.warning("Notification delivery failed to=%s event=%s: %s", email, event_type, error_msg)
+            logger.warning(
+                "Notification delivery failed to=%s event=%s: %s", email, event_type, error_msg
+            )
 
-        db.add(NotificationLog(
-            workspace_id=workspace_id,
-            event_type=event_type,
-            recipient_email=email,
-            subject=subject,
-            status=status,
-            error=error_msg,
-        ))
+        db.add(
+            NotificationLog(
+                workspace_id=workspace_id,
+                event_type=event_type,
+                recipient_email=email,
+                subject=subject,
+                status=status,
+                error=error_msg,
+            )
+        )
         if status == "sent":
             sent += 1
 
@@ -242,10 +257,14 @@ def _fire_slack_notification(
 ) -> int:
     """Deliver notification to Slack if configured for this workspace + event type."""
     try:
-        si = db.query(SlackIntegration).filter(
-            SlackIntegration.workspace_id == workspace_id,
-            SlackIntegration.enabled == True,
-        ).first()
+        si = (
+            db.query(SlackIntegration)
+            .filter(
+                SlackIntegration.workspace_id == workspace_id,
+                SlackIntegration.enabled == True,  # noqa: E712
+            )
+            .first()
+        )
         if not si:
             return 0
 
@@ -271,24 +290,34 @@ def _fire_slack_notification(
 
         accepted = delivery_accepted(result)
         status = "sent" if accepted else "failed"
-        error_msg = None if accepted else public_error_detail(result, "Provider did not accept delivery")[:500]
+        error_msg = (
+            None
+            if accepted
+            else public_error_detail(result, "Provider did not accept delivery")[:500]
+        )
 
-        db.add(NotificationLog(
-            workspace_id=workspace_id,
-            event_type=event_type,
-            channel="slack",
-            recipient_email=f"#{si.channel_name or si.channel_id}",
-            subject=label,
-            status=status,
-            error=error_msg,
-        ))
+        db.add(
+            NotificationLog(
+                workspace_id=workspace_id,
+                event_type=event_type,
+                channel="slack",
+                recipient_email=f"#{si.channel_name or si.channel_id}",
+                subject=label,
+                status=status,
+                error=error_msg,
+            )
+        )
 
         if not accepted:
-            logger.warning("Slack delivery failed ws=%s ch=%s: %s", workspace_id, si.channel_id, error_msg)
+            logger.warning(
+                "Slack delivery failed ws=%s ch=%s: %s", workspace_id, si.channel_id, error_msg
+            )
             try:
                 from app.services.in_app_notification_service import notify_admins
+
                 notify_admins(
-                    db, workspace_id,
+                    db,
+                    workspace_id,
                     "Slack delivery failed",
                     f"Event '{event_type}' failed to deliver to Slack: {error_msg}",
                     category="error",
@@ -302,15 +331,17 @@ def _fire_slack_notification(
     except Exception as exc:
         logger.warning("Slack notification error ws=%s: %s", workspace_id, str(exc)[:200])
         try:
-            db.add(NotificationLog(
-                workspace_id=workspace_id,
-                event_type=event_type,
-                channel="slack",
-                recipient_email="slack-error",
-                subject=event_type,
-                status="failed",
-                error=str(exc)[:500],
-            ))
+            db.add(
+                NotificationLog(
+                    workspace_id=workspace_id,
+                    event_type=event_type,
+                    channel="slack",
+                    recipient_email="slack-error",
+                    subject=event_type,
+                    status="failed",
+                    error=str(exc)[:500],
+                )
+            )
         except Exception:
             pass
         return 0

@@ -33,8 +33,12 @@ function ResetPasswordContent() {
     return (
       <main className="flex min-h-screen items-center justify-center p-4">
         <Card className="w-full max-w-md">
-          <h1 className="text-xl font-bold text-[var(--tc-text)]">Password updated</h1>
-          <p className="mt-2 text-sm text-[var(--tc-muted)]">You can sign in with your new password.</p>
+          <h1 className="text-xl font-bold text-[var(--tc-text)]">
+            Password updated
+          </h1>
+          <p className="mt-2 text-sm text-[var(--tc-muted)]">
+            You can sign in with your new password.
+          </p>
           <Link href="/login" className="mt-4 inline-block">
             <Button>Sign in</Button>
           </Link>
@@ -47,8 +51,12 @@ function ResetPasswordContent() {
     return (
       <main className="flex min-h-screen items-center justify-center p-4">
         <Card className="w-full max-w-md">
-          <h1 className="text-xl font-bold text-[var(--tc-text)]">Invalid link</h1>
-          <p className="mt-2 text-sm text-[var(--tc-muted)]">This reset link is missing or invalid.</p>
+          <h1 className="text-xl font-bold text-[var(--tc-text)]">
+            Invalid link
+          </h1>
+          <p className="mt-2 text-sm text-[var(--tc-muted)]">
+            This reset link is missing or invalid.
+          </p>
           <Link href="/forgot-password" className="mt-4 inline-block">
             <Button variant="ghost">Request a new link</Button>
           </Link>
@@ -60,8 +68,12 @@ function ResetPasswordContent() {
   return (
     <main className="flex min-h-screen items-center justify-center p-4">
       <Card className="w-full max-w-md">
-        <h1 className="text-xl font-bold text-[var(--tc-text)]">Set new password</h1>
-        <p className="mt-2 mb-6 text-sm text-[var(--tc-muted)]">Enter your new password below.</p>
+        <h1 className="text-xl font-bold text-[var(--tc-text)]">
+          Set new password
+        </h1>
+        <p className="mt-2 mb-6 text-sm text-[var(--tc-muted)]">
+          Enter your new password below.
+        </p>
         <form onSubmit={onSubmit} className="space-y-4">
           <Input
             label="New password"
@@ -78,7 +90,9 @@ function ResetPasswordContent() {
           </Button>
         </form>
         <p className="mt-4 text-sm text-[var(--tc-muted)]">
-          <Link href="/login" className="text-[var(--tc-soft)] underline">Back to sign in</Link>
+          <Link href="/login" className="text-[var(--tc-soft)] underline">
+            Back to sign in
+          </Link>
         </p>
       </Card>
     </main>
@@ -87,7 +101,13 @@ function ResetPasswordContent() {
 
 export default function ResetPasswordPage() {
   return (
-    <Suspense fallback={<main className="flex min-h-screen items-center justify-center p-4"><p className="text-[var(--tc-muted)]">Loading…</p></main>}>
+    <Suspense
+      fallback={
+        <main className="flex min-h-screen items-center justify-center p-4">
+          <p className="text-[var(--tc-muted)]">Loading…</p>
+        </main>
+      }
+    >
       <ResetPasswordContent />
     </Suspense>
   )

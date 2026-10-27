@@ -43,10 +43,18 @@ function VerifyEmailContent() {
   return (
     <main className="flex min-h-screen items-center justify-center p-4">
       <Card className="w-full max-w-md">
-        <h1 className="text-xl font-bold text-[var(--tc-text)]">Email verification</h1>
-        {status === 'loading' && <p className="mt-2 text-sm text-[var(--tc-muted)]">Verifying…</p>}
-        {status === 'ok' && <p className="mt-2 text-sm text-[var(--tc-muted)]">{message}</p>}
-        {status === 'error' && <p className="mt-2 text-sm text-[var(--tc-danger)]">{message}</p>}
+        <h1 className="text-xl font-bold text-[var(--tc-text)]">
+          Email verification
+        </h1>
+        {status === 'loading' && (
+          <p className="mt-2 text-sm text-[var(--tc-muted)]">Verifying…</p>
+        )}
+        {status === 'ok' && (
+          <p className="mt-2 text-sm text-[var(--tc-muted)]">{message}</p>
+        )}
+        {status === 'error' && (
+          <p className="mt-2 text-sm text-[var(--tc-danger)]">{message}</p>
+        )}
         <Link href="/login" className="mt-4 inline-block">
           <Button>Sign in</Button>
         </Link>
@@ -57,7 +65,13 @@ function VerifyEmailContent() {
 
 export default function VerifyEmailPage() {
   return (
-    <Suspense fallback={<main className="flex min-h-screen items-center justify-center p-4"><p className="text-[var(--tc-muted)]">Verifying…</p></main>}>
+    <Suspense
+      fallback={
+        <main className="flex min-h-screen items-center justify-center p-4">
+          <p className="text-[var(--tc-muted)]">Verifying…</p>
+        </main>
+      }
+    >
       <VerifyEmailContent />
     </Suspense>
   )

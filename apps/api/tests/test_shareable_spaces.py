@@ -24,8 +24,9 @@ def editor_client(client):
 class TestShareableSpaceService:
     def test_create_space(self, db_session):
         ws = db_session.query(Workspace).first()
-        result = ss.create_space(db_session, ws.id, "Acme Deal Room", 1,
-                                  buyer_company="Acme Corp", article_ids=[1, 2])
+        result = ss.create_space(
+            db_session, ws.id, "Acme Deal Room", 1, buyer_company="Acme Corp", article_ids=[1, 2]
+        )
         db_session.commit()
         assert result["name"] == "Acme Deal Room"
         assert result["access_token"] is not None
@@ -56,10 +57,13 @@ class TestShareableSpaceService:
 
 class TestShareableSpaceAPI:
     def test_create(self, admin_client):
-        r = admin_client.post("/api/shareable-spaces", json={
-            "name": "API Space",
-            "buyer_company": "Test Corp",
-        })
+        r = admin_client.post(
+            "/api/shareable-spaces",
+            json={
+                "name": "API Space",
+                "buyer_company": "Test Corp",
+            },
+        )
         assert r.status_code == 200
         assert r.json()["access_token"] is not None
 

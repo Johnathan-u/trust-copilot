@@ -158,7 +158,9 @@ def _gmail_reasons(body: dict) -> list[str]:
     return reasons
 
 
-def _classify_slack(status_code: int, body: dict, attempts: int, retry_after: float | None) -> ProviderCallResult:
+def _classify_slack(
+    status_code: int, body: dict, attempts: int, retry_after: float | None
+) -> ProviderCallResult:
     if status_code == 429:
         return _fail(
             status_code=status_code,
@@ -229,7 +231,9 @@ def _classify_slack(status_code: int, body: dict, attempts: int, retry_after: fl
     )
 
 
-def _classify_gmail(status_code: int, body: dict, attempts: int, retry_after: float | None) -> ProviderCallResult:
+def _classify_gmail(
+    status_code: int, body: dict, attempts: int, retry_after: float | None
+) -> ProviderCallResult:
     reasons = _gmail_reasons(body)
     if status_code == 200 and body and not reasons:
         return ProviderCallResult(

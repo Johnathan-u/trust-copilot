@@ -31,8 +31,10 @@ logger = logging.getLogger(__name__)
 # Token encryption (reuse Fernet pattern from mfa.py)
 # ---------------------------------------------------------------------------
 
+
 def _fernet():
     from cryptography.fernet import Fernet
+
     raw = hashlib.sha256(get_settings().session_secret.encode()).digest()
     key = base64.urlsafe_b64encode(raw)
     return Fernet(key)
@@ -49,6 +51,7 @@ def decrypt_token(encrypted: str) -> str:
 # ---------------------------------------------------------------------------
 # Provider interface
 # ---------------------------------------------------------------------------
+
 
 class SlackProvider(Protocol):
     def send_message(self, bot_token: str, channel_id: str, text: str) -> dict:
@@ -107,25 +110,29 @@ class ConsoleSlackProvider:
         refused = self._refused()
         if refused:
             return refused
-        return _stub_label({"ok": True, "team": "stub-team", "bot_id": "B_STUB", "provider": "slack"})
+        return _stub_label(
+            {"ok": True, "team": "stub-team", "bot_id": "B_STUB", "provider": "slack"}
+        )
 
     def fetch_messages(self, bot_token: str, channel_id: str, limit: int = 20) -> dict:
         """Development fixture for channel history. Not a Slack API call."""
         refused = self._refused()
         if refused:
             return refused
-        return _stub_label({
-            "ok": True,
-            "provider": "slack",
-            "messages": [
-                {
-                    "ts": f"stub.{time.time()}.{i}",
-                    "text": f"Stub message {i} from #{channel_id}",
-                    "user": "U_STUB",
-                }
-                for i in range(min(limit, 3))
-            ],
-        })
+        return _stub_label(
+            {
+                "ok": True,
+                "provider": "slack",
+                "messages": [
+                    {
+                        "ts": f"stub.{time.time()}.{i}",
+                        "text": f"Stub message {i} from #{channel_id}",
+                        "user": "U_STUB",
+                    }
+                    for i in range(min(limit, 3))
+                ],
+            }
+        )
 
     def fetch_thread_replies(self, bot_token: str, channel_id: str, thread_ts: str) -> dict:
         del bot_token, channel_id, thread_ts

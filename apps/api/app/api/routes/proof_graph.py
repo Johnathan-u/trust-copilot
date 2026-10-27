@@ -18,9 +18,7 @@ def sync_graph(
     session: dict = Depends(require_can_admin),
     db: Session = Depends(get_db),
 ):
-    stats = pgs.sync_with_diff_record(
-        db, session["workspace_id"], trigger_event="manual_sync"
-    )
+    stats = pgs.sync_with_diff_record(db, session["workspace_id"], trigger_event="manual_sync")
     db.commit()
     return stats
 
@@ -33,9 +31,7 @@ def get_nodes(
     db: Session = Depends(get_db),
 ):
     return {
-        "nodes": pgs.list_nodes(
-            db, session["workspace_id"], limit=limit, node_type=node_type
-        ),
+        "nodes": pgs.list_nodes(db, session["workspace_id"], limit=limit, node_type=node_type),
     }
 
 
@@ -194,7 +190,5 @@ def list_reuse(
     db: Session = Depends(get_db),
 ):
     return {
-        "instances": pgs.list_reuse_for_answer(
-            db, session["workspace_id"], answer_id
-        ),
+        "instances": pgs.list_reuse_for_answer(db, session["workspace_id"], answer_id),
     }

@@ -5,7 +5,11 @@ from __future__ import annotations
 import httpx
 
 from app.services.message_providers.outbound_http import DEFAULT_TIMEOUT_SECONDS, OutboundHttpSeam
-from app.services.message_providers.retry_seam import DEFAULT_MAX_ATTEMPTS, BoundedRetrySeam, ProviderCallResult
+from app.services.message_providers.retry_seam import (
+    DEFAULT_MAX_ATTEMPTS,
+    BoundedRetrySeam,
+    ProviderCallResult,
+)
 
 
 class MessageProviderHttp:

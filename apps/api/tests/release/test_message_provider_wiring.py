@@ -125,7 +125,13 @@ GMAIL_403_SCOPE = {
         "code": 403,
         "message": "Request had insufficient authentication scopes.",
         "status": "PERMISSION_DENIED",
-        "errors": [{"message": "Insufficient Permission", "domain": "global", "reason": "insufficientPermissions"}],
+        "errors": [
+            {
+                "message": "Insufficient Permission",
+                "domain": "global",
+                "reason": "insufficientPermissions",
+            }
+        ],
         "details": [
             {
                 "@type": "type.googleapis.com/google.rpc.ErrorInfo",
@@ -148,7 +154,9 @@ GMAIL_429 = {
         "code": 429,
         "message": "Resource has been exhausted (e.g. check quota).",
         "status": "RESOURCE_EXHAUSTED",
-        "errors": [{"message": "Rate Limit Exceeded", "domain": "global", "reason": "rateLimitExceeded"}],
+        "errors": [
+            {"message": "Rate Limit Exceeded", "domain": "global", "reason": "rateLimitExceeded"}
+        ],
     }
 }
 
@@ -188,7 +196,9 @@ class TestProviderSelection:
         assert isinstance(get_gmail_provider(), HttpGmailProvider)
         assert_message_provider_preflight().provider_mode == "http"
 
-    def test_production_with_stub_flag_explicitly_false_is_http(self, monkeypatch: pytest.MonkeyPatch) -> None:
+    def test_production_with_stub_flag_explicitly_false_is_http(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
         _use_env(monkeypatch, APP_ENV="production", MESSAGE_PROVIDER_DEV_STUB="0")
         assert isinstance(get_slack_provider(), HttpSlackProvider)
         assert isinstance(get_gmail_provider(), HttpGmailProvider)
@@ -199,7 +209,9 @@ class TestProviderSelection:
         assert isinstance(get_slack_provider(), HttpSlackProvider)
         assert isinstance(get_gmail_provider(), HttpGmailProvider)
 
-    def test_development_runtime_mode_can_force_http_without_app_env(self, monkeypatch: pytest.MonkeyPatch) -> None:
+    def test_development_runtime_mode_can_force_http_without_app_env(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
         _use_env(monkeypatch, MESSAGE_PROVIDER_RUNTIME_MODE="production")
         assert get_settings().app_env != "production"
         assert isinstance(get_slack_provider(), HttpSlackProvider)
@@ -263,7 +275,9 @@ class TestProviderSelection:
         assert "email" not in gmail_refused
         assert delivery_accepted(gmail_refused) is False
 
-    def test_production_cannot_downgrade_to_the_development_runtime(self, monkeypatch: pytest.MonkeyPatch) -> None:
+    def test_production_cannot_downgrade_to_the_development_runtime(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
         _use_env(monkeypatch, APP_ENV="production", MESSAGE_PROVIDER_RUNTIME_MODE="development")
         selection = message_provider_preflight()
         assert selection.ok is False
@@ -271,7 +285,9 @@ class TestProviderSelection:
         with pytest.raises(MessageProviderConfigurationError):
             get_slack_provider()
 
-    def test_invalid_mode_and_stub_flag_do_not_select_a_stub(self, monkeypatch: pytest.MonkeyPatch) -> None:
+    def test_invalid_mode_and_stub_flag_do_not_select_a_stub(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
         _use_env(monkeypatch, APP_ENV="development", MESSAGE_PROVIDER_RUNTIME_MODE="staging")
         assert message_provider_preflight().ok is False
         with pytest.raises(MessageProviderConfigurationError):
@@ -383,7 +399,9 @@ class TestSlackHttpFixtures:
         def handler(request: httpx.Request) -> httpx.Response:
             return httpx.Response(200, json=SLACK_RATELIMITED)
 
-        provider = HttpSlackProvider(transport=_transport(handler), max_attempts=3, sleeper=lambda *_: None)
+        provider = HttpSlackProvider(
+            transport=_transport(handler), max_attempts=3, sleeper=lambda *_: None
+        )
         try:
             result = provider.test_auth(TOKEN)
         finally:
@@ -459,7 +477,9 @@ class TestSlackHttpFixtures:
         def handler(request: httpx.Request) -> httpx.Response:
             calls["n"] += 1
             assert request.url.host == "slack.com"
-            return httpx.Response(302, headers={"Location": "http://169.254.169.254/latest/meta-data/"})
+            return httpx.Response(
+                302, headers={"Location": "http://169.254.169.254/latest/meta-data/"}
+            )
 
         provider = HttpSlackProvider(transport=_transport(handler), sleeper=lambda *_: None)
         try:
@@ -524,7 +544,9 @@ class TestGmailHttpFixtures:
             (403, GMAIL_403_DENIED, "denied"),
         ],
     )
-    def test_denied_and_missing_scope_stop_without_empty_success(self, status, body, error_code) -> None:
+    def test_denied_and_missing_scope_stop_without_empty_success(
+        self, status, body, error_code
+    ) -> None:
         calls = {"n": 0}
 
         def handler(request: httpx.Request) -> httpx.Response:
@@ -711,7 +733,9 @@ class TestOutboundAndOAuthSeams:
             calls["n"] += 1
             raise httpx.TimeoutException("timed out")
 
-        provider = HttpGmailProvider(transport=_transport(handler), max_attempts=3, sleeper=lambda *_: None)
+        provider = HttpGmailProvider(
+            transport=_transport(handler), max_attempts=3, sleeper=lambda *_: None
+        )
         try:
             result = provider.get_profile(GMAIL_TOKEN)
         finally:
@@ -725,7 +749,9 @@ class TestOutboundAndOAuthSeams:
 
     def test_oauth_seam_does_not_exchange_or_succeed(self) -> None:
         seam = OAuthStatePkceSeam()
-        exchanged = seam.exchange_code("gmail", code="auth-code", verifier="verifier", state="state")
+        exchanged = seam.exchange_code(
+            "gmail", code="auth-code", verifier="verifier", state="state"
+        )
         started = seam.begin_authorization("slack")
         assert exchanged["ok"] is False
         assert exchanged["error_code"] == "not_implemented"
@@ -738,7 +764,9 @@ class TestOutboundAndOAuthSeams:
 
 
 class TestDevStubDoesNotInventProviderDelivery:
-    def test_slack_history_stub_is_labelled_and_http_is_not_the_stub(self, monkeypatch: pytest.MonkeyPatch) -> None:
+    def test_slack_history_stub_is_labelled_and_http_is_not_the_stub(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
         _use_env(monkeypatch, APP_ENV="development", MESSAGE_PROVIDER_DEV_STUB="1")
         stub = get_slack_provider().fetch_messages(TOKEN, "C_RUN", limit=3)
         assert stub["ok"] is True

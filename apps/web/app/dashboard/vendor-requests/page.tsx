@@ -5,6 +5,8 @@ import { useRouter } from 'next/navigation'
 
 export default function VendorRequestsRedirect() {
   const router = useRouter()
-  useEffect(() => { router.replace('/dashboard/requests') }, [router])
+  useEffect(() => {
+    router.replace('/dashboard/requests')
+  }, [router])
   return null
 }

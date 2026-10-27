@@ -15,6 +15,7 @@ depends_on = None
 
 def upgrade() -> None:
     from sqlalchemy import inspect as sa_inspect
+
     bind = op.get_bind()
     if "evidence_gaps" in sa_inspect(bind).get_table_names():
         return
@@ -47,16 +48,12 @@ def upgrade() -> None:
             sa.ForeignKey("answers.id", ondelete="SET NULL"),
             nullable=True,
         ),
-        sa.Column(
-            "gap_type", sa.String(64), nullable=False, server_default="missing_evidence"
-        ),
+        sa.Column("gap_type", sa.String(64), nullable=False, server_default="missing_evidence"),
         sa.Column("reason", sa.Text(), nullable=True),
         sa.Column("proposed_policy_addition", sa.Text(), nullable=True),
         sa.Column("suggested_evidence_doc_title", sa.String(512), nullable=True),
         sa.Column("confidence", sa.Float(), nullable=True),
-        sa.Column(
-            "status", sa.String(20), nullable=False, server_default="open", index=True
-        ),
+        sa.Column("status", sa.String(20), nullable=False, server_default="open", index=True),
         sa.Column(
             "created_at",
             sa.DateTime(),

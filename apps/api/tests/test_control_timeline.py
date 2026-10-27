@@ -22,9 +22,11 @@ class TestControlTimelineService:
 
     def test_timeline_returns_events(self, db_session):
         ws = db_session.query(Workspace).first()
-        wc = db_session.query(WorkspaceControl).filter(
-            WorkspaceControl.workspace_id == ws.id
-        ).first()
+        wc = (
+            db_session.query(WorkspaceControl)
+            .filter(WorkspaceControl.workspace_id == ws.id)
+            .first()
+        )
         if not wc:
             pytest.skip("No workspace controls")
         result = ct.get_control_timeline(db_session, ws.id, wc.id)
@@ -34,10 +36,14 @@ class TestControlTimelineService:
 
     def test_timeline_includes_review_if_present(self, db_session):
         ws = db_session.query(Workspace).first()
-        wc = db_session.query(WorkspaceControl).filter(
-            WorkspaceControl.workspace_id == ws.id,
-            WorkspaceControl.last_reviewed_at.isnot(None),
-        ).first()
+        wc = (
+            db_session.query(WorkspaceControl)
+            .filter(
+                WorkspaceControl.workspace_id == ws.id,
+                WorkspaceControl.last_reviewed_at.isnot(None),
+            )
+            .first()
+        )
         if not wc:
             pytest.skip("No reviewed workspace controls")
         result = ct.get_control_timeline(db_session, ws.id, wc.id)
@@ -49,9 +55,11 @@ class TestControlTimelineAPI:
     def test_get_timeline(self, admin_client, db_session):
         # Admin session is always workspace_id=1 (see conftest seed).
         ws = db_session.query(Workspace).filter(Workspace.id == 1).first()
-        wc = db_session.query(WorkspaceControl).filter(
-            WorkspaceControl.workspace_id == ws.id
-        ).first()
+        wc = (
+            db_session.query(WorkspaceControl)
+            .filter(WorkspaceControl.workspace_id == ws.id)
+            .first()
+        )
         if not wc:
             pytest.skip("No workspace controls")
         r = admin_client.get(f"/api/control-timeline/{wc.id}")

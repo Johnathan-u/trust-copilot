@@ -29,11 +29,31 @@ ALLOWED_ROUTES = [
 ]
 
 ALLOWED_ICONS = [
-    "document", "questionnaire", "export", "trust", "request",
-    "vendor", "control", "compliance", "mapping", "audit",
-    "members", "notification", "slack", "gmail", "settings",
-    "security", "shield", "chart", "star", "folder",
-    "link", "globe", "lock", "check", "alert",
+    "document",
+    "questionnaire",
+    "export",
+    "trust",
+    "request",
+    "vendor",
+    "control",
+    "compliance",
+    "mapping",
+    "audit",
+    "members",
+    "notification",
+    "slack",
+    "gmail",
+    "settings",
+    "security",
+    "shield",
+    "chart",
+    "star",
+    "folder",
+    "link",
+    "globe",
+    "lock",
+    "check",
+    "alert",
 ]
 
 
@@ -41,7 +61,9 @@ class DashboardCard(Base):
     __tablename__ = "dashboard_cards"
 
     id = Column(Integer, primary_key=True, index=True)
-    workspace_id = Column(Integer, ForeignKey("workspaces.id", ondelete="CASCADE"), nullable=False, index=True)
+    workspace_id = Column(
+        Integer, ForeignKey("workspaces.id", ondelete="CASCADE"), nullable=False, index=True
+    )
     title = Column(String(128), nullable=False)
     description = Column(Text, nullable=True)
     icon = Column(String(32), nullable=False, default="document")

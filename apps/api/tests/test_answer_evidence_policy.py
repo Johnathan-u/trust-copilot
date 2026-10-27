@@ -25,9 +25,7 @@ def test_is_placeholder_insufficient_variants():
 
 
 def test_is_insufficient_long_narrative():
-    t = (
-        "Insufficient evidence. The provided documentation does not specify whether we use VPNs for remote access."
-    )
+    t = "Insufficient evidence. The provided documentation does not specify whether we use VPNs for remote access."
     assert is_insufficient_answer_text(t)
 
 
@@ -37,19 +35,29 @@ def test_is_insufficient_hedge_without_short_prefix():
 
 
 def test_not_insufficient_substantive_answer():
-    assert not is_insufficient_answer_text("We conduct annual access reviews per our security policy.")
+    assert not is_insufficient_answer_text(
+        "We conduct annual access reviews per our security policy."
+    )
 
 
 def test_classify_answer_status_from_text():
     assert classify_answer_status_from_text("We document controls.") == "draft"
-    assert classify_answer_status_from_text("Insufficient evidence. The docs do not specify X.") == "insufficient_evidence"
+    assert (
+        classify_answer_status_from_text("Insufficient evidence. The docs do not specify X.")
+        == "insufficient_evidence"
+    )
 
 
 def test_answer_text_for_export():
     assert answer_text_for_export(text="Yes", status="draft") == "Yes"
-    assert answer_text_for_export(text="Insufficient evidence.", status="insufficient_evidence") == EXPORT_NOT_READY_PLACEHOLDER
     assert (
-        answer_text_for_export(text="Insufficient evidence. The docs do not specify.", status="draft")
+        answer_text_for_export(text="Insufficient evidence.", status="insufficient_evidence")
+        == EXPORT_NOT_READY_PLACEHOLDER
+    )
+    assert (
+        answer_text_for_export(
+            text="Insufficient evidence. The docs do not specify.", status="draft"
+        )
         == EXPORT_NOT_READY_PLACEHOLDER
     )
 

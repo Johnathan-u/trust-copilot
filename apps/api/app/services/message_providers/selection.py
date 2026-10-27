@@ -44,13 +44,17 @@ class MessageProviderSelection:
         return {
             "provider_mode": mode,
             "provider_label": label,
-            "runtime_mode": self.runtime_mode if self.runtime_mode in ("production", "development") else "rejected",
+            "runtime_mode": self.runtime_mode
+            if self.runtime_mode in ("production", "development")
+            else "rejected",
             "dev_stub": bool(self.ok and self.provider_mode == DEV_STUB_MODE),
             "provider_preflight_ok": self.ok,
         }
 
 
-def resolve_message_provider_selection(settings: Settings | None = None) -> MessageProviderSelection:
+def resolve_message_provider_selection(
+    settings: Settings | None = None,
+) -> MessageProviderSelection:
     settings = settings or get_settings()
     requested = (settings.message_provider_runtime_mode or "").strip().lower() or None
     raw_stub = (settings.message_provider_dev_stub_raw or "").strip().lower()
@@ -65,7 +69,9 @@ def resolve_message_provider_selection(settings: Settings | None = None) -> Mess
     if app_env == "production":
         runtime = "production"
         if requested == "development":
-            failures.append("APP_ENV=production cannot select the development message-provider runtime")
+            failures.append(
+                "APP_ENV=production cannot select the development message-provider runtime"
+            )
     elif requested == "production":
         runtime = "production"
     elif requested in (None, "development"):

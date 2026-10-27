@@ -20,7 +20,7 @@ from app.services.message_providers.selection import (
     MessageProviderConfigurationError,
     resolve_message_provider_selection,
 )
-from app.services.slack_service import encrypt_token, decrypt_token  # reuse Fernet
+from app.services.slack_service import decrypt_token, encrypt_token  # reuse Fernet  # noqa: F401
 
 logger = logging.getLogger(__name__)
 
@@ -30,7 +30,9 @@ class GmailProvider(Protocol):
         """Return label dicts, or a failure dict. Never an empty list on error."""
         ...
 
-    def list_messages(self, access_token: str, label_id: str, max_results: int = 20) -> list[dict] | dict:
+    def list_messages(
+        self, access_token: str, label_id: str, max_results: int = 20
+    ) -> list[dict] | dict:
         """Return message refs, or a failure dict. Never an empty list on error."""
         ...
 
@@ -79,7 +81,9 @@ class ConsoleGmailProvider:
             {"id": "Label_Security", "name": "Security Policies"},
         ]
 
-    def list_messages(self, access_token: str, label_id: str, max_results: int = 20) -> list[dict] | dict:
+    def list_messages(
+        self, access_token: str, label_id: str, max_results: int = 20
+    ) -> list[dict] | dict:
         refused = self._refused()
         if refused:
             return refused
@@ -92,32 +96,41 @@ class ConsoleGmailProvider:
         refused = self._refused()
         if refused:
             return refused
-        return _stub_label({
-            "id": message_id,
-            "threadId": f"thread_{message_id}",
-            "subject": f"Security Policy Update — {message_id}",
-            "from": "compliance@example.com",
-            "date": "2026-03-15T10:00:00Z",
-            "snippet": "Please review the updated access control policy attached to this email.",
-            "body": "Please review the updated access control policy.",
-            "attachments": [
-                {"id": f"att_{message_id}_1", "filename": "access_control_policy_v3.pdf", "mime_type": "application/pdf", "size": 245000},
-            ],
-            "ok": True,
-            "provider": "gmail",
-        })
+        return _stub_label(
+            {
+                "id": message_id,
+                "threadId": f"thread_{message_id}",
+                "subject": f"Security Policy Update — {message_id}",
+                "from": "compliance@example.com",
+                "date": "2026-03-15T10:00:00Z",
+                "snippet": "Please review the updated access control policy attached to this email.",
+                "body": "Please review the updated access control policy.",
+                "attachments": [
+                    {
+                        "id": f"att_{message_id}_1",
+                        "filename": "access_control_policy_v3.pdf",
+                        "mime_type": "application/pdf",
+                        "size": 245000,
+                    },
+                ],
+                "ok": True,
+                "provider": "gmail",
+            }
+        )
 
     def get_attachment(self, access_token: str, message_id: str, attachment_id: str) -> dict:
         refused = self._refused()
         if refused:
             return refused
-        return _stub_label({
-            "ok": True,
-            "filename": "stub_attachment.pdf",
-            "data": b"stub-content",
-            "mime_type": "application/pdf",
-            "provider": "gmail",
-        })
+        return _stub_label(
+            {
+                "ok": True,
+                "filename": "stub_attachment.pdf",
+                "data": b"stub-content",
+                "mime_type": "application/pdf",
+                "provider": "gmail",
+            }
+        )
 
     def get_profile(self, access_token: str) -> dict:
         refused = self._refused()
@@ -185,7 +198,9 @@ class HttpGmailProvider:
             if isinstance(item, dict) and item.get("id")
         ]
 
-    def list_messages(self, access_token: str, label_id: str, max_results: int = 20) -> list[dict] | dict:
+    def list_messages(
+        self, access_token: str, label_id: str, max_results: int = 20
+    ) -> list[dict] | dict:
         result = self._get(
             access_token,
             "messages",
@@ -207,24 +222,34 @@ class HttpGmailProvider:
         result = self._get(access_token, f"messages/{message_id}", {"format": "full"})
         if result.get("ok") is not True:
             return result
-        headers_list = result.get("payload", {}).get("headers", []) if isinstance(result.get("payload"), dict) else []
+        headers_list = (
+            result.get("payload", {}).get("headers", [])
+            if isinstance(result.get("payload"), dict)
+            else []
+        )
         headers_map = {
             h["name"].lower(): h["value"]
             for h in headers_list
             if isinstance(h, dict) and h.get("name")
         }
         attachments = []
-        parts = result.get("payload", {}).get("parts", []) if isinstance(result.get("payload"), dict) else []
+        parts = (
+            result.get("payload", {}).get("parts", [])
+            if isinstance(result.get("payload"), dict)
+            else []
+        )
         for part in parts or []:
             if not isinstance(part, dict):
                 continue
             if part.get("filename") and part.get("body", {}).get("attachmentId"):
-                attachments.append({
-                    "id": part["body"]["attachmentId"],
-                    "filename": part["filename"],
-                    "mime_type": part.get("mimeType", ""),
-                    "size": part.get("body", {}).get("size", 0),
-                })
+                attachments.append(
+                    {
+                        "id": part["body"]["attachmentId"],
+                        "filename": part["filename"],
+                        "mime_type": part.get("mimeType", ""),
+                        "size": part.get("body", {}).get("size", 0),
+                    }
+                )
         return {
             "ok": True,
             "provider": "gmail",

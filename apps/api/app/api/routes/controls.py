@@ -56,7 +56,11 @@ def list_controls(
     ws = session.get("workspace_id")
     if ws is None:
         return []
-    q = db.query(Control).filter(Control.workspace_id == ws).order_by(Control.framework, Control.control_id)
+    q = (
+        db.query(Control)
+        .filter(Control.workspace_id == ws)
+        .order_by(Control.framework, Control.control_id)
+    )
     if framework:
         q = q.filter(Control.framework == framework)
     return [_control_dict(c) for c in q.all()]
@@ -106,7 +110,9 @@ def update_control(
         c.name = body.name.strip() or None
     if body.status is not None:
         if body.status not in CONTROL_STATUSES:
-            raise HTTPException(status_code=400, detail=f"Invalid status. Allowed: {CONTROL_STATUSES}")
+            raise HTTPException(
+                status_code=400, detail=f"Invalid status. Allowed: {CONTROL_STATUSES}"
+            )
         c.status = body.status
     db.commit()
     db.refresh(c)
@@ -141,7 +147,13 @@ def list_control_evidence(
     rows = db.query(ControlEvidence).filter(ControlEvidence.control_id == control_id).all()
     out = []
     for r in rows:
-        item = {"id": r.id, "control_id": r.control_id, "document_id": r.document_id, "trust_article_id": r.trust_article_id, "export_record_id": r.export_record_id}
+        item = {
+            "id": r.id,
+            "control_id": r.control_id,
+            "document_id": r.document_id,
+            "trust_article_id": r.trust_article_id,
+            "export_record_id": r.export_record_id,
+        }
         if r.document_id:
             doc = db.query(Document).filter(Document.id == r.document_id).first()
             item["label"] = doc.filename if doc else f"Document {r.document_id}"
@@ -169,8 +181,18 @@ def attach_evidence(
     c = db.query(Control).filter(Control.id == control_id).first()
     if not c or c.workspace_id != ws:
         raise HTTPException(status_code=404, detail="Control not found")
-    if sum(1 for x in [body.document_id, body.trust_article_id, body.export_record_id] if x is not None) != 1:
-        raise HTTPException(status_code=400, detail="Provide exactly one of document_id, trust_article_id, export_record_id")
+    if (
+        sum(
+            1
+            for x in [body.document_id, body.trust_article_id, body.export_record_id]
+            if x is not None
+        )
+        != 1
+    ):
+        raise HTTPException(
+            status_code=400,
+            detail="Provide exactly one of document_id, trust_article_id, export_record_id",
+        )
     if body.document_id:
         doc = db.query(Document).filter(Document.id == body.document_id).first()
         if not doc or doc.workspace_id != ws:
@@ -192,7 +214,13 @@ def attach_evidence(
     db.add(ev)
     db.commit()
     db.refresh(ev)
-    return {"id": ev.id, "control_id": ev.control_id, "document_id": ev.document_id, "trust_article_id": ev.trust_article_id, "export_record_id": ev.export_record_id}
+    return {
+        "id": ev.id,
+        "control_id": ev.control_id,
+        "document_id": ev.document_id,
+        "trust_article_id": ev.trust_article_id,
+        "export_record_id": ev.export_record_id,
+    }
 
 
 @router.delete("/{control_id}/evidence/{evidence_id}")
@@ -203,7 +231,11 @@ def detach_evidence(
     db: Session = Depends(get_db),
 ):
     """Remove an evidence link from a control. Requires admin."""
-    ev = db.query(ControlEvidence).filter(ControlEvidence.id == evidence_id, ControlEvidence.control_id == control_id).first()
+    ev = (
+        db.query(ControlEvidence)
+        .filter(ControlEvidence.id == evidence_id, ControlEvidence.control_id == control_id)
+        .first()
+    )
     if not ev:
         raise HTTPException(status_code=404, detail="Evidence link not found")
     c = db.query(Control).filter(Control.id == control_id).first()
