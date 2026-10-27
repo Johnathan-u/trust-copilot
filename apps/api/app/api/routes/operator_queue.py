@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session
 
 from app.core.auth_deps import require_can_admin
 from app.core.database import get_db
-from app.core.workspace_refs import require_in_workspace
+from app.core.workspace_refs import NOT_FOUND_DETAIL, require_in_workspace
 from app.services import operator_queue_service as oq
 
 router = APIRouter(prefix="/operator-queue", tags=["operator-queue"])
@@ -85,6 +85,8 @@ async def get_item(
     """Get a single operator queue item."""
     require_in_workspace(db, session["workspace_id"], "operator_queue_item", item_id)
     item = oq.get_item(db, item_id)
+    if item is None:
+        raise HTTPException(status_code=404, detail=NOT_FOUND_DETAIL)
     return item
 
 

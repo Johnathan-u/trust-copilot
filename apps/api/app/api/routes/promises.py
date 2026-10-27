@@ -11,6 +11,15 @@ from app.services import promise_service as svc
 
 router = APIRouter(prefix="/promises", tags=["promises"])
 
+# source_type values whose source_ref_id points at a workspace-owned row, and the
+# workspace_refs kind used to check it. Other source types (sla, verbal, ...) carry no
+# row reference, so their source_ref_id is stored as an opaque external number.
+SOURCE_REF_KINDS = {
+    "questionnaire_answer": "answer",
+    "trust_article": "trust_article",
+    "contract_clause": "contract_document",
+}
+
 
 class CreatePromiseBody(BaseModel):
     promise_text: str
@@ -43,6 +52,9 @@ async def create(
             ("evidence", body.evidence_ids),
         ],
     )
+    source_kind = SOURCE_REF_KINDS.get(body.source_type)
+    if source_kind is not None:
+        require_in_workspace(db, session["workspace_id"], source_kind, body.source_ref_id)
     result = svc.create_promise(
         db,
         session["workspace_id"],

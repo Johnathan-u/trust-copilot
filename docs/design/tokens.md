@@ -2,7 +2,7 @@
 
 Semantic color, type, spacing and interaction tokens for the Trust Copilot web app. Runtime values are CSS custom properties in `apps/web/app/globals.css`. The checked contract is `apps/web/lib/design-tokens.ts`.
 
-Dark is the default product theme (`:root`). That default is a coordinator decision: the product does not switch to light. Light uses the same names under `html[data-theme="light"]`. A public, noindex showcase is at `/design-tokens?theme=dark` and `/design-tokens?theme=light`.
+Dark is the default product theme (`:root`). That default is a coordinator decision: the product does not switch to light. Light uses the same names under `html[data-theme="light"]`. A public, noindex showcase is at `/design-tokens?theme=dark` and `/design-tokens?theme=light`. CI job `web-release-e2e` runs `apps/web/e2e/release/design-tokens.spec.ts` (Playwright and axe) on every push and pull request and fails on a test failure or any axe violation.
 
 ## Typography
 
