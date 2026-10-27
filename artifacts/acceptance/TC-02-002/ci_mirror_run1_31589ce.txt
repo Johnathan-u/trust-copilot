@@ -1,0 +1,77 @@
+### Start isolated Postgres: image pgvector/pgvector:pg16@sha256:7b822b0aac60967beb1ea5e576b8602c94c300a157d187f385ae3e0da199b90a db=tc_ci_merge_t0202_1793103621_test user=tc_ci password=<generated, not shown>
+### Install backend deps (from lock)
+No broken requirements found.
+exit=0
+python 3.11.17 sqlalchemy 2.0.55
+### Run migrations
+exit=0
+INFO  [alembic.runtime.migration] Running upgrade tc21001_framework_catalog_rights -> tc11001_model_outcome_codes, Typed model outcome and job error codes (TC-11-001)
+pgvector 0.8.7
+### Lint backend
+ruff 0.5.6
+All checks passed!
+exit=0
+### Safe test collection (TC-02-001)
+1558 tests collected in 2.72s
+exit=0
+26 passed in 11.44s
+exit=0
+### Python dependency lock (TC-02-002) / release test: python -m pytest tests/release/test_python_lock.py -q (TC_REQUIRE_DB=1)
+21 passed in 3.41s
+exit=0
+### Run backend tests
+........................................................................ [  4%]
+........................................................................ [  9%]
+........................................................................ [ 13%]
+........................................................................ [ 18%]
+........................................................................ [ 23%]
+........................................................................ [ 27%]
+........................................................................ [ 32%]
+........................................................................ [ 36%]
+........................................................................ [ 41%]
+........................................................................ [ 46%]
+........................................................................ [ 50%]
+........................................................................ [ 55%]
+........................................................................ [ 60%]
+...............F........................................................ [ 64%]
+........................................................................ [ 69%]
+........................................................................ [ 73%]
+............F........................................................... [ 78%]
+........................................................................ [ 83%]
+........................................................................ [ 87%]
+........................................................................ [ 92%]
+........................................................................ [ 97%]
+..............................................                           [100%]
+=================================== FAILURES ===================================
+_________________ test_no_pymupdf_left_in_dependencies_or_code _________________
+
+    def test_no_pymupdf_left_in_dependencies_or_code():
+        repo_root = API_ROOT.parents[1]
+        deps = tomllib.loads((API_ROOT / "pyproject.toml").read_text())["project"]["dependencies"]
+        names = [re.split(r"[<>=~!\[ ;]", d, maxsplit=1)[0].lower() for d in deps]
+        assert "pymupdf" not in names and "fitz" not in names
+        assert any(d.startswith("pypdf") and ">=" in d and "<" in d for d in deps), deps
+        offenders = _pymupdf_offenders(repo_root)
+>       assert offenders == []
+E       assert ['apps/api/te...t "pymupdf",'] == []
+E
+E         Left contains one more item: 'apps/api/tests/release/test_python_lock.py:202: requirement "pymupdf",'
+E         Use -v to get more diff
+
+tests/test_pdf_text_locator_corpus.py:387: AssertionError
+____________ test_generate_answers_passes_document_ids_to_retrieval ____________
+TC_REQUIRE_DB=1: DB (integration) test skipped instead of running: Skipped: no questions
+=============================== warnings summary ===============================
+tests/test_provider_adapter.py::test_migration_has_unique_descriptive_revision_after_075
+  /workspace/wt-run/venv-t0202/lib/python3.11/site-packages/alembic/config.py:604: DeprecationWarning: No path_separator found in configuration; falling back to legacy splitting on spaces, commas, and colons for prepend_sys_path.  Consider adding path_separator=os to Alembic config.
+    util.warn_deprecated(
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+SKIPPED [1] tests/test_trust_scoring_blind.py:33: external_data: blind test pack not checked in; set TC_TRUST_SCORING_BLIND_PACK to run
+2 failed, 1556 passed, 1 skipped, 1 warning in 97.16s (0:01:37)
+exit=1
+### Build frontend
+exit=0
+ ✓ Compiled successfully
+EXIT 0

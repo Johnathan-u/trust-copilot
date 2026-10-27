@@ -1,10 +1,14 @@
-# Stage: base (shared deps and app copy). Deps from pyproject.toml to avoid drift.
+# Stage: base (shared deps and app copy). Runtime deps come from the hashed lock (TC-02-002);
+# dev/test tools (pytest, ruff) are in requirements-dev.lock and are not installed here.
 FROM python:3.11-slim AS base
 WORKDIR /app
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
+COPY apps/api/requirements.lock /app/requirements.lock
+RUN pip install --no-cache-dir --require-hashes -r /app/requirements.lock
 COPY apps/api /app
-RUN pip install --no-cache-dir . \
+RUN pip install --no-cache-dir --no-deps . \
+    && pip check \
     && chmod +x /app/docker-entrypoint.sh
 
 # Stage: production (no reload, with healthcheck)
