@@ -12,7 +12,9 @@ Synthetic data only; no network, no model calls.
 
 from __future__ import annotations
 
+import ast
 import json
+import os
 import re
 import subprocess
 import sys
@@ -243,18 +245,145 @@ def test_parsers_do_not_import_pymupdf():
     assert r.returncode == 0 and "ok" in r.stdout, r.stderr
 
 
+# Whole-repo guard. .md may mention PyMuPDF; imports and requirement lines may not.
+_SKIP_DIR_NAMES = frozenset(
+    {
+        ".git",
+        "node_modules",
+        "venv",
+        ".venv",
+        "env",
+        "virtualenv",
+        ".virtualenv",
+        "__pycache__",
+        ".pytest_cache",
+        ".mypy_cache",
+        ".ruff_cache",
+        ".tox",
+        ".cache",
+        "cache",
+        "site-packages",
+        ".eggs",
+        "dist",
+        "build",
+    }
+)
+_LOCK_NAMES = frozenset(
+    {
+        "package-lock.json",
+        "yarn.lock",
+        "npm-shrinkwrap.json",
+        "pnpm-lock.yaml",
+        "poetry.lock",
+        "uv.lock",
+        "pdm.lock",
+        "pipfile.lock",
+        "cargo.lock",
+        "composer.lock",
+        "gemfile.lock",
+        "packages.lock.json",
+    }
+)
+_IMPORT_LINE = re.compile(r"(?i)^\s*(?:import|from)\s+(?:pymupdf|fitz)(?:\.|\s|$)")
+_DYNAMIC_IMPORT = re.compile(
+    r"""(?i)(?:__import__|import_module)\s*\(\s*['\"](?:pymupdf|fitz)(?:\.[^'\"]*)?['\"]"""
+)
+_PY_REQ_LINE = re.compile(
+    r"""(?ix)
+    ^\s*['\"](?:pymupdf|fitz)(?:\[[^\]]*\])?(?:[<>=!~]=?[^'\"]*)?['\"]\s*,?\s*$
+    |
+    ^\s*(?:pymupdf|fitz)(?:\[[^\]]*\])?\s*(?:[<>=!~]=?.*)?\s*$
+    """
+)
+_PKG_TOKEN = re.compile(r"(?i)(?<![A-Za-z0-9_])(?:pymupdf|fitz)(?![A-Za-z0-9_])")
+
+
+def _skip_dir(name: str) -> bool:
+    if name in _SKIP_DIR_NAMES or name.endswith(".egg-info"):
+        return True
+    lowered = name.lower()
+    if "virtualenv" in lowered or lowered.endswith("-cache"):
+        return True
+    return lowered.endswith("cache") and name.startswith(".")
+
+
+def _scan_kind(path: Path) -> str | None:
+    name = path.name.lower()
+    if path.suffix.lower() == ".py":
+        return "py"
+    if name == "pyproject.toml":
+        return "manifest"
+    if name.startswith("requirements") and path.suffix.lower() in {".txt", ".in", ".lock"}:
+        return "manifest"
+    if "requirements" in name and path.suffix.lower() in {".txt", ".in"}:
+        return "manifest"
+    if name.endswith(".lock") or name in _LOCK_NAMES:
+        return "manifest"
+    return None
+
+
+def _import_hits(path: Path, text: str) -> list[str]:
+    hits: list[str] = []
+    try:
+        tree = ast.parse(text, filename=str(path))
+    except SyntaxError:
+        tree = None
+    if tree is not None:
+        for node in ast.walk(tree):
+            names: list[str] = []
+            if isinstance(node, ast.Import):
+                names = [alias.name for alias in node.names]
+            elif isinstance(node, ast.ImportFrom) and node.module:
+                names = [node.module]
+            for mod in names:
+                root = mod.split(".", 1)[0].lower()
+                if root in {"pymupdf", "fitz"}:
+                    hits.append(f"{node.lineno}: import {mod}")
+    else:
+        for lineno, line in enumerate(text.splitlines(), 1):
+            if _IMPORT_LINE.match(line):
+                hits.append(f"{lineno}: {line.strip()}")
+    for lineno, line in enumerate(text.splitlines(), 1):
+        if _DYNAMIC_IMPORT.search(line):
+            hits.append(f"{lineno}: dynamic import")
+        code = line.split("#", 1)[0]
+        if _PY_REQ_LINE.match(code):
+            hits.append(f"{lineno}: requirement {code.strip()}")
+    return hits
+
+
+def _manifest_hits(text: str) -> list[str]:
+    hits = []
+    for lineno, line in enumerate(text.splitlines(), 1):
+        code = line.split("#", 1)[0]
+        if _PKG_TOKEN.search(code):
+            hits.append(f"{lineno}: requirement {code.strip()}")
+    return hits
+
+
+def _pymupdf_offenders(repo_root: Path) -> list[str]:
+    offenders: list[str] = []
+    for dirpath, dirnames, filenames in os.walk(repo_root):
+        dirnames[:] = [d for d in dirnames if not _skip_dir(d)]
+        for filename in filenames:
+            path = Path(dirpath) / filename
+            kind = _scan_kind(path)
+            if kind is None:
+                continue
+            text = path.read_text(encoding="utf-8", errors="replace")
+            found = _import_hits(path, text) if kind == "py" else _manifest_hits(text)
+            rel = path.relative_to(repo_root)
+            offenders.extend(f"{rel}:{item}" for item in found)
+    return offenders
+
+
 def test_no_pymupdf_left_in_dependencies_or_code():
+    repo_root = API_ROOT.parents[1]
     deps = tomllib.loads((API_ROOT / "pyproject.toml").read_text())["project"]["dependencies"]
     names = [re.split(r"[<>=~!\[ ;]", d, maxsplit=1)[0].lower() for d in deps]
     assert "pymupdf" not in names and "fitz" not in names
     assert any(d.startswith("pypdf") and ">=" in d and "<" in d for d in deps), deps
-    pattern = re.compile(r"^\s*(import|from)\s+(pymupdf|fitz)\b", re.MULTILINE)
-    offenders = [
-        str(p.relative_to(API_ROOT))
-        for sub in ("app", "scripts")
-        for p in (API_ROOT / sub).rglob("*.py")
-        if pattern.search(p.read_text(encoding="utf-8", errors="replace"))
-    ]
+    offenders = _pymupdf_offenders(repo_root)
     assert offenders == []
 
 
