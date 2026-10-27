@@ -88,6 +88,11 @@ services:
       TRUST_COPILOT_IN_DOCKER: "1"
       DATABASE_URL: postgresql://trustcopilot:rOuLU96NMChg6Z1UVekHLztlN4uDcmWA@postgres:5432/trustcopilot
       S3_ENDPOINT: http://minio:9000
+      # TC-10-002: job-level retry backoff for transient failures (429/timeout/5xx/connection). Delay after
+      # attempt n = jitter in [d/2, d], d = min(MAX, BASE * 2^(n-1)); Retry-After honoured up to MAX.
+      # Attempts per job = jobs.max_attempts (default 3, hard ceiling 10).
+      JOB_RETRY_BASE_SECONDS: ${JOB_RETRY_BASE_SECONDS:-15}
+      JOB_RETRY_MAX_SECONDS: ${JOB_RETRY_MAX_SECONDS:-600}
     command: python -m app.worker
     # TC-03-003: the worker has no HTTP server; override the image's API probe with the
     # worker heartbeat-file probe (no HTTP, no DB). Fresh while the claim loop or a job within
