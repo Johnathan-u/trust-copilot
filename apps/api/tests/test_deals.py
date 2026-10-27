@@ -74,9 +74,15 @@ class TestDealService:
         qnr = Questionnaire(workspace_id=ws.id, filename="link-corp.xlsx", status="parsed")
         db_session.add(qnr)
         db_session.commit()
-        result = ds.link_questionnaire(db_session, created["id"], qnr.id, workspace_id=ws.id)
-        db_session.commit()
-        assert qnr.id in result["linked_questionnaire_ids"]
+        try:
+            result = ds.link_questionnaire(db_session, created["id"], qnr.id, workspace_id=ws.id)
+            db_session.commit()
+            assert qnr.id in result["linked_questionnaire_ids"]
+        finally:
+            # Don't leave a question-less questionnaire in workspace 1 for later tests.
+            db_session.rollback()
+            db_session.delete(qnr)
+            db_session.commit()
 
 
 class TestRevenueRiskService:
