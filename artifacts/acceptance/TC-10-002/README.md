@@ -3,6 +3,8 @@
 - Branch `tc/core/TC-10-002`, based on `origin/master` `d527863` (#28 TC-10-003 merged, on top of #31 `e1c0ca7` and
   #16 TC-11-001 `1a0e614`). It is not stacked: the two commits sit directly on master. The tests ran on the final code;
   only this directory and the ticket doc were edited after the runs.
+- After these runs, master moved to `9733c93` (#30) and gained head `tc25011_demo_proof_summaries`. `tc10002_job_retries`
+  was re-parented onto that head. The logs below still record the earlier chain ending at `tc10003_job_idempotency`.
 - Environment: Python 3.11.18, SQLAlchemy 2.0.55, Alembic 1.20.1, FastAPI 0.162.0, pytest 9.1.1; PostgreSQL 16 with
   pgvector (`pgvector/pgvector:pg16`) in a disposable local container on an internal Docker network with no egress.
   Each run used a freshly created `*_test` database and applied `alembic upgrade head` first, as in `.github/workflows/ci.yml`.

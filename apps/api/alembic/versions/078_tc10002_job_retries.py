@@ -7,20 +7,21 @@ jobs.error_code is not added here: TC-11-001 (tc11001_model_outcome_codes, maste
 same type, and TC-10-002 writes that column.
 
 Stacked on TC-10-003 (tc10003_job_idempotency): job-level retries are only safe with its side-effect ledger.
-Chain on this branch: 075 -> tc21001_framework_catalog_rights -> tc11001_model_outcome_codes (master 1a0e614)
--> tc10003_job_idempotency (re-parented onto tc11001, as #28 does) -> tc10002_job_retries.
-If this revision ever has to land without TC-10-003, re-parent it onto master's head at that time (tc11001 today);
-it must not also parent on tc11001 while tc10003 does, or alembic sees two heads.
+Master gained another head before this landed: #30 TC-25-011 (9733c93), revision
+tc25011_demo_proof_summaries, itself parented on tc10003_job_idempotency. This revision is re-parented
+onto that head so alembic has a single head. It still adds only jobs.next_attempt_at.
+Chain: 075 -> tc21001_framework_catalog_rights -> tc11001_model_outcome_codes -> tc10003_job_idempotency
+-> tc25011_demo_proof_summaries -> tc10002_job_retries.
 
 Revision ID: tc10002_job_retries
-Revises: tc10003_job_idempotency
+Revises: tc25011_demo_proof_summaries
 """
 
 from alembic import op
 import sqlalchemy as sa
 
 revision = "tc10002_job_retries"
-down_revision = "tc10003_job_idempotency"
+down_revision = "tc25011_demo_proof_summaries"
 branch_labels = None
 depends_on = None
 

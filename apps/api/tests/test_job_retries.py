@@ -896,7 +896,8 @@ def test_migration_downgrade_and_upgrade_roundtrip(_ensure_test_data):
     mod = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(mod)
     assert mod.revision == "tc10002_job_retries"
-    assert mod.down_revision == "tc10003_job_idempotency"
+    # Re-parented onto master's head after #30 (tc25011_demo_proof_summaries).
+    assert mod.down_revision == "tc25011_demo_proof_summaries"
     env = {**os.environ, "DATABASE_URL": os.environ["DATABASE_URL"]}
 
     def alembic(*args):
