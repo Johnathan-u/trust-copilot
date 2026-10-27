@@ -5,8 +5,7 @@ variable; when the variable is unset (local development only) a random password 
 for this run and written to ``apps/api/.seed-credentials.local`` (git-ignored, mode 0600) so the
 operator can log in. Nothing is printed to stdout, so console logs never capture credentials.
 
-Seeding with generated or env passwords is refused when APP_ENV=production unless
-TC_ALLOW_PRODUCTION_SEED=1 is set explicitly (see TC-03-001 for the production seeding policy).
+Seeding is refused outright when APP_ENV=production (TC-03-001; there is no override).
 """
 
 from __future__ import annotations
@@ -22,14 +21,14 @@ _generated: dict[str, str] = {}
 
 
 def refuse_production_seed() -> None:
-    if (
-        os.getenv("APP_ENV", "development").lower() == "production"
-        and os.getenv("TC_ALLOW_PRODUCTION_SEED") != "1"
-    ):
-        raise SystemExit(
-            "Refusing to seed demo/QA accounts with APP_ENV=production. "
-            "Set TC_ALLOW_PRODUCTION_SEED=1 only with explicit owner approval."
-        )
+    """Demo/QA/E2E seeding is never allowed in production (TC-03-001, no override).
+
+    Production is detected by app.core.session.is_production_env() via the config contract
+    (seed scripts put apps/api on sys.path, so ``app`` is always importable here).
+    """
+    from app.core.config_contract import refuse_demo_seed_in_production
+
+    refuse_demo_seed_in_production()
 
 
 def seed_password(env_name: str) -> str:
