@@ -198,6 +198,14 @@ def _setup_permission_actors() -> dict[str, int]:
     try:
         workspace = session.query(Workspace).filter(Workspace.slug == _PERM_WORKSPACE_SLUG).first()
         if workspace is None:
+            # Migrations insert workspace id 1 explicitly, so a fresh database
+            # leaves the serial sequence at 1 and the next insert collides.
+            session.execute(
+                text(
+                    "SELECT setval(pg_get_serial_sequence('workspaces', 'id'), "
+                    "(SELECT COALESCE(MAX(id), 1) FROM workspaces))"
+                )
+            )
             workspace = Workspace(name="TC-02-BUG-016", slug=_PERM_WORKSPACE_SLUG)
             session.add(workspace)
             session.flush()
