@@ -91,7 +91,7 @@ def test_migration_module_has_no_app_imports():
     assert modules
     assert all(name.split(".")[0] != "app" for name in modules)
     assert 'revision = "tc25011_demo_proof_summaries"' in source
-    assert 'down_revision = "tc11001_model_outcome_codes"' in source
+    assert 'down_revision = "tc10003_job_idempotency"' in source
     assert "NOT IN" not in source.upper()
     assert source.count("op.drop_table") == 1
     assert 'op.drop_table("demo_proof_summaries")' in source

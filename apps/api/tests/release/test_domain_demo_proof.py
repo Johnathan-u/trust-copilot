@@ -1275,12 +1275,13 @@ def test_zz_migration_rollback_drops_snapshots_and_keeps_evidence(client):
         assert created.status_code == 200, created.text
         summary_id = created.json()["proof_summary"]["summary_id"]
         engine.dispose()
-        downgraded = _alembic("downgrade", "tc11001_model_outcome_codes")
+        downgraded = _alembic("downgrade", "tc10003_job_idempotency")
         assert downgraded.returncode == 0, downgraded.stderr
         engine.dispose()
         assert _table_exists("demo_proof_summaries") is False
         assert _table_exists("documents") is True
         assert _table_exists("questionnaires") is True
+        assert _table_exists("job_effects") is True
         column = SessionLocal()
         try:
             outcome = column.execute(
