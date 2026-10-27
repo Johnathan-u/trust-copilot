@@ -1,0 +1,296 @@
+{
+ "corrupt_not_pdf": {
+  "evidence": {
+   "error": "FileDataError"
+  },
+  "questionnaire": {
+   "error": "FileDataError"
+  }
+ },
+ "encrypted_owner_only_empty_user_pw": {
+  "evidence": {
+   "ok": [
+    {
+     "page": 1,
+     "text": "ENC-1 encrypted synthetic text"
+    }
+   ]
+  },
+  "questionnaire": {
+   "ok": []
+  }
+ },
+ "encrypted_user_password_required": {
+  "evidence": {
+   "error": "ValueError"
+  },
+  "questionnaire": {
+   "error": "ValueError"
+  }
+ },
+ "image_only_scan": {
+  "evidence": {
+   "ok": []
+  },
+  "questionnaire": {
+   "ok": []
+  }
+ },
+ "latin1_punctuation": {
+  "evidence": {
+   "ok": [
+    {
+     "page": 1,
+     "text": "LAT-1 Café naïve résumé – en dash\nLAT-2 “quoted” ‘single’ €100 § 4.2"
+    }
+   ]
+  },
+  "questionnaire": {
+   "ok": []
+  }
+ },
+ "multipage_blank_page": {
+  "evidence": {
+   "ok": [
+    {
+     "page": 1,
+     "text": "MARK-P1-ALPHA Access control policy.\nMARK-P1-BETA Reviewed yearly."
+    },
+    {
+     "page": 3,
+     "text": "MARK-P3-GAMMA Encryption at rest uses AES-256."
+    },
+    {
+     "page": 4,
+     "text": "MARK-P4-DELTA Footer-positioned text."
+    }
+   ]
+  },
+  "questionnaire": {
+   "ok": []
+  }
+ },
+ "questionnaire_numbered": {
+  "evidence": {
+   "ok": [
+    {
+     "page": 1,
+     "text": "SECTION A: ACCESS CONTROL\n1. Do you enforce multi-factor authentication for all administrators?\n2. How often are user access reviews performed?\nIs there a formal joiner/mover/leaver process?"
+    }
+   ]
+  },
+  "questionnaire": {
+   "ok": [
+    {
+     "answer_type": "yes_no",
+     "confidence": 70,
+     "section": "2. How often are user access reviews performed?",
+     "source_location": {
+      "file": "<path>",
+      "page": 1,
+      "type": "pdf"
+     },
+     "text": "is there a formal joiner/mover/leaver process"
+    }
+   ]
+  }
+ },
+ "questionnaire_table_cells": {
+  "evidence": {
+   "ok": [
+    {
+     "page": 1,
+     "text": "SECTION D: OPERATIONS\nDo you encrypt backups at rest?\nYes\nNo\nIs MFA required for remote access?\nYes\nNo"
+    }
+   ]
+  },
+  "questionnaire": {
+   "ok": [
+    {
+     "answer_type": "yes_no",
+     "confidence": 70,
+     "section": "SECTION D: OPERATIONS",
+     "source_location": {
+      "file": "<path>",
+      "page": 1,
+      "type": "pdf"
+     },
+     "text": "do you encrypt backups at rest"
+    },
+    {
+     "answer_type": "yes_no",
+     "confidence": 70,
+     "section": "SECTION D: OPERATIONS",
+     "source_location": {
+      "file": "<path>",
+      "page": 1,
+      "type": "pdf"
+     },
+     "text": "is mfa required for remote access"
+    }
+   ]
+  }
+ },
+ "questionnaire_two_pages": {
+  "evidence": {
+   "ok": [
+    {
+     "page": 1,
+     "text": "SECTION A: ACCESS CONTROL\nDo you enforce multi-factor authentication for all administrators?\nHow often are user access reviews performed?\nOur team will respond with evidence.\nSECTION B: ENCRYPTION\nIs customer data encrypted at rest using AES-256?"
+    },
+    {
+     "page": 2,
+     "text": "SECTION C: INCIDENT RESPONSE\nDo you have a documented incident response plan?\nDescribe how security incidents are reported to customers."
+    }
+   ]
+  },
+  "questionnaire": {
+   "ok": [
+    {
+     "answer_type": "yes_no",
+     "confidence": 70,
+     "section": "SECTION A: ACCESS CONTROL",
+     "source_location": {
+      "file": "<path>",
+      "page": 1,
+      "type": "pdf"
+     },
+     "text": "do you enforce multi-factor authentication for all administrators"
+    },
+    {
+     "answer_type": "yes_no",
+     "confidence": 70,
+     "section": "SECTION A: ACCESS CONTROL",
+     "source_location": {
+      "file": "<path>",
+      "page": 1,
+      "type": "pdf"
+     },
+     "text": "how often are user access reviews performed"
+    },
+    {
+     "answer_type": "yes_no",
+     "confidence": 70,
+     "section": "SECTION B: ENCRYPTION",
+     "source_location": {
+      "file": "<path>",
+      "page": 1,
+      "type": "pdf"
+     },
+     "text": "is customer data encrypted at rest using aes-256"
+    },
+    {
+     "answer_type": "yes_no",
+     "confidence": 70,
+     "section": "SECTION C: INCIDENT RESPONSE",
+     "source_location": {
+      "file": "<path>",
+      "page": 2,
+      "type": "pdf"
+     },
+     "text": "do you have a documented incident response plan"
+    },
+    {
+     "answer_type": "free_text",
+     "confidence": 70,
+     "section": "SECTION C: INCIDENT RESPONSE",
+     "source_location": {
+      "file": "<path>",
+      "page": 2,
+      "type": "pdf"
+     },
+     "text": "describe how security incidents are reported to customers"
+    }
+   ]
+  }
+ },
+ "repo_fixture_security_policy": {
+  "evidence": {
+   "ok": [
+    {
+     "page": 1,
+     "text": "Information Security Policy\n1. Policy Statement: The company maintains a written information security policy approved by\nmanagement.\n2. Security Officer: A designated individual (CISO) is responsible for the security program.\n3. Risk Assessment: Annual risk assessments are performed.\n4. Access Control: Role-based access control is applied. Access reviews occur quarterly.\n5. Incident Response: An incident response plan exists and is tested annually."
+    }
+   ]
+  },
+  "questionnaire": {
+   "ok": []
+  }
+ },
+ "spans_and_offsets": {
+  "evidence": {
+   "ok": [
+    {
+     "page": 1,
+     "text": "SPAN-01 synthetic control statement number 1 for offsets.\nSPAN-02 synthetic control statement number 2 for offsets.\nSPAN-03 synthetic control statement number 3 for offsets.\nSPAN-04 synthetic control statement number 4 for offsets.\nSPAN-05 synthetic control statement number 5 for offsets.\nSPAN-06 synthetic control statement number 6 for offsets.\nSPAN-07 synthetic control statement number 7 for offsets.\nSPAN-08 synthetic control statement number 8 for offsets.\nSPAN-09 synthetic control statement number 9 for offsets.\nSPAN-10 synthetic control statement number 10 for offsets.\nSPAN-11 synthetic control statement number 11 for offsets.\nSPAN-12 synthetic control statement number 12 for offsets.\nSPAN-13 synthetic control statement number 13 for offsets.\nSPAN-14 synthetic control statement number 14 for offsets.\nSPAN-15 synthetic control statement number 15 for offsets.\nSPAN-16 synthetic control statement number 16 for offsets.\nSPAN-17 synthetic control statement number 17 for offsets.\nSPAN-18 synthetic control statement number 18 for offsets.\nSPAN-19 synthetic control statement number 19 for offsets.\nSPAN-20 synthetic control statement number 20 for offsets."
+    }
+   ]
+  },
+  "questionnaire": {
+   "ok": []
+  }
+ },
+ "table_grid": {
+  "evidence": {
+   "ok": [
+    {
+     "page": 1,
+     "text": "CTRL-ID\nCTRL-OWNER\nCTRL-FREQ\nT1C1-CC1.1\nT1C2-Owner1\nT1C3-Quarterly\nT2C1-CC2.1\nT2C2-Owner2\nT2C3-Quarterly\nT3C1-CC3.1\nT3C2-Owner3\nT3C3-Quarterly"
+    }
+   ]
+  },
+  "questionnaire": {
+   "ok": []
+  }
+ },
+ "truncated_pdf": {
+  "evidence": {
+   "ok": []
+  },
+  "questionnaire": {
+   "ok": []
+  }
+ },
+ "two_column": {
+  "evidence": {
+   "ok": [
+    {
+     "page": 1,
+     "text": "LEFT-1 left column sentence 1.\nLEFT-2 left column sentence 2.\nLEFT-3 left column sentence 3.\nLEFT-4 left column sentence 4.\nLEFT-5 left column sentence 5.\nLEFT-6 left column sentence 6.\nRIGHT-1 right column sentence 1.\nRIGHT-2 right column sentence 2.\nRIGHT-3 right column sentence 3.\nRIGHT-4 right column sentence 4.\nRIGHT-5 right column sentence 5.\nRIGHT-6 right column sentence 6."
+    }
+   ]
+  },
+  "questionnaire": {
+   "ok": []
+  }
+ },
+ "two_column_stream_right_first": {
+  "evidence": {
+   "ok": [
+    {
+     "page": 1,
+     "text": "RIGHT-1 right column sentence 1.\nRIGHT-2 right column sentence 2.\nRIGHT-3 right column sentence 3.\nRIGHT-4 right column sentence 4.\nRIGHT-5 right column sentence 5.\nRIGHT-6 right column sentence 6.\nLEFT-1 left column sentence 1.\nLEFT-2 left column sentence 2.\nLEFT-3 left column sentence 3.\nLEFT-4 left column sentence 4.\nLEFT-5 left column sentence 5.\nLEFT-6 left column sentence 6."
+    }
+   ]
+  },
+  "questionnaire": {
+   "ok": []
+  }
+ },
+ "vector_only_no_text": {
+  "evidence": {
+   "ok": []
+  },
+  "questionnaire": {
+   "ok": []
+  }
+ },
+ "whitespace_only_text": {
+  "evidence": {
+   "ok": []
+  },
+  "questionnaire": {
+   "ok": []
+  }
+ }
+}
