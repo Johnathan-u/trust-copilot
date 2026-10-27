@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useMemo, useState, useRef } from 'react'
+import { useCallback, useEffect, useId, useMemo, useState, useRef } from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { useAuth } from '@/contexts/AuthContext'
@@ -11,6 +11,7 @@ import {
   type CommandPaletteItem,
 } from '@/components/CommandPalette'
 import { NotificationsPanel } from '@/components/layout/NotificationsPanel'
+import { disclosureTriggerProps } from '@/lib/disclosure'
 
 const nav = [
   { href: '/dashboard', label: 'Home' },
@@ -74,6 +75,7 @@ export function Topbar() {
   const [notificationsOpen, setNotificationsOpen] = useState(false)
   const [unreadCount, setUnreadCount] = useState(0)
   const notificationsAnchorRef = useRef<HTMLDivElement>(null)
+  const notificationsPanelId = useId()
   const searchDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const [menuOpen, setMenuOpen] = useState(false)
@@ -385,7 +387,7 @@ export function Topbar() {
             onClick={() => setNotificationsOpen((o) => !o)}
             className="relative grid h-10 w-10 place-items-center rounded-full border border-[var(--tc-border)] bg-white/5 transition hover:bg-white/10"
             aria-label="Notifications"
-            aria-expanded={notificationsOpen}
+            {...disclosureTriggerProps(notificationsOpen, notificationsPanelId)}
           >
             🔔
             {unreadCount > 0 && (
@@ -402,6 +404,7 @@ export function Topbar() {
             onClose={() => setNotificationsOpen(false)}
             onUnreadCountChange={setUnreadCount}
             anchorRef={notificationsAnchorRef}
+            panelId={notificationsPanelId}
           />
         </div>
 

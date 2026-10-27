@@ -1,10 +1,9 @@
 'use client'
 
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import Link from 'next/link'
 import { Card, Button, Modal, ToastNotice, useDestructiveConfirm } from '@/components/ui'
 import { useAuth } from '@/contexts/AuthContext'
-import { autoDismissMs } from '@/lib/toast'
 
 type DashboardCard = {
   id?: number
@@ -72,7 +71,6 @@ export default function DashboardPage() {
   const [editCard, setEditCard] = useState<DashboardCard | null>(null)
   const [showAddModal, setShowAddModal] = useState(false)
   const [toast, setToast] = useState<{ type: 'success' | 'error'; message: string } | null>(null)
-  const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const { confirm, dialog: confirmDialog } = useDestructiveConfirm()
 
   const [allowedMeta, setAllowedMeta] = useState<AllowedMeta | null>(null)
@@ -99,22 +97,10 @@ export default function DashboardPage() {
   useEffect(() => { fetchCards() }, [fetchCards])
   useEffect(() => { if (isAdmin) fetchMeta() }, [isAdmin, fetchMeta])
 
-  const dismissToast = () => {
-    if (toastTimer.current) clearTimeout(toastTimer.current)
-    toastTimer.current = null
-    setToast(null)
-  }
+  const dismissToast = () => setToast(null)
 
   const showToast = (type: 'success' | 'error', message: string) => {
-    if (toastTimer.current) clearTimeout(toastTimer.current)
-    toastTimer.current = null
     setToast({ type, message })
-    const ms = autoDismissMs(type)
-    if (ms == null) return
-    toastTimer.current = setTimeout(() => {
-      toastTimer.current = null
-      setToast(null)
-    }, ms)
   }
 
   const requestDelete = (id: number) => {

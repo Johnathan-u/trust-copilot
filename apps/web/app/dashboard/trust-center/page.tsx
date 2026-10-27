@@ -1,8 +1,7 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Button, Card, EmptyState, Input, Modal, ToastNotice, useDestructiveConfirm } from '@/components/ui'
-import { autoDismissMs } from '@/lib/toast'
 import { ListSkeleton } from '@/components/ui/Skeleton'
 import { useAuth } from '@/contexts/AuthContext'
 
@@ -69,26 +68,13 @@ export default function TrustCenterPage() {
   const [error, setError] = useState<string | null>(null)
   const [toast, setToast] = useState<string | null>(null)
   const [toastType, setToastType] = useState<'success' | 'error'>('error')
-  const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const { confirm, dialog: confirmDialog } = useDestructiveConfirm()
 
-  const dismissToast = () => {
-    if (toastTimer.current) clearTimeout(toastTimer.current)
-    toastTimer.current = null
-    setToast(null)
-  }
+  const dismissToast = () => setToast(null)
 
   const showToast = (type: 'success' | 'error', message: string) => {
-    if (toastTimer.current) clearTimeout(toastTimer.current)
-    toastTimer.current = null
     setToastType(type)
     setToast(message)
-    const ms = autoDismissMs(type)
-    if (ms == null) return
-    toastTimer.current = setTimeout(() => {
-      toastTimer.current = null
-      setToast(null)
-    }, ms)
   }
   const [policies, setPolicies] = useState<TrustArticle[]>([])
   const [acknowledged, setAcknowledged] = useState<Set<number>>(new Set())

@@ -144,7 +144,7 @@ test.describe('dialog focus and notifications', () => {
     await page.waitForTimeout(4500)
     await expect(alert).toBeVisible()
     const dismiss = page.getByRole('button', { name: 'Dismiss Save failed' })
-    for (let i = 0; i < 12; i += 1) {
+    for (let i = 0; i < 16; i += 1) {
       if (await dismiss.evaluate((el) => el === document.activeElement).catch(() => false)) break
       await page.keyboard.press('Tab')
     }
@@ -165,6 +165,78 @@ test.describe('dialog focus and notifications', () => {
     await page.goto('/design-dialogs?theme=nope')
     await expect(page.locator('html')).not.toHaveAttribute('data-theme', 'light')
     await expect(page.getByTestId('dialog-showcase')).toHaveAttribute('data-expected-theme', 'dark')
+  })
+
+  test('notifications panel is a disclosure popover', async ({ page }) => {
+    await page.setViewportSize({ width: 1440, height: 900 })
+    await openTheme(page, 'dark')
+
+    const bell = page.getByRole('button', { name: 'Notifications' })
+    const panel = page.locator('#sample-notifications')
+    await expect(bell).toHaveAttribute('aria-expanded', 'false')
+    await expect(bell).toHaveAttribute('aria-controls', 'sample-notifications')
+    await expect(panel).toHaveCount(0)
+
+    await bell.click()
+    await expect(panel).toBeVisible()
+    await expect(bell).toHaveAttribute('aria-expanded', 'true')
+    await expect(panel).not.toHaveAttribute('aria-modal')
+    await expect(page.getByRole('dialog')).toHaveCount(0)
+    await expect(page.getByRole('alertdialog')).toHaveCount(0)
+    const notesInert = await page.locator('#working-notes').evaluate((el) => el.closest('[inert]') !== null)
+    expect(notesInert).toBe(false)
+    expect(await page.locator('[inert]').count()).toBe(0)
+
+    await page.getByRole('button', { name: 'Close notifications' }).focus()
+    for (let i = 0; i < 8; i += 1) {
+      await page.keyboard.press('Shift+Tab')
+      if (await bell.evaluate((el) => el === document.activeElement)) break
+    }
+    await focused(bell)
+
+    await page.getByRole('link', { name: 'Notification settings' }).focus()
+    await page.keyboard.press('Tab')
+    await focused(page.getByRole('link', { name: 'Page help' }))
+    const leftPanel = await panel.evaluate((el) => !el.contains(document.activeElement))
+    expect(leftPanel).toBe(true)
+
+    await page.getByRole('link', { name: 'View audit log' }).focus()
+    await page.keyboard.press('Escape')
+    await expect(panel).toHaveCount(0)
+    await focused(bell)
+    await expect(bell).toHaveAttribute('aria-expanded', 'false')
+
+    await bell.click()
+    await expect(panel).toBeVisible()
+    await page.getByLabel('Working notes').click()
+    await expect(panel).toHaveCount(0)
+    await focused(bell)
+    await expect(bell).toHaveAttribute('aria-expanded', 'false')
+    const notesInertAfter = await page.locator('#working-notes').evaluate((el) => el.closest('[inert]') !== null)
+    expect(notesInertAfter).toBe(false)
+  })
+
+  test('info toasts leave after 4000ms and action toasts stay', async ({ page }) => {
+    await page.setViewportSize({ width: 1440, height: 900 })
+    await openTheme(page, 'dark')
+
+    await page.getByRole('button', { name: 'Show info' }).click()
+    const info = page.getByRole('status').filter({ hasText: 'Synthetic info saved.' })
+    await expect(info).toBeVisible()
+    await expect(info).toHaveAttribute('aria-live', 'polite')
+    await page.waitForTimeout(4500)
+    await expect(info).toHaveCount(0)
+
+    await page.getByRole('button', { name: 'Show undo' }).click()
+    const undoToast = page.getByRole('status').filter({ hasText: 'Synthetic sample can be restored.' })
+    const undo = page.getByRole('button', { name: 'Undo' })
+    await expect(undoToast).toBeVisible()
+    await expect(undo).toBeVisible()
+    await page.waitForTimeout(4500)
+    await expect(undoToast).toBeVisible()
+    await undo.click()
+    await expect(undoToast).toHaveCount(0)
+    await expect(page.getByLabel('Working notes')).toHaveValue('restored')
   })
 
   for (const theme of themes) {
@@ -189,7 +261,8 @@ test.describe('dialog focus and notifications', () => {
           close: async () => {
             await page.keyboard.press('Escape')
             await expect(page.getByRole('dialog', { name: 'Rename sample record' })).toHaveCount(0)
-            await page.getByRole('button', { name: 'Dismiss Saved' }).click()
+            const dismiss = page.getByRole('button', { name: 'Dismiss Saved' })
+            if (await dismiss.count()) await dismiss.click()
           },
         },
         {
@@ -230,6 +303,13 @@ test.describe('dialog focus and notifications', () => {
           }))
           expect(overflow.scroll, `${theme} ${viewport.name} ${state.id}`).toBeLessThanOrEqual(overflow.client + 1)
 
+          if (state.id !== 'toast') {
+            await page.screenshot({
+              path: path.join(screenshotDir, `${state.id}-${theme}-${viewport.name}.png`),
+              fullPage: true,
+            })
+          }
+
           const axe = await new AxeBuilder({ page }).include('#dialog-showcase').analyze()
           writeFileSync(
             path.join(evidenceDir, `axe-${state.id}-${theme}-${viewport.name}.json`),
@@ -251,13 +331,6 @@ test.describe('dialog focus and notifications', () => {
             )
           )
           expect(axe.violations, JSON.stringify(axe.violations, null, 2)).toEqual([])
-
-          if (state.id !== 'toast') {
-            await page.screenshot({
-              path: path.join(screenshotDir, `${state.id}-${theme}-${viewport.name}.png`),
-              fullPage: true,
-            })
-          }
           await state.close()
         }
       }

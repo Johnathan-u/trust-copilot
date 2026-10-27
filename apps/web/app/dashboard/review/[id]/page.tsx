@@ -332,14 +332,12 @@ export default function ReviewPage() {
               clearGenPollTimer()
               setGenJobBackendStatus(null)
               setGenSuccessToast(true)
-              setTimeout(() => setGenSuccessToast(false), 5000)
             }
             if (kind === 'export') clearExportPollTimer()
             refresh()
             if (kind === 'export') {
               const base = qnr?.filename?.replace(/\.[^.]+$/, '') || 'export'
               setExportReadyToast({ filename: `${base}_answered.xlsx` })
-              setTimeout(() => setExportReadyToast(null), 8000)
             }
           } else if (j.status === 'failed') {
             setGenJobId((prev) => (prev === jobId ? null : prev))

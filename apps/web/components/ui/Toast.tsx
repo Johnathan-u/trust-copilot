@@ -1,13 +1,20 @@
 'use client'
 
-import type { ReactNode } from 'react'
-import { liveRegionForSeverity, type ToastSeverity } from '@/lib/toast'
+import { useEffect, useRef, type ReactNode } from 'react'
+import { autoDismissMs, liveRegionForSeverity, type ToastSeverity } from '@/lib/toast'
+
+export interface ToastAction {
+  label: string
+  onClick: () => void
+}
 
 interface ToastProps {
   title: string
   message: string
   type?: ToastSeverity
   onDismiss?: () => void
+  /** Extra control such as Undo, View or Retry. Presence cancels auto-dismiss. */
+  action?: ToastAction
 }
 
 const tone: Record<ToastSeverity, { bg: string; fg: string; glyph: string }> = {
@@ -18,11 +25,22 @@ const tone: Record<ToastSeverity, { bg: string; fg: string; glyph: string }> = {
 }
 
 /**
- * One announcement. The caller decides when it leaves, except that error
- * severity must not be given a timer (`autoDismissMs` is null). This component
- * does not move focus.
+ * One announcement. Success, info and warning leave after 4000ms. Errors, and
+ * any toast with an action button, stay until dismiss. This component does not
+ * move focus. Callers should not start a second dismiss timer.
  */
-export function Toast({ title, message, type = 'success', onDismiss }: ToastProps) {
+export function Toast({ title, message, type = 'success', onDismiss, action }: ToastProps) {
+  const onDismissRef = useRef(onDismiss)
+  onDismissRef.current = onDismiss
+  const hasAction = action != null
+
+  useEffect(() => {
+    const ms = autoDismissMs(type, { hasAction })
+    if (ms == null) return
+    const id = window.setTimeout(() => onDismissRef.current?.(), ms)
+    return () => window.clearTimeout(id)
+  }, [title, message, type, hasAction])
+
   const icon = tone[type]
   const live = liveRegionForSeverity(type)
   return (
@@ -43,6 +61,15 @@ export function Toast({ title, message, type = 'success', onDismiss }: ToastProp
       <div className="min-w-0">
         <strong className="block text-tc-label text-tc-text">{title}</strong>
         <span className="mt-tc-1 block text-tc-caption text-tc-muted">{message}</span>
+        {action ? (
+          <button
+            type="button"
+            onClick={action.onClick}
+            className="mt-tc-2 inline-flex min-h-tc-6 items-center rounded-tc-xs px-tc-2 text-tc-label font-semibold text-tc-primary hover:bg-[var(--tc-hover)]"
+          >
+            {action.label}
+          </button>
+        ) : null}
       </div>
       {onDismiss ? (
         <button

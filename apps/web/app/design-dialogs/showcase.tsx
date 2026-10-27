@@ -2,46 +2,39 @@
 
 import { useRef, useState } from 'react'
 import { DeleteConfirmationModal, Dialog, ToastNotice } from '@/components/ui'
-import { autoDismissMs, type ToastSeverity } from '@/lib/toast'
+import { NotificationsPanel } from '@/components/layout/NotificationsPanel'
+import { disclosureTriggerProps } from '@/lib/disclosure'
+import type { ToastSeverity } from '@/lib/toast'
 import type { ThemeName } from '@/lib/design-tokens'
+
+const NOTIFICATIONS_PANEL_ID = 'sample-notifications'
 
 type Notice = {
   title: string
   message: string
   type: ToastSeverity
+  action?: { label: string; onClick: () => void }
 }
 
 export function DialogShowcase({ theme }: { theme: ThemeName }) {
   const [renameOpen, setRenameOpen] = useState(false)
   const [confirmOpen, setConfirmOpen] = useState(false)
   const [drawerOpen, setDrawerOpen] = useState(false)
+  const [notificationsOpen, setNotificationsOpen] = useState(false)
+  const notificationsAnchorRef = useRef<HTMLDivElement>(null)
   const [notes, setNotes] = useState('')
   const [notice, setNotice] = useState<Notice | null>(null)
-  const timer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
-  const clearTimer = () => {
-    if (timer.current) clearTimeout(timer.current)
-    timer.current = null
-  }
-
-  const showNotice = (next: Notice, hold: boolean) => {
-    clearTimer()
+  const showNotice = (next: Notice) => {
     setNotice(next)
-    if (hold) return
-    const ms = autoDismissMs(next.type)
-    if (ms == null) return
-    timer.current = setTimeout(() => {
-      timer.current = null
-      setNotice(null)
-    }, ms)
   }
 
   const onNotes = (value: string) => {
     setNotes(value)
     if (value.endsWith(' ok')) {
-      showNotice({ title: 'Saved', message: 'Synthetic status saved.', type: 'success' }, false)
+      showNotice({ title: 'Saved', message: 'Synthetic status saved.', type: 'success' })
     } else if (value.endsWith(' err')) {
-      showNotice({ title: 'Save failed', message: 'Synthetic error stayed on screen.', type: 'error' }, false)
+      showNotice({ title: 'Save failed', message: 'Synthetic error stayed on screen.', type: 'error' })
     }
   }
 
@@ -100,7 +93,7 @@ export function DialogShowcase({ theme }: { theme: ThemeName }) {
           <button
             type="button"
             className="inline-flex min-h-tc-8 items-center rounded-tc-sm border border-tc-border-strong px-tc-4 text-tc-label font-semibold text-tc-text"
-            onClick={() => showNotice({ title: 'Saved', message: 'Synthetic status saved.', type: 'success' }, true)}
+            onClick={() => showNotice({ title: 'Saved', message: 'Synthetic status saved.', type: 'success' })}
           >
             Show status
           </button>
@@ -108,12 +101,59 @@ export function DialogShowcase({ theme }: { theme: ThemeName }) {
             type="button"
             className="inline-flex min-h-tc-8 items-center rounded-tc-sm border border-tc-border-strong px-tc-4 text-tc-label font-semibold text-tc-text"
             onClick={() =>
-              showNotice({ title: 'Save failed', message: 'Synthetic error stayed on screen.', type: 'error' }, true)
+              showNotice({ title: 'Save failed', message: 'Synthetic error stayed on screen.', type: 'error' })
             }
           >
             Show error
           </button>
+          <button
+            type="button"
+            className="inline-flex min-h-tc-8 items-center rounded-tc-sm border border-tc-border-strong px-tc-4 text-tc-label font-semibold text-tc-text"
+            onClick={() =>
+              showNotice({
+                title: 'Record archived',
+                message: 'Synthetic sample can be restored.',
+                type: 'success',
+                action: {
+                  label: 'Undo',
+                  onClick: () => {
+                    setNotes('restored')
+                    setNotice(null)
+                  },
+                },
+              })
+            }
+          >
+            Show undo
+          </button>
+          <button
+            type="button"
+            className="inline-flex min-h-tc-8 items-center rounded-tc-sm border border-tc-border-strong px-tc-4 text-tc-label font-semibold text-tc-text"
+            onClick={() => showNotice({ title: 'Copied', message: 'Synthetic info saved.', type: 'info' })}
+          >
+            Show info
+          </button>
+          <div className="relative" ref={notificationsAnchorRef}>
+            <button
+              type="button"
+              className="inline-flex min-h-tc-8 min-w-tc-8 items-center justify-center rounded-full border border-tc-border-strong px-tc-3 text-tc-label"
+              aria-label="Notifications"
+              onClick={() => setNotificationsOpen((open) => !open)}
+              {...disclosureTriggerProps(notificationsOpen, NOTIFICATIONS_PANEL_ID)}
+            >
+              🔔
+            </button>
+            <NotificationsPanel
+              open={notificationsOpen}
+              onClose={() => setNotificationsOpen(false)}
+              anchorRef={notificationsAnchorRef}
+              panelId={NOTIFICATIONS_PANEL_ID}
+            />
+          </div>
         </div>
+        <a href="#dialog-showcase" className="text-tc-label text-tc-primary">
+          Page help
+        </a>
       </div>
 
       <Dialog
@@ -186,10 +226,8 @@ export function DialogShowcase({ theme }: { theme: ThemeName }) {
           title={notice.title}
           message={notice.message}
           type={notice.type}
-          onDismiss={() => {
-            clearTimer()
-            setNotice(null)
-          }}
+          action={notice.action}
+          onDismiss={() => setNotice(null)}
         />
       ) : null}
     </main>

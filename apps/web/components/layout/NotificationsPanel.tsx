@@ -1,10 +1,7 @@
 'use client'
 
-import { useCallback, useEffect, useId, useLayoutEffect, useRef, useState } from 'react'
-import { createPortal } from 'react-dom'
+import { useCallback, useEffect, useId, useRef, useState } from 'react'
 import Link from 'next/link'
-import { useDialogBehavior } from '@/components/ui/useDialogBehavior'
-import { dialogAttributes } from '@/lib/dialog'
 
 export type InAppNotification = {
   id: number
@@ -52,17 +49,27 @@ interface NotificationsPanelProps {
   onClose: () => void
   onUnreadCountChange?: (count: number) => void
   anchorRef: React.RefObject<HTMLDivElement | null>
+  /** Id of this panel. The bell sets aria-controls to the same value. */
+  panelId: string
   // Legacy props kept for compat but no longer used
   alerts?: Alert[]
   loading?: boolean
 }
 
-export function NotificationsPanel({ open, onClose, onUnreadCountChange, anchorRef }: NotificationsPanelProps) {
-  const panelRef = useRef<HTMLDivElement>(null)
-  const boundaryRef = useRef<HTMLDivElement>(null)
+function focusTrigger(anchor: HTMLElement | null) {
+  anchor?.querySelector<HTMLButtonElement>('button')?.focus()
+}
+
+/**
+ * Disclosure popover. Not a dialog: no focus trap, no inert background,
+ * no aria-modal. Escape and a pointer event outside the anchor close it
+ * and return focus to the bell button.
+ */
+export function NotificationsPanel({ open, onClose, onUnreadCountChange, anchorRef, panelId }: NotificationsPanelProps) {
   const titleId = useId()
   const descriptionId = useId()
-  const [box, setBox] = useState<{ top: number; right: number } | null>(null)
+  const onCloseRef = useRef(onClose)
+  onCloseRef.current = onClose
   const [notifications, setNotifications] = useState<InAppNotification[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(false)
@@ -85,36 +92,28 @@ export function NotificationsPanel({ open, onClose, onUnreadCountChange, anchorR
     if (open) fetchNotifications()
   }, [open, fetchNotifications])
 
-  useLayoutEffect(() => {
-    if (!open) {
-      setBox(null)
-      return
-    }
-    const place = () => {
+  useEffect(() => {
+    if (!open) return
+    const onPointerDown = (event: PointerEvent) => {
       const anchor = anchorRef.current
-      if (!anchor) return
-      const rect = anchor.getBoundingClientRect()
-      const next = { top: rect.bottom + 8, right: Math.max(8, window.innerWidth - rect.right) }
-      setBox((prev) => (prev && prev.top === next.top && prev.right === next.right ? prev : next))
+      const target = event.target
+      if (anchor && target instanceof Node && anchor.contains(target)) return
+      onCloseRef.current()
+      window.setTimeout(() => focusTrigger(anchorRef.current), 0)
     }
-    place()
-    window.addEventListener('resize', place)
-    window.addEventListener('scroll', place, true)
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== 'Escape') return
+      event.preventDefault()
+      onCloseRef.current()
+      focusTrigger(anchorRef.current)
+    }
+    document.addEventListener('pointerdown', onPointerDown)
+    document.addEventListener('keydown', onKeyDown)
     return () => {
-      window.removeEventListener('resize', place)
-      window.removeEventListener('scroll', place, true)
+      document.removeEventListener('pointerdown', onPointerDown)
+      document.removeEventListener('keydown', onKeyDown)
     }
   }, [open, anchorRef])
-
-  useDialogBehavior({
-    open: open && box != null,
-    onClose,
-    dialogRef: panelRef,
-    boundaryRef,
-    role: 'dialog',
-    closeOnEscape: true,
-    lockScroll: false,
-  })
 
   const markRead = async (id: number) => {
     await fetch(`/api/in-app-notifications/${id}/read`, { method: 'POST', credentials: 'include' })
@@ -128,23 +127,16 @@ export function NotificationsPanel({ open, onClose, onUnreadCountChange, anchorR
     onUnreadCountChange?.(0)
   }
 
-  if (!open || !box || typeof document === 'undefined') return null
+  if (!open) return null
 
   const unreadCount = notifications.filter(n => !n.is_read).length
 
-  return createPortal(
-    <div ref={boundaryRef} className="fixed inset-0 z-[80]" {...{ [dialogAttributes.root]: '' }}>
-      <div className="absolute inset-0" onClick={onClose} aria-hidden="true" />
-      <div
-        ref={panelRef}
-        className="absolute w-[min(400px,92vw)] overflow-hidden rounded-xl border border-[var(--tc-border)] shadow-[var(--tc-shadow)]"
-        style={{ background: 'var(--tc-surface-overlay)', top: box.top, right: box.right }}
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby={titleId}
-        aria-describedby={descriptionId}
-        tabIndex={-1}
-      >
+  return (
+    <div
+      id={panelId}
+      className="absolute right-0 top-full z-50 mt-2 w-[min(400px,92vw)] overflow-hidden rounded-xl border border-[var(--tc-border)] shadow-[var(--tc-shadow)]"
+      style={{ background: 'var(--tc-surface-overlay)' }}
+    >
       <div className="flex items-start justify-between gap-tc-2 border-b border-[var(--tc-border)] px-4 py-3">
         <div>
           <h3 id={titleId} className="text-sm font-semibold text-[var(--tc-text)]">Notifications</h3>
@@ -164,10 +156,12 @@ export function NotificationsPanel({ open, onClose, onUnreadCountChange, anchorR
           )}
           <button
             type="button"
-            onClick={onClose}
+            onClick={() => {
+              onClose()
+              focusTrigger(anchorRef.current)
+            }}
             className="inline-flex min-h-tc-6 min-w-tc-6 items-center justify-center rounded-tc-xs text-tc-muted hover:bg-[var(--tc-hover)] hover:text-tc-text"
             aria-label="Close notifications"
-            {...{ [dialogAttributes.close]: '' }}
           >
             ×
           </button>
@@ -240,8 +234,6 @@ export function NotificationsPanel({ open, onClose, onUnreadCountChange, anchorR
           Notification settings
         </Link>
       </div>
-      </div>
-    </div>,
-    document.body
+    </div>
   )
 }

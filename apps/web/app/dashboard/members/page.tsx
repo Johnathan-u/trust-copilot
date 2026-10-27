@@ -1,11 +1,10 @@
 'use client'
 
-import { useEffect, useState, useCallback, useRef } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { Button, Card, Input, Modal, ToastNotice, TableSkeleton } from '@/components/ui'
 import { useAuth } from '@/contexts/AuthContext'
 import { apiErrorAnnouncement, formatApiErrorDetail } from '@/lib/api-error'
 import { dialogAttributes } from '@/lib/dialog'
-import { autoDismissMs } from '@/lib/toast'
 
 type Member = {
   id: number
@@ -73,28 +72,13 @@ export default function MembersPage() {
   const [confirmBusy, setConfirmBusy] = useState(false)
   const [confirmError, setConfirmError] = useState<string | null>(null)
   const [toast, setToast] = useState<ToastState>(null)
-  const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const dismissToast = useCallback(() => {
-    if (toastTimer.current) clearTimeout(toastTimer.current)
-    toastTimer.current = null
     setToast(null)
   }, [])
 
   const showToast = useCallback((title: string, message: string, type: 'success' | 'error' | 'info' = 'success') => {
-    if (toastTimer.current) clearTimeout(toastTimer.current)
-    toastTimer.current = null
     setToast({ title, message, type })
-    const ms = autoDismissMs(type)
-    if (ms == null) return
-    toastTimer.current = setTimeout(() => {
-      toastTimer.current = null
-      setToast(null)
-    }, ms)
-  }, [])
-
-  useEffect(() => () => {
-    if (toastTimer.current) clearTimeout(toastTimer.current)
   }, [])
 
   const load = () => {
