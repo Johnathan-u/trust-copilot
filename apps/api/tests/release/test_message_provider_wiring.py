@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import base64
 import json
+import logging
 
 import httpx
 import pytest
@@ -445,7 +446,7 @@ class TestSlackHttpFixtures:
         assert result["retryable"] is False
         assert result.get("exhausted") is not True
 
-    def test_history_threads_and_files_are_not_implemented(self) -> None:
+    def test_history_threads_and_files_are_not_implemented(self, caplog) -> None:
         calls = {"n": 0}
 
         def handler(request: httpx.Request) -> httpx.Response:
@@ -454,11 +455,14 @@ class TestSlackHttpFixtures:
 
         provider = HttpSlackProvider(transport=_transport(handler))
         try:
-            history = provider.fetch_messages(TOKEN, "C1", limit=5)
-            replies = provider.fetch_thread_replies(TOKEN, "C1", "1503435956.000247")
-            file_info = provider.fetch_file(TOKEN, "F123")
+            with caplog.at_level(logging.INFO, logger="app.services.message_providers.errors"):
+                history = provider.fetch_messages(TOKEN, "C1", limit=5)
+                replies = provider.fetch_thread_replies(TOKEN, "C1", "1503435956.000247")
+                file_info = provider.fetch_file(TOKEN, "F123")
         finally:
             provider.close()
+        assert "TC-19-003" in caplog.text
+        assert "conversations.history" in caplog.text
         assert calls["n"] == 0
         for result, method in (
             (history, "conversations.history"),
@@ -467,8 +471,14 @@ class TestSlackHttpFixtures:
         ):
             assert result["ok"] is False
             assert result["error_code"] == "not_implemented"
-            assert "TC-19-003" in result["error"]
-            assert method in result["error"]
+            assert "TC-19-003" not in result["error"]
+            assert "TC-19-003" in result["provider_error"]
+            assert method in result["provider_error"]
+            assert method not in result["error"]
+            if method == "conversations.history":
+                assert result["error"] == "Slack message import is not available yet."
+            else:
+                assert result["error"] == "This provider method is not implemented."
             assert delivery_accepted(result) is False
 
     def test_redirect_is_not_followed(self) -> None:
@@ -635,7 +645,9 @@ class TestGmailHttpFixtures:
         assert calls["n"] == 0
         assert result["ok"] is False
         assert result["error_code"] == "not_implemented"
-        assert "TC-19-007" in result["error"]
+        assert result["error"] == "This provider method is not implemented."
+        assert "TC-19-007" not in result["error"]
+        assert "TC-19-007" in result["provider_error"]
         stub = ConsoleGmailProvider().send_threaded_reply(GMAIL_TOKEN, "18c1", "raw")
         assert stub["error_code"] == "not_implemented"
         assert stub["ok"] is False
@@ -755,10 +767,13 @@ class TestOutboundAndOAuthSeams:
         started = seam.begin_authorization("slack")
         assert exchanged["ok"] is False
         assert exchanged["error_code"] == "not_implemented"
-        assert "TC-05-004" in exchanged["error"]
-        assert "TC-19-005" in exchanged["error"]
+        assert "TC-05-004" not in exchanged["error"]
+        assert "TC-19-005" not in exchanged["error"]
+        assert "TC-05-004" in exchanged["provider_error"]
+        assert "TC-19-005" in exchanged["provider_error"]
         assert started["error_code"] == "not_implemented"
-        assert "TC-19-002" in started["error"]
+        assert "TC-19-002" not in started["error"]
+        assert "TC-19-002" in started["provider_error"]
         assert delivery_accepted(exchanged) is False
         assert "auth-code" not in json.dumps(exchanged)
 

@@ -13,6 +13,29 @@ const e2eServer = !!process.env.E2E_SERVER_RUNNING
 const webPort = process.env.E2E_WEB_PORT || (e2eServer ? '13000' : '3000')
 const baseURL = `http://127.0.0.1:${webPort}`
 
+// TC-02-001: E2E runs only against a local stack. Refuse a non-local API_UPSTREAM so loading
+// this config (listing or running tests) can never proxy test traffic to staging/production.
+const LOCAL_UPSTREAM_HOSTS = new Set([
+  'localhost',
+  '127.0.0.1',
+  '[::1]',
+  '::1',
+  'api',
+])
+const apiUpstream = process.env.API_UPSTREAM || 'http://127.0.0.1:8000'
+const apiUpstreamHost = (() => {
+  try {
+    return new URL(apiUpstream).hostname
+  } catch {
+    return ''
+  }
+})()
+if (!LOCAL_UPSTREAM_HOSTS.has(apiUpstreamHost)) {
+  throw new Error(
+    `Refusing to run E2E: API_UPSTREAM=${apiUpstream} is not a local host (${[...LOCAL_UPSTREAM_HOSTS].join(', ')})`
+  )
+}
+
 export default defineConfig({
   testDir: './e2e',
   // When using saved storage from setup, run setup before chromium (dependencies).
@@ -56,7 +79,7 @@ export default defineConfig({
         timeout: 120_000,
         env: {
           ...process.env,
-          API_UPSTREAM: process.env.API_UPSTREAM || 'http://127.0.0.1:8000',
+          API_UPSTREAM: apiUpstream,
         },
       },
 })

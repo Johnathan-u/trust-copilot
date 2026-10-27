@@ -23,11 +23,16 @@ if not _in_docker and not _in_test:
 # Bootstrap: ensure DB/config are initialized with current env before any route or config consumer runs.
 import app.core.database  # noqa: E402
 
+# Fail fast at startup (not per request) if the PDF backend (pypdf) is missing (TC-01-003a).
+import app.services.pdf_text  # noqa: E402,F401
+
 from fastapi import FastAPI  # noqa: E402
 from fastapi.middleware.cors import CORSMiddleware  # noqa: E402
 
 from app.core.config import get_settings  # noqa: E402
 from app.core.logging_config import configure_logging, request_id_ctx, workspace_id_ctx  # noqa: E402
+from app.core.api_errors import model_call_error_handler  # noqa: E402
+from app.services.model_outcomes import ModelCallError  # noqa: E402
 from app.core.metrics import record_request as metrics_record_request  # noqa: E402
 from app.core.rate_limit import get_client_ip, is_rate_limited, record_attempt  # noqa: E402
 from app.api.routes import auth as auth_router  # noqa: E402
@@ -275,6 +280,9 @@ class StructuredLoggingMiddleware(BaseHTTPMiddleware):
                 },
             )
             metrics_record_request(method, path, status, elapsed)
+            if "x-request-id" not in response.headers:
+                # TC-11-001: correlate the ApiError request_id with the response.
+                response.headers["X-Request-ID"] = request_id
             return response
         except Exception:
             path = request.scope.get("path") or ""
@@ -349,6 +357,7 @@ class GlobalRateLimitMiddleware(BaseHTTPMiddleware):
         return await call_next(request)
 
 
+app.add_exception_handler(ModelCallError, model_call_error_handler)  # TC-11-001
 app.add_middleware(StructuredLoggingMiddleware)
 app.add_middleware(GlobalRateLimitMiddleware)
 app.add_middleware(CSRFMiddleware)
@@ -469,6 +478,8 @@ def metrics():
 
 @app.get("/healthz")
 def healthz():
+    """Liveness (TC-03-003): process is up and serving. Never touches DB/S3/worker, so dependency
+    loss cannot make the orchestrator restart a healthy API process. Use /readyz for dependencies."""
     return {"status": "ok"}
 
 
@@ -492,45 +503,89 @@ def db_test():
         return JSONResponse({"status": "error", "db": "connection failed"}, status_code=503)
 
 
+# --- Readiness / worker health (TC-03-003) -------------------------------------------------
+import concurrent.futures as _cf  # noqa: E402
+import logging as _logging  # noqa: E402
+
+_PROBE_POOL = _cf.ThreadPoolExecutor(max_workers=4, thread_name_prefix="readyz")
+
+
+def _run_dependency_check(fn, timeout: float) -> tuple[str, str | None]:
+    """Run one dependency check with a hard deadline. Returns (state, redacted_error).
+
+    The error string is only the exception class name: connection strings, hosts and credentials
+    from driver messages are never returned to callers of an unauthenticated endpoint.
+    """
+    fut = _PROBE_POOL.submit(fn)
+    try:
+        fut.result(timeout=timeout)
+        return "ok", None
+    except _cf.TimeoutError:
+        fut.cancel()
+        return "timeout", f"timed out after {timeout:g}s"
+    except Exception as e:  # noqa: BLE001
+        return "unavailable", type(e).__name__
+
+
+def _check_database() -> None:
+    from sqlalchemy import text
+    from app.core.database import engine
+
+    with engine.connect() as conn:
+        conn.execute(text("SELECT 1"))
+
+
+def _check_storage() -> None:
+    StorageClient().ping()
+
+
 @app.get("/readyz")
 def readyz():
-    """Readiness: DB and S3 must be reachable. Returns 503 if unhealthy."""
+    """Readiness: DB and S3 must be reachable within READINESS_TIMEOUT_SEC. 503 if not.
+
+    Response (additive to the baseline contract): ``status`` ("ready" | "not ready"),
+    ``checks`` {database, storage: "ok" | "unavailable" | "timeout"}, and on failure ``errors``
+    (redacted, one per failing dependency).
+    """
     from fastapi.responses import JSONResponse
-    from sqlalchemy import text
-    from sqlalchemy.exc import OperationalError
 
-    errors = []
-    try:
-        from app.core.database import engine
-
-        with engine.connect() as conn:
-            conn.execute(text("SELECT 1"))
-    except OperationalError as e:
-        errors.append(f"database: {e}")
-    except Exception as e:
-        errors.append(f"database: {e}")
-
-    try:
-        StorageClient().ping()
-    except Exception as e:
-        errors.append(f"s3: {e}")
-
+    timeout = get_settings().readiness_timeout_sec
+    checks: dict[str, str] = {}
+    errors: list[str] = []
+    for name, fn in (("database", _check_database), ("storage", _check_storage)):
+        state, err = _run_dependency_check(fn, timeout)
+        checks[name] = state
+        if err:
+            label = "s3" if name == "storage" else name
+            errors.append(f"{label}: {state} ({err})")
     if errors:
+        _logging.getLogger("trustcopilot.alert").warning("ALERT_NOT_READY %s", "; ".join(errors))
         return JSONResponse(
-            status_code=503,
-            content={"status": "not ready", "errors": errors},
+            status_code=503, content={"status": "not ready", "checks": checks, "errors": errors}
         )
-    return {"status": "ready"}
+    return {"status": "ready", "checks": checks}
+
+
+def _worker_stale_after_sec() -> int:
+    from app.worker_health import heartbeat_stale_sec
+
+    return heartbeat_stale_sec()
 
 
 @app.get("/workerz")
 def workerz():
-    """Worker and queue visibility: worker alive (heartbeat within 2 min) and queue depth. Returns 503 if worker not seen."""
-    from datetime import datetime, timedelta, timezone  # noqa: F401
+    """Worker and queue visibility. ``worker_alive`` is true when the worker heartbeat is newer than
+    WORKER_HEARTBEAT_STALE_SEC (default 120s). The worker refreshes it from a background thread,
+    including while a long job runs. 503 when stale/missing, or ``status: "unknown"`` when the
+    heartbeat store itself is unreachable (a dependency problem, not proof the worker died).
+    """
+    from datetime import datetime, timezone
     from fastapi.responses import JSONResponse
     from sqlalchemy import text
     from app.core.database import engine
 
+    threshold_sec = _worker_stale_after_sec()
+    alert = _logging.getLogger("trustcopilot.alert")
     try:
         with engine.connect() as conn:
             row = conn.execute(
@@ -551,25 +606,37 @@ def workerz():
                 last_seen.replace(tzinfo=timezone.utc) if last_seen.tzinfo is None else last_seen
             )
         else:
-            last_seen_utc = last_seen
-        threshold_sec = 120
-        worker_alive = (
-            last_seen_utc is not None and (now_utc - last_seen_utc).total_seconds() < threshold_sec
-        )
-        body = {"worker_alive": worker_alive, "queued": queued, "running": running}
+            last_seen_utc = None
+        age = (now_utc - last_seen_utc).total_seconds() if last_seen_utc is not None else None
+        worker_alive = age is not None and age < threshold_sec
+        body = {
+            "worker_alive": worker_alive,
+            "status": "ok" if worker_alive else "stale",
+            "queued": queued,
+            "running": running,
+            "last_seen_age_sec": round(age, 1) if age is not None else None,
+            "stale_after_sec": threshold_sec,
+        }
         if not worker_alive:
-            import logging
-
-            logging.getLogger("trustcopilot.alert").warning(
-                "ALERT_WORKER_DOWN queued=%s running=%s", queued, running
+            alert.warning(
+                "ALERT_WORKER_DOWN queued=%s running=%s age=%s",
+                queued,
+                running,
+                body["last_seen_age_sec"],
             )
             return JSONResponse(status_code=503, content=body)
         return body
-    except Exception as e:
-        import logging
-
-        logging.getLogger("trustcopilot.alert").warning("ALERT_WORKER_DOWN error=%s", str(e)[:200])
+    except Exception as e:  # noqa: BLE001
+        alert.warning("ALERT_WORKER_DOWN status=unknown error=%s", type(e).__name__)
         return JSONResponse(
             status_code=503,
-            content={"worker_alive": False, "queued": None, "running": None, "error": str(e)},
+            content={
+                "worker_alive": False,
+                "status": "unknown",
+                "queued": None,
+                "running": None,
+                "last_seen_age_sec": None,
+                "stale_after_sec": threshold_sec,
+                "error": f"heartbeat store unavailable ({type(e).__name__})",
+            },
         )

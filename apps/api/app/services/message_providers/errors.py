@@ -7,6 +7,10 @@ unsupported results are never ``ok``.
 
 from __future__ import annotations
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 DEV_STUB_MODE = "dev-stub"
 HTTP_MODE = "http"
 DEV_STUB_LABEL = "development-stub"
@@ -18,6 +22,7 @@ ERROR_UNKNOWN = "unknown"
 ERROR_NOT_IMPLEMENTED = "not_implemented"
 ERROR_UNSUPPORTED = "unsupported"
 ERROR_DEV_STUB_FORBIDDEN = "dev_stub_forbidden"
+SLACK_MESSAGE_IMPORT_UNAVAILABLE = "Slack message import is not available yet."
 
 _SAFE_MESSAGES = {
     ERROR_DENIED: "The provider denied the request.",
@@ -65,12 +70,28 @@ def failure_result(
 
 
 def not_implemented_result(provider: str, method: str, ticket: str) -> dict:
+    """Customer-facing ``error`` never includes a ticket id.
+
+    The ticket stays in ``provider_error`` and the log. Slack channel history
+    uses the fixed import sentence because that string is returned on the
+    ingest route.
+    """
+    logger.info(
+        "provider method not implemented provider=%s method=%s ticket=%s",
+        provider,
+        method,
+        ticket,
+    )
+    if provider == "slack" and method == "conversations.history":
+        message = SLACK_MESSAGE_IMPORT_UNAVAILABLE
+    else:
+        message = safe_message(ERROR_NOT_IMPLEMENTED)
     return failure_result(
         error_code=ERROR_NOT_IMPLEMENTED,
         provider=provider,
         retryable=False,
-        error=f"{method} is not implemented ({ticket}).",
-        provider_error="not_implemented",
+        error=message,
+        provider_error=f"not_implemented {ticket} {method}",
     )
 
 

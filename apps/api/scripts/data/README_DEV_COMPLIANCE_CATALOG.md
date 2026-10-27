@@ -9,6 +9,10 @@ This folder documents the **development-only** multi-framework control summaries
 
 Do not replace these with verbatim copyrighted control libraries without proper licensing.
 
+The seed writes **dev/test framework rows only**. It does not attach controls to the advertised production catalog slot (`catalog_kind=advertised_blocked`). Those rows stay blocked until content rights are decided in TC-01-007. `POST /api/compliance/frameworks/enable` refuses every advertised framework and refuses synthetic `HITRUST-DEV-*` / `ISO-DEV-*` keys and dev versions (`CSF-dev`, `dev-themes`) as a production catalog. There is no environment flag that turns a dev seed into a licensed catalog.
+
+See `docs/release/tickets/TC-21-001.md` for the enablement contract, migration, and rollback.
+
 ## Seeding
 
 From `apps/api`:
