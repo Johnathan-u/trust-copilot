@@ -1,6 +1,8 @@
 {
   "ticket": "TC-21-001",
-  "tested_commit": "d198f4d26f7905caa322ca210620dae76da14155",
+  "tested_commit": "1daf94af85805f4140b0cf80212fe6a320698e72",
+  "merged_master": "d57821e8084d5aea9e8da509d58d0e23e26e2bf9",
+  "prior_master_merge": "6641e02b91fae6d9f8b854122f7a35f73439c0ea",
   "command": "python -m pytest tests/release/test_domain_compliance_frameworks.py -q",
   "cwd": "apps/api",
   "exit_status": 0,
@@ -10,6 +12,13 @@
   "errors": 0,
   "warnings": 205,
   "required_skips": [],
+  "ruff": {
+    "version": "0.5.6",
+    "format_check": "ruff format --check .",
+    "lint": "ruff check .",
+    "cwd": "apps/api",
+    "exit_status": 0
+  },
   "web_unit": {
     "command": "npx vitest run lib/frameworkCatalog.test.ts",
     "cwd": "apps/web",
@@ -24,6 +33,7 @@
     "admin_list": "all nine advertised frameworks shown blocked pending TC-01-007",
     "admin_enable": "SOC 2 enablement refused; production enabled count stayed 0",
     "reviewer": "blocked list visible; enable button absent; admin permission noted",
-    "mobile_page_overflow": false
+    "mobile_page_overflow": false,
+    "note": "Browser check is from the scaffold commit. Master merges changed formatting only on the catalog page."
   }
 }

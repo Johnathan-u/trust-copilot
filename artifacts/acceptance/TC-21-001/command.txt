@@ -7,6 +7,11 @@ Skipped: 0
 Errors: 0
 Warnings: 205 (DeprecationWarning from datetime.utcnow; not failures)
 
+Ruff, matching master CI (ruff 0.5.6), from apps/api:
+Command: ruff format --check .
+Command: ruff check .
+Exit status: 0
+
 Additional consumer check, not a substitute for the command above:
 Working directory: apps/web
 Command: npx vitest run lib/frameworkCatalog.test.ts
@@ -15,5 +20,7 @@ Passed: 5
 Failed: 0
 Skipped: 0
 
-Tested commit: d198f4d26f7905caa322ca210620dae76da14155
+Tested commit: 1daf94af85805f4140b0cf80212fe6a320698e72
+Merged master: d57821e8084d5aea9e8da509d58d0e23e26e2bf9
+Also merged earlier master: 6641e02b91fae6d9f8b854122f7a35f73439c0ea
 Required skips: none

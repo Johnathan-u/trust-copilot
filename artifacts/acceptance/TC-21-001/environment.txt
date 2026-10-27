@@ -3,8 +3,9 @@ Python: 3.12.3
 PostgreSQL: 16.15 (Ubuntu 16.15-0ubuntu0.24.04.1)
 pgvector: 0.6.0
 Database: local trustcopilot_test on localhost:5432
-Driver: psycopg2 (SQLAlchemy URL postgresql+psycopg2)
-SQLAlchemy: 2.1.6
+Driver: psycopg2 through SQLAlchemy 2.0's postgresql:// default (no driver override)
+SQLAlchemy: 2.0.55 (project pin >=2.0,<2.1)
+Ruff: 0.5.6
 FastAPI: 0.162.0
 Pydantic: 2.14.1
 Node: 22.23.4
