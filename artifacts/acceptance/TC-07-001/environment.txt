@@ -1,9 +1,9 @@
-commit_sha=c3243257a8ba3a44f962c4a461de5295535106df
+commit_sha=a925858143f30fc2e2b61ef3e27999a3107def9a
 branch=tc/platform/TC-07-001
 base_sha=c20f949161ac12a619b396d30904448ffd74d532
 master_merged=f72def39245abf5cb46c7b3693f687114fa4b1b5
 tree_clean_before_run=no
-date_utc=2026-10-27T09:13:52Z
+date_utc=2026-10-27T09:42:29Z
 os=Linux 6.12.94+ x86_64
 python=Python 3.13.5
 pytest=pytest 9.1.1

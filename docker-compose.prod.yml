@@ -1,5 +1,9 @@
 # Production deploy: docker compose -f docker-compose.prod.yml up -d --build
 # Uses .env.production for all secrets and config.
+# Operators must generate every secret in .env.production for each deployment (SESSION_SECRET, POSTGRES_PASSWORD and the
+# DATABASE_URL password, MINIO_ROOT_USER/MINIO_ROOT_PASSWORD, S3_ACCESS_KEY/S3_SECRET_KEY, provider secrets), e.g. with
+# `openssl rand -hex 32`. Every credential value ever committed to this repository is RETIRED (TC-07-001) and must never
+# be reused. This file must never contain credential literals; a release test enforces it.
 
 services:
   caddy:
