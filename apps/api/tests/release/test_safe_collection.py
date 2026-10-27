@@ -31,7 +31,7 @@ TESTS_DIR = API_ROOT / "tests"
 MANUAL_DIR = API_ROOT / "scripts" / "manual_live"
 
 # sha256 of the session-signing secret that used to be hardcoded in tests/ (value redacted).
-LEAKED_SESSION_SECRET_SHA256 = "9368da3761b0d4fe8b487f86225b803f39d5b37b26e1ab064e1808e4d471d6c8"
+LEAKED_SESSION_SECRET_SHA256 = "9368da3761b0d4fe8b487f86225b803f39d5b37b26e1ab064e1808e4d471d6c8"  # secret-inventory: synthetic
 
 # Former tests/ residents that performed live HTTP / forged cookies / read local-only paths.
 FORMER_UNSAFE_SCRIPTS = {
@@ -52,8 +52,8 @@ FORMER_UNSAFE_SCRIPTS = {
 
 CANARY_ENV = {
     # If any of these leak into the collected process or are used, the assertions below fail.
-    "OPENAI_API_KEY": "sk-canary-tc02001-should-be-scrubbed",
-    "STRIPE_SECRET_KEY": "sk_test_canary_tc02001",
+    "OPENAI_API_KEY": "sk-canary-tc02001-should-be-scrubbed",  # secret-inventory: synthetic
+    "STRIPE_SECRET_KEY": "sk_test_canary_tc02001",  # secret-inventory: synthetic
     "SENTRY_DSN": "https://canary@sentry.invalid/1",
     "SMTP_PASSWORD": "canary-smtp",
     "DATABASE_URL": "postgresql://prod_user:prod_pw@db.production.invalid:5432/trustcopilot",

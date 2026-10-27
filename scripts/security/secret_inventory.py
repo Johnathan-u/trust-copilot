@@ -232,6 +232,21 @@ _PLACEHOLDER_RE = re.compile(
     re.IGNORECASE,
 )
 
+# RFC 2606 / RFC 6761 reserved names: a URL credential for one of these hosts can never reach a
+# real system, so it is inventoried as a synthetic review finding instead of blocking.
+_RESERVED_HOST_RE = re.compile(
+    r"(?:^|\.)(?:invalid|example|test|localhost|example\.(?:com|net|org))$", re.IGNORECASE
+)
+# A test fixture line may carry this marker to declare an intentionally fake credential
+# (canary values, simulated driver errors, a redacted-value digest). The finding stays in the
+# inventory as "review"; the marker is ignored in application code and config/deploy files.
+SYNTHETIC_PRAGMA = "secret-inventory: synthetic"
+
+
+def _pragma_allowed(norm: str) -> bool:
+    return "/tests/" in f"/{norm}" or "/e2e/" in f"/{norm}"
+
+
 SKIP_DIRS = {
     ".git",
     "node_modules",
@@ -410,6 +425,10 @@ def scan_text(text: str, path: str, source: str = "tree", commit: str = "") -> l
             for m in rule.pattern.finditer(line):
                 if not _value_ok(rule, m.groupdict().get("val")):
                     continue
+                if rule.rule_id == "url-embedded-credential":
+                    host = re.match(r"[^/:\s\"'?#]*", line[m.end() :]).group(0)
+                    if _RESERVED_HOST_RE.search(host):
+                        continue  # url-credential-review records it
                 key = (lineno, rule.rule_id)
                 if key in seen:
                     continue
@@ -417,6 +436,18 @@ def scan_text(text: str, path: str, source: str = "tree", commit: str = "") -> l
                 findings.append(
                     Finding(source, norm, lineno, rule.rule_id, rule.kind, rule.severity, commit)
                 )
+    if not is_app and not is_cfg and _pragma_allowed(norm) and SYNTHETIC_PRAGMA in text:
+        lines = text.splitlines()
+        findings = [
+            Finding(
+                f.source, f.path, f.line, f.rule, f.kind + " [marked synthetic]", "review", f.commit
+            )
+            if f.severity == "block"
+            and 0 < f.line <= len(lines)
+            and SYNTHETIC_PRAGMA in lines[f.line - 1]
+            else f
+            for f in findings
+        ]
     # A block finding supersedes a review finding on the same line.
     blocked = {f.line for f in findings if f.severity == "block"}
     return [f for f in findings if not (f.severity == "review" and f.line in blocked)]

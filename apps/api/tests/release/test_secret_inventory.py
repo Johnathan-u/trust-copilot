@@ -17,6 +17,7 @@ import json
 import secrets
 import subprocess
 import sys
+import time
 import zipfile
 from pathlib import Path
 
@@ -190,6 +191,28 @@ def test_scanner_ignores_references_and_placeholders(scanner):
     # A real literal next to the substitution is still blocked.
     leak = 'PG_PASSWORD="' + secrets.token_urlsafe(32) + '"\n'
     assert _blocks(scanner.scan_text(leak, ".github/workflows/ci.yml"))
+
+
+def test_reserved_hosts_and_synthetic_pragma_are_review_only(scanner):
+    pw = secrets.token_urlsafe(24)
+    # RFC 2606/6761 reserved hosts can never be a real system: review, not block.
+    for host in ("db.internal.example", "db.production.invalid", "pg.example.com", "x.test"):
+        fake = f'DSN = "postgresql://svc:{pw}@{host}:5432/prod"\n'
+        found = scanner.scan_text(fake, "apps/api/tests/test_x.py")
+        assert not _blocks(found) and found, host
+    # The same credential for a real-looking host still blocks.
+    assert _blocks(scanner.scan_text(f"postgresql://svc:{pw}@db.acme.io:5432/p\n", "notes.md"))
+
+    tok = "sk-" + secrets.token_urlsafe(40)
+    marked = f'OPENAI = "{tok}"  # secret-inventory: synthetic\n'
+    found = scanner.scan_text(marked, "apps/api/tests/release/test_x.py")
+    assert found and not _blocks(found), "pragma downgrades a test fixture to review"
+    # The pragma is ignored in application code, config/deploy files and non-test paths.
+    for path in ("apps/api/app/core/x.py", "docker-compose.prod.yml", "scripts/x.py"):
+        assert _blocks(scanner.scan_text(marked, path)), path
+    # It only covers its own line.
+    two = marked + f'OTHER = "{tok}"\n'
+    assert _blocks(scanner.scan_text(two, "apps/api/tests/release/test_x.py"))
 
 
 def test_scanner_output_never_contains_values(scanner, capsys, tmp_path):
@@ -383,13 +406,13 @@ def test_log_redaction_masks_cookies_tokens_and_url_credentials():
 # ---------------------------------------------------------------------------
 
 LIVE_SCRIPTS = [
-    # ci-repair (#18) moved the two test_*_api.py probes to scripts/manual_live/.
+    # TC-02-001 (#20) moved every live-API script to scripts/manual_live/ behind _live_guard.py.
     "scripts/manual_live/probe_coverage_api.py",
     "scripts/manual_live/probe_alerts_api.py",
-    "tests/fetch_ds5.py",
-    "tests/fetch_full_qa.py",
-    "tests/run_10dataset_test.py",
-    "tests/run_3dataset_test.py",
+    "scripts/manual_live/fetch_ds5.py",
+    "scripts/manual_live/fetch_full_qa.py",
+    "scripts/manual_live/run_10dataset_check.py",
+    "scripts/manual_live/run_3dataset_check.py",
 ]
 API_ROOT = REPO_ROOT / "apps" / "api"
 
@@ -407,19 +430,33 @@ def test_live_scripts_have_no_module_level_side_effects(rel):
         if isinstance(node, ast.Expr) and isinstance(node.value, ast.Call):
             pytest.fail(f"{rel}:{node.lineno} performs a call at import time")
     src = path.read_text()
-    assert "_live_session" in src, f"{rel} must use tests/_live_session.py"
+    assert "_live_guard" in src, f"{rel} must use scripts/manual_live/_live_guard.py"
 
 
 def test_live_session_helper_requires_env(monkeypatch):
-    sys.path.insert(0, str(API_ROOT / "tests"))
+    guard_dir = str(API_ROOT / "scripts" / "manual_live")
+    sys.path.insert(0, guard_dir)
     try:
-        import _live_session
+        import _live_guard
 
         monkeypatch.delenv("TC_SESSION_SECRET", raising=False)
         with pytest.raises(SystemExit):
-            _live_session.live_session_secret()
+            _live_guard.forge_session_cookie(1)
+        # Synthetic identity only, and the forged cookie is short-lived.
+        monkeypatch.setenv("TC_SESSION_SECRET", "x" * 48)
+        monkeypatch.setenv("TC_SESSION_EMAIL", "someone@real-company.com")
+        with pytest.raises(SystemExit):
+            _live_guard.forge_session_cookie(1)
+        monkeypatch.delenv("TC_SESSION_EMAIL")
+        payload = json.loads(
+            base64.urlsafe_b64decode(_live_guard.forge_session_cookie(1).split(".")[0])
+        )
+        assert 0 < payload["exp"] - time.time() <= 3600
+        with pytest.raises(SystemExit):
+            monkeypatch.setenv("TC_API", "https://api.production.invalid")
+            _live_guard.api_base()
     finally:
-        sys.path.remove(str(API_ROOT / "tests"))
+        sys.path.remove(guard_dir)
 
 
 def test_seed_scripts_have_no_password_literals():
