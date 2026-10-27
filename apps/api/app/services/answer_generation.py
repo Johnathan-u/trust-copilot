@@ -1120,32 +1120,55 @@ def generate_answers_for_questionnaire(
     # Evidence gap generation runs in background -- don't block answer pipeline completion
     import threading as _threading
 
+    # TC-08-005: the background thread gets its own Session on its own pooled connection. If the
+    # caller's Session is bound to a shared Connection (cannot be isolated), run inline instead of
+    # sharing that Connection across threads.
+    from app.core.database import isolated_session, supports_thread_isolation
+
+    _gap_bind = db.get_bind()
+
+    def _gap_work(gap_db) -> None:
+        from app.services.evidence_gap_service import generate_gaps_for_questionnaire
+
+        result = generate_gaps_for_questionnaire(gap_db, workspace_id, questionnaire_id)
+        generated = result.get("generated", 0)
+        if generated > 0:
+            logger.info(
+                "answer_generation: generated %d evidence gaps for qnr=%d (background)",
+                generated,
+                questionnaire_id,
+            )
+
     def _run_gap_generation() -> None:
-        from sqlalchemy.orm import Session as _Ses
-
-        gap_db = _Ses(bind=db.get_bind())
         try:
-            from app.services.evidence_gap_service import generate_gaps_for_questionnaire
-
-            result = generate_gaps_for_questionnaire(gap_db, workspace_id, questionnaire_id)
-            generated = result.get("generated", 0)
-            if generated > 0:
-                logger.info(
-                    "answer_generation: generated %d evidence gaps for qnr=%d (background)",
-                    generated,
-                    questionnaire_id,
-                )
+            with isolated_session(_gap_bind) as gap_db:
+                _gap_work(gap_db)
         except Exception:
             logger.warning(
                 "answer_generation: gap generation failed for qnr=%d (background)",
                 questionnaire_id,
                 exc_info=True,
             )
+
+    if supports_thread_isolation(_gap_bind):
+        _gap_thread = _threading.Thread(
+            target=_run_gap_generation, daemon=True, name="gap-generation"
+        )
+        _gap_thread.start()
+    else:
+        from sqlalchemy.orm import Session as _Ses
+
+        gap_db = _Ses(bind=_gap_bind)  # same Connection, but used on this thread only
+        try:
+            _gap_work(gap_db)
+        except Exception:
+            logger.warning(
+                "answer_generation: gap generation failed for qnr=%d (inline)",
+                questionnaire_id,
+                exc_info=True,
+            )
         finally:
             gap_db.close()
-
-    _gap_thread = _threading.Thread(target=_run_gap_generation, daemon=True)
-    _gap_thread.start()
     run_stats["gaps_generated"] = 0
 
     run_stats["duration_ms"] = duration_ms
