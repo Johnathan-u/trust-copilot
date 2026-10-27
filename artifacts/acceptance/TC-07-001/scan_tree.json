@@ -3,7 +3,7 @@
     {
       "commit": "",
       "kind": "Secret-named value in a config/deploy file (dev default)",
-      "line": 4,
+      "line": 8,
       "path": ".env.example",
       "rule": "config-secret-review",
       "severity": "review",
@@ -12,7 +12,7 @@
     {
       "commit": "",
       "kind": "Low-entropy password embedded in a connection URL (dev default)",
-      "line": 7,
+      "line": 11,
       "path": ".env.example",
       "rule": "url-credential-review",
       "severity": "review",
