@@ -428,6 +428,7 @@ _MD_ASSIGN = re.compile(
     r"(?i)\b[A-Z0-9_]*(?:PASSWORD|PASSWD|SECRET|API_KEY|ACCESS_KEY|TOKEN)[A-Z0-9_]*\s*[=:]\s*`?([^\s`|,;)]+)"
 )
 _PLACEHOLDER = re.compile(r"(?i)^(<.*>|\$\{.*|\$[A-Z_]+|\.\.\.|placeholder\S*|changeme|change-me|x+|\*+|\"\"|''|none|null|unset)$")
+_NOT_A_VALUE = re.compile(r"^[\d<>=.,()%+-]+$")  # e.g. "SESSION_SECRET: 32)" describes a length, not a value
 _REUSE = re.compile(
     r"(?i)\b(re-?use|keep|copy|use)\s+(the\s+)?(same|existing|committed|default|example|old|sample|demo|dev)\s+"
     r"(passwords?|secrets?|keys?|credentials?|tokens?|values?)"
@@ -456,7 +457,7 @@ def deploy_doc_problems(text: str, *, markdown: bool) -> list[str]:
             problems.append(f"line {n}: tells the operator to reuse an existing/committed credential")
         if markdown:
             for m in _MD_ASSIGN.finditer(line):
-                if not _PLACEHOLDER.match(m.group(1)):
+                if not _PLACEHOLDER.match(m.group(1)) and not _NOT_A_VALUE.match(m.group(1)):
                     problems.append(f"line {n}: credential assignment with a literal value")
     return problems
 
@@ -491,7 +492,7 @@ def test_deploy_docs_never_point_at_committed_values():
     ],
 )
 def test_deploy_doc_checker_flags_bad_guidance(template):
-    bad = template.format(v=secrets.token_hex(8))
+    bad = template.format(v="k" + secrets.token_hex(8))  # letter prefix: never all-digit
     assert deploy_doc_problems(bad, markdown=True), "checker must flag this guidance"
 
 
@@ -501,6 +502,7 @@ def test_deploy_doc_checker_flags_bad_guidance(template):
         "Generate every secret with `openssl rand -hex 32`; never reuse a committed value.",
         "Set SESSION_SECRET=<generated> and S3_SECRET_KEY=${S3_SECRET_KEY}.",
         "Do not copy the example password into production.",
+        "Credentials shorter than 16 characters (SESSION_SECRET: 32) are refused.",
     ],
 )
 def test_deploy_doc_checker_allows_good_guidance(line):
