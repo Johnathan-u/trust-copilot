@@ -16,10 +16,12 @@ def admin_client(client):
 
 class TestFeedbackCaptureService:
     def test_capture_feedback(self, db_session):
+        # Synthetic questionnaire, flushed only (rolled back by the db_session fixture), so the
+        # test never depends on seed data and never skips (TC-02-002: CI fails on DB-test skips).
         ws = db_session.query(Workspace).first()
-        q = db_session.query(Questionnaire).filter(Questionnaire.workspace_id == ws.id).first()
-        if not q:
-            pytest.skip("No questionnaires")
+        q = Questionnaire(workspace_id=ws.id, filename="tc-02-002-synthetic.xlsx")
+        db_session.add(q)
+        db_session.flush()
         result = fc.capture_feedback(
             db_session, ws.id, q.id, "quality", feedback_text="Good answers"
         )
