@@ -358,13 +358,13 @@ class BoundedRetrySeam:
         self.max_attempts = max_attempts
         self._sleeper = sleeper if sleeper is not None else (lambda _attempt, _retry_after: None)
 
-    def execute(self, call, *, provider: str) -> ProviderCallResult:
+    def execute(self, call, *, provider: str, on_attempt=None) -> ProviderCallResult:
         last: ProviderCallResult | None = None
         for attempt in range(1, self.max_attempts + 1):
             try:
                 response = call()
             except OutboundHttpDenied:
-                return _fail(
+                denied = _fail(
                     status_code=None,
                     error_code=ERROR_DENIED,
                     attempts=attempt,
@@ -372,6 +372,9 @@ class BoundedRetrySeam:
                     retryable=False,
                     message="Outbound call blocked by the message-provider allowlist.",
                 )
+                if on_attempt is not None:
+                    on_attempt(denied, False)
+                return denied
             except httpx.TimeoutException:
                 last = _fail(
                     status_code=None,
@@ -392,6 +395,73 @@ class BoundedRetrySeam:
                 )
             else:
                 last = classify_response(response, provider, attempt)
+            will_retry = (not last.ok) and last.retryable and attempt < self.max_attempts
+            if on_attempt is not None:
+                observed = last
+                if not last.ok and last.retryable and not will_retry:
+                    observed = replace(last, exhausted=True)
+                on_attempt(observed, will_retry)
+                last = observed
+            if last.ok or not last.retryable:
+                return last
+            if attempt >= self.max_attempts:
+                return replace(last, exhausted=True)
+            self._sleeper(attempt, last.retry_after)
+        assert last is not None
+        return replace(last, exhausted=True)
+
+    def run_results(self, attempt_call, *, on_attempt=None) -> ProviderCallResult:
+        """Bound a callable that already returns ``ProviderCallResult``.
+
+        ``attempt_call(attempt)`` performs one try. The cap, sleeper, and
+        exhaustion flag match ``execute``. Callers that are not HTTP responses
+        (notification email) use this. ``on_attempt`` is optional; omitting it
+        leaves the loop the same as ``execute``.
+        """
+        last: ProviderCallResult | None = None
+        for attempt in range(1, self.max_attempts + 1):
+            try:
+                last = attempt_call(attempt)
+            except OutboundHttpDenied:
+                denied = _fail(
+                    status_code=None,
+                    error_code=ERROR_DENIED,
+                    attempts=attempt,
+                    provider_error="outbound_not_allowlisted",
+                    retryable=False,
+                    message="Outbound call blocked by the message-provider allowlist.",
+                )
+                if on_attempt is not None:
+                    on_attempt(denied, False)
+                return denied
+            except httpx.TimeoutException:
+                last = _fail(
+                    status_code=None,
+                    error_code=ERROR_UNKNOWN,
+                    attempts=attempt,
+                    provider_error="timeout",
+                    retryable=True,
+                    message="The provider request timed out.",
+                )
+            except httpx.TransportError:
+                last = _fail(
+                    status_code=None,
+                    error_code=ERROR_UNKNOWN,
+                    attempts=attempt,
+                    provider_error="transport",
+                    retryable=True,
+                    message="The provider request could not be sent.",
+                )
+            else:
+                if last.attempts != attempt:
+                    last = replace(last, attempts=attempt)
+            will_retry = (not last.ok) and last.retryable and attempt < self.max_attempts
+            if on_attempt is not None:
+                observed = last
+                if not last.ok and last.retryable and not will_retry:
+                    observed = replace(last, exhausted=True)
+                on_attempt(observed, will_retry)
+                last = observed
             if last.ok or not last.retryable:
                 return last
             if attempt >= self.max_attempts:
