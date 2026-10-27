@@ -4,34 +4,32 @@ Datasets 1-8:  Framework-specific (SOC2, HIPAA, ISO27001, NIST CSF, 800-53, 800-
 Datasets 9-10: Negative controls (generic vendor, generic healthcare without HIPAA)
 
 Usage:
-  python -u tests/run_10dataset_test.py
+  python -u scripts/manual_live/run_10dataset_check.py
 """
 
+import base64  # noqa: F401
+import hmac  # noqa: F401
 import io
 import json
-import os
+import os  # noqa: F401
 import sys
 import time
 
 import requests
 
-try:  # run as `python tests/<script>.py` or as `python -m tests.<script>`
-    from _live_session import forge_session_cookie
-except ImportError:  # pragma: no cover
-    from tests._live_session import forge_session_cookie
+from _live_guard import api_base, forge_session_cookie
 
-API = os.environ.get("TC_API", "http://localhost:8000")
+API = api_base()
 POLL_INTERVAL = 3
 POLL_TIMEOUT = 300
 
 
 def _make_session_cookie(workspace_id: int = 1) -> str:
-    # TC-07-001: secret from TC_SESSION_SECRET (required), synthetic e-mail, short exp.
     return forge_session_cookie(workspace_id)
 
 
 S = requests.Session()
-__test__ = False  # manual script; not a pytest module
+S.cookies.set("tc_session", _make_session_cookie())
 
 
 def _set_ws(ws_id: int) -> None:
@@ -620,7 +618,6 @@ ALL_DATASETS = [
 
 
 def main():
-    _set_ws(1)
     print("=" * 70)
     print("  TRUST COPILOT — 10-DATASET FRAMEWORK CLASSIFICATION VALIDATION")
     print("=" * 70)

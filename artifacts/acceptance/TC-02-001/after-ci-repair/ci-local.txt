@@ -1,0 +1,30 @@
+# branch tc/platform/TC-02-001, SHA c69ae5fb99308979c43884a76ee8bf89d23f7987; local mirror of .github/workflows/ci.yml job 'build' (/workspace/tc-run/ci_local2.sh)
+# env: Linux, Docker; python 3.11 via uv fresh venv; OPENAI_API_KEY unset; DB = fresh container pgvector/pgvector:pg16@sha256:7b822b0a…b90a on 127.0.0.1:55434 (CI uses 5432), user tc_ci, generated per-run password (never printed), per-run *_test database
+### Start isolated Postgres: image pgvector/pgvector:pg16@sha256:7b822b0aac60967beb1ea5e576b8602c94c300a157d187f385ae3e0da199b90a db=tc_ci_local_1793095414_test user=tc_ci password=<generated, not shown>
+### Install backend deps
+exit=0
+python 3.11.17 sqlalchemy 2.0.55
+### Run migrations
+exit=0
+pgvector 0.8.7
+### Lint backend
+ruff 0.5.6
+All checks passed!
+exit=0
+### Safe test collection (TC-02-001)
+1315 tests collected in 3.42s
+exit=0
+26 passed in 7.91s
+exit=0
+### Release test: python -m pytest tests/release/test_safe_collection.py -q (TC_REQUIRE_DB=1)
+26 passed in 7.35s
+exit=0
+### Run backend tests
+SKIPPED [1] tests/test_trust_scoring_blind.py:33: external_data: blind test pack not checked in; set TC_TRUST_SCORING_BLIND_PACK to run
+SKIPPED [1] tests/test_control_timeline.py:48: No reviewed workspace controls
+SKIPPED [1] tests/test_feedback_capture.py:22: No questionnaires
+1313 passed, 3 skipped in 66.32s (0:01:06)
+exit=0
+### Build frontend
+exit=0
+ ✓ Compiled successfully

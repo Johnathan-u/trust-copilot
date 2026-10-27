@@ -13,6 +13,7 @@ algorithm tuning doesn't cause spurious failures.
 """
 
 import json
+import os
 from datetime import date
 from pathlib import Path
 
@@ -20,13 +21,19 @@ import pytest
 
 from app.services.trust_scoring import compute_trust_score
 
+# The blind pack is a local-only dataset that is not checked in. Point TC_TRUST_SCORING_BLIND_PACK
+# at it to run this module; otherwise it is skipped with an explicit reason (TC-02-001).
 BLIND_PATH = Path(
-    r"C:\Users\John\Downloads\trust_scoring_blind_100_pack\trust_scoring_blind_100_cases.json"
+    os.environ.get("TC_TRUST_SCORING_BLIND_PACK", "/nonexistent/trust_scoring_blind_100_cases.json")
 )
+pytestmark = pytest.mark.external_data
 AS_OF = date(2026, 3, 23)
 
 if not BLIND_PATH.exists():
-    pytest.skip("Blind test pack not found (local-only file)", allow_module_level=True)
+    pytest.skip(
+        "external_data: blind test pack not checked in; set TC_TRUST_SCORING_BLIND_PACK to run",
+        allow_module_level=True,
+    )
 
 
 # -- Schema mapping ---------------------------------------------------------

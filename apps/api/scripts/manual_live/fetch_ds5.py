@@ -1,16 +1,12 @@
-"""Manual live-API dump against a LOCAL stack (TC-07-001: no embedded secrets).
+"""Manual fetch against a LOCAL running API (see README.md). Not a pytest module."""
 
-Usage: TC_SESSION_SECRET=... python tests/fetch_ds5.py
-"""
+import json  # noqa: F401
 
 import requests
 
-try:  # run as `python tests/<script>.py` or as `python -m tests.<script>`
-    from _live_session import forge_session_cookie, live_api
-except ImportError:  # pragma: no cover
-    from tests._live_session import forge_session_cookie, live_api
+from _live_guard import api_base, forge_session_cookie
 
-API = live_api()
+API = api_base()
 
 
 def cookie(ws_id):
