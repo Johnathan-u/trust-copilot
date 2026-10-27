@@ -73,128 +73,124 @@ def test_retrieval_search_applies_document_scope_keyword():
     assert out[0]["metadata"]["document_id"] == 5
 
 
-def test_validate_answer_evidence_rejects_other_workspace(db_session: Session):
-    """Persisted validation keeps only workspace documents and drops questionnaire file."""
-    ws_id = 1
-    qnr = (
-        db_session.query(Questionnaire)
-        .filter(Questionnaire.workspace_id == ws_id, Questionnaire.deleted_at.is_(None))
-        .first()
-    )
-    if not qnr:
-        pytest.skip("no questionnaire in test DB")
-    q_doc = qnr.document_id
-    # Pick any document in workspace that is not the questionnaire source
-    other = (
-        db_session.query(Document)
-        .filter(Document.workspace_id == ws_id, Document.deleted_at.is_(None))
-        .first()
-    )
-    if not other or (q_doc is not None and other.id == q_doc):
-        pytest.skip("need a distinct workspace document")
-    raw = [other.id, 99999999]
-    if q_doc:
-        raw.append(q_doc)
-    cleaned = validate_answer_evidence_document_ids(db_session, ws_id, qnr.id, raw)
-    assert other.id in cleaned
-    assert 99999999 not in cleaned
-    if q_doc:
-        assert q_doc not in cleaned
-
-
-def test_patch_answer_evidence_api_contract(client, db_session: Session):
-    """PATCH persists; GET returns the same ids (API + UI contract)."""
-    r0 = client.post("/api/auth/login", json={"email": "demo@trust.local", "password": "j"})
-    if r0.status_code != 200:
-        pytest.skip("login failed")
-    qnr = (
-        db_session.query(Questionnaire)
-        .filter(Questionnaire.workspace_id == 1, Questionnaire.deleted_at.is_(None))
-        .first()
-    )
-    if not qnr:
-        pytest.skip("no questionnaire")
-    doc = (
-        db_session.query(Document)
-        .filter(Document.workspace_id == 1, Document.deleted_at.is_(None))
-        .first()
-    )
-    if not doc or (qnr.document_id is not None and doc.id == qnr.document_id):
-        pytest.skip("need a document distinct from questionnaire document_id")
-    body = {"document_ids": [doc.id]}
-    r = client.patch(
-        f"/api/questionnaires/{qnr.id}/answer-evidence?workspace_id=1",
-        json=body,
-    )
-    assert r.status_code == 200, r.text
-    data = r.json()
-    assert doc.id in (data.get("answer_evidence_document_ids") or [])
-    r2 = client.get(f"/api/questionnaires/{qnr.id}?workspace_id=1")
-    assert r2.status_code == 200
-    det = r2.json()
-    assert doc.id in (det.get("answer_evidence_document_ids") or [])
-    # Clear selection
-    client.patch(
-        f"/api/questionnaires/{qnr.id}/answer-evidence?workspace_id=1",
-        json={"document_ids": []},
-    )
-
-
-def test_generate_answers_passes_document_ids_to_retrieval(db_session: Session):
-    """generate_answers_for_questionnaire passes scoped document_ids into retrieval.search."""
-    from app.models import Question, Workspace
-    from app.services.answer_generation import generate_answers_for_questionnaire
+@pytest.fixture
+def synthetic_scope(db_session: Session):
+    """Synthetic workspace-1 questionnaire (one question, with a source document) plus a separate
+    evidence document. Avoids depending on whichever seeded rows an unordered query returns."""
+    from app.models import Answer, Question, Workspace
+    from app.models.evidence_gap import EvidenceGap
 
     if not db_session.query(Workspace).filter(Workspace.id == 1).first():
         pytest.skip("no workspace")
-    qnr = (
-        db_session.query(Questionnaire)
-        .filter(Questionnaire.workspace_id == 1, Questionnaire.deleted_at.is_(None))
-        .first()
+    src = Document(
+        workspace_id=1,
+        storage_key="synthetic/answer-evidence-source.xlsx",
+        filename="answer-evidence-source.xlsx",
+        status="indexed",
     )
-    if not qnr:
-        pytest.skip("no questionnaire")
-    doc = (
-        db_session.query(Document)
-        .filter(Document.workspace_id == 1, Document.deleted_at.is_(None))
-        .first()
+    ev = Document(
+        workspace_id=1,
+        storage_key="synthetic/answer-evidence-scope.pdf",
+        filename="answer-evidence-scope.pdf",
+        status="indexed",
     )
-    if not doc:
-        pytest.skip("no document")
-    qn = db_session.query(Question).filter(Question.questionnaire_id == qnr.id).first()
-    if not qn:
-        pytest.skip("no questions")
+    db_session.add_all([src, ev])
+    db_session.flush()
+    qnr = Questionnaire(
+        workspace_id=1,
+        filename="answer-evidence-scope.xlsx",
+        status="parsed",
+        document_id=src.id,
+    )
+    db_session.add(qnr)
+    db_session.flush()
+    qn = Question(questionnaire_id=qnr.id, text="Do you encrypt data at rest?", section="S")
+    db_session.add(qn)
+    db_session.commit()
+    ids = {"qnr": qnr.id, "question": qn.id, "source_doc": src.id, "doc": ev.id}
+    yield ids
+    db_session.rollback()
+    db_session.query(EvidenceGap).filter(EvidenceGap.questionnaire_id == ids["qnr"]).delete(
+        synchronize_session=False
+    )
+    db_session.query(Answer).filter(Answer.question_id == ids["question"]).delete(
+        synchronize_session=False
+    )
+    db_session.query(Question).filter(Question.id == ids["question"]).delete(
+        synchronize_session=False
+    )
+    db_session.query(Questionnaire).filter(Questionnaire.id == ids["qnr"]).delete(
+        synchronize_session=False
+    )
+    db_session.query(Document).filter(Document.id.in_([ids["source_doc"], ids["doc"]])).delete(
+        synchronize_session=False
+    )
+    db_session.commit()
+
+
+def test_validate_answer_evidence_rejects_other_workspace(db_session: Session, synthetic_scope):
+    """Persisted validation keeps only workspace documents and drops questionnaire file."""
+    ws_id = 1
+    q_doc = synthetic_scope["source_doc"]
+    other = synthetic_scope["doc"]
+    raw = [other, 99999999, q_doc]
+    cleaned = validate_answer_evidence_document_ids(db_session, ws_id, synthetic_scope["qnr"], raw)
+    assert other in cleaned
+    assert 99999999 not in cleaned
+    assert q_doc not in cleaned
+
+
+def test_patch_answer_evidence_api_contract(client, synthetic_scope):
+    """PATCH persists; GET returns the same ids (API + UI contract)."""
+    r0 = client.post("/api/auth/login", json={"email": "demo@trust.local", "password": "j"})
+    assert r0.status_code == 200, r0.text
+    qnr_id, doc_id = synthetic_scope["qnr"], synthetic_scope["doc"]
+    r = client.patch(
+        f"/api/questionnaires/{qnr_id}/answer-evidence?workspace_id=1",
+        json={"document_ids": [doc_id]},
+    )
+    assert r.status_code == 200, r.text
+    data = r.json()
+    assert doc_id in (data.get("answer_evidence_document_ids") or [])
+    r2 = client.get(f"/api/questionnaires/{qnr_id}?workspace_id=1")
+    assert r2.status_code == 200
+    det = r2.json()
+    assert doc_id in (det.get("answer_evidence_document_ids") or [])
+
+
+def test_generate_answers_passes_document_ids_to_retrieval(db_session: Session, synthetic_scope):
+    """generate_answers_for_questionnaire passes scoped document_ids into retrieval.search."""
+    from app.models import Questionnaire as Qnr
+    from app.services.answer_generation import generate_answers_for_questionnaire
+
+    qnr_id, doc_id = synthetic_scope["qnr"], synthetic_scope["doc"]
+    qnr = db_session.query(Qnr).filter(Qnr.id == qnr_id).one()
+    qnr.answer_evidence_document_ids_json = json.dumps([doc_id])
+    db_session.commit()
 
     captured: dict = {}
-    old_json = qnr.answer_evidence_document_ids_json
-    qnr.answer_evidence_document_ids_json = json.dumps([doc.id])
-    db_session.commit()
 
     def fake_batch_search(*args, **kwargs):
         captured["document_ids"] = kwargs.get("document_ids")
         return [[]]
 
-    try:
-        with (
-            patch("app.core.config.get_settings") as mock_settings,
-            patch("app.services.answer_generation.embed_texts", return_value=[[0.1] * 1536]),
-            patch("app.services.answer_generation.RetrievalService") as MockRetrieval,
-            patch("app.services.answer_generation.get_corpus_version", return_value=""),
-            patch("app.services.answer_generation.retrieval_cache_get", return_value=None),
-            patch("app.services.answer_generation.answer_cache_get", return_value=None),
-            patch("openai.OpenAI"),
-        ):
-            mock_settings.return_value.openai_api_key = "test-key"
-            mock_settings.return_value.completion_model = "gpt-4o-mini"
-            mock_settings.return_value.openai_temperature = 0.35
-            MockRetrieval.return_value.batch_search = fake_batch_search
+    with (
+        patch("app.core.config.get_settings") as mock_settings,
+        patch("app.services.answer_generation.embed_texts", return_value=[[0.1] * 1536]),
+        patch("app.services.answer_generation.RetrievalService") as MockRetrieval,
+        patch("app.services.answer_generation.get_corpus_version", return_value=""),
+        patch("app.services.answer_generation.retrieval_cache_get", return_value=None),
+        patch("app.services.answer_generation.answer_cache_get", return_value=None),
+        patch("openai.OpenAI"),
+    ):
+        mock_settings.return_value.openai_api_key = "test-key"
+        mock_settings.return_value.completion_model = "gpt-4o-mini"
+        mock_settings.return_value.openai_temperature = 0.35
+        MockRetrieval.return_value.batch_search = fake_batch_search
 
-            try:
-                generate_answers_for_questionnaire(db_session, qnr.id, workspace_id=1)
-            except Exception:
-                pass
-    finally:
-        qnr.answer_evidence_document_ids_json = old_json
-        db_session.commit()
+        try:
+            generate_answers_for_questionnaire(db_session, qnr_id, workspace_id=1)
+        except Exception:
+            pass
 
-    assert captured.get("document_ids") == [doc.id]
+    assert captured.get("document_ids") == [doc_id]
