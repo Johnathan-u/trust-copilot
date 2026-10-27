@@ -90,7 +90,7 @@ async def create_workspace(
 ):
     """Create a new workspace; current user becomes admin (B3). Reissues session cookie with new workspace context.
 
-    TC-04-001a: subject to the signup policy (403), a per-user hourly throttle (429 with
+    Subject to the signup policy (403), a per-user hourly throttle (429 with
     Retry-After) and a per-user cap on owner/admin memberships (409)."""
     user_id = session.get("user_id")
     if not user_id:

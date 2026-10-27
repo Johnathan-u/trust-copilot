@@ -319,3 +319,52 @@ def test_throttle_is_per_user(client: TestClient, make_user, monkeypatch) -> Non
     assert _create(client, "u1-over").status_code == 429
     _login(client, second)
     assert _create(client, "u2").status_code == 200
+
+
+# ---------------------------------------------------------------- configuration contract
+
+
+def test_settings_are_registered_in_the_config_contract():
+    import re
+    from pathlib import Path
+
+    from app.core import config_contract as cc
+
+    repo = Path(__file__).resolve().parents[4]
+    env_example = (repo / ".env.example").read_text()
+    table = cc.contract_markdown()
+    for name in ENV_NAMES:
+        var = cc.CONTRACT_BY_NAME[name]
+        assert var.production == "optional" and not var.secret, name
+        assert f"`{name}`" in table, name
+        assert re.search(rf"^#?\s*{name}=", env_example, re.M), name
+    assert cc.CONTRACT_BY_NAME["SIGNUP_POLICY"].default == "invitation_only"
+    assert not re.search(r"\bTC-\d", table)
+
+
+@pytest.mark.parametrize("app_env", ["development", "production"])
+def test_contract_validates_workspace_settings(app_env):
+    from app.core import config_contract as cc
+
+    good = {
+        "APP_ENV": app_env,
+        "SIGNUP_POLICY": "Self-Signup",
+        "WORKSPACE_ADMIN_CAP_PER_USER": "3",
+        "WORKSPACE_CREATE_PER_HOUR": "5",
+        "DEPLOYMENT_OPERATOR_EMAILS": "ops@example.test",
+    }
+    assert not {p.name for p in cc.validate_environment(good)} & set(ENV_NAMES)
+    bad = dict(
+        good,
+        SIGNUP_POLICY="open-to-everyone",
+        WORKSPACE_ADMIN_CAP_PER_USER="0",
+        WORKSPACE_CREATE_PER_HOUR="many",
+    )
+    problems = [p for p in cc.validate_environment(bad) if p.name in ENV_NAMES]
+    assert {p.name for p in problems} == {
+        "SIGNUP_POLICY",
+        "WORKSPACE_ADMIN_CAP_PER_USER",
+        "WORKSPACE_CREATE_PER_HOUR",
+    }
+    assert all(p.fatal == (app_env == "production") for p in problems)
+    assert not any("open-to-everyone" in str(p) or "many" in str(p) for p in problems)
