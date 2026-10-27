@@ -22,7 +22,9 @@ from dataclasses import dataclass
 from typing import Iterable, Mapping
 from urllib.parse import urlsplit
 
-from app.core.session import MIN_PRODUCTION_SECRET_LENGTH, is_weak_secret
+# Production detection and the SESSION_SECRET strength rule are master's (TC-07-001/001a): this module
+# never decides "is this production?" or "is this signing key weak?" on its own.
+from app.core.session import MIN_PRODUCTION_SECRET_LENGTH, is_production_env, is_weak_secret
 
 ALLOWED_APP_ENVS = ("development", "test", "staging", "production")
 MIN_PRODUCTION_PASSWORD_LENGTH = 16
@@ -411,7 +413,7 @@ CONTRACT: tuple[ConfigVar, ...] = (
         "optional",
         True,
         "unset",
-        "Billing; production requires STRIPE_WEBHOOK_SECRET with it.",
+        "Billing; production requires STRIPE_WEBHOOK_SECRET or STRIPE_WEBHOOK_SECRETS with it.",
     ),
     ConfigVar(
         "STRIPE_WEBHOOK_SECRET",
@@ -420,6 +422,14 @@ CONTRACT: tuple[ConfigVar, ...] = (
         True,
         "unset",
         "Stripe webhook signing secret.",
+    ),
+    ConfigVar(
+        "STRIPE_WEBHOOK_SECRETS",
+        "comma-separated secret strings",
+        "optional",
+        True,
+        "unset",
+        "Additional Stripe webhook signing secrets (rotation); merged with STRIPE_WEBHOOK_SECRET.",
     ),
     ConfigVar("SENTRY_DSN", "URL", "optional", True, "unset", "Error tracking."),
     # Health probes (TC-03-003; see docs/release/tickets/TC-03-003.md).
@@ -557,6 +567,51 @@ CONTRACT: tuple[ConfigVar, ...] = (
     ConfigVar("STRIPE_PRICE_ID", "string", "optional", False, "unset", "Stripe monthly price."),
     ConfigVar(
         "STRIPE_ANNUAL_PRICE_ID", "string", "optional", False, "unset", "Stripe annual price."
+    ),
+    # Billing tuning (TC-24-001); validated by the billing provider preflight, not duplicated here.
+    ConfigVar("STRIPE_MODE", "test|live", "optional", False, "implied by key", "Stripe mode."),
+    ConfigVar("STRIPE_MONTHLY_PLAN", "string", "optional", False, "pro", "Monthly plan name."),
+    ConfigVar("STRIPE_ANNUAL_PLAN", "string", "optional", False, "pro_annual", "Annual plan name."),
+    ConfigVar(
+        "STRIPE_PLAN_PRICE_IDS",
+        "plan=price list",
+        "optional",
+        False,
+        "derived from price ids",
+        "Plan to Stripe price id map.",
+    ),
+    ConfigVar(
+        "STRIPE_WEBHOOK_TOLERANCE_SECONDS",
+        "integer >= 0",
+        "optional",
+        False,
+        "300",
+        "Webhook timestamp tolerance.",
+    ),
+    ConfigVar(
+        "STRIPE_EVENT_RETENTION_SECONDS",
+        "integer >= 0",
+        "optional",
+        False,
+        "604800",
+        "Processed webhook event retention.",
+    ),
+    # Message providers (TC-19-001); validated by message_providers.selection preflight.
+    ConfigVar(
+        "MESSAGE_PROVIDER_RUNTIME_MODE",
+        "production|development",
+        "optional",
+        False,
+        "follows APP_ENV",
+        "Slack/Gmail provider runtime mode.",
+    ),
+    ConfigVar(
+        "MESSAGE_PROVIDER_DEV_STUB",
+        "boolean",
+        "optional",
+        False,
+        "unset",
+        "Development message-provider stub; production preflight refuses it.",
     ),
     ConfigVar(
         "SENTRY_ENVIRONMENT", "string", "optional", False, "APP_ENV", "Sentry environment tag."
@@ -820,11 +875,15 @@ def email_delivery_enabled(env: Mapping[str, str] | None = None) -> bool:
 
 
 def validate_environment(env: Mapping[str, str] | None = None) -> list[Problem]:
-    """Return contract problems for ``env`` (defaults to os.environ). Never includes values."""
+    """Return contract problems for ``env`` (defaults to os.environ). Never includes values.
+
+    Production is decided by app.core.session.is_production_env (whitespace/case-insensitive):
+    for the running process (``env`` None) that is the same check the startup secret gate uses.
+    """
+    production = is_production_env(env)
     env = os.environ if env is None else env
     problems: list[Problem] = []
     app_env = (env.get("APP_ENV") or "development").strip().lower()
-    production = app_env == "production"
 
     if app_env not in ALLOWED_APP_ENVS:
         problems.append(Problem("APP_ENV", f"must be one of {', '.join(ALLOWED_APP_ENVS)}"))
@@ -960,11 +1019,23 @@ def validate_environment(env: Mapping[str, str] | None = None) -> list[Problem]:
             problems.append(Problem(csec, "is a placeholder"))
     if (env.get("OIDC_CLIENT_ID") or "").strip() and not (env.get("OIDC_ISSUER_URL") or "").strip():
         problems.append(Problem("OIDC_ISSUER_URL", "is required when OIDC_CLIENT_ID is set"))
-    if (env.get("STRIPE_SECRET_KEY") or "").strip() and not (
-        env.get("STRIPE_WEBHOOK_SECRET") or ""
-    ).strip():
+    for name in ("STRIPE_SECRET_KEY", "STRIPE_WEBHOOK_SECRET", "STRIPE_WEBHOOK_SECRETS"):
+        raw = env.get(name) or ""
+        items = (
+            [i.strip() for i in raw.split(",")]
+            if name == "STRIPE_WEBHOOK_SECRETS"
+            else [raw.strip()]
+        )
+        if raw.strip() and any(not i or is_known_default_or_placeholder(i) for i in items):
+            problems.append(Problem(name, "is a known default or placeholder"))
+    if (env.get("STRIPE_SECRET_KEY") or "").strip() and not any(
+        (env.get(n) or "").strip() for n in ("STRIPE_WEBHOOK_SECRET", "STRIPE_WEBHOOK_SECRETS")
+    ):
         problems.append(
-            Problem("STRIPE_WEBHOOK_SECRET", "is required when STRIPE_SECRET_KEY is set")
+            Problem(
+                "STRIPE_WEBHOOK_SECRET",
+                "is required (or STRIPE_WEBHOOK_SECRETS) when STRIPE_SECRET_KEY is set",
+            )
         )
 
     # --- Dev / demo / test switches and demo seeding ---
@@ -988,10 +1059,9 @@ def enforce_startup_contract(
     Production: raise ConfigContractError on any fatal problem (fail closed).
     Non-production: raise only for problems that would crash anyway; return the rest as warnings.
     """
-    env = os.environ if env is None else env
+    production = is_production_env(env)
     problems = validate_environment(env)
     fatal = [p for p in problems if p.fatal]
-    production = (env.get("APP_ENV") or "development").strip().lower() == "production"
     if fatal and (
         production or any(p.name in _ALWAYS_FATAL_TYPES or p.name == "APP_ENV" for p in fatal)
     ):
@@ -1001,8 +1071,7 @@ def enforce_startup_contract(
 
 def refuse_demo_seed_in_production(env: Mapping[str, str] | None = None) -> None:
     """Demo/QA/E2E seeding is never allowed with APP_ENV=production (no override)."""
-    env = os.environ if env is None else env
-    if (env.get("APP_ENV") or "development").strip().lower() == "production":
+    if is_production_env(env):
         raise SystemExit(
             "Refusing to seed demo/QA/E2E data with APP_ENV=production (TC-03-001). "
             "Production accounts are created through the invitation/owner bootstrap flow, never by seed scripts."

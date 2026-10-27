@@ -740,3 +740,228 @@ def test_production_smtp_failure_does_not_print_body(monkeypatch, capsys):
     marker = "https://app.trust.test/reset?token=" + secrets.token_urlsafe(24)
     assert p.send(es.EmailMessage(to="x@trust.test", subject="Reset", body_text=marker)) is False
     assert marker not in capsys.readouterr().out
+
+
+# ---------------------------------------------------------------- .env.example credentials vs production
+# (Coordinator: production must refuse every credential .env.example ships, including the dev MinIO S3
+# pair, and must use master's is_production_env() as the only production detector.) Values are read from
+# .env.example at test time; nothing here contains a credential literal.
+
+_PRODUCTION_SPELLINGS = [
+    "production",
+    " production ",
+    "PRODUCTION",
+    "production\n",
+    "\tProduction ",
+]
+_NON_PRODUCTION = ["development", " Development ", "test", "staging", ""]
+_REASON_PHRASES = ("known default or placeholder", "is a placeholder")
+
+
+def _shipped_credentials() -> dict[str, str]:
+    """Every secret-classified variable with a non-empty value in .env.example (commented or not)."""
+    return {
+        n: v
+        for n, v in _env_example().items()
+        if v and n in cc.CONTRACT_BY_NAME and cc.CONTRACT_BY_NAME[n].secret
+    }
+
+
+def _with_partners(env: dict[str, str], name: str) -> dict[str, str]:
+    """Complete id/secret pairs with synthetic ids so the shipped secret itself is what is judged."""
+    for cid, csec in cc._OAUTH_PAIRS:
+        if name == csec:
+            env[cid] = "client-" + secrets.token_hex(6)
+            env.setdefault("OIDC_ISSUER_URL", "https://idp.trust.test")
+    return env
+
+
+def _scrubbed(text: str) -> str:
+    for phrase in _REASON_PHRASES:
+        text = text.replace(phrase, "")
+    return text
+
+
+def test_env_example_ships_the_expected_credential_set():
+    shipped = _shipped_credentials()
+    # Drift guard: these are the defaults the Coordinator named; new ones are picked up automatically.
+    assert {
+        "POSTGRES_PASSWORD",
+        "DATABASE_URL",
+        "S3_ACCESS_KEY",
+        "S3_SECRET_KEY",
+        "OPENAI_API_KEY",
+        "STRIPE_SECRET_KEY",
+        "STRIPE_WEBHOOK_SECRET",
+    } <= set(shipped)
+    ex = _env_example()
+    assert "SESSION_SECRET" in ex and not ex["SESSION_SECRET"], "SESSION_SECRET must ship empty"
+
+
+@pytest.mark.parametrize("name", sorted(_shipped_credentials()))
+@pytest.mark.parametrize("app_env", _PRODUCTION_SPELLINGS)
+def test_every_env_example_credential_is_refused_in_production(name, app_env):
+    value = _shipped_credentials()[name]
+    env = _with_partners(good_production_env(), name)
+    env["APP_ENV"] = app_env
+    env[name] = value
+    with pytest.raises(cc.ConfigContractError) as ei:
+        cc.enforce_startup_contract("api", env)
+    assert name in {p.name for p in ei.value.problems}, f".env.example {name} accepted"
+    text = _scrubbed(str(ei.value) + repr(ei.value.problems))
+    assert value not in text, f"value of {name} echoed in the error"
+
+
+def test_env_example_minio_s3_pair_and_db_password_are_refused_together():
+    ex = _env_example()
+    env = good_production_env()
+    for n in ("S3_ACCESS_KEY", "S3_SECRET_KEY", "POSTGRES_PASSWORD", "DATABASE_URL"):
+        env[n] = ex[n]
+    with pytest.raises(cc.ConfigContractError) as ei:
+        cc.enforce_startup_contract("worker", env)
+    assert {"S3_ACCESS_KEY", "S3_SECRET_KEY", "POSTGRES_PASSWORD", "DATABASE_URL"} <= {
+        p.name for p in ei.value.problems
+    }
+    text = _scrubbed(str(ei.value))
+    db_password = re.match(r"^[a-z+]+://[^:@/]+:([^@]+)@", ex["DATABASE_URL"]).group(1)
+    for v in (ex["S3_ACCESS_KEY"], ex["S3_SECRET_KEY"], ex["POSTGRES_PASSWORD"], db_password):
+        assert v not in text
+
+
+@pytest.mark.parametrize(
+    "name", ["STRIPE_SECRET_KEY", "STRIPE_WEBHOOK_SECRET", "STRIPE_WEBHOOK_SECRETS"]
+)
+def test_stripe_placeholders_are_refused_and_generated_values_pass(name):
+    env = good_production_env()
+    env["STRIPE_SECRET_KEY"] = "sk_test_" + secrets.token_hex(12)
+    env["STRIPE_WEBHOOK_SECRET"] = "whsec_" + secrets.token_hex(12)
+    assert not fatal(cc.validate_environment(env))
+    env[name] = "placeholder"
+    assert name in names(cc.validate_environment(env))
+    if name == "STRIPE_WEBHOOK_SECRETS":  # every comma item is checked
+        env[name] = "whsec_" + secrets.token_hex(12) + ",placeholder"
+        assert name in names(cc.validate_environment(env))
+
+
+def test_stripe_webhook_secrets_alone_satisfy_the_pairing_rule():
+    env = good_production_env()
+    env["STRIPE_SECRET_KEY"] = "sk_test_" + secrets.token_hex(12)
+    env["STRIPE_WEBHOOK_SECRETS"] = "whsec_" + secrets.token_hex(12)
+    assert not fatal(cc.validate_environment(env))
+
+
+@pytest.mark.parametrize("app_env", _PRODUCTION_SPELLINGS)
+def test_generated_non_default_credentials_pass_in_production(app_env):
+    env = good_production_env()
+    env["APP_ENV"] = app_env
+    assert cc.enforce_startup_contract("api", env) == []
+
+
+@pytest.mark.parametrize("app_env", _NON_PRODUCTION)
+def test_env_example_defaults_are_allowed_outside_production(app_env):
+    """Dev/test keep working with every value .env.example ships (commented ones uncommented too)."""
+    env = dict(_env_example())
+    env["APP_ENV"] = app_env
+    problems = cc.enforce_startup_contract("api", env)  # must not raise
+    assert not (names(fatal(problems)) & set(_shipped_credentials()))
+    cc.refuse_demo_seed_in_production(env)  # seeding stays available outside production
+
+
+@pytest.mark.parametrize("app_env", _PRODUCTION_SPELLINGS)
+def test_production_detection_is_master_is_production_env(app_env):
+    from app.core.session import is_production_env
+
+    env = good_production_env()
+    env["APP_ENV"] = app_env
+    assert is_production_env(env)
+    with pytest.raises(SystemExit):
+        cc.refuse_demo_seed_in_production(env)
+
+
+def test_config_contract_has_no_second_production_detector(monkeypatch):
+    src = (API_ROOT / "app/core/config_contract.py").read_text()
+    assert "is_production_env" in src
+    assert not re.search(r"""==\s*["']production["']""", src), "own APP_ENV comparison"
+    # Behavioural proof: the contract follows whatever is_production_env decides.
+    ex = _env_example()
+    env = good_production_env()
+    env["S3_ACCESS_KEY"], env["S3_SECRET_KEY"] = ex["S3_ACCESS_KEY"], ex["S3_SECRET_KEY"]
+    monkeypatch.setattr(cc, "is_production_env", lambda env=None: False)
+    assert not fatal(cc.validate_environment(env))
+    cc.enforce_startup_contract("api", env)
+    monkeypatch.setattr(cc, "is_production_env", lambda env=None: True)
+    env["APP_ENV"] = "development"
+    assert {"S3_ACCESS_KEY", "S3_SECRET_KEY"} <= names(cc.validate_environment(env))
+
+
+@pytest.mark.parametrize("app_env", _PRODUCTION_SPELLINGS)
+def test_process_env_spellings_refuse_env_example_s3_defaults(monkeypatch, app_env):
+    """Real startup path (os.environ + Settings): same detector as the SESSION_SECRET gate."""
+    from app.core.config import get_settings
+    from app.core.session import enforce_production_session_secret, is_production_env
+
+    ex = _env_example()
+    env = good_production_env()
+    env["APP_ENV"] = app_env
+    env["S3_ACCESS_KEY"], env["S3_SECRET_KEY"] = ex["S3_ACCESS_KEY"], ex["S3_SECRET_KEY"]
+    _apply_env(monkeypatch, env)
+    try:
+        assert is_production_env()
+        enforce_production_session_secret("api")  # master's gate passes (strong generated secret)
+        with pytest.raises(cc.ConfigContractError) as ei:
+            cc.enforce_startup_contract("api")
+        assert {"S3_ACCESS_KEY", "S3_SECRET_KEY"} <= {p.name for p in ei.value.problems}
+        assert ex["S3_SECRET_KEY"] not in _scrubbed(str(ei.value))
+    finally:
+        get_settings.cache_clear()
+
+
+@pytest.mark.parametrize("app_env", _PRODUCTION_SPELLINGS)
+def test_api_lifespan_refuses_env_example_defaults_before_db(monkeypatch, app_env):
+    import asyncio
+    import app.main as main_mod
+    from app.core.config import get_settings
+
+    ex = _env_example()
+    env = good_production_env()
+    env["APP_ENV"] = app_env
+    for n in ("S3_ACCESS_KEY", "S3_SECRET_KEY", "DATABASE_URL"):
+        env[n] = ex[n]
+    _apply_env(monkeypatch, env)
+    called = []
+    monkeypatch.setattr(main_mod, "_verify_db_connectivity", lambda: called.append(1))
+
+    async def run():
+        async with main_mod.lifespan(main_mod.app):
+            pass
+
+    try:
+        with pytest.raises(cc.ConfigContractError):
+            asyncio.run(run())
+    finally:
+        get_settings.cache_clear()
+    assert not called
+
+
+def test_cli_refuses_env_example_defaults_without_echoing_them():
+    ex = _env_example()
+    bad = good_production_env()
+    bad["APP_ENV"] = " PRODUCTION "
+    for n in ("S3_ACCESS_KEY", "S3_SECRET_KEY", "POSTGRES_PASSWORD", "OPENAI_API_KEY"):
+        bad[n] = ex[n]
+    base = {
+        k: v for k, v in os.environ.items() if k in ("PATH", "HOME", "SYSTEMROOT", "PYTHONPATH")
+    }
+    r = subprocess.run(
+        [sys.executable, "-m", "app.core.config_contract", "check"],
+        cwd=API_ROOT,
+        env={**base, **bad},
+        capture_output=True,
+        text=True,
+        timeout=60,
+    )
+    assert r.returncode == 2
+    out = _scrubbed(r.stdout + r.stderr)
+    for n in ("S3_ACCESS_KEY", "S3_SECRET_KEY", "POSTGRES_PASSWORD", "OPENAI_API_KEY"):
+        assert n in out
+        assert ex[n] not in out, f"value of {n} echoed by the CLI"
