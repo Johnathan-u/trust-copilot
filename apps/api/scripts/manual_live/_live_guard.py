@@ -18,6 +18,7 @@ import hmac
 import json
 import os
 import sys
+import time
 from urllib.parse import urlparse
 
 LOCAL_HOSTS = frozenset({"localhost", "127.0.0.1", "::1", "api", "caddy", "web"})
@@ -53,15 +54,26 @@ def require_session_secret() -> str:
     return secret
 
 
-def forge_session_cookie(workspace_id: int, *, user_id: int = 1, role: str = "admin") -> str:
-    """Build a tc_session cookie for a local stack using TC_SESSION_SECRET (synthetic identity)."""
+def forge_session_cookie(
+    workspace_id: int, *, user_id: int = 1, role: str = "admin", ttl_seconds: int = 3600
+) -> str:
+    """Build a short-lived tc_session cookie for a local stack (TC_SESSION_SECRET, synthetic identity).
+
+    TC-07-001: the cookie carries an ``exp`` claim so a copied cookie stops working.
+    """
     secret = require_session_secret()
     email = os.environ.get("TC_SESSION_EMAIL", SYNTHETIC_ADMIN_EMAIL)
     if not email.endswith("@trust.local"):
         raise SystemExit(
             "refusing to run: TC_SESSION_EMAIL must be a synthetic *@trust.local identity"
         )
-    payload = {"user_id": user_id, "email": email, "workspace_id": workspace_id, "role": role}
+    payload = {
+        "user_id": user_id,
+        "email": email,
+        "workspace_id": workspace_id,
+        "role": role,
+        "exp": int(time.time()) + ttl_seconds,
+    }
     data = base64.urlsafe_b64encode(json.dumps(payload).encode()).decode()
     sig = hmac.new(secret.encode("utf-8"), data.encode("utf-8"), "sha256").hexdigest()
     return f"{data}.{sig}"

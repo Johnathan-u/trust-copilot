@@ -18,6 +18,8 @@ from app.models import (
     GmailIntegration,
 )
 from app.services.gmail_service import decrypt_token, encrypt_token, get_gmail_provider
+from app.services.message_providers.errors import is_provider_failure, public_error_detail
+from app.services.message_providers.selection import message_provider_preflight
 from app.services.gmail_ingest_service import fetch_and_ingest_label
 
 router = APIRouter(prefix="/gmail", tags=["gmail"])
@@ -49,14 +51,16 @@ async def gmail_status(
     session: dict = Depends(require_can_admin),
 ):
     ws = session["workspace_id"]
+    provider_fields = message_provider_preflight().status_fields()
     gi = db.query(GmailIntegration).filter(GmailIntegration.workspace_id == ws).first()
     if not gi:
-        return {"connected": False}
+        return {"connected": False, **provider_fields}
     return {
         "connected": True,
         "enabled": bool(gi.enabled),
         "email_address": gi.email_address,
         "updated_at": gi.updated_at.isoformat() if gi.updated_at else None,
+        **provider_fields,
     }
 
 
@@ -73,7 +77,14 @@ async def gmail_connect(
 
     provider = get_gmail_provider()
     profile = provider.get_profile(token)
+    if is_provider_failure(profile):
+        raise HTTPException(
+            status_code=400,
+            detail=f"Gmail auth failed: {public_error_detail(profile, 'unknown')}",
+        )
     email = profile.get("email") or profile.get("emailAddress")
+    if not email:
+        raise HTTPException(status_code=400, detail="Gmail profile did not return an email address")
 
     existing = db.query(GmailIntegration).filter(GmailIntegration.workspace_id == ws).first()
     if existing:
@@ -102,7 +113,11 @@ async def gmail_connect(
         workspace_id=ws,
         details={"email": email},
     )
-    return {"connected": True, "email_address": email}
+    return {
+        "connected": True,
+        "email_address": email,
+        **message_provider_preflight().status_fields(),
+    }
 
 
 @router.delete("/disconnect")
@@ -135,7 +150,11 @@ async def list_available_labels(
     token = decrypt_token(gi.access_token_encrypted)
     provider = get_gmail_provider()
     labels = provider.list_labels(token)
-    return {"labels": labels}
+    if is_provider_failure(labels):
+        raise HTTPException(
+            status_code=502, detail=public_error_detail(labels, "Gmail label list failed")
+        )
+    return {"labels": labels, **message_provider_preflight().status_fields()}
 
 
 @router.get("/ingest/labels")

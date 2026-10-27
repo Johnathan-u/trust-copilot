@@ -85,13 +85,14 @@ class Settings:
             os.path.exists("/.dockerenv") or os.environ.get("TRUST_COPILOT_IN_DOCKER") == "1"
         )
         self.database_url: str = _rewrite_postgres_docker_hostname_to_localhost(raw, in_docker)
-        self.session_secret: str = os.getenv("SESSION_SECRET", "change_me_dev_secret")
+        # TC-07-001: no literal default; see app.core.session.get_session_secret for dev/test behaviour.
+        self.session_secret: str = os.getenv("SESSION_SECRET", "")
         self.app_base_url: str = os.getenv("APP_BASE_URL", "http://localhost:3000")
         self.frontend_url: str = os.getenv("FRONTEND_URL", "http://localhost:3000")
 
         self.s3_endpoint: str = os.getenv("S3_ENDPOINT", "http://localhost:9000")
-        self.s3_access_key: str = os.getenv("S3_ACCESS_KEY", "minio")
-        self.s3_secret_key: str = os.getenv("S3_SECRET_KEY", "minio123")
+        self.s3_access_key: str = os.getenv("S3_ACCESS_KEY", "")
+        self.s3_secret_key: str = os.getenv("S3_SECRET_KEY", "")
         self.s3_bucket_raw: str = os.getenv("S3_BUCKET_RAW", "trustcopilot-raw")
         self.s3_bucket_exports: str = os.getenv("S3_BUCKET_EXPORTS", "trustcopilot-exports")
         self.s3_use_ssl: bool = os.getenv("S3_USE_SSL", "false").lower() == "true"
@@ -187,6 +188,19 @@ class Settings:
         self.rate_limit_rpm_per_ip: int = max(0, int(_rpm)) if _rpm.isdigit() else 120
 
         self.app_env: str = os.getenv("APP_ENV", "development").lower()
+        # Slack/Gmail provider selection (TC-19-001). Unset runtime follows APP_ENV.
+        # Production never selects the dev stub. See message_providers.selection.
+        _provider_mode = os.getenv("MESSAGE_PROVIDER_RUNTIME_MODE", "").strip().lower()
+        self.message_provider_runtime_mode: str | None = _provider_mode or None
+        self.message_provider_dev_stub_raw: str = (
+            os.getenv("MESSAGE_PROVIDER_DEV_STUB", "").strip().lower()
+        )
+        if self.message_provider_dev_stub_raw in ("1", "true", "yes"):
+            self.message_provider_dev_stub: bool | None = True
+        elif self.message_provider_dev_stub_raw in ("0", "false", "no"):
+            self.message_provider_dev_stub = False
+        else:
+            self.message_provider_dev_stub = None
 
         # Health probes (TC-03-003). Worker values are read by app.worker_health (stdlib-only probe);
         # mirrored here for discoverability. See docs/release/tickets/TC-03-003.md.
