@@ -163,7 +163,15 @@ def evaluate_generation_result(session: Session, gen_job: Job, payload: dict) ->
             f"All answers are preserved. Please review."
         )
 
-        _notify_needs_review(session, ws_id, qnr_name, insufficient_count, total, link)
+        _notify_needs_review(
+            session,
+            ws_id,
+            qnr_name,
+            insufficient_count,
+            total,
+            link,
+            event_id=f"questionnaire:{qnr_id}:insufficient:{insufficient_count}",
+        )
 
         logger.info(
             "automation: qnr=%s needs_review, %s/%s insufficient",
@@ -180,6 +188,7 @@ def _notify_needs_review(
     insufficient_count: int,
     total: int,
     link: str,
+    event_id: str,
 ) -> None:
     """Send a single summary notification via in-app, email, and Slack."""
     title = f"Review needed: {qnr_name}"
@@ -200,7 +209,12 @@ def _notify_needs_review(
         ws = session.query(Workspace).filter(Workspace.id == workspace_id).first()
         ws_name = ws.name if ws else "Workspace"
         fire_notification(
-            session, workspace_id, "questionnaire.generated", detail=body, workspace_name=ws_name
+            session,
+            workspace_id,
+            "questionnaire.generated",
+            detail=body,
+            workspace_name=ws_name,
+            event_id=event_id,
         )
     except Exception:
         pass

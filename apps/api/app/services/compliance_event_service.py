@@ -45,13 +45,14 @@ def _fire(
     title: str,
     detail: str,
     workspace_name: str,
+    event_id: str,
 ) -> bool:
     """Fire a single compliance event via email/Slack + in-app, with cooldown."""
     if _recently_fired(db, workspace_id, event_type):
         logger.debug("Cooldown skip: %s for workspace %s", event_type, workspace_id)
         return False
 
-    fire_notification(db, workspace_id, event_type, detail, workspace_name)
+    fire_notification(db, workspace_id, event_type, detail, workspace_name, event_id=event_id)
     notify_admins(
         db,
         workspace_id,
@@ -93,6 +94,7 @@ def evaluate_and_fire_compliance_events(
             "Low coverage",
             f"Coverage is at {kpi['coverage_pct']}%, below the {COVERAGE_THRESHOLD}% target.",
             workspace_name,
+            event_id=f"coverage:{kpi['coverage_pct']}",
         )
         if ok:
             fired += 1
@@ -105,6 +107,7 @@ def evaluate_and_fire_compliance_events(
             "High insufficient-answer rate",
             f"{kpi.get('total_insufficient', 0)} questions ({kpi['insufficient_pct']}%) lack sufficient evidence.",
             workspace_name,
+            event_id=f"insufficient:{kpi['insufficient_pct']}",
         )
         if ok:
             fired += 1
@@ -120,6 +123,7 @@ def evaluate_and_fire_compliance_events(
             f"{blind_spot_count} blind spot{'s' if blind_spot_count != 1 else ''} detected",
             f"Subject areas with insufficient evidence: {names}.",
             workspace_name,
+            event_id=f"blind:{blind_spot_count}:{names}",
         )
         if ok:
             fired += 1
@@ -134,6 +138,7 @@ def evaluate_and_fire_compliance_events(
             "Weak evidence in key area",
             f"{worst['subject']} has avg confidence of {worst['avg_confidence']}% across {worst['count']} answers.",
             workspace_name,
+            event_id=f"weak:{worst['subject']}:{worst['avg_confidence']}",
         )
         if ok:
             fired += 1

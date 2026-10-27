@@ -1,10 +1,10 @@
 """Notification channel preferences and delivery attempts (TC-19-008).
 
-Revision ID: tc19008_notification_channel_delivery
+Revision ID: tc19008_notification_delivery
 Revises: tc11001_model_outcome_codes
 
-Master's Alembic head is tc11001_model_outcome_codes. This revision
-re-parents onto that head only.
+Parent is master's Alembic head, tc11001_model_outcome_codes.
+The revision id is 29 characters, so it fits alembic_version.version_num.
 """
 
 import sqlalchemy as sa
@@ -14,18 +14,13 @@ from alembic import op
 # Frozen snapshot of the table definitions this revision needs.
 # This module must not import the application package.
 
-revision = "tc19008_notification_channel_delivery"
+revision = "tc19008_notification_delivery"
 down_revision = "tc11001_model_outcome_codes"
 branch_labels = None
 depends_on = None
 
 
 def upgrade() -> None:
-    # alembic_version.version_num is varchar(32). This revision id is 37
-    # characters, so the stamp after upgrade() would fail closed. Widen first.
-    # Downgrade does not shrink it: the row still holds this id until
-    # downgrade() returns.
-    op.execute("ALTER TABLE alembic_version ALTER COLUMN version_num TYPE VARCHAR(64)")
     op.add_column(
         "notification_log", sa.Column("delivery_state", sa.String(length=32), nullable=True)
     )
@@ -137,8 +132,18 @@ def upgrade() -> None:
         ["created_at"],
     )
 
+    op.create_table(
+        "notification_dedupe_claims",
+        sa.Column("dedupe_key", sa.String(length=512), primary_key=True),
+        sa.Column("claimed_at", sa.DateTime(timezone=True), nullable=False),
+        sa.Column("expires_at", sa.DateTime(timezone=True), nullable=False),
+        sa.Column("released_at", sa.DateTime(timezone=True), nullable=True),
+    )
+
 
 def downgrade() -> None:
+    op.drop_table("notification_dedupe_claims")
+
     op.drop_index(
         "ix_notification_delivery_attempts_created_at", table_name="notification_delivery_attempts"
     )

@@ -2,8 +2,9 @@
 
 import json
 import logging
-import time
+from datetime import datetime, timedelta, timezone
 
+from sqlalchemy import text
 from sqlalchemy.orm import Session
 
 from app.models.in_app_notification import InAppNotification
@@ -33,12 +34,9 @@ from app.services.message_providers.selection import delivery_accepted
 from app.services.notification_preferences import channel_enabled, preference_block_reason
 from app.services.notification_redaction import redact_notification_text
 from app.services.notification_templates import RenderedNotification, render_notification
-from app.services.slack_service import _slack_dedup, decrypt_token, get_slack_provider
+from app.services.slack_service import decrypt_token, get_slack_provider
 
 logger = logging.getLogger(__name__)
-
-_recent_sends: dict[str, float] = {}
-DEDUP_WINDOW_SECONDS = 60
 
 STATE_QUEUED = "queued"
 STATE_SENT = "sent"
@@ -48,6 +46,10 @@ STATE_DEAD = "dead-lettered"
 STATE_SUPPRESSED = "suppressed-by-preference"
 
 
+DEDUPE_ERROR_CODE = "claimed"
+CLAIM_TTL = timedelta(hours=24)
+
+
 def stable_dedupe_key(
     workspace_id: int,
     event_type: str,
@@ -55,50 +57,109 @@ def stable_dedupe_key(
     recipient: str,
     event_id: str | None = None,
 ) -> str:
-    """Per-process key for one event, recipient, and channel.
+    """Key for one event, recipient, and channel.
 
-    The event id is part of the key so two different events are not deduped
-    together. An empty event id keeps a type-level window for callers that
-    do not have an id. This is process-local only. A database unique
-    constraint is unsafe because queued, retrying, sent, and dead-lettered
-    rows share one key. Deduped attempts are labeled ``per-process``.
+    The event id is part of the key so two different events are not claimed
+    together. An empty event id does not claim: those sends are not deduped.
+    Attempt rows stay non-unique. The claim lives in
+    ``notification_dedupe_claims``.
     """
     identity = (recipient or "").strip().lower()
     event = (event_id or "").strip()
     return f"{int(workspace_id)}:{event_type}:{event}:{channel}:{identity}"
 
 
+def claim_dedupe_key(key: str, *, ttl: timedelta = CLAIM_TTL) -> bool:
+    """Insert or take over one claim in its own transaction.
+
+    A claim is won only when PostgreSQL returns the row. A live unreleased
+    claim returns no row.
+    """
+    from app.core.database import SessionLocal
+
+    now = datetime.now(timezone.utc)
+    expires = now + ttl
+    statement = text(
+        """
+        INSERT INTO notification_dedupe_claims
+            (dedupe_key, claimed_at, expires_at, released_at)
+        VALUES (:key, :now, :expires, NULL)
+        ON CONFLICT (dedupe_key) DO UPDATE
+        SET claimed_at = EXCLUDED.claimed_at,
+            expires_at = EXCLUDED.expires_at,
+            released_at = NULL
+        WHERE notification_dedupe_claims.released_at IS NOT NULL
+           OR notification_dedupe_claims.expires_at < :now
+        RETURNING dedupe_key
+        """
+    )
+    db = SessionLocal()
+    try:
+        won = db.execute(statement, {"key": key, "now": now, "expires": expires}).first()
+        db.commit()
+        return won is not None
+    except Exception:
+        db.rollback()
+        raise
+    finally:
+        db.close()
+
+
+def release_dedupe_claim(key: str) -> None:
+    """Mark a claim released so a later send can take it. Own transaction."""
+    if not key:
+        return
+    from app.core.database import SessionLocal
+
+    db = SessionLocal()
+    try:
+        db.execute(
+            text(
+                """
+                UPDATE notification_dedupe_claims
+                SET released_at = :now
+                WHERE dedupe_key = :key AND released_at IS NULL
+                """
+            ),
+            {"key": key, "now": datetime.now(timezone.utc)},
+        )
+        db.commit()
+    except Exception:
+        db.rollback()
+        raise
+    finally:
+        db.close()
+
+
+def prune_dedupe_claims(db: Session, now: datetime | None = None) -> int:
+    """Delete expired or released claims. The worker runs this on its hourly pass."""
+    from app.models.notification import NotificationDedupeClaim
+
+    moment = now or datetime.now(timezone.utc)
+    deleted = (
+        db.query(NotificationDedupeClaim)
+        .filter(
+            (NotificationDedupeClaim.released_at.isnot(None))
+            | (NotificationDedupeClaim.expires_at < moment)
+        )
+        .delete(synchronize_session=False)
+    )
+    return int(deleted or 0)
+
+
+def _duplicate_send(key: str, event_id: str | None) -> bool:
+    """True when this send must be recorded as deduped.
+
+    No event id means do not dedupe. Otherwise the database claim decides.
+    """
+    if not (event_id or "").strip():
+        return False
+    return not claim_dedupe_key(key)
+
+
 def _dedup_key(workspace_id: int, event_type: str, email: str, event_id: str | None = None) -> str:
     """Backward-compatible email key. Includes the email channel."""
     return stable_dedupe_key(workspace_id, event_type, "email", email, event_id)
-
-
-def _claim(cache: dict[str, float], key: str) -> bool:
-    """Return True when this key was already claimed inside the dedupe window."""
-    now = time.monotonic()
-    last = cache.get(key)
-    if last is not None and (now - last) < DEDUP_WINDOW_SECONDS:
-        return True
-    cache[key] = now
-    stale = [k for k, v in cache.items() if now - v > DEDUP_WINDOW_SECONDS * 2]
-    for k in stale:
-        cache.pop(k, None)
-    return False
-
-
-def _release(cache: dict[str, float], key: str) -> None:
-    """Drop a key after a dead-letter so a later event can send."""
-    cache.pop(key, None)
-
-
-def _is_duplicate(key: str) -> bool:
-    return _claim(_recent_sends, key)
-
-
-def _prune_dedup_cache(now: float) -> None:
-    stale = [k for k, v in _recent_sends.items() if now - v > DEDUP_WINDOW_SECONDS * 2]
-    for k in stale:
-        _recent_sends.pop(k, None)
 
 
 def _safe(value: object, *, limit: int = 500) -> str:
@@ -332,7 +393,8 @@ def _deliver_email(
             provider_mode=mode,
         )
         return False
-    if _is_duplicate(key):
+    claimed = _duplicate_send(key, event_id)
+    if claimed:
         _add_attempt(
             db,
             workspace_id=workspace_id,
@@ -346,10 +408,11 @@ def _deliver_email(
             max_attempts=DEFAULT_MAX_ATTEMPTS,
             rendered=rendered,
             destination=destination,
-            error_code="per-process",
+            error_code=DEDUPE_ERROR_CODE,
             provider_mode=mode,
         )
         return False
+    hold_claim = bool((event_id or "").strip())
 
     _add_attempt(
         db,
@@ -394,7 +457,12 @@ def _deliver_email(
         body_text=rendered.body_text,
         body_html=rendered.body_html,
     )
-    result = _send_email_bounded(provider, message, on_attempt)
+    try:
+        result = _send_email_bounded(provider, message, on_attempt)
+    except Exception:
+        if hold_claim:
+            release_dedupe_claim(key)
+        raise
     accepted = bool(result.ok)
     delivered = bool(accepted and counts_as_provider)
     final_state = STATE_SENT if accepted else STATE_DEAD
@@ -436,8 +504,8 @@ def _deliver_email(
         provider_mode=mode,
         notification_log_id=log.id,
     )
-    if final_state == STATE_DEAD:
-        _release(_recent_sends, key)
+    if final_state == STATE_DEAD and hold_claim:
+        release_dedupe_claim(key)
     return accepted
 
 
@@ -472,7 +540,7 @@ def _deliver_in_app(
         return False
     if not channel_enabled(db, workspace_id, user_id, "in_app", event_type):
         return False
-    if _is_duplicate(key):
+    if _duplicate_send(key, event_id):
         _add_attempt(
             db,
             workspace_id=workspace_id,
@@ -486,10 +554,11 @@ def _deliver_in_app(
             max_attempts=1,
             rendered=rendered,
             destination=destination,
-            error_code="per-process",
+            error_code=DEDUPE_ERROR_CODE,
             provider_mode="local",
         )
         return False
+    hold_claim = bool((event_id or "").strip())
 
     _add_attempt(
         db,
@@ -542,7 +611,8 @@ def _deliver_in_app(
             error_message="The in-app notification could not be stored.",
             provider_mode="local",
         )
-        _release(_recent_sends, key)
+        if hold_claim:
+            release_dedupe_claim(key)
         return False
 
     _add_attempt(
@@ -587,6 +657,7 @@ def _fire_slack_notification(
 ) -> int:
     """Post once to the workspace Slack channel when at least one recipient allows it."""
     channel_key = ""
+    hold_claim = False
     try:
         si = (
             db.query(SlackIntegration)
@@ -631,7 +702,7 @@ def _fire_slack_notification(
         if not allowed:
             return 0
 
-        if _claim(_slack_dedup, channel_key):
+        if _duplicate_send(channel_key, event_id):
             _add_attempt(
                 db,
                 workspace_id=workspace_id,
@@ -645,9 +716,10 @@ def _fire_slack_notification(
                 max_attempts=DEFAULT_MAX_ATTEMPTS,
                 rendered=rendered,
                 destination=destination,
-                error_code="per-process",
+                error_code=DEDUPE_ERROR_CODE,
             )
             return 0
+        hold_claim = bool((event_id or "").strip())
 
         label = f"#{si.channel_name or si.channel_id}"
         _add_attempt(
@@ -759,12 +831,12 @@ def _fire_slack_notification(
                 )
             except Exception:
                 pass
-        if final_state == STATE_DEAD:
-            _release(_slack_dedup, channel_key)
+        if final_state == STATE_DEAD and hold_claim:
+            release_dedupe_claim(channel_key)
         return 1 if accepted else 0
     except Exception:
-        if channel_key:
-            _release(_slack_dedup, channel_key)
+        if hold_claim:
+            release_dedupe_claim(channel_key)
         logger.warning("Slack notification error workspace=%s event=%s", workspace_id, event_type)
         try:
             safe_error = "The Slack message could not be sent."

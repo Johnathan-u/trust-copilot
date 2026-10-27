@@ -6,6 +6,9 @@ provider. Slack uses the labelled development stub already selected in tests.
 
 from __future__ import annotations
 
+from concurrent.futures import ThreadPoolExecutor
+from datetime import datetime, timedelta, timezone
+
 import pytest
 from fastapi.testclient import TestClient
 
@@ -55,19 +58,21 @@ def _reset_delivery(workspace_id: int = 1) -> None:
     from app.models import (
         InAppNotification,
         NotificationChannelPreference,
+        NotificationDedupeClaim,
         NotificationDeliveryAttempt,
         NotificationLog,
         NotificationPolicy,
         NotificationUnsubscribe,
         SlackIntegration,
     )
-    from app.services.notification_service import _recent_sends
     from app.services.slack_service import _slack_dedup
 
-    _recent_sends.clear()
     _slack_dedup.clear()
     db = SessionLocal()
     try:
+        db.query(NotificationDedupeClaim).filter(
+            NotificationDedupeClaim.dedupe_key.like(f"{workspace_id}:%")
+        ).delete(synchronize_session=False)
         db.query(NotificationDeliveryAttempt).filter(
             NotificationDeliveryAttempt.workspace_id == workspace_id
         ).delete()
@@ -289,7 +294,7 @@ def test_second_fire_is_deduped_on_the_same_key(client: TestClient):
             )
             .one()
         )
-        assert deduped.error_code == "per-process"
+        assert deduped.error_code == "claimed"
     finally:
         db.close()
 
@@ -311,6 +316,153 @@ def test_different_event_ids_are_not_deduped(client: TestClient):
     email_states = _states("email")
     assert email_states.count("sent") == 2
     assert "deduped" not in email_states
+
+
+def test_missing_event_id_skips_dedupe(client: TestClient):
+    _login_admin(client)
+    user_id = _demo_user_id()
+    _reset_delivery()
+    _policy_for_user(user_id)
+    from app.core.database import SessionLocal
+    from app.models import NotificationDedupeClaim
+    from app.services.notification_service import fire_notification
+
+    db = SessionLocal()
+    try:
+        assert fire_notification(db, 1, EVENT, "plain detail", "Workspace") == 1
+        assert fire_notification(db, 1, EVENT, "plain detail", "Workspace") == 1
+        claims = db.query(NotificationDedupeClaim).count()
+    finally:
+        db.close()
+    assert claims == 0
+    assert _states("email").count("sent") == 2
+    assert "deduped" not in _states("email")
+
+
+def test_two_sessions_racing_one_key_only_one_wins():
+    from app.core.database import SessionLocal
+    from app.models import NotificationDedupeClaim
+    from app.services.notification_service import claim_dedupe_key
+
+    key = "1:member.invited:evt-race:email:race@example.com"
+    db = SessionLocal()
+    try:
+        db.query(NotificationDedupeClaim).filter(NotificationDedupeClaim.dedupe_key == key).delete()
+        db.commit()
+    finally:
+        db.close()
+
+    with ThreadPoolExecutor(max_workers=2) as pool:
+        won = list(pool.map(lambda _n: claim_dedupe_key(key), (1, 2)))
+    assert won.count(True) == 1
+    assert won.count(False) == 1
+
+
+def test_worker_prunes_expired_and_released_claims(client: TestClient):
+    import time
+
+    import app.worker as worker
+    from app.core.database import SessionLocal
+    from app.models import NotificationDedupeClaim
+
+    now = datetime.now(timezone.utc)
+    db = SessionLocal()
+    try:
+        db.add(
+            NotificationDedupeClaim(
+                dedupe_key="1:prune:expired:email:a@example.com",
+                claimed_at=now - timedelta(hours=25),
+                expires_at=now - timedelta(hours=1),
+            )
+        )
+        db.add(
+            NotificationDedupeClaim(
+                dedupe_key="1:prune:released:email:b@example.com",
+                claimed_at=now,
+                expires_at=now + timedelta(hours=24),
+                released_at=now,
+            )
+        )
+        db.add(
+            NotificationDedupeClaim(
+                dedupe_key="1:prune:live:email:c@example.com",
+                claimed_at=now,
+                expires_at=now + timedelta(hours=24),
+            )
+        )
+        db.commit()
+    finally:
+        db.close()
+
+    previous = (
+        worker.last_dedupe_prune_run,
+        worker.last_usage_cleanup_run,
+        worker.last_compliance_webhook_run,
+    )
+    worker.last_dedupe_prune_run = 0.0
+    worker.last_usage_cleanup_run = time.time()
+    worker.last_compliance_webhook_run = time.time()
+    original_claim = worker.claim_job
+    worker.claim_job = lambda _session: None
+    try:
+        assert worker._process_one_job() is False
+    finally:
+        worker.claim_job = original_claim
+        (
+            worker.last_dedupe_prune_run,
+            worker.last_usage_cleanup_run,
+            worker.last_compliance_webhook_run,
+        ) = previous
+
+    db = SessionLocal()
+    try:
+        keys = {
+            row.dedupe_key
+            for row in db.query(NotificationDedupeClaim)
+            .filter(NotificationDedupeClaim.dedupe_key.like("1:prune:%"))
+            .all()
+        }
+    finally:
+        db.close()
+    assert keys == {"1:prune:live:email:c@example.com"}
+
+
+def test_email_send_raise_releases_the_claim(client: TestClient):
+    _login_admin(client)
+    user_id = _demo_user_id()
+    _reset_delivery()
+    _policy_for_user(user_id)
+    from app.core.database import SessionLocal
+    from app.services import notification_service
+
+    def _boom(_provider, _message, _on_attempt):
+        raise RuntimeError("transport down")
+
+    db = SessionLocal()
+    original = notification_service._send_email_bounded
+    notification_service._send_email_bounded = _boom
+    try:
+        with pytest.raises(RuntimeError, match="transport down"):
+            notification_service.fire_notification(
+                db, 1, EVENT, "plain detail", "Workspace", event_id="evt-raise"
+            )
+        db.rollback()
+    finally:
+        notification_service._send_email_bounded = original
+        db.close()
+
+    db = SessionLocal()
+    try:
+        assert (
+            notification_service.fire_notification(
+                db, 1, EVENT, "plain detail", "Workspace", event_id="evt-raise"
+            )
+            == 1
+        )
+    finally:
+        db.close()
+    assert _states("email").count("sent") == 1
+    assert "deduped" not in _states("email")
 
 
 def test_dead_letter_releases_the_dedupe_key(client: TestClient):
@@ -427,10 +579,8 @@ def test_in_app_follows_the_preference_and_the_read_state(client: TestClient):
         json={"channel": "in_app", "enabled": True},
     )
     assert enabled.status_code == 200
-    from app.services.notification_service import _recent_sends
     from app.services.slack_service import _slack_dedup
 
-    _recent_sends.clear()
     _slack_dedup.clear()
     db = SessionLocal()
     try:
@@ -572,7 +722,7 @@ def test_migration_upgrades_and_downgrades_on_a_fresh_database():
     from sqlalchemy import create_engine, text
 
     name = "trustcopilot_tc19008_migration_test"
-    revision = "tc19008_notification_channel_delivery"
+    revision = "tc19008_notification_delivery"
     parent = "tc11001_model_outcome_codes"
     url = _side_database_url(name)
     api_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
@@ -626,13 +776,25 @@ def test_migration_upgrades_and_downgrades_on_a_fresh_database():
                 )
             ).scalar()
             assert unique_on_dedupe is None
+            assert conn.execute(
+                text("SELECT to_regclass('public.notification_dedupe_claims')")
+            ).scalar()
+            claim_pk = conn.execute(
+                text(
+                    "SELECT a.attname FROM pg_index i "
+                    "JOIN pg_attribute a ON a.attrelid = i.indrelid AND a.attnum = ANY(i.indkey) "
+                    "WHERE i.indrelid = 'public.notification_dedupe_claims'::regclass "
+                    "AND i.indisprimary"
+                )
+            ).scalar()
+            assert claim_pk == "dedupe_key"
             version_width = conn.execute(
                 text(
                     "SELECT character_maximum_length FROM information_schema.columns "
                     "WHERE table_name = 'alembic_version' AND column_name = 'version_num'"
                 )
             ).scalar()
-            assert version_width is not None and version_width >= 64
+            assert version_width == 32
         engine.dispose()
 
         down = run("downgrade", parent)
@@ -652,6 +814,12 @@ def test_migration_upgrades_and_downgrades_on_a_fresh_database():
                 )
             ).scalar()
             assert column is None
+            assert (
+                conn.execute(
+                    text("SELECT to_regclass('public.notification_dedupe_claims')")
+                ).scalar()
+                is None
+            )
         engine.dispose()
 
         again = run("upgrade", "head")

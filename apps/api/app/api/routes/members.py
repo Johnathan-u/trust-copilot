@@ -36,12 +36,25 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/members", tags=["members"])
 
 
-def _fire_notif(db: Session, workspace_id: int, event_type: str, detail: str = "") -> None:
+def _fire_notif(
+    db: Session,
+    workspace_id: int,
+    event_type: str,
+    detail: str = "",
+    event_id: str | None = None,
+) -> None:
     """Fire notification safely — never let notification failures break the main operation."""
     try:
         ws = db.query(Workspace).filter(Workspace.id == workspace_id).first()
         ws_name = ws.name if ws else "Workspace"
-        fire_notification(db, workspace_id, event_type, detail=detail, workspace_name=ws_name)
+        fire_notification(
+            db,
+            workspace_id,
+            event_type,
+            detail=detail,
+            workspace_name=ws_name,
+            event_id=event_id,
+        )
     except Exception:
         pass
 
@@ -209,6 +222,7 @@ async def create_invite(
     verify_page_url = f"{base}/accept-invite"
     inviter_name = session.get("email", "A team member")
     ws_name = ws.name
+    invite_id = inv.id
 
     def _bg_send():
         try:
@@ -223,7 +237,11 @@ async def create_invite(
             bg_db = SessionLocal()
             try:
                 _fire_notif(
-                    bg_db, workspace_id, "member.invited", detail=f"{email} invited as {role}"
+                    bg_db,
+                    workspace_id,
+                    "member.invited",
+                    detail=f"{email} invited as {role}",
+                    event_id=f"invite:{invite_id}",
                 )
                 bg_db.commit()
             finally:
@@ -317,7 +335,11 @@ async def update_member_role(
         details={"target_user_id": mem.user_id, "new_role": role},
     )
     _fire_notif(
-        db, workspace_id, "member.role_changed", detail=f"User {mem.user_id} role changed to {role}"
+        db,
+        workspace_id,
+        "member.role_changed",
+        detail=f"User {mem.user_id} role changed to {role}",
+        event_id=f"member:{mem.user_id}:role:{role}",
     )
     try:
         notify_user(
@@ -375,7 +397,13 @@ async def remove_member(
         workspace_id=workspace_id,
         details={"removed_user_id": removed_user_id},
     )
-    _fire_notif(db, workspace_id, "member.removed", detail=f"User {removed_user_id} removed")
+    _fire_notif(
+        db,
+        workspace_id,
+        "member.removed",
+        detail=f"User {removed_user_id} removed",
+        event_id=f"member:{removed_user_id}:removed",
+    )
 
     remaining = db.query(WorkspaceMember).filter(WorkspaceMember.user_id == removed_user_id).count()
     if remaining == 0:
@@ -436,7 +464,13 @@ async def suspend_member(
         details={"target_user_id": mem.user_id, "suspended": req.suspended},
     )
     if req.suspended:
-        _fire_notif(db, workspace_id, "member.suspended", detail=f"User {mem.user_id} suspended")
+        _fire_notif(
+            db,
+            workspace_id,
+            "member.suspended",
+            detail=f"User {mem.user_id} suspended",
+            event_id=f"member:{mem.user_id}:suspended",
+        )
         try:
             notify_admins(
                 db,

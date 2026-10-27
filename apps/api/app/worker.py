@@ -52,6 +52,7 @@ COMPLIANCE_WEBHOOK_INTERVAL_SEC = 30
 USAGE_CLEANUP_INTERVAL_SEC = 3600
 last_compliance_webhook_run = 0.0
 last_usage_cleanup_run = 0.0
+last_dedupe_prune_run = 0.0
 _last_claimed_workspace_id: int | None = None
 engine = create_engine(settings.database_url, pool_size=12, max_overflow=8)
 SessionFactory = sessionmaker(bind=engine)
@@ -502,7 +503,17 @@ def _process_one_job() -> bool:
     try:
         HEARTBEAT_STATE.loop_tick()
 
-        global last_compliance_webhook_run, last_usage_cleanup_run
+        global last_compliance_webhook_run, last_usage_cleanup_run, last_dedupe_prune_run
+        if time.time() - last_dedupe_prune_run >= USAGE_CLEANUP_INTERVAL_SEC:
+            try:
+                from app.services.notification_service import prune_dedupe_claims
+
+                if prune_dedupe_claims(session):
+                    session.commit()
+            except Exception:
+                session.rollback()
+            finally:
+                last_dedupe_prune_run = time.time()
         if time.time() - last_usage_cleanup_run >= USAGE_CLEANUP_INTERVAL_SEC:
             try:
                 from app.services.quota_service import cleanup_old_usage

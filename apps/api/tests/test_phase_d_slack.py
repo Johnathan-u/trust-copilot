@@ -301,9 +301,8 @@ class TestSlackDelivery:
         )
         from app.core.database import SessionLocal
         from app.models import NotificationPolicy
-        from app.services.notification_service import _recent_sends, fire_notification
+        from app.services.notification_service import fire_notification
 
-        _recent_sends.clear()
         db = SessionLocal()
         db.query(NotificationPolicy).filter(
             NotificationPolicy.workspace_id == 1, NotificationPolicy.event_type == "member.invited"
@@ -314,7 +313,6 @@ class TestSlackDelivery:
             )
         )
         db.commit()
-        _recent_sends.clear()
         _slack_dedup.clear()
         try:
             fire_notification(
@@ -356,9 +354,7 @@ class TestSlackDelivery:
         # Trigger event
         from app.core.database import SessionLocal
         from app.models import NotificationPolicy
-        from app.services.notification_service import _recent_sends
 
-        _recent_sends.clear()
         db = SessionLocal()
         db.query(NotificationPolicy).filter(
             NotificationPolicy.workspace_id == 1,
@@ -414,9 +410,7 @@ class TestSlackDelivery:
         )
         from app.core.database import SessionLocal
         from app.models import NotificationPolicy
-        from app.services.notification_service import _recent_sends
 
-        _recent_sends.clear()
         db = SessionLocal()
         db.query(NotificationPolicy).filter(
             NotificationPolicy.workspace_id == 1,
