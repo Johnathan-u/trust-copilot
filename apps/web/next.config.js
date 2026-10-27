@@ -9,6 +9,9 @@ const nextConfig = {
   // Playwright uses http://127.0.0.1. The dev server only serves /_next to the
   // hostname it bound (localhost) unless this origin is allowed.
   allowedDevOrigins: ['127.0.0.1'],
+  // The dev indicator is a focusable control that is not part of the product.
+  // Leave it off so keyboard checks start at the skip link, as production does.
+  devIndicators: false,
   // Pin the workspace root to apps/web; the repo root also has a lockfile.
   outputFileTracingRoot: path.join(__dirname),
   turbopack: { root: path.join(__dirname) },
