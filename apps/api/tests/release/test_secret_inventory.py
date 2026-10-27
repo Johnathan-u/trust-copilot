@@ -1333,7 +1333,14 @@ def _complex_password(n: int) -> str:
 
 
 def _with_slash(pw: str) -> str:
-    return pw[:3] + "/" + pw[3:]
+    return "x" + pw[:3] + "/" + pw[3:]
+
+
+def test_url_password_with_digit_prefix_and_slash_blocks(scanner):
+    pw = "".join(secrets.choice(string.digits) for _ in range(4)) + "/" + secrets.token_urlsafe(12)
+    for user in ("app", "svc_user"):
+        found = scanner.scan_text(f"postgresql://{user}:{pw}@db.internal/x\n", "deploy/app.env")
+        assert [f for f in _blocks(found) if f.rule == "url-embedded-credential"], user
 
 
 @pytest.mark.parametrize("host", ["db.internal:5432", "localhost", "127.0.0.1:5432", "example.com"])
@@ -1526,3 +1533,47 @@ def test_lifespan_source_orders_secret_check_before_io():
     check = body.index('enforce_production_session_secret("api")')
     assert check < body.index("_verify_db_connectivity()") < body.index("StorageClient()")
     assert check < body.index("get_settings()")
+
+
+def _env_example_values() -> dict[str, str]:
+    out = {}
+    for line in (REPO_ROOT / ".env.example").read_text().splitlines():
+        if line and not line.startswith("#") and "=" in line:
+            k, v = line.split("=", 1)
+            out[k.strip()] = v.strip()
+    return out
+
+
+def test_env_example_s3_keys_match_dev_minio_defaults():
+    """TC-07-001a: copying .env.example gives a working local stack (S3 keys = dev MinIO root)."""
+    compose = (REPO_ROOT / "docker-compose.yml").read_text()
+
+    def _default(var: str) -> str:
+        m = re.search(r"\$\{" + var + r":-([^}]*)\}", compose)
+        assert m, var
+        return m.group(1)
+
+    env = _env_example_values()
+    assert env["S3_ACCESS_KEY"] == _default("MINIO_ROOT_USER")
+    assert env["S3_SECRET_KEY"] == _default("MINIO_ROOT_PASSWORD")
+    text = (REPO_ROOT / ".env.example").read_text()
+    assert _blocks(_load_scanner().scan_text(text, ".env.example")) == []
+
+
+def test_ci_runs_the_tree_secret_scan_early():
+    """TC-07-001a: a dedicated CI step runs the tree scan (fail on block) before installs/tests."""
+    import yaml
+
+    wf = yaml.safe_load((REPO_ROOT / ".github" / "workflows" / "ci.yml").read_text())
+    steps = wf["jobs"]["build"]["steps"]
+    names = [s.get("name", "") for s in steps]
+    idx = next(i for i, s in enumerate(steps) if "secret_inventory.py tree" in (s.get("run") or ""))
+    run = steps[idx]["run"]
+    assert "--fail-on never" not in run and "--fail-on review" not in run
+    for later in (
+        "Install frontend deps",
+        "Run pre-commit",
+        "Install backend deps",
+        "Run backend tests",
+    ):
+        assert idx < names.index(later), later

@@ -26,6 +26,11 @@ jobs:
         with:
           python-version: "3.11"
 
+      - name: Secret inventory tree scan (TC-07-001)
+        # Early, dependency-free gate: fails the run on any block finding in tracked files. Output is
+        # path, line, rule and kind only (never a value).
+        run: python scripts/security/secret_inventory.py tree --root .
+
       - name: Setup Node
         uses: actions/setup-node@v4
         with:

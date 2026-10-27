@@ -52,8 +52,9 @@ _LIT = r"""(?P<q>["'])(?P<val>[^"'\n]*)(?P=q)"""
 # scheme://userinfo:password@ -- scheme matched case-insensitively (RFC 3986), userinfo may itself
 # contain '@' so an ambiguous authority is still matched (and then blocked, never downgraded).
 # The password may contain '/' (TC-07-001a: raw '/' is invalid in RFC 3986 userinfo, so such a URL
-# never parses to the same host and always blocks); "host:port/path@..." is not a password.
-_URL_CRED_RE = re.compile(r"[A-Za-z][A-Za-z0-9+.\-]*://[^:/\s\"']+:(?P<val>(?![0-9]*/)[^@\s\"']+)@")
+# never parses to the same host and always blocks). "host.name:8080/path@x" is a port and a path,
+# not a password: see _url_port_path().
+_URL_CRED_RE = re.compile(r"[A-Za-z][A-Za-z0-9+.\-]*://(?P<user>[^:/\s\"']+):(?P<val>[^@\s\"']+)@")
 # libpq keyword/value connection strings ("host=db user=app password=..."), TC-07-001a. The
 # password must sit in a run of space-separated key=value pairs with at least one other libpq
 # keyword, so Python keyword arguments ("password=pw,") and prose do not match.
@@ -609,6 +610,21 @@ def _normalize_path(path: str) -> str:
     return outer + bang + member
 
 
+def _url_port_path(m: re.Match) -> bool:
+    """A URL match that is really host:port/path containing '@' (e.g. an npm @scope path).
+
+    Only when the part before ':' looks like a host (contains '.' or is localhost) and the part
+    after it is digits followed by '/'. A username without a dot keeps a digit-prefixed password
+    containing '/' in scope (ambiguous cases block rather than pass).
+    """
+    gd = m.groupdict()
+    user, val = gd.get("user"), gd.get("val") or ""
+    if user is None:
+        return False
+    hostlike = "." in user or user.lower() == "localhost"
+    return hostlike and re.match(r"[0-9]*/", val) is not None
+
+
 def _self_interpolation(norm: str, rule: Rule, m: re.Match) -> bool:
     if rule.severity != "block" or norm not in SELF_PATHS:
         return False
@@ -632,7 +648,7 @@ def scan_text(text: str, path: str, source: str = "tree", commit: str = "") -> l
         ):
             continue
         for m in rule.pattern.finditer(text):
-            if not _value_ok(rule, m.groupdict().get("val")):
+            if not _value_ok(rule, m.groupdict().get("val")) or _url_port_path(m):
                 continue
             lineno = text.count("\n", 0, m.start()) + 1
             key = (lineno, rule.rule_id, m.start(), m.end())
@@ -673,7 +689,7 @@ def scan_text(text: str, path: str, source: str = "tree", commit: str = "") -> l
             ):
                 continue
             for m in rule.pattern.finditer(line):
-                if not _value_ok(rule, m.groupdict().get("val")):
+                if not _value_ok(rule, m.groupdict().get("val")) or _url_port_path(m):
                     continue
                 severity, reason = rule.severity, ""
                 if rule.rule_id == "url-embedded-credential":
