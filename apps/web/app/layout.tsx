@@ -1,6 +1,18 @@
 // Global styles (Tailwind + CSS variables) — must load for all pages
 import '@/app/globals.css'
 import type { Metadata } from 'next'
+import localFont from 'next/font/local'
+
+const inter = localFont({
+  src: [
+    { path: './fonts/InterVariable.woff2', weight: '100 900', style: 'normal' },
+    { path: './fonts/InterVariable-Italic.woff2', weight: '100 900', style: 'italic' },
+  ],
+  variable: '--font-inter',
+  display: 'swap',
+  adjustFontFallback: false,
+  fallback: ['ui-sans-serif', 'system-ui', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'sans-serif'],
+})
 
 export const metadata: Metadata = {
   title: {
@@ -34,8 +46,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en">
-      <body className="antialiased min-h-full overflow-x-hidden">{children}</body>
+    <html lang="en" className={inter.variable}>
+      <body className={`${inter.className} antialiased min-h-full overflow-x-hidden`}>{children}</body>
     </html>
   );
 }

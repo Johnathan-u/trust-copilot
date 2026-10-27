@@ -25,6 +25,44 @@ test.beforeAll(() => {
   mkdirSync(screenshotDir, { recursive: true })
 })
 
+const thirdPartyFontHosts = [
+  'fonts.googleapis.com',
+  'fonts.gstatic.com',
+  'fonts.bunny.net',
+  'use.typekit.net',
+  'fast.fonts.net',
+  'fonts.cdnfonts.com',
+  'fontshare.com',
+  'api.fontshare.com',
+]
+
+function watchRequests(page: Page): string[] {
+  const urls: string[] = []
+  page.on('request', (request) => {
+    urls.push(request.url())
+  })
+  return urls
+}
+
+function assertSelfHostedFonts(pageUrl: string, urls: string[]) {
+  const pageHost = new URL(pageUrl).hostname
+  const fontUrls = urls.filter((url) => /\.(?:woff2?|ttf|otf|eot)(?:$|\?)/i.test(url))
+  expect(fontUrls, 'expected a same-origin font file').not.toEqual([])
+  for (const url of urls) {
+    let host = ''
+    try {
+      host = new URL(url).hostname
+    } catch {
+      continue
+    }
+    const blocked = thirdPartyFontHosts.some((name) => host === name || host.endsWith(`.${name}`))
+    expect(blocked, url).toBe(false)
+  }
+  for (const url of fontUrls) {
+    expect(new URL(url).hostname, url).toBe(pageHost)
+  }
+}
+
 async function openTheme(page: Page, theme: ThemeName) {
   await page.addInitScript((value) => {
     document.documentElement.setAttribute('data-theme', value)
@@ -39,8 +77,20 @@ test.describe('design tokens', () => {
 
   for (const theme of themes) {
     test(`${theme} theme renders shared tokens, contrast, focus and has no serious axe violations`, async ({ page }) => {
+      const requests = watchRequests(page)
       await page.setViewportSize({ width: 1440, height: 900 })
       await openTheme(page, theme)
+      assertSelfHostedFonts(page.url(), requests)
+      const font = await page.evaluate(async () => {
+        await document.fonts.ready
+        return {
+          family: getComputedStyle(document.body).fontFamily,
+          token: getComputedStyle(document.documentElement).getPropertyValue('--tc-font-sans'),
+        }
+      })
+      expect(font.family.toLowerCase()).toContain('inter')
+      expect(font.token).toContain('ui-sans-serif')
+      expect(font.token).toContain('system-ui')
 
       const names = Object.keys(themeColors[theme])
       const actual = await page.evaluate((keys) => {
@@ -148,14 +198,18 @@ test.describe('design tokens', () => {
   }
 
   test('reduced motion zeroes interaction durations', async ({ page }) => {
+    const requests = watchRequests(page)
     await page.emulateMedia({ reducedMotion: 'reduce' })
     await openTheme(page, 'dark')
+    assertSelfHostedFonts(page.url(), requests)
     const duration = await page.getByTestId('primary-action').evaluate((el) => getComputedStyle(el).transitionDuration)
     expect(duration === '0s' || duration.startsWith('0s')).toBe(true)
   })
 
   test('an unknown theme query keeps the default dark tokens', async ({ page }) => {
+    const requests = watchRequests(page)
     await page.goto('/design-tokens?theme=nope')
+    assertSelfHostedFonts(page.url(), requests)
     await expect(page.locator('html')).not.toHaveAttribute('data-theme', 'light')
     const background = await page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue('--tc-bg').trim())
     expect(background).toBe(themeColors.dark['--tc-bg'])

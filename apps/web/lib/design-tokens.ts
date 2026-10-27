@@ -27,8 +27,22 @@ export const spacingScale = [
 
 export const spacingBasePx = 4
 
+/** System faces used when the self-hosted Inter file is not applied. */
+export const systemFontFallback = [
+  'ui-sans-serif',
+  'system-ui',
+  '-apple-system',
+  'BlinkMacSystemFont',
+  '"Segoe UI"',
+  'sans-serif',
+] as const
+
 export const typography = {
-  fontSans: 'Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
+  /**
+   * `--font-inter` is set by next/font/local from the bundled Inter files.
+   * The fallback inside var() and the rest of the stack are system fonts.
+   */
+  fontSans: `var(--font-inter, ui-sans-serif), ${systemFontFallback.join(', ')}`,
   caption: { size: 12, line: 16, cssSize: '--tc-font-size-caption', cssLine: '--tc-line-caption' },
   label: { size: 14, line: 20, cssSize: '--tc-font-size-label', cssLine: '--tc-line-label' },
   body: { size: 16, line: 24, cssSize: '--tc-font-size-body', cssLine: '--tc-line-body' },

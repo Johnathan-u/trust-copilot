@@ -2,11 +2,11 @@
 
 Semantic color, type, spacing and interaction tokens for the Trust Copilot web app. Runtime values are CSS custom properties in `apps/web/app/globals.css`. The checked contract is `apps/web/lib/design-tokens.ts`.
 
-Dark is the default product theme (`:root`). Light uses the same names under `html[data-theme="light"]`. A public, noindex showcase is at `/design-tokens?theme=dark` and `/design-tokens?theme=light`.
+Dark is the default product theme (`:root`). That default is a coordinator decision: the product does not switch to light. Light uses the same names under `html[data-theme="light"]`. A public, noindex showcase is at `/design-tokens?theme=dark` and `/design-tokens?theme=light`.
 
 ## Typography
 
-The stack is Inter, then system UI fonts. Sizes are the compact product scale:
+Inter is self-hosted with `next/font/local` from `apps/web/app/fonts`. The token is `--font-inter`, then the system stack `ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif`. The app does not request a third-party font host. Sizes are the compact product scale:
 
 | Role | Size / line | Utility |
 | --- | --- | --- |
@@ -17,6 +17,14 @@ The stack is Inter, then system UI fonts. Sizes are the compact product scale:
 | Headline | 28 / 36 | `text-tc-headline` |
 
 14px label text is normal text for WCAG, so it uses the 4.5:1 target. Large text (18pt / 24px, or 14pt bold) is not used to lower that target.
+
+## License inventory
+
+| Font | License | Version | Source | Files |
+| --- | --- | --- | --- | --- |
+| Inter | SIL Open Font License 1.1 | 4.1 (release 2024-11-16) | [rsms/inter v4.1](https://github.com/rsms/inter/releases/tag/v4.1) | `apps/web/app/fonts/InterVariable.woff2`, `apps/web/app/fonts/InterVariable-Italic.woff2`, license text `apps/web/app/fonts/LICENSE.txt` |
+
+Copyright (c) 2016 The Inter Project Authors. The files are the upstream variable web fonts from that release. They are bundled in the repo and served from this origin.
 
 ## Spacing
 
