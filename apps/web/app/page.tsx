@@ -105,12 +105,10 @@ function PricingSection() {
       <div className="mx-auto max-w-md rounded-2xl border border-[rgba(91,124,255,0.25)] bg-[var(--tc-panel)] p-8">
         <div className="mb-6 text-center">
           <div className="text-4xl font-extrabold text-[var(--tc-text)]">
-            <span key={price} className="inline-block animate-[fadeNum_0.3s_ease-out] line-through opacity-40">${price}</span>
-            {' '}<span className="text-[var(--tc-success)]">FREE</span>
+            <span key={price} className="inline-block animate-[fadeNum_0.3s_ease-out]">${price}</span>
             <span className="text-lg font-medium text-[var(--tc-muted)]">{interval}</span>
           </div>
-          <p className="mt-1 text-sm font-medium text-[var(--tc-success)]">Free until April 5, 2026</p>
-          <p className="mt-0.5 text-xs text-[var(--tc-muted)]">{annual ? 'Then billed annually. Cancel anytime.' : 'Then billed monthly. Cancel anytime.'}</p>
+          <p className="mt-0.5 text-xs text-[var(--tc-muted)]">{annual ? 'Billed annually. Cancel anytime.' : 'Billed monthly. Cancel anytime.'}</p>
         </div>
         <ul className="mb-8 space-y-3">
           <CheckItem>Unlimited questionnaire uploads</CheckItem>
@@ -170,7 +168,7 @@ export default function HomePage() {
             Compliance questionnaires,<br className="hidden sm:block" /> answered with evidence.
           </h1>
           <p className="mx-auto mt-5 max-w-xl text-base leading-relaxed text-[var(--tc-muted)] sm:text-lg">
-            Upload your evidence. Upload the questionnaire. Get AI-generated answers grounded in your real documents — not hallucinations.
+            Upload your evidence. Upload the questionnaire. Get AI-drafted answers that cite your uploaded documents, ready for your review.
           </p>
           <div className="mt-8 flex flex-col items-center gap-3 sm:flex-row sm:justify-center">
             <Link href="/checkout" className="tc-btn-primary rounded-xl px-7 py-3 text-sm font-semibold transition hover:opacity-90 sm:text-base">
@@ -186,9 +184,9 @@ export default function HomePage() {
 
       {/* ── Problem ── */}
       <Section className="mx-auto max-w-4xl px-5 py-16 text-center sm:py-24">
-        <h2 className="text-xl font-bold text-[var(--tc-text)] sm:text-2xl">Compliance questionnaires take weeks.<br className="hidden sm:block" /> Generic AI makes things up.</h2>
+        <h2 className="text-xl font-bold text-[var(--tc-text)] sm:text-2xl">Compliance questionnaires pile up.<br className="hidden sm:block" /> Generic AI doesn&apos;t know your evidence.</h2>
         <p className="mx-auto mt-4 max-w-2xl text-sm leading-relaxed text-[var(--tc-muted)] sm:text-base">
-          Security reviews, vendor assessments, and compliance questionnaires pile up. Teams copy-paste from old responses or hand them to AI that invents plausible-sounding nonsense. Trust Copilot is different — every answer is grounded in your actual evidence documents.
+          Security reviews, vendor assessments, and compliance questionnaires pile up. Teams copy-paste from old responses or use generic AI that has never seen their policies. Trust Copilot drafts answers from your own uploaded evidence documents and shows the sources it used, so reviewers can check them.
         </p>
       </Section>
 
@@ -196,12 +194,12 @@ export default function HomePage() {
       <Section className="mx-auto max-w-5xl px-5 py-16 sm:py-24">
         <div className="mb-12 text-center">
           <Badge>How it works</Badge>
-          <h2 className="mt-4 text-xl font-bold text-[var(--tc-text)] sm:text-2xl">From questionnaire to answers in minutes</h2>
+          <h2 className="mt-4 text-xl font-bold text-[var(--tc-text)] sm:text-2xl">From questionnaire to reviewed answers</h2>
         </div>
         <div className="grid gap-10 sm:grid-cols-3">
           <StepCard num="1" title="Upload evidence" desc="Upload your policies, SOC 2 reports, security docs, and compliance evidence. Trust Copilot indexes and understands them." />
           <StepCard num="2" title="Upload questionnaire" desc="Drop in the security or compliance questionnaire you need to answer. Questions are parsed and classified automatically." />
-          <StepCard num="3" title="Review and export" desc="AI generates answers grounded in your evidence. Review, refine, and export — ready to send back in minutes, not weeks." />
+          <StepCard num="3" title="Review and export" desc="AI drafts answers from your evidence. Review, refine, and export them in your team&apos;s workflow." />
         </div>
       </Section>
 
@@ -212,9 +210,9 @@ export default function HomePage() {
           <h2 className="mt-4 text-xl font-bold text-[var(--tc-text)] sm:text-2xl">Everything you need for compliance questionnaire automation</h2>
         </div>
         <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-          <FeatureCard icon="📄" title="Evidence-grounded answers" desc="Every AI answer cites real evidence from your uploaded documents. No hallucinations, no generic text." />
+          <FeatureCard icon="📄" title="Evidence-grounded answers" desc="AI-drafted answers reference the evidence retrieved from your uploaded documents, so reviewers can verify each one." />
           <FeatureCard icon="📊" title="Compliance gap detection" desc="Automatically identify blind spots, weak evidence, and insufficient answers across your compliance coverage." />
-          <FeatureCard icon="⚡" title="Questionnaire automation" desc="Upload a questionnaire and get AI-drafted answers in minutes. Supports common compliance frameworks." />
+          <FeatureCard icon="⚡" title="Questionnaire automation" desc="Upload a questionnaire and get AI-drafted answers for review." />
           <FeatureCard icon="🛡" title="Trust Center" desc="Give customers a public-facing compliance portal with your published security articles and trust documentation." />
           <FeatureCard icon="📨" title="Vendor requests" desc="Send secure questionnaire links to vendors, track response status, and manage outbound compliance requests." />
           <FeatureCard icon="🔗" title="Gmail and Slack ingestion" desc="Pull compliance evidence directly from email attachments and Slack channels into your evidence library." />
@@ -243,7 +241,7 @@ export default function HomePage() {
               <ul className="space-y-2.5 text-sm text-[var(--tc-text)]">
                 <li className="flex items-start gap-2"><span className="mt-0.5 text-[var(--tc-success)]">✓</span> Answers grounded in your uploaded evidence</li>
                 <li className="flex items-start gap-2"><span className="mt-0.5 text-[var(--tc-success)]">✓</span> Compliance coverage, blind spots, and weak evidence analytics</li>
-                <li className="flex items-start gap-2"><span className="mt-0.5 text-[var(--tc-success)]">✓</span> Full review workflow with export to Word, PDF, Excel</li>
+                <li className="flex items-start gap-2"><span className="mt-0.5 text-[var(--tc-success)]">✓</span> Review and approval workflow with questionnaire export</li>
                 <li className="flex items-start gap-2"><span className="mt-0.5 text-[var(--tc-success)]">✓</span> Public trust center and secure vendor request links</li>
               </ul>
             </div>
@@ -258,11 +256,10 @@ export default function HomePage() {
       <Section className="mx-auto max-w-4xl px-5 py-16 text-center sm:py-24">
         <h2 className="text-xl font-bold text-[var(--tc-text)] sm:text-2xl">Built for compliance teams that take security seriously.</h2>
         <p className="mx-auto mt-4 max-w-2xl text-sm leading-relaxed text-[var(--tc-muted)] sm:text-base">
-          Your documents stay in your workspace. Evidence is never used to train models. Trust Copilot is designed to meet the security expectations of the teams that use it.
+          Your documents are scoped to your workspace. Detailed security documentation is being prepared and will be published with the release.
         </p>
         <div className="mt-8 flex flex-wrap justify-center gap-6 text-sm text-[var(--tc-muted)]">
           <span className="flex items-center gap-2"><span className="text-[var(--tc-success)]">✓</span> Data isolation per workspace</span>
-          <span className="flex items-center gap-2"><span className="text-[var(--tc-success)]">✓</span> Evidence never used for training</span>
           <span className="flex items-center gap-2"><span className="text-[var(--tc-success)]">✓</span> Role-based access controls</span>
           <span className="flex items-center gap-2"><span className="text-[var(--tc-success)]">✓</span> Audit logging</span>
         </div>
@@ -270,7 +267,7 @@ export default function HomePage() {
 
       {/* ── Final CTA ── */}
       <Section className="mx-auto max-w-3xl px-5 py-16 text-center sm:py-24">
-        <h2 className="text-xl font-bold text-[var(--tc-text)] sm:text-2xl">Stop spending weeks on compliance questionnaires.</h2>
+        <h2 className="text-xl font-bold text-[var(--tc-text)] sm:text-2xl">Spend less time on compliance questionnaires.</h2>
         <p className="mt-3 text-sm text-[var(--tc-muted)] sm:text-base">Upload your evidence. Upload the questionnaire. Get answers.</p>
         <div className="mt-8 flex flex-col items-center gap-3 sm:flex-row sm:justify-center">
           <Link href="/checkout" className="tc-btn-primary rounded-xl px-7 py-3 text-sm font-semibold transition hover:opacity-90">

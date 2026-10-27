@@ -50,6 +50,8 @@ def get_proof_widgets(db: Session, workspace_id: int) -> dict:
         "documents_indexed": docs,
         "exports_delivered": exports,
         "hours_saved_estimate": hours_saved,
+        # TC-01-005: heuristic, not a measured outcome.
+        "hours_saved_basis": "heuristic: 0.08 hours (about 5 minutes) assumed per answer; not measured",
         "coverage_pct": round(total_answers / total_questions * 100, 1) if total_questions else 0,
         "generated_at": datetime.now(timezone.utc).isoformat(),
     }

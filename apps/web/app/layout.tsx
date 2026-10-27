@@ -7,7 +7,7 @@ export const metadata: Metadata = {
     default: 'Trust Copilot — Compliance questionnaires, answered with evidence',
     template: '%s | Trust Copilot',
   },
-  description: 'Upload your evidence documents and compliance questionnaires. Get AI-generated answers grounded in your real evidence — not hallucinations.',
+  description: 'Upload your evidence documents and compliance questionnaires. Get AI-drafted answers that cite your uploaded evidence, for your team to review before sending.',
   icons: {
     icon: '/icon.svg',
   },
