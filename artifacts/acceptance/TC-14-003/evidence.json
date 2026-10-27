@@ -1,0 +1,43 @@
+{
+  "ticket": "TC-14-003",
+  "branch": "tc/web/TC-14-003",
+  "base": "master",
+  "stacked_on": "tc/web/TC-14-001",
+  "environment": {
+    "os": "Linux 6.12.94+ x86_64",
+    "node": "v22.23.4",
+    "npm": "10.9.9",
+    "next": "14.2.15",
+    "vitest": "2.1.9",
+    "playwright": "1.58.2",
+    "chromium": "Playwright build chromium-1208",
+    "axe": "@axe-core/playwright 4.14.0",
+    "working_directory": "apps/web"
+  },
+  "commands": [
+    {
+      "command": "npm run test:unit",
+      "exit_status": 0,
+      "files": 4,
+      "passed": 21,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "command": "npx playwright test e2e/release/dialog-toast.spec.ts --retries=0",
+      "exit_status": 0,
+      "passed": 5,
+      "failed": 0,
+      "skipped": 0,
+      "duration_s": 23.1
+    }
+  ],
+  "axe": {
+    "violation_count": 0,
+    "themes": ["dark", "light"],
+    "viewports": [360, 768, 1440],
+    "states": ["dialog", "confirm", "toast"]
+  },
+  "screenshots": 12,
+  "synthetic_data_only": true
+}

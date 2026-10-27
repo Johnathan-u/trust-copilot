@@ -1,7 +1,10 @@
 'use client'
 
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useId, useLayoutEffect, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import Link from 'next/link'
+import { useDialogBehavior } from '@/components/ui/useDialogBehavior'
+import { dialogAttributes } from '@/lib/dialog'
 
 export type InAppNotification = {
   id: number
@@ -56,6 +59,10 @@ interface NotificationsPanelProps {
 
 export function NotificationsPanel({ open, onClose, onUnreadCountChange, anchorRef }: NotificationsPanelProps) {
   const panelRef = useRef<HTMLDivElement>(null)
+  const boundaryRef = useRef<HTMLDivElement>(null)
+  const titleId = useId()
+  const descriptionId = useId()
+  const [box, setBox] = useState<{ top: number; right: number } | null>(null)
   const [notifications, setNotifications] = useState<InAppNotification[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(false)
@@ -78,25 +85,36 @@ export function NotificationsPanel({ open, onClose, onUnreadCountChange, anchorR
     if (open) fetchNotifications()
   }, [open, fetchNotifications])
 
-  useEffect(() => {
-    if (!open) return
-    const handler = (e: KeyboardEvent) => e.key === 'Escape' && onClose()
-    document.addEventListener('keydown', handler)
-    return () => document.removeEventListener('keydown', handler)
-  }, [open, onClose])
-
-  useEffect(() => {
-    if (!open) return
-    const handler = (e: MouseEvent) => {
-      const anchor = anchorRef.current
-      const panel = panelRef.current
-      const target = e.target as Node
-      if (anchor?.contains(target) || panel?.contains(target)) return
-      onClose()
+  useLayoutEffect(() => {
+    if (!open) {
+      setBox(null)
+      return
     }
-    document.addEventListener('mousedown', handler)
-    return () => document.removeEventListener('mousedown', handler)
-  }, [open, onClose, anchorRef])
+    const place = () => {
+      const anchor = anchorRef.current
+      if (!anchor) return
+      const rect = anchor.getBoundingClientRect()
+      const next = { top: rect.bottom + 8, right: Math.max(8, window.innerWidth - rect.right) }
+      setBox((prev) => (prev && prev.top === next.top && prev.right === next.right ? prev : next))
+    }
+    place()
+    window.addEventListener('resize', place)
+    window.addEventListener('scroll', place, true)
+    return () => {
+      window.removeEventListener('resize', place)
+      window.removeEventListener('scroll', place, true)
+    }
+  }, [open, anchorRef])
+
+  useDialogBehavior({
+    open: open && box != null,
+    onClose,
+    dialogRef: panelRef,
+    boundaryRef,
+    role: 'dialog',
+    closeOnEscape: true,
+    lockScroll: false,
+  })
 
   const markRead = async (id: number) => {
     await fetch(`/api/in-app-notifications/${id}/read`, { method: 'POST', credentials: 'include' })
@@ -110,42 +128,57 @@ export function NotificationsPanel({ open, onClose, onUnreadCountChange, anchorR
     onUnreadCountChange?.(0)
   }
 
-  if (!open) return null
+  if (!open || !box || typeof document === 'undefined') return null
 
   const unreadCount = notifications.filter(n => !n.is_read).length
 
-  return (
-    <div
-      ref={panelRef}
-      className="absolute right-0 top-full z-20 mt-2 w-[min(400px,92vw)] rounded-xl border border-[var(--tc-border)] shadow-[var(--tc-shadow)] overflow-hidden"
-      style={{ background: 'var(--tc-panel)' }}
-      role="dialog"
-      aria-modal="true"
-      aria-label="Notifications"
-    >
-      <div className="flex items-center justify-between border-b border-[var(--tc-border)] px-4 py-3">
+  return createPortal(
+    <div ref={boundaryRef} className="fixed inset-0 z-[80]" {...{ [dialogAttributes.root]: '' }}>
+      <div className="absolute inset-0" onClick={onClose} aria-hidden="true" />
+      <div
+        ref={panelRef}
+        className="absolute w-[min(400px,92vw)] overflow-hidden rounded-xl border border-[var(--tc-border)] shadow-[var(--tc-shadow)]"
+        style={{ background: 'var(--tc-surface-overlay)', top: box.top, right: box.right }}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={titleId}
+        aria-describedby={descriptionId}
+        tabIndex={-1}
+      >
+      <div className="flex items-start justify-between gap-tc-2 border-b border-[var(--tc-border)] px-4 py-3">
         <div>
-          <h3 className="text-sm font-semibold text-[var(--tc-text)]">Notifications</h3>
-          <p className="mt-0.5 text-xs text-[var(--tc-muted)]">
+          <h3 id={titleId} className="text-sm font-semibold text-[var(--tc-text)]">Notifications</h3>
+          <p id={descriptionId} className="mt-0.5 text-xs text-[var(--tc-muted)]">
             {unreadCount > 0 ? `${unreadCount} unread` : 'All caught up'}
           </p>
         </div>
-        {unreadCount > 0 && (
+        <div className="flex items-center gap-tc-2">
+          {unreadCount > 0 && (
+            <button
+              type="button"
+              onClick={markAllRead}
+              className="text-xs text-[var(--tc-soft)] hover:text-[var(--tc-text)] transition"
+            >
+              Mark all read
+            </button>
+          )}
           <button
             type="button"
-            onClick={markAllRead}
-            className="text-xs text-[var(--tc-soft)] hover:text-[var(--tc-text)] transition"
+            onClick={onClose}
+            className="inline-flex min-h-tc-6 min-w-tc-6 items-center justify-center rounded-tc-xs text-tc-muted hover:bg-[var(--tc-hover)] hover:text-tc-text"
+            aria-label="Close notifications"
+            {...{ [dialogAttributes.close]: '' }}
           >
-            Mark all read
+            ×
           </button>
-        )}
+        </div>
       </div>
 
       <div className="max-h-[min(400px,65vh)] overflow-y-auto">
         {loading ? (
           <div className="px-4 py-8 text-center text-sm text-[var(--tc-muted)]">Loading...</div>
         ) : error ? (
-          <div className="px-4 py-8 text-center text-sm text-red-400">Failed to load notifications</div>
+          <div className="px-4 py-8 text-center text-sm text-[var(--tc-danger)]">Failed to load notifications</div>
         ) : notifications.length === 0 ? (
           <div className="px-4 py-10 text-center">
             <div className="text-2xl mb-2 opacity-40">🔔</div>
@@ -207,6 +240,8 @@ export function NotificationsPanel({ open, onClose, onUnreadCountChange, anchorR
           Notification settings
         </Link>
       </div>
-    </div>
+      </div>
+    </div>,
+    document.body
   )
 }

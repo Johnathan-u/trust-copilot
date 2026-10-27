@@ -1,6 +1,8 @@
 'use client'
 
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react'
+import { useDialogBehavior } from '@/components/ui/useDialogBehavior'
+import { dialogAttributes } from '@/lib/dialog'
 
 export type CommandPaletteItem = {
   id: string
@@ -36,6 +38,10 @@ export function CommandPalette({
 }: CommandPaletteProps) {
   const inputRef = useRef<HTMLInputElement>(null)
   const listRef = useRef<HTMLDivElement>(null)
+  const dialogRef = useRef<HTMLDivElement>(null)
+  const boundaryRef = useRef<HTMLDivElement>(null)
+  const titleId = useId()
+  const descriptionId = useId()
   const [selectedIndex, setSelectedIndex] = useState(0)
   const flatItems = useMemo(() => flattenSections(sections), [sections])
   const itemCount = flatItems.length
@@ -43,13 +49,18 @@ export function CommandPalette({
   useEffect(() => {
     if (!open) return
     setSelectedIndex(0)
-    inputRef.current?.focus()
-    const prevOverflow = document.body.style.overflow
-    document.body.style.overflow = 'hidden'
-    return () => {
-      document.body.style.overflow = prevOverflow
-    }
   }, [open])
+
+  useDialogBehavior({
+    open,
+    onClose,
+    dialogRef,
+    boundaryRef,
+    initialFocusRef: inputRef,
+    role: 'dialog',
+    closeOnEscape: true,
+    lockScroll: true,
+  })
 
   useEffect(() => {
     setSelectedIndex((i) => (itemCount ? Math.min(i, itemCount - 1) : 0))
@@ -62,11 +73,6 @@ export function CommandPalette({
 
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        e.preventDefault()
-        onClose()
-        return
-      }
       if (e.key === 'ArrowDown') {
         e.preventDefault()
         setSelectedIndex((i) => (i < itemCount - 1 ? i + 1 : 0))
@@ -98,19 +104,29 @@ export function CommandPalette({
   if (!open) return null
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-start justify-center pt-[15vh]">
+    <div
+      ref={boundaryRef}
+      className="fixed inset-0 z-[100] flex items-start justify-center p-tc-4 pt-[15vh]"
+      {...{ [dialogAttributes.root]: '' }}
+    >
       <div
-        className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+        className="absolute inset-0 backdrop-blur-sm"
+        style={{ background: 'var(--tc-overlay)' }}
         onClick={onClose}
-        aria-hidden
+        aria-hidden="true"
       />
       <div
-        className="relative z-10 w-full max-w-xl rounded-2xl border border-[var(--tc-border)] shadow-[var(--tc-shadow)] overflow-hidden"
-        style={{ background: 'var(--tc-panel)' }}
+        ref={dialogRef}
+        className="relative z-10 w-full max-w-xl overflow-hidden rounded-tc border border-tc-border shadow-[var(--tc-shadow)]"
+        style={{ background: 'var(--tc-surface-overlay)' }}
         role="dialog"
         aria-modal="true"
-        aria-label="Command palette"
+        aria-labelledby={titleId}
+        aria-describedby={descriptionId}
+        tabIndex={-1}
       >
+        <h2 id={titleId} className="sr-only">Command palette</h2>
+        <p id={descriptionId} className="sr-only">Search or jump to a page or action.</p>
         <div className="border-b border-[var(--tc-border)] px-4 py-3">
           <input
             ref={inputRef}

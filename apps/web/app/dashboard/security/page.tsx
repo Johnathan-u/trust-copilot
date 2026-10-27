@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState, useCallback } from 'react'
-import { Button, Card, Input } from '@/components/ui'
+import { Button, Card, Input, useDestructiveConfirm } from '@/components/ui'
 import { useAuth } from '@/contexts/AuthContext'
 
 /* ── Types ── */
@@ -540,23 +540,31 @@ function SessionsSection({ sessions, otherSessions, onReload }: {
 }) {
   const [revoking, setRevoking] = useState(false)
   const [error, setError] = useState('')
+  const { confirm, dialog: confirmDialog } = useDestructiveConfirm()
 
-  const revokeOthers = async () => {
-    if (!confirm('Sign out all other sessions? You will stay signed in on this device.')) return
-    setError('')
-    setRevoking(true)
-    try {
-      const res = await fetch('/api/auth/sessions/revoke-others', { method: 'POST', credentials: 'include' })
-      const data = await res.json().catch(() => ({}))
-      if (!res.ok) { setError(data.detail || 'Failed'); return }
-      onReload()
-    } finally { setRevoking(false) }
+  const revokeOthers = () => {
+    confirm({
+      title: 'Sign out all other sessions?',
+      description: 'You will stay signed in on this device.',
+      confirmLabel: 'Sign out others',
+      onConfirm: async () => {
+        setError('')
+        setRevoking(true)
+        try {
+          const res = await fetch('/api/auth/sessions/revoke-others', { method: 'POST', credentials: 'include' })
+          const data = await res.json().catch(() => ({}))
+          if (!res.ok) { setError(data.detail || 'Failed'); return }
+          onReload()
+        } finally { setRevoking(false) }
+      },
+    })
   }
 
   const currentSession = sessions.find((s) => s.current)
   const others = sessions.filter((s) => !s.current)
 
   return (
+    <>
     <Card className="p-4">
       <div className="flex items-center justify-between mb-1">
         <div className="flex items-center gap-2">
@@ -588,6 +596,8 @@ function SessionsSection({ sessions, otherSessions, onReload }: {
       )}
       {error && <p className="mt-2 text-xs text-[var(--tc-danger)]">{error}</p>}
     </Card>
+    {confirmDialog}
+    </>
   )
 }
 

@@ -5,6 +5,7 @@ interface CardProps {
   className?: string
   padding?: 'none' | 'sm' | 'md' | 'lg'
   onClick?: React.MouseEventHandler<HTMLDivElement>
+  onKeyDown?: React.KeyboardEventHandler<HTMLDivElement>
 }
 
 const paddingMap = {
@@ -14,12 +15,13 @@ const paddingMap = {
   lg: 'p-tc-8',
 }
 
-export function Card({ children, className = '', padding = 'md', onClick }: CardProps) {
+export function Card({ children, className = '', padding = 'md', onClick, onKeyDown }: CardProps) {
   return (
     <div
       className={`rounded-tc border border-tc-border shadow-[var(--tc-shadow)] backdrop-blur-[20px] ${paddingMap[padding]} ${className}`}
       style={{ background: 'var(--tc-panel)' }}
       onClick={onClick}
+      onKeyDown={onKeyDown}
       role={onClick ? 'button' : undefined}
       tabIndex={onClick ? 0 : undefined}
     >

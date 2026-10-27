@@ -1,9 +1,10 @@
 'use client'
 
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
-import { Card, Button, Modal, Toast } from '@/components/ui'
+import { Card, Button, Modal, ToastNotice, useDestructiveConfirm } from '@/components/ui'
 import { useAuth } from '@/contexts/AuthContext'
+import { autoDismissMs } from '@/lib/toast'
 
 type DashboardCard = {
   id?: number
@@ -71,6 +72,8 @@ export default function DashboardPage() {
   const [editCard, setEditCard] = useState<DashboardCard | null>(null)
   const [showAddModal, setShowAddModal] = useState(false)
   const [toast, setToast] = useState<{ type: 'success' | 'error'; message: string } | null>(null)
+  const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const { confirm, dialog: confirmDialog } = useDestructiveConfirm()
 
   const [allowedMeta, setAllowedMeta] = useState<AllowedMeta | null>(null)
 
@@ -96,13 +99,34 @@ export default function DashboardPage() {
   useEffect(() => { fetchCards() }, [fetchCards])
   useEffect(() => { if (isAdmin) fetchMeta() }, [isAdmin, fetchMeta])
 
+  const dismissToast = () => {
+    if (toastTimer.current) clearTimeout(toastTimer.current)
+    toastTimer.current = null
+    setToast(null)
+  }
+
   const showToast = (type: 'success' | 'error', message: string) => {
+    if (toastTimer.current) clearTimeout(toastTimer.current)
+    toastTimer.current = null
     setToast({ type, message })
-    setTimeout(() => setToast(null), 3000)
+    const ms = autoDismissMs(type)
+    if (ms == null) return
+    toastTimer.current = setTimeout(() => {
+      toastTimer.current = null
+      setToast(null)
+    }, ms)
+  }
+
+  const requestDelete = (id: number) => {
+    confirm({
+      title: 'Delete this dashboard card?',
+      description: 'Delete this dashboard card? This only removes the card from the dashboard.',
+      confirmLabel: 'Delete',
+      onConfirm: () => handleDelete(id),
+    })
   }
 
   const handleDelete = async (id: number) => {
-    if (!confirm('Delete this dashboard card?')) return
     try {
       const res = await fetch(`/api/dashboard/cards/${id}`, { method: 'DELETE', credentials: 'include' })
       if (res.ok) { showToast('success', 'Card deleted'); fetchCards() }
@@ -230,7 +254,7 @@ export default function DashboardPage() {
                   <button onClick={(e) => { e.preventDefault(); setEditCard(card); setShowAddModal(true) }}
                     className="rounded px-1.5 py-0.5 text-xs text-[var(--tc-muted)] hover:bg-white/10"
                     title="Edit">✏️</button>
-                  <button onClick={(e) => { e.preventDefault(); handleDelete(card.id!) }}
+                  <button onClick={(e) => { e.preventDefault(); requestDelete(card.id!) }}
                     className="rounded px-1.5 py-0.5 text-xs text-red-400 hover:bg-red-500/10"
                     title="Delete">🗑</button>
                 </div>
@@ -252,10 +276,9 @@ export default function DashboardPage() {
         />
       )}
 
+      {confirmDialog}
       {toast && (
-        <div className="fixed bottom-4 right-4 z-50">
-          <Toast title={toast.type === 'success' ? 'Success' : 'Error'} message={toast.message} type={toast.type} onDismiss={() => setToast(null)} />
-        </div>
+        <ToastNotice title={toast.type === 'success' ? 'Success' : 'Error'} message={toast.message} type={toast.type} onDismiss={dismissToast} />
       )}
     </div>
   )

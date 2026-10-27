@@ -1,54 +1,48 @@
 'use client'
 
-import { useEffect } from 'react'
-import { Button } from './Button'
+import type { ReactNode, RefObject } from 'react'
+import { Dialog } from './Dialog'
+import type { DialogRole, DialogSize } from '@/lib/dialog'
 
 interface ModalProps {
   isOpen: boolean
   onClose: () => void
   title?: string
-  children: React.ReactNode
+  description?: string
+  children: ReactNode
+  role?: DialogRole
+  size?: DialogSize
+  closeDisabled?: boolean
+  initialFocusRef?: RefObject<HTMLElement | null>
+  panelClassName?: string
 }
 
-export function Modal({ isOpen, onClose, title, children }: ModalProps) {
-  useEffect(() => {
-    const handler = (e: KeyboardEvent) => e.key === 'Escape' && onClose()
-    if (isOpen) {
-      document.addEventListener('keydown', handler)
-      document.body.style.overflow = 'hidden'
-    }
-    return () => {
-      document.removeEventListener('keydown', handler)
-      document.body.style.overflow = ''
-    }
-  }, [isOpen, onClose])
-
-  if (!isOpen) return null
-
+/** Existing call-site name for the shared dialog. New code can use `Dialog` directly. */
+export function Modal({
+  isOpen,
+  onClose,
+  title,
+  description,
+  children,
+  role = 'dialog',
+  size = 'md',
+  closeDisabled = false,
+  initialFocusRef,
+  panelClassName,
+}: ModalProps) {
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center">
-      <div
-        className="absolute inset-0 backdrop-blur-sm"
-        style={{ background: 'var(--tc-overlay)' }}
-        onClick={onClose}
-        aria-hidden
-      />
-      <div
-        role="dialog"
-        aria-modal="true"
-        className="relative z-10 w-full max-w-md rounded-tc border border-tc-border p-tc-6 shadow-[var(--tc-shadow)] backdrop-blur-[20px]"
-        style={{ background: 'var(--tc-panel)' }}
-      >
-        {title && (
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-tc-title font-semibold text-tc-text">{title}</h2>
-            <Button variant="ghost" size="sm" onClick={onClose} aria-label="Close">
-              ×
-            </Button>
-          </div>
-        )}
-        <div className="text-tc-text">{children}</div>
-      </div>
-    </div>
+    <Dialog
+      open={isOpen}
+      onClose={onClose}
+      title={title && title.trim() ? title : 'Dialog'}
+      description={description}
+      role={role}
+      size={size}
+      closeDisabled={closeDisabled}
+      initialFocusRef={initialFocusRef}
+      panelClassName={panelClassName}
+    >
+      {children}
+    </Dialog>
   )
 }

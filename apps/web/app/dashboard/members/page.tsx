@@ -1,9 +1,11 @@
 'use client'
 
-import { useEffect, useState, useCallback } from 'react'
-import { Button, Card, Input, Modal, Toast, TableSkeleton } from '@/components/ui'
+import { useEffect, useState, useCallback, useRef } from 'react'
+import { Button, Card, Input, Modal, ToastNotice, TableSkeleton } from '@/components/ui'
 import { useAuth } from '@/contexts/AuthContext'
-import { formatApiErrorDetail } from '@/lib/api-error'
+import { apiErrorAnnouncement, formatApiErrorDetail } from '@/lib/api-error'
+import { dialogAttributes } from '@/lib/dialog'
+import { autoDismissMs } from '@/lib/toast'
 
 type Member = {
   id: number
@@ -71,10 +73,28 @@ export default function MembersPage() {
   const [confirmBusy, setConfirmBusy] = useState(false)
   const [confirmError, setConfirmError] = useState<string | null>(null)
   const [toast, setToast] = useState<ToastState>(null)
+  const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  const dismissToast = useCallback(() => {
+    if (toastTimer.current) clearTimeout(toastTimer.current)
+    toastTimer.current = null
+    setToast(null)
+  }, [])
 
   const showToast = useCallback((title: string, message: string, type: 'success' | 'error' | 'info' = 'success') => {
+    if (toastTimer.current) clearTimeout(toastTimer.current)
+    toastTimer.current = null
     setToast({ title, message, type })
-    setTimeout(() => setToast(null), 4000)
+    const ms = autoDismissMs(type)
+    if (ms == null) return
+    toastTimer.current = setTimeout(() => {
+      toastTimer.current = null
+      setToast(null)
+    }, ms)
+  }, [])
+
+  useEffect(() => () => {
+    if (toastTimer.current) clearTimeout(toastTimer.current)
   }, [])
 
   const load = () => {
@@ -189,7 +209,7 @@ export default function MembersPage() {
       load()
     } else {
       const data = await res.json().catch(() => ({}))
-      showToast('Error', data.detail || 'Failed to update role', 'error')
+      showToast('Error', apiErrorAnnouncement(data, 'Failed to update role').message, 'error')
     }
   }
 
@@ -293,12 +313,7 @@ export default function MembersPage() {
     )
   }
 
-  const confirmBtnClass =
-    confirmAction?.variant === 'danger'
-      ? 'bg-red-600 hover:bg-red-700 text-white'
-      : confirmAction?.variant === 'warning'
-        ? 'bg-amber-600 hover:bg-amber-700 text-white'
-        : ''
+  const confirmIsDestructive = confirmAction?.variant !== 'default'
 
   return (
     <div>
@@ -478,19 +493,31 @@ export default function MembersPage() {
       </Card>
 
       {/* Confirmation modal — replaces all native alert/confirm */}
-      <Modal isOpen={!!confirmAction} onClose={() => { if (!confirmBusy) setConfirmAction(null) }} title={confirmAction?.title}>
+      <Modal
+        isOpen={!!confirmAction}
+        onClose={() => { if (!confirmBusy) setConfirmAction(null) }}
+        title={confirmAction?.title}
+        description={confirmAction?.body}
+        role={confirmIsDestructive ? 'alertdialog' : 'dialog'}
+        closeDisabled={confirmBusy}
+      >
         <div className="space-y-4">
-          <p className="text-sm text-[var(--tc-muted)]">{confirmAction?.body}</p>
           {confirmError && <p className="text-sm text-[var(--tc-danger)]">{confirmError}</p>}
           <div className="flex gap-2 justify-end">
-            <Button type="button" variant="ghost" onClick={() => setConfirmAction(null)} disabled={confirmBusy}>
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={() => setConfirmAction(null)}
+              disabled={confirmBusy}
+              {...{ [dialogAttributes.initial]: dialogAttributes.initialDismiss }}
+            >
               Cancel
             </Button>
             <Button
               type="button"
+              variant={confirmIsDestructive ? 'danger' : 'primary'}
               onClick={runConfirm}
               disabled={confirmBusy}
-              className={confirmBtnClass}
             >
               {confirmBusy ? 'Working…' : confirmAction?.confirmLabel}
             </Button>
@@ -570,7 +597,7 @@ export default function MembersPage() {
       </Modal>
 
       {/* Toast notification */}
-      {toast && <Toast title={toast.title} message={toast.message} type={toast.type} onDismiss={() => setToast(null)} />}
+      {toast && <ToastNotice title={toast.title} message={toast.message} type={toast.type} onDismiss={dismissToast} />}
     </div>
   )
 }

@@ -1,7 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useState } from 'react'
-import { Button, Card, Modal } from '@/components/ui'
+import { Button, Card, Modal, useDestructiveConfirm } from '@/components/ui'
 import { useAuth } from '@/contexts/AuthContext'
 import {
   CATEGORY_META,
@@ -100,6 +100,7 @@ export default function ComplianceAlertsPage() {
   const [addRecipVal, setAddRecipVal] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [formError, setFormError] = useState<string | null>(null)
+  const { confirm, dialog: confirmDialog } = useDestructiveConfirm()
 
   const load = useCallback(() => {
     setLoading(true)
@@ -137,10 +138,17 @@ export default function ComplianceAlertsPage() {
     load()
   }
 
-  const deletePolicy = async (p: Policy) => {
-    if (!confirm(`Remove alert rule "${getNotificationTitle(p.event_type)}"?`)) return
-    await fetch(`/api/notifications/policies/${p.id}`, { method: 'DELETE', credentials: 'include' })
-    load()
+  const deletePolicy = (p: Policy) => {
+    const label = getNotificationTitle(p.event_type)
+    confirm({
+      title: 'Remove alert rule?',
+      description: `Remove alert rule "${label}"?`,
+      confirmLabel: 'Remove',
+      onConfirm: async () => {
+        await fetch(`/api/notifications/policies/${p.id}`, { method: 'DELETE', credentials: 'include' })
+        load()
+      },
+    })
   }
 
   const addPolicy = async (e: React.FormEvent) => {
@@ -368,6 +376,7 @@ export default function ComplianceAlertsPage() {
         </>
       )}
 
+      {confirmDialog}
       {/* ── SECTION 3 — Add Alert Rule Modal ── */}
       <Modal isOpen={addOpen} onClose={() => setAddOpen(false)} title="Add Alert Rule">
         <form onSubmit={addPolicy} className="space-y-4">

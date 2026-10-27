@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useParams } from 'next/navigation'
 import Link from 'next/link'
-import { Button, Modal, Skeleton, TableSkeleton, Toast, TagList } from '@/components/ui'
+import { Button, Modal, Skeleton, TableSkeleton, Toast, ToastViewport, TagList } from '@/components/ui'
 import type { TagData } from '@/components/ui'
 import { useAuth } from '@/contexts/AuthContext'
 import { useAISettings } from '@/contexts/AISettingsContext'
@@ -187,14 +187,12 @@ export default function ReviewPage() {
   const handleGenerate = () => {
     if (workspaceId == null) {
       setErrorToast('Workspace not loaded. Please refresh the page.')
-      setTimeout(() => setErrorToast(null), 5000)
       return
     }
     if (isGenerateRequestInFlight || genJobId) return
     const qnrId = typeof id === 'string' ? parseInt(id, 10) : Number(id)
     if (Number.isNaN(qnrId)) {
       setErrorToast('Invalid questionnaire. Refresh and try again.')
-      setTimeout(() => setErrorToast(null), 5000)
       return
     }
     setIsGenerateRequestInFlight(true)
@@ -226,7 +224,6 @@ export default function ReviewPage() {
               ? raw
               : raw || 'Generate failed'
           setErrorToast(msg)
-          setTimeout(() => setErrorToast(null), 6000)
         }
       } catch (e) {
         clearTimeout(timeoutId)
@@ -237,7 +234,6 @@ export default function ReviewPage() {
             ? 'Cannot reach the API. Start the full stack (e.g. node scripts/dev-all.js) so the API runs on port 8000, then try again.'
             : 'Network error. Ensure the API is running on port 8000.'
         setErrorToast(message)
-        setTimeout(() => setErrorToast(null), 8000)
       } finally {
         setIsGenerateRequestInFlight(false)
       }
@@ -248,7 +244,6 @@ export default function ReviewPage() {
   const handleExport = async (format: 'xlsx' | 'docx' = 'xlsx') => {
     if (workspaceId == null) {
       setErrorToast('Workspace not loaded. Please refresh the page.')
-      setTimeout(() => setErrorToast(null), 5000)
       return
     }
     try {
@@ -264,10 +259,8 @@ export default function ReviewPage() {
         setExportJobId(data.job_id)
       }
       else setErrorToast((data?.detail as string) || (Array.isArray(data?.detail) ? data.detail.map((x: { msg?: string }) => x.msg).join(', ') : 'Export failed'))
-      if (!r.ok) setTimeout(() => setErrorToast(null), 6000)
     } catch (e) {
       setErrorToast('Network error. Try again.')
-      setTimeout(() => setErrorToast(null), 5000)
     }
   }
 
@@ -278,7 +271,6 @@ export default function ReviewPage() {
       if (!r.ok) {
         const data = await r.json().catch(() => ({}))
         setErrorToast((data?.detail as string) || 'Download failed')
-        setTimeout(() => setErrorToast(null), 5000)
         return
       }
       const blob = await r.blob()
@@ -302,7 +294,6 @@ export default function ReviewPage() {
       URL.revokeObjectURL(url)
     } catch {
       setErrorToast('Download failed. Try again.')
-      setTimeout(() => setErrorToast(null), 5000)
     }
   }
 
@@ -329,7 +320,6 @@ export default function ReviewPage() {
             }
             if (kind === 'export') clearExportPollTimer()
             setErrorToast(status >= 500 ? 'Server error. Try again later.' : 'Could not check job status. Try refreshing.')
-            setTimeout(() => setErrorToast(null), 6000)
             return
           }
           if (kind === 'gen' && j.status !== 'completed' && j.status !== 'failed') {
@@ -363,7 +353,6 @@ export default function ReviewPage() {
             const fallback =
               kind === 'gen' ? 'Answer generation did not finish. Check that the worker is running and try again.' : 'Export did not finish. Try again.'
             setErrorToast(detail ? `${kind === 'gen' ? 'Answer generation failed' : 'Export failed'}: ${detail}` : fallback)
-            setTimeout(() => setErrorToast(null), 8000)
           }
         })
         .catch(() => {
@@ -375,7 +364,6 @@ export default function ReviewPage() {
           }
           if (kind === 'export') clearExportPollTimer()
           setErrorToast('Could not check job status. Try refreshing.')
-          setTimeout(() => setErrorToast(null), 6000)
         })
     },
     [workspaceId, refresh, qnr?.filename, clearGenPollTimer, clearExportPollTimer]
@@ -395,7 +383,6 @@ export default function ReviewPage() {
           setErrorToast(
             'Answer generation is taking too long. If you use Docker, ensure the worker container is running (`docker compose ps`), then refresh and try again.'
           )
-          setTimeout(() => setErrorToast(null), 10000)
           return
         }
         pollJob(genJobId, 'gen')
@@ -406,7 +393,6 @@ export default function ReviewPage() {
           exportPollStartedAt.current = null
           setExportJobId(null)
           setErrorToast('Export is taking too long. Ensure the worker is running, then refresh and try again.')
-          setTimeout(() => setErrorToast(null), 10000)
           return
         }
         pollJob(exportJobId, 'export')
@@ -936,10 +922,15 @@ export default function ReviewPage() {
         </section>
       </div>
 
-      <Modal isOpen={!!citationDrawer} onClose={() => setCitationDrawer(null)} title="Supporting evidence">
+      <Modal
+        isOpen={!!citationDrawer}
+        onClose={() => setCitationDrawer(null)}
+        title="Supporting evidence"
+        description={citationDrawer?.questionText}
+        size="lg"
+      >
         {citationDrawer && (
           <div className="space-y-4">
-            <p className="text-sm text-[var(--tc-muted)]">{citationDrawer.questionText}</p>
             <div className="max-h-[60vh] space-y-3 overflow-y-auto">
               {citationDrawer.citations.map((cit, i) => (
                 <div
@@ -954,29 +945,33 @@ export default function ReviewPage() {
         )}
       </Modal>
 
-      {exportReadyToast && (
-        <Toast
-          title="Export ready — Download"
-          message={`${exportReadyToast.filename} has been generated with preserved formatting and evidence-backed answers.`}
-          type="success"
-          onDismiss={() => setExportReadyToast(null)}
-        />
-      )}
-      {genSuccessToast && (
-        <Toast
-          title="Draft answers ready"
-          message="New or updated drafts appear in the table. Review supporting evidence, edit text if needed, then approve and export when ready."
-          type="success"
-          onDismiss={() => setGenSuccessToast(false)}
-        />
-      )}
-      {errorToast && (
-        <Toast
-          title="Error"
-          message={errorToast}
-          type="error"
-          onDismiss={() => setErrorToast(null)}
-        />
+      {(exportReadyToast || genSuccessToast || errorToast) && (
+        <ToastViewport>
+          {exportReadyToast && (
+            <Toast
+              title="Export ready — Download"
+              message={`${exportReadyToast.filename} has been generated with preserved formatting and evidence-backed answers.`}
+              type="success"
+              onDismiss={() => setExportReadyToast(null)}
+            />
+          )}
+          {genSuccessToast && (
+            <Toast
+              title="Draft answers ready"
+              message="New or updated drafts appear in the table. Review supporting evidence, edit text if needed, then approve and export when ready."
+              type="success"
+              onDismiss={() => setGenSuccessToast(false)}
+            />
+          )}
+          {errorToast && (
+            <Toast
+              title="Error"
+              message={errorToast}
+              type="error"
+              onDismiss={() => setErrorToast(null)}
+            />
+          )}
+        </ToastViewport>
       )}
     </div>
   )

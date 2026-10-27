@@ -1,5 +1,7 @@
 /** Normalize FastAPI / proxy error JSON for display. */
 
+import { autoDismissMs, liveRegionForSeverity, type ToastLiveRegion, type ToastSeverity } from './toast'
+
 /**
  * API failures and denials are shown with the danger status token
  * (`--tc-danger` on `--tc-danger-surface` or a neutral surface).
@@ -16,6 +18,23 @@ export function apiErrorPresentation(
   return {
     message: formatApiErrorDetail(data, fallback),
     status: API_ERROR_STATUS,
+  }
+}
+
+/**
+ * Same safe message as `formatApiErrorDetail`, announced as an error toast.
+ * Errors stay until the user dismisses them. The formatted string is unchanged.
+ */
+export function apiErrorAnnouncement(
+  data: unknown,
+  fallback = 'Request failed'
+): { message: string; severity: Extract<ToastSeverity, 'error'>; live: ToastLiveRegion; autoDismissMs: null } {
+  if (autoDismissMs('error') !== null) throw new Error('error announcements must stay until dismissed')
+  return {
+    message: formatApiErrorDetail(data, fallback),
+    severity: 'error',
+    live: liveRegionForSeverity('error'),
+    autoDismissMs: null,
   }
 }
 
