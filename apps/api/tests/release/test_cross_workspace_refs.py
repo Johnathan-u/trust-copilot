@@ -399,13 +399,23 @@ def test_same_workspace_document_write_still_works(api, db_session: Session, cas
     assert docs <= {ids["own_doc"], None}
 
 
-def test_batch_non_integer_document_id_is_422(api, db_session: Session):
+@pytest.mark.parametrize("bad", ["abc", "123", "own_doc_as_string"])
+def test_batch_non_integer_document_id_is_422(api, db_session: Session, bad: str):
+    """Only JSON integers are ids: a digit string is rejected, and the valid first item is not saved."""
     client, ids = api
+    # The caller's own document id as a string would be written if digit strings were coerced.
+    value = str(ids["own_doc"]) if bad == "own_doc_as_string" else bad
     r = client.post(
         "/api/ingestion/batch",
-        json={"source_type": "manual", "items": [{"title": "x", "document_id": "abc"}]},
+        json={
+            "source_type": "manual",
+            "items": [
+                {"title": "ok", "document_id": ids["own_doc"]},
+                {"title": "x", "document_id": value},
+            ],
+        },
     )
-    assert r.status_code == 422
+    assert r.status_code == 422, r.text
     assert _new_evidence(db_session, ids) == 0
 
 
