@@ -35,8 +35,9 @@ class MessageProviderHttp:
         headers: dict | None = None,
         content: bytes | None = None,
         params: dict | None = None,
+        on_attempt=None,
     ) -> ProviderCallResult:
         def attempt() -> httpx.Response:
             return self.seam.request(method, url, headers=headers, content=content, params=params)
 
-        return self.retry.execute(attempt, provider=provider)
+        return self.retry.execute(attempt, provider=provider, on_attempt=on_attempt)

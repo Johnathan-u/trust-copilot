@@ -26,7 +26,7 @@ from app.models.deal import Deal
 from app.models.questionnaire import Question, Questionnaire
 
 ADMIN_EMAIL = "admin-deal-scope@trust.local"
-ADMIN_PASSWORD = "scope-d"
+ADMIN_PASSWORD = "example-synthetic-test-deal-scope-pw"  # synthetic test credential
 OWN_WS = 1
 OTHER_WS = 2
 

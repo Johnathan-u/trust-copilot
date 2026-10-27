@@ -28,15 +28,17 @@ from app.models.answer_delivery_outcome import AnswerDeliveryOutcome
 from app.models.buyer_portal import BuyerEscalation, BuyerPortal, BuyerSatisfactionSignal
 from app.models.control_evidence_link import ControlEvidenceLink
 from app.models.deal import Deal
+from app.models.document import Document
 from app.models.evidence_item import EvidenceItem
 from app.models.golden_answer import GoldenAnswer
 from app.models.operator_queue import OperatorQueueItem
-from app.models.proof_graph import AnswerReuseProvenance
+from app.models.proof_graph import AnswerReuseProvenance, ArtifactIntegrityHash
 from app.models.questionnaire import Question, Questionnaire
 from app.models.remediation_audit import RemediationAuditEvent
 from app.models.remediation_playbook import RemediationPlaybook, RemediationTicket
 from app.models.tag import Tag
-from app.models.trust_promise import TrustPromise
+from app.models.trust_article import TrustArticle
+from app.models.trust_promise import ContractDocument, TrustPromise
 from app.models.workspace_control import WorkspaceControl
 
 ADMIN_EMAIL = "admin-ref-scope@trust.local"
@@ -60,6 +62,7 @@ WRITTEN = [
     OperatorQueueItem,
     TrustPromise,
     RemediationTicket,
+    ArtifactIntegrityHash,
 ]
 
 
@@ -124,6 +127,13 @@ def _make_ws_rows(db: Session, ws: int, tag: str) -> dict[str, Any]:
             workspace_id=ws, promise_text=f"{tag} promise", source_type="manual"
         ),
         "item": OperatorQueueItem(workspace_id=ws, title=f"ref-scope-{tag}-item"),
+        "article": TrustArticle(
+            workspace_id=ws, slug=f"ref-scope-{tag}-article", title=f"Ref Scope {tag} article"
+        ),
+        "contract": ContractDocument(workspace_id=ws, title=f"Ref Scope {tag} contract"),
+        "document": Document(
+            workspace_id=ws, storage_key=f"ref-scope/{tag}.pdf", filename=f"ref-scope-{tag}.pdf"
+        ),
     }
     db.add_all([v for k, v in rows.items() if k not in ("questionnaire", "question")])
     db.flush()
@@ -149,7 +159,13 @@ def data(db_session: Session) -> Generator[dict[str, Any], None, None]:
     portal = BuyerPortal(
         workspace_id=OWN_WS, portal_token="ref-scope-tok-" + "x" * 24, display_name="P"
     )
-    db.add_all([deleted_qnr, portal])
+    deleted_doc = Document(
+        workspace_id=OWN_WS,
+        storage_key="ref-scope/own-deleted.pdf",
+        filename="ref-scope-own-deleted.pdf",
+        deleted_at=func.now(),
+    )
+    db.add_all([deleted_qnr, deleted_doc, portal])
     db.commit()
     other_user = _ensure_user(db, OTHER_EMAIL, "synthetic-test-unused-pw", OTHER_WS)
     admin_user = _ensure_user(db, ADMIN_EMAIL, ADMIN_PASSWORD, OWN_WS)
@@ -158,12 +174,17 @@ def data(db_session: Session) -> Generator[dict[str, Any], None, None]:
     ids["own_user"] = admin_user.id
     ids["other_user"] = other_user.id
     ids["deleted_questionnaire"] = deleted_qnr.id
+    ids["deleted_document"] = deleted_doc.id
+    deleted_doc_id = deleted_doc.id
     ids["token"] = portal.portal_token
     portal_id = portal.id
     deleted_qnr_id, other_user_id = deleted_qnr.id, other_user.id
     cleanup = [
         (type(rows[key]), rows[key].id)
         for key in (
+            "document",
+            "contract",
+            "article",
             "ticket",
             "item",
             "promise",
@@ -193,6 +214,9 @@ def data(db_session: Session) -> Generator[dict[str, Any], None, None]:
         "item": OperatorQueueItem,
         "ticket": RemediationTicket,
         "user": User,
+        "article": TrustArticle,
+        "contract": ContractDocument,
+        "document": Document,
     }
     for k, m in model_for.items():
         ids[f"missing_{k}"] = _max_id(db, m) + 100_000
@@ -209,6 +233,7 @@ def data(db_session: Session) -> Generator[dict[str, Any], None, None]:
     db.query(Questionnaire).filter(Questionnaire.id == deleted_qnr_id).delete(
         synchronize_session=False
     )
+    db.query(Document).filter(Document.id == deleted_doc_id).delete(synchronize_session=False)
     db.query(WorkspaceMember).filter(WorkspaceMember.user_id == other_user_id).delete(
         synchronize_session=False
     )
@@ -229,6 +254,22 @@ def _outcome(field: str) -> Builder:
         body = {"answer_id": d["own_answer"], "channel": "manual"}
         body[field] = ref
         return "POST", "/api/answer-outcomes", body
+
+    return build
+
+
+def _promise_source(source_type: str) -> Builder:
+    def build(d, ref):
+        body = {"promise_text": "ref", "source_type": source_type, "source_ref_id": ref}
+        return "POST", "/api/promises", body
+
+    return build
+
+
+def _artifact(action: str, artifact_kind: str) -> Builder:
+    def build(d, ref):
+        body = {"artifact_kind": artifact_kind, "artifact_id": ref, "content_text": "synthetic"}
+        return "POST", f"/api/proof-graph/artifacts/{action}", body
 
     return build
 
@@ -308,6 +349,15 @@ CASES: dict[str, tuple[str, Builder, list]] = {
         ),
         [ControlEvidenceMapping],
     ),
+    "ai-mappings.control-evidence.control_id": (
+        "control",
+        lambda d, ref: (
+            "POST",
+            "/api/ai-mappings/control-evidence",
+            {"control_id": ref, "evidence_id": d["own_evidence"]},
+        ),
+        [ControlEvidenceMapping],
+    ),
     "ai-mappings.evidence-tags.tag_id": (
         "tag",
         lambda d, ref: (
@@ -334,6 +384,44 @@ CASES: dict[str, tuple[str, Builder, list]] = {
             {"question_id": ref, "preferred_control_id": d["own_control"]},
         ),
         [QuestionMappingPreference],
+    ),
+    "ai-mappings.question-preferences.preferred_control_id": (
+        "control",
+        lambda d, ref: (
+            "POST",
+            "/api/ai-mappings/question-preferences",
+            {"question_id": d["own_question"], "preferred_control_id": ref},
+        ),
+        [QuestionMappingPreference],
+    ),
+    "ai-mappings.question-preferences.preferred_tag_id": (
+        "tag",
+        lambda d, ref: (
+            "POST",
+            "/api/ai-mappings/question-preferences",
+            {"question_id": d["own_question"], "preferred_tag_id": ref},
+        ),
+        [QuestionMappingPreference],
+    ),
+    "proof-graph.artifacts.hash.evidence_item": (
+        "evidence",
+        _artifact("hash", "evidence_item"),
+        [ArtifactIntegrityHash],
+    ),
+    "proof-graph.artifacts.hash.documents": (
+        "document",
+        _artifact("hash", "documents"),
+        [ArtifactIntegrityHash],
+    ),
+    "proof-graph.artifacts.hash.golden_answer": (
+        "golden_answer",
+        _artifact("hash", "golden_answer"),
+        [ArtifactIntegrityHash],
+    ),
+    "proof-graph.artifacts.verify.evidence_item": (
+        "evidence",
+        _artifact("verify", "evidence_item"),
+        [ArtifactIntegrityHash],
     ),
     "proof-graph.reuse.answer_id": (
         "answer",
@@ -383,6 +471,34 @@ CASES: dict[str, tuple[str, Builder, list]] = {
             "/api/promises",
             {"promise_text": "ref", "source_type": "manual", "control_ids": [ref]},
         ),
+        [TrustPromise],
+    ),
+    "promises.create.evidence_ids": (
+        "evidence",
+        lambda d, ref: (
+            "POST",
+            "/api/promises",
+            {
+                "promise_text": "ref",
+                "source_type": "manual",
+                "evidence_ids": [d["own_evidence"], ref],
+            },
+        ),
+        [TrustPromise],
+    ),
+    "promises.create.source_ref_id.questionnaire_answer": (
+        "answer",
+        _promise_source("questionnaire_answer"),
+        [TrustPromise],
+    ),
+    "promises.create.source_ref_id.trust_article": (
+        "article",
+        _promise_source("trust_article"),
+        [TrustPromise],
+    ),
+    "promises.create.source_ref_id.contract_clause": (
+        "contract",
+        _promise_source("contract_clause"),
         [TrustPromise],
     ),
     "promises.get": ("promise", lambda d, ref: ("GET", f"/api/promises/{ref}", None), []),
@@ -567,3 +683,91 @@ def test_global_tag_is_accepted(admin, db_session, data):
         )
         db_session.query(Tag).filter(Tag.id == tag.id).delete(synchronize_session=False)
         db_session.commit()
+
+
+def test_soft_deleted_document_artifact_is_404_like_missing(admin, db_session, data):
+    _, build, models = CASES["proof-graph.artifacts.hash.documents"]
+    before = _counts(db_session, models)
+    deleted = _send(admin, *build(data, data["deleted_document"]))
+    missing = _send(admin, *build(data, data["missing_document"]))
+    assert deleted.status_code == 404, deleted.text
+    assert deleted.content == missing.content
+    assert _counts(db_session, models) == before
+
+
+@pytest.mark.parametrize("artifact_kind", ["", "unknown_kind", "evidence_item; other"])
+def test_unsupported_artifact_kind_is_422_and_writes_nothing(
+    admin, db_session, data, artifact_kind
+):
+    before = _counts(db_session, [ArtifactIntegrityHash])
+    r = admin.post(
+        "/api/proof-graph/artifacts/hash",
+        json={
+            "artifact_kind": artifact_kind,
+            "artifact_id": data["own_evidence"],
+            "content_text": "synthetic",
+        },
+    )
+    assert r.status_code == 422, r.text
+    assert _counts(db_session, [ArtifactIntegrityHash]) == before
+
+
+def test_hash_then_verify_own_artifact_round_trips(admin, db_session, data):
+    body = {
+        "artifact_kind": "evidence_item",
+        "artifact_id": data["own_evidence"],
+        "content_text": "synthetic round trip",
+    }
+    assert admin.post("/api/proof-graph/artifacts/hash", json=body).status_code == 200
+    r = admin.post("/api/proof-graph/artifacts/verify", json=body)
+    assert r.status_code == 200, r.text
+    assert r.json()["ok"] is True
+
+
+@pytest.mark.parametrize("source_type", ["sla", "verbal", "manual"])
+def test_promise_source_ref_without_backing_row_is_stored_as_given(
+    admin, db_session, data, source_type
+):
+    """Source types that name no table keep source_ref_id as an opaque external number."""
+    r = admin.post(
+        "/api/promises",
+        json={"promise_text": "ref", "source_type": source_type, "source_ref_id": 424242},
+    )
+    assert r.status_code == 200, r.text
+    assert r.json()["source_ref_id"] == 424242
+
+
+def test_global_trust_article_is_not_a_promise_source(admin, db_session, data):
+    article = TrustArticle(workspace_id=None, slug="ref-scope-global-article", title="Global")
+    db_session.add(article)
+    db_session.commit()
+    article_id = article.id
+    try:
+        before = _counts(db_session, [TrustPromise])
+        r = admin.post(
+            "/api/promises",
+            json={
+                "promise_text": "ref",
+                "source_type": "trust_article",
+                "source_ref_id": article_id,
+            },
+        )
+        assert r.status_code == 404, r.text
+        assert _counts(db_session, [TrustPromise]) == before
+    finally:
+        db_session.rollback()
+        db_session.query(TrustArticle).filter(TrustArticle.id == article_id).delete(
+            synchronize_session=False
+        )
+        db_session.commit()
+
+
+def test_operator_queue_item_gone_after_scope_check_is_404(admin, db_session, data, monkeypatch):
+    """get_item must not return 200 null if the row disappears between the check and the read."""
+    from app.services import operator_queue_service
+
+    missing = admin.get(f"/api/operator-queue/{data['missing_item']}")
+    monkeypatch.setattr(operator_queue_service, "get_item", lambda db, item_id: None)
+    vanished = admin.get(f"/api/operator-queue/{data['own_item']}")
+    assert vanished.status_code == 404, vanished.text
+    assert vanished.content == missing.content

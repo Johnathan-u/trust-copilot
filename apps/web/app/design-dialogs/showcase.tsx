@@ -1,7 +1,12 @@
 'use client'
 
 import { useRef, useState } from 'react'
-import { DeleteConfirmationModal, Dialog, ToastNotice } from '@/components/ui'
+import {
+  DeleteConfirmationModal,
+  Dialog,
+  ToastNotice,
+  useDestructiveConfirm,
+} from '@/components/ui'
 import { NotificationsPanel } from '@/components/layout/NotificationsPanel'
 import { disclosureTriggerProps } from '@/lib/disclosure'
 import type { ToastSeverity } from '@/lib/toast'
@@ -24,6 +29,8 @@ export function DialogShowcase({ theme }: { theme: ThemeName }) {
   const notificationsAnchorRef = useRef<HTMLDivElement>(null)
   const [notes, setNotes] = useState('')
   const [notice, setNotice] = useState<Notice | null>(null)
+  const { confirm: confirmDestructive, dialog: destructiveDialog } =
+    useDestructiveConfirm()
 
   const showNotice = (next: Notice) => {
     setNotice(next)
@@ -131,6 +138,21 @@ export function DialogShowcase({ theme }: { theme: ThemeName }) {
             }
           >
             Show error
+          </button>
+          <button
+            type="button"
+            className="inline-flex min-h-tc-8 items-center rounded-tc-sm border border-tc-border-strong px-tc-4 text-tc-label font-semibold text-tc-text"
+            onClick={() =>
+              confirmDestructive({
+                title: 'Delete synthetic sample?',
+                description: 'Synthetic rejection. Nothing is deleted.',
+                confirmLabel: 'Remove sample',
+                onConfirm: () =>
+                  Promise.reject({ detail: 'Synthetic delete was rejected.' }),
+              })
+            }
+          >
+            Reject sample
           </button>
           <button
             type="button"
@@ -265,6 +287,8 @@ export function DialogShowcase({ theme }: { theme: ThemeName }) {
           </a>
         </nav>
       </Dialog>
+
+      {destructiveDialog}
 
       {notice ? (
         <ToastNotice

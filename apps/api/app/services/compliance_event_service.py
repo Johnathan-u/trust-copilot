@@ -3,7 +3,9 @@ Compliance event service: evaluates coverage KPIs after answer generation
 and fires notification events when thresholds are breached.
 
 Uses existing fire_notification (email + Slack) and notify_admins (in-app bell).
-Includes DB-level cooldown to prevent spam across worker restarts.
+A 30-minute cooldown suppresses a new job that repeats the same breach.
+The occurrence id is the job and the event type, so a retry of that job dedupes
+without writing an audit row or committing one mid-job.
 """
 
 import logging
@@ -13,8 +15,8 @@ from sqlalchemy.orm import Session
 
 from app.models.notification import NotificationLog
 from app.services.compliance_coverage import get_compliance_coverage
-from app.services.notification_service import fire_notification
 from app.services.in_app_notification_service import notify_admins
+from app.services.notification_service import fire_notification
 
 logger = logging.getLogger(__name__)
 
@@ -24,7 +26,7 @@ COOLDOWN_MINUTES = 30
 
 
 def _recently_fired(db: Session, workspace_id: int, event_type: str) -> bool:
-    """Check if this event was already fired within the cooldown window."""
+    """True when this breach was already logged inside the cooldown window."""
     cutoff = datetime.now(timezone.utc) - timedelta(minutes=COOLDOWN_MINUTES)
     existing = (
         db.query(NotificationLog.id)
@@ -45,13 +47,21 @@ def _fire(
     title: str,
     detail: str,
     workspace_name: str,
+    job_id: int,
 ) -> bool:
-    """Fire a single compliance event via email/Slack + in-app, with cooldown."""
+    """Fire one compliance occurrence, unless the cooldown or the job claim holds it."""
     if _recently_fired(db, workspace_id, event_type):
         logger.debug("Cooldown skip: %s for workspace %s", event_type, workspace_id)
         return False
 
-    fire_notification(db, workspace_id, event_type, detail, workspace_name)
+    fire_notification(
+        db,
+        workspace_id,
+        event_type,
+        detail,
+        workspace_name,
+        event_id=f"job:{job_id}:{event_type}",
+    )
     notify_admins(
         db,
         workspace_id,
@@ -68,6 +78,8 @@ def evaluate_and_fire_compliance_events(
     db: Session,
     workspace_id: int,
     workspace_name: str = "Workspace",
+    *,
+    job_id: int,
 ) -> int:
     """
     Compute current compliance coverage and fire notification events
@@ -93,6 +105,7 @@ def evaluate_and_fire_compliance_events(
             "Low coverage",
             f"Coverage is at {kpi['coverage_pct']}%, below the {COVERAGE_THRESHOLD}% target.",
             workspace_name,
+            job_id,
         )
         if ok:
             fired += 1
@@ -105,6 +118,7 @@ def evaluate_and_fire_compliance_events(
             "High insufficient-answer rate",
             f"{kpi.get('total_insufficient', 0)} questions ({kpi['insufficient_pct']}%) lack sufficient evidence.",
             workspace_name,
+            job_id,
         )
         if ok:
             fired += 1
@@ -120,6 +134,7 @@ def evaluate_and_fire_compliance_events(
             f"{blind_spot_count} blind spot{'s' if blind_spot_count != 1 else ''} detected",
             f"Subject areas with insufficient evidence: {names}.",
             workspace_name,
+            job_id,
         )
         if ok:
             fired += 1
@@ -134,6 +149,7 @@ def evaluate_and_fire_compliance_events(
             "Weak evidence in key area",
             f"{worst['subject']} has avg confidence of {worst['avg_confidence']}% across {worst['count']} answers.",
             workspace_name,
+            job_id,
         )
         if ok:
             fired += 1
