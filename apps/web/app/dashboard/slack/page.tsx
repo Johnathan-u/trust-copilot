@@ -13,6 +13,8 @@ type SlackStatus = {
   channel_name?: string
   event_types?: string[]
   updated_at?: string
+  provider_mode?: string
+  provider_label?: string
 }
 
 type Channel = { id: string; name: string }
@@ -331,6 +333,12 @@ export default function SlackPage() {
         )}
       </div>
 
+      {status.provider_mode === 'dev-stub' && (
+        <div role="status" className="rounded-lg border border-amber-500/40 bg-amber-500/10 px-4 py-3 text-sm text-amber-100">
+          <strong className="font-semibold">Development stub.</strong> Slack is not called. Test messages are labelled as not delivered. Production preflight rejects this mode.
+        </div>
+      )}
+
       {status.connected && (
         <div className="flex gap-2">
           <button onClick={() => setTab('notifications')} className={`px-4 py-2 rounded-lg text-sm font-medium transition ${tab === 'notifications' ? 'bg-[rgba(91,124,255,0.14)] text-[var(--tc-text)] border border-[rgba(91,124,255,0.22)]' : 'text-[var(--tc-muted)] hover:text-[var(--tc-text)] border border-transparent'}`}>
@@ -403,6 +411,7 @@ export default function SlackPage() {
                   </h2>
                   <p className="text-xs text-[var(--tc-muted)]">
                     Sending to <strong>#{status.channel_name || status.channel_id}</strong>
+                    {status.provider_mode === 'http' ? ' · Provider: HTTP' : status.provider_label ? ` · ${status.provider_label}` : ''}
                   </p>
                 </div>
               </div>

@@ -161,6 +161,17 @@ class Settings:
         self.rate_limit_rpm_per_ip: int = max(0, int(_rpm)) if _rpm.isdigit() else 120
 
         self.app_env: str = os.getenv("APP_ENV", "development").lower()
+        # Slack/Gmail provider selection (TC-19-001). Unset runtime follows APP_ENV.
+        # Production never selects the dev stub. See message_providers.selection.
+        _provider_mode = os.getenv("MESSAGE_PROVIDER_RUNTIME_MODE", "").strip().lower()
+        self.message_provider_runtime_mode: str | None = _provider_mode or None
+        self.message_provider_dev_stub_raw: str = os.getenv("MESSAGE_PROVIDER_DEV_STUB", "").strip().lower()
+        if self.message_provider_dev_stub_raw in ("1", "true", "yes"):
+            self.message_provider_dev_stub: bool | None = True
+        elif self.message_provider_dev_stub_raw in ("0", "false", "no"):
+            self.message_provider_dev_stub = False
+        else:
+            self.message_provider_dev_stub = None
         # Audit retention: delete events older than this many days (0 = disable purge)
         _audit_days = os.getenv("AUDIT_RETENTION_DAYS", "90").strip()
         self.audit_retention_days: int = max(0, int(_audit_days)) if _audit_days.isdigit() else 90

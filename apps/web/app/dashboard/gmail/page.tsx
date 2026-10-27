@@ -6,7 +6,14 @@ import { useAuth } from '@/contexts/AuthContext'
 
 /* ──────────────────── Types ──────────────────── */
 
-type GmailStatus = { connected: boolean; enabled?: boolean; email_address?: string; updated_at?: string }
+type GmailStatus = {
+  connected: boolean
+  enabled?: boolean
+  email_address?: string
+  updated_at?: string
+  provider_mode?: string
+  provider_label?: string
+}
 type Label = { id: string; name: string }
 type IngestLabel = { id: number; label_id: string; label_name: string | null; enabled: boolean; created_at: string | null }
 type Evidence = { id: number; title: string; source_metadata: Record<string, string> | null; created_at: string | null }
@@ -185,6 +192,12 @@ export default function GmailPage() {
         )}
       </div>
 
+      {status.provider_mode === 'dev-stub' && (
+        <div role="status" className="rounded-lg border border-amber-500/40 bg-amber-500/10 px-4 py-3 text-sm text-amber-100">
+          <strong className="font-semibold">Development stub.</strong> Gmail is not called. Mailbox data on this page is fixture data. Production preflight rejects this mode.
+        </div>
+      )}
+
       {loading ? (
         <Card className="p-6"><p className="text-[var(--tc-muted)]">Loading...</p></Card>
       ) : !status.connected ? (
@@ -252,6 +265,7 @@ export default function GmailPage() {
                     {status.email_address
                       ? <>{status.email_address}</>
                       : 'Gmail account connected'}
+                    {status.provider_mode === 'http' ? ' · Provider: HTTP' : status.provider_label ? ` · ${status.provider_label}` : ''}
                   </p>
                 </div>
               </div>

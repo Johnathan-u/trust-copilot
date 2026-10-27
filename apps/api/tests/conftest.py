@@ -189,6 +189,17 @@ def _mock_storage():
         yield
 
 
+def _reset_message_providers() -> None:
+    """Drop cached Slack/Gmail providers so a test cannot leak HTTP vs stub selection."""
+    try:
+        from app.services.gmail_service import reset_gmail_provider
+        from app.services.slack_service import reset_slack_provider
+        reset_slack_provider()
+        reset_gmail_provider()
+    except Exception:
+        return
+
+
 @pytest.fixture(autouse=True)
 def _disable_rate_limit():
     """Reset in-memory rate limit counters and settings cache between tests."""
@@ -197,8 +208,11 @@ def _disable_rate_limit():
     _rl._store.clear()
     _rl._backend = None
     get_settings.cache_clear()
+    _reset_message_providers()
     yield
     _rl._store.clear()
+    get_settings.cache_clear()
+    _reset_message_providers()
 
 
 @pytest.fixture(scope="session")

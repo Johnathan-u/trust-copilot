@@ -16,6 +16,8 @@ from app.models.notification import (
 from app.models.slack_integration import SlackIntegration
 from app.models.user import User, WorkspaceMember
 from app.services.email_service import EmailMessage, get_email_provider
+from app.services.message_providers.errors import public_error_detail
+from app.services.message_providers.selection import delivery_accepted
 from app.services.slack_service import decrypt_token, get_slack_provider, is_slack_duplicate
 
 logger = logging.getLogger(__name__)
@@ -267,8 +269,9 @@ def _fire_slack_notification(
         provider = get_slack_provider()
         result = provider.send_message(token, si.channel_id, text)
 
-        status = "sent" if result.get("ok") else "failed"
-        error_msg = result.get("error", "")[:500] if not result.get("ok") else None
+        accepted = delivery_accepted(result)
+        status = "sent" if accepted else "failed"
+        error_msg = None if accepted else public_error_detail(result, "Provider did not accept delivery")[:500]
 
         db.add(NotificationLog(
             workspace_id=workspace_id,
@@ -280,7 +283,7 @@ def _fire_slack_notification(
             error=error_msg,
         ))
 
-        if not result.get("ok"):
+        if not accepted:
             logger.warning("Slack delivery failed ws=%s ch=%s: %s", workspace_id, si.channel_id, error_msg)
             try:
                 from app.services.in_app_notification_service import notify_admins
