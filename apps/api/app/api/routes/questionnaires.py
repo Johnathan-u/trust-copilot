@@ -24,8 +24,6 @@ from app.models import (
     ExportRecord,  # noqa: F401
     Framework,
     FrameworkControl,
-    Job,
-    JobStatus,
     Question,
     Questionnaire,
     WorkspaceControl,
@@ -39,6 +37,7 @@ from app.services.compliance_hooks import (
 )
 from app.services.mapping_llm_rerank import get_rerank_perf_snapshot, reset_rerank_perf_stats
 from app.services.file_service import FileService
+from app.services.job_effects import enqueue_job, job_idempotency_key
 from app.services.questionnaire_mapping_evidence import (
     batch_supporting_evidence_for_workspace_controls,
     suggest_documents_for_mapping_review,
@@ -129,14 +128,15 @@ def upload_questionnaire(
     qnr.display_id = build_display_id("questionnaire", qnr.id)
     db.commit()
     db.refresh(qnr)
-    job = Job(
+    # TC-10-003: input_version pins the job to this upload's object; a stale job is superseded, not applied.
+    job, _created = enqueue_job(
+        db,
         workspace_id=workspace_id,
         kind="parse_questionnaire",
-        status=JobStatus.QUEUED.value,
-        payload=json.dumps({"questionnaire_id": qnr.id, "storage_key": key}),
+        payload={"questionnaire_id": qnr.id, "storage_key": key},
+        idempotency_key=job_idempotency_key("parse_questionnaire", workspace_id, qnr.id, key),
+        input_version=key,
     )
-    db.add(job)
-    db.commit()
     audit_log(
         "questionnaire.upload",
         email=session.get("email"),

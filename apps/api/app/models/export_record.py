@@ -22,4 +22,6 @@ class ExportRecord(Base):
     storage_key = Column(String(512), nullable=False)
     filename = Column(String(255), nullable=False)
     status = Column(String(32), default="completed")
+    # TC-10-003: the export job that produced this record (unique when set) so a retried job reuses it.
+    job_id = Column(Integer, ForeignKey("jobs.id", ondelete="SET NULL"), nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)

@@ -43,6 +43,10 @@ class Job(Base):
     error = Column(Text, nullable=True)
     attempt = Column(Integer, default=0)
     max_attempts = Column(Integer, default=3)
+    # TC-10-003: server-derived dedupe key (unique among QUEUED jobs per workspace+kind) and the version of
+    # the input the job was enqueued for (e.g. the source object's storage key). Both nullable/additive.
+    idempotency_key = Column(String(128), nullable=True)
+    input_version = Column(String(512), nullable=True)
     started_at = Column(DateTime, nullable=True)
     completed_at = Column(DateTime, nullable=True)
     created_at = Column(DateTime, default=utc_now)

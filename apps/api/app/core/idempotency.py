@@ -94,3 +94,32 @@ def set(
     except Exception:
         db.rollback()
         raise
+
+
+def scoped_key(workspace_id: int, route: str, resource_id: int | str, client_key: str) -> str:
+    """Scope a client Idempotency-Key to workspace + route + resource (TC-10-003).
+
+    Keys are stored in one global table; without scoping, the same client key used in two workspaces or on two
+    routes would replay the other request's response. Returns "" for an empty/oversized client key.
+    """
+    k = (client_key or "").strip()
+    if not k:
+        return ""
+    scoped = f"ws:{int(workspace_id)}:{route}:{resource_id}:{k}"
+    return scoped if _valid_key(scoped) else ""
+
+
+def release(db: Session, key: str) -> None:
+    """Drop an in-progress claim (no stored response) so the client can retry, e.g. after a 429 (TC-10-003)."""
+    if not _valid_key(key):
+        return
+    try:
+        db.execute(
+            text(
+                "DELETE FROM idempotency_keys WHERE idempotency_key = :k AND response_body IS NULL"
+            ),
+            {"k": key.strip()},
+        )
+        db.commit()
+    except Exception:
+        db.rollback()
