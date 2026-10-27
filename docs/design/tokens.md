@@ -81,7 +81,8 @@ An unknown value does not switch the theme. Dark stays the default.
 
 - Minimum target size: 24px (WCAG 2.2 SC 2.5.8 AA), via `--tc-target-min` and `min-h-tc-6`.
 - Motion: `--tc-duration-fast` 150ms, `--tc-duration-normal` 200ms, `--tc-ease`.
-- `prefers-reduced-motion: reduce` sets both durations to 0ms. It does not remove every animation in the app.
+- `prefers-reduced-motion: reduce` sets both durations to 0ms and removes the toast opacity transition. It does not remove every animation in the app.
+- Dialogs and toasts: `apps/web/components/ui/Dialog.tsx` traps focus for real dialogs. The notifications panel is a disclosure popover (`aria-expanded` and `aria-controls` on the bell), with no focus trap and no inert background. Escape and an outside click close it and return focus to the bell. `apps/web/lib/toast.ts` picks polite or assertive announcements. Success, info and warning toasts leave after 4000ms. A toast with an action button does not auto-dismiss, so the action has no time limit (WCAG 2.2.1). Errors stay until dismissed. A synthetic check page is `/design-dialogs`. Drawer placement on the dialog primitive is reserved for the navigation work in TC-14-006.
 
 ## Applying tokens
 

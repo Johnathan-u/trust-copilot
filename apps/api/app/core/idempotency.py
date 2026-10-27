@@ -7,11 +7,19 @@ already claimed and either get the cached response or 409 until the first comple
 An in-progress claim holds only a short lease. ``set`` extends that lease to the
 full TTL when the response is stored. An expired row (crash, or TTL elapsed) can
 be claimed again. ``cleanup_expired`` deletes rows past their lease or TTL.
+
+Owner tokens (TC-10-003b): ``claim`` records a random ``owner_token`` on the row and
+returns it. ``set``/``release`` called with ``owner=`` only touch the row while it still
+carries that token, so a late finisher whose lease expired (and whose key was reclaimed
+by a new request through the ON CONFLICT path) cannot free or overwrite the new owner's
+claim. ``owner=None`` keeps the pre-TC-10-003b unconditional behavior for callers that
+have not been migrated (``try_claim``-based routes).
 """
 
 import json
 import logging
 import re
+import secrets
 from datetime import datetime, timedelta, timezone
 
 from sqlalchemy import text
@@ -66,8 +74,22 @@ def get(db: Session, key: str) -> tuple[int, dict] | None:
     return (int(row[0]), body)
 
 
+def new_owner_token() -> str:
+    """Random, unguessable claim owner token (32 hex chars; column is 64)."""
+    return secrets.token_hex(16)
+
+
 def try_claim(db: Session, key: str, ttl_sec: int = _DEFAULT_TTL_SEC) -> bool:
-    """Claim the key for this request. Returns True if this caller now owns it.
+    """Legacy boolean form of :func:`claim`: True if this caller now owns the key.
+
+    The claim still records an owner token; callers that discard it must use ``owner=None``
+    on ``set``/``release`` (unconditional, pre-TC-10-003b behavior). Prefer :func:`claim`.
+    """
+    return claim(db, key, ttl_sec) is not None
+
+
+def claim(db: Session, key: str, ttl_sec: int = _DEFAULT_TTL_SEC) -> str | None:
+    """Claim the key for this request. Returns this caller's owner token, or None if not claimed.
 
     A new row, and a row whose ``expires_at`` has passed, are claimed. The in-progress
     ``expires_at`` is a short lease (not ``ttl_sec``). ``set`` extends it to ``ttl_sec``
@@ -79,62 +101,90 @@ def try_claim(db: Session, key: str, ttl_sec: int = _DEFAULT_TTL_SEC) -> bool:
     """
     del ttl_sec  # completion TTL is applied by set(), not by the in-progress lease
     if not _valid_key(key):
-        return False
+        return None
     k = key.strip()
     lease_expires = _now() + timedelta(seconds=_IN_PROGRESS_LEASE_SEC)
+    owner = new_owner_token()
     try:
+        # A reclaim of an expired row replaces owner_token, which is what fences the previous owner out.
         result = db.execute(
             text("""
-                INSERT INTO idempotency_keys (idempotency_key, status_code, response_body, expires_at)
-                VALUES (:k, 0, NULL, :expires_at)
+                INSERT INTO idempotency_keys
+                    (idempotency_key, status_code, response_body, expires_at, owner_token)
+                VALUES (:k, 0, NULL, :expires_at, :owner)
                 ON CONFLICT (idempotency_key) DO UPDATE
                 SET status_code = 0,
                     response_body = NULL,
-                    expires_at = EXCLUDED.expires_at
+                    expires_at = EXCLUDED.expires_at,
+                    owner_token = EXCLUDED.owner_token
                 WHERE idempotency_keys.expires_at <= now()
                 RETURNING id
             """),
-            {"k": k, "expires_at": lease_expires},
+            {"k": k, "expires_at": lease_expires, "owner": owner},
         )
         row = result.fetchone()
         db.commit()
-        return row is not None
+        return owner if row is not None else None
     except Exception:
         logger.warning("idempotency try_claim failed", exc_info=True)
         db.rollback()
-        return False
+        return None
+
+
+def _owner_clause(owner: str | None) -> str:
+    """SQL fence for set/release: match the caller's token, or nothing extra for legacy callers."""
+    return "" if owner is None else " AND owner_token = :owner"
 
 
 def set(
-    db: Session, key: str, status_code: int, response_body: dict, ttl_sec: int = _DEFAULT_TTL_SEC
-) -> None:
+    db: Session,
+    key: str,
+    status_code: int,
+    response_body: dict,
+    ttl_sec: int = _DEFAULT_TTL_SEC,
+    *,
+    owner: str | None = None,
+) -> bool:
     """Store the response and extend the short in-progress lease to the full TTL.
 
     TC-10-003a: 5xx responses are never cached. A server error is not a final answer for the request, so
     the in-progress claim is released instead and the client's retry with the same key runs again.
+
+    TC-10-003b: with ``owner`` (the token returned by :func:`claim`), the row is only updated while it still
+    carries that token. A stale owner (lease expired, key reclaimed by another request) is a no-op.
+    Returns True if a row was written.
     """
     if not _valid_key(key):
-        return
+        return False
     if status_code >= 500:
         logger.info("idempotency: not caching %s response; releasing claim", status_code)
-        release(db, key)
-        return
+        release(db, key, owner=owner)
+        return False
     k = key.strip()
     expires = _now() + timedelta(seconds=ttl_sec)
     body_str = json.dumps(response_body)
+    params = {"k": k, "sc": status_code, "body": body_str, "expires_at": expires}
+    if owner is not None:
+        params["owner"] = owner
     try:
-        db.execute(
-            text("""
+        result = db.execute(
+            text(
+                """
                 UPDATE idempotency_keys
                 SET status_code = :sc, response_body = :body, expires_at = :expires_at
-                WHERE idempotency_key = :k
-            """),
-            {"k": k, "sc": status_code, "body": body_str, "expires_at": expires},
+                WHERE idempotency_key = :k"""
+                + _owner_clause(owner)
+            ),
+            params,
         )
         db.commit()
     except Exception:
         db.rollback()
         raise
+    written = bool(result.rowcount)
+    if not written and owner is not None:
+        logger.warning("idempotency set skipped: claim is no longer owned by this request")
+    return written
 
 
 def scoped_key(
@@ -180,17 +230,30 @@ def cleanup_expired(db: Session) -> int:
         raise
 
 
-def release(db: Session, key: str) -> None:
-    """Drop an in-progress claim (no stored response) so the client can retry, e.g. after a 429 (TC-10-003)."""
+def release(db: Session, key: str, *, owner: str | None = None) -> bool:
+    """Drop an in-progress claim (no stored response) so the client can retry, e.g. after a 429 (TC-10-003).
+
+    TC-10-003b: with ``owner``, only this caller's own claim is dropped; a stale owner's release after a
+    reclaim is a no-op. Returns True if a row was deleted.
+    """
     if not _valid_key(key):
-        return
+        return False
+    params = {"k": key.strip()}
+    if owner is not None:
+        params["owner"] = owner
     try:
-        db.execute(
+        result = db.execute(
             text(
                 "DELETE FROM idempotency_keys WHERE idempotency_key = :k AND response_body IS NULL"
+                + _owner_clause(owner)
             ),
-            {"k": key.strip()},
+            params,
         )
         db.commit()
     except Exception:
         db.rollback()
+        return False
+    deleted = bool(result.rowcount)
+    if not deleted and owner is not None:
+        logger.info("idempotency release skipped: claim is no longer owned by this request")
+    return deleted
