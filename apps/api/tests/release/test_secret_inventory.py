@@ -787,6 +787,19 @@ def _stub_worker_runtime(monkeypatch, worker_mod):
     monkeypatch.setattr(worker_mod, "HeartbeatThread", _boom)
 
 
+def _valid_production_contract_env(monkeypatch) -> None:
+    """TC-03-001: the configuration contract runs right after the SESSION_SECRET check, so tests
+    that need production startup to get past that check supply a complete synthetic production
+    environment (generated at runtime). Their assertions are unchanged."""
+    from app.core import config_contract as cc
+    from tests.release.test_config_contract import good_production_env
+
+    for var in cc.CONTRACT:
+        monkeypatch.delenv(var.name, raising=False)
+    for k, v in good_production_env().items():
+        monkeypatch.setenv(k, v)
+
+
 @pytest.mark.parametrize(
     "value", [None, "", "placeholder", "test-secret", "changeme", "a" * 64, "short-but-random-9f"]
 )
@@ -815,6 +828,7 @@ def test_worker_starts_in_production_with_generated_secret(monkeypatch):
     from app.core.config import get_settings
 
     _stub_worker_runtime(monkeypatch, worker_mod)
+    _valid_production_contract_env(monkeypatch)
     monkeypatch.setenv("APP_ENV", "production")
     monkeypatch.setenv("SESSION_SECRET", secrets.token_urlsafe(48))
     get_settings.cache_clear()
@@ -1482,6 +1496,7 @@ def test_api_lifespan_proceeds_with_generated_secret(monkeypatch, env):
     from app.core.config import get_settings
 
     calls = _stub_lifespan_io(monkeypatch, main_mod)
+    _valid_production_contract_env(monkeypatch)
     monkeypatch.setenv("APP_ENV", env)
     monkeypatch.setenv("SESSION_SECRET", secrets.token_urlsafe(48))
     get_settings.cache_clear()
