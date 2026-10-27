@@ -9,6 +9,12 @@ from sqlalchemy import and_, or_, text
 from sqlalchemy.orm import Session
 
 from app.core.config import get_settings
+from app.core.database import (
+    isolated_session,
+    pool_thread_budget,
+    supports_thread_isolation,
+    task_slots,
+)
 from app.core.pipeline_logging import log_retrieval_failure, log_retrieval_start, log_retrieval_success
 from app.core.metrics import RETRIEVAL_DURATION_SECONDS
 from app.models import Chunk
@@ -101,25 +107,53 @@ class RetrievalService:
         limit: int = 10,
         document_ids: list[int] | None = None,
     ) -> list[list[dict]]:
-        """Batch search: parallel semantic queries for all questions at once."""
+        """Batch search: run semantic + keyword retrieval for many queries.
+
+        TC-08-005: the caller's Session is never touched from worker threads. When the bind is a
+        pooled Engine, each query runs in its own short-lived Session (own connection, closed in
+        ``finally``) and the thread count is bounded by ``RETRIEVAL_MAX_THREADS`` and the pool
+        capacity. Otherwise (Session bound to a Connection, single-connection pools) queries run
+        serially on the calling thread with the caller's Session. Results are plain dicts, so no
+        ORM instances escape a task's Session.
+        """
         doc_scope = self._normalize_document_scope(document_ids)
         results: list[list[dict]] = [[] for _ in queries]
+        if not queries:
+            return results
 
-        def _do_one(idx: int) -> None:
+        def _run(svc: "RetrievalService", idx: int) -> list[dict]:
             q_text, q_emb = queries[idx]
             if q_emb and len(q_emb) > 0:
                 validate_embedding_dimension(q_emb, context=f"batch_retrieval_{idx}")
-                sem = self._semantic_search(workspace_id, q_emb, limit, 0.0, doc_scope)
+                sem = svc._semantic_search(workspace_id, q_emb, limit, 0.0, doc_scope)
             else:
                 sem = []
-            kw = self._keyword_search(workspace_id, q_text, limit * 2, doc_scope)
-            merged = self._merge_rerank(sem, kw, limit)
+            kw = svc._keyword_search(workspace_id, q_text, limit * 2, doc_scope)
+            merged = svc._merge_rerank(sem, kw, limit)
             if doc_scope:
-                merged = self._filter_chunks_by_document_scope(merged, doc_scope)
-            results[idx] = merged
+                merged = svc._filter_chunks_by_document_scope(merged, doc_scope)
+            return merged
 
-        max_threads = min(8, len(queries))
-        with ThreadPoolExecutor(max_workers=max_threads) as executor:
+        bind = self._db.get_bind()
+        requested = min(get_settings().retrieval_max_threads, len(queries))
+        max_threads = pool_thread_budget(bind, requested) if requested > 1 else 1
+
+        if max_threads <= 1 or not supports_thread_isolation(bind):
+            # Serial path: caller's Session, caller's thread only.
+            for idx in range(len(queries)):
+                results[idx] = _run(self, idx)
+            return results
+
+        # Global cap across concurrent batch_search calls so fan-out cannot exhaust the pool.
+        slots = task_slots(bind, "retrieval.batch_search",
+                           pool_thread_budget(bind, get_settings().retrieval_max_threads))
+
+        def _do_one(idx: int) -> None:
+            with slots:
+                with isolated_session(bind) as task_db:
+                    results[idx] = _run(RetrievalService(task_db), idx)
+
+        with ThreadPoolExecutor(max_workers=max_threads, thread_name_prefix="retrieval") as executor:
             list(executor.map(_do_one, range(len(queries))))
 
         return results
