@@ -504,13 +504,66 @@ def test_in_app_claim_rolls_back_with_the_callers_commit(client: TestClient):
         db.close()
 
 
-def test_repeated_role_change_sends_twice(client: TestClient):
+@pytest.fixture
+def disposable_role_member() -> int:
+    """Member created for this test only, then deleted with its user.
+
+    The repeated role-change test used to insert ``repeat-role@test.local`` and
+    leave that user and membership in the database.
+    """
+    from uuid import uuid4
+
+    from app.core.database import SessionLocal
+    from app.core.password import hash_password
+    from app.models import User, WorkspaceMember
+
+    email = f"repeat-role-{uuid4().hex}@test.local"
+    user_id: int | None = None
+    try:
+        db = SessionLocal()
+        try:
+            user = User(
+                email=email,
+                password_hash=hash_password("testpass123"),
+                display_name="repeat",
+            )
+            db.add(user)
+            db.commit()
+            db.refresh(user)
+            user_id = user.id
+            mem = WorkspaceMember(workspace_id=1, user_id=user_id, role="viewer")
+            db.add(mem)
+            db.commit()
+            db.refresh(mem)
+            member_id = mem.id
+        finally:
+            db.close()
+        yield member_id
+    finally:
+        if user_id is None:
+            return
+        db = SessionLocal()
+        try:
+            db.query(WorkspaceMember).filter(WorkspaceMember.user_id == user_id).delete()
+            row = db.query(User).filter(User.id == user_id).first()
+            if row is not None:
+                db.delete(row)
+            db.commit()
+            assert (
+                db.query(WorkspaceMember).filter(WorkspaceMember.user_id == user_id).count() == 0
+            )
+            assert db.query(User).filter(User.id == user_id).count() == 0
+            assert db.query(User).filter(User.email == email).count() == 0
+        finally:
+            db.close()
+
+
+def test_repeated_role_change_sends_twice(client: TestClient, disposable_role_member: int):
     _login_admin(client)
     user_id = _demo_user_id()
     _reset_delivery()
     from app.core.database import SessionLocal
-    from app.core.password import hash_password
-    from app.models import NotificationLog, NotificationPolicy, User, WorkspaceMember
+    from app.models import NotificationLog, NotificationPolicy
 
     db = SessionLocal()
     try:
@@ -518,27 +571,6 @@ def test_repeated_role_change_sends_twice(client: TestClient):
             NotificationPolicy.workspace_id == 1,
             NotificationPolicy.event_type == "member.role_changed",
         ).delete()
-        other = db.query(User).filter(User.email == "repeat-role@test.local").first()
-        if other is None:
-            other = User(
-                email="repeat-role@test.local",
-                password_hash=hash_password("testpass123"),
-                display_name="repeat",
-            )
-            db.add(other)
-            db.commit()
-            db.refresh(other)
-        mem = (
-            db.query(WorkspaceMember)
-            .filter(WorkspaceMember.user_id == other.id, WorkspaceMember.workspace_id == 1)
-            .first()
-        )
-        if mem is None:
-            mem = WorkspaceMember(workspace_id=1, user_id=other.id, role="viewer")
-            db.add(mem)
-        else:
-            mem.role = "viewer"
-            mem.suspended = False
         db.add(
             NotificationPolicy(
                 workspace_id=1,
@@ -549,10 +581,10 @@ def test_repeated_role_change_sends_twice(client: TestClient):
             )
         )
         db.commit()
-        member_id = mem.id
     finally:
         db.close()
 
+    member_id = disposable_role_member
     first = client.patch(f"/api/members/{member_id}", json={"role": "editor"})
     second = client.patch(f"/api/members/{member_id}", json={"role": "editor"})
     assert first.status_code == 200, first.text

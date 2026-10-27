@@ -370,7 +370,7 @@ async def get_channel_preferences(
     """Channel switches for the current user. Schema version 1.
 
     Existing policy and unsubscribe routes are unchanged. This is the
-    per-user email, Slack, and in-app preference TC-19-008 needs.
+    per-user email, Slack, and in-app preference.
     """
     uid = session.get("user_id")
     ws = session["workspace_id"]

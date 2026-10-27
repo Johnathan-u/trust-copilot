@@ -1,0 +1,27 @@
+### Lock regeneration from a clean checkout of 31589ce (uv 0.13.4)
+Wrote apps/api/requirements.lock and apps/api/requirements-dev.lock
+regen 1: exit=0 committed locks unchanged (byte-identical)
+Wrote apps/api/requirements.lock and apps/api/requirements-dev.lock
+regen 2: exit=0 committed locks unchanged (byte-identical)
+### Negative 1: runtime lock sqlalchemy pinned to 2.1.0
+2 failed, 19 deselected in 0.25s
+exit=1
+### Negative 2: pytest added to the runtime lock
+E       AssertionError: assert ['dev-only pa...runtime lock'] == []
+E         Left contains one more item: 'dev-only package pytest is in the runtime lock'
+1 failed, 20 deselected in 0.19s
+exit=1
+### Negative 3: a hash line removed from the dev lock
+E         Left contains one more item: 'dev lock: ruff: no sha256 hash'
+1 failed, 20 deselected in 0.21s
+exit=1
+### Negative 4: installed version drift (dev venv with idna downgraded)
+E       assert {'idna': ('3.7', '3.20')} == {}
+E         {'idna': ('3.7', '3.20')}
+1 failed, 20 deselected in 0.20s
+exit=1
+### Negative 5: every idna hash replaced -> pip --require-hashes refuses the install (fresh venv)
+idna hashes replaced: 2
+exit=1
+ERROR: THESE PACKAGES DO NOT MATCH THE HASHES FROM THE REQUIREMENTS FILE. If you have updated the package versions, plea
+    idna==3.20 from https://files.pythonhosted.org/packages/58/a2/bb081bab032533a855d44de1d56f8e8426114ff1ba5d1f07a438a0

@@ -138,6 +138,26 @@ def pytest_runtest_setup(item):
     _safety.set_phase(f"run {item.nodeid}")
 
 
+# TC-02-002: with TC_REQUIRE_DB=1 (CI) a DB-backed test must run. A skip of an `integration` test
+# (fixture skip, "Postgres not available", missing seed rows, ...) is reported as a failure.
+# Only the explicit opt-in categories keep their skips; they carry their own marker and reason.
+_SKIP_ALLOWED_MARKERS = frozenset({"provider", "live_stack", "external_data"})
+
+
+@pytest.hookimpl(hookwrapper=True)
+def pytest_runtest_makereport(item, call):
+    outcome = yield
+    rep = outcome.get_result()
+    if not rep.skipped or hasattr(rep, "wasxfail") or not _db_required():
+        return
+    names = {m.name for m in item.iter_markers()}
+    if "integration" not in names or names & _SKIP_ALLOWED_MARKERS:
+        return
+    reason = rep.longrepr[2] if isinstance(rep.longrepr, tuple) else str(rep.longrepr)
+    rep.outcome = "failed"
+    rep.longrepr = f"TC_REQUIRE_DB=1: DB (integration) test skipped instead of running: {reason}"
+
+
 def pytest_terminal_summary(terminalreporter, exitstatus, config):
     attempts = _safety.blocked_attempts()
     if attempts:
