@@ -13,7 +13,7 @@ from app.services.notification_redaction import redact_notification_text
 from app.services.notification_templates import render_notification
 
 EVENT = "member.invited"
-SECRET_DETAIL = "invite token=xoxb-1234567890abcdef evidence: source quote of the policy"
+SECRET_DETAIL = "invite token=xoxb-fake-1234567890abcdef evidence: source quote of the policy"
 
 
 def _login_admin(client: TestClient) -> dict:
@@ -153,8 +153,8 @@ def _stored_text() -> str:
 
 def test_redaction_strips_secrets_and_evidence_and_keeps_the_recipient():
     text = redact_notification_text(
-        "to demo@trust.local token=xoxb-1234567890abcdef Bearer ya29.secret "
-        "sk_live_abcDEF123 password=hunter2 evidence: the control quote"
+        "to demo@trust.local token=xoxb-fake-1234567890abcdef Bearer ya29.fake-secret "
+        "sk_live_fakenotarealkey password=hunter2 evidence: the control quote"
     )
     assert "demo@trust.local" in text
     assert "xoxb-" not in text
@@ -242,7 +242,7 @@ def test_console_email_stub_is_not_recorded_as_provider_delivery(client: TestCli
         assert log.delivery_state == "sent"
         assert log.provider_mode == "dev-stub"
         assert log.delivered_to_provider is False
-        assert log.dedupe_key == f"1:{EVENT}:email:demo@trust.local"
+        assert log.dedupe_key == f"1:{EVENT}::email:demo@trust.local"
     finally:
         db.close()
 
@@ -264,14 +264,93 @@ def test_second_fire_is_deduped_on_the_same_key(client: TestClient):
 
     db = SessionLocal()
     try:
-        assert fire_notification(db, 1, EVENT, "plain detail", "Workspace") == 1
-        assert fire_notification(db, 1, EVENT, "plain detail", "Workspace") == 0
+        assert (
+            fire_notification(db, 1, EVENT, "plain detail", "Workspace", event_id="evt-same") == 1
+        )
+        assert (
+            fire_notification(db, 1, EVENT, "plain detail", "Workspace", event_id="evt-same") == 0
+        )
     finally:
         db.close()
     email_states = _states("email")
     assert email_states.count("sent") == 1
     assert "deduped" in email_states
     assert email_states.count("queued") == 1
+    from app.core.database import SessionLocal
+    from app.models import NotificationDeliveryAttempt
+
+    db = SessionLocal()
+    try:
+        deduped = (
+            db.query(NotificationDeliveryAttempt)
+            .filter(
+                NotificationDeliveryAttempt.channel == "email",
+                NotificationDeliveryAttempt.state == "deduped",
+            )
+            .one()
+        )
+        assert deduped.error_code == "per-process"
+    finally:
+        db.close()
+
+
+def test_different_event_ids_are_not_deduped(client: TestClient):
+    _login_admin(client)
+    user_id = _demo_user_id()
+    _reset_delivery()
+    _policy_for_user(user_id)
+    from app.core.database import SessionLocal
+    from app.services.notification_service import fire_notification
+
+    db = SessionLocal()
+    try:
+        assert fire_notification(db, 1, EVENT, "plain detail", "Workspace", event_id="evt-a") == 1
+        assert fire_notification(db, 1, EVENT, "plain detail", "Workspace", event_id="evt-b") == 1
+    finally:
+        db.close()
+    email_states = _states("email")
+    assert email_states.count("sent") == 2
+    assert "deduped" not in email_states
+
+
+def test_dead_letter_releases_the_dedupe_key(client: TestClient):
+    _login_admin(client)
+    user_id = _demo_user_id()
+    _reset_delivery()
+    _policy_for_user(user_id)
+
+    class AlwaysFail:
+        def send(self, message) -> bool:
+            raise RuntimeError("mailbox down")
+
+    from app.core.database import SessionLocal
+    from app.services import notification_service
+
+    db = SessionLocal()
+    try:
+        original = notification_service.get_email_provider
+        notification_service.get_email_provider = lambda: AlwaysFail()
+        try:
+            assert (
+                notification_service.fire_notification(
+                    db, 1, EVENT, "plain detail", "Workspace", event_id="evt-dead"
+                )
+                == 0
+            )
+        finally:
+            notification_service.get_email_provider = original
+        assert (
+            notification_service.fire_notification(
+                db, 1, EVENT, "plain detail", "Workspace", event_id="evt-dead"
+            )
+            == 1
+        )
+    finally:
+        db.close()
+    email_states = _states("email")
+    assert "dead-lettered" in email_states
+    assert email_states.count("sent") == 1
+    assert "deduped" not in email_states
 
 
 def test_email_retries_then_dead_letters_without_storing_the_secret(client: TestClient):
@@ -286,7 +365,7 @@ def test_email_retries_then_dead_letters_without_storing_the_secret(client: Test
 
         def send(self, message) -> bool:
             self.calls += 1
-            raise RuntimeError("password=hunter2 sk_live_notarealkey")
+            raise RuntimeError("password=hunter2 sk_live_fakenotarealkey")
 
     from app.core.database import SessionLocal
     from app.services import notification_service
@@ -485,14 +564,16 @@ def _drop_side_database(name: str) -> None:
     admin.dispose()
 
 
-def test_migration_077_upgrades_and_downgrades_on_a_fresh_database():
+def test_migration_upgrades_and_downgrades_on_a_fresh_database():
     import os
     import subprocess
     import sys
 
     from sqlalchemy import create_engine, text
 
-    name = "trustcopilot_tc19008_mig"
+    name = "trustcopilot_tc19008_migration_test"
+    revision = "tc19008_notification_channel_delivery"
+    parent = "tc11001_model_outcome_codes"
     url = _side_database_url(name)
     api_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
     _recreate_side_database(name)
@@ -514,7 +595,7 @@ def test_migration_077_upgrades_and_downgrades_on_a_fresh_database():
         assert fresh.returncode == 0, fresh.stderr
         heads = run("heads")
         assert heads.returncode == 0, heads.stderr
-        assert "077" in heads.stdout
+        assert revision in heads.stdout
         assert heads.stdout.count("(head)") == 1
 
         engine = create_engine(url)
@@ -525,9 +606,29 @@ def test_migration_077_upgrades_and_downgrades_on_a_fresh_database():
             assert conn.execute(
                 text("SELECT to_regclass('public.notification_channel_preferences')")
             ).scalar()
+            indexes = {
+                row[0]
+                for row in conn.execute(
+                    text(
+                        "SELECT indexname FROM pg_indexes "
+                        "WHERE tablename = 'notification_delivery_attempts'"
+                    )
+                )
+            }
+            assert "ix_notification_delivery_attempts_id" not in indexes
+            assert "ix_notification_delivery_attempts_dedupe_key" in indexes
+            unique_on_dedupe = conn.execute(
+                text(
+                    "SELECT indexname FROM pg_indexes "
+                    "WHERE tablename = 'notification_delivery_attempts' "
+                    "AND indexdef ILIKE '%UNIQUE%' "
+                    "AND indexdef ILIKE '%dedupe_key%'"
+                )
+            ).scalar()
+            assert unique_on_dedupe is None
         engine.dispose()
 
-        down = run("downgrade", "075")
+        down = run("downgrade", parent)
         assert down.returncode == 0, down.stderr
         engine = create_engine(url)
         with engine.connect() as conn:
@@ -549,7 +650,7 @@ def test_migration_077_upgrades_and_downgrades_on_a_fresh_database():
         again = run("upgrade", "head")
         assert again.returncode == 0, again.stderr
         current = run("current")
-        assert "077" in current.stdout
+        assert revision in current.stdout
     finally:
         _drop_side_database(name)
 

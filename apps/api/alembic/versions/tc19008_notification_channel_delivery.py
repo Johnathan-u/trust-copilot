@@ -1,19 +1,21 @@
 """Notification channel preferences and delivery attempts (TC-19-008).
 
-Revision ID: 077
-Revises: 075
+Revision ID: tc19008_notification_channel_delivery
+Revises: tc11001_model_outcome_codes
 
-Parent is 075, the head of tc/int/TC-19-001. Open PR #23 adds revision 076
-with parent 075. Whoever merges second re-parents this down_revision.
-
+Master's Alembic head is tc11001_model_outcome_codes. This revision
+re-parents onto that head only.
 """
 
-from alembic import op
 import sqlalchemy as sa
 
+from alembic import op
 
-revision = "077"
-down_revision = "075"
+# Frozen snapshot of the table definitions this revision needs.
+# This module must not import the application package.
+
+revision = "tc19008_notification_channel_delivery"
+down_revision = "tc11001_model_outcome_codes"
 branch_labels = None
 depends_on = None
 

@@ -48,19 +48,29 @@ STATE_DEAD = "dead-lettered"
 STATE_SUPPRESSED = "suppressed-by-preference"
 
 
-def stable_dedupe_key(workspace_id: int, event_type: str, channel: str, recipient: str) -> str:
-    """Stable key per workspace, event, recipient, and channel.
+def stable_dedupe_key(
+    workspace_id: int,
+    event_type: str,
+    channel: str,
+    recipient: str,
+    event_id: str | None = None,
+) -> str:
+    """Per-process key for one event, recipient, and channel.
 
-    The workspace is included so the same person in two workspaces does not
-    collapse to one delivery. The acceptance key is event + recipient + channel.
+    The event id is part of the key so two different events are not deduped
+    together. An empty event id keeps a type-level window for callers that
+    do not have an id. This is process-local only. A database unique
+    constraint is unsafe because queued, retrying, sent, and dead-lettered
+    rows share one key. Deduped attempts are labeled ``per-process``.
     """
     identity = (recipient or "").strip().lower()
-    return f"{int(workspace_id)}:{event_type}:{channel}:{identity}"
+    event = (event_id or "").strip()
+    return f"{int(workspace_id)}:{event_type}:{event}:{channel}:{identity}"
 
 
-def _dedup_key(workspace_id: int, event_type: str, email: str) -> str:
+def _dedup_key(workspace_id: int, event_type: str, email: str, event_id: str | None = None) -> str:
     """Backward-compatible email key. Includes the email channel."""
-    return stable_dedupe_key(workspace_id, event_type, "email", email)
+    return stable_dedupe_key(workspace_id, event_type, "email", email, event_id)
 
 
 def _claim(cache: dict[str, float], key: str) -> bool:
@@ -74,6 +84,11 @@ def _claim(cache: dict[str, float], key: str) -> bool:
     for k in stale:
         cache.pop(k, None)
     return False
+
+
+def _release(cache: dict[str, float], key: str) -> None:
+    """Drop a key after a dead-letter so a later event can send."""
+    cache.pop(key, None)
 
 
 def _is_duplicate(key: str) -> bool:
@@ -295,10 +310,11 @@ def _deliver_email(
     email: str,
     rendered: RenderedNotification,
     provider,
+    event_id: str | None = None,
 ) -> bool:
     mode, counts_as_provider = _email_facts(provider)
     destination = email
-    key = stable_dedupe_key(workspace_id, event_type, "email", email)
+    key = stable_dedupe_key(workspace_id, event_type, "email", email, event_id)
     if preference_block_reason(db, workspace_id, user_id, "email", event_type):
         _add_attempt(
             db,
@@ -330,6 +346,7 @@ def _deliver_email(
             max_attempts=DEFAULT_MAX_ATTEMPTS,
             rendered=rendered,
             destination=destination,
+            error_code="per-process",
             provider_mode=mode,
         )
         return False
@@ -419,6 +436,8 @@ def _deliver_email(
         provider_mode=mode,
         notification_log_id=log.id,
     )
+    if final_state == STATE_DEAD:
+        _release(_recent_sends, key)
     return accepted
 
 
@@ -430,9 +449,10 @@ def _deliver_in_app(
     user_id: int,
     email: str,
     rendered: RenderedNotification,
+    event_id: str | None = None,
 ) -> bool:
     destination = f"user:{user_id}"
-    key = stable_dedupe_key(workspace_id, event_type, "in_app", destination)
+    key = stable_dedupe_key(workspace_id, event_type, "in_app", destination, event_id)
     if preference_block_reason(db, workspace_id, user_id, "in_app", event_type):
         _add_attempt(
             db,
@@ -466,6 +486,7 @@ def _deliver_in_app(
             max_attempts=1,
             rendered=rendered,
             destination=destination,
+            error_code="per-process",
             provider_mode="local",
         )
         return False
@@ -521,6 +542,7 @@ def _deliver_in_app(
             error_message="The in-app notification could not be stored.",
             provider_mode="local",
         )
+        _release(_recent_sends, key)
         return False
 
     _add_attempt(
@@ -561,8 +583,10 @@ def _fire_slack_notification(
     event_type: str,
     recipients: list[tuple[int, str]],
     rendered: RenderedNotification,
+    event_id: str | None = None,
 ) -> int:
     """Post once to the workspace Slack channel when at least one recipient allows it."""
+    channel_key = ""
     try:
         si = (
             db.query(SlackIntegration)
@@ -586,9 +610,9 @@ def _fire_slack_notification(
             if preference_block_reason(db, workspace_id, uid, "slack", event_type)
         ]
         destination = si.channel_id
-        channel_key = stable_dedupe_key(workspace_id, event_type, "slack", destination)
+        channel_key = stable_dedupe_key(workspace_id, event_type, "slack", destination, event_id)
         for uid, email in suppressed:
-            user_key = stable_dedupe_key(workspace_id, event_type, "slack", f"user:{uid}")
+            user_key = stable_dedupe_key(workspace_id, event_type, "slack", f"user:{uid}", event_id)
             _add_attempt(
                 db,
                 workspace_id=workspace_id,
@@ -621,6 +645,7 @@ def _fire_slack_notification(
                 max_attempts=DEFAULT_MAX_ATTEMPTS,
                 rendered=rendered,
                 destination=destination,
+                error_code="per-process",
             )
             return 0
 
@@ -734,8 +759,12 @@ def _fire_slack_notification(
                 )
             except Exception:
                 pass
+        if final_state == STATE_DEAD:
+            _release(_slack_dedup, channel_key)
         return 1 if accepted else 0
     except Exception:
+        if channel_key:
+            _release(_slack_dedup, channel_key)
         logger.warning("Slack notification error workspace=%s event=%s", workspace_id, event_type)
         try:
             safe_error = "The Slack message could not be sent."
@@ -761,7 +790,9 @@ def _fire_slack_notification(
                 channel="slack",
                 recipient="slack-error",
                 user_id=None,
-                dedupe_key=stable_dedupe_key(workspace_id, event_type, "slack", "slack-error"),
+                dedupe_key=stable_dedupe_key(
+                    workspace_id, event_type, "slack", "slack-error", event_id
+                ),
                 state=STATE_DEAD,
                 attempt_number=1,
                 max_attempts=DEFAULT_MAX_ATTEMPTS,
@@ -780,6 +811,7 @@ def fire_notification(
     event_type: str,
     detail: str = "",
     workspace_name: str = "Workspace",
+    event_id: str | None = None,
 ) -> int:
     """
     Fire a notification for the given event type.
@@ -820,6 +852,7 @@ def fire_notification(
             email=email,
             rendered=rendered,
             provider=provider,
+            event_id=event_id,
         ):
             sent += 1
         in_app = render_notification(event_type, "in_app", workspace_name, detail)
@@ -830,10 +863,13 @@ def fire_notification(
             user_id=user_id,
             email=email,
             rendered=in_app,
+            event_id=event_id,
         )
 
     slack_rendered = render_notification(event_type, "slack", workspace_name, detail)
-    sent += _fire_slack_notification(db, workspace_id, event_type, recipients, slack_rendered)
+    sent += _fire_slack_notification(
+        db, workspace_id, event_type, recipients, slack_rendered, event_id
+    )
 
     try:
         db.commit()

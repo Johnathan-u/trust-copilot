@@ -8,7 +8,7 @@ Real Slack, Gmail, and SMTP qualification is **BLOCKED**. No mailbox, Slack work
 - pytest 9.1.1, ruff 0.5.6, SQLAlchemy 2.0.55, psycopg2 2.9.13
 - Local PostgreSQL 16 with the `vector` extension, database `trustcopilot_test`
 - Master pins `sqlalchemy>=2.0,<2.1`. psycopg v3 was not added.
-- `alembic heads`: `077 (head)`. Parent revision is `075`.
+- `alembic heads`: `tc19008_notification_channel_delivery (head)`. Parent revision is `tc11001_model_outcome_codes`.
 
 ## Release tests
 
@@ -22,7 +22,7 @@ Exit status: **0**
 
 Totals: **10 passed**, 0 failed, 0 skipped.
 
-That file includes a fresh-database upgrade to `077`, downgrade to `075`, and upgrade again. The side database is created with the same role as `TC_TEST_DATABASE_URL` or `DATABASE_URL`.
+That file includes a fresh-database upgrade to `tc19008_notification_channel_delivery`, downgrade to `tc11001_model_outcome_codes`, and upgrade again. The side database name ends in `_test` and is created with the same role as `TC_TEST_DATABASE_URL` or `DATABASE_URL`.
 
 ## Existing notification, in-app, Slack, and Gmail tests
 
@@ -59,7 +59,7 @@ Exit status: **0** (ruff 0.5.6, ruff-format, prettier, trailing whitespace, end 
 cd apps/api && alembic heads
 ```
 
-Output: `077 (head)`.
+Output: `tc19008_notification_channel_delivery (head)`.
 
 ```bash
 cd apps/api && TC_REQUIRE_DB=1 SESSION_SECRET=test-secret /tmp/tc-venv/bin/python -m pytest -rs -q --tb=line -p no:warnings

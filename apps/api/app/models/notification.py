@@ -125,7 +125,7 @@ class NotificationChannelPreference(Base):
         ),
     )
 
-    id = Column(Integer, primary_key=True, index=True)
+    id = Column(Integer, primary_key=True)
     workspace_id = Column(
         Integer, ForeignKey("workspaces.id", ondelete="CASCADE"), nullable=False, index=True
     )
@@ -143,12 +143,14 @@ class NotificationDeliveryAttempt(Base):
     """One visible state of a delivery try.
 
     States are queued, sent, retrying, deduped, dead-lettered, and
-    suppressed-by-preference. Stored text is redacted before insert.
+    suppressed-by-preference. ``deduped`` is per-process only: several rows
+    share one dedupe key, so the column is indexed and not unique. Stored
+    text is redacted before insert.
     """
 
     __tablename__ = "notification_delivery_attempts"
 
-    id = Column(Integer, primary_key=True, index=True)
+    id = Column(Integer, primary_key=True)
     workspace_id = Column(
         Integer, ForeignKey("workspaces.id", ondelete="CASCADE"), nullable=False, index=True
     )
