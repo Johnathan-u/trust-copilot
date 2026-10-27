@@ -1531,6 +1531,34 @@ def _generate_answers_impl(
     return count
 
 
+def _citations_lack_direct_evidence(
+    db: Session, cits: list, doc_tier_cache: dict[int, int]
+) -> bool:
+    """True when every citation resolves to an export-like (tier 3) document, e.g. a prior questionnaire
+    response, so nothing cited is direct evidence. Citations without a resolvable document count as possibly
+    direct (same convention as ``only_low_tier_evidence``)."""
+    from app.services.answer_evidence_policy import only_low_tier_evidence
+
+    as_evidence: list[dict] = []
+    for c in cits:
+        if not isinstance(c, dict):
+            return False
+        did = c.get("document_id")
+        if did is None:
+            return False
+        try:
+            as_evidence.append({"metadata": {"document_id": int(did)}})
+        except (TypeError, ValueError):
+            return False
+    if not as_evidence:
+        return False
+    # only_low_tier_evidence looks at the first 12 entries; check every citation.
+    return all(
+        only_low_tier_evidence(db, as_evidence[i : i + 12], doc_tier_cache=doc_tier_cache)
+        for i in range(0, len(as_evidence), 12)
+    )
+
+
 def _settle_provider(effects: Any, guard: AnswerWriteGuard | None, run_stats: dict) -> None:
     if guard is not None and len(guard.protected_qids) > int(
         run_stats.get("skipped_protected", 0) or 0
@@ -1544,7 +1572,8 @@ def _sweep_draft_insufficient_narratives(
     db: Session, questionnaire_id: int, guard: AnswerWriteGuard | None = None
 ) -> int:
     """Reclassify draft rows whose text is insufficient, have zero citations,
-    or whose primary subject requires direct evidence that wasn't provided."""
+    or whose primary subject requires direct evidence that wasn't provided
+    (TC-02-BUG-005: every citation is from an export-like / prior-response document)."""
     from app.services.answer_evidence_policy import subject_requires_direct_evidence
     from app.services.registry_metadata import SUBJECT_AREA_LABEL_TO_KEY
 
@@ -1554,18 +1583,28 @@ def _sweep_draft_insufficient_narratives(
         .filter(Question.questionnaire_id == questionnaire_id, Answer.status == "draft")
         .all()
     )
+    doc_tier_cache: dict[int, int] = {}
     n = 0
     for a in answers:
-        if guard is not None and a.question_id in guard.protected_qids:
-            continue  # TC-10-003: never reclassify protected work
+        # TC-10-003: never reclassify protected work. Also skip a stale row this run did not
+        # write (updated_at after the job cutoff). Rows in guard.written keep the sweep: their
+        # updated_at bump is this run's own write, same rule as _upsert_answer.
+        if guard is not None:
+            owned_by_run = a.question_id in guard.written
+            if a.question_id in guard.protected_qids or (
+                not owned_by_run and guard.is_protected(a)
+            ):
+                guard.protected_qids.add(a.question_id)
+                continue
         no_citations = False
+        cits: list = []
         try:
             cits = json.loads(a.citations or "[]") if a.citations else []
             no_citations = len(cits) == 0
         except Exception:
             no_citations = True
 
-        direct_ev_missing = False
+        direct_subject: str | None = None
         if a.primary_categories_json and not no_citations:
             try:
                 cats = json.loads(a.primary_categories_json)
@@ -1575,23 +1614,30 @@ def _sweep_draft_insufficient_narratives(
                         s_label, s_label.lower().replace(" ", "_")
                     )
                     if subject_requires_direct_evidence(s_key):
-                        direct_ev_missing = True  # noqa: F841
+                        direct_subject = s_key
                         break
             except Exception:
                 pass
+        direct_ev_missing = direct_subject is not None and _citations_lack_direct_evidence(
+            db, cits, doc_tier_cache
+        )
 
-        if is_insufficient_answer_text(a.text) or no_citations:
+        if is_insufficient_answer_text(a.text) or no_citations or direct_ev_missing:
             a.status = "insufficient_evidence"
             if no_citations and not a.insufficient_reason:
                 a.insufficient_reason = "no_citations"
+            elif direct_ev_missing and not a.insufficient_reason:
+                # Same reason format as the pre-LLM gate in generate_answers_for_questionnaire.
+                a.insufficient_reason = f"direct_evidence_required:{direct_subject}"
             if getattr(a, "outcome_code", None) in (
                 None,
                 ModelOutcomeCode.GROUNDED.value,
                 ModelOutcomeCode.GROUNDED_UNVERIFIED.value,
             ):
                 a.outcome_code = (
+                    # No direct evidence: same outcome as the pre-LLM direct-evidence gate.
                     ModelOutcomeCode.NO_EVIDENCE.value
-                    if no_citations
+                    if no_citations or direct_ev_missing
                     else ModelOutcomeCode.MODEL_ABSTAINED.value
                 )
             a.confidence = 0
