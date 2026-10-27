@@ -27,7 +27,10 @@ export default function Error({
         <Button onClick={() => reset()}>Try again</Button>
         <Button
           variant="ghost"
-          onClick={() => (window.location.href = '/dashboard')}
+          onClick={() => {
+            // eslint-disable-next-line @next/next/no-location-assign-relative-destination -- intentional full page load to reset client auth/workspace state (pre-existing; TC-02-006)
+            window.location.href = '/dashboard'
+          }}
         >
           Go to dashboard
         </Button>

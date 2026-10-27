@@ -184,6 +184,11 @@ def _verify_db_connectivity():
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    # TC-07-001a: the production secret check runs first, before any DB, S3 or other I/O, and is
+    # unconditional (it detects production itself, whitespace/case-insensitively).
+    from app.core.session import enforce_production_session_secret, is_production_env
+
+    enforce_production_session_secret("api")
     s = get_settings()
     print(f"FRONTEND_URL={s.frontend_url!r} trusted_origins={s.trusted_origins!r}", flush=True)
     _verify_db_connectivity()
@@ -195,11 +200,7 @@ async def lifespan(app: FastAPI):
 
         logging.getLogger("app.main").warning("S3/MinIO bucket init skipped or failed: %s", e)
     configure_logging(s.log_level, use_json=(s.app_env == "production"))
-    if s.app_env == "production":
-        from app.core.session import enforce_production_session_secret
-
-        enforce_production_session_secret("api")
-    else:
+    if not is_production_env():
         if not s.session_secret:
             import logging
 
@@ -207,8 +208,10 @@ async def lifespan(app: FastAPI):
                 "SESSION_SECRET is unset; a random per-process key is used (dev/test only). "
                 "Set SESSION_SECRET in .env for stable local sessions."
             )
+    from app.services.billing_provider import raise_for_stripe_preflight
     from app.services.message_providers.selection import assert_message_provider_preflight
 
+    raise_for_stripe_preflight(s)
     assert_message_provider_preflight()
     print(
         "OpenAI: configured"

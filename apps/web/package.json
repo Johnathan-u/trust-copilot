@@ -6,12 +6,14 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
+    "lint": "eslint . --max-warnings=0",
     "test:unit": "vitest run",
     "test:e2e": "playwright test",
     "verify:browser": "node scripts/verify-browser.js",
     "format": "prettier --write \"**/*.{ts,tsx,js,jsx,json,md}\"",
     "format:check": "prettier --check \"**/*.{ts,tsx,js,jsx,json,md}\"",
-    "typecheck": "next typegen && tsc --noEmit -p ."
+    "typecheck": "next typegen && tsc --noEmit -p .",
+    "quality": "npm run typecheck && npm run lint && npm run format:check && npm run test:unit"
   },
   "dependencies": {
     "next": "16.4.3",
@@ -21,16 +23,23 @@
     "recharts": "3.10.1"
   },
   "devDependencies": {
+    "@axe-core/playwright": "4.14.0",
+    "@eslint/js": "10.0.1",
+    "@next/eslint-plugin-next": "16.4.3",
     "@playwright/test": "1.64.1",
     "@types/node": "24.19.2",
     "@types/react": "19.3.0",
     "@types/react-dom": "19.3.0",
     "autoprefixer": "10.6.2",
+    "eslint": "10.13.0",
+    "eslint-plugin-react-hooks": "7.1.1",
+    "globals": "17.13.0",
     "playwright": "1.64.1",
     "postcss": "8.5.32",
-    "prettier": "3.4.2",
+    "prettier": "3.9.10",
     "tailwindcss": "3.4.19",
     "typescript": "6.0.3",
+    "typescript-eslint": "8.72.1",
     "vitest": "5.0.5"
   },
   "engines": {

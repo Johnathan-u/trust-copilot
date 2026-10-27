@@ -29,9 +29,6 @@ export default function PricingPage() {
   const annualPrice = 250
   const displayPrice = annual ? annualPrice : monthlyPrice
   const interval = annual ? '/year' : '/month'
-  const savings = annual
-    ? `Save $${monthlyPrice * 12 - annualPrice}/year`
-    : null
 
   return (
     <div className="relative min-h-screen">

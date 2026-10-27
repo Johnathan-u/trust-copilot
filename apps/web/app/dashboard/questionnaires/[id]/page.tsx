@@ -254,7 +254,7 @@ export default function QuestionnaireDetailPage() {
         {qnr.filename}
       </h1>
       <Card className="mb-6">
-        <div className="flex flex-wrap gap-4 text-sm items-center text-[var(--tc-text)]">
+        <div className="flex flex-wrap items-center gap-4 text-sm text-[var(--tc-text)]">
           <span>
             <strong>Status:</strong> {qnr.status}
           </span>
@@ -265,11 +265,7 @@ export default function QuestionnaireDetailPage() {
           )}
           <Link
             href={`/dashboard/review/${id}`}
-            className="px-3 py-1 rounded-lg text-sm font-medium text-white hover:opacity-90"
-            style={{
-              background:
-                'linear-gradient(135deg, var(--tc-primary-2), var(--tc-primary))',
-            }}
+            className="tc-btn-primary inline-flex min-h-tc-6 items-center rounded-tc-sm px-tc-3 py-tc-1 text-tc-label font-medium"
           >
             Review answers
           </Link>

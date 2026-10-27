@@ -105,7 +105,7 @@ async function proxy(
       body: body && body.byteLength > 0 ? body : undefined,
       cache: 'no-store',
     })
-  } catch (err) {
+  } catch {
     // Backend unreachable (ECONNREFUSED, etc.) — return 502 so the client gets a proper response
     // instead of an unhandled exception that surfaces as "Failed to fetch".
     return NextResponse.json(
