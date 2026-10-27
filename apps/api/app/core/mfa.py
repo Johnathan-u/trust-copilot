@@ -11,7 +11,9 @@ from app.core.config import get_settings
 
 def _fernet() -> Fernet:
     """Fernet key derived from session secret (32 bytes for key)."""
-    raw = hashlib.sha256(get_settings().session_secret.encode()).digest()
+    from app.core.session import get_session_secret
+
+    raw = hashlib.sha256(get_session_secret().encode()).digest()
     key = base64.urlsafe_b64encode(raw)
     return Fernet(key)
 

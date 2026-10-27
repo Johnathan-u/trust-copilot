@@ -17,24 +17,23 @@ import time
 
 import requests
 
+try:  # run as `python tests/<script>.py` or as `python -m tests.<script>`
+    from _live_session import forge_session_cookie, live_api
+except ImportError:  # pragma: no cover
+    from tests._live_session import forge_session_cookie, live_api
+
 API = os.environ.get("TC_API", "http://localhost:8000")
 POLL_INTERVAL = 3
 POLL_TIMEOUT = 300
-SESSION_SECRET = os.environ.get(
-    "TC_SESSION_SECRET",
-    "zDWud8xGEkOl_7ceEhfvrGeTNehTp3ttPHo9uYEcCGoyZUOlYvYBCiDHjp1stF_0",
-)
 
 
 def _make_session_cookie(workspace_id: int = 1) -> str:
-    payload = {"user_id": 1, "email": "reinhartjm294@gmail.com", "workspace_id": workspace_id, "role": "admin"}
-    data = base64.urlsafe_b64encode(json.dumps(payload).encode()).decode()
-    sig = hmac.new(SESSION_SECRET.encode("utf-8"), data.encode("utf-8"), "sha256").hexdigest()
-    return f"{data}.{sig}"
+    # TC-07-001: secret from TC_SESSION_SECRET (required), synthetic e-mail, short exp.
+    return forge_session_cookie(workspace_id)
 
 
 S = requests.Session()
-S.cookies.set("tc_session", _make_session_cookie())
+__test__ = False  # manual script; not a pytest module
 
 
 def _set_ws(ws_id: int) -> None:
@@ -612,6 +611,7 @@ ALL_DATASETS = [
 
 
 def main():
+    _set_ws(1)
     print("=" * 70)
     print("  TRUST COPILOT — 10-DATASET FRAMEWORK CLASSIFICATION VALIDATION")
     print("=" * 70)

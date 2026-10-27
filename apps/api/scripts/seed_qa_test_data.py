@@ -53,16 +53,25 @@ from app.services.file_service import make_key
 from app.services.storage import StorageClient
 from app.services.xlsx_questionnaire_parser import parse_xlsx_questionnaire
 
+try:
+    from scripts._seed_credentials import (
+        describe, refuse_production_seed, seed_password, should_reset_passwords, write_generated_credentials,
+    )
+except ImportError:  # run as `python scripts/<name>.py`
+    from _seed_credentials import (
+        describe, refuse_production_seed, seed_password, should_reset_passwords, write_generated_credentials,
+    )
+
 DEMO_EMAIL = "demo@trust.local"
-DEMO_PASSWORD = "j"
+DEMO_PASSWORD = seed_password("TC_SEED_DEMO_PASSWORD")
 ADMIN_EMAIL = "admin@trust.local"
-ADMIN_PASSWORD = "Admin123!"
+ADMIN_PASSWORD = seed_password("TC_SEED_ADMIN_PASSWORD")
 EDITOR_EMAIL = "editor@trust.local"
-EDITOR_PASSWORD = "Editor123!"
+EDITOR_PASSWORD = seed_password("TC_SEED_EDITOR_PASSWORD")
 REVIEWER_EMAIL = "reviewer@trust.local"
-REVIEWER_PASSWORD = "Reviewer123!"
+REVIEWER_PASSWORD = seed_password("TC_SEED_REVIEWER_PASSWORD")
 SUSPENDED_EMAIL = "suspended@trust.local"
-SUSPENDED_PASSWORD = "Suspended123!"
+SUSPENDED_PASSWORD = seed_password("TC_SEED_SUSPENDED_PASSWORD")
 
 WORKSPACE_1_ID = 1
 WORKSPACE_2_ID = 2
@@ -81,6 +90,9 @@ def ensure_user(db: Session, email: str, password: str, display_name: str) -> Us
         db.commit()
         db.refresh(user)
         print(f"  Created user: {email}")
+    elif should_reset_passwords():
+        user.password_hash = hash_password(password)
+        db.commit()
     return user
 
 
@@ -384,6 +396,7 @@ def seed_audit_events(db: Session, workspace_id: int, user_id: int, email: str) 
 
 
 def main() -> None:
+    refuse_production_seed()
     print("QA seed starting...", flush=True)
     db = SessionLocal()
     storage = None
@@ -416,11 +429,11 @@ def main() -> None:
             print(f"  Audit events: 5")
 
         print("\n--- QA test accounts ---", flush=True)
-        print(f"  Admin:    {ADMIN_EMAIL} / {ADMIN_PASSWORD}", flush=True)
-        print(f"  Editor:   {EDITOR_EMAIL} / {EDITOR_PASSWORD}", flush=True)
-        print(f"  Reviewer: {REVIEWER_EMAIL} / {REVIEWER_PASSWORD}", flush=True)
-        print(f"  Suspended:{SUSPENDED_EMAIL} / {SUSPENDED_PASSWORD} (blocked from app)", flush=True)
-        print(f"  Demo:     {DEMO_EMAIL} / {DEMO_PASSWORD} (admin in Workspace 1, editor in Workspace 2)", flush=True)
+        print(f"  Admin:    {ADMIN_EMAIL} / {describe('TC_SEED_ADMIN_PASSWORD')}", flush=True)
+        print(f"  Editor:   {EDITOR_EMAIL} / {describe('TC_SEED_EDITOR_PASSWORD')}", flush=True)
+        print(f"  Reviewer: {REVIEWER_EMAIL} / {describe('TC_SEED_REVIEWER_PASSWORD')}", flush=True)
+        print(f"  Suspended:{SUSPENDED_EMAIL} / {describe('TC_SEED_SUSPENDED_PASSWORD')} (blocked from app)", flush=True)
+        print(f"  Demo:     {DEMO_EMAIL} / {describe('TC_SEED_DEMO_PASSWORD')} (admin in Workspace 1, editor in Workspace 2)", flush=True)
         print("---", flush=True)
         print("Slack/Gmail: Connect manually in the app for those QA checks.", flush=True)
         print("QA seed complete.", flush=True)
@@ -429,4 +442,7 @@ def main() -> None:
 
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    finally:
+        write_generated_credentials()

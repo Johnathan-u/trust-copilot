@@ -81,13 +81,14 @@ class Settings:
         # When API runs inside Docker, keep "postgres" so it resolves to the postgres container.
         in_docker = os.path.exists("/.dockerenv") or os.environ.get("TRUST_COPILOT_IN_DOCKER") == "1"
         self.database_url: str = _rewrite_postgres_docker_hostname_to_localhost(raw, in_docker)
-        self.session_secret: str = os.getenv("SESSION_SECRET", "change_me_dev_secret")
+        # TC-07-001: no literal default; see app.core.session.get_session_secret for dev/test behaviour.
+        self.session_secret: str = os.getenv("SESSION_SECRET", "")
         self.app_base_url: str = os.getenv("APP_BASE_URL", "http://localhost:3000")
         self.frontend_url: str = os.getenv("FRONTEND_URL", "http://localhost:3000")
 
         self.s3_endpoint: str = os.getenv("S3_ENDPOINT", "http://localhost:9000")
-        self.s3_access_key: str = os.getenv("S3_ACCESS_KEY", "minio")
-        self.s3_secret_key: str = os.getenv("S3_SECRET_KEY", "minio123")
+        self.s3_access_key: str = os.getenv("S3_ACCESS_KEY", "")
+        self.s3_secret_key: str = os.getenv("S3_SECRET_KEY", "")
         self.s3_bucket_raw: str = os.getenv("S3_BUCKET_RAW", "trustcopilot-raw")
         self.s3_bucket_exports: str = os.getenv("S3_BUCKET_EXPORTS", "trustcopilot-exports")
         self.s3_use_ssl: bool = os.getenv("S3_USE_SSL", "false").lower() == "true"

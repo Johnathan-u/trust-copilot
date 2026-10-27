@@ -35,7 +35,7 @@ from app.core.mfa import (
 )
 from app.core.password import hash_password, verify_password
 from app.core.rate_limit import get_client_ip, is_rate_limited, record_attempt
-from app.core.session import sign_session, verify_token
+from app.core.session import get_session_secret, sign_session, verify_token
 from app.models import (
     AuditEvent,
     EmailVerificationToken,
@@ -637,7 +637,7 @@ def _oauth_create_signed_state(provider: str) -> str:
     }
     data = base64.urlsafe_b64encode(json.dumps(payload).encode()).decode()
     sig = hmac.new(
-        get_settings().session_secret.encode(),
+        get_session_secret().encode(),
         data.encode(),
         "sha256",
     ).hexdigest()
@@ -649,7 +649,7 @@ def _oauth_verify_signed_state(state: str, expected_provider: str) -> bool:
     try:
         data, sig = state.rsplit(".", 1)
         expected = hmac.new(
-            get_settings().session_secret.encode(),
+            get_session_secret().encode(),
             data.encode(),
             "sha256",
         ).hexdigest()

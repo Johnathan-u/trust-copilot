@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test'
+import { DEMO_EMAIL, demoPassword } from './credentials'
 
-const DEMO_EMAIL = 'demo@trust.local'
-const DEMO_PASSWORD = 'j'
+const DEMO_PASSWORD = demoPassword()
 
 async function login(page: import('@playwright/test').Page) {
   await page.goto('/login')

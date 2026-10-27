@@ -62,20 +62,22 @@ class TestSwitchWorkspaceSessionId:
 # ---------------------------------------------------------------------------
 
 class TestSessionSecretFallback:
-    """Session secret must fail fast in production if missing."""
+    """Session secret must fail fast in production if missing; no hard-coded fallback key (TC-07-001)."""
 
-    def test_dev_mode_uses_fallback(self):
-        """In dev mode, missing SESSION_SECRET uses fallback with warning."""
-        from app.core.session import _get_session_secret, _DEV_SECRET
+    def test_dev_mode_uses_ephemeral_random_fallback(self):
+        """In dev mode, missing SESSION_SECRET uses a random per-process key, never a literal."""
+        import app.core.session as session_mod
         with patch.dict(os.environ, {"APP_ENV": "development", "SESSION_SECRET": ""}, clear=False):
             from app.core.config import get_settings
             get_settings.cache_clear()
-            secret = _get_session_secret()
-            assert secret == _DEV_SECRET
+            secret = session_mod._get_session_secret()
+            assert secret and len(secret) >= 32
+            assert secret == session_mod._get_session_secret()  # stable within the process
+            assert not hasattr(session_mod, "_DEV_SECRET")
             get_settings.cache_clear()
 
     def test_production_mode_raises_without_secret(self):
-        """In production, missing or default SESSION_SECRET raises RuntimeError."""
+        """In production, missing SESSION_SECRET raises RuntimeError."""
         from app.core.session import _get_session_secret
         with patch.dict(os.environ, {"APP_ENV": "production", "SESSION_SECRET": ""}, clear=False):
             from app.core.config import get_settings
@@ -84,10 +86,11 @@ class TestSessionSecretFallback:
                 _get_session_secret()
             get_settings.cache_clear()
 
-    def test_production_mode_raises_with_dev_default(self):
-        """In production, using the dev default secret raises RuntimeError."""
+    @pytest.mark.parametrize("weak", ["placeholder", "test-secret", "x" * 40, "short-but-random-9f"])
+    def test_production_mode_raises_with_weak_or_placeholder(self, weak):
+        """In production, placeholder / short / low-diversity secrets raise RuntimeError."""
         from app.core.session import _get_session_secret
-        with patch.dict(os.environ, {"APP_ENV": "production", "SESSION_SECRET": "change_me_dev_secret"}, clear=False):
+        with patch.dict(os.environ, {"APP_ENV": "production", "SESSION_SECRET": weak}, clear=False):
             from app.core.config import get_settings
             get_settings.cache_clear()
             with pytest.raises(RuntimeError, match="SESSION_SECRET"):
@@ -95,12 +98,14 @@ class TestSessionSecretFallback:
             get_settings.cache_clear()
 
     def test_production_mode_accepts_real_secret(self):
-        """In production, a real secret works fine."""
+        """In production, a strong generated secret works fine."""
+        import secrets as _secrets
         from app.core.session import _get_session_secret
-        with patch.dict(os.environ, {"APP_ENV": "production", "SESSION_SECRET": "my-strong-production-secret-42"}, clear=False):
+        generated = _secrets.token_urlsafe(48)
+        with patch.dict(os.environ, {"APP_ENV": "production", "SESSION_SECRET": generated}, clear=False):
             from app.core.config import get_settings
             get_settings.cache_clear()
-            assert _get_session_secret() == "my-strong-production-secret-42"
+            assert _get_session_secret() == generated
             get_settings.cache_clear()
 
 

@@ -13,38 +13,83 @@ SESSION_MAX_AGE = 86400 * 7
 
 import logging as _logging
 import os as _os
+import secrets as _secrets
+import threading as _threading
 
 _session_logger = _logging.getLogger(__name__)
-_DEV_SECRET = "change_me_dev_secret"
+
+# TC-07-001: there is deliberately NO hard-coded fallback signing key.
+# Outside production, an unset SESSION_SECRET falls back to a random per-process value
+# (sessions do not survive a restart and are not shared between processes).
+_EPHEMERAL_SECRET: str | None = None
+_EPHEMERAL_LOCK = _threading.Lock()
+
+# Minimum length enforced in production (also enforced at startup in app.main / app.core.config_contract).
+MIN_PRODUCTION_SECRET_LENGTH = 32
+
+# Values that are obviously not secrets (copied from examples / docs / tests).
+_PLACEHOLDER_SECRETS = frozenset({
+    "placeholder", "changeme", "change-me", "change_me", "secret", "test-secret", "dev-secret",
+    "your-secret-here", "replace-me", "session-secret", "development", "default",
+})
+
+
+def is_weak_secret(value: str | None, min_length: int = MIN_PRODUCTION_SECRET_LENGTH) -> bool:
+    """True when ``value`` is unset, a known placeholder, too short, or trivially low-entropy."""
+    if not value or not isinstance(value, str):
+        return True
+    v = value.strip()
+    if v.lower() in _PLACEHOLDER_SECRETS or "placeholder" in v.lower():
+        return True
+    if len(v) < min_length:
+        return True
+    if len(set(v)) < 8:  # e.g. "aaaaaaaa..." or "abababab..."
+        return True
+    return False
+
+
+def _ephemeral_secret() -> str:
+    global _EPHEMERAL_SECRET
+    with _EPHEMERAL_LOCK:
+        if _EPHEMERAL_SECRET is None:
+            _EPHEMERAL_SECRET = _secrets.token_urlsafe(48)
+            _session_logger.warning(
+                "SESSION_SECRET is not set; using a random per-process signing key (dev/test only). "
+                "Sessions and encrypted values will not survive a restart. Set SESSION_SECRET in .env."
+            )
+        return _EPHEMERAL_SECRET
 
 
 def _get_session_secret() -> str:
-    """Get session secret for signing.
+    """Return the signing secret for session cookies, OAuth state and derived encryption keys.
 
-    In production (APP_ENV=production) the secret MUST be set explicitly;
-    startup will fail fast if it is missing or still the dev default.
-    In dev/test a fallback is allowed with a warning.
+    In production (APP_ENV=production) SESSION_SECRET MUST be set to a strong value
+    (>= 32 chars, not a placeholder); otherwise RuntimeError is raised (fail closed).
+    Outside production an unset value falls back to a random per-process key.
     """
     try:
         s = get_settings().session_secret
         if isinstance(s, bytes):
             s = s.decode("utf-8", "replace")
-        if s and isinstance(s, str) and s != _DEV_SECRET:
-            return s
     except Exception:
         s = None
 
     app_env = _os.getenv("APP_ENV", "development").lower()
     if app_env == "production":
-        raise RuntimeError(
-            "SESSION_SECRET is missing or using the default dev value. "
-            "Set a strong random SESSION_SECRET for production."
-        )
-    _session_logger.warning(
-        "SESSION_SECRET not set or using dev default — acceptable only in dev/test. "
-        "Set a strong random value before deploying."
-    )
-    return _DEV_SECRET
+        if is_weak_secret(s):
+            raise RuntimeError(
+                "SESSION_SECRET is missing, a placeholder, or weaker than required for production. "
+                "Set a cryptographically random SESSION_SECRET of at least 32 characters."
+            )
+        return s  # type: ignore[return-value]
+    if s and isinstance(s, str):
+        return s
+    return _ephemeral_secret()
+
+
+def get_session_secret() -> str:
+    """Public accessor used by every consumer of the signing secret (no module should read the env var directly)."""
+    return _get_session_secret()
 
 
 def sign_token(payload: dict) -> str:

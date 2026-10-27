@@ -1,7 +1,7 @@
 import { test, expect, type Page } from '@playwright/test'
+import { ADMIN_EMAIL, adminPassword } from './credentials'
 
-const ADMIN_EMAIL = 'admin@trust.local'
-const ADMIN_PASSWORD = 'Admin123!'
+const ADMIN_PASSWORD = adminPassword()
 
 async function loginAsAdmin(page: Page) {
   await page.goto('/login', { waitUntil: 'load' })

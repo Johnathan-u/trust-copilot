@@ -5,9 +5,9 @@
 import * as fs from 'fs'
 import * as path from 'path'
 import { test as setup, expect } from '@playwright/test'
+import { DEMO_EMAIL, demoPassword } from './credentials'
 
-const DEMO_EMAIL = 'demo@trust.local'
-const DEMO_PASSWORD = 'j'
+const DEMO_PASSWORD = demoPassword()
 const AUTH_FILE = 'e2e/.auth/user.json'
 
 setup('authenticate as demo user', async ({ page }) => {

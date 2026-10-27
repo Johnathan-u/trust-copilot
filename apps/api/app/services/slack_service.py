@@ -18,7 +18,9 @@ logger = logging.getLogger(__name__)
 
 def _fernet():
     from cryptography.fernet import Fernet
-    raw = hashlib.sha256(get_settings().session_secret.encode()).digest()
+    from app.core.session import get_session_secret
+
+    raw = hashlib.sha256(get_session_secret().encode()).digest()
     key = base64.urlsafe_b64encode(raw)
     return Fernet(key)
 

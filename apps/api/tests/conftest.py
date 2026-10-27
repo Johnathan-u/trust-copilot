@@ -16,7 +16,10 @@ from sqlalchemy.orm import Session
 os.environ["TRUST_COPILOT_TESTING"] = "1"
 _db_host = "postgres" if os.path.exists("/.dockerenv") else "localhost"
 os.environ["DATABASE_URL"] = f"postgresql://postgres:postgres@{_db_host}:5432/trustcopilot_test"
-os.environ["SESSION_SECRET"] = "test-secret"
+# TC-07-001: generated per test run; never a committed literal.
+import secrets as _secrets  # noqa: E402
+
+os.environ["SESSION_SECRET"] = _secrets.token_urlsafe(48)
 os.environ["S3_ENDPOINT"] = f"http://{'minio' if os.path.exists('/.dockerenv') else 'localhost'}:9000"
 os.environ["S3_ACCESS_KEY"] = "minio"
 os.environ["S3_SECRET_KEY"] = "minio123"

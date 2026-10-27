@@ -189,20 +189,19 @@ async def lifespan(app: FastAPI):
         logging.getLogger("app.main").warning("S3/MinIO bucket init skipped or failed: %s", e)
     configure_logging(s.log_level, use_json=(s.app_env == "production"))
     if s.app_env == "production":
-        if not s.session_secret or s.session_secret == "change_me_dev_secret":
+        from app.core.session import is_weak_secret
+
+        if is_weak_secret(s.session_secret):
             raise RuntimeError(
-                "APP_ENV=production requires SESSION_SECRET to be set and not the default. "
-                "Use a cryptographically secure value (min 32 chars)."
-            )
-        if len(s.session_secret) < 32:
-            raise RuntimeError(
-                "SESSION_SECRET must be at least 32 characters in production."
+                "APP_ENV=production requires SESSION_SECRET to be set to a cryptographically "
+                "random value of at least 32 characters (placeholders are rejected)."
             )
     else:
-        if not s.session_secret or s.session_secret == "change_me_dev_secret":
+        if not s.session_secret:
             import logging
             logging.getLogger("app.main").warning(
-                "SESSION_SECRET is default or unset. Set SESSION_SECRET to a secure value for non-local use."
+                "SESSION_SECRET is unset; a random per-process key is used (dev/test only). "
+                "Set SESSION_SECRET in .env for stable local sessions."
             )
     print("OpenAI: configured" if s.openai_api_key else "OpenAI: not configured (Suggest Reply will return 503 or empty)", flush=True)
     if s.oauth_google_client_id:

@@ -1,14 +1,21 @@
-import base64, hmac, json
+"""Manual live-API dump against a LOCAL stack (TC-07-001: no embedded secrets).
+
+Usage: TC_SESSION_SECRET=... python tests/fetch_full_qa.py
+"""
+
 import requests
 
-API = "http://localhost:8000"
-SECRET = "zDWud8xGEkOl_7ceEhfvrGeTNehTp3ttPHo9uYEcCGoyZUOlYvYBCiDHjp1stF_0"
+try:  # run as `python tests/<script>.py` or as `python -m tests.<script>`
+    from _live_session import forge_session_cookie, live_api
+except ImportError:  # pragma: no cover
+    from tests._live_session import forge_session_cookie, live_api
+
+API = live_api()
+
 
 def cookie(ws_id):
-    p = {"user_id":1,"email":"reinhartjm294@gmail.com","workspace_id":ws_id,"role":"admin"}
-    d = base64.urlsafe_b64encode(json.dumps(p).encode()).decode()
-    s = hmac.new(SECRET.encode(),d.encode(),"sha256").hexdigest()
-    return f"{d}.{s}"
+    return forge_session_cookie(ws_id)
+
 
 datasets = [
     ("1. SOC 2 / Redwood", 33, 185),
