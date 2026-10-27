@@ -547,11 +547,7 @@ def test_migration_columns_present(db_session):
 
 
 def test_migration_has_unique_descriptive_revision_after_075():
-    """Revision id stays descriptive. Parent is master's TC-21-001 head, not 075.
-
-    A later ticket may add one child revision. This revision stays on that
-    single head's chain.
-    """
+    """Revision id stays descriptive. Parent is master's TC-21-001 head, not 075."""
     from pathlib import Path
 
     script = _alembic_script()

@@ -46,12 +46,6 @@ STATE_DEDUPED = "deduped"
 STATE_DEAD = "dead-lettered"
 STATE_SUPPRESSED = "suppressed-by-preference"
 
-STATE_QUEUED = "queued"
-STATE_SENT = "sent"
-STATE_RETRYING = "retrying"
-STATE_DEDUPED = "deduped"
-STATE_DEAD = "dead-lettered"
-STATE_SUPPRESSED = "suppressed-by-preference"
 
 DEDUPE_ERROR_CODE = "claimed"
 CLAIM_LEASE = timedelta(minutes=15)
