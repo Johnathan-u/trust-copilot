@@ -15,7 +15,7 @@ import json
 from datetime import datetime, timezone
 from typing import Literal
 
-from sqlalchemy import func
+from sqlalchemy import func, text
 from sqlalchemy.orm import Session
 
 from app.models import Answer, Question, Questionnaire
@@ -46,7 +46,11 @@ SUBJECT_TO_EVIDENCE_DOC: dict[str, str] = {
 GAP_OUTCOME_CODES = ("no_evidence", "model_abstained")
 INSUFFICIENT_STATUS = "insufficient_evidence"
 GAP_TYPE_MISSING_EVIDENCE = "missing_evidence"
+# TC-10-002 retry placeholders. They are not evidence gaps; the next attempt rewrites them.
+LLM_ERROR_REASON = "llm_error"
 _DEFAULT_REASON = "No workspace evidence supports an answer to this question."
+# pg_advisory_xact_lock namespace for TC-02-BUG-015. Distinct from any other advisory lock in the app.
+_GAP_LOCK_NAMESPACE = 150015
 
 
 def suggested_evidence_title(subject: str) -> str:
@@ -76,12 +80,33 @@ def _gap_reason(answer: Answer) -> str:
     return _DEFAULT_REASON
 
 
+def _lock_questionnaire_gap_writes(db: Session, questionnaire_id: int) -> None:
+    """Serialize gap inserts for one questionnaire until this session commits or rolls back.
+
+    ``pg_advisory_xact_lock`` is held by the current transaction, so the existing-gap read and
+    the inserts below must stay on ``db`` with no commit between the lock and ``db.commit()``.
+    Non-Postgres binds (SQLite unit tests, if any) skip the lock; production is Postgres.
+    """
+    bind = db.get_bind()
+    dialect = getattr(getattr(bind, "dialect", None), "name", None)
+    if dialect != "postgresql":
+        return
+    # Literal 150015 is the BUG-015 namespace (_GAP_LOCK_NAMESPACE). The lock and the later
+    # db.commit() are the same session transaction; do not commit between them.
+    db.execute(
+        text(f"SELECT pg_advisory_xact_lock({_GAP_LOCK_NAMESPACE}, :questionnaire_id)"),
+        {"questionnaire_id": int(questionnaire_id)},
+    )
+
+
 def generate_gaps_for_questionnaire(db: Session, workspace_id: int, questionnaire_id: int) -> dict:
     """Create one open evidence gap per insufficient-evidence answer in a questionnaire.
 
     Idempotent: a question that already has a gap (any status) is left alone, so reruns do
-    not duplicate and accepted/dismissed gaps are not reopened. Scoped to the workspace
-    that owns the questionnaire. Returns ``{"generated": n, "total_insufficient": m}``.
+    not duplicate and accepted/dismissed gaps are not reopened. Concurrent callers take a
+    transaction advisory lock before reading existing gaps, so two overlapping runs still
+    insert once. Scoped to the workspace that owns the questionnaire. Returns
+    ``{"generated": n, "total_insufficient": m}``.
     """
     rows = (
         db.query(Answer, Question)
@@ -96,11 +121,17 @@ def generate_gaps_for_questionnaire(db: Session, workspace_id: int, questionnair
         .all()
     )
     eligible = [
-        (a, q) for a, q in rows if a.outcome_code is None or a.outcome_code in GAP_OUTCOME_CODES
+        (a, q)
+        for a, q in rows
+        if (a.outcome_code is None or a.outcome_code in GAP_OUTCOME_CODES)
+        and a.insufficient_reason != LLM_ERROR_REASON
     ]
     if not eligible:
         return {"generated": 0, "total_insufficient": 0}
 
+    # Same session and transaction as the commit at the end of this function. Releasing the
+    # lock any earlier would let a second run read "no gaps" and insert duplicates.
+    _lock_questionnaire_gap_writes(db, questionnaire_id)
     question_ids = [q.id for _a, q in eligible]
     existing = {
         qid

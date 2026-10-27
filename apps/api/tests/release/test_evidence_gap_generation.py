@@ -13,6 +13,8 @@ from __future__ import annotations
 
 import json
 import logging
+import threading
+import time
 import uuid
 from unittest.mock import MagicMock, patch
 
@@ -263,3 +265,106 @@ def test_gap_failure_marks_job_with_safe_code_in_production(
     )
     errors = [r for r in caplog.records if r.levelno >= logging.ERROR]
     assert any("evidence_gaps_failed" in r.getMessage() and r.exc_info for r in errors)
+
+
+def test_generator_skips_llm_error_placeholders(db_session: Session, qnr):
+    """TC-10-002 leaves insufficient_reason=llm_error rows for the retry. Those are not gaps."""
+    from app.services.evidence_gap_service import generate_gaps_for_questionnaire
+
+    db = db_session
+    q1, q2, q3 = _questions(db, qnr.id)
+    db.add_all(
+        [
+            Answer(
+                question_id=q1.id,
+                text="Insufficient evidence.",
+                status="insufficient_evidence",
+                outcome_code="no_evidence",
+                insufficient_reason="llm_error",
+            ),
+            Answer(
+                question_id=q2.id,
+                text="Insufficient evidence.",
+                status="insufficient_evidence",
+                outcome_code=None,
+                insufficient_reason="llm_error",
+            ),
+            Answer(
+                question_id=q3.id,
+                text="Insufficient evidence.",
+                status="insufficient_evidence",
+                outcome_code="no_evidence",
+                insufficient_reason="no_citations",
+            ),
+        ]
+    )
+    db.commit()
+
+    result = generate_gaps_for_questionnaire(db, WS_ID, qnr.id)
+    assert result == {"generated": 1, "total_insufficient": 1}
+    (gap,) = _gaps(db, qnr.id)
+    assert gap.question_id == q3.id
+
+
+def test_concurrent_generators_insert_one_gap_per_question(db_session: Session, qnr):
+    """Two overlapping runs must not duplicate gaps. Without the advisory lock this fails.
+
+    Each trial starts both calls together and pauses inside commit so the second call reaches
+    the existing-gap read before the first commit. The lock makes the second call wait.
+    """
+    from sqlalchemy.orm import Session as SASession
+
+    from app.core.database import SessionLocal
+    from app.services.evidence_gap_service import generate_gaps_for_questionnaire
+
+    db = db_session
+    qnr_id = qnr.id
+    questions = _questions(db, qnr_id)
+    for question in questions:
+        db.add(
+            Answer(
+                question_id=question.id,
+                text="Insufficient evidence.",
+                status="insufficient_evidence",
+                outcome_code="no_evidence",
+                insufficient_reason="no_citations",
+            )
+        )
+    db.commit()
+
+    original_commit = SASession.commit
+
+    def _commit_after_pause(self):
+        time.sleep(0.2)
+        return original_commit(self)
+
+    for trial in range(4):
+        db.query(EvidenceGap).filter(EvidenceGap.questionnaire_id == qnr_id).delete(
+            synchronize_session=False
+        )
+        db.commit()
+        barrier = threading.Barrier(2)
+        errors: list[BaseException] = []
+
+        def _run() -> None:
+            session = SessionLocal()
+            try:
+                barrier.wait(timeout=5)
+                generate_gaps_for_questionnaire(session, WS_ID, qnr_id)
+            except BaseException as exc:  # reported below; a leaked thread must not hide it
+                errors.append(exc)
+            finally:
+                session.close()
+
+        with patch.object(SASession, "commit", _commit_after_pause):
+            threads = [threading.Thread(target=_run, name=f"gap-gen-{trial}-{i}") for i in range(2)]
+            for thread in threads:
+                thread.start()
+            for thread in threads:
+                thread.join(timeout=10)
+        assert errors == []
+        assert not any(thread.is_alive() for thread in threads)
+        gaps = _gaps(db, qnr_id)
+        assert [g.question_id for g in gaps] == [
+            q.id for q in questions
+        ], f"trial {trial} wrote {len(gaps)} gaps for {len(questions)} questions"
