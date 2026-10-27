@@ -11,13 +11,13 @@ changes, and NULL references are allowed, so ON DELETE SET NULL keeps working (e
 questionnaire clears its evidence gaps without re-checking their other references). No data is read, changed or deleted by this revision.
 
 Revision ID: tc06001_same_workspace_refs
-Revises: tc24001_stripe_webhook_events
+Revises: tc10003b_idempotency_owner_token
 """
 
 from alembic import op
 
 revision = "tc06001_same_workspace_refs"
-down_revision = "tc24001_stripe_webhook_events"
+down_revision = "tc10003b_idempotency_owner_token"
 branch_labels = None
 depends_on = None
 
