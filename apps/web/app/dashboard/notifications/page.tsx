@@ -38,7 +38,18 @@ type LogEntry = {
   subject: string | null
   status: string
   error: string | null
+  delivery_state?: string | null
+  delivered_to_provider?: boolean
+  provider_mode?: string | null
+  dedupe_key?: string | null
+  attempt_count?: number | null
   created_at: string | null
+}
+
+type ChannelSwitches = {
+  email: boolean
+  slack: boolean
+  in_app: boolean
 }
 
 /* ──────────────────── Helpers ──────────────────── */
@@ -66,6 +77,13 @@ function severityDot(severity: string): string {
   if (severity === 'high') return 'bg-red-400'
   if (severity === 'medium') return 'bg-amber-400'
   return 'bg-slate-400'
+}
+
+function deliveryTone(entry: LogEntry): string {
+  const state = entry.delivery_state || entry.status
+  if (state === 'sent') return 'text-emerald-400'
+  if (state === 'failed' || state === 'dead-lettered') return 'text-red-400'
+  return 'text-amber-300'
 }
 
 function timeAgo(iso: string | null): string {
@@ -102,6 +120,49 @@ export default function ComplianceAlertsPage() {
   const [formError, setFormError] = useState<string | null>(null)
   const { confirm, dialog: confirmDialog } = useDestructiveConfirm()
   const [stubProviders, setStubProviders] = useState<string[]>([])
+  const [channels, setChannels] = useState<ChannelSwitches>({
+    email: true,
+    slack: true,
+    in_app: false,
+  })
+  const [prefError, setPrefError] = useState<string | null>(null)
+
+  const loadPreferences = useCallback(() => {
+    fetch('/api/notifications/channel-preferences', { credentials: 'include' })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data) => {
+        const effective = data?.effective
+        if (!effective) return
+        setChannels({
+          email: Boolean(effective.email),
+          slack: Boolean(effective.slack),
+          in_app: Boolean(effective.in_app),
+        })
+      })
+      .catch(() => {})
+  }, [])
+
+  useEffect(() => {
+    loadPreferences()
+  }, [loadPreferences])
+
+  const setChannel = async (
+    channel: keyof ChannelSwitches,
+    enabled: boolean
+  ) => {
+    setPrefError(null)
+    setChannels((prev) => ({ ...prev, [channel]: enabled }))
+    const r = await fetch('/api/notifications/channel-preferences', {
+      method: 'PUT',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ channel, enabled }),
+    })
+    if (!r.ok) {
+      setPrefError('Could not save that channel preference.')
+      loadPreferences()
+    }
+  }
 
   useEffect(() => {
     if (!canAdmin) return
@@ -221,6 +282,43 @@ export default function ComplianceAlertsPage() {
     }
   }
 
+  const channelCard = (
+    <Card className="p-5">
+      <h2 className="text-sm font-semibold text-[var(--tc-text)]">
+        Your channels
+      </h2>
+      <p className="text-xs text-[var(--tc-muted)] mt-0.5 mb-3">
+        These switches are for your user. Turning a channel off stops that
+        channel for you. Email and Slack start on. In-app starts off until you
+        enable it. Workspace alert rules are separate.
+      </p>
+      <div className="flex flex-wrap gap-4">
+        {(
+          [
+            ['email', 'Email'],
+            ['slack', 'Slack'],
+            ['in_app', 'In-app'],
+          ] as const
+        ).map(([key, label]) => (
+          <label
+            key={key}
+            className="flex items-center gap-2 text-sm text-[var(--tc-text)]"
+          >
+            <input
+              type="checkbox"
+              checked={channels[key]}
+              onChange={(e) => setChannel(key, e.target.checked)}
+            />
+            {label}
+          </label>
+        ))}
+      </div>
+      {prefError && (
+        <p className="mt-2 text-sm text-[var(--tc-danger)]">{prefError}</p>
+      )}
+    </Card>
+  )
+
   if (!canAdmin) {
     return (
       <div className="min-w-0 space-y-6">
@@ -229,9 +327,11 @@ export default function ComplianceAlertsPage() {
             Alerts / Notifications
           </h1>
           <p className="mt-1 text-sm text-[var(--tc-muted)]">
-            Admin access required to manage alerts.
+            Admin access is required to manage workspace alert rules. You can
+            still choose your own channels.
           </p>
         </div>
+        {channelCard}
       </div>
     )
   }
@@ -287,6 +387,8 @@ export default function ComplianceAlertsPage() {
           rejects this mode.
         </div>
       )}
+
+      {channelCard}
 
       {loading ? (
         <Card className="p-6">
@@ -474,16 +576,21 @@ export default function ComplianceAlertsPage() {
                           </div>
                         </div>
                         <div className="flex items-center gap-3 shrink-0">
-                          {entry.status === 'sent' ? (
-                            <span className="text-[10px] uppercase font-medium text-emerald-400">
-                              sent
-                            </span>
-                          ) : (
-                            <span
-                              className="text-[10px] uppercase font-medium text-red-400"
-                              title={entry.error || ''}
-                            >
-                              failed
+                          <span className="text-[10px] uppercase text-[var(--tc-muted)]">
+                            {entry.channel || 'email'}
+                          </span>
+                          <span
+                            className={`text-[10px] uppercase font-medium ${deliveryTone(entry)}`}
+                          >
+                            {(
+                              entry.delivery_state ||
+                              entry.status ||
+                              ''
+                            ).replaceAll('-', ' ')}
+                          </span>
+                          {entry.provider_mode === 'dev-stub' && (
+                            <span className="text-[10px] uppercase font-medium text-amber-300">
+                              Not delivered to the provider
                             </span>
                           )}
                           <span className="text-xs text-[var(--tc-muted)] w-16 text-right">
