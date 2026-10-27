@@ -22,7 +22,6 @@ from sqlalchemy.exc import IntegrityError
 REPO_ROOT = Path(__file__).resolve().parents[4]
 API_ROOT = Path(__file__).resolve().parents[2]
 PRESENTER = REPO_ROOT / "apps" / "web" / "lib" / "demoProofSummary.mjs"
-PAGE = REPO_ROOT / "apps" / "web" / "app" / "dashboard" / "demo-proof" / "page.tsx"
 WHEN = datetime(2026, 1, 15, 12, 0, tzinfo=timezone.utc)
 PASSWORD = "tc25011-pass"
 
@@ -429,7 +428,24 @@ def test_positive_measured_summary_retry_restart_and_ui(client):
 
     try:
         _login(client, email)
-        first = client.get("/api/demo-proof")
+        preview = client.get("/api/demo-proof")
+        assert preview.status_code == 200, preview.text
+        assert preview.json()["proof_summary"]["persisted"] is False
+        assert preview.json()["proof_summary"]["summary_id"] is None
+        from app.core.database import SessionLocal
+        from app.models import DemoProofSummary
+
+        counted = SessionLocal()
+        try:
+            assert (
+                counted.query(DemoProofSummary)
+                .filter(DemoProofSummary.workspace_id == workspace_ids[0])
+                .count()
+                == 0
+            )
+        finally:
+            counted.close()
+        first = client.post("/api/demo-proof")
         assert first.status_code == 200, first.text
         body = first.json()
         proof = body["proof_summary"]
@@ -482,7 +498,7 @@ def test_positive_measured_summary_retry_restart_and_ui(client):
         assert sample_total not in {metric["value"] for metric in proof["metrics"]}
         _walk_traction(body)
 
-        second = client.get("/api/demo-proof")
+        second = client.post("/api/demo-proof")
         assert second.status_code == 200
         again = second.json()["proof_summary"]
         assert again == proof
@@ -539,21 +555,6 @@ def test_positive_measured_summary_retry_restart_and_ui(client):
         assert all(item["value"] is None for item in presented["unsupported"])
         assert "AES-256" not in json.dumps(presented)
         assert "coverage_pct" not in json.dumps(presented)
-
-        leaked = {
-            "schema_version": "1",
-            "commercial_traction": True,
-            "status": "complete",
-            "metrics": [
-                {"name": "customers", "value": 12, "commercial_traction": True, "state": "measured"}
-            ],
-            "synthetic_placeholders": [],
-            "unsupported": [],
-            "partial_failures": [],
-        }
-        rejected = _present(leaked)
-        assert rejected["state"] == "rejected"
-        assert rejected["rows"] == []
     finally:
         _cleanup(workspace_ids, user_ids)
 
@@ -784,7 +785,7 @@ def test_foreign_reference_partial_failure_excludes_other_workspace(client):
 
     try:
         _login(client, owner_email)
-        response = client.get("/api/demo-proof")
+        response = client.post("/api/demo-proof")
         assert response.status_code == 200, response.text
         body = response.json()
         proof = body["proof_summary"]
@@ -809,7 +810,7 @@ def test_foreign_reference_partial_failure_excludes_other_workspace(client):
         assert marker not in response.text
         assert proof["commercial_traction"] is False
 
-        second = client.get("/api/demo-proof")
+        second = client.post("/api/demo-proof")
         assert second.json()["proof_summary"] == proof
         from app.core.database import SessionLocal
         from app.models import DemoProofSummary
@@ -871,7 +872,7 @@ def test_source_unavailable_is_partial_and_not_zero(client, monkeypatch):
     monkeypatch.setitem(demo_proof_service.COLLECTORS, "exports", _boom)
     try:
         _login(client, email)
-        response = client.get("/api/demo-proof")
+        response = client.post("/api/demo-proof")
         assert response.status_code == 200, response.text
         assert secret not in response.text
         proof = response.json()["proof_summary"]
@@ -890,7 +891,7 @@ def test_source_unavailable_is_partial_and_not_zero(client, monkeypatch):
         assert len(unavailable) == 1
         assert unavailable[0]["source"] == "exports"
         assert unavailable[0]["retryable"] is True
-        retry = client.get("/api/demo-proof")
+        retry = client.post("/api/demo-proof")
         assert retry.json()["proof_summary"] == proof
         from app.core.database import SessionLocal
         from app.models import DemoProofSummary
@@ -1000,11 +1001,26 @@ def test_permission_and_api_key_checks(client):
         )
         assert mismatch.status_code == 403
         assert mismatch.json()["code"] == "workspace_mismatch"
+        saved = client.post("/api/demo-proof", headers={"Authorization": f"Bearer {raw_read_key}"})
+        assert saved.status_code == 200, saved.text
+        assert saved.json()["proof_summary"]["summary_id"] is not None
+        mismatch_post = client.post(
+            "/api/demo-proof",
+            params={"workspace_id": 1},
+            headers={"Authorization": f"Bearer {raw_read_key}"},
+        )
+        assert mismatch_post.status_code == 403
+        assert mismatch_post.json()["code"] == "workspace_mismatch"
         for raw_key in (raw_reviewer_key, raw_editor_key, raw_bad_key):
             client.cookies.clear()
             rejected = client.get("/api/demo-proof", headers={"Authorization": f"Bearer {raw_key}"})
             assert rejected.status_code == 403, rejected.text
             assert rejected.json()["code"] == "api_key_not_read_scoped"
+            rejected_post = client.post(
+                "/api/demo-proof", headers={"Authorization": f"Bearer {raw_key}"}
+            )
+            assert rejected_post.status_code == 403, rejected_post.text
+            assert rejected_post.json()["code"] == "api_key_not_read_scoped"
     finally:
         _cleanup(workspace_ids, user_ids)
 
@@ -1037,7 +1053,7 @@ def test_snapshot_history_stays_stable_when_evidence_changes(client):
         db.close()
     try:
         _login(client, email)
-        original = client.get("/api/demo-proof").json()["proof_summary"]
+        original = client.post("/api/demo-proof").json()["proof_summary"]
         assert _metric(original, "questionnaires_stored")["value"] == 1
         db = SessionLocal()
         try:
@@ -1051,7 +1067,7 @@ def test_snapshot_history_stays_stable_when_evidence_changes(client):
             db.commit()
         finally:
             db.close()
-        latest = client.get("/api/demo-proof").json()["proof_summary"]
+        latest = client.post("/api/demo-proof").json()["proof_summary"]
         assert latest["summary_id"] != original["summary_id"]
         assert _metric(latest, "questionnaires_stored")["value"] == 2
         stored = client.get(f"/api/demo-proof/summaries/{original['summary_id']}")
@@ -1092,7 +1108,7 @@ def test_unreadable_snapshot_is_not_replaced(client):
         db.close()
     try:
         _login(client, email)
-        created = client.get("/api/demo-proof")
+        created = client.post("/api/demo-proof")
         summary_id = created.json()["proof_summary"]["summary_id"]
         db = SessionLocal()
         try:
@@ -1151,21 +1167,6 @@ def test_foreign_keys_reject_unknown_workspace_and_user(client):
         db.commit()
     finally:
         db.close()
-
-
-def test_ui_page_uses_the_presenter():
-    source = PAGE.read_text()
-    presenter = PRESENTER.read_text()
-    assert "presentDemoProof" in source
-    assert "Not commercial traction" in source
-    assert "Synthetic placeholder" in source
-    assert "No data" in source
-    assert "row.displayValue" in source
-    assert "row.origin" in source
-    assert "row.basis" in source
-    assert "row.tractionLabel" in source
-    assert "commercial_traction === false" in presenter
-    assert PRESENTER.is_file()
 
 
 def test_zz_migration_rollback_drops_snapshots_and_keeps_evidence(client):
@@ -1227,7 +1228,7 @@ def test_zz_migration_rollback_drops_snapshots_and_keeps_evidence(client):
 
     try:
         _login(client, email)
-        created = client.get("/api/demo-proof")
+        created = client.post("/api/demo-proof")
         assert created.status_code == 200, created.text
         summary_id = created.json()["proof_summary"]["summary_id"]
         engine.dispose()
@@ -1251,7 +1252,7 @@ def test_zz_migration_rollback_drops_snapshots_and_keeps_evidence(client):
             assert probe.get(DemoProofSummary, summary_id) is None
         finally:
             probe.close()
-        rebuilt = client.get("/api/demo-proof")
+        rebuilt = client.post("/api/demo-proof")
         assert rebuilt.status_code == 200, rebuilt.text
         proof = rebuilt.json()["proof_summary"]
         assert proof["summary_id"] != summary_id

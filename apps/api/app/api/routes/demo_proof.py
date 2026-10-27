@@ -120,7 +120,7 @@ async def get_demo_package(
     session: dict = Depends(require_session),
     db: Session = Depends(get_db),
 ):
-    """Full package. The proof summary is persisted and reused when the evidence is unchanged."""
+    """Full package. Reads stored rows and does not write a snapshot."""
     blocked = _guard(request, db, session, workspace_id)
     if blocked is not None:
         return blocked
@@ -134,13 +134,70 @@ async def get_demo_package(
             request,
             field_errors={exc.field: exc.message},
         )
-    return generate_demo_package(
-        db,
-        session["workspace_id"],
-        user_id=session.get("user_id"),
-        window_start=start,
-        window_end=end,
-    )
+    try:
+        return generate_demo_package(
+            db,
+            session["workspace_id"],
+            user_id=session.get("user_id"),
+            window_start=start,
+            window_end=end,
+            persist=False,
+        )
+    except SummaryUnreadable:
+        return _api_error(
+            500,
+            "summary_unreadable",
+            "The stored summary could not be read. It was not replaced with a new figure.",
+            request,
+            retryable=True,
+        )
+
+
+@router.post("")
+async def save_demo_package(
+    request: Request,
+    window_start: str | None = Query(default=None),
+    window_end: str | None = Query(default=None),
+    workspace_id: int | None = Query(default=None),
+    session: dict = Depends(require_session),
+    db: Session = Depends(get_db),
+):
+    """Store a snapshot for the caller's workspace and return that package.
+
+    This is the only demo-proof route that writes. The write is one snapshot
+    row for the session workspace. It does not change evidence rows and it
+    does not write another workspace.
+    """
+    blocked = _guard(request, db, session, workspace_id)
+    if blocked is not None:
+        return blocked
+    try:
+        start, end = parse_window(window_start, window_end)
+    except WindowError as exc:
+        return _api_error(
+            400,
+            "invalid_window",
+            exc.message,
+            request,
+            field_errors={exc.field: exc.message},
+        )
+    try:
+        return generate_demo_package(
+            db,
+            session["workspace_id"],
+            user_id=session.get("user_id"),
+            window_start=start,
+            window_end=end,
+            persist=True,
+        )
+    except SummaryUnreadable:
+        return _api_error(
+            500,
+            "summary_unreadable",
+            "The stored summary could not be read. It was not replaced with a new figure.",
+            request,
+            retryable=True,
+        )
 
 
 @router.get("/summaries/{summary_id}")

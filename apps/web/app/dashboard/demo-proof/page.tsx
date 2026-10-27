@@ -51,6 +51,7 @@ export default function DemoProofPage() {
       const response = await fetch(
         query ? `/api/demo-proof?${query}` : '/api/demo-proof',
         {
+          method: 'POST',
           credentials: 'include',
         }
       )
@@ -140,7 +141,7 @@ export default function DemoProofPage() {
             />
           </div>
           <Button type="submit" loading={loading}>
-            Load summary
+            Save summary
           </Button>
           <Button
             type="button"
@@ -168,7 +169,7 @@ export default function DemoProofPage() {
       {!presented && !error && !loading && (
         <EmptyState
           title="No summary loaded"
-          description="Load the workspace summary. An empty workspace is shown as no data, not as a sample result."
+          description="Save a snapshot of records stored in this workspace. An empty workspace is shown as no data, not as a sample result."
         />
       )}
 

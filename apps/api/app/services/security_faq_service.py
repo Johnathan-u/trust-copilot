@@ -132,8 +132,13 @@ DEFAULT_FAQ: list[dict] = [
 ]
 
 
+# TC-01-005: default answers describe an assumed deployment (hosting provider,
+# encryption, backups, uptime, subprocessors, DPA). They are unverified templates.
+DEFAULT_TEMPLATE_NOTICE = "[Template: verify against your deployment before publishing] "
+
+
 def seed_defaults(db: Session, workspace_id: int) -> int:
-    """Seed default FAQ entries for a workspace. Skips if entries already exist."""
+    """Seed default FAQ template entries for a workspace. Skips if entries already exist."""
     existing = (
         db.query(SecurityFAQ)
         .filter(
@@ -152,7 +157,7 @@ def seed_defaults(db: Session, workspace_id: int) -> int:
                 workspace_id=workspace_id,
                 category=faq["category"],
                 question=faq["question"],
-                answer=faq["answer"],
+                answer=DEFAULT_TEMPLATE_NOTICE + faq["answer"],
                 framework_tags=faq.get("framework_tags"),
                 is_default=1,
             )

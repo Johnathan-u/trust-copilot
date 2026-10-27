@@ -1,18 +1,22 @@
-"""Demo proof summaries (TC-25-011).
+"""Demo proof summaries.
 
-Additive table. No backfill: a historical snapshot would invent a proof that
-was never generated. Existing workspaces get a summary on the next authorized
-read, built only from rows stored at that time.
+Additive empty table. This revision does not import application code, and it
+does not rename, update, or overwrite existing rows. A historical snapshot is
+not backfilled, because that would invent a proof that was never stored.
+A snapshot is written later by an authorized save for that workspace, from
+rows stored at that time.
 
-Rollback drops this table and the snapshots in it. Questionnaires, documents,
-evidence, exports and other workspace records are left in place.
+Downgrade drops only demo_proof_summaries. Those rows are derived snapshot
+data. They are not source evidence. The next authorized save rebuilds a
+snapshot from the questionnaires, documents, evidence, and exports that this
+downgrade leaves in place. Snapshot history itself is not restored.
 
 Revision ID: tc25011_demo_proof_summaries
 Revises: 075
 
 down_revision stays 075 until this branch merges. Whoever merges second
 re-parents down_revision onto master's head. The numeric id 076 is not used:
-it collides with TC-25-005 and with Core PR #16.
+it collides with another ticket and with Core PR #16.
 """
 
 import sqlalchemy as sa

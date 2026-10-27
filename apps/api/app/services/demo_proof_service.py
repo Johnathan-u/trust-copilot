@@ -1,8 +1,11 @@
 """Demo proof package and evidence-backed demonstration summaries.
 
-The sample questionnaire, coverage report, gap list and walkthrough are a
-synthetic placeholder. They are labeled as such and are not measurements of a
-workspace. Proof summary metrics are counts of rows stored for that workspace.
+Everything produced from SAMPLE_QUESTIONNAIRE is synthetic example data.
+The answers and confidence values are hardcoded illustrations, not output
+from a real workspace, a real audit, or a verified deployment. Those outputs
+carry data_basis and disclaimer fields so they cannot be shown as real.
+
+Proof summary metrics are counts of rows stored for the caller's workspace.
 Where a count cannot be read, the value is null and the state is unavailable.
 Customers, revenue and traffic are unsupported. Nothing here is commercial
 traction.
@@ -30,9 +33,10 @@ from app.models.user import User
 logger = logging.getLogger(__name__)
 
 SCHEMA_VERSION = "1"
+SYNTHETIC_DATA_BASIS = "synthetic_example"
 SYNTHETIC_DISCLAIMER = (
-    "Synthetic placeholder for demonstration layout only. These figures are not "
-    "stored evidence, not a measurement of this workspace, and not commercial traction."
+    "Example data for demonstration only. Answers and confidence values are "
+    "hardcoded illustrations, not results from a real customer, audit, or deployment."
 )
 TRACTION_REASON = (
     "This demonstration summary is not commercial traction. Stored counts are "
@@ -123,7 +127,7 @@ SAMPLE_QUESTIONNAIRE = {
                 },
                 {
                     "text": "How do you ensure data isolation between tenants?",
-                    "answer": "Workspace-level tenant isolation is enforced at the application layer. Every database query is scoped to the authenticated user's workspace_id. Storage paths include workspace identifiers. Vector search is filtered by workspace_id. Background jobs are workspace-scoped. Isolation is validated by automated integration tests.",
+                    "answer": "Workspace-level tenant isolation is enforced at the application layer. Every database query is scoped to the authenticated user's workspace_id. Storage paths include workspace identifiers. Vector search is filtered by workspace_id. Background jobs are workspace-scoped.",
                     "confidence": 97,
                     "evidence": "Workspace scoping in all API routes; test_tenant_isolation.py; auth_deps.py workspace filtering",
                 },
@@ -185,7 +189,7 @@ def _synthetic_fields() -> dict:
         "measured": False,
         "estimated": False,
         "commercial_traction": False,
-        "data_basis": "synthetic_example",
+        "data_basis": SYNTHETIC_DATA_BASIS,
         "data_window": _empty_window(
             applicable=False,
             reason="Synthetic placeholder has no observation window.",
@@ -200,11 +204,13 @@ def generate_demo_package(
     user_id: int | None = None,
     window_start: datetime | None = None,
     window_end: datetime | None = None,
+    persist: bool = False,
 ) -> dict:
-    """Return the legacy package plus the persisted proof summary.
+    """Return the legacy package plus the proof summary.
 
-    The sample blocks stay in the response so existing clients keep their keys.
-    They are labeled synthetic and are not inputs to the proof summary.
+    Sample blocks stay so existing clients keep their keys. They are labeled
+    synthetic and are not inputs to the proof summary. persist=True stores a
+    snapshot for this workspace only. The default reads and does not write.
     """
     questionnaire = _build_sample_questionnaire()
     coverage = _build_coverage_report(questionnaire)
@@ -216,6 +222,7 @@ def generate_demo_package(
         user_id=user_id,
         window_start=window_start,
         window_end=window_end,
+        persist=persist,
     )
     return {
         "schema_version": SCHEMA_VERSION,
@@ -223,6 +230,8 @@ def generate_demo_package(
         "workspace_id": workspace_id,
         "commercial_traction": False,
         "sample_data_origin": "synthetic",
+        "data_basis": SYNTHETIC_DATA_BASIS,
+        "disclaimer": SYNTHETIC_DISCLAIMER,
         "sample_questionnaire": questionnaire,
         "coverage_report": coverage,
         "gap_list": gaps,
@@ -238,8 +247,14 @@ def build_proof_summary(
     user_id: int | None = None,
     window_start: datetime | None = None,
     window_end: datetime | None = None,
+    persist: bool = False,
 ) -> dict:
-    """Build or reuse the evidence-backed summary for this workspace and window."""
+    """Build the evidence-backed summary for this workspace and window.
+
+    persist=True stores a snapshot for this workspace. Otherwise an existing
+    snapshot with the same evidence hash is returned, and a new result is not
+    written.
+    """
     window = (window_start, window_end)
     collected = {}
     unavailable = []
@@ -346,7 +361,20 @@ def build_proof_summary(
         "unsupported": _unsupported(data_window),
         "partial_failures": partial,
     }
-    return _persist_summary(db, workspace_id, user_id, body)
+    digest = _body_digest(body)
+    if persist:
+        return _persist_summary(db, workspace_id, user_id, body, digest)
+    existing = _find_snapshot(db, workspace_id, digest)
+    if existing is not None:
+        return existing
+    return {
+        **body,
+        "generated_at": None,
+        "content_hash": digest,
+        "idempotency_key": digest,
+        "summary_id": None,
+        "persisted": False,
+    }
 
 
 def load_summary(db: Session, workspace_id: int, summary_id: int) -> dict:
@@ -364,7 +392,7 @@ def load_summary(db: Session, workspace_id: int, summary_id: int) -> dict:
     try:
         data = json.loads(row.summary_json)
     except json.JSONDecodeError as exc:
-        logger.warning("demo proof summary %s is not valid JSON", summary_id)
+        logger.warning("demo proof summary %s is not valid JSON", row.id)
         raise SummaryUnreadable() from exc
     if not isinstance(data, dict):
         raise SummaryUnreadable()
@@ -753,10 +781,15 @@ def _partial_failures(foreign: list[dict], unavailable: list[str]) -> list[dict]
     return rows
 
 
-def _persist_summary(db: Session, workspace_id: int, user_id: int | None, body: dict) -> dict:
-    digest = hashlib.sha256(
+def _body_digest(body: dict) -> str:
+    return hashlib.sha256(
         json.dumps(body, sort_keys=True, separators=(",", ":"), ensure_ascii=True).encode("utf-8")
     ).hexdigest()
+
+
+def _persist_summary(
+    db: Session, workspace_id: int, user_id: int | None, body: dict, digest: str
+) -> dict:
     existing = _find_snapshot(db, workspace_id, digest)
     if existing is not None:
         return existing
@@ -807,7 +840,13 @@ def _find_snapshot(db: Session, workspace_id: int, digest: str) -> dict | None:
     )
     if row is None:
         return None
-    data = json.loads(row.summary_json)
+    try:
+        data = json.loads(row.summary_json)
+    except json.JSONDecodeError as exc:
+        logger.warning("demo proof snapshot for workspace %s is not valid JSON", workspace_id)
+        raise SummaryUnreadable() from exc
+    if not isinstance(data, dict):
+        raise SummaryUnreadable()
     if not data.get("summary_id"):
         # The winning transaction had not stored the id. This request lost the race
         # before the winner committed a readable snapshot. Caller retries the lookup
