@@ -36,7 +36,9 @@ def parse_answer_evidence_document_ids(qnr: Questionnaire) -> frozenset[int] | N
     try:
         ids = json.loads(raw)
     except (json.JSONDecodeError, TypeError):
-        logger.warning("questionnaire %s: invalid answer_evidence_document_ids_json", getattr(qnr, "id", "?"))
+        logger.warning(
+            "questionnaire %s: invalid answer_evidence_document_ids_json", getattr(qnr, "id", "?")
+        )
         return None
     if not isinstance(ids, list) or len(ids) == 0:
         return None

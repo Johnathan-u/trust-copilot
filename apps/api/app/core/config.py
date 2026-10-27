@@ -126,10 +126,14 @@ class Settings:
     """Application settings."""
 
     def __init__(self):
-        raw = os.getenv("DATABASE_URL", "postgresql://postgres:postgres@localhost:5432/trustcopilot")
+        raw = os.getenv(
+            "DATABASE_URL", "postgresql://postgres:postgres@localhost:5432/trustcopilot"
+        )
         # When API runs on host, "postgres" hostname (Docker) doesn't resolve; use localhost.
         # When API runs inside Docker, keep "postgres" so it resolves to the postgres container.
-        in_docker = os.path.exists("/.dockerenv") or os.environ.get("TRUST_COPILOT_IN_DOCKER") == "1"
+        in_docker = (
+            os.path.exists("/.dockerenv") or os.environ.get("TRUST_COPILOT_IN_DOCKER") == "1"
+        )
         self.database_url: str = _rewrite_postgres_docker_hostname_to_localhost(raw, in_docker)
         self.session_secret: str = os.getenv("SESSION_SECRET", "change_me_dev_secret")
         self.app_base_url: str = os.getenv("APP_BASE_URL", "http://localhost:3000")
@@ -157,7 +161,9 @@ class Settings:
         self.mapping_llm_rerank_enabled: bool = _mllm not in ("0", "false", "no")
         self.mapping_rerank_model: str = os.getenv("MAPPING_RERANK_MODEL") or self.completion_model
         try:
-            self.mapping_rerank_min_confidence: float = float(os.getenv("MAPPING_RERANK_MIN_CONFIDENCE", "0.82"))
+            self.mapping_rerank_min_confidence: float = float(
+                os.getenv("MAPPING_RERANK_MIN_CONFIDENCE", "0.82")
+            )
         except ValueError:
             self.mapping_rerank_min_confidence = 0.82
         # When true, bulk POST /generate-mappings runs LLM rerank (slow). Default false: heuristic only for bulk.
@@ -171,9 +177,15 @@ class Settings:
         # Structured LLM classification per question during generate-mappings (enterprise pipeline).
         # MAPPING_MODE: 'llm_structured' (default prod — LLM every question), 'heuristic' (legacy).
         _mmode = os.getenv("MAPPING_MODE", "llm_structured").lower()
-        self.mapping_mode: str = _mmode if _mmode in ("llm_structured", "heuristic") else "llm_structured"
-        self.mapping_classification_model: str = os.getenv("MAPPING_CLASSIFICATION_MODEL") or self.completion_model
-        self.mapping_classification_prompt_version: str = os.getenv("MAPPING_CLASSIFICATION_PROMPT_VERSION", "v1")
+        self.mapping_mode: str = (
+            _mmode if _mmode in ("llm_structured", "heuristic") else "llm_structured"
+        )
+        self.mapping_classification_model: str = (
+            os.getenv("MAPPING_CLASSIFICATION_MODEL") or self.completion_model
+        )
+        self.mapping_classification_prompt_version: str = os.getenv(
+            "MAPPING_CLASSIFICATION_PROMPT_VERSION", "v1"
+        )
 
         # OAuth (ENT-201) - optional; leave unset to hide OAuth buttons
         self.oauth_google_client_id: str | None = os.getenv("OAUTH_GOOGLE_CLIENT_ID")
@@ -198,10 +210,16 @@ class Settings:
         self.idme_redirect_path: str = os.getenv("IDME_REDIRECT_PATH", "/api/auth/idme/callback")
 
         # Use pgvector index for semantic search when True (requires migration 024)
-        self.use_pgvector_index: bool = os.getenv("USE_PGVECTOR_INDEX", "1").lower() in ("1", "true", "yes")
+        self.use_pgvector_index: bool = os.getenv("USE_PGVECTOR_INDEX", "1").lower() in (
+            "1",
+            "true",
+            "yes",
+        )
 
         # Phase 4: adaptive concurrency for answer generation (wave-based, 2-6 workers). Default off for stability.
-        self.use_adaptive_concurrency: bool = os.getenv("USE_ADAPTIVE_CONCURRENCY", "0").lower() in ("1", "true", "yes")
+        self.use_adaptive_concurrency: bool = os.getenv(
+            "USE_ADAPTIVE_CONCURRENCY", "0"
+        ).lower() in ("1", "true", "yes")
 
         # Redis for rate limiting in production (optional; uses in-memory when unset)
         self.redis_url: str | None = os.getenv("REDIS_URL")

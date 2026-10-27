@@ -198,11 +198,7 @@ def stripe_preflight_issues(settings) -> list[PreflightIssue]:
                 True,
             )
         )
-    if (
-        getattr(settings, "app_env", "") == "production"
-        and mode is None
-        and key_mode != "unknown"
-    ):
+    if getattr(settings, "app_env", "") == "production" and mode is None and key_mode != "unknown":
         issues.append(
             PreflightIssue(
                 "mode_unresolved",

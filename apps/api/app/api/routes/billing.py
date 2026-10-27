@@ -65,16 +65,24 @@ async def create_checkout_session(
 
     workspace_id = body.workspace_id or actor.workspace_id or 0
 
-    existing = db.query(Subscription).filter(
-        Subscription.workspace_id == workspace_id,
-        Subscription.status.in_(["active", "trialing"]),
-    ).first()
+    existing = (
+        db.query(Subscription)
+        .filter(
+            Subscription.workspace_id == workspace_id,
+            Subscription.status.in_(["active", "trialing"]),
+        )
+        .first()
+    )
     if existing:
         raise HTTPException(status_code=400, detail="Workspace already has an active subscription")
 
-    sub_row = db.query(Subscription).filter(
-        Subscription.user_id == user_id,
-    ).first()
+    sub_row = (
+        db.query(Subscription)
+        .filter(
+            Subscription.user_id == user_id,
+        )
+        .first()
+    )
     customer_id = sub_row.stripe_customer_id if sub_row else None
 
     if not customer_id:
@@ -127,9 +135,14 @@ async def get_subscription(
     """Return the current workspace's subscription status."""
     actor = principal_for_billing_session(session)
     workspace_id = actor.workspace_id or 0
-    sub = db.query(Subscription).filter(
-        Subscription.workspace_id == workspace_id,
-    ).order_by(Subscription.created_at.desc()).first()
+    sub = (
+        db.query(Subscription)
+        .filter(
+            Subscription.workspace_id == workspace_id,
+        )
+        .order_by(Subscription.created_at.desc())
+        .first()
+    )
 
     if not sub:
         return {"status": "none", "plan": None}
@@ -137,9 +150,9 @@ async def get_subscription(
     return {
         "status": sub.status,
         "plan": sub.plan,
-        "current_period_end": (
-            sub.current_period_end.isoformat() if sub.current_period_end else None
-        ),
+        "current_period_end": sub.current_period_end.isoformat()
+        if sub.current_period_end
+        else None,
         "cancel_at_period_end": bool(sub.cancel_at_period_end),
     }
 
@@ -155,9 +168,13 @@ async def create_portal_session(
     actor = principal_for_billing_session(session)
     workspace_id = actor.workspace_id or 0
 
-    sub = db.query(Subscription).filter(
-        Subscription.workspace_id == workspace_id,
-    ).first()
+    sub = (
+        db.query(Subscription)
+        .filter(
+            Subscription.workspace_id == workspace_id,
+        )
+        .first()
+    )
     if not sub or not sub.stripe_customer_id:
         raise HTTPException(status_code=400, detail="No billing account found")
 

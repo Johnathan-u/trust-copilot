@@ -7,14 +7,24 @@ interface ToastProps {
   onDismiss?: () => void
 }
 
-export function Toast({ title, message, type = 'success', onDismiss }: ToastProps) {
+export function Toast({
+  title,
+  message,
+  type = 'success',
+  onDismiss,
+}: ToastProps) {
   const iconBg =
     type === 'success'
       ? 'rgba(34,197,94,0.15)'
       : type === 'error'
         ? 'rgba(239,68,68,0.15)'
         : 'rgba(91,124,255,0.15)'
-  const iconColor = type === 'success' ? '#86efac' : type === 'error' ? '#fca5a5' : 'var(--tc-soft)'
+  const iconColor =
+    type === 'success'
+      ? '#86efac'
+      : type === 'error'
+        ? '#fca5a5'
+        : 'var(--tc-soft)'
 
   return (
     <div
@@ -32,7 +42,9 @@ export function Toast({ title, message, type = 'success', onDismiss }: ToastProp
       </div>
       <div className="min-w-0">
         <strong className="block text-[var(--tc-text)]">{title}</strong>
-        <span className="mt-1 block text-[13px] leading-snug text-[var(--tc-muted)]">{message}</span>
+        <span className="mt-1 block text-[13px] leading-snug text-[var(--tc-muted)]">
+          {message}
+        </span>
       </div>
       {onDismiss && (
         <button

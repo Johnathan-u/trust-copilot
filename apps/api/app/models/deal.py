@@ -13,7 +13,9 @@ class Deal(Base):
     __tablename__ = "deals"
 
     id = Column(Integer, primary_key=True, index=True)
-    workspace_id = Column(Integer, ForeignKey("workspaces.id", ondelete="CASCADE"), nullable=False, index=True)
+    workspace_id = Column(
+        Integer, ForeignKey("workspaces.id", ondelete="CASCADE"), nullable=False, index=True
+    )
     company_name = Column(String(255), nullable=False)
     buyer_contact_name = Column(String(255), nullable=True)
     buyer_contact_email = Column(String(255), nullable=True)

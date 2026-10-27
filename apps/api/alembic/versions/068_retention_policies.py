@@ -3,6 +3,7 @@
 Revision ID: 068
 Revises: 067
 """
+
 from alembic import op
 import sqlalchemy as sa
 
@@ -16,7 +17,13 @@ def upgrade() -> None:
     op.create_table(
         "retention_policies",
         sa.Column("id", sa.Integer(), primary_key=True, autoincrement=True),
-        sa.Column("workspace_id", sa.Integer(), sa.ForeignKey("workspaces.id", ondelete="CASCADE"), nullable=False, index=True),
+        sa.Column(
+            "workspace_id",
+            sa.Integer(),
+            sa.ForeignKey("workspaces.id", ondelete="CASCADE"),
+            nullable=False,
+            index=True,
+        ),
         sa.Column("source_type", sa.String(64), nullable=True),
         sa.Column("retention_days", sa.Integer(), nullable=False, server_default="365"),
         sa.Column("archive_after_days", sa.Integer(), nullable=True),

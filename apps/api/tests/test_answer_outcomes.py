@@ -84,7 +84,12 @@ def test_answer_outcomes_api(admin_client, db_session):
     db_session.commit()
 
     admin_client.cookies.clear()
-    assert admin_client.post("/api/auth/login", json={"email": "admin@trust.local", "password": "a"}).status_code == 200
+    assert (
+        admin_client.post(
+            "/api/auth/login", json={"email": "admin@trust.local", "password": "a"}
+        ).status_code
+        == 200
+    )
 
     r = admin_client.post(
         "/api/answer-outcomes",

@@ -11,8 +11,12 @@ class ControlStateSnapshot(Base):
     __tablename__ = "control_state_snapshots"
 
     id = Column(Integer, primary_key=True, autoincrement=True)
-    workspace_id = Column(Integer, ForeignKey("workspaces.id", ondelete="CASCADE"), nullable=False, index=True)
-    control_id = Column(Integer, ForeignKey("workspace_controls.id", ondelete="CASCADE"), nullable=False, index=True)
+    workspace_id = Column(
+        Integer, ForeignKey("workspaces.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    control_id = Column(
+        Integer, ForeignKey("workspace_controls.id", ondelete="CASCADE"), nullable=False, index=True
+    )
     status = Column(String(32), nullable=False)
     previous_status = Column(String(32), nullable=True)
     evaluated_by = Column(String(64), nullable=False, default="system")

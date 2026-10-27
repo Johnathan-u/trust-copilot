@@ -111,9 +111,9 @@ def bag(_ensure_test_data):
             db.query(StripeWebhookEvent).filter(
                 StripeWebhookEvent.stripe_event_id.in_(state["events"])
             ).delete(synchronize_session=False)
-        db.query(Subscription).filter(
-            Subscription.stripe_subscription_id == state["sub"]
-        ).delete(synchronize_session=False)
+        db.query(Subscription).filter(Subscription.stripe_subscription_id == state["sub"]).delete(
+            synchronize_session=False
+        )
         db.commit()
     except Exception:
         db.rollback()
@@ -531,11 +531,14 @@ def test_replay_is_a_noop_and_does_not_reapply(billing_client, stripe_settings, 
 
     checkout_id = new_event_id(bag, "replay_checkout")
     update_id = new_event_id(bag, "replay_update")
-    assert post_webhook(
-        billing_client,
-        checkout_body(checkout_id, 1_700_000_000, bag["sub"]),
-        SECRET_A,
-    ).status_code == 200
+    assert (
+        post_webhook(
+            billing_client,
+            checkout_body(checkout_id, 1_700_000_000, bag["sub"]),
+            SECRET_A,
+        ).status_code
+        == 200
+    )
     update = subscription_body(
         update_id,
         "customer.subscription.updated",
@@ -620,11 +623,14 @@ def test_concurrent_duplicate_event_ids_hit_unique_constraint(stripe_settings, b
 
 def test_out_of_order_events_do_not_regress_state(billing_client, stripe_settings, bag):
     sub = bag["sub"]
-    assert post_webhook(
-        billing_client,
-        checkout_body(new_event_id(bag, "oo_checkout"), 1_700_000_000, sub),
-        SECRET_A,
-    ).status_code == 200
+    assert (
+        post_webhook(
+            billing_client,
+            checkout_body(new_event_id(bag, "oo_checkout"), 1_700_000_000, sub),
+            SECRET_A,
+        ).status_code
+        == 200
+    )
 
     newer = post_webhook(
         billing_client,
@@ -708,34 +714,43 @@ def test_out_of_order_events_do_not_regress_state(billing_client, stripe_setting
 def test_equal_created_delete_outranks_update(billing_client, stripe_settings, bag):
     sub = bag["sub"]
     created = 1_700_000_300
-    assert post_webhook(
-        billing_client,
-        subscription_body(
-            new_event_id(bag, "tie_update"),
-            "customer.subscription.updated",
-            created,
-            sub,
-            status="active",
-        ),
-        SECRET_A,
-    ).json()["outcome"] == "ignored_unknown"
+    assert (
+        post_webhook(
+            billing_client,
+            subscription_body(
+                new_event_id(bag, "tie_update"),
+                "customer.subscription.updated",
+                created,
+                sub,
+                status="active",
+            ),
+            SECRET_A,
+        ).json()["outcome"]
+        == "ignored_unknown"
+    )
     # No row yet: seed with checkout at an earlier created, then a same-timestamp pair.
-    assert post_webhook(
-        billing_client,
-        checkout_body(new_event_id(bag, "tie_checkout"), created - 10, sub),
-        SECRET_A,
-    ).status_code == 200
-    assert post_webhook(
-        billing_client,
-        subscription_body(
-            new_event_id(bag, "tie_update2"),
-            "customer.subscription.updated",
-            created,
-            sub,
-            status="past_due",
-        ),
-        SECRET_A,
-    ).json()["outcome"] == "applied"
+    assert (
+        post_webhook(
+            billing_client,
+            checkout_body(new_event_id(bag, "tie_checkout"), created - 10, sub),
+            SECRET_A,
+        ).status_code
+        == 200
+    )
+    assert (
+        post_webhook(
+            billing_client,
+            subscription_body(
+                new_event_id(bag, "tie_update2"),
+                "customer.subscription.updated",
+                created,
+                sub,
+                status="past_due",
+            ),
+            SECRET_A,
+        ).json()["outcome"]
+        == "applied"
+    )
     deleted = post_webhook(
         billing_client,
         subscription_body(
@@ -911,9 +926,9 @@ def test_retention_floor_and_prune_keep_the_tolerance_window(stripe_settings, _e
             )
         }
         assert remaining == {recent_id}
-        db.query(StripeWebhookEvent).filter(
-            StripeWebhookEvent.stripe_event_id == recent_id
-        ).delete(synchronize_session=False)
+        db.query(StripeWebhookEvent).filter(StripeWebhookEvent.stripe_event_id == recent_id).delete(
+            synchronize_session=False
+        )
         db.commit()
     finally:
         db.rollback()
@@ -926,22 +941,28 @@ def test_prune_does_not_allow_a_stale_event_to_regress(billing_client, stripe_se
 
     sub = bag["sub"]
     delete_id = new_event_id(bag, "prune_delete")
-    assert post_webhook(
-        billing_client,
-        checkout_body(new_event_id(bag, "prune_checkout"), 1_700_000_000, sub),
-        SECRET_A,
-    ).status_code == 200
-    assert post_webhook(
-        billing_client,
-        subscription_body(
-            delete_id,
-            "customer.subscription.deleted",
-            1_700_000_500,
-            sub,
-            status="canceled",
-        ),
-        SECRET_A,
-    ).json()["outcome"] == "applied"
+    assert (
+        post_webhook(
+            billing_client,
+            checkout_body(new_event_id(bag, "prune_checkout"), 1_700_000_000, sub),
+            SECRET_A,
+        ).status_code
+        == 200
+    )
+    assert (
+        post_webhook(
+            billing_client,
+            subscription_body(
+                delete_id,
+                "customer.subscription.deleted",
+                1_700_000_500,
+                sub,
+                status="canceled",
+            ),
+            SECRET_A,
+        ).json()["outcome"]
+        == "applied"
+    )
 
     db = SessionLocal()
     try:
@@ -1073,13 +1094,9 @@ def _assert_webhook_schema(url: str, *, present: bool) -> None:
 
     engine = create_engine(url)
     with engine.connect() as conn:
-        table = conn.execute(
-            text("SELECT to_regclass('public.stripe_webhook_events')")
-        ).scalar()
+        table = conn.execute(text("SELECT to_regclass('public.stripe_webhook_events')")).scalar()
         constraint = conn.execute(
-            text(
-                "SELECT 1 FROM pg_constraint WHERE conname = 'uq_stripe_webhook_events_event_id'"
-            )
+            text("SELECT 1 FROM pg_constraint WHERE conname = 'uq_stripe_webhook_events_event_id'")
         ).scalar()
         columns = {
             row[0]

@@ -3,7 +3,7 @@
 import os
 from unittest.mock import MagicMock, patch
 
-import pytest
+import pytest  # noqa: F401
 
 os.environ.setdefault("TRUST_COPILOT_TESTING", "1")
 
@@ -87,7 +87,9 @@ class TestSmtpFallbackLogging:
             from_addr="test@localhost",
             use_tls=False,
         )
-        msg = EmailMessage(to="user@example.com", subject="Reset", body_text="Reset link: http://example.com/reset")
+        msg = EmailMessage(
+            to="user@example.com", subject="Reset", body_text="Reset link: http://example.com/reset"
+        )
         result = provider.send(msg)
         assert result is False
         captured = capsys.readouterr()
@@ -105,7 +107,9 @@ class TestPasswordResetEmailPath:
         mock_provider.send.return_value = True
         set_email_provider(mock_provider)
 
-        result = send_password_reset_email("user@example.com", "http://localhost:3000/reset-password?token=abc123")
+        result = send_password_reset_email(
+            "user@example.com", "http://localhost:3000/reset-password?token=abc123"
+        )
         assert result is True
         mock_provider.send.assert_called_once()
         msg = mock_provider.send.call_args[0][0]
@@ -118,7 +122,9 @@ class TestPasswordResetEmailPath:
         mock_provider.send.return_value = False
         set_email_provider(mock_provider)
 
-        result = send_password_reset_email("user@example.com", "http://localhost:3000/reset-password?token=abc123")
+        result = send_password_reset_email(
+            "user@example.com", "http://localhost:3000/reset-password?token=abc123"
+        )
         assert result is False
 
 
@@ -196,7 +202,9 @@ class TestLoginEndpoint:
         assert data["user"]["email"] == "demo@trust.local"
 
     def test_wrong_password(self, client):
-        resp = client.post("/api/auth/login", json={"email": "demo@trust.local", "password": "wrong"})
+        resp = client.post(
+            "/api/auth/login", json={"email": "demo@trust.local", "password": "wrong"}
+        )
         assert resp.status_code == 401
         assert "Invalid credentials" in resp.json().get("detail", "")
 

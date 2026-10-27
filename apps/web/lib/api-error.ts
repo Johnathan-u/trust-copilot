@@ -1,6 +1,9 @@
 /** Normalize FastAPI / proxy error JSON for display. */
 
-export function formatApiErrorDetail(data: unknown, fallback = 'Request failed'): string {
+export function formatApiErrorDetail(
+  data: unknown,
+  fallback = 'Request failed'
+): string {
   if (!data || typeof data !== 'object') return fallback
   const rec = data as Record<string, unknown>
   const d = rec.detail
