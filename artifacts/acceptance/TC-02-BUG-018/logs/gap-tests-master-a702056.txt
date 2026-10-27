@@ -11,7 +11,7 @@ db_session = <sqlalchemy.orm.session.Session object at 0x7f41b581ab10>
     def test_executive_dashboard_gap_total_excludes_resolved(db_session: Session):
         """Platform-wide count, so the test compares before/after deltas around its own rows."""
         from app.services import executive_dashboard_service as eds
-    
+
         before = eds.get_executive_dashboard(db_session)["content"]
         with _seeded_workspace(db_session):
             after = eds.get_executive_dashboard(db_session)["content"]
@@ -26,7 +26,7 @@ gap_ws = (9, 618)
 
     def test_gap_summary_total_excludes_resolved(db_session: Session, gap_ws):
         from app.services.evidence_gap_service import gap_summary
-    
+
         ws_id, _qnr_id = gap_ws
 >       assert gap_summary(db_session, ws_id) == {
             "open": 1,
@@ -36,7 +36,7 @@ gap_ws = (9, 618)
             "total": 2,
         }
 E       AssertionError: assert {'open': 1, '...lved': 2, ...} == {'open': 1, '...lved': 2, ...}
-E         
+E
 E         Omitting 4 identical items, use -vv to show
 E         Differing items:
 E         {'total': 4} != {'total': 2}

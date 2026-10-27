@@ -14,6 +14,7 @@ from collections.abc import Iterator
 from contextlib import contextmanager
 
 import pytest
+from sqlalchemy import text
 from sqlalchemy.orm import Session
 
 from app.models import Question, Questionnaire
@@ -29,6 +30,14 @@ RESOLVED_REASON = (
 @contextmanager
 def _seeded_workspace(db: Session) -> Iterator[tuple[int, int]]:
     """A synthetic workspace with a questionnaire and gaps: open, accepted, resolved, resolved."""
+    # Migrations and the session fixture insert workspace ids explicitly, so a
+    # fresh database leaves the serial sequence behind those rows.
+    db.execute(
+        text(
+            "SELECT setval(pg_get_serial_sequence('workspaces', 'id'), "
+            "(SELECT COALESCE(MAX(id), 1) FROM workspaces))"
+        )
+    )
     tag = uuid.uuid4().hex[:8]
     ws = Workspace(name=f"TC-02-BUG-018 totals {tag}", slug=f"tc02bug018-{tag}")
     db.add(ws)

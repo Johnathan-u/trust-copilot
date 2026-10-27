@@ -9,19 +9,19 @@ E   AssertionError: assert False
      +    where <built-in method startswith of str object at 0x7f610e2640f0> = 'No workspace evidence supports an answer to this question. Reason code: no_citations. Resolved on regeneration: question_removed.'.startswith
 /repo/apps/api/tests/release/test_evidence_gap_generation.py:479: AssertionError: assert False
 E   AssertionError: assert 'resolved' == 'open'
-      
+
       - open
       + resolved
 /repo/apps/api/tests/release/test_evidence_gap_generation.py:651: AssertionError: assert 'resolved' == 'open'
 E   AssertionError: assert 'resolved' == 'open'
-      
+
       - open
       + resolved
 /repo/apps/api/tests/release/test_evidence_gap_generation.py:651: AssertionError: assert 'resolved' == 'open'
 E   ImportError: cannot import name 'append_resolution_note' from 'app.services.evidence_gap_service' (/repo/apps/api/app/services/evidence_gap_service.py)
 /repo/apps/api/tests/release/test_evidence_gap_generation.py:666: ImportError: cannot import name 'append_resolution_note' from 'app.services.evidence_gap_service' (/repo/apps/api/app/services/evidence_gap_service.py)
 E   AssertionError: assert ['accepted', ...', 'resolved'] == ['accepted', 'open']
-      
+
       Left contains 2 more items, first extra item: 'resolved'
       Use -v to get more diff
 /repo/apps/api/tests/release/test_gap_totals_exclude_resolved.py:83: AssertionError: assert ['accepted', ...', 'resolved'] == ['accepted', 'open']
@@ -32,7 +32,7 @@ E   assert 4 == 2
 E   assert (4 - 0) == 2
 /repo/apps/api/tests/release/test_gap_totals_exclude_resolved.py:116: assert (4 - 0) == 2
 E   AssertionError: assert {'open': 1, '...lved': 2, ...} == {'open': 1, '...lved': 2, ...}
-      
+
       Omitting 4 identical items, use -vv to show
       Differing items:
       {'total': 4} != {'total': 2}
