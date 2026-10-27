@@ -11,7 +11,9 @@ class GoldenAnswer(Base):
     __tablename__ = "golden_answers"
 
     id = Column(Integer, primary_key=True, index=True)
-    workspace_id = Column(Integer, ForeignKey("workspaces.id", ondelete="CASCADE"), nullable=False, index=True)
+    workspace_id = Column(
+        Integer, ForeignKey("workspaces.id", ondelete="CASCADE"), nullable=False, index=True
+    )
     question_text = Column(Text, nullable=False)
     answer_text = Column(Text, nullable=False)
     category = Column(String(128), nullable=True)

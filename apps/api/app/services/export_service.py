@@ -40,11 +40,13 @@ def enqueue_export_job(
         workspace_id=workspace_id,
         kind="export",
         status=JobStatus.QUEUED.value,
-        payload=json.dumps({
-            "questionnaire_id": questionnaire_id,
-            "workspace_id": workspace_id,
-            "format": format,
-        }),
+        payload=json.dumps(
+            {
+                "questionnaire_id": questionnaire_id,
+                "workspace_id": workspace_id,
+                "format": format,
+            }
+        ),
     )
     db.add(job)
     db.commit()
@@ -68,7 +70,9 @@ def enqueue_generate_answers_job(
     """Create and enqueue a generate_answers job. Validates model/response_style if provided."""
     if model_override is not None and not is_allowed_model(model_override):
         raise ValueError("Unsupported model")
-    if response_style_override is not None and not is_allowed_response_style(response_style_override):
+    if response_style_override is not None and not is_allowed_response_style(
+        response_style_override
+    ):
         raise ValueError("Unsupported response style")
     qnr = (
         db.query(Questionnaire)

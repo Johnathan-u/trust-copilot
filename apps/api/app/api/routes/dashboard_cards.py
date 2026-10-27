@@ -2,7 +2,7 @@
 
 from datetime import datetime
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query  # noqa: F401
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
@@ -38,10 +38,42 @@ def _card_dict(c: DashboardCard) -> dict:
 
 
 DEFAULT_CARDS = [
-    {"title": "Documents", "description": "Upload and manage evidence documents.", "icon": "document", "target_route": "/dashboard/documents", "visibility_scope": "all", "size": "medium", "is_builtin": True},
-    {"title": "Questionnaires", "description": "Import and parse customer questionnaires.", "icon": "questionnaire", "target_route": "/dashboard/questionnaires", "visibility_scope": "all", "size": "medium", "is_builtin": True},
-    {"title": "Exports", "description": "Export completed answers to XLSX or DOCX.", "icon": "export", "target_route": "/dashboard/exports", "visibility_scope": "all", "size": "medium", "is_builtin": True},
-    {"title": "Trust Center", "description": "Manage trust articles and what customers see.", "icon": "trust", "target_route": "/dashboard/trust-center", "visibility_scope": "all", "size": "medium", "is_builtin": True},
+    {
+        "title": "Documents",
+        "description": "Upload and manage evidence documents.",
+        "icon": "document",
+        "target_route": "/dashboard/documents",
+        "visibility_scope": "all",
+        "size": "medium",
+        "is_builtin": True,
+    },
+    {
+        "title": "Questionnaires",
+        "description": "Import and parse customer questionnaires.",
+        "icon": "questionnaire",
+        "target_route": "/dashboard/questionnaires",
+        "visibility_scope": "all",
+        "size": "medium",
+        "is_builtin": True,
+    },
+    {
+        "title": "Exports",
+        "description": "Export completed answers to XLSX or DOCX.",
+        "icon": "export",
+        "target_route": "/dashboard/exports",
+        "visibility_scope": "all",
+        "size": "medium",
+        "is_builtin": True,
+    },
+    {
+        "title": "Trust Center",
+        "description": "Manage trust articles and what customers see.",
+        "icon": "trust",
+        "target_route": "/dashboard/trust-center",
+        "visibility_scope": "all",
+        "size": "medium",
+        "is_builtin": True,
+    },
 ]
 
 
@@ -70,12 +102,17 @@ def list_cards(
 
     is_admin = session.get("role") in ("admin",)
     if not is_admin:
-        from app.core.roles import can_admin
+        from app.core.roles import can_admin  # noqa: F401
         from app.models import CustomRole
+
         role = session.get("role")
         wid = session.get("workspace_id")
         if role and wid:
-            cr = db.query(CustomRole).filter(CustomRole.workspace_id == wid, CustomRole.name == role).first()
+            cr = (
+                db.query(CustomRole)
+                .filter(CustomRole.workspace_id == wid, CustomRole.name == role)
+                .first()
+            )
             if cr and getattr(cr, "can_admin", False):
                 is_admin = True
 
@@ -85,7 +122,8 @@ def list_cards(
         result += [{**_card_dict(c), "is_builtin": False} for c in custom_rows]
     else:
         result += [
-            {**_card_dict(c), "is_builtin": False} for c in custom_rows
+            {**_card_dict(c), "is_builtin": False}
+            for c in custom_rows
             if c.is_enabled and c.visibility_scope == "all"
         ]
 
@@ -115,11 +153,15 @@ def create_card(
         raise HTTPException(status_code=403, detail="Workspace required")
 
     if body.target_route not in ALLOWED_ROUTES:
-        raise HTTPException(status_code=422, detail=f"Invalid target_route. Allowed: {ALLOWED_ROUTES}")
+        raise HTTPException(
+            status_code=422, detail=f"Invalid target_route. Allowed: {ALLOWED_ROUTES}"
+        )
     if body.icon not in ALLOWED_ICONS:
         raise HTTPException(status_code=422, detail=f"Invalid icon. Allowed: {ALLOWED_ICONS}")
     if body.visibility_scope not in VISIBILITY_SCOPES:
-        raise HTTPException(status_code=422, detail=f"Invalid visibility_scope. Allowed: {list(VISIBILITY_SCOPES)}")
+        raise HTTPException(
+            status_code=422, detail=f"Invalid visibility_scope. Allowed: {list(VISIBILITY_SCOPES)}"
+        )
     if body.size not in CARD_SIZES:
         raise HTTPException(status_code=422, detail=f"Invalid size. Allowed: {list(CARD_SIZES)}")
 
@@ -181,10 +223,14 @@ def update_card(
     if ws is None:
         raise HTTPException(status_code=403, detail="Workspace required")
 
-    card = db.query(DashboardCard).filter(
-        DashboardCard.id == card_id,
-        DashboardCard.workspace_id == ws,
-    ).first()
+    card = (
+        db.query(DashboardCard)
+        .filter(
+            DashboardCard.id == card_id,
+            DashboardCard.workspace_id == ws,
+        )
+        .first()
+    )
     if not card:
         raise HTTPException(status_code=404, detail="Dashboard card not found")
 
@@ -202,17 +248,24 @@ def update_card(
         changes["icon"] = body.icon
     if body.target_route is not None:
         if body.target_route not in ALLOWED_ROUTES:
-            raise HTTPException(status_code=422, detail=f"Invalid target_route. Allowed: {ALLOWED_ROUTES}")
+            raise HTTPException(
+                status_code=422, detail=f"Invalid target_route. Allowed: {ALLOWED_ROUTES}"
+            )
         card.target_route = body.target_route
         changes["target_route"] = body.target_route
     if body.visibility_scope is not None:
         if body.visibility_scope not in VISIBILITY_SCOPES:
-            raise HTTPException(status_code=422, detail=f"Invalid visibility_scope. Allowed: {list(VISIBILITY_SCOPES)}")
+            raise HTTPException(
+                status_code=422,
+                detail=f"Invalid visibility_scope. Allowed: {list(VISIBILITY_SCOPES)}",
+            )
         card.visibility_scope = body.visibility_scope
         changes["visibility_scope"] = body.visibility_scope
     if body.size is not None:
         if body.size not in CARD_SIZES:
-            raise HTTPException(status_code=422, detail=f"Invalid size. Allowed: {list(CARD_SIZES)}")
+            raise HTTPException(
+                status_code=422, detail=f"Invalid size. Allowed: {list(CARD_SIZES)}"
+            )
         card.size = body.size
         changes["size"] = body.size
     if body.is_enabled is not None:
@@ -247,10 +300,14 @@ def delete_card(
     if ws is None:
         raise HTTPException(status_code=403, detail="Workspace required")
 
-    card = db.query(DashboardCard).filter(
-        DashboardCard.id == card_id,
-        DashboardCard.workspace_id == ws,
-    ).first()
+    card = (
+        db.query(DashboardCard)
+        .filter(
+            DashboardCard.id == card_id,
+            DashboardCard.workspace_id == ws,
+        )
+        .first()
+    )
     if not card:
         raise HTTPException(status_code=404, detail="Dashboard card not found")
 

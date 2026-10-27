@@ -61,7 +61,9 @@ def list_audit_events(
 
 @router.get("/export")
 def export_audit_events(
-    since_hours: int = Query(24, ge=1, le=720, description="Export events from last N hours (max 30 days)"),
+    since_hours: int = Query(
+        24, ge=1, le=720, description="Export events from last N hours (max 30 days)"
+    ),
     session: dict = Depends(require_can_admin),
     db: Session = Depends(get_db),
 ):

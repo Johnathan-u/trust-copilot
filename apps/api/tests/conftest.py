@@ -1,6 +1,7 @@
 """Pytest fixtures for Trust Copilot API tests. Enterprise test suite (auth, RBAC, API contracts)."""
 
 import os
+import re
 import subprocess
 import sys
 from collections.abc import Generator
@@ -10,19 +11,37 @@ from unittest.mock import patch
 import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import text
+from sqlalchemy.engine import make_url
 from sqlalchemy.orm import Session
 
 # Prevent database.py from loading .env which would override these test values
 os.environ["TRUST_COPILOT_TESTING"] = "1"
 _db_host = "postgres" if os.path.exists("/.dockerenv") else "localhost"
-os.environ["DATABASE_URL"] = f"postgresql://postgres:postgres@{_db_host}:5432/trustcopilot_test"
+_DEFAULT_TEST_DATABASE_URL = f"postgresql://postgres:postgres@{_db_host}:5432/trustcopilot_test"
+# CI points the suite at a disposable per-run Postgres via TC_TEST_DATABASE_URL (credentials are
+# generated per run and never committed). Guard: only local hosts and *_test databases are accepted,
+# so a misconfigured URL can never aim the suite (which creates/migrates/writes) at a real database.
+os.environ["DATABASE_URL"] = os.environ.get("TC_TEST_DATABASE_URL") or _DEFAULT_TEST_DATABASE_URL
+_TEST_DB_URL = make_url(os.environ["DATABASE_URL"])
+_TEST_DB_NAME = _TEST_DB_URL.database or ""
+if _TEST_DB_URL.host not in ("localhost", "127.0.0.1", "::1", "postgres") or not re.fullmatch(
+    r"[a-z0-9_]+_test", _TEST_DB_NAME
+):
+    raise RuntimeError(
+        "Refusing to run tests: TC_TEST_DATABASE_URL must target a local host and a database "
+        f"named *_test (got host={_TEST_DB_URL.host!r}, database={_TEST_DB_NAME!r})"
+    )
 os.environ["SESSION_SECRET"] = "test-secret"
-os.environ["S3_ENDPOINT"] = f"http://{'minio' if os.path.exists('/.dockerenv') else 'localhost'}:9000"
+os.environ["S3_ENDPOINT"] = (
+    f"http://{'minio' if os.path.exists('/.dockerenv') else 'localhost'}:9000"
+)
 os.environ["S3_ACCESS_KEY"] = "minio"
 os.environ["S3_SECRET_KEY"] = "minio123"
 os.environ["S3_BUCKET_RAW"] = "test-raw"
 os.environ["S3_BUCKET_EXPORTS"] = "test-exports"
-os.environ["TRUSTED_ORIGINS"] = "http://localhost,http://localhost:3000,http://127.0.0.1,http://127.0.0.1:3000"
+os.environ["TRUSTED_ORIGINS"] = (
+    "http://localhost,http://localhost:3000,http://127.0.0.1,http://127.0.0.1:3000"
+)
 os.environ["RATE_LIMIT_RPM_PER_IP"] = "0"
 # Avoid real OpenAI calls from question_to_controls during most tests (enable in test_mapping_llm_rerank only).
 os.environ["MAPPING_LLM_RERANK"] = "0"
@@ -37,6 +56,7 @@ if not os.environ.get("OPENAI_API_KEY"):
 # Clear cached settings so it picks up the env vars set above
 try:
     from app.core.config import get_settings
+
     get_settings.cache_clear()
 except Exception:
     pass
@@ -50,28 +70,32 @@ _API_ROOT = Path(__file__).resolve().parent.parent
 def pytest_configure(config):
     """Ensure test env vars survive any .env loading and settings caching that happens during collection."""
     os.environ["TRUST_COPILOT_TESTING"] = "1"
-    os.environ["TRUSTED_ORIGINS"] = "http://localhost,http://localhost:3000,http://127.0.0.1,http://127.0.0.1:3000"
+    os.environ["TRUSTED_ORIGINS"] = (
+        "http://localhost,http://localhost:3000,http://127.0.0.1,http://127.0.0.1:3000"
+    )
     os.environ["RATE_LIMIT_RPM_PER_IP"] = "0"
     os.environ["MAPPING_LLM_RERANK"] = "0"
     try:
         from app.core.config import get_settings
+
         get_settings.cache_clear()
     except Exception:
         pass
 
 
 def _create_test_db_if_needed():
-    """Create the trustcopilot_test database if it does not exist."""
+    """Create the test database (default trustcopilot_test) if it does not exist."""
     import sqlalchemy
+
     admin_url = os.environ["DATABASE_URL"].rsplit("/", 1)[0] + "/postgres"
     try:
         eng = sqlalchemy.create_engine(admin_url, isolation_level="AUTOCOMMIT")
         with eng.connect() as conn:
             exists = conn.execute(
-                text("SELECT 1 FROM pg_database WHERE datname = 'trustcopilot_test'")
+                text("SELECT 1 FROM pg_database WHERE datname = :name"), {"name": _TEST_DB_NAME}
             ).scalar()
             if not exists:
-                conn.execute(text("CREATE DATABASE trustcopilot_test"))
+                conn.execute(text(f'CREATE DATABASE "{_TEST_DB_NAME}"'))  # name validated above
         eng.dispose()
     except Exception:
         pass
@@ -155,6 +179,7 @@ def _ensure_db_schema():
     try:
         # Clear any cached settings so they pick up test env vars
         from app.core.config import get_settings
+
         get_settings.cache_clear()
 
         _create_test_db_if_needed()
@@ -162,6 +187,7 @@ def _ensure_db_schema():
 
         # Verify registry columns exist; if not, schema drift from stamp-on-error.
         import sqlalchemy
+
         engine = sqlalchemy.create_engine(os.environ["DATABASE_URL"])
         if not _verify_registry_schema(engine):
             engine.dispose()
@@ -194,6 +220,7 @@ def _disable_rate_limit():
     """Reset in-memory rate limit counters and settings cache between tests."""
     from app.core import rate_limit as _rl
     from app.core.config import get_settings
+
     _rl._store.clear()
     _rl._backend = None
     get_settings.cache_clear()
@@ -210,6 +237,7 @@ def _ensure_test_data():
         from app.core.database import SessionLocal
         from app.core.password import hash_password
         from app.models import User, Workspace, WorkspaceMember
+
         session = SessionLocal()
         try:
             ws = session.query(Workspace).filter(Workspace.id == 1).first()
@@ -226,10 +254,14 @@ def _ensure_test_data():
                 session.add(user)
                 session.commit()
                 session.refresh(user)
-            mem = session.query(WorkspaceMember).filter(
-                WorkspaceMember.user_id == user.id,
-                WorkspaceMember.workspace_id == 1,
-            ).first()
+            mem = (
+                session.query(WorkspaceMember)
+                .filter(
+                    WorkspaceMember.user_id == user.id,
+                    WorkspaceMember.workspace_id == 1,
+                )
+                .first()
+            )
             if not mem:
                 session.add(WorkspaceMember(workspace_id=1, user_id=user.id, role="editor"))
                 session.commit()
@@ -237,10 +269,14 @@ def _ensure_test_data():
             if not ws2:
                 session.add(Workspace(id=2, name="Other", slug="other"))
                 session.commit()
-            mem2 = session.query(WorkspaceMember).filter(
-                WorkspaceMember.user_id == user.id,
-                WorkspaceMember.workspace_id == 2,
-            ).first()
+            mem2 = (
+                session.query(WorkspaceMember)
+                .filter(
+                    WorkspaceMember.user_id == user.id,
+                    WorkspaceMember.workspace_id == 2,
+                )
+                .first()
+            )
             if not mem2:
                 session.add(WorkspaceMember(workspace_id=2, user_id=user.id, role="editor"))
                 session.commit()
@@ -259,10 +295,14 @@ def _ensure_test_data():
                 session.add(reviewer)
                 session.commit()
                 session.refresh(reviewer)
-            rev_mem = session.query(WorkspaceMember).filter(
-                WorkspaceMember.user_id == reviewer.id,
-                WorkspaceMember.workspace_id == 1,
-            ).first()
+            rev_mem = (
+                session.query(WorkspaceMember)
+                .filter(
+                    WorkspaceMember.user_id == reviewer.id,
+                    WorkspaceMember.workspace_id == 1,
+                )
+                .first()
+            )
             if not rev_mem:
                 session.add(WorkspaceMember(workspace_id=1, user_id=reviewer.id, role="reviewer"))
                 session.commit()
@@ -277,10 +317,14 @@ def _ensure_test_data():
                 session.add(admin_u)
                 session.commit()
                 session.refresh(admin_u)
-            admin_mem = session.query(WorkspaceMember).filter(
-                WorkspaceMember.user_id == admin_u.id,
-                WorkspaceMember.workspace_id == 1,
-            ).first()
+            admin_mem = (
+                session.query(WorkspaceMember)
+                .filter(
+                    WorkspaceMember.user_id == admin_u.id,
+                    WorkspaceMember.workspace_id == 1,
+                )
+                .first()
+            )
             if not admin_mem:
                 session.add(WorkspaceMember(workspace_id=1, user_id=admin_u.id, role="admin"))
                 session.commit()
@@ -298,10 +342,14 @@ def _ensure_test_data():
                 session.add(editor_u)
                 session.commit()
                 session.refresh(editor_u)
-            editor_mem = session.query(WorkspaceMember).filter(
-                WorkspaceMember.user_id == editor_u.id,
-                WorkspaceMember.workspace_id == 1,
-            ).first()
+            editor_mem = (
+                session.query(WorkspaceMember)
+                .filter(
+                    WorkspaceMember.user_id == editor_u.id,
+                    WorkspaceMember.workspace_id == 1,
+                )
+                .first()
+            )
             if not editor_mem:
                 session.add(WorkspaceMember(workspace_id=1, user_id=editor_u.id, role="editor"))
                 session.commit()
@@ -315,12 +363,36 @@ def _ensure_test_data():
         return False
 
 
+def _db_required() -> bool:
+    """CI sets TC_REQUIRE_DB=1: an unavailable or incompatible test DB is then a hard failure,
+    never a silent skip (e.g. SQLAlchemy 2.1 + psycopg2-only install made every DB test skip)."""
+    return os.environ.get("TC_REQUIRE_DB") == "1"
+
+
+_DB_UNAVAILABLE_MSG = (
+    "Postgres test database unavailable or incompatible (see 'WARNING: test DB setup failed' "
+    "above; start the local test Postgres or set TC_TEST_DATABASE_URL to a local *_test database)"
+)
+
+
+def pytest_sessionstart(session):
+    """Fail the whole run up front when the DB is required but unusable."""
+    if _db_required() and not _ensure_db_schema():
+        pytest.exit(f"TC_REQUIRE_DB=1: {_DB_UNAVAILABLE_MSG}", returncode=3)
+
+
 @pytest.fixture
 def client(_ensure_test_data) -> Generator[TestClient, None, None]:
-    """FastAPI TestClient with CSRF-safe headers and test data ensured. Skips when Postgres unavailable."""
+    """FastAPI TestClient with CSRF-safe headers and test data ensured.
+
+    Skips when Postgres is unavailable, unless TC_REQUIRE_DB=1 (CI), where it fails loudly.
+    """
     if not _ensure_test_data:
-        pytest.skip("Postgres not available (start Docker or set DATABASE_URL to trustcopilot_test)")
+        if _db_required():
+            pytest.fail(f"TC_REQUIRE_DB=1: {_DB_UNAVAILABLE_MSG}")
+        pytest.skip(_DB_UNAVAILABLE_MSG)
     from app.main import app
+
     yield TestClient(app, base_url=TEST_ORIGIN, headers=TEST_HEADERS)
 
 
@@ -329,6 +401,7 @@ def db_session() -> Generator[Session, None, None]:
     """Database session for direct DB access in tests."""
     _ensure_db_schema()
     from app.core.database import SessionLocal
+
     session = SessionLocal()
     try:
         yield session
@@ -341,7 +414,25 @@ def db_session() -> Generator[Session, None, None]:
 def test_workspace(db_session: Session) -> dict:
     """Test workspace (id=1) from seed. Must exist after migrations."""
     from app.models import Workspace
+
     ws = db_session.query(Workspace).filter(Workspace.id == 1).first()
     if ws:
         return {"id": ws.id, "name": ws.name, "slug": ws.slug}
     return {"id": 1, "name": "Default", "slug": "default"}
+
+
+SYNTHETIC_OPENAI_KEY = "sk-test-synthetic-offline-key"
+
+
+@pytest.fixture
+def synthetic_openai_key(monkeypatch):
+    """Set a fake OpenAI key for code paths that only check the key is configured.
+
+    The OpenAI client must still be mocked by the test; never use a real key here.
+    """
+    from app.core.config import get_settings
+
+    monkeypatch.setenv("OPENAI_API_KEY", SYNTHETIC_OPENAI_KEY)
+    get_settings.cache_clear()
+    yield SYNTHETIC_OPENAI_KEY
+    get_settings.cache_clear()

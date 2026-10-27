@@ -3,7 +3,7 @@
 import json
 from copy import copy
 from io import BytesIO
-from pathlib import Path
+from pathlib import Path  # noqa: F401
 from typing import Any
 
 import openpyxl
@@ -92,12 +92,14 @@ def placements_from_questions_and_answers(
             loc = json.loads(loc_raw) if isinstance(loc_raw, str) else loc_raw
         except (json.JSONDecodeError, TypeError):
             continue
-        placements.append({
-            "sheet": loc.get("sheet"),
-            "row": loc.get("row", 1),
-            "col": loc.get("col", 1),
-            "text": text,
-        })
+        placements.append(
+            {
+                "sheet": loc.get("sheet"),
+                "row": loc.get("row", 1),
+                "col": loc.get("col", 1),
+                "text": text,
+            }
+        )
     return placements
 
 

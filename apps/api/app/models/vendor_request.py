@@ -15,9 +15,13 @@ class VendorRequest(Base):
     __tablename__ = "vendor_requests"
 
     id = Column(Integer, primary_key=True, index=True)
-    workspace_id = Column(Integer, ForeignKey("workspaces.id", ondelete="CASCADE"), nullable=False, index=True)
+    workspace_id = Column(
+        Integer, ForeignKey("workspaces.id", ondelete="CASCADE"), nullable=False, index=True
+    )
     vendor_email = Column(String(255), nullable=False)
-    questionnaire_id = Column(Integer, ForeignKey("questionnaires.id", ondelete="SET NULL"), nullable=True, index=True)
+    questionnaire_id = Column(
+        Integer, ForeignKey("questionnaires.id", ondelete="SET NULL"), nullable=True, index=True
+    )
     message = Column(Text, nullable=True)
     status = Column(String(32), nullable=False, default="pending")
     link_token = Column(String(64), nullable=True, unique=True, index=True)

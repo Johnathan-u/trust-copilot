@@ -13,9 +13,15 @@ class QuestionMappingSignal(Base):
     __tablename__ = "question_mapping_signals"
 
     id = Column(Integer, primary_key=True, autoincrement=True)
-    question_id = Column(Integer, ForeignKey("questions.id", ondelete="CASCADE"), nullable=False, index=True)
-    workspace_id = Column(Integer, ForeignKey("workspaces.id", ondelete="CASCADE"), nullable=False, index=True)
-    questionnaire_id = Column(Integer, ForeignKey("questionnaires.id", ondelete="CASCADE"), nullable=True, index=True)
+    question_id = Column(
+        Integer, ForeignKey("questions.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    workspace_id = Column(
+        Integer, ForeignKey("workspaces.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    questionnaire_id = Column(
+        Integer, ForeignKey("questionnaires.id", ondelete="CASCADE"), nullable=True, index=True
+    )
     framework_labels_json = Column(Text, nullable=True)
     subject_labels_json = Column(Text, nullable=True)
     raw_llm_json = Column(Text, nullable=True)

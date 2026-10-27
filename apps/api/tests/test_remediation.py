@@ -24,8 +24,14 @@ def editor_client(client):
 class TestRemediationService:
     def test_create_playbook(self, db_session):
         ws = db_session.query(Workspace).first()
-        result = svc.create_playbook(db_session, ws.id, "mfa_disabled", "Re-enable MFA",
-                                      steps=["Step 1", "Step 2"], severity="high")
+        result = svc.create_playbook(
+            db_session,
+            ws.id,
+            "mfa_disabled",
+            "Re-enable MFA",
+            steps=["Step 1", "Step 2"],
+            severity="high",
+        )
         db_session.commit()
         assert result["control_key"] == "mfa_disabled"
         assert result["severity"] == "high"
@@ -39,7 +45,10 @@ class TestRemediationService:
         assert len(pbs) >= 1
 
     def test_seed_builtins(self, db_session):
-        ws = db_session.query(Workspace).filter(Workspace.id == 2).first() or db_session.query(Workspace).first()
+        ws = (
+            db_session.query(Workspace).filter(Workspace.id == 2).first()
+            or db_session.query(Workspace).first()
+        )
         before = len(svc.list_playbooks(db_session, ws.id))
         result = svc.seed_builtins(db_session, ws.id)
         db_session.commit()
@@ -55,8 +64,9 @@ class TestRemediationService:
 
     def test_create_ticket(self, db_session):
         ws = db_session.query(Workspace).first()
-        result = svc.create_ticket(db_session, ws.id, "Fix MFA issue",
-                                    description="MFA was disabled", sla_hours=24)
+        result = svc.create_ticket(
+            db_session, ws.id, "Fix MFA issue", description="MFA was disabled", sla_hours=24
+        )
         db_session.commit()
         assert result["title"] == "Fix MFA issue"
         assert result["status"] == "open"
@@ -97,10 +107,15 @@ class TestRemediationService:
 
 class TestRemediationAPI:
     def test_create_playbook(self, admin_client):
-        r = admin_client.post("/api/remediation/playbooks", json={
-            "control_key": "api_test", "title": "API Playbook",
-            "steps": ["Fix it"], "severity": "low",
-        })
+        r = admin_client.post(
+            "/api/remediation/playbooks",
+            json={
+                "control_key": "api_test",
+                "title": "API Playbook",
+                "steps": ["Fix it"],
+                "severity": "low",
+            },
+        )
         assert r.status_code == 200
         assert r.json()["title"] == "API Playbook"
 
@@ -119,9 +134,13 @@ class TestRemediationAPI:
         assert r.status_code == 200
 
     def test_create_ticket(self, admin_client):
-        r = admin_client.post("/api/remediation/tickets", json={
-            "title": "API Ticket", "sla_hours": 48,
-        })
+        r = admin_client.post(
+            "/api/remediation/tickets",
+            json={
+                "title": "API Ticket",
+                "sla_hours": 48,
+            },
+        )
         assert r.status_code == 200
         assert r.json()["status"] == "open"
 
@@ -144,7 +163,11 @@ class TestRemediationAPI:
         assert r.status_code == 200
 
     def test_editor_cannot_create(self, editor_client):
-        r = editor_client.post("/api/remediation/playbooks", json={
-            "control_key": "x", "title": "X",
-        })
+        r = editor_client.post(
+            "/api/remediation/playbooks",
+            json={
+                "control_key": "x",
+                "title": "X",
+            },
+        )
         assert r.status_code == 403

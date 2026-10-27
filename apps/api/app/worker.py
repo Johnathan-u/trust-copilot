@@ -13,13 +13,13 @@ if not _in_docker:
     load_dotenv(_api_root / ".env", override=True)
     load_dotenv(_repo_root / ".env")
 
-import io  # noqa: E402
+import io  # noqa: E402, F401
 import json  # noqa: E402
 import logging  # noqa: E402
 import tempfile  # noqa: E402
 import threading  # noqa: E402
 import time  # noqa: E402
-from concurrent.futures import ThreadPoolExecutor, as_completed  # noqa: E402
+from concurrent.futures import ThreadPoolExecutor, as_completed  # noqa: E402, F401
 from datetime import datetime, timezone  # noqa: E402
 from pathlib import Path  # noqa: E402
 
@@ -71,14 +71,18 @@ def _adapt_thread_count(had_work: bool) -> int:
             if _consecutive_busy >= 3 and _active_threads < WORKER_MAX_THREADS:
                 _active_threads += 1
                 _consecutive_busy = 0
-                logging.getLogger(__name__).info("worker: scaling up to %d threads", _active_threads)
+                logging.getLogger(__name__).info(
+                    "worker: scaling up to %d threads", _active_threads
+                )
         else:
             _consecutive_busy = 0
             _consecutive_idle += 1
             if _consecutive_idle >= 5 and _active_threads > WORKER_MIN_THREADS:
                 _active_threads -= 1
                 _consecutive_idle = 0
-                logging.getLogger(__name__).info("worker: scaling down to %d threads", _active_threads)
+                logging.getLogger(__name__).info(
+                    "worker: scaling down to %d threads", _active_threads
+                )
         return _active_threads
 
 
@@ -97,17 +101,9 @@ def claim_job(session) -> Job | None:
             .first()
         )
         if not job:
-            job = (
-                base.order_by(Job.created_at)
-                .with_for_update(skip_locked=True)
-                .first()
-            )
+            job = base.order_by(Job.created_at).with_for_update(skip_locked=True).first()
     else:
-        job = (
-            base.order_by(Job.created_at)
-            .with_for_update(skip_locked=True)
-            .first()
-        )
+        job = base.order_by(Job.created_at).with_for_update(skip_locked=True).first()
     if not job:
         return None
     _last_claimed_workspace_id = job.workspace_id
@@ -129,7 +125,9 @@ def run_parse_questionnaire(job: Job, session, payload: dict) -> None:
     if not qnr:
         raise ValueError(f"Questionnaire {qnr_id} not found")
     if qnr.workspace_id != job.workspace_id:
-        raise ValueError(f"Questionnaire {qnr_id} workspace mismatch: {qnr.workspace_id} != {job.workspace_id}")
+        raise ValueError(
+            f"Questionnaire {qnr_id} workspace mismatch: {qnr.workspace_id} != {job.workspace_id}"
+        )
     ext = Path(qnr.filename or storage_key or "").suffix.lower()
     if ext not in (".xlsx", ".xls", ".docx", ".doc", ".pdf"):
         ext = ".xlsx"
@@ -147,14 +145,16 @@ def run_parse_questionnaire(job: Job, session, payload: dict) -> None:
         else:
             questions = parse_xlsx_questionnaire(path)
         for q in questions:
-            session.add(Question(
-                questionnaire_id=qnr_id,
-                text=q["text"],
-                section=q.get("section"),
-                answer_type=q.get("answer_type"),
-                source_location=q.get("source_location"),
-                confidence=q.get("confidence"),
-            ))
+            session.add(
+                Question(
+                    questionnaire_id=qnr_id,
+                    text=q["text"],
+                    section=q.get("section"),
+                    answer_type=q.get("answer_type"),
+                    source_location=q.get("source_location"),
+                    confidence=q.get("confidence"),
+                )
+            )
         qnr.status = "parsed"
         qnr.parse_metadata = json.dumps({"count": len(questions), "questions": questions[:50]})
         session.commit()
@@ -177,14 +177,21 @@ def _auto_classify_questionnaire(session, qnr_id: int, workspace_id: int) -> Non
         stats = bulk_classify_and_persist(session, sample, workspace_id, questionnaire_id=qnr_id)
         logging.getLogger(__name__).info(
             "auto_classify questionnaire=%s classified=%s failed=%s",
-            qnr_id, stats.get("classified", 0), stats.get("failed", 0),
+            qnr_id,
+            stats.get("classified", 0),
+            stats.get("failed", 0),
         )
 
         from app.models.question_mapping_signal import QuestionMappingSignal
-        signals = session.query(QuestionMappingSignal).filter(
-            QuestionMappingSignal.questionnaire_id == qnr_id,
-            QuestionMappingSignal.workspace_id == workspace_id,
-        ).all()
+
+        signals = (
+            session.query(QuestionMappingSignal)
+            .filter(
+                QuestionMappingSignal.questionnaire_id == qnr_id,
+                QuestionMappingSignal.workspace_id == workspace_id,
+            )
+            .all()
+        )
 
         fw_set: set[str] = set()
         subj_set: set[str] = set()
@@ -217,10 +224,14 @@ def _auto_classify_questionnaire(session, qnr_id: int, workspace_id: int) -> Non
             session.commit()
             logging.getLogger(__name__).info(
                 "auto_classify questionnaire=%s frameworks=%s subjects=%s",
-                qnr_id, qnr.frameworks_json, qnr.subject_areas_json,
+                qnr_id,
+                qnr.frameworks_json,
+                qnr.subject_areas_json,
             )
     except Exception as e:
-        logging.getLogger(__name__).warning("auto_classify failed for questionnaire %s: %s", qnr_id, e)
+        logging.getLogger(__name__).warning(
+            "auto_classify failed for questionnaire %s: %s", qnr_id, e
+        )
 
 
 def run_index_document(job: Job, session, payload: dict) -> None:
@@ -246,7 +257,7 @@ def run_generate_answers(job: Job, session, payload: dict) -> None:
     """Generate answers for questionnaire."""
     import json
 
-    from app.core.config import get_settings
+    from app.core.config import get_settings  # noqa: F401
     from app.services.answer_generation import generate_answers_for_questionnaire
 
     qnr_id = payload.get("questionnaire_id")
@@ -303,22 +314,28 @@ def run_export(job: Job, session, payload: dict) -> None:
     ws_id = payload.get("workspace_id")
     if not qnr_id or not ws_id:
         raise ValueError("Missing questionnaire_id or workspace_id")
-    qnr = session.query(Questionnaire).filter(
-        Questionnaire.id == qnr_id,
-        Questionnaire.workspace_id == ws_id,
-    ).first()
+    qnr = (
+        session.query(Questionnaire)
+        .filter(
+            Questionnaire.id == qnr_id,
+            Questionnaire.workspace_id == ws_id,
+        )
+        .first()
+    )
     if not qnr or not qnr.storage_key:
         raise ValueError("Questionnaire not found or has no file")
     storage = StorageClient()
     file_svc = FileService(storage)
     raw_bytes = file_svc.download_raw(qnr.storage_key)
     questions = session.query(Question).filter(Question.questionnaire_id == qnr_id).all()
-    answers = {a.question_id: a for a in session.query(Answer).filter(
-        Answer.question_id.in_([q.id for q in questions])
-    ).all()}
+    answers = {
+        a.question_id: a
+        for a in session.query(Answer)
+        .filter(Answer.question_id.in_([q.id for q in questions]))
+        .all()
+    }
     question_list = [
-        {"id": q.id, "source_location": q.source_location, "text": q.text or ""}
-        for q in questions
+        {"id": q.id, "source_location": q.source_location, "text": q.text or ""} for q in questions
     ]
     question_to_answer = {
         q.id: answer_text_for_export(
@@ -408,16 +425,27 @@ def _persist_job_audit(session, job: Job, action: str, payload: dict, error: str
         details["questionnaire_id"] = payload["questionnaire_id"]
     if error:
         details["error"] = error[:1000]
-    persist_audit(session, action, workspace_id=job.workspace_id, resource_type="job", resource_id=job.id, details=details)
+    persist_audit(
+        session,
+        action,
+        workspace_id=job.workspace_id,
+        resource_type="job",
+        resource_id=job.id,
+        details=details,
+    )
 
 
 def enqueue_missing_index_jobs(session) -> None:
     """At startup, queue index_document for any doc still 'uploaded' with no pending job (fixes backlogs)."""
     pending_doc_ids = set()
-    for job in session.query(Job).filter(
-        Job.kind == "index_document",
-        Job.status.in_([JobStatus.QUEUED.value, JobStatus.RUNNING.value]),
-    ).all():
+    for job in (
+        session.query(Job)
+        .filter(
+            Job.kind == "index_document",
+            Job.status.in_([JobStatus.QUEUED.value, JobStatus.RUNNING.value]),
+        )
+        .all()
+    ):
         try:
             payload = json.loads(job.payload or "{}")
             if "document_id" in payload:
@@ -428,12 +456,14 @@ def enqueue_missing_index_jobs(session) -> None:
     for doc in session.query(Document).filter(Document.status == "uploaded").all():
         if doc.id in pending_doc_ids:
             continue
-        session.add(Job(
-            workspace_id=doc.workspace_id,
-            kind="index_document",
-            status=JobStatus.QUEUED.value,
-            payload=json.dumps({"document_id": doc.id}),
-        ))
+        session.add(
+            Job(
+                workspace_id=doc.workspace_id,
+                kind="index_document",
+                status=JobStatus.QUEUED.value,
+                payload=json.dumps({"document_id": doc.id}),
+            )
+        )
         added += 1
     if added:
         session.commit()
@@ -454,6 +484,7 @@ def _process_one_job() -> bool:
         if time.time() - last_usage_cleanup_run >= USAGE_CLEANUP_INTERVAL_SEC:
             try:
                 from app.services.quota_service import cleanup_old_usage
+
                 cleaned = cleanup_old_usage(session)
                 if cleaned:
                     session.commit()
@@ -476,19 +507,39 @@ def _process_one_job() -> bool:
 
         job_started_at = time.monotonic()
         payload = json.loads(job.payload) if job.payload else {}
-        log_job_start(job.kind, job.id, job.workspace_id, document_id=payload.get("document_id"), questionnaire_id=payload.get("questionnaire_id"))
+        log_job_start(
+            job.kind,
+            job.id,
+            job.workspace_id,
+            document_id=payload.get("document_id"),
+            questionnaire_id=payload.get("questionnaire_id"),
+        )
         JOB_STARTED_TOTAL.labels(kind=job.kind).inc()
         try:
             run_job(job, session)
             job.status = JobStatus.COMPLETED.value
             job.completed_at = datetime.now(timezone.utc)
             duration_ms = (time.monotonic() - job_started_at) * 1000
-            log_job_success(job.kind, job.id, job.workspace_id, duration_ms, document_id=payload.get("document_id"), questionnaire_id=payload.get("questionnaire_id"))
+            log_job_success(
+                job.kind,
+                job.id,
+                job.workspace_id,
+                duration_ms,
+                document_id=payload.get("document_id"),
+                questionnaire_id=payload.get("questionnaire_id"),
+            )
             JOB_COMPLETED_TOTAL.labels(kind=job.kind, status="completed").inc()
             _persist_job_audit(session, job, "job.completed", payload, error=None)
             if job.kind == "export":
                 try:
-                    notify_workspace(session, job.workspace_id, "Export completed", "Your export is ready for download.", category="success", link="/dashboard/exports")
+                    notify_workspace(
+                        session,
+                        job.workspace_id,
+                        "Export completed",
+                        "Your export is ready for download.",
+                        category="success",
+                        link="/dashboard/exports",
+                    )
                 except Exception:
                     pass
             elif job.kind == "generate_answers":
@@ -510,6 +561,7 @@ def _process_one_job() -> bool:
                 try:
                     ws_name = "Workspace"
                     from app.models.workspace import Workspace
+
                     ws = session.query(Workspace).filter(Workspace.id == job.workspace_id).first()
                     if ws:
                         ws_name = ws.name or ws_name
@@ -535,11 +587,22 @@ def _process_one_job() -> bool:
             job.completed_at = datetime.now(timezone.utc)
             session.merge(job)
             duration_ms = (time.monotonic() - job_started_at) * 1000
-            log_job_failure(job.kind, job.id, job.workspace_id, error_text, duration_ms, document_id=payload.get("document_id"), questionnaire_id=payload.get("questionnaire_id"))
+            log_job_failure(
+                job.kind,
+                job.id,
+                job.workspace_id,
+                error_text,
+                duration_ms,
+                document_id=payload.get("document_id"),
+                questionnaire_id=payload.get("questionnaire_id"),
+            )
             JOB_COMPLETED_TOTAL.labels(kind=job.kind, status="failed").inc()
             logging.getLogger("trustcopilot.alert").warning(
                 "ALERT_JOB_FAILURE job_id=%s kind=%s workspace_id=%s error=%s",
-                job.id, job.kind, job.workspace_id, error_text[:200],
+                job.id,
+                job.kind,
+                job.workspace_id,
+                error_text[:200],
             )
             _persist_job_audit(session, job, "job.failed", payload, error=error_text)
             if job.kind in ("export", "generate_answers"):
@@ -573,7 +636,9 @@ def _process_one_job() -> bool:
 
 
 def main():
-    print(f"Trust Copilot worker started (threads: {WORKER_MIN_THREADS}-{WORKER_MAX_THREADS}, initial: {WORKER_INITIAL_THREADS})")
+    print(
+        f"Trust Copilot worker started (threads: {WORKER_MIN_THREADS}-{WORKER_MAX_THREADS}, initial: {WORKER_INITIAL_THREADS})"
+    )
     session = SessionFactory()
     try:
         enqueue_missing_index_jobs(session)

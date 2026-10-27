@@ -35,7 +35,9 @@ def create_evidence(
     if not ws:
         raise HTTPException(status_code=403, detail="No workspace")
     if body.source_type not in EVIDENCE_SOURCE_TYPES:
-        raise HTTPException(status_code=400, detail=f"Invalid source_type. Allowed: {EVIDENCE_SOURCE_TYPES}")
+        raise HTTPException(
+            status_code=400, detail=f"Invalid source_type. Allowed: {EVIDENCE_SOURCE_TYPES}"
+        )
     e = EvidenceItem(
         workspace_id=ws,
         document_id=body.document_id,
@@ -58,21 +60,31 @@ def get_evidence(
     ws = session.get("workspace_id")
     if ws is None:
         raise HTTPException(status_code=403, detail="No workspace")
-    e = db.query(EvidenceItem).filter(
-        EvidenceItem.id == evidence_id,
-        EvidenceItem.workspace_id == ws,
-    ).first()
+    e = (
+        db.query(EvidenceItem)
+        .filter(
+            EvidenceItem.id == evidence_id,
+            EvidenceItem.workspace_id == ws,
+        )
+        .first()
+    )
     if not e:
         raise HTTPException(status_code=404, detail="Evidence not found")
     tags = list_tags_for_document(db, e.document_id, ws) if e.document_id else []
     return _evidence_dict(e, tags=tags)
 
 
-def _ensure_evidence_workspace(db: Session, evidence_id: int, workspace_id: int) -> EvidenceItem | None:
-    return db.query(EvidenceItem).filter(
-        EvidenceItem.id == evidence_id,
-        EvidenceItem.workspace_id == workspace_id,
-    ).first()
+def _ensure_evidence_workspace(
+    db: Session, evidence_id: int, workspace_id: int
+) -> EvidenceItem | None:
+    return (
+        db.query(EvidenceItem)
+        .filter(
+            EvidenceItem.id == evidence_id,
+            EvidenceItem.workspace_id == workspace_id,
+        )
+        .first()
+    )
 
 
 class EvidenceMetadataBody(BaseModel):
@@ -103,7 +115,12 @@ def get_evidence_metadata(
         raise HTTPException(status_code=404, detail="Evidence not found")
     meta = db.query(EvidenceMetadata).filter(EvidenceMetadata.evidence_id == evidence_id).first()
     if not meta:
-        return {"evidence_id": evidence_id, "freshness_date": None, "expires_at": None, "last_verified_at": None}
+        return {
+            "evidence_id": evidence_id,
+            "freshness_date": None,
+            "expires_at": None,
+            "last_verified_at": None,
+        }
     return {
         "evidence_id": evidence_id,
         "freshness_date": meta.freshness_date.isoformat() if meta.freshness_date else None,
@@ -133,7 +150,9 @@ def update_evidence_metadata(
     if "expires_at" in updates:
         meta.expires_at = _parse_iso_datetime(body.expires_at) if body.expires_at else None
     if "freshness_date" in updates:
-        meta.freshness_date = _parse_iso_datetime(body.freshness_date) if body.freshness_date else None
+        meta.freshness_date = (
+            _parse_iso_datetime(body.freshness_date) if body.freshness_date else None
+        )
     db.commit()
     db.refresh(meta)
     return {

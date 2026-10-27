@@ -23,17 +23,17 @@ from typing import Sequence
 from app.services.framework_metadata import (
     CHANNEL_WEIGHTS,
     CONFIDENCE,
-    CROSS_FRAMEWORK_DISAMBIGUATION,
-    DIRECT_EVIDENCE_REQUIRED_SPECIALIZED,
-    FALLBACK_LABELS,
+    CROSS_FRAMEWORK_DISAMBIGUATION,  # noqa: F401
+    DIRECT_EVIDENCE_REQUIRED_SPECIALIZED,  # noqa: F401
+    FALLBACK_LABELS,  # noqa: F401
     FINAL_FRAMEWORK_KEYS,
     FRAMEWORKS,
     GENERIC_SECURITY_TERMS,
     HIGH_CONFIDENCE_MUST_INCLUDE_ONE_OF,
     HIGH_CONFIDENCE_REQUIRES_MIN_CHANNELS,
-    NON_FRAMEWORK_LABELS,
+    NON_FRAMEWORK_LABELS,  # noqa: F401
     SUBJECTS,
-    SUBJECT_ALIAS_INDEX,
+    SUBJECT_ALIAS_INDEX,  # noqa: F401
     FrameworkDef,
     display_label,
     normalize_text,
@@ -42,6 +42,7 @@ from app.services.framework_metadata import (
 # ---------------------------------------------------------------------------
 # Result dataclass
 # ---------------------------------------------------------------------------
+
 
 @dataclass
 class ClassificationResult:
@@ -98,6 +99,7 @@ def _extract_regions(text: str, filename: str) -> _TextRegions:
 # ---------------------------------------------------------------------------
 # Per-channel scoring
 # ---------------------------------------------------------------------------
+
 
 def _marker_hits(text: str, markers: Sequence[str]) -> int:
     count = 0
@@ -195,6 +197,7 @@ def _score_framework(fw: FrameworkDef, regions: _TextRegions) -> tuple[float, li
 # Negative-rule penalty
 # ---------------------------------------------------------------------------
 
+
 def _generic_term_penalty(regions: _TextRegions) -> float:
     """How many generic security terms appear — used to penalize frameworks
     that would be assigned solely from this vocabulary."""
@@ -206,28 +209,63 @@ def _generic_term_penalty(regions: _TextRegions) -> float:
 # Disambiguation (pairwise)
 # ---------------------------------------------------------------------------
 
-_ISO_MARKERS = frozenset({"isms", "annex a", "statement of applicability",
-                           "management review", "certification", "iso/iec 27001"})
-_SOC_MARKERS = frozenset({"trust services criteria", "service organization",
-                           "management assertion", "type ii", "type 2",
-                           "service auditor"})
-_HIPAA_MARKERS = frozenset({"phi", "ephi", "covered entity", "business associate",
-                             "hipaa"})
-_CSF_MARKERS = frozenset({"govern", "identify", "protect", "detect", "respond",
-                           "recover", "implementation tiers", "current profile",
-                           "target profile"})
-_80053_ID_RE = re.compile(r"\b(ac|at|au|ca|cm|cp|ia|ir|ma|mp|pe|pl|pm|ps|pt|ra|sa|sc|si|sr)-\d+\b", re.I)
+_ISO_MARKERS = frozenset(
+    {
+        "isms",
+        "annex a",
+        "statement of applicability",
+        "management review",
+        "certification",
+        "iso/iec 27001",
+    }
+)
+_SOC_MARKERS = frozenset(
+    {
+        "trust services criteria",
+        "service organization",
+        "management assertion",
+        "type ii",
+        "type 2",
+        "service auditor",
+    }
+)
+_HIPAA_MARKERS = frozenset({"phi", "ephi", "covered entity", "business associate", "hipaa"})
+_CSF_MARKERS = frozenset(
+    {
+        "govern",
+        "identify",
+        "protect",
+        "detect",
+        "respond",
+        "recover",
+        "implementation tiers",
+        "current profile",
+        "target profile",
+    }
+)
+_80053_ID_RE = re.compile(
+    r"\b(ac|at|au|ca|cm|cp|ia|ir|ma|mp|pe|pl|pm|ps|pt|ra|sa|sc|si|sr)-\d+\b", re.I
+)
 _800171_ID_RE = re.compile(r"\b3\.\d{1,2}\.\d+\b")
-_CUI_MARKERS = frozenset({"cui", "controlled unclassified information",
-                           "nonfederal systems", "nonfederal organizations"})
-_CSA_MARKERS = frozenset({"csa", "caiq", "ccm", "star registry",
-                           "cloud controls matrix", "cloud security alliance"})
+_CUI_MARKERS = frozenset(
+    {"cui", "controlled unclassified information", "nonfederal systems", "nonfederal organizations"}
+)
+_CSA_MARKERS = frozenset(
+    {"csa", "caiq", "ccm", "star registry", "cloud controls matrix", "cloud security alliance"}
+)
 _SIG_MARKERS = frozenset({"shared assessments", "sig", "standardized information gathering"})
-_VENDOR_MARKERS = frozenset({"vendor questionnaire", "security questionnaire",
-                              "due diligence", "supplier questionnaire",
-                              "customer security review"})
-_CLOUD_MARKERS = frozenset({"cloud service provider", "iaas", "paas", "saas",
-                             "shared responsibility"})
+_VENDOR_MARKERS = frozenset(
+    {
+        "vendor questionnaire",
+        "security questionnaire",
+        "due diligence",
+        "supplier questionnaire",
+        "customer security review",
+    }
+)
+_CLOUD_MARKERS = frozenset(
+    {"cloud service provider", "iaas", "paas", "saas", "shared responsibility"}
+)
 
 
 def _disambiguate(scores: dict[str, float], regions: _TextRegions) -> dict[str, float]:
@@ -281,6 +319,7 @@ def _disambiguate(scores: dict[str, float], regions: _TextRegions) -> dict[str, 
 # Subject scoring (independent track)
 # ---------------------------------------------------------------------------
 
+
 def _score_subjects(regions: _TextRegions) -> list[str]:
     """Return subject keys sorted by match strength."""
     scores: list[tuple[str, int]] = []
@@ -300,6 +339,7 @@ def _score_subjects(regions: _TextRegions) -> list[str]:
 # Fallback resolution
 # ---------------------------------------------------------------------------
 
+
 def _resolve_fallback(regions: _TextRegions) -> str:
     vendor_hits = sum(1 for m in _VENDOR_MARKERS if m in regions.body)
     cloud_hits = sum(1 for m in _CLOUD_MARKERS if m in regions.body)
@@ -313,6 +353,7 @@ def _resolve_fallback(regions: _TextRegions) -> str:
 # ---------------------------------------------------------------------------
 # Public API
 # ---------------------------------------------------------------------------
+
 
 def classify_document(text: str, filename: str) -> ClassificationResult:
     """Classify an evidence document or questionnaire by framework + subjects."""
@@ -384,10 +425,12 @@ def _classify(regions: _TextRegions, *, is_questionnaire: bool) -> Classificatio
     has_strong_channel = bool(set(channels) & HIGH_CONFIDENCE_MUST_INCLUDE_ONE_OF)
     enough_channels = len(channels) >= HIGH_CONFIDENCE_REQUIRES_MIN_CHANNELS
 
-    if (top_score >= CONFIDENCE.high_min
-            and gap >= CONFIDENCE.min_gap_over_runner_up_for_high
-            and has_strong_channel
-            and enough_channels):
+    if (
+        top_score >= CONFIDENCE.high_min
+        and gap >= CONFIDENCE.min_gap_over_runner_up_for_high
+        and has_strong_channel
+        and enough_channels
+    ):
         conf_level = "high"
     elif top_score >= CONFIDENCE.medium_min:
         conf_level = "medium"
@@ -397,7 +440,11 @@ def _classify(regions: _TextRegions, *, is_questionnaire: bool) -> Classificatio
         conf_level = "none"
 
     # Multi-framework check: top two within 0.12 and no strong distinguishing marker
-    if runner_key and gap < CONFIDENCE.min_gap_over_runner_up_for_high and top_score >= CONFIDENCE.low_min:
+    if (
+        runner_key
+        and gap < CONFIDENCE.min_gap_over_runner_up_for_high
+        and top_score >= CONFIDENCE.low_min
+    ):
         if not has_strong_channel:
             return ClassificationResult(
                 framework="MULTI_FRAMEWORK",

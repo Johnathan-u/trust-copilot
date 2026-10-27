@@ -23,14 +23,20 @@ class Answer(Base):
     __tablename__ = "answers"
 
     id = Column(Integer, primary_key=True, index=True)
-    question_id = Column(Integer, ForeignKey("questions.id", ondelete="CASCADE"), nullable=False, index=True)
+    question_id = Column(
+        Integer, ForeignKey("questions.id", ondelete="CASCADE"), nullable=False, index=True
+    )
     text = Column(Text, nullable=True)
-    status = Column(String(32), default="draft")  # draft, approved, rejected, flagged, insufficient_evidence
+    status = Column(
+        String(32), default="draft"
+    )  # draft, approved, rejected, flagged, insufficient_evidence
     citations = Column(Text, nullable=True)  # JSON: [{chunk_id, snippet}, ...]
     confidence = Column(Integer, nullable=True)
     insufficient_reason = Column(String(64), nullable=True)
     gating_reason = Column(String(64), nullable=True)
-    primary_categories_json = Column(Text, nullable=True)  # JSON: {"frameworks": [...], "subjects": [...]}
+    primary_categories_json = Column(
+        Text, nullable=True
+    )  # JSON: {"frameworks": [...], "subjects": [...]}
     evidence_fingerprint = Column(String(64), nullable=True)
     # TC-11-001: typed generation outcome (app.services.model_outcomes.ModelOutcomeCode value).
     outcome_code = Column(String(64), nullable=True)

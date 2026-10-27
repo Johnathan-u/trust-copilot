@@ -40,7 +40,9 @@ export function Modal({ isOpen, onClose, title, children }: ModalProps) {
       >
         {title && (
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold text-[var(--tc-text)]">{title}</h2>
+            <h2 className="text-lg font-semibold text-[var(--tc-text)]">
+              {title}
+            </h2>
             <Button variant="ghost" size="sm" onClick={onClose}>
               ×
             </Button>

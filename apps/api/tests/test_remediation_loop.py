@@ -27,7 +27,9 @@ class TestRemediationLoopService:
         db_session.flush()
         t = rs.create_ticket(db_session, ws.id, "Fix it", control_id=wc.id, sla_hours=24)
         db_session.commit()
-        result = loop.submit_post_remediation_evidence(db_session, t["id"], [ev.id], actor_user_id=1)
+        result = loop.submit_post_remediation_evidence(
+            db_session, t["id"], [ev.id], actor_user_id=1
+        )
         db_session.commit()
         assert result["status"] == "evidence_submitted"
         assert ev.id in result["linked_evidence_ids"]
@@ -69,7 +71,9 @@ class TestRemediationLoopAPI:
         assert len(r.json()["automations"]) >= 3
 
     def test_dry_run_api(self, admin_client):
-        r = admin_client.post("/api/remediation/automations/mfa_re_enable/run", json={"dry_run": True})
+        r = admin_client.post(
+            "/api/remediation/automations/mfa_re_enable/run", json={"dry_run": True}
+        )
         assert r.status_code == 200
         assert r.json()["dry_run"] is True
 

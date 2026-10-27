@@ -676,8 +676,10 @@ def test_review_page_shows_badge_for_everything_but_verified_grounded():
     if not page.exists():
         pytest.skip("web app not mounted")
     src = page.read_text()
+    # Collapse whitespace so master's prettier wrapping still matches the badge condition.
+    compact = "".join(src.split())
     assert "const VERIFIED_GROUNDED_OUTCOME = 'grounded'" in src
-    assert "q.answer.outcome.code !== VERIFIED_GROUNDED_OUTCOME ?" in src
+    assert "q.answer.outcome.code!==VERIFIED_GROUNDED_OUTCOME?" in compact
     # no code path special-cases the cache-hit outcome as if it were grounded
     assert "=== 'grounded_unverified'" not in src
     assert src.count("!== 'grounded'") == 0 and src.count("=== 'grounded'") == 0

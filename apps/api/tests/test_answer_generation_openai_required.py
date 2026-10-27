@@ -29,7 +29,9 @@ def test_returns_zero_when_no_key_and_no_questions():
         assert generate_answers_for_questionnaire(db, 1, 1) == 0
 
 
-def test_api_post_generate_returns_503_without_openai_key(client: TestClient, db_session: Session) -> None:
+def test_api_post_generate_returns_503_without_openai_key(
+    client: TestClient, db_session: Session
+) -> None:
     """POST /exports/generate must not enqueue a job when OPENAI is unset and questions exist."""
     qnr = db_session.query(Questionnaire).filter(Questionnaire.workspace_id == 1).first()
     if not qnr:
@@ -51,7 +53,9 @@ def test_api_post_generate_returns_503_without_openai_key(client: TestClient, db
         cfg.openai_api_key = ""
         cfg.completion_model = "gpt-4o-mini"
         mock_gs.return_value = cfg
-        r_login = client.post("/api/auth/login", json={"email": "demo@trust.local", "password": "j"})
+        r_login = client.post(
+            "/api/auth/login", json={"email": "demo@trust.local", "password": "j"}
+        )
         assert r_login.status_code == 200
         r = client.post(f"/api/exports/generate/{qnr.id}?workspace_id=1", json={})
         assert r.status_code == 503

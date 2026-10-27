@@ -11,7 +11,9 @@ class ShareableSpace(Base):
     __tablename__ = "shareable_spaces"
 
     id = Column(Integer, primary_key=True, index=True)
-    workspace_id = Column(Integer, ForeignKey("workspaces.id", ondelete="CASCADE"), nullable=False, index=True)
+    workspace_id = Column(
+        Integer, ForeignKey("workspaces.id", ondelete="CASCADE"), nullable=False, index=True
+    )
     name = Column(String(255), nullable=False)
     buyer_company = Column(String(255), nullable=True)
     buyer_email = Column(String(255), nullable=True)

@@ -8,8 +8,10 @@ interface SkeletonProps {
 
 export function Skeleton({ className = '', width, height }: SkeletonProps) {
   const style: React.CSSProperties = {}
-  if (width != null) style.width = typeof width === 'number' ? `${width}px` : width
-  if (height != null) style.height = typeof height === 'number' ? `${height}px` : height
+  if (width != null)
+    style.width = typeof width === 'number' ? `${width}px` : width
+  if (height != null)
+    style.height = typeof height === 'number' ? `${height}px` : height
   return (
     <div
       className={`animate-pulse rounded-lg bg-[var(--tc-border)]/60 ${className}`}
@@ -40,7 +42,13 @@ export function ListSkeleton({ rows = 4 }: { rows?: number }) {
   )
 }
 
-export function TableSkeleton({ rows = 5, cols = 4 }: { rows?: number; cols?: number }) {
+export function TableSkeleton({
+  rows = 5,
+  cols = 4,
+}: {
+  rows?: number
+  cols?: number
+}) {
   return (
     <div className="overflow-x-auto">
       <table className="w-full">

@@ -104,10 +104,9 @@ def compute_trust_score(
     missing_critical = missing_critical or []
 
     positive = [
-        e for e in evidence
-        if not e.get("is_duplicate")
-        and not e.get("negative_signal")
-        and not e.get("contradicts")
+        e
+        for e in evidence
+        if not e.get("is_duplicate") and not e.get("negative_signal") and not e.get("contradicts")
     ]
 
     if not positive:
@@ -135,9 +134,7 @@ def compute_trust_score(
     base = (best * 0.5 + top3_avg * 0.5) * _SCALE
 
     # --- corroboration (independent source count) ---
-    ind_count = sum(
-        1 for e in positive if e.get("source_type") != "self_reported"
-    )
+    ind_count = sum(1 for e in positive if e.get("source_type") != "self_reported")
     has_tampering = any(e.get("tampering") for e in evidence)
 
     corr_adj = 0.0
@@ -163,13 +160,11 @@ def compute_trust_score(
     for ci in contradict_items:
         sw = _SOURCE_WEIGHT.get(ci.get("source_type", ""), 0.5)
         rec = _recency_weight(ci.get("recency_days", -1))
-        contradict_penalty += (sw ** 2) * rec * 20
+        contradict_penalty += (sw**2) * rec * 20
 
     if contradict_items and positive:
         support_days = [
-            e.get("recency_days", 999)
-            for e in positive
-            if e.get("recency_days", -1) >= 0
+            e.get("recency_days", 999) for e in positive if e.get("recency_days", -1) >= 0
         ]
         best_support_recency = min(support_days) if support_days else 999
         for ci in contradict_items:

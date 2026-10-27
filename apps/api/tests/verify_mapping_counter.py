@@ -9,6 +9,7 @@ Tests:
   3. Approve, reject, edit, regenerate — verify status persistence
   4. Verify mapped_count still matches control-linked rows after workflow
 """
+
 import sys
 import uuid
 from pathlib import Path
@@ -21,11 +22,11 @@ _tests_dir = Path(__file__).resolve().parent
 if sys.path and Path(sys.path[0]).resolve() == _tests_dir:
     sys.path.insert(0, str(_api_root))
 
-from fastapi.testclient import TestClient
-from app.main import app
-from app.core.database import SessionLocal
-from app.models.questionnaire import Questionnaire, Question
-from app.models.ai_mapping import QuestionMappingPreference
+from fastapi.testclient import TestClient  # noqa: E402
+from app.main import app  # noqa: E402
+from app.core.database import SessionLocal  # noqa: E402
+from app.models.questionnaire import Questionnaire, Question  # noqa: E402
+from app.models.ai_mapping import QuestionMappingPreference  # noqa: E402
 
 c = TestClient(app, base_url="http://localhost")
 H = {"Origin": "http://localhost", "Referer": "http://localhost/"}
@@ -55,8 +56,10 @@ print(f"Logged in: workspace_id={ws_id}")
 db = SessionLocal()
 uid = uuid.uuid4().hex[:8]
 qnr = Questionnaire(
-    workspace_id=ws_id, filename=f"verify-{uid}.xlsx",
-    status="parsed", display_id=f"QNR-V-{uid}",
+    workspace_id=ws_id,
+    filename=f"verify-{uid}.xlsx",
+    status="parsed",
+    display_id=f"QNR-V-{uid}",
 )
 db.add(qnr)
 db.commit()
@@ -105,7 +108,8 @@ try:
     m0 = mappings[0]
     r = c.patch(
         f"/api/questionnaires/{QNR}/mappings/{m0['id']}?workspace_id={ws_id}",
-        json={"status": "approved"}, headers={**H, "Content-Type": "application/json"},
+        json={"status": "approved"},
+        headers={**H, "Content-Type": "application/json"},
     )
     check("approve returns 200", r.status_code == 200)
     check("status is approved", r.json()["status"] == "approved")
@@ -116,7 +120,8 @@ try:
     m1 = mappings[1]
     r = c.patch(
         f"/api/questionnaires/{QNR}/mappings/{m1['id']}?workspace_id={ws_id}",
-        json={"status": "rejected"}, headers={**H, "Content-Type": "application/json"},
+        json={"status": "rejected"},
+        headers={**H, "Content-Type": "application/json"},
     )
     check("reject returns 200", r.status_code == 200)
     check("status is rejected", r.json()["status"] == "rejected")
@@ -175,13 +180,15 @@ try:
     print("\n10. Validation")
     r = c.patch(
         f"/api/questionnaires/{QNR}/mappings/{m0['id']}?workspace_id={ws_id}",
-        json={"status": "bogus"}, headers={**H, "Content-Type": "application/json"},
+        json={"status": "bogus"},
+        headers={**H, "Content-Type": "application/json"},
     )
     check("invalid status returns 400", r.status_code == 400)
 
     r = c.patch(
         f"/api/questionnaires/{QNR}/mappings/99999?workspace_id={ws_id}",
-        json={"status": "approved"}, headers={**H, "Content-Type": "application/json"},
+        json={"status": "approved"},
+        headers={**H, "Content-Type": "application/json"},
     )
     check("not-found mapping returns 404", r.status_code == 404)
 

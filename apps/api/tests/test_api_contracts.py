@@ -2,7 +2,7 @@
 
 from unittest.mock import patch
 
-import pytest
+import pytest  # noqa: F401
 from fastapi.testclient import TestClient
 
 
