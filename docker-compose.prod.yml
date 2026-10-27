@@ -61,6 +61,7 @@ services:
     environment:
       APP_ENV: production
       TRUST_COPILOT_IN_DOCKER: "1"
+      SESSION_SECRET: ${SESSION_SECRET:?SESSION_SECRET must be set in .env.production (see docs/release/tickets/TC-07-001.md)}
       # TC-07-001: DATABASE_URL comes from .env.production (env_file); never inline credentials here.
       S3_ENDPOINT: http://minio:9000
       APP_BASE_URL: https://trustcopilot.app
@@ -89,7 +90,9 @@ services:
     env_file:
       - .env.production
     environment:
+      APP_ENV: production
       TRUST_COPILOT_IN_DOCKER: "1"
+      SESSION_SECRET: ${SESSION_SECRET:?SESSION_SECRET must be set in .env.production (see docs/release/tickets/TC-07-001.md)}
       # TC-07-001: DATABASE_URL comes from .env.production (env_file); never inline credentials here.
       S3_ENDPOINT: http://minio:9000
     command: python -m app.worker

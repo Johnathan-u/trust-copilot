@@ -581,6 +581,99 @@ def test_dev_fallback_is_random_per_process(monkeypatch):
         get_settings.cache_clear()
 
 
+class _StartedPastSecretCheck(Exception):
+    pass
+
+
+def _stub_worker_runtime(monkeypatch, worker_mod):
+    """Make worker.main() stop right after its startup check (no threads, no DB)."""
+
+    def _boom(*a, **k):
+        raise _StartedPastSecretCheck()
+
+    monkeypatch.setattr(worker_mod, "HeartbeatThread", _boom)
+
+
+@pytest.mark.parametrize(
+    "value", [None, "", "placeholder", "test-secret", "changeme", "a" * 64, "short-but-random-9f"]
+)
+def test_worker_refuses_to_start_in_production_with_missing_or_weak_secret(monkeypatch, value):
+    import app.worker as worker_mod
+    from app.core.config import get_settings
+
+    _stub_worker_runtime(monkeypatch, worker_mod)
+    monkeypatch.setenv("APP_ENV", "production")
+    if value is None:
+        monkeypatch.delenv("SESSION_SECRET", raising=False)
+    else:
+        monkeypatch.setenv("SESSION_SECRET", value)
+    get_settings.cache_clear()
+    try:
+        with pytest.raises(
+            RuntimeError, match="worker: APP_ENV=production requires SESSION_SECRET"
+        ):
+            worker_mod.main()
+    finally:
+        get_settings.cache_clear()
+
+
+def test_worker_starts_in_production_with_generated_secret(monkeypatch):
+    import app.worker as worker_mod
+    from app.core.config import get_settings
+
+    _stub_worker_runtime(monkeypatch, worker_mod)
+    monkeypatch.setenv("APP_ENV", "production")
+    monkeypatch.setenv("SESSION_SECRET", secrets.token_urlsafe(48))
+    get_settings.cache_clear()
+    try:
+        with pytest.raises(_StartedPastSecretCheck):
+            worker_mod.main()
+    finally:
+        get_settings.cache_clear()
+
+
+def test_worker_outside_production_does_not_require_a_secret(monkeypatch):
+    import app.worker as worker_mod
+    from app.core.config import get_settings
+
+    _stub_worker_runtime(monkeypatch, worker_mod)
+    monkeypatch.setenv("APP_ENV", "development")
+    monkeypatch.delenv("SESSION_SECRET", raising=False)
+    get_settings.cache_clear()
+    try:
+        with pytest.raises(_StartedPastSecretCheck):
+            worker_mod.main()
+    finally:
+        get_settings.cache_clear()
+
+
+def test_api_and_worker_share_the_startup_secret_check():
+    api = REPO_ROOT / "apps" / "api" / "app"
+    for rel, component in (("main.py", '"api"'), ("worker.py", '"worker"')):
+        src = (api / rel).read_text()
+        assert f"enforce_production_session_secret({component})" in src, rel
+    session_src = (api / "core" / "session.py").read_text()
+    assert "config_contract" not in session_src
+
+
+def _prod_compose_services() -> dict:
+    import yaml
+
+    return yaml.safe_load((REPO_ROOT / "docker-compose.prod.yml").read_text())["services"]
+
+
+@pytest.mark.parametrize("service", ["api", "worker"])
+def test_prod_compose_runs_api_and_worker_in_production_with_required_secret(service):
+    env = _prod_compose_services()[service]["environment"]
+    assert env.get("APP_ENV") == "production", service
+    assert str(env.get("SESSION_SECRET", "")).startswith("${SESSION_SECRET:?"), service
+
+
+def test_dev_compose_comment_does_not_claim_runtime_rejection():
+    text = (REPO_ROOT / "docker-compose.yml").read_text()
+    assert "the API refuses these defaults" not in text
+
+
 def test_storage_client_requires_explicit_credentials(monkeypatch):
     from app.core.config import get_settings
     from app.services import storage

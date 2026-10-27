@@ -24,7 +24,8 @@ _session_logger = _logging.getLogger(__name__)
 _EPHEMERAL_SECRET: str | None = None
 _EPHEMERAL_LOCK = _threading.Lock()
 
-# Minimum length enforced in production (also enforced at startup in app.main / app.core.config_contract).
+# Minimum length enforced in production. Also enforced at process startup by
+# enforce_production_session_secret(), called from app.main (API) and app.worker (worker).
 MIN_PRODUCTION_SECRET_LENGTH = 32
 
 # Values that are obviously not secrets (copied from examples / docs / tests).
@@ -58,6 +59,25 @@ def is_weak_secret(value: str | None, min_length: int = MIN_PRODUCTION_SECRET_LE
     if len(set(v)) < 8:  # e.g. "aaaaaaaa..." or "abababab..."
         return True
     return False
+
+
+def enforce_production_session_secret(component: str) -> None:
+    """Refuse to start a production process with a missing, placeholder or weak SESSION_SECRET.
+
+    Called at startup by the API (app.main) and the worker (app.worker) so neither can fall back
+    to a random per-process key in production (fail closed). Production is detected from either
+    the settings object or the raw APP_ENV variable.
+    """
+    settings = get_settings()
+    app_env = (getattr(settings, "app_env", "") or "").lower()
+    raw_env = _os.getenv("APP_ENV", "").strip().lower()
+    if "production" not in (app_env, raw_env):
+        return
+    if is_weak_secret(settings.session_secret):
+        raise RuntimeError(
+            f"{component}: APP_ENV=production requires SESSION_SECRET to be set to a "
+            "cryptographically random value of at least 32 characters (placeholders are rejected)."
+        )
 
 
 def _ephemeral_secret() -> str:

@@ -110,7 +110,8 @@ services:
     environment:
       POSTGRES_DB: trustcopilot
       # Local development defaults only (TC-07-001). Override via .env; production uses
-      # docker-compose.prod.yml, which requires real values, and the API refuses these defaults.
+      # docker-compose.prod.yml, which requires operator-generated values via ${VAR:?...}. These
+      # defaults are not rejected at runtime; never use them outside local development.
       POSTGRES_USER: ${POSTGRES_USER:-postgres}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
     ports:

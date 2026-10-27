@@ -194,13 +194,9 @@ async def lifespan(app: FastAPI):
         logging.getLogger("app.main").warning("S3/MinIO bucket init skipped or failed: %s", e)
     configure_logging(s.log_level, use_json=(s.app_env == "production"))
     if s.app_env == "production":
-        from app.core.session import is_weak_secret
+        from app.core.session import enforce_production_session_secret
 
-        if is_weak_secret(s.session_secret):
-            raise RuntimeError(
-                "APP_ENV=production requires SESSION_SECRET to be set to a cryptographically "
-                "random value of at least 32 characters (placeholders are rejected)."
-            )
+        enforce_production_session_secret("api")
     else:
         if not s.session_secret:
             import logging
