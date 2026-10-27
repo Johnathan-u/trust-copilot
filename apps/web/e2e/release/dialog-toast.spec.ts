@@ -171,7 +171,7 @@ test.describe('dialog focus and notifications', () => {
     await page.setViewportSize({ width: 1440, height: 900 })
     await openTheme(page, 'dark')
 
-    const bell = page.getByRole('button', { name: 'Notifications' })
+    const bell = page.getByRole('button', { name: 'Notifications', exact: true })
     const panel = page.locator('#sample-notifications')
     await expect(bell).toHaveAttribute('aria-expanded', 'false')
     await expect(bell).toHaveAttribute('aria-controls', 'sample-notifications')
@@ -229,7 +229,7 @@ test.describe('dialog focus and notifications', () => {
 
     await page.getByRole('button', { name: 'Show undo' }).click()
     const undoToast = page.getByRole('status').filter({ hasText: 'Synthetic sample can be restored.' })
-    const undo = page.getByRole('button', { name: 'Undo' })
+    const undo = page.getByRole('button', { name: 'Undo', exact: true })
     await expect(undoToast).toBeVisible()
     await expect(undo).toBeVisible()
     await page.waitForTimeout(4500)
