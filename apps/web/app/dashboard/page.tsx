@@ -61,6 +61,7 @@ const ROUTE_LABELS: Record<string, string> = {
   '/dashboard/exports': 'Exports',
   '/dashboard/trust-center': 'Trust Center',
   '/dashboard/compliance-gaps': 'Coverage',
+  '/dashboard/compliance-frameworks': 'Frameworks',
   '/dashboard/proof-chain': 'Proof chain',
   '/dashboard/members': 'Members',
   '/dashboard/notifications': 'Alerts / Notifications',
@@ -83,7 +84,7 @@ export default function DashboardPage() {
   const isAdmin = permissions.can_admin
 
   const [cards, setCards] = useState<DashboardCard[]>([])
-  const [hasCustom, setHasCustom] = useState(false)
+  const [, setHasCustom] = useState(false)
   const [loading, setLoading] = useState(true)
 
   const [showCustomize, setShowCustomize] = useState(false)

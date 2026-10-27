@@ -24,7 +24,8 @@ _session_logger = _logging.getLogger(__name__)
 _EPHEMERAL_SECRET: str | None = None
 _EPHEMERAL_LOCK = _threading.Lock()
 
-# Minimum length enforced in production (also enforced at startup in app.main / app.core.config_contract).
+# Minimum length enforced in production. Also enforced at process startup by
+# enforce_production_session_secret(), called from app.main (API) and app.worker (worker).
 MIN_PRODUCTION_SECRET_LENGTH = 32
 
 # Values that are obviously not secrets (copied from examples / docs / tests).
@@ -60,6 +61,35 @@ def is_weak_secret(value: str | None, min_length: int = MIN_PRODUCTION_SECRET_LE
     return False
 
 
+def is_production_env() -> bool:
+    """True when either the settings object or the raw APP_ENV says production.
+
+    Both are stripped and lower-cased (TC-07-001a), so " production " or "PRODUCTION\\n" cannot
+    slip past the startup check while other code paths still treat the process as production.
+    """
+    settings = get_settings()
+    app_env = (getattr(settings, "app_env", "") or "").strip().lower()
+    raw_env = _os.getenv("APP_ENV", "").strip().lower()
+    return "production" in (app_env, raw_env)
+
+
+def enforce_production_session_secret(component: str) -> None:
+    """Refuse to start a production process with a missing, placeholder or weak SESSION_SECRET.
+
+    Called at startup by the API (app.main, first thing in the lifespan, before any DB or S3
+    call) and the worker (app.worker) so neither can fall back to a random per-process key in
+    production (fail closed). Production is detected by is_production_env().
+    """
+    if not is_production_env():
+        return
+    settings = get_settings()
+    if is_weak_secret(settings.session_secret):
+        raise RuntimeError(
+            f"{component}: APP_ENV=production requires SESSION_SECRET to be set to a "
+            "cryptographically random value of at least 32 characters (placeholders are rejected)."
+        )
+
+
 def _ephemeral_secret() -> str:
     global _EPHEMERAL_SECRET
     with _EPHEMERAL_LOCK:
@@ -86,8 +116,7 @@ def _get_session_secret() -> str:
     except Exception:
         s = None
 
-    app_env = _os.getenv("APP_ENV", "development").strip().lower()
-    if app_env == "production":
+    if is_production_env():
         if is_weak_secret(s):
             raise RuntimeError(
                 "SESSION_SECRET is missing, a placeholder, or weaker than required for production. "

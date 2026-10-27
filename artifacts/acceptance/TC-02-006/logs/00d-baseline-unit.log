@@ -1,0 +1,14 @@
+
+> trust-copilot-web@0.1.0 test:unit
+> vitest run
+
+(!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+  - ESM syntax in a file loaded as CommonJS (vitest.config.ts:1:1). Use a `.mjs` extension or set `"type": "module"` in the closest package.json
+Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.
+
+ RUN  v5.0.5 /tmp/tc006-baseline/apps/web
+
+No test files found, exiting with code 1
+
+include: lib/**/*.test.ts
+exclude:  **/node_modules/**, **/.git/**

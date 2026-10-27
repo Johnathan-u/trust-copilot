@@ -61,6 +61,7 @@ services:
     environment:
       APP_ENV: production
       TRUST_COPILOT_IN_DOCKER: "1"
+      SESSION_SECRET: ${SESSION_SECRET:?SESSION_SECRET must be set in .env.production (see docs/release/tickets/TC-07-001.md)}
       # TC-07-001: DATABASE_URL comes from .env.production (env_file); never inline credentials here.
       S3_ENDPOINT: http://minio:9000
       APP_BASE_URL: https://trustcopilot.app
@@ -89,10 +90,16 @@ services:
     env_file:
       - .env.production
     environment:
-      APP_ENV: production  # TC-03-001: worker enforces the production config contract too
+      APP_ENV: production
       TRUST_COPILOT_IN_DOCKER: "1"
+      SESSION_SECRET: ${SESSION_SECRET:?SESSION_SECRET must be set in .env.production (see docs/release/tickets/TC-07-001.md)}
       # TC-07-001: DATABASE_URL comes from .env.production (env_file); never inline credentials here.
       S3_ENDPOINT: http://minio:9000
+      # TC-10-002: job-level retry backoff for transient failures (429/timeout/5xx/connection). Delay after
+      # attempt n = jitter in [d/2, d], d = min(MAX, BASE * 2^(n-1)); Retry-After honoured up to MAX.
+      # Attempts per job = jobs.max_attempts (default 3, hard ceiling 10).
+      JOB_RETRY_BASE_SECONDS: ${JOB_RETRY_BASE_SECONDS:-15}
+      JOB_RETRY_MAX_SECONDS: ${JOB_RETRY_MAX_SECONDS:-600}
     command: python -m app.worker
     # TC-03-003: the worker has no HTTP server; override the image's API probe with the
     # worker heartbeat-file probe (no HTTP, no DB). Fresh while the claim loop or a job within

@@ -2,7 +2,7 @@
 
 from enum import Enum
 
-from sqlalchemy import Column, DateTime, ForeignKey, Integer, String, Text
+from sqlalchemy import Column, DateTime, ForeignKey, Index, Integer, String, Text, text
 
 from app.core.database import Base, utc_now
 
@@ -31,6 +31,16 @@ class Job(Base):
     """Background job for async processing."""
 
     __tablename__ = "jobs"
+    __table_args__ = (
+        Index(
+            "uq_jobs_queued_idempotency_key",
+            "workspace_id",
+            "kind",
+            "idempotency_key",
+            unique=True,
+            postgresql_where=text("status = 'queued' AND idempotency_key IS NOT NULL"),
+        ),
+    )
 
     id = Column(Integer, primary_key=True, index=True)
     workspace_id = Column(
@@ -41,8 +51,17 @@ class Job(Base):
     payload = Column(Text, nullable=True)
     result = Column(Text, nullable=True)
     error = Column(Text, nullable=True)
+    # TC-11-001: stable typed error code for failed jobs (safe message lives in ``error``).
+    error_code = Column(String(64), nullable=True)
     attempt = Column(Integer, default=0)
     max_attempts = Column(Integer, default=3)
+    # TC-10-003: server-derived dedupe key (unique among QUEUED jobs per workspace+kind) and the version of
+    # the input the job was enqueued for (e.g. the source object's storage key). Both nullable/additive.
+    idempotency_key = Column(String(128), nullable=True)
+    input_version = Column(String(512), nullable=True)
+    # TC-10-002: for a QUEUED retry, the earliest time it may be claimed (nullable/additive). TC-10-002 also
+    # writes error_code above (TC-11-001 model_* codes for model failures, app.core.job_errors codes otherwise).
+    next_attempt_at = Column(DateTime, nullable=True)
     started_at = Column(DateTime, nullable=True)
     completed_at = Column(DateTime, nullable=True)
     created_at = Column(DateTime, default=utc_now)

@@ -1,0 +1,186 @@
+FFFFFFFFFFF.......                                                       [100%]
+=================================== FAILURES ===================================
+_________________ test_all_direct_dependencies_are_exact_pins __________________
+
+pkg = {'name': 'trust-copilot-web', 'version': '0.1.0', 'private': True, 'scripts': {'dev': 'next dev', 'build': 'next build', 'start': 'next start', 'test:unit': 'vitest run', ...}, ...}
+
+    def test_all_direct_dependencies_are_exact_pins(pkg):
+>       assert unpinned_dependencies(pkg) == []
+E       AssertionError: assert ['react-markd...^8.4.49', ...] == []
+E
+E         Left contains 8 more items, first extra item: 'react-markdown@^9.0.1'
+E         Use -v to get more diff
+
+tests/release/test_web_lock.py:234: AssertionError
+______ test_lockfile_locks_exactly_the_pinned_versions_from_the_registry _______
+
+pkg = {'name': 'trust-copilot-web', 'version': '0.1.0', 'private': True, 'scripts': {'dev': 'next dev', 'build': 'next build', 'start': 'next start', 'test:unit': 'vitest run', ...}, ...}
+lock = {'name': 'trust-copilot-web', 'version': '0.1.0', 'lockfileVersion': 3, 'requires': True, ...}
+
+    def test_lockfile_locks_exactly_the_pinned_versions_from_the_registry(pkg, lock):
+>       assert lock_mismatches(pkg, lock) == []
+E       AssertionError: assert ['react-markd...^8.4.49', ...] == []
+E
+E         Left contains 8 more items, first extra item: 'react-markdown locked at 9.1.0 not ^9.0.1'
+E         Use -v to get more diff
+
+tests/release/test_web_lock.py:238: AssertionError
+_____________ test_runtime_packages_are_on_supported_patched_lines _____________
+
+pkg = {'name': 'trust-copilot-web', 'version': '0.1.0', 'private': True, 'scripts': {'dev': 'next dev', 'build': 'next build', 'start': 'next start', 'test:unit': 'vitest run', ...}, ...}
+
+    def test_runtime_packages_are_on_supported_patched_lines(pkg):
+>       assert unsupported_runtime(pkg) == []
+E       AssertionError: assert ['next@14.2.1...= (19, 3, 1)'] == []
+E
+E         Left contains 3 more items, first extra item: 'next@14.2.15 not in supported patched line 16.x >= (16, 4, 3)'
+E         Use -v to get more diff
+
+tests/release/test_web_lock.py:242: AssertionError
+_________________ test_npmrc_enforces_engines_and_exact_saves __________________
+
+    def test_npmrc_enforces_engines_and_exact_saves():
+>       lines = {ln.strip() for ln in (WEB / ".npmrc").read_text().splitlines()}
+                                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/release/test_web_lock.py:246:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+/usr/lib/python3.13/pathlib/_local.py:548: in read_text
+    return PathBase.read_text(self, encoding, errors, newline)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.13/pathlib/_abc.py:632: in read_text
+    with self.open(mode='r', encoding=encoding, errors=errors, newline=newline) as f:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = PosixPath('/tmp/tc-master-wt/apps/web/.npmrc'), mode = 'r'
+buffering = -1, encoding = 'locale', errors = None, newline = None
+
+    def open(self, mode='r', buffering=-1, encoding=None,
+             errors=None, newline=None):
+        """
+        Open the file pointed to by this path and return a file object, as
+        the built-in open() function does.
+        """
+        if "b" not in mode:
+            encoding = io.text_encoding(encoding)
+>       return io.open(self, mode, buffering, encoding, errors, newline)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       FileNotFoundError: [Errno 2] No such file or directory: '/tmp/tc-master-wt/apps/web/.npmrc'
+
+/usr/lib/python3.13/pathlib/_local.py:539: FileNotFoundError
+______________ test_node_version_is_single_sourced_and_supported _______________
+
+pkg = {'name': 'trust-copilot-web', 'version': '0.1.0', 'private': True, 'scripts': {'dev': 'next dev', 'build': 'next build', 'start': 'next start', 'test:unit': 'vitest run', ...}, ...}
+dockerfile = '# Stage: builder (production build)\nFROM node:20 AS builder\nWORKDIR /app\nCOPY apps/web/package*.json ./\nRUN npm c... apps/web/package*.json ./\nCOPY apps/web /app\nCMD ["sh", "-c", "npm install && npm run dev -- -H 0.0.0.0 -p 3000"]\n'
+ci = 'name: CI\n\non:\n  push:\n  pull_request:\n\njobs:\n  build:\n    runs-on: ubuntu-latest\n\n    services:\n      post...        run: pytest\n\n      - name: Build frontend\n        working-directory: apps/web\n        run: npm run build\n'
+
+    def test_node_version_is_single_sourced_and_supported(pkg, dockerfile, ci):
+>       nvmrc = (WEB / ".nvmrc").read_text(encoding="utf-8")
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/release/test_web_lock.py:252:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+/usr/lib/python3.13/pathlib/_local.py:548: in read_text
+    return PathBase.read_text(self, encoding, errors, newline)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.13/pathlib/_abc.py:632: in read_text
+    with self.open(mode='r', encoding=encoding, errors=errors, newline=newline) as f:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = PosixPath('/tmp/tc-master-wt/apps/web/.nvmrc'), mode = 'r'
+buffering = -1, encoding = 'utf-8', errors = None, newline = None
+
+    def open(self, mode='r', buffering=-1, encoding=None,
+             errors=None, newline=None):
+        """
+        Open the file pointed to by this path and return a file object, as
+        the built-in open() function does.
+        """
+        if "b" not in mode:
+            encoding = io.text_encoding(encoding)
+>       return io.open(self, mode, buffering, encoding, errors, newline)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       FileNotFoundError: [Errno 2] No such file or directory: '/tmp/tc-master-wt/apps/web/.nvmrc'
+
+/usr/lib/python3.13/pathlib/_local.py:539: FileNotFoundError
+________ test_ci_installs_from_lock_and_runs_typecheck_build_and_audit _________
+
+ci = 'name: CI\n\non:\n  push:\n  pull_request:\n\njobs:\n  build:\n    runs-on: ubuntu-latest\n\n    services:\n      post...        run: pytest\n\n      - name: Build frontend\n        working-directory: apps/web\n        run: npm run build\n'
+
+    def test_ci_installs_from_lock_and_runs_typecheck_build_and_audit(ci):
+>       assert "npm ci --ignore-scripts" in ci
+E       AssertionError: assert 'npm ci --ignore-scripts' in 'name: CI\n\non:\n  push:\n  pull_request:\n\njobs:\n  build:\n    runs-on: ubuntu-latest\n\n    services:\n      post...        run: pytest\n\n      - name: Build frontend\n        working-directory: apps/web\n        run: npm run build\n'
+
+tests/release/test_web_lock.py:257: AssertionError
+____________ test_typecheck_script_generates_route_types_before_tsc ____________
+
+pkg = {'name': 'trust-copilot-web', 'version': '0.1.0', 'private': True, 'scripts': {'dev': 'next dev', 'build': 'next build', 'start': 'next start', 'test:unit': 'vitest run', ...}, ...}
+
+    def test_typecheck_script_generates_route_types_before_tsc(pkg):
+>       assert pkg["scripts"]["typecheck"] == "next typegen && tsc --noEmit -p ."
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       KeyError: 'typecheck'
+
+tests/release/test_web_lock.py:265: KeyError
+____________ test_only_allowlisted_packages_declare_install_scripts ____________
+
+lock = {'name': 'trust-copilot-web', 'version': '0.1.0', 'lockfileVersion': 3, 'requires': True, ...}
+
+    def test_only_allowlisted_packages_declare_install_scripts(lock):
+>       assert install_script_packages(lock) <= INSTALL_SCRIPT_ALLOWLIST
+E       AssertionError: assert {'node_module...les/fsevents'} <= {'node_modules/fsevents'}
+E
+E         Extra items in the left set:
+E         'node_modules/playwright/node_modules/fsevents'
+E         'node_modules/esbuild'
+
+tests/release/test_web_lock.py:269: AssertionError
+______________________ test_next_emits_standalone_server _______________________
+
+    def test_next_emits_standalone_server():
+        cfg = (WEB / "next.config.js").read_text(encoding="utf-8")
+>       assert re.search(r"output:\s*'standalone'", cfg)
+E       assert None
+E        +  where None = <function search at 0x7fb2cc054220>("output:\\s*'standalone'", "/** @type {import('next').NextConfig} */\nconst apiBase = process.env.API_UPSTREAM || 'http://localhost:8000'\nconst ...     { source: '/api/:path*', destination: `${apiBase}/api/:path*` },\n    ]\n  },\n}\n\nmodule.exports = nextConfig\n")
+E        +    where <function search at 0x7fb2cc054220> = re.search
+
+tests/release/test_web_lock.py:277: AssertionError
+_____________ test_production_stage_ships_only_standalone_runtime ______________
+
+dockerfile = '# Stage: builder (production build)\nFROM node:20 AS builder\nWORKDIR /app\nCOPY apps/web/package*.json ./\nRUN npm c... apps/web/package*.json ./\nCOPY apps/web /app\nCMD ["sh", "-c", "npm install && npm run dev -- -H 0.0.0.0 -p 3000"]\n'
+
+    def test_production_stage_ships_only_standalone_runtime(dockerfile):
+>       assert production_stage_problems(dockerfile) == []
+E       AssertionError: assert ['copies the ...untime image'] == []
+E
+E         Left contains 5 more items, first extra item: 'copies the whole builder workspace (node_modules, sources, tools)'
+E         Use -v to get more diff
+
+tests/release/test_web_lock.py:281: AssertionError
+_____________ test_build_stages_install_from_lock_without_scripts ______________
+
+dockerfile = '# Stage: builder (production build)\nFROM node:20 AS builder\nWORKDIR /app\nCOPY apps/web/package*.json ./\nRUN npm c... apps/web/package*.json ./\nCOPY apps/web /app\nCMD ["sh", "-c", "npm install && npm run dev -- -H 0.0.0.0 -p 3000"]\n'
+
+    def test_build_stages_install_from_lock_without_scripts(dockerfile):
+        stages = dockerfile_stages(dockerfile)
+>       assert "npm ci --ignore-scripts" in stages.get("deps", "")
+E       assert 'npm ci --ignore-scripts' in ''
+E        +  where '' = <built-in method get of dict object at 0x7fb2c868c700>('deps', '')
+E        +    where <built-in method get of dict object at 0x7fb2c868c700> = {'builder': 'WORKDIR /app\nCOPY apps/web/package*.json ./\nRUN npm ci\nCOPY apps/web ./\n# Avoid stale .next causing "...apps/web/package*.json ./\nCOPY apps/web /app\nCMD ["sh", "-c", "npm install && npm run dev -- -H 0.0.0.0 -p 3000"]\n'}.get
+
+tests/release/test_web_lock.py:286: AssertionError
+=========================== short test summary info ============================
+FAILED tests/release/test_web_lock.py::test_all_direct_dependencies_are_exact_pins
+FAILED tests/release/test_web_lock.py::test_lockfile_locks_exactly_the_pinned_versions_from_the_registry
+FAILED tests/release/test_web_lock.py::test_runtime_packages_are_on_supported_patched_lines
+FAILED tests/release/test_web_lock.py::test_npmrc_enforces_engines_and_exact_saves
+FAILED tests/release/test_web_lock.py::test_node_version_is_single_sourced_and_supported
+FAILED tests/release/test_web_lock.py::test_ci_installs_from_lock_and_runs_typecheck_build_and_audit
+FAILED tests/release/test_web_lock.py::test_typecheck_script_generates_route_types_before_tsc
+FAILED tests/release/test_web_lock.py::test_only_allowlisted_packages_declare_install_scripts
+FAILED tests/release/test_web_lock.py::test_next_emits_standalone_server - as...
+FAILED tests/release/test_web_lock.py::test_production_stage_ships_only_standalone_runtime
+FAILED tests/release/test_web_lock.py::test_build_stages_install_from_lock_without_scripts
+11 failed, 7 passed in 0.26s

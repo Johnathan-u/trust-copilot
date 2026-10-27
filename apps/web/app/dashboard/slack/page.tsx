@@ -13,6 +13,8 @@ type SlackStatus = {
   channel_name?: string
   event_types?: string[]
   updated_at?: string
+  provider_mode?: string
+  provider_label?: string
 }
 
 type Channel = { id: string; name: string }
@@ -540,6 +542,17 @@ export default function SlackPage() {
         )}
       </div>
 
+      {status.provider_mode === 'dev-stub' && (
+        <div
+          role="status"
+          className="rounded-lg border border-amber-500/40 bg-amber-500/10 px-4 py-3 text-sm text-amber-100"
+        >
+          <strong className="font-semibold">Development stub.</strong> Slack is
+          not called. Test messages are labelled as not delivered. Production
+          preflight rejects this mode.
+        </div>
+      )}
+
       {status.connected && (
         <div className="flex gap-2">
           <button
@@ -638,6 +651,11 @@ export default function SlackPage() {
                   <p className="text-xs text-[var(--tc-muted)]">
                     Sending to{' '}
                     <strong>#{status.channel_name || status.channel_id}</strong>
+                    {status.provider_mode === 'http'
+                      ? ' · Provider: HTTP'
+                      : status.provider_label
+                        ? ` · ${status.provider_label}`
+                        : ''}
                   </p>
                 </div>
               </div>
@@ -713,6 +731,7 @@ export default function SlackPage() {
               </div>
             )}
 
+            {/* eslint-disable-next-line react-hooks/static-components -- pre-existing nested component; hoisting it is a UI refactor tracked as a TC-02-006 follow-up */}
             <EventCheckboxGroup
               events={allEvents}
               checked={currentEvents}
@@ -982,6 +1001,7 @@ export default function SlackPage() {
               with compliance alerts.
             </p>
             <div className="max-h-56 overflow-y-auto pr-1">
+              {/* eslint-disable-next-line react-hooks/static-components -- pre-existing nested component; hoisting it is a UI refactor tracked as a TC-02-006 follow-up */}
               <EventCheckboxGroup
                 events={allEvents}
                 checked={selectedEvents}

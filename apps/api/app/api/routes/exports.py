@@ -10,20 +10,63 @@ from sqlalchemy.orm import Session
 
 from sqlalchemy import func
 
+from app.core.api_errors import (
+    ApiError,
+    FieldError,
+    api_error_from_failure,
+    api_error_response,
+    current_request_id,
+)
 from app.core.auth_deps import require_can_export, require_can_review
 from app.core.config import get_settings
 from app.core.database import get_db
 from app.core.idempotency import (
+    IdempotencyKeyError,
     get as idempotency_get,
+    release as idempotency_release,
+    scoped_key as idempotency_scoped_key,
     set as idempotency_set,
     try_claim as idempotency_try_claim,
 )
 from app.models import ExportRecord, Question, Questionnaire
 from app.services.export_service import enqueue_export_job, enqueue_generate_answers_job
+from app.services.model_outcomes import ModelFailure, ModelOutcomeCode
 from app.services.storage import get_storage, StorageClient
 
 router = APIRouter(prefix="/exports", tags=["exports"])
 _log = logging.getLogger(__name__)
+
+
+def _scoped_idempotency_key(request: Request, workspace_id: int, route: str, resource_id: int):
+    """Stored key, "" when the header is absent, or a 400 ApiError response when it is invalid."""
+    raw = request.headers.get("Idempotency-Key")
+    try:
+        return idempotency_scoped_key(workspace_id, route, resource_id, raw)
+    except IdempotencyKeyError as exc:
+        message = str(exc)
+        error = ApiError(
+            code="invalid_idempotency_key",
+            message=message,
+            request_id=current_request_id(request),
+            retryable=False,
+            field_errors=[FieldError(field="Idempotency-Key", code="invalid", message=message)],
+        )
+        return api_error_response(error, 400)
+
+
+def _store_and_raise_client_error(db: Session, idem_key: str, msg: str):
+    """Raise the 4xx for an enqueue ValueError, storing exactly the same body for idempotent replay.
+
+    TC-10-003a: the status and ``detail`` are computed once and used for both the live response and the
+    stored one, so a replay with the same Idempotency-Key returns the same error text as the original.
+    """
+    if "not found" in msg.lower():
+        status_code, detail = 404, "Questionnaire not found"
+    else:
+        status_code, detail = 400, msg
+    if idem_key:
+        idempotency_set(db, idem_key, status_code, {"detail": detail})
+    raise HTTPException(status_code=status_code, detail=detail)
 
 
 class GenerateAnswersBody(BaseModel):
@@ -43,7 +86,13 @@ def trigger_generate(
     db: Session = Depends(get_db),
 ):
     """Enqueue generate_answers job. Optional body: model, response_style (AI-06). Supports Idempotency-Key header."""
-    idem_key = (request.headers.get("Idempotency-Key") or "").strip()
+    # TC-10-003: authorize before touching the idempotency store (no cached 403s), and scope the client key
+    # to workspace + route + questionnaire so it cannot replay another workspace's or route's response.
+    if session.get("workspace_id") != workspace_id:
+        raise HTTPException(status_code=403, detail="Access denied")
+    idem_key = _scoped_idempotency_key(request, workspace_id, "generate", questionnaire_id)
+    if isinstance(idem_key, JSONResponse):
+        return idem_key
     if idem_key:
         cached = idempotency_get(db, idem_key)
         if cached:
@@ -55,10 +104,18 @@ def trigger_generate(
             raise HTTPException(
                 status_code=409, detail="Request in progress; retry with same Idempotency-Key"
             )
-    if session.get("workspace_id") != workspace_id:
+    try:
+        return _generate_claimed(
+            request, questionnaire_id, workspace_id, body, session, db, idem_key
+        )
+    except Exception:
+        # Anything that did not store a response (429, unexpected error) must not leave the key stuck at 409.
         if idem_key:
-            idempotency_set(db, idem_key, 403, {"detail": "Access denied"})
-        raise HTTPException(status_code=403, detail="Access denied")
+            idempotency_release(db, idem_key)
+        raise
+
+
+def _generate_claimed(request, questionnaire_id, workspace_id, body, session, db, idem_key):
     n_questions = (
         db.query(func.count(Question.id))
         .join(Questionnaire, Questionnaire.id == Question.questionnaire_id)
@@ -80,9 +137,19 @@ def trigger_generate(
             "OpenAI API key is not configured. Set OPENAI_API_KEY in your environment (.env) "
             "for the API and worker services, then restart."
         )
+        # TC-11-001: keep legacy 503 + ``detail``; add the typed ApiError object.
+        error = api_error_from_failure(
+            ModelFailure(code=ModelOutcomeCode.MODEL_CREDENTIALS_MISSING),
+            current_request_id(request),
+        )
+        body = {"detail": detail, "error": error.model_dump(exclude_none=True)}
         if idem_key:
-            idempotency_set(db, idem_key, 503, {"detail": detail})
-        raise HTTPException(status_code=503, detail=detail)
+            # TC-10-003a: a 5xx is not a final answer; free the claim so the client can retry once the
+            # server is configured, instead of replaying the 503 for the whole TTL.
+            idempotency_release(db, idem_key)
+        return JSONResponse(
+            status_code=503, content=body, headers={"X-Request-ID": error.request_id}
+        )
     from app.services.quota_service import check_quota
 
     allowed, current, limit = check_quota(db, workspace_id, "ai_jobs")
@@ -99,13 +166,7 @@ def trigger_generate(
             response_style_override=body.response_style if body else None,
         )
     except ValueError as e:
-        msg = str(e)
-        if idem_key:
-            sc = 404 if "not found" in msg.lower() else 400
-            idempotency_set(db, idem_key, sc, {"detail": msg})
-        if "not found" in msg.lower():
-            raise HTTPException(status_code=404, detail="Questionnaire not found")
-        raise HTTPException(status_code=400, detail=msg)
+        _store_and_raise_client_error(db, idem_key, str(e))
     from app.core.audit import audit_log
 
     audit_log(
@@ -144,7 +205,13 @@ def trigger_export(
     db: Session = Depends(get_db),
 ):
     """Enqueue export job (EXP-07). Optional body: format (xlsx or docx). Supports Idempotency-Key header."""
-    idem_key = (request.headers.get("Idempotency-Key") or "").strip()
+    # TC-10-003: authorize before touching the idempotency store (no cached 403s), and scope the client key
+    # to workspace + route + questionnaire so it cannot replay another workspace's or route's response.
+    if session.get("workspace_id") != workspace_id:
+        raise HTTPException(status_code=403, detail="Access denied")
+    idem_key = _scoped_idempotency_key(request, workspace_id, "export", questionnaire_id)
+    if isinstance(idem_key, JSONResponse):
+        return idem_key
     if idem_key:
         cached = idempotency_get(db, idem_key)
         if cached:
@@ -156,10 +223,16 @@ def trigger_export(
             raise HTTPException(
                 status_code=409, detail="Request in progress; retry with same Idempotency-Key"
             )
-    if session.get("workspace_id") != workspace_id:
+    try:
+        return _export_claimed(questionnaire_id, workspace_id, body, session, db, idem_key)
+    except Exception:
+        # Anything that did not store a response (429, unexpected error) must not leave the key stuck at 409.
         if idem_key:
-            idempotency_set(db, idem_key, 403, {"detail": "Access denied"})
-        raise HTTPException(status_code=403, detail="Access denied")
+            idempotency_release(db, idem_key)
+        raise
+
+
+def _export_claimed(questionnaire_id, workspace_id, body, session, db, idem_key):
     from app.services.quota_service import check_quota
 
     allowed, current, limit = check_quota(db, workspace_id, "exports")
@@ -171,13 +244,7 @@ def trigger_export(
     try:
         job = enqueue_export_job(db, workspace_id, questionnaire_id, format=fmt)
     except ValueError as e:
-        msg = str(e)
-        if idem_key:
-            sc = 404 if "not found" in msg.lower() else 400
-            idempotency_set(db, idem_key, sc, {"detail": msg})
-        if "not found" in msg.lower():
-            raise HTTPException(status_code=404, detail="Questionnaire not found")
-        raise HTTPException(status_code=400, detail=msg)
+        _store_and_raise_client_error(db, idem_key, str(e))
     from app.core.audit import audit_log
 
     audit_log(

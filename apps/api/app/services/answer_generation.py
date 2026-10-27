@@ -9,10 +9,13 @@ Architecture rules:
 
 import json
 import logging
+import os
 import re
 import time
 from concurrent.futures import ThreadPoolExecutor
-from typing import Any, Iterable
+from contextvars import ContextVar
+from datetime import datetime, timezone
+from typing import Any, Iterable, NamedTuple
 
 from sqlalchemy.orm import Session
 
@@ -53,13 +56,37 @@ from app.models.question_mapping_signal import QuestionMappingSignal
 from app.services.workspace_usage import record_answer_calls
 from app.core.audit import audit_log
 from app.services.evidence_processor import process_evidence
+from app.services.evidence_gap_service import generate_gaps_for_questionnaire
 from app.core.adaptive_concurrency import (
     ADAPTIVE_INITIAL,
     AdaptivePool,
 )
+from app.services.model_outcomes import (
+    ModelCallError,
+    ModelFailure,
+    ModelOutcomeCode,
+    classify_provider_exception,
+    completion_failure,
+    failure_from_exception,
+    read_completion,
+)
 
 
 logger = logging.getLogger(__name__)
+
+# TC-02-BUG-015: a non-model failure in evidence-gap generation no longer disappears. The
+# answers stay (the job completes) but the job carries this stable code and safe message;
+# exception text goes to the log only, never to job.error or job.result.
+GAP_GENERATION_FAILED_CODE = "evidence_gaps_failed"
+GAP_GENERATION_FAILED_MESSAGE = (
+    "Answers were generated, but evidence gap analysis failed. Re-run generation to retry."
+)
+
+
+def _gap_failures_raise() -> bool:
+    """Under tests, gap-generation defects fail the run instead of only marking the job."""
+    return os.environ.get("TRUST_COPILOT_TESTING") == "1"
+
 
 # AI-01: Supported models; unsupported values are defaulted to DEFAULT_MODEL with logging.
 DEFAULT_MODEL = "gpt-4o-mini"
@@ -88,6 +115,17 @@ BANNED_PREFIXES: tuple[str, ...] = (
     "as an artificial intelligence",
     "<",
 )
+# TC-11-001: the subset of BANNED_PREFIXES that signals a model refusal (vs. malformed output).
+REFUSAL_PREFIXES: tuple[str, ...] = (
+    "sorry",
+    "i cannot",
+    "i'm unable",
+    "as an ai",
+    "as a language model",
+    "as a large language model",
+    "i am an ai",
+    "as an artificial intelligence",
+)
 LEADING_META_PHRASES: tuple[str, ...] = (
     "based on the evidence provided,",
     "based on the evidence above,",
@@ -106,15 +144,21 @@ MAX_PARALLEL_BATCHES = 10  # run up to 10 batches concurrently (I/O bound; stay 
 COMPLETION_MAX_RETRIES = 3
 
 
+COMPLETION_RETRY_BASE_SECONDS = 1.0
+COMPLETION_RETRY_MAX_SECONDS = 10.0
+
+
 def _is_transient_completion_error(e: Exception) -> bool:
-    """True if completion error is worth retrying (timeout, rate limit, server error)."""
-    msg = (getattr(e, "message", "") or str(e)).lower()
-    if "timeout" in msg or "timed out" in msg:
+    """True if completion error is worth retrying (TC-10-002 classifier: 429, timeout, 5xx, connection)."""
+    from app.core.job_errors import classify, is_retryable_code
+
+    if classify_provider_exception(e).fatal:
+        # TC-11-001: never retry credentials/model-unavailable/quota-exhausted failures.
+        return False
+    if is_retryable_code(classify(e)):
         return True
-    code = getattr(e, "status_code", None) or getattr(
-        getattr(e, "response", None), "status_code", None
-    )
-    return code in (429, 503, 502, 504)
+    msg = (getattr(e, "message", "") or str(e)).lower()
+    return "timeout" in msg or "timed out" in msg
 
 
 def _extract_retry_after(e: Exception) -> float | None:
@@ -143,8 +187,15 @@ def _completion_create_with_retry(client: Any, **kwargs: Any) -> Any:
         except Exception as e:
             last_err = e
             if attempt < COMPLETION_MAX_RETRIES and _is_transient_completion_error(e):
-                retry_after = _extract_retry_after(e)
-                delay = retry_after if retry_after is not None else min(1.5**attempt, 10.0)
+                from app.core.job_errors import backoff_delay
+
+                # Bounded exponential backoff with jitter; Retry-After honoured up to the cap (TC-10-002).
+                delay = backoff_delay(
+                    attempt + 1,
+                    base=COMPLETION_RETRY_BASE_SECONDS,
+                    cap=COMPLETION_RETRY_MAX_SECONDS,
+                    retry_after=_extract_retry_after(e),
+                )
                 logger.info(
                     "answer_generation retry attempt=%d/%d delay=%.1fs error=%s",
                     attempt + 1,
@@ -203,24 +254,77 @@ def _strip_leading_phrases(text: str, phrases: Iterable[str]) -> str:
     return t or original
 
 
-def validate_answer_text(content: str | None) -> str:
-    """Validate and sanitize model output (AI-03). Returns safe text or empty string."""
+def assess_answer_text(content: str | None) -> tuple[ModelOutcomeCode, str]:
+    """Classify and sanitize one answer's model text (TC-11-001).
+
+    Returns ``(code, text)``. ``text`` is empty for refusal/malformed output. For usable text the
+    code is GROUNDED, or MODEL_ABSTAINED when the model itself declined for lack of evidence.
+    """
     if content is None:
-        return ""
+        return ModelOutcomeCode.MODEL_MALFORMED_OUTPUT, ""
     text = str(content).strip()
     if len(text) > MAX_ANSWER_LENGTH:
         text = text[:MAX_ANSWER_LENGTH]
     text = _strip_leading_phrases(text, LEADING_META_PHRASES)
+    if not text:
+        return ModelOutcomeCode.MODEL_MALFORMED_OUTPUT, ""
     lower = text.lower()
     if any(lower.startswith(p) for p in BANNED_PREFIXES):
         logger.debug(
             "answer_generation: blocked answer due to banned prefix: %s",
             lower[:120],
         )
-        return ""
+        if any(lower.startswith(p) for p in REFUSAL_PREFIXES):
+            return ModelOutcomeCode.MODEL_REFUSAL, ""
+        return ModelOutcomeCode.MODEL_MALFORMED_OUTPUT, ""
     if text.startswith("{") or text.startswith("["):
-        return ""
-    return text
+        return ModelOutcomeCode.MODEL_MALFORMED_OUTPUT, ""
+    if classify_answer_status_from_text(text) == "insufficient_evidence":
+        return ModelOutcomeCode.MODEL_ABSTAINED, text
+    return ModelOutcomeCode.GROUNDED, text
+
+
+def validate_answer_text(content: str | None) -> str:
+    """Validate and sanitize model output (AI-03). Returns safe text or empty string."""
+    return assess_answer_text(content)[1]
+
+
+class GeneratedAnswer(NamedTuple):
+    """Typed per-question generation result (TC-11-001)."""
+
+    q_id: int
+    text: str
+    citations: list[dict]
+    confidence: int
+    answer_status: str
+    outcome: ModelOutcomeCode
+    failure: ModelFailure | None = None
+
+
+def _answer_from_text(
+    q_id: int, content: str | None, citations: list[dict], top_score: float
+) -> GeneratedAnswer:
+    code, text = assess_answer_text(content)
+    if code == ModelOutcomeCode.GROUNDED:
+        conf = min(95, int(75 + top_score * 20))
+        return GeneratedAnswer(q_id, text, citations, conf, "draft", code)
+    if code == ModelOutcomeCode.MODEL_ABSTAINED:
+        return GeneratedAnswer(q_id, text, citations, 0, "insufficient_evidence", code)
+    return GeneratedAnswer(
+        q_id, INSUFFICIENT_EVIDENCE_TEXT, citations, 0, "insufficient_evidence", code
+    )
+
+
+def _failed_answer(q_id: int, citations: list[dict], failure: ModelFailure) -> GeneratedAnswer:
+    return GeneratedAnswer(
+        q_id,
+        INSUFFICIENT_EVIDENCE_TEXT,
+        citations,
+        0,
+        "insufficient_evidence",
+        failure.code,
+        failure,
+    )
 
 
 def is_allowed_model(candidate: str | None) -> bool:
@@ -313,8 +417,12 @@ def _generate_single_question_answer(
     temperature: float,
     system_msg: str,
     openai_client: Any,
-) -> tuple[int, str, list[dict], int, str]:
-    """One question, its own evidence pool, one LLM call. Returns (q_id, text, citations, confidence, answer_status)."""
+) -> GeneratedAnswer:
+    """One question, its own evidence pool, one LLM call. Returns a typed GeneratedAnswer.
+
+    Fatal provider failures (credentials, model unavailable, quota) raise ModelCallError so the
+    job stops explicitly instead of marking every question "insufficient evidence".
+    """
     evidence_processed = process_evidence(evidence)
     top_score = (evidence_processed[0].get("score", 0) or 0) if evidence_processed else 0
     citations_base = [
@@ -335,7 +443,14 @@ def _generate_single_question_answer(
             questionnaire_id,
             q.id,
         )
-        return (q.id, INSUFFICIENT_EVIDENCE_TEXT, [], 0, "insufficient_evidence")
+        return GeneratedAnswer(
+            q.id,
+            INSUFFICIENT_EVIDENCE_TEXT,
+            [],
+            0,
+            "insufficient_evidence",
+            ModelOutcomeCode.NO_EVIDENCE,
+        )
 
     prompt = build_prompt(q.text or "", evidence_processed)
     try:
@@ -349,19 +464,25 @@ def _generate_single_question_answer(
             max_tokens=400,
             temperature=temperature,
         )
-        raw = (r.choices[0].message.content or "").strip()
-        content = validate_answer_text(raw)
-        if not content:
-            return (q.id, INSUFFICIENT_EVIDENCE_TEXT, citations_base, 0, "insufficient_evidence")
-        answer_status = classify_answer_status_from_text(content)
-        if answer_status == "insufficient_evidence":
-            return (q.id, content, citations_base, 0, "insufficient_evidence")
-        conf = min(95, int(75 + top_score * 20))
-        return (q.id, content, citations_base, conf, "draft")
     except Exception as exc:
         OPENAI_COMPLETION_FAILURES_TOTAL.inc()
-        logger.warning("ALERT_OPENAI_FAILURE completion single question: %s", str(exc)[:200])
-        return (q.id, INSUFFICIENT_EVIDENCE_TEXT, citations_base, 0, "insufficient_evidence")
+        failure = classify_provider_exception(exc)
+        logger.warning("ALERT_OPENAI_FAILURE completion single question: %s", failure.log_summary())
+        if failure.fatal:
+            raise ModelCallError(failure) from None
+        return _failed_answer(q.id, citations_base, failure)
+    view = read_completion(r)
+    envelope_code = completion_failure(view)
+    if envelope_code is not None:
+        return GeneratedAnswer(
+            q.id,
+            INSUFFICIENT_EVIDENCE_TEXT,
+            citations_base,
+            0,
+            "insufficient_evidence",
+            envelope_code,
+        )
+    return _answer_from_text(q.id, view.content, citations_base, top_score)
 
 
 def _generate_batched_answers(
@@ -373,7 +494,7 @@ def _generate_batched_answers(
     system_msg: str,
     openai_client: Any,
     q_labels: dict[int, dict] | None = None,
-) -> list[tuple[int, str, list[dict], int, str]]:
+) -> list[GeneratedAnswer]:
     """Multiple questions in one LLM call with per-question evidence sections.
 
     Each question gets its own evidence block so the model can ground each answer
@@ -406,7 +527,15 @@ def _generate_batched_answers(
 
     if not any_has_evidence:
         return [
-            (q.id, INSUFFICIENT_EVIDENCE_TEXT, [], 0, "insufficient_evidence") for q, _ in batch
+            GeneratedAnswer(
+                q.id,
+                INSUFFICIENT_EVIDENCE_TEXT,
+                [],
+                0,
+                "insufficient_evidence",
+                ModelOutcomeCode.NO_EVIDENCE,
+            )
+            for q, _ in batch
         ]
 
     q_texts = [q.text or "" for q, _ in batch]
@@ -432,26 +561,34 @@ def _generate_batched_answers(
             max_tokens=350 * len(batch),
             temperature=temperature,
         )
-        raw = (r.choices[0].message.content or "").strip()
-        parsed = _parse_batched_answers(raw, len(batch))
+        view = read_completion(r)
+        parsed = (
+            _parse_batched_answers((view.content or "").strip(), len(batch))
+            if completion_failure(view) is None
+            else None
+        )
 
         if parsed:
             results = []
             for i, (q, _) in enumerate(batch):
-                content = validate_answer_text(parsed[i])
                 cits = per_q_citations.get(q.id, [])
-                top_s = per_q_top_score.get(q.id, 0)
-                if not content:
+                if not per_q_processed[i]:
+                    # TC-11-001: a question without its own evidence is never "grounded" by a
+                    # neighbour's evidence in the same batch.
                     results.append(
-                        (q.id, INSUFFICIENT_EVIDENCE_TEXT, cits, 0, "insufficient_evidence")
+                        GeneratedAnswer(
+                            q.id,
+                            INSUFFICIENT_EVIDENCE_TEXT,
+                            [],
+                            0,
+                            "insufficient_evidence",
+                            ModelOutcomeCode.NO_EVIDENCE,
+                        )
                     )
-                else:
-                    st = classify_answer_status_from_text(content)
-                    if st == "insufficient_evidence":
-                        results.append((q.id, content, cits, 0, "insufficient_evidence"))
-                    else:
-                        conf = min(95, int(75 + top_s * 20))
-                        results.append((q.id, content, cits, conf, "draft"))
+                    continue
+                results.append(
+                    _answer_from_text(q.id, parsed[i], cits, per_q_top_score.get(q.id, 0))
+                )
             return results
 
         logger.info(
@@ -459,8 +596,15 @@ def _generate_batched_answers(
             len(batch),
         )
     except Exception as exc:
+        failure = classify_provider_exception(exc)
+        if failure.fatal:
+            logger.warning(
+                "ALERT_OPENAI_FAILURE batched completion fatal: %s", failure.log_summary()
+            )
+            raise ModelCallError(failure) from None
         logger.warning(
-            "answer_generation: batched call failed, falling back to single: %s", str(exc)[:200]
+            "answer_generation: batched call failed, falling back to single: %s",
+            failure.log_summary(),
         )
 
     results = []
@@ -489,6 +633,52 @@ def _job_payload(
     return json.dumps(payload)
 
 
+class AnswerWriteGuard:
+    """TC-10-003: answers a generation run must never overwrite.
+
+    Protected = status ``approved`` (human-approved work), or ``updated_at`` later than the run's cutoff
+    (the generating job's ``created_at``): such an answer was written by a human edit or a newer run after
+    this run's input was requested, so this (stale) run must not overwrite it.
+
+    TC-10-002: a non-approved ``insufficient_evidence`` placeholder left by a provider error
+    (``insufficient_reason == "llm_error"``) is never protected, so a job-level retry regenerates exactly the
+    questions an earlier attempt failed on (no human or model work is lost: it holds no answer text).
+    """
+
+    def __init__(self, cutoff: datetime | None):
+        self.cutoff = _naive_utc(cutoff)
+        self.protected_qids: set[int] = set()
+        self.written: set[int] = (
+            set()
+        )  # written by this run (its own updated_at bump is not "newer work")
+
+    def is_protected(self, answer: Any) -> bool:
+        if answer is None:
+            return False
+        if getattr(answer, "status", None) == "approved":
+            return True
+        if (
+            getattr(answer, "status", None) == "insufficient_evidence"
+            and getattr(answer, "insufficient_reason", None) == "llm_error"
+        ):
+            return False
+        upd = getattr(answer, "updated_at", None)
+        if self.cutoff is not None and isinstance(upd, datetime):
+            return _naive_utc(upd) > self.cutoff
+        return False
+
+
+_WRITE_GUARD: ContextVar[AnswerWriteGuard | None] = ContextVar("answer_write_guard", default=None)
+
+
+def _naive_utc(dt: datetime | None) -> datetime | None:
+    if not isinstance(dt, datetime):
+        return None
+    if dt.tzinfo is not None:
+        dt = dt.astimezone(timezone.utc).replace(tzinfo=None)
+    return dt
+
+
 def generate_answers_for_questionnaire(
     db: Session,
     questionnaire_id: int,
@@ -496,8 +686,43 @@ def generate_answers_for_questionnaire(
     model_override: str | None = None,
     response_style_override: str | None = None,
     job: Job | None = None,
+    effects: Any = None,
 ) -> int:
-    """Generate answers for all questions. Returns count of answers created."""
+    """Generate answers for all questions. Returns count of answers created (protected answers count as done).
+
+    TC-10-003: with a real ``Session``, approved answers and answers changed after ``job.created_at`` are never
+    overwritten (``AnswerWriteGuard``). ``effects`` (optional ``JobEffects``) records the paid-provider marker
+    before the first OpenAI call and settles it when the run completes.
+    """
+    guard = None
+    if isinstance(db, Session):
+        guard = AnswerWriteGuard(getattr(job, "created_at", None) if isinstance(job, Job) else None)
+    token = _WRITE_GUARD.set(guard)
+    try:
+        return _generate_answers_impl(
+            db,
+            questionnaire_id,
+            workspace_id,
+            model_override,
+            response_style_override,
+            job,
+            effects,
+            guard,
+        )
+    finally:
+        _WRITE_GUARD.reset(token)
+
+
+def _generate_answers_impl(
+    db: Session,
+    questionnaire_id: int,
+    workspace_id: int,
+    model_override: str | None,
+    response_style_override: str | None,
+    job: Job | None,
+    effects: Any,
+    guard: AnswerWriteGuard | None,
+) -> int:
     qnr = (
         db.query(Questionnaire)
         .filter(
@@ -510,6 +735,36 @@ def generate_answers_for_questionnaire(
         raise ValueError(f"Questionnaire {questionnaire_id} not found")
     questions = db.query(Question).filter(Question.questionnaire_id == questionnaire_id).all()
     total_questions = len(questions)
+    protected_count = 0
+    if guard is not None and questions:
+        _qids = [q.id for q in questions]
+        for a in db.query(Answer).filter(Answer.question_id.in_(_qids)).all():
+            if guard.is_protected(a):
+                guard.protected_qids.add(a.question_id)
+        if guard.protected_qids:
+            protected_count = len(guard.protected_qids)
+            questions = [q for q in questions if q.id not in guard.protected_qids]
+            logger.info(
+                "answer_generation: %d protected answer(s) (approved or newer than job) left untouched qnr=%s",
+                protected_count,
+                questionnaire_id,
+            )
+            if not questions:
+                if job:
+                    job.result = _job_payload(
+                        protected_count,
+                        total_questions,
+                        {
+                            "drafted": 0,
+                            "insufficient_evidence": 0,
+                            "skipped_gated": 0,
+                            "llm_calls": 0,
+                            "skipped_protected": protected_count,
+                            "duration_ms": 0,
+                        },
+                    )
+                    db.commit()
+                return protected_count
     if not questions:
         if job:
             job.result = _job_payload(
@@ -532,9 +787,7 @@ def generate_answers_for_questionnaire(
     api_key_ok = bool((settings.openai_api_key or "").strip())
     if not api_key_ok:
         if total_questions > 0:
-            raise ValueError(
-                "OPENAI_API_KEY is not set or empty. Set it in the environment (.env) for the API and worker, then restart."
-            )
+            raise ModelCallError(ModelFailure(code=ModelOutcomeCode.MODEL_CREDENTIALS_MISSING))
         if job:
             job.result = _job_payload(
                 0,
@@ -645,8 +898,18 @@ def generate_answers_for_questionnaire(
     # Batch embed all questions
     question_texts = [q.text for q in questions]
     _t0 = time.monotonic()
-    all_embeddings = embed_texts(question_texts)
+    if effects is not None:
+        effects.provider_call_started("openai")
+    embedding_failures: list[ModelFailure] = []
+    all_embeddings = embed_texts(question_texts, on_failure=embedding_failures.append)
     embed_time_ms = (time.monotonic() - _t0) * 1000
+    fatal_embedding = next((f for f in embedding_failures if f.fatal), None)
+    if fatal_embedding is not None:
+        # TC-11-001: credentials/model failures are not "no evidence"; stop before any completion call.
+        logger.warning(
+            "answer_generation: embedding failure stops job: %s", fatal_embedding.log_summary()
+        )
+        raise ModelCallError(fatal_embedding)
 
     # Retrieve evidence for each question via batch search
     _t0 = time.monotonic()
@@ -719,7 +982,7 @@ def generate_answers_for_questionnaire(
             to_generate.append((q, evidence, has_evidence_scope))
     retrieval_time_ms = (time.monotonic() - _t0) * 1000
 
-    count = 0
+    count = protected_count
 
     # D6: Skip re-generation for questions with unchanged evidence fingerprint
     _gen_qids = [q.id for q, _, _ in to_generate]
@@ -749,17 +1012,34 @@ def generate_answers_for_questionnaire(
         count += len(_skipped_unchanged)
     to_generate = _new_to_generate
 
-    run_stats: dict[str, int | float] = {
+    run_stats: dict[str, Any] = {
         "drafted": 0,
         "insufficient_evidence": 0,
         "skipped_gated": 0,
         "llm_calls": 0,
     }
+    if protected_count:
+        run_stats["skipped_protected"] = protected_count
+    # TC-11-001: per-outcome counts so a run that "completed" with provider failures is visible.
+    outcome_counts: dict[str, int] = {}
+
+    def _count_outcome(code: ModelOutcomeCode) -> None:
+        outcome_counts[code.value] = outcome_counts.get(code.value, 0) + 1
 
     # Persist cached answers and progress
     for q_id, (text, citations, conf) in cached_results.items():
         st = classify_answer_status_from_text(text)
-        _upsert_answer(db, q_id, text, citations, conf if st == "draft" else 0, st)
+        # TC-11-001 review: a cache hit is never "grounded"; its citations are not re-checked
+        # (claim-level citation validation is TC-11-003), so it gets GROUNDED_UNVERIFIED.
+        cached_code = (
+            ModelOutcomeCode.GROUNDED_UNVERIFIED
+            if st == "draft"
+            else ModelOutcomeCode.MODEL_ABSTAINED
+        )
+        _upsert_answer(
+            db, q_id, text, citations, conf if st == "draft" else 0, st, outcome_code=cached_code
+        )
+        _count_outcome(cached_code)
         count += 1
         if st == "draft":
             run_stats["drafted"] += 1
@@ -776,9 +1056,10 @@ def generate_answers_for_questionnaire(
             db.commit()
     if not to_generate:
         duration_ms = (time.monotonic() - started) * 1000
-        swept = _sweep_draft_insufficient_narratives(db, questionnaire_id)
+        swept = _sweep_draft_insufficient_narratives(db, questionnaire_id, guard=guard)
         _adjust_run_stats_after_sweep(run_stats, swept)
         run_stats["duration_ms"] = duration_ms
+        run_stats["outcomes"] = dict(outcome_counts)
         log_answer_gen_success(workspace_id, questionnaire_id, count, duration_ms)
         ANSWER_GEN_DURATION_SECONDS.observe(duration_ms / 1000)
         logger.info(
@@ -789,6 +1070,7 @@ def generate_answers_for_questionnaire(
             workspace_id,
             run_stats,
         )
+        _settle_provider(effects, guard, run_stats)
         if job:
             job.result = _job_payload(count, total_questions, run_stats)
             db.commit()
@@ -908,7 +1190,9 @@ def generate_answers_for_questionnaire(
                 insufficient_reason=skip_reason,
                 gating_reason=skip_reason,
                 primary_categories_json=_categories_json_for_question(q.id),
+                outcome_code=ModelOutcomeCode.NO_EVIDENCE,
             )
+            _count_outcome(ModelOutcomeCode.NO_EVIDENCE)
             count += 1
             run_stats["insufficient_evidence"] += 1
             run_stats["skipped_gated"] += 1
@@ -948,17 +1232,26 @@ def generate_answers_for_questionnaire(
             batches.append(tasks[i : i + bs])
         return batches
 
+    fatal_failure: ModelFailure | None = None
+
     def _apply_one_result(
         q: Any,
         ev: list[dict],
-        result: tuple[int, str, list[dict], int, str] | None,
+        result: GeneratedAnswer | None,
         exc: Exception | None,
     ) -> None:
-        nonlocal count
+        nonlocal count, fatal_failure
         chunk_ids = [e.get("id") for e in ev if e.get("id") is not None]
         evidence_fp_one = evidence_fingerprint_hash(chunk_ids)
         if exc is not None:
-            logger.warning("answer_generation single_question failed question_id=%s: %s", q.id, exc)
+            failure = classify_provider_exception(exc)
+            logger.warning(
+                "answer_generation single_question failed question_id=%s: %s",
+                q.id,
+                failure.log_summary(),
+            )
+            if failure.fatal and fatal_failure is None:
+                fatal_failure = failure
             _upsert_answer(
                 db,
                 q.id,
@@ -969,9 +1262,12 @@ def generate_answers_for_questionnaire(
                 insufficient_reason="llm_error",
                 primary_categories_json=_categories_json_for_question(q.id),
                 evidence_fingerprint=evidence_fp_one,
+                outcome_code=failure.code,
             )
+            _count_outcome(failure.code)
             count += 1
             run_stats["insufficient_evidence"] += 1
+            _count_llm_error(run_stats, exc)
             was_429, was_timeout, was_transient = adaptive.classify_exception(exc)
             adaptive.release(
                 success=False,
@@ -984,8 +1280,10 @@ def generate_answers_for_questionnaire(
             if was_timeout:
                 ADAPTIVE_TIMEOUT_STEPDOWN_TOTAL.inc()
         elif result is not None:
-            _qid, text, citations, conf, answer_status = result
-            insuf_reason = "llm_declined" if answer_status == "insufficient_evidence" else None
+            _qid, text, citations, conf, answer_status = result[:5]
+            insuf_reason = None
+            if answer_status == "insufficient_evidence":
+                insuf_reason = "llm_error" if result.failure is not None else "llm_declined"
             _upsert_answer(
                 db,
                 _qid,
@@ -996,7 +1294,9 @@ def generate_answers_for_questionnaire(
                 insufficient_reason=insuf_reason,
                 primary_categories_json=_categories_json_for_question(_qid),
                 evidence_fingerprint=evidence_fp_one,
+                outcome_code=result.outcome,
             )
+            _count_outcome(result.outcome)
             count += 1
             run_stats["llm_calls"] += 1
             if answer_status == "draft":
@@ -1068,7 +1368,11 @@ def generate_answers_for_questionnaire(
                     logger.info("answer_generation: backoff %.1fs (rate limit cooldown)", wait)
                     time.sleep(wait)
 
-                while batch_idx < len(batches) and len(futures) < adaptive.max_workers:
+                while (
+                    fatal_failure is None
+                    and batch_idx < len(batches)
+                    and len(futures) < adaptive.max_workers
+                ):
                     batch = batches[batch_idx]
                     batch_idx += 1
                     fut = executor.submit(
@@ -1107,6 +1411,11 @@ def generate_answers_for_questionnaire(
                 )
             _uncommitted = 0
 
+        if fatal_failure is not None:
+            # TC-11-001: stop explicitly with a typed error; answers already written keep their
+            # typed outcome_code. Remaining batches were never submitted (no further paid calls).
+            raise ModelCallError(fatal_failure)
+
         pool_stats = adaptive.stats()
         run_stats["adaptive_final_workers"] = pool_stats["workers"]
         run_stats["adaptive_final_batch"] = pool_stats["batch_size"]
@@ -1114,24 +1423,23 @@ def generate_answers_for_questionnaire(
     llm_time_ms = (time.monotonic() - _t0) * 1000
 
     duration_ms = (time.monotonic() - started) * 1000
-    swept = _sweep_draft_insufficient_narratives(db, questionnaire_id)
+    swept = _sweep_draft_insufficient_narratives(db, questionnaire_id, guard=guard)
     _adjust_run_stats_after_sweep(run_stats, swept)
 
-    # Evidence gap generation runs in background -- don't block answer pipeline completion
+    # Evidence gaps use their own Session (TC-08-005). A typed model failure raised on that
+    # worker must reach this caller as ModelCallError. Any other gap error is logged at ERROR
+    # and marks the job (GAP_GENERATION_FAILED_CODE); under tests it is re-raised (BUG-015).
     import threading as _threading
 
-    # TC-08-005: the background thread gets its own Session on its own pooled connection. If the
-    # caller's Session is bound to a shared Connection (cannot be isolated), run inline instead of
-    # sharing that Connection across threads.
     from app.core.database import isolated_session, supports_thread_isolation
 
     _gap_bind = db.get_bind()
+    _gap_state: dict[str, Any] = {"generated": 0, "failed": False}
 
     def _gap_work(gap_db) -> None:
-        from app.services.evidence_gap_service import generate_gaps_for_questionnaire
-
         result = generate_gaps_for_questionnaire(gap_db, workspace_id, questionnaire_id)
-        generated = result.get("generated", 0)
+        generated = int(result.get("generated", 0) or 0)
+        _gap_state["generated"] = generated
         if generated > 0:
             logger.info(
                 "answer_generation: generated %d evidence gaps for qnr=%d (background)",
@@ -1139,43 +1447,83 @@ def generate_answers_for_questionnaire(
                 questionnaire_id,
             )
 
-    def _run_gap_generation() -> None:
+    def _run_gap(gap_db, where: str) -> None:
         try:
-            with isolated_session(_gap_bind) as gap_db:
-                _gap_work(gap_db)
-        except Exception:
+            _gap_work(gap_db)
+        except ModelCallError as exc:
             logger.warning(
-                "answer_generation: gap generation failed for qnr=%d (background)",
+                "answer_generation: gap generation model failure for qnr=%d (%s): %s",
                 questionnaire_id,
+                where,
+                exc.failure.log_summary(),
+            )
+            raise
+        except Exception as exc:
+            failure = failure_from_exception(exc)
+            if failure is not None:
+                # Same catalog code as the worker exception; drop the provider body/chain.
+                logger.warning(
+                    "answer_generation: gap generation model failure for qnr=%d (%s): %s",
+                    questionnaire_id,
+                    where,
+                    failure.log_summary(),
+                )
+                raise ModelCallError(failure) from None
+            try:
+                gap_db.rollback()
+            except Exception:
+                pass
+            logger.error(
+                "answer_generation: gap generation failed for qnr=%d (%s) code=%s",
+                questionnaire_id,
+                where,
+                GAP_GENERATION_FAILED_CODE,
                 exc_info=True,
             )
+            if _gap_failures_raise():
+                raise
+            _gap_state["failed"] = True
 
     if supports_thread_isolation(_gap_bind):
+        _gap_errors: list[BaseException] = []
+
+        def _run_gap_generation() -> None:
+            try:
+                with isolated_session(_gap_bind) as gap_db:
+                    _run_gap(gap_db, "background")
+            except BaseException as exc:  # re-raised on the caller thread below
+                _gap_errors.append(exc)
+
+        # Joined so a gap failure is not dropped when the daemon thread exits.
         _gap_thread = _threading.Thread(
             target=_run_gap_generation, daemon=True, name="gap-generation"
         )
         _gap_thread.start()
+        _gap_thread.join()
+        if _gap_errors:
+            raise _gap_errors[0]
     else:
         from sqlalchemy.orm import Session as _Ses
 
-        gap_db = _Ses(bind=_gap_bind)  # same Connection, but used on this thread only
+        # Same Connection, used on this thread only. The caller's transaction is already open
+        # there, so join it through a SAVEPOINT explicitly (SQLAlchemy's default for this case,
+        # stated so it does not warn now that gaps are really written).
+        gap_db = _Ses(bind=_gap_bind, join_transaction_mode="create_savepoint")
         try:
-            _gap_work(gap_db)
-        except Exception:
-            logger.warning(
-                "answer_generation: gap generation failed for qnr=%d (inline)",
-                questionnaire_id,
-                exc_info=True,
-            )
+            _run_gap(gap_db, "inline")
         finally:
             gap_db.close()
-    run_stats["gaps_generated"] = 0
+    run_stats["gaps_generated"] = _gap_state["generated"]
+    if _gap_state["failed"]:
+        run_stats["gap_generation"] = "failed"
+        run_stats["gap_generation_error_code"] = GAP_GENERATION_FAILED_CODE
 
     run_stats["duration_ms"] = duration_ms
     run_stats["embed_time_ms"] = round(embed_time_ms, 1)
     run_stats["retrieval_time_ms"] = round(retrieval_time_ms, 1)
     run_stats["gating_time_ms"] = round(gating_time_ms, 1)
     run_stats["llm_time_ms"] = round(llm_time_ms, 1)
+    run_stats["outcomes"] = dict(outcome_counts)
     log_answer_gen_success(workspace_id, questionnaire_id, count, duration_ms)
     ANSWER_GEN_DURATION_SECONDS.observe(duration_ms / 1000)
     logger.info(
@@ -1206,15 +1554,59 @@ def generate_answers_for_questionnaire(
             "duration_ms": round(duration_ms, 1),
         },
     )
+    _settle_provider(effects, guard, run_stats)
     if job:
         job.result = _job_payload(count, total_questions, run_stats)
+        if _gap_state["failed"]:
+            job.error_code = GAP_GENERATION_FAILED_CODE
+            job.error = GAP_GENERATION_FAILED_MESSAGE
         db.commit()
     return count
 
 
-def _sweep_draft_insufficient_narratives(db: Session, questionnaire_id: int) -> int:
+def _citations_lack_direct_evidence(
+    db: Session, cits: list, doc_tier_cache: dict[int, int]
+) -> bool:
+    """True when every citation resolves to an export-like (tier 3) document, e.g. a prior questionnaire
+    response, so nothing cited is direct evidence. Citations without a resolvable document count as possibly
+    direct (same convention as ``only_low_tier_evidence``)."""
+    from app.services.answer_evidence_policy import only_low_tier_evidence
+
+    as_evidence: list[dict] = []
+    for c in cits:
+        if not isinstance(c, dict):
+            return False
+        did = c.get("document_id")
+        if did is None:
+            return False
+        try:
+            as_evidence.append({"metadata": {"document_id": int(did)}})
+        except (TypeError, ValueError):
+            return False
+    if not as_evidence:
+        return False
+    # only_low_tier_evidence looks at the first 12 entries; check every citation.
+    return all(
+        only_low_tier_evidence(db, as_evidence[i : i + 12], doc_tier_cache=doc_tier_cache)
+        for i in range(0, len(as_evidence), 12)
+    )
+
+
+def _settle_provider(effects: Any, guard: AnswerWriteGuard | None, run_stats: dict) -> None:
+    if guard is not None and len(guard.protected_qids) > int(
+        run_stats.get("skipped_protected", 0) or 0
+    ):
+        run_stats["skipped_protected"] = len(guard.protected_qids)
+    if effects is not None:
+        effects.settle("openai", {"llm_calls": int(run_stats.get("llm_calls", 0) or 0)})
+
+
+def _sweep_draft_insufficient_narratives(
+    db: Session, questionnaire_id: int, guard: AnswerWriteGuard | None = None
+) -> int:
     """Reclassify draft rows whose text is insufficient, have zero citations,
-    or whose primary subject requires direct evidence that wasn't provided."""
+    or whose primary subject requires direct evidence that wasn't provided
+    (TC-02-BUG-005: every citation is from an export-like / prior-response document)."""
     from app.services.answer_evidence_policy import subject_requires_direct_evidence
     from app.services.registry_metadata import SUBJECT_AREA_LABEL_TO_KEY
 
@@ -1224,16 +1616,28 @@ def _sweep_draft_insufficient_narratives(db: Session, questionnaire_id: int) -> 
         .filter(Question.questionnaire_id == questionnaire_id, Answer.status == "draft")
         .all()
     )
+    doc_tier_cache: dict[int, int] = {}
     n = 0
     for a in answers:
+        # TC-10-003: never reclassify protected work. Also skip a stale row this run did not
+        # write (updated_at after the job cutoff). Rows in guard.written keep the sweep: their
+        # updated_at bump is this run's own write, same rule as _upsert_answer.
+        if guard is not None:
+            owned_by_run = a.question_id in guard.written
+            if a.question_id in guard.protected_qids or (
+                not owned_by_run and guard.is_protected(a)
+            ):
+                guard.protected_qids.add(a.question_id)
+                continue
         no_citations = False
+        cits: list = []
         try:
             cits = json.loads(a.citations or "[]") if a.citations else []
             no_citations = len(cits) == 0
         except Exception:
             no_citations = True
 
-        direct_ev_missing = False
+        direct_subject: str | None = None
         if a.primary_categories_json and not no_citations:
             try:
                 cats = json.loads(a.primary_categories_json)
@@ -1243,20 +1647,55 @@ def _sweep_draft_insufficient_narratives(db: Session, questionnaire_id: int) -> 
                         s_label, s_label.lower().replace(" ", "_")
                     )
                     if subject_requires_direct_evidence(s_key):
-                        direct_ev_missing = True  # noqa: F841
+                        direct_subject = s_key
                         break
             except Exception:
                 pass
+        direct_ev_missing = direct_subject is not None and _citations_lack_direct_evidence(
+            db, cits, doc_tier_cache
+        )
 
-        if is_insufficient_answer_text(a.text) or no_citations:
+        if is_insufficient_answer_text(a.text) or no_citations or direct_ev_missing:
             a.status = "insufficient_evidence"
             if no_citations and not a.insufficient_reason:
                 a.insufficient_reason = "no_citations"
+            elif direct_ev_missing and not a.insufficient_reason:
+                # Same reason format as the pre-LLM gate in generate_answers_for_questionnaire.
+                a.insufficient_reason = f"direct_evidence_required:{direct_subject}"
+            if getattr(a, "outcome_code", None) in (
+                None,
+                ModelOutcomeCode.GROUNDED.value,
+                ModelOutcomeCode.GROUNDED_UNVERIFIED.value,
+            ):
+                a.outcome_code = (
+                    # No direct evidence: same outcome as the pre-LLM direct-evidence gate.
+                    ModelOutcomeCode.NO_EVIDENCE.value
+                    if no_citations or direct_ev_missing
+                    else ModelOutcomeCode.MODEL_ABSTAINED.value
+                )
             a.confidence = 0
             n += 1
     if n:
         db.commit()
     return n
+
+
+def _count_llm_error(run_stats: dict, exc: Exception) -> None:
+    """TC-10-002: count per-question provider failures by class so the worker can retry or stop explicitly."""
+    from app.core.job_errors import classify, is_fatal_code, is_retryable_code
+
+    code = classify(exc)  # TC-11-001 model_* code for provider exceptions
+    run_stats["llm_errors"] = int(run_stats.get("llm_errors", 0) or 0) + 1
+    if is_fatal_code(code):
+        run_stats["llm_errors_auth_config"] = (
+            int(run_stats.get("llm_errors_auth_config", 0) or 0) + 1
+        )
+        run_stats["llm_error_code_auth_config"] = code
+    elif is_retryable_code(code):
+        run_stats["llm_errors_retryable"] = int(run_stats.get("llm_errors_retryable", 0) or 0) + 1
+        run_stats["llm_error_code_retryable"] = code
+    else:
+        run_stats["llm_errors_other"] = int(run_stats.get("llm_errors_other", 0) or 0) + 1
 
 
 def _adjust_run_stats_after_sweep(run_stats: dict[str, int | float], swept: int) -> None:
@@ -1277,10 +1716,34 @@ def _upsert_answer(
     gating_reason: str | None = None,
     primary_categories_json: str | None = None,
     evidence_fingerprint: str | None = None,
+    outcome_code: ModelOutcomeCode | str | None = None,
 ) -> None:
-    """Create or update an Answer for a question."""
+    """Create or update an Answer for a question (never overwrites a protected answer, TC-10-003)."""
+    guard = _WRITE_GUARD.get()
+    outcome_value = (
+        outcome_code.value if isinstance(outcome_code, ModelOutcomeCode) else outcome_code
+    )
     with db.no_autoflush:
-        existing = db.query(Answer).filter(Answer.question_id == question_id).first()
+        q = db.query(Answer).filter(Answer.question_id == question_id)
+        if guard is not None and question_id not in guard.written:
+            q = (
+                q.populate_existing()
+            )  # re-read: a human may have approved/edited it during this run
+        existing = q.first()
+    if (
+        guard is not None
+        and existing is not None
+        and question_id not in guard.written
+        and guard.is_protected(existing)
+    ):
+        guard.protected_qids.add(question_id)
+        logger.info(
+            "answer_generation: question_id=%s answer became protected mid-run; not overwritten",
+            question_id,
+        )
+        return
+    if guard is not None:
+        guard.written.add(question_id)
     if existing:
         existing.text = text
         existing.citations = json.dumps(citations)
@@ -1289,6 +1752,7 @@ def _upsert_answer(
         existing.insufficient_reason = insufficient_reason
         existing.gating_reason = gating_reason
         existing.primary_categories_json = primary_categories_json
+        existing.outcome_code = outcome_value
         if evidence_fingerprint is not None:
             existing.evidence_fingerprint = evidence_fingerprint
     else:
@@ -1302,5 +1766,6 @@ def _upsert_answer(
             gating_reason=gating_reason,
             primary_categories_json=primary_categories_json,
             evidence_fingerprint=evidence_fingerprint,
+            outcome_code=outcome_value,
         )
         db.add(a)

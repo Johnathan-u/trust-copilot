@@ -24,6 +24,13 @@ import {
 const AUTOSAVE_DELAY_MS = 1500
 
 type Citation = { chunk_id?: number; snippet?: string; tags?: TagData[] }
+/** TC-11-001: shared ApiError schema (code / safe message / request_id / retryable). */
+type ApiErrorInfo = {
+  code: string
+  message: string
+  request_id: string
+  retryable: boolean
+}
 type Question = {
   id: number
   text: string
@@ -32,7 +39,22 @@ type Question = {
     text: string | null
     status: string
     citations?: string
+    outcome_code?: string | null
+    outcome?: ApiErrorInfo | null
   } | null
+}
+
+/**
+ * TC-11-001: only a freshly generated draft is 'grounded'. Every other outcome, including
+ * 'grounded_unverified' (answer-cache hit whose citations were not re-checked), shows its badge.
+ */
+const VERIFIED_GROUNDED_OUTCOME = 'grounded'
+
+function apiErrorMessage(err: ApiErrorInfo | null | undefined): string {
+  if (!err?.message) return ''
+  return err.request_id
+    ? `${err.message} (ref ${err.request_id.slice(0, 8)})`
+    : err.message
 }
 type Qnr = { id: number; filename: string; questions: Question[] }
 
@@ -292,6 +314,7 @@ export default function ReviewPage() {
           setGenJobId(data.job_id)
         } else {
           const raw =
+            apiErrorMessage(data?.error as ApiErrorInfo | undefined) ||
             (data?.detail as string) ||
             (Array.isArray(data?.detail)
               ? data.detail.map((x: { msg?: string }) => x.msg).join(', ')
@@ -353,7 +376,7 @@ export default function ReviewPage() {
               : 'Export failed')
         )
       if (!r.ok) setTimeout(() => setErrorToast(null), 6000)
-    } catch (e) {
+    } catch {
       setErrorToast('Network error. Try again.')
       setTimeout(() => setErrorToast(null), 5000)
     }
@@ -467,7 +490,9 @@ export default function ReviewPage() {
               setGenJobBackendStatus(null)
             }
             if (kind === 'export') clearExportPollTimer()
-            const detail = j.error ? String(j.error).slice(0, 160) : ''
+            const detail =
+              apiErrorMessage(j.error_detail as ApiErrorInfo | undefined) ||
+              (j.error ? String(j.error).slice(0, 160) : '')
             const fallback =
               kind === 'gen'
                 ? 'Answer generation did not finish. Check that the worker is running and try again.'
@@ -958,6 +983,7 @@ export default function ReviewPage() {
                   </tr>
                 </thead>
                 <tbody>
+                  {/* eslint-disable-next-line react-hooks/refs -- pre-existing row ref registration during render; tracked as a TC-02-006 follow-up */}
                   {filtered.map((q, i) => {
                     const status = q.answer?.status ?? 'pending'
                     const statusClass =
@@ -1020,6 +1046,19 @@ export default function ReviewPage() {
                                   ? `${citations.length} supporting source${citations.length !== 1 ? 's' : ''}`
                                   : 'No supporting evidence linked yet'}
                               </span>
+                              {q.answer?.outcome &&
+                              q.answer.outcome.code !==
+                                VERIFIED_GROUNDED_OUTCOME ? (
+                                <>
+                                  <span>·</span>
+                                  <span
+                                    data-outcome-code={q.answer.outcome.code}
+                                    title={q.answer.outcome.code}
+                                  >
+                                    {q.answer.outcome.message}
+                                  </span>
+                                </>
+                              ) : null}
                             </div>
                           </div>
                         </td>

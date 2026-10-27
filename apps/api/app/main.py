@@ -31,6 +31,8 @@ from fastapi.middleware.cors import CORSMiddleware  # noqa: E402
 
 from app.core.config import get_settings  # noqa: E402
 from app.core.logging_config import configure_logging, request_id_ctx, workspace_id_ctx  # noqa: E402
+from app.core.api_errors import model_call_error_handler  # noqa: E402
+from app.services.model_outcomes import ModelCallError  # noqa: E402
 from app.core.metrics import record_request as metrics_record_request  # noqa: E402
 from app.core.rate_limit import get_client_ip, is_rate_limited, record_attempt  # noqa: E402
 from app.api.routes import auth as auth_router  # noqa: E402
@@ -182,7 +184,14 @@ def _verify_db_connectivity():
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # TC-03-001: validate the configuration contract before touching the database (fails closed in production).
+    # TC-07-001a: the production secret check runs first, before any DB, S3 or other I/O, and is
+    # unconditional (it detects production itself, whitespace/case-insensitively).
+    from app.core.session import enforce_production_session_secret, is_production_env
+
+    enforce_production_session_secret("api")
+    # TC-03-001: the rest of the configuration contract (default/placeholder DB, S3, MinIO and
+    # provider credentials, URLs, dev/demo switches) runs next, still before any DB or S3 call.
+    # It uses the same production detector (is_production_env) and fails closed in production.
     from app.core.config_contract import enforce_startup_contract
 
     for _problem in enforce_startup_contract("api"):
@@ -200,15 +209,7 @@ async def lifespan(app: FastAPI):
 
         logging.getLogger("app.main").warning("S3/MinIO bucket init skipped or failed: %s", e)
     configure_logging(s.log_level, use_json=(s.app_env == "production"))
-    if s.app_env == "production":
-        from app.core.session import is_weak_secret
-
-        if is_weak_secret(s.session_secret):
-            raise RuntimeError(
-                "APP_ENV=production requires SESSION_SECRET to be set to a cryptographically "
-                "random value of at least 32 characters (placeholders are rejected)."
-            )
-    else:
+    if not is_production_env():
         if not s.session_secret:
             import logging
 
@@ -216,6 +217,11 @@ async def lifespan(app: FastAPI):
                 "SESSION_SECRET is unset; a random per-process key is used (dev/test only). "
                 "Set SESSION_SECRET in .env for stable local sessions."
             )
+    from app.services.billing_provider import raise_for_stripe_preflight
+    from app.services.message_providers.selection import assert_message_provider_preflight
+
+    raise_for_stripe_preflight(s)
+    assert_message_provider_preflight()
     print(
         "OpenAI: configured"
         if s.openai_api_key
@@ -283,6 +289,9 @@ class StructuredLoggingMiddleware(BaseHTTPMiddleware):
                 },
             )
             metrics_record_request(method, path, status, elapsed)
+            if "x-request-id" not in response.headers:
+                # TC-11-001: correlate the ApiError request_id with the response.
+                response.headers["X-Request-ID"] = request_id
             return response
         except Exception:
             path = request.scope.get("path") or ""
@@ -357,6 +366,7 @@ class GlobalRateLimitMiddleware(BaseHTTPMiddleware):
         return await call_next(request)
 
 
+app.add_exception_handler(ModelCallError, model_call_error_handler)  # TC-11-001
 app.add_middleware(StructuredLoggingMiddleware)
 app.add_middleware(GlobalRateLimitMiddleware)
 app.add_middleware(CSRFMiddleware)

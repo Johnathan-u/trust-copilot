@@ -21,15 +21,13 @@ _generated: dict[str, str] = {}
 
 
 def refuse_production_seed() -> None:
-    """Demo/QA/E2E seeding is never allowed in production (TC-03-001, no override)."""
-    try:
-        from app.core.config_contract import refuse_demo_seed_in_production
-    except ImportError:  # pragma: no cover - scripts run from apps/api with app importable
-        if os.getenv("APP_ENV", "development").strip().lower() == "production":
-            raise SystemExit(
-                "Refusing to seed demo/QA/E2E data with APP_ENV=production (TC-03-001)."
-            )
-        return
+    """Demo/QA/E2E seeding is never allowed in production (TC-03-001, no override).
+
+    Production is detected by app.core.session.is_production_env() via the config contract
+    (seed scripts put apps/api on sys.path, so ``app`` is always importable here).
+    """
+    from app.core.config_contract import refuse_demo_seed_in_production
+
     refuse_demo_seed_in_production()
 
 

@@ -1,17 +1,18 @@
 """Export and generate-answers job enqueue logic. Keeps routes thin."""
 
-import json
 import logging
 
 from sqlalchemy.orm import Session
 
-from app.models import Job, JobStatus, Questionnaire
+from app.core.logging_config import request_id_ctx
+from app.models import Job, Questionnaire
 from app.services.answer_generation import (
     is_allowed_model,
     is_allowed_response_style,
     resolve_model,
     resolve_response_style,
 )
+from app.services.job_effects import enqueue_job, job_idempotency_key
 
 _logger = logging.getLogger(__name__)
 
@@ -35,21 +36,18 @@ def enqueue_export_job(
     )
     if not qnr:
         raise ValueError("Questionnaire not found")
-    job = Job(
+    # TC-10-003: an identical export that is still QUEUED is reused instead of duplicated.
+    job, _created = enqueue_job(
+        db,
         workspace_id=workspace_id,
         kind="export",
-        status=JobStatus.QUEUED.value,
-        payload=json.dumps(
-            {
-                "questionnaire_id": questionnaire_id,
-                "workspace_id": workspace_id,
-                "format": format,
-            }
-        ),
+        payload={
+            "questionnaire_id": questionnaire_id,
+            "workspace_id": workspace_id,
+            "format": format,
+        },
+        idempotency_key=job_idempotency_key("export", workspace_id, questionnaire_id, format),
     )
-    db.add(job)
-    db.commit()
-    db.refresh(job)
     _logger.info(
         "EXPORT: job created job_id=%s kind=export questionnaire_id=%s workspace_id=%s",
         job.id,
@@ -88,15 +86,24 @@ def enqueue_generate_answers_job(
         payload["model"] = resolve_model(model_override)
     if response_style_override is not None:
         payload["response_style"] = resolve_response_style(response_style_override)
-    job = Job(
+    rid = request_id_ctx.get()
+    if rid:
+        # TC-11-001: lets a failed job's ApiError carry the originating request_id.
+        payload["request_id"] = str(rid)
+    # TC-10-003: an identical generation that is still QUEUED is reused instead of duplicated.
+    job, _created = enqueue_job(
+        db,
         workspace_id=workspace_id,
         kind="generate_answers",
-        status=JobStatus.QUEUED.value,
-        payload=json.dumps(payload),
+        payload=payload,
+        idempotency_key=job_idempotency_key(
+            "generate_answers",
+            workspace_id,
+            questionnaire_id,
+            payload.get("model"),
+            payload.get("response_style"),
+        ),
     )
-    db.add(job)
-    db.commit()
-    db.refresh(job)
     _logger.info(
         "GENERATE_ANSWERS: job persisted job_id=%s questionnaire_id=%s workspace_id=%s",
         job.id,

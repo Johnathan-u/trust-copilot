@@ -1,0 +1,13 @@
+# TC-02-006: generated or third-party output; never hand-formatted.
+node_modules/
+.next/
+out/
+coverage/
+playwright-report/
+test-results/
+e2e/.auth/
+next-env.d.ts
+tsconfig.tsbuildinfo
+package-lock.json
+verify-*-results.json
+verify-*-results.md
