@@ -39,11 +39,26 @@ module.exports = {
         'tc-12': 'var(--tc-space-12)',
       },
       fontSize: {
-        'tc-caption': ['var(--tc-font-size-caption)', { lineHeight: 'var(--tc-line-caption)' }],
-        'tc-label': ['var(--tc-font-size-label)', { lineHeight: 'var(--tc-line-label)' }],
-        'tc-body': ['var(--tc-font-size-body)', { lineHeight: 'var(--tc-line-body)' }],
-        'tc-title': ['var(--tc-font-size-title)', { lineHeight: 'var(--tc-line-title)' }],
-        'tc-headline': ['var(--tc-font-size-headline)', { lineHeight: 'var(--tc-line-headline)' }],
+        'tc-caption': [
+          'var(--tc-font-size-caption)',
+          { lineHeight: 'var(--tc-line-caption)' },
+        ],
+        'tc-label': [
+          'var(--tc-font-size-label)',
+          { lineHeight: 'var(--tc-line-label)' },
+        ],
+        'tc-body': [
+          'var(--tc-font-size-body)',
+          { lineHeight: 'var(--tc-line-body)' },
+        ],
+        'tc-title': [
+          'var(--tc-font-size-title)',
+          { lineHeight: 'var(--tc-line-title)' },
+        ],
+        'tc-headline': [
+          'var(--tc-font-size-headline)',
+          { lineHeight: 'var(--tc-line-headline)' },
+        ],
       },
       borderRadius: {
         tc: 'var(--tc-radius)',

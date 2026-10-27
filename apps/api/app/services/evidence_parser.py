@@ -3,19 +3,21 @@
 from pathlib import Path
 from typing import Iterator
 
+from app.services.pdf_text import extract_page_texts, require_text
+
 
 def parse_pdf(path: str | Path) -> Iterator[dict]:
-    """Extract text and structure from PDF (DOC-03)."""
-    try:
-        import pymupdf
-    except ImportError:
-        return
-    doc = pymupdf.open(path)
-    for i, page in enumerate(doc):
-        text = page.get_text()
+    """Extract text and structure from PDF (DOC-03).
+
+    Yields one item per page that has text. Raises pdf_text.PdfNoTextError when no page
+    has a text layer (image-only scan; no OCR), and PdfUnreadableError /
+    PdfEncryptedError for damaged or password-protected files. Their messages are
+    user-readable and become the document's index_error.
+    """
+    page_texts = require_text(extract_page_texts(path))
+    for i, text in enumerate(page_texts):
         if text.strip():
             yield {"page": i + 1, "text": text.strip()}
-    doc.close()
 
 
 def parse_docx(path: str | Path) -> Iterator[dict]:
@@ -38,6 +40,7 @@ def parse_docx(path: str | Path) -> Iterator[dict]:
 def parse_xlsx_evidence(path: str | Path) -> Iterator[dict]:
     """Extract text from XLSX evidence (DOC-05)."""
     from app.services.xlsx_parser import iter_sheets
+
     for sheet_name, rows in iter_sheets(path):
         for ri, row in enumerate(rows):
             cells = [str(c).strip() for c in row if c is not None and str(c).strip()]

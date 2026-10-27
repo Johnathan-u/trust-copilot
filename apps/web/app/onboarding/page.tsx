@@ -29,7 +29,9 @@ export default function OnboardingPage() {
       })
       const data = await res.json().catch(() => ({}))
       if (!res.ok) {
-        setError(apiErrorPresentation(data, 'Could not create workspace').message)
+        setError(
+          apiErrorPresentation(data, 'Could not create workspace').message
+        )
         return
       }
       router.push('/dashboard')
@@ -53,10 +55,13 @@ export default function OnboardingPage() {
           >
             ✓
           </div>
-          <h1 className="text-tc-title font-bold text-tc-text">Welcome to Trust Copilot</h1>
+          <h1 className="text-tc-title font-bold text-tc-text">
+            Welcome to Trust Copilot
+          </h1>
         </div>
         <p className="mb-tc-6 text-tc-label text-tc-muted">
-          Name your workspace. This is where your team's documents, questionnaires, and compliance data will live.
+          Name your workspace. This is where your team's documents,
+          questionnaires, and compliance data will live.
         </p>
         <form onSubmit={onSubmit} className="space-y-tc-4">
           <Input

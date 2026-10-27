@@ -20,7 +20,9 @@ class TestFeedbackCaptureService:
         q = db_session.query(Questionnaire).filter(Questionnaire.workspace_id == ws.id).first()
         if not q:
             pytest.skip("No questionnaires")
-        result = fc.capture_feedback(db_session, ws.id, q.id, "quality", feedback_text="Good answers")
+        result = fc.capture_feedback(
+            db_session, ws.id, q.id, "quality", feedback_text="Good answers"
+        )
         assert result["status"] == "captured"
         assert result["feedback_type"] == "quality"
 
@@ -41,11 +43,14 @@ class TestFeedbackCaptureAPI:
         q = db_session.query(Questionnaire).first()
         if not q:
             pytest.skip("No questionnaires")
-        r = admin_client.post("/api/feedback", json={
-            "questionnaire_id": q.id,
-            "feedback_type": "general",
-            "feedback_text": "API test",
-        })
+        r = admin_client.post(
+            "/api/feedback",
+            json={
+                "questionnaire_id": q.id,
+                "feedback_type": "general",
+                "feedback_text": "API test",
+            },
+        )
         assert r.status_code in (200, 400)
 
     def test_summary(self, admin_client):

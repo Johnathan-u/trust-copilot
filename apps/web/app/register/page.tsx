@@ -2,11 +2,9 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
 import { Card, Button, Input } from '@/components/ui'
 
 export default function RegisterPage() {
-  const router = useRouter()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [displayName, setDisplayName] = useState('')
@@ -19,7 +17,11 @@ export default function RegisterPage() {
     const res = await fetch('/api/auth/register', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, password, display_name: displayName || null }),
+      body: JSON.stringify({
+        email,
+        password,
+        display_name: displayName || null,
+      }),
       credentials: 'include',
     })
     const data = await res.json().catch(() => ({}))
@@ -34,9 +36,12 @@ export default function RegisterPage() {
     return (
       <main className="flex min-h-screen items-center justify-center p-4">
         <Card className="w-full max-w-md">
-          <h1 className="text-xl font-bold text-[var(--tc-text)]">Check your email</h1>
+          <h1 className="text-xl font-bold text-[var(--tc-text)]">
+            Check your email
+          </h1>
           <p className="mt-2 text-sm text-[var(--tc-muted)]">
-            If that email is not yet registered, you will receive a verification link. Click it to verify, then sign in.
+            If that email is not yet registered, you will receive a verification
+            link. Click it to verify, then sign in.
           </p>
           <Link href="/login" className="mt-4 inline-block">
             <Button variant="ghost">Back to sign in</Button>
@@ -53,13 +58,16 @@ export default function RegisterPage() {
           <div
             className="grid h-10 w-10 place-items-center rounded-xl text-lg font-bold text-white"
             style={{
-              background: 'linear-gradient(135deg, #7c96ff, #5b7cff 55%, #2dd4bf)',
+              background:
+                'linear-gradient(135deg, #7c96ff, #5b7cff 55%, #2dd4bf)',
               boxShadow: '0 12px 30px rgba(91,124,255,0.35)',
             }}
           >
             ✓
           </div>
-          <h1 className="text-xl font-bold text-[var(--tc-text)]">Create account</h1>
+          <h1 className="text-xl font-bold text-[var(--tc-text)]">
+            Create account
+          </h1>
         </div>
         <p className="mb-6 text-sm text-[var(--tc-muted)]">
           Register with your email. You will receive a verification link.
@@ -94,9 +102,13 @@ export default function RegisterPage() {
           </Button>
         </form>
         <p className="mt-4 text-sm text-[var(--tc-muted)]">
-          <Link href="/#features" className="text-[var(--tc-soft)] underline">Features</Link>
+          <Link href="/#features" className="text-[var(--tc-soft)] underline">
+            Features
+          </Link>
           {' · '}
-          <Link href="/pricing" className="text-[var(--tc-soft)] underline">Pricing</Link>
+          <Link href="/pricing" className="text-[var(--tc-soft)] underline">
+            Pricing
+          </Link>
         </p>
       </Card>
     </main>

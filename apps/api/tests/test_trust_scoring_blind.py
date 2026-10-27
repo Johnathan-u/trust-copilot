@@ -13,6 +13,7 @@ algorithm tuning doesn't cause spurious failures.
 """
 
 import json
+import os
 from datetime import date
 from pathlib import Path
 
@@ -20,14 +21,23 @@ import pytest
 
 from app.services.trust_scoring import compute_trust_score
 
-BLIND_PATH = Path(r"C:\Users\John\Downloads\trust_scoring_blind_100_pack\trust_scoring_blind_100_cases.json")
+# The blind pack is a local-only dataset that is not checked in. Point TC_TRUST_SCORING_BLIND_PACK
+# at it to run this module; otherwise it is skipped with an explicit reason (TC-02-001).
+BLIND_PATH = Path(
+    os.environ.get("TC_TRUST_SCORING_BLIND_PACK", "/nonexistent/trust_scoring_blind_100_cases.json")
+)
+pytestmark = pytest.mark.external_data
 AS_OF = date(2026, 3, 23)
 
 if not BLIND_PATH.exists():
-    pytest.skip("Blind test pack not found (local-only file)", allow_module_level=True)
+    pytest.skip(
+        "external_data: blind test pack not checked in; set TC_TRUST_SCORING_BLIND_PACK to run",
+        allow_module_level=True,
+    )
 
 
 # -- Schema mapping ---------------------------------------------------------
+
 
 def _map_source_type(source_type: str, channel: str, confidence_hint: str) -> str:
     if channel == "self_reported":
@@ -73,27 +83,30 @@ def _map_case(raw: dict) -> tuple[list[dict], list[str]]:
             else:
                 seen_dup_groups.add(grp)
 
-        items.append({
-            "description": ev.get("title", ""),
-            "source_type": _map_source_type(
-                ev.get("source_type", ""),
-                ev.get("channel", ""),
-                ev.get("confidence_hint", "medium"),
-            ),
-            "recency_days": _recency_days(ev.get("issued_at")),
-            "relevance": ev.get("relevance", "supporting"),
-            "is_duplicate": is_dup,
-            "contradicts": "contradiction" in flags,
-            "negative_signal": "expired" in flags and "contradiction" not in flags,
-            "tampering": "tampering" in flags,
-            "inconsistency": "inconsistency" in flags,
-        })
+        items.append(
+            {
+                "description": ev.get("title", ""),
+                "source_type": _map_source_type(
+                    ev.get("source_type", ""),
+                    ev.get("channel", ""),
+                    ev.get("confidence_hint", "medium"),
+                ),
+                "recency_days": _recency_days(ev.get("issued_at")),
+                "relevance": ev.get("relevance", "supporting"),
+                "is_duplicate": is_dup,
+                "contradicts": "contradiction" in flags,
+                "negative_signal": "expired" in flags and "contradiction" not in flags,
+                "tampering": "tampering" in flags,
+                "inconsistency": "inconsistency" in flags,
+            }
+        )
 
     missing = raw.get("critical_gaps", [])
     return items, missing
 
 
 # -- Load cases -------------------------------------------------------------
+
 
 def _load_cases() -> list[dict]:
     with open(BLIND_PATH, encoding="utf-8") as f:
@@ -105,6 +118,7 @@ CASES = _load_cases()
 
 
 # -- Individual parametrised test -------------------------------------------
+
 
 @pytest.mark.parametrize("case", CASES, ids=[c["case_id"] for c in CASES])
 def test_blind_case(case):
@@ -121,6 +135,7 @@ def test_blind_case(case):
 
 
 # -- Full report (run with pytest -s -k blind_report) -----------------------
+
 
 def test_blind_report():
     """Print metrics table for all 100 blind cases."""
@@ -142,7 +157,7 @@ def test_blind_report():
     within_25 = sum(1 for d in abs_diffs if d <= 25) / len(abs_diffs) * 100
 
     print(f"\n{'=' * 56}")
-    print(f"  BLIND VALIDATION REPORT  (100 cases, frozen weights)")
+    print("  BLIND VALIDATION REPORT  (100 cases, frozen weights)")
     print(f"{'=' * 56}")
     print(f"  MAE           = {mae:.2f}   (target <= 6.0)")
     print(f"  within +/-4   = {within_4:.0f}%    (target >= 65%)")
@@ -160,7 +175,7 @@ def test_blind_report():
         print(f"{cid:<6} {cat:<14} {exp:>4} {got:>4} {diff:>+5}  {grade}{marker}")
 
     print(f"\n{'=' * 56}")
-    print(f"  MAE BY CATEGORY")
+    print("  MAE BY CATEGORY")
     print(f"{'=' * 56}")
     for cat in sorted(cat_errors):
         errs = cat_errors[cat]

@@ -11,8 +11,9 @@ from app.api.schemas import BulkDeleteBody, MetadataUpdateBody
 from app.core.auth_deps import require_can_edit, require_can_review
 from app.core.audit import audit_log, persist_audit
 from app.core.database import get_db
-from app.models import Document, Job, JobStatus
+from app.models import Document
 from app.services.file_service import FileService
+from app.services.job_effects import enqueue_job, job_idempotency_key
 from app.services.registry_metadata import (
     FRAMEWORK_LABELS,
     SUBJECT_AREA_LABELS,
@@ -68,15 +69,25 @@ def upload_document(
     doc.display_id = build_display_id("document", doc.id)
     db.commit()
     db.refresh(doc)
-    job = Job(
+    # TC-10-003: input_version pins the job to this upload's object; a stale job is superseded, not applied.
+    job, _created = enqueue_job(
+        db,
         workspace_id=workspace_id,
         kind="index_document",
-        status=JobStatus.QUEUED.value,
-        payload=json.dumps({"document_id": doc.id}),
+        payload={"document_id": doc.id},
+        idempotency_key=job_idempotency_key(
+            "index_document", workspace_id, doc.id, doc.storage_key
+        ),
+        input_version=doc.storage_key,
     )
-    db.add(job)
-    db.commit()
-    audit_log("document.upload", email=session.get("email"), workspace_id=workspace_id, resource_type="document", resource_id=doc.id, details={"filename": doc.filename})
+    audit_log(
+        "document.upload",
+        email=session.get("email"),
+        workspace_id=workspace_id,
+        resource_type="document",
+        resource_id=doc.id,
+        details={"filename": doc.filename},
+    )
     return {
         "id": doc.id,
         "display_id": doc.display_id,
@@ -97,7 +108,9 @@ _SEARCH_QUERY_MAX_LEN = 200
 def list_documents(
     workspace_id: int,
     q: str | None = Query(None, description="Legacy filename search"),
-    search: str | None = Query(None, description="Search by id, filename, framework, subject, status"),
+    search: str | None = Query(
+        None, description="Search by id, filename, framework, subject, status"
+    ),
     framework: str | None = Query(None, description="Filter by framework chip label"),
     subject_area: str | None = Query(None, description="Filter by subject area chip label"),
     status: str | None = Query(None, description="Filter by status"),
@@ -146,7 +159,10 @@ def list_documents(
             raise HTTPException(status_code=400, detail="Invalid created_to datetime")
     if tag_category or tag_key:
         from app.models.tag import DocumentTag, Tag
-        query = query.join(DocumentTag, DocumentTag.document_id == Document.id).join(Tag, DocumentTag.tag_id == Tag.id)
+
+        query = query.join(DocumentTag, DocumentTag.document_id == Document.id).join(
+            Tag, DocumentTag.tag_id == Tag.id
+        )
         if tag_category:
             query = query.filter(Tag.category == tag_category)
         if tag_key:
@@ -314,7 +330,11 @@ def restore_document(
         raise HTTPException(status_code=403, detail="Access denied")
     doc = (
         db.query(Document)
-        .filter(Document.id == document_id, Document.workspace_id == workspace_id, Document.deleted_at.is_not(None))
+        .filter(
+            Document.id == document_id,
+            Document.workspace_id == workspace_id,
+            Document.deleted_at.is_not(None),
+        )
         .first()
     )
     if not doc:
@@ -365,6 +385,10 @@ def update_document_metadata(
         workspace_id=workspace_id,
         resource_type="document",
         resource_id=document_id,
-        details={"display_id": doc.display_id, "frameworks": body.frameworks, "subject_areas": body.subject_areas},
+        details={
+            "display_id": doc.display_id,
+            "frameworks": body.frameworks,
+            "subject_areas": body.subject_areas,
+        },
     )
     return {"ok": True}

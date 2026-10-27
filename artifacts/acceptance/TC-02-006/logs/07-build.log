@@ -1,0 +1,68 @@
+
+> trust-copilot-web@0.1.0 build
+> next build
+
+▲ Next.js 16.4.3 (Turbopack)
+✓ Running next.config.js took 17ms
+
+⚠ The "middleware" file convention is deprecated. Please use "proxy" instead.
+
+  To migrate automatically, run:
+  npx @next/codemod@canary middleware-to-proxy .
+
+  Learn more: https://nextjs.org/docs/messages/middleware-to-proxy
+  Creating an optimized production build ...
+✓ Compiled successfully in 5.8s
+  Running TypeScript ...
+  Finished TypeScript in 5.1s ...
+  Collecting page data using 7 workers ...
+  Generating static pages using 7 workers (0/33) ...
+  Generating static pages using 7 workers (8/33)
+  Generating static pages using 7 workers (16/33)
+  Generating static pages using 7 workers (24/33)
+✓ Generating static pages using 7 workers (33/33) in 337ms
+  Finalizing page optimization ...
+
+Route (app)
+┌ ○ /
+├ ○ /_not-found
+├ ○ /accept-invite
+├ ƒ /api/[[...path]]
+├ ○ /checkout
+├ ○ /dashboard
+├ ○ /dashboard/ai-governance
+├ ○ /dashboard/audit
+├ ○ /dashboard/compliance-gaps
+├ ○ /dashboard/documents
+├ ○ /dashboard/exports
+├ ○ /dashboard/gmail
+├ ○ /dashboard/members
+├ ○ /dashboard/notifications
+├ ○ /dashboard/proof-chain
+├ ○ /dashboard/questionnaires
+├ ƒ /dashboard/questionnaires/[id]
+├ ○ /dashboard/requests
+├ ○ /dashboard/review
+├ ƒ /dashboard/review/[id]
+├ ○ /dashboard/security
+├ ○ /dashboard/settings
+├ ○ /dashboard/slack
+├ ○ /dashboard/trust-center
+├ ○ /dashboard/vendor-requests
+├ ○ /forgot-password
+├ ○ /icon.svg
+├ ○ /login
+├ ○ /onboarding
+├ ○ /pricing
+├ ○ /register
+├ ○ /reset-password
+├ ○ /trust
+├ ƒ /trust/[slug]
+├ ○ /vendor-response
+└ ○ /verify-email
+
+
+ƒ Proxy (Middleware)
+
+○  (Static)   prerendered as static content
+ƒ  (Dynamic)  server-rendered on demand

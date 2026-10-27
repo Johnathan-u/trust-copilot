@@ -76,18 +76,23 @@ class Settings:
     """Application settings."""
 
     def __init__(self):
-        raw = os.getenv("DATABASE_URL", "postgresql://postgres:postgres@localhost:5432/trustcopilot")
+        raw = os.getenv(
+            "DATABASE_URL", "postgresql://postgres:postgres@localhost:5432/trustcopilot"
+        )
         # When API runs on host, "postgres" hostname (Docker) doesn't resolve; use localhost.
         # When API runs inside Docker, keep "postgres" so it resolves to the postgres container.
-        in_docker = os.path.exists("/.dockerenv") or os.environ.get("TRUST_COPILOT_IN_DOCKER") == "1"
+        in_docker = (
+            os.path.exists("/.dockerenv") or os.environ.get("TRUST_COPILOT_IN_DOCKER") == "1"
+        )
         self.database_url: str = _rewrite_postgres_docker_hostname_to_localhost(raw, in_docker)
-        self.session_secret: str = os.getenv("SESSION_SECRET", "change_me_dev_secret")
+        # TC-07-001: no literal default; see app.core.session.get_session_secret for dev/test behaviour.
+        self.session_secret: str = os.getenv("SESSION_SECRET", "")
         self.app_base_url: str = os.getenv("APP_BASE_URL", "http://localhost:3000")
         self.frontend_url: str = os.getenv("FRONTEND_URL", "http://localhost:3000")
 
         self.s3_endpoint: str = os.getenv("S3_ENDPOINT", "http://localhost:9000")
-        self.s3_access_key: str = os.getenv("S3_ACCESS_KEY", "minio")
-        self.s3_secret_key: str = os.getenv("S3_SECRET_KEY", "minio123")
+        self.s3_access_key: str = os.getenv("S3_ACCESS_KEY", "")
+        self.s3_secret_key: str = os.getenv("S3_SECRET_KEY", "")
         self.s3_bucket_raw: str = os.getenv("S3_BUCKET_RAW", "trustcopilot-raw")
         self.s3_bucket_exports: str = os.getenv("S3_BUCKET_EXPORTS", "trustcopilot-exports")
         self.s3_use_ssl: bool = os.getenv("S3_USE_SSL", "false").lower() == "true"
@@ -107,7 +112,9 @@ class Settings:
         self.mapping_llm_rerank_enabled: bool = _mllm not in ("0", "false", "no")
         self.mapping_rerank_model: str = os.getenv("MAPPING_RERANK_MODEL") or self.completion_model
         try:
-            self.mapping_rerank_min_confidence: float = float(os.getenv("MAPPING_RERANK_MIN_CONFIDENCE", "0.82"))
+            self.mapping_rerank_min_confidence: float = float(
+                os.getenv("MAPPING_RERANK_MIN_CONFIDENCE", "0.82")
+            )
         except ValueError:
             self.mapping_rerank_min_confidence = 0.82
         # When true, bulk POST /generate-mappings runs LLM rerank (slow). Default false: heuristic only for bulk.
@@ -121,9 +128,15 @@ class Settings:
         # Structured LLM classification per question during generate-mappings (enterprise pipeline).
         # MAPPING_MODE: 'llm_structured' (default prod — LLM every question), 'heuristic' (legacy).
         _mmode = os.getenv("MAPPING_MODE", "llm_structured").lower()
-        self.mapping_mode: str = _mmode if _mmode in ("llm_structured", "heuristic") else "llm_structured"
-        self.mapping_classification_model: str = os.getenv("MAPPING_CLASSIFICATION_MODEL") or self.completion_model
-        self.mapping_classification_prompt_version: str = os.getenv("MAPPING_CLASSIFICATION_PROMPT_VERSION", "v1")
+        self.mapping_mode: str = (
+            _mmode if _mmode in ("llm_structured", "heuristic") else "llm_structured"
+        )
+        self.mapping_classification_model: str = (
+            os.getenv("MAPPING_CLASSIFICATION_MODEL") or self.completion_model
+        )
+        self.mapping_classification_prompt_version: str = os.getenv(
+            "MAPPING_CLASSIFICATION_PROMPT_VERSION", "v1"
+        )
 
         # OAuth (ENT-201) - optional; leave unset to hide OAuth buttons
         self.oauth_google_client_id: str | None = os.getenv("OAUTH_GOOGLE_CLIENT_ID")
@@ -148,10 +161,24 @@ class Settings:
         self.idme_redirect_path: str = os.getenv("IDME_REDIRECT_PATH", "/api/auth/idme/callback")
 
         # Use pgvector index for semantic search when True (requires migration 024)
-        self.use_pgvector_index: bool = os.getenv("USE_PGVECTOR_INDEX", "1").lower() in ("1", "true", "yes")
+        # TC-08-005: max worker threads for RetrievalService.batch_search. Each thread uses its own
+        # Session/connection; the effective value is further capped by the DB pool size.
+        try:
+            self.retrieval_max_threads: int = max(
+                1, min(32, int(os.getenv("RETRIEVAL_MAX_THREADS", "8")))
+            )
+        except ValueError:
+            self.retrieval_max_threads = 8
+        self.use_pgvector_index: bool = os.getenv("USE_PGVECTOR_INDEX", "1").lower() in (
+            "1",
+            "true",
+            "yes",
+        )
 
         # Phase 4: adaptive concurrency for answer generation (wave-based, 2-6 workers). Default off for stability.
-        self.use_adaptive_concurrency: bool = os.getenv("USE_ADAPTIVE_CONCURRENCY", "0").lower() in ("1", "true", "yes")
+        self.use_adaptive_concurrency: bool = os.getenv(
+            "USE_ADAPTIVE_CONCURRENCY", "0"
+        ).lower() in ("1", "true", "yes")
 
         # Redis for rate limiting in production (optional; uses in-memory when unset)
         self.redis_url: str | None = os.getenv("REDIS_URL")
@@ -161,6 +188,37 @@ class Settings:
         self.rate_limit_rpm_per_ip: int = max(0, int(_rpm)) if _rpm.isdigit() else 120
 
         self.app_env: str = os.getenv("APP_ENV", "development").lower()
+        # Slack/Gmail provider selection (TC-19-001). Unset runtime follows APP_ENV.
+        # Production never selects the dev stub. See message_providers.selection.
+        _provider_mode = os.getenv("MESSAGE_PROVIDER_RUNTIME_MODE", "").strip().lower()
+        self.message_provider_runtime_mode: str | None = _provider_mode or None
+        self.message_provider_dev_stub_raw: str = (
+            os.getenv("MESSAGE_PROVIDER_DEV_STUB", "").strip().lower()
+        )
+        if self.message_provider_dev_stub_raw in ("1", "true", "yes"):
+            self.message_provider_dev_stub: bool | None = True
+        elif self.message_provider_dev_stub_raw in ("0", "false", "no"):
+            self.message_provider_dev_stub = False
+        else:
+            self.message_provider_dev_stub = None
+
+        # Health probes (TC-03-003). Worker values are read by app.worker_health (stdlib-only probe);
+        # mirrored here for discoverability. See docs/release/tickets/TC-03-003.md.
+        from app.worker_health import (
+            heartbeat_interval_sec,
+            heartbeat_stale_sec,
+            job_max_runtime_sec,
+        )
+
+        self.worker_heartbeat_interval_sec: int = heartbeat_interval_sec()
+        self.worker_heartbeat_stale_sec: int = heartbeat_stale_sec()
+        self.worker_job_max_runtime_sec: int = job_max_runtime_sec()
+        try:
+            self.readiness_timeout_sec: float = max(
+                0.1, float(os.getenv("READINESS_TIMEOUT_SEC", "3") or "3")
+            )
+        except ValueError:
+            self.readiness_timeout_sec = 3.0
         # Audit retention: delete events older than this many days (0 = disable purge)
         _audit_days = os.getenv("AUDIT_RETENTION_DAYS", "90").strip()
         self.audit_retention_days: int = max(0, int(_audit_days)) if _audit_days.isdigit() else 90
@@ -170,9 +228,13 @@ class Settings:
 
         # Stripe billing (Phase 2)
         self.stripe_secret_key: str | None = os.getenv("STRIPE_SECRET_KEY", "").strip() or None
-        self.stripe_webhook_secret: str | None = os.getenv("STRIPE_WEBHOOK_SECRET", "").strip() or None
+        self.stripe_webhook_secret: str | None = (
+            os.getenv("STRIPE_WEBHOOK_SECRET", "").strip() or None
+        )
         self.stripe_price_id: str | None = os.getenv("STRIPE_PRICE_ID", "").strip() or None
-        self.stripe_annual_price_id: str | None = os.getenv("STRIPE_ANNUAL_PRICE_ID", "").strip() or None
+        self.stripe_annual_price_id: str | None = (
+            os.getenv("STRIPE_ANNUAL_PRICE_ID", "").strip() or None
+        )
         # Sentry: set SENTRY_DSN to enable error tracking (optional)
         self.sentry_dsn: str | None = os.getenv("SENTRY_DSN", "").strip() or None
         self.sentry_environment: str = os.getenv("SENTRY_ENVIRONMENT", "").strip() or self.app_env

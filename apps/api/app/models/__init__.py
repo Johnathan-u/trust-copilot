@@ -7,6 +7,7 @@ from app.models.chunk import Chunk
 from app.models.document import Document
 from app.models.export_record import ExportRecord
 from app.models.job import Job, JobKind, JobStatus
+from app.models.job_effect import JobEffect
 from app.models.questionnaire import Question, Questionnaire
 from app.models.user import User, WorkspaceMember
 from app.models.trust_article import TrustArticle
@@ -24,6 +25,7 @@ from app.models.verification_token import EmailVerificationToken, PasswordResetT
 from app.models.workspace import Workspace
 from app.models.api_key import ApiKey
 from app.models.framework import Framework
+from app.models.framework_catalog_event import FrameworkCatalogEvent
 from app.models.framework_control import FrameworkControl
 from app.models.workspace_control import WorkspaceControl, WORKSPACE_CONTROL_STATUSES
 from app.models.control_mapping import ControlMapping
@@ -36,7 +38,12 @@ from app.models.question_control_log import QuestionControlLog
 from app.models.control_mapping_override import ControlMappingOverride
 from app.models.compliance_webhook_outbox import ComplianceWebhookOutbox
 from app.models.custom_role import CustomRole
-from app.models.notification import NotificationLog, NotificationPolicy, NotificationUnsubscribe, NOTIFICATION_EVENT_TYPES
+from app.models.notification import (
+    NotificationLog,
+    NotificationPolicy,
+    NotificationUnsubscribe,
+    NOTIFICATION_EVENT_TYPES,
+)
 from app.models.slack_integration import SlackIntegration
 from app.models.slack_ingest import SlackControlSuggestion, SlackIngestChannel
 from app.models.in_app_notification import InAppNotification
@@ -57,12 +64,20 @@ from app.models.workspace_ai_usage import WorkspaceAIUsage
 from app.models.subscription import Subscription
 from app.models.feature_flag import FeatureFlag
 from app.models.credit_ledger import CreditLedger, CreditTransaction
-from app.models.operator_queue import OperatorQueueItem, OPERATOR_ITEM_STATUSES, OPERATOR_ITEM_PRIORITIES
+from app.models.operator_queue import (
+    OperatorQueueItem,
+    OPERATOR_ITEM_STATUSES,
+    OPERATOR_ITEM_PRIORITIES,
+)
 from app.models.security_faq import SecurityFAQ
 from app.models.source_registry import SourceRegistry
 from app.models.credential_store import CredentialStore
 from app.models.product_event import ProductEvent
-from app.models.case_study import CaseStudy
+from app.models.case_study import (
+    CaseStudy,
+    CaseStudyOrganizationConsent,
+    CaseStudyResultPermission,
+)
 from app.models.control_state import ControlStateSnapshot
 from app.models.alert_acknowledgment import AlertAcknowledgment
 from app.models.nda_access_request import NdaAccessRequest
@@ -73,9 +88,19 @@ from app.models.answer_approval_event import AnswerApprovalEvent
 from app.models.freshness_policy import FreshnessPolicy
 from app.models.retention_policy import RetentionPolicy
 from app.models.deal import Deal, DEAL_STAGES
-from app.models.remediation_playbook import RemediationPlaybook, RemediationTicket, REMEDIATION_STATUSES
+from app.models.demo_proof_summary import DemoProofSummary
+from app.models.remediation_playbook import (
+    RemediationPlaybook,
+    RemediationTicket,
+    REMEDIATION_STATUSES,
+)
 from app.models.remediation_audit import RemediationAuditEvent, RemediationAutomationSetting
-from app.models.trust_promise import ContractDocument, TrustPromise, PROMISE_SOURCE_TYPES, PROMISE_STATUSES
+from app.models.trust_promise import (
+    ContractDocument,
+    TrustPromise,
+    PROMISE_SOURCE_TYPES,
+    PROMISE_STATUSES,
+)
 from app.models.buyer_portal import (
     BuyerChangeSubscription,
     BuyerEscalation,
@@ -107,6 +132,7 @@ __all__ = [
     "ExportRecord",
     "Job",
     "JobKind",
+    "JobEffect",
     "JobStatus",
     "Question",
     "Questionnaire",
@@ -123,6 +149,7 @@ __all__ = [
     "EmailVerificationToken",
     "PasswordResetToken",
     "Framework",
+    "FrameworkCatalogEvent",
     "FrameworkControl",
     "WorkspaceControl",
     "WORKSPACE_CONTROL_STATUSES",
@@ -176,6 +203,8 @@ __all__ = [
     "CredentialStore",
     "ProductEvent",
     "CaseStudy",
+    "CaseStudyOrganizationConsent",
+    "CaseStudyResultPermission",
     "ControlStateSnapshot",
     "AlertAcknowledgment",
     "NdaAccessRequest",
@@ -189,6 +218,7 @@ __all__ = [
     "EVIDENCE_APPROVAL_STATUSES",
     "Deal",
     "DEAL_STAGES",
+    "DemoProofSummary",
     "RemediationPlaybook",
     "RemediationTicket",
     "REMEDIATION_STATUSES",

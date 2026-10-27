@@ -21,17 +21,23 @@ class ThresholdBody(BaseModel):
 
 
 @router.get("/question/{question_id}")
-async def route_question(question_id: int, session: dict = Depends(require_session), db: Session = Depends(get_db)):
+async def route_question(
+    question_id: int, session: dict = Depends(require_session), db: Session = Depends(get_db)
+):
     return svc.route_question(db, question_id)
 
 
 @router.get("/queue/{questionnaire_id}")
-async def review_queue(questionnaire_id: int, session: dict = Depends(require_session), db: Session = Depends(get_db)):
+async def review_queue(
+    questionnaire_id: int, session: dict = Depends(require_session), db: Session = Depends(get_db)
+):
     return {"queue": svc.get_review_queue(db, questionnaire_id)}
 
 
 @router.post("/batch")
-async def batch(body: RouteBatchBody, session: dict = Depends(require_session), db: Session = Depends(get_db)):
+async def batch(
+    body: RouteBatchBody, session: dict = Depends(require_session), db: Session = Depends(get_db)
+):
     return svc.route_batch(db, body.question_ids)
 
 

@@ -1,7 +1,7 @@
 """Evidence gaps table for AI-generated gap analysis."""
 
-from alembic import op
-import sqlalchemy as sa
+from alembic import op  # noqa: F401
+import sqlalchemy as sa  # noqa: F401
 
 
 revision = "047"

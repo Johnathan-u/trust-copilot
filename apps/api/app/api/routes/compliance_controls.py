@@ -71,7 +71,7 @@ class SetEvidenceVerifiedBody(BaseModel):
     verified: bool
 
 
-from app.api.constants import LOW_CONFIDENCE_THRESHOLD
+from app.api.constants import LOW_CONFIDENCE_THRESHOLD  # noqa: E402
 
 
 def _workspace_control_dict(
@@ -86,7 +86,11 @@ def _workspace_control_dict(
     category = None
     title = (wc.custom_name or "").strip() or None
     if wc.framework_control_id:
-        fc = db.query(FrameworkControl).filter(FrameworkControl.id == wc.framework_control_id).first()
+        fc = (
+            db.query(FrameworkControl)
+            .filter(FrameworkControl.id == wc.framework_control_id)
+            .first()
+        )
         if fc:
             control_key = fc.control_key
             title = title or fc.title
@@ -120,7 +124,9 @@ def _workspace_control_dict(
 
 
 def _count_evidence(db: Session, control_id: int) -> int:
-    return db.query(ControlEvidenceLink).filter(ControlEvidenceLink.control_id == control_id).count()
+    return (
+        db.query(ControlEvidenceLink).filter(ControlEvidenceLink.control_id == control_id).count()
+    )
 
 
 @router.get("/stats", response_model=dict)
@@ -131,19 +137,36 @@ def control_stats(
     """Dashboard counts: total, with_evidence, no_evidence, low_confidence, verified. Enforces workspace isolation."""
     ws = session.get("workspace_id")
     if ws is None:
-        return {"total": 0, "with_evidence": 0, "no_evidence": 0, "low_confidence": 0, "verified": 0, "control_verified": 0, "stale_evidence": 0}
+        return {
+            "total": 0,
+            "with_evidence": 0,
+            "no_evidence": 0,
+            "low_confidence": 0,
+            "verified": 0,
+            "control_verified": 0,
+            "stale_evidence": 0,
+        }
     from sqlalchemy import func
+
     wc_ids_subq = db.query(WorkspaceControl.id).filter(WorkspaceControl.workspace_id == ws)
     total = db.query(WorkspaceControl).filter(WorkspaceControl.workspace_id == ws).count()
-    with_ev = db.query(ControlEvidenceLink.control_id).filter(
-        ControlEvidenceLink.control_id.in_(wc_ids_subq)
-    ).distinct().count()
+    with_ev = (
+        db.query(ControlEvidenceLink.control_id)
+        .filter(ControlEvidenceLink.control_id.in_(wc_ids_subq))
+        .distinct()
+        .count()
+    )
     no_ev = total - with_ev
     low_conf = 0
-    verified_count = db.query(ControlEvidenceLink.control_id).filter(
-        ControlEvidenceLink.control_id.in_(wc_ids_subq),
-        ControlEvidenceLink.verified.is_(True),
-    ).distinct().count()
+    verified_count = (
+        db.query(ControlEvidenceLink.control_id)
+        .filter(
+            ControlEvidenceLink.control_id.in_(wc_ids_subq),
+            ControlEvidenceLink.verified.is_(True),
+        )
+        .distinct()
+        .count()
+    )
     for row in (
         db.query(ControlEvidenceLink.control_id, func.max(ControlEvidenceLink.confidence_score))
         .filter(ControlEvidenceLink.control_id.in_(wc_ids_subq))
@@ -152,18 +175,28 @@ def control_stats(
         mx = row[1]
         if mx is not None and mx < LOW_CONFIDENCE_THRESHOLD:
             low_conf += 1
-    control_verified_count = db.query(WorkspaceControl.id).filter(
-        WorkspaceControl.workspace_id == ws,
-        WorkspaceControl.status == "verified",
-    ).count()
+    control_verified_count = (
+        db.query(WorkspaceControl.id)
+        .filter(
+            WorkspaceControl.workspace_id == ws,
+            WorkspaceControl.status == "verified",
+        )
+        .count()
+    )
     stale_verified_days, stale_unverified_days = _staleness_days(db, ws)
     wc_ids_list = [r[0] for r in wc_ids_subq.all()]
     stale_count = 0
     if wc_ids_list:
-        links = db.query(ControlEvidenceLink).filter(ControlEvidenceLink.control_id.in_(wc_ids_list)).all()
-        evidence_ids = list({l.evidence_id for l in links})
+        links = (
+            db.query(ControlEvidenceLink)
+            .filter(ControlEvidenceLink.control_id.in_(wc_ids_list))
+            .all()
+        )
+        evidence_ids = list({l.evidence_id for l in links})  # noqa: E741
         expires_by_evidence = {}
-        for meta in db.query(EvidenceMetadata).filter(EvidenceMetadata.evidence_id.in_(evidence_ids)).all():
+        for meta in (
+            db.query(EvidenceMetadata).filter(EvidenceMetadata.evidence_id.in_(evidence_ids)).all()
+        ):
             if meta.expires_at is not None:
                 expires_by_evidence[meta.evidence_id] = meta.expires_at
         now = datetime.utcnow()
@@ -199,7 +232,9 @@ def list_controls(
     framework: str | None = Query(None, description="Filter by framework name"),
     status: str | None = Query(None, description="Filter by status"),
     category: str | None = Query(None, description="Filter by control category"),
-    gap_state: str | None = Query(None, description="Filter by gap: no_evidence, low_confidence, verified, any"),
+    gap_state: str | None = Query(
+        None, description="Filter by gap: no_evidence, low_confidence, verified, any"
+    ),
     session: dict = Depends(require_can_review),
     db: Session = Depends(get_db),
 ):
@@ -214,20 +249,25 @@ def list_controls(
     )
     if status is not None:
         if status not in WORKSPACE_CONTROL_STATUSES:
-            raise HTTPException(status_code=400, detail=f"Invalid status. Allowed: {WORKSPACE_CONTROL_STATUSES}")
+            raise HTTPException(
+                status_code=400, detail=f"Invalid status. Allowed: {WORKSPACE_CONTROL_STATUSES}"
+            )
         q = q.filter(WorkspaceControl.status == status)
     if framework is not None or category is not None:
-        q = (
-            q.outerjoin(FrameworkControl, WorkspaceControl.framework_control_id == FrameworkControl.id)
-            .outerjoin(Framework, FrameworkControl.framework_id == Framework.id)
-        )
+        q = q.outerjoin(
+            FrameworkControl, WorkspaceControl.framework_control_id == FrameworkControl.id
+        ).outerjoin(Framework, FrameworkControl.framework_id == Framework.id)
         if framework is not None:
-            q = q.filter(Framework.name == framework)
+            from app.services.framework_catalog import framework_ids_for_exact_name
+
+            matched_ids = framework_ids_for_exact_name(db, framework)
+            q = q.filter(Framework.id.in_(matched_ids or [-1]))
         if category is not None:
             q = q.filter(FrameworkControl.category == category)
     rows = q.all()
     control_ids = [r.id for r in rows]
     from sqlalchemy import func
+
     count_map = {}
     max_conf_map = {}
     has_verified_map = {}
@@ -245,11 +285,14 @@ def list_controls(
         ).all():
             max_conf_map[row[0]] = row[1]
         verified_ids = [
-            r[0] for r in
-            db.query(ControlEvidenceLink.control_id).filter(
+            r[0]
+            for r in db.query(ControlEvidenceLink.control_id)
+            .filter(
                 ControlEvidenceLink.control_id.in_(control_ids),
                 ControlEvidenceLink.verified.is_(True),
-            ).distinct().all()
+            )
+            .distinct()
+            .all()
         ]
         has_verified_map = {cid: True for cid in verified_ids}
     out = []
@@ -260,7 +303,9 @@ def list_controls(
         if gap_state and gap_state != "any":
             if gap_state == "no_evidence" and ev_count != 0:
                 continue
-            if gap_state == "low_confidence" and (ev_count == 0 or (max_conf is not None and max_conf >= LOW_CONFIDENCE_THRESHOLD)):
+            if gap_state == "low_confidence" and (
+                ev_count == 0 or (max_conf is not None and max_conf >= LOW_CONFIDENCE_THRESHOLD)
+            ):
                 continue
             if gap_state == "verified" and not has_ver:
                 continue
@@ -268,8 +313,14 @@ def list_controls(
     return out
 
 
-def _ensure_workspace_control(db: Session, control_id: int, workspace_id: int) -> WorkspaceControl | None:
-    wc = db.query(WorkspaceControl).filter(WorkspaceControl.id == control_id, WorkspaceControl.workspace_id == workspace_id).first()
+def _ensure_workspace_control(
+    db: Session, control_id: int, workspace_id: int
+) -> WorkspaceControl | None:
+    wc = (
+        db.query(WorkspaceControl)
+        .filter(WorkspaceControl.id == control_id, WorkspaceControl.workspace_id == workspace_id)
+        .first()
+    )
     return wc
 
 
@@ -284,7 +335,9 @@ def create_control(
     if not ws:
         raise HTTPException(status_code=403, detail="No workspace")
     if body.status not in WORKSPACE_CONTROL_STATUSES:
-        raise HTTPException(status_code=400, detail=f"Invalid status. Allowed: {WORKSPACE_CONTROL_STATUSES}")
+        raise HTTPException(
+            status_code=400, detail=f"Invalid status. Allowed: {WORKSPACE_CONTROL_STATUSES}"
+        )
     wc = WorkspaceControl(
         workspace_id=ws,
         framework_control_id=body.framework_control_id,
@@ -315,6 +368,7 @@ def get_control(
     if not wc:
         raise HTTPException(status_code=404, detail="Control not found")
     from sqlalchemy import func
+
     max_conf = None
     has_ver = False
     row = (
@@ -324,10 +378,14 @@ def get_control(
     )
     if row and row[0] is not None:
         max_conf = row[0]
-    if db.query(ControlEvidenceLink).filter(
-        ControlEvidenceLink.control_id == control_id,
-        ControlEvidenceLink.verified.is_(True),
-    ).first():
+    if (
+        db.query(ControlEvidenceLink)
+        .filter(
+            ControlEvidenceLink.control_id == control_id,
+            ControlEvidenceLink.verified.is_(True),
+        )
+        .first()
+    ):
         has_ver = True
     return _workspace_control_dict(wc, db, max_confidence=max_conf, has_verified=has_ver)
 
@@ -348,10 +406,15 @@ def patch_control(
         raise HTTPException(status_code=404, detail="Control not found")
     if body.status is not None:
         if body.status not in WORKSPACE_CONTROL_STATUSES:
-            raise HTTPException(status_code=400, detail=f"Invalid status. Allowed: {WORKSPACE_CONTROL_STATUSES}")
+            raise HTTPException(
+                status_code=400, detail=f"Invalid status. Allowed: {WORKSPACE_CONTROL_STATUSES}"
+            )
         if wc.status != body.status:
             compliance_control_status_changed_total.inc()
-            logger.info("control_status_changed", extra={"control_id": control_id, "workspace_id": ws, "status": body.status})
+            logger.info(
+                "control_status_changed",
+                extra={"control_id": control_id, "workspace_id": ws, "status": body.status},
+            )
         wc.status = body.status
     if body.custom_name is not None:
         wc.custom_name = body.custom_name.strip() or None
@@ -381,7 +444,10 @@ def verify_control(
         raise HTTPException(status_code=404, detail="Control not found")
     evidence_count = _count_evidence(db, control_id)
     if evidence_count < 1:
-        raise HTTPException(status_code=400, detail="At least one linked evidence item is required to verify the control")
+        raise HTTPException(
+            status_code=400,
+            detail="At least one linked evidence item is required to verify the control",
+        )
     now = datetime.utcnow()
     wc.status = "verified"
     wc.verified_at = now
@@ -409,13 +475,20 @@ def verify_control(
         extra={"control_id": control_id, "workspace_id": ws, "user_id": session.get("user_id")},
     )
     try:
-        notify_admins(db, ws, "Control verified", f"Control #{control_id} has been verified.", category="success", link="/dashboard/compliance-gaps")
+        notify_admins(
+            db,
+            ws,
+            "Control verified",
+            f"Control #{control_id} has been verified.",
+            category="success",
+            link="/dashboard/compliance-gaps",
+        )
     except Exception:
         pass
     return _workspace_control_dict(wc, db)
 
 
-from app.api.helpers import evidence_dict as _evidence_dict
+from app.api.helpers import evidence_dict as _evidence_dict  # noqa: E402
 
 
 # Default staleness thresholds (days) when workspace has no config
@@ -471,11 +544,16 @@ def accept_suggested_evidence(
     wc = _ensure_workspace_control(db, control_id, ws)
     if not wc:
         raise HTTPException(status_code=404, detail="Control not found")
-    from app.models import Chunk, Document
-    ch = db.query(Chunk).filter(
-        Chunk.id == body.chunk_id,
-        Chunk.workspace_id == ws,
-    ).first()
+    from app.models import Chunk, Document  # noqa: F401
+
+    ch = (
+        db.query(Chunk)
+        .filter(
+            Chunk.id == body.chunk_id,
+            Chunk.workspace_id == ws,
+        )
+        .first()
+    )
     if not ch:
         raise HTTPException(status_code=404, detail="Chunk not found")
     doc_id = body.document_id or ch.document_id
@@ -500,10 +578,14 @@ def accept_suggested_evidence(
     db.commit()
     db.refresh(link)
     compliance_evidence_linked_total.inc()
-    logger.info("evidence_linked", extra={"control_id": control_id, "evidence_id": ev.id, "workspace_id": ws})
+    logger.info(
+        "evidence_linked",
+        extra={"control_id": control_id, "evidence_id": ev.id, "workspace_id": ws},
+    )
     ev_tags = []
     if ev.document_id:
         from app.services.tag_service import list_tags_for_document
+
         ev_tags = list_tags_for_document(db, ev.document_id, ws)
     return {**_link_dict(link), "evidence": _evidence_dict(ev, tags=ev_tags)}
 
@@ -530,8 +612,16 @@ def _staleness_days(db: Session, workspace_id: int) -> tuple[int, int]:
     w = db.query(Workspace).filter(Workspace.id == workspace_id).first()
     if not w:
         return STALE_VERIFIED_DAYS_DEFAULT, STALE_UNVERIFIED_DAYS_DEFAULT
-    v = w.evidence_stale_verified_days if w.evidence_stale_verified_days is not None else STALE_VERIFIED_DAYS_DEFAULT
-    u = w.evidence_stale_unverified_days if w.evidence_stale_unverified_days is not None else STALE_UNVERIFIED_DAYS_DEFAULT
+    v = (
+        w.evidence_stale_verified_days
+        if w.evidence_stale_verified_days is not None
+        else STALE_VERIFIED_DAYS_DEFAULT
+    )
+    u = (
+        w.evidence_stale_unverified_days
+        if w.evidence_stale_unverified_days is not None
+        else STALE_UNVERIFIED_DAYS_DEFAULT
+    )
     return v, u
 
 
@@ -553,10 +643,21 @@ def list_control_evidence(
     evidence_ids = [link.evidence_id for link in links]
     expires_by_evidence = {}
     if evidence_ids:
-        for meta in db.query(EvidenceMetadata).filter(EvidenceMetadata.evidence_id.in_(evidence_ids)).all():
+        for meta in (
+            db.query(EvidenceMetadata).filter(EvidenceMetadata.evidence_id.in_(evidence_ids)).all()
+        ):
             if meta.expires_at is not None:
                 expires_by_evidence[meta.evidence_id] = meta.expires_at
-    evidences = {ev.id: ev for ev in db.query(EvidenceItem).filter(EvidenceItem.id.in_(evidence_ids), EvidenceItem.workspace_id == ws).all()} if evidence_ids else {}
+    evidences = (
+        {
+            ev.id: ev
+            for ev in db.query(EvidenceItem)
+            .filter(EvidenceItem.id.in_(evidence_ids), EvidenceItem.workspace_id == ws)
+            .all()
+        }
+        if evidence_ids
+        else {}
+    )
     doc_ids = [ev.document_id for ev in evidences.values() if ev.document_id]
     tags_by_doc = list_tags_for_documents(db, doc_ids, ws) if doc_ids else {}
     out = []
@@ -564,15 +665,17 @@ def list_control_evidence(
         ev = evidences.get(link.evidence_id)
         if ev:
             ev_tags = tags_by_doc.get(ev.document_id, []) if ev.document_id else []
-            out.append({
-                **_link_dict(
-                    link,
-                    stale_verified_days=stale_verified_days,
-                    stale_unverified_days=stale_unverified_days,
-                    expires_at=expires_by_evidence.get(link.evidence_id),
-                ),
-                "evidence": _evidence_dict(ev, tags=ev_tags),
-            })
+            out.append(
+                {
+                    **_link_dict(
+                        link,
+                        stale_verified_days=stale_verified_days,
+                        stale_unverified_days=stale_unverified_days,
+                        expires_at=expires_by_evidence.get(link.evidence_id),
+                    ),
+                    "evidence": _evidence_dict(ev, tags=ev_tags),
+                }
+            )
     return out
 
 
@@ -593,10 +696,14 @@ def set_evidence_verified(
     wc = _ensure_workspace_control(db, control_id, ws)
     if not wc:
         raise HTTPException(status_code=404, detail="Control not found")
-    link = db.query(ControlEvidenceLink).filter(
-        ControlEvidenceLink.id == link_id,
-        ControlEvidenceLink.control_id == control_id,
-    ).first()
+    link = (
+        db.query(ControlEvidenceLink)
+        .filter(
+            ControlEvidenceLink.id == link_id,
+            ControlEvidenceLink.control_id == control_id,
+        )
+        .first()
+    )
     if not link:
         raise HTTPException(status_code=404, detail="Link not found")
     link.verified = body.verified
@@ -622,15 +729,26 @@ def set_evidence_verified(
         pass
     if body.verified:
         try:
-            notify_admins(db, ws, "Evidence verified", f"Evidence link #{link_id} for control #{control_id} verified.", category="success", link="/dashboard/compliance-gaps")
+            notify_admins(
+                db,
+                ws,
+                "Evidence verified",
+                f"Evidence link #{link_id} for control #{control_id} verified.",
+                category="success",
+                link="/dashboard/compliance-gaps",
+            )
         except Exception:
             pass
     ev = db.query(EvidenceItem).filter(EvidenceItem.id == link.evidence_id).first()
     ev_tags = []
     if ev and ev.workspace_id == ws and ev.document_id:
         from app.services.tag_service import list_tags_for_document
+
         ev_tags = list_tags_for_document(db, ev.document_id, ws)
-    out = {**_link_dict(link), "evidence": _evidence_dict(ev, tags=ev_tags) if ev and ev.workspace_id == ws else {}}
+    out = {
+        **_link_dict(link),
+        "evidence": _evidence_dict(ev, tags=ev_tags) if ev and ev.workspace_id == ws else {},
+    }
     return out
 
 
@@ -648,16 +766,24 @@ def link_evidence(
     wc = _ensure_workspace_control(db, control_id, ws)
     if not wc:
         raise HTTPException(status_code=404, detail="Control not found")
-    ev = db.query(EvidenceItem).filter(
-        EvidenceItem.id == body.evidence_id,
-        EvidenceItem.workspace_id == ws,
-    ).first()
+    ev = (
+        db.query(EvidenceItem)
+        .filter(
+            EvidenceItem.id == body.evidence_id,
+            EvidenceItem.workspace_id == ws,
+        )
+        .first()
+    )
     if not ev:
         raise HTTPException(status_code=404, detail="Evidence not found")
-    existing = db.query(ControlEvidenceLink).filter(
-        ControlEvidenceLink.control_id == control_id,
-        ControlEvidenceLink.evidence_id == body.evidence_id,
-    ).first()
+    existing = (
+        db.query(ControlEvidenceLink)
+        .filter(
+            ControlEvidenceLink.control_id == control_id,
+            ControlEvidenceLink.evidence_id == body.evidence_id,
+        )
+        .first()
+    )
     if existing:
         raise HTTPException(status_code=400, detail="Evidence already linked to this control")
     score = body.confidence_score
@@ -694,13 +820,16 @@ def unlink_evidence(
     wc = _ensure_workspace_control(db, control_id, ws)
     if not wc:
         raise HTTPException(status_code=404, detail="Control not found")
-    link = db.query(ControlEvidenceLink).filter(
-        ControlEvidenceLink.id == link_id,
-        ControlEvidenceLink.control_id == control_id,
-    ).first()
+    link = (
+        db.query(ControlEvidenceLink)
+        .filter(
+            ControlEvidenceLink.id == link_id,
+            ControlEvidenceLink.control_id == control_id,
+        )
+        .first()
+    )
     if not link:
         raise HTTPException(status_code=404, detail="Link not found")
     db.delete(link)
     db.commit()
     return {"ok": True}
-

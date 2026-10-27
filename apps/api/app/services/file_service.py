@@ -9,8 +9,8 @@ from fastapi import HTTPException, UploadFile
 
 logger = logging.getLogger(__name__)
 
-from app.core.config import get_settings
-from app.services.storage import StorageClient
+from app.core.config import get_settings  # noqa: E402
+from app.services.storage import StorageClient  # noqa: E402
 
 PRESIGNED_EXPORT_EXPIRY = 900  # 15 min
 ALLOWED_RAW_EXTENSIONS = {".pdf", ".docx", ".doc", ".xlsx", ".xls", ".txt"}
@@ -50,13 +50,29 @@ class FileService:
         content = file.file.read()
         max_bytes = get_settings().max_upload_bytes
         if len(content) > max_bytes:
-            logger.warning("upload_rejected workspace_id=%s filename=%s reason=size_exceeded max_bytes=%s", workspace_id, getattr(file, "filename", ""), max_bytes)
-            raise HTTPException(status_code=413, detail=f"File exceeds max size ({max_bytes // (1024*1024)}MB)")
+            logger.warning(
+                "upload_rejected workspace_id=%s filename=%s reason=size_exceeded max_bytes=%s",
+                workspace_id,
+                getattr(file, "filename", ""),
+                max_bytes,
+            )
+            raise HTTPException(
+                status_code=413, detail=f"File exceeds max size ({max_bytes // (1024*1024)}MB)"
+            )
         safe_name = sanitize_filename(file.filename)
         ext = Path(safe_name).suffix.lower()
         if not ext or ext not in ALLOWED_RAW_EXTENSIONS:
-            logger.warning("upload_rejected workspace_id=%s filename=%s ext=%s reason=extension_not_allowed allowed=%s", workspace_id, safe_name, ext, sorted(ALLOWED_RAW_EXTENSIONS))
-            raise HTTPException(status_code=400, detail=f"File must have an allowed extension. Allowed: {', '.join(sorted(ALLOWED_RAW_EXTENSIONS))}")
+            logger.warning(
+                "upload_rejected workspace_id=%s filename=%s ext=%s reason=extension_not_allowed allowed=%s",
+                workspace_id,
+                safe_name,
+                ext,
+                sorted(ALLOWED_RAW_EXTENSIONS),
+            )
+            raise HTTPException(
+                status_code=400,
+                detail=f"File must have an allowed extension. Allowed: {', '.join(sorted(ALLOWED_RAW_EXTENSIONS))}",
+            )
         key = make_key(workspace_id, "raw", safe_name)
         self._storage.upload(
             self._storage.bucket_raw,
@@ -73,13 +89,28 @@ class FileService:
         content = file.file.read()
         max_bytes = get_settings().max_upload_bytes
         if len(content) > max_bytes:
-            logger.warning("upload_rejected trust_request workspace_id=%s request_id=%s filename=%s reason=size_exceeded", workspace_id, request_id, getattr(file, "filename", ""))
-            raise HTTPException(status_code=413, detail=f"File exceeds max size ({max_bytes // (1024*1024)}MB)")
+            logger.warning(
+                "upload_rejected trust_request workspace_id=%s request_id=%s filename=%s reason=size_exceeded",
+                workspace_id,
+                request_id,
+                getattr(file, "filename", ""),
+            )
+            raise HTTPException(
+                status_code=413, detail=f"File exceeds max size ({max_bytes // (1024*1024)}MB)"
+            )
         safe_name = sanitize_filename(file.filename)
         ext = Path(safe_name).suffix.lower()
         if not ext or ext not in ALLOWED_RAW_EXTENSIONS:
-            logger.warning("upload_rejected trust_request workspace_id=%s filename=%s ext=%s reason=extension_not_allowed", workspace_id, safe_name, ext)
-            raise HTTPException(status_code=400, detail=f"File must have an allowed extension. Allowed: {', '.join(sorted(ALLOWED_RAW_EXTENSIONS))}")
+            logger.warning(
+                "upload_rejected trust_request workspace_id=%s filename=%s ext=%s reason=extension_not_allowed",
+                workspace_id,
+                safe_name,
+                ext,
+            )
+            raise HTTPException(
+                status_code=400,
+                detail=f"File must have an allowed extension. Allowed: {', '.join(sorted(ALLOWED_RAW_EXTENSIONS))}",
+            )
         key = f"trust-requests/{workspace_id}/{request_id}/{uuid.uuid4().hex}{ext}"
         self._storage.upload(
             self._storage.bucket_raw,
@@ -99,10 +130,20 @@ class FileService:
         validate_storage_key(key)
         self._storage.delete(self._storage.bucket_raw, key)
 
-    def upload_export(self, workspace_id: int, content: bytes, filename: str) -> str:
-        """Upload export artifact, return key."""
+    def upload_export(
+        self, workspace_id: int, content: bytes, filename: str, job_id: int | None = None
+    ) -> str:
+        """Upload export artifact, return key.
+
+        With ``job_id`` (TC-10-003) the key is deterministic per job (``exports/{ws}/job-{id}{ext}``), so a
+        re-run of the same export job overwrites its own object instead of leaving an orphan.
+        """
         safe_name = sanitize_filename(filename)
-        key = make_key(workspace_id, "exports", safe_name)
+        if job_id is not None:
+            key = f"exports/{int(workspace_id)}/job-{int(job_id)}{Path(safe_name).suffix}"
+            validate_storage_key(key)
+        else:
+            key = make_key(workspace_id, "exports", safe_name)
         self._storage.upload(
             self._storage.bucket_exports,
             key,

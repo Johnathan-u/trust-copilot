@@ -1,13 +1,17 @@
 import { readdirSync, readFileSync, statSync } from 'fs'
 import path from 'path'
 import { describe, expect, it } from 'vitest'
-import { systemFontFallback, typography } from './design-tokens'
+import { systemFontFallback, typography } from '@/lib/design-tokens'
 
 const repoRoot = path.resolve(process.cwd(), '..')
 const webRoot = process.cwd()
 const fontDir = path.join(webRoot, 'app/fonts')
 
-const forbidden = ['fonts.googleapis.com', 'fonts.gstatic.com', 'next/font/google']
+const forbidden = [
+  'fonts.googleapis.com',
+  'fonts.gstatic.com',
+  'next/font/google',
+]
 const skipDirs = new Set([
   'node_modules',
   '.next',
@@ -19,7 +23,16 @@ const skipDirs = new Set([
   'docs',
   'artifacts',
 ])
-const textExt = new Set(['.ts', '.tsx', '.js', '.jsx', '.css', '.html', '.mjs', '.cjs'])
+const textExt = new Set([
+  '.ts',
+  '.tsx',
+  '.js',
+  '.jsx',
+  '.css',
+  '.html',
+  '.mjs',
+  '.cjs',
+])
 
 function collectTextFiles(dir: string, out: string[]) {
   for (const name of readdirSync(dir)) {
@@ -57,13 +70,17 @@ describe('self-hosted Inter', () => {
     collectTextFiles(repoRoot, files)
     const hits = files.flatMap((file) => {
       const text = readFileSync(file, 'utf8')
-      return forbidden.filter((needle) => text.includes(needle)).map((needle) => `${file} contains ${needle}`)
+      return forbidden
+        .filter((needle) => text.includes(needle))
+        .map((needle) => `${file} contains ${needle}`)
     })
     expect(hits).toEqual([])
   })
 
   it('keeps a system-font fallback behind the self-hosted family', () => {
-    expect(typography.fontSans.startsWith('var(--font-inter, ui-sans-serif)')).toBe(true)
+    expect(
+      typography.fontSans.startsWith('var(--font-inter, ui-sans-serif)')
+    ).toBe(true)
     for (const face of systemFontFallback) {
       expect(typography.fontSans).toContain(face)
     }

@@ -24,9 +24,11 @@ def admin_user(db_session: Session) -> User:
         db_session.add(user)
         db_session.commit()
         db_session.refresh(user)
-    mem = db_session.query(WorkspaceMember).filter(
-        WorkspaceMember.user_id == user.id, WorkspaceMember.workspace_id == 1
-    ).first()
+    mem = (
+        db_session.query(WorkspaceMember)
+        .filter(WorkspaceMember.user_id == user.id, WorkspaceMember.workspace_id == 1)
+        .first()
+    )
     if not mem:
         db_session.add(WorkspaceMember(workspace_id=1, user_id=user.id, role="admin"))
         db_session.commit()
@@ -63,14 +65,24 @@ def test_create_control_requires_admin(client: TestClient, admin_user: User) -> 
     client.post("/api/auth/login", json={"email": "editor@trust.local", "password": "e"})
     r = client.post(
         "/api/controls/",
-        json={"framework": "SOC 2", "control_id": "CC6.1", "name": "Logical access", "status": "in_review"},
+        json={
+            "framework": "SOC 2",
+            "control_id": "CC6.1",
+            "name": "Logical access",
+            "status": "in_review",
+        },
     )
     assert r.status_code == 403
 
     client.post("/api/auth/login", json={"email": admin_user.email, "password": "a"})
     r2 = client.post(
         "/api/controls/",
-        json={"framework": "SOC 2", "control_id": "CC6.1", "name": "Logical access", "status": "in_review"},
+        json={
+            "framework": "SOC 2",
+            "control_id": "CC6.1",
+            "name": "Logical access",
+            "status": "in_review",
+        },
     )
     assert r2.status_code in (200, 201)
     data = r2.json()
@@ -86,7 +98,12 @@ def test_patch_and_delete_control(client: TestClient, admin_user: User) -> None:
     client.post("/api/auth/login", json={"email": admin_user.email, "password": "a"})
     create = client.post(
         "/api/controls/",
-        json={"framework": "ISO 27001", "control_id": "A.9.1", "name": "Access control", "status": "in_review"},
+        json={
+            "framework": "ISO 27001",
+            "control_id": "A.9.1",
+            "name": "Access control",
+            "status": "in_review",
+        },
     )
     assert create.status_code in (200, 201)
     cid = create.json()["id"]
@@ -122,7 +139,9 @@ def test_list_control_evidence(client: TestClient, admin_user: User, db_session:
     assert r.json() == []
 
 
-def test_attach_and_detach_evidence(client: TestClient, admin_user: User, db_session: Session) -> None:
+def test_attach_and_detach_evidence(
+    client: TestClient, admin_user: User, db_session: Session
+) -> None:
     """POST attach and DELETE detach evidence; requires admin."""
     # Create a trust article to link (unique slug to avoid collision across runs)
     slug = _unique_slug("evidence-art")

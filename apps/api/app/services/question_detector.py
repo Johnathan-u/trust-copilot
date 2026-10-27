@@ -1,7 +1,7 @@
 """Detect question rows and section headers in XLSX (QNR-04)."""
 
 import re
-from typing import Any
+from typing import Any  # noqa: F401
 
 QUESTION_PATTERNS = [
     r"^Q\d+[\.\)]\s*",

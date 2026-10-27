@@ -1,6 +1,9 @@
 'use client'
 
-const CATEGORY_STYLES: Record<string, { bg: string; border: string; text: string }> = {
+const CATEGORY_STYLES: Record<
+  string,
+  { bg: string; border: string; text: string }
+> = {
   framework: {
     bg: 'var(--tc-info-surface)',
     border: 'var(--tc-info)',
@@ -63,7 +66,10 @@ export function TagChip({
       {onApprove && tag.source === 'ai' && !tag.approved && (
         <button
           type="button"
-          onClick={(e) => { e.stopPropagation(); onApprove(true) }}
+          onClick={(e) => {
+            e.stopPropagation()
+            onApprove(true)
+          }}
           className="ml-tc-1"
           title="Approve tag"
           aria-label="Approve tag"
@@ -74,7 +80,10 @@ export function TagChip({
       {onRemove && (
         <button
           type="button"
-          onClick={(e) => { e.stopPropagation(); onRemove() }}
+          onClick={(e) => {
+            e.stopPropagation()
+            onRemove()
+          }}
           className="ml-tc-1"
           title="Remove tag"
           aria-label="Remove tag"
@@ -111,7 +120,9 @@ export function TagList({
           tag={t}
           size={size}
           onRemove={onRemove ? () => onRemove(t) : undefined}
-          onApprove={onApprove ? (approved) => onApprove(t, approved) : undefined}
+          onApprove={
+            onApprove ? (approved) => onApprove(t, approved) : undefined
+          }
         />
       ))}
       {overflow > 0 && (

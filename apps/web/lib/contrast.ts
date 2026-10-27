@@ -18,11 +18,24 @@ export function parseHex(input: string): Rgb {
   }
 }
 
-/** Accepts #rrggbb or the rgb()/rgba() form returned by getComputedStyle. */
+/** Accepts #rgb, #rrggbb, #rrggbbaa, or the rgb()/rgba() form from getComputedStyle. */
 export function parseCssColor(input: string): Rgb {
   const value = input.trim()
-  if (value.startsWith('#')) return parseHex(value)
-  const match = value.match(/^rgba?\(\s*([\d.]+)\s*,\s*([\d.]+)\s*,\s*([\d.]+)/i)
+  if (value.startsWith('#')) {
+    let body = value.slice(1)
+    if (/^[0-9a-fA-F]{3}$/.test(body) || /^[0-9a-fA-F]{4}$/.test(body)) {
+      body = body
+        .split('')
+        .map((char) => char + char)
+        .join('')
+    }
+    if (/^[0-9a-fA-F]{6}$/.test(body) || /^[0-9a-fA-F]{8}$/.test(body)) {
+      return parseHex(`#${body.slice(0, 6)}`)
+    }
+  }
+  const match = value.match(
+    /^rgba?\(\s*([\d.]+)\s*,\s*([\d.]+)\s*,\s*([\d.]+)/i
+  )
   if (!match) throw new Error(`Unsupported CSS color ${input}`)
   return { r: Number(match[1]), g: Number(match[2]), b: Number(match[3]) }
 }
@@ -46,12 +59,20 @@ export function contrastRatio(foreground: string, background: string): number {
   return (lighter + 0.05) / (darker + 0.05)
 }
 
-export function meetsContrast(foreground: string, background: string, minimum: number): boolean {
+export function meetsContrast(
+  foreground: string,
+  background: string,
+  minimum: number
+): boolean {
   return contrastRatio(foreground, background) + 1e-9 >= minimum
 }
 
 /** Source-over composite of a hex color at `alpha` onto an opaque hex background. */
-export function compositeHex(foreground: string, background: string, alpha: number): string {
+export function compositeHex(
+  foreground: string,
+  background: string,
+  alpha: number
+): string {
   if (alpha < 0 || alpha > 1) throw new Error(`Alpha out of range: ${alpha}`)
   const fg = parseHex(foreground)
   const bg = parseHex(background)

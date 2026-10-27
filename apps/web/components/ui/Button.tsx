@@ -12,11 +12,14 @@ interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
 }
 
 const variants: Record<Variant, string> = {
-  primary: 'border border-transparent bg-tc-primary-solid text-tc-on-primary hover:bg-[var(--tc-primary-solid-hover)]',
+  primary:
+    'border border-transparent bg-tc-primary-solid text-tc-on-primary hover:bg-[var(--tc-primary-solid-hover)]',
   secondary:
     'border border-tc-border-strong bg-tc-surface-raised text-tc-text hover:bg-[var(--tc-hover)]',
-  ghost: 'border border-transparent bg-transparent text-tc-text hover:bg-[var(--tc-hover)]',
-  danger: 'border border-transparent bg-[var(--tc-danger-solid)] text-[var(--tc-on-danger)] hover:bg-[var(--tc-danger-solid-hover)]',
+  ghost:
+    'border border-transparent bg-transparent text-tc-text hover:bg-[var(--tc-hover)]',
+  danger:
+    'border border-transparent bg-[var(--tc-danger-solid)] text-[var(--tc-on-danger)] hover:bg-[var(--tc-danger-solid-hover)]',
 }
 
 const sizes: Record<string, string> = {
@@ -32,7 +35,18 @@ const spinnerSizes: Record<string, 'sm' | 'md'> = {
 }
 
 export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
-  ({ variant = 'primary', size = 'md', loading = false, className = '', children, disabled, ...props }, ref) => (
+  (
+    {
+      variant = 'primary',
+      size = 'md',
+      loading = false,
+      className = '',
+      children,
+      disabled,
+      ...props
+    },
+    ref
+  ) => (
     <button
       ref={ref}
       className={`inline-flex items-center justify-center gap-tc-2 font-semibold transition-colors duration-[var(--tc-duration-fast)] ease-[var(--tc-ease)] disabled:cursor-not-allowed disabled:border-[var(--tc-disabled-border)] disabled:bg-[var(--tc-disabled-bg)] disabled:text-[var(--tc-disabled-fg)] disabled:hover:bg-[var(--tc-disabled-bg)] ${variants[variant]} ${sizes[size]} ${className}`}

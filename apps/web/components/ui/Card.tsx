@@ -14,7 +14,12 @@ const paddingMap = {
   lg: 'p-tc-8',
 }
 
-export function Card({ children, className = '', padding = 'md', onClick }: CardProps) {
+export function Card({
+  children,
+  className = '',
+  padding = 'md',
+  onClick,
+}: CardProps) {
   return (
     <div
       className={`rounded-tc border border-tc-border shadow-[var(--tc-shadow)] backdrop-blur-[20px] ${paddingMap[padding]} ${className}`}

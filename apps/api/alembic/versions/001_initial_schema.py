@@ -5,6 +5,7 @@ Revises:
 Create Date: 2025-01-01 00:00:00
 
 """
+
 from alembic import op
 import sqlalchemy as sa
 
@@ -28,7 +29,12 @@ def upgrade() -> None:
     op.create_table(
         "jobs",
         sa.Column("id", sa.Integer(), primary_key=True, autoincrement=True),
-        sa.Column("workspace_id", sa.Integer(), sa.ForeignKey("workspaces.id", ondelete="CASCADE"), nullable=False),
+        sa.Column(
+            "workspace_id",
+            sa.Integer(),
+            sa.ForeignKey("workspaces.id", ondelete="CASCADE"),
+            nullable=False,
+        ),
         sa.Column("kind", sa.String(64), nullable=False),
         sa.Column("status", sa.String(32), nullable=False, server_default="queued"),
         sa.Column("payload", sa.Text(), nullable=True),
@@ -48,7 +54,12 @@ def upgrade() -> None:
     op.create_table(
         "documents",
         sa.Column("id", sa.Integer(), primary_key=True, autoincrement=True),
-        sa.Column("workspace_id", sa.Integer(), sa.ForeignKey("workspaces.id", ondelete="CASCADE"), nullable=False),
+        sa.Column(
+            "workspace_id",
+            sa.Integer(),
+            sa.ForeignKey("workspaces.id", ondelete="CASCADE"),
+            nullable=False,
+        ),
         sa.Column("storage_key", sa.String(512), nullable=False),
         sa.Column("filename", sa.String(255), nullable=False),
         sa.Column("content_type", sa.String(128), nullable=True),

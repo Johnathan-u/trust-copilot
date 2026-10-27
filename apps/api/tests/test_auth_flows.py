@@ -1,6 +1,6 @@
 """Enterprise auth flow tests: register, forgot-password, reset-password, accept-invite validation."""
 
-import pytest
+import pytest  # noqa: F401
 from fastapi.testclient import TestClient
 
 
@@ -12,7 +12,10 @@ def test_register_rejects_invalid_email(client: TestClient) -> None:
     )
     assert r.status_code in (200, 400)
     if r.status_code == 400:
-        assert "email" in (r.json().get("detail") or "").lower() or "invalid" in (r.json().get("detail") or "").lower()
+        assert (
+            "email" in (r.json().get("detail") or "").lower()
+            or "invalid" in (r.json().get("detail") or "").lower()
+        )
 
 
 def test_register_rejects_short_password(client: TestClient) -> None:

@@ -3,7 +3,12 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 
-type Alert = { id: number; action: string; occurred_at: string | null; details: string | null }
+type Alert = {
+  id: number
+  action: string
+  occurred_at: string | null
+  details: string | null
+}
 
 const ACTION_LABELS: Record<string, string> = {
   'auth.mfa_verify_failed': 'Failed two-factor sign-in attempt',
@@ -27,9 +32,10 @@ export function SecurityAlertsBanner() {
 
   if (loading || dismissed || alerts.length === 0) return null
 
-  const label = alerts.length === 1
-    ? (ACTION_LABELS[alerts[0].action] || 'Suspicious activity')
-    : `${alerts.length} recent security events`
+  const label =
+    alerts.length === 1
+      ? ACTION_LABELS[alerts[0].action] || 'Suspicious activity'
+      : `${alerts.length} recent security events`
 
   return (
     <div
@@ -37,13 +43,18 @@ export function SecurityAlertsBanner() {
       style={{ borderLeft: '4px solid var(--tc-danger)' }}
     >
       <div className="flex items-center gap-2">
-        <span className="font-medium text-[var(--tc-text)]">Security notice:</span>
+        <span className="font-medium text-[var(--tc-text)]">
+          Security notice:
+        </span>
         <span className="text-[var(--tc-muted)]">
           {label}. If this wasn’t you,{' '}
-          <Link href="/dashboard/security" className="text-[var(--tc-soft)] underline">
+          <Link
+            href="/dashboard/security"
+            className="text-[var(--tc-soft)] underline"
+          >
             review Security
-          </Link>
-          {' '}and consider changing your password.
+          </Link>{' '}
+          and consider changing your password.
         </span>
       </div>
       <button

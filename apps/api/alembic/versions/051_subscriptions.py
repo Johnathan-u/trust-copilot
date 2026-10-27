@@ -15,6 +15,7 @@ depends_on = None
 
 def upgrade() -> None:
     from sqlalchemy import inspect as sa_inspect
+
     bind = op.get_bind()
     if "subscriptions" in sa_inspect(bind).get_table_names():
         return
