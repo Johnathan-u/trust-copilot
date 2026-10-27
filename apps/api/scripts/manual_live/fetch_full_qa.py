@@ -1,17 +1,16 @@
-import base64
-import hmac
-import json
+"""Manual fetch against a LOCAL running API (see README.md). Not a pytest module."""
+
+import json  # noqa: F401
+
 import requests
 
-API = "http://localhost:8000"
-SECRET = "zDWud8xGEkOl_7ceEhfvrGeTNehTp3ttPHo9uYEcCGoyZUOlYvYBCiDHjp1stF_0"
+from _live_guard import api_base, forge_session_cookie
+
+API = api_base()
 
 
 def cookie(ws_id):
-    p = {"user_id": 1, "email": "reinhartjm294@gmail.com", "workspace_id": ws_id, "role": "admin"}
-    d = base64.urlsafe_b64encode(json.dumps(p).encode()).decode()
-    s = hmac.new(SECRET.encode(), d.encode(), "sha256").hexdigest()
-    return f"{d}.{s}"
+    return forge_session_cookie(ws_id)
 
 
 datasets = [

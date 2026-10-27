@@ -6,8 +6,11 @@ from pathlib import Path
 from dotenv import load_dotenv
 
 # Same env semantics as main.py/database.py: in Docker do not load .env so compose env is used.
+# Under tests (TRUST_COPILOT_TESTING=1) never load .env either, so importing the worker cannot
+# replace the test DATABASE_URL or inject real provider credentials (TC-02-001).
 _in_docker = Path("/.dockerenv").exists() or os.environ.get("TRUST_COPILOT_IN_DOCKER") == "1"
-if not _in_docker:
+_in_test = os.environ.get("TRUST_COPILOT_TESTING") == "1"
+if not _in_docker and not _in_test:
     _api_root = Path(__file__).resolve().parent.parent
     _repo_root = _api_root.parent.parent
     load_dotenv(_api_root / ".env", override=True)
@@ -41,6 +44,7 @@ from app.services.compliance_webhook_delivery import process_compliance_webhook_
 from app.services.in_app_notification_service import notify_admins, notify_workspace  # noqa: E402
 from app.services.automation_service import maybe_auto_generate, evaluate_generation_result  # noqa: E402
 from app.services.compliance_event_service import evaluate_and_fire_compliance_events  # noqa: E402
+from app.worker_health import HeartbeatState, HeartbeatThread  # noqa: E402
 
 settings = get_settings()
 COMPLIANCE_WEBHOOK_INTERVAL_SEC = 30
@@ -54,6 +58,27 @@ SessionFactory = sessionmaker(bind=engine)
 WORKER_MIN_THREADS = 3
 WORKER_MAX_THREADS = 10
 WORKER_INITIAL_THREADS = 6
+
+# TC-03-003: heartbeat is refreshed by a background thread so long-running healthy jobs keep it fresh.
+HEARTBEAT_STATE = HeartbeatState()
+_HEARTBEAT_SQL = text(
+    "INSERT INTO worker_heartbeat (id, last_seen_utc) VALUES (1, (NOW() AT TIME ZONE 'UTC')) "
+    "ON CONFLICT (id) DO UPDATE SET last_seen_utc = EXCLUDED.last_seen_utc"
+)
+
+
+def write_db_heartbeat() -> None:
+    """Refresh the shared heartbeat row read by /workerz (own short-lived session)."""
+    session = SessionFactory()
+    try:
+        session.execute(_HEARTBEAT_SQL)
+        session.commit()
+    except Exception:
+        session.rollback()
+        raise
+    finally:
+        session.close()
+
 
 _active_threads = WORKER_INITIAL_THREADS
 _threads_lock = threading.Lock()
@@ -474,11 +499,7 @@ def _process_one_job() -> bool:
     """Claim and process one job in a thread-safe manner. Returns True if work was done."""
     session = SessionFactory()
     try:
-        try:
-            session.execute(text("UPDATE worker_heartbeat SET last_seen_utc = NOW() WHERE id = 1"))
-            session.commit()
-        except Exception:
-            session.rollback()
+        HEARTBEAT_STATE.loop_tick()
 
         global last_compliance_webhook_run, last_usage_cleanup_run
         if time.time() - last_usage_cleanup_run >= USAGE_CLEANUP_INTERVAL_SEC:
@@ -515,6 +536,7 @@ def _process_one_job() -> bool:
             questionnaire_id=payload.get("questionnaire_id"),
         )
         JOB_STARTED_TOTAL.labels(kind=job.kind).inc()
+        HEARTBEAT_STATE.job_started(job.id)
         try:
             run_job(job, session)
             job.status = JobStatus.COMPLETED.value
@@ -636,6 +658,7 @@ def _process_one_job() -> bool:
         print(f"Worker thread error: {e}")
         return False
     finally:
+        HEARTBEAT_STATE.job_finished()
         session.close()
 
 
@@ -643,6 +666,8 @@ def main():
     print(
         f"Trust Copilot worker started (threads: {WORKER_MIN_THREADS}-{WORKER_MAX_THREADS}, initial: {WORKER_INITIAL_THREADS})"
     )
+    heartbeat = HeartbeatThread(HEARTBEAT_STATE, write_db_heartbeat)
+    heartbeat.start()
     session = SessionFactory()
     try:
         enqueue_missing_index_jobs(session)
@@ -650,6 +675,7 @@ def main():
         session.close()
 
     while True:
+        HEARTBEAT_STATE.loop_tick()
         had_work = _process_one_job()
         _adapt_thread_count(had_work)
         if not had_work:
