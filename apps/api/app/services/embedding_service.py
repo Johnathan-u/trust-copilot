@@ -2,10 +2,11 @@
 
 import logging
 import time
-from typing import Optional
+from typing import Callable, Optional
 
 from app.core.config import get_settings
 from app.core.metrics import OPENAI_EMBEDDING_FAILURES_TOTAL
+from app.services.model_outcomes import ModelFailure, classify_provider_exception
 
 logger = logging.getLogger(__name__)
 
@@ -69,7 +70,7 @@ def embed_text(text: str) -> Optional[list[float]]:
                     "embed_text transient error (attempt %s), retry in %ss: %s",
                     attempt + 1,
                     sleep_sec,
-                    e,
+                    classify_provider_exception(e).log_summary(),
                 )
                 time.sleep(sleep_sec)
             else:
@@ -77,13 +78,21 @@ def embed_text(text: str) -> Optional[list[float]]:
     logger.warning(
         "ALERT_OPENAI_FAILURE embed_text failed after %s attempts: %s",
         OPENAI_MAX_RETRIES + 1,
-        last_err,
+        classify_provider_exception(last_err).log_summary() if last_err is not None else None,
     )
     return None
 
 
-def embed_texts(texts: list[str]) -> list[Optional[list[float]]]:
-    """Batch embed texts. Returns list of embeddings (None for failed). Validates dimension for each; raises on mismatch. Timeout + retry on transient errors."""
+def embed_texts(
+    texts: list[str],
+    on_failure: Optional[Callable[[ModelFailure], None]] = None,
+) -> list[Optional[list[float]]]:
+    """Batch embed texts. Returns list of embeddings (None for failed). Validates dimension for each; raises on mismatch. Timeout + retry on transient errors.
+
+    TC-11-001: when the provider call fails, ``on_failure`` (if given) receives the typed
+    :class:`ModelFailure` so callers can tell credentials/model failures apart from "no evidence".
+    The return value is unchanged (all ``None``) for backward compatibility.
+    """
     settings = get_settings()
     if not settings.openai_api_key:
         return [None] * len(texts)
@@ -123,7 +132,7 @@ def embed_texts(texts: list[str]) -> list[Optional[list[float]]]:
                     "embed_texts transient error (attempt %s), retry in %ss: %s",
                     attempt + 1,
                     sleep_sec,
-                    e,
+                    classify_provider_exception(e).log_summary(),
                 )
                 time.sleep(sleep_sec)
             else:
@@ -131,6 +140,8 @@ def embed_texts(texts: list[str]) -> list[Optional[list[float]]]:
     logger.warning(
         "ALERT_OPENAI_FAILURE embed_texts failed after %s attempts: %s",
         OPENAI_MAX_RETRIES + 1,
-        last_err,
+        classify_provider_exception(last_err).log_summary() if last_err is not None else None,
     )
+    if on_failure is not None and last_err is not None:
+        on_failure(classify_provider_exception(last_err))
     return [None] * len(texts)
