@@ -1,0 +1,6 @@
+### tree=/workspace/tc-ci sha=3ee20da image=pgvector/pgvector:pg16@sha256:7b822b0aac60967beb1ea5e576b8602c94c300a157d187f385ae3e0da199b90a db=tc_ci_norand_1793096052_test (fresh, empty) user=tc_ci password=<generated, not shown>
+### questionnaires rows before run: 0 tables named questionnaires (0 = schema not yet migrated)
+### cmd: SESSION_SECRET=test-secret TC_REQUIRE_DB=1 python -m pytest -p no:randomly tests/test_vendor_requests_api.py -q
+....................                                                     [100%]
+20 passed in 2.84s
+exit=0
