@@ -484,6 +484,34 @@ def test_db_allows_same_workspace_null_and_set_null(db_session: Session):
         db_session.rollback()
 
 
+def test_db_rejects_moving_row_to_other_workspace(db_session: Session):
+    qnr, _, _ = _qnr_chain(db_session, OWN_WS, "trg-move")
+    gap = EvidenceGap(workspace_id=OWN_WS, questionnaire_id=qnr.id)
+    db_session.add(gap)
+    db_session.flush()
+    gap.workspace_id = OTHER_WS
+    with pytest.raises(IntegrityError):
+        db_session.flush()
+    db_session.rollback()
+
+
+def test_db_allows_deleting_questionnaire_with_full_evidence_gap(db_session: Session):
+    """Deleting a questionnaire must not trip the trigger while ON DELETE SET NULL clears its gaps."""
+    try:
+        qnr, qu, ans = _qnr_chain(db_session, OWN_WS, "trg-del-qnr")
+        gap = EvidenceGap(
+            workspace_id=OWN_WS, questionnaire_id=qnr.id, question_id=qu.id, answer_id=ans.id
+        )
+        db_session.add(gap)
+        db_session.flush()
+        db_session.execute(text("DELETE FROM questionnaires WHERE id = :q"), {"q": qnr.id})
+        db_session.expire_all()
+        row = db_session.get(EvidenceGap, gap.id)
+        assert (row.questionnaire_id, row.question_id, row.answer_id) == (None, None, None)
+    finally:
+        db_session.rollback()
+
+
 def test_legacy_cross_workspace_row_stays_writable_on_other_columns(db_session: Session):
     try:
         seeded = _seed_cross_workspace(db_session)

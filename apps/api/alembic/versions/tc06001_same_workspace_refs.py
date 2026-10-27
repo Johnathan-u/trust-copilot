@@ -6,8 +6,9 @@ workspace_id, so their ownership is resolved through questionnaires.
 
 Only new writes are checked. An UPDATE fires the trigger only when it sets one of the listed
 columns, so existing rows (including any legacy cross-workspace rows) are never re-validated and
-this upgrade cannot fail on them. NULL references are allowed, which keeps ON DELETE SET NULL
-working. No data is read, changed or deleted by this revision.
+this upgrade cannot fail on them. On UPDATE a reference is checked only when it or workspace_id
+changes, and NULL references are allowed, so ON DELETE SET NULL keeps working (e.g. deleting a
+questionnaire clears its evidence gaps without re-checking their other references). No data is read, changed or deleted by this revision.
 
 Revision ID: tc06001_same_workspace_refs
 Revises: tc24001_stripe_webhook_events
@@ -38,7 +39,10 @@ _DOC_WS = "SELECT d.workspace_id FROM documents d WHERE d.id = {ref}"
 def _guard(column: str, lookup: str) -> str:
     sub = lookup.format(ref=f"NEW.{column}")
     return (
-        f"  IF NEW.{column} IS NOT NULL AND NEW.workspace_id IS DISTINCT FROM ({sub}) THEN\n"
+        f"  IF NEW.{column} IS NOT NULL\n"
+        f"     AND (TG_OP = 'INSERT' OR NEW.{column} IS DISTINCT FROM OLD.{column}\n"
+        f"          OR NEW.workspace_id IS DISTINCT FROM OLD.workspace_id)\n"
+        f"     AND NEW.workspace_id IS DISTINCT FROM ({sub}) THEN\n"
         f"    {_REJECT}\n"
         f"  END IF;\n"
     )
