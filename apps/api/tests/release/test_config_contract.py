@@ -46,7 +46,12 @@ def _dsn(
 
 
 def _tok(n: int = 24) -> str:
-    return secrets.token_urlsafe(n)
+    # Random tokens can, rarely, contain a placeholder marker (e.g. "todo" in any letter case); the
+    # contract refuses those by design, so draw again instead of making the suite flaky.
+    while True:
+        t = secrets.token_urlsafe(n)
+        if not cc.is_known_default_or_placeholder(t):
+            return t
 
 
 def good_production_env() -> dict[str, str]:

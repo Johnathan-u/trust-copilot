@@ -13,3 +13,9 @@ Commit under test: `7382066fef77eaa39788b074388489c3e819d67f` (branch tc/platfor
 * Docker images were not built because Docker is not available. The entrypoint, Dockerfile, compose and .dockerignore changes are verified statically by the release tests.
 * There is no reviewer sign-off yet (DoD 5). TC-07-001 AC2 is recorded as: "No live deployment; owner statement 2026-10-27, relayed by the Coordinator. All exposed values are retired and must never be reused." The git-history rewrite is still an open owner closing item and was not performed.
 * Planning deviation: E01/TC-01-001 was ruled non-blocking by the Coordinator.
+
+## Refresh after merging master f7468ff (no rebase)
+
+* The notes above describe the pre-merge commit and are kept for history. Where they conflict with this section, this section is authoritative.
+* release_test.log has been regenerated at the post-merge head: tests/release/test_config_contract.py, 456 passed, no skips. Production detection comes from master's `is_production_env()`. Every credential shipped in `.env.example`, including the dev S3/MinIO pair, is refused in production with an error that names the variable but never its value.
+* Full CI mirror (fresh digest-pinned pgvector pg16, TC_REQUIRE_DB=1): every step exits 0. The results are in the PR body. Master's secret scanner finds 0 block on the tree and on the added lines. The new review-level hits are synthetic test fixtures generated at runtime.
