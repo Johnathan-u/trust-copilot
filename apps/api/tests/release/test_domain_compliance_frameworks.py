@@ -22,7 +22,6 @@ from app.services.framework_catalog_registry import (
     ADVERTISED_CATALOGS,
     CATALOG_CONTRACT_VERSION,
     ERROR_CONTRACT_VERSION,
-    RIGHTS_TICKET,
 )
 
 API_ROOT = Path(__file__).resolve().parents[2]
@@ -100,7 +99,9 @@ def test_list_reports_every_advertised_framework_blocked(client):
         assert item["catalog_kind"] == "advertised_blocked"
         assert item["production_catalog"] is False
         assert item["content_version"] is None
-        assert item["rights_ticket"] == RIGHTS_TICKET
+        assert "rights_ticket" not in item
+        assert "rights_ticket" not in item["source_provenance"]
+        assert "TC-01-007" not in json.dumps(item)
         assert item["dev_test_only"] is False
         assert item["controls_are_production_catalog"] is False
         assert item["source_provenance"]["content_included"] is False
@@ -129,7 +130,8 @@ def test_enable_refuses_rights_and_agrees_across_retry_and_new_session(client):
     assert detail["catalog_key"] == "SOC2"
     assert detail["rights_status"] == "blocked_pending_rights"
     assert detail["enablement_state"] == "blocked"
-    assert detail["rights_ticket"] == RIGHTS_TICKET
+    assert "rights_ticket" not in detail
+    assert "TC-01-007" not in json.dumps(detail)
     assert detail["request_id"]
     assert "Pending content licensing" in detail["message"]
     assert "TC-01-007" not in detail["message"]

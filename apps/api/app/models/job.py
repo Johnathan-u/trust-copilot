@@ -59,6 +59,9 @@ class Job(Base):
     # the input the job was enqueued for (e.g. the source object's storage key). Both nullable/additive.
     idempotency_key = Column(String(128), nullable=True)
     input_version = Column(String(512), nullable=True)
+    # TC-10-002: for a QUEUED retry, the earliest time it may be claimed (nullable/additive). TC-10-002 also
+    # writes error_code above (TC-11-001 model_* codes for model failures, app.core.job_errors codes otherwise).
+    next_attempt_at = Column(DateTime, nullable=True)
     started_at = Column(DateTime, nullable=True)
     completed_at = Column(DateTime, nullable=True)
     created_at = Column(DateTime, default=utc_now)
