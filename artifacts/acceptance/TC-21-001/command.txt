@@ -1,0 +1,19 @@
+Working directory: apps/api
+Command: python -m pytest tests/release/test_domain_compliance_frameworks.py -q
+Exit status: 0
+Passed: 12
+Failed: 0
+Skipped: 0
+Errors: 0
+Warnings: 205 (DeprecationWarning from datetime.utcnow; not failures)
+
+Additional consumer check, not a substitute for the command above:
+Working directory: apps/web
+Command: npx vitest run lib/frameworkCatalog.test.ts
+Exit status: 0
+Passed: 5
+Failed: 0
+Skipped: 0
+
+Tested commit: d198f4d26f7905caa322ca210620dae76da14155
+Required skips: none

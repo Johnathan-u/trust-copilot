@@ -1,0 +1,29 @@
+{
+  "ticket": "TC-21-001",
+  "tested_commit": "d198f4d26f7905caa322ca210620dae76da14155",
+  "command": "python -m pytest tests/release/test_domain_compliance_frameworks.py -q",
+  "cwd": "apps/api",
+  "exit_status": 0,
+  "passed": 12,
+  "failed": 0,
+  "skipped": 0,
+  "errors": 0,
+  "warnings": 205,
+  "required_skips": [],
+  "web_unit": {
+    "command": "npx vitest run lib/frameworkCatalog.test.ts",
+    "cwd": "apps/web",
+    "exit_status": 0,
+    "passed": 5,
+    "failed": 0,
+    "skipped": 0
+  },
+  "ui_browser": {
+    "tool": "Playwright Chromium headless",
+    "viewports": ["1440x900", "390x844"],
+    "admin_list": "all nine advertised frameworks shown blocked pending TC-01-007",
+    "admin_enable": "SOC 2 enablement refused; production enabled count stayed 0",
+    "reviewer": "blocked list visible; enable button absent; admin permission noted",
+    "mobile_page_overflow": false
+  }
+}

@@ -1,0 +1,14 @@
+Host: Linux x86_64
+Python: 3.12.3
+PostgreSQL: 16.15 (Ubuntu 16.15-0ubuntu0.24.04.1)
+pgvector: 0.6.0
+Database: local trustcopilot_test on localhost:5432
+Driver: psycopg2 (SQLAlchemy URL postgresql+psycopg2)
+SQLAlchemy: 2.1.6
+FastAPI: 0.162.0
+Pydantic: 2.14.1
+Node: 22.23.4
+Vitest: 2.1.9
+Browser check: Playwright Chromium headless against the local API and Next.js dev server
+
+No required test was skipped. The acceptance command ran on real PostgreSQL, including foreign-key failures, the production-catalog check constraint, and migration downgrade/upgrade.

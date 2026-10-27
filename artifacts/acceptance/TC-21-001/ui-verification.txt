@@ -1,0 +1,10 @@
+Browser: Playwright Chromium, headless.
+API: local uvicorn. Web: local Next.js dev server. Both pointed at the migrated trustcopilot_test database.
+
+Admin, 1440x900: Framework catalogs lists SOC 2, HIPAA, ISO 27001, NIST CSF 2, NIST 800-53r5, NIST 800-171r3, SIG, CAIQ, and HITRUST. Each row reads "Blocked pending content rights (TC-01-007)" and "No licensed content version". Production catalogs enabled: 0.
+Admin enable: clicking Enable on SOC 2 shows "SOC 2 cannot be enabled. Rights status is blocked pending content-rights decision TC-01-007. No licensed catalog is loaded." The enabled count stays 0.
+Reviewer, 1440x900: the same blocked list is visible. Enable buttons are absent. Each row says admin permission is required to request enablement.
+Admin, 390x844: the page reflows. The table scrolls inside its card. The document itself did not overflow horizontally.
+
+Screenshots: ui-admin-desktop.png, ui-admin-enable-refused.png, ui-reviewer-desktop.png, ui-admin-mobile.png.
+These files contain no credentials and no framework control text.
