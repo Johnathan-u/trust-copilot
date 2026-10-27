@@ -52,10 +52,7 @@ export type FrameworkCatalogError = {
 }
 
 export type CatalogDisplayState =
-  | 'blocked_pending_rights'
-  | 'dev_test_only'
-  | 'blocked'
-  | 'enabled'
+  'blocked_pending_rights' | 'dev_test_only' | 'blocked' | 'enabled'
 
 const LEGACY_LIST_FIELDS = ['id', 'name', 'version', 'created_at'] as const
 
@@ -66,12 +63,12 @@ export function hasLegacyListFields(item: FrameworkCatalogItem): boolean {
 export function isDevTestOnly(item: FrameworkCatalogItem): boolean {
   return Boolean(
     item.dev_test_only ||
-      item.synthetic_dev_content_present ||
-      item.catalog_kind === 'dev_synthetic' ||
-      item.enablement_state === 'dev_only' ||
-      item.rights_status === 'dev_test_only' ||
-      item.licence_status === 'dev_test_only' ||
-      item.content_origin === 'dev_seed'
+    item.synthetic_dev_content_present ||
+    item.catalog_kind === 'dev_synthetic' ||
+    item.enablement_state === 'dev_only' ||
+    item.rights_status === 'dev_test_only' ||
+    item.licence_status === 'dev_test_only' ||
+    item.content_origin === 'dev_seed'
   )
 }
 
