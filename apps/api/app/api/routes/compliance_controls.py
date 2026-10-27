@@ -557,6 +557,16 @@ def accept_suggested_evidence(
     if not ch:
         raise HTTPException(status_code=404, detail="Chunk not found")
     doc_id = body.document_id or ch.document_id
+    from app.services.workspace_integrity import (
+        NOT_FOUND_DETAIL,
+        CrossWorkspaceReference,
+        require_same_workspace,
+    )
+
+    try:
+        require_same_workspace(db, ws, document_id=doc_id)
+    except CrossWorkspaceReference:
+        raise HTTPException(status_code=404, detail=NOT_FOUND_DETAIL)
     title = (body.snippet or ch.text or "")[:255].strip() or f"Chunk {body.chunk_id}"
     ev = EvidenceItem(
         workspace_id=ws,
