@@ -128,6 +128,8 @@ async def update_item(
     require_in_workspace(db, session["workspace_id"], "operator_queue_item", item_id)
     updates = {k: v for k, v in req.model_dump().items() if v is not None}
     result = oq.update_item(db, item_id, **updates)
+    if result is None:
+        raise HTTPException(status_code=404, detail=NOT_FOUND_DETAIL)
     db.commit()
     return result
 
@@ -140,6 +142,7 @@ async def delete_item(
 ):
     """Delete an operator queue item."""
     require_in_workspace(db, session["workspace_id"], "operator_queue_item", item_id)
-    oq.delete_item(db, item_id)
+    if not oq.delete_item(db, item_id):
+        raise HTTPException(status_code=404, detail=NOT_FOUND_DETAIL)
     db.commit()
     return {"deleted": True}
