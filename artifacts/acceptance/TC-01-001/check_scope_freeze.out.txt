@@ -1,0 +1,2 @@
+route modules in repo: 94; pages in repo: 33; frozen rows: 127
+PASS: all route modules and pages frozen with owner epic and delivery tickets; dispatcher, provider, out-of-scope sections present
