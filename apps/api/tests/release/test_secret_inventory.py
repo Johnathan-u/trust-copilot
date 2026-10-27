@@ -1,8 +1,9 @@
 """TC-07-001 release gate: exposed signing literals, cookies and traces stay contained.
 
 Every "secret" used here is generated at runtime; this file must never contain a real or
-realistic credential literal (it is excluded from the scanner only so that the synthetic
-positive fixtures below can be built).
+realistic credential literal. It is scanned like every other file (TC-07-001a); the only allowance
+is that a block match whose value is a bare f-string placeholder such as "{tok}" is downgraded to
+review, so a real value added here still blocks.
 """
 
 from __future__ import annotations
@@ -15,6 +16,7 @@ import importlib.util
 import io
 import json
 import secrets
+import string
 import subprocess
 import sys
 import time
@@ -1185,3 +1187,393 @@ def test_deploy_doc_checker_flags_bad_guidance(template):
 )
 def test_deploy_doc_checker_allows_good_guidance(line):
     assert deploy_doc_problems(line, markdown=True) == []
+
+
+# ---------------------------------------------------------------------------
+# TC-07-001a follow-ups
+# ---------------------------------------------------------------------------
+
+SELF_RELS = (
+    "scripts/security/secret_inventory.py",
+    "apps/api/tests/release/test_secret_inventory.py",
+)
+
+
+def _aws_canary() -> str:
+    return "AKIA" + "".join(
+        secrets.choice(string.ascii_uppercase + string.digits) for _ in range(16)
+    )
+
+
+def _real_value_lines() -> list[tuple[str, str]]:
+    """(rule, line) pairs carrying runtime-generated values (never placeholders)."""
+    tok = secrets.token_hex(24)
+    key = secrets.token_urlsafe(32)
+    return [
+        ("aws-access-key-id", f"AWS_ID = {_aws_canary()!r}"),
+        ("openai-api-key", f"client_key = {'sk-' + secrets.token_urlsafe(32)!r}"),
+        ("high-entropy-secret-assignment", f'API_TOKEN = "{tok}"'),
+        ("hmac-literal-key", f'sig = hmac.new(b"{key}", msg, "sha256")'),
+    ]
+
+
+def _write(root: Path, rel: str, text: str) -> None:
+    p = root / rel
+    p.parent.mkdir(parents=True, exist_ok=True)
+    p.write_text(text)
+
+
+@pytest.mark.parametrize("rel", SELF_RELS)
+def test_self_paths_still_block_real_values(scanner, tmp_path, rel):
+    lines = _real_value_lines()
+    text = "\n".join(line for _, line in lines) + "\n"
+    expected = {rule for rule, _ in lines}
+    _write(tmp_path, rel, text)
+    for found in (
+        scanner.scan_text(text, rel),
+        scanner.scan_tree(tmp_path),
+        scanner.scan_paths(tmp_path, [rel]),
+    ):
+        blocked = {f.rule for f in _blocks(found) if f.path == rel and not f.reason}
+        assert expected <= blocked, (rel, expected - blocked)
+
+
+def test_self_path_downgrade_is_limited_to_bare_placeholders(scanner):
+    q = '"'
+    placeholder = "sig = hmac" + ".new(b" + q + "{tok}" + q + ', msg, "sha256")\n'
+    env_default = "os.getenv(" + q + "SESSION_SECRET" + q + ", " + q + "{tok}" + q + ")\n"
+    for text, rule in ((placeholder, "hmac-literal-key"), (env_default, "secret-env-default")):
+        for rel in SELF_RELS:
+            found = [f for f in scanner.scan_text(text, rel) if f.rule == rule]
+            assert found and all(f.severity == "review" for f in found), rel
+            assert all(f.reason == scanner.REASON_SELF_INTERPOLATION for f in found)
+        other = scanner.scan_text(text, "apps/api/tests/test_other.py")
+        assert [f for f in _blocks(other) if f.rule == rule], "downgrade must not apply elsewhere"
+    # two placeholders, or a placeholder mixed with literal text, is not a bare placeholder
+    mixed = "os.getenv(" + q + "SESSION_SECRET" + q + ", " + q + "x{tok}" + q + ")\n"
+    assert _blocks(scanner.scan_text(mixed, SELF_RELS[1]))
+
+
+def test_scanner_and_its_test_have_no_block_findings(scanner):
+    for rel in SELF_RELS:
+        found = scanner.scan_text((REPO_ROOT / rel).read_text(), rel)
+        assert _blocks(found) == [], rel
+        for f in found:
+            if f.reason == scanner.REASON_SELF_INTERPOLATION:
+                assert f.rule in {
+                    "hmac-literal-key",
+                    "secret-env-default",
+                    "app-secret-literal",
+                    "high-entropy-secret-assignment",
+                    "url-embedded-credential",
+                    "libpq-password",
+                    "config-secret-value",
+                }, f
+
+
+def test_self_paths_are_no_longer_skipped(scanner):
+    for rel in SELF_RELS:
+        assert not scanner._should_skip(rel)
+
+
+@pytest.mark.parametrize(
+    "rel",
+    [
+        "apps/api/tests/../app/core/leak.py",
+        "apps/api/tests/./../app/core/leak.py",
+        "./apps/api/app/core/leak.py",
+        "apps/api/scripts/manual_live/../../app/core/leak.py",
+    ],
+)
+def test_paths_mode_normalizes_traversal(scanner, tmp_path, rel):
+    """'..' cannot make application code look like a test/manual path (marker, app-code rules)."""
+    q = '"'
+    text = (
+        "# "
+        + scanner.SYNTHETIC_PRAGMA
+        + "\n"
+        + "SESSION_SECRET = "
+        + q
+        + "plain"
+        + q
+        + "\n"
+        + "API_TOKEN = "
+        + q
+        + secrets.token_hex(24)
+        + q
+        + "  # "
+        + scanner.SYNTHETIC_PRAGMA
+        + "\n"
+    )
+    _write(tmp_path, "apps/api/app/core/leak.py", text)
+    found = scanner.scan_paths(tmp_path, [rel])
+    assert {f.path for f in found} == {"apps/api/app/core/leak.py"}
+    rules = {f.rule for f in _blocks(found)}
+    assert "app-secret-literal" in rules
+    assert "high-entropy-secret-assignment" in rules
+    assert not [f for f in found if f.reason == scanner.REASON_SYNTHETIC]
+    assert {f.path for f in scanner.scan_text(text, rel)} == {"apps/api/app/core/leak.py"}
+
+
+def test_scan_text_keeps_archive_member_names(scanner):
+    assert scanner._normalize_path("a/../b/x.zip!c/../d.py") == "b/x.zip!c/../d.py"
+    assert scanner._normalize_path("./x.py") == "x.py"
+
+
+def _complex_password(n: int) -> str:
+    pools = [string.ascii_lowercase, string.ascii_uppercase, string.digits, "!#%^*-_"]
+    chars = [secrets.choice(p) for p in pools]
+    rest = [c for c in "".join(pools) if c not in chars]
+    while len(chars) < n:
+        c = secrets.choice(rest)
+        rest.remove(c)
+        chars.append(c)
+    secrets.SystemRandom().shuffle(chars)
+    return "".join(chars)
+
+
+def _with_slash(pw: str) -> str:
+    return "x" + pw[:3] + "/" + pw[3:]
+
+
+def test_url_password_with_digit_prefix_and_slash_blocks(scanner):
+    pw = "".join(secrets.choice(string.digits) for _ in range(4)) + "/" + secrets.token_urlsafe(12)
+    for user in ("app", "svc_user"):
+        found = scanner.scan_text(f"postgresql://{user}:{pw}@db.internal/x\n", "deploy/app.env")
+        assert [f for f in _blocks(found) if f.rule == "url-embedded-credential"], user
+
+
+@pytest.mark.parametrize("host", ["db.internal:5432", "localhost", "127.0.0.1:5432", "example.com"])
+def test_url_password_containing_slash_blocks(scanner, host):
+    pw = _with_slash(secrets.token_urlsafe(16))
+    line = f"DATABASE_URL=postgresql://app:{pw}@{host}/trust\n"
+    found = scanner.scan_text(line, "deploy/app.env")
+    assert [f for f in _blocks(found) if f.rule == "url-embedded-credential"], host
+
+
+def test_url_port_and_path_with_at_is_not_a_password(scanner):
+    for line in (
+        "see https://registry.example.com:8443/@scope/pkg for the build\n",
+        "GET http://api.example.com:8080/users/me@team/settings\n",
+    ):
+        assert not [f for f in scanner.scan_text(line, "docs/x.md") if "url" in f.rule], line
+
+
+@pytest.mark.parametrize("n", [8, 9, 11])
+def test_short_complex_url_password_blocks(scanner, n):
+    pw = _complex_password(n)
+    found = scanner.scan_text(f"url = 'postgresql://app:{pw}@db.internal:5432/x'\n", "deploy/x.py")
+    assert [f for f in _blocks(found) if f.rule == "url-embedded-credential"], n
+
+
+@pytest.mark.parametrize(
+    "pw", ["postgres", "minio123", "minioadmin", "Passpass", "abc12345", "devpass1"]
+)
+def test_dev_default_url_passwords_stay_review(scanner, pw):
+    found = scanner.scan_text(f"postgresql://app:{pw}@db.internal:5432/x\n", "deploy/app.env")
+    assert not _blocks(found)
+    assert [f for f in found if f.rule == "url-credential-review"]
+
+
+def test_seven_char_complex_url_password_is_review(scanner):
+    pw = _complex_password(7)
+    found = scanner.scan_text(f"postgresql://app:{pw}@db.internal:5432/x\n", "deploy/app.env")
+    assert not _blocks(found)
+
+
+def _libpq_lines(pw: str) -> list[str]:
+    return [
+        f"host=db.internal port=5432 dbname=trust user=app password={pw} sslmode=require",
+        f"dsn = 'host=db user=app password={pw}'",
+        f"PGDSN=\"dbname=trust password='{pw}' host=db\"",
+        f"password={pw} host=db.internal",
+        f'conn = psycopg.connect("user=app  password={pw}  dbname=x")',
+    ]
+
+
+def test_libpq_password_blocks(scanner):
+    for pw in (secrets.token_urlsafe(18), _complex_password(10)):
+        for line in _libpq_lines(pw):
+            found = scanner.scan_text(line + "\n", "deploy/run.sh")
+            assert [f for f in _blocks(found) if f.rule == "libpq-password"], line
+
+
+def test_libpq_dev_password_is_review(scanner):
+    for line in _libpq_lines("postgres"):
+        found = scanner.scan_text(line + "\n", "deploy/run.sh")
+        assert not _blocks(found), line
+        assert [f for f in found if f.rule == "libpq-password-review"], line
+
+
+def test_libpq_rule_ignores_env_names_and_kwargs(scanner):
+    pw = secrets.token_urlsafe(18)
+    q = '"'
+    for line in (
+        "connect(host=h, user=u, password=pw, dbname=d)",
+        "connect(host=h, password=" + q + "x" + q + ")",
+        "PGPASSWORD=$PGPASSWORD psql -h db -U app",
+        "export POSTGRES_PASSWORD=$(cat /run/secrets/pg) host=db",
+        "the password=... field and the host= field are documented below",
+        "my.password=" + pw + " host=db",
+    ):
+        found = scanner.scan_text(line + "\n", "docs/notes.txt")
+        assert not [f for f in found if f.rule.startswith("libpq")], line
+
+
+# --- TC-07-001a item 3: API lifespan checks the secret first, APP_ENV is normalized -------------
+
+_PROD_SPELLINGS = [" production ", "PRODUCTION", "production\n", "\tProduction "]
+
+
+def _stub_lifespan_io(monkeypatch, main_mod) -> list[str]:
+    """Record DB/S3 startup calls; the DB stub stops the lifespan right after the secret check."""
+    calls: list[str] = []
+
+    def _db():
+        calls.append("db")
+        raise _StartedPastSecretCheck()
+
+    class _Storage:
+        def __init__(self, *a, **k):
+            calls.append("s3")
+
+        def ensure_buckets(self):
+            calls.append("s3.ensure_buckets")
+
+    monkeypatch.setattr(main_mod, "_verify_db_connectivity", _db)
+    monkeypatch.setattr(main_mod, "StorageClient", _Storage)
+    return calls
+
+
+def _run_lifespan(main_mod):
+    import asyncio
+
+    async def _enter():
+        async with main_mod.lifespan(main_mod.app):
+            pass
+
+    asyncio.run(_enter())
+
+
+@pytest.mark.parametrize("env", _PROD_SPELLINGS + ["production"])
+@pytest.mark.parametrize("value", [None, "", "placeholder", "a" * 64])
+def test_api_lifespan_refuses_weak_secret_before_any_db_or_s3_call(monkeypatch, env, value):
+    import app.main as main_mod
+    from app.core.config import get_settings
+
+    calls = _stub_lifespan_io(monkeypatch, main_mod)
+    monkeypatch.setenv("APP_ENV", env)
+    if value is None:
+        monkeypatch.delenv("SESSION_SECRET", raising=False)
+    else:
+        monkeypatch.setenv("SESSION_SECRET", value)
+    get_settings.cache_clear()
+    try:
+        with pytest.raises(RuntimeError, match="api: APP_ENV=production requires SESSION_SECRET"):
+            _run_lifespan(main_mod)
+        assert calls == []
+    finally:
+        get_settings.cache_clear()
+
+
+@pytest.mark.parametrize("env", _PROD_SPELLINGS)
+def test_api_lifespan_proceeds_with_generated_secret(monkeypatch, env):
+    import app.main as main_mod
+    from app.core.config import get_settings
+
+    calls = _stub_lifespan_io(monkeypatch, main_mod)
+    monkeypatch.setenv("APP_ENV", env)
+    monkeypatch.setenv("SESSION_SECRET", secrets.token_urlsafe(48))
+    get_settings.cache_clear()
+    try:
+        with pytest.raises(_StartedPastSecretCheck):
+            _run_lifespan(main_mod)
+        assert calls == ["db"]
+    finally:
+        get_settings.cache_clear()
+
+
+@pytest.mark.parametrize("env", ["development", " development ", "test", ""])
+def test_api_lifespan_outside_production_does_not_require_a_secret(monkeypatch, env):
+    import app.main as main_mod
+    from app.core.config import get_settings
+
+    calls = _stub_lifespan_io(monkeypatch, main_mod)
+    monkeypatch.setenv("APP_ENV", env)
+    monkeypatch.delenv("SESSION_SECRET", raising=False)
+    get_settings.cache_clear()
+    try:
+        with pytest.raises(_StartedPastSecretCheck):
+            _run_lifespan(main_mod)
+        assert calls == ["db"]
+    finally:
+        get_settings.cache_clear()
+
+
+@pytest.mark.parametrize("env", _PROD_SPELLINGS)
+def test_app_env_is_stripped_and_detected(monkeypatch, env):
+    from app.core import session as session_mod
+    from app.core.config import get_settings
+
+    monkeypatch.setenv("APP_ENV", env)
+    monkeypatch.setenv("SESSION_SECRET", "placeholder")
+    get_settings.cache_clear()
+    try:
+        assert get_settings().app_env == "production"
+        assert session_mod.is_production_env()
+        with pytest.raises(RuntimeError):
+            session_mod.get_session_secret()
+    finally:
+        get_settings.cache_clear()
+
+
+def test_lifespan_source_orders_secret_check_before_io():
+    src = (REPO_ROOT / "apps" / "api" / "app" / "main.py").read_text()
+    body = src[src.index("async def lifespan(") :]
+    check = body.index('enforce_production_session_secret("api")')
+    assert check < body.index("_verify_db_connectivity()") < body.index("StorageClient()")
+    assert check < body.index("get_settings()")
+
+
+def _env_example_values() -> dict[str, str]:
+    out = {}
+    for line in (REPO_ROOT / ".env.example").read_text().splitlines():
+        if line and not line.startswith("#") and "=" in line:
+            k, v = line.split("=", 1)
+            out[k.strip()] = v.strip()
+    return out
+
+
+def test_env_example_s3_keys_match_dev_minio_defaults():
+    """TC-07-001a: copying .env.example gives a working local stack (S3 keys = dev MinIO root)."""
+    compose = (REPO_ROOT / "docker-compose.yml").read_text()
+
+    def _default(var: str) -> str:
+        m = re.search(r"\$\{" + var + r":-([^}]*)\}", compose)
+        assert m, var
+        return m.group(1)
+
+    env = _env_example_values()
+    assert env["S3_ACCESS_KEY"] == _default("MINIO_ROOT_USER")
+    assert env["S3_SECRET_KEY"] == _default("MINIO_ROOT_PASSWORD")
+    text = (REPO_ROOT / ".env.example").read_text()
+    assert _blocks(_load_scanner().scan_text(text, ".env.example")) == []
+
+
+def test_ci_runs_the_tree_secret_scan_early():
+    """TC-07-001a: a dedicated CI step runs the tree scan (fail on block) before installs/tests."""
+    import yaml
+
+    wf = yaml.safe_load((REPO_ROOT / ".github" / "workflows" / "ci.yml").read_text())
+    steps = wf["jobs"]["build"]["steps"]
+    names = [s.get("name", "") for s in steps]
+    idx = next(i for i, s in enumerate(steps) if "secret_inventory.py tree" in (s.get("run") or ""))
+    run = steps[idx]["run"]
+    assert "--fail-on never" not in run and "--fail-on review" not in run
+    for later in (
+        "Install frontend deps",
+        "Run pre-commit",
+        "Install backend deps",
+        "Run backend tests",
+    ):
+        assert idx < names.index(later), later
