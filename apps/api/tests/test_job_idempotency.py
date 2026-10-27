@@ -19,7 +19,7 @@ from unittest.mock import patch
 
 import pytest
 from fastapi.testclient import TestClient
-from sqlalchemy import func, inspect
+from sqlalchemy import func, inspect, text
 
 from app.core.database import SessionLocal, engine
 from app.models import (
@@ -45,16 +45,57 @@ class Crash(RuntimeError):
     """Injected worker crash."""
 
 
+# Rows these tests commit (they have to: a second connection must see them). Delete only rows
+# created during the test so a later test that does ``.first()`` on workspace 1 is not handed
+# one of these questionnaires. Children are listed before parents.
+_LEAK_TABLES = (
+    "evidence_gaps",
+    "question_mapping_signals",
+    "question_mapping_preferences",
+    "export_records",
+    "answers",
+    "questions",
+    "chunks",
+    "job_effects",
+    "questionnaires",
+    "documents",
+    "jobs",
+    "workspace_usage",
+    "idempotency_keys",
+    "audit_events",
+    "in_app_notifications",
+)
+
+
+def _id_watermarks(session) -> dict[str, int]:
+    marks: dict[str, int] = {}
+    for table in _LEAK_TABLES:
+        marks[table] = int(
+            session.execute(text(f"SELECT COALESCE(MAX(id), 0) FROM {table}")).scalar() or 0
+        )
+    return marks
+
+
+def _delete_rows_after(session, marks: dict[str, int]) -> None:
+    session.rollback()
+    for table, mark in marks.items():
+        session.execute(text(f"DELETE FROM {table} WHERE id > :m"), {"m": mark})
+    session.commit()
+
+
 @pytest.fixture
 def db(_ensure_test_data):
     if not _ensure_test_data:
         pytest.skip("Postgres test DB unavailable")
     s = SessionLocal()
+    marks = _id_watermarks(s)
     try:
         yield s
     finally:
-        s.rollback()
-        s.close()
+        try:
+            _delete_rows_after(s, marks)
+        finally:
+            s.close()
 
 
 @pytest.fixture

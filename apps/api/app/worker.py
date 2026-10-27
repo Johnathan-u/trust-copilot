@@ -161,7 +161,8 @@ def _set_outcome(job: Job, outcome: str, **extra) -> None:
 
 def _job_outcome(job: Job) -> str | None:
     try:
-        data = json.loads(job.result or "{}")
+        # getattr: a probe stand-in (not a mapped Job) has no result column.
+        data = json.loads(getattr(job, "result", None) or "{}")
     except (TypeError, ValueError):
         return None
     return data.get("outcome") if isinstance(data, dict) else None
