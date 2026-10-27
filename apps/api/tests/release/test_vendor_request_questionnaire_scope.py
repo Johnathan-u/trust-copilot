@@ -22,7 +22,7 @@ from app.models import User, VendorRequest, WorkspaceMember
 from app.models.questionnaire import Question, Questionnaire
 
 ADMIN_EMAIL = "admin-vr-scope@trust.local"
-ADMIN_PASSWORD = "scope-a"
+ADMIN_PASSWORD = "example-synthetic-test-vr-scope-pw"  # synthetic test credential
 OWN_WS = 1
 OTHER_WS = 2
 
