@@ -4,6 +4,10 @@ import {
   autoDismissMs,
   DEFAULT_STATUS_DISMISS_MS,
   liveRegionForSeverity,
+  persistentToastRegions,
+  TOAST_ALERT_REGION_ID,
+  TOAST_STATUS_REGION_ID,
+  toastRegionId,
 } from '@/lib/toast'
 
 describe('toast announcement policy', () => {
@@ -24,6 +28,21 @@ describe('toast announcement policy', () => {
     })
     expect(autoDismissMs('error')).toBeNull()
     expect(autoDismissMs('error', { hasAction: true })).toBeNull()
+  })
+
+  it('mounts one polite region and one assertive region before toast text', () => {
+    const regions = persistentToastRegions()
+    expect(regions.map((region) => region.id)).toEqual([
+      TOAST_STATUS_REGION_ID,
+      TOAST_ALERT_REGION_ID,
+    ])
+    expect(new Set(regions.map((region) => region.role)).size).toBe(2)
+    for (const severity of ['success', 'info', 'warning'] as const) {
+      expect(toastRegionId(severity)).toBe(TOAST_STATUS_REGION_ID)
+      expect(liveRegionForSeverity(severity).ariaLive).toBe('polite')
+    }
+    expect(toastRegionId('error')).toBe(TOAST_ALERT_REGION_ID)
+    expect(TOAST_STATUS_REGION_ID).not.toBe(TOAST_ALERT_REGION_ID)
   })
 
   it('does not auto-dismiss a toast that has an action button', () => {

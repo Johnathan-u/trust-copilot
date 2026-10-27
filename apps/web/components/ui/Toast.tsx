@@ -1,9 +1,12 @@
 'use client'
 
 import { useEffect, useRef, type ReactNode } from 'react'
+import { createPortal } from 'react-dom'
 import {
   autoDismissMs,
-  liveRegionForSeverity,
+  persistentToastRegions,
+  toastRegionId,
+  TOAST_LIVE_ROOT_ID,
   type ToastSeverity,
 } from '@/lib/toast'
 
@@ -37,9 +40,10 @@ const tone: Record<ToastSeverity, { bg: string; fg: string; glyph: string }> = {
 }
 
 /**
- * One announcement. Success, info and warning leave after 4000ms. Errors, and
- * any toast with an action button, stay until dismiss. This component does not
- * move focus. Callers should not start a second dismiss timer.
+ * Visual toast. Its text is portaled into the one live region for that
+ * politeness. The region is mounted by `ToastLiveRegions` before any text
+ * exists, so a polite status update is a change inside an existing region.
+ * This component does not move focus. Callers should not start a second timer.
  */
 export function Toast({
   title,
@@ -62,12 +66,8 @@ export function Toast({
   }, [title, message, type, hasAction])
 
   const icon = tone[type]
-  const live = liveRegionForSeverity(type)
-  return (
+  const card = (
     <div
-      role={live.role}
-      aria-live={live.ariaLive}
-      aria-atomic="true"
       className="tc-toast pointer-events-auto relative flex w-full min-w-0 max-w-[360px] gap-tc-3 rounded-tc-sm border border-tc-border-strong p-tc-4 pr-tc-8 shadow-[var(--tc-shadow)]"
       style={{ background: 'var(--tc-surface-overlay)' }}
     >
@@ -105,15 +105,40 @@ export function Toast({
       ) : null}
     </div>
   )
+
+  if (typeof document === 'undefined') return null
+  const region = document.getElementById(toastRegionId(type))
+  if (!region) return null
+  return createPortal(card, region)
 }
 
-/** Fixed stack. Toasts stay in normal flow so several can be read and dismissed. */
-export function ToastViewport({ children }: { children: ReactNode }) {
+/**
+ * Always mounted. Both regions are in the DOM with no toast text. `Toast`
+ * inserts a card into one of them later.
+ */
+export function ToastLiveRegions() {
   return (
-    <div className="pointer-events-none fixed inset-x-tc-4 bottom-tc-4 z-40 flex flex-col items-stretch gap-tc-2 sm:left-auto sm:right-tc-6 sm:w-[min(360px,calc(100vw-2rem))]">
-      {children}
+    <div
+      id={TOAST_LIVE_ROOT_ID}
+      className="pointer-events-none fixed inset-x-tc-4 bottom-tc-4 z-40 flex flex-col items-stretch sm:left-auto sm:right-tc-6 sm:w-[min(360px,calc(100vw-2rem))]"
+    >
+      {persistentToastRegions().map((region) => (
+        <div
+          key={region.id}
+          id={region.id}
+          role={region.role}
+          aria-live={region.ariaLive}
+          aria-atomic="true"
+          className="flex flex-col gap-tc-2"
+        />
+      ))}
     </div>
   )
+}
+
+/** Toasts portal into `ToastLiveRegions`, so this only keeps the call-site grouping. */
+export function ToastViewport({ children }: { children: ReactNode }) {
+  return <>{children}</>
 }
 
 export function ToastNotice(props: ToastProps) {
