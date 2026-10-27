@@ -88,7 +88,8 @@ are **retired** (owner statement 2026-10-27, TC-07-001) and must never be reused
 - Keep them only in `.env.production` (git-ignored) or your secret manager; never commit them.
 - Do not run any `seed_*` script against production; demo/QA accounts and their passwords are local-only.
 - Production startup validation of these values (refusing unset, placeholder or default values) is defined by TC-03-001's
-  config contract.
+  config contract: see [docs/release/config-contract.md](docs/release/config-contract.md) and run
+  `cd apps/api && python -m app.core.config_contract check`.
 
 See `.env.example`. Required: `DATABASE_URL`, `SESSION_SECRET`, `S3_*`. Optional: `OPENAI_API_KEY` (needed for embeddings and answer generation).
 
