@@ -28,12 +28,17 @@ def index_document(
     storage: StorageClient,
     file_svc: FileService,
     job_id: int | None = None,
+    effects=None,
+    effect_name: str = "chunks",
 ) -> int:
     """
     Parse document, create chunks with metadata, generate embeddings, persist.
     Idempotent: deletes existing chunks for the document before creating new ones.
     Single transaction: one commit at the end; on failure document is left for worker to mark failed.
     Returns embedded chunk count. Raises on unrecoverable failure (0 parsed, 0 embedded, or embedding dimension mismatch).
+
+    ``effects`` (TC-10-003, optional ``JobEffects``): records a provider-call marker before the paid embedding
+    call, and commits the ``effect_name`` applied marker atomically with the chunks so a re-run skips re-embedding.
     """
     doc = db.query(Document).filter(Document.id == document_id).first()
     if not doc:
@@ -109,6 +114,8 @@ def index_document(
 
         chunks = db.query(Chunk).filter(Chunk.id.in_(chunk_ids)).all()
         texts = [c.text for c in chunks]
+        if effects is not None:
+            effects.provider_call_started("embeddings")
         embeddings = embed_texts(texts)
 
         embedded_count = 0
@@ -148,6 +155,11 @@ def index_document(
             )
 
         doc.status = "indexed"
+        if effects is not None:
+            effects.mark_applied(
+                effect_name, {"embedded": embedded_count, "storage_key": doc.storage_key}
+            )
+            effects.settle("embeddings", {"texts": len(texts)})
 
         # Auto-tag: best-effort, never blocks indexing
         try:

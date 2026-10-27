@@ -44,6 +44,13 @@ from app.services.compliance_webhook_delivery import process_compliance_webhook_
 from app.services.in_app_notification_service import notify_admins, notify_workspace  # noqa: E402
 from app.services.automation_service import maybe_auto_generate, evaluate_generation_result  # noqa: E402
 from app.services.compliance_event_service import evaluate_and_fire_compliance_events  # noqa: E402
+from app.services.job_effects import (  # noqa: E402
+    JobEffects,
+    enqueue_job,
+    job_idempotency_key,
+    mark_unsettled_uncertain,
+    reconcile_previous_attempts,
+)
 from app.services.model_outcomes import failure_from_exception  # noqa: E402
 from app.worker_health import HeartbeatState, HeartbeatThread  # noqa: E402
 
@@ -139,7 +146,34 @@ def claim_job(session) -> Job | None:
     job.started_at = datetime.now(timezone.utc)
     session.commit()
     session.refresh(job)
+    # TC-10-003: provider calls of earlier attempts that never settled may have been charged.
+    try:
+        reconcile_previous_attempts(session, job)
+    except Exception:
+        session.rollback()
+        logging.getLogger(__name__).warning(
+            "reconcile_previous_attempts failed job_id=%s", job.id, exc_info=True
+        )
     return job
+
+
+def _set_outcome(job: Job, outcome: str, **extra) -> None:
+    """Record a no-op outcome (already applied / superseded) in the job result (TC-10-003)."""
+    job.result = json.dumps({"outcome": outcome, **extra})
+
+
+def _job_outcome(job: Job) -> str | None:
+    try:
+        # getattr: a probe stand-in (not a mapped Job) has no result column.
+        data = json.loads(getattr(job, "result", None) or "{}")
+    except (TypeError, ValueError):
+        return None
+    return data.get("outcome") if isinstance(data, dict) else None
+
+
+EFFECT_QUESTIONS = "questions"
+EFFECT_CHUNKS = "chunks"
+EFFECT_EXPORT = "export_record"
 
 
 def run_parse_questionnaire(job: Job, session, payload: dict) -> None:
@@ -155,6 +189,16 @@ def run_parse_questionnaire(job: Job, session, payload: dict) -> None:
         raise ValueError(
             f"Questionnaire {qnr_id} workspace mismatch: {qnr.workspace_id} != {job.workspace_id}"
         )
+    effects = JobEffects(session, job)
+    if effects.is_applied(EFFECT_QUESTIONS):
+        # A previous attempt committed the questions; only the (cached, idempotent) classification may remain.
+        _set_outcome(job, "already_applied", effect=EFFECT_QUESTIONS)
+        _auto_classify_questionnaire(session, qnr_id, job.workspace_id)
+        return
+    stale = _parse_stale_reason(qnr, storage_key)
+    if stale:
+        _set_outcome(job, "superseded", reason=stale)
+        return
     ext = Path(qnr.filename or storage_key or "").suffix.lower()
     if ext not in (".xlsx", ".xls", ".docx", ".doc", ".pdf"):
         ext = ".xlsx"
@@ -171,6 +215,34 @@ def run_parse_questionnaire(job: Job, session, payload: dict) -> None:
             questions = parse_pdf_questionnaire(path)
         else:
             questions = parse_xlsx_questionnaire(path)
+        # Serialize concurrent parses of the same questionnaire and re-check under the lock.
+        # populate_existing: FOR UPDATE alone returns the identity-map row, which can
+        # still show the pre-lock storage key / deleted_at and miss a concurrent parse.
+        qnr = (
+            session.query(Questionnaire)
+            .filter(Questionnaire.id == qnr_id)
+            .populate_existing()
+            .with_for_update()
+            .first()
+        )
+        stale = _parse_stale_reason(qnr, storage_key) if qnr else "questionnaire_missing"
+        if stale:
+            session.rollback()
+            _set_outcome(job, "superseded", reason=stale)
+            return
+        existing = session.query(Question).filter(Question.questionnaire_id == qnr_id).count()
+        if existing:
+            # Questions already exist (another job, or pre-ledger code): never duplicate them and never
+            # delete them (answers / approvals hang off them). Reconcile instead.
+            if qnr.status != "parsed":
+                qnr.status = "parsed"
+            effects.mark_applied(
+                EFFECT_QUESTIONS, {"reconciled": "existing_questions", "count": existing}
+            )
+            _set_outcome(job, "reconciled", effect=EFFECT_QUESTIONS, count=existing)
+            session.commit()
+            _auto_classify_questionnaire(session, qnr_id, job.workspace_id)
+            return
         for q in questions:
             session.add(
                 Question(
@@ -184,11 +256,21 @@ def run_parse_questionnaire(job: Job, session, payload: dict) -> None:
             )
         qnr.status = "parsed"
         qnr.parse_metadata = json.dumps({"count": len(questions), "questions": questions[:50]})
+        effects.mark_applied(EFFECT_QUESTIONS, {"count": len(questions)})
         session.commit()
 
         _auto_classify_questionnaire(session, qnr_id, job.workspace_id)
     finally:
         Path(path).unlink(missing_ok=True)
+
+
+def _parse_stale_reason(qnr: Questionnaire, storage_key: str) -> str | None:
+    """Why a parse job's input no longer matches the questionnaire (None if it still does)."""
+    if getattr(qnr, "deleted_at", None) is not None:
+        return "questionnaire_deleted"
+    if qnr.storage_key and qnr.storage_key != storage_key:
+        return "input_version_changed"
+    return None
 
 
 def _auto_classify_questionnaire(session, qnr_id: int, workspace_id: int) -> None:
@@ -273,11 +355,68 @@ def run_index_document(job: Job, session, payload: dict) -> None:
         raise ValueError(
             f"Document {doc_id} workspace_id {doc.workspace_id} does not match job workspace_id {job.workspace_id}"
         )
-    storage = StorageClient()
-    file_svc = FileService(storage)
+    from app.models import Chunk
     from app.services.index_service import index_document
 
-    index_document(session, doc_id, storage, file_svc, job_id=job.id)
+    effects = JobEffects(session, job)
+    if effects.is_applied(EFFECT_CHUNKS):
+        _set_outcome(job, "already_applied", effect=EFFECT_CHUNKS)
+        # The post-commit cache invalidation may not have run before a crash; repeating it is harmless.
+        _bump_corpus_version_best_effort(session, doc.workspace_id)
+        return
+    # Serialize concurrent index jobs for the same document; re-check under the lock.
+    # populate_existing: FOR UPDATE alone returns the identity-map row. A concurrent
+    # index that already committed would look un-indexed, so this job would re-embed
+    # and then collide on the applied-marker unique key.
+    doc = (
+        session.query(Document)
+        .filter(Document.id == doc_id)
+        .populate_existing()
+        .with_for_update()
+        .first()
+        or doc
+    )
+    if getattr(doc, "deleted_at", None) is not None:
+        session.rollback()
+        _set_outcome(job, "superseded", reason="document_deleted")
+        return
+    if job.input_version and doc.storage_key != job.input_version:
+        session.rollback()
+        _set_outcome(job, "superseded", reason="input_version_changed")
+        return
+    if (
+        doc.status == "indexed"
+        and session.query(Chunk.id).filter(Chunk.document_id == doc_id).first()
+    ):
+        # Another job already indexed this exact input: do not re-embed (cost) or rewrite chunks.
+        effects.mark_applied(EFFECT_CHUNKS, {"reconciled": "already_indexed"})
+        _set_outcome(job, "reconciled", effect=EFFECT_CHUNKS)
+        session.commit()
+        return
+    storage = StorageClient()
+    file_svc = FileService(storage)
+    index_document(
+        session,
+        doc_id,
+        storage,
+        file_svc,
+        job_id=job.id,
+        effects=effects,
+        effect_name=EFFECT_CHUNKS,
+    )
+
+
+def _bump_corpus_version_best_effort(session, workspace_id: int) -> None:
+    try:
+        from app.core.corpus_version import bump_corpus_version
+        from app.services.retrieval_cache import invalidate_workspace
+
+        bump_corpus_version(session, workspace_id)
+        invalidate_workspace(session, workspace_id)
+    except Exception:
+        logging.getLogger(__name__).debug(
+            "corpus version bump failed ws=%s", workspace_id, exc_info=True
+        )
 
 
 def run_generate_answers(job: Job, session, payload: dict) -> None:
@@ -301,6 +440,16 @@ def run_generate_answers(job: Job, session, payload: dict) -> None:
     )
     model_override = payload.get("model")
     response_style_override = payload.get("response_style")
+    qnr = (
+        session.query(Questionnaire)
+        .filter(Questionnaire.id == qnr_id, Questionnaire.workspace_id == ws_id)
+        .first()
+    )
+    if qnr is not None and getattr(qnr, "deleted_at", None) is not None:
+        _set_outcome(job, "superseded", reason="questionnaire_deleted")
+        return
+    effects = JobEffects(session, job)
+    _record_usage_once(session, job, effects, "ai_jobs")
     count = generate_answers_for_questionnaire(
         session,
         qnr_id,
@@ -308,6 +457,7 @@ def run_generate_answers(job: Job, session, payload: dict) -> None:
         model_override=model_override,
         response_style_override=response_style_override,
         job=job,
+        effects=effects,
     )
     logging.getLogger(__name__).info(
         "WORKER: answers saved job_id=%s questionnaire_id=%s count=%s",
@@ -351,6 +501,23 @@ def run_export(job: Job, session, payload: dict) -> None:
     )
     if not qnr or not qnr.storage_key:
         raise ValueError("Questionnaire not found or has no file")
+    effects = JobEffects(session, job)
+    existing_rec = (
+        session.query(ExportRecord)
+        .filter(ExportRecord.job_id == job.id, ExportRecord.workspace_id == ws_id)
+        .first()
+    )
+    if existing_rec is not None:
+        # A previous attempt committed the record (and therefore uploaded its object): reuse it.
+        job.result = json.dumps(
+            {
+                "export_record_id": existing_rec.id,
+                "storage_key": existing_rec.storage_key,
+                "outcome": "already_applied",
+            }
+        )
+        return
+    _record_usage_once(session, job, effects, "exports")
     storage = StorageClient()
     file_svc = FileService(storage)
     raw_bytes = file_svc.download_raw(qnr.storage_key)
@@ -408,24 +575,36 @@ def run_export(job: Job, session, payload: dict) -> None:
         base = (qnr.filename or "export").rsplit(".", 1)[0]
         out_filename = f"{base}_answers_fallback.docx"
 
-    key = file_svc.upload_export(ws_id, out_bytes, out_filename)
+    # Deterministic per-job key: a re-run overwrites the same object instead of orphaning a new one.
+    key = file_svc.upload_export(ws_id, out_bytes, out_filename, job_id=job.id)
     rec = ExportRecord(
         workspace_id=ws_id,
         questionnaire_id=qnr_id,
         storage_key=key,
         filename=out_filename,
         status="completed",
+        job_id=job.id,
     )
     session.add(rec)
+    effects.mark_applied(EFFECT_EXPORT, {"storage_key": key})
     session.commit()
     session.refresh(rec)
     job.result = json.dumps({"export_record_id": rec.id, "storage_key": key})
 
 
-def run_job(job: Job, session) -> None:
-    """Execute job based on kind. Enforces per-workspace quotas for AI and export jobs."""
+def _record_usage_once(session, job: Job, effects: JobEffects, resource_type: str) -> None:
+    """Count quota usage once per job, not once per attempt (TC-10-003). Commits with the next commit."""
     from app.services.quota_service import record_usage
 
+    effect = f"usage:{resource_type}"
+    if effects.is_applied(effect):
+        return
+    record_usage(session, job.workspace_id, resource_type)
+    effects.mark_applied(effect)
+
+
+def run_job(job: Job, session) -> None:
+    """Execute job based on kind. Quota usage for AI/export jobs is recorded once per job by the handlers."""
     payload = json.loads(job.payload) if job.payload else {}
     if job.kind == "parse_questionnaire":
         run_parse_questionnaire(job, session, payload)
@@ -434,10 +613,8 @@ def run_job(job: Job, session) -> None:
     elif job.kind == "index_document":
         run_index_document(job, session, payload)
     elif job.kind == "generate_answers":
-        record_usage(session, job.workspace_id, "ai_jobs")
         run_generate_answers(job, session, payload)
     elif job.kind == "export":
-        record_usage(session, job.workspace_id, "exports")
         run_export(job, session, payload)
     else:
         raise ValueError(f"Unknown job kind: {job.kind}")
@@ -483,17 +660,18 @@ def enqueue_missing_index_jobs(session) -> None:
     for doc in session.query(Document).filter(Document.status == "uploaded").all():
         if doc.id in pending_doc_ids:
             continue
-        session.add(
-            Job(
-                workspace_id=doc.workspace_id,
-                kind="index_document",
-                status=JobStatus.QUEUED.value,
-                payload=json.dumps({"document_id": doc.id}),
-            )
+        _job, created = enqueue_job(
+            session,
+            workspace_id=doc.workspace_id,
+            kind="index_document",
+            payload={"document_id": doc.id},
+            idempotency_key=job_idempotency_key(
+                "index_document", doc.workspace_id, doc.id, doc.storage_key
+            ),
+            input_version=doc.storage_key,
         )
-        added += 1
+        added += 1 if created else 0
     if added:
-        session.commit()
         print(f"Worker: enqueued {added} index_document job(s) for previously uploaded docs.")
 
 
@@ -523,6 +701,13 @@ def _process_one_job() -> bool:
                     session.commit()
             except Exception:
                 session.rollback()
+            try:
+                from app.core.idempotency import cleanup_expired
+
+                cleanup_expired(session)
+            except Exception:
+                session.rollback()
+                logging.getLogger(__name__).warning("idempotency key cleanup failed", exc_info=True)
             finally:
                 last_usage_cleanup_run = time.time()
         if time.time() - last_compliance_webhook_run >= COMPLIANCE_WEBHOOK_INTERVAL_SEC:
@@ -564,6 +749,9 @@ def _process_one_job() -> bool:
             )
             JOB_COMPLETED_TOTAL.labels(kind=job.kind, status="completed").inc()
             _persist_job_audit(session, job, "job.completed", payload, error=None)
+            if _job_outcome(job) == "superseded":
+                # TC-10-003: the job's input changed or was deleted before it ran; nothing was overwritten.
+                _persist_job_audit(session, job, "job.superseded", payload, error=None)
             if job.kind == "export":
                 try:
                     notify_workspace(
@@ -602,7 +790,7 @@ def _process_one_job() -> bool:
                     evaluate_and_fire_compliance_events(session, job.workspace_id, ws_name)
                 except Exception:
                     pass
-            elif job.kind == "parse_questionnaire":
+            elif job.kind == "parse_questionnaire" and _job_outcome(job) != "superseded":
                 try:
                     maybe_auto_generate(session, job, payload)
                 except Exception:
@@ -639,6 +827,12 @@ def _process_one_job() -> bool:
                 error_text[:200],
             )
             _persist_job_audit(session, job, "job.failed", payload, error=error_text)
+            try:
+                mark_unsettled_uncertain(session, job)
+            except Exception:
+                logging.getLogger(__name__).warning(
+                    "mark_unsettled_uncertain failed job_id=%s", job.id, exc_info=True
+                )
             if job.kind in ("export", "generate_answers"):
                 try:
                     label = "Export" if job.kind == "export" else "Draft answer generation"

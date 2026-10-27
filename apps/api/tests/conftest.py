@@ -61,7 +61,9 @@ _API_ROOT = Path(__file__).resolve().parent.parent
 
 # Module classification (TC-02-001). A test is `integration` if it uses a DB/app fixture or its
 # module touches the database / ASGI app directly; otherwise `unit`. Explicit markers win.
-_INTEGRATION_FIXTURES = frozenset({"client", "db_session", "test_workspace", "_ensure_test_data"})
+_INTEGRATION_FIXTURES = frozenset(
+    {"client", "db_session", "test_workspace", "_ensure_test_data", "migrated_db"}
+)
 _INTEGRATION_SOURCE_HINTS = (
     "SessionLocal",
     "TestClient",
@@ -486,6 +488,20 @@ def client(_ensure_test_data) -> Generator[TestClient, None, None]:
     from app.main import app
 
     yield TestClient(app, base_url=TEST_ORIGIN, headers=TEST_HEADERS)
+
+
+@pytest.fixture
+def migrated_db(_ensure_test_data) -> bool:
+    """Require the test DB at alembic head, for tests that query tables directly (no client).
+
+    Do not rely on another test (or the TC_REQUIRE_DB=1 session hook) having migrated first:
+    the file must pass alone on a fresh DB (TC-02-BUG-014). Same skip/fail policy as `client`.
+    """
+    if not _ensure_test_data:
+        if _db_required():
+            pytest.fail(f"TC_REQUIRE_DB=1: {_DB_UNAVAILABLE_MSG}")
+        pytest.skip(_DB_UNAVAILABLE_MSG)
+    return True
 
 
 @pytest.fixture
