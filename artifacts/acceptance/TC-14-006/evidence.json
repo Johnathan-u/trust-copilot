@@ -1,0 +1,44 @@
+{
+  "ticket": "TC-14-006",
+  "branch": "tc/web/TC-14-006",
+  "testedCommit": "49a2f065f401c8d0d55d1c8938b2a03a93723f15",
+  "baseline": "c20f949161ac12a619b396d30904448ffd74d532",
+  "stackedOn": {
+    "pr": 6,
+    "branch": "tc/web/TC-14-001",
+    "note": "origin/master f72def39245abf5cb46c7b3693f687114fa4b1b5 was already contained by merge a12d1aa; git merge --no-ff reported already up to date"
+  },
+  "environment": {
+    "os": "Linux 6.12.94+ x86_64",
+    "node": "v22.23.4",
+    "npm": "10.9.9",
+    "next": "14.2.15",
+    "vitest": "2.1.9",
+    "playwright": "1.58.2",
+    "chromium": "chromium-1208",
+    "axePlaywright": "4.14.0",
+    "cwd": "apps/web"
+  },
+  "runs": [
+    {
+      "command": "npm run test:unit",
+      "exitStatus": 0,
+      "passed": 16,
+      "failed": 0,
+      "skipped": 0,
+      "filesPassed": 2
+    },
+    {
+      "command": "npx playwright test e2e/release/responsive-shell.spec.ts",
+      "exitStatus": 0,
+      "passed": 8,
+      "failed": 0,
+      "skipped": 0,
+      "themes": ["dark", "light"],
+      "viewports": [360, 768, 1440],
+      "zoomReflowViewport": { "width": 720, "height": 450, "represents": "1440 at 200% zoom" },
+      "axeViolations": 0
+    }
+  ],
+  "notes": "Evidence files were committed after the tested SHA and do not change the suite. Synthetic session and mocked API responses only. No credentials or customer data."
+}
