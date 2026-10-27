@@ -61,7 +61,7 @@ services:
       # OAuth redirect_uri must match. Caddy serves HTTPS locally.
       APP_BASE_URL: https://localhost:3000
       TRUST_COPILOT_IN_DOCKER: "1"
-      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/trustcopilot
+      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/trustcopilot
       S3_ENDPOINT: http://minio:9000
       # Production: set APP_ENV=production and SESSION_SECRET (min 32 chars) in .env or here
     volumes:
@@ -85,7 +85,7 @@ services:
       - .env
     environment:
       TRUST_COPILOT_IN_DOCKER: "1"
-      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/trustcopilot
+      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/trustcopilot
       S3_ENDPOINT: http://minio:9000
     command: python -m app.worker
     volumes:
@@ -101,8 +101,10 @@ services:
     container_name: trust-copilot-postgres
     environment:
       POSTGRES_DB: trustcopilot
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
+      # Local development defaults only (TC-07-001). Override via .env; production uses
+      # docker-compose.prod.yml, which requires real values, and the API refuses these defaults.
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
     ports:
       - "5432:5432"
     volumes:
@@ -115,8 +117,8 @@ services:
     image: minio/minio:latest
     container_name: trust-copilot-minio
     environment:
-      MINIO_ROOT_USER: minio
-      MINIO_ROOT_PASSWORD: minio123
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minio}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-minio123}
     command: server /data --console-address ":9001"
     ports:
       - "9000:9000"

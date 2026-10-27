@@ -173,6 +173,8 @@ def _looks_like_reference(v: str) -> bool:
         return True
     if re.fullmatch(r"[A-Z][A-Z0-9_]{2,}", s):  # another env var name
         return True
+    if "${" in s:  # shell/compose interpolation; its :- default line is reviewed separately
+        return True
     if s.startswith("[") or re.search(r"[A-Za-z_]\w*(\.\w+|::\w+)*\(", s):  # expression / call
         return True
     return False

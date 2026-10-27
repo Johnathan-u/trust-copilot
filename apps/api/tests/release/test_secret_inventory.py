@@ -335,3 +335,80 @@ def test_web_login_bundle_has_no_demo_password_literal():
     src = (REPO_ROOT / "apps/web/app/login/page.tsx").read_text()
     assert "NEXT_PUBLIC_DEMO_LOGIN_PASSWORD" in src
     assert "password: DEMO_LOGIN_PASSWORD" in src
+
+
+# ---------------------------------------------------------------------------
+# Encryption-key consumers (credential store, MFA, Slack) fail closed in production
+# (Integrations input: credential store previously fell back to a hardcoded key)
+# ---------------------------------------------------------------------------
+
+_KEY_CONSUMERS = [
+    ("app.services.credential_store_service", "_get_fernet"),
+    ("app.core.mfa", "_fernet"),
+    ("app.services.slack_service", "_fernet"),
+]
+
+
+@pytest.mark.parametrize("module,func", _KEY_CONSUMERS)
+@pytest.mark.parametrize("value", ["", "placeholder", "changeme"])
+def test_encryption_key_consumers_fail_closed_in_production(monkeypatch, module, func, value):
+    import importlib
+    from app.core.config import get_settings
+    mod = importlib.import_module(module)
+    monkeypatch.setenv("APP_ENV", "production")
+    monkeypatch.setenv("SESSION_SECRET", value)
+    get_settings.cache_clear()
+    try:
+        with pytest.raises(RuntimeError, match="SESSION_SECRET"):
+            getattr(mod, func)()
+    finally:
+        get_settings.cache_clear()
+
+
+def test_credential_store_has_no_literal_fallback():
+    src = (API_ROOT / "app/services/credential_store_service.py").read_text()
+    tree = ast.parse(src)
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Call) and getattr(node.func, "attr", "") in ("getenv", "get") \
+                and len(node.args) >= 2 and isinstance(node.args[0], ast.Constant) \
+                and "SECRET" in str(node.args[0].value).upper():
+            default = node.args[1]
+            assert isinstance(default, ast.Constant) and default.value in ("", None), \
+                f"credential_store_service.py:{node.lineno} has a literal secret fallback"
+
+
+def test_credential_store_roundtrip_with_generated_secret(monkeypatch):
+    from app.core.config import get_settings
+    from app.services import credential_store_service as cs
+    monkeypatch.setenv("APP_ENV", "production")
+    monkeypatch.setenv("SESSION_SECRET", secrets.token_urlsafe(48))
+    get_settings.cache_clear()
+    try:
+        plain = secrets.token_urlsafe(16)
+        assert cs.decrypt(cs.encrypt(plain)) == plain
+    finally:
+        get_settings.cache_clear()
+
+
+# ---------------------------------------------------------------------------
+# Compose files: no inline production credentials; dev defaults are overridable
+# ---------------------------------------------------------------------------
+
+def test_prod_compose_requires_credentials_from_env():
+    text = (REPO_ROOT / "docker-compose.prod.yml").read_text()
+    for var in ("POSTGRES_PASSWORD", "POSTGRES_USER", "MINIO_ROOT_USER", "MINIO_ROOT_PASSWORD"):
+        assert f"${{{var}:?" in text, f"docker-compose.prod.yml must require {var} (${{{var}:?...}})"
+    for line in text.splitlines():
+        s = line.strip()
+        if s.startswith("DATABASE_URL:") or s.startswith("- DATABASE_URL="):
+            pytest.fail("docker-compose.prod.yml must not inline DATABASE_URL")
+
+
+def test_dev_compose_credentials_are_overridable():
+    text = (REPO_ROOT / "docker-compose.yml").read_text()
+    for var in ("POSTGRES_PASSWORD", "MINIO_ROOT_PASSWORD", "MINIO_ROOT_USER", "POSTGRES_USER"):
+        line = next(l for l in text.splitlines() if l.strip().startswith(f"{var}:"))
+        assert "${" + var in line, f"docker-compose.yml {var} must be an overridable variable"
+    for line in text.splitlines():
+        if line.strip().startswith("DATABASE_URL:"):
+            assert "${POSTGRES_PASSWORD" in line
