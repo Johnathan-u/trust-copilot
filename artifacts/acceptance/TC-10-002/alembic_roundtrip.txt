@@ -79,24 +79,50 @@ INFO  [alembic.runtime.migration] Running upgrade 074 -> 075, Answer delivery ou
 INFO  [alembic.runtime.migration] Running upgrade 075 -> tc21001_framework_catalog_rights, Framework catalog version, provenance, rights, and enablement.
 INFO  [alembic.runtime.migration] Running upgrade tc21001_framework_catalog_rights -> tc11001_model_outcome_codes, Typed model outcome and job error codes (TC-11-001)
 INFO  [alembic.runtime.migration] Running upgrade tc11001_model_outcome_codes -> tc10003_job_idempotency, TC-10-003: idempotent job side effects.
-INFO  [alembic.runtime.migration] Running upgrade tc10003_job_idempotency -> tc10002_job_retries, TC-10-002: scheduled job retries.
-$ sh /tcci/roundtrip.sh
+INFO  [alembic.runtime.migration] Running upgrade tc10003_job_idempotency -> tc25011_demo_proof_summaries, Demo proof summaries.
+INFO  [alembic.runtime.migration] Running upgrade tc25011_demo_proof_summaries -> tc10002_job_retries, TC-10-002: scheduled job retries.
 $ alembic heads
 tc10002_job_retries (head)
 $ alembic current
+INFO  [alembic.runtime.migration] Context impl PostgresqlImpl.
+INFO  [alembic.runtime.migration] Will assume transactional DDL.
 tc10002_job_retries (head)
-  jobs.error_code: VARCHAR(64) NULL | jobs.idempotency_key: VARCHAR(128) NULL | jobs.next_attempt_at: TIMESTAMP NULL
-$ alembic downgrade tc10003_job_idempotency
-INFO  [alembic.runtime.migration] Running downgrade tc10002_job_retries -> tc10003_job_idempotency, TC-10-002: scheduled job retries.
+$ jobs columns
+error_code character varying YES
+idempotency_key character varying YES
+input_version character varying YES
+next_attempt_at timestamp without time zone YES
+$ demo_proof_summaries
+t
+$ alembic downgrade tc25011_demo_proof_summaries
+INFO  [alembic.runtime.migration] Context impl PostgresqlImpl.
+INFO  [alembic.runtime.migration] Will assume transactional DDL.
+INFO  [alembic.runtime.migration] Running downgrade tc10002_job_retries -> tc25011_demo_proof_summaries, TC-10-002: scheduled job retries.
 $ alembic current
-tc10003_job_idempotency
-  jobs.error_code: VARCHAR(64) NULL | jobs.idempotency_key: VARCHAR(128) NULL | jobs.next_attempt_at: None
+INFO  [alembic.runtime.migration] Context impl PostgresqlImpl.
+INFO  [alembic.runtime.migration] Will assume transactional DDL.
+tc25011_demo_proof_summaries
+$ jobs columns after downgrade
+error_code character varying YES
+idempotency_key character varying YES
+input_version character varying YES
+$ demo_proof_summaries after downgrade
+t
 $ alembic upgrade head
-INFO  [alembic.runtime.migration] Running upgrade tc10003_job_idempotency -> tc10002_job_retries, TC-10-002: scheduled job retries.
+INFO  [alembic.runtime.migration] Context impl PostgresqlImpl.
+INFO  [alembic.runtime.migration] Will assume transactional DDL.
+INFO  [alembic.runtime.migration] Running upgrade tc25011_demo_proof_summaries -> tc10002_job_retries, TC-10-002: scheduled job retries.
 $ alembic current
+INFO  [alembic.runtime.migration] Context impl PostgresqlImpl.
+INFO  [alembic.runtime.migration] Will assume transactional DDL.
 tc10002_job_retries (head)
-  jobs.error_code: VARCHAR(64) NULL | jobs.idempotency_key: VARCHAR(128) NULL | jobs.next_attempt_at: TIMESTAMP NULL
+$ jobs columns after re-upgrade
+error_code character varying YES
+idempotency_key character varying YES
+input_version character varying YES
+next_attempt_at timestamp without time zone YES
+$ demo_proof_summaries after re-upgrade
+t
 $ alembic heads
 tc10002_job_retries (head)
 ROUNDTRIP_OK
-PYTEST_EXIT 0
