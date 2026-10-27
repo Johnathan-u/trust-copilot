@@ -1,0 +1,153 @@
+FF.FFFFFF.......ssssssssss                                               [100%]
+=================================== FAILURES ===================================
+__________________ test_gate_scripts_exist_and_are_not_noops ___________________
+
+pkg = {'name': 'trust-copilot-web', 'version': '0.1.0', 'private': True, 'scripts': {'dev': 'next dev', 'build': 'next build', 'start': 'next start', 'test:unit': 'vitest run', ...}, ...}
+
+    def test_gate_scripts_exist_and_are_not_noops(pkg):
+>       assert gate_script_problems(pkg) == []
+E       AssertionError: assert ['lint: missing'] == []
+E
+E         Left contains one more item: 'lint: missing'
+E         Use -v to get more diff
+
+tests/release/test_web_quality.py:265: AssertionError
+__________________ test_eslint_config_extends_real_rule_sets ___________________
+
+pkg = {'name': 'trust-copilot-web', 'version': '0.1.0', 'private': True, 'scripts': {'dev': 'next dev', 'build': 'next build', 'start': 'next start', 'test:unit': 'vitest run', ...}, ...}
+
+    def test_eslint_config_extends_real_rule_sets(pkg):
+>       text = (WEB / "eslint.config.mjs").read_text(encoding="utf-8")
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/release/test_web_quality.py:269:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+/usr/lib/python3.13/pathlib/_local.py:548: in read_text
+    return PathBase.read_text(self, encoding, errors, newline)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.13/pathlib/_abc.py:632: in read_text
+    with self.open(mode='r', encoding=encoding, errors=errors, newline=newline) as f:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = PosixPath('/tmp/tc006-baseline/apps/web/eslint.config.mjs'), mode = 'r'
+buffering = -1, encoding = 'utf-8', errors = None, newline = None
+
+    def open(self, mode='r', buffering=-1, encoding=None,
+             errors=None, newline=None):
+        """
+        Open the file pointed to by this path and return a file object, as
+        the built-in open() function does.
+        """
+        if "b" not in mode:
+            encoding = io.text_encoding(encoding)
+>       return io.open(self, mode, buffering, encoding, errors, newline)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       FileNotFoundError: [Errno 2] No such file or directory: '/tmp/tc006-baseline/apps/web/eslint.config.mjs'
+
+/usr/lib/python3.13/pathlib/_local.py:539: FileNotFoundError
+_________ test_unit_suite_covers_runtime_modules_with_real_assertions __________
+
+    def test_unit_suite_covers_runtime_modules_with_real_assertions():
+        tests = _read_tree(UNIT_DIR, "**/*.test.ts") | _read_tree(WEB / "lib", "**/*.test.ts")
+        modules = {
+            f"lib/{p.stem}": p.read_text(encoding="utf-8")
+            for p in sorted((WEB / "lib").glob("*.ts"))
+            if not p.name.endswith(".test.ts")
+        }
+        modules["middleware"] = (WEB / "middleware.ts").read_text(encoding="utf-8")
+        modules["app/api/[[...path]]/route"] = (WEB / "app/api/[[...path]]/route.ts").read_text(
+            encoding="utf-8"
+        )
+>       assert len(tests) >= 6
+E       assert 0 >= 6
+E        +  where 0 = len({})
+
+tests/release/test_web_quality.py:294: AssertionError
+_______________________ test_vitest_fails_on_empty_suite _______________________
+
+    def test_vitest_fails_on_empty_suite():
+>       assert vitest_config_problems((WEB / "vitest.config.ts").read_text(encoding="utf-8")) == []
+E       AssertionError: assert ['tests/unit not included'] == []
+E
+E         Left contains one more item: 'tests/unit not included'
+E         Use -v to get more diff
+
+tests/release/test_web_quality.py:299: AssertionError
+______________ test_prettier_ignore_only_covers_generated_output _______________
+
+    def test_prettier_ignore_only_covers_generated_output():
+>       text = (WEB / ".prettierignore").read_text(encoding="utf-8")
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/release/test_web_quality.py:303:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+/usr/lib/python3.13/pathlib/_local.py:548: in read_text
+    return PathBase.read_text(self, encoding, errors, newline)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.13/pathlib/_abc.py:632: in read_text
+    with self.open(mode='r', encoding=encoding, errors=errors, newline=newline) as f:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = PosixPath('/tmp/tc006-baseline/apps/web/.prettierignore'), mode = 'r'
+buffering = -1, encoding = 'utf-8', errors = None, newline = None
+
+    def open(self, mode='r', buffering=-1, encoding=None,
+             errors=None, newline=None):
+        """
+        Open the file pointed to by this path and return a file object, as
+        the built-in open() function does.
+        """
+        if "b" not in mode:
+            encoding = io.text_encoding(encoding)
+>       return io.open(self, mode, buffering, encoding, errors, newline)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       FileNotFoundError: [Errno 2] No such file or directory: '/tmp/tc006-baseline/apps/web/.prettierignore'
+
+/usr/lib/python3.13/pathlib/_local.py:539: FileNotFoundError
+______________ test_pre_commit_prettier_hook_uses_app_ignore_file ______________
+
+    def test_pre_commit_prettier_hook_uses_app_ignore_file():
+        text = PRE_COMMIT.read_text(encoding="utf-8")
+>       assert "prettier --check --ignore-path apps/web/.prettierignore" in text
+E       AssertionError: assert 'prettier --check --ignore-path apps/web/.prettierignore' in 'repos:\n  - repo: https://github.com/astral-sh/ruff-pre-commit\n    rev: v0.5.6\n    hooks:\n      - id: ruff\n      ...n    rev: v4.6.0\n    hooks:\n      - id: trailing-whitespace\n      - id: end-of-file-fixer\n      - id: check-yaml\n'
+
+tests/release/test_web_quality.py:311: AssertionError
+_______________________ test_ci_runs_every_frontend_gate _______________________
+
+ci = 'name: CI\n\non:\n  push:\n  pull_request:\n\njobs:\n  build:\n    runs-on: ubuntu-latest\n\n    services:\n      post...tend runtime dependencies\n        working-directory: apps/web\n        run: npm audit --omit=dev --audit-level=high\n'
+
+    def test_ci_runs_every_frontend_gate(ci):
+>       assert ci_gate_problems(ci) == []
+E       AssertionError: assert ['CI does not...ool versions'] == []
+E
+E         Left contains 4 more items, first extra item: 'CI does not run npm run lint in apps/web'
+E         Use -v to get more diff
+
+tests/release/test_web_quality.py:315: AssertionError
+____________________ test_gate_tools_are_pinned_and_locked _____________________
+
+pkg = {'name': 'trust-copilot-web', 'version': '0.1.0', 'private': True, 'scripts': {'dev': 'next dev', 'build': 'next build', 'start': 'next start', 'test:unit': 'vitest run', ...}, ...}
+lock = {'name': 'trust-copilot-web', 'version': '0.1.0', 'lockfileVersion': 3, 'requires': True, ...}
+
+    def test_gate_tools_are_pinned_and_locked(pkg, lock):
+>       assert pinned_tool_problems(pkg, lock) == []
+E       AssertionError: assert ['eslint: not...evDependency'] == []
+E
+E         Left contains 6 more items, first extra item: 'eslint: not a devDependency'
+E         Use -v to get more diff
+
+tests/release/test_web_quality.py:322: AssertionError
+=========================== short test summary info ============================
+SKIPPED [1] tests/release/test_web_quality.py:488: web toolchain unavailable: apps/web/node_modules/.bin/eslint missing (run npm ci --ignore-scripts)
+SKIPPED [1] tests/release/test_web_quality.py:503: web toolchain unavailable: apps/web/node_modules/.bin/eslint missing (run npm ci --ignore-scripts)
+SKIPPED [1] tests/release/test_web_quality.py:510: web toolchain unavailable: apps/web/node_modules/.bin/eslint missing (run npm ci --ignore-scripts)
+SKIPPED [1] tests/release/test_web_quality.py:522: web toolchain unavailable: apps/web/node_modules/.bin/eslint missing (run npm ci --ignore-scripts)
+SKIPPED [1] tests/release/test_web_quality.py:528: web toolchain unavailable: apps/web/node_modules/.bin/eslint missing (run npm ci --ignore-scripts)
+SKIPPED [1] tests/release/test_web_quality.py:562: web toolchain unavailable: apps/web/node_modules/.bin/eslint missing (run npm ci --ignore-scripts)
+SKIPPED [1] tests/release/test_web_quality.py:581: web toolchain unavailable: apps/web/node_modules/.bin/eslint missing (run npm ci --ignore-scripts)
+SKIPPED [1] tests/release/test_web_quality.py:591: web toolchain unavailable: apps/web/node_modules/.bin/eslint missing (run npm ci --ignore-scripts)
+SKIPPED [1] tests/release/test_web_quality.py:597: web toolchain unavailable: apps/web/node_modules/.bin/eslint missing (run npm ci --ignore-scripts)
+SKIPPED [1] tests/release/test_web_quality.py:609: web toolchain unavailable: apps/web/node_modules/.bin/eslint missing (run npm ci --ignore-scripts)
+8 failed, 8 passed, 10 skipped in 0.26s

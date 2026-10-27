@@ -61,7 +61,7 @@ services:
       # OAuth redirect_uri must match. Caddy serves HTTPS locally.
       APP_BASE_URL: https://localhost:3000
       TRUST_COPILOT_IN_DOCKER: "1"
-      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/trustcopilot
+      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/trustcopilot
       S3_ENDPOINT: http://minio:9000
       # Production: set APP_ENV=production and SESSION_SECRET (min 32 chars) in .env or here
     volumes:
@@ -85,9 +85,17 @@ services:
       - .env
     environment:
       TRUST_COPILOT_IN_DOCKER: "1"
-      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/trustcopilot
+      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/trustcopilot
       S3_ENDPOINT: http://minio:9000
     command: python -m app.worker
+    # TC-03-003: the worker has no HTTP server, so it is probed via its heartbeat file
+    # (no HTTP, no DB). Fresh while the claim loop or a job within WORKER_JOB_MAX_RUNTIME_SEC is progressing.
+    healthcheck:
+      test: ["CMD", "python", "-m", "app.probe", "worker"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 60s
     volumes:
       - ./apps/api:/app
     depends_on:
@@ -101,8 +109,11 @@ services:
     container_name: trust-copilot-postgres
     environment:
       POSTGRES_DB: trustcopilot
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
+      # Local development defaults only (TC-07-001). Override via .env; production uses
+      # docker-compose.prod.yml, which requires operator-generated values via ${VAR:?...}. These
+      # defaults are not rejected at runtime; never use them outside local development.
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
     ports:
       - "5432:5432"
     volumes:
@@ -115,8 +126,8 @@ services:
     image: minio/minio:latest
     container_name: trust-copilot-minio
     environment:
-      MINIO_ROOT_USER: minio
-      MINIO_ROOT_PASSWORD: minio123
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minio}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-minio123}
     command: server /data --console-address ":9001"
     ports:
       - "9000:9000"

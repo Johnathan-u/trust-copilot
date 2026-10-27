@@ -1,6 +1,6 @@
 """Enterprise tests: workspaces and members API with authenticated session."""
 
-import pytest
+import pytest  # noqa: F401
 from fastapi.testclient import TestClient
 
 

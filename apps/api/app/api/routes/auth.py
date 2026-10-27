@@ -15,28 +15,28 @@ from urllib.parse import urlsplit
 from fastapi import APIRouter, Depends, HTTPException, Request, Response
 
 logger = logging.getLogger(__name__)
-from fastapi.responses import RedirectResponse
+from fastapi.responses import RedirectResponse  # noqa: E402
 
-from pydantic import BaseModel
-from sqlalchemy.exc import OperationalError, SQLAlchemyError
-from sqlalchemy.orm import Session
+from pydantic import BaseModel  # noqa: E402
+from sqlalchemy.exc import OperationalError, SQLAlchemyError  # noqa: E402
+from sqlalchemy.orm import Session  # noqa: E402
 
-from app.core.audit import audit_log, persist_audit
-from app.core.debug_session_log import append_session_debug
-from app.core.auth_deps import get_session, require_session, require_valid_session
-from app.core.config import get_settings
-from app.core.database import get_db
-from app.core.mfa import (
+from app.core.audit import audit_log, persist_audit  # noqa: E402
+from app.core.debug_session_log import append_session_debug  # noqa: E402
+from app.core.auth_deps import get_session, require_session, require_valid_session  # noqa: E402
+from app.core.config import get_settings  # noqa: E402
+from app.core.database import get_db  # noqa: E402
+from app.core.mfa import (  # noqa: E402
     decrypt_totp_secret,
     encrypt_totp_secret,
     generate_totp_secret,
     get_totp_uri,
     verify_totp,
 )
-from app.core.password import hash_password, verify_password
-from app.core.rate_limit import get_client_ip, is_rate_limited, record_attempt
-from app.core.session import sign_session, verify_token
-from app.models import (
+from app.core.password import hash_password, verify_password  # noqa: E402
+from app.core.rate_limit import get_client_ip, is_rate_limited, record_attempt  # noqa: E402
+from app.core.session import get_session_secret, sign_session, verify_token  # noqa: E402
+from app.models import (  # noqa: E402
     AuditEvent,
     EmailVerificationToken,
     Invite,
@@ -50,15 +50,15 @@ from app.models import (
     Workspace,
     WorkspaceMember,
 )
-from app.core import roles
-from app.core.invite_codes import hash_invite_code
-from app.services.email_service import (
+from app.core import roles  # noqa: E402
+from app.core.invite_codes import hash_invite_code  # noqa: E402
+from app.services.email_service import (  # noqa: E402
     send_password_reset_email,
     send_suspicious_login_email,
     send_verification_code_email,
-    send_verification_email,
+    send_verification_email,  # noqa: F401
 )
-from app.services.oauth_service import (
+from app.services.oauth_service import (  # noqa: E402
     generate_state,
     google_authorize_url,
     google_exchange_code,
@@ -67,7 +67,7 @@ from app.services.oauth_service import (
     microsoft_authorize_url,
     microsoft_exchange_code,
 )
-from app.services.sso_service import (
+from app.services.sso_service import (  # noqa: E402
     idme_authorize_url,
     idme_exchange_code,
     oidc_authorize_url,
@@ -202,7 +202,9 @@ def register(req: RegisterRequest, request: Request, db: Session = Depends(get_d
         raise HTTPException(status_code=400, detail="Password too short")
     existing = db.query(User).filter(User.email == email).first()
     if existing:
-        return {"message": "If that email is not yet registered, you will receive a verification code."}
+        return {
+            "message": "If that email is not yet registered, you will receive a verification code."
+        }
     user = User(
         email=email,
         password_hash=hash_password(password),
@@ -241,10 +243,14 @@ def verify_code(req: VerifyCodeRequest, db: Session = Depends(get_db)):
     if user.email_verified:
         return {"message": "Email already verified."}
     h = _token_hash(code)
-    evt = db.query(EmailVerificationToken).filter(
-        EmailVerificationToken.user_id == user.id,
-        EmailVerificationToken.token_hash == h,
-    ).first()
+    evt = (
+        db.query(EmailVerificationToken)
+        .filter(
+            EmailVerificationToken.user_id == user.id,
+            EmailVerificationToken.token_hash == h,
+        )
+        .first()
+    )
     if not evt:
         raise HTTPException(status_code=400, detail="Invalid code")
     now = datetime.now(timezone.utc)
@@ -314,13 +320,13 @@ def forgot_password(req: ForgotPasswordRequest, request: Request, db: Session = 
     reset_url = f"{base}/reset-password?token={token_raw}"
     persist_audit(db, "auth.reset_requested", user_id=user.id, email=email)
     msg = {"message": "If that email is registered, you will receive a reset link."}
-    if (
-        get_settings().app_env != "production"
-        and os.environ.get("TRUST_COPILOT_DEV_RETURN_RESET_URL", "").strip().lower() in ("1", "true", "yes")
-    ):
+    if get_settings().app_env != "production" and os.environ.get(
+        "TRUST_COPILOT_DEV_RETURN_RESET_URL", ""
+    ).strip().lower() in ("1", "true", "yes"):
         msg["reset_url"] = reset_url
 
     _email = email
+
     def _bg_reset_email():
         try:
             ok = send_password_reset_email(_email, reset_url)
@@ -343,7 +349,11 @@ def reset_password(req: ResetPasswordRequest, request: Request, db: Session = De
         raise HTTPException(status_code=400, detail="Invalid request")
     record_attempt(ip_key)
     h = _token_hash(req.token)
-    prt = db.query(PasswordResetToken).filter(PasswordResetToken.token_hash == h, PasswordResetToken.used_at.is_(None)).first()
+    prt = (
+        db.query(PasswordResetToken)
+        .filter(PasswordResetToken.token_hash == h, PasswordResetToken.used_at.is_(None))
+        .first()
+    )
     if not prt:
         raise HTTPException(status_code=400, detail="Invalid or expired link")
     now = datetime.now(timezone.utc)
@@ -389,10 +399,14 @@ def change_password(
     current_sid = session.get("session_id")
     revoked = 0
     if req.invalidate_other_sessions and current_sid:
-        revoked = db.query(UserSession).filter(
-            UserSession.user_id == user_id,
-            UserSession.session_id != current_sid,
-        ).delete(synchronize_session=False)
+        revoked = (
+            db.query(UserSession)
+            .filter(
+                UserSession.user_id == user_id,
+                UserSession.session_id != current_sid,
+            )
+            .delete(synchronize_session=False)
+        )
     db.commit()
     persist_audit(
         db,
@@ -459,11 +473,18 @@ def login(req: LoginRequest, request: Request, response: Response, db: Session =
             pass
         # #endregion
         if _is_db_connection_error(e):
-            raise HTTPException(status_code=503, detail="Database unavailable. Ensure Postgres is running and DATABASE_URL is correct.")
-        raise HTTPException(status_code=500, detail="An error occurred during sign-in. Please try again.")
+            raise HTTPException(
+                status_code=503,
+                detail="Database unavailable. Ensure Postgres is running and DATABASE_URL is correct.",
+            )
+        raise HTTPException(
+            status_code=500, detail="An error occurred during sign-in. Please try again."
+        )
     except Exception as e:
         logger.exception("auth.login 500: %s", e)
-        raise HTTPException(status_code=500, detail="An error occurred during sign-in. Please try again.")
+        raise HTTPException(
+            status_code=500, detail="An error occurred during sign-in. Please try again."
+        )
 
 
 def _login_impl(req: LoginRequest, request: Request, response: Response, db: Session):
@@ -491,12 +512,14 @@ def _login_impl(req: LoginRequest, request: Request, response: Response, db: Ses
     )
     if not member:
         session_id = secrets.token_urlsafe(32)
-        db.add(UserSession(
-            user_id=user.id,
-            session_id=session_id,
-            user_agent=request.headers.get("user-agent"),
-            ip_address=get_client_ip(request),
-        ))
+        db.add(
+            UserSession(
+                user_id=user.id,
+                session_id=session_id,
+                user_agent=request.headers.get("user-agent"),
+                ip_address=get_client_ip(request),
+            )
+        )
         db.commit()
         max_age = SESSION_MAX_AGE
         token = sign_session(
@@ -507,11 +530,17 @@ def _login_impl(req: LoginRequest, request: Request, response: Response, db: Ses
             session_id=session_id,
             max_age_seconds=max_age,
         )
-        response.set_cookie(key=SESSION_COOKIE, value=token, **_session_cookie_kwargs(max_age, persistent=False))
-        persist_audit(db, "auth.login", user_id=user.id, email=user.email, details={"needs_onboarding": True})
+        response.set_cookie(
+            key=SESSION_COOKIE, value=token, **_session_cookie_kwargs(max_age, persistent=False)
+        )
+        persist_audit(
+            db, "auth.login", user_id=user.id, email=user.email, details={"needs_onboarding": True}
+        )
         return {"user": _user_response(user), "needs_onboarding": True}
 
-    mfa_row = db.query(UserMfa).filter(UserMfa.user_id == user.id, UserMfa.enabled.is_(True)).first()
+    mfa_row = (
+        db.query(UserMfa).filter(UserMfa.user_id == user.id, UserMfa.enabled.is_(True)).first()
+    )
     if mfa_row:
         mfa_token_raw = secrets.token_urlsafe(32)
         mfa_token_hash_val = _token_hash(mfa_token_raw)
@@ -525,21 +554,31 @@ def _login_impl(req: LoginRequest, request: Request, response: Response, db: Ses
         )
         db.add(mlt)
         db.commit()
-        persist_audit(db, "auth.mfa_required", user_id=user.id, email=user.email, workspace_id=member.workspace_id)
+        persist_audit(
+            db,
+            "auth.mfa_required",
+            user_id=user.id,
+            email=user.email,
+            workspace_id=member.workspace_id,
+        )
         return {"requires_mfa": True, "mfa_token": mfa_token_raw}
 
     audit_log("auth.login", user_id=user.id, email=user.email, workspace_id=member.workspace_id)
     try:
-        persist_audit(db, "auth.login", user_id=user.id, email=user.email, workspace_id=member.workspace_id)
+        persist_audit(
+            db, "auth.login", user_id=user.id, email=user.email, workspace_id=member.workspace_id
+        )
     except Exception as e:
         logger.warning("auth.login persist_audit failed (login continues): %s", e)
     session_id = secrets.token_urlsafe(32)
-    db.add(UserSession(
-        user_id=user.id,
-        session_id=session_id,
-        user_agent=request.headers.get("user-agent"),
-        ip_address=get_client_ip(request),
-    ))
+    db.add(
+        UserSession(
+            user_id=user.id,
+            session_id=session_id,
+            user_agent=request.headers.get("user-agent"),
+            ip_address=get_client_ip(request),
+        )
+    )
     db.commit()
     remember = bool(req.remember_me)
     max_age = _effective_session_max_age_seconds(db, member.workspace_id, remember)
@@ -551,7 +590,9 @@ def _login_impl(req: LoginRequest, request: Request, response: Response, db: Ses
         session_id=session_id,
         max_age_seconds=max_age,
     )
-    response.set_cookie(key=SESSION_COOKIE, value=token, **_session_cookie_kwargs(max_age, persistent=remember))
+    response.set_cookie(
+        key=SESSION_COOKIE, value=token, **_session_cookie_kwargs(max_age, persistent=remember)
+    )
     return {"user": _user_response(user), "workspace_id": member.workspace_id}
 
 
@@ -562,7 +603,9 @@ def logout(response: Response, request: Request, db: Session = Depends(get_db)):
     if session:
         sid = session.get("session_id")
         if sid:
-            db.query(UserSession).filter(UserSession.session_id == sid).delete(synchronize_session=False)
+            db.query(UserSession).filter(UserSession.session_id == sid).delete(
+                synchronize_session=False
+            )
             db.commit()
         audit_log(
             "auth.logout",
@@ -583,11 +626,18 @@ def logout(response: Response, request: Request, db: Session = Depends(get_db)):
 
 
 @router.get("/sessions")
-async def list_sessions(session: dict = Depends(require_valid_session), db: Session = Depends(get_db)):
+async def list_sessions(
+    session: dict = Depends(require_valid_session), db: Session = Depends(get_db)
+):
     """AUTH-213: List current user's sessions (device/location)."""
     user_id = session.get("user_id")
     current_sid = session.get("session_id")
-    rows = db.query(UserSession).filter(UserSession.user_id == user_id).order_by(UserSession.created_at.desc()).all()
+    rows = (
+        db.query(UserSession)
+        .filter(UserSession.user_id == user_id)
+        .order_by(UserSession.created_at.desc())
+        .all()
+    )
     return {
         "sessions": [
             {
@@ -604,18 +654,30 @@ async def list_sessions(session: dict = Depends(require_valid_session), db: Sess
 
 
 @router.post("/sessions/revoke-others")
-async def revoke_other_sessions(session: dict = Depends(require_valid_session), db: Session = Depends(get_db)):
+async def revoke_other_sessions(
+    session: dict = Depends(require_valid_session), db: Session = Depends(get_db)
+):
     """AUTH-213: Invalidate all other sessions for current user; keep current."""
     user_id = session.get("user_id")
     current_sid = session.get("session_id")
     if not current_sid:
         raise HTTPException(status_code=400, detail="Cannot revoke others for legacy session")
-    deleted = db.query(UserSession).filter(
-        UserSession.user_id == user_id,
-        UserSession.session_id != current_sid,
-    ).delete(synchronize_session=False)
+    deleted = (
+        db.query(UserSession)
+        .filter(
+            UserSession.user_id == user_id,
+            UserSession.session_id != current_sid,
+        )
+        .delete(synchronize_session=False)
+    )
     db.commit()
-    persist_audit(db, "auth.sessions_revoked_others", user_id=user_id, email=session.get("email"), details={"count": deleted})
+    persist_audit(
+        db,
+        "auth.sessions_revoked_others",
+        user_id=user_id,
+        email=session.get("email"),
+        details={"count": deleted},
+    )
     return {"ok": True, "revoked": deleted}
 
 
@@ -637,7 +699,7 @@ def _oauth_create_signed_state(provider: str) -> str:
     }
     data = base64.urlsafe_b64encode(json.dumps(payload).encode()).decode()
     sig = hmac.new(
-        get_settings().session_secret.encode(),
+        get_session_secret().encode(),
         data.encode(),
         "sha256",
     ).hexdigest()
@@ -649,7 +711,7 @@ def _oauth_verify_signed_state(state: str, expected_provider: str) -> bool:
     try:
         data, sig = state.rsplit(".", 1)
         expected = hmac.new(
-            get_settings().session_secret.encode(),
+            get_session_secret().encode(),
             data.encode(),
             "sha256",
         ).hexdigest()
@@ -699,14 +761,18 @@ def _idme_redirect_uri() -> str:
     return f"{base}/{path}" if path else f"{base}/api/auth/idme/callback"
 
 
-def _oauth_set_session_and_redirect(user: User, workspace_id: int, role: str, db: Session) -> RedirectResponse:
+def _oauth_set_session_and_redirect(
+    user: User, workspace_id: int, role: str, db: Session
+) -> RedirectResponse:
     session_id = secrets.token_urlsafe(32)
-    db.add(UserSession(
-        user_id=user.id,
-        session_id=session_id,
-        user_agent=None,
-        ip_address=None,
-    ))
+    db.add(
+        UserSession(
+            user_id=user.id,
+            session_id=session_id,
+            user_agent=None,
+            ip_address=None,
+        )
+    )
     db.commit()
     max_age = _session_max_age_seconds(db, workspace_id)
     token = sign_session(
@@ -782,7 +848,12 @@ async def oauth_google_callback(
     db: Session = Depends(get_db),
 ):
     """Handle Google OAuth callback; find or create user, issue session. ENT-201. Accepts signed state or cookie."""
-    logger.info("oauth_google_callback entry code=%s state_len=%s", bool(code), len(state) if state else 0, extra={"step": "callback_entry"})
+    logger.info(
+        "oauth_google_callback entry code=%s state_len=%s",
+        bool(code),
+        len(state) if state else 0,
+        extra={"step": "callback_entry"},
+    )
     if not code or not state:
         raise HTTPException(status_code=400, detail="Missing code or state")
     ip_key = f"oauth_callback:ip:{get_client_ip(request)}"
@@ -796,11 +867,17 @@ async def oauth_google_callback(
     except SQLAlchemyError as e:
         logger.exception("oauth_google_callback database error: %s", e)
         if _is_db_connection_error(e):
-            raise HTTPException(status_code=503, detail="Database unavailable. Please try again later.")
-        raise HTTPException(status_code=500, detail="Sign-in could not be completed. Please try again.")
+            raise HTTPException(
+                status_code=503, detail="Database unavailable. Please try again later."
+            )
+        raise HTTPException(
+            status_code=500, detail="Sign-in could not be completed. Please try again."
+        )
     except Exception as e:
         logger.exception("oauth_google_callback 500: %s", e)
-        raise HTTPException(status_code=500, detail="Sign-in could not be completed. Please try again.")
+        raise HTTPException(
+            status_code=500, detail="Sign-in could not be completed. Please try again."
+        )
 
 
 async def _oauth_google_callback_impl(request: Request, code: str, state: str, db: Session):
@@ -816,51 +893,87 @@ async def _oauth_google_callback_impl(request: Request, code: str, state: str, d
                 state_valid = True
     if not state_valid:
         try:
-            persist_audit(db, "auth.oauth_failed", details={"provider": "google", "reason": "invalid_state"})
+            persist_audit(
+                db, "auth.oauth_failed", details={"provider": "google", "reason": "invalid_state"}
+            )
         except Exception:
             pass
-        raise HTTPException(status_code=400, detail="Invalid or expired state. Start sign-in from the app login page.")
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid or expired state. Start sign-in from the app login page.",
+        )
     redirect_uri = _oauth_redirect_uri("google")
     info = await google_exchange_code(code, redirect_uri)
     if not info:
         logger.warning("oauth_google_callback google_exchange_code returned None")
         try:
-            persist_audit(db, "auth.oauth_failed", details={"provider": "google", "reason": "token_exchange_failed"})
+            persist_audit(
+                db,
+                "auth.oauth_failed",
+                details={"provider": "google", "reason": "token_exchange_failed"},
+            )
         except Exception:
             pass
         raise HTTPException(status_code=400, detail="Failed to get user info from Google")
     if not (info.get("provider_user_id") or "").strip():
         logger.warning("oauth_google_callback profile missing user identifier (id/sub)")
-        raise HTTPException(status_code=400, detail="Google did not return a user identifier (id or sub)")
-    logger.info("oauth_google_callback got profile email_ok=%s", bool(info.get("email")), extra={"step": "after_exchange"})
+        raise HTTPException(
+            status_code=400, detail="Google did not return a user identifier (id or sub)"
+        )
+    logger.info(
+        "oauth_google_callback got profile email_ok=%s",
+        bool(info.get("email")),
+        extra={"step": "after_exchange"},
+    )
     # Find linked account or user by email
-    oauth_row = db.query(UserOAuthAccount).filter(
-        UserOAuthAccount.provider == "google",
-        UserOAuthAccount.provider_user_id == info["provider_user_id"],
-    ).first()
+    oauth_row = (
+        db.query(UserOAuthAccount)
+        .filter(
+            UserOAuthAccount.provider == "google",
+            UserOAuthAccount.provider_user_id == info["provider_user_id"],
+        )
+        .first()
+    )
     if oauth_row:
         user = db.query(User).filter(User.id == oauth_row.user_id).first()
-        logger.info("oauth_google_callback linked user_id=%s", user.id if user else None, extra={"step": "user_from_oauth_row"})
+        logger.info(
+            "oauth_google_callback linked user_id=%s",
+            user.id if user else None,
+            extra={"step": "user_from_oauth_row"},
+        )
     else:
         user = None
         if info.get("email") and info.get("email_verified"):
             user = db.query(User).filter(User.email == info.get("email")).first()
             if user:
-                db.add(UserOAuthAccount(
-                    user_id=user.id,
-                    provider="google",
-                    provider_user_id=info["provider_user_id"],
-                    email=info.get("email"),
-                ))
+                db.add(
+                    UserOAuthAccount(
+                        user_id=user.id,
+                        provider="google",
+                        provider_user_id=info["provider_user_id"],
+                        email=info.get("email"),
+                    )
+                )
                 db.commit()
-                logger.info("oauth_google_callback linked by email user_id=%s", user.id, extra={"step": "user_linked_by_email"})
+                logger.info(
+                    "oauth_google_callback linked by email user_id=%s",
+                    user.id,
+                    extra={"step": "user_linked_by_email"},
+                )
         elif info.get("email") and not info.get("email_verified"):
-            logger.warning("oauth_google_callback email not verified by provider, skipping auto-link for %s", info.get("email")[:3] + "***")
+            logger.warning(
+                "oauth_google_callback email not verified by provider, skipping auto-link for %s",
+                info.get("email")[:3] + "***",
+            )
     if not user:
         email = (info.get("email") or "").strip().lower()
         if not email or "@" not in email:
             raise HTTPException(status_code=400, detail="Google did not provide an email")
-        logger.info("oauth_google_callback creating user email=%s", email[:3] + "***" if len(email) > 3 else "***", extra={"step": "user_create_start"})
+        logger.info(
+            "oauth_google_callback creating user email=%s",
+            email[:3] + "***" if len(email) > 3 else "***",
+            extra={"step": "user_create_start"},
+        )
         user = User(
             email=email,
             password_hash=hash_password(secrets.token_urlsafe(32)),
@@ -873,39 +986,84 @@ async def _oauth_google_callback_impl(request: Request, code: str, state: str, d
         default_workspace_id = 1
         default_workspace = db.query(Workspace).filter(Workspace.id == default_workspace_id).first()
         if not default_workspace:
-            logger.error("oauth_google_callback default workspace id=1 not found; run migrations", extra={"step": "workspace_missing"})
-            raise HTTPException(status_code=503, detail="Default workspace not found. Run database migrations.")
+            logger.error(
+                "oauth_google_callback default workspace id=1 not found; run migrations",
+                extra={"step": "workspace_missing"},
+            )
+            raise HTTPException(
+                status_code=503, detail="Default workspace not found. Run database migrations."
+            )
         try:
-            db.add(WorkspaceMember(workspace_id=default_workspace_id, user_id=user.id, role="editor"))
-            db.add(UserOAuthAccount(
-                user_id=user.id,
-                provider="google",
-                provider_user_id=info["provider_user_id"],
-                email=email,
-            ))
+            db.add(
+                WorkspaceMember(workspace_id=default_workspace_id, user_id=user.id, role="editor")
+            )
+            db.add(
+                UserOAuthAccount(
+                    user_id=user.id,
+                    provider="google",
+                    provider_user_id=info["provider_user_id"],
+                    email=email,
+                )
+            )
             db.commit()
         except Exception as e:  # noqa: BLE001
-            logger.exception("oauth_google_callback user/workspace/oauth create failed: %s", type(e).__name__, extra={"step": "user_create_db"})
+            logger.exception(
+                "oauth_google_callback user/workspace/oauth create failed: %s",
+                type(e).__name__,
+                extra={"step": "user_create_db"},
+            )
             raise
-        logger.info("oauth_google_callback created user_id=%s workspace_id=%s", user.id, default_workspace_id, extra={"step": "user_created"})
-    member = db.query(WorkspaceMember).filter(WorkspaceMember.user_id == user.id).order_by(WorkspaceMember.workspace_id).first()
+        logger.info(
+            "oauth_google_callback created user_id=%s workspace_id=%s",
+            user.id,
+            default_workspace_id,
+            extra={"step": "user_created"},
+        )
+    member = (
+        db.query(WorkspaceMember)
+        .filter(WorkspaceMember.user_id == user.id)
+        .order_by(WorkspaceMember.workspace_id)
+        .first()
+    )
     if not member:
-        logger.warning("oauth_google_callback no workspace member user_id=%s", user.id, extra={"step": "no_member"})
+        logger.warning(
+            "oauth_google_callback no workspace member user_id=%s",
+            user.id,
+            extra={"step": "no_member"},
+        )
         raise HTTPException(status_code=403, detail="No workspace access")
-    logger.info("oauth_google_callback member workspace_id=%s role=%s", member.workspace_id, member.role, extra={"step": "workspace_resolved"})
+    logger.info(
+        "oauth_google_callback member workspace_id=%s role=%s",
+        member.workspace_id,
+        member.role,
+        extra={"step": "workspace_resolved"},
+    )
     try:
-        persist_audit(db, "auth.login", user_id=user.id, email=user.email, workspace_id=member.workspace_id, details={"provider": "google"})
+        persist_audit(
+            db,
+            "auth.login",
+            user_id=user.id,
+            email=user.email,
+            workspace_id=member.workspace_id,
+            details={"provider": "google"},
+        )
     except Exception as e:  # noqa: BLE001
         logger.warning("oauth_google_callback persist_audit failed (login continues): %s", e)
-    logger.info("oauth_google_callback setting session redirect", extra={"step": "session_redirect_start"})
+    logger.info(
+        "oauth_google_callback setting session redirect", extra={"step": "session_redirect_start"}
+    )
     try:
         resp = _oauth_set_session_and_redirect(user, member.workspace_id, member.role, db)
     except Exception as e:  # noqa: BLE001
         logger.exception("oauth_google_callback _oauth_set_session_and_redirect failed: %s", e)
-        raise HTTPException(status_code=500, detail="Sign-in could not be completed. Please try again.")
+        raise HTTPException(
+            status_code=500, detail="Sign-in could not be completed. Please try again."
+        )
     resp.delete_cookie(OAUTH_STATE_COOKIE, path="/", samesite="lax")
     # Log final redirect target only (path), not full URL or cookies
-    logger.info("oauth_google_callback success redirect_path=/dashboard", extra={"step": "callback_done"})
+    logger.info(
+        "oauth_google_callback success redirect_path=/dashboard", extra={"step": "callback_done"}
+    )
     return resp
 
 
@@ -937,7 +1095,9 @@ async def oauth_github_callback(
     """Handle GitHub OAuth callback; find or create user, issue session."""
     logger.info("oauth_github_callback entry", extra={"step": "callback_entry"})
     if not code or not state:
-        logger.warning("oauth_github_callback missing code or state", extra={"step": "callback_params"})
+        logger.warning(
+            "oauth_github_callback missing code or state", extra={"step": "callback_params"}
+        )
         raise HTTPException(status_code=400, detail="Missing code or state")
     ip_key = f"oauth_callback:ip:{get_client_ip(request)}"
     if is_rate_limited(ip_key):
@@ -950,11 +1110,17 @@ async def oauth_github_callback(
     except SQLAlchemyError as e:
         logger.exception("oauth_github_callback database error: %s", e)
         if _is_db_connection_error(e):
-            raise HTTPException(status_code=503, detail="Database unavailable. Please try again later.")
-        raise HTTPException(status_code=500, detail="Sign-in could not be completed. Please try again.")
+            raise HTTPException(
+                status_code=503, detail="Database unavailable. Please try again later."
+            )
+        raise HTTPException(
+            status_code=500, detail="Sign-in could not be completed. Please try again."
+        )
     except Exception as e:
         logger.exception("oauth_github_callback 500: %s", e)
-        raise HTTPException(status_code=500, detail="Sign-in could not be completed. Please try again.")
+        raise HTTPException(
+            status_code=500, detail="Sign-in could not be completed. Please try again."
+        )
 
 
 async def _oauth_github_callback_impl(request: Request, code: str, state: str, db: Session):
@@ -971,11 +1137,18 @@ async def _oauth_github_callback_impl(request: Request, code: str, state: str, d
                 state_valid = True
     if not state_valid:
         try:
-            persist_audit(db, "auth.oauth_failed", details={"provider": "github", "reason": "invalid_state"})
+            persist_audit(
+                db, "auth.oauth_failed", details={"provider": "github", "reason": "invalid_state"}
+            )
         except Exception:
             pass
-        logger.warning("oauth_github_callback state invalid or expired", extra={"step": "callback_state"})
-        raise HTTPException(status_code=400, detail="Invalid or expired state. Start sign-in from the app login page.")
+        logger.warning(
+            "oauth_github_callback state invalid or expired", extra={"step": "callback_state"}
+        )
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid or expired state. Start sign-in from the app login page.",
+        )
     logger.info("oauth_github_callback state_ok", extra={"step": "state_valid"})
     redirect_uri = _oauth_redirect_uri("github")
     info = await github_exchange_code(code, redirect_uri)
@@ -987,10 +1160,14 @@ async def _oauth_github_callback_impl(request: Request, code: str, state: str, d
         len(info.get("provider_user_id") or ""),
         extra={"step": "token_exchange"},
     )
-    oauth_row = db.query(UserOAuthAccount).filter(
-        UserOAuthAccount.provider == "github",
-        UserOAuthAccount.provider_user_id == info["provider_user_id"],
-    ).first()
+    oauth_row = (
+        db.query(UserOAuthAccount)
+        .filter(
+            UserOAuthAccount.provider == "github",
+            UserOAuthAccount.provider_user_id == info["provider_user_id"],
+        )
+        .first()
+    )
     if oauth_row:
         user = db.query(User).filter(User.id == oauth_row.user_id).first()
     else:
@@ -998,19 +1175,26 @@ async def _oauth_github_callback_impl(request: Request, code: str, state: str, d
         if info.get("email") and info.get("email_verified"):
             user = db.query(User).filter(User.email == info.get("email")).first()
             if user:
-                db.add(UserOAuthAccount(
-                    user_id=user.id,
-                    provider="github",
-                    provider_user_id=info["provider_user_id"],
-                    email=info.get("email"),
-                ))
+                db.add(
+                    UserOAuthAccount(
+                        user_id=user.id,
+                        provider="github",
+                        provider_user_id=info["provider_user_id"],
+                        email=info.get("email"),
+                    )
+                )
                 db.commit()
         elif info.get("email") and not info.get("email_verified"):
-            logger.warning("oauth_github_callback email not verified by provider, skipping auto-link")
+            logger.warning(
+                "oauth_github_callback email not verified by provider, skipping auto-link"
+            )
     if not user:
         email = (info.get("email") or "").strip().lower()
         if not email or "@" not in email:
-            raise HTTPException(status_code=400, detail="GitHub did not provide an email (enable user:email scope or set public email)")
+            raise HTTPException(
+                status_code=400,
+                detail="GitHub did not provide an email (enable user:email scope or set public email)",
+            )
         user = User(
             email=email,
             password_hash=hash_password(secrets.token_urlsafe(32)),
@@ -1023,20 +1207,38 @@ async def _oauth_github_callback_impl(request: Request, code: str, state: str, d
         default_workspace_id = 1
         default_workspace = db.query(Workspace).filter(Workspace.id == default_workspace_id).first()
         if not default_workspace:
-            raise HTTPException(status_code=503, detail="Default workspace not found. Run database migrations.")
+            raise HTTPException(
+                status_code=503, detail="Default workspace not found. Run database migrations."
+            )
         db.add(WorkspaceMember(workspace_id=default_workspace_id, user_id=user.id, role="editor"))
-        db.add(UserOAuthAccount(
-            user_id=user.id,
-            provider="github",
-            provider_user_id=info["provider_user_id"],
-            email=email,
-        ))
+        db.add(
+            UserOAuthAccount(
+                user_id=user.id,
+                provider="github",
+                provider_user_id=info["provider_user_id"],
+                email=email,
+            )
+        )
         db.commit()
-    logger.info("oauth_github_callback user_ok user_id=%s", user.id, extra={"step": "user_resolved"})
-    member = db.query(WorkspaceMember).filter(WorkspaceMember.user_id == user.id).order_by(WorkspaceMember.workspace_id).first()
+    logger.info(
+        "oauth_github_callback user_ok user_id=%s", user.id, extra={"step": "user_resolved"}
+    )
+    member = (
+        db.query(WorkspaceMember)
+        .filter(WorkspaceMember.user_id == user.id)
+        .order_by(WorkspaceMember.workspace_id)
+        .first()
+    )
     if not member:
         raise HTTPException(status_code=403, detail="No workspace access")
-    persist_audit(db, "auth.login", user_id=user.id, email=user.email, workspace_id=member.workspace_id, details={"provider": "github"})
+    persist_audit(
+        db,
+        "auth.login",
+        user_id=user.id,
+        email=user.email,
+        workspace_id=member.workspace_id,
+        details={"provider": "github"},
+    )
     frontend = get_settings().frontend_url.rstrip("/")
     redirect_url = f"{frontend}/dashboard"
     logger.info(
@@ -1082,7 +1284,11 @@ async def oauth_microsoft_callback(
     cookie_state, provider = cookie.strip().split("|", 1)
     if provider != "microsoft" or cookie_state != state:
         try:
-            persist_audit(db, "auth.oauth_failed", details={"provider": "microsoft", "reason": "invalid_state"})
+            persist_audit(
+                db,
+                "auth.oauth_failed",
+                details={"provider": "microsoft", "reason": "invalid_state"},
+            )
         except Exception:
             pass
         raise HTTPException(status_code=400, detail="Invalid state")
@@ -1097,11 +1303,17 @@ async def oauth_microsoft_callback(
     except SQLAlchemyError as e:
         logger.exception("oauth_microsoft_callback database error: %s", e)
         if _is_db_connection_error(e):
-            raise HTTPException(status_code=503, detail="Database unavailable. Please try again later.")
-        raise HTTPException(status_code=500, detail="Sign-in could not be completed. Please try again.")
+            raise HTTPException(
+                status_code=503, detail="Database unavailable. Please try again later."
+            )
+        raise HTTPException(
+            status_code=500, detail="Sign-in could not be completed. Please try again."
+        )
     except Exception as e:
         logger.exception("oauth_microsoft_callback 500: %s", e)
-        raise HTTPException(status_code=500, detail="Sign-in could not be completed. Please try again.")
+        raise HTTPException(
+            status_code=500, detail="Sign-in could not be completed. Please try again."
+        )
 
 
 async def _oauth_microsoft_callback_impl(request: Request, code: str, db: Session):
@@ -1110,10 +1322,14 @@ async def _oauth_microsoft_callback_impl(request: Request, code: str, db: Sessio
     info = await microsoft_exchange_code(code, redirect_uri)
     if not info or not info.get("provider_user_id"):
         raise HTTPException(status_code=400, detail="Failed to get user info from Microsoft")
-    oauth_row = db.query(UserOAuthAccount).filter(
-        UserOAuthAccount.provider == "microsoft",
-        UserOAuthAccount.provider_user_id == info["provider_user_id"],
-    ).first()
+    oauth_row = (
+        db.query(UserOAuthAccount)
+        .filter(
+            UserOAuthAccount.provider == "microsoft",
+            UserOAuthAccount.provider_user_id == info["provider_user_id"],
+        )
+        .first()
+    )
     if oauth_row:
         user = db.query(User).filter(User.id == oauth_row.user_id).first()
     else:
@@ -1121,15 +1337,19 @@ async def _oauth_microsoft_callback_impl(request: Request, code: str, db: Sessio
         if info.get("email") and info.get("email_verified"):
             user = db.query(User).filter(User.email == info.get("email")).first()
             if user:
-                db.add(UserOAuthAccount(
-                    user_id=user.id,
-                    provider="microsoft",
-                    provider_user_id=info["provider_user_id"],
-                    email=info.get("email"),
-                ))
+                db.add(
+                    UserOAuthAccount(
+                        user_id=user.id,
+                        provider="microsoft",
+                        provider_user_id=info["provider_user_id"],
+                        email=info.get("email"),
+                    )
+                )
                 db.commit()
         elif info.get("email") and not info.get("email_verified"):
-            logger.warning("oauth_microsoft_callback email not verified by provider, skipping auto-link")
+            logger.warning(
+                "oauth_microsoft_callback email not verified by provider, skipping auto-link"
+            )
     if not user:
         email = (info.get("email") or "").strip().lower()
         if not email or "@" not in email:
@@ -1145,17 +1365,31 @@ async def _oauth_microsoft_callback_impl(request: Request, code: str, db: Sessio
         db.refresh(user)
         default_workspace_id = 1
         db.add(WorkspaceMember(workspace_id=default_workspace_id, user_id=user.id, role="editor"))
-        db.add(UserOAuthAccount(
-            user_id=user.id,
-            provider="microsoft",
-            provider_user_id=info["provider_user_id"],
-            email=email,
-        ))
+        db.add(
+            UserOAuthAccount(
+                user_id=user.id,
+                provider="microsoft",
+                provider_user_id=info["provider_user_id"],
+                email=email,
+            )
+        )
         db.commit()
-    member = db.query(WorkspaceMember).filter(WorkspaceMember.user_id == user.id).order_by(WorkspaceMember.workspace_id).first()
+    member = (
+        db.query(WorkspaceMember)
+        .filter(WorkspaceMember.user_id == user.id)
+        .order_by(WorkspaceMember.workspace_id)
+        .first()
+    )
     if not member:
         raise HTTPException(status_code=403, detail="No workspace access")
-    persist_audit(db, "auth.login", user_id=user.id, email=user.email, workspace_id=member.workspace_id, details={"provider": "microsoft"})
+    persist_audit(
+        db,
+        "auth.login",
+        user_id=user.id,
+        email=user.email,
+        workspace_id=member.workspace_id,
+        details={"provider": "microsoft"},
+    )
     resp = _oauth_set_session_and_redirect(user, member.workspace_id, member.role, db)
     resp.delete_cookie(OAUTH_STATE_COOKIE, path="/", samesite="lax")
     return resp
@@ -1218,11 +1452,17 @@ async def sso_callback(
     except SQLAlchemyError as e:
         logger.exception("sso_callback database error: %s", e)
         if _is_db_connection_error(e):
-            raise HTTPException(status_code=503, detail="Database unavailable. Please try again later.")
-        raise HTTPException(status_code=500, detail="Sign-in could not be completed. Please try again.")
+            raise HTTPException(
+                status_code=503, detail="Database unavailable. Please try again later."
+            )
+        raise HTTPException(
+            status_code=500, detail="Sign-in could not be completed. Please try again."
+        )
     except Exception as e:
         logger.exception("sso_callback 500: %s", e)
-        raise HTTPException(status_code=500, detail="Sign-in could not be completed. Please try again.")
+        raise HTTPException(
+            status_code=500, detail="Sign-in could not be completed. Please try again."
+        )
 
 
 async def _sso_callback_impl(request: Request, code: str, state: str, db: Session):
@@ -1236,10 +1476,14 @@ async def _sso_callback_impl(request: Request, code: str, state: str, db: Sessio
     if not info or not info.get("provider_user_id"):
         raise HTTPException(status_code=400, detail="SSO user info failed")
     provider = "oidc"
-    oauth_row = db.query(UserOAuthAccount).filter(
-        UserOAuthAccount.provider == provider,
-        UserOAuthAccount.provider_user_id == info["provider_user_id"],
-    ).first()
+    oauth_row = (
+        db.query(UserOAuthAccount)
+        .filter(
+            UserOAuthAccount.provider == provider,
+            UserOAuthAccount.provider_user_id == info["provider_user_id"],
+        )
+        .first()
+    )
     if oauth_row:
         user = db.query(User).filter(User.id == oauth_row.user_id).first()
     else:
@@ -1247,12 +1491,14 @@ async def _sso_callback_impl(request: Request, code: str, state: str, db: Sessio
         if info.get("email") and info.get("email_verified"):
             user = db.query(User).filter(User.email == info.get("email")).first()
             if user:
-                db.add(UserOAuthAccount(
-                    user_id=user.id,
-                    provider=provider,
-                    provider_user_id=info["provider_user_id"],
-                    email=info.get("email"),
-                ))
+                db.add(
+                    UserOAuthAccount(
+                        user_id=user.id,
+                        provider=provider,
+                        provider_user_id=info["provider_user_id"],
+                        email=info.get("email"),
+                    )
+                )
                 db.commit()
         elif info.get("email") and not info.get("email_verified"):
             logger.warning("oauth_oidc_callback email not verified by provider, skipping auto-link")
@@ -1271,17 +1517,31 @@ async def _sso_callback_impl(request: Request, code: str, state: str, db: Sessio
         db.refresh(user)
         default_workspace_id = s.oidc_default_workspace_id
         db.add(WorkspaceMember(workspace_id=default_workspace_id, user_id=user.id, role="editor"))
-        db.add(UserOAuthAccount(
-            user_id=user.id,
-            provider=provider,
-            provider_user_id=info["provider_user_id"],
-            email=email,
-        ))
+        db.add(
+            UserOAuthAccount(
+                user_id=user.id,
+                provider=provider,
+                provider_user_id=info["provider_user_id"],
+                email=email,
+            )
+        )
         db.commit()
-    member = db.query(WorkspaceMember).filter(WorkspaceMember.user_id == user.id).order_by(WorkspaceMember.workspace_id).first()
+    member = (
+        db.query(WorkspaceMember)
+        .filter(WorkspaceMember.user_id == user.id)
+        .order_by(WorkspaceMember.workspace_id)
+        .first()
+    )
     if not member:
         raise HTTPException(status_code=403, detail="No workspace access")
-    persist_audit(db, "auth.login", user_id=user.id, email=user.email, workspace_id=member.workspace_id, details={"provider": "oidc_sso"})
+    persist_audit(
+        db,
+        "auth.login",
+        user_id=user.id,
+        email=user.email,
+        workspace_id=member.workspace_id,
+        details={"provider": "oidc_sso"},
+    )
     resp = _oauth_set_session_and_redirect(user, member.workspace_id, member.role, db)
     resp.delete_cookie(SSO_STATE_COOKIE, path="/", samesite="lax")
     return resp
@@ -1340,11 +1600,17 @@ async def idme_callback(
     except SQLAlchemyError as e:
         logger.exception("idme_callback database error: %s", e)
         if _is_db_connection_error(e):
-            raise HTTPException(status_code=503, detail="Database unavailable. Please try again later.")
-        raise HTTPException(status_code=500, detail="Sign-in could not be completed. Please try again.")
+            raise HTTPException(
+                status_code=503, detail="Database unavailable. Please try again later."
+            )
+        raise HTTPException(
+            status_code=500, detail="Sign-in could not be completed. Please try again."
+        )
     except Exception as e:
         logger.exception("idme_callback 500: %s", e)
-        raise HTTPException(status_code=500, detail="Sign-in could not be completed. Please try again.")
+        raise HTTPException(
+            status_code=500, detail="Sign-in could not be completed. Please try again."
+        )
 
 
 async def _idme_callback_impl(request: Request, code: str, db: Session):
@@ -1354,10 +1620,14 @@ async def _idme_callback_impl(request: Request, code: str, db: Session):
     if not info or not info.get("provider_user_id"):
         raise HTTPException(status_code=400, detail="id.me user info failed")
     provider = "idme"
-    oauth_row = db.query(UserOAuthAccount).filter(
-        UserOAuthAccount.provider == provider,
-        UserOAuthAccount.provider_user_id == info["provider_user_id"],
-    ).first()
+    oauth_row = (
+        db.query(UserOAuthAccount)
+        .filter(
+            UserOAuthAccount.provider == provider,
+            UserOAuthAccount.provider_user_id == info["provider_user_id"],
+        )
+        .first()
+    )
     if oauth_row:
         user = db.query(User).filter(User.id == oauth_row.user_id).first()
     else:
@@ -1365,12 +1635,14 @@ async def _idme_callback_impl(request: Request, code: str, db: Session):
         if info.get("email") and info.get("email_verified"):
             user = db.query(User).filter(User.email == info.get("email")).first()
             if user:
-                db.add(UserOAuthAccount(
-                    user_id=user.id,
-                    provider=provider,
-                    provider_user_id=info["provider_user_id"],
-                    email=info.get("email"),
-                ))
+                db.add(
+                    UserOAuthAccount(
+                        user_id=user.id,
+                        provider=provider,
+                        provider_user_id=info["provider_user_id"],
+                        email=info.get("email"),
+                    )
+                )
                 db.commit()
         elif info.get("email") and not info.get("email_verified"):
             logger.warning("oauth_idme_callback email not verified by provider, skipping auto-link")
@@ -1389,33 +1661,51 @@ async def _idme_callback_impl(request: Request, code: str, db: Session):
         db.refresh(user)
         default_workspace_id = get_settings().oidc_default_workspace_id
         db.add(WorkspaceMember(workspace_id=default_workspace_id, user_id=user.id, role="editor"))
-        db.add(UserOAuthAccount(
-            user_id=user.id,
-            provider=provider,
-            provider_user_id=info["provider_user_id"],
-            email=email,
-        ))
+        db.add(
+            UserOAuthAccount(
+                user_id=user.id,
+                provider=provider,
+                provider_user_id=info["provider_user_id"],
+                email=email,
+            )
+        )
         db.commit()
-    member = db.query(WorkspaceMember).filter(WorkspaceMember.user_id == user.id).order_by(WorkspaceMember.workspace_id).first()
+    member = (
+        db.query(WorkspaceMember)
+        .filter(WorkspaceMember.user_id == user.id)
+        .order_by(WorkspaceMember.workspace_id)
+        .first()
+    )
     if not member:
         raise HTTPException(status_code=403, detail="No workspace access")
-    persist_audit(db, "auth.login", user_id=user.id, email=user.email, workspace_id=member.workspace_id, details={"provider": "idme"})
+    persist_audit(
+        db,
+        "auth.login",
+        user_id=user.id,
+        email=user.email,
+        workspace_id=member.workspace_id,
+        details={"provider": "idme"},
+    )
     resp = _oauth_set_session_and_redirect(user, member.workspace_id, member.role, db)
     resp.delete_cookie(IDME_STATE_COOKIE, path="/", samesite="lax")
     return resp
 
 
 # Suspicious actions we surface as alerts (WEB-211)
-SUSPICIOUS_ACTIONS = frozenset({
-    "auth.mfa_verify_failed",
-    "auth.mfa_confirm_failed",
-    "auth.mfa_disable_failed",
-    "auth.login_failed",  # when user_id present, e.g. no_workspace
-})
+SUSPICIOUS_ACTIONS = frozenset(
+    {
+        "auth.mfa_verify_failed",
+        "auth.mfa_confirm_failed",
+        "auth.mfa_disable_failed",
+        "auth.login_failed",  # when user_id present, e.g. no_workspace
+    }
+)
 
 
 @router.get("/alerts")
-async def list_alerts(session: dict = Depends(require_valid_session), db: Session = Depends(get_db)):
+async def list_alerts(
+    session: dict = Depends(require_valid_session), db: Session = Depends(get_db)
+):
     """WEB-211: Recent suspicious auth events for current user (in-app alerts)."""
     user_id = session.get("user_id")
     since = datetime.now(timezone.utc) - timedelta(days=7)
@@ -1453,7 +1743,12 @@ def _permissions(role: str | None, workspace_id: int | None = None, db=None) -> 
         }
     if db and workspace_id and role:
         from app.models import CustomRole
-        cr = db.query(CustomRole).filter(CustomRole.workspace_id == workspace_id, CustomRole.name == role).first()
+
+        cr = (
+            db.query(CustomRole)
+            .filter(CustomRole.workspace_id == workspace_id, CustomRole.name == role)
+            .first()
+        )
         if cr:
             return {
                 "can_edit": bool(cr.can_edit),
@@ -1494,7 +1789,12 @@ def me(request: Request, db: Session = Depends(get_db)):
             "workspace_slug": "",
             "role": "pending",
             "workspaces": [],
-            "permissions": {"can_edit": False, "can_review": False, "can_admin": False, "can_export": False},
+            "permissions": {
+                "can_edit": False,
+                "can_review": False,
+                "can_admin": False,
+                "can_export": False,
+            },
             "needs_onboarding": True,
             "mfa_enrolled": False,
             "mfa_required_for_workspace": False,
@@ -1509,16 +1809,28 @@ def me(request: Request, db: Session = Depends(get_db)):
         .all()
     )
     workspaces = [
-        {"id": ws.id, "name": getattr(ws, "name", "Workspace"), "slug": getattr(ws, "slug", ""), "role": mem.role}
+        {
+            "id": ws.id,
+            "name": getattr(ws, "name", "Workspace"),
+            "slug": getattr(ws, "slug", ""),
+            "role": mem.role,
+        }
         for mem, ws in memberships
     ]
     from app.models import Subscription
-    active_sub = db.query(Subscription).filter(
-        Subscription.workspace_id == workspace_id,
-        Subscription.status.in_(["active", "trialing"]),
-    ).first()
 
-    mfa_row = db.query(UserMfa).filter(UserMfa.user_id == user_id, UserMfa.enabled.is_(True)).first()
+    active_sub = (
+        db.query(Subscription)
+        .filter(
+            Subscription.workspace_id == workspace_id,
+            Subscription.status.in_(["active", "trialing"]),
+        )
+        .first()
+    )
+
+    mfa_row = (
+        db.query(UserMfa).filter(UserMfa.user_id == user_id, UserMfa.enabled.is_(True)).first()
+    )
     user_has_mfa = bool(mfa_row)
     ws_mfa_required = bool(current_ws and getattr(current_ws, "mfa_required", False))
     return {
@@ -1535,7 +1847,9 @@ def me(request: Request, db: Session = Depends(get_db)):
         "mfa_required_for_workspace": ws_mfa_required and not user_has_mfa,
         "workspace_auth_policy": {
             "mfa_required": ws_mfa_required,
-            "session_max_age_seconds": getattr(current_ws, "session_max_age_seconds", None) if current_ws else None,
+            "session_max_age_seconds": getattr(current_ws, "session_max_age_seconds", None)
+            if current_ws
+            else None,
         },
         "subscription": {
             "status": active_sub.status if active_sub else "none",
@@ -1599,7 +1913,9 @@ async def switch_workspace(
 
 
 @router.post("/verify-invite-code")
-def verify_invite_code(req: VerifyInviteCodeRequest, request: Request, db: Session = Depends(get_db)):
+def verify_invite_code(
+    req: VerifyInviteCodeRequest, request: Request, db: Session = Depends(get_db)
+):
     """Exchange email + verification code from the invite email for a one-time token used by POST /accept-invite."""
     email = (req.email or "").strip().lower()
     if not email or "@" not in email:
@@ -1661,23 +1977,38 @@ def accept_invite(req: AcceptInviteRequest, db: Session = Depends(get_db)):
         raise HTTPException(status_code=400, detail="Invalid invite")
     user = db.query(User).filter(User.email == email).first()
     if user:
-        existing_mem = db.query(WorkspaceMember).filter(
-            WorkspaceMember.workspace_id == inv.workspace_id,
-            WorkspaceMember.user_id == user.id,
-        ).first()
+        existing_mem = (
+            db.query(WorkspaceMember)
+            .filter(
+                WorkspaceMember.workspace_id == inv.workspace_id,
+                WorkspaceMember.user_id == user.id,
+            )
+            .first()
+        )
         if existing_mem:
             db.delete(inv)
             db.commit()
-            raise HTTPException(status_code=400, detail="You are already a member of this workspace")
+            raise HTTPException(
+                status_code=400, detail="You are already a member of this workspace"
+            )
         user.email_verified = True
         mem = WorkspaceMember(workspace_id=inv.workspace_id, user_id=user.id, role=inv.role)
         db.add(mem)
         db.delete(inv)
         db.commit()
-        persist_audit(db, "auth.invite_accepted", user_id=user.id, email=email, workspace_id=inv.workspace_id, details={"role": inv.role})
+        persist_audit(
+            db,
+            "auth.invite_accepted",
+            user_id=user.id,
+            email=email,
+            workspace_id=inv.workspace_id,
+            details={"role": inv.role},
+        )
         return {"message": "You have joined the workspace. You can sign in."}
     if not req.password or len(req.password.strip()) < 6:
-        raise HTTPException(status_code=400, detail="Set a password to create your account (at least 6 characters)")
+        raise HTTPException(
+            status_code=400, detail="Set a password to create your account (at least 6 characters)"
+        )
     user = User(
         email=email,
         password_hash=hash_password(req.password.strip()),
@@ -1690,7 +2021,14 @@ def accept_invite(req: AcceptInviteRequest, db: Session = Depends(get_db)):
     db.add(mem)
     db.delete(inv)
     db.commit()
-    persist_audit(db, "auth.invite_accepted_new_user", user_id=user.id, email=email, workspace_id=inv.workspace_id, details={"role": inv.role})
+    persist_audit(
+        db,
+        "auth.invite_accepted_new_user",
+        user_id=user.id,
+        email=email,
+        workspace_id=inv.workspace_id,
+        details={"role": inv.role},
+    )
     return {"message": "Account created. You can sign in."}
 
 
@@ -1768,7 +2106,9 @@ async def mfa_confirm(req: MfaConfirmRequest, request: Request, db: Session = De
 
 
 @router.post("/mfa/verify-login")
-def mfa_verify_login(req: MfaVerifyLoginRequest, request: Request, response: Response, db: Session = Depends(get_db)):
+def mfa_verify_login(
+    req: MfaVerifyLoginRequest, request: Request, response: Response, db: Session = Depends(get_db)
+):
     """Complete login after MFA: accept mfa_token + code (TOTP or recovery), issue session (AUTH-211)."""
     code = (req.code or "").strip()
     token_raw = (req.mfa_token or "").strip()
@@ -1796,7 +2136,9 @@ def mfa_verify_login(req: MfaVerifyLoginRequest, request: Request, response: Res
         db.delete(mlt)
         db.commit()
         raise HTTPException(status_code=400, detail="Invalid token")
-    mfa_row = db.query(UserMfa).filter(UserMfa.user_id == user.id, UserMfa.enabled.is_(True)).first()
+    mfa_row = (
+        db.query(UserMfa).filter(UserMfa.user_id == user.id, UserMfa.enabled.is_(True)).first()
+    )
     if not mfa_row:
         db.delete(mlt)
         db.commit()
@@ -1807,11 +2149,15 @@ def mfa_verify_login(req: MfaVerifyLoginRequest, request: Request, response: Res
         verified = verify_totp(secret, code)
     if not verified:
         code_hash = _recovery_code_hash(code)
-        rc = db.query(MfaRecoveryCode).filter(
-            MfaRecoveryCode.user_id == user.id,
-            MfaRecoveryCode.code_hash == code_hash,
-            MfaRecoveryCode.used_at.is_(None),
-        ).first()
+        rc = (
+            db.query(MfaRecoveryCode)
+            .filter(
+                MfaRecoveryCode.user_id == user.id,
+                MfaRecoveryCode.code_hash == code_hash,
+                MfaRecoveryCode.used_at.is_(None),
+            )
+            .first()
+        )
         if rc:
             rc.used_at = now
             verified = True
@@ -1822,15 +2168,19 @@ def mfa_verify_login(req: MfaVerifyLoginRequest, request: Request, response: Res
         raise HTTPException(status_code=400, detail="Invalid code")
     db.delete(mlt)
     session_id = secrets.token_urlsafe(32)
-    db.add(UserSession(
-        user_id=user.id,
-        session_id=session_id,
-        user_agent=request.headers.get("user-agent"),
-        ip_address=get_client_ip(request),
-    ))
+    db.add(
+        UserSession(
+            user_id=user.id,
+            session_id=session_id,
+            user_agent=request.headers.get("user-agent"),
+            ip_address=get_client_ip(request),
+        )
+    )
     db.commit()
     audit_log("auth.login", user_id=user.id, email=user.email, workspace_id=mlt.workspace_id)
-    persist_audit(db, "auth.login", user_id=user.id, email=user.email, workspace_id=mlt.workspace_id)
+    persist_audit(
+        db, "auth.login", user_id=user.id, email=user.email, workspace_id=mlt.workspace_id
+    )
     remember = bool(req.remember_me)
     max_age = _effective_session_max_age_seconds(db, mlt.workspace_id, remember)
     token = sign_session(
@@ -1841,7 +2191,9 @@ def mfa_verify_login(req: MfaVerifyLoginRequest, request: Request, response: Res
         session_id=session_id,
         max_age_seconds=max_age,
     )
-    response.set_cookie(key=SESSION_COOKIE, value=token, **_session_cookie_kwargs(max_age, persistent=remember))
+    response.set_cookie(
+        key=SESSION_COOKIE, value=token, **_session_cookie_kwargs(max_age, persistent=remember)
+    )
     return {"user": _user_response(user), "workspace_id": mlt.workspace_id}
 
 

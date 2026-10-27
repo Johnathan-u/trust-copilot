@@ -7,31 +7,39 @@ from sqlalchemy.orm import Session
 
 from app.core.audit import persist_audit
 from app.models.evidence_item import EvidenceItem
-from app.models.gmail_integration import GmailControlSuggestion, GmailIngestLabel, GmailIntegration
+from app.models.gmail_integration import GmailControlSuggestion, GmailIngestLabel, GmailIntegration  # noqa: F401
 from app.services.gmail_service import decrypt_token, get_gmail_provider
-from app.services.slack_ingest_service import suggest_controls_for_evidence
+from app.services.slack_ingest_service import suggest_controls_for_evidence  # noqa: F401
 
 logger = logging.getLogger(__name__)
 
 SUPPORTED_ATTACHMENT_TYPES = (".pdf", ".docx", ".doc", ".xlsx", ".xls", ".csv", ".txt", ".md")
 
 
-def _make_gmail_metadata(message_id: str, thread_id: str, sender: str, subject: str, date: str) -> str:
-    return json.dumps({
-        "gmail_message_id": message_id,
-        "gmail_thread_id": thread_id,
-        "sender": sender,
-        "subject": subject,
-        "date": date,
-    })
+def _make_gmail_metadata(
+    message_id: str, thread_id: str, sender: str, subject: str, date: str
+) -> str:
+    return json.dumps(
+        {
+            "gmail_message_id": message_id,
+            "gmail_thread_id": thread_id,
+            "sender": sender,
+            "subject": subject,
+            "date": date,
+        }
+    )
 
 
 def _evidence_exists(db: Session, workspace_id: int, message_id: str) -> bool:
     """Check dedup by gmail_message_id in source_metadata."""
-    rows = db.query(EvidenceItem).filter(
-        EvidenceItem.workspace_id == workspace_id,
-        EvidenceItem.source_type == "gmail",
-    ).all()
+    rows = (
+        db.query(EvidenceItem)
+        .filter(
+            EvidenceItem.workspace_id == workspace_id,
+            EvidenceItem.source_type == "gmail",
+        )
+        .all()
+    )
     for r in rows:
         if not r.source_metadata:
             continue
@@ -45,16 +53,23 @@ def _evidence_exists(db: Session, workspace_id: int, message_id: str) -> bool:
 
 
 def _attachment_exists(db: Session, workspace_id: int, message_id: str, filename: str) -> bool:
-    rows = db.query(EvidenceItem).filter(
-        EvidenceItem.workspace_id == workspace_id,
-        EvidenceItem.source_type == "gmail",
-    ).all()
+    rows = (
+        db.query(EvidenceItem)
+        .filter(
+            EvidenceItem.workspace_id == workspace_id,
+            EvidenceItem.source_type == "gmail",
+        )
+        .all()
+    )
     for r in rows:
         if not r.source_metadata:
             continue
         try:
             meta = json.loads(r.source_metadata)
-            if meta.get("gmail_message_id") == message_id and meta.get("attachment_filename") == filename:
+            if (
+                meta.get("gmail_message_id") == message_id
+                and meta.get("attachment_filename") == filename
+            ):
                 return True
         except (json.JSONDecodeError, TypeError):
             continue
@@ -75,7 +90,7 @@ def ingest_email(
     subject = message_data.get("subject", "(no subject)")
     sender = message_data.get("from", "")
     date = message_data.get("date", "")
-    snippet = message_data.get("snippet", "")
+    snippet = message_data.get("snippet", "")  # noqa: F841
 
     result = {"email_evidence_id": None, "attachment_ids": []}
 
@@ -94,7 +109,8 @@ def ingest_email(
         result["email_evidence_id"] = ev.id
 
         persist_audit(
-            db, "gmail.evidence_ingested",
+            db,
+            "gmail.evidence_ingested",
             user_id=admin_user_id,
             workspace_id=workspace_id,
             resource_type="evidence_item",
@@ -111,17 +127,19 @@ def ingest_email(
         if _attachment_exists(db, workspace_id, msg_id, filename):
             continue
 
-        att_meta = json.dumps({
-            "gmail_message_id": msg_id,
-            "gmail_thread_id": thread_id,
-            "attachment_filename": filename,
-            "attachment_id": att.get("id", ""),
-            "mime_type": att.get("mime_type", ""),
-            "size": att.get("size", 0),
-            "sender": sender,
-            "subject": subject,
-            "date": date,
-        })
+        att_meta = json.dumps(
+            {
+                "gmail_message_id": msg_id,
+                "gmail_thread_id": thread_id,
+                "attachment_filename": filename,
+                "attachment_id": att.get("id", ""),
+                "mime_type": att.get("mime_type", ""),
+                "size": att.get("size", 0),
+                "sender": sender,
+                "subject": subject,
+                "date": date,
+            }
+        )
         att_ev = EvidenceItem(
             workspace_id=workspace_id,
             source_type="gmail",
@@ -134,7 +152,8 @@ def ingest_email(
         result["attachment_ids"].append(att_ev.id)
 
         persist_audit(
-            db, "gmail.attachment_ingested",
+            db,
+            "gmail.attachment_ingested",
             user_id=admin_user_id,
             workspace_id=workspace_id,
             resource_type="evidence_item",
@@ -153,28 +172,50 @@ def fetch_and_ingest_label(
     limit: int = 20,
 ) -> dict:
     """Fetch recent emails from an approved Gmail label and ingest as evidence."""
-    lbl = db.query(GmailIngestLabel).filter(
-        GmailIngestLabel.workspace_id == workspace_id,
-        GmailIngestLabel.label_id == label_id,
-        GmailIngestLabel.enabled == True,
-    ).first()
+    lbl = (
+        db.query(GmailIngestLabel)
+        .filter(
+            GmailIngestLabel.workspace_id == workspace_id,
+            GmailIngestLabel.label_id == label_id,
+            GmailIngestLabel.enabled == True,  # noqa: E712
+        )
+        .first()
+    )
     if not lbl:
         return {"ingested": 0, "attachments": 0, "skipped": 0, "errors": ["Label not approved"]}
 
-    gi = db.query(GmailIntegration).filter(
-        GmailIntegration.workspace_id == workspace_id,
-        GmailIntegration.enabled == True,
-    ).first()
+    gi = (
+        db.query(GmailIntegration)
+        .filter(
+            GmailIntegration.workspace_id == workspace_id,
+            GmailIntegration.enabled == True,  # noqa: E712
+        )
+        .first()
+    )
     if not gi:
         return {"ingested": 0, "attachments": 0, "skipped": 0, "errors": ["Gmail not connected"]}
 
     try:
         token = decrypt_token(gi.access_token_encrypted)
     except Exception as e:
-        return {"ingested": 0, "attachments": 0, "skipped": 0, "errors": [f"Token error: {str(e)[:100]}"]}
+        return {
+            "ingested": 0,
+            "attachments": 0,
+            "skipped": 0,
+            "errors": [f"Token error: {str(e)[:100]}"],
+        }
 
     provider = get_gmail_provider()
-    messages = provider.list_messages(token, label_id, max_results=limit)
+    listed = provider.list_messages(token, label_id, max_results=limit)
+    if isinstance(listed, dict):
+        detail = listed.get("error") or listed.get("error_code") or "Gmail list failed"
+        return {
+            "ingested": 0,
+            "attachments": 0,
+            "skipped": 0,
+            "errors": [str(detail)[:200]],
+        }
+    messages = listed
     ingested = 0
     attachments = 0
     skipped = 0
@@ -190,7 +231,14 @@ def fetch_and_ingest_label(
             if "error" in msg_data:
                 errors.append(f"{msg_id}: {msg_data['error']}")
                 continue
-            result = ingest_email(db, workspace_id, label_id, msg_data, admin_user_id=admin_user_id, label_name=lbl.label_name)
+            result = ingest_email(
+                db,
+                workspace_id,
+                label_id,
+                msg_data,
+                admin_user_id=admin_user_id,
+                label_name=lbl.label_name,
+            )
             if result["email_evidence_id"]:
                 ingested += 1
             else:

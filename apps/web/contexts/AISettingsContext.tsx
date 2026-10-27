@@ -1,6 +1,6 @@
 'use client'
 
-import React, { createContext, useCallback, useContext, useEffect, useState } from 'react'
+import React, { createContext, useCallback, useContext, useState } from 'react'
 
 export type ResponseStyle = 'precise' | 'balanced' | 'natural'
 
@@ -33,19 +33,30 @@ const AISettingsContext = createContext<AISettingsState>({
 
 export function useAISettings() {
   const ctx = useContext(AISettingsContext)
-  if (!ctx) throw new Error('useAISettings must be used within AISettingsProvider')
+  if (!ctx)
+    throw new Error('useAISettings must be used within AISettingsProvider')
   return ctx
 }
 
-export function AISettingsProvider({ children }: { children: React.ReactNode }) {
+export function AISettingsProvider({
+  children,
+}: {
+  children: React.ReactNode
+}) {
   const [model, setModel] = useState<string>(defaultModel)
-  const [responseStyle, setResponseStyle] = useState<ResponseStyle>(defaultStyle)
+  const [responseStyle, setResponseStyle] =
+    useState<ResponseStyle>(defaultStyle)
 
   const loadFromWorkspace = useCallback(async () => {
     try {
-      const r = await fetch('/api/workspaces/current', { credentials: 'include' })
+      const r = await fetch('/api/workspaces/current', {
+        credentials: 'include',
+      })
       if (!r.ok) return
-      const d = await r.json() as { ai_completion_model?: string | null; ai_temperature?: number | null }
+      const d = (await r.json()) as {
+        ai_completion_model?: string | null
+        ai_temperature?: number | null
+      }
       if (d.ai_completion_model) setModel(d.ai_completion_model)
       if (d.ai_temperature != null && !Number.isNaN(d.ai_temperature)) {
         setResponseStyle(temperatureToResponseStyle(d.ai_temperature))

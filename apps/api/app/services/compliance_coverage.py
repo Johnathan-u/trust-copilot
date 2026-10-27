@@ -8,13 +8,14 @@ from __future__ import annotations
 
 import json
 from collections import Counter, defaultdict
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta  # noqa: F401
 
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
-from app.models import Answer, Document, Question, Questionnaire
+from app.models import Answer, Document, Question, Questionnaire  # noqa: F401
 from app.models.evidence_gap import EvidenceGap
+from app.services.evidence_gap_service import suggested_evidence_title
 from app.models.question_mapping_signal import QuestionMappingSignal
 
 HIGH_CONFIDENCE_THRESHOLD = 70
@@ -31,7 +32,8 @@ def get_compliance_coverage(db: Session, workspace_id: int) -> dict:
     total_questions = (
         db.query(func.count(Question.id))
         .filter(Question.questionnaire_id.in_(db.query(base_qnr.c.id)))
-        .scalar() or 0
+        .scalar()
+        or 0
     )
 
     answer_rows = (
@@ -63,7 +65,10 @@ def get_compliance_coverage(db: Session, workspace_id: int) -> dict:
         try:
             fw = json.loads(fw_json or "[]")
             subj = json.loads(subj_json or "[]")
-            signal_map[qid] = (fw if isinstance(fw, list) else [], subj if isinstance(subj, list) else [])
+            signal_map[qid] = (
+                fw if isinstance(fw, list) else [],
+                subj if isinstance(subj, list) else [],
+            )
         except Exception:
             signal_map[qid] = ([], [])
 
@@ -73,12 +78,18 @@ def get_compliance_coverage(db: Session, workspace_id: int) -> dict:
     high_conf = 0
     total_answered = 0
 
-    fw_stats: dict[str, dict[str, int]] = defaultdict(lambda: {"total": 0, "drafted": 0, "insufficient": 0})
+    fw_stats: dict[str, dict[str, int]] = defaultdict(
+        lambda: {"total": 0, "drafted": 0, "insufficient": 0}
+    )
     subj_insuff: Counter[str] = Counter()
     subj_conf: dict[str, list[int]] = defaultdict(list)
     subj_evidence: dict[str, list[int]] = defaultdict(list)
-    daily_stats: dict[str, dict[str, int]] = defaultdict(lambda: {"drafted": 0, "insufficient": 0, "total": 0, "low_conf": 0})
-    drill_data: dict[tuple[str, str], dict[str, int]] = defaultdict(lambda: {"questions": 0, "answered": 0, "low_conf": 0, "insufficient": 0})
+    daily_stats: dict[str, dict[str, int]] = defaultdict(
+        lambda: {"drafted": 0, "insufficient": 0, "total": 0, "low_conf": 0}
+    )
+    drill_data: dict[tuple[str, str], dict[str, int]] = defaultdict(
+        lambda: {"questions": 0, "answered": 0, "low_conf": 0, "insufficient": 0}
+    )
 
     for aid, qid, status, conf, cats_json, citations_json, created_at in answer_rows:
         total_answered += 1
@@ -153,7 +164,11 @@ def get_compliance_coverage(db: Session, workspace_id: int) -> dict:
                     drill_data[key]["low_conf"] += 1
 
         if created_at:
-            day = created_at.strftime("%Y-%m-%d") if isinstance(created_at, datetime) else str(created_at)[:10]
+            day = (
+                created_at.strftime("%Y-%m-%d")
+                if isinstance(created_at, datetime)
+                else str(created_at)[:10]
+            )
             daily_stats[day]["total"] += 1
             if is_draft:
                 daily_stats[day]["drafted"] += 1
@@ -237,9 +252,7 @@ def get_compliance_coverage(db: Session, workspace_id: int) -> dict:
             .all()
         )
         gap_suggestions = [
-            {"title": title, "improves_questions": int(cnt)}
-            for title, cnt in gap_rows
-            if title
+            {"title": title, "improves_questions": int(cnt)} for title, cnt in gap_rows if title
         ]
     except Exception:
         pass
@@ -260,12 +273,20 @@ def get_compliance_coverage(db: Session, workspace_id: int) -> dict:
             running_insuff += ds["insufficient"]
             running_total += ds["total"]
             running_low_conf += ds["low_conf"]
-            trends.append({
-                "date": day,
-                "coverage_pct": round(running_drafted / running_total * 100, 1) if running_total > 0 else 0,
-                "insufficient_pct": round(running_insuff / running_total * 100, 1) if running_total > 0 else 0,
-                "low_confidence_pct": round(running_low_conf / running_total * 100, 1) if running_total > 0 else 0,
-            })
+            trends.append(
+                {
+                    "date": day,
+                    "coverage_pct": round(running_drafted / running_total * 100, 1)
+                    if running_total > 0
+                    else 0,
+                    "insufficient_pct": round(running_insuff / running_total * 100, 1)
+                    if running_total > 0
+                    else 0,
+                    "low_confidence_pct": round(running_low_conf / running_total * 100, 1)
+                    if running_total > 0
+                    else 0,
+                }
+            )
 
     # ---------- Drill-down ----------
     drill_down = sorted(
@@ -311,28 +332,10 @@ def _infer_evidence_suggestions(
     subj_evidence: dict[str, list[int]],
 ) -> list[dict]:
     """When no EvidenceGap rows exist, infer suggestions from insufficient subjects."""
-    _SUBJECT_TO_DOC: dict[str, str] = {
-        "Risk Assessment": "Risk Assessment Policy",
-        "Vendor Risk": "Vendor Risk Management Policy",
-        "Vendor Management": "Vendor Risk Management Policy",
-        "Business Continuity / Disaster Recovery": "Business Continuity & DR Plan",
-        "Encryption": "Encryption & Key Management Policy",
-        "Cryptography": "Encryption & Key Management Policy",
-        "Breach Notification": "Incident Response & Breach Notification Plan",
-        "Incident Response": "Incident Response Plan",
-        "Access Control": "Access Control Policy",
-        "Change Management": "Change Management Policy",
-        "Data Retention / Disposal": "Data Retention & Disposal Policy",
-        "Privacy / Data Governance": "Privacy Policy & Data Governance Framework",
-        "Secure SDLC": "Secure Development Lifecycle Policy",
-        "Physical Security": "Physical Security Policy",
-    }
     suggestions = []
     for subj, count in subj_insuff.most_common(8):
         if subj == "Uncategorized":
             continue
-        doc_title = _SUBJECT_TO_DOC.get(subj)
-        if not doc_title:
-            doc_title = f"{subj} Policy"
+        doc_title = suggested_evidence_title(subj)
         suggestions.append({"title": f"Upload {doc_title}", "improves_questions": count})
     return suggestions

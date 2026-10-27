@@ -20,17 +20,18 @@ _api_root = Path(__file__).resolve().parent.parent
 if str(_api_root) not in sys.path:
     sys.path.insert(0, str(_api_root))
 
-from dotenv import load_dotenv
+from dotenv import load_dotenv  # noqa: E402
+
 _in_docker = Path("/.dockerenv").exists() or os.environ.get("TRUST_COPILOT_IN_DOCKER") == "1"
 if not _in_docker:
     load_dotenv(_api_root / ".env", override=True)
     load_dotenv(_api_root.parent.parent / ".env")
 
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy import create_engine  # noqa: E402
+from sqlalchemy.orm import sessionmaker  # noqa: E402
 
-from app.core.config import get_settings
-from app.models import Job, JobStatus
+from app.core.config import get_settings  # noqa: E402
+from app.models import Job, JobStatus  # noqa: E402
 
 STUCK_THRESHOLD_MINUTES = 30
 
@@ -38,7 +39,12 @@ STUCK_THRESHOLD_MINUTES = 30
 def main() -> None:
     parser = argparse.ArgumentParser(description="Detect jobs stuck in RUNNING")
     parser.add_argument("--recover", action="store_true", help="Mark stuck jobs as failed")
-    parser.add_argument("--minutes", type=int, default=STUCK_THRESHOLD_MINUTES, help="Consider running jobs older than this as stuck")
+    parser.add_argument(
+        "--minutes",
+        type=int,
+        default=STUCK_THRESHOLD_MINUTES,
+        help="Consider running jobs older than this as stuck",
+    )
     args = parser.parse_args()
 
     settings = get_settings()
@@ -51,7 +57,11 @@ def main() -> None:
         threshold = datetime.utcnow() - timedelta(minutes=args.minutes)
         stuck = (
             session.query(Job)
-            .filter(Job.status == JobStatus.RUNNING.value, Job.started_at.isnot(None), Job.started_at < threshold)
+            .filter(
+                Job.status == JobStatus.RUNNING.value,
+                Job.started_at.isnot(None),
+                Job.started_at < threshold,
+            )
             .order_by(Job.started_at)
             .all()
         )
@@ -60,7 +70,9 @@ def main() -> None:
             return
         print(f"Found {len(stuck)} stuck job(s) (RUNNING and started_at < {args.minutes} min ago):")
         for j in stuck:
-            print(f"  id={j.id} kind={j.kind} workspace_id={j.workspace_id} started_at={j.started_at}")
+            print(
+                f"  id={j.id} kind={j.kind} workspace_id={j.workspace_id} started_at={j.started_at}"
+            )
         if args.recover:
             for j in stuck:
                 j.status = JobStatus.FAILED.value

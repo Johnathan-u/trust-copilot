@@ -56,6 +56,21 @@ export function DashboardShell({ children }: DashboardShellProps) {
     navWasOpen.current = navOpen
   }, [navOpen])
 
+  useEffect(() => {
+    if (loading) return
+    if (!user && !error) {
+      const next = pathname
+        ? `/login?next=${encodeURIComponent(pathname)}`
+        : '/login'
+      window.location.href = next
+      return
+    }
+    if (needs_onboarding) {
+      // eslint-disable-next-line @next/next/no-location-assign-relative-destination -- intentional full page load to reset client auth/workspace state (pre-existing; TC-02-006)
+      window.location.href = '/onboarding'
+    }
+  }, [user, loading, needs_onboarding, error, pathname])
+
   if (loading) {
     return (
       <div className="flex min-h-screen items-center justify-center gap-3">
@@ -79,7 +94,10 @@ export function DashboardShell({ children }: DashboardShellProps) {
           </button>
           <button
             type="button"
-            onClick={() => { window.location.href = '/login' }}
+            onClick={() => {
+              // eslint-disable-next-line @next/next/no-location-assign-relative-destination -- intentional full page load to reset client auth/workspace state (pre-existing; TC-02-006)
+              window.location.href = '/login'
+            }}
             className="min-h-tc-6 rounded-tc-sm border border-tc-border-strong px-tc-4 py-tc-2 text-tc-label font-medium text-tc-text hover:bg-[var(--tc-hover)]"
           >
             Back to login

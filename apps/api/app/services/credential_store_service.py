@@ -4,7 +4,6 @@ import base64
 import hashlib
 import json
 import logging
-import os
 from datetime import datetime, timedelta, timezone
 
 from cryptography.fernet import Fernet
@@ -17,7 +16,9 @@ logger = logging.getLogger(__name__)
 
 def _get_fernet() -> Fernet:
     """Derive a Fernet key from SESSION_SECRET (same approach as existing Slack/Gmail token encryption)."""
-    secret = os.environ.get("SESSION_SECRET", "fallback-not-for-production")
+    from app.core.session import get_session_secret
+
+    secret = get_session_secret()
     key = base64.urlsafe_b64encode(hashlib.sha256(secret.encode()).digest()[:32])
     return Fernet(key)
 
@@ -42,11 +43,15 @@ def store_credential(
     metadata: dict | None = None,
 ) -> dict:
     """Store or update an encrypted credential."""
-    existing = db.query(CredentialStore).filter(
-        CredentialStore.workspace_id == workspace_id,
-        CredentialStore.source_type == source_type,
-        CredentialStore.credential_type == credential_type,
-    ).first()
+    existing = (
+        db.query(CredentialStore)
+        .filter(
+            CredentialStore.workspace_id == workspace_id,
+            CredentialStore.source_type == source_type,
+            CredentialStore.credential_type == credential_type,
+        )
+        .first()
+    )
 
     encrypted_value = encrypt(value)
     now = datetime.now(timezone.utc)
@@ -79,14 +84,20 @@ def store_credential(
     return _serialize(cred, include_value=False)
 
 
-def get_credential(db: Session, workspace_id: int, source_type: str, credential_type: str) -> str | None:
+def get_credential(
+    db: Session, workspace_id: int, source_type: str, credential_type: str
+) -> str | None:
     """Retrieve and decrypt a credential value. Returns None if not found."""
-    row = db.query(CredentialStore).filter(
-        CredentialStore.workspace_id == workspace_id,
-        CredentialStore.source_type == source_type,
-        CredentialStore.credential_type == credential_type,
-        CredentialStore.status == "active",
-    ).first()
+    row = (
+        db.query(CredentialStore)
+        .filter(
+            CredentialStore.workspace_id == workspace_id,
+            CredentialStore.source_type == source_type,
+            CredentialStore.credential_type == credential_type,
+            CredentialStore.status == "active",
+        )
+        .first()
+    )
     if not row:
         return None
     return decrypt(row.encrypted_value)
@@ -98,12 +109,18 @@ def list_credentials(db: Session, workspace_id: int) -> list[dict]:
     return [_serialize(r, include_value=False) for r in rows]
 
 
-def revoke_credential(db: Session, workspace_id: int, source_type: str, credential_type: str) -> bool:
-    row = db.query(CredentialStore).filter(
-        CredentialStore.workspace_id == workspace_id,
-        CredentialStore.source_type == source_type,
-        CredentialStore.credential_type == credential_type,
-    ).first()
+def revoke_credential(
+    db: Session, workspace_id: int, source_type: str, credential_type: str
+) -> bool:
+    row = (
+        db.query(CredentialStore)
+        .filter(
+            CredentialStore.workspace_id == workspace_id,
+            CredentialStore.source_type == source_type,
+            CredentialStore.credential_type == credential_type,
+        )
+        .first()
+    )
     if not row:
         return False
     row.status = "revoked"
@@ -113,11 +130,15 @@ def revoke_credential(db: Session, workspace_id: int, source_type: str, credenti
 
 def check_rotation_due(db: Session, workspace_id: int) -> list[dict]:
     """Find credentials that need rotation."""
-    rows = db.query(CredentialStore).filter(
-        CredentialStore.workspace_id == workspace_id,
-        CredentialStore.status == "active",
-        CredentialStore.rotation_interval_days.isnot(None),
-    ).all()
+    rows = (
+        db.query(CredentialStore)
+        .filter(
+            CredentialStore.workspace_id == workspace_id,
+            CredentialStore.status == "active",
+            CredentialStore.rotation_interval_days.isnot(None),
+        )
+        .all()
+    )
     due = []
     now = datetime.now(timezone.utc)
     for r in rows:
@@ -131,12 +152,16 @@ def check_rotation_due(db: Session, workspace_id: int) -> list[dict]:
 def check_expiring(db: Session, workspace_id: int, days_ahead: int = 7) -> list[dict]:
     """Find credentials expiring within the given window."""
     cutoff = datetime.now(timezone.utc) + timedelta(days=days_ahead)
-    rows = db.query(CredentialStore).filter(
-        CredentialStore.workspace_id == workspace_id,
-        CredentialStore.status == "active",
-        CredentialStore.expires_at.isnot(None),
-        CredentialStore.expires_at <= cutoff,
-    ).all()
+    rows = (
+        db.query(CredentialStore)
+        .filter(
+            CredentialStore.workspace_id == workspace_id,
+            CredentialStore.status == "active",
+            CredentialStore.expires_at.isnot(None),
+            CredentialStore.expires_at <= cutoff,
+        )
+        .all()
+    )
     return [_serialize(r, include_value=False) for r in rows]
 
 

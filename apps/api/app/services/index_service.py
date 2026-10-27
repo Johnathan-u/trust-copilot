@@ -7,18 +7,42 @@ from pathlib import Path
 
 logger = logging.getLogger(__name__)
 
-from sqlalchemy import text
-from sqlalchemy.orm import Session
+from sqlalchemy import text  # noqa: E402
+from sqlalchemy.orm import Session  # noqa: E402
 
-from app.core.pipeline_logging import log_index_failure, log_index_start, log_index_success
-from app.core.metrics import INDEX_DOCUMENT_TOTAL, INDEX_DURATION_SECONDS
-from app.models import Chunk, Document
-from app.services.chunking import chunk_evidence
-from app.services.embedding_service import EMBEDDING_DIM, embed_texts
-from app.services.evidence_parser import parse_evidence
-from app.services.file_service import FileService
-from app.services.storage import StorageClient
-from app.services.vector_util import embedding_to_vector_literal, validate_embedding_dimension
+from app.core.pipeline_logging import log_index_failure, log_index_start, log_index_success  # noqa: E402
+from app.core.metrics import INDEX_DOCUMENT_TOTAL, INDEX_DURATION_SECONDS  # noqa: E402
+from app.models import Chunk, Document  # noqa: E402
+from app.services.chunking import chunk_evidence  # noqa: E402
+from app.services.embedding_service import EMBEDDING_DIM, embed_texts  # noqa: E402, F401
+from app.services.evidence_parser import parse_evidence  # noqa: E402
+from app.services.file_service import FileService  # noqa: E402
+from app.services.pdf_text import PdfTextError  # noqa: E402
+from app.services.storage import StorageClient  # noqa: E402
+from app.services.vector_util import embedding_to_vector_literal, validate_embedding_dimension  # noqa: E402
+
+
+_NO_EMBEDDINGS_MSG = (
+    "No embeddings could be written (API error or dimension mismatch); document not indexed"
+)
+
+
+def _raise_no_embeddings(provider_error: Exception | None) -> None:
+    """TC-10-002: raise a classified error so the worker retries transient provider failures and stops on
+    auth/config ones. The message never contains the raw provider body."""
+    from app.core.config import get_settings
+    from app.core.job_errors import JobConfigError, job_error_from, safe_error_message
+
+    if not (get_settings().openai_api_key or "").strip():
+        # The variable name stays in the server log. Stored job/document errors use the neutral text.
+        logger.warning("OPENAI_API_KEY is not configured; embeddings were not written")
+        raise JobConfigError("AI provider is not configured")
+    if provider_error is not None:
+        raise job_error_from(
+            provider_error,
+            f"Embedding provider error: {safe_error_message(provider_error)}; document not indexed",
+        ) from provider_error
+    raise ValueError(_NO_EMBEDDINGS_MSG)
 
 
 def index_document(
@@ -27,12 +51,17 @@ def index_document(
     storage: StorageClient,
     file_svc: FileService,
     job_id: int | None = None,
+    effects=None,
+    effect_name: str = "chunks",
 ) -> int:
     """
     Parse document, create chunks with metadata, generate embeddings, persist.
     Idempotent: deletes existing chunks for the document before creating new ones.
     Single transaction: one commit at the end; on failure document is left for worker to mark failed.
     Returns embedded chunk count. Raises on unrecoverable failure (0 parsed, 0 embedded, or embedding dimension mismatch).
+
+    ``effects`` (TC-10-003, optional ``JobEffects``): records a provider-call marker before the paid embedding
+    call, and commits the ``effect_name`` applied marker atomically with the chunks so a re-run skips re-embedding.
     """
     doc = db.query(Document).filter(Document.id == document_id).first()
     if not doc:
@@ -52,14 +81,38 @@ def index_document(
         f.write(content)
         path = f.name
     try:
-        parsed = parse_evidence(path)
+        try:
+            parsed = parse_evidence(path)
+        except PdfTextError as e:
+            # Image-only, encrypted or corrupt PDF (TC-01-003a). str(e) is a fixed,
+            # user-readable message (no path, no backend exception text).
+            doc.status = "failed"
+            doc.index_error = str(e)[:512]
+            db.commit()
+            duration_ms = (time.monotonic() - started) * 1000
+            log_index_failure(
+                document_id,
+                doc.workspace_id,
+                type(e).__name__,
+                duration_ms,
+                job_id=job_id,
+            )
+            INDEX_DOCUMENT_TOTAL.labels(status="failure").inc()
+            INDEX_DURATION_SECONDS.observe(duration_ms / 1000)
+            raise
         if not parsed:
             # No false "indexed": 0 chunks => mark failed (Fix 2).
             doc.status = "failed"
             doc.index_error = ("Parse returned no content; document not indexed")[:512]
             db.commit()
             duration_ms = (time.monotonic() - started) * 1000
-            log_index_failure(document_id, doc.workspace_id, "Parse returned no content", duration_ms, job_id=job_id)
+            log_index_failure(
+                document_id,
+                doc.workspace_id,
+                "Parse returned no content",
+                duration_ms,
+                job_id=job_id,
+            )
             INDEX_DOCUMENT_TOTAL.labels(status="failure").inc()
             INDEX_DURATION_SECONDS.observe(duration_ms / 1000)
             raise ValueError("Parse returned no content; document not indexed")
@@ -84,6 +137,11 @@ def index_document(
 
         chunks = db.query(Chunk).filter(Chunk.id.in_(chunk_ids)).all()
         texts = [c.text for c in chunks]
+        if effects is not None:
+            effects.provider_call_started("embeddings")
+        from app.services import embedding_service as _emb
+
+        _emb.reset_last_embed_error()
         embeddings = embed_texts(texts)
 
         embedded_count = 0
@@ -104,23 +162,37 @@ def index_document(
         # No false "indexed": require at least one embedded chunk (Fix 2). Single commit (Fix 3).
         if embedded_count == 0:
             doc.status = "failed"
-            doc.index_error = ("No embeddings could be written (API error or dimension mismatch); document not indexed")[:512]
+            doc.index_error = (
+                "No embeddings could be written (API error or dimension mismatch); document not indexed"
+            )[:512]
             db.commit()
             duration_ms = (time.monotonic() - started) * 1000
-            log_index_failure(document_id, doc.workspace_id, "No embeddings could be written", duration_ms, job_id=job_id)
+            log_index_failure(
+                document_id,
+                doc.workspace_id,
+                "No embeddings could be written",
+                duration_ms,
+                job_id=job_id,
+            )
             INDEX_DOCUMENT_TOTAL.labels(status="failure").inc()
             INDEX_DURATION_SECONDS.observe(duration_ms / 1000)
-            raise ValueError(
-                "No embeddings could be written (API error or dimension mismatch); document not indexed"
-            )
+            _raise_no_embeddings(_emb.last_embed_error())
 
         doc.status = "indexed"
+        if effects is not None:
+            effects.mark_applied(
+                effect_name, {"embedded": embedded_count, "storage_key": doc.storage_key}
+            )
+            effects.settle("embeddings", {"texts": len(texts)})
 
         # Auto-tag: best-effort, never blocks indexing
         try:
             from app.services.tag_service import auto_tag_document
+
             chunk_texts = [c.text for c in chunks if c.text]
-            tag_count = auto_tag_document(db, document_id, doc.workspace_id, doc.filename or "", chunk_texts)
+            tag_count = auto_tag_document(
+                db, document_id, doc.workspace_id, doc.filename or "", chunk_texts
+            )
             if tag_count:
                 logger.info("auto_tagged document_id=%s tags=%s", document_id, tag_count)
         except Exception:
@@ -130,7 +202,10 @@ def index_document(
         # Invalidate retrieval cache when evidence corpus changes (answer pipeline)
         try:
             from app.core.corpus_version import bump_corpus_version
-            from app.services.retrieval_cache import invalidate_workspace as retrieval_cache_invalidate
+            from app.services.retrieval_cache import (
+                invalidate_workspace as retrieval_cache_invalidate,
+            )
+
             bump_corpus_version(db, doc.workspace_id)
             retrieval_cache_invalidate(db, doc.workspace_id)
         except Exception:

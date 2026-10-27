@@ -1,0 +1,6 @@
+# Collision check (temp copy of apps/api/alembic plus a simulated TC-25-005 revision '076' -> 075; nothing committed; --network none)
+== heads with a simulated TC-25-005 076 next to ours
+tc11001_model_outcome_codes (head)
+076 (head)
+== merge revision (offline, dry)
+simulated_merge (head)

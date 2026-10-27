@@ -4,9 +4,9 @@ Provides mock sync for both CRM platforms. Real implementations would use
 the respective REST APIs with OAuth.
 """
 
-import json
+import json  # noqa: F401
 import logging
-from datetime import datetime, timezone
+from datetime import datetime, timezone  # noqa: F401
 
 from sqlalchemy.orm import Session
 
@@ -16,11 +16,11 @@ logger = logging.getLogger(__name__)
 
 
 def sync_salesforce(db: Session, workspace_id: int) -> dict:
-    """Mock Salesforce opportunity sync."""
+    """Mock Salesforce opportunity sync. Creates synthetic example deals (TC-01-005); not real pipeline."""
     mock_opps = [
         {
             "external_id": "sf-opp-001",
-            "company_name": "Acme Corp",
+            "company_name": "Acme Corp (example data)",
             "contact_name": "Jane Buyer",
             "contact_email": "jane@acme.com",
             "deal_value": 150000,
@@ -29,7 +29,7 @@ def sync_salesforce(db: Session, workspace_id: int) -> dict:
         },
         {
             "external_id": "sf-opp-002",
-            "company_name": "Globex Industries",
+            "company_name": "Globex Industries (example data)",
             "contact_name": "Bob Procurement",
             "contact_email": "bob@globex.com",
             "deal_value": 85000,
@@ -39,10 +39,14 @@ def sync_salesforce(db: Session, workspace_id: int) -> dict:
     ]
     synced = []
     for opp in mock_opps:
-        existing = db.query(Deal).filter(
-            Deal.workspace_id == workspace_id,
-            Deal.crm_external_id == opp["external_id"],
-        ).first()
+        existing = (
+            db.query(Deal)
+            .filter(
+                Deal.workspace_id == workspace_id,
+                Deal.crm_external_id == opp["external_id"],
+            )
+            .first()
+        )
         if existing:
             existing.company_name = opp["company_name"]
             existing.deal_value_arr = opp["deal_value"]
@@ -62,15 +66,21 @@ def sync_salesforce(db: Session, workspace_id: int) -> dict:
             db.add(deal)
             synced.append({"action": "created", "external_id": opp["external_id"]})
     db.flush()
-    return {"source": "salesforce", "synced": len(synced), "details": synced}
+    return {
+        "source": "salesforce",
+        "synced": len(synced),
+        "details": synced,
+        "mock": True,
+        "data_basis": "synthetic_example",
+    }
 
 
 def sync_hubspot(db: Session, workspace_id: int) -> dict:
-    """Mock HubSpot deal sync."""
+    """Mock HubSpot deal sync. Creates synthetic example deals (TC-01-005); not real pipeline."""
     mock_deals = [
         {
             "external_id": "hs-deal-001",
-            "company_name": "StartupCo",
+            "company_name": "StartupCo (example data)",
             "contact_name": "Alice Security",
             "contact_email": "alice@startupco.io",
             "deal_value": 45000,
@@ -80,10 +90,14 @@ def sync_hubspot(db: Session, workspace_id: int) -> dict:
     ]
     synced = []
     for d in mock_deals:
-        existing = db.query(Deal).filter(
-            Deal.workspace_id == workspace_id,
-            Deal.crm_external_id == d["external_id"],
-        ).first()
+        existing = (
+            db.query(Deal)
+            .filter(
+                Deal.workspace_id == workspace_id,
+                Deal.crm_external_id == d["external_id"],
+            )
+            .first()
+        )
         if existing:
             existing.company_name = d["company_name"]
             existing.deal_value_arr = d["deal_value"]
@@ -103,11 +117,32 @@ def sync_hubspot(db: Session, workspace_id: int) -> dict:
             db.add(deal)
             synced.append({"action": "created", "external_id": d["external_id"]})
     db.flush()
-    return {"source": "hubspot", "synced": len(synced), "details": synced}
+    return {
+        "source": "hubspot",
+        "synced": len(synced),
+        "details": synced,
+        "mock": True,
+        "data_basis": "synthetic_example",
+    }
 
 
 def get_sync_status(db: Session, workspace_id: int) -> dict:
-    sf_count = db.query(Deal).filter(Deal.workspace_id == workspace_id, Deal.crm_source == "salesforce").count()
-    hs_count = db.query(Deal).filter(Deal.workspace_id == workspace_id, Deal.crm_source == "hubspot").count()
-    manual = db.query(Deal).filter(Deal.workspace_id == workspace_id, Deal.crm_source.is_(None)).count()
-    return {"salesforce": sf_count, "hubspot": hs_count, "manual": manual, "total": sf_count + hs_count + manual}
+    sf_count = (
+        db.query(Deal)
+        .filter(Deal.workspace_id == workspace_id, Deal.crm_source == "salesforce")
+        .count()
+    )
+    hs_count = (
+        db.query(Deal)
+        .filter(Deal.workspace_id == workspace_id, Deal.crm_source == "hubspot")
+        .count()
+    )
+    manual = (
+        db.query(Deal).filter(Deal.workspace_id == workspace_id, Deal.crm_source.is_(None)).count()
+    )
+    return {
+        "salesforce": sf_count,
+        "hubspot": hs_count,
+        "manual": manual,
+        "total": sf_count + hs_count + manual,
+    }

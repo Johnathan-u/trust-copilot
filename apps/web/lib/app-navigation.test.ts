@@ -30,6 +30,9 @@ describe('application navigation', () => {
     const hrefs = appNavItems.map((item) => item.href)
     expect(new Set(hrefs).size).toBe(hrefs.length)
     expect(hrefs).toContain('/dashboard')
+    expect(hrefs).toContain('/dashboard/compliance-frameworks')
+    expect(hrefs).toContain('/dashboard/case-studies')
+    expect(hrefs).toContain('/dashboard/demo-proof')
     expect(hrefs).toContain('/dashboard/settings')
     expect(accountNavItems.map((item) => item.href)).toEqual(['/dashboard/security'])
 

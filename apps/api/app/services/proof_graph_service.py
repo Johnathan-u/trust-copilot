@@ -444,9 +444,7 @@ def record_reuse_provenance(
     }
 
 
-def list_reuse_for_answer(
-    db: Session, workspace_id: int, answer_id: int
-) -> list[dict]:
+def list_reuse_for_answer(db: Session, workspace_id: int, answer_id: int) -> list[dict]:
     rows = (
         db.query(AnswerReuseProvenance)
         .filter(

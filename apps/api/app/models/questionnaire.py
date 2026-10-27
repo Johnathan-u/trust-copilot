@@ -17,7 +17,9 @@ class Questionnaire(Base):
     __tablename__ = "questionnaires"
 
     id = Column(Integer, primary_key=True, index=True)
-    workspace_id = Column(Integer, ForeignKey("workspaces.id", ondelete="CASCADE"), nullable=False, index=True)
+    workspace_id = Column(
+        Integer, ForeignKey("workspaces.id", ondelete="CASCADE"), nullable=False, index=True
+    )
     document_id = Column(Integer, ForeignKey("documents.id", ondelete="SET NULL"), nullable=True)
     storage_key = Column(String(512), nullable=True)
     filename = Column(String(255), nullable=False)
@@ -29,7 +31,9 @@ class Questionnaire(Base):
     created_at = Column(DateTime, default=_utc_now)
     updated_at = Column(DateTime, default=_utc_now, onupdate=_utc_now)
     deleted_at = Column(DateTime, nullable=True, index=True)
-    deleted_by = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True)
+    deleted_by = Column(
+        Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True
+    )
     # Legacy: framework bias (unused by new pipeline; prefer mapping_preferred_subject_areas_json)
     mapping_preferred_framework = Column(String(32), nullable=True)
     # JSON list of subject-area labels (e.g. ["Access Control","Encryption"]) for AI category mapping
@@ -44,7 +48,9 @@ class Question(Base):
     __tablename__ = "questions"
 
     id = Column(Integer, primary_key=True, index=True)
-    questionnaire_id = Column(Integer, ForeignKey("questionnaires.id", ondelete="CASCADE"), nullable=False, index=True)
+    questionnaire_id = Column(
+        Integer, ForeignKey("questionnaires.id", ondelete="CASCADE"), nullable=False, index=True
+    )
     text = Column(Text, nullable=False)
     section = Column(String(255), nullable=True)
     answer_type = Column(String(64), nullable=True)

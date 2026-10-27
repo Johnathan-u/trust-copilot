@@ -15,8 +15,16 @@ export function DisplayIdText({ value }: { value: string }) {
   )
 }
 
-export function CreatedTimestampText({ value }: { value: string | null | undefined }) {
-  return <span className="text-xs text-[var(--tc-muted)]">{formatCreatedAt(value)}</span>
+export function CreatedTimestampText({
+  value,
+}: {
+  value: string | null | undefined
+}) {
+  return (
+    <span className="text-xs text-[var(--tc-muted)]">
+      {formatCreatedAt(value)}
+    </span>
+  )
 }
 
 export function CategoryChipsRow({
@@ -98,10 +106,14 @@ export function DeleteConfirmationModal({
         </div>
         {depEntries.length > 0 && (
           <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-3">
-            <p className="mb-1 text-xs font-medium text-amber-200">This record is linked to:</p>
+            <p className="mb-1 text-xs font-medium text-amber-200">
+              This record is linked to:
+            </p>
             <ul className="space-y-1 text-xs text-amber-100">
               {depEntries.map(([key, count]) => (
-                <li key={key}>- {count} {key.replace(/_/g, ' ')}</li>
+                <li key={key}>
+                  - {count} {key.replace(/_/g, ' ')}
+                </li>
               ))}
             </ul>
           </div>
@@ -109,12 +121,25 @@ export function DeleteConfirmationModal({
         {unmodeledWarning && (
           <p className="text-xs text-amber-200/90">{unmodeledWarning}</p>
         )}
-        <p className="text-xs text-[var(--tc-muted)]">Deleting may remove active references. This action is archived as a soft delete.</p>
+        <p className="text-xs text-[var(--tc-muted)]">
+          Deleting may remove active references. This action is archived as a
+          soft delete.
+        </p>
         <div className="flex justify-end gap-2">
-          <Button variant="ghost" size="sm" onClick={onClose} disabled={deleting}>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={onClose}
+            disabled={deleting}
+          >
             Cancel
           </Button>
-          <Button variant="danger" size="sm" onClick={onConfirm} disabled={deleting}>
+          <Button
+            variant="danger"
+            size="sm"
+            onClick={onConfirm}
+            disabled={deleting}
+          >
             {deleting ? 'Deleting…' : 'Delete'}
           </Button>
         </div>
@@ -144,13 +169,19 @@ export function BulkSelectionBar({
       aria-live="polite"
     >
       <span className="text-sm font-medium text-[var(--tc-text)]">
-        {selectedCount} {itemLabel}{selectedCount === 1 ? '' : 's'} selected
+        {selectedCount} {itemLabel}
+        {selectedCount === 1 ? '' : 's'} selected
       </span>
       <div className="flex items-center gap-2">
         <Button variant="ghost" size="sm" onClick={onClear} disabled={deleting}>
           Clear selection
         </Button>
-        <Button variant="danger" size="sm" onClick={onDelete} disabled={deleting}>
+        <Button
+          variant="danger"
+          size="sm"
+          onClick={onDelete}
+          disabled={deleting}
+        >
           {deleting ? 'Deleting…' : `Delete selected`}
         </Button>
       </div>
@@ -175,22 +206,49 @@ export function BulkDeleteConfirmationModal({
   onClose: () => void
   onConfirm: () => void
 }) {
-  const truncated = displayIds.length > 8 ? displayIds.slice(0, 8).join(', ') + ` and ${displayIds.length - 8} more` : displayIds.join(', ')
+  const truncated =
+    displayIds.length > 8
+      ? displayIds.slice(0, 8).join(', ') + ` and ${displayIds.length - 8} more`
+      : displayIds.join(', ')
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title={title || `Delete ${displayIds.length} ${itemLabel}${displayIds.length === 1 ? '' : 's'}?`}>
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      title={
+        title ||
+        `Delete ${displayIds.length} ${itemLabel}${displayIds.length === 1 ? '' : 's'}?`
+      }
+    >
       <div className="space-y-3">
         <p className="text-sm text-[var(--tc-text)]">
-          You are about to archive {displayIds.length} {itemLabel}{displayIds.length === 1 ? '' : 's'}. This is a soft delete and can be restored later.
+          You are about to archive {displayIds.length} {itemLabel}
+          {displayIds.length === 1 ? '' : 's'}. This is a soft delete and can be
+          restored later.
         </p>
         <div className="max-h-32 overflow-y-auto rounded-xl border border-[var(--tc-border)] bg-white/5 px-3 py-2">
-          <p className="text-xs text-[var(--tc-muted)] font-mono">{truncated}</p>
+          <p className="text-xs text-[var(--tc-muted)] font-mono">
+            {truncated}
+          </p>
         </div>
-        <p className="text-xs text-[var(--tc-muted)]">Deleting may remove active references. This action archives the records.</p>
+        <p className="text-xs text-[var(--tc-muted)]">
+          Deleting may remove active references. This action archives the
+          records.
+        </p>
         <div className="flex justify-end gap-2">
-          <Button variant="ghost" size="sm" onClick={onClose} disabled={deleting}>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={onClose}
+            disabled={deleting}
+          >
             Cancel
           </Button>
-          <Button variant="danger" size="sm" onClick={onConfirm} disabled={deleting}>
+          <Button
+            variant="danger"
+            size="sm"
+            onClick={onConfirm}
+            disabled={deleting}
+          >
             {deleting ? 'Deleting…' : 'Delete'}
           </Button>
         </div>
@@ -230,7 +288,12 @@ export function MetadataEditorModal({
               <button
                 key={f}
                 type="button"
-                onClick={() => onSave({ frameworks: toggle(selectedFrameworks, f), subject_areas: selectedSubjects })}
+                onClick={() =>
+                  onSave({
+                    frameworks: toggle(selectedFrameworks, f),
+                    subject_areas: selectedSubjects,
+                  })
+                }
                 className={`rounded-xl border px-2 py-1 text-xs ${selectedFrameworks.includes(f) ? 'border-[rgba(91,124,255,0.4)] bg-[rgba(91,124,255,0.2)]' : 'border-[var(--tc-border)] bg-white/5'}`}
               >
                 {f}
@@ -245,7 +308,12 @@ export function MetadataEditorModal({
               <button
                 key={s}
                 type="button"
-                onClick={() => onSave({ frameworks: selectedFrameworks, subject_areas: toggle(selectedSubjects, s) })}
+                onClick={() =>
+                  onSave({
+                    frameworks: selectedFrameworks,
+                    subject_areas: toggle(selectedSubjects, s),
+                  })
+                }
                 className={`rounded-xl border px-2 py-1 text-xs ${selectedSubjects.includes(s) ? 'border-[rgba(91,124,255,0.4)] bg-[rgba(91,124,255,0.2)]' : 'border-[var(--tc-border)] bg-white/5'}`}
               >
                 {s}
@@ -254,7 +322,9 @@ export function MetadataEditorModal({
           </div>
         </div>
         <div className="flex justify-end gap-2">
-          <Button size="sm" variant="ghost" onClick={onClose} disabled={saving}>Close</Button>
+          <Button size="sm" variant="ghost" onClick={onClose} disabled={saving}>
+            Close
+          </Button>
         </div>
       </div>
     </Modal>

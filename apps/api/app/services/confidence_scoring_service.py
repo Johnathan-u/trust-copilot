@@ -46,7 +46,9 @@ def score_evidence(db: Session, evidence_id: int) -> dict:
         + completeness_score * weights["completeness"]
     )
 
-    link = db.query(ControlEvidenceLink).filter(ControlEvidenceLink.evidence_id == evidence_id).first()
+    link = (
+        db.query(ControlEvidenceLink).filter(ControlEvidenceLink.evidence_id == evidence_id).first()
+    )
     if link:
         link.confidence_score = round(total, 3)
         db.flush()

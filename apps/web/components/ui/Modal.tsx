@@ -40,9 +40,16 @@ export function Modal({ isOpen, onClose, title, children }: ModalProps) {
         style={{ background: 'var(--tc-panel)' }}
       >
         {title && (
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-tc-title font-semibold text-tc-text">{title}</h2>
-            <Button variant="ghost" size="sm" onClick={onClose} aria-label="Close">
+          <div className="mb-4 flex items-center justify-between">
+            <h2 className="text-tc-title font-semibold text-tc-text">
+              {title}
+            </h2>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={onClose}
+              aria-label="Close"
+            >
               ×
             </Button>
           </div>

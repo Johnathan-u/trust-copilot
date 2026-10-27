@@ -56,7 +56,12 @@ fi
 # 6. Build and start
 echo "[6/6] Building and starting containers..."
 cd "$APP_DIR"
-docker compose -f docker-compose.prod.yml up -d --build
+if [ ! -f .env.production ]; then
+    echo "ERROR: .env.production is missing. Create it from .env.example (all credentials required)." >&2
+    exit 1
+fi
+# TC-07-001: credentials for postgres/minio are interpolated from .env.production, never committed.
+docker compose --env-file .env.production -f docker-compose.prod.yml up -d --build
 
 echo ""
 echo "=== Deploy complete ==="

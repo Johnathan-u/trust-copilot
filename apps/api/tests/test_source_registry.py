@@ -1,7 +1,7 @@
 """Tests for source registry (P0-05)."""
 
 import pytest
-from app.core.database import SessionLocal
+from app.core.database import SessionLocal  # noqa: F401
 from app.models.workspace import Workspace
 from app.services import source_registry_service as sr
 
@@ -132,7 +132,7 @@ class TestSourceRegistryAPI:
         assert "total_sources" in r.json()
 
     def test_seed_idempotent(self, admin_client):
-        r1 = admin_client.post("/api/sources/seed")
+        r1 = admin_client.post("/api/sources/seed")  # noqa: F841
         r2 = admin_client.post("/api/sources/seed")
         assert r2.json()["created"] == 0
 

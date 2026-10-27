@@ -52,7 +52,15 @@ async def list_items(
 ):
     """List operator queue items for the current workspace."""
     workspace_id = session["workspace_id"]
-    items = oq.list_items(db, workspace_id, status=status, priority=priority, assignee=assignee, limit=limit, offset=offset)
+    items = oq.list_items(
+        db,
+        workspace_id,
+        status=status,
+        priority=priority,
+        assignee=assignee,
+        limit=limit,
+        offset=offset,
+    )
     return {"items": items}
 
 
@@ -93,7 +101,9 @@ async def create_item(
     if not req.title.strip():
         raise HTTPException(status_code=400, detail="Title is required")
     item = oq.create_item(
-        db, workspace_id, req.title.strip(),
+        db,
+        workspace_id,
+        req.title.strip(),
         questionnaire_id=req.questionnaire_id,
         item_type=req.item_type,
         priority=req.priority,

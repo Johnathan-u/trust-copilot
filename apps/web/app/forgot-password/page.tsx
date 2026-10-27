@@ -23,12 +23,18 @@ export default function ForgotPasswordPage() {
         body: JSON.stringify({ email }),
         credentials: 'include',
       })
-      const data = (await res.json().catch(() => ({}))) as Record<string, unknown>
+      const data = (await res.json().catch(() => ({}))) as Record<
+        string,
+        unknown
+      >
       if (!res.ok) {
         setError(formatApiErrorDetail(data, 'Request failed'))
         return
       }
-      if (typeof data.reset_url === 'string' && data.reset_url.startsWith('http')) {
+      if (
+        typeof data.reset_url === 'string' &&
+        data.reset_url.startsWith('http')
+      ) {
         setDevResetUrl(data.reset_url)
       }
       setSuccess(true)
@@ -43,15 +49,20 @@ export default function ForgotPasswordPage() {
     return (
       <main className="flex min-h-screen items-center justify-center p-4">
         <Card className="w-full max-w-md">
-          <h1 className="text-xl font-bold text-[var(--tc-text)]">Check your email</h1>
+          <h1 className="text-xl font-bold text-[var(--tc-text)]">
+            Check your email
+          </h1>
           <p className="mt-2 text-sm text-[var(--tc-muted)]">
             If that email is registered, you will receive a reset link shortly.
           </p>
           {devResetUrl && (
             <div className="mt-4 rounded-xl border border-[var(--tc-border)] bg-white/5 p-3 text-sm">
-              <p className="font-medium text-[var(--tc-text)]">Development mode</p>
+              <p className="font-medium text-[var(--tc-text)]">
+                Development mode
+              </p>
               <p className="mt-1 text-[var(--tc-muted)]">
-                Reset link (only when API has TRUST_COPILOT_DEV_RETURN_RESET_URL enabled):
+                Reset link (only when API has TRUST_COPILOT_DEV_RETURN_RESET_URL
+                enabled):
               </p>
               <a
                 href={devResetUrl}
@@ -72,7 +83,9 @@ export default function ForgotPasswordPage() {
   return (
     <main className="flex min-h-screen items-center justify-center p-4">
       <Card className="w-full max-w-md">
-        <h1 className="text-xl font-bold text-[var(--tc-text)]">Forgot password</h1>
+        <h1 className="text-xl font-bold text-[var(--tc-text)]">
+          Forgot password
+        </h1>
         <p className="mt-2 mb-6 text-sm text-[var(--tc-muted)]">
           Enter your email and we will send you a reset link.
         </p>
@@ -91,7 +104,9 @@ export default function ForgotPasswordPage() {
           </Button>
         </form>
         <p className="mt-4 text-sm text-[var(--tc-muted)]">
-          <Link href="/login" className="text-[var(--tc-soft)] underline">Back to sign in</Link>
+          <Link href="/login" className="text-[var(--tc-soft)] underline">
+            Back to sign in
+          </Link>
         </p>
       </Card>
     </main>

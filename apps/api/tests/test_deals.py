@@ -1,6 +1,7 @@
 """Tests for deal management and analytics (E1-01, E1-04, E1-05, E1-06, E1-07)."""
 
 import pytest
+from app.models.questionnaire import Questionnaire
 from app.models.workspace import Workspace
 from app.services import deal_service as ds
 from app.services import revenue_risk_service as rrs
@@ -28,7 +29,9 @@ def editor_client(client):
 class TestDealService:
     def test_create_deal(self, db_session):
         ws = db_session.query(Workspace).first()
-        result = ds.create_deal(db_session, ws.id, "Test Corp", deal_value_arr=100000, stage="prospect")
+        result = ds.create_deal(
+            db_session, ws.id, "Test Corp", deal_value_arr=100000, stage="prospect"
+        )
         db_session.commit()
         assert result["company_name"] == "Test Corp"
         assert result["deal_value_arr"] == 100000
@@ -52,7 +55,7 @@ class TestDealService:
         ws = db_session.query(Workspace).first()
         created = ds.create_deal(db_session, ws.id, "Update Corp")
         db_session.commit()
-        updated = ds.update_deal(db_session, created["id"], stage="closed_won")
+        updated = ds.update_deal(db_session, created["id"], workspace_id=ws.id, stage="closed_won")
         db_session.commit()
         assert updated["stage"] == "closed_won"
 
@@ -60,17 +63,26 @@ class TestDealService:
         ws = db_session.query(Workspace).first()
         created = ds.create_deal(db_session, ws.id, "Delete Corp")
         db_session.commit()
-        assert ds.delete_deal(db_session, created["id"]) is True
+        assert ds.delete_deal(db_session, created["id"], workspace_id=ws.id) is True
         db_session.commit()
-        assert ds.get_deal(db_session, created["id"]) is None
+        assert ds.get_deal(db_session, created["id"], workspace_id=ws.id) is None
 
     def test_link_questionnaire(self, db_session):
         ws = db_session.query(Workspace).first()
         created = ds.create_deal(db_session, ws.id, "Link Corp")
         db_session.commit()
-        result = ds.link_questionnaire(db_session, created["id"], 42)
+        qnr = Questionnaire(workspace_id=ws.id, filename="link-corp.xlsx", status="parsed")
+        db_session.add(qnr)
         db_session.commit()
-        assert 42 in result["linked_questionnaire_ids"]
+        try:
+            result = ds.link_questionnaire(db_session, created["id"], qnr.id, workspace_id=ws.id)
+            db_session.commit()
+            assert qnr.id in result["linked_questionnaire_ids"]
+        finally:
+            # Don't leave a question-less questionnaire in workspace 1 for later tests.
+            db_session.rollback()
+            db_session.delete(qnr)
+            db_session.commit()
 
 
 class TestRevenueRiskService:
@@ -78,7 +90,7 @@ class TestRevenueRiskService:
         ws = db_session.query(Workspace).first()
         created = ds.create_deal(db_session, ws.id, "Risk Corp", deal_value_arr=200000)
         db_session.commit()
-        score = rrs.score_deal(db_session, created["id"])
+        score = rrs.score_deal(db_session, created["id"], workspace_id=ws.id)
         assert "risk_score" in score
         assert "revenue_at_risk" in score
         assert "breakdown" in score
@@ -97,7 +109,7 @@ class TestDealRoomService:
         ws = db_session.query(Workspace).first()
         created = ds.create_deal(db_session, ws.id, "Room Corp")
         db_session.commit()
-        room = drs.generate_deal_room(db_session, created["id"])
+        room = drs.generate_deal_room(db_session, created["id"], workspace_id=ws.id)
         assert "access_token" in room
         assert "questionnaires" in room
         assert "trust_center_articles" in room
@@ -107,6 +119,7 @@ class TestDealDeadlineService:
     def test_upcoming_deadlines(self, db_session):
         ws = db_session.query(Workspace).first()
         from datetime import datetime, timedelta, timezone
+
         future = datetime.now(timezone.utc) + timedelta(days=7)
         ds.create_deal(db_session, ws.id, "Deadline Corp", close_date=future)
         db_session.commit()
@@ -116,6 +129,7 @@ class TestDealDeadlineService:
     def test_overdue_deals(self, db_session):
         ws = db_session.query(Workspace).first()
         from datetime import datetime, timedelta, timezone
+
         past = datetime.now(timezone.utc) - timedelta(days=5)
         ds.create_deal(db_session, ws.id, "Overdue Corp", close_date=past, stage="evaluation")
         db_session.commit()
@@ -126,7 +140,9 @@ class TestDealDeadlineService:
 class TestDealAnalyticsService:
     def test_analytics(self, db_session):
         ws = db_session.query(Workspace).first()
-        ds.create_deal(db_session, ws.id, "Analytics Corp", stage="closed_won", deal_value_arr=80000)
+        ds.create_deal(
+            db_session, ws.id, "Analytics Corp", stage="closed_won", deal_value_arr=80000
+        )
         db_session.commit()
         result = das.get_analytics(db_session, ws.id)
         assert result["total_deals"] >= 1
@@ -140,9 +156,14 @@ class TestDealAnalyticsService:
 
 class TestDealAPI:
     def test_create_deal(self, admin_client):
-        r = admin_client.post("/api/deals", json={
-            "company_name": "API Corp", "deal_value_arr": 120000, "stage": "prospect",
-        })
+        r = admin_client.post(
+            "/api/deals",
+            json={
+                "company_name": "API Corp",
+                "deal_value_arr": 120000,
+                "stage": "prospect",
+            },
+        )
         assert r.status_code == 200
         assert r.json()["company_name"] == "API Corp"
 

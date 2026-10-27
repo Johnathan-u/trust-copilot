@@ -16,7 +16,9 @@ export default function DashboardError({
 
   return (
     <div className="flex min-h-[40vh] flex-col items-center justify-center p-8 text-center">
-      <h2 className="mb-2 text-lg font-semibold text-[var(--tc-text)]">Something went wrong</h2>
+      <h2 className="mb-2 text-lg font-semibold text-[var(--tc-text)]">
+        Something went wrong
+      </h2>
       <p className="mb-6 max-w-md text-sm text-[var(--tc-muted)]">
         An error occurred loading this section. You can try again.
       </p>

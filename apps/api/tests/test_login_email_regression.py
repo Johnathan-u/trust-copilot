@@ -1,9 +1,10 @@
 """Regression tests for login + email sending issues after Docker/Caddy + invite-flow changes."""
 
 import os
+import secrets
 from unittest.mock import MagicMock, patch
 
-import pytest
+import pytest  # noqa: F401
 
 os.environ.setdefault("TRUST_COPILOT_TESTING", "1")
 
@@ -22,27 +23,31 @@ from app.services.email_service import (
 class TestPasswordHashing:
     """Verify Argon2id hashing and verification work correctly."""
 
+    # TC-07-001: plaintexts are generated per run (no seed-account passwords in source).
+
     def test_hash_and_verify(self):
-        plain = "Admin123!"
+        plain = secrets.token_urlsafe(12)
         hashed = hash_password(plain)
         assert hashed.startswith("$argon2id$")
         assert verify_password(plain, hashed)
 
     def test_wrong_password_fails(self):
-        hashed = hash_password("correct")
-        assert not verify_password("wrong", hashed)
+        right, wrong = secrets.token_urlsafe(12), secrets.token_urlsafe(12)
+        hashed = hash_password(right)
+        assert not verify_password(wrong, hashed)
 
-    def test_demo_password(self):
-        hashed = hash_password("j")
-        assert verify_password("j", hashed)
-        assert not verify_password("k", hashed)
+    def test_single_character_password(self):
+        hashed = hash_password("a")
+        assert verify_password("a", hashed)
+        assert not verify_password("b", hashed)
 
     def test_hash_differs_each_time(self):
-        h1 = hash_password("same")
-        h2 = hash_password("same")
+        plain = secrets.token_urlsafe(12)
+        h1 = hash_password(plain)
+        h2 = hash_password(plain)
         assert h1 != h2
-        assert verify_password("same", h1)
-        assert verify_password("same", h2)
+        assert verify_password(plain, h1)
+        assert verify_password(plain, h2)
 
 
 class TestEmailProviderSelection:
@@ -87,7 +92,9 @@ class TestSmtpFallbackLogging:
             from_addr="test@localhost",
             use_tls=False,
         )
-        msg = EmailMessage(to="user@example.com", subject="Reset", body_text="Reset link: http://example.com/reset")
+        msg = EmailMessage(
+            to="user@example.com", subject="Reset", body_text="Reset link: http://example.com/reset"
+        )
         result = provider.send(msg)
         assert result is False
         captured = capsys.readouterr()
@@ -105,7 +112,9 @@ class TestPasswordResetEmailPath:
         mock_provider.send.return_value = True
         set_email_provider(mock_provider)
 
-        result = send_password_reset_email("user@example.com", "http://localhost:3000/reset-password?token=abc123")
+        result = send_password_reset_email(
+            "user@example.com", "http://localhost:3000/reset-password?token=abc123"
+        )
         assert result is True
         mock_provider.send.assert_called_once()
         msg = mock_provider.send.call_args[0][0]
@@ -118,7 +127,9 @@ class TestPasswordResetEmailPath:
         mock_provider.send.return_value = False
         set_email_provider(mock_provider)
 
-        result = send_password_reset_email("user@example.com", "http://localhost:3000/reset-password?token=abc123")
+        result = send_password_reset_email(
+            "user@example.com", "http://localhost:3000/reset-password?token=abc123"
+        )
         assert result is False
 
 
@@ -196,7 +207,9 @@ class TestLoginEndpoint:
         assert data["user"]["email"] == "demo@trust.local"
 
     def test_wrong_password(self, client):
-        resp = client.post("/api/auth/login", json={"email": "demo@trust.local", "password": "wrong"})
+        resp = client.post(
+            "/api/auth/login", json={"email": "demo@trust.local", "password": "wrong"}
+        )
         assert resp.status_code == 401
         assert "Invalid credentials" in resp.json().get("detail", "")
 

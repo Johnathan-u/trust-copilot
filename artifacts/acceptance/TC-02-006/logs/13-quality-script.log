@@ -1,0 +1,35 @@
+
+> trust-copilot-web@0.1.0 quality
+> npm run typecheck && npm run lint && npm run format:check && npm run test:unit
+
+
+> trust-copilot-web@0.1.0 typecheck
+> next typegen && tsc --noEmit -p .
+
+Generating route types...
+✓ Types generated successfully
+
+> trust-copilot-web@0.1.0 lint
+> eslint . --max-warnings=0
+
+
+> trust-copilot-web@0.1.0 format:check
+> prettier --check "**/*.{ts,tsx,js,jsx,json,md}"
+
+Checking formatting...
+All matched files use Prettier code style!
+
+> trust-copilot-web@0.1.0 test:unit
+> vitest run
+
+(!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+  - ESM syntax in a file loaded as CommonJS (vitest.config.ts:1:1). Use a `.mjs` extension or set `"type": "module"` in the closest package.json
+Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.
+
+ RUN  v5.0.5 /workspace/tc-platform-web/apps/web
+
+
+ Test Files  6 passed (6)
+      Tests  46 passed (46)
+   Start at  09:15:34
+   Duration  295ms (import 52%, tests 21%, transform 18%, worker 9%)

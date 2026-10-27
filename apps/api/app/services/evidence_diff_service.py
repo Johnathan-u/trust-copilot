@@ -24,10 +24,14 @@ def diff_control_snapshots(
     snapshot_b_id: int | None = None,
 ) -> dict:
     """Compare two control state snapshots, defaulting to the two most recent."""
-    q = db.query(ControlStateSnapshot).filter(
-        ControlStateSnapshot.workspace_id == workspace_id,
-        ControlStateSnapshot.control_id == control_id,
-    ).order_by(ControlStateSnapshot.created_at.desc())
+    q = (
+        db.query(ControlStateSnapshot)
+        .filter(
+            ControlStateSnapshot.workspace_id == workspace_id,
+            ControlStateSnapshot.control_id == control_id,
+        )
+        .order_by(ControlStateSnapshot.created_at.desc())
+    )
 
     if snapshot_a_id and snapshot_b_id:
         a = db.query(ControlStateSnapshot).filter(ControlStateSnapshot.id == snapshot_a_id).first()
@@ -76,32 +80,48 @@ def diff_evidence_items(
     control_id: int,
 ) -> dict:
     """Show evidence items linked to a control with freshness classification."""
-    links = db.query(ControlEvidenceLink).filter(
-        ControlEvidenceLink.control_id == control_id,
-    ).all()
+    links = (
+        db.query(ControlEvidenceLink)
+        .filter(
+            ControlEvidenceLink.control_id == control_id,
+        )
+        .all()
+    )
 
     items = []
     now = datetime.now(timezone.utc)
     for link in links:
-        ev = db.query(EvidenceItem).filter(
-            EvidenceItem.id == link.evidence_id,
-            EvidenceItem.workspace_id == workspace_id,
-        ).first()
+        ev = (
+            db.query(EvidenceItem)
+            .filter(
+                EvidenceItem.id == link.evidence_id,
+                EvidenceItem.workspace_id == workspace_id,
+            )
+            .first()
+        )
         if not ev:
             continue
         created = ev.created_at
         if created and created.tzinfo is None:
             created = created.replace(tzinfo=timezone.utc)
         age_days = (now - created).days if created else None
-        freshness = "fresh" if age_days and age_days < 90 else "aging" if age_days and age_days < 180 else "stale"
-        items.append({
-            "evidence_id": ev.id,
-            "title": ev.title,
-            "source_type": ev.source_type,
-            "age_days": age_days,
-            "freshness": freshness,
-            "created_at": ev.created_at.isoformat() if ev.created_at else None,
-        })
+        freshness = (
+            "fresh"
+            if age_days and age_days < 90
+            else "aging"
+            if age_days and age_days < 180
+            else "stale"
+        )
+        items.append(
+            {
+                "evidence_id": ev.id,
+                "title": ev.title,
+                "source_type": ev.source_type,
+                "age_days": age_days,
+                "freshness": freshness,
+                "created_at": ev.created_at.isoformat() if ev.created_at else None,
+            }
+        )
 
     return {
         "control_id": control_id,

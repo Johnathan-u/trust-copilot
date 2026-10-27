@@ -27,13 +27,52 @@ export const spacingScale = [
 
 export const spacingBasePx = 4
 
+/** System faces used when the self-hosted Inter file is not applied. */
+export const systemFontFallback = [
+  'ui-sans-serif',
+  'system-ui',
+  '-apple-system',
+  'BlinkMacSystemFont',
+  '"Segoe UI"',
+  'sans-serif',
+] as const
+
 export const typography = {
-  fontSans: 'Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
-  caption: { size: 12, line: 16, cssSize: '--tc-font-size-caption', cssLine: '--tc-line-caption' },
-  label: { size: 14, line: 20, cssSize: '--tc-font-size-label', cssLine: '--tc-line-label' },
-  body: { size: 16, line: 24, cssSize: '--tc-font-size-body', cssLine: '--tc-line-body' },
-  title: { size: 20, line: 28, cssSize: '--tc-font-size-title', cssLine: '--tc-line-title' },
-  headline: { size: 28, line: 36, cssSize: '--tc-font-size-headline', cssLine: '--tc-line-headline' },
+  /**
+   * `--font-inter` is set by next/font/local from the bundled Inter files.
+   * The fallback inside var() and the rest of the stack are system fonts.
+   */
+  fontSans: `var(--font-inter, ui-sans-serif), ${systemFontFallback.join(', ')}`,
+  caption: {
+    size: 12,
+    line: 16,
+    cssSize: '--tc-font-size-caption',
+    cssLine: '--tc-line-caption',
+  },
+  label: {
+    size: 14,
+    line: 20,
+    cssSize: '--tc-font-size-label',
+    cssLine: '--tc-line-label',
+  },
+  body: {
+    size: 16,
+    line: 24,
+    cssSize: '--tc-font-size-body',
+    cssLine: '--tc-line-body',
+  },
+  title: {
+    size: 20,
+    line: 28,
+    cssSize: '--tc-font-size-title',
+    cssLine: '--tc-line-title',
+  },
+  headline: {
+    size: 28,
+    line: 36,
+    cssSize: '--tc-font-size-headline',
+    cssLine: '--tc-line-headline',
+  },
 } as const
 
 export const interaction = {
@@ -261,7 +300,12 @@ export function contrastPairId(fg: string, bg: string): string {
   return `${tokenSlug(fg)}-on-${tokenSlug(bg)}`
 }
 
-function pair(fg: string, bg: string, min: number, kind: ContrastKind): ContrastPair {
+function pair(
+  fg: string,
+  bg: string,
+  min: number,
+  kind: ContrastKind
+): ContrastPair {
   return { id: contrastPairId(fg, bg), fg, bg, min, kind }
 }
 
@@ -285,9 +329,30 @@ export function requiredContrastPairs(): ContrastPair[] {
       pairs.push(pair(fg, bg, NON_TEXT_CONTRAST_MIN, 'nontext'))
     }
   }
-  pairs.push(pair('--tc-nav-active-border', '--tc-nav-active-bg', NON_TEXT_CONTRAST_MIN, 'nontext'))
-  pairs.push(pair('--tc-nav-active-border', '--tc-sidebar', NON_TEXT_CONTRAST_MIN, 'nontext'))
-  pairs.push(pair('--tc-disabled-border', '--tc-disabled-bg', NON_TEXT_CONTRAST_MIN, 'nontext'))
+  pairs.push(
+    pair(
+      '--tc-nav-active-border',
+      '--tc-nav-active-bg',
+      NON_TEXT_CONTRAST_MIN,
+      'nontext'
+    )
+  )
+  pairs.push(
+    pair(
+      '--tc-nav-active-border',
+      '--tc-sidebar',
+      NON_TEXT_CONTRAST_MIN,
+      'nontext'
+    )
+  )
+  pairs.push(
+    pair(
+      '--tc-disabled-border',
+      '--tc-disabled-bg',
+      NON_TEXT_CONTRAST_MIN,
+      'nontext'
+    )
+  )
   return pairs
 }
 
@@ -296,7 +361,12 @@ export function requiredContrastPairs(): ContrastPair[] {
  * The token still has to stay visible against its disabled surface (3:1).
  */
 export function disabledContrastPair(): ContrastPair {
-  return pair('--tc-disabled-fg', '--tc-disabled-bg', NON_TEXT_CONTRAST_MIN, 'disabled')
+  return pair(
+    '--tc-disabled-fg',
+    '--tc-disabled-bg',
+    NON_TEXT_CONTRAST_MIN,
+    'disabled'
+  )
 }
 
 export function isHexColor(value: string): boolean {
