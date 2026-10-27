@@ -2,18 +2,32 @@
   "ticket": "TC-25-011",
   "command": "python -m pytest tests/release/test_domain_demo_proof.py -q",
   "working_directory": "apps/api",
-  "git_sha": "ad803bd7d83c206e4f506a0031178b51757ec11b",
+  "git_sha": "5fea6b4ec7633f90e05788514f2213bacbe5b57a",
   "git_branch": "tc/ca/TC-25-011",
   "exit_status": 0,
   "totals": {
-    "passed": 15,
+    "passed": 14,
     "failed": 0,
     "skipped": 0,
     "errors": 0,
     "warnings": 38,
-    "duration_seconds": 5.05
+    "duration_seconds": 5.18
   },
   "additional_runs": [
+    {
+      "command": "python -m pytest tests/release/test_demo_proof_unit.py -q",
+      "working_directory": "apps/api",
+      "exit_status": 0,
+      "marker": "unit",
+      "totals": {
+        "passed": 3,
+        "failed": 0,
+        "skipped": 0,
+        "errors": 0,
+        "warnings": 0,
+        "duration_seconds": 0.12
+      }
+    },
     {
       "command": "python -m pytest tests/test_demo_proof.py -q",
       "working_directory": "apps/api",
@@ -24,10 +38,11 @@
         "skipped": 0,
         "errors": 0,
         "warnings": 10,
-        "duration_seconds": 1.76
+        "duration_seconds": 1.88
       }
     }
   ],
+  "alembic_heads": "tc25011_demo_proof_summaries (head)",
   "environment": {
     "python": "3.12.3",
     "pytest": "9.1.1",
@@ -39,9 +54,9 @@
   },
   "notes": [
     "PostgreSQL database trustcopilot_test. No credentials are recorded.",
-    "The UI consumer was executed with Node against apps/web/lib/demoProofSummary.mjs inside the pytest file.",
-    "Deprecation warnings come from existing utcnow defaults in other models, not from failed assertions.",
-    "ruff 0.5.6 format --check and ruff check passed, matching the ruff version pinned in master's CI.",
+    "ruff 0.5.6 format --check and ruff check passed.",
+    "alembic heads printed a single head: tc25011_demo_proof_summaries (head).",
+    "The UI presenter was executed with node --input-type=module. No experimental type-stripping flag is used.",
     "This evidence file is committed after the tested SHA. It does not change product behavior."
   ]
 }
