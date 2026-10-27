@@ -190,7 +190,7 @@ CONTRACT: tuple[ConfigVar, ...] = (
         "secret string",
         "required",
         True,
-        "none (required everywhere since TC-07-001)",
+        "none (required in every environment)",
         "Object storage access key. Production: vendor defaults/placeholders rejected.",
     ),
     ConfigVar(
@@ -198,7 +198,7 @@ CONTRACT: tuple[ConfigVar, ...] = (
         "secret string (>=16 chars)",
         "required",
         True,
-        "none (required everywhere since TC-07-001)",
+        "none (required in every environment)",
         "Object storage secret key. Production: vendor defaults/placeholders/short values rejected.",
     ),
     ConfigVar(
@@ -1139,7 +1139,7 @@ def refuse_demo_seed_in_production(env: Mapping[str, str] | None = None) -> None
     """Demo/QA/E2E seeding is never allowed with APP_ENV=production (no override)."""
     if is_production_env(env):
         raise SystemExit(
-            "Refusing to seed demo/QA/E2E data with APP_ENV=production (TC-03-001). "
+            "Refusing to seed demo/QA/E2E data with APP_ENV=production. "
             "Production accounts are created through the invitation/owner bootstrap flow, never by seed scripts."
         )
 

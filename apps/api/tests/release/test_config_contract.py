@@ -1037,3 +1037,19 @@ def test_documentation_placeholders_are_still_refused(name, placeholder):
 )
 def test_short_marker_values_are_refused(value):
     assert cc.is_known_default_or_placeholder(value)
+
+
+def test_user_facing_messages_carry_no_ticket_ids():
+    ticket = re.compile(r"\bTC-\d")
+    env = {"APP_ENV": "production"}
+    problems = cc.validate_environment(env)
+    assert problems
+    assert not [str(p) for p in problems if ticket.search(str(p))]
+    with pytest.raises(SystemExit) as ei:
+        cc.refuse_demo_seed_in_production(env)
+    assert not ticket.search(str(ei.value.code))
+    with pytest.raises(cc.ConfigContractError) as ce:
+        cc.enforce_startup_contract("api", env)
+    assert not ticket.search(str(ce.value))
+    table = cc.contract_markdown()
+    assert not ticket.search(table)

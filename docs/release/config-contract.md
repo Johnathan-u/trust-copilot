@@ -43,8 +43,8 @@ Source of truth: `apps/api/app/core/config_contract.py`. The table between the m
 | `POSTGRES_USER` | string | conditional | no | compose dev default | Postgres container superuser (compose). If visible to the app in production, must not be a vendor default. |  |
 | `POSTGRES_PASSWORD` | secret string (>=16 chars) | conditional | yes | compose dev default | Postgres container password (compose). If visible in production, defaults/placeholders/short values rejected. |  |
 | `S3_ENDPOINT` | URL | required | no | http://localhost:9000 | S3-compatible endpoint (MinIO in compose). | Private S3-compatible bucket storage |
-| `S3_ACCESS_KEY` | secret string | required | yes | none (required everywhere since TC-07-001) | Object storage access key. Production: vendor defaults/placeholders rejected. |  |
-| `S3_SECRET_KEY` | secret string (>=16 chars) | required | yes | none (required everywhere since TC-07-001) | Object storage secret key. Production: vendor defaults/placeholders/short values rejected. |  |
+| `S3_ACCESS_KEY` | secret string | required | yes | none (required in every environment) | Object storage access key. Production: vendor defaults/placeholders rejected. |  |
+| `S3_SECRET_KEY` | secret string (>=16 chars) | required | yes | none (required in every environment) | Object storage secret key. Production: vendor defaults/placeholders/short values rejected. |  |
 | `MINIO_ROOT_USER` | string | conditional | no | compose dev default | MinIO root user (compose). If visible in production, vendor defaults rejected. |  |
 | `MINIO_ROOT_PASSWORD` | secret string (>=16 chars) | conditional | yes | compose dev default | MinIO root password (compose). If visible in production, defaults/placeholders/short values rejected. |  |
 | `S3_BUCKET_RAW` | string | optional | no | trustcopilot-raw | Bucket for uploads. |  |
