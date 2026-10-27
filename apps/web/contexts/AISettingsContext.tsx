@@ -1,12 +1,6 @@
 'use client'
 
-import React, {
-  createContext,
-  useCallback,
-  useContext,
-  useEffect,
-  useState,
-} from 'react'
+import React, { createContext, useCallback, useContext, useState } from 'react'
 
 export type ResponseStyle = 'precise' | 'balanced' | 'natural'
 
