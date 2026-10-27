@@ -9,6 +9,17 @@ import pytest
 from fastapi.testclient import TestClient
 
 
+def _session_cookie(client: TestClient) -> str | None:
+    """Raw tc_session value as the server reads it.
+
+    The token is base64 with '=' padding, so Starlette quotes the Set-Cookie value when padding is
+    present (it depends on payload length, e.g. ids). The client jar keeps the quotes; the server
+    unquotes them, so strip them here too.
+    """
+    value = client.cookies.get("tc_session")
+    return value.strip('"') if value else value
+
+
 # ---------------------------------------------------------------------------
 # 1. switch-workspace preserves session_id
 # ---------------------------------------------------------------------------
@@ -23,14 +34,14 @@ class TestSwitchWorkspaceSessionId:
         assert r.status_code == 200
         from app.core.session import verify_token
 
-        cookie_before = client.cookies.get("tc_session")
+        cookie_before = _session_cookie(client)
         payload_before = verify_token(cookie_before)
         assert payload_before is not None
         assert payload_before.get("session_id"), "Login must set session_id"
 
         r2 = client.post("/api/auth/switch-workspace", json={"workspace_id": 2})
         assert r2.status_code == 200
-        cookie_after = client.cookies.get("tc_session")
+        cookie_after = _session_cookie(client)
         payload_after = verify_token(cookie_after)
         assert payload_after is not None
         assert payload_after.get("session_id"), "switch-workspace must preserve session_id"
