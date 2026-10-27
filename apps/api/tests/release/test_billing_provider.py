@@ -1017,18 +1017,25 @@ def test_migration_fresh_install_upgrade_and_downgrade():
     url = _database_url("trustcopilot_tc24001_mig")
     _recreate_database("trustcopilot_tc24001_mig")
     try:
+        heads = _alembic(url, "heads")
+        assert heads.returncode == 0, heads.stderr
+        assert heads.stdout.count("(head)") == 1
+        assert "tc24001_billing_stripe" in heads.stdout
         fresh = _alembic(url, "upgrade", "head")
         assert fresh.returncode == 0, fresh.stderr
         _assert_webhook_schema(url, present=True)
-        down = _alembic(url, "downgrade", "075")
+        down = _alembic(url, "downgrade", "tc21001_framework_catalog_rights")
         assert down.returncode == 0, down.stderr
         _assert_webhook_schema(url, present=False)
+        parent = _alembic(url, "current")
+        assert parent.returncode == 0, parent.stderr
+        assert "tc21001_framework_catalog_rights" in parent.stdout
         again = _alembic(url, "upgrade", "head")
         assert again.returncode == 0, again.stderr
         _assert_webhook_schema(url, present=True)
         current = _alembic(url, "current")
         assert current.returncode == 0, current.stderr
-        assert "076" in current.stdout
+        assert "tc24001_billing_stripe" in current.stdout
     finally:
         _drop_database("trustcopilot_tc24001_mig")
 
