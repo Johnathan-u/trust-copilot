@@ -43,8 +43,8 @@ db_session = <sqlalchemy.orm.session.Session object at 0x7f3d609d5890>
                     db, qnr.id, ws.id, job=job
                 )
 
-tests/test_answer_pipeline.py:133: 
-_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/test_answer_pipeline.py:133:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
 
 db = <sqlalchemy.orm.session.Session object at 0x7f3d609d5890>
 questionnaire_id = 7, workspace_id = 1, model_override = None
@@ -73,7 +73,7 @@ job = <app.models.job.Job object at 0x7f3d60ccc9d0>
                 job.result = _job_payload(0, 0, {"drafted": 0, "insufficient_evidence": 0, "skipped_gated": 0, "llm_calls": 0, "duration_ms": 0})
                 db.commit()
             return 0
-    
+
         from app.core.config import get_settings
         settings = get_settings()
         api_key_ok = bool((settings.openai_api_key or "").strip())
