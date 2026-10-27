@@ -41,9 +41,9 @@ Totals: **95 passed**, 0 failed, 0 skipped. Deprecation warnings from `datetime.
 
 ## Commit
 
-SHA is filled in after the implementation commit. See the following line once updated:
+Implementation commit (code and tests under the commands above): `3a69f603692fdf7d17b7b6adf22f7fcad6b0c4`
 
-`IMPLEMENTATION_SHA=`
+The commands were run on that tree before this evidence line was added. This file's SHA update does not change provider code.
 
 ## Sandbox
 
