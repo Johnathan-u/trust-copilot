@@ -510,6 +510,19 @@ def _alembic(*args: str) -> subprocess.CompletedProcess:
     )
 
 
+def test_trigger_revision_is_on_the_single_alembic_head_chain():
+    """One alembic head, and it is this revision or a descendant (no exact-parent pin)."""
+    from alembic.config import Config
+    from alembic.script import ScriptDirectory
+
+    cfg = Config(str(API_ROOT / "alembic.ini"))
+    cfg.set_main_option("script_location", str(API_ROOT / "alembic"))
+    script = ScriptDirectory.from_config(cfg)
+    heads = script.get_heads()
+    assert len(heads) == 1, heads
+    assert TRIGGER_REVISION in {r.revision for r in script.walk_revisions("base", heads[0])}
+
+
 def test_trigger_migration_upgrades_with_legacy_rows_present(db_session: Session):
     """Downgrade/upgrade the trigger revision while a committed legacy cross-workspace row exists."""
     doc = _doc(db_session, OWN_WS, "mig-legacy")
