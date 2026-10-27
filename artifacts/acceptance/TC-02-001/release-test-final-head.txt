@@ -1,0 +1,5 @@
+# SHA e725f103a277ce2cd34f04a043c06875a0ea07ba (adds TC_REQUIRE_DB drop in _clean_env); python 3.11.17, SQLAlchemy 2.0.55; pgvector pg16 container 127.0.0.1:55432 (synthetic creds)
+# cmd: python -m pytest tests/release/test_safe_collection.py -q
+26 passed in 7.03s
+exit=0
+# integration trial: ci-mechanical 42b394f + ci-repair 8fffc39 + this branch, CI mirror (fresh digest-pinned pgvector, generated creds, TC_REQUIRE_DB=1): pre-commit all Passed; ruff All checks passed; safe collection 1315 collected / release 26 passed; pytest 1313 passed, 3 skipped (seed-data/external_data), exit 0; npm build ok

@@ -1,0 +1,13 @@
+E           sqlalchemy.exc.InvalidRequestError: This session is provisioning a new connection; concurrent operations are not permitted (Background on this error at: https://sqlalche.me/e/20/isce)
+E           sqlalchemy.exc.InvalidRequestError: This session is provisioning a new connection; concurrent operations are not permitted (Background on this error at: https://sqlalche.me/e/20/isce)
+E       AssertionError: [InvalidRequestError('This session is provisioning a new connection; concurrent operations are not permitted'), Invali...itted'), InvalidRequestError('This session is provisioning a new connection; concurrent operations are not permitted')]
+E       assert not [InvalidRequestError('This session is provisioning a new connection; concurrent operations are not permitted'), Invali...itted'), InvalidRequestError('This session is provisioning a new connection; concurrent operations are not permitted')]
+E       AssertionError: [InvalidRequestError('This session is provisioning a new connection; concurrent operations are not permitted'), Invali...itted'), InvalidRequestError('This session is provisioning a new connection; concurrent operations are not permitted')]
+E       assert not [InvalidRequestError('This session is provisioning a new connection; concurrent operations are not permitted'), Invali...itted'), InvalidRequestError('This session is provisioning a new connection; concurrent operations are not permitted')]
+FAILED tests/test_session_concurrency.py::test_batch_search_never_uses_caller_session_off_thread[pgvector]
+FAILED tests/test_session_concurrency.py::test_batch_search_never_uses_caller_session_off_thread[fallback]
+FAILED tests/test_session_concurrency.py::test_connection_bound_session_runs_serially_on_caller_thread
+FAILED tests/test_session_concurrency.py::test_task_failure_releases_sessions_and_keeps_caller_usable
+FAILED tests/test_session_concurrency.py::test_concurrent_two_tenant_retrieval_isolated[pgvector]
+FAILED tests/test_session_concurrency.py::test_concurrent_two_tenant_retrieval_isolated[fallback]
+6 failed, 3 passed in 2.33s

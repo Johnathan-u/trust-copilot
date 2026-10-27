@@ -1,8 +1,24 @@
 """Fallback export pack when in-file placement is not possible (EXP-08)."""
 
 import csv
-from io import BytesIO
-from typing import Any  # noqa: F401
+from io import BytesIO, StringIO
+from typing import Any
+
+from app.services.xlsx_writer import is_formula_like
+
+
+def neutralize_csv_cell(value: Any) -> str:
+    """Make a CSV cell inert in spreadsheet apps (TC-13-003, OWASP CSV injection).
+
+    CSV has no cell types, so a formula-like value ("=", "+", "-", "@", tab,
+    CR, full-width variants) is prefixed with a single quote, which Excel /
+    LibreOffice / Sheets treat as a literal-text marker. Other values are
+    returned unchanged.
+    """
+    text = "" if value is None else str(value)
+    if is_formula_like(text):
+        return "'" + text
+    return text
 
 
 def create_fallback_pack_docx(
@@ -44,8 +60,12 @@ def create_fallback_pack_csv(
     questions: list[dict],
     question_to_answer: dict[int, str],
 ) -> bytes:
-    """Create CSV with Question, Answer columns."""
-    buf = BytesIO()
+    """Create CSV with Question, Answer columns (UTF-8 bytes).
+
+    Both columns are neutralized: question text originates from an uploaded
+    file and is as untrusted as answer text (TC-13-003).
+    """
+    buf = StringIO()
     writer = csv.writer(buf)
     writer.writerow(["Question", "Answer"])
     for q in questions:
@@ -54,5 +74,5 @@ def create_fallback_pack_csv(
             continue
         text = q.get("text", "")
         answer = question_to_answer.get(qid, "")
-        writer.writerow([text, answer])
-    return buf.getvalue()
+        writer.writerow([neutralize_csv_cell(text), neutralize_csv_cell(answer)])
+    return buf.getvalue().encode("utf-8")
