@@ -18,11 +18,14 @@ The internal cause is kept on ``.detail`` and logged server-side only.
 from __future__ import annotations
 
 import logging
+from dataclasses import dataclass
 from pathlib import Path
 
 import pypdf
 from pypdf import PdfReader
 from pypdf.errors import PdfReadError
+
+from app.services.pdf_cells import TextRow, split_rows
 
 logger = logging.getLogger(__name__)
 
@@ -94,6 +97,24 @@ def _reader(path: str | Path) -> PdfReader:
     return reader
 
 
+def _pages(path: str | Path) -> list:
+    reader = _reader(path)
+    try:
+        pages = list(reader.pages)
+    except Exception as e:  # noqa: BLE001
+        raise _fail(PdfUnreadableError, "page tree unreadable", e) from e
+    if not pages:
+        raise _fail(PdfUnreadableError, "no readable pages")
+    return pages
+
+
+def _page_text(page, number: int) -> str:
+    try:
+        return page.extract_text() or ""
+    except Exception as e:  # noqa: BLE001
+        raise _fail(PdfUnreadableError, f"content unreadable on page {number}", e) from e
+
+
 def extract_page_texts(path: str | Path) -> list[str]:
     """Return the text of every page, in page order (index 0 is page 1).
 
@@ -101,21 +122,30 @@ def extract_page_texts(path: str | Path) -> list[str]:
     the content-stream order, as PyMuPDF ``page.get_text()`` did. Raises
     PdfUnreadableError or PdfEncryptedError, never returns a partial result silently.
     """
-    reader = _reader(path)
-    try:
-        pages = reader.pages
-        count = len(pages)
-    except Exception as e:  # noqa: BLE001
-        raise _fail(PdfUnreadableError, "page tree unreadable", e) from e
-    if count == 0:
-        raise _fail(PdfUnreadableError, "no readable pages")
-    texts = []
-    for i in range(count):
-        try:
-            texts.append(pages[i].extract_text() or "")
-        except Exception as e:  # noqa: BLE001
-            raise _fail(PdfUnreadableError, f"content unreadable on page {i + 1}", e) from e
-    return texts
+    return [_page_text(p, i + 1) for i, p in enumerate(_pages(path))]
+
+
+@dataclass(frozen=True)
+class PageRows:
+    """A page's ``extract_page_texts`` text plus its non-empty lines as table rows."""
+
+    text: str
+    rows: list[TextRow]
+
+
+def extract_page_rows(path: str | Path) -> list[PageRows]:
+    """Like ``extract_page_texts``, plus each line split into same-baseline cells (TC-01-003b).
+
+    ``text`` is byte-identical to ``extract_page_texts``. ``rows`` has one entry per
+    non-empty line, in the same order; a line is split into cells only at wide,
+    column-aligned horizontal gaps (see ``pdf_cells``), otherwise it is one cell.
+    Same errors as ``extract_page_texts``; cell splitting itself never raises.
+    """
+    out = []
+    for i, page in enumerate(_pages(path)):
+        text = _page_text(page, i + 1)
+        out.append(PageRows(text, split_rows(page, text)))
+    return out
 
 
 def has_text(page_texts: list[str]) -> bool:

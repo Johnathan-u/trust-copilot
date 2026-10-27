@@ -206,7 +206,16 @@ def fetch_and_ingest_label(
         }
 
     provider = get_gmail_provider()
-    messages = provider.list_messages(token, label_id, max_results=limit)
+    listed = provider.list_messages(token, label_id, max_results=limit)
+    if isinstance(listed, dict):
+        detail = listed.get("error") or listed.get("error_code") or "Gmail list failed"
+        return {
+            "ingested": 0,
+            "attachments": 0,
+            "skipped": 0,
+            "errors": [str(detail)[:200]],
+        }
+    messages = listed
     ingested = 0
     attachments = 0
     skipped = 0
