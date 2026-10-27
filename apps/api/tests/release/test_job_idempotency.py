@@ -38,7 +38,9 @@ from app.services import job_effects as je
 from app.services.answer_generation import AnswerWriteGuard, _WRITE_GUARD, _upsert_answer
 
 WS = 1
-FIXTURE_XLSX = Path(__file__).parent / "fixtures" / "questionnaires" / "simple_soc2.xlsx"
+FIXTURE_XLSX = (
+    Path(__file__).resolve().parents[1] / "fixtures" / "questionnaires" / "simple_soc2.xlsx"
+)
 
 
 class Crash(RuntimeError):
@@ -1100,7 +1102,7 @@ def test_migration_downgrade_and_upgrade_roundtrip(_ensure_test_data):
         pytest.skip("Postgres test DB unavailable")
     import importlib.util
 
-    api_dir = Path(__file__).resolve().parents[1]
+    api_dir = Path(__file__).resolve().parents[2]
     mig = api_dir / "alembic" / "versions" / "077_tc10003_job_idempotency.py"
     spec = importlib.util.spec_from_file_location("tc10003_mig", mig)
     mod = importlib.util.module_from_spec(spec)
