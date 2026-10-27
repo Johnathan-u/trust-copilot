@@ -12,13 +12,19 @@ import dataclasses
 import json
 import re
 import sys
+import time
 from pathlib import Path
 
 import pytest
 from pypdf import PdfReader
 
 from app.services import pdf_cells
-from app.services.pdf_cells import CELL_GAP_EM, CELL_GAP_EM_LONE, split_rows
+from app.services.pdf_cells import (
+    CELL_GAP_EM,
+    CELL_GAP_EM_LONE,
+    MAX_COLUMN_CANDIDATES,
+    split_rows,
+)
 from app.services.pdf_questionnaire_parser import parse_pdf_questionnaire
 from app.services.pdf_text import extract_page_rows, extract_page_texts
 from app.services.synthetic_pdf import Page, TextItem, build_pdf
@@ -208,3 +214,112 @@ def test_text_geometry_mismatch_falls_back_to_unsplit_lines(paths, monkeypatch):
 def test_split_rows_on_empty_text_page(paths):
     page = PdfReader(paths["multipage_blank_page"]).pages[1]
     assert split_rows(page, "") == []
+
+
+def _spaced_ops(n: int, step: float) -> bytes:
+    """``n`` text-show ops on one baseline, each advanced by ``step`` points."""
+    piece = f"(A) Tj {step:.2f} 0 Td ".encode()
+    return b"BT /F1 11 Tf 40 700 Td " + piece * n + b"ET"
+
+
+def _rows_of_ops(tmp_path, n: int, step: float):
+    path = tmp_path / f"ops-{n}.pdf"
+    path.write_bytes(build_pdf([Page(raw=_spaced_ops(n, step))]))
+    return extract_page_rows(path)[0].rows
+
+
+def test_candidate_cap_leaves_the_page_unsplit(tmp_path):
+    """A lone >=3 em gap still splits under the cap, and the next candidate does not."""
+    under = _rows_of_ops(tmp_path, 3, 80)  # two gaps, both wide: three cells
+    assert under[0].cells == ("A", "A", "A")
+    # n ops produce n-1 candidate gaps. MAX+2 ops => MAX+1 candidates, over the cap.
+    over = _rows_of_ops(tmp_path, MAX_COLUMN_CANDIDATES + 2, 80)
+    assert len(over) == 1
+    assert over[0].cells == (over[0].line,)
+    assert over[0].line.count("A") == MAX_COLUMN_CANDIDATES + 2
+
+
+def _tm_grid(n: int, cols: int = 8) -> bytes:
+    """``n`` text-show ops, each placed with an absolute Tm (the stack stays O(1)).
+
+    Columns are 60 pt apart, so adjacent cells are candidate gaps. A single BT of
+    relative Td ops makes pypdf's text-matrix chain O(n) per op; real table pages
+    position each run absolutely, which is the 32k-op case this guards.
+    """
+    parts = [b"BT /F1 11 Tf "]
+    for i in range(n):
+        x = 40 + (i % cols) * 60
+        y = 800 - ((i // cols) % 40) * 18
+        parts.append(f"1 0 0 1 {x:.1f} {y:.1f} Tm (A) Tj ".encode())
+    parts.append(b"ET")
+    return b"".join(parts)
+
+
+def test_large_page_of_32k_ops_splits_within_five_seconds(tmp_path):
+    """32k text ops used to take ~59s in the quadratic column scan. Cap + bisect stay under 5s."""
+    n = 32_000
+    path = tmp_path / "large.pdf"
+    path.write_bytes(build_pdf([Page(raw=_tm_grid(n))]))
+    page = PdfReader(path).pages[0]
+    text = page.extract_text() or ""
+    started = time.perf_counter()
+    rows = split_rows(page, text)
+    elapsed = time.perf_counter() - started
+    assert elapsed < 5.0, f"32k-op split took {elapsed:.2f}s"
+    # 8 columns at 60 pt is well over the candidate cap, so the page stays unsplit.
+    assert rows and all(r.cells == (r.line,) for r in rows)
+    assert sum(r.line.count("A") for r in rows) == n
+
+
+def test_lone_3em_gap_inside_a_question_keeps_one_question(tmp_path):
+    """A >=3 em gap cuts one question into two fragments; the parser keeps the joined question."""
+    left = "Do you encrypt backups"
+    path = tmp_path / "wide.pdf"
+    path.write_bytes(build_pdf([Page(texts=[TextItem(60, 100, left, SIZE)])]))
+    (run,) = pdf_cells._page_runs(PdfReader(path).pages[0])
+    x = 60 + (run.x1 - run.x0) + (CELL_GAP_EM_LONE + 0.1) * SIZE
+    path.write_bytes(
+        build_pdf([Page(texts=[TextItem(60, 100, left, SIZE), TextItem(x, 100, "at rest?", SIZE)])])
+    )
+    assert _questions(path) == [("do you encrypt backups at rest", 1, None)]
+
+
+def test_aligned_1em_gap_before_annually_keeps_full_question(tmp_path):
+    """An aligned 1 em gap must not drop a short tail that is under the 10-character minimum."""
+    left = "Is the backup encryption key rotated"
+    path = tmp_path / "probe.pdf"
+    path.write_bytes(build_pdf([Page(texts=[TextItem(60, 100, left, SIZE)])]))
+    (run,) = pdf_cells._page_runs(PdfReader(path).pages[0])
+    x = 60 + (run.x1 - run.x0) + (CELL_GAP_EM + 0.1) * SIZE
+    path.write_bytes(
+        build_pdf(
+            [
+                Page(
+                    texts=[
+                        TextItem(60, 100, left, SIZE),
+                        TextItem(x, 100, "annually?", SIZE),
+                        TextItem(60, 120, "Notes", SIZE),
+                        TextItem(x, 120, "Extra", SIZE),
+                    ]
+                )
+            ]
+        )
+    )
+    assert _questions(path) == [("is the backup encryption key rotated annually", 1, None)]
+
+
+def test_rtl_line_falls_back_to_unsplit_line(tmp_path):
+    """Mirrored (RTL) text is not split; the question is the joined line, answer included."""
+    raw = (
+        b"q -1 0 0 1 500 700 cm BT /F1 11 Tf 0 0 Td (Do you encrypt backups at rest?) Tj "
+        b"200 0 Td (Yes) Tj ET Q"
+    )
+    path = tmp_path / "rtl.pdf"
+    path.write_bytes(build_pdf([Page(raw=raw)]))
+    rows = extract_page_rows(path)[0].rows
+    assert len(rows) == 1
+    assert rows[0].cells == (rows[0].line,)
+    questions = _questions(path)
+    assert len(questions) == 1
+    assert questions[0][0] == "do you encrypt backups at rest?yes"
+    assert questions[0][1:] == (1, None)

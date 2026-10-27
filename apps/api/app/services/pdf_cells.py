@@ -16,6 +16,11 @@ baseline are separated horizontally by a wide gap:
   a cell in (within ``COLUMN_ALIGN_PT``), or the gap is at least
   ``CELL_GAP_EM_LONE`` em.
 
+Column matches use one sorted list of candidate x-positions (bisect), so a page is
+O(C log C) in the number of candidate gaps. More than ``MAX_COLUMN_CANDIDATES``
+candidates on a page leaves every line unsplit, so one upload cannot spend unbounded
+time in the worker.
+
 Anything that cannot be mapped exactly (form XObjects, decoding differences,
 rotated or mirrored text, a pypdf internals change) leaves every line of that page
 unsplit, which is the pre-TC-01-003b behaviour. Splitting never adds, drops or
@@ -29,6 +34,7 @@ level, and the page falls back to unsplit lines.
 
 from __future__ import annotations
 
+import bisect
 import logging
 from dataclasses import dataclass
 from typing import Any
@@ -39,6 +45,9 @@ CELL_GAP_EM = 1.0
 CELL_GAP_EM_LONE = 3.0
 COLUMN_ALIGN_PT = 1.5
 SAME_BASELINE_EM = 0.2
+# A page whose candidate gaps exceed this is left unsplit. 2_000 is far above a
+# real questionnaire table and keeps the bisect pass well under a second.
+MAX_COLUMN_CANDIDATES = 2000
 
 
 @dataclass(frozen=True)
@@ -152,6 +161,22 @@ def _candidates(line: str, own: list[int], runs: list[_Run]) -> list[tuple[int, 
     return out
 
 
+def _other_line_aligned(
+    points: list[tuple[float, int]], xs: list[float], x0: float, line_id: int
+) -> bool:
+    """True when some other line has a candidate x within ``COLUMN_ALIGN_PT`` of ``x0``.
+
+    ``points`` is sorted by x and ``xs`` is that x column, so the window is a bisect
+    rather than a scan of every candidate on the page.
+    """
+    lo = bisect.bisect_left(xs, x0 - COLUMN_ALIGN_PT)
+    hi = bisect.bisect_right(xs, x0 + COLUMN_ALIGN_PT)
+    for j in range(lo, hi):
+        if points[j][1] != line_id:
+            return True
+    return False
+
+
 def split_rows(page: Any, text: str) -> list[TextRow]:
     """Rows for the non-empty lines of ``text`` (the page's ``extract_text()`` output)."""
     lines = [ln for ln in text.splitlines() if ln.strip()]
@@ -166,18 +191,20 @@ def split_rows(page: Any, text: str) -> list[TextRow]:
         logger.debug("pdf_cells: text/geometry mismatch, page left unsplit")
         return plain
     cands = [_candidates(ln, own, runs) for ln, own in zip(lines, owners)]
+    # One (x, line id) per candidate gap, sorted once. Alignment is then a bisect
+    # per candidate: O(C log C), not a scan of every other candidate.
+    if sum(len(cs) for cs in cands) > MAX_COLUMN_CANDIDATES:
+        logger.debug("pdf_cells: column-candidate cap exceeded, page left unsplit")
+        return plain
+    points = sorted((x0, li) for li, cs in enumerate(cands) for _, _, x0 in cs)
+    xs = [x for x, _ in points]
     rows = []
     for li, (ln, cs) in enumerate(zip(lines, cands)):
-        cuts = []
-        for idx, gap_em, x0 in cs:
-            aligned = any(
-                abs(x0 - ox) <= COLUMN_ALIGN_PT
-                for lj, other in enumerate(cands)
-                if lj != li
-                for _, _, ox in other
-            )
-            if aligned or gap_em >= CELL_GAP_EM_LONE:
-                cuts.append(idx)
+        cuts = [
+            idx
+            for idx, gap_em, x0 in cs
+            if gap_em >= CELL_GAP_EM_LONE or _other_line_aligned(points, xs, x0, li)
+        ]
         if not cuts:
             rows.append(plain[li])
             continue
