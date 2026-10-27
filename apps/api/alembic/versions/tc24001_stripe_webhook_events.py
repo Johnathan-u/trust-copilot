@@ -1,9 +1,9 @@
 """Stripe webhook replay store and subscription event watermarks.
 
 Revision ID: tc24001_stripe_webhook_events
-Revises: tc11001_model_outcome_codes
+Revises: tc25011_demo_proof_summaries
 
-Parent is master's Alembic head, tc11001_model_outcome_codes.
+Parent is master's Alembic head, tc25011_demo_proof_summaries.
 Other open revisions are not parents of this migration.
 """
 
@@ -16,7 +16,7 @@ from alembic import op
 # This module must not import the application package.
 
 revision = "tc24001_stripe_webhook_events"
-down_revision = "tc11001_model_outcome_codes"
+down_revision = "tc25011_demo_proof_summaries"
 branch_labels = None
 depends_on = None
 

@@ -1265,12 +1265,12 @@ def test_migration_fresh_install_upgrade_and_downgrade():
         fresh = _alembic(url, "upgrade", "head")
         assert fresh.returncode == 0, fresh.stderr
         _assert_webhook_schema(url, present=True)
-        down = _alembic(url, "downgrade", "tc11001_model_outcome_codes")
+        down = _alembic(url, "downgrade", "tc25011_demo_proof_summaries")
         assert down.returncode == 0, down.stderr
         _assert_webhook_schema(url, present=False)
         parent = _alembic(url, "current")
         assert parent.returncode == 0, parent.stderr
-        assert "tc11001_model_outcome_codes" in parent.stdout
+        assert "tc25011_demo_proof_summaries" in parent.stdout
         again = _alembic(url, "upgrade", "head")
         assert again.returncode == 0, again.stderr
         _assert_webhook_schema(url, present=True)

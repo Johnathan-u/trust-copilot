@@ -212,6 +212,31 @@ class TestIngestRun:
         events = _get_audit_events("slack.evidence_ingested")
         assert len(events) > 0
 
+    def test_http_history_customer_error_hides_ticket(
+        self, client: TestClient, monkeypatch
+    ) -> None:
+        from app.services.slack_service import HttpSlackProvider
+
+        _login_admin(client)
+        _ensure_slack_connected(client)
+        _cleanup_ingest()
+        created = client.post(
+            "/api/slack/ingest/channels",
+            json={"channel_id": "C_UNAVAIL", "channel_name": "unavail"},
+        )
+        assert created.status_code == 200
+        rec_id = created.json()["id"]
+        monkeypatch.setattr(
+            "app.services.slack_ingest_service.get_slack_provider",
+            lambda: HttpSlackProvider(),
+        )
+        response = client.post(f"/api/slack/ingest/run/{rec_id}?limit=3")
+        assert response.status_code == 200
+        body = response.json()
+        assert body["ingested"] == 0
+        assert body["errors"] == ["Slack message import is not available yet."]
+        assert "TC-19-003" not in response.text
+
     def test_unapproved_channel_does_not_ingest(self, client: TestClient) -> None:
         _login_admin(client)
         _ensure_slack_connected(client)

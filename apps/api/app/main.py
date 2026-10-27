@@ -211,8 +211,10 @@ async def lifespan(app: FastAPI):
                 "SESSION_SECRET is default or unset. Set SESSION_SECRET to a secure value for non-local use."
             )
     from app.services.billing_provider import raise_for_stripe_preflight
+    from app.services.message_providers.selection import assert_message_provider_preflight
 
     raise_for_stripe_preflight(s)
+    assert_message_provider_preflight()
     print(
         "OpenAI: configured"
         if s.openai_api_key

@@ -509,8 +509,7 @@ def test_worker_persists_safe_typed_job_error_and_jobs_api(client, db_session):
 MIGRATION_REVISION = "tc11001_model_outcome_codes"
 
 
-def _revision_is_applied(head: str, revision: str) -> bool:
-    """True when ``head`` is ``revision`` or a later revision on its chain."""
+def _alembic_script():
     from pathlib import Path
 
     from alembic.config import Config
@@ -519,19 +518,22 @@ def _revision_is_applied(head: str, revision: str) -> bool:
     api_dir = Path(__file__).resolve().parents[1]
     cfg = Config(str(api_dir / "alembic.ini"))
     cfg.set_main_option("script_location", str(api_dir / "alembic"))
-    script = ScriptDirectory.from_config(cfg)
-    current: str | None = head
+    return ScriptDirectory.from_config(cfg)
+
+
+def _single_head_reaches(script, revision: str) -> str:
+    """Return the only head when ``revision`` is that head or a linear ancestor of it."""
+    heads = script.get_heads()
+    assert len(heads) == 1
+    current = heads[0]
     seen: set[str] = set()
-    while current and current not in seen:
+    while isinstance(current, str) and current not in seen:
         if current == revision:
-            return True
+            return heads[0]
         seen.add(current)
-        rev = script.get_revision(current)
-        parent = rev.down_revision if rev is not None else None
-        if isinstance(parent, tuple):
-            return any(_revision_is_applied(item, revision) for item in parent if item)
-        current = parent
-    return False
+        down = script.get_revision(current).down_revision
+        current = down if isinstance(down, str) else None
+    raise AssertionError(f"{revision} is not an ancestor of head {heads[0]}")
 
 
 def test_migration_columns_present(db_session):
@@ -540,32 +542,21 @@ def test_migration_columns_present(db_session):
     insp = inspect(db_session.get_bind())
     assert "outcome_code" in {c["name"] for c in insp.get_columns("answers")}
     assert "error_code" in {c["name"] for c in insp.get_columns("jobs")}
-    stamped = db_session.execute(text("SELECT version_num FROM alembic_version")).scalar()
-    assert _revision_is_applied(stamped, MIGRATION_REVISION)
+    # Later revisions may be the stamped head; this one must still be applied.
+    head = _single_head_reaches(_alembic_script(), MIGRATION_REVISION)
+    assert db_session.execute(text("SELECT version_num FROM alembic_version")).scalar() == head
 
 
 def test_migration_has_unique_descriptive_revision_after_075():
-    """Revision id stays descriptive. Parent is master's TC-21-001 head, not 075.
-
-    A later ticket may add one child revision. This revision stays on that
-    single head's chain.
-    """
+    """Revision id stays descriptive. Parent is master's TC-21-001 head, not 075."""
     from pathlib import Path
 
-    from alembic.config import Config
-    from alembic.script import ScriptDirectory
-
-    api_dir = Path(__file__).resolve().parents[1]
-    cfg = Config(str(api_dir / "alembic.ini"))
-    cfg.set_main_option("script_location", str(api_dir / "alembic"))
-    script = ScriptDirectory.from_config(cfg)
+    script = _alembic_script()
     rev = script.get_revision(MIGRATION_REVISION)
     assert rev.down_revision == "tc21001_framework_catalog_rights"
     assert Path(rev.path).name == "076_tc11001_model_outcome_codes.py"
     assert "076" not in {r.revision for r in script.walk_revisions()}
-    heads = script.get_heads()
-    assert len(heads) == 1
-    assert _revision_is_applied(heads[0], MIGRATION_REVISION)
+    _single_head_reaches(script, MIGRATION_REVISION)
 
 
 def test_request_ids_are_unique_per_request(client):

@@ -11,8 +11,9 @@ from app.api.schemas import BulkDeleteBody, MetadataUpdateBody
 from app.core.auth_deps import require_can_edit, require_can_review
 from app.core.audit import audit_log, persist_audit
 from app.core.database import get_db
-from app.models import Document, Job, JobStatus
+from app.models import Document
 from app.services.file_service import FileService
+from app.services.job_effects import enqueue_job, job_idempotency_key
 from app.services.registry_metadata import (
     FRAMEWORK_LABELS,
     SUBJECT_AREA_LABELS,
@@ -68,14 +69,17 @@ def upload_document(
     doc.display_id = build_display_id("document", doc.id)
     db.commit()
     db.refresh(doc)
-    job = Job(
+    # TC-10-003: input_version pins the job to this upload's object; a stale job is superseded, not applied.
+    job, _created = enqueue_job(
+        db,
         workspace_id=workspace_id,
         kind="index_document",
-        status=JobStatus.QUEUED.value,
-        payload=json.dumps({"document_id": doc.id}),
+        payload={"document_id": doc.id},
+        idempotency_key=job_idempotency_key(
+            "index_document", workspace_id, doc.id, doc.storage_key
+        ),
+        input_version=doc.storage_key,
     )
-    db.add(job)
-    db.commit()
     audit_log(
         "document.upload",
         email=session.get("email"),

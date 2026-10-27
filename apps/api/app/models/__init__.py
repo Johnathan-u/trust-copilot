@@ -7,6 +7,7 @@ from app.models.chunk import Chunk
 from app.models.document import Document
 from app.models.export_record import ExportRecord
 from app.models.job import Job, JobKind, JobStatus
+from app.models.job_effect import JobEffect
 from app.models.questionnaire import Question, Questionnaire
 from app.models.user import User, WorkspaceMember
 from app.models.trust_article import TrustArticle
@@ -84,6 +85,7 @@ from app.models.answer_approval_event import AnswerApprovalEvent
 from app.models.freshness_policy import FreshnessPolicy
 from app.models.retention_policy import RetentionPolicy
 from app.models.deal import Deal, DEAL_STAGES
+from app.models.demo_proof_summary import DemoProofSummary
 from app.models.remediation_playbook import (
     RemediationPlaybook,
     RemediationTicket,
@@ -127,6 +129,7 @@ __all__ = [
     "ExportRecord",
     "Job",
     "JobKind",
+    "JobEffect",
     "JobStatus",
     "Question",
     "Questionnaire",
@@ -211,6 +214,7 @@ __all__ = [
     "EVIDENCE_APPROVAL_STATUSES",
     "Deal",
     "DEAL_STAGES",
+    "DemoProofSummary",
     "RemediationPlaybook",
     "RemediationTicket",
     "REMEDIATION_STATUSES",

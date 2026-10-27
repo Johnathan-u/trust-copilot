@@ -153,6 +153,7 @@ def test_liveness_never_touches_dependencies(api):
 
 
 def _set_db_heartbeat(age_sec: float) -> None:
+    # Callers must request `migrated_db`: worker_heartbeat only exists after migration 026.
     ts = (datetime.now(UTC) - timedelta(seconds=age_sec)).replace(tzinfo=None)
     with database.engine.begin() as conn:
         conn.execute(
@@ -164,6 +165,7 @@ def _set_db_heartbeat(age_sec: float) -> None:
         )
 
 
+@pytest.mark.usefixtures("migrated_db")
 def test_workerz_fresh_heartbeat_is_alive(api):
     _set_db_heartbeat(5)
     r = api.get("/workerz")
@@ -175,6 +177,7 @@ def test_workerz_fresh_heartbeat_is_alive(api):
     assert 0 <= body["last_seen_age_sec"] < 60
 
 
+@pytest.mark.usefixtures("migrated_db")
 def test_workerz_stale_heartbeat_is_503(api):
     _set_db_heartbeat(600)
     r = api.get("/workerz")
@@ -184,6 +187,7 @@ def test_workerz_stale_heartbeat_is_503(api):
     assert body["status"] == "stale"
 
 
+@pytest.mark.usefixtures("migrated_db")
 def test_workerz_staleness_threshold_is_configurable(api, monkeypatch):
     _set_db_heartbeat(600)
     monkeypatch.setenv("WORKER_HEARTBEAT_STALE_SEC", "900")
@@ -383,6 +387,7 @@ def test_worker_main_starts_background_heartbeat(monkeypatch):
     assert "started" in started
 
 
+@pytest.mark.usefixtures("migrated_db")
 def test_worker_db_heartbeat_write_is_read_as_fresh(api):
     from app import worker
 

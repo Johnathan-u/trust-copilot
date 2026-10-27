@@ -10,6 +10,8 @@ from app.core.audit import persist_audit
 from app.core.auth_deps import require_can_admin
 from app.core.database import get_db
 from app.models import NOTIFICATION_EVENT_TYPES, SlackIntegration
+from app.services.message_providers.errors import is_provider_failure, public_error_detail
+from app.services.message_providers.selection import delivery_accepted, message_provider_preflight
 from app.services.slack_service import decrypt_token, encrypt_token, get_slack_provider
 
 router = APIRouter(prefix="/slack", tags=["slack"])
@@ -37,8 +39,9 @@ async def slack_status(
     """Return current Slack integration status for this workspace."""
     ws = session["workspace_id"]
     si = db.query(SlackIntegration).filter(SlackIntegration.workspace_id == ws).first()
+    provider_fields = message_provider_preflight().status_fields()
     if not si:
-        return {"connected": False}
+        return {"connected": False, **provider_fields}
     event_types = []
     if si.event_types:
         try:
@@ -52,6 +55,7 @@ async def slack_status(
         "channel_name": si.channel_name,
         "event_types": event_types,
         "updated_at": si.updated_at.isoformat() if si.updated_at else None,
+        **provider_fields,
     }
 
 
@@ -72,9 +76,10 @@ async def slack_connect(
 
     provider = get_slack_provider()
     auth_result = provider.test_auth(token)
-    if not auth_result.get("ok"):
+    if not delivery_accepted(auth_result):
         raise HTTPException(
-            status_code=400, detail=f"Slack auth failed: {auth_result.get('error', 'unknown')}"
+            status_code=400,
+            detail=f"Slack auth failed: {public_error_detail(auth_result, 'unknown')}",
         )
 
     valid_events = [e for e in (req.event_types or []) if e in NOTIFICATION_EVENT_TYPES]
@@ -113,7 +118,12 @@ async def slack_connect(
         },
     )
 
-    return {"connected": True, "channel_id": channel_id, "channel_name": req.channel_name}
+    return {
+        "connected": True,
+        "channel_id": channel_id,
+        "channel_name": req.channel_name,
+        **message_provider_preflight().status_fields(),
+    }
 
 
 @router.patch("/configure")
@@ -201,6 +211,7 @@ async def slack_test(
     result = provider.send_message(
         token, si.channel_id, "Trust Copilot test message — Slack integration is working."
     )
+    accepted = delivery_accepted(result)
 
     from app.models import NotificationLog
 
@@ -211,18 +222,23 @@ async def slack_test(
             channel="slack",
             recipient_email=f"#{si.channel_name or si.channel_id}",
             subject="Test message",
-            status="sent" if result.get("ok") else "failed",
-            error=result.get("error", "")[:500] if not result.get("ok") else None,
+            status="sent" if accepted else "failed",
+            error=None if accepted else public_error_detail(result, "unknown")[:500],
         )
     )
     db.commit()
 
-    if not result.get("ok"):
+    if not accepted:
         raise HTTPException(
-            status_code=502, detail=f"Slack delivery failed: {result.get('error', 'unknown')}"
+            status_code=502,
+            detail=f"Slack delivery failed: {public_error_detail(result, 'unknown')}",
         )
 
-    return {"ok": True, "message": "Test message sent to Slack"}
+    if result.get("provider_mode") == "dev-stub":
+        message = "Development stub recorded the test message. It was not delivered to Slack."
+    else:
+        message = "Test message sent to Slack"
+    return {"ok": True, "message": message, "provider_mode": result.get("provider_mode", "http")}
 
 
 @router.get("/channels")
@@ -238,4 +254,8 @@ async def slack_channels(
     token = decrypt_token(si.bot_token_encrypted)
     provider = get_slack_provider()
     channels = provider.list_channels(token)
-    return {"channels": channels}
+    if is_provider_failure(channels):
+        raise HTTPException(
+            status_code=502, detail=public_error_detail(channels, "Slack channel list failed")
+        )
+    return {"channels": channels, **message_provider_preflight().status_fields()}
