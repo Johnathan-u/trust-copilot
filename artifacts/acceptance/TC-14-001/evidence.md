@@ -2,13 +2,13 @@
 
 Synthetic data only. The showcase and these artifacts contain no credentials or customer content.
 
-## Tested commit
+## Latest run
 
-`ba53f8f0e7e6e46714493d89c1afd755117e3873` on branch `tc/web/TC-14-001`.
+Tested commit: `75e565a702f60f7ec838bae451cadf0839ddc032` on branch `tc/web/TC-14-001`.
 
-That commit is the tree the checks ran against, including the token showcase. This evidence note was added in the following commit and does not change the suite.
+That commit includes the master merge (`a12d1aae18bfcdf15066c906ed4dc5cc923f9605`, master `f72def39245abf5cb46c7b3693f687114fa4b1b5`) and the coordinator follow-up: dark stays the default, and Inter 4.1 is self-hosted. This evidence note was added in the following commit and does not change the suite.
 
-## Environment
+### Environment
 
 - OS: Linux 6.12.94+ x86_64
 - Node: v22.23.4
@@ -20,9 +20,7 @@ That commit is the tree the checks ran against, including the token showcase. Th
 - @axe-core/playwright: 4.14.0
 - Working directory: `apps/web`
 
-## Commands and results
-
-### Unit
+### Commands and results
 
 ```bash
 cd apps/web
@@ -30,10 +28,9 @@ npm run test:unit
 ```
 
 - Exit status: 0
-- Test files: 1 passed
-- Tests: 13 passed, 0 failed, 0 skipped
-
-### Playwright and axe
+- Test files: 2 passed
+- Tests: 15 passed, 0 failed, 0 skipped
+- Includes `lib/font-host.test.ts` (bundled OFL files, no third-party font host in shipped source, system fallback stack)
 
 ```bash
 cd apps/web
@@ -48,7 +45,13 @@ npx playwright test e2e/release/design-tokens.spec.ts
 - Focus: keyboard Tab reaches the primary action; 2px focus ring; contrast at least 3:1 against the page surface and the primary glow
 - Reduced motion: interaction duration computes to 0s
 - Unknown `theme` query: default dark tokens remain
+- Fonts: each navigation requested only same-origin `.woff2` files. No request to a third-party font host. Computed body font-family includes Inter, and `--tc-font-sans` keeps the system fallback stack.
 
-Screenshots: `artifacts/acceptance/TC-14-001/screenshots/theme-{dark,light}-{360,768,1440}.png`.
+Screenshots were refreshed after Inter started loading from the bundle: `artifacts/acceptance/TC-14-001/screenshots/theme-{dark,light}-{360,768,1440}.png`.
 
 No required test was skipped.
+
+## Earlier runs
+
+- Implementation commit `ba53f8f0e7e6e46714493d89c1afd755117e3873`: unit 13 passed, Playwright 4 passed.
+- Merge commit `a12d1aae18bfcdf15066c906ed4dc5cc923f9605`: the same two commands were re-run and passed with those totals. Screenshot bytes were unchanged on that run.
