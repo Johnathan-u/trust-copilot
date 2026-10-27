@@ -38,14 +38,20 @@ class TestCaseStudyService:
         db = SessionLocal()
         try:
             ws = self._get_workspace(db)
-            result = cs.create(db, ws.id, "Acme Corp Case Study",
-                               company_name="Acme Corp",
-                               industry="FinTech",
-                               challenge="Too many questionnaires")
+            result = cs.create(
+                db,
+                ws.id,
+                "Placeholder draft",
+                company_name="SYNTHETIC-ORG-PLACEHOLDER",
+                industry="SYNTHETIC-INDUSTRY-PLACEHOLDER",
+                challenge="SYNTHETIC-CHALLENGE-PLACEHOLDER",
+            )
             db.commit()
-            assert result["title"] == "Acme Corp Case Study"
-            assert result["company_name"] == "Acme Corp"
+            assert result["title"] == "Placeholder draft"
+            assert result["company_name"] == "SYNTHETIC-ORG-PLACEHOLDER"
             assert result["status"] == "draft"
+            assert result["customer_claim"] is False
+            assert result["data_basis"] == "unverified"
         finally:
             db.close()
 
@@ -66,11 +72,18 @@ class TestCaseStudyService:
             ws = self._get_workspace(db)
             created = cs.create(db, ws.id, "Update Test")
             db.commit()
-            updated = cs.update(db, created["id"], challenge="Updated challenge", status="published")
+            updated = cs.update(db, ws.id, created["id"], challenge="Updated challenge")
             db.commit()
             assert updated["challenge"] == "Updated challenge"
-            assert updated["status"] == "published"
-            assert updated["published_at"] is not None
+            assert updated["status"] == "draft"
+            assert updated["customer_claim"] is False
+            with pytest.raises(cs.CaseStudyError) as raised:
+                cs.update(db, ws.id, created["id"], status="published")
+            assert raised.value.code == "publish_requires_workflow"
+            again = cs.get(db, ws.id, created["id"])
+            assert again["status"] == "draft"
+            assert again["published_at"] is None
+            assert again["customer_claim"] is False
         finally:
             db.close()
 
@@ -80,9 +93,9 @@ class TestCaseStudyService:
             ws = self._get_workspace(db)
             created = cs.create(db, ws.id, "Delete Test")
             db.commit()
-            assert cs.delete(db, created["id"]) is True
+            assert cs.delete(db, ws.id, created["id"]) is True
             db.commit()
-            assert cs.get(db, created["id"]) is None
+            assert cs.get(db, ws.id, created["id"]) is None
         finally:
             db.close()
 
@@ -90,10 +103,11 @@ class TestCaseStudyService:
         db = SessionLocal()
         try:
             ws = self._get_workspace(db)
-            metrics = {"hours_saved": 240, "accuracy_rate_pct": 95}
+            metrics = {"synthetic_metric_placeholder": "SYNTHETIC-METRIC-PLACEHOLDER"}
             result = cs.create(db, ws.id, "Metrics Test", metrics=metrics)
             db.commit()
-            assert result["metrics"]["hours_saved"] == 240
+            assert result["metrics"]["synthetic_metric_placeholder"] == "SYNTHETIC-METRIC-PLACEHOLDER"
+            assert result["customer_claim"] is False
         finally:
             db.close()
 
@@ -107,10 +121,13 @@ class TestCaseStudyAPI:
     def test_create_case_study(self, admin_client):
         r = admin_client.post("/api/case-studies", json={
             "title": "API Test Case Study",
-            "company_name": "TestCo",
+            "company_name": "SYNTHETIC-ORG-PLACEHOLDER",
         })
         assert r.status_code == 200
-        assert r.json()["title"] == "API Test Case Study"
+        body = r.json()
+        assert body["title"] == "API Test Case Study"
+        assert body["customer_claim"] is False
+        assert body["schema_version"] == "case-study.v2"
 
     def test_list_case_studies(self, admin_client):
         r = admin_client.get("/api/case-studies")
