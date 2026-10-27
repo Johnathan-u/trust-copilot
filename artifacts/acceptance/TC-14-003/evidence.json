@@ -1,17 +1,17 @@
 {
   "ticket": "TC-14-003",
-  "commit": "d16b472d305bea8d26d4c29964ad3cc9c8536d54",
+  "commit": "554bda8a9e3814943843b05e81cc88d2465a93c5",
   "branch": "tc/web/TC-14-003",
   "base": "master",
   "stacked_on": "tc/web/TC-14-001",
   "environment": {
     "os": "Linux 6.12.94+ x86_64",
-    "node": "v22.23.4",
-    "npm": "10.9.9",
-    "next": "14.2.15",
-    "vitest": "2.1.9",
-    "playwright": "1.58.2",
-    "chromium": "Playwright build chromium-1208",
+    "node": "v24.22.1",
+    "npm": "11.19.1",
+    "next": "16.4.3",
+    "vitest": "5.0.5",
+    "playwright": "1.64.1",
+    "chromium": "Playwright build chromium-1248",
     "axe": "@axe-core/playwright 4.14.0",
     "working_directory": "apps/web"
   },
@@ -19,8 +19,8 @@
     {
       "command": "npm run test:unit",
       "exit_status": 0,
-      "files": 5,
-      "passed": 23,
+      "files": 13,
+      "passed": 99,
       "failed": 0,
       "skipped": 0
     },
@@ -30,7 +30,7 @@
       "passed": 7,
       "failed": 0,
       "skipped": 0,
-      "duration_s": 34.7
+      "duration_s": 31.0
     }
   ],
   "axe": {

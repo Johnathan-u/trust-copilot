@@ -4,34 +4,50 @@ Synthetic data only. The showcase, screenshots and axe output contain no credent
 
 ## Latest run
 
-Tested commit: `d16b472d305bea8d26d4c29964ad3cc9c8536d54` on branch `tc/web/TC-14-003`.
+Tested commit: `554bda8a9e3814943843b05e81cc88d2465a93c5` on branch `tc/web/TC-14-003`.
 
-That commit is the disclosure-popover and toast-timing change (`87a4420`) plus the exact Playwright name match. This note was added afterwards and does not change the suite. The branch includes the unmerged TC-14-001 commits from PR #6. `origin/master` at the time of the run was `f72def39245abf5cb46c7b3693f687114fa4b1b5`, which is already an ancestor. No merge was required.
+That commit is the Node 24 gate fix after merging `origin/tc/web/TC-14-001` (`2389be2`) and `origin/master` (`ce4d861`). This note was added afterwards and does not change the suite. Package files match PR #6's head: master's lockfile plus `@axe-core/playwright@4.14.0`.
 
 ### Environment
 
 - OS: Linux 6.12.94+ x86_64
-- Node: v22.23.4
-- npm: 10.9.9
-- Next.js: 14.2.15
-- Vitest: 2.1.9
-- Playwright: 1.58.2 (`apps/web/node_modules`)
-- Chromium: Playwright build chromium-1208
+- Node: v24.22.1 (`apps/web/.nvmrc`)
+- npm: 11.19.1
+- Next.js: 16.4.3
+- Vitest: 5.0.5
+- Playwright: 1.64.1 (`apps/web/node_modules`)
+- Chromium: Playwright build chromium-1248
 - @axe-core/playwright: 4.14.0
 - Working directory: `apps/web`
+- Install: `npm ci --ignore-scripts`
 
 ### Commands and results
 
 ```bash
 cd apps/web
+npm run lint
+npm run format:check
+npm run typecheck
 npm run test:unit
+npm run build
+npm audit --omit=dev --audit-level=high
 ```
 
-- Exit status: 0
-- Test files: 5 passed
-- Tests: 23 passed, 0 failed, 0 skipped
+- Each exit status: 0
+- Unit test files: 13 passed
+- Unit tests: 99 passed, 0 failed, 0 skipped
 - Includes `lib/dialog.test.ts`, `lib/disclosure.test.ts` and `lib/toast.test.ts`
 - Toast policy: success, info and warning without an action dismiss at 4000ms. Any severity with an action button, and every error, returns `null`.
+- Audit: 0 vulnerabilities
+
+```bash
+cd /workspace
+pre-commit run --all-files
+TC_REQUIRE_WEB_TOOLCHAIN=1 python3 -m pytest apps/api/tests/release/test_web_quality.py -q --noconftest
+```
+
+- pre-commit exit status: 0 (ruff, ruff-format, prettier, trailing whitespace, end-of-file, check-yaml)
+- Web quality tests: 26 passed, including the runtime-module coverage check
 
 ```bash
 cd apps/web
@@ -40,7 +56,7 @@ npx playwright test e2e/release/dialog-toast.spec.ts --retries=0
 
 - Exit status: 0
 - Tests: 7 passed, 0 failed, 0 skipped
-- Duration: 34.7s
+- Duration: 31.0s
 - No required test was skipped
 
 Keyboard checks on `/design-dialogs` (synthetic records only):
