@@ -6,8 +6,11 @@ from pathlib import Path
 from dotenv import load_dotenv
 
 # Same env semantics as main.py/database.py: in Docker do not load .env so compose env is used.
+# Under tests (TRUST_COPILOT_TESTING=1) never load .env either, so importing the worker cannot
+# replace the test DATABASE_URL or inject real provider credentials (TC-02-001).
 _in_docker = Path("/.dockerenv").exists() or os.environ.get("TRUST_COPILOT_IN_DOCKER") == "1"
-if not _in_docker:
+_in_test = os.environ.get("TRUST_COPILOT_TESTING") == "1"
+if not _in_docker and not _in_test:
     _api_root = Path(__file__).resolve().parent.parent
     _repo_root = _api_root.parent.parent
     load_dotenv(_api_root / ".env", override=True)

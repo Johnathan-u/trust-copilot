@@ -3,7 +3,7 @@ Comprehensive UI + Backend integration test.
 Tests every frontend page route and API endpoint for connectivity.
 
 Run inside the API container:
-    python tests/full_ui_backend_test.py
+    python scripts/manual_live/full_ui_backend_check.py
 
 Coverage:
     - 3 health/readiness probes
@@ -31,16 +31,19 @@ Coverage:
     - 5 deleted frontend pages (confirm no page.tsx)
     Total: ~64 checks
 """
-"""Not a pytest suite — run as: python tests/full_ui_backend_test.py"""
+"""Not a pytest suite — run as: python scripts/manual_live/full_ui_backend_check.py"""
 __test__ = False
 
 import json
+import os
 import time
 import sys
 import requests
 from collections import defaultdict
 
-BASE = "http://localhost:8000"
+from _live_guard import api_base, require_local_url  # noqa: E402,F401
+
+BASE = api_base()
 SESSION = requests.Session()
 
 results = {"pass": [], "fail": [], "warn": []}
@@ -251,7 +254,7 @@ def test_frontend_page_loads():
         "/dashboard/trust-requests",
     ]
 
-    frontend_base = "http://caddy:3000"
+    frontend_base = require_local_url(os.environ.get("TC_FRONTEND", "http://caddy:3000"), purpose="TC_FRONTEND")
     for page in pages:
         try:
             r = SESSION.get(f"{frontend_base}{page}", timeout=20, allow_redirects=True)

@@ -11,7 +11,7 @@ Pushes mock evidence + questionnaire through the full AI pipeline and monitors:
   7. Answer stats
 
 Run inside the API container:
-    python tests/e2e_pipeline_test.py
+    python scripts/manual_live/e2e_pipeline_check.py
 """
 
 import io
@@ -20,7 +20,9 @@ import sys
 import time
 import requests
 
-BASE = "http://localhost:8000"
+from _live_guard import api_base, require_local_url  # noqa: E402,F401
+
+BASE = api_base()
 S = requests.Session()
 
 # ── Helpers ──

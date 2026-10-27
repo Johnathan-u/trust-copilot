@@ -1,3 +1,5 @@
+"""Manual dataset script (see README.md). Not a pytest module."""
+from _live_guard import require_data_file
 """Run all 100 blind cases and print full Q&A report."""
 
 import json
@@ -5,7 +7,7 @@ from datetime import date
 
 from app.services.trust_scoring import compute_trust_score
 
-BLIND_PATH = r"C:\Users\John\Downloads\trust_scoring_blind_100_pack\trust_scoring_blind_100_cases.json"
+BLIND_PATH = require_data_file("TC_TRUST_SCORING_BLIND_PACK")
 AS_OF = date(2026, 3, 23)
 
 

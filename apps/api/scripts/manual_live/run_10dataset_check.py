@@ -4,7 +4,7 @@ Datasets 1-8:  Framework-specific (SOC2, HIPAA, ISO27001, NIST CSF, 800-53, 800-
 Datasets 9-10: Negative controls (generic vendor, generic healthcare without HIPAA)
 
 Usage:
-  python -u tests/run_10dataset_test.py
+  python -u scripts/manual_live/run_10dataset_check.py
 """
 
 import base64
@@ -17,20 +17,15 @@ import time
 
 import requests
 
-API = os.environ.get("TC_API", "http://localhost:8000")
+from _live_guard import api_base, forge_session_cookie
+
+API = api_base()
 POLL_INTERVAL = 3
 POLL_TIMEOUT = 300
-SESSION_SECRET = os.environ.get(
-    "TC_SESSION_SECRET",
-    "zDWud8xGEkOl_7ceEhfvrGeTNehTp3ttPHo9uYEcCGoyZUOlYvYBCiDHjp1stF_0",
-)
 
 
 def _make_session_cookie(workspace_id: int = 1) -> str:
-    payload = {"user_id": 1, "email": "reinhartjm294@gmail.com", "workspace_id": workspace_id, "role": "admin"}
-    data = base64.urlsafe_b64encode(json.dumps(payload).encode()).decode()
-    sig = hmac.new(SESSION_SECRET.encode("utf-8"), data.encode("utf-8"), "sha256").hexdigest()
-    return f"{data}.{sig}"
+    return forge_session_cookie(workspace_id)
 
 
 S = requests.Session()

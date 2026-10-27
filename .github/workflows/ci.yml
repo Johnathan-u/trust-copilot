@@ -75,6 +75,13 @@ jobs:
         run: |
           ruff check .
 
+      - name: Safe test collection (TC-02-001)
+        # Collection must not touch the network or real credentials; fails on any egress attempt.
+        working-directory: apps/api
+        run: |
+          python -m pytest --collect-only -q
+          python -m pytest tests/release/test_safe_collection.py -q
+
       - name: Run backend tests
         working-directory: apps/api
         env:

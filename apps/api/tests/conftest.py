@@ -12,12 +12,27 @@ from fastapi.testclient import TestClient
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
-# Prevent database.py from loading .env which would override these test values
+# --- TC-02-001: isolate the suite from live services and real credentials -------------------
+# This block runs before any `app` import. It never reads a .env file.
+from tests import _safety
+
 os.environ["TRUST_COPILOT_TESTING"] = "1"
-_db_host = "postgres" if os.path.exists("/.dockerenv") else "localhost"
-os.environ["DATABASE_URL"] = f"postgresql://postgres:postgres@{_db_host}:5432/trustcopilot_test"
+# Provider credentials (OpenAI, Stripe, OAuth, SMTP, Sentry, ...) are removed unless
+# TC_ALLOW_PROVIDER_TESTS=1. Tests that need a real provider must be marked `provider`.
+_safety.scrub_provider_env()
+_in_docker_env = os.path.exists("/.dockerenv")
+_db_host = "postgres" if _in_docker_env else "localhost"
+# TC_TEST_DATABASE_URL lets a developer/CI point at a different *local* *_test* database
+# (e.g. another port). It is validated: non-local hosts or non-`_test` names abort the run.
+os.environ["DATABASE_URL"] = _safety.validate_test_database_url(
+    os.environ.get("TC_TEST_DATABASE_URL")
+    or f"postgresql://postgres:postgres@{_db_host}:5432/trustcopilot_test"
+)
 os.environ["SESSION_SECRET"] = "test-secret"
-os.environ["S3_ENDPOINT"] = f"http://{'minio' if os.path.exists('/.dockerenv') else 'localhost'}:9000"
+os.environ["S3_ENDPOINT"] = _safety.validate_test_s3_endpoint(
+    f"http://{'minio' if _in_docker_env else 'localhost'}:9000"
+)
+# Synthetic local-MinIO credentials (match docker-compose dev defaults; not a real secret).
 os.environ["S3_ACCESS_KEY"] = "minio"
 os.environ["S3_SECRET_KEY"] = "minio123"
 os.environ["S3_BUCKET_RAW"] = "test-raw"
@@ -26,14 +41,8 @@ os.environ["TRUSTED_ORIGINS"] = "http://localhost,http://localhost:3000,http://1
 os.environ["RATE_LIMIT_RPM_PER_IP"] = "0"
 # Avoid real OpenAI calls from question_to_controls during most tests (enable in test_mapping_llm_rerank only).
 os.environ["MAPPING_LLM_RERANK"] = "0"
-# Load OPENAI_API_KEY from root .env if not already in environment
-if not os.environ.get("OPENAI_API_KEY"):
-    _root_env = Path(__file__).resolve().parents[3] / ".env"
-    if _root_env.exists():
-        for _line in _root_env.read_text().splitlines():
-            if _line.startswith("OPENAI_API_KEY="):
-                os.environ["OPENAI_API_KEY"] = _line.split("=", 1)[1].strip()
-                break
+# Egress guard: only loopback + local test services (Postgres/MinIO) are reachable from Python sockets.
+_safety.install_network_guard()
 # Clear cached settings so it picks up the env vars set above
 try:
     from app.core.config import get_settings
@@ -47,9 +56,81 @@ TEST_HEADERS = {"Origin": TEST_ORIGIN, "Referer": f"{TEST_ORIGIN}/"}
 _API_ROOT = Path(__file__).resolve().parent.parent
 
 
+# Module classification (TC-02-001). A test is `integration` if it uses a DB/app fixture or its
+# module touches the database / ASGI app directly; otherwise `unit`. Explicit markers win.
+_INTEGRATION_FIXTURES = frozenset({"client", "db_session", "test_workspace", "_ensure_test_data"})
+_INTEGRATION_SOURCE_HINTS = (
+    "SessionLocal",
+    "TestClient",
+    "create_engine",
+    "from app.main import",
+    "import app.main",
+    "engine.connect",
+    "get_db",
+)
+_CATEGORY_MARKERS = ("unit", "integration", "provider", "live_stack", "external_data")
+_module_hint_cache: dict[str, bool] = {}
+
+
+def _module_touches_db(path) -> bool:
+    key = str(path)
+    if key not in _module_hint_cache:
+        try:
+            src = Path(key).read_text(encoding="utf-8", errors="ignore")
+        except OSError:
+            src = ""
+        _module_hint_cache[key] = any(h in src for h in _INTEGRATION_SOURCE_HINTS)
+    return _module_hint_cache[key]
+
+
+def pytest_collectstart(collector):
+    _safety.set_phase("collection")
+
+
+def pytest_collection_modifyitems(config, items):
+    """Auto-classify tests and gate opt-in categories with explicit skip reasons."""
+    allow_provider = _safety.provider_tests_enabled()
+    allow_live = os.environ.get("TC_LIVE_STACK_TESTS") == "1"
+    for item in items:
+        own = {m.name for m in item.iter_markers()}
+        if not own.intersection(_CATEGORY_MARKERS):
+            if _INTEGRATION_FIXTURES.intersection(getattr(item, "fixturenames", ())) or _module_touches_db(
+                item.fspath
+            ):
+                item.add_marker(pytest.mark.integration)
+            else:
+                item.add_marker(pytest.mark.unit)
+        if "provider" in own and not allow_provider:
+            item.add_marker(pytest.mark.skip(reason="provider: real third-party call; set TC_ALLOW_PROVIDER_TESTS=1"))
+        if "live_stack" in own and not allow_live:
+            item.add_marker(pytest.mark.skip(reason="live_stack: needs a running local stack; set TC_LIVE_STACK_TESTS=1"))
+
+
+def pytest_collection_finish(session):
+    _safety.set_phase("run")
+    during_collection = [b for b in _safety.blocked_attempts() if b.startswith(("[import]", "[collection]"))]
+    if during_collection:
+        raise pytest.UsageError(
+            "TC-02-001: network access attempted while importing/collecting tests: " + ", ".join(during_collection)
+        )
+
+
+def pytest_runtest_setup(item):
+    _safety.set_phase(f"run {item.nodeid}")
+
+
+def pytest_terminal_summary(terminalreporter, exitstatus, config):
+    attempts = _safety.blocked_attempts()
+    if attempts:
+        terminalreporter.write_sep("-", "TC-02-001 network guard: blocked egress attempts")
+        for a in attempts:
+            terminalreporter.write_line(a)
+
+
 def pytest_configure(config):
     """Ensure test env vars survive any .env loading and settings caching that happens during collection."""
     os.environ["TRUST_COPILOT_TESTING"] = "1"
+    _safety.scrub_provider_env()
     os.environ["TRUSTED_ORIGINS"] = "http://localhost,http://localhost:3000,http://127.0.0.1,http://127.0.0.1:3000"
     os.environ["RATE_LIMIT_RPM_PER_IP"] = "0"
     os.environ["MAPPING_LLM_RERANK"] = "0"
@@ -61,17 +142,19 @@ def pytest_configure(config):
 
 
 def _create_test_db_if_needed():
-    """Create the trustcopilot_test database if it does not exist."""
+    """Create the (validated, *_test) test database if it does not exist."""
     import sqlalchemy
-    admin_url = os.environ["DATABASE_URL"].rsplit("/", 1)[0] + "/postgres"
+    url = _safety.validate_test_database_url(os.environ["DATABASE_URL"])
+    db_name = url.rsplit("/", 1)[1].split("?", 1)[0]
+    admin_url = url.rsplit("/", 1)[0] + "/postgres"
     try:
         eng = sqlalchemy.create_engine(admin_url, isolation_level="AUTOCOMMIT")
         with eng.connect() as conn:
             exists = conn.execute(
-                text("SELECT 1 FROM pg_database WHERE datname = 'trustcopilot_test'")
+                text("SELECT 1 FROM pg_database WHERE datname = :n"), {"n": db_name}
             ).scalar()
             if not exists:
-                conn.execute(text("CREATE DATABASE trustcopilot_test"))
+                conn.execute(text('CREATE DATABASE "{}"'.format(db_name.replace('"', ""))))
         eng.dispose()
     except Exception:
         pass
@@ -345,3 +428,21 @@ def test_workspace(db_session: Session) -> dict:
     if ws:
         return {"id": ws.id, "name": ws.name, "slug": ws.slug}
     return {"id": 1, "name": "Default", "slug": "default"}
+
+
+SYNTHETIC_OPENAI_KEY = "sk-test-synthetic-offline-key"
+
+
+@pytest.fixture
+def synthetic_openai_key(monkeypatch):
+    """Set a fake OpenAI key for code paths that only check the key is configured.
+
+    The OpenAI client must still be mocked by the test; any real call is blocked by the
+    TC-02-001 network guard. Never use a real key here.
+    """
+    from app.core.config import get_settings
+
+    monkeypatch.setenv("OPENAI_API_KEY", SYNTHETIC_OPENAI_KEY)
+    get_settings.cache_clear()
+    yield SYNTHETIC_OPENAI_KEY
+    get_settings.cache_clear()

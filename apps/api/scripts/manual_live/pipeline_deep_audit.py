@@ -4,7 +4,9 @@ what the pipeline actually produces.
 """
 import json, sys, requests
 
-BASE = "http://localhost:8000"
+from _live_guard import api_base, require_local_url  # noqa: E402,F401
+
+BASE = api_base()
 S = requests.Session()
 
 def login():

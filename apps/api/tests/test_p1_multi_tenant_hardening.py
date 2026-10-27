@@ -256,7 +256,7 @@ class TestWorkerDefenseInDepth:
 # ---------------------------------------------------------------------------
 
 class TestAPIQuotaEnforcement:
-    def test_generate_answers_blocked_at_quota(self, client: TestClient) -> None:
+    def test_generate_answers_blocked_at_quota(self, client: TestClient, synthetic_openai_key) -> None:
         _cleanup_usage()
         _login_admin(client)
 
