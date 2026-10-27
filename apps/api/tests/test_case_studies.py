@@ -106,7 +106,9 @@ class TestCaseStudyService:
             metrics = {"synthetic_metric_placeholder": "SYNTHETIC-METRIC-PLACEHOLDER"}
             result = cs.create(db, ws.id, "Metrics Test", metrics=metrics)
             db.commit()
-            assert result["metrics"]["synthetic_metric_placeholder"] == "SYNTHETIC-METRIC-PLACEHOLDER"
+            assert (
+                result["metrics"]["synthetic_metric_placeholder"] == "SYNTHETIC-METRIC-PLACEHOLDER"
+            )
             assert result["customer_claim"] is False
         finally:
             db.close()
@@ -119,10 +121,13 @@ class TestCaseStudyAPI:
         assert "sections" in r.json()
 
     def test_create_case_study(self, admin_client):
-        r = admin_client.post("/api/case-studies", json={
-            "title": "API Test Case Study",
-            "company_name": "SYNTHETIC-ORG-PLACEHOLDER",
-        })
+        r = admin_client.post(
+            "/api/case-studies",
+            json={
+                "title": "API Test Case Study",
+                "company_name": "SYNTHETIC-ORG-PLACEHOLDER",
+            },
+        )
         assert r.status_code == 200
         body = r.json()
         assert body["title"] == "API Test Case Study"

@@ -10,6 +10,7 @@ Or from apps/api (with PYTHONPATH=. or from apps/api):
 Optional: workspace_id as first arg to only process one workspace:
   python scripts/queue_index_uploaded_docs.py 1
 """
+
 import json
 import os
 import sys
@@ -21,12 +22,13 @@ if str(api_root) not in sys.path:
     sys.path.insert(0, str(api_root))
 os.chdir(api_root)
 
-from dotenv import load_dotenv
+from dotenv import load_dotenv  # noqa: E402
+
 load_dotenv(api_root / ".env")
 load_dotenv(repo_root / ".env")
 
-from app.core.database import SessionLocal
-from app.models import Document, Job, JobStatus
+from app.core.database import SessionLocal  # noqa: E402
+from app.models import Document, Job, JobStatus  # noqa: E402
 
 
 def main() -> None:
@@ -44,10 +46,14 @@ def main() -> None:
 
         # Document IDs that already have a queued or running index_document job
         pending = set()
-        for job in db.query(Job).filter(
-            Job.kind == "index_document",
-            Job.status.in_([JobStatus.QUEUED.value, JobStatus.RUNNING.value]),
-        ).all():
+        for job in (
+            db.query(Job)
+            .filter(
+                Job.kind == "index_document",
+                Job.status.in_([JobStatus.QUEUED.value, JobStatus.RUNNING.value]),
+            )
+            .all()
+        ):
             try:
                 payload = json.loads(job.payload or "{}")
                 if "document_id" in payload:
@@ -68,11 +74,17 @@ def main() -> None:
             db.add(job)
             db.commit()
             enqueued += 1
-            print(f"Enqueued index_document for doc id={doc.id} workspace_id={doc.workspace_id} ({doc.filename})")
+            print(
+                f"Enqueued index_document for doc id={doc.id} workspace_id={doc.workspace_id} ({doc.filename})"
+            )
 
-        print(f"\nDone. Enqueued {enqueued} new index_document job(s) for {len(uploaded)} uploaded doc(s).")
+        print(
+            f"\nDone. Enqueued {enqueued} new index_document job(s) for {len(uploaded)} uploaded doc(s)."
+        )
         if pending:
-            print(f"({len(uploaded) - enqueued} doc(s) already had a pending index job and were skipped.)")
+            print(
+                f"({len(uploaded) - enqueued} doc(s) already had a pending index job and were skipped.)"
+            )
     finally:
         db.close()
 

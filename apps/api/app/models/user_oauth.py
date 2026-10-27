@@ -11,7 +11,9 @@ class UserOAuthAccount(Base):
     """Links a provider identity (Google, Microsoft) to a User."""
 
     __tablename__ = "user_oauth_accounts"
-    __table_args__ = (UniqueConstraint("provider", "provider_user_id", name="uq_oauth_provider_user"),)
+    __table_args__ = (
+        UniqueConstraint("provider", "provider_user_id", name="uq_oauth_provider_user"),
+    )
 
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)

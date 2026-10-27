@@ -41,18 +41,24 @@ class TestIngestionService:
 
 class TestIngestionAPI:
     def test_ingest(self, admin_client):
-        r = admin_client.post("/api/ingestion", json={
-            "source_type": "manual",
-            "title": "API Test Evidence",
-        })
+        r = admin_client.post(
+            "/api/ingestion",
+            json={
+                "source_type": "manual",
+                "title": "API Test Evidence",
+            },
+        )
         assert r.status_code == 200
         assert r.json()["source_type"] == "manual"
 
     def test_batch(self, admin_client):
-        r = admin_client.post("/api/ingestion/batch", json={
-            "source_type": "github",
-            "items": [{"title": "GH-1"}, {"title": "GH-2"}],
-        })
+        r = admin_client.post(
+            "/api/ingestion/batch",
+            json={
+                "source_type": "github",
+                "items": [{"title": "GH-1"}, {"title": "GH-2"}],
+            },
+        )
         assert r.status_code == 200
         assert r.json()["ingested"] == 2
 

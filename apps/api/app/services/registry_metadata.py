@@ -169,9 +169,13 @@ def parse_json_list(raw: str | None) -> list[str]:
     return out
 
 
-def normalize_labels(values: Iterable[str], *, allowed: list[str], fallback: str = "Other") -> list[str]:
+def normalize_labels(
+    values: Iterable[str], *, allowed: list[str], fallback: str = "Other"
+) -> list[str]:
     """Dedupe case-insensitively, trim whitespace, map to allowed or fallback."""
-    allowed_by_lower: dict[str, str] = {a.strip().lower(): a.strip() for a in allowed if a and str(a).strip()}
+    allowed_by_lower: dict[str, str] = {
+        a.strip().lower(): a.strip() for a in allowed if a and str(a).strip()
+    }
     deduped: list[str] = []
     seen_lower: set[str] = set()
     for value in values:

@@ -46,12 +46,12 @@ class CaseStudy(Base):
     """Structured case study following the standard template."""
 
     __tablename__ = "case_studies"
-    __table_args__ = (
-        UniqueConstraint("id", "workspace_id", name="uq_case_studies_id_workspace"),
-    )
+    __table_args__ = (UniqueConstraint("id", "workspace_id", name="uq_case_studies_id_workspace"),)
 
     id = Column(Integer, primary_key=True, autoincrement=True)
-    workspace_id = Column(Integer, ForeignKey("workspaces.id", ondelete="CASCADE"), nullable=False, index=True)
+    workspace_id = Column(
+        Integer, ForeignKey("workspaces.id", ondelete="CASCADE"), nullable=False, index=True
+    )
     title = Column(String(512), nullable=False)
     company_name = Column(String(255), nullable=True)
     industry = Column(String(128), nullable=True)
@@ -65,13 +65,24 @@ class CaseStudy(Base):
     quoted_organizations_json = Column(Text, nullable=True)
     status = Column(String(32), nullable=False, default=STATUS_DRAFT, server_default=STATUS_DRAFT)
     synthetic = Column(Boolean, nullable=False, default=False, server_default="false")
-    data_basis = Column(String(32), nullable=False, default=DATA_BASIS_UNVERIFIED, server_default=DATA_BASIS_UNVERIFIED)
+    data_basis = Column(
+        String(32),
+        nullable=False,
+        default=DATA_BASIS_UNVERIFIED,
+        server_default=DATA_BASIS_UNVERIFIED,
+    )
     customer_claim = Column(Boolean, nullable=False, default=False, server_default="false")
     publication_authorized = Column(Boolean, nullable=False, default=False, server_default="false")
-    review_status = Column(String(32), nullable=False, default=REVIEW_NONE, server_default=REVIEW_NONE)
+    review_status = Column(
+        String(32), nullable=False, default=REVIEW_NONE, server_default=REVIEW_NONE
+    )
     revision = Column(Integer, nullable=False, default=1, server_default="1")
-    schema_version = Column(String(32), nullable=False, default=SCHEMA_VERSION, server_default=SCHEMA_VERSION)
-    reviewed_by_user_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    schema_version = Column(
+        String(32), nullable=False, default=SCHEMA_VERSION, server_default=SCHEMA_VERSION
+    )
+    reviewed_by_user_id = Column(
+        Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True
+    )
     reviewed_at = Column(DateTime(timezone=True), nullable=True)
     published_at = Column(DateTime(timezone=True), nullable=True)
     # Snapshot taken by revision tc25005_case_study_consent. Downgrade restores it
@@ -104,7 +115,9 @@ class CaseStudyOrganizationConsent(Base):
     )
 
     id = Column(Integer, primary_key=True, autoincrement=True)
-    workspace_id = Column(Integer, ForeignKey("workspaces.id", ondelete="CASCADE"), nullable=False, index=True)
+    workspace_id = Column(
+        Integer, ForeignKey("workspaces.id", ondelete="CASCADE"), nullable=False, index=True
+    )
     case_study_id = Column(Integer, nullable=False, index=True)
     organization_name = Column(String(255), nullable=False)
     consent_reference = Column(String(255), nullable=True)
@@ -128,7 +141,10 @@ class CaseStudyResultPermission(Base):
         ),
         ForeignKeyConstraint(
             ["consent_id", "case_study_id"],
-            ["case_study_organization_consents.id", "case_study_organization_consents.case_study_id"],
+            [
+                "case_study_organization_consents.id",
+                "case_study_organization_consents.case_study_id",
+            ],
             ondelete="CASCADE",
             name="fk_case_study_perm_consent_case",
         ),
@@ -142,7 +158,9 @@ class CaseStudyResultPermission(Base):
     )
 
     id = Column(Integer, primary_key=True, autoincrement=True)
-    workspace_id = Column(Integer, ForeignKey("workspaces.id", ondelete="CASCADE"), nullable=False, index=True)
+    workspace_id = Column(
+        Integer, ForeignKey("workspaces.id", ondelete="CASCADE"), nullable=False, index=True
+    )
     case_study_id = Column(Integer, nullable=False, index=True)
     consent_id = Column(Integer, nullable=False, index=True)
     result_key = Column(String(128), nullable=False)

@@ -5,24 +5,24 @@ A synthetic row, or any row that is not an authorized consented publication,
 is not a customer claim.
 */
 
-export const CASE_STUDY_SCHEMA_VERSION = "case-study.v2"
+export const CASE_STUDY_SCHEMA_VERSION = 'case-study.v2'
 
 export const PRESERVED_FIELDS = [
-  "id",
-  "workspace_id",
-  "title",
-  "company_name",
-  "industry",
-  "company_size",
-  "challenge",
-  "solution",
-  "results",
-  "quote",
-  "quote_attribution",
-  "metrics",
-  "status",
-  "published_at",
-  "created_at",
+  'id',
+  'workspace_id',
+  'title',
+  'company_name',
+  'industry',
+  'company_size',
+  'challenge',
+  'solution',
+  'results',
+  'quote',
+  'quote_attribution',
+  'metrics',
+  'status',
+  'published_at',
+  'created_at',
 ] as const
 
 export interface CaseStudyFieldError {
@@ -59,22 +59,26 @@ export function displayLabel(input: {
   synthetic: boolean
   data_basis: string
 }): string {
-  if (input.customer_claim && !input.synthetic && input.data_basis === "consented_customer") {
-    return "Consented publication"
+  if (
+    input.customer_claim &&
+    !input.synthetic &&
+    input.data_basis === 'consented_customer'
+  ) {
+    return 'Consented publication'
   }
-  if (input.synthetic || input.data_basis === "synthetic_example") {
-    return "Synthetic example. Not a customer claim."
+  if (input.synthetic || input.data_basis === 'synthetic_example') {
+    return 'Synthetic example. Not a customer claim.'
   }
-  return "Not a customer claim."
+  return 'Not a customer claim.'
 }
 
 export function parseCaseStudyResponse(body: unknown): CaseStudyView {
-  if (!body || typeof body !== "object") {
-    throw new Error("case study response must be an object")
+  if (!body || typeof body !== 'object') {
+    throw new Error('case study response must be an object')
   }
   const rec = body as Record<string, unknown>
   if (rec.schema_version !== CASE_STUDY_SCHEMA_VERSION) {
-    throw new Error("schema_version mismatch")
+    throw new Error('schema_version mismatch')
   }
   for (const field of PRESERVED_FIELDS) {
     if (!(field in rec)) {
@@ -82,42 +86,54 @@ export function parseCaseStudyResponse(body: unknown): CaseStudyView {
     }
   }
   const synthetic = rec.synthetic === true
-  const dataBasis = typeof rec.data_basis === "string" ? rec.data_basis : ""
+  const dataBasis = typeof rec.data_basis === 'string' ? rec.data_basis : ''
   const rawClaim = rec.customer_claim === true
   const customerClaim =
     rawClaim &&
     !synthetic &&
-    dataBasis === "consented_customer" &&
-    rec.status === "published" &&
+    dataBasis === 'consented_customer' &&
+    rec.status === 'published' &&
     rec.publication_authorized === true
   const quotedOrganizations = Array.isArray(rec.quoted_organizations)
-    ? rec.quoted_organizations.filter((item): item is string => typeof item === "string")
+    ? rec.quoted_organizations.filter(
+        (item): item is string => typeof item === 'string'
+      )
     : []
   const quotedResults = Array.isArray(rec.quoted_results)
-    ? rec.quoted_results.filter((item): item is string => typeof item === "string")
+    ? rec.quoted_results.filter(
+        (item): item is string => typeof item === 'string'
+      )
     : []
   const blockers = Array.isArray(rec.blockers)
     ? rec.blockers
-        .filter((item): item is Record<string, unknown> => !!item && typeof item === "object")
+        .filter(
+          (item): item is Record<string, unknown> =>
+            !!item && typeof item === 'object'
+        )
         .map((item) => ({
-          field: typeof item.field === "string" ? item.field : "",
-          code: typeof item.code === "string" ? item.code : "",
-          organization_name: typeof item.organization_name === "string" ? item.organization_name : null,
+          field: typeof item.field === 'string' ? item.field : '',
+          code: typeof item.code === 'string' ? item.code : '',
+          organization_name:
+            typeof item.organization_name === 'string'
+              ? item.organization_name
+              : null,
         }))
     : []
   return {
     id: Number(rec.id),
     workspace_id: Number(rec.workspace_id),
-    title: typeof rec.title === "string" ? rec.title : "",
-    status: typeof rec.status === "string" ? rec.status : "",
+    title: typeof rec.title === 'string' ? rec.title : '',
+    status: typeof rec.status === 'string' ? rec.status : '',
     schema_version: CASE_STUDY_SCHEMA_VERSION,
     synthetic,
     data_basis: dataBasis,
     customer_claim: customerClaim,
     publication_authorized: rec.publication_authorized === true,
-    review_status: typeof rec.review_status === "string" ? rec.review_status : "",
+    review_status:
+      typeof rec.review_status === 'string' ? rec.review_status : '',
     revision: Number(rec.revision),
-    published_at: typeof rec.published_at === "string" ? rec.published_at : null,
+    published_at:
+      typeof rec.published_at === 'string' ? rec.published_at : null,
     display_label: displayLabel({
       customer_claim: customerClaim,
       synthetic,
@@ -126,10 +142,14 @@ export function parseCaseStudyResponse(body: unknown): CaseStudyView {
     quoted_organizations: quotedOrganizations,
     quoted_results: quotedResults,
     blockers,
-    company_name: typeof rec.company_name === "string" ? rec.company_name : null,
-    quote: typeof rec.quote === "string" ? rec.quote : null,
-    results: typeof rec.results === "string" ? rec.results : null,
-    metrics: rec.metrics && typeof rec.metrics === "object" ? (rec.metrics as Record<string, unknown>) : null,
+    company_name:
+      typeof rec.company_name === 'string' ? rec.company_name : null,
+    quote: typeof rec.quote === 'string' ? rec.quote : null,
+    results: typeof rec.results === 'string' ? rec.results : null,
+    metrics:
+      rec.metrics && typeof rec.metrics === 'object'
+        ? (rec.metrics as Record<string, unknown>)
+        : null,
   }
 }
 
@@ -139,37 +159,47 @@ export function parseCaseStudyError(body: unknown): {
   retryable: boolean
   field_errors: CaseStudyFieldError[]
 } {
-  const rec = body && typeof body === "object" ? (body as Record<string, unknown>) : {}
+  const rec =
+    body && typeof body === 'object' ? (body as Record<string, unknown>) : {}
   if (Array.isArray(rec.detail) && rec.detail.length > 0) {
     const first = rec.detail[0] as { msg?: unknown }
     return {
-      code: "validation_error",
-      message: first && typeof first.msg === "string" ? first.msg : "Request failed",
+      code: 'validation_error',
+      message:
+        first && typeof first.msg === 'string' ? first.msg : 'Request failed',
       retryable: false,
       field_errors: [],
     }
   }
   const detail =
-    rec.detail && typeof rec.detail === "object" ? (rec.detail as Record<string, unknown>) : rec
+    rec.detail && typeof rec.detail === 'object'
+      ? (rec.detail as Record<string, unknown>)
+      : rec
   const message =
-    typeof detail.message === "string"
+    typeof detail.message === 'string'
       ? detail.message
-      : typeof detail.msg === "string"
+      : typeof detail.msg === 'string'
         ? detail.msg
-        : typeof detail === "string"
+        : typeof detail === 'string'
           ? detail
-          : "Request failed"
+          : 'Request failed'
   const fieldErrors = Array.isArray(detail.field_errors)
     ? detail.field_errors
-        .filter((item): item is Record<string, unknown> => !!item && typeof item === "object")
+        .filter(
+          (item): item is Record<string, unknown> =>
+            !!item && typeof item === 'object'
+        )
         .map((item) => ({
-          field: typeof item.field === "string" ? item.field : "",
-          code: typeof item.code === "string" ? item.code : "",
-          organization_name: typeof item.organization_name === "string" ? item.organization_name : null,
+          field: typeof item.field === 'string' ? item.field : '',
+          code: typeof item.code === 'string' ? item.code : '',
+          organization_name:
+            typeof item.organization_name === 'string'
+              ? item.organization_name
+              : null,
         }))
     : []
   return {
-    code: typeof detail.code === "string" ? detail.code : "unknown",
+    code: typeof detail.code === 'string' ? detail.code : 'unknown',
     message,
     retryable: detail.retryable === true,
     field_errors: fieldErrors,
@@ -177,20 +207,23 @@ export function parseCaseStudyError(body: unknown): {
 }
 
 const AGREE_FIELDS = [
-  "id",
-  "status",
-  "schema_version",
-  "synthetic",
-  "data_basis",
-  "customer_claim",
-  "publication_authorized",
-  "review_status",
-  "revision",
-  "published_at",
-  "display_label",
+  'id',
+  'status',
+  'schema_version',
+  'synthetic',
+  'data_basis',
+  'customer_claim',
+  'publication_authorized',
+  'review_status',
+  'revision',
+  'published_at',
+  'display_label',
 ] as const
 
-export function outcomesAgree(apiBody: unknown, persisted: unknown): { agrees: boolean; mismatches: string[] } {
+export function outcomesAgree(
+  apiBody: unknown,
+  persisted: unknown
+): { agrees: boolean; mismatches: string[] } {
   const view = parseCaseStudyResponse(apiBody)
   const api = apiBody as Record<string, unknown>
   const stored = persisted as Record<string, unknown>

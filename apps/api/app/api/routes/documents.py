@@ -76,7 +76,14 @@ def upload_document(
     )
     db.add(job)
     db.commit()
-    audit_log("document.upload", email=session.get("email"), workspace_id=workspace_id, resource_type="document", resource_id=doc.id, details={"filename": doc.filename})
+    audit_log(
+        "document.upload",
+        email=session.get("email"),
+        workspace_id=workspace_id,
+        resource_type="document",
+        resource_id=doc.id,
+        details={"filename": doc.filename},
+    )
     return {
         "id": doc.id,
         "display_id": doc.display_id,
@@ -97,7 +104,9 @@ _SEARCH_QUERY_MAX_LEN = 200
 def list_documents(
     workspace_id: int,
     q: str | None = Query(None, description="Legacy filename search"),
-    search: str | None = Query(None, description="Search by id, filename, framework, subject, status"),
+    search: str | None = Query(
+        None, description="Search by id, filename, framework, subject, status"
+    ),
     framework: str | None = Query(None, description="Filter by framework chip label"),
     subject_area: str | None = Query(None, description="Filter by subject area chip label"),
     status: str | None = Query(None, description="Filter by status"),
@@ -146,7 +155,10 @@ def list_documents(
             raise HTTPException(status_code=400, detail="Invalid created_to datetime")
     if tag_category or tag_key:
         from app.models.tag import DocumentTag, Tag
-        query = query.join(DocumentTag, DocumentTag.document_id == Document.id).join(Tag, DocumentTag.tag_id == Tag.id)
+
+        query = query.join(DocumentTag, DocumentTag.document_id == Document.id).join(
+            Tag, DocumentTag.tag_id == Tag.id
+        )
         if tag_category:
             query = query.filter(Tag.category == tag_category)
         if tag_key:
@@ -314,7 +326,11 @@ def restore_document(
         raise HTTPException(status_code=403, detail="Access denied")
     doc = (
         db.query(Document)
-        .filter(Document.id == document_id, Document.workspace_id == workspace_id, Document.deleted_at.is_not(None))
+        .filter(
+            Document.id == document_id,
+            Document.workspace_id == workspace_id,
+            Document.deleted_at.is_not(None),
+        )
         .first()
     )
     if not doc:
@@ -365,6 +381,10 @@ def update_document_metadata(
         workspace_id=workspace_id,
         resource_type="document",
         resource_id=document_id,
-        details={"display_id": doc.display_id, "frameworks": body.frameworks, "subject_areas": body.subject_areas},
+        details={
+            "display_id": doc.display_id,
+            "frameworks": body.frameworks,
+            "subject_areas": body.subject_areas,
+        },
     )
     return {"ok": True}

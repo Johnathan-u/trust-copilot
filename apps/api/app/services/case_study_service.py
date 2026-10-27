@@ -493,9 +493,7 @@ def consent_gaps(db: Session, row: CaseStudy) -> list[dict]:
         )
     metrics, metrics_broken = _metrics(row)
     if metrics_broken:
-        gaps.append(
-            {"field": "metrics", "code": "metrics_unreadable", "organization_name": None}
-        )
+        gaps.append({"field": "metrics", "code": "metrics_unreadable", "organization_name": None})
     orgs = quoted_organizations(row)
     results = quoted_result_keys(row, metrics)
     if results and not orgs:
@@ -535,11 +533,7 @@ def consent_gaps(db: Session, row: CaseStudy) -> list[dict]:
                     }
                 )
             continue
-        covered = {
-            item.result_key
-            for item in permissions
-            if item.consent_id == consent.id
-        }
+        covered = {item.result_key for item in permissions if item.consent_id == consent.id}
         for key in results:
             if key not in covered:
                 gaps.append(
@@ -630,8 +624,10 @@ def display_label(*, customer_claim: bool, synthetic: bool, data_basis: str) -> 
 def _serialize(db: Session, row: CaseStudy) -> dict:
     metrics, _broken = _metrics(row)
     claim = bool(row.customer_claim) and _derived_customer_claim(db, row)
-    basis = DATA_BASIS_SYNTHETIC if row.synthetic else (
-        DATA_BASIS_CONSENTED if claim else DATA_BASIS_UNVERIFIED
+    basis = (
+        DATA_BASIS_SYNTHETIC
+        if row.synthetic
+        else (DATA_BASIS_CONSENTED if claim else DATA_BASIS_UNVERIFIED)
     )
     orgs = quoted_organizations(row)
     results = quoted_result_keys(row, metrics)
@@ -662,7 +658,9 @@ def _serialize(db: Session, row: CaseStudy) -> dict:
         "quoted_organizations": orgs,
         "quoted_results": results,
         "blockers": consent_gaps(db, row) if not claim else [],
-        "display_label": display_label(customer_claim=claim, synthetic=bool(row.synthetic), data_basis=basis),
+        "display_label": display_label(
+            customer_claim=claim, synthetic=bool(row.synthetic), data_basis=basis
+        ),
         "consents": [
             {
                 "id": item.id,
@@ -784,7 +782,11 @@ def _require_revision(row: CaseStudy, expected: int | None) -> None:
             status_code=422,
             retryable=True,
             field_errors=[
-                {"field": "expected_revision", "code": "revision_required", "organization_name": None}
+                {
+                    "field": "expected_revision",
+                    "code": "revision_required",
+                    "organization_name": None,
+                }
             ],
         )
     if int(expected) != int(row.revision or 1):
@@ -794,7 +796,11 @@ def _require_revision(row: CaseStudy, expected: int | None) -> None:
             status_code=409,
             retryable=True,
             field_errors=[
-                {"field": "expected_revision", "code": "revision_conflict", "organization_name": None}
+                {
+                    "field": "expected_revision",
+                    "code": "revision_conflict",
+                    "organization_name": None,
+                }
             ],
         )
 
@@ -844,7 +850,11 @@ def _require_quoted_result(row: CaseStudy, result_key: str) -> str:
             "Permission must name a result quoted on this case study.",
             status_code=422,
             field_errors=[
-                {"field": key or "result_key", "code": "result_not_quoted", "organization_name": None}
+                {
+                    "field": key or "result_key",
+                    "code": "result_not_quoted",
+                    "organization_name": None,
+                }
             ],
         )
     return key
@@ -872,7 +882,9 @@ def _consent_for_case(db: Session, row: CaseStudy, consent_id: int) -> CaseStudy
     return consent
 
 
-def _active_consent_for(db: Session, row: CaseStudy, name: str) -> CaseStudyOrganizationConsent | None:
+def _active_consent_for(
+    db: Session, row: CaseStudy, name: str
+) -> CaseStudyOrganizationConsent | None:
     return (
         db.query(CaseStudyOrganizationConsent)
         .filter(
@@ -939,14 +951,18 @@ def _normalize_metrics(value: dict) -> dict:
             "invalid_metrics",
             "Metrics must be an object of field names.",
             status_code=422,
-            field_errors=[{"field": "metrics", "code": "invalid_metrics", "organization_name": None}],
+            field_errors=[
+                {"field": "metrics", "code": "invalid_metrics", "organization_name": None}
+            ],
         )
     if len(value) > _MAX_METRICS:
         raise CaseStudyError(
             "invalid_metrics",
             "Too many metric fields.",
             status_code=422,
-            field_errors=[{"field": "metrics", "code": "invalid_metrics", "organization_name": None}],
+            field_errors=[
+                {"field": "metrics", "code": "invalid_metrics", "organization_name": None}
+            ],
         )
     cleaned: dict = {}
     for key, item in value.items():
@@ -1054,14 +1070,14 @@ def _json_broken(raw: str | None) -> bool:
     return not isinstance(parsed, list)
 
 
-def _gap_error(code: str, message: str, *, field: str, organization_name: str | None) -> CaseStudyError:
+def _gap_error(
+    code: str, message: str, *, field: str, organization_name: str | None
+) -> CaseStudyError:
     return CaseStudyError(
         code,
         message,
         status_code=409,
-        field_errors=[
-            {"field": field, "code": code, "organization_name": organization_name}
-        ],
+        field_errors=[{"field": field, "code": code, "organization_name": organization_name}],
     )
 
 
@@ -1141,7 +1157,11 @@ def _clean_reference(value: str | None) -> str | None:
             "Consent reference must be text.",
             status_code=422,
             field_errors=[
-                {"field": "consent_reference", "code": "invalid_reference", "organization_name": None}
+                {
+                    "field": "consent_reference",
+                    "code": "invalid_reference",
+                    "organization_name": None,
+                }
             ],
         )
     stripped = value.strip()
@@ -1153,7 +1173,11 @@ def _clean_reference(value: str | None) -> str | None:
             "Consent reference is too long.",
             status_code=422,
             field_errors=[
-                {"field": "consent_reference", "code": "invalid_reference", "organization_name": None}
+                {
+                    "field": "consent_reference",
+                    "code": "invalid_reference",
+                    "organization_name": None,
+                }
             ],
         )
     return stripped

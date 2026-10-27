@@ -91,7 +91,9 @@ def classify_answer_status_from_text(text: str | None) -> str:
     return "draft"
 
 
-def answer_text_for_export(*, text: str | None, status: str | None, citations_json: str | None = None) -> str:
+def answer_text_for_export(
+    *, text: str | None, status: str | None, citations_json: str | None = None
+) -> str:
     """Customer-facing export cell with citation footnotes. Never ship insufficient rows."""
     st = status or ""
     if st == "insufficient_evidence":
@@ -113,6 +115,7 @@ def _format_citation_footnotes(citations_json: str | None) -> str:
         return ""
     try:
         import json
+
         cits = json.loads(citations_json)
         if not isinstance(cits, list) or not cits:
             return ""
@@ -123,7 +126,9 @@ def _format_citation_footnotes(citations_json: str | None) -> str:
         filename = cit.get("filename") or ""
         snippet = (cit.get("snippet") or "")[:120]
         if filename:
-            lines.append(f"[{i}] {filename}: {snippet}{'...' if len(cit.get('snippet', '')) > 120 else ''}")
+            lines.append(
+                f"[{i}] {filename}: {snippet}{'...' if len(cit.get('snippet', '')) > 120 else ''}"
+            )
         elif snippet:
             lines.append(f"[{i}] {snippet}{'...' if len(cit.get('snippet', '')) > 120 else ''}")
     if not lines:
@@ -148,22 +153,38 @@ def _get_strong_framework_labels() -> frozenset[str]:
     global _STRONG_FRAMEWORK_LABELS
     if _STRONG_FRAMEWORK_LABELS is None:
         from app.services.framework_metadata import FRAMEWORKS, NAMING
+
         labels: set[str] = set()
         for key in FRAMEWORKS:
             labels.add(key.lower())
             if key in NAMING:
                 labels.add(NAMING[key].lower())
-        labels.update({
-            "soc 2", "soc2", "iso 27001", "iso27001", "iso/iec 27001",
-            "hipaa", "fedramp", "nist csf 2.0", "nist sp 800-53",
-            "nist sp 800-171", "sig", "caiq", "csa caiq",
-            "shared assessments sig", "pci dss",
-        })
+        labels.update(
+            {
+                "soc 2",
+                "soc2",
+                "iso 27001",
+                "iso27001",
+                "iso/iec 27001",
+                "hipaa",
+                "fedramp",
+                "nist csf 2.0",
+                "nist sp 800-53",
+                "nist sp 800-171",
+                "sig",
+                "caiq",
+                "csa caiq",
+                "shared assessments sig",
+                "pci dss",
+            }
+        )
         _STRONG_FRAMEWORK_LABELS = frozenset(labels)
     return _STRONG_FRAMEWORK_LABELS
 
 
-def document_tier_from_filename_and_frameworks(filename: str | None, frameworks_json: str | None) -> int:
+def document_tier_from_filename_and_frameworks(
+    filename: str | None, frameworks_json: str | None
+) -> int:
     """Lower is stronger for sorting (0 = authoritative / program, 3 = export-like / reference)."""
     fn = (filename or "").lower()
     low_signal = (
@@ -195,13 +216,16 @@ def document_tier_from_filename_and_frameworks(filename: str | None, frameworks_
 def subject_requires_direct_evidence(subject_key: str) -> bool:
     """True when the subject should only be answered with explicit, directly relevant evidence."""
     from app.services.framework_metadata import SUBJECTS
+
     subj = SUBJECTS.get(subject_key)
     if subj:
         return subj.direct_evidence_required
     return False
 
 
-def prioritize_evidence_for_answer(db: Session, evidence: list[dict], doc_tier_cache: dict[int, int] | None = None) -> list[dict]:
+def prioritize_evidence_for_answer(
+    db: Session, evidence: list[dict], doc_tier_cache: dict[int, int] | None = None
+) -> list[dict]:
     """Order: control-linked first, then lower document tier, then higher score."""
     from app.models import Document
 
@@ -238,10 +262,14 @@ def prioritize_evidence_for_answer(db: Session, evidence: list[dict], doc_tier_c
             tier = doc_tier_cache[did_int]
         else:
             doc = docs.get(did_int) if did_int is not None else None
-            tier = document_tier_from_filename_and_frameworks(
-                doc.filename if doc else None,
-                doc.frameworks_json if doc else None,
-            ) if doc else 2
+            tier = (
+                document_tier_from_filename_and_frameworks(
+                    doc.filename if doc else None,
+                    doc.frameworks_json if doc else None,
+                )
+                if doc
+                else 2
+            )
         sc = -float(e.get("score") or 0)
         return (ctrl, tier, sc)
 
@@ -259,9 +287,12 @@ def preload_document_tiers(db: "Session", document_ids: list[int]) -> dict[int, 
     if not document_ids:
         return {}
     from app.models import Document
-    docs = db.query(Document.id, Document.filename, Document.frameworks_json).filter(
-        Document.id.in_(document_ids)
-    ).all()
+
+    docs = (
+        db.query(Document.id, Document.filename, Document.frameworks_json)
+        .filter(Document.id.in_(document_ids))
+        .all()
+    )
     return {
         d.id: document_tier_from_filename_and_frameworks(d.filename, d.frameworks_json)
         for d in docs

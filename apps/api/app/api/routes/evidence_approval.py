@@ -20,7 +20,9 @@ class BulkApproveBody(BaseModel):
 
 
 @router.post("/{evidence_id}/approve")
-async def approve(evidence_id: int, session: dict = Depends(require_can_review), db: Session = Depends(get_db)):
+async def approve(
+    evidence_id: int, session: dict = Depends(require_can_review), db: Session = Depends(get_db)
+):
     result = svc.approve_evidence(db, evidence_id, session.get("user_id"))
     if not result:
         raise HTTPException(status_code=404)
@@ -29,7 +31,12 @@ async def approve(evidence_id: int, session: dict = Depends(require_can_review),
 
 
 @router.post("/{evidence_id}/reject")
-async def reject(evidence_id: int, body: RejectBody = RejectBody(), session: dict = Depends(require_can_review), db: Session = Depends(get_db)):
+async def reject(
+    evidence_id: int,
+    body: RejectBody = RejectBody(),
+    session: dict = Depends(require_can_review),
+    db: Session = Depends(get_db),
+):
     result = svc.reject_evidence(db, evidence_id, session.get("user_id"), body.reason)
     if not result:
         raise HTTPException(status_code=404)
@@ -38,7 +45,9 @@ async def reject(evidence_id: int, body: RejectBody = RejectBody(), session: dic
 
 
 @router.post("/{evidence_id}/reset")
-async def reset(evidence_id: int, session: dict = Depends(require_can_admin), db: Session = Depends(get_db)):
+async def reset(
+    evidence_id: int, session: dict = Depends(require_can_admin), db: Session = Depends(get_db)
+):
     result = svc.reset_to_pending(db, evidence_id)
     if not result:
         raise HTTPException(status_code=404)
@@ -57,7 +66,11 @@ async def approved(session: dict = Depends(require_session), db: Session = Depen
 
 
 @router.post("/bulk-approve")
-async def bulk_approve(body: BulkApproveBody, session: dict = Depends(require_can_review), db: Session = Depends(get_db)):
+async def bulk_approve(
+    body: BulkApproveBody,
+    session: dict = Depends(require_can_review),
+    db: Session = Depends(get_db),
+):
     result = svc.bulk_approve(db, body.evidence_ids, session.get("user_id"))
     db.commit()
     return result

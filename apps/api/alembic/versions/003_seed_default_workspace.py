@@ -5,8 +5,9 @@ Revises: 002
 Create Date: 2025-01-01 00:02:00
 
 """
+
 from alembic import op
-import sqlalchemy as sa
+import sqlalchemy as sa  # noqa: F401
 from sqlalchemy.sql import text
 
 revision = "003"
@@ -17,11 +18,13 @@ depends_on = None
 
 def upgrade() -> None:
     conn = op.get_bind()
-    conn.execute(text("""
+    conn.execute(
+        text("""
         INSERT INTO workspaces (id, name, slug, created_at, updated_at)
         SELECT 1, 'Default', 'default', NOW(), NOW()
         WHERE NOT EXISTS (SELECT 1 FROM workspaces WHERE id = 1)
-    """))
+    """)
+    )
 
 
 def downgrade() -> None:

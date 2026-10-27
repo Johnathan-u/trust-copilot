@@ -208,7 +208,9 @@ def _load_cached(db: Session, key: str | None) -> JSONResponse | None:
         cached_again = idempotency_get(db, key)
         if cached_again:
             return JSONResponse(content=cached_again[1], status_code=cached_again[0])
-        raise HTTPException(status_code=409, detail="Request in progress; retry with same Idempotency-Key")
+        raise HTTPException(
+            status_code=409, detail="Request in progress; retry with same Idempotency-Key"
+        )
     return None
 
 

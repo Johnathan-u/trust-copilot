@@ -32,7 +32,10 @@ export default function CaseStudiesPage() {
   const [saving, setSaving] = useState(false)
 
   const applyList = (payload: unknown) => {
-    const rec = payload && typeof payload === 'object' ? (payload as { case_studies?: unknown }) : {}
+    const rec =
+      payload && typeof payload === 'object'
+        ? (payload as { case_studies?: unknown })
+        : {}
     const rows = Array.isArray(rec.case_studies) ? rec.case_studies : []
     setStudies(rows.map((row) => parseCaseStudyResponse(row)))
   }
@@ -133,14 +136,21 @@ export default function CaseStudiesPage() {
   return (
     <div className="mx-auto flex w-full max-w-5xl flex-col gap-6 px-4 py-6">
       <header className="flex flex-col gap-1">
-        <h1 className="text-xl font-semibold text-[var(--tc-text)]">Case studies</h1>
+        <h1 className="text-xl font-semibold text-[var(--tc-text)]">
+          Case studies
+        </h1>
         <p className="text-sm text-[var(--tc-muted)]">
-          A draft is not a customer claim. Publication checks organization consent and permission for every quoted result. Synthetic examples stay labeled synthetic.
+          A draft is not a customer claim. Publication checks organization
+          consent and permission for every quoted result. Synthetic examples
+          stay labeled synthetic.
         </p>
       </header>
 
       {error && (
-        <p role="alert" className="rounded-xl border border-red-500/40 bg-red-500/10 px-3 py-2 text-sm text-red-200">
+        <p
+          role="alert"
+          className="rounded-xl border border-red-500/40 bg-red-500/10 px-3 py-2 text-sm text-red-200"
+        >
           {error}
         </p>
       )}
@@ -154,69 +164,106 @@ export default function CaseStudiesPage() {
               void createDraft()
             }}
           >
-            <h2 className="text-sm font-semibold text-[var(--tc-text)]">New draft</h2>
-            <label className="grid gap-1 text-sm text-[var(--tc-muted)]" htmlFor="case-title">
+            <h2 className="text-sm font-semibold text-[var(--tc-text)]">
+              New draft
+            </h2>
+            <label
+              className="grid gap-1 text-sm text-[var(--tc-muted)]"
+              htmlFor="case-title"
+            >
               Title
               <input
                 id="case-title"
                 required
                 value={form.title}
-                onChange={(event) => setForm({ ...form, title: event.target.value })}
+                onChange={(event) =>
+                  setForm({ ...form, title: event.target.value })
+                }
                 className="rounded-xl border border-[var(--tc-border)] bg-white/5 px-3 py-2 text-[var(--tc-text)]"
               />
             </label>
-            <label className="flex items-center gap-2 text-sm text-[var(--tc-text)]" htmlFor="case-synthetic">
+            <label
+              className="flex items-center gap-2 text-sm text-[var(--tc-text)]"
+              htmlFor="case-synthetic"
+            >
               <input
                 id="case-synthetic"
                 type="checkbox"
                 checked={form.synthetic}
-                onChange={(event) => setForm({ ...form, synthetic: event.target.checked })}
+                onChange={(event) =>
+                  setForm({ ...form, synthetic: event.target.checked })
+                }
               />
               Synthetic example. This cannot become a customer claim.
             </label>
-            <label className="grid gap-1 text-sm text-[var(--tc-muted)]" htmlFor="case-org">
+            <label
+              className="grid gap-1 text-sm text-[var(--tc-muted)]"
+              htmlFor="case-org"
+            >
               Quoted organization
               <input
                 id="case-org"
                 value={form.company_name}
-                onChange={(event) => setForm({ ...form, company_name: event.target.value })}
+                onChange={(event) =>
+                  setForm({ ...form, company_name: event.target.value })
+                }
                 className="rounded-xl border border-[var(--tc-border)] bg-white/5 px-3 py-2 text-[var(--tc-text)]"
               />
             </label>
-            <label className="grid gap-1 text-sm text-[var(--tc-muted)]" htmlFor="case-quote">
+            <label
+              className="grid gap-1 text-sm text-[var(--tc-muted)]"
+              htmlFor="case-quote"
+            >
               Quote
               <textarea
                 id="case-quote"
                 value={form.quote}
-                onChange={(event) => setForm({ ...form, quote: event.target.value })}
+                onChange={(event) =>
+                  setForm({ ...form, quote: event.target.value })
+                }
                 className="min-h-20 rounded-xl border border-[var(--tc-border)] bg-white/5 px-3 py-2 text-[var(--tc-text)]"
               />
             </label>
-            <label className="grid gap-1 text-sm text-[var(--tc-muted)]" htmlFor="case-results">
+            <label
+              className="grid gap-1 text-sm text-[var(--tc-muted)]"
+              htmlFor="case-results"
+            >
               Results narrative
               <textarea
                 id="case-results"
                 value={form.results}
-                onChange={(event) => setForm({ ...form, results: event.target.value })}
+                onChange={(event) =>
+                  setForm({ ...form, results: event.target.value })
+                }
                 className="min-h-20 rounded-xl border border-[var(--tc-border)] bg-white/5 px-3 py-2 text-[var(--tc-text)]"
               />
             </label>
             <div className="grid gap-3 sm:grid-cols-2">
-              <label className="grid gap-1 text-sm text-[var(--tc-muted)]" htmlFor="case-metric-key">
+              <label
+                className="grid gap-1 text-sm text-[var(--tc-muted)]"
+                htmlFor="case-metric-key"
+              >
                 Result field name
                 <input
                   id="case-metric-key"
                   value={form.metric_key}
-                  onChange={(event) => setForm({ ...form, metric_key: event.target.value })}
+                  onChange={(event) =>
+                    setForm({ ...form, metric_key: event.target.value })
+                  }
                   className="rounded-xl border border-[var(--tc-border)] bg-white/5 px-3 py-2 text-[var(--tc-text)]"
                 />
               </label>
-              <label className="grid gap-1 text-sm text-[var(--tc-muted)]" htmlFor="case-metric-value">
+              <label
+                className="grid gap-1 text-sm text-[var(--tc-muted)]"
+                htmlFor="case-metric-value"
+              >
                 Result field value
                 <input
                   id="case-metric-value"
                   value={form.metric_value}
-                  onChange={(event) => setForm({ ...form, metric_value: event.target.value })}
+                  onChange={(event) =>
+                    setForm({ ...form, metric_value: event.target.value })
+                  }
                   className="rounded-xl border border-[var(--tc-border)] bg-white/5 px-3 py-2 text-[var(--tc-text)]"
                 />
               </label>
@@ -251,11 +298,15 @@ export default function CaseStudiesPage() {
                       : 'border-[var(--tc-border)] bg-white/5'
                   }`}
                 >
-                  <span className="block text-sm font-medium text-[var(--tc-text)]">{study.title}</span>
+                  <span className="block text-sm font-medium text-[var(--tc-text)]">
+                    {study.title}
+                  </span>
                   <span className="mt-1 block text-xs uppercase tracking-wide text-[var(--tc-muted)]">
                     Workflow status: {study.status}
                   </span>
-                  <span className="mt-1 block text-sm text-[var(--tc-text)]">{study.display_label}</span>
+                  <span className="mt-1 block text-sm text-[var(--tc-text)]">
+                    {study.display_label}
+                  </span>
                 </button>
               </li>
             ))}
@@ -290,7 +341,9 @@ function StudyDetail({
   saving: boolean
   onAction: (url: string, payload: unknown) => Promise<CaseStudyView | null>
 }) {
-  const [organizationName, setOrganizationName] = useState(study.company_name ?? '')
+  const [organizationName, setOrganizationName] = useState(
+    study.company_name ?? ''
+  )
   const [consentReference, setConsentReference] = useState('')
   const [resultKey, setResultKey] = useState(study.quoted_results[0] ?? '')
   const [consentId, setConsentId] = useState('')
@@ -304,9 +357,13 @@ function StudyDetail({
 
   return (
     <div className="grid gap-3">
-      <h2 className="text-base font-semibold text-[var(--tc-text)]">{study.title}</h2>
+      <h2 className="text-base font-semibold text-[var(--tc-text)]">
+        {study.title}
+      </h2>
       <p className="text-sm text-[var(--tc-text)]">{study.display_label}</p>
-      <p className="text-xs uppercase tracking-wide text-[var(--tc-muted)]">Workflow status: {study.status}</p>
+      <p className="text-xs uppercase tracking-wide text-[var(--tc-muted)]">
+        Workflow status: {study.status}
+      </p>
       {study.blockers.length > 0 && (
         <ul className="grid gap-1 text-sm text-[var(--tc-muted)]">
           {study.blockers.map((blocker, index) => (
@@ -321,52 +378,68 @@ function StudyDetail({
         <Button
           type="button"
           disabled={saving}
-          onClick={() => void onAction(`/api/case-studies/${study.id}/submit-review`, revision)}
+          onClick={() =>
+            void onAction(
+              `/api/case-studies/${study.id}/submit-review`,
+              revision
+            )
+          }
         >
           Submit for review
         </Button>
       )}
-      {canReview && study.status === 'in_review' && study.review_status !== 'approved' && (
-        <div className="flex flex-wrap gap-2">
+      {canReview &&
+        study.status === 'in_review' &&
+        study.review_status !== 'approved' && (
+          <div className="flex flex-wrap gap-2">
+            <Button
+              type="button"
+              disabled={saving}
+              onClick={() =>
+                void onAction(`/api/case-studies/${study.id}/review`, {
+                  ...revision,
+                  decision: 'approve',
+                })
+              }
+            >
+              Approve review
+            </Button>
+            <Button
+              type="button"
+              variant="secondary"
+              disabled={saving}
+              onClick={() =>
+                void onAction(`/api/case-studies/${study.id}/review`, {
+                  ...revision,
+                  decision: 'request_changes',
+                })
+              }
+            >
+              Request changes
+            </Button>
+          </div>
+        )}
+      {canAdmin &&
+        study.review_status === 'approved' &&
+        study.status !== 'published' && (
           <Button
             type="button"
             disabled={saving}
             onClick={() =>
-              void onAction(`/api/case-studies/${study.id}/review`, { ...revision, decision: 'approve' })
+              void onAction(`/api/case-studies/${study.id}/publish`, revision)
             }
           >
-            Approve review
+            Publish
           </Button>
-          <Button
-            type="button"
-            variant="secondary"
-            disabled={saving}
-            onClick={() =>
-              void onAction(`/api/case-studies/${study.id}/review`, {
-                ...revision,
-                decision: 'request_changes',
-              })
-            }
-          >
-            Request changes
-          </Button>
-        </div>
-      )}
-      {canAdmin && study.review_status === 'approved' && study.status !== 'published' && (
-        <Button
-          type="button"
-          disabled={saving}
-          onClick={() => void onAction(`/api/case-studies/${study.id}/publish`, revision)}
-        >
-          Publish
-        </Button>
-      )}
+        )}
       {canAdmin && study.status === 'published' && (
         <Button
           type="button"
           variant="secondary"
           disabled={saving}
-          onClick={() => void onAction(`/api/case-studies/${study.id}/withdraw`, revision)}
+          onClick={() =>
+            void onAction(`/api/case-studies/${study.id}/withdraw`, revision)
+          }
         >
           Withdraw publication
         </Button>
@@ -383,8 +456,13 @@ function StudyDetail({
             })
           }}
         >
-          <h3 className="text-sm font-semibold text-[var(--tc-text)]">Organization consent</h3>
-          <label className="grid gap-1 text-sm text-[var(--tc-muted)]" htmlFor="consent-org">
+          <h3 className="text-sm font-semibold text-[var(--tc-text)]">
+            Organization consent
+          </h3>
+          <label
+            className="grid gap-1 text-sm text-[var(--tc-muted)]"
+            htmlFor="consent-org"
+          >
             Quoted organization
             <input
               id="consent-org"
@@ -393,7 +471,10 @@ function StudyDetail({
               className="rounded-xl border border-[var(--tc-border)] bg-white/5 px-3 py-2 text-[var(--tc-text)]"
             />
           </label>
-          <label className="grid gap-1 text-sm text-[var(--tc-muted)]" htmlFor="consent-ref">
+          <label
+            className="grid gap-1 text-sm text-[var(--tc-muted)]"
+            htmlFor="consent-ref"
+          >
             Consent reference
             <input
               id="consent-ref"
@@ -419,8 +500,13 @@ function StudyDetail({
             })
           }}
         >
-          <h3 className="text-sm font-semibold text-[var(--tc-text)]">Result permission</h3>
-          <label className="grid gap-1 text-sm text-[var(--tc-muted)]" htmlFor="permission-consent">
+          <h3 className="text-sm font-semibold text-[var(--tc-text)]">
+            Result permission
+          </h3>
+          <label
+            className="grid gap-1 text-sm text-[var(--tc-muted)]"
+            htmlFor="permission-consent"
+          >
             Consent id
             <input
               id="permission-consent"
@@ -430,7 +516,10 @@ function StudyDetail({
               className="rounded-xl border border-[var(--tc-border)] bg-white/5 px-3 py-2 text-[var(--tc-text)]"
             />
           </label>
-          <label className="grid gap-1 text-sm text-[var(--tc-muted)]" htmlFor="permission-result">
+          <label
+            className="grid gap-1 text-sm text-[var(--tc-muted)]"
+            htmlFor="permission-result"
+          >
             Quoted result
             <input
               id="permission-result"
@@ -439,7 +528,10 @@ function StudyDetail({
               className="rounded-xl border border-[var(--tc-border)] bg-white/5 px-3 py-2 text-[var(--tc-text)]"
             />
           </label>
-          <Button type="submit" disabled={saving || !consentId.trim() || !resultKey.trim()}>
+          <Button
+            type="submit"
+            disabled={saving || !consentId.trim() || !resultKey.trim()}
+          >
             Record permission
           </Button>
         </form>

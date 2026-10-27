@@ -148,9 +148,13 @@ class TestAnswerApprovalAPI:
         assert "overdue" in r.json()
 
     def test_submit_approve_flow(self, admin_client):
-        r = admin_client.post("/api/golden-answers", json={
-            "question_text": "Workflow Q", "answer_text": "Workflow A",
-        })
+        r = admin_client.post(
+            "/api/golden-answers",
+            json={
+                "question_text": "Workflow Q",
+                "answer_text": "Workflow A",
+            },
+        )
         ga_id = r.json()["id"]
         admin_client.patch(f"/api/golden-answers/{ga_id}", json={"status": "draft"})
         r = admin_client.post(f"/api/answer-approval/{ga_id}/submit")
@@ -161,9 +165,13 @@ class TestAnswerApprovalAPI:
         assert r.json()["status"] == "approved"
 
     def test_history(self, admin_client):
-        r = admin_client.post("/api/golden-answers", json={
-            "question_text": "Hist Q", "answer_text": "Hist A",
-        })
+        r = admin_client.post(
+            "/api/golden-answers",
+            json={
+                "question_text": "Hist Q",
+                "answer_text": "Hist A",
+            },
+        )
         ga_id = r.json()["id"]
         r = admin_client.get(f"/api/answer-approval/{ga_id}/history")
         assert r.status_code == 200
@@ -171,9 +179,13 @@ class TestAnswerApprovalAPI:
     def test_editor_can_review(self, client):
         client.cookies.clear()
         client.post("/api/auth/login", json={"email": "admin@trust.local", "password": "a"})
-        r = client.post("/api/golden-answers", json={
-            "question_text": "RBAC Q", "answer_text": "RBAC A",
-        })
+        r = client.post(
+            "/api/golden-answers",
+            json={
+                "question_text": "RBAC Q",
+                "answer_text": "RBAC A",
+            },
+        )
         ga_id = r.json()["id"]
         client.patch(f"/api/golden-answers/{ga_id}", json={"status": "draft"})
         client.post(f"/api/answer-approval/{ga_id}/submit")

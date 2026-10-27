@@ -28,9 +28,14 @@ async def capture_feedback(
     db: Session = Depends(get_db),
 ):
     result = fc.capture_feedback(
-        db, session["workspace_id"], body.questionnaire_id, body.feedback_type,
-        feedback_text=body.feedback_text, rating=body.rating,
-        question_id=body.question_id, answer_id=body.answer_id,
+        db,
+        session["workspace_id"],
+        body.questionnaire_id,
+        body.feedback_type,
+        feedback_text=body.feedback_text,
+        rating=body.rating,
+        question_id=body.question_id,
+        answer_id=body.answer_id,
         submitted_by=body.submitted_by,
     )
     if "error" in result:

@@ -16,8 +16,10 @@ logger = logging.getLogger(__name__)
 # Token encryption (reuse Fernet pattern from mfa.py)
 # ---------------------------------------------------------------------------
 
+
 def _fernet():
     from cryptography.fernet import Fernet
+
     raw = hashlib.sha256(get_settings().session_secret.encode()).digest()
     key = base64.urlsafe_b64encode(raw)
     return Fernet(key)
@@ -34,6 +36,7 @@ def decrypt_token(encrypted: str) -> str:
 # ---------------------------------------------------------------------------
 # Provider interface
 # ---------------------------------------------------------------------------
+
 
 class SlackProvider(Protocol):
     def send_message(self, bot_token: str, channel_id: str, text: str) -> dict:
@@ -73,8 +76,12 @@ class HttpSlackProvider:
 
     def _post(self, bot_token: str, method: str, payload: dict | None = None) -> dict:
         import urllib.request
+
         url = f"{self.API_BASE}/{method}"
-        headers = {"Authorization": f"Bearer {bot_token}", "Content-Type": "application/json; charset=utf-8"}
+        headers = {
+            "Authorization": f"Bearer {bot_token}",
+            "Content-Type": "application/json; charset=utf-8",
+        }
         data = json.dumps(payload or {}).encode()
         req = urllib.request.Request(url, data=data, headers=headers, method="POST")
         try:
@@ -84,7 +91,9 @@ class HttpSlackProvider:
             return {"ok": False, "error": str(e)[:200]}
 
     def _get(self, bot_token: str, method: str, params: dict | None = None) -> dict:
-        import urllib.request, urllib.parse
+        import urllib.request
+        import urllib.parse
+
         qs = urllib.parse.urlencode(params or {})
         url = f"{self.API_BASE}/{method}" + (f"?{qs}" if qs else "")
         headers = {"Authorization": f"Bearer {bot_token}"}
@@ -99,7 +108,11 @@ class HttpSlackProvider:
         return self._post(bot_token, "chat.postMessage", {"channel": channel_id, "text": text})
 
     def list_channels(self, bot_token: str) -> list[dict]:
-        result = self._get(bot_token, "conversations.list", {"types": "public_channel,private_channel", "limit": "200"})
+        result = self._get(
+            bot_token,
+            "conversations.list",
+            {"types": "public_channel,private_channel", "limit": "200"},
+        )
         if not result.get("ok"):
             return []
         return [{"id": c["id"], "name": c.get("name", "")} for c in result.get("channels", [])]

@@ -96,7 +96,9 @@ def _grant_matrix(client, study: dict, *, skip: tuple | None = None) -> dict:
         assert response.status_code == 200, response.status_code
         study = response.json()
         consent = next(
-            item for item in study["consents"] if item["organization_name"] == org and item["active"]
+            item
+            for item in study["consents"]
+            if item["organization_name"] == org and item["active"]
         )
         for key in study["quoted_results"]:
             if (org, key) in skipped:
@@ -385,26 +387,37 @@ def test_ac2_negative_current_permissions_and_cross_workspace(client):
     study = _submit_and_approve(client, study)
 
     _editor(client)
-    assert client.post(
-        f"/api/case-studies/{study['id']}/publish",
-        json={"expected_revision": study["revision"]},
-    ).status_code == 403
+    assert (
+        client.post(
+            f"/api/case-studies/{study['id']}/publish",
+            json={"expected_revision": study["revision"]},
+        ).status_code
+        == 403
+    )
     _reviewer(client)
-    assert client.post(
-        f"/api/case-studies/{study['id']}/publish",
-        json={"expected_revision": study["revision"]},
-    ).status_code == 403
-    assert client.post(
-        f"/api/case-studies/{study['id']}/consents",
-        json={
-            "organization_name": ORG,
-            "consent_reference": CONSENT_REF,
-            "expected_revision": study["revision"],
-        },
-    ).status_code == 403
+    assert (
+        client.post(
+            f"/api/case-studies/{study['id']}/publish",
+            json={"expected_revision": study["revision"]},
+        ).status_code
+        == 403
+    )
+    assert (
+        client.post(
+            f"/api/case-studies/{study['id']}/consents",
+            json={
+                "organization_name": ORG,
+                "consent_reference": CONSENT_REF,
+                "expected_revision": study["revision"],
+            },
+        ).status_code
+        == 403
+    )
 
     _admin(client)
-    too_early = _create(client, title="Review required placeholder", quote=None, results=None, metrics=None)
+    too_early = _create(
+        client, title="Review required placeholder", quote=None, results=None, metrics=None
+    )
     early = client.post(
         f"/api/case-studies/{too_early['id']}/publish",
         json={"expected_revision": too_early["revision"]},
@@ -631,10 +644,15 @@ def test_ac3_schema_consumer_and_persisted_outcome_agree_across_retry(admin_clie
 
 
 def test_ac3_revision_conflict_is_retryable(admin_client):
-    study = _create(admin_client, title="Revision placeholder", quote=None, results=None, metrics=None)
+    study = _create(
+        admin_client, title="Revision placeholder", quote=None, results=None, metrics=None
+    )
     stale = admin_client.patch(
         f"/api/case-studies/{study['id']}",
-        json={"challenge": "SYNTHETIC-CHALLENGE-PLACEHOLDER", "expected_revision": study["revision"] + 5},
+        json={
+            "challenge": "SYNTHETIC-CHALLENGE-PLACEHOLDER",
+            "expected_revision": study["revision"] + 5,
+        },
     )
     assert stale.status_code == 409
     assert stale.json()["detail"]["code"] == "revision_conflict"
@@ -642,7 +660,10 @@ def test_ac3_revision_conflict_is_retryable(admin_client):
     assert _stored_flags(study["id"])["revision"] == study["revision"]
     retried = admin_client.patch(
         f"/api/case-studies/{study['id']}",
-        json={"challenge": "SYNTHETIC-CHALLENGE-PLACEHOLDER", "expected_revision": study["revision"]},
+        json={
+            "challenge": "SYNTHETIC-CHALLENGE-PLACEHOLDER",
+            "expected_revision": study["revision"],
+        },
     )
     assert retried.status_code == 200, retried.status_code
     assert retried.json()["revision"] == study["revision"] + 1
@@ -755,7 +776,11 @@ def test_migration_backfill_and_rollback(admin_client):
 
     response = admin_client.get("/api/case-studies")
     assert response.status_code == 200
-    legacy = next(item for item in response.json()["case_studies"] if item["title"] == "legacy-placeholder-row")
+    legacy = next(
+        item
+        for item in response.json()["case_studies"]
+        if item["title"] == "legacy-placeholder-row"
+    )
     assert legacy["customer_claim"] is False
     assert legacy["status"] == "draft"
     assert legacy["display_label"] == "Not a customer claim."
@@ -978,21 +1003,32 @@ def test_migration_downgrade_round_trip_is_lossless(admin_client):
         db = SessionLocal()
         try:
             assert _case_study_ids(db) == before_ids
-            assert db.execute(
-                text("SELECT to_regclass('public.case_study_organization_consents')")
-            ).scalar() is None
-            assert db.execute(
-                text("SELECT to_regclass('public.case_study_result_permissions')")
-            ).scalar() is None
+            assert (
+                db.execute(
+                    text("SELECT to_regclass('public.case_study_organization_consents')")
+                ).scalar()
+                is None
+            )
+            assert (
+                db.execute(
+                    text("SELECT to_regclass('public.case_study_result_permissions')")
+                ).scalar()
+                is None
+            )
             for table in (
                 "case_study_consent_archive",
                 "case_study_result_permission_archive",
                 "case_study_review_archive",
             ):
-                assert str(db.execute(
-                    text("SELECT to_regclass(:name)"),
-                    {"name": f"public.{table}"},
-                ).scalar()) == table
+                assert (
+                    str(
+                        db.execute(
+                            text("SELECT to_regclass(:name)"),
+                            {"name": f"public.{table}"},
+                        ).scalar()
+                    )
+                    == table
+                )
                 foreign_keys = db.execute(
                     text(
                         """
@@ -1003,12 +1039,16 @@ def test_migration_downgrade_round_trip_is_lossless(admin_client):
                     {"name": f"public.{table}"},
                 ).scalar()
                 assert foreign_keys == 0
-            assert db.execute(
-                text("SELECT count(*) FROM case_study_consent_archive")
-            ).scalar() == consent_count
-            assert db.execute(
-                text("SELECT count(*) FROM case_study_result_permission_archive")
-            ).scalar() == permission_count
+            assert (
+                db.execute(text("SELECT count(*) FROM case_study_consent_archive")).scalar()
+                == consent_count
+            )
+            assert (
+                db.execute(
+                    text("SELECT count(*) FROM case_study_result_permission_archive")
+                ).scalar()
+                == permission_count
+            )
             archived_consents = _rows(
                 db,
                 """
@@ -1106,12 +1146,14 @@ def test_migration_downgrade_round_trip_is_lossless(admin_client):
             )
             assert consents_after == consents_before
             assert permissions_after == permissions_before
-            assert db.execute(
-                text("SELECT count(*) FROM case_study_organization_consents")
-            ).scalar() == consent_count
-            assert db.execute(
-                text("SELECT count(*) FROM case_study_result_permissions")
-            ).scalar() == permission_count
+            assert (
+                db.execute(text("SELECT count(*) FROM case_study_organization_consents")).scalar()
+                == consent_count
+            )
+            assert (
+                db.execute(text("SELECT count(*) FROM case_study_result_permissions")).scalar()
+                == permission_count
+            )
             review_after = _rows(
                 db,
                 """
@@ -1163,19 +1205,27 @@ def test_migration_downgrade_round_trip_is_lossless(admin_client):
             assert tampered_after["data_basis"] != "consented_customer"
             assert tampered_after["title"] == "roundtrip-unconsented-claim-placeholder"
             assert tampered_after["quote"] == QUOTE
-            assert db.execute(
-                text("SELECT count(*) FROM case_study_organization_consents WHERE case_study_id = :id"),
-                {"id": tampered["id"]},
-            ).scalar() == 0
+            assert (
+                db.execute(
+                    text(
+                        "SELECT count(*) FROM case_study_organization_consents WHERE case_study_id = :id"
+                    ),
+                    {"id": tampered["id"]},
+                ).scalar()
+                == 0
+            )
             for table in (
                 "case_study_consent_archive",
                 "case_study_result_permission_archive",
                 "case_study_review_archive",
             ):
-                assert db.execute(
-                    text("SELECT to_regclass(:name)"),
-                    {"name": f"public.{table}"},
-                ).scalar() is not None
+                assert (
+                    db.execute(
+                        text("SELECT to_regclass(:name)"),
+                        {"name": f"public.{table}"},
+                    ).scalar()
+                    is not None
+                )
         finally:
             db.close()
     finally:

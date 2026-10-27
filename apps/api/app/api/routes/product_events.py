@@ -26,7 +26,9 @@ async def track_event(
     db: Session = Depends(get_db),
 ):
     pe.track(
-        db, session["workspace_id"], req.event_type,
+        db,
+        session["workspace_id"],
+        req.event_type,
         user_id=session.get("user_id"),
         event_category=req.event_category,
         resource_type=req.resource_type,

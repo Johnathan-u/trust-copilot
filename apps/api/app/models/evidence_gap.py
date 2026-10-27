@@ -41,9 +41,7 @@ class EvidenceGap(Base):
     suggested_evidence_doc_title = Column(String(512), nullable=True)
     confidence = Column(Float, nullable=True)
     status = Column(String(20), nullable=False, default="open", index=True)
-    created_at = Column(
-        DateTime, default=lambda: datetime.now(timezone.utc), nullable=False
-    )
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
     updated_at = Column(
         DateTime,
         default=lambda: datetime.now(timezone.utc),

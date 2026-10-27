@@ -51,7 +51,12 @@ def create_answer(
         existing.status = body.status or existing.status
         db.commit()
         db.refresh(existing)
-        return {"id": existing.id, "question_id": existing.question_id, "text": existing.text, "status": existing.status}
+        return {
+            "id": existing.id,
+            "question_id": existing.question_id,
+            "text": existing.text,
+            "status": existing.status,
+        }
     a = Answer(question_id=body.question_id, text=body.text, status=body.status)
     db.add(a)
     db.commit()

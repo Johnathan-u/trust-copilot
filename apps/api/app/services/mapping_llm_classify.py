@@ -66,6 +66,7 @@ def _get_client(api_key: str):
     if _shared_client is not None and _shared_client_key == api_key:
         return _shared_client
     import openai
+
     _shared_client = openai.OpenAI(api_key=api_key, timeout=30.0)
     _shared_client_key = api_key
     return _shared_client
@@ -116,7 +117,8 @@ def parse_classification_response(content: str | None) -> dict[str, Any] | None:
 
 
 def _deterministic_preclassify(
-    question_text: str, questionnaire_framework: str | None = None,
+    question_text: str,
+    questionnaire_framework: str | None = None,
 ) -> tuple[dict[str, Any] | None, bool]:
     """Run deterministic classifier before LLM. Returns (result_dict, skip_llm)."""
     from app.services.framework_classifier import classify_question as det_classify
@@ -345,7 +347,9 @@ def bulk_classify_and_persist(
 
     preloaded: dict[int, QuestionMappingSignal] = {}
     if not force:
-        preloaded = _preload_existing_signals(db, [qid for qid, _ in q_list], workspace_id, prompt_ver)
+        preloaded = _preload_existing_signals(
+            db, [qid for qid, _ in q_list], workspace_id, prompt_ver
+        )
 
     needs_classify = [(qid, text) for qid, text in q_list if force or qid not in preloaded]
     for qid in [qid for qid, _ in q_list if qid in preloaded]:
@@ -357,7 +361,11 @@ def bulk_classify_and_persist(
         with ThreadPoolExecutor(max_workers=workers) as executor:
             futures = {
                 executor.submit(
-                    _classify_one_thread_safe, qid, text, model, api_key,
+                    _classify_one_thread_safe,
+                    qid,
+                    text,
+                    model,
+                    api_key,
                     questionnaire_framework,
                 ): qid
                 for qid, text in needs_classify

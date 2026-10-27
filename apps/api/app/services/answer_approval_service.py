@@ -17,7 +17,9 @@ logger = logging.getLogger(__name__)
 VALID_STATUSES = ("draft", "pending_review", "approved", "rejected", "changes_requested", "expired")
 
 
-def assign_owner(db: Session, ga_id: int, owner_user_id: int, actor_user_id: int | None = None) -> dict | None:
+def assign_owner(
+    db: Session, ga_id: int, owner_user_id: int, actor_user_id: int | None = None
+) -> dict | None:
     ga = db.query(GoldenAnswer).filter(GoldenAnswer.id == ga_id).first()
     if not ga:
         return None
@@ -27,7 +29,9 @@ def assign_owner(db: Session, ga_id: int, owner_user_id: int, actor_user_id: int
     return _serialize(ga)
 
 
-def assign_reviewer(db: Session, ga_id: int, reviewer_user_id: int, actor_user_id: int | None = None) -> dict | None:
+def assign_reviewer(
+    db: Session, ga_id: int, reviewer_user_id: int, actor_user_id: int | None = None
+) -> dict | None:
     ga = db.query(GoldenAnswer).filter(GoldenAnswer.id == ga_id).first()
     if not ga:
         return None
@@ -42,7 +46,9 @@ def submit_for_review(db: Session, ga_id: int, actor_user_id: int | None = None)
     if not ga:
         return None
     if ga.status not in ("draft", "changes_requested"):
-        return {"error": f"Cannot submit from status '{ga.status}'; must be draft or changes_requested"}
+        return {
+            "error": f"Cannot submit from status '{ga.status}'; must be draft or changes_requested"
+        }
     ga.status = "pending_review"
     ga.submitted_at = datetime.now(timezone.utc)
     _log_event(db, ga_id, "submitted", actor_user_id)
@@ -50,7 +56,9 @@ def submit_for_review(db: Session, ga_id: int, actor_user_id: int | None = None)
     return _serialize(ga)
 
 
-def approve_answer(db: Session, ga_id: int, reviewer_id: int, comment: str | None = None) -> dict | None:
+def approve_answer(
+    db: Session, ga_id: int, reviewer_id: int, comment: str | None = None
+) -> dict | None:
     ga = db.query(GoldenAnswer).filter(GoldenAnswer.id == ga_id).first()
     if not ga:
         return None
@@ -65,7 +73,9 @@ def approve_answer(db: Session, ga_id: int, reviewer_id: int, comment: str | Non
     return _serialize(ga)
 
 
-def reject_answer(db: Session, ga_id: int, reviewer_id: int, reason: str | None = None) -> dict | None:
+def reject_answer(
+    db: Session, ga_id: int, reviewer_id: int, reason: str | None = None
+) -> dict | None:
     ga = db.query(GoldenAnswer).filter(GoldenAnswer.id == ga_id).first()
     if not ga:
         return None
@@ -77,12 +87,16 @@ def reject_answer(db: Session, ga_id: int, reviewer_id: int, reason: str | None 
     return _serialize(ga)
 
 
-def request_changes(db: Session, ga_id: int, reviewer_id: int, comments: str | None = None) -> dict | None:
+def request_changes(
+    db: Session, ga_id: int, reviewer_id: int, comments: str | None = None
+) -> dict | None:
     ga = db.query(GoldenAnswer).filter(GoldenAnswer.id == ga_id).first()
     if not ga:
         return None
     if ga.status != "pending_review":
-        return {"error": f"Cannot request changes from status '{ga.status}'; must be pending_review"}
+        return {
+            "error": f"Cannot request changes from status '{ga.status}'; must be pending_review"
+        }
     ga.status = "changes_requested"
     _log_event(db, ga_id, "changes_requested", reviewer_id, comments)
     db.flush()
@@ -90,24 +104,37 @@ def request_changes(db: Session, ga_id: int, reviewer_id: int, comments: str | N
 
 
 def get_review_queue(db: Session, workspace_id: int) -> list[dict]:
-    answers = db.query(GoldenAnswer).filter(
-        GoldenAnswer.workspace_id == workspace_id,
-        GoldenAnswer.status == "pending_review",
-    ).order_by(GoldenAnswer.submitted_at.asc()).all()
+    answers = (
+        db.query(GoldenAnswer)
+        .filter(
+            GoldenAnswer.workspace_id == workspace_id,
+            GoldenAnswer.status == "pending_review",
+        )
+        .order_by(GoldenAnswer.submitted_at.asc())
+        .all()
+    )
     return [_serialize(ga) for ga in answers]
 
 
 def get_overdue_reviews(db: Session, workspace_id: int) -> list[dict]:
     now = datetime.now(timezone.utc)
-    answers = db.query(GoldenAnswer).filter(
-        GoldenAnswer.workspace_id == workspace_id,
-        GoldenAnswer.status == "pending_review",
-        GoldenAnswer.submitted_at.isnot(None),
-    ).all()
+    answers = (
+        db.query(GoldenAnswer)
+        .filter(
+            GoldenAnswer.workspace_id == workspace_id,
+            GoldenAnswer.status == "pending_review",
+            GoldenAnswer.submitted_at.isnot(None),
+        )
+        .all()
+    )
     overdue = []
     for ga in answers:
         sla_hours = ga.review_sla_hours or 48
-        submitted = ga.submitted_at.replace(tzinfo=timezone.utc) if ga.submitted_at.tzinfo is None else ga.submitted_at
+        submitted = (
+            ga.submitted_at.replace(tzinfo=timezone.utc)
+            if ga.submitted_at.tzinfo is None
+            else ga.submitted_at
+        )
         deadline = submitted + timedelta(hours=sla_hours)
         if now > deadline:
             d = _serialize(ga)
@@ -130,9 +157,14 @@ def bulk_approve(db: Session, ga_ids: list[int], reviewer_id: int) -> dict:
 
 
 def get_approval_history(db: Session, ga_id: int) -> list[dict]:
-    events = db.query(AnswerApprovalEvent).filter(
-        AnswerApprovalEvent.golden_answer_id == ga_id,
-    ).order_by(AnswerApprovalEvent.created_at.asc()).all()
+    events = (
+        db.query(AnswerApprovalEvent)
+        .filter(
+            AnswerApprovalEvent.golden_answer_id == ga_id,
+        )
+        .order_by(AnswerApprovalEvent.created_at.asc())
+        .all()
+    )
     return [
         {
             "id": e.id,
@@ -145,13 +177,17 @@ def get_approval_history(db: Session, ga_id: int) -> list[dict]:
     ]
 
 
-def _log_event(db: Session, ga_id: int, action: str, actor_id: int | None, comment: str | None = None) -> None:
-    db.add(AnswerApprovalEvent(
-        golden_answer_id=ga_id,
-        action=action,
-        actor_user_id=actor_id,
-        comment=comment,
-    ))
+def _log_event(
+    db: Session, ga_id: int, action: str, actor_id: int | None, comment: str | None = None
+) -> None:
+    db.add(
+        AnswerApprovalEvent(
+            golden_answer_id=ga_id,
+            action=action,
+            actor_user_id=actor_id,
+            comment=comment,
+        )
+    )
 
 
 def _serialize(ga: GoldenAnswer) -> dict:

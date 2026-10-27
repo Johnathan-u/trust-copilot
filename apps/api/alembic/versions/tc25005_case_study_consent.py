@@ -3,9 +3,10 @@
 Revision ID: tc25005_case_study_consent
 Revises: 075
 
-down_revision stays 075 until this branch is merged. Core PR #16 and TC-25-011
-also revise 075. Whoever merges second re-parents down_revision onto the head
-of master. Do not reuse the numeric id 076.
+down_revision stays 075 until this branch is merged. Core also has tc11001 and
+tc10003 parented on 075, and PR #16 / TC-25-011 revised 075 as well. Whoever
+merges second re-parents down_revision onto the head of master. Do not reuse
+the numeric id 076.
 
 Upgrade adds columns and consent tables. It never deletes a case study row.
 Existing published rows have no consent evidence, so the first upgrade copies
@@ -59,10 +60,14 @@ _EXACT_UPGRADE_STATE = """
 
 
 def _relation_exists(name: str) -> bool:
-    found = op.get_bind().execute(
-        sa.text("SELECT to_regclass(:name)"),
-        {"name": f"public.{name}"},
-    ).scalar()
+    found = (
+        op.get_bind()
+        .execute(
+            sa.text("SELECT to_regclass(:name)"),
+            {"name": f"public.{name}"},
+        )
+        .scalar()
+    )
     return found is not None
 
 
@@ -354,7 +359,10 @@ def _create_consent_tables() -> None:
         ),
         sa.ForeignKeyConstraint(
             ["consent_id", "case_study_id"],
-            ["case_study_organization_consents.id", "case_study_organization_consents.case_study_id"],
+            [
+                "case_study_organization_consents.id",
+                "case_study_organization_consents.case_study_id",
+            ],
             name="fk_case_study_perm_consent_case",
             ondelete="CASCADE",
         ),
@@ -610,7 +618,9 @@ def downgrade() -> None:
     op.drop_table("case_study_result_permissions")
     op.drop_index("uq_case_study_org_consent_active", table_name="case_study_organization_consents")
     op.drop_index("ix_case_study_org_consent_case", table_name="case_study_organization_consents")
-    op.drop_index("ix_case_study_org_consent_workspace", table_name="case_study_organization_consents")
+    op.drop_index(
+        "ix_case_study_org_consent_workspace", table_name="case_study_organization_consents"
+    )
     op.drop_table("case_study_organization_consents")
     op.drop_constraint("uq_case_studies_id_workspace", "case_studies", type_="unique")
     op.drop_constraint("fk_case_studies_reviewed_by_user", "case_studies", type_="foreignkey")

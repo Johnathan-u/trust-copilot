@@ -13,10 +13,26 @@ def collect_gcp(project_id: str | None = None) -> dict:
         "project_id": project_id,
         "collected_at": datetime.now(timezone.utc).isoformat(),
         "findings": [
-            {"signal": "gcp.iam_audit", "description": "IAM audit logging", "status": "check_required"},
-            {"signal": "gcp.service_account_keys", "description": "Service account key rotation", "status": "check_required"},
-            {"signal": "gcp.vpc_flow_logs", "description": "VPC flow logs enabled", "status": "check_required"},
-            {"signal": "gcp.encryption_at_rest", "description": "Encryption at rest (CMEK)", "status": "check_required"},
+            {
+                "signal": "gcp.iam_audit",
+                "description": "IAM audit logging",
+                "status": "check_required",
+            },
+            {
+                "signal": "gcp.service_account_keys",
+                "description": "Service account key rotation",
+                "status": "check_required",
+            },
+            {
+                "signal": "gcp.vpc_flow_logs",
+                "description": "VPC flow logs enabled",
+                "status": "check_required",
+            },
+            {
+                "signal": "gcp.encryption_at_rest",
+                "description": "Encryption at rest (CMEK)",
+                "status": "check_required",
+            },
         ],
     }
 
@@ -28,10 +44,26 @@ def collect_azure(tenant_id: str | None = None) -> dict:
         "tenant_id": tenant_id,
         "collected_at": datetime.now(timezone.utc).isoformat(),
         "findings": [
-            {"signal": "azure.mfa_enabled", "description": "MFA enforcement", "status": "check_required"},
-            {"signal": "azure.conditional_access", "description": "Conditional access policies", "status": "check_required"},
-            {"signal": "azure.security_center", "description": "Security Center score", "status": "check_required"},
-            {"signal": "azure.key_vault", "description": "Key Vault usage", "status": "check_required"},
+            {
+                "signal": "azure.mfa_enabled",
+                "description": "MFA enforcement",
+                "status": "check_required",
+            },
+            {
+                "signal": "azure.conditional_access",
+                "description": "Conditional access policies",
+                "status": "check_required",
+            },
+            {
+                "signal": "azure.security_center",
+                "description": "Security Center score",
+                "status": "check_required",
+            },
+            {
+                "signal": "azure.key_vault",
+                "description": "Key Vault usage",
+                "status": "check_required",
+            },
         ],
     }
 
@@ -43,10 +75,26 @@ def collect_gitlab(group: str | None = None) -> dict:
         "group": group,
         "collected_at": datetime.now(timezone.utc).isoformat(),
         "findings": [
-            {"signal": "gitlab.branch_protection", "description": "Protected branches", "status": "check_required"},
-            {"signal": "gitlab.merge_request_approvals", "description": "MR approval rules", "status": "check_required"},
-            {"signal": "gitlab.2fa_enforcement", "description": "2FA enforcement", "status": "check_required"},
-            {"signal": "gitlab.container_scanning", "description": "Container scanning enabled", "status": "check_required"},
+            {
+                "signal": "gitlab.branch_protection",
+                "description": "Protected branches",
+                "status": "check_required",
+            },
+            {
+                "signal": "gitlab.merge_request_approvals",
+                "description": "MR approval rules",
+                "status": "check_required",
+            },
+            {
+                "signal": "gitlab.2fa_enforcement",
+                "description": "2FA enforcement",
+                "status": "check_required",
+            },
+            {
+                "signal": "gitlab.container_scanning",
+                "description": "Container scanning enabled",
+                "status": "check_required",
+            },
         ],
     }
 
@@ -58,10 +106,26 @@ def collect_okta(domain: str | None = None) -> dict:
         "domain": domain,
         "collected_at": datetime.now(timezone.utc).isoformat(),
         "findings": [
-            {"signal": "okta.mfa_policy", "description": "MFA policy enforcement", "status": "check_required"},
-            {"signal": "okta.session_policy", "description": "Session lifetime policy", "status": "check_required"},
-            {"signal": "okta.password_policy", "description": "Password policy strength", "status": "check_required"},
-            {"signal": "okta.api_tokens", "description": "API token hygiene", "status": "check_required"},
+            {
+                "signal": "okta.mfa_policy",
+                "description": "MFA policy enforcement",
+                "status": "check_required",
+            },
+            {
+                "signal": "okta.session_policy",
+                "description": "Session lifetime policy",
+                "status": "check_required",
+            },
+            {
+                "signal": "okta.password_policy",
+                "description": "Password policy strength",
+                "status": "check_required",
+            },
+            {
+                "signal": "okta.api_tokens",
+                "description": "API token hygiene",
+                "status": "check_required",
+            },
         ],
     }
 
@@ -73,9 +137,21 @@ def collect_hris(provider: str | None = None) -> dict:
         "provider": provider,
         "collected_at": datetime.now(timezone.utc).isoformat(),
         "findings": [
-            {"signal": "hris.employee_offboarding", "description": "Offboarding process compliance", "status": "check_required"},
-            {"signal": "hris.background_checks", "description": "Background check status", "status": "check_required"},
-            {"signal": "hris.security_training", "description": "Security awareness training completion", "status": "check_required"},
+            {
+                "signal": "hris.employee_offboarding",
+                "description": "Offboarding process compliance",
+                "status": "check_required",
+            },
+            {
+                "signal": "hris.background_checks",
+                "description": "Background check status",
+                "status": "check_required",
+            },
+            {
+                "signal": "hris.security_training",
+                "description": "Security awareness training completion",
+                "status": "check_required",
+            },
         ],
     }
 
