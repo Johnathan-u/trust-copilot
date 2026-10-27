@@ -864,6 +864,11 @@ def _process_one_job() -> bool:
 
 
 def main():
+    # TC-07-001: same fail-closed startup check as the API; in production the worker must never
+    # sign/derive keys from a random per-process secret.
+    from app.core.session import enforce_production_session_secret
+
+    enforce_production_session_secret("worker")
     print(
         f"Trust Copilot worker started (threads: {WORKER_MIN_THREADS}-{WORKER_MAX_THREADS}, initial: {WORKER_INITIAL_THREADS})"
     )

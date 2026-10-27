@@ -40,6 +40,8 @@ from app.models.job_effect import (
 logger = logging.getLogger(__name__)
 
 PROVIDER_PREFIX = "provider:"
+# One original insert plus one retry when the race winner already left QUEUED (TC-10-003a).
+_ENQUEUE_ATTEMPTS = 2
 
 
 def job_idempotency_key(kind: str, *parts: Any) -> str:
@@ -63,35 +65,49 @@ def enqueue_job(
 
     Only QUEUED jobs are deduped: a RUNNING job may already have read its input, so a later request must
     get its own job. Commits.
+
+    Race handling (TC-10-003a): when a concurrent identical enqueue wins the partial unique index, the winner
+    is returned. If the winner has already left QUEUED by the time we look it up (a worker claimed it), the
+    unique slot is free again, so the insert is retried once instead of surfacing the IntegrityError as a 500.
     """
-    if idempotency_key:
-        existing = _queued_with_key(db, workspace_id, kind, idempotency_key)
-        if existing is not None:
-            return existing, False
-    job = Job(
-        workspace_id=workspace_id,
-        kind=kind,
-        status=JobStatus.QUEUED.value,
-        payload=json.dumps(payload),
-        idempotency_key=idempotency_key,
-        input_version=input_version,
-    )
-    try:
-        with db.begin_nested():
-            db.add(job)
-            db.flush()
-    except IntegrityError:
-        # Lost the race against a concurrent identical enqueue: return the winner.
-        existing = (
-            _queued_with_key(db, workspace_id, kind, idempotency_key) if idempotency_key else None
+    for attempt in range(_ENQUEUE_ATTEMPTS):
+        if idempotency_key:
+            existing = _queued_with_key(db, workspace_id, kind, idempotency_key)
+            if existing is not None:
+                return existing, False
+        job = Job(
+            workspace_id=workspace_id,
+            kind=kind,
+            status=JobStatus.QUEUED.value,
+            payload=json.dumps(payload),
+            idempotency_key=idempotency_key,
+            input_version=input_version,
         )
-        if existing is None:
-            raise
+        try:
+            with db.begin_nested():
+                db.add(job)
+                db.flush()
+        except IntegrityError:
+            if not idempotency_key:
+                raise
+            # Lost the race against a concurrent identical enqueue: return the winner if still queued.
+            existing = _queued_with_key(db, workspace_id, kind, idempotency_key)
+            if existing is not None:
+                db.commit()
+                return existing, False
+            if attempt + 1 >= _ENQUEUE_ATTEMPTS:
+                raise
+            logger.info(
+                "enqueue_job: race winner already left queued; retrying insert once "
+                "(workspace_id=%s kind=%s)",
+                workspace_id,
+                kind,
+            )
+            continue
         db.commit()
-        return existing, False
-    db.commit()
-    db.refresh(job)
-    return job, True
+        db.refresh(job)
+        return job, True
+    raise AssertionError("unreachable")  # pragma: no cover
 
 
 def _queued_with_key(db: Session, workspace_id: int, kind: str, key: str) -> Job | None:

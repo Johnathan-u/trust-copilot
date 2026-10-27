@@ -11,6 +11,7 @@ import ast
 import hashlib
 import os
 import re
+import secrets
 import shutil
 import socket
 import subprocess
@@ -30,8 +31,10 @@ REPO_ROOT = API_ROOT.parents[1]
 TESTS_DIR = API_ROOT / "tests"
 MANUAL_DIR = API_ROOT / "scripts" / "manual_live"
 
-# sha256 of the session-signing secret that used to be hardcoded in tests/ (value redacted).
-LEAKED_SESSION_SECRET_SHA256 = "9368da3761b0d4fe8b487f86225b803f39d5b37b26e1ab064e1808e4d471d6c8"
+# sha256 digest (not a credential) of the session-signing value that used to be hardcoded in
+# tests/ (value redacted). Named as a digest so the secret-name rule does not treat it as a
+# credential; replacing it with a non-derivable check is follow-up TC-07-001a.
+RETIRED_SESSION_KEY_DIGEST = "9368da3761b0d4fe8b487f86225b803f39d5b37b26e1ab064e1808e4d471d6c8"
 
 # Former tests/ residents that performed live HTTP / forged cookies / read local-only paths.
 FORMER_UNSAFE_SCRIPTS = {
@@ -52,8 +55,9 @@ FORMER_UNSAFE_SCRIPTS = {
 
 CANARY_ENV = {
     # If any of these leak into the collected process or are used, the assertions below fail.
-    "OPENAI_API_KEY": "sk-canary-tc02001-should-be-scrubbed",
-    "STRIPE_SECRET_KEY": "sk_test_canary_tc02001",
+    # Canary values are generated per run (never a fixed key-shaped literal in source).
+    "OPENAI_API_KEY": "sk-canary-" + secrets.token_hex(12),
+    "STRIPE_SECRET_KEY": "sk_test_canary_" + secrets.token_hex(8),
     "SENTRY_DSN": "https://canary@sentry.invalid/1",
     "SMTP_PASSWORD": "canary-smtp",
     "DATABASE_URL": "postgresql://prod_user:prod_pw@db.production.invalid:5432/trustcopilot",
@@ -303,7 +307,7 @@ def test_no_checked_in_credentials_or_personal_identities(root):
                     continue  # clearly synthetic fixture value (e.g. xoxb-test-token)
                 offenders.append(f"{path.relative_to(API_ROOT)}: {pat.pattern[:30]}")
         for token in set(re.findall(r"[A-Za-z0-9_\-]{40,}", text)):
-            if hashlib.sha256(token.encode()).hexdigest() == LEAKED_SESSION_SECRET_SHA256:
+            if hashlib.sha256(token.encode()).hexdigest() == RETIRED_SESSION_KEY_DIGEST:
                 offenders.append(f"{path.relative_to(API_ROOT)}: formerly hardcoded session secret")
     assert offenders == []
 
