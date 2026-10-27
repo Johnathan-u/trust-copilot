@@ -1,11 +1,10 @@
 import { describe, expect, it } from 'vitest'
 import {
   FRAMEWORK_CATALOG_ERROR_CONTRACT_VERSION,
-  FRAMEWORK_RIGHTS_TICKET,
   catalogDisplayState,
+  catalogRightsLabel,
   catalogStatusLabel,
   enableRequestBody,
-  hasLegacyListFields,
   isProductionCatalogEnabled,
   parseCatalogList,
   parseEnableError,
@@ -24,14 +23,12 @@ function item(
     source_provenance: {
       kind: 'scaffold',
       content_included: false,
-      rights_ticket: FRAMEWORK_RIGHTS_TICKET,
     },
     rights_status: 'blocked_pending_rights',
     licence_status: 'not_cleared',
     enablement_state: 'blocked',
     catalog_kind: 'advertised_blocked',
     production_catalog: false,
-    rights_ticket: FRAMEWORK_RIGHTS_TICKET,
     contract_version: 'framework-catalog/v1',
     content_version: null,
     blocked_reason: 'Pending content licensing. No licensed catalog is loaded.',
@@ -45,11 +42,24 @@ function item(
 describe('framework catalog consumer', () => {
   it('keeps the historical list fields and treats the blocked payload as not enabled', () => {
     const row = item()
-    expect(hasLegacyListFields(row)).toBe(true)
+    expect(
+      ['id', 'name', 'version', 'created_at'].every((field) => field in row)
+    ).toBe(true)
     expect(isProductionCatalogEnabled(row)).toBe(false)
     expect(catalogDisplayState(row)).toBe('blocked_pending_rights')
     expect(catalogStatusLabel(row)).toBe('Pending content licensing')
     expect(catalogStatusLabel(row)).not.toContain('TC-01-007')
+    expect(catalogRightsLabel(row)).toBe('Pending content licensing')
+  })
+
+  it('shows Pending content licensing in the rights column and hides the raw status', () => {
+    const blocked = item({ rights_status: 'blocked_pending_rights' })
+    const dev = item({ rights_status: 'dev_test_only', dev_test_only: true })
+    expect(catalogRightsLabel(blocked)).toBe('Pending content licensing')
+    expect(catalogRightsLabel(dev)).toBe('Pending content licensing')
+    expect(catalogRightsLabel(blocked)).not.toContain('blocked_pending_rights')
+    expect(catalogRightsLabel(dev)).not.toContain('dev_test_only')
+    expect(catalogRightsLabel(blocked)).not.toContain('TC-01-007')
   })
 
   it('does not treat a version string or a dev row as a production catalog', () => {
@@ -81,7 +91,6 @@ describe('framework catalog consumer', () => {
       licence_status: 'cleared',
       enablement_state: 'enabled',
       content_version: 'licensed-v1',
-      rights_ticket: null,
     })
     expect(isProductionCatalogEnabled(cleared)).toBe(true)
     expect(
