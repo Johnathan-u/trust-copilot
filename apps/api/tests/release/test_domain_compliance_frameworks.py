@@ -180,7 +180,99 @@ def test_enable_refuses_rights_and_agrees_across_retry_and_new_session(client):
         session.close()
 
 
+# Owned by this test. The shared reviewer@trust.local membership is mutated by
+# other modules (see TC-02-BUG-016) and must not be this test's precondition.
+_PERM_WORKSPACE_SLUG = "tc02-bug016"
+_PERM_REVIEWER_EMAIL = "tc02-bug016-reviewer@trust.local"
+_PERM_REVIEWER_PASSWORD = "tc02-bug016-reviewer"
+_PERM_EDITOR_EMAIL = "tc02-bug016-editor@trust.local"
+_PERM_EDITOR_PASSWORD = "tc02-bug016-editor"
+
+
+def _setup_permission_actors() -> dict[str, int]:
+    """Create this test's workspace, reviewer, editor, and the HIPAA catalog row."""
+    from app.core.password import hash_password
+    from app.models import Framework, User, Workspace, WorkspaceMember
+
+    session = _fresh()
+    try:
+        workspace = session.query(Workspace).filter(Workspace.slug == _PERM_WORKSPACE_SLUG).first()
+        if workspace is None:
+            workspace = Workspace(name="TC-02-BUG-016", slug=_PERM_WORKSPACE_SLUG)
+            session.add(workspace)
+            session.flush()
+
+        def ensure_member(email: str, password: str, display_name: str, role: str) -> User:
+            user = session.query(User).filter(User.email == email).first()
+            if user is None:
+                user = User(
+                    email=email,
+                    password_hash=hash_password(password),
+                    display_name=display_name,
+                )
+                session.add(user)
+                session.flush()
+            else:
+                user.password_hash = hash_password(password)
+            membership = (
+                session.query(WorkspaceMember)
+                .filter(
+                    WorkspaceMember.user_id == user.id,
+                    WorkspaceMember.workspace_id == workspace.id,
+                )
+                .first()
+            )
+            if membership is None:
+                session.add(
+                    WorkspaceMember(
+                        workspace_id=workspace.id,
+                        user_id=user.id,
+                        role=role,
+                        suspended=False,
+                    )
+                )
+            else:
+                membership.role = role
+                membership.suspended = False
+            return user
+
+        reviewer = ensure_member(
+            _PERM_REVIEWER_EMAIL, _PERM_REVIEWER_PASSWORD, "TC02 BUG016 Reviewer", "reviewer"
+        )
+        editor = ensure_member(
+            _PERM_EDITOR_EMAIL, _PERM_EDITOR_PASSWORD, "TC02 BUG016 Editor", "editor"
+        )
+        hipaa_rows = session.query(Framework).filter(Framework.catalog_key == "HIPAA").all()
+        if not hipaa_rows:
+            session.add(
+                Framework(
+                    name="HIPAA",
+                    version="rights-pending",
+                    catalog_key="HIPAA",
+                    rights_status="blocked_pending_rights",
+                    licence_status="not_cleared",
+                    enablement_state="blocked",
+                    catalog_kind="advertised_blocked",
+                    production_catalog=False,
+                    scaffold_inserted=False,
+                )
+            )
+        else:
+            for row in hipaa_rows:
+                row.enablement_state = "blocked"
+                row.production_catalog = False
+        session.commit()
+        return {
+            "workspace_id": workspace.id,
+            "reviewer_id": reviewer.id,
+            "editor_id": editor.id,
+        }
+    finally:
+        session.close()
+
+
 def test_permissions_deny_enable_and_anonymous_list(client):
+    actors = _setup_permission_actors()
     client.cookies.clear()
     assert client.get("/api/compliance/frameworks").status_code == 401
     assert (
@@ -191,24 +283,38 @@ def test_permissions_deny_enable_and_anonymous_list(client):
     try:
         from app.models import FrameworkCatalogEvent, WorkspaceMember, User
 
-        reviewer = session.query(User).filter(User.email == "reviewer@trust.local").one()
+        reviewer = session.query(User).filter(User.id == actors["reviewer_id"]).one()
+        assert reviewer.email == _PERM_REVIEWER_EMAIL
         membership = (
             session.query(WorkspaceMember)
-            .filter(WorkspaceMember.user_id == reviewer.id, WorkspaceMember.workspace_id == 1)
+            .filter(
+                WorkspaceMember.user_id == reviewer.id,
+                WorkspaceMember.workspace_id == actors["workspace_id"],
+            )
             .one()
         )
         assert membership.role == "reviewer"
+        assert membership.suspended is False
+        editor_membership = (
+            session.query(WorkspaceMember)
+            .filter(
+                WorkspaceMember.user_id == actors["editor_id"],
+                WorkspaceMember.workspace_id == actors["workspace_id"],
+            )
+            .one()
+        )
+        assert editor_membership.role == "editor"
         before_events = session.query(FrameworkCatalogEvent).count()
     finally:
         session.close()
 
-    _login(client, "reviewer@trust.local", "r")
+    _login(client, _PERM_REVIEWER_EMAIL, _PERM_REVIEWER_PASSWORD)
     assert client.get("/api/compliance/frameworks").status_code == 200
     denied = client.post("/api/compliance/frameworks/enable", json={"name": "HIPAA"})
     assert denied.status_code == 403
     assert denied.json()["detail"] == "Insufficient permissions"
 
-    _login(client, "editor@trust.local", "e")
+    _login(client, _PERM_EDITOR_EMAIL, _PERM_EDITOR_PASSWORD)
     assert client.get("/api/compliance/frameworks").status_code == 200
     denied_editor = client.post("/api/compliance/frameworks/enable", json={"name": "CAIQ"})
     assert denied_editor.status_code == 403
