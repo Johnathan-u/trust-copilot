@@ -9,7 +9,7 @@ export const metadata: Metadata = {
     template: '%s | Trust Copilot',
   },
   description:
-    'Upload your evidence documents and compliance questionnaires. Get AI-generated answers grounded in your real evidence — not hallucinations.',
+    'Upload your evidence documents and compliance questionnaires. Get AI-drafted answers that cite your uploaded evidence, for your team to review before sending.',
   icons: {
     icon: '/icon.svg',
   },
