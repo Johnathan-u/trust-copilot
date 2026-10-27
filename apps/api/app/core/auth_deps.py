@@ -33,6 +33,7 @@ def get_api_key_context(request: Request, db: Session) -> dict | None:
     if not row:
         return None
     from datetime import datetime
+
     if row.expires_at and row.expires_at <= datetime.utcnow():
         return None
     return {
@@ -71,12 +72,18 @@ async def require_session(request: Request, db: Session = Depends(get_db)) -> di
     uid = session.get("user_id")
     wid = session.get("workspace_id")
     if uid and wid:
-        mem = db.query(WorkspaceMember).filter(
-            WorkspaceMember.user_id == uid,
-            WorkspaceMember.workspace_id == wid,
-        ).first()
+        mem = (
+            db.query(WorkspaceMember)
+            .filter(
+                WorkspaceMember.user_id == uid,
+                WorkspaceMember.workspace_id == wid,
+            )
+            .first()
+        )
         if mem and mem.suspended:
-            raise HTTPException(status_code=403, detail="Your account has been suspended in this workspace")
+            raise HTTPException(
+                status_code=403, detail="Your account has been suspended in this workspace"
+            )
     return session
 
 
@@ -85,7 +92,9 @@ async def require_valid_session(request: Request, db: Session = Depends(get_db))
     return await require_session(request, db)
 
 
-async def require_valid_session_optional(request: Request, db: Session = Depends(get_db)) -> dict | None:
+async def require_valid_session_optional(
+    request: Request, db: Session = Depends(get_db)
+) -> dict | None:
     """Return session or API key context if present; else None. Use for routes that allow optional auth."""
     api_ctx = get_api_key_context(request, db)
     if api_ctx is not None:
@@ -103,18 +112,29 @@ async def require_valid_session_optional(request: Request, db: Session = Depends
     return session
 
 
-def _resolve_permission(role: str | None, permission_name: str, workspace_id: int | None, db: Session) -> bool:
+def _resolve_permission(
+    role: str | None, permission_name: str, workspace_id: int | None, db: Session
+) -> bool:
     """Check permission for built-in or custom role. Custom roles are looked up from DB."""
     if role in BUILTIN_ROLES:
-        fn = {"can_edit": can_edit, "can_review": can_review, "can_export": can_export, "can_admin": can_admin}
+        fn = {
+            "can_edit": can_edit,
+            "can_review": can_review,
+            "can_export": can_export,
+            "can_admin": can_admin,
+        }
         return fn.get(permission_name, lambda _: False)(role)
     if not role or not workspace_id:
         return False
     try:
-        cr = db.query(CustomRole).filter(
-            CustomRole.workspace_id == workspace_id,
-            CustomRole.name == role,
-        ).first()
+        cr = (
+            db.query(CustomRole)
+            .filter(
+                CustomRole.workspace_id == workspace_id,
+                CustomRole.name == role,
+            )
+            .first()
+        )
         if not cr:
             return False
         return bool(getattr(cr, permission_name, False))
@@ -141,5 +161,3 @@ require_can_edit = _require_permission(can_edit, "can_edit")
 require_can_review = _require_permission(can_review, "can_review")
 require_can_export = _require_permission(can_export, "can_export")
 require_can_admin = _require_permission(can_admin, "can_admin")
-
-

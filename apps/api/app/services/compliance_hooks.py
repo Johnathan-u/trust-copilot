@@ -7,7 +7,7 @@ generate-mappings pipeline. LLM re-rank is handled by mapping_llm_rerank module.
 import logging
 import os
 import re
-import time
+import time  # noqa: F401
 import threading
 from typing import Any
 
@@ -35,12 +35,14 @@ def mapping_timing_enabled() -> bool:
 
 def reset_mapping_timing() -> None:
     with _timing_lock:
-        _timing_data.update({
-            "heuristic_ms": 0.0,
-            "rerank_ms": 0.0,
-            "wc_lookup_ms": 0.0,
-            "rows_fc_hits": 0,
-        })
+        _timing_data.update(
+            {
+                "heuristic_ms": 0.0,
+                "rerank_ms": 0.0,
+                "wc_lookup_ms": 0.0,
+                "rows_fc_hits": 0,
+            }
+        )
 
 
 def get_mapping_timing_snapshot() -> dict[str, float]:
@@ -59,13 +61,47 @@ def record_mapping_timing(key: str, value: float) -> None:
 # ---------------------------------------------------------------------------
 
 _COMMON_SECURITY_KEYWORDS = {
-    "access", "control", "encrypt", "encryption", "audit", "log", "monitor",
-    "incident", "response", "backup", "firewall", "mfa", "authentication",
-    "authorization", "vulnerability", "patch", "compliance", "policy",
-    "training", "awareness", "risk", "assessment", "recovery", "disaster",
-    "continuity", "network", "segmentation", "role", "privilege", "rbac",
-    "siem", "alert", "notification", "breach", "phi", "pii", "hipaa",
-    "soc", "iso", "nist", "fedramp",
+    "access",
+    "control",
+    "encrypt",
+    "encryption",
+    "audit",
+    "log",
+    "monitor",
+    "incident",
+    "response",
+    "backup",
+    "firewall",
+    "mfa",
+    "authentication",
+    "authorization",
+    "vulnerability",
+    "patch",
+    "compliance",
+    "policy",
+    "training",
+    "awareness",
+    "risk",
+    "assessment",
+    "recovery",
+    "disaster",
+    "continuity",
+    "network",
+    "segmentation",
+    "role",
+    "privilege",
+    "rbac",
+    "siem",
+    "alert",
+    "notification",
+    "breach",
+    "phi",
+    "pii",
+    "hipaa",
+    "soc",
+    "iso",
+    "nist",
+    "fedramp",
 }
 
 
@@ -106,6 +142,7 @@ def match_keywords_for_mapping_row(
 # question_to_controls: heuristic control suggestion
 # ---------------------------------------------------------------------------
 
+
 def question_to_controls(
     question: str,
     workspace_id: int,
@@ -121,9 +158,7 @@ def question_to_controls(
     if not q_words:
         return [], 0.0
 
-    wcs = db.query(WorkspaceControl).filter(
-        WorkspaceControl.workspace_id == workspace_id
-    ).all()
+    wcs = db.query(WorkspaceControl).filter(WorkspaceControl.workspace_id == workspace_id).all()
 
     if not wcs:
         return [], 0.0
@@ -135,9 +170,11 @@ def question_to_controls(
         control_words = title_words | desc_words
 
         if wc.framework_control_id:
-            fc = db.query(FrameworkControl).filter(
-                FrameworkControl.id == wc.framework_control_id
-            ).first()
+            fc = (
+                db.query(FrameworkControl)
+                .filter(FrameworkControl.id == wc.framework_control_id)
+                .first()
+            )
             if fc:
                 control_words.update(re.findall(r"\b\w{3,}\b", (fc.title or "").lower()))
 
@@ -169,6 +206,7 @@ def maybe_rerank_framework_controls_with_llm(
     """Optional LLM re-rank of candidate controls. Falls back to input order on failure."""
     try:
         from app.services.mapping_llm_rerank import rerank_controls
+
         return rerank_controls(db, workspace_id, question_text, candidate_control_ids, **kwargs)
     except Exception:
         logger.debug("LLM rerank failed, returning original order", exc_info=True)

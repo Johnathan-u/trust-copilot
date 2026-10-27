@@ -14,14 +14,37 @@ def auth_client(client):
 def _ensure_questionnaire(db):
     """Ensure a test questionnaire exists and return its ID."""
     from app.models.questionnaire import Questionnaire, Question
-    qnr = db.query(Questionnaire).filter(Questionnaire.workspace_id == 1).first()
+
+    # Look up only this module's own synthetic questionnaire (never "whatever row is first"):
+    # an arbitrary pre-existing questionnaire may have no questions, depending on test order.
+    qnr = (
+        db.query(Questionnaire)
+        .filter(
+            Questionnaire.workspace_id == 1,
+            Questionnaire.filename == "test_export.xlsx",
+            Questionnaire.deleted_at.is_(None),
+        )
+        .first()
+    )
     if not qnr:
         qnr = Questionnaire(workspace_id=1, filename="test_export.xlsx", status="parsed")
         db.add(qnr)
         db.flush()
-        db.add(Question(questionnaire_id=qnr.id, text="Do you encrypt data at rest?", section="Data Protection"))
-        db.add(Question(questionnaire_id=qnr.id, text="How is access managed?", section="Access Control"))
-        db.add(Question(questionnaire_id=qnr.id, text="Do you maintain audit logs?", section="Logging"))
+        db.add(
+            Question(
+                questionnaire_id=qnr.id,
+                text="Do you encrypt data at rest?",
+                section="Data Protection",
+            )
+        )
+        db.add(
+            Question(
+                questionnaire_id=qnr.id, text="How is access managed?", section="Access Control"
+            )
+        )
+        db.add(
+            Question(questionnaire_id=qnr.id, text="Do you maintain audit logs?", section="Logging")
+        )
         db.commit()
         db.refresh(qnr)
     return qnr.id
@@ -33,6 +56,7 @@ class TestExportPackService:
             pytest.skip("Postgres not available")
         from app.core.database import SessionLocal
         from app.services.export_pack_service import generate_cover_page
+
         db = SessionLocal()
         try:
             qid = _ensure_questionnaire(db)
@@ -51,6 +75,7 @@ class TestExportPackService:
             pytest.skip("Postgres not available")
         from app.core.database import SessionLocal
         from app.services.export_pack_service import generate_executive_summary
+
         db = SessionLocal()
         try:
             qid = _ensure_questionnaire(db)
@@ -68,6 +93,7 @@ class TestExportPackService:
             pytest.skip("Postgres not available")
         from app.core.database import SessionLocal
         from app.services.export_pack_service import generate_evidence_bundle
+
         db = SessionLocal()
         try:
             qid = _ensure_questionnaire(db)
@@ -84,6 +110,7 @@ class TestExportPackService:
             pytest.skip("Postgres not available")
         from app.core.database import SessionLocal
         from app.services.export_pack_service import generate_full_pack
+
         db = SessionLocal()
         try:
             qid = _ensure_questionnaire(db)
@@ -100,6 +127,7 @@ class TestExportPackService:
             pytest.skip("Postgres not available")
         from app.core.database import SessionLocal
         from app.services.export_pack_service import generate_cover_page
+
         db = SessionLocal()
         try:
             with pytest.raises(ValueError, match="not found"):
@@ -109,11 +137,13 @@ class TestExportPackService:
 
     def test_recommendation_high_confidence(self):
         from app.services.export_pack_service import _summary_recommendation
+
         rec = _summary_recommendation(95, 100, 100)
         assert "ready for submission" in rec
 
     def test_recommendation_gaps(self):
         from app.services.export_pack_service import _summary_recommendation
+
         rec = _summary_recommendation(50, 30, 100)
         assert "Upload" in rec or "upload" in rec
 
@@ -123,6 +153,7 @@ class TestExportPackAPI:
         if not _ensure_test_data:
             pytest.skip("Postgres not available")
         from app.core.database import SessionLocal
+
         db = SessionLocal()
         qid = _ensure_questionnaire(db)
         db.close()
@@ -136,6 +167,7 @@ class TestExportPackAPI:
         if not _ensure_test_data:
             pytest.skip("Postgres not available")
         from app.core.database import SessionLocal
+
         db = SessionLocal()
         qid = _ensure_questionnaire(db)
         db.close()
@@ -147,6 +179,7 @@ class TestExportPackAPI:
         if not _ensure_test_data:
             pytest.skip("Postgres not available")
         from app.core.database import SessionLocal
+
         db = SessionLocal()
         qid = _ensure_questionnaire(db)
         db.close()
@@ -158,6 +191,7 @@ class TestExportPackAPI:
         if not _ensure_test_data:
             pytest.skip("Postgres not available")
         from app.core.database import SessionLocal
+
         db = SessionLocal()
         qid = _ensure_questionnaire(db)
         db.close()

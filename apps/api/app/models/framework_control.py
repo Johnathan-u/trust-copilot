@@ -11,7 +11,9 @@ class FrameworkControl(Base):
     __tablename__ = "framework_controls"
 
     id = Column(Integer, primary_key=True, index=True)
-    framework_id = Column(Integer, ForeignKey("frameworks.id", ondelete="CASCADE"), nullable=False, index=True)
+    framework_id = Column(
+        Integer, ForeignKey("frameworks.id", ondelete="CASCADE"), nullable=False, index=True
+    )
     control_key = Column(String(64), nullable=False)
     title = Column(String(255), nullable=True)
     description = Column(Text, nullable=True)

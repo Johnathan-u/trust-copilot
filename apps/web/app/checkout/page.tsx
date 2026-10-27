@@ -271,15 +271,9 @@ function CheckoutContent() {
                   </div>
                   <div className="text-right">
                     <div className="text-2xl font-extrabold text-[var(--tc-text)]">
-                      <span className="line-through opacity-40">
-                        ${monthlyPrice}
-                      </span>{' '}
-                      <span className="text-[var(--tc-success)]">FREE</span>
+                      <span>${monthlyPrice}</span>
                     </div>
                     <div className="text-xs text-[var(--tc-muted)]">/month</div>
-                    <div className="mt-1 text-[10px] font-medium text-[var(--tc-success)]">
-                      until April 5, 2026
-                    </div>
                   </div>
                 </div>
               </button>
@@ -306,15 +300,9 @@ function CheckoutContent() {
                   </div>
                   <div className="text-right">
                     <div className="text-2xl font-extrabold text-[var(--tc-text)]">
-                      <span className="line-through opacity-40">
-                        ${annualPrice}
-                      </span>{' '}
-                      <span className="text-[var(--tc-success)]">FREE</span>
+                      <span>${annualPrice}</span>
                     </div>
                     <div className="text-xs text-[var(--tc-muted)]">/year</div>
-                    <div className="mt-1 text-[10px] font-medium text-[var(--tc-success)]">
-                      until April 5, 2026
-                    </div>
                   </div>
                 </div>
               </button>
@@ -341,10 +329,10 @@ function CheckoutContent() {
               onClick={goToAccount}
               className="tc-btn-primary mt-6 flex w-full items-center justify-center rounded-xl py-3 text-sm font-semibold transition hover:opacity-90"
             >
-              Continue &mdash; Free until April 5
+              Continue
             </button>
             <p className="mt-3 text-center text-[10px] text-[var(--tc-muted)]">
-              No credit card required now. Card will be requested after April 5.
+              You&apos;ll add a payment method in the final step.
             </p>
           </div>
         )}
@@ -362,8 +350,10 @@ function CheckoutContent() {
             <div className="mb-5 flex items-center justify-center gap-2 rounded-xl border border-[var(--tc-border)] bg-[var(--tc-panel)] px-4 py-2.5 text-xs text-[var(--tc-muted)]">
               <span>
                 {plan === 'annual' ? 'Annual' : 'Monthly'} &middot;{' '}
-                <span className="font-semibold text-[var(--tc-success)]">
-                  FREE until April 5
+                <span className="font-semibold">
+                  {plan === 'annual'
+                    ? `$${annualPrice}/year`
+                    : `$${monthlyPrice}/month`}
                 </span>
               </span>
               <button
@@ -553,10 +543,7 @@ function CheckoutContent() {
                     <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
                   </svg>
                   <span>
-                    You&apos;ll be redirected to Stripe to add your card.{' '}
-                    <span className="font-medium text-[var(--tc-success)]">
-                      No charge until April 5, 2026.
-                    </span>
+                    You&apos;ll be redirected to Stripe to add your card.
                   </span>
                 </div>
               </div>

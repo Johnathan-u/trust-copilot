@@ -21,11 +21,16 @@ def get_corpus_version(db: Session, workspace_id: int) -> str:
     # Insert default so we have a version
     token = _new_token()
     db.execute(
-        text("INSERT INTO workspace_corpus_versions (workspace_id, version_token, updated_at) VALUES (:ws, :tok, :now) ON CONFLICT (workspace_id) DO NOTHING"),
+        text(
+            "INSERT INTO workspace_corpus_versions (workspace_id, version_token, updated_at) VALUES (:ws, :tok, :now) ON CONFLICT (workspace_id) DO NOTHING"
+        ),
         {"ws": workspace_id, "tok": token, "now": datetime.now(timezone.utc)},
     )
     db.commit()
-    row = db.execute(text("SELECT version_token FROM workspace_corpus_versions WHERE workspace_id = :ws"), {"ws": workspace_id}).fetchone()
+    row = db.execute(
+        text("SELECT version_token FROM workspace_corpus_versions WHERE workspace_id = :ws"),
+        {"ws": workspace_id},
+    ).fetchone()
     return row[0] if row else token
 
 

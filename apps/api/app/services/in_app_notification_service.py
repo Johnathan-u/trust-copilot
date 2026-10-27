@@ -50,22 +50,28 @@ def notify_admins(
 ) -> int:
     """Create in-app notifications for all active admins in a workspace."""
     try:
-        admins = db.query(WorkspaceMember).filter(
-            WorkspaceMember.workspace_id == workspace_id,
-            WorkspaceMember.role == "admin",
-            WorkspaceMember.suspended == False,
-        ).all()
+        admins = (
+            db.query(WorkspaceMember)
+            .filter(
+                WorkspaceMember.workspace_id == workspace_id,
+                WorkspaceMember.role == "admin",
+                WorkspaceMember.suspended == False,  # noqa: E712
+            )
+            .all()
+        )
         count = 0
         for mem in admins:
-            db.add(InAppNotification(
-                workspace_id=workspace_id,
-                user_id=mem.user_id,
-                title=title,
-                body=body,
-                category=category,
-                link=link,
-                admin_only=True,
-            ))
+            db.add(
+                InAppNotification(
+                    workspace_id=workspace_id,
+                    user_id=mem.user_id,
+                    title=title,
+                    body=body,
+                    category=category,
+                    link=link,
+                    admin_only=True,
+                )
+            )
             count += 1
         if count:
             db.commit()
@@ -85,21 +91,27 @@ def notify_workspace(
 ) -> int:
     """Create in-app notification for all active members in a workspace."""
     try:
-        members = db.query(WorkspaceMember).filter(
-            WorkspaceMember.workspace_id == workspace_id,
-            WorkspaceMember.suspended == False,
-        ).all()
+        members = (
+            db.query(WorkspaceMember)
+            .filter(
+                WorkspaceMember.workspace_id == workspace_id,
+                WorkspaceMember.suspended == False,  # noqa: E712
+            )
+            .all()
+        )
         count = 0
         for mem in members:
-            db.add(InAppNotification(
-                workspace_id=workspace_id,
-                user_id=mem.user_id,
-                title=title,
-                body=body,
-                category=category,
-                link=link,
-                admin_only=False,
-            ))
+            db.add(
+                InAppNotification(
+                    workspace_id=workspace_id,
+                    user_id=mem.user_id,
+                    title=title,
+                    body=body,
+                    category=category,
+                    link=link,
+                    admin_only=False,
+                )
+            )
             count += 1
         if count:
             db.commit()

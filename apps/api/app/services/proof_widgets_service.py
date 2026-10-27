@@ -17,29 +17,32 @@ def get_proof_widgets(db: Session, workspace_id: int) -> dict:
         db.query(func.count(Question.id))
         .join(Questionnaire)
         .filter(Questionnaire.workspace_id == workspace_id)
-        .scalar() or 0
+        .scalar()
+        or 0
     )
     total_answers = (
         db.query(func.count(Answer.id))
         .join(Question)
         .join(Questionnaire)
         .filter(Questionnaire.workspace_id == workspace_id)
-        .scalar() or 0
+        .scalar()
+        or 0
     )
     questionnaires = (
         db.query(func.count(Questionnaire.id))
         .filter(Questionnaire.workspace_id == workspace_id)
-        .scalar() or 0
+        .scalar()
+        or 0
     )
     docs = (
-        db.query(func.count(Document.id))
-        .filter(Document.workspace_id == workspace_id)
-        .scalar() or 0
+        db.query(func.count(Document.id)).filter(Document.workspace_id == workspace_id).scalar()
+        or 0
     )
     exports = (
         db.query(func.count(ExportRecord.id))
         .filter(ExportRecord.workspace_id == workspace_id)
-        .scalar() or 0
+        .scalar()
+        or 0
     )
 
     hours_saved = round(total_answers * 0.08, 1)
@@ -50,6 +53,8 @@ def get_proof_widgets(db: Session, workspace_id: int) -> dict:
         "documents_indexed": docs,
         "exports_delivered": exports,
         "hours_saved_estimate": hours_saved,
+        # TC-01-005: heuristic, not a measured outcome.
+        "hours_saved_basis": "heuristic: 0.08 hours (about 5 minutes) assumed per answer; not measured",
         "coverage_pct": round(total_answers / total_questions * 100, 1) if total_questions else 0,
         "generated_at": datetime.now(timezone.utc).isoformat(),
     }

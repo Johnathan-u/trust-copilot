@@ -38,10 +38,14 @@ class TestCaseStudyService:
         db = SessionLocal()
         try:
             ws = self._get_workspace(db)
-            result = cs.create(db, ws.id, "Acme Corp Case Study",
-                               company_name="Acme Corp",
-                               industry="FinTech",
-                               challenge="Too many questionnaires")
+            result = cs.create(
+                db,
+                ws.id,
+                "Acme Corp Case Study",
+                company_name="Acme Corp",
+                industry="FinTech",
+                challenge="Too many questionnaires",
+            )
             db.commit()
             assert result["title"] == "Acme Corp Case Study"
             assert result["company_name"] == "Acme Corp"
@@ -66,7 +70,9 @@ class TestCaseStudyService:
             ws = self._get_workspace(db)
             created = cs.create(db, ws.id, "Update Test")
             db.commit()
-            updated = cs.update(db, created["id"], challenge="Updated challenge", status="published")
+            updated = cs.update(
+                db, created["id"], challenge="Updated challenge", status="published"
+            )
             db.commit()
             assert updated["challenge"] == "Updated challenge"
             assert updated["status"] == "published"
@@ -105,10 +111,13 @@ class TestCaseStudyAPI:
         assert "sections" in r.json()
 
     def test_create_case_study(self, admin_client):
-        r = admin_client.post("/api/case-studies", json={
-            "title": "API Test Case Study",
-            "company_name": "TestCo",
-        })
+        r = admin_client.post(
+            "/api/case-studies",
+            json={
+                "title": "API Test Case Study",
+                "company_name": "TestCo",
+            },
+        )
         assert r.status_code == 200
         assert r.json()["title"] == "API Test Case Study"
 

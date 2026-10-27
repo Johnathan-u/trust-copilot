@@ -75,11 +75,7 @@ def is_enabled(db: Session, workspace_id: int, flag_name: str) -> bool:
 
 def get_all_flags(db: Session, workspace_id: int) -> list[dict]:
     """Return all known flags with their resolved state for a workspace."""
-    db_rows = (
-        db.query(FeatureFlag)
-        .filter(FeatureFlag.workspace_id == workspace_id)
-        .all()
-    )
+    db_rows = db.query(FeatureFlag).filter(FeatureFlag.workspace_id == workspace_id).all()
     db_map = {r.flag_name: r for r in db_rows}
 
     result = []
@@ -97,22 +93,26 @@ def get_all_flags(db: Session, workspace_id: int) -> list[dict]:
             enabled = default
             source = "default"
 
-        result.append({
-            "flag_name": flag_name,
-            "enabled": enabled,
-            "source": source,
-            "description": row.description if row and row.description else description,
-        })
+        result.append(
+            {
+                "flag_name": flag_name,
+                "enabled": enabled,
+                "source": source,
+                "description": row.description if row and row.description else description,
+            }
+        )
 
     for row in db_rows:
         if row.flag_name not in KNOWN_FLAGS:
             env = _env_override(row.flag_name)
-            result.append({
-                "flag_name": row.flag_name,
-                "enabled": env if env is not None else row.enabled,
-                "source": "env" if env is not None else "workspace",
-                "description": row.description or "",
-            })
+            result.append(
+                {
+                    "flag_name": row.flag_name,
+                    "enabled": env if env is not None else row.enabled,
+                    "source": "env" if env is not None else "workspace",
+                    "description": row.description or "",
+                }
+            )
 
     return result
 
@@ -149,17 +149,21 @@ def seed_defaults(db: Session, workspace_id: int) -> int:
     """Seed all known flags for a workspace (skip existing rows). Returns count created."""
     existing = {
         r.flag_name
-        for r in db.query(FeatureFlag.flag_name).filter(FeatureFlag.workspace_id == workspace_id).all()
+        for r in db.query(FeatureFlag.flag_name)
+        .filter(FeatureFlag.workspace_id == workspace_id)
+        .all()
     }
     created = 0
     for flag_name, (default, description) in KNOWN_FLAGS.items():
         if flag_name not in existing:
-            db.add(FeatureFlag(
-                workspace_id=workspace_id,
-                flag_name=flag_name,
-                enabled=default,
-                description=description,
-            ))
+            db.add(
+                FeatureFlag(
+                    workspace_id=workspace_id,
+                    flag_name=flag_name,
+                    enabled=default,
+                    description=description,
+                )
+            )
             created += 1
     if created:
         db.commit()

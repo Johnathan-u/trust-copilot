@@ -18,7 +18,9 @@ async def diff_snapshots(
     session: dict = Depends(require_session),
     db: Session = Depends(get_db),
 ):
-    return ed.diff_control_snapshots(db, session["workspace_id"], control_id, snapshot_a, snapshot_b)
+    return ed.diff_control_snapshots(
+        db, session["workspace_id"], control_id, snapshot_a, snapshot_b
+    )
 
 
 @router.get("/evidence/{control_id}")

@@ -1,0 +1,12 @@
+# Probe (same synthetic workbook) run against baseline c20f949 and against the branch
+# Template: A1 "Q?" number_format 0.00%; A2 "Q2?"; B2 holds original formula =TODAY().
+# Answers: q1 -> "=1+1" (target B1), q2 -> "Yes" (target B2).
+== baseline c20f949
+B1 xml has <f>: True | B1 type: f | B1 number_format: 0.00% | B2 (orig formula) now: 'Yes'
+csv fallback error: TypeError a bytes-like object is required, not 'str'
+== branch
+EXPORT: skipped answer placement; target holds original formula sheet='S' cell=B2
+B1 xml has <f>: False | B1 type: s | B1 number_format: General | B2 (orig formula) now: '=TODAY()'
+csv ok
+== new test file against baseline
+ERROR tests/test_export_literal_text.py (collection: ImportError, is_formula_like/neutralize_csv_cell do not exist on baseline)

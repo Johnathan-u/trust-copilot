@@ -30,11 +30,18 @@ async def create_space(
     db: Session = Depends(get_db),
 ):
     result = ss.create_space(
-        db, session["workspace_id"], body.name, session["user_id"],
-        buyer_company=body.buyer_company, buyer_email=body.buyer_email,
-        opportunity_id=body.opportunity_id, description=body.description,
-        article_ids=body.article_ids, answer_ids=body.answer_ids,
-        document_ids=body.document_ids, expires_days=body.expires_days,
+        db,
+        session["workspace_id"],
+        body.name,
+        session["user_id"],
+        buyer_company=body.buyer_company,
+        buyer_email=body.buyer_email,
+        opportunity_id=body.opportunity_id,
+        description=body.description,
+        article_ids=body.article_ids,
+        answer_ids=body.answer_ids,
+        document_ids=body.document_ids,
+        expires_days=body.expires_days,
     )
     db.commit()
     return result

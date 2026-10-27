@@ -132,25 +132,36 @@ DEFAULT_FAQ: list[dict] = [
 ]
 
 
+# TC-01-005: default answers describe an assumed deployment (hosting provider,
+# encryption, backups, uptime, subprocessors, DPA). They are unverified templates.
+DEFAULT_TEMPLATE_NOTICE = "[Template: verify against your deployment before publishing] "
+
+
 def seed_defaults(db: Session, workspace_id: int) -> int:
-    """Seed default FAQ entries for a workspace. Skips if entries already exist."""
-    existing = db.query(SecurityFAQ).filter(
-        SecurityFAQ.workspace_id == workspace_id,
-        SecurityFAQ.is_default == 1,
-    ).count()
+    """Seed default FAQ template entries for a workspace. Skips if entries already exist."""
+    existing = (
+        db.query(SecurityFAQ)
+        .filter(
+            SecurityFAQ.workspace_id == workspace_id,
+            SecurityFAQ.is_default == 1,
+        )
+        .count()
+    )
     if existing > 0:
         return 0
 
     created = 0
     for faq in DEFAULT_FAQ:
-        db.add(SecurityFAQ(
-            workspace_id=workspace_id,
-            category=faq["category"],
-            question=faq["question"],
-            answer=faq["answer"],
-            framework_tags=faq.get("framework_tags"),
-            is_default=1,
-        ))
+        db.add(
+            SecurityFAQ(
+                workspace_id=workspace_id,
+                category=faq["category"],
+                question=faq["question"],
+                answer=DEFAULT_TEMPLATE_NOTICE + faq["answer"],
+                framework_tags=faq.get("framework_tags"),
+                is_default=1,
+            )
+        )
         created += 1
     db.flush()
     return created
@@ -171,8 +182,7 @@ def list_faqs(
         q = q.filter(SecurityFAQ.framework_tags.ilike(f"%{framework}%"))
     if search:
         q = q.filter(
-            SecurityFAQ.question.ilike(f"%{search}%")
-            | SecurityFAQ.answer.ilike(f"%{search}%")
+            SecurityFAQ.question.ilike(f"%{search}%") | SecurityFAQ.answer.ilike(f"%{search}%")
         )
     q = q.order_by(SecurityFAQ.category, SecurityFAQ.id)
     return [_serialize(f) for f in q.all()]

@@ -30,8 +30,12 @@ async def ingest(
     db: Session = Depends(get_db),
 ):
     result = ips.ingest_evidence(
-        db, session["workspace_id"], body.source_type, body.title,
-        body.source_metadata, body.document_id,
+        db,
+        session["workspace_id"],
+        body.source_type,
+        body.title,
+        body.source_metadata,
+        body.document_id,
     )
     db.commit()
     return result

@@ -63,10 +63,13 @@ class TestSignalMappingAPI:
         assert "total_controls" in r.json()
 
     def test_evaluate(self, admin_client):
-        r = admin_client.post("/api/signal-mappings/evaluate", json={
-            "signal": "aws.iam.mfa_enabled",
-            "value": True,
-        })
+        r = admin_client.post(
+            "/api/signal-mappings/evaluate",
+            json={
+                "signal": "aws.iam.mfa_enabled",
+                "value": True,
+            },
+        )
         assert r.status_code == 200
 
     def test_editor_can_read(self, editor_client):
@@ -74,8 +77,11 @@ class TestSignalMappingAPI:
         assert r.status_code == 200
 
     def test_editor_cannot_evaluate(self, editor_client):
-        r = editor_client.post("/api/signal-mappings/evaluate", json={
-            "signal": "aws.iam.mfa_enabled",
-            "value": True,
-        })
+        r = editor_client.post(
+            "/api/signal-mappings/evaluate",
+            json={
+                "signal": "aws.iam.mfa_enabled",
+                "value": True,
+            },
+        )
         assert r.status_code == 403

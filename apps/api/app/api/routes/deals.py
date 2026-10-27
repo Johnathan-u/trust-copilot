@@ -40,7 +40,9 @@ class LinkBody(BaseModel):
 
 
 @router.post("")
-async def create(body: CreateDealBody, session: dict = Depends(require_can_admin), db: Session = Depends(get_db)):
+async def create(
+    body: CreateDealBody, session: dict = Depends(require_can_admin), db: Session = Depends(get_db)
+):
     data = body.model_dump(exclude_none=True)
     result = ds.create_deal(db, session["workspace_id"], **data)
     db.commit()
@@ -48,7 +50,11 @@ async def create(body: CreateDealBody, session: dict = Depends(require_can_admin
 
 
 @router.get("")
-async def list_all(stage: str | None = Query(None), session: dict = Depends(require_session), db: Session = Depends(get_db)):
+async def list_all(
+    stage: str | None = Query(None),
+    session: dict = Depends(require_session),
+    db: Session = Depends(get_db),
+):
     return {"deals": ds.list_deals(db, session["workspace_id"], stage)}
 
 
@@ -58,7 +64,9 @@ async def analytics(session: dict = Depends(require_session), db: Session = Depe
 
 
 @router.get("/revenue-unblocked")
-async def revenue_unblocked(session: dict = Depends(require_session), db: Session = Depends(get_db)):
+async def revenue_unblocked(
+    session: dict = Depends(require_session), db: Session = Depends(get_db)
+):
     return das.get_revenue_unblocked(db, session["workspace_id"])
 
 
@@ -68,7 +76,11 @@ async def risk_ranking(session: dict = Depends(require_session), db: Session = D
 
 
 @router.get("/upcoming-deadlines")
-async def upcoming(within_days: int = Query(14, ge=1), session: dict = Depends(require_session), db: Session = Depends(get_db)):
+async def upcoming(
+    within_days: int = Query(14, ge=1),
+    session: dict = Depends(require_session),
+    db: Session = Depends(get_db),
+):
     return {"deadlines": dds.get_upcoming_deadlines(db, session["workspace_id"], within_days)}
 
 
@@ -83,7 +95,9 @@ async def at_risk(session: dict = Depends(require_session), db: Session = Depend
 
 
 @router.get("/{deal_id}")
-async def get_one(deal_id: int, session: dict = Depends(require_session), db: Session = Depends(get_db)):
+async def get_one(
+    deal_id: int, session: dict = Depends(require_session), db: Session = Depends(get_db)
+):
     result = ds.get_deal(db, deal_id)
     if not result:
         raise HTTPException(status_code=404)
@@ -91,7 +105,9 @@ async def get_one(deal_id: int, session: dict = Depends(require_session), db: Se
 
 
 @router.get("/{deal_id}/risk")
-async def risk_score(deal_id: int, session: dict = Depends(require_session), db: Session = Depends(get_db)):
+async def risk_score(
+    deal_id: int, session: dict = Depends(require_session), db: Session = Depends(get_db)
+):
     result = rrs.score_deal(db, deal_id)
     if "error" in result:
         raise HTTPException(status_code=404, detail=result["error"])
@@ -99,7 +115,9 @@ async def risk_score(deal_id: int, session: dict = Depends(require_session), db:
 
 
 @router.get("/{deal_id}/room")
-async def deal_room(deal_id: int, session: dict = Depends(require_session), db: Session = Depends(get_db)):
+async def deal_room(
+    deal_id: int, session: dict = Depends(require_session), db: Session = Depends(get_db)
+):
     result = drs.generate_deal_room(db, deal_id)
     if "error" in result:
         raise HTTPException(status_code=404, detail=result["error"])
@@ -107,7 +125,12 @@ async def deal_room(deal_id: int, session: dict = Depends(require_session), db: 
 
 
 @router.patch("/{deal_id}")
-async def update(deal_id: int, body: UpdateDealBody, session: dict = Depends(require_can_admin), db: Session = Depends(get_db)):
+async def update(
+    deal_id: int,
+    body: UpdateDealBody,
+    session: dict = Depends(require_can_admin),
+    db: Session = Depends(get_db),
+):
     updates = {k: v for k, v in body.model_dump().items() if v is not None}
     result = ds.update_deal(db, deal_id, **updates)
     if not result:
@@ -117,7 +140,12 @@ async def update(deal_id: int, body: UpdateDealBody, session: dict = Depends(req
 
 
 @router.post("/{deal_id}/link-questionnaire")
-async def link_q(deal_id: int, body: LinkBody, session: dict = Depends(require_can_admin), db: Session = Depends(get_db)):
+async def link_q(
+    deal_id: int,
+    body: LinkBody,
+    session: dict = Depends(require_can_admin),
+    db: Session = Depends(get_db),
+):
     result = ds.link_questionnaire(db, deal_id, body.questionnaire_id)
     if not result:
         raise HTTPException(status_code=404)
@@ -126,7 +154,9 @@ async def link_q(deal_id: int, body: LinkBody, session: dict = Depends(require_c
 
 
 @router.delete("/{deal_id}")
-async def delete(deal_id: int, session: dict = Depends(require_can_admin), db: Session = Depends(get_db)):
+async def delete(
+    deal_id: int, session: dict = Depends(require_can_admin), db: Session = Depends(get_db)
+):
     if not ds.delete_deal(db, deal_id):
         raise HTTPException(status_code=404)
     db.commit()

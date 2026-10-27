@@ -11,7 +11,9 @@ class BuyerPortal(Base):
     __tablename__ = "buyer_portals"
 
     id = Column(Integer, primary_key=True, index=True)
-    workspace_id = Column(Integer, ForeignKey("workspaces.id", ondelete="CASCADE"), nullable=False, index=True)
+    workspace_id = Column(
+        Integer, ForeignKey("workspaces.id", ondelete="CASCADE"), nullable=False, index=True
+    )
     portal_token = Column(String(96), nullable=False, unique=True)
     display_name = Column(String(255), nullable=False)
     frameworks_filter_json = Column(Text, nullable=True)
@@ -23,8 +25,12 @@ class BuyerPortalSnapshot(Base):
     __tablename__ = "buyer_portal_snapshots"
 
     id = Column(Integer, primary_key=True, index=True)
-    workspace_id = Column(Integer, ForeignKey("workspaces.id", ondelete="CASCADE"), nullable=False, index=True)
-    portal_id = Column(Integer, ForeignKey("buyer_portals.id", ondelete="CASCADE"), nullable=False, index=True)
+    workspace_id = Column(
+        Integer, ForeignKey("workspaces.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    portal_id = Column(
+        Integer, ForeignKey("buyer_portals.id", ondelete="CASCADE"), nullable=False, index=True
+    )
     snapshot_json = Column(Text, nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
 
@@ -33,7 +39,9 @@ class BuyerEscalation(Base):
     __tablename__ = "buyer_escalations"
 
     id = Column(Integer, primary_key=True, index=True)
-    workspace_id = Column(Integer, ForeignKey("workspaces.id", ondelete="CASCADE"), nullable=False, index=True)
+    workspace_id = Column(
+        Integer, ForeignKey("workspaces.id", ondelete="CASCADE"), nullable=False, index=True
+    )
     portal_id = Column(Integer, ForeignKey("buyer_portals.id", ondelete="SET NULL"), nullable=True)
     buyer_email = Column(String(255), nullable=False)
     escalation_type = Column(String(64), nullable=False)
@@ -50,7 +58,9 @@ class BuyerSatisfactionSignal(Base):
     __tablename__ = "buyer_satisfaction_signals"
 
     id = Column(Integer, primary_key=True, index=True)
-    workspace_id = Column(Integer, ForeignKey("workspaces.id", ondelete="CASCADE"), nullable=False, index=True)
+    workspace_id = Column(
+        Integer, ForeignKey("workspaces.id", ondelete="CASCADE"), nullable=False, index=True
+    )
     portal_id = Column(Integer, ForeignKey("buyer_portals.id", ondelete="SET NULL"), nullable=True)
     questionnaire_id = Column(Integer, nullable=True)
     accepted_without_edits = Column(Boolean, nullable=True)
@@ -65,7 +75,9 @@ class BuyerChangeSubscription(Base):
     __tablename__ = "buyer_change_subscriptions"
 
     id = Column(Integer, primary_key=True, index=True)
-    portal_id = Column(Integer, ForeignKey("buyer_portals.id", ondelete="CASCADE"), nullable=False, index=True)
+    portal_id = Column(
+        Integer, ForeignKey("buyer_portals.id", ondelete="CASCADE"), nullable=False, index=True
+    )
     email = Column(String(255), nullable=False)
     frameworks_json = Column(Text, nullable=True)
     active = Column(Boolean, nullable=False, default=True)

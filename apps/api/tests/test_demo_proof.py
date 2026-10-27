@@ -14,6 +14,7 @@ def auth_client(client):
 class TestDemoProofService:
     def test_sample_questionnaire_structure(self):
         from app.services.demo_proof_service import _build_sample_questionnaire
+
         q = _build_sample_questionnaire()
         assert q["title"] == "Sample SOC 2 Security Questionnaire"
         assert q["total_questions"] >= 10
@@ -25,17 +26,25 @@ class TestDemoProofService:
             assert "evidence_sources" in question
 
     def test_coverage_report(self):
-        from app.services.demo_proof_service import _build_sample_questionnaire, _build_coverage_report
+        from app.services.demo_proof_service import (
+            _build_sample_questionnaire,
+            _build_coverage_report,
+        )
+
         q = _build_sample_questionnaire()
         report = _build_coverage_report(q)
         assert report["total_questions"] == q["total_questions"]
         assert report["coverage_pct"] == 100.0
         assert report["avg_confidence"] > 0
-        assert report["high_confidence"] + report["medium_confidence"] + report["low_confidence"] == report["total_questions"]
+        assert (
+            report["high_confidence"] + report["medium_confidence"] + report["low_confidence"]
+            == report["total_questions"]
+        )
         assert len(report["by_section"]) >= 4
 
     def test_gap_list(self):
         from app.services.demo_proof_service import _build_sample_questionnaire, _build_gap_list
+
         q = _build_sample_questionnaire()
         gaps = _build_gap_list(q)
         assert "total_gaps" in gaps
@@ -46,6 +55,7 @@ class TestDemoProofService:
 
     def test_walkthrough(self):
         from app.services.demo_proof_service import _build_walkthrough
+
         w = _build_walkthrough()
         assert len(w["steps"]) == 5
         for step in w["steps"]:
@@ -58,6 +68,7 @@ class TestDemoProofService:
             pytest.skip("Postgres not available")
         from app.core.database import SessionLocal
         from app.services.demo_proof_service import generate_demo_package
+
         db = SessionLocal()
         try:
             pkg = generate_demo_package(db, 1)
