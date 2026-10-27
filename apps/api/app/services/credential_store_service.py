@@ -11,6 +11,8 @@ from cryptography.fernet import Fernet
 from sqlalchemy.orm import Session
 
 from app.models.credential_store import CredentialStore
+from app.services.provider_adapter.contract import ObservationState, ProvenanceKind
+from app.services.provider_adapter.surfaces import action_contract
 
 logger = logging.getLogger(__name__)
 
@@ -98,6 +100,20 @@ def list_credentials(db: Session, workspace_id: int) -> list[dict]:
     return [_serialize(r, include_value=False) for r in rows]
 
 
+def list_observation_contract(workspace_id: int) -> dict:
+    """Listing credential refs is custody metadata, not collected evidence."""
+    return action_contract(
+        provider="credential_store",
+        resource_id="credential:list",
+        state=ObservationState.UNKNOWN,
+        provenance_kind=ProvenanceKind.CREDENTIAL_CUSTODY,
+        workspace_id=workspace_id,
+        error_code="not_evidence",
+        safe_message="Credential inventory is not collected evidence",
+        note="list",
+    )
+
+
 def revoke_credential(db: Session, workspace_id: int, source_type: str, credential_type: str) -> bool:
     row = db.query(CredentialStore).filter(
         CredentialStore.workspace_id == workspace_id,
@@ -151,6 +167,17 @@ def _serialize(row: CredentialStore, include_value: bool = False) -> dict:
         "last_rotated_at": row.last_rotated_at.isoformat() if row.last_rotated_at else None,
         "rotation_interval_days": row.rotation_interval_days,
         "created_at": row.created_at.isoformat() if row.created_at else None,
+        "observation_contract": action_contract(
+            provider=row.source_type,
+            resource_id=f"credential:{row.source_type}:{row.credential_type}",
+            state=ObservationState.UNKNOWN,
+            provenance_kind=ProvenanceKind.CREDENTIAL_CUSTODY,
+            workspace_id=row.workspace_id,
+            credential_type=row.credential_type,
+            error_code="not_evidence",
+            safe_message="Credential custody is not collected evidence",
+            note="Secret material is not part of this observation",
+        ),
     }
     if include_value:
         d["value"] = decrypt(row.encrypted_value)

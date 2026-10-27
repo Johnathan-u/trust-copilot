@@ -5,6 +5,13 @@ from datetime import datetime, timedelta, timezone
 from sqlalchemy.orm import Session
 
 from app.models.source_registry import SourceRegistry
+from app.services.provider_adapter.contract import (
+    CONTRACT_NAME,
+    SCHEMA_VERSION,
+    ObservationState,
+    ProvenanceKind,
+)
+from app.services.provider_adapter.surfaces import action_contract
 
 
 def get_connector_health(db: Session, workspace_id: int) -> dict:
@@ -15,8 +22,11 @@ def get_connector_health(db: Session, workspace_id: int) -> dict:
     ).all()
 
     connectors = []
+    posture_observations = []
     for s in sources:
         health = _assess_health(s)
+        posture = evidence_posture(s)
+        posture_observations.append(posture)
         connectors.append({
             "source_type": s.source_type,
             "display_name": s.display_name,
@@ -27,6 +37,7 @@ def get_connector_health(db: Session, workspace_id: int) -> dict:
             "last_error": s.last_error,
             "sync_cadence": s.sync_cadence,
             "issues": health["issues"],
+            "evidence_posture": posture,
         })
 
     healthy = sum(1 for c in connectors if c["status"] == "healthy")
@@ -51,7 +62,41 @@ def get_connector_health(db: Session, workspace_id: int) -> dict:
         "unknown": unknown,
         "connectors": connectors,
         "checked_at": datetime.now(timezone.utc).isoformat(),
+        "observation_contract": {
+            "schema_version": SCHEMA_VERSION,
+            "contract": CONTRACT_NAME,
+            "observations": posture_observations,
+        },
     }
+
+
+def evidence_posture(source: SourceRegistry) -> dict:
+    """Evidence honesty for one registry row. Sync bookkeeping is not success."""
+    if source.last_sync_status == "failed":
+        state = ObservationState.FAILURE
+        reason = "sync_failed"
+        error_code = "sync_failed"
+    elif not source.last_sync_at:
+        state = ObservationState.UNKNOWN
+        reason = "never_synced"
+        error_code = "not_observed"
+    else:
+        state = ObservationState.UNKNOWN
+        reason = "sync_bookkeeping_is_not_collected_evidence"
+        error_code = "not_evidence"
+    contract = action_contract(
+        provider=source.source_type,
+        resource_id=f"health:{source.source_type}",
+        state=state,
+        provenance_kind=ProvenanceKind.ABSENT,
+        workspace_id=source.workspace_id,
+        error_code=error_code,
+        safe_message=reason,
+        note=reason,
+    )
+    observation = contract["observations"][0]
+    observation["reason"] = reason
+    return observation
 
 
 def _assess_health(source: SourceRegistry) -> dict:

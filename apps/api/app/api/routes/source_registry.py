@@ -24,7 +24,10 @@ async def list_sources(
     db: Session = Depends(get_db),
 ):
     workspace_id = session["workspace_id"]
-    return {"sources": sr.list_sources(db, workspace_id, enabled_only=enabled_only)}
+    return {
+        "sources": sr.list_sources(db, workspace_id, enabled_only=enabled_only),
+        "observation_contract": sr.registry_observation(workspace_id, "list"),
+    }
 
 
 @router.get("/health")
@@ -69,4 +72,7 @@ async def seed_sources(
 ):
     created = sr.seed_sources(db, session["workspace_id"])
     db.commit()
-    return {"created": created}
+    return {
+        "created": created,
+        "observation_contract": sr.registry_observation(session["workspace_id"], "seed"),
+    }

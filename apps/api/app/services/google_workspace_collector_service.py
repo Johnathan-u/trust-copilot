@@ -1,65 +1,94 @@
 """Google Workspace connector services (P1-27, P1-28, P1-29).
 
-Provides user, MFA, and admin-role collection.
+Returns the versioned observation contract. Does not call Google APIs.
 """
 
 import logging
-from datetime import datetime, timezone
+
+from app.services.provider_adapter.adapters import (
+    GOOGLE,
+    GOOGLE_MFA,
+    GOOGLE_ROLES,
+    GOOGLE_USERS,
+    legacy_collection,
+    merge_observations,
+)
+from app.services.provider_adapter.contract import CONTRACT_NAME, SCHEMA_VERSION, utc_now
 
 logger = logging.getLogger(__name__)
 
 
-def collect_users(domain: str | None = None) -> dict:
+def collect_users(
+    domain: str | None = None,
+    *,
+    workspace_id: int | None = None,
+    recorded=None,
+) -> dict:
     """Collect Google Workspace user directory (P1-27)."""
-    return {
-        "source": "google.users",
-        "domain": domain,
-        "collected_at": datetime.now(timezone.utc).isoformat(),
-        "findings": [
-            {"signal": "google.total_users", "description": "Total user accounts", "status": "check_required"},
-            {"signal": "google.suspended_users", "description": "Suspended accounts", "status": "check_required"},
-            {"signal": "google.sso_configured", "description": "SSO configuration", "status": "check_required"},
-        ],
-    }
+    return legacy_collection(
+        GOOGLE,
+        source="google.users",
+        scope_fields={"domain": domain},
+        workspace_id=workspace_id,
+        external_account_id=domain,
+        signals=GOOGLE_USERS,
+        recorded=recorded,
+    )
 
 
-def collect_mfa_enrollment(domain: str | None = None) -> dict:
+def collect_mfa_enrollment(
+    domain: str | None = None,
+    *,
+    workspace_id: int | None = None,
+    recorded=None,
+) -> dict:
     """Collect Google Workspace MFA enrollment status (P1-28)."""
-    return {
-        "source": "google.mfa",
-        "domain": domain,
-        "collected_at": datetime.now(timezone.utc).isoformat(),
-        "findings": [
-            {"signal": "google.mfa_enrollment", "description": "MFA enrollment rate", "status": "check_required"},
-            {"signal": "google.password_policy", "description": "Password policy strength", "status": "check_required"},
-        ],
-    }
+    return legacy_collection(
+        GOOGLE,
+        source="google.mfa",
+        scope_fields={"domain": domain},
+        workspace_id=workspace_id,
+        external_account_id=domain,
+        signals=GOOGLE_MFA,
+        recorded=recorded,
+    )
 
 
-def collect_admin_roles(domain: str | None = None) -> dict:
+def collect_admin_roles(
+    domain: str | None = None,
+    *,
+    workspace_id: int | None = None,
+    recorded=None,
+) -> dict:
     """Collect Google Workspace admin role assignments (P1-29)."""
-    return {
-        "source": "google.admin_roles",
-        "domain": domain,
-        "collected_at": datetime.now(timezone.utc).isoformat(),
-        "findings": [
-            {"signal": "google.admin_roles", "description": "Admin role assignments", "status": "check_required"},
-            {"signal": "google.super_admins", "description": "Super admin count", "status": "check_required"},
-        ],
-    }
+    return legacy_collection(
+        GOOGLE,
+        source="google.admin_roles",
+        scope_fields={"domain": domain},
+        workspace_id=workspace_id,
+        external_account_id=domain,
+        signals=GOOGLE_ROLES,
+        recorded=recorded,
+    )
 
 
-def run_google_sync(workspace_id: int, domain: str | None = None) -> dict:
+def run_google_sync(workspace_id: int, domain: str | None = None, *, recorded=None) -> dict:
     """Run full Google Workspace sync."""
-    users = collect_users(domain)
-    mfa = collect_mfa_enrollment(domain)
-    roles = collect_admin_roles(domain)
-    all_findings = users["findings"] + mfa["findings"] + roles["findings"]
+    users = collect_users(domain, workspace_id=workspace_id, recorded=recorded)
+    mfa = collect_mfa_enrollment(domain, workspace_id=workspace_id, recorded=recorded)
+    roles = collect_admin_roles(domain, workspace_id=workspace_id, recorded=recorded)
+    findings = users["findings"] + mfa["findings"] + roles["findings"]
     return {
         "workspace_id": workspace_id,
         "domain": domain,
-        "synced_at": datetime.now(timezone.utc).isoformat(),
+        "synced_at": utc_now().isoformat(),
         "sources_checked": ["google.users", "google.mfa", "google.admin_roles"],
-        "total_findings": len(all_findings),
-        "findings": all_findings,
+        "total_findings": len(findings),
+        "findings": findings,
+        "observation_contract": {
+            "schema_version": SCHEMA_VERSION,
+            "contract": CONTRACT_NAME,
+            "adapter": GOOGLE.descriptor().to_dict(),
+            "observations": merge_observations([users, mfa, roles]),
+        },
     }

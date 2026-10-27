@@ -10,6 +10,7 @@ from sqlalchemy.orm import Session
 
 from app.models.evidence_item import EvidenceItem
 from app.models.source_registry import SourceRegistry
+from app.services.provider_adapter.persistence import guard_ingest_payload
 
 logger = logging.getLogger(__name__)
 
@@ -23,6 +24,7 @@ def ingest_evidence(
     document_id: int | None = None,
 ) -> dict:
     """Ingest a single evidence item from any connector source."""
+    guard_ingest_payload(title=title, source_metadata=source_metadata)
     evidence = EvidenceItem(
         workspace_id=workspace_id,
         source_type=source_type,

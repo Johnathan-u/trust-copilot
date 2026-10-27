@@ -12,17 +12,17 @@ router = APIRouter(prefix="/connectors/github", tags=["github-connector"])
 
 @router.get("/repos")
 async def collect_repos(org: str | None = Query(None), session: dict = Depends(require_can_admin)):
-    return gh.collect_repos(org)
+    return gh.collect_repos(org, workspace_id=session["workspace_id"])
 
 
 @router.get("/access")
 async def collect_access(org: str | None = Query(None), session: dict = Depends(require_can_admin)):
-    return gh.collect_access(org)
+    return gh.collect_access(org, workspace_id=session["workspace_id"])
 
 
 @router.get("/protection")
 async def collect_protection(org: str | None = Query(None), session: dict = Depends(require_can_admin)):
-    return gh.collect_branch_protection(org)
+    return gh.collect_branch_protection(org, workspace_id=session["workspace_id"])
 
 
 @router.post("/sync")
