@@ -1412,3 +1412,117 @@ def test_libpq_rule_ignores_env_names_and_kwargs(scanner):
         found = scanner.scan_text(line + "\n", "docs/notes.txt")
         assert not [f for f in found if f.rule.startswith("libpq")], line
 
+
+# --- TC-07-001a item 3: API lifespan checks the secret first, APP_ENV is normalized -------------
+
+_PROD_SPELLINGS = [" production ", "PRODUCTION", "production\n", "\tProduction "]
+
+
+def _stub_lifespan_io(monkeypatch, main_mod) -> list[str]:
+    """Record DB/S3 startup calls; the DB stub stops the lifespan right after the secret check."""
+    calls: list[str] = []
+
+    def _db():
+        calls.append("db")
+        raise _StartedPastSecretCheck()
+
+    class _Storage:
+        def __init__(self, *a, **k):
+            calls.append("s3")
+
+        def ensure_buckets(self):
+            calls.append("s3.ensure_buckets")
+
+    monkeypatch.setattr(main_mod, "_verify_db_connectivity", _db)
+    monkeypatch.setattr(main_mod, "StorageClient", _Storage)
+    return calls
+
+
+def _run_lifespan(main_mod):
+    import asyncio
+
+    async def _enter():
+        async with main_mod.lifespan(main_mod.app):
+            pass
+
+    asyncio.run(_enter())
+
+
+@pytest.mark.parametrize("env", _PROD_SPELLINGS + ["production"])
+@pytest.mark.parametrize("value", [None, "", "placeholder", "a" * 64])
+def test_api_lifespan_refuses_weak_secret_before_any_db_or_s3_call(monkeypatch, env, value):
+    import app.main as main_mod
+    from app.core.config import get_settings
+
+    calls = _stub_lifespan_io(monkeypatch, main_mod)
+    monkeypatch.setenv("APP_ENV", env)
+    if value is None:
+        monkeypatch.delenv("SESSION_SECRET", raising=False)
+    else:
+        monkeypatch.setenv("SESSION_SECRET", value)
+    get_settings.cache_clear()
+    try:
+        with pytest.raises(RuntimeError, match="api: APP_ENV=production requires SESSION_SECRET"):
+            _run_lifespan(main_mod)
+        assert calls == []
+    finally:
+        get_settings.cache_clear()
+
+
+@pytest.mark.parametrize("env", _PROD_SPELLINGS)
+def test_api_lifespan_proceeds_with_generated_secret(monkeypatch, env):
+    import app.main as main_mod
+    from app.core.config import get_settings
+
+    calls = _stub_lifespan_io(monkeypatch, main_mod)
+    monkeypatch.setenv("APP_ENV", env)
+    monkeypatch.setenv("SESSION_SECRET", secrets.token_urlsafe(48))
+    get_settings.cache_clear()
+    try:
+        with pytest.raises(_StartedPastSecretCheck):
+            _run_lifespan(main_mod)
+        assert calls == ["db"]
+    finally:
+        get_settings.cache_clear()
+
+
+@pytest.mark.parametrize("env", ["development", " development ", "test", ""])
+def test_api_lifespan_outside_production_does_not_require_a_secret(monkeypatch, env):
+    import app.main as main_mod
+    from app.core.config import get_settings
+
+    calls = _stub_lifespan_io(monkeypatch, main_mod)
+    monkeypatch.setenv("APP_ENV", env)
+    monkeypatch.delenv("SESSION_SECRET", raising=False)
+    get_settings.cache_clear()
+    try:
+        with pytest.raises(_StartedPastSecretCheck):
+            _run_lifespan(main_mod)
+        assert calls == ["db"]
+    finally:
+        get_settings.cache_clear()
+
+
+@pytest.mark.parametrize("env", _PROD_SPELLINGS)
+def test_app_env_is_stripped_and_detected(monkeypatch, env):
+    from app.core import session as session_mod
+    from app.core.config import get_settings
+
+    monkeypatch.setenv("APP_ENV", env)
+    monkeypatch.setenv("SESSION_SECRET", "placeholder")
+    get_settings.cache_clear()
+    try:
+        assert get_settings().app_env == "production"
+        assert session_mod.is_production_env()
+        with pytest.raises(RuntimeError):
+            session_mod.get_session_secret()
+    finally:
+        get_settings.cache_clear()
+
+
+def test_lifespan_source_orders_secret_check_before_io():
+    src = (REPO_ROOT / "apps" / "api" / "app" / "main.py").read_text()
+    body = src[src.index("async def lifespan(") :]
+    check = body.index('enforce_production_session_secret("api")')
+    assert check < body.index("_verify_db_connectivity()") < body.index("StorageClient()")
+    assert check < body.index("get_settings()")

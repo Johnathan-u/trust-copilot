@@ -187,7 +187,7 @@ class Settings:
         _rpm = os.getenv("RATE_LIMIT_RPM_PER_IP", "120").strip()
         self.rate_limit_rpm_per_ip: int = max(0, int(_rpm)) if _rpm.isdigit() else 120
 
-        self.app_env: str = os.getenv("APP_ENV", "development").lower()
+        self.app_env: str = os.getenv("APP_ENV", "development").strip().lower()
 
         # Health probes (TC-03-003). Worker values are read by app.worker_health (stdlib-only probe);
         # mirrored here for discoverability. See docs/release/tickets/TC-03-003.md.
