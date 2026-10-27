@@ -61,18 +61,28 @@ def is_weak_secret(value: str | None, min_length: int = MIN_PRODUCTION_SECRET_LE
     return False
 
 
+def is_production_env() -> bool:
+    """True when either the settings object or the raw APP_ENV says production.
+
+    Both are stripped and lower-cased (TC-07-001a), so " production " or "PRODUCTION\\n" cannot
+    slip past the startup check while other code paths still treat the process as production.
+    """
+    settings = get_settings()
+    app_env = (getattr(settings, "app_env", "") or "").strip().lower()
+    raw_env = _os.getenv("APP_ENV", "").strip().lower()
+    return "production" in (app_env, raw_env)
+
+
 def enforce_production_session_secret(component: str) -> None:
     """Refuse to start a production process with a missing, placeholder or weak SESSION_SECRET.
 
-    Called at startup by the API (app.main) and the worker (app.worker) so neither can fall back
-    to a random per-process key in production (fail closed). Production is detected from either
-    the settings object or the raw APP_ENV variable.
+    Called at startup by the API (app.main, first thing in the lifespan, before any DB or S3
+    call) and the worker (app.worker) so neither can fall back to a random per-process key in
+    production (fail closed). Production is detected by is_production_env().
     """
-    settings = get_settings()
-    app_env = (getattr(settings, "app_env", "") or "").lower()
-    raw_env = _os.getenv("APP_ENV", "").strip().lower()
-    if "production" not in (app_env, raw_env):
+    if not is_production_env():
         return
+    settings = get_settings()
     if is_weak_secret(settings.session_secret):
         raise RuntimeError(
             f"{component}: APP_ENV=production requires SESSION_SECRET to be set to a "
@@ -106,8 +116,7 @@ def _get_session_secret() -> str:
     except Exception:
         s = None
 
-    app_env = _os.getenv("APP_ENV", "development").lower()
-    if app_env == "production":
+    if is_production_env():
         if is_weak_secret(s):
             raise RuntimeError(
                 "SESSION_SECRET is missing, a placeholder, or weaker than required for production. "

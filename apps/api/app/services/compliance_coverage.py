@@ -15,6 +15,7 @@ from sqlalchemy.orm import Session
 
 from app.models import Answer, Document, Question, Questionnaire  # noqa: F401
 from app.models.evidence_gap import EvidenceGap
+from app.services.evidence_gap_service import suggested_evidence_title
 from app.models.question_mapping_signal import QuestionMappingSignal
 
 HIGH_CONFIDENCE_THRESHOLD = 70
@@ -331,28 +332,10 @@ def _infer_evidence_suggestions(
     subj_evidence: dict[str, list[int]],
 ) -> list[dict]:
     """When no EvidenceGap rows exist, infer suggestions from insufficient subjects."""
-    _SUBJECT_TO_DOC: dict[str, str] = {
-        "Risk Assessment": "Risk Assessment Policy",
-        "Vendor Risk": "Vendor Risk Management Policy",
-        "Vendor Management": "Vendor Risk Management Policy",
-        "Business Continuity / Disaster Recovery": "Business Continuity & DR Plan",
-        "Encryption": "Encryption & Key Management Policy",
-        "Cryptography": "Encryption & Key Management Policy",
-        "Breach Notification": "Incident Response & Breach Notification Plan",
-        "Incident Response": "Incident Response Plan",
-        "Access Control": "Access Control Policy",
-        "Change Management": "Change Management Policy",
-        "Data Retention / Disposal": "Data Retention & Disposal Policy",
-        "Privacy / Data Governance": "Privacy Policy & Data Governance Framework",
-        "Secure SDLC": "Secure Development Lifecycle Policy",
-        "Physical Security": "Physical Security Policy",
-    }
     suggestions = []
     for subj, count in subj_insuff.most_common(8):
         if subj == "Uncategorized":
             continue
-        doc_title = _SUBJECT_TO_DOC.get(subj)
-        if not doc_title:
-            doc_title = f"{subj} Policy"
+        doc_title = suggested_evidence_title(subj)
         suggestions.append({"title": f"Upload {doc_title}", "improves_questions": count})
     return suggestions
