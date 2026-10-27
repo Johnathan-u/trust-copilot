@@ -14,13 +14,15 @@ from sqlalchemy.orm import Session
 
 from app.models.answer import Answer
 from app.models.deal import Deal
+from app.models.document import Document
 from app.models.evidence_item import EvidenceItem
 from app.models.golden_answer import GoldenAnswer
 from app.models.operator_queue import OperatorQueueItem
 from app.models.questionnaire import Question, Questionnaire
 from app.models.remediation_playbook import RemediationPlaybook, RemediationTicket
 from app.models.tag import Tag
-from app.models.trust_promise import TrustPromise
+from app.models.trust_article import TrustArticle
+from app.models.trust_promise import ContractDocument, TrustPromise
 from app.models.user import WorkspaceMember
 from app.models.workspace_control import WorkspaceControl
 
@@ -60,6 +62,12 @@ def _owned_ids(db: Session, workspace_id: int, kind: str, ids: set[int]) -> set[
                 Questionnaire.deleted_at.is_(None),
             )
         )
+    elif kind == "document":
+        q = db.query(Document.id).filter(
+            Document.id.in_(ids),
+            Document.workspace_id == workspace_id,
+            Document.deleted_at.is_(None),
+        )
     elif kind == "tag":
         # Tags are either global (workspace_id NULL) or workspace-scoped.
         q = db.query(Tag.id).filter(
@@ -88,6 +96,10 @@ _SIMPLE_MODELS = {
     "remediation_ticket": RemediationTicket,
     "promise": TrustPromise,
     "operator_queue_item": OperatorQueueItem,
+    # Trust articles with workspace_id NULL are not visible to a signed-in workspace
+    # (see routes/trust_articles.py), so only same-workspace articles match.
+    "trust_article": TrustArticle,
+    "contract_document": ContractDocument,
 }
 
 
