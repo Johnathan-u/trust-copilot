@@ -63,6 +63,7 @@ from app.services.model_outcomes import (
     ModelOutcomeCode,
     classify_provider_exception,
     completion_failure,
+    failure_from_exception,
     read_completion,
 )
 
@@ -1280,12 +1281,11 @@ def generate_answers_for_questionnaire(
     swept = _sweep_draft_insufficient_narratives(db, questionnaire_id)
     _adjust_run_stats_after_sweep(run_stats, swept)
 
-    # Evidence gap generation runs in background -- don't block answer pipeline completion
+    # Evidence gaps use their own Session (TC-08-005). A typed model failure raised on that
+    # worker must reach this caller as ModelCallError; other gap errors stay best-effort and
+    # never carry provider body text into the job.
     import threading as _threading
 
-    # TC-08-005: the background thread gets its own Session on its own pooled connection. If the
-    # caller's Session is bound to a shared Connection (cannot be isolated), run inline instead of
-    # sharing that Connection across threads.
     from app.core.database import isolated_session, supports_thread_isolation
 
     _gap_bind = db.get_bind()
@@ -1302,34 +1302,59 @@ def generate_answers_for_questionnaire(
                 questionnaire_id,
             )
 
-    def _run_gap_generation() -> None:
+    def _run_gap(gap_db, where: str) -> None:
         try:
-            with isolated_session(_gap_bind) as gap_db:
-                _gap_work(gap_db)
-        except Exception:
+            _gap_work(gap_db)
+        except ModelCallError as exc:
             logger.warning(
-                "answer_generation: gap generation failed for qnr=%d (background)",
+                "answer_generation: gap generation model failure for qnr=%d (%s): %s",
                 questionnaire_id,
+                where,
+                exc.failure.log_summary(),
+            )
+            raise
+        except Exception as exc:
+            failure = failure_from_exception(exc)
+            if failure is not None:
+                # Same catalog code as the worker exception; drop the provider body/chain.
+                logger.warning(
+                    "answer_generation: gap generation model failure for qnr=%d (%s): %s",
+                    questionnaire_id,
+                    where,
+                    failure.log_summary(),
+                )
+                raise ModelCallError(failure) from None
+            logger.warning(
+                "answer_generation: gap generation failed for qnr=%d (%s)",
+                questionnaire_id,
+                where,
                 exc_info=True,
             )
 
     if supports_thread_isolation(_gap_bind):
+        _gap_errors: list[ModelCallError] = []
+
+        def _run_gap_generation() -> None:
+            try:
+                with isolated_session(_gap_bind) as gap_db:
+                    _run_gap(gap_db, "background")
+            except ModelCallError as exc:
+                _gap_errors.append(exc)
+
+        # Joined so a typed failure is not dropped when the daemon thread exits.
         _gap_thread = _threading.Thread(
             target=_run_gap_generation, daemon=True, name="gap-generation"
         )
         _gap_thread.start()
+        _gap_thread.join()
+        if _gap_errors:
+            raise _gap_errors[0]
     else:
         from sqlalchemy.orm import Session as _Ses
 
         gap_db = _Ses(bind=_gap_bind)  # same Connection, but used on this thread only
         try:
-            _gap_work(gap_db)
-        except Exception:
-            logger.warning(
-                "answer_generation: gap generation failed for qnr=%d (inline)",
-                questionnaire_id,
-                exc_info=True,
-            )
+            _run_gap(gap_db, "inline")
         finally:
             gap_db.close()
     run_stats["gaps_generated"] = 0
