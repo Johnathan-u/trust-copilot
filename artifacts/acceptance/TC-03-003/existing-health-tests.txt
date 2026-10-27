@@ -1,0 +1,26 @@
+# command (from apps/api): python -m pytest tests/test_api_contracts.py tests/test_alerting_verification.py -q -rA -p no:cacheprovider --deselect tests/test_alerting_verification.py::test_openai_failure_logs_ALERT_OPENAI_FAILURE
+# deselected test makes a real (invalid-key) call to api.openai.com on master; the TC-02-001 network guard is not on this branch
+.............                                                            [100%]
+==================================== PASSES ====================================
+___________________ test_workerz_503_logs_ALERT_WORKER_DOWN ____________________
+------------------------------ Captured log call -------------------------------
+WARNING  trustcopilot.alert:main.py:567 ALERT_WORKER_DOWN queued=1 running=5 age=180.0
+___________________ test_job_failure_log_format_matches_docs ___________________
+------------------------------ Captured log call -------------------------------
+WARNING  trustcopilot.alert:test_alerting_verification.py:59 ALERT_JOB_FAILURE job_id=42 kind=index_document workspace_id=1 error=Document not found
+=========================== short test summary info ============================
+PASSED tests/test_api_contracts.py::test_healthz_returns_ok
+PASSED tests/test_api_contracts.py::test_readyz_returns_ready
+PASSED tests/test_api_contracts.py::test_oauth_providers_returns_shape
+PASSED tests/test_api_contracts.py::test_oauth_google_returns_404_when_not_configured
+PASSED tests/test_api_contracts.py::test_oauth_google_redirects_when_configured
+PASSED tests/test_api_contracts.py::test_me_requires_auth_returns_401
+PASSED tests/test_api_contracts.py::test_switch_workspace_requires_auth_returns_401
+PASSED tests/test_api_contracts.py::test_documents_list_requires_auth
+PASSED tests/test_api_contracts.py::test_questionnaires_list_requires_auth
+PASSED tests/test_api_contracts.py::test_workspaces_current_requires_auth
+PASSED tests/test_api_contracts.py::test_members_list_requires_auth
+PASSED tests/test_alerting_verification.py::test_workerz_503_logs_ALERT_WORKER_DOWN
+PASSED tests/test_alerting_verification.py::test_job_failure_log_format_matches_docs
+13 passed, 1 deselected in 1.78s
+# exit status: 0

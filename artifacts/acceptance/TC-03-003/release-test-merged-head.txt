@@ -1,0 +1,6 @@
+# SHA 0aff48c40cbbc7595fed893147d2d01b8a99aefa (TC-03-003 214560f + merge of master f72def3)
+# env: python 3.13.5, SQLAlchemy 2.0.55; throwaway pgvector/pgvector:pg16 container 127.0.0.1:55432 (conftest temporarily redirected by run303.sh, reverted); no provider keys
+# cmd (from apps/api): python -m pytest tests/release/test_health_probes.py -q -p no:cacheprovider
+........................                                                 [100%]
+24 passed in 2.05s
+# exit status: 0
