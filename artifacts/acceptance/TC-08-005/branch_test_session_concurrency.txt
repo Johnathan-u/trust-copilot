@@ -1,0 +1,10 @@
+tests/test_session_concurrency.py::test_batch_search_never_uses_caller_session_off_thread[pgvector] PASSED [ 11%]
+tests/test_session_concurrency.py::test_batch_search_never_uses_caller_session_off_thread[fallback] PASSED [ 22%]
+tests/test_session_concurrency.py::test_pool_usage_bounded_and_returned PASSED [ 33%]
+tests/test_session_concurrency.py::test_pool_thread_budget_respects_pool_capacity PASSED [ 44%]
+tests/test_session_concurrency.py::test_isolated_session_rejects_shared_connection PASSED [ 55%]
+tests/test_session_concurrency.py::test_connection_bound_session_runs_serially_on_caller_thread PASSED [ 66%]
+tests/test_session_concurrency.py::test_task_failure_releases_sessions_and_keeps_caller_usable PASSED [ 77%]
+tests/test_session_concurrency.py::test_concurrent_two_tenant_retrieval_isolated[pgvector] PASSED [ 88%]
+tests/test_session_concurrency.py::test_concurrent_two_tenant_retrieval_isolated[fallback] PASSED [100%]
+============================== 9 passed in 4.57s ===============================
