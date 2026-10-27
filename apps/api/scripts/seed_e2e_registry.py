@@ -142,6 +142,9 @@ def ensure_e2e_questionnaires(db: Session, storage: StorageClient) -> None:
 
 
 def main() -> None:
+    from app.core.config_contract import refuse_demo_seed_in_production
+
+    refuse_demo_seed_in_production()  # TC-03-001: never seed demo/E2E data in production
     db = SessionLocal()
     try:
         storage = StorageClient()
