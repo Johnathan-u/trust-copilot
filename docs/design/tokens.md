@@ -71,8 +71,8 @@ The dark page background is a gradient. Glow alphas are 0.08 (indigo) and 0.06 (
 
 Set the theme on `<html>`, not a nested wrapper, so `body` and the grid overlay inherit it:
 
-```html
-<html data-theme="light"></html>
+```text
+<html data-theme="light">
 ```
 
 An unknown value does not switch the theme. Dark stays the default.

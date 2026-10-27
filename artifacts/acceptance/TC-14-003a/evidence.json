@@ -3,8 +3,8 @@
   "commit": "d8bd51a7a312457fb0c059c2445f7a43a209812b",
   "branch": "tc/web/TC-14-003a",
   "base": "master",
-  "master": "a702056",
-  "pr_44_merged": false,
+  "master": "301a1a5",
+  "pr_44_merged": true,
   "environment": {
     "os": "Linux 6.12.94+ x86_64",
     "node": "v24.22.1",
@@ -20,18 +20,21 @@
     {
       "command": "npm run test:unit",
       "exit_status": 0,
-      "files": 14,
-      "passed": 102,
+      "files": 15,
+      "passed": 105,
       "failed": 0,
       "skipped": 0
     },
     {
-      "command": "npx playwright test e2e/release/dialog-toast.spec.ts --retries=0",
+      "command": "npx playwright test e2e/release/design-tokens.spec.ts e2e/release/responsive-shell.spec.ts e2e/release/dialog-toast.spec.ts --retries=0",
       "exit_status": 0,
-      "passed": 8,
+      "passed": 20,
       "failed": 0,
       "skipped": 0,
-      "duration_s": 36.8
+      "duration_s": 56.3,
+      "design_tokens": 4,
+      "responsive_shell": 8,
+      "dialog_toast": 8
     }
   ],
   "axe": {

@@ -6,7 +6,7 @@ Synthetic data only. The showcase, screenshots and axe output contain no credent
 
 Tested commit: `d8bd51a7a312457fb0c059c2445f7a43a209812b` on branch `tc/web/TC-14-003a`.
 
-That commit is the implementation. This note was added afterwards and does not change the suite. Base is `origin/master` `a702056` (TC-10-003b). PR #44 (TC-14-001b) was still open, so master has no `web-release-e2e` job. `dialog-toast.spec.ts` was not added to that list, and no workflow permissions were changed.
+That commit is the first implementation. This note was refreshed after merging master `301a1a5` (PR #44 and PR #15) and enabling the release specs in CI. The refresh does not change the suite. `web-release-e2e` keeps `permissions: contents: read` and `persist-credentials: false`.
 
 ### Environment
 
@@ -34,8 +34,8 @@ npm audit --omit=dev --audit-level=high
 ```
 
 - Each exit status: 0
-- Unit test files: 14 passed
-- Unit tests: 102 passed, 0 failed, 0 skipped
+- Unit test files: 15 passed
+- Unit tests: 105 passed, 0 failed, 0 skipped
 - Includes `lib/toast.test.ts` (one persistent polite region and one assertive region) and `lib/destructive-confirm.test.ts`
 - Audit: 0 vulnerabilities
 
@@ -54,13 +54,16 @@ TC_REQUIRE_WEB_TOOLCHAIN=1 python3 -m pytest apps/api/tests/release/test_web_qua
 
 ```bash
 cd apps/web
-npx playwright test e2e/release/dialog-toast.spec.ts --retries=0
+npx playwright test e2e/release/design-tokens.spec.ts e2e/release/responsive-shell.spec.ts e2e/release/dialog-toast.spec.ts --retries=0
 ```
 
 - Exit status: 0
-- Tests: 8 passed, 0 failed, 0 skipped
-- Duration: 36.8s
+- Tests: 20 passed, 0 failed, 0 skipped (design-tokens 4, responsive-shell 8, dialog-toast 8)
+- Duration: 56.3s
 - No required test was skipped
+- Axe violationCount 0 in TC-14-001 (6 reports), TC-14-006 (14 reports) and TC-14-003a (18 reports)
+
+The report checker was run locally against a temporary report. A missing `dialog-toast` spec exited 1. A fake `color-contrast` violation exited 1. Those fixtures were deleted. The same checker then exited 0 against the axe JSON these specs wrote.
 
 The spec checks that `#tc-toast-status` and `#tc-toast-alert` are in the DOM and empty before a toast fires. "Show status" puts "Synthetic status saved." in the polite region only. "Show error" puts "Synthetic error stayed on screen." in the assertive region only. "Reject sample" opens an alertdialog, "Remove sample" rejects `onConfirm`, the dialog closes, focus returns to "Reject sample", and the assertive region shows "Synthetic delete was rejected." That error is still present after 4500ms.
 

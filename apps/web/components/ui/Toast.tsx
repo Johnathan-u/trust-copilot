@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useRef, type ReactNode } from 'react'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
 import {
   autoDismissMs,
@@ -42,7 +42,11 @@ const tone: Record<ToastSeverity, { bg: string; fg: string; glyph: string }> = {
 /**
  * Visual toast. Its text is portaled into the one live region for that
  * politeness. The region is mounted by `ToastLiveRegions` before any text
- * exists, so a polite status update is a change inside an existing region.
+ * exists. The region node is read in an effect, after that empty region has
+ * committed, so the first render does not disagree with the server.
+ * `aria-atomic` sits on this card. The region keeps `aria-live`, and a new
+ * card is the change that gets announced. Atomic on the card keeps a second
+ * toast in the same region from being read again as part of that change.
  * This component does not move focus. Callers should not start a second timer.
  */
 export function Toast({
@@ -65,9 +69,16 @@ export function Toast({
     return () => window.clearTimeout(id)
   }, [title, message, type, hasAction])
 
+  const regionId = toastRegionId(type)
+  const [region, setRegion] = useState<HTMLElement | null>(null)
+  useEffect(() => {
+    setRegion(document.getElementById(regionId))
+  }, [regionId])
+
   const icon = tone[type]
   const card = (
     <div
+      aria-atomic="true"
       className="tc-toast pointer-events-auto relative flex w-full min-w-0 max-w-[360px] gap-tc-3 rounded-tc-sm border border-tc-border-strong p-tc-4 pr-tc-8 shadow-[var(--tc-shadow)]"
       style={{ background: 'var(--tc-surface-overlay)' }}
     >
@@ -106,8 +117,6 @@ export function Toast({
     </div>
   )
 
-  if (typeof document === 'undefined') return null
-  const region = document.getElementById(toastRegionId(type))
   if (!region) return null
   return createPortal(card, region)
 }
@@ -128,7 +137,6 @@ export function ToastLiveRegions() {
           id={region.id}
           role={region.role}
           aria-live={region.ariaLive}
-          aria-atomic="true"
           className="flex flex-col gap-tc-2"
         />
       ))}
