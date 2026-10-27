@@ -3,10 +3,10 @@
 Revision ID: tc25005_case_study_consent
 Revises: tc11001_model_outcome_codes
 
-Parent is master's current head, tc11001_model_outcome_codes (PR #16), which
-itself revises tc21001_framework_catalog_rights. PR #30 (tc25011) re-parents
-onto that same head. Whichever of this revision and tc25011 merges second
-re-parents onto the other. Do not reuse the numeric id 076.
+Parent is tc11001_model_outcome_codes while PR #30 is still open. That PR
+(tc25011_demo_proof_summaries) is approved to merge first. Once it is on
+master, this revision's down_revision becomes tc25011_demo_proof_summaries.
+Do not re-parent before that. Do not reuse the numeric id 076.
 
 Upgrade adds columns and consent tables. It never deletes a case study row.
 Existing published rows have no consent evidence, so the first upgrade copies
