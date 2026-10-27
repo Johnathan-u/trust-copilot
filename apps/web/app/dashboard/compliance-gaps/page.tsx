@@ -38,9 +38,18 @@ type FrameworkCoverage = {
 
 type BlindSpot = { subject: string; insufficient_count: number; total: number }
 type WeakArea = { subject: string; avg_confidence: number; count: number }
-type EvidenceStrength = { subject: string; avg_evidence_count: number; total_answers: number }
+type EvidenceStrength = {
+  subject: string
+  avg_evidence_count: number
+  total_answers: number
+}
 type RecommendedEvidence = { title: string; improves_questions: number }
-type TrendPoint = { date: string; coverage_pct: number; insufficient_pct: number; low_confidence_pct: number }
+type TrendPoint = {
+  date: string
+  coverage_pct: number
+  insufficient_pct: number
+  low_confidence_pct: number
+}
 type DrillRow = {
   subject: string
   framework: string
@@ -62,15 +71,42 @@ type CoverageData = {
 }
 
 const BLUES = ['#5b7cff', '#7c93ff', '#3b5bdb', '#4263eb', '#5c7cfa', '#748ffc']
-const WARM = ['#f59e0b', '#ef4444', '#f97316', '#ec4899', '#e11d48', '#d97706', '#dc2626', '#ea580c', '#db2777', '#be123c']
+const WARM = [
+  '#f59e0b',
+  '#ef4444',
+  '#f97316',
+  '#ec4899',
+  '#e11d48',
+  '#d97706',
+  '#dc2626',
+  '#ea580c',
+  '#db2777',
+  '#be123c',
+]
 const TEAL = ['#10b981', '#06b6d4', '#14b8a6', '#0ea5e9', '#059669', '#0891b2']
 
-function KPICard({ label, value, sub, color }: { label: string; value: string; sub?: string; color: string }) {
+function KPICard({
+  label,
+  value,
+  sub,
+  color,
+}: {
+  label: string
+  value: string
+  sub?: string
+  color: string
+}) {
   return (
     <Card className="flex-1 min-w-[160px] p-4">
-      <p className="text-xs font-medium text-[var(--tc-muted)] uppercase tracking-wide">{label}</p>
-      <p className="text-2xl font-bold mt-1" style={{ color }}>{value}</p>
-      {sub && <p className="text-[11px] text-[var(--tc-muted)] mt-0.5">{sub}</p>}
+      <p className="text-xs font-medium text-[var(--tc-muted)] uppercase tracking-wide">
+        {label}
+      </p>
+      <p className="text-2xl font-bold mt-1" style={{ color }}>
+        {value}
+      </p>
+      {sub && (
+        <p className="text-[11px] text-[var(--tc-muted)] mt-0.5">{sub}</p>
+      )}
     </Card>
   )
 }
@@ -84,7 +120,13 @@ function SectionHeader({ title, sub }: { title: string; sub?: string }) {
   )
 }
 
-function HBar({ data, dataKey, nameKey, colors, height }: {
+function HBar({
+  data,
+  dataKey,
+  nameKey,
+  colors,
+  height,
+}: {
   data: Record<string, unknown>[]
   dataKey: string
   nameKey: string
@@ -95,8 +137,16 @@ function HBar({ data, dataKey, nameKey, colors, height }: {
   return (
     <div style={{ width: '100%', height: h }}>
       <ResponsiveContainer width="100%" height="100%">
-        <BarChart data={data} layout="vertical" margin={{ left: 140, right: 24, top: 4, bottom: 4 }}>
-          <XAxis type="number" allowDecimals={false} tick={{ fill: 'var(--tc-muted)', fontSize: 11 }} />
+        <BarChart
+          data={data}
+          layout="vertical"
+          margin={{ left: 140, right: 24, top: 4, bottom: 4 }}
+        >
+          <XAxis
+            type="number"
+            allowDecimals={false}
+            tick={{ fill: 'var(--tc-muted)', fontSize: 11 }}
+          />
           <YAxis
             type="category"
             dataKey={nameKey}
@@ -105,7 +155,12 @@ function HBar({ data, dataKey, nameKey, colors, height }: {
             tickLine={false}
           />
           <Tooltip
-            contentStyle={{ background: 'var(--tc-panel)', border: '1px solid var(--tc-border)', borderRadius: 8, fontSize: 12 }}
+            contentStyle={{
+              background: 'var(--tc-panel)',
+              border: '1px solid var(--tc-border)',
+              borderRadius: 8,
+              fontSize: 12,
+            }}
             labelStyle={{ color: 'var(--tc-text)', fontWeight: 600 }}
             itemStyle={{ color: 'var(--tc-muted)' }}
           />
@@ -137,7 +192,10 @@ export default function ComplianceCoveragePage() {
       .finally(() => setLoading(false))
   }, [])
 
-  useEffect(() => { setLoading(true); fetchData() }, [fetchData])
+  useEffect(() => {
+    setLoading(true)
+    fetchData()
+  }, [fetchData])
 
   useEffect(() => {
     const id = setInterval(fetchData, 60_000)
@@ -148,10 +206,16 @@ export default function ComplianceCoveragePage() {
     return (
       <div className="min-w-0 space-y-6">
         <div>
-          <h1 className="text-2xl font-bold text-[var(--tc-text)]">Compliance Coverage</h1>
-          <p className="mt-1 text-sm text-[var(--tc-muted)]">See where your evidence is strong, weak, and missing.</p>
+          <h1 className="text-2xl font-bold text-[var(--tc-text)]">
+            Compliance Coverage
+          </h1>
+          <p className="mt-1 text-sm text-[var(--tc-muted)]">
+            See where your evidence is strong, weak, and missing.
+          </p>
         </div>
-        <Card className="p-6"><ListSkeleton rows={8} /></Card>
+        <Card className="p-6">
+          <ListSkeleton rows={8} />
+        </Card>
       </div>
     )
   }
@@ -160,8 +224,12 @@ export default function ComplianceCoveragePage() {
     return (
       <div className="min-w-0 space-y-6">
         <div>
-          <h1 className="text-2xl font-bold text-[var(--tc-text)]">Compliance Coverage</h1>
-          <p className="mt-1 text-sm text-[var(--tc-muted)]">See where your evidence is strong, weak, and missing.</p>
+          <h1 className="text-2xl font-bold text-[var(--tc-text)]">
+            Compliance Coverage
+          </h1>
+          <p className="mt-1 text-sm text-[var(--tc-muted)]">
+            See where your evidence is strong, weak, and missing.
+          </p>
         </div>
         <Card className="p-6">
           <p className="text-[var(--tc-muted)]">
@@ -174,7 +242,16 @@ export default function ComplianceCoveragePage() {
     )
   }
 
-  const { kpi, framework_coverage, blind_spots, weak_areas, evidence_strength, recommended_evidence, trends, drill_down } = data
+  const {
+    kpi,
+    framework_coverage,
+    blind_spots,
+    weak_areas,
+    evidence_strength,
+    recommended_evidence,
+    trends,
+    drill_down,
+  } = data
 
   const isEmpty = kpi.total_questions === 0
 
@@ -182,13 +259,20 @@ export default function ComplianceCoveragePage() {
     <div className="min-w-0 space-y-6 pb-8">
       {/* Page header */}
       <div>
-        <h1 className="text-2xl font-bold text-[var(--tc-text)]">Compliance Coverage</h1>
-        <p className="mt-1 text-sm text-[var(--tc-muted)]">See where your evidence is strong, weak, and missing.</p>
+        <h1 className="text-2xl font-bold text-[var(--tc-text)]">
+          Compliance Coverage
+        </h1>
+        <p className="mt-1 text-sm text-[var(--tc-muted)]">
+          See where your evidence is strong, weak, and missing.
+        </p>
       </div>
 
       {isEmpty ? (
         <Card className="p-6">
-          <p className="text-[var(--tc-muted)]">No questionnaire data yet. Upload a questionnaire and generate answers to see your compliance coverage.</p>
+          <p className="text-[var(--tc-muted)]">
+            No questionnaire data yet. Upload a questionnaire and generate
+            answers to see your compliance coverage.
+          </p>
         </Card>
       ) : (
         <>
@@ -228,7 +312,11 @@ export default function ComplianceCoveragePage() {
                 sub="Answer coverage by detected framework"
               />
               <HBar
-                data={framework_coverage.map((f) => ({ ...f, name: f.framework, value: f.coverage_pct }))}
+                data={framework_coverage.map((f) => ({
+                  ...f,
+                  name: f.framework,
+                  value: f.coverage_pct,
+                }))}
                 dataKey="coverage_pct"
                 nameKey="name"
                 colors={BLUES}
@@ -236,8 +324,16 @@ export default function ComplianceCoveragePage() {
               <div className="mt-2 flex flex-wrap gap-4 text-[11px] text-[var(--tc-muted)] px-1">
                 {framework_coverage.map((f) => (
                   <span key={f.framework}>
-                    {f.framework}: <span className="text-[var(--tc-text)] font-medium">{f.drafted}</span>/{f.total} drafted
-                    {f.insufficient > 0 && <span className="text-amber-400 ml-1">({f.insufficient} insufficient)</span>}
+                    {f.framework}:{' '}
+                    <span className="text-[var(--tc-text)] font-medium">
+                      {f.drafted}
+                    </span>
+                    /{f.total} drafted
+                    {f.insufficient > 0 && (
+                      <span className="text-amber-400 ml-1">
+                        ({f.insufficient} insufficient)
+                      </span>
+                    )}
                   </span>
                 ))}
               </div>
@@ -252,7 +348,11 @@ export default function ComplianceCoveragePage() {
                 sub="Subject areas with the most insufficient or missing answers"
               />
               <HBar
-                data={blind_spots.map((b) => ({ ...b, name: b.subject, value: b.insufficient_count }))}
+                data={blind_spots.map((b) => ({
+                  ...b,
+                  name: b.subject,
+                  value: b.insufficient_count,
+                }))}
                 dataKey="insufficient_count"
                 nameKey="name"
                 colors={WARM}
@@ -268,7 +368,11 @@ export default function ComplianceCoveragePage() {
                 sub="Subject areas where answers exist but confidence is low (below 60%)"
               />
               <HBar
-                data={weak_areas.map((w) => ({ ...w, name: w.subject, value: w.avg_confidence }))}
+                data={weak_areas.map((w) => ({
+                  ...w,
+                  name: w.subject,
+                  value: w.avg_confidence,
+                }))}
                 dataKey="avg_confidence"
                 nameKey="name"
                 colors={WARM}
@@ -284,7 +388,11 @@ export default function ComplianceCoveragePage() {
                 sub="Average number of supporting citations per answer, by subject"
               />
               <HBar
-                data={evidence_strength.map((e) => ({ ...e, name: e.subject, value: e.avg_evidence_count }))}
+                data={evidence_strength.map((e) => ({
+                  ...e,
+                  name: e.subject,
+                  value: e.avg_evidence_count,
+                }))}
                 dataKey="avg_evidence_count"
                 nameKey="name"
                 colors={TEAL}
@@ -307,10 +415,16 @@ export default function ComplianceCoveragePage() {
                   >
                     <div className="flex items-center gap-3">
                       <span className="text-lg">📄</span>
-                      <span className="text-sm text-[var(--tc-text)] font-medium">{r.title}</span>
+                      <span className="text-sm text-[var(--tc-text)] font-medium">
+                        {r.title}
+                      </span>
                     </div>
                     <span className="text-xs text-[var(--tc-muted)] whitespace-nowrap">
-                      improves <span className="text-[var(--tc-text)] font-semibold">{r.improves_questions}</span> questions
+                      improves{' '}
+                      <span className="text-[var(--tc-text)] font-semibold">
+                        {r.improves_questions}
+                      </span>{' '}
+                      questions
                     </span>
                   </div>
                 ))}
@@ -327,8 +441,14 @@ export default function ComplianceCoveragePage() {
               />
               <div style={{ width: '100%', height: 260 }}>
                 <ResponsiveContainer width="100%" height="100%">
-                  <LineChart data={trends} margin={{ left: 8, right: 16, top: 8, bottom: 4 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" />
+                  <LineChart
+                    data={trends}
+                    margin={{ left: 8, right: 16, top: 8, bottom: 4 }}
+                  >
+                    <CartesianGrid
+                      strokeDasharray="3 3"
+                      stroke="rgba(255,255,255,0.06)"
+                    />
                     <XAxis
                       dataKey="date"
                       tick={{ fill: 'var(--tc-muted)', fontSize: 10 }}
@@ -340,14 +460,42 @@ export default function ComplianceCoveragePage() {
                       tickFormatter={(v: number) => `${v}%`}
                     />
                     <Tooltip
-                      contentStyle={{ background: 'var(--tc-panel)', border: '1px solid var(--tc-border)', borderRadius: 8, fontSize: 12 }}
+                      contentStyle={{
+                        background: 'var(--tc-panel)',
+                        border: '1px solid var(--tc-border)',
+                        borderRadius: 8,
+                        fontSize: 12,
+                      }}
                       labelStyle={{ color: 'var(--tc-text)', fontWeight: 600 }}
                       formatter={(v: number) => [`${v}%`]}
                     />
-                    <Legend wrapperStyle={{ fontSize: 11, color: 'var(--tc-muted)' }} />
-                    <Line type="monotone" dataKey="coverage_pct" name="Coverage %" stroke="#10b981" strokeWidth={2} dot={false} />
-                    <Line type="monotone" dataKey="insufficient_pct" name="Insufficient %" stroke="#ef4444" strokeWidth={2} dot={false} />
-                    <Line type="monotone" dataKey="low_confidence_pct" name="Low Confidence %" stroke="#f59e0b" strokeWidth={2} dot={false} />
+                    <Legend
+                      wrapperStyle={{ fontSize: 11, color: 'var(--tc-muted)' }}
+                    />
+                    <Line
+                      type="monotone"
+                      dataKey="coverage_pct"
+                      name="Coverage %"
+                      stroke="#10b981"
+                      strokeWidth={2}
+                      dot={false}
+                    />
+                    <Line
+                      type="monotone"
+                      dataKey="insufficient_pct"
+                      name="Insufficient %"
+                      stroke="#ef4444"
+                      strokeWidth={2}
+                      dot={false}
+                    />
+                    <Line
+                      type="monotone"
+                      dataKey="low_confidence_pct"
+                      name="Low Confidence %"
+                      stroke="#f59e0b"
+                      strokeWidth={2}
+                      dot={false}
+                    />
                   </LineChart>
                 </ResponsiveContainer>
               </div>
@@ -374,28 +522,63 @@ export default function ComplianceCoveragePage() {
                   <table className="w-full text-xs">
                     <thead>
                       <tr className="border-b border-[var(--tc-border)] text-[var(--tc-muted)]">
-                        <th className="text-left py-2 pr-4 font-medium">Subject</th>
-                        <th className="text-left py-2 pr-4 font-medium">Framework</th>
-                        <th className="text-right py-2 pr-4 font-medium">Seen</th>
-                        <th className="text-right py-2 pr-4 font-medium">Answered</th>
-                        <th className="text-right py-2 pr-4 font-medium">Low Conf.</th>
-                        <th className="text-right py-2 font-medium">Insufficient</th>
+                        <th className="text-left py-2 pr-4 font-medium">
+                          Subject
+                        </th>
+                        <th className="text-left py-2 pr-4 font-medium">
+                          Framework
+                        </th>
+                        <th className="text-right py-2 pr-4 font-medium">
+                          Seen
+                        </th>
+                        <th className="text-right py-2 pr-4 font-medium">
+                          Answered
+                        </th>
+                        <th className="text-right py-2 pr-4 font-medium">
+                          Low Conf.
+                        </th>
+                        <th className="text-right py-2 font-medium">
+                          Insufficient
+                        </th>
                       </tr>
                     </thead>
                     <tbody>
                       {drill_down.map((row, i) => (
-                        <tr key={i} className="border-b border-[var(--tc-border)] border-opacity-30 hover:bg-white/[0.02]">
-                          <td className="py-2 pr-4 text-[var(--tc-text)]">{row.subject}</td>
-                          <td className="py-2 pr-4 text-[var(--tc-muted)]">{row.framework}</td>
-                          <td className="py-2 pr-4 text-right text-[var(--tc-text)]">{row.questions_seen}</td>
-                          <td className="py-2 pr-4 text-right text-[var(--tc-text)]">{row.answered}</td>
+                        <tr
+                          key={i}
+                          className="border-b border-[var(--tc-border)] border-opacity-30 hover:bg-white/[0.02]"
+                        >
+                          <td className="py-2 pr-4 text-[var(--tc-text)]">
+                            {row.subject}
+                          </td>
+                          <td className="py-2 pr-4 text-[var(--tc-muted)]">
+                            {row.framework}
+                          </td>
+                          <td className="py-2 pr-4 text-right text-[var(--tc-text)]">
+                            {row.questions_seen}
+                          </td>
+                          <td className="py-2 pr-4 text-right text-[var(--tc-text)]">
+                            {row.answered}
+                          </td>
                           <td className="py-2 pr-4 text-right">
-                            <span className={row.low_confidence > 0 ? 'text-amber-400' : 'text-[var(--tc-muted)]'}>
+                            <span
+                              className={
+                                row.low_confidence > 0
+                                  ? 'text-amber-400'
+                                  : 'text-[var(--tc-muted)]'
+                              }
+                            >
                               {row.low_confidence}
                             </span>
                           </td>
                           <td className="py-2 text-right">
-                            <span className={row.insufficient > 0 ? 'text-red-400' : 'text-[var(--tc-muted)]'}>
+                            <span
+                              className={
+                                row.insufficient > 0
+                                  ? 'text-red-400'
+                                  : 'text-[var(--tc-muted)]'
+                              }
+                            >
                               {row.insufficient}
                             </span>
                           </td>

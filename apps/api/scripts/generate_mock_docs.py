@@ -9,6 +9,7 @@ OUT = API_ROOT / "tests" / "fixtures" / "documents"
 def generate_security_controls_docx(out_path: Path) -> None:
     """Create security controls overview DOCX."""
     from docx import Document
+
     doc = Document()
     doc.add_heading("Information Security Controls Overview", 0)
     doc.add_paragraph(
@@ -45,6 +46,7 @@ def generate_security_controls_docx(out_path: Path) -> None:
 def generate_sample_evidence_xlsx(out_path: Path) -> None:
     """Create sample evidence XLSX with policy/control content."""
     import openpyxl
+
     wb = openpyxl.Workbook()
     ws = wb.active
     ws.title = "Security Evidence"

@@ -13,7 +13,7 @@ Everything here uses synthetic data only. There were no model calls, and every P
 
 ## Corpus
 No locator corpus existed in the package or repo, so a synthetic one is built in
-`apps/api/tests/pdf_locator_corpus.py` with the pure-Python `app/services/synthetic_pdf.py`. It
+`apps/api/tests/pdf_locator` with the pure-Python `app/services/synthetic_pdf.py`. It
 has 17 cases:
 - page numbering with a blank page;
 - 20 span markers on one page, checking order and offsets;
@@ -29,7 +29,7 @@ has 17 cases:
 ## Commands and results
 | Step | Command (from `apps/api`) | Result |
 |---|---|---|
-| Candidate comparison | `python ../../artifacts/acceptance/TC-01-003a/compare_backends.py` | `backend_comparison.md`: **pypdf 149/149**, pymupdf baseline 145/149 (fails only the "table row on one line" checks), pdfplumber 125/149 (merges left and right columns onto one line) |
+| Candidate comparison | recorded stdout; the probe script was removed because it imported pymupdf | `backend_comparison.txt`: **pypdf 149/149**, pymupdf baseline 145/149 (fails only the "table row on one line" checks), pdfplumber 125/149 (merges left and right columns onto one line). Same table as `backend_comparison.md` |
 | Baseline capture | `python ../../artifacts/acceptance/TC-01-003a/record_baseline.py <f72def3 sources>` | `tests/fixtures/pdf_locator/baseline_pymupdf.json` |
 | New tests (no pymupdf installed) | `python -m pytest -q tests/test_pdf_text_locator_corpus.py` | 61 passed (`new_tests_branch.txt`) |
 | Full suite, base f72def3 (with pymupdf) | `python -m pytest tests -q -rf -p no:randomly --continue-on-collection-errors` | 2 failed, 1285 passed, 2 skipped, 2 errors (`full_base_summary.txt`) |

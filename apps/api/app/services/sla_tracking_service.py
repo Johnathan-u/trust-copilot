@@ -2,7 +2,7 @@
 
 from datetime import datetime, timezone
 
-from sqlalchemy import func
+from sqlalchemy import func  # noqa: F401
 from sqlalchemy.orm import Session
 
 from app.models.job import Job
@@ -11,25 +11,35 @@ from app.models.questionnaire import Questionnaire
 
 def get_sla_metrics(db: Session, workspace_id: int) -> dict:
     """Get SLA and turnaround metrics for a workspace."""
-    questionnaires = db.query(Questionnaire).filter(
-        Questionnaire.workspace_id == workspace_id,
-    ).all()
+    questionnaires = (
+        db.query(Questionnaire)
+        .filter(
+            Questionnaire.workspace_id == workspace_id,
+        )
+        .all()
+    )
 
-    jobs = db.query(Job).filter(
-        Job.workspace_id == workspace_id,
-        Job.started_at.isnot(None),
-        Job.completed_at.isnot(None),
-    ).all()
+    jobs = (
+        db.query(Job)
+        .filter(
+            Job.workspace_id == workspace_id,
+            Job.started_at.isnot(None),
+            Job.completed_at.isnot(None),
+        )
+        .all()
+    )
 
     turnarounds = []
     for j in jobs:
         delta = (j.completed_at - j.started_at).total_seconds()
         if delta > 0:
-            turnarounds.append({
-                "job_id": j.id,
-                "kind": j.kind,
-                "seconds": round(delta, 1),
-            })
+            turnarounds.append(
+                {
+                    "job_id": j.id,
+                    "kind": j.kind,
+                    "seconds": round(delta, 1),
+                }
+            )
 
     turnaround_seconds = [t["seconds"] for t in turnarounds]
     avg = round(sum(turnaround_seconds) / len(turnaround_seconds), 1) if turnaround_seconds else 0
@@ -39,7 +49,9 @@ def get_sla_metrics(db: Session, workspace_id: int) -> dict:
 
     sla_target_seconds = 300
     within_sla = sum(1 for s in turnaround_seconds if s <= sla_target_seconds)
-    sla_compliance = round(within_sla / len(turnaround_seconds) * 100, 1) if turnaround_seconds else 100
+    sla_compliance = (
+        round(within_sla / len(turnaround_seconds) * 100, 1) if turnaround_seconds else 100
+    )
 
     return {
         "total_questionnaires": len(questionnaires),

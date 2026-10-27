@@ -17,7 +17,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path.cwd()))
 sys.path.insert(0, str(Path.cwd() / "tests"))
 
-from pdf_locator_corpus import corpus, write_case  # noqa: E402
+from pdf_locator import corpus, write_case  # noqa: E402
 
 OUT = Path("tests/fixtures/pdf_locator/baseline_pymupdf.json")
 

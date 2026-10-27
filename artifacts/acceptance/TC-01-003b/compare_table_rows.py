@@ -19,7 +19,7 @@ sys.path.insert(0, str(Path.cwd()))
 sys.path.insert(0, str(Path.cwd() / "tests"))
 
 from app.services.pdf_questionnaire_parser import parse_pdf_questionnaire  # noqa: E402
-from pdf_locator_corpus import table_row_corpus, write_case  # noqa: E402
+from pdf_locator import table_row_corpus, write_case  # noqa: E402
 
 _spec = importlib.util.spec_from_file_location(
     "cmp003a", Path(__file__).resolve().parent.parent / "TC-01-003a" / "compare_backends.py"

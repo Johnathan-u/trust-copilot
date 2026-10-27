@@ -102,7 +102,7 @@ INSUFFICIENT_EVIDENCE_THRESHOLD = 0.0  # Unused for skip; we only skip when len(
 # Performance: parallel batches, larger batches, fewer round-trips (target sub-60s for 150 questions).
 RETRIEVAL_BATCH_SIZE = 10  # questions per retrieval (fewer batches = faster)
 EVIDENCE_LIMIT_PER_GROUP = 15  # slightly larger pool when answering multiple questions
-MAX_PARALLEL_BATCHES = 10 # run up to 10 batches concurrently (I/O bound; stay under rate limits)
+MAX_PARALLEL_BATCHES = 10  # run up to 10 batches concurrently (I/O bound; stay under rate limits)
 COMPLETION_MAX_RETRIES = 3
 
 
@@ -111,7 +111,9 @@ def _is_transient_completion_error(e: Exception) -> bool:
     msg = (getattr(e, "message", "") or str(e)).lower()
     if "timeout" in msg or "timed out" in msg:
         return True
-    code = getattr(e, "status_code", None) or getattr(getattr(e, "response", None), "status_code", None)
+    code = getattr(e, "status_code", None) or getattr(
+        getattr(e, "response", None), "status_code", None
+    )
     return code in (429, 503, 502, 504)
 
 
@@ -142,10 +144,13 @@ def _completion_create_with_retry(client: Any, **kwargs: Any) -> Any:
             last_err = e
             if attempt < COMPLETION_MAX_RETRIES and _is_transient_completion_error(e):
                 retry_after = _extract_retry_after(e)
-                delay = retry_after if retry_after is not None else min(1.5 ** attempt, 10.0)
+                delay = retry_after if retry_after is not None else min(1.5**attempt, 10.0)
                 logger.info(
                     "answer_generation retry attempt=%d/%d delay=%.1fs error=%s",
-                    attempt + 1, COMPLETION_MAX_RETRIES, delay, str(e)[:100],
+                    attempt + 1,
+                    COMPLETION_MAX_RETRIES,
+                    delay,
+                    str(e)[:100],
                 )
                 time.sleep(delay)
                 continue
@@ -250,7 +255,11 @@ def resolve_response_style(response_style: str | None) -> str:
     key = response_style.strip().lower()
     if key in ALLOWED_RESPONSE_STYLES:
         return key
-    logger.warning("answer_generation: unsupported response_style %r, defaulting to %s", key, DEFAULT_RESPONSE_STYLE)
+    logger.warning(
+        "answer_generation: unsupported response_style %r, defaulting to %s",
+        key,
+        DEFAULT_RESPONSE_STYLE,
+    )
     return DEFAULT_RESPONSE_STYLE
 
 
@@ -268,7 +277,9 @@ def _parse_batched_answers(raw: str, expected_count: int) -> list[str] | None:
         return None
     text = raw.strip()
 
-    pattern = re.compile(r"(?:^|\n)\s*(?:#+\s*|\*\*?\s*)?Answer\s*(\d+)\s*(?:[.:]\s*)?", re.IGNORECASE | re.MULTILINE)
+    pattern = re.compile(
+        r"(?:^|\n)\s*(?:#+\s*|\*\*?\s*)?Answer\s*(\d+)\s*(?:[.:]\s*)?", re.IGNORECASE | re.MULTILINE
+    )
     parts: list[tuple[int, str]] = []
     for m in pattern.finditer(text):
         num = int(m.group(1))
@@ -395,8 +406,7 @@ def _generate_batched_answers(
 
     if not any_has_evidence:
         return [
-            (q.id, INSUFFICIENT_EVIDENCE_TEXT, [], 0, "insufficient_evidence")
-            for q, _ in batch
+            (q.id, INSUFFICIENT_EVIDENCE_TEXT, [], 0, "insufficient_evidence") for q, _ in batch
         ]
 
     q_texts = [q.text or "" for q, _ in batch]
@@ -405,7 +415,8 @@ def _generate_batched_answers(
         labels_list = [q_labels.get(q.id) for q, _ in batch]
 
     prompt = build_batched_prompt(
-        q_texts, [],
+        q_texts,
+        [],
         per_question_evidence=per_q_processed,
         classification_labels=labels_list,
     )
@@ -431,7 +442,9 @@ def _generate_batched_answers(
                 cits = per_q_citations.get(q.id, [])
                 top_s = per_q_top_score.get(q.id, 0)
                 if not content:
-                    results.append((q.id, INSUFFICIENT_EVIDENCE_TEXT, cits, 0, "insufficient_evidence"))
+                    results.append(
+                        (q.id, INSUFFICIENT_EVIDENCE_TEXT, cits, 0, "insufficient_evidence")
+                    )
                 else:
                     st = classify_answer_status_from_text(content)
                     if st == "insufficient_evidence":
@@ -441,16 +454,29 @@ def _generate_batched_answers(
                         results.append((q.id, content, cits, conf, "draft"))
             return results
 
-        logger.info("answer_generation: batched parse failed for %d questions, falling back to single", len(batch))
+        logger.info(
+            "answer_generation: batched parse failed for %d questions, falling back to single",
+            len(batch),
+        )
     except Exception as exc:
-        logger.warning("answer_generation: batched call failed, falling back to single: %s", str(exc)[:200])
+        logger.warning(
+            "answer_generation: batched call failed, falling back to single: %s", str(exc)[:200]
+        )
 
     results = []
     for q, ev in batch:
-        results.append(_generate_single_question_answer(
-            q, ev, workspace_id, questionnaire_id,
-            model_name, temperature, system_msg, openai_client,
-        ))
+        results.append(
+            _generate_single_question_answer(
+                q,
+                ev,
+                workspace_id,
+                questionnaire_id,
+                model_name,
+                temperature,
+                system_msg,
+                openai_client,
+            )
+        )
     return results
 
 
@@ -472,21 +498,36 @@ def generate_answers_for_questionnaire(
     job: Job | None = None,
 ) -> int:
     """Generate answers for all questions. Returns count of answers created."""
-    qnr = db.query(Questionnaire).filter(
-        Questionnaire.id == questionnaire_id,
-        Questionnaire.workspace_id == workspace_id,
-    ).first()
+    qnr = (
+        db.query(Questionnaire)
+        .filter(
+            Questionnaire.id == questionnaire_id,
+            Questionnaire.workspace_id == workspace_id,
+        )
+        .first()
+    )
     if not qnr:
         raise ValueError(f"Questionnaire {questionnaire_id} not found")
     questions = db.query(Question).filter(Question.questionnaire_id == questionnaire_id).all()
     total_questions = len(questions)
     if not questions:
         if job:
-            job.result = _job_payload(0, 0, {"drafted": 0, "insufficient_evidence": 0, "skipped_gated": 0, "llm_calls": 0, "duration_ms": 0})
+            job.result = _job_payload(
+                0,
+                0,
+                {
+                    "drafted": 0,
+                    "insufficient_evidence": 0,
+                    "skipped_gated": 0,
+                    "llm_calls": 0,
+                    "duration_ms": 0,
+                },
+            )
             db.commit()
         return 0
 
     from app.core.config import get_settings
+
     settings = get_settings()
     api_key_ok = bool((settings.openai_api_key or "").strip())
     if not api_key_ok:
@@ -495,16 +536,36 @@ def generate_answers_for_questionnaire(
                 "OPENAI_API_KEY is not set or empty. Set it in the environment (.env) for the API and worker, then restart."
             )
         if job:
-            job.result = _job_payload(0, 0, {"drafted": 0, "insufficient_evidence": 0, "skipped_gated": 0, "llm_calls": 0, "duration_ms": 0})
+            job.result = _job_payload(
+                0,
+                0,
+                {
+                    "drafted": 0,
+                    "insufficient_evidence": 0,
+                    "skipped_gated": 0,
+                    "llm_calls": 0,
+                    "duration_ms": 0,
+                },
+            )
             db.commit()
         return 0
 
     workspace = db.query(Workspace).filter(Workspace.id == workspace_id).first()
-    model_candidate = model_override or (workspace.ai_completion_model if workspace else None) or settings.completion_model
+    model_candidate = (
+        model_override
+        or (workspace.ai_completion_model if workspace else None)
+        or settings.completion_model
+    )
     if model_override is None and workspace and workspace.ai_completion_model:
-        logger.info("answer_generation: model not provided -> using workspace model %s", workspace.ai_completion_model)
+        logger.info(
+            "answer_generation: model not provided -> using workspace model %s",
+            workspace.ai_completion_model,
+        )
     elif model_override is None and (not workspace or not workspace.ai_completion_model):
-        logger.info("answer_generation: model not provided, workspace model missing -> using default %s", DEFAULT_MODEL)
+        logger.info(
+            "answer_generation: model not provided, workspace model missing -> using default %s",
+            DEFAULT_MODEL,
+        )
     model_name = resolve_model(model_candidate)
 
     if response_style_override:
@@ -513,11 +574,18 @@ def generate_answers_for_questionnaire(
     elif workspace and workspace.ai_temperature is not None:
         resolved_response_style = None
         temperature = max(0.0, min(1.5, float(workspace.ai_temperature)))
-        logger.info("answer_generation: response_style not provided -> using workspace temperature %.2f", temperature)
+        logger.info(
+            "answer_generation: response_style not provided -> using workspace temperature %.2f",
+            temperature,
+        )
     else:
         resolved_response_style = DEFAULT_RESPONSE_STYLE
         temperature = settings.openai_temperature
-        logger.info("answer_generation: response_style not provided, workspace style missing -> using default %s (temperature=%.2f)", DEFAULT_RESPONSE_STYLE, temperature)
+        logger.info(
+            "answer_generation: response_style not provided, workspace style missing -> using default %s (temperature=%.2f)",
+            DEFAULT_RESPONSE_STYLE,
+            temperature,
+        )
 
     evidence_scope = parse_answer_evidence_document_ids(qnr)
     retrieval_scope_suffix = retrieval_cache_scope_suffix(evidence_scope)
@@ -540,11 +608,18 @@ def generate_answers_for_questionnaire(
         job.result = _job_payload(
             0,
             total_questions,
-            {"drafted": 0, "insufficient_evidence": 0, "skipped_gated": 0, "llm_calls": 0, "duration_ms": 0},
+            {
+                "drafted": 0,
+                "insufficient_evidence": 0,
+                "skipped_gated": 0,
+                "llm_calls": 0,
+                "duration_ms": 0,
+            },
         )
         db.commit()
 
     from openai import OpenAI
+
     client = OpenAI(api_key=settings.openai_api_key, timeout=30.0)
     system_msg = (
         "You are a security and compliance professional who drafts responses to "
@@ -562,7 +637,9 @@ def generate_answers_for_questionnaire(
     try:
         corpus_version = get_corpus_version(db, workspace_id)
     except Exception as e:
-        logger.warning("answer_generation corpus_version failed, proceeding without retrieval cache: %s", e)
+        logger.warning(
+            "answer_generation corpus_version failed, proceeding without retrieval cache: %s", e
+        )
         corpus_version = ""
 
     # Batch embed all questions
@@ -599,10 +676,7 @@ def generate_answers_for_questionnaire(
 
     # Phase 2: batch retrieval for uncached questions
     if retrieval_needed:
-        batch_queries = [
-            (questions[i].text or "", all_embeddings[i])
-            for i in retrieval_needed
-        ]
+        batch_queries = [(questions[i].text or "", all_embeddings[i]) for i in retrieval_needed]
         batch_results = retrieval.batch_search(
             workspace_id,
             batch_queries,
@@ -614,8 +688,12 @@ def generate_answers_for_questionnaire(
             if corpus_version:
                 try:
                     retrieval_cache_set(
-                        db, workspace_id, q_hashes[i], corpus_version,
-                        batch_results[idx], scope_suffix=retrieval_scope_suffix,
+                        db,
+                        workspace_id,
+                        q_hashes[i],
+                        corpus_version,
+                        batch_results[idx],
+                        scope_suffix=retrieval_scope_suffix,
                     )
                 except Exception:
                     pass
@@ -632,7 +710,11 @@ def generate_answers_for_questionnaire(
         except Exception:
             pass
         if cached and cached.get("text") and not is_insufficient_answer_text(cached["text"]):
-            cached_results[q.id] = (cached["text"], cached.get("citations") or [], cached.get("confidence") or 0)
+            cached_results[q.id] = (
+                cached["text"],
+                cached.get("citations") or [],
+                cached.get("confidence") or 0,
+            )
         else:
             to_generate.append((q, evidence, has_evidence_scope))
     retrieval_time_ms = (time.monotonic() - _t0) * 1000
@@ -686,7 +768,11 @@ def generate_answers_for_questionnaire(
     if cached_results:
         db.commit()
         if job:
-            job.result = _job_payload(count, total_questions, {**run_stats, "duration_ms": (time.monotonic() - started) * 1000})
+            job.result = _job_payload(
+                count,
+                total_questions,
+                {**run_stats, "duration_ms": (time.monotonic() - started) * 1000},
+            )
             db.commit()
     if not to_generate:
         duration_ms = (time.monotonic() - started) * 1000
@@ -711,14 +797,18 @@ def generate_answers_for_questionnaire(
     # Batch-preload mapping signals for all questions (1 query instead of N)
     _all_gen_qids = [q.id for q, _, _ in to_generate]
     _signal_rows = (
-        db.query(QuestionMappingSignal)
-        .filter(
-            QuestionMappingSignal.question_id.in_(_all_gen_qids),
-            QuestionMappingSignal.workspace_id == workspace_id,
+        (
+            db.query(QuestionMappingSignal)
+            .filter(
+                QuestionMappingSignal.question_id.in_(_all_gen_qids),
+                QuestionMappingSignal.workspace_id == workspace_id,
+            )
+            .order_by(QuestionMappingSignal.created_at.desc())
+            .all()
         )
-        .order_by(QuestionMappingSignal.created_at.desc())
-        .all()
-    ) if _all_gen_qids else []
+        if _all_gen_qids
+        else []
+    )
     _q_categories_cache: dict[int, str | None] = {}
     _q_subject_keys: dict[int, list[str]] = {}
     for sig in _signal_rows:
@@ -729,15 +819,17 @@ def generate_answers_for_questionnaire(
             try:
                 fw = json.loads(sig.framework_labels_json or "[]")
                 sb = json.loads(sig.subject_labels_json or "[]")
-                val = json.dumps({
-                    "frameworks": fw,
-                    "subjects": sb,
-                    "quality": sig.mapping_quality or "unknown",
-                })
+                val = json.dumps(
+                    {
+                        "frameworks": fw,
+                        "subjects": sb,
+                        "quality": sig.mapping_quality or "unknown",
+                    }
+                )
                 from app.services.registry_metadata import SUBJECT_AREA_LABEL_TO_KEY
+
                 _q_subject_keys[sig.question_id] = [
-                    SUBJECT_AREA_LABEL_TO_KEY.get(s, s.lower().replace(" ", "_"))
-                    for s in sb
+                    SUBJECT_AREA_LABEL_TO_KEY.get(s, s.lower().replace(" ", "_")) for s in sb
                 ]
             except Exception:
                 pass
@@ -774,15 +866,19 @@ def generate_answers_for_questionnaire(
             if did is not None:
                 _all_doc_ids.add(int(did))
     from app.services.answer_evidence_policy import preload_document_tiers
+
     doc_tier_cache = preload_document_tiers(db, list(_all_doc_ids)) if _all_doc_ids else {}
 
     # Gating (main thread, DB-safe): skip weak rows before any LLM call
     from app.services.answer_evidence_policy import subject_requires_direct_evidence
+
     _t0 = time.monotonic()
     llm_tasks: list[tuple[Any, list[dict]]] = []
     for q, evidence, has_control_mapping in to_generate:
         ev = prioritize_evidence_for_answer(db, evidence, doc_tier_cache=doc_tier_cache)
-        skip, skip_reason = should_skip_llm(db, ev, has_control_mapping, doc_tier_cache=doc_tier_cache)
+        skip, skip_reason = should_skip_llm(
+            db, ev, has_control_mapping, doc_tier_cache=doc_tier_cache
+        )
         if not skip:
             q_subj_keys = _q_subject_keys.get(q.id, [])
             for sk in q_subj_keys:
@@ -803,7 +899,12 @@ def generate_answers_for_questionnaire(
         ]
         if skip:
             _upsert_answer(
-                db, q.id, INSUFFICIENT_EVIDENCE_TEXT, cits, 0, "insufficient_evidence",
+                db,
+                q.id,
+                INSUFFICIENT_EVIDENCE_TEXT,
+                cits,
+                0,
+                "insufficient_evidence",
                 insufficient_reason=skip_reason,
                 gating_reason=skip_reason,
                 primary_categories_json=_categories_json_for_question(q.id),
@@ -824,7 +925,11 @@ def generate_answers_for_questionnaire(
 
     db.commit()
     if job:
-        job.result = _job_payload(count, total_questions, {**run_stats, "duration_ms": (time.monotonic() - started) * 1000})
+        job.result = _job_payload(
+            count,
+            total_questions,
+            {**run_stats, "duration_ms": (time.monotonic() - started) * 1000},
+        )
         db.commit()
 
     use_adaptive = get_settings().use_adaptive_concurrency
@@ -833,12 +938,14 @@ def generate_answers_for_questionnaire(
     else:
         adaptive = AdaptivePool(initial=min(MAX_PARALLEL_BATCHES, max(1, len(llm_tasks))))
 
-    def _adaptive_batch_tasks(tasks: list[tuple[Any, list[dict]]]) -> list[list[tuple[Any, list[dict]]]]:
+    def _adaptive_batch_tasks(
+        tasks: list[tuple[Any, list[dict]]],
+    ) -> list[list[tuple[Any, list[dict]]]]:
         """Split tasks into batches using the adaptive pool's current batch size."""
         bs = adaptive.batch_size
         batches: list[list[tuple[Any, list[dict]]]] = []
         for i in range(0, len(tasks), bs):
-            batches.append(tasks[i:i + bs])
+            batches.append(tasks[i : i + bs])
         return batches
 
     def _apply_one_result(
@@ -853,7 +960,12 @@ def generate_answers_for_questionnaire(
         if exc is not None:
             logger.warning("answer_generation single_question failed question_id=%s: %s", q.id, exc)
             _upsert_answer(
-                db, q.id, INSUFFICIENT_EVIDENCE_TEXT, [], 0, "insufficient_evidence",
+                db,
+                q.id,
+                INSUFFICIENT_EVIDENCE_TEXT,
+                [],
+                0,
+                "insufficient_evidence",
                 insufficient_reason="llm_error",
                 primary_categories_json=_categories_json_for_question(q.id),
                 evidence_fingerprint=evidence_fp_one,
@@ -861,7 +973,12 @@ def generate_answers_for_questionnaire(
             count += 1
             run_stats["insufficient_evidence"] += 1
             was_429, was_timeout, was_transient = adaptive.classify_exception(exc)
-            adaptive.release(success=False, was_rate_limited=was_429, was_timeout=was_timeout, was_transient=was_transient)
+            adaptive.release(
+                success=False,
+                was_rate_limited=was_429,
+                was_timeout=was_timeout,
+                was_transient=was_transient,
+            )
             if was_429:
                 ADAPTIVE_RATE_LIMITED_BATCHES_TOTAL.inc()
             if was_timeout:
@@ -870,7 +987,12 @@ def generate_answers_for_questionnaire(
             _qid, text, citations, conf, answer_status = result
             insuf_reason = "llm_declined" if answer_status == "insufficient_evidence" else None
             _upsert_answer(
-                db, _qid, text, citations, conf, answer_status,
+                db,
+                _qid,
+                text,
+                citations,
+                conf,
+                answer_status,
                 insufficient_reason=insuf_reason,
                 primary_categories_json=_categories_json_for_question(_qid),
                 evidence_fingerprint=evidence_fp_one,
@@ -895,7 +1017,9 @@ def generate_answers_for_questionnaire(
                     )
                 except Exception:
                     pass
-            adaptive.release(success=True, was_rate_limited=False, was_timeout=False, was_transient=False)
+            adaptive.release(
+                success=True, was_rate_limited=False, was_timeout=False, was_transient=False
+            )
         ADAPTIVE_CONCURRENCY_CURRENT.set(adaptive.max_workers)
 
     _t0 = time.monotonic()
@@ -904,7 +1028,10 @@ def generate_answers_for_questionnaire(
         batches = _adaptive_batch_tasks(llm_tasks)
         logger.info(
             "answer_generation: %d questions -> %d batches (batch_size=%d, workers=%d)",
-            len(llm_tasks), len(batches), adaptive.batch_size, adaptive.max_workers,
+            len(llm_tasks),
+            len(batches),
+            adaptive.batch_size,
+            adaptive.max_workers,
         )
 
         max_w = min(adaptive.max_workers, len(batches))
@@ -928,7 +1055,11 @@ def generate_answers_for_questionnaire(
                     if _uncommitted >= 10:
                         db.commit()
                         if job:
-                            job.result = _job_payload(count, total_questions, {**run_stats, "duration_ms": (time.monotonic() - started) * 1000})
+                            job.result = _job_payload(
+                                count,
+                                total_questions,
+                                {**run_stats, "duration_ms": (time.monotonic() - started) * 1000},
+                            )
                         _uncommitted = 0
 
             while batch_idx < len(batches) or futures:
@@ -942,8 +1073,13 @@ def generate_answers_for_questionnaire(
                     batch_idx += 1
                     fut = executor.submit(
                         _generate_batched_answers,
-                        batch, workspace_id, questionnaire_id,
-                        model_name, temperature, system_msg, client,
+                        batch,
+                        workspace_id,
+                        questionnaire_id,
+                        model_name,
+                        temperature,
+                        system_msg,
+                        client,
                         q_labels=_q_labels_dict,
                     )
                     futures[fut] = batch
@@ -964,7 +1100,11 @@ def generate_answers_for_questionnaire(
         if _uncommitted > 0:
             db.commit()
             if job:
-                job.result = _job_payload(count, total_questions, {**run_stats, "duration_ms": (time.monotonic() - started) * 1000})
+                job.result = _job_payload(
+                    count,
+                    total_questions,
+                    {**run_stats, "duration_ms": (time.monotonic() - started) * 1000},
+                )
             _uncommitted = 0
 
         pool_stats = adaptive.stats()
@@ -980,22 +1120,55 @@ def generate_answers_for_questionnaire(
     # Evidence gap generation runs in background -- don't block answer pipeline completion
     import threading as _threading
 
+    # TC-08-005: the background thread gets its own Session on its own pooled connection. If the
+    # caller's Session is bound to a shared Connection (cannot be isolated), run inline instead of
+    # sharing that Connection across threads.
+    from app.core.database import isolated_session, supports_thread_isolation
+
+    _gap_bind = db.get_bind()
+
+    def _gap_work(gap_db) -> None:
+        from app.services.evidence_gap_service import generate_gaps_for_questionnaire
+
+        result = generate_gaps_for_questionnaire(gap_db, workspace_id, questionnaire_id)
+        generated = result.get("generated", 0)
+        if generated > 0:
+            logger.info(
+                "answer_generation: generated %d evidence gaps for qnr=%d (background)",
+                generated,
+                questionnaire_id,
+            )
+
     def _run_gap_generation() -> None:
-        from sqlalchemy.orm import Session as _Ses
-        gap_db = _Ses(bind=db.get_bind())
         try:
-            from app.services.evidence_gap_service import generate_gaps_for_questionnaire
-            result = generate_gaps_for_questionnaire(gap_db, workspace_id, questionnaire_id)
-            generated = result.get("generated", 0)
-            if generated > 0:
-                logger.info("answer_generation: generated %d evidence gaps for qnr=%d (background)", generated, questionnaire_id)
+            with isolated_session(_gap_bind) as gap_db:
+                _gap_work(gap_db)
         except Exception:
-            logger.warning("answer_generation: gap generation failed for qnr=%d (background)", questionnaire_id, exc_info=True)
+            logger.warning(
+                "answer_generation: gap generation failed for qnr=%d (background)",
+                questionnaire_id,
+                exc_info=True,
+            )
+
+    if supports_thread_isolation(_gap_bind):
+        _gap_thread = _threading.Thread(
+            target=_run_gap_generation, daemon=True, name="gap-generation"
+        )
+        _gap_thread.start()
+    else:
+        from sqlalchemy.orm import Session as _Ses
+
+        gap_db = _Ses(bind=_gap_bind)  # same Connection, but used on this thread only
+        try:
+            _gap_work(gap_db)
+        except Exception:
+            logger.warning(
+                "answer_generation: gap generation failed for qnr=%d (inline)",
+                questionnaire_id,
+                exc_info=True,
+            )
         finally:
             gap_db.close()
-
-    _gap_thread = _threading.Thread(target=_run_gap_generation, daemon=True)
-    _gap_thread.start()
     run_stats["gaps_generated"] = 0
 
     run_stats["duration_ms"] = duration_ms
@@ -1066,9 +1239,11 @@ def _sweep_draft_insufficient_narratives(db: Session, questionnaire_id: int) -> 
                 cats = json.loads(a.primary_categories_json)
                 subjects = cats.get("subjects", []) if isinstance(cats, dict) else []
                 for s_label in subjects:
-                    s_key = SUBJECT_AREA_LABEL_TO_KEY.get(s_label, s_label.lower().replace(" ", "_"))
+                    s_key = SUBJECT_AREA_LABEL_TO_KEY.get(
+                        s_label, s_label.lower().replace(" ", "_")
+                    )
                     if subject_requires_direct_evidence(s_key):
-                        direct_ev_missing = True
+                        direct_ev_missing = True  # noqa: F841
                         break
             except Exception:
                 pass

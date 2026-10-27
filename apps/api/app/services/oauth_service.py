@@ -81,7 +81,10 @@ async def github_exchange_code(code: str, redirect_uri: str) -> dict | None:
             return None
         ui = await client.get(
             GITHUB_USER_URL,
-            headers={"Authorization": f"Bearer {access_token}", "Accept": "application/vnd.github.v3+json"},
+            headers={
+                "Authorization": f"Bearer {access_token}",
+                "Accept": "application/vnd.github.v3+json",
+            },
         )
         if ui.status_code != 200:
             return None
@@ -91,7 +94,10 @@ async def github_exchange_code(code: str, redirect_uri: str) -> dict | None:
         if not email:
             em_r = await client.get(
                 GITHUB_EMAILS_URL,
-                headers={"Authorization": f"Bearer {access_token}", "Accept": "application/vnd.github.v3+json"},
+                headers={
+                    "Authorization": f"Bearer {access_token}",
+                    "Accept": "application/vnd.github.v3+json",
+                },
             )
             if em_r.status_code == 200:
                 for e in em_r.json():
@@ -106,7 +112,10 @@ async def github_exchange_code(code: str, redirect_uri: str) -> dict | None:
         else:
             em_r = await client.get(
                 GITHUB_EMAILS_URL,
-                headers={"Authorization": f"Bearer {access_token}", "Accept": "application/vnd.github.v3+json"},
+                headers={
+                    "Authorization": f"Bearer {access_token}",
+                    "Accept": "application/vnd.github.v3+json",
+                },
             )
             if em_r.status_code == 200:
                 for e in em_r.json():
@@ -152,7 +161,9 @@ async def google_exchange_code(code: str, redirect_uri: str) -> dict | None:
         tok = r.json()
         access_token = tok.get("access_token")
         if not access_token:
-            logger.warning("oauth_google token response missing access_token keys=%s", list(tok.keys()))
+            logger.warning(
+                "oauth_google token response missing access_token keys=%s", list(tok.keys())
+            )
             return None
         ui = await client.get(
             GOOGLE_USERINFO_URL,
@@ -204,7 +215,9 @@ async def microsoft_exchange_code(code: str, redirect_uri: str) -> dict | None:
         "scope": MICROSOFT_SCOPE,
     }
     async with httpx.AsyncClient() as client:
-        r = await client.post(MICROSOFT_TOKEN_URL, data=data, headers={"Accept": "application/json"})
+        r = await client.post(
+            MICROSOFT_TOKEN_URL, data=data, headers={"Accept": "application/json"}
+        )
         if r.status_code != 200:
             return None
         tok = r.json()

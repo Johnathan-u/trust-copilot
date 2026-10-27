@@ -1,7 +1,7 @@
 """TC-01-003b: same-line table cells in PDF questionnaires, split by x-position.
 
 Checks the expected questions and cell splits of the same-line table-row corpus
-(tests/pdf_locator_corpus.py: table_row_corpus), that evidence text is unchanged, the
+(tests/pdf_locator: table_row_corpus), that evidence text is unchanged, the
 gap thresholds, and the fall-back to unsplit lines. Synthetic data only; no network,
 no model calls.
 """
@@ -24,7 +24,7 @@ from app.services.pdf_text import extract_page_rows, extract_page_texts
 from app.services.synthetic_pdf import Page, TextItem, build_pdf
 
 sys.path.insert(0, str(Path(__file__).parent))
-from pdf_locator_corpus import Case, corpus, table_row_corpus, write_case  # noqa: E402
+from pdf_locator import Case, corpus, table_row_corpus, write_case  # noqa: E402
 
 TABLE_CASES = table_row_corpus()
 TEXT_CASES = [c for c in corpus() if c.outcome == "text"]

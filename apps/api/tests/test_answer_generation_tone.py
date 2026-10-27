@@ -20,7 +20,12 @@ from app.services.answer_generation import (
 def test_build_prompt_includes_professional_style_instructions() -> None:
     prompt = build_prompt(
         "Describe your access control policy.",
-        evidence=[{"text": "We have a documented access control policy.", "metadata": {"filename": "policy.docx"}}],
+        evidence=[
+            {
+                "text": "We have a documented access control policy.",
+                "metadata": {"filename": "policy.docx"},
+            }
+        ],
     )
     assert "responding to a customer or auditor" in prompt
     assert "Insufficient evidence" in prompt
@@ -39,7 +44,9 @@ def test_validate_answer_text_blocks_banned_prefixes() -> None:
 
 
 def test_validate_answer_text_keeps_normal_answer() -> None:
-    ok = validate_answer_text("We maintain a documented information security policy approved annually by leadership.")
+    ok = validate_answer_text(
+        "We maintain a documented information security policy approved annually by leadership."
+    )
     assert ok.startswith("We maintain")
 
 

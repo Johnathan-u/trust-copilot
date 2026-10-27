@@ -73,7 +73,8 @@ async def create_workspace(
             max_age_seconds=SESSION_MAX_AGE,
         )
         response.set_cookie(
-            key=SESSION_COOKIE, value=token,
+            key=SESSION_COOKIE,
+            value=token,
             **_session_cookie_kwargs(SESSION_MAX_AGE),
         )
     return {"id": ws.id, "name": ws.name, "slug": ws.slug}
@@ -136,18 +137,29 @@ async def update_current_workspace_policy(
         if body.session_max_age_seconds <= 0:
             ws.session_max_age_seconds = None
         else:
-            ws.session_max_age_seconds = min(body.session_max_age_seconds, 86400 * 90)  # cap 90 days
+            ws.session_max_age_seconds = min(
+                body.session_max_age_seconds, 86400 * 90
+            )  # cap 90 days
     if body.ai_completion_model is not None:
         raw = body.ai_completion_model.strip() or None
         ws.ai_completion_model = resolve_model(raw) if raw else None
     if body.ai_temperature is not None:
         ws.ai_temperature = max(0.0, min(body.ai_temperature, 1.5))
-    if body.ai_automate_everything is not None and getattr(ws, "ai_automate_everything", False) != body.ai_automate_everything:
+    if (
+        body.ai_automate_everything is not None
+        and getattr(ws, "ai_automate_everything", False) != body.ai_automate_everything
+    ):
         ws.ai_automate_everything = body.ai_automate_everything
         from app.core.audit import persist_audit
+
         action = "automation.enabled" if body.ai_automate_everything else "automation.disabled"
-        persist_audit(db, action, user_id=session.get("user_id"), workspace_id=workspace_id,
-                      details={"ai_automate_everything": body.ai_automate_everything})
+        persist_audit(
+            db,
+            action,
+            user_id=session.get("user_id"),
+            workspace_id=workspace_id,
+            details={"ai_automate_everything": body.ai_automate_everything},
+        )
     db.commit()
     db.refresh(ws)
     return {

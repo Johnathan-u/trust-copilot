@@ -35,7 +35,9 @@ async def list_faqs(
 ):
     """List security FAQ entries (all authenticated users)."""
     workspace_id = session["workspace_id"]
-    items = faq_svc.list_faqs(db, workspace_id, category=category, search=search, framework=framework)
+    items = faq_svc.list_faqs(
+        db, workspace_id, category=category, search=search, framework=framework
+    )
     return {"faqs": items}
 
 
@@ -87,8 +89,12 @@ async def create_faq(
     if not req.question.strip() or not req.answer.strip():
         raise HTTPException(status_code=400, detail="Question and answer are required")
     item = faq_svc.create_faq(
-        db, workspace_id, req.category.strip(), req.question.strip(),
-        req.answer.strip(), framework_tags=req.framework_tags,
+        db,
+        workspace_id,
+        req.category.strip(),
+        req.question.strip(),
+        req.answer.strip(),
+        framework_tags=req.framework_tags,
     )
     db.commit()
     return item

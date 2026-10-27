@@ -3,7 +3,7 @@
 import itertools
 from unittest.mock import MagicMock, patch
 
-import pytest
+import pytest  # noqa: F401
 
 from app.core.adaptive_concurrency import (
     ADAPTIVE_INITIAL,
@@ -78,8 +78,10 @@ def test_no_oscillation_one_noisy_batch():
 
 def test_classify_exception_429():
     """classify_exception identifies 429."""
+
     class E429(Exception):
         status_code = 429
+
     pool = AdaptivePool(initial=3)
     rl, to, tr = pool.classify_exception(E429())
     assert rl is True and to is False and tr is False
@@ -94,7 +96,8 @@ def test_classify_exception_timeout():
 
 def test_should_backoff_after_429():
     """should_backoff returns True shortly after a 429."""
-    import time
+    import time  # noqa: F401
+
     pool = AdaptivePool(initial=3)
     assert pool.should_backoff() is False
     pool.release(success=False, was_rate_limited=True, was_timeout=False, was_transient=False)
@@ -105,6 +108,7 @@ def test_partial_persistence_with_adaptive_enabled():
     """With USE_ADAPTIVE_CONCURRENCY=True, partial persistence and progress remain correct (wave-based)."""
     import json
     from app.services.answer_generation import generate_answers_for_questionnaire
+
     qnr = MagicMock(id=1, workspace_id=1)
     questions = [MagicMock(id=i + 1, text=f"Q{i+1}?") for i in range(3)]
     ws = MagicMock(ai_completion_model=None, ai_temperature=None)
@@ -112,9 +116,13 @@ def test_partial_persistence_with_adaptive_enabled():
     aq.filter.return_value.first.return_value = None
     db = MagicMock()
     db.query.side_effect = itertools.cycle(
-        [MagicMock(filter=MagicMock(return_value=MagicMock(first=MagicMock(return_value=qnr)))),
-         MagicMock(filter=MagicMock(return_value=MagicMock(all=MagicMock(return_value=questions)))),
-         MagicMock(filter=MagicMock(return_value=MagicMock(first=MagicMock(return_value=ws))))]
+        [
+            MagicMock(filter=MagicMock(return_value=MagicMock(first=MagicMock(return_value=qnr)))),
+            MagicMock(
+                filter=MagicMock(return_value=MagicMock(all=MagicMock(return_value=questions)))
+            ),
+            MagicMock(filter=MagicMock(return_value=MagicMock(first=MagicMock(return_value=ws)))),
+        ]
         + [aq] * 20
     )
     db.commit = MagicMock()

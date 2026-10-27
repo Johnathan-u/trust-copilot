@@ -47,11 +47,7 @@ def get_controls_for_signal(signal: str) -> list[str]:
 
 
 def get_signals_for_control(control_key: str) -> list[str]:
-    return [
-        signal
-        for signal, controls in SIGNAL_CONTROL_MAP.items()
-        if control_key in controls
-    ]
+    return [signal for signal, controls in SIGNAL_CONTROL_MAP.items() if control_key in controls]
 
 
 def evaluate_signal(
@@ -78,11 +74,13 @@ def evaluate_signal(
             .all()
         )
         for ctrl in controls:
-            affected.append({
-                "control_key": key,
-                "workspace_control_id": ctrl.id,
-                "signal_passed": value,
-            })
+            affected.append(
+                {
+                    "control_key": key,
+                    "workspace_control_id": ctrl.id,
+                    "signal_passed": value,
+                }
+            )
 
     return {
         "signal": signal,
