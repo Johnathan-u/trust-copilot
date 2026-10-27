@@ -1,8 +1,8 @@
 # TC-07-001 acceptance evidence
 
-Commit under test: `0c0fd702e811e9baba3ded94b142215016291a0f` (branch tc/platform/TC-07-001). See environment.txt, commands.md (commands, exit codes, totals).
+Commit under test: `a925858143f30fc2e2b61ef3e27999a3107def9a` (branch tc/platform/TC-07-001). See environment.txt, commands.md (commands, exit codes, totals).
 
-* release_test.log: tests/release/test_secret_inventory.py (AC1 regression gate plus deploy-doc guidance checks), 66 passed.
+* release_test.log: tests/release/test_secret_inventory.py (AC1 regression gate plus deploy-doc guidance checks), 67 passed.
 * related_existing_tests.log: auth/session/CSRF/MFA/Slack/credential-store tests, 41 passed, 89 skipped, 7 deselected. `TestCredentialStoreService` is deselected because it needs Postgres (environment-blocked; fails identically on baseline).
 * scan_tree.json / scan_history.json: scanner output with locations, rule IDs and kinds only; **no values**. Tree: 0 block, 26 review. History (all local refs): 142 block (unchanged; history not rewritten), 98 review (+15 vs the previous run, all review-class: new blob versions of .env.example/config.py dev defaults and test_config_contract.py from the stacked TC-03-001 branch ref).
 * full_suite_comparison.txt: whole-suite baseline vs branch, 0 new failures.
