@@ -84,10 +84,13 @@ class TestProductEventService:
 
 class TestProductEventAPI:
     def test_track(self, admin_client):
-        r = admin_client.post("/api/events", json={
-            "event_type": "test.api.track",
-            "event_category": "general",
-        })
+        r = admin_client.post(
+            "/api/events",
+            json={
+                "event_type": "test.api.track",
+                "event_category": "general",
+            },
+        )
         assert r.status_code == 200
         assert r.json()["tracked"] is True
 
@@ -112,9 +115,12 @@ class TestProductEventAPI:
         assert "logins" in r.json()
 
     def test_editor_can_track(self, editor_client):
-        r = editor_client.post("/api/events", json={
-            "event_type": "test.editor.track",
-        })
+        r = editor_client.post(
+            "/api/events",
+            json={
+                "event_type": "test.editor.track",
+            },
+        )
         assert r.status_code == 200
 
     def test_editor_cannot_view_counts(self, editor_client):

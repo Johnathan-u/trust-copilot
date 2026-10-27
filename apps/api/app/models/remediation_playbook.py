@@ -13,13 +13,17 @@ class RemediationPlaybook(Base):
     __tablename__ = "remediation_playbooks"
 
     id = Column(Integer, primary_key=True, index=True)
-    workspace_id = Column(Integer, ForeignKey("workspaces.id", ondelete="CASCADE"), nullable=False, index=True)
+    workspace_id = Column(
+        Integer, ForeignKey("workspaces.id", ondelete="CASCADE"), nullable=False, index=True
+    )
     control_key = Column(String(128), nullable=False)
     title = Column(String(255), nullable=False)
     description = Column(Text, nullable=True)
     steps_json = Column(Text, nullable=True)  # JSON array of step objects
     evidence_needed_json = Column(Text, nullable=True)  # JSON array
-    default_assignee_user_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    default_assignee_user_id = Column(
+        Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True
+    )
     severity = Column(String(32), default="medium")
     sla_hours = Column(Integer, nullable=True, default=72)
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
@@ -30,9 +34,15 @@ class RemediationTicket(Base):
     __tablename__ = "remediation_tickets"
 
     id = Column(Integer, primary_key=True, index=True)
-    workspace_id = Column(Integer, ForeignKey("workspaces.id", ondelete="CASCADE"), nullable=False, index=True)
-    playbook_id = Column(Integer, ForeignKey("remediation_playbooks.id", ondelete="SET NULL"), nullable=True)
-    control_id = Column(Integer, ForeignKey("workspace_controls.id", ondelete="SET NULL"), nullable=True)
+    workspace_id = Column(
+        Integer, ForeignKey("workspaces.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    playbook_id = Column(
+        Integer, ForeignKey("remediation_playbooks.id", ondelete="SET NULL"), nullable=True
+    )
+    control_id = Column(
+        Integer, ForeignKey("workspace_controls.id", ondelete="SET NULL"), nullable=True
+    )
     title = Column(String(255), nullable=False)
     description = Column(Text, nullable=True)
     status = Column(String(32), nullable=False, default="open")

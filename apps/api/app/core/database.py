@@ -2,6 +2,8 @@
 
 import os
 import threading
+from collections.abc import Iterator
+from contextlib import contextmanager
 from datetime import datetime, timezone
 from pathlib import Path
 from dotenv import load_dotenv
@@ -10,6 +12,7 @@ from dotenv import load_dotenv
 def utc_now():
     """Return current UTC time (timezone-aware). Use for model defaults instead of datetime.utcnow."""
     return datetime.now(timezone.utc)
+
 
 # Env load order must match main.py so auth/config see the same env when DB is running.
 # When running in Docker, do not load .env so compose env (DATABASE_URL, S3_*) is kept.
@@ -22,15 +25,12 @@ if not _in_docker and not _in_test:
     load_dotenv(_api_root / ".env", override=True)
     load_dotenv(_repo_root / ".env")
 
-from collections.abc import Iterator
-from contextlib import contextmanager
+from sqlalchemy import create_engine  # noqa: E402
+from sqlalchemy.engine import Connection, Engine  # noqa: E402
+from sqlalchemy.orm import Session, declarative_base, sessionmaker  # noqa: E402
+from sqlalchemy.pool import NullPool, QueuePool  # noqa: E402
 
-from sqlalchemy import create_engine
-from sqlalchemy.engine import Connection, Engine
-from sqlalchemy.orm import Session, declarative_base, sessionmaker
-from sqlalchemy.pool import NullPool, QueuePool
-
-from app.core.config import get_settings
+from app.core.config import get_settings  # noqa: E402
 
 settings = get_settings()
 engine = create_engine(

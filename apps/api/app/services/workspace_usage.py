@@ -52,7 +52,13 @@ def get_usage(db: Session, workspace_id: int, period: str | None = None) -> dict
         .first()
     )
     if not row:
-        return {"period": p, "llm_calls": 0, "tokens_used": 0, "mapping_calls": 0, "answer_calls": 0}
+        return {
+            "period": p,
+            "llm_calls": 0,
+            "tokens_used": 0,
+            "mapping_calls": 0,
+            "answer_calls": 0,
+        }
     return {
         "period": row.period,
         "llm_calls": row.llm_calls or 0,

@@ -2,19 +2,25 @@
 Deep audit: check actual data shapes from API and DB to determine
 what the pipeline actually produces.
 """
-import json, sys, requests
+
+import json
+import sys  # noqa: F401
+import requests
 
 BASE = "http://localhost:8000"
 S = requests.Session()
+
 
 def login():
     r = S.post(f"{BASE}/api/auth/login", json={"email": "demo@trust.local", "password": "j"})
     return r.json()
 
+
 def section(title):
     print(f"\n{'='*70}")
     print(f"  {title}")
     print(f"{'='*70}")
+
 
 login()
 

@@ -87,7 +87,9 @@ def evaluate_and_fire_compliance_events(
 
     if kpi.get("coverage_pct", 100) < COVERAGE_THRESHOLD:
         ok = _fire(
-            db, workspace_id, "compliance.coverage_drop",
+            db,
+            workspace_id,
+            "compliance.coverage_drop",
             "Low coverage",
             f"Coverage is at {kpi['coverage_pct']}%, below the {COVERAGE_THRESHOLD}% target.",
             workspace_name,
@@ -97,7 +99,9 @@ def evaluate_and_fire_compliance_events(
 
     if kpi.get("insufficient_pct", 0) > INSUFFICIENT_THRESHOLD:
         ok = _fire(
-            db, workspace_id, "compliance.high_insufficient",
+            db,
+            workspace_id,
+            "compliance.high_insufficient",
             "High insufficient-answer rate",
             f"{kpi.get('total_insufficient', 0)} questions ({kpi['insufficient_pct']}%) lack sufficient evidence.",
             workspace_name,
@@ -110,7 +114,9 @@ def evaluate_and_fire_compliance_events(
         top_blind = data.get("blind_spots", [])[:3]
         names = ", ".join(b["subject"] for b in top_blind) if top_blind else "unknown areas"
         ok = _fire(
-            db, workspace_id, "compliance.blind_spot",
+            db,
+            workspace_id,
+            "compliance.blind_spot",
             f"{blind_spot_count} blind spot{'s' if blind_spot_count != 1 else ''} detected",
             f"Subject areas with insufficient evidence: {names}.",
             workspace_name,
@@ -122,7 +128,9 @@ def evaluate_and_fire_compliance_events(
     if weak:
         worst = weak[0]
         ok = _fire(
-            db, workspace_id, "compliance.weak_evidence",
+            db,
+            workspace_id,
+            "compliance.weak_evidence",
             "Weak evidence in key area",
             f"{worst['subject']} has avg confidence of {worst['avg_confidence']}% across {worst['count']} answers.",
             workspace_name,

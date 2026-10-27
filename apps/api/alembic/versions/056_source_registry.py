@@ -3,6 +3,7 @@
 Revision ID: 056
 Revises: 055
 """
+
 from alembic import op
 import sqlalchemy as sa
 
@@ -14,12 +15,19 @@ depends_on = None
 
 def upgrade() -> None:
     from sqlalchemy import inspect as sa_inspect
+
     if "source_registry" in sa_inspect(op.get_bind()).get_table_names():
         return
     op.create_table(
         "source_registry",
         sa.Column("id", sa.Integer(), primary_key=True, autoincrement=True),
-        sa.Column("workspace_id", sa.Integer(), sa.ForeignKey("workspaces.id", ondelete="CASCADE"), nullable=False, index=True),
+        sa.Column(
+            "workspace_id",
+            sa.Integer(),
+            sa.ForeignKey("workspaces.id", ondelete="CASCADE"),
+            nullable=False,
+            index=True,
+        ),
         sa.Column("source_type", sa.String(64), nullable=False, index=True),
         sa.Column("display_name", sa.String(255), nullable=False),
         sa.Column("auth_method", sa.String(64), nullable=False, server_default="none"),

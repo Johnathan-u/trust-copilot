@@ -64,9 +64,13 @@ class TestRetentionService:
 
 class TestRetentionAPI:
     def test_set_policy(self, admin_client):
-        r = admin_client.post("/api/retention/policies", json={
-            "retention_days": 365, "archive_after_days": 180,
-        })
+        r = admin_client.post(
+            "/api/retention/policies",
+            json={
+                "retention_days": 365,
+                "archive_after_days": 180,
+            },
+        )
         assert r.status_code == 200
 
     def test_list_policies(self, admin_client):

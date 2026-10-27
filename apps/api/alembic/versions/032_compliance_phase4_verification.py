@@ -20,9 +20,19 @@ def upgrade() -> None:
     )
     op.add_column(
         "workspace_controls",
-        sa.Column("verified_by_user_id", sa.Integer(), sa.ForeignKey("users.id", ondelete="SET NULL"), nullable=True),
+        sa.Column(
+            "verified_by_user_id",
+            sa.Integer(),
+            sa.ForeignKey("users.id", ondelete="SET NULL"),
+            nullable=True,
+        ),
     )
-    op.create_index("ix_workspace_controls_verified_by_user_id", "workspace_controls", ["verified_by_user_id"], unique=False)
+    op.create_index(
+        "ix_workspace_controls_verified_by_user_id",
+        "workspace_controls",
+        ["verified_by_user_id"],
+        unique=False,
+    )
 
 
 def downgrade() -> None:

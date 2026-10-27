@@ -11,7 +11,9 @@ class SourceRegistry(Base):
     __tablename__ = "source_registry"
 
     id = Column(Integer, primary_key=True, autoincrement=True)
-    workspace_id = Column(Integer, ForeignKey("workspaces.id", ondelete="CASCADE"), nullable=False, index=True)
+    workspace_id = Column(
+        Integer, ForeignKey("workspaces.id", ondelete="CASCADE"), nullable=False, index=True
+    )
     source_type = Column(String(64), nullable=False, index=True)
     display_name = Column(String(255), nullable=False)
     auth_method = Column(String(64), nullable=False, default="none")

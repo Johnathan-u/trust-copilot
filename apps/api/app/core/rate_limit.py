@@ -47,6 +47,7 @@ class _RedisBackend:
 
     def __init__(self, redis_url: str):
         import redis
+
         self._client = redis.from_url(redis_url, decode_responses=True)
 
     def check(self, key: str, max_attempts: int, window_sec: float) -> bool:
@@ -76,10 +77,15 @@ def _get_backend():
     if redis_url:
         try:
             backend = _RedisBackend(redis_url.strip())
-            _rl_logger.info("Rate-limit backend: Redis (%s)", redis_url.split("@")[-1] if "@" in redis_url else redis_url)
+            _rl_logger.info(
+                "Rate-limit backend: Redis (%s)",
+                redis_url.split("@")[-1] if "@" in redis_url else redis_url,
+            )
             return backend
         except ImportError:
-            _rl_logger.warning("REDIS_URL is set but redis package is not installed; falling back to in-memory rate limiting")
+            _rl_logger.warning(
+                "REDIS_URL is set but redis package is not installed; falling back to in-memory rate limiting"
+            )
     if app_env == "production":
         _rl_logger.warning(
             "Rate limiting is using in-memory backend in production. "

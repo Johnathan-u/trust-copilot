@@ -5,6 +5,7 @@ Revises: 011
 Create Date: 2025-01-01 00:12:00
 
 """
+
 from alembic import op
 import sqlalchemy as sa
 
@@ -18,7 +19,9 @@ def upgrade() -> None:
     op.create_table(
         "user_mfa",
         sa.Column("id", sa.Integer(), primary_key=True, autoincrement=True),
-        sa.Column("user_id", sa.Integer(), sa.ForeignKey("users.id", ondelete="CASCADE"), nullable=False),
+        sa.Column(
+            "user_id", sa.Integer(), sa.ForeignKey("users.id", ondelete="CASCADE"), nullable=False
+        ),
         sa.Column("totp_secret_encrypted", sa.String(512), nullable=False),
         sa.Column("enabled", sa.Boolean(), nullable=False, server_default="false"),
         sa.Column("created_at", sa.DateTime(), nullable=True),
@@ -29,7 +32,9 @@ def upgrade() -> None:
     op.create_table(
         "mfa_recovery_codes",
         sa.Column("id", sa.Integer(), primary_key=True, autoincrement=True),
-        sa.Column("user_id", sa.Integer(), sa.ForeignKey("users.id", ondelete="CASCADE"), nullable=False),
+        sa.Column(
+            "user_id", sa.Integer(), sa.ForeignKey("users.id", ondelete="CASCADE"), nullable=False
+        ),
         sa.Column("code_hash", sa.String(64), nullable=False),
         sa.Column("used_at", sa.DateTime(), nullable=True),
     )
@@ -40,8 +45,15 @@ def upgrade() -> None:
         "mfa_login_tokens",
         sa.Column("id", sa.Integer(), primary_key=True, autoincrement=True),
         sa.Column("token_hash", sa.String(64), nullable=False),
-        sa.Column("user_id", sa.Integer(), sa.ForeignKey("users.id", ondelete="CASCADE"), nullable=False),
-        sa.Column("workspace_id", sa.Integer(), sa.ForeignKey("workspaces.id", ondelete="CASCADE"), nullable=False),
+        sa.Column(
+            "user_id", sa.Integer(), sa.ForeignKey("users.id", ondelete="CASCADE"), nullable=False
+        ),
+        sa.Column(
+            "workspace_id",
+            sa.Integer(),
+            sa.ForeignKey("workspaces.id", ondelete="CASCADE"),
+            nullable=False,
+        ),
         sa.Column("role", sa.String(32), nullable=False),
         sa.Column("expires_at", sa.DateTime(), nullable=False),
         sa.Column("created_at", sa.DateTime(), nullable=True),

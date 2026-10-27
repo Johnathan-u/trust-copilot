@@ -14,7 +14,10 @@ export function MfaRequiredBanner() {
     >
       <span className="text-[var(--tc-text)]">
         This workspace requires two-factor authentication. Please set it up in{' '}
-        <Link href="/dashboard/settings" className="font-medium text-[var(--tc-soft)] underline">
+        <Link
+          href="/dashboard/settings"
+          className="font-medium text-[var(--tc-soft)] underline"
+        >
           Settings
         </Link>
         .

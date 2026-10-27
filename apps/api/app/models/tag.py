@@ -76,6 +76,4 @@ class DocumentTag(Base):
     )
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
 
-    __table_args__ = (
-        UniqueConstraint("document_id", "tag_id", name="uq_document_tags_doc_tag"),
-    )
+    __table_args__ = (UniqueConstraint("document_id", "tag_id", name="uq_document_tags_doc_tag"),)

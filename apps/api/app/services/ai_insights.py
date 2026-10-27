@@ -51,7 +51,8 @@ def get_ai_insights(db: Session, workspace_id: int) -> dict:
     total_questions = (
         db.query(func.count(Question.id))
         .filter(Question.questionnaire_id.in_(db.query(base_qnr.c.id)))
-        .scalar() or 0
+        .scalar()
+        or 0
     )
 
     # ── Performance overview ──
@@ -178,21 +179,25 @@ def get_ai_insights(db: Session, workspace_id: int) -> dict:
     failure_reasons = []
     all_reasons = gating_counter + insuff_reason_counter
     for reason, count in all_reasons.most_common(10):
-        failure_reasons.append({
-            "reason": reason,
-            "label": GATING_REASON_LABELS.get(reason, reason.replace("_", " ")),
-            "count": count,
-        })
+        failure_reasons.append(
+            {
+                "reason": reason,
+                "label": GATING_REASON_LABELS.get(reason, reason.replace("_", " ")),
+                "count": count,
+            }
+        )
 
     # ── Evidence depth vs confidence ──
     evidence_vs_confidence = []
     for bucket_name in ["0 citations", "1-2 citations", "3-5 citations", "6+ citations"]:
         confs = evidence_depth_buckets[bucket_name]
-        evidence_vs_confidence.append({
-            "bucket": bucket_name,
-            "answer_count": len(confs),
-            "avg_confidence": round(sum(confs) / len(confs), 1) if confs else 0,
-        })
+        evidence_vs_confidence.append(
+            {
+                "bucket": bucket_name,
+                "answer_count": len(confs),
+                "avg_confidence": round(sum(confs) / len(confs), 1) if confs else 0,
+            }
+        )
 
     return {
         "performance": {

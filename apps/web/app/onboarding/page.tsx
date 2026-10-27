@@ -46,16 +46,20 @@ export default function OnboardingPage() {
           <div
             className="grid h-10 w-10 place-items-center rounded-xl text-lg font-bold text-white"
             style={{
-              background: 'linear-gradient(135deg, #7c96ff, #5b7cff 55%, #2dd4bf)',
+              background:
+                'linear-gradient(135deg, #7c96ff, #5b7cff 55%, #2dd4bf)',
               boxShadow: '0 12px 30px rgba(91,124,255,0.35)',
             }}
           >
             ✓
           </div>
-          <h1 className="text-xl font-bold text-[var(--tc-text)]">Welcome to Trust Copilot</h1>
+          <h1 className="text-xl font-bold text-[var(--tc-text)]">
+            Welcome to Trust Copilot
+          </h1>
         </div>
         <p className="mb-6 text-sm text-[var(--tc-muted)]">
-          Name your workspace. This is where your team's documents, questionnaires, and compliance data will live.
+          Name your workspace. This is where your team's documents,
+          questionnaires, and compliance data will live.
         </p>
         <form onSubmit={onSubmit} className="space-y-4">
           <Input
