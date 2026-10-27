@@ -6,7 +6,7 @@ Real Slack, Gmail, and SMTP qualification is **BLOCKED**. No mailbox, Slack work
 
 - Python 3.12.3 locally (`/tmp/tc-venv/bin/python`). GitHub CI uses Python 3.11.
 - pytest 9.1.1, ruff 0.5.6, SQLAlchemy 2.0.55, psycopg2 2.9.13
-- Local PostgreSQL 16 with the `vector` extension, database `trustcopilot_test`
+- Local PostgreSQL 16 with the `vector` extension, database `trustcopilot_tc19008_suite_test`
 - Master pins `sqlalchemy>=2.0,<2.1`. psycopg v3 was not added.
 - `alembic heads`: `tc19008_notification_channel_delivery (head)`. Parent revision is `tc11001_model_outcome_codes`.
 
@@ -20,7 +20,7 @@ TC_REQUIRE_DB=1 SESSION_SECRET=test-secret /tmp/tc-venv/bin/python -m pytest tes
 
 Exit status: **0**
 
-Totals: **10 passed**, 0 failed, 0 skipped.
+Totals: **12 passed**, 0 failed, 0 skipped. The file covers distinct event ids, dead-letter key release, and the widened `alembic_version.version_num` column.
 
 That file includes a fresh-database upgrade to `tc19008_notification_channel_delivery`, downgrade to `tc11001_model_outcome_codes`, and upgrade again. The side database name ends in `_test` and is created with the same role as `TC_TEST_DATABASE_URL` or `DATABASE_URL`.
 
@@ -67,7 +67,7 @@ cd apps/api && TC_REQUIRE_DB=1 SESSION_SECRET=test-secret /tmp/tc-venv/bin/pytho
 
 Exit status: **0**
 
-Totals: **1338 passed**, 3 skipped, 0 failed.
+Totals: **1589 passed**, 3 skipped, 0 failed.
 
 Skips: blind pack not found, no reviewed workspace controls, no questionnaires.
 
@@ -75,7 +75,7 @@ Skips: blind pack not found, no reviewed workspace controls, no questionnaires.
 cd apps/web && npm run build
 ```
 
-Exit status: **0**. Next.js compiled and generated 34 pages. The notifications page is in that build.
+Exit status: **0**. Next.js compiled and generated 35 pages. The notifications page is in that build.
 
 ## Browser
 
