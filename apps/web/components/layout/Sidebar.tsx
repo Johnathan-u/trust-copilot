@@ -111,6 +111,7 @@ export function Sidebar() {
     '/dashboard/compliance-frameworks',
     '/dashboard/trust-center',
     '/dashboard/proof-chain',
+    '/dashboard/case-studies',
     '/dashboard/demo-proof',
   ].some((p) => pathname.startsWith(p))
   const adminActive = [
@@ -237,6 +238,12 @@ export function Sidebar() {
             href="/dashboard/proof-chain"
             label="Proof chain"
             icon="🔗"
+            pathname={pathname}
+          />
+          <NavLink
+            href="/dashboard/case-studies"
+            label="Case studies"
+            icon="📘"
             pathname={pathname}
           />
           <NavLink
