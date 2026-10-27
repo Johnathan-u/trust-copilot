@@ -8,11 +8,21 @@ from app.core.audit import persist_audit
 from app.core.auth_deps import require_can_admin, require_session
 from app.core.database import get_db
 from app.models import (
+    NOTIFICATION_CHANNELS,
     NOTIFICATION_EVENT_TYPES,
+    NotificationChannelPreference,
+    NotificationDeliveryAttempt,
     NotificationLog,
     NotificationPolicy,
     NotificationUnsubscribe,
 )
+from app.models.in_app_notification import InAppNotification
+from app.services.notification_preferences import (
+    effective_channels,
+    list_preferences,
+    set_channel_preference,
+)
+from app.services.notification_redaction import redact_notification_text
 
 router = APIRouter(prefix="/notifications", tags=["notifications"])
 
@@ -35,6 +45,12 @@ class PolicyUpdateRequest(BaseModel):
 
 class UnsubscribeRequest(BaseModel):
     event_type: str
+
+
+class ChannelPreferencePut(BaseModel):
+    channel: str
+    enabled: bool
+    event_type: str | None = None
 
 
 # ---- Policy CRUD (admin only) ----
@@ -246,7 +262,12 @@ async def list_delivery_log(
                 "recipient_email": r.recipient_email,
                 "subject": r.subject,
                 "status": r.status,
-                "error": r.error,
+                "error": redact_notification_text(r.error) or None,
+                "delivery_state": r.delivery_state,
+                "delivered_to_provider": bool(r.delivered_to_provider),
+                "provider_mode": r.provider_mode,
+                "dedupe_key": r.dedupe_key,
+                "attempt_count": r.attempt_count,
                 "created_at": r.created_at.isoformat() if r.created_at else None,
             }
             for r in rows
@@ -330,3 +351,134 @@ async def remove_unsubscribe(
     db.delete(row)
     db.commit()
     return {"ok": True}
+
+
+def _preference_body(row: NotificationChannelPreference) -> dict:
+    return {
+        "id": row.id,
+        "channel": row.channel,
+        "event_type": row.event_type or None,
+        "enabled": bool(row.enabled),
+    }
+
+
+@router.get("/channel-preferences")
+async def get_channel_preferences(
+    db: Session = Depends(get_db),
+    session: dict = Depends(require_session),
+):
+    """Channel switches for the current user. Schema version 1.
+
+    Existing policy and unsubscribe routes are unchanged. This is the
+    per-user email, Slack, and in-app preference.
+    """
+    uid = session.get("user_id")
+    ws = session["workspace_id"]
+    if not uid:
+        return {
+            "schema_version": 1,
+            "channels": list(NOTIFICATION_CHANNELS),
+            "effective": {},
+            "preferences": [],
+        }
+    rows = list_preferences(db, ws, uid)
+    return {
+        "schema_version": 1,
+        "channels": list(NOTIFICATION_CHANNELS),
+        "effective": effective_channels(db, ws, uid),
+        "preferences": [_preference_body(row) for row in rows],
+    }
+
+
+@router.put("/channel-preferences")
+async def put_channel_preference(
+    req: ChannelPreferencePut,
+    db: Session = Depends(get_db),
+    session: dict = Depends(require_session),
+):
+    """Set one channel-wide or event-specific preference for the current user."""
+    uid = session.get("user_id")
+    ws = session["workspace_id"]
+    if not uid:
+        raise HTTPException(status_code=400, detail="User context required")
+    channel = (req.channel or "").strip().lower()
+    if channel not in NOTIFICATION_CHANNELS:
+        raise HTTPException(status_code=400, detail="channel must be email, slack, or in_app")
+    event_type = (req.event_type or "").strip()
+    if event_type and event_type not in NOTIFICATION_EVENT_TYPES:
+        raise HTTPException(status_code=400, detail="Unknown event type")
+    row = set_channel_preference(db, ws, uid, channel, bool(req.enabled), event_type or None)
+    db.commit()
+    db.refresh(row)
+    persist_audit(
+        db,
+        "notification.channel_preference_updated",
+        user_id=uid,
+        workspace_id=ws,
+        resource_type="notification_channel_preference",
+        resource_id=row.id,
+        details={
+            "channel": channel,
+            "event_type": event_type or None,
+            "enabled": bool(req.enabled),
+        },
+    )
+    return {"schema_version": 1, **_preference_body(row)}
+
+
+@router.get("/delivery-attempts")
+async def list_delivery_attempts(
+    page: int = Query(1, ge=1),
+    page_size: int = Query(50, ge=1, le=200),
+    db: Session = Depends(get_db),
+    session: dict = Depends(require_can_admin),
+):
+    """Each delivery try and its state. Errors are redacted. Schema version 1.
+
+    The legacy ``/log`` list is unchanged aside from additive fields. This
+    list is the attempt ledger. Rule and template management stay on a later ticket.
+    """
+    ws = session["workspace_id"]
+    q = (
+        db.query(NotificationDeliveryAttempt, InAppNotification)
+        .outerjoin(
+            InAppNotification,
+            InAppNotification.id == NotificationDeliveryAttempt.in_app_notification_id,
+        )
+        .filter(NotificationDeliveryAttempt.workspace_id == ws)
+    )
+    total = q.count()
+    rows = (
+        q.order_by(NotificationDeliveryAttempt.id.desc())
+        .offset((page - 1) * page_size)
+        .limit(page_size)
+        .all()
+    )
+    attempts = []
+    for attempt, note in rows:
+        attempts.append(
+            {
+                "id": attempt.id,
+                "event_type": attempt.event_type,
+                "channel": attempt.channel,
+                "recipient": attempt.recipient,
+                "user_id": attempt.user_id,
+                "state": attempt.state,
+                "attempt_number": attempt.attempt_number,
+                "max_attempts": attempt.max_attempts,
+                "dedupe_key": attempt.dedupe_key,
+                "delivered_to_provider": bool(attempt.delivered_to_provider),
+                "provider_mode": attempt.provider_mode,
+                "template_key": attempt.template_key,
+                "destination": attempt.destination,
+                "rendered_subject": redact_notification_text(attempt.rendered_subject) or None,
+                "rendered_body": redact_notification_text(attempt.rendered_body, limit=2000)
+                or None,
+                "error_code": attempt.error_code,
+                "error": redact_notification_text(attempt.error_message) or None,
+                "in_app_notification_id": attempt.in_app_notification_id,
+                "is_read": None if note is None else bool(note.is_read),
+                "created_at": attempt.created_at.isoformat() if attempt.created_at else None,
+            }
+        )
+    return {"schema_version": 1, "total": total, "page": page, "attempts": attempts}
