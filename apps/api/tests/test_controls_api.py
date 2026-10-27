@@ -60,8 +60,8 @@ def test_list_controls_with_session(client: TestClient) -> None:
     assert isinstance(r3.json(), list)
 
 
-def test_create_control_requires_edit_permission(client: TestClient, admin_user: User) -> None:
-    """POST /api/controls requires edit permission. Reviewers are refused; editors are allowed."""
+def test_create_control_requires_admin(client: TestClient, admin_user: User) -> None:
+    """POST /api/controls requires admin; reviewer and editor get 403."""
     client.post("/api/auth/login", json={"email": "reviewer@trust.local", "password": "r"})
     refused = client.post(
         "/api/controls/",
@@ -84,7 +84,7 @@ def test_create_control_requires_edit_permission(client: TestClient, admin_user:
             "status": "in_review",
         },
     )
-    assert r.status_code == 200
+    assert r.status_code == 403
 
     client.post("/api/auth/login", json={"email": admin_user.email, "password": "a"})
     r2 = client.post(

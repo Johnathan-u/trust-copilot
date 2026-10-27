@@ -7,7 +7,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
-from app.core.auth_deps import require_can_edit, require_can_review
+from app.core.auth_deps import require_can_admin, require_can_review
 from app.core.database import get_db
 from app.core.metrics import (
     compliance_control_created_total,
@@ -335,7 +335,7 @@ def _ensure_workspace_control(
 @router.post("", response_model=dict)
 def create_control(
     body: ControlCreateBody,
-    session: dict = Depends(require_can_edit),
+    session: dict = Depends(require_can_admin),
     db: Session = Depends(get_db),
 ):
     """Create a workspace control. Requires admin."""
@@ -405,7 +405,7 @@ def get_control(
 def patch_control(
     control_id: int,
     body: ControlPatchBody,
-    session: dict = Depends(require_can_edit),
+    session: dict = Depends(require_can_admin),
     db: Session = Depends(get_db),
 ):
     """Update a workspace control. Requires admin."""
@@ -442,7 +442,7 @@ def patch_control(
 @router.post("/{control_id}/verify", response_model=dict)
 def verify_control(
     control_id: int,
-    session: dict = Depends(require_can_edit),
+    session: dict = Depends(require_can_review),
     db: Session = Depends(get_db),
 ):
     """Mark control as verified. Requires at least one linked evidence. Records who verified and when. Requires review permission."""
@@ -554,7 +554,7 @@ def _link_dict(
 def accept_suggested_evidence(
     control_id: int,
     body: AcceptSuggestedEvidenceBody,
-    session: dict = Depends(require_can_edit),
+    session: dict = Depends(require_can_admin),
     db: Session = Depends(get_db),
 ):
     """Create evidence from a suggested chunk and link it to the control. Requires admin."""
@@ -704,7 +704,7 @@ def set_evidence_verified(
     control_id: int,
     link_id: int,
     body: SetEvidenceVerifiedBody,
-    session: dict = Depends(require_can_edit),
+    session: dict = Depends(require_can_review),
     db: Session = Depends(get_db),
 ):
     """Mark a control–evidence link as verified or unverified. Sets last_verified_at when verified. Requires review permission."""
@@ -776,7 +776,7 @@ def set_evidence_verified(
 def link_evidence(
     control_id: int,
     body: LinkEvidenceBody,
-    session: dict = Depends(require_can_edit),
+    session: dict = Depends(require_can_admin),
     db: Session = Depends(get_db),
 ):
     """Link an evidence item to a workspace control. Requires admin."""
@@ -830,7 +830,7 @@ def link_evidence(
 def unlink_evidence(
     control_id: int,
     link_id: int,
-    session: dict = Depends(require_can_edit),
+    session: dict = Depends(require_can_admin),
     db: Session = Depends(get_db),
 ):
     """Remove an evidence link from a control. Requires admin."""

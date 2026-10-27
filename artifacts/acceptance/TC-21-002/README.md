@@ -5,7 +5,7 @@ Framework catalogs stay **BLOCKED** pending **TC-01-007**. This run did not add 
 | AC | Result |
 |---|---|
 | AC1 Both routes agree on canonical ID, version, owner, lifecycle, and evidence | Met by `apps/api/tests/release/test_domain_controls.py`. Legacy and compliance payloads share one canonical object. A drifted stored lifecycle is reported, not rewritten, by GET. |
-| AC2 Positive, negative, and partial-failure cases on PostgreSQL | Met by the same file. Edit is required to write. A workspace mismatch is 404. A foreign document and a foreign owner are rejected. A failed evidence mirror and a failed contract event stay retryable and do not insert a second row. |
+| AC2 Positive, negative, and partial-failure cases on PostgreSQL | Met by the same file. Admin is required to write. Reviewer and editor are refused. A workspace mismatch is 404. A foreign document and a foreign owner are rejected. A failed evidence mirror and a failed contract event stay retryable and do not insert a second row. |
 | AC3 Public schema, UI consumer, and persisted outcome agree across retry | Met by the same file. The nested `canonical` object is `control-contract/v1`. Node 24 loads `apps/web/lib/controlContract.ts` and accepts the same block from either route. Retry returns the saved row. |
 
 ## Command

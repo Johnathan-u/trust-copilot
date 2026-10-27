@@ -23,8 +23,10 @@ REVISION = "tc21002_control_contract"
 SLUG = "tc21002"
 EDITOR_EMAIL = "tc21002-editor@trust.local"
 REVIEWER_EMAIL = "tc21002-reviewer@trust.local"
+ADMIN_EMAIL = "tc21002-admin@trust.local"
 EDITOR_PASSWORD = "test-c"
 REVIEWER_PASSWORD = "test-v"
+ADMIN_PASSWORD = "test-a"
 OTHER_EMAIL = "tc21002-other@trust.local"
 OTHER_PASSWORD = "test-o"
 
@@ -98,13 +100,15 @@ def _actors() -> dict[str, int]:
 
         editor = member(EDITOR_EMAIL, EDITOR_PASSWORD, "editor", workspace)
         reviewer = member(REVIEWER_EMAIL, REVIEWER_PASSWORD, "reviewer", workspace)
-        outsider = member(OTHER_EMAIL, OTHER_PASSWORD, "editor", other)
+        admin = member(ADMIN_EMAIL, ADMIN_PASSWORD, "admin", workspace)
+        outsider = member(OTHER_EMAIL, OTHER_PASSWORD, "admin", other)
         session.commit()
         return {
             "workspace_id": workspace.id,
             "other_workspace_id": other.id,
             "editor_id": editor.id,
             "reviewer_id": reviewer.id,
+            "admin_id": admin.id,
             "outsider_id": outsider.id,
         }
     finally:
@@ -166,6 +170,15 @@ def test_permissions_workspace_mismatch_and_invalid_status(client):
     assert refused.json()["detail"] == "Insufficient permissions"
 
     _login(client, EDITOR_EMAIL, EDITOR_PASSWORD)
+    editor_refused = client.post(
+        "/api/controls/",
+        json={"framework": "TC21002", "control_id": "C-deny-editor", "status": "in_review"},
+    )
+    assert editor_refused.status_code == 403
+    assert editor_refused.json()["detail"] == "Insufficient permissions"
+    assert client.get("/api/controls").status_code == 200
+
+    _login(client, ADMIN_EMAIL, ADMIN_PASSWORD)
     created = _create(client, "C-perm")
     assert client.get("/api/controls").status_code == 200
     assert client.get("/api/compliance/controls").status_code == 200
@@ -177,7 +190,7 @@ def test_permissions_workspace_mismatch_and_invalid_status(client):
     gone = client.delete(f"/api/controls/{created['id']}")
     assert gone.status_code == 404
 
-    _login(client, EDITOR_EMAIL, EDITOR_PASSWORD)
+    _login(client, ADMIN_EMAIL, ADMIN_PASSWORD)
     invalid = client.post(
         "/api/controls/",
         json={"framework": "TC21002", "control_id": "C-bad", "status": "enabled"},
@@ -200,7 +213,7 @@ def test_permissions_workspace_mismatch_and_invalid_status(client):
 
 def test_routes_agree_on_canonical_contract_and_retry(client):
     actors = _actors()
-    _login(client, EDITOR_EMAIL, EDITOR_PASSWORD)
+    _login(client, ADMIN_EMAIL, ADMIN_PASSWORD)
     first = _create(client, "C-1", owner_user_id=actors["editor_id"], owner_team="owners")
     second = _create(client, "C-1", owner_user_id=actors["editor_id"], owner_team="owners")
     assert second["id"] == first["id"]
@@ -285,7 +298,7 @@ def test_routes_agree_on_canonical_contract_and_retry(client):
 
 def test_evidence_foreign_reference_partial_failure_and_retry(client):
     actors = _actors()
-    _login(client, EDITOR_EMAIL, EDITOR_PASSWORD)
+    _login(client, ADMIN_EMAIL, ADMIN_PASSWORD)
     control_key = f"C-ev-{uuid.uuid4().hex[:12]}"
     created = _create(client, control_key)
     both = client.post(
@@ -379,7 +392,7 @@ def test_evidence_foreign_reference_partial_failure_and_retry(client):
 
 def test_get_is_read_only_and_delete_removes_the_pair(client):
     actors = _actors()
-    _login(client, EDITOR_EMAIL, EDITOR_PASSWORD)
+    _login(client, ADMIN_EMAIL, ADMIN_PASSWORD)
     created = _create(client, "C-ro")
     session = _fresh()
     try:
@@ -513,7 +526,7 @@ def test_contract_event_partial_failure_retries_to_the_same_row(client):
 
 def test_migration_upgrade_downgrade_upgrade_again(client):
     _actors()
-    _login(client, EDITOR_EMAIL, EDITOR_PASSWORD)
+    _login(client, ADMIN_EMAIL, ADMIN_PASSWORD)
     created = _create(client, "C-mig")
     import importlib.util
 
@@ -566,5 +579,11 @@ def test_migration_upgrade_downgrade_upgrade_again(client):
     finally:
         alembic("upgrade", "head")
     assert "canonical_key" in columns("controls")
-    heads = [line.strip() for line in alembic("heads").splitlines() if "(head)" in line]
-    assert heads == [f"{REVISION} (head)"]
+    heads_out = alembic("heads")
+    # A later revision may be the single head. Same checks as
+    # tests/release/test_job_retries.py and tests/release/test_billing_provider.py.
+    assert len(heads_out.strip().splitlines()) == 1
+    assert "(head)" in heads_out
+    from tests.release.test_billing_provider import _revision_is_applied, _revision_token
+
+    assert _revision_is_applied(_revision_token(heads_out), REVISION)

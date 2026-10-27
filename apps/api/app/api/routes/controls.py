@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
-from app.core.auth_deps import require_can_edit, require_can_review
+from app.core.auth_deps import require_can_admin, require_can_review
 from app.core.database import get_db
 from app.models import Control, ControlEvidence, Document, ExportRecord, TrustArticle
 from app.models.control import CONTROL_STATUSES
@@ -122,10 +122,10 @@ def list_controls(
 @router.post("/")
 def create_control(
     body: ControlCreate,
-    session: dict = Depends(require_can_edit),
+    session: dict = Depends(require_can_admin),
     db: Session = Depends(get_db),
 ):
-    """Create a control. Requires edit permission. Repeating the same identity reuses the row."""
+    """Create a control. Requires admin. Repeating the same identity reuses the row."""
     ws = session.get("workspace_id")
     if not ws:
         raise HTTPException(status_code=403, detail="No workspace")
@@ -150,10 +150,10 @@ def create_control(
 def update_control(
     control_id: int,
     body: ControlUpdate,
-    session: dict = Depends(require_can_edit),
+    session: dict = Depends(require_can_admin),
     db: Session = Depends(get_db),
 ):
-    """Update a control. Requires edit permission. A workspace mismatch is 404."""
+    """Update a control. Requires admin. A workspace mismatch is 404."""
     ws = session.get("workspace_id")
     c = db.query(Control).filter(Control.id == control_id).first()
     if not c or c.workspace_id != ws:
@@ -193,10 +193,10 @@ def update_control(
 @router.delete("/{control_id}")
 def delete_control(
     control_id: int,
-    session: dict = Depends(require_can_edit),
+    session: dict = Depends(require_can_admin),
     db: Session = Depends(get_db),
 ):
-    """Delete a control. Requires edit permission. A workspace mismatch is 404."""
+    """Delete a control. Requires admin. A workspace mismatch is 404."""
     c = db.query(Control).filter(Control.id == control_id).first()
     if not c or c.workspace_id != session.get("workspace_id"):
         raise HTTPException(status_code=404, detail="Control not found")
@@ -236,7 +236,7 @@ def list_control_evidence(
 def attach_evidence(
     control_id: int,
     body: EvidenceAttach,
-    session: dict = Depends(require_can_edit),
+    session: dict = Depends(require_can_admin),
     db: Session = Depends(get_db),
 ):
     """Attach one piece of evidence (document, article, or export) to a control. Requires admin."""
@@ -284,7 +284,7 @@ def attach_evidence(
 def detach_evidence(
     control_id: int,
     evidence_id: int,
-    session: dict = Depends(require_can_edit),
+    session: dict = Depends(require_can_admin),
     db: Session = Depends(get_db),
 ):
     """Remove an evidence link from a control. Requires admin."""
