@@ -1,7 +1,7 @@
 """Focused verification: questionnaire mapping counter and full lifecycle.
 
 Run inside Docker:
-    docker compose exec api python tests/verify_mapping_counter.py
+    docker compose exec api python scripts/manual_live/verify_mapping_counter.py
 
 Tests:
   1. Generate mappings for a questionnaire with questions
@@ -14,13 +14,9 @@ import sys
 import uuid
 from pathlib import Path
 
-# `python tests/verify_mapping_counter.py` puts tests/ on sys.path[0], which can shadow
-# the real `app` package and yield wrong route code (e.g. stale mapped_count). Prefer
-# `python -m tests.verify_mapping_counter` from /app, or ensure project root is first.
-_api_root = Path(__file__).resolve().parents[1]
-_tests_dir = Path(__file__).resolve().parent
-if sys.path and Path(sys.path[0]).resolve() == _tests_dir:
-    sys.path.insert(0, str(_api_root))
+# Ensure apps/api (the real `app` package) is first on sys.path when run as a script.
+_api_root = Path(__file__).resolve().parents[2]
+sys.path.insert(0, str(_api_root))
 
 from fastapi.testclient import TestClient  # noqa: E402
 from app.main import app  # noqa: E402

@@ -1,8 +1,9 @@
+"""Manual dataset script (see README.md). Not a pytest module."""
+
+from _live_guard import require_data_file
 import json
 
-with open(
-    r"C:\Users\John\Downloads\trust_scoring_blind_100_pack\trust_scoring_blind_100_cases.json"
-) as f:
+with open(require_data_file("TC_TRUST_SCORING_BLIND_PACK")) as f:
     data = json.load(f)
 
 cats = {}

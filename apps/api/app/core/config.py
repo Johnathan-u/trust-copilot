@@ -187,6 +187,24 @@ class Settings:
         self.rate_limit_rpm_per_ip: int = max(0, int(_rpm)) if _rpm.isdigit() else 120
 
         self.app_env: str = os.getenv("APP_ENV", "development").lower()
+
+        # Health probes (TC-03-003). Worker values are read by app.worker_health (stdlib-only probe);
+        # mirrored here for discoverability. See docs/release/tickets/TC-03-003.md.
+        from app.worker_health import (
+            heartbeat_interval_sec,
+            heartbeat_stale_sec,
+            job_max_runtime_sec,
+        )
+
+        self.worker_heartbeat_interval_sec: int = heartbeat_interval_sec()
+        self.worker_heartbeat_stale_sec: int = heartbeat_stale_sec()
+        self.worker_job_max_runtime_sec: int = job_max_runtime_sec()
+        try:
+            self.readiness_timeout_sec: float = max(
+                0.1, float(os.getenv("READINESS_TIMEOUT_SEC", "3") or "3")
+            )
+        except ValueError:
+            self.readiness_timeout_sec = 3.0
         # Audit retention: delete events older than this many days (0 = disable purge)
         _audit_days = os.getenv("AUDIT_RETENTION_DAYS", "90").strip()
         self.audit_retention_days: int = max(0, int(_audit_days)) if _audit_days.isdigit() else 90
