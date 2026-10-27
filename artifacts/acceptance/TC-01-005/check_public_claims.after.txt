@@ -1,0 +1,1 @@
+PASS: no removed claims reintroduced; example/heuristic labels present; README links resolve
