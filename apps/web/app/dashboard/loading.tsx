@@ -10,7 +10,10 @@ export default function DashboardLoading() {
       </div>
       <div
         className="rounded-2xl p-5"
-        style={{ background: 'var(--tc-panel)', border: '1px solid var(--tc-border)' }}
+        style={{
+          background: 'var(--tc-panel)',
+          border: '1px solid var(--tc-border)',
+        }}
       >
         <ListSkeleton rows={6} />
       </div>

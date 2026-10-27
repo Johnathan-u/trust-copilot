@@ -6,7 +6,7 @@ from datetime import datetime, timedelta, timezone
 
 from sqlalchemy.orm import Session
 
-from app.models.nda_access_request import NDA_REQUEST_STATUSES, NdaAccessRequest
+from app.models.nda_access_request import NDA_REQUEST_STATUSES, NdaAccessRequest  # noqa: F401
 
 logger = logging.getLogger(__name__)
 

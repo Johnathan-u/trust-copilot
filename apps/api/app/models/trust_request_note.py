@@ -17,7 +17,9 @@ class TrustRequestNote(Base):
     __tablename__ = "trust_request_notes"
 
     id = Column(Integer, primary_key=True, index=True)
-    trust_request_id = Column(Integer, ForeignKey("trust_requests.id", ondelete="CASCADE"), nullable=False, index=True)
+    trust_request_id = Column(
+        Integer, ForeignKey("trust_requests.id", ondelete="CASCADE"), nullable=False, index=True
+    )
     author_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
     note_type = Column(String(32), nullable=False, default=NOTE_TYPE_INTERNAL)
     body = Column(Text, nullable=False)

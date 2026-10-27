@@ -11,8 +11,12 @@ class AnswerApprovalEvent(Base):
     __tablename__ = "answer_approval_events"
 
     id = Column(Integer, primary_key=True, index=True)
-    golden_answer_id = Column(Integer, ForeignKey("golden_answers.id", ondelete="CASCADE"), nullable=False, index=True)
-    action = Column(String(32), nullable=False)  # submitted, approved, rejected, changes_requested, owner_assigned, reviewer_assigned
+    golden_answer_id = Column(
+        Integer, ForeignKey("golden_answers.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    action = Column(
+        String(32), nullable=False
+    )  # submitted, approved, rejected, changes_requested, owner_assigned, reviewer_assigned
     actor_user_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
     comment = Column(Text, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)

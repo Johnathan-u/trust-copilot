@@ -17,7 +17,9 @@ class AnswerCitationBody(BaseModel):
 
 
 @router.get("/control/{control_id}")
-async def compose_for_control(control_id: int, session: dict = Depends(require_session), db: Session = Depends(get_db)):
+async def compose_for_control(
+    control_id: int, session: dict = Depends(require_session), db: Session = Depends(get_db)
+):
     result = svc.compose_citations(db, session["workspace_id"], control_id)
     if "error" in result:
         raise HTTPException(status_code=404, detail=result["error"])
@@ -25,5 +27,11 @@ async def compose_for_control(control_id: int, session: dict = Depends(require_s
 
 
 @router.post("/answer")
-async def compose_for_answer(body: AnswerCitationBody, session: dict = Depends(require_session), db: Session = Depends(get_db)):
-    return svc.compose_answer_citations(db, session["workspace_id"], body.answer_text, body.control_ids)
+async def compose_for_answer(
+    body: AnswerCitationBody,
+    session: dict = Depends(require_session),
+    db: Session = Depends(get_db),
+):
+    return svc.compose_answer_citations(
+        db, session["workspace_id"], body.answer_text, body.control_ids
+    )

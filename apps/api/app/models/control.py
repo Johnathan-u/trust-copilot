@@ -15,7 +15,9 @@ class Control(Base):
     __tablename__ = "controls"
 
     id = Column(Integer, primary_key=True, index=True)
-    workspace_id = Column(Integer, ForeignKey("workspaces.id", ondelete="CASCADE"), nullable=False, index=True)
+    workspace_id = Column(
+        Integer, ForeignKey("workspaces.id", ondelete="CASCADE"), nullable=False, index=True
+    )
     framework = Column(String(64), nullable=False)
     control_id = Column(String(64), nullable=False)
     name = Column(String(255), nullable=True)

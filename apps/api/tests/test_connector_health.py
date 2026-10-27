@@ -1,7 +1,7 @@
 """Tests for connector health visibility (P1-30)."""
 
 import pytest
-from app.core.database import SessionLocal
+from app.core.database import SessionLocal  # noqa: F401
 from app.models.workspace import Workspace
 from app.services import connector_health_service as ch
 from app.services import source_registry_service as sr

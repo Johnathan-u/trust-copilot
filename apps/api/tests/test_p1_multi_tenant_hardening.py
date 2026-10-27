@@ -2,7 +2,7 @@
 
 import json
 from datetime import datetime, timezone
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch, MagicMock  # noqa: F401
 
 import pytest
 from fastapi.testclient import TestClient
@@ -11,13 +11,16 @@ from fastapi.testclient import TestClient
 def _login_admin(client: TestClient) -> dict:
     from app.core.database import SessionLocal
     from app.models import WorkspaceMember, User
+
     db = SessionLocal()
     try:
         user = db.query(User).filter(User.email == "demo@trust.local").first()
         uid = user.id
-        mem = db.query(WorkspaceMember).filter(
-            WorkspaceMember.user_id == uid, WorkspaceMember.workspace_id == 1
-        ).first()
+        mem = (
+            db.query(WorkspaceMember)
+            .filter(WorkspaceMember.user_id == uid, WorkspaceMember.workspace_id == 1)
+            .first()
+        )
         if mem.role != "admin":
             mem.role = "admin"
             db.commit()
@@ -31,6 +34,7 @@ def _login_admin(client: TestClient) -> dict:
 def _cleanup_usage(ws=1):
     from app.core.database import SessionLocal
     from app.models.workspace_quota import WorkspaceUsage, WorkspaceQuota
+
     db = SessionLocal()
     try:
         db.query(WorkspaceUsage).filter(WorkspaceUsage.workspace_id == ws).delete()
@@ -44,11 +48,13 @@ def _cleanup_usage(ws=1):
 # Quota service unit tests
 # ---------------------------------------------------------------------------
 
+
 class TestQuotaService:
     def test_default_quotas_returned(self, client: TestClient) -> None:
         _cleanup_usage()
         from app.core.database import SessionLocal
         from app.services.quota_service import get_quota_limit
+
         db = SessionLocal()
         try:
             assert get_quota_limit(db, 1, "ai_jobs") == 10
@@ -62,6 +68,7 @@ class TestQuotaService:
         from app.core.database import SessionLocal
         from app.models.workspace_quota import WorkspaceQuota
         from app.services.quota_service import get_quota_limit
+
         db = SessionLocal()
         try:
             db.add(WorkspaceQuota(workspace_id=1, max_ai_jobs_per_hour=5, max_exports_per_hour=3))
@@ -76,6 +83,7 @@ class TestQuotaService:
         _cleanup_usage()
         from app.core.database import SessionLocal
         from app.services.quota_service import record_and_check, get_current_usage
+
         db = SessionLocal()
         try:
             allowed, current, limit = record_and_check(db, 1, "ai_jobs")
@@ -92,6 +100,7 @@ class TestQuotaService:
         from app.core.database import SessionLocal
         from app.models.workspace_quota import WorkspaceQuota
         from app.services.quota_service import record_usage, check_quota
+
         db = SessionLocal()
         try:
             db.add(WorkspaceQuota(workspace_id=1, max_ai_jobs_per_hour=3))
@@ -112,6 +121,7 @@ class TestQuotaService:
         _cleanup_usage(2)
         from app.core.database import SessionLocal
         from app.services.quota_service import record_usage, get_current_usage
+
         db = SessionLocal()
         try:
             record_usage(db, 1, "ai_jobs", 5)
@@ -128,10 +138,15 @@ class TestQuotaService:
         from app.models.workspace_quota import WorkspaceUsage
         from app.services.quota_service import cleanup_old_usage
         from datetime import timedelta
+
         db = SessionLocal()
         try:
             old_window = datetime.now(timezone.utc) - timedelta(hours=48)
-            db.add(WorkspaceUsage(workspace_id=1, resource_type="ai_jobs", window_start=old_window, count=10))
+            db.add(
+                WorkspaceUsage(
+                    workspace_id=1, resource_type="ai_jobs", window_start=old_window, count=10
+                )
+            )
             db.commit()
             cleaned = cleanup_old_usage(db)
             db.commit()
@@ -144,6 +159,7 @@ class TestQuotaService:
 # ---------------------------------------------------------------------------
 # Worker fair scheduling tests
 # ---------------------------------------------------------------------------
+
 
 class TestFairScheduling:
     def test_claim_job_rotates_workspaces(self, client: TestClient) -> None:
@@ -158,12 +174,26 @@ class TestFairScheduling:
             db.commit()
 
             for i in range(3):
-                db.add(Job(workspace_id=1, kind="parse_questionnaire", status=JobStatus.QUEUED.value,
-                           payload=json.dumps({"questionnaire_id": 100 + i, "storage_key": "test.xlsx"}),
-                           created_at=datetime.utcnow()))
-            db.add(Job(workspace_id=2, kind="parse_questionnaire", status=JobStatus.QUEUED.value,
-                       payload=json.dumps({"questionnaire_id": 200, "storage_key": "test.xlsx"}),
-                       created_at=datetime.utcnow()))
+                db.add(
+                    Job(
+                        workspace_id=1,
+                        kind="parse_questionnaire",
+                        status=JobStatus.QUEUED.value,
+                        payload=json.dumps(
+                            {"questionnaire_id": 100 + i, "storage_key": "test.xlsx"}
+                        ),
+                        created_at=datetime.utcnow(),
+                    )
+                )
+            db.add(
+                Job(
+                    workspace_id=2,
+                    kind="parse_questionnaire",
+                    status=JobStatus.QUEUED.value,
+                    payload=json.dumps({"questionnaire_id": 200, "storage_key": "test.xlsx"}),
+                    created_at=datetime.utcnow(),
+                )
+            )
             db.commit()
 
             worker._last_claimed_workspace_id = None
@@ -179,7 +209,9 @@ class TestFairScheduling:
                 assert job2.workspace_id == 1, "Should rotate to workspace 1"
 
             db.query(Job).filter(Job.id.in_([job1.id, job2.id])).delete()
-            db.query(Job).filter(Job.status == JobStatus.QUEUED.value, Job.kind == "parse_questionnaire").delete()
+            db.query(Job).filter(
+                Job.status == JobStatus.QUEUED.value, Job.kind == "parse_questionnaire"
+            ).delete()
             db.commit()
         finally:
             worker._last_claimed_workspace_id = None
@@ -196,9 +228,15 @@ class TestFairScheduling:
             db.query(Job).filter(Job.status == JobStatus.QUEUED.value).delete()
             db.commit()
 
-            db.add(Job(workspace_id=1, kind="parse_questionnaire", status=JobStatus.QUEUED.value,
-                       payload=json.dumps({"questionnaire_id": 999, "storage_key": "test.xlsx"}),
-                       created_at=datetime.utcnow()))
+            db.add(
+                Job(
+                    workspace_id=1,
+                    kind="parse_questionnaire",
+                    status=JobStatus.QUEUED.value,
+                    payload=json.dumps({"questionnaire_id": 999, "storage_key": "test.xlsx"}),
+                    created_at=datetime.utcnow(),
+                )
+            )
             db.commit()
 
             worker._last_claimed_workspace_id = 1
@@ -217,6 +255,7 @@ class TestFairScheduling:
 # Defense-in-depth workspace cross-checks
 # ---------------------------------------------------------------------------
 
+
 class TestWorkerDefenseInDepth:
     def test_parse_questionnaire_rejects_workspace_mismatch(self, client: TestClient) -> None:
         from app.models import Job
@@ -233,8 +272,7 @@ class TestWorkerDefenseInDepth:
 
         with pytest.raises(ValueError, match="workspace mismatch"):
             worker.run_parse_questionnaire(
-                mock_job, mock_session,
-                {"questionnaire_id": 1, "storage_key": "test.xlsx"}
+                mock_job, mock_session, {"questionnaire_id": 1, "storage_key": "test.xlsx"}
             )
 
     def test_generate_answers_rejects_workspace_mismatch(self, client: TestClient) -> None:
@@ -246,8 +284,7 @@ class TestWorkerDefenseInDepth:
 
         with pytest.raises(ValueError, match="workspace_id"):
             worker.run_generate_answers(
-                mock_job, MagicMock(),
-                {"questionnaire_id": 1, "workspace_id": 2}
+                mock_job, MagicMock(), {"questionnaire_id": 1, "workspace_id": 2}
             )
 
 
@@ -255,14 +292,18 @@ class TestWorkerDefenseInDepth:
 # API quota enforcement tests
 # ---------------------------------------------------------------------------
 
+
 class TestAPIQuotaEnforcement:
-    def test_generate_answers_blocked_at_quota(self, client: TestClient) -> None:
+    def test_generate_answers_blocked_at_quota(
+        self, client: TestClient, synthetic_openai_key
+    ) -> None:
         _cleanup_usage()
         _login_admin(client)
 
         from app.core.database import SessionLocal
         from app.models.workspace_quota import WorkspaceQuota
         from app.services.quota_service import record_usage
+
         db = SessionLocal()
         try:
             db.add(WorkspaceQuota(workspace_id=1, max_ai_jobs_per_hour=2))
@@ -285,6 +326,7 @@ class TestAPIQuotaEnforcement:
         from app.core.database import SessionLocal
         from app.models.workspace_quota import WorkspaceQuota
         from app.services.quota_service import record_usage
+
         db = SessionLocal()
         try:
             db.add(WorkspaceQuota(workspace_id=1, max_exports_per_hour=1))
@@ -304,11 +346,13 @@ class TestAPIQuotaEnforcement:
 # Model creation tests
 # ---------------------------------------------------------------------------
 
+
 class TestQuotaModels:
     def test_workspace_quota_model(self, client: TestClient) -> None:
         _cleanup_usage()
         from app.core.database import SessionLocal
         from app.models.workspace_quota import WorkspaceQuota
+
         db = SessionLocal()
         try:
             q = WorkspaceQuota(workspace_id=1, max_documents=100)
@@ -326,6 +370,7 @@ class TestQuotaModels:
         _cleanup_usage()
         from app.core.database import SessionLocal
         from app.models.workspace_quota import WorkspaceUsage
+
         db = SessionLocal()
         try:
             now = datetime.now(timezone.utc).replace(minute=0, second=0, microsecond=0)

@@ -45,8 +45,10 @@ async def create(
     db: Session = Depends(get_db),
 ):
     result = ga.create_golden_answer(
-        db, session["workspace_id"],
-        body.question_text, body.answer_text,
+        db,
+        session["workspace_id"],
+        body.question_text,
+        body.answer_text,
         owner_user_id=session["user_id"],
         category=body.category,
         control_ids=body.control_ids,
@@ -68,7 +70,9 @@ async def list_all(
     session: dict = Depends(require_session),
     db: Session = Depends(get_db),
 ):
-    return {"answers": ga.list_golden_answers(db, session["workspace_id"], category, status, customer)}
+    return {
+        "answers": ga.list_golden_answers(db, session["workspace_id"], category, status, customer)
+    }
 
 
 @router.get("/expiring")

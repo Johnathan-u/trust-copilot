@@ -30,7 +30,11 @@ class TestEvidenceCardsService:
 
     def test_single_card(self, db_session):
         ws = db_session.query(Workspace).first()
-        ctrl = db_session.query(WorkspaceControl).filter(WorkspaceControl.workspace_id == ws.id).first()
+        ctrl = (
+            db_session.query(WorkspaceControl)
+            .filter(WorkspaceControl.workspace_id == ws.id)
+            .first()
+        )
         if not ctrl:
             pytest.skip("No workspace controls")
         card = ec.get_evidence_card(db_session, ws.id, ctrl.id)

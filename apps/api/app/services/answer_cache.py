@@ -12,6 +12,7 @@ logger = logging.getLogger(__name__)
 
 def _cache_key(workspace_id: int, question_hash: str, response_style: str, evidence_fp: str) -> str:
     import hashlib
+
     key = f"{workspace_id}|{question_hash}|{response_style}|{evidence_fp}"
     return hashlib.sha256(key.encode("utf-8")).hexdigest()[:48]
 
@@ -24,9 +25,13 @@ def get(
     evidence_fingerprint_hash: str,
 ) -> dict | None:
     """Return cached answer dict (text, citations, confidence) or None."""
-    ck = _cache_key(workspace_id, question_normalized_hash, response_style, evidence_fingerprint_hash)
+    ck = _cache_key(
+        workspace_id, question_normalized_hash, response_style, evidence_fingerprint_hash
+    )
     row = db.execute(
-        text("SELECT answer_text, citations, confidence FROM answer_cache WHERE workspace_id = :ws AND cache_key = :ck"),
+        text(
+            "SELECT answer_text, citations, confidence FROM answer_cache WHERE workspace_id = :ws AND cache_key = :ck"
+        ),
         {"ws": workspace_id, "ck": ck},
     ).fetchone()
     if not row:
@@ -51,7 +56,9 @@ def set(
     confidence: int,
 ) -> None:
     """Upsert one answer cache entry."""
-    ck = _cache_key(workspace_id, question_normalized_hash, response_style, evidence_fingerprint_hash)
+    ck = _cache_key(
+        workspace_id, question_normalized_hash, response_style, evidence_fingerprint_hash
+    )
     citations_json = json.dumps(citations) if citations else "[]"
     db.execute(
         text("""

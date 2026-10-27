@@ -93,10 +93,15 @@ class TestCredentialStoreService:
             db.commit()
 
             from app.models.credential_store import CredentialStore
-            row = db.query(CredentialStore).filter(
-                CredentialStore.workspace_id == ws.id,
-                CredentialStore.source_type == "test_rot",
-            ).first()
+
+            row = (
+                db.query(CredentialStore)
+                .filter(
+                    CredentialStore.workspace_id == ws.id,
+                    CredentialStore.source_type == "test_rot",
+                )
+                .first()
+            )
             row.last_rotated_at = datetime.now(timezone.utc) - timedelta(days=2)
             db.commit()
 
@@ -120,31 +125,40 @@ class TestCredentialStoreService:
 
 class TestCredentialStoreAPI:
     def test_store_credential(self, admin_client):
-        r = admin_client.post("/api/credentials", json={
-            "source_type": "slack",
-            "credential_type": "bot_token",
-            "value": "xoxb-api-test",
-        })
+        r = admin_client.post(
+            "/api/credentials",
+            json={
+                "source_type": "slack",
+                "credential_type": "bot_token",
+                "value": "xoxb-api-test",
+            },
+        )
         assert r.status_code == 200
         assert r.json()["source_type"] == "slack"
         assert "value" not in r.json()
 
     def test_list_credentials(self, admin_client):
-        admin_client.post("/api/credentials", json={
-            "source_type": "api_test_list",
-            "credential_type": "key",
-            "value": "secret123",
-        })
+        admin_client.post(
+            "/api/credentials",
+            json={
+                "source_type": "api_test_list",
+                "credential_type": "key",
+                "value": "secret123",
+            },
+        )
         r = admin_client.get("/api/credentials")
         assert r.status_code == 200
         assert "credentials" in r.json()
 
     def test_revoke_credential(self, admin_client):
-        admin_client.post("/api/credentials", json={
-            "source_type": "revoke_test",
-            "credential_type": "token",
-            "value": "to-revoke",
-        })
+        admin_client.post(
+            "/api/credentials",
+            json={
+                "source_type": "revoke_test",
+                "credential_type": "token",
+                "value": "to-revoke",
+            },
+        )
         r = admin_client.delete("/api/credentials/revoke_test/token")
         assert r.status_code == 200
         assert r.json()["revoked"] is True
@@ -160,17 +174,23 @@ class TestCredentialStoreAPI:
         assert "credentials" in r.json()
 
     def test_editor_cannot_store(self, editor_client):
-        r = editor_client.post("/api/credentials", json={
-            "source_type": "slack",
-            "credential_type": "token",
-            "value": "nope",
-        })
+        r = editor_client.post(
+            "/api/credentials",
+            json={
+                "source_type": "slack",
+                "credential_type": "token",
+                "value": "nope",
+            },
+        )
         assert r.status_code == 403
 
     def test_empty_value_rejected(self, admin_client):
-        r = admin_client.post("/api/credentials", json={
-            "source_type": "empty",
-            "credential_type": "key",
-            "value": "  ",
-        })
+        r = admin_client.post(
+            "/api/credentials",
+            json={
+                "source_type": "empty",
+                "credential_type": "key",
+                "value": "  ",
+            },
+        )
         assert r.status_code == 400

@@ -2,7 +2,7 @@
 
 from datetime import datetime
 
-from sqlalchemy import Column, DateTime, ForeignKey, Integer, String, Text
+from sqlalchemy import Column, DateTime, ForeignKey, Integer, String, Text  # noqa: F401
 
 from app.core.database import Base
 
@@ -13,8 +13,12 @@ class ExportRecord(Base):
     __tablename__ = "export_records"
 
     id = Column(Integer, primary_key=True, index=True)
-    workspace_id = Column(Integer, ForeignKey("workspaces.id", ondelete="CASCADE"), nullable=False, index=True)
-    questionnaire_id = Column(Integer, ForeignKey("questionnaires.id", ondelete="SET NULL"), nullable=True)
+    workspace_id = Column(
+        Integer, ForeignKey("workspaces.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    questionnaire_id = Column(
+        Integer, ForeignKey("questionnaires.id", ondelete="SET NULL"), nullable=True
+    )
     storage_key = Column(String(512), nullable=False)
     filename = Column(String(255), nullable=False)
     status = Column(String(32), default="completed")

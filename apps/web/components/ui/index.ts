@@ -3,7 +3,13 @@ export { Card } from './Card'
 export { EmptyState } from './EmptyState'
 export { Input } from './Input'
 export { Modal } from './Modal'
-export { Skeleton, DocumentListSkeleton, QuestionnaireListSkeleton, ListSkeleton, TableSkeleton } from './Skeleton'
+export {
+  Skeleton,
+  DocumentListSkeleton,
+  QuestionnaireListSkeleton,
+  ListSkeleton,
+  TableSkeleton,
+} from './Skeleton'
 export { Spinner } from './Spinner'
 export { RouteProgress } from './RouteProgress'
 export { Toast } from './Toast'
