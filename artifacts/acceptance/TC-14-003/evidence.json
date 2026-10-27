@@ -1,6 +1,6 @@
 {
   "ticket": "TC-14-003",
-  "commit": "7712621f5a128d79aa23cc148ee3f53c9a31476b",
+  "commit": "d16b472d305bea8d26d4c29964ad3cc9c8536d54",
   "branch": "tc/web/TC-14-003",
   "base": "master",
   "stacked_on": "tc/web/TC-14-001",
@@ -19,25 +19,31 @@
     {
       "command": "npm run test:unit",
       "exit_status": 0,
-      "files": 4,
-      "passed": 21,
+      "files": 5,
+      "passed": 23,
       "failed": 0,
       "skipped": 0
     },
     {
       "command": "npx playwright test e2e/release/dialog-toast.spec.ts --retries=0",
       "exit_status": 0,
-      "passed": 5,
+      "passed": 7,
       "failed": 0,
       "skipped": 0,
-      "duration_s": 23.1
+      "duration_s": 34.7
     }
   ],
   "axe": {
     "violation_count": 0,
     "themes": ["dark", "light"],
     "viewports": [360, 768, 1440],
-    "states": ["dialog", "confirm", "toast"]
+    "states": ["dialog", "confirm", "toast"],
+    "reports": 18
+  },
+  "toast_policy": {
+    "status_dismiss_ms": 4000,
+    "action_toast": "no auto-dismiss",
+    "error": "sticky"
   },
   "screenshots": 12,
   "synthetic_data_only": true
