@@ -1,6 +1,6 @@
 """Subscription model for Stripe billing."""
 
-from sqlalchemy import Column, DateTime, Integer, String
+from sqlalchemy import BigInteger, Column, DateTime, Integer, String
 from sqlalchemy.sql import func
 
 from app.core.database import Base
@@ -21,5 +21,10 @@ class Subscription(Base):
     current_period_start = Column(DateTime(timezone=True), nullable=True)
     current_period_end = Column(DateTime(timezone=True), nullable=True)
     cancel_at_period_end = Column(Integer, nullable=False, default=0)
+    # Newest applied Stripe event. Ordering rule: app.services.billing_provider.
+    stripe_event_created = Column(BigInteger, nullable=True)
+    stripe_event_type = Column(String(128), nullable=True)
+    # Set when customer.subscription.deleted has been applied for this id.
+    stripe_terminal_event_created = Column(BigInteger, nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
