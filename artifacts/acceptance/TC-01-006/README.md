@@ -15,4 +15,4 @@ Verification is a manual evidence review, as the ticket specifies. The facts cit
 
 - The person behind "Owner/seller" is Johnathan, per the coordinator brief.
 - OD-10 (retention) was added because PRODUCT_SPEC requires owner and counsel approval. It was not in the brief's list.
-- All Owner decisions are PENDING. This PR records them and does not decide them.
+- OD-2 (PyMuPDF license path) is DECIDED 2026-10-27: replace with a permissive library (implemented as TC-01-003a by Core). OD-1 (chain of title) is an OWNER STATEMENT 2026-10-27: the owner states they wrote the entire codebase personally, on their own time and equipment, with no employer involvement; a signed declaration is still needed at closing (TC-01-002). The other Owner decisions remain PENDING.

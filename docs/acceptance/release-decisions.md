@@ -1,6 +1,6 @@
 # Release decisions and change control (TC-01-006)
 
-Status: **ACTIVE**. Baseline: `c20f949`. Adopted 2026-10-27 by the Trust Copilot Coordinator. The Owner/seller decision entries below are **pending** the Owner/seller.
+Status: **ACTIVE**. Baseline: `c20f949`. Adopted 2026-10-27 by the Trust Copilot Coordinator. OD-2 is decided (2026-10-27). OD-1 is an owner statement (2026-10-27) and still needs a signed declaration. The other Owner/seller entries below are **pending**.
 
 The ticket file proposes the name `docs/acceptance/decision-control.md`. This repo uses the coordinator brief's name, `release-decisions.md`, which covers the same scope. `decision-control.md` should be read as an alias for this file.
 
@@ -38,14 +38,14 @@ Escalation: implementing agents ask the **Coordinator**, not the Owner. The Coor
    - Anything that adds spend, needs a new account, touches rights or legal text, changes pricing or buyer terms, or moves an out-of-scope item (scope-freeze §7) into scope needs an **Owner decision** first.
 5. **Record.** Every scope or technical ruling is recorded in §4 with date, owner, and the affected tickets. Owner decisions are recorded in §3.
 
-## 3. Pending Owner/seller decisions log
+## 3. Owner/seller decisions log
 
-None of these are decided yet. Engineering continues where §5 of each row allows. The gated items cannot be marked release-qualified until the decision is recorded here with a date.
+OD-2 is **DECIDED 2026-10-27**. OD-1 is an **OWNER STATEMENT 2026-10-27**; a signed declaration is still needed at closing (TC-01-002). The other rows are not decided yet. Engineering continues where §5 of each row allows. A gated item cannot be marked release-qualified until its decision is recorded here with a date.
 
 | # | Decision | Owner | Why it is needed / current state at baseline | Blocks (tickets / gate) | Status |
 |---|---|---|---|---|---|
-| OD-1 | **Chain of title**: confirm sole authorship or assignments for all code and assets, including AI-assisted and contractor work | Owner/seller | Required for any sale. No inventory exists yet. | TC-01-002 → TC-01-003/004, TC-29-006, TC-30-004; **G0, G5** | PENDING |
-| OD-2 | **PyMuPDF license path**: buy an Artifex commercial license, accept AGPL obligations, or replace it (e.g. pypdf/pdfplumber) | Owner/seller (cost and legal), with Coordinator technical input | `apps/api/pyproject.toml:27` depends on `pymupdf` (AGPL-3.0 or commercial), used in `services/evidence_parser.py` and `services/pdf_questionnaire_parser.py` | TC-01-003, TC-02-002, TC-09-007/008, TC-01-004; **G0, G5**. Per scope-freeze R4, engineering may start behind an interface. | PENDING |
+| OD-1 | **Chain of title**: confirm sole authorship or assignments for all code and assets, including AI-assisted and contractor work | Owner/seller | Owner statement 2026-10-27: the owner states they wrote the entire codebase personally, on their own time and equipment, with no employer involvement. A signed declaration is still needed at closing (TC-01-002). | TC-01-002 → TC-01-003/004, TC-29-006, TC-30-004; **G0, G5** | OWNER STATEMENT 2026-10-27 |
+| OD-2 | **PyMuPDF license path**: buy an Artifex commercial license, accept AGPL obligations, or replace it (e.g. pypdf/pdfplumber) | Owner/seller (cost and legal), with Coordinator technical input | Decided 2026-10-27: replace with a permissive library (implemented as TC-01-003a by Core). Baseline: `apps/api/pyproject.toml:27` depends on `pymupdf` (AGPL-3.0 or commercial), used in `services/evidence_parser.py` and `services/pdf_questionnaire_parser.py`. | TC-01-003, TC-02-002, TC-09-007/008, TC-01-004; **G0, G5**. Per scope-freeze R4, engineering may start behind an interface. | DECIDED 2026-10-27 |
 | OD-3 | **Framework content rights** for SOC 2, HIPAA, ISO 27001, NIST CSF 2, NIST 800-53 r5, NIST 800-171 r3, SIG, CAIQ, HITRUST: what may ship (licensed text, public-domain, reference IDs only) | Owner/seller | Several catalogs are proprietary. New ticket **TC-01-007** (scope-freeze R3). | TC-01-007 → TC-21-001, TC-21-014..022; **G0, G5** | PENDING |
 | OD-4 | **HRIS vendor** for the one concrete HRIS adapter | Owner/seller (account and cost), Coordinator (technical shortlist) | The generic `hris` collector in `cloud_connector_service.py` has no real vendor. | TC-20-005 → TC-20-006/007 | PENDING |
 | OD-5 | **Provider sandbox accounts** (AWS, GCP, Azure, GitHub org, GitLab, Okta, Google Workspace, Jira, Slack, Gmail OAuth verification, Salesforce, HubSpot, Microsoft/Google/GitHub/OIDC/ID.me login, Stripe) | Owner/seller | Real-provider tickets need sandbox evidence. Without accounts they are BLOCKED, never passed. Buyer-transferable ownership is preferred (TC-30-001). | E05, E19, E20, E24 qualification tickets | PENDING |
