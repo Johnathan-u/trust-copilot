@@ -45,7 +45,7 @@ def sweep_env(db_session: Session):
     db_session.commit()
     created_q: list[int] = []
 
-    def add_draft(subject: str, cited_doc_ids: list[int | None]) -> int:
+    def add_draft(subject: str, cited_doc_ids: list[int | None], *, updated_at=None) -> int:
         q = Question(questionnaire_id=qnr.id, text=f"Synthetic question {len(created_q)} {tag}?")
         db_session.add(q)
         db_session.flush()
@@ -54,16 +54,19 @@ def sweep_env(db_session: Session):
             {"chunk_id": None, "snippet": "Synthetic snippet.", "document_id": did}
             for did in cited_doc_ids
         ]
-        db_session.add(
-            Answer(
-                question_id=q.id,
-                text="Yes. Privileged accounts are reviewed quarterly (synthetic).",
-                status="draft",
-                confidence=80,
-                citations=json.dumps(cits),
-                primary_categories_json=json.dumps({"subjects": [subject]}),
-            )
+        row = Answer(
+            question_id=q.id,
+            text="Yes. Privileged accounts are reviewed quarterly (synthetic).",
+            status="draft",
+            confidence=80,
+            citations=json.dumps(cits),
+            primary_categories_json=json.dumps({"subjects": [subject]}),
         )
+        if updated_at is not None:
+            # Set on insert so the column onupdate does not overwrite a chosen timestamp.
+            row.created_at = updated_at
+            row.updated_at = updated_at
+        db_session.add(row)
         db_session.commit()
         return q.id
 
@@ -133,3 +136,43 @@ def test_existing_rules_unchanged(db_session, sweep_env):
     assert _sweep_draft_insufficient_narratives(db_session, sweep_env.qnr_id) == 1
     a = sweep_env.answer(qid)
     assert a.status == "insufficient_evidence" and a.insufficient_reason == "no_citations"
+
+
+def test_direct_evidence_sweep_skips_guarded_and_stale_answers(db_session, sweep_env):
+    """TC-10-003: the direct-evidence sweep does not overwrite a protected or stale draft.
+
+    A question already in ``protected_qids``, and a draft newer than the guard cutoff that this
+    run did not write, stay ``draft``. A draft this run wrote is still reclassified, even though
+    its ``updated_at`` is after the cutoff.
+    """
+    from datetime import datetime, timedelta
+
+    from app.services.answer_generation import AnswerWriteGuard
+
+    cutoff = datetime(2026, 10, 27, 12, 0, 0)
+    newer = cutoff + timedelta(minutes=5)
+    older = cutoff - timedelta(minutes=5)
+    listed_qid = sweep_env.add_draft(DIRECT_SUBJECT, [sweep_env.export_like], updated_at=older)
+    stale_qid = sweep_env.add_draft(DIRECT_SUBJECT, [sweep_env.export_like], updated_at=newer)
+    own_qid = sweep_env.add_draft(DIRECT_SUBJECT, [sweep_env.export_like], updated_at=newer)
+    plain_qid = sweep_env.add_draft(DIRECT_SUBJECT, [sweep_env.export_like], updated_at=older)
+
+    guard = AnswerWriteGuard(cutoff)
+    guard.protected_qids.add(listed_qid)
+    guard.written.add(own_qid)
+    assert guard.is_protected(sweep_env.answer(stale_qid))
+    assert not guard.is_protected(sweep_env.answer(plain_qid))
+
+    assert _sweep_draft_insufficient_narratives(db_session, sweep_env.qnr_id, guard=guard) == 2
+
+    listed = sweep_env.answer(listed_qid)
+    stale = sweep_env.answer(stale_qid)
+    assert listed.status == "draft" and listed.insufficient_reason is None
+    assert listed.confidence == 80
+    assert stale.status == "draft" and stale.insufficient_reason is None
+    assert stale.confidence == 80
+    assert stale_qid in guard.protected_qids
+    for qid in (own_qid, plain_qid):
+        swept = sweep_env.answer(qid)
+        assert swept.status == "insufficient_evidence"
+        assert swept.insufficient_reason == "direct_evidence_required:privileged_access"

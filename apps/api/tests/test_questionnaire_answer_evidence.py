@@ -83,6 +83,10 @@ def owned_qnr(db_session: Session):
     result depended on what earlier tests had committed (they failed or skipped depending on order). Every row
     here is created fresh with a unique tag and removed afterwards, so the tests pass alone, in any order and
     after the full suite.
+
+    TC-10-003 (#28) needs the same isolation: one unprotected question (no pre-existing answer) so the write
+    guard does not skip it, and a single question so the one-vector embed stub matches. This fixture is the
+    only one; tests from both changes use it.
     """
     from app.models import Question
 
@@ -172,7 +176,12 @@ def test_patch_answer_evidence_api_contract(client, owned_qnr):
 
 
 def test_generate_answers_passes_document_ids_to_retrieval(db_session: Session, owned_qnr):
-    """generate_answers_for_questionnaire passes scoped document_ids into retrieval batch_search."""
+    """generate_answers_for_questionnaire passes scoped document_ids into retrieval batch_search.
+
+    Uses the single ``owned_qnr`` fixture (one unprotected question). TC-10-003 skips approved answers,
+    and an unordered ``.first()`` row may be fully approved or have several questions (the embed stub is
+    one vector).
+    """
     from app.services.answer_generation import generate_answers_for_questionnaire
 
     qnr = db_session.get(Questionnaire, owned_qnr.qnr_id)

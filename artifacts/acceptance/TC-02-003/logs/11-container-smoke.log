@@ -1,0 +1,7 @@
+GET /login 200
+GET /dashboard 307 /login?next=%2Fdashboard
+▲ Next.js 16.4.3
+- Local:         http://localhost:3000
+- Network:       http://0.0.0.0:3000
+✓ Ready in 0ms
+✓ Running next.config took 1.1ms
