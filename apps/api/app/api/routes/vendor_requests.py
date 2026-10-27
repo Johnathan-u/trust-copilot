@@ -4,11 +4,12 @@ import secrets
 
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.core.auth_deps import require_can_admin, require_can_review
 from app.core.database import get_db
-from app.models import VendorRequest
+from app.models import Questionnaire, VendorRequest
 from app.models.vendor_request import VENDOR_REQUEST_STATUSES
 
 router = APIRouter(prefix="/vendor-requests", tags=["vendor-requests"])
@@ -22,6 +23,27 @@ class VendorRequestCreate(BaseModel):
 
 class VendorRequestUpdate(BaseModel):
     status: str | None = None
+
+
+# Same status and body for "no such questionnaire" and "questionnaire in another workspace",
+# so the response never reveals whether an id exists elsewhere (TC-06-BUG-011, TC-02-BUG-010).
+QUESTIONNAIRE_NOT_FOUND = "Questionnaire not found"
+
+
+def _require_workspace_questionnaire(db: Session, ws: int, questionnaire_id: int) -> int:
+    """Return questionnaire_id if it is a live questionnaire in workspace ws, else raise 404."""
+    found = (
+        db.query(Questionnaire.id)
+        .filter(
+            Questionnaire.id == questionnaire_id,
+            Questionnaire.workspace_id == ws,
+            Questionnaire.deleted_at.is_(None),
+        )
+        .first()
+    )
+    if found is None:
+        raise HTTPException(status_code=404, detail=QUESTIONNAIRE_NOT_FOUND)
+    return questionnaire_id
 
 
 def _to_dict(v: VendorRequest) -> dict:
@@ -69,17 +91,27 @@ def create_vendor_request(
     email = (body.vendor_email or "").strip().lower()
     if not email:
         raise HTTPException(status_code=400, detail="vendor_email is required")
+    questionnaire_id = None
+    if body.questionnaire_id is not None:
+        questionnaire_id = _require_workspace_questionnaire(db, ws, body.questionnaire_id)
     link_token = secrets.token_urlsafe(32)
     v = VendorRequest(
         workspace_id=ws,
         vendor_email=email,
-        questionnaire_id=body.questionnaire_id,
+        questionnaire_id=questionnaire_id,
         message=body.message,
         status="pending",
         link_token=link_token,
     )
     db.add(v)
-    db.commit()
+    try:
+        db.commit()
+    except IntegrityError:
+        # The questionnaire was hard-deleted between the check and the insert (FK violation).
+        db.rollback()
+        if questionnaire_id is None:
+            raise
+        raise HTTPException(status_code=404, detail=QUESTIONNAIRE_NOT_FOUND) from None
     db.refresh(v)
     d = _to_dict(v)
     d["share_url"] = f"/vendor-response?token={link_token}"
