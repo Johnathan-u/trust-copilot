@@ -466,8 +466,8 @@ def test_key_purpose_seam_does_not_carry_secret_material():
 
 
 def test_authentication_does_not_echo_secrets_or_claim_provider_success():
-    secret_key = "AKIA_LOCAL_SHAPE_ONLY"
-    secret_value = "local-shape-secret"
+    secret_key = "example-local-shape-key"
+    secret_value = "example-local-shape-value"
     present = aws.authenticate_aws(secret_key, secret_value, workspace_id=1)
     blob = json.dumps(present)
     assert secret_key not in blob

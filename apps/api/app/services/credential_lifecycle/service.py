@@ -61,7 +61,7 @@ def _find(
         )
     if lock:
         query = query.with_for_update()
-    return query.order_by(CredentialStore.id.desc()).first()
+    return query.order_by(CredentialStore.id.asc()).first()
 
 
 def _privilege(source_type: str, action: str) -> dict:

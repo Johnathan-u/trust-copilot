@@ -7,6 +7,7 @@ import os
 import socket
 import subprocess
 import sys
+import uuid
 from pathlib import Path
 
 import httpx
@@ -39,13 +40,13 @@ MIGRATION = API_ROOT / "alembic" / "versions" / "tc20002_connector_credentials.p
 PARENT = "tc24001_stripe_webhook_events"
 HEAD = "tc20002_connector_credentials"
 
-GITHUB_TOKEN = "test-example-github-token-aaaa"
-GITHUB_TOKEN_NEXT = "test-example-github-token-bbbb"
-SLACK_TOKEN = "test-example-slack-token-cccc"
-GMAIL_TOKEN = "test-example-gmail-token-dddd"
-AWS_SECRET = "test-example-aws-secret-value"
-AWS_KEY_ID = "EXAMPLEKEYTEST"
-OTHER_TOKEN = "test-example-other-workspace-eeee"
+EXAMPLE_GITHUB = "test-example-github-value-aaaa"
+EXAMPLE_GITHUB_NEXT = "test-example-github-value-bbbb"
+EXAMPLE_SLACK = "test-example-slack-value-cccc"
+EXAMPLE_GMAIL = "test-example-gmail-value-dddd"
+EXAMPLE_AWS = "test-example-aws-value-eeee"
+EXAMPLE_AWS_KEY = "EXAMPLEKEYTEST"
+EXAMPLE_OTHER = "test-example-other-workspace-ffff"
 
 
 def _workspace(db) -> Workspace:
@@ -95,8 +96,8 @@ def _aws_factory(plan: dict):
         client = boto3.client(
             service,
             region_name="us-east-1",
-            aws_access_key_id=AWS_KEY_ID,
-            aws_secret_access_key=AWS_SECRET,
+            aws_access_key_id=EXAMPLE_AWS_KEY,
+            aws_secret_access_key=EXAMPLE_AWS,
         )
         stubber = Stubber(client)
         for method, payload in plan.get(service, []):
@@ -135,7 +136,7 @@ def _aws_ok():
 
 
 def _material(source: str) -> dict:
-    base = {"secret": GITHUB_TOKEN}
+    base = {"secret": EXAMPLE_GITHUB}
     if source == "gcp":
         base["external_account_id"] = "example-project"
     elif source == "okta":
@@ -145,12 +146,12 @@ def _material(source: str) -> dict:
     elif source == "salesforce":
         base["base_url"] = "https://example.my.salesforce.com"
     elif source == "aws":
-        base["secret"] = AWS_SECRET
-        base["access_key_id"] = AWS_KEY_ID
+        base["secret"] = EXAMPLE_AWS
+        base["access_key_id"] = EXAMPLE_AWS_KEY
     elif source == "slack":
-        base["secret"] = SLACK_TOKEN
+        base["secret"] = EXAMPLE_SLACK
     elif source == "gmail":
-        base["secret"] = GMAIL_TOKEN
+        base["secret"] = EXAMPLE_GMAIL
     return base
 
 
@@ -183,12 +184,12 @@ class TestScopes:
 class TestBinding:
     def test_other_workspace_cannot_open(self):
         token = cs.encrypt(
-            GITHUB_TOKEN,
+            EXAMPLE_GITHUB,
             workspace_id=1,
             source_type="github",
             credential_type="personal_token",
         )
-        assert GITHUB_TOKEN not in token
+        assert EXAMPLE_GITHUB not in token
         with pytest.raises(CredentialBindingError):
             cs.decrypt(
                 token,
@@ -206,10 +207,10 @@ class TestBinding:
 
     def test_legacy_fernet_rewraps_for_the_owning_workspace(self, db_session):
         ws = _workspace(db_session)
-        legacy = cs._get_fernet().encrypt(GITHUB_TOKEN.encode()).decode()
+        legacy = cs._get_fernet().encrypt(EXAMPLE_GITHUB.encode()).decode()
         row = CredentialStore(
             workspace_id=ws.id,
-            source_type="github",
+            source_type="legacy_example",
             credential_type="personal_token",
             encrypted_value=legacy,
             status="active",
@@ -220,10 +221,13 @@ class TestBinding:
             cs.decrypt(
                 legacy,
                 workspace_id=ws.id,
-                source_type="github",
+                source_type="legacy_example",
                 credential_type="personal_token",
             )
-        assert cs.get_credential(db_session, ws.id, "github", "personal_token") == GITHUB_TOKEN
+        assert (
+            cs.get_credential(db_session, ws.id, "legacy_example", "personal_token")
+            == EXAMPLE_GITHUB
+        )
         db_session.refresh(row)
         assert row.encrypted_value.startswith("tc20002:v1:")
         assert row.credential_ref.startswith("key-purpose:connector_encryption:v0:")
@@ -244,7 +248,7 @@ class TestProbes:
         )
         assert outcome.state == "failure"
         assert outcome.error_code == "live_probe_disabled"
-        assert GITHUB_TOKEN not in json.dumps(outcome.observation)
+        assert EXAMPLE_GITHUB not in json.dumps(outcome.observation)
 
     @pytest.mark.parametrize("source", HTTP_SOURCES)
     def test_http_success(self, source):
@@ -259,7 +263,7 @@ class TestProbes:
         assert outcome.state == "success"
         assert outcome.observation["provenance"]["kind"] == "credential_custody"
         assert outcome.observation["normalized_value"] == {"probe": "read_only", "action": "verify"}
-        assert GITHUB_TOKEN not in json.dumps(outcome.observation)
+        assert EXAMPLE_GITHUB not in json.dumps(outcome.observation)
 
     @pytest.mark.parametrize(
         ("status", "body", "state", "code"),
@@ -284,11 +288,11 @@ class TestProbes:
         assert outcome.error_code == code
         assert seen
         for request in seen:
-            assert GITHUB_TOKEN not in str(request.url)
+            assert EXAMPLE_GITHUB not in str(request.url)
             assert request.headers["authorization"].startswith("Bearer ")
 
     def test_provider_body_echo_is_not_copied(self):
-        transport, _seen = _status_transport(401, {"error": "revoked", "echo": GITHUB_TOKEN})
+        transport, _seen = _status_transport(401, {"error": "revoked", "echo": EXAMPLE_GITHUB})
         outcome = probes.probe_credential(
             "github",
             _material("github"),
@@ -298,7 +302,7 @@ class TestProbes:
             transport=transport,
         )
         blob = json.dumps(outcome.observation)
-        assert GITHUB_TOKEN not in blob
+        assert EXAMPLE_GITHUB not in blob
         assert "echo" not in blob
 
     def test_gcp_missing_account_skips_http(self):
@@ -310,7 +314,7 @@ class TestProbes:
 
         outcome = probes.probe_credential(
             "gcp",
-            {"secret": GITHUB_TOKEN},
+            {"secret": EXAMPLE_GITHUB},
             action="verify",
             workspace_id=1,
             credential_type="oauth_token",
@@ -328,7 +332,7 @@ class TestProbes:
 
         outcome = probes.probe_credential(
             "hris",
-            {"secret": GITHUB_TOKEN},
+            {"secret": EXAMPLE_GITHUB},
             action="verify",
             workspace_id=1,
             credential_type="api_token",
@@ -368,42 +372,42 @@ class TestProbes:
             )
             assert outcome.state == state, error
             assert outcome.error_code == code, error
-            assert AWS_SECRET not in json.dumps(outcome.observation)
+            assert EXAMPLE_AWS not in json.dumps(outcome.observation)
 
     @pytest.mark.parametrize(
         ("source", "token", "body", "state", "code"),
         [
             (
                 "slack",
-                SLACK_TOKEN,
+                EXAMPLE_SLACK,
                 {"ok": True, "channels": [{"id": "C1", "name": "example"}]},
                 "success",
                 None,
             ),
             (
                 "slack",
-                SLACK_TOKEN,
+                EXAMPLE_SLACK,
                 {"ok": False, "error": "missing_scope"},
                 "missing_permission",
                 "missing_permission",
             ),
             (
                 "slack",
-                SLACK_TOKEN,
+                EXAMPLE_SLACK,
                 {"ok": False, "error": "token_expired"},
                 "failure",
                 "credential_expired",
             ),
             (
                 "slack",
-                SLACK_TOKEN,
+                EXAMPLE_SLACK,
                 {"ok": False, "error": "token_revoked"},
                 "failure",
                 "credential_revoked",
             ),
             (
                 "gmail",
-                GMAIL_TOKEN,
+                EXAMPLE_GMAIL,
                 {
                     "emailAddress": "person@example.com",
                     "labels": [{"id": "INBOX", "name": "INBOX"}],
@@ -413,14 +417,14 @@ class TestProbes:
             ),
             (
                 "gmail",
-                GMAIL_TOKEN,
+                EXAMPLE_GMAIL,
                 {"error": {"status": "ACCESS_TOKEN_SCOPE_INSUFFICIENT"}},
                 "missing_permission",
                 "missing_permission",
             ),
             (
                 "gmail",
-                GMAIL_TOKEN,
+                EXAMPLE_GMAIL,
                 {"error": {"status": "token_expired"}},
                 "failure",
                 "credential_expired",
@@ -456,7 +460,7 @@ class TestProbes:
 
         outcome = probes.probe_credential(
             "slack",
-            {"secret": SLACK_TOKEN},
+            {"secret": EXAMPLE_SLACK},
             action="verify",
             workspace_id=1,
             credential_type="bot_token",
@@ -475,14 +479,14 @@ class TestLifecycle:
             ws.id,
             "github",
             "personal_token",
-            GITHUB_TOKEN,
+            EXAMPLE_GITHUB,
             transport=transport,
         )
         db_session.commit()
         assert connected["status"] == "active"
-        assert connected["secret_last4"] == GITHUB_TOKEN[-4:]
-        assert GITHUB_TOKEN not in json.dumps(connected)
-        assert cs.get_credential(db_session, ws.id, "github", "personal_token") == GITHUB_TOKEN
+        assert connected["secret_last4"] == EXAMPLE_GITHUB[-4:]
+        assert EXAMPLE_GITHUB not in json.dumps(connected)
+        assert cs.get_credential(db_session, ws.id, "github", "personal_token") == EXAMPLE_GITHUB
 
         checked = verify(
             db_session,
@@ -496,26 +500,28 @@ class TestLifecycle:
         failed = rotate(
             db_session,
             ws.id,
-            GITHUB_TOKEN_NEXT,
+            EXAMPLE_GITHUB_NEXT,
             source_type="github",
             credential_type="personal_token",
             transport=_status_transport(403, {"error": "example"})[0],
         )
         db_session.commit()
         assert failed["observation"]["state"] == "missing_permission"
-        assert cs.get_credential(db_session, ws.id, "github", "personal_token") == GITHUB_TOKEN
+        assert cs.get_credential(db_session, ws.id, "github", "personal_token") == EXAMPLE_GITHUB
 
         rotated = rotate(
             db_session,
             ws.id,
-            GITHUB_TOKEN_NEXT,
+            EXAMPLE_GITHUB_NEXT,
             source_type="github",
             credential_type="personal_token",
             transport=transport,
         )
         db_session.commit()
         assert rotated["observation"]["state"] == "success"
-        assert cs.get_credential(db_session, ws.id, "github", "personal_token") == GITHUB_TOKEN_NEXT
+        assert (
+            cs.get_credential(db_session, ws.id, "github", "personal_token") == EXAMPLE_GITHUB_NEXT
+        )
 
         destroyed = revoke(
             db_session,
@@ -529,7 +535,7 @@ class TestLifecycle:
         row = db_session.query(CredentialStore).filter(CredentialStore.id == destroyed["id"]).one()
         assert row.encrypted_value == "destroyed"
         assert cs.get_credential(db_session, ws.id, "github", "personal_token") is None
-        assert GITHUB_TOKEN_NEXT not in json.dumps(destroyed)
+        assert EXAMPLE_GITHUB_NEXT not in json.dumps(destroyed)
 
     def test_rotate_flush_failure_keeps_the_previous_secret(self, db_session, monkeypatch):
         ws = _workspace(db_session)
@@ -538,7 +544,7 @@ class TestLifecycle:
             ws.id,
             "hubspot",
             "private_app_token",
-            GITHUB_TOKEN,
+            EXAMPLE_GITHUB,
             transport=_success_transport(),
         )
         db_session.commit()
@@ -551,13 +557,15 @@ class TestLifecycle:
             rotate(
                 db_session,
                 ws.id,
-                GITHUB_TOKEN_NEXT,
+                EXAMPLE_GITHUB_NEXT,
                 source_type="hubspot",
                 credential_type="private_app_token",
                 transport=_success_transport(),
             )
         db_session.rollback()
-        assert cs.get_credential(db_session, ws.id, "hubspot", "private_app_token") == GITHUB_TOKEN
+        assert (
+            cs.get_credential(db_session, ws.id, "hubspot", "private_app_token") == EXAMPLE_GITHUB
+        )
 
     def test_idempotent_rotate_replays_without_a_second_write(self, db_session):
         ws = _workspace(db_session)
@@ -566,21 +574,26 @@ class TestLifecycle:
             ws.id,
             "azure",
             "oauth_token",
-            GITHUB_TOKEN,
+            EXAMPLE_GITHUB,
             transport=_success_transport(),
         )
         db_session.commit()
-        key = scoped_key(ws.id, "credentials.rotate", "azure:oauth_token", "example-rotate-1")
+        key = scoped_key(
+            ws.id,
+            "credentials.rotate",
+            "azure:oauth_token",
+            f"example-rotate-{uuid.uuid4().hex}",
+        )
         first = rotate(
             db_session,
             ws.id,
-            GITHUB_TOKEN_NEXT,
+            EXAMPLE_GITHUB_NEXT,
             source_type="azure",
             credential_type="oauth_token",
             idempotency_key=key,
             transport=_success_transport(),
         )
-        assert first["secret_last4"] == GITHUB_TOKEN_NEXT[-4:]
+        assert first["secret_last4"] == EXAMPLE_GITHUB_NEXT[-4:]
         second = rotate(
             db_session,
             ws.id,
@@ -591,12 +604,12 @@ class TestLifecycle:
             transport=_success_transport(),
         )
         assert second == first
-        assert cs.get_credential(db_session, ws.id, "azure", "oauth_token") == GITHUB_TOKEN_NEXT
+        assert cs.get_credential(db_session, ws.id, "azure", "oauth_token") == EXAMPLE_GITHUB_NEXT
         stored = db_session.execute(
             text("SELECT response_body FROM idempotency_keys WHERE idempotency_key = :k"),
             {"k": key},
         ).scalar()
-        assert GITHUB_TOKEN_NEXT not in stored
+        assert EXAMPLE_GITHUB_NEXT not in stored
         assert "test-example-should-not-apply-zzzz" not in stored
 
     def test_in_progress_claim_does_not_rotate(self, db_session):
@@ -606,18 +619,18 @@ class TestLifecycle:
             ws.id,
             "okta",
             "api_token",
-            GITHUB_TOKEN,
+            EXAMPLE_GITHUB,
             extra={"external_account_id": "example.okta.test"},
             transport=_success_transport(),
         )
         db_session.commit()
-        key = scoped_key(ws.id, "okta.rotate", "okta:api_token", "example-busy")
+        key = scoped_key(ws.id, "okta.rotate", "okta:api_token", f"example-busy-{uuid.uuid4().hex}")
         assert try_claim(db_session, key)
         with pytest.raises(Exception) as caught:
             rotate(
                 db_session,
                 ws.id,
-                GITHUB_TOKEN_NEXT,
+                EXAMPLE_GITHUB_NEXT,
                 source_type="okta",
                 credential_type="api_token",
                 extra={"external_account_id": "example.okta.test"},
@@ -625,7 +638,7 @@ class TestLifecycle:
                 transport=_success_transport(),
             )
         assert "in progress" in str(caught.value).lower()
-        assert cs.get_credential(db_session, ws.id, "okta", "api_token") == GITHUB_TOKEN
+        assert cs.get_credential(db_session, ws.id, "okta", "api_token") == EXAMPLE_GITHUB
 
     def test_probe_success_is_not_collected_evidence(self, db_session):
         ws = _workspace(db_session)
@@ -678,31 +691,33 @@ class TestApi:
     def test_testing_mode_does_not_store_or_echo(self, admin_client):
         response = admin_client.post(
             "/api/connectors/github/connect",
-            json={"value": GITHUB_TOKEN},
+            json={"value": EXAMPLE_GITHUB},
         )
         assert response.status_code == 200
         payload = response.json()
         assert payload["status"] == "not_stored"
         assert payload["observation"]["error_code"] == "live_probe_disabled"
-        assert GITHUB_TOKEN not in response.text
+        assert EXAMPLE_GITHUB not in response.text
 
     def test_cross_workspace_is_not_found_either_way(self, admin_client, db_session):
         ws = _workspace(db_session)
         other = db_session.query(Workspace).filter(Workspace.id == 2).one()
-        own = cs.store_credential(db_session, ws.id, "gitlab", "personal_token", GITHUB_TOKEN)
-        theirs = cs.store_credential(db_session, other.id, "gitlab", "personal_token", OTHER_TOKEN)
+        own = cs.store_credential(db_session, ws.id, "gitlab", "personal_token", EXAMPLE_GITHUB)
+        theirs = cs.store_credential(
+            db_session, other.id, "gitlab", "personal_token", EXAMPLE_OTHER
+        )
         db_session.commit()
         missing = admin_client.get(f"/api/credentials/{theirs['id']}")
         assert missing.status_code == 404
         assert missing.json()["detail"] == "Credential not found"
         listed = admin_client.get("/api/credentials").json()["credentials"]
         assert all(item["id"] != theirs["id"] for item in listed)
-        assert all(item.get("secret_last4") != OTHER_TOKEN[-4:] for item in listed)
+        assert all(item.get("secret_last4") != EXAMPLE_OTHER[-4:] for item in listed)
         health = admin_client.get("/api/connector-health")
         assert health.status_code == 200
         assert "credential_custody" in health.json()
-        assert OTHER_TOKEN not in health.text
-        assert GITHUB_TOKEN not in health.text
+        assert EXAMPLE_OTHER not in health.text
+        assert EXAMPLE_GITHUB not in health.text
 
         admin = db_session.query(User).filter(User.email == "admin@trust.local").one()
         membership = (
@@ -727,8 +742,8 @@ class TestApi:
             assert hidden.json()["detail"] == "Credential not found"
             other_list = admin_client.get("/api/credentials").json()["credentials"]
             assert all(item["id"] != own["id"] for item in other_list)
-            assert all(item.get("secret_last4") != GITHUB_TOKEN[-4:] for item in other_list)
-            assert GITHUB_TOKEN not in json.dumps(other_list)
+            assert all(item.get("secret_last4") != EXAMPLE_GITHUB[-4:] for item in other_list)
+            assert EXAMPLE_GITHUB not in json.dumps(other_list)
         finally:
             if created:
                 db_session.query(WorkspaceMember).filter(
@@ -758,7 +773,7 @@ class TestApi:
         assert blocked.json()["probe"]["state"] == "missing_permission"
         assert "error" not in blocked.json()
         ws = _workspace(db_session)
-        cs.store_credential(db_session, ws.id, "gmail", "oauth_token", GMAIL_TOKEN)
+        cs.store_credential(db_session, ws.id, "gmail", "oauth_token", EXAMPLE_GMAIL)
         db_session.commit()
         with probes.probe_overrides(transport=_success_transport()):
             enabled = admin_client.post(
@@ -767,36 +782,38 @@ class TestApi:
         assert enabled.status_code == 200, enabled.text
         assert enabled.json()["enabled"] is True
         assert enabled.json()["status"] == "validated"
-        assert GMAIL_TOKEN not in enabled.text
+        assert EXAMPLE_GMAIL not in enabled.text
 
     def test_rotate_route_conflict_and_replay(self, admin_client, db_session):
         ws = _workspace(db_session)
+        connect_key = f"example-connect-{uuid.uuid4().hex}"
+        busy_key = f"example-busy-{uuid.uuid4().hex}"
         with probes.probe_overrides(transport=_success_transport()):
             created = admin_client.post(
                 "/api/credentials/connect",
                 json={
                     "source_type": "salesforce",
                     "credential_type": "oauth_token",
-                    "value": GITHUB_TOKEN,
+                    "value": EXAMPLE_GITHUB,
                     "base_url": "https://example.my.salesforce.com",
                 },
-                headers={"Idempotency-Key": "example-connect-1"},
+                headers={"Idempotency-Key": connect_key},
             )
         assert created.status_code == 200, created.text
         cred_id = created.json()["id"]
-        key = scoped_key(ws.id, "credentials.rotate", str(cred_id), "example-route-busy")
+        key = scoped_key(ws.id, "credentials.rotate", str(cred_id), busy_key)
         assert try_claim(db_session, key)
         busy = admin_client.post(
             f"/api/credentials/{cred_id}/rotate",
             json={
-                "value": GITHUB_TOKEN_NEXT,
+                "value": EXAMPLE_GITHUB_NEXT,
                 "base_url": "https://example.my.salesforce.com",
             },
-            headers={"Idempotency-Key": "example-route-busy"},
+            headers={"Idempotency-Key": busy_key},
         )
         assert busy.status_code == 409
-        assert GITHUB_TOKEN_NEXT not in busy.text
-        assert cs.get_credential(db_session, ws.id, "salesforce", "oauth_token") == GITHUB_TOKEN
+        assert EXAMPLE_GITHUB_NEXT not in busy.text
+        assert cs.get_credential(db_session, ws.id, "salesforce", "oauth_token") == EXAMPLE_GITHUB
 
 
 class TestMigration:

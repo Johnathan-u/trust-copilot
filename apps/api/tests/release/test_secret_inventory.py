@@ -1041,7 +1041,21 @@ def test_credential_store_roundtrip_with_generated_secret(monkeypatch):
     get_settings.cache_clear()
     try:
         plain = secrets.token_urlsafe(16)
-        assert cs.decrypt(cs.encrypt(plain)) == plain
+        sealed = cs.encrypt(
+            plain,
+            workspace_id=1,
+            source_type="example",
+            credential_type="example",
+        )
+        assert (
+            cs.decrypt(
+                sealed,
+                workspace_id=1,
+                source_type="example",
+                credential_type="example",
+            )
+            == plain
+        )
     finally:
         get_settings.cache_clear()
 

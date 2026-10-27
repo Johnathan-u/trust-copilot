@@ -137,6 +137,7 @@ def store_credential(
             CredentialStore.source_type == source_type,
             CredentialStore.credential_type == credential_type,
         )
+        .order_by(CredentialStore.id.asc())
         .first()
     )
     now = datetime.now(timezone.utc)
@@ -201,6 +202,7 @@ def get_credential(
             CredentialStore.credential_type == credential_type,
             CredentialStore.status == "active",
         )
+        .order_by(CredentialStore.id.asc())
         .first()
     )
     if not row:
@@ -242,6 +244,7 @@ def revoke_credential(
             CredentialStore.source_type == source_type,
             CredentialStore.credential_type == credential_type,
         )
+        .order_by(CredentialStore.id.asc())
         .first()
     )
     if not row:
