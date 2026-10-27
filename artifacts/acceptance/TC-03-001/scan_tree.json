@@ -1,0 +1,281 @@
+{
+  "findings": [
+    {
+      "commit": "",
+      "kind": "Secret-named value in a config/deploy file (dev default)",
+      "line": 16,
+      "path": ".env.example",
+      "rule": "config-secret-review",
+      "severity": "review",
+      "source": "tree"
+    },
+    {
+      "commit": "",
+      "kind": "Low-entropy password embedded in a connection URL (dev default)",
+      "line": 19,
+      "path": ".env.example",
+      "rule": "url-credential-review",
+      "severity": "review",
+      "source": "tree"
+    },
+    {
+      "commit": "",
+      "kind": "Secret-named value in a config/deploy file (dev default)",
+      "line": 16,
+      "path": ".github/workflows/ci.yml",
+      "rule": "config-secret-review",
+      "severity": "review",
+      "source": "tree"
+    },
+    {
+      "commit": "",
+      "kind": "Low-entropy password embedded in a connection URL (dev default)",
+      "line": 61,
+      "path": ".github/workflows/ci.yml",
+      "rule": "url-credential-review",
+      "severity": "review",
+      "source": "tree"
+    },
+    {
+      "commit": "",
+      "kind": "Low-entropy password embedded in a connection URL (dev default)",
+      "line": 70,
+      "path": ".github/workflows/ci.yml",
+      "rule": "url-credential-review",
+      "severity": "review",
+      "source": "tree"
+    },
+    {
+      "commit": "",
+      "kind": "Low-entropy password embedded in a connection URL (dev default)",
+      "line": 81,
+      "path": ".github/workflows/ci.yml",
+      "rule": "url-credential-review",
+      "severity": "review",
+      "source": "tree"
+    },
+    {
+      "commit": "",
+      "kind": "Secret-named value in a config/deploy file (dev default)",
+      "line": 82,
+      "path": ".github/workflows/ci.yml",
+      "rule": "config-secret-review",
+      "severity": "review",
+      "source": "tree"
+    },
+    {
+      "commit": "",
+      "kind": "Low-entropy password embedded in a connection URL (dev default)",
+      "line": 3,
+      "path": "apps/api/alembic.ini",
+      "rule": "url-credential-review",
+      "severity": "review",
+      "source": "tree"
+    },
+    {
+      "commit": "",
+      "kind": "Low-entropy password embedded in a connection URL (dev default)",
+      "line": 79,
+      "path": "apps/api/app/core/config.py",
+      "rule": "url-credential-review",
+      "severity": "review",
+      "source": "tree"
+    },
+    {
+      "commit": "",
+      "kind": "Low-entropy password embedded in a connection URL (dev default)",
+      "line": 38,
+      "path": "apps/api/app/core/logging_config.py",
+      "rule": "url-credential-review",
+      "severity": "review",
+      "source": "tree"
+    },
+    {
+      "commit": "",
+      "kind": "Low-entropy password embedded in a connection URL (dev default)",
+      "line": 18,
+      "path": "apps/api/tests/conftest.py",
+      "rule": "url-credential-review",
+      "severity": "review",
+      "source": "tree"
+    },
+    {
+      "commit": "",
+      "kind": "Low-entropy literal for a secret-named variable (synthetic/dev default)",
+      "line": 24,
+      "path": "apps/api/tests/conftest.py",
+      "rule": "secret-literal-review",
+      "severity": "review",
+      "source": "tree"
+    },
+    {
+      "commit": "",
+      "kind": "Low-entropy literal for a secret-named variable (synthetic/dev default)",
+      "line": 25,
+      "path": "apps/api/tests/conftest.py",
+      "rule": "secret-literal-review",
+      "severity": "review",
+      "source": "tree"
+    },
+    {
+      "commit": "",
+      "kind": "Low-entropy literal for a secret-named variable (synthetic/dev default)",
+      "line": 48,
+      "path": "apps/api/tests/release/test_config_contract.py",
+      "rule": "secret-literal-review",
+      "severity": "review",
+      "source": "tree"
+    },
+    {
+      "commit": "",
+      "kind": "Low-entropy literal for a secret-named variable (synthetic/dev default)",
+      "line": 55,
+      "path": "apps/api/tests/release/test_config_contract.py",
+      "rule": "secret-literal-review",
+      "severity": "review",
+      "source": "tree"
+    },
+    {
+      "commit": "",
+      "kind": "Low-entropy literal for a secret-named variable (synthetic/dev default)",
+      "line": 271,
+      "path": "apps/api/tests/release/test_config_contract.py",
+      "rule": "secret-literal-review",
+      "severity": "review",
+      "source": "tree"
+    },
+    {
+      "commit": "",
+      "kind": "Low-entropy literal for a secret-named variable (synthetic/dev default)",
+      "line": 351,
+      "path": "apps/api/tests/release/test_config_contract.py",
+      "rule": "secret-literal-review",
+      "severity": "review",
+      "source": "tree"
+    },
+    {
+      "commit": "",
+      "kind": "Low-entropy password embedded in a connection URL (dev default)",
+      "line": 9,
+      "path": "package.json",
+      "rule": "url-credential-review",
+      "severity": "review",
+      "source": "tree"
+    },
+    {
+      "commit": "",
+      "kind": "Low-entropy password embedded in a connection URL (dev default)",
+      "line": 94,
+      "path": "scripts/dev-all.js",
+      "rule": "url-credential-review",
+      "severity": "review",
+      "source": "tree"
+    },
+    {
+      "commit": "",
+      "kind": "Low-entropy literal for a secret-named variable (synthetic/dev default)",
+      "line": 22,
+      "path": "scripts/e2e-run.js",
+      "rule": "secret-literal-review",
+      "severity": "review",
+      "source": "tree"
+    },
+    {
+      "commit": "",
+      "kind": "Low-entropy password embedded in a connection URL (dev default)",
+      "line": 29,
+      "path": "scripts/e2e-run.js",
+      "rule": "url-credential-review",
+      "severity": "review",
+      "source": "tree"
+    },
+    {
+      "commit": "",
+      "kind": "Low-entropy password embedded in a connection URL (dev default)",
+      "line": 13,
+      "path": "scripts/run-api-tests.ps1",
+      "rule": "url-credential-review",
+      "severity": "review",
+      "source": "tree"
+    },
+    {
+      "commit": "",
+      "kind": "Low-entropy password embedded in a connection URL (dev default)",
+      "line": 11,
+      "path": "scripts/run-api.js",
+      "rule": "url-credential-review",
+      "severity": "review",
+      "source": "tree"
+    },
+    {
+      "commit": "",
+      "kind": "Low-entropy password embedded in a connection URL (dev default)",
+      "line": 4,
+      "path": "scripts/run-migrations.ps1",
+      "rule": "url-credential-review",
+      "severity": "review",
+      "source": "tree"
+    },
+    {
+      "commit": "",
+      "kind": "Low-entropy password embedded in a connection URL (dev default)",
+      "line": 3,
+      "path": "scripts/seed-demo.ps1",
+      "rule": "url-credential-review",
+      "severity": "review",
+      "source": "tree"
+    },
+    {
+      "commit": "",
+      "kind": "Low-entropy literal for a secret-named variable (synthetic/dev default)",
+      "line": 5,
+      "path": "scripts/seed-demo.ps1",
+      "rule": "secret-literal-review",
+      "severity": "review",
+      "source": "tree"
+    },
+    {
+      "commit": "",
+      "kind": "Low-entropy literal for a secret-named variable (synthetic/dev default)",
+      "line": 6,
+      "path": "scripts/seed-demo.ps1",
+      "rule": "secret-literal-review",
+      "severity": "review",
+      "source": "tree"
+    },
+    {
+      "commit": "",
+      "kind": "Low-entropy password embedded in a connection URL (dev default)",
+      "line": 5,
+      "path": "scripts/seed-qa.ps1",
+      "rule": "url-credential-review",
+      "severity": "review",
+      "source": "tree"
+    },
+    {
+      "commit": "",
+      "kind": "Low-entropy literal for a secret-named variable (synthetic/dev default)",
+      "line": 7,
+      "path": "scripts/seed-qa.ps1",
+      "rule": "secret-literal-review",
+      "severity": "review",
+      "source": "tree"
+    },
+    {
+      "commit": "",
+      "kind": "Low-entropy literal for a secret-named variable (synthetic/dev default)",
+      "line": 8,
+      "path": "scripts/seed-qa.ps1",
+      "rule": "secret-literal-review",
+      "severity": "review",
+      "source": "tree"
+    }
+  ],
+  "summary": {
+    "block": 0,
+    "by_source_severity": {
+      "tree:review": 30
+    },
+    "total": 30
+  }
+}
