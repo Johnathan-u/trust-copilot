@@ -3,7 +3,7 @@
 import logging
 from typing import List
 
-from fastapi import APIRouter, Depends, HTTPException, Query, Request
+from fastapi import APIRouter, Depends, HTTPException, Query, Request  # noqa: F401
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
@@ -84,7 +84,7 @@ def add_document_tag(
     tag = resolve_tag(db, body.category, body.key, ws)
     if not tag:
         raise HTTPException(status_code=404, detail=f"Tag {body.category}/{body.key} not found")
-    dt = assign_tag(
+    dt = assign_tag(  # noqa: F841
         db,
         document_id=document_id,
         tag_id=tag.id,
@@ -160,6 +160,7 @@ def get_tags_by_chunks(
     if ws is None:
         raise HTTPException(status_code=403, detail="No workspace")
     from app.models import Chunk
+
     chunk_ids = body.chunk_ids[:100]
     chunks = db.query(Chunk).filter(Chunk.id.in_(chunk_ids), Chunk.workspace_id == ws).all()
     doc_ids = list({c.document_id for c in chunks if c.document_id})

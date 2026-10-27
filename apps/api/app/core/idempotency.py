@@ -72,7 +72,9 @@ def try_claim(db: Session, key: str, ttl_sec: int = _DEFAULT_TTL_SEC) -> bool:
         return False
 
 
-def set(db: Session, key: str, status_code: int, response_body: dict, ttl_sec: int = _DEFAULT_TTL_SEC) -> None:
+def set(
+    db: Session, key: str, status_code: int, response_body: dict, ttl_sec: int = _DEFAULT_TTL_SEC
+) -> None:
     """Store response for key. Call after successful handler execution. Updates existing row (from try_claim)."""
     if not _valid_key(key):
         return

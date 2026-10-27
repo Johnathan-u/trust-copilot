@@ -1,6 +1,6 @@
 """Job schemas."""
 
-from datetime import datetime
+from datetime import datetime  # noqa: F401
 
 
 def job_response(job) -> dict:

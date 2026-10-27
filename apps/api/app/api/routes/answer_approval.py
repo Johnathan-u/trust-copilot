@@ -25,7 +25,9 @@ class BulkApproveBody(BaseModel):
 
 
 @router.post("/assign-owner")
-async def assign_owner(body: AssignBody, session: dict = Depends(require_can_admin), db: Session = Depends(get_db)):
+async def assign_owner(
+    body: AssignBody, session: dict = Depends(require_can_admin), db: Session = Depends(get_db)
+):
     result = svc.assign_owner(db, body.golden_answer_id, body.user_id, session.get("user_id"))
     if not result:
         raise HTTPException(status_code=404)
@@ -34,7 +36,9 @@ async def assign_owner(body: AssignBody, session: dict = Depends(require_can_adm
 
 
 @router.post("/assign-reviewer")
-async def assign_reviewer(body: AssignBody, session: dict = Depends(require_can_admin), db: Session = Depends(get_db)):
+async def assign_reviewer(
+    body: AssignBody, session: dict = Depends(require_can_admin), db: Session = Depends(get_db)
+):
     result = svc.assign_reviewer(db, body.golden_answer_id, body.user_id, session.get("user_id"))
     if not result:
         raise HTTPException(status_code=404)
@@ -43,7 +47,9 @@ async def assign_reviewer(body: AssignBody, session: dict = Depends(require_can_
 
 
 @router.post("/{ga_id}/submit")
-async def submit_for_review(ga_id: int, session: dict = Depends(require_session), db: Session = Depends(get_db)):
+async def submit_for_review(
+    ga_id: int, session: dict = Depends(require_session), db: Session = Depends(get_db)
+):
     result = svc.submit_for_review(db, ga_id, session.get("user_id"))
     if not result:
         raise HTTPException(status_code=404)
@@ -54,7 +60,12 @@ async def submit_for_review(ga_id: int, session: dict = Depends(require_session)
 
 
 @router.post("/{ga_id}/approve")
-async def approve(ga_id: int, body: ReviewActionBody = ReviewActionBody(), session: dict = Depends(require_can_review), db: Session = Depends(get_db)):
+async def approve(
+    ga_id: int,
+    body: ReviewActionBody = ReviewActionBody(),
+    session: dict = Depends(require_can_review),
+    db: Session = Depends(get_db),
+):
     result = svc.approve_answer(db, ga_id, session.get("user_id"), body.comment)
     if not result:
         raise HTTPException(status_code=404)
@@ -65,7 +76,12 @@ async def approve(ga_id: int, body: ReviewActionBody = ReviewActionBody(), sessi
 
 
 @router.post("/{ga_id}/reject")
-async def reject(ga_id: int, body: ReviewActionBody = ReviewActionBody(), session: dict = Depends(require_can_review), db: Session = Depends(get_db)):
+async def reject(
+    ga_id: int,
+    body: ReviewActionBody = ReviewActionBody(),
+    session: dict = Depends(require_can_review),
+    db: Session = Depends(get_db),
+):
     result = svc.reject_answer(db, ga_id, session.get("user_id"), body.comment)
     if not result:
         raise HTTPException(status_code=404)
@@ -76,7 +92,12 @@ async def reject(ga_id: int, body: ReviewActionBody = ReviewActionBody(), sessio
 
 
 @router.post("/{ga_id}/request-changes")
-async def request_changes(ga_id: int, body: ReviewActionBody, session: dict = Depends(require_can_review), db: Session = Depends(get_db)):
+async def request_changes(
+    ga_id: int,
+    body: ReviewActionBody,
+    session: dict = Depends(require_can_review),
+    db: Session = Depends(get_db),
+):
     result = svc.request_changes(db, ga_id, session.get("user_id"), body.comment)
     if not result:
         raise HTTPException(status_code=404)
@@ -97,12 +118,18 @@ async def overdue(session: dict = Depends(require_can_admin), db: Session = Depe
 
 
 @router.post("/bulk-approve")
-async def bulk_approve(body: BulkApproveBody, session: dict = Depends(require_can_review), db: Session = Depends(get_db)):
+async def bulk_approve(
+    body: BulkApproveBody,
+    session: dict = Depends(require_can_review),
+    db: Session = Depends(get_db),
+):
     result = svc.bulk_approve(db, body.golden_answer_ids, session.get("user_id"))
     db.commit()
     return result
 
 
 @router.get("/{ga_id}/history")
-async def history(ga_id: int, session: dict = Depends(require_session), db: Session = Depends(get_db)):
+async def history(
+    ga_id: int, session: dict = Depends(require_session), db: Session = Depends(get_db)
+):
     return {"events": svc.get_approval_history(db, ga_id)}

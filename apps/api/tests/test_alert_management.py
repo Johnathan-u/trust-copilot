@@ -24,7 +24,9 @@ def editor_client(client):
 class TestAlertManagementService:
     def test_acknowledge(self, db_session):
         ws = db_session.query(Workspace).first()
-        result = am.acknowledge(db_session, ws.id, "control_failing", "acknowledge", reason="Accepted risk")
+        result = am.acknowledge(
+            db_session, ws.id, "control_failing", "acknowledge", reason="Accepted risk"
+        )
         db_session.commit()
         assert result["action"] == "acknowledge"
         assert result["reason"] == "Accepted risk"
@@ -38,7 +40,9 @@ class TestAlertManagementService:
 
     def test_override_with_reason(self, db_session):
         ws = db_session.query(Workspace).first()
-        result = am.acknowledge(db_session, ws.id, "control_failing", "override", reason="Compensating control exists")
+        result = am.acknowledge(
+            db_session, ws.id, "control_failing", "override", reason="Compensating control exists"
+        )
         db_session.commit()
         assert result["action"] == "override"
 
@@ -64,11 +68,14 @@ class TestAlertManagementService:
 
 class TestAlertManagementAPI:
     def test_acknowledge(self, admin_client):
-        r = admin_client.post("/api/alerts/acknowledge", json={
-            "alert_type": "control_failing",
-            "action": "acknowledge",
-            "reason": "Test ack",
-        })
+        r = admin_client.post(
+            "/api/alerts/acknowledge",
+            json={
+                "alert_type": "control_failing",
+                "action": "acknowledge",
+                "reason": "Test ack",
+            },
+        )
         assert r.status_code == 200
         assert r.json()["action"] == "acknowledge"
 
@@ -78,15 +85,21 @@ class TestAlertManagementAPI:
         assert "acknowledgments" in r.json()
 
     def test_editor_cannot_acknowledge(self, editor_client):
-        r = editor_client.post("/api/alerts/acknowledge", json={
-            "alert_type": "test",
-            "action": "acknowledge",
-        })
+        r = editor_client.post(
+            "/api/alerts/acknowledge",
+            json={
+                "alert_type": "test",
+                "action": "acknowledge",
+            },
+        )
         assert r.status_code == 403
 
     def test_invalid_action_rejected(self, admin_client):
-        r = admin_client.post("/api/alerts/acknowledge", json={
-            "alert_type": "test",
-            "action": "invalid_action",
-        })
+        r = admin_client.post(
+            "/api/alerts/acknowledge",
+            json={
+                "alert_type": "test",
+                "action": "invalid_action",
+            },
+        )
         assert r.status_code == 400

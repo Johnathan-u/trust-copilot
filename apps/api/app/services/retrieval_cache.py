@@ -12,7 +12,9 @@ from app.core.corpus_version import get_corpus_version
 logger = logging.getLogger(__name__)
 
 
-def _cache_key(workspace_id: int, question_hash: str, corpus_version: str, scope_suffix: str = "") -> str:
+def _cache_key(
+    workspace_id: int, question_hash: str, corpus_version: str, scope_suffix: str = ""
+) -> str:
     import hashlib
 
     key = f"{workspace_id}|{question_hash}|{corpus_version}|{scope_suffix or 'all'}"
@@ -29,7 +31,9 @@ def get(
     current_version = get_corpus_version(db, workspace_id)
     ck = _cache_key(workspace_id, question_normalized_hash, current_version, scope_suffix)
     row = db.execute(
-        text("SELECT result_json, corpus_version FROM retrieval_cache WHERE workspace_id = :ws AND cache_key = :ck"),
+        text(
+            "SELECT result_json, corpus_version FROM retrieval_cache WHERE workspace_id = :ws AND cache_key = :ck"
+        ),
         {"ws": workspace_id, "ck": ck},
     ).fetchone()
     if not row:
@@ -62,13 +66,21 @@ def set(
                 result_json = EXCLUDED.result_json,
                 created_at = EXCLUDED.created_at
         """),
-        {"ws": workspace_id, "ck": ck, "ver": corpus_version, "json": result_json, "now": datetime.now(timezone.utc)},
+        {
+            "ws": workspace_id,
+            "ck": ck,
+            "ver": corpus_version,
+            "json": result_json,
+            "now": datetime.now(timezone.utc),
+        },
     )
     db.commit()
 
 
 def invalidate_workspace(db: Session, workspace_id: int) -> int:
     """Delete all retrieval cache entries for workspace (e.g. after corpus version bump). Returns count deleted."""
-    r = db.execute(text("DELETE FROM retrieval_cache WHERE workspace_id = :ws"), {"ws": workspace_id})
+    r = db.execute(
+        text("DELETE FROM retrieval_cache WHERE workspace_id = :ws"), {"ws": workspace_id}
+    )
     db.commit()
     return r.rowcount if hasattr(r, "rowcount") else 0

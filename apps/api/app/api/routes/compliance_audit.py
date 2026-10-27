@@ -31,23 +31,29 @@ def _audit_rows(db: Session, workspace_id: int, limit: int) -> list[dict]:
     )
     out = []
     for r in rows:
-        action_short = r.action[len(COMPLIANCE_ACTION_PREFIX):] if r.action.startswith(COMPLIANCE_ACTION_PREFIX) else r.action
+        action_short = (
+            r.action[len(COMPLIANCE_ACTION_PREFIX) :]
+            if r.action.startswith(COMPLIANCE_ACTION_PREFIX)
+            else r.action
+        )
         try:
             details = json.loads(r.details) if r.details else None
         except (TypeError, ValueError):
             details = None
         actor = r.email or (f"User #{r.user_id}" if r.user_id is not None else "System")
-        out.append({
-            "id": r.id,
-            "occurred_at": r.occurred_at.isoformat() if r.occurred_at else None,
-            "action": action_short,
-            "actor": actor,
-            "user_id": r.user_id,
-            "email": r.email,
-            "resource_type": r.resource_type,
-            "resource_id": r.resource_id,
-            "details": details,
-        })
+        out.append(
+            {
+                "id": r.id,
+                "occurred_at": r.occurred_at.isoformat() if r.occurred_at else None,
+                "action": action_short,
+                "actor": actor,
+                "user_id": r.user_id,
+                "email": r.email,
+                "resource_type": r.resource_type,
+                "resource_id": r.resource_id,
+                "details": details,
+            }
+        )
     return out
 
 
@@ -82,20 +88,34 @@ def export_compliance_audit_history(
         else:
             out = io.StringIO()
             writer = csv.writer(out)
-            writer.writerow(["id", "occurred_at", "action", "actor", "user_id", "email", "resource_type", "resource_id", "details"])
+            writer.writerow(
+                [
+                    "id",
+                    "occurred_at",
+                    "action",
+                    "actor",
+                    "user_id",
+                    "email",
+                    "resource_type",
+                    "resource_id",
+                    "details",
+                ]
+            )
             for row in data:
                 details_str = json.dumps(row["details"]) if row.get("details") is not None else ""
-                writer.writerow([
-                    row.get("id"),
-                    row.get("occurred_at"),
-                    row.get("action"),
-                    row.get("actor"),
-                    row.get("user_id"),
-                    row.get("email"),
-                    row.get("resource_type"),
-                    row.get("resource_id"),
-                    details_str,
-                ])
+                writer.writerow(
+                    [
+                        row.get("id"),
+                        row.get("occurred_at"),
+                        row.get("action"),
+                        row.get("actor"),
+                        row.get("user_id"),
+                        row.get("email"),
+                        row.get("resource_type"),
+                        row.get("resource_id"),
+                        details_str,
+                    ]
+                )
             body = out.getvalue()
         return Response(
             content=body,
@@ -161,10 +181,18 @@ def get_compliance_settings(
         raise HTTPException(status_code=403, detail="No workspace")
     row = db.query(Workspace).filter(Workspace.id == ws).first()
     if not row:
-        return {"evidence_stale_verified_days": 365, "evidence_stale_unverified_days": 90, "compliance_webhook_url": None}
+        return {
+            "evidence_stale_verified_days": 365,
+            "evidence_stale_unverified_days": 90,
+            "compliance_webhook_url": None,
+        }
     return {
-        "evidence_stale_verified_days": row.evidence_stale_verified_days if row.evidence_stale_verified_days is not None else 365,
-        "evidence_stale_unverified_days": row.evidence_stale_unverified_days if row.evidence_stale_unverified_days is not None else 90,
+        "evidence_stale_verified_days": row.evidence_stale_verified_days
+        if row.evidence_stale_verified_days is not None
+        else 365,
+        "evidence_stale_unverified_days": row.evidence_stale_unverified_days
+        if row.evidence_stale_unverified_days is not None
+        else 90,
         "compliance_webhook_url": row.compliance_webhook_url,
     }
 
@@ -190,18 +218,26 @@ def update_compliance_settings(
         raise HTTPException(status_code=404, detail="Workspace not found")
     if body.evidence_stale_verified_days is not None:
         if body.evidence_stale_verified_days < 1 or body.evidence_stale_verified_days > 3650:
-            raise HTTPException(status_code=400, detail="evidence_stale_verified_days must be between 1 and 3650")
+            raise HTTPException(
+                status_code=400, detail="evidence_stale_verified_days must be between 1 and 3650"
+            )
         row.evidence_stale_verified_days = body.evidence_stale_verified_days
     if body.evidence_stale_unverified_days is not None:
         if body.evidence_stale_unverified_days < 1 or body.evidence_stale_unverified_days > 3650:
-            raise HTTPException(status_code=400, detail="evidence_stale_unverified_days must be between 1 and 3650")
+            raise HTTPException(
+                status_code=400, detail="evidence_stale_unverified_days must be between 1 and 3650"
+            )
         row.evidence_stale_unverified_days = body.evidence_stale_unverified_days
     if body.compliance_webhook_url is not None:
         row.compliance_webhook_url = body.compliance_webhook_url.strip() or None
     db.commit()
     db.refresh(row)
     return {
-        "evidence_stale_verified_days": row.evidence_stale_verified_days if row.evidence_stale_verified_days is not None else 365,
-        "evidence_stale_unverified_days": row.evidence_stale_unverified_days if row.evidence_stale_unverified_days is not None else 90,
+        "evidence_stale_verified_days": row.evidence_stale_verified_days
+        if row.evidence_stale_verified_days is not None
+        else 365,
+        "evidence_stale_unverified_days": row.evidence_stale_unverified_days
+        if row.evidence_stale_unverified_days is not None
+        else 90,
         "compliance_webhook_url": row.compliance_webhook_url,
     }

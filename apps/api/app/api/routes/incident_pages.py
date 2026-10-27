@@ -34,6 +34,9 @@ async def vulnerability_disclosure():
 async def report_vulnerability(body: VulnerabilityReportBody):
     """Public endpoint to report a vulnerability."""
     return ips.report_vulnerability(
-        body.reporter_name, body.reporter_email, body.description,
-        body.severity, body.affected_component,
+        body.reporter_name,
+        body.reporter_email,
+        body.description,
+        body.severity,
+        body.affected_component,
     )

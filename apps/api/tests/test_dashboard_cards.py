@@ -11,12 +11,15 @@ from fastapi.testclient import TestClient
 def _login_admin_ws1(client: TestClient):
     from app.core.database import SessionLocal
     from app.models import WorkspaceMember, User
+
     db = SessionLocal()
     try:
         user = db.query(User).filter(User.email == "demo@trust.local").first()
-        mem = db.query(WorkspaceMember).filter(
-            WorkspaceMember.user_id == user.id, WorkspaceMember.workspace_id == 1
-        ).first()
+        mem = (
+            db.query(WorkspaceMember)
+            .filter(WorkspaceMember.user_id == user.id, WorkspaceMember.workspace_id == 1)
+            .first()
+        )
         if mem.role != "admin":
             mem.role = "admin"
             db.commit()
@@ -30,12 +33,15 @@ def _make_editor(client: TestClient):
     """Change demo user to editor and re-login so session token reflects the new role."""
     from app.core.database import SessionLocal
     from app.models import WorkspaceMember, User
+
     db = SessionLocal()
     try:
         user = db.query(User).filter(User.email == "demo@trust.local").first()
-        mem = db.query(WorkspaceMember).filter(
-            WorkspaceMember.user_id == user.id, WorkspaceMember.workspace_id == 1
-        ).first()
+        mem = (
+            db.query(WorkspaceMember)
+            .filter(WorkspaceMember.user_id == user.id, WorkspaceMember.workspace_id == 1)
+            .first()
+        )
         mem.role = "editor"
         db.commit()
     finally:
@@ -47,6 +53,7 @@ def _make_editor(client: TestClient):
 def _cleanup_cards():
     from app.core.database import SessionLocal
     from app.models.dashboard_card import DashboardCard
+
     db = SessionLocal()
     try:
         db.query(DashboardCard).delete()
@@ -76,12 +83,15 @@ class TestDefaultFallback:
 class TestAdminCRUD:
     def test_create_card(self, client: TestClient):
         _login_admin_ws1(client)
-        r = client.post("/api/dashboard/cards", json={
-            "title": "Documents",
-            "description": "Upload docs",
-            "icon": "document",
-            "target_route": "/dashboard/documents",
-        })
+        r = client.post(
+            "/api/dashboard/cards",
+            json={
+                "title": "Documents",
+                "description": "Upload docs",
+                "icon": "document",
+                "target_route": "/dashboard/documents",
+            },
+        )
         assert r.status_code == 200
         data = r.json()
         assert data["title"] == "Documents"
@@ -91,19 +101,34 @@ class TestAdminCRUD:
 
     def test_create_second_card_increments_order(self, client: TestClient):
         _login_admin_ws1(client)
-        client.post("/api/dashboard/cards", json={
-            "title": "First", "icon": "document", "target_route": "/dashboard/documents",
-        })
-        r2 = client.post("/api/dashboard/cards", json={
-            "title": "Second", "icon": "export", "target_route": "/dashboard/exports",
-        })
+        client.post(
+            "/api/dashboard/cards",
+            json={
+                "title": "First",
+                "icon": "document",
+                "target_route": "/dashboard/documents",
+            },
+        )
+        r2 = client.post(
+            "/api/dashboard/cards",
+            json={
+                "title": "Second",
+                "icon": "export",
+                "target_route": "/dashboard/exports",
+            },
+        )
         assert r2.json()["sort_order"] == 1
 
     def test_update_card(self, client: TestClient):
         _login_admin_ws1(client)
-        r = client.post("/api/dashboard/cards", json={
-            "title": "Old Title", "icon": "document", "target_route": "/dashboard/documents",
-        })
+        r = client.post(
+            "/api/dashboard/cards",
+            json={
+                "title": "Old Title",
+                "icon": "document",
+                "target_route": "/dashboard/documents",
+            },
+        )
         card_id = r.json()["id"]
         r2 = client.patch(f"/api/dashboard/cards/{card_id}", json={"title": "New Title"})
         assert r2.status_code == 200
@@ -111,9 +136,14 @@ class TestAdminCRUD:
 
     def test_delete_card(self, client: TestClient):
         _login_admin_ws1(client)
-        r = client.post("/api/dashboard/cards", json={
-            "title": "ToDelete", "icon": "document", "target_route": "/dashboard/documents",
-        })
+        r = client.post(
+            "/api/dashboard/cards",
+            json={
+                "title": "ToDelete",
+                "icon": "document",
+                "target_route": "/dashboard/documents",
+            },
+        )
         card_id = r.json()["id"]
         r2 = client.delete(f"/api/dashboard/cards/{card_id}")
         assert r2.status_code == 200
@@ -125,9 +155,14 @@ class TestAdminCRUD:
 
     def test_list_returns_defaults_plus_custom(self, client: TestClient):
         _login_admin_ws1(client)
-        client.post("/api/dashboard/cards", json={
-            "title": "Custom Card", "icon": "star", "target_route": "/dashboard/exports",
-        })
+        client.post(
+            "/api/dashboard/cards",
+            json={
+                "title": "Custom Card",
+                "icon": "star",
+                "target_route": "/dashboard/exports",
+            },
+        )
         r = client.get("/api/dashboard/cards")
         data = r.json()
         assert data["has_custom"] is True
@@ -141,12 +176,22 @@ class TestAdminCRUD:
 class TestReorder:
     def test_reorder_custom_cards(self, client: TestClient):
         _login_admin_ws1(client)
-        r1 = client.post("/api/dashboard/cards", json={
-            "title": "A", "icon": "document", "target_route": "/dashboard/documents",
-        })
-        r2 = client.post("/api/dashboard/cards", json={
-            "title": "B", "icon": "export", "target_route": "/dashboard/exports",
-        })
+        r1 = client.post(
+            "/api/dashboard/cards",
+            json={
+                "title": "A",
+                "icon": "document",
+                "target_route": "/dashboard/documents",
+            },
+        )
+        r2 = client.post(
+            "/api/dashboard/cards",
+            json={
+                "title": "B",
+                "icon": "export",
+                "target_route": "/dashboard/exports",
+            },
+        )
         id_a, id_b = r1.json()["id"], r2.json()["id"]
         r = client.post("/api/dashboard/cards/reorder", json={"card_ids": [id_b, id_a]})
         assert r.status_code == 200
@@ -162,16 +207,26 @@ class TestNonAdminBlocked:
     def test_editor_cannot_create(self, client: TestClient):
         _login_admin_ws1(client)
         _make_editor(client)
-        r = client.post("/api/dashboard/cards", json={
-            "title": "Nope", "icon": "document", "target_route": "/dashboard/documents",
-        })
+        r = client.post(
+            "/api/dashboard/cards",
+            json={
+                "title": "Nope",
+                "icon": "document",
+                "target_route": "/dashboard/documents",
+            },
+        )
         assert r.status_code == 403
 
     def test_editor_cannot_delete(self, client: TestClient):
         _login_admin_ws1(client)
-        r = client.post("/api/dashboard/cards", json={
-            "title": "X", "icon": "document", "target_route": "/dashboard/documents",
-        })
+        r = client.post(
+            "/api/dashboard/cards",
+            json={
+                "title": "X",
+                "icon": "document",
+                "target_route": "/dashboard/documents",
+            },
+        )
         card_id = r.json()["id"]
         _make_editor(client)
         r2 = client.delete(f"/api/dashboard/cards/{card_id}")
@@ -185,10 +240,15 @@ class TestNonAdminBlocked:
 
     def test_editor_can_list_cards(self, client: TestClient):
         _login_admin_ws1(client)
-        client.post("/api/dashboard/cards", json={
-            "title": "Visible", "icon": "star", "target_route": "/dashboard/documents",
-            "visibility_scope": "all",
-        })
+        client.post(
+            "/api/dashboard/cards",
+            json={
+                "title": "Visible",
+                "icon": "star",
+                "target_route": "/dashboard/documents",
+                "visibility_scope": "all",
+            },
+        )
         _make_editor(client)
         r = client.get("/api/dashboard/cards")
         assert r.status_code == 200
@@ -198,19 +258,27 @@ class TestNonAdminBlocked:
 class TestWorkspaceIsolation:
     def test_cards_scoped_to_workspace(self, client: TestClient):
         _login_admin_ws1(client)
-        client.post("/api/dashboard/cards", json={
-            "title": "WS1 Card", "icon": "document", "target_route": "/dashboard/documents",
-        })
+        client.post(
+            "/api/dashboard/cards",
+            json={
+                "title": "WS1 Card",
+                "icon": "document",
+                "target_route": "/dashboard/documents",
+            },
+        )
 
         # Switch to workspace 2 (demo user is member of both)
         from app.core.database import SessionLocal
         from app.models import WorkspaceMember, User
+
         db = SessionLocal()
         try:
             user = db.query(User).filter(User.email == "demo@trust.local").first()
-            mem2 = db.query(WorkspaceMember).filter(
-                WorkspaceMember.user_id == user.id, WorkspaceMember.workspace_id == 2
-            ).first()
+            mem2 = (
+                db.query(WorkspaceMember)
+                .filter(WorkspaceMember.user_id == user.id, WorkspaceMember.workspace_id == 2)
+                .first()
+            )
             mem2.role = "admin"
             db.commit()
         finally:
@@ -223,19 +291,27 @@ class TestWorkspaceIsolation:
 
     def test_cannot_update_other_workspace_card(self, client: TestClient):
         _login_admin_ws1(client)
-        r = client.post("/api/dashboard/cards", json={
-            "title": "WS1 Only", "icon": "document", "target_route": "/dashboard/documents",
-        })
+        r = client.post(
+            "/api/dashboard/cards",
+            json={
+                "title": "WS1 Only",
+                "icon": "document",
+                "target_route": "/dashboard/documents",
+            },
+        )
         card_id = r.json()["id"]
 
         from app.core.database import SessionLocal
         from app.models import WorkspaceMember, User
+
         db = SessionLocal()
         try:
             user = db.query(User).filter(User.email == "demo@trust.local").first()
-            mem2 = db.query(WorkspaceMember).filter(
-                WorkspaceMember.user_id == user.id, WorkspaceMember.workspace_id == 2
-            ).first()
+            mem2 = (
+                db.query(WorkspaceMember)
+                .filter(WorkspaceMember.user_id == user.id, WorkspaceMember.workspace_id == 2)
+                .first()
+            )
             mem2.role = "admin"
             db.commit()
         finally:
@@ -247,19 +323,27 @@ class TestWorkspaceIsolation:
 
     def test_cannot_delete_other_workspace_card(self, client: TestClient):
         _login_admin_ws1(client)
-        r = client.post("/api/dashboard/cards", json={
-            "title": "WS1 Only", "icon": "document", "target_route": "/dashboard/documents",
-        })
+        r = client.post(
+            "/api/dashboard/cards",
+            json={
+                "title": "WS1 Only",
+                "icon": "document",
+                "target_route": "/dashboard/documents",
+            },
+        )
         card_id = r.json()["id"]
 
         from app.core.database import SessionLocal
         from app.models import WorkspaceMember, User
+
         db = SessionLocal()
         try:
             user = db.query(User).filter(User.email == "demo@trust.local").first()
-            mem2 = db.query(WorkspaceMember).filter(
-                WorkspaceMember.user_id == user.id, WorkspaceMember.workspace_id == 2
-            ).first()
+            mem2 = (
+                db.query(WorkspaceMember)
+                .filter(WorkspaceMember.user_id == user.id, WorkspaceMember.workspace_id == 2)
+                .first()
+            )
             mem2.role = "admin"
             db.commit()
         finally:
@@ -273,38 +357,63 @@ class TestWorkspaceIsolation:
 class TestValidation:
     def test_invalid_route_rejected(self, client: TestClient):
         _login_admin_ws1(client)
-        r = client.post("/api/dashboard/cards", json={
-            "title": "Bad", "icon": "document", "target_route": "/evil/path",
-        })
+        r = client.post(
+            "/api/dashboard/cards",
+            json={
+                "title": "Bad",
+                "icon": "document",
+                "target_route": "/evil/path",
+            },
+        )
         assert r.status_code == 422
 
     def test_invalid_icon_rejected(self, client: TestClient):
         _login_admin_ws1(client)
-        r = client.post("/api/dashboard/cards", json={
-            "title": "Bad", "icon": "not_an_icon", "target_route": "/dashboard/documents",
-        })
+        r = client.post(
+            "/api/dashboard/cards",
+            json={
+                "title": "Bad",
+                "icon": "not_an_icon",
+                "target_route": "/dashboard/documents",
+            },
+        )
         assert r.status_code == 422
 
     def test_invalid_visibility_rejected(self, client: TestClient):
         _login_admin_ws1(client)
-        r = client.post("/api/dashboard/cards", json={
-            "title": "Bad", "icon": "document", "target_route": "/dashboard/documents",
-            "visibility_scope": "hacker",
-        })
+        r = client.post(
+            "/api/dashboard/cards",
+            json={
+                "title": "Bad",
+                "icon": "document",
+                "target_route": "/dashboard/documents",
+                "visibility_scope": "hacker",
+            },
+        )
         assert r.status_code == 422
 
 
 class TestVisibilityFiltering:
     def test_admin_only_cards_hidden_from_editor(self, client: TestClient):
         _login_admin_ws1(client)
-        client.post("/api/dashboard/cards", json={
-            "title": "Public Card", "icon": "document", "target_route": "/dashboard/documents",
-            "visibility_scope": "all",
-        })
-        client.post("/api/dashboard/cards", json={
-            "title": "Admin Secret", "icon": "security", "target_route": "/dashboard/security",
-            "visibility_scope": "admin",
-        })
+        client.post(
+            "/api/dashboard/cards",
+            json={
+                "title": "Public Card",
+                "icon": "document",
+                "target_route": "/dashboard/documents",
+                "visibility_scope": "all",
+            },
+        )
+        client.post(
+            "/api/dashboard/cards",
+            json={
+                "title": "Admin Secret",
+                "icon": "security",
+                "target_route": "/dashboard/security",
+                "visibility_scope": "admin",
+            },
+        )
         _make_editor(client)
         r = client.get("/api/dashboard/cards")
         cards = r.json()["cards"]
@@ -316,10 +425,15 @@ class TestVisibilityFiltering:
 
     def test_disabled_cards_hidden_from_editor(self, client: TestClient):
         _login_admin_ws1(client)
-        client.post("/api/dashboard/cards", json={
-            "title": "Disabled Card", "icon": "document", "target_route": "/dashboard/documents",
-            "is_enabled": False,
-        })
+        client.post(
+            "/api/dashboard/cards",
+            json={
+                "title": "Disabled Card",
+                "icon": "document",
+                "target_route": "/dashboard/documents",
+                "is_enabled": False,
+            },
+        )
         _make_editor(client)
         r2 = client.get("/api/dashboard/cards")
         cards = r2.json()["cards"]
@@ -348,9 +462,14 @@ class TestAllowedRoutes:
 class TestDefaultsPersist:
     def test_defaults_remain_after_adding_custom(self, client: TestClient):
         _login_admin_ws1(client)
-        client.post("/api/dashboard/cards", json={
-            "title": "My Custom", "icon": "star", "target_route": "/dashboard/compliance-gaps",
-        })
+        client.post(
+            "/api/dashboard/cards",
+            json={
+                "title": "My Custom",
+                "icon": "star",
+                "target_route": "/dashboard/compliance-gaps",
+            },
+        )
         r = client.get("/api/dashboard/cards")
         data = r.json()
         builtins = [c for c in data["cards"] if c.get("is_builtin")]
@@ -362,9 +481,14 @@ class TestDefaultsPersist:
 
     def test_defaults_remain_after_deleting_all_custom(self, client: TestClient):
         _login_admin_ws1(client)
-        r1 = client.post("/api/dashboard/cards", json={
-            "title": "Temp", "icon": "document", "target_route": "/dashboard/documents",
-        })
+        r1 = client.post(
+            "/api/dashboard/cards",
+            json={
+                "title": "Temp",
+                "icon": "document",
+                "target_route": "/dashboard/documents",
+            },
+        )
         card_id = r1.json()["id"]
         client.delete(f"/api/dashboard/cards/{card_id}")
         r = client.get("/api/dashboard/cards")
@@ -375,9 +499,14 @@ class TestDefaultsPersist:
 
     def test_builtins_appear_before_custom(self, client: TestClient):
         _login_admin_ws1(client)
-        client.post("/api/dashboard/cards", json={
-            "title": "Custom First?", "icon": "star", "target_route": "/dashboard/compliance-gaps",
-        })
+        client.post(
+            "/api/dashboard/cards",
+            json={
+                "title": "Custom First?",
+                "icon": "star",
+                "target_route": "/dashboard/compliance-gaps",
+            },
+        )
         r = client.get("/api/dashboard/cards")
         cards = r.json()["cards"]
         first_custom_idx = next(i for i, c in enumerate(cards) if not c.get("is_builtin"))
@@ -388,36 +517,58 @@ class TestDefaultsPersist:
 class TestAuditEvents:
     def test_create_produces_audit_event(self, client: TestClient):
         _login_admin_ws1(client)
-        client.post("/api/dashboard/cards", json={
-            "title": "Audited", "icon": "document", "target_route": "/dashboard/documents",
-        })
+        client.post(
+            "/api/dashboard/cards",
+            json={
+                "title": "Audited",
+                "icon": "document",
+                "target_route": "/dashboard/documents",
+            },
+        )
         from app.core.database import SessionLocal
         from app.models import AuditEvent
+
         db = SessionLocal()
         try:
-            ev = db.query(AuditEvent).filter(
-                AuditEvent.action == "dashboard.card_created",
-                AuditEvent.workspace_id == 1,
-            ).order_by(AuditEvent.id.desc()).first()
+            ev = (
+                db.query(AuditEvent)
+                .filter(
+                    AuditEvent.action == "dashboard.card_created",
+                    AuditEvent.workspace_id == 1,
+                )
+                .order_by(AuditEvent.id.desc())
+                .first()
+            )
             assert ev is not None
         finally:
             db.close()
 
     def test_delete_produces_audit_event(self, client: TestClient):
         _login_admin_ws1(client)
-        r = client.post("/api/dashboard/cards", json={
-            "title": "ToAudit", "icon": "document", "target_route": "/dashboard/documents",
-        })
+        r = client.post(
+            "/api/dashboard/cards",
+            json={
+                "title": "ToAudit",
+                "icon": "document",
+                "target_route": "/dashboard/documents",
+            },
+        )
         card_id = r.json()["id"]
         client.delete(f"/api/dashboard/cards/{card_id}")
         from app.core.database import SessionLocal
         from app.models import AuditEvent
+
         db = SessionLocal()
         try:
-            ev = db.query(AuditEvent).filter(
-                AuditEvent.action == "dashboard.card_deleted",
-                AuditEvent.workspace_id == 1,
-            ).order_by(AuditEvent.id.desc()).first()
+            ev = (
+                db.query(AuditEvent)
+                .filter(
+                    AuditEvent.action == "dashboard.card_deleted",
+                    AuditEvent.workspace_id == 1,
+                )
+                .order_by(AuditEvent.id.desc())
+                .first()
+            )
             assert ev is not None
         finally:
             db.close()

@@ -19,6 +19,7 @@ router = APIRouter(prefix="/notifications", tags=["notifications"])
 
 # ---- Schemas ----
 
+
 class PolicyCreateRequest(BaseModel):
     event_type: str
     enabled: bool = True
@@ -38,6 +39,7 @@ class UnsubscribeRequest(BaseModel):
 
 # ---- Policy CRUD (admin only) ----
 
+
 @router.get("/event-types")
 async def list_event_types(session: dict = Depends(require_session)):
     """Return supported notification event types."""
@@ -51,7 +53,12 @@ async def list_policies(
 ):
     """List all notification policies for this workspace."""
     ws = session["workspace_id"]
-    rows = db.query(NotificationPolicy).filter(NotificationPolicy.workspace_id == ws).order_by(NotificationPolicy.event_type).all()
+    rows = (
+        db.query(NotificationPolicy)
+        .filter(NotificationPolicy.workspace_id == ws)
+        .order_by(NotificationPolicy.event_type)
+        .all()
+    )
     return {
         "policies": [
             {
@@ -80,14 +87,23 @@ async def create_policy(
         raise HTTPException(status_code=400, detail=f"Unknown event type: {et}")
     rt = (req.recipient_type or "").strip().lower()
     if rt not in ("all", "admins", "role", "user"):
-        raise HTTPException(status_code=400, detail="recipient_type must be all, admins, role, or user")
+        raise HTTPException(
+            status_code=400, detail="recipient_type must be all, admins, role, or user"
+        )
     if rt in ("role", "user") and not (req.recipient_value or "").strip():
-        raise HTTPException(status_code=400, detail=f"recipient_value required for recipient_type='{rt}'")
-    existing = db.query(NotificationPolicy).filter(
-        NotificationPolicy.workspace_id == ws, NotificationPolicy.event_type == et
-    ).first()
+        raise HTTPException(
+            status_code=400, detail=f"recipient_value required for recipient_type='{rt}'"
+        )
+    existing = (
+        db.query(NotificationPolicy)
+        .filter(NotificationPolicy.workspace_id == ws, NotificationPolicy.event_type == et)
+        .first()
+    )
     if existing:
-        raise HTTPException(status_code=400, detail="Policy already exists for this event type. Use PATCH to update.")
+        raise HTTPException(
+            status_code=400,
+            detail="Policy already exists for this event type. Use PATCH to update.",
+        )
     p = NotificationPolicy(
         workspace_id=ws,
         event_type=et,
@@ -98,10 +114,22 @@ async def create_policy(
     db.add(p)
     db.commit()
     db.refresh(p)
-    persist_audit(db, "notification.policy_created", user_id=session.get("user_id"), workspace_id=ws,
-                  resource_type="notification_policy", resource_id=p.id,
-                  details={"event_type": et, "recipient_type": rt, "enabled": req.enabled})
-    return {"id": p.id, "event_type": p.event_type, "enabled": bool(p.enabled), "recipient_type": p.recipient_type, "recipient_value": p.recipient_value}
+    persist_audit(
+        db,
+        "notification.policy_created",
+        user_id=session.get("user_id"),
+        workspace_id=ws,
+        resource_type="notification_policy",
+        resource_id=p.id,
+        details={"event_type": et, "recipient_type": rt, "enabled": req.enabled},
+    )
+    return {
+        "id": p.id,
+        "event_type": p.event_type,
+        "enabled": bool(p.enabled),
+        "recipient_type": p.recipient_type,
+        "recipient_value": p.recipient_value,
+    }
 
 
 @router.patch("/policies/{policy_id}")
@@ -113,7 +141,11 @@ async def update_policy(
 ):
     """Update an existing notification policy."""
     ws = session["workspace_id"]
-    p = db.query(NotificationPolicy).filter(NotificationPolicy.id == policy_id, NotificationPolicy.workspace_id == ws).first()
+    p = (
+        db.query(NotificationPolicy)
+        .filter(NotificationPolicy.id == policy_id, NotificationPolicy.workspace_id == ws)
+        .first()
+    )
     if not p:
         raise HTTPException(status_code=404, detail="Policy not found")
     changes = {}
@@ -133,10 +165,22 @@ async def update_policy(
     db.commit()
     db.refresh(p)
     if changes:
-        persist_audit(db, "notification.policy_updated", user_id=session.get("user_id"), workspace_id=ws,
-                      resource_type="notification_policy", resource_id=p.id,
-                      details={"event_type": p.event_type, "changes": changes})
-    return {"id": p.id, "event_type": p.event_type, "enabled": bool(p.enabled), "recipient_type": p.recipient_type, "recipient_value": p.recipient_value}
+        persist_audit(
+            db,
+            "notification.policy_updated",
+            user_id=session.get("user_id"),
+            workspace_id=ws,
+            resource_type="notification_policy",
+            resource_id=p.id,
+            details={"event_type": p.event_type, "changes": changes},
+        )
+    return {
+        "id": p.id,
+        "event_type": p.event_type,
+        "enabled": bool(p.enabled),
+        "recipient_type": p.recipient_type,
+        "recipient_value": p.recipient_value,
+    }
 
 
 @router.delete("/policies/{policy_id}")
@@ -147,18 +191,29 @@ async def delete_policy(
 ):
     """Delete a notification policy."""
     ws = session["workspace_id"]
-    p = db.query(NotificationPolicy).filter(NotificationPolicy.id == policy_id, NotificationPolicy.workspace_id == ws).first()
+    p = (
+        db.query(NotificationPolicy)
+        .filter(NotificationPolicy.id == policy_id, NotificationPolicy.workspace_id == ws)
+        .first()
+    )
     if not p:
         raise HTTPException(status_code=404, detail="Policy not found")
     et = p.event_type
     db.delete(p)
     db.commit()
-    persist_audit(db, "notification.policy_deleted", user_id=session.get("user_id"), workspace_id=ws,
-                  resource_type="notification_policy", details={"event_type": et})
+    persist_audit(
+        db,
+        "notification.policy_deleted",
+        user_id=session.get("user_id"),
+        workspace_id=ws,
+        resource_type="notification_policy",
+        details={"event_type": et},
+    )
     return {"ok": True}
 
 
 # ---- Delivery log (admin) ----
+
 
 @router.get("/log")
 async def list_delivery_log(
@@ -174,7 +229,12 @@ async def list_delivery_log(
     if status_filter:
         q = q.filter(NotificationLog.status == status_filter)
     total = q.count()
-    rows = q.order_by(NotificationLog.created_at.desc()).offset((page - 1) * page_size).limit(page_size).all()
+    rows = (
+        q.order_by(NotificationLog.created_at.desc())
+        .offset((page - 1) * page_size)
+        .limit(page_size)
+        .all()
+    )
     return {
         "total": total,
         "page": page,
@@ -196,6 +256,7 @@ async def list_delivery_log(
 
 # ---- Unsubscribe (self-service for any authenticated user) ----
 
+
 @router.get("/unsubscribes")
 async def list_my_unsubscribes(
     db: Session = Depends(get_db),
@@ -206,9 +267,11 @@ async def list_my_unsubscribes(
     ws = session["workspace_id"]
     if not uid:
         return {"unsubscribes": []}
-    rows = db.query(NotificationUnsubscribe).filter(
-        NotificationUnsubscribe.workspace_id == ws, NotificationUnsubscribe.user_id == uid
-    ).all()
+    rows = (
+        db.query(NotificationUnsubscribe)
+        .filter(NotificationUnsubscribe.workspace_id == ws, NotificationUnsubscribe.user_id == uid)
+        .all()
+    )
     return {"unsubscribes": [{"id": r.id, "event_type": r.event_type} for r in rows]}
 
 
@@ -226,9 +289,15 @@ async def add_unsubscribe(
     et = (req.event_type or "").strip()
     if et not in NOTIFICATION_EVENT_TYPES:
         raise HTTPException(status_code=400, detail="Unknown event type")
-    existing = db.query(NotificationUnsubscribe).filter(
-        NotificationUnsubscribe.workspace_id == ws, NotificationUnsubscribe.user_id == uid, NotificationUnsubscribe.event_type == et
-    ).first()
+    existing = (
+        db.query(NotificationUnsubscribe)
+        .filter(
+            NotificationUnsubscribe.workspace_id == ws,
+            NotificationUnsubscribe.user_id == uid,
+            NotificationUnsubscribe.event_type == et,
+        )
+        .first()
+    )
     if existing:
         return {"id": existing.id, "event_type": et}
     unsub = NotificationUnsubscribe(workspace_id=ws, user_id=uid, event_type=et)
@@ -247,9 +316,15 @@ async def remove_unsubscribe(
     """Re-subscribe to a notification event type."""
     uid = session.get("user_id")
     ws = session["workspace_id"]
-    row = db.query(NotificationUnsubscribe).filter(
-        NotificationUnsubscribe.id == unsub_id, NotificationUnsubscribe.workspace_id == ws, NotificationUnsubscribe.user_id == uid
-    ).first()
+    row = (
+        db.query(NotificationUnsubscribe)
+        .filter(
+            NotificationUnsubscribe.id == unsub_id,
+            NotificationUnsubscribe.workspace_id == ws,
+            NotificationUnsubscribe.user_id == uid,
+        )
+        .first()
+    )
     if not row:
         raise HTTPException(status_code=404, detail="Not found")
     db.delete(row)

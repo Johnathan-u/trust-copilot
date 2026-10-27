@@ -11,7 +11,9 @@ class CaseStudy(Base):
     __tablename__ = "case_studies"
 
     id = Column(Integer, primary_key=True, autoincrement=True)
-    workspace_id = Column(Integer, ForeignKey("workspaces.id", ondelete="CASCADE"), nullable=False, index=True)
+    workspace_id = Column(
+        Integer, ForeignKey("workspaces.id", ondelete="CASCADE"), nullable=False, index=True
+    )
     title = Column(String(512), nullable=False)
     company_name = Column(String(255), nullable=True)
     industry = Column(String(128), nullable=True)

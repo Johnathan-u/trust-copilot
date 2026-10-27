@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
-from app.core.auth_deps import require_can_admin, require_session
+from app.core.auth_deps import require_can_admin, require_session  # noqa: F401
 from app.core.database import get_db
 from app.models.buyer_portal import BuyerPortal
 from app.services import buyer_portal_service as bps
