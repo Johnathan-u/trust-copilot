@@ -29,24 +29,112 @@ export type AppNavPermissions = {
 
 export const appNavItems: readonly AppNavItem[] = [
   { href: '/dashboard', label: 'Home', icon: '◆', section: 'core' },
-  { href: '/dashboard/documents', label: 'Documents', icon: '📄', section: 'core' },
-  { href: '/dashboard/questionnaires', label: 'Questionnaires', icon: '📋', section: 'core' },
+  {
+    href: '/dashboard/documents',
+    label: 'Documents',
+    icon: '📄',
+    section: 'core',
+  },
+  {
+    href: '/dashboard/questionnaires',
+    label: 'Questionnaires',
+    icon: '📋',
+    section: 'core',
+  },
   { href: '/dashboard/review', label: 'Review', icon: '✅', section: 'core' },
-  { href: '/dashboard/requests', label: 'Requests', icon: '📨', section: 'core', requiresEdit: true },
+  {
+    href: '/dashboard/requests',
+    label: 'Requests',
+    icon: '📨',
+    section: 'core',
+    requiresEdit: true,
+  },
   { href: '/dashboard/exports', label: 'Exports', icon: '⬇', section: 'core' },
-  { href: '/dashboard/compliance-gaps', label: 'Coverage', icon: '📊', section: 'compliance' },
-  { href: '/dashboard/compliance-frameworks', label: 'Frameworks', icon: '▣', section: 'compliance' },
-  { href: '/dashboard/trust-center', label: 'Trust Center', icon: '🛡️', section: 'compliance' },
-  { href: '/dashboard/proof-chain', label: 'Proof chain', icon: '🔗', section: 'compliance' },
-  { href: '/dashboard/case-studies', label: 'Case studies', icon: '📘', section: 'compliance' },
-  { href: '/dashboard/demo-proof', label: 'Demo proof', icon: '🧪', section: 'compliance' },
-  { href: '/dashboard/members', label: 'Members', icon: '👥', section: 'admin', requiresAdmin: true },
-  { href: '/dashboard/notifications', label: 'Alerts / Notifications', icon: '🔔', section: 'admin', requiresAdmin: true },
-  { href: '/dashboard/slack', label: 'Slack', icon: '💬', section: 'admin', requiresAdmin: true },
-  { href: '/dashboard/gmail', label: 'Gmail', icon: '📧', section: 'admin', requiresAdmin: true },
-  { href: '/dashboard/audit', label: 'Activity', icon: '📜', section: 'admin', requiresAdmin: true },
-  { href: '/dashboard/ai-governance', label: 'AI Insights', icon: '🧠', section: 'admin', requiresAdmin: true },
-  { href: '/dashboard/settings', label: 'Settings', icon: '⚙', section: 'admin', requiresAdmin: true },
+  {
+    href: '/dashboard/compliance-gaps',
+    label: 'Coverage',
+    icon: '📊',
+    section: 'compliance',
+  },
+  {
+    href: '/dashboard/compliance-frameworks',
+    label: 'Frameworks',
+    icon: '▣',
+    section: 'compliance',
+  },
+  {
+    href: '/dashboard/trust-center',
+    label: 'Trust Center',
+    icon: '🛡️',
+    section: 'compliance',
+  },
+  {
+    href: '/dashboard/proof-chain',
+    label: 'Proof chain',
+    icon: '🔗',
+    section: 'compliance',
+  },
+  {
+    href: '/dashboard/case-studies',
+    label: 'Case studies',
+    icon: '📘',
+    section: 'compliance',
+  },
+  {
+    href: '/dashboard/demo-proof',
+    label: 'Demo proof',
+    icon: '🧪',
+    section: 'compliance',
+  },
+  {
+    href: '/dashboard/members',
+    label: 'Members',
+    icon: '👥',
+    section: 'admin',
+    requiresAdmin: true,
+  },
+  {
+    href: '/dashboard/notifications',
+    label: 'Alerts / Notifications',
+    icon: '🔔',
+    section: 'admin',
+    requiresAdmin: true,
+  },
+  {
+    href: '/dashboard/slack',
+    label: 'Slack',
+    icon: '💬',
+    section: 'admin',
+    requiresAdmin: true,
+  },
+  {
+    href: '/dashboard/gmail',
+    label: 'Gmail',
+    icon: '📧',
+    section: 'admin',
+    requiresAdmin: true,
+  },
+  {
+    href: '/dashboard/audit',
+    label: 'Activity',
+    icon: '📜',
+    section: 'admin',
+    requiresAdmin: true,
+  },
+  {
+    href: '/dashboard/ai-governance',
+    label: 'AI Insights',
+    icon: '🧠',
+    section: 'admin',
+    requiresAdmin: true,
+  },
+  {
+    href: '/dashboard/settings',
+    label: 'Settings',
+    icon: '⚙',
+    section: 'admin',
+    requiresAdmin: true,
+  },
 ]
 
 /** Account destinations that stay in the account menu, not the section list. */
@@ -69,7 +157,9 @@ export function appNavItemsFor(permissions: AppNavPermissions): AppNavItem[] {
   })
 }
 
-export function appNavSectionsFor(permissions: AppNavPermissions): AppNavSection[] {
+export function appNavSectionsFor(
+  permissions: AppNavPermissions
+): AppNavSection[] {
   const sections: AppNavSection[] = []
   for (const item of appNavItemsFor(permissions)) {
     if (!sections.includes(item.section)) sections.push(item.section)

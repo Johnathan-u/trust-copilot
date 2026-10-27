@@ -7,7 +7,7 @@ import {
   appNavItems,
   appNavItemsFor,
   isAppNavActive,
-} from './app-navigation'
+} from '@/lib/app-navigation'
 
 describe('application navigation', () => {
   it('docks the sidebar at the 768px md breakpoint and uses a drawer below it', () => {
@@ -19,10 +19,16 @@ describe('application navigation', () => {
   it('marks the current route without treating every dashboard path as Home', () => {
     expect(isAppNavActive('/dashboard', '/dashboard')).toBe(true)
     expect(isAppNavActive('/dashboard/documents', '/dashboard')).toBe(false)
-    expect(isAppNavActive('/dashboard/documents', '/dashboard/documents')).toBe(true)
-    expect(isAppNavActive('/dashboard/documents/12', '/dashboard/documents')).toBe(true)
+    expect(isAppNavActive('/dashboard/documents', '/dashboard/documents')).toBe(
+      true
+    )
+    expect(
+      isAppNavActive('/dashboard/documents/12', '/dashboard/documents')
+    ).toBe(true)
     expect(isAppNavActive('/dashboard/review', '/dashboard/review')).toBe(true)
-    expect(isAppNavActive('/dashboard/reviewer', '/dashboard/review')).toBe(false)
+    expect(isAppNavActive('/dashboard/reviewer', '/dashboard/review')).toBe(
+      false
+    )
     expect(isAppNavActive('', '/dashboard')).toBe(false)
   })
 
@@ -34,14 +40,18 @@ describe('application navigation', () => {
     expect(hrefs).toContain('/dashboard/case-studies')
     expect(hrefs).toContain('/dashboard/demo-proof')
     expect(hrefs).toContain('/dashboard/settings')
-    expect(accountNavItems.map((item) => item.href)).toEqual(['/dashboard/security'])
+    expect(accountNavItems.map((item) => item.href)).toEqual([
+      '/dashboard/security',
+    ])
 
     const editor = appNavItemsFor({ can_edit: true, can_admin: false })
     expect(editor.map((item) => item.href)).toContain('/dashboard/requests')
     expect(editor.some((item) => item.section === 'admin')).toBe(false)
 
     const reviewer = appNavItemsFor({ can_edit: false, can_admin: false })
-    expect(reviewer.map((item) => item.href)).not.toContain('/dashboard/requests')
+    expect(reviewer.map((item) => item.href)).not.toContain(
+      '/dashboard/requests'
+    )
     expect(reviewer.map((item) => item.href)).toContain('/dashboard/exports')
 
     const admin = appNavItemsFor({ can_edit: true, can_admin: true })

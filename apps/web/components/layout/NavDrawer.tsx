@@ -4,15 +4,18 @@ import { useEffect, useRef } from 'react'
 import { APP_NAV_DOCK_MEDIA } from '@/lib/app-navigation'
 import { Sidebar } from './Sidebar'
 
-const FOCUSABLE = 'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled])'
+const FOCUSABLE =
+  'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled])'
 
 function focusableIn(panel: HTMLElement): HTMLElement[] {
-  return Array.from(panel.querySelectorAll<HTMLElement>(FOCUSABLE)).filter((el) => {
-    if (el.closest('[hidden]')) return false
-    if (el.getAttribute('aria-hidden') === 'true') return false
-    const style = window.getComputedStyle(el)
-    return style.display !== 'none' && style.visibility !== 'hidden'
-  })
+  return Array.from(panel.querySelectorAll<HTMLElement>(FOCUSABLE)).filter(
+    (el) => {
+      if (el.closest('[hidden]')) return false
+      if (el.getAttribute('aria-hidden') === 'true') return false
+      const style = window.getComputedStyle(el)
+      return style.display !== 'none' && style.visibility !== 'hidden'
+    }
+  )
 }
 
 interface NavDrawerProps {
@@ -27,7 +30,10 @@ interface NavDrawerProps {
 export function NavDrawer({ open, onClose }: NavDrawerProps) {
   const panelRef = useRef<HTMLDivElement>(null)
   const onCloseRef = useRef(onClose)
-  onCloseRef.current = onClose
+
+  useEffect(() => {
+    onCloseRef.current = onClose
+  }, [onClose])
 
   useEffect(() => {
     if (!open) return
@@ -35,7 +41,9 @@ export function NavDrawer({ open, onClose }: NavDrawerProps) {
     const panel = panelRef.current
     if (!panel) return
 
-    const closeButton = panel.querySelector<HTMLElement>('[data-nav-drawer-close]')
+    const closeButton = panel.querySelector<HTMLElement>(
+      '[data-nav-drawer-close]'
+    )
     closeButton?.focus()
 
     const onKey = (event: KeyboardEvent) => {
@@ -57,7 +65,10 @@ export function NavDrawer({ open, onClose }: NavDrawerProps) {
       if (event.shiftKey && (active === first || !panel.contains(active))) {
         event.preventDefault()
         last.focus()
-      } else if (!event.shiftKey && (active === last || !panel.contains(active))) {
+      } else if (
+        !event.shiftKey &&
+        (active === last || !panel.contains(active))
+      ) {
         event.preventDefault()
         first.focus()
       }
@@ -88,7 +99,10 @@ export function NavDrawer({ open, onClose }: NavDrawerProps) {
         style={{ background: 'var(--tc-sidebar)' }}
       >
         <div className="flex shrink-0 items-center justify-between gap-tc-3 border-b border-tc-border px-tc-4 py-tc-3">
-          <h2 id="app-navigation-title" className="text-tc-label font-semibold text-tc-text">
+          <h2
+            id="app-navigation-title"
+            className="text-tc-label font-semibold text-tc-text"
+          >
             Navigation
           </h2>
           <button

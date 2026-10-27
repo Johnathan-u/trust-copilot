@@ -120,13 +120,18 @@ export function DashboardShell({ children }: DashboardShellProps) {
     <>
       <RouteProgress />
       <div className="relative z-[1] flex h-dvh max-h-dvh w-full min-w-0 max-w-full flex-col overflow-hidden bg-tc-bg">
-        <a
-          href="#main-content"
-          className="sr-only focus:not-sr-only focus:absolute focus:left-tc-4 focus:top-tc-4 focus:z-[80] focus:rounded-tc-xs focus:border focus:border-tc-border-strong focus:bg-tc-surface-overlay focus:px-tc-4 focus:py-tc-2 focus:text-tc-label focus:font-medium focus:text-tc-text"
+        <nav aria-label="Skip">
+          <a
+            href="#main-content"
+            className="sr-only focus:not-sr-only focus:absolute focus:left-tc-4 focus:top-tc-4 focus:z-[80] focus:rounded-tc-xs focus:border focus:border-tc-border-strong focus:bg-tc-surface-overlay focus:px-tc-4 focus:py-tc-2 focus:text-tc-label focus:font-medium focus:text-tc-text"
+          >
+            Skip to main content
+          </a>
+        </nav>
+        <div
+          ref={backgroundRef}
+          className="flex min-h-0 min-w-0 flex-1 flex-col"
         >
-          Skip to main content
-        </a>
-        <div ref={backgroundRef} className="flex min-h-0 min-w-0 flex-1 flex-col">
           <Topbar
             navOpen={navOpen}
             onToggleNav={() => setNavOpen((open) => !open)}
@@ -149,7 +154,9 @@ export function DashboardShell({ children }: DashboardShellProps) {
             </main>
           </div>
         </div>
-        {compact && <NavDrawer open={navOpen} onClose={() => setNavOpen(false)} />}
+        {compact && (
+          <NavDrawer open={navOpen} onClose={() => setNavOpen(false)} />
+        )}
       </div>
     </>
   )

@@ -11,12 +11,19 @@ import {
   type CommandPaletteItem,
 } from '@/components/CommandPalette'
 import { NotificationsPanel } from '@/components/layout/NotificationsPanel'
-import { accountNavItems, appNavItemsFor, isAppNavActive } from '@/lib/app-navigation'
+import {
+  accountNavItems,
+  appNavItemsFor,
+  isAppNavActive,
+} from '@/lib/app-navigation'
 
 function initials(displayName: string | null, email: string): string {
   if (displayName?.trim()) {
     const parts = displayName.trim().split(/\s+/)
-    if (parts.length >= 2) return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase().slice(0, 2)
+    if (parts.length >= 2)
+      return (parts[0][0] + parts[parts.length - 1][0])
+        .toUpperCase()
+        .slice(0, 2)
     return displayName.slice(0, 2).toUpperCase()
   }
   const local = email.split('@')[0]
@@ -31,7 +38,11 @@ const AI_MODEL_OPTIONS = [
   { value: 'gpt-4o', label: 'gpt-4o' },
   { value: 'gpt-4.1-mini', label: 'gpt-4.1-mini' },
 ]
-const RESPONSE_STYLES: { value: ResponseStyle; label: string; temperature: number }[] = [
+const RESPONSE_STYLES: {
+  value: ResponseStyle
+  label: string
+  temperature: number
+}[] = [
   { value: 'precise', label: 'Precise', temperature: 0.2 },
   { value: 'balanced', label: 'Balanced', temperature: 0.35 },
   { value: 'natural', label: 'Natural', temperature: 0.5 },
@@ -48,12 +59,22 @@ export function Topbar({ navOpen, onToggleNav, menuButtonRef }: TopbarProps) {
   const router = useRouter()
   const { user, workspace, permissions } = useAuth()
   const isAdmin = permissions.can_admin
-  const { model: aiModel, responseStyle, setModel: setAiModel, setResponseStyle, loadFromWorkspace } = useAISettings()
+  const {
+    model: aiModel,
+    responseStyle,
+    setModel: setAiModel,
+    setResponseStyle,
+    loadFromWorkspace,
+  } = useAISettings()
 
   const [paletteOpen, setPaletteOpen] = useState(false)
   const [query, setQuery] = useState('')
-  const [searchDocs, setSearchDocs] = useState<{ id: number; filename: string }[]>([])
-  const [searchQnrs, setSearchQnrs] = useState<{ id: number; filename: string }[]>([])
+  const [searchDocs, setSearchDocs] = useState<
+    { id: number; filename: string }[]
+  >([])
+  const [searchQnrs, setSearchQnrs] = useState<
+    { id: number; filename: string }[]
+  >([])
   const [notificationsOpen, setNotificationsOpen] = useState(false)
   const [unreadCount, setUnreadCount] = useState(0)
   const notificationsAnchorRef = useRef<HTMLDivElement>(null)
@@ -66,18 +87,27 @@ export function Topbar({ navOpen, onToggleNav, menuButtonRef }: TopbarProps) {
   const [automateEverything, setAutomateEverything] = useState(false)
 
   const visibleNav = useMemo(
-    () => appNavItemsFor({ can_edit: permissions.can_edit, can_admin: isAdmin }),
+    () =>
+      appNavItemsFor({ can_edit: permissions.can_edit, can_admin: isAdmin }),
     [permissions.can_edit, isAdmin]
   )
-  const coreNav = useMemo(() => visibleNav.filter((item) => item.section === 'core'), [visibleNav])
+  const coreNav = useMemo(
+    () => visibleNav.filter((item) => item.section === 'core'),
+    [visibleNav]
+  )
   const moreNav = useMemo(
     () => [
-      ...visibleNav.filter((item) => item.section !== 'core').map(({ href, label }) => ({ href, label })),
+      ...visibleNav
+        .filter((item) => item.section !== 'core')
+        .map(({ href, label }) => ({ href, label })),
       ...accountNavItems,
     ],
     [visibleNav]
   )
-  const jumpNav = useMemo(() => [...coreNav.map(({ href, label }) => ({ href, label })), ...moreNav], [coreNav, moreNav])
+  const jumpNav = useMemo(
+    () => [...coreNav.map(({ href, label }) => ({ href, label })), ...moreNav],
+    [coreNav, moreNav]
+  )
 
   const matchedNavHref = useMemo(() => {
     return jumpNav.find(({ href }) => isAppNavActive(pathname, href))?.href
@@ -131,8 +161,14 @@ export function Topbar({ navOpen, onToggleNav, menuButtonRef }: TopbarProps) {
     searchDebounceRef.current = setTimeout(async () => {
       try {
         const [docsRes, qnrsRes] = await Promise.all([
-          fetch(`/api/documents/?workspace_id=${workspaceId}&q=${encodeURIComponent(q)}`, { credentials: 'include' }),
-          fetch(`/api/questionnaires/?workspace_id=${workspaceId}&q=${encodeURIComponent(q)}`, { credentials: 'include' }),
+          fetch(
+            `/api/documents/?workspace_id=${workspaceId}&q=${encodeURIComponent(q)}`,
+            { credentials: 'include' }
+          ),
+          fetch(
+            `/api/questionnaires/?workspace_id=${workspaceId}&q=${encodeURIComponent(q)}`,
+            { credentials: 'include' }
+          ),
         ])
         const docs = docsRes.ok ? await docsRes.json() : []
         const qnrs = qnrsRes.ok ? await qnrsRes.json() : []
@@ -153,7 +189,8 @@ export function Topbar({ navOpen, onToggleNav, menuButtonRef }: TopbarProps) {
   useEffect(() => {
     if (!menuOpen) return
     const close = (e: MouseEvent) => {
-      if (menuRef.current && !menuRef.current.contains(e.target as Node)) setMenuOpen(false)
+      if (menuRef.current && !menuRef.current.contains(e.target as Node))
+        setMenuOpen(false)
     }
     document.addEventListener('mousedown', close)
     return () => document.removeEventListener('mousedown', close)
@@ -165,7 +202,9 @@ export function Topbar({ navOpen, onToggleNav, menuButtonRef }: TopbarProps) {
     loadFromWorkspace()
     fetch('/api/workspaces/current', { credentials: 'include' })
       .then((r) => (r.ok ? r.json() : null))
-      .then((d) => { if (d) setAutomateEverything(!!d.ai_automate_everything) })
+      .then((d) => {
+        if (d) setAutomateEverything(!!d.ai_automate_everything)
+      })
       .catch(() => {})
   }, [menuOpen, isAdmin, loadFromWorkspace])
 
@@ -191,12 +230,22 @@ export function Topbar({ navOpen, onToggleNav, menuButtonRef }: TopbarProps) {
     try {
       const styleConfig = RESPONSE_STYLES.find((s) => s.value === responseStyle)
       const temperature = styleConfig?.temperature ?? 0.35
-      const modelValue = aiModel && AI_MODEL_OPTIONS.some((m) => m.value === aiModel) ? aiModel : null
+      const modelValue =
+        aiModel && AI_MODEL_OPTIONS.some((m) => m.value === aiModel)
+          ? aiModel
+          : null
       await fetch('/api/workspaces/current', {
-        method: 'PATCH', headers: { 'Content-Type': 'application/json' }, credentials: 'include',
-        body: JSON.stringify({ ai_completion_model: modelValue, ai_temperature: temperature }),
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          ai_completion_model: modelValue,
+          ai_temperature: temperature,
+        }),
       })
-    } finally { setAiSaving(false) }
+    } finally {
+      setAiSaving(false)
+    }
   }
 
   const toggleAutomate = async () => {
@@ -204,12 +253,15 @@ export function Topbar({ navOpen, onToggleNav, menuButtonRef }: TopbarProps) {
     setAutomateEverything(next)
     try {
       const r = await fetch('/api/workspaces/current', {
-        method: 'PATCH', credentials: 'include',
+        method: 'PATCH',
+        credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ ai_automate_everything: next }),
       })
       if (!r.ok) setAutomateEverything(!next)
-    } catch { setAutomateEverything(!next) }
+    } catch {
+      setAutomateEverything(!next)
+    }
   }
 
   const paletteSections = useMemo((): CommandPaletteSection[] => {
@@ -246,12 +298,27 @@ export function Topbar({ navOpen, onToggleNav, menuButtonRef }: TopbarProps) {
       })
     }
     const actionItems: CommandPaletteItem[] = [
-      { id: 'action-upload-doc', label: 'Upload document', onSelect: () => navigateAndClose('/dashboard/documents') },
-      { id: 'action-upload-qnr', label: 'Upload questionnaire', onSelect: () => navigateAndClose('/dashboard/questionnaires') },
-      { id: 'action-create-workspace', label: 'Create workspace', onSelect: () => navigateAndClose('/dashboard/settings') },
+      {
+        id: 'action-upload-doc',
+        label: 'Upload document',
+        onSelect: () => navigateAndClose('/dashboard/documents'),
+      },
+      {
+        id: 'action-upload-qnr',
+        label: 'Upload questionnaire',
+        onSelect: () => navigateAndClose('/dashboard/questionnaires'),
+      },
+      {
+        id: 'action-create-workspace',
+        label: 'Create workspace',
+        onSelect: () => navigateAndClose('/dashboard/settings'),
+      },
       { id: 'action-signout', label: 'Sign out', onSelect: logout },
     ]
-    if (!qLower || actionItems.some((a) => a.label.toLowerCase().includes(qLower))) {
+    if (
+      !qLower ||
+      actionItems.some((a) => a.label.toLowerCase().includes(qLower))
+    ) {
       sections.push({ title: 'Actions', items: actionItems })
     }
     return sections
@@ -262,9 +329,7 @@ export function Topbar({ navOpen, onToggleNav, menuButtonRef }: TopbarProps) {
   const userRole = isAdmin ? 'Admin' : 'Member'
 
   return (
-    <header
-      className="relative z-30 flex w-full min-w-0 shrink-0 flex-col gap-3 border-b border-tc-border bg-tc-surface-overlay px-4 py-3 sm:px-5 sm:py-4 lg:flex-row lg:items-center lg:justify-between lg:gap-4 xl:px-7"
-    >
+    <header className="relative z-30 flex w-full min-w-0 shrink-0 flex-col gap-3 border-b border-tc-border bg-tc-surface-overlay px-4 py-3 sm:px-5 sm:py-4 lg:flex-row lg:items-center lg:justify-between lg:gap-4 xl:px-7">
       <div className="flex min-w-0 w-full max-w-full flex-1 flex-col gap-2 sm:flex-row sm:items-center sm:gap-3">
         <div className="flex min-w-0 items-center gap-2 sm:gap-3">
           <button
@@ -292,7 +357,9 @@ export function Topbar({ navOpen, onToggleNav, menuButtonRef }: TopbarProps) {
             >
               ✓
             </div>
-            <span className="truncate text-[15px] sm:text-base">Trust Copilot</span>
+            <span className="truncate text-[15px] sm:text-base">
+              Trust Copilot
+            </span>
           </Link>
         </div>
         <nav
@@ -436,8 +503,12 @@ export function Topbar({ navOpen, onToggleNav, menuButtonRef }: TopbarProps) {
                     {user ? initials(user.display_name, user.email) : '—'}
                   </div>
                   <div className="min-w-0">
-                    <div className="text-sm font-medium text-[var(--tc-text)] truncate">{userName}</div>
-                    <div className="text-[11px] text-[var(--tc-muted)] truncate">{userEmail}</div>
+                    <div className="text-sm font-medium text-[var(--tc-text)] truncate">
+                      {userName}
+                    </div>
+                    <div className="text-[11px] text-[var(--tc-muted)] truncate">
+                      {userEmail}
+                    </div>
                   </div>
                 </div>
                 <div className="flex items-center gap-2 mt-2">
@@ -454,9 +525,24 @@ export function Topbar({ navOpen, onToggleNav, menuButtonRef }: TopbarProps) {
 
               {/* Personal Actions */}
               <div className="py-1">
-                <MenuLink href="/dashboard/security" label="Account Security" icon="🔐" onClick={() => setMenuOpen(false)} />
-                <MenuLink href="/dashboard/security" label="Change Password" icon="🔑" onClick={() => setMenuOpen(false)} />
-                <MenuButton label="Sign Out" icon="🚪" onClick={logout} danger />
+                <MenuLink
+                  href="/dashboard/security"
+                  label="Account Security"
+                  icon="🔐"
+                  onClick={() => setMenuOpen(false)}
+                />
+                <MenuLink
+                  href="/dashboard/security"
+                  label="Change Password"
+                  icon="🔑"
+                  onClick={() => setMenuOpen(false)}
+                />
+                <MenuButton
+                  label="Sign Out"
+                  icon="🚪"
+                  onClick={logout}
+                  danger
+                />
               </div>
 
               {/* Admin AI Settings */}
@@ -470,14 +556,21 @@ export function Topbar({ navOpen, onToggleNav, menuButtonRef }: TopbarProps) {
                     <div className="space-y-2">
                       <MenuSelect
                         label="Model"
-                        value={AI_MODEL_OPTIONS.some((m) => m.value === aiModel) ? aiModel : 'gpt-4o-mini'}
+                        value={
+                          AI_MODEL_OPTIONS.some((m) => m.value === aiModel)
+                            ? aiModel
+                            : 'gpt-4o-mini'
+                        }
                         options={AI_MODEL_OPTIONS}
                         onChange={(v) => setAiModel(v || 'gpt-4o-mini')}
                       />
                       <MenuSelect
                         label="Response Style"
                         value={responseStyle}
-                        options={RESPONSE_STYLES.map((s) => ({ value: s.value, label: s.label }))}
+                        options={RESPONSE_STYLES.map((s) => ({
+                          value: s.value,
+                          label: s.label,
+                        }))}
                         onChange={(v) => setResponseStyle(v as ResponseStyle)}
                       />
                       <button
@@ -496,10 +589,14 @@ export function Topbar({ navOpen, onToggleNav, menuButtonRef }: TopbarProps) {
                           className={`relative w-8 h-[18px] rounded-full transition-colors ${automateEverything ? 'bg-[rgba(91,124,255,0.5)]' : 'bg-white/10'}`}
                           onClick={toggleAutomate}
                         >
-                          <div className={`absolute top-[2px] left-[2px] w-[14px] h-[14px] rounded-full bg-white transition-transform ${automateEverything ? 'translate-x-[14px]' : ''}`} />
+                          <div
+                            className={`absolute top-[2px] left-[2px] w-[14px] h-[14px] rounded-full bg-white transition-transform ${automateEverything ? 'translate-x-[14px]' : ''}`}
+                          />
                         </div>
                         <div>
-                          <span className="text-[11px] font-medium text-[var(--tc-text)]">Automate everything</span>
+                          <span className="text-[11px] font-medium text-[var(--tc-text)]">
+                            Automate everything
+                          </span>
                           <span className="block text-[10px] text-[var(--tc-muted)] leading-tight">
                             Auto-generate answers on upload
                           </span>
@@ -519,7 +616,17 @@ export function Topbar({ navOpen, onToggleNav, menuButtonRef }: TopbarProps) {
 
 /* ── Menu sub-components ── */
 
-function MenuLink({ href, label, icon, onClick }: { href: string; label: string; icon: string; onClick: () => void }) {
+function MenuLink({
+  href,
+  label,
+  icon,
+  onClick,
+}: {
+  href: string
+  label: string
+  icon: string
+  onClick: () => void
+}) {
   return (
     <Link
       href={href}
@@ -532,13 +639,25 @@ function MenuLink({ href, label, icon, onClick }: { href: string; label: string;
   )
 }
 
-function MenuButton({ label, icon, onClick, danger }: { label: string; icon: string; onClick: () => void; danger?: boolean }) {
+function MenuButton({
+  label,
+  icon,
+  onClick,
+  danger,
+}: {
+  label: string
+  icon: string
+  onClick: () => void
+  danger?: boolean
+}) {
   return (
     <button
       type="button"
       onClick={onClick}
-        className={`flex w-full items-center gap-2.5 px-4 py-2 text-[13px] transition-colors ${
-        danger ? 'text-tc-danger hover:bg-[var(--tc-danger-surface)]' : 'text-[var(--tc-text)] hover:bg-[var(--tc-hover)]'
+      className={`flex w-full items-center gap-2.5 px-4 py-2 text-[13px] transition-colors ${
+        danger
+          ? 'text-tc-danger hover:bg-[var(--tc-danger-surface)]'
+          : 'text-[var(--tc-text)] hover:bg-[var(--tc-hover)]'
       }`}
     >
       <span className="text-sm w-5 text-center">{icon}</span>
@@ -547,7 +666,12 @@ function MenuButton({ label, icon, onClick, danger }: { label: string; icon: str
   )
 }
 
-function MenuSelect({ label, value, options, onChange }: {
+function MenuSelect({
+  label,
+  value,
+  options,
+  onChange,
+}: {
   label: string
   value: string
   options: { value: string; label: string }[]
@@ -555,14 +679,18 @@ function MenuSelect({ label, value, options, onChange }: {
 }) {
   return (
     <div>
-      <label className="block text-[10px] font-medium text-[var(--tc-muted)] mb-0.5">{label}</label>
+      <label className="block text-[10px] font-medium text-[var(--tc-muted)] mb-0.5">
+        {label}
+      </label>
       <select
         value={value}
         onChange={(e) => onChange(e.target.value)}
         className="w-full rounded-lg border border-tc-border bg-tc-surface-overlay px-2 py-1 text-[11px] text-[var(--tc-text)] focus:border-[var(--tc-soft)] focus:outline-none"
       >
         {options.map((opt) => (
-          <option key={opt.value} value={opt.value}>{opt.label}</option>
+          <option key={opt.value} value={opt.value}>
+            {opt.label}
+          </option>
         ))}
       </select>
     </div>
