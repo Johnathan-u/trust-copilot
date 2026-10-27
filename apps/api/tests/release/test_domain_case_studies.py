@@ -22,7 +22,7 @@ from app.services import case_study_service as cs
 
 REPO_ROOT = Path(__file__).resolve().parents[4]
 API_ROOT = Path(__file__).resolve().parents[2]
-CONSUMER_RUNNER = Path(__file__).resolve().parent / "run_case_study_consumer.ts"
+CONSUMER_RUNNER = Path(__file__).resolve().parent / "run_case_study_consumer.mjs"
 MIGRATION_PATH = REPO_ROOT / "apps/api/alembic/versions/tc25005_case_study_consent.py"
 
 ORG = "SYNTHETIC-ORG-PLACEHOLDER"
@@ -177,7 +177,7 @@ def _times_match(api_value, db_value) -> bool:
 
 def _consumer_agrees(api_body: dict, persisted: dict) -> dict:
     completed = subprocess.run(
-        ["node", "--experimental-strip-types", str(CONSUMER_RUNNER)],
+        ["node", str(CONSUMER_RUNNER)],
         input=json.dumps({"api": api_body, "persisted": persisted}),
         text=True,
         capture_output=True,
