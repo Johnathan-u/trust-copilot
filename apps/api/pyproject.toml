@@ -15,7 +15,8 @@ dependencies = [
     "argon2-cffi",
     "fastapi",
     "uvicorn[standard]",
-    "sqlalchemy>=2.0,<2.1",  # 2.1 defaults postgresql:// to psycopg3; driver is psycopg2 (full lock: TC-02-002)
+    # 2.1 defaults postgresql:// to psycopg3; the installed driver is psycopg2 (TC-02-002).
+    "sqlalchemy>=2.0,<2.1",
     "psycopg2-binary",
     "pydantic",
     "alembic",
@@ -25,7 +26,6 @@ dependencies = [
     "python-docx",
     "openpyxl",
     "pypdf>=6.21.2,<7",  # BSD-3-Clause; replaced pymupdf (AGPL), TC-01-003a
-    "pytest",
     "httpx",
     "python-multipart",
     "python-dotenv",
@@ -35,6 +35,14 @@ dependencies = [
     "sentry-sdk[fastapi]",
     "prometheus-client",
     "stripe",
+]
+
+# TC-02-002: exact versions live in requirements.lock (runtime) and requirements-dev.lock
+# (runtime + dev). Regenerate both with scripts/lock-python-deps.sh after changing this file.
+[project.optional-dependencies]
+dev = [
+    "pytest",
+    "ruff==0.5.6",  # same rev as the ruff hook in .pre-commit-config.yaml
 ]
 
 [tool.pytest.ini_options]

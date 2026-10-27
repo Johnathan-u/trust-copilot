@@ -67,10 +67,11 @@ jobs:
         working-directory: apps/api
         run: |
           pip install -U pip
-          # Pin ruff to the pre-commit hook rev (.pre-commit-config.yaml) so both
-          # lint gates use the same rules; unpinned ruff pulls newer default rule sets.
-          pip install ruff==0.5.6 pytest
-          pip install -e .
+          # TC-02-002: exact, hashed versions from the lock (runtime + dev extra; ruff is pinned
+          # there to the pre-commit hook rev). The project itself adds no unlocked dependency.
+          pip install --require-hashes -r requirements-dev.lock
+          pip install --no-deps -e .
+          pip check
 
       - name: Run migrations
         working-directory: apps/api
@@ -88,11 +89,20 @@ jobs:
           python -m pytest --collect-only -q
           python -m pytest tests/release/test_safe_collection.py -q
 
+      - name: Python dependency lock (TC-02-002)
+        # Installed versions must equal the lock; the app must import and reach the DB through the
+        # explicitly installed psycopg2 driver.
+        working-directory: apps/api
+        env:
+          TC_REQUIRE_DB: "1"
+        run: python -m pytest tests/release/test_python_lock.py -q
+
       - name: Run backend tests
         working-directory: apps/api
         env:
           SESSION_SECRET: test-secret
-          # Fail (never skip) when the disposable service DB is unavailable or incompatible.
+          # Fail (never skip) when the disposable service DB is unavailable or incompatible, and
+          # turn any skip of a DB (integration) test into a failure (tests/conftest.py).
           TC_REQUIRE_DB: "1"
         # DATABASE_URL / TC_TEST_DATABASE_URL come from the isolated Postgres step via GITHUB_ENV.
         run: pytest -rs
