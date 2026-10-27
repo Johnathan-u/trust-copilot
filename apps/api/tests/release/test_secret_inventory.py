@@ -212,15 +212,14 @@ def test_reserved_hosts_and_synthetic_pragma_are_review_only(scanner):
     # The same credential for a real-looking host still blocks.
     assert _blocks(scanner.scan_text(f"postgresql://svc:{pw}@db.acme.io:5432/p\n", "notes.md"))
 
-    tok = "sk-" + secrets.token_urlsafe(40)
-    marked = f'OPENAI = "{tok}"  # secret-inventory: synthetic\n'
+    marked = f'DSN = "postgresql://svc:{pw}@db.acme.io:5432/p"  # secret-inventory: synthetic\n'
     found = scanner.scan_text(marked, "apps/api/tests/release/test_x.py")
-    assert found and not _blocks(found), "pragma downgrades a test fixture to review"
+    assert found and not _blocks(found), "pragma downgrades a test URL credential to review"
     # The pragma is ignored in application code, config/deploy files and non-test paths.
     for path in ("apps/api/app/core/x.py", "docker-compose.prod.yml", "scripts/x.py"):
         assert _blocks(scanner.scan_text(marked, path)), path
     # It only covers its own line.
-    two = marked + f'OTHER = "{tok}"\n'
+    two = marked + f'OTHER = "postgresql://svc:{pw}@db.acme.io/p"\n'
     assert _blocks(scanner.scan_text(two, "apps/api/tests/release/test_x.py"))
 
 
@@ -308,7 +307,8 @@ _MARKER = "  # secret-inventory: synthetic"
 
 
 def _marked_line() -> str:
-    return f'OPENAI_API_KEY = "sk-{secrets.token_urlsafe(40)}"{_MARKER}\n'
+    """A real-host URL credential carrying the marker as a genuine Python comment."""
+    return f'DSN = "postgresql://svc:{secrets.token_urlsafe(24)}@db.acme.io:5432/x"{_MARKER}\n'
 
 
 @pytest.mark.parametrize(
@@ -317,8 +317,8 @@ def _marked_line() -> str:
         "apps/api/tests/release/test_x.py",
         "apps/api/tests/test_x.py",
         "tests/x.py",
-        "apps/web/e2e/login.spec.ts",
-        "apps/web/__tests__/x.test.ts",
+        "apps/web/e2e/helpers.py",
+        "apps/web/__tests__/x_test.py",
         "apps/api/tests/fixtures/sample.py",
         "fixtures/x.py",
     ],
@@ -336,6 +336,31 @@ def test_condition_b_marker_honored_in_test_e2e_fixture_paths(scanner, path):
         "apps/api/app/tests/x.py",
         "apps/web/app/login/page.tsx",
         "apps/web/lib/x.ts",
+        "apps/web/contexts/AuthContext.tsx",
+        "apps/web/middleware.ts",
+        "apps/api/alembic/versions/076_x.py",
+        "apps/api/alembic/tests/x.py",
+        # '#' is not a comment in these languages: only Python comment tokens count
+        "apps/web/e2e/login.spec.ts",
+        "apps/web/__tests__/x.test.ts",
+        "tests/x.rb",
+        "tests/notes.md",
+        # never honoured for these file types, even under a test directory
+        "tests/main.tf",
+        "tests/prod.tfvars",
+        "tests/Makefile",
+        "tests/GNUmakefile",
+        "tests/run.sh",
+        "tests/run.bash",
+        "tests/run.zsh",
+        "tests/seed.sql",
+        "tests/.env",
+        "tests/.env.test",
+        "tests/x.env.py",
+        "tests/prod.env",
+        # archive members
+        "tests/trace.zip!0-trace.py",
+        "apps/web/test-results/x/trace.zip!data/test_x.py",
         # look-alike names: path components, not substrings
         "apps/api/app/tests_helper.py",
         "app/attest/x.py",
@@ -388,10 +413,11 @@ def test_condition_b_marker_in_config_value_still_blocks(scanner):
 
 def _downgrade_fixture(tmp_path):
     pw = secrets.token_urlsafe(24)
-    tok = "sk-" + secrets.token_urlsafe(40)
+    tok = secrets.token_urlsafe(24)
     (tmp_path / "tests").mkdir()
     (tmp_path / "tests" / "test_fake.py").write_text(
-        f'OPENAI = "{tok}"{_MARKER}\n' f'DSN = "postgresql://svc:{pw}@db.example.com:5432/x"\n'
+        f'URL = "postgresql://svc:{tok}@db.acme.io:5432/x"{_MARKER}\n'
+        f'DSN = "postgresql://svc:{pw}@db.example.com:5432/x"\n'
     )
     return pw, tok
 
@@ -407,7 +433,7 @@ def test_condition_c_downgrades_reported_as_review_in_json(scanner, tmp_path, ca
     reasons = {
         (f["rule"], f["line"], f["severity"], f["reason"]) for f in data["findings"] if f["reason"]
     }
-    assert ("openai-api-key", 1, "review", scanner.REASON_SYNTHETIC) in reasons
+    assert ("url-embedded-credential", 1, "review", scanner.REASON_SYNTHETIC) in reasons
     assert ("url-embedded-credential", 2, "review", scanner.REASON_RESERVED_HOST) in reasons
     assert "synthetic" in scanner.REASON_SYNTHETIC and "downgraded" in scanner.REASON_SYNTHETIC
     assert "reserved-host" in scanner.REASON_RESERVED_HOST
@@ -421,7 +447,7 @@ def test_condition_c_downgrades_reported_as_review_in_text(scanner, tmp_path, ca
     assert rc == 0
     assert pw not in out and tok not in out
     lines = out.splitlines()
-    syn = [ln for ln in lines if "test_fake.py:1" in ln and "openai-api-key" in ln]
+    syn = [ln for ln in lines if "test_fake.py:1" in ln and "url-embedded-credential" in ln]
     host = [ln for ln in lines if "test_fake.py:2" in ln and "url-embedded-credential" in ln]
     assert syn and syn[0].startswith("REVIEW") and scanner.REASON_SYNTHETIC in syn[0]
     assert host and host[0].startswith("REVIEW") and scanner.REASON_RESERVED_HOST in host[0]
@@ -434,6 +460,168 @@ def test_condition_c_downgrade_kept_next_to_a_block_on_the_same_line(scanner):
     found = scanner.scan_text(line, "notes.md")
     assert _blocks(found)
     assert any(f.reason == scanner.REASON_RESERVED_HOST and f.severity == "review" for f in found)
+
+
+# ---------------------------------------------------------------------------
+# Coordinator review of e8321b5 (CHANGES REQUIRED): BLOCKING 2/3 and marker scope
+# ---------------------------------------------------------------------------
+
+
+def test_review_dedupe_downgraded_url_cannot_hide_a_blocking_url_on_the_same_line(scanner):
+    pw1, pw2 = secrets.token_urlsafe(24), secrets.token_urlsafe(24)
+    line = f"a=postgresql://svc:{pw1}@db.example.com/x b=postgresql://svc:{pw2}@db.acme.io/x\n"
+    for path in ("notes.md", "apps/api/tests/test_x.py", "docker-compose.yml"):
+        found = scanner.scan_text(line, path)
+        url = [f for f in found if f.rule == "url-embedded-credential"]
+        assert any(f.severity == "block" for f in url), path
+        assert any(f.reason == scanner.REASON_RESERVED_HOST for f in url), path
+    # Order does not matter either.
+    swapped = f"b=postgresql://svc:{pw2}@db.acme.io/x a=postgresql://svc:{pw1}@db.example.com/x\n"
+    assert any(
+        f.rule == "url-embedded-credential" for f in _blocks(scanner.scan_text(swapped, "n.md"))
+    )
+
+
+def test_review_dedupe_marker_cannot_hide_a_second_real_url_on_the_line(scanner):
+    pw1, pw2 = secrets.token_urlsafe(24), secrets.token_urlsafe(24)
+    line = (
+        f'X = ("postgresql://svc:{pw1}@db.example.com/x", "postgresql://svc:{pw2}@db.acme.io/x")\n'
+    )
+    found = scanner.scan_text(line, "apps/api/tests/test_x.py")
+    assert any(f.rule == "url-embedded-credential" for f in _blocks(found))
+
+
+@pytest.mark.parametrize(
+    "template",
+    [
+        # more than one '@' in the authority, in each order
+        "postgresql://svc:{pw}@db.acme.io@db.example.com/x",
+        "postgresql://svc:{pw}@db.example.com@db.acme.io/x",
+        "postgresql://svc@db.acme.io:{pw}@db.example.com/x",
+        "postgresql://svc:{pw}@@db.example.com/x",
+        # the ':port@' form
+        "postgresql://svc:{pw}@db.acme.io:5432@db.example.com/x",
+        "postgresql://svc:{pw}@db.acme.io:@db.example.com/x",
+        # backslash in the authority
+        "postgresql://svc:{pw}@db.acme.io\\@db.example.com/x",
+        "postgresql://svc:{pw}@db.acme.io\\.example.com/x",
+        "https://svc:{pw}@db.example.com\\x.acme.io/",
+        # host text after the matched '@' that is not a plain DNS name
+        "postgresql://svc:{pw}@db.acme.io%40x.example.com/x",
+        "postgresql://svc:{pw}@[db.example.com]/x",
+    ],
+)
+def test_review_ambiguous_authority_always_blocks(scanner, template):
+    url = template.format(pw=secrets.token_urlsafe(24))
+    for path in ("notes.md", "apps/api/tests/test_x.py"):
+        for text in (f'DSN = "{url}"\n', f"{url}\n", f"DSN = '{url}'\n"):
+            found = scanner.scan_text(text, path)
+            assert any(f.rule == "url-embedded-credential" for f in _blocks(found)), (
+                template,
+                path,
+            )
+            assert not any(f.reason == scanner.REASON_RESERVED_HOST for f in found), template
+
+
+def test_review_reserved_host_must_match_text_after_the_at_and_urlsplit(scanner):
+    pw = secrets.token_urlsafe(24)
+    ok = f"postgresql://svc:{pw}@db.example.com:5432/x"
+    m = scanner._URL_CRED_RE.search(ok)
+    assert m and scanner._url_credential_host_is_reserved(ok, m)
+    bad = f"postgresql://svc:{pw}@db.acme.io@db.example.com/x"
+    m = scanner._URL_CRED_RE.search(bad)
+    assert m and not scanner._url_credential_host_is_reserved(bad, m)
+
+
+@pytest.mark.parametrize("scheme", ["POSTGRESQL", "Postgres", "HTTPS", "Redis", "AMQP", "MySQL"])
+def test_review_uppercase_schemes_detected(scanner, scheme):
+    pw = secrets.token_urlsafe(24)
+    found = scanner.scan_text(f'DSN = "{scheme}://svc:{pw}@db.acme.io:5432/x"\n', "notes.md")
+    assert any(f.rule == "url-embedded-credential" for f in _blocks(found)), scheme
+    low = scanner.scan_text(f"{scheme}://svc:postgres@db.acme.io/x\n", "notes.md")
+    assert any(f.rule == "url-credential-review" for f in low), scheme
+    reserved = scanner.scan_text(f"{scheme}://svc:{pw}@DB.EXAMPLE.COM/x\n", "notes.md")
+    assert not _blocks(reserved), scheme
+
+
+@pytest.mark.parametrize(
+    "path",
+    [
+        "apps/web/contexts/AuthContext.tsx",
+        "apps/web/middleware.ts",
+        "apps/api/alembic/versions/076_x.py",
+        "apps/api/alembic/env.py",
+    ],
+)
+def test_review_new_app_code_paths(scanner, path):
+    assert path.startswith(scanner.APP_CODE_PREFIXES)
+    # app-secret-literal: any literal (even low entropy) assigned to a secret-named constant.
+    found = scanner.scan_text('SESSION_SECRET = "dev"\n', path)
+    assert any(f.rule == "app-secret-literal" for f in _blocks(found)), path
+    found = scanner.scan_text(_marked_line(), path)
+    assert _blocks(found) and not any(f.reason == scanner.REASON_SYNTHETIC for f in found), path
+
+
+def _key_shaped_lines() -> dict[str, str]:
+    """Synthetic, runtime-generated token-format values for each non-URL block rule."""
+    up = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567"
+    aws = "AKIA" + "".join(secrets.choice(up) for _ in range(16))
+    return {
+        "aws-access-key-id": f'AWS = "{aws}"',
+        "openai-api-key": f'OPENAI = "sk-{secrets.token_urlsafe(40)}"',
+        "stripe-key": f'STRIPE = "sk_live_{secrets.token_hex(16)}"',
+        "github-token": f'GH = "ghp_{secrets.token_hex(20)}"',
+        "high-entropy-secret-assignment": f'SESSION_SECRET = "{secrets.token_urlsafe(32)}"',
+        "private-key-block": '"-----BEGIN ' + 'PRIVATE KEY-----"',
+    }
+
+
+@pytest.mark.parametrize("rule_id", sorted(_key_shaped_lines()))
+def test_review_marker_never_downgrades_non_url_rules(scanner, rule_id):
+    line = _key_shaped_lines()[rule_id] + _MARKER + "\n"
+    for path in ("apps/api/tests/test_x.py", "tests/fixtures/x.py", "apps/web/e2e/x.py"):
+        found = scanner.scan_text(line, path)
+        assert any(f.rule == rule_id for f in _blocks(found)), (rule_id, path)
+        assert not any(f.reason == scanner.REASON_SYNTHETIC for f in found), (rule_id, path)
+    assert scanner.MARKER_RULES == frozenset({"url-embedded-credential"})
+
+
+@pytest.mark.parametrize(
+    "fmt",
+    [
+        # marker text inside a string literal on the same line
+        'DSN = "{url}"; NOTE = "{m}"\n',
+        "DSN = '{url}  # {m}'\n",
+        'DSN = f"{url}  # {m}"\n',
+        # inside a triple-quoted string spanning lines
+        'DOC = """\n{url}  # {m}\n"""\n',
+        # '#' inside a string, marker outside any comment
+        'DSN = "{url}" + "#" + "{m}"\n',
+        # not a comment at the start
+        'DSN = "{url}"  # note: {m}\n',
+    ],
+)
+def test_review_marker_counts_only_as_a_real_comment(scanner, fmt):
+    url = f"postgresql://svc:{secrets.token_urlsafe(24)}@db.acme.io:5432/x"
+    text = fmt.format(url=url, m="secret-inventory: synthetic")
+    found = scanner.scan_text(text, "apps/api/tests/test_x.py")
+    assert any(f.rule == "url-embedded-credential" for f in _blocks(found)), fmt
+    assert not any(f.reason == scanner.REASON_SYNTHETIC for f in found), fmt
+
+
+def test_review_marker_in_untokenizable_text_fails_closed(scanner):
+    url = f"postgresql://svc:{secrets.token_urlsafe(24)}@db.acme.io:5432/x"
+    text = f'DSN = "{url}"{_MARKER}\nbroken = (\n'
+    found = scanner.scan_text(text, "apps/api/tests/test_x.py")
+    assert any(f.rule == "url-embedded-credential" for f in _blocks(found))
+
+
+def test_review_marker_on_real_comment_still_downgrades_url_only(scanner):
+    found = scanner.scan_text(_marked_line(), "apps/api/tests/test_x.py")
+    assert found and not _blocks(found)
+    assert any(
+        f.rule == "url-embedded-credential" and f.reason == scanner.REASON_SYNTHETIC for f in found
+    )
 
 
 def test_scanner_output_never_contains_values(scanner, capsys, tmp_path):

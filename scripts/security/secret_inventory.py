@@ -25,12 +25,14 @@ The module is stdlib-only so it can run in any CI image.
 from __future__ import annotations
 
 import argparse
+import io
 import json
 import math
 import os
 import re
 import subprocess
 import sys
+import tokenize
 import urllib.parse
 from dataclasses import asdict, dataclass
 from pathlib import Path
@@ -46,6 +48,9 @@ _SECRET_NAME = (
     r"|SIGNING_KEY|CLIENT_SECRET|WEBHOOK_SECRET|FERNET_KEY)[A-Z0-9_]*"
 )
 _LIT = r"""(?P<q>["'])(?P<val>[^"'\n]*)(?P=q)"""
+# scheme://userinfo:password@ -- scheme matched case-insensitively (RFC 3986), userinfo may itself
+# contain '@' so an ambiguous authority is still matched (and then blocked, never downgraded).
+_URL_CRED_RE = re.compile(r"[A-Za-z][A-Za-z0-9+.\-]*://[^:/\s\"']+:(?P<val>[^@/\s\"']+)@")
 
 
 @dataclass(frozen=True)
@@ -169,7 +174,7 @@ RULES: list[Rule] = [
         "url-embedded-credential",
         "Password embedded in a connection URL",
         "block",
-        re.compile(r"[a-z][a-z0-9+.\-]*://[^:/@\s\"']+:(?P<val>[^@/\s\"']+)@"),
+        _URL_CRED_RE,
         min_len=12,
         min_entropy=3.0,
     ),
@@ -177,7 +182,7 @@ RULES: list[Rule] = [
         "url-credential-review",
         "Low-entropy password embedded in a connection URL (dev default)",
         "review",
-        re.compile(r"[a-z][a-z0-9+.\-]*://[^:/@\s\"']+:(?P<val>[^@/\s\"']+)@"),
+        _URL_CRED_RE,
         min_len=1,
     ),
     # Unquoted secret-named values in YAML / dotenv / shell / PowerShell / Docker files.
@@ -222,7 +227,15 @@ RULES: list[Rule] = [
 ]
 
 # Shipped application code (rules with app_code_only apply only here).
-APP_CODE_PREFIXES = ("apps/api/app/", "apps/web/app/", "apps/web/components/", "apps/web/lib/")
+APP_CODE_PREFIXES = (
+    "apps/api/app/",
+    "apps/api/alembic/",
+    "apps/web/app/",
+    "apps/web/components/",
+    "apps/web/contexts/",
+    "apps/web/lib/",
+    "apps/web/middleware.ts",
+)
 
 # Placeholder values that are documentation, not credentials. Compared case-insensitively
 # against the matched literal; nothing here is a real value.
@@ -249,11 +262,18 @@ RESERVED_HOST_SUFFIXES = (
 REASON_RESERVED_HOST = "downgraded: reserved-host (RFC 2606/6761) URL credential"
 REASON_SYNTHETIC = "downgraded: '# secret-inventory: synthetic' marker in a test/e2e/fixture path"
 
-# A test fixture line may carry this marker to declare an intentionally fake credential
-# (canary values, simulated driver errors, a redacted-value digest). The finding stays in the
-# inventory as "review"; the marker is ignored outside test/e2e/fixture paths and always in
-# application code and config/deploy files.
+# A Python test fixture line may carry this marker as a real ``#`` comment (a tokenize COMMENT
+# token, never text inside a string literal) to declare an intentionally fake connection-URL
+# credential. Only the URL-credential rule (MARKER_RULES) is downgraded to "review"; token
+# formats (AWS, OpenAI, Stripe, PEM, ...) and every other block rule are never downgraded. The
+# marker is ignored outside test/e2e/fixture paths, in application code, config/deploy/shell/
+# SQL/Terraform/Makefile/env files and in archive members.
 SYNTHETIC_PRAGMA = "secret-inventory: synthetic"
+_PRAGMA_COMMENT_RE = re.compile(r"^#\s*secret-inventory:\s*synthetic\b")
+MARKER_RULES = frozenset({"url-embedded-credential"})
+# File types where the marker is never honoured, even under a test directory.
+PRAGMA_DENY_SUFFIXES = frozenset({".tf", ".tfvars", ".sh", ".bash", ".zsh", ".sql"})
+PRAGMA_DENY_NAMES = frozenset({"makefile", "gnumakefile"})
 # Directory components that make a path a test path (exact component match only, so
 # ``tests_helper.py`` or ``attest/`` never count).
 PRAGMA_DIR_COMPONENTS = frozenset(
@@ -261,6 +281,37 @@ PRAGMA_DIR_COMPONENTS = frozenset(
 )
 # Directory components and file names that are deploy/CI surfaces: the marker never applies.
 DEPLOY_DIR_COMPONENTS = frozenset({"deploy", "deployment", "infra", ".github", "k8s", "helm"})
+
+
+_HOST_PORT_RE = re.compile(r"(?P<host>[A-Za-z0-9.\-]+)(?::[0-9]*)?")
+
+
+def _url_credential_host_is_reserved(line: str, m: re.Match) -> bool:
+    """Reserved-host check for a url-embedded-credential match, failing closed on ambiguity.
+
+    The host is taken from the text right after the matched '@' and must equal the hostname
+    urllib.parse derives for the same URL. Any authority with more than one '@', a backslash,
+    or a host that is not a plain DNS name is treated as not reserved (the finding blocks).
+    """
+    url = re.match(r"[^\s\"'`<>]*", line[m.start() :]).group(0)
+    sep = url.find("://")
+    if sep < 0:
+        return False
+    authority = re.split(r"[/?#]", url[sep + 3 :], maxsplit=1)[0]
+    if authority.count("@") != 1 or "\\" in authority:
+        return False
+    tail = re.split(r"[/?#\s\"'`<>]", line[m.end() :], maxsplit=1)[0]
+    hm = _HOST_PORT_RE.fullmatch(tail)
+    if not hm:
+        return False
+    host = hm.group("host").lower()
+    try:
+        parsed = urllib.parse.urlsplit(url).hostname
+    except ValueError:
+        return False
+    if not parsed or parsed.lower() != host:
+        return False
+    return _url_host_is_reserved(url)
 
 
 def _url_host_is_reserved(url: str) -> bool:
@@ -292,12 +343,35 @@ def _is_config_like(norm: str) -> bool:
 
 
 def _pragma_allowed(norm: str) -> bool:
+    if "!" in norm:  # archive member (e.g. trace.zip!0-trace.network): never honoured
+        return False
+    name = norm.rsplit("/", 1)[-1].lower()
+    if not name.endswith(".py"):  # the marker must be a real Python '#' comment
+        return False
+    if Path(name).suffix in PRAGMA_DENY_SUFFIXES or name in PRAGMA_DENY_NAMES or ".env" in name:
+        return False
     if norm.startswith(APP_CODE_PREFIXES) or _is_config(norm) or _is_config_like(norm):
         return False
     if _is_deploy_path(norm):
         return False
     dirs = [p for p in norm.split("!", 1)[0].split("/") if p][:-1]
     return any(p.lower() in PRAGMA_DIR_COMPONENTS for p in dirs)
+
+
+def _pragma_comment_lines(text: str) -> set[int]:
+    """Line numbers carrying the marker as a genuine Python comment token.
+
+    Uses tokenize so the marker inside a string literal never counts; text that does not
+    tokenize yields no lines (fail closed).
+    """
+    lines: set[int] = set()
+    try:
+        for tok in tokenize.generate_tokens(io.StringIO(text).readline):
+            if tok.type == tokenize.COMMENT and _PRAGMA_COMMENT_RE.match(tok.string):
+                lines.add(tok.start[0])
+    except (tokenize.TokenError, SyntaxError, ValueError):
+        return set()
+    return lines
 
 
 SKIP_DIRS = {
@@ -431,7 +505,9 @@ def scan_text(text: str, path: str, source: str = "tree", commit: str = "") -> l
     norm = path.replace("\\", "/")
     is_app = norm.startswith(APP_CODE_PREFIXES)
     is_cfg = _is_config(norm)
-    seen: set[tuple[int, str]] = set()
+    # Dedupe per (line, rule, match span): two URLs on one line are two findings, so a
+    # downgraded match can never hide a blocking one next to it.
+    seen: set[tuple[int, str, int, int]] = set()
     for rule in RULES:
         if (
             not rule.multiline
@@ -443,8 +519,9 @@ def scan_text(text: str, path: str, source: str = "tree", commit: str = "") -> l
             if not _value_ok(rule, m.groupdict().get("val")):
                 continue
             lineno = text.count("\n", 0, m.start()) + 1
-            if (lineno, rule.rule_id) not in seen:
-                seen.add((lineno, rule.rule_id))
+            key = (lineno, rule.rule_id, m.start(), m.end())
+            if key not in seen:
+                seen.add(key)
                 findings.append(
                     Finding(source, norm, lineno, rule.rule_id, rule.kind, rule.severity, commit)
                 )
@@ -481,10 +558,9 @@ def scan_text(text: str, path: str, source: str = "tree", commit: str = "") -> l
                     continue
                 severity, reason = rule.severity, ""
                 if rule.rule_id == "url-embedded-credential":
-                    url = re.match(r"[^\s\"'`<>]*", line[m.start() :]).group(0)
-                    if _url_host_is_reserved(url):
+                    if _url_credential_host_is_reserved(line, m):
                         severity, reason = "review", REASON_RESERVED_HOST
-                key = (lineno, rule.rule_id)
+                key = (lineno, rule.rule_id, m.start(), m.end())
                 if key in seen:
                     continue
                 seen.add(key)
@@ -492,7 +568,7 @@ def scan_text(text: str, path: str, source: str = "tree", commit: str = "") -> l
                     Finding(source, norm, lineno, rule.rule_id, rule.kind, severity, commit, reason)
                 )
     if not is_app and not is_cfg and _pragma_allowed(norm) and SYNTHETIC_PRAGMA in text:
-        lines = text.splitlines()
+        marked = _pragma_comment_lines(text)
         findings = [
             Finding(
                 f.source,
@@ -504,9 +580,7 @@ def scan_text(text: str, path: str, source: str = "tree", commit: str = "") -> l
                 f.commit,
                 REASON_SYNTHETIC,
             )
-            if f.severity == "block"
-            and 0 < f.line <= len(lines)
-            and SYNTHETIC_PRAGMA in lines[f.line - 1]
+            if f.severity == "block" and f.rule in MARKER_RULES and f.line in marked
             else f
             for f in findings
         ]
