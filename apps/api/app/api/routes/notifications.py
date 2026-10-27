@@ -444,7 +444,10 @@ async def list_delivery_attempts(
         db.query(NotificationDeliveryAttempt, InAppNotification)
         .outerjoin(
             InAppNotification,
-            InAppNotification.id == NotificationDeliveryAttempt.in_app_notification_id,
+            and_(
+                InAppNotification.id == NotificationDeliveryAttempt.in_app_notification_id,
+                InAppNotification.workspace_id == NotificationDeliveryAttempt.workspace_id,
+            ),
         )
         .filter(NotificationDeliveryAttempt.workspace_id == ws)
     )
