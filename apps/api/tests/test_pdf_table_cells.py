@@ -13,6 +13,7 @@ import json
 import re
 import sys
 import time
+from io import BytesIO
 from pathlib import Path
 
 import pytest
@@ -27,7 +28,7 @@ from app.services.pdf_cells import (
 )
 from app.services.pdf_questionnaire_parser import parse_pdf_questionnaire
 from app.services.pdf_text import extract_page_rows, extract_page_texts
-from app.services.synthetic_pdf import Page, TextItem, build_pdf
+from app.services.synthetic_pdf import Page, TextItem, _esc, build_pdf
 
 sys.path.insert(0, str(Path(__file__).parent))
 from pdf_locator import Case, corpus, table_row_corpus, write_case  # noqa: E402
@@ -269,6 +270,98 @@ def test_large_page_of_32k_ops_splits_within_five_seconds(tmp_path):
     # 8 columns at 60 pt is well over the candidate cap, so the page stays unsplit.
     assert rows and all(r.cells == (r.line,) for r in rows)
     assert sum(r.line.count("A") for r in rows) == n
+
+
+# 39 lines x 50 gaps, plus one gap on each of 3 answer rows -> 1,953 candidates.
+_NEAR_CAP_NOISE_LINES = 39
+_NEAR_CAP_CELLS = 51
+_NEAR_CAP_ALIGNED = (
+    ("Do you encrypt backups at rest?", "Yes"),
+    ("Is MFA required for remote access?", "No"),
+    ("Do you review vendor access yearly?", "N/A"),
+)
+
+
+def _run_widths(texts: list[str]) -> list[float]:
+    """Advance widths of ``texts`` at ``SIZE``, each placed with its own absolute Tm."""
+    parts = [f"BT /F1 {SIZE:g} Tf ".encode()]
+    for i, text in enumerate(texts):
+        parts.append(f"1 0 0 1 40 {700 - 20 * i:.0f} Tm (".encode() + _esc(text) + b") Tj ")
+    parts.append(b"ET")
+    page = PdfReader(BytesIO(build_pdf([Page(raw=b"".join(parts))]))).pages[0]
+    runs = pdf_cells._page_runs(page)
+    assert [run.text for run in runs] == list(texts)
+    return [run.x1 - run.x0 for run in runs]
+
+
+def _near_cap_page() -> tuple[bytes, list[tuple[str, ...]]]:
+    """Synthetic page whose candidate count stays inside 1,900–1,999.
+
+    Noise lines each occupy their own x band, and the gap after every run is jittered,
+    so a candidate x is not within ``COLUMN_ALIGN_PT`` of another line: the bisect
+    window misses. Three question rows share one answer-column x (Yes/No/N/A) and do
+    split. Positions are absolute Tm, so the text-matrix chain stays O(1) per op.
+    """
+    gap = (CELL_GAP_EM + 0.25) * SIZE  # 1.25 em: a candidate, not a lone >=3 em cut
+    jitters = (0.0, 0.3, 0.6, 0.9, 1.2)
+    widths = _run_widths(["A", *(q for q, _ in _NEAR_CAP_ALIGNED)])
+    a_w, q_widths = widths[0], widths[1:]
+    max_pitch = a_w + gap + max(jitters)
+    band = (_NEAR_CAP_CELLS - 1) * max_pitch + a_w + 8.0  # gutter keeps bands from aligning
+    answer_x = 36.0
+    parts = [f"BT /F1 {SIZE:g} Tf ".encode()]
+    for i in range(_NEAR_CAP_NOISE_LINES):
+        y = 800 - i * 16
+        x = 120.0 + i * band
+        for j in range(_NEAR_CAP_CELLS):
+            parts.append(f"1 0 0 1 {x:.2f} {y:.1f} Tm (A) Tj ".encode())
+            x += a_w + gap + jitters[(i + j) % len(jitters)]
+    for k, ((question, answer), q_w) in enumerate(zip(_NEAR_CAP_ALIGNED, q_widths, strict=True)):
+        y = 140 - k * 20
+        q_x = answer_x - gap - q_w
+        parts.append(f"1 0 0 1 {q_x:.2f} {y:.1f} Tm (".encode() + _esc(question) + b") Tj ")
+        parts.append(f"1 0 0 1 {answer_x:.2f} {y:.1f} Tm (".encode() + _esc(answer) + b") Tj ")
+    parts.append(b"ET")
+    expected = [(" ".join(["A"] * _NEAR_CAP_CELLS),)] * _NEAR_CAP_NOISE_LINES
+    expected += [(q, a) for q, a in _NEAR_CAP_ALIGNED]
+    return build_pdf([Page(raw=b"".join(parts))]), expected
+
+
+def _column_candidate_count(page, text: str) -> int:
+    lines = [ln for ln in text.splitlines() if ln.strip()]
+    runs = pdf_cells._page_runs(page)
+    owners = pdf_cells._align(lines, runs)
+    assert owners is not None, "text/geometry mismatch"
+    return sum(
+        len(pdf_cells._candidates(ln, own, runs)) for ln, own in zip(lines, owners, strict=True)
+    )
+
+
+def test_near_cap_page_runs_bisect_path_within_five_seconds(tmp_path, monkeypatch):
+    """Just under the 2,000 cap, bisect runs: jittered gaps miss, and the answer column splits."""
+    path = tmp_path / "near-cap.pdf"
+    pdf, expected = _near_cap_page()
+    path.write_bytes(pdf)
+    page = PdfReader(path).pages[0]
+    text = page.extract_text() or ""
+    count = _column_candidate_count(page, text)
+    assert 1_900 <= count <= 1_999
+
+    calls = {"n": 0}
+    real = pdf_cells._other_line_aligned
+
+    def counted(points, xs, x0, line_id):
+        calls["n"] += 1
+        return real(points, xs, x0, line_id)
+
+    monkeypatch.setattr(pdf_cells, "_other_line_aligned", counted)
+    started = time.perf_counter()
+    rows = split_rows(page, text)
+    elapsed = time.perf_counter() - started
+    assert elapsed < 5.0, f"near-cap split took {elapsed:.2f}s ({count} candidates)"
+    assert [r.cells for r in rows] == expected
+    # The cap returns before any alignment check, so a call per candidate means bisect ran.
+    assert calls["n"] == count
 
 
 def test_lone_3em_gap_inside_a_question_keeps_one_question(tmp_path):
