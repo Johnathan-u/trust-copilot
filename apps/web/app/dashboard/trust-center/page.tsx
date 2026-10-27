@@ -73,7 +73,7 @@ export default function TrustCenterPage() {
   const canAdmin = permissions.can_admin
   const [articles, setArticles] = useState<TrustArticle[]>([])
   const [loading, setLoading] = useState(true)
-  const [refreshing, setRefreshing] = useState(false)
+  const [, setRefreshing] = useState(false)
   const [formOpen, setFormOpen] = useState(false)
   const [editId, setEditId] = useState<number | null>(null)
   const [form, setForm] = useState(emptyForm)
@@ -104,6 +104,7 @@ export default function TrustCenterPage() {
 
   useEffect(() => {
     load()
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- pre-existing: load() is re-created every render; adding it would refetch in a loop (TC-02-006 follow-up)
   }, [workspaceId])
 
   useEffect(() => {
