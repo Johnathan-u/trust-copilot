@@ -74,7 +74,8 @@ class CaseStudy(Base):
     reviewed_by_user_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
     reviewed_at = Column(DateTime(timezone=True), nullable=True)
     published_at = Column(DateTime(timezone=True), nullable=True)
-    # Snapshot taken by migration 076 so downgrade can restore pre-consent status.
+    # Snapshot taken by revision tc25005_case_study_consent. Downgrade restores it
+    # only while the row is still in the exact state that upgrade left.
     pre_consent_status = Column(String(32), nullable=True)
     pre_consent_published_at = Column(DateTime(timezone=True), nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())

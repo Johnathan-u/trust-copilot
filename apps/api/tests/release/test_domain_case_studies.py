@@ -8,7 +8,7 @@ import json
 import os
 import subprocess
 import sys
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 
 import pytest
@@ -23,6 +23,7 @@ from app.services import case_study_service as cs
 REPO_ROOT = Path(__file__).resolve().parents[4]
 API_ROOT = Path(__file__).resolve().parents[2]
 CONSUMER_RUNNER = Path(__file__).resolve().parent / "run_case_study_consumer.ts"
+MIGRATION_PATH = REPO_ROOT / "apps/api/alembic/versions/tc25005_case_study_consent.py"
 
 ORG = "SYNTHETIC-ORG-PLACEHOLDER"
 ORG_2 = "SYNTHETIC-ORG-PLACEHOLDER-2"
@@ -343,7 +344,7 @@ def test_ac1_sources_do_not_seed_a_customer_claim():
         REPO_ROOT / "apps/api/app/services/case_study_service.py",
         REPO_ROOT / "apps/api/app/api/routes/case_studies.py",
         REPO_ROOT / "apps/api/app/models/case_study.py",
-        REPO_ROOT / "apps/api/alembic/versions/076_case_study_consent.py",
+        MIGRATION_PATH,
         REPO_ROOT / "apps/web/lib/caseStudyConsumer.ts",
         REPO_ROOT / "apps/web/app/dashboard/case-studies/page.tsx",
         REPO_ROOT / "apps/api/tests/test_case_studies.py",
@@ -355,8 +356,15 @@ def test_ac1_sources_do_not_seed_a_customer_claim():
             assert name not in text_value, path.name
     service = (REPO_ROOT / "apps/api/app/services/case_study_service.py").read_text()
     assert "def seed" not in service
-    migration = (REPO_ROOT / "apps/api/alembic/versions/076_case_study_consent.py").read_text()
+    migration = MIGRATION_PATH.read_text()
+    assert 'revision = "tc25005_case_study_consent"' in migration
+    assert 'down_revision = "075"' in migration
     assert "INSERT INTO case_studies" not in migration
+    assert "DELETE FROM case_studies" not in migration
+    assert "TRUNCATE case_studies" not in migration
+    assert "case_study_consent_archive" in migration
+    assert "case_study_result_permission_archive" in migration
+    assert "case_study_review_archive" in migration
     page = (REPO_ROOT / "apps/web/app/dashboard/case-studies/page.tsx").read_text()
     assert "parseCaseStudyResponse" in page
     assert "caseStudyConsumer" in page
@@ -710,6 +718,15 @@ def test_migration_backfill_and_rollback(admin_client):
                 text("SELECT to_regclass('public.case_study_organization_consents')")
             ).scalar()
             assert regclass is None
+            archive = db.execute(
+                text("SELECT to_regclass('public.case_study_consent_archive')")
+            ).scalar()
+            assert str(archive) == "case_study_consent_archive"
+            still_there = db.execute(
+                text("SELECT count(*) FROM case_studies WHERE id = :id"),
+                {"id": inserted},
+            ).scalar()
+            assert still_there == 1
         finally:
             db.close()
     finally:
@@ -742,3 +759,424 @@ def test_migration_backfill_and_rollback(admin_client):
     assert legacy["customer_claim"] is False
     assert legacy["status"] == "draft"
     assert legacy["display_label"] == "Not a customer claim."
+
+
+def _aware(value):
+    if isinstance(value, datetime) and value.tzinfo is None:
+        return value.replace(tzinfo=timezone.utc)
+    return value
+
+
+def _rows(db, sql: str, params: dict | None = None) -> list[dict]:
+    return [
+        {key: _aware(value) for key, value in dict(mapping).items()}
+        for mapping in db.execute(text(sql), params or {}).mappings()
+    ]
+
+
+def _case_study_ids(db) -> list[int]:
+    return [row["id"] for row in _rows(db, "SELECT id FROM case_studies ORDER BY id")]
+
+
+def test_migration_downgrade_round_trip_is_lossless(admin_client):
+    """Upgrade, add consent and review data, downgrade, upgrade again.
+
+    No case study row is deleted. Consent, permission, and review metadata
+    survive in archive tables and come back. Snapshot status is restored only
+    for a row still in the exact post-upgrade state. A later workflow change
+    is not overwritten. A published claim with no consent is not resurrected.
+    """
+    exact_published_at = datetime(2026, 10, 27, 12, 0, tzinfo=timezone.utc)
+    changed_snapshot_at = datetime(2026, 10, 27, 15, 30, tzinfo=timezone.utc)
+    revoked_at = datetime(2026, 10, 27, 16, 0, tzinfo=timezone.utc)
+
+    consented = _create(admin_client, title="roundtrip-consented-placeholder")
+    consented = _grant_matrix(admin_client, consented)
+    consented = _submit_and_approve(admin_client, consented)
+    published = _publish(admin_client, consented)
+    assert published.status_code == 200, published.status_code
+    consented = published.json()
+    assert consented["customer_claim"] is True
+    assert consented["status"] == "published"
+
+    changed = _create(
+        admin_client,
+        title="roundtrip-workflow-changed-placeholder",
+        quote=None,
+        results=None,
+        metrics=None,
+    )
+    exact = _create(
+        admin_client,
+        title="roundtrip-exact-snapshot-placeholder",
+        quote=None,
+        results=None,
+        metrics=None,
+    )
+    tampered = _create(admin_client, title="roundtrip-unconsented-claim-placeholder")
+
+    db = SessionLocal()
+    try:
+        db.execute(
+            text(
+                """
+                INSERT INTO case_study_organization_consents (
+                    workspace_id, case_study_id, organization_name, consent_reference,
+                    consent_granted, granted_revision, created_at, revoked_at
+                ) VALUES (
+                    :workspace_id, :case_id, :org, 'SYNTHETIC-CONSENT-REF-REVOKED',
+                    TRUE, :revision, :revoked_at, :revoked_at
+                )
+                """
+            ),
+            {
+                "workspace_id": consented["workspace_id"],
+                "case_id": consented["id"],
+                "org": ORG,
+                "revision": consented["revision"],
+                "revoked_at": revoked_at,
+            },
+        )
+        revoked_consent_id = db.execute(
+            text(
+                """
+                SELECT id FROM case_study_organization_consents
+                WHERE case_study_id = :case_id AND consent_reference = 'SYNTHETIC-CONSENT-REF-REVOKED'
+                """
+            ),
+            {"case_id": consented["id"]},
+        ).scalar()
+        db.execute(
+            text(
+                """
+                INSERT INTO case_study_result_permissions (
+                    workspace_id, case_study_id, consent_id, result_key, permitted,
+                    granted_revision, created_at, revoked_at
+                ) VALUES (
+                    :workspace_id, :case_id, :consent_id, 'quote', TRUE,
+                    :revision, :revoked_at, :revoked_at
+                )
+                """
+            ),
+            {
+                "workspace_id": consented["workspace_id"],
+                "case_id": consented["id"],
+                "consent_id": revoked_consent_id,
+                "revision": consented["revision"],
+                "revoked_at": revoked_at,
+            },
+        )
+        db.execute(
+            text(
+                """
+                UPDATE case_studies
+                SET pre_consent_status = 'published',
+                    pre_consent_published_at = :snapshot_at,
+                    status = 'in_review',
+                    published_at = NULL,
+                    synthetic = FALSE,
+                    customer_claim = FALSE,
+                    publication_authorized = FALSE,
+                    data_basis = 'unverified',
+                    review_status = 'none',
+                    revision = 1,
+                    schema_version = 'case-study.v2',
+                    reviewed_by_user_id = NULL,
+                    reviewed_at = NULL,
+                    quoted_organizations_json = NULL
+                WHERE id = :id
+                """
+            ),
+            {"id": changed["id"], "snapshot_at": changed_snapshot_at},
+        )
+        db.execute(
+            text(
+                """
+                UPDATE case_studies
+                SET pre_consent_status = 'published',
+                    pre_consent_published_at = :snapshot_at,
+                    status = 'draft',
+                    published_at = NULL,
+                    synthetic = FALSE,
+                    customer_claim = FALSE,
+                    publication_authorized = FALSE,
+                    data_basis = 'unverified',
+                    review_status = 'none',
+                    revision = 1,
+                    schema_version = 'case-study.v2',
+                    reviewed_by_user_id = NULL,
+                    reviewed_at = NULL,
+                    quoted_organizations_json = NULL
+                WHERE id = :id
+                """
+            ),
+            {"id": exact["id"], "snapshot_at": exact_published_at},
+        )
+        db.execute(
+            text(
+                """
+                UPDATE case_studies
+                SET status = 'published',
+                    customer_claim = TRUE,
+                    publication_authorized = TRUE,
+                    review_status = 'approved',
+                    data_basis = 'consented_customer',
+                    published_at = :published_at
+                WHERE id = :id
+                """
+            ),
+            {"id": tampered["id"], "published_at": exact_published_at},
+        )
+        db.commit()
+        before_ids = _case_study_ids(db)
+        consents_before = _rows(
+            db,
+            """
+            SELECT id, workspace_id, case_study_id, organization_name, consent_reference,
+                   consent_granted, granted_revision, granted_by_user_id, created_at, revoked_at
+            FROM case_study_organization_consents
+            WHERE case_study_id = :case_id
+            ORDER BY id
+            """,
+            {"case_id": consented["id"]},
+        )
+        permissions_before = _rows(
+            db,
+            """
+            SELECT id, workspace_id, case_study_id, consent_id, result_key, permitted,
+                   granted_revision, granted_by_user_id, created_at, revoked_at
+            FROM case_study_result_permissions
+            WHERE case_study_id = :case_id
+            ORDER BY id
+            """,
+            {"case_id": consented["id"]},
+        )
+        review_before = _rows(
+            db,
+            """
+            SELECT status, published_at, customer_claim, publication_authorized, review_status,
+                   revision, reviewed_by_user_id, reviewed_at, data_basis, synthetic,
+                   schema_version, quoted_organizations_json, title, quote
+            FROM case_studies WHERE id = :id
+            """,
+            {"id": consented["id"]},
+        )[0]
+        consent_count = db.execute(
+            text("SELECT count(*) FROM case_study_organization_consents")
+        ).scalar()
+        permission_count = db.execute(
+            text("SELECT count(*) FROM case_study_result_permissions")
+        ).scalar()
+        assert consents_before
+        assert any(row["revoked_at"] is not None for row in consents_before)
+        assert permissions_before
+    finally:
+        db.close()
+
+    try:
+        _alembic("downgrade", "075")
+        db = SessionLocal()
+        try:
+            assert _case_study_ids(db) == before_ids
+            assert db.execute(
+                text("SELECT to_regclass('public.case_study_organization_consents')")
+            ).scalar() is None
+            assert db.execute(
+                text("SELECT to_regclass('public.case_study_result_permissions')")
+            ).scalar() is None
+            for table in (
+                "case_study_consent_archive",
+                "case_study_result_permission_archive",
+                "case_study_review_archive",
+            ):
+                assert str(db.execute(
+                    text("SELECT to_regclass(:name)"),
+                    {"name": f"public.{table}"},
+                ).scalar()) == table
+                foreign_keys = db.execute(
+                    text(
+                        """
+                        SELECT count(*) FROM pg_constraint
+                        WHERE conrelid = CAST(:name AS regclass) AND contype = 'f'
+                        """
+                    ),
+                    {"name": f"public.{table}"},
+                ).scalar()
+                assert foreign_keys == 0
+            assert db.execute(
+                text("SELECT count(*) FROM case_study_consent_archive")
+            ).scalar() == consent_count
+            assert db.execute(
+                text("SELECT count(*) FROM case_study_result_permission_archive")
+            ).scalar() == permission_count
+            archived_consents = _rows(
+                db,
+                """
+                SELECT id, workspace_id, case_study_id, organization_name, consent_reference,
+                       consent_granted, granted_revision, granted_by_user_id, created_at, revoked_at
+                FROM case_study_consent_archive
+                WHERE case_study_id = :case_id
+                ORDER BY id
+                """,
+                {"case_id": consented["id"]},
+            )
+            archived_permissions = _rows(
+                db,
+                """
+                SELECT id, workspace_id, case_study_id, consent_id, result_key, permitted,
+                       granted_revision, granted_by_user_id, created_at, revoked_at
+                FROM case_study_result_permission_archive
+                WHERE case_study_id = :case_id
+                ORDER BY id
+                """,
+                {"case_id": consented["id"]},
+            )
+            assert archived_consents == consents_before
+            assert archived_permissions == permissions_before
+            archived_review = _rows(
+                db,
+                """
+                SELECT review_status, revision, reviewed_by_user_id, reviewed_at,
+                       customer_claim, status_at_archive, published_at_at_archive, snapshot_restored
+                FROM case_study_review_archive WHERE case_study_id = :id
+                """,
+                {"id": consented["id"]},
+            )[0]
+            assert archived_review["review_status"] == review_before["review_status"]
+            assert archived_review["revision"] == review_before["revision"]
+            assert archived_review["reviewed_by_user_id"] == review_before["reviewed_by_user_id"]
+            assert archived_review["reviewed_at"] == review_before["reviewed_at"]
+            assert archived_review["customer_claim"] is True
+            assert archived_review["status_at_archive"] == "published"
+            assert archived_review["snapshot_restored"] is False
+            changed_row = _rows(
+                db,
+                "SELECT status, published_at FROM case_studies WHERE id = :id",
+                {"id": changed["id"]},
+            )[0]
+            assert changed_row["status"] == "in_review"
+            assert changed_row["published_at"] is None
+            exact_row = _rows(
+                db,
+                "SELECT status, published_at FROM case_studies WHERE id = :id",
+                {"id": exact["id"]},
+            )[0]
+            assert exact_row["status"] == "published"
+            assert exact_row["published_at"] == exact_published_at
+            changed_flag = _rows(
+                db,
+                "SELECT snapshot_restored FROM case_study_review_archive WHERE case_study_id = :id",
+                {"id": changed["id"]},
+            )[0]
+            exact_flag = _rows(
+                db,
+                "SELECT snapshot_restored FROM case_study_review_archive WHERE case_study_id = :id",
+                {"id": exact["id"]},
+            )[0]
+            assert changed_flag["snapshot_restored"] is False
+            assert exact_flag["snapshot_restored"] is True
+        finally:
+            db.close()
+
+        _alembic("upgrade", "head")
+        db = SessionLocal()
+        try:
+            assert _case_study_ids(db) == before_ids
+            consents_after = _rows(
+                db,
+                """
+                SELECT id, workspace_id, case_study_id, organization_name, consent_reference,
+                       consent_granted, granted_revision, granted_by_user_id, created_at, revoked_at
+                FROM case_study_organization_consents
+                WHERE case_study_id = :case_id
+                ORDER BY id
+                """,
+                {"case_id": consented["id"]},
+            )
+            permissions_after = _rows(
+                db,
+                """
+                SELECT id, workspace_id, case_study_id, consent_id, result_key, permitted,
+                       granted_revision, granted_by_user_id, created_at, revoked_at
+                FROM case_study_result_permissions
+                WHERE case_study_id = :case_id
+                ORDER BY id
+                """,
+                {"case_id": consented["id"]},
+            )
+            assert consents_after == consents_before
+            assert permissions_after == permissions_before
+            assert db.execute(
+                text("SELECT count(*) FROM case_study_organization_consents")
+            ).scalar() == consent_count
+            assert db.execute(
+                text("SELECT count(*) FROM case_study_result_permissions")
+            ).scalar() == permission_count
+            review_after = _rows(
+                db,
+                """
+                SELECT status, published_at, customer_claim, publication_authorized, review_status,
+                       revision, reviewed_by_user_id, reviewed_at, data_basis, synthetic,
+                       schema_version, quoted_organizations_json, title, quote
+                FROM case_studies WHERE id = :id
+                """,
+                {"id": consented["id"]},
+            )[0]
+            assert review_after == review_before
+            changed_after = _rows(
+                db,
+                """
+                SELECT status, published_at, customer_claim, pre_consent_status, pre_consent_published_at
+                FROM case_studies WHERE id = :id
+                """,
+                {"id": changed["id"]},
+            )[0]
+            assert changed_after["status"] == "in_review"
+            assert changed_after["published_at"] is None
+            assert changed_after["customer_claim"] is False
+            assert changed_after["pre_consent_published_at"] == changed_snapshot_at
+            exact_after = _rows(
+                db,
+                """
+                SELECT status, published_at, customer_claim, pre_consent_status, title
+                FROM case_studies WHERE id = :id
+                """,
+                {"id": exact["id"]},
+            )[0]
+            assert exact_after["status"] == "draft"
+            assert exact_after["published_at"] is None
+            assert exact_after["customer_claim"] is False
+            assert exact_after["pre_consent_status"] == "published"
+            assert exact_after["title"] == "roundtrip-exact-snapshot-placeholder"
+            tampered_after = _rows(
+                db,
+                """
+                SELECT status, published_at, customer_claim, publication_authorized, data_basis, title, quote
+                FROM case_studies WHERE id = :id
+                """,
+                {"id": tampered["id"]},
+            )[0]
+            assert tampered_after["customer_claim"] is False
+            assert tampered_after["publication_authorized"] is False
+            assert tampered_after["status"] == "draft"
+            assert tampered_after["published_at"] is None
+            assert tampered_after["data_basis"] != "consented_customer"
+            assert tampered_after["title"] == "roundtrip-unconsented-claim-placeholder"
+            assert tampered_after["quote"] == QUOTE
+            assert db.execute(
+                text("SELECT count(*) FROM case_study_organization_consents WHERE case_study_id = :id"),
+                {"id": tampered["id"]},
+            ).scalar() == 0
+            for table in (
+                "case_study_consent_archive",
+                "case_study_result_permission_archive",
+                "case_study_review_archive",
+            ):
+                assert db.execute(
+                    text("SELECT to_regclass(:name)"),
+                    {"name": f"public.{table}"},
+                ).scalar() is not None
+        finally:
+            db.close()
+    finally:
+        _alembic("upgrade", "head")
