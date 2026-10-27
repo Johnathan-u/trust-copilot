@@ -8,7 +8,9 @@ import json  # noqa: F401
 import sys
 import requests
 
-BASE = "http://localhost:8000"
+from _live_guard import api_base, require_local_url  # noqa: E402,F401
+
+BASE = api_base()
 S = requests.Session()
 
 
