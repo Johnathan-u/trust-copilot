@@ -62,7 +62,7 @@ SIG_MALFORMED = "Invalid Stripe-Signature header"
 SIG_INVALID = "Invalid Stripe signature"
 SIG_EXPIRED = "Stripe-Signature timestamp is outside the tolerance window (expired)"
 SIG_FUTURE = "Stripe-Signature timestamp is outside the tolerance window (future)"
-SECRET_MISSING = "Stripe webhook secret is not configured"
+WEBHOOK_NOT_CONFIGURED = "Stripe webhook secret is not configured"
 BILLING_UNAVAILABLE = "Billing is not available."
 PAYLOAD_INVALID = "Invalid payload"
 LIVEMODE_MISMATCH = "event livemode does not match configured Stripe mode"
@@ -315,7 +315,7 @@ def process_stripe_webhook(
         return WebhookResult(503, {"detail": BILLING_UNAVAILABLE})
     secrets = tuple(getattr(settings, "stripe_webhook_secrets", ()) or ())
     if not secrets:
-        logger.warning("billing unavailable: %s", SECRET_MISSING)
+        logger.warning("billing unavailable: %s", WEBHOOK_NOT_CONFIGURED)
         return WebhookResult(503, {"detail": BILLING_UNAVAILABLE})
     if not sig_header or not str(sig_header).strip():
         return WebhookResult(400, {"detail": SIG_MISSING})
@@ -422,7 +422,7 @@ def _signature_result(exc: StripeSignatureError) -> WebhookResult:
     }
     status, detail = messages.get(exc.code, (400, SIG_INVALID))
     if status == 503:
-        logger.warning("billing unavailable: %s", SECRET_MISSING)
+        logger.warning("billing unavailable: %s", WEBHOOK_NOT_CONFIGURED)
     return WebhookResult(status, {"detail": detail})
 
 

@@ -9,6 +9,7 @@ from __future__ import annotations
 import hashlib
 import hmac
 import json
+import secrets
 import subprocess
 import sys
 import threading
@@ -22,8 +23,8 @@ import pytest
 from app.core.config import get_settings
 
 API_ROOT = Path(__file__).resolve().parents[2]
-SECRET_A = "whsec_fake_tc24001_primary"
-SECRET_B = "whsec_fake_tc24001_rotated"
+WHSEC_PRIMARY = "whsec_fake_tc24001_primary"
+WHSEC_ROTATED = "whsec_fake_tc24001_rotated"
 TEST_KEY = "sk_test_tc24001_not_a_real_key"
 LIVE_KEY = "sk_live_tc24001_not_a_real_key"
 KNOWN_VECTOR_DIGEST = "181799648840baa60956d37e46cb72457fb28dce5554adddad16d051a935454d"
@@ -67,7 +68,7 @@ def _clear_stripe_env(monkeypatch):
 def stripe_settings(monkeypatch):
     monkeypatch.setenv("APP_ENV", "development")
     monkeypatch.setenv("STRIPE_SECRET_KEY", TEST_KEY)
-    monkeypatch.setenv("STRIPE_WEBHOOK_SECRET", SECRET_A)
+    monkeypatch.setenv("STRIPE_WEBHOOK_SECRET", WHSEC_PRIMARY)
     monkeypatch.delenv("STRIPE_WEBHOOK_SECRETS", raising=False)
     monkeypatch.setenv("STRIPE_MODE", "test")
     monkeypatch.setenv(
@@ -390,12 +391,12 @@ def test_second_configured_secret_and_second_header_signature():
     payload = b'{"id":"evt_rotate"}'
     ts = 1710000000
     moment = datetime.fromtimestamp(ts, tz=timezone.utc)
-    good = sign(payload, SECRET_B, ts)
-    verify_stripe_signature(payload, good, [SECRET_A, SECRET_B], 300, now=moment)
+    good = sign(payload, WHSEC_ROTATED, ts)
+    verify_stripe_signature(payload, good, [WHSEC_PRIMARY, WHSEC_ROTATED], 300, now=moment)
 
     fake = "v1=" + ("ab" * 32)
     rotated_header = f"t={ts},{fake},{good.split(',', 1)[1]}"
-    verify_stripe_signature(payload, rotated_header, [SECRET_B], 300, now=moment)
+    verify_stripe_signature(payload, rotated_header, [WHSEC_ROTATED], 300, now=moment)
 
 
 def test_signature_matches_stripe_sdk_v1_scheme():
@@ -434,7 +435,7 @@ def test_valid_signature_maps_plan_from_price_id(billing_client, stripe_settings
     response = post_webhook(
         billing_client,
         checkout_body(event_id, 1_700_000_000, bag["sub"]),
-        SECRET_A,
+        WHSEC_PRIMARY,
     )
     assert response.status_code == 200, response.text
     assert response.json()["outcome"] == "applied"
@@ -455,7 +456,7 @@ def test_valid_signature_maps_plan_from_price_id(billing_client, stripe_settings
             status="active",
             price_id="price_tc24001_annual",
         ),
-        SECRET_A,
+        WHSEC_PRIMARY,
     )
     assert annual.status_code == 200, annual.text
     assert sub_state(bag["sub"])["plan"] == "pro_annual"
@@ -465,7 +466,7 @@ def test_wrong_secret_tampered_body_and_missing_header(billing_client, stripe_se
     body = checkout_body(new_event_id(bag, "bad"), 1_700_000_000, bag["sub"])
     payload = dumps(body)
     ts = int(time.time())
-    wrong = post_webhook(billing_client, body, SECRET_B, timestamp=ts)
+    wrong = post_webhook(billing_client, body, WHSEC_ROTATED, timestamp=ts)
     assert wrong.status_code == 400
     assert wrong.json()["detail"] == "Invalid Stripe signature"
     assert sub_state(bag["sub"]) is None
@@ -474,9 +475,9 @@ def test_wrong_secret_tampered_body_and_missing_header(billing_client, stripe_se
     tampered_response = post_webhook(
         billing_client,
         None,
-        SECRET_A,
+        WHSEC_PRIMARY,
         raw=tampered,
-        header=sign(payload, SECRET_A, ts),
+        header=sign(payload, WHSEC_PRIMARY, ts),
         timestamp=ts,
     )
     assert tampered_response.status_code == 400
@@ -486,14 +487,14 @@ def test_wrong_secret_tampered_body_and_missing_header(billing_client, stripe_se
     pretty_response = post_webhook(
         billing_client,
         None,
-        SECRET_A,
+        WHSEC_PRIMARY,
         raw=pretty,
-        header=sign(payload, SECRET_A, ts),
+        header=sign(payload, WHSEC_PRIMARY, ts),
     )
     assert pretty_response.status_code == 400
     assert pretty_response.json()["detail"] == "Invalid Stripe signature"
 
-    missing = post_webhook(billing_client, body, SECRET_A, include_header=False)
+    missing = post_webhook(billing_client, body, WHSEC_PRIMARY, include_header=False)
     assert missing.status_code == 400
     assert missing.json()["detail"] == "Missing Stripe-Signature header"
     assert sub_state(bag["sub"]) is None
@@ -506,9 +507,9 @@ def test_invalid_json_is_rejected_only_after_a_valid_signature(billing_client, s
     bad_sig = post_webhook(
         billing_client,
         None,
-        SECRET_A,
+        WHSEC_PRIMARY,
         raw=raw,
-        header=sign(b'{"id": "evt"}', SECRET_A, ts),
+        header=sign(b'{"id": "evt"}', WHSEC_PRIMARY, ts),
         timestamp=ts,
     )
     assert bad_sig.status_code == 400
@@ -517,9 +518,9 @@ def test_invalid_json_is_rejected_only_after_a_valid_signature(billing_client, s
     good_sig = post_webhook(
         billing_client,
         None,
-        SECRET_A,
+        WHSEC_PRIMARY,
         raw=raw,
-        header=sign(raw, SECRET_A, ts),
+        header=sign(raw, WHSEC_PRIMARY, ts),
         timestamp=ts,
     )
     assert good_sig.status_code == 400
@@ -531,10 +532,12 @@ def test_expired_and_future_timestamps(billing_client, stripe_settings, bag):
     # Default tolerance is 300s. One second past that is inside the window
     # once the first request has taken longer than a second.
     outside = 3600
-    expired = post_webhook(billing_client, body, SECRET_A, timestamp=int(time.time()) - outside)
+    expired = post_webhook(
+        billing_client, body, WHSEC_PRIMARY, timestamp=int(time.time()) - outside
+    )
     assert expired.status_code == 400
     assert "expired" in expired.json()["detail"]
-    future = post_webhook(billing_client, body, SECRET_A, timestamp=int(time.time()) + outside)
+    future = post_webhook(billing_client, body, WHSEC_PRIMARY, timestamp=int(time.time()) + outside)
     assert future.status_code == 400
     assert "future" in future.json()["detail"]
     assert sub_state(bag["sub"]) is None
@@ -543,13 +546,13 @@ def test_expired_and_future_timestamps(billing_client, stripe_settings, bag):
 
 def test_rotated_second_secret_is_accepted(billing_client, stripe_settings, bag, monkeypatch):
     monkeypatch.setenv("STRIPE_WEBHOOK_SECRET", "whsec_tc24001_old")
-    monkeypatch.setenv("STRIPE_WEBHOOK_SECRETS", SECRET_B)
+    monkeypatch.setenv("STRIPE_WEBHOOK_SECRETS", WHSEC_ROTATED)
     reload_settings()
     event_id = new_event_id(bag, "rotated")
     response = post_webhook(
         billing_client,
         checkout_body(event_id, 1_700_000_000, bag["sub"]),
-        SECRET_B,
+        WHSEC_ROTATED,
     )
     assert response.status_code == 200, response.text
     assert sub_state(bag["sub"])["status"] == "active"
@@ -565,7 +568,7 @@ def test_replay_is_a_noop_and_does_not_reapply(billing_client, stripe_settings, 
         post_webhook(
             billing_client,
             checkout_body(checkout_id, 1_700_000_000, bag["sub"]),
-            SECRET_A,
+            WHSEC_PRIMARY,
         ).status_code
         == 200
     )
@@ -576,7 +579,7 @@ def test_replay_is_a_noop_and_does_not_reapply(billing_client, stripe_settings, 
         bag["sub"],
         status="past_due",
     )
-    first = post_webhook(billing_client, update, SECRET_A)
+    first = post_webhook(billing_client, update, WHSEC_PRIMARY)
     assert first.status_code == 200, first.text
     assert first.json()["outcome"] == "applied"
     assert sub_state(bag["sub"])["status"] == "past_due"
@@ -589,7 +592,7 @@ def test_replay_is_a_noop_and_does_not_reapply(billing_client, stripe_settings, 
     finally:
         db.close()
 
-    second = post_webhook(billing_client, update, SECRET_A)
+    second = post_webhook(billing_client, update, WHSEC_PRIMARY)
     assert second.status_code == 200, second.text
     assert second.json()["duplicate"] is True
     assert sub_state(bag["sub"])["status"] == "active"
@@ -613,7 +616,7 @@ def test_concurrent_duplicate_event_ids_hit_unique_constraint(stripe_settings, b
     event_id = new_event_id(bag, "concurrent")
     payload = dumps(checkout_body(event_id, 1_700_000_000, bag["sub"]))
     ts = int(time.time())
-    header = sign(payload, SECRET_A, ts)
+    header = sign(payload, WHSEC_PRIMARY, ts)
     barrier = threading.Barrier(2, timeout=20)
     results = []
     errors = []
@@ -657,7 +660,7 @@ def test_out_of_order_events_do_not_regress_state(billing_client, stripe_setting
         post_webhook(
             billing_client,
             checkout_body(new_event_id(bag, "oo_checkout"), 1_700_000_000, sub),
-            SECRET_A,
+            WHSEC_PRIMARY,
         ).status_code
         == 200
     )
@@ -671,7 +674,7 @@ def test_out_of_order_events_do_not_regress_state(billing_client, stripe_setting
             sub,
             status="past_due",
         ),
-        SECRET_A,
+        WHSEC_PRIMARY,
     )
     assert newer.json()["outcome"] == "applied"
     older = post_webhook(
@@ -683,7 +686,7 @@ def test_out_of_order_events_do_not_regress_state(billing_client, stripe_setting
             sub,
             status="active",
         ),
-        SECRET_A,
+        WHSEC_PRIMARY,
     )
     assert older.status_code == 200, older.text
     assert older.json()["outcome"] == "ignored_stale"
@@ -698,7 +701,7 @@ def test_out_of_order_events_do_not_regress_state(billing_client, stripe_setting
             sub,
             status="canceled",
         ),
-        SECRET_A,
+        WHSEC_PRIMARY,
     )
     assert old_delete.json()["outcome"] == "ignored_stale"
     assert sub_state(sub)["status"] == "past_due"
@@ -712,7 +715,7 @@ def test_out_of_order_events_do_not_regress_state(billing_client, stripe_setting
             sub,
             status="canceled",
         ),
-        SECRET_A,
+        WHSEC_PRIMARY,
     )
     assert deleted.json()["outcome"] == "applied"
     assert sub_state(sub)["status"] == "canceled"
@@ -727,14 +730,14 @@ def test_out_of_order_events_do_not_regress_state(billing_client, stripe_setting
             sub,
             status="active",
         ),
-        SECRET_A,
+        WHSEC_PRIMARY,
     )
     assert resurrect.status_code == 200, resurrect.text
     assert resurrect.json()["outcome"] == "ignored_terminal"
     failed = post_webhook(
         billing_client,
         invoice_body(new_event_id(bag, "oo_invoice"), 1_700_001_000, sub),
-        SECRET_A,
+        WHSEC_PRIMARY,
     )
     assert failed.json()["outcome"] == "ignored_terminal"
     assert sub_state(sub)["status"] == "canceled"
@@ -754,7 +757,7 @@ def test_equal_created_delete_outranks_update(billing_client, stripe_settings, b
                 sub,
                 status="active",
             ),
-            SECRET_A,
+            WHSEC_PRIMARY,
         ).json()["outcome"]
         == "ignored_unknown"
     )
@@ -763,7 +766,7 @@ def test_equal_created_delete_outranks_update(billing_client, stripe_settings, b
         post_webhook(
             billing_client,
             checkout_body(new_event_id(bag, "tie_checkout"), created - 10, sub),
-            SECRET_A,
+            WHSEC_PRIMARY,
         ).status_code
         == 200
     )
@@ -777,7 +780,7 @@ def test_equal_created_delete_outranks_update(billing_client, stripe_settings, b
                 sub,
                 status="past_due",
             ),
-            SECRET_A,
+            WHSEC_PRIMARY,
         ).json()["outcome"]
         == "applied"
     )
@@ -790,7 +793,7 @@ def test_equal_created_delete_outranks_update(billing_client, stripe_settings, b
             sub,
             status="canceled",
         ),
-        SECRET_A,
+        WHSEC_PRIMARY,
     )
     assert deleted.json()["outcome"] == "applied"
     assert sub_state(sub)["status"] == "canceled"
@@ -801,7 +804,7 @@ def test_livemode_mismatch_is_rejected(billing_client, stripe_settings, bag):
     response = post_webhook(
         billing_client,
         checkout_body(event_id, 1_700_000_000, bag["sub"], livemode=True),
-        SECRET_A,
+        WHSEC_PRIMARY,
     )
     assert response.status_code == 400
     assert response.json()["detail"] == "event livemode does not match configured Stripe mode"
@@ -817,7 +820,7 @@ def test_live_mode_accepts_only_live_events(billing_client, stripe_settings, bag
     rejected = post_webhook(
         billing_client,
         checkout_body(new_event_id(bag, "live_reject"), 1_700_000_000, bag["sub"], livemode=False),
-        SECRET_A,
+        WHSEC_PRIMARY,
     )
     assert rejected.status_code == 400
     assert "livemode" in rejected.json()["detail"]
@@ -825,7 +828,7 @@ def test_live_mode_accepts_only_live_events(billing_client, stripe_settings, bag
     accepted = post_webhook(
         billing_client,
         checkout_body(accepted_id, 1_700_000_000, bag["sub"], livemode=True),
-        SECRET_A,
+        WHSEC_PRIMARY,
     )
     assert accepted.status_code == 200, accepted.text
     assert sub_state(bag["sub"])["status"] == "active"
@@ -844,7 +847,7 @@ def test_test_key_with_live_mode_is_rejected(
     response = post_webhook(
         billing_client,
         checkout_body(new_event_id(bag, "mix"), 1_700_000_000, bag["sub"], livemode=True),
-        SECRET_A,
+        WHSEC_PRIMARY,
     )
     assert response.status_code == 503
     assert response.json()["detail"] == "Billing is not available."
@@ -869,7 +872,7 @@ def test_live_key_outside_production_is_rejected(
     response = post_webhook(
         billing_client,
         checkout_body(new_event_id(bag, "livekey"), 1_700_000_000, bag["sub"], livemode=True),
-        SECRET_A,
+        WHSEC_PRIMARY,
     )
     assert response.status_code == 503
     assert response.json()["detail"] == "Billing is not available."
@@ -896,7 +899,7 @@ def test_production_missing_webhook_secret_fails_closed(
     response = post_webhook(
         billing_client,
         checkout_body(new_event_id(bag, "nosecret"), 1_700_000_000, bag["sub"]),
-        SECRET_A,
+        WHSEC_PRIMARY,
     )
     assert response.status_code == 503
     assert response.json()["detail"] == "Billing is not available."
@@ -915,7 +918,7 @@ def test_production_lifespan_reports_missing_webhook_secret(_ensure_test_data, m
     from app.main import app, lifespan
 
     monkeypatch.setenv("APP_ENV", "production")
-    monkeypatch.setenv("SESSION_SECRET", "p" * 40)
+    monkeypatch.setenv("SESSION_SECRET", secrets.token_urlsafe(48))
     monkeypatch.delenv("STRIPE_WEBHOOK_SECRET", raising=False)
     monkeypatch.delenv("STRIPE_WEBHOOK_SECRETS", raising=False)
     monkeypatch.setenv("STRIPE_SECRET_KEY", TEST_KEY)
@@ -1114,7 +1117,7 @@ def test_checkout_and_portal_require_admin(billing_client, stripe_settings):
 def test_checkout_missing_workspace_is_rejected(billing_client, stripe_settings, bag):
     body = checkout_body(new_event_id(bag, "nows"), 1_700_000_000, bag["sub"])
     del body["data"]["object"]["metadata"]["workspace_id"]
-    response = post_webhook(billing_client, body, SECRET_A)
+    response = post_webhook(billing_client, body, WHSEC_PRIMARY)
     assert response.status_code == 200, response.text
     assert response.json()["outcome"] == "ignored_incomplete"
     assert sub_state(bag["sub"]) is None
@@ -1170,7 +1173,7 @@ def test_prune_does_not_allow_a_stale_event_to_regress(billing_client, stripe_se
         post_webhook(
             billing_client,
             checkout_body(new_event_id(bag, "prune_checkout"), 1_700_000_000, sub),
-            SECRET_A,
+            WHSEC_PRIMARY,
         ).status_code
         == 200
     )
@@ -1184,7 +1187,7 @@ def test_prune_does_not_allow_a_stale_event_to_regress(billing_client, stripe_se
                 sub,
                 status="canceled",
             ),
-            SECRET_A,
+            WHSEC_PRIMARY,
         ).json()["outcome"]
         == "applied"
     )
@@ -1210,7 +1213,7 @@ def test_prune_does_not_allow_a_stale_event_to_regress(billing_client, stripe_se
             sub,
             status="active",
         ),
-        SECRET_A,
+        WHSEC_PRIMARY,
     )
     assert update.status_code == 200, update.text
     assert update.json()["outcome"] == "ignored_terminal"
