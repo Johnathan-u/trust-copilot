@@ -327,7 +327,7 @@ async def update_member_role(
     mem.role = role
     db.commit()
     db.refresh(mem)
-    persist_audit(
+    audit_id = persist_audit(
         db,
         "auth.role_changed",
         user_id=user_id,
@@ -339,7 +339,7 @@ async def update_member_role(
         workspace_id,
         "member.role_changed",
         detail=f"User {mem.user_id} role changed to {role}",
-        event_id=f"member:{mem.user_id}:role:{role}",
+        event_id=f"audit:{audit_id}",
     )
     try:
         notify_user(
@@ -390,7 +390,7 @@ async def remove_member(
     removed_user_id = mem.user_id
     db.delete(mem)
     db.commit()
-    persist_audit(
+    audit_id = persist_audit(
         db,
         "auth.member_removed",
         user_id=user_id,
@@ -402,7 +402,7 @@ async def remove_member(
         workspace_id,
         "member.removed",
         detail=f"User {removed_user_id} removed",
-        event_id=f"member:{removed_user_id}:removed",
+        event_id=f"audit:{audit_id}",
     )
 
     remaining = db.query(WorkspaceMember).filter(WorkspaceMember.user_id == removed_user_id).count()
@@ -456,7 +456,7 @@ async def suspend_member(
     db.commit()
     db.refresh(mem)
     action = "auth.member_suspended" if req.suspended else "auth.member_unsuspended"
-    persist_audit(
+    audit_id = persist_audit(
         db,
         action,
         user_id=user_id,
@@ -469,7 +469,7 @@ async def suspend_member(
             workspace_id,
             "member.suspended",
             detail=f"User {mem.user_id} suspended",
-            event_id=f"member:{mem.user_id}:suspended",
+            event_id=f"audit:{audit_id}",
         )
         try:
             notify_admins(

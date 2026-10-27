@@ -7,6 +7,7 @@ from sqlalchemy import (
     Column,
     DateTime,
     ForeignKey,
+    Index,
     Integer,
     String,
     Text,
@@ -115,6 +116,10 @@ class NotificationDedupeClaim(Base):
     """
 
     __tablename__ = "notification_dedupe_claims"
+    __table_args__ = (
+        Index("ix_notification_dedupe_claims_expires_at", "expires_at"),
+        Index("ix_notification_dedupe_claims_released_at", "released_at"),
+    )
 
     dedupe_key = Column(String(512), primary_key=True)
     claimed_at = Column(DateTime(timezone=True), nullable=False)

@@ -6,6 +6,7 @@ provider. Slack uses the labelled development stub already selected in tests.
 
 from __future__ import annotations
 
+import hashlib
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timedelta, timezone
 
@@ -65,14 +66,10 @@ def _reset_delivery(workspace_id: int = 1) -> None:
         NotificationUnsubscribe,
         SlackIntegration,
     )
-    from app.services.slack_service import _slack_dedup
 
-    _slack_dedup.clear()
     db = SessionLocal()
     try:
-        db.query(NotificationDedupeClaim).filter(
-            NotificationDedupeClaim.dedupe_key.like(f"{workspace_id}:%")
-        ).delete(synchronize_session=False)
+        db.query(NotificationDedupeClaim).delete(synchronize_session=False)
         db.query(NotificationDeliveryAttempt).filter(
             NotificationDeliveryAttempt.workspace_id == workspace_id
         ).delete()
@@ -247,7 +244,8 @@ def test_console_email_stub_is_not_recorded_as_provider_delivery(client: TestCli
         assert log.delivery_state == "sent"
         assert log.provider_mode == "dev-stub"
         assert log.delivered_to_provider is False
-        assert log.dedupe_key == f"1:{EVENT}::email:demo@trust.local"
+        raw_key = f"1:{EVENT}::email:demo@trust.local"
+        assert log.dedupe_key == hashlib.sha256(raw_key.encode("utf-8")).hexdigest()
     finally:
         db.close()
 
@@ -316,6 +314,401 @@ def test_different_event_ids_are_not_deduped(client: TestClient):
     email_states = _states("email")
     assert email_states.count("sent") == 2
     assert "deduped" not in email_states
+
+
+def test_claim_lease_expires_then_accept_extends_it():
+    from app.core.database import SessionLocal
+    from app.models import NotificationDedupeClaim
+    from app.services.notification_service import (
+        CLAIM_LEASE,
+        CLAIM_TTL,
+        claim_dedupe_key,
+        extend_dedupe_claim,
+    )
+
+    key = hashlib.sha256(b"lease-probe").hexdigest()
+    assert claim_dedupe_key(key) is True
+    assert claim_dedupe_key(key) is False
+    db = SessionLocal()
+    try:
+        row = db.query(NotificationDedupeClaim).filter_by(dedupe_key=key).one()
+        span = row.expires_at - row.claimed_at
+        assert CLAIM_LEASE - timedelta(seconds=5) <= span <= CLAIM_LEASE + timedelta(seconds=5)
+        row.expires_at = datetime.now(timezone.utc) - timedelta(seconds=1)
+        db.commit()
+    finally:
+        db.close()
+    assert claim_dedupe_key(key) is True
+    extend_dedupe_claim(key)
+    db = SessionLocal()
+    try:
+        row = db.query(NotificationDedupeClaim).filter_by(dedupe_key=key).one()
+        remaining = row.expires_at - datetime.now(timezone.utc)
+        assert remaining >= CLAIM_TTL - timedelta(minutes=1)
+    finally:
+        db.close()
+    assert claim_dedupe_key(key) is False
+
+
+def test_slack_failure_after_accept_does_not_post_again(client: TestClient):
+    _login_admin(client)
+    user_id = _demo_user_id()
+    _reset_delivery()
+    connected = client.post(
+        "/api/slack/connect",
+        json={
+            "bot_token": "xoxb-test-token-fake-for-testing",
+            "channel_id": "C_AFTER_ACCEPT",
+            "channel_name": "after-accept",
+        },
+    )
+    assert connected.status_code == 200, connected.text
+    from app.core.database import SessionLocal
+    from app.models import NotificationDedupeClaim
+    from app.services.notification_service import (
+        CLAIM_TTL,
+        _fire_slack_notification,
+        stable_dedupe_key,
+    )
+    from app.services.notification_templates import render_notification
+    from app.services.slack_service import reset_slack_provider, set_slack_provider
+
+    posts: list[str] = []
+    accepted = {"ok": False}
+
+    class AcceptingProvider:
+        def send_message(self, bot_token, channel_id, text, on_attempt=None):
+            posts.append(text)
+            accepted["ok"] = True
+            return {"ok": True, "attempts": 1, "delivered_to_provider": False}
+
+        def list_channels(self, bot_token):
+            return []
+
+        def test_auth(self, bot_token):
+            return {"ok": True}
+
+    set_slack_provider(AcceptingProvider())
+    rendered = render_notification(EVENT, "slack", "Workspace", "plain detail")
+    db = SessionLocal()
+    try:
+        real_flush = db.flush
+
+        def fail_after_accept(*args, **kwargs):
+            if accepted["ok"]:
+                accepted["ok"] = False
+                raise RuntimeError("sent-row write failed")
+            return real_flush(*args, **kwargs)
+
+        db.flush = fail_after_accept
+        try:
+            _fire_slack_notification(
+                db, 1, EVENT, [(user_id, "demo@trust.local")], rendered, "slack-occ-1"
+            )
+        finally:
+            db.flush = real_flush
+        db.rollback()
+    finally:
+        db.close()
+        reset_slack_provider()
+
+    key = stable_dedupe_key(1, EVENT, "slack", "C_AFTER_ACCEPT", "slack-occ-1")
+    db = SessionLocal()
+    try:
+        claim = db.query(NotificationDedupeClaim).filter_by(dedupe_key=key).one()
+        remaining = claim.expires_at - datetime.now(timezone.utc)
+        assert remaining >= CLAIM_TTL - timedelta(minutes=1)
+        assert claim.released_at is None
+    finally:
+        db.close()
+
+    set_slack_provider(AcceptingProvider())
+    db = SessionLocal()
+    try:
+        _fire_slack_notification(
+            db, 1, EVENT, [(user_id, "demo@trust.local")], rendered, "slack-occ-1"
+        )
+        db.commit()
+    finally:
+        db.close()
+        reset_slack_provider()
+    assert posts == [rendered.slack_text]
+
+
+def test_in_app_claim_rolls_back_with_the_callers_commit(client: TestClient):
+    _login_admin(client)
+    user_id = _demo_user_id()
+    _reset_delivery()
+    from app.core.database import SessionLocal
+    from app.models import InAppNotification, NotificationChannelPreference, NotificationDedupeClaim
+    from app.services.notification_service import _deliver_in_app, stable_dedupe_key
+    from app.services.notification_templates import render_notification
+
+    db = SessionLocal()
+    try:
+        db.add(
+            NotificationChannelPreference(
+                workspace_id=1,
+                user_id=user_id,
+                channel="in_app",
+                event_type="",
+                enabled=True,
+            )
+        )
+        db.commit()
+        rendered = render_notification(EVENT, "in_app", "Workspace", "plain detail")
+        assert (
+            _deliver_in_app(
+                db,
+                workspace_id=1,
+                event_type=EVENT,
+                user_id=user_id,
+                email="demo@trust.local",
+                rendered=rendered,
+                event_id="inapp-occ-1",
+            )
+            is True
+        )
+        db.rollback()
+        assert (
+            db.query(InAppNotification)
+            .filter(InAppNotification.user_id == user_id, InAppNotification.workspace_id == 1)
+            .count()
+            == 0
+        )
+        key = stable_dedupe_key(1, EVENT, "in_app", f"user:{user_id}", "inapp-occ-1")
+        assert db.query(NotificationDedupeClaim).filter_by(dedupe_key=key).count() == 0
+        assert (
+            _deliver_in_app(
+                db,
+                workspace_id=1,
+                event_type=EVENT,
+                user_id=user_id,
+                email="demo@trust.local",
+                rendered=rendered,
+                event_id="inapp-occ-1",
+            )
+            is True
+        )
+        db.commit()
+        assert (
+            db.query(InAppNotification)
+            .filter(
+                InAppNotification.user_id == user_id,
+                InAppNotification.title == "New member invited",
+            )
+            .count()
+            == 1
+        )
+    finally:
+        db.close()
+
+
+def test_repeated_role_change_sends_twice(client: TestClient):
+    _login_admin(client)
+    user_id = _demo_user_id()
+    _reset_delivery()
+    from app.core.database import SessionLocal
+    from app.core.password import hash_password
+    from app.models import NotificationLog, NotificationPolicy, User, WorkspaceMember
+
+    db = SessionLocal()
+    try:
+        db.query(NotificationPolicy).filter(
+            NotificationPolicy.workspace_id == 1,
+            NotificationPolicy.event_type == "member.role_changed",
+        ).delete()
+        other = db.query(User).filter(User.email == "repeat-role@test.local").first()
+        if other is None:
+            other = User(
+                email="repeat-role@test.local",
+                password_hash=hash_password("testpass123"),
+                display_name="repeat",
+            )
+            db.add(other)
+            db.commit()
+            db.refresh(other)
+        mem = (
+            db.query(WorkspaceMember)
+            .filter(WorkspaceMember.user_id == other.id, WorkspaceMember.workspace_id == 1)
+            .first()
+        )
+        if mem is None:
+            mem = WorkspaceMember(workspace_id=1, user_id=other.id, role="viewer")
+            db.add(mem)
+        else:
+            mem.role = "viewer"
+            mem.suspended = False
+        db.add(
+            NotificationPolicy(
+                workspace_id=1,
+                event_type="member.role_changed",
+                enabled=True,
+                recipient_type="user",
+                recipient_value=str(user_id),
+            )
+        )
+        db.commit()
+        member_id = mem.id
+    finally:
+        db.close()
+
+    first = client.patch(f"/api/members/{member_id}", json={"role": "editor"})
+    second = client.patch(f"/api/members/{member_id}", json={"role": "editor"})
+    assert first.status_code == 200, first.text
+    assert second.status_code == 200, second.text
+    db = SessionLocal()
+    try:
+        sent = (
+            db.query(NotificationLog)
+            .filter(
+                NotificationLog.workspace_id == 1,
+                NotificationLog.event_type == "member.role_changed",
+                NotificationLog.channel == "email",
+                NotificationLog.delivery_state == "sent",
+            )
+            .count()
+        )
+    finally:
+        db.close()
+    assert sent == 2
+
+
+def test_same_coverage_numbers_fire_twice(client: TestClient):
+    _login_admin(client)
+    user_id = _demo_user_id()
+    _reset_delivery()
+    from unittest.mock import patch
+
+    from app.core.database import SessionLocal
+    from app.models import NotificationLog, NotificationPolicy
+    from app.services.compliance_event_service import evaluate_and_fire_compliance_events
+
+    coverage = {
+        "kpi": {
+            "total_questions": 10,
+            "coverage_pct": 10,
+            "insufficient_pct": 0,
+            "blind_spot_count": 0,
+        },
+        "blind_spots": [],
+        "weak_areas": [],
+    }
+    db = SessionLocal()
+    try:
+        db.query(NotificationPolicy).filter(
+            NotificationPolicy.workspace_id == 1,
+            NotificationPolicy.event_type == "compliance.coverage_drop",
+        ).delete()
+        db.add(
+            NotificationPolicy(
+                workspace_id=1,
+                event_type="compliance.coverage_drop",
+                enabled=True,
+                recipient_type="user",
+                recipient_value=str(user_id),
+            )
+        )
+        db.commit()
+        with patch(
+            "app.services.compliance_event_service.get_compliance_coverage",
+            return_value=coverage,
+        ):
+            assert evaluate_and_fire_compliance_events(db, 1, "Workspace") == 1
+            assert evaluate_and_fire_compliance_events(db, 1, "Workspace") == 1
+        sent = (
+            db.query(NotificationLog)
+            .filter(
+                NotificationLog.workspace_id == 1,
+                NotificationLog.event_type == "compliance.coverage_drop",
+                NotificationLog.channel == "email",
+                NotificationLog.delivery_state == "sent",
+            )
+            .count()
+        )
+    finally:
+        db.close()
+    assert sent == 2
+
+
+def test_two_generation_jobs_with_the_same_gap_both_send(client: TestClient):
+    _login_admin(client)
+    user_id = _demo_user_id()
+    _reset_delivery()
+    from app.core.database import SessionLocal
+    from app.models import (
+        Answer,
+        Job,
+        NotificationLog,
+        NotificationPolicy,
+        Question,
+        Questionnaire,
+        Workspace,
+    )
+    from app.services.automation_service import evaluate_generation_result
+
+    db = SessionLocal()
+    try:
+        ws = db.query(Workspace).filter(Workspace.id == 1).one()
+        previous_flag = bool(ws.ai_automate_everything)
+        ws.ai_automate_everything = True
+        db.query(NotificationPolicy).filter(
+            NotificationPolicy.workspace_id == 1,
+            NotificationPolicy.event_type == "questionnaire.generated",
+        ).delete()
+        db.add(
+            NotificationPolicy(
+                workspace_id=1,
+                event_type="questionnaire.generated",
+                enabled=True,
+                recipient_type="user",
+                recipient_value=str(user_id),
+            )
+        )
+        qnr = Questionnaire(workspace_id=1, filename="repeat.csv", status="parsed")
+        db.add(qnr)
+        db.flush()
+        question = Question(questionnaire_id=qnr.id, text="Do you encrypt data at rest?")
+        db.add(question)
+        db.flush()
+        db.add(
+            Answer(
+                question_id=question.id,
+                text="",
+                status="insufficient_evidence",
+                confidence=0,
+            )
+        )
+        jobs = []
+        for _n in range(2):
+            job = Job(
+                workspace_id=1,
+                kind="generate_answers",
+                status="completed",
+                payload=f'{{"questionnaire_id": {qnr.id}}}',
+            )
+            db.add(job)
+            jobs.append(job)
+        db.commit()
+        for job in jobs:
+            db.refresh(job)
+            evaluate_generation_result(db, job, {"questionnaire_id": qnr.id})
+        sent = (
+            db.query(NotificationLog)
+            .filter(
+                NotificationLog.workspace_id == 1,
+                NotificationLog.event_type == "questionnaire.generated",
+                NotificationLog.channel == "email",
+                NotificationLog.delivery_state == "sent",
+            )
+            .count()
+        )
+    finally:
+        ws = db.query(Workspace).filter(Workspace.id == 1).one()
+        ws.ai_automate_everything = previous_flag
+        db.commit()
+        db.close()
+    assert sent == 2
 
 
 def test_missing_event_id_skips_dedupe(client: TestClient):
@@ -579,9 +972,6 @@ def test_in_app_follows_the_preference_and_the_read_state(client: TestClient):
         json={"channel": "in_app", "enabled": True},
     )
     assert enabled.status_code == 200
-    from app.services.slack_service import _slack_dedup
-
-    _slack_dedup.clear()
     db = SessionLocal()
     try:
         fire_notification(db, 1, EVENT, "plain detail", "Workspace")
@@ -714,6 +1104,49 @@ def _drop_side_database(name: str) -> None:
     admin.dispose()
 
 
+def _revision_token(output: str) -> str:
+    for line in output.splitlines():
+        token = line.strip().split()[0] if line.strip() else ""
+        if token and not token.startswith("INFO"):
+            return token
+    raise AssertionError(f"no revision in alembic output: {output!r}")
+
+
+def _alembic_script():
+    from pathlib import Path
+
+    from alembic.config import Config
+    from alembic.script import ScriptDirectory
+
+    api_dir = Path(__file__).resolve().parents[2]
+    cfg = Config(str(api_dir / "alembic.ini"))
+    cfg.set_main_option("script_location", str(api_dir / "alembic"))
+    return ScriptDirectory.from_config(cfg)
+
+
+def _revision_is_applied(head: str, revision: str) -> bool:
+    """True when ``head`` is ``revision`` or a later revision on its chain."""
+    script = _alembic_script()
+    current: str | None = head
+    seen: set[str] = set()
+    while current and current not in seen:
+        if current == revision:
+            return True
+        seen.add(current)
+        rev = script.get_revision(current)
+        parent = rev.down_revision if rev is not None else None
+        if isinstance(parent, tuple):
+            return any(_revision_is_applied(item, revision) for item in parent if item)
+        current = parent
+    return False
+
+
+def _down_revision(revision: str) -> str:
+    parent = _alembic_script().get_revision(revision).down_revision
+    assert isinstance(parent, str) and parent
+    return parent
+
+
 def test_migration_upgrades_and_downgrades_on_a_fresh_database():
     import os
     import subprocess
@@ -723,7 +1156,7 @@ def test_migration_upgrades_and_downgrades_on_a_fresh_database():
 
     name = "trustcopilot_tc19008_migration_test"
     revision = "tc19008_notification_delivery"
-    parent = "tc11001_model_outcome_codes"
+    parent = _down_revision(revision)
     url = _side_database_url(name)
     api_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
     _recreate_side_database(name)
@@ -745,8 +1178,8 @@ def test_migration_upgrades_and_downgrades_on_a_fresh_database():
         assert fresh.returncode == 0, fresh.stderr
         heads = run("heads")
         assert heads.returncode == 0, heads.stderr
-        assert revision in heads.stdout
         assert heads.stdout.count("(head)") == 1
+        assert _revision_is_applied(_revision_token(heads.stdout), revision)
 
         engine = create_engine(url)
         with engine.connect() as conn:
@@ -788,6 +1221,17 @@ def test_migration_upgrades_and_downgrades_on_a_fresh_database():
                 )
             ).scalar()
             assert claim_pk == "dedupe_key"
+            claim_indexes = {
+                row[0]
+                for row in conn.execute(
+                    text(
+                        "SELECT indexname FROM pg_indexes "
+                        "WHERE tablename = 'notification_dedupe_claims'"
+                    )
+                )
+            }
+            assert "ix_notification_dedupe_claims_expires_at" in claim_indexes
+            assert "ix_notification_dedupe_claims_released_at" in claim_indexes
             version_width = conn.execute(
                 text(
                     "SELECT character_maximum_length FROM information_schema.columns "
@@ -825,7 +1269,8 @@ def test_migration_upgrades_and_downgrades_on_a_fresh_database():
         again = run("upgrade", "head")
         assert again.returncode == 0, again.stderr
         current = run("current")
-        assert revision in current.stdout
+        assert current.returncode == 0, current.stderr
+        assert _revision_is_applied(_revision_token(current.stdout), revision)
     finally:
         _drop_side_database(name)
 

@@ -139,9 +139,25 @@ def upgrade() -> None:
         sa.Column("expires_at", sa.DateTime(timezone=True), nullable=False),
         sa.Column("released_at", sa.DateTime(timezone=True), nullable=True),
     )
+    op.create_index(
+        "ix_notification_dedupe_claims_expires_at",
+        "notification_dedupe_claims",
+        ["expires_at"],
+    )
+    op.create_index(
+        "ix_notification_dedupe_claims_released_at",
+        "notification_dedupe_claims",
+        ["released_at"],
+    )
 
 
 def downgrade() -> None:
+    op.drop_index(
+        "ix_notification_dedupe_claims_released_at", table_name="notification_dedupe_claims"
+    )
+    op.drop_index(
+        "ix_notification_dedupe_claims_expires_at", table_name="notification_dedupe_claims"
+    )
     op.drop_table("notification_dedupe_claims")
 
     op.drop_index(

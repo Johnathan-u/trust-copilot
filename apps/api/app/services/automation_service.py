@@ -170,7 +170,7 @@ def evaluate_generation_result(session: Session, gen_job: Job, payload: dict) ->
             insufficient_count,
             total,
             link,
-            event_id=f"questionnaire:{qnr_id}:insufficient:{insufficient_count}",
+            event_id=f"job:{gen_job.id}",
         )
 
         logger.info(

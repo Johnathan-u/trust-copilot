@@ -285,9 +285,6 @@ class TestSlackDelivery:
 
     def test_event_fires_to_slack(self, client: TestClient) -> None:
         """When Slack is connected and an event fires, it appears in the delivery log."""
-        from app.services.slack_service import _slack_dedup
-
-        _slack_dedup.clear()
         _login_admin(client)
         _cleanup_slack()
         _cleanup_slack_log()
@@ -313,7 +310,6 @@ class TestSlackDelivery:
             )
         )
         db.commit()
-        _slack_dedup.clear()
         try:
             fire_notification(
                 db,
@@ -337,9 +333,6 @@ class TestSlackDelivery:
         ), f"Expected Slack log entry, got {[e.get('channel') for e in entries]}"
 
     def test_disabled_slack_does_not_fire(self, client: TestClient) -> None:
-        from app.services.slack_service import _slack_dedup
-
-        _slack_dedup.clear()
         _login_admin(client)
         _cleanup_slack()
         _cleanup_slack_log()
@@ -394,9 +387,6 @@ class TestSlackDelivery:
 
     def test_event_type_filter_respected(self, client: TestClient) -> None:
         """When event_types are set, only matching events go to Slack."""
-        from app.services.slack_service import _slack_dedup
-
-        _slack_dedup.clear()
         _login_admin(client)
         _cleanup_slack()
         _cleanup_slack_log()

@@ -20,7 +20,7 @@ TC_REQUIRE_DB=1 SESSION_SECRET=test-secret /tmp/tc-venv/bin/python -m pytest tes
 
 Exit status: **0**
 
-Totals: **16 passed**, 0 failed, 0 skipped. The file covers distinct event ids, a missing event id (no claim), two sessions racing one key, worker prune of expired and released claims, dead-letter and raised-send claim release, and a fresh-database upgrade. `alembic_version.version_num` stays varchar(32).
+Totals: **22 passed**, 0 failed, 0 skipped. The file covers distinct event ids, a missing event id, a 15-minute lease and the 24-hour extension, a Slack write failure after acceptance, an in-app claim that rolls back with the caller, genuine repeats for role changes, compliance coverage, and generation jobs, two sessions racing one key, worker prune, and a fresh-database upgrade. `alembic_version.version_num` stays varchar(32). The migration check walks descendants and downgrades to the parent stored on the revision.
 
 That file includes a fresh-database upgrade to `tc19008_notification_delivery`, downgrade to `tc11001_model_outcome_codes`, and upgrade again. The side database name ends in `_test` and is created with the same role as `TC_TEST_DATABASE_URL` or `DATABASE_URL`.
 
@@ -67,9 +67,9 @@ cd apps/api && TC_REQUIRE_DB=1 SESSION_SECRET=test-secret /tmp/tc-venv/bin/pytho
 
 Exit status: **0**
 
-Totals: **1593 passed**, 3 skipped, 0 failed. Database: `trustcopilot_tc19008_suite_test` (the previous database, stamped `tc19008_notification_channel_delivery`, was dropped before this run).
+Totals: **1600 passed**, 2 skipped, 0 failed. Database: `trustcopilot_tc19008_suite_test`.
 
-Skips: blind pack not found, no reviewed workspace controls, the evidence retrieval test's unordered questionnaire had no questions.
+Skips: blind pack not found, no reviewed workspace controls.
 
 `tests/release/test_safe_collection.py`: **26 passed**.
 

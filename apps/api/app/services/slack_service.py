@@ -278,28 +278,3 @@ def set_slack_provider(provider: SlackProvider | None) -> None:
 
 def reset_slack_provider() -> None:
     set_slack_provider(None)
-
-
-# ---------------------------------------------------------------------------
-# Dedup for Slack messages
-# ---------------------------------------------------------------------------
-
-_slack_dedup: dict[str, float] = {}
-SLACK_DEDUP_WINDOW = 60
-
-
-def _slack_dedup_key(workspace_id: int, event_type: str) -> str:
-    return f"slack:{workspace_id}:{event_type}"
-
-
-def is_slack_duplicate(workspace_id: int, event_type: str) -> bool:
-    key = _slack_dedup_key(workspace_id, event_type)
-    now = time.monotonic()
-    last = _slack_dedup.get(key)
-    if last and (now - last) < SLACK_DEDUP_WINDOW:
-        return True
-    _slack_dedup[key] = now
-    stale = [k for k, v in _slack_dedup.items() if now - v > SLACK_DEDUP_WINDOW * 2]
-    for k in stale:
-        _slack_dedup.pop(k, None)
-    return False

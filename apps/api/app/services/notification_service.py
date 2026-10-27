@@ -1,5 +1,6 @@
 """Notification dispatch. Email, Slack, and in-app, with preference, dedupe, and retry state."""
 
+import hashlib
 import json
 import logging
 from datetime import datetime, timedelta, timezone
@@ -47,7 +48,34 @@ STATE_SUPPRESSED = "suppressed-by-preference"
 
 
 DEDUPE_ERROR_CODE = "claimed"
+CLAIM_LEASE = timedelta(minutes=15)
 CLAIM_TTL = timedelta(hours=24)
+
+_CLAIM_SQL = text(
+    """
+    INSERT INTO notification_dedupe_claims
+        (dedupe_key, claimed_at, expires_at, released_at)
+    VALUES (:key, :now, :expires, NULL)
+    ON CONFLICT (dedupe_key) DO UPDATE
+    SET claimed_at = EXCLUDED.claimed_at,
+        expires_at = EXCLUDED.expires_at,
+        released_at = NULL
+    WHERE notification_dedupe_claims.released_at IS NOT NULL
+       OR notification_dedupe_claims.expires_at < :now
+    RETURNING dedupe_key
+    """
+)
+_EXTEND_SQL = text(
+    """
+    UPDATE notification_dedupe_claims
+    SET expires_at = :expires
+    WHERE dedupe_key = :key AND released_at IS NULL
+    """
+)
+
+
+class _ClaimLost(Exception):
+    """The in-app savepoint lost the claim and must not insert a row."""
 
 
 def stable_dedupe_key(
@@ -57,52 +85,71 @@ def stable_dedupe_key(
     recipient: str,
     event_id: str | None = None,
 ) -> str:
-    """Key for one event, recipient, and channel.
+    """Sha256 hex of one event, recipient, and channel.
 
-    The event id is part of the key so two different events are not claimed
-    together. An empty event id does not claim: those sends are not deduped.
-    Attempt rows stay non-unique. The claim lives in
-    ``notification_dedupe_claims``.
+    The raw value is ``{workspace}:{event_type}:{event_id}:{channel}:{recipient}``.
+    An empty event id does not claim: those sends are not deduped. Two
+    occurrence ids never share a claim. The stored key is the hex digest.
     """
     identity = (recipient or "").strip().lower()
     event = (event_id or "").strip()
-    return f"{int(workspace_id)}:{event_type}:{event}:{channel}:{identity}"
+    raw = f"{int(workspace_id)}:{event_type}:{event}:{channel}:{identity}"
+    return hashlib.sha256(raw.encode("utf-8")).hexdigest()
 
 
-def claim_dedupe_key(key: str, *, ttl: timedelta = CLAIM_TTL) -> bool:
+def _claim_bind(key: str, ttl: timedelta) -> dict:
+    now = datetime.now(timezone.utc)
+    return {"key": key, "now": now, "expires": now + ttl}
+
+
+def claim_dedupe_key(key: str, *, ttl: timedelta = CLAIM_LEASE) -> bool:
     """Insert or take over one claim in its own transaction.
 
-    A claim is won only when PostgreSQL returns the row. A live unreleased
-    claim returns no row.
+    The lease is 15 minutes until the provider accepts. A claim is won only
+    when PostgreSQL returns the row. A live unreleased claim returns no row.
     """
     from app.core.database import SessionLocal
 
-    now = datetime.now(timezone.utc)
-    expires = now + ttl
-    statement = text(
-        """
-        INSERT INTO notification_dedupe_claims
-            (dedupe_key, claimed_at, expires_at, released_at)
-        VALUES (:key, :now, :expires, NULL)
-        ON CONFLICT (dedupe_key) DO UPDATE
-        SET claimed_at = EXCLUDED.claimed_at,
-            expires_at = EXCLUDED.expires_at,
-            released_at = NULL
-        WHERE notification_dedupe_claims.released_at IS NOT NULL
-           OR notification_dedupe_claims.expires_at < :now
-        RETURNING dedupe_key
-        """
-    )
     db = SessionLocal()
     try:
-        won = db.execute(statement, {"key": key, "now": now, "expires": expires}).first()
+        won = claim_dedupe_key_on(db, key, ttl=ttl)
         db.commit()
-        return won is not None
+        return won
     except Exception:
         db.rollback()
         raise
     finally:
         db.close()
+
+
+def claim_dedupe_key_on(db: Session, key: str, *, ttl: timedelta = CLAIM_LEASE) -> bool:
+    """Claim on ``db`` without committing, so the caller can roll it back."""
+    won = db.execute(_CLAIM_SQL, _claim_bind(key, ttl)).first()
+    return won is not None
+
+
+def extend_dedupe_claim(key: str, *, ttl: timedelta = CLAIM_TTL) -> None:
+    """Keep a claim for 24 hours after the provider accepts. Own transaction."""
+    if not key:
+        return
+    from app.core.database import SessionLocal
+
+    db = SessionLocal()
+    try:
+        extend_dedupe_claim_on(db, key, ttl=ttl)
+        db.commit()
+    except Exception:
+        db.rollback()
+        raise
+    finally:
+        db.close()
+
+
+def extend_dedupe_claim_on(db: Session, key: str, *, ttl: timedelta = CLAIM_TTL) -> None:
+    """Extend a claim on ``db`` without committing."""
+    if not key:
+        return
+    db.execute(_EXTEND_SQL, {"key": key, "expires": datetime.now(timezone.utc) + ttl})
 
 
 def release_dedupe_claim(key: str) -> None:
@@ -464,6 +511,11 @@ def _deliver_email(
             release_dedupe_claim(key)
         raise
     accepted = bool(result.ok)
+    if hold_claim:
+        if accepted:
+            extend_dedupe_claim(key)
+        else:
+            release_dedupe_claim(key)
     delivered = bool(accepted and counts_as_provider)
     final_state = STATE_SENT if accepted else STATE_DEAD
     error_message = (
@@ -504,8 +556,6 @@ def _deliver_email(
         provider_mode=mode,
         notification_log_id=log.id,
     )
-    if final_state == STATE_DEAD and hold_claim:
-        release_dedupe_claim(key)
     return accepted
 
 
@@ -540,7 +590,42 @@ def _deliver_in_app(
         return False
     if not channel_enabled(db, workspace_id, user_id, "in_app", event_type):
         return False
-    if _duplicate_send(key, event_id):
+    note_id = None
+    try:
+        with db.begin_nested():
+            if (event_id or "").strip() and not claim_dedupe_key_on(db, key):
+                raise _ClaimLost()
+            _add_attempt(
+                db,
+                workspace_id=workspace_id,
+                event_type=event_type,
+                channel="in_app",
+                recipient=email,
+                user_id=user_id,
+                dedupe_key=key,
+                state=STATE_QUEUED,
+                attempt_number=0,
+                max_attempts=1,
+                rendered=rendered,
+                destination=destination,
+                provider_mode="local",
+            )
+            note = InAppNotification(
+                workspace_id=workspace_id,
+                user_id=user_id,
+                title=_safe(rendered.title, limit=255),
+                body=_safe(rendered.body_text, limit=2000),
+                category=rendered.category,
+                link=rendered.link,
+                is_read=False,
+                admin_only=False,
+            )
+            db.add(note)
+            db.flush()
+            note_id = note.id
+            if (event_id or "").strip():
+                extend_dedupe_claim_on(db, key)
+    except _ClaimLost:
         _add_attempt(
             db,
             workspace_id=workspace_id,
@@ -558,38 +643,6 @@ def _deliver_in_app(
             provider_mode="local",
         )
         return False
-    hold_claim = bool((event_id or "").strip())
-
-    _add_attempt(
-        db,
-        workspace_id=workspace_id,
-        event_type=event_type,
-        channel="in_app",
-        recipient=email,
-        user_id=user_id,
-        dedupe_key=key,
-        state=STATE_QUEUED,
-        attempt_number=0,
-        max_attempts=1,
-        rendered=rendered,
-        destination=destination,
-        provider_mode="local",
-    )
-    try:
-        with db.begin_nested():
-            note = InAppNotification(
-                workspace_id=workspace_id,
-                user_id=user_id,
-                title=_safe(rendered.title, limit=255),
-                body=_safe(rendered.body_text, limit=2000),
-                category=rendered.category,
-                link=rendered.link,
-                is_read=False,
-                admin_only=False,
-            )
-            db.add(note)
-            db.flush()
-            note_id = note.id
     except Exception:
         logger.warning(
             "In-app notification insert failed workspace=%s event=%s", workspace_id, event_type
@@ -611,8 +664,6 @@ def _deliver_in_app(
             error_message="The in-app notification could not be stored.",
             provider_mode="local",
         )
-        if hold_claim:
-            release_dedupe_claim(key)
         return False
 
     _add_attempt(
@@ -658,6 +709,8 @@ def _fire_slack_notification(
     """Post once to the workspace Slack channel when at least one recipient allows it."""
     channel_key = ""
     hold_claim = False
+    send_started = False
+    accepted_post = False
     try:
         si = (
             db.query(SlackIntegration)
@@ -760,10 +813,17 @@ def _fire_slack_notification(
 
         token = decrypt_token(si.bot_token_encrypted)
         provider = get_slack_provider()
+        send_started = True
         result = provider.send_message(
             token, si.channel_id, rendered.slack_text, on_attempt=on_attempt
         )
         accepted = delivery_accepted(result)
+        if accepted:
+            accepted_post = True
+            if hold_claim:
+                extend_dedupe_claim(channel_key)
+        elif hold_claim:
+            release_dedupe_claim(channel_key)
         delivered = bool(accepted and result.get("delivered_to_provider") is True)
         mode = result.get("provider_mode") if isinstance(result.get("provider_mode"), str) else None
         attempts = result.get("attempts") if isinstance(result.get("attempts"), int) else 1
@@ -831,11 +891,9 @@ def _fire_slack_notification(
                 )
             except Exception:
                 pass
-        if final_state == STATE_DEAD and hold_claim:
-            release_dedupe_claim(channel_key)
         return 1 if accepted else 0
     except Exception:
-        if hold_claim:
+        if hold_claim and not accepted_post and not send_started:
             release_dedupe_claim(channel_key)
         logger.warning("Slack notification error workspace=%s event=%s", workspace_id, event_type)
         try:
