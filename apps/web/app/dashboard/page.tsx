@@ -283,9 +283,9 @@ export default function DashboardPage() {
                       {ICON_MAP[card.icon] ?? '◆'}
                     </span>
                     <div className="min-w-0">
-                      <h3 className="font-semibold text-[var(--tc-text)]">
+                      <h2 className="font-semibold text-[var(--tc-text)]">
                         {card.title}
-                      </h3>
+                      </h2>
                       {card.description && (
                         <p className="mt-1 text-sm text-[var(--tc-muted)] line-clamp-2">
                           {card.description}

@@ -1,0 +1,44 @@
+{
+  "ticket": "TC-14-006",
+  "branch": "tc/web/TC-14-006",
+  "testedCommit": "abafb2990351ebcfb50c9b9e3d6108cf03cd25f7",
+  "baseline": "58b8c87",
+  "mergedMaster": "58b8c87",
+  "environment": {
+    "os": "Linux 6.12.94+ x86_64",
+    "node": "v24.22.1",
+    "npm": "11.19.1",
+    "next": "16.4.3",
+    "vitest": "5.0.5",
+    "playwright": "1.64.1",
+    "chromium": "chromium-1248",
+    "axePlaywright": "4.14.0",
+    "cwd": "apps/web"
+  },
+  "runs": [
+    {
+      "command": "npm run test:unit",
+      "exitStatus": 0,
+      "passed": 102,
+      "failed": 0,
+      "skipped": 0,
+      "filesPassed": 14
+    },
+    {
+      "command": "npx playwright test e2e/release/responsive-shell.spec.ts --retries=0",
+      "exitStatus": 0,
+      "passed": 8,
+      "failed": 0,
+      "skipped": 0,
+      "themes": ["dark", "light"],
+      "viewports": [360, 768, 1440],
+      "zoomReflowViewport": {
+        "width": 720,
+        "height": 450,
+        "represents": "1440 at 200% zoom"
+      },
+      "axeViolations": 0
+    }
+  ],
+  "notes": "Evidence files were committed after the tested SHA and do not change the suite. Synthetic session and mocked API responses only. No credentials or customer data. Node 24 is required. package.json and package-lock.json match master, including @axe-core/playwright@4.14.0."
+}
