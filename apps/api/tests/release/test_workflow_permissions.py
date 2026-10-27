@@ -1,4 +1,4 @@
-"""TC-02-003 CI hardening: read-only GITHUB_TOKEN and no persisted checkout credentials.
+"""TC-02-SEC-001 CI hardening: read-only GITHUB_TOKEN and no persisted checkout credentials.
 
 Every GitHub Actions workflow under .github/workflows must:
 

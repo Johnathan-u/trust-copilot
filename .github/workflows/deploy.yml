@@ -6,7 +6,7 @@ on:
     branches: [main]
   workflow_dispatch:
 
-# TC-02-003: read-only GITHUB_TOKEN by default; jobs grant only what they use.
+# TC-02-SEC-001: read-only GITHUB_TOKEN by default; jobs grant only what they use.
 permissions:
   contents: read
 
@@ -16,7 +16,7 @@ env:
 jobs:
   build:
     runs-on: ubuntu-latest
-    # TC-02-003: least privilege. Images are built with push: false and only loaded
+    # TC-02-SEC-001: least privilege. Images are built with push: false and only loaded
     # locally, so nothing is written to the registry and packages: read is enough for
     # the registry login. Grant packages: write on this job only when a push step is
     # actually added.

@@ -4,7 +4,7 @@ on:
   push:
   pull_request:
 
-# TC-02-003: read-only GITHUB_TOKEN by default. CI only reads the repo; no job here
+# TC-02-SEC-001: read-only GITHUB_TOKEN by default. CI only reads the repo; no job here
 # writes to it, so no job needs a write scope.
 permissions:
   contents: read
@@ -19,7 +19,7 @@ jobs:
       - name: Checkout repo
         uses: actions/checkout@v4
         with:
-          # TC-02-003: do not leave the token in .git/config for later steps.
+          # TC-02-SEC-001: do not leave the token in .git/config for later steps.
           persist-credentials: false
 
       - name: Ensure no secrets files are committed
