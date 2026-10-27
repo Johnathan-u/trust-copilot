@@ -49,6 +49,11 @@ AGREE_FIELDS = (
 
 
 def _login(client, email: str, password: str):
+    # Login allows 10 attempts per minute. This module logs in more often than that
+    # while it walks the publish workflow, including inside one round-trip test.
+    from app.core import rate_limit
+
+    rate_limit._store.clear()
     client.cookies.clear()
     response = client.post("/api/auth/login", json={"email": email, "password": password})
     assert response.status_code == 200, response.status_code
