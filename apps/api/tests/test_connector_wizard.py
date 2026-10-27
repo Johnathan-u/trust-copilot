@@ -44,8 +44,12 @@ class TestConnectorWizardService:
         from app.models.workspace import Workspace
 
         ws = db_session.query(Workspace).first()
+        # A previous test may have committed this source as enabled. Disable is a no-op
+        # error when the row is absent, and it clears enabled when the row exists.
+        svc.disable_connector(db_session, ws.id, "aws")
         result = svc.start_setup(db_session, ws.id, "aws")
         db_session.commit()
+        assert "error" not in result
         assert result["connector_type"] == "aws"
         assert result["status"] == "setup_pending"
         assert "setup_steps" in result
@@ -99,9 +103,20 @@ class TestConnectorWizardAPI:
         assert r.status_code == 404
 
     def test_start_setup(self, admin_client):
-        r = admin_client.post("/api/connector-wizard/start", json={"connector_type": "azure"})
-        assert r.status_code == 200
-        assert r.json()["status"] == "setup_pending"
+        # Root cause of the previous 400: test_connector_health commits azure with
+        # enabled=True, and start_setup's existing contract rejects an enabled
+        # connector. Validate no longer enables a connector without a successful
+        # probe, so this test restores the not-enabled row itself, then checks
+        # that enabling it again still returns the same 400.
+        admin_client.post("/api/connector-wizard/disable", json={"connector_type": "azure"})
+        started = admin_client.post("/api/connector-wizard/start", json={"connector_type": "azure"})
+        assert started.status_code == 200, started.text
+        assert started.json()["status"] == "setup_pending"
+        enabled = admin_client.patch("/api/sources/azure", json={"enabled": True})
+        assert enabled.status_code == 200, enabled.text
+        again = admin_client.post("/api/connector-wizard/start", json={"connector_type": "azure"})
+        assert again.status_code == 400
+        assert again.json()["detail"] == "Connector 'azure' is already enabled"
 
     def test_validate(self, admin_client):
         admin_client.post("/api/connector-wizard/start", json={"connector_type": "gitlab"})

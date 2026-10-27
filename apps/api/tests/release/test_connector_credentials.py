@@ -37,7 +37,7 @@ pytestmark = pytest.mark.integration
 
 API_ROOT = Path(__file__).resolve().parents[2]
 MIGRATION = API_ROOT / "alembic" / "versions" / "tc20002_connector_credentials.py"
-PARENT = "tc24001_stripe_webhook_events"
+PARENT = "tc10003b_idempotency_owner_token"
 HEAD = "tc20002_connector_credentials"
 
 EXAMPLE_GITHUB = "test-example-github-value-aaaa"

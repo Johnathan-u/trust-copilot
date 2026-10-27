@@ -1,11 +1,12 @@
 """Connector credential custody columns.
 
 Revision ID: tc20002_connector_credentials
-Revises: tc24001_stripe_webhook_events
+Revises: tc10003b_idempotency_owner_token
 
-Parent is the Alembic head on master at implementation time
-(tc24001_stripe_webhook_events). Additive and nullable. This module does not
-import the application package.
+Parent is the single Alembic head on origin/master at implementation time
+(tc10003b_idempotency_owner_token, 57ffce3). tc19008_notification_delivery
+had not landed. Additive and nullable. This module does not import the
+application package.
 """
 
 import sqlalchemy as sa
@@ -13,7 +14,7 @@ import sqlalchemy as sa
 from alembic import op
 
 revision = "tc20002_connector_credentials"
-down_revision = "tc24001_stripe_webhook_events"
+down_revision = "tc10003b_idempotency_owner_token"
 branch_labels = None
 depends_on = None
 

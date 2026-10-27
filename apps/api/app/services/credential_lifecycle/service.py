@@ -12,10 +12,10 @@ from datetime import datetime, timezone
 from sqlalchemy.orm import Session
 
 from app.core.idempotency import (
+    claim as idempotency_claim,
     get as idempotency_get,
     release as idempotency_release,
     set as idempotency_set,
-    try_claim as idempotency_try_claim,
 )
 from app.models.credential_store import CredentialStore
 from app.services import credential_store_service as cs
@@ -101,7 +101,9 @@ def _run(db: Session, key: str, producer):
     cached = idempotency_get(db, key)
     if cached:
         return cached[1]
-    if not idempotency_try_claim(db, key):
+    # TC-10-003b: keep the owner token so a late set/release cannot overwrite a reclaimed key.
+    owner = idempotency_claim(db, key)
+    if owner is None:
         cached_again = idempotency_get(db, key)
         if cached_again:
             return cached_again[1]
@@ -110,9 +112,9 @@ def _run(db: Session, key: str, producer):
         body = producer()
     except Exception:
         db.rollback()
-        idempotency_release(db, key)
+        idempotency_release(db, key, owner=owner)
         raise
-    idempotency_set(db, key, 200, body)
+    idempotency_set(db, key, 200, body, owner=owner)
     return body
 
 
