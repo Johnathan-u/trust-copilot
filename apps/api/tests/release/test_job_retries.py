@@ -366,6 +366,33 @@ def test_hard_ceiling_bounds_attempts_even_if_max_attempts_is_large(db, fast_bac
     assert job.status == JobStatus.FAILED.value and job.error.startswith("Retries exhausted")
 
 
+def test_claim_stops_at_ceiling_when_max_attempts_is_above_it(db):
+    """A queued job whose max_attempts exceeds the ceiling is not claimed once attempt hits it."""
+    from app import worker
+
+    job_id = _queued_job(db, max_attempts=je.MAX_ATTEMPTS_CEILING + 40)
+    job = db.get(Job, job_id)
+    job.attempt = je.MAX_ATTEMPTS_CEILING
+    db.commit()
+    real_filter = worker.claimable_filter
+    with patch.object(
+        worker, "claimable_filter", lambda now=None: real_filter(now) & (Job.id == job_id)
+    ):
+        assert worker.claim_job(db) is None
+    db.expire_all()
+    job = db.get(Job, job_id)
+    assert job.status == JobStatus.QUEUED.value and job.attempt == je.MAX_ATTEMPTS_CEILING
+    assert not _claimable(db, job_id)
+    job.attempt = je.MAX_ATTEMPTS_CEILING - 1
+    db.commit()
+    with patch.object(
+        worker, "claimable_filter", lambda now=None: real_filter(now) & (Job.id == job_id)
+    ):
+        claimed = worker.claim_job(db)
+    assert claimed is not None and claimed.id == job_id
+    assert claimed.attempt == je.MAX_ATTEMPTS_CEILING
+
+
 @pytest.mark.parametrize(
     "exc, code",
     [
@@ -876,8 +903,51 @@ def test_index_no_embeddings_raises_classified_errors(monkeypatch):
     with pytest.raises(ValueError):
         index_service._raise_no_embeddings(None)
     monkeypatch.setattr("app.core.config.get_settings", lambda: SimpleNamespace(openai_api_key=""))
-    with pytest.raises(je.JobConfigError):
+    with pytest.raises(je.JobConfigError) as ei:
         index_service._raise_no_embeddings(RateLimitError())
+    assert str(ei.value) == "AI provider is not configured"
+    assert "OPENAI_API_KEY" not in str(ei.value)
+
+
+def test_missing_provider_config_stores_neutral_message_not_the_env_var(db, caplog, monkeypatch):
+    """The stored job and document errors name no environment variable. The log line does."""
+    import logging
+
+    from app.services import index_service
+
+    monkeypatch.setattr(
+        "app.core.config.get_settings",
+        lambda: SimpleNamespace(openai_api_key=""),
+    )
+    doc = Document(
+        workspace_id=WS,
+        storage_key="synthetic/not-configured.bin",
+        filename="synthetic.bin",
+        status="uploaded",
+    )
+    db.add(doc)
+    db.commit()
+    db.refresh(doc)
+    with caplog.at_level(logging.WARNING, logger="app.services.index_service"):
+        with pytest.raises(je.JobConfigError) as ei:
+            index_service._raise_no_embeddings(None)
+    assert str(ei.value) == "AI provider is not configured"
+    assert "OPENAI_API_KEY" not in str(ei.value)
+    assert any("OPENAI_API_KEY" in record.message for record in caplog.records)
+    job = _running_job(
+        db,
+        kind="index_document",
+        payload={"document_id": doc.id, "workspace_id": WS},
+    )
+    failed = _fail(db, job, ei.value)
+    assert failed.error_code == je.CONFIG_ERROR
+    assert "AI provider is not configured" in (failed.error or "")
+    assert "OPENAI_API_KEY" not in (failed.error or "")
+    db.expire_all()
+    stored = db.get(Document, doc.id)
+    assert stored.status == "failed"
+    assert "AI provider is not configured" in (stored.index_error or "")
+    assert "OPENAI_API_KEY" not in (stored.index_error or "")
 
 
 # ---------------------------------------------------------------------------------------------------------
@@ -890,14 +960,14 @@ def test_migration_downgrade_and_upgrade_roundtrip(_ensure_test_data):
         pytest.skip("Postgres test DB unavailable")
     import importlib.util
 
-    api_dir = Path(__file__).resolve().parents[1]
+    api_dir = Path(__file__).resolve().parents[2]
     mig = api_dir / "alembic" / "versions" / "078_tc10002_job_retries.py"
     spec = importlib.util.spec_from_file_location("tc10002_mig", mig)
     mod = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(mod)
     assert mod.revision == "tc10002_job_retries"
-    # Re-parented onto master's head after #30 (tc25011_demo_proof_summaries).
-    assert mod.down_revision == "tc25011_demo_proof_summaries"
+    # Re-parented onto master's head after #25 (tc25005_case_study_consent).
+    assert mod.down_revision == "tc25005_case_study_consent"
     env = {**os.environ, "DATABASE_URL": os.environ["DATABASE_URL"]}
 
     def alembic(*args):

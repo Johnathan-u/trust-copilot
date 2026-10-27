@@ -34,7 +34,9 @@ def _raise_no_embeddings(provider_error: Exception | None) -> None:
     from app.core.job_errors import JobConfigError, job_error_from, safe_error_message
 
     if not (get_settings().openai_api_key or "").strip():
-        raise JobConfigError(_NO_EMBEDDINGS_MSG + " (OPENAI_API_KEY is not configured)")
+        # The variable name stays in the server log. Stored job/document errors use the neutral text.
+        logger.warning("OPENAI_API_KEY is not configured; embeddings were not written")
+        raise JobConfigError("AI provider is not configured")
     if provider_error is not None:
         raise job_error_from(
             provider_error,

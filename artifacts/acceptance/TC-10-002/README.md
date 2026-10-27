@@ -11,13 +11,13 @@
 - Data: synthetic only. Provider errors are fake exception classes, `ModelCallError`s built from the TC-11-001
   catalog, and fake HTTP responses. The OpenAI client, embeddings and storage are patched, and `OPENAI_API_KEY` is
   empty. No model call was made and no outside service was contacted.
-- Test location: `apps/api/tests/test_job_retries.py`, next to the other job tests (unchanged decision; see the PR body).
+- Test location: `apps/api/tests/release/test_job_retries.py` (moved into `tests/release/` with the other release tests). Fakes only: no network, no real keys, side `*_test` database.
 
 | Artifact | Command | Result |
 |---|---|---|
-| `alembic_roundtrip.txt` | fresh DB: `alembic upgrade head` → `alembic heads` → `alembic downgrade tc10003_job_idempotency` → `alembic upgrade head` → `alembic heads`, inspecting `jobs` columns at each step | chain `075` → `tc21001` → `tc11001` → `tc10003` → `tc10002`; `alembic heads` = `tc10002_job_retries (head)` only; downgrade drops only `next_attempt_at`; re-upgrade clean |
+| `alembic_roundtrip.txt` | fresh DB: `alembic upgrade head` → `alembic heads` → `alembic downgrade tc25005_case_study_consent` → `alembic upgrade head` → `alembic heads` | chain ends `tc10003` → `tc25011` → `tc25005` → `tc10002`; single head `tc10002_job_retries`; downgrade drops only `next_attempt_at`; `ROUNDTRIP_OK` |
 | `migration_rollback.txt` | the same downgrade/upgrade with a synthetic retry-scheduled job row, plus offline `--sql` up and down | the row survives; TC-11-001's `error_code` and TC-10-003's `idempotency_key` stay |
-| `targeted_tests.txt` | `TC_REQUIRE_DB=1 SESSION_SECRET=test-secret pytest -rs -v tests/test_job_retries.py tests/test_job_idempotency.py tests/release/test_health_probes.py tests/release/test_health_probes_isolation.py` | **126 passed** (68 + 33 + 24 + 1), exit 0 |
+| `targeted_tests.txt` | `TC_REQUIRE_DB=1 SESSION_SECRET=test-secret pytest -rs -v tests/release/test_job_retries.py tests/test_job_idempotency.py tests/release/test_health_probes.py tests/release/test_health_probes_isolation.py` | **126 passed** (68 + 33 + 24 + 1), exit 0 |
 | `regression_before_fix.txt` | the 8 completed-job tests (`-k "completed or completion or stale_attempt"`) with the worker guard stashed | 6 failed, 2 passed: without the guard, a completed job's `error_code` is overwritten or the job is re-queued |
 | `full_suite_branch.txt` | `pytest --collect-only -q` → `pytest tests/release/test_safe_collection.py -q` → `TC_REQUIRE_DB=1 SESSION_SECRET=test-secret pytest -rs` | 1639 collected; safe collection 25 passed, 1 skipped; **1636 passed, 4 skipped, 0 failed, exit 0** |
 | `full_suite_master_d527863.txt` | same, on `origin/master` `d527863` | 1571 collected; safe collection 25 passed, 1 skipped; **1568 passed, 4 skipped, 0 failed, exit 0** |

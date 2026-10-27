@@ -26,7 +26,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed  # noqa: E402, F
 from datetime import datetime, timedelta, timezone  # noqa: E402
 from pathlib import Path  # noqa: E402
 
-from sqlalchemy import and_, create_engine, or_, text  # noqa: E402
+from sqlalchemy import and_, create_engine, func, or_, text  # noqa: E402
 from sqlalchemy.exc import IntegrityError  # noqa: E402
 from sqlalchemy.orm import sessionmaker  # noqa: E402
 
@@ -37,6 +37,7 @@ from app.models import Document, Job, JobStatus, Question, Questionnaire  # noqa
 from app.core.audit import persist_audit  # noqa: E402
 from app.core.job_errors import (  # noqa: E402
     AUTH_FAILED,
+    MAX_ATTEMPTS_CEILING,
     RetryableJobError,
     TerminalJobError,
     backoff_delay,
@@ -139,11 +140,19 @@ def _utcnow_naive() -> datetime:
 
 
 def claimable_filter(now: datetime | None = None):
-    """Queued, attempts left, and (TC-10-002) any scheduled retry backoff has elapsed."""
+    """Queued, attempts left under the capped budget, and any scheduled retry backoff has elapsed.
+
+    The budget is ``effective_max_attempts`` (NULL defaults to 3, then clamped to
+    ``[1, MAX_ATTEMPTS_CEILING]``), not the raw ``jobs.max_attempts`` column.
+    """
     now = now or _utcnow_naive()
+    capped_attempts = func.least(
+        func.greatest(func.coalesce(Job.max_attempts, 3), 1),
+        MAX_ATTEMPTS_CEILING,
+    )
     return and_(
         Job.status == JobStatus.QUEUED.value,
-        Job.attempt < Job.max_attempts,
+        Job.attempt < capped_attempts,
         or_(Job.next_attempt_at.is_(None), Job.next_attempt_at <= now),
     )
 

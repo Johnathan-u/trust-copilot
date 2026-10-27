@@ -2,7 +2,6 @@
 
 Fakes/stubs only: no real or paid model calls, OPENAI_API_KEY stays empty in the environment,
 and Python-level outbound sockets are blocked for every test in this module. Synthetic data only.
-(Placed outside tests/release/ per Coordinator ruling Q3; that directory is owned by TC-02-001.)
 """
 
 from __future__ import annotations

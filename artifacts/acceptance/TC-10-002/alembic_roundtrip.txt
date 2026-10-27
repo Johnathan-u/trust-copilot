@@ -80,7 +80,8 @@ INFO  [alembic.runtime.migration] Running upgrade 075 -> tc21001_framework_catal
 INFO  [alembic.runtime.migration] Running upgrade tc21001_framework_catalog_rights -> tc11001_model_outcome_codes, Typed model outcome and job error codes (TC-11-001)
 INFO  [alembic.runtime.migration] Running upgrade tc11001_model_outcome_codes -> tc10003_job_idempotency, TC-10-003: idempotent job side effects.
 INFO  [alembic.runtime.migration] Running upgrade tc10003_job_idempotency -> tc25011_demo_proof_summaries, Demo proof summaries.
-INFO  [alembic.runtime.migration] Running upgrade tc25011_demo_proof_summaries -> tc10002_job_retries, TC-10-002: scheduled job retries.
+INFO  [alembic.runtime.migration] Running upgrade tc25011_demo_proof_summaries -> tc25005_case_study_consent, Consent-backed case study publication (TC-25-005).
+INFO  [alembic.runtime.migration] Running upgrade tc25005_case_study_consent -> tc10002_job_retries, TC-10-002: scheduled job retries.
 $ alembic heads
 tc10002_job_retries (head)
 $ alembic current
@@ -88,41 +89,40 @@ INFO  [alembic.runtime.migration] Context impl PostgresqlImpl.
 INFO  [alembic.runtime.migration] Will assume transactional DDL.
 tc10002_job_retries (head)
 $ jobs columns
-error_code character varying YES
-idempotency_key character varying YES
-input_version character varying YES
-next_attempt_at timestamp without time zone YES
+error_code
+idempotency_key
+next_attempt_at
 $ demo_proof_summaries
 t
-$ alembic downgrade tc25011_demo_proof_summaries
+$ case_studies.synthetic
+synthetic
+$ alembic downgrade tc25005_case_study_consent
 INFO  [alembic.runtime.migration] Context impl PostgresqlImpl.
 INFO  [alembic.runtime.migration] Will assume transactional DDL.
-INFO  [alembic.runtime.migration] Running downgrade tc10002_job_retries -> tc25011_demo_proof_summaries, TC-10-002: scheduled job retries.
+INFO  [alembic.runtime.migration] Running downgrade tc10002_job_retries -> tc25005_case_study_consent, TC-10-002: scheduled job retries.
 $ alembic current
 INFO  [alembic.runtime.migration] Context impl PostgresqlImpl.
 INFO  [alembic.runtime.migration] Will assume transactional DDL.
-tc25011_demo_proof_summaries
+tc25005_case_study_consent
 $ jobs columns after downgrade
-error_code character varying YES
-idempotency_key character varying YES
-input_version character varying YES
+error_code
+idempotency_key
 $ demo_proof_summaries after downgrade
 t
+$ case_studies.synthetic after downgrade
+synthetic
 $ alembic upgrade head
 INFO  [alembic.runtime.migration] Context impl PostgresqlImpl.
 INFO  [alembic.runtime.migration] Will assume transactional DDL.
-INFO  [alembic.runtime.migration] Running upgrade tc25011_demo_proof_summaries -> tc10002_job_retries, TC-10-002: scheduled job retries.
+INFO  [alembic.runtime.migration] Running upgrade tc25005_case_study_consent -> tc10002_job_retries, TC-10-002: scheduled job retries.
 $ alembic current
 INFO  [alembic.runtime.migration] Context impl PostgresqlImpl.
 INFO  [alembic.runtime.migration] Will assume transactional DDL.
 tc10002_job_retries (head)
 $ jobs columns after re-upgrade
-error_code character varying YES
-idempotency_key character varying YES
-input_version character varying YES
-next_attempt_at timestamp without time zone YES
-$ demo_proof_summaries after re-upgrade
-t
+error_code
+idempotency_key
+next_attempt_at
 $ alembic heads
 tc10002_job_retries (head)
 ROUNDTRIP_OK
