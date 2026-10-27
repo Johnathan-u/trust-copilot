@@ -29,6 +29,14 @@ from app.services.model_outcomes import (
 API_ERROR_SCHEMA_VERSION = 1
 JOB_FAILED_CODE = "job_failed"
 JOB_FAILED_MESSAGE = "The job failed. Try again, or contact support with the request ID."
+# TC-10-003b: an identical enqueue raced us for the single QUEUED slot on every attempt. Transient: a retry
+# (same Idempotency-Key, if any) either reuses the queued job or creates a fresh one.
+IDEMPOTENCY_CONFLICT_CODE = "idempotency_conflict"
+IDEMPOTENCY_CONFLICT_MESSAGE = (
+    "An identical request is being queued at the same time. Retry the request; "
+    "reuse the same Idempotency-Key if you sent one."
+)
+IDEMPOTENCY_CONFLICT_RETRY_AFTER_SEC = 1
 
 
 class FieldError(BaseModel):
@@ -101,6 +109,24 @@ async def model_call_error_handler(request: Request, exc: ModelCallError) -> JSO
     return model_failure_response(exc.failure, request)
 
 
+def idempotency_conflict_response(request: Request | None = None) -> JSONResponse:
+    """Retryable 409 ``idempotency_conflict`` in the shared ``{"detail", "error"}`` envelope (TC-10-003b)."""
+    error = ApiError(
+        code=IDEMPOTENCY_CONFLICT_CODE,
+        message=IDEMPOTENCY_CONFLICT_MESSAGE,
+        request_id=current_request_id(request),
+        retryable=True,
+    )
+    response = api_error_response(error, 409)
+    response.headers["Retry-After"] = str(IDEMPOTENCY_CONFLICT_RETRY_AFTER_SEC)
+    return response
+
+
+async def enqueue_conflict_handler(request: Request, exc: Exception) -> JSONResponse:
+    """FastAPI handler for ``job_effects.EnqueueConflictError``: 409, never a 500 (TC-10-003b)."""
+    return idempotency_conflict_response(request)
+
+
 def job_error_payload(job: Any, request_id: str) -> dict[str, Any] | None:
     """ApiError for a failed job. Uses the enqueuing request's ID when it was recorded."""
     if getattr(job, "status", None) != "failed":
@@ -129,6 +155,9 @@ __all__ = [
     "API_ERROR_SCHEMA_VERSION",
     "ApiError",
     "FieldError",
+    "IDEMPOTENCY_CONFLICT_CODE",
+    "IDEMPOTENCY_CONFLICT_MESSAGE",
+    "IDEMPOTENCY_CONFLICT_RETRY_AFTER_SEC",
     "JOB_FAILED_CODE",
     "JOB_FAILED_MESSAGE",
     "ModelOutcomeCode",
@@ -136,6 +165,8 @@ __all__ = [
     "api_error_from_failure",
     "api_error_response",
     "current_request_id",
+    "enqueue_conflict_handler",
+    "idempotency_conflict_response",
     "job_error_payload",
     "model_call_error_handler",
     "model_failure_response",
