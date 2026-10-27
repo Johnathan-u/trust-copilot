@@ -62,8 +62,6 @@ function CheckoutContent() {
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
 
-  const price = plan === 'annual' ? annualPrice : monthlyPrice
-  const interval = plan === 'annual' ? '/year' : '/month'
   const savings = monthlyPrice * 12 - annualPrice
 
   /* ── Step 1 → Step 2 ── */

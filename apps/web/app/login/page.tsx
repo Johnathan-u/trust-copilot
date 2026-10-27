@@ -57,6 +57,7 @@ function LoginContent() {
       return
     }
     if (data.needs_onboarding) {
+      // eslint-disable-next-line @next/next/no-location-assign-relative-destination -- intentional full page load to reset client auth/workspace state (pre-existing; TC-02-006)
       window.location.href = '/onboarding'
       return
     }
@@ -96,6 +97,7 @@ function LoginContent() {
         setError(data.detail || 'Demo login failed. Please try again.')
         return
       }
+      // eslint-disable-next-line @next/next/no-location-assign-relative-destination -- intentional full page load to reset client auth/workspace state (pre-existing; TC-02-006)
       window.location.href = '/dashboard'
     } catch {
       setError('Network error. Please try again.')
@@ -235,6 +237,7 @@ function LoginContent() {
           )}
           <div className="flex flex-col gap-3 mt-2">
             {oauthProviders.google && (
+              // eslint-disable-next-line @next/next/no-html-link-for-pages -- OAuth start is an /api route handled by the backend redirect, not a Next page
               <a
                 href="/api/auth/oauth/google"
                 className="flex items-center justify-center gap-2 rounded-xl border border-[var(--tc-border)] bg-[var(--tc-panel)] px-4 py-3 text-sm font-medium text-[var(--tc-text)] hover:bg-white/10 transition-colors min-h-[44px]"
@@ -244,6 +247,7 @@ function LoginContent() {
               </a>
             )}
             {oauthProviders.github && (
+              // eslint-disable-next-line @next/next/no-html-link-for-pages -- OAuth start is an /api route handled by the backend redirect, not a Next page
               <a
                 href="/api/auth/oauth/github"
                 className="flex items-center justify-center gap-2 rounded-xl border border-[var(--tc-border)] bg-[var(--tc-panel)] px-4 py-3 text-sm font-medium text-[var(--tc-text)] hover:bg-white/10 transition-colors min-h-[44px]"

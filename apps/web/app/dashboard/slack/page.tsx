@@ -455,6 +455,7 @@ export default function SlackPage() {
               </div>
             )}
 
+            {/* eslint-disable-next-line react-hooks/static-components -- pre-existing nested component; hoisting it is a UI refactor tracked as a TC-02-006 follow-up */}
             <EventCheckboxGroup
               events={allEvents}
               checked={currentEvents}
@@ -613,6 +614,7 @@ export default function SlackPage() {
               Choose which events trigger Slack messages. We recommend starting with compliance alerts.
             </p>
             <div className="max-h-56 overflow-y-auto pr-1">
+              {/* eslint-disable-next-line react-hooks/static-components -- pre-existing nested component; hoisting it is a UI refactor tracked as a TC-02-006 follow-up */}
               <EventCheckboxGroup
                 events={allEvents}
                 checked={selectedEvents}

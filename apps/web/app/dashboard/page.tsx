@@ -64,7 +64,7 @@ export default function DashboardPage() {
   const isAdmin = permissions.can_admin
 
   const [cards, setCards] = useState<DashboardCard[]>([])
-  const [hasCustom, setHasCustom] = useState(false)
+  const [, setHasCustom] = useState(false)
   const [loading, setLoading] = useState(true)
 
   const [showCustomize, setShowCustomize] = useState(false)

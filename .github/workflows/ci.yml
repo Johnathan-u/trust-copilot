@@ -52,6 +52,29 @@ jobs:
         # TC-02-003: install exactly the lockfile; no dependency lifecycle scripts.
         run: npm ci --ignore-scripts
 
+      - name: Frontend tool versions
+        working-directory: apps/web
+        # TC-02-006: record the exact gate toolchain in the CI log.
+        run: |
+          node --version
+          npm --version
+          npx --no-install tsc --version
+          npx --no-install eslint --version
+          npx --no-install prettier --version
+          npx --no-install vitest --version
+
+      - name: Lint frontend
+        working-directory: apps/web
+        run: npm run lint
+
+      - name: Format check frontend
+        working-directory: apps/web
+        run: npm run format:check
+
+      - name: Unit test frontend
+        working-directory: apps/web
+        run: npm run test:unit
+
       - name: Run pre-commit
         run: |
           pip install pre-commit

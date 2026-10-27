@@ -137,7 +137,6 @@ export default function SecurityPage() {
   useEffect(() => { loadAll() }, [loadAll])
 
   const mfaEnabled = mfaStatus?.enabled ?? mfa_enrolled ?? false
-  const sessionCount = sessions.length
   const otherSessions = sessions.filter((s) => !s.current)
 
   /* ── Security Health Score ── */
@@ -592,7 +591,7 @@ function SessionsSection({ sessions, otherSessions, onReload }: {
 }
 
 function SessionRow({ session, isCurrent }: { session: Session; isCurrent: boolean }) {
-  const { browser, os, device } = parseUA(session.user_agent)
+  const { os, device } = parseUA(session.user_agent)
 
   const deviceIcon = /Windows/i.test(os) ? '🖥️'
     : /mac/i.test(os) ? '💻'

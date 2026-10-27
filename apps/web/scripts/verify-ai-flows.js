@@ -66,7 +66,6 @@ async function run() {
     // --- 3) Review page – Generate answers ---
     if (qnrId) {
       await page.goto(BASE_URL + '/dashboard/review/' + qnrId, { waitUntil: 'networkidle', timeout: 15000 });
-      const answerCountEl = page.locator('text=Answers').first();
       await page.waitForTimeout(1000);
       const answersText = await page.locator('strong:has-text("/")').first().textContent().catch(() => '0 / 0');
       const match = answersText.match(/(\d+)\s*\/\s*(\d+)/);

@@ -104,6 +104,7 @@ export default function MembersPage() {
   useEffect(() => {
     if (canAdmin) load()
     else setLoading(false)
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- pre-existing: load() is re-created every render; adding it would refetch in a loop (TC-02-006 follow-up)
   }, [canAdmin, workspace?.id])
 
   const openConfirm = (action: ConfirmAction) => {

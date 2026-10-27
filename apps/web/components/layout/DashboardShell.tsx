@@ -26,6 +26,7 @@ export function DashboardShell({ children }: DashboardShellProps) {
       return
     }
     if (needs_onboarding) {
+      // eslint-disable-next-line @next/next/no-location-assign-relative-destination -- intentional full page load to reset client auth/workspace state (pre-existing; TC-02-006)
       window.location.href = '/onboarding'
     }
   }, [user, loading, needs_onboarding, error, pathname])
@@ -51,6 +52,7 @@ export function DashboardShell({ children }: DashboardShellProps) {
             Retry
           </button>
           <button
+            // eslint-disable-next-line @next/next/no-location-assign-relative-destination -- intentional full page load to reset client auth/workspace state (pre-existing; TC-02-006)
             onClick={() => { window.location.href = '/login' }}
             className="rounded-lg border border-[var(--tc-border)] px-4 py-2 text-sm font-medium text-[var(--tc-text)] hover:bg-white/5"
           >

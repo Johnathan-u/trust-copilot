@@ -22,6 +22,7 @@ export default function Error({
       </p>
       <div className="flex gap-3">
         <Button onClick={() => reset()}>Try again</Button>
+        {/* eslint-disable-next-line @next/next/no-location-assign-relative-destination -- intentional full page load to reset client auth/workspace state (pre-existing; TC-02-006) */}
         <Button variant="ghost" onClick={() => (window.location.href = '/dashboard')}>
           Go to dashboard
         </Button>

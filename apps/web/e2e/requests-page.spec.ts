@@ -16,7 +16,7 @@ async function loginAsAdmin(page: Page) {
   await expect(page).toHaveURL(/\/dashboard/, { timeout: 30_000 })
 }
 
-async function loginAsEditor(page: Page) {
+async function _loginAsEditor(page: Page) {
   await page.goto('/login', { waitUntil: 'load' })
   await page.locator('input[type="email"]').waitFor({ state: 'visible' })
   await page.locator('input[type="email"]').fill(DEMO_EMAIL)
