@@ -100,6 +100,8 @@ See `.env.example`. Required: `DATABASE_URL`, `SESSION_SECRET`, `S3_*`. Optional
 | `docker compose up -d` | Start all services |
 | `docker compose exec api alembic upgrade head` | Run migrations |
 | `cd apps/web && npm run dev` | Run web dev server |
+| `cd apps/api && pip install --require-hashes -r requirements-dev.lock && pip install --no-deps -e .` | Install the locked API dependencies (runtime + dev tools; production uses `requirements.lock`) |
+| `scripts/lock-python-deps.sh` | Regenerate both API locks after editing `apps/api/pyproject.toml` (needs `uv`; see [TC-02-002](docs/release/tickets/TC-02-002.md)) |
 | `cd apps/api && uvicorn app.main:app` | Run API |
 | `cd apps/api && pytest tests/ -v -m "not integration"` | Run tests (DB-dependent tests skip without Postgres). |
 | `npm run test:e2e` | Run registry lifecycle E2E tests. Starts Postgres, MinIO, migrations, seeds, API, and Web; runs Playwright. Requires Docker and Python. |

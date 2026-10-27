@@ -1,0 +1,17 @@
+### Two --no-cache builds of apps/api/Dockerfile (target production), context = git archive e5ff2c4
+
+(python:3.11-slim pulled; tag, not digest-pinned: TC-02-004/008)
+build a exit=0
+build b exit=0
+base digest python@sha256:ae952e0a57138a4317b9b61caaa19a8217c2f356803f8d7e63aad08769950937
+image a == image b: 62 packages
+7d6
+< async-timeout==5.0.1
+22d20
+< httpx2-jsfetch==1.0
+33a32
+> packaging==26.3
+(< lock-only: marker-excluded on linux/py3.11.x>=3.11.3; > image-only: packaging 26.3 preinstalled in python:3.11-slim with pip 24.0, setuptools 79.0.1, wheel 0.46.3; not from the lock)
+import app.main ok; driver psycopg2 ; pytest None ; ruff None
+No broken requirements found.
+exit=0

@@ -2,7 +2,13 @@
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
-import { Button, Card, EmptyState, TableSkeleton, Toast } from '@/components/ui'
+import {
+  Button,
+  Card,
+  EmptyState,
+  TableSkeleton,
+  ToastNotice,
+} from '@/components/ui'
 import { useAuth } from '@/contexts/AuthContext'
 
 type ExportRecord = {
@@ -46,7 +52,6 @@ export default function ExportsPage() {
       if (!r.ok) {
         const data = await r.json().catch(() => ({}))
         setErrorToast((data?.detail as string) || 'Download failed')
-        setTimeout(() => setErrorToast(null), 5000)
         return
       }
       const blob = await r.blob()
@@ -70,7 +75,6 @@ export default function ExportsPage() {
       URL.revokeObjectURL(url)
     } catch {
       setErrorToast('Download failed. Try again.')
-      setTimeout(() => setErrorToast(null), 5000)
     }
   }
 
@@ -145,7 +149,7 @@ export default function ExportsPage() {
         )}
       </Card>
       {errorToast && (
-        <Toast
+        <ToastNotice
           title="Error"
           message={errorToast}
           type="error"
