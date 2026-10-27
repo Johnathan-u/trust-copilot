@@ -79,6 +79,20 @@ if loaded:
     assert result.returncode == 0, result.stdout + result.stderr
 
 
+def test_catalog_event_primary_key_is_not_indexed_twice():
+    """index=True on the id would autogenerate ix_framework_catalog_events_id."""
+    from app.models.framework_catalog_event import FrameworkCatalogEvent
+
+    table = FrameworkCatalogEvent.__table__
+    id_column = table.c.id
+    assert id_column.primary_key
+    assert id_column.index is not True
+    extra = [
+        index.name for index in table.indexes if [column.name for column in index.columns] == ["id"]
+    ]
+    assert extra == []
+
+
 def test_ui_consumer_source_matches_blocked_contract():
     source = WEB_CONSUMER.read_text(encoding="utf-8")
     for needle in (
@@ -105,3 +119,6 @@ def test_ui_consumer_source_matches_blocked_contract():
     assert "TC-01-007" not in page
     assert "catalog_key: item.catalog_key" not in page
     assert "enableRequestBody" in page
+    assert "catalogRightsLabel" in page
+    assert "item.rights_status" not in page
+    assert "hasLegacyListFields" not in source
