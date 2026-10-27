@@ -1,10 +1,10 @@
 /**
  * Dialog behavior contract.
  *
- * The visual shell is `components/ui/Dialog`. A later navigation drawer
- * (TC-14-006) can adopt `placement: 'drawer-start' | 'drawer-end'` without a
- * second focus implementation. This module has no DOM calls so unit tests can
- * lock the contract under the existing Node Vitest setup.
+ * The visual shell is `components/ui/Dialog`. The mobile navigation drawer
+ * uses `placement: 'drawer-start'` and does not carry a second focus
+ * implementation. This module has no DOM calls so unit tests can lock the
+ * contract under the existing Node Vitest setup.
  */
 
 export const DIALOG_ROLES = ['dialog', 'alertdialog'] as const
@@ -52,7 +52,7 @@ export function nextTabbableIndex(
 const centerPanel =
   'relative z-10 flex max-h-[calc(100dvh-3rem)] w-full flex-col overflow-y-auto overscroll-contain rounded-tc border border-tc-border p-tc-6 shadow-[var(--tc-shadow)]'
 
-/** Class fragments for each placement. Drawer widths are for a later adopter. */
+/** Class fragments for each placement. Drawer widths are the side-panel shell. */
 export const dialogPlacementClass: Record<
   DialogPlacement,
   { root: string; panel: string }
