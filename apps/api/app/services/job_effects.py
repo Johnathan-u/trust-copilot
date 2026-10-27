@@ -44,6 +44,24 @@ PROVIDER_PREFIX = "provider:"
 _ENQUEUE_ATTEMPTS = 2
 
 
+class EnqueueConflictError(RuntimeError):
+    """An identical enqueue kept winning the unique QUEUED slot, even after the single retry (TC-10-003b).
+
+    Transient by nature: a concurrent request owns the slot and a worker claimed it between our insert and
+    our lookup, twice. The API maps this to a retryable 409 ``idempotency_conflict`` (see
+    ``app.core.api_errors.enqueue_conflict_handler``) instead of a 500. The IntegrityError is chained as
+    ``__cause__`` for logs only; its text is never sent to the client.
+    """
+
+    def __init__(self, workspace_id: int, kind: str):
+        super().__init__(
+            f"enqueue conflict after {_ENQUEUE_ATTEMPTS} attempts "
+            f"(workspace_id={workspace_id} kind={kind})"
+        )
+        self.workspace_id = workspace_id
+        self.kind = kind
+
+
 def job_idempotency_key(kind: str, *parts: Any) -> str:
     """Deterministic, bounded dedupe key for a job kind and its identifying inputs."""
     digest = hashlib.sha256(
@@ -69,6 +87,8 @@ def enqueue_job(
     Race handling (TC-10-003a): when a concurrent identical enqueue wins the partial unique index, the winner
     is returned. If the winner has already left QUEUED by the time we look it up (a worker claimed it), the
     unique slot is free again, so the insert is retried once instead of surfacing the IntegrityError as a 500.
+    If the retry loses the same way, ``EnqueueConflictError`` is raised (TC-10-003b) and the API answers with
+    a retryable 409 rather than a 500.
     """
     for attempt in range(_ENQUEUE_ATTEMPTS):
         if idempotency_key:
@@ -87,7 +107,7 @@ def enqueue_job(
             with db.begin_nested():
                 db.add(job)
                 db.flush()
-        except IntegrityError:
+        except IntegrityError as exc:
             if not idempotency_key:
                 raise
             # Lost the race against a concurrent identical enqueue: return the winner if still queued.
@@ -96,7 +116,15 @@ def enqueue_job(
                 db.commit()
                 return existing, False
             if attempt + 1 >= _ENQUEUE_ATTEMPTS:
-                raise
+                db.rollback()
+                logger.warning(
+                    "enqueue_job: lost the queued-slot race on every attempt; reporting a retryable "
+                    "conflict (workspace_id=%s kind=%s attempts=%s)",
+                    workspace_id,
+                    kind,
+                    _ENQUEUE_ATTEMPTS,
+                )
+                raise EnqueueConflictError(workspace_id, kind) from exc
             logger.info(
                 "enqueue_job: race winner already left queued; retrying insert once "
                 "(workspace_id=%s kind=%s)",

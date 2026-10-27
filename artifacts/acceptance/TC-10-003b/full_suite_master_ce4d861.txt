@@ -1,0 +1,1457 @@
+$ alembic upgrade head
+INFO  [alembic.runtime.migration] Context impl PostgresqlImpl.
+INFO  [alembic.runtime.migration] Will assume transactional DDL.
+$ python -m pytest -p no:cacheprovider --collect-only -q >/dev/null && echo COLLECT_OK && python -m pytest -p no:cacheprovider tests/release/test_safe_collection.py -q && echo SAFE_COLLECTION_OK && TC_REQUIRE_DB=1 SESSION_SECRET=test-secret pytest -p no:cacheprovider -rs -q
+COLLECT_OK
+.........................s                                               [100%]
+25 passed, 1 skipped in 15.95s
+SAFE_COLLECTION_OK
+............................................F..........F................ [  3%]
+............FF.......................................................... [  6%]
+........................................................................ [ 10%]
+........................................................................ [ 13%]
+...........................................................sFF.......... [ 17%]
+........................................................................ [ 20%]
+............................................................ssssssssss.. [ 23%]
+........................................................................ [ 27%]
+..........................ssssssssss.................................... [ 30%]
+........................................................................ [ 34%]
+........................................................................ [ 37%]
+........................................................................ [ 41%]
+........................................................................ [ 44%]
+...........................s............................................ [ 47%]
+........................................................................ [ 51%]
+........................................................................ [ 54%]
+..........................s............................................. [ 58%]
+........................................................................ [ 61%]
+........................................................................ [ 64%]
+........................................................................ [ 68%]
+........................................................................ [ 71%]
+........................................................................ [ 75%]
+........................................................................ [ 78%]
+........................................................................ [ 82%]
+........................................................................ [ 85%]
+........................................................................ [ 88%]
+........................................................................ [ 92%]
+........................................................................ [ 95%]
+........................................................................ [ 99%]
+...................                                                      [100%]
+=================================== FAILURES ===================================
+__________________ test_presenter_rejects_commercial_traction __________________
+
+    def test_presenter_rejects_commercial_traction():
+        leaked = {
+            "schema_version": "1",
+            "commercial_traction": True,
+            "status": "complete",
+            "metrics": [
+                {"name": "customers", "value": 12, "commercial_traction": True, "state": "measured"}
+            ],
+            "synthetic_placeholders": [],
+            "unsupported": [],
+            "partial_failures": [],
+        }
+>       rejected = _present(leaked)
+                   ^^^^^^^^^^^^^^^^
+
+tests/release/test_demo_proof_unit.py:83:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tests/release/test_demo_proof_unit.py:26: in _present
+    result = subprocess.run(
+/usr/local/lib/python3.11/subprocess.py:548: in run
+    with Popen(*popenargs, **kwargs) as process:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/local/lib/python3.11/subprocess.py:1026: in __init__
+    self._execute_child(args, executable, preexec_fn, close_fds,
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <Popen: returncode: 255 args: ['node', '--input-type=module', '-e', "import ...>
+args = ['node', '--input-type=module', '-e', "import { presentDemoProof } from './apps/web/lib/demoProofSummary.mjs';import {...;const payload = JSON.parse(readFileSync(0, 'utf8'));process.stdout.write(JSON.stringify(presentDemoProof(payload)));"]
+executable = b'node', preexec_fn = None, close_fds = True, pass_fds = ()
+cwd = '/repo', env = None, startupinfo = None, creationflags = 0, shell = False
+p2cread = 13, p2cwrite = 14, c2pread = 15, c2pwrite = 16, errread = 17
+errwrite = 18, restore_signals = True, gid = None, gids = None, uid = None
+umask = -1, start_new_session = False, process_group = -1
+
+    def _execute_child(self, args, executable, preexec_fn, close_fds,
+                       pass_fds, cwd, env,
+                       startupinfo, creationflags, shell,
+                       p2cread, p2cwrite,
+                       c2pread, c2pwrite,
+                       errread, errwrite,
+                       restore_signals,
+                       gid, gids, uid, umask,
+                       start_new_session, process_group):
+        """Execute program (POSIX version)"""
+
+        if isinstance(args, (str, bytes)):
+            args = [args]
+        elif isinstance(args, os.PathLike):
+            if shell:
+                raise TypeError('path-like args is not allowed when '
+                                'shell is true')
+            args = [args]
+        else:
+            args = list(args)
+
+        if shell:
+            # On Android the default shell is at '/system/bin/sh'.
+            unix_shell = ('/system/bin/sh' if
+                      hasattr(sys, 'getandroidapilevel') else '/bin/sh')
+            args = [unix_shell, "-c"] + args
+            if executable:
+                args[0] = executable
+
+        if executable is None:
+            executable = args[0]
+
+        sys.audit("subprocess.Popen", executable, args, cwd, env)
+
+        if (_USE_POSIX_SPAWN
+                and os.path.dirname(executable)
+                and preexec_fn is None
+                and not close_fds
+                and not pass_fds
+                and cwd is None
+                and (p2cread == -1 or p2cread > 2)
+                and (c2pwrite == -1 or c2pwrite > 2)
+                and (errwrite == -1 or errwrite > 2)
+                and not start_new_session
+                and process_group == -1
+                and gid is None
+                and gids is None
+                and uid is None
+                and umask < 0):
+            self._posix_spawn(args, executable, env, restore_signals,
+                              p2cread, p2cwrite,
+                              c2pread, c2pwrite,
+                              errread, errwrite)
+            return
+
+        orig_executable = executable
+
+        # For transferring possible exec failure from child to parent.
+        # Data format: "exception name:hex errno:description"
+        # Pickle is not used; it is complex and involves memory allocation.
+        errpipe_read, errpipe_write = os.pipe()
+        # errpipe_write must not be in the standard io 0, 1, or 2 fd range.
+        low_fds_to_close = []
+        while errpipe_write < 3:
+            low_fds_to_close.append(errpipe_write)
+            errpipe_write = os.dup(errpipe_write)
+        for low_fd in low_fds_to_close:
+            os.close(low_fd)
+        try:
+            try:
+                # We must avoid complex work that could involve
+                # malloc or free in the child process to avoid
+                # potential deadlocks, thus we do all this here.
+                # and pass it to fork_exec()
+
+                if env is not None:
+                    env_list = []
+                    for k, v in env.items():
+                        k = os.fsencode(k)
+                        if b'=' in k:
+                            raise ValueError("illegal environment variable name")
+                        env_list.append(k + b'=' + os.fsencode(v))
+                else:
+                    env_list = None  # Use execv instead of execve.
+                executable = os.fsencode(executable)
+                if os.path.dirname(executable):
+                    executable_list = (executable,)
+                else:
+                    # This matches the behavior of os._execvpe().
+                    executable_list = tuple(
+                        os.path.join(os.fsencode(dir), executable)
+                        for dir in os.get_exec_path(env))
+                fds_to_keep = set(pass_fds)
+                fds_to_keep.add(errpipe_write)
+                self.pid = _fork_exec(
+                        args, executable_list,
+                        close_fds, tuple(sorted(map(int, fds_to_keep))),
+                        cwd, env_list,
+                        p2cread, p2cwrite, c2pread, c2pwrite,
+                        errread, errwrite,
+                        errpipe_read, errpipe_write,
+                        restore_signals, start_new_session,
+                        process_group, gid, gids, uid, umask,
+                        preexec_fn, _USE_VFORK)
+                self._child_created = True
+            finally:
+                # be sure the FD is closed no matter what
+                os.close(errpipe_write)
+
+            self._close_pipe_fds(p2cread, p2cwrite,
+                                 c2pread, c2pwrite,
+                                 errread, errwrite)
+
+            # Wait for exec to fail or succeed; possibly raising an
+            # exception (limited in size)
+            errpipe_data = bytearray()
+            while True:
+                part = os.read(errpipe_read, 50000)
+                errpipe_data += part
+                if not part or len(errpipe_data) > 50000:
+                    break
+        finally:
+            # be sure the FD is closed no matter what
+            os.close(errpipe_read)
+
+        if errpipe_data:
+            try:
+                pid, sts = os.waitpid(self.pid, 0)
+                if pid == self.pid:
+                    self._handle_exitstatus(sts)
+                else:
+                    self.returncode = sys.maxsize
+            except ChildProcessError:
+                pass
+
+            try:
+                exception_name, hex_errno, err_msg = (
+                        errpipe_data.split(b':', 2))
+                # The encoding here should match the encoding
+                # written in by the subprocess implementations
+                # like _posixsubprocess
+                err_msg = err_msg.decode()
+            except ValueError:
+                exception_name = b'SubprocessError'
+                hex_errno = b'0'
+                err_msg = 'Bad exception data from child: {!r}'.format(
+                              bytes(errpipe_data))
+            child_exception_type = getattr(
+                    builtins, exception_name.decode('ascii'),
+                    SubprocessError)
+            if issubclass(child_exception_type, OSError) and hex_errno:
+                errno_num = int(hex_errno, 16)
+                if err_msg == "noexec:chdir":
+                    err_msg = ""
+                    # The error must be from chdir(cwd).
+                    err_filename = cwd
+                elif err_msg == "noexec":
+                    err_msg = ""
+                    err_filename = None
+                else:
+                    err_filename = orig_executable
+                if errno_num != 0:
+                    err_msg = os.strerror(errno_num)
+                if err_filename is not None:
+>                   raise child_exception_type(errno_num, err_msg, err_filename)
+E                   FileNotFoundError: [Errno 2] No such file or directory: 'node'
+
+/usr/local/lib/python3.11/subprocess.py:1955: FileNotFoundError
+______ test_ac3_schema_consumer_and_persisted_outcome_agree_across_retry _______
+
+admin_client = <starlette.testclient.TestClient object at 0x7fc88a8e90d0>
+
+    def test_ac3_schema_consumer_and_persisted_outcome_agree_across_retry(admin_client):
+        study = _create(admin_client, title="Agreement placeholder", results=None, metrics=None)
+        study = _grant_matrix(admin_client, study)
+        study = _submit_and_approve(admin_client, study)
+        key = "agreement-placeholder-key"
+        first = _publish(admin_client, study, headers={"Idempotency-Key": key})
+        assert first.status_code == 200, first.status_code
+        body = first.json()
+        assert body["schema_version"] == "case-study.v2"
+        for field in PRESERVED_FIELDS:
+            assert field in body
+
+        openapi = admin_client.get("/openapi.json")
+        assert openapi.status_code == 200
+        schema = openapi.json()["components"]["schemas"]["CaseStudyResponse"]["properties"]
+        for field in PRESERVED_FIELDS:
+            assert field in schema
+        for field in ("schema_version", "customer_claim", "synthetic", "data_basis", "display_label"):
+            assert field in schema
+        list_schema = openapi.json()["components"]["schemas"]["CaseStudyListResponse"]["properties"]
+        assert "case_studies" in list_schema
+
+        stored = _stored_flags(study["id"])
+        assert stored["status"] == body["status"] == "published"
+        assert stored["customer_claim"] is True
+        assert stored["data_basis"] == body["data_basis"]
+        assert stored["revision"] == body["revision"]
+        assert stored["schema_version"] == body["schema_version"]
+        assert _times_match(body["published_at"], stored["published_at"])
+
+        engine.dispose()
+        reread = admin_client.get(f"/api/case-studies/{study['id']}")
+        assert reread.status_code == 200
+        fresh = reread.json()
+>       agreement = _consumer_agrees(body, _projection(fresh))
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/release/test_domain_case_studies.py:698:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tests/release/test_domain_case_studies.py:219: in _consumer_agrees
+    completed = subprocess.run(
+/usr/local/lib/python3.11/subprocess.py:548: in run
+    with Popen(*popenargs, **kwargs) as process:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/local/lib/python3.11/subprocess.py:1026: in __init__
+    self._execute_child(args, executable, preexec_fn, close_fds,
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <Popen: returncode: 255 args: ['node', '/repo/apps/api/tests/release/run_cas...>
+args = ['node', '/repo/apps/api/tests/release/run_case_study_consumer.mjs']
+executable = b'node', preexec_fn = None, close_fds = True, pass_fds = ()
+cwd = None, env = None, startupinfo = None, creationflags = 0, shell = False
+p2cread = 11, p2cwrite = 12, c2pread = 13, c2pwrite = 15, errread = 16
+errwrite = 17, restore_signals = True, gid = None, gids = None, uid = None
+umask = -1, start_new_session = False, process_group = -1
+
+    def _execute_child(self, args, executable, preexec_fn, close_fds,
+                       pass_fds, cwd, env,
+                       startupinfo, creationflags, shell,
+                       p2cread, p2cwrite,
+                       c2pread, c2pwrite,
+                       errread, errwrite,
+                       restore_signals,
+                       gid, gids, uid, umask,
+                       start_new_session, process_group):
+        """Execute program (POSIX version)"""
+
+        if isinstance(args, (str, bytes)):
+            args = [args]
+        elif isinstance(args, os.PathLike):
+            if shell:
+                raise TypeError('path-like args is not allowed when '
+                                'shell is true')
+            args = [args]
+        else:
+            args = list(args)
+
+        if shell:
+            # On Android the default shell is at '/system/bin/sh'.
+            unix_shell = ('/system/bin/sh' if
+                      hasattr(sys, 'getandroidapilevel') else '/bin/sh')
+            args = [unix_shell, "-c"] + args
+            if executable:
+                args[0] = executable
+
+        if executable is None:
+            executable = args[0]
+
+        sys.audit("subprocess.Popen", executable, args, cwd, env)
+
+        if (_USE_POSIX_SPAWN
+                and os.path.dirname(executable)
+                and preexec_fn is None
+                and not close_fds
+                and not pass_fds
+                and cwd is None
+                and (p2cread == -1 or p2cread > 2)
+                and (c2pwrite == -1 or c2pwrite > 2)
+                and (errwrite == -1 or errwrite > 2)
+                and not start_new_session
+                and process_group == -1
+                and gid is None
+                and gids is None
+                and uid is None
+                and umask < 0):
+            self._posix_spawn(args, executable, env, restore_signals,
+                              p2cread, p2cwrite,
+                              c2pread, c2pwrite,
+                              errread, errwrite)
+            return
+
+        orig_executable = executable
+
+        # For transferring possible exec failure from child to parent.
+        # Data format: "exception name:hex errno:description"
+        # Pickle is not used; it is complex and involves memory allocation.
+        errpipe_read, errpipe_write = os.pipe()
+        # errpipe_write must not be in the standard io 0, 1, or 2 fd range.
+        low_fds_to_close = []
+        while errpipe_write < 3:
+            low_fds_to_close.append(errpipe_write)
+            errpipe_write = os.dup(errpipe_write)
+        for low_fd in low_fds_to_close:
+            os.close(low_fd)
+        try:
+            try:
+                # We must avoid complex work that could involve
+                # malloc or free in the child process to avoid
+                # potential deadlocks, thus we do all this here.
+                # and pass it to fork_exec()
+
+                if env is not None:
+                    env_list = []
+                    for k, v in env.items():
+                        k = os.fsencode(k)
+                        if b'=' in k:
+                            raise ValueError("illegal environment variable name")
+                        env_list.append(k + b'=' + os.fsencode(v))
+                else:
+                    env_list = None  # Use execv instead of execve.
+                executable = os.fsencode(executable)
+                if os.path.dirname(executable):
+                    executable_list = (executable,)
+                else:
+                    # This matches the behavior of os._execvpe().
+                    executable_list = tuple(
+                        os.path.join(os.fsencode(dir), executable)
+                        for dir in os.get_exec_path(env))
+                fds_to_keep = set(pass_fds)
+                fds_to_keep.add(errpipe_write)
+                self.pid = _fork_exec(
+                        args, executable_list,
+                        close_fds, tuple(sorted(map(int, fds_to_keep))),
+                        cwd, env_list,
+                        p2cread, p2cwrite, c2pread, c2pwrite,
+                        errread, errwrite,
+                        errpipe_read, errpipe_write,
+                        restore_signals, start_new_session,
+                        process_group, gid, gids, uid, umask,
+                        preexec_fn, _USE_VFORK)
+                self._child_created = True
+            finally:
+                # be sure the FD is closed no matter what
+                os.close(errpipe_write)
+
+            self._close_pipe_fds(p2cread, p2cwrite,
+                                 c2pread, c2pwrite,
+                                 errread, errwrite)
+
+            # Wait for exec to fail or succeed; possibly raising an
+            # exception (limited in size)
+            errpipe_data = bytearray()
+            while True:
+                part = os.read(errpipe_read, 50000)
+                errpipe_data += part
+                if not part or len(errpipe_data) > 50000:
+                    break
+        finally:
+            # be sure the FD is closed no matter what
+            os.close(errpipe_read)
+
+        if errpipe_data:
+            try:
+                pid, sts = os.waitpid(self.pid, 0)
+                if pid == self.pid:
+                    self._handle_exitstatus(sts)
+                else:
+                    self.returncode = sys.maxsize
+            except ChildProcessError:
+                pass
+
+            try:
+                exception_name, hex_errno, err_msg = (
+                        errpipe_data.split(b':', 2))
+                # The encoding here should match the encoding
+                # written in by the subprocess implementations
+                # like _posixsubprocess
+                err_msg = err_msg.decode()
+            except ValueError:
+                exception_name = b'SubprocessError'
+                hex_errno = b'0'
+                err_msg = 'Bad exception data from child: {!r}'.format(
+                              bytes(errpipe_data))
+            child_exception_type = getattr(
+                    builtins, exception_name.decode('ascii'),
+                    SubprocessError)
+            if issubclass(child_exception_type, OSError) and hex_errno:
+                errno_num = int(hex_errno, 16)
+                if err_msg == "noexec:chdir":
+                    err_msg = ""
+                    # The error must be from chdir(cwd).
+                    err_filename = cwd
+                elif err_msg == "noexec":
+                    err_msg = ""
+                    err_filename = None
+                else:
+                    err_filename = orig_executable
+                if errno_num != 0:
+                    err_msg = os.strerror(errno_num)
+                if err_filename is not None:
+>                   raise child_exception_type(errno_num, err_msg, err_filename)
+E                   FileNotFoundError: [Errno 2] No such file or directory: 'node'
+
+/usr/local/lib/python3.11/subprocess.py:1955: FileNotFoundError
+------------------------------ Captured log setup ------------------------------
+INFO     app.core.rate_limit:rate_limit.py:96 Rate-limit backend: in-memory (dev/test)
+INFO     trustcopilot.audit:audit.py:34 audit {"ts": "2026-10-27T14:04:25.454455+00:00", "action": "auth.login", "user_id": 3, "email": "admin@trust.local", "workspace_id": 1}
+INFO     app.request:main.py:272 request
+INFO     httpx2:_client.py:1084 HTTP Request: POST http://localhost/api/auth/login "HTTP/1.1 200 OK"
+------------------------------ Captured log call -------------------------------
+INFO     trustcopilot.audit:audit.py:34 audit {"ts": "2026-10-27T14:04:25.473160+00:00", "action": "case_study.create", "user_id": 3, "email": "admin@trust.local", "workspace_id": 1, "resource_type": "case_study", "resource_id": 11, "synthetic": false, "customer_claim": false}
+INFO     app.request:main.py:272 request
+INFO     httpx2:_client.py:1084 HTTP Request: POST http://localhost/api/case-studies "HTTP/1.1 200 OK"
+INFO     trustcopilot.audit:audit.py:34 audit {"ts": "2026-10-27T14:04:25.485906+00:00", "action": "case_study.consent", "user_id": 3, "email": "admin@trust.local", "workspace_id": 1, "resource_type": "case_study", "resource_id": 11, "organization_name": "SYNTHETIC-ORG-PLACEHOLDER", "consent_id": 9, "revision": 1}
+INFO     app.request:main.py:272 request
+INFO     httpx2:_client.py:1084 HTTP Request: POST http://localhost/api/case-studies/11/consents "HTTP/1.1 200 OK"
+INFO     trustcopilot.audit:audit.py:34 audit {"ts": "2026-10-27T14:04:25.497631+00:00", "action": "case_study.result_permission", "user_id": 3, "email": "admin@trust.local", "workspace_id": 1, "resource_type": "case_study", "resource_id": 11, "consent_id": 9, "result_key": "quote", "permission_id": 15, "revision": 1}
+INFO     app.request:main.py:272 request
+INFO     httpx2:_client.py:1084 HTTP Request: POST http://localhost/api/case-studies/11/result-permissions "HTTP/1.1 200 OK"
+INFO     trustcopilot.audit:audit.py:34 audit {"ts": "2026-10-27T14:04:25.541959+00:00", "action": "auth.login", "user_id": 3, "email": "admin@trust.local", "workspace_id": 1}
+INFO     app.request:main.py:272 request
+INFO     httpx2:_client.py:1084 HTTP Request: POST http://localhost/api/auth/login "HTTP/1.1 200 OK"
+INFO     trustcopilot.audit:audit.py:34 audit {"ts": "2026-10-27T14:04:25.565419+00:00", "action": "case_study.submit_review", "user_id": 3, "email": "admin@trust.local", "workspace_id": 1, "resource_type": "case_study", "resource_id": 11, "revision": 1, "review_status": "pending"}
+INFO     app.request:main.py:272 request
+INFO     httpx2:_client.py:1084 HTTP Request: POST http://localhost/api/case-studies/11/submit-review "HTTP/1.1 200 OK"
+INFO     trustcopilot.audit:audit.py:34 audit {"ts": "2026-10-27T14:04:25.607691+00:00", "action": "auth.login", "user_id": 2, "email": "reviewer@trust.local", "workspace_id": 1}
+INFO     app.request:main.py:272 request
+INFO     httpx2:_client.py:1084 HTTP Request: POST http://localhost/api/auth/login "HTTP/1.1 200 OK"
+INFO     trustcopilot.audit:audit.py:34 audit {"ts": "2026-10-27T14:04:25.625153+00:00", "action": "case_study.review", "user_id": 2, "email": "reviewer@trust.local", "workspace_id": 1, "resource_type": "case_study", "resource_id": 11, "decision": "approve", "review_status": "approved"}
+INFO     app.request:main.py:272 request
+INFO     httpx2:_client.py:1084 HTTP Request: POST http://localhost/api/case-studies/11/review "HTTP/1.1 200 OK"
+INFO     trustcopilot.audit:audit.py:34 audit {"ts": "2026-10-27T14:04:25.672119+00:00", "action": "auth.login", "user_id": 3, "email": "admin@trust.local", "workspace_id": 1}
+INFO     app.request:main.py:272 request
+INFO     httpx2:_client.py:1084 HTTP Request: POST http://localhost/api/auth/login "HTTP/1.1 200 OK"
+INFO     trustcopilot.audit:audit.py:34 audit {"ts": "2026-10-27T14:04:25.729168+00:00", "action": "auth.login", "user_id": 3, "email": "admin@trust.local", "workspace_id": 1}
+INFO     app.request:main.py:272 request
+INFO     httpx2:_client.py:1084 HTTP Request: POST http://localhost/api/auth/login "HTTP/1.1 200 OK"
+INFO     trustcopilot.audit:audit.py:34 audit {"ts": "2026-10-27T14:04:25.757091+00:00", "action": "case_study.publish", "user_id": 3, "email": "admin@trust.local", "workspace_id": 1, "resource_type": "case_study", "resource_id": 11, "customer_claim": true, "synthetic": false, "data_basis": "consented_customer", "revision": 1}
+INFO     app.request:main.py:272 request
+INFO     httpx2:_client.py:1084 HTTP Request: POST http://localhost/api/case-studies/11/publish "HTTP/1.1 200 OK"
+INFO     app.request:main.py:272 request
+INFO     httpx2:_client.py:1084 HTTP Request: GET http://localhost/openapi.json "HTTP/1.1 200 OK"
+INFO     app.request:main.py:272 request
+INFO     httpx2:_client.py:1084 HTTP Request: GET http://localhost/api/case-studies/11 "HTTP/1.1 200 OK"
+_____________ test_positive_measured_summary_retry_restart_and_ui ______________
+
+client = <starlette.testclient.TestClient object at 0x7fc889b52a90>
+
+    def test_positive_measured_summary_retry_restart_and_ui(client):
+        from app.core.database import SessionLocal
+        from app.models import (
+            Answer,
+            Document,
+            EvidenceGap,
+            EvidenceItem,
+            ExportRecord,
+            Question,
+            Questionnaire,
+        )
+
+        token = uuid.uuid4().hex[:10]
+        slug = f"tc25011p{token}"[:64]
+        email = f"tc25011-admin-{token}@example.com"
+        reviewer_email = f"tc25011-reviewer-{token}@example.com"
+        workspace_ids: list[int] = []
+        user_ids: list[int] = []
+        db = SessionLocal()
+        try:
+            workspace = _new_workspace(db, slug, "SYNTHETIC TEST PLACEHOLDER workspace")
+            workspace_ids.append(workspace.id)
+            admin = _new_user(db, email, workspace.id, "admin")
+            reviewer = _new_user(db, reviewer_email, workspace.id, "reviewer")
+            user_ids.extend([admin.id, reviewer.id])
+
+            deleted_doc = Document(
+                workspace_id=workspace.id,
+                storage_key=f"synthetic-test/{token}/deleted",
+                filename="SYNTHETIC TEST PLACEHOLDER deleted.txt",
+                status="indexed",
+                deleted_at=WHEN,
+            )
+            _stamp(deleted_doc)
+            indexed = Document(
+                workspace_id=workspace.id,
+                storage_key=f"synthetic-test/{token}/indexed",
+                filename="SYNTHETIC TEST PLACEHOLDER indexed.txt",
+                status="indexed",
+            )
+            _stamp(indexed)
+            uploaded = Document(
+                workspace_id=workspace.id,
+                storage_key=f"synthetic-test/{token}/uploaded",
+                filename="SYNTHETIC TEST PLACEHOLDER uploaded.txt",
+                status="uploaded",
+            )
+            _stamp(uploaded)
+            deleted_q = Questionnaire(
+                workspace_id=workspace.id,
+                filename="SYNTHETIC TEST PLACEHOLDER deleted-q.xlsx",
+                status="uploaded",
+                deleted_at=WHEN,
+            )
+            _stamp(deleted_q)
+            questionnaire = Questionnaire(
+                workspace_id=workspace.id,
+                filename="SYNTHETIC TEST PLACEHOLDER questionnaire.xlsx",
+                status="parsed",
+            )
+            _stamp(questionnaire)
+            db.add_all([deleted_doc, indexed, uploaded, deleted_q, questionnaire])
+            db.commit()
+            for row in (deleted_doc, indexed, uploaded, deleted_q, questionnaire):
+                db.refresh(row)
+
+            questions = []
+            for text_value in (
+                "SYNTHETIC TEST PLACEHOLDER question one",
+                "SYNTHETIC TEST PLACEHOLDER question two",
+            ):
+                question = Question(
+                    questionnaire_id=questionnaire.id, text=text_value, section="Access"
+                )
+                _stamp(question)
+                questions.append(question)
+            hidden = Question(
+                questionnaire_id=deleted_q.id,
+                text="SYNTHETIC TEST PLACEHOLDER deleted question",
+                section="Access",
+            )
+            _stamp(hidden)
+            db.add_all([*questions, hidden])
+            db.commit()
+            for question in questions:
+                db.refresh(question)
+
+            approved = Answer(
+                question_id=questions[0].id,
+                text="stored approved answer",
+                status="approved",
+                confidence=10,
+            )
+            draft = Answer(
+                question_id=questions[1].id, text="stored draft answer", status="draft", confidence=10
+            )
+            _stamp(approved)
+            _stamp(draft)
+            approved_evidence = EvidenceItem(
+                workspace_id=workspace.id,
+                document_id=indexed.id,
+                source_type="document",
+                title="SYNTHETIC TEST PLACEHOLDER approved evidence",
+                approval_status="approved",
+            )
+            pending_evidence = EvidenceItem(
+                workspace_id=workspace.id,
+                document_id=None,
+                source_type="manual",
+                title="SYNTHETIC TEST PLACEHOLDER pending evidence",
+                approval_status="pending",
+            )
+            _stamp(approved_evidence)
+            _stamp(pending_evidence)
+            completed = ExportRecord(
+                workspace_id=workspace.id,
+                questionnaire_id=questionnaire.id,
+                storage_key=f"synthetic-test/{token}/export",
+                filename="SYNTHETIC TEST PLACEHOLDER export.xlsx",
+                status="completed",
+            )
+            failed = ExportRecord(
+                workspace_id=workspace.id,
+                questionnaire_id=None,
+                storage_key=f"synthetic-test/{token}/failed",
+                filename="SYNTHETIC TEST PLACEHOLDER failed-export.xlsx",
+                status="failed",
+            )
+            _stamp(completed)
+            _stamp(failed)
+            gap = EvidenceGap(
+                workspace_id=workspace.id,
+                questionnaire_id=questionnaire.id,
+                question_id=questions[0].id,
+                gap_type="missing_evidence",
+                reason="SYNTHETIC TEST PLACEHOLDER gap",
+                status="open",
+            )
+            _stamp(gap)
+            db.add_all([approved, draft, approved_evidence, pending_evidence, completed, failed, gap])
+            db.commit()
+        finally:
+            db.close()
+
+        try:
+            _login(client, email)
+            preview = client.get("/api/demo-proof")
+            assert preview.status_code == 200, preview.text
+            assert preview.json()["proof_summary"]["persisted"] is False
+            assert preview.json()["proof_summary"]["summary_id"] is None
+            from app.core.database import SessionLocal
+            from app.models import DemoProofSummary
+
+            counted = SessionLocal()
+            try:
+                assert (
+                    counted.query(DemoProofSummary)
+                    .filter(DemoProofSummary.workspace_id == workspace_ids[0])
+                    .count()
+                    == 0
+                )
+            finally:
+                counted.close()
+            first = client.post("/api/demo-proof")
+            assert first.status_code == 200, first.text
+            body = first.json()
+            proof = body["proof_summary"]
+            expected = {
+                "questionnaires_stored": 1,
+                "questions_stored": 2,
+                "answers_stored": 2,
+                "answers_approved": 1,
+                "documents_stored": 2,
+                "documents_indexed": 1,
+                "evidence_items_stored": 2,
+                "evidence_items_approved": 1,
+                "exports_stored": 2,
+                "exports_completed": 1,
+                "evidence_gaps_stored": 1,
+            }
+            for name, value in expected.items():
+                metric = _metric(proof, name)
+                assert metric["value"] == value, name
+                assert metric["origin"] == "real"
+                assert metric["basis"] == "measured"
+                assert metric["measured"] is True
+                assert metric["estimated"] is False
+                assert metric["commercial_traction"] is False
+                assert metric["state"] == "measured"
+                assert metric["data_window"]["start"].startswith("2026-01-15")
+                assert metric["data_window"]["end"].startswith("2026-01-15")
+                assert metric["data_window"]["timezone"] == "UTC"
+            assert _metric(proof, "answers_approved")["denominator"] == 2
+            assert _metric(proof, "documents_indexed")["denominator"] == 2
+            assert _metric(proof, "exports_completed")["numerator"] == 1
+            assert _metric(proof, "questionnaires_stored")["exclusions"]["deleted"] == 1
+            assert proof["status"] == "complete"
+            assert proof["partial_failures"] == []
+            assert proof["summary_id"]
+            assert proof["content_hash"]
+            assert {row["name"] for row in proof["unsupported"]} >= {"customers", "revenue", "traffic"}
+            for row in proof["unsupported"]:
+                assert row["value"] is None
+                assert row["state"] == "unsupported"
+                assert row["commercial_traction"] is False
+            for row in proof["synthetic_placeholders"]:
+                assert row["origin"] == "synthetic"
+                assert row["basis"] == "not_measured"
+                assert row["value"] is None
+                assert row["commercial_traction"] is False
+            assert proof["commercial_traction"] is False
+            assert "AES-256" not in json.dumps(proof)
+            sample_total = body["sample_questionnaire"]["total_questions"]
+            assert sample_total not in {metric["value"] for metric in proof["metrics"]}
+            _walk_traction(body)
+
+            second = client.post("/api/demo-proof")
+            assert second.status_code == 200
+            again = second.json()["proof_summary"]
+            assert again == proof
+            assert again["summary_id"] == proof["summary_id"]
+            assert again["generated_at"] == proof["generated_at"]
+
+            from app.core.database import SessionLocal
+            from app.models import DemoProofSummary
+
+            restarted = SessionLocal()
+            try:
+                stored = restarted.get(DemoProofSummary, proof["summary_id"])
+                assert stored is not None
+                assert stored.workspace_id == workspace_ids[0]
+                assert json.loads(stored.summary_json) == proof
+                count = (
+                    restarted.query(DemoProofSummary)
+                    .filter(DemoProofSummary.idempotency_key == proof["idempotency_key"])
+                    .count()
+                )
+                assert count == 1
+            finally:
+                restarted.close()
+
+            _login(client, reviewer_email)
+            reviewed = client.get("/api/demo-proof")
+            assert reviewed.status_code == 200, reviewed.text
+            assert reviewed.json()["proof_summary"]["summary_id"] == proof["summary_id"]
+
+            by_id = client.get(f"/api/demo-proof/summaries/{proof['summary_id']}")
+            assert by_id.status_code == 200
+            assert by_id.json() == proof
+
+>           presented = _present(body)
+                        ^^^^^^^^^^^^^^
+
+tests/release/test_domain_demo_proof.py:535:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tests/release/test_domain_demo_proof.py:63: in _present
+    result = subprocess.run(
+/usr/local/lib/python3.11/subprocess.py:548: in run
+    with Popen(*popenargs, **kwargs) as process:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/local/lib/python3.11/subprocess.py:1026: in __init__
+    self._execute_child(args, executable, preexec_fn, close_fds,
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <Popen: returncode: 255 args: ['node', '--input-type=module', '-e', "import ...>
+args = ['node', '--input-type=module', '-e', "import { presentDemoProof } from './apps/web/lib/demoProofSummary.mjs';import {...;const payload = JSON.parse(readFileSync(0, 'utf8'));process.stdout.write(JSON.stringify(presentDemoProof(payload)));"]
+executable = b'node', preexec_fn = None, close_fds = True, pass_fds = ()
+cwd = '/repo', env = None, startupinfo = None, creationflags = 0, shell = False
+p2cread = 11, p2cwrite = 12, c2pread = 13, c2pwrite = 15, errread = 16
+errwrite = 17, restore_signals = True, gid = None, gids = None, uid = None
+umask = -1, start_new_session = False, process_group = -1
+
+    def _execute_child(self, args, executable, preexec_fn, close_fds,
+                       pass_fds, cwd, env,
+                       startupinfo, creationflags, shell,
+                       p2cread, p2cwrite,
+                       c2pread, c2pwrite,
+                       errread, errwrite,
+                       restore_signals,
+                       gid, gids, uid, umask,
+                       start_new_session, process_group):
+        """Execute program (POSIX version)"""
+
+        if isinstance(args, (str, bytes)):
+            args = [args]
+        elif isinstance(args, os.PathLike):
+            if shell:
+                raise TypeError('path-like args is not allowed when '
+                                'shell is true')
+            args = [args]
+        else:
+            args = list(args)
+
+        if shell:
+            # On Android the default shell is at '/system/bin/sh'.
+            unix_shell = ('/system/bin/sh' if
+                      hasattr(sys, 'getandroidapilevel') else '/bin/sh')
+            args = [unix_shell, "-c"] + args
+            if executable:
+                args[0] = executable
+
+        if executable is None:
+            executable = args[0]
+
+        sys.audit("subprocess.Popen", executable, args, cwd, env)
+
+        if (_USE_POSIX_SPAWN
+                and os.path.dirname(executable)
+                and preexec_fn is None
+                and not close_fds
+                and not pass_fds
+                and cwd is None
+                and (p2cread == -1 or p2cread > 2)
+                and (c2pwrite == -1 or c2pwrite > 2)
+                and (errwrite == -1 or errwrite > 2)
+                and not start_new_session
+                and process_group == -1
+                and gid is None
+                and gids is None
+                and uid is None
+                and umask < 0):
+            self._posix_spawn(args, executable, env, restore_signals,
+                              p2cread, p2cwrite,
+                              c2pread, c2pwrite,
+                              errread, errwrite)
+            return
+
+        orig_executable = executable
+
+        # For transferring possible exec failure from child to parent.
+        # Data format: "exception name:hex errno:description"
+        # Pickle is not used; it is complex and involves memory allocation.
+        errpipe_read, errpipe_write = os.pipe()
+        # errpipe_write must not be in the standard io 0, 1, or 2 fd range.
+        low_fds_to_close = []
+        while errpipe_write < 3:
+            low_fds_to_close.append(errpipe_write)
+            errpipe_write = os.dup(errpipe_write)
+        for low_fd in low_fds_to_close:
+            os.close(low_fd)
+        try:
+            try:
+                # We must avoid complex work that could involve
+                # malloc or free in the child process to avoid
+                # potential deadlocks, thus we do all this here.
+                # and pass it to fork_exec()
+
+                if env is not None:
+                    env_list = []
+                    for k, v in env.items():
+                        k = os.fsencode(k)
+                        if b'=' in k:
+                            raise ValueError("illegal environment variable name")
+                        env_list.append(k + b'=' + os.fsencode(v))
+                else:
+                    env_list = None  # Use execv instead of execve.
+                executable = os.fsencode(executable)
+                if os.path.dirname(executable):
+                    executable_list = (executable,)
+                else:
+                    # This matches the behavior of os._execvpe().
+                    executable_list = tuple(
+                        os.path.join(os.fsencode(dir), executable)
+                        for dir in os.get_exec_path(env))
+                fds_to_keep = set(pass_fds)
+                fds_to_keep.add(errpipe_write)
+                self.pid = _fork_exec(
+                        args, executable_list,
+                        close_fds, tuple(sorted(map(int, fds_to_keep))),
+                        cwd, env_list,
+                        p2cread, p2cwrite, c2pread, c2pwrite,
+                        errread, errwrite,
+                        errpipe_read, errpipe_write,
+                        restore_signals, start_new_session,
+                        process_group, gid, gids, uid, umask,
+                        preexec_fn, _USE_VFORK)
+                self._child_created = True
+            finally:
+                # be sure the FD is closed no matter what
+                os.close(errpipe_write)
+
+            self._close_pipe_fds(p2cread, p2cwrite,
+                                 c2pread, c2pwrite,
+                                 errread, errwrite)
+
+            # Wait for exec to fail or succeed; possibly raising an
+            # exception (limited in size)
+            errpipe_data = bytearray()
+            while True:
+                part = os.read(errpipe_read, 50000)
+                errpipe_data += part
+                if not part or len(errpipe_data) > 50000:
+                    break
+        finally:
+            # be sure the FD is closed no matter what
+            os.close(errpipe_read)
+
+        if errpipe_data:
+            try:
+                pid, sts = os.waitpid(self.pid, 0)
+                if pid == self.pid:
+                    self._handle_exitstatus(sts)
+                else:
+                    self.returncode = sys.maxsize
+            except ChildProcessError:
+                pass
+
+            try:
+                exception_name, hex_errno, err_msg = (
+                        errpipe_data.split(b':', 2))
+                # The encoding here should match the encoding
+                # written in by the subprocess implementations
+                # like _posixsubprocess
+                err_msg = err_msg.decode()
+            except ValueError:
+                exception_name = b'SubprocessError'
+                hex_errno = b'0'
+                err_msg = 'Bad exception data from child: {!r}'.format(
+                              bytes(errpipe_data))
+            child_exception_type = getattr(
+                    builtins, exception_name.decode('ascii'),
+                    SubprocessError)
+            if issubclass(child_exception_type, OSError) and hex_errno:
+                errno_num = int(hex_errno, 16)
+                if err_msg == "noexec:chdir":
+                    err_msg = ""
+                    # The error must be from chdir(cwd).
+                    err_filename = cwd
+                elif err_msg == "noexec":
+                    err_msg = ""
+                    err_filename = None
+                else:
+                    err_filename = orig_executable
+                if errno_num != 0:
+                    err_msg = os.strerror(errno_num)
+                if err_filename is not None:
+>                   raise child_exception_type(errno_num, err_msg, err_filename)
+E                   FileNotFoundError: [Errno 2] No such file or directory: 'node'
+
+/usr/local/lib/python3.11/subprocess.py:1955: FileNotFoundError
+------------------------------ Captured log call -------------------------------
+INFO     app.core.rate_limit:rate_limit.py:96 Rate-limit backend: in-memory (dev/test)
+INFO     trustcopilot.audit:audit.py:34 audit {"ts": "2026-10-27T14:04:48.503654+00:00", "action": "auth.login", "user_id": 6, "email": "tc25011-admin-f3156d84c8@example.com", "workspace_id": 4}
+INFO     app.request:main.py:272 request
+INFO     httpx2:_client.py:1084 HTTP Request: POST http://localhost/api/auth/login "HTTP/1.1 200 OK"
+INFO     app.request:main.py:272 request
+INFO     httpx2:_client.py:1084 HTTP Request: GET http://localhost/api/demo-proof "HTTP/1.1 200 OK"
+INFO     app.request:main.py:272 request
+INFO     httpx2:_client.py:1084 HTTP Request: POST http://localhost/api/demo-proof "HTTP/1.1 200 OK"
+INFO     app.request:main.py:272 request
+INFO     httpx2:_client.py:1084 HTTP Request: POST http://localhost/api/demo-proof "HTTP/1.1 200 OK"
+INFO     trustcopilot.audit:audit.py:34 audit {"ts": "2026-10-27T14:04:48.626993+00:00", "action": "auth.login", "user_id": 7, "email": "tc25011-reviewer-f3156d84c8@example.com", "workspace_id": 4}
+INFO     app.request:main.py:272 request
+INFO     httpx2:_client.py:1084 HTTP Request: POST http://localhost/api/auth/login "HTTP/1.1 200 OK"
+INFO     app.request:main.py:272 request
+INFO     httpx2:_client.py:1084 HTTP Request: GET http://localhost/api/demo-proof "HTTP/1.1 200 OK"
+INFO     app.request:main.py:272 request
+INFO     httpx2:_client.py:1084 HTTP Request: GET http://localhost/api/demo-proof/summaries/1 "HTTP/1.1 200 OK"
+_____________ test_no_data_workspace_is_not_filled_from_the_sample _____________
+
+client = <starlette.testclient.TestClient object at 0x7fc889a1a250>
+
+    def test_no_data_workspace_is_not_filled_from_the_sample(client):
+        token = uuid.uuid4().hex[:10]
+        email = f"tc25011-empty-{token}@example.com"
+        workspace_ids: list[int] = []
+        user_ids: list[int] = []
+        from app.core.database import SessionLocal
+
+        db = SessionLocal()
+        try:
+            workspace = _new_workspace(db, f"tc25011e{token}"[:64], "SYNTHETIC TEST PLACEHOLDER empty")
+            workspace_ids.append(workspace.id)
+            user = _new_user(db, email, workspace.id, "editor")
+            user_ids.append(user.id)
+        finally:
+            db.close()
+        try:
+            _login(client, email)
+            response = client.get("/api/demo-proof")
+            assert response.status_code == 200, response.text
+            body = response.json()
+            proof = body["proof_summary"]
+            assert proof["status"] == "no_data"
+            assert proof["partial_failures"] == []
+            assert proof["data_window"]["start"] is None
+            assert proof["data_window"]["end"] is None
+            for metric in proof["metrics"]:
+                assert metric["value"] == 0
+                assert metric["state"] == "no_data"
+                assert metric["origin"] == "real"
+                assert metric["basis"] == "measured"
+                assert metric["commercial_traction"] is False
+            for row in proof["unsupported"]:
+                assert row["value"] is None
+                assert row["state"] == "unsupported"
+            assert body["sample_questionnaire"]["total_questions"] >= 10
+            assert body["live_stats"]["questionnaires_processed"] == 0
+>           presented = _present(body)
+                        ^^^^^^^^^^^^^^
+
+tests/release/test_domain_demo_proof.py:598:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tests/release/test_domain_demo_proof.py:63: in _present
+    result = subprocess.run(
+/usr/local/lib/python3.11/subprocess.py:548: in run
+    with Popen(*popenargs, **kwargs) as process:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/local/lib/python3.11/subprocess.py:1026: in __init__
+    self._execute_child(args, executable, preexec_fn, close_fds,
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <Popen: returncode: 255 args: ['node', '--input-type=module', '-e', "import ...>
+args = ['node', '--input-type=module', '-e', "import { presentDemoProof } from './apps/web/lib/demoProofSummary.mjs';import {...;const payload = JSON.parse(readFileSync(0, 'utf8'));process.stdout.write(JSON.stringify(presentDemoProof(payload)));"]
+executable = b'node', preexec_fn = None, close_fds = True, pass_fds = ()
+cwd = '/repo', env = None, startupinfo = None, creationflags = 0, shell = False
+p2cread = 11, p2cwrite = 12, c2pread = 13, c2pwrite = 15, errread = 16
+errwrite = 17, restore_signals = True, gid = None, gids = None, uid = None
+umask = -1, start_new_session = False, process_group = -1
+
+    def _execute_child(self, args, executable, preexec_fn, close_fds,
+                       pass_fds, cwd, env,
+                       startupinfo, creationflags, shell,
+                       p2cread, p2cwrite,
+                       c2pread, c2pwrite,
+                       errread, errwrite,
+                       restore_signals,
+                       gid, gids, uid, umask,
+                       start_new_session, process_group):
+        """Execute program (POSIX version)"""
+
+        if isinstance(args, (str, bytes)):
+            args = [args]
+        elif isinstance(args, os.PathLike):
+            if shell:
+                raise TypeError('path-like args is not allowed when '
+                                'shell is true')
+            args = [args]
+        else:
+            args = list(args)
+
+        if shell:
+            # On Android the default shell is at '/system/bin/sh'.
+            unix_shell = ('/system/bin/sh' if
+                      hasattr(sys, 'getandroidapilevel') else '/bin/sh')
+            args = [unix_shell, "-c"] + args
+            if executable:
+                args[0] = executable
+
+        if executable is None:
+            executable = args[0]
+
+        sys.audit("subprocess.Popen", executable, args, cwd, env)
+
+        if (_USE_POSIX_SPAWN
+                and os.path.dirname(executable)
+                and preexec_fn is None
+                and not close_fds
+                and not pass_fds
+                and cwd is None
+                and (p2cread == -1 or p2cread > 2)
+                and (c2pwrite == -1 or c2pwrite > 2)
+                and (errwrite == -1 or errwrite > 2)
+                and not start_new_session
+                and process_group == -1
+                and gid is None
+                and gids is None
+                and uid is None
+                and umask < 0):
+            self._posix_spawn(args, executable, env, restore_signals,
+                              p2cread, p2cwrite,
+                              c2pread, c2pwrite,
+                              errread, errwrite)
+            return
+
+        orig_executable = executable
+
+        # For transferring possible exec failure from child to parent.
+        # Data format: "exception name:hex errno:description"
+        # Pickle is not used; it is complex and involves memory allocation.
+        errpipe_read, errpipe_write = os.pipe()
+        # errpipe_write must not be in the standard io 0, 1, or 2 fd range.
+        low_fds_to_close = []
+        while errpipe_write < 3:
+            low_fds_to_close.append(errpipe_write)
+            errpipe_write = os.dup(errpipe_write)
+        for low_fd in low_fds_to_close:
+            os.close(low_fd)
+        try:
+            try:
+                # We must avoid complex work that could involve
+                # malloc or free in the child process to avoid
+                # potential deadlocks, thus we do all this here.
+                # and pass it to fork_exec()
+
+                if env is not None:
+                    env_list = []
+                    for k, v in env.items():
+                        k = os.fsencode(k)
+                        if b'=' in k:
+                            raise ValueError("illegal environment variable name")
+                        env_list.append(k + b'=' + os.fsencode(v))
+                else:
+                    env_list = None  # Use execv instead of execve.
+                executable = os.fsencode(executable)
+                if os.path.dirname(executable):
+                    executable_list = (executable,)
+                else:
+                    # This matches the behavior of os._execvpe().
+                    executable_list = tuple(
+                        os.path.join(os.fsencode(dir), executable)
+                        for dir in os.get_exec_path(env))
+                fds_to_keep = set(pass_fds)
+                fds_to_keep.add(errpipe_write)
+                self.pid = _fork_exec(
+                        args, executable_list,
+                        close_fds, tuple(sorted(map(int, fds_to_keep))),
+                        cwd, env_list,
+                        p2cread, p2cwrite, c2pread, c2pwrite,
+                        errread, errwrite,
+                        errpipe_read, errpipe_write,
+                        restore_signals, start_new_session,
+                        process_group, gid, gids, uid, umask,
+                        preexec_fn, _USE_VFORK)
+                self._child_created = True
+            finally:
+                # be sure the FD is closed no matter what
+                os.close(errpipe_write)
+
+            self._close_pipe_fds(p2cread, p2cwrite,
+                                 c2pread, c2pwrite,
+                                 errread, errwrite)
+
+            # Wait for exec to fail or succeed; possibly raising an
+            # exception (limited in size)
+            errpipe_data = bytearray()
+            while True:
+                part = os.read(errpipe_read, 50000)
+                errpipe_data += part
+                if not part or len(errpipe_data) > 50000:
+                    break
+        finally:
+            # be sure the FD is closed no matter what
+            os.close(errpipe_read)
+
+        if errpipe_data:
+            try:
+                pid, sts = os.waitpid(self.pid, 0)
+                if pid == self.pid:
+                    self._handle_exitstatus(sts)
+                else:
+                    self.returncode = sys.maxsize
+            except ChildProcessError:
+                pass
+
+            try:
+                exception_name, hex_errno, err_msg = (
+                        errpipe_data.split(b':', 2))
+                # The encoding here should match the encoding
+                # written in by the subprocess implementations
+                # like _posixsubprocess
+                err_msg = err_msg.decode()
+            except ValueError:
+                exception_name = b'SubprocessError'
+                hex_errno = b'0'
+                err_msg = 'Bad exception data from child: {!r}'.format(
+                              bytes(errpipe_data))
+            child_exception_type = getattr(
+                    builtins, exception_name.decode('ascii'),
+                    SubprocessError)
+            if issubclass(child_exception_type, OSError) and hex_errno:
+                errno_num = int(hex_errno, 16)
+                if err_msg == "noexec:chdir":
+                    err_msg = ""
+                    # The error must be from chdir(cwd).
+                    err_filename = cwd
+                elif err_msg == "noexec":
+                    err_msg = ""
+                    err_filename = None
+                else:
+                    err_filename = orig_executable
+                if errno_num != 0:
+                    err_msg = os.strerror(errno_num)
+                if err_filename is not None:
+>                   raise child_exception_type(errno_num, err_msg, err_filename)
+E                   FileNotFoundError: [Errno 2] No such file or directory: 'node'
+
+/usr/local/lib/python3.11/subprocess.py:1955: FileNotFoundError
+------------------------------ Captured log call -------------------------------
+INFO     app.core.rate_limit:rate_limit.py:96 Rate-limit backend: in-memory (dev/test)
+INFO     trustcopilot.audit:audit.py:34 audit {"ts": "2026-10-27T14:04:48.849207+00:00", "action": "auth.login", "user_id": 6, "email": "tc25011-empty-eac897fddd@example.com", "workspace_id": 4}
+INFO     app.request:main.py:272 request
+INFO     httpx2:_client.py:1084 HTTP Request: POST http://localhost/api/auth/login "HTTP/1.1 200 OK"
+INFO     app.request:main.py:272 request
+INFO     httpx2:_client.py:1084 HTTP Request: GET http://localhost/api/demo-proof "HTTP/1.1 200 OK"
+__________________ test_tree_has_no_blocking_secret_literals ___________________
+
+scanner = <module 'tc_secret_inventory' from '/repo/scripts/security/secret_inventory.py'>
+
+    def test_tree_has_no_blocking_secret_literals(scanner):
+>       findings = scanner.scan_tree(REPO_ROOT)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/release/test_secret_inventory.py:68:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+/repo/scripts/security/secret_inventory.py:683: in scan_tree
+    for rel in iter_tree_files(root):
+/repo/scripts/security/secret_inventory.py:669: in iter_tree_files
+    res = _git(root, "ls-files", "-z", "--cached", "--others", "--exclude-standard")
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/repo/scripts/security/secret_inventory.py:665: in _git
+    return subprocess.run(["git", "-C", str(root), *args], capture_output=True, check=False)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/local/lib/python3.11/subprocess.py:548: in run
+    with Popen(*popenargs, **kwargs) as process:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/local/lib/python3.11/subprocess.py:1026: in __init__
+    self._execute_child(args, executable, preexec_fn, close_fds,
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <Popen: returncode: 255 args: ['git', '-C', '/repo', 'ls-files', '-z', '--ca...>
+args = ['git', '-C', '/repo', 'ls-files', '-z', '--cached', ...]
+executable = b'git', preexec_fn = None, close_fds = True, pass_fds = ()
+cwd = None, env = None, startupinfo = None, creationflags = 0, shell = False
+p2cread = -1, p2cwrite = -1, c2pread = 12, c2pwrite = 14, errread = 15
+errwrite = 17, restore_signals = True, gid = None, gids = None, uid = None
+umask = -1, start_new_session = False, process_group = -1
+
+    def _execute_child(self, args, executable, preexec_fn, close_fds,
+                       pass_fds, cwd, env,
+                       startupinfo, creationflags, shell,
+                       p2cread, p2cwrite,
+                       c2pread, c2pwrite,
+                       errread, errwrite,
+                       restore_signals,
+                       gid, gids, uid, umask,
+                       start_new_session, process_group):
+        """Execute program (POSIX version)"""
+
+        if isinstance(args, (str, bytes)):
+            args = [args]
+        elif isinstance(args, os.PathLike):
+            if shell:
+                raise TypeError('path-like args is not allowed when '
+                                'shell is true')
+            args = [args]
+        else:
+            args = list(args)
+
+        if shell:
+            # On Android the default shell is at '/system/bin/sh'.
+            unix_shell = ('/system/bin/sh' if
+                      hasattr(sys, 'getandroidapilevel') else '/bin/sh')
+            args = [unix_shell, "-c"] + args
+            if executable:
+                args[0] = executable
+
+        if executable is None:
+            executable = args[0]
+
+        sys.audit("subprocess.Popen", executable, args, cwd, env)
+
+        if (_USE_POSIX_SPAWN
+                and os.path.dirname(executable)
+                and preexec_fn is None
+                and not close_fds
+                and not pass_fds
+                and cwd is None
+                and (p2cread == -1 or p2cread > 2)
+                and (c2pwrite == -1 or c2pwrite > 2)
+                and (errwrite == -1 or errwrite > 2)
+                and not start_new_session
+                and process_group == -1
+                and gid is None
+                and gids is None
+                and uid is None
+                and umask < 0):
+            self._posix_spawn(args, executable, env, restore_signals,
+                              p2cread, p2cwrite,
+                              c2pread, c2pwrite,
+                              errread, errwrite)
+            return
+
+        orig_executable = executable
+
+        # For transferring possible exec failure from child to parent.
+        # Data format: "exception name:hex errno:description"
+        # Pickle is not used; it is complex and involves memory allocation.
+        errpipe_read, errpipe_write = os.pipe()
+        # errpipe_write must not be in the standard io 0, 1, or 2 fd range.
+        low_fds_to_close = []
+        while errpipe_write < 3:
+            low_fds_to_close.append(errpipe_write)
+            errpipe_write = os.dup(errpipe_write)
+        for low_fd in low_fds_to_close:
+            os.close(low_fd)
+        try:
+            try:
+                # We must avoid complex work that could involve
+                # malloc or free in the child process to avoid
+                # potential deadlocks, thus we do all this here.
+                # and pass it to fork_exec()
+
+                if env is not None:
+                    env_list = []
+                    for k, v in env.items():
+                        k = os.fsencode(k)
+                        if b'=' in k:
+                            raise ValueError("illegal environment variable name")
+                        env_list.append(k + b'=' + os.fsencode(v))
+                else:
+                    env_list = None  # Use execv instead of execve.
+                executable = os.fsencode(executable)
+                if os.path.dirname(executable):
+                    executable_list = (executable,)
+                else:
+                    # This matches the behavior of os._execvpe().
+                    executable_list = tuple(
+                        os.path.join(os.fsencode(dir), executable)
+                        for dir in os.get_exec_path(env))
+                fds_to_keep = set(pass_fds)
+                fds_to_keep.add(errpipe_write)
+                self.pid = _fork_exec(
+                        args, executable_list,
+                        close_fds, tuple(sorted(map(int, fds_to_keep))),
+                        cwd, env_list,
+                        p2cread, p2cwrite, c2pread, c2pwrite,
+                        errread, errwrite,
+                        errpipe_read, errpipe_write,
+                        restore_signals, start_new_session,
+                        process_group, gid, gids, uid, umask,
+                        preexec_fn, _USE_VFORK)
+                self._child_created = True
+            finally:
+                # be sure the FD is closed no matter what
+                os.close(errpipe_write)
+
+            self._close_pipe_fds(p2cread, p2cwrite,
+                                 c2pread, c2pwrite,
+                                 errread, errwrite)
+
+            # Wait for exec to fail or succeed; possibly raising an
+            # exception (limited in size)
+            errpipe_data = bytearray()
+            while True:
+                part = os.read(errpipe_read, 50000)
+                errpipe_data += part
+                if not part or len(errpipe_data) > 50000:
+                    break
+        finally:
+            # be sure the FD is closed no matter what
+            os.close(errpipe_read)
+
+        if errpipe_data:
+            try:
+                pid, sts = os.waitpid(self.pid, 0)
+                if pid == self.pid:
+                    self._handle_exitstatus(sts)
+                else:
+                    self.returncode = sys.maxsize
+            except ChildProcessError:
+                pass
+
+            try:
+                exception_name, hex_errno, err_msg = (
+                        errpipe_data.split(b':', 2))
+                # The encoding here should match the encoding
+                # written in by the subprocess implementations
+                # like _posixsubprocess
+                err_msg = err_msg.decode()
+            except ValueError:
+                exception_name = b'SubprocessError'
+                hex_errno = b'0'
+                err_msg = 'Bad exception data from child: {!r}'.format(
+                              bytes(errpipe_data))
+            child_exception_type = getattr(
+                    builtins, exception_name.decode('ascii'),
+                    SubprocessError)
+            if issubclass(child_exception_type, OSError) and hex_errno:
+                errno_num = int(hex_errno, 16)
+                if err_msg == "noexec:chdir":
+                    err_msg = ""
+                    # The error must be from chdir(cwd).
+                    err_filename = cwd
+                elif err_msg == "noexec":
+                    err_msg = ""
+                    err_filename = None
+                else:
+                    err_filename = orig_executable
+                if errno_num != 0:
+                    err_msg = os.strerror(errno_num)
+                if err_filename is not None:
+>                   raise child_exception_type(errno_num, err_msg, err_filename)
+E                   FileNotFoundError: [Errno 2] No such file or directory: 'git'
+
+/usr/local/lib/python3.11/subprocess.py:1955: FileNotFoundError
+__________________ test_scanner_cli_exit_code_is_zero_on_tree __________________
+
+tmp_path = PosixPath('/tmp/pytest-of-root/pytest-1/test_scanner_cli_exit_code_is_0')
+
+    def test_scanner_cli_exit_code_is_zero_on_tree(tmp_path):
+        out = tmp_path / "tree.json"
+        proc = subprocess.run(
+            [sys.executable, str(SCANNER_PATH), "tree", "--root", str(REPO_ROOT), "--json", str(out)],
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+>       assert proc.returncode == 0, proc.stdout[-2000:]
+E       AssertionError:
+E       assert 1 == 0
+E        +  where 1 = CompletedProcess(args=['/usr/local/bin/python3.11', '/repo/scripts/security/secret_inventory.py', 'tree', '--root', '/...d_exception_type(errno_num, err_msg, err_filename)\nFileNotFoundError: [Errno 2] No such file or directory: \'git\'\n').returncode
+
+tests/release/test_secret_inventory.py:84: AssertionError
+=============================== warnings summary ===============================
+tests/release/test_billing_provider.py::test_migration_fresh_install_upgrade_and_downgrade
+tests/release/test_billing_provider.py::test_migration_fresh_install_upgrade_and_downgrade
+tests/release/test_provider_adapter.py::test_migration_columns_present
+tests/release/test_provider_adapter.py::test_migration_has_unique_descriptive_revision_after_075
+  /usr/local/lib/python3.11/site-packages/alembic/config.py:604: DeprecationWarning: No path_separator found in configuration; falling back to legacy splitting on spaces, commas, and colons for prepend_sys_path.  Consider adding path_separator=os to Alembic config.
+    util.warn_deprecated(
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+SKIPPED [1] tests/test_trust_scoring_blind.py:33: external_data: blind test pack not checked in; set TC_TRUST_SCORING_BLIND_PACK to run
+SKIPPED [1] tests/release/test_safe_collection.py:521: node not installed; static check above still enforced
+SKIPPED [1] tests/release/test_secret_inventory.py:666: git metadata not available
+SKIPPED [9] tests/release/test_secret_inventory.py:682: git metadata not available
+SKIPPED [1] tests/release/test_web_quality.py:488: web toolchain unavailable: node not on PATH
+SKIPPED [1] tests/release/test_web_quality.py:503: web toolchain unavailable: node not on PATH
+SKIPPED [1] tests/release/test_web_quality.py:510: web toolchain unavailable: node not on PATH
+SKIPPED [1] tests/release/test_web_quality.py:522: web toolchain unavailable: node not on PATH
+SKIPPED [1] tests/release/test_web_quality.py:528: web toolchain unavailable: node not on PATH
+SKIPPED [1] tests/release/test_web_quality.py:562: web toolchain unavailable: node not on PATH
+SKIPPED [1] tests/release/test_web_quality.py:581: web toolchain unavailable: node not on PATH
+SKIPPED [1] tests/release/test_web_quality.py:591: web toolchain unavailable: node not on PATH
+SKIPPED [1] tests/release/test_web_quality.py:597: web toolchain unavailable: node not on PATH
+SKIPPED [1] tests/release/test_web_quality.py:609: web toolchain unavailable: node not on PATH
+SKIPPED [1] tests/test_control_timeline.py:48: No reviewed workspace controls
+SKIPPED [1] tests/test_feedback_capture.py:22: No questionnaires
+6 failed, 2078 passed, 24 skipped, 4 warnings in 146.55s (0:02:26)
+PYTEST_EXIT 1

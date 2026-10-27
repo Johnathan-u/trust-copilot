@@ -1,9 +1,9 @@
 """Notification channel preferences and delivery attempts (TC-19-008).
 
 Revision ID: tc19008_notification_delivery
-Revises: tc24001_stripe_webhook_events
+Revises: tc10003b_idempotency_owner_token
 
-Parent is master's Alembic head, tc24001_stripe_webhook_events.
+Parent is master's Alembic head, tc10003b_idempotency_owner_token.
 The revision id is 29 characters, so it fits alembic_version.version_num.
 """
 
@@ -15,7 +15,7 @@ from alembic import op
 # This module must not import the application package.
 
 revision = "tc19008_notification_delivery"
-down_revision = "tc24001_stripe_webhook_events"
+down_revision = "tc10003b_idempotency_owner_token"
 branch_labels = None
 depends_on = None
 
