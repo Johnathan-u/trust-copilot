@@ -1,9 +1,9 @@
 {
   "ticket": "TC-14-006",
   "branch": "tc/web/TC-14-006",
-  "testedCommit": "dbe9833cea9849ea5cc0f997310b8648764e18bb",
-  "baseline": "705bdde",
-  "mergedMaster": "705bdde",
+  "testedCommit": "abafb2990351ebcfb50c9b9e3d6108cf03cd25f7",
+  "baseline": "58b8c87",
+  "mergedMaster": "58b8c87",
   "environment": {
     "os": "Linux 6.12.94+ x86_64",
     "node": "v24.22.1",
@@ -19,10 +19,10 @@
     {
       "command": "npm run test:unit",
       "exitStatus": 0,
-      "passed": 94,
+      "passed": 102,
       "failed": 0,
       "skipped": 0,
-      "filesPassed": 11
+      "filesPassed": 14
     },
     {
       "command": "npx playwright test e2e/release/responsive-shell.spec.ts --retries=0",

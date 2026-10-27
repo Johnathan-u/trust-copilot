@@ -4,9 +4,9 @@ Synthetic data only. The shell, login, and these artifacts contain no credential
 
 ## Tested commit
 
-`dbe9833cea9849ea5cc0f997310b8648764e18bb` on branch `tc/web/TC-14-006`.
+`abafb2990351ebcfb50c9b9e3d6108cf03cd25f7` on branch `tc/web/TC-14-006`.
 
-That commit is the tree the checks ran against. This evidence note was added in the following commit and does not change the suite. The branch contains merge commit `c92a114`, which brings in master `705bdde` (TC-14-001 squash, plus the secret tree-scan step).
+That commit is the tree the checks ran against. This evidence note was added in the following commit and does not change the suite. The branch contains merge commit `abafb29`, which brings in master `58b8c87` (TC-14-003).
 
 ## Environment
 
@@ -32,8 +32,8 @@ npm run test:unit
 ```
 
 - Exit status: 0
-- Test files: 11 passed
-- Tests: 94 passed, 0 failed, 0 skipped
+- Test files: 14 passed
+- Tests: 102 passed, 0 failed, 0 skipped
 
 ### Playwright and axe
 
