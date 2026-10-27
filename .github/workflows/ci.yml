@@ -149,7 +149,6 @@ jobs:
     timeout-minutes: 30
     permissions:
       contents: read
-      actions: write
     env:
       # Same directory actions/cache restores. Playwright's default on the
       # GitHub-hosted Ubuntu runner is this path; pin it so install and test agree.
@@ -157,6 +156,8 @@ jobs:
     steps:
       - name: Checkout repo
         uses: actions/checkout@v4
+        with:
+          persist-credentials: false
 
       - name: Setup Node
         uses: actions/setup-node@v4
