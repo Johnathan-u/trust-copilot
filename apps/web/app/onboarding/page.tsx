@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Card, Button, Input } from '@/components/ui'
+import { apiErrorPresentation } from '@/lib/api-error'
 
 export default function OnboardingPage() {
   const router = useRouter()
@@ -28,7 +29,7 @@ export default function OnboardingPage() {
       })
       const data = await res.json().catch(() => ({}))
       if (!res.ok) {
-        setError(data.detail || 'Could not create workspace')
+        setError(apiErrorPresentation(data, 'Could not create workspace').message)
         return
       }
       router.push('/dashboard')
@@ -44,20 +45,20 @@ export default function OnboardingPage() {
       <Card className="w-full max-w-md">
         <div className="mb-2 flex items-center gap-3">
           <div
-            className="grid h-10 w-10 place-items-center rounded-xl text-lg font-bold text-white"
+            className="grid h-10 w-10 place-items-center rounded-tc-sm text-tc-title font-bold text-tc-on-primary"
             style={{
-              background: 'linear-gradient(135deg, #7c96ff, #5b7cff 55%, #2dd4bf)',
-              boxShadow: '0 12px 30px rgba(91,124,255,0.35)',
+              background: 'var(--tc-brand-mark)',
+              boxShadow: 'var(--tc-brand-mark-shadow)',
             }}
           >
             ✓
           </div>
-          <h1 className="text-xl font-bold text-[var(--tc-text)]">Welcome to Trust Copilot</h1>
+          <h1 className="text-tc-title font-bold text-tc-text">Welcome to Trust Copilot</h1>
         </div>
-        <p className="mb-6 text-sm text-[var(--tc-muted)]">
+        <p className="mb-tc-6 text-tc-label text-tc-muted">
           Name your workspace. This is where your team's documents, questionnaires, and compliance data will live.
         </p>
-        <form onSubmit={onSubmit} className="space-y-4">
+        <form onSubmit={onSubmit} className="space-y-tc-4">
           <Input
             label="Workspace name"
             type="text"
@@ -67,7 +68,11 @@ export default function OnboardingPage() {
             onChange={(e) => setName(e.target.value)}
             required
           />
-          {error && <p className="text-sm text-[var(--tc-danger)]">{error}</p>}
+          {error && (
+            <p className="text-tc-label text-tc-danger" role="alert">
+              {error}
+            </p>
+          )}
           <Button type="submit" className="w-full" disabled={loading}>
             {loading ? 'Creating…' : 'Create workspace'}
           </Button>

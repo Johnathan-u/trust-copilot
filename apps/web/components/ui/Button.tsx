@@ -12,19 +12,17 @@ interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
 }
 
 const variants: Record<Variant, string> = {
-  primary:
-    'tc-btn-primary border border-[rgba(124,150,255,0.5)] text-white hover:opacity-95 shadow-[0_12px_28px_rgba(91,124,255,0.28)]',
+  primary: 'border border-transparent bg-tc-primary-solid text-tc-on-primary hover:bg-[var(--tc-primary-solid-hover)]',
   secondary:
-    'border border-[var(--tc-border)] bg-white/5 text-[var(--tc-text)] hover:bg-white/10',
-  ghost: 'tc-btn-ghost hover:bg-white/5',
-  danger:
-    'bg-[var(--tc-danger)] text-white border border-red-500/30 hover:opacity-90',
+    'border border-tc-border-strong bg-tc-surface-raised text-tc-text hover:bg-[var(--tc-hover)]',
+  ghost: 'border border-transparent bg-transparent text-tc-text hover:bg-[var(--tc-hover)]',
+  danger: 'border border-transparent bg-[var(--tc-danger-solid)] text-[var(--tc-on-danger)] hover:bg-[var(--tc-danger-solid-hover)]',
 }
 
 const sizes: Record<string, string> = {
-  sm: 'px-2.5 py-1.5 text-sm rounded-xl',
-  md: 'px-4 py-3 text-sm rounded-xl',
-  lg: 'px-5 py-3.5 text-base rounded-xl',
+  sm: 'min-h-tc-6 rounded-tc-sm px-tc-3 py-tc-1 text-tc-label',
+  md: 'min-h-tc-8 rounded-tc-sm px-tc-4 py-tc-3 text-tc-label',
+  lg: 'min-h-tc-12 rounded-tc-sm px-tc-6 py-tc-4 text-tc-body',
 }
 
 const spinnerSizes: Record<string, 'sm' | 'md'> = {
@@ -37,7 +35,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
   ({ variant = 'primary', size = 'md', loading = false, className = '', children, disabled, ...props }, ref) => (
     <button
       ref={ref}
-      className={`inline-flex items-center justify-center gap-2 font-semibold transition-all duration-150 disabled:opacity-50 disabled:cursor-not-allowed hover:translate-y-[-1px] active:translate-y-0 ${variants[variant]} ${sizes[size]} ${className}`}
+      className={`inline-flex items-center justify-center gap-tc-2 font-semibold transition-colors duration-[var(--tc-duration-fast)] ease-[var(--tc-ease)] disabled:cursor-not-allowed disabled:border-[var(--tc-disabled-border)] disabled:bg-[var(--tc-disabled-bg)] disabled:text-[var(--tc-disabled-fg)] disabled:hover:bg-[var(--tc-disabled-bg)] ${variants[variant]} ${sizes[size]} ${className}`}
       disabled={disabled || loading}
       {...props}
     >

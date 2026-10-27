@@ -221,7 +221,7 @@ export default function QuestionnaireDetailPage() {
         <div className="flex flex-wrap gap-4 text-sm items-center text-[var(--tc-text)]">
           <span><strong>Status:</strong> {qnr.status}</span>
           {meta?.count != null && <span><strong>Questions:</strong> {meta.count}</span>}
-          <Link href={`/dashboard/review/${id}`} className="px-3 py-1 rounded-lg text-sm font-medium text-white hover:opacity-90" style={{ background: 'linear-gradient(135deg, var(--tc-primary-2), var(--tc-primary))' }}>Review answers</Link>
+          <Link href={`/dashboard/review/${id}`} className="tc-btn-primary inline-flex min-h-tc-6 items-center rounded-tc-sm px-tc-3 py-tc-1 text-tc-label font-medium">Review answers</Link>
         </div>
 
         <div className="mt-6 pt-6 border-t border-[var(--tc-border)]">

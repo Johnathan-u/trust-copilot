@@ -19,7 +19,7 @@ export default function ReviewListPage() {
         </p>
         <Link
           href="/dashboard/questionnaires"
-          className="mt-6 inline-flex items-center justify-center gap-2 rounded-xl border border-[rgba(124,150,255,0.5)] px-4 py-3 text-sm font-semibold text-white shadow-[0_12px_28px_rgba(91,124,255,0.28)] transition-all duration-150 hover:translate-y-[-1px] hover:opacity-95 active:translate-y-0 tc-btn-primary"
+          className="tc-btn-primary mt-tc-6 inline-flex min-h-tc-8 items-center justify-center gap-tc-2 rounded-tc-sm px-tc-4 py-tc-3 text-tc-label font-semibold"
         >
           Go to questionnaires
         </Link>

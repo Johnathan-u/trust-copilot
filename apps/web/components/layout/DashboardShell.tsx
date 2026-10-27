@@ -42,17 +42,19 @@ export function DashboardShell({ children }: DashboardShellProps) {
   if (!user && error) {
     return (
       <div className="flex min-h-screen flex-col items-center justify-center gap-4 p-4">
-        <p className="text-[var(--tc-danger)] text-sm">{error}</p>
+        <p className="text-tc-label text-tc-danger">{error}</p>
         <div className="flex gap-3">
           <button
+            type="button"
             onClick={() => refresh()}
-            className="rounded-lg bg-[var(--tc-primary)] px-4 py-2 text-sm font-medium text-white hover:opacity-90"
+            className="tc-btn-primary min-h-tc-6 rounded-tc-sm px-tc-4 py-tc-2 text-tc-label font-medium"
           >
             Retry
           </button>
           <button
+            type="button"
             onClick={() => { window.location.href = '/login' }}
-            className="rounded-lg border border-[var(--tc-border)] px-4 py-2 text-sm font-medium text-[var(--tc-text)] hover:bg-white/5"
+            className="min-h-tc-6 rounded-tc-sm border border-tc-border-strong px-tc-4 py-tc-2 text-tc-label font-medium text-tc-text hover:bg-[var(--tc-hover)]"
           >
             Back to login
           </button>

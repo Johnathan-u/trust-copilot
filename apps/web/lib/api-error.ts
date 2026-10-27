@@ -1,5 +1,24 @@
 /** Normalize FastAPI / proxy error JSON for display. */
 
+/**
+ * API failures and denials are shown with the danger status token
+ * (`--tc-danger` on `--tc-danger-surface` or a neutral surface).
+ * The helper does not change the formatted message.
+ */
+export const API_ERROR_STATUS = 'danger' as const
+
+export type ApiErrorStatus = typeof API_ERROR_STATUS
+
+export function apiErrorPresentation(
+  data: unknown,
+  fallback = 'Request failed'
+): { message: string; status: ApiErrorStatus } {
+  return {
+    message: formatApiErrorDetail(data, fallback),
+    status: API_ERROR_STATUS,
+  }
+}
+
 export function formatApiErrorDetail(data: unknown, fallback = 'Request failed'): string {
   if (!data || typeof data !== 'object') return fallback
   const rec = data as Record<string, unknown>

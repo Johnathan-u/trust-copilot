@@ -2,24 +2,24 @@
 
 const CATEGORY_STYLES: Record<string, { bg: string; border: string; text: string }> = {
   framework: {
-    bg: 'rgba(91, 124, 255, 0.12)',
-    border: 'rgba(91, 124, 255, 0.22)',
-    text: '#7c96ff',
+    bg: 'var(--tc-info-surface)',
+    border: 'var(--tc-info)',
+    text: 'var(--tc-info)',
   },
   topic: {
-    bg: 'rgba(16, 185, 129, 0.12)',
-    border: 'rgba(16, 185, 129, 0.22)',
-    text: '#34d399',
+    bg: 'var(--tc-success-surface)',
+    border: 'var(--tc-success)',
+    text: 'var(--tc-success)',
   },
   document_type: {
-    bg: 'rgba(245, 158, 11, 0.12)',
-    border: 'rgba(245, 158, 11, 0.22)',
-    text: '#fbbf24',
+    bg: 'var(--tc-warning-surface)',
+    border: 'var(--tc-warning)',
+    text: 'var(--tc-warning)',
   },
   custom: {
-    bg: 'rgba(168, 162, 158, 0.12)',
-    border: 'rgba(168, 162, 158, 0.22)',
-    text: '#a8a29e',
+    bg: 'var(--tc-surface-sunken)',
+    border: 'var(--tc-border-strong)',
+    text: 'var(--tc-text)',
   },
 }
 
@@ -46,33 +46,27 @@ export function TagChip({
   size?: 'sm' | 'xs'
 }) {
   const style = CATEGORY_STYLES[tag.category] ?? CATEGORY_STYLES.custom
-  const fontSize = size === 'xs' ? '10px' : '11px'
-  const py = size === 'xs' ? '1px' : '2px'
 
   return (
     <span
-      className="inline-flex items-center gap-1 rounded-md border px-1.5 font-medium whitespace-nowrap"
+      data-size={size}
+      className="inline-flex items-center gap-tc-1 whitespace-nowrap rounded-tc-xs border px-tc-2 py-tc-1 text-tc-caption font-medium"
       style={{
         background: style.bg,
         borderColor: style.border,
         color: style.text,
-        fontSize,
-        paddingTop: py,
-        paddingBottom: py,
-        opacity: tag.source === 'ai' && !tag.approved ? 0.7 : 1,
       }}
       title={`${tag.category}: ${tag.label}${tag.source === 'ai' ? ` (AI${tag.confidence != null ? ` ${Math.round(tag.confidence * 100)}%` : ''})` : ''}${!tag.approved ? ' — pending approval' : ''}`}
     >
       {tag.label}
-      {tag.source === 'ai' && !tag.approved && (
-        <span className="text-[9px] opacity-60">AI</span>
-      )}
+      {tag.source === 'ai' && !tag.approved && <span>AI</span>}
       {onApprove && tag.source === 'ai' && !tag.approved && (
         <button
           type="button"
           onClick={(e) => { e.stopPropagation(); onApprove(true) }}
-          className="ml-0.5 text-[10px] opacity-60 hover:opacity-100"
+          className="ml-tc-1"
           title="Approve tag"
+          aria-label="Approve tag"
         >
           ✓
         </button>
@@ -81,8 +75,9 @@ export function TagChip({
         <button
           type="button"
           onClick={(e) => { e.stopPropagation(); onRemove() }}
-          className="ml-0.5 text-[10px] opacity-60 hover:opacity-100"
+          className="ml-tc-1"
           title="Remove tag"
+          aria-label="Remove tag"
         >
           ×
         </button>
@@ -120,16 +115,7 @@ export function TagList({
         />
       ))}
       {overflow > 0 && (
-        <span
-          className="inline-flex items-center rounded-md border px-1.5 text-[11px] font-medium"
-          style={{
-            background: 'rgba(255,255,255,0.05)',
-            borderColor: 'rgba(255,255,255,0.1)',
-            color: 'var(--tc-muted)',
-            paddingTop: size === 'xs' ? '1px' : '2px',
-            paddingBottom: size === 'xs' ? '1px' : '2px',
-          }}
-        >
+        <span className="inline-flex items-center rounded-tc-xs border border-tc-border-strong bg-tc-surface-sunken px-tc-2 py-tc-1 text-tc-caption font-medium text-tc-muted">
           +{overflow}
         </span>
       )}
