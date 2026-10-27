@@ -10,14 +10,14 @@ Plain additive DDL: no data rewrite, no table lock beyond the ALTERs. Migration 
 (one migrator, API/worker wait) is TC-03-005's job and is not assumed here.
 
 Revision ID: tc10003_job_idempotency
-Revises: tc21001_framework_catalog_rights
+Revises: tc11001_model_outcome_codes
 """
 
 from alembic import op
 import sqlalchemy as sa
 
 revision = "tc10003_job_idempotency"
-down_revision = "tc21001_framework_catalog_rights"
+down_revision = "tc11001_model_outcome_codes"
 branch_labels = None
 depends_on = None
 

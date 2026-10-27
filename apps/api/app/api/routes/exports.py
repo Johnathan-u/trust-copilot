@@ -10,6 +10,7 @@ from sqlalchemy.orm import Session
 
 from sqlalchemy import func
 
+from app.core.api_errors import api_error_from_failure, current_request_id
 from app.core.auth_deps import require_can_export, require_can_review
 from app.core.config import get_settings
 from app.core.database import get_db
@@ -22,6 +23,7 @@ from app.core.idempotency import (
 )
 from app.models import ExportRecord, Question, Questionnaire
 from app.services.export_service import enqueue_export_job, enqueue_generate_answers_job
+from app.services.model_outcomes import ModelFailure, ModelOutcomeCode
 from app.services.storage import get_storage, StorageClient
 
 router = APIRouter(prefix="/exports", tags=["exports"])
@@ -64,7 +66,9 @@ def trigger_generate(
                 status_code=409, detail="Request in progress; retry with same Idempotency-Key"
             )
     try:
-        return _generate_claimed(questionnaire_id, workspace_id, body, session, db, idem_key)
+        return _generate_claimed(
+            request, questionnaire_id, workspace_id, body, session, db, idem_key
+        )
     except Exception:
         # Anything that did not store a response (429, unexpected error) must not leave the key stuck at 409.
         if idem_key:
@@ -72,7 +76,7 @@ def trigger_generate(
         raise
 
 
-def _generate_claimed(questionnaire_id, workspace_id, body, session, db, idem_key):
+def _generate_claimed(request, questionnaire_id, workspace_id, body, session, db, idem_key):
     n_questions = (
         db.query(func.count(Question.id))
         .join(Questionnaire, Questionnaire.id == Question.questionnaire_id)
@@ -94,9 +98,17 @@ def _generate_claimed(questionnaire_id, workspace_id, body, session, db, idem_ke
             "OpenAI API key is not configured. Set OPENAI_API_KEY in your environment (.env) "
             "for the API and worker services, then restart."
         )
+        # TC-11-001: keep legacy 503 + ``detail``; add the typed ApiError object.
+        error = api_error_from_failure(
+            ModelFailure(code=ModelOutcomeCode.MODEL_CREDENTIALS_MISSING),
+            current_request_id(request),
+        )
+        body = {"detail": detail, "error": error.model_dump(exclude_none=True)}
         if idem_key:
-            idempotency_set(db, idem_key, 503, {"detail": detail})
-        raise HTTPException(status_code=503, detail=detail)
+            idempotency_set(db, idem_key, 503, body)
+        return JSONResponse(
+            status_code=503, content=body, headers={"X-Request-ID": error.request_id}
+        )
     from app.services.quota_service import check_quota
 
     allowed, current, limit = check_quota(db, workspace_id, "ai_jobs")

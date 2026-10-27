@@ -1,0 +1,18 @@
+== base-f72
+grounded                 status='draft'                  text='Yes. Quarterly access revie outcome=None calls=1
+no_evidence              status='insufficient_evidence'  text='Insufficient evidence.'     outcome=None calls=0
+refusal                  status='insufficient_evidence'  text='Insufficient evidence.'     outcome=None calls=1
+malformed                status='insufficient_evidence'  text='Insufficient evidence.'     outcome=None calls=1
+ALERT_OPENAI_FAILURE completion single question: Error code: 404 - SYNTH-SECRET
+model_unavailable_404    status='insufficient_evidence'  text='Insufficient evidence.'     outcome=None calls=1
+ALERT_OPENAI_FAILURE completion single question: Error code: 401 - SYNTH-SECRET
+credentials_401          status='insufficient_evidence'  text='Insufficient evidence.'     outcome=None calls=1
+== branch
+grounded                 status='draft'                  text='Yes. Quarterly access revie outcome=grounded calls=1
+no_evidence              status='insufficient_evidence'  text='Insufficient evidence.'     outcome=no_evidence calls=0
+refusal                  status='insufficient_evidence'  text='Insufficient evidence.'     outcome=model_refusal calls=1
+malformed                status='insufficient_evidence'  text='Insufficient evidence.'     outcome=model_malformed_output calls=1
+model_unavailable_404    RAISED ModelCallError: code=model_unavailable msg='The configured model is not available to this deployment. Check the mo' calls=1
+credentials_401          RAISED ModelCallError: code=model_credentials_invalid msg='Model provider credentials were rejected. Update OPENAI_API_KEY for th' calls=1
+ALERT_OPENAI_FAILURE completion single question: code=model_unavailable provider_status=404 exception_type=NotFoundError
+ALERT_OPENAI_FAILURE completion single question: code=model_credentials_invalid provider_status=401 exception_type=AuthenticationError
