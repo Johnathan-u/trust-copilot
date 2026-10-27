@@ -194,7 +194,7 @@ export default function DashboardPage() {
                   <div className="flex items-start gap-3">
                     <span className="text-2xl flex-shrink-0">{ICON_MAP[card.icon] ?? '◆'}</span>
                     <div className="min-w-0">
-                      <h3 className="font-semibold text-[var(--tc-text)]">{card.title}</h3>
+                      <h2 className="font-semibold text-[var(--tc-text)]">{card.title}</h2>
                       {card.description && (
                         <p className="mt-1 text-sm text-[var(--tc-muted)] line-clamp-2">{card.description}</p>
                       )}

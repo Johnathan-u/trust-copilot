@@ -1,9 +1,11 @@
 'use client'
 
-import { useEffect } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { usePathname } from 'next/navigation'
 import { useAuth } from '@/contexts/AuthContext'
+import { APP_NAV_COMPACT_MEDIA } from '@/lib/app-navigation'
 import { MfaRequiredBanner } from './MfaRequiredBanner'
+import { NavDrawer } from './NavDrawer'
 import { SecurityAlertsBanner } from './SecurityAlertsBanner'
 import { Sidebar } from './Sidebar'
 import { Topbar } from './Topbar'
@@ -17,18 +19,42 @@ interface DashboardShellProps {
 export function DashboardShell({ children }: DashboardShellProps) {
   const { user, loading, needs_onboarding, error, refresh } = useAuth()
   const pathname = usePathname()
+  const [navOpen, setNavOpen] = useState(false)
+  const [compact, setCompact] = useState(false)
+  const menuButtonRef = useRef<HTMLButtonElement>(null)
+  const backgroundRef = useRef<HTMLDivElement>(null)
+  const navWasOpen = useRef(false)
 
   useEffect(() => {
-    if (loading) return
-    if (!user && !error) {
-      const next = pathname ? `/login?next=${encodeURIComponent(pathname)}` : '/login'
-      window.location.href = next
-      return
+    const media = window.matchMedia(APP_NAV_COMPACT_MEDIA)
+    const apply = () => {
+      const isCompact = media.matches
+      setCompact(isCompact)
+      if (!isCompact) setNavOpen(false)
     }
-    if (needs_onboarding) {
-      window.location.href = '/onboarding'
+    apply()
+    media.addEventListener('change', apply)
+    return () => media.removeEventListener('change', apply)
+  }, [])
+
+  useEffect(() => {
+    setNavOpen(false)
+  }, [pathname])
+
+  useEffect(() => {
+    const background = backgroundRef.current
+    if (!background) return
+    if (compact && navOpen) background.setAttribute('inert', '')
+    else background.removeAttribute('inert')
+  }, [compact, navOpen])
+
+  useEffect(() => {
+    if (navWasOpen.current && !navOpen) {
+      const button = menuButtonRef.current
+      if (button && button.offsetParent !== null) button.focus()
     }
-  }, [user, loading, needs_onboarding, error, pathname])
+    navWasOpen.current = navOpen
+  }, [navOpen])
 
   if (loading) {
     return (
@@ -75,23 +101,37 @@ export function DashboardShell({ children }: DashboardShellProps) {
   return (
     <>
       <RouteProgress />
-      <div
-        className="relative z-[1] grid min-h-screen w-full max-w-full min-w-0 grid-cols-[minmax(160px,200px)_minmax(0,1fr)] sm:grid-cols-[minmax(180px,220px)_minmax(0,1fr)] md:grid-cols-[minmax(200px,240px)_minmax(0,1fr)] lg:grid-cols-[minmax(220px,260px)_minmax(0,1fr)] xl:grid-cols-[280px_minmax(0,1fr)]"
-        style={{
-          gridTemplateRows: 'auto auto minmax(0, 1fr)',
-        }}
-      >
-        <div className="col-span-2 min-w-0">
-          <Topbar />
+      <div className="relative z-[1] flex h-dvh max-h-dvh w-full min-w-0 max-w-full flex-col overflow-hidden bg-tc-bg">
+        <a
+          href="#main-content"
+          className="sr-only focus:not-sr-only focus:absolute focus:left-tc-4 focus:top-tc-4 focus:z-[80] focus:rounded-tc-xs focus:border focus:border-tc-border-strong focus:bg-tc-surface-overlay focus:px-tc-4 focus:py-tc-2 focus:text-tc-label focus:font-medium focus:text-tc-text"
+        >
+          Skip to main content
+        </a>
+        <div ref={backgroundRef} className="flex min-h-0 min-w-0 flex-1 flex-col">
+          <Topbar
+            navOpen={navOpen}
+            onToggleNav={() => setNavOpen((open) => !open)}
+            menuButtonRef={menuButtonRef}
+          />
+          <div className="shrink-0">
+            <MfaRequiredBanner />
+            <SecurityAlertsBanner />
+          </div>
+          <div className="grid min-h-0 min-w-0 flex-1 grid-cols-1 md:grid-cols-[minmax(200px,240px)_minmax(0,1fr)] lg:grid-cols-[minmax(220px,260px)_minmax(0,1fr)] xl:grid-cols-[280px_minmax(0,1fr)]">
+            {!(compact && navOpen) && (
+              <Sidebar className="hidden h-full md:flex" />
+            )}
+            <main
+              id="main-content"
+              tabIndex={-1}
+              className="relative z-0 min-h-0 min-w-0 overflow-x-hidden overflow-y-auto px-3 pb-6 pt-4 outline-none sm:px-4 sm:pt-5 md:px-5"
+            >
+              {children}
+            </main>
+          </div>
         </div>
-        <div className="col-span-2 min-w-0 space-y-0">
-          <MfaRequiredBanner />
-          <SecurityAlertsBanner />
-        </div>
-        <Sidebar />
-        <main className="relative z-0 min-h-0 min-w-0 overflow-x-auto overflow-y-auto px-3 pb-6 pt-4 sm:px-4 sm:pt-5 md:px-5">
-          {children}
-        </main>
+        {compact && <NavDrawer open={navOpen} onClose={() => setNavOpen(false)} />}
       </div>
     </>
   )
