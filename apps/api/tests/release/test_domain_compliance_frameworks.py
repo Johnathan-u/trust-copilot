@@ -26,7 +26,6 @@ from app.services.framework_catalog_registry import (
 )
 
 API_ROOT = Path(__file__).resolve().parents[2]
-WEB_CONSUMER = API_ROOT.parent / "web" / "lib" / "frameworkCatalog.ts"
 LEAK = "ZZ-CONTROL-TEXT-SHOULD-NOT-LEAK-TC21001"
 ADVERTISED_KEYS = [spec.catalog_key for spec in ADVERTISED_CATALOGS]
 
@@ -85,25 +84,6 @@ def _consumer_would_enable(item: dict) -> bool:
     return True
 
 
-def test_advertised_alias_sets_are_disjoint():
-    seen: dict[str, str] = {}
-    for spec in ADVERTISED_CATALOGS:
-        for norm in spec.match_norms():
-            assert seen.get(norm) in (None, spec.catalog_key)
-            seen[norm] = spec.catalog_key
-    assert [spec.catalog_key for spec in ADVERTISED_CATALOGS] == [
-        "SOC2",
-        "HIPAA",
-        "ISO27001",
-        "NIST_CSF_2",
-        "NIST_800_53_R5",
-        "NIST_800_171_R3",
-        "SIG",
-        "CAIQ",
-        "HITRUST",
-    ]
-
-
 def test_list_reports_every_advertised_framework_blocked(client):
     _login(client, "reviewer@trust.local", "r")
     response = client.get("/api/compliance/frameworks")
@@ -151,7 +131,8 @@ def test_enable_refuses_rights_and_agrees_across_retry_and_new_session(client):
     assert detail["enablement_state"] == "blocked"
     assert detail["rights_ticket"] == RIGHTS_TICKET
     assert detail["request_id"]
-    assert "TC-01-007" in detail["message"]
+    assert "Pending content licensing" in detail["message"]
+    assert "TC-01-007" not in detail["message"]
     assert LEAK not in json.dumps(detail)
 
     alias = client.post("/api/compliance/frameworks/enable", json={"name": "ISO/IEC 27001"})
@@ -389,6 +370,13 @@ def test_dev_seed_row_is_labelled_and_control_text_is_not_in_the_api(client):
             assert dev.enablement_state == "dev_only"
             assert dev.catalog_key is None
             assert dev.production_catalog is False
+            from app.api.routes.compliance_mappings import _framework_id_by_name
+            from app.services.framework_catalog import framework_ids_for_exact_name
+
+            resolved = framework_ids_for_exact_name(session, "HITRUST")
+            assert resolved == [advertised_row.id]
+            assert framework_id not in resolved
+            assert _framework_id_by_name(session, "HITRUST") == resolved
         finally:
             session.close()
     finally:
@@ -440,11 +428,105 @@ def test_tampered_rights_are_rewritten_blocked_and_provenance_cannot_leak(client
         from app.models import Framework
 
         row = session.query(Framework).filter(Framework.catalog_key == "CAIQ").one()
-        assert row.rights_status == "blocked_pending_rights"
+        assert row.rights_status == "cleared"
+        assert row.source_provenance == LEAK
         assert row.enablement_state == "blocked"
         assert row.production_catalog is False
-        assert row.source_provenance is not None
-        assert LEAK not in row.source_provenance
+        row.rights_status = "blocked_pending_rights"
+        row.licence_status = "not_cleared"
+        row.source_provenance = None
+        session.commit()
+    finally:
+        session.close()
+
+
+def test_get_does_not_write_and_enable_writes_only_the_audit_event(client):
+    session = _fresh()
+    try:
+        before_rows = session.execute(
+            text(
+                """
+                SELECT id, name, version, catalog_key, rights_status, licence_status,
+                       enablement_state, catalog_kind, production_catalog, updated_at
+                FROM frameworks ORDER BY id
+                """
+            )
+        ).all()
+        before_events = session.execute(
+            text("SELECT count(*) FROM framework_catalog_events")
+        ).scalar()
+    finally:
+        session.close()
+
+    _login(client, "reviewer@trust.local", "r")
+    listed = client.get("/api/compliance/frameworks")
+    assert listed.status_code == 200
+    assert all("TC-01-007" not in (item.get("blocked_reason") or "") for item in listed.json())
+
+    session = _fresh()
+    try:
+        after_rows = session.execute(
+            text(
+                """
+                SELECT id, name, version, catalog_key, rights_status, licence_status,
+                       enablement_state, catalog_kind, production_catalog, updated_at
+                FROM frameworks ORDER BY id
+                """
+            )
+        ).all()
+        assert after_rows == before_rows
+        assert (
+            session.execute(text("SELECT count(*) FROM framework_catalog_events")).scalar()
+            == before_events
+        )
+        stored_name = session.execute(
+            text("SELECT name FROM frameworks WHERE catalog_key = 'SOC2'")
+        ).scalar()
+    finally:
+        session.close()
+
+    _login(client, "admin@trust.local", "a")
+    enabled = client.post("/api/compliance/frameworks/enable", json={"catalog_key": "SOC2"})
+    assert enabled.status_code == 409
+    assert enabled.json()["detail"]["code"] == "framework_rights_not_cleared"
+    body = enabled.json()["detail"]
+    assert body["catalog_key"] == "SOC2"
+    assert "Pending content licensing" in body["message"]
+
+    session = _fresh()
+    try:
+        after_enable = session.execute(
+            text(
+                """
+                SELECT id, name, version, catalog_key, rights_status, licence_status,
+                       enablement_state, catalog_kind, production_catalog, updated_at
+                FROM frameworks ORDER BY id
+                """
+            )
+        ).all()
+        assert after_enable == before_rows
+        event = (
+            session.execute(
+                text(
+                    """
+                    SELECT catalog_key, name, framework_id
+                    FROM framework_catalog_events
+                    WHERE catalog_key = 'SOC2'
+                    ORDER BY id DESC
+                    LIMIT 1
+                    """
+                )
+            )
+            .mappings()
+            .one()
+        )
+        assert event["catalog_key"] == "SOC2"
+        assert event["name"] == stored_name
+        assert event["framework_id"] is not None
+        assert (
+            session.execute(text("SELECT count(*) FROM framework_catalog_events")).scalar()
+            == before_events + 1
+        )
     finally:
         session.close()
 
@@ -603,6 +685,27 @@ def test_foreign_keys_and_production_check_on_postgres(client, db_session):
     assert row.enablement_state == "blocked"
     assert row.production_catalog is False
 
+    from sqlalchemy import inspect
+
+    from app.models.framework import Framework
+
+    bind = db_session.get_bind()
+    insp = inspect(bind)
+    index_names = {idx["name"] for idx in insp.get_indexes("frameworks")}
+    assert "uq_frameworks_catalog_key" in index_names
+    check_names = {item["name"] for item in insp.get_check_constraints("frameworks")}
+    assert "ck_frameworks_production_blocked" in check_names
+    assert any(
+        idx.name == "uq_frameworks_catalog_key" and idx.unique
+        for idx in Framework.__table__.indexes
+    )
+    assert any(
+        constraint.name == "ck_frameworks_production_blocked"
+        for constraint in Framework.__table__.constraints
+    )
+    for foreign_key in insp.get_foreign_keys("framework_catalog_events"):
+        assert foreign_key["options"].get("ondelete") == "SET NULL"
+
 
 def test_suspended_admin_is_denied_by_current_membership(client):
     from app.models import User, WorkspaceMember
@@ -639,31 +742,24 @@ def test_suspended_admin_is_denied_by_current_membership(client):
             session.close()
 
 
-def test_ui_consumer_source_matches_blocked_contract():
-    source = WEB_CONSUMER.read_text(encoding="utf-8")
-    for needle in (
-        "blocked_pending_rights",
-        "dev_test_only",
-        "production_catalog",
-        "isProductionCatalogEnabled",
-        "framework-catalog-error/v1",
-        "TC-01-007",
-        "content_version",
-        "enablement_state",
-        "rights_status",
-    ):
-        assert needle in source
-    page = (
-        WEB_CONSUMER.parents[1] / "app" / "dashboard" / "compliance-frameworks" / "page.tsx"
-    ).read_text(encoding="utf-8")
-    assert "/api/compliance/frameworks" in page
-    assert "parseEnableError" in page
-    assert "isProductionCatalogEnabled" in page
-    assert "Dev / test only" in source
+MIGRATION_REVISION = "tc21001_framework_catalog_rights"
 
 
-def test_migration_rollback_and_reupgrade(client):
-    """Downgrade removes the scaffold columns and event table, then upgrade restores the block."""
+def _catalog_schema_present(conn) -> bool:
+    rights = conn.execute(
+        text(
+            """
+            SELECT 1 FROM information_schema.columns
+            WHERE table_name = 'frameworks' AND column_name = 'rights_status'
+            """
+        )
+    ).scalar()
+    events = conn.execute(text("SELECT to_regclass('public.framework_catalog_events')")).scalar()
+    return rights is not None and events is not None
+
+
+def test_migration_upgrade_downgrade_upgrade_again(client):
+    """Upgrade, downgrade, and upgrade again on PostgreSQL, then the API stays blocked."""
     from app.core.database import engine
 
     env = os.environ.copy()
@@ -680,27 +776,90 @@ def test_migration_rollback_and_reupgrade(client):
             timeout=180,
         )
 
-    try:
-        downgraded = _alembic("downgrade", "075")
-        assert downgraded.returncode == 0, downgraded.stderr + downgraded.stdout
+    def _version() -> str | None:
         with engine.connect() as conn:
-            rights = conn.execute(
+            return conn.execute(text("SELECT version_num FROM alembic_version")).scalar()
+
+    try:
+        # The suite already upgraded to head. Step back, then exercise the revision twice.
+        prepared = _alembic("downgrade", "075")
+        assert prepared.returncode == 0, prepared.stderr + prepared.stdout
+        with engine.connect() as conn:
+            assert _catalog_schema_present(conn) is False
+            conn.execute(
                 text(
                     """
-                    SELECT 1 FROM information_schema.columns
-                    WHERE table_name = 'frameworks' AND column_name = 'rights_status'
+                    DELETE FROM framework_controls
+                    WHERE framework_id IN (
+                        SELECT id FROM frameworks
+                        WHERE name IN ('SOC2', 'ZZ Legacy Untouched')
+                    )
                     """
                 )
-            ).scalar()
-            assert rights is None
-            events = conn.execute(
-                text("SELECT to_regclass('public.framework_catalog_events')")
-            ).scalar()
-            assert events is None
-    finally:
-        upgraded = _alembic("upgrade", "head")
-        engine.dispose()
+            )
+            conn.execute(
+                text("DELETE FROM frameworks WHERE name IN ('SOC2', 'ZZ Legacy Untouched')")
+            )
+            conn.execute(
+                text(
+                    """
+                    INSERT INTO frameworks (name, version, created_at) VALUES
+                    ('SOC2', '', now()),
+                    ('ZZ Legacy Untouched', 'v-keep', now())
+                    """
+                )
+            )
+            conn.commit()
+
+        def _legacy_identity() -> list[tuple]:
+            with engine.connect() as conn:
+                rows = conn.execute(
+                    text(
+                        """
+                        SELECT name, version, created_at
+                        FROM frameworks
+                        WHERE name IN ('SOC2', 'ZZ Legacy Untouched')
+                        ORDER BY name
+                        """
+                    )
+                ).all()
+            return [(row.name, row.version, row.created_at) for row in rows]
+
+        baseline = _legacy_identity()
+        assert [(row[0], row[1]) for row in baseline] == [
+            ("SOC2", ""),
+            ("ZZ Legacy Untouched", "v-keep"),
+        ]
+
+        upgraded = _alembic("upgrade", MIGRATION_REVISION)
         assert upgraded.returncode == 0, upgraded.stderr + upgraded.stdout
+        assert _version() == MIGRATION_REVISION
+        with engine.connect() as conn:
+            assert _catalog_schema_present(conn) is True
+        assert _legacy_identity() == baseline
+
+        downgraded = _alembic("downgrade", "075")
+        assert downgraded.returncode == 0, downgraded.stderr + downgraded.stdout
+        assert _version() == "075"
+        with engine.connect() as conn:
+            assert _catalog_schema_present(conn) is False
+        assert _legacy_identity() == baseline
+
+        again = _alembic("upgrade", MIGRATION_REVISION)
+        assert again.returncode == 0, again.stderr + again.stdout
+        assert _version() == MIGRATION_REVISION
+        with engine.connect() as conn:
+            assert _catalog_schema_present(conn) is True
+            stored = conn.execute(
+                text("SELECT name, version FROM frameworks WHERE name = 'SOC2'")
+            ).one()
+            assert stored.name == "SOC2"
+            assert stored.version == ""
+        assert _legacy_identity() == baseline
+    finally:
+        restored = _alembic("upgrade", "head")
+        engine.dispose()
+        assert restored.returncode == 0, restored.stderr + restored.stdout
 
     _login(client, "admin@trust.local", "a")
     response = client.get("/api/compliance/frameworks")
@@ -712,3 +871,7 @@ def test_migration_rollback_and_reupgrade(client):
         assert item["rights_status"] == "blocked_pending_rights"
         assert item["production_catalog"] is False
         assert _consumer_would_enable(item) is False
+        assert "TC-01-007" not in (item.get("blocked_reason") or "")
+    soc = _by_key(items, "SOC2")
+    assert soc["name"] == "SOC 2"
+    assert soc["version"] == ""

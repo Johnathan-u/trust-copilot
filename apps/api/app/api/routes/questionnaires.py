@@ -968,7 +968,9 @@ def list_questionnaire_mappings(
             for fc in db.query(FrameworkControl).filter(FrameworkControl.id.in_(fc_ids)).all():
                 fc_by_id[fc.id] = fc
 
-    framework_names_by_id = {f.id: (f.name or "") for f in db.query(Framework).all()}
+    from app.services.framework_catalog import display_name_for_framework
+
+    framework_names_by_id = {f.id: display_name_for_framework(f) for f in db.query(Framework).all()}
 
     result = []
     for m in mappings:

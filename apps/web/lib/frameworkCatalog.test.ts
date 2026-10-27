@@ -4,7 +4,7 @@ import {
   FRAMEWORK_RIGHTS_TICKET,
   catalogDisplayState,
   catalogStatusLabel,
-  enablementSucceeded,
+  enableRequestBody,
   hasLegacyListFields,
   isProductionCatalogEnabled,
   parseCatalogList,
@@ -34,7 +34,7 @@ function item(
     rights_ticket: FRAMEWORK_RIGHTS_TICKET,
     contract_version: 'framework-catalog/v1',
     content_version: null,
-    blocked_reason: 'Framework content rights are pending decision TC-01-007.',
+    blocked_reason: 'Pending content licensing. No licensed catalog is loaded.',
     dev_test_only: false,
     synthetic_dev_content_present: false,
     controls_are_production_catalog: false,
@@ -48,7 +48,8 @@ describe('framework catalog consumer', () => {
     expect(hasLegacyListFields(row)).toBe(true)
     expect(isProductionCatalogEnabled(row)).toBe(false)
     expect(catalogDisplayState(row)).toBe('blocked_pending_rights')
-    expect(catalogStatusLabel(row)).toContain('TC-01-007')
+    expect(catalogStatusLabel(row)).toBe('Pending content licensing')
+    expect(catalogStatusLabel(row)).not.toContain('TC-01-007')
   })
 
   it('does not treat a version string or a dev row as a production catalog', () => {
@@ -97,7 +98,7 @@ describe('framework catalog consumer', () => {
         contract_version: FRAMEWORK_CATALOG_ERROR_CONTRACT_VERSION,
         code: 'framework_rights_not_cleared',
         message:
-          'SOC 2 cannot be enabled. Rights status is blocked pending content-rights decision TC-01-007.',
+          'SOC 2 cannot be enabled. Pending content licensing. No licensed catalog is loaded.',
         request_id: 'req-1',
         retryable: false,
         partial_failure: false,
@@ -107,9 +108,25 @@ describe('framework catalog consumer', () => {
     }
     const parsed = parseEnableError(body)
     expect(parsed.contract?.code).toBe('framework_rights_not_cleared')
-    expect(parsed.message).toContain('TC-01-007')
-    expect(enablementSucceeded(409, body)).toBe(false)
-    expect(enablementSucceeded(200, body)).toBe(false)
+    expect(parsed.message).toContain('Pending content licensing')
+    expect(parsed.message).not.toContain('TC-01-007')
+  })
+
+  it('sends catalog_key only and does not enable a dev row', () => {
+    expect(enableRequestBody(item())).toEqual({ catalog_key: 'SOC2' })
+    expect(
+      enableRequestBody(
+        item({
+          catalog_key: null,
+          dev_test_only: true,
+          catalog_kind: 'dev_synthetic',
+          enablement_state: 'dev_only',
+        })
+      )
+    ).toBeNull()
+    const body = enableRequestBody(item({ name: 'SOC2', catalog_key: 'SOC2' }))
+    expect(body).toEqual({ catalog_key: 'SOC2' })
+    expect(body && 'name' in body).toBe(false)
   })
 
   it('reads a list payload and keeps blocked and dev rows distinct', () => {

@@ -224,12 +224,8 @@ export function Sidebar() {
             icon="📊"
             pathname={pathname}
           />
-          <NavLink
-            href="/dashboard/compliance-frameworks"
-            label="Frameworks"
-            icon="▣"
-            pathname={pathname}
-          />
+          {/* prettier-ignore */}
+          <NavLink href="/dashboard/compliance-frameworks" label="Frameworks" icon="▣" pathname={pathname} />
           <NavLink
             href="/dashboard/trust-center"
             label="Trust Center"

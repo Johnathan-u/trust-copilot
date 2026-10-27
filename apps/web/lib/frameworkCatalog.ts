@@ -121,7 +121,7 @@ export function catalogStatusLabel(item: FrameworkCatalogItem): string {
     return 'Dev / test only — not a production catalog'
   if (state === 'enabled') return 'Enabled'
   if (state === 'blocked_pending_rights') {
-    return `Blocked pending content rights (${item.rights_ticket || FRAMEWORK_RIGHTS_TICKET})`
+    return 'Pending content licensing'
   }
   return 'Blocked — not a production catalog'
 }
@@ -135,6 +135,14 @@ export function parseCatalogList(body: unknown): FrameworkCatalogItem[] {
       typeof (item as FrameworkCatalogItem).name === 'string'
     )
   })
+}
+
+/** Enable posts catalog_key only. Dev rows and rows without a key are not sent. */
+export function enableRequestBody(
+  item: FrameworkCatalogItem
+): { catalog_key: string } | null {
+  if (isDevTestOnly(item) || !item.catalog_key) return null
+  return { catalog_key: item.catalog_key }
 }
 
 export function parseEnableError(body: unknown): {
@@ -159,11 +167,4 @@ export function parseEnableError(body: unknown): {
     }
   }
   return { message: 'Framework enablement was refused.', contract: null }
-}
-
-export function enablementSucceeded(status: number, body: unknown): boolean {
-  if (status < 200 || status >= 300) return false
-  const parsed = parseEnableError(body)
-  if (parsed.contract) return false
-  return false
 }

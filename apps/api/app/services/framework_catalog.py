@@ -7,7 +7,8 @@ does not load, copy, or invent framework control text.
 
 from __future__ import annotations
 
-from datetime import datetime
+import logging
+from datetime import UTC, datetime
 from typing import Any
 
 from sqlalchemy.exc import IntegrityError
@@ -18,7 +19,6 @@ from app.services.framework_catalog_registry import (
     ADVERTISED_CATALOGS,
     CATALOG_CONTRACT_VERSION,
     CONTENT_DEV,
-    CONTENT_LEGACY,
     CONTENT_NONE,
     ENABLEMENT_BLOCKED,
     ENABLEMENT_DEV,
@@ -36,7 +36,6 @@ from app.services.framework_catalog_registry import (
     RIGHTS_BLOCKED,
     RIGHTS_DEV,
     RIGHTS_TICKET,
-    UNLICENSED_VERSION,
     AdvertisedCatalog,
     is_dev_catalog_row,
     is_dev_enable_request,
@@ -49,9 +48,12 @@ from app.services.framework_catalog_registry import (
     rights_are_cleared,
 )
 
+logger = logging.getLogger(__name__)
+
+# Customer-facing wording. The ticket id stays in logs and docs, not in this text.
+_LICENSING_TEXT = "Pending content licensing"
 _BLOCKED_REASON = (
-    "Framework content rights are pending decision TC-01-007. "
-    "No licensed catalog is loaded and this entry cannot be enabled."
+    f"{_LICENSING_TEXT}. No licensed catalog is loaded and this entry cannot be enabled."
 )
 _DEV_REASON = (
     "This row is a synthetic dev/test catalog. It is not a production catalog "
@@ -60,7 +62,8 @@ _DEV_REASON = (
 
 
 def _utcnow() -> datetime:
-    return datetime.utcnow()
+    # Naive UTC matches the timestamp columns. utcnow() is deprecated.
+    return datetime.now(UTC).replace(tzinfo=None)
 
 
 def _control_keys_by_framework(db: Session) -> dict[int, list[str]]:
@@ -90,114 +93,15 @@ def label_dev_framework_row(row: Framework) -> None:
     _stamp_common(row, KIND_DEV)
 
 
-def _apply_advertised(row: Framework, spec: AdvertisedCatalog, *, control_count: int) -> None:
-    row.catalog_key = spec.catalog_key
-    row.name = spec.name
-    if not (row.version and row.version.strip()) or is_synthetic_dev_version(row.version):
-        row.version = UNLICENSED_VERSION
-    row.catalog_kind = KIND_ADVERTISED
-    row.enablement_state = ENABLEMENT_BLOCKED
-    row.rights_status = RIGHTS_BLOCKED
-    row.licence_status = LICENCE_NOT_CLEARED
-    if row.content_origin == CONTENT_DEV or not row.content_origin:
-        row.content_origin = CONTENT_LEGACY if control_count else CONTENT_NONE
-    _stamp_common(row, KIND_ADVERTISED)
-
-
-def _apply_legacy(row: Framework) -> None:
-    row.catalog_key = None
-    row.catalog_kind = KIND_LEGACY
-    row.enablement_state = ENABLEMENT_BLOCKED
-    row.rights_status = RIGHTS_BLOCKED
-    row.licence_status = LICENCE_NOT_CLEARED
-    if not row.content_origin or row.content_origin == CONTENT_NONE:
-        row.content_origin = CONTENT_LEGACY
-    _stamp_common(row, KIND_LEGACY)
-
-
-def _new_advertised(spec: AdvertisedCatalog) -> Framework:
-    row = Framework(
-        name=spec.name,
-        version=UNLICENSED_VERSION,
-        catalog_key=spec.catalog_key,
-        catalog_kind=KIND_ADVERTISED,
-        enablement_state=ENABLEMENT_BLOCKED,
-        rights_status=RIGHTS_BLOCKED,
-        licence_status=LICENCE_NOT_CLEARED,
-        rights_ticket=RIGHTS_TICKET,
-        contract_version=CATALOG_CONTRACT_VERSION,
-        content_origin=CONTENT_NONE,
-        scaffold_inserted=True,
-        production_catalog=False,
-        source_provenance=provenance_json(KIND_ADVERTISED),
-        updated_at=_utcnow(),
-    )
-    return row
-
-
 def reconcile_catalog(db: Session) -> None:
-    """Make persisted rows match the blocked registry. Does not commit.
+    """Do not call this from GET or enable. It performs no writes and never renames rows.
 
-    Dev rows lose any production catalog key. Missing advertised rows are
-    inserted as blocked. Rights cannot be cleared from stored columns.
+    Missing advertised rows are inserted by the migration. The list endpoint
+    projects a blocked state in memory when a stored row is missing or tampered.
     """
+    del db
     if rights_are_cleared():
         raise RuntimeError("rights gate must stay closed until TC-01-007 is decided")
-
-    keys = _control_keys_by_framework(db)
-    rows = db.query(Framework).order_by(Framework.id).all()
-    for row in rows:
-        control_keys = keys.get(row.id, [])
-        dev = (
-            row.catalog_kind == KIND_DEV
-            or row.content_origin == CONTENT_DEV
-            or is_dev_catalog_row(row.name, row.version, control_keys)
-        )
-        if dev:
-            label_dev_framework_row(row)
-    db.flush()
-
-    for spec in ADVERTISED_CATALOGS:
-        row = db.query(Framework).filter(Framework.catalog_key == spec.catalog_key).one_or_none()
-        if row is None:
-            # A non-dev row with a matching name can become the advertised slot.
-            match = None
-            for candidate in db.query(Framework).order_by(Framework.id).all():
-                if candidate.catalog_kind == KIND_DEV or candidate.content_origin == CONTENT_DEV:
-                    continue
-                if candidate.catalog_key and candidate.catalog_key != spec.catalog_key:
-                    continue
-                if normalize_catalog_name(candidate.name) in spec.match_norms():
-                    match = candidate
-                    break
-            if match is not None:
-                count = len(keys.get(match.id, []))
-                _apply_advertised(match, spec, control_count=count)
-                db.flush()
-                continue
-            created = _new_advertised(spec)
-            try:
-                with db.begin_nested():
-                    db.add(created)
-                    db.flush()
-            except IntegrityError:
-                db.expunge(created)
-                existing = (
-                    db.query(Framework).filter(Framework.catalog_key == spec.catalog_key).one()
-                )
-                _apply_advertised(existing, spec, control_count=len(keys.get(existing.id, [])))
-            continue
-        _apply_advertised(row, spec, control_count=len(keys.get(row.id, [])))
-
-    for row in db.query(Framework).order_by(Framework.id).all():
-        if row.catalog_key or row.catalog_kind == KIND_DEV:
-            continue
-        _apply_legacy(row)
-    db.flush()
-    present = {key for (key,) in db.query(Framework.catalog_key).all() if key}
-    missing = [spec.catalog_key for spec in ADVERTISED_CATALOGS if spec.catalog_key not in present]
-    if missing:
-        raise RuntimeError("advertised catalog rows were not materialized: " + ",".join(missing))
 
 
 def _iso(value: datetime | None) -> str | None:
@@ -217,32 +121,102 @@ def _row_dev_test_only(row: Framework, control_keys: list[str]) -> bool:
     )
 
 
-def serialize_framework(row: Framework, control_keys: list[str]) -> dict[str, Any]:
-    """Public list item. Existing id/name/version/created_at fields are kept.
+def display_name_for_framework(row: Framework) -> str:
+    """Registry display name for an advertised catalog_key. Stored name is unchanged."""
+    if row.catalog_key:
+        for spec in ADVERTISED_CATALOGS:
+            if spec.catalog_key == row.catalog_key:
+                return spec.name
+    return row.name
 
-    Provenance is rebuilt from the row kind so a stored blob cannot add
-    control text to the response. content_version stays null: no licensed
-    version is loaded. Control titles and descriptions are not read.
+
+def framework_ids_for_exact_name(db: Session, name: str) -> list[int]:
+    """Exact-name lookup. A dev row and an advertised row never both resolve."""
+    rows = db.query(Framework).filter(Framework.name == name).order_by(Framework.id).all()
+    if len(rows) <= 1:
+        return [row.id for row in rows]
+    keys = _control_keys_by_framework(db)
+    dev_ids = {row.id for row in rows if _row_dev_test_only(row, keys.get(row.id, []))}
+    advertised = [row for row in rows if row.id not in dev_ids and row.catalog_key]
+    if dev_ids and advertised:
+        return [row.id for row in advertised]
+    if dev_ids and len(rows) != len(dev_ids):
+        return [row.id for row in rows if row.id not in dev_ids]
+    return [row.id for row in rows]
+
+
+def _virtual_blocked(spec: AdvertisedCatalog) -> dict[str, Any]:
+    """In-memory blocked catalog. Nothing is inserted."""
+    return {
+        "id": None,
+        "name": spec.name,
+        "version": None,
+        "created_at": None,
+        "catalog_key": spec.catalog_key,
+        "source_provenance": provenance_for(KIND_ADVERTISED),
+        "rights_status": RIGHTS_BLOCKED,
+        "licence_status": LICENCE_NOT_CLEARED,
+        "enablement_state": ENABLEMENT_BLOCKED,
+        "catalog_kind": KIND_ADVERTISED,
+        "production_catalog": False,
+        "rights_ticket": RIGHTS_TICKET,
+        "contract_version": CATALOG_CONTRACT_VERSION,
+        "content_version": None,
+        "content_origin": CONTENT_NONE,
+        "blocked_reason": _BLOCKED_REASON,
+        "synthetic_dev_content_present": False,
+        "dev_test_only": False,
+        "stored_control_count": 0,
+        "controls_are_production_catalog": False,
+    }
+
+
+def serialize_framework(row: Framework, control_keys: list[str]) -> dict[str, Any]:
+    """Public list item. Stored name and version are not rewritten.
+
+    Advertised catalogs are projected as blocked even if the stored rights
+    columns were tampered. Provenance is rebuilt so a stored blob cannot add
+    control text. content_version stays null.
     """
     dev_only = _row_dev_test_only(row, control_keys)
-    kind = row.catalog_kind or (KIND_DEV if dev_only else KIND_LEGACY)
-    if row.catalog_key and not dev_only:
+    advertised = bool(row.catalog_key) and not dev_only
+    if advertised:
         kind = KIND_ADVERTISED
-    advertised = kind == KIND_ADVERTISED and bool(row.catalog_key)
-    reason = _DEV_REASON if dev_only else _BLOCKED_REASON
+        reason = _BLOCKED_REASON
+        rights_status = RIGHTS_BLOCKED
+        licence_status = LICENCE_NOT_CLEARED
+        enablement_state = ENABLEMENT_BLOCKED
+        catalog_kind = KIND_ADVERTISED
+        name = display_name_for_framework(row)
+    elif dev_only:
+        kind = KIND_DEV
+        reason = _DEV_REASON
+        rights_status = RIGHTS_DEV
+        licence_status = LICENCE_DEV
+        enablement_state = ENABLEMENT_DEV
+        catalog_kind = KIND_DEV
+        name = row.name
+    else:
+        kind = row.catalog_kind or KIND_LEGACY
+        reason = _BLOCKED_REASON
+        rights_status = RIGHTS_BLOCKED
+        licence_status = LICENCE_NOT_CLEARED
+        enablement_state = ENABLEMENT_BLOCKED
+        catalog_kind = kind
+        name = row.name
     return {
         "id": row.id,
-        "name": row.name,
+        "name": name,
         "version": row.version,
         "created_at": _iso(row.created_at),
-        "catalog_key": row.catalog_key,
-        "source_provenance": provenance_for(KIND_DEV if dev_only else kind),
-        "rights_status": row.rights_status,
-        "licence_status": row.licence_status,
-        "enablement_state": row.enablement_state,
-        "catalog_kind": KIND_DEV if dev_only and not advertised else (row.catalog_kind or kind),
+        "catalog_key": None if dev_only else row.catalog_key,
+        "source_provenance": provenance_for(kind),
+        "rights_status": rights_status,
+        "licence_status": licence_status,
+        "enablement_state": enablement_state,
+        "catalog_kind": catalog_kind,
         "production_catalog": False,
-        "rights_ticket": row.rights_ticket or RIGHTS_TICKET,
+        "rights_ticket": RIGHTS_TICKET,
         "contract_version": row.contract_version or CATALOG_CONTRACT_VERSION,
         "content_version": None,
         "content_origin": row.content_origin,
@@ -255,17 +229,23 @@ def serialize_framework(row: Framework, control_keys: list[str]) -> dict[str, An
 
 
 def list_catalog(db: Session) -> list[dict[str, Any]]:
-    """Return advertised catalogs first, then dev and legacy rows. Commits the reconcile."""
-    reconcile_catalog(db)
-    db.commit()
+    """Read-only list. Does not insert, update, flush, or commit."""
     keys = _control_keys_by_framework(db)
-    rows = db.query(Framework).all()
-    by_key = {row.catalog_key: row for row in rows if row.catalog_key}
+    rows = db.query(Framework).order_by(Framework.id).all()
+    by_key: dict[str, Framework] = {}
+    for row in rows:
+        if (
+            row.catalog_key
+            and row.catalog_key not in by_key
+            and not _row_dev_test_only(row, keys.get(row.id, []))
+        ):
+            by_key[row.catalog_key] = row
     items: list[dict[str, Any]] = []
     seen: set[int] = set()
     for spec in ADVERTISED_CATALOGS:
         row = by_key.get(spec.catalog_key)
         if row is None:
+            items.append(_virtual_blocked(spec))
             continue
         items.append(serialize_framework(row, keys.get(row.id, [])))
         seen.add(row.id)
@@ -328,29 +308,37 @@ def _find_dev_row(db: Session, name: str) -> Framework | None:
 def _write_event(
     db: Session,
     *,
-    framework: Framework,
+    framework: Framework | None,
     workspace_id: int | None,
     actor_user_id: int | None,
     actor_role: str | None,
     catalog_key: str | None,
+    catalog_name: str | None,
     attempted_version: str | None,
     outcome: str,
     error_code: str,
     request_id: str,
     message: str,
 ) -> str | None:
-    """Insert the audit event in a savepoint. Return a safe failure reason, or None."""
+    """Insert only the audit event. Return a safe failure reason, or None.
+
+    framework_id is optional. catalog_key and name are snapshotted so the event
+    survives if the framework row is later removed (ON DELETE SET NULL).
+    """
     if workspace_id is None:
         return "workspace_required"
     try:
         with db.begin_nested():
             db.add(
                 FrameworkCatalogEvent(
-                    framework_id=framework.id,
+                    framework_id=framework.id if framework is not None else None,
                     workspace_id=workspace_id,
                     actor_user_id=actor_user_id,
                     actor_role=(actor_role or None),
                     catalog_key=catalog_key,
+                    name=catalog_name
+                    if catalog_name is not None
+                    else (framework.name if framework is not None else None),
                     attempted_version=attempted_version,
                     outcome=outcome,
                     error_code=error_code,
@@ -376,6 +364,17 @@ class EnableResult:
         return bool(self.error.get("partial_failure"))
 
 
+def _resolve_spec(name: str | None, catalog_key: str | None) -> AdvertisedCatalog | None:
+    """catalog_key is authoritative. A name is not a fallback when a key was sent."""
+    if catalog_key and catalog_key.strip():
+        token = catalog_key.strip()
+        for spec in ADVERTISED_CATALOGS:
+            if spec.catalog_key == token:
+                return spec
+        return None
+    return resolve_advertised(name)
+
+
 def attempt_enable(
     db: Session,
     *,
@@ -385,14 +384,16 @@ def attempt_enable(
     actor_role: str | None,
     workspace_id: int | None,
     request_id: str,
+    catalog_key: str | None = None,
 ) -> EnableResult:
-    """Refuse enablement and persist the blocked or dev-only state.
+    """Refuse enablement. The only write is the audit event. Catalog rows are not changed.
 
     A foreign-key failure while writing the audit event is a partial failure:
-    the catalog row stays blocked (or dev-only) and the event is not written.
+    no catalog row is inserted or updated, and the event is not written.
     """
+    cleaned_key = catalog_key.strip() if isinstance(catalog_key, str) else ""
     cleaned = (name or "").strip()
-    if not cleaned:
+    if not cleaned and not cleaned_key:
         return EnableResult(
             400,
             _error(
@@ -406,37 +407,41 @@ def attempt_enable(
         )
 
     attempted = version.strip() if isinstance(version, str) and version.strip() else None
+    identity = cleaned_key or cleaned
 
-    if is_dev_enable_request(cleaned, attempted):
-        reconcile_catalog(db)
-        dev_row = _find_dev_row(db, cleaned)
-        if dev_row is not None:
-            label_dev_framework_row(dev_row)
-            db.flush()
-        message = "Synthetic DEV catalog keys are dev/test only and cannot be enabled as a production catalog."
-        failure = None
-        if dev_row is not None:
-            failure = _write_event(
-                db,
-                framework=dev_row,
-                workspace_id=workspace_id,
-                actor_user_id=actor_user_id,
-                actor_role=actor_role,
-                catalog_key=None,
-                attempted_version=attempted,
-                outcome="refused_dev",
-                error_code=ERROR_DEV,
-                request_id=request_id,
-                message=message,
-            )
-        db.commit()
+    if is_dev_enable_request(identity, attempted) or is_dev_enable_request(cleaned, attempted):
+        dev_row = _find_dev_row(db, cleaned or identity)
+        message = (
+            "Synthetic DEV catalog keys are dev/test only and cannot be enabled "
+            "as a production catalog."
+        )
+        logger.info(
+            "framework enablement refused dev catalog rights_ticket=%s name=%s",
+            RIGHTS_TICKET,
+            identity,
+        )
+        failure = _write_event(
+            db,
+            framework=dev_row,
+            workspace_id=workspace_id,
+            actor_user_id=actor_user_id,
+            actor_role=actor_role,
+            catalog_key=None,
+            catalog_name=dev_row.name if dev_row is not None else identity,
+            attempted_version=attempted,
+            outcome="refused_dev",
+            error_code=ERROR_DEV,
+            request_id=request_id,
+            message=message,
+        )
         if failure:
+            db.rollback()
             return EnableResult(
                 409,
                 _error(
                     code=ERROR_PARTIAL,
                     message=(
-                        "The synthetic dev catalog was kept dev/test only, but the audit record "
+                        "The synthetic dev catalog was not changed, but the audit record "
                         "could not be written because a foreign-key check failed. "
                         "The catalog was not enabled."
                     ),
@@ -448,11 +453,7 @@ def attempt_enable(
                     enablement_state=ENABLEMENT_DEV,
                     partial_failure=True,
                     steps=[
-                        {
-                            "step": "catalog_state",
-                            "status": "persisted",
-                            "enablement_state": ENABLEMENT_DEV,
-                        },
+                        {"step": "catalog_state", "status": "unchanged"},
                         {"step": "audit_event", "status": "failed", "reason": failure},
                         {
                             "step": "production_enablement",
@@ -463,6 +464,7 @@ def attempt_enable(
                 ),
                 dev_row.id if dev_row is not None else None,
             )
+        db.commit()
         return EnableResult(
             409,
             _error(
@@ -471,7 +473,7 @@ def attempt_enable(
                 request_id=request_id,
                 retryable=False,
                 field_errors={"name": "dev_test_only"}
-                if is_synthetic_dev_control_key(cleaned) or is_synthetic_dev_version(cleaned)
+                if is_synthetic_dev_control_key(identity) or is_synthetic_dev_version(identity)
                 else {"version": "dev_test_only"},
                 rights_status=RIGHTS_DEV,
                 licence_status=LICENCE_DEV,
@@ -480,16 +482,22 @@ def attempt_enable(
             dev_row.id if dev_row is not None else None,
         )
 
-    spec = resolve_advertised(cleaned)
+    spec = _resolve_spec(cleaned, cleaned_key or None)
     if spec is None:
-        bare_nist = normalize_catalog_name(cleaned) == "nist"
+        bare_nist = normalize_catalog_name(cleaned) == "nist" and not cleaned_key
         message = (
             "No advertised framework catalog matches this name."
             if not bare_nist
-            else "NIST is not a single production catalog. NIST CSF 2, NIST 800-53r5, and NIST 800-171r3 are separate catalogs."
+            else (
+                "NIST is not a single production catalog. NIST CSF 2, NIST 800-53r5, "
+                "and NIST 800-171r3 are separate catalogs."
+            )
         )
-        message += (
-            " Every advertised framework is blocked pending content-rights decision TC-01-007."
+        message += f" {_LICENSING_TEXT}."
+        logger.info(
+            "framework enablement refused unknown catalog rights_ticket=%s name=%s",
+            RIGHTS_TICKET,
+            identity,
         )
         return EnableResult(
             400,
@@ -503,14 +511,17 @@ def attempt_enable(
             None,
         )
 
-    reconcile_catalog(db)
-    row = db.query(Framework).filter(Framework.catalog_key == spec.catalog_key).one()
-    keys = _control_keys_by_framework(db).get(row.id, [])
-    _apply_advertised(row, spec, control_count=len(keys))
-    db.flush()
-    message = (
-        f"{spec.name} cannot be enabled. Rights status is blocked pending content-rights "
-        f"decision {RIGHTS_TICKET}. No licensed catalog is loaded."
+    row = (
+        db.query(Framework)
+        .filter(Framework.catalog_key == spec.catalog_key)
+        .order_by(Framework.id)
+        .first()
+    )
+    message = f"{spec.name} cannot be enabled. {_LICENSING_TEXT}. No licensed catalog is loaded."
+    logger.info(
+        "framework enablement refused rights_ticket=%s catalog_key=%s",
+        RIGHTS_TICKET,
+        spec.catalog_key,
     )
     failure = _write_event(
         db,
@@ -519,22 +530,22 @@ def attempt_enable(
         actor_user_id=actor_user_id,
         actor_role=actor_role,
         catalog_key=spec.catalog_key,
+        catalog_name=row.name if row is not None else spec.name,
         attempted_version=attempted,
         outcome="refused_rights",
         error_code=ERROR_RIGHTS,
         request_id=request_id,
         message=message,
     )
-    db.commit()
-    db.refresh(row)
     if failure:
+        db.rollback()
         return EnableResult(
             409,
             _error(
                 code=ERROR_PARTIAL,
                 message=(
-                    f"{spec.name} stays blocked pending {RIGHTS_TICKET}. The blocked catalog state was saved, "
-                    "but the audit record could not be written because a foreign-key check failed. "
+                    f"{spec.name} was not changed. {_LICENSING_TEXT}. The audit record "
+                    "could not be written because a foreign-key check failed. "
                     "Retrying will not enable the catalog."
                 ),
                 request_id=request_id,
@@ -546,11 +557,7 @@ def attempt_enable(
                 enablement_state=ENABLEMENT_BLOCKED,
                 partial_failure=True,
                 steps=[
-                    {
-                        "step": "catalog_state",
-                        "status": "persisted",
-                        "enablement_state": ENABLEMENT_BLOCKED,
-                    },
+                    {"step": "catalog_state", "status": "unchanged"},
                     {"step": "audit_event", "status": "failed", "reason": failure},
                     {
                         "step": "production_enablement",
@@ -559,8 +566,9 @@ def attempt_enable(
                     },
                 ],
             ),
-            row.id,
+            row.id if row is not None else None,
         )
+    db.commit()
     return EnableResult(
         409,
         _error(
@@ -574,11 +582,7 @@ def attempt_enable(
             licence_status=LICENCE_NOT_CLEARED,
             enablement_state=ENABLEMENT_BLOCKED,
             steps=[
-                {
-                    "step": "catalog_state",
-                    "status": "persisted",
-                    "enablement_state": ENABLEMENT_BLOCKED,
-                },
+                {"step": "catalog_state", "status": "unchanged"},
                 {"step": "audit_event", "status": "persisted"},
                 {
                     "step": "production_enablement",
@@ -587,5 +591,5 @@ def attempt_enable(
                 },
             ],
         ),
-        row.id,
+        row.id if row is not None else None,
     )

@@ -16,16 +16,18 @@ class FrameworkCatalogEvent(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     framework_id = Column(
-        Integer, ForeignKey("frameworks.id", ondelete="CASCADE"), nullable=False, index=True
+        Integer, ForeignKey("frameworks.id", ondelete="SET NULL"), nullable=True, index=True
     )
     workspace_id = Column(
-        Integer, ForeignKey("workspaces.id", ondelete="CASCADE"), nullable=False, index=True
+        Integer, ForeignKey("workspaces.id", ondelete="SET NULL"), nullable=True, index=True
     )
     actor_user_id = Column(
         Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True
     )
     actor_role = Column(String(32), nullable=True)
     catalog_key = Column(String(64), nullable=True)
+    # Snapshot of the framework name at attempt time. Audit history is not cascaded.
+    name = Column(String(64), nullable=True)
     attempted_version = Column(String(32), nullable=True)
     outcome = Column(String(32), nullable=False)
     error_code = Column(String(64), nullable=False)

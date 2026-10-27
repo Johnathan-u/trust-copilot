@@ -27,8 +27,9 @@ class EnableFrameworkBody(BaseModel):
 
     model_config = ConfigDict(extra="forbid")
 
-    name: str = Field(max_length=64)
+    name: str | None = Field(default=None, max_length=64)
     version: str | None = Field(default=None, max_length=32)
+    catalog_key: str | None = Field(default=None, max_length=64)
 
 
 class FrameworkCatalogItem(BaseModel):
@@ -68,7 +69,7 @@ def list_frameworks(
     session: dict = Depends(require_can_review),
     db: Session = Depends(get_db),
 ):
-    """List advertised framework catalogs. Each one is blocked pending rights."""
+    """List advertised framework catalogs. Read-only; blocked state is computed in memory."""
     del session
     return list_catalog(db)
 
@@ -82,14 +83,15 @@ def enable_framework(
 ):
     """Refuse to enable a framework whose rights are not cleared.
 
-    The blocked or dev-only outcome is persisted. A foreign-key failure on the
-    audit event returns the partial-failure contract and still does not enable
-    the catalog. Error contract: framework-catalog-error/v1.
+    The only write is the audit event. Catalog rows are not inserted or updated.
+    A foreign-key failure on the audit event returns the partial-failure contract.
+    Error contract: framework-catalog-error/v1.
     """
     result = attempt_enable(
         db,
         name=body.name,
         version=body.version,
+        catalog_key=body.catalog_key,
         actor_user_id=session.get("user_id"),
         actor_role=session.get("role"),
         workspace_id=session.get("workspace_id"),

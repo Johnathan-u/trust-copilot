@@ -6,7 +6,8 @@ import { useAuth } from '@/contexts/AuthContext'
 import {
   catalogStatusLabel,
   catalogDisplayState,
-  enablementSucceeded,
+  enableRequestBody,
+  isDevTestOnly,
   isProductionCatalogEnabled,
   parseCatalogList,
   parseEnableError,
@@ -54,32 +55,23 @@ export default function ComplianceFrameworksPage() {
   }, [load])
 
   const onEnable = async (item: FrameworkCatalogItem) => {
-    const key = item.catalog_key || `row-${item.id ?? item.name}`
-    setBusyKey(key)
+    const payload = enableRequestBody(item)
+    if (!payload) return
+    setBusyKey(payload.catalog_key)
     setBanner(null)
     try {
       const res = await fetch('/api/compliance/frameworks/enable', {
         method: 'POST',
         credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name: item.catalog_key || item.name,
-          version: item.version || undefined,
-        }),
+        body: JSON.stringify(payload),
       })
       const body = await res.json().catch(() => null)
       const parsed = parseEnableError(body)
-      if (enablementSucceeded(res.status, body)) {
-        setBanner({
-          text: 'Enablement did not meet the rights gate and was not applied.',
-          partial: false,
-        })
-      } else {
-        setBanner({
-          text: parsed.message,
-          partial: Boolean(parsed.contract?.partial_failure),
-        })
-      }
+      setBanner({
+        text: parsed.message,
+        partial: Boolean(parsed.contract?.partial_failure),
+      })
       await load()
     } catch {
       setBanner({ text: 'Framework enablement was refused.', partial: false })
@@ -99,9 +91,9 @@ export default function ComplianceFrameworksPage() {
           Framework catalogs
         </h1>
         <p className="text-sm text-[var(--tc-muted)]">
-          Every advertised framework is blocked until content rights are decided
-          in TC-01-007. No control text is loaded. Synthetic dev catalogs stay
-          labelled dev/test only and are not production catalogs.
+          Every advertised framework stays blocked. Pending content licensing.
+          No control text is loaded. Synthetic dev catalogs stay labelled
+          dev/test only and are not production catalogs.
         </p>
       </header>
 
@@ -205,16 +197,17 @@ export default function ComplianceFrameworksPage() {
                       )}
                     </td>
                     <td className="py-3">
-                      {permissions.can_admin ? (
+                      {isDevTestOnly(item) ? (
+                        <span className="text-xs text-[var(--tc-muted)]">
+                          Dev / test catalogs cannot be enabled.
+                        </span>
+                      ) : permissions.can_admin ? (
                         <Button
                           type="button"
                           variant="secondary"
                           size="sm"
-                          disabled={production}
-                          loading={
-                            busyKey ===
-                            (item.catalog_key || `row-${item.id ?? item.name}`)
-                          }
+                          disabled={production || !item.catalog_key}
+                          loading={busyKey === item.catalog_key}
                           onClick={() => void onEnable(item)}
                         >
                           {production ? 'Enabled' : 'Enable'}
