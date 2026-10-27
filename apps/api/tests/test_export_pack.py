@@ -15,7 +15,17 @@ def _ensure_questionnaire(db):
     """Ensure a test questionnaire exists and return its ID."""
     from app.models.questionnaire import Questionnaire, Question
 
-    qnr = db.query(Questionnaire).filter(Questionnaire.workspace_id == 1).first()
+    # Look up only this module's own synthetic questionnaire (never "whatever row is first"):
+    # an arbitrary pre-existing questionnaire may have no questions, depending on test order.
+    qnr = (
+        db.query(Questionnaire)
+        .filter(
+            Questionnaire.workspace_id == 1,
+            Questionnaire.filename == "test_export.xlsx",
+            Questionnaire.deleted_at.is_(None),
+        )
+        .first()
+    )
     if not qnr:
         qnr = Questionnaire(workspace_id=1, filename="test_export.xlsx", status="parsed")
         db.add(qnr)

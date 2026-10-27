@@ -1,0 +1,14 @@
+### tree=/workspace/tc-ci sha=3ee20da image=pgvector/pgvector:pg16@sha256:7b822b0aac60967beb1ea5e576b8602c94c300a157d187f385ae3e0da199b90a db=tc_ci_alone_1793096045_test (fresh, empty) user=tc_ci password=<generated, not shown>
+### questionnaires rows before run: 0 tables named questionnaires (0 = schema not yet migrated)
+### cmd: SESSION_SECRET=test-secret TC_REQUIRE_DB=1 python -m pytest tests/test_vendor_requests_api.py::test_create_with_questionnaire_id -v
+============================= test session starts ==============================
+platform linux -- Python 3.11.17, pytest-9.1.1, pluggy-1.7.0 -- /workspace/tc-fragile-venv/bin/python
+rootdir: /workspace/tc-ci/apps/api
+configfile: pyproject.toml
+plugins: anyio-4.15.1
+collecting ... collected 1 item
+
+tests/test_vendor_requests_api.py::test_create_with_questionnaire_id PASSED [100%]
+
+============================== 1 passed in 1.21s ===============================
+exit=0
