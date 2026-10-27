@@ -147,13 +147,6 @@ def test_generate_answers_passes_document_ids_to_retrieval(db_session: Session):
 
     if not db_session.query(Workspace).filter(Workspace.id == 1).first():
         pytest.skip("no workspace")
-    qnr = (
-        db_session.query(Questionnaire)
-        .filter(Questionnaire.workspace_id == 1, Questionnaire.deleted_at.is_(None))
-        .first()
-    )
-    if not qnr:
-        pytest.skip("no questionnaire")
     doc = (
         db_session.query(Document)
         .filter(Document.workspace_id == 1, Document.deleted_at.is_(None))
@@ -161,14 +154,20 @@ def test_generate_answers_passes_document_ids_to_retrieval(db_session: Session):
     )
     if not doc:
         pytest.skip("no document")
-    qn = db_session.query(Question).filter(Question.questionnaire_id == qnr.id).first()
-    if not qn:
-        pytest.skip("no questions")
+    # Own one unprotected question. TC-10-003 skips approved answers, and an unordered
+    # .first() row may be fully approved or have several questions (the embed stub is one vector).
+    qnr = Questionnaire(
+        workspace_id=1,
+        filename="evidence-scope-probe.xlsx",
+        status="parsed",
+        answer_evidence_document_ids_json=json.dumps([doc.id]),
+    )
+    db_session.add(qnr)
+    db_session.commit()
+    db_session.add(Question(questionnaire_id=qnr.id, text="Synthetic evidence-scope question?"))
+    db_session.commit()
 
     captured: dict = {}
-    old_json = qnr.answer_evidence_document_ids_json
-    qnr.answer_evidence_document_ids_json = json.dumps([doc.id])
-    db_session.commit()
 
     def fake_batch_search(*args, **kwargs):
         captured["document_ids"] = kwargs.get("document_ids")
@@ -194,7 +193,10 @@ def test_generate_answers_passes_document_ids_to_retrieval(db_session: Session):
             except Exception:
                 pass
     finally:
-        qnr.answer_evidence_document_ids_json = old_json
-        db_session.commit()
+        db_session.rollback()
+        row = db_session.query(Questionnaire).filter(Questionnaire.id == qnr.id).first()
+        if row is not None:
+            db_session.delete(row)
+            db_session.commit()
 
     assert captured.get("document_ids") == [doc.id]

@@ -31,6 +31,8 @@ from fastapi.middleware.cors import CORSMiddleware  # noqa: E402
 
 from app.core.config import get_settings  # noqa: E402
 from app.core.logging_config import configure_logging, request_id_ctx, workspace_id_ctx  # noqa: E402
+from app.core.api_errors import model_call_error_handler  # noqa: E402
+from app.services.model_outcomes import ModelCallError  # noqa: E402
 from app.core.metrics import record_request as metrics_record_request  # noqa: E402
 from app.core.rate_limit import get_client_ip, is_rate_limited, record_attempt  # noqa: E402
 from app.api.routes import auth as auth_router  # noqa: E402
@@ -208,6 +210,9 @@ async def lifespan(app: FastAPI):
             logging.getLogger("app.main").warning(
                 "SESSION_SECRET is default or unset. Set SESSION_SECRET to a secure value for non-local use."
             )
+    from app.services.message_providers.selection import assert_message_provider_preflight
+
+    assert_message_provider_preflight()
     print(
         "OpenAI: configured"
         if s.openai_api_key
@@ -275,6 +280,9 @@ class StructuredLoggingMiddleware(BaseHTTPMiddleware):
                 },
             )
             metrics_record_request(method, path, status, elapsed)
+            if "x-request-id" not in response.headers:
+                # TC-11-001: correlate the ApiError request_id with the response.
+                response.headers["X-Request-ID"] = request_id
             return response
         except Exception:
             path = request.scope.get("path") or ""
@@ -349,6 +357,7 @@ class GlobalRateLimitMiddleware(BaseHTTPMiddleware):
         return await call_next(request)
 
 
+app.add_exception_handler(ModelCallError, model_call_error_handler)  # TC-11-001
 app.add_middleware(StructuredLoggingMiddleware)
 app.add_middleware(GlobalRateLimitMiddleware)
 app.add_middleware(CSRFMiddleware)
