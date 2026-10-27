@@ -18,10 +18,9 @@ describe('label option lists', () => {
 
 describe('normalizeLabels', () => {
   it('trims, drops blanks and de-duplicates while keeping order', () => {
-    expect(normalizeLabels([' SOC 2 ', 'HIPAA', '', 'SOC 2', '   ', 'HIPAA'])).toEqual([
-      'SOC 2',
-      'HIPAA',
-    ])
+    expect(
+      normalizeLabels([' SOC 2 ', 'HIPAA', '', 'SOC 2', '   ', 'HIPAA'])
+    ).toEqual(['SOC 2', 'HIPAA'])
   })
 
   it('falls back when nothing usable is provided', () => {

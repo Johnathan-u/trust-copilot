@@ -11,7 +11,9 @@ import {
 describe('answerStatusLabel', () => {
   it('maps API statuses to UI labels', () => {
     expect(answerStatusLabel('pending')).toBe('Not reviewed')
-    expect(answerStatusLabel('insufficient_evidence')).toBe('Needs more evidence')
+    expect(answerStatusLabel('insufficient_evidence')).toBe(
+      'Needs more evidence'
+    )
     expect(answerStatusLabel('approved')).toBe('Approved')
   })
 
@@ -24,7 +26,9 @@ describe('answerStatusLabel', () => {
 describe('generationPhaseMessage', () => {
   it('describes queued and running jobs case-insensitively', () => {
     expect(generationPhaseMessage('QUEUED').title).toBe('Queued')
-    expect(generationPhaseMessage('running').title).toBe('Generating draft answers')
+    expect(generationPhaseMessage('running').title).toBe(
+      'Generating draft answers'
+    )
   })
 
   it('falls back for unknown or empty job status', () => {
@@ -48,18 +52,23 @@ describe('formatGenerationElapsed', () => {
 
 describe('isInsufficientAnswerText', () => {
   it('trusts the API insufficient_evidence status', () => {
-    expect(isInsufficientAnswerText('We encrypt data at rest with AES-256.', 'insufficient_evidence')).toBe(
-      true
-    )
+    expect(
+      isInsufficientAnswerText(
+        'We encrypt data at rest with AES-256.',
+        'insufficient_evidence'
+      )
+    ).toBe(true)
   })
 
   it('flags empty and explicit insufficient-evidence answers', () => {
     expect(isInsufficientAnswerText(null)).toBe(true)
     expect(isInsufficientAnswerText('   ')).toBe(true)
     expect(isInsufficientAnswerText('Insufficient evidence.')).toBe(true)
-    expect(isInsufficientAnswerText('INSUFFICIENT EVIDENCE to answer this question in full detail.')).toBe(
-      true
-    )
+    expect(
+      isInsufficientAnswerText(
+        'INSUFFICIENT EVIDENCE to answer this question in full detail.'
+      )
+    ).toBe(true)
   })
 
   it('flags hedged answers, normalising case and whitespace', () => {
@@ -72,13 +81,17 @@ describe('isInsufficientAnswerText', () => {
   })
 
   it('only inspects the head of long answers', () => {
-    const long = 'Yes. '.repeat(100) + 'the evidence does not explicitly state this.'
+    const long =
+      'Yes. '.repeat(100) + 'the evidence does not explicitly state this.'
     expect(isInsufficientAnswerText(long, 'draft')).toBe(false)
   })
 
   it('does not flag substantive answers', () => {
-    expect(isInsufficientAnswerText('Yes. MFA is enforced for all workforce accounts via SSO.', 'draft')).toBe(
-      false
-    )
+    expect(
+      isInsufficientAnswerText(
+        'Yes. MFA is enforced for all workforce accounts via SSO.',
+        'draft'
+      )
+    ).toBe(false)
   })
 })

@@ -27,11 +27,18 @@ describe('/api proxy route', () => {
     fetchMock.mockResolvedValue(
       new Response('{"ok":true}', {
         status: 200,
-        headers: { 'content-type': 'application/json', 'transfer-encoding': 'chunked', 'x-req': 'r1' },
+        headers: {
+          'content-type': 'application/json',
+          'transfer-encoding': 'chunked',
+          'x-req': 'r1',
+        },
       })
     )
     const req = new NextRequest('http://tc.test/api/auth/me?verbose=1', {
-      headers: { cookie: 'tc_session=synthetic', authorization: 'Bearer synthetic-token' },
+      headers: {
+        cookie: 'tc_session=synthetic',
+        authorization: 'Bearer synthetic-token',
+      },
     })
 
     const res = await route.GET(req, ctx(['auth', 'me']))
@@ -58,7 +65,10 @@ describe('/api proxy route', () => {
     fetchMock.mockResolvedValue(new Response('{"id":3}', { status: 201 }))
     const req = new NextRequest('http://tc.test/api/answers/3', {
       method: 'POST',
-      headers: { referer: 'https://app.tc.test/dashboard/review/3', 'content-type': 'application/json' },
+      headers: {
+        referer: 'https://app.tc.test/dashboard/review/3',
+        'content-type': 'application/json',
+      },
       body: JSON.stringify({ text: 'synthetic answer' }),
     })
 
@@ -70,13 +80,17 @@ describe('/api proxy route', () => {
     expect(headers.Origin).toBe('https://app.tc.test')
     expect(headers.Referer).toBe('https://app.tc.test/dashboard/review/3')
     expect(headers['Content-Type']).toBe('application/json')
-    expect(new TextDecoder().decode(init.body as ArrayBuffer)).toBe('{"text":"synthetic answer"}')
+    expect(new TextDecoder().decode(init.body as ArrayBuffer)).toBe(
+      '{"text":"synthetic answer"}'
+    )
     expect(res.status).toBe(201)
     expect(await res.json()).toEqual({ id: 3 })
   })
 
   it('passes upstream error statuses through unchanged', async () => {
-    fetchMock.mockResolvedValue(new Response('{"detail":"Forbidden"}', { status: 403 }))
+    fetchMock.mockResolvedValue(
+      new Response('{"detail":"Forbidden"}', { status: 403 })
+    )
     const res = await route.DELETE(
       new NextRequest('http://tc.test/api/members/9', { method: 'DELETE' }),
       ctx(['members', '9'])
@@ -87,7 +101,10 @@ describe('/api proxy route', () => {
 
   it('returns 502 with a JSON detail when the upstream is unreachable', async () => {
     fetchMock.mockRejectedValue(new TypeError('fetch failed'))
-    const res = await route.GET(new NextRequest('http://tc.test/api/health'), ctx(['health']))
+    const res = await route.GET(
+      new NextRequest('http://tc.test/api/health'),
+      ctx(['health'])
+    )
     expect(res.status).toBe(502)
     expect((await res.json()).detail).toMatch(/Backend unavailable/)
   })

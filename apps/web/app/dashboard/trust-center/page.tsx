@@ -18,7 +18,13 @@ type TrustArticle = {
   updated_at: string | null
 }
 
-const emptyForm = { slug: '', title: '', content: '', category: '', is_policy: false }
+const emptyForm = {
+  slug: '',
+  title: '',
+  content: '',
+  category: '',
+  is_policy: false,
+}
 
 /** Relative time for updated_at (e.g. "2 days ago"). */
 function formatUpdatedAt(updated_at: string | null | undefined): string | null {
@@ -31,11 +37,18 @@ function formatUpdatedAt(updated_at: string | null | undefined): string | null {
   if (diffDays === 0) return 'Today'
   if (diffDays === 1) return 'Yesterday'
   if (diffDays < 30) return `${diffDays} days ago`
-  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+  return d.toLocaleDateString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+  })
 }
 
 /** Plain-text preview from markdown for overview cards (no raw markdown leak). */
-function previewFromMarkdown(content: string | null | undefined, maxLen: number): string {
+function previewFromMarkdown(
+  content: string | null | undefined,
+  maxLen: number
+): string {
   if (!content || !content.trim()) return ''
   const stripped = content
     .replace(/#{1,6}\s*/g, '')
@@ -71,33 +84,49 @@ export default function TrustCenterPage() {
   const [policies, setPolicies] = useState<TrustArticle[]>([])
   const [acknowledged, setAcknowledged] = useState<Set<number>>(new Set())
   const load = () => {
-    if (workspaceId == null) { setLoading(false); return }
+    if (workspaceId == null) {
+      setLoading(false)
+      return
+    }
     if (articles.length === 0) setLoading(true)
     setRefreshing(true)
-    fetch(`/api/trust-articles?workspace_id=${workspaceId}`, { credentials: 'include' })
+    fetch(`/api/trust-articles?workspace_id=${workspaceId}`, {
+      credentials: 'include',
+    })
       .then((r) => (r.ok ? r.json() : []))
       .then((data) => setArticles(Array.isArray(data) ? data : []))
       .catch(() => setArticles([]))
-      .finally(() => { setLoading(false); setRefreshing(false) })
+      .finally(() => {
+        setLoading(false)
+        setRefreshing(false)
+      })
   }
 
   useEffect(() => {
     load()
-  // eslint-disable-next-line react-hooks/exhaustive-deps -- pre-existing: load() is re-created every render; adding it would refetch in a loop (TC-02-006 follow-up)
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- pre-existing: load() is re-created every render; adding it would refetch in a loop (TC-02-006 follow-up)
   }, [workspaceId])
 
   useEffect(() => {
     if (workspaceId == null) return
-    fetch(`/api/trust-articles?workspace_id=${workspaceId}&policy_only=true`, { credentials: 'include' })
+    fetch(`/api/trust-articles?workspace_id=${workspaceId}&policy_only=true`, {
+      credentials: 'include',
+    })
       .then((r) => (r.ok ? r.json() : []))
       .then((data) => setPolicies(Array.isArray(data) ? data : []))
       .catch(() => setPolicies([]))
   }, [workspaceId])
 
   useEffect(() => {
-    fetch('/api/trust-articles/policy-acknowledgments', { credentials: 'include' })
+    fetch('/api/trust-articles/policy-acknowledgments', {
+      credentials: 'include',
+    })
       .then((r) => (r.ok ? r.json() : { acknowledged_article_ids: [] }))
-      .then((data) => setAcknowledged(new Set((data.acknowledged_article_ids as number[]) || [])))
+      .then((data) =>
+        setAcknowledged(
+          new Set((data.acknowledged_article_ids as number[]) || [])
+        )
+      )
       .catch(() => {})
   }, [])
 
@@ -110,7 +139,13 @@ export default function TrustCenterPage() {
 
   const openEdit = (a: TrustArticle) => {
     setEditId(a.id)
-    setForm({ slug: a.slug, title: a.title, content: a.content ?? '', category: a.category ?? '', is_policy: a.is_policy ?? false })
+    setForm({
+      slug: a.slug,
+      title: a.title,
+      content: a.content ?? '',
+      category: a.category ?? '',
+      is_policy: a.is_policy ?? false,
+    })
     setError(null)
     setFormOpen(true)
   }
@@ -174,7 +209,10 @@ export default function TrustCenterPage() {
   }
 
   const acknowledgePolicy = async (articleId: number) => {
-    const res = await fetch(`/api/trust-articles/${articleId}/acknowledge`, { method: 'POST', credentials: 'include' })
+    const res = await fetch(`/api/trust-articles/${articleId}/acknowledge`, {
+      method: 'POST',
+      credentials: 'include',
+    })
     if (res.ok) setAcknowledged((prev) => new Set(prev).add(articleId))
     else {
       const data = await res.json().catch(() => ({}))
@@ -208,7 +246,10 @@ export default function TrustCenterPage() {
   }
 
   const workspaceSlug = workspace?.slug || ''
-  const publicTrustUrl = typeof window !== 'undefined' && workspaceSlug ? `${window.location.origin}/trust/${workspaceSlug}` : ''
+  const publicTrustUrl =
+    typeof window !== 'undefined' && workspaceSlug
+      ? `${window.location.origin}/trust/${workspaceSlug}`
+      : ''
   const copyPublicLink = () => {
     if (!publicTrustUrl) return
     navigator.clipboard.writeText(publicTrustUrl).then(
@@ -229,39 +270,75 @@ export default function TrustCenterPage() {
     <div className="min-w-0 p-7">
       <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight text-[var(--tc-text)]">Trust Center</h1>
+          <h1 className="text-3xl font-bold tracking-tight text-[var(--tc-text)]">
+            Trust Center
+          </h1>
           <p className="mt-2 text-[15px] text-[var(--tc-muted)]">
-            Manage trust articles and what customers see on your public Trust page.
+            Manage trust articles and what customers see on your public Trust
+            page.
           </p>
           <div className="mt-3 flex flex-wrap items-center gap-2">
             <Button
               variant="secondary"
               size="sm"
-              onClick={() => window.open(publicTrustUrl || '/trust', '_blank', 'noopener,noreferrer')}
+              onClick={() =>
+                window.open(
+                  publicTrustUrl || '/trust',
+                  '_blank',
+                  'noopener,noreferrer'
+                )
+              }
               disabled={!publicTrustUrl}
             >
               View public page
             </Button>
-            <Button variant="ghost" size="sm" onClick={copyPublicLink} disabled={!publicTrustUrl}>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={copyPublicLink}
+              disabled={!publicTrustUrl}
+            >
               Copy public link
             </Button>
           </div>
         </div>
-        {canAdmin && <Button onClick={openAdd} disabled={workspaceId == null}>Add article</Button>}
+        {canAdmin && (
+          <Button onClick={openAdd} disabled={workspaceId == null}>
+            Add article
+          </Button>
+        )}
       </div>
 
       {policies.length > 0 && (
         <section className="mb-6">
-          <h2 className="mb-2 text-sm font-semibold uppercase tracking-wider text-[var(--tc-muted)]">Policy repository</h2>
-          <p className="mb-3 text-sm text-[var(--tc-muted)]">Articles marked as policy. Acknowledge to record that you have read them.</p>
+          <h2 className="mb-2 text-sm font-semibold uppercase tracking-wider text-[var(--tc-muted)]">
+            Policy repository
+          </h2>
+          <p className="mb-3 text-sm text-[var(--tc-muted)]">
+            Articles marked as policy. Acknowledge to record that you have read
+            them.
+          </p>
           <div className="grid gap-3 sm:grid-cols-2">
             {policies.map((p) => (
-              <Card key={p.id} className="flex items-center justify-between p-4">
-                <span className="font-medium text-[var(--tc-text)]">{p.title}</span>
+              <Card
+                key={p.id}
+                className="flex items-center justify-between p-4"
+              >
+                <span className="font-medium text-[var(--tc-text)]">
+                  {p.title}
+                </span>
                 {acknowledged.has(p.id) ? (
-                  <span className="text-xs text-[var(--tc-success)]">Acknowledged</span>
+                  <span className="text-xs text-[var(--tc-success)]">
+                    Acknowledged
+                  </span>
                 ) : (
-                  <Button variant="ghost" size="sm" onClick={() => acknowledgePolicy(p.id)}>Acknowledge</Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => acknowledgePolicy(p.id)}
+                  >
+                    Acknowledge
+                  </Button>
                 )}
               </Card>
             ))}
@@ -271,25 +348,38 @@ export default function TrustCenterPage() {
 
       {!loading && articles.length > 0 && (
         <section className="mb-6">
-          <h2 className="mb-2 text-sm font-semibold uppercase tracking-wider text-[var(--tc-muted)]">Overview (what customers see)</h2>
+          <h2 className="mb-2 text-sm font-semibold uppercase tracking-wider text-[var(--tc-muted)]">
+            Overview (what customers see)
+          </h2>
           <div className="grid gap-4 sm:grid-cols-3">
             {SECTION_SLUGS.map(({ slug, label }) => {
               const article = articles.find((a) => a.slug === slug)
               return (
                 <Card key={slug} className="p-4">
                   <div className="flex items-start justify-between gap-2">
-                    <h3 className="font-semibold text-[var(--tc-text)]">{label}</h3>
+                    <h3 className="font-semibold text-[var(--tc-text)]">
+                      {label}
+                    </h3>
                     {article && canAdmin && (
-                      <Button variant="ghost" size="sm" onClick={() => openEdit(article)}>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => openEdit(article)}
+                      >
                         Edit
                       </Button>
                     )}
                   </div>
                   <p className="mt-2 line-clamp-2 text-sm text-[var(--tc-muted)]">
-                    {article ? (previewFromMarkdown(article.content, 120) || 'No content') : `No article with slug "${slug}"`}
+                    {article
+                      ? previewFromMarkdown(article.content, 120) ||
+                        'No content'
+                      : `No article with slug "${slug}"`}
                   </p>
                   {article && formatUpdatedAt(article.updated_at) && (
-                    <p className="mt-1 text-xs text-[var(--tc-muted)]">Updated {formatUpdatedAt(article.updated_at)}</p>
+                    <p className="mt-1 text-xs text-[var(--tc-muted)]">
+                      Updated {formatUpdatedAt(article.updated_at)}
+                    </p>
                   )}
                 </Card>
               )
@@ -305,25 +395,45 @@ export default function TrustCenterPage() {
           <EmptyState
             title="No trust articles yet"
             description="Add articles to publish in your Trust Center for customers and prospects."
-            action={canAdmin && <Button onClick={openAdd}>Add your first article</Button>}
+            action={
+              canAdmin && (
+                <Button onClick={openAdd}>Add your first article</Button>
+              )
+            }
           />
         ) : (
           <ul className="divide-y divide-white/10">
             {articles.map((a) => (
-              <li key={a.id} className="flex items-center justify-between gap-4 py-3">
+              <li
+                key={a.id}
+                className="flex items-center justify-between gap-4 py-3"
+              >
                 <div className="min-w-0 flex-1">
-                  <span className="block truncate font-medium text-[var(--tc-text)]">{a.title}</span>
+                  <span className="block truncate font-medium text-[var(--tc-text)]">
+                    {a.title}
+                  </span>
                   <span className="text-sm text-[var(--tc-muted)]">
-                    {a.slug}{a.category ? ` · ${a.category}` : ''}
-                    {formatUpdatedAt(a.updated_at) && ` · Updated ${formatUpdatedAt(a.updated_at)}`}
+                    {a.slug}
+                    {a.category ? ` · ${a.category}` : ''}
+                    {formatUpdatedAt(a.updated_at) &&
+                      ` · Updated ${formatUpdatedAt(a.updated_at)}`}
                   </span>
                 </div>
                 {canAdmin && (
                   <div className="flex shrink-0 gap-2">
-                    <Button variant="ghost" size="sm" onClick={() => openEdit(a)}>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => openEdit(a)}
+                    >
                       Edit
                     </Button>
-                    <Button variant="ghost" size="sm" onClick={() => onDelete(a.id)} className="text-[var(--tc-danger)] hover:opacity-90">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => onDelete(a.id)}
+                      className="text-[var(--tc-danger)] hover:opacity-90"
+                    >
                       Delete
                     </Button>
                   </div>
@@ -334,7 +444,11 @@ export default function TrustCenterPage() {
         )}
       </Card>
 
-      <Modal isOpen={formOpen} onClose={closeForm} title={editId ? 'Edit article' : 'Add article'}>
+      <Modal
+        isOpen={formOpen}
+        onClose={closeForm}
+        title={editId ? 'Edit article' : 'Add article'}
+      >
         <form onSubmit={submit} className="space-y-4">
           <Input
             label="Slug"
@@ -354,22 +468,38 @@ export default function TrustCenterPage() {
             label="Category (section)"
             placeholder="e.g. SOC 2, Data Privacy, Security Overview"
             value={form.category}
-            onChange={(e) => setForm((f) => ({ ...f, category: e.target.value }))}
+            onChange={(e) =>
+              setForm((f) => ({ ...f, category: e.target.value }))
+            }
           />
           <label className="flex items-center gap-2 text-sm text-[var(--tc-text)]">
-            <input type="checkbox" checked={form.is_policy} onChange={(e) => setForm((f) => ({ ...f, is_policy: e.target.checked }))} />
+            <input
+              type="checkbox"
+              checked={form.is_policy}
+              onChange={(e) =>
+                setForm((f) => ({ ...f, is_policy: e.target.checked }))
+              }
+            />
             Mark as policy (for policy repository)
           </label>
           <div>
-            <label className="block text-sm font-medium text-[var(--tc-muted)] mb-1">Content</label>
+            <label className="block text-sm font-medium text-[var(--tc-muted)] mb-1">
+              Content
+            </label>
             <textarea
               className="w-full rounded-lg border border-[var(--tc-border)] px-3 py-2 bg-transparent text-[var(--tc-text)] placeholder:text-[var(--tc-muted)] focus:border-[var(--tc-soft)] focus:outline-none focus:ring-1 focus:ring-[var(--tc-soft)] min-h-[120px]"
               placeholder="Article content (Markdown supported)"
               value={form.content}
-              onChange={(e) => setForm((f) => ({ ...f, content: e.target.value }))}
+              onChange={(e) =>
+                setForm((f) => ({ ...f, content: e.target.value }))
+              }
             />
           </div>
-          {error && <div className="rounded-xl bg-[var(--tc-danger)]/10 p-3 text-sm text-[var(--tc-danger)]">{error}</div>}
+          {error && (
+            <div className="rounded-xl bg-[var(--tc-danger)]/10 p-3 text-sm text-[var(--tc-danger)]">
+              {error}
+            </div>
+          )}
           <div className="flex gap-2 justify-end pt-2">
             <Button type="button" variant="ghost" onClick={closeForm}>
               Cancel

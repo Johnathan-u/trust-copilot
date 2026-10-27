@@ -7,7 +7,10 @@ import { NextRequest, NextResponse } from 'next/server'
 
 const API_UPSTREAM = process.env.API_UPSTREAM || 'http://localhost:8000'
 
-function buildBackendUrl(path: string[], searchParams: URLSearchParams): string {
+function buildBackendUrl(
+  path: string[],
+  searchParams: URLSearchParams
+): string {
   const pathStr = path.length ? path.join('/') : ''
   const query = searchParams.toString()
   const base = API_UPSTREAM.replace(/\/$/, '')
@@ -106,7 +109,9 @@ async function proxy(
     // Backend unreachable (ECONNREFUSED, etc.) — return 502 so the client gets a proper response
     // instead of an unhandled exception that surfaces as "Failed to fetch".
     return NextResponse.json(
-      { detail: 'Backend unavailable. Ensure the API is running on port 8000.' },
+      {
+        detail: 'Backend unavailable. Ensure the API is running on port 8000.',
+      },
       { status: 502 }
     )
   }

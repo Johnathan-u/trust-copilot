@@ -24,7 +24,9 @@ describe('auth middleware', () => {
   })
 
   it('lets requests with a session cookie through', () => {
-    const res = middleware(request('/dashboard', 'tc_session=synthetic-test-value'))
+    const res = middleware(
+      request('/dashboard', 'tc_session=synthetic-test-value')
+    )
     expect(res.status).toBe(200)
     expect(res.headers.get('location')).toBeNull()
     expect(res.headers.get('x-middleware-next')).toBe('1')
