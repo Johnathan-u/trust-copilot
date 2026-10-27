@@ -22,6 +22,29 @@ from app.services.storage import StorageClient  # noqa: E402
 from app.services.vector_util import embedding_to_vector_literal, validate_embedding_dimension  # noqa: E402
 
 
+_NO_EMBEDDINGS_MSG = (
+    "No embeddings could be written (API error or dimension mismatch); document not indexed"
+)
+
+
+def _raise_no_embeddings(provider_error: Exception | None) -> None:
+    """TC-10-002: raise a classified error so the worker retries transient provider failures and stops on
+    auth/config ones. The message never contains the raw provider body."""
+    from app.core.config import get_settings
+    from app.core.job_errors import JobConfigError, job_error_from, safe_error_message
+
+    if not (get_settings().openai_api_key or "").strip():
+        # The variable name stays in the server log. Stored job/document errors use the neutral text.
+        logger.warning("OPENAI_API_KEY is not configured; embeddings were not written")
+        raise JobConfigError("AI provider is not configured")
+    if provider_error is not None:
+        raise job_error_from(
+            provider_error,
+            f"Embedding provider error: {safe_error_message(provider_error)}; document not indexed",
+        ) from provider_error
+    raise ValueError(_NO_EMBEDDINGS_MSG)
+
+
 def index_document(
     db: Session,
     document_id: int,
@@ -116,6 +139,9 @@ def index_document(
         texts = [c.text for c in chunks]
         if effects is not None:
             effects.provider_call_started("embeddings")
+        from app.services import embedding_service as _emb
+
+        _emb.reset_last_embed_error()
         embeddings = embed_texts(texts)
 
         embedded_count = 0
@@ -150,9 +176,7 @@ def index_document(
             )
             INDEX_DOCUMENT_TOTAL.labels(status="failure").inc()
             INDEX_DURATION_SECONDS.observe(duration_ms / 1000)
-            raise ValueError(
-                "No embeddings could be written (API error or dimension mismatch); document not indexed"
-            )
+            _raise_no_embeddings(_emb.last_embed_error())
 
         doc.status = "indexed"
         if effects is not None:

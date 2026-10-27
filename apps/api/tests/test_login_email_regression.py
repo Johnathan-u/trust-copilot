@@ -1,6 +1,7 @@
 """Regression tests for login + email sending issues after Docker/Caddy + invite-flow changes."""
 
 import os
+import secrets
 from unittest.mock import MagicMock, patch
 
 import pytest  # noqa: F401
@@ -22,27 +23,31 @@ from app.services.email_service import (
 class TestPasswordHashing:
     """Verify Argon2id hashing and verification work correctly."""
 
+    # TC-07-001: plaintexts are generated per run (no seed-account passwords in source).
+
     def test_hash_and_verify(self):
-        plain = "Admin123!"
+        plain = secrets.token_urlsafe(12)
         hashed = hash_password(plain)
         assert hashed.startswith("$argon2id$")
         assert verify_password(plain, hashed)
 
     def test_wrong_password_fails(self):
-        hashed = hash_password("correct")
-        assert not verify_password("wrong", hashed)
+        right, wrong = secrets.token_urlsafe(12), secrets.token_urlsafe(12)
+        hashed = hash_password(right)
+        assert not verify_password(wrong, hashed)
 
-    def test_demo_password(self):
-        hashed = hash_password("j")
-        assert verify_password("j", hashed)
-        assert not verify_password("k", hashed)
+    def test_single_character_password(self):
+        hashed = hash_password("a")
+        assert verify_password("a", hashed)
+        assert not verify_password("b", hashed)
 
     def test_hash_differs_each_time(self):
-        h1 = hash_password("same")
-        h2 = hash_password("same")
+        plain = secrets.token_urlsafe(12)
+        h1 = hash_password(plain)
+        h2 = hash_password(plain)
         assert h1 != h2
-        assert verify_password("same", h1)
-        assert verify_password("same", h2)
+        assert verify_password(plain, h1)
+        assert verify_password(plain, h2)
 
 
 class TestEmailProviderSelection:

@@ -10,7 +10,6 @@
 export const FRAMEWORK_CATALOG_CONTRACT_VERSION = 'framework-catalog/v1'
 export const FRAMEWORK_CATALOG_ERROR_CONTRACT_VERSION =
   'framework-catalog-error/v1'
-export const FRAMEWORK_RIGHTS_TICKET = 'TC-01-007'
 
 export type FrameworkCatalogItem = {
   id: number | null
@@ -54,12 +53,6 @@ export type FrameworkCatalogError = {
 export type CatalogDisplayState =
   'blocked_pending_rights' | 'dev_test_only' | 'blocked' | 'enabled'
 
-const LEGACY_LIST_FIELDS = ['id', 'name', 'version', 'created_at'] as const
-
-export function hasLegacyListFields(item: FrameworkCatalogItem): boolean {
-  return LEGACY_LIST_FIELDS.every((field) => field in item)
-}
-
 export function isDevTestOnly(item: FrameworkCatalogItem): boolean {
   return Boolean(
     item.dev_test_only ||
@@ -90,11 +83,6 @@ export function isProductionCatalogEnabled(
   if (item.licence_status !== 'cleared') return false
   if (item.enablement_state !== 'enabled') return false
   if (!item.content_version) return false
-  if (
-    item.rights_ticket === FRAMEWORK_RIGHTS_TICKET &&
-    item.rights_status !== 'cleared'
-  )
-    return false
   return true
 }
 
@@ -110,6 +98,11 @@ export function catalogDisplayState(
     return 'blocked_pending_rights'
   }
   return 'blocked'
+}
+
+/** Rights column. Never render the stored rights_status enum. */
+export function catalogRightsLabel(_item: FrameworkCatalogItem): string {
+  return 'Pending content licensing'
 }
 
 export function catalogStatusLabel(item: FrameworkCatalogItem): string {
