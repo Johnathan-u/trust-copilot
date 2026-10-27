@@ -1,0 +1,219 @@
+$ alembic upgrade head
+INFO  [alembic.runtime.migration] Context impl PostgresqlImpl.
+INFO  [alembic.runtime.migration] Will assume transactional DDL.
+INFO  [alembic.runtime.migration] Running upgrade  -> 001, Initial schema: workspaces, jobs, documents.
+INFO  [alembic.runtime.migration] Running upgrade 001 -> 002, Users, workspace_members, questionnaires, questions.
+INFO  [alembic.runtime.migration] Running upgrade 002 -> 003, Seed default workspace for dev.
+INFO  [alembic.runtime.migration] Running upgrade 003 -> 004, Chunks table with pgvector for semantic search (DOC-08, RET-01).
+INFO  [alembic.runtime.migration] Running upgrade 004 -> 005, Add storage_key to questionnaires.
+INFO  [alembic.runtime.migration] Running upgrade 005 -> 006, Export records and trust articles (EXP-01, TC-01).
+INFO  [alembic.runtime.migration] Running upgrade 006 -> 007, Answers table (AI-05).
+INFO  [alembic.runtime.migration] Running upgrade 007 -> 008, Trust requests table (TC-04).
+INFO  [alembic.runtime.migration] Running upgrade 008 -> 009, Audit events table (AUD-201).
+INFO  [alembic.runtime.migration] Running upgrade 009 -> 010, Email verified + verification and reset tokens (AUTH-207, AUTH-209).
+INFO  [alembic.runtime.migration] Running upgrade 010 -> 011, Invites table (AUTH-208).
+INFO  [alembic.runtime.migration] Running upgrade 011 -> 012, User MFA tables (AUTH-211, AUTH-212).
+INFO  [alembic.runtime.migration] Running upgrade 012 -> 013, User sessions table for list/revoke (AUTH-213).
+INFO  [alembic.runtime.migration] Running upgrade 013 -> 014, User OAuth accounts table (ENT-201).
+INFO  [alembic.runtime.migration] Running upgrade 014 -> 015, Workspace auth policy columns (ENT-202).
+INFO  [alembic.runtime.migration] Running upgrade 015 -> 016, Workspace AI settings (model + temperature).
+INFO  [alembic.runtime.migration] Running upgrade 016 -> 017, Trust request assignee (TC-H-B1).
+INFO  [alembic.runtime.migration] Running upgrade 017 -> 018, Trust request notes (TC-H-B2).
+INFO  [alembic.runtime.migration] Running upgrade 018 -> 019, Trust article category/section (TC-R-B1).
+INFO  [alembic.runtime.migration] Running upgrade 019 -> 020, Trust Center: controls, evidence linking, policy flag, acknowledgments, vendor requests (TC-R-B2, B3, B5, B6).
+INFO  [alembic.runtime.migration] Running upgrade 020 -> 021, Add optional attachment to trust requests (public form upload).
+INFO  [alembic.runtime.migration] Running upgrade 021 -> 022, TC-H-B1: Trust request status workflow — canonical statuses, default new.
+INFO  [alembic.runtime.migration] Running upgrade 022 -> 023, TC-H-B2: Add note_type to trust_request_notes (internal_note vs reply).
+INFO  [alembic.runtime.migration] Running upgrade 023 -> 024, Add hnsw index on chunks.embedding for scalable semantic search.
+INFO  [alembic.runtime.migration] Running upgrade 024 -> 025, API keys table for machine auth.
+INFO  [alembic.runtime.migration] Running upgrade 025 -> 026, Worker heartbeat table for /workerz visibility.
+INFO  [alembic.runtime.migration] Running upgrade 026 -> 027, Document index_error for failure reason (pre-pilot).
+INFO  [alembic.runtime.migration] Running upgrade 027 -> 028, Answer pipeline caches and corpus version.
+INFO  [alembic.runtime.migration] Running upgrade 028 -> 029, Idempotency keys table for shared store across API replicas.
+INFO  [alembic.runtime.migration] Running upgrade 029 -> 030, Compliance foundation: frameworks, framework_controls, workspace_controls, evidence, mappings.
+INFO  [alembic.runtime.migration] Running upgrade 030 -> 031, Phase 2: question-control mapping log and manual overrides. No changes to Phase 1 tables.
+INFO  [alembic.runtime.migration] Running upgrade 031 -> 032, Phase 4: Evidence last_verified_at; control verified_at / verified_by_user_id.
+INFO  [alembic.runtime.migration] Running upgrade 032 -> 033, Phase 5: Workspace staleness config, compliance webhook outbox.
+INFO  [alembic.runtime.migration] Running upgrade 033 -> 034, Phase 6: Webhook outbox delivery fields, workspace webhook URL.
+INFO  [alembic.runtime.migration] Running upgrade 034 -> 035, Add 14 missing tables (Phase A-F, dashboard, quotas) and 3 missing columns.
+INFO  [alembic.runtime.migration] Running upgrade 035 -> 036, Add tags and document_tags tables for enterprise document tagging.
+INFO  [alembic.runtime.migration] Running upgrade 036 -> 037, AI mapping and governance tables.
+INFO  [alembic.runtime.migration] Running upgrade 037 -> 038, Registry list metadata across core modules.
+INFO  [alembic.runtime.migration] Running upgrade 038 -> 039, Add invite_code_hash for email verification step before accept (AUTH-208).
+INFO  [alembic.runtime.migration] Running upgrade 039 -> 040, Add routing debug fields and attachment_size to trust_requests.
+INFO  [alembic.runtime.migration] Running upgrade 040 -> 041, Add status and updated_at to question_mapping_preferences for questionnaire mapping flow.
+INFO  [alembic.runtime.migration] Running upgrade 041 -> 042, Questionnaire soft framework preference for AI control mapping.
+INFO  [alembic.runtime.migration] Running upgrade 042 -> 043, Questionnaire-scoped answer evidence (document allowlist for AI answers).
+INFO  [alembic.runtime.migration] Running upgrade 043 -> 044, Questionnaire AI mapping prefers subject areas (categories), not frameworks.
+INFO  [alembic.runtime.migration] Running upgrade 044 -> 045, Enterprise AI pipeline: question mapping signals, answer outcome fields, workspace usage tracking.
+INFO  [alembic.runtime.migration] Running upgrade 045 -> 046, Placeholder migration to fix chain (046 was missing).
+INFO  [alembic.runtime.migration] Running upgrade 046 -> 047, Evidence gaps table for AI-generated gap analysis.
+INFO  [alembic.runtime.migration] Running upgrade 047 -> 048, Add evidence_fingerprint to answers table.
+INFO  [alembic.runtime.migration] Running upgrade 048 -> 049, Add message column to vendor_requests table.
+INFO  [alembic.runtime.migration] Running upgrade 049 -> 050, Create evidence_gaps table.
+INFO  [alembic.runtime.migration] Running upgrade 050 -> 051, Create subscriptions table for Stripe billing.
+INFO  [alembic.runtime.migration] Running upgrade 051 -> 052, Per-workspace feature flags.
+INFO  [alembic.runtime.migration] Running upgrade 052 -> 053, Create credit_ledgers and credit_transactions tables.
+INFO  [alembic.runtime.migration] Running upgrade 053 -> 054, Create operator_queue_items table.
+INFO  [alembic.runtime.migration] Running upgrade 054 -> 055, Create security_faq table.
+INFO  [alembic.runtime.migration] Running upgrade 055 -> 056, Create source_registry table.
+INFO  [alembic.runtime.migration] Running upgrade 056 -> 057, Create credential_store table.
+INFO  [alembic.runtime.migration] Running upgrade 057 -> 058, Create product_events table.
+INFO  [alembic.runtime.migration] Running upgrade 058 -> 059, Create case_studies table.
+INFO  [alembic.runtime.migration] Running upgrade 059 -> 060, Create control_state_snapshots table.
+INFO  [alembic.runtime.migration] Running upgrade 060 -> 061, Create alert_acknowledgments table.
+INFO  [alembic.runtime.migration] Running upgrade 061 -> 062, Create nda_access_requests table.
+INFO  [alembic.runtime.migration] Running upgrade 062 -> 063, Create shareable_spaces table.
+INFO  [alembic.runtime.migration] Running upgrade 063 -> 064, Create golden_answers table.
+INFO  [alembic.runtime.migration] Running upgrade 064 -> 065, answer approval events and golden_answers reviewer columns
+INFO  [alembic.runtime.migration] Running upgrade 065 -> 066, evidence item approval columns
+INFO  [alembic.runtime.migration] Running upgrade 066 -> 067, freshness policies table
+INFO  [alembic.runtime.migration] Running upgrade 067 -> 068, retention policies table
+INFO  [alembic.runtime.migration] Running upgrade 068 -> 069, deals table
+INFO  [alembic.runtime.migration] Running upgrade 069 -> 070, remediation playbooks and tickets
+INFO  [alembic.runtime.migration] Running upgrade 070 -> 071, remediation evidence linkage, audit log, automation opt-in
+INFO  [alembic.runtime.migration] Running upgrade 071 -> 072, trust promises and contract documents (E2-08, E2-09)
+INFO  [alembic.runtime.migration] Running upgrade 072 -> 073, Buyer portal, escalations, satisfaction, snapshots (E4-20..E4-24)
+INFO  [alembic.runtime.migration] Running upgrade 073 -> 074, Proof graph, artifact hashes, diffs, reuse provenance (E5-25..E5-30)
+INFO  [alembic.runtime.migration] Running upgrade 074 -> 075, Answer delivery outcome tags (E6-31)
+INFO  [alembic.runtime.migration] Running upgrade 075 -> tc21001_framework_catalog_rights, Framework catalog version, provenance, rights, and enablement.
+INFO  [alembic.runtime.migration] Running upgrade tc21001_framework_catalog_rights -> tc11001_model_outcome_codes, Typed model outcome and job error codes (TC-11-001)
+INFO  [alembic.runtime.migration] Running upgrade tc11001_model_outcome_codes -> tc10003_job_idempotency, TC-10-003: idempotent job side effects.
+INFO  [alembic.runtime.migration] Running upgrade tc10003_job_idempotency -> tc10002_job_retries, TC-10-002: scheduled job retries.
+$ TC_REQUIRE_DB=1 SESSION_SECRET=test-secret pytest -p no:cacheprovider -rs -v tests/test_job_retries.py tests/test_job_idempotency.py tests/release/test_health_probes.py tests/release/test_health_probes_isolation.py
+============================= test session starts ==============================
+platform linux -- Python 3.11.18, pytest-9.1.1, pluggy-1.7.0 -- /usr/local/bin/python3.11
+rootdir: /repo/apps/api
+configfile: pyproject.toml
+plugins: anyio-4.15.1
+collecting ... collected 126 items
+
+tests/test_job_retries.py::test_classifier_table[exc0-rate_limited-True] PASSED [  0%]
+tests/test_job_retries.py::test_classifier_table[exc1-rate_limited-True] PASSED [  1%]
+tests/test_job_retries.py::test_classifier_table[exc2-timeout-True] PASSED [  2%]
+tests/test_job_retries.py::test_classifier_table[exc3-timeout-True] PASSED [  3%]
+tests/test_job_retries.py::test_classifier_table[exc4-timeout-True] PASSED [  3%]
+tests/test_job_retries.py::test_classifier_table[exc5-timeout-True] PASSED [  4%]
+tests/test_job_retries.py::test_classifier_table[exc6-upstream_unavailable-True] PASSED [  5%]
+tests/test_job_retries.py::test_classifier_table[exc7-upstream_unavailable-True] PASSED [  6%]
+tests/test_job_retries.py::test_classifier_table[exc8-upstream_unavailable-True] PASSED [  7%]
+tests/test_job_retries.py::test_classifier_table[exc9-connection_error-True] PASSED [  7%]
+tests/test_job_retries.py::test_classifier_table[exc10-connection_error-True] PASSED [  8%]
+tests/test_job_retries.py::test_classifier_table[exc11-connection_error-True] PASSED [  9%]
+tests/test_job_retries.py::test_classifier_table[exc12-rate_limited-True] PASSED [ 10%]
+tests/test_job_retries.py::test_classifier_table[exc13-upstream_unavailable-True] PASSED [ 11%]
+tests/test_job_retries.py::test_classifier_table[exc14-database_unavailable-True] PASSED [ 11%]
+tests/test_job_retries.py::test_classifier_table[exc15-upstream_unavailable-True] PASSED [ 12%]
+tests/test_job_retries.py::test_classifier_table[exc16-rate_limited-True] PASSED [ 13%]
+tests/test_job_retries.py::test_classifier_table[exc17-bad_input-False] PASSED [ 14%]
+tests/test_job_retries.py::test_classifier_table[exc18-bad_input-False] PASSED [ 15%]
+tests/test_job_retries.py::test_classifier_table[exc19-auth_failed-False] PASSED [ 15%]
+tests/test_job_retries.py::test_classifier_table[exc20-permission_denied-False] PASSED [ 16%]
+tests/test_job_retries.py::test_classifier_table[exc21-not_found-False] PASSED [ 17%]
+tests/test_job_retries.py::test_classifier_table[exc22-not_found-False] PASSED [ 18%]
+tests/test_job_retries.py::test_classifier_table[exc23-permission_denied-False] PASSED [ 19%]
+tests/test_job_retries.py::test_classifier_table[exc24-auth_failed-False] PASSED [ 19%]
+tests/test_job_retries.py::test_classifier_table[exc25-bad_input-False] PASSED [ 20%]
+tests/test_job_retries.py::test_classifier_table[exc26-bad_input-False] PASSED [ 21%]
+tests/test_job_retries.py::test_classifier_table[exc27-bad_input-False] PASSED [ 22%]
+tests/test_job_retries.py::test_classifier_table[exc28-bad_input-False] PASSED [ 23%]
+tests/test_job_retries.py::test_classifier_table[exc29-config_error-False] PASSED [ 23%]
+tests/test_job_retries.py::test_classifier_table[exc30-internal_error-False] PASSED [ 24%]
+tests/test_job_retries.py::test_classifier_table[exc31-internal_error-False] PASSED [ 25%]
+tests/test_job_retries.py::test_typed_errors_keep_their_code_and_value_error_compat PASSED [ 26%]
+tests/test_job_retries.py::test_safe_error_message_never_contains_provider_body PASSED [ 26%]
+tests/test_job_retries.py::test_retry_after_parsing PASSED               [ 27%]
+tests/test_job_retries.py::test_backoff_is_bounded_exponential_with_jitter PASSED [ 28%]
+tests/test_job_retries.py::test_backoff_honours_retry_after_but_clamps_to_cap PASSED [ 29%]
+tests/test_job_retries.py::test_attempt_ceiling_and_env_config PASSED    [ 30%]
+tests/test_job_retries.py::test_inner_completion_retry_uses_jittered_bounded_backoff PASSED [ 30%]
+tests/test_job_retries.py::test_embed_texts_records_last_error_for_classification PASSED [ 31%]
+tests/test_job_retries.py::test_transient_failure_schedules_bounded_retry_and_is_not_claimable_early PASSED [ 32%]
+tests/test_job_retries.py::test_claim_increments_attempt_and_clears_schedule PASSED [ 33%]
+tests/test_job_retries.py::test_retry_exhaustion_fails_visibly_never_completed PASSED [ 34%]
+tests/test_job_retries.py::test_hard_ceiling_bounds_attempts_even_if_max_attempts_is_large PASSED [ 34%]
+tests/test_job_retries.py::test_terminal_errors_stop_on_first_attempt[exc0-bad_input] PASSED [ 35%]
+tests/test_job_retries.py::test_terminal_errors_stop_on_first_attempt[exc1-auth_failed] PASSED [ 36%]
+tests/test_job_retries.py::test_terminal_errors_stop_on_first_attempt[exc2-config_error] PASSED [ 37%]
+tests/test_job_retries.py::test_terminal_errors_stop_on_first_attempt[exc3-not_found] PASSED [ 38%]
+tests/test_job_retries.py::test_terminal_errors_stop_on_first_attempt[exc4-internal_error] PASSED [ 38%]
+tests/test_job_retries.py::test_model_failures_keep_tc11001_codes_and_catalog_retryability PASSED [ 39%]
+tests/test_job_retries.py::test_retry_not_requeued_when_identical_job_already_queued PASSED [ 40%]
+tests/test_job_retries.py::test_index_retry_keeps_document_pending_and_terminal_marks_failed PASSED [ 41%]
+tests/test_job_retries.py::test_unreadable_pdf_is_terminal_and_marks_questionnaire_failed PASSED [ 42%]
+tests/test_job_retries.py::test_process_one_job_end_to_end_retry_then_success PASSED [ 42%]
+tests/test_job_retries.py::test_success_keeps_error_code_the_handler_set_on_a_completed_job PASSED [ 43%]
+tests/test_job_retries.py::test_retry_then_success_clears_only_the_stale_attempt_error PASSED [ 44%]
+tests/test_job_retries.py::test_failure_handler_never_overwrites_a_committed_completion[exc0] PASSED [ 45%]
+tests/test_job_retries.py::test_failure_handler_never_overwrites_a_committed_completion[exc1] PASSED [ 46%]
+tests/test_job_retries.py::test_failure_handler_never_overwrites_a_committed_completion[exc2] PASSED [ 46%]
+tests/test_job_retries.py::test_post_commit_exception_in_worker_loop_keeps_completed_error_code PASSED [ 47%]
+tests/test_job_retries.py::test_jobs_api_exposes_retry_state PASSED      [ 48%]
+tests/test_job_retries.py::test_generate_transient_llm_errors_retry_only_failed_questions PASSED [ 49%]
+tests/test_job_retries.py::test_generate_auth_error_stops_explicitly PASSED [ 50%]
+tests/test_job_retries.py::test_generate_bad_request_question_stays_visible_placeholder PASSED [ 50%]
+tests/test_job_retries.py::test_generate_missing_api_key_is_terminal_config_error PASSED [ 51%]
+tests/test_job_retries.py::test_write_guard_does_not_protect_llm_error_placeholders PASSED [ 52%]
+tests/test_job_retries.py::test_index_no_embeddings_raises_classified_errors PASSED [ 53%]
+tests/test_job_retries.py::test_migration_downgrade_and_upgrade_roundtrip PASSED [ 53%]
+tests/test_job_idempotency.py::test_enqueue_dedupes_only_queued_jobs PASSED [ 54%]
+tests/test_job_idempotency.py::test_enqueue_race_returns_winner_via_unique_index PASSED [ 55%]
+tests/test_job_idempotency.py::test_parse_crash_after_commit_does_not_duplicate_questions PASSED [ 56%]
+tests/test_job_idempotency.py::test_parse_crash_before_commit_applies_exactly_once PASSED [ 57%]
+tests/test_job_idempotency.py::test_parse_second_job_reconciles_instead_of_duplicating PASSED [ 57%]
+tests/test_job_idempotency.py::test_parse_stale_input_is_superseded[storage_key] PASSED [ 58%]
+tests/test_job_idempotency.py::test_parse_stale_input_is_superseded[deleted] PASSED [ 59%]
+tests/test_job_idempotency.py::test_index_rerun_after_commit_does_not_reembed_or_duplicate PASSED [ 60%]
+tests/test_job_idempotency.py::test_index_crash_during_provider_call_records_uncertain_charge PASSED [ 61%]
+tests/test_job_idempotency.py::test_failure_path_marks_unsettled_provider_calls_uncertain PASSED [ 61%]
+tests/test_job_idempotency.py::test_index_second_job_same_version_reconciles_without_embedding PASSED [ 62%]
+tests/test_job_idempotency.py::test_concurrent_index_second_job_sees_applied_state_without_reembedding PASSED [ 63%]
+tests/test_job_idempotency.py::test_index_stale_input_version_is_superseded PASSED [ 64%]
+tests/test_job_idempotency.py::test_generate_never_overwrites_approved_or_newer_answers PASSED [ 65%]
+tests/test_job_idempotency.py::test_generate_rerun_is_idempotent_and_counts_usage_once PASSED [ 65%]
+tests/test_job_idempotency.py::test_upsert_guard_rechecks_answer_approved_mid_run PASSED [ 66%]
+tests/test_job_idempotency.py::test_export_crash_after_upload_before_record_reuses_key PASSED [ 67%]
+tests/test_job_idempotency.py::test_export_record_job_id_is_unique PASSED [ 68%]
+tests/test_job_idempotency.py::test_export_route_idempotency_key_scoped_and_released_on_429 PASSED [ 69%]
+tests/test_job_idempotency.py::test_expired_idempotency_claim_can_be_reclaimed PASSED [ 69%]
+tests/test_job_idempotency.py::test_unexpired_in_progress_idempotency_claim_returns_409 PASSED [ 70%]
+tests/test_job_idempotency.py::test_cleanup_expired_idempotency_keys_deletes_only_expired_rows PASSED [ 71%]
+tests/test_job_idempotency.py::test_idempotency_key_rejects_empty_oversized_and_bad_characters[] PASSED [ 72%]
+tests/test_job_idempotency.py::test_idempotency_key_rejects_empty_oversized_and_bad_characters[   ] PASSED [ 73%]
+tests/test_job_idempotency.py::test_idempotency_key_rejects_empty_oversized_and_bad_characters[has space] PASSED [ 73%]
+tests/test_job_idempotency.py::test_idempotency_key_rejects_empty_oversized_and_bad_characters[bad/key] PASSED [ 74%]
+tests/test_job_idempotency.py::test_idempotency_key_rejects_empty_oversized_and_bad_characters[aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa] PASSED [ 75%]
+tests/test_job_idempotency.py::test_idempotency_key_rejects_empty_oversized_and_bad_characters[aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa] PASSED [ 76%]
+tests/test_job_idempotency.py::test_idempotency_key_accepts_token_characters PASSED [ 76%]
+tests/test_job_idempotency.py::test_export_route_without_key_reuses_identical_queued_job PASSED [ 77%]
+tests/test_job_idempotency.py::test_jobs_api_reports_charge_uncertain PASSED [ 78%]
+tests/test_job_idempotency.py::test_upload_routes_set_input_version PASSED [ 79%]
+tests/test_job_idempotency.py::test_migration_downgrade_and_upgrade_roundtrip PASSED [ 80%]
+tests/release/test_health_probes.py::test_readyz_ready_reports_each_check PASSED [ 80%]
+tests/release/test_health_probes.py::test_database_loss_fails_readiness_but_not_liveness PASSED [ 81%]
+tests/release/test_health_probes.py::test_storage_loss_fails_readiness_but_not_liveness PASSED [ 82%]
+tests/release/test_health_probes.py::test_hanging_dependency_fails_readiness_within_timeout PASSED [ 83%]
+tests/release/test_health_probes.py::test_liveness_never_touches_dependencies PASSED [ 84%]
+tests/release/test_health_probes.py::test_workerz_fresh_heartbeat_is_alive PASSED [ 84%]
+tests/release/test_health_probes.py::test_workerz_stale_heartbeat_is_503 PASSED [ 85%]
+tests/release/test_health_probes.py::test_workerz_staleness_threshold_is_configurable PASSED [ 86%]
+tests/release/test_health_probes.py::test_workerz_store_unavailable_is_unknown_and_redacted PASSED [ 87%]
+tests/release/test_health_probes.py::test_long_healthy_job_keeps_refreshing_heartbeat PASSED [ 88%]
+tests/release/test_health_probes.py::test_job_over_max_runtime_withholds_heartbeat PASSED [ 88%]
+tests/release/test_health_probes.py::test_stalled_claim_loop_withholds_heartbeat PASSED [ 89%]
+tests/release/test_health_probes.py::test_db_write_failure_does_not_kill_heartbeat PASSED [ 90%]
+tests/release/test_health_probes.py::test_heartbeat_thread_runs_in_background PASSED [ 91%]
+tests/release/test_health_probes.py::test_worker_job_execution_marks_job_running_for_heartbeat PASSED [ 92%]
+tests/release/test_health_probes.py::test_worker_main_starts_background_heartbeat PASSED [ 92%]
+tests/release/test_health_probes.py::test_worker_db_heartbeat_write_is_read_as_fresh PASSED [ 93%]
+tests/release/test_health_probes.py::test_worker_probe_fresh_file_is_healthy_without_http PASSED [ 94%]
+tests/release/test_health_probes.py::test_worker_probe_stale_or_missing_file_is_unhealthy PASSED [ 95%]
+tests/release/test_health_probes.py::test_api_probe_uses_loopback_healthz_and_unknown_role_fails PASSED [ 96%]
+tests/release/test_health_probes.py::test_worker_probe_cli_end_to_end PASSED [ 96%]
+tests/release/test_health_probes.py::test_compose_worker_has_non_http_probe[docker-compose.prod.yml] PASSED [ 97%]
+tests/release/test_health_probes.py::test_compose_worker_has_non_http_probe[docker-compose.yml] PASSED [ 98%]
+tests/release/test_health_probes.py::test_production_image_healthcheck_is_role_aware PASSED [ 99%]
+tests/release/test_health_probes_isolation.py::test_health_probes_file_passes_alone_on_fresh_db PASSED [100%]
+
+============================= 126 passed in 17.15s =============================
+PYTEST_EXIT 0
