@@ -4,12 +4,14 @@ Covers the full outbound request lifecycle:
   create → list → status update → edge cases
 """
 
+from collections.abc import Generator
+
 import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 
 from app.core.password import hash_password
-from app.models import User, WorkspaceMember
+from app.models import Questionnaire, User, WorkspaceMember
 from app.models.vendor_request import VENDOR_REQUEST_STATUSES
 
 
@@ -35,6 +37,30 @@ def admin_user(db_session: Session) -> User:
         mem.role = "admin"
         db_session.commit()
     return user
+
+
+@pytest.fixture
+def own_questionnaire(db_session: Session) -> Generator[int, None, None]:
+    """Synthetic questionnaire owned by this test in the admin user's workspace (1).
+
+    vendor_requests.questionnaire_id is a real FK to questionnaires.id, so the test must not
+    assume any particular row (e.g. id 1) already exists: on a fresh DB it does not.
+    """
+    qnr = Questionnaire(
+        workspace_id=1,
+        filename="vendor-request-own-questionnaire.xlsx",
+        status="parsed",
+        display_id="QNR-VREQ-OWN",
+    )
+    db_session.add(qnr)
+    db_session.commit()
+    db_session.refresh(qnr)
+    qnr_id = qnr.id
+    yield qnr_id
+    # FK is ON DELETE SET NULL, so removing the row never breaks the vendor request it created.
+    db_session.rollback()
+    db_session.query(Questionnaire).filter(Questionnaire.id == qnr_id).delete()
+    db_session.commit()
 
 
 def _login_admin(client: TestClient, admin_user: User) -> None:
@@ -91,17 +117,20 @@ def test_create_returns_pending_status_and_link(client: TestClient, admin_user: 
     assert data["link_token"] in data["share_url"]
 
 
-def test_create_with_questionnaire_id(client: TestClient, admin_user: User) -> None:
-    """POST can include optional questionnaire_id."""
+def test_create_with_questionnaire_id(
+    client: TestClient, admin_user: User, own_questionnaire: int
+) -> None:
+    """POST can include optional questionnaire_id (a questionnaire this test created)."""
     _login_admin(client, admin_user)
     r = client.post(
         "/api/vendor-requests/",
-        json={"vendor_email": "v2@example.com", "questionnaire_id": 1},
+        json={"vendor_email": "v2@example.com", "questionnaire_id": own_questionnaire},
     )
     assert r.status_code in (200, 201)
     data = r.json()
     assert data["vendor_email"] == "v2@example.com"
-    assert data.get("questionnaire_id") == 1
+    assert data["workspace_id"] == 1
+    assert data.get("questionnaire_id") == own_questionnaire
 
 
 def test_create_with_message(client: TestClient, admin_user: User) -> None:
