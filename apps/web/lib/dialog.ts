@@ -1,0 +1,80 @@
+/**
+ * Dialog behavior contract.
+ *
+ * The visual shell is `components/ui/Dialog`. A later navigation drawer
+ * (TC-14-006) can adopt `placement: 'drawer-start' | 'drawer-end'` without a
+ * second focus implementation. This module has no DOM calls so unit tests can
+ * lock the contract under the existing Node Vitest setup.
+ */
+
+export const DIALOG_ROLES = ['dialog', 'alertdialog'] as const
+export type DialogRole = (typeof DIALOG_ROLES)[number]
+
+export const DIALOG_PLACEMENTS = [
+  'center',
+  'drawer-start',
+  'drawer-end',
+] as const
+export type DialogPlacement = (typeof DIALOG_PLACEMENTS)[number]
+
+export const DIALOG_SIZES = ['sm', 'md', 'lg'] as const
+export type DialogSize = (typeof DIALOG_SIZES)[number]
+
+/** Stable attributes the shell and adopters share. */
+export const dialogAttributes = {
+  root: 'data-tc-dialog-root',
+  close: 'data-dialog-close',
+  /** Present on the least-destructive control inside an alertdialog. */
+  initial: 'data-dialog-initial',
+  initialDismiss: 'dismiss',
+} as const
+
+export function dialogRoleForDestructive(destructive: boolean): DialogRole {
+  return destructive ? 'alertdialog' : 'dialog'
+}
+
+/**
+ * Next index in a tab cycle. `count` 0 returns 0 so callers can bail out
+ * before focusing. A single stop stays put. Otherwise Tab wraps at the ends.
+ */
+export function nextTabbableIndex(
+  current: number,
+  count: number,
+  shift: boolean
+): number {
+  if (count <= 0) return 0
+  if (count === 1) return 0
+  const index = Number.isFinite(current) ? current : -1
+  if (shift) return index <= 0 ? count - 1 : index - 1
+  return index >= count - 1 || index < 0 ? 0 : index + 1
+}
+
+const centerPanel =
+  'relative z-10 flex max-h-[calc(100dvh-3rem)] w-full flex-col overflow-y-auto overscroll-contain rounded-tc border border-tc-border p-tc-6 shadow-[var(--tc-shadow)]'
+
+/** Class fragments for each placement. Drawer widths are for a later adopter. */
+export const dialogPlacementClass: Record<
+  DialogPlacement,
+  { root: string; panel: string }
+> = {
+  center: {
+    root: 'fixed inset-0 z-50 flex items-center justify-center p-tc-4',
+    panel: centerPanel,
+  },
+  'drawer-start': {
+    root: 'fixed inset-0 z-50 flex justify-start',
+    panel:
+      'relative z-10 flex h-full max-h-[100dvh] w-[min(100%,20rem)] flex-col overflow-y-auto overscroll-contain border-r border-tc-border p-tc-4 shadow-[var(--tc-shadow)]',
+  },
+  'drawer-end': {
+    root: 'fixed inset-0 z-50 flex justify-end',
+    panel:
+      'relative z-10 flex h-full max-h-[100dvh] w-[min(100%,20rem)] flex-col overflow-y-auto overscroll-contain border-l border-tc-border p-tc-4 shadow-[var(--tc-shadow)]',
+  },
+}
+
+export const dialogSizeClass: Record<DialogSize, string> = {
+  sm: 'max-w-sm',
+  md: 'max-w-md',
+  lg: 'max-w-2xl',
+}

@@ -1,7 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useState } from 'react'
-import { Button, Card, Toast } from '@/components/ui'
+import { Button, Card, ToastNotice } from '@/components/ui'
 import { useAuth } from '@/contexts/AuthContext'
 
 type ConfDist = { high: number; medium: number; low: number; none: number }
@@ -625,7 +625,7 @@ export default function AIInsightsPage() {
       </section>
 
       {toast && (
-        <Toast
+        <ToastNotice
           title="Info"
           message={toast}
           type="success"

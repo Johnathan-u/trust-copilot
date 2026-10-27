@@ -1,7 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useState } from 'react'
-import { Button, Card, Input, Modal, Toast } from '@/components/ui'
+import { Button, Card, Input, Modal, ToastNotice } from '@/components/ui'
 import { useAuth } from '@/contexts/AuthContext'
 
 /* ──────────────────── Types ──────────────────── */
@@ -418,7 +418,7 @@ export default function RequestsPage() {
       </Modal>
 
       {toast && (
-        <Toast
+        <ToastNotice
           title={toast.type === 'success' ? 'Success' : 'Error'}
           message={toast.message}
           type={toast.type}

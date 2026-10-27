@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { useParams } from 'next/navigation'
 import Link from 'next/link'
-import { Button, Card, Input } from '@/components/ui'
+import { Button, Card, Input, Modal } from '@/components/ui'
 import { MarkdownContent } from '@/components/MarkdownContent'
 
 const ALLOWED_EXTENSIONS = '.pdf,.docx,.doc,.xlsx,.xls,.txt'
@@ -63,6 +63,7 @@ export default function WorkspaceTrustPage() {
   const [selected, setSelected] = useState<{
     title: string
     content: string
+    category?: string | null
   } | null>(null)
   const [showForm, setShowForm] = useState(false)
   const [form, setForm] = useState({
@@ -105,10 +106,18 @@ export default function WorkspaceTrustPage() {
 
   const openArticle = (id: number) => {
     if (!workspace) return
+    const listed = articles.find((article) => article.id === id)
     fetch(`/api/trust-articles/${id}?workspace_id=${workspace.id}`)
       .then((r) => (r.ok ? r.json() : null))
       .then(
-        (d) => d && setSelected({ title: d.title, content: d.content || '' })
+        (d) =>
+          d &&
+          setSelected({
+            title: d.title,
+            content: d.content || '',
+            category:
+              typeof d.category === 'string' ? d.category : listed?.category,
+          })
       )
   }
 
@@ -377,6 +386,12 @@ export default function WorkspaceTrustPage() {
                         key={a.id}
                         className="group cursor-pointer transition-all duration-200 hover:border-[var(--tc-border-strong)]"
                         onClick={() => openArticle(a.id)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' || e.key === ' ') {
+                            e.preventDefault()
+                            openArticle(a.id)
+                          }
+                        }}
                       >
                         <div className="flex items-start justify-between gap-2">
                           <h3 className="font-semibold text-[var(--tc-text)]">
@@ -403,38 +418,24 @@ export default function WorkspaceTrustPage() {
             ))
           })()}
         </div>
-        {selected && (
-          <div
-            className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4"
-            onClick={() => setSelected(null)}
-          >
-            <Card
-              className="flex max-w-2xl w-full max-h-[90vh] flex-col overflow-hidden"
-              padding="lg"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <div className="flex justify-between items-start gap-4 shrink-0 mb-4">
-                <h2 className="text-lg font-bold text-[var(--tc-text)]">
-                  {selected.title}
-                </h2>
-                <button
-                  type="button"
-                  className="shrink-0 rounded-lg p-1 text-[var(--tc-muted)] hover:text-[var(--tc-text)] hover:bg-white/5 transition-colors"
-                  onClick={() => setSelected(null)}
-                  aria-label="Close"
-                >
-                  &times;
-                </button>
-              </div>
-              <div className="min-h-0 flex-1 overflow-y-auto -mx-2 px-2">
-                <MarkdownContent
-                  content={selected.content}
-                  className="text-[var(--tc-text)] [&_a]:text-[var(--tc-primary)] [&_a]:hover:underline"
-                />
-              </div>
-            </Card>
+        <Modal
+          isOpen={!!selected}
+          onClose={() => setSelected(null)}
+          title={selected?.title || 'Article'}
+          description={
+            selected?.category
+              ? `Category: ${selected.category}`
+              : 'Published trust article'
+          }
+          size="lg"
+        >
+          <div className="min-h-0 max-h-[60vh] overflow-y-auto">
+            <MarkdownContent
+              content={selected?.content || ''}
+              className="text-[var(--tc-text)] [&_a]:text-[var(--tc-primary)] [&_a]:hover:underline"
+            />
           </div>
-        )}
+        </Modal>
       </main>
     </div>
   )
