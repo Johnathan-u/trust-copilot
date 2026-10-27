@@ -5,7 +5,7 @@ import AxeBuilder from '@axe-core/playwright'
 
 const evidenceDir = path.resolve(
   process.cwd(),
-  '../../artifacts/acceptance/TC-14-003'
+  '../../artifacts/acceptance/TC-14-003a'
 )
 const screenshotDir = path.join(evidenceDir, 'screenshots')
 
@@ -185,7 +185,7 @@ test.describe('dialog focus and notifications', () => {
     await openTheme(page, 'dark')
     await page.getByRole('button', { name: 'Show status' }).click()
     const duration = await page
-      .getByRole('status')
+      .locator('#tc-toast-status .tc-toast')
       .evaluate((el) => getComputedStyle(el).transitionDuration)
     expect(duration === '0s' || duration.startsWith('0s')).toBe(true)
   })
@@ -260,6 +260,55 @@ test.describe('dialog focus and notifications', () => {
       .locator('#working-notes')
       .evaluate((el) => el.closest('[inert]') !== null)
     expect(notesInertAfter).toBe(false)
+  })
+
+  test('persistent regions receive toast text, and a rejected confirm announces an error', async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 1440, height: 900 })
+    await openTheme(page, 'dark')
+
+    const polite = page.locator('#tc-toast-status')
+    const assertive = page.locator('#tc-toast-alert')
+    await expect(polite).toHaveCount(1)
+    await expect(assertive).toHaveCount(1)
+    await expect(polite).toHaveAttribute('role', 'status')
+    await expect(polite).toHaveAttribute('aria-live', 'polite')
+    await expect(assertive).toHaveAttribute('role', 'alert')
+    await expect(assertive).toHaveAttribute('aria-live', 'assertive')
+    expect((await polite.innerText()).trim()).toBe('')
+    expect((await assertive.innerText()).trim()).toBe('')
+
+    await page.getByRole('button', { name: 'Show status' }).click()
+    await expect(polite).toContainText('Synthetic status saved.')
+    await expect(assertive).not.toContainText('Synthetic status saved.')
+    await expect(polite).toHaveAttribute('aria-live', 'polite')
+    await page.getByRole('button', { name: 'Dismiss Saved' }).click()
+    expect((await polite.innerText()).trim()).toBe('')
+
+    await page.getByRole('button', { name: 'Show error' }).click()
+    await expect(assertive).toContainText('Synthetic error stayed on screen.')
+    await expect(polite).not.toContainText('Synthetic error stayed on screen.')
+    await expect(assertive).toHaveAttribute('aria-live', 'assertive')
+    await page.getByRole('button', { name: 'Dismiss Save failed' }).click()
+
+    const reject = page.getByRole('button', { name: 'Reject sample' })
+    await reject.click()
+    const confirm = page.getByRole('alertdialog', {
+      name: 'Delete synthetic sample?',
+    })
+    await expect(confirm).toBeVisible()
+    await focused(page.getByRole('button', { name: 'Cancel' }))
+    await page.getByRole('button', { name: 'Remove sample' }).click()
+    await expect(confirm).toHaveCount(0)
+    await focused(reject)
+    await expect(assertive).toContainText('Synthetic delete was rejected.')
+    await expect(polite).not.toContainText('Synthetic delete was rejected.')
+    await expect(assertive).toHaveAttribute('aria-live', 'assertive')
+    await page.waitForTimeout(4500)
+    await expect(assertive).toContainText('Synthetic delete was rejected.')
+    await page.getByRole('button', { name: 'Dismiss Action failed' }).click()
+    expect((await assertive.innerText()).trim()).toBe('')
   })
 
   test('info toasts leave after 4000ms and action toasts stay', async ({
@@ -393,6 +442,7 @@ test.describe('dialog focus and notifications', () => {
 
           const axe = await new AxeBuilder({ page })
             .include('#dialog-showcase')
+            .include('#tc-toast-live')
             .analyze()
           writeFileSync(
             path.join(
