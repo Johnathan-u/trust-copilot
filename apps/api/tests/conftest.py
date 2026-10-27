@@ -315,11 +315,34 @@ def _ensure_test_data():
         return False
 
 
+def _db_required() -> bool:
+    """CI sets TC_REQUIRE_DB=1: an unavailable or incompatible test DB is then a hard failure,
+    never a silent skip (e.g. SQLAlchemy 2.1 + psycopg2-only install made every DB test skip)."""
+    return os.environ.get("TC_REQUIRE_DB") == "1"
+
+
+_DB_UNAVAILABLE_MSG = (
+    "Postgres test database unavailable or incompatible (see 'WARNING: test DB setup failed' "
+    "above; start Docker or set DATABASE_URL to trustcopilot_test)"
+)
+
+
+def pytest_sessionstart(session):
+    """Fail the whole run up front when the DB is required but unusable."""
+    if _db_required() and not _ensure_db_schema():
+        pytest.exit(f"TC_REQUIRE_DB=1: {_DB_UNAVAILABLE_MSG}", returncode=3)
+
+
 @pytest.fixture
 def client(_ensure_test_data) -> Generator[TestClient, None, None]:
-    """FastAPI TestClient with CSRF-safe headers and test data ensured. Skips when Postgres unavailable."""
+    """FastAPI TestClient with CSRF-safe headers and test data ensured.
+
+    Skips when Postgres is unavailable, unless TC_REQUIRE_DB=1 (CI), where it fails loudly.
+    """
     if not _ensure_test_data:
-        pytest.skip("Postgres not available (start Docker or set DATABASE_URL to trustcopilot_test)")
+        if _db_required():
+            pytest.fail(f"TC_REQUIRE_DB=1: {_DB_UNAVAILABLE_MSG}")
+        pytest.skip(_DB_UNAVAILABLE_MSG)
     from app.main import app
     yield TestClient(app, base_url=TEST_ORIGIN, headers=TEST_HEADERS)
 
@@ -345,3 +368,20 @@ def test_workspace(db_session: Session) -> dict:
     if ws:
         return {"id": ws.id, "name": ws.name, "slug": ws.slug}
     return {"id": 1, "name": "Default", "slug": "default"}
+
+
+SYNTHETIC_OPENAI_KEY = "sk-test-synthetic-offline-key"
+
+
+@pytest.fixture
+def synthetic_openai_key(monkeypatch):
+    """Set a fake OpenAI key for code paths that only check the key is configured.
+
+    The OpenAI client must still be mocked by the test; never use a real key here.
+    """
+    from app.core.config import get_settings
+
+    monkeypatch.setenv("OPENAI_API_KEY", SYNTHETIC_OPENAI_KEY)
+    get_settings.cache_clear()
+    yield SYNTHETIC_OPENAI_KEY
+    get_settings.cache_clear()

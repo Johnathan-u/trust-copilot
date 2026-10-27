@@ -10,7 +10,9 @@ jobs:
 
     services:
       postgres:
-        image: postgres:16
+        # Migrations run CREATE EXTENSION vector; plain postgres:16 lacks pgvector.
+        # Same image as docker-compose.yml / docker-compose.prod.yml.
+        image: pgvector/pgvector:pg16
         env:
           POSTGRES_USER: postgres
           POSTGRES_PASSWORD: postgres
@@ -61,7 +63,9 @@ jobs:
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/trustcopilot_test
         run: |
           pip install -U pip
-          pip install ruff pytest
+          # Pin ruff to the pre-commit hook rev (.pre-commit-config.yaml) so both
+          # lint gates use the same rules; unpinned ruff pulls newer default rule sets.
+          pip install ruff==0.5.6 pytest
           pip install -e .
 
       - name: Run migrations
@@ -80,7 +84,9 @@ jobs:
         env:
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/trustcopilot_test
           SESSION_SECRET: test-secret
-        run: pytest
+          # Fail (never skip) when the disposable service DB is unavailable or incompatible.
+          TC_REQUIRE_DB: "1"
+        run: pytest -rs
 
       - name: Build frontend
         working-directory: apps/web

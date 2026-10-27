@@ -96,7 +96,7 @@ def test_retrieval_cache_and_corpus_version(db_session: Session):
     retrieval_cache_invalidate(db, workspace_id)
 
 
-def test_partial_completion_progress(db_session: Session):
+def test_partial_completion_progress(db_session: Session, synthetic_openai_key):
     """Job.result gets updated with generated/total during run (integration: generate_answers with job)."""
     from app.models import Job, JobStatus, Questionnaire, Question, Workspace
     from app.services.answer_generation import generate_answers_for_questionnaire

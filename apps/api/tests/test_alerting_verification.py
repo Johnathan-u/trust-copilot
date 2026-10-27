@@ -4,7 +4,7 @@ import io
 import logging
 import sys
 from datetime import datetime, timedelta, timezone
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 from fastapi.testclient import TestClient
@@ -66,7 +66,13 @@ def test_job_failure_log_format_matches_docs(caplog):
 
 def test_openai_failure_logs_ALERT_OPENAI_FAILURE(caplog):
     """When embedding fails after retries, ALERT_OPENAI_FAILURE is logged."""
-    with patch("app.services.embedding_service.get_settings") as m:
+    # Offline: the OpenAI client is replaced by a mock that fails like an auth error.
+    # This test previously made a real call to api.openai.com with an invalid key.
+    failing_client = MagicMock()
+    failing_client.embeddings.create.side_effect = RuntimeError("synthetic embedding failure")
+    with patch("app.services.embedding_service.get_settings") as m, patch(
+        "app.services.embedding_service._get_embed_client", return_value=failing_client
+    ):
         m.return_value.openai_api_key = "invalid-key-for-test"
         with caplog.at_level(logging.WARNING):
             from app.services.embedding_service import embed_text

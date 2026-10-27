@@ -228,10 +228,13 @@ class TestGapScanFirePoint:
         assert "gaps" in d
         assert "notified" in d
 
-    def test_gap_scan_notifies_when_gaps_exist(self, client: TestClient) -> None:
+    def test_gap_scan_notifies_when_gaps_exist(self, client: TestClient, monkeypatch) -> None:
         _login_admin(client)
         _cleanup_notifs()
+        from app.api.routes import compliance_gaps
         from app.api.routes.compliance_gaps import _last_gap_notify
+        # Fixed clock: result must not depend on host uptime (time.monotonic()).
+        monkeypatch.setattr(compliance_gaps, "_clock", lambda: 120.0)
         _last_gap_notify.clear()
         r = client.post("/api/compliance/gaps/scan-and-notify")
         d = r.json()
@@ -241,9 +244,11 @@ class TestGapScanFirePoint:
             assert len(notifs) > 0
             assert notifs[0].category == "warning"
 
-    def test_gap_scan_respects_cooldown(self, client: TestClient) -> None:
+    def test_gap_scan_respects_cooldown(self, client: TestClient, monkeypatch) -> None:
         _login_admin(client)
+        from app.api.routes import compliance_gaps
         from app.api.routes.compliance_gaps import _last_gap_notify
+        monkeypatch.setattr(compliance_gaps, "_clock", lambda: 120.0)
         _last_gap_notify.clear()
         client.post("/api/compliance/gaps/scan-and-notify")
         r2 = client.post("/api/compliance/gaps/scan-and-notify")

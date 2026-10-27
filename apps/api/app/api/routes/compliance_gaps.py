@@ -24,6 +24,9 @@ router = APIRouter(prefix="/compliance/gaps", tags=["compliance-gaps"])
 
 _last_gap_notify: dict[int, float] = {}
 GAP_NOTIFY_COOLDOWN = 3600
+# Injectable clock (tests replace it with a fixed/fake clock). time.monotonic counts from
+# host boot, so it must never be compared against a 0 default (see scan_and_notify_gaps).
+_clock = time.monotonic
 
 _QUESTION_TEXT_PREVIEW_LEN = 160
 
@@ -230,9 +233,11 @@ def scan_and_notify_gaps(
     if ws is None:
         return {"gaps": 0, "notified": False}
 
-    now = time.monotonic()
-    last = _last_gap_notify.get(ws, 0)
-    if now - last < GAP_NOTIFY_COOLDOWN:
+    now = _clock()
+    last = _last_gap_notify.get(ws)
+    # No previous notification means no cooldown. (Defaulting to 0 put every workspace in
+    # cooldown for the first hour after host boot, which made CI runners flaky.)
+    if last is not None and now - last < GAP_NOTIFY_COOLDOWN:
         gaps = global_gaps_list(db, ws, low_confidence_threshold)
         return {"gaps": len(gaps), "notified": False, "reason": "cooldown"}
 
