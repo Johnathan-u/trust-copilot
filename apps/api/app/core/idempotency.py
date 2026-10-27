@@ -108,8 +108,16 @@ def try_claim(db: Session, key: str, ttl_sec: int = _DEFAULT_TTL_SEC) -> bool:
 def set(
     db: Session, key: str, status_code: int, response_body: dict, ttl_sec: int = _DEFAULT_TTL_SEC
 ) -> None:
-    """Store the response and extend the short in-progress lease to the full TTL."""
+    """Store the response and extend the short in-progress lease to the full TTL.
+
+    TC-10-003a: 5xx responses are never cached. A server error is not a final answer for the request, so
+    the in-progress claim is released instead and the client's retry with the same key runs again.
+    """
     if not _valid_key(key):
+        return
+    if status_code >= 500:
+        logger.info("idempotency: not caching %s response; releasing claim", status_code)
+        release(db, key)
         return
     k = key.strip()
     expires = _now() + timedelta(seconds=ttl_sec)

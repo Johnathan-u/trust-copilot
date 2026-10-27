@@ -92,6 +92,7 @@ export default function RequestsPage() {
 
   const load = useCallback(() => {
     setLoading(true)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- pre-existing heterogeneous fetch results (TC-02-006 follow-up)
     const fetches: Promise<any>[] = [
       fetch('/api/vendor-requests', { credentials: 'include' }).then((r) =>
         r.ok ? r.json() : []
@@ -145,7 +146,7 @@ export default function RequestsPage() {
     setSubmitting(true)
     setError(null)
     try {
-      const body: Record<string, any> = { vendor_email: email.trim() }
+      const body: Record<string, unknown> = { vendor_email: email.trim() }
       if (qnrId) body.questionnaire_id = parseInt(qnrId, 10)
       if (message.trim()) body.message = message.trim()
 

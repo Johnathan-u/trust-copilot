@@ -1,0 +1,21 @@
+ruff.....................................................................Failed
+Found 479 errors.
+ruff-format..............................................................Failed
+423 files reformatted, 134 files left unchanged
+prettier.................................................................Passed
+trim trailing whitespace.................................................Passed
+fix end of files.........................................................Failed
+Fixing .tmp_job_result.json
+Fixing .tmp_test_cookies.txt
+Fixing apps/web/verify-review-ux-results.json
+Fixing apps/api/seed-qa-out.txt
+Fixing apps/web/test-results/.last-run.json
+Fixing apps/api/scripts/qnr_130_mapping_audit.json
+Fixing apps/api/benchmark_phase4_report.json
+Fixing apps/api/test_results.json
+Fixing apps/web/test-results/vendor-response-Vendor-Res-230c6-hows-Trust-Copilot-branding-chromium/error-context.md
+Fixing apps/web/playwright-report/index.html
+Fixing apps/web/tsconfig.tsbuildinfo
+Fixing apps/web/verify-ai-flows-results.json
+Fixing apps/api/test_results_10ds.json
+check yaml...............................................................Passed

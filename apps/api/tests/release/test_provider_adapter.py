@@ -2,7 +2,6 @@
 
 Fakes/stubs only: no real or paid model calls, OPENAI_API_KEY stays empty in the environment,
 and Python-level outbound sockets are blocked for every test in this module. Synthetic data only.
-(Placed outside tests/release/ per Coordinator ruling Q3; that directory is owned by TC-02-001.)
 """
 
 from __future__ import annotations
@@ -515,7 +514,7 @@ def _alembic_script():
     from alembic.config import Config
     from alembic.script import ScriptDirectory
 
-    api_dir = Path(__file__).resolve().parents[1]
+    api_dir = Path(__file__).resolve().parents[2]
     cfg = Config(str(api_dir / "alembic.ini"))
     cfg.set_main_option("script_location", str(api_dir / "alembic"))
     return ScriptDirectory.from_config(cfg)
@@ -542,7 +541,7 @@ def test_migration_columns_present(db_session):
     insp = inspect(db_session.get_bind())
     assert "outcome_code" in {c["name"] for c in insp.get_columns("answers")}
     assert "error_code" in {c["name"] for c in insp.get_columns("jobs")}
-    # Later revisions (TC-10-003) may be the stamped head; this one must still be applied.
+    # Later revisions may be the stamped head; this one must still be applied.
     head = _single_head_reaches(_alembic_script(), MIGRATION_REVISION)
     assert db_session.execute(text("SELECT version_num FROM alembic_version")).scalar() == head
 
@@ -695,7 +694,7 @@ def test_review_page_shows_badge_for_everything_but_verified_grounded():
     """The review page hides the outcome badge only for 'grounded' (never for cache hits)."""
     from pathlib import Path
 
-    page = Path(__file__).resolve().parents[3] / "apps/web/app/dashboard/review/[id]/page.tsx"
+    page = Path(__file__).resolve().parents[4] / "apps/web/app/dashboard/review/[id]/page.tsx"
     if not page.exists():
         pytest.skip("web app not mounted")
     src = page.read_text()

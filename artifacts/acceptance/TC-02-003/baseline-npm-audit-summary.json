@@ -1,0 +1,84 @@
+{
+  "baseline_sha": "c20f949161ac12a619b396d30904448ffd74d532",
+  "command": "npm ci --ignore-scripts && npm audit --json (apps/web, Node v24.22.1, npm 11.19.1)",
+  "metadata": {
+    "info": 0,
+    "low": 0,
+    "moderate": 5,
+    "high": 6,
+    "critical": 3,
+    "total": 14
+  },
+  "packages": {
+    "@vitest/mocker": {
+      "severity": "moderate",
+      "direct": false,
+      "range": "<=4.1.11"
+    },
+    "baseline-browser-mapping": {
+      "severity": "moderate",
+      "direct": false,
+      "range": ">=2.0.0 <2.11.0"
+    },
+    "browserslist": {
+      "severity": "high",
+      "direct": false,
+      "range": "<=4.28.6"
+    },
+    "esbuild": {
+      "severity": "moderate",
+      "direct": false,
+      "range": "<=0.24.2"
+    },
+    "nanoid": {
+      "severity": "high",
+      "direct": false,
+      "range": "<=3.3.17"
+    },
+    "next": {
+      "severity": "critical",
+      "direct": true,
+      "range": "0.9.9 - 16.3.0-preview.10"
+    },
+    "picomatch": {
+      "severity": "high",
+      "direct": false,
+      "range": "<=2.3.1 || 4.0.0 - 4.0.3"
+    },
+    "postcss": {
+      "severity": "high",
+      "direct": true,
+      "range": "<=8.5.22"
+    },
+    "postcss-selector-parser": {
+      "severity": "moderate",
+      "direct": false,
+      "range": "<=6.1.4"
+    },
+    "source-map-js": {
+      "severity": "high",
+      "direct": false,
+      "range": "1.0.0 - 1.2.1"
+    },
+    "tinypool": {
+      "severity": "critical",
+      "direct": false,
+      "range": "<=2.1.1"
+    },
+    "vite": {
+      "severity": "high",
+      "direct": false,
+      "range": "<=6.4.3"
+    },
+    "vite-node": {
+      "severity": "moderate",
+      "direct": false,
+      "range": "<=2.2.0-beta.2"
+    },
+    "vitest": {
+      "severity": "critical",
+      "direct": true,
+      "range": "<=4.1.10"
+    }
+  }
+}

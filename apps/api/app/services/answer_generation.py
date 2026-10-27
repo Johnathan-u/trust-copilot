@@ -128,18 +128,21 @@ MAX_PARALLEL_BATCHES = 10  # run up to 10 batches concurrently (I/O bound; stay 
 COMPLETION_MAX_RETRIES = 3
 
 
+COMPLETION_RETRY_BASE_SECONDS = 1.0
+COMPLETION_RETRY_MAX_SECONDS = 10.0
+
+
 def _is_transient_completion_error(e: Exception) -> bool:
-    """True if completion error is worth retrying (timeout, rate limit, server error)."""
+    """True if completion error is worth retrying (TC-10-002 classifier: 429, timeout, 5xx, connection)."""
+    from app.core.job_errors import classify, is_retryable_code
+
     if classify_provider_exception(e).fatal:
         # TC-11-001: never retry credentials/model-unavailable/quota-exhausted failures.
         return False
-    msg = (getattr(e, "message", "") or str(e)).lower()
-    if "timeout" in msg or "timed out" in msg:
+    if is_retryable_code(classify(e)):
         return True
-    code = getattr(e, "status_code", None) or getattr(
-        getattr(e, "response", None), "status_code", None
-    )
-    return code in (429, 503, 502, 504)
+    msg = (getattr(e, "message", "") or str(e)).lower()
+    return "timeout" in msg or "timed out" in msg
 
 
 def _extract_retry_after(e: Exception) -> float | None:
@@ -168,8 +171,15 @@ def _completion_create_with_retry(client: Any, **kwargs: Any) -> Any:
         except Exception as e:
             last_err = e
             if attempt < COMPLETION_MAX_RETRIES and _is_transient_completion_error(e):
-                retry_after = _extract_retry_after(e)
-                delay = retry_after if retry_after is not None else min(1.5**attempt, 10.0)
+                from app.core.job_errors import backoff_delay
+
+                # Bounded exponential backoff with jitter; Retry-After honoured up to the cap (TC-10-002).
+                delay = backoff_delay(
+                    attempt + 1,
+                    base=COMPLETION_RETRY_BASE_SECONDS,
+                    cap=COMPLETION_RETRY_MAX_SECONDS,
+                    retry_after=_extract_retry_after(e),
+                )
                 logger.info(
                     "answer_generation retry attempt=%d/%d delay=%.1fs error=%s",
                     attempt + 1,
@@ -613,6 +623,10 @@ class AnswerWriteGuard:
     Protected = status ``approved`` (human-approved work), or ``updated_at`` later than the run's cutoff
     (the generating job's ``created_at``): such an answer was written by a human edit or a newer run after
     this run's input was requested, so this (stale) run must not overwrite it.
+
+    TC-10-002: a non-approved ``insufficient_evidence`` placeholder left by a provider error
+    (``insufficient_reason == "llm_error"``) is never protected, so a job-level retry regenerates exactly the
+    questions an earlier attempt failed on (no human or model work is lost: it holds no answer text).
     """
 
     def __init__(self, cutoff: datetime | None):
@@ -627,6 +641,11 @@ class AnswerWriteGuard:
             return False
         if getattr(answer, "status", None) == "approved":
             return True
+        if (
+            getattr(answer, "status", None) == "insufficient_evidence"
+            and getattr(answer, "insufficient_reason", None) == "llm_error"
+        ):
+            return False
         upd = getattr(answer, "updated_at", None)
         if self.cutoff is not None and isinstance(upd, datetime):
             return _naive_utc(upd) > self.cutoff
@@ -1232,6 +1251,7 @@ def _generate_answers_impl(
             _count_outcome(failure.code)
             count += 1
             run_stats["insufficient_evidence"] += 1
+            _count_llm_error(run_stats, exc)
             was_429, was_timeout, was_transient = adaptive.classify_exception(exc)
             adaptive.release(
                 success=False,
@@ -1511,6 +1531,34 @@ def _generate_answers_impl(
     return count
 
 
+def _citations_lack_direct_evidence(
+    db: Session, cits: list, doc_tier_cache: dict[int, int]
+) -> bool:
+    """True when every citation resolves to an export-like (tier 3) document, e.g. a prior questionnaire
+    response, so nothing cited is direct evidence. Citations without a resolvable document count as possibly
+    direct (same convention as ``only_low_tier_evidence``)."""
+    from app.services.answer_evidence_policy import only_low_tier_evidence
+
+    as_evidence: list[dict] = []
+    for c in cits:
+        if not isinstance(c, dict):
+            return False
+        did = c.get("document_id")
+        if did is None:
+            return False
+        try:
+            as_evidence.append({"metadata": {"document_id": int(did)}})
+        except (TypeError, ValueError):
+            return False
+    if not as_evidence:
+        return False
+    # only_low_tier_evidence looks at the first 12 entries; check every citation.
+    return all(
+        only_low_tier_evidence(db, as_evidence[i : i + 12], doc_tier_cache=doc_tier_cache)
+        for i in range(0, len(as_evidence), 12)
+    )
+
+
 def _settle_provider(effects: Any, guard: AnswerWriteGuard | None, run_stats: dict) -> None:
     if guard is not None and len(guard.protected_qids) > int(
         run_stats.get("skipped_protected", 0) or 0
@@ -1524,7 +1572,8 @@ def _sweep_draft_insufficient_narratives(
     db: Session, questionnaire_id: int, guard: AnswerWriteGuard | None = None
 ) -> int:
     """Reclassify draft rows whose text is insufficient, have zero citations,
-    or whose primary subject requires direct evidence that wasn't provided."""
+    or whose primary subject requires direct evidence that wasn't provided
+    (TC-02-BUG-005: every citation is from an export-like / prior-response document)."""
     from app.services.answer_evidence_policy import subject_requires_direct_evidence
     from app.services.registry_metadata import SUBJECT_AREA_LABEL_TO_KEY
 
@@ -1534,18 +1583,28 @@ def _sweep_draft_insufficient_narratives(
         .filter(Question.questionnaire_id == questionnaire_id, Answer.status == "draft")
         .all()
     )
+    doc_tier_cache: dict[int, int] = {}
     n = 0
     for a in answers:
-        if guard is not None and a.question_id in guard.protected_qids:
-            continue  # TC-10-003: never reclassify protected work
+        # TC-10-003: never reclassify protected work. Also skip a stale row this run did not
+        # write (updated_at after the job cutoff). Rows in guard.written keep the sweep: their
+        # updated_at bump is this run's own write, same rule as _upsert_answer.
+        if guard is not None:
+            owned_by_run = a.question_id in guard.written
+            if a.question_id in guard.protected_qids or (
+                not owned_by_run and guard.is_protected(a)
+            ):
+                guard.protected_qids.add(a.question_id)
+                continue
         no_citations = False
+        cits: list = []
         try:
             cits = json.loads(a.citations or "[]") if a.citations else []
             no_citations = len(cits) == 0
         except Exception:
             no_citations = True
 
-        direct_ev_missing = False
+        direct_subject: str | None = None
         if a.primary_categories_json and not no_citations:
             try:
                 cats = json.loads(a.primary_categories_json)
@@ -1555,23 +1614,30 @@ def _sweep_draft_insufficient_narratives(
                         s_label, s_label.lower().replace(" ", "_")
                     )
                     if subject_requires_direct_evidence(s_key):
-                        direct_ev_missing = True  # noqa: F841
+                        direct_subject = s_key
                         break
             except Exception:
                 pass
+        direct_ev_missing = direct_subject is not None and _citations_lack_direct_evidence(
+            db, cits, doc_tier_cache
+        )
 
-        if is_insufficient_answer_text(a.text) or no_citations:
+        if is_insufficient_answer_text(a.text) or no_citations or direct_ev_missing:
             a.status = "insufficient_evidence"
             if no_citations and not a.insufficient_reason:
                 a.insufficient_reason = "no_citations"
+            elif direct_ev_missing and not a.insufficient_reason:
+                # Same reason format as the pre-LLM gate in generate_answers_for_questionnaire.
+                a.insufficient_reason = f"direct_evidence_required:{direct_subject}"
             if getattr(a, "outcome_code", None) in (
                 None,
                 ModelOutcomeCode.GROUNDED.value,
                 ModelOutcomeCode.GROUNDED_UNVERIFIED.value,
             ):
                 a.outcome_code = (
+                    # No direct evidence: same outcome as the pre-LLM direct-evidence gate.
                     ModelOutcomeCode.NO_EVIDENCE.value
-                    if no_citations
+                    if no_citations or direct_ev_missing
                     else ModelOutcomeCode.MODEL_ABSTAINED.value
                 )
             a.confidence = 0
@@ -1579,6 +1645,24 @@ def _sweep_draft_insufficient_narratives(
     if n:
         db.commit()
     return n
+
+
+def _count_llm_error(run_stats: dict, exc: Exception) -> None:
+    """TC-10-002: count per-question provider failures by class so the worker can retry or stop explicitly."""
+    from app.core.job_errors import classify, is_fatal_code, is_retryable_code
+
+    code = classify(exc)  # TC-11-001 model_* code for provider exceptions
+    run_stats["llm_errors"] = int(run_stats.get("llm_errors", 0) or 0) + 1
+    if is_fatal_code(code):
+        run_stats["llm_errors_auth_config"] = (
+            int(run_stats.get("llm_errors_auth_config", 0) or 0) + 1
+        )
+        run_stats["llm_error_code_auth_config"] = code
+    elif is_retryable_code(code):
+        run_stats["llm_errors_retryable"] = int(run_stats.get("llm_errors_retryable", 0) or 0) + 1
+        run_stats["llm_error_code_retryable"] = code
+    else:
+        run_stats["llm_errors_other"] = int(run_stats.get("llm_errors_other", 0) or 0) + 1
 
 
 def _adjust_run_stats_after_sweep(run_stats: dict[str, int | float], swept: int) -> None:

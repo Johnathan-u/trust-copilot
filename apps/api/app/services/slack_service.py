@@ -9,7 +9,6 @@ from typing import Protocol
 
 import httpx
 
-from app.core.config import get_settings
 from app.services.message_providers.errors import (
     DEV_STUB_LABEL,
     DEV_STUB_MODE,
@@ -34,8 +33,9 @@ logger = logging.getLogger(__name__)
 
 def _fernet():
     from cryptography.fernet import Fernet
+    from app.core.session import get_session_secret
 
-    raw = hashlib.sha256(get_settings().session_secret.encode()).digest()
+    raw = hashlib.sha256(get_session_secret().encode()).digest()
     key = base64.urlsafe_b64encode(raw)
     return Fernet(key)
 
@@ -54,7 +54,7 @@ def decrypt_token(encrypted: str) -> str:
 
 
 class SlackProvider(Protocol):
-    def send_message(self, bot_token: str, channel_id: str, text: str) -> dict:
+    def send_message(self, bot_token: str, channel_id: str, text: str, on_attempt=None) -> dict:
         """Post a message. Return {"ok": True/False, "error": "...", "ts": "..."}."""
         ...
 
@@ -95,7 +95,7 @@ class ConsoleSlackProvider:
         refused = self._refused()
         if refused:
             return refused
-        logger.info("[SLACK DEV-STUB] channel=%s text_len=%s", channel_id, len(text or ""))
+        logger.info("[SLACK DEV-STUB] channel=%s text=%s", channel_id, text[:100])
         return _stub_label({"ok": True, "ts": str(time.time()), "provider": "slack"})
 
     def list_channels(self, bot_token: str) -> list[dict] | dict:

@@ -8,7 +8,7 @@ Real Slack, Gmail, and SMTP qualification is **BLOCKED**. No mailbox, Slack work
 - pytest 9.1.1, ruff 0.5.6, SQLAlchemy 2.0.55, psycopg2 2.9.13
 - Local PostgreSQL 16 with the `vector` extension, database `trustcopilot_tc19008_suite_test`
 - Master pins `sqlalchemy>=2.0,<2.1`. psycopg v3 was not added.
-- `alembic heads`: `tc19008_notification_delivery (head)`. Parent revision is `tc10003_job_idempotency`, master's head after the merge. TC-24-001 has not merged, so this revision is not parented on `tc24001_stripe_webhook_events`. #12 has not merged, so the pull request base stays `master`.
+- `alembic heads`: `tc19008_notification_delivery (head)`. Parent revision is `tc24001_stripe_webhook_events`, master's head after #23.
 
 ## Release tests
 
@@ -22,7 +22,7 @@ Exit status: **0**
 
 Totals: **22 passed**, 0 failed, 0 skipped. The file covers distinct event ids, a missing event id, a 15-minute lease and the 24-hour extension, a Slack write failure after acceptance, an in-app claim that rolls back with the caller, genuine repeats for role changes and generation jobs, the compliance cooldown (one job fires once, a new job inside 30 minutes is suppressed, a new job after the cooldown fires), two sessions racing one key, worker prune, and a fresh-database upgrade. `alembic_version.version_num` stays varchar(32). The migration check walks descendants and downgrades to the parent stored on the revision.
 
-That file includes a fresh-database upgrade to `tc19008_notification_delivery`, downgrade to the parent recorded on the revision (`tc10003_job_idempotency`), and upgrade again. The side database name ends in `_test` and is created with the same role as `TC_TEST_DATABASE_URL` or `DATABASE_URL`.
+That file includes a fresh-database upgrade to `tc19008_notification_delivery`, downgrade to the parent recorded on the revision (`tc24001_stripe_webhook_events`), and upgrade again. The side database name ends in `_test` and is created with the same role as `TC_TEST_DATABASE_URL` or `DATABASE_URL`.
 
 ## Existing notification, in-app, Slack, and Gmail tests
 

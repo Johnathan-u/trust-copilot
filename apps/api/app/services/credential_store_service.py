@@ -4,7 +4,6 @@ import base64
 import hashlib
 import json
 import logging
-import os
 from datetime import datetime, timedelta, timezone
 
 from cryptography.fernet import Fernet
@@ -17,7 +16,9 @@ logger = logging.getLogger(__name__)
 
 def _get_fernet() -> Fernet:
     """Derive a Fernet key from SESSION_SECRET (same approach as existing Slack/Gmail token encryption)."""
-    secret = os.environ.get("SESSION_SECRET", "fallback-not-for-production")
+    from app.core.session import get_session_secret
+
+    secret = get_session_secret()
     key = base64.urlsafe_b64encode(hashlib.sha256(secret.encode()).digest()[:32])
     return Fernet(key)
 

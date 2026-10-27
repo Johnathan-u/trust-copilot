@@ -42,8 +42,8 @@ from app.services.slack_service import (
     reset_slack_provider,
 )
 
-TOKEN = "xoxb-test-token-not-a-real-secret"
-GMAIL_TOKEN = "ya29.test-access-token-not-real"
+SLACK_FIXTURE_CRED = "xoxb-test-token-not-a-real-secret"
+GMAIL_FIXTURE_CRED = "ya29.test-access-token-not-real"
 
 SLACK_AUTH_OK = {
     "ok": True,
@@ -181,8 +181,8 @@ def _transport(handler) -> httpx.MockTransport:
 
 def _assert_no_secret(payload: object) -> None:
     encoded = json.dumps(payload, default=str)
-    assert TOKEN not in encoded
-    assert GMAIL_TOKEN not in encoded
+    assert SLACK_FIXTURE_CRED not in encoded
+    assert GMAIL_FIXTURE_CRED not in encoded
     assert "Authorization" not in encoded
 
 
@@ -231,13 +231,13 @@ class TestProviderSelection:
         gmail = get_gmail_provider()
         assert isinstance(slack, ConsoleSlackProvider)
         assert isinstance(gmail, ConsoleGmailProvider)
-        sent = slack.send_message(TOKEN, "C1", "hello")
+        sent = slack.send_message(SLACK_FIXTURE_CRED, "C1", "hello")
         assert sent["ok"] is True
         assert sent["provider_mode"] == "dev-stub"
         assert sent["provider_label"] == "development-stub"
         assert sent["delivered_to_provider"] is False
         assert delivery_accepted(sent) is True
-        profile = gmail.get_profile(GMAIL_TOKEN)
+        profile = gmail.get_profile(GMAIL_FIXTURE_CRED)
         assert profile["email"] == "stub@example.com"
         assert profile["provider_mode"] == "dev-stub"
         assert profile["provider_label"] == "development-stub"
@@ -247,7 +247,7 @@ class TestProviderSelection:
         selection = message_provider_preflight()
         assert selection.provider_mode == "dev-stub"
         assert selection.dev_stub_source == "true"
-        auth = get_slack_provider().test_auth(TOKEN)
+        auth = get_slack_provider().test_auth(SLACK_FIXTURE_CRED)
         assert auth["team"] == "stub-team"
         assert auth["provider_label"] == "development-stub"
 
@@ -265,13 +265,13 @@ class TestProviderSelection:
             get_slack_provider()
         with pytest.raises(MessageProviderConfigurationError):
             get_gmail_provider()
-        refused = ConsoleSlackProvider().send_message(TOKEN, "C1", "should not send")
+        refused = ConsoleSlackProvider().send_message(SLACK_FIXTURE_CRED, "C1", "should not send")
         assert refused["ok"] is False
         assert refused["error_code"] == "dev_stub_forbidden"
         assert refused["delivered_to_provider"] is False
         assert delivery_accepted(refused) is False
         _assert_no_secret(refused)
-        gmail_refused = ConsoleGmailProvider().get_profile(GMAIL_TOKEN)
+        gmail_refused = ConsoleGmailProvider().get_profile(GMAIL_FIXTURE_CRED)
         assert gmail_refused["ok"] is False
         assert "email" not in gmail_refused
         assert delivery_accepted(gmail_refused) is False
@@ -306,7 +306,7 @@ class TestSlackHttpFixtures:
         def handler(request: httpx.Request) -> httpx.Response:
             calls.append(request)
             assert request.url.host == "slack.com"
-            assert request.headers["Authorization"] == f"Bearer {TOKEN}"
+            assert request.headers["Authorization"] == f"Bearer {SLACK_FIXTURE_CRED}"
             if request.url.path == "/api/auth.test":
                 return httpx.Response(200, json=SLACK_AUTH_OK)
             if request.url.path == "/api/conversations.list":
@@ -320,17 +320,17 @@ class TestSlackHttpFixtures:
 
         provider = HttpSlackProvider(transport=_transport(handler), sleeper=lambda *_: None)
         try:
-            auth = provider.test_auth(TOKEN)
+            auth = provider.test_auth(SLACK_FIXTURE_CRED)
             assert auth["ok"] is True
             assert auth["team"] == "Acme"
             assert auth["team_id"] == "T123"
             assert auth["bot_id"] == "B123"
             assert auth["provider_mode"] == "http"
             assert delivery_accepted(auth) is True
-            channels = provider.list_channels(TOKEN)
+            channels = provider.list_channels(SLACK_FIXTURE_CRED)
             assert isinstance(channels, list)
             assert channels[0] == {"id": "C012AB3CD", "name": "general"}
-            posted = provider.send_message(TOKEN, "C012AB3CD", "hello")
+            posted = provider.send_message(SLACK_FIXTURE_CRED, "C012AB3CD", "hello")
             assert posted["ok"] is True
             assert posted["ts"] == "1503435956.000247"
             assert posted["delivered_to_provider"] is True
@@ -355,8 +355,8 @@ class TestSlackHttpFixtures:
 
         provider = HttpSlackProvider(transport=_transport(handler), sleeper=lambda *_: None)
         try:
-            result = provider.send_message(TOKEN, "C1", "hello")
-            listed = provider.list_channels(TOKEN)
+            result = provider.send_message(SLACK_FIXTURE_CRED, "C1", "hello")
+            listed = provider.list_channels(SLACK_FIXTURE_CRED)
         finally:
             provider.close()
         assert result["ok"] is False
@@ -388,7 +388,7 @@ class TestSlackHttpFixtures:
 
         provider = HttpSlackProvider(transport=_transport(handler), sleeper=sleeper)
         try:
-            result = provider.send_message(TOKEN, "C1", "hello")
+            result = provider.send_message(SLACK_FIXTURE_CRED, "C1", "hello")
         finally:
             provider.close()
         assert result["ok"] is True
@@ -404,7 +404,7 @@ class TestSlackHttpFixtures:
             transport=_transport(handler), max_attempts=3, sleeper=lambda *_: None
         )
         try:
-            result = provider.test_auth(TOKEN)
+            result = provider.test_auth(SLACK_FIXTURE_CRED)
         finally:
             provider.close()
         assert result["ok"] is False
@@ -420,7 +420,7 @@ class TestSlackHttpFixtures:
 
         provider = HttpSlackProvider(transport=_transport(handler), sleeper=lambda *_: None)
         try:
-            result = provider.send_message(TOKEN, "C1", "hello")
+            result = provider.send_message(SLACK_FIXTURE_CRED, "C1", "hello")
         finally:
             provider.close()
         assert result["ok"] is False
@@ -438,7 +438,7 @@ class TestSlackHttpFixtures:
 
         provider = HttpSlackProvider(transport=_transport(handler), sleeper=lambda *_: None)
         try:
-            result = provider.test_auth(TOKEN)
+            result = provider.test_auth(SLACK_FIXTURE_CRED)
         finally:
             provider.close()
         assert calls["n"] == 1
@@ -456,9 +456,11 @@ class TestSlackHttpFixtures:
         provider = HttpSlackProvider(transport=_transport(handler))
         try:
             with caplog.at_level(logging.INFO, logger="app.services.message_providers.errors"):
-                history = provider.fetch_messages(TOKEN, "C1", limit=5)
-                replies = provider.fetch_thread_replies(TOKEN, "C1", "1503435956.000247")
-                file_info = provider.fetch_file(TOKEN, "F123")
+                history = provider.fetch_messages(SLACK_FIXTURE_CRED, "C1", limit=5)
+                replies = provider.fetch_thread_replies(
+                    SLACK_FIXTURE_CRED, "C1", "1503435956.000247"
+                )
+                file_info = provider.fetch_file(SLACK_FIXTURE_CRED, "F123")
         finally:
             provider.close()
         assert "TC-19-003" in caplog.text
@@ -493,7 +495,7 @@ class TestSlackHttpFixtures:
 
         provider = HttpSlackProvider(transport=_transport(handler), sleeper=lambda *_: None)
         try:
-            result = provider.test_auth(TOKEN)
+            result = provider.test_auth(SLACK_FIXTURE_CRED)
         finally:
             provider.close()
         assert calls["n"] == 1
@@ -507,7 +509,7 @@ class TestGmailHttpFixtures:
     def test_success_shapes(self) -> None:
         def handler(request: httpx.Request) -> httpx.Response:
             assert request.url.host == "gmail.googleapis.com"
-            assert request.headers["Authorization"] == f"Bearer {GMAIL_TOKEN}"
+            assert request.headers["Authorization"] == f"Bearer {GMAIL_FIXTURE_CRED}"
             path = request.url.path
             if path.endswith("/profile"):
                 return httpx.Response(200, json=GMAIL_PROFILE_OK)
@@ -524,23 +526,23 @@ class TestGmailHttpFixtures:
 
         provider = HttpGmailProvider(transport=_transport(handler), sleeper=lambda *_: None)
         try:
-            profile = provider.get_profile(GMAIL_TOKEN)
+            profile = provider.get_profile(GMAIL_FIXTURE_CRED)
             assert profile["ok"] is True
             assert profile["email"] == "owner@example.com"
             assert profile["emailAddress"] == "owner@example.com"
-            labels = provider.list_labels(GMAIL_TOKEN)
+            labels = provider.list_labels(GMAIL_FIXTURE_CRED)
             assert labels == [
                 {"id": "INBOX", "name": "INBOX"},
                 {"id": "Label_1", "name": "Compliance"},
             ]
-            messages = provider.list_messages(GMAIL_TOKEN, "Label_1", max_results=5)
+            messages = provider.list_messages(GMAIL_FIXTURE_CRED, "Label_1", max_results=5)
             assert messages == [{"id": "18c1", "threadId": "18c1"}]
-            message = provider.get_message(GMAIL_TOKEN, "18c1")
+            message = provider.get_message(GMAIL_FIXTURE_CRED, "18c1")
             assert message["ok"] is True
             assert message["subject"] == "Policy"
             assert message["from"] == "a@example.com"
             assert message["body"] == "Please review"
-            attachment = provider.get_attachment(GMAIL_TOKEN, "18c1", "att-1")
+            attachment = provider.get_attachment(GMAIL_FIXTURE_CRED, "18c1", "att-1")
             assert attachment["ok"] is True
             assert attachment["data"] == b"hello-bytes"
         finally:
@@ -565,10 +567,10 @@ class TestGmailHttpFixtures:
 
         provider = HttpGmailProvider(transport=_transport(handler), sleeper=lambda *_: None)
         try:
-            profile = provider.get_profile(GMAIL_TOKEN)
-            labels = provider.list_labels(GMAIL_TOKEN)
-            messages = provider.list_messages(GMAIL_TOKEN, "INBOX")
-            attachment = provider.get_attachment(GMAIL_TOKEN, "18c1", "att")
+            profile = provider.get_profile(GMAIL_FIXTURE_CRED)
+            labels = provider.list_labels(GMAIL_FIXTURE_CRED)
+            messages = provider.list_messages(GMAIL_FIXTURE_CRED, "INBOX")
+            attachment = provider.get_attachment(GMAIL_FIXTURE_CRED, "18c1", "att")
         finally:
             provider.close()
         assert profile["ok"] is False
@@ -597,7 +599,7 @@ class TestGmailHttpFixtures:
 
         provider = HttpGmailProvider(transport=_transport(handler), sleeper=lambda *_: None)
         try:
-            profile = provider.get_profile(GMAIL_TOKEN)
+            profile = provider.get_profile(GMAIL_FIXTURE_CRED)
         finally:
             provider.close()
         assert calls["n"] == 2
@@ -608,7 +610,7 @@ class TestGmailHttpFixtures:
 
         limited = HttpGmailProvider(transport=_transport(always_limited), sleeper=lambda *_: None)
         try:
-            failed = limited.list_labels(GMAIL_TOKEN)
+            failed = limited.list_labels(GMAIL_FIXTURE_CRED)
         finally:
             limited.close()
         assert failed["ok"] is False
@@ -625,7 +627,7 @@ class TestGmailHttpFixtures:
 
         provider = HttpGmailProvider(transport=_transport(handler), sleeper=lambda *_: None)
         try:
-            messages = provider.list_messages(GMAIL_TOKEN, "Label_1")
+            messages = provider.list_messages(GMAIL_FIXTURE_CRED, "Label_1")
         finally:
             provider.close()
         assert messages == []
@@ -639,7 +641,7 @@ class TestGmailHttpFixtures:
 
         provider = HttpGmailProvider(transport=_transport(handler))
         try:
-            result = provider.send_threaded_reply(GMAIL_TOKEN, "18c1", "raw")
+            result = provider.send_threaded_reply(GMAIL_FIXTURE_CRED, "18c1", "raw")
         finally:
             provider.close()
         assert calls["n"] == 0
@@ -648,7 +650,7 @@ class TestGmailHttpFixtures:
         assert result["error"] == "This provider method is not implemented."
         assert "TC-19-007" not in result["error"]
         assert "TC-19-007" in result["provider_error"]
-        stub = ConsoleGmailProvider().send_threaded_reply(GMAIL_TOKEN, "18c1", "raw")
+        stub = ConsoleGmailProvider().send_threaded_reply(GMAIL_FIXTURE_CRED, "18c1", "raw")
         assert stub["error_code"] == "not_implemented"
         assert stub["ok"] is False
 
@@ -658,7 +660,7 @@ class TestGmailHttpFixtures:
 
         provider = HttpGmailProvider(transport=_transport(handler), sleeper=lambda *_: None)
         try:
-            result = provider.get_attachment(GMAIL_TOKEN, "18c1", "att")
+            result = provider.get_attachment(GMAIL_FIXTURE_CRED, "18c1", "att")
         finally:
             provider.close()
         assert result["ok"] is False
@@ -687,7 +689,7 @@ class TestOutboundAndOAuthSeams:
         seam = OutboundHttpSeam(transport=_transport(handler))
         try:
             with pytest.raises(OutboundHttpDenied):
-                seam.request("GET", url, headers={"Authorization": f"Bearer {TOKEN}"})
+                seam.request("GET", url, headers={"Authorization": f"Bearer {SLACK_FIXTURE_CRED}"})
         finally:
             seam.close()
 
@@ -711,7 +713,7 @@ class TestOutboundAndOAuthSeams:
                     "POST",
                     "https://evil.example/nope",
                     provider="slack",
-                    headers={"Authorization": f"Bearer {TOKEN}"},
+                    headers={"Authorization": f"Bearer {SLACK_FIXTURE_CRED}"},
                 ),
                 "slack",
             )
@@ -730,7 +732,7 @@ class TestOutboundAndOAuthSeams:
 
         provider = HttpSlackProvider(transport=_transport(handler), sleeper=lambda *_: None)
         try:
-            result = provider.test_auth(TOKEN)
+            result = provider.test_auth(SLACK_FIXTURE_CRED)
         finally:
             provider.close()
         assert result["ok"] is False
@@ -749,7 +751,7 @@ class TestOutboundAndOAuthSeams:
             transport=_transport(handler), max_attempts=3, sleeper=lambda *_: None
         )
         try:
-            result = provider.get_profile(GMAIL_TOKEN)
+            result = provider.get_profile(GMAIL_FIXTURE_CRED)
         finally:
             provider.close()
         assert calls["n"] == 3
@@ -783,7 +785,7 @@ class TestDevStubDoesNotInventProviderDelivery:
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
         _use_env(monkeypatch, APP_ENV="development", MESSAGE_PROVIDER_DEV_STUB="1")
-        stub = get_slack_provider().fetch_messages(TOKEN, "C_RUN", limit=3)
+        stub = get_slack_provider().fetch_messages(SLACK_FIXTURE_CRED, "C_RUN", limit=3)
         assert stub["ok"] is True
         assert stub["provider_mode"] == "dev-stub"
         assert stub["delivered_to_provider"] is False
@@ -792,7 +794,7 @@ class TestDevStubDoesNotInventProviderDelivery:
         _use_env(monkeypatch, APP_ENV="production")
         http_provider = get_slack_provider()
         assert isinstance(http_provider, HttpSlackProvider)
-        missing = http_provider.fetch_messages(TOKEN, "C_RUN", limit=3)
+        missing = http_provider.fetch_messages(SLACK_FIXTURE_CRED, "C_RUN", limit=3)
         assert missing["ok"] is False
         assert missing["error_code"] == "not_implemented"
         assert "messages" not in missing
