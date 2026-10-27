@@ -24,7 +24,7 @@ REPO_ROOT = Path(__file__).resolve().parents[4]
 API_ROOT = Path(__file__).resolve().parents[2]
 CONSUMER_RUNNER = Path(__file__).resolve().parent / "run_case_study_consumer.mjs"
 MIGRATION_PATH = REPO_ROOT / "apps/api/alembic/versions/tc25005_case_study_consent.py"
-PARENT_REVISION = "tc11001_model_outcome_codes"
+PARENT_REVISION = "tc25011_demo_proof_summaries"
 
 ORG = "SYNTHETIC-ORG-PLACEHOLDER"
 ORG_2 = "SYNTHETIC-ORG-PLACEHOLDER-2"

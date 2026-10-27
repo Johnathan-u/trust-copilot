@@ -1,12 +1,10 @@
 """Consent-backed case study publication (TC-25-005).
 
 Revision ID: tc25005_case_study_consent
-Revises: tc11001_model_outcome_codes
+Revises: tc25011_demo_proof_summaries
 
-Parent is tc11001_model_outcome_codes while PR #30 is still open. That PR
-(tc25011_demo_proof_summaries) is approved to merge first. Once it is on
-master, this revision's down_revision becomes tc25011_demo_proof_summaries.
-Do not re-parent before that. Do not reuse the numeric id 076.
+Re-parented onto tc25011_demo_proof_summaries after PR #30 merged in
+9733c93 and master moved to 1eaf03e. Do not reuse the numeric id 076.
 
 Upgrade adds columns and consent tables. It never deletes a case study row.
 Existing published rows have no consent evidence, so the first upgrade copies
@@ -33,7 +31,7 @@ from alembic import op
 import sqlalchemy as sa
 
 revision = "tc25005_case_study_consent"
-down_revision = "tc11001_model_outcome_codes"
+down_revision = "tc25011_demo_proof_summaries"
 branch_labels = None
 depends_on = None
 
