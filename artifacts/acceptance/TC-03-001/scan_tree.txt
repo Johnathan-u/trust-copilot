@@ -1,5 +1,5 @@
-REVIEW tree     .env.example:17  config-secret-review  (Secret-named value in a config/deploy file (dev default))
-REVIEW tree     .env.example:20  url-credential-review  (Low-entropy password embedded in a connection URL (dev default))
+REVIEW tree     .env.example:21  config-secret-review  (Secret-named value in a config/deploy file (dev default))
+REVIEW tree     .env.example:24  url-credential-review  (Low-entropy password embedded in a connection URL (dev default))
 REVIEW tree     .github/workflows/ci.yml:16  config-secret-review  (Secret-named value in a config/deploy file (dev default))
 REVIEW tree     .github/workflows/ci.yml:61  url-credential-review  (Low-entropy password embedded in a connection URL (dev default))
 REVIEW tree     .github/workflows/ci.yml:70  url-credential-review  (Low-entropy password embedded in a connection URL (dev default))

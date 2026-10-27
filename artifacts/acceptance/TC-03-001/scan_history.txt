@@ -144,6 +144,8 @@ REVIEW history  .env.example:4@8812b563fae63223863de609414552d6bb7e33d0  config-
 REVIEW history  .env.example:4@d66b3e7c202c6cee03201d342931fd64eb232a27  config-secret-review  (Secret-named value in a config/deploy file (dev default))
 REVIEW history  .env.example:7@8812b563fae63223863de609414552d6bb7e33d0  url-credential-review  (Low-entropy password embedded in a connection URL (dev default))
 REVIEW history  .env.example:7@d66b3e7c202c6cee03201d342931fd64eb232a27  url-credential-review  (Low-entropy password embedded in a connection URL (dev default))
+REVIEW history  .env.example:8@0c0fd702e811e9baba3ded94b142215016291a0f  config-secret-review  (Secret-named value in a config/deploy file (dev default))
+REVIEW history  .env.example:11@0c0fd702e811e9baba3ded94b142215016291a0f  url-credential-review  (Low-entropy password embedded in a connection URL (dev default))
 REVIEW history  .env.example:16@e037a2f10b490ab96746305d57d26abba61571c5  config-secret-review  (Secret-named value in a config/deploy file (dev default))
 REVIEW history  .env.example:17@d27b544fd56b53c1f800b4bc5f2e12eba9fc99f6  config-secret-review  (Secret-named value in a config/deploy file (dev default))
 REVIEW history  .env.example:19@e037a2f10b490ab96746305d57d26abba61571c5  url-credential-review  (Low-entropy password embedded in a connection URL (dev default))
@@ -236,4 +238,4 @@ REVIEW history  scripts/seed-demo.ps1:6@8812b563fae63223863de609414552d6bb7e33d0
 REVIEW history  scripts/seed-qa.ps1:5@8812b563fae63223863de609414552d6bb7e33d0  url-credential-review  (Low-entropy password embedded in a connection URL (dev default))
 REVIEW history  scripts/seed-qa.ps1:7@8812b563fae63223863de609414552d6bb7e33d0  secret-literal-review  (Low-entropy literal for a secret-named variable (synthetic/dev default))
 REVIEW history  scripts/seed-qa.ps1:8@8812b563fae63223863de609414552d6bb7e33d0  secret-literal-review  (Low-entropy literal for a secret-named variable (synthetic/dev default))
-{"block": 142, "by_source_severity": {"history:block": 142, "history:review": 96}, "total": 238}
+{"block": 142, "by_source_severity": {"history:block": 142, "history:review": 98}, "total": 240}

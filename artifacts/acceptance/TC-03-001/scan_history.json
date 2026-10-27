@@ -2141,14 +2141,32 @@
       "rule": "secret-literal-review",
       "severity": "review",
       "source": "history"
+    },
+    {
+      "commit": "0c0fd702e811e9baba3ded94b142215016291a0f",
+      "kind": "Secret-named value in a config/deploy file (dev default)",
+      "line": 8,
+      "path": ".env.example",
+      "rule": "config-secret-review",
+      "severity": "review",
+      "source": "history"
+    },
+    {
+      "commit": "0c0fd702e811e9baba3ded94b142215016291a0f",
+      "kind": "Low-entropy password embedded in a connection URL (dev default)",
+      "line": 11,
+      "path": ".env.example",
+      "rule": "url-credential-review",
+      "severity": "review",
+      "source": "history"
     }
   ],
   "summary": {
     "block": 142,
     "by_source_severity": {
       "history:block": 142,
-      "history:review": 96
+      "history:review": 98
     },
-    "total": 238
+    "total": 240
   }
 }
