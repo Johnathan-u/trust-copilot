@@ -38,16 +38,16 @@ function NavSection({
       <button
         type="button"
         onClick={toggle}
-        className="flex w-full items-center justify-between px-2 py-1.5 text-[11px] font-semibold uppercase tracking-wider text-[var(--tc-muted)] hover:text-[var(--tc-text)] transition"
+        className="flex min-h-tc-6 w-full items-center justify-between px-tc-2 py-tc-1 text-tc-caption font-semibold uppercase tracking-wider text-tc-muted transition-colors duration-[var(--tc-duration-fast)] hover:text-tc-text"
       >
         <span>{title}</span>
         <span
-          className={`text-[10px] transition-transform ${open ? 'rotate-0' : '-rotate-90'}`}
+          className={`text-tc-caption transition-transform duration-[var(--tc-duration-fast)] ${open ? 'rotate-0' : '-rotate-90'}`}
         >
           ▼
         </span>
       </button>
-      {open && <div className="grid gap-0.5 mt-0.5">{children}</div>}
+      {open && <div className="mt-tc-1 grid gap-tc-1">{children}</div>}
     </div>
   )
 }
@@ -72,19 +72,11 @@ function NavLink({
       href={href}
       scroll={false}
       prefetch={true}
-      className={`flex items-center gap-2.5 rounded-lg px-3 py-2 text-[13px] transition-all ${
+      className={`flex min-h-tc-6 items-center gap-tc-2 rounded-tc-xs px-tc-3 py-tc-2 text-tc-label transition-colors duration-[var(--tc-duration-fast)] ${
         active
-          ? 'border border-[rgba(91,124,255,0.22)] text-[var(--tc-text)] font-medium'
-          : 'border border-transparent text-[var(--tc-muted)] hover:bg-white/5 hover:text-[var(--tc-text)]'
+          ? 'border border-[var(--tc-nav-active-border)] bg-[var(--tc-nav-active-bg)] font-medium text-tc-text'
+          : 'border border-transparent text-tc-muted hover:bg-[var(--tc-hover)] hover:text-tc-text'
       }`}
-      style={
-        active
-          ? {
-              background:
-                'linear-gradient(180deg, rgba(91,124,255,0.12), rgba(255,255,255,0.03))',
-            }
-          : {}
-      }
     >
       <span className="text-sm w-5 text-center flex-shrink-0">{icon}</span>
       {label}
@@ -127,18 +119,15 @@ export function Sidebar() {
 
   return (
     <aside
-      className="flex min-h-0 min-w-0 flex-col gap-3 overflow-x-hidden border-r border-[var(--tc-border)] px-3 py-4"
-      style={{
-        background: 'rgba(7, 12, 22, 0.54)',
-        backdropFilter: 'blur(18px)',
-      }}
+      className="flex min-h-0 min-w-0 flex-col gap-tc-3 overflow-x-hidden border-r border-tc-border px-tc-3 py-tc-4"
+      style={{ background: 'var(--tc-sidebar)' }}
     >
       {/* Workspace selector */}
       {workspaces.length > 1 ? (
         <div className="shrink-0">
           <label
             htmlFor="sidebar-workspace-select"
-            className="mb-1 block px-1 text-[10px] font-semibold uppercase tracking-wider text-[var(--tc-muted)]"
+            className="mb-tc-1 block px-tc-1 text-tc-caption font-semibold uppercase tracking-wider text-tc-muted"
           >
             Workspace
           </label>
@@ -146,8 +135,7 @@ export function Sidebar() {
             id="sidebar-workspace-select"
             key={workspace?.id ?? 'ws'}
             aria-label="Workspace"
-            className="w-full cursor-pointer rounded-lg border border-[var(--tc-border)] bg-white/5 px-2.5 py-2 text-[13px] text-[var(--tc-text)] focus:border-[var(--tc-soft)] focus:outline-none focus:ring-1 focus:ring-[var(--tc-soft)]"
-            style={{ colorScheme: 'dark' }}
+            className="w-full cursor-pointer rounded-tc-xs border border-tc-border-strong bg-tc-surface-overlay px-tc-2 py-tc-2 text-tc-label text-tc-text"
             value={workspace != null ? String(workspace.id) : ''}
             onChange={onWorkspaceChange}
           >
@@ -159,11 +147,11 @@ export function Sidebar() {
           </select>
         </div>
       ) : workspace ? (
-        <div className="shrink-0 rounded-lg border border-[var(--tc-border)] bg-white/5 px-2.5 py-2">
-          <p className="mb-0.5 px-0.5 text-[10px] font-semibold uppercase tracking-wider text-[var(--tc-muted)]">
+        <div className="shrink-0 rounded-tc-xs border border-tc-border-strong bg-tc-surface-overlay px-tc-2 py-tc-2">
+          <p className="mb-tc-1 px-tc-1 text-tc-caption font-semibold uppercase tracking-wider text-tc-muted">
             Workspace
           </p>
-          <p className="truncate text-[13px] font-medium text-[var(--tc-text)]">
+          <p className="truncate text-tc-label font-medium text-tc-text">
             {workspace.name}
           </p>
         </div>
@@ -171,7 +159,7 @@ export function Sidebar() {
 
       <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-3 overflow-x-hidden overflow-y-auto pr-0.5 [scrollbar-width:thin]">
         {/* ── Core ── */}
-        <nav className="grid gap-0.5">
+        <nav className="grid gap-tc-1">
           <NavLink
             href="/dashboard"
             label="Home"
@@ -212,7 +200,7 @@ export function Sidebar() {
           />
         </nav>
 
-        <div className="border-t border-white/5" />
+        <div className="border-t border-tc-border" />
 
         {/* ── Compliance ── */}
         <NavSection
@@ -254,7 +242,7 @@ export function Sidebar() {
           />
         </NavSection>
 
-        <div className="border-t border-white/5" />
+        <div className="border-t border-tc-border" />
 
         {/* ── Admin (admin-only) ── */}
         {isAdmin && (
