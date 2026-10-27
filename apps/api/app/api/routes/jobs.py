@@ -2,6 +2,8 @@
 
 Exposes lifecycle fields for UI polling. Status values match ``JobStatus`` in ``app.models.job``:
 ``queued`` → ``running`` → ``completed`` | ``failed`` (``cancelled`` reserved).
+``charge_uncertain`` is true when a paid provider call of an interrupted or failed attempt may have been charged
+(TC-10-003). A no-op run records ``result.outcome`` = ``already_applied`` | ``reconciled`` | ``superseded``.
 For ``generate_answers`` jobs, ``result`` may contain JSON ``{"generated": N, "total": M}`` while running.
 Failed jobs expose ``error_code`` and ``error_detail`` (``ApiError``: code/message/request_id/retryable).
 """
@@ -16,6 +18,7 @@ from app.core.api_errors import current_request_id, job_error_payload
 from app.core.auth_deps import require_can_review
 from app.core.database import get_db
 from app.models import Job
+from app.services.job_effects import charge_uncertain
 
 router = APIRouter(prefix="/jobs", tags=["jobs"])
 _log = logging.getLogger(__name__)
@@ -60,4 +63,6 @@ def get_job(
         "result": result_payload,
         "created_at": job.created_at.isoformat() if job.created_at else None,
         "completed_at": job.completed_at.isoformat() if job.completed_at else None,
+        # TC-10-003: a provider call of an interrupted/failed attempt may have been charged.
+        "charge_uncertain": charge_uncertain(db, job.id),
     }
