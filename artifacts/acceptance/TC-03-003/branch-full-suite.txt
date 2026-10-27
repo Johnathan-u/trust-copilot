@@ -1,0 +1,339 @@
+# command (from apps/api): python -m pytest -q -p no:cacheprovider -rs --ignore=tests/test_alerts_api.py --ignore=tests/test_coverage_api.py --deselect tests/test_alerting_verification.py::test_openai_failure_logs_ALERT_OPENAI_FAILURE
+# ignores: two modules perform HTTP to localhost:8000 at import on master (fixed by TC-02-001, not on this branch); deselect: real invalid-key OpenAI call
+........................................................................ [  5%]
+........................................................................ [ 10%]
+.................F...................................................... [ 16%]
+........................................................................ [ 21%]
+........................................................................ [ 27%]
+.......s................................................................ [ 32%]
+........................................................................ [ 38%]
+........................................................................ [ 43%]
+........................................................................ [ 49%]
+........................................................................ [ 54%]
+.....................................F.................................. [ 60%]
+........................................................................ [ 65%]
+..............................................................F......... [ 71%]
+........................................................................ [ 76%]
+........................................................................ [ 82%]
+........................................................................ [ 87%]
+........................................................................ [ 93%]
+........................................................................ [ 98%]
+...............                                                          [100%]
+=================================== FAILURES ===================================
+_______________________ test_partial_completion_progress _______________________
+
+db_session = <sqlalchemy.orm.session.Session object at 0x7f91146533e0>
+
+    def test_partial_completion_progress(db_session: Session):
+        """Job.result gets updated with generated/total during run (integration: generate_answers with job)."""
+        from app.models import Job, JobStatus, Questionnaire, Question, Workspace
+        from app.services.answer_generation import generate_answers_for_questionnaire
+        db = db_session
+        ws = db.query(Workspace).first()
+        if not ws:
+            pytest.skip("no workspace")
+        qnr = db.query(Questionnaire).filter(Questionnaire.workspace_id == ws.id).first()
+        if not qnr:
+            qnr = Questionnaire(workspace_id=ws.id, filename="test_pipeline.xlsx", status="parsed")
+            db.add(qnr)
+            db.flush()
+            db.add(Question(questionnaire_id=qnr.id, text="How do you handle access control?"))
+            db.add(Question(questionnaire_id=qnr.id, text="Describe your backup procedures."))
+            db.commit()
+            db.refresh(qnr)
+        job = Job(
+            workspace_id=ws.id,
+            kind="generate_answers",
+            status=JobStatus.RUNNING.value,
+            payload=json.dumps({"questionnaire_id": qnr.id, "workspace_id": ws.id}),
+        )
+        db.add(job)
+        db.commit()
+        db.refresh(job)
+        try:
+            mock_chat = MagicMock()
+            mock_chat.completions.create.return_value = MagicMock(
+                choices=[MagicMock(message=MagicMock(content="Test answer based on evidence."))]
+            )
+            with patch("app.services.answer_generation.embed_texts", return_value=[[0.0] * 1536] * 10), \
+                 patch("app.services.answer_generation.get_corpus_version", return_value="v1"), \
+                 patch("openai.OpenAI", return_value=mock_chat):
+>               count = generate_answers_for_questionnaire(
+                    db, qnr.id, ws.id, job=job
+                )
+
+tests/test_answer_pipeline.py:133: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+db = <sqlalchemy.orm.session.Session object at 0x7f91146533e0>
+questionnaire_id = 39, workspace_id = 2, model_override = None
+response_style_override = None
+job = <app.models.job.Job object at 0x7f9110c28830>
+
+    def generate_answers_for_questionnaire(
+        db: Session,
+        questionnaire_id: int,
+        workspace_id: int,
+        model_override: str | None = None,
+        response_style_override: str | None = None,
+        job: Job | None = None,
+    ) -> int:
+        """Generate answers for all questions. Returns count of answers created."""
+        qnr = db.query(Questionnaire).filter(
+            Questionnaire.id == questionnaire_id,
+            Questionnaire.workspace_id == workspace_id,
+        ).first()
+        if not qnr:
+            raise ValueError(f"Questionnaire {questionnaire_id} not found")
+        questions = db.query(Question).filter(Question.questionnaire_id == questionnaire_id).all()
+        total_questions = len(questions)
+        if not questions:
+            if job:
+                job.result = _job_payload(0, 0, {"drafted": 0, "insufficient_evidence": 0, "skipped_gated": 0, "llm_calls": 0, "duration_ms": 0})
+                db.commit()
+            return 0
+    
+        from app.core.config import get_settings
+        settings = get_settings()
+        api_key_ok = bool((settings.openai_api_key or "").strip())
+        if not api_key_ok:
+            if total_questions > 0:
+>               raise ValueError(
+                    "OPENAI_API_KEY is not set or empty. Set it in the environment (.env) for the API and worker, then restart."
+                )
+E               ValueError: OPENAI_API_KEY is not set or empty. Set it in the environment (.env) for the API and worker, then restart.
+
+app/services/answer_generation.py:494: ValueError
+________ TestAPIQuotaEnforcement.test_generate_answers_blocked_at_quota ________
+
+self = <tests.test_p1_multi_tenant_hardening.TestAPIQuotaEnforcement object at 0x7f91148911d0>
+client = <starlette.testclient.TestClient object at 0x7f9102a1def0>
+
+    def test_generate_answers_blocked_at_quota(self, client: TestClient) -> None:
+        _cleanup_usage()
+        _login_admin(client)
+    
+        from app.core.database import SessionLocal
+        from app.models.workspace_quota import WorkspaceQuota
+        from app.services.quota_service import record_usage
+        db = SessionLocal()
+        try:
+            db.add(WorkspaceQuota(workspace_id=1, max_ai_jobs_per_hour=2))
+            db.commit()
+            for _ in range(2):
+                record_usage(db, 1, "ai_jobs")
+            db.commit()
+        finally:
+            db.close()
+    
+        r = client.post("/api/exports/generate/1?workspace_id=1")
+>       assert r.status_code == 429
+E       assert 503 == 429
+E        +  where 503 = <Response [503 Service Unavailable]>.status_code
+
+tests/test_p1_multi_tenant_hardening.py:277: AssertionError
+____________ test_generate_answers_passes_document_ids_to_retrieval ____________
+
+db_session = <sqlalchemy.orm.session.Session object at 0x7f91023d63f0>
+
+    def test_generate_answers_passes_document_ids_to_retrieval(db_session: Session):
+        """generate_answers_for_questionnaire passes scoped document_ids into retrieval.search."""
+        from app.models import Question, Workspace
+        from app.services.answer_generation import generate_answers_for_questionnaire
+    
+        if not db_session.query(Workspace).filter(Workspace.id == 1).first():
+            pytest.skip("no workspace")
+        qnr = (
+            db_session.query(Questionnaire)
+            .filter(Questionnaire.workspace_id == 1, Questionnaire.deleted_at.is_(None))
+            .first()
+        )
+        if not qnr:
+            pytest.skip("no questionnaire")
+        doc = (
+            db_session.query(Document)
+            .filter(Document.workspace_id == 1, Document.deleted_at.is_(None))
+            .first()
+        )
+        if not doc:
+            pytest.skip("no document")
+        qn = db_session.query(Question).filter(Question.questionnaire_id == qnr.id).first()
+        if not qn:
+            pytest.skip("no questions")
+    
+        captured: dict = {}
+        old_json = qnr.answer_evidence_document_ids_json
+        qnr.answer_evidence_document_ids_json = json.dumps([doc.id])
+        db_session.commit()
+    
+        def fake_batch_search(*args, **kwargs):
+            captured["document_ids"] = kwargs.get("document_ids")
+            return [[]]
+    
+        try:
+            with (
+                patch("app.core.config.get_settings") as mock_settings,
+                patch("app.services.answer_generation.embed_texts", return_value=[[0.1] * 1536]),
+                patch("app.services.answer_generation.RetrievalService") as MockRetrieval,
+                patch("app.services.answer_generation.get_corpus_version", return_value=""),
+                patch("app.services.answer_generation.retrieval_cache_get", return_value=None),
+                patch("app.services.answer_generation.answer_cache_get", return_value=None),
+                patch("openai.OpenAI"),
+            ):
+                mock_settings.return_value.openai_api_key = "test-key"
+                mock_settings.return_value.completion_model = "gpt-4o-mini"
+                mock_settings.return_value.openai_temperature = 0.35
+                MockRetrieval.return_value.batch_search = fake_batch_search
+    
+                try:
+                    generate_answers_for_questionnaire(db_session, qnr.id, workspace_id=1)
+                except Exception:
+                    pass
+        finally:
+            qnr.answer_evidence_document_ids_json = old_json
+            db_session.commit()
+    
+>       assert captured.get("document_ids") == [doc.id]
+E       AssertionError: assert None == [1]
+E        +  where None = <built-in method get of dict object at 0x7f91023cc8c0>('document_ids')
+E        +    where <built-in method get of dict object at 0x7f91023cc8c0> = {}.get
+
+tests/test_questionnaire_answer_evidence.py:198: AssertionError
+=============================== warnings summary ===============================
+tests/test_ai_mappings.py: 53 warnings
+tests/test_alert_management.py: 8 warnings
+tests/test_alerting_engine.py: 12 warnings
+tests/test_answer_approval.py: 98 warnings
+tests/test_answer_generation_openai_required.py: 2 warnings
+tests/test_answer_outcomes.py: 12 warnings
+tests/test_answer_tiers.py: 2 warnings
+tests/test_auth.py: 11 warnings
+tests/test_auth_flows.py: 2 warnings
+tests/test_auth_sessions_api.py: 5 warnings
+tests/test_auth_workspace.py: 10 warnings
+tests/test_automate_everything.py: 32 warnings
+tests/test_aws_connector.py: 10 warnings
+tests/test_benchmarks.py: 4 warnings
+tests/test_buyer_portal_proof_graph.py: 270 warnings
+tests/test_case_studies.py: 16 warnings
+tests/test_citation_composer.py: 8 warnings
+tests/test_cloud_connectors.py: 16 warnings
+tests/test_compliance_questionnaire_gaps_integration.py: 24 warnings
+tests/test_confidence_routing.py: 8 warnings
+tests/test_confidence_scoring.py: 9 warnings
+tests/test_connector_health.py: 6 warnings
+tests/test_connector_wizard.py: 12 warnings
+tests/test_contracts.py: 19 warnings
+tests/test_control_engine.py: 8 warnings
+tests/test_control_timeline.py: 4 warnings
+tests/test_controls_api.py: 24 warnings
+tests/test_credential_store.py: 14 warnings
+tests/test_credit_ledger.py: 22 warnings
+tests/test_credit_prompts.py: 4 warnings
+tests/test_crm_connectors.py: 8 warnings
+tests/test_dashboard_cards.py: 139 warnings
+tests/test_deals.py: 46 warnings
+tests/test_demo_proof.py: 10 warnings
+tests/test_evidence_approval.py: 13 warnings
+tests/test_evidence_cards.py: 4 warnings
+tests/test_evidence_diff.py: 4 warnings
+tests/test_evidence_search.py: 21 warnings
+tests/test_executive_dashboard.py: 4 warnings
+tests/test_export_pack.py: 10 warnings
+tests/test_feature_flags.py: 16 warnings
+tests/test_feedback_capture.py: 4 warnings
+tests/test_freshness_policies.py: 14 warnings
+tests/test_generate_export.py: 9 warnings
+tests/test_github_connector.py: 10 warnings
+tests/test_golden_answers.py: 39 warnings
+tests/test_google_connector.py: 10 warnings
+tests/test_in_app_notifications.py: 51 warnings
+tests/test_ingestion_pipeline.py: 13 warnings
+tests/test_invite_flow_p14.py: 75 warnings
+tests/test_jobs_api.py: 6 warnings
+tests/test_knowledge_packs.py: 2 warnings
+tests/test_login_email_regression.py: 8 warnings
+tests/test_members_invites.py: 45 warnings
+tests/test_monitoring.py: 4 warnings
+tests/test_multi_tenant.py: 31 warnings
+tests/test_nda_access.py: 34 warnings
+tests/test_notification_fire_points.py: 84 warnings
+tests/test_operator_queue.py: 22 warnings
+tests/test_p1_multi_tenant_hardening.py: 14 warnings
+tests/test_phase_a_user_admin.py: 142 warnings
+tests/test_phase_b_custom_roles.py: 89 warnings
+tests/test_phase_c_notifications.py: 135 warnings
+tests/test_phase_d_slack.py: 141 warnings
+tests/test_phase_e_slack_ingest.py: 102 warnings
+tests/test_phase_f_gmail.py: 104 warnings
+tests/test_product_events.py: 14 warnings
+tests/test_promises.py: 21 warnings
+tests/test_proof_widgets.py: 4 warnings
+tests/test_qa_201_cross_workspace_auth.py: 12 warnings
+tests/test_questionnaire_answer_evidence.py: 2 warnings
+tests/test_questionnaire_mapping_evidence.py: 21 warnings
+tests/test_questionnaire_mappings.py: 40 warnings
+tests/test_questionnaires_exports_list_api.py: 4 warnings
+tests/test_registry_lifecycle_api.py: 49 warnings
+tests/test_remediation.py: 38 warnings
+tests/test_remediation_loop.py: 22 warnings
+tests/test_remember_me.py: 13 warnings
+tests/test_retention.py: 14 warnings
+tests/test_reuse_analytics.py: 4 warnings
+tests/test_roi_calculator.py: 4 warnings
+tests/test_security_faq.py: 24 warnings
+tests/test_security_page.py: 4 warnings
+tests/test_security_remediation.py: 16 warnings
+tests/test_shareable_spaces.py: 21 warnings
+tests/test_signal_mapping.py: 10 warnings
+tests/test_sla_tracking.py: 4 warnings
+tests/test_sli.py: 4 warnings
+tests/test_source_registry.py: 18 warnings
+tests/test_tags.py: 73 warnings
+tests/test_tenant_isolation.py: 28 warnings
+tests/test_trust_articles_api.py: 43 warnings
+tests/test_trust_center_analytics.py: 4 warnings
+tests/test_trust_center_publish.py: 10 warnings
+tests/test_trust_requests_api.py: 51 warnings
+tests/test_upload_parse_review.py: 2 warnings
+tests/test_vendor_requests_api.py: 54 warnings
+tests/test_vendor_response_api.py: 9 warnings
+tests/test_wave2_p13_p21_api.py: 9 warnings
+tests/test_wave3_p23_p29_api.py: 12 warnings
+tests/test_workspaces_members_api.py: 8 warnings
+  /workspace/tcvenv/lib/python3.13/site-packages/sqlalchemy/sql/schema.py:3627: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    return util.wrap_callable(lambda ctx: fn(), fn)  # type: ignore
+
+tests/test_dashboard_cards.py::TestAdminCRUD::test_update_card
+  /workspace/tc-platform/apps/api/app/api/routes/dashboard_cards.py:222: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    card.updated_at = datetime.utcnow()
+
+tests/test_notification_fire_points.py::TestControlVerifiedFirePoint::test_control_verified_notifies
+  /workspace/tc-platform/apps/api/app/api/routes/compliance_controls.py:385: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    now = datetime.utcnow()
+
+tests/test_p1_multi_tenant_hardening.py::TestFairScheduling::test_claim_job_rotates_workspaces
+tests/test_p1_multi_tenant_hardening.py::TestFairScheduling::test_claim_job_rotates_workspaces
+tests/test_p1_multi_tenant_hardening.py::TestFairScheduling::test_claim_job_rotates_workspaces
+  /workspace/tc-platform/apps/api/tests/test_p1_multi_tenant_hardening.py:163: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    created_at=datetime.utcnow()))
+
+tests/test_p1_multi_tenant_hardening.py::TestFairScheduling::test_claim_job_rotates_workspaces
+  /workspace/tc-platform/apps/api/tests/test_p1_multi_tenant_hardening.py:166: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    created_at=datetime.utcnow()))
+
+tests/test_p1_multi_tenant_hardening.py::TestFairScheduling::test_claim_falls_back_when_only_one_workspace
+  /workspace/tc-platform/apps/api/tests/test_p1_multi_tenant_hardening.py:201: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    created_at=datetime.utcnow()))
+
+tests/test_phase_e_slack_ingest.py::TestControlSuggestions::test_suggestion_status_review
+tests/test_phase_e_slack_ingest.py::TestControlSuggestions::test_suggestion_review_audit_logged
+  /workspace/tc-platform/apps/api/app/api/routes/slack_ingest.py:257: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    sug.reviewed_at = datetime.utcnow()
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+SKIPPED [1] tests/test_trust_scoring_blind.py:27: Blind test pack not found (local-only file)
+SKIPPED [1] tests/test_control_timeline.py:42: No reviewed workspace controls
+3 failed, 1307 passed, 2 skipped, 1 deselected, 2863 warnings in 61.56s (0:01:01)
+# exit status: 1
