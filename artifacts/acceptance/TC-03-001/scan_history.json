@@ -2087,14 +2087,68 @@
       "rule": "secret-literal-review",
       "severity": "review",
       "source": "history"
+    },
+    {
+      "commit": "d27b544fd56b53c1f800b4bc5f2e12eba9fc99f6",
+      "kind": "Secret-named value in a config/deploy file (dev default)",
+      "line": 17,
+      "path": ".env.example",
+      "rule": "config-secret-review",
+      "severity": "review",
+      "source": "history"
+    },
+    {
+      "commit": "d27b544fd56b53c1f800b4bc5f2e12eba9fc99f6",
+      "kind": "Low-entropy password embedded in a connection URL (dev default)",
+      "line": 20,
+      "path": ".env.example",
+      "rule": "url-credential-review",
+      "severity": "review",
+      "source": "history"
+    },
+    {
+      "commit": "d27b544fd56b53c1f800b4bc5f2e12eba9fc99f6",
+      "kind": "Low-entropy literal for a secret-named variable (synthetic/dev default)",
+      "line": 48,
+      "path": "apps/api/tests/release/test_config_contract.py",
+      "rule": "secret-literal-review",
+      "severity": "review",
+      "source": "history"
+    },
+    {
+      "commit": "d27b544fd56b53c1f800b4bc5f2e12eba9fc99f6",
+      "kind": "Low-entropy literal for a secret-named variable (synthetic/dev default)",
+      "line": 55,
+      "path": "apps/api/tests/release/test_config_contract.py",
+      "rule": "secret-literal-review",
+      "severity": "review",
+      "source": "history"
+    },
+    {
+      "commit": "d27b544fd56b53c1f800b4bc5f2e12eba9fc99f6",
+      "kind": "Low-entropy literal for a secret-named variable (synthetic/dev default)",
+      "line": 275,
+      "path": "apps/api/tests/release/test_config_contract.py",
+      "rule": "secret-literal-review",
+      "severity": "review",
+      "source": "history"
+    },
+    {
+      "commit": "d27b544fd56b53c1f800b4bc5f2e12eba9fc99f6",
+      "kind": "Low-entropy literal for a secret-named variable (synthetic/dev default)",
+      "line": 355,
+      "path": "apps/api/tests/release/test_config_contract.py",
+      "rule": "secret-literal-review",
+      "severity": "review",
+      "source": "history"
     }
   ],
   "summary": {
     "block": 142,
     "by_source_severity": {
       "history:block": 142,
-      "history:review": 90
+      "history:review": 96
     },
-    "total": 232
+    "total": 238
   }
 }

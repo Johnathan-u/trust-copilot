@@ -3,7 +3,7 @@
     {
       "commit": "",
       "kind": "Secret-named value in a config/deploy file (dev default)",
-      "line": 16,
+      "line": 17,
       "path": ".env.example",
       "rule": "config-secret-review",
       "severity": "review",
@@ -12,7 +12,7 @@
     {
       "commit": "",
       "kind": "Low-entropy password embedded in a connection URL (dev default)",
-      "line": 19,
+      "line": 20,
       "path": ".env.example",
       "rule": "url-credential-review",
       "severity": "review",
@@ -138,7 +138,7 @@
     {
       "commit": "",
       "kind": "Low-entropy literal for a secret-named variable (synthetic/dev default)",
-      "line": 271,
+      "line": 275,
       "path": "apps/api/tests/release/test_config_contract.py",
       "rule": "secret-literal-review",
       "severity": "review",
@@ -147,7 +147,7 @@
     {
       "commit": "",
       "kind": "Low-entropy literal for a secret-named variable (synthetic/dev default)",
-      "line": 351,
+      "line": 355,
       "path": "apps/api/tests/release/test_config_contract.py",
       "rule": "secret-literal-review",
       "severity": "review",
