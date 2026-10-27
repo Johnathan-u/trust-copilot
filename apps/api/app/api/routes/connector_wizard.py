@@ -29,7 +29,9 @@ async def connector_details(connector_type: str, session: dict = Depends(require
 
 
 @router.post("/start")
-async def start_setup(body: SetupBody, session: dict = Depends(require_can_admin), db: Session = Depends(get_db)):
+async def start_setup(
+    body: SetupBody, session: dict = Depends(require_can_admin), db: Session = Depends(get_db)
+):
     result = svc.start_setup(db, session["workspace_id"], body.connector_type)
     if "error" in result:
         raise HTTPException(status_code=400, detail=result["error"])
@@ -38,7 +40,9 @@ async def start_setup(body: SetupBody, session: dict = Depends(require_can_admin
 
 
 @router.post("/validate")
-async def validate_setup(body: SetupBody, session: dict = Depends(require_can_admin), db: Session = Depends(get_db)):
+async def validate_setup(
+    body: SetupBody, session: dict = Depends(require_can_admin), db: Session = Depends(get_db)
+):
     result = svc.validate_setup(db, session["workspace_id"], body.connector_type)
     if "error" in result:
         raise HTTPException(status_code=400, detail=result["error"])
@@ -47,7 +51,9 @@ async def validate_setup(body: SetupBody, session: dict = Depends(require_can_ad
 
 
 @router.post("/disable")
-async def disable(body: SetupBody, session: dict = Depends(require_can_admin), db: Session = Depends(get_db)):
+async def disable(
+    body: SetupBody, session: dict = Depends(require_can_admin), db: Session = Depends(get_db)
+):
     result = svc.disable_connector(db, session["workspace_id"], body.connector_type)
     if "error" in result:
         raise HTTPException(status_code=404, detail=result["error"])

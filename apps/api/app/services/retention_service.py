@@ -5,7 +5,7 @@ and policy configuration.
 """
 
 import logging
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta, timezone  # noqa: F401
 
 from sqlalchemy.orm import Session
 
@@ -24,10 +24,14 @@ def set_policy(
     auto_delete: bool = False,
     source_type: str | None = None,
 ) -> dict:
-    existing = db.query(RetentionPolicy).filter(
-        RetentionPolicy.workspace_id == workspace_id,
-        RetentionPolicy.source_type == source_type,
-    ).first()
+    existing = (
+        db.query(RetentionPolicy)
+        .filter(
+            RetentionPolicy.workspace_id == workspace_id,
+            RetentionPolicy.source_type == source_type,
+        )
+        .first()
+    )
     if existing:
         existing.retention_days = retention_days
         existing.archive_after_days = archive_after_days
@@ -47,9 +51,14 @@ def set_policy(
 
 
 def get_policies(db: Session, workspace_id: int) -> list[dict]:
-    policies = db.query(RetentionPolicy).filter(
-        RetentionPolicy.workspace_id == workspace_id,
-    ).order_by(RetentionPolicy.source_type.asc().nullsfirst()).all()
+    policies = (
+        db.query(RetentionPolicy)
+        .filter(
+            RetentionPolicy.workspace_id == workspace_id,
+        )
+        .order_by(RetentionPolicy.source_type.asc().nullsfirst())
+        .all()
+    )
     return [_serialize(p) for p in policies]
 
 
@@ -101,9 +110,13 @@ def run_archival(db: Session, workspace_id: int) -> dict:
     evaluation = evaluate_retention(db, workspace_id)
     archived_count = 0
     for entry in evaluation["to_archive"]:
-        meta = db.query(EvidenceMetadata).filter(
-            EvidenceMetadata.evidence_id == entry["evidence_id"],
-        ).first()
+        meta = (
+            db.query(EvidenceMetadata)
+            .filter(
+                EvidenceMetadata.evidence_id == entry["evidence_id"],
+            )
+            .first()
+        )
         if meta:
             meta.expires_at = datetime.now(timezone.utc)
             archived_count += 1
@@ -115,7 +128,11 @@ def run_deletion(db: Session, workspace_id: int, dry_run: bool = True) -> dict:
     """Execute deletion for evidence past retention with auto_delete enabled."""
     evaluation = evaluate_retention(db, workspace_id)
     if dry_run:
-        return {"dry_run": True, "would_delete": len(evaluation["to_delete"]), "items": evaluation["to_delete"]}
+        return {
+            "dry_run": True,
+            "would_delete": len(evaluation["to_delete"]),
+            "items": evaluation["to_delete"],
+        }
     deleted = 0
     for entry in evaluation["to_delete"]:
         ev = db.query(EvidenceItem).filter(EvidenceItem.id == entry["evidence_id"]).first()
@@ -127,10 +144,14 @@ def run_deletion(db: Session, workspace_id: int, dry_run: bool = True) -> dict:
 
 
 def delete_policy(db: Session, workspace_id: int, source_type: str | None = None) -> bool:
-    policy = db.query(RetentionPolicy).filter(
-        RetentionPolicy.workspace_id == workspace_id,
-        RetentionPolicy.source_type == source_type,
-    ).first()
+    policy = (
+        db.query(RetentionPolicy)
+        .filter(
+            RetentionPolicy.workspace_id == workspace_id,
+            RetentionPolicy.source_type == source_type,
+        )
+        .first()
+    )
     if not policy:
         return False
     db.delete(policy)
@@ -140,16 +161,24 @@ def delete_policy(db: Session, workspace_id: int, source_type: str | None = None
 
 def _effective_policy(db: Session, workspace_id: int, source_type: str | None) -> dict:
     if source_type:
-        policy = db.query(RetentionPolicy).filter(
-            RetentionPolicy.workspace_id == workspace_id,
-            RetentionPolicy.source_type == source_type,
-        ).first()
+        policy = (
+            db.query(RetentionPolicy)
+            .filter(
+                RetentionPolicy.workspace_id == workspace_id,
+                RetentionPolicy.source_type == source_type,
+            )
+            .first()
+        )
         if policy:
             return _serialize(policy)
-    workspace_policy = db.query(RetentionPolicy).filter(
-        RetentionPolicy.workspace_id == workspace_id,
-        RetentionPolicy.source_type.is_(None),
-    ).first()
+    workspace_policy = (
+        db.query(RetentionPolicy)
+        .filter(
+            RetentionPolicy.workspace_id == workspace_id,
+            RetentionPolicy.source_type.is_(None),
+        )
+        .first()
+    )
     if workspace_policy:
         return _serialize(workspace_policy)
     return {"retention_days": 365, "archive_after_days": None, "auto_delete": False}

@@ -46,9 +46,14 @@ def create_space(
 
 
 def list_spaces(db: Session, workspace_id: int) -> list[dict]:
-    spaces = db.query(ShareableSpace).filter(
-        ShareableSpace.workspace_id == workspace_id,
-    ).order_by(ShareableSpace.created_at.desc()).all()
+    spaces = (
+        db.query(ShareableSpace)
+        .filter(
+            ShareableSpace.workspace_id == workspace_id,
+        )
+        .order_by(ShareableSpace.created_at.desc())
+        .all()
+    )
     return [_serialize(s) for s in spaces]
 
 
@@ -73,7 +78,11 @@ def access_space_by_token(db: Session, token: str) -> dict:
     if not s.is_active:
         return {"valid": False, "reason": "Space deactivated"}
     if s.expires_at:
-        exp = s.expires_at.replace(tzinfo=timezone.utc) if s.expires_at.tzinfo is None else s.expires_at
+        exp = (
+            s.expires_at.replace(tzinfo=timezone.utc)
+            if s.expires_at.tzinfo is None
+            else s.expires_at
+        )
         if exp < datetime.now(timezone.utc):
             return {"valid": False, "reason": "Space expired"}
     return {

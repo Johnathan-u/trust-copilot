@@ -128,9 +128,9 @@ def test_full_collection_opens_no_sockets_with_hostile_env(tmp_path):
     assert proc.returncode == 0, out[-4000:]
     assert re.search(r"\d+ tests collected", out), out[-2000:]
     assert "error" not in out.lower().split("tests collected")[-1], out[-2000:]
-    assert _socket_trace(tmp_path) == [], (
-        f"collection attempted connections: {_socket_trace(tmp_path)}"
-    )
+    assert (
+        _socket_trace(tmp_path) == []
+    ), f"collection attempted connections: {_socket_trace(tmp_path)}"
     collected_files = {ln.split("::", 1)[0] for ln in out.splitlines() if "::" in ln}
     for former in FORMER_UNSAFE_SCRIPTS:
         assert f"tests/{former}" not in collected_files

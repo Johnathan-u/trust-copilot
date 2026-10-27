@@ -59,7 +59,9 @@ def process_compliance_webhook_outbox(db: Session) -> int:
     if not pending:
         return 0
     workspace_ids = list({r.workspace_id for r in pending})
-    workspaces = {w.id: w for w in db.query(Workspace).filter(Workspace.id.in_(workspace_ids)).all()}
+    workspaces = {
+        w.id: w for w in db.query(Workspace).filter(Workspace.id.in_(workspace_ids)).all()
+    }
     processed = 0
     for row in pending:
         ws = workspaces.get(row.workspace_id)
@@ -79,7 +81,7 @@ def process_compliance_webhook_outbox(db: Session) -> int:
         payload["_event_type"] = row.event_type
         payload["_created_at"] = row.created_at.isoformat() if row.created_at else None
         attempt = row.attempt_count
-        backoff = BACKOFF_BASE_SEC * (2 ** attempt)
+        backoff = BACKOFF_BASE_SEC * (2**attempt)
         if attempt > 0:
             time.sleep(min(backoff, 60))
         ok, err = _post_payload(url, payload)
@@ -90,14 +92,22 @@ def process_compliance_webhook_outbox(db: Session) -> int:
             row.last_error = None
             db.commit()
             processed += 1
-            logger.info("compliance_webhook_delivered outbox_id=%s workspace_id=%s event_type=%s", row.id, row.workspace_id, row.event_type)
+            logger.info(
+                "compliance_webhook_delivered outbox_id=%s workspace_id=%s event_type=%s",
+                row.id,
+                row.workspace_id,
+                row.event_type,
+            )
         else:
             row.last_error = err[:1000] if err else "Unknown error"
             if row.attempt_count >= MAX_ATTEMPTS:
                 row.status = "failed"
                 logger.warning(
                     "compliance_webhook_failed outbox_id=%s workspace_id=%s attempt=%s error=%s",
-                    row.id, row.workspace_id, row.attempt_count, row.last_error,
+                    row.id,
+                    row.workspace_id,
+                    row.attempt_count,
+                    row.last_error,
                 )
             db.commit()
             processed += 1

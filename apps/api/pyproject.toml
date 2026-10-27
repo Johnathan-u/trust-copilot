@@ -15,7 +15,7 @@ dependencies = [
     "argon2-cffi",
     "fastapi",
     "uvicorn[standard]",
-    "sqlalchemy",
+    "sqlalchemy>=2.0,<2.1",  # 2.1 defaults postgresql:// to psycopg3; driver is psycopg2 (full lock: TC-02-002)
     "psycopg2-binary",
     "pydantic",
     "alembic",

@@ -11,7 +11,7 @@ FAILED tests/release/test_safe_collection.py::test_unsafe_scripts_moved_out_of_t
 FAILED tests/release/test_safe_collection.py::test_manual_live_scripts_refuse_remote_targets_and_missing_secret[probe_coverage_api.py-env_extra0-not a
 FAILED tests/release/test_safe_collection.py::test_manual_live_scripts_refuse_remote_targets_and_missing_secret[probe_alerts_api.py-env_extra1-TC_SESS
 FAILED tests/release/test_safe_collection.py::test_manual_live_scripts_refuse_remote_targets_and_missing_secret[fetch_full_qa.py-env_extra2-not a loca
-FAILED tests/release/test_safe_collection.py::test_manual_live_scripts_refuse_remote_targets_and_missing_secret[pipeline_deep_audit.py-env_extra3-not 
+FAILED tests/release/test_safe_collection.py::test_manual_live_scripts_refuse_remote_targets_and_missing_secret[pipeline_deep_audit.py-env_extra3-not
 FAILED tests/release/test_safe_collection.py::test_external_data_module_skips_with_explicit_reason
 FAILED tests/release/test_safe_collection.py::test_playwright_config_refuses_non_local_api_upstream
 16 failed, 10 passed, 1 warning in 7.79s

@@ -1,11 +1,13 @@
 """Manual dataset script (see README.md). Not a pytest module."""
+
 from _live_guard import require_data_file
+
 """Run all 100 blind cases and print full Q&A report."""
 
-import json
-from datetime import date
+import json  # noqa: E402
+from datetime import date  # noqa: E402
 
-from app.services.trust_scoring import compute_trust_score
+from app.services.trust_scoring import compute_trust_score  # noqa: E402
 
 BLIND_PATH = require_data_file("TC_TRUST_SCORING_BLIND_PACK")
 AS_OF = date(2026, 3, 23)
@@ -50,21 +52,23 @@ def _convert(raw):
                 dup = True
             else:
                 seen.add(grp)
-        items.append({
-            "description": ev.get("title", ""),
-            "source_type": _map_source(
-                ev.get("source_type", ""),
-                ev.get("channel", ""),
-                ev.get("confidence_hint", "medium"),
-            ),
-            "recency_days": _recency(ev.get("issued_at")),
-            "relevance": ev.get("relevance", "supporting"),
-            "is_duplicate": dup,
-            "contradicts": "contradiction" in fl,
-            "negative_signal": "expired" in fl and "contradiction" not in fl,
-            "tampering": "tampering" in fl,
-            "inconsistency": "inconsistency" in fl,
-        })
+        items.append(
+            {
+                "description": ev.get("title", ""),
+                "source_type": _map_source(
+                    ev.get("source_type", ""),
+                    ev.get("channel", ""),
+                    ev.get("confidence_hint", "medium"),
+                ),
+                "recency_days": _recency(ev.get("issued_at")),
+                "relevance": ev.get("relevance", "supporting"),
+                "is_duplicate": dup,
+                "contradicts": "contradiction" in fl,
+                "negative_signal": "expired" in fl and "contradiction" not in fl,
+                "tampering": "tampering" in fl,
+                "inconsistency": "inconsistency" in fl,
+            }
+        )
     return items, raw.get("critical_gaps", [])
 
 
@@ -124,11 +128,14 @@ def main():
     for c, r, ev, miss in results:
         diff = r["score"] - c["expected_score"]
         print()
-        print(f"--- {c['case_id']} [{c['scenario_category']}] "
-              f"Entity: {c['profile']['name']} ---")
+        print(
+            f"--- {c['case_id']} [{c['scenario_category']}] " f"Entity: {c['profile']['name']} ---"
+        )
         print(f"  Q: {c['question']}")
-        print(f"  Expected: {c['expected_score']} (band {c['expected_band']})  "
-              f"| Got: {r['score']} (grade {r['grade']})  | Diff: {diff:+d}")
+        print(
+            f"  Expected: {c['expected_score']} (band {c['expected_band']})  "
+            f"| Got: {r['score']} (grade {r['grade']})  | Diff: {diff:+d}"
+        )
         print(f"  Rationale: {'; '.join(c.get('golden_rationale', []))}")
         print(f"  Critical gaps: {miss if miss else 'none'}")
         print(f"  Breakdown: {r['breakdown']}")

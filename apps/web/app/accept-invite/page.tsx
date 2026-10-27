@@ -9,7 +9,9 @@ function AcceptInviteContent() {
   const searchParams = useSearchParams()
   const tokenFromUrl = searchParams.get('token') ?? ''
 
-  const [step, setStep] = useState<'verify' | 'accept'>(() => (tokenFromUrl.trim() ? 'accept' : 'verify'))
+  const [step, setStep] = useState<'verify' | 'accept'>(() =>
+    tokenFromUrl.trim() ? 'accept' : 'verify'
+  )
   const [email, setEmail] = useState('')
   const [verificationCode, setVerificationCode] = useState('')
   const [token, setToken] = useState(tokenFromUrl.trim())
@@ -34,7 +36,11 @@ function AcceptInviteContent() {
     const data = await res.json().catch(() => ({}))
     setVerifying(false)
     if (!res.ok) {
-      setError(Array.isArray(data.detail) ? data.detail[0]?.msg ?? data.detail : data.detail || 'Verification failed')
+      setError(
+        Array.isArray(data.detail)
+          ? (data.detail[0]?.msg ?? data.detail)
+          : data.detail || 'Verification failed'
+      )
       return
     }
     if (!data.token || typeof data.token !== 'string') {
@@ -61,7 +67,11 @@ function AcceptInviteContent() {
     })
     const data = await res.json().catch(() => ({}))
     if (!res.ok) {
-      setError(Array.isArray(data.detail) ? data.detail[0]?.msg ?? data.detail : data.detail || 'Accept failed')
+      setError(
+        Array.isArray(data.detail)
+          ? (data.detail[0]?.msg ?? data.detail)
+          : data.detail || 'Accept failed'
+      )
       return
     }
     setSuccess(true)
@@ -75,9 +85,12 @@ function AcceptInviteContent() {
     return (
       <main className="flex min-h-screen items-center justify-center p-4">
         <Card className="w-full max-w-md">
-          <h1 className="text-xl font-bold text-[var(--tc-text)]">You are in!</h1>
+          <h1 className="text-xl font-bold text-[var(--tc-text)]">
+            You are in!
+          </h1>
           <p className="mt-2 text-sm text-[var(--tc-muted)]">
-            You have joined the workspace. Sign in with your email and the password you just set.
+            You have joined the workspace. Sign in with your email and the
+            password you just set.
           </p>
           <Link href={loginHref} className="mt-4 inline-block">
             <Button>Sign in</Button>
@@ -91,10 +104,13 @@ function AcceptInviteContent() {
     return (
       <main className="flex min-h-screen items-center justify-center p-4">
         <Card className="w-full max-w-md">
-          <h1 className="text-xl font-bold text-[var(--tc-text)]">Verify your invitation</h1>
+          <h1 className="text-xl font-bold text-[var(--tc-text)]">
+            Verify your invitation
+          </h1>
           <p className="mt-2 mb-6 text-sm text-[var(--tc-muted)]">
-            Enter the email address the invite was sent to and the verification code from your email. Then you can set
-            a password (new accounts) or finish joining (existing accounts).
+            Enter the email address the invite was sent to and the verification
+            code from your email. Then you can set a password (new accounts) or
+            finish joining (existing accounts).
           </p>
           <form onSubmit={onVerify} className="space-y-4">
             <Input
@@ -114,7 +130,9 @@ function AcceptInviteContent() {
               onChange={(e) => setVerificationCode(e.target.value)}
               placeholder="e.g. AB12-CD34-EF56"
             />
-            {error && <p className="text-sm text-[var(--tc-danger)]">{error}</p>}
+            {error && (
+              <p className="text-sm text-[var(--tc-danger)]">{error}</p>
+            )}
             <Button type="submit" className="w-full" disabled={verifying}>
               {verifying ? 'Verifying...' : 'Continue'}
             </Button>
@@ -133,13 +151,25 @@ function AcceptInviteContent() {
     return (
       <main className="flex min-h-screen items-center justify-center p-4">
         <Card className="w-full max-w-md">
-          <h1 className="text-xl font-bold text-[var(--tc-text)]">Invalid link</h1>
-          <p className="mt-2 text-sm text-[var(--tc-muted)]">This invitation is missing or invalid. Verify your email and code first.</p>
-          <button type="button" className="mt-4" onClick={() => setStep('verify')}>
+          <h1 className="text-xl font-bold text-[var(--tc-text)]">
+            Invalid link
+          </h1>
+          <p className="mt-2 text-sm text-[var(--tc-muted)]">
+            This invitation is missing or invalid. Verify your email and code
+            first.
+          </p>
+          <button
+            type="button"
+            className="mt-4"
+            onClick={() => setStep('verify')}
+          >
             <Button variant="secondary">Enter verification code</Button>
           </button>
           <p className="mt-4">
-            <Link href="/login" className="text-sm text-[var(--tc-soft)] underline">
+            <Link
+              href="/login"
+              className="text-sm text-[var(--tc-soft)] underline"
+            >
               Back to sign in
             </Link>
           </p>
@@ -151,10 +181,13 @@ function AcceptInviteContent() {
   return (
     <main className="flex min-h-screen items-center justify-center p-4">
       <Card className="w-full max-w-md">
-        <h1 className="text-xl font-bold text-[var(--tc-text)]">Accept invitation</h1>
+        <h1 className="text-xl font-bold text-[var(--tc-text)]">
+          Accept invitation
+        </h1>
         <p className="mt-2 mb-6 text-sm text-[var(--tc-muted)]">
-          If you do not have an account yet, set a password to create one. If you already have an account, leave password
-          blank and submit to join the workspace.
+          If you do not have an account yet, set a password to create one. If
+          you already have an account, leave password blank and submit to join
+          the workspace.
         </p>
         <form onSubmit={onSubmitAccept} className="space-y-4">
           <Input
@@ -171,7 +204,15 @@ function AcceptInviteContent() {
           </Button>
         </form>
         <p className="mt-4 text-sm text-[var(--tc-muted)]">
-          <button type="button" className="text-[var(--tc-soft)] underline" onClick={() => { setStep('verify'); setToken(''); setError('') }}>
+          <button
+            type="button"
+            className="text-[var(--tc-soft)] underline"
+            onClick={() => {
+              setStep('verify')
+              setToken('')
+              setError('')
+            }}
+          >
             Use a different code
           </button>
           {' | '}
@@ -186,7 +227,13 @@ function AcceptInviteContent() {
 
 export default function AcceptInvitePage() {
   return (
-    <Suspense fallback={<main className="flex min-h-screen items-center justify-center p-4"><p className="text-[var(--tc-muted)]">Loading...</p></main>}>
+    <Suspense
+      fallback={
+        <main className="flex min-h-screen items-center justify-center p-4">
+          <p className="text-[var(--tc-muted)]">Loading...</p>
+        </main>
+      }
+    >
       <AcceptInviteContent />
     </Suspense>
   )

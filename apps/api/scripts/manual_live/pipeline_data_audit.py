@@ -3,32 +3,42 @@ AI Pipeline Data Audit
 Checks whether the AI pipeline is producing real data and feeding it
 to every page/endpoint that consumes it.
 """
-import json, sys, requests
+
+import json  # noqa: F401
+import sys
+import requests
 
 from _live_guard import api_base, require_local_url  # noqa: E402,F401
 
 BASE = api_base()
 S = requests.Session()
 
+
 def login():
     r = S.post(f"{BASE}/api/auth/login", json={"email": "demo@trust.local", "password": "j"})
     if r.status_code != 200:
-        print("LOGIN FAILED"); sys.exit(1)
+        print("LOGIN FAILED")
+        sys.exit(1)
     # Need admin — check if current user is admin
     me = S.get(f"{BASE}/api/auth/me").json()
-    print(f"Logged in as: {me.get('email')} | role: {me.get('role_name','?')} | admin: {me.get('permissions',{}).get('can_admin','?')}")
+    print(
+        f"Logged in as: {me.get('email')} | role: {me.get('role_name','?')} | admin: {me.get('permissions',{}).get('can_admin','?')}"
+    )
     return me
+
 
 def section(title):
     print(f"\n{'='*70}")
     print(f"  {title}")
     print(f"{'='*70}")
 
+
 def check(label, value, detail=""):
     status = "YES" if value else "NO "
     d = f" — {detail}" if detail else ""
     print(f"  [{status}] {label}{d}")
     return value
+
 
 # ─── PIPELINE CORE: Questions, Answers, Evidence ───
 def audit_pipeline_core():
@@ -90,11 +100,19 @@ def audit_pipeline_core():
             subj = question.get("subject") or question.get("classified_subject")
             if subj:
                 has_subject = True
-            ev = question.get("evidence") or question.get("citations") or question.get("source_chunks")
+            ev = (
+                question.get("evidence")
+                or question.get("citations")
+                or question.get("source_chunks")
+            )
             if ev:
                 has_evidence = True
 
-    check("Parsing working (questions extracted)", parsed_count > 0, f"{parsed_count}/{min(5,len(qnrs))} questionnaires have parsed questions, {total_questions} total questions")
+    check(
+        "Parsing working (questions extracted)",
+        parsed_count > 0,
+        f"{parsed_count}/{min(5,len(qnrs))} questionnaires have parsed questions, {total_questions} total questions",
+    )
     check("Answers generated", total_answers > 0, f"{total_answers} answers found")
     check("Drafted answers", total_drafted > 0, f"{total_drafted} drafted")
     check("Insufficient answers", total_insufficient > 0, f"{total_insufficient} insufficient")
@@ -108,7 +126,9 @@ def audit_pipeline_core():
     check("Evidence documents uploaded", len(docs) > 0, f"{len(docs)} documents")
 
     indexed_count = sum(1 for d in docs if d.get("status") == "indexed" or d.get("indexed"))
-    check("Documents indexed (vectorized)", indexed_count > 0, f"{indexed_count}/{len(docs)} indexed")
+    check(
+        "Documents indexed (vectorized)", indexed_count > 0, f"{indexed_count}/{len(docs)} indexed"
+    )
 
     return {
         "ws_id": ws_id,
@@ -142,7 +162,11 @@ def audit_answer_stats(core):
             sb = data.get("status_breakdown", {})
             gb = data.get("gating_breakdown", {})
             has_data = total > 0
-            check(f"QNR #{qid} stats", has_data, f"total={total}, answered={answered}, insufficient={insuff}, status_keys={list(sb.keys())}, gating_keys={list(gb.keys())}")
+            check(
+                f"QNR #{qid} stats",
+                has_data,
+                f"total={total}, answered={answered}, insufficient={insuff}, status_keys={list(sb.keys())}, gating_keys={list(gb.keys())}",
+            )
         else:
             check(f"QNR #{qid} stats", False, f"HTTP {r.status_code}")
 
@@ -164,7 +188,11 @@ def audit_compliance_coverage():
     trends = data.get("trends", [])
     table = data.get("drill_down", [])
 
-    check("KPIs populated", bool(kpis), f"coverage={kpis.get('coverage_pct')}%, high_conf={kpis.get('high_confidence_pct')}%, insufficient={kpis.get('insufficient_pct')}%, blind_spots={kpis.get('blind_spot_count')}")
+    check(
+        "KPIs populated",
+        bool(kpis),
+        f"coverage={kpis.get('coverage_pct')}%, high_conf={kpis.get('high_confidence_pct')}%, insufficient={kpis.get('insufficient_pct')}%, blind_spots={kpis.get('blind_spot_count')}",
+    )
     check("Framework coverage data", len(fw_cov) > 0, f"{len(fw_cov)} frameworks")
     check("Blind spots data", len(blind) > 0, f"{len(blind)} blind spots")
     check("Weak areas data", len(weak) > 0, f"{len(weak)} weak areas")
@@ -192,7 +220,11 @@ def audit_ai_insights():
     failures = data.get("failure_reasons", [])
     suggestions = data.get("suggested_improvements", [])
 
-    check("AI KPIs populated", bool(kpis), f"total_answers={kpis.get('total_answers')}, avg_conf={kpis.get('avg_confidence')}, high_conf={kpis.get('high_confidence_pct')}%")
+    check(
+        "AI KPIs populated",
+        bool(kpis),
+        f"total_answers={kpis.get('total_answers')}, avg_conf={kpis.get('avg_confidence')}, high_conf={kpis.get('high_confidence_pct')}%",
+    )
     check("Weak subject areas", len(weak) > 0, f"{len(weak)} subjects")
     check("Mapping quality", bool(mapping), f"keys={list(mapping.keys())}")
     check("Evidence depth", len(ev_depth) > 0, f"{len(ev_depth)} entries")
@@ -225,14 +257,24 @@ def audit_notification_events():
         events = r.json()
         if isinstance(events, list):
             check("Event types available", len(events) > 0, f"{len(events)} event types")
-            compliance_events = [e for e in events if "compliance" in str(e).lower() or "coverage" in str(e).lower()]
-            check("Compliance-specific events included", len(compliance_events) > 0, f"{len(compliance_events)} compliance events")
+            compliance_events = [
+                e for e in events if "compliance" in str(e).lower() or "coverage" in str(e).lower()
+            ]
+            check(
+                "Compliance-specific events included",
+                len(compliance_events) > 0,
+                f"{len(compliance_events)} compliance events",
+            )
         elif isinstance(events, dict):
             all_events = []
             for v in events.values():
                 if isinstance(v, list):
                     all_events.extend(v)
-            check("Event types available", len(all_events) > 0, f"{len(all_events)} event types from {len(events)} categories")
+            check(
+                "Event types available",
+                len(all_events) > 0,
+                f"{len(all_events)} event types from {len(events)} categories",
+            )
     else:
         check("Event types", False, f"HTTP {r.status_code}")
 
@@ -295,7 +337,8 @@ def audit_ai_settings():
 
 def print_page_data_map(core):
     section("PAGE → DATA SOURCE MAPPING")
-    print("""
+    print(
+        """
   Page                        Data Source                    Has Real Data?
   ────────────────────────────────────────────────────────────────────────────
   /dashboard                  Dashboard cards API            ✓ (tested)
@@ -314,16 +357,17 @@ def print_page_data_map(core):
   /dashboard/slack            Slack status API               ⚠ (admin-only, needs admin test)
   /dashboard/gmail            Gmail status API               ⚠ (admin-only, needs admin test)
   /dashboard/trust-center     Trust articles API             ✓ (tested)
-""".format(**core))
+""".format(**core)
+    )
 
 
 def main():
-    print("\n" + "="*70)
+    print("\n" + "=" * 70)
     print("  TRUST COPILOT — AI PIPELINE DATA AUDIT")
     print("  Is the pipeline built and feeding data to all pages?")
-    print("="*70)
+    print("=" * 70)
 
-    me = login()
+    me = login()  # noqa: F841
     core = audit_pipeline_core()
     audit_answer_stats(core)
     audit_compliance_coverage()
@@ -358,6 +402,7 @@ def main():
         print("\n  PIPELINE IS FULLY BUILT AND FEEDING DATA.")
     else:
         print("\n  PIPELINE HAS GAPS — see items marked [NO ] above.")
+
 
 if __name__ == "__main__":
     main()

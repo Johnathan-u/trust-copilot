@@ -44,11 +44,7 @@ def batch_supporting_evidence_for_workspace_controls(
     if not raw_ids:
         return {}
 
-    links = (
-        db.query(ControlEvidenceLink)
-        .filter(ControlEvidenceLink.control_id.in_(raw_ids))
-        .all()
-    )
+    links = db.query(ControlEvidenceLink).filter(ControlEvidenceLink.control_id.in_(raw_ids)).all()
     if not links:
         return {cid: [] for cid in raw_ids}
 
@@ -110,7 +106,9 @@ def batch_supporting_evidence_for_workspace_controls(
         best_by_doc: dict[tuple[str, int], tuple[tuple, dict]] = {}
         for sk, payload in items:
             did = payload.get("document_id")
-            key: tuple[str, int] = ("doc", int(did)) if did is not None else ("ev", int(payload["evidence_id"]))
+            key: tuple[str, int] = (
+                ("doc", int(did)) if did is not None else ("ev", int(payload["evidence_id"]))
+            )
             prev = best_by_doc.get(key)
             if prev is None or sk < prev[0]:
                 best_by_doc[key] = (sk, payload)
@@ -173,7 +171,9 @@ def suggest_documents_for_mapping_review(
         chunk_id = r.get("id")
         if chunk_id is None:
             continue
-        ch = db.query(Chunk).filter(Chunk.id == chunk_id, Chunk.workspace_id == workspace_id).first()
+        ch = (
+            db.query(Chunk).filter(Chunk.id == chunk_id, Chunk.workspace_id == workspace_id).first()
+        )
         if not ch or not ch.document_id:
             continue
         if ch.document_id in exclude_document_ids:
@@ -209,14 +209,16 @@ def suggest_documents_for_mapping_review(
         if not doc:
             continue
         display = (doc.filename or "").strip() or (doc.display_id or "") or f"Document #{did}"
-        candidates.append({
-            "document_id": did,
-            "display_name": display,
-            "filename": doc.filename,
-            "snippet": snip,
-            "relevance": round(min(1.0, max(0.0, sc)), 4),
-            "source": "suggested_match",
-        })
+        candidates.append(
+            {
+                "document_id": did,
+                "display_name": display,
+                "filename": doc.filename,
+                "snippet": snip,
+                "relevance": round(min(1.0, max(0.0, sc)), 4),
+                "source": "suggested_match",
+            }
+        )
 
     non_stub = [x for x in candidates if not is_stub_like(x.get("filename"), x.get("display_name"))]
     if len(non_stub) >= limit:

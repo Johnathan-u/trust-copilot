@@ -9,11 +9,11 @@ Usage:
   python -u scripts/manual_live/run_3dataset_check.py
 """
 
-import base64
-import hmac
+import base64  # noqa: F401
+import hmac  # noqa: F401
 import io
 import json
-import os
+import os  # noqa: F401
 import sys
 import time
 
@@ -28,6 +28,7 @@ POLL_TIMEOUT = 300
 
 def _make_session_cookie(workspace_id: int = 1) -> str:
     return forge_session_cookie(workspace_id)
+
 
 S = requests.Session()
 S.cookies.set("tc_session", _make_session_cookie())
@@ -117,21 +118,48 @@ ENTERPRISE_EVIDENCE_C = """Logging & Monitoring
 All systems generate logs which are aggregated into a centralized logging platform. Alerts are configured for suspicious activity."""
 
 ENTERPRISE_BASE_QUESTIONS = [
-    "How is access controlled?", "Are access reviews conducted?", "How often are access reviews performed?",
-    "Is MFA required?", "How is user access revoked?", "Is data encrypted at rest?",
-    "What encryption standard is used?", "Is data encrypted in transit?", "How are encryption keys managed?",
-    "Are logs collected?", "Where are logs stored?", "How long are logs retained?",
-    "Are logs monitored?", "Are alerts configured?", "What triggers alerts?",
-    "Are incidents tracked?", "Is there an incident response plan?", "Are incidents categorized?",
-    "Are backups performed?", "How often are backups performed?", "Are backups tested?",
-    "Is there redundancy?", "How is uptime ensured?", "Are systems segmented?",
-    "Are firewalls used?", "Is traffic restricted?", "Are admin actions logged?",
-    "Are privileged accounts monitored?", "Is least privilege enforced?", "Are security policies documented?",
-    "Are employees trained?", "How often is training conducted?", "Are vulnerability scans performed?",
-    "How often?", "Are patches applied?", "How quickly?",
-    "Is data integrity validated?", "Are systems audited?", "Are third parties assessed?",
+    "How is access controlled?",
+    "Are access reviews conducted?",
+    "How often are access reviews performed?",
+    "Is MFA required?",
+    "How is user access revoked?",
+    "Is data encrypted at rest?",
+    "What encryption standard is used?",
+    "Is data encrypted in transit?",
+    "How are encryption keys managed?",
+    "Are logs collected?",
+    "Where are logs stored?",
+    "How long are logs retained?",
+    "Are logs monitored?",
+    "Are alerts configured?",
+    "What triggers alerts?",
+    "Are incidents tracked?",
+    "Is there an incident response plan?",
+    "Are incidents categorized?",
+    "Are backups performed?",
+    "How often are backups performed?",
+    "Are backups tested?",
+    "Is there redundancy?",
+    "How is uptime ensured?",
+    "Are systems segmented?",
+    "Are firewalls used?",
+    "Is traffic restricted?",
+    "Are admin actions logged?",
+    "Are privileged accounts monitored?",
+    "Is least privilege enforced?",
+    "Are security policies documented?",
+    "Are employees trained?",
+    "How often is training conducted?",
+    "Are vulnerability scans performed?",
+    "How often?",
+    "Are patches applied?",
+    "How quickly?",
+    "Is data integrity validated?",
+    "Are systems audited?",
+    "Are third parties assessed?",
     "Is compliance tracked?",
 ]
+
 
 def make_150_questions():
     qs = list(ENTERPRISE_BASE_QUESTIONS)
@@ -148,6 +176,7 @@ def make_150_questions():
 # ---------------------------------------------------------------------------
 # API helpers
 # ---------------------------------------------------------------------------
+
 
 def create_workspace(name: str) -> dict:
     r = S.post(f"{API}/api/workspaces", json={"name": name})
@@ -181,6 +210,7 @@ def wait_doc_indexed(ws_id: int, doc_id: int, timeout: int = 120):
 def upload_questionnaire(ws_id: int, filename: str, questions: list[str]) -> dict:
     _set_ws(ws_id)
     from openpyxl import Workbook
+
     wb = Workbook()
     ws = wb.active
     ws.title = "Questions"
@@ -190,7 +220,9 @@ def upload_questionnaire(ws_id: int, filename: str, questions: list[str]) -> dic
     buf = io.BytesIO()
     wb.save(buf)
     buf.seek(0)
-    files = {"file": (filename, buf, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")}
+    files = {
+        "file": (filename, buf, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+    }
     r = S.post(f"{API}/api/questionnaires/upload", data={"workspace_id": str(ws_id)}, files=files)
     r.raise_for_status()
     return r.json()
@@ -238,27 +270,32 @@ def get_answers(ws_id: int, qnr_id: int) -> list[dict]:
     for q in data.get("questions", []):
         a = q.get("answer")
         if a:
-            answers.append({
-                "question_id": q["id"],
-                "question_text": q.get("text", ""),
-                "text": a.get("text"),
-                "status": a.get("status"),
-                "citations": a.get("citations"),
-            })
+            answers.append(
+                {
+                    "question_id": q["id"],
+                    "question_text": q.get("text", ""),
+                    "text": a.get("text"),
+                    "status": a.get("status"),
+                    "citations": a.get("citations"),
+                }
+            )
         else:
-            answers.append({
-                "question_id": q["id"],
-                "question_text": q.get("text", ""),
-                "text": None,
-                "status": "no_answer",
-                "citations": None,
-            })
+            answers.append(
+                {
+                    "question_id": q["id"],
+                    "question_text": q.get("text", ""),
+                    "text": None,
+                    "status": "no_answer",
+                    "citations": None,
+                }
+            )
     return answers
 
 
 # ---------------------------------------------------------------------------
 # Dataset runner
 # ---------------------------------------------------------------------------
+
 
 def run_dataset(name: str, evidence_docs: list[tuple[str, str]], questions: list[str]) -> dict:
     print(f"\n{'='*60}")
@@ -285,7 +322,7 @@ def run_dataset(name: str, evidence_docs: list[tuple[str, str]], questions: list
     qnr_id = qnr["id"]
     print(f"  Questionnaire uploaded: id={qnr_id}")
     wait_qnr_parsed(ws_id, qnr_id)
-    print(f"  Questionnaire parsed")
+    print("  Questionnaire parsed")
 
     t_start = time.monotonic()
     gen = generate_answers(ws_id, qnr_id, doc_ids)
@@ -300,7 +337,9 @@ def run_dataset(name: str, evidence_docs: list[tuple[str, str]], questions: list
     drafted = [a for a in answers if a.get("status") == "draft"]
     insufficient = [a for a in answers if a.get("status") == "insufficient_evidence"]
     no_answer = [a for a in answers if a.get("status") == "no_answer"]
-    print(f"  Answers: {len(answers)} total, {len(drafted)} drafted, {len(insufficient)} insufficient, {len(no_answer)} no_answer")
+    print(
+        f"  Answers: {len(answers)} total, {len(drafted)} drafted, {len(insufficient)} insufficient, {len(no_answer)} no_answer"
+    )
 
     throughput = len(questions) / t_gen if t_gen > 0 else 0
     result = {
@@ -331,6 +370,7 @@ def run_dataset(name: str, evidence_docs: list[tuple[str, str]], questions: list
 # ---------------------------------------------------------------------------
 # Main
 # ---------------------------------------------------------------------------
+
 
 def main():
     print("=" * 60)
@@ -375,8 +415,10 @@ def main():
         status_icon = "PASS" if r["job_status"] == "completed" else "FAIL"
         if r["job_status"] != "completed":
             all_pass = False
-        print(f"  [{status_icon}] {r['name']}: {r['drafted']} drafted, {r['insufficient']} insufficient, "
-              f"{r['generation_time_s']}s ({r['throughput_qps']} q/s)")
+        print(
+            f"  [{status_icon}] {r['name']}: {r['drafted']} drafted, {r['insufficient']} insufficient, "
+            f"{r['generation_time_s']}s ({r['throughput_qps']} q/s)"
+        )
 
     checks = []
     nt = results[0]

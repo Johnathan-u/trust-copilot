@@ -2,21 +2,27 @@
 Deep audit: check actual data shapes from API and DB to determine
 what the pipeline actually produces.
 """
-import json, sys, requests
+
+import json
+import sys  # noqa: F401
+import requests
 
 from _live_guard import api_base, require_local_url  # noqa: E402,F401
 
 BASE = api_base()
 S = requests.Session()
 
+
 def login():
     r = S.post(f"{BASE}/api/auth/login", json={"email": "demo@trust.local", "password": "j"})
     return r.json()
+
 
 def section(title):
     print(f"\n{'='*70}")
     print(f"  {title}")
     print(f"{'='*70}")
+
 
 login()
 
