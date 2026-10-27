@@ -52,3 +52,30 @@ Baseline failures fixed (#5 → #6): `test_answer_pipeline.py::test_partial_comp
 `test_p1_multi_tenant_hardening.py::TestAPIQuotaEnforcement::test_generate_answers_blocked_at_quota` only passed when a
 real `OPENAI_API_KEY` was loaded from the repo-root `.env`. They now use the `synthetic_openai_key` fixture
 (fake key, OpenAI client already mocked, network guard on).
+
+## After merging ci-repair (which includes ci-mechanical), the CI-green head
+
+Merge `c69ae5f` brings tc/platform/ci-repair 3ee20da into this branch, resolved as in
+`TC-02-001-after-ci-repair.diff`:
+
+- `scripts/manual_live/*` take this ticket's side.
+- `tests/conftest.py` takes this ticket's hunks and keeps ci-repair's `TC_REQUIRE_DB` fail-loud session check.
+- The two test modules take this ticket's side.
+- The safe ruff, whitespace and prettier recipe then runs.
+
+The merged `ci.yml` keeps the pinned pgvector service and `TC_REQUIRE_DB: "1"`, and adds the
+"Safe test collection (TC-02-001)" step.
+
+All checks below ran at SHA `c69ae5f`, and the logs are in `after-ci-repair/`. They used a local mirror
+of the CI `build` job, including the safe-collection step: fresh Python 3.11 venv, digest-pinned
+`pgvector/pgvector:pg16` in a fresh container, a per-run `*_test` DB with generated credentials and
+`OPENAI_API_KEY` unset.
+
+| Check | Exit | Totals | File |
+|---|---|---|---|
+| `pre-commit run --all-files` | 0 | all hooks Passed, 0 files modified | `after-ci-repair/precommit.txt` |
+| `ruff check .` (0.5.6), `alembic upgrade head` | 0 / 0 | All checks passed; migrations OK (pgvector 0.8.7) | `after-ci-repair/ci-local.txt` |
+| Safe test collection: `python -m pytest --collect-only -q` | 0 | **1315 collected**, no live calls | `after-ci-repair/ci-local.txt` |
+| release test `python -m pytest tests/release/test_safe_collection.py -q`, plain and with `TC_REQUIRE_DB=1` | 0 / 0 | **26 passed** / **26 passed** | `after-ci-repair/ci-local.txt` |
+| full suite `python -m pytest -rs -q`, `TC_REQUIRE_DB=1` | 0 | **1313 passed, 3 skipped** (1 `external_data` blind pack, 2 seed-data skips; none about the DB) | `after-ci-repair/ci-local.txt` |
+| `npm run build` (apps/web) | 0 | Compiled successfully | `after-ci-repair/ci-local.txt` |
