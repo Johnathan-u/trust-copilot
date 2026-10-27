@@ -1,9 +1,9 @@
 {
   "ticket": "TC-14-003",
-  "commit": "554bda8a9e3814943843b05e81cc88d2465a93c5",
+  "commit": "4d72cdc189a8241190eb04b6c5df0429440dc00c",
   "branch": "tc/web/TC-14-003",
   "base": "master",
-  "stacked_on": "tc/web/TC-14-001",
+  "master": "705bdde9932a9f575bbd075771c280d8914f6c8f",
   "environment": {
     "os": "Linux 6.12.94+ x86_64",
     "node": "v24.22.1",
@@ -30,7 +30,7 @@
       "passed": 7,
       "failed": 0,
       "skipped": 0,
-      "duration_s": 31.0
+      "duration_s": 30.7
     }
   ],
   "axe": {

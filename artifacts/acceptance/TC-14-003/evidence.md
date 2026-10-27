@@ -4,9 +4,9 @@ Synthetic data only. The showcase, screenshots and axe output contain no credent
 
 ## Latest run
 
-Tested commit: `554bda8a9e3814943843b05e81cc88d2465a93c5` on branch `tc/web/TC-14-003`.
+Tested commit: `4d72cdc189a8241190eb04b6c5df0429440dc00c` on branch `tc/web/TC-14-003`.
 
-That commit is the Node 24 gate fix after merging `origin/tc/web/TC-14-001` (`2389be2`) and `origin/master` (`ce4d861`). This note was added afterwards and does not change the suite. Package files match PR #6's head: master's lockfile plus `@axe-core/playwright@4.14.0`.
+That commit merges `origin/master` (`705bdde`, the squash of PR #6, plus #36, #37, #38 and #40). Token files, design-token libraries, fonts, the design-tokens page and spec, TC-14-001 docs and evidence, `package.json` and the lockfile match that master commit. This note was added afterwards and does not change the suite.
 
 ### Environment
 
@@ -42,11 +42,15 @@ npm audit --omit=dev --audit-level=high
 
 ```bash
 cd /workspace
+python3 scripts/security/secret_inventory.py tree --root .
 pre-commit run --all-files
+ruff check apps/api
 TC_REQUIRE_WEB_TOOLCHAIN=1 python3 -m pytest apps/api/tests/release/test_web_quality.py -q --noconftest
 ```
 
+- Secret tree-scan exit status: 0 (`block` 0, `review` findings only)
 - pre-commit exit status: 0 (ruff, ruff-format, prettier, trailing whitespace, end-of-file, check-yaml)
+- `ruff check apps/api` exit status: 0
 - Web quality tests: 26 passed, including the runtime-module coverage check
 
 ```bash
@@ -56,7 +60,7 @@ npx playwright test e2e/release/dialog-toast.spec.ts --retries=0
 
 - Exit status: 0
 - Tests: 7 passed, 0 failed, 0 skipped
-- Duration: 31.0s
+- Duration: 30.7s
 - No required test was skipped
 
 Keyboard checks on `/design-dialogs` (synthetic records only):
