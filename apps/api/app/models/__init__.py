@@ -7,6 +7,7 @@ from app.models.chunk import Chunk
 from app.models.document import Document
 from app.models.export_record import ExportRecord
 from app.models.job import Job, JobKind, JobStatus
+from app.models.job_effect import JobEffect
 from app.models.questionnaire import Question, Questionnaire
 from app.models.user import User, WorkspaceMember
 from app.models.trust_article import TrustArticle
@@ -126,6 +127,7 @@ __all__ = [
     "ExportRecord",
     "Job",
     "JobKind",
+    "JobEffect",
     "JobStatus",
     "Question",
     "Questionnaire",
