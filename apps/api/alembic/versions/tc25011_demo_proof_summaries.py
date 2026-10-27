@@ -12,13 +12,12 @@ snapshot from the questionnaires, documents, evidence, and exports that this
 downgrade leaves in place. Snapshot history itself is not restored.
 
 Revision ID: tc25011_demo_proof_summaries
-Revises: tc21001_framework_catalog_rights
+Revises: tc11001_model_outcome_codes
 
-Re-parented off 075 after master PR #8 landed
-tc21001_framework_catalog_rights. PR #25 (tc25005) is also re-parenting onto
-that revision. Whichever of those branches merges second re-parents again.
-The numeric id 076 is not used: it collides with another ticket and with
-Core PR #16.
+Re-parented onto tc11001_model_outcome_codes after master reached 1a0e614.
+PR #25 (tc25005) also revises that revision. Whichever of PR #25 and PR #30
+merges second re-parents onto the other. The numeric id 076 is not used:
+it collides with another ticket and with Core PR #16.
 """
 
 import sqlalchemy as sa
@@ -26,7 +25,7 @@ import sqlalchemy as sa
 from alembic import op
 
 revision = "tc25011_demo_proof_summaries"
-down_revision = "tc21001_framework_catalog_rights"
+down_revision = "tc11001_model_outcome_codes"
 branch_labels = None
 depends_on = None
 

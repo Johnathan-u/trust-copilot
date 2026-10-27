@@ -50,7 +50,11 @@ def test_ui_page_uses_the_presenter():
     source = PAGE.read_text()
     presenter = PRESENTER.read_text()
     assert "presentDemoProof" in source
-    assert "method: 'POST'" in source
+    assert "requestSummary('GET')" in source
+    assert source.count("requestSummary('POST')") == 1
+    assert "void load()" in source
+    assert "permissions.can_edit" in source
+    assert "canEdit &&" in source
     assert "Not commercial traction" in source
     assert "Synthetic placeholder" in source
     assert "No data" in source
@@ -87,7 +91,7 @@ def test_migration_module_has_no_app_imports():
     assert modules
     assert all(name.split(".")[0] != "app" for name in modules)
     assert 'revision = "tc25011_demo_proof_summaries"' in source
-    assert 'down_revision = "tc21001_framework_catalog_rights"' in source
+    assert 'down_revision = "tc11001_model_outcome_codes"' in source
     assert "NOT IN" not in source.upper()
     assert source.count("op.drop_table") == 1
     assert 'op.drop_table("demo_proof_summaries")' in source

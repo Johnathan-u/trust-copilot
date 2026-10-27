@@ -827,7 +827,7 @@ def test_foreign_reference_partial_failure_excludes_other_workspace(client):
         assert denied.status_code == 404
         assert denied.json()["code"] == "summary_not_found"
         mismatch = client.get("/api/demo-proof", params={"workspace_id": workspace_ids[0]})
-        assert mismatch.status_code == 403
+        assert mismatch.status_code == 404
         assert mismatch.json()["code"] == "workspace_mismatch"
         stranger_body = client.get("/api/demo-proof")
         assert stranger_body.status_code == 200
@@ -908,10 +908,12 @@ def test_source_unavailable_is_partial_and_not_zero(client, monkeypatch):
 
 def test_permission_and_api_key_checks(client):
     from app.core.database import SessionLocal
-    from app.models import ApiKey, WorkspaceMember
+    from app.models import ApiKey, CustomRole, DemoProofSummary, WorkspaceMember
 
     token = uuid.uuid4().hex[:10]
     member_email = f"tc25011-member-{token}@example.com"
+    reviewer_email = f"tc25011-reviewer-{token}@example.com"
+    no_perm_email = f"tc25011-noperm-{token}@example.com"
     removed_email = f"tc25011-removed-{token}@example.com"
     suspended_email = f"tc25011-suspended-{token}@example.com"
     lonely_email = f"tc25011-lonely-{token}@example.com"
@@ -928,10 +930,26 @@ def test_permission_and_api_key_checks(client):
         )
         workspace_ids.append(workspace.id)
         member = _new_user(db, member_email, workspace.id, "editor")
+        reviewer = _new_user(db, reviewer_email, workspace.id, "reviewer")
+        no_perm = _new_user(db, no_perm_email, workspace.id, "no-permission")
         removed = _new_user(db, removed_email, workspace.id, "editor")
         suspended = _new_user(db, suspended_email, workspace.id, "admin")
         lonely = _new_user(db, lonely_email, None, None)
-        user_ids.extend([member.id, removed.id, suspended.id, lonely.id])
+        removed_user_id = removed.id
+        user_ids.extend(
+            [member.id, reviewer.id, no_perm.id, removed_user_id, suspended.id, lonely.id]
+        )
+        db.add(
+            CustomRole(
+                workspace_id=workspace.id,
+                name="no-permission",
+                description="SYNTHETIC TEST PLACEHOLDER no permissions",
+                can_edit=False,
+                can_review=False,
+                can_export=False,
+                can_admin=False,
+            )
+        )
         db.add_all(
             [
                 ApiKey(
@@ -976,7 +994,7 @@ def test_permission_and_api_key_checks(client):
         _login(client, removed_email)
         db = SessionLocal()
         try:
-            db.query(WorkspaceMember).filter(WorkspaceMember.user_id == user_ids[1]).delete()
+            db.query(WorkspaceMember).filter(WorkspaceMember.user_id == removed_user_id).delete()
             db.commit()
         finally:
             db.close()
@@ -999,17 +1017,17 @@ def test_permission_and_api_key_checks(client):
             params={"workspace_id": 1},
             headers={"Authorization": f"Bearer {raw_read_key}"},
         )
-        assert mismatch.status_code == 403
+        assert mismatch.status_code == 404
         assert mismatch.json()["code"] == "workspace_mismatch"
         saved = client.post("/api/demo-proof", headers={"Authorization": f"Bearer {raw_read_key}"})
-        assert saved.status_code == 200, saved.text
-        assert saved.json()["proof_summary"]["summary_id"] is not None
+        assert saved.status_code == 403, saved.text
+        assert saved.json()["code"] == "api_key_cannot_save"
         mismatch_post = client.post(
             "/api/demo-proof",
             params={"workspace_id": 1},
             headers={"Authorization": f"Bearer {raw_read_key}"},
         )
-        assert mismatch_post.status_code == 403
+        assert mismatch_post.status_code == 404
         assert mismatch_post.json()["code"] == "workspace_mismatch"
         for raw_key in (raw_reviewer_key, raw_editor_key, raw_bad_key):
             client.cookies.clear()
@@ -1020,7 +1038,32 @@ def test_permission_and_api_key_checks(client):
                 "/api/demo-proof", headers={"Authorization": f"Bearer {raw_key}"}
             )
             assert rejected_post.status_code == 403, rejected_post.text
-            assert rejected_post.json()["code"] == "api_key_not_read_scoped"
+            assert rejected_post.json()["code"] == "api_key_cannot_save"
+
+        _login(client, reviewer_email)
+        reviewer_read = client.get("/api/demo-proof")
+        assert reviewer_read.status_code == 200, reviewer_read.text
+        reviewer_save = client.post("/api/demo-proof")
+        assert reviewer_save.status_code == 403, reviewer_save.text
+        assert "Insufficient permissions" in reviewer_save.text
+
+        _login(client, no_perm_email)
+        no_perm_read = client.get("/api/demo-proof")
+        assert no_perm_read.status_code == 200, no_perm_read.text
+        no_perm_save = client.post("/api/demo-proof")
+        assert no_perm_save.status_code == 403, no_perm_save.text
+        assert "Insufficient permissions" in no_perm_save.text
+
+        counted = SessionLocal()
+        try:
+            assert (
+                counted.query(DemoProofSummary)
+                .filter(DemoProofSummary.workspace_id == workspace_ids[0])
+                .count()
+                == 0
+            )
+        finally:
+            counted.close()
     finally:
         _cleanup(workspace_ids, user_ids)
 
@@ -1232,12 +1275,25 @@ def test_zz_migration_rollback_drops_snapshots_and_keeps_evidence(client):
         assert created.status_code == 200, created.text
         summary_id = created.json()["proof_summary"]["summary_id"]
         engine.dispose()
-        downgraded = _alembic("downgrade", "tc21001_framework_catalog_rights")
+        downgraded = _alembic("downgrade", "tc11001_model_outcome_codes")
         assert downgraded.returncode == 0, downgraded.stderr
         engine.dispose()
         assert _table_exists("demo_proof_summaries") is False
         assert _table_exists("documents") is True
         assert _table_exists("questionnaires") is True
+        column = SessionLocal()
+        try:
+            outcome = column.execute(
+                text(
+                    """
+                    SELECT 1 FROM information_schema.columns
+                    WHERE table_name = 'answers' AND column_name = 'outcome_code'
+                    """
+                )
+            ).scalar()
+        finally:
+            column.close()
+        assert outcome == 1
         upgraded = _alembic("upgrade", "head")
         assert upgraded.returncode == 0, upgraded.stderr
         engine.dispose()

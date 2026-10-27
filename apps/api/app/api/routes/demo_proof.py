@@ -13,7 +13,7 @@ from fastapi import APIRouter, Depends, Query, Request
 from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 
-from app.core.auth_deps import require_session
+from app.core.auth_deps import require_can_edit, require_session
 from app.core.database import get_db
 from app.models import Workspace, WorkspaceMember
 from app.services.demo_proof_service import (
@@ -61,7 +61,7 @@ def _guard(request: Request, db: Session, session: dict, workspace_id: int | Non
     session_workspace = session.get("workspace_id")
     if workspace_id is not None and workspace_id != session_workspace:
         return _api_error(
-            403,
+            404,
             "workspace_mismatch",
             "The workspace in the request does not match the current session.",
             request,
@@ -167,10 +167,30 @@ async def save_demo_package(
     This is the only demo-proof route that writes. The write is one snapshot
     row for the session workspace. It does not change evidence rows and it
     does not write another workspace.
+
+    Saving requires a human session that can edit. Reviewers, members without
+    edit permission, and every API key are rejected. A workspace id that is
+    not the session workspace is not found.
     """
+    session_workspace = session.get("workspace_id")
+    if workspace_id is not None and workspace_id != session_workspace:
+        return _api_error(
+            404,
+            "workspace_mismatch",
+            "The workspace in the request does not match the current session.",
+            request,
+        )
+    if session.get("user_id") is None:
+        return _api_error(
+            403,
+            "api_key_cannot_save",
+            "A workspace API key cannot save a demonstration summary.",
+            request,
+        )
     blocked = _guard(request, db, session, workspace_id)
     if blocked is not None:
         return blocked
+    await require_can_edit(request, db)
     try:
         start, end = parse_window(window_start, window_end)
     except WindowError as exc:

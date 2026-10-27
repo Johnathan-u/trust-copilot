@@ -1,8 +1,9 @@
 'use client'
 
-import { useCallback, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import Link from 'next/link'
 import { Button, Card, EmptyState } from '@/components/ui'
+import { useAuth } from '@/contexts/AuthContext'
 import { presentDemoProof } from '@/lib/demoProofSummary.mjs'
 
 type Presented = ReturnType<typeof presentDemoProof>
@@ -34,49 +35,64 @@ function windowText(row: {
 }
 
 export default function DemoProofPage() {
+  const { permissions } = useAuth()
+  const canEdit = permissions.can_edit
   const [windowStart, setWindowStart] = useState('')
   const [windowEnd, setWindowEnd] = useState('')
   const [loading, setLoading] = useState(false)
+  const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [presented, setPresented] = useState<Presented | null>(null)
 
-  const load = useCallback(async () => {
-    setLoading(true)
-    setError(null)
-    try {
-      const params = new URLSearchParams()
-      if (windowStart.trim()) params.set('window_start', windowStart.trim())
-      if (windowEnd.trim()) params.set('window_end', windowEnd.trim())
-      const query = params.toString()
-      const response = await fetch(
-        query ? `/api/demo-proof?${query}` : '/api/demo-proof',
-        {
-          method: 'POST',
-          credentials: 'include',
+  const requestSummary = useCallback(
+    async (method: 'GET' | 'POST') => {
+      if (method === 'POST') setSaving(true)
+      else setLoading(true)
+      setError(null)
+      try {
+        const params = new URLSearchParams()
+        if (windowStart.trim()) params.set('window_start', windowStart.trim())
+        if (windowEnd.trim()) params.set('window_end', windowEnd.trim())
+        const query = params.toString()
+        const response = await fetch(
+          query ? `/api/demo-proof?${query}` : '/api/demo-proof',
+          {
+            method,
+            credentials: 'include',
+          }
+        )
+        const body = await response.json().catch(() => null)
+        if (!response.ok) {
+          setPresented(null)
+          setError(errorMessage(response.status, body))
+          return
         }
-      )
-      const body = await response.json().catch(() => null)
-      if (!response.ok) {
+        const next = presentDemoProof(body)
+        setPresented(next)
+        if (
+          next.state === 'rejected' ||
+          next.state === 'unsupported_schema' ||
+          next.state === 'unavailable'
+        ) {
+          setError(next.reason || 'This summary cannot be shown.')
+        }
+      } catch {
         setPresented(null)
-        setError(errorMessage(response.status, body))
-        return
+        setError('Network error loading the demonstration summary.')
+      } finally {
+        if (method === 'POST') setSaving(false)
+        else setLoading(false)
       }
-      const next = presentDemoProof(body)
-      setPresented(next)
-      if (
-        next.state === 'rejected' ||
-        next.state === 'unsupported_schema' ||
-        next.state === 'unavailable'
-      ) {
-        setError(next.reason || 'This summary cannot be shown.')
-      }
-    } catch {
-      setPresented(null)
-      setError('Network error loading the demonstration summary.')
-    } finally {
-      setLoading(false)
-    }
-  }, [windowStart, windowEnd])
+    },
+    [windowStart, windowEnd]
+  )
+
+  const load = useCallback(() => requestSummary('GET'), [requestSummary])
+  const save = useCallback(() => requestSummary('POST'), [requestSummary])
+
+  useEffect(() => {
+    void load()
+  }, [load])
 
   const showRows = presented && presented.rows.length > 0 && !error
 
@@ -140,14 +156,16 @@ export default function DemoProofPage() {
               className="w-full rounded-lg border border-[var(--tc-border)] bg-white/5 px-3 py-2 text-sm text-[var(--tc-text)]"
             />
           </div>
-          <Button type="submit" loading={loading}>
-            Save summary
-          </Button>
+          {canEdit && (
+            <Button type="button" loading={saving} onClick={() => void save()}>
+              Save summary
+            </Button>
+          )}
           <Button
             type="button"
             variant="secondary"
             onClick={() => void load()}
-            disabled={loading}
+            disabled={loading || saving}
           >
             Retry
           </Button>
@@ -169,7 +187,7 @@ export default function DemoProofPage() {
       {!presented && !error && !loading && (
         <EmptyState
           title="No summary loaded"
-          description="Save a snapshot of records stored in this workspace. An empty workspace is shown as no data, not as a sample result."
+          description="Counts come from records stored in this workspace. An empty workspace is shown as no data, not as a sample result."
         />
       )}
 
