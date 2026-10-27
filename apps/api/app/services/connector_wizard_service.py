@@ -9,6 +9,8 @@ import logging
 from sqlalchemy.orm import Session
 
 from app.models.source_registry import SourceRegistry
+from app.services.credential_lifecycle.scopes import least_privilege
+from app.services.credential_lifecycle.service import assess_stored
 from app.services.provider_adapter.adapters import describe_source
 from app.services.provider_adapter.contract import ObservationState, ProvenanceKind
 from app.services.provider_adapter.surfaces import action_contract
@@ -20,11 +22,20 @@ CONNECTOR_CATALOG = {
         "display_name": "Amazon Web Services",
         "auth_method": "iam_role",
         "permissions_required": [
-            "iam:ListUsers", "iam:ListPolicies", "iam:GetAccountAuthorizationDetails",
-            "s3:ListAllMyBuckets", "s3:GetBucketPolicy", "s3:GetBucketEncryption",
-            "cloudtrail:DescribeTrails", "cloudtrail:GetTrailStatus",
+            "iam:ListUsers",
+            "iam:ListPolicies",
+            "iam:GetAccountAuthorizationDetails",
+            "s3:ListAllMyBuckets",
+            "s3:GetBucketPolicy",
+            "s3:GetBucketEncryption",
+            "cloudtrail:DescribeTrails",
+            "cloudtrail:GetTrailStatus",
         ],
-        "data_collected": ["IAM users and policies", "S3 bucket configurations", "CloudTrail logging status"],
+        "data_collected": [
+            "IAM users and policies",
+            "S3 bucket configurations",
+            "CloudTrail logging status",
+        ],
         "data_not_collected": ["File contents", "S3 object data", "Personal information"],
         "setup_steps": [
             "Create an IAM role with read-only permissions",
@@ -37,10 +48,16 @@ CONNECTOR_CATALOG = {
         "display_name": "GitHub",
         "auth_method": "github_app",
         "permissions_required": [
-            "Repository metadata (read)", "Branch protection rules (read)",
-            "Organization members (read)", "Repository collaborators (read)",
+            "Repository metadata (read)",
+            "Branch protection rules (read)",
+            "Organization members (read)",
+            "Repository collaborators (read)",
         ],
-        "data_collected": ["Repository list and settings", "Branch protection rules", "Access and collaborator info"],
+        "data_collected": [
+            "Repository list and settings",
+            "Branch protection rules",
+            "Access and collaborator info",
+        ],
         "data_not_collected": ["Source code", "Commit contents", "Issue/PR body text"],
         "setup_steps": [
             "Install the Trust Copilot GitHub App",
@@ -53,7 +70,8 @@ CONNECTOR_CATALOG = {
         "display_name": "Google Workspace",
         "auth_method": "oauth_admin_consent",
         "permissions_required": [
-            "Admin Directory API (read users)", "Admin Reports API (read login activity)",
+            "Admin Directory API (read users)",
+            "Admin Reports API (read login activity)",
             "Admin Roles API (read admin roles)",
         ],
         "data_collected": ["User directory", "MFA enrollment status", "Admin role assignments"],
@@ -80,7 +98,10 @@ CONNECTOR_CATALOG = {
     "azure": {
         "display_name": "Microsoft Azure",
         "auth_method": "service_principal",
-        "permissions_required": ["Reader role on subscription", "Microsoft Graph Directory.Read.All"],
+        "permissions_required": [
+            "Reader role on subscription",
+            "Microsoft Graph Directory.Read.All",
+        ],
         "data_collected": ["Resource configurations", "AD users and groups", "Policy assignments"],
         "data_not_collected": ["Storage contents", "Key Vault secrets", "Application data"],
         "setup_steps": [
@@ -94,7 +115,11 @@ CONNECTOR_CATALOG = {
         "display_name": "GitLab",
         "auth_method": "personal_access_token",
         "permissions_required": ["read_api", "read_repository"],
-        "data_collected": ["Project list and settings", "Branch protection rules", "Group membership"],
+        "data_collected": [
+            "Project list and settings",
+            "Branch protection rules",
+            "Group membership",
+        ],
         "data_not_collected": ["Source code", "CI/CD secrets", "Issue contents"],
         "setup_steps": [
             "Generate a personal access token with read_api scope",
@@ -134,6 +159,7 @@ def _with_adapter(connector_type: str, info: dict) -> dict:
         "connector_type": connector_type,
         **info,
         "adapter_contract": describe_source(connector_type),
+        "least_privilege": least_privilege(connector_type),
     }
 
 
@@ -169,10 +195,14 @@ def start_setup(db: Session, workspace_id: int, connector_type: str) -> dict:
             "observation_contract": _setup_contract(workspace_id, connector_type, "unknown"),
         }
 
-    existing = db.query(SourceRegistry).filter(
-        SourceRegistry.workspace_id == workspace_id,
-        SourceRegistry.source_type == connector_type,
-    ).first()
+    existing = (
+        db.query(SourceRegistry)
+        .filter(
+            SourceRegistry.workspace_id == workspace_id,
+            SourceRegistry.source_type == connector_type,
+        )
+        .first()
+    )
 
     if existing and existing.enabled:
         return {
@@ -210,38 +240,53 @@ def start_setup(db: Session, workspace_id: int, connector_type: str) -> dict:
         "data_collected": info["data_collected"],
         "data_not_collected": info["data_not_collected"],
         "adapter_contract": describe_source(connector_type),
+        "least_privilege": least_privilege(connector_type),
         "observation_contract": _setup_contract(workspace_id, connector_type, "start"),
     }
 
 
 def validate_setup(db: Session, workspace_id: int, connector_type: str) -> dict:
-    reg = db.query(SourceRegistry).filter(
-        SourceRegistry.workspace_id == workspace_id,
-        SourceRegistry.source_type == connector_type,
-    ).first()
+    """Enable the connector only when the read-only probe succeeds."""
+    reg = (
+        db.query(SourceRegistry)
+        .filter(
+            SourceRegistry.workspace_id == workspace_id,
+            SourceRegistry.source_type == connector_type,
+        )
+        .first()
+    )
     if not reg:
         return {
             "error": "Connector not found. Please start setup first.",
             "observation_contract": _setup_contract(workspace_id, connector_type, "missing"),
         }
 
-    reg.status = "available"
-    reg.enabled = True
+    outcome = assess_stored(db, workspace_id, connector_type)
+    succeeded = outcome.state == "success"
+    reg.enabled = succeeded
+    reg.status = "validated" if succeeded else "not_validated"
+    reg.last_error = None if succeeded else outcome.safe_message
     db.flush()
     return {
         "source_id": reg.id,
         "connector_type": connector_type,
-        "status": "validated",
-        "enabled": True,
+        "status": reg.status,
+        "enabled": succeeded,
+        "probe": outcome.observation,
+        "least_privilege": least_privilege(connector_type),
         "observation_contract": _setup_contract(workspace_id, connector_type, "validate"),
     }
 
 
 def disable_connector(db: Session, workspace_id: int, connector_type: str) -> dict:
-    reg = db.query(SourceRegistry).filter(
-        SourceRegistry.workspace_id == workspace_id,
-        SourceRegistry.source_type == connector_type,
-    ).first()
+    reg = (
+        db.query(SourceRegistry)
+        .filter(
+            SourceRegistry.workspace_id == workspace_id,
+            SourceRegistry.source_type == connector_type,
+        )
+        .first()
+    )
     if not reg:
         return {
             "error": "Connector not found",

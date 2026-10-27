@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 
 from app.core.auth_deps import require_can_admin
 from app.core.database import get_db
+from app.api.credential_lifecycle_api import register_fixed
 from app.services import aws_collector_service as aws
 
 router = APIRouter(prefix="/connectors/aws", tags=["aws-connector"])
@@ -63,3 +64,11 @@ async def sync(
     db: Session = Depends(get_db),
 ):
     return aws.run_aws_sync(db, session["workspace_id"], region)
+
+
+register_fixed(
+    router,
+    source_type="aws",
+    credential_type="access_key",
+    prefix="aws",
+)

@@ -81,9 +81,22 @@ class TestCredentialStoreService:
 
     def test_encryption_roundtrip(self):
         plaintext = "super-secret-api-key-999"
-        encrypted = cs.encrypt(plaintext)
+        encrypted = cs.encrypt(
+            plaintext,
+            workspace_id=1,
+            source_type="github",
+            credential_type="personal_token",
+        )
         assert encrypted != plaintext
-        assert cs.decrypt(encrypted) == plaintext
+        assert (
+            cs.decrypt(
+                encrypted,
+                workspace_id=1,
+                source_type="github",
+                credential_type="personal_token",
+            )
+            == plaintext
+        )
 
     def test_rotation_due(self):
         db = SessionLocal()

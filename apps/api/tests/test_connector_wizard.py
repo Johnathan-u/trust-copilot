@@ -58,8 +58,9 @@ class TestConnectorWizardService:
         db_session.commit()
         result = svc.validate_setup(db_session, ws.id, "github")
         db_session.commit()
-        assert result["status"] == "validated"
-        assert result["enabled"] is True
+        assert result["status"] == "not_validated"
+        assert result["enabled"] is False
+        assert "error" not in result
 
     def test_disable_connector(self, db_session):
         from app.models.workspace import Workspace
@@ -106,7 +107,8 @@ class TestConnectorWizardAPI:
         admin_client.post("/api/connector-wizard/start", json={"connector_type": "gitlab"})
         r = admin_client.post("/api/connector-wizard/validate", json={"connector_type": "gitlab"})
         assert r.status_code == 200
-        assert r.json()["enabled"] is True
+        assert r.json()["enabled"] is False
+        assert r.json()["status"] == "not_validated"
 
     def test_editor_cannot_start(self, editor_client):
         r = editor_client.post("/api/connector-wizard/start", json={"connector_type": "aws"})
