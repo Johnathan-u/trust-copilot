@@ -388,6 +388,35 @@ def test_ac1_tampered_row_cannot_appear_as_a_customer_claim(admin_client):
     assert after["status"] == "published"
 
 
+def test_fingerprint_columns_cover_parent_content_fields():
+    """The migration's frozen list covers every parent column the service treats as content."""
+    import ast
+    import re
+
+    from app.services.case_study_service import _CONTENT_FIELDS
+
+    migration = MIGRATION_PATH.read_text()
+    assert "from app" not in migration
+    assert "import app" not in migration
+    frozen = None
+    for node in ast.parse(migration).body:
+        if isinstance(node, ast.Assign):
+            for target in node.targets:
+                if isinstance(target, ast.Name) and target.id == "_FINGERPRINT_COLUMNS":
+                    frozen = ast.literal_eval(node.value)
+    assert isinstance(frozen, tuple) and frozen
+    parent_source = (REPO_ROOT / "apps/api/alembic/versions/059_case_studies.py").read_text()
+    parent_columns = set(re.findall(r'Column\(\s*"([a-z0-9_]+)"', parent_source))
+    parent_content = [name for name in _CONTENT_FIELDS if name in parent_columns]
+    assert parent_content
+    assert set(parent_content) <= set(frozen)
+    assert "synthetic" in _CONTENT_FIELDS
+    assert "synthetic" not in parent_columns
+    assert "synthetic" not in frozen
+    for column in frozen:
+        assert column in migration
+
+
 def test_ac1_sources_do_not_seed_a_customer_claim():
     paths = [
         REPO_ROOT / "apps/api/app/services/case_study_service.py",
@@ -1086,6 +1115,38 @@ def _case_study_ids(db) -> list[int]:
     return [row["id"] for row in _rows(db, "SELECT id FROM case_studies ORDER BY id")]
 
 
+def _assert_parent_edit_reopened(db, case_id: int, archived_revision: int, **fields) -> None:
+    row = _rows(
+        db,
+        """
+        SELECT status, published_at, customer_claim, publication_authorized, revision,
+               review_status, reviewed_by_user_id, reviewed_at, quote, industry, quote_attribution
+        FROM case_studies WHERE id = :id
+        """,
+        {"id": case_id},
+    )[0]
+    assert row["status"] == "draft"
+    assert row["published_at"] is None
+    assert row["publication_authorized"] is False
+    assert row["customer_claim"] is False
+    assert row["revision"] == archived_revision + 1
+    assert row["review_status"] == "none"
+    assert row["reviewed_by_user_id"] is None
+    assert row["reviewed_at"] is None
+    for key, value in fields.items():
+        assert row[key] == value
+    grants = _rows(
+        db,
+        """
+        SELECT granted_revision FROM case_study_organization_consents
+        WHERE case_study_id = :id AND revoked_at IS NULL
+        """,
+        {"id": case_id},
+    )
+    assert grants
+    assert all(item["granted_revision"] != row["revision"] for item in grants)
+
+
 def test_migration_downgrade_round_trip_is_lossless(admin_client):
     """Upgrade, add consent and review data, downgrade, upgrade again.
 
@@ -1093,9 +1154,11 @@ def test_migration_downgrade_round_trip_is_lossless(admin_client):
     survive in archive tables and come back. Snapshot status is restored only
     for a row still in the exact post-upgrade state. A later workflow change
     is not overwritten. A published claim with no consent is not resurrected.
-    A study unpublished on the parent revision, and a study whose quote changed
-    there, come back as drafts at revision+1 so the old consent does not cover
-    them. Re-upgrade drops the archive tables.
+    A study unpublished on the parent revision, or whose quote, industry, or
+    quote attribution changed there, comes back as a draft at revision+1 with
+    review cleared, so the old consent does not cover it. A row still in the
+    exact post-upgrade state keeps revision 1, because a snapshot restore is
+    compared to the pre-consent status. Re-upgrade drops the archive tables.
     """
     exact_published_at = datetime(2026, 10, 27, 12, 0, tzinfo=timezone.utc)
     changed_snapshot_at = datetime(2026, 10, 27, 15, 30, tzinfo=timezone.utc)
@@ -1138,8 +1201,26 @@ def test_migration_downgrade_round_trip_is_lossless(admin_client):
     assert edited_published.status_code == 200, edited_published.status_code
     edited_later = edited_published.json()
     edited_quote = "SYNTHETIC-QUOTE-PLACEHOLDER-EDITED"
+    industry_later = _create(admin_client, title="roundtrip-industry-edited-at-parent-placeholder")
+    industry_later = _grant_matrix(admin_client, industry_later)
+    industry_later = _submit_and_approve(admin_client, industry_later)
+    industry_published = _publish(admin_client, industry_later)
+    assert industry_published.status_code == 200, industry_published.status_code
+    industry_later = industry_published.json()
+    attribution_later = _create(
+        admin_client, title="roundtrip-attribution-edited-at-parent-placeholder"
+    )
+    attribution_later = _grant_matrix(admin_client, attribution_later)
+    attribution_later = _submit_and_approve(admin_client, attribution_later)
+    attribution_published = _publish(admin_client, attribution_later)
+    assert attribution_published.status_code == 200, attribution_published.status_code
+    attribution_later = attribution_published.json()
+    edited_industry = "SYNTHETIC-INDUSTRY-PLACEHOLDER"
+    edited_attribution = "SYNTHETIC-ATTRIBUTION-PLACEHOLDER"
     unpublished_revision = unpublished_later["revision"]
     edited_revision = edited_later["revision"]
+    industry_revision = industry_later["revision"]
+    attribution_revision = attribution_later["revision"]
 
     db = SessionLocal()
     try:
@@ -1441,6 +1522,14 @@ def test_migration_downgrade_round_trip_is_lossless(admin_client):
                 text("UPDATE case_studies SET quote = :quote WHERE id = :id"),
                 {"id": edited_later["id"], "quote": edited_quote},
             )
+            db.execute(
+                text("UPDATE case_studies SET industry = :industry WHERE id = :id"),
+                {"id": industry_later["id"], "industry": edited_industry},
+            )
+            db.execute(
+                text("UPDATE case_studies SET quote_attribution = :attribution WHERE id = :id"),
+                {"id": attribution_later["id"], "attribution": edited_attribution},
+            )
             db.commit()
         finally:
             db.close()
@@ -1507,7 +1596,7 @@ def test_migration_downgrade_round_trip_is_lossless(admin_client):
             exact_after = _rows(
                 db,
                 """
-                SELECT status, published_at, customer_claim, pre_consent_status, title
+                SELECT status, published_at, customer_claim, pre_consent_status, title, revision
                 FROM case_studies WHERE id = :id
                 """,
                 {"id": exact["id"]},
@@ -1516,6 +1605,7 @@ def test_migration_downgrade_round_trip_is_lossless(admin_client):
             assert exact_after["published_at"] is None
             assert exact_after["customer_claim"] is False
             assert exact_after["pre_consent_status"] == "published"
+            assert exact_after["revision"] == 1
             assert exact_after["title"] == "roundtrip-exact-snapshot-placeholder"
             tampered_after = _rows(
                 db,
@@ -1567,31 +1657,23 @@ def test_migration_downgrade_round_trip_is_lossless(admin_client):
                 row["granted_revision"] != restored_unpublished["revision"]
                 for row in unpublished_grants
             )
-            restored_edited = _rows(
+            _assert_parent_edit_reopened(
                 db,
-                """
-                SELECT status, published_at, customer_claim, publication_authorized, revision, quote
-                FROM case_studies WHERE id = :id
-                """,
-                {"id": edited_later["id"]},
-            )[0]
-            assert restored_edited["status"] == "draft"
-            assert restored_edited["published_at"] is None
-            assert restored_edited["publication_authorized"] is False
-            assert restored_edited["customer_claim"] is False
-            assert restored_edited["revision"] == edited_revision + 1
-            assert restored_edited["quote"] == edited_quote
-            edited_grants = _rows(
-                db,
-                """
-                SELECT granted_revision FROM case_study_organization_consents
-                WHERE case_study_id = :id AND revoked_at IS NULL
-                """,
-                {"id": edited_later["id"]},
+                edited_later["id"],
+                edited_revision,
+                quote=edited_quote,
             )
-            assert edited_grants
-            assert all(
-                row["granted_revision"] != restored_edited["revision"] for row in edited_grants
+            _assert_parent_edit_reopened(
+                db,
+                industry_later["id"],
+                industry_revision,
+                industry=edited_industry,
+            )
+            _assert_parent_edit_reopened(
+                db,
+                attribution_later["id"],
+                attribution_revision,
+                quote_attribution=edited_attribution,
             )
             for table in (
                 "case_study_consent_archive",
@@ -1607,5 +1689,106 @@ def test_migration_downgrade_round_trip_is_lossless(admin_client):
                 )
         finally:
             db.close()
+    finally:
+        _alembic("upgrade", "head")
+
+
+def test_exact_snapshot_survives_two_round_trips(admin_client):
+    """A pre-consent publication stays recoverable across two downgrade round trips.
+
+    The first re-upgrade must leave the row in the exact post-upgrade state, or
+    the second downgrade can no longer restore the original published snapshot.
+    """
+    snapshot_at = datetime(2026, 10, 27, 18, 0, tzinfo=timezone.utc)
+    study = _create(
+        admin_client,
+        title="two-round-trip-exact-placeholder",
+        company_name=None,
+        quote=None,
+        results=None,
+        metrics=None,
+    )
+    db = SessionLocal()
+    try:
+        db.execute(
+            text(
+                """
+                UPDATE case_studies
+                SET pre_consent_status = 'published',
+                    pre_consent_published_at = :snapshot_at,
+                    status = 'draft',
+                    published_at = NULL,
+                    synthetic = FALSE,
+                    customer_claim = FALSE,
+                    publication_authorized = FALSE,
+                    data_basis = 'unverified',
+                    review_status = 'none',
+                    revision = 1,
+                    schema_version = 'case-study.v2',
+                    reviewed_by_user_id = NULL,
+                    reviewed_at = NULL,
+                    quoted_organizations_json = NULL
+                WHERE id = :id
+                """
+            ),
+            {"id": study["id"], "snapshot_at": snapshot_at},
+        )
+        db.commit()
+    finally:
+        db.close()
+
+    def _head_state() -> dict:
+        engine.dispose()
+        session = SessionLocal()
+        try:
+            return _rows(
+                session,
+                """
+                SELECT status, published_at, revision, pre_consent_status, pre_consent_published_at,
+                       customer_claim, publication_authorized, review_status, reviewed_by_user_id,
+                       reviewed_at, data_basis, synthetic, title
+                FROM case_studies WHERE id = :id
+                """,
+                {"id": study["id"]},
+            )[0]
+        finally:
+            session.close()
+
+    def _parent_state() -> dict:
+        engine.dispose()
+        session = SessionLocal()
+        try:
+            return _rows(
+                session,
+                """
+                SELECT status, published_at, title
+                FROM case_studies WHERE id = :id
+                """,
+                {"id": study["id"]},
+            )[0]
+        finally:
+            session.close()
+
+    original = _head_state()
+    assert original["status"] == "draft"
+    assert original["revision"] == 1
+    assert original["pre_consent_status"] == "published"
+    assert original["pre_consent_published_at"] == snapshot_at
+    assert original["published_at"] is None
+    try:
+        _alembic("downgrade", PARENT_REVISION)
+        first_parent = _parent_state()
+        assert first_parent["status"] == "published"
+        assert first_parent["published_at"] == snapshot_at
+        assert first_parent["title"] == original["title"]
+
+        _alembic("upgrade", "head")
+        assert _head_state() == original
+
+        _alembic("downgrade", PARENT_REVISION)
+        assert _parent_state() == first_parent
+
+        _alembic("upgrade", "head")
+        assert _head_state() == original
     finally:
         _alembic("upgrade", "head")

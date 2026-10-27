@@ -37,19 +37,47 @@ down_revision = "tc11001_model_outcome_codes"
 branch_labels = None
 depends_on = None
 
-# Columns that still exist on the parent revision. quoted_organizations_json is
-# archived and restored, but it is not part of this match: the parent revision
-# does not have that column, so it cannot drift while downgraded.
-_FINGERPRINT_MATCH = """
-    cs.status IS NOT DISTINCT FROM a.status_at_archive
-    AND cs.title IS NOT DISTINCT FROM a.title
-    AND cs.challenge IS NOT DISTINCT FROM a.challenge
-    AND cs.solution IS NOT DISTINCT FROM a.solution
-    AND cs.quote IS NOT DISTINCT FROM a.quote
-    AND cs.results IS NOT DISTINCT FROM a.results
-    AND cs.metrics_json IS NOT DISTINCT FROM a.metrics_json
-    AND cs.company_name IS NOT DISTINCT FROM a.company_name
-"""
+# Frozen content columns that exist on the parent revision (case_studies from 059).
+# This list must cover every service content field that already exists there.
+# synthetic is a service content field added by this revision, so it is archived
+# with the review row and is not compared: the parent has no such column.
+# quoted_organizations_json is archived and restored, and is not compared, for
+# the same reason. metrics_json is on the parent and voids consent when edited.
+_FINGERPRINT_COLUMNS = (
+    "title",
+    "company_name",
+    "industry",
+    "company_size",
+    "challenge",
+    "solution",
+    "results",
+    "quote",
+    "quote_attribution",
+    "metrics_json",
+)
+
+
+def _fingerprint_match_sql() -> str:
+    for column in _FINGERPRINT_COLUMNS:
+        if not column.replace("_", "").isalnum():
+            raise RuntimeError(f"fingerprint column {column}")
+    status_clause = """(
+        (
+            a.snapshot_restored IS TRUE
+            AND cs.status IS NOT DISTINCT FROM a.pre_consent_status
+            AND cs.published_at IS NOT DISTINCT FROM a.pre_consent_published_at
+        )
+        OR (
+            a.snapshot_restored IS NOT TRUE
+            AND cs.status IS NOT DISTINCT FROM a.status_at_archive
+        )
+    )"""
+    pieces = [status_clause]
+    pieces.extend(f"cs.{column} IS NOT DISTINCT FROM a.{column}" for column in _FINGERPRINT_COLUMNS)
+    return " AND ".join(pieces)
+
+
+_FINGERPRINT_MATCH = _fingerprint_match_sql()
 
 _EXACT_UPGRADE_STATE = """
     cs.pre_consent_status IS NOT NULL
@@ -191,19 +219,26 @@ def _restore_review_archive() -> None:
                 WHEN {_FINGERPRINT_MATCH} THEN a.publication_authorized
                 ELSE FALSE
             END,
-            review_status = a.review_status,
+            review_status = CASE
+                WHEN {_FINGERPRINT_MATCH} THEN a.review_status
+                ELSE 'none'
+            END,
             revision = CASE
                 WHEN {_FINGERPRINT_MATCH} THEN a.revision
                 ELSE a.revision + 1
             END,
             schema_version = a.schema_version,
             reviewed_by_user_id = CASE
+                WHEN NOT ({_FINGERPRINT_MATCH}) THEN NULL
                 WHEN a.reviewed_by_user_id IS NOT NULL AND EXISTS (
                     SELECT 1 FROM users AS u WHERE u.id = a.reviewed_by_user_id
                 ) THEN a.reviewed_by_user_id
                 ELSE NULL
             END,
-            reviewed_at = a.reviewed_at,
+            reviewed_at = CASE
+                WHEN {_FINGERPRINT_MATCH} THEN a.reviewed_at
+                ELSE NULL
+            END,
             pre_consent_status = a.pre_consent_status,
             pre_consent_published_at = a.pre_consent_published_at,
             status = CASE
@@ -492,12 +527,15 @@ def _ensure_archive_tables() -> None:
             workspace_id INTEGER NOT NULL,
             quoted_organizations_json TEXT,
             title VARCHAR(512) NOT NULL,
+            company_name VARCHAR(255),
+            industry VARCHAR(128),
+            company_size VARCHAR(64),
             challenge TEXT,
             solution TEXT,
-            quote TEXT,
             results TEXT,
+            quote TEXT,
+            quote_attribution VARCHAR(255),
             metrics_json TEXT,
-            company_name VARCHAR(255),
             synthetic BOOLEAN NOT NULL,
             data_basis VARCHAR(32) NOT NULL,
             customer_claim BOOLEAN NOT NULL,
@@ -521,15 +559,17 @@ def _archive_live_rows() -> None:
     op.execute(
         """
         INSERT INTO case_study_review_archive (
-            case_study_id, workspace_id, quoted_organizations_json, title, challenge, solution,
-            quote, results, metrics_json, company_name, synthetic, data_basis,
+            case_study_id, workspace_id, quoted_organizations_json, title, company_name,
+            industry, company_size, challenge, solution, results, quote, quote_attribution,
+            metrics_json, synthetic, data_basis,
             customer_claim, publication_authorized, review_status, revision, schema_version,
             reviewed_by_user_id, reviewed_at, pre_consent_status, pre_consent_published_at,
             status_at_archive, published_at_at_archive, snapshot_restored
         )
         SELECT
-            id, workspace_id, quoted_organizations_json, title, challenge, solution,
-            quote, results, metrics_json, company_name, synthetic, data_basis,
+            id, workspace_id, quoted_organizations_json, title, company_name,
+            industry, company_size, challenge, solution, results, quote, quote_attribution,
+            metrics_json, synthetic, data_basis,
             customer_claim, publication_authorized, review_status, revision, schema_version,
             reviewed_by_user_id, reviewed_at, pre_consent_status, pre_consent_published_at,
             status, published_at, FALSE
