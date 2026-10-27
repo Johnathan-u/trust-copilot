@@ -1,0 +1,6 @@
+FAILED tests/test_answer_pipeline.py::test_partial_completion_progress - Valu...
+FAILED tests/test_p1_multi_tenant_hardening.py::TestAPIQuotaEnforcement::test_generate_answers_blocked_at_quota
+2 failed, 1285 passed, 2 skipped, 2 errors in 62.44s (0:01:02)
+exit=1
+ERROR collecting tests/test_alerts_api.py
+ERROR collecting tests/test_coverage_api.py

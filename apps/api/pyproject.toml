@@ -24,7 +24,7 @@ dependencies = [
     "boto3",
     "python-docx",
     "openpyxl",
-    "pymupdf",
+    "pypdf>=6.21.2,<7",  # BSD-3-Clause; replaced pymupdf (AGPL), TC-01-003a
     "pytest",
     "httpx",
     "python-multipart",
@@ -38,8 +38,18 @@ dependencies = [
 ]
 
 [tool.pytest.ini_options]
+# TC-02-001: only tests/ is collected and only test_*.py files are test modules. Manual
+# live-stack scripts live in scripts/manual_live/ and are never imported by pytest.
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+norecursedirs = ["fixtures", "__pycache__", ".*", "*.egg-info", "scripts", "alembic", "app"]
+addopts = "--strict-markers"
 markers = [
-    "integration: tests that require Postgres (skip with -m 'not integration')",
+    "unit: no database, network or app process needed (auto-applied when no integration hint)",
+    "integration: tests that require the local test Postgres (skip with -m 'not integration')",
+    "provider: calls a real third-party provider; skipped unless TC_ALLOW_PROVIDER_TESTS=1",
+    "live_stack: needs a running local stack (API/worker/web); skipped unless TC_LIVE_STACK_TESTS=1",
+    "external_data: needs a dataset that is not checked in; skipped with an explicit reason",
 ]
 
 [tool.ruff]
