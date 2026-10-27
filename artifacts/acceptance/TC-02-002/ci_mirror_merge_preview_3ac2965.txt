@@ -1,0 +1,60 @@
+### Start isolated Postgres: image pgvector/pgvector:pg16@sha256:7b822b0aac60967beb1ea5e576b8602c94c300a157d187f385ae3e0da199b90a db=tc_ci_merge_t0202m_1793104062_test user=tc_ci password=<generated, not shown>
+### Install backend deps (from lock)
+No broken requirements found.
+exit=0
+python 3.11.17 sqlalchemy 2.0.55
+### Run migrations
+exit=0
+INFO  [alembic.runtime.migration] Running upgrade tc11001_model_outcome_codes -> tc10003_job_idempotency, TC-10-003: idempotent job side effects.
+pgvector 0.8.7
+### Lint backend
+ruff 0.5.6
+All checks passed!
+exit=0
+### Safe test collection (TC-02-001)
+1591 tests collected in 3.78s
+exit=0
+26 passed in 8.39s
+exit=0
+### Python dependency lock (TC-02-002) / release test: python -m pytest tests/release/test_python_lock.py -q (TC_REQUIRE_DB=1)
+20 passed in 2.86s
+exit=0
+### Run backend tests
+........................................................................ [  4%]
+........................................................................ [  9%]
+........................................................................ [ 13%]
+........................................................................ [ 18%]
+........................................................................ [ 22%]
+........................................................................ [ 27%]
+........................................................................ [ 31%]
+........................................................................ [ 36%]
+........................................................................ [ 40%]
+........................................................................ [ 45%]
+........................................................................ [ 49%]
+........................................................................ [ 54%]
+........................................................................ [ 58%]
+........................................................................ [ 63%]
+........................................................................ [ 67%]
+........................................................................ [ 72%]
+........................................................................ [ 76%]
+........................................................................ [ 81%]
+........................................................................ [ 85%]
+........................................................................ [ 90%]
+........................................................................ [ 95%]
+........................................................................ [ 99%]
+.......                                                                  [100%]
+=============================== warnings summary ===============================
+tests/test_provider_adapter.py::test_migration_columns_present
+tests/test_provider_adapter.py::test_migration_has_unique_descriptive_revision_after_075
+  /workspace/wt-run/venv-t0202m/lib/python3.11/site-packages/alembic/config.py:604: DeprecationWarning: No path_separator found in configuration; falling back to legacy splitting on spaces, commas, and colons for prepend_sys_path.  Consider adding path_separator=os to Alembic config.
+    util.warn_deprecated(
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+SKIPPED [1] tests/test_trust_scoring_blind.py:33: external_data: blind test pack not checked in; set TC_TRUST_SCORING_BLIND_PACK to run
+1591 passed, 1 skipped, 2 warnings in 95.87s (0:01:35)
+exit=0
+### Build frontend
+exit=0
+ ✓ Compiled successfully
+EXIT 0

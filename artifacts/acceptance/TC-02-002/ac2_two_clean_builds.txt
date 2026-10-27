@@ -1,0 +1,26 @@
+### AC2 two clean builds from the lock (commit 31589cecb6de98dae50a4894160888b022ac1cc3)
+uv 0.13.4 (x86_64-unknown-linux-gnu)
+Python 3.13.5
+No broken requirements found.
+build runtime-a exit=0
+No broken requirements found.
+build dev-a exit=0
+No broken requirements found.
+build runtime-b exit=0
+No broken requirements found.
+build dev-b exit=0
+runtime: build a == build b (61 packages)
+dev: build a == build b (67 packages)
+dev-only packages (dev freeze minus runtime freeze):
+Pygments
+iniconfig
+packaging
+pluggy
+pytest
+ruff
+runtime versions identical in dev build: 0 differing lines
+runtime build has no pytest/ruff/pluggy/iniconfig
+### Runtime-only build: import app + psycopg2 dialect (no DB connect)
+import app.main ok; driver psycopg2 ; pytest importable: False
+exit=0
+(lock regeneration: see lock_regen_and_negative.txt)
