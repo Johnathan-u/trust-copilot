@@ -9,6 +9,7 @@ Architecture rules:
 
 import json
 import logging
+import os
 import re
 import time
 from concurrent.futures import ThreadPoolExecutor
@@ -55,6 +56,7 @@ from app.models.question_mapping_signal import QuestionMappingSignal
 from app.services.workspace_usage import record_answer_calls
 from app.core.audit import audit_log
 from app.services.evidence_processor import process_evidence
+from app.services.evidence_gap_service import generate_gaps_for_questionnaire
 from app.core.adaptive_concurrency import (
     ADAPTIVE_INITIAL,
     AdaptivePool,
@@ -71,6 +73,20 @@ from app.services.model_outcomes import (
 
 
 logger = logging.getLogger(__name__)
+
+# TC-02-BUG-015: a non-model failure in evidence-gap generation no longer disappears. The
+# answers stay (the job completes) but the job carries this stable code and safe message;
+# exception text goes to the log only, never to job.error or job.result.
+GAP_GENERATION_FAILED_CODE = "evidence_gaps_failed"
+GAP_GENERATION_FAILED_MESSAGE = (
+    "Answers were generated, but evidence gap analysis failed. Re-run generation to retry."
+)
+
+
+def _gap_failures_raise() -> bool:
+    """Under tests, gap-generation defects fail the run instead of only marking the job."""
+    return os.environ.get("TRUST_COPILOT_TESTING") == "1"
+
 
 # AI-01: Supported models; unsupported values are defaulted to DEFAULT_MODEL with logging.
 DEFAULT_MODEL = "gpt-4o-mini"
@@ -1391,19 +1407,19 @@ def _generate_answers_impl(
     _adjust_run_stats_after_sweep(run_stats, swept)
 
     # Evidence gaps use their own Session (TC-08-005). A typed model failure raised on that
-    # worker must reach this caller as ModelCallError; other gap errors stay best-effort and
-    # never carry provider body text into the job.
+    # worker must reach this caller as ModelCallError. Any other gap error is logged at ERROR
+    # and marks the job (GAP_GENERATION_FAILED_CODE); under tests it is re-raised (BUG-015).
     import threading as _threading
 
     from app.core.database import isolated_session, supports_thread_isolation
 
     _gap_bind = db.get_bind()
+    _gap_state: dict[str, Any] = {"generated": 0, "failed": False}
 
     def _gap_work(gap_db) -> None:
-        from app.services.evidence_gap_service import generate_gaps_for_questionnaire
-
         result = generate_gaps_for_questionnaire(gap_db, workspace_id, questionnaire_id)
-        generated = result.get("generated", 0)
+        generated = int(result.get("generated", 0) or 0)
+        _gap_state["generated"] = generated
         if generated > 0:
             logger.info(
                 "answer_generation: generated %d evidence gaps for qnr=%d (background)",
@@ -1433,24 +1449,32 @@ def _generate_answers_impl(
                     failure.log_summary(),
                 )
                 raise ModelCallError(failure) from None
-            logger.warning(
-                "answer_generation: gap generation failed for qnr=%d (%s)",
+            try:
+                gap_db.rollback()
+            except Exception:
+                pass
+            logger.error(
+                "answer_generation: gap generation failed for qnr=%d (%s) code=%s",
                 questionnaire_id,
                 where,
+                GAP_GENERATION_FAILED_CODE,
                 exc_info=True,
             )
+            if _gap_failures_raise():
+                raise
+            _gap_state["failed"] = True
 
     if supports_thread_isolation(_gap_bind):
-        _gap_errors: list[ModelCallError] = []
+        _gap_errors: list[BaseException] = []
 
         def _run_gap_generation() -> None:
             try:
                 with isolated_session(_gap_bind) as gap_db:
                     _run_gap(gap_db, "background")
-            except ModelCallError as exc:
+            except BaseException as exc:  # re-raised on the caller thread below
                 _gap_errors.append(exc)
 
-        # Joined so a typed failure is not dropped when the daemon thread exits.
+        # Joined so a gap failure is not dropped when the daemon thread exits.
         _gap_thread = _threading.Thread(
             target=_run_gap_generation, daemon=True, name="gap-generation"
         )
@@ -1461,12 +1485,18 @@ def _generate_answers_impl(
     else:
         from sqlalchemy.orm import Session as _Ses
 
-        gap_db = _Ses(bind=_gap_bind)  # same Connection, but used on this thread only
+        # Same Connection, used on this thread only. The caller's transaction is already open
+        # there, so join it through a SAVEPOINT explicitly (SQLAlchemy's default for this case,
+        # stated so it does not warn now that gaps are really written).
+        gap_db = _Ses(bind=_gap_bind, join_transaction_mode="create_savepoint")
         try:
             _run_gap(gap_db, "inline")
         finally:
             gap_db.close()
-    run_stats["gaps_generated"] = 0
+    run_stats["gaps_generated"] = _gap_state["generated"]
+    if _gap_state["failed"]:
+        run_stats["gap_generation"] = "failed"
+        run_stats["gap_generation_error_code"] = GAP_GENERATION_FAILED_CODE
 
     run_stats["duration_ms"] = duration_ms
     run_stats["embed_time_ms"] = round(embed_time_ms, 1)
@@ -1507,6 +1537,9 @@ def _generate_answers_impl(
     _settle_provider(effects, guard, run_stats)
     if job:
         job.result = _job_payload(count, total_questions, run_stats)
+        if _gap_state["failed"]:
+            job.error_code = GAP_GENERATION_FAILED_CODE
+            job.error = GAP_GENERATION_FAILED_MESSAGE
         db.commit()
     return count
 
