@@ -113,9 +113,8 @@ def lock_problems(runtime_text: str, dev_text: str, dev_only: set[str]) -> list[
         problems.append(f"sqlalchemy {sa['version']} is outside >=2.0,<2.1")
     if "psycopg2-binary" not in runtime:
         problems.append("psycopg2-binary (the SQLAlchemy driver) is not locked")
-    for banned in ("psycopg", "pymupdf"):
-        if banned in runtime:
-            problems.append(f"{banned} must not be in the runtime lock")
+    if "psycopg" in runtime:  # psycopg 3; PDF-library removal is test_pdf_text_locator_corpus's
+        problems.append("psycopg (v3) must not be in the runtime lock")
     return problems
 
 
@@ -185,8 +184,8 @@ def test_sqlalchemy_is_held_below_2_1_with_the_psycopg2_driver():
     spec = deps["sqlalchemy"].specifier
     assert spec.contains("2.0.55") and not spec.contains("2.1.0") and not spec.contains("2.1.0b1")
     assert "psycopg2-binary" in deps
-    assert "pymupdf" not in deps and "psycopg" not in deps  # TC-01-003a replaced PyMuPDF with pypdf
-    assert "pypdf" in deps
+    assert "psycopg" not in deps
+    assert "pypdf" in deps  # TC-01-003a: the locked PDF library is pypdf
 
 
 @pytest.mark.parametrize(
@@ -199,7 +198,6 @@ def test_sqlalchemy_is_held_below_2_1_with_the_psycopg2_driver():
         "sqlalchemy_21",
         "no_driver",
         "psycopg3",
-        "pymupdf",
         "option_line",
         "duplicate",
     ],
@@ -227,9 +225,6 @@ def test_lock_checker_rejects_bad_locks(case):
     elif case == "psycopg3":
         rt.append(f"psycopg==3.2.0 \\\n{h}")
         dev.append(f"psycopg==3.2.0 \\\n{h}")
-    elif case == "pymupdf":
-        rt.append(f"pymupdf==1.24.0 \\\n{h}")
-        dev.append(f"pymupdf==1.24.0 \\\n{h}")
     elif case == "option_line":
         rt.append("--index-url https://example.invalid/simple")
     elif case == "duplicate":
