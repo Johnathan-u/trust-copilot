@@ -44,11 +44,13 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: "20"
+          # TC-02-003: single source of truth for the frontend Node version.
+          node-version-file: apps/web/.nvmrc
 
       - name: Install frontend deps
         working-directory: apps/web
-        run: npm install
+        # TC-02-003: install exactly the lockfile; no dependency lifecycle scripts.
+        run: npm ci --ignore-scripts
 
       - name: Run pre-commit
         run: |
@@ -82,6 +84,14 @@ jobs:
           SESSION_SECRET: test-secret
         run: pytest
 
+      - name: Type-check frontend
+        working-directory: apps/web
+        run: npm run typecheck
+
       - name: Build frontend
         working-directory: apps/web
         run: npm run build
+
+      - name: Audit frontend runtime dependencies
+        working-directory: apps/web
+        run: npm audit --omit=dev --audit-level=high

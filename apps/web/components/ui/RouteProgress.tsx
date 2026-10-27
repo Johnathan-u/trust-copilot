@@ -8,8 +8,8 @@ export function RouteProgress() {
   const [progress, setProgress] = useState(0)
   const [visible, setVisible] = useState(false)
   const prevPathname = useRef(pathname)
-  const timerRef = useRef<ReturnType<typeof setTimeout>>()
-  const frameRef = useRef<ReturnType<typeof setInterval>>()
+  const timerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
+  const frameRef = useRef<ReturnType<typeof setInterval> | undefined>(undefined)
 
   const start = useCallback(() => {
     clearTimeout(timerRef.current)
