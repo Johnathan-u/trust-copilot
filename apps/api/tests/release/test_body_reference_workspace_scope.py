@@ -40,7 +40,7 @@ from app.models.trust_promise import TrustPromise
 from app.models.workspace_control import WorkspaceControl
 
 ADMIN_EMAIL = "admin-ref-scope@trust.local"
-ADMIN_PASSWORD = "scope-r"
+ADMIN_PASSWORD = "example-synthetic-test-admin-pw"
 OTHER_EMAIL = "member-ref-scope-other@trust.local"
 OWN_WS = 1
 OTHER_WS = 2
@@ -151,7 +151,7 @@ def data(db_session: Session) -> Generator[dict[str, Any], None, None]:
     )
     db.add_all([deleted_qnr, portal])
     db.commit()
-    other_user = _ensure_user(db, OTHER_EMAIL, "unused-pw", OTHER_WS)
+    other_user = _ensure_user(db, OTHER_EMAIL, "synthetic-test-unused-pw", OTHER_WS)
     admin_user = _ensure_user(db, ADMIN_EMAIL, ADMIN_PASSWORD, OWN_WS)
     ids: dict[str, Any] = {f"own_{k}": v.id for k, v in own.items()}
     ids.update({f"other_{k}": v.id for k, v in other.items()})
