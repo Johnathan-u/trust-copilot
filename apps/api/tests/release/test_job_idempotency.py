@@ -247,7 +247,10 @@ def test_enqueue_retries_once_when_race_winner_already_left_queued(db):
 
 
 def test_enqueue_retries_only_once_then_raises(db):
-    """TC-10-003a (a): the retry is bounded; a second unexplained conflict still raises."""
+    """TC-10-003a (a): the retry is bounded; a second unexplained conflict still raises.
+
+    TC-10-003b: it raises the typed, retryable ``EnqueueConflictError`` (an IntegrityError is its cause).
+    """
     from sqlalchemy.exc import IntegrityError
 
     key = je.job_idempotency_key("export", WS, uuid.uuid4().hex, "xlsx")
@@ -259,10 +262,11 @@ def test_enqueue_retries_only_once_then_raises(db):
         return None
 
     with patch.object(je, "_queued_with_key", side_effect=always_miss):
-        with pytest.raises(IntegrityError):
+        with pytest.raises(je.EnqueueConflictError) as exc_info:
             je.enqueue_job(
                 db, workspace_id=WS, kind="export", payload={"x": 1}, idempotency_key=key
             )
+    assert isinstance(exc_info.value.__cause__, IntegrityError)
     db.rollback()
     # pre-check + lookup on the first attempt, pre-check + lookup on the single retry.
     assert calls["n"] == 4
@@ -1133,3 +1137,283 @@ def test_migration_downgrade_and_upgrade_roundtrip(_ensure_test_data):
     assert "job_effects" in inspect(engine).get_table_names()
     assert {"idempotency_key", "input_version"} <= cols("jobs")
     assert "job_id" in cols("export_records")
+
+
+# ---------------------------------------------------------------------------------------------------------
+# TC-10-003b: retryable enqueue conflict (a) and owner-token fencing of idempotency claims (b)
+# ---------------------------------------------------------------------------------------------------------
+
+
+def _owner_of(db, key: str):
+    from app.core import idempotency
+
+    return db.execute(
+        idempotency.text("SELECT owner_token FROM idempotency_keys WHERE idempotency_key = :k"),
+        {"k": key},
+    ).scalar()
+
+
+def _expire_claim(db, key: str) -> None:
+    from app.core import idempotency
+
+    db.execute(
+        idempotency.text("UPDATE idempotency_keys SET expires_at = :t WHERE idempotency_key = :k"),
+        {"t": datetime.now(timezone.utc) - timedelta(seconds=5), "k": key},
+    )
+    db.commit()
+
+
+def test_enqueue_job_raises_typed_conflict_when_retry_also_loses(db):
+    """(a) unit: both inserts hit the unique QUEUED slot and the winner is never visible."""
+    key = je.job_idempotency_key("export", WS, "tc10003b-unit", uuid.uuid4().hex)
+    winner, created = je.enqueue_job(
+        db, workspace_id=WS, kind="export", payload={"synthetic": 1}, idempotency_key=key
+    )
+    assert created
+    with patch.object(je, "_queued_with_key", return_value=None):
+        with pytest.raises(je.EnqueueConflictError) as exc_info:
+            je.enqueue_job(
+                db, workspace_id=WS, kind="export", payload={"synthetic": 2}, idempotency_key=key
+            )
+    from sqlalchemy.exc import IntegrityError
+
+    assert isinstance(exc_info.value.__cause__, IntegrityError)
+    # The session is left usable and no second QUEUED row exists.
+    assert (
+        db.query(func.count(Job.id))
+        .filter(Job.workspace_id == WS, Job.kind == "export", Job.idempotency_key == key)
+        .scalar()
+        == 1
+    )
+    assert db.query(Job).filter(Job.id == winner.id).one().status == JobStatus.QUEUED.value
+
+
+@pytest.mark.parametrize("route", ["export", "generate"])
+def test_enqueue_conflict_after_retry_is_retryable_409_not_500(client: TestClient, db, route: str):
+    """(a) regression: on master the escaping IntegrityError is a 500 (TestClient re-raises it)."""
+    _login(client)
+    qnr = _route_qnr(db)
+    url = f"/api/exports/{route}/{qnr.id}?workspace_id=1"
+    k = f"conflict-{route}-{uuid.uuid4().hex}"
+    with patch("app.services.quota_service.check_quota", return_value=(True, 0, 100)):
+        # An identical QUEUED job holds the unique slot ...
+        first = client.post(url)
+        assert first.status_code == 200, first.text
+        jobs_before = db.query(func.count(Job.id)).scalar()
+        # ... and the race-winner lookup never sees it, so both enqueue attempts raise IntegrityError.
+        with patch.object(je, "_queued_with_key", return_value=None):
+            r = client.post(url, headers={"Idempotency-Key": k})
+        assert r.status_code == 409, r.text
+        body = r.json()
+        assert body["error"]["code"] == "idempotency_conflict"
+        assert body["error"]["retryable"] is True
+        assert body["detail"] == body["error"]["message"]
+        assert body["error"]["request_id"] == r.headers["X-Request-ID"]
+        assert r.headers["Retry-After"] == "1"
+        assert "IntegrityError" not in r.text and "uq_jobs" not in r.text
+        # Same envelope as the shared 400 idempotency error.
+        bad = client.post(url, headers={"Idempotency-Key": "has space"})
+        assert set(body) == set(bad.json()) == {"detail", "error"}
+        assert set(body["error"]) <= set(bad.json()["error"])
+        # Not cached and the claim was released: the retry with the same key runs and reuses the queued job.
+        assert _idem_count(db, k) == 0
+        db.expire_all()
+        assert db.query(func.count(Job.id)).scalar() == jobs_before
+        retry = client.post(url, headers={"Idempotency-Key": k})
+    assert retry.status_code == 200 and retry.json()["job_id"] == first.json()["job_id"]
+
+
+def test_claim_records_owner_token_and_rightful_owner_set_release_work(db):
+    """(b) the claiming request's own token stores and releases normally."""
+    from app.core import idempotency
+
+    key = f"owner-ok-{uuid.uuid4().hex}"
+    owner = idempotency.claim(db, key)
+    assert owner and _owner_of(db, key) == owner
+    assert idempotency.claim(db, key) is None  # unexpired: not claimable
+    assert idempotency.release(db, key, owner=owner) is True
+    assert _owner_of(db, key) is None and idempotency.get(db, key) is None
+    owner2 = idempotency.claim(db, key)
+    assert owner2 and owner2 != owner
+    assert idempotency.set(db, key, 200, {"job_id": 1}, owner=owner2) is True
+    assert idempotency.get(db, key) == (200, {"job_id": 1})
+
+
+def test_stale_owner_release_and_set_are_noops_after_reclaim(db):
+    """(b) a late finisher whose lease expired cannot free or overwrite the new owner's claim."""
+    from app.core import idempotency
+
+    key = f"owner-stale-{uuid.uuid4().hex}"
+    stale = idempotency.claim(db, key)
+    _expire_claim(db, key)
+    fresh = idempotency.claim(db, key)  # ON CONFLICT DO UPDATE reclaim
+    assert stale and fresh and stale != fresh
+    assert _owner_of(db, key) == fresh
+
+    assert idempotency.release(db, key, owner=stale) is False
+    assert _owner_of(db, key) == fresh
+    assert idempotency.set(db, key, 200, {"job_id": "stale"}, owner=stale) is False
+    assert idempotency.get(db, key) is None  # still in progress for the new owner
+    # A stale 5xx goes through release(): also fenced.
+    assert idempotency.set(db, key, 503, {"detail": "Synthetic"}, owner=stale) is False
+    assert _owner_of(db, key) == fresh
+
+    assert idempotency.set(db, key, 200, {"job_id": "fresh"}, owner=fresh) is True
+    assert idempotency.get(db, key) == (200, {"job_id": "fresh"})
+    # After completion the stale owner still cannot overwrite it.
+    assert idempotency.set(db, key, 400, {"detail": "stale"}, owner=stale) is False
+    assert idempotency.get(db, key) == (200, {"job_id": "fresh"})
+
+
+def test_legacy_owner_none_callers_keep_unconditional_behavior(db):
+    """(b) try_claim + set/release without owner (case_studies routes) behave as before TC-10-003b."""
+    from app.core import idempotency
+
+    key = f"owner-legacy-{uuid.uuid4().hex}"
+    assert idempotency.try_claim(db, key) is True
+    assert _owner_of(db, key)  # a token is still recorded
+    assert idempotency.set(db, key, 200, {"ok": True}) is True
+    assert idempotency.get(db, key) == (200, {"ok": True})
+
+
+def test_route_late_finisher_does_not_overwrite_reclaimed_key(client: TestClient, db):
+    """(b) route level: request A's lease expires mid-flight and B reclaims; A's set() must not land."""
+    from app.core import idempotency
+    from app.services import export_service
+
+    _login(client)
+    qnr = _route_qnr(db)
+    k = f"late-{uuid.uuid4().hex}"
+    scoped = idempotency.scoped_key(WS, "export", qnr.id, k)
+    holder: dict[str, str | None] = {}
+    real_enqueue = export_service.enqueue_export_job
+
+    def slow_enqueue(*args, **kwargs):
+        side = SessionLocal()
+        try:
+            _expire_claim(side, scoped)
+            holder["b"] = idempotency.claim(side, scoped)
+        finally:
+            side.close()
+        return real_enqueue(*args, **kwargs)
+
+    with (
+        patch("app.services.quota_service.check_quota", return_value=(True, 0, 100)),
+        patch("app.api.routes.exports.enqueue_export_job", side_effect=slow_enqueue),
+    ):
+        r = client.post(
+            f"/api/exports/export/{qnr.id}?workspace_id=1", headers={"Idempotency-Key": k}
+        )
+    assert r.status_code == 200
+    assert holder["b"]
+    db.expire_all()
+    assert _owner_of(db, scoped) == holder["b"]
+    assert idempotency.get(db, scoped) is None  # B's claim is intact and still in progress
+    assert idempotency.set(db, scoped, 200, {"job_id": "b"}, owner=holder["b"]) is True
+
+
+def test_concurrent_reclaim_has_single_owner_and_losers_are_fenced(_ensure_test_data):
+    """(b) concurrency: many sessions race to reclaim one expired key; exactly one wins and nobody else
+    (including the original, expired owner) can release or overwrite the winner's claim."""
+    import threading
+
+    if not _ensure_test_data:
+        pytest.skip("Postgres test DB unavailable")
+    from app.core import idempotency
+
+    key = f"race-{uuid.uuid4().hex}"
+    setup = SessionLocal()
+    try:
+        original = idempotency.claim(setup, key)
+        assert original
+        _expire_claim(setup, key)
+    finally:
+        setup.close()
+
+    n = 12
+    barrier = threading.Barrier(n)
+    results: list[str | None] = [None] * n
+    errors: list[BaseException] = []
+
+    def worker(i: int) -> None:
+        s = SessionLocal()
+        try:
+            barrier.wait(timeout=10)
+            results[i] = idempotency.claim(s, key)
+        except BaseException as exc:  # pragma: no cover - surfaced below
+            errors.append(exc)
+        finally:
+            s.close()
+
+    threads = [threading.Thread(target=worker, args=(i,)) for i in range(n)]
+    for t in threads:
+        t.start()
+    for t in threads:
+        t.join(timeout=30)
+    assert not errors
+    winners = [t for t in results if t]
+    assert len(winners) == 1
+    winner = winners[0]
+
+    # The stale original owner and the winner finish concurrently; only the winner's write lands.
+    outcomes: dict[str, bool] = {}
+
+    def finish(name: str, owner: str, body: dict) -> None:
+        s = SessionLocal()
+        try:
+            outcomes[name] = idempotency.set(s, key, 200, body, owner=owner)
+        finally:
+            s.close()
+
+    ts = [
+        threading.Thread(target=finish, args=("stale", original, {"by": "stale"})),
+        threading.Thread(target=finish, args=("winner", winner, {"by": "winner"})),
+    ]
+    for t in ts:
+        t.start()
+    for t in ts:
+        t.join(timeout=30)
+    assert outcomes == {"stale": False, "winner": True}
+    check = SessionLocal()
+    try:
+        assert idempotency.get(check, key) == (200, {"by": "winner"})
+        check.execute(
+            idempotency.text("DELETE FROM idempotency_keys WHERE idempotency_key = :k"), {"k": key}
+        )
+        check.commit()
+    finally:
+        check.close()
+
+
+def test_owner_token_migration_downgrade_and_upgrade_roundtrip(_ensure_test_data):
+    if not _ensure_test_data:
+        pytest.skip("Postgres test DB unavailable")
+    import importlib.util
+
+    api_dir = Path(__file__).resolve().parents[2]
+    mig = api_dir / "alembic" / "versions" / "tc10003b_idempotency_owner_token.py"
+    spec = importlib.util.spec_from_file_location("tc10003b_mig", mig)
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    env = {**os.environ, "DATABASE_URL": os.environ["DATABASE_URL"]}
+
+    def alembic(*args):
+        r = subprocess.run(
+            [sys.executable, "-m", "alembic", *args],
+            cwd=api_dir,
+            env=env,
+            capture_output=True,
+            text=True,
+        )
+        assert r.returncode == 0, r.stderr[-2000:]
+
+    def cols():
+        engine.dispose()
+        return {c["name"] for c in inspect(engine).get_columns("idempotency_keys")}
+
+    alembic("downgrade", mod.down_revision)
+    try:
+        assert "owner_token" not in cols()
+    finally:
+        alembic("upgrade", "head")
+    assert "owner_token" in cols()

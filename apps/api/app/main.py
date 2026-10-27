@@ -31,7 +31,8 @@ from fastapi.middleware.cors import CORSMiddleware  # noqa: E402
 
 from app.core.config import get_settings  # noqa: E402
 from app.core.logging_config import configure_logging, request_id_ctx, workspace_id_ctx  # noqa: E402
-from app.core.api_errors import model_call_error_handler  # noqa: E402
+from app.core.api_errors import enqueue_conflict_handler, model_call_error_handler  # noqa: E402
+from app.services.job_effects import EnqueueConflictError  # noqa: E402
 from app.services.model_outcomes import ModelCallError  # noqa: E402
 from app.core.metrics import record_request as metrics_record_request  # noqa: E402
 from app.core.rate_limit import get_client_ip, is_rate_limited, record_attempt  # noqa: E402
@@ -358,6 +359,9 @@ class GlobalRateLimitMiddleware(BaseHTTPMiddleware):
 
 
 app.add_exception_handler(ModelCallError, model_call_error_handler)  # TC-11-001
+app.add_exception_handler(
+    EnqueueConflictError, enqueue_conflict_handler
+)  # TC-10-003b: 409, not 500
 app.add_middleware(StructuredLoggingMiddleware)
 app.add_middleware(GlobalRateLimitMiddleware)
 app.add_middleware(CSRFMiddleware)
