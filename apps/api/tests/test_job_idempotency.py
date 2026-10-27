@@ -204,6 +204,68 @@ def test_enqueue_race_returns_winner_via_unique_index(db):
     assert n == 1
 
 
+def test_enqueue_retries_once_when_race_winner_already_left_queued(db):
+    """TC-10-003a (a): the race winner is claimed by a worker before the loser looks it up.
+
+    The loser's insert hit the partial unique index, but the winner is RUNNING by the time of the lookup, so
+    the slot is free again: the loser retries the insert once and gets its own job instead of a 500.
+    """
+    key = je.job_idempotency_key("export", WS, uuid.uuid4().hex, "xlsx")
+    winner, _ = je.enqueue_job(
+        db, workspace_id=WS, kind="export", payload={"x": 1}, idempotency_key=key
+    )
+    calls = {"n": 0}
+    real = je._queued_with_key
+
+    def racing_lookup(*a, **kw):
+        calls["n"] += 1
+        if calls["n"] == 1:
+            return None  # pre-check ran before the winner committed
+        if calls["n"] == 2:
+            # Between the loser's IntegrityError and its lookup, a worker claims the winner.
+            other = SessionLocal()
+            try:
+                other.execute(
+                    text("UPDATE jobs SET status = 'running' WHERE id = :id"), {"id": winner.id}
+                )
+                other.commit()
+            finally:
+                other.close()
+        return real(*a, **kw)
+
+    with patch.object(je, "_queued_with_key", side_effect=racing_lookup):
+        loser, created = je.enqueue_job(
+            db, workspace_id=WS, kind="export", payload={"x": 1}, idempotency_key=key
+        )
+    assert created is True and loser.id != winner.id
+    assert calls["n"] == 3  # pre-check, post-conflict lookup, retry pre-check
+    db.expire_all()
+    rows = {j.id: j.status for j in db.query(Job).filter(Job.idempotency_key == key).all()}
+    assert rows == {winner.id: "running", loser.id: "queued"}
+
+
+def test_enqueue_retries_only_once_then_raises(db):
+    """TC-10-003a (a): the retry is bounded; a second unexplained conflict still raises."""
+    from sqlalchemy.exc import IntegrityError
+
+    key = je.job_idempotency_key("export", WS, uuid.uuid4().hex, "xlsx")
+    je.enqueue_job(db, workspace_id=WS, kind="export", payload={"x": 1}, idempotency_key=key)
+    calls = {"n": 0}
+
+    def always_miss(*a, **kw):
+        calls["n"] += 1
+        return None
+
+    with patch.object(je, "_queued_with_key", side_effect=always_miss):
+        with pytest.raises(IntegrityError):
+            je.enqueue_job(
+                db, workspace_id=WS, kind="export", payload={"x": 1}, idempotency_key=key
+            )
+    db.rollback()
+    # pre-check + lookup on the first attempt, pre-check + lookup on the single retry.
+    assert calls["n"] == 4
+
+
 # ---------------------------------------------------------------------------------------------------------
 # Parse
 # ---------------------------------------------------------------------------------------------------------
@@ -903,6 +965,97 @@ def test_export_route_without_key_reuses_identical_queued_job(client: TestClient
     r2 = client.post(f"/api/exports/export/{qnr.id}?workspace_id=1")
     r3 = client.post(f"/api/exports/export/{qnr.id}?workspace_id=1", json={"format": "docx"})
     assert r1.json()["job_id"] == r2.json()["job_id"] != r3.json()["job_id"]
+
+
+def _idem_count(db, client_key: str) -> int:
+    from app.core import idempotency
+
+    return db.execute(
+        idempotency.text("SELECT count(*) FROM idempotency_keys WHERE idempotency_key LIKE :p"),
+        {"p": f"%:{client_key}"},
+    ).scalar()
+
+
+def test_replay_returns_same_error_body_as_live_response(client: TestClient, db):
+    """TC-10-003a (b): an idempotent replay of a 4xx returns exactly the live status and body."""
+    _login(client)
+    qnr = _route_qnr(db)
+    # 400 from validation (generate with an unsupported model). No questions, so no API key is needed.
+    k400 = f"err400-{uuid.uuid4().hex}"
+    url = f"/api/exports/generate/{qnr.id}?workspace_id=1"
+    live = client.post(url, json={"model": "not-a-model"}, headers={"Idempotency-Key": k400})
+    replay = client.post(url, json={"model": "not-a-model"}, headers={"Idempotency-Key": k400})
+    assert live.status_code == 400
+    assert (replay.status_code, replay.json()) == (live.status_code, live.json())
+    # 404 whose underlying message differs from the public text: the replay must not leak the internal
+    # message; it repeats the live "Questionnaire not found".
+    k404 = f"err404-{uuid.uuid4().hex}"
+    url = f"/api/exports/export/{qnr.id}?workspace_id=1"
+    with patch(
+        "app.api.routes.exports.enqueue_export_job",
+        side_effect=ValueError("Synthetic template not found for format"),
+    ):
+        live = client.post(url, headers={"Idempotency-Key": k404})
+    replay = client.post(url, headers={"Idempotency-Key": k404})
+    assert live.status_code == 404 and live.json() == {"detail": "Questionnaire not found"}
+    assert (replay.status_code, replay.json()) == (live.status_code, live.json())
+    # Real missing questionnaire: same on replay too.
+    k404b = f"err404b-{uuid.uuid4().hex}"
+    url = "/api/exports/export/987654321?workspace_id=1"
+    live = client.post(url, headers={"Idempotency-Key": k404b})
+    replay = client.post(url, headers={"Idempotency-Key": k404b})
+    assert live.status_code == 404
+    assert (replay.status_code, replay.json()) == (live.status_code, live.json())
+
+
+def test_5xx_response_is_not_cached_and_frees_the_claim(client: TestClient, db):
+    """TC-10-003a (c): a 503 is not replayed; the claim is released so the same key can retry."""
+    from types import SimpleNamespace
+
+    _login(client)
+    qnr, _qs = _qnr_with_answers(db)
+    k = f"err503-{uuid.uuid4().hex}"
+    url = f"/api/exports/generate/{qnr.id}?workspace_id=1"
+    with patch(
+        "app.api.routes.exports.get_settings",
+        return_value=SimpleNamespace(openai_api_key=""),
+    ):
+        r1 = client.post(url, headers={"Idempotency-Key": k})
+    assert r1.status_code == 503
+    assert _idem_count(db, k) == 0
+    # Same key after the server is fixed: runs for real instead of replaying the 503.
+    with (
+        patch(
+            "app.api.routes.exports.get_settings",
+            return_value=SimpleNamespace(openai_api_key="sk-fake-not-used"),
+        ),
+        patch("app.services.quota_service.check_quota", return_value=(True, 0, 100)),
+    ):
+        r2 = client.post(url, headers={"Idempotency-Key": k})
+        r3 = client.post(url, headers={"Idempotency-Key": k})
+    assert r2.status_code == 200 and r2.json()["status"] == "queued"
+    assert (r3.status_code, r3.json()) == (200, r2.json())
+
+
+def test_idempotency_set_never_stores_5xx(db):
+    """TC-10-003a (c): defense in depth at the store layer for any 5xx."""
+    from app.core import idempotency
+
+    key = f"set5xx-{uuid.uuid4().hex}"
+    assert idempotency.try_claim(db, key) is True
+    idempotency.set(db, key, 502, {"detail": "Synthetic upstream failure"})
+    assert idempotency.get(db, key) is None
+    assert (
+        db.execute(
+            idempotency.text("SELECT count(*) FROM idempotency_keys WHERE idempotency_key = :k"),
+            {"k": key},
+        ).scalar()
+        == 0
+    )
+    # The freed key can be claimed again immediately (no 409 for the lease).
+    assert idempotency.try_claim(db, key) is True
+    idempotency.set(db, key, 422, {"detail": "Synthetic validation"})
+    assert idempotency.get(db, key) == (422, {"detail": "Synthetic validation"})
 
 
 def test_jobs_api_reports_charge_uncertain(client: TestClient, db):
