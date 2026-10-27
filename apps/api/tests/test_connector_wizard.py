@@ -42,6 +42,7 @@ class TestConnectorWizardService:
 
     def test_start_setup(self, db_session):
         from app.models.workspace import Workspace
+
         ws = db_session.query(Workspace).first()
         result = svc.start_setup(db_session, ws.id, "aws")
         db_session.commit()
@@ -51,6 +52,7 @@ class TestConnectorWizardService:
 
     def test_validate_setup(self, db_session):
         from app.models.workspace import Workspace
+
         ws = db_session.query(Workspace).first()
         svc.start_setup(db_session, ws.id, "github")
         db_session.commit()
@@ -61,6 +63,7 @@ class TestConnectorWizardService:
 
     def test_disable_connector(self, db_session):
         from app.models.workspace import Workspace
+
         ws = db_session.query(Workspace).first()
         svc.start_setup(db_session, ws.id, "okta")
         svc.validate_setup(db_session, ws.id, "okta")
@@ -72,6 +75,7 @@ class TestConnectorWizardService:
 
     def test_start_unknown_connector(self, db_session):
         from app.models.workspace import Workspace
+
         ws = db_session.query(Workspace).first()
         result = svc.start_setup(db_session, ws.id, "nonexistent")
         assert "error" in result

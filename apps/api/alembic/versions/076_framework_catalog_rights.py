@@ -66,9 +66,24 @@ def upgrade() -> None:
     op.create_table(
         "framework_catalog_events",
         sa.Column("id", sa.Integer(), primary_key=True, autoincrement=True),
-        sa.Column("framework_id", sa.Integer(), sa.ForeignKey("frameworks.id", ondelete="CASCADE"), nullable=False),
-        sa.Column("workspace_id", sa.Integer(), sa.ForeignKey("workspaces.id", ondelete="CASCADE"), nullable=False),
-        sa.Column("actor_user_id", sa.Integer(), sa.ForeignKey("users.id", ondelete="SET NULL"), nullable=True),
+        sa.Column(
+            "framework_id",
+            sa.Integer(),
+            sa.ForeignKey("frameworks.id", ondelete="CASCADE"),
+            nullable=False,
+        ),
+        sa.Column(
+            "workspace_id",
+            sa.Integer(),
+            sa.ForeignKey("workspaces.id", ondelete="CASCADE"),
+            nullable=False,
+        ),
+        sa.Column(
+            "actor_user_id",
+            sa.Integer(),
+            sa.ForeignKey("users.id", ondelete="SET NULL"),
+            nullable=True,
+        ),
         sa.Column("actor_role", sa.String(32), nullable=True),
         sa.Column("catalog_key", sa.String(64), nullable=True),
         sa.Column("attempted_version", sa.String(32), nullable=True),
@@ -79,9 +94,15 @@ def upgrade() -> None:
         sa.Column("detail", sa.Text(), nullable=True),
         sa.Column("created_at", sa.DateTime(), nullable=False, server_default=sa.func.now()),
     )
-    op.create_index("ix_framework_catalog_events_framework_id", "framework_catalog_events", ["framework_id"])
-    op.create_index("ix_framework_catalog_events_workspace_id", "framework_catalog_events", ["workspace_id"])
-    op.create_index("ix_framework_catalog_events_actor_user_id", "framework_catalog_events", ["actor_user_id"])
+    op.create_index(
+        "ix_framework_catalog_events_framework_id", "framework_catalog_events", ["framework_id"]
+    )
+    op.create_index(
+        "ix_framework_catalog_events_workspace_id", "framework_catalog_events", ["workspace_id"]
+    )
+    op.create_index(
+        "ix_framework_catalog_events_actor_user_id", "framework_catalog_events", ["actor_user_id"]
+    )
 
     _backfill()
 
@@ -95,11 +116,21 @@ def upgrade() -> None:
 
 def _backfill() -> None:
     bind = op.get_bind()
-    frameworks = bind.execute(sa.text("SELECT id, name, version FROM frameworks ORDER BY id")).mappings().all()
-    control_rows = bind.execute(sa.text("SELECT framework_id, control_key FROM framework_controls")).mappings().all()
+    frameworks = (
+        bind.execute(sa.text("SELECT id, name, version FROM frameworks ORDER BY id"))
+        .mappings()
+        .all()
+    )
+    control_rows = (
+        bind.execute(sa.text("SELECT framework_id, control_key FROM framework_controls"))
+        .mappings()
+        .all()
+    )
     keys_by_framework: dict[int, list[str]] = {}
     for control in control_rows:
-        keys_by_framework.setdefault(control["framework_id"], []).append(control["control_key"] or "")
+        keys_by_framework.setdefault(control["framework_id"], []).append(
+            control["control_key"] or ""
+        )
 
     dev_ids: set[int] = set()
     for row in frameworks:
@@ -256,7 +287,9 @@ def _backfill() -> None:
 def downgrade() -> None:
     op.drop_constraint("ck_frameworks_production_blocked", "frameworks", type_="check")
     op.drop_index("uq_frameworks_catalog_key", table_name="frameworks")
-    op.drop_index("ix_framework_catalog_events_actor_user_id", table_name="framework_catalog_events")
+    op.drop_index(
+        "ix_framework_catalog_events_actor_user_id", table_name="framework_catalog_events"
+    )
     op.drop_index("ix_framework_catalog_events_workspace_id", table_name="framework_catalog_events")
     op.drop_index("ix_framework_catalog_events_framework_id", table_name="framework_catalog_events")
     op.drop_table("framework_catalog_events")

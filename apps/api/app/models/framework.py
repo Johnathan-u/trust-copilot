@@ -31,5 +31,7 @@ class Framework(Base):
     # when they still have no controls.
     scaffold_inserted = Column(Boolean, nullable=False, default=False, server_default=text("false"))
     # Check constraint keeps this false while TC-01-007 is open.
-    production_catalog = Column(Boolean, nullable=False, default=False, server_default=text("false"))
+    production_catalog = Column(
+        Boolean, nullable=False, default=False, server_default=text("false")
+    )
     updated_at = Column(DateTime, nullable=True)

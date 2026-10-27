@@ -49,19 +49,23 @@ def placements_from_questions_and_answers_docx(
         if not isinstance(loc, dict):
             continue
         if loc.get("type") == "table":
-            placements.append({
-                "type": "table",
-                "table": loc.get("table", 1),
-                "row": loc.get("row", 1),
-                "col": loc.get("col", 1),
-                "text": text,
-            })
+            placements.append(
+                {
+                    "type": "table",
+                    "table": loc.get("table", 1),
+                    "row": loc.get("row", 1),
+                    "col": loc.get("col", 1),
+                    "text": text,
+                }
+            )
         elif loc.get("type") == "paragraph":
-            placements.append({
-                "type": "paragraph",
-                "index": loc.get("index", 1),
-                "text": text,
-            })
+            placements.append(
+                {
+                    "type": "paragraph",
+                    "index": loc.get("index", 1),
+                    "text": text,
+                }
+            )
     return placements
 
 
@@ -93,7 +97,7 @@ def place_answers_into_document(
                 cell.text = str(text)
         elif p.get("type") == "paragraph":
             # Question at 1-based index; answer goes in next paragraph (0-based index = idx)
-            idx = (p.get("index", 1) or 1)
+            idx = p.get("index", 1) or 1
             answer_idx_0based = idx
             if 0 <= answer_idx_0based < len(doc.paragraphs):
                 para = doc.paragraphs[answer_idx_0based]

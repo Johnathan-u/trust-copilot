@@ -8,6 +8,7 @@ Run from apps/api:
 
 Also invoked from scripts.seed_demo_workspace after questionnaire/documents seed.
 """
+
 from __future__ import annotations
 
 import argparse
@@ -18,18 +19,18 @@ API_ROOT = Path(__file__).resolve().parent.parent
 if str(API_ROOT) not in sys.path:
     sys.path.insert(0, str(API_ROOT))
 
-from dotenv import load_dotenv
+from dotenv import load_dotenv  # noqa: E402
 
 load_dotenv(API_ROOT / ".env")
 
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session  # noqa: E402
 
-from app.core.database import SessionLocal
-from app.models import Framework, FrameworkControl, Workspace, WorkspaceControl
-from app.services.framework_catalog import label_dev_framework_row
-from app.services.framework_catalog_registry import KIND_ADVERTISED, KIND_DEV
+from app.core.database import SessionLocal  # noqa: E402
+from app.models import Framework, FrameworkControl, Workspace, WorkspaceControl  # noqa: E402
+from app.services.framework_catalog import label_dev_framework_row  # noqa: E402
+from app.services.framework_catalog_registry import KIND_ADVERTISED, KIND_DEV  # noqa: E402
 
-from scripts.dev_compliance_catalog import DEV_COMPLIANCE_CATALOG
+from scripts.dev_compliance_catalog import DEV_COMPLIANCE_CATALOG  # noqa: E402
 
 
 def _normalize_framework_key(name: str) -> str:
@@ -39,9 +40,15 @@ def _normalize_framework_key(name: str) -> str:
 
 def _is_production_slot(fw: Framework) -> bool:
     """Advertised blocked rows are not a place to attach synthetic dev controls."""
-    if getattr(fw, "catalog_kind", None) == KIND_DEV or getattr(fw, "content_origin", None) == "dev_seed":
+    if (
+        getattr(fw, "catalog_kind", None) == KIND_DEV
+        or getattr(fw, "content_origin", None) == "dev_seed"
+    ):
         return False
-    return bool(getattr(fw, "catalog_key", None)) or getattr(fw, "catalog_kind", None) == KIND_ADVERTISED
+    return (
+        bool(getattr(fw, "catalog_key", None))
+        or getattr(fw, "catalog_kind", None) == KIND_ADVERTISED
+    )
 
 
 def _ensure_framework(db: Session, name: str, version: str | None) -> Framework:

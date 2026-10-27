@@ -3,7 +3,7 @@
 import re
 import hashlib
 
-from app.services.question_classifier import classify_question
+from app.services.question_classifier import classify_question  # noqa: F401
 
 # Complexity: simple = short, single intent; complex = long or multi-part
 COMPLEXITY_SIMPLE = "simple"

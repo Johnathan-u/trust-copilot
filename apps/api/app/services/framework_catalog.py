@@ -148,8 +148,10 @@ def reconcile_catalog(db: Session) -> None:
     rows = db.query(Framework).order_by(Framework.id).all()
     for row in rows:
         control_keys = keys.get(row.id, [])
-        dev = row.catalog_kind == KIND_DEV or row.content_origin == CONTENT_DEV or is_dev_catalog_row(
-            row.name, row.version, control_keys
+        dev = (
+            row.catalog_kind == KIND_DEV
+            or row.content_origin == CONTENT_DEV
+            or is_dev_catalog_row(row.name, row.version, control_keys)
         )
         if dev:
             label_dev_framework_row(row)
@@ -180,7 +182,9 @@ def reconcile_catalog(db: Session) -> None:
                     db.flush()
             except IntegrityError:
                 db.expunge(created)
-                existing = db.query(Framework).filter(Framework.catalog_key == spec.catalog_key).one()
+                existing = (
+                    db.query(Framework).filter(Framework.catalog_key == spec.catalog_key).one()
+                )
                 _apply_advertised(existing, spec, control_count=len(keys.get(existing.id, [])))
             continue
         _apply_advertised(row, spec, control_count=len(keys.get(row.id, [])))
@@ -309,9 +313,14 @@ def _find_dev_row(db: Session, name: str) -> Framework | None:
         return None
     keys = _control_keys_by_framework(db)
     for row in db.query(Framework).order_by(Framework.id).all():
-        if normalize_catalog_name(row.name) != norm and normalize_catalog_name(row.catalog_key) != norm:
+        if (
+            normalize_catalog_name(row.name) != norm
+            and normalize_catalog_name(row.catalog_key) != norm
+        ):
             continue
-        if row.catalog_kind == KIND_DEV or is_dev_catalog_row(row.name, row.version, keys.get(row.id, [])):
+        if row.catalog_kind == KIND_DEV or is_dev_catalog_row(
+            row.name, row.version, keys.get(row.id, [])
+        ):
             return row
     return None
 
@@ -404,9 +413,7 @@ def attempt_enable(
         if dev_row is not None:
             label_dev_framework_row(dev_row)
             db.flush()
-        message = (
-            "Synthetic DEV catalog keys are dev/test only and cannot be enabled as a production catalog."
-        )
+        message = "Synthetic DEV catalog keys are dev/test only and cannot be enabled as a production catalog."
         failure = None
         if dev_row is not None:
             failure = _write_event(
@@ -441,9 +448,17 @@ def attempt_enable(
                     enablement_state=ENABLEMENT_DEV,
                     partial_failure=True,
                     steps=[
-                        {"step": "catalog_state", "status": "persisted", "enablement_state": ENABLEMENT_DEV},
+                        {
+                            "step": "catalog_state",
+                            "status": "persisted",
+                            "enablement_state": ENABLEMENT_DEV,
+                        },
                         {"step": "audit_event", "status": "failed", "reason": failure},
-                        {"step": "production_enablement", "status": "refused", "reason": "dev_test_only"},
+                        {
+                            "step": "production_enablement",
+                            "status": "refused",
+                            "reason": "dev_test_only",
+                        },
                     ],
                 ),
                 dev_row.id if dev_row is not None else None,
@@ -455,7 +470,9 @@ def attempt_enable(
                 message=message,
                 request_id=request_id,
                 retryable=False,
-                field_errors={"name": "dev_test_only"} if is_synthetic_dev_control_key(cleaned) or is_synthetic_dev_version(cleaned) else {"version": "dev_test_only"},
+                field_errors={"name": "dev_test_only"}
+                if is_synthetic_dev_control_key(cleaned) or is_synthetic_dev_version(cleaned)
+                else {"version": "dev_test_only"},
                 rights_status=RIGHTS_DEV,
                 licence_status=LICENCE_DEV,
                 enablement_state=ENABLEMENT_DEV,
@@ -471,7 +488,9 @@ def attempt_enable(
             if not bare_nist
             else "NIST is not a single production catalog. NIST CSF 2, NIST 800-53r5, and NIST 800-171r3 are separate catalogs."
         )
-        message += " Every advertised framework is blocked pending content-rights decision TC-01-007."
+        message += (
+            " Every advertised framework is blocked pending content-rights decision TC-01-007."
+        )
         return EnableResult(
             400,
             _error(
@@ -527,9 +546,17 @@ def attempt_enable(
                 enablement_state=ENABLEMENT_BLOCKED,
                 partial_failure=True,
                 steps=[
-                    {"step": "catalog_state", "status": "persisted", "enablement_state": ENABLEMENT_BLOCKED},
+                    {
+                        "step": "catalog_state",
+                        "status": "persisted",
+                        "enablement_state": ENABLEMENT_BLOCKED,
+                    },
                     {"step": "audit_event", "status": "failed", "reason": failure},
-                    {"step": "production_enablement", "status": "refused", "reason": "rights_not_cleared"},
+                    {
+                        "step": "production_enablement",
+                        "status": "refused",
+                        "reason": "rights_not_cleared",
+                    },
                 ],
             ),
             row.id,
@@ -547,9 +574,17 @@ def attempt_enable(
             licence_status=LICENCE_NOT_CLEARED,
             enablement_state=ENABLEMENT_BLOCKED,
             steps=[
-                {"step": "catalog_state", "status": "persisted", "enablement_state": ENABLEMENT_BLOCKED},
+                {
+                    "step": "catalog_state",
+                    "status": "persisted",
+                    "enablement_state": ENABLEMENT_BLOCKED,
+                },
                 {"step": "audit_event", "status": "persisted"},
-                {"step": "production_enablement", "status": "refused", "reason": "rights_not_cleared"},
+                {
+                    "step": "production_enablement",
+                    "status": "refused",
+                    "reason": "rights_not_cleared",
+                },
             ],
         ),
         row.id,

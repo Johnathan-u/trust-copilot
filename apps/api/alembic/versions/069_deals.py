@@ -3,6 +3,7 @@
 Revision ID: 069
 Revises: 068
 """
+
 from alembic import op
 import sqlalchemy as sa
 
@@ -16,7 +17,13 @@ def upgrade() -> None:
     op.create_table(
         "deals",
         sa.Column("id", sa.Integer(), primary_key=True, autoincrement=True),
-        sa.Column("workspace_id", sa.Integer(), sa.ForeignKey("workspaces.id", ondelete="CASCADE"), nullable=False, index=True),
+        sa.Column(
+            "workspace_id",
+            sa.Integer(),
+            sa.ForeignKey("workspaces.id", ondelete="CASCADE"),
+            nullable=False,
+            index=True,
+        ),
         sa.Column("company_name", sa.String(255), nullable=False),
         sa.Column("buyer_contact_name", sa.String(255), nullable=True),
         sa.Column("buyer_contact_email", sa.String(255), nullable=True),
@@ -27,7 +34,12 @@ def upgrade() -> None:
         sa.Column("linked_questionnaire_ids", sa.Text(), nullable=True),
         sa.Column("crm_source", sa.String(32), nullable=True),
         sa.Column("crm_external_id", sa.String(255), nullable=True),
-        sa.Column("owner_user_id", sa.Integer(), sa.ForeignKey("users.id", ondelete="SET NULL"), nullable=True),
+        sa.Column(
+            "owner_user_id",
+            sa.Integer(),
+            sa.ForeignKey("users.id", ondelete="SET NULL"),
+            nullable=True,
+        ),
         sa.Column("notes", sa.Text(), nullable=True),
         sa.Column("created_at", sa.DateTime(), nullable=False, server_default=sa.func.now()),
         sa.Column("updated_at", sa.DateTime(), nullable=False, server_default=sa.func.now()),

@@ -28,7 +28,9 @@ def editor_client(client):
 class TestDealService:
     def test_create_deal(self, db_session):
         ws = db_session.query(Workspace).first()
-        result = ds.create_deal(db_session, ws.id, "Test Corp", deal_value_arr=100000, stage="prospect")
+        result = ds.create_deal(
+            db_session, ws.id, "Test Corp", deal_value_arr=100000, stage="prospect"
+        )
         db_session.commit()
         assert result["company_name"] == "Test Corp"
         assert result["deal_value_arr"] == 100000
@@ -107,6 +109,7 @@ class TestDealDeadlineService:
     def test_upcoming_deadlines(self, db_session):
         ws = db_session.query(Workspace).first()
         from datetime import datetime, timedelta, timezone
+
         future = datetime.now(timezone.utc) + timedelta(days=7)
         ds.create_deal(db_session, ws.id, "Deadline Corp", close_date=future)
         db_session.commit()
@@ -116,6 +119,7 @@ class TestDealDeadlineService:
     def test_overdue_deals(self, db_session):
         ws = db_session.query(Workspace).first()
         from datetime import datetime, timedelta, timezone
+
         past = datetime.now(timezone.utc) - timedelta(days=5)
         ds.create_deal(db_session, ws.id, "Overdue Corp", close_date=past, stage="evaluation")
         db_session.commit()
@@ -126,7 +130,9 @@ class TestDealDeadlineService:
 class TestDealAnalyticsService:
     def test_analytics(self, db_session):
         ws = db_session.query(Workspace).first()
-        ds.create_deal(db_session, ws.id, "Analytics Corp", stage="closed_won", deal_value_arr=80000)
+        ds.create_deal(
+            db_session, ws.id, "Analytics Corp", stage="closed_won", deal_value_arr=80000
+        )
         db_session.commit()
         result = das.get_analytics(db_session, ws.id)
         assert result["total_deals"] >= 1
@@ -140,9 +146,14 @@ class TestDealAnalyticsService:
 
 class TestDealAPI:
     def test_create_deal(self, admin_client):
-        r = admin_client.post("/api/deals", json={
-            "company_name": "API Corp", "deal_value_arr": 120000, "stage": "prospect",
-        })
+        r = admin_client.post(
+            "/api/deals",
+            json={
+                "company_name": "API Corp",
+                "deal_value_arr": 120000,
+                "stage": "prospect",
+            },
+        )
         assert r.status_code == 200
         assert r.json()["company_name"] == "API Corp"
 

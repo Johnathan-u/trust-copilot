@@ -21,7 +21,7 @@ module.exports = {
         },
       },
       borderRadius: {
-        'tc': 'var(--tc-radius)',
+        tc: 'var(--tc-radius)',
         'tc-sm': 'var(--tc-radius-sm)',
       },
       backdropBlur: {

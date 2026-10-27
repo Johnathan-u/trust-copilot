@@ -1,0 +1,22 @@
+# branch tc/platform/ci-repair, SHA ae2bf6244d7f79e5ea690693e8e679db4aaad0c8; local mirror of .github/workflows/ci.yml job 'build' (/workspace/tc-run/ci_local2.sh)
+# env: Linux, Docker; python 3.11 via uv fresh venv; OPENAI_API_KEY unset; DB = fresh container pgvector/pgvector:pg16@sha256:7b822b0a…b90a on 127.0.0.1:55434 (CI uses 5432), user tc_ci, generated per-run password (never printed), per-run *_test database
+### Start isolated Postgres: image pgvector/pgvector:pg16@sha256:7b822b0aac60967beb1ea5e576b8602c94c300a157d187f385ae3e0da199b90a db=tc_ci_local_1793094908_test user=tc_ci password=<generated, not shown>
+### Install backend deps
+exit=0
+python 3.11.17 sqlalchemy 2.0.55
+### Run migrations
+exit=0
+pgvector 0.8.7
+### Lint backend
+ruff 0.5.6
+All checks passed!
+exit=0
+### Run backend tests
+SKIPPED [1] tests/test_trust_scoring_blind.py:29: Blind test pack not found (local-only file)
+SKIPPED [1] tests/test_control_timeline.py:48: No reviewed workspace controls
+SKIPPED [1] tests/test_feedback_capture.py:22: No questionnaires
+1287 passed, 3 skipped in 57.18s
+exit=0
+### Build frontend
+exit=0
+ ✓ Compiled successfully

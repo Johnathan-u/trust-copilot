@@ -1,6 +1,6 @@
 """Token-budgeted batch assembly for answer generation."""
 
-import logging
+import logging  # noqa: F401
 from typing import Any
 
 # Approximate tokens: question ~50-200 each, evidence shared ~2000-3000

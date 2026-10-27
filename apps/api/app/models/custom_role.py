@@ -13,7 +13,9 @@ class CustomRole(Base):
     __tablename__ = "custom_roles"
 
     id = Column(Integer, primary_key=True, index=True)
-    workspace_id = Column(Integer, ForeignKey("workspaces.id", ondelete="CASCADE"), nullable=False, index=True)
+    workspace_id = Column(
+        Integer, ForeignKey("workspaces.id", ondelete="CASCADE"), nullable=False, index=True
+    )
     name = Column(String(64), nullable=False)
     description = Column(String(255), nullable=True)
     can_edit = Column(Boolean, nullable=False, default=False)

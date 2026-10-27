@@ -12,7 +12,7 @@ from sqlalchemy.orm import Session
 
 from app.api.schemas import BulkDeleteBody, MetadataUpdateBody
 from app.core.auth_deps import require_can_review
-from app.core.audit import audit_log, persist_audit
+from app.core.audit import audit_log, persist_audit  # noqa: F401
 from app.core.database import get_db
 from app.models import TrustRequest, TrustRequestNote, User, Workspace, WorkspaceMember
 from app.models.trust_request_note import NOTE_TYPE_INTERNAL, NOTE_TYPE_REPLY
@@ -41,6 +41,7 @@ router = APIRouter(prefix="/trust-requests", tags=["trust-requests"])
 def get_file_service(storage: StorageClient = Depends(get_storage)) -> FileService:
     return FileService(storage)
 
+
 TRUST_REQUEST_STATUSES = {"new", "in_progress", "pending_review", "completed"}
 
 
@@ -61,6 +62,7 @@ class TrustRequestUpdate(BaseModel):
 # ---------------------------------------------------------------------------
 # Workspace resolver for public trust submissions
 # ---------------------------------------------------------------------------
+
 
 def resolve_workspace_for_trust_request(
     db: Session,
@@ -95,6 +97,7 @@ def resolve_workspace_for_trust_request(
         return ws.id, "explicit_id"
 
     from app.core.config import get_settings
+
     settings = get_settings()
     if settings.app_env == "production":
         raise HTTPException(
@@ -120,8 +123,12 @@ def _to_dict(r: TrustRequest, db: Session | None = None) -> dict:
         "subject": r.subject,
         "message": r.message,
         "display_id": r.display_id or build_display_id("trust_request", r.id),
-        "frameworks": normalize_labels(parse_json_list(r.frameworks_json), allowed=FRAMEWORK_LABELS),
-        "subject_areas": normalize_labels(parse_json_list(r.subject_areas_json), allowed=SUBJECT_AREA_LABELS),
+        "frameworks": normalize_labels(
+            parse_json_list(r.frameworks_json), allowed=FRAMEWORK_LABELS
+        ),
+        "subject_areas": normalize_labels(
+            parse_json_list(r.subject_areas_json), allowed=SUBJECT_AREA_LABELS
+        ),
         "status": r.status,
         "attachment_filename": r.attachment_filename,
         "attachment_storage_key": r.attachment_storage_key,
@@ -176,7 +183,9 @@ def create_trust_request(
     req.display_id = build_display_id("trust_request", req.id)
     db.commit()
     db.refresh(req)
-    logger.info("trust_request_created id=%s workspace_id=%s method=%s host=%s", req.id, ws_id, method, host)
+    logger.info(
+        "trust_request_created id=%s workspace_id=%s method=%s host=%s", req.id, ws_id, method, host
+    )
     return _to_dict(req, db)
 
 
@@ -226,9 +235,7 @@ def submit_trust_request_with_attachment(
 
     if document and document.filename and document.file:
         try:
-            key, filename, size = file_svc.upload_trust_request_attachment(
-                ws_id, req.id, document
-            )
+            key, filename, size = file_svc.upload_trust_request_attachment(ws_id, req.id, document)
             req.attachment_filename = filename
             req.attachment_storage_key = key
             req.attachment_size = size
@@ -241,7 +248,11 @@ def submit_trust_request_with_attachment(
 
     logger.info(
         "trust_request_submitted id=%s workspace_id=%s method=%s host=%s attachment=%s",
-        req.id, ws_id, method, host, req.attachment_filename or "none",
+        req.id,
+        ws_id,
+        method,
+        host,
+        req.attachment_filename or "none",
     )
     return _to_dict(req, db)
 
@@ -249,6 +260,7 @@ def submit_trust_request_with_attachment(
 # ---------------------------------------------------------------------------
 # Attachment download
 # ---------------------------------------------------------------------------
+
 
 @router.get("/{request_id}/attachment")
 def download_trust_request_attachment(
@@ -258,7 +270,11 @@ def download_trust_request_attachment(
     storage: StorageClient = Depends(get_storage),
 ):
     """Download the attachment for a trust request. Requires auth."""
-    req = db.query(TrustRequest).filter(TrustRequest.id == request_id, TrustRequest.deleted_at.is_(None)).first()
+    req = (
+        db.query(TrustRequest)
+        .filter(TrustRequest.id == request_id, TrustRequest.deleted_at.is_(None))
+        .first()
+    )
     if not req:
         raise HTTPException(status_code=404, detail="Trust request not found")
     if req.workspace_id is not None and session.get("workspace_id") != req.workspace_id:
@@ -283,6 +299,7 @@ def download_trust_request_attachment(
 # Authenticated endpoints
 # ---------------------------------------------------------------------------
 
+
 @router.get("/summary")
 def get_trust_requests_summary(
     session: dict = Depends(require_can_review),
@@ -295,7 +312,13 @@ def get_trust_requests_summary(
     by_status = {}
     for s in TRUST_REQUEST_STATUSES:
         by_status[s] = (
-            db.query(TrustRequest).filter(TrustRequest.workspace_id == ws, TrustRequest.status == s, TrustRequest.deleted_at.is_(None)).count()
+            db.query(TrustRequest)
+            .filter(
+                TrustRequest.workspace_id == ws,
+                TrustRequest.status == s,
+                TrustRequest.deleted_at.is_(None),
+            )
+            .count()
         )
     now = datetime.now(timezone.utc)
     start_of_month = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
@@ -335,9 +358,13 @@ def list_trust_requests(
     """List trust requests. Requires auth (internal viewing). Scoped to session workspace only."""
     ws = session.get("workspace_id")
     if ws is None:
-        raise HTTPException(status_code=403, detail="Workspace required. Use a session with workspace.")
+        raise HTTPException(
+            status_code=403, detail="Workspace required. Use a session with workspace."
+        )
     if workspace_id is not None and workspace_id != ws:
-        raise HTTPException(status_code=403, detail="Cannot list trust requests for another workspace.")
+        raise HTTPException(
+            status_code=403, detail="Cannot list trust requests for another workspace."
+        )
     q = db.query(TrustRequest).filter(TrustRequest.workspace_id == ws)
     mode = (archived or "active").strip().lower()
     if mode == "active":
@@ -387,7 +414,11 @@ def get_trust_request(
     db: Session = Depends(get_db),
 ):
     """Get a single trust request. Requires auth."""
-    req = db.query(TrustRequest).filter(TrustRequest.id == request_id, TrustRequest.deleted_at.is_(None)).first()
+    req = (
+        db.query(TrustRequest)
+        .filter(TrustRequest.id == request_id, TrustRequest.deleted_at.is_(None))
+        .first()
+    )
     if not req:
         raise HTTPException(status_code=404, detail="Trust request not found")
     if req.workspace_id is not None and session.get("workspace_id") != req.workspace_id:
@@ -403,7 +434,11 @@ def update_trust_request(
     db: Session = Depends(get_db),
 ):
     """Update trust request status and/or assignee. Requires auth."""
-    req = db.query(TrustRequest).filter(TrustRequest.id == request_id, TrustRequest.deleted_at.is_(None)).first()
+    req = (
+        db.query(TrustRequest)
+        .filter(TrustRequest.id == request_id, TrustRequest.deleted_at.is_(None))
+        .first()
+    )
     if not req:
         raise HTTPException(status_code=404, detail="Trust request not found")
     if req.workspace_id is not None and session.get("workspace_id") != req.workspace_id:
@@ -414,7 +449,9 @@ def update_trust_request(
 
     if body.status is not None:
         if body.status not in TRUST_REQUEST_STATUSES:
-            raise HTTPException(status_code=400, detail=f"Invalid status. Allowed: {sorted(TRUST_REQUEST_STATUSES)}")
+            raise HTTPException(
+                status_code=400, detail=f"Invalid status. Allowed: {sorted(TRUST_REQUEST_STATUSES)}"
+            )
         req.status = body.status
     if body.assignee_id is not None:
         new_assignee = body.assignee_id if body.assignee_id else None
@@ -532,7 +569,12 @@ def delete_trust_request(
         resource_id=req.id,
         details={"display_id": req.display_id, "dependencies": preview.dependencies},
     )
-    return {"ok": True, "id": req.id, "display_id": req.display_id or build_display_id("trust_request", req.id), "dependencies": preview.dependencies}
+    return {
+        "ok": True,
+        "id": req.id,
+        "display_id": req.display_id or build_display_id("trust_request", req.id),
+        "dependencies": preview.dependencies,
+    }
 
 
 @router.get("/{request_id}/delete-preview")
@@ -544,7 +586,11 @@ def delete_preview_trust_request(
 ):
     if session.get("workspace_id") != workspace_id:
         raise HTTPException(status_code=403, detail="Access denied")
-    req = db.query(TrustRequest).filter(TrustRequest.id == request_id, TrustRequest.workspace_id == workspace_id).first()
+    req = (
+        db.query(TrustRequest)
+        .filter(TrustRequest.id == request_id, TrustRequest.workspace_id == workspace_id)
+        .first()
+    )
     if not req:
         raise HTTPException(status_code=404, detail="Trust request not found")
     preview = build_delete_preview("trust_request", db, workspace_id, request_id)
@@ -676,7 +722,11 @@ def list_trust_request_notes(
     db: Session = Depends(get_db),
 ):
     """List notes and replies for a trust request. Requires auth."""
-    req = db.query(TrustRequest).filter(TrustRequest.id == request_id, TrustRequest.deleted_at.is_(None)).first()
+    req = (
+        db.query(TrustRequest)
+        .filter(TrustRequest.id == request_id, TrustRequest.deleted_at.is_(None))
+        .first()
+    )
     if not req:
         raise HTTPException(status_code=404, detail="Trust request not found")
     if req.workspace_id is not None and session.get("workspace_id") != req.workspace_id:
@@ -698,7 +748,11 @@ def create_trust_request_note(
     db: Session = Depends(get_db),
 ):
     """Add an internal note to a trust request. Requires auth."""
-    req = db.query(TrustRequest).filter(TrustRequest.id == request_id, TrustRequest.deleted_at.is_(None)).first()
+    req = (
+        db.query(TrustRequest)
+        .filter(TrustRequest.id == request_id, TrustRequest.deleted_at.is_(None))
+        .first()
+    )
     if not req:
         raise HTTPException(status_code=404, detail="Trust request not found")
     if req.workspace_id is not None and session.get("workspace_id") != req.workspace_id:
@@ -723,7 +777,11 @@ def create_trust_request_note(
         workspace_id=req.workspace_id,
         resource_type="trust_request_note",
         resource_id=note.id,
-        details={"trust_request_id": request_id, "author_id": note.author_id, "note_type": NOTE_TYPE_INTERNAL},
+        details={
+            "trust_request_id": request_id,
+            "author_id": note.author_id,
+            "note_type": NOTE_TYPE_INTERNAL,
+        },
     )
     return _note_to_dict(note, db)
 
@@ -736,7 +794,11 @@ def create_trust_request_reply(
     db: Session = Depends(get_db),
 ):
     """Add a reply to the requester; optionally send email."""
-    req = db.query(TrustRequest).filter(TrustRequest.id == request_id, TrustRequest.deleted_at.is_(None)).first()
+    req = (
+        db.query(TrustRequest)
+        .filter(TrustRequest.id == request_id, TrustRequest.deleted_at.is_(None))
+        .first()
+    )
     if not req:
         raise HTTPException(status_code=404, detail="Trust request not found")
     if req.workspace_id is not None and session.get("workspace_id") != req.workspace_id:
@@ -792,7 +854,11 @@ def suggest_reply(
     """Generate a suggested reply draft for this trust request (AI). Requires auth."""
     if request_id < 1:
         raise HTTPException(status_code=400, detail="request_id must be a positive integer")
-    req = db.query(TrustRequest).filter(TrustRequest.id == request_id, TrustRequest.deleted_at.is_(None)).first()
+    req = (
+        db.query(TrustRequest)
+        .filter(TrustRequest.id == request_id, TrustRequest.deleted_at.is_(None))
+        .first()
+    )
     if not req:
         raise HTTPException(status_code=404, detail="Trust request not found")
     if req.workspace_id is not None and session.get("workspace_id") != req.workspace_id:

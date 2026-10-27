@@ -18,8 +18,12 @@ class PolicyBody(BaseModel):
 
 
 @router.post("")
-async def set_policy(body: PolicyBody, session: dict = Depends(require_can_admin), db: Session = Depends(get_db)):
-    result = svc.set_policy(db, session["workspace_id"], body.source_type, body.max_age_days, body.warn_before_days)
+async def set_policy(
+    body: PolicyBody, session: dict = Depends(require_can_admin), db: Session = Depends(get_db)
+):
+    result = svc.set_policy(
+        db, session["workspace_id"], body.source_type, body.max_age_days, body.warn_before_days
+    )
     db.commit()
     return result
 
@@ -30,7 +34,11 @@ async def list_policies(session: dict = Depends(require_session), db: Session = 
 
 
 @router.get("/effective")
-async def effective(source_type: str = Query(...), session: dict = Depends(require_session), db: Session = Depends(get_db)):
+async def effective(
+    source_type: str = Query(...),
+    session: dict = Depends(require_session),
+    db: Session = Depends(get_db),
+):
     return svc.get_effective_policy(db, session["workspace_id"], source_type)
 
 
@@ -40,7 +48,9 @@ async def evaluate(session: dict = Depends(require_session), db: Session = Depen
 
 
 @router.delete("/{source_type}")
-async def delete_policy(source_type: str, session: dict = Depends(require_can_admin), db: Session = Depends(get_db)):
+async def delete_policy(
+    source_type: str, session: dict = Depends(require_can_admin), db: Session = Depends(get_db)
+):
     if not svc.delete_policy(db, session["workspace_id"], source_type):
         raise HTTPException(status_code=404)
     db.commit()

@@ -72,7 +72,9 @@ export function RegistryRowActionsMenu({
                   type="button"
                   role="menuitem"
                   className={`block w-full px-3 py-2 text-left text-sm hover:bg-white/10 ${
-                    a.id === 'delete' ? 'text-[var(--tc-danger)]' : 'text-[var(--tc-text)]'
+                    a.id === 'delete'
+                      ? 'text-[var(--tc-danger)]'
+                      : 'text-[var(--tc-text)]'
                   }`}
                   onClick={() => {
                     if ('onClick' in a) a.onClick()

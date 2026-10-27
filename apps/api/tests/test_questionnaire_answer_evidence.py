@@ -33,7 +33,9 @@ def test_parse_answer_evidence_excludes_questionnaire_document():
 
 def test_retrieval_cache_scope_suffix_stable():
     assert retrieval_cache_scope_suffix(None) == ""
-    assert retrieval_cache_scope_suffix(frozenset({1, 2})) == retrieval_cache_scope_suffix(frozenset({2, 1}))
+    assert retrieval_cache_scope_suffix(frozenset({1, 2})) == retrieval_cache_scope_suffix(
+        frozenset({2, 1})
+    )
 
 
 def test_filter_evidence_to_document_scope():

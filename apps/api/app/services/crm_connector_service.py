@@ -4,9 +4,9 @@ Provides mock sync for both CRM platforms. Real implementations would use
 the respective REST APIs with OAuth.
 """
 
-import json
+import json  # noqa: F401
 import logging
-from datetime import datetime, timezone
+from datetime import datetime, timezone  # noqa: F401
 
 from sqlalchemy.orm import Session
 
@@ -39,10 +39,14 @@ def sync_salesforce(db: Session, workspace_id: int) -> dict:
     ]
     synced = []
     for opp in mock_opps:
-        existing = db.query(Deal).filter(
-            Deal.workspace_id == workspace_id,
-            Deal.crm_external_id == opp["external_id"],
-        ).first()
+        existing = (
+            db.query(Deal)
+            .filter(
+                Deal.workspace_id == workspace_id,
+                Deal.crm_external_id == opp["external_id"],
+            )
+            .first()
+        )
         if existing:
             existing.company_name = opp["company_name"]
             existing.deal_value_arr = opp["deal_value"]
@@ -80,10 +84,14 @@ def sync_hubspot(db: Session, workspace_id: int) -> dict:
     ]
     synced = []
     for d in mock_deals:
-        existing = db.query(Deal).filter(
-            Deal.workspace_id == workspace_id,
-            Deal.crm_external_id == d["external_id"],
-        ).first()
+        existing = (
+            db.query(Deal)
+            .filter(
+                Deal.workspace_id == workspace_id,
+                Deal.crm_external_id == d["external_id"],
+            )
+            .first()
+        )
         if existing:
             existing.company_name = d["company_name"]
             existing.deal_value_arr = d["deal_value"]
@@ -107,7 +115,22 @@ def sync_hubspot(db: Session, workspace_id: int) -> dict:
 
 
 def get_sync_status(db: Session, workspace_id: int) -> dict:
-    sf_count = db.query(Deal).filter(Deal.workspace_id == workspace_id, Deal.crm_source == "salesforce").count()
-    hs_count = db.query(Deal).filter(Deal.workspace_id == workspace_id, Deal.crm_source == "hubspot").count()
-    manual = db.query(Deal).filter(Deal.workspace_id == workspace_id, Deal.crm_source.is_(None)).count()
-    return {"salesforce": sf_count, "hubspot": hs_count, "manual": manual, "total": sf_count + hs_count + manual}
+    sf_count = (
+        db.query(Deal)
+        .filter(Deal.workspace_id == workspace_id, Deal.crm_source == "salesforce")
+        .count()
+    )
+    hs_count = (
+        db.query(Deal)
+        .filter(Deal.workspace_id == workspace_id, Deal.crm_source == "hubspot")
+        .count()
+    )
+    manual = (
+        db.query(Deal).filter(Deal.workspace_id == workspace_id, Deal.crm_source.is_(None)).count()
+    )
+    return {
+        "salesforce": sf_count,
+        "hubspot": hs_count,
+        "manual": manual,
+        "total": sf_count + hs_count + manual,
+    }

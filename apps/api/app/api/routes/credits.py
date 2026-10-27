@@ -56,7 +56,9 @@ async def add_credits(
     if req.amount <= 0:
         raise HTTPException(status_code=400, detail="Amount must be positive")
     result = credit_service.add_credits(
-        db, workspace_id, req.amount,
+        db,
+        workspace_id,
+        req.amount,
         kind=credit_service.TX_PURCHASE,
         description=req.description,
     )
@@ -99,7 +101,9 @@ async def check_credits(
 ):
     """Check if the workspace has sufficient credits for a given question count."""
     workspace_id = session["workspace_id"]
-    sufficient, balance, required = credit_service.check_sufficient(db, workspace_id, question_count)
+    sufficient, balance, required = credit_service.check_sufficient(
+        db, workspace_id, question_count
+    )
     return {
         "sufficient": sufficient,
         "balance": balance,

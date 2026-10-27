@@ -12,7 +12,9 @@ import {
   type FrameworkCatalogItem,
 } from './frameworkCatalog'
 
-function item(overrides: Partial<FrameworkCatalogItem> = {}): FrameworkCatalogItem {
+function item(
+  overrides: Partial<FrameworkCatalogItem> = {}
+): FrameworkCatalogItem {
   return {
     id: 1,
     name: 'SOC 2',
@@ -50,7 +52,11 @@ describe('framework catalog consumer', () => {
   })
 
   it('does not treat a version string or a dev row as a production catalog', () => {
-    expect(isProductionCatalogEnabled(item({ version: '2024', content_version: null }))).toBe(false)
+    expect(
+      isProductionCatalogEnabled(
+        item({ version: '2024', content_version: null })
+      )
+    ).toBe(false)
     const dev = item({
       name: 'HITRUST',
       catalog_key: null,
@@ -90,7 +96,8 @@ describe('framework catalog consumer', () => {
       detail: {
         contract_version: FRAMEWORK_CATALOG_ERROR_CONTRACT_VERSION,
         code: 'framework_rights_not_cleared',
-        message: 'SOC 2 cannot be enabled. Rights status is blocked pending content-rights decision TC-01-007.',
+        message:
+          'SOC 2 cannot be enabled. Rights status is blocked pending content-rights decision TC-01-007.',
         request_id: 'req-1',
         retryable: false,
         partial_failure: false,

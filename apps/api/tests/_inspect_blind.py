@@ -1,6 +1,8 @@
 import json
 
-with open(r"C:\Users\John\Downloads\trust_scoring_blind_100_pack\trust_scoring_blind_100_cases.json") as f:
+with open(
+    r"C:\Users\John\Downloads\trust_scoring_blind_100_pack\trust_scoring_blind_100_cases.json"
+) as f:
     data = json.load(f)
 
 cats = {}

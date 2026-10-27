@@ -67,22 +67,31 @@ def is_synthetic_dev_control_key(control_key: str | None) -> bool:
     if not control_key:
         return False
     token = control_key.strip().upper()
-    return token.startswith("HITRUST-DEV-") or token.startswith("ISO-DEV-") or token.startswith("DEV-") or "-DEV-" in token
+    return (
+        token.startswith("HITRUST-DEV-")
+        or token.startswith("ISO-DEV-")
+        or token.startswith("DEV-")
+        or "-DEV-" in token
+    )
 
 
 # Name/version pairs written by scripts/dev_compliance_catalog.py.
 # Used only to recognise an already-seeded dev row when it also has controls.
 # A matching name and version with no controls is not treated as that seed.
-SEED_FINGERPRINTS = frozenset({
-    ("soc2", "2024"),
-    ("hipaa", "security rule"),
-    ("nist", "csf-2.0"),
-    ("hitrust", "csf-dev"),
-    ("iso27001", "dev-themes"),
-})
+SEED_FINGERPRINTS = frozenset(
+    {
+        ("soc2", "2024"),
+        ("hipaa", "security rule"),
+        ("nist", "csf-2.0"),
+        ("hitrust", "csf-dev"),
+        ("iso27001", "dev-themes"),
+    }
+)
 
 
-def is_dev_catalog_row(name: str | None, version: str | None, control_keys: list[str] | tuple[str, ...]) -> bool:
+def is_dev_catalog_row(
+    name: str | None, version: str | None, control_keys: list[str] | tuple[str, ...]
+) -> bool:
     """True when a persisted row is the synthetic dev/test catalog, not a production catalog."""
     if is_synthetic_dev_version(version):
         return True
@@ -97,7 +106,11 @@ def is_dev_catalog_row(name: str | None, version: str | None, control_keys: list
 
 def is_dev_enable_request(name: str | None, version: str | None) -> bool:
     """True when the caller is asking to enable a synthetic DEV key or dev version as production."""
-    return is_synthetic_dev_control_key(name) or is_synthetic_dev_version(name) or is_synthetic_dev_version(version)
+    return (
+        is_synthetic_dev_control_key(name)
+        or is_synthetic_dev_version(name)
+        or is_synthetic_dev_version(version)
+    )
 
 
 @dataclass(frozen=True)
@@ -108,13 +121,17 @@ class AdvertisedCatalog:
 
     def match_norms(self) -> frozenset[str]:
         values = {self.catalog_key, self.name, *self.aliases}
-        return frozenset(normalize_catalog_name(value) for value in values if normalize_catalog_name(value))
+        return frozenset(
+            normalize_catalog_name(value) for value in values if normalize_catalog_name(value)
+        )
 
 
 ADVERTISED_CATALOGS: tuple[AdvertisedCatalog, ...] = (
     AdvertisedCatalog("SOC2", "SOC 2", ("SOC2", "SOC 2", "SOC II", "SOC-2")),
     AdvertisedCatalog("HIPAA", "HIPAA", ("HIPAA",)),
-    AdvertisedCatalog("ISO27001", "ISO 27001", ("ISO27001", "ISO 27001", "ISO/IEC 27001", "ISO/IEC27001")),
+    AdvertisedCatalog(
+        "ISO27001", "ISO 27001", ("ISO27001", "ISO 27001", "ISO/IEC 27001", "ISO/IEC27001")
+    ),
     AdvertisedCatalog(
         "NIST_CSF_2",
         "NIST CSF 2",
@@ -123,12 +140,25 @@ ADVERTISED_CATALOGS: tuple[AdvertisedCatalog, ...] = (
     AdvertisedCatalog(
         "NIST_800_53_R5",
         "NIST 800-53r5",
-        ("NIST 800-53r5", "NIST 800-53", "NIST SP 800-53", "NIST SP 800-53 Rev. 5", "NIST SP 800-53 Rev 5", "800-53"),
+        (
+            "NIST 800-53r5",
+            "NIST 800-53",
+            "NIST SP 800-53",
+            "NIST SP 800-53 Rev. 5",
+            "NIST SP 800-53 Rev 5",
+            "800-53",
+        ),
     ),
     AdvertisedCatalog(
         "NIST_800_171_R3",
         "NIST 800-171r3",
-        ("NIST 800-171r3", "NIST 800-171", "NIST SP 800-171", "NIST SP 800-171 Rev. 3", "NIST SP 800-171 Rev 3"),
+        (
+            "NIST 800-171r3",
+            "NIST 800-171",
+            "NIST SP 800-171",
+            "NIST SP 800-171 Rev. 3",
+            "NIST SP 800-171 Rev 3",
+        ),
     ),
     AdvertisedCatalog("SIG", "SIG", ("SIG", "Shared Assessments SIG", "Shared Assessments")),
     AdvertisedCatalog("CAIQ", "CAIQ", ("CAIQ", "CSA CAIQ")),
@@ -144,7 +174,9 @@ def _assert_disjoint_aliases() -> None:
         for norm in spec.match_norms():
             previous = seen.get(norm)
             if previous is not None and previous != spec.catalog_key:
-                raise RuntimeError(f"catalog alias {norm!r} is shared by {previous} and {spec.catalog_key}")
+                raise RuntimeError(
+                    f"catalog alias {norm!r} is shared by {previous} and {spec.catalog_key}"
+                )
             seen[norm] = spec.catalog_key
 
 

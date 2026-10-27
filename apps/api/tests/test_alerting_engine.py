@@ -23,24 +23,28 @@ def editor_client(client):
 class TestAlertingEngineService:
     def test_check_drift(self, db_session):
         from app.models.workspace import Workspace
+
         ws = db_session.query(Workspace).first()
         alerts = svc.check_drift_alerts(db_session, ws.id)
         assert isinstance(alerts, list)
 
     def test_check_connectors(self, db_session):
         from app.models.workspace import Workspace
+
         ws = db_session.query(Workspace).first()
         alerts = svc.check_connector_failure_alerts(db_session, ws.id)
         assert isinstance(alerts, list)
 
     def test_check_stale_evidence(self, db_session):
         from app.models.workspace import Workspace
+
         ws = db_session.query(Workspace).first()
         alerts = svc.check_stale_evidence_alerts(db_session, ws.id)
         assert isinstance(alerts, list)
 
     def test_run_all_checks(self, db_session):
         from app.models.workspace import Workspace
+
         ws = db_session.query(Workspace).first()
         result = svc.run_all_checks(db_session, ws.id)
         assert "total_alerts" in result
@@ -48,6 +52,7 @@ class TestAlertingEngineService:
 
     def test_email_digest(self, db_session):
         from app.models.workspace import Workspace
+
         ws = db_session.query(Workspace).first()
         result = svc.generate_email_digest(db_session, ws.id)
         assert "subject" in result

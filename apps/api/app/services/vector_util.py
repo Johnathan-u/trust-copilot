@@ -11,10 +11,12 @@ def embedding_to_vector_literal(emb: list[float]) -> str:
     Avoids scientific notation and nan/inf which can break the parser.
     Caller must ensure emb length is EMBEDDING_DIM; use validate_embedding_dimension first.
     """
+
     def _one(x: float) -> str:
         if not math.isfinite(x):
             return "0.0"
         return format(float(x), ".10f")
+
     return "[" + ",".join(_one(x) for x in emb) + "]"
 
 

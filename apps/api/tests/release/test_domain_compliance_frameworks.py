@@ -137,7 +137,9 @@ def test_enable_refuses_rights_and_agrees_across_retry_and_new_session(client):
     assert listed.status_code == 200
     before = _by_key(listed.json(), "SOC2")
 
-    first = client.post("/api/compliance/frameworks/enable", json={"name": "SOC 2", "version": "2024"})
+    first = client.post(
+        "/api/compliance/frameworks/enable", json={"name": "SOC 2", "version": "2024"}
+    )
     assert first.status_code == 409, first.text
     detail = first.json()["detail"]
     assert detail["contract_version"] == ERROR_CONTRACT_VERSION
@@ -157,7 +159,9 @@ def test_enable_refuses_rights_and_agrees_across_retry_and_new_session(client):
     assert alias.json()["detail"]["catalog_key"] == "ISO27001"
     assert alias.json()["detail"]["code"] == "framework_rights_not_cleared"
 
-    again = client.post("/api/compliance/frameworks/enable", json={"name": "SOC2", "version": "2024"})
+    again = client.post(
+        "/api/compliance/frameworks/enable", json={"name": "SOC2", "version": "2024"}
+    )
     assert again.status_code == 409
     assert again.json()["detail"]["code"] == "framework_rights_not_cleared"
 
@@ -181,7 +185,10 @@ def test_enable_refuses_rights_and_agrees_across_retry_and_new_session(client):
         assert rows[0].licence_status == after["licence_status"]
         events = (
             session.query(FrameworkCatalogEvent)
-            .filter(FrameworkCatalogEvent.catalog_key == "SOC2", FrameworkCatalogEvent.outcome == "refused_rights")
+            .filter(
+                FrameworkCatalogEvent.catalog_key == "SOC2",
+                FrameworkCatalogEvent.outcome == "refused_rights",
+            )
             .all()
         )
         assert events
@@ -195,7 +202,9 @@ def test_enable_refuses_rights_and_agrees_across_retry_and_new_session(client):
 def test_permissions_deny_enable_and_anonymous_list(client):
     client.cookies.clear()
     assert client.get("/api/compliance/frameworks").status_code == 401
-    assert client.post("/api/compliance/frameworks/enable", json={"name": "HIPAA"}).status_code == 401
+    assert (
+        client.post("/api/compliance/frameworks/enable", json={"name": "HIPAA"}).status_code == 401
+    )
 
     session = _fresh()
     try:
@@ -242,7 +251,9 @@ def test_unknown_empty_and_dev_keys_are_refused_without_becoming_production(clie
     assert empty.json()["detail"]["code"] == "framework_name_required"
     assert empty.json()["detail"]["contract_version"] == ERROR_CONTRACT_VERSION
 
-    unknown = client.post("/api/compliance/frameworks/enable", json={"name": "Not A Real Framework"})
+    unknown = client.post(
+        "/api/compliance/frameworks/enable", json={"name": "Not A Real Framework"}
+    )
     assert unknown.status_code == 400
     assert unknown.json()["detail"]["code"] == "framework_not_advertised"
 
@@ -291,7 +302,9 @@ def test_unknown_empty_and_dev_keys_are_refused_without_becoming_production(clie
     try:
         from app.models import Framework
 
-        assert session.query(Framework).filter(Framework.name == "Not A Real Framework").count() == 0
+        assert (
+            session.query(Framework).filter(Framework.name == "Not A Real Framework").count() == 0
+        )
         assert session.query(Framework).filter(Framework.name == "HITRUST-DEV-AC-01").count() == 0
         assert session.query(Framework).filter(Framework.name == "NIST").count() == 0
         soc = session.query(Framework).filter(Framework.catalog_key == "SOC2").one()
@@ -344,7 +357,8 @@ def test_dev_seed_row_is_labelled_and_control_text_is_not_in_the_api(client):
         assert advertised["production_catalog"] is False
         assert advertised["dev_test_only"] is False
         dev_rows = [
-            item for item in items
+            item
+            for item in items
             if item.get("catalog_key") is None and item.get("name") == "HITRUST"
         ]
         assert dev_rows
@@ -365,7 +379,9 @@ def test_dev_seed_row_is_labelled_and_control_text_is_not_in_the_api(client):
 
         session = _fresh()
         try:
-            advertised_row = session.query(Framework).filter(Framework.catalog_key == "HITRUST").one()
+            advertised_row = (
+                session.query(Framework).filter(Framework.catalog_key == "HITRUST").one()
+            )
             assert advertised_row.enablement_state == "blocked"
             assert advertised_row.version != "CSF-dev"
             dev = session.query(Framework).filter(Framework.id == framework_id).one()
@@ -379,7 +395,9 @@ def test_dev_seed_row_is_labelled_and_control_text_is_not_in_the_api(client):
         session = _fresh()
         try:
             if framework_id is not None:
-                session.query(FrameworkControl).filter(FrameworkControl.framework_id == framework_id).delete()
+                session.query(FrameworkControl).filter(
+                    FrameworkControl.framework_id == framework_id
+                ).delete()
                 session.query(Framework).filter(Framework.id == framework_id).delete()
                 session.commit()
         finally:
@@ -578,7 +596,9 @@ def test_foreign_keys_and_production_check_on_postgres(client, db_session):
     db_session.rollback()
 
     row = db_session.execute(
-        text("SELECT enablement_state, production_catalog FROM frameworks WHERE catalog_key = 'SIG'")
+        text(
+            "SELECT enablement_state, production_catalog FROM frameworks WHERE catalog_key = 'SIG'"
+        )
     ).one()
     assert row.enablement_state == "blocked"
     assert row.production_catalog is False
@@ -610,7 +630,9 @@ def test_suspended_admin_is_denied_by_current_membership(client):
     finally:
         session = _fresh()
         try:
-            membership = session.query(WorkspaceMember).filter(WorkspaceMember.id == membership_id).one()
+            membership = (
+                session.query(WorkspaceMember).filter(WorkspaceMember.id == membership_id).one()
+            )
             membership.suspended = False
             session.commit()
         finally:
@@ -631,9 +653,9 @@ def test_ui_consumer_source_matches_blocked_contract():
         "rights_status",
     ):
         assert needle in source
-    page = (WEB_CONSUMER.parents[1] / "app" / "dashboard" / "compliance-frameworks" / "page.tsx").read_text(
-        encoding="utf-8"
-    )
+    page = (
+        WEB_CONSUMER.parents[1] / "app" / "dashboard" / "compliance-frameworks" / "page.tsx"
+    ).read_text(encoding="utf-8")
     assert "/api/compliance/frameworks" in page
     assert "parseEnableError" in page
     assert "isProductionCatalogEnabled" in page
@@ -671,7 +693,9 @@ def test_migration_rollback_and_reupgrade(client):
                 )
             ).scalar()
             assert rights is None
-            events = conn.execute(text("SELECT to_regclass('public.framework_catalog_events')")).scalar()
+            events = conn.execute(
+                text("SELECT to_regclass('public.framework_catalog_events')")
+            ).scalar()
             assert events is None
     finally:
         upgraded = _alembic("upgrade", "head")

@@ -38,7 +38,10 @@ const sidebarOnlyRoutes = [
 function initials(displayName: string | null, email: string): string {
   if (displayName?.trim()) {
     const parts = displayName.trim().split(/\s+/)
-    if (parts.length >= 2) return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase().slice(0, 2)
+    if (parts.length >= 2)
+      return (parts[0][0] + parts[parts.length - 1][0])
+        .toUpperCase()
+        .slice(0, 2)
     return displayName.slice(0, 2).toUpperCase()
   }
   const local = email.split('@')[0]
@@ -53,7 +56,11 @@ const AI_MODEL_OPTIONS = [
   { value: 'gpt-4o', label: 'gpt-4o' },
   { value: 'gpt-4.1-mini', label: 'gpt-4.1-mini' },
 ]
-const RESPONSE_STYLES: { value: ResponseStyle; label: string; temperature: number }[] = [
+const RESPONSE_STYLES: {
+  value: ResponseStyle
+  label: string
+  temperature: number
+}[] = [
   { value: 'precise', label: 'Precise', temperature: 0.2 },
   { value: 'balanced', label: 'Balanced', temperature: 0.35 },
   { value: 'natural', label: 'Natural', temperature: 0.5 },
@@ -66,12 +73,22 @@ export function Topbar() {
   const router = useRouter()
   const { user, workspace, permissions } = useAuth()
   const isAdmin = permissions.can_admin
-  const { model: aiModel, responseStyle, setModel: setAiModel, setResponseStyle, loadFromWorkspace } = useAISettings()
+  const {
+    model: aiModel,
+    responseStyle,
+    setModel: setAiModel,
+    setResponseStyle,
+    loadFromWorkspace,
+  } = useAISettings()
 
   const [paletteOpen, setPaletteOpen] = useState(false)
   const [query, setQuery] = useState('')
-  const [searchDocs, setSearchDocs] = useState<{ id: number; filename: string }[]>([])
-  const [searchQnrs, setSearchQnrs] = useState<{ id: number; filename: string }[]>([])
+  const [searchDocs, setSearchDocs] = useState<
+    { id: number; filename: string }[]
+  >([])
+  const [searchQnrs, setSearchQnrs] = useState<
+    { id: number; filename: string }[]
+  >([])
   const [notificationsOpen, setNotificationsOpen] = useState(false)
   const [unreadCount, setUnreadCount] = useState(0)
   const notificationsAnchorRef = useRef<HTMLDivElement>(null)
@@ -85,7 +102,9 @@ export function Topbar() {
 
   const matchedNavHref = useMemo(() => {
     return topbarNavRoutes.find(
-      ({ href }) => pathname === href || (href !== '/dashboard' && pathname.startsWith(href))
+      ({ href }) =>
+        pathname === href ||
+        (href !== '/dashboard' && pathname.startsWith(href))
     )?.href
   }, [pathname])
 
@@ -137,8 +156,14 @@ export function Topbar() {
     searchDebounceRef.current = setTimeout(async () => {
       try {
         const [docsRes, qnrsRes] = await Promise.all([
-          fetch(`/api/documents/?workspace_id=${workspaceId}&q=${encodeURIComponent(q)}`, { credentials: 'include' }),
-          fetch(`/api/questionnaires/?workspace_id=${workspaceId}&q=${encodeURIComponent(q)}`, { credentials: 'include' }),
+          fetch(
+            `/api/documents/?workspace_id=${workspaceId}&q=${encodeURIComponent(q)}`,
+            { credentials: 'include' }
+          ),
+          fetch(
+            `/api/questionnaires/?workspace_id=${workspaceId}&q=${encodeURIComponent(q)}`,
+            { credentials: 'include' }
+          ),
         ])
         const docs = docsRes.ok ? await docsRes.json() : []
         const qnrs = qnrsRes.ok ? await qnrsRes.json() : []
@@ -159,7 +184,8 @@ export function Topbar() {
   useEffect(() => {
     if (!menuOpen) return
     const close = (e: MouseEvent) => {
-      if (menuRef.current && !menuRef.current.contains(e.target as Node)) setMenuOpen(false)
+      if (menuRef.current && !menuRef.current.contains(e.target as Node))
+        setMenuOpen(false)
     }
     document.addEventListener('mousedown', close)
     return () => document.removeEventListener('mousedown', close)
@@ -171,7 +197,9 @@ export function Topbar() {
     loadFromWorkspace()
     fetch('/api/workspaces/current', { credentials: 'include' })
       .then((r) => (r.ok ? r.json() : null))
-      .then((d) => { if (d) setAutomateEverything(!!d.ai_automate_everything) })
+      .then((d) => {
+        if (d) setAutomateEverything(!!d.ai_automate_everything)
+      })
       .catch(() => {})
   }, [menuOpen, isAdmin, loadFromWorkspace])
 
@@ -197,12 +225,22 @@ export function Topbar() {
     try {
       const styleConfig = RESPONSE_STYLES.find((s) => s.value === responseStyle)
       const temperature = styleConfig?.temperature ?? 0.35
-      const modelValue = aiModel && AI_MODEL_OPTIONS.some((m) => m.value === aiModel) ? aiModel : null
+      const modelValue =
+        aiModel && AI_MODEL_OPTIONS.some((m) => m.value === aiModel)
+          ? aiModel
+          : null
       await fetch('/api/workspaces/current', {
-        method: 'PATCH', headers: { 'Content-Type': 'application/json' }, credentials: 'include',
-        body: JSON.stringify({ ai_completion_model: modelValue, ai_temperature: temperature }),
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          ai_completion_model: modelValue,
+          ai_temperature: temperature,
+        }),
       })
-    } finally { setAiSaving(false) }
+    } finally {
+      setAiSaving(false)
+    }
   }
 
   const toggleAutomate = async () => {
@@ -210,20 +248,20 @@ export function Topbar() {
     setAutomateEverything(next)
     try {
       const r = await fetch('/api/workspaces/current', {
-        method: 'PATCH', credentials: 'include',
+        method: 'PATCH',
+        credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ ai_automate_everything: next }),
       })
       if (!r.ok) setAutomateEverything(!next)
-    } catch { setAutomateEverything(!next) }
+    } catch {
+      setAutomateEverything(!next)
+    }
   }
 
   const paletteSections = useMemo((): CommandPaletteSection[] => {
     const qLower = query.trim().toLowerCase()
-    const jumpItems: CommandPaletteItem[] = [
-      ...nav,
-      ...sidebarOnlyRoutes,
-    ]
+    const jumpItems: CommandPaletteItem[] = [...nav, ...sidebarOnlyRoutes]
       .filter((r) => !qLower || r.label.toLowerCase().includes(qLower))
       .map((r) => ({
         id: `nav-${r.href}`,
@@ -255,12 +293,27 @@ export function Topbar() {
       })
     }
     const actionItems: CommandPaletteItem[] = [
-      { id: 'action-upload-doc', label: 'Upload document', onSelect: () => navigateAndClose('/dashboard/documents') },
-      { id: 'action-upload-qnr', label: 'Upload questionnaire', onSelect: () => navigateAndClose('/dashboard/questionnaires') },
-      { id: 'action-create-workspace', label: 'Create workspace', onSelect: () => navigateAndClose('/dashboard/settings') },
+      {
+        id: 'action-upload-doc',
+        label: 'Upload document',
+        onSelect: () => navigateAndClose('/dashboard/documents'),
+      },
+      {
+        id: 'action-upload-qnr',
+        label: 'Upload questionnaire',
+        onSelect: () => navigateAndClose('/dashboard/questionnaires'),
+      },
+      {
+        id: 'action-create-workspace',
+        label: 'Create workspace',
+        onSelect: () => navigateAndClose('/dashboard/settings'),
+      },
       { id: 'action-signout', label: 'Sign out', onSelect: logout },
     ]
-    if (!qLower || actionItems.some((a) => a.label.toLowerCase().includes(qLower))) {
+    if (
+      !qLower ||
+      actionItems.some((a) => a.label.toLowerCase().includes(qLower))
+    ) {
       sections.push({ title: 'Actions', items: actionItems })
     }
     return sections
@@ -289,20 +342,25 @@ export function Topbar() {
           <div
             className="grid h-9 w-9 place-items-center rounded-xl text-lg"
             style={{
-              background: 'linear-gradient(135deg, #7c96ff, #5b7cff 55%, #2dd4bf)',
+              background:
+                'linear-gradient(135deg, #7c96ff, #5b7cff 55%, #2dd4bf)',
               boxShadow: '0 12px 30px rgba(91,124,255,0.35)',
             }}
           >
             ✓
           </div>
-          <span className="truncate text-[15px] sm:text-base">Trust Copilot</span>
+          <span className="truncate text-[15px] sm:text-base">
+            Trust Copilot
+          </span>
         </Link>
         <nav
           className="hidden min-w-0 flex-1 flex-wrap items-center gap-1 lg:flex"
           aria-label="Primary"
         >
           {nav.map(({ href, label }) => {
-            const active = pathname === href || (href !== '/dashboard' && pathname.startsWith(href))
+            const active =
+              pathname === href ||
+              (href !== '/dashboard' && pathname.startsWith(href))
             return (
               <Link
                 key={href}
@@ -413,7 +471,8 @@ export function Topbar() {
             onClick={() => setMenuOpen((o) => !o)}
             className="grid h-10 w-10 place-items-center rounded-full font-bold text-white transition hover:opacity-90"
             style={{
-              background: 'linear-gradient(135deg, rgba(124,150,255,0.35), rgba(45,212,191,0.15))',
+              background:
+                'linear-gradient(135deg, rgba(124,150,255,0.35), rgba(45,212,191,0.15))',
               border: `1px solid ${menuOpen ? 'rgba(91,124,255,0.5)' : 'var(--tc-border)'}`,
             }}
             title="Account menu"
@@ -426,20 +485,30 @@ export function Topbar() {
           {menuOpen && (
             <div
               className="absolute right-0 top-full z-50 mt-2 w-72 rounded-xl border border-[var(--tc-border)] shadow-2xl overflow-hidden"
-              style={{ background: 'rgba(12, 18, 32, 0.98)', backdropFilter: 'blur(24px)' }}
+              style={{
+                background: 'rgba(12, 18, 32, 0.98)',
+                backdropFilter: 'blur(24px)',
+              }}
             >
               {/* Header */}
               <div className="px-4 py-3 border-b border-white/5">
                 <div className="flex items-center gap-3">
                   <div
                     className="grid h-9 w-9 shrink-0 place-items-center rounded-full font-bold text-sm text-white"
-                    style={{ background: 'linear-gradient(135deg, rgba(124,150,255,0.4), rgba(45,212,191,0.2))' }}
+                    style={{
+                      background:
+                        'linear-gradient(135deg, rgba(124,150,255,0.4), rgba(45,212,191,0.2))',
+                    }}
                   >
                     {user ? initials(user.display_name, user.email) : '—'}
                   </div>
                   <div className="min-w-0">
-                    <div className="text-sm font-medium text-[var(--tc-text)] truncate">{userName}</div>
-                    <div className="text-[11px] text-[var(--tc-muted)] truncate">{userEmail}</div>
+                    <div className="text-sm font-medium text-[var(--tc-text)] truncate">
+                      {userName}
+                    </div>
+                    <div className="text-[11px] text-[var(--tc-muted)] truncate">
+                      {userEmail}
+                    </div>
                   </div>
                 </div>
                 <div className="flex items-center gap-2 mt-2">
@@ -456,9 +525,24 @@ export function Topbar() {
 
               {/* Personal Actions */}
               <div className="py-1">
-                <MenuLink href="/dashboard/security" label="Account Security" icon="🔐" onClick={() => setMenuOpen(false)} />
-                <MenuLink href="/dashboard/security" label="Change Password" icon="🔑" onClick={() => setMenuOpen(false)} />
-                <MenuButton label="Sign Out" icon="🚪" onClick={logout} danger />
+                <MenuLink
+                  href="/dashboard/security"
+                  label="Account Security"
+                  icon="🔐"
+                  onClick={() => setMenuOpen(false)}
+                />
+                <MenuLink
+                  href="/dashboard/security"
+                  label="Change Password"
+                  icon="🔑"
+                  onClick={() => setMenuOpen(false)}
+                />
+                <MenuButton
+                  label="Sign Out"
+                  icon="🚪"
+                  onClick={logout}
+                  danger
+                />
               </div>
 
               {/* Admin AI Settings */}
@@ -472,14 +556,21 @@ export function Topbar() {
                     <div className="space-y-2">
                       <MenuSelect
                         label="Model"
-                        value={AI_MODEL_OPTIONS.some((m) => m.value === aiModel) ? aiModel : 'gpt-4o-mini'}
+                        value={
+                          AI_MODEL_OPTIONS.some((m) => m.value === aiModel)
+                            ? aiModel
+                            : 'gpt-4o-mini'
+                        }
                         options={AI_MODEL_OPTIONS}
                         onChange={(v) => setAiModel(v || 'gpt-4o-mini')}
                       />
                       <MenuSelect
                         label="Response Style"
                         value={responseStyle}
-                        options={RESPONSE_STYLES.map((s) => ({ value: s.value, label: s.label }))}
+                        options={RESPONSE_STYLES.map((s) => ({
+                          value: s.value,
+                          label: s.label,
+                        }))}
                         onChange={(v) => setResponseStyle(v as ResponseStyle)}
                       />
                       <button
@@ -498,10 +589,14 @@ export function Topbar() {
                           className={`relative w-8 h-[18px] rounded-full transition-colors ${automateEverything ? 'bg-[rgba(91,124,255,0.5)]' : 'bg-white/10'}`}
                           onClick={toggleAutomate}
                         >
-                          <div className={`absolute top-[2px] left-[2px] w-[14px] h-[14px] rounded-full bg-white transition-transform ${automateEverything ? 'translate-x-[14px]' : ''}`} />
+                          <div
+                            className={`absolute top-[2px] left-[2px] w-[14px] h-[14px] rounded-full bg-white transition-transform ${automateEverything ? 'translate-x-[14px]' : ''}`}
+                          />
                         </div>
                         <div>
-                          <span className="text-[11px] font-medium text-[var(--tc-text)]">Automate everything</span>
+                          <span className="text-[11px] font-medium text-[var(--tc-text)]">
+                            Automate everything
+                          </span>
                           <span className="block text-[10px] text-[var(--tc-muted)] leading-tight">
                             Auto-generate answers on upload
                           </span>
@@ -521,7 +616,17 @@ export function Topbar() {
 
 /* ── Menu sub-components ── */
 
-function MenuLink({ href, label, icon, onClick }: { href: string; label: string; icon: string; onClick: () => void }) {
+function MenuLink({
+  href,
+  label,
+  icon,
+  onClick,
+}: {
+  href: string
+  label: string
+  icon: string
+  onClick: () => void
+}) {
   return (
     <Link
       href={href}
@@ -534,13 +639,25 @@ function MenuLink({ href, label, icon, onClick }: { href: string; label: string;
   )
 }
 
-function MenuButton({ label, icon, onClick, danger }: { label: string; icon: string; onClick: () => void; danger?: boolean }) {
+function MenuButton({
+  label,
+  icon,
+  onClick,
+  danger,
+}: {
+  label: string
+  icon: string
+  onClick: () => void
+  danger?: boolean
+}) {
   return (
     <button
       type="button"
       onClick={onClick}
       className={`flex w-full items-center gap-2.5 px-4 py-2 text-[13px] transition-colors ${
-        danger ? 'text-red-400 hover:bg-red-500/10' : 'text-[var(--tc-text)] hover:bg-white/5'
+        danger
+          ? 'text-red-400 hover:bg-red-500/10'
+          : 'text-[var(--tc-text)] hover:bg-white/5'
       }`}
     >
       <span className="text-sm w-5 text-center">{icon}</span>
@@ -549,7 +666,12 @@ function MenuButton({ label, icon, onClick, danger }: { label: string; icon: str
   )
 }
 
-function MenuSelect({ label, value, options, onChange }: {
+function MenuSelect({
+  label,
+  value,
+  options,
+  onChange,
+}: {
   label: string
   value: string
   options: { value: string; label: string }[]
@@ -557,7 +679,9 @@ function MenuSelect({ label, value, options, onChange }: {
 }) {
   return (
     <div>
-      <label className="block text-[10px] font-medium text-[var(--tc-muted)] mb-0.5">{label}</label>
+      <label className="block text-[10px] font-medium text-[var(--tc-muted)] mb-0.5">
+        {label}
+      </label>
       <select
         value={value}
         onChange={(e) => onChange(e.target.value)}
@@ -565,7 +689,9 @@ function MenuSelect({ label, value, options, onChange }: {
         style={{ colorScheme: 'dark' }}
       >
         {options.map((opt) => (
-          <option key={opt.value} value={opt.value}>{opt.label}</option>
+          <option key={opt.value} value={opt.value}>
+            {opt.label}
+          </option>
         ))}
       </select>
     </div>

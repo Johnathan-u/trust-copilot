@@ -15,9 +15,15 @@ class FrameworkCatalogEvent(Base):
     __tablename__ = "framework_catalog_events"
 
     id = Column(Integer, primary_key=True, index=True)
-    framework_id = Column(Integer, ForeignKey("frameworks.id", ondelete="CASCADE"), nullable=False, index=True)
-    workspace_id = Column(Integer, ForeignKey("workspaces.id", ondelete="CASCADE"), nullable=False, index=True)
-    actor_user_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True)
+    framework_id = Column(
+        Integer, ForeignKey("frameworks.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    workspace_id = Column(
+        Integer, ForeignKey("workspaces.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    actor_user_id = Column(
+        Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True
+    )
     actor_role = Column(String(32), nullable=True)
     catalog_key = Column(String(64), nullable=True)
     attempted_version = Column(String(32), nullable=True)

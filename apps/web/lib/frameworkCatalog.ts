@@ -8,7 +8,8 @@
  */
 
 export const FRAMEWORK_CATALOG_CONTRACT_VERSION = 'framework-catalog/v1'
-export const FRAMEWORK_CATALOG_ERROR_CONTRACT_VERSION = 'framework-catalog-error/v1'
+export const FRAMEWORK_CATALOG_ERROR_CONTRACT_VERSION =
+  'framework-catalog-error/v1'
 export const FRAMEWORK_RIGHTS_TICKET = 'TC-01-007'
 
 export type FrameworkCatalogItem = {
@@ -50,7 +51,11 @@ export type FrameworkCatalogError = {
   steps?: Array<Record<string, string>> | null
 }
 
-export type CatalogDisplayState = 'blocked_pending_rights' | 'dev_test_only' | 'blocked' | 'enabled'
+export type CatalogDisplayState =
+  | 'blocked_pending_rights'
+  | 'dev_test_only'
+  | 'blocked'
+  | 'enabled'
 
 const LEGACY_LIST_FIELDS = ['id', 'name', 'version', 'created_at'] as const
 
@@ -74,22 +79,37 @@ export function isDevTestOnly(item: FrameworkCatalogItem): boolean {
  * True only for a cleared, licensed, enabled production catalog.
  * A stored version string alone is not a licensed content version.
  */
-export function isProductionCatalogEnabled(item: FrameworkCatalogItem): boolean {
+export function isProductionCatalogEnabled(
+  item: FrameworkCatalogItem
+): boolean {
   if (isDevTestOnly(item)) return false
-  if (item.controls_are_production_catalog === true && item.production_catalog !== true) return false
+  if (
+    item.controls_are_production_catalog === true &&
+    item.production_catalog !== true
+  )
+    return false
   if (item.production_catalog !== true) return false
   if (item.rights_status !== 'cleared') return false
   if (item.licence_status !== 'cleared') return false
   if (item.enablement_state !== 'enabled') return false
   if (!item.content_version) return false
-  if (item.rights_ticket === FRAMEWORK_RIGHTS_TICKET && item.rights_status !== 'cleared') return false
+  if (
+    item.rights_ticket === FRAMEWORK_RIGHTS_TICKET &&
+    item.rights_status !== 'cleared'
+  )
+    return false
   return true
 }
 
-export function catalogDisplayState(item: FrameworkCatalogItem): CatalogDisplayState {
+export function catalogDisplayState(
+  item: FrameworkCatalogItem
+): CatalogDisplayState {
   if (isDevTestOnly(item)) return 'dev_test_only'
   if (isProductionCatalogEnabled(item)) return 'enabled'
-  if (item.rights_status === 'blocked_pending_rights' || item.enablement_state === 'blocked') {
+  if (
+    item.rights_status === 'blocked_pending_rights' ||
+    item.enablement_state === 'blocked'
+  ) {
     return 'blocked_pending_rights'
   }
   return 'blocked'
@@ -97,7 +117,8 @@ export function catalogDisplayState(item: FrameworkCatalogItem): CatalogDisplayS
 
 export function catalogStatusLabel(item: FrameworkCatalogItem): string {
   const state = catalogDisplayState(item)
-  if (state === 'dev_test_only') return 'Dev / test only — not a production catalog'
+  if (state === 'dev_test_only')
+    return 'Dev / test only — not a production catalog'
   if (state === 'enabled') return 'Enabled'
   if (state === 'blocked_pending_rights') {
     return `Blocked pending content rights (${item.rights_ticket || FRAMEWORK_RIGHTS_TICKET})`
@@ -108,11 +129,18 @@ export function catalogStatusLabel(item: FrameworkCatalogItem): string {
 export function parseCatalogList(body: unknown): FrameworkCatalogItem[] {
   if (!Array.isArray(body)) return []
   return body.filter((item): item is FrameworkCatalogItem => {
-    return Boolean(item) && typeof item === 'object' && typeof (item as FrameworkCatalogItem).name === 'string'
+    return (
+      Boolean(item) &&
+      typeof item === 'object' &&
+      typeof (item as FrameworkCatalogItem).name === 'string'
+    )
   })
 }
 
-export function parseEnableError(body: unknown): { message: string; contract: FrameworkCatalogError | null } {
+export function parseEnableError(body: unknown): {
+  message: string
+  contract: FrameworkCatalogError | null
+} {
   const detail =
     body && typeof body === 'object' && 'detail' in body
       ? (body as { detail: unknown }).detail
@@ -120,8 +148,15 @@ export function parseEnableError(body: unknown): { message: string; contract: Fr
   if (typeof detail === 'string' && detail.trim()) {
     return { message: detail, contract: null }
   }
-  if (detail && typeof detail === 'object' && typeof (detail as FrameworkCatalogError).message === 'string') {
-    return { message: (detail as FrameworkCatalogError).message, contract: detail as FrameworkCatalogError }
+  if (
+    detail &&
+    typeof detail === 'object' &&
+    typeof (detail as FrameworkCatalogError).message === 'string'
+  ) {
+    return {
+      message: (detail as FrameworkCatalogError).message,
+      contract: detail as FrameworkCatalogError,
+    }
   }
   return { message: 'Framework enablement was refused.', contract: null }
 }
