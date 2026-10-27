@@ -1,6 +1,7 @@
 """Pytest fixtures for Trust Copilot API tests. Enterprise test suite (auth, RBAC, API contracts)."""
 
 import os
+import re
 import subprocess
 import sys
 from collections.abc import Generator
@@ -10,12 +11,27 @@ from unittest.mock import patch
 import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import text
+from sqlalchemy.engine import make_url
 from sqlalchemy.orm import Session
 
 # Prevent database.py from loading .env which would override these test values
 os.environ["TRUST_COPILOT_TESTING"] = "1"
 _db_host = "postgres" if os.path.exists("/.dockerenv") else "localhost"
-os.environ["DATABASE_URL"] = f"postgresql://postgres:postgres@{_db_host}:5432/trustcopilot_test"
+_DEFAULT_TEST_DATABASE_URL = f"postgresql://postgres:postgres@{_db_host}:5432/trustcopilot_test"
+# CI points the suite at a disposable per-run Postgres via TC_TEST_DATABASE_URL (credentials are
+# generated per run and never committed). Guard: only local hosts and *_test databases are accepted,
+# so a misconfigured URL can never aim the suite (which creates/migrates/writes) at a real database.
+os.environ["DATABASE_URL"] = os.environ.get("TC_TEST_DATABASE_URL") or _DEFAULT_TEST_DATABASE_URL
+_TEST_DB_URL = make_url(os.environ["DATABASE_URL"])
+_TEST_DB_NAME = _TEST_DB_URL.database or ""
+if (
+    _TEST_DB_URL.host not in ("localhost", "127.0.0.1", "::1", "postgres")
+    or not re.fullmatch(r"[a-z0-9_]+_test", _TEST_DB_NAME)
+):
+    raise RuntimeError(
+        "Refusing to run tests: TC_TEST_DATABASE_URL must target a local host and a database "
+        f"named *_test (got host={_TEST_DB_URL.host!r}, database={_TEST_DB_NAME!r})"
+    )
 os.environ["SESSION_SECRET"] = "test-secret"
 os.environ["S3_ENDPOINT"] = f"http://{'minio' if os.path.exists('/.dockerenv') else 'localhost'}:9000"
 os.environ["S3_ACCESS_KEY"] = "minio"
@@ -61,17 +77,17 @@ def pytest_configure(config):
 
 
 def _create_test_db_if_needed():
-    """Create the trustcopilot_test database if it does not exist."""
+    """Create the test database (default trustcopilot_test) if it does not exist."""
     import sqlalchemy
     admin_url = os.environ["DATABASE_URL"].rsplit("/", 1)[0] + "/postgres"
     try:
         eng = sqlalchemy.create_engine(admin_url, isolation_level="AUTOCOMMIT")
         with eng.connect() as conn:
             exists = conn.execute(
-                text("SELECT 1 FROM pg_database WHERE datname = 'trustcopilot_test'")
+                text("SELECT 1 FROM pg_database WHERE datname = :name"), {"name": _TEST_DB_NAME}
             ).scalar()
             if not exists:
-                conn.execute(text("CREATE DATABASE trustcopilot_test"))
+                conn.execute(text(f'CREATE DATABASE "{_TEST_DB_NAME}"'))  # name validated above
         eng.dispose()
     except Exception:
         pass
@@ -323,7 +339,7 @@ def _db_required() -> bool:
 
 _DB_UNAVAILABLE_MSG = (
     "Postgres test database unavailable or incompatible (see 'WARNING: test DB setup failed' "
-    "above; start Docker or set DATABASE_URL to trustcopilot_test)"
+    "above; start the local test Postgres or set TC_TEST_DATABASE_URL to a local *_test database)"
 )
 
 
