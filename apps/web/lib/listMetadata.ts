@@ -25,7 +25,10 @@ export const SUBJECT_AREA_OPTIONS = [
 export type FrameworkLabel = (typeof FRAMEWORK_OPTIONS)[number]
 export type SubjectAreaLabel = (typeof SUBJECT_AREA_OPTIONS)[number]
 
-export function normalizeLabels(values: string[] | null | undefined, fallback = 'Other'): string[] {
+export function normalizeLabels(
+  values: string[] | null | undefined,
+  fallback = 'Other'
+): string[] {
   const safe = Array.isArray(values) ? values : []
   const out: string[] = []
   for (const value of safe) {

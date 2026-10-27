@@ -4,23 +4,27 @@ import type { Metadata } from 'next'
 
 export const metadata: Metadata = {
   title: {
-    default: 'Trust Copilot — Compliance questionnaires, answered with evidence',
+    default:
+      'Trust Copilot — Compliance questionnaires, answered with evidence',
     template: '%s | Trust Copilot',
   },
-  description: 'Upload your evidence documents and compliance questionnaires. Get AI-generated answers grounded in your real evidence — not hallucinations.',
+  description:
+    'Upload your evidence documents and compliance questionnaires. Get AI-drafted answers that cite your uploaded evidence, for your team to review before sending.',
   icons: {
     icon: '/icon.svg',
   },
   openGraph: {
     title: 'Trust Copilot — Compliance questionnaires, answered with evidence',
-    description: 'Evidence-grounded AI for security and compliance questionnaire automation. Upload evidence, upload the questionnaire, get answers.',
+    description:
+      'Evidence-grounded AI for security and compliance questionnaire automation. Upload evidence, upload the questionnaire, get answers.',
     type: 'website',
     siteName: 'Trust Copilot',
   },
   twitter: {
     card: 'summary_large_image',
     title: 'Trust Copilot',
-    description: 'Evidence-grounded AI for compliance questionnaire automation.',
+    description:
+      'Evidence-grounded AI for compliance questionnaire automation.',
   },
   robots: {
     index: true,
@@ -31,11 +35,13 @@ export const metadata: Metadata = {
 export default function RootLayout({
   children,
 }: {
-  children: React.ReactNode;
+  children: React.ReactNode
 }) {
   return (
     <html lang="en">
-      <body className="antialiased min-h-full overflow-x-hidden">{children}</body>
+      <body className="antialiased min-h-full overflow-x-hidden">
+        {children}
+      </body>
     </html>
-  );
+  )
 }

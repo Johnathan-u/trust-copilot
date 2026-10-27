@@ -3,7 +3,7 @@
 import os
 from unittest.mock import patch
 
-import pytest
+import pytest  # noqa: F401
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 
@@ -21,15 +21,19 @@ from app.services.feature_flags import (
 # Helpers
 # ---------------------------------------------------------------------------
 
+
 def _login_admin(client: TestClient) -> None:
     from app.core.database import SessionLocal
     from app.models import WorkspaceMember, User
+
     db = SessionLocal()
     try:
         user = db.query(User).filter(User.email == "demo@trust.local").first()
-        mem = db.query(WorkspaceMember).filter(
-            WorkspaceMember.user_id == user.id, WorkspaceMember.workspace_id == 1
-        ).first()
+        mem = (
+            db.query(WorkspaceMember)
+            .filter(WorkspaceMember.user_id == user.id, WorkspaceMember.workspace_id == 1)
+            .first()
+        )
         if mem.role != "admin":
             mem.role = "admin"
             db.commit()
@@ -41,6 +45,7 @@ def _login_admin(client: TestClient) -> None:
 
 def _cleanup_flags(workspace_id: int = 1) -> None:
     from app.core.database import SessionLocal
+
     db = SessionLocal()
     try:
         db.query(FeatureFlag).filter(FeatureFlag.workspace_id == workspace_id).delete()
@@ -52,6 +57,7 @@ def _cleanup_flags(workspace_id: int = 1) -> None:
 # ---------------------------------------------------------------------------
 # Unit tests (service layer)
 # ---------------------------------------------------------------------------
+
 
 class TestServiceLayer:
     def test_is_enabled_default(self, db_session: Session) -> None:
@@ -119,6 +125,7 @@ class TestServiceLayer:
 # API tests
 # ---------------------------------------------------------------------------
 
+
 class TestFeatureFlagAPI:
     def test_list_flags_requires_admin(self, client: TestClient) -> None:
         client.post("/api/auth/login", json={"email": "reviewer@trust.local", "password": "r"})
@@ -144,7 +151,9 @@ class TestFeatureFlagAPI:
     def test_set_flag(self, client: TestClient) -> None:
         _login_admin(client)
         _cleanup_flags()
-        r = client.patch("/api/feature-flags", json={"flag_name": "connectors.aws", "enabled": True})
+        r = client.patch(
+            "/api/feature-flags", json={"flag_name": "connectors.aws", "enabled": True}
+        )
         assert r.status_code == 200
         assert r.json()["enabled"] is True
         r2 = client.get("/api/feature-flags/connectors.aws")
@@ -173,7 +182,9 @@ class TestFeatureFlagAPI:
 
     def test_custom_flag(self, client: TestClient) -> None:
         _login_admin(client)
-        r = client.patch("/api/feature-flags", json={"flag_name": "custom.my_experiment", "enabled": True})
+        r = client.patch(
+            "/api/feature-flags", json={"flag_name": "custom.my_experiment", "enabled": True}
+        )
         assert r.status_code == 200
         assert r.json()["enabled"] is True
         r2 = client.get("/api/feature-flags")

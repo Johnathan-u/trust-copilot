@@ -8,21 +8,6 @@ jobs:
   build:
     runs-on: ubuntu-latest
 
-    services:
-      postgres:
-        image: postgres:16
-        env:
-          POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: postgres
-          POSTGRES_DB: trustcopilot_test
-        options: >-
-          --health-cmd pg_isready
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-        ports:
-          - 5432:5432
-
     steps:
       - name: Checkout repo
         uses: actions/checkout@v4
@@ -57,19 +42,40 @@ jobs:
           pip install pre-commit
           pre-commit run --all-files
 
+      - name: Start isolated Postgres (pgvector) for this run
+        # Disposable per-run database: fresh container, throwaway credentials generated here (never
+        # committed, masked in logs), migrations applied below, removed when the runner is discarded.
+        # Image pinned by digest (PostgreSQL 16.15 + pgvector 0.8.7) - same image family as docker-compose*.yml;
+        # plain postgres:16 lacks the vector extension the migrations create.
+        env:
+          PG_IMAGE: pgvector/pgvector:pg16@sha256:7b822b0aac60967beb1ea5e576b8602c94c300a157d187f385ae3e0da199b90a
+        run: |
+          PG_PASSWORD="$(openssl rand -hex 24)"
+          echo "::add-mask::$PG_PASSWORD"
+          PG_DB="tc_ci_${{ github.run_id }}_${{ github.run_attempt }}_test"
+          docker run -d --name tc-ci-pg \
+            -e POSTGRES_USER=tc_ci -e POSTGRES_PASSWORD="$PG_PASSWORD" -e POSTGRES_DB="$PG_DB" \
+            -p 127.0.0.1:5432:5432 "$PG_IMAGE"
+          for i in $(seq 1 60); do
+            docker exec tc-ci-pg pg_isready -U tc_ci -d "$PG_DB" >/dev/null 2>&1 && break
+            sleep 1
+          done
+          docker exec tc-ci-pg pg_isready -U tc_ci -d "$PG_DB"
+          URL="postgresql://tc_ci:$PG_PASSWORD@127.0.0.1:5432/$PG_DB"
+          echo "DATABASE_URL=$URL" >> "$GITHUB_ENV"
+          echo "TC_TEST_DATABASE_URL=$URL" >> "$GITHUB_ENV"
+
       - name: Install backend deps
         working-directory: apps/api
-        env:
-          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/trustcopilot_test
         run: |
           pip install -U pip
-          pip install ruff pytest
+          # Pin ruff to the pre-commit hook rev (.pre-commit-config.yaml) so both
+          # lint gates use the same rules; unpinned ruff pulls newer default rule sets.
+          pip install ruff==0.5.6 pytest
           pip install -e .
 
       - name: Run migrations
         working-directory: apps/api
-        env:
-          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/trustcopilot_test
         run: alembic upgrade head
 
       - name: Lint backend
@@ -77,12 +83,21 @@ jobs:
         run: |
           ruff check .
 
+      - name: Safe test collection (TC-02-001)
+        # Collection must not touch the network or real credentials; fails on any egress attempt.
+        working-directory: apps/api
+        run: |
+          python -m pytest --collect-only -q
+          python -m pytest tests/release/test_safe_collection.py -q
+
       - name: Run backend tests
         working-directory: apps/api
         env:
-          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/trustcopilot_test
           SESSION_SECRET: test-secret
-        run: pytest
+          # Fail (never skip) when the disposable service DB is unavailable or incompatible.
+          TC_REQUIRE_DB: "1"
+        # DATABASE_URL / TC_TEST_DATABASE_URL come from the isolated Postgres step via GITHUB_ENV.
+        run: pytest -rs
 
       - name: Type-check frontend
         working-directory: apps/web

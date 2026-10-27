@@ -52,11 +52,22 @@ class RunAutomationBody(BaseModel):
 
 
 @router.post("/playbooks")
-async def create_playbook(body: CreatePlaybookBody, session: dict = Depends(require_can_admin), db: Session = Depends(get_db)):
-    result = svc.create_playbook(db, session["workspace_id"], body.control_key, body.title,
-                                  description=body.description, steps=body.steps,
-                                  evidence_needed=body.evidence_needed, severity=body.severity,
-                                  sla_hours=body.sla_hours)
+async def create_playbook(
+    body: CreatePlaybookBody,
+    session: dict = Depends(require_can_admin),
+    db: Session = Depends(get_db),
+):
+    result = svc.create_playbook(
+        db,
+        session["workspace_id"],
+        body.control_key,
+        body.title,
+        description=body.description,
+        steps=body.steps,
+        evidence_needed=body.evidence_needed,
+        severity=body.severity,
+        sla_hours=body.sla_hours,
+    )
     db.commit()
     return result
 
@@ -79,7 +90,11 @@ async def seed(session: dict = Depends(require_can_admin), db: Session = Depends
 
 
 @router.post("/tickets")
-async def create_ticket(body: CreateTicketBody, session: dict = Depends(require_can_admin), db: Session = Depends(get_db)):
+async def create_ticket(
+    body: CreateTicketBody,
+    session: dict = Depends(require_can_admin),
+    db: Session = Depends(get_db),
+):
     data = body.model_dump(exclude_none=True)
     result = svc.create_ticket(db, session["workspace_id"], **data)
     db.commit()
@@ -87,12 +102,21 @@ async def create_ticket(body: CreateTicketBody, session: dict = Depends(require_
 
 
 @router.get("/tickets")
-async def list_tickets(status: str | None = Query(None), session: dict = Depends(require_session), db: Session = Depends(get_db)):
+async def list_tickets(
+    status: str | None = Query(None),
+    session: dict = Depends(require_session),
+    db: Session = Depends(get_db),
+):
     return {"tickets": svc.list_tickets(db, session["workspace_id"], status)}
 
 
 @router.patch("/tickets/{ticket_id}/status")
-async def update_status(ticket_id: int, body: UpdateStatusBody, session: dict = Depends(require_can_admin), db: Session = Depends(get_db)):
+async def update_status(
+    ticket_id: int,
+    body: UpdateStatusBody,
+    session: dict = Depends(require_can_admin),
+    db: Session = Depends(get_db),
+):
     result = svc.update_ticket_status(db, ticket_id, body.status)
     if not result:
         raise HTTPException(status_code=404)
@@ -129,7 +153,9 @@ async def submit_evidence(
 
 
 @router.get("/tickets/{ticket_id}/impact")
-async def ticket_impact(ticket_id: int, session: dict = Depends(require_session), db: Session = Depends(get_db)):
+async def ticket_impact(
+    ticket_id: int, session: dict = Depends(require_session), db: Session = Depends(get_db)
+):
     result = loop_svc.analyze_remediation_impact(db, ticket_id)
     if not result:
         raise HTTPException(status_code=404)
@@ -148,7 +174,9 @@ async def enable_automation(
     session: dict = Depends(require_can_admin),
     db: Session = Depends(get_db),
 ):
-    result = loop_svc.set_automation_enabled(db, session["workspace_id"], automation_key, body.enabled)
+    result = loop_svc.set_automation_enabled(
+        db, session["workspace_id"], automation_key, body.enabled
+    )
     if "error" in result:
         raise HTTPException(status_code=400, detail=result["error"])
     db.commit()
@@ -163,7 +191,12 @@ async def run_automation(
     db: Session = Depends(get_db),
 ):
     result = loop_svc.run_safe_automation(
-        db, session["workspace_id"], automation_key, body.ticket_id, body.dry_run, session.get("user_id")
+        db,
+        session["workspace_id"],
+        automation_key,
+        body.ticket_id,
+        body.dry_run,
+        session.get("user_id"),
     )
     if "error" in result:
         raise HTTPException(status_code=400, detail=result["error"])

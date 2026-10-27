@@ -6,7 +6,11 @@ from sqlalchemy.orm import Session
 
 from datetime import datetime, timezone
 
-from app.core.auth_deps import require_can_admin, require_valid_session, require_valid_session_optional
+from app.core.auth_deps import (
+    require_can_admin,
+    require_valid_session,
+    require_valid_session_optional,
+)
 from app.core.database import get_db
 from app.models import PolicyAcknowledgment, TrustArticle, Workspace
 
@@ -51,8 +55,12 @@ def _to_dict(a: TrustArticle) -> dict:
 @router.get("")
 def list_trust_articles(
     workspace_id: int | None = Query(None),
-    published_only: bool = Query(False, description="When true, only return published articles (for public Trust Center)"),
-    policy_only: bool = Query(False, description="When true, only return articles marked as policy (TC-R-B5)"),
+    published_only: bool = Query(
+        False, description="When true, only return published articles (for public Trust Center)"
+    ),
+    policy_only: bool = Query(
+        False, description="When true, only return articles marked as policy (TC-R-B5)"
+    ),
     session: dict | None = Depends(require_valid_session_optional),
     db: Session = Depends(get_db),
 ):
@@ -66,7 +74,11 @@ def list_trust_articles(
         if not target_ws:
             raise HTTPException(status_code=404, detail="Workspace not found")
         effective_ws = workspace_id
-    q = db.query(TrustArticle).filter(TrustArticle.workspace_id == effective_ws).order_by(TrustArticle.created_at.desc())
+    q = (
+        db.query(TrustArticle)
+        .filter(TrustArticle.workspace_id == effective_ws)
+        .order_by(TrustArticle.created_at.desc())
+    )
     if published_only:
         q = q.filter(TrustArticle.published == 1)
     if policy_only:
@@ -139,7 +151,15 @@ def create_trust_article(
     db.commit()
     db.refresh(article)
     from app.core.audit import audit_log
-    audit_log("trust_article.create", email=session.get("email"), workspace_id=article.workspace_id, resource_type="trust_article", resource_id=article.id, details={"slug": article.slug})
+
+    audit_log(
+        "trust_article.create",
+        email=session.get("email"),
+        workspace_id=article.workspace_id,
+        resource_type="trust_article",
+        resource_id=article.id,
+        details={"slug": article.slug},
+    )
     return _to_dict(article)
 
 
@@ -157,7 +177,11 @@ def update_trust_article(
     if article.workspace_id is not None and session.get("workspace_id") != article.workspace_id:
         raise HTTPException(status_code=403, detail="Access denied")
     if body.slug is not None:
-        existing = db.query(TrustArticle).filter(TrustArticle.slug == body.slug, TrustArticle.id != article_id).first()
+        existing = (
+            db.query(TrustArticle)
+            .filter(TrustArticle.slug == body.slug, TrustArticle.id != article_id)
+            .first()
+        )
         if existing:
             raise HTTPException(status_code=400, detail=f"Slug '{body.slug}' already exists")
         article.slug = body.slug
@@ -192,7 +216,15 @@ def delete_trust_article(
     db.delete(article)
     db.commit()
     from app.core.audit import audit_log
-    audit_log("trust_article.delete", email=session.get("email"), workspace_id=ws_id, resource_type="trust_article", resource_id=article_id, details={"slug": slug})
+
+    audit_log(
+        "trust_article.delete",
+        email=session.get("email"),
+        workspace_id=ws_id,
+        resource_type="trust_article",
+        resource_id=article_id,
+        details={"slug": slug},
+    )
     return {"ok": True}
 
 
@@ -213,10 +245,14 @@ def acknowledge_policy(
     user_id = session.get("user_id")
     if not user_id:
         raise HTTPException(status_code=401, detail="Not authenticated")
-    existing = db.query(PolicyAcknowledgment).filter(
-        PolicyAcknowledgment.user_id == user_id,
-        PolicyAcknowledgment.trust_article_id == article_id,
-    ).first()
+    existing = (
+        db.query(PolicyAcknowledgment)
+        .filter(
+            PolicyAcknowledgment.user_id == user_id,
+            PolicyAcknowledgment.trust_article_id == article_id,
+        )
+        .first()
+    )
     if existing:
         return {"ok": True, "acknowledged_at": existing.acknowledged_at.isoformat()}
     now = datetime.now(timezone.utc)

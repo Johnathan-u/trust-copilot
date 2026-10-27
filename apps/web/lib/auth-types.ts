@@ -36,7 +36,10 @@ export interface AuthState {
   subscription?: SubscriptionInfo
   mfa_enrolled?: boolean
   mfa_required_for_workspace?: boolean
-  workspace_auth_policy?: { mfa_required: boolean; session_max_age_seconds: number | null }
+  workspace_auth_policy?: {
+    mfa_required: boolean
+    session_max_age_seconds: number | null
+  }
 }
 
 export interface MeResponse {
@@ -53,5 +56,8 @@ export interface MeResponse {
   subscription?: SubscriptionInfo
   mfa_enrolled?: boolean
   mfa_required_for_workspace?: boolean
-  workspace_auth_policy?: { mfa_required: boolean; session_max_age_seconds: number | null }
+  workspace_auth_policy?: {
+    mfa_required: boolean
+    session_max_age_seconds: number | null
+  }
 }

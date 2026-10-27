@@ -8,42 +8,63 @@ from app.services import security_faq_service as faq_svc
 def get_public_security_page(db: Session, workspace_id: int) -> dict:
     """Generate the public-facing security page content."""
     faqs = faq_svc.list_faqs(db, workspace_id)
-    categories = faq_svc.get_categories(db, workspace_id)
+    categories = faq_svc.get_categories(db, workspace_id)  # noqa: F841
 
     sections = {}
     for faq in faqs:
         cat = faq["category"]
         if cat not in sections:
             sections[cat] = {"title": _category_title(cat), "items": []}
-        sections[cat]["items"].append({
-            "question": faq["question"],
-            "answer": faq["answer"],
-            "frameworks": faq["framework_tags"].split(",") if faq["framework_tags"] else [],
-        })
+        sections[cat]["items"].append(
+            {
+                "question": faq["question"],
+                "answer": faq["answer"],
+                "frameworks": faq["framework_tags"].split(",") if faq["framework_tags"] else [],
+            }
+        )
 
     return {
         "title": "Security & Data Handling",
-        "subtitle": "How we protect your data and maintain compliance",
+        "subtitle": "How we protect your data",
         "sections": [{"category": k, **v} for k, v in sections.items()],
+        "notice": (
+            "Default FAQ answers are templates that must be verified against the actual "
+            "deployment before publishing. No certifications or attestations are claimed."
+        ),
         "certifications": [
-            {"name": "SOC 2 Type II", "status": "in_progress", "description": "Trust service criteria audit underway"},
-            {"name": "GDPR", "status": "compliant", "description": "Data processing compliant with EU regulations"},
-            {"name": "ISO 27001", "status": "planned", "description": "Information security management planned"},
+            # TC-01-005: no audit, certification, or compliance attestation has been
+            # completed. Do not change these statuses without linked evidence.
+            {
+                "name": "SOC 2 Type II",
+                "status": "not_attested",
+                "description": "No SOC 2 audit has been completed.",
+            },
+            {
+                "name": "GDPR",
+                "status": "not_attested",
+                "description": "No GDPR compliance assessment has been completed.",
+            },
+            {
+                "name": "ISO 27001",
+                "status": "not_attested",
+                "description": "No ISO 27001 certification has been obtained.",
+            },
         ],
         "infrastructure_highlights": [
-            "AES-256 encryption at rest",
-            "TLS 1.2+ encryption in transit",
-            "Workspace-level tenant isolation",
+            # TC-01-005: application features are listed as implemented, pending
+            # acceptance; hosting controls depend on the deployment and are unverified.
+            "Workspace-level tenant isolation (application layer)",
             "TOTP multi-factor authentication",
             "Role-based access control (RBAC)",
-            "Comprehensive audit logging",
-            "Automated daily backups with 7-day recovery",
-            "Containerized deployment on managed infrastructure",
+            "Audit logging of key workspace actions",
+            "Deployment-dependent, not yet verified: AES-256 encryption at rest",
+            "Deployment-dependent, not yet verified: TLS 1.2+ encryption in transit",
+            "Deployment-dependent, not yet verified: automated backups and recovery",
         ],
         "contact": {
             "security_email": "security@trustcopilot.io",
-            "dpa_available": True,
-            "subprocessor_list_available": True,
+            "dpa_available": False,
+            "subprocessor_list_available": False,
         },
     }
 

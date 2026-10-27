@@ -6,7 +6,7 @@ so the browser treats it as a session cookie deleted on close.
 When remember_me=True, the cookie MUST have max-age for cross-restart persistence.
 """
 
-import pytest
+import pytest  # noqa: F401
 from fastapi.testclient import TestClient
 
 

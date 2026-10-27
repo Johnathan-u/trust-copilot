@@ -1,0 +1,5 @@
+# SHA 11d5d470e2085476a48af3aa235ca1631ff0fa10 (merge of master f72def3); python 3.11.17, SQLAlchemy 2.0.55; DB pgvector pg16 container 127.0.0.1:55432 trustcopilot_test (synthetic creds)
+# cmd: python -m pytest tests/release/test_safe_collection.py -q
+..........................                                               [100%]
+26 passed in 9.69s
+exit=0

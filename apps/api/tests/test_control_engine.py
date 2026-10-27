@@ -1,7 +1,7 @@
 """Tests for control engine (P1-31, P1-34, P1-35, P1-36)."""
 
 import pytest
-from app.core.database import SessionLocal
+from app.core.database import SessionLocal  # noqa: F401
 from app.models.workspace import Workspace
 from app.models.workspace_control import WorkspaceControl
 from app.services import control_engine_service as ce

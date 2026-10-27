@@ -24,6 +24,7 @@ def _get_embed_client(api_key: str):
     if _embed_client is not None and _embed_client_key == api_key:
         return _embed_client
     from openai import OpenAI
+
     _embed_client = OpenAI(api_key=api_key, timeout=OPENAI_TIMEOUT_SECONDS)
     _embed_client_key = api_key
     return _embed_client
@@ -34,7 +35,9 @@ def _is_transient_error(e: Exception) -> bool:
     msg = (getattr(e, "message", "") or str(e)).lower()
     if "timeout" in msg or "timed out" in msg:
         return True
-    code = getattr(e, "status_code", None) or getattr(getattr(e, "response", None), "status_code", None)
+    code = getattr(e, "status_code", None) or getattr(
+        getattr(e, "response", None), "status_code", None
+    )
     return code in (429, 503, 502, 504)
 
 
@@ -53,9 +56,7 @@ def embed_text(text: str) -> Optional[list[float]]:
             )
             emb = r.data[0].embedding
             if emb is not None and len(emb) != EMBEDDING_DIM:
-                raise ValueError(
-                    f"Embedding dimension {len(emb)} != required {EMBEDDING_DIM}"
-                )
+                raise ValueError(f"Embedding dimension {len(emb)} != required {EMBEDDING_DIM}")
             return emb
         except ValueError:
             raise
@@ -63,12 +64,21 @@ def embed_text(text: str) -> Optional[list[float]]:
             last_err = e
             OPENAI_EMBEDDING_FAILURES_TOTAL.inc()
             if attempt < OPENAI_MAX_RETRIES and _is_transient_error(e):
-                sleep_sec = 2 ** attempt
-                logger.warning("embed_text transient error (attempt %s), retry in %ss: %s", attempt + 1, sleep_sec, e)
+                sleep_sec = 2**attempt
+                logger.warning(
+                    "embed_text transient error (attempt %s), retry in %ss: %s",
+                    attempt + 1,
+                    sleep_sec,
+                    e,
+                )
                 time.sleep(sleep_sec)
             else:
                 break
-    logger.warning("ALERT_OPENAI_FAILURE embed_text failed after %s attempts: %s", OPENAI_MAX_RETRIES + 1, last_err)
+    logger.warning(
+        "ALERT_OPENAI_FAILURE embed_text failed after %s attempts: %s",
+        OPENAI_MAX_RETRIES + 1,
+        last_err,
+    )
     return None
 
 
@@ -108,10 +118,19 @@ def embed_texts(texts: list[str]) -> list[Optional[list[float]]]:
             last_err = e
             OPENAI_EMBEDDING_FAILURES_TOTAL.inc()
             if attempt < OPENAI_MAX_RETRIES and _is_transient_error(e):
-                sleep_sec = 2 ** attempt
-                logger.warning("embed_texts transient error (attempt %s), retry in %ss: %s", attempt + 1, sleep_sec, e)
+                sleep_sec = 2**attempt
+                logger.warning(
+                    "embed_texts transient error (attempt %s), retry in %ss: %s",
+                    attempt + 1,
+                    sleep_sec,
+                    e,
+                )
                 time.sleep(sleep_sec)
             else:
                 break
-    logger.warning("ALERT_OPENAI_FAILURE embed_texts failed after %s attempts: %s", OPENAI_MAX_RETRIES + 1, last_err)
+    logger.warning(
+        "ALERT_OPENAI_FAILURE embed_texts failed after %s attempts: %s",
+        OPENAI_MAX_RETRIES + 1,
+        last_err,
+    )
     return [None] * len(texts)

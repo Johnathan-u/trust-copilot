@@ -17,9 +17,21 @@ def collect_repos(org: str | None = None) -> dict:
         "org": org,
         "collected_at": datetime.now(timezone.utc).isoformat(),
         "findings": [
-            {"signal": "github.repo_count", "description": "Total repositories", "status": "check_required"},
-            {"signal": "github.private_repos", "description": "Private repos ratio", "status": "check_required"},
-            {"signal": "github.archived_repos", "description": "Archived repos", "status": "check_required"},
+            {
+                "signal": "github.repo_count",
+                "description": "Total repositories",
+                "status": "check_required",
+            },
+            {
+                "signal": "github.private_repos",
+                "description": "Private repos ratio",
+                "status": "check_required",
+            },
+            {
+                "signal": "github.archived_repos",
+                "description": "Archived repos",
+                "status": "check_required",
+            },
         ],
     }
 
@@ -31,9 +43,21 @@ def collect_access(org: str | None = None) -> dict:
         "org": org,
         "collected_at": datetime.now(timezone.utc).isoformat(),
         "findings": [
-            {"signal": "github.2fa_required", "description": "2FA enforcement", "status": "check_required"},
-            {"signal": "github.outside_collaborators", "description": "Outside collaborators count", "status": "check_required"},
-            {"signal": "github.sso_enforced", "description": "SSO enforcement", "status": "check_required"},
+            {
+                "signal": "github.2fa_required",
+                "description": "2FA enforcement",
+                "status": "check_required",
+            },
+            {
+                "signal": "github.outside_collaborators",
+                "description": "Outside collaborators count",
+                "status": "check_required",
+            },
+            {
+                "signal": "github.sso_enforced",
+                "description": "SSO enforcement",
+                "status": "check_required",
+            },
         ],
     }
 
@@ -45,10 +69,26 @@ def collect_branch_protection(org: str | None = None) -> dict:
         "org": org,
         "collected_at": datetime.now(timezone.utc).isoformat(),
         "findings": [
-            {"signal": "github.branch_protection", "description": "Default branch protection enabled", "status": "check_required"},
-            {"signal": "github.code_review_required", "description": "Required code reviews", "status": "check_required"},
-            {"signal": "github.vulnerability_alerts", "description": "Vulnerability alerts enabled", "status": "check_required"},
-            {"signal": "github.secret_scanning", "description": "Secret scanning enabled", "status": "check_required"},
+            {
+                "signal": "github.branch_protection",
+                "description": "Default branch protection enabled",
+                "status": "check_required",
+            },
+            {
+                "signal": "github.code_review_required",
+                "description": "Required code reviews",
+                "status": "check_required",
+            },
+            {
+                "signal": "github.vulnerability_alerts",
+                "description": "Vulnerability alerts enabled",
+                "status": "check_required",
+            },
+            {
+                "signal": "github.secret_scanning",
+                "description": "Secret scanning enabled",
+                "status": "check_required",
+            },
         ],
     }
 
