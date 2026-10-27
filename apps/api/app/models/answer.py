@@ -38,5 +38,7 @@ class Answer(Base):
         Text, nullable=True
     )  # JSON: {"frameworks": [...], "subjects": [...]}
     evidence_fingerprint = Column(String(64), nullable=True)
+    # TC-11-001: typed generation outcome (app.services.model_outcomes.ModelOutcomeCode value).
+    outcome_code = Column(String(64), nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)

@@ -18,15 +18,24 @@ from app.models.trust_article import TrustArticle
 logger = logging.getLogger(__name__)
 
 
-def generate_deal_room(db: Session, deal_id: int) -> dict:
-    deal = db.query(Deal).filter(Deal.id == deal_id).first()
+def generate_deal_room(db: Session, deal_id: int, *, workspace_id: int) -> dict:
+    deal = db.query(Deal).filter(Deal.id == deal_id, Deal.workspace_id == workspace_id).first()
     if not deal:
         return {"error": "Deal not found"}
 
     q_ids = json.loads(deal.linked_questionnaire_ids or "[]")
     questionnaire_data = []
     for qid in q_ids:
-        questionnaire = db.query(Questionnaire).filter(Questionnaire.id == qid).first()
+        # Only questionnaires from the deal's own workspace (legacy links may point elsewhere).
+        questionnaire = (
+            db.query(Questionnaire)
+            .filter(
+                Questionnaire.id == qid,
+                Questionnaire.workspace_id == deal.workspace_id,
+                Questionnaire.deleted_at.is_(None),
+            )
+            .first()
+        )
         if not questionnaire:
             continue
         questions = db.query(Question).filter(Question.questionnaire_id == qid).all()
@@ -60,7 +69,7 @@ def generate_deal_room(db: Session, deal_id: int) -> dict:
         questionnaire_data.append(
             {
                 "questionnaire_id": qid,
-                "name": questionnaire.name,
+                "name": questionnaire.filename,
                 "proven": proven,
                 "pending": pending,
                 "total": len(questions),
