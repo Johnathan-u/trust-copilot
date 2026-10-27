@@ -11,7 +11,9 @@ class RetentionPolicy(Base):
     __tablename__ = "retention_policies"
 
     id = Column(Integer, primary_key=True, index=True)
-    workspace_id = Column(Integer, ForeignKey("workspaces.id", ondelete="CASCADE"), nullable=False, index=True)
+    workspace_id = Column(
+        Integer, ForeignKey("workspaces.id", ondelete="CASCADE"), nullable=False, index=True
+    )
     source_type = Column(String(64), nullable=True)
     retention_days = Column(Integer, nullable=False, default=365)
     archive_after_days = Column(Integer, nullable=True)

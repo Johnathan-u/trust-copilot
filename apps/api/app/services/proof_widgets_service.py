@@ -17,29 +17,32 @@ def get_proof_widgets(db: Session, workspace_id: int) -> dict:
         db.query(func.count(Question.id))
         .join(Questionnaire)
         .filter(Questionnaire.workspace_id == workspace_id)
-        .scalar() or 0
+        .scalar()
+        or 0
     )
     total_answers = (
         db.query(func.count(Answer.id))
         .join(Question)
         .join(Questionnaire)
         .filter(Questionnaire.workspace_id == workspace_id)
-        .scalar() or 0
+        .scalar()
+        or 0
     )
     questionnaires = (
         db.query(func.count(Questionnaire.id))
         .filter(Questionnaire.workspace_id == workspace_id)
-        .scalar() or 0
+        .scalar()
+        or 0
     )
     docs = (
-        db.query(func.count(Document.id))
-        .filter(Document.workspace_id == workspace_id)
-        .scalar() or 0
+        db.query(func.count(Document.id)).filter(Document.workspace_id == workspace_id).scalar()
+        or 0
     )
     exports = (
         db.query(func.count(ExportRecord.id))
         .filter(ExportRecord.workspace_id == workspace_id)
-        .scalar() or 0
+        .scalar()
+        or 0
     )
 
     hours_saved = round(total_answers * 0.08, 1)

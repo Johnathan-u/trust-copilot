@@ -26,19 +26,19 @@ apps/web/app/checkout/page.tsx:227: banned claim (B1): <div className="mt-1 text
 apps/web/app/checkout/page.tsx:249: banned claim (B1): <div className="text-2xl font-extrabold text-[var(--tc-text)]"><span className="line-through opacity-40">${annualPrice}<
 apps/web/app/checkout/page.tsx:251: banned claim (B1): <div className="mt-1 text-[10px] font-medium text-[var(--tc-success)]">until April 5, 2026</div>
 apps/web/app/checkout/page.tsx:276: banned claim (B1): Continue &mdash; Free until April 5
-apps/web/app/checkout/page.tsx:291: banned claim (B1): <span>{plan === 'annual' ? 'Annual' : 'Monthly'} &middot; <span className="font-semibold text-[var(--tc-success)]">FREE 
+apps/web/app/checkout/page.tsx:291: banned claim (B1): <span>{plan === 'annual' ? 'Annual' : 'Monthly'} &middot; <span className="font-semibold text-[var(--tc-success)]">FREE
 apps/web/app/checkout/page.tsx:419: banned claim (B1): <span>You&apos;ll be redirected to Stripe to add your card. <span className="font-medium text-[var(--tc-success)]">No ch
 apps/api/app/services/security_page_service.py:26: banned claim (D13): "subtitle": "How we protect your data and maintain compliance",
 apps/api/app/services/security_page_service.py:29: banned claim (D8): {"name": "SOC 2 Type II", "status": "in_progress", "description": "Trust service criteria audit underway"},
 apps/api/app/services/security_page_service.py:30: banned claim (D8): {"name": "GDPR", "status": "compliant", "description": "Data processing compliant with EU regulations"},
 apps/api/app/services/security_page_service.py:45: banned claim (D10): "dpa_available": True,
 apps/api/app/services/security_page_service.py:46: banned claim (D10): "subprocessor_list_available": True,
-apps/api/app/services/demo_proof_service.py:58: banned claim (A9): "answer": "Workspace-level tenant isolation is enforced at the application layer. Every database query is scoped to the 
+apps/api/app/services/demo_proof_service.py:58: banned claim (A9): "answer": "Workspace-level tenant isolation is enforced at the application layer. Every database query is scoped to the
 apps/api/app/services/demo_proof_service.py: missing example/heuristic label (A8): "synthetic_example"
 apps/api/app/services/roi_calculator_service.py: missing example/heuristic label (A5): "estimate_basis"
 apps/api/app/services/proof_widgets_service.py: missing example/heuristic label (A7): "hours_saved_basis"
 apps/api/app/services/crm_connector_service.py: missing example/heuristic label (A2): "data_basis": "synthetic_example"
-apps/api/app/services/security_faq_service.py: missing example/heuristic label (D12): DEFAULT_TEMPLATE_NOTICE + 
+apps/api/app/services/security_faq_service.py: missing example/heuristic label (D12): DEFAULT_TEMPLATE_NOTICE +
 README.md: link to missing file (C21): docs/ops/DATABASE_MIGRATIONS.md
 README.md: link to missing file (C21): docs/DEMO_SCRIPT.md
 README.md: link to missing file (C21): docs/security/AUTH_AND_SSO.md

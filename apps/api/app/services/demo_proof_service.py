@@ -147,13 +147,15 @@ def _build_sample_questionnaire() -> dict:
     questions = []
     for section in SAMPLE_QUESTIONNAIRE["sections"]:
         for q in section["questions"]:
-            questions.append({
-                "section": section["name"],
-                "question": q["text"],
-                "answer": q["answer"],
-                "confidence": q["confidence"],
-                "evidence_sources": q["evidence"],
-            })
+            questions.append(
+                {
+                    "section": section["name"],
+                    "question": q["text"],
+                    "answer": q["answer"],
+                    "confidence": q["confidence"],
+                    "evidence_sources": q["evidence"],
+                }
+            )
     return {
         "title": SAMPLE_QUESTIONNAIRE["title"],
         "framework": SAMPLE_QUESTIONNAIRE["framework"],
@@ -185,11 +187,13 @@ def _build_coverage_report(questionnaire: dict) -> dict:
     section_summary = []
     for name, data in sections.items():
         avg = sum(data["confidences"]) / len(data["confidences"]) if data["confidences"] else 0
-        section_summary.append({
-            "section": name,
-            "questions": data["total"],
-            "avg_confidence": round(avg, 1),
-        })
+        section_summary.append(
+            {
+                "section": name,
+                "questions": data["total"],
+                "avg_confidence": round(avg, 1),
+            }
+        )
 
     return {
         "total_questions": total,
@@ -209,12 +213,14 @@ def _build_gap_list(questionnaire: dict) -> dict:
     gaps = []
     for q in questionnaire["questions"]:
         if q["confidence"] < 85:
-            gaps.append({
-                "section": q["section"],
-                "question": q["question"],
-                "confidence": q["confidence"],
-                "recommendation": _gap_recommendation(q["section"], q["confidence"]),
-            })
+            gaps.append(
+                {
+                    "section": q["section"],
+                    "question": q["question"],
+                    "confidence": q["confidence"],
+                    "recommendation": _gap_recommendation(q["section"], q["confidence"]),
+                }
+            )
     return {
         "total_gaps": len(gaps),
         "gaps": gaps,
@@ -265,8 +271,19 @@ def _get_live_stats(db: Session, workspace_id: int) -> dict:
     """Pull real workspace stats to demonstrate the product with actual data."""
     try:
         q_count = db.query(Questionnaire).filter(Questionnaire.workspace_id == workspace_id).count()
-        question_count = db.query(Question).join(Questionnaire).filter(Questionnaire.workspace_id == workspace_id).count()
-        answer_count = db.query(Answer).join(Question).join(Questionnaire).filter(Questionnaire.workspace_id == workspace_id).count()
+        question_count = (
+            db.query(Question)
+            .join(Questionnaire)
+            .filter(Questionnaire.workspace_id == workspace_id)
+            .count()
+        )
+        answer_count = (
+            db.query(Answer)
+            .join(Question)
+            .join(Questionnaire)
+            .filter(Questionnaire.workspace_id == workspace_id)
+            .count()
+        )
         gap_count = db.query(EvidenceGap).filter(EvidenceGap.workspace_id == workspace_id).count()
     except Exception:
         q_count = question_count = answer_count = gap_count = 0

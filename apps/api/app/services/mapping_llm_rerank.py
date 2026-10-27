@@ -23,12 +23,14 @@ _perf_data: dict[str, float | int] = {
 
 def reset_rerank_perf_stats() -> None:
     with _perf_lock:
-        _perf_data.update({
-            "rows_will_call_llm": 0,
-            "candidate_sum": 0.0,
-            "llm_http_calls": 0,
-            "total_rerank_ms": 0.0,
-        })
+        _perf_data.update(
+            {
+                "rows_will_call_llm": 0,
+                "candidate_sum": 0.0,
+                "llm_http_calls": 0,
+                "total_rerank_ms": 0.0,
+            }
+        )
 
 
 def get_rerank_perf_snapshot() -> dict[str, float | int]:
@@ -47,6 +49,7 @@ def rerank_controls(
     Currently returns input order; LLM call is optional and controlled by settings.
     """
     from app.core.config import get_settings
+
     settings = get_settings()
     if not settings.mapping_llm_rerank_enabled:
         return candidate_control_ids

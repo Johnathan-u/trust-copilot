@@ -26,7 +26,8 @@ async def search(
     db: Session = Depends(get_db),
 ):
     return svc.search(
-        db, session["workspace_id"],
+        db,
+        session["workspace_id"],
         control_id=control_id,
         approval_status=approval_status,
         source_type=source_type,
@@ -39,7 +40,9 @@ async def search(
 
 
 @router.get("/by-control/{control_id}")
-async def by_control(control_id: int, session: dict = Depends(require_session), db: Session = Depends(get_db)):
+async def by_control(
+    control_id: int, session: dict = Depends(require_session), db: Session = Depends(get_db)
+):
     return {"evidence": svc.get_by_control(db, session["workspace_id"], control_id)}
 
 

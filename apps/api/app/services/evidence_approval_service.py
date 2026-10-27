@@ -26,7 +26,9 @@ def approve_evidence(db: Session, evidence_id: int, approver_user_id: int) -> di
     return _serialize(ev)
 
 
-def reject_evidence(db: Session, evidence_id: int, approver_user_id: int, reason: str | None = None) -> dict | None:
+def reject_evidence(
+    db: Session, evidence_id: int, approver_user_id: int, reason: str | None = None
+) -> dict | None:
     ev = db.query(EvidenceItem).filter(EvidenceItem.id == evidence_id).first()
     if not ev:
         return None
@@ -51,18 +53,28 @@ def reset_to_pending(db: Session, evidence_id: int) -> dict | None:
 
 
 def get_pending(db: Session, workspace_id: int) -> list[dict]:
-    items = db.query(EvidenceItem).filter(
-        EvidenceItem.workspace_id == workspace_id,
-        EvidenceItem.approval_status == "pending",
-    ).order_by(EvidenceItem.created_at.asc()).all()
+    items = (
+        db.query(EvidenceItem)
+        .filter(
+            EvidenceItem.workspace_id == workspace_id,
+            EvidenceItem.approval_status == "pending",
+        )
+        .order_by(EvidenceItem.created_at.asc())
+        .all()
+    )
     return [_serialize(ev) for ev in items]
 
 
 def get_approved(db: Session, workspace_id: int) -> list[dict]:
-    items = db.query(EvidenceItem).filter(
-        EvidenceItem.workspace_id == workspace_id,
-        EvidenceItem.approval_status == "approved",
-    ).order_by(EvidenceItem.approved_at.desc()).all()
+    items = (
+        db.query(EvidenceItem)
+        .filter(
+            EvidenceItem.workspace_id == workspace_id,
+            EvidenceItem.approval_status == "approved",
+        )
+        .order_by(EvidenceItem.approved_at.desc())
+        .all()
+    )
     return [_serialize(ev) for ev in items]
 
 

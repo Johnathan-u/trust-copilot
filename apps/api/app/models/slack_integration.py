@@ -13,7 +13,13 @@ class SlackIntegration(Base):
     __tablename__ = "slack_integrations"
 
     id = Column(Integer, primary_key=True, index=True)
-    workspace_id = Column(Integer, ForeignKey("workspaces.id", ondelete="CASCADE"), nullable=False, unique=True, index=True)
+    workspace_id = Column(
+        Integer,
+        ForeignKey("workspaces.id", ondelete="CASCADE"),
+        nullable=False,
+        unique=True,
+        index=True,
+    )
     bot_token_encrypted = Column(Text, nullable=False)
     channel_id = Column(String(64), nullable=False)
     channel_name = Column(String(255), nullable=True)

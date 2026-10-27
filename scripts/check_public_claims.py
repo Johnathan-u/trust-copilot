@@ -70,7 +70,10 @@ def main() -> int:
         print("\n".join(failures))
         print(f"FAIL: {len(failures)} claim regression(s)")
         return 1
-    print("PASS: no removed claims reintroduced; example/heuristic labels present; README links resolve")
+    print(
+        "PASS: no removed claims reintroduced; example/heuristic labels present; "
+        "README links resolve"
+    )
     return 0
 
 

@@ -22,7 +22,9 @@ interface CommandPaletteProps {
   placeholder?: string
 }
 
-function flattenSections(sections: CommandPaletteSection[]): CommandPaletteItem[] {
+function flattenSections(
+  sections: CommandPaletteSection[]
+): CommandPaletteItem[] {
   return sections.flatMap((s) => s.items)
 }
 
@@ -57,7 +59,10 @@ export function CommandPalette({
 
   useEffect(() => {
     const item = flatItems[selectedIndex]
-    if (item) document.getElementById(`cmd-${item.id}`)?.scrollIntoView({ block: 'nearest' })
+    if (item)
+      document
+        .getElementById(`cmd-${item.id}`)
+        ?.scrollIntoView({ block: 'nearest' })
   }, [selectedIndex, flatItems])
 
   const handleKeyDown = useCallback(
@@ -122,7 +127,11 @@ export function CommandPalette({
             className="w-full bg-transparent text-[var(--tc-text)] placeholder:text-[var(--tc-muted)] focus:outline-none text-sm"
             aria-autocomplete="list"
             aria-controls="command-palette-list"
-            aria-activedescendant={flatItems[selectedIndex] ? `cmd-${flatItems[selectedIndex].id}` : undefined}
+            aria-activedescendant={
+              flatItems[selectedIndex]
+                ? `cmd-${flatItems[selectedIndex].id}`
+                : undefined
+            }
           />
         </div>
         <div

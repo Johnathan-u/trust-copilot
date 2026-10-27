@@ -5,7 +5,7 @@ import pytest
 from app.models.workspace import Workspace
 from app.services import buyer_portal_service as bps
 from app.services import golden_answer_service as ga
-from app.services import proof_graph_service as pgs
+from app.services import proof_graph_service as pgs  # noqa: F401
 
 
 @pytest.fixture
