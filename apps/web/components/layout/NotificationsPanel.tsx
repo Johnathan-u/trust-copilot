@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useId, useRef, useState } from 'react'
 import Link from 'next/link'
 
 export type InAppNotification = {
@@ -77,18 +77,35 @@ interface NotificationsPanelProps {
   onClose: () => void
   onUnreadCountChange?: (count: number) => void
   anchorRef: React.RefObject<HTMLDivElement | null>
+  /** Id of this panel. The bell sets aria-controls to the same value. */
+  panelId: string
   // Legacy props kept for compat but no longer used
   alerts?: Alert[]
   loading?: boolean
 }
 
+function focusTrigger(anchor: HTMLElement | null) {
+  anchor?.querySelector<HTMLButtonElement>('button')?.focus()
+}
+
+/**
+ * Disclosure popover. Not a dialog: no focus trap, no inert background,
+ * no aria-modal. Escape and a pointer event outside the anchor close it
+ * and return focus to the bell button.
+ */
 export function NotificationsPanel({
   open,
   onClose,
   onUnreadCountChange,
   anchorRef,
+  panelId,
 }: NotificationsPanelProps) {
-  const panelRef = useRef<HTMLDivElement>(null)
+  const titleId = useId()
+  const descriptionId = useId()
+  const onCloseRef = useRef(onClose)
+  useEffect(() => {
+    onCloseRef.current = onClose
+  }, [onClose])
   const [notifications, setNotifications] = useState<InAppNotification[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(false)
@@ -115,23 +132,26 @@ export function NotificationsPanel({
 
   useEffect(() => {
     if (!open) return
-    const handler = (e: KeyboardEvent) => e.key === 'Escape' && onClose()
-    document.addEventListener('keydown', handler)
-    return () => document.removeEventListener('keydown', handler)
-  }, [open, onClose])
-
-  useEffect(() => {
-    if (!open) return
-    const handler = (e: MouseEvent) => {
+    const onPointerDown = (event: PointerEvent) => {
       const anchor = anchorRef.current
-      const panel = panelRef.current
-      const target = e.target as Node
-      if (anchor?.contains(target) || panel?.contains(target)) return
-      onClose()
+      const target = event.target
+      if (anchor && target instanceof Node && anchor.contains(target)) return
+      onCloseRef.current()
+      window.setTimeout(() => focusTrigger(anchorRef.current), 0)
     }
-    document.addEventListener('mousedown', handler)
-    return () => document.removeEventListener('mousedown', handler)
-  }, [open, onClose, anchorRef])
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== 'Escape') return
+      event.preventDefault()
+      onCloseRef.current()
+      focusTrigger(anchorRef.current)
+    }
+    document.addEventListener('pointerdown', onPointerDown)
+    document.addEventListener('keydown', onKeyDown)
+    return () => {
+      document.removeEventListener('pointerdown', onPointerDown)
+      document.removeEventListener('keydown', onKeyDown)
+    }
+  }, [open, anchorRef])
 
   const markRead = async (id: number) => {
     await fetch(`/api/in-app-notifications/${id}/read`, {
@@ -161,31 +181,47 @@ export function NotificationsPanel({
 
   return (
     <div
-      ref={panelRef}
-      className="absolute right-0 top-full z-20 mt-2 w-[min(400px,92vw)] rounded-xl border border-[var(--tc-border)] shadow-[var(--tc-shadow)] overflow-hidden"
-      style={{ background: 'var(--tc-panel)' }}
-      role="dialog"
-      aria-modal="true"
-      aria-label="Notifications"
+      id={panelId}
+      className="absolute right-0 top-full z-50 mt-2 w-[min(400px,92vw)] overflow-hidden rounded-xl border border-[var(--tc-border)] shadow-[var(--tc-shadow)]"
+      style={{ background: 'var(--tc-surface-overlay)' }}
     >
-      <div className="flex items-center justify-between border-b border-[var(--tc-border)] px-4 py-3">
+      <div className="flex items-start justify-between gap-tc-2 border-b border-[var(--tc-border)] px-4 py-3">
         <div>
-          <h3 className="text-sm font-semibold text-[var(--tc-text)]">
+          <h3
+            id={titleId}
+            className="text-sm font-semibold text-[var(--tc-text)]"
+          >
             Notifications
           </h3>
-          <p className="mt-0.5 text-xs text-[var(--tc-muted)]">
+          <p
+            id={descriptionId}
+            className="mt-0.5 text-xs text-[var(--tc-muted)]"
+          >
             {unreadCount > 0 ? `${unreadCount} unread` : 'All caught up'}
           </p>
         </div>
-        {unreadCount > 0 && (
+        <div className="flex items-center gap-tc-2">
+          {unreadCount > 0 && (
+            <button
+              type="button"
+              onClick={markAllRead}
+              className="text-xs text-[var(--tc-soft)] hover:text-[var(--tc-text)] transition"
+            >
+              Mark all read
+            </button>
+          )}
           <button
             type="button"
-            onClick={markAllRead}
-            className="text-xs text-[var(--tc-soft)] hover:text-[var(--tc-text)] transition"
+            onClick={() => {
+              onClose()
+              focusTrigger(anchorRef.current)
+            }}
+            className="inline-flex min-h-tc-6 min-w-tc-6 items-center justify-center rounded-tc-xs text-tc-muted hover:bg-[var(--tc-hover)] hover:text-tc-text"
+            aria-label="Close notifications"
           >
-            Mark all read
+            ×
           </button>
-        )}
+        </div>
       </div>
 
       <div className="max-h-[min(400px,65vh)] overflow-y-auto">
@@ -194,7 +230,7 @@ export function NotificationsPanel({
             Loading...
           </div>
         ) : error ? (
-          <div className="px-4 py-8 text-center text-sm text-red-400">
+          <div className="px-4 py-8 text-center text-sm text-[var(--tc-danger)]">
             Failed to load notifications
           </div>
         ) : notifications.length === 0 ? (

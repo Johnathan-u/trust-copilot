@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useMemo, useState, useRef } from 'react'
+import { useCallback, useEffect, useId, useMemo, useState, useRef } from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { useAuth } from '@/contexts/AuthContext'
@@ -11,29 +11,12 @@ import {
   type CommandPaletteItem,
 } from '@/components/CommandPalette'
 import { NotificationsPanel } from '@/components/layout/NotificationsPanel'
-
-const nav = [
-  { href: '/dashboard', label: 'Home' },
-  { href: '/dashboard/documents', label: 'Documents' },
-  { href: '/dashboard/questionnaires', label: 'Questionnaires' },
-  { href: '/dashboard/review', label: 'Review' },
-  { href: '/dashboard/requests', label: 'Requests' },
-  { href: '/dashboard/exports', label: 'Exports' },
-]
-
-const sidebarOnlyRoutes = [
-  { href: '/dashboard/compliance-gaps', label: 'Coverage' },
-  { href: '/dashboard/compliance-frameworks', label: 'Frameworks' },
-  { href: '/dashboard/trust-center', label: 'Trust Center' },
-  { href: '/dashboard/members', label: 'Members' },
-  { href: '/dashboard/notifications', label: 'Alerts / Notifications' },
-  { href: '/dashboard/slack', label: 'Slack' },
-  { href: '/dashboard/gmail', label: 'Gmail' },
-  { href: '/dashboard/audit', label: 'Activity' },
-  { href: '/dashboard/ai-governance', label: 'AI Insights' },
-  { href: '/dashboard/settings', label: 'Settings' },
-  { href: '/dashboard/security', label: 'Account Security' },
-]
+import {
+  accountNavItems,
+  appNavItemsFor,
+  isAppNavActive,
+} from '@/lib/app-navigation'
+import { disclosureTriggerProps } from '@/lib/disclosure'
 
 function initials(displayName: string | null, email: string): string {
   if (displayName?.trim()) {
@@ -66,9 +49,13 @@ const RESPONSE_STYLES: {
   { value: 'natural', label: 'Natural', temperature: 0.5 },
 ]
 
-const topbarNavRoutes = [...nav, ...sidebarOnlyRoutes]
+interface TopbarProps {
+  navOpen: boolean
+  onToggleNav: () => void
+  menuButtonRef: React.Ref<HTMLButtonElement>
+}
 
-export function Topbar() {
+export function Topbar({ navOpen, onToggleNav, menuButtonRef }: TopbarProps) {
   const pathname = usePathname()
   const router = useRouter()
   const { user, workspace, permissions } = useAuth()
@@ -92,6 +79,7 @@ export function Topbar() {
   const [notificationsOpen, setNotificationsOpen] = useState(false)
   const [unreadCount, setUnreadCount] = useState(0)
   const notificationsAnchorRef = useRef<HTMLDivElement>(null)
+  const notificationsPanelId = useId()
   const searchDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const [menuOpen, setMenuOpen] = useState(false)
@@ -100,13 +88,32 @@ export function Topbar() {
   const [aiSaving, setAiSaving] = useState(false)
   const [automateEverything, setAutomateEverything] = useState(false)
 
+  const visibleNav = useMemo(
+    () =>
+      appNavItemsFor({ can_edit: permissions.can_edit, can_admin: isAdmin }),
+    [permissions.can_edit, isAdmin]
+  )
+  const coreNav = useMemo(
+    () => visibleNav.filter((item) => item.section === 'core'),
+    [visibleNav]
+  )
+  const moreNav = useMemo(
+    () => [
+      ...visibleNav
+        .filter((item) => item.section !== 'core')
+        .map(({ href, label }) => ({ href, label })),
+      ...accountNavItems,
+    ],
+    [visibleNav]
+  )
+  const jumpNav = useMemo(
+    () => [...coreNav.map(({ href, label }) => ({ href, label })), ...moreNav],
+    [coreNav, moreNav]
+  )
+
   const matchedNavHref = useMemo(() => {
-    return topbarNavRoutes.find(
-      ({ href }) =>
-        pathname === href ||
-        (href !== '/dashboard' && pathname.startsWith(href))
-    )?.href
-  }, [pathname])
+    return jumpNav.find(({ href }) => isAppNavActive(pathname, href))?.href
+  }, [jumpNav, pathname])
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
@@ -261,7 +268,7 @@ export function Topbar() {
 
   const paletteSections = useMemo((): CommandPaletteSection[] => {
     const qLower = query.trim().toLowerCase()
-    const jumpItems: CommandPaletteItem[] = [...nav, ...sidebarOnlyRoutes]
+    const jumpItems: CommandPaletteItem[] = jumpNav
       .filter((r) => !qLower || r.label.toLowerCase().includes(qLower))
       .map((r) => ({
         id: `nav-${r.href}`,
@@ -317,60 +324,63 @@ export function Topbar() {
       sections.push({ title: 'Actions', items: actionItems })
     }
     return sections
-  }, [query, searchDocs, searchQnrs, navigateAndClose, logout])
+  }, [query, searchDocs, searchQnrs, navigateAndClose, logout, jumpNav])
 
   const userEmail = user?.email ?? ''
   const userName = user?.display_name || userEmail.split('@')[0] || 'User'
   const userRole = isAdmin ? 'Admin' : 'Member'
 
   return (
-    <header
-      className="flex w-full min-w-0 flex-col gap-3 px-4 py-3 sm:px-5 sm:py-4 lg:flex-row lg:items-center lg:justify-between lg:gap-4 xl:px-7"
-      style={{
-        background: 'rgba(7, 13, 24, 0.72)',
-        backdropFilter: 'blur(18px)',
-        borderBottom: '1px solid var(--tc-border)',
-        position: 'relative',
-        zIndex: 30,
-      }}
-    >
+    <header className="relative z-30 flex w-full min-w-0 shrink-0 flex-col gap-3 border-b border-tc-border bg-tc-surface-overlay px-4 py-3 sm:px-5 sm:py-4 lg:flex-row lg:items-center lg:justify-between lg:gap-4 xl:px-7">
       <div className="flex min-w-0 w-full max-w-full flex-1 flex-col gap-2 sm:flex-row sm:items-center sm:gap-3">
-        <Link
-          href="/dashboard"
-          className="flex shrink-0 items-center gap-2 font-bold tracking-tight text-[var(--tc-text)] sm:gap-3"
-        >
-          <div
-            className="grid h-9 w-9 place-items-center rounded-xl text-lg"
-            style={{
-              background:
-                'linear-gradient(135deg, #7c96ff, #5b7cff 55%, #2dd4bf)',
-              boxShadow: '0 12px 30px rgba(91,124,255,0.35)',
-            }}
+        <div className="flex min-w-0 items-center gap-2 sm:gap-3">
+          <button
+            type="button"
+            ref={menuButtonRef}
+            onClick={onToggleNav}
+            aria-expanded={navOpen}
+            aria-controls={navOpen ? 'app-navigation' : undefined}
+            aria-label={navOpen ? 'Close navigation' : 'Open navigation'}
+            className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-tc-xs border border-tc-border-strong text-tc-title text-tc-text hover:bg-[var(--tc-hover)] md:hidden"
           >
-            ✓
-          </div>
-          <span className="truncate text-[15px] sm:text-base">
-            Trust Copilot
-          </span>
-        </Link>
+            <span aria-hidden>{navOpen ? '×' : '☰'}</span>
+          </button>
+          <Link
+            href="/dashboard"
+            className="flex min-w-0 items-center gap-2 font-bold tracking-tight text-[var(--tc-text)] sm:gap-3"
+          >
+            <div
+              className="grid h-9 w-9 shrink-0 place-items-center rounded-xl text-lg text-tc-on-primary"
+              style={{
+                background: 'var(--tc-brand-mark)',
+                boxShadow: 'var(--tc-brand-mark-shadow)',
+              }}
+              aria-hidden
+            >
+              ✓
+            </div>
+            <span className="truncate text-[15px] sm:text-base">
+              Trust Copilot
+            </span>
+          </Link>
+        </div>
         <nav
           className="hidden min-w-0 flex-1 flex-wrap items-center gap-1 lg:flex"
           aria-label="Primary"
         >
-          {nav.map(({ href, label }) => {
-            const active =
-              pathname === href ||
-              (href !== '/dashboard' && pathname.startsWith(href))
+          {coreNav.map(({ href, label }) => {
+            const active = isAppNavActive(pathname, href)
             return (
               <Link
                 key={href}
                 href={href}
                 scroll={false}
                 prefetch={true}
-                className={`whitespace-nowrap rounded-xl px-3 py-2 text-sm transition-all duration-150 ${
+                aria-current={active ? 'page' : undefined}
+                className={`whitespace-nowrap rounded-xl px-3 py-2 text-sm transition-colors duration-[var(--tc-duration-fast)] ${
                   active
-                    ? 'bg-white/5 text-[var(--tc-text)]'
-                    : 'text-[var(--tc-muted)] hover:bg-white/5 hover:text-[var(--tc-text)]'
+                    ? 'bg-[var(--tc-nav-active-bg)] text-[var(--tc-text)]'
+                    : 'text-[var(--tc-muted)] hover:bg-[var(--tc-hover)] hover:text-[var(--tc-text)]'
                 }`}
               >
                 {label}
@@ -378,15 +388,14 @@ export function Topbar() {
             )
           })}
         </nav>
-        <div className="min-w-0 lg:hidden sm:min-w-[11rem]">
+        <div className="hidden min-w-0 md:block md:min-w-[11rem] lg:hidden">
           <label htmlFor="dashboard-primary-nav" className="sr-only">
             Primary navigation
           </label>
           <select
             id="dashboard-primary-nav"
             key={pathname}
-            className="w-full min-w-0 cursor-pointer rounded-xl border border-[var(--tc-border)] bg-white/5 py-2 pl-3 pr-8 text-sm text-[var(--tc-text)] focus:border-[var(--tc-soft)] focus:outline-none focus:ring-1 focus:ring-[var(--tc-soft)]"
-            style={{ colorScheme: 'dark', accentColor: 'var(--tc-primary)' }}
+            className="w-full min-w-0 cursor-pointer rounded-xl border border-[var(--tc-border)] bg-tc-surface-overlay py-2 pl-3 pr-8 text-sm text-[var(--tc-text)] focus:border-[var(--tc-soft)] focus:outline-none focus:ring-1 focus:ring-[var(--tc-soft)]"
             value={matchedNavHref ?? NAV_PLACEHOLDER}
             onChange={(e) => {
               const v = e.target.value
@@ -399,14 +408,14 @@ export function Topbar() {
               </option>
             )}
             <optgroup label="Main">
-              {nav.map(({ href, label }) => (
+              {coreNav.map(({ href, label }) => (
                 <option key={href} value={href}>
                   {label}
                 </option>
               ))}
             </optgroup>
             <optgroup label="More">
-              {sidebarOnlyRoutes.map(({ href, label }) => (
+              {moreNav.map(({ href, label }) => (
                 <option key={href} value={href}>
                   {label}
                 </option>
@@ -420,7 +429,7 @@ export function Topbar() {
         <button
           type="button"
           onClick={() => setPaletteOpen(true)}
-          className="flex min-w-0 max-w-full cursor-pointer items-center justify-between gap-2 rounded-xl border border-[var(--tc-border)] bg-white/5 px-2.5 py-2 text-sm text-[var(--tc-muted)] hover:bg-white/10 sm:min-w-[10rem] sm:gap-3 sm:px-3.5 sm:py-2.5 md:min-w-[12rem] lg:min-w-[14rem] xl:min-w-[190px]"
+          className="flex min-w-0 max-w-full cursor-pointer items-center justify-between gap-2 rounded-xl border border-tc-border bg-tc-surface-raised px-2.5 py-2 text-sm text-tc-muted hover:bg-[var(--tc-hover)] sm:min-w-[10rem] sm:gap-3 sm:px-3.5 sm:py-2.5 md:min-w-[12rem] lg:min-w-[14rem] xl:min-w-[190px]"
           title="Search or jump (Ctrl+K)"
         >
           <span className="truncate">
@@ -442,11 +451,11 @@ export function Topbar() {
           <button
             type="button"
             onClick={() => setNotificationsOpen((o) => !o)}
-            className="relative grid h-10 w-10 place-items-center rounded-full border border-[var(--tc-border)] bg-white/5 transition hover:bg-white/10"
+            className="relative grid h-10 w-10 place-items-center rounded-full border border-tc-border bg-tc-surface-raised transition hover:bg-[var(--tc-hover)]"
             aria-label="Notifications"
-            aria-expanded={notificationsOpen}
+            {...disclosureTriggerProps(notificationsOpen, notificationsPanelId)}
           >
-            🔔
+            <span aria-hidden>🔔</span>
             {unreadCount > 0 && (
               <span
                 className="absolute -right-0.5 -top-0.5 flex h-4 min-w-[1rem] items-center justify-center rounded-full px-1 text-[10px] font-semibold text-white"
@@ -461,6 +470,7 @@ export function Topbar() {
             onClose={() => setNotificationsOpen(false)}
             onUnreadCountChange={setUnreadCount}
             anchorRef={notificationsAnchorRef}
+            panelId={notificationsPanelId}
           />
         </div>
 
@@ -469,11 +479,10 @@ export function Topbar() {
           <button
             type="button"
             onClick={() => setMenuOpen((o) => !o)}
-            className="grid h-10 w-10 place-items-center rounded-full font-bold text-white transition hover:opacity-90"
+            className="grid h-10 w-10 place-items-center rounded-full border border-tc-border font-bold text-tc-on-primary transition hover:opacity-90"
             style={{
-              background:
-                'linear-gradient(135deg, rgba(124,150,255,0.35), rgba(45,212,191,0.15))',
-              border: `1px solid ${menuOpen ? 'rgba(91,124,255,0.5)' : 'var(--tc-border)'}`,
+              background: 'var(--tc-brand-mark)',
+              borderColor: menuOpen ? 'var(--tc-nav-active-border)' : undefined,
             }}
             title="Account menu"
             aria-expanded={menuOpen}
@@ -484,21 +493,15 @@ export function Topbar() {
 
           {menuOpen && (
             <div
-              className="absolute right-0 top-full z-50 mt-2 w-72 rounded-xl border border-[var(--tc-border)] shadow-2xl overflow-hidden"
-              style={{
-                background: 'rgba(12, 18, 32, 0.98)',
-                backdropFilter: 'blur(24px)',
-              }}
+              className="absolute right-0 top-full z-50 mt-2 w-72 overflow-hidden rounded-xl border border-[var(--tc-border)] shadow-[var(--tc-shadow)]"
+              style={{ background: 'var(--tc-surface-overlay)' }}
             >
               {/* Header */}
               <div className="px-4 py-3 border-b border-white/5">
                 <div className="flex items-center gap-3">
                   <div
-                    className="grid h-9 w-9 shrink-0 place-items-center rounded-full font-bold text-sm text-white"
-                    style={{
-                      background:
-                        'linear-gradient(135deg, rgba(124,150,255,0.4), rgba(45,212,191,0.2))',
-                    }}
+                    className="grid h-9 w-9 shrink-0 place-items-center rounded-full font-bold text-sm text-tc-on-primary"
+                    style={{ background: 'var(--tc-brand-mark)' }}
                   >
                     {user ? initials(user.display_name, user.email) : '—'}
                   </div>
@@ -631,7 +634,7 @@ function MenuLink({
     <Link
       href={href}
       onClick={onClick}
-      className="flex items-center gap-2.5 px-4 py-2 text-[13px] text-[var(--tc-text)] hover:bg-white/5 transition-colors"
+      className="flex items-center gap-2.5 px-4 py-2 text-[13px] text-[var(--tc-text)] transition-colors hover:bg-[var(--tc-hover)]"
     >
       <span className="text-sm w-5 text-center">{icon}</span>
       {label}
@@ -656,8 +659,8 @@ function MenuButton({
       onClick={onClick}
       className={`flex w-full items-center gap-2.5 px-4 py-2 text-[13px] transition-colors ${
         danger
-          ? 'text-red-400 hover:bg-red-500/10'
-          : 'text-[var(--tc-text)] hover:bg-white/5'
+          ? 'text-tc-danger hover:bg-[var(--tc-danger-surface)]'
+          : 'text-[var(--tc-text)] hover:bg-[var(--tc-hover)]'
       }`}
     >
       <span className="text-sm w-5 text-center">{icon}</span>
@@ -685,8 +688,7 @@ function MenuSelect({
       <select
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="w-full rounded-lg border border-white/10 bg-white/5 px-2 py-1 text-[11px] text-[var(--tc-text)] focus:border-[var(--tc-soft)] focus:outline-none"
-        style={{ colorScheme: 'dark' }}
+        className="w-full rounded-lg border border-tc-border bg-tc-surface-overlay px-2 py-1 text-[11px] text-[var(--tc-text)] focus:border-[var(--tc-soft)] focus:outline-none"
       >
         {options.map((opt) => (
           <option key={opt.value} value={opt.value}>
