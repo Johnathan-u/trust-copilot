@@ -626,6 +626,13 @@ def test_migration_upgrades_and_downgrades_on_a_fresh_database():
                 )
             ).scalar()
             assert unique_on_dedupe is None
+            version_width = conn.execute(
+                text(
+                    "SELECT character_maximum_length FROM information_schema.columns "
+                    "WHERE table_name = 'alembic_version' AND column_name = 'version_num'"
+                )
+            ).scalar()
+            assert version_width is not None and version_width >= 64
         engine.dispose()
 
         down = run("downgrade", parent)

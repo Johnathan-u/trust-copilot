@@ -21,6 +21,11 @@ depends_on = None
 
 
 def upgrade() -> None:
+    # alembic_version.version_num is varchar(32). This revision id is 37
+    # characters, so the stamp after upgrade() would fail closed. Widen first.
+    # Downgrade does not shrink it: the row still holds this id until
+    # downgrade() returns.
+    op.execute("ALTER TABLE alembic_version ALTER COLUMN version_num TYPE VARCHAR(64)")
     op.add_column(
         "notification_log", sa.Column("delivery_state", sa.String(length=32), nullable=True)
     )
