@@ -1,0 +1,488 @@
+### tree=/workspace/tc-ci sha=3ee20da image=pgvector/pgvector:pg16@sha256:7b822b0aac60967beb1ea5e576b8602c94c300a157d187f385ae3e0da199b90a db=tc_ci_rev_before_1793095820_test (fresh, empty) user=tc_ci password=<generated, not shown>
+### questionnaires rows before run: 0 tables named questionnaires (0 = schema not yet migrated)
+### cmd: SESSION_SECRET=test-secret TC_REQUIRE_DB=1 python -m pytest -p tc_reverse_order -q -rs
+.........................................F.............................. [  5%]
+........................................................................ [ 11%]
+........................................................................ [ 16%]
+.............................................F.......................... [ 22%]
+........................................................................ [ 27%]
+........................F............................................... [ 33%]
+........................................................................ [ 39%]
+........................................................................ [ 44%]
+........................................................................ [ 50%]
+........................................................................ [ 55%]
+.......................................................................F [ 61%]
+........................................................................ [ 67%]
+........................................................................ [ 72%]
+.......s................................................................ [ 78%]
+........................................................................ [ 83%]
+.....................s.................................................. [ 89%]
+........................................................................ [ 94%]
+.................................................................        [100%]
+=================================== FAILURES ===================================
+______________________ test_create_with_questionnaire_id _______________________
+
+self = <sqlalchemy.engine.base.Connection object at 0x7fb53139b750>
+dialect = <sqlalchemy.dialects.postgresql.psycopg2.PGDialect_psycopg2 object at 0x7fb54c9ff5d0>
+context = <sqlalchemy.dialects.postgresql.psycopg2.PGExecutionContext_psycopg2 object at 0x7fb5313a9590>
+statement = <sqlalchemy.dialects.postgresql.base.PGCompiler object at 0x7fb5314ea510>
+parameters = [{'workspace_id': 1, 'vendor_email': 'v2@example.com', 'questionnaire_id': 1, 'message': None, ...}]
+
+    def _exec_single_context(
+        self,
+        dialect: Dialect,
+        context: ExecutionContext,
+        statement: Union[str, Compiled],
+        parameters: Optional[_AnyMultiExecuteParams],
+    ) -> CursorResult[Any]:
+        """continue the _execute_context() method for a single DBAPI
+        cursor.execute() or cursor.executemany() call.
+
+        """
+        if dialect.bind_typing is BindTyping.SETINPUTSIZES:
+            generic_setinputsizes = context._prepare_set_input_sizes()
+
+            if generic_setinputsizes:
+                try:
+                    dialect.do_set_input_sizes(
+                        context.cursor, generic_setinputsizes, context
+                    )
+                except BaseException as e:
+                    self._handle_dbapi_exception(
+                        e, str(statement), parameters, None, context
+                    )
+
+        cursor, str_statement, parameters = (
+            context.cursor,
+            context.statement,
+            context.parameters,
+        )
+
+        effective_parameters: Optional[_AnyExecuteParams]
+
+        if not context.executemany:
+            effective_parameters = parameters[0]
+        else:
+            effective_parameters = parameters
+
+        if self._has_events or self.engine._has_events:
+            for fn in self.dispatch.before_cursor_execute:
+                str_statement, effective_parameters = fn(
+                    self,
+                    cursor,
+                    str_statement,
+                    effective_parameters,
+                    context,
+                    context.executemany,
+                )
+
+        if self._echo:
+            self._log_info(str_statement)
+
+            stats = context._get_cache_stats()
+
+            if not self.engine.hide_parameters:
+                self._log_info(
+                    "[%s] %r",
+                    stats,
+                    sql_util._repr_params(
+                        effective_parameters,
+                        batches=10,
+                        ismulti=context.executemany,
+                    ),
+                )
+            else:
+                self._log_info(
+                    "[%s] [SQL parameters hidden due to hide_parameters=True]",
+                    stats,
+                )
+
+        evt_handled: bool = False
+        try:
+            if context.execute_style is ExecuteStyle.EXECUTEMANY:
+                effective_parameters = cast(
+                    "_CoreMultiExecuteParams", effective_parameters
+                )
+                if self.dialect._has_events:
+                    for fn in self.dialect.dispatch.do_executemany:
+                        if fn(
+                            cursor,
+                            str_statement,
+                            effective_parameters,
+                            context,
+                        ):
+                            evt_handled = True
+                            break
+                if not evt_handled:
+                    self.dialect.do_executemany(
+                        cursor,
+                        str_statement,
+                        effective_parameters,
+                        context,
+                    )
+            elif not effective_parameters and context.no_parameters:
+                if self.dialect._has_events:
+                    for fn in self.dialect.dispatch.do_execute_no_params:
+                        if fn(cursor, str_statement, context):
+                            evt_handled = True
+                            break
+                if not evt_handled:
+                    self.dialect.do_execute_no_params(
+                        cursor, str_statement, context
+                    )
+            else:
+                effective_parameters = cast(
+                    "_CoreSingleExecuteParams", effective_parameters
+                )
+                if self.dialect._has_events:
+                    for fn in self.dialect.dispatch.do_execute:
+                        if fn(
+                            cursor,
+                            str_statement,
+                            effective_parameters,
+                            context,
+                        ):
+                            evt_handled = True
+                            break
+                if not evt_handled:
+>                   self.dialect.do_execute(
+                        cursor, str_statement, effective_parameters, context
+                    )
+
+../../../tc-fragile-venv/lib/python3.11/site-packages/sqlalchemy/engine/base.py:1976:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <sqlalchemy.dialects.postgresql.psycopg2.PGDialect_psycopg2 object at 0x7fb54c9ff5d0>
+cursor = <cursor object at 0x7fb5317af6a0; closed: -1>
+statement = 'INSERT INTO vendor_requests (workspace_id, vendor_email, questionnaire_id, message, status, link_token, created_at) V...r_email)s, %(questionnaire_id)s, %(message)s, %(status)s, %(link_token)s, %(created_at)s) RETURNING vendor_requests.id'
+parameters = {'workspace_id': 1, 'vendor_email': 'v2@example.com', 'questionnaire_id': 1, 'message': None, ...}
+context = <sqlalchemy.dialects.postgresql.psycopg2.PGExecutionContext_psycopg2 object at 0x7fb5313a9590>
+
+    def do_execute(self, cursor, statement, parameters, context=None):
+>       cursor.execute(statement, parameters)
+E       psycopg2.errors.ForeignKeyViolation: insert or update on table "vendor_requests" violates foreign key constraint "vendor_requests_questionnaire_id_fkey"
+E       DETAIL:  Key (questionnaire_id)=(1) is not present in table "questionnaires".
+
+../../../tc-fragile-venv/lib/python3.11/site-packages/sqlalchemy/engine/default.py:964: ForeignKeyViolation
+
+The above exception was the direct cause of the following exception:
+
+client = <starlette.testclient.TestClient object at 0x7fb531203050>
+admin_user = <app.models.user.User object at 0x7fb53120b890>
+
+    def test_create_with_questionnaire_id(client: TestClient, admin_user: User) -> None:
+        """POST can include optional questionnaire_id."""
+        _login_admin(client, admin_user)
+>       r = client.post(
+            "/api/vendor-requests/",
+            json={"vendor_email": "v2@example.com", "questionnaire_id": 1},
+        )
+
+tests/test_vendor_requests_api.py:97:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+../../../tc-fragile-venv/lib/python3.11/site-packages/httpx2/_client.py:1203: in post
+    return self.request(
+../../../tc-fragile-venv/lib/python3.11/site-packages/starlette/testclient.py:518: in request
+    return super().request(
+../../../tc-fragile-venv/lib/python3.11/site-packages/httpx2/_client.py:796: in request
+    return self.send(request, auth=auth, follow_redirects=follow_redirects)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../../../tc-fragile-venv/lib/python3.11/site-packages/httpx2/_client.py:993: in send
+    raise exc
+../../../tc-fragile-venv/lib/python3.11/site-packages/httpx2/_client.py:987: in send
+    response.read()
+../../../tc-fragile-venv/lib/python3.11/site-packages/httpx2/_models.py:877: in read
+    self._content = b"".join(self.iter_bytes())
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../../../tc-fragile-venv/lib/python3.11/site-packages/httpx2/_models.py:893: in iter_bytes
+    for raw_bytes in self.iter_raw():
+../../../tc-fragile-venv/lib/python3.11/site-packages/httpx2/_models.py:948: in iter_raw
+    for raw_stream_bytes in self.stream:
+../../../tc-fragile-venv/lib/python3.11/site-packages/httpx2/_client.py:143: in __iter__
+    yield from self._stream
+../../../tc-fragile-venv/lib/python3.11/site-packages/starlette/testclient.py:384: in iter_body
+    exit_stack.close()
+/home/box/.local/share/uv/python/cpython-3.11.17-linux-x86_64-gnu/lib/python3.11/contextlib.py:609: in close
+    self.__exit__(None, None, None)
+/home/box/.local/share/uv/python/cpython-3.11.17-linux-x86_64-gnu/lib/python3.11/contextlib.py:601: in __exit__
+    raise exc_details[1]
+/home/box/.local/share/uv/python/cpython-3.11.17-linux-x86_64-gnu/lib/python3.11/contextlib.py:586: in __exit__
+    if cb(*exc_details):
+       ^^^^^^^^^^^^^^^^
+../../../tc-fragile-venv/lib/python3.11/site-packages/starlette/testclient.py:399: in close_app
+    raise exception
+../../../tc-fragile-venv/lib/python3.11/site-packages/anyio/from_thread.py:265: in _call_func
+    retval = await retval_or_awaitable
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+../../../tc-fragile-venv/lib/python3.11/site-packages/starlette/testclient.py:366: in run_app
+    await self.app(scope, receive, send)
+../../../tc-fragile-venv/lib/python3.11/site-packages/fastapi/applications.py:1194: in __call__
+    await super().__call__(scope, receive, send)
+../../../tc-fragile-venv/lib/python3.11/site-packages/starlette/applications.py:96: in __call__
+    await self.middleware_stack(scope, receive, send)
+../../../tc-fragile-venv/lib/python3.11/site-packages/starlette/middleware/errors.py:186: in __call__
+    raise exc
+../../../tc-fragile-venv/lib/python3.11/site-packages/starlette/middleware/errors.py:164: in __call__
+    await self.app(scope, receive, _send)
+../../../tc-fragile-venv/lib/python3.11/site-packages/fastapi/telemetry/_asgi.py:151: in __call__
+    await self.app(scope, receive, send)
+../../../tc-fragile-venv/lib/python3.11/site-packages/starlette/middleware/cors.py:91: in __call__
+    await self.simple_response(scope, receive, send, request_headers=headers)
+../../../tc-fragile-venv/lib/python3.11/site-packages/starlette/middleware/cors.py:149: in simple_response
+    await self.app(scope, receive, send)
+../../../tc-fragile-venv/lib/python3.11/site-packages/starlette/middleware/base.py:203: in __call__
+    response = await self.dispatch_func(request, call_next)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+app/main.py:291: in dispatch
+    return await call_next(request)
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+../../../tc-fragile-venv/lib/python3.11/site-packages/starlette/middleware/base.py:179: in call_next
+    raise app_exc from app_exc.__cause__ or app_exc.__context__
+../../../tc-fragile-venv/lib/python3.11/site-packages/starlette/middleware/base.py:149: in coro
+    await self.app(scope, receive_or_disconnect, send_no_error)
+../../../tc-fragile-venv/lib/python3.11/site-packages/starlette/middleware/base.py:203: in __call__
+    response = await self.dispatch_func(request, call_next)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+app/main.py:338: in dispatch
+    return await call_next(request)
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+../../../tc-fragile-venv/lib/python3.11/site-packages/starlette/middleware/base.py:179: in call_next
+    raise app_exc from app_exc.__cause__ or app_exc.__context__
+../../../tc-fragile-venv/lib/python3.11/site-packages/starlette/middleware/base.py:149: in coro
+    await self.app(scope, receive_or_disconnect, send_no_error)
+../../../tc-fragile-venv/lib/python3.11/site-packages/starlette/middleware/base.py:203: in __call__
+    response = await self.dispatch_func(request, call_next)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+app/main.py:250: in dispatch
+    response = await call_next(request)
+               ^^^^^^^^^^^^^^^^^^^^^^^^
+../../../tc-fragile-venv/lib/python3.11/site-packages/starlette/middleware/base.py:179: in call_next
+    raise app_exc from app_exc.__cause__ or app_exc.__context__
+../../../tc-fragile-venv/lib/python3.11/site-packages/starlette/middleware/base.py:149: in coro
+    await self.app(scope, receive_or_disconnect, send_no_error)
+../../../tc-fragile-venv/lib/python3.11/site-packages/starlette/middleware/exceptions.py:63: in __call__
+    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+../../../tc-fragile-venv/lib/python3.11/site-packages/starlette/_exception_handler.py:53: in wrapped_app
+    raise exc
+../../../tc-fragile-venv/lib/python3.11/site-packages/starlette/_exception_handler.py:42: in wrapped_app
+    await app(scope, receive, sender)
+../../../tc-fragile-venv/lib/python3.11/site-packages/fastapi/middleware/asyncexitstack.py:18: in __call__
+    await self.app(scope, receive, send)
+../../../tc-fragile-venv/lib/python3.11/site-packages/starlette/routing.py:683: in __call__
+    await self.middleware_stack(scope, receive, send)
+../../../tc-fragile-venv/lib/python3.11/site-packages/fastapi/routing.py:2811: in app
+    await route.handle(scope, receive, send)
+../../../tc-fragile-venv/lib/python3.11/site-packages/fastapi/routing.py:1839: in handle
+    await self.original_router.handle(scope, receive, send)
+../../../tc-fragile-venv/lib/python3.11/site-packages/fastapi/routing.py:2894: in handle
+    await included_router._handle_selected(scope, receive, send)
+../../../tc-fragile-venv/lib/python3.11/site-packages/fastapi/routing.py:1865: in _handle_selected
+    await original_route.handle(scope, receive, send)
+../../../tc-fragile-venv/lib/python3.11/site-packages/fastapi/routing.py:1328: in handle
+    await effective_context.app(scope, receive, send)
+../../../tc-fragile-venv/lib/python3.11/site-packages/fastapi/routing.py:166: in app
+    await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+../../../tc-fragile-venv/lib/python3.11/site-packages/starlette/_exception_handler.py:53: in wrapped_app
+    raise exc
+../../../tc-fragile-venv/lib/python3.11/site-packages/starlette/_exception_handler.py:42: in wrapped_app
+    await app(scope, receive, sender)
+../../../tc-fragile-venv/lib/python3.11/site-packages/fastapi/routing.py:152: in app
+    response = await f(request)
+               ^^^^^^^^^^^^^^^^
+../../../tc-fragile-venv/lib/python3.11/site-packages/fastapi/routing.py:745: in app
+    raw_response = await run_endpoint_function(
+../../../tc-fragile-venv/lib/python3.11/site-packages/fastapi/routing.py:374: in run_endpoint_function
+    return await run_in_threadpool(
+../../../tc-fragile-venv/lib/python3.11/site-packages/starlette/concurrency.py:34: in run_in_threadpool
+    return await anyio.to_thread.run_sync(func)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../../../tc-fragile-venv/lib/python3.11/site-packages/anyio/to_thread.py:65: in run_sync
+    return await get_async_backend().run_sync_in_worker_thread(
+../../../tc-fragile-venv/lib/python3.11/site-packages/anyio/_backends/_asyncio.py:2706: in run_sync_in_worker_thread
+    return await future
+           ^^^^^^^^^^^^
+../../../tc-fragile-venv/lib/python3.11/site-packages/anyio/_backends/_asyncio.py:1100: in run
+    result = context.run(func, *args)
+             ^^^^^^^^^^^^^^^^^^^^^^^^
+../../../tc-fragile-venv/lib/python3.11/site-packages/fastapi/telemetry/_api.py:244: in _run_sync_endpoint
+    return function(**arguments)
+           ^^^^^^^^^^^^^^^^^^^^^
+app/api/routes/vendor_requests.py:82: in create_vendor_request
+    db.commit()
+../../../tc-fragile-venv/lib/python3.11/site-packages/sqlalchemy/orm/session.py:2035: in commit
+    trans.commit(_to_root=True)
+<string>:2: in commit
+    ???
+../../../tc-fragile-venv/lib/python3.11/site-packages/sqlalchemy/orm/state_changes.py:137: in _go
+    ret_value = fn(self, *arg, **kw)
+                ^^^^^^^^^^^^^^^^^^^^
+../../../tc-fragile-venv/lib/python3.11/site-packages/sqlalchemy/orm/session.py:1316: in commit
+    self._prepare_impl()
+<string>:2: in _prepare_impl
+    ???
+../../../tc-fragile-venv/lib/python3.11/site-packages/sqlalchemy/orm/state_changes.py:137: in _go
+    ret_value = fn(self, *arg, **kw)
+                ^^^^^^^^^^^^^^^^^^^^
+../../../tc-fragile-venv/lib/python3.11/site-packages/sqlalchemy/orm/session.py:1290: in _prepare_impl
+    self.session.flush()
+../../../tc-fragile-venv/lib/python3.11/site-packages/sqlalchemy/orm/session.py:4353: in flush
+    self._flush(objects)
+../../../tc-fragile-venv/lib/python3.11/site-packages/sqlalchemy/orm/session.py:4488: in _flush
+    with util.safe_reraise():
+../../../tc-fragile-venv/lib/python3.11/site-packages/sqlalchemy/util/langhelpers.py:122: in __exit__
+    raise exc_value.with_traceback(exc_tb)
+../../../tc-fragile-venv/lib/python3.11/site-packages/sqlalchemy/orm/session.py:4449: in _flush
+    flush_context.execute()
+../../../tc-fragile-venv/lib/python3.11/site-packages/sqlalchemy/orm/unitofwork.py:465: in execute
+    rec.execute(self)
+../../../tc-fragile-venv/lib/python3.11/site-packages/sqlalchemy/orm/unitofwork.py:641: in execute
+    util.preloaded.orm_persistence.save_obj(
+../../../tc-fragile-venv/lib/python3.11/site-packages/sqlalchemy/orm/persistence.py:94: in save_obj
+    _emit_insert_statements(
+../../../tc-fragile-venv/lib/python3.11/site-packages/sqlalchemy/orm/persistence.py:1234: in _emit_insert_statements
+    result = connection.execute(
+../../../tc-fragile-venv/lib/python3.11/site-packages/sqlalchemy/engine/base.py:1428: in execute
+    return meth(
+../../../tc-fragile-venv/lib/python3.11/site-packages/sqlalchemy/sql/elements.py:526: in _execute_on_connection
+    return connection._execute_clauseelement(
+../../../tc-fragile-venv/lib/python3.11/site-packages/sqlalchemy/engine/base.py:1650: in _execute_clauseelement
+    ret = self._execute_context(
+../../../tc-fragile-venv/lib/python3.11/site-packages/sqlalchemy/engine/base.py:1855: in _execute_context
+    return self._exec_single_context(
+../../../tc-fragile-venv/lib/python3.11/site-packages/sqlalchemy/engine/base.py:1995: in _exec_single_context
+    self._handle_dbapi_exception(
+../../../tc-fragile-venv/lib/python3.11/site-packages/sqlalchemy/engine/base.py:2372: in _handle_dbapi_exception
+    raise sqlalchemy_exception.with_traceback(exc_info[2]) from e
+../../../tc-fragile-venv/lib/python3.11/site-packages/sqlalchemy/engine/base.py:1976: in _exec_single_context
+    self.dialect.do_execute(
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <sqlalchemy.dialects.postgresql.psycopg2.PGDialect_psycopg2 object at 0x7fb54c9ff5d0>
+cursor = <cursor object at 0x7fb5317af6a0; closed: -1>
+statement = 'INSERT INTO vendor_requests (workspace_id, vendor_email, questionnaire_id, message, status, link_token, created_at) V...r_email)s, %(questionnaire_id)s, %(message)s, %(status)s, %(link_token)s, %(created_at)s) RETURNING vendor_requests.id'
+parameters = {'workspace_id': 1, 'vendor_email': 'v2@example.com', 'questionnaire_id': 1, 'message': None, ...}
+context = <sqlalchemy.dialects.postgresql.psycopg2.PGExecutionContext_psycopg2 object at 0x7fb5313a9590>
+
+    def do_execute(self, cursor, statement, parameters, context=None):
+>       cursor.execute(statement, parameters)
+E       sqlalchemy.exc.IntegrityError: (psycopg2.errors.ForeignKeyViolation) insert or update on table "vendor_requests" violates foreign key constraint "vendor_requests_questionnaire_id_fkey"
+E       DETAIL:  Key (questionnaire_id)=(1) is not present in table "questionnaires".
+E
+E       [SQL: INSERT INTO vendor_requests (workspace_id, vendor_email, questionnaire_id, message, status, link_token, created_at) VALUES (%(workspace_id)s, %(vendor_email)s, %(questionnaire_id)s, %(message)s, %(status)s, %(link_token)s, %(created_at)s) RETURNING vendor_requests.id]
+E       [parameters: {'workspace_id': 1, 'vendor_email': 'v2@example.com', 'questionnaire_id': 1, 'message': None, 'status': 'pending', 'link_token': 'tb4k8R84VM9-RXwGwmWOBpyianZ5faSpn0inxJdID14', 'created_at': datetime.datetime(2026, 10, 27, 10, 10, 30, 265935)}]
+E       (Background on this error at: https://sqlalche.me/e/20/gkpj)
+
+../../../tc-fragile-venv/lib/python3.11/site-packages/sqlalchemy/engine/default.py:964: IntegrityError
+___ TestSwitchWorkspaceSessionId.test_switch_workspace_preserves_session_id ____
+
+self = <tests.test_security_remediation.TestSwitchWorkspaceSessionId object at 0x7fb531a1f590>
+client = <starlette.testclient.TestClient object at 0x7fb52f6f4210>
+
+    def test_switch_workspace_preserves_session_id(self, client: TestClient):
+        """After workspace switch, the session cookie still contains a valid session_id."""
+        r = client.post("/api/auth/login", json={"email": "demo@trust.local", "password": "j"})
+        assert r.status_code == 200
+        from app.core.session import verify_token
+
+        cookie_before = client.cookies.get("tc_session")
+        payload_before = verify_token(cookie_before)
+>       assert payload_before is not None
+E       assert None is not None
+
+tests/test_security_remediation.py:28: AssertionError
+____________ test_generate_answers_passes_document_ids_to_retrieval ____________
+
+db_session = <sqlalchemy.orm.session.Session object at 0x7fb52ec17410>
+
+    def test_generate_answers_passes_document_ids_to_retrieval(db_session: Session):
+        """generate_answers_for_questionnaire passes scoped document_ids into retrieval.search."""
+        from app.models import Question, Workspace
+        from app.services.answer_generation import generate_answers_for_questionnaire
+
+        if not db_session.query(Workspace).filter(Workspace.id == 1).first():
+            pytest.skip("no workspace")
+        qnr = (
+            db_session.query(Questionnaire)
+            .filter(Questionnaire.workspace_id == 1, Questionnaire.deleted_at.is_(None))
+            .first()
+        )
+        if not qnr:
+            pytest.skip("no questionnaire")
+        doc = (
+            db_session.query(Document)
+            .filter(Document.workspace_id == 1, Document.deleted_at.is_(None))
+            .first()
+        )
+        if not doc:
+            pytest.skip("no document")
+        qn = db_session.query(Question).filter(Question.questionnaire_id == qnr.id).first()
+        if not qn:
+            pytest.skip("no questions")
+
+        captured: dict = {}
+        old_json = qnr.answer_evidence_document_ids_json
+        qnr.answer_evidence_document_ids_json = json.dumps([doc.id])
+        db_session.commit()
+
+        def fake_batch_search(*args, **kwargs):
+            captured["document_ids"] = kwargs.get("document_ids")
+            return [[]]
+
+        try:
+            with (
+                patch("app.core.config.get_settings") as mock_settings,
+                patch("app.services.answer_generation.embed_texts", return_value=[[0.1] * 1536]),
+                patch("app.services.answer_generation.RetrievalService") as MockRetrieval,
+                patch("app.services.answer_generation.get_corpus_version", return_value=""),
+                patch("app.services.answer_generation.retrieval_cache_get", return_value=None),
+                patch("app.services.answer_generation.answer_cache_get", return_value=None),
+                patch("openai.OpenAI"),
+            ):
+                mock_settings.return_value.openai_api_key = "test-key"
+                mock_settings.return_value.completion_model = "gpt-4o-mini"
+                mock_settings.return_value.openai_temperature = 0.35
+                MockRetrieval.return_value.batch_search = fake_batch_search
+
+                try:
+                    generate_answers_for_questionnaire(db_session, qnr.id, workspace_id=1)
+                except Exception:
+                    pass
+        finally:
+            qnr.answer_evidence_document_ids_json = old_json
+            db_session.commit()
+
+>       assert captured.get("document_ids") == [doc.id]
+E       AssertionError: assert None == [1]
+E        +  where None = <built-in method get of dict object at 0x7fb52ec04380>('document_ids')
+E        +    where <built-in method get of dict object at 0x7fb52ec04380> = {}.get
+
+tests/test_questionnaire_answer_evidence.py:200: AssertionError
+____________________ TestExportPackService.test_cover_page _____________________
+
+self = <tests.test_export_pack.TestExportPackService object at 0x7fb531d3f910>
+client = <starlette.testclient.TestClient object at 0x7fb52e5ed010>
+_ensure_test_data = True
+
+    def test_cover_page(self, client, _ensure_test_data):
+        if not _ensure_test_data:
+            pytest.skip("Postgres not available")
+        from app.core.database import SessionLocal
+        from app.services.export_pack_service import generate_cover_page
+
+        db = SessionLocal()
+        try:
+            qid = _ensure_questionnaire(db)
+            cover = generate_cover_page(db, 1, qid)
+            assert "workspace_name" in cover
+            assert "generated_date" in cover
+            assert "total_questions" in cover
+>           assert cover["total_questions"] >= 1
+E           assert 0 >= 1
+
+tests/test_export_pack.py:57: AssertionError
+=========================== short test summary info ============================
+SKIPPED [1] tests/test_trust_scoring_blind.py:29: Blind test pack not found (local-only file)
+SKIPPED [1] tests/test_control_timeline.py:48: No reviewed workspace controls
+SKIPPED [1] tests/test_automate_everything.py:334: no questions
+4 failed, 1283 passed, 3 skipped in 58.52s
+exit=1
