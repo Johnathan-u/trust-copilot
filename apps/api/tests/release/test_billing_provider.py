@@ -870,6 +870,7 @@ def test_production_lifespan_reports_missing_webhook_secret(_ensure_test_data, m
     if not _ensure_test_data:
         pytest.fail("Postgres is required for TC-24-001; not skipping")
     import asyncio
+    import logging
 
     from app.main import app, lifespan
 
@@ -881,12 +882,31 @@ def test_production_lifespan_reports_missing_webhook_secret(_ensure_test_data, m
     monkeypatch.setenv("STRIPE_MODE", "test")
     reload_settings()
 
+    # Production startup installs a JSON formatter on every root handler, including
+    # pytest's session caplog handler. Put those handlers back so later tests still
+    # see LogRecord.message.
+    root = logging.getLogger()
+    app_logger = logging.getLogger("app")
+    saved_handlers = list(root.handlers)
+    saved_formatters = [handler.formatter for handler in saved_handlers]
+    saved_root_level = root.level
+    saved_app_level = app_logger.level
+
     async def enter():
         async with lifespan(app):
             raise AssertionError("production startup should have failed preflight")
 
-    with pytest.raises(RuntimeError, match="STRIPE_WEBHOOK_SECRET"):
-        asyncio.run(enter())
+    try:
+        with pytest.raises(RuntimeError, match="STRIPE_WEBHOOK_SECRET"):
+            asyncio.run(enter())
+    finally:
+        root.setLevel(saved_root_level)
+        app_logger.setLevel(saved_app_level)
+        for handler in list(root.handlers):
+            if handler not in saved_handlers:
+                root.removeHandler(handler)
+        for handler, formatter in zip(saved_handlers, saved_formatters, strict=True):
+            handler.setFormatter(formatter)
 
 
 def test_development_without_stripe_does_not_fail_preflight():
