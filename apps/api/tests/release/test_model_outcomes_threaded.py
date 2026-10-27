@@ -294,9 +294,8 @@ def test_threaded_workers_keep_typed_outcomes_and_hide_raw_errors(monkeypatch):
     monkeypatch.setattr(RetrievalService, "_semantic_search", _semantic)
     monkeypatch.setattr(RetrievalService, "_keyword_search", _keyword)
     monkeypatch.setattr("openai.OpenAI", lambda *_a, **_k: client)
-    import app.services.evidence_gap_service as gaps
-
-    monkeypatch.setattr(gaps, "generate_gaps_for_questionnaire", _gaps, raising=False)
+    # Patched where it is bound (no raising=False: a missing generator must fail, BUG-015).
+    monkeypatch.setattr(ag, "generate_gaps_for_questionnaire", _gaps)
 
     # --- per-question codes after retrieval on worker threads, gap thread included ---
     progress = SimpleNamespace(result=None)
