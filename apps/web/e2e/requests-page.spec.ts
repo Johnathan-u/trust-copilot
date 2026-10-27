@@ -1,5 +1,10 @@
 import { test, expect, type Page } from '@playwright/test'
-import { DEMO_EMAIL, demoPassword, ADMIN_EMAIL, adminPassword } from './credentials'
+import {
+  DEMO_EMAIL,
+  demoPassword,
+  ADMIN_EMAIL,
+  adminPassword,
+} from './credentials'
 
 const ADMIN_PASSWORD = adminPassword()
 const DEMO_PASSWORD = demoPassword()

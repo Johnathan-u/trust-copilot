@@ -22,7 +22,10 @@ _generated: dict[str, str] = {}
 
 
 def refuse_production_seed() -> None:
-    if os.getenv("APP_ENV", "development").lower() == "production" and os.getenv("TC_ALLOW_PRODUCTION_SEED") != "1":
+    if (
+        os.getenv("APP_ENV", "development").lower() == "production"
+        and os.getenv("TC_ALLOW_PRODUCTION_SEED") != "1"
+    ):
         raise SystemExit(
             "Refusing to seed demo/QA accounts with APP_ENV=production. "
             "Set TC_ALLOW_PRODUCTION_SEED=1 only with explicit owner approval."

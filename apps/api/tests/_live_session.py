@@ -35,8 +35,9 @@ def live_session_secret() -> str:
     return secret
 
 
-def forge_session_cookie(workspace_id: int = 1, user_id: int = 1, role: str = "admin",
-                         ttl_seconds: int = 3600) -> str:
+def forge_session_cookie(
+    workspace_id: int = 1, user_id: int = 1, role: str = "admin", ttl_seconds: int = 3600
+) -> str:
     """Build a short-lived tc_session cookie for a local stack (same format as app.core.session)."""
     payload = {
         "user_id": user_id,
@@ -46,5 +47,7 @@ def forge_session_cookie(workspace_id: int = 1, user_id: int = 1, role: str = "a
         "exp": int(time.time()) + ttl_seconds,
     }
     data = base64.urlsafe_b64encode(json.dumps(payload).encode()).decode()
-    sig = hmac.new(live_session_secret().encode("utf-8"), data.encode("utf-8"), "sha256").hexdigest()
+    sig = hmac.new(
+        live_session_secret().encode("utf-8"), data.encode("utf-8"), "sha256"
+    ).hexdigest()
     return f"{data}.{sig}"

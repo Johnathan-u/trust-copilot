@@ -40,7 +40,10 @@ from typing import Iterable, Iterator
 # Severity "block" = must never be present; "review" = inventory only.
 # ---------------------------------------------------------------------------
 
-_SECRET_NAME = r"[A-Z0-9_]*(?:SECRET|PASSWORD|PASSWD|TOKEN|API_KEY|APIKEY|ACCESS_KEY|PRIVATE_KEY|SIGNING_KEY|CLIENT_SECRET|WEBHOOK_SECRET|FERNET_KEY)[A-Z0-9_]*"
+_SECRET_NAME = (
+    r"[A-Z0-9_]*(?:SECRET|PASSWORD|PASSWD|TOKEN|API_KEY|APIKEY|ACCESS_KEY|PRIVATE_KEY"
+    r"|SIGNING_KEY|CLIENT_SECRET|WEBHOOK_SECRET|FERNET_KEY)[A-Z0-9_]*"
+)
 _LIT = r"""(?P<q>["'])(?P<val>[^"'\n]*)(?P=q)"""
 
 
@@ -59,62 +62,162 @@ class Rule:
 
 
 RULES: list[Rule] = [
-    Rule("private-key-block", "PEM private key", "block",
-         re.compile(r"-----BEGIN (?:RSA |EC |DSA |OPENSSH |PGP |ENCRYPTED )?PRIVATE KEY-----")),
-    Rule("aws-access-key-id", "AWS access key id", "block",
-         re.compile(r"\b(?P<val>(?:AKIA|ASIA)[0-9A-Z]{16})\b")),
-    Rule("openai-api-key", "OpenAI API key", "block",
-         re.compile(r"\b(?P<val>sk-(?:proj-|svcacct-)?[A-Za-z0-9_\-]{32,})")),
-    Rule("stripe-key", "Stripe secret/restricted key", "block",
-         re.compile(r"\b(?P<val>(?:sk|rk)_(?:live|test)_[0-9A-Za-z]{16,})")),
-    Rule("stripe-webhook-secret", "Stripe webhook signing secret", "block",
-         re.compile(r"\b(?P<val>whsec_[0-9A-Za-z]{16,})")),
-    Rule("github-token", "GitHub token", "block",
-         re.compile(r"\b(?P<val>(?:gh[pousr]_[A-Za-z0-9]{36,}|github_pat_[A-Za-z0-9_]{40,}))")),
-    Rule("slack-token", "Slack token", "block",
-         re.compile(r"\b(?P<val>xox[abposr]-[0-9]{6,}-[A-Za-z0-9\-]{10,})")),
-    Rule("google-api-key", "Google API key", "block",
-         re.compile(r"\b(?P<val>AIza[0-9A-Za-z\-_]{35})")),
-    Rule("jwt", "JSON Web Token", "block",
-         re.compile(r"\b(?P<val>eyJ[A-Za-z0-9_\-]{10,}\.eyJ[A-Za-z0-9_\-]{10,}\.[A-Za-z0-9_\-]{10,})")),
-    Rule("signed-session-cookie", "Signed tc_session cookie (base64 payload + HMAC)", "block",
-         re.compile(r"(?P<val>eyJ[A-Za-z0-9_\-=]{16,}\.[0-9a-f]{64})\b")),
-    Rule("hmac-literal-key", "HMAC computed with a literal key", "block",
-         re.compile(r"hmac\.new\(\s*b?" + _LIT)),
-    # Secret-named constant / env var / mapping key assigned a high-entropy literal: a real credential.
-    Rule("high-entropy-secret-assignment", "High-entropy literal assigned to a secret-named variable", "block",
-         re.compile(r"(?<![A-Za-z0-9_])(?:\$env:|export\s+|environ\[[\"'])?" + _SECRET_NAME
-                    + r"[\"']?\]?\s*(?:=|:)\s*" + _LIT),
-         min_len=16, min_entropy=3.0),
+    Rule(
+        "private-key-block",
+        "PEM private key",
+        "block",
+        re.compile(r"-----BEGIN (?:RSA |EC |DSA |OPENSSH |PGP |ENCRYPTED )?PRIVATE KEY-----"),
+    ),
+    Rule(
+        "aws-access-key-id",
+        "AWS access key id",
+        "block",
+        re.compile(r"\b(?P<val>(?:AKIA|ASIA)[0-9A-Z]{16})\b"),
+    ),
+    Rule(
+        "openai-api-key",
+        "OpenAI API key",
+        "block",
+        re.compile(r"\b(?P<val>sk-(?:proj-|svcacct-)?[A-Za-z0-9_\-]{32,})"),
+    ),
+    Rule(
+        "stripe-key",
+        "Stripe secret/restricted key",
+        "block",
+        re.compile(r"\b(?P<val>(?:sk|rk)_(?:live|test)_[0-9A-Za-z]{16,})"),
+    ),
+    Rule(
+        "stripe-webhook-secret",
+        "Stripe webhook signing secret",
+        "block",
+        re.compile(r"\b(?P<val>whsec_[0-9A-Za-z]{16,})"),
+    ),
+    Rule(
+        "github-token",
+        "GitHub token",
+        "block",
+        re.compile(r"\b(?P<val>(?:gh[pousr]_[A-Za-z0-9]{36,}|github_pat_[A-Za-z0-9_]{40,}))"),
+    ),
+    Rule(
+        "slack-token",
+        "Slack token",
+        "block",
+        re.compile(r"\b(?P<val>xox[abposr]-[0-9]{6,}-[A-Za-z0-9\-]{10,})"),
+    ),
+    Rule(
+        "google-api-key",
+        "Google API key",
+        "block",
+        re.compile(r"\b(?P<val>AIza[0-9A-Za-z\-_]{35})"),
+    ),
+    Rule(
+        "jwt",
+        "JSON Web Token",
+        "block",
+        re.compile(
+            r"\b(?P<val>eyJ[A-Za-z0-9_\-]{10,}\.eyJ[A-Za-z0-9_\-]{10,}\.[A-Za-z0-9_\-]{10,})"
+        ),
+    ),
+    Rule(
+        "signed-session-cookie",
+        "Signed tc_session cookie (base64 payload + HMAC)",
+        "block",
+        re.compile(r"(?P<val>eyJ[A-Za-z0-9_\-=]{16,}\.[0-9a-f]{64})\b"),
+    ),
+    Rule(
+        "hmac-literal-key",
+        "HMAC computed with a literal key",
+        "block",
+        re.compile(r"hmac\.new\(\s*b?" + _LIT),
+    ),
+    # Secret-named constant / env var / mapping key assigned a high-entropy literal:
+    # a real credential.
+    Rule(
+        "high-entropy-secret-assignment",
+        "High-entropy literal assigned to a secret-named variable",
+        "block",
+        re.compile(
+            r"(?<![A-Za-z0-9_])(?:\$env:|export\s+|environ\[[\"'])?"
+            + _SECRET_NAME
+            + r"[\"']?\]?\s*(?:=|:)\s*"
+            + _LIT
+        ),
+        min_len=16,
+        min_entropy=3.0,
+    ),
     # Literal fallback for a secret-named setting in getenv/environ.get.
-    Rule("secret-env-default", "Literal default for a secret-named environment variable", "block",
-         re.compile(r"(?:getenv|environ\.get)\(\s*[\"']" + _SECRET_NAME + r"[\"']\s*,\s*" + _LIT),
-         min_len=1, multiline=True),
+    Rule(
+        "secret-env-default",
+        "Literal default for a secret-named environment variable",
+        "block",
+        re.compile(r"(?:getenv|environ\.get)\(\s*[\"']" + _SECRET_NAME + r"[\"']\s*,\s*" + _LIT),
+        min_len=1,
+        multiline=True,
+    ),
     # Any literal assigned to a secret-named constant in shipped application code.
-    Rule("app-secret-literal", "Literal assigned to a secret-named variable in application code", "block",
-         re.compile(r"(?<![A-Za-z0-9_])" + _SECRET_NAME + r"\s*(?::\s*str\s*)?=\s*" + _LIT),
-         min_len=1, app_code_only=True),
+    Rule(
+        "app-secret-literal",
+        "Literal assigned to a secret-named variable in application code",
+        "block",
+        re.compile(r"(?<![A-Za-z0-9_])" + _SECRET_NAME + r"\s*(?::\s*str\s*)?=\s*" + _LIT),
+        min_len=1,
+        app_code_only=True,
+    ),
     # Credentials embedded in a URL (scheme://user:password@host).
-    Rule("url-embedded-credential", "Password embedded in a connection URL", "block",
-         re.compile(r"[a-z][a-z0-9+.\-]*://[^:/@\s\"']+:(?P<val>[^@/\s\"']+)@"),
-         min_len=12, min_entropy=3.0),
-    Rule("url-credential-review", "Low-entropy password embedded in a connection URL (dev default)", "review",
-         re.compile(r"[a-z][a-z0-9+.\-]*://[^:/@\s\"']+:(?P<val>[^@/\s\"']+)@"),
-         min_len=1),
+    Rule(
+        "url-embedded-credential",
+        "Password embedded in a connection URL",
+        "block",
+        re.compile(r"[a-z][a-z0-9+.\-]*://[^:/@\s\"']+:(?P<val>[^@/\s\"']+)@"),
+        min_len=12,
+        min_entropy=3.0,
+    ),
+    Rule(
+        "url-credential-review",
+        "Low-entropy password embedded in a connection URL (dev default)",
+        "review",
+        re.compile(r"[a-z][a-z0-9+.\-]*://[^:/@\s\"']+:(?P<val>[^@/\s\"']+)@"),
+        min_len=1,
+    ),
     # Unquoted secret-named values in YAML / dotenv / shell / PowerShell / Docker files.
-    Rule("config-secret-value", "High-entropy secret-named value in a config/deploy file", "block",
-         re.compile(r"^\s*(?:-\s*)?(?:export\s+|\$env:)?" + _SECRET_NAME
-                    + r"\s*[:=]\s*(?P<val>[^\s\"'#$<{][^\s#]*)"),
-         min_len=12, min_entropy=3.0, config_only=True),
-    Rule("config-secret-review", "Secret-named value in a config/deploy file (dev default)", "review",
-         re.compile(r"^\s*(?:-\s*)?(?:export\s+|\$env:)?" + _SECRET_NAME
-                    + r"\s*[:=]\s*(?P<val>[^\s\"'#$<{][^\s#]*)"),
-         min_len=1, config_only=True),
+    Rule(
+        "config-secret-value",
+        "High-entropy secret-named value in a config/deploy file",
+        "block",
+        re.compile(
+            r"^\s*(?:-\s*)?(?:export\s+|\$env:)?"
+            + _SECRET_NAME
+            + r"\s*[:=]\s*(?P<val>[^\s\"'#$<{][^\s#]*)"
+        ),
+        min_len=12,
+        min_entropy=3.0,
+        config_only=True,
+    ),
+    Rule(
+        "config-secret-review",
+        "Secret-named value in a config/deploy file (dev default)",
+        "review",
+        re.compile(
+            r"^\s*(?:-\s*)?(?:export\s+|\$env:)?"
+            + _SECRET_NAME
+            + r"\s*[:=]\s*(?P<val>[^\s\"'#$<{][^\s#]*)"
+        ),
+        min_len=1,
+        config_only=True,
+    ),
     # Inventory-only: low-entropy secret-named literals in tests/scripts/compose files.
-    Rule("secret-literal-review", "Low-entropy literal for a secret-named variable (synthetic/dev default)", "review",
-         re.compile(r"(?<![A-Za-z0-9_])(?:\$env:|export\s+|environ\[[\"'])?" + _SECRET_NAME
-                    + r"[\"']?\]?\s*(?:=|:)\s*" + _LIT),
-         min_len=1),
+    Rule(
+        "secret-literal-review",
+        "Low-entropy literal for a secret-named variable (synthetic/dev default)",
+        "review",
+        re.compile(
+            r"(?<![A-Za-z0-9_])(?:\$env:|export\s+|environ\[[\"'])?"
+            + _SECRET_NAME
+            + r"[\"']?\]?\s*(?:=|:)\s*"
+            + _LIT
+        ),
+        min_len=1,
+    ),
 ]
 
 # Shipped application code (rules with app_code_only apply only here).
@@ -123,23 +226,54 @@ APP_CODE_PREFIXES = ("apps/api/app/", "apps/web/app/", "apps/web/components/", "
 # Placeholder values that are documentation, not credentials. Compared case-insensitively
 # against the matched literal; nothing here is a real value.
 _PLACEHOLDER_RE = re.compile(
-    r"^(?:|x+|\*+|\.\.\.|<[^>]*>|\$\{[^}]*\}|\$[A-Z_]+|placeholder.*|your[-_ ].*|replace[-_ ]?me.*|set[-_ ]?me.*"
+    r"^(?:|x+|\*+|\.\.\.|<[^>]*>|\$\{[^}]*\}|\$[A-Z_]+|placeholder.*|your[-_ ].*"
+    r"|replace[-_ ]?me.*|set[-_ ]?me.*"
     r"|changeme|example.*|redacted|dummy|test|none|null|false|true)$",
     re.IGNORECASE,
 )
 
-SKIP_DIRS = {".git", "node_modules", ".next", "__pycache__", ".venv", "venv", ".pytest_cache", ".ruff_cache"}
-SKIP_SUFFIXES = {".png", ".jpg", ".jpeg", ".gif", ".ico", ".svg", ".woff", ".woff2", ".ttf", ".pdf",
-                 ".xlsx", ".xls", ".docx", ".doc", ".gz", ".mp4", ".webm", ".pyc"}
+SKIP_DIRS = {
+    ".git",
+    "node_modules",
+    ".next",
+    "__pycache__",
+    ".venv",
+    "venv",
+    ".pytest_cache",
+    ".ruff_cache",
+}
+SKIP_SUFFIXES = {
+    ".png",
+    ".jpg",
+    ".jpeg",
+    ".gif",
+    ".ico",
+    ".svg",
+    ".woff",
+    ".woff2",
+    ".ttf",
+    ".pdf",
+    ".xlsx",
+    ".xls",
+    ".docx",
+    ".doc",
+    ".gz",
+    ".mp4",
+    ".webm",
+    ".pyc",
+}
 SKIP_FILES = {"package-lock.json", "pnpm-lock.yaml", "yarn.lock"}
 # The scanner and its regression test describe the patterns; they contain no values.
-SELF_PATHS = {"scripts/security/secret_inventory.py", "apps/api/tests/release/test_secret_inventory.py"}
+SELF_PATHS = {
+    "scripts/security/secret_inventory.py",
+    "apps/api/tests/release/test_secret_inventory.py",
+}
 MAX_BYTES = 2_000_000
 
 
 @dataclass(frozen=True)
 class Finding:
-    source: str      # "tree" | "history" | "artifact"
+    source: str  # "tree" | "history" | "artifact"
     path: str
     line: int
     rule: str
@@ -167,7 +301,10 @@ def _is_placeholder(v: str) -> bool:
 
 
 def _looks_like_reference(v: str) -> bool:
-    """Values that name something rather than being a credential (URLs, paths, env names, cookie names)."""
+    """Values that name something rather than being a credential.
+
+    URLs, paths, env names, cookie names, shell interpolation and command substitution.
+    """
     s = v.strip()
     if s.startswith(("http://", "https://", "/", "./", "../")):
         return True
@@ -175,18 +312,37 @@ def _looks_like_reference(v: str) -> bool:
         return True
     if "${" in s:  # shell/compose interpolation; its :- default line is reviewed separately
         return True
+    if re.fullmatch(
+        r"\$\([^()]*\)", s
+    ):  # shell command substitution, e.g. "$(openssl rand -hex 24)"
+        return True
     if s.startswith("[") or re.search(r"[A-Za-z_]\w*(\.\w+|::\w+)*\(", s):  # expression / call
         return True
     return False
 
 
-CONFIG_SUFFIXES = {".yml", ".yaml", ".env", ".sh", ".ps1", ".toml", ".ini", ".conf", ".cfg", ".properties"}
+CONFIG_SUFFIXES = {
+    ".yml",
+    ".yaml",
+    ".env",
+    ".sh",
+    ".ps1",
+    ".toml",
+    ".ini",
+    ".conf",
+    ".cfg",
+    ".properties",
+}
 
 
 def _is_config(path: str) -> bool:
     name = path.rsplit("/", 1)[-1]
-    return (Path(name).suffix.lower() in CONFIG_SUFFIXES or name.startswith(".env")
-            or name.startswith(("Dockerfile", "Caddyfile")) or name.endswith(".env"))
+    return (
+        Path(name).suffix.lower() in CONFIG_SUFFIXES
+        or name.startswith(".env")
+        or name.startswith(("Dockerfile", "Caddyfile"))
+        or name.endswith(".env")
+    )
 
 
 def _value_ok(rule: Rule, val: str | None) -> bool:
@@ -208,7 +364,11 @@ def scan_text(text: str, path: str, source: str = "tree", commit: str = "") -> l
     is_cfg = _is_config(norm)
     seen: set[tuple[int, str]] = set()
     for rule in RULES:
-        if not rule.multiline or (rule.app_code_only and not is_app) or (rule.config_only and not is_cfg):
+        if (
+            not rule.multiline
+            or (rule.app_code_only and not is_app)
+            or (rule.config_only and not is_cfg)
+        ):
             continue
         for m in rule.pattern.finditer(text):
             if not _value_ok(rule, m.groupdict().get("val")):
@@ -216,17 +376,36 @@ def scan_text(text: str, path: str, source: str = "tree", commit: str = "") -> l
             lineno = text.count("\n", 0, m.start()) + 1
             if (lineno, rule.rule_id) not in seen:
                 seen.add((lineno, rule.rule_id))
-                findings.append(Finding(source, norm, lineno, rule.rule_id, rule.kind, rule.severity, commit))
+                findings.append(
+                    Finding(source, norm, lineno, rule.rule_id, rule.kind, rule.severity, commit)
+                )
     for lineno, line in enumerate(text.splitlines(), 1):
         if len(line) > 5000:  # minified bundles: only check token formats
-            candidates = [r for r in RULES if r.rule_id in {
-                "private-key-block", "aws-access-key-id", "openai-api-key", "stripe-key",
-                "stripe-webhook-secret", "github-token", "slack-token", "google-api-key",
-                "jwt", "signed-session-cookie"}]
+            candidates = [
+                r
+                for r in RULES
+                if r.rule_id
+                in {
+                    "private-key-block",
+                    "aws-access-key-id",
+                    "openai-api-key",
+                    "stripe-key",
+                    "stripe-webhook-secret",
+                    "github-token",
+                    "slack-token",
+                    "google-api-key",
+                    "jwt",
+                    "signed-session-cookie",
+                }
+            ]
         else:
             candidates = RULES
         for rule in candidates:
-            if rule.multiline or (rule.app_code_only and not is_app) or (rule.config_only and not is_cfg):
+            if (
+                rule.multiline
+                or (rule.app_code_only and not is_app)
+                or (rule.config_only and not is_cfg)
+            ):
                 continue
             for m in rule.pattern.finditer(line):
                 if not _value_ok(rule, m.groupdict().get("val")):
@@ -235,7 +414,9 @@ def scan_text(text: str, path: str, source: str = "tree", commit: str = "") -> l
                 if key in seen:
                     continue
                 seen.add(key)
-                findings.append(Finding(source, norm, lineno, rule.rule_id, rule.kind, rule.severity, commit))
+                findings.append(
+                    Finding(source, norm, lineno, rule.rule_id, rule.kind, rule.severity, commit)
+                )
     # A block finding supersedes a review finding on the same line.
     blocked = {f.line for f in findings if f.severity == "block"}
     return [f for f in findings if not (f.severity == "review" and f.line in blocked)]
@@ -278,6 +459,7 @@ def _scan_archive(data: bytes, rel: str, source: str, commit: str = "") -> list[
     """Scan text members of a zip archive (e.g. Playwright trace.zip) without extracting to disk."""
     import io
     import zipfile
+
     out: list[Finding] = []
     try:
         zf = zipfile.ZipFile(io.BytesIO(data))
@@ -339,8 +521,16 @@ def scan_paths(root: Path, paths: Iterable[str]) -> list[Finding]:
     out: list[Finding] = []
     for p in paths:
         base = (root / p) if not Path(p).is_absolute() else Path(p)
-        files = [base] if base.is_file() else [Path(d, f) for d, ds, fs in os.walk(base)
-                                                for f in fs if not (set(Path(d).parts) & SKIP_DIRS)]
+        files = (
+            [base]
+            if base.is_file()
+            else [
+                Path(d, f)
+                for d, ds, fs in os.walk(base)
+                for f in fs
+                if not (set(Path(d).parts) & SKIP_DIRS)
+            ]
+        )
         for f in files:
             try:
                 rel = str(f.relative_to(root))
@@ -353,8 +543,13 @@ def scan_paths(root: Path, paths: Iterable[str]) -> list[Finding]:
 
 
 def scan_history(root: Path) -> list[Finding]:
-    """Scan every blob reachable from any ref, once, attributing it to the first commit that added it."""
-    res = _git(root, "log", "--all", "--reverse", "--format=%h", "--raw", "--no-renames", "--no-abbrev")
+    """Scan every blob reachable from any ref once.
+
+    Each blob is attributed to the first commit that added it.
+    """
+    res = _git(
+        root, "log", "--all", "--reverse", "--format=%h", "--raw", "--no-renames", "--no-abbrev"
+    )
     if res.returncode != 0:
         raise RuntimeError("git history is not available")
     blobs: dict[str, tuple[str, str]] = {}
@@ -375,8 +570,11 @@ def scan_history(root: Path) -> list[Finding]:
     out: list[Finding] = []
     if not blobs:
         return out
-    proc = subprocess.Popen(["git", "-C", str(root), "cat-file", "--batch"],
-                            stdin=subprocess.PIPE, stdout=subprocess.PIPE)
+    proc = subprocess.Popen(
+        ["git", "-C", str(root), "cat-file", "--batch"],
+        stdin=subprocess.PIPE,
+        stdout=subprocess.PIPE,
+    )
     assert proc.stdin and proc.stdout
     for sha, (path, c) in blobs.items():
         proc.stdin.write(f"{sha}\n".encode())
@@ -408,8 +606,11 @@ def summarize(findings: list[Finding]) -> dict:
     for f in findings:
         k = f"{f.source}:{f.severity}"
         by[k] = by.get(k, 0) + 1
-    return {"total": len(findings), "by_source_severity": by,
-            "block": sum(1 for f in findings if f.severity == "block")}
+    return {
+        "total": len(findings),
+        "by_source_severity": by,
+        "block": sum(1 for f in findings if f.severity == "block"),
+    }
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -437,8 +638,14 @@ def main(argv: list[str] | None = None) -> int:
     summary = summarize(findings)
     print(json.dumps(summary, sort_keys=True))
     if args.json_out:
-        Path(args.json_out).write_text(json.dumps(
-            {"summary": summary, "findings": [asdict(f) for f in findings]}, indent=2, sort_keys=True) + "\n")
+        Path(args.json_out).write_text(
+            json.dumps(
+                {"summary": summary, "findings": [asdict(f) for f in findings]},
+                indent=2,
+                sort_keys=True,
+            )
+            + "\n"
+        )
     if args.fail_on == "block" and summary["block"]:
         return 1
     return 0
