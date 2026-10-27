@@ -23,10 +23,11 @@ import tempfile  # noqa: E402
 import threading  # noqa: E402
 import time  # noqa: E402
 from concurrent.futures import ThreadPoolExecutor, as_completed  # noqa: E402, F401
-from datetime import datetime, timezone  # noqa: E402
+from datetime import datetime, timedelta, timezone  # noqa: E402
 from pathlib import Path  # noqa: E402
 
-from sqlalchemy import and_, create_engine, text  # noqa: E402
+from sqlalchemy import and_, create_engine, func, or_, text  # noqa: E402
+from sqlalchemy.exc import IntegrityError  # noqa: E402
 from sqlalchemy.orm import sessionmaker  # noqa: E402
 
 from app.core.config import get_settings  # noqa: E402
@@ -34,6 +35,21 @@ from app.core.pipeline_logging import log_job_failure, log_job_start, log_job_su
 from app.core.metrics import JOB_COMPLETED_TOTAL, JOB_STARTED_TOTAL  # noqa: E402
 from app.models import Document, Job, JobStatus, Question, Questionnaire  # noqa: E402
 from app.core.audit import persist_audit  # noqa: E402
+from app.core.job_errors import (  # noqa: E402
+    AUTH_FAILED,
+    MAX_ATTEMPTS_CEILING,
+    RetryableJobError,
+    TerminalJobError,
+    backoff_delay,
+    classify,
+    effective_max_attempts,
+    is_fatal_code,
+    is_retryable_code,
+    retry_after_seconds,
+    retry_base_seconds,
+    retry_max_seconds,
+    safe_error_message,
+)
 from app.services.file_service import FileService  # noqa: E402
 from app.services.storage import StorageClient  # noqa: E402
 from app.services.docx_questionnaire_parser import parse_docx_questionnaire  # noqa: E402
@@ -51,7 +67,6 @@ from app.services.job_effects import (  # noqa: E402
     mark_unsettled_uncertain,
     reconcile_previous_attempts,
 )
-from app.services.model_outcomes import failure_from_exception  # noqa: E402
 from app.worker_health import HeartbeatState, HeartbeatThread  # noqa: E402
 
 settings = get_settings()
@@ -119,13 +134,37 @@ def _adapt_thread_count(had_work: bool) -> int:
         return _active_threads
 
 
+def _utcnow_naive() -> datetime:
+    """Naive UTC, matching the naive ``DateTime`` job columns."""
+    return datetime.now(timezone.utc).replace(tzinfo=None)
+
+
+def claimable_filter(now: datetime | None = None):
+    """Queued, attempts left under the capped budget, and any scheduled retry backoff has elapsed.
+
+    The budget is ``effective_max_attempts`` (NULL defaults to 3, then clamped to
+    ``[1, MAX_ATTEMPTS_CEILING]``), not the raw ``jobs.max_attempts`` column.
+    """
+    now = now or _utcnow_naive()
+    capped_attempts = func.least(
+        func.greatest(func.coalesce(Job.max_attempts, 3), 1),
+        MAX_ATTEMPTS_CEILING,
+    )
+    return and_(
+        Job.status == JobStatus.QUEUED.value,
+        Job.attempt < capped_attempts,
+        or_(Job.next_attempt_at.is_(None), Job.next_attempt_at <= now),
+    )
+
+
 def claim_job(session) -> Job | None:
-    """Claim next queued job with round-robin fair scheduling across workspaces."""
+    """Claim next queued job with round-robin fair scheduling across workspaces.
+
+    TC-10-002: a retry scheduled by ``_handle_job_failure`` is not claimable before ``next_attempt_at``.
+    """
     global _last_claimed_workspace_id
 
-    base = session.query(Job).filter(
-        and_(Job.status == JobStatus.QUEUED.value, Job.attempt < Job.max_attempts)
-    )
+    base = session.query(Job).filter(claimable_filter())
     if _last_claimed_workspace_id is not None:
         job = (
             base.filter(Job.workspace_id != _last_claimed_workspace_id)
@@ -143,6 +182,9 @@ def claim_job(session) -> Job | None:
     job.status = JobStatus.RUNNING.value
     job.attempt += 1
     job.started_at = datetime.now(timezone.utc)
+    job.next_attempt_at = (
+        None  # the scheduled retry is now running (error/error_code keep the last failure)
+    )
     session.commit()
     session.refresh(job)
     # TC-10-003: provider calls of earlier attempts that never settled may have been charged.
@@ -163,7 +205,8 @@ def _set_outcome(job: Job, outcome: str, **extra) -> None:
 
 def _job_outcome(job: Job) -> str | None:
     try:
-        # getattr: a probe stand-in (not a mapped Job) has no result column.
+        # getattr: a job without a result attribute (e.g. TC-03-003's heartbeat probe double) has no outcome;
+        # an AttributeError here would turn a completed job into a failure.
         data = json.loads(getattr(job, "result", None) or "{}")
     except (TypeError, ValueError):
         return None
@@ -473,6 +516,48 @@ def run_generate_answers(job: Job, session, payload: dict) -> None:
         job.result = json.dumps(prev)
     except Exception:
         job.result = json.dumps({"count": count, "generated": count, "total": count})
+    _raise_for_generation_errors(job, session)
+
+
+def _raise_for_generation_errors(job: Job, session) -> None:
+    """TC-10-002: never label a run "completed" while provider errors left placeholders behind.
+
+    Per-question provider failures become ``insufficient_evidence`` placeholders (``insufficient_reason=llm_error``)
+    and are counted in ``result.stats`` by ``answer_generation``. Auth/permission/config failures stop the job
+    explicitly (terminal); transient ones (429/timeout/5xx/connection, after the inner retries) fail the attempt as
+    retryable so the job-level retry regenerates only those placeholders. Bad-request/unknown per-question errors
+    stay as visible placeholders (counted in ``stats.llm_errors``) and do not fail the job.
+    """
+    try:
+        data = json.loads(job.result or "{}")
+    except (TypeError, ValueError):
+        return
+    stats = data.get("stats") if isinstance(data, dict) else None
+    if not isinstance(stats, dict):
+        return
+    auth = int(stats.get("llm_errors_auth_config") or 0)
+    transient = int(stats.get("llm_errors_retryable") or 0)
+    if not auth and not transient:
+        return
+    total = data.get("total")
+    session.commit()  # keep the progress/stats of this attempt visible on the job
+    if auth:
+        code = stats.get("llm_error_code_auth_config")
+        if not is_fatal_code(code) or is_retryable_code(code):
+            code = AUTH_FAILED
+        raise TerminalJobError(
+            code,
+            f"{auth} of {total} question(s) failed: the AI provider rejected the credentials or configuration "
+            f"({code}). Failed questions were left as insufficient-evidence placeholders.",
+        )
+    code = stats.get("llm_error_code_retryable")
+    if not is_retryable_code(code):
+        code = "upstream_unavailable"
+    raise RetryableJobError(
+        code,
+        f"{transient} of {total} question(s) failed with a transient AI provider error ({code}); "
+        "only those questions are regenerated on retry.",
+    )
 
 
 def run_export(job: Job, session, payload: dict) -> None:
@@ -619,9 +704,13 @@ def run_job(job: Job, session) -> None:
         raise ValueError(f"Unknown job kind: {job.kind}")
 
 
-def _persist_job_audit(session, job: Job, action: str, payload: dict, error: str | None) -> None:
-    """Persist job completion/failure for audit trail."""
+def _persist_job_audit(
+    session, job: Job, action: str, payload: dict, error: str | None, extra: dict | None = None
+) -> None:
+    """Persist job completion/failure/retry for audit trail."""
     details = {"kind": job.kind, "workspace_id": job.workspace_id}
+    if extra:
+        details.update(extra)
     if payload.get("document_id") is not None:
         details["document_id"] = payload["document_id"]
     if payload.get("questionnaire_id") is not None:
@@ -636,6 +725,247 @@ def _persist_job_audit(session, job: Job, action: str, payload: dict, error: str
         resource_id=job.id,
         details=details,
     )
+
+
+def _queued_duplicate_id(session, job: Job) -> int | None:
+    """Id of another QUEUED job with the same (workspace, kind, idempotency_key), if any (TC-10-003 index)."""
+    if not job.idempotency_key:
+        return None
+    row = (
+        session.query(Job.id)
+        .filter(
+            Job.workspace_id == job.workspace_id,
+            Job.kind == job.kind,
+            Job.idempotency_key == job.idempotency_key,
+            Job.status == JobStatus.QUEUED.value,
+            Job.id != job.id,
+        )
+        .first()
+    )
+    return row[0] if row else None
+
+
+def _try_schedule_retry(
+    session, job: Job, code: str, message: str, next_at: datetime
+) -> int | None:
+    """Re-queue ``job`` for ``next_at``. Returns None on success, else the id of the identical queued job that
+    already holds the queued idempotency slot (then the job is not re-queued)."""
+    dup = _queued_duplicate_id(session, job)
+    if dup is not None:
+        return dup
+    try:
+        with session.begin_nested():
+            job.status = JobStatus.QUEUED.value
+            job.error_code = code
+            job.error = message
+            job.next_attempt_at = next_at
+            job.completed_at = None
+            session.flush()
+    except IntegrityError:
+        # Lost a race with a new enqueue of the same input (uq_jobs_queued_idempotency_key).
+        return _queued_duplicate_id(session, job) or -1
+    return None
+
+
+def _clear_stale_attempt_error(
+    job: Job, prior_error: str | None, prior_error_code: str | None
+) -> None:
+    """On success, drop the error an earlier failed attempt left on the job (history is in the audit log).
+
+    Only values unchanged since the job was claimed are cleared: an ``error``/``error_code`` that the
+    handler set during this run (e.g. a non-fatal ``evidence_gaps_failed`` on a completed job) is kept.
+    """
+    if getattr(job, "error_code", None) == prior_error_code:
+        job.error_code = None
+    if getattr(job, "error", None) == prior_error:
+        job.error = None
+
+
+def _job_already_completed(session, job: Job) -> bool:
+    """True when the database already records ``job`` as completed (checked after a rollback)."""
+    try:
+        status = session.query(Job.status).filter(Job.id == job.id).scalar()
+    except Exception:
+        session.rollback()
+        return False
+    return status == JobStatus.COMPLETED.value
+
+
+def _handle_job_failure(
+    session, job: Job, payload: dict, exc: Exception, duration_ms: float
+) -> None:
+    """TC-10-002: classify the failure, then either schedule a bounded retry or fail explicitly.
+
+    * Retryable (429 / timeout / 5xx / connection / DB unavailable) and attempts left: the job goes back to
+      ``queued`` with ``error_code``, a safe ``error`` describing the failed attempt and ``next_attempt_at``
+      (exponential backoff with jitter, capped). Audited as ``job.retry_scheduled``. No admin alert yet.
+    * Otherwise: ``failed`` with ``error_code``. Retryable codes that ran out of attempts are prefixed
+      "Retries exhausted after N attempts" so exhaustion is never mistaken for success or a one-off failure.
+    Raw provider/storage bodies are never stored in ``job.error`` for upstream codes.
+    """
+    log = logging.getLogger(__name__)
+    session.rollback()
+    if _job_already_completed(session, job):
+        # The job's completion is already committed (e.g. a post-commit step raised). Never turn it into a
+        # failure or retry, and keep the error_code it completed with (a completed job can carry a
+        # non-fatal code, e.g. TC-02-BUG-015's evidence_gaps_failed).
+        log.warning(
+            "job_id=%s kind=%s raised after it completed; status and error_code left unchanged (%s)",
+            job.id,
+            job.kind,
+            type(exc).__name__,
+        )
+        return
+    code = classify(exc)
+    retryable = is_retryable_code(code)
+    attempt = int(job.attempt or 0)
+    max_attempts = effective_max_attempts(job.max_attempts)
+    safe = safe_error_message(exc, code)
+    now = _utcnow_naive()
+    try:
+        mark_unsettled_uncertain(session, job)
+    except Exception:
+        log.warning("mark_unsettled_uncertain failed job_id=%s", job.id, exc_info=True)
+
+    dup_id = None
+    if retryable and attempt < max_attempts:
+        delay = backoff_delay(
+            attempt,
+            base=retry_base_seconds(),
+            cap=retry_max_seconds(),
+            retry_after=retry_after_seconds(exc),
+        )
+        next_at = now + timedelta(seconds=delay)
+        message = (
+            f"Attempt {attempt} of {max_attempts} failed ({code}): {safe}. "
+            f"Next attempt scheduled at {next_at.isoformat(timespec='seconds')}Z."
+        )
+        dup_id = _try_schedule_retry(session, job, code, message, next_at)
+        if dup_id is None:
+            log_job_failure(
+                job.kind,
+                job.id,
+                job.workspace_id,
+                message,
+                duration_ms,
+                document_id=payload.get("document_id"),
+                questionnaire_id=payload.get("questionnaire_id"),
+            )
+            JOB_COMPLETED_TOTAL.labels(kind=job.kind, status="retry_scheduled").inc()
+            log.warning(
+                "JOB_RETRY_SCHEDULED job_id=%s kind=%s workspace_id=%s error_code=%s attempt=%s/%s delay=%.1fs",
+                job.id,
+                job.kind,
+                job.workspace_id,
+                code,
+                attempt,
+                max_attempts,
+                delay,
+            )
+            _persist_job_audit(
+                session,
+                job,
+                "job.retry_scheduled",
+                payload,
+                error=message,
+                extra={
+                    "error_code": code,
+                    "attempt": attempt,
+                    "max_attempts": max_attempts,
+                    "next_attempt_at": next_at.isoformat(),
+                    "delay_seconds": round(delay, 3),
+                },
+            )
+            if job.kind == "index_document" and payload.get("document_id"):
+                # index_service marks the document failed before raising; a retry is pending, so show the
+                # document as awaiting indexing (with the attempt's error) rather than permanently failed.
+                doc = session.query(Document).filter(Document.id == payload["document_id"]).first()
+                if doc is not None and doc.status == "failed":
+                    doc.status = "uploaded"
+                    doc.index_error = message[:512]
+            session.commit()
+            return
+
+    exhausted = retryable and dup_id is None
+    if dup_id is not None:
+        ref = f"job {dup_id}" if dup_id > 0 else "another job"
+        message = (
+            f"Attempt {attempt} of {max_attempts} failed ({code}): {safe}. Not retried: an identical queued "
+            f"{ref} will process this input."
+        )
+    elif exhausted:
+        message = f"Retries exhausted after {attempt} attempt(s) ({code}): {safe}"
+    else:
+        message = safe
+    job.status = JobStatus.FAILED.value
+    job.error_code = code
+    job.error = message
+    job.next_attempt_at = None
+    job.completed_at = datetime.now(timezone.utc)
+    session.merge(job)
+    log_job_failure(
+        job.kind,
+        job.id,
+        job.workspace_id,
+        message,
+        duration_ms,
+        document_id=payload.get("document_id"),
+        questionnaire_id=payload.get("questionnaire_id"),
+    )
+    JOB_COMPLETED_TOTAL.labels(kind=job.kind, status="failed").inc()
+    logging.getLogger("trustcopilot.alert").warning(
+        "ALERT_JOB_FAILURE job_id=%s kind=%s workspace_id=%s error_code=%s error=%s",
+        job.id,
+        job.kind,
+        job.workspace_id,
+        code,
+        message[:200],
+    )
+    _persist_job_audit(
+        session,
+        job,
+        "job.failed",
+        payload,
+        error=message,
+        extra={
+            "error_code": code,
+            "attempt": attempt,
+            "max_attempts": max_attempts,
+            "retries_exhausted": exhausted,
+        },
+    )
+    if job.kind in ("export", "generate_answers"):
+        try:
+            label = "Export" if job.kind == "export" else "Draft answer generation"
+            notify_admins(
+                session,
+                job.workspace_id,
+                f"{label} failed",
+                message[:200],
+                category="error",
+                link="/dashboard/exports" if job.kind == "export" else "/dashboard/review",
+            )
+        except Exception:
+            pass
+    if job.kind == "index_document":
+        doc_id = payload.get("document_id")
+        if doc_id:
+            doc = session.query(Document).filter(Document.id == doc_id).first()
+            if doc:
+                doc.status = "failed"
+                doc.index_error = message[:512] if message else None
+                session.merge(doc)
+    if job.kind == "parse_questionnaire" and isinstance(exc, PdfTextError):
+        # Image-only / encrypted / corrupt PDF (TC-01-003a): surface the readable message on the questionnaire
+        # too, instead of leaving it "uploaded". PdfTextError is a ValueError, so it is terminal (bad_input).
+        qnr_id = payload.get("questionnaire_id")
+        if qnr_id:
+            qnr = session.query(Questionnaire).filter(Questionnaire.id == qnr_id).first()
+            if qnr:
+                qnr.status = "failed"
+                qnr.parse_metadata = json.dumps({"count": 0, "error": str(exc)})
+                session.merge(qnr)
+    session.commit()
 
 
 def enqueue_missing_index_jobs(session) -> None:
@@ -723,10 +1053,15 @@ def _process_one_job() -> bool:
         )
         JOB_STARTED_TOTAL.labels(kind=job.kind).inc()
         HEARTBEAT_STATE.job_started(job.id)
+        # TC-10-002: what an earlier failed attempt left on the job (cleared on success below).
+        prior_error = getattr(job, "error", None)
+        prior_error_code = getattr(job, "error_code", None)
         try:
             run_job(job, session)
             job.status = JobStatus.COMPLETED.value
             job.completed_at = datetime.now(timezone.utc)
+            _clear_stale_attempt_error(job, prior_error, prior_error_code)
+            job.next_attempt_at = None
             duration_ms = (time.monotonic() - job_started_at) * 1000
             log_job_success(
                 job.kind,
@@ -786,74 +1121,9 @@ def _process_one_job() -> bool:
                     pass
             session.commit()
         except Exception as e:
-            session.rollback()
-            # TC-11-001: typed model failures persist a stable code and the catalog's safe
-            # message only; provider text never reaches job.error, audit, alerts or notifications.
-            # Untyped exceptions keep legacy str(e) (full typing deferred to TC-10-002).
-            model_failure = failure_from_exception(e)
-            error_text = model_failure.message if model_failure is not None else str(e)
-            job.status = JobStatus.FAILED.value
-            job.error = error_text
-            job.error_code = model_failure.code.value if model_failure is not None else None
-            job.completed_at = datetime.now(timezone.utc)
-            session.merge(job)
-            duration_ms = (time.monotonic() - job_started_at) * 1000
-            log_job_failure(
-                job.kind,
-                job.id,
-                job.workspace_id,
-                error_text,
-                duration_ms,
-                document_id=payload.get("document_id"),
-                questionnaire_id=payload.get("questionnaire_id"),
+            _handle_job_failure(
+                session, job, payload, e, (time.monotonic() - job_started_at) * 1000
             )
-            JOB_COMPLETED_TOTAL.labels(kind=job.kind, status="failed").inc()
-            logging.getLogger("trustcopilot.alert").warning(
-                "ALERT_JOB_FAILURE job_id=%s kind=%s workspace_id=%s error=%s",
-                job.id,
-                job.kind,
-                job.workspace_id,
-                error_text[:200],
-            )
-            _persist_job_audit(session, job, "job.failed", payload, error=error_text)
-            try:
-                mark_unsettled_uncertain(session, job)
-            except Exception:
-                logging.getLogger(__name__).warning(
-                    "mark_unsettled_uncertain failed job_id=%s", job.id, exc_info=True
-                )
-            if job.kind in ("export", "generate_answers"):
-                try:
-                    label = "Export" if job.kind == "export" else "Draft answer generation"
-                    notify_admins(
-                        session,
-                        job.workspace_id,
-                        f"{label} failed",
-                        error_text[:200],
-                        category="error",
-                        link="/dashboard/exports" if job.kind == "export" else "/dashboard/review",
-                    )
-                except Exception:
-                    pass
-            if job.kind == "index_document":
-                doc_id = payload.get("document_id")
-                if doc_id:
-                    doc = session.query(Document).filter(Document.id == doc_id).first()
-                    if doc:
-                        doc.status = "failed"
-                        doc.index_error = error_text[:512] if error_text else None
-                        session.merge(doc)
-            if job.kind == "parse_questionnaire" and isinstance(e, PdfTextError):
-                # Image-only / encrypted / corrupt PDF (TC-01-003a): surface the readable
-                # message on the questionnaire too, instead of leaving it "uploaded".
-                qnr_id = payload.get("questionnaire_id")
-                if qnr_id:
-                    qnr = session.query(Questionnaire).filter(Questionnaire.id == qnr_id).first()
-                    if qnr:
-                        qnr.status = "failed"
-                        qnr.parse_metadata = json.dumps({"count": 0, "error": str(e)})
-                        session.merge(qnr)
-            session.commit()
         return True
     except Exception as e:
         print(f"Worker thread error: {e}")
@@ -864,6 +1134,11 @@ def _process_one_job() -> bool:
 
 
 def main():
+    # TC-07-001: same fail-closed startup check as the API; in production the worker must never
+    # sign/derive keys from a random per-process secret.
+    from app.core.session import enforce_production_session_secret
+
+    enforce_production_session_secret("worker")
     print(
         f"Trust Copilot worker started (threads: {WORKER_MIN_THREADS}-{WORKER_MAX_THREADS}, initial: {WORKER_INITIAL_THREADS})"
     )

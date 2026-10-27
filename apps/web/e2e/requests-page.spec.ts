@@ -1,9 +1,13 @@
 import { test, expect, type Page } from '@playwright/test'
+import {
+  DEMO_EMAIL,
+  demoPassword,
+  ADMIN_EMAIL,
+  adminPassword,
+} from './credentials'
 
-const ADMIN_EMAIL = 'admin@trust.local'
-const ADMIN_PASSWORD = 'Admin123!'
-const DEMO_EMAIL = 'demo@trust.local'
-const DEMO_PASSWORD = 'j'
+const ADMIN_PASSWORD = adminPassword()
+const DEMO_PASSWORD = demoPassword()
 
 async function loginAsAdmin(page: Page) {
   await page.goto('/login', { waitUntil: 'load' })
@@ -16,7 +20,7 @@ async function loginAsAdmin(page: Page) {
   await expect(page).toHaveURL(/\/dashboard/, { timeout: 30_000 })
 }
 
-async function loginAsEditor(page: Page) {
+async function _loginAsEditor(page: Page) {
   await page.goto('/login', { waitUntil: 'load' })
   await page.locator('input[type="email"]').waitFor({ state: 'visible' })
   await page.locator('input[type="email"]').fill(DEMO_EMAIL)

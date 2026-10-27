@@ -5,6 +5,56 @@ from functools import lru_cache
 from urllib.parse import urlsplit, urlunsplit, urlparse
 
 
+def _csv_items(value: str | None) -> list[str]:
+    if not value:
+        return []
+    return [part.strip() for part in value.split(",") if part.strip()]
+
+
+def _stripe_webhook_secrets(*raws: str | None) -> tuple[str, ...]:
+    """Union of webhook secrets. Empty env stays empty; there is no default."""
+    seen: list[str] = []
+    for raw in raws:
+        for item in _csv_items(raw):
+            if item not in seen:
+                seen.append(item)
+    return tuple(seen)
+
+
+def _parse_plan_price_ids(
+    raw: str | None,
+    legacy_monthly: str | None,
+    legacy_annual: str | None,
+    monthly_plan: str,
+    annual_plan: str,
+) -> dict[str, str]:
+    """Map plan key to Stripe Price id. Values are ids, never amounts."""
+    mapping: dict[str, str] = {}
+    for item in _csv_items(raw):
+        plan, sep, price = item.partition(":")
+        plan = plan.strip()
+        price = price.strip()
+        if sep and plan and price:
+            mapping[plan] = price
+    if legacy_monthly and monthly_plan not in mapping:
+        mapping[monthly_plan] = legacy_monthly
+    if legacy_annual and annual_plan not in mapping:
+        mapping[annual_plan] = legacy_annual
+    return mapping
+
+
+def _parse_nonneg_int(raw: str | None, default: int) -> tuple[int, bool]:
+    if raw is None or raw.strip() == "":
+        return default, True
+    try:
+        value = int(raw.strip())
+    except ValueError:
+        return default, False
+    if value < 0:
+        return default, False
+    return value, True
+
+
 def _normalize_origin(origin: str | None) -> str | None:
     """Return a canonical origin (scheme + host + port, no path, lowercase) or None."""
     if not origin or not origin.strip():
@@ -85,13 +135,14 @@ class Settings:
             os.path.exists("/.dockerenv") or os.environ.get("TRUST_COPILOT_IN_DOCKER") == "1"
         )
         self.database_url: str = _rewrite_postgres_docker_hostname_to_localhost(raw, in_docker)
-        self.session_secret: str = os.getenv("SESSION_SECRET", "change_me_dev_secret")
+        # TC-07-001: no literal default; see app.core.session.get_session_secret for dev/test behaviour.
+        self.session_secret: str = os.getenv("SESSION_SECRET", "")
         self.app_base_url: str = os.getenv("APP_BASE_URL", "http://localhost:3000")
         self.frontend_url: str = os.getenv("FRONTEND_URL", "http://localhost:3000")
 
         self.s3_endpoint: str = os.getenv("S3_ENDPOINT", "http://localhost:9000")
-        self.s3_access_key: str = os.getenv("S3_ACCESS_KEY", "minio")
-        self.s3_secret_key: str = os.getenv("S3_SECRET_KEY", "minio123")
+        self.s3_access_key: str = os.getenv("S3_ACCESS_KEY", "")
+        self.s3_secret_key: str = os.getenv("S3_SECRET_KEY", "")
         self.s3_bucket_raw: str = os.getenv("S3_BUCKET_RAW", "trustcopilot-raw")
         self.s3_bucket_exports: str = os.getenv("S3_BUCKET_EXPORTS", "trustcopilot-exports")
         self.s3_use_ssl: bool = os.getenv("S3_USE_SSL", "false").lower() == "true"
@@ -225,15 +276,49 @@ class Settings:
         # Log level for app (e.g. INFO, DEBUG); structured JSON to stdout when APP_ENV=production
         self.log_level: str = os.getenv("LOG_LEVEL", "INFO").strip().upper() or "INFO"
 
-        # Stripe billing (Phase 2)
+        # Stripe billing. No default secret and no plan amounts; ids come from env.
         self.stripe_secret_key: str | None = os.getenv("STRIPE_SECRET_KEY", "").strip() or None
+        self.stripe_webhook_secrets: tuple[str, ...] = _stripe_webhook_secrets(
+            os.getenv("STRIPE_WEBHOOK_SECRET"),
+            os.getenv("STRIPE_WEBHOOK_SECRETS"),
+        )
         self.stripe_webhook_secret: str | None = (
-            os.getenv("STRIPE_WEBHOOK_SECRET", "").strip() or None
+            self.stripe_webhook_secrets[0] if self.stripe_webhook_secrets else None
         )
         self.stripe_price_id: str | None = os.getenv("STRIPE_PRICE_ID", "").strip() or None
         self.stripe_annual_price_id: str | None = (
             os.getenv("STRIPE_ANNUAL_PRICE_ID", "").strip() or None
         )
+        self.stripe_monthly_plan: str = os.getenv("STRIPE_MONTHLY_PLAN", "pro").strip() or "pro"
+        self.stripe_annual_plan: str = (
+            os.getenv("STRIPE_ANNUAL_PLAN", "pro_annual").strip() or "pro_annual"
+        )
+        self.stripe_plan_price_ids: dict[str, str] = _parse_plan_price_ids(
+            os.getenv("STRIPE_PLAN_PRICE_IDS"),
+            self.stripe_price_id,
+            self.stripe_annual_price_id,
+            self.stripe_monthly_plan,
+            self.stripe_annual_plan,
+        )
+        mode = os.getenv("STRIPE_MODE", "").strip().lower()
+        if mode == "":
+            self.stripe_mode: str | None = None
+        elif mode in ("test", "live"):
+            self.stripe_mode = mode
+        else:
+            self.stripe_mode = "invalid"
+        tolerance, tolerance_ok = _parse_nonneg_int(
+            os.getenv("STRIPE_WEBHOOK_TOLERANCE_SECONDS"),
+            300,
+        )
+        self.stripe_webhook_tolerance_seconds: int = tolerance
+        self.stripe_webhook_tolerance_valid: bool = tolerance_ok
+        retention, retention_ok = _parse_nonneg_int(
+            os.getenv("STRIPE_EVENT_RETENTION_SECONDS"),
+            604800,
+        )
+        self.stripe_event_retention_seconds: int = retention
+        self.stripe_event_retention_valid: bool = retention_ok
         # Sentry: set SENTRY_DSN to enable error tracking (optional)
         self.sentry_dsn: str | None = os.getenv("SENTRY_DSN", "").strip() or None
         self.sentry_environment: str = os.getenv("SENTRY_ENVIRONMENT", "").strip() or self.app_env

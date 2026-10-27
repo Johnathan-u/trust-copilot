@@ -62,6 +62,7 @@ from app.models.ai_mapping import (
 from app.models.question_mapping_signal import QuestionMappingSignal
 from app.models.workspace_ai_usage import WorkspaceAIUsage
 from app.models.subscription import Subscription
+from app.models.stripe_webhook_event import StripeWebhookEvent
 from app.models.feature_flag import FeatureFlag
 from app.models.credit_ledger import CreditLedger, CreditTransaction
 from app.models.operator_queue import (
@@ -73,7 +74,11 @@ from app.models.security_faq import SecurityFAQ
 from app.models.source_registry import SourceRegistry
 from app.models.credential_store import CredentialStore
 from app.models.product_event import ProductEvent
-from app.models.case_study import CaseStudy
+from app.models.case_study import (
+    CaseStudy,
+    CaseStudyOrganizationConsent,
+    CaseStudyResultPermission,
+)
 from app.models.control_state import ControlStateSnapshot
 from app.models.alert_acknowledgment import AlertAcknowledgment
 from app.models.nda_access_request import NdaAccessRequest
@@ -188,6 +193,7 @@ __all__ = [
     "QuestionMappingSignal",
     "WorkspaceAIUsage",
     "Subscription",
+    "StripeWebhookEvent",
     "FeatureFlag",
     "CreditLedger",
     "CreditTransaction",
@@ -199,6 +205,8 @@ __all__ = [
     "CredentialStore",
     "ProductEvent",
     "CaseStudy",
+    "CaseStudyOrganizationConsent",
+    "CaseStudyResultPermission",
     "ControlStateSnapshot",
     "AlertAcknowledgment",
     "NdaAccessRequest",

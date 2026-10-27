@@ -1,0 +1,2172 @@
+{
+  "findings": [
+    {
+      "commit": "8812b563fae63223863de609414552d6bb7e33d0",
+      "kind": "Signed tc_session cookie (base64 payload + HMAC)",
+      "line": 5,
+      "path": ".curl_cookies.txt",
+      "rule": "signed-session-cookie",
+      "severity": "block",
+      "source": "history"
+    },
+    {
+      "commit": "8812b563fae63223863de609414552d6bb7e33d0",
+      "kind": "Secret-named value in a config/deploy file (dev default)",
+      "line": 4,
+      "path": ".env.example",
+      "rule": "config-secret-review",
+      "severity": "review",
+      "source": "history"
+    },
+    {
+      "commit": "8812b563fae63223863de609414552d6bb7e33d0",
+      "kind": "Low-entropy password embedded in a connection URL (dev default)",
+      "line": 7,
+      "path": ".env.example",
+      "rule": "url-credential-review",
+      "severity": "review",
+      "source": "history"
+    },
+    {
+      "commit": "8812b563fae63223863de609414552d6bb7e33d0",
+      "kind": "Secret-named value in a config/deploy file (dev default)",
+      "line": 16,
+      "path": ".github/workflows/ci.yml",
+      "rule": "config-secret-review",
+      "severity": "review",
+      "source": "history"
+    },
+    {
+      "commit": "8812b563fae63223863de609414552d6bb7e33d0",
+      "kind": "Low-entropy password embedded in a connection URL (dev default)",
+      "line": 61,
+      "path": ".github/workflows/ci.yml",
+      "rule": "url-credential-review",
+      "severity": "review",
+      "source": "history"
+    },
+    {
+      "commit": "8812b563fae63223863de609414552d6bb7e33d0",
+      "kind": "Low-entropy password embedded in a connection URL (dev default)",
+      "line": 70,
+      "path": ".github/workflows/ci.yml",
+      "rule": "url-credential-review",
+      "severity": "review",
+      "source": "history"
+    },
+    {
+      "commit": "8812b563fae63223863de609414552d6bb7e33d0",
+      "kind": "Low-entropy password embedded in a connection URL (dev default)",
+      "line": 81,
+      "path": ".github/workflows/ci.yml",
+      "rule": "url-credential-review",
+      "severity": "review",
+      "source": "history"
+    },
+    {
+      "commit": "8812b563fae63223863de609414552d6bb7e33d0",
+      "kind": "Secret-named value in a config/deploy file (dev default)",
+      "line": 82,
+      "path": ".github/workflows/ci.yml",
+      "rule": "config-secret-review",
+      "severity": "review",
+      "source": "history"
+    },
+    {
+      "commit": "8812b563fae63223863de609414552d6bb7e33d0",
+      "kind": "Signed tc_session cookie (base64 payload + HMAC)",
+      "line": 5,
+      "path": ".tmp_cookies.txt",
+      "rule": "signed-session-cookie",
+      "severity": "block",
+      "source": "history"
+    },
+    {
+      "commit": "8812b563fae63223863de609414552d6bb7e33d0",
+      "kind": "Low-entropy password embedded in a connection URL (dev default)",
+      "line": 3,
+      "path": "apps/api/alembic.ini",
+      "rule": "url-credential-review",
+      "severity": "review",
+      "source": "history"
+    },
+    {
+      "commit": "8812b563fae63223863de609414552d6bb7e33d0",
+      "kind": "Literal default for a secret-named environment variable",
+      "line": 84,
+      "path": "apps/api/app/core/config.py",
+      "rule": "secret-env-default",
+      "severity": "block",
+      "source": "history"
+    },
+    {
+      "commit": "8812b563fae63223863de609414552d6bb7e33d0",
+      "kind": "Literal default for a secret-named environment variable",
+      "line": 89,
+      "path": "apps/api/app/core/config.py",
+      "rule": "secret-env-default",
+      "severity": "block",
+      "source": "history"
+    },
+    {
+      "commit": "8812b563fae63223863de609414552d6bb7e33d0",
+      "kind": "Literal default for a secret-named environment variable",
+      "line": 90,
+      "path": "apps/api/app/core/config.py",
+      "rule": "secret-env-default",
+      "severity": "block",
+      "source": "history"
+    },
+    {
+      "commit": "8812b563fae63223863de609414552d6bb7e33d0",
+      "kind": "Low-entropy password embedded in a connection URL (dev default)",
+      "line": 79,
+      "path": "apps/api/app/core/config.py",
+      "rule": "url-credential-review",
+      "severity": "review",
+      "source": "history"
+    },
+    {
+      "commit": "8812b563fae63223863de609414552d6bb7e33d0",
+      "kind": "High-entropy literal assigned to a secret-named variable",
+      "line": 18,
+      "path": "apps/api/app/core/session.py",
+      "rule": "high-entropy-secret-assignment",
+      "severity": "block",
+      "source": "history"
+    },
+    {
+      "commit": "8812b563fae63223863de609414552d6bb7e33d0",
+      "kind": "Literal assigned to a secret-named variable in application code",
+      "line": 18,
+      "path": "apps/api/app/core/session.py",
+      "rule": "app-secret-literal",
+      "severity": "block",
+      "source": "history"
+    },
+    {
+      "commit": "8812b563fae63223863de609414552d6bb7e33d0",
+      "kind": "Low-entropy literal for a secret-named variable (synthetic/dev default)",
+      "line": 34,
+      "path": "apps/api/scripts/seed_demo_workspace.py",
+      "rule": "secret-literal-review",
+      "severity": "review",
+      "source": "history"
+    },
+    {
+      "commit": "8812b563fae63223863de609414552d6bb7e33d0",
+      "kind": "Low-entropy literal for a secret-named variable (synthetic/dev default)",
+      "line": 36,
+      "path": "apps/api/scripts/seed_demo_workspace.py",
+      "rule": "secret-literal-review",
+      "severity": "review",
+      "source": "history"
+    },
+    {
+      "commit": "8812b563fae63223863de609414552d6bb7e33d0",
+      "kind": "Low-entropy literal for a secret-named variable (synthetic/dev default)",
+      "line": 57,
+      "path": "apps/api/scripts/seed_qa_test_data.py",
+      "rule": "secret-literal-review",
+      "severity": "review",
+      "source": "history"
+    },
+    {
+      "commit": "8812b563fae63223863de609414552d6bb7e33d0",
+      "kind": "Low-entropy literal for a secret-named variable (synthetic/dev default)",
+      "line": 59,
+      "path": "apps/api/scripts/seed_qa_test_data.py",
+      "rule": "secret-literal-review",
+      "severity": "review",
+      "source": "history"
+    },
+    {
+      "commit": "8812b563fae63223863de609414552d6bb7e33d0",
+      "kind": "Low-entropy literal for a secret-named variable (synthetic/dev default)",
+      "line": 61,
+      "path": "apps/api/scripts/seed_qa_test_data.py",
+      "rule": "secret-literal-review",
+      "severity": "review",
+      "source": "history"
+    },
+    {
+      "commit": "8812b563fae63223863de609414552d6bb7e33d0",
+      "kind": "Low-entropy literal for a secret-named variable (synthetic/dev default)",
+      "line": 63,
+      "path": "apps/api/scripts/seed_qa_test_data.py",
+      "rule": "secret-literal-review",
+      "severity": "review",
+      "source": "history"
+    },
+    {
+      "commit": "8812b563fae63223863de609414552d6bb7e33d0",
+      "kind": "Low-entropy literal for a secret-named variable (synthetic/dev default)",
+      "line": 65,
+      "path": "apps/api/scripts/seed_qa_test_data.py",
+      "rule": "secret-literal-review",
+      "severity": "review",
+      "source": "history"
+    },
+    {
+      "commit": "8812b563fae63223863de609414552d6bb7e33d0",
+      "kind": "Low-entropy password embedded in a connection URL (dev default)",
+      "line": 17,
+      "path": "apps/api/tests/conftest.py",
+      "rule": "url-credential-review",
+      "severity": "review",
+      "source": "history"
+    },
+    {
+      "commit": "8812b563fae63223863de609414552d6bb7e33d0",
+      "kind": "Low-entropy literal for a secret-named variable (synthetic/dev default)",
+      "line": 18,
+      "path": "apps/api/tests/conftest.py",
+      "rule": "secret-literal-review",
+      "severity": "review",
+      "source": "history"
+    },
+    {
+      "commit": "8812b563fae63223863de609414552d6bb7e33d0",
+      "kind": "Low-entropy literal for a secret-named variable (synthetic/dev default)",
+      "line": 20,
+      "path": "apps/api/tests/conftest.py",
+      "rule": "secret-literal-review",
+      "severity": "review",
+      "source": "history"
+    },
+    {
+      "commit": "8812b563fae63223863de609414552d6bb7e33d0",
+      "kind": "Low-entropy literal for a secret-named variable (synthetic/dev default)",
+      "line": 21,
+      "path": "apps/api/tests/conftest.py",
+      "rule": "secret-literal-review",
+      "severity": "review",
+      "source": "history"
+    },
+    {
+      "commit": "8812b563fae63223863de609414552d6bb7e33d0",
+      "kind": "High-entropy literal assigned to a secret-named variable",
+      "line": 5,
+      "path": "apps/api/tests/fetch_ds5.py",
+      "rule": "high-entropy-secret-assignment",
+      "severity": "block",
+      "source": "history"
+    },
+    {
+      "commit": "8812b563fae63223863de609414552d6bb7e33d0",
+      "kind": "High-entropy literal assigned to a secret-named variable",
+      "line": 5,
+      "path": "apps/api/tests/fetch_full_qa.py",
+      "rule": "high-entropy-secret-assignment",
+      "severity": "block",
+      "source": "history"
+    },
+    {
+      "commit": "8812b563fae63223863de609414552d6bb7e33d0",
+      "kind": "Literal default for a secret-named environment variable",
+      "line": 23,
+      "path": "apps/api/tests/run_10dataset_test.py",
+      "rule": "secret-env-default",
+      "severity": "block",
+      "source": "history"
+    },
+    {
+      "commit": "8812b563fae63223863de609414552d6bb7e33d0",
+      "kind": "Literal default for a secret-named environment variable",
+      "line": 25,
+      "path": "apps/api/tests/run_3dataset_test.py",
+      "rule": "secret-env-default",
+      "severity": "block",
+      "source": "history"
+    },
+    {
+      "commit": "8812b563fae63223863de609414552d6bb7e33d0",
+      "kind": "High-entropy literal assigned to a secret-named variable",
+      "line": 4,
+      "path": "apps/api/tests/test_alerts_api.py",
+      "rule": "high-entropy-secret-assignment",
+      "severity": "block",
+      "source": "history"
+    },
+    {
+      "commit": "8812b563fae63223863de609414552d6bb7e33d0",
+      "kind": "High-entropy literal assigned to a secret-named variable",
+      "line": 4,
+      "path": "apps/api/tests/test_coverage_api.py",
+      "rule": "high-entropy-secret-assignment",
+      "severity": "block",
+      "source": "history"
+    },
+    {
+      "commit": "8812b563fae63223863de609414552d6bb7e33d0",
+      "kind": "High-entropy literal assigned to a secret-named variable",
+      "line": 90,
+      "path": "apps/api/tests/test_security_remediation.py",
+      "rule": "high-entropy-secret-assignment",
+      "severity": "block",
+      "source": "history"
+    },
+    {
+      "commit": "8812b563fae63223863de609414552d6bb7e33d0",
+      "kind": "High-entropy literal assigned to a secret-named variable",
+      "line": 100,
+      "path": "apps/api/tests/test_security_remediation.py",
+      "rule": "high-entropy-secret-assignment",
+      "severity": "block",
+      "source": "history"
+    },
+    {
+      "commit": "8812b563fae63223863de609414552d6bb7e33d0",
+      "kind": "Low-entropy literal for a secret-named variable (synthetic/dev default)",
+      "line": 10,
+      "path": "apps/web/e2e/auth.setup.ts",
+      "rule": "secret-literal-review",
+      "severity": "review",
+      "source": "history"
+    },
+    {
+      "commit": "8812b563fae63223863de609414552d6bb7e33d0",
+      "kind": "Low-entropy literal for a secret-named variable (synthetic/dev default)",
+      "line": 7,
+      "path": "apps/web/e2e/mapping-audit-helpers.ts",
+      "rule": "secret-literal-review",
+      "severity": "review",
+      "source": "history"
+    },
+    {
+      "commit": "8812b563fae63223863de609414552d6bb7e33d0",
+      "kind": "Low-entropy literal for a secret-named variable (synthetic/dev default)",
+      "line": 9,
+      "path": "apps/web/e2e/mapping-audit-helpers.ts",
+      "rule": "secret-literal-review",
+      "severity": "review",
+      "source": "history"
+    },
+    {
+      "commit": "8812b563fae63223863de609414552d6bb7e33d0",
+      "kind": "Low-entropy literal for a secret-named variable (synthetic/dev default)",
+      "line": 4,
+      "path": "apps/web/e2e/priority-p10-p12.spec.ts",
+      "rule": "secret-literal-review",
+      "severity": "review",
+      "source": "history"
+    },
+    {
+      "commit": "8812b563fae63223863de609414552d6bb7e33d0",
+      "kind": "Low-entropy literal for a secret-named variable (synthetic/dev default)",
+      "line": 4,
+      "path": "apps/web/e2e/questionnaire-mappings.spec.ts",
+      "rule": "secret-literal-review",
+      "severity": "review",
+      "source": "history"
+    },
+    {
+      "commit": "8812b563fae63223863de609414552d6bb7e33d0",
+      "kind": "Low-entropy literal for a secret-named variable (synthetic/dev default)",
+      "line": 4,
+      "path": "apps/web/e2e/registry-lifecycle.spec.ts",
+      "rule": "secret-literal-review",
+      "severity": "review",
+      "source": "history"
+    },
+    {
+      "commit": "8812b563fae63223863de609414552d6bb7e33d0",
+      "kind": "Low-entropy literal for a secret-named variable (synthetic/dev default)",
+      "line": 7,
+      "path": "apps/web/test-results/questionnaire-mappings-aud-59a4b-ate-names-stub-like-strings-chromium-retry1/trace.zip!resources/src@d65b0fce0a083db2e4ea4beb9d78580ae225fc33.txt",
+      "rule": "secret-literal-review",
+      "severity": "review",
+      "source": "history"
+    },
+    {
+      "commit": "8812b563fae63223863de609414552d6bb7e33d0",
+      "kind": "Low-entropy literal for a secret-named variable (synthetic/dev default)",
+      "line": 9,
+      "path": "apps/web/test-results/questionnaire-mappings-aud-59a4b-ate-names-stub-like-strings-chromium-retry1/trace.zip!resources/src@d65b0fce0a083db2e4ea4beb9d78580ae225fc33.txt",
+      "rule": "secret-literal-review",
+      "severity": "review",
+      "source": "history"
+    },
+    {
+      "commit": "8812b563fae63223863de609414552d6bb7e33d0",
+      "kind": "Signed tc_session cookie (base64 payload + HMAC)",
+      "line": 164,
+      "path": "apps/web/test-results/questionnaire-mappings-aud-59a4b-ate-names-stub-like-strings-chromium-retry1/trace.zip!0-trace.trace",
+      "rule": "signed-session-cookie",
+      "severity": "block",
+      "source": "history"
+    },
+    {
+      "commit": "8812b563fae63223863de609414552d6bb7e33d0",
+      "kind": "Signed tc_session cookie (base64 payload + HMAC)",
+      "line": 181,
+      "path": "apps/web/test-results/questionnaire-mappings-aud-59a4b-ate-names-stub-like-strings-chromium-retry1/trace.zip!0-trace.trace",
+      "rule": "signed-session-cookie",
+      "severity": "block",
+      "source": "history"
+    },
+    {
+      "commit": "8812b563fae63223863de609414552d6bb7e33d0",
+      "kind": "Signed tc_session cookie (base64 payload + HMAC)",
+      "line": 199,
+      "path": "apps/web/test-results/questionnaire-mappings-aud-59a4b-ate-names-stub-like-strings-chromium-retry1/trace.zip!0-trace.trace",
+      "rule": "signed-session-cookie",
+      "severity": "block",
+      "source": "history"
+    },
+    {
+      "commit": "8812b563fae63223863de609414552d6bb7e33d0",
+      "kind": "Signed tc_session cookie (base64 payload + HMAC)",
+      "line": 216,
+      "path": "apps/web/test-results/questionnaire-mappings-aud-59a4b-ate-names-stub-like-strings-chromium-retry1/trace.zip!0-trace.trace",
+      "rule": "signed-session-cookie",
+      "severity": "block",
+      "source": "history"
+    },
+    {
+      "commit": "8812b563fae63223863de609414552d6bb7e33d0",
+      "kind": "Signed tc_session cookie (base64 payload + HMAC)",
+      "line": 233,
+      "path": "apps/web/test-results/questionnaire-mappings-aud-59a4b-ate-names-stub-like-strings-chromium-retry1/trace.zip!0-trace.trace",
+      "rule": "signed-session-cookie",
+      "severity": "block",
+      "source": "history"
+    },
+    {
+      "commit": "8812b563fae63223863de609414552d6bb7e33d0",
+      "kind": "Signed tc_session cookie (base64 payload + HMAC)",
+      "line": 10,
+      "path": "apps/web/test-results/questionnaire-mappings-aud-59a4b-ate-names-stub-like-strings-chromium-retry1/trace.zip!0-trace.network",
+      "rule": "signed-session-cookie",
+      "severity": "block",
+      "source": "history"
+    },
+    {
+      "commit": "8812b563fae63223863de609414552d6bb7e33d0",
+      "kind": "Signed tc_session cookie (base64 payload + HMAC)",
+      "line": 11,
+      "path": "apps/web/test-results/questionnaire-mappings-aud-59a4b-ate-names-stub-like-strings-chromium-retry1/trace.zip!0-trace.network",
+      "rule": "signed-session-cookie",
+      "severity": "block",
+      "source": "history"
+    },
+    {
+      "commit": "8812b563fae63223863de609414552d6bb7e33d0",
+      "kind": "Signed tc_session cookie (base64 payload + HMAC)",
+      "line": 12,
+      "path": "apps/web/test-results/questionnaire-mappings-aud-59a4b-ate-names-stub-like-strings-chromium-retry1/trace.zip!0-trace.network",
+      "rule": "signed-session-cookie",
+      "severity": "block",
+      "source": "history"
+    },
+    {
+      "commit": "8812b563fae63223863de609414552d6bb7e33d0",
+      "kind": "Signed tc_session cookie (base64 payload + HMAC)",
+      "line": 13,
+      "path": "apps/web/test-results/questionnaire-mappings-aud-59a4b-ate-names-stub-like-strings-chromium-retry1/trace.zip!0-trace.network",
+      "rule": "signed-session-cookie",
+      "severity": "block",
+      "source": "history"
+    },
+    {
+      "commit": "8812b563fae63223863de609414552d6bb7e33d0",
+      "kind": "Signed tc_session cookie (base64 payload + HMAC)",
+      "line": 14,
+      "path": "apps/web/test-results/questionnaire-mappings-aud-59a4b-ate-names-stub-like-strings-chromium-retry1/trace.zip!0-trace.network",
+      "rule": "signed-session-cookie",
+      "severity": "block",
+      "source": "history"
+    },
+    {
+      "commit": "8812b563fae63223863de609414552d6bb7e33d0",
+      "kind": "Signed tc_session cookie (base64 payload + HMAC)",
+      "line": 15,
+      "path": "apps/web/test-results/questionnaire-mappings-aud-59a4b-ate-names-stub-like-strings-chromium-retry1/trace.zip!0-trace.network",
+      "rule": "signed-session-cookie",
+      "severity": "block",
+      "source": "history"
+    },
+    {
+      "commit": "8812b563fae63223863de609414552d6bb7e33d0",
+      "kind": "Signed tc_session cookie (base64 payload + HMAC)",
+      "line": 16,
+      "path": "apps/web/test-results/questionnaire-mappings-aud-59a4b-ate-names-stub-like-strings-chromium-retry1/trace.zip!0-trace.network",
+      "rule": "signed-session-cookie",
+      "severity": "block",
+      "source": "history"
+    },
+    {
+      "commit": "8812b563fae63223863de609414552d6bb7e33d0",
+      "kind": "Signed tc_session cookie (base64 payload + HMAC)",
+      "line": 17,
+      "path": "apps/web/test-results/questionnaire-mappings-aud-59a4b-ate-names-stub-like-strings-chromium-retry1/trace.zip!0-trace.network",
+      "rule": "signed-session-cookie",
+      "severity": "block",
+      "source": "history"
+    },
+    {
+      "commit": "8812b563fae63223863de609414552d6bb7e33d0",
+      "kind": "Signed tc_session cookie (base64 payload + HMAC)",
+      "line": 18,
+      "path": "apps/web/test-results/questionnaire-mappings-aud-59a4b-ate-names-stub-like-strings-chromium-retry1/trace.zip!0-trace.network",
+      "rule": "signed-session-cookie",
+      "severity": "block",
+      "source": "history"
+    },
+    {
+      "commit": "8812b563fae63223863de609414552d6bb7e33d0",
+      "kind": "Signed tc_session cookie (base64 payload + HMAC)",
+      "line": 19,
+      "path": "apps/web/test-results/questionnaire-mappings-aud-59a4b-ate-names-stub-like-strings-chromium-retry1/trace.zip!0-trace.network",
+      "rule": "signed-session-cookie",
+      "severity": "block",
+      "source": "history"
+    },
+    {
+      "commit": "8812b563fae63223863de609414552d6bb7e33d0",
+      "kind": "Signed tc_session cookie (base64 payload + HMAC)",
+      "line": 20,
+      "path": "apps/web/test-results/questionnaire-mappings-aud-59a4b-ate-names-stub-like-strings-chromium-retry1/trace.zip!0-trace.network",
+      "rule": "signed-session-cookie",
+      "severity": "block",
+      "source": "history"
+    },
+    {
+      "commit": "8812b563fae63223863de609414552d6bb7e33d0",
+      "kind": "Signed tc_session cookie (base64 payload + HMAC)",
+      "line": 21,
+      "path": "apps/web/test-results/questionnaire-mappings-aud-59a4b-ate-names-stub-like-strings-chromium-retry1/trace.zip!0-trace.network",
+      "rule": "signed-session-cookie",
+      "severity": "block",
+      "source": "history"
+    },
+    {
+      "commit": "8812b563fae63223863de609414552d6bb7e33d0",
+      "kind": "Signed tc_session cookie (base64 payload + HMAC)",
+      "line": 22,
+      "path": "apps/web/test-results/questionnaire-mappings-aud-59a4b-ate-names-stub-like-strings-chromium-retry1/trace.zip!0-trace.network",
+      "rule": "signed-session-cookie",
+      "severity": "block",
+      "source": "history"
+    },
+    {
+      "commit": "8812b563fae63223863de609414552d6bb7e33d0",
+      "kind": "Signed tc_session cookie (base64 payload + HMAC)",
+      "line": 23,
+      "path": "apps/web/test-results/questionnaire-mappings-aud-59a4b-ate-names-stub-like-strings-chromium-retry1/trace.zip!0-trace.network",
+      "rule": "signed-session-cookie",
+      "severity": "block",
+      "source": "history"
+    },
+    {
+      "commit": "8812b563fae63223863de609414552d6bb7e33d0",
+      "kind": "Signed tc_session cookie (base64 payload + HMAC)",
+      "line": 24,
+      "path": "apps/web/test-results/questionnaire-mappings-aud-59a4b-ate-names-stub-like-strings-chromium-retry1/trace.zip!0-trace.network",
+      "rule": "signed-session-cookie",
+      "severity": "block",
+      "source": "history"
+    },
+    {
+      "commit": "8812b563fae63223863de609414552d6bb7e33d0",
+      "kind": "Signed tc_session cookie (base64 payload + HMAC)",
+      "line": 25,
+      "path": "apps/web/test-results/questionnaire-mappings-aud-59a4b-ate-names-stub-like-strings-chromium-retry1/trace.zip!0-trace.network",
+      "rule": "signed-session-cookie",
+      "severity": "block",
+      "source": "history"
+    },
+    {
+      "commit": "8812b563fae63223863de609414552d6bb7e33d0",
+      "kind": "Signed tc_session cookie (base64 payload + HMAC)",
+      "line": 26,
+      "path": "apps/web/test-results/questionnaire-mappings-aud-59a4b-ate-names-stub-like-strings-chromium-retry1/trace.zip!0-trace.network",
+      "rule": "signed-session-cookie",
+      "severity": "block",
+      "source": "history"
+    },
+    {
+      "commit": "8812b563fae63223863de609414552d6bb7e33d0",
+      "kind": "Signed tc_session cookie (base64 payload + HMAC)",
+      "line": 27,
+      "path": "apps/web/test-results/questionnaire-mappings-aud-59a4b-ate-names-stub-like-strings-chromium-retry1/trace.zip!0-trace.network",
+      "rule": "signed-session-cookie",
+      "severity": "block",
+      "source": "history"
+    },
+    {
+      "commit": "8812b563fae63223863de609414552d6bb7e33d0",
+      "kind": "Signed tc_session cookie (base64 payload + HMAC)",
+      "line": 28,
+      "path": "apps/web/test-results/questionnaire-mappings-aud-59a4b-ate-names-stub-like-strings-chromium-retry1/trace.zip!0-trace.network",
+      "rule": "signed-session-cookie",
+      "severity": "block",
+      "source": "history"
+    },
+    {
+      "commit": "8812b563fae63223863de609414552d6bb7e33d0",
+      "kind": "Signed tc_session cookie (base64 payload + HMAC)",
+      "line": 29,
+      "path": "apps/web/test-results/questionnaire-mappings-aud-59a4b-ate-names-stub-like-strings-chromium-retry1/trace.zip!0-trace.network",
+      "rule": "signed-session-cookie",
+      "severity": "block",
+      "source": "history"
+    },
+    {
+      "commit": "8812b563fae63223863de609414552d6bb7e33d0",
+      "kind": "Signed tc_session cookie (base64 payload + HMAC)",
+      "line": 30,
+      "path": "apps/web/test-results/questionnaire-mappings-aud-59a4b-ate-names-stub-like-strings-chromium-retry1/trace.zip!0-trace.network",
+      "rule": "signed-session-cookie",
+      "severity": "block",
+      "source": "history"
+    },
+    {
+      "commit": "8812b563fae63223863de609414552d6bb7e33d0",
+      "kind": "Signed tc_session cookie (base64 payload + HMAC)",
+      "line": 31,
+      "path": "apps/web/test-results/questionnaire-mappings-aud-59a4b-ate-names-stub-like-strings-chromium-retry1/trace.zip!0-trace.network",
+      "rule": "signed-session-cookie",
+      "severity": "block",
+      "source": "history"
+    },
+    {
+      "commit": "8812b563fae63223863de609414552d6bb7e33d0",
+      "kind": "Signed tc_session cookie (base64 payload + HMAC)",
+      "line": 32,
+      "path": "apps/web/test-results/questionnaire-mappings-aud-59a4b-ate-names-stub-like-strings-chromium-retry1/trace.zip!0-trace.network",
+      "rule": "signed-session-cookie",
+      "severity": "block",
+      "source": "history"
+    },
+    {
+      "commit": "8812b563fae63223863de609414552d6bb7e33d0",
+      "kind": "Signed tc_session cookie (base64 payload + HMAC)",
+      "line": 33,
+      "path": "apps/web/test-results/questionnaire-mappings-aud-59a4b-ate-names-stub-like-strings-chromium-retry1/trace.zip!0-trace.network",
+      "rule": "signed-session-cookie",
+      "severity": "block",
+      "source": "history"
+    },
+    {
+      "commit": "8812b563fae63223863de609414552d6bb7e33d0",
+      "kind": "Signed tc_session cookie (base64 payload + HMAC)",
+      "line": 34,
+      "path": "apps/web/test-results/questionnaire-mappings-aud-59a4b-ate-names-stub-like-strings-chromium-retry1/trace.zip!0-trace.network",
+      "rule": "signed-session-cookie",
+      "severity": "block",
+      "source": "history"
+    },
+    {
+      "commit": "8812b563fae63223863de609414552d6bb7e33d0",
+      "kind": "Signed tc_session cookie (base64 payload + HMAC)",
+      "line": 35,
+      "path": "apps/web/test-results/questionnaire-mappings-aud-59a4b-ate-names-stub-like-strings-chromium-retry1/trace.zip!0-trace.network",
+      "rule": "signed-session-cookie",
+      "severity": "block",
+      "source": "history"
+    },
+    {
+      "commit": "8812b563fae63223863de609414552d6bb7e33d0",
+      "kind": "Signed tc_session cookie (base64 payload + HMAC)",
+      "line": 36,
+      "path": "apps/web/test-results/questionnaire-mappings-aud-59a4b-ate-names-stub-like-strings-chromium-retry1/trace.zip!0-trace.network",
+      "rule": "signed-session-cookie",
+      "severity": "block",
+      "source": "history"
+    },
+    {
+      "commit": "8812b563fae63223863de609414552d6bb7e33d0",
+      "kind": "Signed tc_session cookie (base64 payload + HMAC)",
+      "line": 37,
+      "path": "apps/web/test-results/questionnaire-mappings-aud-59a4b-ate-names-stub-like-strings-chromium-retry1/trace.zip!0-trace.network",
+      "rule": "signed-session-cookie",
+      "severity": "block",
+      "source": "history"
+    },
+    {
+      "commit": "8812b563fae63223863de609414552d6bb7e33d0",
+      "kind": "Signed tc_session cookie (base64 payload + HMAC)",
+      "line": 38,
+      "path": "apps/web/test-results/questionnaire-mappings-aud-59a4b-ate-names-stub-like-strings-chromium-retry1/trace.zip!0-trace.network",
+      "rule": "signed-session-cookie",
+      "severity": "block",
+      "source": "history"
+    },
+    {
+      "commit": "8812b563fae63223863de609414552d6bb7e33d0",
+      "kind": "Signed tc_session cookie (base64 payload + HMAC)",
+      "line": 39,
+      "path": "apps/web/test-results/questionnaire-mappings-aud-59a4b-ate-names-stub-like-strings-chromium-retry1/trace.zip!0-trace.network",
+      "rule": "signed-session-cookie",
+      "severity": "block",
+      "source": "history"
+    },
+    {
+      "commit": "8812b563fae63223863de609414552d6bb7e33d0",
+      "kind": "Signed tc_session cookie (base64 payload + HMAC)",
+      "line": 40,
+      "path": "apps/web/test-results/questionnaire-mappings-aud-59a4b-ate-names-stub-like-strings-chromium-retry1/trace.zip!0-trace.network",
+      "rule": "signed-session-cookie",
+      "severity": "block",
+      "source": "history"
+    },
+    {
+      "commit": "8812b563fae63223863de609414552d6bb7e33d0",
+      "kind": "Signed tc_session cookie (base64 payload + HMAC)",
+      "line": 41,
+      "path": "apps/web/test-results/questionnaire-mappings-aud-59a4b-ate-names-stub-like-strings-chromium-retry1/trace.zip!0-trace.network",
+      "rule": "signed-session-cookie",
+      "severity": "block",
+      "source": "history"
+    },
+    {
+      "commit": "8812b563fae63223863de609414552d6bb7e33d0",
+      "kind": "Signed tc_session cookie (base64 payload + HMAC)",
+      "line": 42,
+      "path": "apps/web/test-results/questionnaire-mappings-aud-59a4b-ate-names-stub-like-strings-chromium-retry1/trace.zip!0-trace.network",
+      "rule": "signed-session-cookie",
+      "severity": "block",
+      "source": "history"
+    },
+    {
+      "commit": "8812b563fae63223863de609414552d6bb7e33d0",
+      "kind": "Signed tc_session cookie (base64 payload + HMAC)",
+      "line": 43,
+      "path": "apps/web/test-results/questionnaire-mappings-aud-59a4b-ate-names-stub-like-strings-chromium-retry1/trace.zip!0-trace.network",
+      "rule": "signed-session-cookie",
+      "severity": "block",
+      "source": "history"
+    },
+    {
+      "commit": "8812b563fae63223863de609414552d6bb7e33d0",
+      "kind": "Signed tc_session cookie (base64 payload + HMAC)",
+      "line": 44,
+      "path": "apps/web/test-results/questionnaire-mappings-aud-59a4b-ate-names-stub-like-strings-chromium-retry1/trace.zip!0-trace.network",
+      "rule": "signed-session-cookie",
+      "severity": "block",
+      "source": "history"
+    },
+    {
+      "commit": "8812b563fae63223863de609414552d6bb7e33d0",
+      "kind": "Signed tc_session cookie (base64 payload + HMAC)",
+      "line": 45,
+      "path": "apps/web/test-results/questionnaire-mappings-aud-59a4b-ate-names-stub-like-strings-chromium-retry1/trace.zip!0-trace.network",
+      "rule": "signed-session-cookie",
+      "severity": "block",
+      "source": "history"
+    },
+    {
+      "commit": "8812b563fae63223863de609414552d6bb7e33d0",
+      "kind": "Signed tc_session cookie (base64 payload + HMAC)",
+      "line": 46,
+      "path": "apps/web/test-results/questionnaire-mappings-aud-59a4b-ate-names-stub-like-strings-chromium-retry1/trace.zip!0-trace.network",
+      "rule": "signed-session-cookie",
+      "severity": "block",
+      "source": "history"
+    },
+    {
+      "commit": "8812b563fae63223863de609414552d6bb7e33d0",
+      "kind": "Signed tc_session cookie (base64 payload + HMAC)",
+      "line": 47,
+      "path": "apps/web/test-results/questionnaire-mappings-aud-59a4b-ate-names-stub-like-strings-chromium-retry1/trace.zip!0-trace.network",
+      "rule": "signed-session-cookie",
+      "severity": "block",
+      "source": "history"
+    },
+    {
+      "commit": "8812b563fae63223863de609414552d6bb7e33d0",
+      "kind": "Signed tc_session cookie (base64 payload + HMAC)",
+      "line": 48,
+      "path": "apps/web/test-results/questionnaire-mappings-aud-59a4b-ate-names-stub-like-strings-chromium-retry1/trace.zip!0-trace.network",
+      "rule": "signed-session-cookie",
+      "severity": "block",
+      "source": "history"
+    },
+    {
+      "commit": "8812b563fae63223863de609414552d6bb7e33d0",
+      "kind": "Signed tc_session cookie (base64 payload + HMAC)",
+      "line": 49,
+      "path": "apps/web/test-results/questionnaire-mappings-aud-59a4b-ate-names-stub-like-strings-chromium-retry1/trace.zip!0-trace.network",
+      "rule": "signed-session-cookie",
+      "severity": "block",
+      "source": "history"
+    },
+    {
+      "commit": "8812b563fae63223863de609414552d6bb7e33d0",
+      "kind": "Signed tc_session cookie (base64 payload + HMAC)",
+      "line": 50,
+      "path": "apps/web/test-results/questionnaire-mappings-aud-59a4b-ate-names-stub-like-strings-chromium-retry1/trace.zip!0-trace.network",
+      "rule": "signed-session-cookie",
+      "severity": "block",
+      "source": "history"
+    },
+    {
+      "commit": "8812b563fae63223863de609414552d6bb7e33d0",
+      "kind": "Signed tc_session cookie (base64 payload + HMAC)",
+      "line": 51,
+      "path": "apps/web/test-results/questionnaire-mappings-aud-59a4b-ate-names-stub-like-strings-chromium-retry1/trace.zip!0-trace.network",
+      "rule": "signed-session-cookie",
+      "severity": "block",
+      "source": "history"
+    },
+    {
+      "commit": "8812b563fae63223863de609414552d6bb7e33d0",
+      "kind": "Signed tc_session cookie (base64 payload + HMAC)",
+      "line": 52,
+      "path": "apps/web/test-results/questionnaire-mappings-aud-59a4b-ate-names-stub-like-strings-chromium-retry1/trace.zip!0-trace.network",
+      "rule": "signed-session-cookie",
+      "severity": "block",
+      "source": "history"
+    },
+    {
+      "commit": "8812b563fae63223863de609414552d6bb7e33d0",
+      "kind": "Signed tc_session cookie (base64 payload + HMAC)",
+      "line": 53,
+      "path": "apps/web/test-results/questionnaire-mappings-aud-59a4b-ate-names-stub-like-strings-chromium-retry1/trace.zip!0-trace.network",
+      "rule": "signed-session-cookie",
+      "severity": "block",
+      "source": "history"
+    },
+    {
+      "commit": "8812b563fae63223863de609414552d6bb7e33d0",
+      "kind": "Signed tc_session cookie (base64 payload + HMAC)",
+      "line": 54,
+      "path": "apps/web/test-results/questionnaire-mappings-aud-59a4b-ate-names-stub-like-strings-chromium-retry1/trace.zip!0-trace.network",
+      "rule": "signed-session-cookie",
+      "severity": "block",
+      "source": "history"
+    },
+    {
+      "commit": "8812b563fae63223863de609414552d6bb7e33d0",
+      "kind": "Signed tc_session cookie (base64 payload + HMAC)",
+      "line": 55,
+      "path": "apps/web/test-results/questionnaire-mappings-aud-59a4b-ate-names-stub-like-strings-chromium-retry1/trace.zip!0-trace.network",
+      "rule": "signed-session-cookie",
+      "severity": "block",
+      "source": "history"
+    },
+    {
+      "commit": "8812b563fae63223863de609414552d6bb7e33d0",
+      "kind": "Signed tc_session cookie (base64 payload + HMAC)",
+      "line": 56,
+      "path": "apps/web/test-results/questionnaire-mappings-aud-59a4b-ate-names-stub-like-strings-chromium-retry1/trace.zip!0-trace.network",
+      "rule": "signed-session-cookie",
+      "severity": "block",
+      "source": "history"
+    },
+    {
+      "commit": "8812b563fae63223863de609414552d6bb7e33d0",
+      "kind": "Signed tc_session cookie (base64 payload + HMAC)",
+      "line": 57,
+      "path": "apps/web/test-results/questionnaire-mappings-aud-59a4b-ate-names-stub-like-strings-chromium-retry1/trace.zip!0-trace.network",
+      "rule": "signed-session-cookie",
+      "severity": "block",
+      "source": "history"
+    },
+    {
+      "commit": "8812b563fae63223863de609414552d6bb7e33d0",
+      "kind": "Signed tc_session cookie (base64 payload + HMAC)",
+      "line": 58,
+      "path": "apps/web/test-results/questionnaire-mappings-aud-59a4b-ate-names-stub-like-strings-chromium-retry1/trace.zip!0-trace.network",
+      "rule": "signed-session-cookie",
+      "severity": "block",
+      "source": "history"
+    },
+    {
+      "commit": "8812b563fae63223863de609414552d6bb7e33d0",
+      "kind": "Signed tc_session cookie (base64 payload + HMAC)",
+      "line": 59,
+      "path": "apps/web/test-results/questionnaire-mappings-aud-59a4b-ate-names-stub-like-strings-chromium-retry1/trace.zip!0-trace.network",
+      "rule": "signed-session-cookie",
+      "severity": "block",
+      "source": "history"
+    },
+    {
+      "commit": "8812b563fae63223863de609414552d6bb7e33d0",
+      "kind": "Signed tc_session cookie (base64 payload + HMAC)",
+      "line": 60,
+      "path": "apps/web/test-results/questionnaire-mappings-aud-59a4b-ate-names-stub-like-strings-chromium-retry1/trace.zip!0-trace.network",
+      "rule": "signed-session-cookie",
+      "severity": "block",
+      "source": "history"
+    },
+    {
+      "commit": "8812b563fae63223863de609414552d6bb7e33d0",
+      "kind": "Signed tc_session cookie (base64 payload + HMAC)",
+      "line": 61,
+      "path": "apps/web/test-results/questionnaire-mappings-aud-59a4b-ate-names-stub-like-strings-chromium-retry1/trace.zip!0-trace.network",
+      "rule": "signed-session-cookie",
+      "severity": "block",
+      "source": "history"
+    },
+    {
+      "commit": "8812b563fae63223863de609414552d6bb7e33d0",
+      "kind": "Signed tc_session cookie (base64 payload + HMAC)",
+      "line": 62,
+      "path": "apps/web/test-results/questionnaire-mappings-aud-59a4b-ate-names-stub-like-strings-chromium-retry1/trace.zip!0-trace.network",
+      "rule": "signed-session-cookie",
+      "severity": "block",
+      "source": "history"
+    },
+    {
+      "commit": "8812b563fae63223863de609414552d6bb7e33d0",
+      "kind": "Signed tc_session cookie (base64 payload + HMAC)",
+      "line": 63,
+      "path": "apps/web/test-results/questionnaire-mappings-aud-59a4b-ate-names-stub-like-strings-chromium-retry1/trace.zip!0-trace.network",
+      "rule": "signed-session-cookie",
+      "severity": "block",
+      "source": "history"
+    },
+    {
+      "commit": "8812b563fae63223863de609414552d6bb7e33d0",
+      "kind": "Signed tc_session cookie (base64 payload + HMAC)",
+      "line": 64,
+      "path": "apps/web/test-results/questionnaire-mappings-aud-59a4b-ate-names-stub-like-strings-chromium-retry1/trace.zip!0-trace.network",
+      "rule": "signed-session-cookie",
+      "severity": "block",
+      "source": "history"
+    },
+    {
+      "commit": "8812b563fae63223863de609414552d6bb7e33d0",
+      "kind": "Signed tc_session cookie (base64 payload + HMAC)",
+      "line": 65,
+      "path": "apps/web/test-results/questionnaire-mappings-aud-59a4b-ate-names-stub-like-strings-chromium-retry1/trace.zip!0-trace.network",
+      "rule": "signed-session-cookie",
+      "severity": "block",
+      "source": "history"
+    },
+    {
+      "commit": "8812b563fae63223863de609414552d6bb7e33d0",
+      "kind": "Low-entropy literal for a secret-named variable (synthetic/dev default)",
+      "line": 7,
+      "path": "apps/web/test-results/questionnaire-mappings-aud-5ff26-uestionnaire-used-for-audit-chromium-retry1/trace.zip!resources/src@d65b0fce0a083db2e4ea4beb9d78580ae225fc33.txt",
+      "rule": "secret-literal-review",
+      "severity": "review",
+      "source": "history"
+    },
+    {
+      "commit": "8812b563fae63223863de609414552d6bb7e33d0",
+      "kind": "Low-entropy literal for a secret-named variable (synthetic/dev default)",
+      "line": 9,
+      "path": "apps/web/test-results/questionnaire-mappings-aud-5ff26-uestionnaire-used-for-audit-chromium-retry1/trace.zip!resources/src@d65b0fce0a083db2e4ea4beb9d78580ae225fc33.txt",
+      "rule": "secret-literal-review",
+      "severity": "review",
+      "source": "history"
+    },
+    {
+      "commit": "8812b563fae63223863de609414552d6bb7e33d0",
+      "kind": "Signed tc_session cookie (base64 payload + HMAC)",
+      "line": 164,
+      "path": "apps/web/test-results/questionnaire-mappings-aud-5ff26-uestionnaire-used-for-audit-chromium-retry1/trace.zip!0-trace.trace",
+      "rule": "signed-session-cookie",
+      "severity": "block",
+      "source": "history"
+    },
+    {
+      "commit": "8812b563fae63223863de609414552d6bb7e33d0",
+      "kind": "Signed tc_session cookie (base64 payload + HMAC)",
+      "line": 183,
+      "path": "apps/web/test-results/questionnaire-mappings-aud-5ff26-uestionnaire-used-for-audit-chromium-retry1/trace.zip!0-trace.trace",
+      "rule": "signed-session-cookie",
+      "severity": "block",
+      "source": "history"
+    },
+    {
+      "commit": "8812b563fae63223863de609414552d6bb7e33d0",
+      "kind": "Signed tc_session cookie (base64 payload + HMAC)",
+      "line": 201,
+      "path": "apps/web/test-results/questionnaire-mappings-aud-5ff26-uestionnaire-used-for-audit-chromium-retry1/trace.zip!0-trace.trace",
+      "rule": "signed-session-cookie",
+      "severity": "block",
+      "source": "history"
+    },
+    {
+      "commit": "8812b563fae63223863de609414552d6bb7e33d0",
+      "kind": "Signed tc_session cookie (base64 payload + HMAC)",
+      "line": 218,
+      "path": "apps/web/test-results/questionnaire-mappings-aud-5ff26-uestionnaire-used-for-audit-chromium-retry1/trace.zip!0-trace.trace",
+      "rule": "signed-session-cookie",
+      "severity": "block",
+      "source": "history"
+    },
+    {
+      "commit": "8812b563fae63223863de609414552d6bb7e33d0",
+      "kind": "Signed tc_session cookie (base64 payload + HMAC)",
+      "line": 236,
+      "path": "apps/web/test-results/questionnaire-mappings-aud-5ff26-uestionnaire-used-for-audit-chromium-retry1/trace.zip!0-trace.trace",
+      "rule": "signed-session-cookie",
+      "severity": "block",
+      "source": "history"
+    },
+    {
+      "commit": "8812b563fae63223863de609414552d6bb7e33d0",
+      "kind": "Signed tc_session cookie (base64 payload + HMAC)",
+      "line": 10,
+      "path": "apps/web/test-results/questionnaire-mappings-aud-5ff26-uestionnaire-used-for-audit-chromium-retry1/trace.zip!0-trace.network",
+      "rule": "signed-session-cookie",
+      "severity": "block",
+      "source": "history"
+    },
+    {
+      "commit": "8812b563fae63223863de609414552d6bb7e33d0",
+      "kind": "Signed tc_session cookie (base64 payload + HMAC)",
+      "line": 11,
+      "path": "apps/web/test-results/questionnaire-mappings-aud-5ff26-uestionnaire-used-for-audit-chromium-retry1/trace.zip!0-trace.network",
+      "rule": "signed-session-cookie",
+      "severity": "block",
+      "source": "history"
+    },
+    {
+      "commit": "8812b563fae63223863de609414552d6bb7e33d0",
+      "kind": "Signed tc_session cookie (base64 payload + HMAC)",
+      "line": 12,
+      "path": "apps/web/test-results/questionnaire-mappings-aud-5ff26-uestionnaire-used-for-audit-chromium-retry1/trace.zip!0-trace.network",
+      "rule": "signed-session-cookie",
+      "severity": "block",
+      "source": "history"
+    },
+    {
+      "commit": "8812b563fae63223863de609414552d6bb7e33d0",
+      "kind": "Signed tc_session cookie (base64 payload + HMAC)",
+      "line": 13,
+      "path": "apps/web/test-results/questionnaire-mappings-aud-5ff26-uestionnaire-used-for-audit-chromium-retry1/trace.zip!0-trace.network",
+      "rule": "signed-session-cookie",
+      "severity": "block",
+      "source": "history"
+    },
+    {
+      "commit": "8812b563fae63223863de609414552d6bb7e33d0",
+      "kind": "Signed tc_session cookie (base64 payload + HMAC)",
+      "line": 14,
+      "path": "apps/web/test-results/questionnaire-mappings-aud-5ff26-uestionnaire-used-for-audit-chromium-retry1/trace.zip!0-trace.network",
+      "rule": "signed-session-cookie",
+      "severity": "block",
+      "source": "history"
+    },
+    {
+      "commit": "8812b563fae63223863de609414552d6bb7e33d0",
+      "kind": "Signed tc_session cookie (base64 payload + HMAC)",
+      "line": 15,
+      "path": "apps/web/test-results/questionnaire-mappings-aud-5ff26-uestionnaire-used-for-audit-chromium-retry1/trace.zip!0-trace.network",
+      "rule": "signed-session-cookie",
+      "severity": "block",
+      "source": "history"
+    },
+    {
+      "commit": "8812b563fae63223863de609414552d6bb7e33d0",
+      "kind": "Signed tc_session cookie (base64 payload + HMAC)",
+      "line": 16,
+      "path": "apps/web/test-results/questionnaire-mappings-aud-5ff26-uestionnaire-used-for-audit-chromium-retry1/trace.zip!0-trace.network",
+      "rule": "signed-session-cookie",
+      "severity": "block",
+      "source": "history"
+    },
+    {
+      "commit": "8812b563fae63223863de609414552d6bb7e33d0",
+      "kind": "Signed tc_session cookie (base64 payload + HMAC)",
+      "line": 17,
+      "path": "apps/web/test-results/questionnaire-mappings-aud-5ff26-uestionnaire-used-for-audit-chromium-retry1/trace.zip!0-trace.network",
+      "rule": "signed-session-cookie",
+      "severity": "block",
+      "source": "history"
+    },
+    {
+      "commit": "8812b563fae63223863de609414552d6bb7e33d0",
+      "kind": "Signed tc_session cookie (base64 payload + HMAC)",
+      "line": 18,
+      "path": "apps/web/test-results/questionnaire-mappings-aud-5ff26-uestionnaire-used-for-audit-chromium-retry1/trace.zip!0-trace.network",
+      "rule": "signed-session-cookie",
+      "severity": "block",
+      "source": "history"
+    },
+    {
+      "commit": "8812b563fae63223863de609414552d6bb7e33d0",
+      "kind": "Signed tc_session cookie (base64 payload + HMAC)",
+      "line": 19,
+      "path": "apps/web/test-results/questionnaire-mappings-aud-5ff26-uestionnaire-used-for-audit-chromium-retry1/trace.zip!0-trace.network",
+      "rule": "signed-session-cookie",
+      "severity": "block",
+      "source": "history"
+    },
+    {
+      "commit": "8812b563fae63223863de609414552d6bb7e33d0",
+      "kind": "Signed tc_session cookie (base64 payload + HMAC)",
+      "line": 20,
+      "path": "apps/web/test-results/questionnaire-mappings-aud-5ff26-uestionnaire-used-for-audit-chromium-retry1/trace.zip!0-trace.network",
+      "rule": "signed-session-cookie",
+      "severity": "block",
+      "source": "history"
+    },
+    {
+      "commit": "8812b563fae63223863de609414552d6bb7e33d0",
+      "kind": "Signed tc_session cookie (base64 payload + HMAC)",
+      "line": 21,
+      "path": "apps/web/test-results/questionnaire-mappings-aud-5ff26-uestionnaire-used-for-audit-chromium-retry1/trace.zip!0-trace.network",
+      "rule": "signed-session-cookie",
+      "severity": "block",
+      "source": "history"
+    },
+    {
+      "commit": "8812b563fae63223863de609414552d6bb7e33d0",
+      "kind": "Signed tc_session cookie (base64 payload + HMAC)",
+      "line": 22,
+      "path": "apps/web/test-results/questionnaire-mappings-aud-5ff26-uestionnaire-used-for-audit-chromium-retry1/trace.zip!0-trace.network",
+      "rule": "signed-session-cookie",
+      "severity": "block",
+      "source": "history"
+    },
+    {
+      "commit": "8812b563fae63223863de609414552d6bb7e33d0",
+      "kind": "Signed tc_session cookie (base64 payload + HMAC)",
+      "line": 23,
+      "path": "apps/web/test-results/questionnaire-mappings-aud-5ff26-uestionnaire-used-for-audit-chromium-retry1/trace.zip!0-trace.network",
+      "rule": "signed-session-cookie",
+      "severity": "block",
+      "source": "history"
+    },
+    {
+      "commit": "8812b563fae63223863de609414552d6bb7e33d0",
+      "kind": "Signed tc_session cookie (base64 payload + HMAC)",
+      "line": 24,
+      "path": "apps/web/test-results/questionnaire-mappings-aud-5ff26-uestionnaire-used-for-audit-chromium-retry1/trace.zip!0-trace.network",
+      "rule": "signed-session-cookie",
+      "severity": "block",
+      "source": "history"
+    },
+    {
+      "commit": "8812b563fae63223863de609414552d6bb7e33d0",
+      "kind": "Signed tc_session cookie (base64 payload + HMAC)",
+      "line": 25,
+      "path": "apps/web/test-results/questionnaire-mappings-aud-5ff26-uestionnaire-used-for-audit-chromium-retry1/trace.zip!0-trace.network",
+      "rule": "signed-session-cookie",
+      "severity": "block",
+      "source": "history"
+    },
+    {
+      "commit": "8812b563fae63223863de609414552d6bb7e33d0",
+      "kind": "Signed tc_session cookie (base64 payload + HMAC)",
+      "line": 26,
+      "path": "apps/web/test-results/questionnaire-mappings-aud-5ff26-uestionnaire-used-for-audit-chromium-retry1/trace.zip!0-trace.network",
+      "rule": "signed-session-cookie",
+      "severity": "block",
+      "source": "history"
+    },
+    {
+      "commit": "8812b563fae63223863de609414552d6bb7e33d0",
+      "kind": "Signed tc_session cookie (base64 payload + HMAC)",
+      "line": 27,
+      "path": "apps/web/test-results/questionnaire-mappings-aud-5ff26-uestionnaire-used-for-audit-chromium-retry1/trace.zip!0-trace.network",
+      "rule": "signed-session-cookie",
+      "severity": "block",
+      "source": "history"
+    },
+    {
+      "commit": "8812b563fae63223863de609414552d6bb7e33d0",
+      "kind": "Signed tc_session cookie (base64 payload + HMAC)",
+      "line": 28,
+      "path": "apps/web/test-results/questionnaire-mappings-aud-5ff26-uestionnaire-used-for-audit-chromium-retry1/trace.zip!0-trace.network",
+      "rule": "signed-session-cookie",
+      "severity": "block",
+      "source": "history"
+    },
+    {
+      "commit": "8812b563fae63223863de609414552d6bb7e33d0",
+      "kind": "Signed tc_session cookie (base64 payload + HMAC)",
+      "line": 29,
+      "path": "apps/web/test-results/questionnaire-mappings-aud-5ff26-uestionnaire-used-for-audit-chromium-retry1/trace.zip!0-trace.network",
+      "rule": "signed-session-cookie",
+      "severity": "block",
+      "source": "history"
+    },
+    {
+      "commit": "8812b563fae63223863de609414552d6bb7e33d0",
+      "kind": "Signed tc_session cookie (base64 payload + HMAC)",
+      "line": 30,
+      "path": "apps/web/test-results/questionnaire-mappings-aud-5ff26-uestionnaire-used-for-audit-chromium-retry1/trace.zip!0-trace.network",
+      "rule": "signed-session-cookie",
+      "severity": "block",
+      "source": "history"
+    },
+    {
+      "commit": "8812b563fae63223863de609414552d6bb7e33d0",
+      "kind": "Signed tc_session cookie (base64 payload + HMAC)",
+      "line": 31,
+      "path": "apps/web/test-results/questionnaire-mappings-aud-5ff26-uestionnaire-used-for-audit-chromium-retry1/trace.zip!0-trace.network",
+      "rule": "signed-session-cookie",
+      "severity": "block",
+      "source": "history"
+    },
+    {
+      "commit": "8812b563fae63223863de609414552d6bb7e33d0",
+      "kind": "Signed tc_session cookie (base64 payload + HMAC)",
+      "line": 32,
+      "path": "apps/web/test-results/questionnaire-mappings-aud-5ff26-uestionnaire-used-for-audit-chromium-retry1/trace.zip!0-trace.network",
+      "rule": "signed-session-cookie",
+      "severity": "block",
+      "source": "history"
+    },
+    {
+      "commit": "8812b563fae63223863de609414552d6bb7e33d0",
+      "kind": "Signed tc_session cookie (base64 payload + HMAC)",
+      "line": 33,
+      "path": "apps/web/test-results/questionnaire-mappings-aud-5ff26-uestionnaire-used-for-audit-chromium-retry1/trace.zip!0-trace.network",
+      "rule": "signed-session-cookie",
+      "severity": "block",
+      "source": "history"
+    },
+    {
+      "commit": "8812b563fae63223863de609414552d6bb7e33d0",
+      "kind": "Low-entropy literal for a secret-named variable (synthetic/dev default)",
+      "line": 7,
+      "path": "apps/web/test-results/questionnaire-mappings-aud-a74cc-admin-evidence-clears-q-gap-chromium-retry1/trace.zip!resources/src@d65b0fce0a083db2e4ea4beb9d78580ae225fc33.txt",
+      "rule": "secret-literal-review",
+      "severity": "review",
+      "source": "history"
+    },
+    {
+      "commit": "8812b563fae63223863de609414552d6bb7e33d0",
+      "kind": "Low-entropy literal for a secret-named variable (synthetic/dev default)",
+      "line": 9,
+      "path": "apps/web/test-results/questionnaire-mappings-aud-a74cc-admin-evidence-clears-q-gap-chromium-retry1/trace.zip!resources/src@d65b0fce0a083db2e4ea4beb9d78580ae225fc33.txt",
+      "rule": "secret-literal-review",
+      "severity": "review",
+      "source": "history"
+    },
+    {
+      "commit": "8812b563fae63223863de609414552d6bb7e33d0",
+      "kind": "Low-entropy literal for a secret-named variable (synthetic/dev default)",
+      "line": 7,
+      "path": "apps/web/test-results/questionnaire-mappings-aud-ad4e8-er-question-actions-persist-chromium-retry1/trace.zip!resources/src@d65b0fce0a083db2e4ea4beb9d78580ae225fc33.txt",
+      "rule": "secret-literal-review",
+      "severity": "review",
+      "source": "history"
+    },
+    {
+      "commit": "8812b563fae63223863de609414552d6bb7e33d0",
+      "kind": "Low-entropy literal for a secret-named variable (synthetic/dev default)",
+      "line": 9,
+      "path": "apps/web/test-results/questionnaire-mappings-aud-ad4e8-er-question-actions-persist-chromium-retry1/trace.zip!resources/src@d65b0fce0a083db2e4ea4beb9d78580ae225fc33.txt",
+      "rule": "secret-literal-review",
+      "severity": "review",
+      "source": "history"
+    },
+    {
+      "commit": "8812b563fae63223863de609414552d6bb7e33d0",
+      "kind": "Low-entropy literal for a secret-named variable (synthetic/dev default)",
+      "line": 7,
+      "path": "apps/web/test-results/questionnaire-mappings-aud-f1b0a-ark-row-deltas-labels-only--chromium-retry1/trace.zip!resources/src@d65b0fce0a083db2e4ea4beb9d78580ae225fc33.txt",
+      "rule": "secret-literal-review",
+      "severity": "review",
+      "source": "history"
+    },
+    {
+      "commit": "8812b563fae63223863de609414552d6bb7e33d0",
+      "kind": "Low-entropy literal for a secret-named variable (synthetic/dev default)",
+      "line": 9,
+      "path": "apps/web/test-results/questionnaire-mappings-aud-f1b0a-ark-row-deltas-labels-only--chromium-retry1/trace.zip!resources/src@d65b0fce0a083db2e4ea4beb9d78580ae225fc33.txt",
+      "rule": "secret-literal-review",
+      "severity": "review",
+      "source": "history"
+    },
+    {
+      "commit": "8812b563fae63223863de609414552d6bb7e33d0",
+      "kind": "Low-entropy password embedded in a connection URL (dev default)",
+      "line": 62,
+      "path": "docker-compose.yml",
+      "rule": "url-credential-review",
+      "severity": "review",
+      "source": "history"
+    },
+    {
+      "commit": "8812b563fae63223863de609414552d6bb7e33d0",
+      "kind": "Low-entropy password embedded in a connection URL (dev default)",
+      "line": 86,
+      "path": "docker-compose.yml",
+      "rule": "url-credential-review",
+      "severity": "review",
+      "source": "history"
+    },
+    {
+      "commit": "8812b563fae63223863de609414552d6bb7e33d0",
+      "kind": "Secret-named value in a config/deploy file (dev default)",
+      "line": 103,
+      "path": "docker-compose.yml",
+      "rule": "config-secret-review",
+      "severity": "review",
+      "source": "history"
+    },
+    {
+      "commit": "8812b563fae63223863de609414552d6bb7e33d0",
+      "kind": "Secret-named value in a config/deploy file (dev default)",
+      "line": 117,
+      "path": "docker-compose.yml",
+      "rule": "config-secret-review",
+      "severity": "review",
+      "source": "history"
+    },
+    {
+      "commit": "8812b563fae63223863de609414552d6bb7e33d0",
+      "kind": "Low-entropy password embedded in a connection URL (dev default)",
+      "line": 9,
+      "path": "package.json",
+      "rule": "url-credential-review",
+      "severity": "review",
+      "source": "history"
+    },
+    {
+      "commit": "8812b563fae63223863de609414552d6bb7e33d0",
+      "kind": "Low-entropy password embedded in a connection URL (dev default)",
+      "line": 94,
+      "path": "scripts/dev-all.js",
+      "rule": "url-credential-review",
+      "severity": "review",
+      "source": "history"
+    },
+    {
+      "commit": "8812b563fae63223863de609414552d6bb7e33d0",
+      "kind": "Low-entropy password embedded in a connection URL (dev default)",
+      "line": 18,
+      "path": "scripts/e2e-run.js",
+      "rule": "url-credential-review",
+      "severity": "review",
+      "source": "history"
+    },
+    {
+      "commit": "8812b563fae63223863de609414552d6bb7e33d0",
+      "kind": "Low-entropy password embedded in a connection URL (dev default)",
+      "line": 13,
+      "path": "scripts/run-api-tests.ps1",
+      "rule": "url-credential-review",
+      "severity": "review",
+      "source": "history"
+    },
+    {
+      "commit": "8812b563fae63223863de609414552d6bb7e33d0",
+      "kind": "Low-entropy literal for a secret-named variable (synthetic/dev default)",
+      "line": 14,
+      "path": "scripts/run-api-tests.ps1",
+      "rule": "secret-literal-review",
+      "severity": "review",
+      "source": "history"
+    },
+    {
+      "commit": "8812b563fae63223863de609414552d6bb7e33d0",
+      "kind": "Low-entropy password embedded in a connection URL (dev default)",
+      "line": 11,
+      "path": "scripts/run-api.js",
+      "rule": "url-credential-review",
+      "severity": "review",
+      "source": "history"
+    },
+    {
+      "commit": "8812b563fae63223863de609414552d6bb7e33d0",
+      "kind": "Low-entropy password embedded in a connection URL (dev default)",
+      "line": 4,
+      "path": "scripts/run-migrations.ps1",
+      "rule": "url-credential-review",
+      "severity": "review",
+      "source": "history"
+    },
+    {
+      "commit": "8812b563fae63223863de609414552d6bb7e33d0",
+      "kind": "Low-entropy password embedded in a connection URL (dev default)",
+      "line": 3,
+      "path": "scripts/seed-demo.ps1",
+      "rule": "url-credential-review",
+      "severity": "review",
+      "source": "history"
+    },
+    {
+      "commit": "8812b563fae63223863de609414552d6bb7e33d0",
+      "kind": "Low-entropy literal for a secret-named variable (synthetic/dev default)",
+      "line": 5,
+      "path": "scripts/seed-demo.ps1",
+      "rule": "secret-literal-review",
+      "severity": "review",
+      "source": "history"
+    },
+    {
+      "commit": "8812b563fae63223863de609414552d6bb7e33d0",
+      "kind": "Low-entropy literal for a secret-named variable (synthetic/dev default)",
+      "line": 6,
+      "path": "scripts/seed-demo.ps1",
+      "rule": "secret-literal-review",
+      "severity": "review",
+      "source": "history"
+    },
+    {
+      "commit": "8812b563fae63223863de609414552d6bb7e33d0",
+      "kind": "Low-entropy password embedded in a connection URL (dev default)",
+      "line": 5,
+      "path": "scripts/seed-qa.ps1",
+      "rule": "url-credential-review",
+      "severity": "review",
+      "source": "history"
+    },
+    {
+      "commit": "8812b563fae63223863de609414552d6bb7e33d0",
+      "kind": "Low-entropy literal for a secret-named variable (synthetic/dev default)",
+      "line": 7,
+      "path": "scripts/seed-qa.ps1",
+      "rule": "secret-literal-review",
+      "severity": "review",
+      "source": "history"
+    },
+    {
+      "commit": "8812b563fae63223863de609414552d6bb7e33d0",
+      "kind": "Low-entropy literal for a secret-named variable (synthetic/dev default)",
+      "line": 8,
+      "path": "scripts/seed-qa.ps1",
+      "rule": "secret-literal-review",
+      "severity": "review",
+      "source": "history"
+    },
+    {
+      "commit": "571a158f517ea0ad7c2958c1143b5488d57cda73",
+      "kind": "Literal default for a secret-named environment variable",
+      "line": 84,
+      "path": "apps/api/app/core/config.py",
+      "rule": "secret-env-default",
+      "severity": "block",
+      "source": "history"
+    },
+    {
+      "commit": "571a158f517ea0ad7c2958c1143b5488d57cda73",
+      "kind": "Literal default for a secret-named environment variable",
+      "line": 89,
+      "path": "apps/api/app/core/config.py",
+      "rule": "secret-env-default",
+      "severity": "block",
+      "source": "history"
+    },
+    {
+      "commit": "571a158f517ea0ad7c2958c1143b5488d57cda73",
+      "kind": "Literal default for a secret-named environment variable",
+      "line": 90,
+      "path": "apps/api/app/core/config.py",
+      "rule": "secret-env-default",
+      "severity": "block",
+      "source": "history"
+    },
+    {
+      "commit": "571a158f517ea0ad7c2958c1143b5488d57cda73",
+      "kind": "Low-entropy password embedded in a connection URL (dev default)",
+      "line": 79,
+      "path": "apps/api/app/core/config.py",
+      "rule": "url-credential-review",
+      "severity": "review",
+      "source": "history"
+    },
+    {
+      "commit": "571a158f517ea0ad7c2958c1143b5488d57cda73",
+      "kind": "Low-entropy literal for a secret-named variable (synthetic/dev default)",
+      "line": 57,
+      "path": "apps/api/scripts/seed_qa_test_data.py",
+      "rule": "secret-literal-review",
+      "severity": "review",
+      "source": "history"
+    },
+    {
+      "commit": "571a158f517ea0ad7c2958c1143b5488d57cda73",
+      "kind": "Low-entropy literal for a secret-named variable (synthetic/dev default)",
+      "line": 59,
+      "path": "apps/api/scripts/seed_qa_test_data.py",
+      "rule": "secret-literal-review",
+      "severity": "review",
+      "source": "history"
+    },
+    {
+      "commit": "571a158f517ea0ad7c2958c1143b5488d57cda73",
+      "kind": "Low-entropy literal for a secret-named variable (synthetic/dev default)",
+      "line": 61,
+      "path": "apps/api/scripts/seed_qa_test_data.py",
+      "rule": "secret-literal-review",
+      "severity": "review",
+      "source": "history"
+    },
+    {
+      "commit": "571a158f517ea0ad7c2958c1143b5488d57cda73",
+      "kind": "Low-entropy literal for a secret-named variable (synthetic/dev default)",
+      "line": 63,
+      "path": "apps/api/scripts/seed_qa_test_data.py",
+      "rule": "secret-literal-review",
+      "severity": "review",
+      "source": "history"
+    },
+    {
+      "commit": "571a158f517ea0ad7c2958c1143b5488d57cda73",
+      "kind": "Low-entropy literal for a secret-named variable (synthetic/dev default)",
+      "line": 65,
+      "path": "apps/api/scripts/seed_qa_test_data.py",
+      "rule": "secret-literal-review",
+      "severity": "review",
+      "source": "history"
+    },
+    {
+      "commit": "571a158f517ea0ad7c2958c1143b5488d57cda73",
+      "kind": "Low-entropy literal for a secret-named variable (synthetic/dev default)",
+      "line": 4,
+      "path": "apps/web/e2e/registry-lifecycle.spec.ts",
+      "rule": "secret-literal-review",
+      "severity": "review",
+      "source": "history"
+    },
+    {
+      "commit": "571a158f517ea0ad7c2958c1143b5488d57cda73",
+      "kind": "Low-entropy literal for a secret-named variable (synthetic/dev default)",
+      "line": 4,
+      "path": "apps/web/e2e/requests-page.spec.ts",
+      "rule": "secret-literal-review",
+      "severity": "review",
+      "source": "history"
+    },
+    {
+      "commit": "571a158f517ea0ad7c2958c1143b5488d57cda73",
+      "kind": "Low-entropy literal for a secret-named variable (synthetic/dev default)",
+      "line": 6,
+      "path": "apps/web/e2e/requests-page.spec.ts",
+      "rule": "secret-literal-review",
+      "severity": "review",
+      "source": "history"
+    },
+    {
+      "commit": "571a158f517ea0ad7c2958c1143b5488d57cda73",
+      "kind": "Low-entropy literal for a secret-named variable (synthetic/dev default)",
+      "line": 4,
+      "path": "apps/web/e2e/vendor-response.spec.ts",
+      "rule": "secret-literal-review",
+      "severity": "review",
+      "source": "history"
+    },
+    {
+      "commit": "571a158f517ea0ad7c2958c1143b5488d57cda73",
+      "kind": "Low-entropy literal for a secret-named variable (synthetic/dev default)",
+      "line": 4,
+      "path": "apps/web/test-results/vendor-response-Vendor-Res-230c6-hows-Trust-Copilot-branding-chromium-retry1/trace.zip!resources/src@7d4190ce095f51d3165d7622f1ff05c0a8893101.txt",
+      "rule": "secret-literal-review",
+      "severity": "review",
+      "source": "history"
+    },
+    {
+      "commit": "571a158f517ea0ad7c2958c1143b5488d57cda73",
+      "kind": "Signed tc_session cookie (base64 payload + HMAC)",
+      "line": 98,
+      "path": "apps/web/test-results/vendor-response-Vendor-Res-230c6-hows-Trust-Copilot-branding-chromium-retry1/trace.zip!0-trace.trace",
+      "rule": "signed-session-cookie",
+      "severity": "block",
+      "source": "history"
+    },
+    {
+      "commit": "571a158f517ea0ad7c2958c1143b5488d57cda73",
+      "kind": "Signed tc_session cookie (base64 payload + HMAC)",
+      "line": 113,
+      "path": "apps/web/test-results/vendor-response-Vendor-Res-230c6-hows-Trust-Copilot-branding-chromium-retry1/trace.zip!0-trace.trace",
+      "rule": "signed-session-cookie",
+      "severity": "block",
+      "source": "history"
+    },
+    {
+      "commit": "571a158f517ea0ad7c2958c1143b5488d57cda73",
+      "kind": "Signed tc_session cookie (base64 payload + HMAC)",
+      "line": 10,
+      "path": "apps/web/test-results/vendor-response-Vendor-Res-230c6-hows-Trust-Copilot-branding-chromium-retry1/trace.zip!0-trace.network",
+      "rule": "signed-session-cookie",
+      "severity": "block",
+      "source": "history"
+    },
+    {
+      "commit": "571a158f517ea0ad7c2958c1143b5488d57cda73",
+      "kind": "Signed tc_session cookie (base64 payload + HMAC)",
+      "line": 11,
+      "path": "apps/web/test-results/vendor-response-Vendor-Res-230c6-hows-Trust-Copilot-branding-chromium-retry1/trace.zip!0-trace.network",
+      "rule": "signed-session-cookie",
+      "severity": "block",
+      "source": "history"
+    },
+    {
+      "commit": "571a158f517ea0ad7c2958c1143b5488d57cda73",
+      "kind": "Signed tc_session cookie (base64 payload + HMAC)",
+      "line": 12,
+      "path": "apps/web/test-results/vendor-response-Vendor-Res-230c6-hows-Trust-Copilot-branding-chromium-retry1/trace.zip!0-trace.network",
+      "rule": "signed-session-cookie",
+      "severity": "block",
+      "source": "history"
+    },
+    {
+      "commit": "571a158f517ea0ad7c2958c1143b5488d57cda73",
+      "kind": "Signed tc_session cookie (base64 payload + HMAC)",
+      "line": 13,
+      "path": "apps/web/test-results/vendor-response-Vendor-Res-230c6-hows-Trust-Copilot-branding-chromium-retry1/trace.zip!0-trace.network",
+      "rule": "signed-session-cookie",
+      "severity": "block",
+      "source": "history"
+    },
+    {
+      "commit": "571a158f517ea0ad7c2958c1143b5488d57cda73",
+      "kind": "Signed tc_session cookie (base64 payload + HMAC)",
+      "line": 14,
+      "path": "apps/web/test-results/vendor-response-Vendor-Res-230c6-hows-Trust-Copilot-branding-chromium-retry1/trace.zip!0-trace.network",
+      "rule": "signed-session-cookie",
+      "severity": "block",
+      "source": "history"
+    },
+    {
+      "commit": "571a158f517ea0ad7c2958c1143b5488d57cda73",
+      "kind": "Signed tc_session cookie (base64 payload + HMAC)",
+      "line": 15,
+      "path": "apps/web/test-results/vendor-response-Vendor-Res-230c6-hows-Trust-Copilot-branding-chromium-retry1/trace.zip!0-trace.network",
+      "rule": "signed-session-cookie",
+      "severity": "block",
+      "source": "history"
+    },
+    {
+      "commit": "571a158f517ea0ad7c2958c1143b5488d57cda73",
+      "kind": "Signed tc_session cookie (base64 payload + HMAC)",
+      "line": 16,
+      "path": "apps/web/test-results/vendor-response-Vendor-Res-230c6-hows-Trust-Copilot-branding-chromium-retry1/trace.zip!0-trace.network",
+      "rule": "signed-session-cookie",
+      "severity": "block",
+      "source": "history"
+    },
+    {
+      "commit": "571a158f517ea0ad7c2958c1143b5488d57cda73",
+      "kind": "Signed tc_session cookie (base64 payload + HMAC)",
+      "line": 17,
+      "path": "apps/web/test-results/vendor-response-Vendor-Res-230c6-hows-Trust-Copilot-branding-chromium-retry1/trace.zip!0-trace.network",
+      "rule": "signed-session-cookie",
+      "severity": "block",
+      "source": "history"
+    },
+    {
+      "commit": "571a158f517ea0ad7c2958c1143b5488d57cda73",
+      "kind": "Signed tc_session cookie (base64 payload + HMAC)",
+      "line": 18,
+      "path": "apps/web/test-results/vendor-response-Vendor-Res-230c6-hows-Trust-Copilot-branding-chromium-retry1/trace.zip!0-trace.network",
+      "rule": "signed-session-cookie",
+      "severity": "block",
+      "source": "history"
+    },
+    {
+      "commit": "571a158f517ea0ad7c2958c1143b5488d57cda73",
+      "kind": "Signed tc_session cookie (base64 payload + HMAC)",
+      "line": 19,
+      "path": "apps/web/test-results/vendor-response-Vendor-Res-230c6-hows-Trust-Copilot-branding-chromium-retry1/trace.zip!0-trace.network",
+      "rule": "signed-session-cookie",
+      "severity": "block",
+      "source": "history"
+    },
+    {
+      "commit": "571a158f517ea0ad7c2958c1143b5488d57cda73",
+      "kind": "Signed tc_session cookie (base64 payload + HMAC)",
+      "line": 20,
+      "path": "apps/web/test-results/vendor-response-Vendor-Res-230c6-hows-Trust-Copilot-branding-chromium-retry1/trace.zip!0-trace.network",
+      "rule": "signed-session-cookie",
+      "severity": "block",
+      "source": "history"
+    },
+    {
+      "commit": "571a158f517ea0ad7c2958c1143b5488d57cda73",
+      "kind": "Signed tc_session cookie (base64 payload + HMAC)",
+      "line": 21,
+      "path": "apps/web/test-results/vendor-response-Vendor-Res-230c6-hows-Trust-Copilot-branding-chromium-retry1/trace.zip!0-trace.network",
+      "rule": "signed-session-cookie",
+      "severity": "block",
+      "source": "history"
+    },
+    {
+      "commit": "571a158f517ea0ad7c2958c1143b5488d57cda73",
+      "kind": "Signed tc_session cookie (base64 payload + HMAC)",
+      "line": 22,
+      "path": "apps/web/test-results/vendor-response-Vendor-Res-230c6-hows-Trust-Copilot-branding-chromium-retry1/trace.zip!0-trace.network",
+      "rule": "signed-session-cookie",
+      "severity": "block",
+      "source": "history"
+    },
+    {
+      "commit": "571a158f517ea0ad7c2958c1143b5488d57cda73",
+      "kind": "Signed tc_session cookie (base64 payload + HMAC)",
+      "line": 23,
+      "path": "apps/web/test-results/vendor-response-Vendor-Res-230c6-hows-Trust-Copilot-branding-chromium-retry1/trace.zip!0-trace.network",
+      "rule": "signed-session-cookie",
+      "severity": "block",
+      "source": "history"
+    },
+    {
+      "commit": "571a158f517ea0ad7c2958c1143b5488d57cda73",
+      "kind": "Signed tc_session cookie (base64 payload + HMAC)",
+      "line": 24,
+      "path": "apps/web/test-results/vendor-response-Vendor-Res-230c6-hows-Trust-Copilot-branding-chromium-retry1/trace.zip!0-trace.network",
+      "rule": "signed-session-cookie",
+      "severity": "block",
+      "source": "history"
+    },
+    {
+      "commit": "571a158f517ea0ad7c2958c1143b5488d57cda73",
+      "kind": "Signed tc_session cookie (base64 payload + HMAC)",
+      "line": 25,
+      "path": "apps/web/test-results/vendor-response-Vendor-Res-230c6-hows-Trust-Copilot-branding-chromium-retry1/trace.zip!0-trace.network",
+      "rule": "signed-session-cookie",
+      "severity": "block",
+      "source": "history"
+    },
+    {
+      "commit": "571a158f517ea0ad7c2958c1143b5488d57cda73",
+      "kind": "Signed tc_session cookie (base64 payload + HMAC)",
+      "line": 26,
+      "path": "apps/web/test-results/vendor-response-Vendor-Res-230c6-hows-Trust-Copilot-branding-chromium-retry1/trace.zip!0-trace.network",
+      "rule": "signed-session-cookie",
+      "severity": "block",
+      "source": "history"
+    },
+    {
+      "commit": "571a158f517ea0ad7c2958c1143b5488d57cda73",
+      "kind": "Signed tc_session cookie (base64 payload + HMAC)",
+      "line": 27,
+      "path": "apps/web/test-results/vendor-response-Vendor-Res-230c6-hows-Trust-Copilot-branding-chromium-retry1/trace.zip!0-trace.network",
+      "rule": "signed-session-cookie",
+      "severity": "block",
+      "source": "history"
+    },
+    {
+      "commit": "571a158f517ea0ad7c2958c1143b5488d57cda73",
+      "kind": "Signed tc_session cookie (base64 payload + HMAC)",
+      "line": 28,
+      "path": "apps/web/test-results/vendor-response-Vendor-Res-230c6-hows-Trust-Copilot-branding-chromium-retry1/trace.zip!0-trace.network",
+      "rule": "signed-session-cookie",
+      "severity": "block",
+      "source": "history"
+    },
+    {
+      "commit": "571a158f517ea0ad7c2958c1143b5488d57cda73",
+      "kind": "Signed tc_session cookie (base64 payload + HMAC)",
+      "line": 29,
+      "path": "apps/web/test-results/vendor-response-Vendor-Res-230c6-hows-Trust-Copilot-branding-chromium-retry1/trace.zip!0-trace.network",
+      "rule": "signed-session-cookie",
+      "severity": "block",
+      "source": "history"
+    },
+    {
+      "commit": "571a158f517ea0ad7c2958c1143b5488d57cda73",
+      "kind": "Signed tc_session cookie (base64 payload + HMAC)",
+      "line": 30,
+      "path": "apps/web/test-results/vendor-response-Vendor-Res-230c6-hows-Trust-Copilot-branding-chromium-retry1/trace.zip!0-trace.network",
+      "rule": "signed-session-cookie",
+      "severity": "block",
+      "source": "history"
+    },
+    {
+      "commit": "571a158f517ea0ad7c2958c1143b5488d57cda73",
+      "kind": "Signed tc_session cookie (base64 payload + HMAC)",
+      "line": 31,
+      "path": "apps/web/test-results/vendor-response-Vendor-Res-230c6-hows-Trust-Copilot-branding-chromium-retry1/trace.zip!0-trace.network",
+      "rule": "signed-session-cookie",
+      "severity": "block",
+      "source": "history"
+    },
+    {
+      "commit": "571a158f517ea0ad7c2958c1143b5488d57cda73",
+      "kind": "Signed tc_session cookie (base64 payload + HMAC)",
+      "line": 32,
+      "path": "apps/web/test-results/vendor-response-Vendor-Res-230c6-hows-Trust-Copilot-branding-chromium-retry1/trace.zip!0-trace.network",
+      "rule": "signed-session-cookie",
+      "severity": "block",
+      "source": "history"
+    },
+    {
+      "commit": "571a158f517ea0ad7c2958c1143b5488d57cda73",
+      "kind": "Signed tc_session cookie (base64 payload + HMAC)",
+      "line": 33,
+      "path": "apps/web/test-results/vendor-response-Vendor-Res-230c6-hows-Trust-Copilot-branding-chromium-retry1/trace.zip!0-trace.network",
+      "rule": "signed-session-cookie",
+      "severity": "block",
+      "source": "history"
+    },
+    {
+      "commit": "571a158f517ea0ad7c2958c1143b5488d57cda73",
+      "kind": "Signed tc_session cookie (base64 payload + HMAC)",
+      "line": 34,
+      "path": "apps/web/test-results/vendor-response-Vendor-Res-230c6-hows-Trust-Copilot-branding-chromium-retry1/trace.zip!0-trace.network",
+      "rule": "signed-session-cookie",
+      "severity": "block",
+      "source": "history"
+    },
+    {
+      "commit": "571a158f517ea0ad7c2958c1143b5488d57cda73",
+      "kind": "Signed tc_session cookie (base64 payload + HMAC)",
+      "line": 35,
+      "path": "apps/web/test-results/vendor-response-Vendor-Res-230c6-hows-Trust-Copilot-branding-chromium-retry1/trace.zip!0-trace.network",
+      "rule": "signed-session-cookie",
+      "severity": "block",
+      "source": "history"
+    },
+    {
+      "commit": "571a158f517ea0ad7c2958c1143b5488d57cda73",
+      "kind": "Signed tc_session cookie (base64 payload + HMAC)",
+      "line": 36,
+      "path": "apps/web/test-results/vendor-response-Vendor-Res-230c6-hows-Trust-Copilot-branding-chromium-retry1/trace.zip!0-trace.network",
+      "rule": "signed-session-cookie",
+      "severity": "block",
+      "source": "history"
+    },
+    {
+      "commit": "571a158f517ea0ad7c2958c1143b5488d57cda73",
+      "kind": "Signed tc_session cookie (base64 payload + HMAC)",
+      "line": 37,
+      "path": "apps/web/test-results/vendor-response-Vendor-Res-230c6-hows-Trust-Copilot-branding-chromium-retry1/trace.zip!0-trace.network",
+      "rule": "signed-session-cookie",
+      "severity": "block",
+      "source": "history"
+    },
+    {
+      "commit": "571a158f517ea0ad7c2958c1143b5488d57cda73",
+      "kind": "Password embedded in a connection URL",
+      "line": 60,
+      "path": "docker-compose.prod.yml",
+      "rule": "url-embedded-credential",
+      "severity": "block",
+      "source": "history"
+    },
+    {
+      "commit": "571a158f517ea0ad7c2958c1143b5488d57cda73",
+      "kind": "Password embedded in a connection URL",
+      "line": 89,
+      "path": "docker-compose.prod.yml",
+      "rule": "url-embedded-credential",
+      "severity": "block",
+      "source": "history"
+    },
+    {
+      "commit": "571a158f517ea0ad7c2958c1143b5488d57cda73",
+      "kind": "High-entropy secret-named value in a config/deploy file",
+      "line": 105,
+      "path": "docker-compose.prod.yml",
+      "rule": "config-secret-value",
+      "severity": "block",
+      "source": "history"
+    },
+    {
+      "commit": "571a158f517ea0ad7c2958c1143b5488d57cda73",
+      "kind": "Secret-named value in a config/deploy file (dev default)",
+      "line": 119,
+      "path": "docker-compose.prod.yml",
+      "rule": "config-secret-review",
+      "severity": "review",
+      "source": "history"
+    },
+    {
+      "commit": "571a158f517ea0ad7c2958c1143b5488d57cda73",
+      "kind": "Low-entropy password embedded in a connection URL (dev default)",
+      "line": 64,
+      "path": "docker-compose.yml",
+      "rule": "url-credential-review",
+      "severity": "review",
+      "source": "history"
+    },
+    {
+      "commit": "571a158f517ea0ad7c2958c1143b5488d57cda73",
+      "kind": "Low-entropy password embedded in a connection URL (dev default)",
+      "line": 88,
+      "path": "docker-compose.yml",
+      "rule": "url-credential-review",
+      "severity": "review",
+      "source": "history"
+    },
+    {
+      "commit": "571a158f517ea0ad7c2958c1143b5488d57cda73",
+      "kind": "Secret-named value in a config/deploy file (dev default)",
+      "line": 105,
+      "path": "docker-compose.yml",
+      "rule": "config-secret-review",
+      "severity": "review",
+      "source": "history"
+    },
+    {
+      "commit": "571a158f517ea0ad7c2958c1143b5488d57cda73",
+      "kind": "Secret-named value in a config/deploy file (dev default)",
+      "line": 119,
+      "path": "docker-compose.yml",
+      "rule": "config-secret-review",
+      "severity": "review",
+      "source": "history"
+    },
+    {
+      "commit": "281f38e97d4cad8e2713a863ed8ff9e6a76ab8b7",
+      "kind": "Low-entropy password embedded in a connection URL (dev default)",
+      "line": 18,
+      "path": "apps/api/tests/conftest.py",
+      "rule": "url-credential-review",
+      "severity": "review",
+      "source": "history"
+    },
+    {
+      "commit": "281f38e97d4cad8e2713a863ed8ff9e6a76ab8b7",
+      "kind": "Low-entropy literal for a secret-named variable (synthetic/dev default)",
+      "line": 19,
+      "path": "apps/api/tests/conftest.py",
+      "rule": "secret-literal-review",
+      "severity": "review",
+      "source": "history"
+    },
+    {
+      "commit": "281f38e97d4cad8e2713a863ed8ff9e6a76ab8b7",
+      "kind": "Low-entropy literal for a secret-named variable (synthetic/dev default)",
+      "line": 21,
+      "path": "apps/api/tests/conftest.py",
+      "rule": "secret-literal-review",
+      "severity": "review",
+      "source": "history"
+    },
+    {
+      "commit": "281f38e97d4cad8e2713a863ed8ff9e6a76ab8b7",
+      "kind": "Low-entropy literal for a secret-named variable (synthetic/dev default)",
+      "line": 22,
+      "path": "apps/api/tests/conftest.py",
+      "rule": "secret-literal-review",
+      "severity": "review",
+      "source": "history"
+    },
+    {
+      "commit": "f7579b1f09274340bb9beec9fe6f4dc2f4acd239",
+      "kind": "Literal default for a secret-named environment variable",
+      "line": 20,
+      "path": "apps/api/app/services/credential_store_service.py",
+      "rule": "secret-env-default",
+      "severity": "block",
+      "source": "history"
+    },
+    {
+      "commit": "d66b3e7c202c6cee03201d342931fd64eb232a27",
+      "kind": "Secret-named value in a config/deploy file (dev default)",
+      "line": 4,
+      "path": ".env.example",
+      "rule": "config-secret-review",
+      "severity": "review",
+      "source": "history"
+    },
+    {
+      "commit": "d66b3e7c202c6cee03201d342931fd64eb232a27",
+      "kind": "Low-entropy password embedded in a connection URL (dev default)",
+      "line": 7,
+      "path": ".env.example",
+      "rule": "url-credential-review",
+      "severity": "review",
+      "source": "history"
+    },
+    {
+      "commit": "d66b3e7c202c6cee03201d342931fd64eb232a27",
+      "kind": "Low-entropy password embedded in a connection URL (dev default)",
+      "line": 79,
+      "path": "apps/api/app/core/config.py",
+      "rule": "url-credential-review",
+      "severity": "review",
+      "source": "history"
+    },
+    {
+      "commit": "d66b3e7c202c6cee03201d342931fd64eb232a27",
+      "kind": "Low-entropy password embedded in a connection URL (dev default)",
+      "line": 38,
+      "path": "apps/api/app/core/logging_config.py",
+      "rule": "url-credential-review",
+      "severity": "review",
+      "source": "history"
+    },
+    {
+      "commit": "d66b3e7c202c6cee03201d342931fd64eb232a27",
+      "kind": "Low-entropy password embedded in a connection URL (dev default)",
+      "line": 18,
+      "path": "apps/api/tests/conftest.py",
+      "rule": "url-credential-review",
+      "severity": "review",
+      "source": "history"
+    },
+    {
+      "commit": "d66b3e7c202c6cee03201d342931fd64eb232a27",
+      "kind": "Low-entropy literal for a secret-named variable (synthetic/dev default)",
+      "line": 24,
+      "path": "apps/api/tests/conftest.py",
+      "rule": "secret-literal-review",
+      "severity": "review",
+      "source": "history"
+    },
+    {
+      "commit": "d66b3e7c202c6cee03201d342931fd64eb232a27",
+      "kind": "Low-entropy literal for a secret-named variable (synthetic/dev default)",
+      "line": 25,
+      "path": "apps/api/tests/conftest.py",
+      "rule": "secret-literal-review",
+      "severity": "review",
+      "source": "history"
+    },
+    {
+      "commit": "d66b3e7c202c6cee03201d342931fd64eb232a27",
+      "kind": "Low-entropy literal for a secret-named variable (synthetic/dev default)",
+      "line": 22,
+      "path": "scripts/e2e-run.js",
+      "rule": "secret-literal-review",
+      "severity": "review",
+      "source": "history"
+    },
+    {
+      "commit": "d66b3e7c202c6cee03201d342931fd64eb232a27",
+      "kind": "Low-entropy password embedded in a connection URL (dev default)",
+      "line": 29,
+      "path": "scripts/e2e-run.js",
+      "rule": "url-credential-review",
+      "severity": "review",
+      "source": "history"
+    },
+    {
+      "commit": "d66b3e7c202c6cee03201d342931fd64eb232a27",
+      "kind": "Low-entropy password embedded in a connection URL (dev default)",
+      "line": 13,
+      "path": "scripts/run-api-tests.ps1",
+      "rule": "url-credential-review",
+      "severity": "review",
+      "source": "history"
+    },
+    {
+      "commit": "e037a2f10b490ab96746305d57d26abba61571c5",
+      "kind": "Secret-named value in a config/deploy file (dev default)",
+      "line": 16,
+      "path": ".env.example",
+      "rule": "config-secret-review",
+      "severity": "review",
+      "source": "history"
+    },
+    {
+      "commit": "e037a2f10b490ab96746305d57d26abba61571c5",
+      "kind": "Low-entropy password embedded in a connection URL (dev default)",
+      "line": 19,
+      "path": ".env.example",
+      "rule": "url-credential-review",
+      "severity": "review",
+      "source": "history"
+    },
+    {
+      "commit": "e037a2f10b490ab96746305d57d26abba61571c5",
+      "kind": "Low-entropy password embedded in a connection URL (dev default)",
+      "line": 79,
+      "path": "apps/api/app/core/config.py",
+      "rule": "url-credential-review",
+      "severity": "review",
+      "source": "history"
+    },
+    {
+      "commit": "e037a2f10b490ab96746305d57d26abba61571c5",
+      "kind": "Low-entropy literal for a secret-named variable (synthetic/dev default)",
+      "line": 48,
+      "path": "apps/api/tests/release/test_config_contract.py",
+      "rule": "secret-literal-review",
+      "severity": "review",
+      "source": "history"
+    },
+    {
+      "commit": "e037a2f10b490ab96746305d57d26abba61571c5",
+      "kind": "Low-entropy literal for a secret-named variable (synthetic/dev default)",
+      "line": 55,
+      "path": "apps/api/tests/release/test_config_contract.py",
+      "rule": "secret-literal-review",
+      "severity": "review",
+      "source": "history"
+    },
+    {
+      "commit": "e037a2f10b490ab96746305d57d26abba61571c5",
+      "kind": "Low-entropy literal for a secret-named variable (synthetic/dev default)",
+      "line": 271,
+      "path": "apps/api/tests/release/test_config_contract.py",
+      "rule": "secret-literal-review",
+      "severity": "review",
+      "source": "history"
+    },
+    {
+      "commit": "e037a2f10b490ab96746305d57d26abba61571c5",
+      "kind": "Low-entropy literal for a secret-named variable (synthetic/dev default)",
+      "line": 351,
+      "path": "apps/api/tests/release/test_config_contract.py",
+      "rule": "secret-literal-review",
+      "severity": "review",
+      "source": "history"
+    },
+    {
+      "commit": "d27b544fd56b53c1f800b4bc5f2e12eba9fc99f6",
+      "kind": "Secret-named value in a config/deploy file (dev default)",
+      "line": 17,
+      "path": ".env.example",
+      "rule": "config-secret-review",
+      "severity": "review",
+      "source": "history"
+    },
+    {
+      "commit": "d27b544fd56b53c1f800b4bc5f2e12eba9fc99f6",
+      "kind": "Low-entropy password embedded in a connection URL (dev default)",
+      "line": 20,
+      "path": ".env.example",
+      "rule": "url-credential-review",
+      "severity": "review",
+      "source": "history"
+    },
+    {
+      "commit": "d27b544fd56b53c1f800b4bc5f2e12eba9fc99f6",
+      "kind": "Low-entropy literal for a secret-named variable (synthetic/dev default)",
+      "line": 48,
+      "path": "apps/api/tests/release/test_config_contract.py",
+      "rule": "secret-literal-review",
+      "severity": "review",
+      "source": "history"
+    },
+    {
+      "commit": "d27b544fd56b53c1f800b4bc5f2e12eba9fc99f6",
+      "kind": "Low-entropy literal for a secret-named variable (synthetic/dev default)",
+      "line": 55,
+      "path": "apps/api/tests/release/test_config_contract.py",
+      "rule": "secret-literal-review",
+      "severity": "review",
+      "source": "history"
+    },
+    {
+      "commit": "d27b544fd56b53c1f800b4bc5f2e12eba9fc99f6",
+      "kind": "Low-entropy literal for a secret-named variable (synthetic/dev default)",
+      "line": 275,
+      "path": "apps/api/tests/release/test_config_contract.py",
+      "rule": "secret-literal-review",
+      "severity": "review",
+      "source": "history"
+    },
+    {
+      "commit": "d27b544fd56b53c1f800b4bc5f2e12eba9fc99f6",
+      "kind": "Low-entropy literal for a secret-named variable (synthetic/dev default)",
+      "line": 355,
+      "path": "apps/api/tests/release/test_config_contract.py",
+      "rule": "secret-literal-review",
+      "severity": "review",
+      "source": "history"
+    },
+    {
+      "commit": "0c0fd702e811e9baba3ded94b142215016291a0f",
+      "kind": "Secret-named value in a config/deploy file (dev default)",
+      "line": 8,
+      "path": ".env.example",
+      "rule": "config-secret-review",
+      "severity": "review",
+      "source": "history"
+    },
+    {
+      "commit": "0c0fd702e811e9baba3ded94b142215016291a0f",
+      "kind": "Low-entropy password embedded in a connection URL (dev default)",
+      "line": 11,
+      "path": ".env.example",
+      "rule": "url-credential-review",
+      "severity": "review",
+      "source": "history"
+    }
+  ],
+  "summary": {
+    "block": 142,
+    "by_source_severity": {
+      "history:block": 142,
+      "history:review": 98
+    },
+    "total": 240
+  }
+}

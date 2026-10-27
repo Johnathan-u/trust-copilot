@@ -14,7 +14,9 @@ from app.core.database import Base
 class FrameworkCatalogEvent(Base):
     __tablename__ = "framework_catalog_events"
 
-    id = Column(Integer, primary_key=True, index=True)
+    # The primary key is already indexed. index=True would autogenerate a second
+    # index (ix_framework_catalog_events_id) that the migration does not create.
+    id = Column(Integer, primary_key=True)
     framework_id = Column(
         Integer, ForeignKey("frameworks.id", ondelete="SET NULL"), nullable=True, index=True
     )
