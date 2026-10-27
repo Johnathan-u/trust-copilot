@@ -15,6 +15,7 @@ from collections.abc import Callable, Generator
 
 import pytest
 from fastapi.testclient import TestClient
+from sqlalchemy import text
 from sqlalchemy.orm import Session
 
 from app.core.config import get_settings
@@ -52,6 +53,15 @@ def _set_env(monkeypatch, **values: str) -> None:
 def make_user(db_session: Session) -> Generator[Callable[..., User], None, None]:
     """Create a synthetic user with optional (workspace_id, role) memberships."""
     created: list[int] = []
+    # The seed workspaces are inserted with explicit ids, so on a fresh database the serial
+    # sequence still points at them and the first API-created workspace would collide.
+    db_session.execute(
+        text(
+            "SELECT setval(pg_get_serial_sequence('workspaces', 'id'), "
+            "(SELECT COALESCE(MAX(id), 1) FROM workspaces))"
+        )
+    )
+    db_session.commit()
 
     def _make(
         verified: bool = False,
