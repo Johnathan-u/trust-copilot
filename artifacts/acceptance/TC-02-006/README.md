@@ -80,6 +80,12 @@ Steps 02 to 07 record the type, build and format results next to the exact tool 
 ## Not done here
 
 - **Reviewer sign-off** (DoD) is pending. A reviewer other than the implementer must accept this evidence.
+- **Linked follow-ups assigned by the Coordinator.** These are out of scope here and are tracked separately. Full details are in `docs/release/tickets/TC-02-006.md`.
+  - **TC-02-006a** (1 pt, TC Platform & Security, right after CI is green; needs a regression test): the `/api` proxy turns upstream 204/205/304 into 502.
+  - **TC-02-006b** (5 pts, TC Web & UX): enable `react-hooks/set-state-in-effect` and refactor the 31 effects.
+  - **TC-02-006c** (3 pts, TC Web & UX, after 006b): remove the 15 new lint suppressions.
+  - **TC-02-006d** (2 pts, TC Platform & Security, after 006a): enforce the import, jsx-a11y and react plugin rules in the ESLint 10 flat config.
+- **Coordinator decision:** the Coordinator accepted the custom ESLint 10 flat config in place of `eslint-config-next`.
 - **The branch has not been pushed**, so no CI run of this branch exists yet. Master's `build` job is red from baseline for unrelated reasons, which another workstream is fixing.
 
 ## CI impact: `pre-commit run --all-files`, the CI step that is red on master
