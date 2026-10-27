@@ -1,0 +1,351 @@
+# TC-03-003 release test copied onto baseline c20f949161ac12a619b396d30904448ffd74d532 (git worktree /workspace/tc-base)
+# conftest DB temporarily redirected to throwaway local container 127.0.0.1:55433 (reverted after run)
+# venv editable-install finder removed so 'app' resolves only from the baseline tree (otherwise new app.* modules leak in from the branch checkout)
+# command: python /workspace/tc-run/pytest_noeditable.py tests/release/test_health_probes.py -q -rA -p no:cacheprovider
+FFFF.FFFFFFFFFFFFFFFFFFF                                                 [100%]
+=================================== FAILURES ===================================
+_____________________ test_readyz_ready_reports_each_check _____________________
+
+api = <starlette.testclient.TestClient object at 0x7fe0068f16a0>
+storage_ok = <MagicMock name='StorageClient' id='140600159444944'>
+
+    def test_readyz_ready_reports_each_check(api, storage_ok):
+        r = api.get("/readyz")
+        assert r.status_code == 200
+        body = r.json()
+        assert body["status"] == "ready"
+>       assert body["checks"] == {"database": "ok", "storage": "ok"}
+               ^^^^^^^^^^^^^^
+E       KeyError: 'checks'
+
+tests/release/test_health_probes.py:88: KeyError
+_____________ test_database_loss_fails_readiness_but_not_liveness ______________
+
+api = <starlette.testclient.TestClient object at 0x7fe0067756d0>
+storage_ok = <MagicMock name='StorageClient' id='140600236596864'>
+
+    def test_database_loss_fails_readiness_but_not_liveness(api, storage_ok):
+        with _db_down():
+            ready = api.get("/readyz")
+            live = api.get("/healthz")
+        assert ready.status_code == 503
+        body = ready.json()
+        assert body["status"] == "not ready"
+>       assert body["checks"]["database"] == "unavailable"
+               ^^^^^^^^^^^^^^
+E       KeyError: 'checks'
+
+tests/release/test_health_probes.py:98: KeyError
+______________ test_storage_loss_fails_readiness_but_not_liveness ______________
+
+api = <starlette.testclient.TestClient object at 0x7fe006776490>
+
+    def test_storage_loss_fails_readiness_but_not_liveness(api):
+        with patch("app.main.StorageClient") as mock_storage:
+            mock_storage.return_value.ping.side_effect = ConnectionError(FAKE_S3_DETAIL)
+            ready = api.get("/readyz")
+            live = api.get("/healthz")
+        assert ready.status_code == 503
+        body = ready.json()
+>       assert body["checks"] == {"database": "ok", "storage": "unavailable"}
+               ^^^^^^^^^^^^^^
+E       KeyError: 'checks'
+
+tests/release/test_health_probes.py:113: KeyError
+____________ test_hanging_dependency_fails_readiness_within_timeout ____________
+
+api = <starlette.testclient.TestClient object at 0x7fe006843100>
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7fe005df28b0>
+
+    def test_hanging_dependency_fails_readiness_within_timeout(api, monkeypatch):
+        monkeypatch.setenv("READINESS_TIMEOUT_SEC", "0.3")
+        get_settings.cache_clear()
+        release = threading.Event()
+        try:
+            with patch("app.main.StorageClient") as mock_storage:
+                mock_storage.return_value.ping.side_effect = lambda: release.wait(10)
+                t0 = time.monotonic()
+                ready = api.get("/readyz")
+                elapsed = time.monotonic() - t0
+        finally:
+            release.set()
+            get_settings.cache_clear()
+>       assert ready.status_code == 503
+E       assert 200 == 503
+E        +  where 200 = <Response [200 OK]>.status_code
+
+tests/release/test_health_probes.py:132: AssertionError
+____________________ test_workerz_fresh_heartbeat_is_alive _____________________
+
+api = <starlette.testclient.TestClient object at 0x7fe005a9f770>
+
+    def test_workerz_fresh_heartbeat_is_alive(api):
+        _set_db_heartbeat(5)
+        r = api.get("/workerz")
+        assert r.status_code == 200
+        body = r.json()
+        assert body["worker_alive"] is True
+>       assert body["status"] == "ok"
+               ^^^^^^^^^^^^^^
+E       KeyError: 'status'
+
+tests/release/test_health_probes.py:173: KeyError
+_____________________ test_workerz_stale_heartbeat_is_503 ______________________
+
+api = <starlette.testclient.TestClient object at 0x7fe00674ead0>
+
+    def test_workerz_stale_heartbeat_is_503(api):
+        _set_db_heartbeat(600)
+        r = api.get("/workerz")
+        assert r.status_code == 503
+        body = r.json()
+        assert body["worker_alive"] is False
+>       assert body["status"] == "stale"
+               ^^^^^^^^^^^^^^
+E       KeyError: 'status'
+
+tests/release/test_health_probes.py:184: KeyError
+------------------------------ Captured log call -------------------------------
+WARNING  trustcopilot.alert:main.py:519 ALERT_WORKER_DOWN queued=1 running=0
+_______________ test_workerz_staleness_threshold_is_configurable _______________
+
+api = <starlette.testclient.TestClient object at 0x7fe005a7a140>
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7fe005df2ea0>
+
+    def test_workerz_staleness_threshold_is_configurable(api, monkeypatch):
+        _set_db_heartbeat(600)
+        monkeypatch.setenv("WORKER_HEARTBEAT_STALE_SEC", "900")
+        r = api.get("/workerz")
+>       assert r.status_code == 200
+E       assert 503 == 200
+E        +  where 503 = <Response [503 Service Unavailable]>.status_code
+
+tests/release/test_health_probes.py:191: AssertionError
+------------------------------ Captured log call -------------------------------
+WARNING  trustcopilot.alert:main.py:519 ALERT_WORKER_DOWN queued=1 running=0
+____________ test_workerz_store_unavailable_is_unknown_and_redacted ____________
+
+api = <starlette.testclient.TestClient object at 0x7fe0068fa750>
+
+    def test_workerz_store_unavailable_is_unknown_and_redacted(api):
+        with _db_down():
+            r = api.get("/workerz")
+        assert r.status_code == 503
+        body = r.json()
+>       assert body["status"] == "unknown"
+               ^^^^^^^^^^^^^^
+E       KeyError: 'status'
+
+tests/release/test_health_probes.py:200: KeyError
+------------------------------ Captured log call -------------------------------
+WARNING  trustcopilot.alert:main.py:526 ALERT_WORKER_DOWN error=(builtins.Exception) could not connect to server: postgresql://synthetic_user:synthetic-pw-7f3a@db.internal.example:5432/prod
+[SQL: SELECT 1]
+(Background on this error at: https://sqlalche.me/e/20/e3q
+_______________ test_long_healthy_job_keeps_refreshing_heartbeat _______________
+
+tmp_path = PosixPath('/tmp/pytest-of-box/pytest-18/test_long_healthy_job_keeps_re0')
+
+    def test_long_healthy_job_keeps_refreshing_heartbeat(tmp_path):
+>       from app.worker_health import HeartbeatState
+E       ModuleNotFoundError: No module named 'app.worker_health'
+
+tests/release/test_health_probes.py:236: ModuleNotFoundError
+________________ test_job_over_max_runtime_withholds_heartbeat _________________
+
+tmp_path = PosixPath('/tmp/pytest-of-box/pytest-18/test_job_over_max_runtime_with0')
+caplog = <_pytest.logging.LogCaptureFixture object at 0x7fe005ab4830>
+
+    def test_job_over_max_runtime_withholds_heartbeat(tmp_path, caplog):
+>       from app.worker_health import HeartbeatState
+E       ModuleNotFoundError: No module named 'app.worker_health'
+
+tests/release/test_health_probes.py:254: ModuleNotFoundError
+_________________ test_stalled_claim_loop_withholds_heartbeat __________________
+
+tmp_path = PosixPath('/tmp/pytest-of-box/pytest-18/test_stalled_claim_loop_withho0')
+
+    def test_stalled_claim_loop_withholds_heartbeat(tmp_path):
+>       from app.worker_health import HeartbeatState
+E       ModuleNotFoundError: No module named 'app.worker_health'
+
+tests/release/test_health_probes.py:270: ModuleNotFoundError
+________________ test_db_write_failure_does_not_kill_heartbeat _________________
+
+tmp_path = PosixPath('/tmp/pytest-of-box/pytest-18/test_db_write_failure_does_not0')
+caplog = <_pytest.logging.LogCaptureFixture object at 0x7fe006776490>
+
+    def test_db_write_failure_does_not_kill_heartbeat(tmp_path, caplog):
+>       from app.worker_health import HeartbeatState
+E       ModuleNotFoundError: No module named 'app.worker_health'
+
+tests/release/test_health_probes.py:284: ModuleNotFoundError
+___________________ test_heartbeat_thread_runs_in_background ___________________
+
+tmp_path = PosixPath('/tmp/pytest-of-box/pytest-18/test_heartbeat_thread_runs_in_0')
+
+    def test_heartbeat_thread_runs_in_background(tmp_path):
+>       from app.worker_health import HeartbeatState, HeartbeatThread
+E       ModuleNotFoundError: No module named 'app.worker_health'
+
+tests/release/test_health_probes.py:298: ModuleNotFoundError
+__________ test_worker_job_execution_marks_job_running_for_heartbeat ___________
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7fe005a9eb10>
+tmp_path = PosixPath('/tmp/pytest-of-box/pytest-18/test_worker_job_execution_mark0')
+
+    def test_worker_job_execution_marks_job_running_for_heartbeat(monkeypatch, tmp_path):
+        """While run_job executes for longer than the loop-stall threshold, the heartbeat still beats."""
+        from app import worker
+>       from app.worker_health import HeartbeatThread
+E       ModuleNotFoundError: No module named 'app.worker_health'
+
+tests/release/test_health_probes.py:322: ModuleNotFoundError
+_________________ test_worker_main_starts_background_heartbeat _________________
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7fe00408abe0>
+
+    def test_worker_main_starts_background_heartbeat(monkeypatch):
+        from app import worker
+
+        class Stop(BaseException):
+            pass
+
+        started = []
+
+        class FakeThread:
+            def __init__(self, state, write_db, **kw):
+                assert state is worker.HEARTBEAT_STATE
+                assert write_db is worker.write_db_heartbeat
+                started.append(self)
+
+            def start(self):
+                started.append("started")
+
+>       monkeypatch.setattr(worker, "HeartbeatThread", FakeThread)
+E       AttributeError: <module 'app.worker' from '/workspace/tc-base/apps/api/app/worker.py'> has no attribute 'HeartbeatThread'
+
+tests/release/test_health_probes.py:378: AttributeError
+_______________ test_worker_db_heartbeat_write_is_read_as_fresh ________________
+
+api = <starlette.testclient.TestClient object at 0x7fdfff557150>
+
+    def test_worker_db_heartbeat_write_is_read_as_fresh(api):
+        from app import worker
+
+        _set_db_heartbeat(10_000)
+>       worker.write_db_heartbeat()
+        ^^^^^^^^^^^^^^^^^^^^^^^^^
+E       AttributeError: module 'app.worker' has no attribute 'write_db_heartbeat'
+
+tests/release/test_health_probes.py:390: AttributeError
+_____________ test_worker_probe_fresh_file_is_healthy_without_http _____________
+
+tmp_path = PosixPath('/tmp/pytest-of-box/pytest-18/test_worker_probe_fresh_file_i0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7fe00408ae00>
+no_network = None
+
+    def test_worker_probe_fresh_file_is_healthy_without_http(tmp_path, monkeypatch, no_network):
+>       from app import probe
+E       ImportError: cannot import name 'probe' from 'app' (/workspace/tc-base/apps/api/app/__init__.py)
+
+tests/release/test_health_probes.py:411: ImportError
+_____________ test_worker_probe_stale_or_missing_file_is_unhealthy _____________
+
+tmp_path = PosixPath('/tmp/pytest-of-box/pytest-18/test_worker_probe_stale_or_mis0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7fdfff557a50>
+no_network = None
+
+    def test_worker_probe_stale_or_missing_file_is_unhealthy(tmp_path, monkeypatch, no_network):
+>       from app import probe
+E       ImportError: cannot import name 'probe' from 'app' (/workspace/tc-base/apps/api/app/__init__.py)
+
+tests/release/test_health_probes.py:423: ImportError
+_________ test_api_probe_uses_loopback_healthz_and_unknown_role_fails __________
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7fdfff557d50>
+
+    def test_api_probe_uses_loopback_healthz_and_unknown_role_fails(monkeypatch):
+>       from app import probe
+E       ImportError: cannot import name 'probe' from 'app' (/workspace/tc-base/apps/api/app/__init__.py)
+
+tests/release/test_health_probes.py:436: ImportError
+_______________________ test_worker_probe_cli_end_to_end _______________________
+
+tmp_path = PosixPath('/tmp/pytest-of-box/pytest-18/test_worker_probe_cli_end_to_e0')
+
+    def test_worker_probe_cli_end_to_end(tmp_path):
+        """Real `python -S -m app.probe worker`: -S (no site-packages) proves the probe is stdlib-only."""
+>       from app.worker_health import touch_heartbeat_file
+E       ModuleNotFoundError: No module named 'app.worker_health'
+
+tests/release/test_health_probes.py:461: ModuleNotFoundError
+_______ test_compose_worker_has_non_http_probe[docker-compose.prod.yml] ________
+
+compose = 'docker-compose.prod.yml'
+
+    @pytest.mark.parametrize("compose", ["docker-compose.prod.yml", "docker-compose.yml"])
+    def test_compose_worker_has_non_http_probe(compose):
+        block = _service_block((REPO_ROOT / compose).read_text(encoding="utf-8"), "worker")
+        assert "app.worker" in block, "worker service not found"
+        probe_cmd = _healthcheck_test(block)
+>       assert probe_cmd is not None, (
+            f"{compose}: worker has no explicit healthcheck (would inherit image probe)"
+        )
+E       AssertionError: docker-compose.prod.yml: worker has no explicit healthcheck (would inherit image probe)
+E       assert None is not None
+
+tests/release/test_health_probes.py:514: AssertionError
+__________ test_compose_worker_has_non_http_probe[docker-compose.yml] __________
+
+compose = 'docker-compose.yml'
+
+    @pytest.mark.parametrize("compose", ["docker-compose.prod.yml", "docker-compose.yml"])
+    def test_compose_worker_has_non_http_probe(compose):
+        block = _service_block((REPO_ROOT / compose).read_text(encoding="utf-8"), "worker")
+        assert "app.worker" in block, "worker service not found"
+        probe_cmd = _healthcheck_test(block)
+>       assert probe_cmd is not None, (
+            f"{compose}: worker has no explicit healthcheck (would inherit image probe)"
+        )
+E       AssertionError: docker-compose.yml: worker has no explicit healthcheck (would inherit image probe)
+E       assert None is not None
+
+tests/release/test_health_probes.py:514: AssertionError
+_______________ test_production_image_healthcheck_is_role_aware ________________
+
+    def test_production_image_healthcheck_is_role_aware():
+        dockerfile = (API_DIR / "Dockerfile").read_text(encoding="utf-8")
+        prod = dockerfile.split("AS production", 1)[1].split("\nFROM ", 1)[0]
+        hc = prod.split("HEALTHCHECK", 1)[1]
+>       assert "app.probe" in hc
+E       assert 'app.probe' in ' --interval=30s --timeout=5s --start-period=5s --retries=3 \\\n  CMD python -c "import urllib.request; urllib.request....0.1:8000/healthz\')" || exit 1\n\n# Stage: dev (default target for local docker compose; with reload, no healthcheck)'
+
+tests/release/test_health_probes.py:525: AssertionError
+==================================== PASSES ====================================
+=========================== short test summary info ============================
+PASSED tests/release/test_health_probes.py::test_liveness_never_touches_dependencies
+FAILED tests/release/test_health_probes.py::test_readyz_ready_reports_each_check
+FAILED tests/release/test_health_probes.py::test_database_loss_fails_readiness_but_not_liveness
+FAILED tests/release/test_health_probes.py::test_storage_loss_fails_readiness_but_not_liveness
+FAILED tests/release/test_health_probes.py::test_hanging_dependency_fails_readiness_within_timeout
+FAILED tests/release/test_health_probes.py::test_workerz_fresh_heartbeat_is_alive
+FAILED tests/release/test_health_probes.py::test_workerz_stale_heartbeat_is_503
+FAILED tests/release/test_health_probes.py::test_workerz_staleness_threshold_is_configurable
+FAILED tests/release/test_health_probes.py::test_workerz_store_unavailable_is_unknown_and_redacted
+FAILED tests/release/test_health_probes.py::test_long_healthy_job_keeps_refreshing_heartbeat
+FAILED tests/release/test_health_probes.py::test_job_over_max_runtime_withholds_heartbeat
+FAILED tests/release/test_health_probes.py::test_stalled_claim_loop_withholds_heartbeat
+FAILED tests/release/test_health_probes.py::test_db_write_failure_does_not_kill_heartbeat
+FAILED tests/release/test_health_probes.py::test_heartbeat_thread_runs_in_background
+FAILED tests/release/test_health_probes.py::test_worker_job_execution_marks_job_running_for_heartbeat
+FAILED tests/release/test_health_probes.py::test_worker_main_starts_background_heartbeat
+FAILED tests/release/test_health_probes.py::test_worker_db_heartbeat_write_is_read_as_fresh
+FAILED tests/release/test_health_probes.py::test_worker_probe_fresh_file_is_healthy_without_http
+FAILED tests/release/test_health_probes.py::test_worker_probe_stale_or_missing_file_is_unhealthy
+FAILED tests/release/test_health_probes.py::test_api_probe_uses_loopback_healthz_and_unknown_role_fails
+FAILED tests/release/test_health_probes.py::test_worker_probe_cli_end_to_end
+FAILED tests/release/test_health_probes.py::test_compose_worker_has_non_http_probe[docker-compose.prod.yml]
+FAILED tests/release/test_health_probes.py::test_compose_worker_has_non_http_probe[docker-compose.yml]
+FAILED tests/release/test_health_probes.py::test_production_image_healthcheck_is_role_aware
+23 failed, 1 passed in 11.39s
+# exit status: 1
