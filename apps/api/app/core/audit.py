@@ -44,8 +44,8 @@ def persist_audit(
     resource_type: str | None = None,
     resource_id: int | str | None = None,
     details: dict[str, Any] | None = None,
-) -> None:
-    """Persist an audit event to the database (AUD-201). Call from auth and high-value routes."""
+) -> int:
+    """Persist an audit event and return its id (AUD-201)."""
     from app.models import AuditEvent
 
     rid = str(resource_id) if resource_id is not None else None
@@ -64,7 +64,15 @@ def persist_audit(
     )
     db.add(ev)
     try:
+        db.flush()
+        raw_id = ev.id
         db.commit()
     except Exception:
         db.rollback()
         raise
+    if isinstance(raw_id, int) and not isinstance(raw_id, bool):
+        return raw_id
+    # A real session assigns the primary key on flush. Test doubles do not.
+    if isinstance(db, Session):
+        raise RuntimeError("audit event id was not assigned")
+    return 0
