@@ -29,6 +29,7 @@ import io
 import json
 import math
 import os
+import posixpath
 import re
 import subprocess
 import sys
@@ -50,7 +51,28 @@ _SECRET_NAME = (
 _LIT = r"""(?P<q>["'])(?P<val>[^"'\n]*)(?P=q)"""
 # scheme://userinfo:password@ -- scheme matched case-insensitively (RFC 3986), userinfo may itself
 # contain '@' so an ambiguous authority is still matched (and then blocked, never downgraded).
-_URL_CRED_RE = re.compile(r"[A-Za-z][A-Za-z0-9+.\-]*://[^:/\s\"']+:(?P<val>[^@/\s\"']+)@")
+# The password may contain '/' (TC-07-001a: raw '/' is invalid in RFC 3986 userinfo, so such a URL
+# never parses to the same host and always blocks); "host:port/path@..." is not a password.
+_URL_CRED_RE = re.compile(r"[A-Za-z][A-Za-z0-9+.\-]*://[^:/\s\"']+:(?P<val>(?![0-9]*/)[^@\s\"']+)@")
+# libpq keyword/value connection strings ("host=db user=app password=..."), TC-07-001a. The
+# password must sit in a run of space-separated key=value pairs with at least one other libpq
+# keyword, so Python keyword arguments ("password=pw,") and prose do not match.
+_LIBPQ_KW = r"(?:host|hostaddr|port|dbname|user|sslmode|options|application_name|connect_timeout)"
+_LIBPQ_PAIR = r"\w+\s*=\s*'?[^\s'\",;()]*'?\s+"
+_LIBPQ_VAL = r"'?(?P<val>[^\s'\",;()\\]+)"
+_LIBPQ_AFTER_RE = re.compile(
+    r"(?i)(?<![\w.$-])" + _LIBPQ_KW + r"\s*=\s*'?[^\s'\",;()]*'?\s+(?:" + _LIBPQ_PAIR + r")*?"
+    r"password\s*=\s*" + _LIBPQ_VAL
+)
+_LIBPQ_BEFORE_RE = re.compile(
+    r"(?i)(?<![\w.$-])password\s*=\s*"
+    + _LIBPQ_VAL
+    + r"'?\s+(?:"
+    + _LIBPQ_PAIR
+    + r")*?"
+    + _LIBPQ_KW
+    + r"\s*="
+)
 
 
 @dataclass(frozen=True)
@@ -65,6 +87,9 @@ class Rule:
     app_code_only: bool = False
     config_only: bool = False
     multiline: bool = False
+    # TC-07-001a: a shorter value still blocks when it is complex (>= 3 character classes and no
+    # obvious repetition), so an 11-character mixed password is not reported as a dev default.
+    complex_min_len: int = 0
 
 
 RULES: list[Rule] = [
@@ -160,6 +185,17 @@ RULES: list[Rule] = [
         min_len=1,
         multiline=True,
     ),
+    # environ.setdefault(...) with a high-entropy literal (TC-07-001a; how test suites used to pin a
+    # signing value). Low-entropy test values such as "test-secret" stay out of scope.
+    Rule(
+        "secret-env-default",
+        "High-entropy literal default for a secret-named environment variable",
+        "block",
+        re.compile(r"environ\.setdefault\(\s*[\"']" + _SECRET_NAME + r"[\"']\s*,\s*" + _LIT),
+        min_len=16,
+        min_entropy=3.0,
+        multiline=True,
+    ),
     # Any literal assigned to a secret-named constant in shipped application code.
     Rule(
         "app-secret-literal",
@@ -177,12 +213,47 @@ RULES: list[Rule] = [
         _URL_CRED_RE,
         min_len=12,
         min_entropy=3.0,
+        complex_min_len=8,
     ),
     Rule(
         "url-credential-review",
         "Low-entropy password embedded in a connection URL (dev default)",
         "review",
         _URL_CRED_RE,
+        min_len=1,
+    ),
+    # libpq keyword/value strings: same thresholds as the URL rule (password after or before
+    # another libpq keyword).
+    Rule(
+        "libpq-password",
+        "Password in a libpq keyword/value connection string",
+        "block",
+        _LIBPQ_AFTER_RE,
+        min_len=12,
+        min_entropy=3.0,
+        complex_min_len=8,
+    ),
+    Rule(
+        "libpq-password",
+        "Password in a libpq keyword/value connection string",
+        "block",
+        _LIBPQ_BEFORE_RE,
+        min_len=12,
+        min_entropy=3.0,
+        complex_min_len=8,
+    ),
+    Rule(
+        "libpq-password-review",
+        "Low-entropy password in a libpq connection string (dev default)",
+        "review",
+        _LIBPQ_AFTER_RE,
+        min_len=1,
+    ),
+    Rule(
+        "libpq-password-review",
+        "Low-entropy password in a libpq connection string (dev default)",
+        "review",
+        _LIBPQ_BEFORE_RE,
         min_len=1,
     ),
     # Unquoted secret-named values in YAML / dotenv / shell / PowerShell / Docker files.
@@ -405,11 +476,21 @@ SKIP_SUFFIXES = {
     ".pyc",
 }
 SKIP_FILES = {"package-lock.json", "pnpm-lock.yaml", "yarn.lock"}
-# The scanner and its regression test describe the patterns; they contain no values.
-SELF_PATHS = {
-    "scripts/security/secret_inventory.py",
-    "apps/api/tests/release/test_secret_inventory.py",
-}
+# The scanner and its regression test are scanned like every other file (TC-07-001a: they used to
+# be skipped entirely, which would have hidden a real value added to either). Their only allowance:
+# a block match whose captured value is a bare f-string interpolation such as "{tok}" -- the test
+# builds its synthetic values at runtime -- is downgraded to review with a reason. Literal values,
+# token formats and every match without a captured value still block.
+SELF_PATHS = frozenset(
+    {
+        "scripts/security/secret_inventory.py",
+        "apps/api/tests/release/test_secret_inventory.py",
+    }
+)
+REASON_SELF_INTERPOLATION = (
+    "downgraded: f-string interpolation placeholder in the scanner or its test"
+)
+_INTERPOLATION_RE = re.compile(r"\{[A-Za-z_][A-Za-z0-9_]*\}")
 MAX_BYTES = 2_000_000
 
 
@@ -488,21 +569,56 @@ def _is_config(path: str) -> bool:
     )
 
 
+def _char_classes(v: str) -> int:
+    return sum(
+        (
+            any(c.islower() for c in v),
+            any(c.isupper() for c in v),
+            any(c.isdigit() for c in v),
+            any(not c.isalnum() for c in v),
+        )
+    )
+
+
+def _is_complex(v: str, min_len: int) -> bool:
+    """Short but complex: >= min_len chars, >= 3 character classes, mostly distinct characters."""
+    return len(v) >= min_len and _char_classes(v) >= 3 and len(set(v)) >= 0.75 * len(v)
+
+
 def _value_ok(rule: Rule, val: str | None) -> bool:
     if val is None:
         return True
-    if len(val) < rule.min_len:
-        return False
     if rule.min_len and (_is_placeholder(val) or _looks_like_reference(val)):
         return False
-    if rule.min_entropy and _entropy(val) < rule.min_entropy:
+    if len(val) >= rule.min_len and not (rule.min_entropy and _entropy(val) < rule.min_entropy):
+        return True
+    return bool(rule.complex_min_len) and _is_complex(val, rule.complex_min_len)
+
+
+def _normalize_path(path: str) -> str:
+    """Forward slashes, no '.'/'..' segments (TC-07-001a), so traversal cannot change the class.
+
+    Only the part before an archive '!' separator is normalized; member names are kept verbatim.
+    """
+    norm = path.replace("\\", "/")
+    outer, bang, member = norm.partition("!")
+    if outer:
+        outer = posixpath.normpath(outer)
+        if outer == ".":
+            outer = ""
+    return outer + bang + member
+
+
+def _self_interpolation(norm: str, rule: Rule, m: re.Match) -> bool:
+    if rule.severity != "block" or norm not in SELF_PATHS:
         return False
-    return True
+    val = m.groupdict().get("val")
+    return bool(val) and bool(_INTERPOLATION_RE.fullmatch(val))
 
 
 def scan_text(text: str, path: str, source: str = "tree", commit: str = "") -> list[Finding]:
     findings: list[Finding] = []
-    norm = path.replace("\\", "/")
+    norm = _normalize_path(path)
     is_app = norm.startswith(APP_CODE_PREFIXES)
     is_cfg = _is_config(norm)
     # Dedupe per (line, rule, match span): two URLs on one line are two findings, so a
@@ -522,8 +638,11 @@ def scan_text(text: str, path: str, source: str = "tree", commit: str = "") -> l
             key = (lineno, rule.rule_id, m.start(), m.end())
             if key not in seen:
                 seen.add(key)
+                severity, reason = rule.severity, ""
+                if _self_interpolation(norm, rule, m):
+                    severity, reason = "review", REASON_SELF_INTERPOLATION
                 findings.append(
-                    Finding(source, norm, lineno, rule.rule_id, rule.kind, rule.severity, commit)
+                    Finding(source, norm, lineno, rule.rule_id, rule.kind, severity, commit, reason)
                 )
     for lineno, line in enumerate(text.splitlines(), 1):
         if len(line) > 5000:  # minified bundles: only check token formats
@@ -560,6 +679,8 @@ def scan_text(text: str, path: str, source: str = "tree", commit: str = "") -> l
                 if rule.rule_id == "url-embedded-credential":
                     if _url_credential_host_is_reserved(line, m):
                         severity, reason = "review", REASON_RESERVED_HOST
+                if _self_interpolation(norm, rule, m):
+                    severity, reason = "review", REASON_SELF_INTERPOLATION
                 key = (lineno, rule.rule_id, m.start(), m.end())
                 if key in seen:
                     continue
@@ -596,9 +717,7 @@ def _should_skip(rel: str) -> bool:
     p = Path(rel)
     if any(part in SKIP_DIRS for part in p.parts):
         return True
-    if p.suffix.lower() in SKIP_SUFFIXES or p.name in SKIP_FILES:
-        return True
-    return rel.replace("\\", "/") in SELF_PATHS
+    return p.suffix.lower() in SKIP_SUFFIXES or p.name in SKIP_FILES
 
 
 def _decode(data: bytes) -> str | None:
@@ -688,9 +807,12 @@ def scan_tree(root: Path) -> list[Finding]:
 
 
 def scan_paths(root: Path, paths: Iterable[str]) -> list[Finding]:
+    # TC-07-001a: resolve '.', '..' and symlinks before classifying, so "tests/../apps/api/app/x.py"
+    # is classified as application code (no marker, app-code rules apply).
+    root = Path(root).resolve()
     out: list[Finding] = []
     for p in paths:
-        base = (root / p) if not Path(p).is_absolute() else Path(p)
+        base = ((root / p) if not Path(p).is_absolute() else Path(p)).resolve()
         files = (
             [base]
             if base.is_file()
@@ -702,10 +824,11 @@ def scan_paths(root: Path, paths: Iterable[str]) -> list[Finding]:
             ]
         )
         for f in files:
+            f = f.resolve()
             try:
-                rel = str(f.relative_to(root))
+                rel = f.relative_to(root).as_posix()
             except ValueError:
-                rel = str(f)
+                rel = f.as_posix()
             if _should_skip(rel):
                 continue
             out.extend(_scan_file(f, rel, "artifact"))
