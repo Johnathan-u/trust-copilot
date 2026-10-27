@@ -37,7 +37,10 @@ class OverrideMappingBody(BaseModel):
 
 
 def _framework_id_by_name(db: Session, name: str) -> list[int]:
-    return [r[0] for r in db.query(Framework.id).filter(Framework.name == name).all()]
+    """Exact stored name. A dev row does not resolve when an advertised row shares it."""
+    from app.services.framework_catalog import framework_ids_for_exact_name
+
+    return framework_ids_for_exact_name(db, name)
 
 
 def _fc_ids_for_framework(db: Session, framework_name: str) -> list[int]:
