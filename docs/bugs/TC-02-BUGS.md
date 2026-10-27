@@ -37,7 +37,7 @@ Related findings from the fixture investigation (not noqa entries; same branch, 
 | TC-02-BUG-010 | `apps/api/app/api/routes/vendor_requests.py:73-82` | missing validation | A nonexistent `questionnaire_id` gives an unhandled `sqlalchemy.exc.IntegrityError` (FK violation), so HTTP 500 | request: `POST /api/vendor-requests/` | E18 | Medium |
 | TC-02-BUG-011 | `apps/api/app/api/routes/vendor_requests.py:73-82` + `vendor_response.py:29-40` | missing tenant check | `questionnaire_id` is not checked against the caller's workspace. The public link then shows another tenant's questionnaire filename and question count | request: `POST /api/vendor-requests/`, then public `GET /api/vendor-response?token=` | E06 | High |
 
-Status since the triage: TC-02-BUG-010 and TC-02-BUG-011 are fixed in TC-06-BUG-011 PR (pending merge).
+Status since the triage: TC-02-BUG-010 and TC-02-BUG-011 are fixed in #26 (merged, 36712a5).
 
 Platform & Security (E06) follow-ups. There is no separate E06 bug list, so they are listed here,
 title only:
