@@ -6,6 +6,7 @@ Seed a demo workspace with:
 
 Run from apps/api: python -m scripts.seed_demo_workspace
 """
+
 from __future__ import annotations
 
 import json
@@ -18,25 +19,42 @@ if str(API_ROOT) not in sys.path:
     sys.path.insert(0, str(API_ROOT))
 
 # Load apps/api/.env so DATABASE_URL and S3_* are set when run from apps/api
-from dotenv import load_dotenv
+from dotenv import load_dotenv  # noqa: E402
+
 load_dotenv(API_ROOT / ".env")
 
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session  # noqa: E402
 
-from app.core.database import SessionLocal
-from app.core.password import hash_password
-from app.models import Document, Question, Questionnaire, TrustArticle, User, Workspace, WorkspaceMember
-from app.services.file_service import make_key
-from app.services.storage import StorageClient
-from app.services.xlsx_questionnaire_parser import parse_xlsx_questionnaire
+from app.core.database import SessionLocal  # noqa: E402
+from app.core.password import hash_password  # noqa: E402
+from app.models import (  # noqa: E402
+    Document,
+    Question,
+    Questionnaire,
+    TrustArticle,
+    User,
+    Workspace,
+    WorkspaceMember,
+)
+from app.services.file_service import make_key  # noqa: E402
+from app.services.storage import StorageClient  # noqa: E402
+from app.services.xlsx_questionnaire_parser import parse_xlsx_questionnaire  # noqa: E402
 
 try:
     from scripts._seed_credentials import (
-        describe, refuse_production_seed, seed_password, should_reset_passwords, write_generated_credentials,
+        describe,
+        refuse_production_seed,
+        seed_password,
+        should_reset_passwords,
+        write_generated_credentials,
     )
 except ImportError:  # run as `python scripts/<name>.py`
     from _seed_credentials import (
-        describe, refuse_production_seed, seed_password, should_reset_passwords, write_generated_credentials,
+        describe,
+        refuse_production_seed,
+        seed_password,
+        should_reset_passwords,
+        write_generated_credentials,
     )
 
 DEMO_EMAIL = "demo@trust.local"
@@ -63,16 +81,22 @@ def seed_demo_user(db: Session) -> None:
     elif should_reset_passwords():
         user.password_hash = hash_password(DEMO_PASSWORD)
         db.commit()
-    existing = db.query(WorkspaceMember).filter(
-        WorkspaceMember.user_id == user.id,
-        WorkspaceMember.workspace_id == DEFAULT_WORKSPACE_ID,
-    ).first()
+    existing = (
+        db.query(WorkspaceMember)
+        .filter(
+            WorkspaceMember.user_id == user.id,
+            WorkspaceMember.workspace_id == DEFAULT_WORKSPACE_ID,
+        )
+        .first()
+    )
     if not existing:
-        db.add(WorkspaceMember(
-            user_id=user.id,
-            workspace_id=DEFAULT_WORKSPACE_ID,
-            role="editor",
-        ))
+        db.add(
+            WorkspaceMember(
+                user_id=user.id,
+                workspace_id=DEFAULT_WORKSPACE_ID,
+                role="editor",
+            )
+        )
         db.commit()
         print(f"Added demo user to workspace {DEFAULT_WORKSPACE_ID}")
     elif existing.role != "editor":
@@ -98,10 +122,14 @@ def seed_admin_user(db: Session) -> None:
     elif should_reset_passwords():
         user.password_hash = hash_password(ADMIN_PASSWORD)
         db.commit()
-    mem = db.query(WorkspaceMember).filter(
-        WorkspaceMember.user_id == user.id,
-        WorkspaceMember.workspace_id == DEFAULT_WORKSPACE_ID,
-    ).first()
+    mem = (
+        db.query(WorkspaceMember)
+        .filter(
+            WorkspaceMember.user_id == user.id,
+            WorkspaceMember.workspace_id == DEFAULT_WORKSPACE_ID,
+        )
+        .first()
+    )
     if not mem:
         db.add(WorkspaceMember(user_id=user.id, workspace_id=DEFAULT_WORKSPACE_ID, role="admin"))
         db.commit()
@@ -211,22 +239,51 @@ def seed_demo_workspace(db: Session, storage: StorageClient) -> Workspace:
     questions_data = parse_xlsx_questionnaire(FIXTURE_XLSX)
     xlsx_content = FIXTURE_XLSX.read_bytes()
     key = make_key(ws.id, "raw", "simple_soc2.xlsx")
-    storage.upload(storage.bucket_raw, key, xlsx_content, content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
-    qnr = Questionnaire(workspace_id=ws.id, storage_key=key, filename="simple_soc2.xlsx", status="parsed", parse_metadata=json.dumps({"source": "seed", "question_count": len(questions_data)}))
+    storage.upload(
+        storage.bucket_raw,
+        key,
+        xlsx_content,
+        content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    )
+    qnr = Questionnaire(
+        workspace_id=ws.id,
+        storage_key=key,
+        filename="simple_soc2.xlsx",
+        status="parsed",
+        parse_metadata=json.dumps({"source": "seed", "question_count": len(questions_data)}),
+    )
     db.add(qnr)
     db.commit()
     db.refresh(qnr)
     for qd in questions_data:
         sl = qd.get("source_location")
         sl_json = json.dumps(sl) if isinstance(sl, dict) else sl
-        q = Question(questionnaire_id=qnr.id, text=qd["text"], section=qd.get("section"), answer_type=qd.get("answer_type"), source_location=sl_json, confidence=qd.get("confidence"))
+        q = Question(
+            questionnaire_id=qnr.id,
+            text=qd["text"],
+            section=qd.get("section"),
+            answer_type=qd.get("answer_type"),
+            source_location=sl_json,
+            confidence=qd.get("confidence"),
+        )
         db.add(q)
     db.commit()
     print(f"Created questionnaire: {qnr.filename} (id={qnr.id}, {len(questions_data)} questions)")
 
     doc_key = make_key(ws.id, "raw", "sample_evidence.txt")
-    storage.upload(storage.bucket_raw, doc_key, b"Sample evidence document. Placeholder for demo workspace.", content_type="text/plain")
-    doc = Document(workspace_id=ws.id, storage_key=doc_key, filename="sample_evidence.txt", content_type="text/plain", status="uploaded")
+    storage.upload(
+        storage.bucket_raw,
+        doc_key,
+        b"Sample evidence document. Placeholder for demo workspace.",
+        content_type="text/plain",
+    )
+    doc = Document(
+        workspace_id=ws.id,
+        storage_key=doc_key,
+        filename="sample_evidence.txt",
+        content_type="text/plain",
+        status="uploaded",
+    )
     db.add(doc)
     db.commit()
     db.refresh(doc)
@@ -255,7 +312,9 @@ def seed_demo_workspace(db: Session, storage: StorageClient) -> Workspace:
     return ws
 
 
-def seed_dev_compliance_catalog_for_demo(db: Session, workspace_id: int = DEFAULT_WORKSPACE_ID) -> None:
+def seed_dev_compliance_catalog_for_demo(
+    db: Session, workspace_id: int = DEFAULT_WORKSPACE_ID
+) -> None:
     """Link multi-framework dev catalog controls into the demo workspace (compliance tables)."""
     try:
         from scripts.seed_dev_compliance_catalog import seed_dev_compliance_catalog

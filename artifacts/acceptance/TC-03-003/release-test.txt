@@ -1,0 +1,71 @@
+# branch tc/platform/TC-03-003 (working tree on top of c20f949)
+# command (from apps/api): python -m pytest tests/release/test_health_probes.py -q -rA -p no:cacheprovider
+........................                                                 [100%]
+==================================== PASSES ====================================
+_____________ test_database_loss_fails_readiness_but_not_liveness ______________
+------------------------------ Captured log call -------------------------------
+WARNING  trustcopilot.alert:main.py:520 ALERT_NOT_READY database: unavailable (OperationalError)
+______________ test_storage_loss_fails_readiness_but_not_liveness ______________
+------------------------------ Captured log call -------------------------------
+WARNING  trustcopilot.alert:main.py:520 ALERT_NOT_READY s3: unavailable (ConnectionError)
+____________ test_hanging_dependency_fails_readiness_within_timeout ____________
+------------------------------ Captured log call -------------------------------
+WARNING  trustcopilot.alert:main.py:520 ALERT_NOT_READY s3: timeout (timed out after 0.3s)
+_____________________ test_workerz_stale_heartbeat_is_503 ______________________
+------------------------------ Captured log call -------------------------------
+WARNING  trustcopilot.alert:main.py:567 ALERT_WORKER_DOWN queued=1 running=5 age=600.0
+____________ test_workerz_store_unavailable_is_unknown_and_redacted ____________
+------------------------------ Captured log call -------------------------------
+WARNING  trustcopilot.alert:main.py:571 ALERT_WORKER_DOWN status=unknown error=OperationalError
+________________ test_job_over_max_runtime_withholds_heartbeat _________________
+------------------------------ Captured log call -------------------------------
+WARNING  trustcopilot.worker.heartbeat:worker_health.py:153 ALERT_WORKER_UNHEALTHY heartbeat withheld: job 7 running 601s > 600s
+_________________ test_stalled_claim_loop_withholds_heartbeat __________________
+------------------------------ Captured log call -------------------------------
+WARNING  trustcopilot.worker.heartbeat:worker_health.py:153 ALERT_WORKER_UNHEALTHY heartbeat withheld: claim loop stalled 260s > 120s
+________________ test_db_write_failure_does_not_kill_heartbeat _________________
+------------------------------ Captured log call -------------------------------
+WARNING  trustcopilot.worker.heartbeat:worker_health.py:163 worker heartbeat DB write failed: OperationalError
+WARNING  trustcopilot.worker.heartbeat:worker_health.py:163 worker heartbeat DB write failed: OperationalError
+_________________ test_worker_main_starts_background_heartbeat _________________
+----------------------------- Captured stdout call -----------------------------
+Trust Copilot worker started (threads: 3-10, initial: 6)
+_____________ test_worker_probe_fresh_file_is_healthy_without_http _____________
+----------------------------- Captured stdout call -----------------------------
+probe role=worker healthy: heartbeat age 0s
+probe role=worker healthy: heartbeat age 0s
+_____________ test_worker_probe_stale_or_missing_file_is_unhealthy _____________
+----------------------------- Captured stdout call -----------------------------
+probe role=worker unhealthy: no heartbeat file at /tmp/pytest-of-box/pytest-19/test_worker_probe_stale_or_mis0/hb
+probe role=worker unhealthy: heartbeat stale 600s > 120s
+_________ test_api_probe_uses_loopback_healthz_and_unknown_role_fails __________
+----------------------------- Captured stdout call -----------------------------
+probe role=api healthy: healthz 200
+probe role=mystery unhealthy: unknown TC_PROCESS_ROLE 'mystery'
+=========================== short test summary info ============================
+PASSED tests/release/test_health_probes.py::test_readyz_ready_reports_each_check
+PASSED tests/release/test_health_probes.py::test_database_loss_fails_readiness_but_not_liveness
+PASSED tests/release/test_health_probes.py::test_storage_loss_fails_readiness_but_not_liveness
+PASSED tests/release/test_health_probes.py::test_hanging_dependency_fails_readiness_within_timeout
+PASSED tests/release/test_health_probes.py::test_liveness_never_touches_dependencies
+PASSED tests/release/test_health_probes.py::test_workerz_fresh_heartbeat_is_alive
+PASSED tests/release/test_health_probes.py::test_workerz_stale_heartbeat_is_503
+PASSED tests/release/test_health_probes.py::test_workerz_staleness_threshold_is_configurable
+PASSED tests/release/test_health_probes.py::test_workerz_store_unavailable_is_unknown_and_redacted
+PASSED tests/release/test_health_probes.py::test_long_healthy_job_keeps_refreshing_heartbeat
+PASSED tests/release/test_health_probes.py::test_job_over_max_runtime_withholds_heartbeat
+PASSED tests/release/test_health_probes.py::test_stalled_claim_loop_withholds_heartbeat
+PASSED tests/release/test_health_probes.py::test_db_write_failure_does_not_kill_heartbeat
+PASSED tests/release/test_health_probes.py::test_heartbeat_thread_runs_in_background
+PASSED tests/release/test_health_probes.py::test_worker_job_execution_marks_job_running_for_heartbeat
+PASSED tests/release/test_health_probes.py::test_worker_main_starts_background_heartbeat
+PASSED tests/release/test_health_probes.py::test_worker_db_heartbeat_write_is_read_as_fresh
+PASSED tests/release/test_health_probes.py::test_worker_probe_fresh_file_is_healthy_without_http
+PASSED tests/release/test_health_probes.py::test_worker_probe_stale_or_missing_file_is_unhealthy
+PASSED tests/release/test_health_probes.py::test_api_probe_uses_loopback_healthz_and_unknown_role_fails
+PASSED tests/release/test_health_probes.py::test_worker_probe_cli_end_to_end
+PASSED tests/release/test_health_probes.py::test_compose_worker_has_non_http_probe[docker-compose.prod.yml]
+PASSED tests/release/test_health_probes.py::test_compose_worker_has_non_http_probe[docker-compose.yml]
+PASSED tests/release/test_health_probes.py::test_production_image_healthcheck_is_role_aware
+24 passed in 2.04s
+# exit status: 0

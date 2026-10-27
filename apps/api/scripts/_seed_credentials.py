@@ -26,7 +26,9 @@ def refuse_production_seed() -> None:
         from app.core.config_contract import refuse_demo_seed_in_production
     except ImportError:  # pragma: no cover - scripts run from apps/api with app importable
         if os.getenv("APP_ENV", "development").strip().lower() == "production":
-            raise SystemExit("Refusing to seed demo/QA/E2E data with APP_ENV=production (TC-03-001).")
+            raise SystemExit(
+                "Refusing to seed demo/QA/E2E data with APP_ENV=production (TC-03-001)."
+            )
         return
     refuse_demo_seed_in_production()
 

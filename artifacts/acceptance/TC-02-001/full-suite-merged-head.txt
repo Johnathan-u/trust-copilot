@@ -1,0 +1,10 @@
+# SHA 11d5d470e2085476a48af3aa235ca1631ff0fa10; cmd: python -m pytest -q -rs
+--------------- TC-02-001 network guard: blocked egress attempts ---------------
+[run tests/test_alerting_verification.py::test_openai_failure_logs_ALERT_OPENAI_FAILURE] dns:api.openai.com
+[run tests/test_alerting_verification.py::test_openai_failure_logs_ALERT_OPENAI_FAILURE] dns:api.openai.com
+[run tests/test_alerting_verification.py::test_openai_failure_logs_ALERT_OPENAI_FAILURE] dns:api.openai.com
+=========================== short test summary info ============================
+SKIPPED [1] tests/test_trust_scoring_blind.py:31: external_data: blind test pack not checked in; set TC_TRUST_SCORING_BLIND_PACK to run
+SKIPPED [1] tests/test_control_timeline.py:42: No reviewed workspace controls
+1313 passed, 2 skipped in 67.81s (0:01:07)
+exit=0

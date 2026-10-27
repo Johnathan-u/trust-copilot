@@ -22,9 +22,13 @@ class FrameworkControlMapping(Base):
     __tablename__ = "framework_control_mappings"
 
     id = Column(Integer, primary_key=True, autoincrement=True)
-    workspace_id = Column(Integer, ForeignKey("workspaces.id", ondelete="CASCADE"), nullable=False, index=True)
+    workspace_id = Column(
+        Integer, ForeignKey("workspaces.id", ondelete="CASCADE"), nullable=False, index=True
+    )
     framework_key = Column(String(128), nullable=False)
-    control_id = Column(Integer, ForeignKey("workspace_controls.id", ondelete="CASCADE"), nullable=False, index=True)
+    control_id = Column(
+        Integer, ForeignKey("workspace_controls.id", ondelete="CASCADE"), nullable=False, index=True
+    )
     source = Column(String(16), nullable=False, default="manual")
     confidence = Column(Float, nullable=True)
     approved = Column(Boolean, nullable=False, default=False)
@@ -40,9 +44,15 @@ class ControlEvidenceMapping(Base):
     __tablename__ = "control_evidence_mappings"
 
     id = Column(Integer, primary_key=True, autoincrement=True)
-    workspace_id = Column(Integer, ForeignKey("workspaces.id", ondelete="CASCADE"), nullable=False, index=True)
-    control_id = Column(Integer, ForeignKey("workspace_controls.id", ondelete="CASCADE"), nullable=False, index=True)
-    evidence_id = Column(Integer, ForeignKey("evidence_items.id", ondelete="CASCADE"), nullable=False, index=True)
+    workspace_id = Column(
+        Integer, ForeignKey("workspaces.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    control_id = Column(
+        Integer, ForeignKey("workspace_controls.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    evidence_id = Column(
+        Integer, ForeignKey("evidence_items.id", ondelete="CASCADE"), nullable=False, index=True
+    )
     source = Column(String(16), nullable=False, default="manual")
     confidence = Column(Float, nullable=True)
     approved = Column(Boolean, nullable=False, default=False)
@@ -59,8 +69,12 @@ class EvidenceTagMapping(Base):
     __tablename__ = "evidence_tag_mappings"
 
     id = Column(Integer, primary_key=True, autoincrement=True)
-    workspace_id = Column(Integer, ForeignKey("workspaces.id", ondelete="CASCADE"), nullable=False, index=True)
-    evidence_id = Column(Integer, ForeignKey("evidence_items.id", ondelete="CASCADE"), nullable=False, index=True)
+    workspace_id = Column(
+        Integer, ForeignKey("workspaces.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    evidence_id = Column(
+        Integer, ForeignKey("evidence_items.id", ondelete="CASCADE"), nullable=False, index=True
+    )
     tag_id = Column(Integer, ForeignKey("tags.id", ondelete="CASCADE"), nullable=False, index=True)
     source = Column(String(16), nullable=False, default="manual")
     confidence = Column(Float, nullable=True)
@@ -80,11 +94,19 @@ class QuestionMappingPreference(Base):
     __tablename__ = "question_mapping_preferences"
 
     id = Column(Integer, primary_key=True, autoincrement=True)
-    workspace_id = Column(Integer, ForeignKey("workspaces.id", ondelete="CASCADE"), nullable=False, index=True)
-    questionnaire_id = Column(Integer, ForeignKey("questionnaires.id", ondelete="CASCADE"), nullable=True, index=True)
-    question_id = Column(Integer, ForeignKey("questions.id", ondelete="CASCADE"), nullable=True, index=True)
+    workspace_id = Column(
+        Integer, ForeignKey("workspaces.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    questionnaire_id = Column(
+        Integer, ForeignKey("questionnaires.id", ondelete="CASCADE"), nullable=True, index=True
+    )
+    question_id = Column(
+        Integer, ForeignKey("questions.id", ondelete="CASCADE"), nullable=True, index=True
+    )
     normalized_question_text = Column(Text, nullable=True)
-    preferred_control_id = Column(Integer, ForeignKey("workspace_controls.id", ondelete="SET NULL"), nullable=True)
+    preferred_control_id = Column(
+        Integer, ForeignKey("workspace_controls.id", ondelete="SET NULL"), nullable=True
+    )
     preferred_tag_id = Column(Integer, ForeignKey("tags.id", ondelete="SET NULL"), nullable=True)
     preferred_framework_key = Column(String(128), nullable=True)
     weight = Column(Float, nullable=True)
@@ -101,7 +123,13 @@ class AIGovernanceSettings(Base):
     __tablename__ = "ai_governance_settings"
 
     id = Column(Integer, primary_key=True, autoincrement=True)
-    workspace_id = Column(Integer, ForeignKey("workspaces.id", ondelete="CASCADE"), nullable=False, unique=True, index=True)
+    workspace_id = Column(
+        Integer,
+        ForeignKey("workspaces.id", ondelete="CASCADE"),
+        nullable=False,
+        unique=True,
+        index=True,
+    )
     require_approved_mappings = Column(Boolean, nullable=False, default=False)
     require_approved_ai_tags = Column(Boolean, nullable=False, default=False)
     minimum_ai_mapping_confidence = Column(Float, nullable=True)

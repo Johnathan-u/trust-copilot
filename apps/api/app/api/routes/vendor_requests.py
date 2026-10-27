@@ -47,7 +47,12 @@ def list_vendor_requests(
     ws = session.get("workspace_id")
     if ws is None:
         return []
-    rows = db.query(VendorRequest).filter(VendorRequest.workspace_id == ws).order_by(VendorRequest.created_at.desc()).all()
+    rows = (
+        db.query(VendorRequest)
+        .filter(VendorRequest.workspace_id == ws)
+        .order_by(VendorRequest.created_at.desc())
+        .all()
+    )
     return [_to_dict(r) for r in rows]
 
 
@@ -92,15 +97,22 @@ def update_vendor_request(
     ws = session.get("workspace_id")
     if not ws:
         raise HTTPException(status_code=403, detail="No workspace")
-    v = db.query(VendorRequest).filter(
-        VendorRequest.id == request_id,
-        VendorRequest.workspace_id == ws,
-    ).first()
+    v = (
+        db.query(VendorRequest)
+        .filter(
+            VendorRequest.id == request_id,
+            VendorRequest.workspace_id == ws,
+        )
+        .first()
+    )
     if not v:
         raise HTTPException(status_code=404, detail="Request not found")
     if body.status is not None:
         if body.status not in VENDOR_REQUEST_STATUSES:
-            raise HTTPException(status_code=400, detail=f"Invalid status. Must be one of: {', '.join(VENDOR_REQUEST_STATUSES)}")
+            raise HTTPException(
+                status_code=400,
+                detail=f"Invalid status. Must be one of: {', '.join(VENDOR_REQUEST_STATUSES)}",
+            )
         v.status = body.status
     db.commit()
     db.refresh(v)

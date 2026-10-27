@@ -8,7 +8,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 from app.core.database import SessionLocal
-from app.models import Job, Questionnaire
+from app.models import Job, Questionnaire  # noqa: F401
 from app.worker import run_parse_questionnaire
 
 
@@ -38,7 +38,13 @@ def test_upload_parse_review_flow(client: TestClient) -> None:
                 r = client.post(
                     "/api/questionnaires/upload",
                     data={"workspace_id": "1"},
-                    files={"file": ("simple_soc2.xlsx", f, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")},
+                    files={
+                        "file": (
+                            "simple_soc2.xlsx",
+                            f,
+                            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                        )
+                    },
                 )
             assert r.status_code == 200
             data = r.json()

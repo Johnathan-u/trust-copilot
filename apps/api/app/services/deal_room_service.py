@@ -34,7 +34,12 @@ def generate_deal_room(db: Session, deal_id: int) -> dict:
         proven = 0
         pending = 0
         for q in questions:
-            answer = db.query(Answer).filter(Answer.question_id == q.id).order_by(Answer.created_at.desc()).first()
+            answer = (
+                db.query(Answer)
+                .filter(Answer.question_id == q.id)
+                .order_by(Answer.created_at.desc())
+                .first()
+            )
             status = "pending"
             if answer and answer.status == "approved":
                 status = "proven"
@@ -44,25 +49,33 @@ def generate_deal_room(db: Session, deal_id: int) -> dict:
                 pending += 1
             else:
                 pending += 1
-            q_list.append({
-                "question_id": q.id,
-                "text": q.text,
-                "answer_status": status,
-                "answer_text": answer.text[:200] if answer and answer.text else None,
-            })
-        questionnaire_data.append({
-            "questionnaire_id": qid,
-            "name": questionnaire.name,
-            "proven": proven,
-            "pending": pending,
-            "total": len(questions),
-            "questions": q_list,
-        })
+            q_list.append(
+                {
+                    "question_id": q.id,
+                    "text": q.text,
+                    "answer_status": status,
+                    "answer_text": answer.text[:200] if answer and answer.text else None,
+                }
+            )
+        questionnaire_data.append(
+            {
+                "questionnaire_id": qid,
+                "name": questionnaire.name,
+                "proven": proven,
+                "pending": pending,
+                "total": len(questions),
+                "questions": q_list,
+            }
+        )
 
-    articles = db.query(TrustArticle).filter(
-        TrustArticle.workspace_id == deal.workspace_id,
-        TrustArticle.published == 1,
-    ).all()
+    articles = (
+        db.query(TrustArticle)
+        .filter(
+            TrustArticle.workspace_id == deal.workspace_id,
+            TrustArticle.published == 1,
+        )
+        .all()
+    )
     article_data = [{"id": a.id, "title": a.title, "slug": a.slug} for a in articles]
 
     access_token = secrets.token_urlsafe(32)

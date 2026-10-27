@@ -5,6 +5,7 @@ Revises: 003
 Create Date: 2025-01-01 00:03:00
 
 """
+
 from alembic import op
 import sqlalchemy as sa
 
@@ -19,8 +20,18 @@ def upgrade() -> None:
     op.create_table(
         "chunks",
         sa.Column("id", sa.Integer(), primary_key=True, autoincrement=True),
-        sa.Column("workspace_id", sa.Integer(), sa.ForeignKey("workspaces.id", ondelete="CASCADE"), nullable=False),
-        sa.Column("document_id", sa.Integer(), sa.ForeignKey("documents.id", ondelete="CASCADE"), nullable=True),
+        sa.Column(
+            "workspace_id",
+            sa.Integer(),
+            sa.ForeignKey("workspaces.id", ondelete="CASCADE"),
+            nullable=False,
+        ),
+        sa.Column(
+            "document_id",
+            sa.Integer(),
+            sa.ForeignKey("documents.id", ondelete="CASCADE"),
+            nullable=True,
+        ),
         sa.Column("text", sa.Text(), nullable=False),
         sa.Column("metadata_", sa.JSON(), nullable=True),
         sa.Column("embedding", sa.dialects.postgresql.ARRAY(sa.Float), nullable=True),

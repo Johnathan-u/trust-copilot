@@ -11,7 +11,9 @@ class CredentialStore(Base):
     __tablename__ = "credential_store"
 
     id = Column(Integer, primary_key=True, autoincrement=True)
-    workspace_id = Column(Integer, ForeignKey("workspaces.id", ondelete="CASCADE"), nullable=False, index=True)
+    workspace_id = Column(
+        Integer, ForeignKey("workspaces.id", ondelete="CASCADE"), nullable=False, index=True
+    )
     source_type = Column(String(64), nullable=False, index=True)
     credential_type = Column(String(64), nullable=False)
     encrypted_value = Column(Text, nullable=False)

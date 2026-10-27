@@ -21,7 +21,9 @@ export function DashboardShell({ children }: DashboardShellProps) {
   useEffect(() => {
     if (loading) return
     if (!user && !error) {
-      const next = pathname ? `/login?next=${encodeURIComponent(pathname)}` : '/login'
+      const next = pathname
+        ? `/login?next=${encodeURIComponent(pathname)}`
+        : '/login'
       window.location.href = next
       return
     }
@@ -51,7 +53,9 @@ export function DashboardShell({ children }: DashboardShellProps) {
             Retry
           </button>
           <button
-            onClick={() => { window.location.href = '/login' }}
+            onClick={() => {
+              window.location.href = '/login'
+            }}
             className="rounded-lg border border-[var(--tc-border)] px-4 py-2 text-sm font-medium text-[var(--tc-text)] hover:bg-white/5"
           >
             Back to login

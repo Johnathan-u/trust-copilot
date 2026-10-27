@@ -58,7 +58,12 @@ def ingest_contract(
 
 
 def list_contracts(db: Session, workspace_id: int) -> list[dict]:
-    rows = db.query(ContractDocument).filter(ContractDocument.workspace_id == workspace_id).order_by(ContractDocument.created_at.desc()).all()
+    rows = (
+        db.query(ContractDocument)
+        .filter(ContractDocument.workspace_id == workspace_id)
+        .order_by(ContractDocument.created_at.desc())
+        .all()
+    )
     return [
         {
             "id": r.id,
@@ -76,11 +81,28 @@ def _mock_extract_clauses(text: str) -> list[dict]:
     lower = text.lower()
     clauses = []
     if "retention" in lower or "90" in text:
-        clauses.append({"text": "Customer data retained for 90 days after account closure", "topic_key": "data_retention"})
+        clauses.append(
+            {
+                "text": "Customer data retained for 90 days after account closure",
+                "topic_key": "data_retention",
+            }
+        )
     if "breach" in lower or "notification" in lower:
-        clauses.append({"text": "Security incidents notified within 72 hours of discovery", "topic_key": "incident_notification"})
+        clauses.append(
+            {
+                "text": "Security incidents notified within 72 hours of discovery",
+                "topic_key": "incident_notification",
+            }
+        )
     if "encrypt" in lower or "aes" in lower:
-        clauses.append({"text": "Data encrypted at rest using industry-standard algorithms", "topic_key": "encryption"})
+        clauses.append(
+            {
+                "text": "Data encrypted at rest using industry-standard algorithms",
+                "topic_key": "encryption",
+            }
+        )
     if not clauses:
-        clauses.append({"text": f"General commitment derived from: {text[:120]}", "topic_key": "general"})
+        clauses.append(
+            {"text": f"General commitment derived from: {text[:120]}", "topic_key": "general"}
+        )
     return clauses

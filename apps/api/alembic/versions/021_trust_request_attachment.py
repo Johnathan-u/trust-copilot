@@ -5,6 +5,7 @@ Revises: 020
 Create Date: 2025-03-14
 
 """
+
 from alembic import op
 import sqlalchemy as sa
 
@@ -16,7 +17,9 @@ depends_on = None
 
 def upgrade() -> None:
     op.add_column("trust_requests", sa.Column("attachment_filename", sa.String(255), nullable=True))
-    op.add_column("trust_requests", sa.Column("attachment_storage_key", sa.String(512), nullable=True))
+    op.add_column(
+        "trust_requests", sa.Column("attachment_storage_key", sa.String(512), nullable=True)
+    )
 
 
 def downgrade() -> None:

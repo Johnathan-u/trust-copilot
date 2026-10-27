@@ -15,9 +15,28 @@ workspace_id_ctx: ContextVar[int | None] = ContextVar("workspace_id", default=No
 # Standard LogRecord attributes to skip when merging extra
 _RESERVED = frozenset(
     {
-        "name", "msg", "args", "created", "filename", "funcName", "levelname", "levelno",
-        "lineno", "module", "msecs", "pathname", "process", "processName", "relativeCreated",
-        "stack_info", "exc_info", "exc_text", "thread", "threadName", "message", "taskName",
+        "name",
+        "msg",
+        "args",
+        "created",
+        "filename",
+        "funcName",
+        "levelname",
+        "levelno",
+        "lineno",
+        "module",
+        "msecs",
+        "pathname",
+        "process",
+        "processName",
+        "relativeCreated",
+        "stack_info",
+        "exc_info",
+        "exc_text",
+        "thread",
+        "threadName",
+        "message",
+        "taskName",
     }
 )
 
@@ -38,10 +57,18 @@ _REDACTIONS: tuple[tuple[re.Pattern[str], str], ...] = (
     # scheme://user:password@host
     (re.compile(r"([a-z][a-z0-9+.\-]*://[^:/@\s\"']+:)[^@/\s\"']+@"), r"\1[REDACTED]@"),
     # presigned S3 URL signing parameters
-    (re.compile(r"(?i)(X-Amz-(?:Signature|Credential|Security-Token)=)[^&\s\"']+"), r"\1[REDACTED]"),
+    (
+        re.compile(r"(?i)(X-Amz-(?:Signature|Credential|Security-Token)=)[^&\s\"']+"),
+        r"\1[REDACTED]",
+    ),
     # key=value / "key": "value" for secret-named keys
-    (re.compile(r"(?i)((?:password|passwd|secret|token|api_key|apikey|access_key|secret_key)[\"']?\s*[:=]\s*[\"']?)"
-                r"[^\s\"',;&]{4,}"), r"\1[REDACTED]"),
+    (
+        re.compile(
+            r"(?i)((?:password|passwd|secret|token|api_key|apikey|access_key|secret_key)[\"']?\s*[:=]\s*[\"']?)"
+            r"[^\s\"',;&]{4,}"
+        ),
+        r"\1[REDACTED]",
+    ),
 )
 
 

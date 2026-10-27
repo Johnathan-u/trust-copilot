@@ -1,6 +1,6 @@
 """MinIO/S3 object storage client (FILE-01)."""
 
-import io
+import io  # noqa: F401
 from typing import BinaryIO
 
 import boto3

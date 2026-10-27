@@ -33,7 +33,9 @@ class Job(Base):
     __tablename__ = "jobs"
 
     id = Column(Integer, primary_key=True, index=True)
-    workspace_id = Column(Integer, ForeignKey("workspaces.id", ondelete="CASCADE"), nullable=False, index=True)
+    workspace_id = Column(
+        Integer, ForeignKey("workspaces.id", ondelete="CASCADE"), nullable=False, index=True
+    )
     kind = Column(String(64), nullable=False, index=True)
     status = Column(String(32), nullable=False, default=JobStatus.QUEUED.value, index=True)
     payload = Column(Text, nullable=True)

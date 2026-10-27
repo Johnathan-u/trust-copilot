@@ -27,7 +27,9 @@ export default function ExportsPage() {
       return
     }
     setLoading(true)
-    fetch(`/api/exports/records?workspace_id=${workspaceId}`, { credentials: 'include' })
+    fetch(`/api/exports/records?workspace_id=${workspaceId}`, {
+      credentials: 'include',
+    })
       .then((r) => (r.ok ? r.json() : []))
       .then(setRecords)
       .catch(() => setRecords([]))
@@ -37,7 +39,10 @@ export default function ExportsPage() {
   const handleDownload = async (recordId: number, filename: string) => {
     if (workspaceId == null) return
     try {
-      const r = await fetch(`/api/exports/records/${recordId}/download?workspace_id=${workspaceId}`, { credentials: 'include' })
+      const r = await fetch(
+        `/api/exports/records/${recordId}/download?workspace_id=${workspaceId}`,
+        { credentials: 'include' }
+      )
       if (!r.ok) {
         const data = await r.json().catch(() => ({}))
         setErrorToast((data?.detail as string) || 'Download failed')
@@ -89,7 +94,10 @@ export default function ExportsPage() {
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-[var(--tc-border-strong)] text-left" style={{ background: 'var(--tc-panel-2)' }}>
+                <tr
+                  className="border-b border-[var(--tc-border-strong)] text-left"
+                  style={{ background: 'var(--tc-panel-2)' }}
+                >
                   <th className="p-3 text-[var(--tc-muted)]">Filename</th>
                   <th className="p-3 text-[var(--tc-muted)]">Status</th>
                   <th className="p-3 text-[var(--tc-muted)]">Created</th>
@@ -101,18 +109,31 @@ export default function ExportsPage() {
                   <tr key={r.id} className="border-t border-[var(--tc-border)]">
                     <td className="p-3 text-[var(--tc-text)]">{r.filename}</td>
                     <td className="p-3">
-                      <span className={`px-2 py-0.5 rounded text-xs ${r.status === 'completed' ? 'bg-green-500/20 text-green-400' : 'bg-white/10 text-[var(--tc-muted)]'}`}>
+                      <span
+                        className={`px-2 py-0.5 rounded text-xs ${r.status === 'completed' ? 'bg-green-500/20 text-green-400' : 'bg-white/10 text-[var(--tc-muted)]'}`}
+                      >
                         {r.status}
                       </span>
                     </td>
-                    <td className="p-3 text-[var(--tc-muted)]">{r.created_at ? new Date(r.created_at).toLocaleString() : '—'}</td>
+                    <td className="p-3 text-[var(--tc-muted)]">
+                      {r.created_at
+                        ? new Date(r.created_at).toLocaleString()
+                        : '—'}
+                    </td>
                     <td className="p-3">
                       <div className="flex gap-2">
-                        <Button size="sm" variant="ghost" onClick={() => handleDownload(r.id, r.filename)} disabled={r.status !== 'completed' || !canExport}>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => handleDownload(r.id, r.filename)}
+                          disabled={r.status !== 'completed' || !canExport}
+                        >
                           Download
                         </Button>
                         <Link href={`/dashboard/review/${r.questionnaire_id}`}>
-                          <Button size="sm" variant="ghost">View review</Button>
+                          <Button size="sm" variant="ghost">
+                            View review
+                          </Button>
                         </Link>
                       </div>
                     </td>
@@ -124,7 +145,12 @@ export default function ExportsPage() {
         )}
       </Card>
       {errorToast && (
-        <Toast title="Error" message={errorToast} type="error" onDismiss={() => setErrorToast(null)} />
+        <Toast
+          title="Error"
+          message={errorToast}
+          type="error"
+          onDismiss={() => setErrorToast(null)}
+        />
       )}
     </div>
   )

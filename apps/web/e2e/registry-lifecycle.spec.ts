@@ -25,7 +25,9 @@ test.describe('P09 Registry lifecycle E2E', () => {
     }
   })
 
-  test('Documents: row action menu opens and shows expected actions', async ({ page }) => {
+  test('Documents: row action menu opens and shows expected actions', async ({
+    page,
+  }) => {
     await page.goto('/dashboard/documents')
     await page.waitForLoadState('networkidle')
     const firstActions = page.getByRole('button', { name: /actions/i }).first()
@@ -33,14 +35,21 @@ test.describe('P09 Registry lifecycle E2E', () => {
     await firstActions.click()
     await expect(page.getByRole('menu')).toBeVisible()
     await expect(page.getByRole('menuitem', { name: /copy id/i })).toBeVisible()
-    await expect(page.getByRole('menuitem', { name: /edit metadata/i })).toBeVisible()
-    await expect(page.getByRole('menuitem', { name: /delete|restore/i })).toBeVisible()
+    await expect(
+      page.getByRole('menuitem', { name: /edit metadata/i })
+    ).toBeVisible()
+    await expect(
+      page.getByRole('menuitem', { name: /delete|restore/i })
+    ).toBeVisible()
   })
 
   test('Documents: archived filter options are present', async ({ page }) => {
     await page.goto('/dashboard/documents')
     await page.waitForLoadState('networkidle')
-    const select = page.locator('select').filter({ has: page.locator('option:has-text("Archived only")') }).first()
+    const select = page
+      .locator('select')
+      .filter({ has: page.locator('option:has-text("Archived only")') })
+      .first()
     await expect(select).toBeVisible()
     // Options may be hidden when select is closed; assert by value/count
     await expect(select.locator('option[value="active"]')).toHaveCount(1)
@@ -48,7 +57,9 @@ test.describe('P09 Registry lifecycle E2E', () => {
     await expect(select.locator('option[value="only"]')).toHaveCount(1)
   })
 
-  test('Questionnaires: row action menu includes Open and Copy ID', async ({ page }) => {
+  test('Questionnaires: row action menu includes Open and Copy ID', async ({
+    page,
+  }) => {
     await page.goto('/dashboard/questionnaires')
     await page.waitForLoadState('networkidle')
     const firstActions = page.getByRole('button', { name: /actions/i }).first()
@@ -59,7 +70,9 @@ test.describe('P09 Registry lifecycle E2E', () => {
     await expect(page.getByRole('menuitem', { name: /^open$/i })).toBeVisible()
   })
 
-  test('Delete preview modal: opens and shows record label when Delete clicked', async ({ page }) => {
+  test('Delete preview modal: opens and shows record label when Delete clicked', async ({
+    page,
+  }) => {
     await page.goto('/dashboard/documents')
     await page.waitForLoadState('networkidle')
     const firstActions = page.getByRole('button', { name: /actions/i }).first()
@@ -68,11 +81,15 @@ test.describe('P09 Registry lifecycle E2E', () => {
     await page.getByRole('menuitem', { name: /delete/i }).click()
     const dialog = page.getByRole('dialog')
     await expect(dialog).toBeVisible()
-    await expect(dialog.getByRole('heading', { name: 'Delete record?' })).toBeVisible()
+    await expect(
+      dialog.getByRole('heading', { name: 'Delete record?' })
+    ).toBeVisible()
     await expect(dialog.getByText(/^ID: /)).toBeVisible()
   })
 
-  test('Metadata editor: opens when Edit metadata clicked', async ({ page }) => {
+  test('Metadata editor: opens when Edit metadata clicked', async ({
+    page,
+  }) => {
     await page.goto('/dashboard/documents')
     await page.waitForLoadState('networkidle')
     const firstActions = page.getByRole('button', { name: /actions/i }).first()
