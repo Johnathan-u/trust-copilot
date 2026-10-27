@@ -145,6 +145,10 @@
   color-scheme: light;
 }
 
+.tc-toast {
+  transition: opacity var(--tc-duration-normal) var(--tc-ease);
+}
+
 @media (prefers-reduced-motion: reduce) {
   html {
     scroll-behavior: auto;
@@ -152,6 +156,10 @@
   :root {
     --tc-duration-fast: 0ms;
     --tc-duration-normal: 0ms;
+  }
+  .tc-toast {
+    transition: none;
+    animation: none;
   }
 }
 

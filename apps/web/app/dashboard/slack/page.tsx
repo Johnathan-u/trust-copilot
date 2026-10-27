@@ -1,7 +1,13 @@
 'use client'
 
 import { useCallback, useEffect, useState } from 'react'
-import { Button, Card, Input, Modal } from '@/components/ui'
+import {
+  Button,
+  Card,
+  Input,
+  Modal,
+  useDestructiveConfirm,
+} from '@/components/ui'
 import { useAuth } from '@/contexts/AuthContext'
 
 /* ──────────────────── Types ──────────────────── */
@@ -188,6 +194,7 @@ export default function SlackPage() {
   const [allEvents, setAllEvents] = useState<string[]>([])
   const [loading, setLoading] = useState(true)
   const [connectOpen, setConnectOpen] = useState(false)
+  const { confirm, dialog: confirmDialog } = useDestructiveConfirm()
   const [token, setToken] = useState('')
   const [channelId, setChannelId] = useState('')
   const [channelName, setChannelName] = useState('')
@@ -291,13 +298,19 @@ export default function SlackPage() {
     }
   }
 
-  const disconnect = async () => {
-    if (!confirm('Disconnect Slack? Notifications will stop.')) return
-    await fetch('/api/slack/disconnect', {
-      method: 'DELETE',
-      credentials: 'include',
+  const disconnect = () => {
+    confirm({
+      title: 'Disconnect Slack?',
+      description: 'Notifications will stop.',
+      confirmLabel: 'Disconnect',
+      onConfirm: async () => {
+        await fetch('/api/slack/disconnect', {
+          method: 'DELETE',
+          credentials: 'include',
+        })
+        load()
+      },
     })
-    load()
   }
 
   const toggleEnabled = async () => {
@@ -375,13 +388,19 @@ export default function SlackPage() {
     }
   }
 
-  const removeIngestChannel = async (id: number) => {
-    if (!confirm('Remove this channel from evidence ingestion?')) return
-    await fetch(`/api/slack/ingest/channels/${id}`, {
-      method: 'DELETE',
-      credentials: 'include',
+  const removeIngestChannel = (id: number) => {
+    confirm({
+      title: 'Remove ingest channel?',
+      description: 'Remove this channel from evidence ingestion?',
+      confirmLabel: 'Remove',
+      onConfirm: async () => {
+        await fetch(`/api/slack/ingest/channels/${id}`, {
+          method: 'DELETE',
+          credentials: 'include',
+        })
+        load()
+      },
     })
-    load()
   }
 
   const runIngest = async (recId: number) => {
@@ -928,6 +947,7 @@ export default function SlackPage() {
         </div>
       )}
 
+      {confirmDialog}
       {/* ── Add ingest channel modal ── */}
       <Modal
         isOpen={addChOpen}

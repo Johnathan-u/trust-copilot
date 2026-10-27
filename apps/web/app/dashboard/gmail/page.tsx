@@ -1,7 +1,13 @@
 'use client'
 
 import { useCallback, useEffect, useState } from 'react'
-import { Button, Card, Input, Modal } from '@/components/ui'
+import {
+  Button,
+  Card,
+  Input,
+  Modal,
+  useDestructiveConfirm,
+} from '@/components/ui'
 import { useAuth } from '@/contexts/AuthContext'
 
 /* ──────────────────── Types ──────────────────── */
@@ -91,6 +97,7 @@ export default function GmailPage() {
   const [suggestions, setSuggestions] = useState<Suggestion[]>([])
   const [loading, setLoading] = useState(true)
   const [connectOpen, setConnectOpen] = useState(false)
+  const { confirm, dialog: confirmDialog } = useDestructiveConfirm()
   const [token, setToken] = useState('')
   const [refreshToken, setRefreshToken] = useState('')
   const [addLabelOpen, setAddLabelOpen] = useState(false)
@@ -173,13 +180,19 @@ export default function GmailPage() {
     }
   }
 
-  const disconnect = async () => {
-    if (!confirm('Disconnect Gmail? Evidence ingestion will stop.')) return
-    await fetch('/api/gmail/disconnect', {
-      method: 'DELETE',
-      credentials: 'include',
+  const disconnect = () => {
+    confirm({
+      title: 'Disconnect Gmail?',
+      description: 'Evidence ingestion will stop.',
+      confirmLabel: 'Disconnect',
+      onConfirm: async () => {
+        await fetch('/api/gmail/disconnect', {
+          method: 'DELETE',
+          credentials: 'include',
+        })
+        load()
+      },
     })
-    load()
   }
 
   const addLabel = async (labelId: string, labelName?: string) => {
@@ -218,13 +231,19 @@ export default function GmailPage() {
     addLabel(addLabelId.trim(), addLabelName.trim())
   }
 
-  const removeLabel = async (id: number) => {
-    if (!confirm('Remove this label from ingestion?')) return
-    await fetch(`/api/gmail/ingest/labels/${id}`, {
-      method: 'DELETE',
-      credentials: 'include',
+  const removeLabel = (id: number) => {
+    confirm({
+      title: 'Remove Gmail label?',
+      description: 'Remove this label from ingestion?',
+      confirmLabel: 'Remove',
+      onConfirm: async () => {
+        await fetch(`/api/gmail/ingest/labels/${id}`, {
+          method: 'DELETE',
+          credentials: 'include',
+        })
+        load()
+      },
     })
-    load()
   }
 
   const runIngest = async (recId: number) => {
@@ -644,6 +663,7 @@ export default function GmailPage() {
         </>
       )}
 
+      {confirmDialog}
       {/* ── Connect Gmail modal ── */}
       <Modal
         isOpen={connectOpen}

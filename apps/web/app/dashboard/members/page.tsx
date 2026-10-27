@@ -6,11 +6,12 @@ import {
   Card,
   Input,
   Modal,
-  Toast,
+  ToastNotice,
   TableSkeleton,
 } from '@/components/ui'
 import { useAuth } from '@/contexts/AuthContext'
-import { formatApiErrorDetail } from '@/lib/api-error'
+import { apiErrorAnnouncement, formatApiErrorDetail } from '@/lib/api-error'
+import { dialogAttributes } from '@/lib/dialog'
 
 type Member = {
   id: number
@@ -84,6 +85,10 @@ export default function MembersPage() {
   const [confirmError, setConfirmError] = useState<string | null>(null)
   const [toast, setToast] = useState<ToastState>(null)
 
+  const dismissToast = useCallback(() => {
+    setToast(null)
+  }, [])
+
   const showToast = useCallback(
     (
       title: string,
@@ -91,7 +96,6 @@ export default function MembersPage() {
       type: 'success' | 'error' | 'info' = 'success'
     ) => {
       setToast({ title, message, type })
-      setTimeout(() => setToast(null), 4000)
     },
     []
   )
@@ -222,7 +226,11 @@ export default function MembersPage() {
       load()
     } else {
       const data = await res.json().catch(() => ({}))
-      showToast('Error', data.detail || 'Failed to update role', 'error')
+      showToast(
+        'Error',
+        apiErrorAnnouncement(data, 'Failed to update role').message,
+        'error'
+      )
     }
   }
 
@@ -351,12 +359,7 @@ export default function MembersPage() {
     )
   }
 
-  const confirmBtnClass =
-    confirmAction?.variant === 'danger'
-      ? 'bg-red-600 hover:bg-red-700 text-white'
-      : confirmAction?.variant === 'warning'
-        ? 'bg-amber-600 hover:bg-amber-700 text-white'
-        : ''
+  const confirmIsDestructive = confirmAction?.variant !== 'default'
 
   return (
     <div>
@@ -613,11 +616,11 @@ export default function MembersPage() {
           if (!confirmBusy) setConfirmAction(null)
         }}
         title={confirmAction?.title}
+        description={confirmAction?.body}
+        role={confirmIsDestructive ? 'alertdialog' : 'dialog'}
+        closeDisabled={confirmBusy}
       >
         <div className="space-y-4">
-          <p className="text-sm text-[var(--tc-muted)]">
-            {confirmAction?.body}
-          </p>
           {confirmError && (
             <p className="text-sm text-[var(--tc-danger)]">{confirmError}</p>
           )}
@@ -627,14 +630,17 @@ export default function MembersPage() {
               variant="ghost"
               onClick={() => setConfirmAction(null)}
               disabled={confirmBusy}
+              {...{
+                [dialogAttributes.initial]: dialogAttributes.initialDismiss,
+              }}
             >
               Cancel
             </Button>
             <Button
               type="button"
+              variant={confirmIsDestructive ? 'danger' : 'primary'}
               onClick={runConfirm}
               disabled={confirmBusy}
-              className={confirmBtnClass}
             >
               {confirmBusy ? 'Working…' : confirmAction?.confirmLabel}
             </Button>
@@ -792,11 +798,11 @@ export default function MembersPage() {
 
       {/* Toast notification */}
       {toast && (
-        <Toast
+        <ToastNotice
           title={toast.title}
           message={toast.message}
           type={toast.type}
-          onDismiss={() => setToast(null)}
+          onDismiss={dismissToast}
         />
       )}
     </div>
