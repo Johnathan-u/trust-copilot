@@ -9,7 +9,9 @@ router = APIRouter(prefix="/connectors/google", tags=["google-connector"])
 
 
 @router.get("/users")
-async def collect_users(domain: str | None = Query(None), session: dict = Depends(require_can_admin)):
+async def collect_users(
+    domain: str | None = Query(None), session: dict = Depends(require_can_admin)
+):
     return gw.collect_users(domain)
 
 
@@ -19,7 +21,9 @@ async def collect_mfa(domain: str | None = Query(None), session: dict = Depends(
 
 
 @router.get("/admin-roles")
-async def collect_admin_roles(domain: str | None = Query(None), session: dict = Depends(require_can_admin)):
+async def collect_admin_roles(
+    domain: str | None = Query(None), session: dict = Depends(require_can_admin)
+):
     return gw.collect_admin_roles(domain)
 
 

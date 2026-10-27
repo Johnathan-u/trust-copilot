@@ -206,21 +206,21 @@ monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7fe00408abe0>
 
     def test_worker_main_starts_background_heartbeat(monkeypatch):
         from app import worker
-    
+
         class Stop(BaseException):
             pass
-    
+
         started = []
-    
+
         class FakeThread:
             def __init__(self, state, write_db, **kw):
                 assert state is worker.HEARTBEAT_STATE
                 assert write_db is worker.write_db_heartbeat
                 started.append(self)
-    
+
             def start(self):
                 started.append("started")
-    
+
 >       monkeypatch.setattr(worker, "HeartbeatThread", FakeThread)
 E       AttributeError: <module 'app.worker' from '/workspace/tc-base/apps/api/app/worker.py'> has no attribute 'HeartbeatThread'
 
@@ -231,7 +231,7 @@ api = <starlette.testclient.TestClient object at 0x7fdfff557150>
 
     def test_worker_db_heartbeat_write_is_read_as_fresh(api):
         from app import worker
-    
+
         _set_db_heartbeat(10_000)
 >       worker.write_db_heartbeat()
         ^^^^^^^^^^^^^^^^^^^^^^^^^

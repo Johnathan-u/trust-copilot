@@ -15,21 +15,71 @@ from app.models.workspace_control import WorkspaceControl
 logger = logging.getLogger(__name__)
 
 BUILTIN_PLAYBOOKS = [
-    {"control_key": "mfa_disabled", "title": "Re-enable MFA enforcement", "severity": "high", "sla_hours": 24,
-     "steps": ["Identify affected users", "Enable MFA policy in IdP", "Verify MFA enrollment", "Collect compliance screenshot"],
-     "evidence_needed": ["MFA policy screenshot", "User enrollment report"]},
-    {"control_key": "stale_access_review", "title": "Complete access review", "severity": "medium", "sla_hours": 72,
-     "steps": ["Pull current access list", "Review with team leads", "Remove stale access", "Document changes"],
-     "evidence_needed": ["Access review spreadsheet", "Change log"]},
-    {"control_key": "public_repo", "title": "Fix public repository exposure", "severity": "high", "sla_hours": 4,
-     "steps": ["Identify exposed repo", "Switch to private", "Audit for secrets", "Rotate any exposed keys"],
-     "evidence_needed": ["Repository settings screenshot", "Secret scan results"]},
-    {"control_key": "missing_logging", "title": "Enable audit logging", "severity": "medium", "sla_hours": 48,
-     "steps": ["Identify services without logging", "Enable CloudTrail/audit log", "Verify log delivery", "Set retention policy"],
-     "evidence_needed": ["Logging configuration", "Sample log entry"]},
-    {"control_key": "expired_policy", "title": "Update expired policy document", "severity": "low", "sla_hours": 168,
-     "steps": ["Review current policy", "Update content", "Get approval from policy owner", "Publish updated version"],
-     "evidence_needed": ["Updated policy document", "Approval email/ticket"]},
+    {
+        "control_key": "mfa_disabled",
+        "title": "Re-enable MFA enforcement",
+        "severity": "high",
+        "sla_hours": 24,
+        "steps": [
+            "Identify affected users",
+            "Enable MFA policy in IdP",
+            "Verify MFA enrollment",
+            "Collect compliance screenshot",
+        ],
+        "evidence_needed": ["MFA policy screenshot", "User enrollment report"],
+    },
+    {
+        "control_key": "stale_access_review",
+        "title": "Complete access review",
+        "severity": "medium",
+        "sla_hours": 72,
+        "steps": [
+            "Pull current access list",
+            "Review with team leads",
+            "Remove stale access",
+            "Document changes",
+        ],
+        "evidence_needed": ["Access review spreadsheet", "Change log"],
+    },
+    {
+        "control_key": "public_repo",
+        "title": "Fix public repository exposure",
+        "severity": "high",
+        "sla_hours": 4,
+        "steps": [
+            "Identify exposed repo",
+            "Switch to private",
+            "Audit for secrets",
+            "Rotate any exposed keys",
+        ],
+        "evidence_needed": ["Repository settings screenshot", "Secret scan results"],
+    },
+    {
+        "control_key": "missing_logging",
+        "title": "Enable audit logging",
+        "severity": "medium",
+        "sla_hours": 48,
+        "steps": [
+            "Identify services without logging",
+            "Enable CloudTrail/audit log",
+            "Verify log delivery",
+            "Set retention policy",
+        ],
+        "evidence_needed": ["Logging configuration", "Sample log entry"],
+    },
+    {
+        "control_key": "expired_policy",
+        "title": "Update expired policy document",
+        "severity": "low",
+        "sla_hours": 168,
+        "steps": [
+            "Review current policy",
+            "Update content",
+            "Get approval from policy owner",
+            "Publish updated version",
+        ],
+        "evidence_needed": ["Updated policy document", "Approval email/ticket"],
+    },
 ]
 
 
@@ -51,9 +101,14 @@ def create_playbook(db: Session, workspace_id: int, control_key: str, title: str
 
 
 def list_playbooks(db: Session, workspace_id: int) -> list[dict]:
-    pbs = db.query(RemediationPlaybook).filter(
-        RemediationPlaybook.workspace_id == workspace_id,
-    ).order_by(RemediationPlaybook.created_at.desc()).all()
+    pbs = (
+        db.query(RemediationPlaybook)
+        .filter(
+            RemediationPlaybook.workspace_id == workspace_id,
+        )
+        .order_by(RemediationPlaybook.created_at.desc())
+        .all()
+    )
     return [_serialize_playbook(pb) for pb in pbs]
 
 
@@ -64,14 +119,25 @@ def get_builtin_playbooks() -> list[dict]:
 def seed_builtins(db: Session, workspace_id: int) -> dict:
     created = 0
     for bp in BUILTIN_PLAYBOOKS:
-        existing = db.query(RemediationPlaybook).filter(
-            RemediationPlaybook.workspace_id == workspace_id,
-            RemediationPlaybook.control_key == bp["control_key"],
-        ).first()
+        existing = (
+            db.query(RemediationPlaybook)
+            .filter(
+                RemediationPlaybook.workspace_id == workspace_id,
+                RemediationPlaybook.control_key == bp["control_key"],
+            )
+            .first()
+        )
         if not existing:
-            create_playbook(db, workspace_id, bp["control_key"], bp["title"],
-                            steps=bp["steps"], evidence_needed=bp["evidence_needed"],
-                            severity=bp["severity"], sla_hours=bp["sla_hours"])
+            create_playbook(
+                db,
+                workspace_id,
+                bp["control_key"],
+                bp["title"],
+                steps=bp["steps"],
+                evidence_needed=bp["evidence_needed"],
+                severity=bp["severity"],
+                sla_hours=bp["sla_hours"],
+            )
             created += 1
     db.flush()
     return {"seeded": created}
@@ -98,31 +164,48 @@ def create_ticket(db: Session, workspace_id: int, title: str, **kwargs) -> dict:
 
 def auto_create_tickets(db: Session, workspace_id: int) -> dict:
     """Scan for failing controls and create tickets from matching playbooks."""
-    controls = db.query(WorkspaceControl).filter(
-        WorkspaceControl.workspace_id == workspace_id,
-        WorkspaceControl.status == "not_implemented",
-    ).all()
-    playbooks = db.query(RemediationPlaybook).filter(
-        RemediationPlaybook.workspace_id == workspace_id,
-    ).all()
+    controls = (
+        db.query(WorkspaceControl)
+        .filter(
+            WorkspaceControl.workspace_id == workspace_id,
+            WorkspaceControl.status == "not_implemented",
+        )
+        .all()
+    )
+    playbooks = (
+        db.query(RemediationPlaybook)
+        .filter(
+            RemediationPlaybook.workspace_id == workspace_id,
+        )
+        .all()
+    )
     pb_map = {pb.control_key: pb for pb in playbooks}
     created = []
     for wc in controls:
         key = wc.custom_name or f"control-{wc.id}"
         if key in pb_map:
             pb = pb_map[key]
-            existing = db.query(RemediationTicket).filter(
-                RemediationTicket.workspace_id == workspace_id,
-                RemediationTicket.control_id == wc.id,
-                RemediationTicket.status.in_(["open", "in_progress"]),
-            ).first()
+            existing = (
+                db.query(RemediationTicket)
+                .filter(
+                    RemediationTicket.workspace_id == workspace_id,
+                    RemediationTicket.control_id == wc.id,
+                    RemediationTicket.status.in_(["open", "in_progress"]),
+                )
+                .first()
+            )
             if not existing:
-                ticket = create_ticket(db, workspace_id, pb.title,
-                                       playbook_id=pb.id, control_id=wc.id,
-                                       description=pb.description,
-                                       assignee_user_id=pb.default_assignee_user_id,
-                                       sla_hours=pb.sla_hours or 72,
-                                       evidence_needed=json.loads(pb.evidence_needed_json or "[]"))
+                ticket = create_ticket(
+                    db,
+                    workspace_id,
+                    pb.title,
+                    playbook_id=pb.id,
+                    control_id=wc.id,
+                    description=pb.description,
+                    assignee_user_id=pb.default_assignee_user_id,
+                    sla_hours=pb.sla_hours or 72,
+                    evidence_needed=json.loads(pb.evidence_needed_json or "[]"),
+                )
                 created.append(ticket)
     db.flush()
     return {"created": len(created), "tickets": created}
@@ -147,14 +230,18 @@ def update_ticket_status(db: Session, ticket_id: int, status: str) -> dict | Non
 
 
 def get_ticket_stats(db: Session, workspace_id: int) -> dict:
-    tickets = db.query(RemediationTicket).filter(RemediationTicket.workspace_id == workspace_id).all()
+    tickets = (
+        db.query(RemediationTicket).filter(RemediationTicket.workspace_id == workspace_id).all()
+    )
     by_status = {}
     overdue = 0
     now = datetime.now(timezone.utc)
     for t in tickets:
         by_status[t.status] = by_status.get(t.status, 0) + 1
         if t.deadline and t.status in ("open", "in_progress"):
-            deadline = t.deadline.replace(tzinfo=timezone.utc) if t.deadline.tzinfo is None else t.deadline
+            deadline = (
+                t.deadline.replace(tzinfo=timezone.utc) if t.deadline.tzinfo is None else t.deadline
+            )
             if now > deadline:
                 overdue += 1
     return {"total": len(tickets), "by_status": by_status, "overdue": overdue}

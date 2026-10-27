@@ -70,9 +70,9 @@ def _db_down():
 
 def _assert_no_leak(body: str) -> None:
     for marker in LEAK_MARKERS:
-        assert marker not in body, (
-            f"probe response leaked synthetic secret marker #{LEAK_MARKERS.index(marker)}"
-        )
+        assert (
+            marker not in body
+        ), f"probe response leaked synthetic secret marker #{LEAK_MARKERS.index(marker)}"
 
 
 # --------------------------------------------------------------------------------------------
@@ -511,9 +511,9 @@ def test_compose_worker_has_non_http_probe(compose):
     block = _service_block((REPO_ROOT / compose).read_text(encoding="utf-8"), "worker")
     assert "app.worker" in block, "worker service not found"
     probe_cmd = _healthcheck_test(block)
-    assert probe_cmd is not None, (
-        f"{compose}: worker has no explicit healthcheck (would inherit image probe)"
-    )
+    assert (
+        probe_cmd is not None
+    ), f"{compose}: worker has no explicit healthcheck (would inherit image probe)"
     assert "app.probe" in probe_cmd and "worker" in probe_cmd
     assert "healthz" not in probe_cmd and "http" not in probe_cmd.lower()
 

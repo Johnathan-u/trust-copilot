@@ -62,8 +62,8 @@ db_session = <sqlalchemy.orm.session.Session object at 0x7f91146533e0>
                     db, qnr.id, ws.id, job=job
                 )
 
-tests/test_answer_pipeline.py:133: 
-_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/test_answer_pipeline.py:133:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
 
 db = <sqlalchemy.orm.session.Session object at 0x7f91146533e0>
 questionnaire_id = 39, workspace_id = 2, model_override = None
@@ -92,7 +92,7 @@ job = <app.models.job.Job object at 0x7f9110c28830>
                 job.result = _job_payload(0, 0, {"drafted": 0, "insufficient_evidence": 0, "skipped_gated": 0, "llm_calls": 0, "duration_ms": 0})
                 db.commit()
             return 0
-    
+
         from app.core.config import get_settings
         settings = get_settings()
         api_key_ok = bool((settings.openai_api_key or "").strip())
@@ -112,7 +112,7 @@ client = <starlette.testclient.TestClient object at 0x7f9102a1def0>
     def test_generate_answers_blocked_at_quota(self, client: TestClient) -> None:
         _cleanup_usage()
         _login_admin(client)
-    
+
         from app.core.database import SessionLocal
         from app.models.workspace_quota import WorkspaceQuota
         from app.services.quota_service import record_usage
@@ -125,7 +125,7 @@ client = <starlette.testclient.TestClient object at 0x7f9102a1def0>
             db.commit()
         finally:
             db.close()
-    
+
         r = client.post("/api/exports/generate/1?workspace_id=1")
 >       assert r.status_code == 429
 E       assert 503 == 429
@@ -140,7 +140,7 @@ db_session = <sqlalchemy.orm.session.Session object at 0x7f91023d63f0>
         """generate_answers_for_questionnaire passes scoped document_ids into retrieval.search."""
         from app.models import Question, Workspace
         from app.services.answer_generation import generate_answers_for_questionnaire
-    
+
         if not db_session.query(Workspace).filter(Workspace.id == 1).first():
             pytest.skip("no workspace")
         qnr = (
@@ -160,16 +160,16 @@ db_session = <sqlalchemy.orm.session.Session object at 0x7f91023d63f0>
         qn = db_session.query(Question).filter(Question.questionnaire_id == qnr.id).first()
         if not qn:
             pytest.skip("no questions")
-    
+
         captured: dict = {}
         old_json = qnr.answer_evidence_document_ids_json
         qnr.answer_evidence_document_ids_json = json.dumps([doc.id])
         db_session.commit()
-    
+
         def fake_batch_search(*args, **kwargs):
             captured["document_ids"] = kwargs.get("document_ids")
             return [[]]
-    
+
         try:
             with (
                 patch("app.core.config.get_settings") as mock_settings,
@@ -184,7 +184,7 @@ db_session = <sqlalchemy.orm.session.Session object at 0x7f91023d63f0>
                 mock_settings.return_value.completion_model = "gpt-4o-mini"
                 mock_settings.return_value.openai_temperature = 0.35
                 MockRetrieval.return_value.batch_search = fake_batch_search
-    
+
                 try:
                     generate_answers_for_questionnaire(db_session, qnr.id, workspace_id=1)
                 except Exception:
@@ -192,7 +192,7 @@ db_session = <sqlalchemy.orm.session.Session object at 0x7f91023d63f0>
         finally:
             qnr.answer_evidence_document_ids_json = old_json
             db_session.commit()
-    
+
 >       assert captured.get("document_ids") == [doc.id]
 E       AssertionError: assert None == [1]
 E        +  where None = <built-in method get of dict object at 0x7f91023cc8c0>('document_ids')

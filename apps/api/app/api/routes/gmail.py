@@ -25,6 +25,7 @@ router = APIRouter(prefix="/gmail", tags=["gmail"])
 
 # ---- Schemas ----
 
+
 class ConnectRequest(BaseModel):
     access_token: str
     refresh_token: str | None = None
@@ -40,6 +41,7 @@ class ReviewSuggestionRequest(BaseModel):
 
 
 # ---- Connection ----
+
 
 @router.get("/status")
 async def gmail_status(
@@ -76,7 +78,9 @@ async def gmail_connect(
     existing = db.query(GmailIntegration).filter(GmailIntegration.workspace_id == ws).first()
     if existing:
         existing.access_token_encrypted = encrypt_token(token)
-        existing.refresh_token_encrypted = encrypt_token(req.refresh_token) if req.refresh_token else None
+        existing.refresh_token_encrypted = (
+            encrypt_token(req.refresh_token) if req.refresh_token else None
+        )
         existing.email_address = email
         existing.enabled = True
         db.commit()
@@ -91,8 +95,13 @@ async def gmail_connect(
         db.add(gi)
         db.commit()
 
-    persist_audit(db, "gmail.connected", user_id=session.get("user_id"), workspace_id=ws,
-                  details={"email": email})
+    persist_audit(
+        db,
+        "gmail.connected",
+        user_id=session.get("user_id"),
+        workspace_id=ws,
+        details={"email": email},
+    )
     return {"connected": True, "email_address": email}
 
 
@@ -112,6 +121,7 @@ async def gmail_disconnect(
 
 
 # ---- Labels ----
+
 
 @router.get("/labels")
 async def list_available_labels(
@@ -134,10 +144,21 @@ async def list_ingest_labels(
     session: dict = Depends(require_can_admin),
 ):
     ws = session["workspace_id"]
-    rows = db.query(GmailIngestLabel).filter(GmailIngestLabel.workspace_id == ws).order_by(GmailIngestLabel.created_at).all()
+    rows = (
+        db.query(GmailIngestLabel)
+        .filter(GmailIngestLabel.workspace_id == ws)
+        .order_by(GmailIngestLabel.created_at)
+        .all()
+    )
     return {
         "labels": [
-            {"id": r.id, "label_id": r.label_id, "label_name": r.label_name, "enabled": bool(r.enabled), "created_at": r.created_at.isoformat() if r.created_at else None}
+            {
+                "id": r.id,
+                "label_id": r.label_id,
+                "label_name": r.label_name,
+                "enabled": bool(r.enabled),
+                "created_at": r.created_at.isoformat() if r.created_at else None,
+            }
             for r in rows
         ],
     }
@@ -156,18 +177,30 @@ async def add_ingest_label(
     lid = (req.label_id or "").strip()
     if not lid:
         raise HTTPException(status_code=400, detail="label_id required")
-    existing = db.query(GmailIngestLabel).filter(GmailIngestLabel.workspace_id == ws, GmailIngestLabel.label_id == lid).first()
+    existing = (
+        db.query(GmailIngestLabel)
+        .filter(GmailIngestLabel.workspace_id == ws, GmailIngestLabel.label_id == lid)
+        .first()
+    )
     if existing:
         raise HTTPException(status_code=400, detail="Label already approved")
     lbl = GmailIngestLabel(
-        workspace_id=ws, gmail_integration_id=gi.id,
-        label_id=lid, label_name=(req.label_name or "").strip() or None, enabled=True,
+        workspace_id=ws,
+        gmail_integration_id=gi.id,
+        label_id=lid,
+        label_name=(req.label_name or "").strip() or None,
+        enabled=True,
     )
     db.add(lbl)
     db.commit()
     db.refresh(lbl)
-    persist_audit(db, "gmail.label_approved", user_id=session.get("user_id"), workspace_id=ws,
-                  details={"label_id": lid, "label_name": req.label_name})
+    persist_audit(
+        db,
+        "gmail.label_approved",
+        user_id=session.get("user_id"),
+        workspace_id=ws,
+        details={"label_id": lid, "label_name": req.label_name},
+    )
     return {"id": lbl.id, "label_id": lbl.label_id, "label_name": lbl.label_name, "enabled": True}
 
 
@@ -178,17 +211,28 @@ async def remove_ingest_label(
     session: dict = Depends(require_can_admin),
 ):
     ws = session["workspace_id"]
-    lbl = db.query(GmailIngestLabel).filter(GmailIngestLabel.id == label_record_id, GmailIngestLabel.workspace_id == ws).first()
+    lbl = (
+        db.query(GmailIngestLabel)
+        .filter(GmailIngestLabel.id == label_record_id, GmailIngestLabel.workspace_id == ws)
+        .first()
+    )
     if not lbl:
         raise HTTPException(status_code=404, detail="Label not found")
     lid = lbl.label_id
     db.delete(lbl)
     db.commit()
-    persist_audit(db, "gmail.label_revoked", user_id=session.get("user_id"), workspace_id=ws, details={"label_id": lid})
+    persist_audit(
+        db,
+        "gmail.label_revoked",
+        user_id=session.get("user_id"),
+        workspace_id=ws,
+        details={"label_id": lid},
+    )
     return {"ok": True}
 
 
 # ---- Ingest ----
+
 
 @router.post("/ingest/run/{label_record_id}")
 async def run_ingest(
@@ -199,20 +243,36 @@ async def run_ingest(
 ):
     ws = session["workspace_id"]
     from app.services.quota_service import check_quota
+
     allowed, current, quota_limit = check_quota(db, ws, "gmail_ingests")
     if not allowed:
-        raise HTTPException(status_code=429, detail=f"Gmail ingest quota exceeded ({current}/{quota_limit} per hour)")
-    lbl = db.query(GmailIngestLabel).filter(GmailIngestLabel.id == label_record_id, GmailIngestLabel.workspace_id == ws, GmailIngestLabel.enabled == True).first()
+        raise HTTPException(
+            status_code=429,
+            detail=f"Gmail ingest quota exceeded ({current}/{quota_limit} per hour)",
+        )
+    lbl = (
+        db.query(GmailIngestLabel)
+        .filter(
+            GmailIngestLabel.id == label_record_id,
+            GmailIngestLabel.workspace_id == ws,
+            GmailIngestLabel.enabled == True,  # noqa: E712
+        )
+        .first()
+    )
     if not lbl:
         raise HTTPException(status_code=404, detail="Approved label not found")
-    result = fetch_and_ingest_label(db, ws, lbl.label_id, admin_user_id=session.get("user_id"), limit=limit)
+    result = fetch_and_ingest_label(
+        db, ws, lbl.label_id, admin_user_id=session.get("user_id"), limit=limit
+    )
     from app.services.quota_service import record_usage
+
     record_usage(db, ws, "gmail_ingests")
     db.commit()
     return result
 
 
 # ---- Evidence ----
+
 
 @router.get("/ingest/evidence")
 async def list_gmail_evidence(
@@ -222,19 +282,32 @@ async def list_gmail_evidence(
     session: dict = Depends(require_can_review),
 ):
     ws = session["workspace_id"]
-    q = db.query(EvidenceItem).filter(EvidenceItem.workspace_id == ws, EvidenceItem.source_type == "gmail")
+    q = db.query(EvidenceItem).filter(
+        EvidenceItem.workspace_id == ws, EvidenceItem.source_type == "gmail"
+    )
     total = q.count()
-    rows = q.order_by(EvidenceItem.created_at.desc()).offset((page - 1) * page_size).limit(page_size).all()
+    rows = (
+        q.order_by(EvidenceItem.created_at.desc())
+        .offset((page - 1) * page_size)
+        .limit(page_size)
+        .all()
+    )
     return {
         "total": total,
         "evidence": [
-            {"id": e.id, "title": e.title, "source_metadata": json.loads(e.source_metadata) if e.source_metadata else None, "created_at": e.created_at.isoformat() if e.created_at else None}
+            {
+                "id": e.id,
+                "title": e.title,
+                "source_metadata": json.loads(e.source_metadata) if e.source_metadata else None,
+                "created_at": e.created_at.isoformat() if e.created_at else None,
+            }
             for e in rows
         ],
     }
 
 
 # ---- Suggestions ----
+
 
 @router.post("/ingest/evidence/{evidence_id}/suggest-controls")
 async def suggest_controls(
@@ -243,10 +316,19 @@ async def suggest_controls(
     session: dict = Depends(require_can_admin),
 ):
     ws = session["workspace_id"]
-    ev = db.query(EvidenceItem).filter(EvidenceItem.id == evidence_id, EvidenceItem.workspace_id == ws, EvidenceItem.source_type == "gmail").first()
+    ev = (
+        db.query(EvidenceItem)
+        .filter(
+            EvidenceItem.id == evidence_id,
+            EvidenceItem.workspace_id == ws,
+            EvidenceItem.source_type == "gmail",
+        )
+        .first()
+    )
     if not ev:
         raise HTTPException(status_code=404, detail="Gmail evidence not found")
     from app.services.slack_ingest_service import suggest_controls_for_evidence
+
     suggestions = suggest_controls_for_evidence(db, ws, evidence_id)
     return {"suggestions": suggestions}
 
@@ -266,7 +348,14 @@ async def list_suggestions(
     return {
         "total": total,
         "suggestions": [
-            {"id": s.id, "evidence_id": s.evidence_id, "control_id": s.control_id, "confidence": s.confidence, "status": s.status, "created_at": s.created_at.isoformat() if s.created_at else None}
+            {
+                "id": s.id,
+                "evidence_id": s.evidence_id,
+                "control_id": s.control_id,
+                "confidence": s.confidence,
+                "status": s.status,
+                "created_at": s.created_at.isoformat() if s.created_at else None,
+            }
             for s in rows
         ],
     }
@@ -280,7 +369,13 @@ async def review_suggestion(
     session: dict = Depends(require_can_admin),
 ):
     ws = session["workspace_id"]
-    sug = db.query(GmailControlSuggestion).filter(GmailControlSuggestion.id == suggestion_id, GmailControlSuggestion.workspace_id == ws).first()
+    sug = (
+        db.query(GmailControlSuggestion)
+        .filter(
+            GmailControlSuggestion.id == suggestion_id, GmailControlSuggestion.workspace_id == ws
+        )
+        .first()
+    )
     if not sug:
         raise HTTPException(status_code=404, detail="Suggestion not found")
     if sug.status != "pending":
@@ -292,11 +387,31 @@ async def review_suggestion(
     sug.reviewed_by_user_id = session.get("user_id")
     sug.reviewed_at = datetime.utcnow()
     if action == "approve":
-        existing_link = db.query(ControlEvidenceLink).filter(ControlEvidenceLink.evidence_id == sug.evidence_id, ControlEvidenceLink.control_id == sug.control_id).first()
+        existing_link = (
+            db.query(ControlEvidenceLink)
+            .filter(
+                ControlEvidenceLink.evidence_id == sug.evidence_id,
+                ControlEvidenceLink.control_id == sug.control_id,
+            )
+            .first()
+        )
         if not existing_link:
-            db.add(ControlEvidenceLink(control_id=sug.control_id, evidence_id=sug.evidence_id, confidence_score=sug.confidence, verified=False))
+            db.add(
+                ControlEvidenceLink(
+                    control_id=sug.control_id,
+                    evidence_id=sug.evidence_id,
+                    confidence_score=sug.confidence,
+                    verified=False,
+                )
+            )
     db.commit()
-    persist_audit(db, f"gmail.suggestion_{action}d", user_id=session.get("user_id"), workspace_id=ws,
-                  resource_type="gmail_control_suggestion", resource_id=sug.id,
-                  details={"evidence_id": sug.evidence_id, "control_id": sug.control_id})
+    persist_audit(
+        db,
+        f"gmail.suggestion_{action}d",
+        user_id=session.get("user_id"),
+        workspace_id=ws,
+        resource_type="gmail_control_suggestion",
+        resource_id=sug.id,
+        details={"evidence_id": sug.evidence_id, "control_id": sug.control_id},
+    )
     return {"id": sug.id, "status": sug.status}

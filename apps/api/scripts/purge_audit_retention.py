@@ -1,4 +1,5 @@
 """Purge audit events older than AUDIT_RETENTION_DAYS. Run via cron or scheduler (e.g. daily)."""
+
 from pathlib import Path
 import os
 import sys
@@ -12,14 +13,15 @@ if str(_api_root) not in sys.path:
 if not os.environ.get("TRUST_COPILOT_IN_DOCKER"):
     try:
         from dotenv import load_dotenv
+
         load_dotenv(_api_root / ".env", override=True)
         load_dotenv(_repo_root / ".env")
     except ImportError:
         pass
 
-from app.core.config import get_settings
-from app.models import AuditEvent
-from app.core.database import SessionLocal
+from app.core.config import get_settings  # noqa: E402
+from app.models import AuditEvent  # noqa: E402
+from app.core.database import SessionLocal  # noqa: E402
 
 
 def main() -> None:

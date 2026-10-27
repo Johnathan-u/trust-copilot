@@ -2,7 +2,7 @@
 
 import csv
 from io import BytesIO
-from typing import Any
+from typing import Any  # noqa: F401
 
 
 def create_fallback_pack_docx(

@@ -74,8 +74,12 @@ class AdaptivePool:
         self._total_rate_limits = 0
         logger.info(
             "adaptive_pool initialized workers=%s/%s/%s batch=%s/%s/%s",
-            self._min, self._current, self._max,
-            self._min_batch, self._current_batch, self._max_batch,
+            self._min,
+            self._current,
+            self._max,
+            self._min_batch,
+            self._current_batch,
+            self._max_batch,
         )
 
     def release(
@@ -96,7 +100,9 @@ class AdaptivePool:
                 self._total_failures += 1
                 logger.warning(
                     "adaptive step_down reason=rate_limit workers=%s batch=%s (total_429s=%d)",
-                    self._current, self._current_batch, self._total_rate_limits,
+                    self._current,
+                    self._current_batch,
+                    self._total_rate_limits,
                 )
                 return (False, True, False)
             if was_timeout:
@@ -106,7 +112,8 @@ class AdaptivePool:
                 self._total_failures += 1
                 logger.warning(
                     "adaptive step_down reason=timeout workers=%s batch=%s",
-                    self._current, self._current_batch,
+                    self._current,
+                    self._current_batch,
                 )
                 return (False, False, True)
             if was_transient:
@@ -118,7 +125,8 @@ class AdaptivePool:
                     self._consecutive_transient = 0
                     logger.warning(
                         "adaptive step_down reason=transient workers=%s batch=%s",
-                        self._current, self._current_batch,
+                        self._current,
+                        self._current_batch,
                     )
                 return (False, False, False)
             # Success
@@ -133,7 +141,9 @@ class AdaptivePool:
                 self._successes_since_reduce = 0
                 logger.info(
                     "adaptive step_up workers=%s batch=%s (after %d successes)",
-                    self._current, self._current_batch, SUCCESSES_BEFORE_STEP_UP,
+                    self._current,
+                    self._current_batch,
+                    SUCCESSES_BEFORE_STEP_UP,
                 )
             return (True, False, False)
 

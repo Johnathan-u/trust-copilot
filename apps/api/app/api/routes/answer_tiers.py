@@ -25,9 +25,11 @@ async def set_tier(
     result = at.set_answer_tier(db, body.answer_id, body.tier)
     if result is None:
         from fastapi import HTTPException
+
         raise HTTPException(status_code=404, detail="Answer not found")
     if "error" in result:
         from fastapi import HTTPException
+
         raise HTTPException(status_code=400, detail=result["error"])
     db.commit()
     return result

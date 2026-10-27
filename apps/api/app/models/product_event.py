@@ -11,7 +11,9 @@ class ProductEvent(Base):
     __tablename__ = "product_events"
 
     id = Column(Integer, primary_key=True, autoincrement=True)
-    workspace_id = Column(Integer, ForeignKey("workspaces.id", ondelete="CASCADE"), nullable=False, index=True)
+    workspace_id = Column(
+        Integer, ForeignKey("workspaces.id", ondelete="CASCADE"), nullable=False, index=True
+    )
     user_id = Column(Integer, nullable=True, index=True)
     event_type = Column(String(64), nullable=False, index=True)
     event_category = Column(String(32), nullable=False, default="general", index=True)

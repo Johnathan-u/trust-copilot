@@ -148,7 +148,8 @@ def get_workspace_ai_pipeline_stats(db: Session, workspace_id: int) -> dict:
             QuestionMappingSignal.workspace_id == workspace_id,
             QuestionMappingSignal.mapping_quality == "llm_structured",
         )
-        .scalar() or 0
+        .scalar()
+        or 0
     )
 
     return {

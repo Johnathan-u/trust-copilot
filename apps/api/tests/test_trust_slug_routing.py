@@ -1,4 +1,5 @@
 """Tests for slug-based trust request routing and workspace resolution."""
+
 import pytest
 from unittest.mock import MagicMock, patch
 from fastapi import HTTPException

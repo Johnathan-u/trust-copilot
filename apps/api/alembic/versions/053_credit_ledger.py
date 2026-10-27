@@ -23,7 +23,14 @@ def upgrade() -> None:
         op.create_table(
             "credit_ledgers",
             sa.Column("id", sa.Integer(), primary_key=True, autoincrement=True),
-            sa.Column("workspace_id", sa.Integer(), sa.ForeignKey("workspaces.id", ondelete="CASCADE"), nullable=False, unique=True, index=True),
+            sa.Column(
+                "workspace_id",
+                sa.Integer(),
+                sa.ForeignKey("workspaces.id", ondelete="CASCADE"),
+                nullable=False,
+                unique=True,
+                index=True,
+            ),
             sa.Column("balance", sa.Integer(), nullable=False, server_default="0"),
             sa.Column("monthly_allocation", sa.Integer(), nullable=False, server_default="15"),
             sa.Column("cycle_start", sa.DateTime(timezone=True), nullable=True),
@@ -36,11 +43,22 @@ def upgrade() -> None:
         op.create_table(
             "credit_transactions",
             sa.Column("id", sa.Integer(), primary_key=True, autoincrement=True),
-            sa.Column("workspace_id", sa.Integer(), sa.ForeignKey("workspaces.id", ondelete="CASCADE"), nullable=False, index=True),
+            sa.Column(
+                "workspace_id",
+                sa.Integer(),
+                sa.ForeignKey("workspaces.id", ondelete="CASCADE"),
+                nullable=False,
+                index=True,
+            ),
             sa.Column("kind", sa.String(32), nullable=False, index=True),
             sa.Column("amount", sa.Integer(), nullable=False),
             sa.Column("balance_after", sa.Integer(), nullable=False),
-            sa.Column("questionnaire_id", sa.Integer(), sa.ForeignKey("questionnaires.id", ondelete="SET NULL"), nullable=True),
+            sa.Column(
+                "questionnaire_id",
+                sa.Integer(),
+                sa.ForeignKey("questionnaires.id", ondelete="SET NULL"),
+                nullable=True,
+            ),
             sa.Column("description", sa.Text(), nullable=True),
             sa.Column("created_at", sa.DateTime(timezone=True), server_default=sa.func.now()),
         )

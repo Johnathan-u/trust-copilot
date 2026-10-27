@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import json
-from collections import Counter, defaultdict
+from collections import Counter, defaultdict  # noqa: F401
 
 from sqlalchemy import func
 from sqlalchemy.orm import Session
@@ -22,7 +22,12 @@ def get_questionnaire_answer_stats(db: Session, workspace_id: int, questionnaire
         return {"error": "not_found"}
 
     rows = (
-        db.query(Answer.status, Answer.insufficient_reason, Answer.gating_reason, Answer.primary_categories_json)
+        db.query(
+            Answer.status,
+            Answer.insufficient_reason,
+            Answer.gating_reason,
+            Answer.primary_categories_json,
+        )
         .join(Question, Question.id == Answer.question_id)
         .filter(Question.questionnaire_id == questionnaire_id)
         .all()
@@ -31,7 +36,8 @@ def get_questionnaire_answer_stats(db: Session, workspace_id: int, questionnaire
     total_questions = (
         db.query(func.count(Question.id))
         .filter(Question.questionnaire_id == questionnaire_id)
-        .scalar() or 0
+        .scalar()
+        or 0
     )
 
     status_counts: Counter[str] = Counter()
@@ -127,7 +133,8 @@ def get_workspace_gap_analytics(
             Questionnaire.workspace_id == workspace_id,
             Questionnaire.deleted_at.is_(None),
         )
-        .scalar() or 0
+        .scalar()
+        or 0
     )
 
     return {

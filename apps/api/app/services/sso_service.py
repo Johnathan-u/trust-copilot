@@ -73,7 +73,10 @@ async def oidc_exchange_code(
         r = await client.post(
             token_endpoint,
             data=data,
-            headers={"Accept": "application/json", "Content-Type": "application/x-www-form-urlencoded"},
+            headers={
+                "Accept": "application/json",
+                "Content-Type": "application/x-www-form-urlencoded",
+            },
         )
         if r.status_code != 200:
             return None
@@ -101,7 +104,11 @@ async def oidc_exchange_code(
             "email": email,
             "name": name,
             "email_verified": bool(info.get("email_verified")),
-            "raw_claims": {k: v for k, v in info.items() if k in ("sub", "email", "name", "preferred_username", "groups")},
+            "raw_claims": {
+                k: v
+                for k, v in info.items()
+                if k in ("sub", "email", "name", "preferred_username", "groups")
+            },
         }
 
 
@@ -145,7 +152,10 @@ async def idme_exchange_code(code: str, redirect_uri: str) -> dict | None:
         r = await client.post(
             IDME_SANDBOX_TOKEN,
             data=data,
-            headers={"Accept": "application/json", "Content-Type": "application/x-www-form-urlencoded"},
+            headers={
+                "Accept": "application/json",
+                "Content-Type": "application/x-www-form-urlencoded",
+            },
         )
         if r.status_code != 200:
             return None

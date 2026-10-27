@@ -256,9 +256,7 @@ def create_escalation(
     return _escalation_dict(e)
 
 
-def list_escalations(
-    db: Session, workspace_id: int, status: str | None = None
-) -> list[dict]:
+def list_escalations(db: Session, workspace_id: int, status: str | None = None) -> list[dict]:
     q = db.query(BuyerEscalation).filter(BuyerEscalation.workspace_id == workspace_id)
     if status:
         q = q.filter(BuyerEscalation.status == status)
