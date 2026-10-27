@@ -575,14 +575,20 @@ def test_repeated_role_change_sends_twice(client: TestClient):
 
 
 def test_same_coverage_numbers_fire_twice(client: TestClient):
+    """Same job retries once, a new job inside the cooldown is quiet, and a later job fires."""
     _login_admin(client)
     user_id = _demo_user_id()
     _reset_delivery()
+    from datetime import datetime, timedelta, timezone
     from unittest.mock import patch
 
     from app.core.database import SessionLocal
-    from app.models import NotificationLog, NotificationPolicy
-    from app.services.compliance_event_service import evaluate_and_fire_compliance_events
+    from app.models import AuditEvent, NotificationLog, NotificationPolicy
+    from app.services.compliance_event_service import (
+        COOLDOWN_MINUTES,
+        evaluate_and_fire_compliance_events,
+    )
+    from app.services.notification_service import stable_dedupe_key
 
     coverage = {
         "kpi": {
@@ -594,41 +600,71 @@ def test_same_coverage_numbers_fire_twice(client: TestClient):
         "blind_spots": [],
         "weak_areas": [],
     }
+    event_type = "compliance.coverage_drop"
     db = SessionLocal()
     try:
+        audits_before = db.query(AuditEvent).filter(AuditEvent.action == event_type).count()
         db.query(NotificationPolicy).filter(
             NotificationPolicy.workspace_id == 1,
-            NotificationPolicy.event_type == "compliance.coverage_drop",
+            NotificationPolicy.event_type == event_type,
         ).delete()
         db.add(
             NotificationPolicy(
                 workspace_id=1,
-                event_type="compliance.coverage_drop",
+                event_type=event_type,
                 enabled=True,
                 recipient_type="user",
                 recipient_value=str(user_id),
             )
         )
         db.commit()
+
+        def sent_count() -> int:
+            return (
+                db.query(NotificationLog)
+                .filter(
+                    NotificationLog.workspace_id == 1,
+                    NotificationLog.event_type == event_type,
+                    NotificationLog.channel == "email",
+                    NotificationLog.delivery_state == "sent",
+                )
+                .count()
+            )
+
         with patch(
             "app.services.compliance_event_service.get_compliance_coverage",
             return_value=coverage,
         ):
-            assert evaluate_and_fire_compliance_events(db, 1, "Workspace") == 1
-            assert evaluate_and_fire_compliance_events(db, 1, "Workspace") == 1
-        sent = (
+            assert evaluate_and_fire_compliance_events(db, 1, "Workspace", job_id=101) == 1
+            assert evaluate_and_fire_compliance_events(db, 1, "Workspace", job_id=101) == 0
+            assert sent_count() == 1
+            assert evaluate_and_fire_compliance_events(db, 1, "Workspace", job_id=202) == 0
+            assert sent_count() == 1
+            aged = datetime.now(timezone.utc) - timedelta(minutes=COOLDOWN_MINUTES + 1)
+            db.query(NotificationLog).filter(
+                NotificationLog.workspace_id == 1,
+                NotificationLog.event_type == event_type,
+            ).update({NotificationLog.created_at: aged}, synchronize_session=False)
+            db.commit()
+            assert evaluate_and_fire_compliance_events(db, 1, "Workspace", job_id=303) == 1
+        assert sent_count() == 2
+        email = (
             db.query(NotificationLog)
             .filter(
                 NotificationLog.workspace_id == 1,
-                NotificationLog.event_type == "compliance.coverage_drop",
+                NotificationLog.event_type == event_type,
                 NotificationLog.channel == "email",
-                NotificationLog.delivery_state == "sent",
             )
-            .count()
+            .order_by(NotificationLog.id.asc())
+            .first()
         )
+        assert email is not None
+        assert email.dedupe_key == stable_dedupe_key(
+            1, event_type, "email", email.recipient_email, "job:101:compliance.coverage_drop"
+        )
+        assert db.query(AuditEvent).filter(AuditEvent.action == event_type).count() == audits_before
     finally:
         db.close()
-    assert sent == 2
 
 
 def test_two_generation_jobs_with_the_same_gap_both_send(client: TestClient):

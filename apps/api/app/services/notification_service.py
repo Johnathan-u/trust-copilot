@@ -128,6 +128,17 @@ def claim_dedupe_key_on(db: Session, key: str, *, ttl: timedelta = CLAIM_LEASE) 
     return won is not None
 
 
+def _extend_claim_after_accept(key: str) -> None:
+    """Extend the claim after the provider accepts. A failure must not release it."""
+    try:
+        extend_dedupe_claim(key)
+    except Exception:
+        logger.error(
+            "dedupe claim was not extended after the provider accepted",
+            exc_info=True,
+        )
+
+
 def extend_dedupe_claim(key: str, *, ttl: timedelta = CLAIM_TTL) -> None:
     """Keep a claim for 24 hours after the provider accepts. Own transaction."""
     if not key:
@@ -513,7 +524,7 @@ def _deliver_email(
     accepted = bool(result.ok)
     if hold_claim:
         if accepted:
-            extend_dedupe_claim(key)
+            _extend_claim_after_accept(key)
         else:
             release_dedupe_claim(key)
     delivered = bool(accepted and counts_as_provider)
@@ -821,7 +832,7 @@ def _fire_slack_notification(
         if accepted:
             accepted_post = True
             if hold_claim:
-                extend_dedupe_claim(channel_key)
+                _extend_claim_after_accept(channel_key)
         elif hold_claim:
             release_dedupe_claim(channel_key)
         delivered = bool(accepted and result.get("delivered_to_provider") is True)

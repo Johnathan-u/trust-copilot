@@ -787,7 +787,9 @@ def _process_one_job() -> bool:
                     ws = session.query(Workspace).filter(Workspace.id == job.workspace_id).first()
                     if ws:
                         ws_name = ws.name or ws_name
-                    evaluate_and_fire_compliance_events(session, job.workspace_id, ws_name)
+                    evaluate_and_fire_compliance_events(
+                        session, job.workspace_id, ws_name, job_id=job.id
+                    )
                 except Exception:
                     pass
             elif job.kind == "parse_questionnaire" and _job_outcome(job) != "superseded":

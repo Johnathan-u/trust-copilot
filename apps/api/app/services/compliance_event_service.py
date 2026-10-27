@@ -3,22 +3,41 @@ Compliance event service: evaluates coverage KPIs after answer generation
 and fires notification events when thresholds are breached.
 
 Uses existing fire_notification (email + Slack) and notify_admins (in-app bell).
-Each breach writes an audit row and uses that row id, so a repeat is a new event.
+A 30-minute cooldown suppresses a new job that repeats the same breach.
+The occurrence id is the job and the event type, so a retry of that job dedupes
+without writing an audit row or committing one mid-job.
 """
 
 import logging
+from datetime import datetime, timedelta, timezone
 
 from sqlalchemy.orm import Session
 
-from app.core.audit import persist_audit
+from app.models.notification import NotificationLog
 from app.services.compliance_coverage import get_compliance_coverage
-from app.services.notification_service import fire_notification
 from app.services.in_app_notification_service import notify_admins
+from app.services.notification_service import fire_notification
 
 logger = logging.getLogger(__name__)
 
 COVERAGE_THRESHOLD = 80
 INSUFFICIENT_THRESHOLD = 15
+COOLDOWN_MINUTES = 30
+
+
+def _recently_fired(db: Session, workspace_id: int, event_type: str) -> bool:
+    """True when this breach was already logged inside the cooldown window."""
+    cutoff = datetime.now(timezone.utc) - timedelta(minutes=COOLDOWN_MINUTES)
+    existing = (
+        db.query(NotificationLog.id)
+        .filter(
+            NotificationLog.workspace_id == workspace_id,
+            NotificationLog.event_type == event_type,
+            NotificationLog.created_at >= cutoff,
+        )
+        .first()
+    )
+    return existing is not None
 
 
 def _fire(
@@ -28,23 +47,20 @@ def _fire(
     title: str,
     detail: str,
     workspace_name: str,
+    job_id: int,
 ) -> bool:
-    """Fire one compliance occurrence. The audit row id is the event id."""
-    audit_id = persist_audit(
-        db,
-        event_type,
-        workspace_id=workspace_id,
-        resource_type="workspace",
-        resource_id=workspace_id,
-        details={"title": title},
-    )
+    """Fire one compliance occurrence, unless the cooldown or the job claim holds it."""
+    if _recently_fired(db, workspace_id, event_type):
+        logger.debug("Cooldown skip: %s for workspace %s", event_type, workspace_id)
+        return False
+
     fire_notification(
         db,
         workspace_id,
         event_type,
         detail,
         workspace_name,
-        event_id=f"audit:{audit_id}",
+        event_id=f"job:{job_id}:{event_type}",
     )
     notify_admins(
         db,
@@ -62,6 +78,8 @@ def evaluate_and_fire_compliance_events(
     db: Session,
     workspace_id: int,
     workspace_name: str = "Workspace",
+    *,
+    job_id: int,
 ) -> int:
     """
     Compute current compliance coverage and fire notification events
@@ -87,6 +105,7 @@ def evaluate_and_fire_compliance_events(
             "Low coverage",
             f"Coverage is at {kpi['coverage_pct']}%, below the {COVERAGE_THRESHOLD}% target.",
             workspace_name,
+            job_id,
         )
         if ok:
             fired += 1
@@ -99,6 +118,7 @@ def evaluate_and_fire_compliance_events(
             "High insufficient-answer rate",
             f"{kpi.get('total_insufficient', 0)} questions ({kpi['insufficient_pct']}%) lack sufficient evidence.",
             workspace_name,
+            job_id,
         )
         if ok:
             fired += 1
@@ -114,6 +134,7 @@ def evaluate_and_fire_compliance_events(
             f"{blind_spot_count} blind spot{'s' if blind_spot_count != 1 else ''} detected",
             f"Subject areas with insufficient evidence: {names}.",
             workspace_name,
+            job_id,
         )
         if ok:
             fired += 1
@@ -128,6 +149,7 @@ def evaluate_and_fire_compliance_events(
             "Weak evidence in key area",
             f"{worst['subject']} has avg confidence of {worst['avg_confidence']}% across {worst['count']} answers.",
             workspace_name,
+            job_id,
         )
         if ok:
             fired += 1

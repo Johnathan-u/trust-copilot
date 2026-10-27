@@ -20,7 +20,7 @@ TC_REQUIRE_DB=1 SESSION_SECRET=test-secret /tmp/tc-venv/bin/python -m pytest tes
 
 Exit status: **0**
 
-Totals: **22 passed**, 0 failed, 0 skipped. The file covers distinct event ids, a missing event id, a 15-minute lease and the 24-hour extension, a Slack write failure after acceptance, an in-app claim that rolls back with the caller, genuine repeats for role changes, compliance coverage, and generation jobs, two sessions racing one key, worker prune, and a fresh-database upgrade. `alembic_version.version_num` stays varchar(32). The migration check walks descendants and downgrades to the parent stored on the revision.
+Totals: **22 passed**, 0 failed, 0 skipped. The file covers distinct event ids, a missing event id, a 15-minute lease and the 24-hour extension, a Slack write failure after acceptance, an in-app claim that rolls back with the caller, genuine repeats for role changes and generation jobs, the compliance cooldown (one job fires once, a new job inside 30 minutes is suppressed, a new job after the cooldown fires), two sessions racing one key, worker prune, and a fresh-database upgrade. `alembic_version.version_num` stays varchar(32). The migration check walks descendants and downgrades to the parent stored on the revision.
 
 That file includes a fresh-database upgrade to `tc19008_notification_delivery`, downgrade to the parent recorded on the revision (`tc10003_job_idempotency`), and upgrade again. The side database name ends in `_test` and is created with the same role as `TC_TEST_DATABASE_URL` or `DATABASE_URL`.
 
