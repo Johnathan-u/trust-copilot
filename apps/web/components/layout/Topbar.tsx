@@ -23,6 +23,7 @@ const nav = [
 
 const sidebarOnlyRoutes = [
   { href: '/dashboard/compliance-gaps', label: 'Coverage' },
+  { href: '/dashboard/compliance-frameworks', label: 'Frameworks' },
   { href: '/dashboard/trust-center', label: 'Trust Center' },
   { href: '/dashboard/members', label: 'Members' },
   { href: '/dashboard/notifications', label: 'Alerts / Notifications' },

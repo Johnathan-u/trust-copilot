@@ -15,7 +15,9 @@ from sqlalchemy.orm import Session
 # Prevent database.py from loading .env which would override these test values
 os.environ["TRUST_COPILOT_TESTING"] = "1"
 _db_host = "postgres" if os.path.exists("/.dockerenv") else "localhost"
-os.environ["DATABASE_URL"] = f"postgresql://postgres:postgres@{_db_host}:5432/trustcopilot_test"
+# SQLAlchemy 2.1 treats a bare postgresql:// URL as the psycopg v3 dialect.
+# This project declares psycopg2-binary, so the test database URL names that driver.
+os.environ["DATABASE_URL"] = f"postgresql+psycopg2://postgres:postgres@{_db_host}:5432/trustcopilot_test"
 os.environ["SESSION_SECRET"] = "test-secret"
 os.environ["S3_ENDPOINT"] = f"http://{'minio' if os.path.exists('/.dockerenv') else 'localhost'}:9000"
 os.environ["S3_ACCESS_KEY"] = "minio"

@@ -26,6 +26,8 @@ from sqlalchemy.orm import Session
 
 from app.core.database import SessionLocal
 from app.models import Framework, FrameworkControl, Workspace, WorkspaceControl
+from app.services.framework_catalog import label_dev_framework_row
+from app.services.framework_catalog_registry import KIND_ADVERTISED, KIND_DEV
 
 from scripts.dev_compliance_catalog import DEV_COMPLIANCE_CATALOG
 
@@ -35,22 +37,38 @@ def _normalize_framework_key(name: str) -> str:
     return "".join(c for c in (name or "").lower() if c.isalnum())
 
 
+def _is_production_slot(fw: Framework) -> bool:
+    """Advertised blocked rows are not a place to attach synthetic dev controls."""
+    if getattr(fw, "catalog_kind", None) == KIND_DEV or getattr(fw, "content_origin", None) == "dev_seed":
+        return False
+    return bool(getattr(fw, "catalog_key", None)) or getattr(fw, "catalog_kind", None) == KIND_ADVERTISED
+
+
 def _ensure_framework(db: Session, name: str, version: str | None) -> Framework:
-    """Resolve or create Framework; avoid duplicate SOC2 vs SOC 2 rows in dev."""
+    """Resolve or create a dev/test framework row.
+
+    Never reuse the advertised production slot. The row is labelled dev/test
+    only and is not enableable as a production catalog.
+    """
     want_key = _normalize_framework_key(name)
     candidates = db.query(Framework).order_by(Framework.id).all()
     for fw in candidates:
-        if _normalize_framework_key(fw.name) == want_key:
-            if version and (fw.version is None or fw.version == ""):
-                fw.version = version
-                db.commit()
-                db.refresh(fw)
-            return fw
-    fw = Framework(name=name.strip(), version=version)
+        if _normalize_framework_key(fw.name) != want_key:
+            continue
+        if _is_production_slot(fw):
+            continue
+        if version and (fw.version is None or fw.version == ""):
+            fw.version = version
+        label_dev_framework_row(fw)
+        db.commit()
+        db.refresh(fw)
+        return fw
+    fw = Framework(name=name.strip(), version=version, scaffold_inserted=False)
+    label_dev_framework_row(fw)
     db.add(fw)
     db.commit()
     db.refresh(fw)
-    print(f"  Created framework: {name} (id={fw.id})")
+    print(f"  Created dev/test framework: {name} (id={fw.id})")
     return fw
 
 

@@ -24,6 +24,7 @@ from app.models.verification_token import EmailVerificationToken, PasswordResetT
 from app.models.workspace import Workspace
 from app.models.api_key import ApiKey
 from app.models.framework import Framework
+from app.models.framework_catalog_event import FrameworkCatalogEvent
 from app.models.framework_control import FrameworkControl
 from app.models.workspace_control import WorkspaceControl, WORKSPACE_CONTROL_STATUSES
 from app.models.control_mapping import ControlMapping
@@ -123,6 +124,7 @@ __all__ = [
     "EmailVerificationToken",
     "PasswordResetToken",
     "Framework",
+    "FrameworkCatalogEvent",
     "FrameworkControl",
     "WorkspaceControl",
     "WORKSPACE_CONTROL_STATUSES",

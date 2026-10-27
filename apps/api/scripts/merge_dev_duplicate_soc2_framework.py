@@ -42,9 +42,24 @@ def _norm_fw(name: str) -> str:
     return re.sub(r"[^a-z0-9]", "", (name or "").lower())
 
 
+def _is_advertised_slot(fw: Framework) -> bool:
+    """Do not merge the blocked production catalog slot into a dev row, or the reverse."""
+    kind = getattr(fw, "catalog_kind", None)
+    if kind == "dev_synthetic":
+        return False
+    return bool(getattr(fw, "catalog_key", None)) or kind == "advertised_blocked"
+
+
 def find_soc2_pair(db: Session) -> tuple[Framework, Framework] | None:
-    """Return (canonical, duplicate) or None."""
-    cands = [f for f in db.query(Framework).all() if _norm_fw(f.name) == "soc2"]
+    """Return (canonical, duplicate) among dev/legacy SOC 2 rows, or None.
+
+    The advertised blocked catalog row is a separate slot and is not a duplicate
+    of the synthetic dev seed, even when the display names match.
+    """
+    cands = [
+        f for f in db.query(Framework).all()
+        if _norm_fw(f.name) == "soc2" and not _is_advertised_slot(f)
+    ]
     if len(cands) < 2:
         return None
     canonical = next((f for f in cands if f.name.strip() == "SOC 2"), None)
