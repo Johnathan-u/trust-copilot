@@ -27,7 +27,6 @@ from app.services.pdf_questionnaire_parser import parse_pdf_questionnaire
 from app.services.pdf_text import (
     PdfEncryptedError,
     PdfNoTextError,
-    PdfSupportUnavailableError,
     PdfTextError,
     PdfUnreadableError,
     extract_page_texts,
@@ -53,6 +52,11 @@ NEWLY_EXPLICIT = {
     ("vector_only_no_text", "questionnaire"): PdfNoTextError,
     ("whitespace_only_text", "questionnaire"): PdfNoTextError,
     ("truncated_pdf", "questionnaire"): PdfUnreadableError,
+    # baseline evidence: [] -> index_service "Parse returned no content"; now the readable
+    # "no text layer; OCR isn't supported" message (TC-01-003a review follow-up)
+    ("image_only_scan", "evidence"): PdfNoTextError,
+    ("vector_only_no_text", "evidence"): PdfNoTextError,
+    ("whitespace_only_text", "evidence"): PdfNoTextError,
     # baseline: 0 pages -> [] -> index_service "Parse returned no content" (explicit)
     ("truncated_pdf", "evidence"): PdfUnreadableError,
 }
@@ -126,11 +130,10 @@ def test_image_only_no_text_fails_explicitly(case: Case, paths):
     path = paths[case.name]
     pages = extract_page_texts(path)
     assert pages and not any(p.strip() for p in pages)
-    # Evidence: unchanged, [] -> index_service raises "Parse returned no content".
-    assert parse_evidence(path) == []
-    # Questionnaire: explicit error instead of a silent "parsed" with 0 questions.
-    with pytest.raises(PdfNoTextError, match="OCR is not supported"):
-        parse_pdf_questionnaire(path)
+    # Evidence and questionnaire: explicit, readable error (no silent [] / 0 questions).
+    for fn in (parse_evidence, parse_pdf_questionnaire):
+        with pytest.raises(PdfNoTextError, match="no text layer; OCR isn't supported"):
+            fn(path)
 
 
 BAD = [c for c in CASES if c.outcome in ERRORS]
@@ -218,12 +221,11 @@ def test_text_pdf_with_text_but_no_questions_still_returns_empty_list(paths):
     assert parse_pdf_questionnaire(paths["spans_and_offsets"]) == []
 
 
-def test_missing_backend_raises_instead_of_silent_empty(monkeypatch, paths):
-    monkeypatch.setitem(sys.modules, "pypdf", None)
-    with pytest.raises(PdfSupportUnavailableError):
-        pdf_text.extract_page_texts(paths["spans_and_offsets"])
-    with pytest.raises(PdfSupportUnavailableError):
-        parse_evidence(paths["spans_and_offsets"])
+def test_no_per_request_missing_backend_path():
+    # pypdf is a hard import (startup/import failure, see test_pdf_failure_surfacing.py);
+    # the old per-request PdfSupportUnavailableError path is gone.
+    assert not hasattr(pdf_text, "PdfSupportUnavailableError")
+    assert "except ImportError" not in Path(pdf_text.__file__).read_text()
 
 
 def test_parsers_do_not_import_pymupdf():

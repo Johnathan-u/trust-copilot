@@ -3,17 +3,19 @@
 from pathlib import Path
 from typing import Iterator
 
+from app.services.pdf_text import extract_page_texts, require_text
+
 
 def parse_pdf(path: str | Path) -> Iterator[dict]:
     """Extract text and structure from PDF (DOC-03).
 
-    Yields one item per page that has text. A PDF with no text layer yields nothing,
-    which index_service reports as an explicit "no content" failure (unchanged).
-    Unreadable or password-protected PDFs raise pdf_text.PdfTextError.
+    Yields one item per page that has text. Raises pdf_text.PdfNoTextError when no page
+    has a text layer (image-only scan; no OCR), and PdfUnreadableError /
+    PdfEncryptedError for damaged or password-protected files. Their messages are
+    user-readable and become the document's index_error.
     """
-    from app.services.pdf_text import extract_page_texts
-
-    for i, text in enumerate(extract_page_texts(path)):
+    page_texts = require_text(extract_page_texts(path))
+    for i, text in enumerate(page_texts):
         if text.strip():
             yield {"page": i + 1, "text": text.strip()}
 

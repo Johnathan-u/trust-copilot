@@ -22,6 +22,8 @@ if not _in_docker and not _in_test:
 
 # Bootstrap: ensure DB/config are initialized with current env before any route or config consumer runs.
 import app.core.database  # noqa: E402
+# Fail fast at startup (not per request) if the PDF backend (pypdf) is missing (TC-01-003a).
+import app.services.pdf_text  # noqa: E402,F401
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware

@@ -35,3 +35,11 @@ has 17 cases:
 | Full suite, base f72def3 (with pymupdf) | `python -m pytest tests -q -rf -p no:randomly --continue-on-collection-errors` | 2 failed, 1285 passed, 2 skipped, 2 errors (`full_base_summary.txt`) |
 | Full suite, branch (no pymupdf) | same | 2 failed, 1346 passed, 2 skipped, 2 errors (`full_branch_summary.txt`). The same 2 failures and 2 errors exist on master; there are 61 new passes |
 | Lint | `ruff check .` (ruff 0.5.6, the pre-commit pin) | 479 errors on base and 479 on branch. The new and changed files are clean, and the new files are `ruff format`-clean |
+
+## Review follow-up (Coordinator review of PR #11)
+Run with the same `nopymupdf` image against an isolated Postgres on its own internal network.
+| Step | Command (from `apps/api`) | Result |
+|---|---|---|
+| New + corpus + related ingest/parse/job tests | `python -m pytest -v -rs -p no:randomly tests/test_pdf_failure_surfacing.py tests/test_pdf_text_locator_corpus.py tests/test_upload_parse_review.py tests/test_indexing_enterprise_fixes.py tests/test_generate_export.py tests/test_jobs_api.py tests/test_questionnaire_parser.py tests/test_ingestion_pipeline.py` | 98 passed, 0 skipped (`followup_tests_branch.txt`) |
+| Full suite, branch + follow-up | `python -m pytest tests -q -rfs -p no:randomly --continue-on-collection-errors` | 2 failed, 1359 passed, 3 skipped, 2 errors (`full_followup_summary.txt`). These are the same 2 failures and 2 collection errors as on master. The extra skip is `test_feedback_capture` "No questionnaires", which depends on data in a fresh DB |
+| Lint | ruff 0.5.6 | The new and changed PDF files are clean and `ruff format`-clean. `index_service.py` has one more E402, matching that file's existing import style |

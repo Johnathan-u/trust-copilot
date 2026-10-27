@@ -4,7 +4,7 @@ import json
 from pathlib import Path
 
 from app.services.answer_type import infer_answer_type
-from app.services.pdf_text import PdfNoTextError, extract_page_texts, has_text
+from app.services.pdf_text import extract_page_texts, require_text
 from app.services.question_detector import looks_like_question, looks_like_section_header
 from app.services.question_normalizer import normalize_question as normalize
 
@@ -16,11 +16,7 @@ def parse_pdf_questionnaire(path: str | Path) -> list[dict]:
     so the parse job fails explicitly instead of reporting 0 questions as parsed.
     Unreadable or password-protected PDFs raise pdf_text.PdfTextError.
     """
-    page_texts = extract_page_texts(path)
-    if not has_text(page_texts):
-        raise PdfNoTextError(
-            "PDF has no extractable text (image-only or scanned PDF?); OCR is not supported"
-        )
+    page_texts = require_text(extract_page_texts(path))
     section = None
     results = []
     for i, text in enumerate(page_texts):
