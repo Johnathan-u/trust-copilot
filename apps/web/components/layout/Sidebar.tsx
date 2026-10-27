@@ -108,8 +108,10 @@ export function Sidebar() {
 
   const complianceActive = [
     '/dashboard/compliance-gaps',
+    '/dashboard/compliance-frameworks',
     '/dashboard/trust-center',
     '/dashboard/proof-chain',
+    '/dashboard/demo-proof',
   ].some((p) => pathname.startsWith(p))
   const adminActive = [
     '/dashboard/members',
@@ -223,6 +225,8 @@ export function Sidebar() {
             icon="📊"
             pathname={pathname}
           />
+          {/* prettier-ignore */}
+          <NavLink href="/dashboard/compliance-frameworks" label="Frameworks" icon="▣" pathname={pathname} />
           <NavLink
             href="/dashboard/trust-center"
             label="Trust Center"
@@ -233,6 +237,12 @@ export function Sidebar() {
             href="/dashboard/proof-chain"
             label="Proof chain"
             icon="🔗"
+            pathname={pathname}
+          />
+          <NavLink
+            href="/dashboard/demo-proof"
+            label="Demo proof"
+            icon="🧪"
             pathname={pathname}
           />
         </NavSection>

@@ -13,17 +13,30 @@ from app.models.answer import Answer
 from app.models.deal import Deal
 from app.models.evidence_item import EvidenceItem
 from app.models.golden_answer import GoldenAnswer  # noqa: F401
-from app.models.questionnaire import Question, Questionnaire  # noqa: F401
+from app.models.questionnaire import Question, Questionnaire
 
 logger = logging.getLogger(__name__)
 
 
-def score_deal(db: Session, deal_id: int) -> dict:
-    deal = db.query(Deal).filter(Deal.id == deal_id).first()
+def score_deal(db: Session, deal_id: int, *, workspace_id: int) -> dict:
+    deal = db.query(Deal).filter(Deal.id == deal_id, Deal.workspace_id == workspace_id).first()
     if not deal:
         return {"error": "Deal not found"}
 
-    q_ids = json.loads(deal.linked_questionnaire_ids or "[]")
+    linked = json.loads(deal.linked_questionnaire_ids or "[]")
+    # Only questionnaires from the deal's own workspace (legacy links may point elsewhere).
+    q_ids = (
+        [
+            row.id
+            for row in db.query(Questionnaire.id).filter(
+                Questionnaire.id.in_(linked),
+                Questionnaire.workspace_id == deal.workspace_id,
+                Questionnaire.deleted_at.is_(None),
+            )
+        ]
+        if linked
+        else []
+    )
     total_questions = 0
     unanswered = 0
     low_confidence = 0
@@ -82,7 +95,7 @@ def score_deal(db: Session, deal_id: int) -> dict:
 
 def rank_deals_by_risk(db: Session, workspace_id: int) -> list[dict]:
     deals = db.query(Deal).filter(Deal.workspace_id == workspace_id).all()
-    scored = [score_deal(db, d.id) for d in deals]
+    scored = [score_deal(db, d.id, workspace_id=workspace_id) for d in deals]
     scored = [s for s in scored if "error" not in s]
     scored.sort(key=lambda s: s["revenue_at_risk"], reverse=True)
     return scored

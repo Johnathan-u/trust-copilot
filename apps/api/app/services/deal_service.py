@@ -7,6 +7,7 @@ from datetime import datetime, timezone  # noqa: F401
 from sqlalchemy.orm import Session
 
 from app.models.deal import Deal
+from app.models.questionnaire import Questionnaire
 
 logger = logging.getLogger(__name__)
 
@@ -24,8 +25,27 @@ def create_deal(db: Session, workspace_id: int, company_name: str, **kwargs) -> 
     return _serialize(deal)
 
 
-def get_deal(db: Session, deal_id: int) -> dict | None:
-    deal = db.query(Deal).filter(Deal.id == deal_id).first()
+def _workspace_deal(db: Session, deal_id: int, workspace_id: int) -> Deal | None:
+    """The deal with this id in this workspace, or None (missing and foreign look the same)."""
+    return db.query(Deal).filter(Deal.id == deal_id, Deal.workspace_id == workspace_id).first()
+
+
+def workspace_questionnaire_exists(db: Session, workspace_id: int, questionnaire_id: int) -> bool:
+    """True if questionnaire_id is a live (not soft-deleted) questionnaire in workspace_id."""
+    return (
+        db.query(Questionnaire.id)
+        .filter(
+            Questionnaire.id == questionnaire_id,
+            Questionnaire.workspace_id == workspace_id,
+            Questionnaire.deleted_at.is_(None),
+        )
+        .first()
+        is not None
+    )
+
+
+def get_deal(db: Session, deal_id: int, *, workspace_id: int) -> dict | None:
+    deal = _workspace_deal(db, deal_id, workspace_id)
     return _serialize(deal) if deal else None
 
 
@@ -36,8 +56,8 @@ def list_deals(db: Session, workspace_id: int, stage: str | None = None) -> list
     return [_serialize(d) for d in q.order_by(Deal.created_at.desc()).all()]
 
 
-def update_deal(db: Session, deal_id: int, **updates) -> dict | None:
-    deal = db.query(Deal).filter(Deal.id == deal_id).first()
+def update_deal(db: Session, deal_id: int, *, workspace_id: int, **updates) -> dict | None:
+    deal = _workspace_deal(db, deal_id, workspace_id)
     if not deal:
         return None
     allowed = {
@@ -65,8 +85,8 @@ def update_deal(db: Session, deal_id: int, **updates) -> dict | None:
     return _serialize(deal)
 
 
-def delete_deal(db: Session, deal_id: int) -> bool:
-    deal = db.query(Deal).filter(Deal.id == deal_id).first()
+def delete_deal(db: Session, deal_id: int, *, workspace_id: int) -> bool:
+    deal = _workspace_deal(db, deal_id, workspace_id)
     if not deal:
         return False
     db.delete(deal)
@@ -74,10 +94,26 @@ def delete_deal(db: Session, deal_id: int) -> bool:
     return True
 
 
-def link_questionnaire(db: Session, deal_id: int, questionnaire_id: int) -> dict | None:
-    deal = db.query(Deal).filter(Deal.id == deal_id).first()
+class DealNotFound(LookupError):
+    """No deal with this id in the caller's workspace."""
+
+
+class QuestionnaireNotFound(LookupError):
+    """No live questionnaire with this id in the deal's workspace."""
+
+
+def link_questionnaire(
+    db: Session, deal_id: int, questionnaire_id: int, *, workspace_id: int
+) -> dict:
+    """Link a questionnaire to a deal; both must belong to workspace_id.
+
+    Raises DealNotFound / QuestionnaireNotFound (the route maps both to 404).
+    """
+    deal = _workspace_deal(db, deal_id, workspace_id)
     if not deal:
-        return None
+        raise DealNotFound(deal_id)
+    if not workspace_questionnaire_exists(db, workspace_id, questionnaire_id):
+        raise QuestionnaireNotFound(questionnaire_id)
     ids = json.loads(deal.linked_questionnaire_ids or "[]")
     if questionnaire_id not in ids:
         ids.append(questionnaire_id)
