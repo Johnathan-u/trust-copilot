@@ -14,6 +14,14 @@ from app.services import deal_analytics_service as das
 
 router = APIRouter(prefix="/deals", tags=["deals"])
 
+# One body for "no such deal" and "deal in another workspace", so ids can't be probed.
+DEAL_NOT_FOUND = "Deal not found"
+QUESTIONNAIRE_NOT_FOUND = "Questionnaire not found"
+
+
+def _deal_not_found() -> HTTPException:
+    return HTTPException(status_code=404, detail=DEAL_NOT_FOUND)
+
 
 class CreateDealBody(BaseModel):
     company_name: str
@@ -98,9 +106,9 @@ async def at_risk(session: dict = Depends(require_session), db: Session = Depend
 async def get_one(
     deal_id: int, session: dict = Depends(require_session), db: Session = Depends(get_db)
 ):
-    result = ds.get_deal(db, deal_id)
+    result = ds.get_deal(db, deal_id, workspace_id=session["workspace_id"])
     if not result:
-        raise HTTPException(status_code=404)
+        raise _deal_not_found()
     return result
 
 
@@ -108,9 +116,9 @@ async def get_one(
 async def risk_score(
     deal_id: int, session: dict = Depends(require_session), db: Session = Depends(get_db)
 ):
-    result = rrs.score_deal(db, deal_id)
+    result = rrs.score_deal(db, deal_id, workspace_id=session["workspace_id"])
     if "error" in result:
-        raise HTTPException(status_code=404, detail=result["error"])
+        raise _deal_not_found()
     return result
 
 
@@ -118,9 +126,9 @@ async def risk_score(
 async def deal_room(
     deal_id: int, session: dict = Depends(require_session), db: Session = Depends(get_db)
 ):
-    result = drs.generate_deal_room(db, deal_id)
+    result = drs.generate_deal_room(db, deal_id, workspace_id=session["workspace_id"])
     if "error" in result:
-        raise HTTPException(status_code=404, detail=result["error"])
+        raise _deal_not_found()
     return result
 
 
@@ -132,9 +140,9 @@ async def update(
     db: Session = Depends(get_db),
 ):
     updates = {k: v for k, v in body.model_dump().items() if v is not None}
-    result = ds.update_deal(db, deal_id, **updates)
+    result = ds.update_deal(db, deal_id, workspace_id=session["workspace_id"], **updates)
     if not result:
-        raise HTTPException(status_code=404)
+        raise _deal_not_found()
     db.commit()
     return result
 
@@ -146,9 +154,14 @@ async def link_q(
     session: dict = Depends(require_can_admin),
     db: Session = Depends(get_db),
 ):
-    result = ds.link_questionnaire(db, deal_id, body.questionnaire_id)
-    if not result:
-        raise HTTPException(status_code=404)
+    try:
+        result = ds.link_questionnaire(
+            db, deal_id, body.questionnaire_id, workspace_id=session["workspace_id"]
+        )
+    except ds.DealNotFound:
+        raise _deal_not_found() from None
+    except ds.QuestionnaireNotFound:
+        raise HTTPException(status_code=404, detail=QUESTIONNAIRE_NOT_FOUND) from None
     db.commit()
     return result
 
@@ -157,7 +170,7 @@ async def link_q(
 async def delete(
     deal_id: int, session: dict = Depends(require_can_admin), db: Session = Depends(get_db)
 ):
-    if not ds.delete_deal(db, deal_id):
-        raise HTTPException(status_code=404)
+    if not ds.delete_deal(db, deal_id, workspace_id=session["workspace_id"]):
+        raise _deal_not_found()
     db.commit()
     return {"deleted": True}

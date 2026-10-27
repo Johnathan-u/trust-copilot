@@ -10,6 +10,7 @@ from sqlalchemy.orm import Session
 
 from sqlalchemy import func
 
+from app.core.api_errors import api_error_from_failure, current_request_id
 from app.core.auth_deps import require_can_export, require_can_review
 from app.core.config import get_settings
 from app.core.database import get_db
@@ -20,6 +21,7 @@ from app.core.idempotency import (
 )
 from app.models import ExportRecord, Question, Questionnaire
 from app.services.export_service import enqueue_export_job, enqueue_generate_answers_job
+from app.services.model_outcomes import ModelFailure, ModelOutcomeCode
 from app.services.storage import get_storage, StorageClient
 
 router = APIRouter(prefix="/exports", tags=["exports"])
@@ -80,9 +82,17 @@ def trigger_generate(
             "OpenAI API key is not configured. Set OPENAI_API_KEY in your environment (.env) "
             "for the API and worker services, then restart."
         )
+        # TC-11-001: keep legacy 503 + ``detail``; add the typed ApiError object.
+        error = api_error_from_failure(
+            ModelFailure(code=ModelOutcomeCode.MODEL_CREDENTIALS_MISSING),
+            current_request_id(request),
+        )
+        body = {"detail": detail, "error": error.model_dump(exclude_none=True)}
         if idem_key:
-            idempotency_set(db, idem_key, 503, {"detail": detail})
-        raise HTTPException(status_code=503, detail=detail)
+            idempotency_set(db, idem_key, 503, body)
+        return JSONResponse(
+            status_code=503, content=body, headers={"X-Request-ID": error.request_id}
+        )
     from app.services.quota_service import check_quota
 
     allowed, current, limit = check_quota(db, workspace_id, "ai_jobs")
