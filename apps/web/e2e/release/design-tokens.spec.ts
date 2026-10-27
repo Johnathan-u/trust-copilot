@@ -266,7 +266,7 @@ test.describe('design tokens', () => {
           .analyze()
         writeFileSync(
           path.join(evidenceDir, `axe-${theme}-${viewport.name}.json`),
-          JSON.stringify(
+          `${JSON.stringify(
             {
               theme,
               viewport: viewport.width,
@@ -280,7 +280,7 @@ test.describe('design tokens', () => {
             },
             null,
             2
-          )
+          )}\n`
         )
         const blocking = axe.violations.filter(
           (item) => item.impact === 'critical' || item.impact === 'serious'
