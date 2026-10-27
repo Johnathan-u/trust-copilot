@@ -2,7 +2,7 @@
   "ticket": "TC-25-011",
   "command": "python -m pytest tests/release/test_domain_demo_proof.py -q",
   "working_directory": "apps/api",
-  "git_sha": "5fea6b4ec7633f90e05788514f2213bacbe5b57a",
+  "git_sha": "58ec8565c9edcd15bd8ea7553a10cc75eaf943ef",
   "git_branch": "tc/ca/TC-25-011",
   "exit_status": 0,
   "totals": {
@@ -11,7 +11,7 @@
     "skipped": 0,
     "errors": 0,
     "warnings": 38,
-    "duration_seconds": 5.18
+    "duration_seconds": 4.6
   },
   "additional_runs": [
     {
@@ -55,7 +55,7 @@
   "notes": [
     "PostgreSQL database trustcopilot_test. No credentials are recorded.",
     "ruff 0.5.6 format --check and ruff check passed.",
-    "alembic heads printed a single head: tc25011_demo_proof_summaries (head).",
+    "alembic heads printed a single head: tc25011_demo_proof_summaries (head). down_revision is tc21001_framework_catalog_rights.",
     "The UI presenter was executed with node --input-type=module. No experimental type-stripping flag is used.",
     "This evidence file is committed after the tested SHA. It does not change product behavior."
   ]
