@@ -17,6 +17,7 @@ check`` to validate the current environment (exit 0 ok, 2 invalid).
 from __future__ import annotations
 
 import os
+import re
 import sys
 from dataclasses import dataclass
 from typing import Iterable, Mapping
@@ -67,22 +68,57 @@ KNOWN_DEFAULT_CREDENTIALS = frozenset(
         "12345678",
     }
 )
-_PLACEHOLDER_MARKERS = (
-    "placeholder",
-    "changeme",
-    "change-me",
-    "change_me",
-    "replace",
-    "your-",
-    "your_",
-    "example",
-    "xxxx",
-    "<",
-    "todo",
-    "dummy",
-    "sample",
-    "insecure",
+# Whole values that are documentation placeholders rather than credentials (case-insensitive).
+_EXACT_PLACEHOLDERS = frozenset(
+    {
+        "placeholder",
+        "changeme",
+        "change-me",
+        "change_me",
+        "changeit",
+        "replaceme",
+        "replace-me",
+        "replace_me",
+        "your-key-here",
+        "your_key_here",
+        "your-secret-here",
+        "your_secret_here",
+        "your-password-here",
+        "your-api-key",
+        "your-api-key-here",
+        "todo",
+        "tbd",
+        "fixme",
+        "dummy",
+        "sample",
+        "insecure",
+        "none",
+        "null",
+    }
 )
+# Marker words. They only count as a whole token (split on [-_.:/ ]), and only when the value
+# has too little other material to be a generated credential: a long random secret that happens
+# to contain "todo" or "Sample" is accepted.
+_PLACEHOLDER_MARKER_TOKENS = frozenset(
+    {
+        "placeholder",
+        "changeme",
+        "change",
+        "changeit",
+        "replace",
+        "replaceme",
+        "your",
+        "example",
+        "todo",
+        "tbd",
+        "fixme",
+        "dummy",
+        "sample",
+        "insecure",
+    }
+)
+_TOKEN_SPLIT = re.compile(r"[-_.:/ ]+")
+_MIN_RANDOM_MATERIAL = 16
 
 TRUTHY = ("1", "true", "yes", "on")
 
@@ -761,15 +797,45 @@ class ConfigContractError(RuntimeError):
         )
 
 
+def _is_marker_token(token: str) -> bool:
+    return (
+        token in _PLACEHOLDER_MARKER_TOKENS
+        or (len(token) >= 3 and set(token) == {"x"})
+        or "<" in token
+        or ">" in token
+    )
+
+
 def is_known_default_or_placeholder(value: str | None) -> bool:
+    """True for unset values, shipped/vendor defaults and documentation placeholders.
+
+    Matching is on the whole value (case-insensitive), never on substrings, so strong random
+    secrets are not refused because they happen to contain a marker word. Marker words count
+    only as whole tokens, and only when what remains is too short or too repetitive to be a
+    generated credential.
+    """
     if value is None:
         return True
-    v = value.strip().lower()
+    raw = value.strip()
+    v = raw.lower()
     if not v:
         return True
-    if v in KNOWN_DEFAULT_CREDENTIALS:
+    if v in KNOWN_DEFAULT_CREDENTIALS or v in _EXACT_PLACEHOLDERS:
         return True
-    return any(m in v for m in _PLACEHOLDER_MARKERS)
+    if v.startswith("<") and v.endswith(">"):  # e.g. <secret>, <your api key>
+        return True
+    if set(v) <= {"x", "*", "-", "_", "."}:  # e.g. xxxx, ****
+        return True
+    raw_tokens = [t for t in _TOKEN_SPLIT.split(raw) if t]
+    if not any(_is_marker_token(t.lower()) for t in raw_tokens):
+        return False
+    # Remaining material: drop marker tokens and plain lower-case words ("key", "here", ...).
+    rest = "".join(
+        t
+        for t in raw_tokens
+        if not _is_marker_token(t.lower()) and not (t.isalpha() and t == t.lower())
+    )
+    return len(rest) < _MIN_RANDOM_MATERIAL or len(set(rest)) < 6
 
 
 def _weak_password(

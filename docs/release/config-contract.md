@@ -13,6 +13,9 @@ Source of truth: `apps/api/app/core/config_contract.py`. The table between the m
 * Credentials are refused when unset, shorter than 16 characters (SESSION_SECRET: 32), low-variety, a placeholder,
   or a publicly known vendor/tutorial default (`KNOWN_DEFAULT_CREDENTIALS`) — this covers every value in
   `.env.example` and every dev default in `docker-compose.yml`, which the release test checks automatically.
+* Placeholders are matched on the whole value (case-insensitive), e.g. `changeme`, `<secret>`, `your-key-here`,
+  never as substrings. Marker words such as `todo` or `sample` count only as separate tokens in a value with
+  fewer than 16 characters of other material, so a long random secret that happens to contain one is accepted.
 * Error messages list variable names and reasons only, never values.
 * **Non-production**: only malformed values that would crash `Settings()` and unknown `APP_ENV` values are fatal;
   everything else is reported as a warning.

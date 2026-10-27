@@ -46,12 +46,7 @@ def _dsn(
 
 
 def _tok(n: int = 24) -> str:
-    # Random tokens can, rarely, contain a placeholder marker (e.g. "todo" in any letter case); the
-    # contract refuses those by design, so draw again instead of making the suite flaky.
-    while True:
-        t = secrets.token_urlsafe(n)
-        if not cc.is_known_default_or_placeholder(t):
-            return t
+    return secrets.token_urlsafe(n)
 
 
 def good_production_env() -> dict[str, str]:
@@ -210,7 +205,7 @@ def test_database_url_default_password_refused(idx):
 def test_database_url_shapes_refused(variant):
     env = good_production_env()
     user = "u" + secrets.token_hex(3)
-    pw = {"short": secrets.token_hex(4), "placeholder": "placeholder-" + secrets.token_hex(8)}.get(
+    pw = {"short": secrets.token_hex(4), "placeholder": "your-db-password-here"}.get(
         variant, _tok(20)
     )
     env["DATABASE_URL"] = {
@@ -230,7 +225,7 @@ def test_weak_secrets_refused(name, value_kind):
     env = good_production_env()
     env[name] = {
         "short": secrets.token_hex(5),
-        "placeholder": "placeholder" + _tok(30),
+        "placeholder": "your-" + name.lower().replace("_", "-") + "-here",
         "low_variety": "ab" * 24,
     }[value_kind]
     assert name in names(cc.validate_environment(env))
@@ -970,3 +965,75 @@ def test_cli_refuses_env_example_defaults_without_echoing_them():
     for n in ("S3_ACCESS_KEY", "S3_SECRET_KEY", "POSTGRES_PASSWORD", "OPENAI_API_KEY"):
         assert n in out
         assert ex[n] not in out, f"value of {n} echoed by the CLI"
+
+
+# ---------------------------------------------------------------- placeholders: whole values, not substrings
+# A strong random secret must never be refused because it happens to contain a marker word
+# ("todo", "xxxx", "Sample", ...); documentation placeholders are still refused.
+
+_MARKER_WORDS = ("todo", "xxxx", "Sample", "TODO", "placeholder", "example", "your")
+
+
+def _random_with_marker(marker: str, shape: int) -> str:
+    """32+ character random-looking values containing ``marker`` in different positions/forms."""
+    a, b = secrets.token_hex(8), secrets.token_hex(8)
+    return (
+        a + "-" + marker + "-" + b,  # separated token
+        a + marker + b,  # embedded
+        marker + "_" + a + b,  # leading token
+        a + b + "." + marker,  # trailing token
+    )[shape]
+
+
+def _set_credential(env: dict[str, str], name: str, value: str) -> None:
+    if name == "DATABASE_URL":
+        env[name] = _dsn(env["POSTGRES_USER"], value, "postgres:5432/trustcopilot", "postgresql")
+    elif name == "OPENAI_API_KEY":
+        env[name] = "sk-proj-" + value
+    else:
+        env[name] = value
+
+
+_PLACEHOLDER_TARGETS = ("S3_SECRET_KEY", "DATABASE_URL", "OPENAI_API_KEY")
+
+
+@pytest.mark.parametrize("shape", range(4))
+@pytest.mark.parametrize("marker", _MARKER_WORDS)
+@pytest.mark.parametrize("name", _PLACEHOLDER_TARGETS)
+def test_random_secrets_containing_marker_words_pass_in_production(name, marker, shape):
+    value = _random_with_marker(marker, shape)
+    assert len(value) >= 32
+    assert not cc.is_known_default_or_placeholder(value)
+    env = good_production_env()
+    _set_credential(env, name, value)
+    assert name not in names(cc.validate_environment(env))
+    assert cc.enforce_startup_contract("api", env) == []
+
+
+@pytest.mark.parametrize(
+    "placeholder",
+    ["your-key-here", "changeme", "<secret>", "CHANGEME", " Your-Key-Here ", "<your api key>"],
+)
+@pytest.mark.parametrize("name", _PLACEHOLDER_TARGETS)
+def test_documentation_placeholders_are_still_refused(name, placeholder):
+    assert cc.is_known_default_or_placeholder(placeholder)
+    env = good_production_env()
+    _set_credential(env, name, placeholder)
+    assert name in names(cc.validate_environment(env))
+    with pytest.raises(cc.ConfigContractError) as ei:
+        cc.enforce_startup_contract("api", env)
+    assert placeholder.strip() not in _scrubbed(str(ei.value))
+
+
+@pytest.mark.parametrize(
+    "value",
+    [
+        "placeholder-" + "ab12",
+        "your-db-password-here",
+        "todo-1234",
+        "xxxx-xxxx-xxxx",
+        "sk-your-key",
+    ],
+)
+def test_short_marker_values_are_refused(value):
+    assert cc.is_known_default_or_placeholder(value)
