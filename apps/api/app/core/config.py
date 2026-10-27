@@ -237,7 +237,7 @@ class Settings:
         _rpm = os.getenv("RATE_LIMIT_RPM_PER_IP", "120").strip()
         self.rate_limit_rpm_per_ip: int = max(0, int(_rpm)) if _rpm.isdigit() else 120
 
-        self.app_env: str = os.getenv("APP_ENV", "development").lower()
+        self.app_env: str = os.getenv("APP_ENV", "development").strip().lower()
         # Slack/Gmail provider selection (TC-19-001). Unset runtime follows APP_ENV.
         # Production never selects the dev stub. See message_providers.selection.
         _provider_mode = os.getenv("MESSAGE_PROVIDER_RUNTIME_MODE", "").strip().lower()
