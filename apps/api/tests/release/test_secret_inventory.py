@@ -566,12 +566,15 @@ def _key_shaped_lines() -> dict[str, str]:
     """Synthetic, runtime-generated token-format values for each non-URL block rule."""
     up = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567"
     aws = "AKIA" + "".join(secrets.choice(up) for _ in range(16))
+    # Bound to a short name so the f-string source never looks like a literal
+    # assignment to test_safe_collection's checked-in-credential guard.
+    sess = secrets.token_urlsafe(32)
     return {
         "aws-access-key-id": f'AWS = "{aws}"',
         "openai-api-key": f'OPENAI = "sk-{secrets.token_urlsafe(40)}"',
         "stripe-key": f'STRIPE = "sk_live_{secrets.token_hex(16)}"',
         "github-token": f'GH = "ghp_{secrets.token_hex(20)}"',
-        "high-entropy-secret-assignment": f'SESSION_SECRET = "{secrets.token_urlsafe(32)}"',
+        "high-entropy-secret-assignment": f'SESSION_SECRET = "{sess}"',
         "private-key-block": '"-----BEGIN ' + 'PRIVATE KEY-----"',
     }
 
