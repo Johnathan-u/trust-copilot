@@ -5,17 +5,17 @@ from typing import Iterator
 
 
 def parse_pdf(path: str | Path) -> Iterator[dict]:
-    """Extract text and structure from PDF (DOC-03)."""
-    try:
-        import pymupdf
-    except ImportError:
-        return
-    doc = pymupdf.open(path)
-    for i, page in enumerate(doc):
-        text = page.get_text()
+    """Extract text and structure from PDF (DOC-03).
+
+    Yields one item per page that has text. A PDF with no text layer yields nothing,
+    which index_service reports as an explicit "no content" failure (unchanged).
+    Unreadable or password-protected PDFs raise pdf_text.PdfTextError.
+    """
+    from app.services.pdf_text import extract_page_texts
+
+    for i, text in enumerate(extract_page_texts(path)):
         if text.strip():
             yield {"page": i + 1, "text": text.strip()}
-    doc.close()
 
 
 def parse_docx(path: str | Path) -> Iterator[dict]:

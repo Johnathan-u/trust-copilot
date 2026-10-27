@@ -65,28 +65,31 @@ def generate_sample_evidence_xlsx(out_path: Path) -> None:
 
 
 def generate_security_policy_pdf(out_path: Path) -> None:
-    """Create minimal security policy PDF via pymupdf."""
-    try:
-        import pymupdf as fitz
-    except ImportError:
-        return
-    doc = fitz.open()
-    page = doc.new_page(width=595, height=842)
-    text = (
-        "Information Security Policy\n\n"
+    """Create minimal security policy PDF with the in-repo synthetic PDF writer.
+
+    TC-01-003a: PyMuPDF (AGPL) was removed; app.services.synthetic_pdf is pure Python.
+    """
+    import sys
+    import textwrap
+
+    sys.path.insert(0, str(API_ROOT))
+    from app.services.synthetic_pdf import Page, build_pdf, text_block
+
+    paragraphs = [
+        "Information Security Policy",
         "1. Policy Statement: The company maintains a written information security "
-        "policy approved by management.\n\n"
+        "policy approved by management.",
         "2. Security Officer: A designated individual (CISO) is responsible for "
-        "the security program.\n\n"
-        "3. Risk Assessment: Annual risk assessments are performed.\n\n"
+        "the security program.",
+        "3. Risk Assessment: Annual risk assessments are performed.",
         "4. Access Control: Role-based access control is applied. Access reviews "
-        "occur quarterly.\n\n"
-        "5. Incident Response: An incident response plan exists and is tested annually."
-    )
-    rect = fitz.Rect(50, 50, 545, 792)
-    page.insert_textbox(rect, text, fontsize=11)
-    doc.save(out_path)
-    doc.close()
+        "occur quarterly.",
+        "5. Incident Response: An incident response plan exists and is tested annually.",
+    ]
+    lines: list[str] = []
+    for para in paragraphs:
+        lines += textwrap.wrap(para, width=85) + [""]
+    out_path.write_bytes(build_pdf([Page(texts=text_block(50, 60, lines[:-1], size=11))]))
 
 
 def main() -> None:

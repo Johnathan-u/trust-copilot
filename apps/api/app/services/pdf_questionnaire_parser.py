@@ -4,22 +4,26 @@ import json
 from pathlib import Path
 
 from app.services.answer_type import infer_answer_type
+from app.services.pdf_text import PdfNoTextError, extract_page_texts, has_text
 from app.services.question_detector import looks_like_question, looks_like_section_header
 from app.services.question_normalizer import normalize_question as normalize
 
 
 def parse_pdf_questionnaire(path: str | Path) -> list[dict]:
-    """Parse PDF into questions. Fallback for non-structured PDFs (QNR-14)."""
-    try:
-        import pymupdf
-    except ImportError:
-        return []
+    """Parse PDF into questions. Fallback for non-structured PDFs (QNR-14).
 
-    doc = pymupdf.open(path)
+    Raises PdfNoTextError when no page has a text layer (image-only PDF; no OCR),
+    so the parse job fails explicitly instead of reporting 0 questions as parsed.
+    Unreadable or password-protected PDFs raise pdf_text.PdfTextError.
+    """
+    page_texts = extract_page_texts(path)
+    if not has_text(page_texts):
+        raise PdfNoTextError(
+            "PDF has no extractable text (image-only or scanned PDF?); OCR is not supported"
+        )
     section = None
     results = []
-    for i, page in enumerate(doc):
-        text = page.get_text()
+    for i, text in enumerate(page_texts):
         for line in text.splitlines():
             line = line.strip()
             if not line:
@@ -39,5 +43,4 @@ def parse_pdf_questionnaire(path: str | Path) -> list[dict]:
                     "source_location": json.dumps(source),
                     "confidence": 70,
                 })
-    doc.close()
     return results
