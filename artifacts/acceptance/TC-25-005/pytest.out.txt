@@ -5,5 +5,5 @@ tests/release/test_domain_case_studies.py: 92 warnings
     return util.wrap_callable(lambda ctx: fn(), fn)  # type: ignore
 
 -- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
-12 passed, 92 warnings in 8.73s
+12 passed, 92 warnings in 9.55s
 EXIT:0
