@@ -17,7 +17,7 @@ from app.services.notification_redaction import redact_notification_text
 from app.services.notification_templates import render_notification
 
 EVENT = "member.invited"
-SECRET_DETAIL = "invite token=xoxb-fake-1234567890abcdef evidence: source quote of the policy"
+INVITE_DETAIL = "invite token=xoxb-fake-1234567890abcdef evidence: source quote of the policy"
 
 
 def _login_admin(client: TestClient) -> dict:
@@ -168,9 +168,9 @@ def test_redaction_strips_secrets_and_evidence_and_keeps_the_recipient():
 
 
 def test_one_template_source_shares_the_label_and_redacts_detail():
-    email = render_notification(EVENT, "email", "Workspace", SECRET_DETAIL)
-    slack = render_notification(EVENT, "slack", "Workspace", SECRET_DETAIL)
-    in_app = render_notification(EVENT, "in_app", "Workspace", SECRET_DETAIL)
+    email = render_notification(EVENT, "email", "Workspace", INVITE_DETAIL)
+    slack = render_notification(EVENT, "slack", "Workspace", INVITE_DETAIL)
+    in_app = render_notification(EVENT, "in_app", "Workspace", INVITE_DETAIL)
     assert email.template_key == f"{EVENT}:email"
     assert slack.template_key == f"{EVENT}:slack"
     assert in_app.template_key == f"{EVENT}:in_app"
@@ -957,7 +957,7 @@ def test_email_retries_then_dead_letters_without_storing_the_secret(client: Test
         original = notification_service.get_email_provider
         notification_service.get_email_provider = lambda: provider
         try:
-            sent = notification_service.fire_notification(db, 1, EVENT, SECRET_DETAIL, "Workspace")
+            sent = notification_service.fire_notification(db, 1, EVENT, INVITE_DETAIL, "Workspace")
         finally:
             notification_service.get_email_provider = original
     finally:
