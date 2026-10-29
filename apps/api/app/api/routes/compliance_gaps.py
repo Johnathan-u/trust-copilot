@@ -22,6 +22,7 @@ from app.core.idempotency import get as idempotency_get
 from app.core.idempotency import release as idempotency_release
 from app.core.idempotency import set as idempotency_set
 from app.models import (
+    CONTROL_CHECK,
     Document,
     CONTROL_CHECK_CLOSE_REASON,
     EvidenceGap,
@@ -40,7 +41,6 @@ from app.services.in_app_notification_service import notify_admins
 logger = logging.getLogger(__name__)
 
 CONTROL_NOT_FOUND = "Control not found"
-CONTROL_CHECK = "control_check"
 _BLOCKED_RIGHTS = {"blocked_pending_rights", "blocked"}
 _ACTIONS = {
     "no_evidence": "collect_evidence",
