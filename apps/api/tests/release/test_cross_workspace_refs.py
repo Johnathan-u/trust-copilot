@@ -343,7 +343,9 @@ def test_detector_finds_seeded_cross_workspace_rows(db_session: Session):
     try:
         before = run_audit(db_session.connection(), read_only=False)
         seeded, cleanup = _seed_cross_workspace(db_session)
-        after = run_audit(db_session.connection(), include_ids=True, id_limit=100000, read_only=False)
+        after = run_audit(
+            db_session.connection(), include_ids=True, id_limit=100000, read_only=False
+        )
         b, a, ids = _counts(before), _counts(after), _ids(after)
         assert set(seeded) == set(a)
         for name, row_id in seeded.items():
