@@ -108,19 +108,43 @@ describe('parseCoverageResponse', () => {
     expect(parsed.recommended_evidence[1].evidence_ids).toEqual([])
     expect(parsed.recommended_evidence[1].control_ids).toEqual([])
     expect(parsed.recommended_evidence[1].question_ids).toEqual([])
-    expect(() =>
-      parseCoverageResponse(
-        body({
-          recommended_evidence: [
-            {
-              title: 'Synthetic policy',
-              improves_questions: 1,
-              evidence_ids: ['11'],
-            },
-          ],
-        })
-      )
-    ).toThrow(/evidence ids/)
+  })
+
+  it('skips a malformed recommendation and malformed id entries', () => {
+    const parsed = parseCoverageResponse(
+      body({
+        recommended_evidence: [
+          {
+            title: 'Synthetic policy',
+            improves_questions: 2,
+            evidence_ids: [11, '12', null, 13],
+            control_ids: 'nope',
+            question_ids: [33, true],
+          },
+          'not a recommendation',
+          { title: 'Missing count' },
+          { improves_questions: 1 },
+          { title: 'Kept', improves_questions: 1, evidence_ids: [] },
+        ],
+      })
+    )
+    expect(parsed.recommended_evidence).toEqual([
+      {
+        title: 'Synthetic policy',
+        improves_questions: 2,
+        evidence_ids: [11, 13],
+        control_ids: [],
+        question_ids: [33],
+      },
+      {
+        title: 'Kept',
+        improves_questions: 1,
+        evidence_ids: [],
+        control_ids: [],
+        question_ids: [],
+      },
+    ])
+    expect(parsed.kpi).toEqual({ total_questions: 4, coverage_pct: 50 })
   })
 
   it('rejects a missing or unversioned control denominator', () => {

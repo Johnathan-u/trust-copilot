@@ -49,28 +49,28 @@ export type CoverageResponse = {
   control_coverage: ControlCoverage
 }
 
-function idList(value: unknown, label: string): number[] {
-  if (value === undefined) return []
-  if (!Array.isArray(value) || value.some((item) => typeof item !== 'number')) {
-    throw new Error(`${label} must be a list of ids`)
-  }
-  return value
+function idList(value: unknown): number[] {
+  if (!Array.isArray(value)) return []
+  return value.filter(
+    (item): item is number => typeof item === 'number' && Number.isFinite(item)
+  )
 }
 
-function recommendation(value: unknown): RecommendedEvidence {
-  if (!isRecord(value)) throw new Error('recommendation is missing')
+function recommendation(value: unknown): RecommendedEvidence | null {
+  if (!isRecord(value)) return null
   if (
     typeof value.title !== 'string' ||
-    typeof value.improves_questions !== 'number'
+    typeof value.improves_questions !== 'number' ||
+    !Number.isFinite(value.improves_questions)
   ) {
-    throw new Error('recommendation is incomplete')
+    return null
   }
   return {
     title: value.title,
     improves_questions: value.improves_questions,
-    evidence_ids: idList(value.evidence_ids, 'evidence ids'),
-    control_ids: idList(value.control_ids, 'control ids'),
-    question_ids: idList(value.question_ids, 'question ids'),
+    evidence_ids: idList(value.evidence_ids),
+    control_ids: idList(value.control_ids),
+    question_ids: idList(value.question_ids),
   }
 }
 
@@ -144,9 +144,11 @@ export function parseCoverageResponse(body: unknown): CoverageResponse {
     blind_spots: body.blind_spots as unknown[],
     weak_areas: body.weak_areas as unknown[],
     evidence_strength: body.evidence_strength as unknown[],
-    recommended_evidence: (body.recommended_evidence as unknown[]).map(
-      recommendation
-    ),
+    recommended_evidence: Array.isArray(body.recommended_evidence)
+      ? body.recommended_evidence
+          .map(recommendation)
+          .filter((item): item is RecommendedEvidence => item !== null)
+      : [],
     trends: body.trends as unknown[],
     drill_down: body.drill_down as unknown[],
     control_coverage: {
