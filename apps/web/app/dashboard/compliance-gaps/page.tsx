@@ -4,6 +4,12 @@ import { useCallback, useEffect, useState } from 'react'
 import { Card, ErrorState, LoadingState } from '@/components/ui'
 import { ListSkeleton } from '@/components/ui/Skeleton'
 import type { ApiFailurePresentation } from '@/lib/api-error'
+import {
+  denominatorNotes,
+  parseCoverageResponse,
+  type ControlCoverage,
+  type RecommendedEvidence,
+} from '@/lib/coverageConsumer'
 import { failureOf, isAbortError, readSectionJson } from '@/lib/section-load'
 import {
   BarChart,
@@ -45,7 +51,6 @@ type EvidenceStrength = {
   avg_evidence_count: number
   total_answers: number
 }
-type RecommendedEvidence = { title: string; improves_questions: number }
 type TrendPoint = {
   date: string
   coverage_pct: number
@@ -70,6 +75,7 @@ type CoverageData = {
   recommended_evidence: RecommendedEvidence[]
   trends: TrendPoint[]
   drill_down: DrillRow[]
+  control_coverage: ControlCoverage
 }
 
 const BLUES = ['#5b7cff', '#7c93ff', '#3b5bdb', '#4263eb', '#5c7cfa', '#748ffc']
@@ -189,7 +195,7 @@ export default function ComplianceCoveragePage() {
     fetch('/api/compliance-coverage', { credentials: 'include' })
       .then((r) => readSectionJson(r))
       .then((d) => {
-        setData(d as CoverageData)
+        setData(parseCoverageResponse(d) as CoverageData)
         setLoadFailure(null)
       })
       .catch((error: unknown) => {
@@ -276,6 +282,7 @@ export default function ComplianceCoveragePage() {
     recommended_evidence,
     trends,
     drill_down,
+    control_coverage,
   } = data
 
   const isEmpty = kpi.total_questions === 0
@@ -364,6 +371,30 @@ export default function ComplianceCoveragePage() {
               </div>
             </Card>
           )}
+
+          <Card className="p-5">
+            <SectionHeader
+              title="Control denominator"
+              sub={`${control_coverage.numerator} qualified of ${control_coverage.denominator} applicable`}
+            />
+            {denominatorNotes(control_coverage).length === 0 ? (
+              <p className="text-xs text-[var(--tc-muted)]">
+                No disabled, unknown, stale, or denominator changes.
+              </p>
+            ) : (
+              <ul className="space-y-1 text-xs text-[var(--tc-text)]">
+                {denominatorNotes(control_coverage).map((item) => (
+                  <li key={item.control_id}>
+                    Control {item.control_id}: {item.state} ({item.rule}
+                    {item.denominator_changed
+                      ? ', left out of the denominator'
+                      : ''}
+                    )
+                  </li>
+                ))}
+              </ul>
+            )}
+          </Card>
 
           {/* SECTION 3 — Blind Spots */}
           {blind_spots.length > 0 && (

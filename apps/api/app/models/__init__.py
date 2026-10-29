@@ -34,9 +34,19 @@ from app.models.evidence_item import EvidenceItem, EVIDENCE_SOURCE_TYPES, EVIDEN
 from app.models.control_evidence_link import ControlEvidenceLink
 from app.models.evidence_version import EvidenceVersion
 from app.models.evidence_metadata import EvidenceMetadata
-from app.models.evidence_gap import EvidenceGap, GAP_STATUSES
+from app.models.evidence_gap import (
+    CONTROL_CHECK,
+    CONTROL_CHECK_CLOSE_REASON,
+    GAP_CLOSE_REASONS,
+    GAP_STATUSES,
+    EvidenceGap,
+)
 from app.models.question_control_log import QuestionControlLog
-from app.models.control_mapping_override import ControlMappingOverride
+from app.models.control_mapping_override import (
+    MAPPING_STATES,
+    ControlMappingHistory,
+    ControlMappingOverride,
+)
 from app.models.compliance_webhook_outbox import ComplianceWebhookOutbox
 from app.models.custom_role import CustomRole
 from app.models.notification import (
@@ -168,8 +178,13 @@ __all__ = [
     "EvidenceVersion",
     "EvidenceMetadata",
     "EvidenceGap",
+    "CONTROL_CHECK",
+    "CONTROL_CHECK_CLOSE_REASON",
+    "GAP_CLOSE_REASONS",
     "GAP_STATUSES",
     "QuestionControlLog",
+    "MAPPING_STATES",
+    "ControlMappingHistory",
     "ControlMappingOverride",
     "ComplianceWebhookOutbox",
     "CustomRole",

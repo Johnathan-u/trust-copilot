@@ -1,0 +1,37 @@
+FF..FFFFF                                                                [100%]
+=================================== FAILURES ===================================
+E   Failed: DID NOT RAISE IntegrityError
+/tmp/tc-master/apps/api/tests/release/test_evidence_gap_status_checks.py:143: Failed: DID NOT RAISE IntegrityError
+E   Failed: DID NOT RAISE IntegrityError
+/tmp/tc-master/apps/api/tests/release/test_evidence_gap_status_checks.py:162: Failed: DID NOT RAISE IntegrityError
+E   ImportError: cannot import name 'CK_EVIDENCE_GAPS_CLOSE_REASON' from 'app.models.evidence_gap' (/tmp/tc-master/apps/api/app/models/evidence_gap.py)
+/tmp/tc-master/apps/api/tests/release/test_evidence_gap_status_checks.py:240: ImportError: cannot import name 'CK_EVIDENCE_GAPS_CLOSE_REASON' from 'app.models.evidence_gap' (/tmp/tc-master/apps/api/app/models/evidence_gap.py)
+E   AssertionError: PosixPath('/tmp/tc-master/apps/api/alembic/versions/bug018b_gap_status_checks.py')
+    assert False
+     +  where False = is_file()
+     +    where is_file = PosixPath('/tmp/tc-master/apps/api/alembic/versions/bug018b_gap_status_checks.py').is_file
+/tmp/tc-master/apps/api/tests/release/test_evidence_gap_status_checks.py:37: AssertionError: PosixPath('/tmp/tc-master/apps/api/alembic/versions/bug018b_gap_status_checks.py')
+E   AssertionError: PosixPath('/tmp/tc-master/apps/api/alembic/versions/bug018b_gap_status_checks.py')
+    assert False
+     +  where False = is_file()
+     +    where is_file = PosixPath('/tmp/tc-master/apps/api/alembic/versions/bug018b_gap_status_checks.py').is_file
+/tmp/tc-master/apps/api/tests/release/test_evidence_gap_status_checks.py:37: AssertionError: PosixPath('/tmp/tc-master/apps/api/alembic/versions/bug018b_gap_status_checks.py')
+E   AssertionError: PosixPath('/tmp/tc-master/apps/api/alembic/versions/bug018b_gap_status_checks.py')
+    assert False
+     +  where False = is_file()
+     +    where is_file = PosixPath('/tmp/tc-master/apps/api/alembic/versions/bug018b_gap_status_checks.py').is_file
+/tmp/tc-master/apps/api/tests/release/test_evidence_gap_status_checks.py:37: AssertionError: PosixPath('/tmp/tc-master/apps/api/alembic/versions/bug018b_gap_status_checks.py')
+E   AssertionError: PosixPath('/tmp/tc-master/apps/api/alembic/versions/bug018b_gap_status_checks.py')
+    assert False
+     +  where False = is_file()
+     +    where is_file = PosixPath('/tmp/tc-master/apps/api/alembic/versions/bug018b_gap_status_checks.py').is_file
+/tmp/tc-master/apps/api/tests/release/test_evidence_gap_status_checks.py:37: AssertionError: PosixPath('/tmp/tc-master/apps/api/alembic/versions/bug018b_gap_status_checks.py')
+=========================== short test summary info ============================
+FAILED tests/release/test_evidence_gap_status_checks.py::test_unknown_status_is_rejected
+FAILED tests/release/test_evidence_gap_status_checks.py::test_unknown_close_reason_is_rejected
+FAILED tests/release/test_evidence_gap_status_checks.py::test_model_checks_match_the_migration
+FAILED tests/release/test_evidence_gap_status_checks.py::test_prescan_fails_on_violations_and_passes_on_clean_data
+FAILED tests/release/test_evidence_gap_status_checks.py::test_upgrade_downgrade_upgrade_round_trip
+FAILED tests/release/test_evidence_gap_status_checks.py::test_revision_is_head_or_ancestor_of_every_head
+FAILED tests/release/test_evidence_gap_status_checks.py::test_offline_sql_adds_not_valid_then_validates
+7 failed, 2 passed in 0.42s

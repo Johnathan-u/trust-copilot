@@ -235,6 +235,7 @@ jobs:
             e2e/release/drawer-followups.spec.ts
             e2e/release/workspace-create-denied.spec.ts
             e2e/release/microcopy-states.spec.ts
+            e2e/release/screen-controls.spec.ts
           )
           specs=()
           for spec in "${candidates[@]}"; do

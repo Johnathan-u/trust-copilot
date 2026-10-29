@@ -22,6 +22,7 @@ import logging  # noqa: E402
 import tempfile  # noqa: E402
 import threading  # noqa: E402
 import time  # noqa: E402
+from collections.abc import Callable  # noqa: E402
 from concurrent.futures import ThreadPoolExecutor, as_completed  # noqa: E402, F401
 from datetime import datetime, timedelta, timezone  # noqa: E402
 from pathlib import Path  # noqa: E402
@@ -37,6 +38,7 @@ from app.models import Document, Job, JobStatus, Question, Questionnaire  # noqa
 from app.core.audit import persist_audit  # noqa: E402
 from app.core.job_errors import (  # noqa: E402
     AUTH_FAILED,
+    LEASE_EXPIRED,
     MAX_ATTEMPTS_CEILING,
     RetryableJobError,
     TerminalJobError,
@@ -50,6 +52,23 @@ from app.core.job_errors import (  # noqa: E402
     retry_max_seconds,
     safe_error_message,
 )
+from app.core.job_lease import (  # noqa: E402
+    LEASE_EXPIRED_MESSAGE,
+    JobLeaseHeartbeat,
+    LeaseLost,
+    claim_lease_expiry,
+    confirm_lease_for_commit,
+    install_commit_fence,
+    lease_heartbeat_seconds,
+    lease_seconds,
+    lock_expired_lease,
+    lock_null_lease_past_grace,
+    new_lease_owner_token,
+    null_lease_grace_seconds,
+    owns_lease,
+    renew_lease,
+    uninstall_commit_fence,
+)
 from app.services.file_service import FileService  # noqa: E402
 from app.services.storage import StorageClient  # noqa: E402
 from app.services.docx_questionnaire_parser import parse_docx_questionnaire  # noqa: E402
@@ -61,6 +80,7 @@ from app.services.in_app_notification_service import notify_admins, notify_works
 from app.services.automation_service import maybe_auto_generate, evaluate_generation_result  # noqa: E402
 from app.services.compliance_event_service import evaluate_and_fire_compliance_events  # noqa: E402
 from app.services.job_effects import (  # noqa: E402
+    EnqueueConflictError,
     JobEffects,
     enqueue_job,
     job_idempotency_key,
@@ -135,8 +155,22 @@ def _adapt_thread_count(had_work: bool) -> int:
         return _active_threads
 
 
+_clock: Callable[[], datetime] | None = None
+
+
+def set_clock(clock: Callable[[], datetime] | None) -> None:
+    """Test hook. Naive UTC clock for claim, lease, backoff and recovery. None is wall time."""
+    global _clock
+    _clock = clock
+
+
 def _utcnow_naive() -> datetime:
     """Naive UTC, matching the naive ``DateTime`` job columns."""
+    if _clock is not None:
+        current = _clock()
+        if current.tzinfo is not None:
+            current = current.astimezone(timezone.utc).replace(tzinfo=None)
+        return current
     return datetime.now(timezone.utc).replace(tzinfo=None)
 
 
@@ -186,6 +220,12 @@ def claim_job(session) -> Job | None:
     job.next_attempt_at = (
         None  # the scheduled retry is now running (error/error_code keep the last failure)
     )
+    # TC-10-001: one owner token per claim. The row lock above is what makes the claim exclusive;
+    # the token is what later heartbeats and commits check. Expiry is the database clock.
+    owner = new_lease_owner_token()
+    job.lease_owner = owner
+    session.flush()
+    claim_lease_expiry(session, job.id, owner, lease_seconds())
     session.commit()
     session.refresh(job)
     # TC-10-003: provider calls of earlier attempts that never settled may have been charged.
@@ -202,6 +242,28 @@ def claim_job(session) -> Job | None:
 def _set_outcome(job: Job, outcome: str, **extra) -> None:
     """Record a no-op outcome (already applied / superseded) in the job result (TC-10-003)."""
     job.result = json.dumps({"outcome": outcome, **extra})
+
+
+def _record_auto_generate_enqueue_conflict(job: Job) -> None:
+    """Note a lost auto-generate enqueue on the parse job. The session was just rolled back.
+
+    The parse outcome already stored on ``job.result`` is kept. ``auto_generate`` is how the
+    conflict is recorded on that outcome. No generate row is written here.
+    """
+    logging.getLogger(__name__).warning(
+        "auto-generate enqueue conflict job_id=%s workspace_id=%s; "
+        "parse completion kept, no generate job committed",
+        job.id,
+        job.workspace_id,
+    )
+    try:
+        data = json.loads(job.result) if job.result else {}
+    except (TypeError, ValueError):
+        data = {"previous_result": job.result}
+    if not isinstance(data, dict):
+        data = {"previous_result": data}
+    data["auto_generate"] = "enqueue_conflict"
+    job.result = json.dumps(data)
 
 
 def _job_outcome(job: Job) -> str | None:
@@ -746,6 +808,28 @@ def _queued_duplicate_id(session, job: Job) -> int | None:
     return row[0] if row else None
 
 
+def _still_running_for_owner(session, job: Job) -> bool:
+    """Lock the row. True only when it is still ``running`` for this owner.
+
+    A cancel, or another worker, that already committed a different status or owner makes this
+    false. The caller then skips the terminal write. ``lease_owner`` NULL matches NULL.
+    """
+    owner = _lease_owner(job)
+    with session.no_autoflush:
+        row = session.execute(
+            text("SELECT status, lease_owner FROM jobs WHERE id = :id FOR UPDATE"),
+            {"id": job.id},
+        ).fetchone()
+    if row is None:
+        return False
+    status, lease_owner = row[0], row[1]
+    # Fail closed. Only the string "running" for this owner may take the write.
+    # None, a non-string, or any other status skips it.
+    if status != JobStatus.RUNNING.value:
+        return False
+    return lease_owner == owner
+
+
 def _try_schedule_retry(
     session, job: Job, code: str, message: str, next_at: datetime
 ) -> int | None:
@@ -761,6 +845,8 @@ def _try_schedule_retry(
             job.error = message
             job.next_attempt_at = next_at
             job.completed_at = None
+            job.lease_owner = None
+            job.lease_expires_at = None
             session.flush()
     except IntegrityError:
         # Lost a race with a new enqueue of the same input (uq_jobs_queued_idempotency_key).
@@ -782,18 +868,34 @@ def _clear_stale_attempt_error(
         job.error = None
 
 
-def _job_already_completed(session, job: Job) -> bool:
-    """True when the database already records ``job`` as completed (checked after a rollback)."""
+def _job_already_completed(session, job: Job, *, reraise: bool = False) -> bool:
+    """True when the database already records ``job`` as completed.
+
+    The normal failure path rolls back and returns False when the status query fails, so a
+    worker whose transaction is already broken can still classify the failure. Recovery holds
+    ``FOR UPDATE`` (TC-10-001a). Rolling back there would drop that lock after the token swap
+    and then classify without it, so ``reraise=True`` lets the error propagate. The caller
+    rolls the open transaction back, and the job stays as it was.
+    """
     try:
         status = session.query(Job.status).filter(Job.id == job.id).scalar()
     except Exception:
+        if reraise:
+            raise
         session.rollback()
         return False
     return status == JobStatus.COMPLETED.value
 
 
 def _handle_job_failure(
-    session, job: Job, payload: dict, exc: Exception, duration_ms: float
+    session,
+    job: Job,
+    payload: dict,
+    exc: Exception,
+    duration_ms: float,
+    *,
+    rollback_first: bool = True,
+    abandoned_owner_prefix: str | None = None,
 ) -> None:
     """TC-10-002: classify the failure, then either schedule a bounded retry or fail explicitly.
 
@@ -805,8 +907,10 @@ def _handle_job_failure(
     Raw provider/storage bodies are never stored in ``job.error`` for upstream codes.
     """
     log = logging.getLogger(__name__)
-    session.rollback()
-    if _job_already_completed(session, job):
+    # Recovery holds FOR UPDATE and must not drop that lock before the status write.
+    if rollback_first:
+        session.rollback()
+    if _job_already_completed(session, job, reraise=not rollback_first):
         # The job's completion is already committed (e.g. a post-commit step raised). Never turn it into a
         # failure or retry, and keep the error_code it completed with (a completed job can carry a
         # non-fatal code, e.g. TC-02-BUG-015's evidence_gaps_failed).
@@ -815,6 +919,15 @@ def _handle_job_failure(
             job.id,
             job.kind,
             type(exc).__name__,
+        )
+        return
+    # A cancel (or a lost lease) that committed while this attempt ran must not be overwritten
+    # by a retry or a failure row.
+    if not _still_running_for_owner(session, job):
+        session.rollback()
+        log.warning(
+            "job_id=%s is no longer running for this owner; failure was not applied",
+            job.id,
         )
         return
     code = classify(exc)
@@ -863,6 +976,10 @@ def _handle_job_failure(
                 max_attempts,
                 delay,
             )
+            if abandoned_owner_prefix is not None:
+                _flush_abandoned_audit(
+                    session, job, payload, abandoned_owner_prefix, attempt, max_attempts
+                )
             _persist_job_audit(
                 session,
                 job,
@@ -902,6 +1019,8 @@ def _handle_job_failure(
     job.error_code = code
     job.error = message
     job.next_attempt_at = None
+    job.lease_owner = None
+    job.lease_expires_at = None
     job.completed_at = datetime.now(timezone.utc)
     session.merge(job)
     log_job_failure(
@@ -922,6 +1041,8 @@ def _handle_job_failure(
         code,
         message[:200],
     )
+    if abandoned_owner_prefix is not None:
+        _flush_abandoned_audit(session, job, payload, abandoned_owner_prefix, attempt, max_attempts)
     _persist_job_audit(
         session,
         job,
@@ -1005,9 +1126,159 @@ def enqueue_missing_index_jobs(session) -> None:
         print(f"Worker: enqueued {added} index_document job(s) for previously uploaded docs.")
 
 
+def _lease_owner(job) -> str | None:
+    owner = getattr(job, "lease_owner", None)
+    return owner if isinstance(owner, str) and owner else None
+
+
+def _start_job_lease_heartbeat(job_id: int, owner: str) -> JobLeaseHeartbeat:
+    """Background renewal for one claimed job. Uses its own sessions so the job transaction stays open."""
+
+    def _renew() -> bool:
+        return renew_lease(
+            job_id,
+            owner,
+            extend_seconds=lease_seconds(),
+            session_factory=SessionFactory,
+        )
+
+    heartbeat = JobLeaseHeartbeat(_renew, interval_sec=lease_heartbeat_seconds())
+    heartbeat.start()
+    return heartbeat
+
+
+def _audit_lease_lost(job_id: int, workspace_id: int | None, owner: str) -> None:
+    """Record that this owner stopped without committing. Separate session; the job session rolled back."""
+    session = SessionFactory()
+    try:
+        persist_audit(
+            session,
+            "job.lease_lost",
+            workspace_id=workspace_id,
+            resource_type="job",
+            resource_id=job_id,
+            details={"owner_prefix": owner[:8], "reason": "lease_lost"},
+        )
+    except Exception:
+        session.rollback()
+        logging.getLogger(__name__).warning(
+            "job.lease_lost audit failed job_id=%s", job_id, exc_info=True
+        )
+    finally:
+        session.close()
+
+
+def _flush_abandoned_audit(
+    session, job: Job, payload: dict, owner_prefix: str, attempt: int, max_attempts: int
+) -> None:
+    """Add ``job.abandoned`` to the open transaction. The classifying commit writes it.
+
+    ``persist_audit`` commits, so this must not call it. The classification's own audit
+    commit is what makes this row durable.
+    """
+    from app.models import AuditEvent
+
+    details = {
+        "kind": job.kind,
+        "workspace_id": job.workspace_id,
+        "error_code": LEASE_EXPIRED,
+        "attempt": attempt,
+        "max_attempts": max_attempts,
+        "previous_owner_prefix": owner_prefix,
+        "status": job.status,
+    }
+    if payload.get("document_id") is not None:
+        details["document_id"] = payload["document_id"]
+    if payload.get("questionnaire_id") is not None:
+        details["questionnaire_id"] = payload["questionnaire_id"]
+    if job.error:
+        details["error"] = str(job.error)[:1000]
+    session.add(
+        AuditEvent(
+            action="job.abandoned",
+            workspace_id=job.workspace_id,
+            resource_type="job",
+            resource_id=str(job.id),
+            details=json.dumps(details),
+        )
+    )
+    session.flush()
+
+
+def recover_abandoned_jobs(session, *, limit: int = 20) -> int:
+    """Send abandoned running jobs back through retry classification (TC-10-001, TC-10-001b).
+
+    One row is atomic. ``FOR UPDATE SKIP LOCKED``, the replacement owner token, the
+    ``job.abandoned`` audit row, and the retry-or-fail classification commit together.
+    The abandoned audit is flushed before that commit, so a claim cannot land between
+    the classification and the audit.
+
+    The next row is not atomic with this one. After the commit a worker may claim the
+    job before this loop reads it again. That claim is a normal claim of a queued job.
+    If the post-commit read no longer shows the classified status, this row is logged
+    and the loop continues. The abandoned audit is already committed. The remaining
+    rows are still recovered.
+
+    An expired lease is taken first. A NULL lease is not an expired lease. It is abandoned
+    only when ``COALESCE(updated_at, started_at)`` is at least ``JOB_NULL_LEASE_GRACE_SECONDS``
+    before database ``now()`` (TC-10-001b). A younger row, or a row with neither timestamp,
+    is left alone. The attempt was counted at claim time and is not incremented here.
+    """
+    log = logging.getLogger(__name__)
+    exc = RetryableJobError(LEASE_EXPIRED, LEASE_EXPIRED_MESSAGE)
+    count = 0
+    while count < limit:
+        locked = lock_expired_lease(session)
+        if locked is None:
+            locked = lock_null_lease_past_grace(session, null_lease_grace_seconds())
+        if locked is None:
+            session.rollback()
+            return count
+        job_id, previous_owner = locked
+        token = new_lease_owner_token()
+        claim_lease_expiry(session, job_id, token, lease_seconds())
+        session.expire_all()
+        job = session.get(Job, job_id)
+        if job is None or job.lease_owner != token:
+            # The swap is still uncommitted. Continuing would lock this same row again.
+            log.warning(
+                "abandoned job recovery skipped job_id=%s; lease token was not kept", job_id
+            )
+            session.rollback()
+            return count
+        payload = json.loads(job.payload) if job.payload else {}
+        prefix = (previous_owner or "")[:8]
+        attempt_before = int(job.attempt or 0)
+        _handle_job_failure(
+            session,
+            job,
+            payload,
+            exc,
+            0.0,
+            rollback_first=False,
+            abandoned_owner_prefix=prefix,
+        )
+        session.expire_all()
+        job = session.get(Job, job_id)
+        if (
+            job is None
+            or int(job.attempt or 0) != attempt_before
+            or job.status not in (JobStatus.QUEUED.value, JobStatus.FAILED.value)
+        ):
+            log.warning(
+                "abandoned job recovery lost job_id=%s after classify; continuing the batch",
+                job_id,
+            )
+            session.rollback()
+            continue
+        count += 1
+    return count
+
+
 def _process_one_job() -> bool:
     """Claim and process one job in a thread-safe manner. Returns True if work was done."""
     session = SessionFactory()
+    lease_heartbeat = None
     try:
         HEARTBEAT_STATE.loop_tick()
 
@@ -1049,9 +1320,15 @@ def _process_one_job() -> bool:
             finally:
                 last_compliance_webhook_run = time.time()
 
+        recovered = 0
+        try:
+            recovered = recover_abandoned_jobs(session)
+        except Exception:
+            session.rollback()
+            logging.getLogger(__name__).warning("abandoned job recovery failed", exc_info=True)
         job = claim_job(session)
         if not job:
-            return False
+            return recovered > 0
 
         job_started_at = time.monotonic()
         payload = json.loads(job.payload) if job.payload else {}
@@ -1067,12 +1344,32 @@ def _process_one_job() -> bool:
         # TC-10-002: what an earlier failed attempt left on the job (cleared on success below).
         prior_error = getattr(job, "error", None)
         prior_error_code = getattr(job, "error_code", None)
+        # TC-10-001: captured before a rollback expires the ORM object.
+        owner = _lease_owner(job)
+        leased_job_id = job.id
+        leased_workspace_id = job.workspace_id
         try:
+            if owner:
+                lease_heartbeat = _start_job_lease_heartbeat(leased_job_id, owner)
+                install_commit_fence(session, leased_job_id, owner)
             run_job(job, session)
+            # TC-10-001: lock and confirm the lease BEFORE the completion is flushed.
+            # persist_audit flushes then commits, so a fence check after that flush would see
+            # status=completed and refuse the commit that just wrote it.
+            # A cancel clears the lease, so the heartbeat loses and this confirm raises LeaseLost.
+            # The result is not written.
+            if owner:
+                if lease_heartbeat is not None and lease_heartbeat.lost:
+                    raise LeaseLost(leased_job_id)
+                confirm_lease_for_commit(session, leased_job_id, owner)
+                uninstall_commit_fence(session)
             job.status = JobStatus.COMPLETED.value
             job.completed_at = datetime.now(timezone.utc)
             _clear_stale_attempt_error(job, prior_error, prior_error_code)
             job.next_attempt_at = None
+            if owner:
+                job.lease_owner = None
+                job.lease_expires_at = None
             duration_ms = (time.monotonic() - job_started_at) * 1000
             log_job_success(
                 job.kind,
@@ -1128,20 +1425,42 @@ def _process_one_job() -> bool:
                 except Exception:
                     pass
             elif job.kind == "parse_questionnaire" and _job_outcome(job) != "superseded":
+                # TC-10-003d: commit the parse completion before auto-generate.
+                # enqueue_job rolls this session back when it raises EnqueueConflictError,
+                # which would drop completion state that was still pending. The conflict
+                # is logged and recorded on the job result; it does not fail the parse.
+                session.commit()
                 try:
                     maybe_auto_generate(session, job, payload)
+                except EnqueueConflictError:
+                    _record_auto_generate_enqueue_conflict(job)
                 except Exception:
                     pass
             session.commit()
+        except LeaseLost:
+            uninstall_commit_fence(session)
+            session.rollback()
+            # A completion that already committed (the fence opens after that) is not a lost result.
+            if not _job_already_completed(session, job):
+                _audit_lease_lost(leased_job_id, leased_workspace_id, owner or "")
         except Exception as e:
-            _handle_job_failure(
-                session, job, payload, e, (time.monotonic() - job_started_at) * 1000
-            )
+            uninstall_commit_fence(session)
+            lost = bool(owner) and not owns_lease(SessionFactory, leased_job_id, owner)
+            if lost and not _job_already_completed(session, job):
+                session.rollback()
+                _audit_lease_lost(leased_job_id, leased_workspace_id, owner or "")
+            else:
+                _handle_job_failure(
+                    session, job, payload, e, (time.monotonic() - job_started_at) * 1000
+                )
         return True
     except Exception as e:
         print(f"Worker thread error: {e}")
         return False
     finally:
+        uninstall_commit_fence(session)
+        if lease_heartbeat is not None:
+            lease_heartbeat.stop()
         HEARTBEAT_STATE.job_finished()
         session.close()
 
@@ -1157,6 +1476,9 @@ def main():
 
     for _problem in enforce_startup_contract("worker"):
         print(f"config warning: {_problem}", flush=True)
+    from app.core.database import warn_if_database_time_zone_is_not_utc
+
+    warn_if_database_time_zone_is_not_utc()
     print(
         f"Trust Copilot worker started (threads: {WORKER_MIN_THREADS}-{WORKER_MAX_THREADS}, initial: {WORKER_INITIAL_THREADS})"
     )

@@ -642,7 +642,13 @@ def _settle_accept_claim(
         db.rollback()
         from app.core.idempotency import set as complete_claim
 
-        complete_claim(db, key, 200, payload, owner=owner)
+        try:
+            complete_claim(db, key, 200, payload, owner=owner)
+        except Exception:
+            logger.exception(
+                "accept-suggested second idempotency store failed after commit; "
+                "the original error is unchanged"
+            )
 
 
 def _claim_or_replay(db: Session, key: str | None) -> tuple[JSONResponse | None, str | None]:

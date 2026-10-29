@@ -55,6 +55,7 @@ from app.api.routes import compliance_evidence as compliance_evidence_router  # 
 from app.api.routes import compliance_frameworks as compliance_frameworks_router  # noqa: E402
 from app.api.routes import compliance_mappings as compliance_mappings_router  # noqa: E402
 from app.api.routes import compliance_gaps as compliance_gaps_router  # noqa: E402
+from app.api.routes import evidence_gaps as evidence_gaps_router  # noqa: E402
 from app.api.routes import compliance_coverage as compliance_coverage_router  # noqa: E402
 from app.api.routes import compliance_alerts as compliance_alerts_router  # noqa: E402
 from app.api.routes import compliance_export as compliance_export_router  # noqa: E402
@@ -203,6 +204,9 @@ async def lifespan(app: FastAPI):
     s = get_settings()
     print(f"FRONTEND_URL={s.frontend_url!r} trusted_origins={s.trusted_origins!r}", flush=True)
     _verify_db_connectivity()
+    from app.core.database import warn_if_database_time_zone_is_not_utc
+
+    warn_if_database_time_zone_is_not_utc()
     try:
         storage = StorageClient()
         storage.ensure_buckets()
@@ -375,6 +379,19 @@ app.add_exception_handler(
 app.add_exception_handler(
     IdempotencyClaimLost, enqueue_conflict_handler
 )  # TC-10-003c: lost upload claim is the same retryable 409
+
+
+def _parent_workspace_move_handler(request, exc):  # noqa: ARG001
+    from fastapi.responses import JSONResponse
+
+    from app.services.workspace_integrity import PARENT_MOVE_DETAIL
+
+    return JSONResponse(status_code=409, content={"detail": PARENT_MOVE_DETAIL})
+
+
+from app.services.workspace_integrity import ParentWorkspaceMoveBlocked  # noqa: E402
+
+app.add_exception_handler(ParentWorkspaceMoveBlocked, _parent_workspace_move_handler)
 app.add_middleware(StructuredLoggingMiddleware)
 app.add_middleware(GlobalRateLimitMiddleware)
 app.add_middleware(CSRFMiddleware)
@@ -401,6 +418,7 @@ app.include_router(compliance_evidence_router.router, prefix="/api")
 app.include_router(compliance_frameworks_router.router, prefix="/api")
 app.include_router(compliance_mappings_router.router, prefix="/api")
 app.include_router(compliance_gaps_router.router, prefix="/api")
+app.include_router(evidence_gaps_router.router, prefix="/api")
 app.include_router(compliance_coverage_router.router, prefix="/api")
 app.include_router(compliance_alerts_router.router, prefix="/api")
 app.include_router(compliance_export_router.router, prefix="/api")
@@ -495,7 +513,7 @@ def metrics():
 
 @app.get("/healthz")
 def healthz():
-    """Liveness (TC-03-003): process is up and serving. Never touches DB/S3/worker, so dependency
+    """Liveness: process is up and serving. Never touches DB/S3/worker, so dependency
     loss cannot make the orchestrator restart a healthy API process. Use /readyz for dependencies."""
     return {"status": "ok"}
 
@@ -558,7 +576,7 @@ def _check_storage() -> None:
 
 @app.get("/readyz")
 def readyz():
-    """Readiness: DB and S3 must be reachable within READINESS_TIMEOUT_SEC. 503 if not.
+    """Readiness: DB and S3 must be reachable within the configured readiness timeout. 503 if not.
 
     Response (additive to the baseline contract): ``status`` ("ready" | "not ready"),
     ``checks`` {database, storage: "ok" | "unavailable" | "timeout"}, and on failure ``errors``
@@ -592,7 +610,7 @@ def _worker_stale_after_sec() -> int:
 @app.get("/workerz")
 def workerz():
     """Worker and queue visibility. ``worker_alive`` is true when the worker heartbeat is newer than
-    WORKER_HEARTBEAT_STALE_SEC (default 120s). The worker refreshes it from a background thread,
+    the configured stale threshold (default 120s). The worker refreshes it from a background thread,
     including while a long job runs. 503 when stale/missing, or ``status: "unknown"`` when the
     heartbeat store itself is unreachable (a dependency problem, not proof the worker died).
     """

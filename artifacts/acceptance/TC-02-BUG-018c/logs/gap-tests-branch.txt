@@ -1,0 +1,17 @@
+........................................................................ [ 94%]
+....                                                                     [100%]
+=============================== warnings summary ===============================
+tests/release/test_evidence_gap_one_open_index.py: 6 warnings
+tests/release/test_evidence_gap_closure_columns.py: 30 warnings
+tests/release/test_evidence_gap_generation.py: 94 warnings
+  /tmp/api-venv/lib/python3.12/site-packages/sqlalchemy/sql/schema.py:3627: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    return util.wrap_callable(lambda ctx: fn(), fn)  # type: ignore
+
+tests/release/test_evidence_gap_one_open_index.py::test_upgrade_downgrade_upgrade_round_trip
+tests/release/test_evidence_gap_one_open_index.py::test_revision_is_head_or_ancestor_of_every_head
+tests/release/test_evidence_gap_closure_columns.py::test_migration_upgrade_downgrade_upgrade_round_trip
+  /tmp/api-venv/lib/python3.12/site-packages/alembic/config.py:604: DeprecationWarning: No path_separator found in configuration; falling back to legacy splitting on spaces, commas, and colons for prepend_sys_path.  Consider adding path_separator=os to Alembic config.
+    util.warn_deprecated(
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+76 passed, 133 warnings in 29.95s

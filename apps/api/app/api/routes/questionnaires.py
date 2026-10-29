@@ -152,7 +152,7 @@ def upload_questionnaire(
     db: Session = Depends(get_db),
     file_svc: FileService = Depends(get_file_service),
 ):
-    """Upload questionnaire file (QNR-01). Enqueues parse job (QNR-13).
+    """Upload questionnaire file. Enqueues a parse job.
 
     The questionnaire, its parse job, and the optional Idempotency-Key response commit once.
     A retryable enqueue conflict rolls that transaction back and deletes the stored object
@@ -322,7 +322,7 @@ def list_questionnaires(
     session: dict = Depends(require_can_review),
     db: Session = Depends(get_db),
 ):
-    """List questionnaires (QNR-02). Optional q filters by filename substring. Accepts with or without trailing slash."""
+    """List questionnaires. Optional q filters by filename substring. Accepts with or without trailing slash."""
     return _list_questionnaires_impl(
         workspace_id,
         session,
@@ -344,7 +344,7 @@ def get_questionnaire(
     session: dict = Depends(require_can_review),
     db: Session = Depends(get_db),
 ):
-    """Get single questionnaire (QNR-02)."""
+    """Get single questionnaire."""
     if session.get("workspace_id") != workspace_id:
         raise HTTPException(status_code=403, detail="Access denied")
     qnr = (
