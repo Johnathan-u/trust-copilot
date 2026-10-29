@@ -150,7 +150,7 @@ export default function DocumentsPage() {
         setLoading(false)
         setRefreshing(false)
       })
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- docs.length only chooses the initial loading flag; listing docs would refetch after every successful load
   }, [
     workspaceId,
     search,

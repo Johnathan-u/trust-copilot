@@ -159,7 +159,7 @@ export default function QuestionnairesPage() {
         setLoading(false)
         setRefreshing(false)
       })
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- qnrs.length only chooses the initial loading flag; listing qnrs would refetch after every successful load
   }, [
     workspaceId,
     search,

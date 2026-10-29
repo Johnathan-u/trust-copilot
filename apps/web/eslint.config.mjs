@@ -2,6 +2,9 @@
 // Rule sets: ESLint recommended, typescript-eslint recommended, React Hooks
 // (rules-of-hooks + exhaustive-deps + React Compiler checks) and the Next.js
 // core-web-vitals rules. Run with `npm run lint` (warnings fail the gate).
+// Directive comments must name the rules they suppress and carry a same-line
+// justification. Unused directive comments fail the gate.
+import eslintComments from '@eslint-community/eslint-plugin-eslint-comments'
 import js from '@eslint/js'
 import nextPlugin from '@next/eslint-plugin-next'
 import reactHooks from 'eslint-plugin-react-hooks'
@@ -25,10 +28,20 @@ export default defineConfig([
   reactHooks.configs.flat.recommended,
   nextPlugin.configs['core-web-vitals'],
   {
+    plugins: {
+      'eslint-comments': eslintComments,
+    },
+    linterOptions: {
+      reportUnusedDisableDirectives: 'error',
+    },
     languageOptions: {
       globals: { ...globals.browser },
     },
     rules: {
+      // Blanket suppressions, and any suppression without a same-line reason,
+      // fail lint. The CI lint step runs this config with --max-warnings=0.
+      'eslint-comments/no-unlimited-disable': 'error',
+      'eslint-comments/require-description': 'error',
       // Allow intentionally unused args/vars when prefixed with "_".
       '@typescript-eslint/no-unused-vars': [
         'error',
