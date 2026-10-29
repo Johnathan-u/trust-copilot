@@ -1,11 +1,19 @@
-SHA 395221f78fcd744d862a5795c76c10da25adb16c
-merge 725b9ed88d77da34e253fcd4d46d4cc06ef3468e
-merge parents: 91c55af50d215dd7033ef9d47a193d7d8915ea82 80607881320e1fa2c6416c55730eb98a56449f26
-command: python -m pytest tests/test_compliance_coverage_unit.py tests/release/test_domain_coverage_recommendations.py tests/release/test_domain_compliance_coverage.py -q
-47 passed, 94 warnings in 2.74s
-exit status: 0
-
-vitest lib/coverageConsumer.test.ts: 5 passed
+SHA 6ce4170442c8193569d8355770a5e3f22c823ac4
+PR #99
+command: npx vitest run lib/coverageConsumer.test.ts
+6 passed
 exit status: 0
 
 npm run typecheck (apps/web): exit status 0
+
+CI 4/4 green
+push 40942497588: build success, web-release-e2e success
+pull_request 40942505505: build success, web-release-e2e success
+
+This docs commit only changes docs.
+
+Earlier API run, not repeated for this web-only commit:
+SHA 395221f78fcd744d862a5795c76c10da25adb16c
+python -m pytest tests/test_compliance_coverage_unit.py tests/release/test_domain_coverage_recommendations.py tests/release/test_domain_compliance_coverage.py -q
+47 passed, 94 warnings in 2.74s
+exit status: 0
