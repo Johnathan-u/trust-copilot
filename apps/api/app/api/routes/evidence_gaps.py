@@ -223,13 +223,6 @@ def _evidence_in_workspace(db: Session, evidence_id: int, workspace_id: int) -> 
     return row
 
 
-def _strip_foreign_refs(db: Session, gap: EvidenceGap) -> None:
-    visible = _visible_evidence_ids(db, gap.workspace_id, gap.evidence_refs)
-    encoded = json.dumps(visible)
-    if gap.evidence_refs != encoded:
-        gap.evidence_refs = encoded
-
-
 def _question_cites_document(db: Session, question_id: int, document_id: int | None) -> bool:
     if document_id is None:
         return False
@@ -417,9 +410,9 @@ def ensure_open_gap(
             db.add(chosen)
             db.flush()
             status_code = 201
-        _strip_foreign_refs(db, chosen)
-        db.commit()
-        db.refresh(chosen)
+        if status_code == 201:
+            db.commit()
+            db.refresh(chosen)
         payload = gap_payload(db, chosen, workspace_id)
         payload["created"] = status_code == 201
         return JSONResponse(content=payload, status_code=status_code)
@@ -456,10 +449,12 @@ def decide_gap(
         if status not in _DECIDED:
             raise HTTPException(status_code=422, detail="status must be accepted or dismissed")
         gap = _gap_in_workspace(db, gap_id, workspace_id)
-        _strip_foreign_refs(db, gap)
-        if gap.status == "open":
-            gap.status = status
-            gap.updated_at = _now()
+        if gap.status != "open":
+            raise HTTPException(status_code=409, detail="Gap is already decided")
+        visible = _visible_evidence_ids(db, workspace_id, gap.evidence_refs)
+        gap.evidence_refs = json.dumps(visible)
+        gap.status = status
+        gap.updated_at = _now()
         db.commit()
         db.refresh(gap)
         payload = gap_payload(db, gap, workspace_id)
@@ -497,12 +492,8 @@ def resolve_gap(
         if not isinstance(evidence_id, int):
             raise HTTPException(status_code=422, detail="evidence_id is required")
         gap = _gap_in_workspace(db, gap_id, workspace_id)
-        _strip_foreign_refs(db, gap)
-        if gap.status in _DECIDED or gap.status == "resolved":
-            db.commit()
-            payload = gap_payload(db, gap, workspace_id)
-            payload["resolved"] = False
-            return payload
+        if gap.status != "open":
+            raise HTTPException(status_code=409, detail="Gap is not open")
         ev = _evidence_in_workspace(db, evidence_id, workspace_id)
         rule = evidence_backs_gap(db, gap, ev, _now())
         if rule is not None:

@@ -578,12 +578,11 @@ def test_reviewer_decision_is_not_overwritten_or_reopened(client):
     assert decided.status_code == 200, decided.text
     assert decided.json()["status"] == "accepted"
     kept = client.post(f"/api/evidence-gaps/{gap_id}/decision", json={"status": "dismissed"})
-    assert kept.status_code == 200, kept.text
-    assert kept.json()["status"] == "accepted"
+    assert kept.status_code == 409, kept.text
+    assert _row(gap_id)[0] == "accepted"
     resolved = client.post(f"/api/evidence-gaps/{gap_id}/resolve", json={"evidence_id": approved})
-    assert resolved.status_code == 200, resolved.text
-    assert resolved.json()["status"] == "accepted"
-    assert resolved.json()["resolved"] is False
+    assert resolved.status_code == 409, resolved.text
+    assert _row(gap_id)[0] == "accepted"
     before = _counts()["evidence_gaps"]
     ensured = client.post(
         "/api/evidence-gaps",
@@ -630,6 +629,62 @@ def test_foreign_evidence_id_is_omitted_from_the_response_and_the_row(client):
     finally:
         session.close()
     assert str(marker) not in (stored or "")
+
+
+def test_decided_row_is_not_rewritten_by_reads_or_retry(client):
+    actors = _actors()
+    control_id = _control(actors["workspace_id"], f"Frozen {uuid.uuid4().hex[:8]}")
+    foreign_evidence, _doc = _evidence(actors["other_workspace_id"], approval="approved")
+    marker = 88021014
+    stamp = datetime(2024, 1, 2, 3, 4, 5)
+    session = _db()
+    try:
+        session.execute(
+            text("UPDATE evidence_items SET id = :marker WHERE id = :old"),
+            {"marker": marker, "old": foreign_evidence},
+        )
+        _sync_sequence(session, "evidence_gaps")
+        gap_id = session.execute(
+            text(
+                "INSERT INTO evidence_gaps ("
+                "workspace_id, gap_type, reason, status, created_at, updated_at, "
+                "control_id, evidence_refs"
+                ") VALUES ("
+                ":ws, 'control_check', 'kept', 'accepted', :stamp, :stamp, :control, :refs"
+                ") RETURNING id"
+            ),
+            {
+                "ws": actors["workspace_id"],
+                "stamp": stamp,
+                "control": control_id,
+                "refs": json.dumps([marker]),
+            },
+        ).scalar()
+        session.commit()
+    finally:
+        session.close()
+    _login(client, REVIEWER_EMAIL, REVIEWER_PASSWORD)
+    listed = client.get("/api/evidence-gaps")
+    one = client.get(f"/api/evidence-gaps/{gap_id}")
+    assert listed.status_code == 200 and one.status_code == 200
+    assert str(marker) not in listed.text
+    assert str(marker) not in one.text
+    _login(client, ADMIN_EMAIL, ADMIN_PASSWORD)
+    retried = client.post(
+        f"/api/evidence-gaps/{gap_id}/decision", json={"status": "dismissed"}
+    )
+    assert retried.status_code == 409, retried.text
+    session = _db()
+    try:
+        stored = session.execute(
+            text("SELECT evidence_refs, updated_at, status FROM evidence_gaps WHERE id = :id"),
+            {"id": gap_id},
+        ).one()
+    finally:
+        session.close()
+    assert stored.status == "accepted"
+    assert str(marker) in (stored.evidence_refs or "")
+    assert stored.updated_at.replace(tzinfo=None) == stamp
 
 
 def test_idempotency_keys_do_not_collide_across_gaps(client):
