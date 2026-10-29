@@ -6,7 +6,40 @@ import pytest  # noqa: F401
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 
-from app.models import AuditEvent, TrustRequestNote
+from app.models import (
+    AuditEvent,
+    TrustRequest,
+    TrustRequestNote,
+    User,
+    UserSession,
+    Workspace,
+    WorkspaceMember,
+)
+
+
+@pytest.fixture(autouse=True)
+def cleanup_trust_request_rows(client, db_session):
+    """Remove every row created by these legacy request and login scenarios."""
+    models = (
+        AuditEvent,
+        TrustRequestNote,
+        TrustRequest,
+        UserSession,
+        WorkspaceMember,
+        User,
+        Workspace,
+    )
+    before = {model: {r[0] for r in db_session.query(model.id).all()} for model in models}
+    yield
+    db_session.rollback()
+    for model in models:
+        current = {r[0] for r in db_session.query(model.id).all()}
+        created = current - before[model]
+        if created:
+            db_session.query(model).filter(model.id.in_(created)).delete(synchronize_session=False)
+    db_session.commit()
+    client.cookies.clear()
+    assert {model: {r[0] for r in db_session.query(model.id).all()} for model in models} == before
 
 
 def test_create_trust_request_public(client: TestClient) -> None:
@@ -98,8 +131,8 @@ def test_patch_trust_request_status(client: TestClient) -> None:
     assert r.json()["status"] == "in_progress"
 
     r2 = client.patch(f"/api/trust-requests/{rid}", json={"status": "completed"})
-    assert r2.status_code == 200
-    assert r2.json()["status"] == "completed"
+    assert r2.status_code == 409
+    assert client.get(f"/api/trust-requests/{rid}").json()["status"] == "in_progress"
 
 
 def test_list_filter_by_status(client: TestClient) -> None:
@@ -339,78 +372,19 @@ def test_create_reply_without_email(client: TestClient) -> None:
     assert len(notes) == 1
 
 
-def test_create_reply_with_email_mocked(client: TestClient) -> None:
-    """POST /api/trust-requests/{id}/replies with send_email=True calls email service. TC-H-B2."""
+def test_create_reply_with_email_requires_explicit_approval(client: TestClient) -> None:
+    """Legacy inline-send is rejected without creating or sending an unreviewed reply."""
     create = client.post(
         "/api/trust-requests/",
         json={"requester_email": "emailreply@example.com", "message": "M", "workspace_id": 1},
     )
-    assert create.status_code == 200
     rid = create.json()["id"]
     client.post("/api/auth/login", json={"email": "demo@trust.local", "password": "j"})
-
-    with patch(
-        "app.api.routes.trust_requests.send_trust_reply_email", return_value=True
-    ) as mock_send:
-        r = client.post(
-            f"/api/trust-requests/{rid}/replies",
-            json={"body": "Reply with email.", "send_email": True},
-        )
-    assert r.status_code == 200
-    mock_send.assert_called_once()
-    kwargs = mock_send.call_args.kwargs
-    assert kwargs.get("to") == "emailreply@example.com"
-    assert "Reply with email" in (kwargs.get("body") or "")
-
-
-def test_reply_email_failure_does_not_break_db_write(
-    client: TestClient, db_session: Session
-) -> None:
-    """When send_email=True and email fails, reply is still stored and audit has email_sent false. TC-H-B2."""
-    create = client.post(
-        "/api/trust-requests/",
-        json={"requester_email": "fail@example.com", "message": "M", "workspace_id": 1},
+    r = client.post(
+        f"/api/trust-requests/{rid}/replies", json={"body": "Reply with email.", "send_email": True}
     )
-    assert create.status_code == 200
-    rid = create.json()["id"]
-    client.post("/api/auth/login", json={"email": "demo@trust.local", "password": "j"})
-
-    with patch(
-        "app.api.routes.trust_requests.send_trust_reply_email", side_effect=Exception("SMTP error")
-    ):
-        r = client.post(
-            f"/api/trust-requests/{rid}/replies",
-            json={"body": "Reply despite email fail.", "send_email": True},
-        )
-    assert r.status_code == 200
-    data = r.json()
-    assert data["body"] == "Reply despite email fail."
-
-    note = (
-        db_session.query(TrustRequestNote)
-        .filter(
-            TrustRequestNote.trust_request_id == rid,
-            TrustRequestNote.body == "Reply despite email fail.",
-        )
-        .first()
-    )
-    assert note is not None
-    import json
-
-    ev = (
-        db_session.query(AuditEvent)
-        .filter(
-            AuditEvent.action == "trust_request.reply_added",
-            AuditEvent.resource_id == str(data["id"]),
-        )
-        .order_by(AuditEvent.id.desc())
-        .first()
-    )
-    assert ev is not None
-    details = ev.details
-    if isinstance(details, str):
-        details = json.loads(details) if details else {}
-    assert details.get("email_sent") is False
+    assert r.status_code == 409
+    assert client.get(f"/api/trust-requests/{rid}/notes").json() == []
 
 
 def test_notes_audit_persisted(client: TestClient, db_session: Session) -> None:
@@ -456,7 +430,7 @@ def test_notes_audit_persisted(client: TestClient, db_session: Session) -> None:
 
 
 def test_notes_cross_workspace_forbidden(client: TestClient, db_session: Session) -> None:
-    """GET/POST notes for a request in another workspace returns 403. TC-H-B2."""
+    """GET/POST notes for a request in another workspace returns 404. TC-H-B2."""
     from app.models import Workspace
 
     ws2 = db_session.query(Workspace).filter(Workspace.id == 2).first()
@@ -473,17 +447,17 @@ def test_notes_cross_workspace_forbidden(client: TestClient, db_session: Session
     client.post("/api/auth/login", json={"email": "demo@trust.local", "password": "j"})
 
     r_get = client.get(f"/api/trust-requests/{rid}/notes")
-    assert r_get.status_code == 403
+    assert r_get.status_code == 404
     r_post = client.post(f"/api/trust-requests/{rid}/notes", json={"body": "Forbidden note"})
-    assert r_post.status_code == 403
+    assert r_post.status_code == 404
     r_reply = client.post(
         f"/api/trust-requests/{rid}/replies", json={"body": "Forbidden reply", "send_email": False}
     )
-    assert r_reply.status_code == 403
+    assert r_reply.status_code == 404
 
 
 def test_notes_empty_body_rejected(client: TestClient) -> None:
-    """POST notes/replies with empty body returns 400. TC-H-B2."""
+    """POST notes/replies with empty body returns 422. TC-H-B2."""
     create = client.post(
         "/api/trust-requests/",
         json={"requester_email": "empty@example.com", "message": "M", "workspace_id": 1},
@@ -493,6 +467,6 @@ def test_notes_empty_body_rejected(client: TestClient) -> None:
     client.post("/api/auth/login", json={"email": "demo@trust.local", "password": "j"})
 
     r1 = client.post(f"/api/trust-requests/{rid}/notes", json={"body": "   "})
-    assert r1.status_code == 400
+    assert r1.status_code == 422
     r2 = client.post(f"/api/trust-requests/{rid}/replies", json={"body": "", "send_email": False})
-    assert r2.status_code == 400
+    assert r2.status_code == 422
