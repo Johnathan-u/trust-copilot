@@ -367,9 +367,7 @@ def test_create_decision_and_resolve_permissions(client):
     )
     # control create is review; a second type still opens when none exists for that type
     assert created.status_code in (200, 201), created.text
-    resolved = client.post(
-        f"/api/evidence-gaps/{gap_id}/resolve", json={"evidence_id": approved}
-    )
+    resolved = client.post(f"/api/evidence-gaps/{gap_id}/resolve", json={"evidence_id": approved})
     assert resolved.status_code == 200, resolved.text
     assert resolved.json()["status"] == "resolved"
     _login(client, ADMIN_EMAIL, ADMIN_PASSWORD)
@@ -694,9 +692,7 @@ def test_decided_row_is_not_rewritten_by_reads_or_retry(client):
     assert str(marker) not in listed.text
     assert str(marker) not in one.text
     _login(client, ADMIN_EMAIL, ADMIN_PASSWORD)
-    retried = client.post(
-        f"/api/evidence-gaps/{gap_id}/decision", json={"status": "dismissed"}
-    )
+    retried = client.post(f"/api/evidence-gaps/{gap_id}/decision", json={"status": "dismissed"})
     assert retried.status_code == 409, retried.text
     session = _db()
     try:
@@ -716,7 +712,9 @@ def test_question_gaps_share_one_open_row_and_survive_a_conflict(client):
     session = _db()
     try:
         _sync_sequence(session, "questionnaires")
-        qnr = Questionnaire(workspace_id=actors["workspace_id"], filename="race.txt", status="parsed")
+        qnr = Questionnaire(
+            workspace_id=actors["workspace_id"], filename="race.txt", status="parsed"
+        )
         session.add(qnr)
         session.flush()
         _sync_sequence(session, "questions")
@@ -769,7 +767,9 @@ def test_concurrent_question_creates_leave_one_open_row(client):
     session = _db()
     try:
         _sync_sequence(session, "questionnaires")
-        qnr = Questionnaire(workspace_id=actors["workspace_id"], filename="conc.txt", status="parsed")
+        qnr = Questionnaire(
+            workspace_id=actors["workspace_id"], filename="conc.txt", status="parsed"
+        )
         session.add(qnr)
         session.flush()
         _sync_sequence(session, "questions")
@@ -804,8 +804,7 @@ def test_concurrent_question_creates_leave_one_open_row(client):
     try:
         count = session.execute(
             text(
-                "SELECT count(*) FROM evidence_gaps "
-                "WHERE question_id = :id AND status = 'open'"
+                "SELECT count(*) FROM evidence_gaps " "WHERE question_id = :id AND status = 'open'"
             ),
             {"id": question_id},
         ).scalar()
@@ -899,5 +898,5 @@ def test_question_gap_resolves_only_when_the_answer_cites_the_document(client):
     )
     assert resolved.status_code == 200, resolved.text
     assert resolved.json()["status"] == "resolved"
-    assert resolved.json()["close_reason"] == CONTROL_CHECK_CLOSE_REASON
+    assert resolved.json()["close_reason"] == "answer_sufficient"
     assert resolved.json()["question_id"] == question_id

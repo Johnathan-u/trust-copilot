@@ -49,6 +49,7 @@ _DECIDED = {"accepted", "dismissed"}
 _HIGH_STATES = {"failed", "unknown", "stale"}
 _HIGH_AGE_DAYS = 14
 
+
 def _strict_id(value: object) -> int | None:
     if value is None:
         return None
@@ -514,7 +515,9 @@ def ensure_open_gap(
             _settle(db, key, owner, status_code, payload)
 
 
-def _record_audit(db: Session, session: dict, action: str, gap: EvidenceGap, workspace_id: int) -> None:
+def _record_audit(
+    db: Session, session: dict, action: str, gap: EvidenceGap, workspace_id: int
+) -> None:
     db.add(
         AuditEvent(
             action=action,
@@ -597,7 +600,10 @@ def resolve_gap(
             visible.append(ev.id)
         gap.evidence_refs = json.dumps(visible)
         gap.status = "resolved"
-        gap.close_reason = CONTROL_CHECK_CLOSE_REASON
+        if gap.question_id is not None and gap.gap_type != "control_check":
+            gap.close_reason = "answer_sufficient"
+        else:
+            gap.close_reason = CONTROL_CHECK_CLOSE_REASON
         gap.closed_at = _now()
         gap.updated_at = gap.closed_at
         gap.evaluation_state = "clear"
