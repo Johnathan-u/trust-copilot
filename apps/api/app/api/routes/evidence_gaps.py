@@ -62,11 +62,22 @@ def _strict_id(value: object) -> int | None:
     return value
 
 
+def _reject_nul(value: object) -> object:
+    if isinstance(value, str) and "\x00" in value:
+        raise ValueError("must not contain a NUL byte")
+    return value
+
+
 class EnsureGapBody(BaseModel):
     gap_type: str
     control_id: int | None = None
     question_id: int | None = None
     reason: str | None = None
+
+    @field_validator("gap_type", "reason", mode="before")
+    @classmethod
+    def string_fields(cls, value: object) -> object:
+        return _reject_nul(value)
 
     @field_validator("gap_type")
     @classmethod
@@ -74,6 +85,8 @@ class EnsureGapBody(BaseModel):
         text_value = value.strip()
         if not text_value:
             raise ValueError("gap_type is required")
+        if len(text_value) > 64:
+            raise ValueError("gap_type must be at most 64 characters")
         return text_value
 
     @field_validator("control_id", "question_id", mode="before")
@@ -84,6 +97,11 @@ class EnsureGapBody(BaseModel):
 
 class DecisionBody(BaseModel):
     status: Literal["accepted", "dismissed"]
+
+    @field_validator("status", mode="before")
+    @classmethod
+    def status_text(cls, value: object) -> object:
+        return _reject_nul(value)
 
 
 class ResolveBody(BaseModel):

@@ -902,6 +902,9 @@ def test_decision_and_resolve_race_for_one_open_gap(client):
     assert audits == 1
     assert loser_keys == 0
     assert winner_keys == 1
+
+
+def test_bad_ids_are_422(client):
     actors = _actors()
     control_id = _control(actors["workspace_id"], f"Bad {uuid.uuid4().hex[:8]}")
     gap_id = _gap(actors["workspace_id"], gap_type=CONTROL_CHECK, control_id=control_id)
@@ -915,9 +918,24 @@ def test_decision_and_resolve_race_for_one_open_gap(client):
         json={"evidence_id": True},
     )
     blank = client.post("/api/evidence-gaps", json={"gap_type": "   "})
+    too_long = client.post(
+        "/api/evidence-gaps",
+        json={"gap_type": "x" * 65, "control_id": control_id},
+    )
+    nul_type = client.post(
+        "/api/evidence-gaps",
+        json={"gap_type": "bad\x00type", "control_id": control_id},
+    )
+    nul_reason = client.post(
+        "/api/evidence-gaps",
+        json={"gap_type": CONTROL_CHECK, "control_id": control_id, "reason": "bad\x00reason"},
+    )
     assert boolean_id.status_code == 422, boolean_id.text
     assert boolean_evidence.status_code == 422, boolean_evidence.text
     assert blank.status_code == 422, blank.text
+    assert too_long.status_code == 422, too_long.text
+    assert nul_type.status_code == 422, nul_type.text
+    assert nul_reason.status_code == 422, nul_reason.text
 
 
 def test_idempotency_keys_do_not_collide_across_gaps(client):
