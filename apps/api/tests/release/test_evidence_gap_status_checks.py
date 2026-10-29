@@ -4,6 +4,10 @@ Synthetic rows on the side PostgreSQL test database. No model calls, no network.
 Migration imports stay inside the tests so the file collects on a base without
 this revision. Tests that only insert values the column already accepts pass on
 that base; the rejection, pre-scan, round trip and offline SQL tests do not.
+
+Each test records ``max(id)`` and the row count for the tables it can write,
+then deletes every row with a higher id. The count must match afterwards.
+Sequences are left alone: this file does not call ``setval``.
 """
 
 from __future__ import annotations
@@ -31,6 +35,67 @@ REVISION = "bug018b_gap_status_checks"
 PARENT = "tc21005_mapping_version"
 MIGRATION = API_ROOT / "alembic" / "versions" / f"{REVISION}.py"
 _MARKER = "bug018b-synthetic"
+# Children before parents. Same autouse shape as the TC-21-005 tests (#72):
+# snapshot, yield, delete what this test added, require the counts to match.
+# Deleting ``id > max(id)`` is the watermark. No shared helper exists there.
+_WATCHED = (
+    "evidence_gaps",
+    "questions",
+    "questionnaires",
+    "jobs",
+    "audit_events",
+    "workspaces",
+)
+
+
+def _watermark() -> dict[str, tuple[int, int]]:
+    """``max(id)`` and row count for each watched table. ``max`` is 0 when empty."""
+    from app.core.database import SessionLocal
+
+    session = SessionLocal()
+    try:
+        found: dict[str, tuple[int, int]] = {}
+        for name in _WATCHED:
+            row = session.execute(text(f"SELECT COALESCE(MAX(id), 0), COUNT(*) FROM {name}")).one()
+            found[name] = (int(row[0]), int(row[1]))
+        return found
+    finally:
+        session.close()
+
+
+def _delete_above(before: dict[str, tuple[int, int]]) -> dict[str, int]:
+    """Delete rows created after the watermark. Returns the counts left behind."""
+    from app.core.database import SessionLocal
+
+    session = SessionLocal()
+    try:
+        for name in _WATCHED:
+            session.execute(
+                text(f"DELETE FROM {name} WHERE id > :max_id"),
+                {"max_id": before[name][0]},
+            )
+        session.commit()
+        counts: dict[str, int] = {}
+        for name in _WATCHED:
+            counts[name] = int(session.execute(text(f"SELECT COUNT(*) FROM {name}")).scalar() or 0)
+        return counts
+    except Exception:
+        session.rollback()
+        raise
+    finally:
+        session.close()
+
+
+@pytest.fixture(autouse=True)
+def restored_rows():
+    """Drop rows this test committed and require each watched table's count to match."""
+    before = _watermark()
+    try:
+        yield
+    finally:
+        after = _delete_above(before)
+        expected = {name: before[name][1] for name in _WATCHED}
+        assert after == expected, {"before": expected, "after": after}
 
 
 def _load_migration():
@@ -232,6 +297,20 @@ def test_non_resolved_row_may_keep_close_reason(db_session: Session):
         )
     db_session.flush()
     db_session.rollback()
+
+
+def test_committed_gap_row_is_removed_after_the_test(db_session: Session):
+    """A committed row above the watermark is deleted by teardown, not by this test."""
+    before = db_session.execute(text("SELECT COALESCE(MAX(id), 0) FROM evidence_gaps")).scalar()
+    row = EvidenceGap(
+        workspace_id=1,
+        gap_type="missing_evidence",
+        reason=_MARKER + "-leftover",
+        status="open",
+    )
+    db_session.add(row)
+    db_session.commit()
+    assert row.id > int(before)
 
 
 def test_model_checks_match_the_migration():

@@ -54,19 +54,22 @@ The reason is `SKIPPED_PRESENCE_CHECK` in the revision module.
 
 `apps/api/tests/release/test_evidence_gap_status_checks.py`. Synthetic rows, the side `*_test` database, no network. The file passes `tests/release/test_safe_collection.py`.
 
+An autouse fixture, same shape as the TC-21-005 tests, records `max(id)` and the row count for `evidence_gaps`, `questions`, `questionnaires`, `jobs`, `audit_events` and `workspaces` before each test. Teardown deletes every row with a higher id and requires the counts to match. It does not call `setval`.
+
 | Test | Checks |
 |---|---|
 | `test_unknown_status_is_rejected` | `archived` violates `ck_evidence_gaps_status`. |
 | `test_unknown_close_reason_is_rejected` | `not_a_code` violates `ck_evidence_gaps_close_reason`. |
 | `test_values_the_app_writes_are_accepted` | Each status, and NULL plus both closure codes. |
 | `test_non_resolved_row_may_keep_close_reason` | Open, accepted and dismissed rows may still hold a code. |
+| `test_committed_gap_row_is_removed_after_the_test` | A committed gap is left in place. Teardown deletes it and the watched counts match. |
 | `test_model_checks_match_the_migration` | Model SQL, names and literals match the revision. The revision does not import `app`. |
 | `test_prescan_fails_on_violations_and_passes_on_clean_data` | A seeded violation fails the upgrade with counts and example ids, and the rows are unchanged. After those rows are deleted, the pre-scan is empty and upgrade adds validated checks. |
 | `test_upgrade_downgrade_upgrade_round_trip` | Downgrade removes only the checks. Rows are unchanged across the round trip. |
 | `test_revision_is_head_or_ancestor_of_every_head` | This revision is the head, or an ancestor of every head. |
 | `test_offline_sql_adds_not_valid_then_validates` | `alembic --sql` emits NOT VALID, then VALIDATE, for both checks. Downgrade emits the two drops. Neither script writes rows. |
 
-`test_values_the_app_writes_are_accepted` and `test_non_resolved_row_may_keep_close_reason` also pass on master: those pairs already fit the unconstrained columns, and the presence check was deliberately not added. The other tests fail on master. The rejection tests insert a bad value that master stores. The migration tests fail because `bug018b_gap_status_checks.py` is not on master.
+`test_values_the_app_writes_are_accepted`, `test_non_resolved_row_may_keep_close_reason` and `test_committed_gap_row_is_removed_after_the_test` also pass on master: those inserts already fit the unconstrained columns, and the teardown fixture travels with the test file. The other tests fail on master. The rejection tests insert a bad value that master stores. The migration tests fail because `bug018b_gap_status_checks.py` is not on master.
 
 ## Out of scope
 
