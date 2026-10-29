@@ -123,14 +123,15 @@ def _seed_cross_workspace(db: Session) -> dict[str, int]:
     )
     db.add_all([ev, exp, gap])
     db.flush()
-    db.execute(
-        text("UPDATE documents SET workspace_id = :o WHERE id = :d"),
-        {"o": OTHER_WS, "d": legacy_doc.id},
-    )
-    db.execute(
-        text("UPDATE questionnaires SET workspace_id = :o WHERE id = :q"),
-        {"o": OTHER_WS, "q": legacy_qnr.id},
-    )
+    # Parent-move triggers now refuse this. The fixture represents rows that already
+    # crossed workspaces, so user triggers are off only for these two statements.
+    for table, row_id in (("documents", legacy_doc.id), ("questionnaires", legacy_qnr.id)):
+        db.execute(text(f"ALTER TABLE {table} DISABLE TRIGGER USER"))
+        db.execute(
+            text(f"UPDATE {table} SET workspace_id = :o WHERE id = :i"),
+            {"o": OTHER_WS, "i": row_id},
+        )
+        db.execute(text(f"ALTER TABLE {table} ENABLE TRIGGER USER"))
 
     vr = VendorRequest(
         workspace_id=OWN_WS, vendor_email="xws@example.invalid", questionnaire_id=other_qnr.id
@@ -557,9 +558,11 @@ def test_trigger_migration_upgrades_with_legacy_rows_present(db_session: Session
     ev = EvidenceItem(workspace_id=OWN_WS, title="xws-mig-legacy", document_id=doc.id)
     db_session.add(ev)
     db_session.flush()
+    db_session.execute(text("ALTER TABLE documents DISABLE TRIGGER USER"))
     db_session.execute(
         text("UPDATE documents SET workspace_id = :o WHERE id = :d"), {"o": OTHER_WS, "d": doc.id}
     )
+    db_session.execute(text("ALTER TABLE documents ENABLE TRIGGER USER"))
     ids = {"doc": doc.id, "ev": ev.id}
     db_session.commit()
     db_session.close()  # hold no locks while alembic swaps the triggers

@@ -773,8 +773,16 @@ def test_foreign_reference_partial_failure_excludes_other_workspace(client):
             [valid, foreign_evidence, deleted_evidence, valid_export, foreign_export, foreign_gap]
         )
         db.commit()
-        other_doc.workspace_id = other.id
-        other_q.workspace_id = other.id
+        # Parent-move triggers now refuse this. The fixture represents rows that already
+        # crossed workspaces, so user triggers are off only for these two statements.
+        for table, row in (("documents", other_doc), ("questionnaires", other_q)):
+            db.execute(text(f"ALTER TABLE {table} DISABLE TRIGGER USER"))
+            db.execute(
+                text(f"UPDATE {table} SET workspace_id = :o WHERE id = :i"),
+                {"o": other.id, "i": row.id},
+            )
+            db.execute(text(f"ALTER TABLE {table} ENABLE TRIGGER USER"))
+        db.expire_all()
         db.commit()
         for row in (foreign_evidence, deleted_evidence, foreign_export, foreign_gap):
             db.refresh(row)
