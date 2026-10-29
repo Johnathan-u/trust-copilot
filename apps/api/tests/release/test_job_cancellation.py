@@ -363,6 +363,18 @@ def test_repeat_cancel_does_not_write_a_second_audit(client: TestClient, db):
     assert len(_audits(db, job.id, "job.cancelled")) == 1
 
 
+def test_cancel_of_another_workspace_is_not_found(client: TestClient, db):
+    _admin(client)
+    job = _job(db, workspace_id=2, status=JobStatus.QUEUED.value)
+    same = client.post(f"/api/jobs/{job.id}/cancel?workspace_id={WS}")
+    other = client.post(f"/api/jobs/{job.id}/cancel?workspace_id=2")
+    assert same.status_code == 404 and same.json()["detail"] == "Job not found"
+    assert other.status_code == 404 and other.json()["detail"] == "Job not found"
+    db.expire_all()
+    assert db.get(Job, job.id).status == JobStatus.QUEUED.value
+    assert not _audits(db, job.id, "job.cancelled")
+
+
 def test_cancel_completed_job_is_a_conflict(client: TestClient, db):
     _admin(client)
     job = _job(db, status=JobStatus.COMPLETED.value, attempt=1, result='{"ok":true}')
