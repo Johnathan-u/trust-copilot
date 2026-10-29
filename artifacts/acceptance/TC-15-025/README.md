@@ -19,3 +19,20 @@ and axe JSON at 360/768/1440 when those tests run.
 AC6 awaits recommendation source identifiers (see #85 comment 6503980646).
 Decide/resolve await #83 and PM assignment. The report remains read-only. Full
 backend contract integration is not qualified by browser fixtures.
+
+## Exact local checkpoint
+
+Tested commit `592a8450faca4c569a728016bfaf9a33394d0aa1`, tree
+`26488d27b7b910fab0348f7148320f3bc705aa1b`, after a pure merge of master
+`a2458c9e2ae3c7b5f4cad7f293211afbb19e4687`.
+
+| Command (apps/web) | Exit | Result |
+| --- | --- | --- |
+| `npm run typecheck` | 0 | Type generation and TypeScript passed |
+| `npm run lint` | 0 | Zero errors/warnings |
+| `npm run test:unit` | 0 | 27 files, 175 tests passed |
+| `npm run build` | 0 | Production build succeeded |
+
+Logs are normalized for line endings and trailing whitespace only. No browser
+result is included in these local totals. Independent review and exact-head CI
+remain pending.
