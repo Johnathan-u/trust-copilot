@@ -221,12 +221,14 @@ jobs:
           rm -f ../../artifacts/acceptance/TC-14-006/axe-*.json
           rm -f ../../artifacts/acceptance/TC-14-003a/axe-*.json
           rm -f ../../artifacts/acceptance/TC-16-BUG-001/axe-*.json
+          rm -f ../../artifacts/acceptance/TC-14-006b/axe-*.json
 
           candidates=(
             e2e/release/design-tokens.spec.ts
             e2e/release/responsive-shell.spec.ts
             e2e/release/dialog-toast.spec.ts
             e2e/release/settings-access.spec.ts
+            e2e/release/drawer-followups.spec.ts
           )
           specs=()
           for spec in "${candidates[@]}"; do
@@ -252,6 +254,7 @@ jobs:
             --axe-dir ../../artifacts/acceptance/TC-14-006 \
             --axe-dir ../../artifacts/acceptance/TC-14-003a \
             --axe-dir ../../artifacts/acceptance/TC-16-BUG-001 \
+            --axe-dir ../../artifacts/acceptance/TC-14-006b \
             --require-spec e2e/release/design-tokens.spec.ts \
             --min-tests 4 \
             --require-spec e2e/release/responsive-shell.spec.ts \
@@ -259,6 +262,8 @@ jobs:
             --require-spec e2e/release/dialog-toast.spec.ts \
             --min-tests 8 \
             --require-spec e2e/release/settings-access.spec.ts \
+            --min-tests 3 \
+            --require-spec e2e/release/drawer-followups.spec.ts \
             --min-tests 3
           checker_status=$?
           set -e
@@ -309,5 +314,14 @@ jobs:
         with:
           name: settings-access-axe-json
           path: artifacts/acceptance/TC-16-BUG-001/axe-*.json
+          if-no-files-found: warn
+          retention-days: 14
+
+      - name: Upload drawer follow-up axe JSON
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: drawer-followups-axe-json
+          path: artifacts/acceptance/TC-14-006b/axe-*.json
           if-no-files-found: warn
           retention-days: 14
