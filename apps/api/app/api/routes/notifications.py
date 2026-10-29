@@ -174,13 +174,20 @@ async def update_policy(
     )
     if not p:
         raise HTTPException(status_code=404, detail="Policy not found")
-    # Validate the complete prospective pair before changing any persisted field.
-    rt, value = validate_recipient(
-        db,
-        ws,
-        req.recipient_type if req.recipient_type is not None else p.recipient_type,
-        req.recipient_value if "recipient_value" in req.model_fields_set else p.recipient_value,
+    # A stale recipient must not prevent an administrator from disabling a rule.
+    # Supplied routing fields and all enabling writes still require validation.
+    disable_only = req.enabled is False and not (
+        req.model_fields_set & {"recipient_type", "recipient_value"}
     )
+    if disable_only:
+        rt, value = p.recipient_type, p.recipient_value
+    else:
+        rt, value = validate_recipient(
+            db,
+            ws,
+            req.recipient_type if req.recipient_type is not None else p.recipient_type,
+            req.recipient_value if "recipient_value" in req.model_fields_set else p.recipient_value,
+        )
     prospective = {"recipient_type": rt, "recipient_value": value}
     if req.enabled is not None:
         prospective["enabled"] = req.enabled
