@@ -185,10 +185,12 @@ def _ids() -> dict[str, set[int]]:
         session.close()
 
 
-def _delete_created(before: dict[str, set[int]]) -> None:
+def _delete_created(before: dict[str, set[int]], skip: tuple[str, ...] = ()) -> None:
     session = _db()
     try:
         for name in _COUNTED:
+            if name in skip:
+                continue
             current = {row[0] for row in session.execute(text(f"SELECT id FROM {name}")).fetchall()}
             created = sorted(current - before[name])
             if not created:
@@ -650,6 +652,212 @@ def test_accept_suggested_failed_commit_releases_the_claim(client, restored_rows
     assert replay.json() == retried.json()
     assert _table_count("evidence_items") == evidence_before + 1
     assert _table_count("control_evidence_links") == links_before + 1
+
+
+def _call(client, method: str, path: str, body: dict | None):
+    if method == "GET":
+        return client.get(path)
+    if method == "POST":
+        return client.post(path, json=body)
+    if method == "PATCH":
+        return client.patch(path, json=body)
+    if method == "DELETE":
+        return client.delete(path)
+    raise AssertionError(method)
+
+
+def test_changed_routes_deny_at_each_permission_level(client):
+    actors = _actors()
+    _login(client, ADMIN_EMAIL, ADMIN_PASSWORD)
+    created = _control(client, f"Deny {uuid.uuid4().hex[:8]}")
+    session = _db()
+    try:
+        approved = _evidence(session, actors["workspace_id"], approval="approved", document_id=None)
+        session.add(
+            ControlEvidenceLink(control_id=created["id"], evidence_id=approved, verified=False)
+        )
+        fresh = _evidence(session, actors["workspace_id"], approval="approved", document_id=None)
+        session.commit()
+        link_id = session.execute(
+            text(
+                "SELECT id FROM control_evidence_links WHERE control_id = :c AND evidence_id = :e"
+            ),
+            {"c": created["id"], "e": approved},
+        ).scalar()
+    finally:
+        session.close()
+    chunk_id = _chunk(actors["workspace_id"])
+    control = created["id"]
+    routes = [
+        (
+            "PATCH",
+            f"/api/compliance/controls/{control}",
+            {"status": "in_progress"},
+            {"admin": 200},
+        ),
+        (
+            "POST",
+            f"/api/compliance/controls/{control}/verify",
+            None,
+            {"reviewer": 200, "editor": 200, "admin": 200},
+        ),
+        (
+            "POST",
+            f"/api/compliance/controls/{control}/evidence/accept-suggested",
+            {"chunk_id": chunk_id, "confidence": 0.4},
+            {"admin": 200},
+        ),
+        (
+            "PATCH",
+            f"/api/compliance/controls/{control}/evidence/{link_id}",
+            {"verified": True},
+            {"reviewer": 200, "editor": 200, "admin": 200},
+        ),
+        (
+            "POST",
+            f"/api/compliance/controls/{control}/evidence",
+            {"evidence_id": fresh},
+            {"admin": 201},
+        ),
+    ]
+    client.cookies.clear()
+    for method, path, body, _allowed in routes:
+        response = _call(client, method, path, body)
+        assert response.status_code == 401, (method, path, response.text)
+    for role, email, password in (
+        ("reviewer", REVIEWER_EMAIL, REVIEWER_PASSWORD),
+        ("editor", EDITOR_EMAIL, EDITOR_PASSWORD),
+        ("admin", ADMIN_EMAIL, ADMIN_PASSWORD),
+    ):
+        _login(client, email, password)
+        for method, path, body, allowed in routes:
+            response = _call(client, method, path, body)
+            expected = allowed.get(role, 403)
+            assert response.status_code == expected, (role, method, path, response.text)
+            if expected == 403:
+                assert response.json()["detail"] == "Insufficient permissions"
+
+
+def test_missing_and_foreign_ids_share_the_404_body(client):
+    actors = _actors()
+    _login(client, ADMIN_EMAIL, ADMIN_PASSWORD)
+    created = _control(client, f"Same {uuid.uuid4().hex[:8]}")
+    _login(client, OTHER_EMAIL, OTHER_PASSWORD)
+    foreign_control = _control(client, f"Other {uuid.uuid4().hex[:8]}")
+    session = _db()
+    try:
+        foreign_evidence = _evidence(
+            session, actors["other_workspace_id"], approval="approved", document_id=None
+        )
+        session.add(
+            ControlEvidenceLink(
+                control_id=foreign_control["id"], evidence_id=foreign_evidence, verified=False
+            )
+        )
+        own_evidence = _evidence(
+            session, actors["workspace_id"], approval="approved", document_id=None
+        )
+        session.commit()
+        foreign_link = session.execute(
+            text("SELECT id FROM control_evidence_links WHERE control_id = :c"),
+            {"c": foreign_control["id"]},
+        ).scalar()
+    finally:
+        session.close()
+    _login(client, ADMIN_EMAIL, ADMIN_PASSWORD)
+    missing_control = 999999991
+    missing_evidence = 999999992
+    missing_link = 999999993
+
+    def same(method: str, missing_path: str, foreign_path: str, body: dict | None, detail: str):
+        missing = _call(client, method, missing_path, body)
+        foreign = _call(client, method, foreign_path, body)
+        assert missing.status_code == 404, missing.text
+        assert foreign.status_code == 404, foreign.text
+        assert missing.json() == foreign.json()
+        assert missing.json() == {"detail": detail}
+
+    control_calls = [
+        ("GET", "/api/compliance/controls/{id}", None),
+        ("PATCH", "/api/compliance/controls/{id}", {"status": "in_progress"}),
+        ("POST", "/api/compliance/controls/{id}/verify", None),
+        (
+            "POST",
+            "/api/compliance/controls/{id}/evidence/accept-suggested",
+            {"chunk_id": 1},
+        ),
+        ("GET", "/api/compliance/controls/{id}/evidence", None),
+        ("POST", "/api/compliance/controls/{id}/evidence", {"evidence_id": own_evidence}),
+        (
+            "PATCH",
+            "/api/compliance/controls/{id}/evidence/1",
+            {"verified": False},
+        ),
+        ("DELETE", "/api/compliance/controls/{id}/evidence/1", None),
+    ]
+    for method, path, body in control_calls:
+        same(
+            method,
+            path.format(id=missing_control),
+            path.format(id=foreign_control["id"]),
+            body,
+            "Control not found",
+        )
+    missing_evidence_response = client.post(
+        f"/api/compliance/controls/{created['id']}/evidence",
+        json={"evidence_id": missing_evidence},
+    )
+    foreign_evidence_response = client.post(
+        f"/api/compliance/controls/{created['id']}/evidence",
+        json={"evidence_id": foreign_evidence},
+    )
+    assert missing_evidence_response.status_code == 404
+    assert missing_evidence_response.json() == foreign_evidence_response.json()
+    assert missing_evidence_response.json() == {"detail": "Evidence not found"}
+    for method, body in (
+        ("PATCH", {"verified": False}),
+        ("DELETE", None),
+    ):
+        same(
+            method,
+            f"/api/compliance/controls/{created['id']}/evidence/{missing_link}",
+            f"/api/compliance/controls/{created['id']}/evidence/{foreign_link}",
+            body,
+            "Link not found",
+        )
+
+
+def test_link_commit_failure_inserts_nothing(client):
+    actors = _actors()
+    _login(client, ADMIN_EMAIL, ADMIN_PASSWORD)
+    created = _control(client, f"Partial {uuid.uuid4().hex[:8]}")
+    session = _db()
+    try:
+        evidence_id = _evidence(
+            session, actors["workspace_id"], approval="approved", document_id=None
+        )
+        session.commit()
+    finally:
+        session.close()
+    before_links = _table_count("control_evidence_links")
+    before_evidence = _table_count("evidence_items")
+
+    def fail_commit(self, *args, **kwargs):
+        raise RuntimeError("forced commit failure")
+
+    quiet = TestClient(
+        app, base_url=TEST_ORIGIN, headers=TEST_HEADERS, raise_server_exceptions=False
+    )
+    _login(quiet, ADMIN_EMAIL, ADMIN_PASSWORD)
+    with pytest.MonkeyPatch.context() as patcher:
+        patcher.setattr(Session, "commit", fail_commit)
+        failed = quiet.post(
+            f"/api/compliance/controls/{created['id']}/evidence",
+            json={"evidence_id": evidence_id},
+        )
+    assert failed.status_code == 500, failed.text
+    assert _table_count("control_evidence_links") == before_links
+    assert _table_count("evidence_items") == before_evidence
 
 
 def test_migration_dedupes_links_and_downgrade_restores_them():
