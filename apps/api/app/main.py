@@ -558,7 +558,7 @@ def _check_storage() -> None:
 
 @app.get("/readyz")
 def readyz():
-    """Readiness: DB and S3 must be reachable within READINESS_TIMEOUT_SEC. 503 if not.
+    """Readiness: DB and S3 must be reachable within the configured readiness timeout. 503 if not.
 
     Response (additive to the baseline contract): ``status`` ("ready" | "not ready"),
     ``checks`` {database, storage: "ok" | "unavailable" | "timeout"}, and on failure ``errors``
@@ -592,7 +592,7 @@ def _worker_stale_after_sec() -> int:
 @app.get("/workerz")
 def workerz():
     """Worker and queue visibility. ``worker_alive`` is true when the worker heartbeat is newer than
-    WORKER_HEARTBEAT_STALE_SEC (default 120s). The worker refreshes it from a background thread,
+    the configured stale threshold (default 120s). The worker refreshes it from a background thread,
     including while a long job runs. 503 when stale/missing, or ``status: "unknown"`` when the
     heartbeat store itself is unreachable (a dependency problem, not proof the worker died).
     """
