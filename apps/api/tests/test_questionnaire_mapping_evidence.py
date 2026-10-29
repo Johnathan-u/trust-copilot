@@ -1,6 +1,7 @@
 """Batch supporting evidence for questionnaire mappings (ControlEvidenceLink only)."""
 
 import pytest
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.models import ControlEvidenceLink, Document, EvidenceItem, WorkspaceControl
@@ -148,17 +149,20 @@ def test_duplicate_links_same_evidence_deduped(db_session: Session, temp_workspa
     db_session.add(ev)
     db_session.commit()
     db_session.refresh(ev)
-    db_session.add_all(
-        [
-            ControlEvidenceLink(
-                control_id=temp_workspace_control, evidence_id=ev.id, confidence_score=0.5
-            ),
-            ControlEvidenceLink(
-                control_id=temp_workspace_control, evidence_id=ev.id, confidence_score=0.9
-            ),
-        ]
+    db_session.add(
+        ControlEvidenceLink(
+            control_id=temp_workspace_control, evidence_id=ev.id, confidence_score=0.5
+        )
     )
     db_session.commit()
+    db_session.add(
+        ControlEvidenceLink(
+            control_id=temp_workspace_control, evidence_id=ev.id, confidence_score=0.9
+        )
+    )
+    with pytest.raises(IntegrityError):
+        db_session.commit()
+    db_session.rollback()
 
     out = batch_supporting_evidence_for_workspace_controls(db_session, 1, [temp_workspace_control])
     assert len(out[temp_workspace_control]) == 1
