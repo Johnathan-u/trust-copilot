@@ -6,6 +6,19 @@ The ticket file proposes the name `docs/acceptance/decision-control.md`. This re
 
 ## 1. Decision owners
 
+### Coordinator succession — 2026-10-30
+
+The owner authorized Codex to take over the autonomous engineering workflow,
+including assignment, implementation, independent review, CI repair and merges.
+The **Codex coordinator** now fills the Coordinator bot role below, replacing the
+dependency on an active Grok coordinator. Routine engineering decisions and
+qualified merges require no additional owner approval. Implementing workers do
+not self-merge; coordinator-authored changes require an independent reviewer.
+Issue #85 records adoption and remains the live ledger. The run protocol is
+`docs/release/CODEX_AUTONOMY.md`. Earlier handoff/session-only restrictions are
+superseded by this authorization. Owner-only domains and release evidence gates
+remain as listed below; they do not prevent unrelated engineering progress.
+
 There are two accountable decision owners. Every decision in the release belongs to exactly one of them.
 
 | Domain | Decision owner (role) | Person | Decides | Does not decide |
