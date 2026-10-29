@@ -4,7 +4,10 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useParams } from 'next/navigation'
 import Link from 'next/link'
 import { Button, Card, Skeleton } from '@/components/ui'
+import { ErrorState, LoadingState } from '@/components/ui'
 import { useAuth } from '@/contexts/AuthContext'
+import type { ApiFailurePresentation } from '@/lib/api-error'
+import { failureOf, isAbortError, readSectionJson } from '@/lib/section-load'
 
 interface ParsedQuestion {
   id: number
@@ -68,6 +71,9 @@ export default function QuestionnaireDetailPage() {
   const canEdit = permissions.can_edit
   const [qnr, setQnr] = useState<QnrDetail | null>(null)
   const [loading, setLoading] = useState(true)
+  const [loadFailure, setLoadFailure] = useState<ApiFailurePresentation | null>(
+    null
+  )
   const [workspaceDocs, setWorkspaceDocs] = useState<DocRow[]>([])
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set())
   const [savingEvidence, setSavingEvidence] = useState(false)
@@ -80,16 +86,19 @@ export default function QuestionnaireDetailPage() {
     fetch(`/api/questionnaires/${id}?workspace_id=${workspaceId}`, {
       credentials: 'include',
     })
-      .then((r) => {
-        if (!r.ok) throw new Error('Not found')
-        return r.json()
-      })
-      .then((data: QnrDetail) => {
-        setQnr(data)
-        const ids = data.answer_evidence_document_ids ?? []
+      .then((r) => readSectionJson(r))
+      .then((data) => {
+        const detail = data as QnrDetail
+        setQnr(detail)
+        setLoadFailure(null)
+        const ids = detail.answer_evidence_document_ids ?? []
         setSelectedIds(new Set(ids))
       })
-      .catch(() => setQnr(null))
+      .catch((error: unknown) => {
+        if (isAbortError(error)) return
+        setQnr(null)
+        setLoadFailure(failureOf(error))
+      })
       .finally(() => setLoading(false))
   }, [id, workspaceId])
 
@@ -114,11 +123,30 @@ export default function QuestionnaireDetailPage() {
     fetch(`/api/documents?workspace_id=${workspaceId}`, {
       credentials: 'include',
     })
-      .then((r) => (r.ok ? r.json() : []))
-      .then((rows: DocRow[]) =>
-        setWorkspaceDocs(Array.isArray(rows) ? rows : [])
-      )
-      .catch(() => setWorkspaceDocs([]))
+      .then((r) => readSectionJson(r))
+      .then((rows) => {
+        if (Array.isArray(rows)) setWorkspaceDocs(rows as DocRow[])
+        else if (
+          rows &&
+          typeof rows === 'object' &&
+          Array.isArray((rows as { documents?: unknown }).documents)
+        ) {
+          setWorkspaceDocs((rows as { documents: DocRow[] }).documents)
+        } else if (
+          rows &&
+          typeof rows === 'object' &&
+          Array.isArray((rows as { items?: unknown }).items)
+        ) {
+          setWorkspaceDocs((rows as { items: DocRow[] }).items)
+        } else {
+          throw new Error('malformed')
+        }
+      })
+      .catch((error: unknown) => {
+        if (isAbortError(error)) return
+        setWorkspaceDocs([])
+        setLoadFailure((current) => current ?? failureOf(error))
+      })
   }, [workspaceId])
 
   const selectableDocs = useMemo(() => {
@@ -196,37 +224,41 @@ export default function QuestionnaireDetailPage() {
 
   if (loading)
     return (
-      <div className="p-7 space-y-6">
-        <Skeleton width={200} height={16} />
-        <Skeleton width="80%" height={32} />
-        <Card className="space-y-3">
-          <Skeleton width="40%" height={20} />
-          <Skeleton width="30%" height={20} />
-        </Card>
-        <Card padding="none">
-          <div className="p-4 border-b border-[var(--tc-border)]">
-            <Skeleton width={180} height={18} />
-          </div>
-          <div className="p-4 space-y-3">
-            {[1, 2, 3, 4, 5].map((i) => (
-              <div key={i} className="flex gap-4">
-                <Skeleton width={32} height={18} />
-                <Skeleton width="70%" height={18} />
-                <Skeleton width={100} height={18} />
-                <Skeleton width={80} height={18} />
-              </div>
-            ))}
-          </div>
-        </Card>
-      </div>
+      <LoadingState label="Loading questionnaire" onRetry={() => loadQnr()}>
+        <div className="p-7 space-y-6">
+          <Skeleton width={200} height={16} />
+          <Skeleton width="80%" height={32} />
+          <Card className="space-y-3">
+            <Skeleton width="40%" height={20} />
+            <Skeleton width="30%" height={20} />
+          </Card>
+          <Card padding="none">
+            <div className="p-4 border-b border-[var(--tc-border)]">
+              <Skeleton width={180} height={18} />
+            </div>
+            <div className="p-4 space-y-3">
+              {[1, 2, 3, 4, 5].map((i) => (
+                <div key={i} className="flex gap-4">
+                  <Skeleton width={32} height={18} />
+                  <Skeleton width="70%" height={18} />
+                  <Skeleton width={100} height={18} />
+                  <Skeleton width={80} height={18} />
+                </div>
+              ))}
+            </div>
+          </Card>
+        </div>
+      </LoadingState>
     )
   if (!qnr)
-    return (
-      <p className="text-[var(--tc-muted)]">
-        Questionnaire not found.{' '}
+    return loadFailure ? (
+      <ErrorState failure={loadFailure} onRetry={() => loadQnr()} />
+    ) : (
+      <p className="text-tc-label text-tc-muted">
+        We could not find that.{' '}
         <Link
           href="/dashboard/questionnaires"
-          className="text-[var(--tc-soft)] underline"
+          className="text-tc-text underline"
         >
           Back
         </Link>

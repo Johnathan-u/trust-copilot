@@ -157,7 +157,8 @@
     --tc-duration-fast: 0ms;
     --tc-duration-normal: 0ms;
   }
-  .tc-toast {
+  .tc-toast,
+  .tc-skeleton {
     transition: none;
     animation: none;
   }

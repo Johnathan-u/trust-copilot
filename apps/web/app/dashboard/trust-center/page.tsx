@@ -5,6 +5,8 @@ import {
   Button,
   Card,
   EmptyState,
+  ErrorState,
+  LoadingState,
   Input,
   Modal,
   ToastNotice,
@@ -12,6 +14,13 @@ import {
 } from '@/components/ui'
 import { ListSkeleton } from '@/components/ui/Skeleton'
 import { useAuth } from '@/contexts/AuthContext'
+import type { ApiFailurePresentation } from '@/lib/api-error'
+import {
+  failureOf,
+  isAbortError,
+  listFromPayload,
+  readSectionJson,
+} from '@/lib/section-load'
 
 type TrustArticle = {
   id: number
@@ -81,6 +90,10 @@ export default function TrustCenterPage() {
   const canAdmin = permissions.can_admin
   const [articles, setArticles] = useState<TrustArticle[]>([])
   const [loading, setLoading] = useState(true)
+  const [loadFailure, setLoadFailure] = useState<ApiFailurePresentation | null>(
+    null
+  )
+  const [loadAttempt, setLoadAttempt] = useState(0)
   const [, setRefreshing] = useState(false)
   const [formOpen, setFormOpen] = useState(false)
   const [editId, setEditId] = useState<number | null>(null)
@@ -98,6 +111,9 @@ export default function TrustCenterPage() {
     setToast(message)
   }
   const [policies, setPolicies] = useState<TrustArticle[]>([])
+  const [policiesFailure, setPoliciesFailure] =
+    useState<ApiFailurePresentation | null>(null)
+  const [policiesAttempt, setPoliciesAttempt] = useState(0)
   const [acknowledged, setAcknowledged] = useState<Set<number>>(new Set())
   const load = () => {
     if (workspaceId == null) {
@@ -106,12 +122,20 @@ export default function TrustCenterPage() {
     }
     if (articles.length === 0) setLoading(true)
     setRefreshing(true)
+    setLoadFailure(null)
     fetch(`/api/trust-articles?workspace_id=${workspaceId}`, {
       credentials: 'include',
     })
-      .then((r) => (r.ok ? r.json() : []))
-      .then((data) => setArticles(Array.isArray(data) ? data : []))
-      .catch(() => setArticles([]))
+      .then((r) => readSectionJson(r))
+      .then((data) => {
+        setArticles(listFromPayload<TrustArticle>(data, ['items', 'articles']))
+        setLoadFailure(null)
+      })
+      .catch((error: unknown) => {
+        if (isAbortError(error)) return
+        setArticles([])
+        setLoadFailure(failureOf(error))
+      })
       .finally(() => {
         setLoading(false)
         setRefreshing(false)
@@ -128,22 +152,32 @@ export default function TrustCenterPage() {
     fetch(`/api/trust-articles?workspace_id=${workspaceId}&policy_only=true`, {
       credentials: 'include',
     })
-      .then((r) => (r.ok ? r.json() : []))
-      .then((data) => setPolicies(Array.isArray(data) ? data : []))
-      .catch(() => setPolicies([]))
-  }, [workspaceId])
+      .then((r) => readSectionJson(r))
+      .then((data) => {
+        setPolicies(listFromPayload<TrustArticle>(data, ['items', 'articles']))
+        setPoliciesFailure(null)
+      })
+      .catch((error: unknown) => {
+        if (isAbortError(error)) return
+        setPolicies([])
+        setPoliciesFailure(failureOf(error))
+      })
+  }, [workspaceId, policiesAttempt])
 
   useEffect(() => {
     fetch('/api/trust-articles/policy-acknowledgments', {
       credentials: 'include',
     })
-      .then((r) => (r.ok ? r.json() : { acknowledged_article_ids: [] }))
-      .then((data) =>
-        setAcknowledged(
-          new Set((data.acknowledged_article_ids as number[]) || [])
-        )
-      )
-      .catch(() => {})
+      .then((r) => readSectionJson(r))
+      .then((data) => {
+        const ids = (data as { acknowledged_article_ids?: unknown })
+          .acknowledged_article_ids
+        if (!Array.isArray(ids)) throw new Error('malformed')
+        setAcknowledged(new Set(ids as number[]))
+      })
+      .catch((error: unknown) => {
+        if (!isAbortError(error)) setPoliciesFailure(failureOf(error))
+      })
   }, [])
 
   const openAdd = () => {
@@ -321,6 +355,12 @@ export default function TrustCenterPage() {
         )}
       </div>
 
+      {policiesFailure ? (
+        <ErrorState
+          failure={policiesFailure}
+          onRetry={() => setPoliciesAttempt((value) => value + 1)}
+        />
+      ) : null}
       {policies.length > 0 && (
         <section className="mb-6">
           <h2 className="mb-2 text-sm font-semibold uppercase tracking-wider text-[var(--tc-muted)]">
@@ -401,8 +441,25 @@ export default function TrustCenterPage() {
       )}
 
       <Card>
-        {loading ? (
-          <ListSkeleton rows={4} />
+        {loadFailure ? (
+          <ErrorState
+            failure={loadFailure}
+            onRetry={() => {
+              setLoadAttempt((value) => value + 1)
+              load()
+            }}
+          />
+        ) : loading ? (
+          <LoadingState
+            label="Loading trust articles"
+            resetKey={loadAttempt}
+            onRetry={() => {
+              setLoadAttempt((value) => value + 1)
+              load()
+            }}
+          >
+            <ListSkeleton rows={4} />
+          </LoadingState>
         ) : articles.length === 0 ? (
           <EmptyState
             title="No trust articles yet"

@@ -18,11 +18,13 @@
  *     --axe-dir artifacts/acceptance/TC-14-003a \
  *     --axe-dir artifacts/acceptance/TC-16-BUG-001 \
  *     --axe-dir artifacts/acceptance/TC-14-006b \
+ *     --axe-dir artifacts/acceptance/TC-14-005 \
  *     --axe-dir artifacts/acceptance/TC-04-001a-web \
  *     --require-spec e2e/release/design-tokens.spec.ts --min-tests 4 \
  *     --require-spec e2e/release/responsive-shell.spec.ts --min-tests 8 \
  *     --require-spec e2e/release/dialog-toast.spec.ts --min-tests 8 \
  *     --require-spec e2e/release/settings-access.spec.ts --min-tests 3 \
+ *     --require-spec e2e/release/state-components.spec.ts --min-tests 9 \
  *     --require-spec e2e/release/drawer-followups.spec.ts --min-tests 3 \
  *     --require-spec e2e/release/workspace-create-denied.spec.ts --min-tests 8
  */

@@ -4,11 +4,15 @@ import { useCallback, useEffect, useState } from 'react'
 import {
   Button,
   Card,
+  ErrorState,
   Input,
+  LoadingState,
   Modal,
   useDestructiveConfirm,
 } from '@/components/ui'
 import { useAuth } from '@/contexts/AuthContext'
+import type { ApiFailurePresentation } from '@/lib/api-error'
+import { failureOf, isAbortError, readSectionJson } from '@/lib/section-load'
 
 /* ──────────────────── Types ──────────────────── */
 
@@ -201,6 +205,8 @@ export default function SlackPage() {
   const [selectedEvents, setSelectedEvents] = useState<string[]>([])
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [statusFailure, setStatusFailure] =
+    useState<ApiFailurePresentation | null>(null)
   const [testResult, setTestResult] = useState<string | null>(null)
   const [tab, setTab] = useState<'notifications' | 'ingest'>('notifications')
   const [ingestChannels, setIngestChannels] = useState<IngestChannel[]>([])
@@ -221,38 +227,63 @@ export default function SlackPage() {
       fetch('/api/notifications/event-types', { credentials: 'include' }),
     ])
       .then(([r1, r2]) =>
-        Promise.all([
-          r1.ok ? r1.json() : { connected: false },
-          r2.ok ? r2.json() : { event_types: [] },
-        ])
+        Promise.all([readSectionJson(r1), readSectionJson(r2)])
       )
       .then(([d1, d2]) => {
-        setStatus(d1)
-        setAllEvents(d2.event_types ?? [])
-        if (d1.connected) {
+        const statusBody = d1 as SlackStatus
+        setStatusFailure(null)
+        setStatus(statusBody)
+        setAllEvents(
+          ((d2 as { event_types?: string[] }).event_types ?? []) as string[]
+        )
+        if (statusBody.connected) {
           fetch('/api/slack/channels', { credentials: 'include' })
-            .then((r) => (r.ok ? r.json() : { channels: [] }))
-            .then((d) => setChannels(d.channels ?? []))
-            .catch(() => {})
+            .then((r) => readSectionJson(r))
+            .then((d) =>
+              setChannels((d as { channels?: Channel[] }).channels ?? [])
+            )
+            .catch((error: unknown) => {
+              if (!isAbortError(error)) setStatusFailure(failureOf(error))
+            })
           fetch('/api/slack/ingest/channels', { credentials: 'include' })
-            .then((r) => (r.ok ? r.json() : { channels: [] }))
-            .then((d) => setIngestChannels(d.channels ?? []))
-            .catch(() => {})
+            .then((r) => readSectionJson(r))
+            .then((d) =>
+              setIngestChannels(
+                (d as { channels?: IngestChannel[] }).channels ?? []
+              )
+            )
+            .catch((error: unknown) => {
+              if (!isAbortError(error)) setStatusFailure(failureOf(error))
+            })
           fetch('/api/slack/ingest/evidence?page_size=20', {
             credentials: 'include',
           })
-            .then((r) => (r.ok ? r.json() : { evidence: [] }))
-            .then((d) => setIngestEvidence(d.evidence ?? []))
-            .catch(() => {})
+            .then((r) => readSectionJson(r))
+            .then((d) =>
+              setIngestEvidence(
+                (d as { evidence?: IngestEvidence[] }).evidence ?? []
+              )
+            )
+            .catch((error: unknown) => {
+              if (!isAbortError(error)) setStatusFailure(failureOf(error))
+            })
           fetch('/api/slack/ingest/suggestions?status=pending', {
             credentials: 'include',
           })
-            .then((r) => (r.ok ? r.json() : { suggestions: [] }))
-            .then((d) => setIngestSuggestions(d.suggestions ?? []))
-            .catch(() => {})
+            .then((r) => readSectionJson(r))
+            .then((d) =>
+              setIngestSuggestions(
+                (d as { suggestions?: IngestSuggestion[] }).suggestions ?? []
+              )
+            )
+            .catch((error: unknown) => {
+              if (!isAbortError(error)) setStatusFailure(failureOf(error))
+            })
         }
       })
-      .catch(() => {})
+      .catch((error: unknown) => {
+        if (!isAbortError(error)) setStatusFailure(failureOf(error))
+      })
       .finally(() => setLoading(false))
   }, [])
 
@@ -589,10 +620,14 @@ export default function SlackPage() {
         </div>
       )}
 
-      {loading ? (
-        <Card className="p-6">
-          <p className="text-[var(--tc-muted)]">Loading...</p>
-        </Card>
+      {statusFailure ? (
+        <ErrorState failure={statusFailure} onRetry={() => void load()} />
+      ) : loading ? (
+        <LoadingState label="Loading Slack" onRetry={() => void load()}>
+          <Card className="p-6">
+            <p className="text-tc-label text-tc-muted">Loading Slack</p>
+          </Card>
+        </LoadingState>
       ) : !status.connected ? (
         <>
           <Card className="p-6">

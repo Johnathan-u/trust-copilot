@@ -4,11 +4,15 @@ import { useCallback, useEffect, useState } from 'react'
 import {
   Button,
   Card,
+  ErrorState,
   Input,
+  LoadingState,
   Modal,
   useDestructiveConfirm,
 } from '@/components/ui'
 import { useAuth } from '@/contexts/AuthContext'
+import type { ApiFailurePresentation } from '@/lib/api-error'
+import { failureOf, isAbortError, readSectionJson } from '@/lib/section-load'
 
 /* ──────────────────── Types ──────────────────── */
 
@@ -105,41 +109,52 @@ export default function GmailPage() {
   const [addLabelName, setAddLabelName] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [statusFailure, setStatusFailure] =
+    useState<ApiFailurePresentation | null>(null)
   const [ingestRunning, setIngestRunning] = useState<number | null>(null)
   const [ingestResult, setIngestResult] = useState<string | null>(null)
 
   const load = useCallback(() => {
     setLoading(true)
     fetch('/api/gmail/status', { credentials: 'include' })
-      .then((r) => (r.ok ? r.json() : { connected: false }))
+      .then(async (r) => (await readSectionJson(r)) as GmailStatus)
       .then((d) => {
+        setStatusFailure(null)
         setStatus(d)
         if (d.connected) {
           Promise.all([
             fetch('/api/gmail/labels', { credentials: 'include' }).then((r) =>
-              r.ok ? r.json() : { labels: [] }
+              readSectionJson(r)
             ),
             fetch('/api/gmail/ingest/labels', { credentials: 'include' }).then(
-              (r) => (r.ok ? r.json() : { labels: [] })
+              (r) => readSectionJson(r)
             ),
             fetch('/api/gmail/ingest/evidence?page_size=20', {
               credentials: 'include',
-            }).then((r) => (r.ok ? r.json() : { evidence: [], total: 0 })),
+            }).then((r) => readSectionJson(r)),
             fetch('/api/gmail/ingest/suggestions?status=pending', {
               credentials: 'include',
-            }).then((r) => (r.ok ? r.json() : { suggestions: [] })),
+            }).then((r) => readSectionJson(r)),
           ])
             .then(([d1, d2, d3, d4]) => {
-              setLabels(d1.labels ?? [])
-              setIngestLabels(d2.labels ?? [])
-              setEvidence(d3.evidence ?? [])
-              setEvidenceTotal(d3.total ?? 0)
-              setSuggestions(d4.suggestions ?? [])
+              const labels = d1 as { labels?: Label[] }
+              const ingest = d2 as { labels?: IngestLabel[] }
+              const evidence = d3 as { evidence?: Evidence[]; total?: number }
+              const suggestions = d4 as { suggestions?: Suggestion[] }
+              setLabels(labels.labels ?? [])
+              setIngestLabels(ingest.labels ?? [])
+              setEvidence(evidence.evidence ?? [])
+              setEvidenceTotal(evidence.total ?? 0)
+              setSuggestions(suggestions.suggestions ?? [])
             })
-            .catch(() => {})
+            .catch((error: unknown) => {
+              if (!isAbortError(error)) setStatusFailure(failureOf(error))
+            })
         }
       })
-      .catch(() => {})
+      .catch((error: unknown) => {
+        if (!isAbortError(error)) setStatusFailure(failureOf(error))
+      })
       .finally(() => setLoading(false))
   }, [])
 
@@ -333,10 +348,14 @@ export default function GmailPage() {
         </div>
       )}
 
-      {loading ? (
-        <Card className="p-6">
-          <p className="text-[var(--tc-muted)]">Loading...</p>
-        </Card>
+      {statusFailure ? (
+        <ErrorState failure={statusFailure} onRetry={() => void load()} />
+      ) : loading ? (
+        <LoadingState label="Loading Gmail" onRetry={() => void load()}>
+          <Card className="p-6">
+            <p className="text-tc-label text-tc-muted">Loading Gmail</p>
+          </Card>
+        </LoadingState>
       ) : !status.connected ? (
         /* ════════════════════ DISCONNECTED STATE ════════════════════ */
         <>

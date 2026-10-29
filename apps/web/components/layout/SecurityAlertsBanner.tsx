@@ -1,14 +1,10 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import Link from 'next/link'
-
-type Alert = {
-  id: number
-  action: string
-  occurred_at: string | null
-  details: string | null
-}
+import { usePathname } from 'next/navigation'
+import { ErrorState, LoadingState } from '@/components/ui'
+import { useShellAlerts, type ShellAlert } from './ShellAlerts'
 
 const ACTION_LABELS: Record<string, string> = {
   'auth.mfa_verify_failed': 'Failed two-factor sign-in attempt',
@@ -17,41 +13,54 @@ const ACTION_LABELS: Record<string, string> = {
   'auth.login_failed': 'Failed sign-in attempt',
 }
 
+export function securityNoticeLabel(alert: ShellAlert): string {
+  return ACTION_LABELS[alert.action] || 'Security notice'
+}
+
 export function SecurityAlertsBanner() {
-  const [alerts, setAlerts] = useState<Alert[]>([])
+  const pathname = usePathname()
+  const alerts = useShellAlerts()
   const [dismissed, setDismissed] = useState(false)
-  const [loading, setLoading] = useState(true)
+  if (pathname === '/dashboard') return null
 
-  useEffect(() => {
-    fetch('/api/auth/alerts', { credentials: 'include' })
-      .then((r) => (r.ok ? r.json() : { alerts: [] }))
-      .then((d) => setAlerts(d.alerts || []))
-      .catch(() => setAlerts([]))
-      .finally(() => setLoading(false))
-  }, [])
+  if (alerts.phase === 'loading') {
+    return (
+      <LoadingState
+        hideUntilSlow
+        label="Loading security notices"
+        onRetry={alerts.reload}
+        resetKey={alerts.loadId}
+      />
+    )
+  }
 
-  if (loading || dismissed || alerts.length === 0) return null
+  if (alerts.phase === 'error' && alerts.failure) {
+    return (
+      <div className="border-b border-tc-border px-tc-4 py-tc-3">
+        <ErrorState failure={alerts.failure} onRetry={alerts.reload} />
+      </div>
+    )
+  }
+
+  if (dismissed || alerts.phase !== 'ready' || alerts.items.length === 0) {
+    return null
+  }
 
   const label =
-    alerts.length === 1
-      ? ACTION_LABELS[alerts[0].action] || 'Suspicious activity'
-      : `${alerts.length} recent security events`
+    alerts.items.length === 1
+      ? securityNoticeLabel(alerts.items[0])
+      : `${alerts.items.length} recent security notices`
 
   return (
     <div
-      className="flex items-center justify-between gap-4 border-b border-[var(--tc-border)] bg-[var(--tc-panel)] px-4 py-2 text-sm"
-      style={{ borderLeft: '4px solid var(--tc-danger)' }}
+      className="flex items-center justify-between gap-4 border-b border-tc-border bg-tc-surface-raised px-4 py-2 text-sm"
+      data-state="ready"
     >
       <div className="flex items-center gap-2">
-        <span className="font-medium text-[var(--tc-text)]">
-          Security notice:
-        </span>
-        <span className="text-[var(--tc-muted)]">
-          {label}. If this wasn’t you,{' '}
-          <Link
-            href="/dashboard/security"
-            className="text-[var(--tc-soft)] underline"
-          >
+        <span className="font-medium text-tc-text">Security notice:</span>
+        <span className="text-tc-muted">
+          {label}. If this was not you,{' '}
+          <Link href="/dashboard/security" className="text-tc-text underline">
             review Security
           </Link>{' '}
           and consider changing your password.
@@ -60,7 +69,7 @@ export function SecurityAlertsBanner() {
       <button
         type="button"
         onClick={() => setDismissed(true)}
-        className="shrink-0 rounded px-2 py-1 text-[var(--tc-muted)] hover:bg-white/10 hover:text-[var(--tc-text)]"
+        className="min-h-tc-6 shrink-0 rounded-tc-xs px-tc-2 text-tc-label text-tc-text hover:bg-[var(--tc-hover)]"
       >
         Dismiss
       </button>

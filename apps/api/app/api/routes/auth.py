@@ -35,7 +35,12 @@ from app.core.mfa import (  # noqa: E402
 )
 from app.core.password import hash_password, verify_password  # noqa: E402
 from app.core.rate_limit import get_client_ip, is_rate_limited, record_attempt  # noqa: E402
-from app.core.session import get_session_secret, sign_session, verify_token  # noqa: E402
+from app.core.session import (  # noqa: E402
+    get_session_secret,
+    is_production_env,
+    sign_session,
+    verify_token,
+)
 from app.models import (  # noqa: E402
     AuditEvent,
     EmailVerificationToken,
@@ -91,12 +96,11 @@ def _session_cookie_kwargs(max_age: int, persistent: bool = True) -> dict:
     so the browser treats it as a session cookie deleted on close.
     The JWT token inside still has an exp claim for server-side validation.
     """
-    s = get_settings()
     kw: dict = {
         "httponly": True,
         "samesite": "lax",
         "path": "/",
-        "secure": s.app_env == "production",
+        "secure": is_production_env(),
     }
     if persistent:
         kw["max_age"] = max_age
@@ -320,7 +324,7 @@ def forgot_password(req: ForgotPasswordRequest, request: Request, db: Session = 
     reset_url = f"{base}/reset-password?token={token_raw}"
     persist_audit(db, "auth.reset_requested", user_id=user.id, email=email)
     msg = {"message": "If that email is registered, you will receive a reset link."}
-    if get_settings().app_env != "production" and os.environ.get(
+    if not is_production_env() and os.environ.get(
         "TRUST_COPILOT_DEV_RETURN_RESET_URL", ""
     ).strip().lower() in ("1", "true", "yes"):
         msg["reset_url"] = reset_url
@@ -620,7 +624,7 @@ def logout(response: Response, request: Request, db: Session = Depends(get_db)):
             email=session.get("email"),
             workspace_id=session.get("workspace_id"),
         )
-    _sec = get_settings().app_env == "production"
+    _sec = is_production_env()
     response.delete_cookie(SESSION_COOKIE, path="/", samesite="lax", httponly=True, secure=_sec)
     return {"ok": True}
 
