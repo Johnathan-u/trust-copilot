@@ -146,6 +146,42 @@ def _details(audit) -> dict:
     return raw or {}
 
 
+def _refuse_foreign_eligible(db, *own_ids: int) -> None:
+    """Fail before recovery if some other running row would be classified too.
+
+    Eligible means an expired lease, or a NULL lease whose ``COALESCE(updated_at, started_at)``
+    is already past the grace. Naming the ids keeps a leaked row from being mutated.
+    """
+    from app.core.job_lease import null_lease_grace_seconds
+
+    own = {int(job_id) for job_id in own_ids}
+    rows = db.execute(
+        text(
+            """
+            SELECT id
+            FROM jobs
+            WHERE status = 'running'
+              AND (
+                    (lease_expires_at IS NOT NULL AND lease_expires_at <= now())
+                 OR (
+                        lease_owner IS NULL
+                    AND lease_expires_at IS NULL
+                    AND COALESCE(updated_at, started_at)
+                        <= now() - make_interval(secs => :grace)
+                    )
+                  )
+            ORDER BY id
+            """
+        ),
+        {"grace": float(null_lease_grace_seconds())},
+    ).scalars()
+    foreign = [int(row) for row in rows if int(row) not in own]
+    assert foreign == [], (
+        "refusing to recover: foreign running jobs are eligible and would be mutated: "
+        + ", ".join(str(job_id) for job_id in foreign)
+    )
+
+
 # ---------------------------------------------------------------------------------------------------------
 # Configuration (no database)
 # ---------------------------------------------------------------------------------------------------------
@@ -470,6 +506,7 @@ def test_expired_lease_is_recovered_without_running_the_side_effect_twice(db, mo
         session.rollback()
         session.close()
 
+    _refuse_foreign_eligible(db, job_id)
     assert worker.recover_abandoned_jobs(db) == 1
     db.expire_all()
     recovered = db.get(Job, job_id)
@@ -485,7 +522,7 @@ def test_expired_lease_is_recovered_without_running_the_side_effect_twice(db, mo
     assert abandoned_details["previous_owner_prefix"] == owner[:8]
     assert abandoned_details["status"] == JobStatus.QUEUED.value
     assert owner not in json.dumps(abandoned_details)
-    assert _audits(db, job_id, "job.retry_scheduled")
+    assert len(_audits(db, job_id, "job.retry_scheduled")) == 1
 
     again, created_again = enqueue_job(
         db,
@@ -553,6 +590,7 @@ def test_attempt_cap_stops_an_abandoned_job(db, monkeypatch):
     db.commit()
     job_id = job.id
     _set_lease_offset(db, job_id, -1)
+    _refuse_foreign_eligible(db, job_id)
     assert worker.recover_abandoned_jobs(db) == 1
     db.expire_all()
     failed = db.get(Job, job_id)
@@ -565,7 +603,7 @@ def test_attempt_cap_stops_an_abandoned_job(db, monkeypatch):
     (audit,) = _audits(db, job_id, "job.failed")
     assert _details(audit)["retries_exhausted"] is True
     assert _details(audit)["error_code"] == LEASE_EXPIRED
-    assert _audits(db, job_id, "job.abandoned")
+    assert len(_audits(db, job_id, "job.abandoned")) == 1
     assert not _audits(db, job_id, "job.retry_scheduled")
 
 
@@ -590,6 +628,7 @@ def test_two_recoverers_take_one_expired_job(db, monkeypatch):
     db.commit()
     job_id = job.id
     _set_lease_offset(db, job_id, -1)
+    _refuse_foreign_eligible(db, job_id)
     barrier = threading.Barrier(2)
     results: list[int] = []
     errors: list[BaseException] = []
@@ -679,6 +718,7 @@ def test_reclaim_after_classify_keeps_one_abandoned_audit(db, monkeypatch):
             _reclaim(job_id)
 
     monkeypatch.setattr(worker, "_persist_job_audit", hooked)
+    _refuse_foreign_eligible(db, job_id)
     worker.recover_abandoned_jobs(db)
     db.expire_all()
     assert len(_audits(db, job_id, "job.abandoned")) == 1
@@ -705,10 +745,12 @@ def test_one_conflict_in_a_batch_still_recovers_the_others(db, monkeypatch):
             _reclaim(conflict_id)
 
     monkeypatch.setattr(worker, "_persist_job_audit", hooked)
+    _refuse_foreign_eligible(db, *ids)
     worker.recover_abandoned_jobs(db)
     db.expire_all()
     for job_id in ids:
         assert len(_audits(db, job_id, "job.abandoned")) == 1
+        assert len(_audits(db, job_id, "job.retry_scheduled")) == 1
     for job_id in (ids[0], ids[2]):
         stored = db.get(Job, job_id)
         assert stored.status == JobStatus.QUEUED.value
@@ -737,6 +779,7 @@ def test_recovery_reraises_when_completed_status_query_fails(db, monkeypatch):
         return original(*args, **kwargs)
 
     session.query = query
+    _refuse_foreign_eligible(db, job_id)
     try:
         with pytest.raises(RuntimeError, match="synthetic status query failure"):
             worker.recover_abandoned_jobs(session)
@@ -817,12 +860,14 @@ def test_worker_loop_does_not_commit_after_the_lease_expires(db, monkeypatch):
     assert details["owner_prefix"] == owner[:8]
     assert len(details["owner_prefix"]) == 8
     assert owner not in json.dumps(details)
+    _refuse_foreign_eligible(db, job_id)
     assert worker.recover_abandoned_jobs(db) == 1
     db.expire_all()
     requeued = db.get(Job, job_id)
     assert requeued.status == JobStatus.QUEUED.value
     assert requeued.attempt == 1
-    assert _audits(db, job_id, "job.retry_scheduled")
+    assert len(_audits(db, job_id, "job.abandoned")) == 1
+    assert len(_audits(db, job_id, "job.retry_scheduled")) == 1
 
 
 def test_worker_loop_does_not_retry_after_a_lost_lease_exception(db, monkeypatch):
@@ -925,7 +970,9 @@ def test_null_lease_older_than_the_grace_is_recovered_once(db, monkeypatch):
     _grace(monkeypatch)
     job_id = _null_running(db)
     _age_job(db, job_id, updated_age=601, started_age=601)
+    _refuse_foreign_eligible(db, job_id)
     assert worker.recover_abandoned_jobs(db) == 1
+    _refuse_foreign_eligible(db)
     assert worker.recover_abandoned_jobs(db) == 0
     db.expire_all()
     stored = db.get(Job, job_id)
@@ -945,6 +992,7 @@ def test_null_lease_younger_than_the_grace_is_untouched(db, monkeypatch):
     _grace(monkeypatch)
     job_id = _null_running(db)
     _age_job(db, job_id, updated_age=10, started_age=5000)
+    _refuse_foreign_eligible(db)
     assert worker.recover_abandoned_jobs(db) == 0
     db.expire_all()
     stored = db.get(Job, job_id)
@@ -965,10 +1013,14 @@ def test_null_lease_uses_started_at_when_updated_at_is_null(db, monkeypatch):
     _age_job(db, aged, updated_age=None, started_age=601)
     blank = _null_running(db)
     _age_job(db, blank, updated_age=None, started_age=None)
+    _refuse_foreign_eligible(db, aged)
     assert worker.recover_abandoned_jobs(db) == 1
     db.expire_all()
-    assert db.get(Job, aged).status == JobStatus.QUEUED.value
+    aged_row = db.get(Job, aged)
+    assert aged_row.status == JobStatus.QUEUED.value
+    assert aged_row.attempt == 1
     assert len(_audits(db, aged, "job.abandoned")) == 1
+    assert len(_audits(db, aged, "job.retry_scheduled")) == 1
     stored = db.get(Job, blank)
     assert stored.status == JobStatus.RUNNING.value
     assert stored.lease_owner is None
@@ -984,6 +1036,7 @@ def test_two_recoverers_take_one_null_lease_job(db, monkeypatch):
     _grace(monkeypatch)
     job_id = _null_running(db)
     _age_job(db, job_id, updated_age=601, started_age=601)
+    _refuse_foreign_eligible(db, job_id)
     barrier = threading.Barrier(2)
     results: list[int] = []
     errors: list[BaseException] = []
@@ -1022,6 +1075,7 @@ def test_mixed_null_and_expired_leases_are_all_recovered(db, monkeypatch):
     expired = _expired_running(db)
     null_id = _null_running(db)
     _age_job(db, null_id, updated_age=601, started_age=601)
+    _refuse_foreign_eligible(db, expired, null_id)
     assert worker.recover_abandoned_jobs(db) == 2
     db.expire_all()
     for job_id in (expired, null_id):
@@ -1048,6 +1102,7 @@ def test_null_lease_on_a_running_job_is_not_recovered(db):
     db.add(job)
     db.commit()
     job_id = job.id
+    _refuse_foreign_eligible(db)
     assert worker.recover_abandoned_jobs(db) == 0
     db.expire_all()
     stored = db.get(Job, job_id)
