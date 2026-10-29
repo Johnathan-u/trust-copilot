@@ -3,9 +3,11 @@
 import hashlib
 import importlib.util
 import uuid
+from concurrent.futures import ThreadPoolExecutor
 from contextlib import contextmanager
 from datetime import datetime, timezone
 from pathlib import Path
+from threading import Barrier
 
 import pytest
 from fastapi.testclient import TestClient
@@ -574,3 +576,32 @@ def test_receipt_migration_restore_fails_closed_if_membership_was_removed(actors
             == archived
         )
         assert not inspect(connection).has_table("in_app_notification_receipts")
+
+
+@pytest.mark.parametrize("action", ["one", "all"])
+def test_concurrent_broadcast_reads_create_one_receipt(actors, action):
+    require_receipt_table()
+    shared = note(actors, role=None)
+    path = f"/{shared}/read" if action == "one" else "/read-all"
+    barrier = Barrier(2)
+
+    def mark(client):
+        barrier.wait(timeout=10)
+        response = client.post("/api/in-app-notifications" + path)
+        assert response.status_code == 200, response.text
+        return response.json()
+
+    with client_for(actors, "editor") as first, client_for(actors, "editor") as second:
+        with ThreadPoolExecutor(max_workers=2) as pool:
+            results = list(pool.map(mark, (first, second)))
+        assert len(receipts(shared)) == 1
+        recorded = receipts(shared)
+        if action == "all":
+            assert sorted(row["updated"] for row in results) == [0, 1]
+        else:
+            assert results == [{"ok": True}, {"ok": True}]
+        assert first.post("/api/in-app-notifications" + path).status_code == 200
+        assert receipts(shared) == recorded
+        assert first.get("/api/in-app-notifications/unread-count").json() == {"count": 0}
+    with SessionLocal() as db:
+        assert db.get(InAppNotification, shared).is_read is False
