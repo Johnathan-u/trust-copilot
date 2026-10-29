@@ -20,11 +20,12 @@ npx vitest run lib/coverageConsumer.test.ts
 
 ## SHA
 
-Tests ran on `aa4eea92704f4e510b060a7e1792ca68db439e59`. That commit is the parent of this evidence commit.
+Tests ran on `395221f78fcd744d862a5795c76c10da25adb16c`. That commit is the parent of this evidence commit. It keeps the recommendation id lists and points the coverage page at the shared recommendation type so the existing cast typechecks.
 
 ## Totals
 
 | Command | Exit | Total |
 | --- | --- | --- |
-| The three pytest files above | 0 | 47 passed, 94 warnings, 2.71s |
+| The three pytest files above | 0 | 47 passed, 94 warnings, 2.74s |
 | `coverageConsumer.test.ts` | 0 | 5 passed |
+| `npm run typecheck` in `apps/web` | 0 | `tsc --noEmit` completed |
