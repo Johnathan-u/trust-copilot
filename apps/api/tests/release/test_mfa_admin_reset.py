@@ -7,11 +7,13 @@ import json
 import uuid
 
 import pyotp
+import pytest
 from fastapi.testclient import TestClient
-from sqlalchemy import text
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.core.password import hash_password
+from tests.release.committed_rows import OWNED, assert_back_to_baseline, counts, delete_owned
 from app.models.audit_event import AuditEvent
 from app.models.user import User, WorkspaceMember
 from app.models.user_mfa import UserMfa
@@ -20,6 +22,25 @@ from app.models.workspace import Workspace
 
 LOGIN_PHRASE = "synthetic-example-mfa-reset-password"
 REENROL = "reenrol.m2"
+# Explicit ids, same idea as the other release tests: do not call nextval or setval.
+_WORKSPACE_ID_BASE = 250_000_000
+
+
+@pytest.fixture(autouse=True)
+def _committed_rows_return_to_baseline(request):
+    """Delete rows this module committed. The request session is a different connection."""
+    if "db_session" not in request.fixturenames:
+        yield
+        return
+    db_session = request.getfixturevalue("db_session")
+    for key in OWNED:
+        OWNED[key].clear()
+    before = counts(db_session)
+    yield
+    db_session.rollback()
+    delete_owned(db_session)
+    db_session.commit()
+    assert_back_to_baseline(db_session, before)
 
 
 def _user(db: Session, tag: str) -> User:
@@ -31,24 +52,29 @@ def _user(db: Session, tag: str) -> User:
     )
     db.add(row)
     db.flush()
+    OWNED["users"].append(row.id)
     return row
 
 
 def _workspace(db: Session, tag: str) -> Workspace:
-    db.execute(
-        text(
-            "SELECT setval(pg_get_serial_sequence('workspaces', 'id'), "
-            "(SELECT COALESCE(MAX(id), 1) FROM workspaces))"
+    for _attempt in range(8):
+        ws_id = _WORKSPACE_ID_BASE + (uuid.uuid4().int % 20_000_000)
+        row = Workspace(
+            id=ws_id,
+            name=f"synthetic example {tag}",
+            slug=f"synthetic-example-{tag}-{uuid.uuid4().hex[:10]}",
+            mfa_required=True,
         )
-    )
-    row = Workspace(
-        name=f"synthetic example {tag}",
-        slug=f"synthetic-example-{tag}-{uuid.uuid4().hex[:10]}",
-        mfa_required=True,
-    )
-    db.add(row)
-    db.flush()
-    return row
+        try:
+            with db.begin_nested():
+                db.add(row)
+                db.flush()
+        except IntegrityError:
+            db.expunge(row)
+            continue
+        OWNED["workspaces"].append(row.id)
+        return row
+    raise RuntimeError("synthetic workspace id was not free")
 
 
 def _member(db: Session, workspace: Workspace, user: User, role: str) -> None:

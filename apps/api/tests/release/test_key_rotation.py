@@ -27,6 +27,7 @@ from app.models.credential_store import CredentialStore
 from app.models.user import User
 from app.models.user_mfa import UserMfa
 from app.models.user_session import UserSession
+from tests.release.committed_rows import OWNED, assert_back_to_baseline, counts, delete_owned
 
 MFA_A = "synthetic-example-mfa-key-0123456789abcdef"
 MFA_B = "synthetic-example-mfa-key-fedcba9876543210"
@@ -45,7 +46,29 @@ def _user(db: Session, tag: str) -> User:
     )
     db.add(row)
     db.flush()
+    OWNED["users"].append(row.id)
     return row
+
+
+def _track_credentials(*rows: CredentialStore) -> None:
+    OWNED["credentials"].extend(row.id for row in rows)
+
+
+@pytest.fixture(autouse=True)
+def _committed_rows_return_to_baseline(request):
+    """Delete rows this module committed. db_session only rolls back its open transaction."""
+    if "db_session" not in request.fixturenames:
+        yield
+        return
+    db_session = request.getfixturevalue("db_session")
+    for key in OWNED:
+        OWNED[key].clear()
+    before = counts(db_session)
+    yield
+    db_session.rollback()
+    delete_owned(db_session)
+    db_session.commit()
+    assert_back_to_baseline(db_session, before)
 
 
 def test_purpose_keys_do_not_decrypt_each_other(monkeypatch):
@@ -148,6 +171,7 @@ def test_rotation_resumes_from_after_id(db_session: Session, monkeypatch):
     )
     db_session.add_all([first, second])
     db_session.commit()
+    _track_credentials(first, second)
     ids = (first.id, second.id)
     monkeypatch.setenv("CONNECTOR_KEYRING", f"c2:{MFA_B},c1:{CONN_A}")
     rotate_keys(db_session, limit=1, after_id=ids[0] - 1, commit=False)
@@ -221,6 +245,7 @@ def test_rotation_and_mfa_decrypt_failures_are_audited(db_session: Session, monk
     )
     db_session.add(cred)
     db_session.commit()
+    _track_credentials(cred)
     rotate_keys(db_session, dry_run=True, commit=False)
     rotate_keys(db_session, dry_run=False, commit=False)
     mfa_events = (
