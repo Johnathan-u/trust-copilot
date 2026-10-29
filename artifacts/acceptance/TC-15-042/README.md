@@ -51,3 +51,7 @@ unchanged lifecycle. Evidence verification now reloads freshness from GET and
 preserves confirmed mutation plus explicit unknown freshness if that read fails.
 The shared navigation issue was ruled on by the Coordinator as TC-14-014.
 New browser regression cases are present; their execution is pending CI.
+
+## First CI feedback
+
+At `5c80adbfe7a690fe0eb54a86cef3122b08dc4f61`, the browser suite ran: 57 passed, 7 failed. Six failures exposed an ambiguous Owner field label, now given an explicit accessible name; one assertion matched unrelated global alert regions, now scoped to the page. The build job passed lint, formatting and 170 unit tests, then rejected evidence-log whitespace; logs are normalized without changing recorded outcomes. After these fixes, local typecheck and scoped ESLint passed. Full exact-head CI is still required.

@@ -358,8 +358,9 @@ function ControlForm({
       >
         <div className="grid gap-4 sm:grid-cols-2">
           <label className="space-y-1 text-tc-label text-tc-text">
-            Owner
+            <span id="control-owner-label">Owner</span>
             <select
+              aria-labelledby="control-owner-label"
               className={fieldClass}
               value={owner}
               disabled={!membersReady || busy}
@@ -401,8 +402,9 @@ function ControlForm({
             />
           </label>
           <label className="space-y-1 text-tc-label text-tc-text">
-            Lifecycle
+            <span id="control-lifecycle-label">Lifecycle</span>
             <select
+              aria-labelledby="control-lifecycle-label"
               className={fieldClass}
               value={lifecycle}
               disabled={busy}

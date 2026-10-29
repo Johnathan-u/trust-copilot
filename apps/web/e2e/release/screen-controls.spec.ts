@@ -292,7 +292,7 @@ test('save sends selected member, waits for acknowledgement and keeps rejected e
   await expect(page.getByText('Changes saved', { exact: true })).toHaveCount(0)
   await expect.poll(() => posted).toEqual({ owner_user_id: 43 })
   release()
-  await expect(page.getByRole('alert')).toContainText(
+  await expect(page.locator('#main-content').getByRole('alert')).toContainText(
     'Changes could not be saved'
   )
   await expect(page.getByLabel('Owner', { exact: true })).toHaveValue('43')
@@ -344,7 +344,7 @@ test('failed evidence verification stays unconfirmed and does not change lifecyc
   await page
     .getByRole('button', { name: 'Mark unverified', exact: true })
     .click()
-  await expect(page.getByRole('alert')).toContainText(
+  await expect(page.locator('#main-content').getByRole('alert')).toContainText(
     'Evidence review could not be saved'
   )
   await expect(

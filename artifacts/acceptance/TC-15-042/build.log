@@ -18,9 +18,9 @@ npm warn Unknown env config "http-proxy". This will stop working in the next maj
   Finished TypeScript in 2.9s ...
   Collecting page data using 8 workers ...
   Generating static pages using 8 workers (0/39) ...
-  Generating static pages using 8 workers (9/39) 
-  Generating static pages using 8 workers (19/39) 
-  Generating static pages using 8 workers (29/39) 
+  Generating static pages using 8 workers (9/39)
+  Generating static pages using 8 workers (19/39)
+  Generating static pages using 8 workers (29/39)
 ✓ Generating static pages using 8 workers (39/39) in 530ms
   Finalizing page optimization ...
 
@@ -74,4 +74,3 @@ Route (app)
 
 ○  (Static)   prerendered as static content
 ƒ  (Dynamic)  server-rendered on demand
-
