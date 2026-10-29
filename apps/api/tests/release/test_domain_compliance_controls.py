@@ -213,7 +213,7 @@ def restored_rows(request):
 
     The migration test drops and recreates tc21003_link_hold, so it cleans up itself.
     """
-    if request.node.originalname == "test_migration_dedupes_links_and_downgrade_restores_them":
+    if request.node.originalname == "test_migration_round_trip_restores_duplicate_links":
         yield
         return
     _reset_login_limit()
@@ -860,10 +860,37 @@ def test_link_commit_failure_inserts_nothing(client):
     assert _table_count("evidence_items") == before_evidence
 
 
-def test_migration_dedupes_links_and_downgrade_restores_them():
-    actors = _actors()
+def _link_tuples(session: Session, control_id: int, evidence_id: int) -> list[tuple]:
+    rows = session.execute(
+        text(
+            "SELECT id, control_id, evidence_id, confidence_score, verified, "
+            "last_verified_at, created_at FROM control_evidence_links "
+            "WHERE control_id = :c AND evidence_id = :e ORDER BY id"
+        ),
+        {"c": control_id, "e": evidence_id},
+    ).fetchall()
+    return [tuple(row) for row in rows]
+
+
+def _hold_tuples(session: Session, control_id: int, evidence_id: int) -> list[tuple]:
+    rows = session.execute(
+        text(
+            "SELECT link_id, control_id, evidence_id, confidence_score, verified, "
+            "last_verified_at, created_at FROM tc21003_link_hold "
+            "WHERE control_id = :c AND evidence_id = :e ORDER BY link_id"
+        ),
+        {"c": control_id, "e": evidence_id},
+    ).fetchall()
+    return [tuple(row) for row in rows]
+
+
+def test_migration_round_trip_restores_duplicate_links():
+    """Seed duplicate links, then upgrade, downgrade, and upgrade tc21003."""
     import importlib.util
 
+    before_counts = _counts()
+    before_ids = _ids()
+    actors = _actors()
     path = os.path.join(API_ROOT, "alembic", "versions", "081_tc21003_evidence_link_uniq.py")
     spec = importlib.util.spec_from_file_location("tc21003_mig", path)
     mod = importlib.util.module_from_spec(spec)
@@ -872,6 +899,8 @@ def test_migration_dedupes_links_and_downgrade_restores_them():
     assert mod.down_revision == PARENT
     assert "app." not in open(path, encoding="utf-8").read()
     env = {**os.environ, "DATABASE_URL": os.environ["DATABASE_URL"]}
+    control_id = None
+    evidence_id = None
 
     def alembic(*args):
         proc = subprocess.run(
@@ -882,94 +911,133 @@ def test_migration_dedupes_links_and_downgrade_restores_them():
             text=True,
         )
         assert proc.returncode == 0, proc.stderr[-2000:] + proc.stdout[-2000:]
+        engine.dispose()
         return proc.stdout
 
-    session = _db()
-    try:
-        control = WorkspaceControl(
-            workspace_id=actors["workspace_id"], status="not_implemented", custom_name="Dup"
-        )
-        session.add(control)
-        session.flush()
-        evidence = EvidenceItem(
-            workspace_id=actors["workspace_id"],
-            source_type="manual",
-            title="Dup evidence",
-            approval_status="approved",
-        )
-        session.add(evidence)
-        session.commit()
-        control_id = control.id
-        evidence_id = evidence.id
-    finally:
-        session.close()
-
-    alembic("downgrade", PARENT)
-    session = _db()
-    try:
-        session.execute(
-            text(
-                "INSERT INTO control_evidence_links "
-                "(control_id, evidence_id, verified, created_at) "
-                "VALUES (:c, :e, false, NOW()), (:c, :e, true, NOW())"
-            ),
-            {"c": control_id, "e": evidence_id},
-        )
-        session.commit()
-        ids = session.execute(
-            text(
-                "SELECT id FROM control_evidence_links "
-                "WHERE control_id = :c AND evidence_id = :e ORDER BY id"
-            ),
-            {"c": control_id, "e": evidence_id},
-        ).fetchall()
-    finally:
-        session.close()
-    assert len(ids) == 2
-    try:
-        alembic("upgrade", "head")
-        engine.dispose()
+    def wipe() -> None:
         session = _db()
         try:
-            remaining = session.execute(
-                text(
-                    "SELECT id, verified FROM control_evidence_links "
-                    "WHERE control_id = :c AND evidence_id = :e"
-                ),
-                {"c": control_id, "e": evidence_id},
-            ).fetchall()
-            assert len(remaining) == 1
-            assert remaining[0].id == ids[0].id
-            with pytest.raises(IntegrityError):
+            if control_id is not None:
+                session.execute(
+                    text("DELETE FROM tc21003_link_hold WHERE control_id = :c"),
+                    {"c": control_id},
+                )
+                session.execute(
+                    text("DELETE FROM control_evidence_links WHERE control_id = :c"),
+                    {"c": control_id},
+                )
+                session.execute(
+                    text("DELETE FROM workspace_controls WHERE id = :c"),
+                    {"c": control_id},
+                )
+            if evidence_id is not None:
+                session.execute(
+                    text("DELETE FROM evidence_items WHERE id = :e"),
+                    {"e": evidence_id},
+                )
+            session.commit()
+        except Exception:
+            session.rollback()
+            raise
+        finally:
+            session.close()
+
+    try:
+        try:
+            # The index is already present at head, so drop it only long enough to seed.
+            alembic("downgrade", PARENT)
+            session = _db()
+            try:
+                _sync_sequence(session, "workspace_controls")
+                control = WorkspaceControl(
+                    workspace_id=actors["workspace_id"],
+                    status="not_implemented",
+                    custom_name=f"Dup {uuid.uuid4().hex[:8]}",
+                )
+                session.add(control)
+                session.flush()
+                _sync_sequence(session, "evidence_items")
+                evidence = EvidenceItem(
+                    workspace_id=actors["workspace_id"],
+                    source_type="manual",
+                    title="Dup evidence",
+                    approval_status="approved",
+                )
+                session.add(evidence)
+                session.flush()
+                control_id = control.id
+                evidence_id = evidence.id
                 session.execute(
                     text(
                         "INSERT INTO control_evidence_links "
-                        "(control_id, evidence_id, verified, created_at) "
-                        "VALUES (:c, :e, false, NOW())"
+                        "(control_id, evidence_id, confidence_score, verified, "
+                        "last_verified_at, created_at) VALUES "
+                        "(:c, :e, 0.25, false, NULL, :oldest_at), "
+                        "(:c, :e, 0.75, true, :verified_at, :newer_at)"
                     ),
-                    {"c": control_id, "e": evidence_id},
+                    {
+                        "c": control_id,
+                        "e": evidence_id,
+                        "oldest_at": datetime(2020, 1, 1, 0, 0, 0),
+                        "verified_at": datetime(2021, 6, 7, 8, 9, 10),
+                        "newer_at": datetime(2021, 6, 7, 8, 0, 0),
+                    },
                 )
                 session.commit()
-            session.rollback()
-        finally:
-            session.close()
-        alembic("downgrade", PARENT)
-        session = _db()
-        try:
-            restored = session.execute(
-                text(
-                    "SELECT count(*) FROM control_evidence_links "
-                    "WHERE control_id = :c AND evidence_id = :e"
-                ),
-                {"c": control_id, "e": evidence_id},
-            ).scalar()
-            assert restored == 2
-        finally:
-            session.close()
-    finally:
-        alembic("upgrade", "head")
-    heads = [line.strip() for line in alembic("heads").splitlines() if "(head)" in line]
-    assert len(heads) == 1
-    from tests.release.test_billing_provider import _revision_is_applied, _revision_token
+                seeded = _link_tuples(session, control_id, evidence_id)
+            finally:
+                session.close()
+            assert len(seeded) == 2
+            duplicate = seeded[1:]
+            alembic("upgrade", REVISION)
+            session = _db()
+            try:
+                assert _link_tuples(session, control_id, evidence_id) == seeded[:1]
+                assert _hold_tuples(session, control_id, evidence_id) == duplicate
+                with pytest.raises(IntegrityError):
+                    session.execute(
+                        text(
+                            "INSERT INTO control_evidence_links "
+                            "(control_id, evidence_id, verified, created_at) "
+                            "VALUES (:c, :e, false, :created_at)"
+                        ),
+                        {
+                            "c": control_id,
+                            "e": evidence_id,
+                            "created_at": datetime(2022, 1, 1, 0, 0, 0),
+                        },
+                    )
+                    session.commit()
+                session.rollback()
+            finally:
+                session.close()
+            alembic("downgrade", PARENT)
+            session = _db()
+            try:
+                gone = session.execute(
+                    text("SELECT to_regclass('public.tc21003_link_hold')")
+                ).scalar()
+                assert gone is None
+                assert _link_tuples(session, control_id, evidence_id) == seeded
+            finally:
+                session.close()
+            alembic("upgrade", REVISION)
+            session = _db()
+            try:
+                assert _link_tuples(session, control_id, evidence_id) == seeded[:1]
+                assert _hold_tuples(session, control_id, evidence_id) == duplicate
+            finally:
+                session.close()
+            heads = [line.strip() for line in alembic("heads").splitlines() if "(head)" in line]
+            assert len(heads) == 1
+            from tests.release.test_billing_provider import _revision_is_applied, _revision_token
 
-    assert _revision_is_applied(_revision_token(alembic("heads")), REVISION)
+            assert _revision_is_applied(_revision_token(alembic("heads")), REVISION)
+        finally:
+            alembic("upgrade", "head")
+            wipe()
+            _delete_created(before_ids, skip=("tc21003_link_hold",))
+    finally:
+        after_counts = _counts()
+        assert after_counts == before_counts, {"before": before_counts, "after": after_counts}
+        print(f"TC21003_COUNTS before={before_counts} after={after_counts}")
