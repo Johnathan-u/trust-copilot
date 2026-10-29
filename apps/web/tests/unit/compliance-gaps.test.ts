@@ -11,6 +11,7 @@ import {
 const row = {
   schema_version: 'evidence-gap-ownership/v1',
   id: 91,
+  workspace_id: 7,
   questionnaire_id: 21,
   control_id: null,
   reason: 'Missing current evidence',
@@ -117,8 +118,9 @@ describe('evidence gap read contract', () => {
       .mockResolvedValueOnce(response())
       .mockResolvedValueOnce(new Response('{}', { status: 403 }))
     vi.stubGlobal('fetch', fetcher)
+    const accessLost = vi.fn()
     const { result } = renderHook(() =>
-      useSnapshot('/api/evidence-gaps', parseGaps)
+      useSnapshot('/api/evidence-gaps', parseGaps, accessLost)
     )
     await act(async () => {
       await vi.advanceTimersByTimeAsync(1)
@@ -133,6 +135,7 @@ describe('evidence gap read contract', () => {
     })
     expect(result.current.data).toBeNull()
     expect(result.current.failure?.kind).toBe('forbidden')
+    expect(accessLost).toHaveBeenCalledTimes(1)
   })
   it('aborts and ignores a pending read when the workspace page is removed', async () => {
     vi.useFakeTimers()
@@ -148,5 +151,35 @@ describe('evidence gap read contract', () => {
     unmount()
     expect(signal?.aborted).toBe(true)
     expect(vi.getTimerCount()).toBe(0)
+  })
+  it('does not let an older read replace a confirmed mutation', async () => {
+    let finish: (response: Response) => void = () => {}
+    const fetcher = vi
+      .fn()
+      .mockResolvedValueOnce(response())
+      .mockImplementationOnce(
+        () =>
+          new Promise<Response>((resolve) => {
+            finish = resolve
+          })
+      )
+    vi.stubGlobal('fetch', fetcher)
+    const { result } = renderHook(() =>
+      useSnapshot('/api/evidence-gaps', parseGaps)
+    )
+    await act(async () => {})
+    act(() => {
+      result.current.retry()
+    })
+    await act(async () => {})
+    act(() => {
+      result.current.apply((gaps) =>
+        gaps.map((gap) => ({ ...gap, status: 'accepted' }))
+      )
+    })
+    await act(async () => {
+      finish(response())
+    })
+    expect(result.current.data?.[0].status).toBe('accepted')
   })
 })

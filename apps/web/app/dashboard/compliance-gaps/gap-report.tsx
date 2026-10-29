@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import {
   Button,
@@ -10,19 +10,30 @@ import {
   LoadingState,
 } from '@/components/ui'
 import type { ApiFailurePresentation } from '@/lib/api-error'
-import {
-  failureOf,
-  readSectionJson,
-  recordFromPayload,
-} from '@/lib/section-load'
+import { failureOf, readSectionJson } from '@/lib/section-load'
 
-export function useSnapshot<T>(url: string, parse: (input: unknown) => T) {
+import { GapActionDialog, type GapIntent } from './gap-actions'
+import {
+  parseGaps,
+  statusLabels,
+  priorityLabels,
+  type Gap,
+} from './gap-contract'
+export { parseGaps } from './gap-contract'
+
+export function useSnapshot<T>(
+  url: string,
+  parse: (input: unknown) => T,
+  onAccessLost?: () => void
+) {
   const [snapshot, setSnapshot] = useState<{
     data: T | null
     fetchedAt: string | null
     failure: ApiFailurePresentation | null
   }>({ data: null, fetchedAt: null, failure: null })
   const [attempt, setAttempt] = useState(0)
+  const generation = useRef(0)
+  const pending = useRef<AbortController | null>(null)
   useEffect(() => {
     let active = true
     let request: AbortController | null = null
@@ -30,7 +41,9 @@ export function useSnapshot<T>(url: string, parse: (input: unknown) => T) {
     async function refresh() {
       request?.abort()
       if (timeout) clearTimeout(timeout)
+      const version = ++generation.current
       const current = new AbortController()
+      pending.current = current
       request = current
       timeout = setTimeout(() => current.abort(), 15000)
       try {
@@ -41,25 +54,28 @@ export function useSnapshot<T>(url: string, parse: (input: unknown) => T) {
         if (
           [401, 403, 404].includes(response.status) &&
           active &&
-          request === current
+          request === current &&
+          generation.current === version
         ) {
+          onAccessLost?.()
           setSnapshot({ data: null, fetchedAt: null, failure: null })
         }
         const data = parse(await readSectionJson(response))
-        if (active && request === current)
+        if (active && request === current && generation.current === version)
           setSnapshot({
             data,
             fetchedAt: new Date().toISOString(),
             failure: null,
           })
       } catch (error) {
-        if (active && request === current)
+        if (active && request === current && generation.current === version)
           setSnapshot((previous) => ({
             ...previous,
             failure: failureOf(error),
           }))
       } finally {
-        if (request === current && timeout) clearTimeout(timeout)
+        if (request === current && generation.current === version && timeout)
+          clearTimeout(timeout)
       }
     }
     void refresh()
@@ -77,72 +93,19 @@ export function useSnapshot<T>(url: string, parse: (input: unknown) => T) {
       clearInterval(timer)
       document.removeEventListener('visibilitychange', visible)
     }
-  }, [url, parse, attempt])
-  return { ...snapshot, retry: () => setAttempt((value) => value + 1) }
+  }, [url, parse, attempt, onAccessLost])
+  const apply = useCallback((update: (data: T) => T) => {
+    // A pre-mutation read must not replace an acknowledged write.
+    generation.current++
+    pending.current?.abort()
+    setSnapshot((previous) => ({
+      ...previous,
+      data: previous.data === null ? null : update(previous.data),
+    }))
+  }, [])
+  return { ...snapshot, apply, retry: () => setAttempt((value) => value + 1) }
 }
 
-type Gap = {
-  id: number
-  questionnaire_id: number | null
-  control_id: number | null
-  reason: string | null
-  suggested_evidence_doc_title: string | null
-  status: 'open' | 'accepted' | 'dismissed' | 'resolved'
-  priority: 'high' | 'medium' | 'low' | 'settled'
-  age_days: number
-  owner_user_id: number | null
-  owner_missing: boolean
-}
-const statusLabels = {
-  open: 'Open',
-  accepted: 'Accepted',
-  dismissed: 'Dismissed',
-  resolved: 'Resolved',
-}
-const priorityLabels = {
-  high: 'High',
-  medium: 'Medium',
-  low: 'Low',
-  settled: 'Settled',
-}
-function positiveId(value: unknown) {
-  return Number.isSafeInteger(value) && Number(value) > 0
-}
-function nullableId(value: unknown) {
-  return value === null || positiveId(value)
-}
-export function parseGaps(input: unknown): Gap[] {
-  const root = recordFromPayload(input)
-  if (
-    root.schema_version !== 'evidence-gap-ownership/v1' ||
-    !Array.isArray(root.gaps)
-  )
-    throw new Error('Unsupported gap response')
-  const ids = new Set<number>()
-  return root.gaps.map((value) => {
-    const row = recordFromPayload(value)
-    if (
-      row.schema_version !== root.schema_version ||
-      !positiveId(row.id) ||
-      !nullableId(row.questionnaire_id) ||
-      !nullableId(row.control_id) ||
-      !nullableId(row.owner_user_id) ||
-      typeof row.owner_missing !== 'boolean' ||
-      row.owner_missing !== (row.owner_user_id === null) ||
-      (row.reason !== null && typeof row.reason !== 'string') ||
-      (row.suggested_evidence_doc_title !== null &&
-        typeof row.suggested_evidence_doc_title !== 'string') ||
-      !Object.hasOwn(statusLabels, String(row.status)) ||
-      !Object.hasOwn(priorityLabels, String(row.priority)) ||
-      !Number.isInteger(row.age_days) ||
-      Number(row.age_days) < 0 ||
-      ids.has(Number(row.id))
-    )
-      throw new Error('Incomplete gap response')
-    ids.add(Number(row.id))
-    return row as Gap
-  })
-}
 const fieldClass =
   'min-h-11 w-full rounded-tc border border-tc-border-strong bg-tc-surface px-3 text-tc-text focus-visible:outline focus-visible:outline-2 focus-visible:outline-tc-primary'
 const titleOf = (gap: Gap) =>
@@ -206,8 +169,27 @@ export function SnapshotNote({
   )
 }
 
-export function EvidenceGapList({ canExport }: { canExport: boolean }) {
-  const result = useSnapshot('/api/evidence-gaps', parseGaps)
+export function EvidenceGapList({
+  canExport,
+  canAdmin,
+}: {
+  canExport: boolean
+  canAdmin: boolean
+}) {
+  const [action, setAction] = useState<{
+    gap: Gap
+    kind: GapIntent['kind']
+  } | null>(null)
+  const [notice, setNotice] = useState<{ message: string } | null>(null)
+  const clearPrivateState = useCallback(() => {
+    setAction(null)
+    setNotice(null)
+  }, [])
+  const result = useSnapshot('/api/evidence-gaps', parseGaps, clearPrivateState)
+  const noticeRef = useRef<HTMLParagraphElement>(null)
+  useEffect(() => {
+    if (notice) noticeRef.current?.focus()
+  }, [notice])
   const [status, setStatus] = useState('all')
   const [priority, setPriority] = useState('all')
   const [search, setSearch] = useState('')
@@ -246,10 +228,41 @@ export function EvidenceGapList({ canExport }: { canExport: boolean }) {
           Evidence gaps
         </h2>
         <p className="text-tc-body text-tc-muted">
-          Review missing evidence, priority, and ownership. This report is
-          read-only.
+          Review missing evidence, priority, and ownership. Resolve open gaps
+          with qualifying evidence. Administrators can also accept or dismiss a
+          gap.
         </p>
       </div>
+      {notice ? (
+        <p
+          ref={noticeRef}
+          tabIndex={-1}
+          role="status"
+          className="text-tc-body text-tc-text"
+        >
+          {notice.message}
+        </p>
+      ) : null}
+      {action && result.data ? (
+        <GapActionDialog
+          key={`${action.gap.id}:${action.kind}`}
+          gap={
+            result.data.find((gap) => gap.id === action.gap.id) ?? action.gap
+          }
+          kind={action.kind}
+          onClose={() => setAction(null)}
+          onConfirmed={(updated, notificationFailed) => {
+            result.apply((gaps) =>
+              gaps.map((gap) => (gap.id === updated.id ? updated : gap))
+            )
+            setNotice({
+              message: `${titleOf(updated)}: ${statusLabels[updated.status].toLowerCase()} confirmed.${notificationFailed ? ' The gap is resolved, but notification delivery failed.' : ''}`,
+            })
+            setAction(null)
+            result.retry()
+          }}
+        />
+      ) : null}
       {!result.data ? (
         result.failure ? (
           <ErrorState failure={result.failure} onRetry={result.retry} />
@@ -314,6 +327,9 @@ export function EvidenceGapList({ canExport }: { canExport: boolean }) {
             <p role="status" className="text-tc-label text-tc-muted">
               {filtered.length} of {result.data.length} gaps match the filters.
             </p>
+            <Button variant="secondary" onClick={result.retry}>
+              Refresh gaps
+            </Button>
             {canExport ? (
               <Button
                 variant="secondary"
@@ -362,6 +378,40 @@ export function EvidenceGapList({ canExport }: { canExport: boolean }) {
                         </div>
                       ))}
                     </dl>
+                    {gap.status === 'open' ? (
+                      <div
+                        className="flex flex-wrap gap-2"
+                        role="group"
+                        aria-label={`Actions for ${titleOf(gap)}`}
+                      >
+                        <Button
+                          variant="secondary"
+                          onClick={() => setAction({ gap, kind: 'resolve' })}
+                        >
+                          Resolve gap
+                        </Button>
+                        {canAdmin ? (
+                          <>
+                            <Button
+                              variant="secondary"
+                              onClick={() =>
+                                setAction({ gap, kind: 'accepted' })
+                              }
+                            >
+                              Accept gap
+                            </Button>
+                            <Button
+                              variant="secondary"
+                              onClick={() =>
+                                setAction({ gap, kind: 'dismissed' })
+                              }
+                            >
+                              Dismiss gap
+                            </Button>
+                          </>
+                        ) : null}
+                      </div>
+                    ) : null}
                     {gap.questionnaire_id ? (
                       <Link
                         className="inline-flex min-h-11 items-center text-tc-primary underline"

@@ -230,7 +230,7 @@ export default function ComplianceCoveragePage() {
     )
   return (
     <div
-      key={`${workspace.id}:${permissions.can_export}`}
+      key={`${workspace.id}:${permissions.can_export}:${permissions.can_admin}`}
       className="min-w-0 space-y-8"
     >
       <header>
@@ -242,7 +242,10 @@ export default function ComplianceCoveragePage() {
           compliance. Review the evidence and evaluation behind each result.
         </p>
       </header>
-      <EvidenceGapList canExport={permissions.can_export} />
+      <EvidenceGapList
+        canExport={permissions.can_export}
+        canAdmin={permissions.can_admin}
+      />
       <CoverageReport />
     </div>
   )
