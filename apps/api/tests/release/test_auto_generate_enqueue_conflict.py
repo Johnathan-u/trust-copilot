@@ -27,6 +27,30 @@ _TOUCHED_OPERATIONS = {
     "list_questionnaires",
     "get_questionnaire",
 }
+# Same shape as TC-21-005's _counts(): snapshot these before the test and require the
+# same counts after teardown. job_effects is included because a claimed job can write one;
+# deleting the job cascades that row.
+_COUNTED = (
+    "audit_events",
+    "jobs",
+    "questionnaires",
+    "questions",
+    "idempotency_keys",
+    "documents",
+    "evidence_gaps",
+    "job_effects",
+)
+
+
+def _counts() -> dict[str, int]:
+    session = SessionLocal()
+    try:
+        return {
+            name: int(session.execute(text(f"SELECT count(*) FROM {name}")).scalar() or 0)
+            for name in _COUNTED
+        }
+    finally:
+        session.close()
 
 
 @pytest.fixture
@@ -36,13 +60,18 @@ def db(_ensure_test_data):
     session = SessionLocal()
     marks = {
         table: int(session.execute(text(f"SELECT COALESCE(MAX(id), 0) FROM {table}")).scalar() or 0)
-        for table in ("questionnaires", "questions", "jobs")
+        for table in ("questionnaires", "questions", "jobs", "audit_events")
     }
+    before_counts = _counts()
     try:
         yield session
     finally:
         try:
             session.rollback()
+            session.execute(
+                text("DELETE FROM audit_events WHERE id > :m"),
+                {"m": marks["audit_events"]},
+            )
             session.execute(
                 text(
                     "DELETE FROM questions WHERE questionnaire_id IN "
@@ -55,6 +84,8 @@ def db(_ensure_test_data):
                 text("DELETE FROM questionnaires WHERE id > :m"), {"m": marks["questionnaires"]}
             )
             session.commit()
+            after_counts = _counts()
+            assert after_counts == before_counts, {"before": before_counts, "after": after_counts}
         finally:
             session.close()
 
