@@ -35,6 +35,7 @@ from app.models.control_evidence_link import ControlEvidenceLink
 from app.models.evidence_version import EvidenceVersion
 from app.models.evidence_metadata import EvidenceMetadata
 from app.models.evidence_gap import (
+    CONTROL_CHECK,
     CONTROL_CHECK_CLOSE_REASON,
     GAP_CLOSE_REASONS,
     GAP_STATUSES,
@@ -177,6 +178,7 @@ __all__ = [
     "EvidenceVersion",
     "EvidenceMetadata",
     "EvidenceGap",
+    "CONTROL_CHECK",
     "CONTROL_CHECK_CLOSE_REASON",
     "GAP_CLOSE_REASONS",
     "GAP_STATUSES",
