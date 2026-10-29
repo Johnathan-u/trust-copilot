@@ -184,8 +184,6 @@ def _actors() -> dict[str, int]:
                 user = User(email=email, password_hash=hash_password(password), display_name=email)
                 session.add(user)
                 session.flush()
-            else:
-                user.password_hash = hash_password(password)
             row = (
                 session.query(WorkspaceMember)
                 .filter(
