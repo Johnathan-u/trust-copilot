@@ -2,9 +2,9 @@
   "schema_version": 1,
   "lease_owner": "setup-20261030-ac0fa793e50b",
   "lease_expires_at": "2026-10-30T00:20:20.250Z",
-  "updated_at": "2026-10-29T22:20:20.250Z",
-  "automation_id": null,
-  "last_master_sha": "47b5972a1cc8ac83d793deecc2888a0f99575d07",
-  "checkpoint": "Bootstrap: autonomy instruction PR being prepared; #104 independently ready; #75 and #86 being independently reviewed.",
+  "updated_at": "2026-10-29T22:23:41.072Z",
+  "automation_id": "6ae3c75d14788191b6f3e0838035bcef",
+  "last_master_sha": "750e38684f852df989a4ae60984d7c5a66f956fd",
+  "checkpoint": "#104 merged. #109 autonomy docs published at ebc6ff0; CI pending. #86 independently ready at7163d88; current master CI pending. #75 bounded fixes in isolated tc-web-fixes worker; do not duplicate.",
   "blocked_items": []
 }
