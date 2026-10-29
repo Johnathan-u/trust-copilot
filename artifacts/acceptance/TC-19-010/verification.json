@@ -1,0 +1,110 @@
+{
+  "ticket": "TC-19-010",
+  "status": "IN_REVIEW",
+  "scope": "Personal inbox API, active recipient validation, approved broadcast receipts and lossless migration",
+  "acceptance": {
+    "AC1": "PENDING implementation PostgreSQL result",
+    "AC2": "PENDING implementation PostgreSQL result",
+    "AC3": "PENDING TC-19-010a frontend merge and integrated acceptance"
+  },
+  "coordinator_ruling": "https://github.com/Johnathan-u/trust-copilot/issues/85#issuecomment-6504557554",
+  "observed_runs": [
+    {
+      "sha": "f88e4ebd6f9354260b7bde94b036c94f0fc40e75",
+      "workflow_run_id": 40925575446,
+      "job_id": 123630050157,
+      "command": "pytest -rs",
+      "environment": "Existing CI, Python 3.11, pinned PostgreSQL 16.15/pgvector 0.8.7",
+      "outcome": "RED: 14 intended domain failures, 3210 passed, 1 external-data skip; no fixture setup/cleanup failure",
+      "exit_status": 1
+    },
+    {
+      "sha": "98e8781c749e0c9bffc11dd5a8d2767f656c053b",
+      "workflow_run_id": 40929390488,
+      "job_id": 123643467469,
+      "command": "pytest -rs",
+      "environment": "Existing CI, Python 3.11.17, pinned PostgreSQL 16.15/pgvector 0.8.7",
+      "exit_status": 1,
+      "outcome": "RED: 24 intended domain failures (14 baseline + 8 missing receipt-table assertions + 2 missing-migration assertions), 3216 passed, 1 external blind-data skip, 19 existing Alembic warnings; no fixture setup/cleanup failure"
+    }
+  ],
+  "receipt_red_sha": "98e8781c749e0c9bffc11dd5a8d2767f656c053b",
+  "receipt_red_status": "CONFIRMED",
+  "local_checks": [
+    {
+      "command": "python -m pytest tests/release/test_domain_in_app_notifications.py --collect-only -q",
+      "sha": "98e8781c749e0c9bffc11dd5a8d2767f656c053b",
+      "exit_status": 0,
+      "outcome": "30 cases collected; no database execution"
+    },
+    {
+      "command": "python -m pytest -m unit -q",
+      "sha": "98e8781c749e0c9bffc11dd5a8d2767f656c053b plus uncommitted inbox authorization/service changes",
+      "environment": "Python 3.12 exact locked dependencies; proxy variables unset",
+      "exit_status": 0,
+      "outcome": "578 passed, 11 skipped, 2647 deselected, 1 existing Alembic warning; no PostgreSQL qualification"
+    },
+    {
+      "command": "ruff check .",
+      "sha": "3c90cdc4b8981dc7c006793f33b9914a5424dd2d",
+      "exit_status": 0,
+      "outcome": "All checks passed"
+    },
+    {
+      "command": "python -m alembic heads",
+      "sha": "3c90cdc4b8981dc7c006793f33b9914a5424dd2d",
+      "exit_status": 0,
+      "outcome": "One head: tc19010_inbox_receipts"
+    },
+    {
+      "command": "python -m alembic upgrade tc02001a_parent_ws_move:tc19010_inbox_receipts --sql; python -m alembic downgrade tc19010_inbox_receipts:tc02001a_parent_ws_move --sql",
+      "sha": "3c90cdc4b8981dc7c006793f33b9914a5424dd2d",
+      "exit_status": 0,
+      "outcome": "PostgreSQL upgrade/downgrade SQL generated; no database execution"
+    },
+    {
+      "command": "python -m pytest -m unit -q -rs",
+      "sha": "3c90cdc4b8981dc7c006793f33b9914a5424dd2d",
+      "environment": "Python 3.12 exact locked dependencies; proxy variables unset",
+      "exit_status": 0,
+      "outcome": "605 passed, 11 skipped, 2685 deselected, 1 existing Alembic warning in 26.76s",
+      "skips": [
+        "10 web-quality tests: local node_modules/.bin/eslint missing; CI supplies exact web toolchain",
+        "1 external blind test pack unavailable"
+      ],
+      "qualification": "No PostgreSQL execution"
+    },
+    {
+      "command": "python -m pytest tests/release/test_domain_in_app_notifications.py --collect-only -q",
+      "sha": "3c90cdc4b8981dc7c006793f33b9914a5424dd2d",
+      "exit_status": 0,
+      "outcome": "32 cases collected; no PostgreSQL execution"
+    }
+  ],
+  "migration": {
+    "revision": "tc19010_inbox_receipts",
+    "provisional_parent": "tc02001a_parent_ws_move",
+    "landing_gate": "After TC-17-004 and TC-23-001; separate reparent commit required",
+    "historical_rule": "Broadcast is read when legacy is_read=true OR caller receipt exists; no backfill",
+    "rollback": "Archive all receipt values; restore transactionally without filtering; reject invalid references without dropping archive",
+    "master_base": "80607881320e1fa2c6416c55730eb98a56449f26",
+    "unique_parent_preflight": "Duplicate workspace_members(workspace_id,user_id) fails upgrade without data deletion; no compatible unique key existed at the base"
+  },
+  "limitations": [
+    "No local PostgreSQL or Docker; exact-head CI owns database evidence",
+    "No live provider call or new dependency",
+    "Connection replacement and retry covered; full process restart not yet qualified",
+    "Shared frontend untouched; AC3 remains pending",
+    "Independent review and four exact-head CI checks required before readiness"
+  ],
+  "local_code_checkpoint": "3c90cdc4b8981dc7c006793f33b9914a5424dd2d",
+  "local_code_tree": "e82a4c5139c207d9dc08a8982c1791795bdffa51",
+  "implementation_postgresql_status": "PENDING",
+  "independent_review": {
+    "reviewer": "root independent agent",
+    "local_sha": "3c90cdc4b8981dc7c006793f33b9914a5424dd2d",
+    "outcome": "No blocking code finding; checked visibility/current permissions, personal/broadcast semantics, conflict handling, historical read preservation, FK/model agreement, strict archive restoration and concurrency/round-trip tests",
+    "qualification": "Published-head PostgreSQL CI pending; duplicate-membership preflight and AC3/migration-slot documentation required and included"
+  },
+  "published_equivalent_code_checkpoint": "9b708bf509e104b185ad58560f35c4343f4faacf"
+}
