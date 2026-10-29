@@ -375,8 +375,8 @@ def test_manual_retry_of_another_workspace_is_not_found(client: TestClient, db):
     job = _job(db, workspace_id=2, status=JobStatus.FAILED.value, attempt=1)
     same = client.post(f"/api/jobs/{job.id}/retry?workspace_id={WS}")
     other = client.post(f"/api/jobs/{job.id}/retry?workspace_id=2")
-    assert same.status_code == 404
-    assert other.status_code == 404
+    assert same.status_code == 404 and same.json()["detail"] == "Job not found"
+    assert other.status_code == 404 and other.json()["detail"] == "Job not found"
     db.expire_all()
     assert db.get(Job, job.id).status == JobStatus.FAILED.value
 
