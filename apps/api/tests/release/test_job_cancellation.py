@@ -18,8 +18,9 @@ from app.core.database import SessionLocal
 from app.models import Job, JobStatus
 
 WS = 1
-TABLES = ("jobs", "audit_events")
-DELETE_ORDER = ("jobs", "audit_events")
+TABLES = ("jobs", "audit_events", "user_sessions")
+# user_sessions is not referenced by jobs or audit_events. Delete it with them.
+DELETE_ORDER = ("jobs", "audit_events", "user_sessions")
 
 
 def _refuse_foreign_eligible(db, *own_ids: int) -> None:
