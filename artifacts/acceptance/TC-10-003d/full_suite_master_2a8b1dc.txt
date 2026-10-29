@@ -7,7 +7,7 @@
 ........................................................................ [ 16%]
 ........................................................................ [ 18%]
 ........................................................................ [ 20%]
-........................................................................ [ 23%]
+........................................................................ [ 22%]
 ........................................................................ [ 25%]
 .....................................................F.................. [ 27%]
 ...................F.................................................... [ 29%]
@@ -17,7 +17,7 @@
 ........................................................................ [ 39%]
 ........................................................................ [ 41%]
 ........................................................................ [ 43%]
-........................................................................ [ 46%]
+........................................................................ [ 45%]
 ........................................................................ [ 48%]
 ........................................................................ [ 50%]
 ........................................................................ [ 52%]
@@ -27,14 +27,14 @@
 ........................................................................ [ 62%]
 ........................................................................ [ 64%]
 ........................................................................ [ 66%]
-........................................................................ [ 69%]
+........................................................................ [ 68%]
 ........................................................................ [ 71%]
 ........................................................................ [ 73%]
-........................................................................ [ 76%]
+........................................................................ [ 75%]
 ........................................................................ [ 78%]
 ........................................................................ [ 80%]
 ........................................................................ [ 82%]
-...............................[EMAIL] To: admin-ref-scope@trust.local
+.........................................[EMAIL] To: admin-vr-scope@trust.local
 Subject: [Default] New member invited — unsub_test@test.local invited as editor
 
 [Default] New member invited — unsub_test@test.local invited as editor
@@ -42,85 +42,69 @@ Subject: [Default] New member invited — unsub_test@test.local invited as edito
 Event: member.invited
 unsub_test@test.local invited as editor
 
-.[EMAIL] To: admin-vr-scope@trust.local
-Subject: [Default] New member invited — unsub_test@test.local invited as editor
-
-[Default] New member invited — unsub_test@test.local invited as editor
-
-Event: member.invited
-unsub_test@test.local invited as editor
-
-.[EMAIL] To: admin-vendor@trust.local
-Subject: [Default] New member invited — unsub_test@test.local invited as editor
-
-[Default] New member invited — unsub_test@test.local invited as editor
-
-Event: member.invited
-unsub_test@test.local invited as editor
-
-....................................... [ 85%]
+............................... [ 85%]
 ........................................................................ [ 87%]
 ........................................................................ [ 89%]
-........................................................................ [ 92%]
+........................................................................ [ 91%]
 ........................................................................ [ 94%]
 ........................................................................ [ 96%]
-........................................................................ [ 99%]
-.............................                                            [100%]
+........................................................................ [ 98%]
+......................................                                   [100%]
 =================================== FAILURES ===================================
 E   AssertionError: typescript is not installed under apps/web. Install web dependencies before this test.
 
     assert 1 == 0
      +  where 1 = CompletedProcess(args=['node', '/tmp/tc-master/apps/api/tests/release/run_case_study_consumer.mjs'], returncode=1, stdout='', stderr='typescript is not installed under apps/web. Install web dependencies before this test.\n').returncode
 ------------------------------ Captured log setup ------------------------------
-INFO     app.core.rate_limit:rate_limit.py:112 Rate-limit backend: in-memory (dev/test)
-INFO     trustcopilot.audit:audit.py:34 audit {"ts": "2026-10-29T13:59:46.297080+00:00", "action": "auth.login", "user_id": 3, "email": "admin@trust.local", "workspace_id": 1}
+INFO     app.core.rate_limit:rate_limit.py:110 Rate-limit backend: in-memory (dev/test)
+INFO     trustcopilot.audit:audit.py:34 audit {"ts": "2026-10-29T14:09:44.883512+00:00", "action": "auth.login", "user_id": 3, "email": "admin@trust.local", "workspace_id": 1}
 INFO     app.request:main.py:284 request
 INFO     httpx2:_client.py:1084 HTTP Request: POST http://localhost/api/auth/login "HTTP/1.1 200 OK"
 ------------------------------ Captured log call -------------------------------
-INFO     trustcopilot.audit:audit.py:34 audit {"ts": "2026-10-29T13:59:46.311303+00:00", "action": "case_study.create", "user_id": 3, "email": "admin@trust.local", "workspace_id": 1, "resource_type": "case_study", "resource_id": 55, "synthetic": false, "customer_claim": false}
+INFO     trustcopilot.audit:audit.py:34 audit {"ts": "2026-10-29T14:09:44.897211+00:00", "action": "case_study.create", "user_id": 3, "email": "admin@trust.local", "workspace_id": 1, "resource_type": "case_study", "resource_id": 135, "synthetic": false, "customer_claim": false}
 INFO     app.request:main.py:284 request
 INFO     httpx2:_client.py:1084 HTTP Request: POST http://localhost/api/case-studies "HTTP/1.1 200 OK"
-INFO     trustcopilot.audit:audit.py:34 audit {"ts": "2026-10-29T13:59:46.321469+00:00", "action": "case_study.consent", "user_id": 3, "email": "admin@trust.local", "workspace_id": 1, "resource_type": "case_study", "resource_id": 55, "organization_name": "SYNTHETIC-ORG-PLACEHOLDER", "consent_id": 34, "revision": 1}
+INFO     trustcopilot.audit:audit.py:34 audit {"ts": "2026-10-29T14:09:44.908561+00:00", "action": "case_study.consent", "user_id": 3, "email": "admin@trust.local", "workspace_id": 1, "resource_type": "case_study", "resource_id": 135, "organization_name": "SYNTHETIC-ORG-PLACEHOLDER", "consent_id": 76, "revision": 1}
 INFO     app.request:main.py:284 request
-INFO     httpx2:_client.py:1084 HTTP Request: POST http://localhost/api/case-studies/55/consents "HTTP/1.1 200 OK"
-INFO     trustcopilot.audit:audit.py:34 audit {"ts": "2026-10-29T13:59:46.332172+00:00", "action": "case_study.result_permission", "user_id": 3, "email": "admin@trust.local", "workspace_id": 1, "resource_type": "case_study", "resource_id": 55, "consent_id": 34, "result_key": "quote", "permission_id": 71, "revision": 1}
+INFO     httpx2:_client.py:1084 HTTP Request: POST http://localhost/api/case-studies/135/consents "HTTP/1.1 200 OK"
+INFO     trustcopilot.audit:audit.py:34 audit {"ts": "2026-10-29T14:09:44.918445+00:00", "action": "case_study.result_permission", "user_id": 3, "email": "admin@trust.local", "workspace_id": 1, "resource_type": "case_study", "resource_id": 135, "consent_id": 76, "result_key": "quote", "permission_id": 159, "revision": 1}
 INFO     app.request:main.py:284 request
-INFO     httpx2:_client.py:1084 HTTP Request: POST http://localhost/api/case-studies/55/result-permissions "HTTP/1.1 200 OK"
-INFO     trustcopilot.audit:audit.py:34 audit {"ts": "2026-10-29T13:59:46.365007+00:00", "action": "auth.login", "user_id": 3, "email": "admin@trust.local", "workspace_id": 1}
-INFO     app.request:main.py:284 request
-INFO     httpx2:_client.py:1084 HTTP Request: POST http://localhost/api/auth/login "HTTP/1.1 200 OK"
-INFO     trustcopilot.audit:audit.py:34 audit {"ts": "2026-10-29T13:59:46.380127+00:00", "action": "case_study.submit_review", "user_id": 3, "email": "admin@trust.local", "workspace_id": 1, "resource_type": "case_study", "resource_id": 55, "revision": 1, "review_status": "pending"}
-INFO     app.request:main.py:284 request
-INFO     httpx2:_client.py:1084 HTTP Request: POST http://localhost/api/case-studies/55/submit-review "HTTP/1.1 200 OK"
-INFO     trustcopilot.audit:audit.py:34 audit {"ts": "2026-10-29T13:59:46.412803+00:00", "action": "auth.login", "user_id": 2, "email": "reviewer@trust.local", "workspace_id": 1}
+INFO     httpx2:_client.py:1084 HTTP Request: POST http://localhost/api/case-studies/135/result-permissions "HTTP/1.1 200 OK"
+INFO     trustcopilot.audit:audit.py:34 audit {"ts": "2026-10-29T14:09:44.950433+00:00", "action": "auth.login", "user_id": 3, "email": "admin@trust.local", "workspace_id": 1}
 INFO     app.request:main.py:284 request
 INFO     httpx2:_client.py:1084 HTTP Request: POST http://localhost/api/auth/login "HTTP/1.1 200 OK"
-INFO     trustcopilot.audit:audit.py:34 audit {"ts": "2026-10-29T13:59:46.426805+00:00", "action": "case_study.review", "user_id": 2, "email": "reviewer@trust.local", "workspace_id": 1, "resource_type": "case_study", "resource_id": 55, "decision": "approve", "review_status": "approved"}
+INFO     trustcopilot.audit:audit.py:34 audit {"ts": "2026-10-29T14:09:44.963582+00:00", "action": "case_study.submit_review", "user_id": 3, "email": "admin@trust.local", "workspace_id": 1, "resource_type": "case_study", "resource_id": 135, "revision": 1, "review_status": "pending"}
 INFO     app.request:main.py:284 request
-INFO     httpx2:_client.py:1084 HTTP Request: POST http://localhost/api/case-studies/55/review "HTTP/1.1 200 OK"
-INFO     trustcopilot.audit:audit.py:34 audit {"ts": "2026-10-29T13:59:46.460530+00:00", "action": "auth.login", "user_id": 3, "email": "admin@trust.local", "workspace_id": 1}
-INFO     app.request:main.py:284 request
-INFO     httpx2:_client.py:1084 HTTP Request: POST http://localhost/api/auth/login "HTTP/1.1 200 OK"
-INFO     trustcopilot.audit:audit.py:34 audit {"ts": "2026-10-29T13:59:46.498850+00:00", "action": "auth.login", "user_id": 3, "email": "admin@trust.local", "workspace_id": 1}
+INFO     httpx2:_client.py:1084 HTTP Request: POST http://localhost/api/case-studies/135/submit-review "HTTP/1.1 200 OK"
+INFO     trustcopilot.audit:audit.py:34 audit {"ts": "2026-10-29T14:09:44.996192+00:00", "action": "auth.login", "user_id": 2, "email": "reviewer@trust.local", "workspace_id": 1}
 INFO     app.request:main.py:284 request
 INFO     httpx2:_client.py:1084 HTTP Request: POST http://localhost/api/auth/login "HTTP/1.1 200 OK"
-INFO     trustcopilot.audit:audit.py:34 audit {"ts": "2026-10-29T13:59:46.516890+00:00", "action": "case_study.publish", "user_id": 3, "email": "admin@trust.local", "workspace_id": 1, "resource_type": "case_study", "resource_id": 55, "customer_claim": true, "synthetic": false, "data_basis": "consented_customer", "revision": 1}
+INFO     trustcopilot.audit:audit.py:34 audit {"ts": "2026-10-29T14:09:45.009124+00:00", "action": "case_study.review", "user_id": 2, "email": "reviewer@trust.local", "workspace_id": 1, "resource_type": "case_study", "resource_id": 135, "decision": "approve", "review_status": "approved"}
 INFO     app.request:main.py:284 request
-INFO     httpx2:_client.py:1084 HTTP Request: POST http://localhost/api/case-studies/55/publish "HTTP/1.1 200 OK"
+INFO     httpx2:_client.py:1084 HTTP Request: POST http://localhost/api/case-studies/135/review "HTTP/1.1 200 OK"
+INFO     trustcopilot.audit:audit.py:34 audit {"ts": "2026-10-29T14:09:45.042210+00:00", "action": "auth.login", "user_id": 3, "email": "admin@trust.local", "workspace_id": 1}
+INFO     app.request:main.py:284 request
+INFO     httpx2:_client.py:1084 HTTP Request: POST http://localhost/api/auth/login "HTTP/1.1 200 OK"
+INFO     trustcopilot.audit:audit.py:34 audit {"ts": "2026-10-29T14:09:45.077188+00:00", "action": "auth.login", "user_id": 3, "email": "admin@trust.local", "workspace_id": 1}
+INFO     app.request:main.py:284 request
+INFO     httpx2:_client.py:1084 HTTP Request: POST http://localhost/api/auth/login "HTTP/1.1 200 OK"
+INFO     trustcopilot.audit:audit.py:34 audit {"ts": "2026-10-29T14:09:45.095184+00:00", "action": "case_study.publish", "user_id": 3, "email": "admin@trust.local", "workspace_id": 1, "resource_type": "case_study", "resource_id": 135, "customer_claim": true, "synthetic": false, "data_basis": "consented_customer", "revision": 1}
+INFO     app.request:main.py:284 request
+INFO     httpx2:_client.py:1084 HTTP Request: POST http://localhost/api/case-studies/135/publish "HTTP/1.1 200 OK"
 INFO     app.request:main.py:284 request
 INFO     httpx2:_client.py:1084 HTTP Request: GET http://localhost/openapi.json "HTTP/1.1 200 OK"
 INFO     app.request:main.py:284 request
-INFO     httpx2:_client.py:1084 HTTP Request: GET http://localhost/api/case-studies/55 "HTTP/1.1 200 OK"
+INFO     httpx2:_client.py:1084 HTTP Request: GET http://localhost/api/case-studies/135 "HTTP/1.1 200 OK"
 /tmp/tc-master/apps/api/tests/release/test_domain_case_studies.py:227: AssertionError: typescript is not installed under apps/web. Install web dependencies before this test.
 E   AssertionError: v22.23.4
 
     assert False
-     +  where False = <built-in method startswith of str object at 0x7f49677d9a70>('v24.')
-     +    where <built-in method startswith of str object at 0x7f49677d9a70> = 'v22.23.4\n'.startswith
+     +  where False = <built-in method startswith of str object at 0x7fcc171fa7f0>('v24.')
+     +    where <built-in method startswith of str object at 0x7fcc171fa7f0> = 'v22.23.4\n'.startswith
      +      where 'v22.23.4\n' = CompletedProcess(args=['/exec-daemon/node', '--version'], returncode=0, stdout='v22.23.4\n', stderr='').stdout
 ------------------------------ Captured log call -------------------------------
-INFO     app.core.rate_limit:rate_limit.py:112 Rate-limit backend: in-memory (dev/test)
-INFO     trustcopilot.audit:audit.py:34 audit {"ts": "2026-10-29T14:00:07.858912+00:00", "action": "auth.login", "user_id": 138, "email": "tc21002-admin@trust.local", "workspace_id": 5}
+INFO     app.core.rate_limit:rate_limit.py:110 Rate-limit backend: in-memory (dev/test)
+INFO     trustcopilot.audit:audit.py:34 audit {"ts": "2026-10-29T14:10:07.132311+00:00", "action": "auth.login", "user_id": 138, "email": "tc21002-admin@trust.local", "workspace_id": 5}
 INFO     app.request:main.py:284 request
 INFO     httpx2:_client.py:1084 HTTP Request: POST http://localhost/api/auth/login "HTTP/1.1 200 OK"
 INFO     app.request:main.py:284 request
@@ -154,7 +138,7 @@ tests/release/test_provider_adapter.py: 9 warnings
 tests/release/test_trust_article_slug_workspace.py: 12 warnings
 tests/release/test_upload_enqueue_conflict.py: 28 warnings
 tests/release/test_vendor_request_questionnaire_scope.py: 16 warnings
-tests/release/test_workspace_creation_policy.py: 32 warnings
+tests/release/test_workspace_creation_policy.py: 46 warnings
 tests/test_ai_mappings.py: 53 warnings
 tests/test_alert_management.py: 8 warnings
 tests/test_alerting_engine.py: 12 warnings
@@ -167,10 +151,10 @@ tests/test_auth.py: 11 warnings
 tests/test_auth_flows.py: 2 warnings
 tests/test_auth_sessions_api.py: 5 warnings
 tests/test_auth_workspace.py: 10 warnings
-tests/test_automate_everything.py: 37 warnings
+tests/test_automate_everything.py: 34 warnings
 tests/test_aws_connector.py: 10 warnings
 tests/test_benchmarks.py: 4 warnings
-tests/test_buyer_portal_proof_graph.py: 173 warnings
+tests/test_buyer_portal_proof_graph.py: 345 warnings
 tests/test_case_studies.py: 16 warnings
 tests/test_citation_composer.py: 8 warnings
 tests/test_cloud_connectors.py: 16 warnings
@@ -381,8 +365,8 @@ tests/release/test_job_retries.py::test_write_guard_does_not_protect_llm_error_p
   /tmp/tc-master/apps/api/tests/release/test_job_retries.py:872: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
     newer = datetime.utcnow()
 
-tests/release/test_workspace_creation_policy.py: 18 warnings
-  /tmp/tc-master/apps/api/app/api/routes/workspaces.py:121: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+tests/release/test_workspace_creation_policy.py: 19 warnings
+  /tmp/tc-master/apps/api/app/api/routes/workspaces.py:142: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
     now = datetime.utcnow()
 
 tests/test_dashboard_cards.py::TestAdminCRUD::test_update_card
@@ -412,5 +396,5 @@ tests/test_phase_e_slack_ingest.py::TestControlSuggestions::test_suggestion_revi
 =========================== short test summary info ============================
 FAILED tests/release/test_domain_case_studies.py::test_ac3_schema_consumer_and_persisted_outcome_agree_across_retry
 FAILED tests/release/test_domain_controls.py::test_routes_agree_on_canonical_contract_and_retry
-2 failed, 3113 passed, 11 skipped, 9814 warnings in 172.33s (0:02:52)
+2 failed, 3122 passed, 11 skipped, 9998 warnings in 165.31s (0:02:45)
 MASTER_EXIT:1
