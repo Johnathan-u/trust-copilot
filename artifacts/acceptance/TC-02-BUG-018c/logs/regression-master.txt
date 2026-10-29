@@ -1,0 +1,67 @@
+F....FFFFFFFFF                                                           [100%]
+=================================== FAILURES ===================================
+E   Failed: DID NOT RAISE IntegrityError
+/tmp/trust-master/apps/api/tests/release/test_evidence_gap_one_open_index.py:303: Failed: DID NOT RAISE IntegrityError
+E   assert 1 == 0
+/tmp/trust-master/apps/api/tests/release/test_evidence_gap_one_open_index.py:506: assert 1 == 0
+E   assert 154 == 153
+     +  where 153 = <app.models.evidence_gap.EvidenceGap object at 0x7f20e0f3f170>.id
+/tmp/trust-master/apps/api/tests/release/test_evidence_gap_one_open_index.py:551: assert 154 == 153
+E   AssertionError: PosixPath('/tmp/trust-master/apps/api/alembic/versions/bug018c_one_open_gap.py')
+    assert False
+     +  where False = is_file()
+     +    where is_file = PosixPath('/tmp/trust-master/apps/api/alembic/versions/bug018c_one_open_gap.py').is_file
+/tmp/trust-master/apps/api/tests/release/test_evidence_gap_one_open_index.py:101: AssertionError: PosixPath('/tmp/trust-master/apps/api/alembic/versions/bug018c_one_open_gap.py')
+E   AssertionError: PosixPath('/tmp/trust-master/apps/api/alembic/versions/bug018c_one_open_gap.py')
+    assert False
+     +  where False = is_file()
+     +    where is_file = PosixPath('/tmp/trust-master/apps/api/alembic/versions/bug018c_one_open_gap.py').is_file
+/tmp/trust-master/apps/api/tests/release/test_evidence_gap_one_open_index.py:101: AssertionError: PosixPath('/tmp/trust-master/apps/api/alembic/versions/bug018c_one_open_gap.py')
+E   AssertionError: PosixPath('/tmp/trust-master/apps/api/alembic/versions/bug018c_one_open_gap.py')
+    assert False
+     +  where False = is_file()
+     +    where is_file = PosixPath('/tmp/trust-master/apps/api/alembic/versions/bug018c_one_open_gap.py').is_file
+/tmp/trust-master/apps/api/tests/release/test_evidence_gap_one_open_index.py:101: AssertionError: PosixPath('/tmp/trust-master/apps/api/alembic/versions/bug018c_one_open_gap.py')
+E   AssertionError: PosixPath('/tmp/trust-master/apps/api/alembic/versions/bug018c_one_open_gap.py')
+    assert False
+     +  where False = is_file()
+     +    where is_file = PosixPath('/tmp/trust-master/apps/api/alembic/versions/bug018c_one_open_gap.py').is_file
+/tmp/trust-master/apps/api/tests/release/test_evidence_gap_one_open_index.py:101: AssertionError: PosixPath('/tmp/trust-master/apps/api/alembic/versions/bug018c_one_open_gap.py')
+E   AssertionError: PosixPath('/tmp/trust-master/apps/api/alembic/versions/bug018c_one_open_gap.py')
+    assert False
+     +  where False = is_file()
+     +    where is_file = PosixPath('/tmp/trust-master/apps/api/alembic/versions/bug018c_one_open_gap.py').is_file
+/tmp/trust-master/apps/api/tests/release/test_evidence_gap_one_open_index.py:101: AssertionError: PosixPath('/tmp/trust-master/apps/api/alembic/versions/bug018c_one_open_gap.py')
+E   AssertionError: PosixPath('/tmp/trust-master/apps/api/alembic/versions/bug018c_one_open_gap.py')
+    assert False
+     +  where False = is_file()
+     +    where is_file = PosixPath('/tmp/trust-master/apps/api/alembic/versions/bug018c_one_open_gap.py').is_file
+/tmp/trust-master/apps/api/tests/release/test_evidence_gap_one_open_index.py:101: AssertionError: PosixPath('/tmp/trust-master/apps/api/alembic/versions/bug018c_one_open_gap.py')
+E   AssertionError: PosixPath('/tmp/trust-master/apps/api/alembic/versions/bug018c_one_open_gap.py')
+    assert False
+     +  where False = is_file()
+     +    where is_file = PosixPath('/tmp/trust-master/apps/api/alembic/versions/bug018c_one_open_gap.py').is_file
+/tmp/trust-master/apps/api/tests/release/test_evidence_gap_one_open_index.py:101: AssertionError: PosixPath('/tmp/trust-master/apps/api/alembic/versions/bug018c_one_open_gap.py')
+=============================== warnings summary ===============================
+tests/release/test_evidence_gap_one_open_index.py::test_generation_still_opens_one_gap_and_can_open_again_after_resolve
+tests/release/test_evidence_gap_one_open_index.py::test_generation_still_opens_one_gap_and_can_open_again_after_resolve
+tests/release/test_evidence_gap_one_open_index.py::test_generation_still_opens_one_gap_and_can_open_again_after_resolve
+tests/release/test_evidence_gap_one_open_index.py::test_generation_still_opens_one_gap_and_can_open_again_after_resolve
+tests/release/test_evidence_gap_one_open_index.py::test_generation_treats_unique_violation_as_already_open
+tests/release/test_evidence_gap_one_open_index.py::test_generation_treats_unique_violation_as_already_open
+  /tmp/api-venv/lib/python3.12/site-packages/sqlalchemy/sql/schema.py:3627: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    return util.wrap_callable(lambda ctx: fn(), fn)  # type: ignore
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED tests/release/test_evidence_gap_one_open_index.py::test_second_open_gap_for_the_same_question_is_rejected
+FAILED tests/release/test_evidence_gap_one_open_index.py::test_generation_treats_unique_violation_as_already_open
+FAILED tests/release/test_evidence_gap_one_open_index.py::test_status_update_treats_unique_violation_as_already_open
+FAILED tests/release/test_evidence_gap_one_open_index.py::test_model_index_matches_the_migration
+FAILED tests/release/test_evidence_gap_one_open_index.py::test_prescan_fails_on_duplicate_open_gaps_and_passes_on_clean_data
+FAILED tests/release/test_evidence_gap_one_open_index.py::test_documented_dedupe_closes_older_rows_without_deleting
+FAILED tests/release/test_evidence_gap_one_open_index.py::test_upgrade_downgrade_upgrade_round_trip
+FAILED tests/release/test_evidence_gap_one_open_index.py::test_revision_is_head_or_ancestor_of_every_head
+FAILED tests/release/test_evidence_gap_one_open_index.py::test_revision_id_fits_in_alembic_version_num
+FAILED tests/release/test_evidence_gap_one_open_index.py::test_offline_sql_creates_partial_unique_index_and_downgrade_drops_it
+10 failed, 4 passed, 6 warnings in 0.64s

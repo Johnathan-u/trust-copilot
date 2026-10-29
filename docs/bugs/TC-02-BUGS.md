@@ -164,6 +164,7 @@ title only:
 | TC-02-BUG-018 | `apps/api/app/services/evidence_gap_service.py` (`generate_gaps_for_questionnaire`) | stale state | Regeneration never closed an open gap once its answer became sufficient or its question was removed, so gap totals in the gaps view, export pack, demo proof, benchmarks and executive dashboard overstated missing evidence | worker job (answer generation); totals on request paths | E21 (E11) | Medium |
 | TC-02-BUG-018a | `apps/api/app/models/evidence_gap.py`, `evidence_gap_service.py` | closure metadata in free text | Closure time lived only in `updated_at`, and the code lived in a delimited line of `reason`, so a later edit moved the time and the opening explanation was mixed with closure history | worker job (answer generation); gap payload from `list_evidence_gaps` / `get_evidence_gap` | E21 | Low |
 | TC-02-BUG-018b | `apps/api/app/models/evidence_gap.py`, `alembic/versions/bug018b_gap_status_checks.py` | unconstrained status and close_reason | `evidence_gaps.status` and `close_reason` accepted any string the column width allowed, so a bad write could not be rejected by the database | worker job (answer generation); status helpers on the gap service | E21 | Low |
+| TC-02-BUG-018c | `apps/api/app/models/evidence_gap.py` (`uq_evidence_gaps_one_open_per_question`) | missing constraint | Nothing in the database stopped a second open gap for one question. A scan can also write several open `control_check` rows with a null `question_id`; those are not per question | worker job (answer generation); `update_evidence_gap_status` | E21 | Medium |
 
 ### TC-02-BUG-015: evidence gaps were never generated
 - The LLM gap analyser was removed in `571a158`; the import in answer generation was left behind and its
@@ -202,6 +203,18 @@ title only:
   `update_evidence_gap_status` and `bulk_update_by_title` change status and leave `close_reason`,
   and the 018a backfill leaves `close_reason` NULL on some resolved rows.
 - Ticket `docs/release/bugs/TC-02-BUG-018b.md`.
+
+### TC-02-BUG-018c: at most one open gap per question
+- Regeneration already skips a question that has an open, accepted or dismissed gap, inside
+  `pg_advisory_xact_lock(150015, questionnaire_id)`. A second writer can still insert another open
+  row for that question. `update_evidence_gap_status` can set a second row to `open` without the lock.
+- Fix: partial unique index `uq_evidence_gaps_one_open_per_question` on
+  `(workspace_id, questionnaire_id, question_id)` where
+  `status = 'open' AND question_id IS NOT NULL AND gap_type <> 'control_check'`.
+  TC-21-006 scan rows are `control_check` with a null `question_id` (one open row per control) and
+  are outside the index. Upgrade pre-scans and fails without changing rows when a question already
+  has more than one open gap. Downgrade drops only the index.
+- Ticket `docs/release/bugs/TC-02-BUG-018c.md`.
 
 ## Verified not bugs (no entry)
 - F841 with no hidden logic: `tags.py:87` `dt`, `automation_service.py:161` `summary` (the
