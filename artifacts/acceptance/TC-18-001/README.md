@@ -1,6 +1,27 @@
 # TC-18-001 evidence
 
-Backend logic at `b57cb9bb4154c645947681ba05c2bcf1da6ef194` has independent reviewer acceptance and all four exact-head CI checks GREEN. Sensitive SMTP integration is gated on #86 merging; frontend consumer qualification and migration landing-slot confirmation remain pending. This is not full-ticket completion.
+Original backend logic at `b57cb9bb4154c645947681ba05c2bcf1da6ef194` has independent reviewer acceptance and all four exact-head CI checks GREEN. The continuation below consumes merged sensitive SMTP and the allocated migration slot; it requires fresh independent review and exact-final-head CI. Frontend consumer qualification remains pending. This is not full-ticket completion.
+
+## Coordinator continuation — 2026-10-30
+
+Assignment: #85 comment6510620603. Paused head `3a8f632` is preserved. Pure master merge `f7aee5d30cc6c65ac3efb5806883b9f4397b9bea` has parents `3a8f632` and `0596810`; its tree `4701b9d198f623ea53fc513354bb5a3184b278d2` exactly matches `git merge-tree --write-tree` with no manual resolution. Separate commit `fdd2ebe` changes only the migration parent from `tc10001_job_leases` to the actual landed `tc18002_vendor_lifecycle`. Alembic reports one head: `tc18001_reviewed_replies`.
+
+The consumer now passes `sensitive=True` to the existing SMTP provider. The new eight-case regression uses the real send state machine and SMTP implementation with a synthetic connection, replacing row lookup for this unit boundary. It checks accepted/uncertain outcomes, no second send, and absence of recipient, subject, body or provider exception text in logs for development/production and ports587/465. It does not prove database persistence or live delivery; existing database tests remain required.
+
+Verification with unchanged locked development dependencies and Python3.12:
+
+- Before the consumer fix, the new regression produced **4 expected leakage failures, 4 successful-delivery passes**.
+- After the fix, the focused command below produced **40 passed, 71 deselected**. The sole warning is the existing Alembic `path_separator` deprecation. Ruff check/format passed for changed Python files; `git diff --check` passed.
+- Explicit `TC_REQUIRE_DB=1` execution of `test_public_intake_retry_is_one_persisted_request` exited3 because localhost5432 refused the connection. A full local `pytest -q` attempt was interrupted after the same unavailable-database failures/skips were established; it is **not a passing suite**. Full PostgreSQL acceptance requires the normal CI jobs on the final published head.
+
+```sh
+python -m pytest tests/release/test_trust_reply_smtp.py tests/release/test_sensitive_smtp.py tests/test_trust_request_routing.py tests/release/test_domain_trust_requests.py -q -k 'smtp or schema or revision_reaches or TestResolveWorkspace or TestAttachment or TestToDict or abort_failure or uncertain_commit_retains'
+python -m ruff check app/services/trust_request_service.py tests/release/test_trust_reply_smtp.py
+python -m ruff format --check app/services/trust_request_service.py tests/release/test_trust_reply_smtp.py
+python -m alembic heads
+```
+
+The coordinator records local/published commit and tree identity plus final CI results in #85 and the PR. Earlier green heads below do not qualify this continuation.
 
 ## Executed verification
 
@@ -35,6 +56,6 @@ Independent root review accepted the cleanup/idempotency flow at `b57cb9b` with 
 
 ## Dependencies
 
-Schema/model scope is approved by #85 comment6503678126. Migration `tc18001_reviewed_replies` currently follows `tc10001_job_leases`; its final parent is subject to Coordinator's slot after the preceding backend/auth migrations. Master updates use pure merge commits, never rebase.
+Schema/model scope is approved by #85 comment6503678126. Migration `tc18001_reviewed_replies` now follows `tc18002_vendor_lifecycle` under the next-slot allocation in comment6510620603. Master updates use pure merge commits, never rebase.
 
-Ruling6504557554 assigns safe sensitive SMTP work exclusively to #86. #88 consumes it only after #86 merges; no duplicate shared transport change is included. Shared auth, FileService, main.py and UI are not edited by this ticket. Frontend reviewed-reply consumer qualification remains open. Only TC Coordinator merges.
+Ruling6504557554 assigned safe sensitive SMTP work exclusively to #86, which has merged. #88 now consumes it; no duplicate shared transport change is included. Shared auth, FileService, main.py and UI are not edited by this ticket. Frontend reviewed-reply consumer qualification remains open. Only TC Coordinator merges.

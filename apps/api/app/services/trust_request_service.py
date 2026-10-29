@@ -18,6 +18,7 @@ from app.services.email_service import (
     ConsoleEmailProvider,
     DisabledEmailProvider,
     EmailMessage,
+    SmtpEmailProvider,
     get_email_provider,
 )
 
@@ -254,7 +255,11 @@ def send_reply(
     add_audit(db, "trust_request.reply_sending", req, note, actor)
     db.commit()  # Intent is durable before the network boundary.
     try:
-        accepted = provider.send(message) is True
+        accepted = (
+            provider.send(message, sensitive=True)
+            if isinstance(provider, SmtpEmailProvider)
+            else provider.send(message)
+        ) is True
     except Exception:
         accepted = False
     # False/exception is uncertain: SMTP may have accepted before losing the response.
