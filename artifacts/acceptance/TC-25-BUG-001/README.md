@@ -2,7 +2,7 @@
 
 Base: `8f41a9715c38cec09d767a16e6a31003a30ef8b0`. The coordinator records the local/published tree identity and final CI head in #85 and the PR. No completion claim relies on an older head.
 
-The new test file renders the real DemoProofPage with controlled fetch responses and an injected workspace context. Successful and failed JSON decoding completions are held separately from fetch resolution; network failures are separately controlled. Tests assert visible summary/error state and current loading/saving controls rather than implementation details.
+The new test file renders the real DemoProofPage with controlled fetch responses and an injected workspace context. Response-body completions are held separately from fetch resolution; HTTP and network failures are tested separately. Tests assert visible summary/error state and current loading/saving controls rather than implementation details.
 
 | Check | Result |
 | --- | --- |
