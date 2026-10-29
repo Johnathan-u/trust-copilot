@@ -2,10 +2,16 @@
 
 import { useEffect, useRef, type RefObject } from 'react'
 import {
+  chooseReturnFocus,
   dialogAttributes,
   nextTabbableIndex,
   type DialogRole,
 } from '@/lib/dialog'
+import {
+  isPersistentToastLiveHost,
+  persistentToastRegions,
+  TOAST_LIVE_ROOT_ID,
+} from '@/lib/toast'
 
 const TABBABLE_SELECTOR = [
   'a[href]',
@@ -61,6 +67,14 @@ function resolveInitialFocus(
   return preferred ?? tabbables[0] ?? dialog
 }
 
+function hostsPersistentToastRegion(el: HTMLElement): boolean {
+  if (isPersistentToastLiveHost(el.id)) return true
+  if (el.querySelector(`#${TOAST_LIVE_ROOT_ID}`)) return true
+  return persistentToastRegions().some((region) =>
+    Boolean(el.querySelector(`#${region.id}`))
+  )
+}
+
 function inertOutside(boundary: HTMLElement): HTMLElement[] {
   const changed: HTMLElement[] = []
   let current: HTMLElement | null = boundary
@@ -71,6 +85,7 @@ function inertOutside(boundary: HTMLElement): HTMLElement[] {
       if (!(sibling instanceof HTMLElement) || sibling === current) continue
       if (sibling.hasAttribute('inert')) continue
       if (sibling.getAttribute('aria-hidden') === 'true') continue
+      if (hostsPersistentToastRegion(sibling)) continue
       sibling.setAttribute('inert', '')
       sibling.setAttribute('aria-hidden', 'true')
       sibling.setAttribute('data-tc-inert-applied', '')
@@ -79,6 +94,27 @@ function inertOutside(boundary: HTMLElement): HTMLElement[] {
     current = parent
   }
   return changed
+}
+
+function canTakeReturnFocus(el: HTMLElement): boolean {
+  if (!document.contains(el)) return false
+  if (el.hasAttribute('disabled')) return false
+  if (el.getAttribute('aria-disabled') === 'true') return false
+  if (el.closest('[inert]')) return false
+  if (isHidden(el)) return false
+  const rect = el.getBoundingClientRect()
+  return rect.width > 0 && rect.height > 0
+}
+
+function returnFocusFallbacks(): HTMLElement[] {
+  const found: HTMLElement[] = []
+  const main = document.getElementById('main-content')
+  if (main instanceof HTMLElement) found.push(main)
+  const dockLink = document.querySelector(
+    '[data-sidebar-placement="dock"] a[href]'
+  )
+  if (dockLink instanceof HTMLElement) found.push(dockLink)
+  return found
 }
 
 function restoreInert(elements: HTMLElement[]) {
@@ -201,11 +237,21 @@ export function useDialogBehavior({
       document.removeEventListener('focusin', onFocusIn)
       restoreInert(inerted)
       if (lockScroll) document.body.style.overflow = previousOverflow
-      const back =
-        explicitReturn && document.contains(explicitReturn)
-          ? explicitReturn
-          : previous
-      if (back && document.contains(back)) back.focus()
+      const ordered: HTMLElement[] = []
+      const push = (el: HTMLElement | null) => {
+        if (!el || ordered.includes(el) || !document.contains(el)) return
+        ordered.push(el)
+      }
+      push(explicitReturn)
+      push(previous)
+      for (const fallback of returnFocusFallbacks()) push(fallback)
+      const chosen = chooseReturnFocus(
+        ordered.map((el) => {
+          const available = canTakeReturnFocus(el)
+          return { el, visible: available, focusable: available }
+        })
+      )
+      chosen?.el.focus()
     }
   }, [
     open,

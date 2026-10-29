@@ -1,6 +1,7 @@
 """AUTH-210: Login abuse controls. In-memory (default) or Redis rate limiting."""
 
 import logging
+import math
 import os
 import time
 from collections import defaultdict
@@ -41,6 +42,13 @@ class _InMemoryBackend:
             else:
                 _store[key] = (count + 1, start)
 
+    def retry_after(self, key: str, window_sec: float) -> float:
+        with _lock:
+            if key not in _store:
+                return 0.0
+            _count, start = _store[key]
+            return max(0.0, start + window_sec - _now())
+
 
 class _RedisBackend:
     """Redis-backed rate limit. Uses INCR + EXPIRE for sliding window."""
@@ -69,6 +77,13 @@ class _RedisBackend:
             pipe.execute()
         except Exception:
             pass  # Fail open
+
+    def retry_after(self, key: str, window_sec: float) -> float:
+        try:
+            ttl = self._client.ttl(f"rate:{key}")
+            return float(ttl) if ttl and ttl > 0 else float(window_sec)
+        except Exception:
+            return float(window_sec)
 
 
 def _get_backend():
@@ -124,6 +139,15 @@ def record_attempt(
 ) -> None:
     """Record one attempt for the key (e.g. after a login try or API request)."""
     _backend_instance().record(key, max_attempts, window_sec)
+
+
+def retry_after_seconds(key: str, window_sec: float) -> int:
+    """Whole seconds until the key's current window resets (for a Retry-After header, >= 1)."""
+    try:
+        remaining = _backend_instance().retry_after(key, window_sec)
+    except Exception:
+        remaining = window_sec
+    return max(1, math.ceil(remaining))
 
 
 def get_client_ip(request) -> str:

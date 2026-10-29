@@ -23,11 +23,42 @@ export type DialogSize = (typeof DIALOG_SIZES)[number]
 /** Stable attributes the shell and adopters share. */
 export const dialogAttributes = {
   root: 'data-tc-dialog-root',
+  backdrop: 'data-tc-dialog-backdrop',
   close: 'data-dialog-close',
   /** Present on the least-destructive control inside an alertdialog. */
   initial: 'data-dialog-initial',
   initialDismiss: 'dismiss',
 } as const
+
+/**
+ * First candidate that is both visible and focusable. Hidden triggers, such
+ * as the compact menu button after the viewport docks the sidebar, are
+ * skipped so focus can move to a later fallback.
+ */
+export function chooseReturnFocus<
+  T extends { visible: boolean; focusable: boolean },
+>(candidates: readonly T[]): T | null {
+  for (const candidate of candidates) {
+    if (candidate.visible && candidate.focusable) return candidate
+  }
+  return null
+}
+
+/**
+ * Width reserved beside a drawer so a 320px viewport still has a tap target
+ * on the backdrop. Documented here for tests. The panel classes below are
+ * written out in full so Tailwind can see them; do not interpolate this
+ * value into a class name.
+ */
+export const DRAWER_BACKDROP_STRIP = '2.75rem'
+
+export const dialogContentClass = 'min-h-0 min-w-0 max-w-full text-tc-text'
+
+const drawerStartPanel =
+  'relative z-10 flex h-full max-h-[100dvh] w-[min(20rem,calc(100%-2.75rem))] max-w-[calc(100%-2.75rem)] min-w-0 shrink-0 flex-col overflow-y-auto overscroll-contain border-r border-tc-border p-tc-4 shadow-[var(--tc-shadow)]'
+
+const drawerEndPanel =
+  'relative z-10 flex h-full max-h-[100dvh] w-[min(20rem,calc(100%-2.75rem))] max-w-[calc(100%-2.75rem)] min-w-0 shrink-0 flex-col overflow-y-auto overscroll-contain border-l border-tc-border p-tc-4 shadow-[var(--tc-shadow)]'
 
 export function dialogRoleForDestructive(destructive: boolean): DialogRole {
   return destructive ? 'alertdialog' : 'dialog'
@@ -63,13 +94,11 @@ export const dialogPlacementClass: Record<
   },
   'drawer-start': {
     root: 'fixed inset-0 z-50 flex justify-start',
-    panel:
-      'relative z-10 flex h-full max-h-[100dvh] w-[min(100%,20rem)] flex-col overflow-y-auto overscroll-contain border-r border-tc-border p-tc-4 shadow-[var(--tc-shadow)]',
+    panel: drawerStartPanel,
   },
   'drawer-end': {
     root: 'fixed inset-0 z-50 flex justify-end',
-    panel:
-      'relative z-10 flex h-full max-h-[100dvh] w-[min(100%,20rem)] flex-col overflow-y-auto overscroll-contain border-l border-tc-border p-tc-4 shadow-[var(--tc-shadow)]',
+    panel: drawerEndPanel,
   },
 }
 

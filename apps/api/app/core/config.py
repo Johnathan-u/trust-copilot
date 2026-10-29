@@ -116,6 +116,11 @@ def _rewrite_postgres_docker_hostname_to_localhost(url: str, in_docker: bool) ->
     return urlunsplit((parts.scheme, new_netloc, parts.path, parts.query, parts.fragment))
 
 
+SIGNUP_POLICY_INVITATION_ONLY = "invitation_only"
+SIGNUP_POLICY_SELF_SIGNUP = "self_signup"
+SIGNUP_POLICIES = frozenset({SIGNUP_POLICY_INVITATION_ONLY, SIGNUP_POLICY_SELF_SIGNUP})
+
+
 @lru_cache
 def get_settings():
     """Load and cache settings from env."""
@@ -236,6 +241,28 @@ class Settings:
         # Global API rate limit: requests per minute per IP (0 = disabled)
         _rpm = os.getenv("RATE_LIMIT_RPM_PER_IP", "120").strip()
         self.rate_limit_rpm_per_ip: int = max(0, int(_rpm)) if _rpm.isdigit() else 120
+
+        # Workspace creation (TC-04-001a). Signup policy defaults to invitation-only
+        # (PRODUCT_SPEC.md:51): only an existing workspace owner/admin or a deployment operator
+        # may create a workspace. "self_signup" also lets any email-verified user create one.
+        # Unknown values fail closed to invitation-only.
+        _signup = os.getenv("SIGNUP_POLICY", "").strip().lower().replace("-", "_")
+        self.signup_policy: str = (
+            _signup if _signup in SIGNUP_POLICIES else SIGNUP_POLICY_INVITATION_ONLY
+        )
+        # Max owner/admin workspace memberships per user before creation returns 409 (min 1).
+        _cap = os.getenv("WORKSPACE_ADMIN_CAP_PER_USER", "3").strip()
+        self.workspace_admin_cap_per_user: int = max(1, int(_cap)) if _cap.isdigit() else 3
+        # Max workspace creations per user per hour before 429 (min 1).
+        _wrate = os.getenv("WORKSPACE_CREATE_PER_HOUR", "5").strip()
+        self.workspace_create_per_hour: int = max(1, int(_wrate)) if _wrate.isdigit() else 5
+        # Deployment operators: host-configured, comma-separated account emails. An operator
+        # must also have a verified email. Interim until audited operator grants exist.
+        self.deployment_operator_emails: frozenset[str] = frozenset(
+            e.strip().lower()
+            for e in os.getenv("DEPLOYMENT_OPERATOR_EMAILS", "").split(",")
+            if e.strip()
+        )
 
         self.app_env: str = os.getenv("APP_ENV", "development").strip().lower()
         # Slack/Gmail provider selection (TC-19-001). Unset runtime follows APP_ENV.

@@ -328,6 +328,41 @@ CONTRACT: tuple[ConfigVar, ...] = (
         "Per-IP request limit (0 disables).",
     ),
     ConfigVar(
+        "SIGNUP_POLICY",
+        "enum(invitation_only|self_signup)",
+        "optional",
+        False,
+        "invitation_only",
+        "Who may create a workspace. `invitation_only`: existing workspace owners/admins and deployment "
+        "operators only. `self_signup`: also any user with a verified email. An unknown value acts as "
+        "`invitation_only` and stops a production start.",
+    ),
+    ConfigVar(
+        "WORKSPACE_ADMIN_CAP_PER_USER",
+        "int >= 1",
+        "optional",
+        False,
+        "3",
+        "Most workspaces one user may own or administer; creating beyond it is refused.",
+    ),
+    ConfigVar(
+        "WORKSPACE_CREATE_PER_HOUR",
+        "int >= 1",
+        "optional",
+        False,
+        "5",
+        "Most workspaces one user may create per hour; beyond it the request is throttled.",
+    ),
+    ConfigVar(
+        "DEPLOYMENT_OPERATOR_EMAILS",
+        "comma-separated emails",
+        "optional",
+        False,
+        "unset",
+        "Deployment operator accounts (case-insensitive; email must be verified). Operators may create "
+        "workspaces under `invitation_only`.",
+    ),
+    ConfigVar(
         "TRUSTED_PROXY_IPS",
         "comma-separated IPs",
         "optional",
@@ -770,6 +805,8 @@ _INT_VARS = {
     "EXPORT_ANSWER_COL_OFFSET": None,
     "AUDIT_RETENTION_DAYS": 0,
     "RATE_LIMIT_RPM_PER_IP": 0,
+    "WORKSPACE_ADMIN_CAP_PER_USER": 1,
+    "WORKSPACE_CREATE_PER_HOUR": 1,
     "SMTP_PORT": 1,
 }
 _FLOAT_VARS = ("OPENAI_TEMPERATURE", "MAPPING_RERANK_MIN_CONFIDENCE")
@@ -986,6 +1023,15 @@ def validate_environment(env: Mapping[str, str] | None = None) -> list[Problem]:
                 "must be true/false (1/0, yes/no, on/off) or unset",
                 fatal=production,
             )
+        )
+    signup = env.get("SIGNUP_POLICY")
+    if (
+        signup
+        and signup.strip()
+        and signup.strip().lower().replace("-", "_") not in ("invitation_only", "self_signup")
+    ):
+        problems.append(
+            Problem("SIGNUP_POLICY", "must be invitation_only or self_signup", fatal=production)
         )
     lvl = env.get("LOG_LEVEL")
     if (

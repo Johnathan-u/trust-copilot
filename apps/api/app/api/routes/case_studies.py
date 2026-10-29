@@ -16,9 +16,10 @@ from app.core.audit import audit_log
 from app.core.auth_deps import _resolve_permission
 from app.core.auth_deps import require_can_admin, require_can_review, require_session
 from app.core.database import get_db
+from app.core.idempotency import claim as idempotency_claim
 from app.core.idempotency import get as idempotency_get
+from app.core.idempotency import release as idempotency_release
 from app.core.idempotency import set as idempotency_set
-from app.core.idempotency import try_claim as idempotency_try_claim
 from app.services import case_study_service as cs
 from app.services.case_study_service import CaseStudyError
 
@@ -223,20 +224,29 @@ def _active_consent(result: dict, organization_name: str) -> dict | None:
     return None
 
 
-def _load_cached(db: Session, key: str | None) -> JSONResponse | None:
+def _claim_or_replay(db: Session, key: str | None) -> tuple[JSONResponse | None, str | None]:
+    """Replay a stored response, or claim the key and return this request's owner token.
+
+    The token is passed to set and release. A late finisher whose lease expired and was
+    reclaimed cannot overwrite or release the new owner's claim. Response codes match
+    the previous try_claim path: a stored body is replayed, and an in-progress key is 409.
+    """
     if not key:
-        return None
+        return None, None
     cached = idempotency_get(db, key)
     if cached:
-        return JSONResponse(content=cached[1], status_code=cached[0])
-    if not idempotency_try_claim(db, key):
+        return JSONResponse(content=cached[1], status_code=cached[0]), None
+    # TC-10-003b: keep the owner token so set/release cannot touch a claim reclaimed
+    # after this request's lease expired.
+    owner = idempotency_claim(db, key)
+    if owner is None:
         cached_again = idempotency_get(db, key)
         if cached_again:
-            return JSONResponse(content=cached_again[1], status_code=cached_again[0])
+            return JSONResponse(content=cached_again[1], status_code=cached_again[0]), None
         raise HTTPException(
             status_code=409, detail="Request in progress; retry with same Idempotency-Key"
         )
-    return None
+    return None, owner
 
 
 @router.get("/template", response_model=TemplateResponse)
@@ -565,25 +575,33 @@ async def publish_case_study(
     db: Session = Depends(get_db),
 ):
     key = _idempotency_storage_key(request, session["workspace_id"], case_id)
-    cached = _load_cached(db, key)
+    cached, owner = _claim_or_replay(db, key)
     if cached is not None:
         return cached
     try:
-        result = cs.publish(
-            db,
-            session["workspace_id"],
-            case_id,
-            expected_revision=req.expected_revision,
-        )
-    except CaseStudyError as exc:
+        try:
+            result = cs.publish(
+                db,
+                session["workspace_id"],
+                case_id,
+                expected_revision=req.expected_revision,
+            )
+        except CaseStudyError as exc:
+            db.rollback()
+            body = {"detail": _error_body(exc)}
+            if key:
+                idempotency_set(db, key, exc.status_code, body, owner=owner)
+            return JSONResponse(status_code=exc.status_code, content=body)
+        db.commit()
+    except Exception:
+        # A failed commit leaves the session unusable until it is rolled back.
+        # Release only this request's claim after that, so a retry can claim at once.
         db.rollback()
-        body = {"detail": _error_body(exc)}
         if key:
-            idempotency_set(db, key, exc.status_code, body)
-        return JSONResponse(status_code=exc.status_code, content=body)
-    db.commit()
+            idempotency_release(db, key, owner=owner)
+        raise
     if key:
-        idempotency_set(db, key, 200, result)
+        idempotency_set(db, key, 200, result, owner=owner)
     audit_log(
         "case_study.publish",
         user_id=session.get("user_id"),
