@@ -506,11 +506,7 @@ def test_in_app_claim_rolls_back_with_the_callers_commit(client: TestClient):
 
 @pytest.fixture
 def disposable_role_member() -> int:
-    """Member created for this test only, then deleted with its user.
-
-    The repeated role-change test used to insert ``repeat-role@test.local`` and
-    leave that user and membership in the database.
-    """
+    """Member created for this test only, then deleted with its user."""
     from uuid import uuid4
 
     from app.core.database import SessionLocal
@@ -522,12 +518,6 @@ def disposable_role_member() -> int:
     try:
         db = SessionLocal()
         try:
-            leaked = db.query(User).filter(User.email == "repeat-role@test.local").first()
-            if leaked is not None:
-                db.query(WorkspaceMember).filter(WorkspaceMember.user_id == leaked.id).delete()
-                db.delete(leaked)
-                db.commit()
-            assert db.query(User).filter(User.email == "repeat-role@test.local").count() == 0
             user = User(
                 email=email,
                 password_hash=hash_password("testpass123"),

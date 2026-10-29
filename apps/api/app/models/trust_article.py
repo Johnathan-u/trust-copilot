@@ -2,7 +2,16 @@
 
 from datetime import datetime
 
-from sqlalchemy import Boolean, Column, DateTime, ForeignKey, Integer, String, Text
+from sqlalchemy import (
+    Boolean,
+    Column,
+    DateTime,
+    ForeignKey,
+    Integer,
+    String,
+    Text,
+    UniqueConstraint,
+)
 
 from app.core.database import Base
 
@@ -11,10 +20,13 @@ class TrustArticle(Base):
     """Security/compliance content for Trust Center."""
 
     __tablename__ = "trust_articles"
+    __table_args__ = (
+        UniqueConstraint("workspace_id", "slug", name="uq_trust_articles_workspace_slug"),
+    )
 
     id = Column(Integer, primary_key=True, index=True)
     workspace_id = Column(Integer, ForeignKey("workspaces.id", ondelete="CASCADE"), nullable=True)
-    slug = Column(String(128), nullable=False, unique=True, index=True)
+    slug = Column(String(128), nullable=False)
     category = Column(String(64), nullable=True)  # TC-R-B1: section for dashboard/public layout
     title = Column(String(255), nullable=False)
     content = Column(Text, nullable=True)

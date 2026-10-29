@@ -1,8 +1,27 @@
 """Tests for Trust Center auto-publish (P1-64)."""
 
+import uuid
+
 import pytest
+from sqlalchemy import func, text
+
 from app.models.workspace import Workspace
+from app.models.workspace_control import WorkspaceControl
 from app.services import trust_center_publish_service as tcp
+
+
+def _workspace(db_session, label: str) -> Workspace:
+    suffix = uuid.uuid4().hex[:8]
+    next_id = (db_session.query(func.max(Workspace.id)).scalar() or 0) + 1
+    ws = Workspace(id=next_id, name=f"Synthetic {label}", slug=f"bug019-{label}-{suffix}")
+    db_session.add(ws)
+    db_session.flush()
+    db_session.execute(
+        text(
+            "SELECT setval(pg_get_serial_sequence('workspaces', 'id'), (SELECT MAX(id) FROM workspaces))"
+        )
+    )
+    return ws
 
 
 @pytest.fixture
@@ -23,17 +42,23 @@ def editor_client(client):
 
 class TestTrustCenterPublishService:
     def test_auto_publish(self, db_session):
-        ws = db_session.query(Workspace).first()
+        ws = _workspace(db_session, "publish")
+        db_session.add(
+            WorkspaceControl(workspace_id=ws.id, custom_name="cov", status="implemented")
+        )
+        db_session.flush()
         result = tcp.auto_publish_approved_controls(db_session, ws.id)
-        db_session.commit()
-        assert "total_controls" in result
-        assert "articles_created" in result
-        assert "articles_updated" in result
+        db_session.flush()
+        assert result["total_controls"] == 1
+        assert result["articles_created"] == 1
+        assert result["articles_updated"] == 0
+        articles = tcp.get_published_controls(db_session, ws.id)
+        assert [article["slug"] for article in articles] == ["control-cov"]
 
     def test_get_published(self, db_session):
-        ws = db_session.query(Workspace).first()
+        ws = _workspace(db_session, "empty")
         articles = tcp.get_published_controls(db_session, ws.id)
-        assert isinstance(articles, list)
+        assert articles == []
 
 
 class TestTrustCenterPublishAPI:

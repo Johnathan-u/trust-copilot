@@ -42,6 +42,11 @@ async def create(
     session: dict = Depends(require_can_admin),
     db: Session = Depends(get_db),
 ):
+    source_kind = SOURCE_REF_KINDS.get(body.source_type)
+    if source_kind is not None and body.source_ref_id is None:
+        raise HTTPException(
+            status_code=422, detail=f"source_ref_id is required for source_type {body.source_type}"
+        )
     require_refs(
         db,
         session["workspace_id"],
@@ -52,7 +57,6 @@ async def create(
             ("evidence", body.evidence_ids),
         ],
     )
-    source_kind = SOURCE_REF_KINDS.get(body.source_type)
     if source_kind is not None:
         require_in_workspace(db, session["workspace_id"], source_kind, body.source_ref_id)
     result = svc.create_promise(
