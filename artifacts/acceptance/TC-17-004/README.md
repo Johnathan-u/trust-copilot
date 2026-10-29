@@ -1,5 +1,11 @@
 # TC-17-004 acceptance in progress
 
-Regression-first stage on master `76ae791`. Local locked Python 3.12 pure-schema tests reproduced five failures (length bounds, NUL and blank content). PostgreSQL is unavailable locally, so no DB behavior result is claimed. The existing GitHub CI supplies pinned pgvector16 for required lifecycle, scope, permission, failure and migration tests.
+Regression commit `e26f8284dbb7f02b9b673da5f5456e6edbb62fc9` was tested by [CI run 40922365521](https://github.com/Johnathan-u/trust-copilot/actions/runs/40922365521): **14 failed, 3194 passed, 1 skipped**. The skip is the external blind pack; the failures were the new FAQ lifecycle, source/scope, action and schema cases. Migration, lint, safe collection, pre-commit and web-release-e2e passed. The regression commit intentionally preceded implementation.
 
-No new dependency or live provider is used. Full acceptance requires exact-head CI, lossless migration round-trip and independent review. Evidence will be updated after implementation.
+The current implementation adds content snapshots, same-workspace source references, explicit human review and publication, durable create retry, source-change invalidation, and current membership/role checks. New fixtures restore FAQ, source/history, evidence, audit, idempotency, API-key, membership, user and workspace counts. Rollback archives are asserted absent after re-upgrade; no trigger/FK bypass is used.
+
+Local locked Python 3.12 results: 12 schema/head checks passed, scoped Ruff passed, all 3260 tests collected. Alembic offline SQL compiled before the master-parent update. Local PostgreSQL is unavailable, so PostgreSQL migration, concurrency and API assertions remain **unverified at the implementation SHA** until CI runs the full suite. The added DB cases cover non-default rollback round-trip, edits while downgraded, parent workspace changes, concurrent source limits, failure rollback and stale-session mutations.
+
+The shared `security_page_service` caller still needs the Coordinator's allocation to consume the published-only projection. No full ticket completion is claimed while that caller remains unchanged, migration landing is pending, and independent review/exact-head CI are outstanding. The API assignment does not qualify a new browser editor.
+
+No new dependency, live provider or account call is used. TC Coordinator alone merges.

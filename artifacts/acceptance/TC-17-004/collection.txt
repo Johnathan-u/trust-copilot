@@ -1,0 +1,2 @@
+PYTHONPATH=. python -m pytest --collect-only -q
+3260 tests collected in 8.41s

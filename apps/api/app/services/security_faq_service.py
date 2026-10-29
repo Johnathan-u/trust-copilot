@@ -1,10 +1,15 @@
 """Security and data-handling FAQ service — seed, CRUD, and search."""
 
+import hashlib
+import json
 import logging
+from datetime import datetime, timezone
 
+from fastapi import HTTPException
 from sqlalchemy.orm import Session
 
-from app.models.security_faq import SecurityFAQ
+from app.models import AuditEvent, Document, EvidenceItem, Workspace, WorkspaceMember
+from app.models.security_faq import SecurityFAQ, SecurityFAQRevision, SecurityFAQSource
 
 logger = logging.getLogger(__name__)
 
@@ -137,117 +142,137 @@ DEFAULT_FAQ: list[dict] = [
 DEFAULT_TEMPLATE_NOTICE = "[Template: verify against your deployment before publishing] "
 
 
-def seed_defaults(db: Session, workspace_id: int) -> int:
-    """Seed default FAQ template entries for a workspace. Skips if entries already exist."""
-    existing = (
-        db.query(SecurityFAQ)
-        .filter(
-            SecurityFAQ.workspace_id == workspace_id,
-            SecurityFAQ.is_default == 1,
-        )
-        .count()
-    )
-    if existing > 0:
-        return 0
+def _now():
+    return datetime.now(timezone.utc)
 
-    created = 0
-    for faq in DEFAULT_FAQ:
-        db.add(
-            SecurityFAQ(
-                workspace_id=workspace_id,
-                category=faq["category"],
-                question=faq["question"],
-                answer=DEFAULT_TEMPLATE_NOTICE + faq["answer"],
-                framework_tags=faq.get("framework_tags"),
-                is_default=1,
+
+def _row(db: Session, faq_id: int, workspace_id: int | None = None, *, lock=False):
+    query = db.query(SecurityFAQ).filter(SecurityFAQ.id == faq_id)
+    if workspace_id is not None:
+        query = query.filter(SecurityFAQ.workspace_id == workspace_id)
+    if lock:
+        query = query.with_for_update()
+    return query.first()
+
+
+def _source_ids(db, item):
+    return [
+        r.evidence_item_id
+        for r in db.query(SecurityFAQSource)
+        .filter(SecurityFAQSource.faq_id == item.id)
+        .order_by(SecurityFAQSource.evidence_item_id)
+    ]
+
+
+def _check_sources(db, workspace_id, ids, *, approved=False, lock=False):
+    ids = sorted(set(ids))
+    if len(ids) > 20 or any(isinstance(i, bool) or not isinstance(i, int) or i <= 0 for i in ids):
+        raise HTTPException(422, "Use at most 20 valid evidence identifiers")
+    query = (
+        db.query(EvidenceItem)
+        .filter(EvidenceItem.workspace_id == workspace_id, EvidenceItem.id.in_(ids))
+        .order_by(EvidenceItem.id)
+    )
+    rows = (query.with_for_update(read=True) if lock else query).populate_existing().all()
+    if len(rows) != len(ids):
+        raise HTTPException(404, "Evidence not found")
+    for row in rows:
+        if row.document_id:
+            doc = (
+                db.query(Document.id)
+                .filter(
+                    Document.id == row.document_id,
+                    Document.workspace_id == workspace_id,
+                    Document.deleted_at.is_(None),
+                )
+                .first()
             )
-        )
-        created += 1
-    db.flush()
-    return created
+            if doc is None:
+                raise HTTPException(404, "Evidence not found")
+        if approved and row.approval_status != "approved":
+            raise HTTPException(409, "Evidence must be approved before publication")
+    if approved and not rows:
+        raise HTTPException(409, "Approved source evidence is required")
+    return ids
 
 
-def list_faqs(
-    db: Session,
-    workspace_id: int,
-    category: str | None = None,
-    search: str | None = None,
-    framework: str | None = None,
-) -> list[dict]:
-    """List FAQ entries with optional filters."""
-    q = db.query(SecurityFAQ).filter(SecurityFAQ.workspace_id == workspace_id)
-    if category:
-        q = q.filter(SecurityFAQ.category == category)
-    if framework:
-        q = q.filter(SecurityFAQ.framework_tags.ilike(f"%{framework}%"))
-    if search:
-        q = q.filter(
-            SecurityFAQ.question.ilike(f"%{search}%") | SecurityFAQ.answer.ilike(f"%{search}%")
-        )
-    q = q.order_by(SecurityFAQ.category, SecurityFAQ.id)
-    return [_serialize(f) for f in q.all()]
-
-
-def get_faq(db: Session, faq_id: int) -> dict | None:
-    item = db.query(SecurityFAQ).filter(SecurityFAQ.id == faq_id).first()
-    return _serialize(item) if item else None
-
-
-def create_faq(
-    db: Session,
-    workspace_id: int,
-    category: str,
-    question: str,
-    answer: str,
-    framework_tags: str | None = None,
-) -> dict:
-    """Create a custom FAQ entry."""
-    item = SecurityFAQ(
-        workspace_id=workspace_id,
-        category=category,
-        question=question,
-        answer=answer,
-        framework_tags=framework_tags,
-        is_default=0,
-    )
-    db.add(item)
-    db.flush()
-    return _serialize(item)
-
-
-def update_faq(db: Session, faq_id: int, **updates) -> dict | None:
-    item = db.query(SecurityFAQ).filter(SecurityFAQ.id == faq_id).first()
-    if not item:
-        return None
-    for key in ("category", "question", "answer", "framework_tags"):
-        if key in updates and updates[key] is not None:
-            setattr(item, key, updates[key])
-    db.flush()
-    return _serialize(item)
-
-
-def delete_faq(db: Session, faq_id: int) -> bool:
-    item = db.query(SecurityFAQ).filter(SecurityFAQ.id == faq_id).first()
-    if not item:
-        return False
-    db.delete(item)
-    db.flush()
-    return True
-
-
-def get_categories(db: Session, workspace_id: int) -> list[str]:
-    """Return distinct categories for a workspace."""
+def _evidence_digest(db, item):
     rows = (
-        db.query(SecurityFAQ.category)
-        .filter(SecurityFAQ.workspace_id == workspace_id)
-        .distinct()
-        .order_by(SecurityFAQ.category)
+        db.query(EvidenceItem)
+        .join(SecurityFAQSource, SecurityFAQSource.evidence_item_id == EvidenceItem.id)
+        .filter(SecurityFAQSource.faq_id == item.id, EvidenceItem.workspace_id == item.workspace_id)
+        .order_by(EvidenceItem.id)
         .all()
     )
-    return [r[0] for r in rows]
+    values = [
+        [
+            r.id,
+            r.title,
+            r.source_type,
+            r.document_id,
+            r.source_metadata,
+            r.approval_status,
+            r.approved_by_user_id,
+            r.approved_at.isoformat() if r.approved_at else None,
+        ]
+        for r in rows
+    ]
+    return hashlib.sha256(json.dumps(values, sort_keys=True).encode()).hexdigest()
 
 
-def _serialize(item: SecurityFAQ) -> dict:
+def _check_review_support(db, item, *, lock=False):
+    _check_sources(db, item.workspace_id, _source_ids(db, item), approved=True, lock=lock)
+    if not item.reviewed_evidence_digest or item.reviewed_evidence_digest != _evidence_digest(
+        db, item
+    ):
+        raise HTTPException(409, "Source evidence changed; review the current revision again")
+
+
+def _replace_sources(db, item, ids):
+    ids = _check_sources(db, item.workspace_id, ids)
+    db.query(SecurityFAQSource).filter(SecurityFAQSource.faq_id == item.id).delete(
+        synchronize_session=False
+    )
+    db.flush()
+    db.add_all([SecurityFAQSource(faq_id=item.id, evidence_item_id=i) for i in ids])
+    db.flush()
+
+
+def _snapshot(db, item):
+    existing = db.get(SecurityFAQRevision, (item.id, item.revision))
+    if existing is not None:
+        return
+    db.add(
+        SecurityFAQRevision(
+            faq_id=item.id,
+            revision=item.revision,
+            workspace_id=item.workspace_id,
+            category=item.category,
+            question=item.question,
+            answer=item.answer,
+            framework_tags=item.framework_tags,
+            source_evidence_ids_json=json.dumps(_source_ids(db, item)),
+            synthetic=item.synthetic,
+        )
+    )
+    db.flush()
+
+
+def _audit(db, item, action, actor_id):
+    db.add(
+        AuditEvent(
+            action=f"faq.{action}",
+            user_id=actor_id,
+            workspace_id=item.workspace_id,
+            resource_type="security_faq",
+            resource_id=str(item.id),
+            details=json.dumps({"revision": item.revision}),
+        )
+    )
+    db.flush()
+
+
+def _serialize(item, db=None):
     return {
         "id": item.id,
         "workspace_id": item.workspace_id,
@@ -258,4 +283,257 @@ def _serialize(item: SecurityFAQ) -> dict:
         "is_default": bool(item.is_default),
         "created_at": item.created_at.isoformat() if item.created_at else None,
         "updated_at": item.updated_at.isoformat() if item.updated_at else None,
+        "revision": item.revision,
+        "publication_state": item.publication_state or "unreviewed",
+        "synthetic": item.synthetic if item.synthetic is not None else bool(item.is_default),
+        "reviewed_by_user_id": item.reviewed_by_user_id,
+        "reviewed_at": item.reviewed_at.isoformat() if item.reviewed_at else None,
+        "reviewed_revision": item.reviewed_revision,
+        "published_at": item.published_at.isoformat() if item.published_at else None,
+        "published_revision": item.published_revision,
+        "source_evidence_ids": _source_ids(db, item) if db is not None else [],
     }
+
+
+def seed_defaults(db: Session, workspace_id: int) -> int:
+    db.query(Workspace).filter(Workspace.id == workspace_id).with_for_update().one()
+    if (
+        db.query(SecurityFAQ)
+        .filter(SecurityFAQ.workspace_id == workspace_id, SecurityFAQ.is_default == 1)
+        .count()
+    ):
+        return 0
+    for template in DEFAULT_FAQ:
+        item = SecurityFAQ(
+            workspace_id=workspace_id,
+            category=template["category"],
+            question=template["question"],
+            answer=DEFAULT_TEMPLATE_NOTICE + template["answer"],
+            framework_tags=template.get("framework_tags"),
+            is_default=1,
+            revision=1,
+            publication_state="draft",
+            synthetic=True,
+        )
+        db.add(item)
+        db.flush()
+        _snapshot(db, item)
+    return len(DEFAULT_FAQ)
+
+
+def list_faqs(db: Session, workspace_id: int, category=None, search=None, framework=None):
+    q = db.query(SecurityFAQ).filter(SecurityFAQ.workspace_id == workspace_id)
+    if category:
+        q = q.filter(SecurityFAQ.category == category)
+    if framework:
+        q = q.filter(SecurityFAQ.framework_tags.ilike(f"%{framework}%"))
+    if search:
+        q = q.filter(
+            SecurityFAQ.question.ilike(f"%{search}%") | SecurityFAQ.answer.ilike(f"%{search}%")
+        )
+    return [_serialize(f, db) for f in q.order_by(SecurityFAQ.category, SecurityFAQ.id).all()]
+
+
+def list_published_faqs(db: Session, workspace_id: int):
+    rows = (
+        db.query(SecurityFAQ)
+        .filter(
+            SecurityFAQ.workspace_id == workspace_id,
+            SecurityFAQ.publication_state == "published",
+            SecurityFAQ.synthetic.is_(False),
+            SecurityFAQ.published_revision == SecurityFAQ.revision,
+            SecurityFAQ.reviewed_revision == SecurityFAQ.revision,
+            SecurityFAQ.reviewed_at.is_not(None),
+            SecurityFAQ.reviewed_by_user_id.is_not(None),
+        )
+        .all()
+    )
+    result = []
+    for item in rows:
+        try:
+            _check_review_support(db, item)
+        except HTTPException:
+            continue
+        result.append(_serialize(item, db))
+    return result
+
+
+def get_faq(db: Session, faq_id: int, workspace_id: int | None = None):
+    item = _row(db, faq_id, workspace_id)
+    return _serialize(item, db) if item else None
+
+
+def create_faq(
+    db: Session,
+    workspace_id: int,
+    category: str,
+    question: str,
+    answer: str,
+    framework_tags=None,
+    source_evidence_ids=None,
+    actor_id=None,
+):
+    ids = _check_sources(db, workspace_id, source_evidence_ids or [])
+    item = SecurityFAQ(
+        workspace_id=workspace_id,
+        category=category,
+        question=question,
+        answer=answer,
+        framework_tags=framework_tags,
+        is_default=0,
+        revision=1,
+        publication_state="draft",
+        synthetic=False,
+    )
+    db.add(item)
+    db.flush()
+    _replace_sources(db, item, ids)
+    _snapshot(db, item)
+    _audit(db, item, "created", actor_id)
+    return _serialize(item, db)
+
+
+def update_faq(
+    db: Session, faq_id: int, *, workspace_id=None, actor_id=None, expected_revision=None, **updates
+):
+    item = _row(db, faq_id, workspace_id, lock=True)
+    if item is None:
+        return None
+    if expected_revision is not None and expected_revision != (item.revision or 1):
+        raise HTTPException(409, "FAQ changed; reload before editing")
+    ids = updates.pop("source_evidence_ids", None)
+    if ids is not None:
+        ids = _check_sources(db, item.workspace_id, ids)
+    changed = any(v is not None and getattr(item, k) != v for k, v in updates.items())
+    changed = changed or (ids is not None and _source_ids(db, item) != ids)
+    if not changed:
+        return _serialize(item, db)
+    for key in ("category", "question", "answer", "framework_tags"):
+        if key in updates and updates[key] is not None:
+            setattr(item, key, updates[key])
+    item.revision = (item.revision or 0) + 1
+    item.publication_state = "draft"
+    item.reviewed_by_user_id = item.reviewed_at = item.reviewed_revision = None
+    item.reviewed_evidence_digest = None
+    item.published_at = item.published_revision = None
+    if ids is not None:
+        _replace_sources(db, item, ids)
+    _snapshot(db, item)
+    _audit(db, item, "updated", actor_id)
+    return _serialize(item, db)
+
+
+def transition(db, workspace_id, faq_id, action, expected_revision, actor_id, *, verified=False):
+    item = _row(db, faq_id, workspace_id, lock=True)
+    if item is None:
+        raise HTTPException(404, "FAQ not found")
+    if item.revision is None or item.revision != expected_revision:
+        raise HTTPException(409, "FAQ changed; reload before continuing")
+    if action == "approve":
+        if (
+            not actor_id
+            or not db.query(WorkspaceMember)
+            .filter(
+                WorkspaceMember.workspace_id == workspace_id,
+                WorkspaceMember.user_id == actor_id,
+                WorkspaceMember.suspended.is_(False),
+            )
+            .first()
+        ):
+            raise HTTPException(403, "A current human reviewer is required")
+        if not verified or item.answer.startswith(DEFAULT_TEMPLATE_NOTICE):
+            raise HTTPException(409, "Verify the content and replace template text before approval")
+        _check_sources(db, workspace_id, _source_ids(db, item), approved=True, lock=True)
+        digest = _evidence_digest(db, item)
+        if (
+            item.publication_state in ("approved", "published")
+            and item.reviewed_revision == item.revision
+            and item.reviewed_evidence_digest == digest
+        ):
+            return _serialize(item, db)
+        item.synthetic = False
+        item.publication_state = "approved"
+        item.reviewed_at = _now()
+        item.reviewed_by_user_id = actor_id
+        item.reviewed_revision = item.revision
+        item.reviewed_evidence_digest = digest
+        item.published_at = item.published_revision = None
+    elif action == "publish":
+        if (
+            item.publication_state not in ("approved", "published")
+            or item.reviewed_revision != item.revision
+            or not item.reviewed_at
+            or not item.reviewed_by_user_id
+            or item.synthetic is not False
+        ):
+            raise HTTPException(409, "The current revision must be approved before publication")
+        _check_review_support(db, item, lock=True)
+        if item.publication_state == "published":
+            return _serialize(item, db)
+        item.publication_state = "published"
+        item.published_at = _now()
+        item.published_revision = item.revision
+    elif action == "withdraw":
+        if item.publication_state == "withdrawn":
+            return _serialize(item, db)
+        if item.publication_state != "published":
+            raise HTTPException(409, "Only published content can be withdrawn")
+        item.publication_state = "withdrawn"
+    else:
+        raise ValueError("Unknown FAQ transition")
+    _audit(db, item, action, actor_id)
+    db.flush()
+    return _serialize(item, db)
+
+
+def revisions(db, workspace_id, faq_id):
+    if _row(db, faq_id, workspace_id) is None:
+        raise HTTPException(404, "FAQ not found")
+    result = []
+    for row in (
+        db.query(SecurityFAQRevision)
+        .filter(
+            SecurityFAQRevision.faq_id == faq_id, SecurityFAQRevision.workspace_id == workspace_id
+        )
+        .order_by(SecurityFAQRevision.revision)
+    ):
+        original_ids = json.loads(row.source_evidence_ids_json)
+        visible_ids = [
+            r.id
+            for r in db.query(EvidenceItem.id).filter(
+                EvidenceItem.id.in_(original_ids), EvidenceItem.workspace_id == workspace_id
+            )
+        ]
+        result.append(
+            {
+                "revision": row.revision,
+                "category": row.category,
+                "question": row.question,
+                "answer": row.answer,
+                "framework_tags": row.framework_tags,
+                "source_evidence_ids": sorted(visible_ids),
+                "synthetic": row.synthetic,
+                "created_at": row.created_at.isoformat(),
+            }
+        )
+    return result
+
+
+def delete_faq(db: Session, faq_id: int, workspace_id=None, actor_id=None):
+    item = _row(db, faq_id, workspace_id, lock=True)
+    if item is None:
+        return False
+    _audit(db, item, "deleted", actor_id)
+    db.delete(item)
+    db.flush()
+    return True
+
+
+def get_categories(db: Session, workspace_id: int):
+    return [
+        r[0]
+        for r in db.query(SecurityFAQ.category)
+        .filter(SecurityFAQ.workspace_id == workspace_id)
+        .distinct()
+        .order_by(SecurityFAQ.category)
+    ]
