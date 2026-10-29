@@ -847,13 +847,12 @@ test('evidence choices recover from failure and empty results, and support bound
   page,
 }) => {
   await installApi(page, 'editor')
-  let calls = 0
+  let failSearch = true
   await page.route('**/api/evidence-search?*', (route) => {
     const params = new URL(route.request().url()).searchParams
     expect(params.get('approval_status')).toBe('approved')
     expect(params.get('limit')).toBe('25')
-    calls++
-    if (calls === 1) return json(route, {}, 500)
+    if (failSearch) return json(route, {}, 500)
     if (!params.get('title_query')) return json(route, evidencePage([]))
     const offset = Number(params.get('offset'))
     return json(route, {
@@ -875,6 +874,10 @@ test('evidence choices recover from failure and empty results, and support bound
   ).toHaveCount(0)
   await page.getByRole('button', { name: 'Resolve gap', exact: true }).click()
   const dialog = page.getByRole('dialog')
+  await expect(
+    dialog.getByRole('button', { name: 'Try again', exact: true })
+  ).toBeVisible()
+  failSearch = false
   await dialog.getByRole('button', { name: 'Try again', exact: true }).click()
   await expect(
     dialog.getByText('No approved evidence matches this search.', {

@@ -67,3 +67,32 @@ evidence rejection, body-specific idempotency keys, lost responses, malformed
 acknowledgments, notification partial failure, evidence search/paging and workspace
 switches. Action dialogs attach axe JSON and screenshots at 360/768/1440 widths.
 No local browser pass is claimed; all four exact-head CI checks remain required.
+
+## Exact action implementation verification
+
+Tested remote commit `a6b8558687e3ca60051cc835abdf77b5e1908962`, tree
+`4a0bd4e363815df8da7180d97b3bb0baecc83af2`. The remote merge commit
+`35f44ae07783744b967771202aa4e85107566e95` has parents `f16ca2c` and
+`8060788`; its tree matches the local pure merge. The implementation tree also
+matches the independent review checkpoint `c849b963`.
+
+| Command (apps/web)                                     | Exit | Result                                |
+| ------------------------------------------------------ | ---- | ------------------------------------- |
+| `npm run typecheck`                                    | 0    | Type generation and TypeScript passed |
+| `npm run lint`                                         | 0    | Zero errors/warnings                  |
+| `npm run test:unit`                                    | 0    | 29 files, 184 tests passed            |
+| `npm run build`                                        | 0    | Production build succeeded            |
+| `npx playwright test e2e/release/ui-23.spec.ts --list` | 0    | 22 cases discovered; discovery only   |
+
+`actions-*.log` records these commands against the exact commit. Logs are
+normalized for carriage returns and trailing whitespace only. Independent review
+verified the fix that clears private action notices/selections after a denied
+refresh. The browser suite includes successful action followed by revoked access,
+and checks that recovery does not restore stale confirmation state.
+
+The first action browser run (40936474300, `a6b8558`) passed 85/86 release
+cases, including all action acknowledgments, privacy and responsive axe cases.
+The evidence-search recovery fixture failed because it returned failure only on
+the first mount request; StrictMode may replace that request. The fixture now
+keeps failure active until the test explicitly starts retry. No timeouts, product
+logic or CI triggers were weakened. Final exact-head browser evidence is pending.
