@@ -5,6 +5,8 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useAuth } from '@/contexts/AuthContext'
 import {
+  APP_NAV_LANDMARK_LABEL,
+  APP_SIDEBAR_LANDMARK_LABEL,
   appNavItemsFor,
   isAppNavActive,
   type AppNavItem,
@@ -128,7 +130,7 @@ export function Sidebar({
 
   return (
     <aside
-      aria-label="Application"
+      aria-label={APP_SIDEBAR_LANDMARK_LABEL}
       data-sidebar-placement={onNavigate ? 'drawer' : 'dock'}
       className={`flex min-h-0 min-w-0 flex-col gap-tc-3 overflow-x-hidden overflow-y-auto border-r border-tc-border px-tc-3 py-tc-4 ${className}`}
       style={{ background: 'var(--tc-sidebar)' }}
@@ -167,7 +169,7 @@ export function Sidebar({
       ) : null}
 
       <nav
-        aria-label="Application"
+        aria-label={APP_NAV_LANDMARK_LABEL}
         className="flex min-h-0 min-w-0 flex-col gap-3 pr-0.5"
       >
         <div className="grid gap-tc-1">

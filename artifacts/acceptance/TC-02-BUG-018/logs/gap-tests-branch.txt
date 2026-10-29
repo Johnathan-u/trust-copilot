@@ -1,0 +1,13 @@
+tc10003b_idempotency_owner_token (head)
+============================= test session starts ==============================
+platform linux -- Python 3.11.18, pytest-9.1.1, pluggy-1.7.0
+rootdir: /repo/apps/api
+configfile: pyproject.toml
+plugins: anyio-4.15.1
+collected 50 items
+
+tests/release/test_evidence_gap_generation.py ................           [ 32%]
+tests/release/test_gap_totals_exclude_resolved.py .....                  [ 42%]
+tests/release/test_safe_collection.py ............................s      [100%]
+
+======================== 49 passed, 1 skipped in 22.60s ========================

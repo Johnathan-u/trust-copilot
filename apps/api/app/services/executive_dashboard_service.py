@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session
 from app.models.answer import Answer
 from app.models.credit_ledger import CreditLedger, CreditTransaction  # noqa: F401
 from app.models.document import Document
-from app.models.evidence_gap import EvidenceGap
+from app.models.evidence_gap import GAP_STATUS_RESOLVED, EvidenceGap
 from app.models.questionnaire import Question, Questionnaire
 from app.models.subscription import Subscription
 from app.models.workspace import Workspace
@@ -55,10 +55,23 @@ def _revenue_metrics(db: Session) -> dict:
 def _content_metrics(db: Session) -> dict:
     total_answers = db.query(func.count(Answer.id)).scalar() or 0
     total_questions = db.query(func.count(Question.id)).scalar() or 0
-    gaps = db.query(func.count(EvidenceGap.id)).scalar() or 0
+    # TC-02-BUG-018: resolved gaps are excluded from the gap total and reported separately.
+    gaps = (
+        db.query(func.count(EvidenceGap.id))
+        .filter(EvidenceGap.status != GAP_STATUS_RESOLVED)
+        .scalar()
+        or 0
+    )
+    resolved_gaps = (
+        db.query(func.count(EvidenceGap.id))
+        .filter(EvidenceGap.status == GAP_STATUS_RESOLVED)
+        .scalar()
+        or 0
+    )
     return {
         "total_questions": total_questions,
         "total_answers": total_answers,
         "evidence_gaps": gaps,
+        "evidence_gaps_resolved": resolved_gaps,
         "coverage_pct": round(total_answers / total_questions * 100, 1) if total_questions else 0,
     }

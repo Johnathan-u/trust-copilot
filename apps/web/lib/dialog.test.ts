@@ -27,7 +27,7 @@ describe('dialog primitive contract', () => {
     expect(nextTabbableIndex(-1, 4, false)).toBe(0)
   })
 
-  it('keeps a drawer placement for a later navigation adopter', () => {
+  it('keeps start and end drawer placements on the shared dialog', () => {
     expect(DIALOG_PLACEMENTS).toEqual(['center', 'drawer-start', 'drawer-end'])
     expect(dialogPlacementClass['drawer-end'].root).toContain('justify-end')
     expect(dialogPlacementClass['drawer-start'].root).toContain('justify-start')
