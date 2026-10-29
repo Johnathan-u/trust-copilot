@@ -1,6 +1,10 @@
 # TC-10-001b acceptance evidence
 
-These commands ran on merge `bc6a4dda1376b7de3bdbcaedec4bf946f481ecdd` (`bc6a4dd`). This README commit does not change that code.
+The hardening run below is on `a866047fec1c1b31a4312681a8007408584651b9` (`a866047`). This README commit does not change that code.
+
+`a866047` makes every recovery test in `test_job_leases.py` refuse to run when another eligible running job is present, and it deletes the rows `test_job_retries.py` commits. The suite list was run twice on that SHA. Both passes left `jobs.status = 'running'` at 0.
+
+The earlier merge run was on `bc6a4dda1376b7de3bdbcaedec4bf946f481ecdd` (`bc6a4dd`).
 
 `bc6a4dd` is a pure merge of `origin/master` `80607881320e1fa2c6416c55730eb98a56449f26` (`8060788`) into `ee0389e`. Parents: `ee0389e8c399d0283def77b7d560a12022fb7a21` and `80607881320e1fa2c6416c55730eb98a56449f26`. The merge had no conflicts. Its diff against `ee0389e` is only the files those master commits changed.
 
@@ -20,7 +24,35 @@ Base at branch cut was `b90a1e8de1c455bf27bdf09db4ebb2f71deb70f3` (`b90a1e8`). #
 
 No migration. `jobs.updated_at` and `jobs.started_at` already exist. The grace predicate is `COALESCE(updated_at, started_at) <= now() - grace` under `FOR UPDATE SKIP LOCKED`. An index was not added.
 
-## Commands, exit status, totals
+## Hardening run
+
+Both passes used the same commands, one suite after another, on `a866047`.
+
+| What | Pass 1 | Pass 2 |
+|---|---|---|
+| Ruff check and format | passed | passed |
+| `test_config_contract.py` | 627 passed | 627 passed |
+| `test_job_leases.py` | 24 passed | 24 passed |
+| `test_model_outcomes_threaded.py` | 1 passed | 1 passed |
+| `test_safe_collection.py` | 29 passed | 29 passed |
+| Heads / migration | 4 passed | 4 passed |
+| `test_job_retries.py` | 70 passed | 70 passed |
+| `test_job_idempotency.py` | 47 passed | 47 passed |
+| `test_auto_generate_enqueue_conflict.py` | 5 passed | 5 passed |
+| Running jobs left behind | 0 | 0 |
+
+The four jobs that made the first `bc6a4dd` lease pass return 5 were left by `tests/release/test_job_retries.py`. Its `db` fixture committed and then only closed the session. The same four shapes were created again by the retries suite on `bc6a4dd` (ids 1080, 1083, 1107, 1109) after the earlier set (970, 973, 997, 999) had been classified:
+
+| id | kind | how the test left it |
+|---|---|---|
+| 970, then 1080 | export, attempt 2, payload `questionnaire_id: 0` | `test_claim_increments_attempt_and_clears_schedule` claims the job and leaves it `running` |
+| 973, then 1083 | export, attempt 10, `max_attempts` 50 | `test_claim_stops_at_ceiling_when_max_attempts_is_above_it` claims up to the ceiling and leaves it `running` |
+| 997, then 1107 | generate_answers, attempt 2, `gen.xlsx` | `test_generate_transient_llm_errors_retry_only_failed_questions` sets attempt 2 and leaves it `running` |
+| 999, then 1109 | generate_answers, attempt 1, `gen.xlsx` | `test_generate_bad_request_question_stays_visible_placeholder` runs generation and leaves the job `running` |
+
+Those rows and their `gen.xlsx` questionnaires were deleted from `trustcopilot_test` before the two passes. Idempotency and TC-10-003d already delete rows above their watermark.
+
+## Earlier merge run
 
 | What | Command | SHA | Exit | Totals |
 |---|---|---|---|---|
