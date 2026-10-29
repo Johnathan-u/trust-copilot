@@ -401,28 +401,42 @@ def _settle(db: Session, key: str | None, owner: str | None, payload: dict | Non
             )
 
 
-def _persist_control_checks(db: Session, workspace_id: int, gaps: list[dict]) -> int:
+def _persist_control_checks(db: Session, workspace_id: int, gaps: list[dict]) -> set[int]:
+    """Update open control-check rows. Return control ids a reviewer already decided.
+
+    Accepted, dismissed, and any other non-open status stay as stored. A decided
+    control does not get a second open row, and it is not included in the notify set.
+    """
     if not isinstance(db, Session):
-        return 0
-    existing = {
-        row.control_id: row
-        for row in db.query(EvidenceGap)
+        return set()
+    rows = (
+        db.query(EvidenceGap)
         .filter(
             EvidenceGap.workspace_id == workspace_id,
             EvidenceGap.gap_type == CONTROL_CHECK,
             EvidenceGap.status != "resolved",
         )
         .all()
-        if row.control_id is not None
-    }
+    )
+    open_by_control: dict[int, list[EvidenceGap]] = defaultdict(list)
+    decided: set[int] = set()
+    for row in rows:
+        if row.control_id is None:
+            continue
+        if row.status == "open":
+            open_by_control[row.control_id].append(row)
+        else:
+            decided.add(row.control_id)
     seen: set[int] = set()
     now = datetime.now(timezone.utc)
     for item in gaps:
         control_id = int(item["control_id"])
         seen.add(control_id)
-        row = existing.get(control_id)
+        if control_id in decided:
+            continue
         refs = json.dumps(item["evidence_ids"])
-        if row is None:
+        open_rows = open_by_control.get(control_id) or []
+        if not open_rows:
             db.add(
                 EvidenceGap(
                     workspace_id=workspace_id,
@@ -438,22 +452,23 @@ def _persist_control_checks(db: Session, workspace_id: int, gaps: list[dict]) ->
                 )
             )
         else:
-            row.reason = json.dumps(item["reason"])
-            row.evaluation_state = item["state"]
-            row.rule_code = item["rule"]
-            row.evidence_refs = refs
-            row.next_action = item["next_step"]["action"]
-            row.owner_user_id = item["next_step"]["owner_user_id"]
-            row.status = "open"
-            row.updated_at = now
-    for control_id, row in existing.items():
-        if control_id in seen or row.status != "open":
+            for row in open_rows:
+                row.reason = json.dumps(item["reason"])
+                row.evaluation_state = item["state"]
+                row.rule_code = item["rule"]
+                row.evidence_refs = refs
+                row.next_action = item["next_step"]["action"]
+                row.owner_user_id = item["next_step"]["owner_user_id"]
+                row.updated_at = now
+    for control_id, open_rows in open_by_control.items():
+        if control_id in seen or control_id in decided:
             continue
-        row.status = "resolved"
-        row.closed_at = now
-        row.close_reason = "evidence_sufficient"
-        row.updated_at = now
-    return len(gaps)
+        for row in open_rows:
+            row.status = "resolved"
+            row.closed_at = now
+            row.close_reason = "evidence_sufficient"
+            row.updated_at = now
+    return decided
 
 
 @router.post("/scan-and-notify", response_model=dict)
@@ -486,25 +501,26 @@ def scan_and_notify_gaps(
             payload = {"gaps": len(gaps), "notified": False, "reason": "cooldown"}
         else:
             gaps = global_gaps_list(db, ws, low_confidence_threshold)
-            persisted = _persist_control_checks(db, ws, gaps)
+            decided = _persist_control_checks(db, ws, gaps)
             if isinstance(db, Session):
                 db.commit()
+            actionable = [item for item in gaps if int(item["control_id"]) not in decided]
             payload = {
                 "gaps": len(gaps),
                 "notified": False,
-                "persisted": persisted,
+                "persisted": len(gaps),
                 "states": sorted({item.get("state", "gap") for item in gaps}),
             }
-            if gaps:
+            if actionable:
                 try:
                     body = ", ".join(
                         f"{item.get('state', 'gap')}:{item.get('rule', item.get('gap_reason', 'gap'))}"
-                        for item in gaps[:12]
+                        for item in actionable[:12]
                     )
                     notify_admins(
                         db,
                         ws,
-                        f"{len(gaps)} compliance gap(s) detected",
+                        f"{len(actionable)} compliance gap(s) detected",
                         body,
                         category="warning",
                         link="/dashboard/compliance-gaps",

@@ -22,6 +22,7 @@ from app.core.password import hash_password
 from app.models import (
     ControlEvidenceLink,
     Document,
+    EvidenceGap,
     EvidenceItem,
     EvidenceMetadata,
     User,
@@ -469,6 +470,85 @@ def test_scan_persists_and_retry_does_not_duplicate_notifications(client):
     assert retried.json() == failed.json()
     assert _counts()["evidence_gaps"] == before_gaps + 1
     assert _counts()["in_app_notifications"] == before_notes
+
+
+def _decision_snapshot(gap_ids: list[int]) -> list[tuple]:
+    session = _db()
+    try:
+        rows = session.execute(
+            text(
+                "SELECT id, workspace_id, questionnaire_id, question_id, answer_id, gap_type, "
+                "reason, proposed_policy_addition, suggested_evidence_doc_title, confidence, "
+                "status, created_at, updated_at, closed_at, close_reason, control_id, "
+                "evaluation_state, rule_code, evidence_refs, next_action, owner_user_id "
+                "FROM evidence_gaps WHERE id IN :ids ORDER BY id"
+            ).bindparams(bindparam("ids", expanding=True)),
+            {"ids": gap_ids},
+        ).fetchall()
+        return [tuple(row) for row in rows]
+    finally:
+        session.close()
+
+
+def test_rescan_leaves_accepted_and_dismissed_rows(client):
+    actors = _actors()
+    accepted_control = _control(actors["workspace_id"], f"Accepted {uuid.uuid4().hex[:8]}")
+    dismissed_control = _control(actors["workspace_id"], f"Dismissed {uuid.uuid4().hex[:8]}")
+    session = _db()
+    try:
+        _sync_sequence(session, "evidence_gaps")
+        accepted = EvidenceGap(
+            workspace_id=actors["workspace_id"],
+            gap_type="control_check",
+            reason='{"rule": "no_evidence", "kept": "accepted"}',
+            status="accepted",
+            control_id=accepted_control,
+            evaluation_state="gap",
+            rule_code="no_evidence",
+            evidence_refs="[]",
+            next_action="collect_evidence",
+        )
+        dismissed = EvidenceGap(
+            workspace_id=actors["workspace_id"],
+            gap_type="control_check",
+            reason='{"rule": "no_evidence", "kept": "dismissed"}',
+            status="dismissed",
+            control_id=dismissed_control,
+            evaluation_state="gap",
+            rule_code="no_evidence",
+            evidence_refs="[]",
+            next_action="collect_evidence",
+        )
+        session.add(accepted)
+        session.add(dismissed)
+        session.commit()
+        gap_ids = [accepted.id, dismissed.id]
+    finally:
+        session.close()
+    before_rows = _decision_snapshot(gap_ids)
+    before_gap_count = _counts()["evidence_gaps"]
+    before_notes = _counts()["in_app_notifications"]
+    _login(client, ADMIN_EMAIL, ADMIN_PASSWORD)
+    with patch("app.api.routes.compliance_gaps.notify_admins") as notify:
+        scanned = client.post("/api/compliance/gaps/scan-and-notify")
+    assert scanned.status_code == 200, scanned.text
+    assert scanned.json()["notified"] is False
+    assert notify.called is False
+    assert _decision_snapshot(gap_ids) == before_rows
+    assert _counts()["evidence_gaps"] == before_gap_count
+    assert _counts()["in_app_notifications"] == before_notes
+    session = _db()
+    try:
+        statuses = session.execute(
+            text(
+                "SELECT control_id, status FROM evidence_gaps "
+                "WHERE id IN :ids ORDER BY control_id"
+            ).bindparams(bindparam("ids", expanding=True)),
+            {"ids": gap_ids},
+        ).fetchall()
+    finally:
+        session.close()
+    assert statuses == [(accepted_control, "accepted"), (dismissed_control, "dismissed")]
 
 
 def test_migration_round_trip_restores_gap_evaluation():
