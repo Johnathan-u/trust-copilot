@@ -11,6 +11,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 from app.core.config import Settings, get_settings
+from app.core.session import is_production_env
 from app.services.message_providers.errors import DEV_STUB_LABEL, DEV_STUB_MODE, HTTP_MODE
 
 _TRUE = frozenset({"1", "true", "yes"})
@@ -65,8 +66,7 @@ def resolve_message_provider_selection(
     if raw_stub and raw_stub not in _STUB_VALUES:
         failures.append("MESSAGE_PROVIDER_DEV_STUB must be true or false")
 
-    app_env = (getattr(settings, "app_env", None) or "development").strip().lower()
-    if app_env == "production":
+    if is_production_env({"APP_ENV": getattr(settings, "app_env", None) or "development"}):
         runtime = "production"
         if requested == "development":
             failures.append(

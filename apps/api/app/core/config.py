@@ -355,6 +355,11 @@ class Settings:
         # TRUSTED_ORIGINS = comma-separated list (e.g. "https://app.example.com,https://admin.example.com").
         # If unset, CORS_ORIGINS is used for backward compatibility.
         # If both unset: development = [FRONTEND_URL] + common localhost variants; production = [FRONTEND_URL] only.
+        # Production is the shared helper. Pass an explicit mapping: this object is still
+        # being constructed, so the process-wide get_settings() path must not run.
+        from app.core.session import is_production_env
+
+        _production = is_production_env({"APP_ENV": self.app_env})
         _trusted_raw = os.getenv("TRUSTED_ORIGINS", "").strip()
         if _trusted_raw:
             _origins = [o.strip() for o in _trusted_raw.split(",") if o.strip()]
@@ -362,7 +367,7 @@ class Settings:
             self.trusted_origins: list[str] = list(dict.fromkeys(_normalized))
             # Non-production: also allow common local origins so TRUSTED_ORIGINS from a
             # prod template does not break cookie auth + CSRF on localhost.
-            if self.app_env != "production":
+            if not _production:
                 _dev_defaults = [
                     "https://localhost",
                     "https://localhost:3000",
@@ -382,7 +387,7 @@ class Settings:
                 _origins = [o.strip() for o in _cors_legacy.split(",") if o.strip()]
                 _normalized = [_normalize_origin(o) for o in _origins if _normalize_origin(o)]
                 self.trusted_origins = list(dict.fromkeys(_normalized))
-                if self.app_env != "production":
+                if not _production:
                     _dev_defaults = [
                         "https://localhost",
                         "https://localhost:3000",
@@ -399,7 +404,7 @@ class Settings:
             else:
                 _frontend = _normalize_origin(self.frontend_url)
                 _base = [_frontend] if _frontend else []
-                if self.app_env == "production":
+                if _production:
                     self.trusted_origins = _base if _base else []
                 else:
                     _dev_defaults = [
