@@ -62,7 +62,13 @@ describe('parseCoverageResponse', () => {
       { framework: 'Synthetic', total: 2, drafted: 1 },
     ])
     expect(parsed.recommended_evidence).toEqual([
-      { title: 'Synthetic policy', improves_questions: 1 },
+      {
+        title: 'Synthetic policy',
+        improves_questions: 1,
+        evidence_ids: [],
+        control_ids: [],
+        question_ids: [],
+      },
     ])
     expect(parsed.control_coverage.schema_version).toBe(CONTROL_COVERAGE_SCHEMA)
     expect(parsed.control_coverage.numerator).toBe(1)
@@ -75,6 +81,46 @@ describe('parseCoverageResponse', () => {
     expect(parseCoverageResponse(payload)).toEqual(
       parseCoverageResponse(payload)
     )
+  })
+
+  it('reads provenance ids and leaves a sourceless recommendation empty', () => {
+    const parsed = parseCoverageResponse(
+      body({
+        recommended_evidence: [
+          {
+            title: 'Synthetic policy',
+            improves_questions: 2,
+            evidence_ids: [11],
+            control_ids: [22],
+            question_ids: [33],
+          },
+          { title: 'No source', improves_questions: 0 },
+        ],
+      })
+    )
+    expect(parsed.recommended_evidence[0]).toEqual({
+      title: 'Synthetic policy',
+      improves_questions: 2,
+      evidence_ids: [11],
+      control_ids: [22],
+      question_ids: [33],
+    })
+    expect(parsed.recommended_evidence[1].evidence_ids).toEqual([])
+    expect(parsed.recommended_evidence[1].control_ids).toEqual([])
+    expect(parsed.recommended_evidence[1].question_ids).toEqual([])
+    expect(() =>
+      parseCoverageResponse(
+        body({
+          recommended_evidence: [
+            {
+              title: 'Synthetic policy',
+              improves_questions: 1,
+              evidence_ids: ['11'],
+            },
+          ],
+        })
+      )
+    ).toThrow(/evidence ids/)
   })
 
   it('rejects a missing or unversioned control denominator', () => {
