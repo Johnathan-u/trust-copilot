@@ -1,8 +1,10 @@
 'use client'
 
 import { useCallback, useEffect, useState } from 'react'
-import { Card } from '@/components/ui'
+import { Card, ErrorState, LoadingState } from '@/components/ui'
 import { useAuth } from '@/contexts/AuthContext'
+import type { ApiFailurePresentation } from '@/lib/api-error'
+import { failureOf, isAbortError, readSectionJson } from '@/lib/section-load'
 import { NOTIFICATION_LABELS } from '@/lib/notification-labels'
 
 const NOTIF_LABELS: Record<string, string> = Object.fromEntries(
@@ -651,6 +653,9 @@ export default function AuditPage() {
   const [total, setTotal] = useState(0)
   const [page, setPage] = useState(1)
   const [loading, setLoading] = useState(true)
+  const [loadFailure, setLoadFailure] = useState<ApiFailurePresentation | null>(
+    null
+  )
   const [filter, setFilter] = useState('')
   const [since, setSince] = useState(168)
   const [expanded, setExpanded] = useState<number | null>(null)
@@ -666,20 +671,26 @@ export default function AuditPage() {
     if (filter && !filter.startsWith('cat:')) {
       params.set('action', filter)
     }
+    setLoadFailure(null)
     fetch(`/api/audit/events?${params}`, { credentials: 'include' })
-      .then((r) => (r.ok ? r.json() : { events: [], total: 0 }))
-      .then((d) => {
-        let rows: AuditEvent[] = d.events ?? []
+      .then((r) => readSectionJson(r))
+      .then((data) => {
+        const d = data as { events?: unknown; total?: number } | null
+        if (!d || !Array.isArray(d.events)) throw new Error('malformed')
+        let rows = d.events as AuditEvent[]
         if (filter.startsWith('cat:')) {
           const cat = filter.replace('cat:', '') as Category
           rows = rows.filter((ev) => getConfig(ev.action).category === cat)
         }
         setEvents(rows)
         setTotal(filter.startsWith('cat:') ? rows.length : (d.total ?? 0))
+        setLoadFailure(null)
       })
-      .catch(() => {
+      .catch((error: unknown) => {
+        if (isAbortError(error)) return
         setEvents([])
         setTotal(0)
+        setLoadFailure(failureOf(error))
       })
       .finally(() => setLoading(false))
   }, [page, since, filter])
@@ -752,10 +763,16 @@ export default function AuditPage() {
 
       {/* Event list */}
       <Card className="p-0 overflow-hidden">
-        {loading ? (
+        {loadFailure ? (
           <div className="p-6">
-            <p className="text-[var(--tc-muted)]">Loading...</p>
+            <ErrorState failure={loadFailure} onRetry={() => void load()} />
           </div>
+        ) : loading ? (
+          <LoadingState label="Loading activity" onRetry={() => void load()}>
+            <div className="p-6">
+              <p className="text-tc-label text-tc-muted">Loading activity</p>
+            </div>
+          </LoadingState>
         ) : events.length === 0 ? (
           <div className="p-6">
             <p className="text-[var(--tc-muted)]">

@@ -1,7 +1,8 @@
 'use client'
 
 import { useEffect } from 'react'
-import { Button } from '@/components/ui'
+import { ErrorState } from '@/components/ui'
+import { presentHttpFailure } from '@/lib/api-error'
 
 export default function DashboardError({
   error,
@@ -15,14 +16,11 @@ export default function DashboardError({
   }, [error])
 
   return (
-    <div className="flex min-h-[40vh] flex-col items-center justify-center p-8 text-center">
-      <h2 className="mb-2 text-lg font-semibold text-[var(--tc-text)]">
-        Something went wrong
-      </h2>
-      <p className="mb-6 max-w-md text-sm text-[var(--tc-muted)]">
-        An error occurred loading this section. You can try again.
-      </p>
-      <Button onClick={() => reset()}>Try again</Button>
+    <div className="flex min-h-[40vh] items-center justify-center p-8">
+      <ErrorState
+        failure={presentHttpFailure({ status: 500 })}
+        onRetry={() => reset()}
+      />
     </div>
   )
 }

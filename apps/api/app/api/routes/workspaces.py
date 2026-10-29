@@ -28,12 +28,11 @@ SESSION_MAX_AGE = 86400 * 7
 
 
 def _session_cookie_kwargs(max_age: int) -> dict:
-    s = get_settings()
     return {
         "httponly": True,
         "samesite": "lax",
         "path": "/",
-        "secure": s.app_env == "production",
+        "secure": is_production_env(),
         "max_age": max_age,
     }
 

@@ -4,6 +4,14 @@ import { useCallback, useEffect, useId, useMemo, useState, useRef } from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { useAuth } from '@/contexts/AuthContext'
+import { ErrorState } from '@/components/ui'
+import type { ApiFailurePresentation } from '@/lib/api-error'
+import {
+  listFromPayload,
+  loadSection,
+  sectionFailure,
+} from '@/lib/section-load'
+import { pageMode } from '@/lib/ui-state'
 import { useAISettings, type ResponseStyle } from '@/contexts/AISettingsContext'
 import {
   CommandPalette,
@@ -77,7 +85,12 @@ export function Topbar({ navOpen, onToggleNav, menuButtonRef }: TopbarProps) {
     { id: number; filename: string }[]
   >([])
   const [notificationsOpen, setNotificationsOpen] = useState(false)
-  const [unreadCount, setUnreadCount] = useState(0)
+  const [unreadCount, setUnreadCount] = useState<number | null>(null)
+  const [unreadFailure, setUnreadFailure] =
+    useState<ApiFailurePresentation | null>(null)
+  const [searchAttempt, setSearchAttempt] = useState(0)
+  const [searchFailure, setSearchFailure] =
+    useState<ApiFailurePresentation | null>(null)
   const notificationsAnchorRef = useRef<HTMLDivElement>(null)
   const notificationsPanelId = useId()
   const searchDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -127,10 +140,29 @@ export function Topbar({ navOpen, onToggleNav, menuButtonRef }: TopbarProps) {
   }, [pathname])
 
   const fetchUnread = useCallback(() => {
-    fetch('/api/in-app-notifications/unread-count', { credentials: 'include' })
-      .then((r) => (r.ok ? r.json() : { count: 0 }))
-      .then((d) => setUnreadCount(d.count || 0))
-      .catch(() => setUnreadCount(0))
+    void loadSection(
+      fetch('/api/in-app-notifications/unread-count', {
+        credentials: 'include',
+      }),
+      (data) => {
+        const record =
+          data && typeof data === 'object'
+            ? (data as { count?: unknown })
+            : null
+        if (!record || typeof record.count !== 'number') {
+          throw new Error('malformed')
+        }
+        return record.count
+      }
+    ).then((result) => {
+      if (result.ok) {
+        setUnreadCount(result.data)
+        setUnreadFailure(null)
+        return
+      }
+      setUnreadCount(null)
+      setUnreadFailure(sectionFailure(result))
+    })
   }, [])
 
   useEffect(() => {
@@ -158,34 +190,71 @@ export function Topbar({ navOpen, onToggleNav, menuButtonRef }: TopbarProps) {
     if (q.length < 2 || workspaceId == null) {
       setSearchDocs([])
       setSearchQnrs([])
+      setSearchFailure(null)
       return
     }
-    searchDebounceRef.current = setTimeout(async () => {
-      try {
-        const [docsRes, qnrsRes] = await Promise.all([
+    searchDebounceRef.current = setTimeout(() => {
+      void Promise.all([
+        loadSection(
           fetch(
             `/api/documents/?workspace_id=${workspaceId}&q=${encodeURIComponent(q)}`,
             { credentials: 'include' }
           ),
+          (data) =>
+            listFromPayload<{ id: number; filename: string }>(data, [
+              'items',
+              'documents',
+            ])
+        ),
+        loadSection(
           fetch(
             `/api/questionnaires/?workspace_id=${workspaceId}&q=${encodeURIComponent(q)}`,
             { credentials: 'include' }
           ),
-        ])
-        const docs = docsRes.ok ? await docsRes.json() : []
-        const qnrs = qnrsRes.ok ? await qnrsRes.json() : []
-        setSearchDocs(Array.isArray(docs) ? docs : [])
-        setSearchQnrs(Array.isArray(qnrs) ? qnrs : [])
-      } catch {
-        setSearchDocs([])
-        setSearchQnrs([])
-      }
+          (data) =>
+            listFromPayload<{ id: number; filename: string }>(data, [
+              'items',
+              'questionnaires',
+            ])
+        ),
+      ]).then(([docsResult, qnrsResult]) => {
+        const mode = pageMode(
+          {
+            id: 'documents',
+            label: 'Document search',
+            phase: docsResult.ok
+              ? docsResult.data.length === 0
+                ? 'empty'
+                : 'ready'
+              : 'error',
+            failure: sectionFailure(docsResult),
+          },
+          [
+            {
+              id: 'questionnaires',
+              label: 'Questionnaire search',
+              phase: qnrsResult.ok
+                ? qnrsResult.data.length === 0
+                  ? 'empty'
+                  : 'ready'
+                : 'error',
+              failure: sectionFailure(qnrsResult),
+            },
+          ]
+        )
+        setSearchDocs(docsResult.ok ? docsResult.data : [])
+        setSearchQnrs(qnrsResult.ok ? qnrsResult.data : [])
+        if (mode.mode === 'error') setSearchFailure(mode.failure)
+        else if (mode.mode === 'partial')
+          setSearchFailure(mode.failed[0].failure)
+        else setSearchFailure(null)
+      })
       searchDebounceRef.current = null
     }, SEARCH_DEBOUNCE_MS)
     return () => {
       if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current)
     }
-  }, [query, workspace?.id])
+  }, [query, workspace?.id, searchAttempt])
 
   // Close menu on outside click
   useEffect(() => {
@@ -445,26 +514,49 @@ export function Topbar({ navOpen, onToggleNav, menuButtonRef }: TopbarProps) {
           query={query}
           onQueryChange={setQuery}
           placeholder="Search or jump to action..."
+          alert={
+            searchFailure ? (
+              <div className="px-tc-3 pb-tc-3">
+                <ErrorState
+                  failure={searchFailure}
+                  onRetry={() => setSearchAttempt((value) => value + 1)}
+                />
+              </div>
+            ) : null
+          }
         />
 
-        <div className="relative" ref={notificationsAnchorRef}>
+        <div
+          className="relative flex items-center gap-tc-2"
+          ref={notificationsAnchorRef}
+        >
           <button
             type="button"
             onClick={() => setNotificationsOpen((o) => !o)}
             className="relative grid h-10 w-10 place-items-center rounded-full border border-tc-border bg-tc-surface-raised transition hover:bg-[var(--tc-hover)]"
-            aria-label="Notifications"
+            aria-label={
+              unreadFailure ? 'Notifications, not loaded' : 'Notifications'
+            }
             {...disclosureTriggerProps(notificationsOpen, notificationsPanelId)}
           >
             <span aria-hidden>🔔</span>
-            {unreadCount > 0 && (
+            {unreadCount != null && unreadCount > 0 && !unreadFailure ? (
               <span
-                className="absolute -right-0.5 -top-0.5 flex h-4 min-w-[1rem] items-center justify-center rounded-full px-1 text-[10px] font-semibold text-white"
-                style={{ background: 'var(--tc-danger)' }}
+                className="absolute -right-0.5 -top-0.5 flex h-4 min-w-[1rem] items-center justify-center rounded-full px-1 text-[10px] font-semibold"
+                style={{
+                  background: 'var(--tc-danger-solid)',
+                  color: 'var(--tc-on-danger)',
+                }}
               >
                 {unreadCount > 99 ? '99+' : unreadCount}
               </span>
-            )}
+            ) : null}
           </button>
+          {unreadFailure ? (
+            <span className="text-tc-caption font-semibold text-tc-text">
+              Not loaded
+            </span>
+          ) : null}
           <NotificationsPanel
             open={notificationsOpen}
             onClose={() => setNotificationsOpen(false)}

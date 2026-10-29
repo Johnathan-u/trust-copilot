@@ -1,7 +1,8 @@
 'use client'
 
 import { useEffect } from 'react'
-import { Button } from '@/components/ui'
+import { Button, ErrorState } from '@/components/ui'
+import { presentHttpFailure } from '@/lib/api-error'
 
 export default function Error({
   error,
@@ -15,26 +16,24 @@ export default function Error({
   }, [error])
 
   return (
-    <div className="flex min-h-[50vh] flex-col items-center justify-center p-8 text-center">
-      <h1 className="mb-2 text-xl font-semibold text-[var(--tc-text)]">
-        Something went wrong
-      </h1>
-      <p className="mb-6 max-w-md text-sm text-[var(--tc-muted)]">
-        An unexpected error occurred. You can try again or return to the
-        dashboard.
-      </p>
-      <div className="flex gap-3">
-        <Button onClick={() => reset()}>Try again</Button>
-        <Button
-          variant="ghost"
-          onClick={() => {
-            // eslint-disable-next-line @next/next/no-location-assign-relative-destination -- intentional full page load to reset client auth/workspace state (pre-existing; TC-02-006)
-            window.location.href = '/dashboard'
-          }}
-        >
-          Go to dashboard
-        </Button>
-      </div>
+    <div className="flex min-h-[50vh] items-center justify-center p-8">
+      <ErrorState
+        failure={presentHttpFailure({ status: 500 })}
+        onRetry={() => reset()}
+        headingLevel="h1"
+        secondary={
+          <Button
+            type="button"
+            variant="secondary"
+            onClick={() => {
+              // eslint-disable-next-line @next/next/no-location-assign-relative-destination -- intentional full page load to reset client auth/workspace state (pre-existing; TC-02-006)
+              window.location.href = '/dashboard'
+            }}
+          >
+            Go to dashboard
+          </Button>
+        }
+      />
     </div>
   )
 }
