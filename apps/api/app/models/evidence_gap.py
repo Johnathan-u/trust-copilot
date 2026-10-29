@@ -20,6 +20,9 @@ GAP_STATUSES = ("open", "accepted", "dismissed")
 # report it separately.
 GAP_STATUS_RESOLVED = "resolved"
 ALL_GAP_STATUSES = GAP_STATUSES + (GAP_STATUS_RESOLVED,)
+# A control-check row closes because qualifying evidence now exists.
+# This is not answer_sufficient, which means a questionnaire answer became sufficient.
+CONTROL_CHECK_CLOSE_REASON = "evidence_sufficient"
 
 
 class EvidenceGap(Base):
@@ -65,3 +68,10 @@ class EvidenceGap(Base):
     # accepted and dismissed rows have no closure, and manual status changes do not fill these.
     closed_at = Column(DateTime(timezone=True), nullable=True)
     close_reason = Column(String(32), nullable=True)
+    # TC-21-006 control-scan rows (gap_type control_check). Null on questionnaire gaps.
+    control_id = Column(Integer, nullable=True, index=True)
+    evaluation_state = Column(String(16), nullable=True)
+    rule_code = Column(String(64), nullable=True)
+    evidence_refs = Column(Text, nullable=True)
+    next_action = Column(String(64), nullable=True)
+    owner_user_id = Column(Integer, nullable=True)

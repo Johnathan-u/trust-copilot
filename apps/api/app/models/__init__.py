@@ -34,7 +34,7 @@ from app.models.evidence_item import EvidenceItem, EVIDENCE_SOURCE_TYPES, EVIDEN
 from app.models.control_evidence_link import ControlEvidenceLink
 from app.models.evidence_version import EvidenceVersion
 from app.models.evidence_metadata import EvidenceMetadata
-from app.models.evidence_gap import EvidenceGap, GAP_STATUSES
+from app.models.evidence_gap import CONTROL_CHECK_CLOSE_REASON, EvidenceGap, GAP_STATUSES
 from app.models.question_control_log import QuestionControlLog
 from app.models.control_mapping_override import (
     MAPPING_STATES,
@@ -173,6 +173,7 @@ __all__ = [
     "EvidenceMetadata",
     "EvidenceGap",
     "GAP_STATUSES",
+    "CONTROL_CHECK_CLOSE_REASON",
     "QuestionControlLog",
     "MAPPING_STATES",
     "ControlMappingHistory",

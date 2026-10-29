@@ -1,0 +1,66 @@
+=== repeated 5 ===
+--- run 1 ---
+.....                                                                    [100%]
+=============================== warnings summary ===============================
+tests/release/test_auto_generate_enqueue_conflict.py::test_parse_job_stays_completed_when_auto_generate_enqueue_conflicts
+tests/release/test_auto_generate_enqueue_conflict.py::test_happy_path_enqueues_exactly_one_generate_job
+tests/release/test_auto_generate_enqueue_conflict.py::test_happy_path_enqueues_exactly_one_generate_job
+tests/release/test_auto_generate_enqueue_conflict.py::test_non_conflict_exception_keeps_parse_job_completed
+tests/release/test_auto_generate_enqueue_conflict.py::test_non_conflict_rollback_does_not_drop_committed_parse_completion
+  /tmp/tc-venv/lib/python3.12/site-packages/sqlalchemy/sql/schema.py:3627: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    return util.wrap_callable(lambda ctx: fn(), fn)  # type: ignore
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+5 passed, 5 warnings in 1.58s
+--- run 2 ---
+.....                                                                    [100%]
+=============================== warnings summary ===============================
+tests/release/test_auto_generate_enqueue_conflict.py::test_parse_job_stays_completed_when_auto_generate_enqueue_conflicts
+tests/release/test_auto_generate_enqueue_conflict.py::test_happy_path_enqueues_exactly_one_generate_job
+tests/release/test_auto_generate_enqueue_conflict.py::test_happy_path_enqueues_exactly_one_generate_job
+tests/release/test_auto_generate_enqueue_conflict.py::test_non_conflict_exception_keeps_parse_job_completed
+tests/release/test_auto_generate_enqueue_conflict.py::test_non_conflict_rollback_does_not_drop_committed_parse_completion
+  /tmp/tc-venv/lib/python3.12/site-packages/sqlalchemy/sql/schema.py:3627: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    return util.wrap_callable(lambda ctx: fn(), fn)  # type: ignore
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+5 passed, 5 warnings in 1.48s
+--- run 3 ---
+.....                                                                    [100%]
+=============================== warnings summary ===============================
+tests/release/test_auto_generate_enqueue_conflict.py::test_parse_job_stays_completed_when_auto_generate_enqueue_conflicts
+tests/release/test_auto_generate_enqueue_conflict.py::test_happy_path_enqueues_exactly_one_generate_job
+tests/release/test_auto_generate_enqueue_conflict.py::test_happy_path_enqueues_exactly_one_generate_job
+tests/release/test_auto_generate_enqueue_conflict.py::test_non_conflict_exception_keeps_parse_job_completed
+tests/release/test_auto_generate_enqueue_conflict.py::test_non_conflict_rollback_does_not_drop_committed_parse_completion
+  /tmp/tc-venv/lib/python3.12/site-packages/sqlalchemy/sql/schema.py:3627: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    return util.wrap_callable(lambda ctx: fn(), fn)  # type: ignore
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+5 passed, 5 warnings in 1.47s
+--- run 4 ---
+.....                                                                    [100%]
+=============================== warnings summary ===============================
+tests/release/test_auto_generate_enqueue_conflict.py::test_parse_job_stays_completed_when_auto_generate_enqueue_conflicts
+tests/release/test_auto_generate_enqueue_conflict.py::test_happy_path_enqueues_exactly_one_generate_job
+tests/release/test_auto_generate_enqueue_conflict.py::test_happy_path_enqueues_exactly_one_generate_job
+tests/release/test_auto_generate_enqueue_conflict.py::test_non_conflict_exception_keeps_parse_job_completed
+tests/release/test_auto_generate_enqueue_conflict.py::test_non_conflict_rollback_does_not_drop_committed_parse_completion
+  /tmp/tc-venv/lib/python3.12/site-packages/sqlalchemy/sql/schema.py:3627: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    return util.wrap_callable(lambda ctx: fn(), fn)  # type: ignore
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+5 passed, 5 warnings in 1.44s
+--- run 5 ---
+.....                                                                    [100%]
+=============================== warnings summary ===============================
+tests/release/test_auto_generate_enqueue_conflict.py::test_parse_job_stays_completed_when_auto_generate_enqueue_conflicts
+tests/release/test_auto_generate_enqueue_conflict.py::test_happy_path_enqueues_exactly_one_generate_job
+tests/release/test_auto_generate_enqueue_conflict.py::test_happy_path_enqueues_exactly_one_generate_job
+tests/release/test_auto_generate_enqueue_conflict.py::test_non_conflict_exception_keeps_parse_job_completed
+tests/release/test_auto_generate_enqueue_conflict.py::test_non_conflict_rollback_does_not_drop_committed_parse_completion
+  /tmp/tc-venv/lib/python3.12/site-packages/sqlalchemy/sql/schema.py:3627: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    return util.wrap_callable(lambda ctx: fn(), fn)  # type: ignore
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+5 passed, 5 warnings in 1.45s
