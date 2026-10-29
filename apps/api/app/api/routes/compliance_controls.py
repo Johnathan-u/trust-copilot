@@ -5,6 +5,7 @@ from datetime import datetime
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.core.auth_deps import require_can_admin, require_can_review
@@ -15,6 +16,7 @@ from app.core.metrics import (
     compliance_evidence_linked_total,
 )
 from app.models import (
+    Document,
     Framework,
     FrameworkControl,
     WorkspaceControl,
@@ -135,6 +137,43 @@ def _count_evidence(db: Session, control_id: int) -> int:
     return (
         db.query(ControlEvidenceLink).filter(ControlEvidenceLink.control_id == control_id).count()
     )
+
+
+_VERIFY_DENIED = "Verified status requires approved, current evidence linked in this workspace"
+
+
+def _evidence_qualifies(db: Session, ev: EvidenceItem, workspace_id: int, now: datetime) -> bool:
+    """Approved, same-workspace, not expired, and not tied to a deleted document.
+
+    A missing expiry or freshness date is not treated as expired. Evidence items
+    have no deleted column; a linked document with deleted_at does.
+    """
+    if ev.workspace_id != workspace_id or ev.approval_status != "approved":
+        return False
+    if ev.document_id is not None:
+        doc = db.query(Document).filter(Document.id == ev.document_id).first()
+        if doc is None or doc.workspace_id != workspace_id or doc.deleted_at is not None:
+            return False
+    metas = db.query(EvidenceMetadata).filter(EvidenceMetadata.evidence_id == ev.id).all()
+    for meta in metas:
+        if meta.expires_at is not None and meta.expires_at <= now:
+            return False
+    return True
+
+
+def _has_qualifying_evidence(db: Session, control_id: int, workspace_id: int) -> bool:
+    now = datetime.utcnow()
+    links = db.query(ControlEvidenceLink).filter(ControlEvidenceLink.control_id == control_id).all()
+    for link in links:
+        ev = db.query(EvidenceItem).filter(EvidenceItem.id == link.evidence_id).first()
+        if ev is not None and _evidence_qualifies(db, ev, workspace_id, now):
+            return True
+    return False
+
+
+def _require_qualifying_evidence(db: Session, control_id: int, workspace_id: int) -> None:
+    if not _has_qualifying_evidence(db, control_id, workspace_id):
+        raise HTTPException(status_code=400, detail=_VERIFY_DENIED)
 
 
 @router.get("/stats", response_model=dict)
@@ -420,6 +459,8 @@ def patch_control(
             raise HTTPException(
                 status_code=400, detail=f"Invalid status. Allowed: {WORKSPACE_CONTROL_STATUSES}"
             )
+        if body.status == "verified":
+            _require_qualifying_evidence(db, wc.id, ws)
         if wc.status != body.status:
             compliance_control_status_changed_total.inc()
             logger.info(
@@ -445,9 +486,11 @@ def verify_control(
     session: dict = Depends(require_can_review),
     db: Session = Depends(get_db),
 ):
-    """Mark control as verified. Requires review permission and at least one linked evidence.
+    """Mark control as verified. Requires review permission.
 
-    Records who verified and when. sync_workspace_row copies verified onto the
+    Approved, current, same-workspace evidence must already be linked. A file
+    count is not enough. A repeat while that evidence still qualifies does not
+    change the stored status. sync_workspace_row copies verified onto the
     paired legacy control: lifecycle verified, legacy status implemented.
     """
     ws = session.get("workspace_id")
@@ -458,12 +501,9 @@ def verify_control(
     wc = _ensure_workspace_control(db, control_id, ws)
     if not wc:
         raise HTTPException(status_code=404, detail="Control not found")
-    evidence_count = _count_evidence(db, control_id)
-    if evidence_count < 1:
-        raise HTTPException(
-            status_code=400,
-            detail="At least one linked evidence item is required to verify the control",
-        )
+    _require_qualifying_evidence(db, control_id, ws)
+    if wc.status == "verified":
+        return _workspace_control_dict(wc, db)
     now = datetime.utcnow()
     wc.status = "verified"
     wc.verified_at = now
@@ -592,25 +632,29 @@ def accept_suggested_evidence(
     except CrossWorkspaceReference:
         raise HTTPException(status_code=404, detail=NOT_FOUND_DETAIL)
     title = (body.snippet or ch.text or "")[:255].strip() or f"Chunk {body.chunk_id}"
-    ev = EvidenceItem(
-        workspace_id=ws,
-        document_id=doc_id,
-        source_type="document",
-        title=title,
-    )
-    db.add(ev)
-    db.commit()
-    db.refresh(ev)
     score = max(0, min(1, body.confidence))
-    link = ControlEvidenceLink(
-        control_id=control_id,
-        evidence_id=ev.id,
-        confidence_score=score,
-        verified=False,
-    )
-    db.add(link)
-    db.commit()
+    try:
+        ev = EvidenceItem(
+            workspace_id=ws,
+            document_id=doc_id,
+            source_type="document",
+            title=title,
+        )
+        db.add(ev)
+        db.flush()
+        link = ControlEvidenceLink(
+            control_id=control_id,
+            evidence_id=ev.id,
+            confidence_score=score,
+            verified=False,
+        )
+        db.add(link)
+        db.commit()
+    except Exception:
+        db.rollback()
+        raise
     db.refresh(link)
+    db.refresh(ev)
     compliance_evidence_linked_total.inc()
     logger.info(
         "evidence_linked",
@@ -740,6 +784,21 @@ def set_evidence_verified(
     )
     if not link:
         raise HTTPException(status_code=404, detail="Link not found")
+    if body.verified == link.verified:
+        ev = db.query(EvidenceItem).filter(EvidenceItem.id == link.evidence_id).first()
+        ev_tags = []
+        if ev and ev.workspace_id == ws and ev.document_id:
+            from app.services.tag_service import list_tags_for_document
+
+            ev_tags = list_tags_for_document(db, ev.document_id, ws)
+        return {
+            **_link_dict(link),
+            "evidence": _evidence_dict(ev, tags=ev_tags) if ev and ev.workspace_id == ws else {},
+        }
+    if body.verified:
+        ev = db.query(EvidenceItem).filter(EvidenceItem.id == link.evidence_id).first()
+        if ev is None or not _evidence_qualifies(db, ev, ws, datetime.utcnow()):
+            raise HTTPException(status_code=400, detail=_VERIFY_DENIED)
     link.verified = body.verified
     link.last_verified_at = datetime.utcnow() if body.verified else None
     db.commit()
@@ -810,6 +869,11 @@ def link_evidence(
     )
     if not ev:
         raise HTTPException(status_code=404, detail="Evidence not found")
+    if body.verified and not _evidence_qualifies(db, ev, ws, datetime.utcnow()):
+        raise HTTPException(status_code=400, detail=_VERIFY_DENIED)
+    score = body.confidence_score
+    if score is not None and (score < 0 or score > 1):
+        raise HTTPException(status_code=400, detail="confidence_score must be between 0 and 1")
     existing = (
         db.query(ControlEvidenceLink)
         .filter(
@@ -819,18 +883,32 @@ def link_evidence(
         .first()
     )
     if existing:
-        raise HTTPException(status_code=400, detail="Evidence already linked to this control")
-    score = body.confidence_score
-    if score is not None and (score < 0 or score > 1):
-        raise HTTPException(status_code=400, detail="confidence_score must be between 0 and 1")
+        return _link_dict(existing)
     link = ControlEvidenceLink(
         control_id=control_id,
         evidence_id=body.evidence_id,
         confidence_score=score,
         verified=body.verified,
     )
-    db.add(link)
-    db.commit()
+    try:
+        db.add(link)
+        db.commit()
+    except IntegrityError:
+        db.rollback()
+        existing = (
+            db.query(ControlEvidenceLink)
+            .filter(
+                ControlEvidenceLink.control_id == control_id,
+                ControlEvidenceLink.evidence_id == body.evidence_id,
+            )
+            .first()
+        )
+        if existing is None:
+            raise
+        return _link_dict(existing)
+    except Exception:
+        db.rollback()
+        raise
     db.refresh(link)
     compliance_evidence_linked_total.inc()
     logger.info(
