@@ -1,6 +1,8 @@
-SHA da54ed83697302319ca1b78170248b0e0de1f5fc
+SHA aa4eea92704f4e510b060a7e1792ca68db439e59
+merge 725b9ed88d77da34e253fcd4d46d4cc06ef3468e
+merge parents: 91c55af50d215dd7033ef9d47a193d7d8915ea82 80607881320e1fa2c6416c55730eb98a56449f26
 command: python -m pytest tests/test_compliance_coverage_unit.py tests/release/test_domain_coverage_recommendations.py tests/release/test_domain_compliance_coverage.py -q
-46 passed, 90 warnings in 3.40s
+47 passed, 94 warnings in 2.71s
 exit status: 0
 
 vitest lib/coverageConsumer.test.ts: 5 passed

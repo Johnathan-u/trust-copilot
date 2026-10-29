@@ -1,6 +1,8 @@
 # TC-21-007b: Provenance ids on coverage recommendations
 
-Local only. This branch was not pushed. Framework catalogs stay **BLOCKED** pending **TC-01-007**. No migration. Schema stays `compliance-coverage-controls/v1`.
+Framework catalogs stay **BLOCKED** pending **TC-01-007**. No migration. Schema stays `compliance-coverage-controls/v1`.
+
+A recommendation with no live source stays in the response with empty id lists, so `title` and `improves_questions` do not disappear.
 
 ## Command
 
@@ -18,11 +20,11 @@ npx vitest run lib/coverageConsumer.test.ts
 
 ## SHA
 
-Tests ran on `da54ed83697302319ca1b78170248b0e0de1f5fc`. That commit is the parent of this evidence commit.
+Tests ran on `aa4eea92704f4e510b060a7e1792ca68db439e59`. That commit is the parent of this evidence commit.
 
 ## Totals
 
 | Command | Exit | Total |
 | --- | --- | --- |
-| The three pytest files above | 0 | 46 passed, 90 warnings, 3.40s |
+| The three pytest files above | 0 | 47 passed, 94 warnings, 2.71s |
 | `coverageConsumer.test.ts` | 0 | 5 passed |
