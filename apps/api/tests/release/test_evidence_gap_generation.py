@@ -13,7 +13,6 @@ from __future__ import annotations
 
 import json
 import logging
-import re
 import threading
 import time
 import uuid
@@ -430,21 +429,23 @@ def test_regeneration_resolves_gap_when_answer_becomes_sufficient(db_session: Se
     closed = gaps[gap1_id]
     assert closed.status == "resolved"
     assert closed.question_id == q1.id
-    # Original reason kept byte for byte; closure note on its own delimited final line.
-    original, note = closed.reason.rsplit("\n", 1)
-    assert original == opened_reason
-    assert re.fullmatch(
-        r"\[resolved on regeneration: answer_sufficient at \d{4}-\d\d-\d\dT\d\d:\d\d:\d\dZ\]",
-        note,
-    ), note
+    # Original reason kept byte for byte. Closure is the columns, not a note on reason.
+    assert closed.reason == opened_reason
+    assert closed.close_reason == "answer_sufficient"
+    assert closed.closed_at is not None
+    closed_at = closed.closed_at
     assert closed.updated_at is not None and closed.updated_at >= opened_at
     assert gaps[gap2.id].status == "open"
+    assert gaps[gap2.id].close_reason is None and gaps[gap2.id].closed_at is None
     assert result == {"generated": 0, "total_insufficient": 1, "resolved": 1}
 
-    # Rerun is a no-op; the note is not appended twice.
+    # Rerun is a no-op; the closure columns are not rewritten.
     again = generate_gaps_for_questionnaire(db, WS_ID, qnr.id)
     assert again == {"generated": 0, "total_insufficient": 1, "resolved": 0}
-    assert _gaps(db, qnr.id)[0].reason.count("answer_sufficient") == 1
+    rerun = _gaps(db, qnr.id)[0]
+    assert rerun.reason == opened_reason
+    assert rerun.close_reason == "answer_sufficient"
+    assert rerun.closed_at == closed_at
 
     # Insufficient again -> one new open gap; the resolved row stays as history.
     _set_answer(db, q1.id, **_INSUFFICIENT)
@@ -453,6 +454,10 @@ def test_regeneration_resolves_gap_when_answer_becomes_sufficient(db_session: Se
     q1_gaps = sorted((g for g in _gaps(db, qnr.id) if g.question_id == q1.id), key=lambda g: g.id)
     assert [g.status for g in q1_gaps] == ["resolved", "open"]
     assert q1_gaps[0].id == gap1_id
+    assert q1_gaps[0].reason == opened_reason
+    assert q1_gaps[0].close_reason == "answer_sufficient"
+    assert q1_gaps[0].closed_at == closed_at
+    assert q1_gaps[1].closed_at is None and q1_gaps[1].close_reason is None
 
 
 def test_regeneration_resolves_gap_when_question_is_removed(db_session: Session, qnr):
@@ -463,7 +468,8 @@ def test_regeneration_resolves_gap_when_question_is_removed(db_session: Session,
     db.add_all([_insufficient(q1.id), _insufficient(q2.id)])
     db.commit()
     generate_gaps_for_questionnaire(db, WS_ID, qnr.id)
-    gap2_id = next(g.id for g in _gaps(db, qnr.id) if g.question_id == q2.id)
+    gap2 = next(g for g in _gaps(db, qnr.id) if g.question_id == q2.id)
+    gap2_id, gap2_reason = gap2.id, gap2.reason
 
     # The question is removed from the questionnaire (FKs on the gap are ON DELETE SET NULL).
     db.query(Answer).filter(Answer.question_id == q2.id).delete(synchronize_session=False)
@@ -476,9 +482,9 @@ def test_regeneration_resolves_gap_when_question_is_removed(db_session: Session,
     removed = gaps[gap2_id]
     assert removed.question_id is None
     assert removed.status == "resolved"
-    assert removed.reason.splitlines()[-1].startswith(
-        "[resolved on regeneration: question_removed at "
-    )
+    assert removed.reason == gap2_reason
+    assert removed.close_reason == "question_removed"
+    assert removed.closed_at is not None
     assert removed.reason.splitlines()[0].startswith("No workspace evidence supports")
     assert [g.status for g in gaps.values() if g.question_id == q1.id] == ["open"]
     assert result == {"generated": 0, "total_insufficient": 1, "resolved": 1}
@@ -497,7 +503,7 @@ def test_regeneration_preserves_manually_accepted_and_dismissed_gaps(db_session:
     by_q[q2.id].status = "dismissed"
     db.commit()
     manual = {
-        g.question_id: (g.status, g.reason, g.updated_at)
+        g.question_id: (g.status, g.reason, g.updated_at, g.closed_at, g.close_reason)
         for g in _gaps(db, qnr.id)
         if g.question_id in (q1.id, q2.id)
     }
@@ -507,12 +513,16 @@ def test_regeneration_preserves_manually_accepted_and_dismissed_gaps(db_session:
     result = generate_gaps_for_questionnaire(db, WS_ID, qnr.id)
     after = {g.question_id: g for g in _gaps(db, qnr.id)}
     assert after[q3.id].status == "resolved"
-    for qid, (status, reason, updated_at) in manual.items():
-        assert (after[qid].status, after[qid].reason, after[qid].updated_at) == (
-            status,
-            reason,
-            updated_at,
-        )
+    assert after[q3.id].close_reason == "answer_sufficient"
+    assert after[q3.id].closed_at is not None
+    for qid, (status, reason, updated_at, closed_at, close_reason) in manual.items():
+        assert (
+            after[qid].status,
+            after[qid].reason,
+            after[qid].updated_at,
+            after[qid].closed_at,
+            after[qid].close_reason,
+        ) == (status, reason, updated_at, closed_at, close_reason)
     assert result == {"generated": 0, "total_insufficient": 0, "resolved": 1}
 
     # User decisions still block a duplicate when the answers turn insufficient again.
@@ -531,7 +541,10 @@ def test_regeneration_leaves_llm_error_placeholders_untouched(db_session: Sessio
     db.add_all([_insufficient(q1.id), _insufficient(q3.id)])
     db.commit()
     generate_gaps_for_questionnaire(db, WS_ID, qnr.id)
-    before = {g.question_id: (g.id, g.status, g.reason, g.updated_at) for g in _gaps(db, qnr.id)}
+    before = {
+        g.question_id: (g.id, g.status, g.reason, g.updated_at, g.closed_at, g.close_reason)
+        for g in _gaps(db, qnr.id)
+    }
 
     # q1's rerun hit a provider failure: TC-10-002 placeholder. q2 only has a placeholder.
     # q3 got evidence, so its gap closes (the part that fails on ce4d861).
@@ -544,8 +557,18 @@ def test_regeneration_leaves_llm_error_placeholders_untouched(db_session: Sessio
     after = {g.question_id: g for g in _gaps(db, qnr.id)}
     assert set(after) == {q1.id, q3.id}  # no gap opened for the q2 placeholder
     g1 = after[q1.id]
-    assert (g1.id, g1.status, g1.reason, g1.updated_at) == before[q1.id]  # not closed
+    assert (
+        g1.id,
+        g1.status,
+        g1.reason,
+        g1.updated_at,
+        g1.closed_at,
+        g1.close_reason,
+    ) == before[q1.id]  # not closed
     assert after[q3.id].status == "resolved"
+    assert after[q3.id].close_reason == "answer_sufficient"
+    assert after[q3.id].closed_at is not None
+    assert after[q3.id].reason == before[q3.id][2]
     assert result == {"generated": 0, "total_insufficient": 0, "resolved": 1}
 
 
@@ -616,7 +639,9 @@ def test_concurrent_regeneration_resolves_once_and_keeps_one_open_gap(db_session
         assert open_qids == [q2.id, q3.id], f"trial {trial}: open gaps for {open_qids}"
         (q1_gap,) = [g for g in gaps if g.question_id == q1.id]
         assert q1_gap.status == "resolved"
-        assert q1_gap.reason.count("answer_sufficient") == 1
+        assert q1_gap.close_reason == "answer_sufficient"
+        assert q1_gap.closed_at is not None
+        assert q1_gap.reason == "Synthetic earlier gap."
         assert sorted(g.status for g in gaps if g.question_id == q3.id) == ["open", "resolved"]
         assert sum(r["resolved"] for r in results) == 1
         assert sum(r["generated"] for r in results) == 1
@@ -639,7 +664,10 @@ def test_regeneration_keeps_gap_open_when_answer_is_rejected_or_flagged(
     db.add_all([_insufficient(q1.id), _insufficient(q2.id)])
     db.commit()
     generate_gaps_for_questionnaire(db, WS_ID, qnr.id)
-    before = {g.question_id: (g.id, g.reason, g.updated_at) for g in _gaps(db, qnr.id)}
+    before = {
+        g.question_id: (g.id, g.reason, g.updated_at, g.closed_at, g.close_reason)
+        for g in _gaps(db, qnr.id)
+    }
 
     # A reviewer (or the system) judged q1's new answer not good enough; q2 got a grounded draft.
     _set_answer(db, q1.id, **{**_SUFFICIENT, "status": judged_status})
@@ -649,8 +677,11 @@ def test_regeneration_keeps_gap_open_when_answer_is_rejected_or_flagged(
     after = {g.question_id: g for g in _gaps(db, qnr.id)}
     g1 = after[q1.id]
     assert g1.status == "open"
-    assert (g1.id, g1.reason, g1.updated_at) == before[q1.id]
+    assert (g1.id, g1.reason, g1.updated_at, g1.closed_at, g1.close_reason) == before[q1.id]
     assert after[q2.id].status == "resolved"
+    assert after[q2.id].close_reason == "answer_sufficient"
+    assert after[q2.id].closed_at is not None
+    assert after[q2.id].reason == before[q2.id][1]
     assert result == {"generated": 0, "total_insufficient": 0, "resolved": 1}
 
     # A second answer row that is sufficient does not outvote the rejected/flagged one.
@@ -661,6 +692,7 @@ def test_regeneration_keeps_gap_open_when_answer_is_rejected_or_flagged(
 
 
 def test_resolution_note_format_is_delimited_and_keeps_reason():
+    """Grammar of the historical note. New closures do not append it; the migration parses it."""
     from datetime import datetime, timedelta, timezone
 
     from app.services.evidence_gap_service import append_resolution_note

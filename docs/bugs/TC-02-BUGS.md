@@ -162,6 +162,7 @@ title only:
 |---|---|---|---|---|---|---|
 | TC-02-BUG-015 | `apps/api/app/services/answer_generation.py` + `evidence_gap_service.py` | missing function, swallowed error | Answer generation imported a `generate_gaps_for_questionnaire` that no longer existed and a broad `except` dropped the `ImportError`, so no evidence gap was ever written and `gaps_generated` was always 0 | worker job (answer generation), not a request | E11 (E21 gaps) | Medium |
 | TC-02-BUG-018 | `apps/api/app/services/evidence_gap_service.py` (`generate_gaps_for_questionnaire`) | stale state | Regeneration never closed an open gap once its answer became sufficient or its question was removed, so gap totals in the gaps view, export pack, demo proof, benchmarks and executive dashboard overstated missing evidence | worker job (answer generation); totals on request paths | E21 (E11) | Medium |
+| TC-02-BUG-018a | `apps/api/app/models/evidence_gap.py`, `evidence_gap_service.py` | closure metadata in free text | Closure time lived only in `updated_at`, and the code lived in a delimited line of `reason`, so a later edit moved the time and the opening explanation was mixed with closure history | worker job (answer generation); gap payload from `list_evidence_gaps` / `get_evidence_gap` | E21 | Low |
 
 ### TC-02-BUG-015: evidence gaps were never generated
 - The LLM gap analyser was removed in `571a158`; the import in answer generation was left behind and its
@@ -176,8 +177,17 @@ title only:
   answer (not insufficient, rejected or flagged), with the system-only status `resolved`, inside the same
   advisory lock. Rows are never deleted; the closure is appended to `reason` on a delimited line.
 - User- and buyer-facing gap totals exclude `resolved` and report it separately.
-- Ticket `docs/release/bugs/TC-02-BUG-018.md`. Follow-up TC-02-BUG-018a (proper `closed_at` /
-  `close_reason` columns, needs a migration): `docs/release/bugs/TC-02-BUG-018a.md`.
+- Ticket `docs/release/bugs/TC-02-BUG-018.md`.
+
+### TC-02-BUG-018a: record gap closure in dedicated columns
+- `evidence_gaps` had no `closed_at` or `close_reason`. TC-02-BUG-018 set `status = resolved`, bumped
+  `updated_at` and appended `[resolved on regeneration: <code> at <UTC ISO>Z]` to `reason`.
+- Fix: nullable `closed_at TIMESTAMPTZ` and `close_reason VARCHAR(32)`. New closures write those
+  columns and leave `reason` unchanged. The migration backfills already-resolved rows from the last
+  note line, falling back to `updated_at` for `closed_at` and NULL `close_reason` when the line is
+  missing, and does not rewrite `reason`. Accepted, dismissed and open rows are not backfilled.
+  Manual status changes do not write the columns. No API route sets a resolved gap back to open.
+- Ticket `docs/release/bugs/TC-02-BUG-018a.md`.
 
 ## Verified not bugs (no entry)
 - F841 with no hidden logic: `tags.py:87` `dt`, `automation_service.py:161` `summary` (the

@@ -108,23 +108,30 @@ def _lock_questionnaire_gap_writes(db: Session, questionnaire_id: int) -> None:
 # human or system judgement that the answer is not good enough (rejected / flagged). Any other
 # status (draft, approved) counts as a sufficient answer.
 GAP_BLOCKING_ANSWER_STATUSES = (INSUFFICIENT_STATUS, "rejected", "flagged")
-# Closure codes appended to ``EvidenceGap.reason`` when regeneration resolves a gap.
+# Closure codes stored on ``EvidenceGap.close_reason`` when regeneration resolves a gap.
 RESOLVED_QUESTION_REMOVED = "question_removed"
 RESOLVED_ANSWER_SUFFICIENT = "answer_sufficient"
-# Delimiter of the appended closure note. The original reason is kept byte for byte, then a newline,
-# then ``[resolved on regeneration: <code> at <UTC ISO-8601, seconds, Z>]``. Interim until
-# TC-02-BUG-018a adds closed_at / close_reason columns.
+# Historical note TC-02-BUG-018 appended to ``reason`` before closed_at / close_reason existed.
+# New closures do not append it. The 018a migration parses the last line of ``reason`` with this
+# grammar (``NOTE_LINE_RE`` in the revision) and leaves the text in place.
 RESOLUTION_NOTE_PREFIX = "[resolved on regeneration: "
 
 
 def resolution_note(code: str, at: datetime) -> str:
-    """The closure note, e.g. ``[resolved on regeneration: answer_sufficient at 2026-10-27T14:00:00Z]``."""
+    """Historical closure note, not written by new closures.
+
+    ``[resolved on regeneration: answer_sufficient at 2026-10-27T14:00:00Z]``
+    """
     ts = at.astimezone(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
     return f"{RESOLUTION_NOTE_PREFIX}{code} at {ts}]"
 
 
 def append_resolution_note(reason: str | None, code: str, at: datetime) -> str:
-    """Original reason unchanged, closure note on its own final line."""
+    """Historical helper: original reason unchanged, closure note on its own final line.
+
+    ``generate_gaps_for_questionnaire`` does not call this. The migration backfill parses
+    rows that already contain the note.
+    """
     note = resolution_note(code, at)
     return f"{reason}\n{note}" if reason else note
 
@@ -136,9 +143,9 @@ def generate_gaps_for_questionnaire(db: Session, workspace_id: int, questionnair
       Accepted and dismissed gaps are user decisions and are never reopened or duplicated.
     - Closes (TC-02-BUG-018) open gaps whose question no longer exists in the questionnaire
       (``question_removed``) or whose question now has answers and none is insufficient, rejected
-      or flagged (``answer_sufficient``). Closing sets ``status="resolved"``, bumps ``updated_at``
-      and appends ``\n[resolved on regeneration: <code> at <UTC ISO ts>]`` to ``reason``, keeping
-      the original text intact. Rows are never deleted. If the answer later becomes
+      or flagged (``answer_sufficient``). Closing sets ``status="resolved"``, ``close_reason``
+      to that code, and ``closed_at`` and ``updated_at`` to the closure time. ``reason`` is left
+      unchanged (TC-02-BUG-018a). Rows are never deleted. If the answer later becomes
       insufficient again, a new open gap is created and the resolved row stays as history.
     - Model-failure placeholders (``insufficient_reason == "llm_error"`` or a ``model_*`` outcome)
       neither open nor close a gap. Neither does a question with no answer row yet.
@@ -211,7 +218,8 @@ def generate_gaps_for_questionnaire(db: Session, workspace_id: int, questionnair
             # answered yet: the gap stays open.
             continue
         gap.status = GAP_STATUS_RESOLVED
-        gap.reason = append_resolution_note(gap.reason, code, now)
+        gap.close_reason = code
+        gap.closed_at = now
         gap.updated_at = now
         resolved += 1
 
@@ -301,7 +309,10 @@ def update_evidence_gap_status(
     workspace_id: int,
     new_status: Literal["open", "accepted", "dismissed"],
 ) -> dict | None:
-    """Update the status of a single evidence gap. Returns updated dict or None if not found."""
+    """Update the status of a single evidence gap. Returns updated dict or None if not found.
+
+    Does not write ``closed_at`` or ``close_reason``. Only regeneration closing a gap does.
+    """
     if new_status not in GAP_STATUSES:
         raise ValueError(f"Invalid status: {new_status}. Must be one of {GAP_STATUSES}")
     gap = (
@@ -324,7 +335,10 @@ def bulk_update_by_title(
     suggested_title: str,
     new_status: Literal["open", "accepted", "dismissed"],
 ) -> int:
-    """Update all open gaps matching a suggested_evidence_doc_title. Returns count updated."""
+    """Update all open gaps matching a suggested_evidence_doc_title. Returns count updated.
+
+    Does not write ``closed_at`` or ``close_reason``.
+    """
     if new_status not in GAP_STATUSES:
         raise ValueError(f"Invalid status: {new_status}")
     count = (
@@ -377,4 +391,6 @@ def _gap_to_dict(gap: EvidenceGap) -> dict:
         "status": gap.status,
         "created_at": gap.created_at.isoformat() if gap.created_at else None,
         "updated_at": gap.updated_at.isoformat() if gap.updated_at else None,
+        "closed_at": gap.closed_at.isoformat() if gap.closed_at else None,
+        "close_reason": gap.close_reason,
     }
