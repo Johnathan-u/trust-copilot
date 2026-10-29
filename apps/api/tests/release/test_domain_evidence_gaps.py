@@ -820,6 +820,49 @@ def test_concurrent_question_creates_leave_one_open_row(client):
     assert count == 1
 
 
+def _lock_wait_visible() -> bool:
+    """True when another backend is blocked on a row or advisory lock."""
+    session = _db()
+    try:
+        row = session.execute(
+            text(
+                """
+                SELECT 1
+                FROM pg_stat_activity
+                WHERE pid <> pg_backend_pid()
+                  AND datname = current_database()
+                  AND wait_event_type = 'Lock'
+                  AND wait_event IN ('advisory', 'transactionid', 'tuple')
+                UNION ALL
+                SELECT 1
+                FROM pg_locks
+                WHERE NOT granted
+                  AND locktype IN ('advisory', 'transactionid', 'tuple')
+                  AND pid IN (
+                    SELECT pid
+                    FROM pg_stat_activity
+                    WHERE datname = current_database()
+                  )
+                LIMIT 1
+                """
+            )
+        ).first()
+        return row is not None
+    finally:
+        session.close()
+
+
+def _wait_for_lock(timeout: float = 5.0) -> bool:
+    import time
+
+    deadline = time.time() + timeout
+    while time.time() < deadline:
+        if _lock_wait_visible():
+            return True
+        time.sleep(0.05)
+    return False
+
+
 def test_decision_and_resolve_race_for_one_open_gap(client):
     import threading
 
@@ -835,38 +878,53 @@ def test_decision_and_resolve_race_for_one_open_gap(client):
     _link(control_id, evidence_id)
     _login(client, ADMIN_EMAIL, ADMIN_PASSWORD)
     token = client.cookies.get("tc_session")
-    barrier = threading.Barrier(2)
+    holding = threading.Event()
+    release = threading.Event()
     outcomes: list[tuple[str, int, dict]] = []
+    real_update = gaps_mod._update_open_gap
+
+    def update_and_hold(db, gap_id_arg, workspace_id, values):
+        won = real_update(db, gap_id_arg, workspace_id, values)
+        if won and not holding.is_set():
+            holding.set()
+            assert release.wait(timeout=8), "winner was not released"
+        return won
 
     def post(path: str, body: dict, raw_key: str) -> None:
         local = TestClient(app, base_url=TEST_ORIGIN, headers=TEST_HEADERS)
         local.cookies.set("tc_session", token)
-        barrier.wait()
         response = local.post(path, json=body, headers={"Idempotency-Key": raw_key})
         outcomes.append((raw_key, response.status_code, response.json()))
 
-    threads = [
-        threading.Thread(
-            target=post,
-            args=(
-                f"/api/evidence-gaps/{gap_id}/decision",
-                {"status": "accepted"},
-                "race-decide",
-            ),
+    decision = threading.Thread(
+        target=post,
+        args=(
+            f"/api/evidence-gaps/{gap_id}/decision",
+            {"status": "accepted"},
+            "race-decide",
         ),
-        threading.Thread(
-            target=post,
-            args=(
-                f"/api/evidence-gaps/{gap_id}/resolve",
-                {"evidence_id": evidence_id},
-                "race-resolve",
-            ),
+    )
+    resolve = threading.Thread(
+        target=post,
+        args=(
+            f"/api/evidence-gaps/{gap_id}/resolve",
+            {"evidence_id": evidence_id},
+            "race-resolve",
         ),
-    ]
-    for thread in threads:
-        thread.start()
-    for thread in threads:
-        thread.join()
+    )
+    try:
+        with patch("app.api.routes.evidence_gaps._update_open_gap", side_effect=update_and_hold):
+            decision.start()
+            assert holding.wait(timeout=8), "decision never locked the open row"
+            resolve.start()
+            assert _wait_for_lock(), "resolve did not wait on the open-row lock"
+    finally:
+        release.set()
+        for t in (decision, resolve):
+            if t.ident is not None:
+                t.join(timeout=10)
+    for t in (decision, resolve):
+        assert not t.is_alive()
     assert sorted(item[1] for item in outcomes) == [200, 409], outcomes
     winner = next(item for item in outcomes if item[1] == 200)
     loser = next(item for item in outcomes if item[1] == 409)
@@ -918,34 +976,51 @@ def test_scan_and_manual_create_leave_one_open_control_gap(client):
     scan_mod._last_gap_notify.pop(actors["workspace_id"], None)
     _login(client, ADMIN_EMAIL, ADMIN_PASSWORD)
     token = client.cookies.get("tc_session")
-    barrier = threading.Barrier(2)
+    holding = threading.Event()
+    release = threading.Event()
     codes: list[int] = []
+    real_lock = scan_mod._lock_control_gap_writes
+
+    def lock_and_hold(db, locked_control_id: int) -> None:
+        real_lock(db, locked_control_id)
+        if locked_control_id == control_id and not holding.is_set():
+            holding.set()
+            assert release.wait(timeout=8), "scan was not released"
 
     def call(path: str, body: dict | None) -> None:
         local = TestClient(app, base_url=TEST_ORIGIN, headers=TEST_HEADERS)
         local.cookies.set("tc_session", token)
-        barrier.wait()
         if body is None:
             response = local.post(path)
         else:
             response = local.post(path, json=body)
         codes.append(response.status_code)
 
-    threads = [
-        threading.Thread(target=call, args=("/api/compliance/gaps/scan-and-notify", None)),
-        threading.Thread(
-            target=call,
-            args=(
-                "/api/evidence-gaps",
-                {"gap_type": CONTROL_CHECK, "control_id": control_id},
-            ),
+    scan = threading.Thread(target=call, args=("/api/compliance/gaps/scan-and-notify", None))
+    create = threading.Thread(
+        target=call,
+        args=(
+            "/api/evidence-gaps",
+            {"gap_type": CONTROL_CHECK, "control_id": control_id},
         ),
-    ]
-    for thread in threads:
-        thread.start()
-    for thread in threads:
-        thread.join()
-    assert codes == [200, 200] or sorted(codes) == [200, 201], codes
+    )
+    try:
+        with patch(
+            "app.api.routes.compliance_gaps._lock_control_gap_writes",
+            side_effect=lock_and_hold,
+        ):
+            scan.start()
+            assert holding.wait(timeout=8), "scan never took the control lock"
+            create.start()
+            assert _wait_for_lock(), "create did not wait on the control advisory lock"
+    finally:
+        release.set()
+        for t in (scan, create):
+            if t.ident is not None:
+                t.join(timeout=10)
+    for t in (scan, create):
+        assert not t.is_alive()
+    assert sorted(codes) in ([200, 200], [200, 201]), codes
     session = _db()
     try:
         count = session.execute(
@@ -1018,6 +1093,54 @@ def test_create_idempotency_key_is_bound_to_the_body(client):
     assert replay.status_code == 201, replay.text
     assert replay.json() == first.json()
     assert _counts()["evidence_gaps"] == before_gaps + 1
+
+
+def test_legacy_create_key_replays_only_the_same_gap(client):
+    actors = _actors()
+    control_id = _control(actors["workspace_id"], f"Legacy {uuid.uuid4().hex[:8]}")
+    other_control = _control(actors["workspace_id"], f"Legacy other {uuid.uuid4().hex[:8]}")
+    _login(client, REVIEWER_EMAIL, REVIEWER_PASSWORD)
+    body = {
+        "gap_type": CONTROL_CHECK,
+        "control_id": control_id,
+        "reason": "legacy synthetic reason",
+    }
+    headers = {"Idempotency-Key": "legacy-key"}
+    first = client.post("/api/evidence-gaps", json=body, headers=headers)
+    assert first.status_code == 201, first.text
+    session = _db()
+    try:
+        row = session.execute(
+            text(
+                "SELECT idempotency_key, response_body FROM idempotency_keys "
+                "WHERE idempotency_key LIKE :needle"
+            ),
+            {"needle": "%:legacy-key"},
+        ).one()
+        stored = json.loads(row.response_body)
+        stored.pop("_request_sha256", None)
+        session.execute(
+            text(
+                "UPDATE idempotency_keys SET response_body = :body " "WHERE idempotency_key = :key"
+            ),
+            {"body": json.dumps(stored), "key": row.idempotency_key},
+        )
+        session.commit()
+    finally:
+        session.close()
+    before = _counts()["evidence_gaps"]
+    replay = client.post("/api/evidence-gaps", json=body, headers=headers)
+    assert replay.status_code == 201, replay.text
+    assert replay.json()["id"] == first.json()["id"]
+    assert "_request_sha256" not in replay.json()
+    assert _counts()["evidence_gaps"] == before
+    mismatched = client.post(
+        "/api/evidence-gaps",
+        json={**body, "control_id": other_control, "reason": "other synthetic reason"},
+        headers=headers,
+    )
+    assert mismatched.status_code == 409, mismatched.text
+    assert _counts()["evidence_gaps"] == before
 
 
 def test_idempotency_keys_do_not_collide_across_gaps(client):
