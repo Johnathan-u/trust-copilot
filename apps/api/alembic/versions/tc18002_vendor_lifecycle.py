@@ -32,9 +32,9 @@ CHECKS = {
 INDEX = "ix_vendor_requests_link_token_hash"
 
 
-def fingerprint(alias):
+def fingerprint(alias, disabled_token=False):
     columns = ", ".join(
-        f"{alias}.{name}"
+        "NULL::text" if disabled_token and name == "link_token" else f"{alias}.{name}"
         for name in (
             "workspace_id",
             "vendor_email",
@@ -60,7 +60,7 @@ def upgrade():
     )
     op.execute(
         sa.text(
-            f"CREATE TABLE IF NOT EXISTS {HOLD} (id INTEGER PRIMARY KEY, workspace_id INTEGER NOT NULL, created_at TIMESTAMP, legacy_fingerprint VARCHAR(32) NOT NULL, {types})"
+            f"CREATE TABLE IF NOT EXISTS {HOLD} (id INTEGER PRIMARY KEY, workspace_id INTEGER NOT NULL, created_at TIMESTAMP, legacy_fingerprint VARCHAR(32) NOT NULL, legacy_link_token VARCHAR(64), {types})"
         )
     )
     # An older application may edit base fields while this revision is down.
@@ -76,7 +76,9 @@ def upgrade():
         END $$;
     """)
     )
-    assignments = ", ".join(f"{name}=h.{name}" for name, _ in SPECS)
+    assignments = "link_token=h.legacy_link_token, " + ", ".join(
+        f"{name}=h.{name}" for name, _ in SPECS
+    )
     op.execute(
         sa.text(
             f"UPDATE {TABLE} r SET {assignments} FROM {HOLD} h WHERE r.id=h.id AND r.workspace_id=h.workspace_id AND r.created_at IS NOT DISTINCT FROM h.created_at"
@@ -91,17 +93,26 @@ def upgrade():
 
 def downgrade():
     names = ", ".join(name for name, _ in SPECS)
-    nonnull = " OR ".join(f"{name} IS NOT NULL" for name, _ in SPECS)
+    nonnull = "link_token IS NOT NULL OR " + " OR ".join(f"{name} IS NOT NULL" for name, _ in SPECS)
     # Repeated down/up cycles refresh the current provenance without losing values.
     assignments = ", ".join(
         f"{name}=EXCLUDED.{name}"
-        for name in ("workspace_id", "created_at", "legacy_fingerprint", *(n for n, _ in SPECS))
+        for name in (
+            "workspace_id",
+            "created_at",
+            "legacy_fingerprint",
+            "legacy_link_token",
+            *(n for n, _ in SPECS),
+        )
     )
     op.execute(
         sa.text(
-            f"INSERT INTO {HOLD} (id, workspace_id, created_at, legacy_fingerprint, {names}) SELECT id, workspace_id, created_at, {fingerprint(TABLE)}, {names} FROM {TABLE} WHERE {nonnull} ON CONFLICT (id) DO UPDATE SET {assignments}"
+            f"INSERT INTO {HOLD} (id, workspace_id, created_at, legacy_fingerprint, legacy_link_token, {names}) SELECT id, workspace_id, created_at, {fingerprint(TABLE, disabled_token=True)}, link_token, {names} FROM {TABLE} WHERE {nonnull} ON CONFLICT (id) DO UPDATE SET {assignments}"
         )
     )
+    # Parent applications do not know expiry/revocation. Park every old raw grant
+    # and disable that lookup before dropping its protection columns.
+    op.execute(sa.text(f"UPDATE {TABLE} SET link_token=NULL WHERE link_token IS NOT NULL"))
     for name in CHECKS:
         op.drop_constraint(name, TABLE, type_="check")
     op.drop_index(INDEX, table_name=TABLE)

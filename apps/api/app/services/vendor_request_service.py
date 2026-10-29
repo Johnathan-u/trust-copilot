@@ -11,8 +11,10 @@ from sqlalchemy import or_
 from sqlalchemy.orm import Session
 
 from app.core import idempotency
+from app.core.auth_deps import _resolve_permission
+from app.core.roles import BUILTIN_ROLES
 from app.core.config import get_settings
-from app.models import AuditEvent, Questionnaire, VendorRequest
+from app.models import ApiKey, AuditEvent, CustomRole, Questionnaire, VendorRequest, WorkspaceMember
 from app.services import email_service
 
 INVALID_LINK = "This link is invalid or has expired."
@@ -95,6 +97,59 @@ def audit(db: Session, row: VendorRequest, action: str, actor: dict | None = Non
     )
 
 
+def current_permission(db: Session, actor: dict, permission: str = "can_admin") -> dict:
+    """Keep actor and role authorization stable until this write transaction commits."""
+    workspace_id = actor.get("workspace_id")
+    if actor.get("user_id") is not None:
+        principal = (
+            db.query(WorkspaceMember)
+            .filter(
+                WorkspaceMember.workspace_id == workspace_id,
+                WorkspaceMember.user_id == actor["user_id"],
+            )
+            .with_for_update(read=True)
+            .populate_existing()
+            .first()
+        )
+        valid = principal is not None and not principal.suspended
+    elif actor.get("email") == "api-key" and actor.get("_api_key_hash"):
+        principal = (
+            db.query(ApiKey)
+            .filter(
+                ApiKey.workspace_id == workspace_id,
+                ApiKey.key_hash == actor["_api_key_hash"],
+            )
+            .with_for_update(read=True)
+            .populate_existing()
+            .first()
+        )
+        valid = principal is not None and (
+            principal.expires_at is None or aware(principal.expires_at) > now()
+        )
+    else:
+        principal, valid = None, False
+    if not valid:
+        raise HTTPException(status_code=403, detail="Insufficient permissions")
+    role = principal.role
+    if role in BUILTIN_ROLES:
+        permitted = _resolve_permission(role, permission, workspace_id, db)
+    else:
+        custom = (
+            db.query(CustomRole)
+            .filter(
+                CustomRole.workspace_id == workspace_id,
+                CustomRole.name == role,
+            )
+            .with_for_update(read=True)
+            .populate_existing()
+            .first()
+        )
+        permitted = custom is not None and bool(getattr(custom, permission, False))
+    if not permitted:
+        raise HTTPException(status_code=403, detail="Insufficient permissions")
+    return {**actor, "role": role}
+
+
 def rotate(row: VendorRequest, days: int = 7) -> str:
     token = secrets.token_urlsafe(32)
     row.link_token_hash = digest(token)
@@ -150,9 +205,10 @@ def create_request(
     key = idempotency.scoped_key(workspace_id, "vendor-create", "new", client_key)
     fingerprint = digest(json.dumps([email, questionnaire_id, message, days], ensure_ascii=True))
     owner, cached = _claim(db, key, fingerprint)
-    if cached:
-        return serialize(scoped_request(db, workspace_id, cached["request_id"]))
     try:
+        actor = current_permission(db, actor)
+        if cached:
+            return serialize(scoped_request(db, workspace_id, cached["request_id"]))
         if questionnaire_id is not None:
             # claim() commits; acquire the reference lock afterwards, in the write transaction.
             questionnaire = (
@@ -190,6 +246,7 @@ def create_request(
 
 
 def revoke(db: Session, workspace_id: int, request_id: int, actor: dict) -> dict:
+    actor = current_permission(db, actor)
     row = scoped_request(db, workspace_id, request_id, lock=True)
     if row.revoked_at is None:
         row.revoked_at = now()
@@ -216,10 +273,11 @@ def send(
     action = "resend" if resend else "send"
     key = idempotency.scoped_key(workspace_id, f"vendor-{action}", request_id, client_key)
     owner, cached = _claim(db, key)
-    if cached:
-        return serialize(scoped_request(db, workspace_id, request_id))
     started = False
     try:
+        actor = current_permission(db, actor)
+        if cached:
+            return serialize(scoped_request(db, workspace_id, request_id))
         row = scoped_request(db, workspace_id, request_id, lock=True)
         if row.revoked_at is not None or row.submitted_at is not None:
             raise HTTPException(

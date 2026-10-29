@@ -55,6 +55,7 @@ class VendorRequestLifecycleHold(Base):
     workspace_id = Column(Integer, nullable=False)
     created_at = Column(DateTime, nullable=True)
     legacy_fingerprint = Column(String(32), nullable=False)
+    legacy_link_token = Column(String(64), nullable=True)
     link_token_hash = Column(String(64), nullable=True)
     expires_at = Column(DateTime(timezone=True), nullable=True)
     revoked_at = Column(DateTime(timezone=True), nullable=True)

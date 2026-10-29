@@ -84,6 +84,16 @@ def domain(client, db_session):
     assert counts(db_session) == before
 
 
+def actor(d):
+    raw = d["headers"]["admin"]["Authorization"][7:]
+    return {
+        "user_id": None,
+        "email": "api-key",
+        "workspace_id": 1,
+        "_api_key_hash": hashlib.sha256(raw.encode()).hexdigest(),
+    }
+
+
 def create(d, **overrides):
     body = {"vendor_email": f"{d['suffix']}@example.com", "message": "Please review."}
     body.update(overrides)
@@ -499,7 +509,7 @@ def test_migration_round_trip_preserves_non_default_lifecycle(domain):
     import os
     import subprocess
     import sys
-    from datetime import timezone
+    from datetime import timedelta, timezone
     from pathlib import Path
     from alembic.config import Config
     from alembic.script import ScriptDirectory
@@ -517,6 +527,15 @@ def test_migration_round_trip_preserves_non_default_lifecycle(domain):
     row.submitted_at = now
     row.response_payload = "Synthetic non-default reply"
     row.response_digest = hashlib.sha256(row.response_payload.encode()).hexdigest()
+    legacy_tokens = []
+    for index, legacy_id in enumerate((domain["own"], domain["foreign"])):
+        legacy = domain["db"].get(VendorRequest, legacy_id)
+        legacy.link_token = "legacy-" + domain["suffix"] + str(index)
+        legacy_tokens.append(legacy.link_token)
+        if index == 0:
+            legacy.created_at = datetime.utcnow() - timedelta(days=8)
+        else:
+            legacy.revoked_at = now
     domain["db"].commit()
     names = (
         "expires_at",
@@ -555,6 +574,25 @@ def test_migration_round_trip_preserves_non_default_lifecycle(domain):
     try:
         migrate(parent, "downgrade")
         with engine.begin() as connection:
+            # Exact predicate used by the old app: neither expired nor revoked
+            # raw token may become resolvable after rollback.
+            for token in legacy_tokens:
+                assert (
+                    connection.execute(
+                        text("SELECT count(*) FROM vendor_requests WHERE link_token=:token"),
+                        {"token": token},
+                    ).scalar()
+                    == 0
+                )
+                assert (
+                    connection.execute(
+                        text(
+                            "SELECT count(*) FROM tc18002_vendor_hold WHERE legacy_link_token=:token"
+                        ),
+                        {"token": token},
+                    ).scalar()
+                    == 1
+                )
             connection.execute(
                 text("UPDATE vendor_requests SET message='changed during downtime' WHERE id=:id"),
                 {"id": row_id},
@@ -578,6 +616,20 @@ def test_migration_round_trip_preserves_non_default_lifecycle(domain):
             .one()
         )
         assert restored == expected
+        for token in legacy_tokens:
+            assert (
+                domain["db"]
+                .execute(
+                    text("SELECT count(*) FROM vendor_requests WHERE link_token=:token"),
+                    {"token": token},
+                )
+                .scalar()
+                == 1
+            )
+            assert (
+                domain["client"].get("/api/vendor-response", params={"token": token}).status_code
+                == 404
+            )
         assert domain["db"].execute(text("SELECT count(*) FROM tc18002_vendor_hold")).scalar() == 0
         domain["db"].rollback()
     finally:
@@ -694,13 +746,15 @@ def test_delivery_intent_survives_post_send_commit_failure(domain):
     with patch("app.services.email_service.get_email_provider", return_value=Provider()):
         with patch.object(db, "commit", side_effect=fail_outcome_commit):
             with pytest.raises(RuntimeError, match="synthetic outcome"):
-                service.send(db, 1, created["id"], key, False, {})
+                service.send(db, 1, created["id"], key, False, actor(domain))
         with SessionLocal() as fresh:
             assert fresh.get(VendorRequest, created["id"]).delivery_status == "sending"
-        replay = service.send(db, 1, created["id"], key, False, {})
+        replay = service.send(db, 1, created["id"], key, False, actor(domain))
         assert replay["delivery_status"] == "sending"
         with pytest.raises(HTTPException) as conflict:
-            service.send(db, 1, created["id"], domain["suffix"] + ":crash-retry", True, {})
+            service.send(
+                db, 1, created["id"], domain["suffix"] + ":crash-retry", True, actor(domain)
+            )
         assert conflict.value.status_code == 409
     assert len(attempted) == 1
 
@@ -730,7 +784,14 @@ def test_creation_lost_claim_rolls_back_request_and_preserves_new_owner(domain):
     with patch("app.core.idempotency.set", side_effect=take_claim):
         with pytest.raises(idempotency.IdempotencyClaimLost):
             service.create_request(
-                domain["db"], 1, domain["suffix"] + "@example.com", None, None, 7, key, {}
+                domain["db"],
+                1,
+                domain["suffix"] + "@example.com",
+                None,
+                None,
+                7,
+                key,
+                actor(domain),
             )
     assert domain["db"].query(VendorRequest).count() == before
     assert (
@@ -741,3 +802,97 @@ def test_creation_lost_claim_rolls_back_request_and_preserves_new_owner(domain):
         .scalar()
         == "replacement"
     )
+
+
+@pytest.mark.parametrize(
+    "change", ["removed", "demoted", "suspended", "custom_permission", "api_key"]
+)
+@pytest.mark.parametrize("operation", ["create", "send", "resend"])
+def test_authorization_is_rechecked_after_idempotency_commit(
+    domain, monkeypatch, change, operation
+):
+    from app.core import idempotency
+    from app.core.database import SessionLocal
+    from app.core.session import sign_session
+    from app.models import CustomRole, User, WorkspaceMember
+    from app.services import email_service
+
+    db = domain["db"]
+    models = (User, WorkspaceMember, CustomRole)
+    before = {model: db.query(model).count() for model in models}
+    custom = CustomRole(workspace_id=1, name=domain["suffix"], can_admin=True)
+    user = User(
+        email=domain["suffix"] + "-after-claim@example.com", password_hash="synthetic-unused"
+    )
+    db.add_all([custom, user])
+    db.flush()
+    user_id, custom_id = user.id, custom.id
+    member = WorkspaceMember(
+        workspace_id=1,
+        user_id=user_id,
+        role=custom.name if change == "custom_permission" else "admin",
+    )
+    db.add(member)
+    db.commit()
+    original_claim = idempotency.claim
+    delivered = []
+
+    class Provider:
+        def send(self, message):
+            delivered.append(message)
+            return True
+
+    def claim_then_revoke(*args, **kwargs):
+        owner = original_claim(*args, **kwargs)
+        if owner:
+            with SessionLocal() as other:
+                current = (
+                    other.query(WorkspaceMember).filter_by(workspace_id=1, user_id=user_id).one()
+                )
+                if change == "removed":
+                    other.delete(current)
+                elif change == "demoted":
+                    current.role = "editor"
+                elif change == "suspended":
+                    current.suspended = True
+                elif change == "custom_permission":
+                    other.get(CustomRole, custom_id).can_admin = False
+                else:
+                    other.query(ApiKey).filter_by(
+                        key_hash=actor(domain)["_api_key_hash"]
+                    ).one().role = "editor"
+                other.commit()
+        return owner
+
+    monkeypatch.setattr(idempotency, "claim", claim_then_revoke)
+    monkeypatch.setattr(email_service, "get_email_provider", lambda: Provider())
+    headers = {"Idempotency-Key": domain["suffix"] + ":after-claim"}
+    if change == "api_key":
+        headers.update(domain["headers"]["admin"])
+    else:
+        domain["client"].cookies.set("tc_session", sign_session(user_id, user.email, 1, "admin"))
+    request_count = db.query(VendorRequest).count()
+    try:
+        if operation == "create":
+            result = domain["client"].post(
+                "/api/vendor-requests",
+                headers=headers,
+                json={"vendor_email": domain["suffix"] + "@example.com"},
+            )
+        else:
+            result = domain["client"].post(
+                f"/api/vendor-requests/{domain['own']}/{operation}", headers=headers
+            )
+        assert result.status_code == 403
+        assert delivered == []
+        db.expire_all()
+        assert db.query(VendorRequest).count() == request_count
+        assert db.get(VendorRequest, domain["own"]).delivery_status is None
+    finally:
+        domain["client"].cookies.clear()
+        db.rollback()
+        db.query(WorkspaceMember).filter_by(user_id=user_id).delete(synchronize_session=False)
+        db.query(User).filter_by(id=user_id).delete(synchronize_session=False)
+        db.query(CustomRole).filter_by(id=custom_id).delete(synchronize_session=False)
+        db.commit()
+        assert {model: db.query(model).count() for model in models} == before

@@ -7,9 +7,9 @@ from pydantic import BaseModel, Field, field_validator
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
-from app.core.auth_deps import _resolve_permission, require_session
+from app.core.auth_deps import require_session
 from app.core.database import get_db
-from app.models import Questionnaire, VendorRequest, WorkspaceMember
+from app.models import Questionnaire, VendorRequest
 from app.models.vendor_request import VENDOR_REQUEST_STATUSES
 from app.services import vendor_request_service as service
 
@@ -19,24 +19,12 @@ router = APIRouter(prefix="/vendor-requests", tags=["vendor-requests"])
 def _current_permission(permission: str):
     async def dependency(request: Request, db: Session = Depends(get_db)) -> dict:
         session = await require_session(request, db)
-        role = session.get("role")
-        if session.get("user_id") is not None:
-            member = (
-                db.query(WorkspaceMember)
-                .filter(
-                    WorkspaceMember.workspace_id == session.get("workspace_id"),
-                    WorkspaceMember.user_id == session["user_id"],
-                )
-                .first()
-            )
-            if member is None or member.suspended:
-                raise HTTPException(status_code=403, detail="Insufficient permissions")
-            role = member.role
-        elif session.get("email") != "api-key":
-            raise HTTPException(status_code=403, detail="Insufficient permissions")
-        if not _resolve_permission(role, permission, session.get("workspace_id"), db):
-            raise HTTPException(status_code=403, detail="Insufficient permissions")
-        return {**session, "role": role}
+        if session.get("email") == "api-key":
+            session = {
+                **session,
+                "_api_key_hash": service.digest(request.headers["Authorization"][7:].strip()),
+            }
+        return service.current_permission(db, session, permission)
 
     return dependency
 
