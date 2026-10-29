@@ -202,7 +202,7 @@ def test_questionnaire_parity_with_pymupdf_baseline(case: Case, paths):
         q["source_location"] = dict(loc, file="<path>")
     # Exact parity for every case, including questionnaire_table_cells: since TC-01-003b
     # the parser reads same-baseline table cells separately, so answer cells no longer
-    # trail the question text (tests/test_pdf_table_cells.py).
+    # trail the question text (tests/release/test_pdf_table_cells.py).
     assert new == base["ok"]
 
 
