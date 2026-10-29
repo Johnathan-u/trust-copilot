@@ -1,9 +1,13 @@
-SHA 28279672790b9144db3b05edb370538bb8ff4abe
-command: python -m pytest tests/release/test_domain_compliance_alerts.py -q
-7 passed, 44 warnings in 4.86s
+SHA ebf37b733521c68a7c5b5e4bf8a8680552a60cbb
+command: python -m pytest tests/release -q --tb=line
+1901 passed, 7438 warnings in 203.52s
 exit status: 0
 
-vitest lib/complianceAlertConsumer.test.ts: 3 passed
+npx vitest run: 178 passed
 exit status: 0
 
 npm run typecheck (apps/web): exit status 0
+
+Lock removed locally: test_concurrent_scans_leave_one_active_alert failed
+AssertionError: second scan did not wait on the alert lock
+That edit was reverted before the run above.
