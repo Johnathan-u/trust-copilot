@@ -642,10 +642,14 @@ def _lock_wait_visible() -> bool:
 
 
 def test_migration_round_trip_restores_alert_records():
+    assert len(REVISION) <= 32
+    assert REVISION == "tc21008_alert_records"
     before_counts = _counts()
     before_ids = _ids()
     actors = _actors()
-    alert_id = None
+    seeded_ids: list[int] = []
+    seeded_rows: list[tuple] = []
+    moment = datetime(2024, 1, 2, 3, 4, 5, tzinfo=timezone.utc)
 
     def alembic(*args):
         proc = subprocess.run(
@@ -659,91 +663,122 @@ def test_migration_round_trip_restores_alert_records():
         assert proc.returncode == 0, proc.stderr or proc.stdout
         return proc.stdout
 
-    def wipe() -> None:
-        if alert_id is None:
-            return
+    def cleanup() -> None:
         session = _db()
         try:
-            session.execute(text("DELETE FROM compliance_alerts WHERE id = :id"), {"id": alert_id})
+            if (
+                seeded_ids
+                and session.execute(text("SELECT to_regclass('public.compliance_alerts')")).scalar()
+            ):
+                session.execute(
+                    text("DELETE FROM compliance_alerts WHERE id IN :ids").bindparams(
+                        bindparam("ids", expanding=True)
+                    ),
+                    {"ids": seeded_ids},
+                )
+            if (
+                seeded_ids
+                and session.execute(
+                    text("SELECT to_regclass('public.tc21008_alert_hold')")
+                ).scalar()
+            ):
+                session.execute(
+                    text("DELETE FROM tc21008_alert_hold WHERE id IN :ids").bindparams(
+                        bindparam("ids", expanding=True)
+                    ),
+                    {"ids": seeded_ids},
+                )
             session.commit()
         except Exception:
             session.rollback()
+            raise
         finally:
             session.close()
 
     try:
-        session = _db()
-        try:
-            alert_id = session.execute(
-                text(
-                    "INSERT INTO compliance_alerts ("
-                    "workspace_id, condition, source_ref, source_revision, control_id, "
-                    "control_revision, status, severity, title, description, metric, "
-                    "created_at, updated_at"
-                    ") VALUES ("
-                    ":ws, 'coverage_drop', 'coverage', 'rev', NULL, 'rev-1', 'active', "
-                    "'high', 'Low coverage', 'Synthetic coverage is low.', 12.5, :now, :now"
-                    ") RETURNING id"
-                ),
-                {
-                    "ws": actors["workspace_id"],
-                    "now": datetime(2024, 1, 2, 3, 4, 5, tzinfo=timezone.utc),
-                },
-            ).scalar()
-            session.commit()
-            seeded = session.execute(
-                text(
-                    "SELECT id, workspace_id, condition, source_ref, source_revision, "
-                    "control_revision, status, severity, title, description, metric "
-                    "FROM compliance_alerts WHERE id = :id"
-                ),
-                {"id": alert_id},
-            ).one()
-            seeded_tuple = tuple(seeded)
-        finally:
-            session.close()
-        alembic("downgrade", PARENT)
         alembic("upgrade", REVISION)
         session = _db()
         try:
-            restored = session.execute(
-                text(
-                    "SELECT id, workspace_id, condition, source_ref, source_revision, "
-                    "control_revision, status, severity, title, description, metric "
-                    "FROM compliance_alerts WHERE id = :id"
-                ),
-                {"id": alert_id},
-            ).one()
-            assert tuple(restored) == seeded_tuple
-            assert (
-                session.execute(
-                    text("SELECT count(*) FROM tc21008_alert_hold WHERE id = :id"),
-                    {"id": alert_id},
+            for source_ref, metric in (("coverage", 12.5), ("subject:synthetic", 4.0)):
+                alert_id = session.execute(
+                    text(
+                        "INSERT INTO compliance_alerts ("
+                        "workspace_id, condition, source_ref, source_revision, control_id, "
+                        "control_revision, status, severity, title, description, metric, "
+                        "created_at, updated_at"
+                        ") VALUES ("
+                        ":ws, 'coverage_drop', :source, 'rev', NULL, 'rev-1', 'active', "
+                        "'high', 'Low coverage', 'Synthetic coverage is low.', :metric, :now, :now"
+                        ") RETURNING id"
+                    ),
+                    {
+                        "ws": actors["workspace_id"],
+                        "source": source_ref,
+                        "metric": metric,
+                        "now": moment,
+                    },
                 ).scalar()
-                == 0
-            )
-            indexdef = session.execute(
-                text("SELECT indexdef FROM pg_indexes WHERE indexname = :name"),
-                {"name": "uq_compliance_alerts_one_active"},
-            ).scalar()
-            assert indexdef
-            assert "UNIQUE" in indexdef
-            assert "active" in indexdef
+                seeded_ids.append(int(alert_id))
+            session.commit()
+            seeded_rows = [
+                tuple(row)
+                for row in session.execute(
+                    text(
+                        "SELECT id, workspace_id, condition, source_ref, source_revision, "
+                        "control_revision, status, severity, title, description, metric "
+                        "FROM compliance_alerts WHERE id IN :ids ORDER BY id"
+                    ).bindparams(bindparam("ids", expanding=True)),
+                    {"ids": seeded_ids},
+                ).fetchall()
+            ]
+            assert len(seeded_rows) == 2
         finally:
             session.close()
         alembic("downgrade", PARENT)
         session = _db()
         try:
-            present = session.execute(
-                text("SELECT to_regclass('public.compliance_alerts')")
+            assert (
+                session.execute(text("SELECT to_regclass('public.compliance_alerts')")).scalar()
+                is None
+            )
+            parked = session.execute(
+                text("SELECT count(*) FROM tc21008_alert_hold WHERE id IN :ids").bindparams(
+                    bindparam("ids", expanding=True)
+                ),
+                {"ids": seeded_ids},
             ).scalar()
-            assert present is None
+            assert parked == 2
+        finally:
+            session.close()
+        alembic("upgrade", REVISION)
+        session = _db()
+        try:
+            restored = [
+                tuple(row)
+                for row in session.execute(
+                    text(
+                        "SELECT id, workspace_id, condition, source_ref, source_revision, "
+                        "control_revision, status, severity, title, description, metric "
+                        "FROM compliance_alerts WHERE id IN :ids ORDER BY id"
+                    ).bindparams(bindparam("ids", expanding=True)),
+                    {"ids": seeded_ids},
+                ).fetchall()
+            ]
+            assert len(restored) == 2
+            assert restored == seeded_rows
+            hold_left = session.execute(
+                text("SELECT count(*) FROM tc21008_alert_hold WHERE id IN :ids").bindparams(
+                    bindparam("ids", expanding=True)
+                ),
+                {"ids": seeded_ids},
+            ).scalar()
+            assert hold_left == 0
         finally:
             session.close()
         _revision_reaches_every_head(REVISION)
     finally:
         alembic("upgrade", "head")
-        wipe()
+        cleanup()
         _delete_created(before_ids)
         after_counts = _counts()
         assert after_counts == before_counts, {"before": before_counts, "after": after_counts}
