@@ -11,8 +11,39 @@ from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 
 from app.core.password import hash_password
-from app.models import Questionnaire, User, WorkspaceMember
+from app.models import AuditEvent, Questionnaire, User, VendorRequest, WorkspaceMember
 from app.models.vendor_request import VENDOR_REQUEST_STATUSES
+
+
+@pytest.fixture(autouse=True)
+def cleanup_vendor_rows(client: TestClient, db_session: Session):
+    """Restore rows created by this module; login residue has its shared fixture."""
+    models = (VendorRequest, User, WorkspaceMember)
+    before = {model: {row[0] for row in db_session.query(model.id).all()} for model in models}
+    audit_before = (
+        db_session.query(AuditEvent).filter(AuditEvent.resource_type == "vendor_request").count()
+    )
+    yield
+    db_session.rollback()
+    created = {
+        model: {row[0] for row in db_session.query(model.id).all()} - before[model]
+        for model in models
+    }
+    db_session.query(AuditEvent).filter(
+        AuditEvent.resource_type == "vendor_request",
+        AuditEvent.resource_id.in_([str(i) for i in created[VendorRequest]]),
+    ).delete(synchronize_session=False)
+    for model in (VendorRequest, WorkspaceMember, User):
+        db_session.query(model).filter(model.id.in_(created[model])).delete(
+            synchronize_session=False
+        )
+    db_session.commit()
+    for model in models:
+        assert {row[0] for row in db_session.query(model.id).all()} == before[model]
+    assert (
+        db_session.query(AuditEvent).filter(AuditEvent.resource_type == "vendor_request").count()
+        == audit_before
+    )
 
 
 @pytest.fixture

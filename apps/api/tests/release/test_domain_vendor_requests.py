@@ -437,3 +437,58 @@ def test_uncertain_delivery_is_persisted_without_automatic_retry(domain):
         stored = fresh.get(VendorRequest, created["id"])
         assert stored.delivery_status == "uncertain"
         assert "SECRET" not in str(stored.last_delivery_error)
+
+
+@pytest.mark.parametrize("change", ["demoted", "removed", "suspended"])
+@pytest.mark.parametrize("operation", ["create", "patch", "send", "resend", "revoke"])
+def test_stale_admin_session_cannot_mutate(domain, change, operation):
+    from app.core.session import sign_session
+    from app.models import User, WorkspaceMember
+
+    user = User(email=domain["suffix"] + "-actor@example.com", password_hash="synthetic-unused")
+    domain["db"].add(user)
+    domain["db"].flush()
+    member = WorkspaceMember(workspace_id=1, user_id=user.id, role="admin", suspended=False)
+    domain["db"].add(member)
+    domain["db"].commit()
+    token = sign_session(user.id, user.email, 1, "admin")
+    if change == "removed":
+        domain["db"].delete(member)
+    elif change == "demoted":
+        member.role = "editor"
+    else:
+        member.suspended = True
+    domain["db"].commit()
+    try:
+        domain["client"].cookies.set("tc_session", token)
+        h = {"Idempotency-Key": domain["suffix"] + ":stale"}
+        if operation == "create":
+            response = domain["client"].post(
+                "/api/vendor-requests",
+                headers=h,
+                json={"vendor_email": domain["suffix"] + "@example.com"},
+            )
+        elif operation == "patch":
+            response = domain["client"].patch(
+                f"/api/vendor-requests/{domain['own']}", json={"status": "in_progress"}, headers=h
+            )
+        else:
+            response = domain["client"].post(
+                f"/api/vendor-requests/{domain['own']}/{operation}", headers=h
+            )
+        assert response.status_code == 403
+        domain["db"].expire_all()
+        assert domain["db"].get(VendorRequest, domain["own"]).status == "pending"
+    finally:
+        domain["client"].cookies.clear()
+        domain["db"].rollback()
+        domain["db"].query(WorkspaceMember).filter(WorkspaceMember.user_id == user.id).delete(
+            synchronize_session=False
+        )
+        domain["db"].query(User).filter(User.id == user.id).delete(synchronize_session=False)
+        domain["db"].commit()
+        assert (
+            domain["db"].query(WorkspaceMember).filter(WorkspaceMember.user_id == user.id).count()
+            == 0
+        )
+        assert domain["db"].get(User, user.id) is None
