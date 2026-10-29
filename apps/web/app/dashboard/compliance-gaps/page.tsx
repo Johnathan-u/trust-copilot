@@ -375,7 +375,7 @@ export default function ComplianceCoveragePage() {
           <Card className="p-5">
             <SectionHeader
               title="Control denominator"
-              sub={`${control_coverage.schema_version}: ${control_coverage.numerator} qualified of ${control_coverage.denominator} applicable`}
+              sub={`${control_coverage.numerator} qualified of ${control_coverage.denominator} applicable`}
             />
             {denominatorNotes(control_coverage).length === 0 ? (
               <p className="text-xs text-[var(--tc-muted)]">
