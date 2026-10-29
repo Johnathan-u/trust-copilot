@@ -218,6 +218,46 @@ def test_policy_recipient_normalizes_and_survives_new_connection(actors):
         assert row.recipient_value is None
 
 
+@pytest.mark.parametrize("change", ["removed", "suspended", "role_deleted"])
+def test_disable_stale_recipient_policy_then_reject_reenable(actors, change):
+    role = change == "role_deleted"
+    with client_for(actors) as client:
+        response = client.post(
+            "/api/notifications/policies",
+            json={
+                "event_type": "member.joined",
+                "recipient_type": "role" if role else "user",
+                "recipient_value": "local-role" if role else str(actors["editor"]["id"]),
+            },
+        )
+        assert response.status_code == 200
+        path = f"/api/notifications/policies/{response.json()['id']}"
+        with SessionLocal() as db:
+            if role:
+                db.delete(
+                    db.query(CustomRole)
+                    .filter_by(workspace_id=actors["ws"], name="local-role")
+                    .one()
+                )
+            else:
+                member = (
+                    db.query(WorkspaceMember)
+                    .filter_by(workspace_id=actors["ws"], user_id=actors["editor"]["id"])
+                    .one()
+                )
+                if change == "removed":
+                    db.delete(member)
+                else:
+                    member.suspended = True
+            db.commit()
+        disabled = client.patch(path, json={"enabled": False})
+        assert disabled.status_code == 200, disabled.text
+        assert disabled.json()["enabled"] is False
+        rejected = client.patch(path, json={"enabled": True})
+        assert rejected.status_code == 404
+        assert client.get("/api/notifications/policies").json()["policies"][0]["enabled"] is False
+
+
 @pytest.mark.parametrize("role,expected", [(None, 401), ("editor", 403), ("reviewer", 403)])
 @pytest.mark.parametrize(
     "method,path,payload",
@@ -408,7 +448,7 @@ def test_static_renderer_preserves_copy_and_redaction_contract(channel):
     from app.services.notification_templates import render_notification
 
     rendered = render_notification(
-        "member.joined", channel, "A&B <Workspace>", "token=xoxb-private-value"
+        "member.joined", channel, "A&B <Workspace>", "token=xoxb-test-private-value"
     )
     assert rendered.template_key == f"member.joined:{channel}"
     assert rendered.label == rendered.title == "Member joined workspace"
@@ -416,7 +456,7 @@ def test_static_renderer_preserves_copy_and_redaction_contract(channel):
     assert rendered.label in rendered.slack_text
     assert rendered.label in rendered.body_text
     assert "A&amp;B &lt;Workspace&gt;" in rendered.body_html
-    assert "xoxb-private-value" not in repr(rendered)
+    assert "xoxb-test-private-value" not in repr(rendered)
     assert rendered.link == "/dashboard/notifications"
 
 
