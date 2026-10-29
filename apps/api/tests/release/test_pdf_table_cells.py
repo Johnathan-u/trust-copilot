@@ -11,10 +11,8 @@ from __future__ import annotations
 import dataclasses
 import json
 import re
-import sys
 import time
 from io import BytesIO
-from pathlib import Path
 
 import pytest
 from pypdf import PdfReader
@@ -30,8 +28,7 @@ from app.services.pdf_questionnaire_parser import parse_pdf_questionnaire
 from app.services.pdf_text import extract_page_rows, extract_page_texts
 from app.services.synthetic_pdf import Page, TextItem, _esc, build_pdf
 
-sys.path.insert(0, str(Path(__file__).parent))
-from pdf_locator import Case, corpus, table_row_corpus, write_case  # noqa: E402
+from tests.pdf_locator import Case, corpus, table_row_corpus, write_case
 
 TABLE_CASES = table_row_corpus()
 TEXT_CASES = [c for c in corpus() if c.outcome == "text"]

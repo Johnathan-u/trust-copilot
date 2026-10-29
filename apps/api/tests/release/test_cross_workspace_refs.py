@@ -564,17 +564,13 @@ def test_trigger_migration_upgrades_with_legacy_rows_present(db_session: Session
     db_session.commit()
     db_session.close()  # hold no locks while alembic swaps the triggers
     try:
-        from alembic.config import Config
-        from alembic.script import ScriptDirectory
-
-        cfg = Config(str(API_ROOT / "alembic.ini"))
-        cfg.set_main_option("script_location", str(API_ROOT / "alembic"))
-        script = ScriptDirectory.from_config(cfg)
-        heads = script.get_heads()
-        assert len(heads) == 1, heads
-        assert TRIGGER_REVISION in {r.revision for r in script.walk_revisions("base", heads[0])}
-        parent = script.get_revision(TRIGGER_REVISION).down_revision
-        down = _alembic("downgrade", parent)
+        # A later revision may be the head. Step back to this revision so
+        # downgrade -1 exercises the trigger migration itself.
+        to_trigger = _alembic("downgrade", TRIGGER_REVISION)
+        assert to_trigger.returncode == 0, to_trigger.stderr[-2000:]
+        head = _alembic("current")
+        assert TRIGGER_REVISION in head.stdout, head.stdout + head.stderr
+        down = _alembic("downgrade", "-1")
         assert down.returncode == 0, down.stderr[-2000:]
         up = _alembic("upgrade", "head")
         assert up.returncode == 0, up.stderr[-2000:]

@@ -22,8 +22,6 @@ export function DashboardShell({ children }: DashboardShellProps) {
   const [navOpen, setNavOpen] = useState(false)
   const [compact, setCompact] = useState(false)
   const menuButtonRef = useRef<HTMLButtonElement>(null)
-  const backgroundRef = useRef<HTMLDivElement>(null)
-  const navWasOpen = useRef(false)
 
   useEffect(() => {
     const media = window.matchMedia(APP_NAV_COMPACT_MEDIA)
@@ -40,21 +38,6 @@ export function DashboardShell({ children }: DashboardShellProps) {
   useEffect(() => {
     setNavOpen(false)
   }, [pathname])
-
-  useEffect(() => {
-    const background = backgroundRef.current
-    if (!background) return
-    if (compact && navOpen) background.setAttribute('inert', '')
-    else background.removeAttribute('inert')
-  }, [compact, navOpen])
-
-  useEffect(() => {
-    if (navWasOpen.current && !navOpen) {
-      const button = menuButtonRef.current
-      if (button && button.offsetParent !== null) button.focus()
-    }
-    navWasOpen.current = navOpen
-  }, [navOpen])
 
   useEffect(() => {
     if (loading) return
@@ -128,10 +111,7 @@ export function DashboardShell({ children }: DashboardShellProps) {
             Skip to main content
           </a>
         </nav>
-        <div
-          ref={backgroundRef}
-          className="flex min-h-0 min-w-0 flex-1 flex-col"
-        >
+        <div className="flex min-h-0 min-w-0 flex-1 flex-col">
           <Topbar
             navOpen={navOpen}
             onToggleNav={() => setNavOpen((open) => !open)}
@@ -155,7 +135,11 @@ export function DashboardShell({ children }: DashboardShellProps) {
           </div>
         </div>
         {compact && (
-          <NavDrawer open={navOpen} onClose={() => setNavOpen(false)} />
+          <NavDrawer
+            open={navOpen}
+            onClose={() => setNavOpen(false)}
+            returnFocusRef={menuButtonRef}
+          />
         )}
       </div>
     </>

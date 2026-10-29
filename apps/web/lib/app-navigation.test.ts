@@ -3,6 +3,8 @@ import {
   APP_NAV_COMPACT_MEDIA,
   APP_NAV_DOCK_MEDIA,
   APP_NAV_DOCK_MIN_PX,
+  APP_NAV_LANDMARK_LABEL,
+  APP_SIDEBAR_LANDMARK_LABEL,
   accountNavItems,
   appNavItems,
   appNavItemsFor,
@@ -30,6 +32,13 @@ describe('application navigation', () => {
       false
     )
     expect(isAppNavActive('', '/dashboard')).toBe(false)
+  })
+
+  it('names the sidebar region and its navigation differently', () => {
+    expect(APP_SIDEBAR_LANDMARK_LABEL).toBe('Sidebar')
+    expect(APP_NAV_LANDMARK_LABEL).toBe('Application')
+    expect(APP_SIDEBAR_LANDMARK_LABEL).not.toBe(APP_NAV_LANDMARK_LABEL)
+    expect(APP_NAV_LANDMARK_LABEL.toLowerCase()).not.toBe('main')
   })
 
   it('keeps one permission-aware list for sidebar, top bar and palette', () => {

@@ -232,8 +232,3 @@ def provenance_for(kind: str) -> dict[str, object]:
 
 def provenance_json(kind: str) -> str:
     return json.dumps(provenance_for(kind), sort_keys=True, separators=(",", ":"))
-
-
-def rights_are_cleared() -> bool:
-    """TC-01-007 is unresolved. Database values and environment flags cannot clear rights."""
-    return False

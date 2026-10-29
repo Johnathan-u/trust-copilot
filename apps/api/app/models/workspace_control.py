@@ -21,6 +21,10 @@ class WorkspaceControl(Base):
     )
     custom_name = Column(String(255), nullable=True)
     status = Column(String(32), nullable=False, default="not_implemented")
+    # TC-21-002. content_version stays null while TC-01-007 is open.
+    canonical_key = Column(String(160), nullable=True, index=True)
+    content_version = Column(String(32), nullable=True)
+    lifecycle = Column(String(32), nullable=True)
     owner_user_id = Column(
         Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True
     )
