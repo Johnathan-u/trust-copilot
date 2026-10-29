@@ -12,7 +12,7 @@ import sqlalchemy as sa
 from alembic import op
 
 revision = "tc18001_reviewed_replies"
-down_revision = "bug018c_one_open_gap"
+down_revision = "tc10001_job_leases"
 branch_labels = None
 depends_on = None
 
