@@ -333,8 +333,13 @@ def test_cancel_racing_lease_recovery_stays_cancelled(db, monkeypatch):
     threads = [threading.Thread(target=recover), threading.Thread(target=cancel)]
     for thread in threads:
         thread.start()
-    for thread in threads:
-        thread.join(timeout=10)
+    try:
+        pass
+    finally:
+        for thread in threads:
+            thread.join(timeout=10)
+        for thread in threads:
+            assert not thread.is_alive()
     assert errors == []
     db.expire_all()
     stored = db.get(Job, job.id)
@@ -436,8 +441,13 @@ def test_two_manual_retries_one_wins(db):
     threads = [threading.Thread(target=retry), threading.Thread(target=retry)]
     for thread in threads:
         thread.start()
-    for thread in threads:
-        thread.join(timeout=15)
+    try:
+        pass
+    finally:
+        for thread in threads:
+            thread.join(timeout=15)
+        for thread in threads:
+            assert not thread.is_alive()
     assert errors == []
     assert sorted(codes) == [200, 409]
     db.expire_all()
