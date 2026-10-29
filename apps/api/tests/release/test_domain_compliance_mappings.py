@@ -736,6 +736,10 @@ def test_migration_round_trip_restores_mapping_history():
                     {"id": override_id},
                 )
                 session.execute(
+                    text("DELETE FROM tc21005_mapping_attr_hold WHERE mapping_id = :id"),
+                    {"id": override_id},
+                )
+                session.execute(
                     text("DELETE FROM control_mapping_override WHERE id = :id"),
                     {"id": override_id},
                 )
@@ -803,35 +807,56 @@ def test_migration_round_trip_restores_mapping_history():
                 assert upgraded.state == "overridden"
                 assert upgraded.version == 1
                 assert upgraded.reviewed_at == upgraded.created_at
+                kept_review = datetime(2022, 3, 4, 5, 6, 7)
+                session.execute(
+                    text(
+                        "UPDATE control_mapping_override SET state = 'confirmed', "
+                        "rationale = 'synthetic kept rationale', version = 3, "
+                        "reviewed_by_user_id = :user, reviewed_at = :reviewed WHERE id = :id"
+                    ),
+                    {"user": actors["admin_id"], "reviewed": kept_review, "id": override_id},
+                )
                 recorded = datetime(2021, 6, 7, 8, 9, 10)
                 session.execute(
                     text(
                         "INSERT INTO tc21005_mapping_history ("
                         "mapping_id, version, workspace_id, question_hash, control_ids, state, "
                         "rationale, reviewed_by_user_id, reviewed_at, recorded_at"
-                        ") VALUES ("
-                        ":mapping, 1, :ws, :h, CAST(:ids AS json), 'confirmed', "
-                        "'synthetic rationale', NULL, :reviewed, :recorded)"
+                        ") VALUES "
+                        "(:mapping, 1, :ws, :h, CAST(:ids AS json), 'proposed', "
+                        "NULL, NULL, NULL, :recorded), "
+                        "(:mapping, 2, :ws, :h, CAST('[7]' AS json), 'confirmed', "
+                        "'synthetic history rationale', :user, :hist_reviewed, :recorded)"
                     ),
                     {
                         "mapping": override_id,
                         "ws": actors["workspace_id"],
                         "h": original.question_hash,
                         "ids": "[7]",
-                        "reviewed": datetime(2021, 6, 7, 8, 0, 0),
+                        "user": actors["admin_id"],
+                        "hist_reviewed": datetime(2021, 6, 7, 8, 0, 0),
                         "recorded": recorded,
                     },
                 )
                 session.commit()
-                seeded = session.execute(
+                seeded_mapping = session.execute(
                     text(
-                        "SELECT id, mapping_id, version, workspace_id, question_hash, control_ids, "
-                        "state, rationale, reviewed_by_user_id, reviewed_at, recorded_at "
-                        "FROM tc21005_mapping_history WHERE mapping_id = :id"
+                        "SELECT id, workspace_id, question_hash, override_control_ids, created_at, "
+                        "state, rationale, version, reviewed_by_user_id, reviewed_at "
+                        "FROM control_mapping_override WHERE id = :id"
                     ),
                     {"id": override_id},
                 ).one()
-                seeded_tuple = tuple(seeded)
+                seeded_history = session.execute(
+                    text(
+                        "SELECT id, mapping_id, version, workspace_id, question_hash, control_ids, "
+                        "state, rationale, reviewed_by_user_id, reviewed_at, recorded_at "
+                        "FROM tc21005_mapping_history WHERE mapping_id = :id ORDER BY id"
+                    ),
+                    {"id": override_id},
+                ).fetchall()
+                seeded_mapping_tuple = tuple(seeded_mapping)
+                seeded_history_tuples = [tuple(row) for row in seeded_history]
             finally:
                 session.close()
             alembic("downgrade", PARENT)
@@ -855,11 +880,22 @@ def test_migration_round_trip_restores_mapping_history():
                     text(
                         "SELECT id, mapping_id, version, workspace_id, question_hash, control_ids, "
                         "state, rationale, reviewed_by_user_id, reviewed_at, recorded_at "
-                        "FROM tc21005_mapping_hold WHERE mapping_id = :id"
+                        "FROM tc21005_mapping_hold WHERE mapping_id = :id ORDER BY id"
+                    ),
+                    {"id": override_id},
+                ).fetchall()
+                assert [tuple(row) for row in held] == seeded_history_tuples
+                parked = session.execute(
+                    text(
+                        "SELECT mapping_id, state, rationale, version, reviewed_by_user_id, "
+                        "reviewed_at FROM tc21005_mapping_attr_hold WHERE mapping_id = :id"
                     ),
                     {"id": override_id},
                 ).one()
-                assert tuple(held) == seeded_tuple
+                assert parked.state == "confirmed"
+                assert parked.rationale == "synthetic kept rationale"
+                assert parked.version == 3
+                assert parked.reviewed_by_user_id == actors["admin_id"]
             finally:
                 session.close()
             alembic("upgrade", REVISION)
@@ -867,21 +903,22 @@ def test_migration_round_trip_restores_mapping_history():
             try:
                 again = session.execute(
                     text(
-                        "SELECT id, workspace_id, question_hash, override_control_ids, created_at "
+                        "SELECT id, workspace_id, question_hash, override_control_ids, created_at, "
+                        "state, rationale, version, reviewed_by_user_id, reviewed_at "
                         "FROM control_mapping_override WHERE id = :id"
                     ),
                     {"id": override_id},
                 ).one()
-                assert tuple(again) == original_tuple
+                assert tuple(again) == seeded_mapping_tuple
                 revived = session.execute(
                     text(
                         "SELECT id, mapping_id, version, workspace_id, question_hash, control_ids, "
                         "state, rationale, reviewed_by_user_id, reviewed_at, recorded_at "
-                        "FROM tc21005_mapping_history WHERE mapping_id = :id"
+                        "FROM tc21005_mapping_history WHERE mapping_id = :id ORDER BY id"
                     ),
                     {"id": override_id},
-                ).one()
-                assert tuple(revived) == seeded_tuple
+                ).fetchall()
+                assert [tuple(row) for row in revived] == seeded_history_tuples
                 assert (
                     session.execute(
                         text("SELECT count(*) FROM tc21005_mapping_hold WHERE mapping_id = :id"),
