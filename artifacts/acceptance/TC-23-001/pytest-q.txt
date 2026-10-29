@@ -1,0 +1,19 @@
+..............................................................           [100%]
+=============================== warnings summary ===============================
+tests/release/test_domain_deals.py::test_revision_is_an_ancestor_of_every_head
+  /tmp/tc-venv/lib/python3.12/site-packages/alembic/config.py:604: DeprecationWarning: No path_separator found in configuration; falling back to legacy splitting on spaces, commas, and colons for prepend_sys_path.  Consider adding path_separator=os to Alembic config.
+    util.warn_deprecated(
+
+tests/release/test_domain_deals.py: 175 warnings
+tests/test_deals.py: 46 warnings
+tests/release/test_deal_questionnaire_link_scope.py: 82 warnings
+tests/test_crm_connectors.py: 8 warnings
+  /tmp/tc-venv/lib/python3.12/site-packages/sqlalchemy/sql/schema.py:3627: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    return util.wrap_callable(lambda ctx: fn(), fn)  # type: ignore
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+62 passed, 312 warnings in 9.98s
+
+SHA bd25b381ef68722652770187e1a2cbd7d14c2c4f
+parent of the evidence commit
+exit status: 0
