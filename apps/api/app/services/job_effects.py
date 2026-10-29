@@ -78,17 +78,23 @@ def enqueue_job(
     payload: dict,
     idempotency_key: str | None = None,
     input_version: str | None = None,
+    commit: bool = True,
 ) -> tuple[Job, bool]:
     """Create a QUEUED job, or return the already-QUEUED job with the same key. Returns (job, created).
 
     Only QUEUED jobs are deduped: a RUNNING job may already have read its input, so a later request must
-    get its own job. Commits.
+    get its own job.
+
+    ``commit`` defaults to True (historical callers): success, and returning a race winner after an
+    integrity error, commit. ``commit=False`` (TC-10-003c) flushes the new job into the caller's transaction
+    and leaves that commit to the caller, so a document or questionnaire row and its job can commit together.
 
     Race handling (TC-10-003a): when a concurrent identical enqueue wins the partial unique index, the winner
     is returned. If the winner has already left QUEUED by the time we look it up (a worker claimed it), the
     unique slot is free again, so the insert is retried once instead of surfacing the IntegrityError as a 500.
     If the retry loses the same way, ``EnqueueConflictError`` is raised (TC-10-003b) and the API answers with
-    a retryable 409 rather than a 500.
+    a retryable 409 rather than a 500. That path rolls the transaction back, including the caller's
+    uncommitted rows, so a lost race cannot be committed afterwards.
     """
     for attempt in range(_ENQUEUE_ATTEMPTS):
         if idempotency_key:
@@ -113,7 +119,8 @@ def enqueue_job(
             # Lost the race against a concurrent identical enqueue: return the winner if still queued.
             existing = _queued_with_key(db, workspace_id, kind, idempotency_key)
             if existing is not None:
-                db.commit()
+                if commit:
+                    db.commit()
                 return existing, False
             if attempt + 1 >= _ENQUEUE_ATTEMPTS:
                 db.rollback()
@@ -132,7 +139,10 @@ def enqueue_job(
                 kind,
             )
             continue
-        db.commit()
+        if commit:
+            db.commit()
+        else:
+            db.flush()
         db.refresh(job)
         return job, True
     raise AssertionError("unreachable")  # pragma: no cover
