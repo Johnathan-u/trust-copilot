@@ -1,0 +1,1 @@
+bug018c_one_open_gap (head)

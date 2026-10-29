@@ -7,6 +7,15 @@ and allow users to accept/dismiss individual gap suggestions.
 deterministic and makes no model calls: every answer that ended as insufficient evidence
 for an evidence reason becomes one open ``missing_evidence`` gap. Model failures are not
 evidence gaps and are skipped; they are retried as answer-generation failures instead.
+
+Status values this module writes are ``open``, ``accepted``, ``dismissed`` and ``resolved``
+(``ALL_GAP_STATUSES``). ``close_reason`` is left NULL or set to ``question_removed`` or
+``answer_sufficient``. The database check also allows ``evidence_sufficient``
+(``CONTROL_CHECK_CLOSE_REASON``), which the control-check scan writes when it resolves
+a row (TC-02-BUG-018b).
+Manual status changes do not clear ``close_reason``, so a row that is no longer
+``resolved`` may still carry a closure code. Some resolved rows also keep a NULL
+``close_reason`` when the historical note could not be parsed.
 """
 
 from __future__ import annotations
@@ -16,13 +25,18 @@ from datetime import datetime, timezone
 from typing import Literal
 
 from sqlalchemy import func, text
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.models import Answer, Question, Questionnaire
 from app.models.evidence_gap import (
     ALL_GAP_STATUSES,
+    GAP_CLOSE_REASON_ANSWER_SUFFICIENT,
+    GAP_CLOSE_REASON_QUESTION_REMOVED,
+    GAP_STATUS_OPEN,
     GAP_STATUS_RESOLVED,
     GAP_STATUSES,
+    UQ_EVIDENCE_GAPS_ONE_OPEN_PER_QUESTION,
     EvidenceGap,
 )
 from app.models.question_mapping_signal import QuestionMappingSignal
@@ -85,6 +99,33 @@ def _gap_reason(answer: Answer) -> str:
     return _DEFAULT_REASON
 
 
+def _one_open_gap_violation(exc: IntegrityError) -> bool:
+    """True when the partial unique index rejected a second open gap for one question."""
+    orig = getattr(exc, "orig", None)
+    if getattr(orig, "pgcode", None) != "23505":
+        return False
+    return UQ_EVIDENCE_GAPS_ONE_OPEN_PER_QUESTION in str(orig)
+
+
+def _insert_open_gap(db: Session, gap: EvidenceGap) -> bool:
+    """Insert one open gap. False when that question already has an open gap.
+
+    The savepoint rolls back only this insert. Closes flushed earlier in the same
+    transaction stay in place. Any other integrity error propagates.
+    """
+    try:
+        with db.begin_nested():
+            db.add(gap)
+            db.flush()
+    except IntegrityError as exc:
+        if not _one_open_gap_violation(exc):
+            raise
+        if gap in db:
+            db.expunge(gap)
+        return False
+    return True
+
+
 def _lock_questionnaire_gap_writes(db: Session, questionnaire_id: int) -> None:
     """Serialize gap inserts for one questionnaire until this session commits or rolls back.
 
@@ -109,8 +150,8 @@ def _lock_questionnaire_gap_writes(db: Session, questionnaire_id: int) -> None:
 # status (draft, approved) counts as a sufficient answer.
 GAP_BLOCKING_ANSWER_STATUSES = (INSUFFICIENT_STATUS, "rejected", "flagged")
 # Closure codes stored on ``EvidenceGap.close_reason`` when regeneration resolves a gap.
-RESOLVED_QUESTION_REMOVED = "question_removed"
-RESOLVED_ANSWER_SUFFICIENT = "answer_sufficient"
+RESOLVED_QUESTION_REMOVED = GAP_CLOSE_REASON_QUESTION_REMOVED
+RESOLVED_ANSWER_SUFFICIENT = GAP_CLOSE_REASON_ANSWER_SUFFICIENT
 # Historical note TC-02-BUG-018 appended to ``reason`` before closed_at / close_reason existed.
 # New closures do not append it. The 018a migration parses the last line of ``reason`` with this
 # grammar (``NOTE_LINE_RE`` in the revision) and leaves the text in place.
@@ -154,6 +195,15 @@ def generate_gaps_for_questionnaire(db: Session, workspace_id: int, questionnair
     transaction, so overlapping runs serialize and leave exactly one open gap per insufficient
     question. Scoped to the workspace that owns the questionnaire. Returns
     ``{"generated": n, "total_insufficient": m, "resolved": r}``.
+
+    ``uq_evidence_gaps_one_open_per_question`` (TC-02-BUG-018c) is the same rule for open
+    questionnaire rows: one open gap per workspace, questionnaire and question.
+    Open control-check rows are outside that index (they have no question). A normal run
+    holds the advisory lock and skips a question that already has an open, accepted or
+    dismissed gap, so the insert does not hit the index. A writer that does not take the
+    lock can still commit an open gap first. That conflict rolls back only the insert
+    (a savepoint) and the question is treated as already open. The closes in the same
+    transaction still commit.
     """
     owned = (
         db.query(Questionnaire.id)
@@ -207,7 +257,7 @@ def generate_gaps_for_questionnaire(db: Session, workspace_id: int, questionnair
     now = datetime.now(timezone.utc)
     resolved = 0
     for gap in gaps:
-        if gap.status != "open" or gap.gap_type != GAP_TYPE_MISSING_EVIDENCE:
+        if gap.status != GAP_STATUS_OPEN or gap.gap_type != GAP_TYPE_MISSING_EVIDENCE:
             continue
         if gap.question_id is None or gap.question_id not in current_question_ids:
             code = RESOLVED_QUESTION_REMOVED
@@ -245,6 +295,10 @@ def generate_gaps_for_questionnaire(db: Session, workspace_id: int, questionnair
         else {}
     )
 
+    # Persist closes before any insert savepoint. A unique-index conflict rolls back
+    # only the insert, not a close already flushed in this transaction.
+    db.flush()
+
     generated = 0
     for answer, question in eligible:
         if question.id in existing:
@@ -252,7 +306,8 @@ def generate_gaps_for_questionnaire(db: Session, workspace_id: int, questionnair
         subjects = _subjects(answer.primary_categories_json, nested=True) or signal_subjects.get(
             question.id, []
         )
-        db.add(
+        inserted = _insert_open_gap(
+            db,
             EvidenceGap(
                 workspace_id=workspace_id,
                 questionnaire_id=questionnaire_id,
@@ -265,11 +320,12 @@ def generate_gaps_for_questionnaire(db: Session, workspace_id: int, questionnair
                     suggested_evidence_title(subjects[0]) if subjects else None
                 ),
                 confidence=None,
-                status="open",
-            )
+                status=GAP_STATUS_OPEN,
+            ),
         )
         existing.add(question.id)
-        generated += 1
+        if inserted:
+            generated += 1
     db.commit()
     return {"generated": generated, "total_insufficient": len(eligible), "resolved": resolved}
 
@@ -315,6 +371,10 @@ def update_evidence_gap_status(
     """Update the status of a single evidence gap. Returns updated dict or None if not found.
 
     Does not write ``closed_at`` or ``close_reason``. Only regeneration closing a gap does.
+
+    Setting ``open`` can hit ``uq_evidence_gaps_one_open_per_question`` when another open
+    gap already exists for the question. That is treated as already open: this row is left
+    unchanged and the existing open gap is returned. Any other integrity error propagates.
     """
     if new_status not in GAP_STATUSES:
         raise ValueError(f"Invalid status: {new_status}. Must be one of {GAP_STATUSES}")
@@ -325,9 +385,26 @@ def update_evidence_gap_status(
     )
     if not gap:
         return None
+    question_id = gap.question_id
     gap.status = new_status
     gap.updated_at = datetime.now(timezone.utc)
-    db.commit()
+    try:
+        db.commit()
+    except IntegrityError as exc:
+        db.rollback()
+        if new_status != GAP_STATUS_OPEN or question_id is None or not _one_open_gap_violation(exc):
+            raise
+        already_open = (
+            db.query(EvidenceGap)
+            .filter(
+                EvidenceGap.workspace_id == workspace_id,
+                EvidenceGap.question_id == question_id,
+                EvidenceGap.status == GAP_STATUS_OPEN,
+            )
+            .order_by(EvidenceGap.id)
+            .first()
+        )
+        return _gap_to_dict(already_open) if already_open else None
     db.refresh(gap)
     return _gap_to_dict(gap)
 
@@ -349,7 +426,7 @@ def bulk_update_by_title(
         .filter(
             EvidenceGap.workspace_id == workspace_id,
             EvidenceGap.suggested_evidence_doc_title == suggested_title,
-            EvidenceGap.status == "open",
+            EvidenceGap.status == GAP_STATUS_OPEN,
         )
         .update(
             {"status": new_status, "updated_at": datetime.now(timezone.utc)},

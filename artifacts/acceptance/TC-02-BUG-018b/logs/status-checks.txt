@@ -1,0 +1,15 @@
+tests/release/test_evidence_gap_status_checks.py
+count: 10 passed
+parent of this review-fix commit: 8c34ea54e5b6b22db40ada00803dddd17b699236
+leftover bug018b-synthetic rows after the run: 0
+alembic version after the run: bug018b_gap_status_checks
+
+..........                                                               [100%]
+=============================== warnings summary ===============================
+tests/release/test_evidence_gap_status_checks.py::test_upgrade_downgrade_upgrade_round_trip
+tests/release/test_evidence_gap_status_checks.py::test_revision_is_head_or_ancestor_of_every_head
+  /tmp/tc-venv/lib/python3.12/site-packages/alembic/config.py:604: DeprecationWarning: No path_separator found in configuration; falling back to legacy splitting on spaces, commas, and colons for prepend_sys_path.  Consider adding path_separator=os to Alembic config.
+    util.warn_deprecated(
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+10 passed, 2 warnings in 6.20s
