@@ -1,0 +1,10 @@
+SHA a4501822706ef88d40e74c9c3b913e5e76753239
+parent of the evidence commit: a4501822706ef88d40e74c9c3b913e5e76753239
+working directory: apps/api
+command: python -m pytest tests/release/test_domain_compliance_gaps.py -q
+interpreter: /tmp/tc-venv/bin/python
+alembic heads: tc21006_gap_evaluation (head)
+
+........                                                                 [100%]
+8 passed, 56 warnings in 5.49s
+exit status: 0

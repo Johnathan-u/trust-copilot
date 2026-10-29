@@ -735,7 +735,8 @@ def test_migrated_schema_matches_the_model():
     mod = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(mod)
     actors = _actors()
-    orphan_id = 2_100_000_000 + (uuid.uuid4().int % 50_000_000)
+    # Signed integer max is 2147483647. A 50_000_000 span from 2_100_000_000 overflows.
+    orphan_id = 2_100_000_000 + (uuid.uuid4().int % 40_000_000)
 
     def apply() -> None:
         with engine.begin() as conn:

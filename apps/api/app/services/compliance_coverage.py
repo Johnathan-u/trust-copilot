@@ -14,12 +14,20 @@ from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from app.models import Answer, Document, Question, Questionnaire  # noqa: F401
+from app.models.control_evidence_link import ControlEvidenceLink
 from app.models.evidence_gap import EvidenceGap
-from app.services.evidence_gap_service import suggested_evidence_title
+from app.models.evidence_item import EvidenceItem
+from app.models.evidence_metadata import EvidenceMetadata
+from app.models.framework import Framework
+from app.models.framework_control import FrameworkControl
 from app.models.question_mapping_signal import QuestionMappingSignal
+from app.models.workspace_control import WorkspaceControl
+from app.services.evidence_gap_service import suggested_evidence_title
 
 HIGH_CONFIDENCE_THRESHOLD = 70
 LOW_CONFIDENCE_THRESHOLD = 40
+CONTROL_COVERAGE_SCHEMA = "compliance-coverage-controls/v1"
+_BLOCKED_RIGHTS = {"blocked_pending_rights", "blocked"}
 
 
 def get_compliance_coverage(db: Session, workspace_id: int) -> dict:
@@ -306,7 +314,7 @@ def get_compliance_coverage(db: Session, workspace_id: int) -> dict:
         reverse=True,
     )[:50]
 
-    return {
+    payload = {
         "kpi": {
             "total_questions": total_questions,
             "total_answered": total_answered,
@@ -324,6 +332,165 @@ def get_compliance_coverage(db: Session, workspace_id: int) -> dict:
         "recommended_evidence": gap_suggestions,
         "trends": trends,
         "drill_down": drill_down,
+    }
+    payload["control_coverage"] = control_coverage(db, workspace_id)
+    return payload
+
+
+def _explanation(
+    control_id: int,
+    state: str,
+    rule: str,
+    effect: str,
+    denominator_changed: bool,
+    framework_id: int | None,
+) -> dict:
+    return {
+        "control_id": control_id,
+        "state": state,
+        "rule": rule,
+        "effect": effect,
+        "denominator_changed": denominator_changed,
+        "framework_id": framework_id,
+    }
+
+
+def _evidence_is_current(db: Session, ev: EvidenceItem, workspace_id: int, now: datetime) -> str:
+    """Return qualifies, stale, deleted_document, not_approved, or missing.
+
+    Missing covers a foreign workspace and a missing document. The caller does
+    not keep that evidence id.
+    """
+    if ev.workspace_id != workspace_id:
+        return "missing"
+    if ev.approval_status != "approved":
+        return "not_approved"
+    if ev.document_id is not None:
+        doc = db.query(Document).filter(Document.id == ev.document_id).first()
+        if doc is None or doc.workspace_id != workspace_id:
+            return "missing"
+        if doc.deleted_at is not None:
+            return "deleted_document"
+    metas = db.query(EvidenceMetadata).filter(EvidenceMetadata.evidence_id == ev.id).all()
+    for meta in metas:
+        if meta.expires_at is not None and meta.expires_at <= now:
+            return "stale"
+    return "qualifies"
+
+
+def _explain_control_inner(db: Session, wc: WorkspaceControl, workspace_id: int) -> dict:
+    lifecycle = (wc.lifecycle or "").strip().lower()
+    status = (getattr(wc, "status", None) or "").strip().lower()
+    if lifecycle == "disabled" or status == "disabled":
+        return _explanation(
+            wc.id, "disabled", "lifecycle_disabled", "excluded_from_denominator", True, None
+        )
+    framework_id = None
+    if wc.framework_control_id:
+        fc = (
+            db.query(FrameworkControl)
+            .filter(FrameworkControl.id == wc.framework_control_id)
+            .first()
+        )
+        if fc is None:
+            return _explanation(
+                wc.id, "unknown", "missing_framework", "excluded_from_denominator", True, None
+            )
+        fw = db.query(Framework).filter(Framework.id == fc.framework_id).first()
+        if fw is None:
+            return _explanation(
+                wc.id, "unknown", "missing_framework", "excluded_from_denominator", True, None
+            )
+        framework_id = fw.id
+        rights = (fw.rights_status or "").strip().lower()
+        enablement = (fw.enablement_state or "").strip().lower()
+        if rights in _BLOCKED_RIGHTS or enablement == "blocked":
+            return _explanation(
+                wc.id,
+                "blocked",
+                "framework_blocked",
+                "excluded_from_denominator",
+                True,
+                framework_id,
+            )
+    now = datetime.utcnow()
+    links = db.query(ControlEvidenceLink).filter(ControlEvidenceLink.control_id == wc.id).all()
+    if not links:
+        return _explanation(
+            wc.id, "gap", "no_evidence", "excluded_from_numerator", False, framework_id
+        )
+    saw_expired = False
+    saw_deleted = False
+    saw_unapproved = False
+    for link in links:
+        ev = db.query(EvidenceItem).filter(EvidenceItem.id == link.evidence_id).first()
+        if ev is None:
+            continue
+        kind = _evidence_is_current(db, ev, workspace_id, now)
+        if kind == "qualifies":
+            return _explanation(
+                wc.id, "qualified", "evidence_qualifies", "counted", False, framework_id
+            )
+        if kind == "stale":
+            saw_expired = True
+        elif kind == "deleted_document":
+            saw_deleted = True
+        elif kind == "not_approved":
+            saw_unapproved = True
+    if saw_expired:
+        return _explanation(
+            wc.id, "stale", "expired", "excluded_from_numerator", False, framework_id
+        )
+    if saw_deleted:
+        return _explanation(
+            wc.id, "gap", "deleted_document", "excluded_from_numerator", False, framework_id
+        )
+    if saw_unapproved:
+        return _explanation(
+            wc.id, "gap", "not_approved", "excluded_from_numerator", False, framework_id
+        )
+    return _explanation(wc.id, "gap", "no_evidence", "excluded_from_numerator", False, framework_id)
+
+
+def _explain_control(db: Session, wc: WorkspaceControl, workspace_id: int) -> dict:
+    try:
+        return _explain_control_inner(db, wc, workspace_id)
+    except Exception:
+        return _explanation(wc.id, "failed", "check_error", "excluded_from_numerator", False, None)
+
+
+def control_coverage(db: Session, workspace_id: int) -> dict:
+    """Distinct applicable controls in a qualified state, with every exclusion named.
+
+    Disabled, unknown, and blocked controls leave the denominator. Stale, gap,
+    and failed controls stay in it and stay out of the numerator. Nothing here
+    is stored.
+    """
+    rows = db.query(WorkspaceControl).filter(WorkspaceControl.workspace_id == workspace_id).all()
+    if not isinstance(rows, list):
+        rows = []
+    explanations = []
+    qualified: list[int] = []
+    denominator = 0
+    for wc in rows:
+        if not hasattr(wc, "id"):
+            continue
+        item = _explain_control(db, wc, workspace_id)
+        explanations.append(item)
+        if item["effect"] != "excluded_from_denominator":
+            denominator += 1
+        if item["effect"] == "counted":
+            qualified.append(int(wc.id))
+    explanations.sort(key=lambda item: item["control_id"])
+    qualified_ids = sorted(set(qualified))
+    numerator = len(qualified_ids)
+    return {
+        "schema_version": CONTROL_COVERAGE_SCHEMA,
+        "numerator": numerator,
+        "denominator": denominator,
+        "coverage_pct": round(numerator / denominator * 100, 1) if denominator else 0,
+        "qualified_control_ids": qualified_ids,
+        "explanations": explanations,
     }
 
 

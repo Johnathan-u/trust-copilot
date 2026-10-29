@@ -1,0 +1,5 @@
+tests/release/test_safe_collection.py
+count: 29 passed
+
+.............................                                            [100%]
+29 passed in 8.05s
