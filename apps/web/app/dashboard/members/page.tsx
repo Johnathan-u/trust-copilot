@@ -7,10 +7,24 @@ import {
   Input,
   Modal,
   ToastNotice,
+  ErrorState,
+  LoadingState,
+  PartialSuccess,
   TableSkeleton,
 } from '@/components/ui'
 import { useAuth } from '@/contexts/AuthContext'
-import { apiErrorAnnouncement, formatApiErrorDetail } from '@/lib/api-error'
+import {
+  apiErrorAnnouncement,
+  formatApiErrorDetail,
+  presentHttpFailure,
+} from '@/lib/api-error'
+import type { ApiFailurePresentation } from '@/lib/api-error'
+import {
+  listFromPayload,
+  loadSection,
+  sectionFailure,
+} from '@/lib/section-load'
+import { pageMode, type FailedSection } from '@/lib/ui-state'
 import { dialogAttributes } from '@/lib/dialog'
 
 type Member = {
@@ -66,6 +80,11 @@ export default function MembersPage() {
   const [invites, setInvites] = useState<Invite[]>([])
   const [roles, setRoles] = useState<RoleDef[]>([])
   const [loading, setLoading] = useState(true)
+  const [loadFailure, setLoadFailure] = useState<ApiFailurePresentation | null>(
+    null
+  )
+  const [partialFailed, setPartialFailed] = useState<FailedSection[]>([])
+  const [loadAttempt, setLoadAttempt] = useState(0)
   const [refreshing, setRefreshing] = useState(false)
   const [inviteOpen, setInviteOpen] = useState(false)
   const [inviteEmail, setInviteEmail] = useState('')
@@ -104,26 +123,72 @@ export default function MembersPage() {
     if (members.length === 0) setLoading(true)
     setRefreshing(true)
     Promise.all([
-      fetch('/api/members', { credentials: 'include' }),
-      fetch('/api/members/invites', { credentials: 'include' }),
-      fetch('/api/members/roles', { credentials: 'include' }),
+      loadSection(fetch('/api/members', { credentials: 'include' }), (data) =>
+        listFromPayload<Member>(data, ['members'])
+      ),
+      loadSection(
+        fetch('/api/members/invites', { credentials: 'include' }),
+        (data) => listFromPayload<Invite>(data, ['invites'])
+      ),
+      loadSection(
+        fetch('/api/members/roles', { credentials: 'include' }),
+        (data) => listFromPayload<RoleDef>(data, ['roles'])
+      ),
     ])
-      .then(([r1, r2, r3]) =>
-        Promise.all([
-          r1.ok ? r1.json() : { members: [] },
-          r2.ok ? r2.json() : { invites: [] },
-          r3.ok ? r3.json() : { roles: [] },
-        ])
-      )
-      .then(([d1, d2, d3]) => {
-        setMembers(d1.members ?? [])
-        setInvites(d2.invites ?? [])
-        setRoles(d3.roles ?? [])
+      .then(([membersResult, invitesResult, rolesResult]) => {
+        const snapshots = [
+          {
+            id: 'members',
+            label: 'Members',
+            phase: membersResult.ok
+              ? membersResult.data.length === 0
+                ? ('empty' as const)
+                : ('ready' as const)
+              : ('error' as const),
+            failure: sectionFailure(membersResult),
+          },
+          {
+            id: 'invites',
+            label: 'Invitations',
+            phase: invitesResult.ok
+              ? invitesResult.data.length === 0
+                ? ('empty' as const)
+                : ('ready' as const)
+              : ('error' as const),
+            failure: sectionFailure(invitesResult),
+          },
+          {
+            id: 'roles',
+            label: 'Roles',
+            phase: rolesResult.ok
+              ? rolesResult.data.length === 0
+                ? ('empty' as const)
+                : ('ready' as const)
+              : ('error' as const),
+            failure: sectionFailure(rolesResult),
+          },
+        ]
+        const mode = pageMode(snapshots[0], snapshots.slice(1))
+        setMembers(membersResult.ok ? membersResult.data : [])
+        setInvites(invitesResult.ok ? invitesResult.data : [])
+        setRoles(rolesResult.ok ? rolesResult.data : [])
+        if (mode.mode === 'error') {
+          setLoadFailure(mode.failure)
+          setPartialFailed([])
+        } else if (mode.mode === 'partial') {
+          setLoadFailure(null)
+          setPartialFailed(mode.failed)
+        } else {
+          setLoadFailure(null)
+          setPartialFailed([])
+        }
       })
       .catch(() => {
         setMembers([])
         setInvites([])
         setRoles([])
+        setPartialFailed([])
+        setLoadFailure(presentHttpFailure({ offline: true }))
       })
       .finally(() => {
         setLoading(false)
@@ -138,7 +203,7 @@ export default function MembersPage() {
     if (canAdmin) load()
     else setLoading(false)
     // eslint-disable-next-line react-hooks/exhaustive-deps -- pre-existing: load() is re-created every render; adding it would refetch in a loop (TC-02-006 follow-up)
-  }, [canAdmin, workspace?.id])
+  }, [canAdmin, workspace?.id, loadAttempt])
 
   const openConfirm = (action: ConfirmAction) => {
     setConfirmError(null)
@@ -353,8 +418,28 @@ export default function MembersPage() {
           Members
         </h1>
         <Card>
-          <TableSkeleton rows={4} cols={5} />
+          <LoadingState
+            label="Loading members"
+            resetKey={loadAttempt}
+            onRetry={() => setLoadAttempt((value) => value + 1)}
+          >
+            <TableSkeleton rows={4} cols={5} />
+          </LoadingState>
         </Card>
+      </div>
+    )
+  }
+
+  if (loadFailure) {
+    return (
+      <div>
+        <h1 className="text-2xl font-bold text-[var(--tc-text)] mb-6">
+          Members
+        </h1>
+        <ErrorState
+          failure={loadFailure}
+          onRetry={() => setLoadAttempt((value) => value + 1)}
+        />
       </div>
     )
   }
@@ -363,6 +448,14 @@ export default function MembersPage() {
 
   return (
     <div>
+      {partialFailed.length > 0 ? (
+        <div className="mb-6">
+          <PartialSuccess
+            failed={partialFailed}
+            onRetry={() => setLoadAttempt((value) => value + 1)}
+          />
+        </div>
+      ) : null}
       <div className="mb-6 flex items-center gap-3">
         <h1 className="text-2xl font-bold text-[var(--tc-text)]">Members</h1>
         {refreshing && !loading && (

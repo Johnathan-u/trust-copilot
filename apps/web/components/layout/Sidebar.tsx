@@ -136,7 +136,7 @@ export function Sidebar({
       style={{ background: 'var(--tc-sidebar)' }}
     >
       {workspaces.length > 1 ? (
-        <div className="shrink-0">
+        <div className="shrink-0" data-sidebar-workspace="list">
           <label
             htmlFor="sidebar-workspace-select"
             className="mb-tc-1 block px-tc-1 text-tc-caption font-semibold uppercase tracking-wider text-tc-muted"
@@ -158,7 +158,10 @@ export function Sidebar({
           </select>
         </div>
       ) : workspace ? (
-        <div className="shrink-0 rounded-tc-xs border border-tc-border-strong bg-tc-surface-overlay px-tc-2 py-tc-2">
+        <div
+          data-sidebar-workspace="current"
+          className="shrink-0 rounded-tc-xs border border-tc-border-strong bg-tc-surface-overlay px-tc-2 py-tc-2"
+        >
           <p className="mb-tc-1 px-tc-1 text-tc-caption font-semibold uppercase tracking-wider text-tc-muted">
             Workspace
           </p>

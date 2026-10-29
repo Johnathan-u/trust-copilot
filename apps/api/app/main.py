@@ -210,7 +210,7 @@ async def lifespan(app: FastAPI):
         import logging
 
         logging.getLogger("app.main").warning("S3/MinIO bucket init skipped or failed: %s", e)
-    configure_logging(s.log_level, use_json=(s.app_env == "production"))
+    configure_logging(s.log_level, use_json=is_production_env())
     if not is_production_env():
         if not s.session_secret:
             import logging
@@ -504,9 +504,9 @@ def healthz():
 def db_test():
     """Debug: verify DB connection. Only available in dev/test environments."""
     from fastapi.responses import JSONResponse
-    from app.core.config import get_settings
+    from app.core.session import is_production_env
 
-    if get_settings().app_env == "production":
+    if is_production_env():
         return JSONResponse({"detail": "Not available"}, status_code=404)
     from sqlalchemy import text
     from sqlalchemy.exc import OperationalError

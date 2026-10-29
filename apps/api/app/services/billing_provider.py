@@ -192,7 +192,12 @@ def stripe_preflight_issues(settings) -> list[PreflightIssue]:
                 True,
             )
         )
-    if key_mode == "live" and getattr(settings, "app_env", "") != "production":
+    from app.core.session import is_production_env
+
+    # Judge the settings object passed in, not a different cached Settings().
+    if key_mode == "live" and not is_production_env(
+        {"APP_ENV": str(getattr(settings, "app_env", "") or "")}
+    ):
         issues.append(
             PreflightIssue(
                 "live_key_outside_production",

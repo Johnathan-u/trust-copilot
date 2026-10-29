@@ -7,6 +7,8 @@ import {
   Modal,
   DocumentListSkeleton,
   EmptyState,
+  ErrorState,
+  LoadingState,
   DisplayIdText,
   CreatedTimestampText,
   CategoryChipsRow,
@@ -17,6 +19,13 @@ import {
   RegistryRowActionsMenu,
 } from '@/components/ui'
 import { useAuth } from '@/contexts/AuthContext'
+import type { ApiFailurePresentation } from '@/lib/api-error'
+import {
+  failureOf,
+  isAbortError,
+  listFromPayload,
+  readSectionJson,
+} from '@/lib/section-load'
 import {
   FRAMEWORK_OPTIONS,
   SUBJECT_AREA_OPTIONS,
@@ -47,6 +56,10 @@ export default function DocumentsPage() {
   const canUpload = permissions.can_edit
   const [docs, setDocs] = useState<Doc[]>([])
   const [loading, setLoading] = useState(true)
+  const [loadFailure, setLoadFailure] = useState<ApiFailurePresentation | null>(
+    null
+  )
+  const [loadAttempt, setLoadAttempt] = useState(0)
   const [refreshing, setRefreshing] = useState(false)
   const [uploading, setUploading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -106,6 +119,7 @@ export default function DocumentsPage() {
       setLoading(false)
       return
     }
+    setLoadFailure(null)
     setLoading((prev) => (docs.length === 0 ? true : prev))
     setRefreshing(true)
     const params = new URLSearchParams({ workspace_id: String(workspaceId) })
@@ -120,18 +134,18 @@ export default function DocumentsPage() {
     const url = `/api/documents/?${params.toString()}`
     fetch(url, { credentials: 'include' })
       .then(async (res) => {
-        const data = await res.json().catch(() => ({}))
-        if (!res.ok) return []
-        return Array.isArray(data)
-          ? (data as Doc[])
-          : Array.isArray((data as { items?: Doc[] })?.items)
-            ? (data as { items: Doc[] }).items
-            : Array.isArray((data as { documents?: Doc[] })?.documents)
-              ? (data as { documents: Doc[] }).documents
-              : []
+        const data = await readSectionJson(res)
+        return listFromPayload<Doc>(data, ['items', 'documents'])
       })
-      .then(setDocs)
-      .catch(() => setDocs([]))
+      .then((rows) => {
+        setDocs(rows)
+        setLoadFailure(null)
+      })
+      .catch((error: unknown) => {
+        if (isAbortError(error)) return
+        setDocs([])
+        setLoadFailure(failureOf(error))
+      })
       .finally(() => {
         setLoading(false)
         setRefreshing(false)
@@ -146,6 +160,7 @@ export default function DocumentsPage() {
     createdFrom,
     createdTo,
     archivedMode,
+    loadAttempt,
   ])
 
   useEffect(() => {
@@ -431,8 +446,19 @@ export default function DocumentsPage() {
             {error}
           </div>
         )}
-        {loading ? (
-          <DocumentListSkeleton />
+        {loadFailure ? (
+          <ErrorState
+            failure={loadFailure}
+            onRetry={() => setLoadAttempt((value) => value + 1)}
+          />
+        ) : loading ? (
+          <LoadingState
+            label="Loading documents"
+            resetKey={loadAttempt}
+            onRetry={() => setLoadAttempt((value) => value + 1)}
+          >
+            <DocumentListSkeleton />
+          </LoadingState>
         ) : docs.length === 0 ? (
           <EmptyState
             title="No documents yet"
