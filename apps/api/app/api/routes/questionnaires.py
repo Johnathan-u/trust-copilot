@@ -8,13 +8,29 @@ import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime, timezone
 
-from fastapi import APIRouter, Depends, Form, HTTPException, Query, UploadFile
+from fastapi import APIRouter, Depends, Form, HTTPException, Query, Request, UploadFile
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 from sqlalchemy import func  # noqa: F401
 from sqlalchemy.orm import Session
 
 from app.api.schemas import BulkDeleteBody, MetadataUpdateBody
-from app.core.api_errors import current_request_id, outcome_payload
+from app.core.api_errors import (
+    ApiError,
+    FieldError,
+    api_error_response,
+    current_request_id,
+    outcome_payload,
+)
+from app.core.idempotency import (
+    IdempotencyClaimLost,
+    IdempotencyKeyError,
+    claim as idempotency_claim,
+    get as idempotency_get,
+    release as idempotency_release,
+    scoped_key as idempotency_scoped_key,
+    set as idempotency_set,
+)
 from app.core.audit import audit_log
 from app.core.config import get_settings
 from app.core.auth_deps import require_can_edit, require_can_review, require_session
@@ -38,7 +54,8 @@ from app.services.compliance_hooks import (
 )
 from app.services.mapping_llm_rerank import get_rerank_perf_snapshot, reset_rerank_perf_stats
 from app.services.file_service import FileService
-from app.services.job_effects import enqueue_job, job_idempotency_key
+from app.services.job_effects import EnqueueConflictError, enqueue_job, job_idempotency_key
+from app.services.upload_enqueue import UPLOAD_IDEMPOTENCY_RESOURCE, discard_stored_upload
 from app.services.questionnaire_mapping_evidence import (
     batch_supporting_evidence_for_workspace_controls,
     suggest_documents_for_mapping_review,
@@ -70,6 +87,33 @@ from app.services.workspace_usage import record_mapping_calls
 _log = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/questionnaires", tags=["questionnaires"])
+_UPLOAD_SCOPE = "questionnaires.upload"
+
+
+def _upload_idempotency_key(request: Request, workspace_id: int):
+    """Stored key, "" when the header is absent, or a 400 when the header is invalid."""
+    raw = request.headers.get("Idempotency-Key")
+    try:
+        return idempotency_scoped_key(workspace_id, _UPLOAD_SCOPE, UPLOAD_IDEMPOTENCY_RESOURCE, raw)
+    except IdempotencyKeyError as exc:
+        message = str(exc)
+        error = ApiError(
+            code="invalid_idempotency_key",
+            message=message,
+            request_id=current_request_id(request),
+            retryable=False,
+            field_errors=[FieldError(field="Idempotency-Key", code="invalid", message=message)],
+        )
+        return api_error_response(error, 400)
+
+
+def _release_upload_claim(db: Session, idem_key: str, idem_owner: str | None) -> None:
+    if not idem_key:
+        return
+    try:
+        idempotency_release(db, idem_key, owner=idem_owner)
+    except Exception:
+        _log.warning("questionnaire upload: failed to release idempotency claim", exc_info=True)
 
 
 def _answer_evidence_payload(db: Session, workspace_id: int, qnr: Questionnaire) -> dict:
@@ -100,6 +144,7 @@ def get_file_service(storage: StorageClient = Depends(get_storage)) -> FileServi
 
 @router.post("/upload")
 def upload_questionnaire(
+    request: Request,
     workspace_id: int = Form(...),
     file: UploadFile = ...,
     frameworks: str = Form(""),
@@ -108,51 +153,91 @@ def upload_questionnaire(
     db: Session = Depends(get_db),
     file_svc: FileService = Depends(get_file_service),
 ):
-    """Upload questionnaire file (QNR-01). Enqueues parse job (QNR-13)."""
+    """Upload questionnaire file (QNR-01). Enqueues parse job (QNR-13).
+
+    The questionnaire, its parse job, and the optional Idempotency-Key response commit once
+    (TC-10-003c). A retryable enqueue conflict rolls that transaction back and deletes the
+    stored object so the client's retry does not create a second row.
+    """
+    # Authorize before the idempotency store or object storage: a 403 is never cached or stored.
     if session.get("workspace_id") != workspace_id:
         raise HTTPException(status_code=403, detail="Access denied")
-    key, filename = file_svc.upload_raw(workspace_id, file)
-
-    fw_list = [f.strip() for f in frameworks.split(",") if f.strip()] or ["Other"]
-    sa_list = [s.strip() for s in subject_areas.split(",") if s.strip()] or ["Other"]
-
-    qnr = Questionnaire(
-        workspace_id=workspace_id,
-        storage_key=key,
-        filename=filename,
-        frameworks_json=json.dumps(fw_list),
-        subject_areas_json=json.dumps(sa_list),
-        status="uploaded",
-    )
-    db.add(qnr)
-    db.flush()
-    qnr.display_id = build_display_id("questionnaire", qnr.id)
-    db.commit()
-    db.refresh(qnr)
-    # TC-10-003: input_version pins the job to this upload's object; a stale job is superseded, not applied.
-    job, _created = enqueue_job(
-        db,
-        workspace_id=workspace_id,
-        kind="parse_questionnaire",
-        payload={"questionnaire_id": qnr.id, "storage_key": key},
-        idempotency_key=job_idempotency_key("parse_questionnaire", workspace_id, qnr.id, key),
-        input_version=key,
-    )
+    idem_key = _upload_idempotency_key(request, workspace_id)
+    if isinstance(idem_key, JSONResponse):
+        return idem_key
+    idem_owner: str | None = None
+    if idem_key:
+        cached = idempotency_get(db, idem_key)
+        if cached:
+            return JSONResponse(content=cached[1], status_code=cached[0])
+        # TC-10-003b: keep the owner token so a late set cannot overwrite a reclaimed claim.
+        idem_owner = idempotency_claim(db, idem_key)
+        if idem_owner is None:
+            cached2 = idempotency_get(db, idem_key)
+            if cached2:
+                return JSONResponse(content=cached2[1], status_code=cached2[0])
+            raise HTTPException(
+                status_code=409, detail="Request in progress; retry with same Idempotency-Key"
+            )
+    stored_key: str | None = None
+    try:
+        stored_key, filename = file_svc.upload_raw(workspace_id, file)
+        fw_list = [f.strip() for f in frameworks.split(",") if f.strip()] or ["Other"]
+        sa_list = [s.strip() for s in subject_areas.split(",") if s.strip()] or ["Other"]
+        qnr = Questionnaire(
+            workspace_id=workspace_id,
+            storage_key=stored_key,
+            filename=filename,
+            frameworks_json=json.dumps(fw_list),
+            subject_areas_json=json.dumps(sa_list),
+            status="uploaded",
+        )
+        db.add(qnr)
+        db.flush()
+        qnr.display_id = build_display_id("questionnaire", qnr.id)
+        # TC-10-003: input_version pins the job to this upload's object; a stale job is superseded.
+        # commit=False keeps the row and the job in this transaction (TC-10-003c).
+        job, _created = enqueue_job(
+            db,
+            workspace_id=workspace_id,
+            kind="parse_questionnaire",
+            payload={"questionnaire_id": qnr.id, "storage_key": stored_key},
+            idempotency_key=job_idempotency_key(
+                "parse_questionnaire", workspace_id, qnr.id, stored_key
+            ),
+            input_version=stored_key,
+            commit=False,
+        )
+        result = {
+            "id": qnr.id,
+            "display_id": qnr.display_id,
+            "filename": qnr.filename,
+            "status": qnr.status,
+            "storage_key": qnr.storage_key,
+            "job_id": job.id,
+        }
+        if idem_key:
+            idempotency_set(db, idem_key, 200, result, owner=idem_owner, commit=False)
+        db.commit()
+    except (EnqueueConflictError, IdempotencyClaimLost):
+        db.rollback()
+        discard_stored_upload(file_svc._storage, stored_key)
+        _release_upload_claim(db, idem_key, idem_owner)
+        raise
+    except Exception:
+        db.rollback()
+        discard_stored_upload(file_svc._storage, stored_key)
+        _release_upload_claim(db, idem_key, idem_owner)
+        raise
     audit_log(
         "questionnaire.upload",
         email=session.get("email"),
         workspace_id=workspace_id,
         resource_type="questionnaire",
-        resource_id=qnr.id,
-        details={"filename": qnr.filename},
+        resource_id=result["id"],
+        details={"filename": result["filename"]},
     )
-    return {
-        "id": qnr.id,
-        "display_id": qnr.display_id,
-        "filename": qnr.filename,
-        "status": qnr.status,
-        "job_id": job.id,
-    }
+    return result
 
 
 _SEARCH_QUERY_MAX_LEN = 200
