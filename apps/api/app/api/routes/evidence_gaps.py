@@ -24,6 +24,7 @@ from app.core.idempotency import get as idempotency_get
 from app.core.idempotency import release as idempotency_release
 from app.core.idempotency import set as idempotency_set
 from app.models import (
+    CONTROL_CHECK,
     CONTROL_CHECK_CLOSE_REASON,
     Answer,
     Chunk,
@@ -35,7 +36,10 @@ from app.models import (
     Questionnaire,
     WorkspaceControl,
 )
-from app.services.evidence_gap_service import _lock_questionnaire_gap_writes
+from app.services.evidence_gap_service import (
+    _lock_questionnaire_gap_writes,
+    _one_open_gap_violation,
+)
 from app.services.in_app_notification_service import notify_admins
 
 logger = logging.getLogger(__name__)
@@ -274,6 +278,32 @@ def _evidence_in_workspace(db: Session, evidence_id: int, workspace_id: int) -> 
     return row
 
 
+def _matching_gaps(
+    db: Session,
+    workspace_id: int,
+    gap_type: str,
+    control_id: int | None,
+    question_id: int | None,
+) -> list[EvidenceGap]:
+    query = db.query(EvidenceGap).filter(
+        EvidenceGap.workspace_id == workspace_id,
+        EvidenceGap.status != "resolved",
+    )
+    if question_id is not None and gap_type != CONTROL_CHECK:
+        query = query.filter(
+            EvidenceGap.question_id == question_id,
+            EvidenceGap.gap_type != CONTROL_CHECK,
+        )
+    elif control_id is not None:
+        query = query.filter(
+            EvidenceGap.control_id == control_id,
+            EvidenceGap.gap_type == gap_type,
+        )
+    else:
+        query = query.filter(EvidenceGap.question_id == question_id)
+    return query.order_by(EvidenceGap.id).all()
+
+
 def _insert_open_gap(db: Session, chosen: EvidenceGap) -> None:
     with db.begin_nested():
         db.add(chosen)
@@ -451,23 +481,7 @@ def ensure_open_gap(
             _lock_control_gap_writes(db, control_id)
         if control_id is None and question_id is None:
             raise HTTPException(status_code=422, detail="control_id or question_id is required")
-        query = db.query(EvidenceGap).filter(
-            EvidenceGap.workspace_id == workspace_id,
-            EvidenceGap.status != "resolved",
-        )
-        if question_id is not None and gap_type != "control_check":
-            query = query.filter(
-                EvidenceGap.question_id == question_id,
-                EvidenceGap.gap_type != "control_check",
-            )
-        elif control_id is not None:
-            query = query.filter(
-                EvidenceGap.control_id == control_id,
-                EvidenceGap.gap_type == gap_type,
-            )
-        else:
-            query = query.filter(EvidenceGap.question_id == question_id)
-        existing = query.order_by(EvidenceGap.id).all()
+        existing = _matching_gaps(db, workspace_id, gap_type, control_id, question_id)
         decided = [row for row in existing if row.status in _DECIDED]
         open_rows = [row for row in existing if row.status == "open"]
         if open_rows:
@@ -488,11 +502,19 @@ def ensure_open_gap(
             try:
                 _insert_open_gap(db, chosen)
                 status_code = 201
-            except IntegrityError:
-                again = query.filter(EvidenceGap.status == "open").order_by(EvidenceGap.id).first()
-                if again is None:
+            except IntegrityError as exc:
+                if not _one_open_gap_violation(exc):
+                    raise
+                if chosen in db:
+                    db.expunge(chosen)
+                open_rows = [
+                    row
+                    for row in _matching_gaps(db, workspace_id, gap_type, control_id, question_id)
+                    if row.status == "open"
+                ]
+                if not open_rows:
                     raise HTTPException(status_code=409, detail="Open gap already exists") from None
-                chosen = again
+                chosen = open_rows[0]
                 status_code = 200
         if status_code == 201:
             db.commit()
@@ -600,7 +622,7 @@ def resolve_gap(
             visible.append(ev.id)
         gap.evidence_refs = json.dumps(visible)
         gap.status = "resolved"
-        if gap.question_id is not None and gap.gap_type != "control_check":
+        if gap.question_id is not None and gap.gap_type != CONTROL_CHECK:
             gap.close_reason = "answer_sufficient"
         else:
             gap.close_reason = CONTROL_CHECK_CLOSE_REASON

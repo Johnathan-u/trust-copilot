@@ -31,6 +31,7 @@ from app.models import (
     WorkspaceControl,
     WorkspaceMember,
 )
+from app.models import CONTROL_CHECK
 from app.models.evidence_gap import CONTROL_CHECK_CLOSE_REASON
 
 SLUG = "tc21013"
@@ -318,12 +319,12 @@ def _unchanged(gap_id: int, stored: tuple, before_audit: int, before_keys: int) 
 def test_create_decision_and_resolve_permissions(client):
     actors = _actors()
     control_id = _control(actors["workspace_id"], f"Denied {uuid.uuid4().hex[:8]}")
-    gap_id = _gap(actors["workspace_id"], gap_type="control_check", control_id=control_id)
+    gap_id = _gap(actors["workspace_id"], gap_type=CONTROL_CHECK, control_id=control_id)
     approved, _doc = _evidence(actors["workspace_id"], approval="approved")
     _link(control_id, approved)
     stored = _row(gap_id)
     calls = (
-        ("POST", "/api/evidence-gaps", {"gap_type": "control_check", "control_id": control_id}),
+        ("POST", "/api/evidence-gaps", {"gap_type": CONTROL_CHECK, "control_id": control_id}),
         ("POST", f"/api/evidence-gaps/{gap_id}/decision", {"status": "accepted"}),
         ("POST", f"/api/evidence-gaps/{gap_id}/resolve", {"evidence_id": approved}),
     )
@@ -338,7 +339,7 @@ def test_create_decision_and_resolve_permissions(client):
     before_audit = _counts()["audit_events"]
     before_keys = _counts()["idempotency_keys"]
     for path, body in (
-        ("/api/evidence-gaps", {"gap_type": "control_check", "control_id": control_id}),
+        ("/api/evidence-gaps", {"gap_type": CONTROL_CHECK, "control_id": control_id}),
         (f"/api/evidence-gaps/{gap_id}/decision", {"status": "accepted"}),
         (f"/api/evidence-gaps/{gap_id}/resolve", {"evidence_id": approved}),
     ):
@@ -400,9 +401,9 @@ def test_missing_and_foreign_ids_share_the_404(client):
     actors = _actors()
     own_control = _control(actors["workspace_id"], f"Own {uuid.uuid4().hex[:8]}")
     foreign_control = _control(actors["other_workspace_id"], f"Foreign {uuid.uuid4().hex[:8]}")
-    own_gap = _gap(actors["workspace_id"], gap_type="control_check", control_id=own_control)
+    own_gap = _gap(actors["workspace_id"], gap_type=CONTROL_CHECK, control_id=own_control)
     foreign_gap = _gap(
-        actors["other_workspace_id"], gap_type="control_check", control_id=foreign_control
+        actors["other_workspace_id"], gap_type=CONTROL_CHECK, control_id=foreign_control
     )
     session = _db()
     try:
@@ -443,11 +444,11 @@ def test_missing_and_foreign_ids_share_the_404(client):
     )
     same(
         client.post(
-            "/api/evidence-gaps", json={"gap_type": "control_check", "control_id": 999999991}
+            "/api/evidence-gaps", json={"gap_type": CONTROL_CHECK, "control_id": 999999991}
         ),
         client.post(
             "/api/evidence-gaps",
-            json={"gap_type": "control_check", "control_id": foreign_control},
+            json={"gap_type": CONTROL_CHECK, "control_id": foreign_control},
         ),
         "Control not found",
     )
@@ -479,7 +480,7 @@ def test_resolve_requires_eligible_backing_evidence(client):
     )
     gap_id = _gap(
         actors["workspace_id"],
-        gap_type="control_check",
+        gap_type=CONTROL_CHECK,
         control_id=control_id,
         evaluation_state="gap",
         rule_code="no_evidence",
@@ -519,7 +520,7 @@ def test_resolve_requires_eligible_backing_evidence(client):
     assert failed.json()["resolved"] is True
     assert failed.json()["notification_error"] == "delivery_failed"
     assert str(gap_id) not in notify.call_args.args[3]
-    assert "control_check" in notify.call_args.args[3]
+    assert CONTROL_CHECK in notify.call_args.args[3]
     assert failed.json()["close_reason"] == CONTROL_CHECK_CLOSE_REASON
     assert str(approved) in failed.text
     retried = client.post(
@@ -556,8 +557,8 @@ def test_resolve_requires_eligible_backing_evidence(client):
 def test_duplicate_open_gap_is_explained_and_not_created(client):
     actors = _actors()
     control_id = _control(actors["workspace_id"], f"Dup {uuid.uuid4().hex[:8]}")
-    first = _gap(actors["workspace_id"], gap_type="control_check", control_id=control_id)
-    second = _gap(actors["workspace_id"], gap_type="control_check", control_id=control_id)
+    first = _gap(actors["workspace_id"], gap_type=CONTROL_CHECK, control_id=control_id)
+    second = _gap(actors["workspace_id"], gap_type=CONTROL_CHECK, control_id=control_id)
     _login(client, ADMIN_EMAIL, ADMIN_PASSWORD)
     listed = client.get("/api/evidence-gaps")
     assert listed.status_code == 200, listed.text
@@ -568,7 +569,7 @@ def test_duplicate_open_gap_is_explained_and_not_created(client):
     before = _counts()["evidence_gaps"]
     ensured = client.post(
         "/api/evidence-gaps",
-        json={"gap_type": "control_check", "control_id": control_id},
+        json={"gap_type": CONTROL_CHECK, "control_id": control_id},
     )
     assert ensured.status_code == 200, ensured.text
     assert ensured.json()["id"] == min(first, second)
@@ -579,7 +580,7 @@ def test_duplicate_open_gap_is_explained_and_not_created(client):
 def test_reviewer_decision_is_not_overwritten_or_reopened(client):
     actors = _actors()
     control_id = _control(actors["workspace_id"], f"Decided {uuid.uuid4().hex[:8]}")
-    gap_id = _gap(actors["workspace_id"], gap_type="control_check", control_id=control_id)
+    gap_id = _gap(actors["workspace_id"], gap_type=CONTROL_CHECK, control_id=control_id)
     approved, _doc = _evidence(actors["workspace_id"], approval="approved")
     _link(control_id, approved)
     _login(client, ADMIN_EMAIL, ADMIN_PASSWORD)
@@ -608,7 +609,7 @@ def test_reviewer_decision_is_not_overwritten_or_reopened(client):
     before = _counts()["evidence_gaps"]
     ensured = client.post(
         "/api/evidence-gaps",
-        json={"gap_type": "control_check", "control_id": control_id},
+        json={"gap_type": CONTROL_CHECK, "control_id": control_id},
     )
     assert ensured.status_code == 200, ensured.text
     assert ensured.json()["status"] == "accepted"
@@ -632,7 +633,7 @@ def test_foreign_evidence_id_is_omitted_from_the_response_and_the_row(client):
         session.close()
     gap_id = _gap(
         actors["workspace_id"],
-        gap_type="control_check",
+        gap_type=CONTROL_CHECK,
         control_id=control_id,
         evidence_refs=json.dumps([marker]),
     )
@@ -672,13 +673,14 @@ def test_decided_row_is_not_rewritten_by_reads_or_retry(client):
                 "workspace_id, gap_type, reason, status, created_at, updated_at, "
                 "control_id, evidence_refs"
                 ") VALUES ("
-                ":ws, 'control_check', 'kept', 'accepted', :stamp, :stamp, :control, :refs"
+                ":ws, :gap_type, 'kept', 'accepted', :stamp, :stamp, :control, :refs"
                 ") RETURNING id"
             ),
             {
                 "ws": actors["workspace_id"],
                 "stamp": stamp,
                 "control": control_id,
+                "gap_type": CONTROL_CHECK,
                 "refs": json.dumps([marker]),
             },
         ).scalar()
@@ -739,20 +741,25 @@ def test_question_gaps_share_one_open_row_and_survive_a_conflict(client):
     assert second.status_code == 200, second.text
     assert second.json()["id"] == first.json()["id"]
     assert second.json()["created"] is False
-    from sqlalchemy.exc import IntegrityError
+    real_matches = gaps_mod._matching_gaps
+    seen = {"n": 0}
 
-    def boom(db, chosen):
-        raise IntegrityError("INSERT", {}, Exception("duplicate key"))
+    def hide_the_open_row(*args, **kwargs):
+        rows = real_matches(*args, **kwargs)
+        seen["n"] += 1
+        if seen["n"] == 1:
+            return [row for row in rows if row.status != "open"]
+        return rows
 
-    with patch("app.api.routes.evidence_gaps._insert_open_gap", side_effect=boom):
+    with patch("app.api.routes.evidence_gaps._matching_gaps", side_effect=hide_the_open_row):
         conflict = client.post(
             "/api/evidence-gaps",
-            json={
-                "gap_type": "control_check",
-                "control_id": _control(actors["workspace_id"], f"Conflict {uuid.uuid4().hex[:6]}"),
-            },
+            json={"gap_type": "other_gap", "question_id": question_id},
         )
-    assert conflict.status_code == 409, conflict.text
+    assert conflict.status_code == 200, conflict.text
+    assert conflict.json()["id"] == first.json()["id"]
+    assert conflict.json()["created"] is False
+    assert seen["n"] >= 2
 
 
 def test_concurrent_question_creates_leave_one_open_row(client):
@@ -816,11 +823,11 @@ def test_concurrent_question_creates_leave_one_open_row(client):
 def test_bad_ids_are_422(client):
     actors = _actors()
     control_id = _control(actors["workspace_id"], f"Bad {uuid.uuid4().hex[:8]}")
-    gap_id = _gap(actors["workspace_id"], gap_type="control_check", control_id=control_id)
+    gap_id = _gap(actors["workspace_id"], gap_type=CONTROL_CHECK, control_id=control_id)
     _login(client, ADMIN_EMAIL, ADMIN_PASSWORD)
     boolean_id = client.post(
         "/api/evidence-gaps",
-        json={"gap_type": "control_check", "control_id": True},
+        json={"gap_type": CONTROL_CHECK, "control_id": True},
     )
     boolean_evidence = client.post(
         f"/api/evidence-gaps/{gap_id}/resolve",
@@ -836,8 +843,8 @@ def test_idempotency_keys_do_not_collide_across_gaps(client):
     actors = _actors()
     first_control = _control(actors["workspace_id"], f"Key A {uuid.uuid4().hex[:8]}")
     second_control = _control(actors["workspace_id"], f"Key B {uuid.uuid4().hex[:8]}")
-    first = _gap(actors["workspace_id"], gap_type="control_check", control_id=first_control)
-    second = _gap(actors["workspace_id"], gap_type="control_check", control_id=second_control)
+    first = _gap(actors["workspace_id"], gap_type=CONTROL_CHECK, control_id=first_control)
+    second = _gap(actors["workspace_id"], gap_type=CONTROL_CHECK, control_id=second_control)
     _login(client, ADMIN_EMAIL, ADMIN_PASSWORD)
     raw = "same-raw-key"
     accepted = client.post(
