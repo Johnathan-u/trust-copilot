@@ -30,7 +30,7 @@ from app.models import (
     WorkspaceMember,
 )
 API_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
-PARENT = "bug018a_gap_closed_at_reason"
+PARENT = "tc21005_mapping_version"
 REVISION = "tc21006_gap_evaluation"
 SLUG = "tc21006"
 ADMIN_EMAIL = "tc21006-admin@trust.local"

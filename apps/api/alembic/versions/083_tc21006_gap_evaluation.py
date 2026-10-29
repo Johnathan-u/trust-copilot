@@ -5,14 +5,14 @@ values in tc21006_gap_eval_hold and upgrade restores them before nothing else
 writes a default. This module does not import the application package.
 
 Revision ID: tc21006_gap_evaluation
-Revises: bug018a_gap_closed_at_reason
+Revises: tc21005_mapping_version
 """
 
 from alembic import op
 import sqlalchemy as sa
 
 revision = "tc21006_gap_evaluation"
-down_revision = "bug018a_gap_closed_at_reason"
+down_revision = "tc21005_mapping_version"
 branch_labels = None
 depends_on = None
 
