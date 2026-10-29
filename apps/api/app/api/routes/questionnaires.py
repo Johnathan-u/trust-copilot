@@ -1,4 +1,4 @@
-"""Questionnaire API."""
+"""Questionnaire API (QNR-01, QNR-02, QNR-13, AI-05)."""
 
 import json
 import os  # noqa: F401
@@ -249,7 +249,7 @@ def _list_questionnaires_impl(
     created_to: str | None = None,
     archived: str | None = None,
 ):
-    """Shared implementation for list questionnaires. Optional search_q filters by filename substring."""
+    """Shared implementation for list questionnaires (QNR-02). Optional search_q filters by filename substring."""
     if session.get("workspace_id") != workspace_id:
         raise HTTPException(status_code=403, detail="Access denied")
     query = db.query(Questionnaire).filter(Questionnaire.workspace_id == workspace_id)
