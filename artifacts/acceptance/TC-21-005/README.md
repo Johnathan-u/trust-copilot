@@ -12,7 +12,7 @@ python -m pytest tests/release/test_domain_compliance_mappings.py -q
 
 ## SHA
 
-Tests ran on `db91ae3c746317f440bbeedb224774dd921c3a19`. This evidence file was added after that commit and does not change the code under test.
+Tests ran on `080f0752c232de04a020df2916a23bfdfbb3d804`. This evidence file was added after that commit and does not change the code under test.
 
 ## Environment
 
@@ -26,6 +26,6 @@ Tests ran on `db91ae3c746317f440bbeedb224774dd921c3a19`. This evidence file was 
 
 | Command | Exit | Total |
 |---|---|---|
-| `python -m pytest tests/release/test_domain_compliance_mappings.py -q` | 0 | 8 passed, 158 warnings, 6.89s |
+| `python -m pytest tests/release/test_domain_compliance_mappings.py -q` | 0 | 10 passed, 185 warnings, 8.08s |
 
-Pytest printed `8 passed, 158 warnings in 6.89s` and did not report a skipped test. The quiet progress line was `........`.
+Pytest printed `10 passed, 185 warnings in 8.08s` and did not report a skipped test. The quiet progress line was `..........`.
