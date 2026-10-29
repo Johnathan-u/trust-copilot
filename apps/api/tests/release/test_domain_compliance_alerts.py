@@ -482,13 +482,23 @@ def test_permissions_foreign_ids_and_bad_input(client):
         ).status_code
         == 403
     )
-    missing = client.post(
-        "/api/compliance-alerts/999999991/acknowledge",
-        json={},
-        headers={"Idempotency-Key": "missing"},
-    )
-    assert missing.status_code == 404
-    assert missing.json()["detail"] == "Alert not found"
+    missing_id = 999999991
+    snooze_body = {"until": "2026-12-01T00:00:00Z"}
+    missing_routes = {
+        "acknowledge": {},
+        "snooze": snooze_body,
+        "resolve": {},
+    }
+    missing_detail = None
+    for action, payload in missing_routes.items():
+        missing = client.post(
+            f"/api/compliance-alerts/{missing_id}/{action}",
+            json=payload,
+            headers={"Idempotency-Key": f"missing-{action}"},
+        )
+        assert missing.status_code == 404, missing.text
+        assert missing.json()["detail"] == "Alert not found"
+        missing_detail = missing.json()["detail"]
     nul = client.post(
         f"/api/compliance-alerts/{alert_id}/acknowledge",
         json={"reason": "bad\x00text"},
@@ -503,13 +513,14 @@ def test_permissions_foreign_ids_and_bad_input(client):
     assert snooze.status_code == 422
 
     _login(client, OTHER_EMAIL, OTHER_PASSWORD)
-    foreign = client.post(
-        f"/api/compliance-alerts/{alert_id}/acknowledge",
-        json={},
-        headers={"Idempotency-Key": "foreign"},
-    )
-    assert foreign.status_code == 404
-    assert foreign.json()["detail"] == missing.json()["detail"]
+    for action, payload in missing_routes.items():
+        foreign = client.post(
+            f"/api/compliance-alerts/{alert_id}/{action}",
+            json=payload,
+            headers={"Idempotency-Key": f"foreign-{action}"},
+        )
+        assert foreign.status_code == 404, foreign.text
+        assert foreign.json()["detail"] == missing_detail
     assert len(_alert_rows(actors["workspace_id"])) == 1
     assert _alert_rows(actors["workspace_id"])[0].status == "active"
 
