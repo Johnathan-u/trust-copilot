@@ -1,5 +1,25 @@
 # TC-10-001 acceptance evidence
 
+## Re-parent run
+
+These commands ran on `d5dc642c6a3e8ccba32461fb8e926f8f5b2df297` (`d5dc642`), after merge `dc7979e` of `origin/master` `76ae791` and the re-parent of `tc10001_job_leases` onto `bug018c_one_open_gap`. This README commit does not change that code.
+
+`alembic heads` printed exactly `tc10001_job_leases (head)`. The lease-file round trip downgrades to `bug018c_one_open_gap` and upgrades again. The sentinel job row is unchanged, and `ix_jobs_running_lease_expires_at` is present after the re-upgrade.
+
+| What | Command | SHA | Exit | Totals |
+|---|---|---|---|---|
+| Lease tests, including the barrier race and the lost-lease worker tests | `cd apps/api && SESSION_SECRET=test-secret TC_REQUIRE_DB=1 python -m pytest tests/release/test_job_leases.py -q --tb=line -p no:cacheprovider` | `d5dc642c6a3e8ccba32461fb8e926f8f5b2df297` | 0 | **15 passed** |
+| Safe collection | `cd apps/api && SESSION_SECRET=test-secret TC_REQUIRE_DB=1 python -m pytest tests/release/test_safe_collection.py -q --tb=line -p no:cacheprovider` | `d5dc642c6a3e8ccba32461fb8e926f8f5b2df297` | 0 | **29 passed** |
+| Heads / migration | `pytest tests/release/test_cross_workspace_refs.py::test_trigger_revision_is_on_the_single_alembic_head_chain tests/release/test_provider_adapter.py::test_migration_columns_present tests/release/test_provider_adapter.py::test_migration_has_unique_descriptive_revision_after_075 tests/release/test_job_retries.py::test_migration_downgrade_and_upgrade_roundtrip -q --tb=line` | `d5dc642c6a3e8ccba32461fb8e926f8f5b2df297` | 0 | **4 passed** |
+| Related job tests (retries, idempotency, TC-10-003d) | `pytest tests/release/test_job_retries.py tests/release/test_job_idempotency.py tests/release/test_auto_generate_enqueue_conflict.py -q --tb=line` | `d5dc642c6a3e8ccba32461fb8e926f8f5b2df297` | 1, then 0 | **121 passed, 1 failed**, then the one failure passed alone |
+| Alembic heads | `cd apps/api && alembic heads` | `d5dc642c6a3e8ccba32461fb8e926f8f5b2df297` | 0 | `tc10001_job_leases (head)` |
+
+The related-job failure was `test_replay_returns_same_error_body_as_live_response`: the live call returned 429 because workspace 1 had already used its 10 `ai_jobs` for that hour (`workspace_usage.count = 10`). Clearing that hour's counter and running the test alone: **1 passed**, exit 0. It is not a lease failure.
+
+On `78dcb0e` (same lease code as `8a37e80`; that commit is docs only), the four tests added for the blockers were run against that implementation. `test_heartbeat_is_at_most_half_the_lease` failed (`lease_heartbeat_seconds()` was 40, not 30). `test_two_recoverers_take_one_expired_job`, `test_worker_loop_does_not_commit_after_the_lease_expires`, and `test_worker_loop_does_not_retry_after_a_lost_lease_exception` passed.
+
+## Earlier run
+
 Tests below ran on commit `533c5324eeddc5dcaed3ab922d961665642333d0` (`533c532`).
 That commit is the re-parent of `tc10001_job_leases` onto `tc21006_gap_evaluation`, after merge commit `decef96` of `origin/master` `bff2c39`.
 The evidence files in this directory were added after that run and do not change the code under test.
