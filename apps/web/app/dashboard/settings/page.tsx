@@ -2,18 +2,17 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
-import { Button, Card, Input } from '@/components/ui'
+import { Button, Card } from '@/components/ui'
+import { WorkspaceCreateForm } from '@/components/WorkspaceCreateForm'
+import { WorkspaceCreateNotice } from '@/components/WorkspaceCreateNotice'
 import {
-  WorkspaceCreateNotice,
-  useCreationBlock,
-} from '@/components/WorkspaceCreateNotice'
+  WorkspaceCreationLoading,
+  WorkspaceCreationUnavailable,
+} from '@/components/WorkspaceCreationStatus'
+import { useWorkspaceCreationPolicy } from '@/components/useWorkspaceCreationPolicy'
 import { useAuth } from '@/contexts/AuthContext'
 import { settingsAccess, settingsSectionVisible } from '@/lib/settings-access'
-import {
-  WORKSPACE_THROTTLE_READY_MESSAGE,
-  classifyWorkspaceCreateResponse,
-  type WorkspaceCreateKind,
-} from '@/lib/workspace-create-response'
+import { WORKSPACE_INVITATION_MESSAGE } from '@/lib/workspace-create-response'
 
 function BillingSection() {
   const { subscription } = useAuth()
@@ -134,23 +133,37 @@ function WorkspaceSwitch() {
 }
 
 function CreateWorkspaceSection() {
+  const policy = useWorkspaceCreationPolicy()
   const { refresh, switchWorkspace } = useAuth()
-  const [createWorkspaceName, setCreateWorkspaceName] = useState('')
-  const [createWorkspaceLoading, setCreateWorkspaceLoading] = useState(false)
-  const [createWorkspaceError, setCreateWorkspaceError] = useState('')
-  const [notice, setNotice] = useState<{
-    id: number
-    kind: Exclude<WorkspaceCreateKind, 'generic'>
-    message: string
-  } | null>(null)
-  const [creationClosed, setCreationClosed] = useState(false)
-  const { blocked: retryBlocked, blockFor } = useCreationBlock(() => {
-    setNotice((current) => {
-      if (!current || current.kind !== 'throttled') return current
-      return { ...current, message: WORKSPACE_THROTTLE_READY_MESSAGE }
-    })
-  })
-  const createDisabled = creationClosed || retryBlocked
+
+  if (policy.phase === 'loading') {
+    return (
+      <div className="mb-6">
+        <WorkspaceCreationLoading />
+      </div>
+    )
+  }
+
+  if (policy.phase === 'denied') {
+    return (
+      <div className="mb-6" data-testid="workspace-creation-denied">
+        <Card>
+          <WorkspaceCreateNotice
+            kind="invitation"
+            message={WORKSPACE_INVITATION_MESSAGE}
+          />
+        </Card>
+      </div>
+    )
+  }
+
+  if (policy.phase === 'unavailable') {
+    return (
+      <Card className="mb-6">
+        <WorkspaceCreationUnavailable onRetry={policy.retry} />
+      </Card>
+    )
+  }
 
   return (
     <div data-testid="settings-create-workspace">
@@ -161,94 +174,12 @@ function CreateWorkspaceSection() {
         <p className="text-sm text-[var(--tc-muted)] mb-4">
           Create a new workspace. You will be the admin and can invite others.
         </p>
-        <form
-          onSubmit={async (e) => {
-            e.preventDefault()
-            if (createWorkspaceLoading || createDisabled) return
-            if (!createWorkspaceName.trim()) return
-            setCreateWorkspaceError('')
-            setCreateWorkspaceLoading(true)
-            try {
-              const res = await fetch('/api/workspaces', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                credentials: 'include',
-                body: JSON.stringify({ name: createWorkspaceName.trim() }),
-              })
-              const data = await res.json().catch(() => ({}))
-              if (!res.ok) {
-                const result = classifyWorkspaceCreateResponse(
-                  res.status,
-                  data,
-                  res.headers.get('Retry-After'),
-                  'Failed to create'
-                )
-                if (result.kind === 'generic') {
-                  setNotice(null)
-                  blockFor(null)
-                  setCreateWorkspaceError(
-                    Array.isArray(data.detail)
-                      ? data.detail[0]?.msg
-                      : data.detail || 'Failed to create'
-                  )
-                  return
-                }
-                setCreateWorkspaceError('')
-                const denial = result
-                setNotice((current) => ({
-                  id: (current?.id ?? 0) + 1,
-                  kind: denial.kind,
-                  message: denial.message,
-                }))
-                if (denial.kind === 'invitation') setCreationClosed(true)
-                blockFor(
-                  denial.kind === 'throttled' ? denial.retryAfterSeconds : null
-                )
-                return
-              }
-              setNotice(null)
-              setCreateWorkspaceName('')
-              await refresh()
-              if (data?.id) await switchWorkspace(data.id)
-            } finally {
-              setCreateWorkspaceLoading(false)
-            }
+        <WorkspaceCreateForm
+          onCreated={async (workspaceId) => {
+            await refresh()
+            if (workspaceId != null) await switchWorkspace(workspaceId)
           }}
-          className="space-y-3 max-w-sm"
-        >
-          <Input
-            label="Workspace name"
-            type="text"
-            placeholder="My workspace"
-            value={createWorkspaceName}
-            onChange={(e) => setCreateWorkspaceName(e.target.value)}
-            maxLength={255}
-            disabled={creationClosed}
-          />
-          {notice ? (
-            <WorkspaceCreateNotice
-              key={notice.id}
-              kind={notice.kind}
-              message={notice.message}
-            />
-          ) : createWorkspaceError ? (
-            <p className="text-sm text-[var(--tc-danger)]">
-              {createWorkspaceError}
-            </p>
-          ) : null}
-          <Button
-            type="submit"
-            data-testid="workspace-create-submit"
-            disabled={
-              createWorkspaceLoading ||
-              createDisabled ||
-              !createWorkspaceName.trim()
-            }
-            aria-describedby={notice ? 'workspace-create-notice' : undefined}
-          >
-            {createWorkspaceLoading ? 'Creating…' : 'Create workspace'}
-          </Button>
-        </form>
+        />
       </Card>
     </div>
   )

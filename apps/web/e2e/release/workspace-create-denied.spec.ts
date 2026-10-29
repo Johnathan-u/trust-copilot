@@ -65,6 +65,18 @@ function isWorkspaceCreate(url: string, method: string) {
   }
 }
 
+function isCreationPolicy(url: string, method: string) {
+  if (method !== 'GET') return false
+  try {
+    return (
+      new URL(url).pathname.replace(/\/$/, '') ===
+      '/api/workspaces/creation-policy'
+    )
+  } catch {
+    return false
+  }
+}
+
 async function quietDevOverlay(page: Page) {
   await page.addInitScript(() => {
     const removeDevPortal = () => {
@@ -118,6 +130,10 @@ async function fulfillJson(
 async function installInvitationRoutes(page: Page) {
   await page.route('**/api/**', async (route) => {
     const request = route.request()
+    if (isCreationPolicy(request.url(), request.method())) {
+      await fulfillJson(route, { can_create_workspace: false })
+      return
+    }
     if (isWorkspaceCreate(request.url(), request.method())) {
       await fulfillJson(route, { detail: hiddenDetail }, 500)
       return
@@ -136,6 +152,10 @@ async function installSettingsRoutes(page: Page, workspace: WorkspaceMock) {
   await page.route('**/api/**', async (route) => {
     const request = route.request()
     const pathname = new URL(request.url()).pathname
+    if (isCreationPolicy(request.url(), request.method())) {
+      await fulfillJson(route, { can_create_workspace: true })
+      return
+    }
     if (isWorkspaceCreate(request.url(), request.method())) {
       const headers: Record<string, string> = {}
       if (workspace.retryAfter != null)

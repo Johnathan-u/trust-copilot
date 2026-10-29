@@ -1,12 +1,13 @@
-import { WorkspaceInvitation } from '@/components/WorkspaceInvitation'
+import { WorkspaceCreationEntry } from '@/components/WorkspaceCreationEntry'
 import { salesContactHref } from '@/lib/sales-contact'
 
 export default function OnboardingPage() {
   return (
-    <WorkspaceInvitation
+    <WorkspaceCreationEntry
       heading="Welcome to Trust Copilot"
       backHref="/"
       contactHref={salesContactHref()}
+      showFormWhenAllowed
     />
   )
 }
