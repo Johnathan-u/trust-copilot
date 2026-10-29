@@ -1,0 +1,84 @@
+........................................................................ [ 39%]
+........................................................................ [ 78%]
+.......................................                                  [100%]
+=============================== warnings summary ===============================
+tests/release/test_job_idempotency.py::test_parse_stale_input_is_superseded[deleted]
+  /workspace/apps/api/tests/release/test_job_idempotency.py:364: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    qnr.deleted_at = datetime.utcnow()
+
+tests/release/test_job_idempotency.py: 61 warnings
+tests/release/test_job_retries.py: 63 warnings
+tests/release/test_upload_enqueue_conflict.py: 28 warnings
+tests/test_automate_everything.py: 26 warnings
+tests/test_upload_parse_review.py: 2 warnings
+tests/release/test_auto_generate_enqueue_conflict.py: 5 warnings
+  /tmp/tc-venv/lib/python3.12/site-packages/sqlalchemy/sql/schema.py:3627: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    return util.wrap_callable(lambda ctx: fn(), fn)  # type: ignore
+
+tests/release/test_job_idempotency.py::test_generate_never_overwrites_approved_or_newer_answers
+  /workspace/apps/api/tests/release/test_job_idempotency.py:585: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    old = datetime.utcnow() - timedelta(hours=2)
+
+tests/release/test_job_idempotency.py::test_generate_never_overwrites_approved_or_newer_answers
+  /workspace/apps/api/tests/release/test_job_idempotency.py:611: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    created_at=datetime.utcnow() - timedelta(minutes=5),
+
+tests/release/test_job_idempotency.py::test_generate_rerun_is_idempotent_and_counts_usage_once
+  /workspace/apps/api/tests/release/test_job_idempotency.py:652: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    created_at=datetime.utcnow() - timedelta(minutes=1),
+
+tests/release/test_job_idempotency.py::test_upsert_guard_rechecks_answer_approved_mid_run
+  /workspace/apps/api/tests/release/test_job_idempotency.py:680: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    created_at=datetime.utcnow() - timedelta(hours=1),
+
+tests/release/test_job_idempotency.py::test_upsert_guard_rechecks_answer_approved_mid_run
+  /workspace/apps/api/tests/release/test_job_idempotency.py:681: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    updated_at=datetime.utcnow() - timedelta(hours=1),
+
+tests/release/test_job_idempotency.py::test_upsert_guard_rechecks_answer_approved_mid_run
+  /workspace/apps/api/tests/release/test_job_idempotency.py:685: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    guard = AnswerWriteGuard(datetime.utcnow() - timedelta(minutes=30))
+
+tests/release/test_job_retries.py::test_transient_failure_schedules_bounded_retry_and_is_not_claimable_early
+  /workspace/apps/api/tests/release/test_job_retries.py:314: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    before = datetime.utcnow()
+
+tests/release/test_job_retries.py::test_claim_increments_attempt_and_clears_schedule
+  /workspace/apps/api/tests/release/test_job_retries.py:338: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    job.next_attempt_at = datetime.utcnow() - timedelta(seconds=1)
+
+tests/release/test_job_retries.py::test_retry_exhaustion_fails_visibly_never_completed
+  /workspace/apps/api/tests/release/test_job_retries.py:360: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    assert not _claimable(db, job.id, now=datetime.utcnow() + timedelta(days=1))
+
+tests/release/test_job_retries.py::test_process_one_job_end_to_end_retry_then_success
+  /workspace/apps/api/tests/release/test_job_retries.py:544: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    j.next_attempt_at = datetime.utcnow() - timedelta(seconds=1)
+
+tests/release/test_job_retries.py::test_retry_then_success_clears_only_the_stale_attempt_error
+  /workspace/apps/api/tests/release/test_job_retries.py:617: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    j.next_attempt_at = datetime.utcnow() - timedelta(seconds=1)
+
+tests/release/test_job_retries.py::test_failure_handler_never_overwrites_a_committed_completion[exc0]
+tests/release/test_job_retries.py::test_failure_handler_never_overwrites_a_committed_completion[exc1]
+tests/release/test_job_retries.py::test_failure_handler_never_overwrites_a_committed_completion[exc2]
+  /workspace/apps/api/tests/release/test_job_retries.py:633: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    job.completed_at = datetime.utcnow()
+
+tests/release/test_job_retries.py::test_generate_transient_llm_errors_retry_only_failed_questions
+tests/release/test_job_retries.py::test_generate_auth_error_stops_explicitly
+tests/release/test_job_retries.py::test_generate_bad_request_question_stays_visible_placeholder
+tests/release/test_job_retries.py::test_generate_missing_api_key_is_terminal_config_error
+  /workspace/apps/api/tests/release/test_job_retries.py:755: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    created_at=datetime.utcnow() - timedelta(minutes=1),
+
+tests/release/test_job_retries.py::test_write_guard_does_not_protect_llm_error_placeholders
+  /workspace/apps/api/tests/release/test_job_retries.py:870: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    cutoff = datetime.utcnow() - timedelta(hours=1)
+
+tests/release/test_job_retries.py::test_write_guard_does_not_protect_llm_error_placeholders
+  /workspace/apps/api/tests/release/test_job_retries.py:872: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    newer = datetime.utcnow()
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+183 passed, 206 warnings in 21.97s
