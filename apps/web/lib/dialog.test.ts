@@ -1,8 +1,11 @@
 import { describe, expect, it } from 'vitest'
 import {
+  chooseReturnFocus,
   DIALOG_PLACEMENTS,
   DIALOG_ROLES,
+  DRAWER_BACKDROP_STRIP,
   dialogAttributes,
+  dialogContentClass,
   dialogPlacementClass,
   dialogRoleForDestructive,
   dialogSizeClass,
@@ -36,5 +39,40 @@ describe('dialog primitive contract', () => {
     expect(dialogSizeClass.lg).toBe('max-w-2xl')
     expect(dialogAttributes.initialDismiss).toBe('dismiss')
     expect(dialogAttributes.close).toBe('data-dialog-close')
+    expect(dialogAttributes.backdrop).toBe('data-tc-dialog-backdrop')
+  })
+
+  it('leaves a backdrop strip beside a drawer and does not let the content wrapper fill it', () => {
+    for (const placement of ['drawer-start', 'drawer-end'] as const) {
+      const panel = dialogPlacementClass[placement].panel
+      expect(panel).toContain('w-[min(20rem,calc(100%-2.75rem))]')
+      expect(panel).toContain('max-w-[calc(100%-2.75rem)]')
+      expect(panel).toContain(`calc(100%-${DRAWER_BACKDROP_STRIP})`)
+      expect(panel).toContain('shrink-0')
+      expect(panel).toContain('min-w-0')
+      expect(panel).not.toContain('min(100%,20rem)')
+      expect(panel).not.toContain('${')
+    }
+    expect(DRAWER_BACKDROP_STRIP).toBe('2.75rem')
+    expect(dialogContentClass).toContain('min-w-0')
+    expect(dialogContentClass).toContain('max-w-full')
+    expect(dialogContentClass.split(/\s+/)).not.toContain('flex-1')
+  })
+
+  it('skips a hidden return target and uses the first visible focusable fallback', () => {
+    const hiddenTrigger = { id: 'menu', visible: false, focusable: false }
+    const main = { id: 'main-content', visible: true, focusable: true }
+    const dockLink = { id: 'home', visible: true, focusable: true }
+    expect(chooseReturnFocus([hiddenTrigger, main, dockLink])).toBe(main)
+    expect(
+      chooseReturnFocus([hiddenTrigger, { ...main, visible: false }, dockLink])
+    ).toEqual(dockLink)
+    expect(
+      chooseReturnFocus([{ id: 'menu', visible: true, focusable: true }, main])
+        ?.id
+    ).toBe('menu')
+    expect(
+      chooseReturnFocus([{ id: 'none', visible: false, focusable: true }])
+    ).toBeNull()
   })
 })
