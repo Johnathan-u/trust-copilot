@@ -354,7 +354,7 @@ function FrameworkCard({
         {enabled
           ? 'Enabled'
           : isDevTestOnly(current)
-            ? 'Test catalog — unavailable for production'
+            ? 'Test catalog — not available for use'
             : eligible
               ? 'Licensed content available'
               : 'Pending content licensing'}
