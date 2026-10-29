@@ -12,7 +12,7 @@ python -m pytest tests/release/test_domain_compliance_gaps.py -q
 
 ## SHA
 
-Tests ran on `85cdbd52336d0ab0eb1571a24069586a07fd185b`. That commit is the parent of this evidence commit. This file was added after that commit and does not change the code under test.
+Tests ran on `794578efce9a7f58a484b8fdbac4c07873c4d208`. That commit is the parent of this evidence commit. This file was added after that commit and does not change the code under test.
 
 ## Environment
 
@@ -27,6 +27,6 @@ Tests ran on `85cdbd52336d0ab0eb1571a24069586a07fd185b`. That commit is the pare
 
 | Command | Exit | Total |
 |---|---|---|
-| `python -m pytest tests/release/test_domain_compliance_gaps.py -q` | 0 | 7 passed, 50 warnings, 5.16s |
+| `python -m pytest tests/release/test_domain_compliance_gaps.py -q` | 0 | 7 passed, 50 warnings, 4.84s |
 
-Pytest printed `7 passed, 50 warnings in 5.16s` and did not report a skipped test. The quiet progress line was `.......`.
+Pytest printed `7 passed, 50 warnings in 4.84s` and did not report a skipped test. The quiet progress line was `.......`.

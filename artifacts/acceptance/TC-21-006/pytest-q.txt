@@ -1,10 +1,10 @@
-SHA 85cdbd52336d0ab0eb1571a24069586a07fd185b
-parent of the evidence commit: 85cdbd52336d0ab0eb1571a24069586a07fd185b
+SHA 794578efce9a7f58a484b8fdbac4c07873c4d208
+parent of the evidence commit: 794578efce9a7f58a484b8fdbac4c07873c4d208
 working directory: apps/api
 command: python -m pytest tests/release/test_domain_compliance_gaps.py -q
 interpreter: /tmp/tc-venv/bin/python
 alembic heads: tc21006_gap_evaluation (head)
 
 .......                                                                  [100%]
-7 passed, 50 warnings in 5.16s
+7 passed, 50 warnings in 4.84s
 exit status: 0
