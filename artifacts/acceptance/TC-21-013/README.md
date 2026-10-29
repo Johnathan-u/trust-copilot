@@ -1,29 +1,25 @@
 # TC-21-013: Evidence gap ownership and resolution
 
-Framework catalogs stay **BLOCKED** pending **TC-01-007**. Notification delivery was stubbed. There is no migration. `alembic heads` is the single head `tc21006_gap_evaluation`.
+Framework catalogs stay **BLOCKED** pending **TC-01-007**. Notification delivery was stubbed. There is no new migration. After merging master `76ae791`, `alembic heads` is the single head `bug018c_one_open_gap`. The merge tree matches `git merge-tree --write-tree`.
 
-`POST /api/compliance/controls/{control_id}/verify` uses `require_can_review`. Resolve uses that dependency. Decision uses `require_can_admin` because verify's dependency is below admin.
-
-Master's `ck_evidence_gaps_close_reason` allows NULL, `question_removed`, `answer_sufficient`, and `evidence_sufficient`. Question resolves use `answer_sufficient`. Control-check resolves use `evidence_sufficient`.
+Create locks `pg_advisory_xact_lock(150015, questionnaire_id)` and `pg_advisory_xact_lock(150016, control_id)`. A second open question gap hits `uq_evidence_gaps_one_open_per_question` and returns the existing row.
 
 ## Command
 
 Working directory `apps/api`. Interpreter `/tmp/tc-venv/bin/python`.
 
 ```text
-python -m pytest tests/release/test_domain_evidence_gaps.py -q
+python -m pytest tests/release/test_domain_evidence_gaps.py tests/release/test_domain_compliance_gaps.py tests/release/test_domain_compliance_coverage.py tests/release/test_domain_compliance_mappings.py -q
 ```
 
 ## SHA
 
-Tests ran on `5a9b46bd86a529248fa5c220bef1ffcd2c6a88ff`. That commit is the parent of this evidence commit. This file was added after that commit and does not change the code under test.
+Tests ran on `29fd60eb72048c02dcf7cc3ee31f5f061dc22d67`. That commit is the parent of this evidence commit. This file was added after that commit and does not change the code under test.
 
 ## Totals
 
 | Command | Exit | Total |
 |---|---|---|
-| `python -m pytest tests/release/test_domain_evidence_gaps.py -q` | 0 | 13 passed, 118 warnings, 4.69s |
-| `npm run test:unit -- lib/evidenceGapConsumer.test.ts` | 0 | 3 passed |
-| `npm run typecheck` | 0 | types generated, `tsc --noEmit` clean |
+| The four release files above | 0 | 36 passed, 434 warnings, 16.00s |
 
-Pytest did not report a skipped test. The quiet progress line was `.............`.
+Pytest did not report a skipped test. The quiet progress line was thirty-six dots.

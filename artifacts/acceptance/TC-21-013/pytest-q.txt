@@ -1,18 +1,13 @@
-SHA 5a9b46bd86a529248fa5c220bef1ffcd2c6a88ff
-parent of the evidence commit: 5a9b46bd86a529248fa5c220bef1ffcd2c6a88ff
+SHA 29fd60eb72048c02dcf7cc3ee31f5f061dc22d67
+parent of the evidence commit: 29fd60eb72048c02dcf7cc3ee31f5f061dc22d67
 working directory: apps/api
 interpreter: /tmp/tc-venv/bin/python
-alembic heads: tc21006_gap_evaluation (head)
+alembic heads: bug018c_one_open_gap (head)
+master: 76ae7918bee0a1a7f48b401c0bcb8e791d6f05ef
 
-command: python -m pytest tests/release/test_domain_evidence_gaps.py -q
-.............                                                            [100%]
-13 passed, 118 warnings in 4.69s
+command: python -m pytest tests/release/test_domain_evidence_gaps.py tests/release/test_domain_compliance_gaps.py tests/release/test_domain_compliance_coverage.py tests/release/test_domain_compliance_mappings.py -q
+....................................                                     [100%]
+36 passed, 434 warnings in 16.00s
 exit status: 0
 
-working directory: apps/web
-command: npm run test:unit -- lib/evidenceGapConsumer.test.ts
-3 passed
-exit status: 0
-
-command: npm run typecheck
-exit status: 0
+evidence gap file alone, earlier in the same tree: 13 passed, 116 warnings in 4.76s
