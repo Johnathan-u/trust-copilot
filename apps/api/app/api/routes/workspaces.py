@@ -204,7 +204,7 @@ async def get_current_workspace(
     session: dict = Depends(require_session),
     db: Session = Depends(get_db),
 ):
-    """Return current workspace details including auth policy (ENT-202)."""
+    """Return current workspace details including auth policy."""
     workspace_id = session.get("workspace_id")
     if not workspace_id:
         raise HTTPException(status_code=400, detail="No workspace")
@@ -229,7 +229,7 @@ async def update_current_workspace_policy(
     session: dict = Depends(require_can_admin),
     db: Session = Depends(get_db),
 ):
-    """Update current workspace auth policy (ENT-202). Admin only."""
+    """Update current workspace auth policy. Admin only."""
     workspace_id = session.get("workspace_id")
     if not workspace_id:
         raise HTTPException(status_code=400, detail="No workspace")

@@ -1,6 +1,6 @@
 """Phase 2: Gap detection - controls with no or low-confidence evidence.
 
-TC-21-006 explains each applicable control with a state, a rule, and a next step.
+Each applicable control is explained with a state, a rule, and a next step.
 A file count is not enough. GET does not write.
 """
 
