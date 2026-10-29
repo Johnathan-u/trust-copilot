@@ -42,13 +42,13 @@ The local logs in this directory are from commit
 `9a5092b9c90cf27e8e7dfffcc5f0fb139889bf06`. Later product-label fixes are covered by
 the exact-head CI above. Local environment: Linux x86_64, Node 24.22.1, npm 11.9.0.
 
-| Command (apps/web) | Exit | Result |
-| --- | --- | --- |
-| `npm run typecheck` | 0 | Type generation and TypeScript passed |
-| `npm run lint` | 0 | Zero errors/warnings |
-| `npm run test:unit` | 0 | 26 files, 170 tests passed |
-| `npm run build` | 0 | Production build succeeded |
-| `npx playwright test --config=playwright.local.config.ts e2e/release/screen-controls.spec.ts -g 'route serves'` | 0 | One request-only route test passed |
+| Command (apps/web)                                                                                              | Exit | Result                                |
+| --------------------------------------------------------------------------------------------------------------- | ---- | ------------------------------------- |
+| `npm run typecheck`                                                                                             | 0    | Type generation and TypeScript passed |
+| `npm run lint`                                                                                                  | 0    | Zero errors/warnings                  |
+| `npm run test:unit`                                                                                             | 0    | 26 files, 170 tests passed            |
+| `npm run build`                                                                                                 | 0    | Production build succeeded            |
+| `npx playwright test --config=playwright.local.config.ts e2e/release/screen-controls.spec.ts -g 'route serves'` | 0    | One request-only route test passed    |
 
 The route test first failed with expected 200 / actual 404 before implementation.
 The local hostname-only Playwright configuration is not shipped. Browser downloads
@@ -77,3 +77,17 @@ issues. The first two were fixed and rechecked; the navigation limit was accepte
 as TC-14-014. Browser regressions subsequently passed at the checkpoint above.
 The initial CI label/selector and log-whitespace failures were corrected before
 that successful run. No unresolved blocking finding remains in the reviewed scope.
+
+## Authorized evaluation-loading and CI evidence follow-up
+
+Coordinator ruling 6505100098 authorizes this separate follow-up after #90 merged.
+The library now labels evaluation as loading while the coverage request is pending,
+instead of temporarily presenting an unknown result. A held-response browser case
+checks the pending label and transition to the authoritative evaluation.
+
+The existing release workflow now includes screen-controls in its per-spec summary
+with a 22-case minimum, clears stale control axe files, checks the current control
+axe directory, and uploads it separately. The spec emits the checker-required
+violation count alongside each full violation list. No workflow triggers, retries,
+checker logic, shared UI or Sidebar change. Local checks and exact-head browser
+evidence will qualify this follow-up separately from the earlier #90 results.
