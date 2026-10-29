@@ -20,13 +20,18 @@ GAP_STATUSES = ("open", "accepted", "dismissed")
 # report it separately.
 GAP_STATUS_RESOLVED = "resolved"
 ALL_GAP_STATUSES = GAP_STATUSES + (GAP_STATUS_RESOLVED,)
-# Codes regeneration stores on close_reason. NULL is also stored: a new gap has no closure,
+# Codes stored on close_reason. NULL is also stored: a new gap has no closure,
 # and the 018a backfill leaves NULL when a resolved row has no parseable note.
 GAP_CLOSE_REASON_QUESTION_REMOVED = "question_removed"
 GAP_CLOSE_REASON_ANSWER_SUFFICIENT = "answer_sufficient"
+# Control-scan rows (gap_type control_check) close with this code. It is not
+# answer_sufficient. PR #76 writes it from this name.
+CONTROL_CHECK_CLOSE_REASON = "evidence_sufficient"
+GAP_CLOSE_REASON_EVIDENCE_SUFFICIENT = CONTROL_CHECK_CLOSE_REASON
 GAP_CLOSE_REASONS = (
     GAP_CLOSE_REASON_QUESTION_REMOVED,
     GAP_CLOSE_REASON_ANSWER_SUFFICIENT,
+    GAP_CLOSE_REASON_EVIDENCE_SUFFICIENT,
 )
 
 CK_EVIDENCE_GAPS_STATUS = "ck_evidence_gaps_status"

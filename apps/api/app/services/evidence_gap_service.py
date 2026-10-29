@@ -10,7 +10,9 @@ evidence gaps and are skipped; they are retried as answer-generation failures in
 
 Status values this module writes are ``open``, ``accepted``, ``dismissed`` and ``resolved``
 (``ALL_GAP_STATUSES``). ``close_reason`` is left NULL or set to ``question_removed`` or
-``answer_sufficient``. Those are the values the database checks allow (TC-02-BUG-018b).
+``answer_sufficient``. The database check also allows ``evidence_sufficient``
+(``CONTROL_CHECK_CLOSE_REASON``), which the control-check scan writes when it resolves
+a row (TC-02-BUG-018b).
 Manual status changes do not clear ``close_reason``, so a row that is no longer
 ``resolved`` may still carry a closure code. Some resolved rows also keep a NULL
 ``close_reason`` when the historical note could not be parsed.

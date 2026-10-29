@@ -33,7 +33,8 @@ _TABLE = "evidence_gaps"
 EXAMPLE_LIMIT = 5
 
 STATUS_VALUES = ("open", "accepted", "dismissed", "resolved")
-CLOSE_REASON_VALUES = ("question_removed", "answer_sufficient")
+# evidence_sufficient is CONTROL_CHECK_CLOSE_REASON on control_check scan rows.
+CLOSE_REASON_VALUES = ("question_removed", "answer_sufficient", "evidence_sufficient")
 
 CK_EVIDENCE_GAPS_STATUS = "ck_evidence_gaps_status"
 CK_EVIDENCE_GAPS_CLOSE_REASON = "ck_evidence_gaps_close_reason"

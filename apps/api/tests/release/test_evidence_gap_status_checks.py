@@ -24,7 +24,7 @@ from sqlalchemy import bindparam, text
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
-from app.models.evidence_gap import ALL_GAP_STATUSES, EvidenceGap
+from app.models.evidence_gap import ALL_GAP_STATUSES, CONTROL_CHECK_CLOSE_REASON, EvidenceGap
 from app.services.evidence_gap_service import (
     RESOLVED_ANSWER_SUFFICIENT,
     RESOLVED_QUESTION_REMOVED,
@@ -271,11 +271,14 @@ def test_values_the_app_writes_are_accepted(db_session: Session):
         ("resolved", None),
         ("resolved", RESOLVED_QUESTION_REMOVED),
         ("resolved", RESOLVED_ANSWER_SUFFICIENT),
+        ("resolved", CONTROL_CHECK_CLOSE_REASON),
     ]
     assert {status for status, _reason in written} == set(ALL_GAP_STATUSES)
+    assert CONTROL_CHECK_CLOSE_REASON == "evidence_sufficient"
     assert {reason for _status, reason in written if reason} == {
         RESOLVED_QUESTION_REMOVED,
         RESOLVED_ANSWER_SUFFICIENT,
+        CONTROL_CHECK_CLOSE_REASON,
     }
     rows = [
         EvidenceGap(
@@ -378,23 +381,35 @@ def test_prescan_fails_on_violations_and_passes_on_clean_data(db_session: Sessio
     ids: list[int] = []
     try:
         _alembic_ok("upgrade", "head")
+        kept_ids: list[int] = []
         with engine.begin() as conn:
-            kept = _insert(
-                conn,
-                status="resolved",
-                close_reason=RESOLVED_ANSWER_SUFFICIENT,
-                reason=_MARKER + "-kept",
+            kept_ids.append(
+                _insert(
+                    conn,
+                    status="resolved",
+                    close_reason=RESOLVED_ANSWER_SUFFICIENT,
+                    reason=_MARKER + "-kept",
+                )
             )
-            ids.append(kept)
-        before = None
+            kept_ids.append(
+                _insert(
+                    conn,
+                    status="resolved",
+                    close_reason=CONTROL_CHECK_CLOSE_REASON,
+                    reason=_MARKER + "-scan-kept",
+                )
+            )
+        ids.extend(kept_ids)
         with engine.connect() as conn:
-            before = _snapshot(conn, kept)
+            before = {gap_id: _snapshot(conn, gap_id) for gap_id in kept_ids}
+            assert before[kept_ids[1]].close_reason == "evidence_sufficient"
 
         _alembic_ok("downgrade", module.down_revision)
+        bad_status_ids: list[int] = []
         with engine.begin() as conn:
             assert module.CK_EVIDENCE_GAPS_STATUS not in _checks(conn)
             for _ in range(module.EXAMPLE_LIMIT + 1):
-                ids.append(
+                bad_status_ids.append(
                     _insert(
                         conn,
                         status="archived",
@@ -402,16 +417,14 @@ def test_prescan_fails_on_violations_and_passes_on_clean_data(db_session: Sessio
                         reason=_MARKER + "-bad-status",
                     )
                 )
-            ids.append(
-                _insert(
-                    conn,
-                    status="open",
-                    close_reason="not_a_code",
-                    reason=_MARKER + "-bad-reason",
-                )
+            bad_reason_id = _insert(
+                conn,
+                status="open",
+                close_reason="not_a_code",
+                reason=_MARKER + "-bad-reason",
             )
-            bad_status_ids = ids[1:-1]
-            bad_reason_id = ids[-1]
+            ids.extend(bad_status_ids)
+            ids.append(bad_reason_id)
             reports = module.violation_reports(conn)
         by_name = {name: (count, examples) for name, count, examples in reports}
         status_count, status_examples = by_name[module.CK_EVIDENCE_GAPS_STATUS]
@@ -432,7 +445,7 @@ def test_prescan_fails_on_violations_and_passes_on_clean_data(db_session: Sessio
         assert str(bad_reason_id) in message
 
         with engine.connect() as conn:
-            assert _snapshot(conn, kept) == before
+            assert {gap_id: _snapshot(conn, gap_id) for gap_id in kept_ids} == before
             for gap_id in bad_status_ids:
                 assert _snapshot(conn, gap_id).status == "archived"
                 assert _snapshot(conn, gap_id).close_reason is None
@@ -441,14 +454,14 @@ def test_prescan_fails_on_violations_and_passes_on_clean_data(db_session: Sessio
             assert module.CK_EVIDENCE_GAPS_STATUS not in _checks(conn)
 
         with engine.begin() as conn:
-            _delete(conn, ids[1:])
-        ids[:] = [kept]
+            _delete(conn, bad_status_ids + [bad_reason_id])
+        ids[:] = list(kept_ids)
         with engine.connect() as conn:
             assert module.violation_reports(conn) == []
 
         _alembic_ok("upgrade", "head")
         with engine.connect() as conn:
-            assert _snapshot(conn, kept) == before
+            assert {gap_id: _snapshot(conn, gap_id) for gap_id in kept_ids} == before
             checks = _checks(conn)
             assert checks[module.CK_EVIDENCE_GAPS_STATUS] is True
             assert checks[module.CK_EVIDENCE_GAPS_CLOSE_REASON] is True
@@ -477,6 +490,7 @@ def test_upgrade_downgrade_upgrade_round_trip(db_session: Session):
                 ("resolved", None),
                 ("resolved", RESOLVED_QUESTION_REMOVED),
                 ("open", RESOLVED_ANSWER_SUFFICIENT),
+                ("resolved", CONTROL_CHECK_CLOSE_REASON),
             ):
                 ids.append(
                     _insert(

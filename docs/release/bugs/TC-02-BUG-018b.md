@@ -25,6 +25,7 @@ Status, from `ALL_GAP_STATUSES` in `app/models/evidence_gap.py`:
 | NULL | New gaps. Open, accepted and dismissed rows that were never closed. The 018a backfill, when a resolved row's `reason` has no parseable note. |
 | `question_removed` | Regeneration, when the question is gone. |
 | `answer_sufficient` | Regeneration, when the question's answers are sufficient. |
+| `evidence_sufficient` | Control-check scan (`CONTROL_CHECK_CLOSE_REASON` in PR #76). Not written by regeneration. |
 
 No other application module assigns `EvidenceGap.status` or `EvidenceGap.close_reason`. `app/api/routes/evidence_gaps.py` is empty, and no route calls the status helpers. Nothing in the app writes a value outside this set, so no writer needed a source change. The service now takes the two closure codes from the model constants so the check and the writers share one definition.
 
@@ -35,7 +36,7 @@ Revision `bug018b_gap_status_checks` (`apps/api/alembic/versions/bug018b_gap_sta
 | Name | Expression |
 |---|---|
 | `ck_evidence_gaps_status` | `status IN ('open', 'accepted', 'dismissed', 'resolved')` |
-| `ck_evidence_gaps_close_reason` | `close_reason IS NULL OR close_reason IN ('question_removed', 'answer_sufficient')` |
+| `ck_evidence_gaps_close_reason` | `close_reason IS NULL OR close_reason IN ('question_removed', 'answer_sufficient', 'evidence_sufficient')` |
 
 Upgrade reads existing rows first. If any row would fail a check, it raises `EvidenceGapCheckViolation` with the constraint name, the full count, and up to five example ids, and it does not add the constraint or change a row. On a clean table each check is `ADD CONSTRAINT ... NOT VALID`, then `VALIDATE CONSTRAINT`, so the checks are validated against existing rows. `apps/api/alembic/env.py` runs the whole migration in one transaction, so both steps share that transaction and `NOT VALID` does not shorten the lock.
 

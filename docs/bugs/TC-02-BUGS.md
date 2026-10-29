@@ -192,7 +192,8 @@ title only:
 
 ### TC-02-BUG-018b: check constraints on gap status and close_reason
 - `status` and `close_reason` had no check. The writers store `open`, `accepted`, `dismissed`
-  and `resolved`, and `close_reason` of NULL, `question_removed` or `answer_sufficient`.
+  and `resolved`, and `close_reason` of NULL, `question_removed`, `answer_sufficient`, or
+  `evidence_sufficient` (the control-check scan code from PR #76).
 - Fix: `ck_evidence_gaps_status` and `ck_evidence_gaps_close_reason`, added NOT VALID then
   validated against existing rows. `alembic/env.py` runs that migration in one transaction, so
   the two steps do not shorten the lock. The migration pre-scans and fails with counts and
