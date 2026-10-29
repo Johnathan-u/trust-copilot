@@ -135,7 +135,14 @@ def create_trust_article(
     ws = body.workspace_id or session.get("workspace_id")
     if ws is not None and session.get("workspace_id") != ws:
         raise HTTPException(status_code=403, detail="Access denied")
-    existing = db.query(TrustArticle).filter(TrustArticle.slug == body.slug).first()
+    existing = (
+        db.query(TrustArticle)
+        .filter(
+            TrustArticle.slug == body.slug,
+            TrustArticle.workspace_id == body.workspace_id,
+        )
+        .first()
+    )
     if existing:
         raise HTTPException(status_code=400, detail=f"Slug '{body.slug}' already exists")
     article = TrustArticle(
@@ -179,7 +186,11 @@ def update_trust_article(
     if body.slug is not None:
         existing = (
             db.query(TrustArticle)
-            .filter(TrustArticle.slug == body.slug, TrustArticle.id != article_id)
+            .filter(
+                TrustArticle.slug == body.slug,
+                TrustArticle.workspace_id == article.workspace_id,
+                TrustArticle.id != article_id,
+            )
             .first()
         )
         if existing:
