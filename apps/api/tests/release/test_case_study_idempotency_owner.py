@@ -9,7 +9,7 @@ from unittest.mock import patch
 
 import pytest
 from fastapi.testclient import TestClient
-from sqlalchemy import text
+from sqlalchemy import bindparam, text
 
 from app.core.database import SessionLocal
 from app.main import app
@@ -27,6 +27,54 @@ from tests.release.test_domain_case_studies import (
 @pytest.fixture
 def admin_client(client):
     return _admin(client)
+
+
+_TOUCHED = (
+    "case_study_result_permissions",
+    "case_study_organization_consents",
+    "case_studies",
+    "idempotency_keys",
+)
+
+
+def _counts() -> dict[str, int]:
+    db = SessionLocal()
+    try:
+        return {
+            name: int(db.execute(text(f"SELECT count(*) FROM {name}")).scalar() or 0)
+            for name in _TOUCHED
+        }
+    finally:
+        db.close()
+
+
+def _delete_in(db, table: str, column: str, values: list) -> None:
+    statement = text(f"DELETE FROM {table} WHERE {column} IN :values").bindparams(
+        bindparam("values", expanding=True)
+    )
+    db.execute(statement, {"values": values})
+
+
+@pytest.fixture
+def tracked():
+    """Record ids this test creates and put every touched table back."""
+    box: dict[str, list] = {"studies": [], "keys": []}
+    before = _counts()
+    yield box
+    db = SessionLocal()
+    try:
+        if box["studies"]:
+            _delete_in(db, "case_study_result_permissions", "case_study_id", box["studies"])
+            _delete_in(db, "case_study_organization_consents", "case_study_id", box["studies"])
+            _delete_in(db, "case_studies", "id", box["studies"])
+        if box["keys"]:
+            _delete_in(db, "idempotency_keys", "idempotency_key", box["keys"])
+        db.commit()
+    finally:
+        db.close()
+    after = _counts()
+    assert after == before, {"before": before, "after": after}
+    print(f"TC25005A_COUNTS before={before} after={after}")
 
 
 def _ready(client) -> dict:
@@ -54,12 +102,14 @@ def _expire(db, key: str) -> None:
     db.commit()
 
 
-def test_publish_normal_path_and_retry_are_idempotent(admin_client):
+def test_publish_normal_path_and_retry_are_idempotent(admin_client, tracked):
     from app.core import idempotency
 
     study = _ready(admin_client)
+    tracked["studies"].append(study["id"])
     key = f"cs-ok-{uuid.uuid4().hex}"
     storage = _storage_key(study, key)
+    tracked["keys"].append(storage)
     first = _publish(admin_client, study, headers={"Idempotency-Key": key})
     assert first.status_code == 200, first.text
     body = first.json()
@@ -81,13 +131,15 @@ def test_publish_normal_path_and_retry_are_idempotent(admin_client):
     assert stored["revision"] == body["revision"]
 
 
-def test_stale_owner_set_and_release_leave_the_new_claim(admin_client):
+def test_stale_owner_set_and_release_leave_the_new_claim(admin_client, tracked):
     from app.core import idempotency
     from app.services import case_study_service as cs
 
     study = _ready(admin_client)
+    tracked["studies"].append(study["id"])
     key = f"cs-stale-{uuid.uuid4().hex}"
     storage = _storage_key(study, key)
+    tracked["keys"].append(storage)
     holder: dict = {}
     real_publish = cs.publish
 
@@ -124,12 +176,14 @@ def test_stale_owner_set_and_release_leave_the_new_claim(admin_client):
     assert _stored_flags(study["id"])["status"] == "published"
 
 
-def test_stale_owner_release_on_unexpected_error_leaves_the_new_claim(admin_client):
+def test_stale_owner_release_on_unexpected_error_leaves_the_new_claim(admin_client, tracked):
     from app.core import idempotency
 
     study = _ready(admin_client)
+    tracked["studies"].append(study["id"])
     key = f"cs-release-{uuid.uuid4().hex}"
     storage = _storage_key(study, key)
+    tracked["keys"].append(storage)
     holder: dict = {}
 
     def reclaim_then_fail(*args, **kwargs):
