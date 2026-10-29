@@ -72,3 +72,11 @@ export function formatApiErrorDetail(
   }
   return fallback
 }
+
+/** Throw when a mutation response failed, using the API body or status text. */
+export async function throwIfResponseNotOk(response: Response): Promise<void> {
+  if (response.ok) return
+  const data = await response.json().catch(() => null)
+  const fallback = response.statusText.trim() || 'Request failed'
+  throw new Error(formatApiErrorDetail(data, fallback))
+}

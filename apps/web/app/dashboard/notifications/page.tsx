@@ -3,6 +3,8 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Button, Card, Modal, useDestructiveConfirm } from '@/components/ui'
 import { useAuth } from '@/contexts/AuthContext'
+import { deleteNotificationPolicy } from '@/lib/notification-policy-delete'
+import { toggleNotificationPolicy } from '@/lib/notification-policy-toggle'
 import {
   CATEGORY_META,
   getNotificationMeta,
@@ -118,6 +120,7 @@ export default function ComplianceAlertsPage() {
   const [addRecipVal, setAddRecipVal] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [formError, setFormError] = useState<string | null>(null)
+  const [policyError, setPolicyError] = useState<string | null>(null)
   const { confirm, dialog: confirmDialog } = useDestructiveConfirm()
   const [stubProviders, setStubProviders] = useState<string[]>([])
   const [channels, setChannels] = useState<ChannelSwitches>({
@@ -222,15 +225,8 @@ export default function ComplianceAlertsPage() {
     return () => clearInterval(id)
   }, [canAdmin, load])
 
-  const togglePolicy = async (p: Policy) => {
-    await fetch(`/api/notifications/policies/${p.id}`, {
-      method: 'PATCH',
-      credentials: 'include',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ enabled: !p.enabled }),
-    })
-    load()
-  }
+  const togglePolicy = (p: Policy) =>
+    toggleNotificationPolicy(p, { reload: load, setError: setPolicyError })
 
   const deletePolicy = (p: Policy) => {
     const label = getNotificationTitle(p.event_type)
@@ -238,13 +234,7 @@ export default function ComplianceAlertsPage() {
       title: 'Remove alert rule?',
       description: `Remove alert rule "${label}"?`,
       confirmLabel: 'Remove',
-      onConfirm: async () => {
-        await fetch(`/api/notifications/policies/${p.id}`, {
-          method: 'DELETE',
-          credentials: 'include',
-        })
-        load()
-      },
+      onConfirm: () => deleteNotificationPolicy(p.id, load),
     })
   }
 
@@ -472,6 +462,12 @@ export default function ComplianceAlertsPage() {
                 Add rule
               </Button>
             </div>
+
+            {policyError && (
+              <p className="mb-4 text-sm text-[var(--tc-danger)]">
+                {policyError}
+              </p>
+            )}
 
             {policies.length === 0 ? (
               <p className="text-sm text-[var(--tc-muted)]">

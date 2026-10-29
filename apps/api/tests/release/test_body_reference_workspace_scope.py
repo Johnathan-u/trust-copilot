@@ -771,3 +771,128 @@ def test_operator_queue_item_gone_after_scope_check_is_404(admin, db_session, da
     vanished = admin.get(f"/api/operator-queue/{data['own_item']}")
     assert vanished.status_code == 404, vanished.text
     assert vanished.content == missing.content
+
+
+# ---------------------------------------------------------------------------
+# TC-06-BUG-013b: PATCH/DELETE operator-queue items and promise source_ref_id.
+# ---------------------------------------------------------------------------
+
+
+def _item_state(db: Session, item_id: int) -> tuple[str, str] | None:
+    db.expire_all()
+    item = db.get(OperatorQueueItem, item_id)
+    return (item.status, item.title) if item else None
+
+
+def _delete_after_scope_check(monkeypatch, item_id: int) -> None:
+    """Let the real workspace check pass, then delete the row from another session and commit.
+
+    This is the race: the item exists (and is ours) at the scope check, and is gone when the
+    route reads it.
+    """
+    from app.api.routes import operator_queue as routes
+    from app.core.database import SessionLocal
+
+    real_check = routes.require_in_workspace
+
+    def check_then_delete(db, workspace_id, kind, ids):
+        real_check(db, workspace_id, kind, ids)
+        other = SessionLocal()
+        try:
+            other.query(OperatorQueueItem).filter(OperatorQueueItem.id == item_id).delete(
+                synchronize_session=False
+            )
+            other.commit()
+        finally:
+            other.close()
+
+    monkeypatch.setattr(routes, "require_in_workspace", check_then_delete)
+
+
+_ITEM_REQUESTS = {
+    "patch": lambda item_id: ("PATCH", f"/api/operator-queue/{item_id}", {"status": "in_progress"}),
+    "delete": lambda item_id: ("DELETE", f"/api/operator-queue/{item_id}", None),
+}
+
+
+@pytest.mark.parametrize("action", sorted(_ITEM_REQUESTS))
+def test_operator_queue_item_deleted_after_scope_check_is_404(
+    admin, db_session, data, monkeypatch, action
+):
+    """PATCH/DELETE must not report success for a row that vanished after the scope check."""
+    missing = _send(admin, *_ITEM_REQUESTS[action](data["missing_item"]))
+    _delete_after_scope_check(monkeypatch, data["own_item"])
+    vanished = _send(admin, *_ITEM_REQUESTS[action](data["own_item"]))
+    assert vanished.status_code == 404, vanished.text
+    assert vanished.content == missing.content
+    assert _item_state(db_session, data["own_item"]) is None
+
+
+@pytest.mark.parametrize("action", sorted(_ITEM_REQUESTS))
+def test_operator_queue_service_returns_nothing_after_scope_check_is_404(
+    admin, db_session, data, monkeypatch, action
+):
+    """Same race with the service mocked: update_item -> None, delete_item -> False."""
+    from app.services import operator_queue_service
+
+    missing = _send(admin, *_ITEM_REQUESTS[action](data["missing_item"]))
+    monkeypatch.setattr(operator_queue_service, "update_item", lambda db, item_id, **kw: None)
+    monkeypatch.setattr(operator_queue_service, "delete_item", lambda db, item_id: False)
+    before = _item_state(db_session, data["own_item"])
+    vanished = _send(admin, *_ITEM_REQUESTS[action](data["own_item"]))
+    assert vanished.status_code == 404, vanished.text
+    assert vanished.content == missing.content
+    assert _item_state(db_session, data["own_item"]) == before
+
+
+@pytest.mark.parametrize("action", sorted(_ITEM_REQUESTS))
+def test_operator_queue_foreign_or_missing_item_is_404_and_unchanged(
+    admin, db_session, data, action
+):
+    before_other = _item_state(db_session, data["other_item"])
+    assert before_other is not None
+    foreign = _send(admin, *_ITEM_REQUESTS[action](data["other_item"]))
+    missing = _send(admin, *_ITEM_REQUESTS[action](data["missing_item"]))
+    assert foreign.status_code == 404, foreign.text
+    assert missing.status_code == 404, missing.text
+    assert foreign.content == missing.content
+    assert _item_state(db_session, data["other_item"]) == before_other
+
+
+@pytest.mark.parametrize("action", sorted(_ITEM_REQUESTS))
+def test_operator_queue_own_item_patch_and_delete_still_work(admin, db_session, data, action):
+    r = _send(admin, *_ITEM_REQUESTS[action](data["own_item"]))
+    assert r.status_code == 200, r.text
+    state = _item_state(db_session, data["own_item"])
+    if action == "delete":
+        assert r.json() == {"deleted": True}
+        assert state is None
+    else:
+        assert r.json()["status"] == "in_progress"
+        assert state is not None and state[0] == "in_progress"
+
+
+@pytest.mark.parametrize(
+    "source_type", ["questionnaire_answer", "trust_article", "contract_clause"]
+)
+@pytest.mark.parametrize("omit", [True, False], ids=["absent", "null"])
+def test_promise_table_backed_source_requires_source_ref_id(
+    admin, db_session, data, source_type, omit
+):
+    body: dict[str, Any] = {"promise_text": "ref", "source_type": source_type}
+    if not omit:
+        body["source_ref_id"] = None
+    before = _counts(db_session, [TrustPromise])
+    r = admin.post("/api/promises", json=body)
+    assert r.status_code == 422, r.text
+    assert "source_ref_id" in r.text
+    assert _counts(db_session, [TrustPromise]) == before
+
+
+@pytest.mark.parametrize("source_type", ["sla", "verbal", "manual"])
+def test_promise_untyped_source_without_source_ref_id_still_works(
+    admin, db_session, data, source_type
+):
+    r = admin.post("/api/promises", json={"promise_text": "ref", "source_type": source_type})
+    assert r.status_code == 200, r.text
+    assert r.json()["source_ref_id"] is None

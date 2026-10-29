@@ -93,7 +93,9 @@ class TestPromiseAPI:
             "/api/promises",
             json={
                 "promise_text": "We encrypt data at rest",
-                "source_type": "trust_article",
+                # TC-06-BUG-013b: table-backed source types (trust_article, ...) now require
+                # source_ref_id; that path is covered in tests/release/test_body_reference_workspace_scope.py.
+                "source_type": "manual",
             },
         )
         assert r.status_code == 200
