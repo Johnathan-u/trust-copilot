@@ -789,6 +789,14 @@ CONTRACT: tuple[ConfigVar, ...] = (
         "unset",
         "One-click demo login (build-time, local demo only).",
     ),
+    ConfigVar(
+        "NEXT_PUBLIC_SALES_CONTACT",
+        "email or https URL",
+        "optional",
+        False,
+        "unset",
+        "Optional contact on invitation screens. An email address or an https URL. Unset hides the link. Any other value is ignored.",
+    ),
 )
 
 CONTRACT_BY_NAME = {v.name: v for v in CONTRACT}
