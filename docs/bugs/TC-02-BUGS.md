@@ -44,6 +44,7 @@ title only:
 
 | ID | Title | Epic | Status |
 |---|---|---|---|
+| TC-06-BUG-001 | Same-workspace enforcement and read-only detection for stored cross-workspace references | E06 | Fixed in TC-06-BUG-001 PR (pending merge); legacy-row cleanup is a Coordinator decision |
 | TC-06-BUG-012 | Deals: scope deal and linked-questionnaire lookups to the caller's workspace | E06 | Fixed in TC-06-BUG-012 PR (pending merge) |
 | TC-06-BUG-013 | Shared same-workspace validation for ids referenced in request bodies | E06 | Fixed in TC-06-BUG-013 PR (pending merge) |
 
