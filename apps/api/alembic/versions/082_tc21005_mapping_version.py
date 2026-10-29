@@ -5,8 +5,11 @@ they are backfilled as overridden. That keeps suggest treating them as an
 override. reviewed_at copies created_at when it is null. History is empty
 until a later change snapshots the current version.
 
-Downgrade parks history in tc21005_mapping_hold and drops the new columns.
-The next upgrade copies that hold back, including ids, then empties the hold.
+Downgrade parks history in tc21005_mapping_hold and parks state, rationale,
+version, reviewed_by_user_id and reviewed_at in tc21005_mapping_attr_hold.
+The next upgrade restores those held values before any backfill, so the
+backfill only fills rows that were never versioned. History rows whose
+mapping no longer exists are not copied back.
 
 Revision ID: tc21005_mapping_version
 Revises: bug018a_gap_closed_at_reason
@@ -24,7 +27,15 @@ depends_on = None
 _CURRENT = "control_mapping_override"
 _HISTORY = "tc21005_mapping_history"
 _HOLD = "tc21005_mapping_hold"
+_ATTR_HOLD = "tc21005_mapping_attr_hold"
 _REVIEWER_FK = "fk_control_mapping_override_reviewer"
+_VERSION_COLUMNS = (
+    "state",
+    "rationale",
+    "version",
+    "reviewed_by_user_id",
+    "reviewed_at",
+)
 _HISTORY_COLUMNS = (
     "id, mapping_id, version, workspace_id, question_hash, control_ids, state, "
     "rationale, reviewed_by_user_id, reviewed_at, recorded_at"
@@ -62,6 +73,18 @@ def _history_table() -> None:
     )
 
 
+def _attr_hold_table() -> None:
+    op.create_table(
+        _ATTR_HOLD,
+        sa.Column("mapping_id", sa.Integer(), primary_key=True),
+        sa.Column("state", sa.String(length=32), nullable=True),
+        sa.Column("rationale", sa.Text(), nullable=True),
+        sa.Column("version", sa.Integer(), nullable=True),
+        sa.Column("reviewed_by_user_id", sa.Integer(), nullable=True),
+        sa.Column("reviewed_at", sa.DateTime(), nullable=True),
+    )
+
+
 def _hold_table() -> None:
     op.create_table(
         _HOLD,
@@ -84,21 +107,68 @@ def upgrade() -> None:
         return
     columns = _columns(_CURRENT)
     if "state" not in columns:
-        op.add_column(
-            _CURRENT,
-            sa.Column("state", sa.String(length=32), nullable=False, server_default="overridden"),
-        )
+        op.add_column(_CURRENT, sa.Column("state", sa.String(length=32), nullable=True))
     if "rationale" not in columns:
         op.add_column(_CURRENT, sa.Column("rationale", sa.Text(), nullable=True))
     if "version" not in columns:
-        op.add_column(
-            _CURRENT,
-            sa.Column("version", sa.Integer(), nullable=False, server_default="1"),
-        )
+        op.add_column(_CURRENT, sa.Column("version", sa.Integer(), nullable=True))
     if "reviewed_by_user_id" not in columns:
         op.add_column(_CURRENT, sa.Column("reviewed_by_user_id", sa.Integer(), nullable=True))
     if "reviewed_at" not in columns:
         op.add_column(_CURRENT, sa.Column("reviewed_at", sa.DateTime(), nullable=True))
+    if _ATTR_HOLD not in _tables():
+        _attr_hold_table()
+    # Restore a previous downgrade before backfill, or every row would become overridden v1.
+    op.get_bind().execute(
+        sa.text(
+            f"""
+            UPDATE {_CURRENT} AS current
+            SET state = held.state,
+                rationale = held.rationale,
+                version = held.version,
+                reviewed_by_user_id = held.reviewed_by_user_id,
+                reviewed_at = held.reviewed_at
+            FROM {_ATTR_HOLD} AS held
+            WHERE current.id = held.mapping_id
+            """
+        )
+    )
+    op.get_bind().execute(sa.text(f"DELETE FROM {_ATTR_HOLD}"))
+    op.get_bind().execute(
+        sa.text(
+            f"""
+            UPDATE {_CURRENT}
+            SET state = 'overridden'
+            WHERE state IS NULL
+            """
+        )
+    )
+    op.get_bind().execute(
+        sa.text(
+            f"""
+            UPDATE {_CURRENT}
+            SET version = 1
+            WHERE version IS NULL
+            """
+        )
+    )
+    op.get_bind().execute(
+        sa.text(f"UPDATE {_CURRENT} SET reviewed_at = created_at WHERE reviewed_at IS NULL")
+    )
+    op.alter_column(
+        _CURRENT,
+        "state",
+        existing_type=sa.String(length=32),
+        nullable=False,
+        server_default="overridden",
+    )
+    op.alter_column(
+        _CURRENT,
+        "version",
+        existing_type=sa.Integer(),
+        nullable=False,
+        server_default="1",
+    )
     if _REVIEWER_FK not in _fk_names(_CURRENT):
         op.create_foreign_key(
             _REVIEWER_FK,
@@ -108,9 +178,6 @@ def upgrade() -> None:
             ["id"],
             ondelete="SET NULL",
         )
-    op.get_bind().execute(
-        sa.text(f"UPDATE {_CURRENT} SET reviewed_at = created_at WHERE reviewed_at IS NULL")
-    )
     if _HOLD not in _tables():
         _hold_table()
     if _HISTORY not in _tables():
@@ -159,9 +226,26 @@ def downgrade() -> None:
         op.drop_table(_HISTORY)
     if _CURRENT not in _tables():
         return
+    columns = _columns(_CURRENT)
+    if set(_VERSION_COLUMNS).issubset(columns):
+        if _ATTR_HOLD not in _tables():
+            _attr_hold_table()
+        op.get_bind().execute(
+            sa.text(
+                f"""
+                INSERT INTO {_ATTR_HOLD} (
+                    mapping_id, state, rationale, version, reviewed_by_user_id, reviewed_at
+                )
+                SELECT id, state, rationale, version, reviewed_by_user_id, reviewed_at
+                FROM {_CURRENT} AS current
+                WHERE NOT EXISTS (
+                    SELECT 1 FROM {_ATTR_HOLD} AS held WHERE held.mapping_id = current.id
+                )
+                """
+            )
+        )
     if _REVIEWER_FK in _fk_names(_CURRENT):
         op.drop_constraint(_REVIEWER_FK, _CURRENT, type_="foreignkey")
-    columns = _columns(_CURRENT)
     for name in (
         "reviewed_at",
         "reviewed_by_user_id",
