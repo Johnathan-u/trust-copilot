@@ -1,0 +1,10 @@
+{
+  "schema_version": 1,
+  "lease_owner": "setup-20261030-ac0fa793e50b",
+  "lease_expires_at": "2026-10-30T00:20:20.250Z",
+  "updated_at": "2026-10-29T22:20:20.250Z",
+  "automation_id": null,
+  "last_master_sha": "47b5972a1cc8ac83d793deecc2888a0f99575d07",
+  "checkpoint": "Bootstrap: autonomy instruction PR being prepared; #104 independently ready; #75 and #86 being independently reviewed.",
+  "blocked_items": []
+}
