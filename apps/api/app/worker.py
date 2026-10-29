@@ -823,10 +823,8 @@ def _still_running_for_owner(session, job: Job) -> bool:
     if row is None:
         return False
     status, lease_owner = row[0], row[1]
-    # A real database returns text. A non-database session does not, and the caller keeps
-    # the write it already had. A cancelled or finished row is a string and is skipped.
-    if not isinstance(status, str):
-        return True
+    # Fail closed. Only the string "running" for this owner may take the write.
+    # None, a non-string, or any other status skips it.
     if status != JobStatus.RUNNING.value:
         return False
     return lease_owner == owner

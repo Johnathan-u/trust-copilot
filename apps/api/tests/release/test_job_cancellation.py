@@ -91,6 +91,52 @@ def db(_ensure_test_data):
             cleanup.close()
 
 
+@pytest.mark.unit
+def test_status_fence_rejects_a_non_string_or_unknown_status():
+    """An unexpected status is not running, so the failure write is skipped."""
+    from app import worker
+
+    job = Job(
+        workspace_id=WS,
+        kind="parse_evidence",
+        status=JobStatus.RUNNING.value,
+        payload="{}",
+        attempt=1,
+        lease_owner="owner-token",
+    )
+    job.id = 4
+
+    class _Rows:
+        def __init__(self, row):
+            self._row = row
+
+        def fetchone(self):
+            return self._row
+
+    class _Session:
+        def __init__(self, row):
+            self._row = row
+
+        @property
+        def no_autoflush(self):
+            return self
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *_args):
+            return False
+
+        def execute(self, *_args, **_kwargs):
+            return _Rows(self._row)
+
+    assert worker._still_running_for_owner(_Session(("running", "owner-token")), job) is True
+    assert worker._still_running_for_owner(_Session((None, "owner-token")), job) is False
+    assert worker._still_running_for_owner(_Session((object(), "owner-token")), job) is False
+    assert worker._still_running_for_owner(_Session(("not-a-status", "owner-token")), job) is False
+    assert worker._still_running_for_owner(_Session(None), job) is False
+
+
 def _job(db, **kwargs) -> Job:
     job = Job(
         workspace_id=kwargs.pop("workspace_id", WS),
