@@ -487,6 +487,78 @@ def test_missing_and_foreign_controls_share_the_404(client):
     assert hidden.json() == {"detail": "Mapping not found"}
 
 
+def test_missing_and_foreign_source_refs_share_the_404(client):
+    actors = _actors()
+    own = _control(actors["workspace_id"], f"Src own {uuid.uuid4().hex[:8]}")
+    foreign = _control(actors["other_workspace_id"], f"Src foreign {uuid.uuid4().hex[:8]}")
+    question = f"synthetic source {uuid.uuid4().hex[:8]}"
+    _login(client, ADMIN_EMAIL, ADMIN_PASSWORD)
+    missing = client.post(
+        "/api/compliance/control-mappings/confirm",
+        json={"question": question, "control_ids": [own], "source_control_id": 999999991},
+    )
+    other = client.post(
+        "/api/compliance/control-mappings/override",
+        json={
+            "question": question,
+            "control_ids": [own],
+            "source_control_id": foreign,
+            "rationale": "synthetic source check",
+        },
+    )
+    assert missing.status_code == 404, missing.text
+    assert other.status_code == 404, other.text
+    assert missing.json() == other.json()
+    assert missing.json() == {"detail": "Control not found"}
+
+
+def test_audit_rows_for_every_state_change(client):
+    actors = _actors()
+    first_id = _control(actors["workspace_id"], f"Audit a {uuid.uuid4().hex[:8]}")
+    second_id = _control(actors["workspace_id"], f"Audit b {uuid.uuid4().hex[:8]}")
+    question = f"synthetic audit {uuid.uuid4().hex[:8]}"
+    _login(client, ADMIN_EMAIL, ADMIN_PASSWORD)
+    started = datetime.utcnow() - timedelta(seconds=5)
+    confirmed = client.post(
+        "/api/compliance/control-mappings/confirm",
+        json={
+            "question": question,
+            "control_ids": [first_id],
+            "rationale": "synthetic confirmation",
+        },
+    )
+    assert confirmed.status_code == 200, confirmed.text
+    overridden = client.post(
+        "/api/compliance/control-mappings/override",
+        json={
+            "question": question,
+            "control_ids": [second_id],
+            "rationale": "synthetic human override",
+        },
+    )
+    assert overridden.status_code == 200, overridden.text
+    rolled = client.post("/api/compliance/control-mappings/rollback", json={"question": question})
+    assert rolled.status_code == 200, rolled.text
+    rows = {item["action"]: item for item in _audits(confirmed.json()["id"])}
+    expected = {
+        "mapping.propose": (None, "proposed", None),
+        "mapping.confirm": ("proposed", "confirmed", "synthetic confirmation"),
+        "mapping.override": ("confirmed", "overridden", "synthetic human override"),
+        "mapping.rollback": ("overridden", "confirmed", "synthetic confirmation"),
+    }
+    assert set(rows) == set(expected)
+    for action, (previous, new, rationale) in expected.items():
+        item = rows[action]
+        assert item["user_id"] == actors["admin_id"]
+        assert item["occurred_at"] is not None
+        assert item["occurred_at"] >= started
+        assert item["details"]["actor_user_id"] == actors["admin_id"]
+        assert item["details"]["timestamp"]
+        assert item["details"]["previous_state"] == previous
+        assert item["details"]["new_state"] == new
+        assert item["details"]["rationale"] == rationale
+
+
 def test_same_key_retry_and_failed_commit_leave_one_version(client):
     actors = _actors()
     control_id = _control(actors["workspace_id"], f"Idem {uuid.uuid4().hex[:8]}")

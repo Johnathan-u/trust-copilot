@@ -53,6 +53,7 @@ class ConfirmMappingBody(BaseModel):
 
     question: str
     control_ids: list[int] = []
+    source_control_id: int | None = None
     rationale: str | None = None
     reviewer_id: int | None = None
     reviewed_at: str | None = None
@@ -63,6 +64,7 @@ class OverrideMappingBody(BaseModel):
 
     question: str
     control_ids: list[int] = []
+    source_control_id: int | None = None
     rationale: str | None = None
     reviewer_id: int | None = None
     reviewed_at: str | None = None
@@ -275,6 +277,7 @@ def _apply_decision(
     control_ids: list[int],
     state: str,
     rationale: str | None,
+    source_control_id: int | None = None,
 ) -> dict:
     question_hash = _question_hash(question)
     if not question_hash:
@@ -284,6 +287,8 @@ def _apply_decision(
     cleaned = (rationale or "").strip() or None
     ids = [int(item) for item in control_ids]
     _require_same_workspace(db, workspace_id, ids)
+    if source_control_id is not None:
+        _require_same_workspace(db, workspace_id, [int(source_control_id)])
     actor = session.get("user_id")
     now = datetime.utcnow()
     row = _load(db, workspace_id, question_hash)
@@ -536,6 +541,7 @@ def confirm_mapping(
             control_ids=body.control_ids,
             state="confirmed",
             rationale=body.rationale,
+            source_control_id=body.source_control_id,
         )
 
     return _run_mutation(db, request, session, "confirm", body.question, writer)
@@ -562,6 +568,7 @@ def override_mapping(
             control_ids=body.control_ids,
             state="overridden",
             rationale=body.rationale,
+            source_control_id=body.source_control_id,
         )
 
     return _run_mutation(db, request, session, "override", body.question, writer)
