@@ -297,6 +297,7 @@ export default function ReviewPage() {
             })
         if (!stillCurrent()) return
         const data = await response.json().catch(() => null)
+        if (!stillCurrent()) return
         if (!response.ok) {
           clearSavePhase(questionId)
           const notice = mutationFailureNotice(

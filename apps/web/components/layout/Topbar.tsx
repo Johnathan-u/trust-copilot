@@ -105,7 +105,12 @@ export function Topbar({ navOpen, onToggleNav, menuButtonRef }: TopbarProps) {
   const menuRef = useRef<HTMLDivElement>(null)
 
   const [aiSaving, setAiSaving] = useState(false)
-  const [aiSaved, setAiSaved] = useState(false)
+  const [aiSavedGeneration, setAiSavedGeneration] = useState<number | null>(
+    null
+  )
+  const { generation: aiSettingsGeneration } = useKeyedGeneration(
+    JSON.stringify([workspace?.id, aiModel, responseStyle])
+  )
   const [aiSaveError, setAiSaveError] = useState<string | null>(null)
   const [automateEverything, setAutomateEverything] = useState(false)
 
@@ -314,7 +319,7 @@ export function Topbar({ navOpen, onToggleNav, menuButtonRef }: TopbarProps) {
   const saveAiSettings = async () => {
     if (!isAdmin) return
     setAiSaving(true)
-    setAiSaved(false)
+    setAiSavedGeneration(null)
     setAiSaveError(null)
     try {
       const styleConfig = RESPONSE_STYLES.find((s) => s.value === responseStyle)
@@ -343,7 +348,7 @@ export function Topbar({ navOpen, onToggleNav, menuButtonRef }: TopbarProps) {
         )
         return
       }
-      setAiSaved(true)
+      setAiSavedGeneration(aiSettingsGeneration)
     } catch {
       setAiSaveError('The change was not saved. Try again.')
     } finally {
@@ -710,7 +715,8 @@ export function Topbar({ navOpen, onToggleNav, menuButtonRef }: TopbarProps) {
                           ? actionVerb('save', 'pending')
                           : `${actionVerb('save', 'idle')} for workspace`}
                       </button>
-                      {aiSaved && !aiSaving ? (
+                      {aiSavedGeneration === aiSettingsGeneration &&
+                      !aiSaving ? (
                         <p className="text-[11px] text-[var(--tc-success)]">
                           {actionVerb('save', 'success')}
                         </p>

@@ -39,15 +39,19 @@ function windowText(row: {
 }
 
 export default function DemoProofPage() {
-  const { permissions } = useAuth()
+  const { permissions, workspace } = useAuth()
   const canEdit = permissions.can_edit
   const [windowStart, setWindowStart] = useState('')
   const [windowEnd, setWindowEnd] = useState('')
   const [loading, setLoading] = useState(false)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [saved, setSaved] = useState(false)
+  const [savedGeneration, setSavedGeneration] = useState<number | null>(null)
   const [presented, setPresented] = useState<Presented | null>(null)
+  const summaryKey = useKeyedGeneration(
+    JSON.stringify([workspace?.id, windowStart, windowEnd])
+  )
+  const summaryGeneration = summaryKey.generation
 
   const requestSummary = useCallback(
     (method: 'GET' | 'POST') => {
@@ -63,7 +67,7 @@ export default function DemoProofPage() {
           const body = await response.json().catch(() => null)
           if (!response.ok) {
             setPresented(null)
-            if (method === 'POST') setSaved(false)
+            if (method === 'POST') setSavedGeneration(null)
             setError(errorMessage(response.status, body))
             return
           }
@@ -74,10 +78,10 @@ export default function DemoProofPage() {
             next.state === 'unsupported_schema' ||
             next.state === 'unavailable'
           ) {
-            if (method === 'POST') setSaved(false)
+            if (method === 'POST') setSavedGeneration(null)
             setError(next.reason || 'This summary cannot be shown.')
           } else if (method === 'POST') {
-            setSaved(true)
+            setSavedGeneration(summaryGeneration)
           }
         })
         .catch(() => {
@@ -89,7 +93,7 @@ export default function DemoProofPage() {
           else setLoading(false)
         })
     },
-    [windowStart, windowEnd]
+    [windowStart, windowEnd, summaryGeneration]
   )
 
   const load = useCallback(() => {
@@ -99,12 +103,11 @@ export default function DemoProofPage() {
   }, [requestSummary])
   const save = useCallback(() => {
     setSaving(true)
-    setSaved(false)
+    setSavedGeneration(null)
     setError(null)
     return requestSummary('POST')
   }, [requestSummary])
 
-  const summaryKey = useKeyedGeneration(`${windowStart}\n${windowEnd}`)
   if (summaryKey.changed) {
     setLoading(true)
     setError(null)
@@ -187,7 +190,7 @@ export default function DemoProofPage() {
                   ? actionVerb('save', 'pending')
                   : `${actionVerb('save', 'idle')} summary`}
               </Button>
-              {saved && !saving ? (
+              {savedGeneration === summaryGeneration && !saving ? (
                 <span className="text-sm text-[var(--tc-success)]">
                   {actionVerb('save', 'success')}
                 </span>
