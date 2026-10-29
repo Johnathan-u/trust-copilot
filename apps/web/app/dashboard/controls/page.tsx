@@ -258,11 +258,13 @@ function ControlLibrary({ canAdmin }: { canAdmin: boolean }) {
                         {lifecycleLabels[row.canonical.lifecycle]}
                       </td>
                       <td className="p-3">
-                        {evaluationLabel(
-                          explanations.find(
-                            (item) => item.control_id === row.id
-                          )
-                        )}
+                        {!coverage.result
+                          ? 'Loading evaluation…'
+                          : evaluationLabel(
+                              explanations.find(
+                                (item) => item.control_id === row.id
+                              )
+                            )}
                       </td>
                     </tr>
                   ))}
