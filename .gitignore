@@ -8,6 +8,7 @@ apps/api/.env.*
 # Dependencies and build
 node_modules/
 .next/
+.next-e2e-sales/
 __pycache__/
 *.py[cod]
 *.egg-info/

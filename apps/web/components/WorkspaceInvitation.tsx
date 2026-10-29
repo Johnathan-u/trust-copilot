@@ -4,10 +4,7 @@ import { useEffect, useRef } from 'react'
 import Link from 'next/link'
 import { Button, Card } from '@/components/ui'
 import { signOutToLogin } from '@/components/WorkspaceCreateNotice'
-import {
-  WORKSPACE_INVITATION_MESSAGE,
-  WORKSPACE_SALES_MAILTO,
-} from '@/lib/workspace-create-response'
+import { WORKSPACE_INVITATION_MESSAGE } from '@/lib/workspace-create-response'
 
 /**
  * Shown instead of a workspace creation form.
@@ -17,9 +14,11 @@ import {
 export function WorkspaceInvitation({
   heading,
   backHref,
+  contactHref = null,
 }: {
   heading: string
   backHref: string
+  contactHref?: string | null
 }) {
   const noticeRef = useRef<HTMLDivElement>(null)
   useEffect(() => {
@@ -46,13 +45,15 @@ export function WorkspaceInvitation({
             <p className="mt-tc-1">{WORKSPACE_INVITATION_MESSAGE}</p>
           </div>
           <div className="mt-tc-4 flex flex-col gap-tc-3">
-            <a
-              href={WORKSPACE_SALES_MAILTO}
-              className="inline-flex min-h-tc-8 items-center justify-center rounded-tc-sm border border-tc-border-strong px-tc-4 py-tc-3 text-center text-tc-label font-semibold text-tc-text underline"
-              style={{ background: 'var(--tc-surface-raised)' }}
-            >
-              Contact sales
-            </a>
+            {contactHref ? (
+              <a
+                href={contactHref}
+                className="inline-flex min-h-tc-8 items-center justify-center rounded-tc-sm border border-tc-border-strong px-tc-4 py-tc-3 text-center text-tc-label font-semibold text-tc-text underline"
+                style={{ background: 'var(--tc-surface-raised)' }}
+              >
+                Contact sales
+              </a>
+            ) : null}
             <Button
               type="button"
               variant="secondary"

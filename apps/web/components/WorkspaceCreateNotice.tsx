@@ -2,9 +2,9 @@
 
 import { useEffect, useRef, useState } from 'react'
 
+import { salesContactHref } from '@/lib/sales-contact'
 import {
   WORKSPACE_INVITATION_MESSAGE,
-  WORKSPACE_SALES_MAILTO,
   type WorkspaceCreateKind,
 } from '@/lib/workspace-create-response'
 
@@ -16,23 +16,19 @@ const titleFor: Record<DenialKind, string> = {
   throttled: 'Too many attempts',
 }
 
-function InvitationCopy() {
-  const marker = 'contact sales'
-  const index = WORKSPACE_INVITATION_MESSAGE.lastIndexOf(marker)
-  if (index < 0) {
-    return <p className="mt-tc-1">{WORKSPACE_INVITATION_MESSAGE}</p>
-  }
+function InvitationCopy({ contactHref }: { contactHref: string | null }) {
   return (
-    <p className="mt-tc-1">
-      {WORKSPACE_INVITATION_MESSAGE.slice(0, index)}
-      <a
-        href={WORKSPACE_SALES_MAILTO}
-        className="font-semibold text-tc-text underline"
-      >
-        {marker}
-      </a>
-      {WORKSPACE_INVITATION_MESSAGE.slice(index + marker.length)}
-    </p>
+    <>
+      <p className="mt-tc-1">{WORKSPACE_INVITATION_MESSAGE}</p>
+      {contactHref ? (
+        <a
+          href={contactHref}
+          className="mt-tc-2 inline-flex font-semibold text-tc-text underline"
+        >
+          Contact sales
+        </a>
+      ) : null}
+    </>
   )
 }
 
@@ -54,6 +50,7 @@ export function WorkspaceCreateNotice({
   }, [])
 
   const calm = kind === 'invitation'
+  const contactHref = calm ? salesContactHref() : null
   return (
     <div
       ref={ref}
@@ -73,7 +70,7 @@ export function WorkspaceCreateNotice({
     >
       <p className="font-semibold">{titleFor[kind]}</p>
       {kind === 'invitation' ? (
-        <InvitationCopy />
+        <InvitationCopy contactHref={contactHref} />
       ) : (
         <p className="mt-tc-1">{message}</p>
       )}

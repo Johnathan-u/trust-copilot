@@ -3,11 +3,7 @@
 import { formatApiErrorDetail } from './api-error'
 
 export const WORKSPACE_INVITATION_MESSAGE =
-  'Access is set up by invitation. Ask an administrator of your organization for an invite, or contact sales.'
-
-/** The app has no contact page, so this opens the visitor's mail program. */
-export const WORKSPACE_SALES_MAILTO =
-  'mailto:sales@trustcopilot.io?subject=Workspace%20access'
+  'Access is set up by invitation. Ask your workspace administrator for an invite.'
 
 export const WORKSPACE_CAP_MESSAGE =
   'You have reached the maximum number of workspaces you can administer.'

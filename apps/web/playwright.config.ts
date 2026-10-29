@@ -12,6 +12,8 @@ import { defineConfig, devices } from '@playwright/test'
 const e2eServer = !!process.env.E2E_SERVER_RUNNING
 const webPort = process.env.E2E_WEB_PORT || (e2eServer ? '13000' : '3000')
 const baseURL = `http://127.0.0.1:${webPort}`
+const salesPort = process.env.E2E_SALES_WEB_PORT || '3100'
+const salesBaseURL = `http://127.0.0.1:${salesPort}`
 
 // TC-02-001: E2E runs only against a local stack. Refuse a non-local API_UPSTREAM so loading
 // this config (listing or running tests) can never proxy test traffic to staging/production.
@@ -72,14 +74,29 @@ export default defineConfig({
   ],
   webServer: e2eServer
     ? undefined
-    : {
-        command: `npm run dev -- -p ${webPort}`,
-        url: baseURL,
-        reuseExistingServer: !process.env.CI,
-        timeout: 120_000,
-        env: {
-          ...process.env,
-          API_UPSTREAM: apiUpstream,
+    : [
+        {
+          command: `npm run dev -- -p ${webPort}`,
+          url: baseURL,
+          reuseExistingServer: !process.env.CI,
+          timeout: 120_000,
+          env: {
+            ...process.env,
+            API_UPSTREAM: apiUpstream,
+            NEXT_PUBLIC_SALES_CONTACT: '',
+          },
         },
-      },
+        {
+          command: `npm run dev -- -p ${salesPort}`,
+          url: salesBaseURL,
+          reuseExistingServer: !process.env.CI,
+          timeout: 120_000,
+          env: {
+            ...process.env,
+            API_UPSTREAM: apiUpstream,
+            NEXT_DIST_DIR: '.next-e2e-sales',
+            NEXT_PUBLIC_SALES_CONTACT: 'owner.contact@example.com',
+          },
+        },
+      ],
 })

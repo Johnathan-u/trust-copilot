@@ -17,6 +17,11 @@ const viewports = [
 ] as const
 
 const hiddenDetail = 'SERVER_DETAIL_SHOULD_NOT_APPEAR'
+const salesOrigin = `http://127.0.0.1:${process.env.E2E_SALES_WEB_PORT || '3100'}`
+const configuredContact =
+  'mailto:owner.contact@example.com?subject=Workspace%20access'
+const invitationCopy =
+  'Access is set up by invitation. Ask your workspace administrator for an invite.'
 
 test.beforeAll(() => {
   mkdirSync(screenshotDir, { recursive: true })
@@ -211,13 +216,17 @@ async function captureDeniedState(page: Page, include: string, slug: string) {
   }
 }
 
-async function openInvitation(page: Page, route: '/onboarding' | '/checkout') {
+async function openInvitation(
+  page: Page,
+  route: '/onboarding' | '/checkout',
+  origin = ''
+) {
   const calls = trackWorkspaceCreates(page)
   await quietDevOverlay(page)
   await installInvitationRoutes(page)
   if (route === '/onboarding') await allowSyntheticSession(page)
   await page.setViewportSize({ width: 1440, height: 900 })
-  await page.goto(route)
+  await page.goto(`${origin}${route}`)
   return calls
 }
 
@@ -234,13 +243,11 @@ test.describe('workspace creation is not offered up front', () => {
     ).toBeVisible()
     const notice = page.getByTestId('workspace-invitation-notice')
     await expect(notice).toHaveAttribute('role', 'alert')
-    await expect(notice).toContainText(
-      'Access is set up by invitation. Ask an administrator of your organization for an invite, or contact sales.'
-    )
+    await expect(notice).toContainText(invitationCopy)
     await expect(notice).toBeFocused()
-    await expect(
-      page.getByRole('link', { name: 'Contact sales' })
-    ).toHaveAttribute('href', /^mailto:sales@trustcopilot.io/)
+    await expect(page.getByRole('link', { name: 'Contact sales' })).toHaveCount(
+      0
+    )
     await expect(page.getByRole('button', { name: 'Sign out' })).toBeEnabled()
     await expect(page.getByRole('link', { name: 'Back' })).toHaveAttribute(
       'href',
@@ -272,13 +279,11 @@ test.describe('workspace creation is not offered up front', () => {
     ).toBeVisible()
     const notice = page.getByTestId('workspace-invitation-notice')
     await expect(notice).toHaveAttribute('role', 'alert')
-    await expect(notice).toContainText(
-      'Ask an administrator of your organization for an invite, or contact sales.'
-    )
+    await expect(notice).toContainText(invitationCopy)
     await expect(notice).toBeFocused()
-    await expect(
-      page.getByRole('link', { name: 'Contact sales' })
-    ).toHaveAttribute('href', /^mailto:/)
+    await expect(page.getByRole('link', { name: 'Contact sales' })).toHaveCount(
+      0
+    )
     await expect(page.getByRole('button', { name: 'Sign out' })).toBeEnabled()
     await expect(page.getByRole('link', { name: 'Back' })).toHaveAttribute(
       'href',
@@ -296,6 +301,38 @@ test.describe('workspace creation is not offered up front', () => {
     expect(calls).toEqual([])
     await page.getByRole('link', { name: 'Back' }).click()
     await expect(page).toHaveURL(/\/pricing/)
+    expect(calls).toEqual([])
+  })
+
+  test('onboarding shows a configured contact link', async ({ page }) => {
+    const calls = await openInvitation(page, '/onboarding', salesOrigin)
+    const link = page.getByRole('link', { name: 'Contact sales' })
+    await expect(page.getByTestId('workspace-invitation-notice')).toContainText(
+      invitationCopy
+    )
+    await expect(link).toHaveAttribute('href', configuredContact)
+    expect(calls).toEqual([])
+    await captureDeniedState(
+      page,
+      '[data-testid="workspace-invitation"]',
+      'onboarding-contact'
+    )
+    expect(calls).toEqual([])
+  })
+
+  test('checkout shows a configured contact link', async ({ page }) => {
+    const calls = await openInvitation(page, '/checkout', salesOrigin)
+    const link = page.getByRole('link', { name: 'Contact sales' })
+    await expect(page.getByTestId('workspace-invitation-notice')).toContainText(
+      invitationCopy
+    )
+    await expect(link).toHaveAttribute('href', configuredContact)
+    expect(calls).toEqual([])
+    await captureDeniedState(
+      page,
+      '[data-testid="workspace-invitation"]',
+      'checkout-contact'
+    )
     expect(calls).toEqual([])
   })
 })
@@ -326,10 +363,10 @@ test.describe('remaining workspace creation responses', () => {
     const notice = section.getByTestId('workspace-create-notice')
     await expect(notice).toHaveAttribute('role', 'alert')
     await expect(notice).toHaveAttribute('data-notice-kind', 'invitation')
-    await expect(notice).toContainText('Access is set up by invitation.')
+    await expect(notice).toContainText(invitationCopy)
     await expect(
-      notice.getByRole('link', { name: 'contact sales' })
-    ).toHaveAttribute('href', /^mailto:/)
+      notice.getByRole('link', { name: 'Contact sales' })
+    ).toHaveCount(0)
     await expect(notice).toBeFocused()
     await expect(page.getByText(hiddenDetail)).toHaveCount(0)
     await expect(
