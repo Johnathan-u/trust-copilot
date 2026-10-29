@@ -632,6 +632,32 @@ def test_foreign_evidence_id_is_omitted_from_the_response_and_the_row(client):
     assert str(marker) not in (stored or "")
 
 
+def test_idempotency_keys_do_not_collide_across_gaps(client):
+    actors = _actors()
+    first_control = _control(actors["workspace_id"], f"Key A {uuid.uuid4().hex[:8]}")
+    second_control = _control(actors["workspace_id"], f"Key B {uuid.uuid4().hex[:8]}")
+    first = _gap(actors["workspace_id"], gap_type="control_check", control_id=first_control)
+    second = _gap(actors["workspace_id"], gap_type="control_check", control_id=second_control)
+    _login(client, ADMIN_EMAIL, ADMIN_PASSWORD)
+    raw = "same-raw-key"
+    accepted = client.post(
+        f"/api/evidence-gaps/{first}/decision",
+        json={"status": "accepted"},
+        headers={"Idempotency-Key": raw},
+    )
+    dismissed = client.post(
+        f"/api/evidence-gaps/{second}/decision",
+        json={"status": "dismissed"},
+        headers={"Idempotency-Key": raw},
+    )
+    assert accepted.status_code == 200, accepted.text
+    assert dismissed.status_code == 200, dismissed.text
+    assert accepted.json()["id"] == first
+    assert accepted.json()["status"] == "accepted"
+    assert dismissed.json()["id"] == second
+    assert dismissed.json()["status"] == "dismissed"
+
+
 def test_question_gap_resolves_only_when_the_answer_cites_the_document(client):
     actors = _actors()
     evidence_id, document_id = _evidence(actors["workspace_id"], approval="approved")

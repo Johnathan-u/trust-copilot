@@ -286,15 +286,18 @@ def evidence_backs_gap(
     return "no_subject"
 
 
-def _idempotency_key(request: Request | None, workspace_id: int) -> str | None:
+def _idempotency_key(
+    request: Request | None, workspace_id: int, action: str, subject: str
+) -> str | None:
+    """Optional key scoped by action and gap, matching accept-suggested."""
     if request is None:
         return None
     raw = (request.headers.get("Idempotency-Key") or "").strip()
     if not raw:
         return None
-    if len(raw) > 160:
+    if len(raw) > 120:
         raise HTTPException(status_code=422, detail="Idempotency-Key is too long")
-    return f"evidence-gaps:{workspace_id}:{raw}"
+    return f"evidence-gaps:{workspace_id}:{action}:{subject}:{raw}"
 
 
 def _claim_or_replay(db: Session, key: str | None):
@@ -368,7 +371,7 @@ def ensure_open_gap(
     There is no unique constraint; concurrent inserts remain TC-21-006b.
     """
     workspace_id = request.state.workspace_id
-    key = _idempotency_key(request, workspace_id)
+    key = _idempotency_key(request, workspace_id, "create", "new")
     cached, owner = _claim_or_replay(db, key)
     if cached is not None:
         return cached
@@ -444,7 +447,7 @@ def decide_gap(
     _user=Depends(require_can_admin),
 ):
     workspace_id = request.state.workspace_id
-    key = _idempotency_key(request, workspace_id)
+    key = _idempotency_key(request, workspace_id, "decision", str(gap_id))
     cached, owner = _claim_or_replay(db, key)
     if cached is not None:
         return cached
@@ -485,7 +488,7 @@ def resolve_gap(
     _user=Depends(require_can_review),
 ):
     workspace_id = request.state.workspace_id
-    key = _idempotency_key(request, workspace_id)
+    key = _idempotency_key(request, workspace_id, "resolve", str(gap_id))
     cached, owner = _claim_or_replay(db, key)
     if cached is not None:
         return cached
