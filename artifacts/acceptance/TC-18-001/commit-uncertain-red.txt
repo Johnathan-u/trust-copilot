@@ -1,0 +1,23 @@
+FF                                                                       [100%]
+=================================== FAILURES ===================================
+_ test_uncertain_commit_retains_attachment_without_destructive_cleanup[False] __
+tests/release/test_domain_trust_requests.py:397: in test_uncertain_commit_retains_attachment_without_destructive_cleanup
+    assert len(storage.objects) == 1
+E   assert 0 == 1
+E    +  where 0 = len({})
+E    +    where {} = <tests.release.test_domain_trust_requests.test_uncertain_commit_retains_attachment_without_destructive_cleanup.<locals>.Storage object at 0x7f564a3e21b0>.objects
+------------------------------ Captured log call -------------------------------
+ERROR    app.api.routes.trust_requests:trust_requests.py:277 trust intake persistence failed (RuntimeError)
+__ test_uncertain_commit_retains_attachment_without_destructive_cleanup[True] __
+tests/release/test_domain_trust_requests.py:397: in test_uncertain_commit_retains_attachment_without_destructive_cleanup
+    assert len(storage.objects) == 1
+E   assert 0 == 1
+E    +  where 0 = len({})
+E    +    where {} = <tests.release.test_domain_trust_requests.test_uncertain_commit_retains_attachment_without_destructive_cleanup.<locals>.Storage object at 0x7f5648ab6bd0>.objects
+------------------------------ Captured log call -------------------------------
+ERROR    app.api.routes.trust_requests:trust_requests.py:264 trust intake database cleanup requires reconciliation
+ERROR    app.api.routes.trust_requests:trust_requests.py:277 trust intake persistence failed (RuntimeError)
+=========================== short test summary info ============================
+FAILED tests/release/test_domain_trust_requests.py::test_uncertain_commit_retains_attachment_without_destructive_cleanup[False]
+FAILED tests/release/test_domain_trust_requests.py::test_uncertain_commit_retains_attachment_without_destructive_cleanup[True]
+2 failed, 83 deselected in 0.75s
