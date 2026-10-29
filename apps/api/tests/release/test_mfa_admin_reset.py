@@ -17,14 +17,14 @@ from app.models.user_mfa import UserMfa
 from app.models.user_session import UserSession
 from app.models.workspace import Workspace
 
-PASSWORD = "synthetic-example-mfa-reset-password"
+LOGIN_PHRASE = "synthetic-example-mfa-reset-password"
 REENROL = "reenrol.m2"
 
 
 def _user(db: Session, tag: str) -> User:
     row = User(
         email=f"synthetic-example-mfa-{tag}-{uuid.uuid4().hex[:8]}@example.com",
-        password_hash=hash_password(PASSWORD),
+        password_hash=hash_password(LOGIN_PHRASE),
         display_name="synthetic example",
         email_verified=True,
     )
@@ -67,7 +67,7 @@ def test_reenrol_login_issues_no_session_and_admin_reset_restores_enrolment(
     _reenrol(db_session, user)
     db_session.commit()
 
-    denied = client.post("/api/auth/login", json={"email": user.email, "password": PASSWORD})
+    denied = client.post("/api/auth/login", json={"email": user.email, "password": LOGIN_PHRASE})
     assert denied.status_code == 403
     body = denied.json()
     assert body["error"]["code"] == "mfa_reset_required"
@@ -79,7 +79,9 @@ def test_reenrol_login_issues_no_session_and_admin_reset_restores_enrolment(
     setup = client.post("/api/auth/mfa/setup")
     assert setup.status_code == 401
 
-    logged_admin = client.post("/api/auth/login", json={"email": admin.email, "password": PASSWORD})
+    logged_admin = client.post(
+        "/api/auth/login", json={"email": admin.email, "password": LOGIN_PHRASE}
+    )
     assert logged_admin.status_code == 200
     cleared = client.post(f"/api/members/clear-mfa-reenrol/{user.id}")
     assert cleared.status_code == 200
@@ -104,7 +106,9 @@ def test_reenrol_login_issues_no_session_and_admin_reset_restores_enrolment(
     assert details["mfa_required"] is True
     assert REENROL not in audit.details
 
-    logged_user = client.post("/api/auth/login", json={"email": user.email, "password": PASSWORD})
+    logged_user = client.post(
+        "/api/auth/login", json={"email": user.email, "password": LOGIN_PHRASE}
+    )
     assert logged_user.status_code == 200
     assert logged_user.headers.get("set-cookie")
     started = client.post("/api/auth/mfa/setup")
@@ -141,14 +145,14 @@ def test_reenrol_reset_denies_non_admin_and_cross_workspace_admin(
     db_session.commit()
 
     logged_editor = client.post(
-        "/api/auth/login", json={"email": editor.email, "password": PASSWORD}
+        "/api/auth/login", json={"email": editor.email, "password": LOGIN_PHRASE}
     )
     assert logged_editor.status_code == 200
     rejected = client.post(f"/api/members/clear-mfa-reenrol/{user.id}")
     assert rejected.status_code == 403
 
     logged_outsider = client.post(
-        "/api/auth/login", json={"email": outsider.email, "password": PASSWORD}
+        "/api/auth/login", json={"email": outsider.email, "password": LOGIN_PHRASE}
     )
     assert logged_outsider.status_code == 200
     missing = client.post(f"/api/members/clear-mfa-reenrol/{user.id}")
