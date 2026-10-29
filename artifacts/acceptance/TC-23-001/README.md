@@ -32,3 +32,8 @@ Tests ran on `fd5221e9b429da14a974d5177a120061fc348480`. That commit is the pure
 ## Migration
 
 `tc23001_deal_types` revises `tc10001_job_leases`. The round trip holds a non-representable float (`1/3`), checks the amount is null, restores that exact text on downgrade, and upgrades again. Deal and hold-table counts are asserted back to the start of every test in the file.
+
+
+## Typecheck fix
+
+CI build on `9730486` failed `tsc` in `dealConsumer.ts`: `owner_user_id`, `room_id`, and `win_rate` stayed `unknown`. The parser now assigns them from an explicit null or typed branch. `npm run typecheck` and `dealConsumer.test.ts` (3 passed) ran on `89af4f3df776ef5a5f7284a0f84a1dd152ff4cc8`.

@@ -15,3 +15,7 @@ command: npx vitest run
 Test Files  27 passed
 Tests  173 passed
 exit status: 0
+
+typecheck fix sha: 89af4f3df776ef5a5f7284a0f84a1dd152ff4cc8
+npm run typecheck: exit 0
+dealConsumer.test.ts: 3 passed
