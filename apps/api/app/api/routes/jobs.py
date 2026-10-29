@@ -53,16 +53,6 @@ def _conflict(request: Request, code: str, message: str) -> JSONResponse:
     return api_error_response(error, 409)
 
 
-def _workspace_job(db: Session, session: dict, job_id: int, workspace_id: int) -> Job:
-    """Return the job in the caller's workspace, or 404 for a mismatch or a missing row."""
-    if session.get("workspace_id") != workspace_id:
-        raise HTTPException(status_code=404, detail="Job not found")
-    job = db.query(Job).filter(Job.id == job_id, Job.workspace_id == workspace_id).first()
-    if not job:
-        raise HTTPException(status_code=404, detail="Job not found")
-    return job
-
-
 def _public_job(request: Request, db: Session, job: Job) -> dict:
     result_payload = None
     if job.result:
