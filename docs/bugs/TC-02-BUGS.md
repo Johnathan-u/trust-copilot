@@ -99,6 +99,7 @@ title only:
   The comment admits there is no scoping check. A workspace-leak regression in
   `GET /api/notifications/log` would pass. This is a vacuous security test, to be fixed alongside
   E06 tenant-authorization tests.
+- Fixed on `tc/int/TC-02-BUG-007`.
 
 ### TC-02-BUG-008: `test_answer_pipeline.py:157` F841 `count`
 - `generate_answers_for_questionnaire(...)` return value is discarded, and every assertion is

@@ -2,6 +2,7 @@
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
+from sqlalchemy import and_
 from sqlalchemy.orm import Session
 
 from app.core.audit import persist_audit
@@ -443,7 +444,10 @@ async def list_delivery_attempts(
         db.query(NotificationDeliveryAttempt, InAppNotification)
         .outerjoin(
             InAppNotification,
-            InAppNotification.id == NotificationDeliveryAttempt.in_app_notification_id,
+            and_(
+                InAppNotification.id == NotificationDeliveryAttempt.in_app_notification_id,
+                InAppNotification.workspace_id == NotificationDeliveryAttempt.workspace_id,
+            ),
         )
         .filter(NotificationDeliveryAttempt.workspace_id == ws)
     )
