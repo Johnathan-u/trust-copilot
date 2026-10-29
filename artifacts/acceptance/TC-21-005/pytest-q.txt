@@ -1,0 +1,9 @@
+SHA eb462fdf1c30c5937ae1e992696740f7038ecb6e
+working directory: apps/api
+command: python -m pytest tests/release/test_domain_compliance_mappings.py -q
+interpreter: /tmp/tc-venv/bin/python
+alembic heads: tc21005_mapping_version (head)
+
+......                                                                   [100%]
+6 passed, 124 warnings in 6.72s
+exit status: 0
