@@ -77,6 +77,10 @@ def domain(client, db_session):
     db_session.query(TrustRequest).filter(TrustRequest.id.in_(ids)).delete(
         synchronize_session=False
     )
+    db_session.execute(
+        text("DELETE FROM idempotency_keys WHERE idempotency_key LIKE :key"),
+        {"key": "%" + suffix + "%"},
+    )
     db_session.query(ApiKey).filter(ApiKey.label == suffix).delete(synchronize_session=False)
     db_session.commit()
     assert counts(db_session) == before
@@ -204,3 +208,75 @@ def test_intake_schema_rejects_invalid_and_oversized_input(field, value):
     body = {"requester_email": "test@example.com", "message": "Review?", field: value}
     with pytest.raises(ValidationError):
         TrustRequestCreate(**body)
+
+
+def test_reply_creation_is_draft_and_cannot_send_inline(domain):
+    response = domain["client"].post(
+        f"/api/trust-requests/{domain['own']}/replies",
+        json={"body": "A reviewed answer", "send_email": True},
+        headers=domain["headers"]["admin"],
+    )
+    assert response.status_code == 409
+    assert (
+        not domain["db"].query(TrustRequestNote).filter_by(trust_request_id=domain["own"]).count()
+    )
+    response = domain["client"].post(
+        f"/api/trust-requests/{domain['own']}/replies",
+        json={"body": "A draft answer"},
+        headers=domain["headers"]["admin"],
+    )
+    assert response.status_code == 200
+    body = response.json()
+    assert body["body_revision"] == 1
+    assert body["approved_at"] is None
+    assert body["delivery_status"] == "draft"
+
+
+def test_api_key_cannot_fabricate_human_reply_approval(domain):
+    response = domain["client"].post(
+        f"/api/trust-requests/{domain['own']}/replies",
+        json={"body": "A draft answer"},
+        headers=domain["headers"]["admin"],
+    )
+    note_id = response.json()["id"]
+    approval = domain["client"].post(
+        f"/api/trust-requests/{domain['own']}/replies/{note_id}/approve",
+        json={"revision": 1},
+        headers=domain["headers"]["admin"],
+    )
+    assert approval.status_code == 403
+
+
+def test_public_intake_retry_is_one_persisted_request(domain):
+    headers = {"Idempotency-Key": domain["suffix"] + "-intake"}
+    payload = {
+        "requester_email": f"{domain['suffix']}@example.com",
+        "message": "One request",
+        "workspace_id": 1,
+    }
+    first = domain["client"].post("/api/trust-requests/", json=payload, headers=headers)
+    second = domain["client"].post("/api/trust-requests/", json=payload, headers=headers)
+    assert first.status_code == second.status_code == 200
+    assert first.json()["id"] == second.json()["id"]
+    conflict = domain["client"].post(
+        "/api/trust-requests/", json={**payload, "message": "Different request"}, headers=headers
+    )
+    assert conflict.status_code == 409
+
+
+@pytest.mark.parametrize(
+    "field,value",
+    [
+        ("requester_email", "a\0@example.com"),
+        ("requester_email", "İ" * 243 + "@example.com"),
+        ("message", "hello\0there"),
+    ],
+    ids=["nul-email", "unicode-expansion", "nul-message"],
+)
+def test_intake_schema_rejects_unstorable_text(field, value):
+    from app.api.routes.trust_requests import TrustRequestCreate
+
+    with pytest.raises(ValidationError):
+        TrustRequestCreate(
+            **{"requester_email": "test@example.com", "message": "Review?", field: value}
+        )
