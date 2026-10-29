@@ -1,0 +1,8 @@
+Full apps/api suite, informational (no Postgres reachable for this agent).
+Command (apps/api): python -m pytest -q -p no:cacheprovider tests -o addopts=""
+Branch @ 7382066fef77eaa39788b074388489c3e819d67f : exit 1 : 241 failed, 715 passed, 735 skipped, 31 errors
+Baseline @ c20f949 (worktree; --ignore tests/test_alerts_api.py --ignore tests/test_coverage_api.py because they make network calls at import on baseline): exit 1 : 241 failed, 282 passed, 735 skipped, 31 errors
+Failed/errored node IDs: 272 on branch vs 272 baseline; set difference = 0 new, 0 removed.
+Short summary lines carry no reason (-q); log body contains 273 sqlalchemy.exc.OperationalError / 546 psycopg.OperationalError lines for the failing set (identical set to baseline).
+Cause of failures on both sides: database connection — environment, not this change.
+Extra passes on branch: TC-07-001 + TC-03-001 release tests (test_secret_inventory.py, test_config_contract.py).
