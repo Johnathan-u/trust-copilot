@@ -1,6 +1,6 @@
 BEGIN;
 
--- Running upgrade tc21002a_canonical_uniq -> bug018a_gap_closed_at_reason
+-- Running upgrade tc21003_evidence_link_uniq -> bug018a_gap_closed_at_reason
 
 ALTER TABLE evidence_gaps ADD COLUMN closed_at TIMESTAMP WITH TIME ZONE;
 
@@ -40,6 +40,6 @@ WHERE g.id = parsed.id
   AND g.closed_at IS NULL
   AND g.close_reason IS NULL;
 
-UPDATE alembic_version SET version_num='bug018a_gap_closed_at_reason' WHERE alembic_version.version_num = 'tc21002a_canonical_uniq';
+UPDATE alembic_version SET version_num='bug018a_gap_closed_at_reason' WHERE alembic_version.version_num = 'tc21003_evidence_link_uniq';
 
 COMMIT;

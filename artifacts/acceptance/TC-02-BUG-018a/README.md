@@ -2,13 +2,13 @@
 
 Synthetic rows only, on disposable side PostgreSQL databases whose names end in `_test` (`trustcopilot_test` for the branch, `trustcopilot_master_test` for master). No model calls and no network calls from the tests. Local Postgres 16 with pgvector. Ruff 0.5.6.
 
-The suites below ran on merge commit `c51c93243d6a5905f5d122608dde9eb2f9cfa8ff` (this evidence directory was added after that). Base is `origin/master` `cfeda5f02136ff4625923e2f551dadb832f286fc`. Single alembic head: `bug018a_gap_closed_at_reason`, parent `tc21002a_canonical_uniq` (TC-21-002a landed on master after the branch started from `bug019_article_slug_ws`, so the revision was re-parented).
+The suites below ran on merge commit `c51c93243d6a5905f5d122608dde9eb2f9cfa8ff` (this evidence directory was added after that). Base is `origin/master` `cfeda5f02136ff4625923e2f551dadb832f286fc`. Alembic head at the last re-parent: `bug018a_gap_closed_at_reason`, parent `tc21003_evidence_link_uniq` (re-parented from `bug019_article_slug_ws` to `tc21002a_canonical_uniq`, then to `tc21003_evidence_link_uniq`). Tests accept this revision or any descendant as head.
 
 | File | What it shows |
 |---|---|
 | `logs/round-trip.txt` | Schema upgrade/downgrade/upgrade, then the data round trip: an old note is unchanged, a column-only row gets the note on downgrade, and the next upgrade restores `close_reason` and `closed_at`. |
-| `logs/offline-sql-upgrade.txt` | `alembic upgrade tc21002a_canonical_uniq:bug018a_gap_closed_at_reason --sql`. Adds the columns and the backfill `UPDATE`. Does not connect. |
-| `logs/offline-sql-downgrade.txt` | `alembic downgrade bug018a_gap_closed_at_reason:tc21002a_canonical_uniq --sql`. Drops both columns. |
+| `logs/offline-sql-upgrade.txt` | `alembic upgrade tc21003_evidence_link_uniq:bug018a_gap_closed_at_reason --sql`. Adds the columns and the backfill `UPDATE`. Does not connect. |
+| `logs/offline-sql-downgrade.txt` | `alembic downgrade bug018a_gap_closed_at_reason:tc21003_evidence_link_uniq --sql`. Appends a missing closure note, then drops both columns. |
 | `logs/offline-sql-upgrade-stderr.txt` | Alembic's offline-mode log lines for the upgrade SQL. |
 | `logs/offline-sql-downgrade-stderr.txt` | Same for the downgrade SQL. |
 | `logs/alembic-heads.txt` | `bug018a_gap_closed_at_reason (head)`. |

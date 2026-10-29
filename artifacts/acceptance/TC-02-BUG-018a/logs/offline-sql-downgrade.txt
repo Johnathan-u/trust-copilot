@@ -1,6 +1,6 @@
 BEGIN;
 
--- Running downgrade bug018a_gap_closed_at_reason -> tc21002a_canonical_uniq
+-- Running downgrade bug018a_gap_closed_at_reason -> tc21003_evidence_link_uniq
 
 UPDATE evidence_gaps AS g
 SET reason = CASE
@@ -29,6 +29,6 @@ ALTER TABLE evidence_gaps DROP COLUMN close_reason;
 
 ALTER TABLE evidence_gaps DROP COLUMN closed_at;
 
-UPDATE alembic_version SET version_num='tc21002a_canonical_uniq' WHERE alembic_version.version_num = 'bug018a_gap_closed_at_reason';
+UPDATE alembic_version SET version_num='tc21003_evidence_link_uniq' WHERE alembic_version.version_num = 'bug018a_gap_closed_at_reason';
 
 COMMIT;

@@ -47,3 +47,10 @@ tests/release/test_evidence_gap_closure_columns.py::test_migration_upgrade_downg
 
 -- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
 31 passed, 1 warning in 12.68s
+
+=== re-parent onto tc21003_evidence_link_uniq ===
+Master TC-21-003 added tc21003_evidence_link_uniq on top of tc21002a_canonical_uniq.
+bug018a_gap_closed_at_reason down_revision is tc21003_evidence_link_uniq.
+Downgrade still appends the closure note before dropping columns.
+Upgrade still does not write reason.
+bug018a_gap_closed_at_reason (head)
