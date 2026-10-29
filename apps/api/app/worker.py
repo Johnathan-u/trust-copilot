@@ -22,6 +22,7 @@ import logging  # noqa: E402
 import tempfile  # noqa: E402
 import threading  # noqa: E402
 import time  # noqa: E402
+from collections.abc import Callable  # noqa: E402
 from concurrent.futures import ThreadPoolExecutor, as_completed  # noqa: E402, F401
 from datetime import datetime, timedelta, timezone  # noqa: E402
 from pathlib import Path  # noqa: E402
@@ -37,6 +38,7 @@ from app.models import Document, Job, JobStatus, Question, Questionnaire  # noqa
 from app.core.audit import persist_audit  # noqa: E402
 from app.core.job_errors import (  # noqa: E402
     AUTH_FAILED,
+    LEASE_EXPIRED,
     MAX_ATTEMPTS_CEILING,
     RetryableJobError,
     TerminalJobError,
@@ -49,6 +51,20 @@ from app.core.job_errors import (  # noqa: E402
     retry_base_seconds,
     retry_max_seconds,
     safe_error_message,
+)
+from app.core.job_lease import (  # noqa: E402
+    LEASE_EXPIRED_MESSAGE,
+    JobLeaseHeartbeat,
+    LeaseLost,
+    confirm_lease_for_commit,
+    install_commit_fence,
+    lease_heartbeat_seconds,
+    lease_seconds,
+    new_lease_owner_token,
+    owns_lease,
+    renew_lease,
+    steal_expired_leases,
+    uninstall_commit_fence,
 )
 from app.services.file_service import FileService  # noqa: E402
 from app.services.storage import StorageClient  # noqa: E402
@@ -135,8 +151,22 @@ def _adapt_thread_count(had_work: bool) -> int:
         return _active_threads
 
 
+_clock: Callable[[], datetime] | None = None
+
+
+def set_clock(clock: Callable[[], datetime] | None) -> None:
+    """Test hook. Naive UTC clock for claim, lease, backoff and recovery. None is wall time."""
+    global _clock
+    _clock = clock
+
+
 def _utcnow_naive() -> datetime:
     """Naive UTC, matching the naive ``DateTime`` job columns."""
+    if _clock is not None:
+        current = _clock()
+        if current.tzinfo is not None:
+            current = current.astimezone(timezone.utc).replace(tzinfo=None)
+        return current
     return datetime.now(timezone.utc).replace(tzinfo=None)
 
 
@@ -186,6 +216,11 @@ def claim_job(session) -> Job | None:
     job.next_attempt_at = (
         None  # the scheduled retry is now running (error/error_code keep the last failure)
     )
+    # TC-10-001: one owner token per claim. The row lock above is what makes the claim exclusive;
+    # the token is what later heartbeats and commits check.
+    now = _utcnow_naive()
+    job.lease_owner = new_lease_owner_token()
+    job.lease_expires_at = now + timedelta(seconds=lease_seconds())
     session.commit()
     session.refresh(job)
     # TC-10-003: provider calls of earlier attempts that never settled may have been charged.
@@ -761,6 +796,8 @@ def _try_schedule_retry(
             job.error = message
             job.next_attempt_at = next_at
             job.completed_at = None
+            job.lease_owner = None
+            job.lease_expires_at = None
             session.flush()
     except IntegrityError:
         # Lost a race with a new enqueue of the same input (uq_jobs_queued_idempotency_key).
@@ -902,6 +939,8 @@ def _handle_job_failure(
     job.error_code = code
     job.error = message
     job.next_attempt_at = None
+    job.lease_owner = None
+    job.lease_expires_at = None
     job.completed_at = datetime.now(timezone.utc)
     session.merge(job)
     log_job_failure(
@@ -1005,9 +1044,97 @@ def enqueue_missing_index_jobs(session) -> None:
         print(f"Worker: enqueued {added} index_document job(s) for previously uploaded docs.")
 
 
+def _lease_owner(job) -> str | None:
+    owner = getattr(job, "lease_owner", None)
+    return owner if isinstance(owner, str) and owner else None
+
+
+def _start_job_lease_heartbeat(job_id: int, owner: str) -> JobLeaseHeartbeat:
+    """Background renewal for one claimed job. Uses its own sessions so the job transaction stays open."""
+
+    def _renew() -> bool:
+        return renew_lease(
+            job_id,
+            owner,
+            now=_utcnow_naive(),
+            extend_seconds=lease_seconds(),
+            session_factory=SessionFactory,
+        )
+
+    heartbeat = JobLeaseHeartbeat(_renew, interval_sec=lease_heartbeat_seconds())
+    heartbeat.start()
+    return heartbeat
+
+
+def _audit_lease_lost(job_id: int, workspace_id: int | None, owner: str) -> None:
+    """Record that this owner stopped without committing. Separate session; the job session rolled back."""
+    session = SessionFactory()
+    try:
+        persist_audit(
+            session,
+            "job.lease_lost",
+            workspace_id=workspace_id,
+            resource_type="job",
+            resource_id=job_id,
+            details={"owner_prefix": owner[:8], "reason": "lease_lost"},
+        )
+    except Exception:
+        session.rollback()
+        logging.getLogger(__name__).warning(
+            "job.lease_lost audit failed job_id=%s", job_id, exc_info=True
+        )
+    finally:
+        session.close()
+
+
+def recover_abandoned_jobs(session) -> int:
+    """Send running jobs with an expired lease back through retry classification (TC-10-001).
+
+    The attempt was already counted at claim time. ``_handle_job_failure`` applies the same
+    backoff and attempt cap as any other retryable failure. A NULL lease is left alone.
+    Returns how many jobs were recovered. Audited as ``job.abandoned`` plus the retry or failure event.
+    """
+    now = _utcnow_naive()
+    token = new_lease_owner_token()
+    hold = now + timedelta(seconds=lease_seconds())
+    stolen = steal_expired_leases(session, now=now, owner=token, hold_until=hold)
+    if not stolen:
+        return 0
+    exc = RetryableJobError(LEASE_EXPIRED, LEASE_EXPIRED_MESSAGE)
+    count = 0
+    for job_id, previous_owner in stolen:
+        job = session.get(Job, job_id)
+        if job is None:
+            continue
+        payload = json.loads(job.payload) if job.payload else {}
+        prefix = (previous_owner or "")[:8]
+        _handle_job_failure(session, job, payload, exc, 0.0)
+        session.expire_all()
+        job = session.get(Job, job_id)
+        if job is None:
+            continue
+        _persist_job_audit(
+            session,
+            job,
+            "job.abandoned",
+            payload,
+            error=job.error,
+            extra={
+                "error_code": LEASE_EXPIRED,
+                "attempt": int(job.attempt or 0),
+                "max_attempts": effective_max_attempts(job.max_attempts),
+                "previous_owner_prefix": prefix,
+                "status": job.status,
+            },
+        )
+        count += 1
+    return count
+
+
 def _process_one_job() -> bool:
     """Claim and process one job in a thread-safe manner. Returns True if work was done."""
     session = SessionFactory()
+    lease_heartbeat = None
     try:
         HEARTBEAT_STATE.loop_tick()
 
@@ -1049,9 +1176,15 @@ def _process_one_job() -> bool:
             finally:
                 last_compliance_webhook_run = time.time()
 
+        recovered = 0
+        try:
+            recovered = recover_abandoned_jobs(session)
+        except Exception:
+            session.rollback()
+            logging.getLogger(__name__).warning("abandoned job recovery failed", exc_info=True)
         job = claim_job(session)
         if not job:
-            return False
+            return recovered > 0
 
         job_started_at = time.monotonic()
         payload = json.loads(job.payload) if job.payload else {}
@@ -1067,12 +1200,28 @@ def _process_one_job() -> bool:
         # TC-10-002: what an earlier failed attempt left on the job (cleared on success below).
         prior_error = getattr(job, "error", None)
         prior_error_code = getattr(job, "error_code", None)
+        # TC-10-001: captured before a rollback expires the ORM object.
+        owner = _lease_owner(job)
+        leased_job_id = job.id
+        leased_workspace_id = job.workspace_id
         try:
+            if owner:
+                lease_heartbeat = _start_job_lease_heartbeat(leased_job_id, owner)
+                install_commit_fence(session, leased_job_id, owner, _utcnow_naive)
             run_job(job, session)
+            # TC-10-001: lock and confirm the lease BEFORE the completion is flushed.
+            # persist_audit flushes then commits, so a fence check after that flush would see
+            # status=completed and refuse the commit that just wrote it.
+            if owner:
+                confirm_lease_for_commit(session, leased_job_id, owner, _utcnow_naive())
+                uninstall_commit_fence(session)
             job.status = JobStatus.COMPLETED.value
             job.completed_at = datetime.now(timezone.utc)
             _clear_stale_attempt_error(job, prior_error, prior_error_code)
             job.next_attempt_at = None
+            if owner:
+                job.lease_owner = None
+                job.lease_expires_at = None
             duration_ms = (time.monotonic() - job_started_at) * 1000
             log_job_success(
                 job.kind,
@@ -1133,15 +1282,32 @@ def _process_one_job() -> bool:
                 except Exception:
                     pass
             session.commit()
+        except LeaseLost:
+            uninstall_commit_fence(session)
+            session.rollback()
+            # A completion that already committed (the fence opens after that) is not a lost result.
+            if not _job_already_completed(session, job):
+                _audit_lease_lost(leased_job_id, leased_workspace_id, owner or "")
         except Exception as e:
-            _handle_job_failure(
-                session, job, payload, e, (time.monotonic() - job_started_at) * 1000
+            uninstall_commit_fence(session)
+            lost = bool(owner) and not owns_lease(
+                SessionFactory, leased_job_id, owner, _utcnow_naive()
             )
+            if lost and not _job_already_completed(session, job):
+                session.rollback()
+                _audit_lease_lost(leased_job_id, leased_workspace_id, owner or "")
+            else:
+                _handle_job_failure(
+                    session, job, payload, e, (time.monotonic() - job_started_at) * 1000
+                )
         return True
     except Exception as e:
         print(f"Worker thread error: {e}")
         return False
     finally:
+        uninstall_commit_fence(session)
+        if lease_heartbeat is not None:
+            lease_heartbeat.stop()
         HEARTBEAT_STATE.job_finished()
         session.close()
 
