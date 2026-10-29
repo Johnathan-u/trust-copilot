@@ -1,0 +1,42 @@
+{
+  "ticket": "TC-14-006a",
+  "branch": "tc/web/TC-14-006a",
+  "testedCommit": "530b28d6219c171b4d9ac332c95e09f658ec3c95",
+  "baseline": "a516c77",
+  "environment": {
+    "os": "Linux 6.12.94+ x86_64",
+    "node": "v24.22.1",
+    "npm": "11.19.1",
+    "next": "16.4.3",
+    "vitest": "5.0.5",
+    "playwright": "1.64.1",
+    "chromium": "chromium-1248",
+    "axePlaywright": "4.14.0",
+    "cwd": "apps/web"
+  },
+  "runs": [
+    {
+      "command": "npm run test:unit",
+      "exitStatus": 0,
+      "passed": 103,
+      "failed": 0,
+      "skipped": 0,
+      "filesPassed": 14
+    },
+    {
+      "command": "npx playwright test e2e/release/responsive-shell.spec.ts e2e/release/dialog-toast.spec.ts --retries=0",
+      "exitStatus": 0,
+      "passed": 15,
+      "failed": 0,
+      "skipped": 0,
+      "responsiveShellPassed": 8,
+      "dialogToastPassed": 7,
+      "axeViolations": 0
+    }
+  ],
+  "labels": {
+    "sidebar": "Sidebar",
+    "navigation": "Application"
+  },
+  "notes": "Evidence files were committed after the tested SHA and do not change the suite. Synthetic session and mocked API responses only. No credentials or customer data. Node 24 is required. package.json and package-lock.json match master."
+}
