@@ -7,6 +7,8 @@ cd /app
 python -m app.core.config_contract check entrypoint
 
 # Apply pending migrations before serving (avoids 500s when schema lags behind models).
+# TC-03-002: migrations are additive only. This entrypoint applies the current
+# head and never removes databases, schemas or volumes.
 # Retry briefly when Postgres is still starting (docker compose).
 i=0
 while true; do

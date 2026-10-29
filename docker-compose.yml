@@ -1,6 +1,18 @@
+x-hardening: &hardening
+  read_only: true
+  cap_drop:
+    - ALL
+  security_opt:
+    - no-new-privileges:true
+  tmpfs:
+    - /tmp
+
 services:
   caddy:
-    image: caddy:2
+    <<: *hardening
+    user: "10001:10001"
+    build:
+      context: infra/caddy
     container_name: trust-copilot-caddy
     ports:
       - "3000:3000"
@@ -17,6 +29,8 @@ services:
       - trustnet
 
   web:
+    <<: *hardening
+    user: "1000:1000"
     build:
       context: .
       dockerfile: apps/web/Dockerfile
@@ -32,7 +46,7 @@ services:
       API_UPSTREAM: http://api:8000
     volumes:
       - ./apps/web:/app
-      - /app/node_modules
+      - web_node_modules:/app/node_modules
     expose:
       - "3000"
     healthcheck:
@@ -51,6 +65,8 @@ services:
       - trustnet
 
   api:
+    <<: *hardening
+    user: "10001:10001"
     build:
       context: .
       dockerfile: apps/api/Dockerfile
@@ -75,8 +91,11 @@ services:
       - minio
     networks:
       - trustnet
+      - datanet
 
   worker:
+    <<: *hardening
+    user: "10001:10001"
     build:
       context: .
       dockerfile: apps/api/Dockerfile
@@ -103,8 +122,14 @@ services:
       - minio
     networks:
       - trustnet
+      - datanet
 
   postgres:
+    <<: *hardening
+    user: "999:999"
+    tmpfs:
+      - /tmp
+      - /var/run/postgresql
     image: pgvector/pgvector:pg16
     container_name: trust-copilot-postgres
     environment:
@@ -115,14 +140,16 @@ services:
       POSTGRES_USER: ${POSTGRES_USER:-postgres}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
     ports:
-      - "5432:5432"
+      - "127.0.0.1:5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./infra/postgres/init-create-test-db.sh:/docker-entrypoint-initdb.d/init-create-test-db.sh:ro
     networks:
-      - trustnet
+      - datanet
 
   minio:
+    <<: *hardening
+    user: "1000:1000"
     image: minio/minio:latest
     container_name: trust-copilot-minio
     environment:
@@ -130,19 +157,22 @@ services:
       MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-minio123}
     command: server /data --console-address ":9001"
     ports:
-      - "9000:9000"
-      - "9001:9001"
+      - "127.0.0.1:9000:9000"
+      - "127.0.0.1:9001:9001"
     volumes:
       - minio_data:/data
     networks:
-      - trustnet
+      - datanet
 
 volumes:
   postgres_data:
   minio_data:
   caddy_data:
   caddy_config:
+  web_node_modules:
 
 networks:
   trustnet:
     driver: bridge
+  datanet:
+    internal: true

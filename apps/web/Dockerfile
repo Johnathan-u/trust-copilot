@@ -47,4 +47,5 @@ HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
 # Uses the lockfile as-is (npm ci) so a bind-mounted checkout never rewrites it.
 FROM deps AS dev
 COPY apps/web /app
+USER node
 CMD ["sh", "-c", "npm ci --ignore-scripts --no-audit --no-fund && npm run dev -- -H 0.0.0.0 -p 3000"]

@@ -1,0 +1,13 @@
+command: cd apps/api && python -m pytest -rs --tb=line
+sha: branch working tree on baseline 80607881320e1fa2c6416c55730eb98a56449f26
+env: TC_REQUIRE_DB=1 TC_REQUIRE_WEB_TOOLCHAIN=1 TRUST_COPILOT_TESTING=1 SESSION_SECRET=test-secret
+     fresh database tc03002_fresh_test on pgvector/pgvector:pg16 (credentials not recorded)
+exit: 0
+totals: 3275 passed, 1 skipped, 10167 warnings in 245.70s
+
+skipped: tests/test_trust_scoring_blind.py external_data pack not checked in
+
+Earlier run on the long-lived shared database: 1 failed, 3274 passed, 1 skipped, exit 1.
+The failure was tests/test_notification_fire_points.py::TestControlVerifiedFirePoint::test_control_verified_notifies
+(assert 0 > 0). POST /api/compliance/controls/20/verify returned 200 for a control that was already
+verified; the handler returns without a new notification in that case. Fresh database does not fail it.
