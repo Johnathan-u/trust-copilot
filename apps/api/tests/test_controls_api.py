@@ -61,7 +61,19 @@ def test_list_controls_with_session(client: TestClient) -> None:
 
 
 def test_create_control_requires_admin(client: TestClient, admin_user: User) -> None:
-    """POST /api/controls requires admin; editor gets 403."""
+    """POST /api/controls requires admin; reviewer and editor get 403."""
+    client.post("/api/auth/login", json={"email": "reviewer@trust.local", "password": "r"})
+    refused = client.post(
+        "/api/controls/",
+        json={
+            "framework": "SOC 2",
+            "control_id": "CC6.1",
+            "name": "Logical access",
+            "status": "in_review",
+        },
+    )
+    assert refused.status_code == 403
+
     client.post("/api/auth/login", json={"email": "editor@trust.local", "password": "e"})
     r = client.post(
         "/api/controls/",
