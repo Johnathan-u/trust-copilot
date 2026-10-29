@@ -403,6 +403,8 @@ class TestDeliveryLog:
         session, and an admin API key. Guessing the other workspace's id is a 404
         with no row body.
         """
+        from uuid import uuid4
+
         from app.core.database import SessionLocal
         from app.core.password import hash_password
         from app.models import (
@@ -418,8 +420,10 @@ class TestDeliveryLog:
         marker_b = "bug007-marker-workspace-b"
         raw_key_a = "fake-bug007-workspace-a"
         raw_key_b = "fake-bug007-workspace-b"
-        email_a = "bug007-a@example.com"
-        email_b = "bug007-b@example.com"
+        token = uuid4().hex
+        email_a = f"bug007-a-{token}@test.local"
+        email_b = f"bug007-b-{token}@test.local"
+        user_ids: list[int] = []
 
         def _user(db, email: str) -> User:
             user = db.query(User).filter(User.email == email).one_or_none()
@@ -547,6 +551,7 @@ class TestDeliveryLog:
                     existing.workspace_id = workspace_id
                     existing.role = "admin"
             db.commit()
+            user_ids.extend([int(user_a.id), int(user_b.id)])
             ids = {
                 "log_a": log_a.id,
                 "log_b": log_b.id,
@@ -657,6 +662,13 @@ class TestDeliveryLog:
                 db.query(ApiKey).filter(ApiKey.label == "fake-bug007").delete(
                     synchronize_session=False
                 )
+                if user_ids:
+                    db.query(WorkspaceMember).filter(WorkspaceMember.user_id.in_(user_ids)).delete(
+                        synchronize_session=False
+                    )
+                    db.query(User).filter(User.id.in_(user_ids)).delete(synchronize_session=False)
                 db.commit()
+                remaining = db.query(User).filter(User.email.like("bug007-%")).count()
+                assert remaining == 0
             finally:
                 db.close()
