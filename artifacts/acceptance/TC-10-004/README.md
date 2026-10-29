@@ -1,6 +1,10 @@
 # TC-10-004 acceptance evidence
 
-These commands ran on `78ddb036910bfa9ccbaa59ee404b084a72afb6b5` (`78ddb03`). This README commit does not change that code.
+These commands ran on `77893bc6fe4833fb024611766d0a668514f91684` (`77893bc`). This README commit does not change that code.
+
+`77893bc` deletes leaked login sessions, covers two concurrent manual retries, joins those threads in a finally block, rejects a cross-workspace cancel, and refuses a manual retry when another queued or running job already has the same idempotency key. Cancellation was run twice.
+
+An earlier run on `78ddb03` is superseded by this one.
 
 `78ddb03` removes the non-string status exception. An unexpected status is not running, so the write is skipped. The threaded worker test answers the status-fence query with `('running', None)`.
 
@@ -22,16 +26,16 @@ Base is `origin/master` `b70ba0faa94382b3ccd6b4dd807d0d23a692f354` (`b70ba0f`), 
 
 | What | SHA | Exit | Totals |
 |---|---|---|---|
-| Ruff check and format | `78ddb036910bfa9ccbaa59ee404b084a72afb6b5` | 0 | passed |
-| `test_config_contract.py` | `78ddb036910bfa9ccbaa59ee404b084a72afb6b5` | 0 | **627 passed** |
-| `test_job_cancellation.py` | `78ddb036910bfa9ccbaa59ee404b084a72afb6b5` | 0 | **12 passed** |
-| `test_job_leases.py` | `78ddb036910bfa9ccbaa59ee404b084a72afb6b5` | 0 | **26 passed** |
-| `test_model_outcomes_threaded.py` | `78ddb036910bfa9ccbaa59ee404b084a72afb6b5` | 0 | **1 passed** |
-| `test_safe_collection.py` | `78ddb036910bfa9ccbaa59ee404b084a72afb6b5` | 0 | **29 passed** |
-| Heads / migration | `78ddb036910bfa9ccbaa59ee404b084a72afb6b5` | 0 | **4 passed** |
-| `test_job_retries.py` | `78ddb036910bfa9ccbaa59ee404b084a72afb6b5` | 0 | **70 passed** |
-| `test_job_idempotency.py` | `78ddb036910bfa9ccbaa59ee404b084a72afb6b5` | 0 | **47 passed** |
-| `test_auto_generate_enqueue_conflict.py` | `78ddb036910bfa9ccbaa59ee404b084a72afb6b5` | 0 | **5 passed** |
+| Ruff check and format | `77893bc6fe4833fb024611766d0a668514f91684` | 0 | passed |
+| `test_config_contract.py` | `77893bc6fe4833fb024611766d0a668514f91684` | 0 | **627 passed** |
+| `test_job_cancellation.py` (run twice) | `77893bc6fe4833fb024611766d0a668514f91684` | 0, 0 | **15 passed**, **15 passed** |
+| `test_job_leases.py` | `77893bc6fe4833fb024611766d0a668514f91684` | 0 | **26 passed** |
+| `test_model_outcomes_threaded.py` | `77893bc6fe4833fb024611766d0a668514f91684` | 0 | **1 passed** |
+| `test_safe_collection.py` | `77893bc6fe4833fb024611766d0a668514f91684` | 0 | **29 passed** |
+| Heads / migration | `77893bc6fe4833fb024611766d0a668514f91684` | 0 | **4 passed** |
+| `test_job_retries.py` | `77893bc6fe4833fb024611766d0a668514f91684` | 0 | **70 passed** |
+| `test_job_idempotency.py` | `77893bc6fe4833fb024611766d0a668514f91684` | 0 | **47 passed** |
+| `test_auto_generate_enqueue_conflict.py` | `77893bc6fe4833fb024611766d0a668514f91684` | 0 | **5 passed** |
 
 Suites ran one after another.
 
