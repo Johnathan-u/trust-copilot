@@ -1,19 +1,17 @@
-..............................................................           [100%]
-=============================== warnings summary ===============================
-tests/release/test_domain_deals.py::test_revision_is_an_ancestor_of_every_head
-  /tmp/tc-venv/lib/python3.12/site-packages/alembic/config.py:604: DeprecationWarning: No path_separator found in configuration; falling back to legacy splitting on spaces, commas, and colons for prepend_sys_path.  Consider adding path_separator=os to Alembic config.
-    util.warn_deprecated(
+SHA fd5221e9b429da14a974d5177a120061fc348480
+parents: cf8048a12eae34cdd17d66e184f32dba8d622ab5 d9ab8b652b93e56ed8b741b67e571004e17d551a
+tree matches git merge-tree --write-tree
+working directory: apps/api
+interpreter: /tmp/tc-venv/bin/python
+migration parent: tc10001_job_leases
 
-tests/release/test_domain_deals.py: 175 warnings
-tests/test_deals.py: 46 warnings
-tests/release/test_deal_questionnaire_link_scope.py: 82 warnings
-tests/test_crm_connectors.py: 8 warnings
-  /tmp/tc-venv/lib/python3.12/site-packages/sqlalchemy/sql/schema.py:3627: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
-    return util.wrap_callable(lambda ctx: fn(), fn)  # type: ignore
+command: python -m pytest tests/release -q
+1820 passed, 1 failed, 7216 warnings in 176.04s
+failed: tests/release/test_job_idempotency.py::test_replay_returns_same_error_body_as_live_response
+cause: 429 AI job quota exceeded for workspace 1 from earlier local runs
+rerun after resetting that hour's ai_jobs counter: 1 passed
 
--- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
-62 passed, 312 warnings in 9.98s
-
-SHA bd25b381ef68722652770187e1a2cbd7d14c2c4f
-parent of the evidence commit
+command: npx vitest run
+Test Files  27 passed
+Tests  173 passed
 exit status: 0

@@ -1,36 +1,34 @@
 # TC-23-001: Typed scoped deals, rooms, and questionnaire links
 
-Local only. This branch was not pushed.
-
-Framework catalogs stay **BLOCKED** pending **TC-01-007**. Amounts in the tests are synthetic (`990001.23`, currency `XTS`).
+Framework catalogs stay **BLOCKED** pending **TC-01-007**. Amounts in the tests are synthetic.
 
 ## Command
 
 Working directory `apps/api`. Interpreter `/tmp/tc-venv/bin/python`. Database `trustcopilot_test` on PostgreSQL 16.15.
 
 ```text
-python -m pytest tests/release/test_domain_deals.py tests/test_deals.py tests/release/test_deal_questionnaire_link_scope.py tests/test_crm_connectors.py -q
+python -m pytest tests/release -q
 ```
 
 Web, from `apps/web`, Node 24:
 
 ```text
-npx vitest run lib/dealConsumer.test.ts
+npx vitest run
 ```
 
 ## SHA
 
-Tests ran on `bd25b381ef68722652770187e1a2cbd7d14c2c4f`. That commit is the parent of this evidence commit. This file was added after that commit and does not change the code under test.
+Tests ran on `fd5221e9b429da14a974d5177a120061fc348480`. That commit is the pure merge of `cf8048a` and `d9ab8b6`. Its tree matches `git merge-tree --write-tree`. This file was added after that commit and does not change the code under test.
 
 ## Totals
 
 | Command | Exit | Total |
 | --- | --- | --- |
-| The four pytest files above | 0 | 62 passed, 312 warnings, 9.98s |
-| `dealConsumer.test.ts` | 0 | 3 passed |
+| `pytest tests/release -q` | 0 after one quota rerun | 1820 passed in the full run; 1 failed on an accumulated `ai_jobs` hourly counter, then passed alone |
+| `npx vitest run` | 0 | 27 files, 173 passed |
 
-`test_domain_deals.py` contributes 21 of those pytest results (10 read routes, 5 write routes, and 6 other cases). Pytest did not report a skipped test.
+`test_domain_deals.py` is 21 of the release results. The full-run failure was `test_replay_returns_same_error_body_as_live_response`: generate returned 429 because workspace 1's hourly AI job counter was already full from earlier local runs. Resetting that counter made the same test pass. It is not a deals assertion.
 
 ## Migration
 
-`tc23001_deal_types` revises `tc10001_job_leases`. The round trip in `test_amount_backfill_downgrade_and_upgrade_round_trip` downgrades to that parent, upgrades, downgrades, and upgrades again. An exact float stays `100000.00`. `1/3` is held as its original float text with the reason `float value is not exactly representable as numeric(18,2)`, restored on downgrade, and held again on re-upgrade.
+`tc23001_deal_types` revises `tc10001_job_leases`. The round trip holds a non-representable float (`1/3`), checks the amount is null, restores that exact text on downgrade, and upgrades again. Deal and hold-table counts are asserted back to the start of every test in the file.
