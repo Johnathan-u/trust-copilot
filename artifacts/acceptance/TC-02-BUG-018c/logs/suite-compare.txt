@@ -1,0 +1,20 @@
+Compared by test id from the parallel full-suite junit files.
+
+Branch collected 3159, master collected 3159 (the new test file was copied onto the master worktree).
+Branch in that run: 3144 passed, 4 failed, 11 skipped.
+Master in that run: 3136 passed, 12 failed, 11 skipped.
+
+Ids only on one side: 0. The new tests were present on both sides for this comparison.
+
+Outcome changes (branch -> master):
+
+- 9 new tests passed on the branch and failed on master. See regression-master.txt.
+- test_notification_delivery.py::test_migration_upgrades_and_downgrades_on_a_fresh_database failed on the branch in this run (version_num width 64, assertion still 32) and passed on master. The assertion is now 64. Re-run alone on the branch: passed. Re-run alone on master: passed.
+
+Same failure on both sides of the parallel run:
+
+- test_billing_provider.py::test_migration_fresh_install_upgrade_and_downgrade. Both suites created trustcopilot_tc24001_migration_test at once (duplicate type alembic_version). Alone, passed on the branch and on master.
+- test_domain_case_studies.py::test_ac3_schema_consumer_and_persisted_outcome_agree_across_retry. typescript is not installed under apps/web.
+- test_domain_controls.py::test_routes_agree_on_canonical_contract_and_retry. node is v22.23.4; the test requires v24.
+
+No other shared test changed outcome.

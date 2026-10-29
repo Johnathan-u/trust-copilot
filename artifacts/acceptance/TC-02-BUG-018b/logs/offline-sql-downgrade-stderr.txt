@@ -1,0 +1,4 @@
+INFO  [alembic.runtime.migration] Context impl PostgresqlImpl.
+INFO  [alembic.runtime.migration] Generating static SQL
+INFO  [alembic.runtime.migration] Will assume transactional DDL.
+INFO  [alembic.runtime.migration] Running downgrade bug018b_gap_status_checks -> tc21005_mapping_version, CHECK constraints on evidence gap status and close_reason (TC-02-BUG-018b).
