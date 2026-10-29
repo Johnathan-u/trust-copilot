@@ -1,0 +1,9 @@
+SHA 28279672790b9144db3b05edb370538bb8ff4abe
+command: python -m pytest tests/release/test_domain_compliance_alerts.py -q
+7 passed, 44 warnings in 4.86s
+exit status: 0
+
+vitest lib/complianceAlertConsumer.test.ts: 3 passed
+exit status: 0
+
+npm run typecheck (apps/web): exit status 0
