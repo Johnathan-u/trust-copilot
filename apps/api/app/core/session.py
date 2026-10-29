@@ -4,6 +4,7 @@ import base64
 import hmac
 import json
 import time
+from typing import Mapping
 
 from app.core.config import get_settings
 
@@ -61,16 +62,21 @@ def is_weak_secret(value: str | None, min_length: int = MIN_PRODUCTION_SECRET_LE
     return False
 
 
-def is_production_env() -> bool:
+def is_production_env(env: Mapping[str, str] | None = None) -> bool:
     """True when either the settings object or the raw APP_ENV says production.
 
     Both are stripped and lower-cased (TC-07-001a), so " production " or "PRODUCTION\\n" cannot
     slip past the startup check while other code paths still treat the process as production.
+
+    ``env`` (TC-03-001): validate an explicit environment mapping instead of the running process
+    (used by the configuration-contract validator and its CLI/tests). Only that mapping's APP_ENV
+    is consulted, with the same normalisation; ``None`` keeps the process behaviour above.
     """
-    settings = get_settings()
-    app_env = (getattr(settings, "app_env", "") or "").strip().lower()
-    raw_env = _os.getenv("APP_ENV", "").strip().lower()
-    return "production" in (app_env, raw_env)
+    if env is not None:
+        candidates = (env.get("APP_ENV"),)
+    else:
+        candidates = (getattr(get_settings(), "app_env", ""), _os.getenv("APP_ENV", ""))
+    return "production" in tuple((v or "").strip().lower() for v in candidates)
 
 
 def enforce_production_session_secret(component: str) -> None:

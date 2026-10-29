@@ -28,8 +28,11 @@ and no outside services; the comparison runs used `--network none`.
   `test_coverage_api`).
 
 ## Commands (from `apps/api`)
+
+`test_pdf_table_cells.py` has since moved to `tests/release/` (tests-release-move). The command below uses the new path; `focused_tests_branch.txt` was recorded at the old path `tests/test_pdf_table_cells.py`.
+
 ```
-python -m pytest -v -rs -p no:randomly tests/test_pdf_table_cells.py \
+python -m pytest -v -rs -p no:randomly tests/release/test_pdf_table_cells.py \
   tests/test_pdf_text_locator_corpus.py tests/test_pdf_failure_surfacing.py \
   tests/test_upload_parse_review.py tests/test_indexing_enterprise_fixes.py \
   tests/test_generate_export.py tests/test_jobs_api.py tests/test_questionnaire_parser.py \

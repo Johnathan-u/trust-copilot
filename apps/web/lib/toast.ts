@@ -33,11 +33,36 @@ export interface AutoDismissOptions {
 /** Non-error toasts without an action. */
 export const DEFAULT_STATUS_DISMISS_MS = 4000
 
+/** One pair for the whole app. Regions stay mounted while their text changes. */
+export const TOAST_LIVE_ROOT_ID = 'tc-toast-live'
+export const TOAST_STATUS_REGION_ID = 'tc-toast-status'
+export const TOAST_ALERT_REGION_ID = 'tc-toast-alert'
+
+export interface PersistentToastRegion {
+  id: string
+  role: ToastLiveRegion['role']
+  ariaLive: ToastPoliteness
+}
+
+export function persistentToastRegions(): readonly PersistentToastRegion[] {
+  return [
+    { id: TOAST_STATUS_REGION_ID, role: 'status', ariaLive: 'polite' },
+    { id: TOAST_ALERT_REGION_ID, role: 'alert', ariaLive: 'assertive' },
+  ]
+}
+
 export function liveRegionForSeverity(
   severity: ToastSeverity
 ): ToastLiveRegion {
   if (severity === 'error') return { role: 'alert', ariaLive: 'assertive' }
   return { role: 'status', ariaLive: 'polite' }
+}
+
+/** Which already-mounted region receives this toast's text. */
+export function toastRegionId(severity: ToastSeverity): string {
+  return liveRegionForSeverity(severity).role === 'alert'
+    ? TOAST_ALERT_REGION_ID
+    : TOAST_STATUS_REGION_ID
 }
 
 /** `null` means the toast stays until the user dismisses it or uses its action. */

@@ -74,6 +74,7 @@ COMPLIANCE_WEBHOOK_INTERVAL_SEC = 30
 USAGE_CLEANUP_INTERVAL_SEC = 3600
 last_compliance_webhook_run = 0.0
 last_usage_cleanup_run = 0.0
+last_dedupe_prune_run = 0.0
 _last_claimed_workspace_id: int | None = None
 engine = create_engine(settings.database_url, pool_size=12, max_overflow=8)
 SessionFactory = sessionmaker(bind=engine)
@@ -1010,7 +1011,17 @@ def _process_one_job() -> bool:
     try:
         HEARTBEAT_STATE.loop_tick()
 
-        global last_compliance_webhook_run, last_usage_cleanup_run
+        global last_compliance_webhook_run, last_usage_cleanup_run, last_dedupe_prune_run
+        if time.time() - last_dedupe_prune_run >= USAGE_CLEANUP_INTERVAL_SEC:
+            try:
+                from app.services.notification_service import prune_dedupe_claims
+
+                if prune_dedupe_claims(session):
+                    session.commit()
+            except Exception:
+                session.rollback()
+            finally:
+                last_dedupe_prune_run = time.time()
         if time.time() - last_usage_cleanup_run >= USAGE_CLEANUP_INTERVAL_SEC:
             try:
                 from app.services.quota_service import cleanup_old_usage
@@ -1111,7 +1122,9 @@ def _process_one_job() -> bool:
                     ws = session.query(Workspace).filter(Workspace.id == job.workspace_id).first()
                     if ws:
                         ws_name = ws.name or ws_name
-                    evaluate_and_fire_compliance_events(session, job.workspace_id, ws_name)
+                    evaluate_and_fire_compliance_events(
+                        session, job.workspace_id, ws_name, job_id=job.id
+                    )
                 except Exception:
                     pass
             elif job.kind == "parse_questionnaire" and _job_outcome(job) != "superseded":
@@ -1139,6 +1152,11 @@ def main():
     from app.core.session import enforce_production_session_secret
 
     enforce_production_session_secret("worker")
+    # TC-03-001: the rest of the configuration contract (same production detector), before polling jobs.
+    from app.core.config_contract import enforce_startup_contract
+
+    for _problem in enforce_startup_contract("worker"):
+        print(f"config warning: {_problem}", flush=True)
     print(
         f"Trust Copilot worker started (threads: {WORKER_MIN_THREADS}-{WORKER_MAX_THREADS}, initial: {WORKER_INITIAL_THREADS})"
     )

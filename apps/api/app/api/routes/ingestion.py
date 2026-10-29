@@ -1,12 +1,17 @@
 """Ingestion pipeline API (P1-16)."""
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
 from app.core.auth_deps import require_can_admin, require_session
 from app.core.database import get_db
 from app.services import ingestion_pipeline_service as ips
+from app.services.workspace_integrity import (
+    NOT_FOUND_DETAIL,
+    CrossWorkspaceReference,
+    InvalidReference,
+)
 
 router = APIRouter(prefix="/ingestion", tags=["ingestion"])
 
@@ -29,14 +34,18 @@ async def ingest(
     session: dict = Depends(require_can_admin),
     db: Session = Depends(get_db),
 ):
-    result = ips.ingest_evidence(
-        db,
-        session["workspace_id"],
-        body.source_type,
-        body.title,
-        body.source_metadata,
-        body.document_id,
-    )
+    try:
+        result = ips.ingest_evidence(
+            db,
+            session["workspace_id"],
+            body.source_type,
+            body.title,
+            body.source_metadata,
+            body.document_id,
+        )
+    except CrossWorkspaceReference:
+        db.rollback()
+        raise HTTPException(status_code=404, detail=NOT_FOUND_DETAIL)
     db.commit()
     return result
 
@@ -47,7 +56,14 @@ async def ingest_batch(
     session: dict = Depends(require_can_admin),
     db: Session = Depends(get_db),
 ):
-    result = ips.ingest_batch(db, session["workspace_id"], body.source_type, body.items)
+    try:
+        result = ips.ingest_batch(db, session["workspace_id"], body.source_type, body.items)
+    except CrossWorkspaceReference:
+        db.rollback()
+        raise HTTPException(status_code=404, detail=NOT_FOUND_DETAIL)
+    except InvalidReference:
+        db.rollback()
+        raise HTTPException(status_code=422, detail="document_id must be an integer")
     db.commit()
     return result
 

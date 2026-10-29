@@ -44,6 +44,7 @@ title only:
 
 | ID | Title | Epic | Status |
 |---|---|---|---|
+| TC-06-BUG-001 | Same-workspace enforcement and read-only detection for stored cross-workspace references | E06 | Fixed in TC-06-BUG-001 PR (pending merge); legacy-row cleanup is a Coordinator decision |
 | TC-06-BUG-012 | Deals: scope deal and linked-questionnaire lookups to the caller's workspace | E06 | Fixed in TC-06-BUG-012 PR (pending merge) |
 | TC-06-BUG-013 | Shared same-workspace validation for ids referenced in request bodies | E06 | Fixed in TC-06-BUG-013 PR (pending merge) |
 
@@ -126,6 +127,7 @@ title only:
 | ID | file:line | Kind | Runtime effect | Path | Epic | Severity |
 |---|---|---|---|---|---|---|
 | TC-02-BUG-014 | `apps/api/tests/release/test_health_probes.py:155,167,178,187,386` | order-dependent test | The 4 DB-backed `/workerz` tests fail when the file runs alone on a fresh DB (`relation "worker_heartbeat" does not exist`) | test-only (covers `GET /workerz`) | E02 | Low |
+| TC-02-BUG-016 | `apps/api/tests/release/test_domain_compliance_frameworks.py` (`test_permissions_deny_enable_and_anonymous_list`) | order-dependent test | Passed in the default order but failed when the full suite ran in reverse order (`assert 'editor' == 'reviewer'`): it relied on a shared reviewer membership that another test could change | test-only (covers the framework catalog list/enable permissions) | E21 | Low |
 | TC-02-BUG-017 | `apps/api/tests/test_phase_d_slack.py` (`test_disabled_slack_does_not_fire`, `test_event_type_filter_respected`) | order-dependent test | Both tests patched the first non-demo user's role and never restored it, so a later test could see a changed admin, editor, or reviewer | test-only | E02 | Low |
 
 ### TC-02-BUG-014: `/workerz` release tests need migrations they never request
@@ -140,12 +142,41 @@ title only:
 - Fix: the tests request the shared `migrated_db` fixture (`tests/conftest.py`, built on `_ensure_test_data`).
   `tests/release/test_health_probes_isolation.py` reruns the file alone on a throwaway fresh DB in CI.
 
+### TC-02-BUG-016: framework catalog permissions test failed in reverse suite order
+- Reverse-order run of the full `apps/api` suite: `AssertionError: assert 'editor' == 'reviewer'` on the
+  reviewer's workspace-1 membership role. Forward order and the file alone passed.
+- Fix: the test creates its own workspace, reviewer and editor on every run and only reads the seeded
+  HIPAA catalog row. Assertions unchanged. Merged in #38 (`498632d`); ticket `docs/release/bugs/TC-02-BUG-016.md`.
+
 ### TC-02-BUG-017: Slack delivery tests changed a shared member's role
 - `test_disabled_slack_does_not_fire` set that role to `editor`. `test_event_type_filter_respected`
   set it to `reviewer`. Neither restored the original role. The row came from
   `User.email != "demo@trust.local"` with no `order_by`, so which seeded user moved depended on the plan.
 - Fix: both tests patch `disposable_member`, a function-scoped user deleted on teardown. Seeded roles stay put.
   Fixed on `tc/int/TC-02-BUG-017`.
+
+## Evidence-gap generation findings
+
+| ID | file:line | Kind | Runtime effect | Path | Epic | Severity |
+|---|---|---|---|---|---|---|
+| TC-02-BUG-015 | `apps/api/app/services/answer_generation.py` + `evidence_gap_service.py` | missing function, swallowed error | Answer generation imported a `generate_gaps_for_questionnaire` that no longer existed and a broad `except` dropped the `ImportError`, so no evidence gap was ever written and `gaps_generated` was always 0 | worker job (answer generation), not a request | E11 (E21 gaps) | Medium |
+| TC-02-BUG-018 | `apps/api/app/services/evidence_gap_service.py` (`generate_gaps_for_questionnaire`) | stale state | Regeneration never closed an open gap once its answer became sufficient or its question was removed, so gap totals in the gaps view, export pack, demo proof, benchmarks and executive dashboard overstated missing evidence | worker job (answer generation); totals on request paths | E21 (E11) | Medium |
+
+### TC-02-BUG-015: evidence gaps were never generated
+- The LLM gap analyser was removed in `571a158`; the import in answer generation was left behind and its
+  failure was logged as a warning and ignored.
+- Fix: a deterministic generator (no model call), one open `missing_evidence` gap per insufficient
+  answer, idempotent per question, serialized with `pg_advisory_xact_lock(150015, questionnaire_id)`;
+  `llm_error` placeholders are skipped and non-model gap failures are no longer swallowed.
+  Merged in #36 (`ce4d861`).
+
+### TC-02-BUG-018: stale open gaps were never closed
+- Regeneration now closes open `missing_evidence` gaps whose question was removed or now has a sufficient
+  answer (not insufficient, rejected or flagged), with the system-only status `resolved`, inside the same
+  advisory lock. Rows are never deleted; the closure is appended to `reason` on a delimited line.
+- User- and buyer-facing gap totals exclude `resolved` and report it separately.
+- Ticket `docs/release/bugs/TC-02-BUG-018.md`. Follow-up TC-02-BUG-018a (proper `closed_at` /
+  `close_reason` columns, needs a migration): `docs/release/bugs/TC-02-BUG-018a.md`.
 
 ## Verified not bugs (no entry)
 - F841 with no hidden logic: `tags.py:87` `dt`, `automation_service.py:161` `summary` (the

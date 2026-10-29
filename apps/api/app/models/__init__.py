@@ -14,6 +14,7 @@ from app.models.trust_article import TrustArticle
 from app.models.trust_request import TrustRequest
 from app.models.trust_request_note import TrustRequestNote
 from app.models.control import Control
+from app.models.control_contract_event import ControlContractEvent
 from app.models.control_evidence import ControlEvidence
 from app.models.policy_acknowledgment import PolicyAcknowledgment
 from app.models.vendor_request import VendorRequest
@@ -39,10 +40,15 @@ from app.models.control_mapping_override import ControlMappingOverride
 from app.models.compliance_webhook_outbox import ComplianceWebhookOutbox
 from app.models.custom_role import CustomRole
 from app.models.notification import (
+    DELIVERY_STATES,
+    NOTIFICATION_CHANNELS,
+    NOTIFICATION_EVENT_TYPES,
+    NotificationChannelPreference,
+    NotificationDedupeClaim,
+    NotificationDeliveryAttempt,
     NotificationLog,
     NotificationPolicy,
     NotificationUnsubscribe,
-    NOTIFICATION_EVENT_TYPES,
 )
 from app.models.slack_integration import SlackIntegration
 from app.models.slack_ingest import SlackControlSuggestion, SlackIngestChannel
@@ -143,6 +149,7 @@ __all__ = [
     "TrustRequest",
     "TrustRequestNote",
     "Control",
+    "ControlContractEvent",
     "ControlEvidence",
     "PolicyAcknowledgment",
     "VendorRequest",
@@ -169,7 +176,12 @@ __all__ = [
     "NotificationPolicy",
     "NotificationLog",
     "NotificationUnsubscribe",
+    "NotificationChannelPreference",
+    "NotificationDeliveryAttempt",
+    "NotificationDedupeClaim",
     "NOTIFICATION_EVENT_TYPES",
+    "NOTIFICATION_CHANNELS",
+    "DELIVERY_STATES",
     "SlackIntegration",
     "SlackIngestChannel",
     "SlackControlSuggestion",

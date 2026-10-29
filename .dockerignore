@@ -12,3 +12,11 @@ dist
 build
 playwright-report
 test-results
+# TC-03-001: never send environment files, local credentials or test artefacts to the build context
+**/.env
+**/.env.*
+!**/.env.example
+**/.seed-credentials.local
+**/*cookies*.txt
+**/*.har
+**/trace.zip

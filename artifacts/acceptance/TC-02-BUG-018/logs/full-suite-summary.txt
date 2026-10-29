@@ -1,0 +1,62 @@
+# Full apps/api suite, side PostgreSQL (pgvector pg16), TC_REQUIRE_DB=1, image tc-core-api-test:c20f949-sa20-nopymupdf
+# (image has no node and no git). Branch = TC-02-BUG-018 merged with master a702056.
+
+## master a702056
+2276 tests collected
+safe-collection guard (tests/release/test_safe_collection.py): 28 passed, 1 skipped
+9 failed, 2246 passed, 12 skipped, 4 warnings, 10 errors in 210.50s (0:03:30)
+failing / erroring:
+    FAILED tests/release/test_demo_proof_unit.py::test_presenter_rejects_commercial_traction
+    FAILED tests/release/test_domain_case_studies.py::test_ac3_schema_consumer_and_persisted_outcome_agree_across_retry
+    FAILED tests/release/test_domain_demo_proof.py::test_positive_measured_summary_retry_restart_and_ui
+    FAILED tests/release/test_domain_demo_proof.py::test_no_data_workspace_is_not_filled_from_the_sample
+    FAILED tests/release/test_python_lock.py::test_installed_versions_equal_the_dev_lock
+    FAILED tests/release/test_secret_inventory.py::test_tree_has_no_blocking_secret_literals
+    FAILED tests/release/test_secret_inventory.py::test_scanner_cli_exit_code_is_zero_on_tree
+    FAILED tests/release/test_secret_inventory.py::test_self_paths_still_block_real_values[scripts/security/secret_inventory.py]
+    FAILED tests/release/test_secret_inventory.py::test_self_paths_still_block_real_values[apps/api/tests/release/test_secret_inventory.py]
+    ERROR tests/release/test_secret_inventory.py::test_cookie_jars_and_traces_not_tracked
+    ERROR tests/release/test_secret_inventory.py::test_sensitive_artifacts_are_gitignored[.curl_cookies.txt]
+    ERROR tests/release/test_secret_inventory.py::test_sensitive_artifacts_are_gitignored[cookies.txt]
+    ERROR tests/release/test_secret_inventory.py::test_sensitive_artifacts_are_gitignored[x_cookies_y.txt]
+    ERROR tests/release/test_secret_inventory.py::test_sensitive_artifacts_are_gitignored[.tmp_anything.json]
+    ERROR tests/release/test_secret_inventory.py::test_sensitive_artifacts_are_gitignored[apps/web/playwright-report/index.html]
+    ERROR tests/release/test_secret_inventory.py::test_sensitive_artifacts_are_gitignored[apps/web/test-results/a/trace.zip]
+    ERROR tests/release/test_secret_inventory.py::test_sensitive_artifacts_are_gitignored[apps/web/blob-report/report.zip]
+    ERROR tests/release/test_secret_inventory.py::test_sensitive_artifacts_are_gitignored[session.har]
+    ERROR tests/release/test_secret_inventory.py::test_sensitive_artifacts_are_gitignored[apps/api/.seed-credentials.local]
+
+## branch (run 2, the recorded result)
+2289 tests collected (+13: 3 in test_evidence_gap_generation.py since a00a5bf, 5 at a00a5bf, 5 in test_gap_totals_exclude_resolved.py)
+safe-collection guard: 28 passed, 1 skipped
+9 failed, 2259 passed, 12 skipped, 4 warnings, 10 errors in 218.44s (0:03:38)
+failing / erroring:
+    FAILED tests/release/test_demo_proof_unit.py::test_presenter_rejects_commercial_traction
+    FAILED tests/release/test_domain_case_studies.py::test_ac3_schema_consumer_and_persisted_outcome_agree_across_retry
+    FAILED tests/release/test_domain_demo_proof.py::test_positive_measured_summary_retry_restart_and_ui
+    FAILED tests/release/test_domain_demo_proof.py::test_no_data_workspace_is_not_filled_from_the_sample
+    FAILED tests/release/test_python_lock.py::test_installed_versions_equal_the_dev_lock
+    FAILED tests/release/test_secret_inventory.py::test_tree_has_no_blocking_secret_literals
+    FAILED tests/release/test_secret_inventory.py::test_scanner_cli_exit_code_is_zero_on_tree
+    FAILED tests/release/test_secret_inventory.py::test_self_paths_still_block_real_values[scripts/security/secret_inventory.py]
+    FAILED tests/release/test_secret_inventory.py::test_self_paths_still_block_real_values[apps/api/tests/release/test_secret_inventory.py]
+    ERROR tests/release/test_secret_inventory.py::test_cookie_jars_and_traces_not_tracked
+    ERROR tests/release/test_secret_inventory.py::test_sensitive_artifacts_are_gitignored[.curl_cookies.txt]
+    ERROR tests/release/test_secret_inventory.py::test_sensitive_artifacts_are_gitignored[cookies.txt]
+    ERROR tests/release/test_secret_inventory.py::test_sensitive_artifacts_are_gitignored[x_cookies_y.txt]
+    ERROR tests/release/test_secret_inventory.py::test_sensitive_artifacts_are_gitignored[.tmp_anything.json]
+    ERROR tests/release/test_secret_inventory.py::test_sensitive_artifacts_are_gitignored[apps/web/playwright-report/index.html]
+    ERROR tests/release/test_secret_inventory.py::test_sensitive_artifacts_are_gitignored[apps/web/test-results/a/trace.zip]
+    ERROR tests/release/test_secret_inventory.py::test_sensitive_artifacts_are_gitignored[apps/web/blob-report/report.zip]
+    ERROR tests/release/test_secret_inventory.py::test_sensitive_artifacts_are_gitignored[session.har]
+    ERROR tests/release/test_secret_inventory.py::test_sensitive_artifacts_are_gitignored[apps/api/.seed-credentials.local]
+
+Run 2: same 9 failed + 10 errors as master (identical set). Branch +13 passed.
+All are environmental: FileNotFoundError 'node' / 'git' (demo proof presenter, case studies, secret inventory),
+and test_python_lock::test_installed_versions_equal_the_dev_lock (the image's installed packages differ from requirements-dev.lock, which a339a55 changed).
+
+## branch run 1 (earlier, same commit)
+10 failed, 2258 passed, 12 skipped, 4 warnings, 10 errors in 206.90s (0:03:26)
+Run 1 had one extra failure, tests/release/test_job_idempotency.py::test_replay_returns_same_error_body_as_live_response
+(TC-10-003a, exports idempotent replay; does not touch evidence gaps). It passed in run 2 of the full suite and
+3/3 times when its file ran alone (twice on the branch, once on master). Treated as an intermittent, not caused by this change.

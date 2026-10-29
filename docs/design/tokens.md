@@ -8,20 +8,20 @@ Dark is the default product theme (`:root`). That default is a coordinator decis
 
 Inter is self-hosted with `next/font/local` from `apps/web/app/fonts`. The token is `--font-inter`, then the system stack `ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif`. The app does not request a third-party font host. Sizes are the compact product scale:
 
-| Role | Size / line | Utility |
-| --- | --- | --- |
-| Caption | 12 / 16 | `text-tc-caption` |
-| Label | 14 / 20 | `text-tc-label` |
-| Body | 16 / 24 | `text-tc-body` |
-| Title | 20 / 28 | `text-tc-title` |
-| Headline | 28 / 36 | `text-tc-headline` |
+| Role     | Size / line | Utility            |
+| -------- | ----------- | ------------------ |
+| Caption  | 12 / 16     | `text-tc-caption`  |
+| Label    | 14 / 20     | `text-tc-label`    |
+| Body     | 16 / 24     | `text-tc-body`     |
+| Title    | 20 / 28     | `text-tc-title`    |
+| Headline | 28 / 36     | `text-tc-headline` |
 
 14px label text is normal text for WCAG, so it uses the 4.5:1 target. Large text (18pt / 24px, or 14pt bold) is not used to lower that target.
 
 ## License inventory
 
-| Font | License | Version | Source | Files |
-| --- | --- | --- | --- | --- |
+| Font  | License                   | Version                  | Source                                                             | Files                                                                                                                                    |
+| ----- | ------------------------- | ------------------------ | ------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------- |
 | Inter | SIL Open Font License 1.1 | 4.1 (release 2024-11-16) | [rsms/inter v4.1](https://github.com/rsms/inter/releases/tag/v4.1) | `apps/web/app/fonts/InterVariable.woff2`, `apps/web/app/fonts/InterVariable-Italic.woff2`, license text `apps/web/app/fonts/LICENSE.txt` |
 
 Copyright (c) 2016 The Inter Project Authors. The files are the upstream variable web fonts from that release. They are bundled in the repo and served from this origin.
@@ -30,15 +30,15 @@ Copyright (c) 2016 The Inter Project Authors. The files are the upstream variabl
 
 The base unit is 4px. Use these steps for padding, margin and gap. Do not invent off-scale spacing for new UI.
 
-| Token | Pixels | Tailwind |
-| --- | --- | --- |
-| `--tc-space-1` | 4 | `p-tc-1`, `gap-tc-1` |
-| `--tc-space-2` | 8 | `*-tc-2` |
-| `--tc-space-3` | 12 | `*-tc-3` |
-| `--tc-space-4` | 16 | `*-tc-4` |
-| `--tc-space-6` | 24 | `*-tc-6` |
-| `--tc-space-8` | 32 | `*-tc-8` |
-| `--tc-space-12` | 48 | `*-tc-12` |
+| Token           | Pixels | Tailwind             |
+| --------------- | ------ | -------------------- |
+| `--tc-space-1`  | 4      | `p-tc-1`, `gap-tc-1` |
+| `--tc-space-2`  | 8      | `*-tc-2`             |
+| `--tc-space-3`  | 12     | `*-tc-3`             |
+| `--tc-space-4`  | 16     | `*-tc-4`             |
+| `--tc-space-6`  | 24     | `*-tc-6`             |
+| `--tc-space-8`  | 32     | `*-tc-8`             |
+| `--tc-space-12` | 48     | `*-tc-12`            |
 
 Corner radius is separate from the spacing scale. Cards keep the existing 18px radius (`rounded-tc`). Controls use 12px (`rounded-tc-sm`) and compact chips use 8px (`rounded-tc-xs`).
 
@@ -71,7 +71,7 @@ The dark page background is a gradient. Glow alphas are 0.08 (indigo) and 0.06 (
 
 Set the theme on `<html>`, not a nested wrapper, so `body` and the grid overlay inherit it:
 
-```html
+```text
 <html data-theme="light">
 ```
 
@@ -82,7 +82,7 @@ An unknown value does not switch the theme. Dark stays the default.
 - Minimum target size: 24px (WCAG 2.2 SC 2.5.8 AA), via `--tc-target-min` and `min-h-tc-6`.
 - Motion: `--tc-duration-fast` 150ms, `--tc-duration-normal` 200ms, `--tc-ease`.
 - `prefers-reduced-motion: reduce` sets both durations to 0ms and removes the toast opacity transition. It does not remove every animation in the app.
-- Dialogs and toasts: `apps/web/components/ui/Dialog.tsx` traps focus for real dialogs. The notifications panel is a disclosure popover (`aria-expanded` and `aria-controls` on the bell), with no focus trap and no inert background. Escape and an outside click close it and return focus to the bell. `apps/web/lib/toast.ts` picks polite or assertive announcements. Success, info and warning toasts leave after 4000ms. A toast with an action button does not auto-dismiss, so the action has no time limit (WCAG 2.2.1). Errors stay until dismissed. A synthetic check page is `/design-dialogs`. Drawer placement on the dialog primitive is reserved for the navigation work in TC-14-006.
+- Dialogs and toasts: `apps/web/components/ui/Dialog.tsx` traps focus for real dialogs. The notifications panel is a disclosure popover (`aria-expanded` and `aria-controls` on the bell), with no focus trap and no inert background. Escape and an outside click close it and return focus to the bell. One `role="status"` polite region and one `role="alert"` assertive region stay mounted, and each toast's text is inserted into the matching region. Success, info and warning toasts leave after 4000ms. A toast with an action button does not auto-dismiss, so the action has no time limit (WCAG 2.2.1). Errors stay until dismissed. A synthetic check page is `/design-dialogs`. The mobile navigation drawer uses this same dialog primitive with `placement="drawer-start"`.
 
 ## Applying tokens
 
