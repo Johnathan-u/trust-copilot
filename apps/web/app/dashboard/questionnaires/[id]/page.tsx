@@ -106,9 +106,10 @@ export default function QuestionnaireDetailPage() {
     loadQnr()
   }, [loadQnr])
 
+  const qnrId = qnr?.id
   useEffect(() => {
-    if (workspaceId == null || !qnr) return
-    fetch(`/api/ai-governance/questionnaire-answer-stats/${qnr.id}`, {
+    if (workspaceId == null || qnrId == null) return
+    fetch(`/api/ai-governance/questionnaire-answer-stats/${qnrId}`, {
       credentials: 'include',
     })
       .then((r) => (r.ok ? r.json() : null))
@@ -116,7 +117,7 @@ export default function QuestionnaireDetailPage() {
         if (d && !d.error) setAnswerStats(d as AnswerStats)
       })
       .catch(() => {})
-  }, [workspaceId, qnr?.id]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [workspaceId, qnrId])
 
   useEffect(() => {
     if (workspaceId == null) return
