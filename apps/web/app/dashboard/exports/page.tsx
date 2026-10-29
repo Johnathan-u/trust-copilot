@@ -6,10 +6,20 @@ import {
   Button,
   Card,
   EmptyState,
+  ErrorState,
+  LoadingState,
   TableSkeleton,
   ToastNotice,
 } from '@/components/ui'
 import { useAuth } from '@/contexts/AuthContext'
+import type { ApiFailurePresentation } from '@/lib/api-error'
+import { presentHttpFailure } from '@/lib/api-error'
+import {
+  failureOf,
+  isAbortError,
+  listFromPayload,
+  readSectionJson,
+} from '@/lib/section-load'
 
 type ExportRecord = {
   id: number
@@ -25,6 +35,10 @@ export default function ExportsPage() {
   const canExport = permissions.can_export
   const [records, setRecords] = useState<ExportRecord[]>([])
   const [loading, setLoading] = useState(true)
+  const [loadFailure, setLoadFailure] = useState<ApiFailurePresentation | null>(
+    null
+  )
+  const [loadAttempt, setLoadAttempt] = useState(0)
   const [errorToast, setErrorToast] = useState<string | null>(null)
 
   useEffect(() => {
@@ -33,14 +47,25 @@ export default function ExportsPage() {
       return
     }
     setLoading(true)
+    setLoadFailure(null)
     fetch(`/api/exports/records?workspace_id=${workspaceId}`, {
       credentials: 'include',
     })
-      .then((r) => (r.ok ? r.json() : []))
-      .then(setRecords)
-      .catch(() => setRecords([]))
+      .then(async (response) => {
+        const data = await readSectionJson(response)
+        return listFromPayload<ExportRecord>(data, ['items', 'records'])
+      })
+      .then((rows) => {
+        setRecords(rows)
+        setLoadFailure(null)
+      })
+      .catch((error: unknown) => {
+        if (isAbortError(error)) return
+        setRecords([])
+        setLoadFailure(failureOf(error))
+      })
       .finally(() => setLoading(false))
-  }, [workspaceId])
+  }, [workspaceId, loadAttempt])
 
   const handleDownload = async (recordId: number, filename: string) => {
     if (workspaceId == null) return
@@ -50,8 +75,9 @@ export default function ExportsPage() {
         { credentials: 'include' }
       )
       if (!r.ok) {
-        const data = await r.json().catch(() => ({}))
-        setErrorToast((data?.detail as string) || 'Download failed')
+        setErrorToast(
+          `${presentHttpFailure({ status: r.status }).title}. ${presentHttpFailure({ status: r.status }).description}`
+        )
         return
       }
       const blob = await r.blob()
@@ -82,8 +108,19 @@ export default function ExportsPage() {
     <div className="min-w-0">
       <h1 className="mb-6 text-2xl font-bold text-[var(--tc-text)]">Exports</h1>
       <Card>
-        {loading ? (
-          <TableSkeleton rows={4} cols={4} />
+        {loadFailure ? (
+          <ErrorState
+            failure={loadFailure}
+            onRetry={() => setLoadAttempt((value) => value + 1)}
+          />
+        ) : loading ? (
+          <LoadingState
+            label="Loading exports"
+            resetKey={loadAttempt}
+            onRetry={() => setLoadAttempt((value) => value + 1)}
+          >
+            <TableSkeleton rows={4} cols={4} />
+          </LoadingState>
         ) : records.length === 0 ? (
           <EmptyState
             title="No exports yet"

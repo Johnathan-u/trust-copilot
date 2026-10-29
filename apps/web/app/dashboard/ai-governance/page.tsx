@@ -2,7 +2,17 @@
 
 import { useCallback, useEffect, useState } from 'react'
 import { Button, Card, ToastNotice } from '@/components/ui'
+import { ErrorState, LoadingState, PartialSuccess } from '@/components/ui'
 import { useAuth } from '@/contexts/AuthContext'
+import type { ApiFailurePresentation } from '@/lib/api-error'
+import {
+  failureOf,
+  isAbortError,
+  loadSection,
+  readSectionJson,
+  sectionFailure,
+} from '@/lib/section-load'
+import { pageMode, type FailedSection } from '@/lib/ui-state'
 
 type ConfDist = { high: number; medium: number; low: number; none: number }
 
@@ -101,24 +111,52 @@ export default function AIInsightsPage() {
   const [insights, setInsights] = useState<InsightsData | null>(null)
   const [coverage, setCoverage] = useState<CoverageData | null>(null)
   const [loading, setLoading] = useState(true)
+  const [loadFailure, setLoadFailure] = useState<ApiFailurePresentation | null>(
+    null
+  )
+  const [partialFailed, setPartialFailed] = useState<FailedSection[]>([])
   const [advOpen, setAdvOpen] = useState(false)
 
   const fetchInsights = useCallback(() => {
+    setLoadFailure(null)
     Promise.all([
-      fetch('/api/ai-insights', { credentials: 'include' }).then((r) =>
-        r.ok ? r.json() : null
+      loadSection(
+        fetch('/api/ai-insights', { credentials: 'include' }),
+        (data) => data as InsightsData
       ),
-      fetch('/api/compliance-coverage', { credentials: 'include' }).then((r) =>
-        r.ok ? r.json() : null
+      loadSection(
+        fetch('/api/compliance-coverage', { credentials: 'include' }),
+        (data) => data as CoverageData
       ),
     ])
       .then(([ins, cov]) => {
-        setInsights(ins as InsightsData | null)
-        setCoverage(cov as CoverageData | null)
+        const mode = pageMode(
+          {
+            id: 'insights',
+            label: 'AI insights',
+            phase: ins.ok ? 'ready' : 'error',
+            failure: sectionFailure(ins),
+          },
+          [
+            {
+              id: 'coverage',
+              label: 'Coverage',
+              phase: cov.ok ? 'ready' : 'error',
+              failure: sectionFailure(cov),
+            },
+          ]
+        )
+        setInsights(ins.ok ? ins.data : null)
+        setCoverage(cov.ok ? cov.data : null)
+        setLoadFailure(mode.mode === 'error' ? mode.failure : null)
+        setPartialFailed(mode.mode === 'partial' ? mode.failed : [])
       })
-      .catch(() => {
+      .catch((error: unknown) => {
+        if (isAbortError(error)) return
         setInsights(null)
         setCoverage(null)
+        setPartialFailed([])
+        setLoadFailure(failureOf(error))
       })
       .finally(() => setLoading(false))
   }, [])
@@ -152,9 +190,17 @@ export default function AIInsightsPage() {
         <h1 className="text-2xl font-bold text-[var(--tc-text)]">
           AI Insights
         </h1>
-        <Card className="p-6 text-center text-[var(--tc-muted)]">
-          Loading AI performance data...
-        </Card>
+        <LoadingState
+          label="Loading AI performance data"
+          onRetry={() => {
+            setLoading(true)
+            fetchInsights()
+          }}
+        >
+          <Card className="p-6 text-center text-tc-muted">
+            Loading AI performance data
+          </Card>
+        </LoadingState>
       </div>
     )
   }
@@ -165,10 +211,29 @@ export default function AIInsightsPage() {
         <h1 className="text-2xl font-bold text-[var(--tc-text)]">
           AI Insights
         </h1>
-        <Card className="p-6 text-center text-[var(--tc-muted)]">
-          Unable to load AI insights. Make sure questionnaires have been
-          processed.
-        </Card>
+        {partialFailed.length > 0 ? (
+          <PartialSuccess
+            failed={partialFailed}
+            onRetry={() => {
+              setLoading(true)
+              fetchInsights()
+            }}
+          />
+        ) : (
+          <ErrorState
+            failure={
+              loadFailure ?? {
+                kind: 'rejected',
+                title: 'Could not load this',
+                description: 'The request did not succeed. Try again.',
+              }
+            }
+            onRetry={() => {
+              setLoading(true)
+              fetchInsights()
+            }}
+          />
+        )}
       </div>
     )
   }
@@ -196,6 +261,15 @@ export default function AIInsightsPage() {
 
   return (
     <div className="space-y-8">
+      {partialFailed.length > 0 ? (
+        <PartialSuccess
+          failed={partialFailed}
+          onRetry={() => {
+            setLoading(true)
+            fetchInsights()
+          }}
+        />
+      ) : null}
       {/* Header */}
       <div>
         <h1 className="text-2xl font-bold text-[var(--tc-text)]">
@@ -664,14 +738,26 @@ function AdvancedSettings({ onToast }: { onToast: (m: string) => void }) {
   const [settings, setSettings] = useState<GovSettings>({})
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
+  const [settingsFailure, setSettingsFailure] =
+    useState<ApiFailurePresentation | null>(null)
+  const [settingsAttempt, setSettingsAttempt] = useState(0)
 
   useEffect(() => {
+    setLoading(true)
+    setSettingsFailure(null)
     fetch('/api/ai-governance/settings', { credentials: 'include' })
-      .then((r) => (r.ok ? r.json() : {}))
-      .then(setSettings)
-      .catch(() => setSettings({}))
+      .then((r) => readSectionJson(r))
+      .then((data) => {
+        setSettings((data ?? {}) as GovSettings)
+        setSettingsFailure(null)
+      })
+      .catch((error: unknown) => {
+        if (isAbortError(error)) return
+        setSettings({})
+        setSettingsFailure(failureOf(error))
+      })
       .finally(() => setLoading(false))
-  }, [])
+  }, [settingsAttempt])
 
   const onSave = () => {
     setSaving(true)
@@ -695,11 +781,28 @@ function AdvancedSettings({ onToast }: { onToast: (m: string) => void }) {
   const update = (key: string, value: unknown) =>
     setSettings((s) => ({ ...s, [key]: value }))
 
+  if (settingsFailure) {
+    return (
+      <div className="mt-3">
+        <ErrorState
+          failure={settingsFailure}
+          onRetry={() => setSettingsAttempt((value) => value + 1)}
+        />
+      </div>
+    )
+  }
+
   if (loading)
     return (
-      <Card className="p-4 mt-3">
-        <p className="text-sm text-[var(--tc-muted)]">Loading...</p>
-      </Card>
+      <LoadingState
+        label="Loading settings"
+        resetKey={settingsAttempt}
+        onRetry={() => setSettingsAttempt((value) => value + 1)}
+      >
+        <Card className="p-4 mt-3">
+          <p className="text-sm text-tc-muted">Loading settings</p>
+        </Card>
+      </LoadingState>
     )
 
   return (

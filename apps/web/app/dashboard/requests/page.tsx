@@ -1,8 +1,25 @@
 'use client'
 
 import { useCallback, useEffect, useState } from 'react'
-import { Button, Card, Input, Modal, ToastNotice } from '@/components/ui'
+import {
+  Button,
+  Card,
+  ErrorState,
+  Input,
+  LoadingState,
+  Modal,
+  PartialSuccess,
+  ToastNotice,
+} from '@/components/ui'
 import { useAuth } from '@/contexts/AuthContext'
+import type { ApiFailurePresentation } from '@/lib/api-error'
+import {
+  listFromPayload,
+  loadSection,
+  sectionFailure,
+} from '@/lib/section-load'
+import { presentHttpFailure } from '@/lib/api-error'
+import { pageMode, type FailedSection } from '@/lib/ui-state'
 
 /* ──────────────────── Types ──────────────────── */
 
@@ -70,6 +87,11 @@ export default function RequestsPage() {
   const [requests, setRequests] = useState<VendorRequest[]>([])
   const [questionnaires, setQuestionnaires] = useState<Questionnaire[]>([])
   const [loading, setLoading] = useState(true)
+  const [loadFailure, setLoadFailure] = useState<ApiFailurePresentation | null>(
+    null
+  )
+  const [partialFailed, setPartialFailed] = useState<FailedSection[]>([])
+  const [loadAttempt, setLoadAttempt] = useState(0)
   const [toast, setToast] = useState<{
     message: string
     type: 'success' | 'error'
@@ -92,32 +114,73 @@ export default function RequestsPage() {
 
   const load = useCallback(() => {
     setLoading(true)
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- pre-existing heterogeneous fetch results (TC-02-006 follow-up)
-    const fetches: Promise<any>[] = [
-      fetch('/api/vendor-requests', { credentials: 'include' }).then((r) =>
-        r.ok ? r.json() : []
-      ),
-    ]
-    if (workspace) {
-      fetches.push(
-        fetch(`/api/questionnaires?workspace_id=${workspace.id}`, {
-          credentials: 'include',
-        }).then((r) => (r.ok ? r.json() : []))
-      )
-    }
-    Promise.all(fetches)
-      .then(([reqs, qnrs]) => {
-        setRequests(reqs ?? [])
-        setQuestionnaires(
-          (qnrs ?? []).filter((q: Questionnaire) => q.status === 'completed')
+    setLoadFailure(null)
+    void loadAttempt
+    const requestsPromise = loadSection(
+      fetch('/api/vendor-requests', { credentials: 'include' }),
+      (data) => listFromPayload<VendorRequest>(data, ['items', 'requests'])
+    )
+    const questionnairesPromise = workspace
+      ? loadSection(
+          fetch(`/api/questionnaires?workspace_id=${workspace.id}`, {
+            credentials: 'include',
+          }),
+          (data) =>
+            listFromPayload<Questionnaire>(data, ['items', 'questionnaires'])
         )
+      : Promise.resolve(null)
+    Promise.all([requestsPromise, questionnairesPromise])
+      .then(([requestResult, questionnaireResult]) => {
+        const snapshots = [
+          {
+            id: 'requests',
+            label: 'Requests',
+            phase: requestResult.ok
+              ? requestResult.data.length === 0
+                ? ('empty' as const)
+                : ('ready' as const)
+              : ('error' as const),
+            failure: sectionFailure(requestResult),
+          },
+        ]
+        if (questionnaireResult) {
+          snapshots.push({
+            id: 'questionnaires',
+            label: 'Questionnaires',
+            phase: questionnaireResult.ok
+              ? questionnaireResult.data.length === 0
+                ? 'empty'
+                : 'ready'
+              : 'error',
+            failure: sectionFailure(questionnaireResult),
+          })
+        }
+        const mode = pageMode(snapshots[0], snapshots.slice(1))
+        setRequests(requestResult.ok ? requestResult.data : [])
+        setQuestionnaires(
+          questionnaireResult?.ok
+            ? questionnaireResult.data.filter((q) => q.status === 'completed')
+            : []
+        )
+        if (mode.mode === 'error') {
+          setLoadFailure(mode.failure)
+          setPartialFailed([])
+        } else if (mode.mode === 'partial') {
+          setLoadFailure(null)
+          setPartialFailed(mode.failed)
+        } else {
+          setLoadFailure(null)
+          setPartialFailed([])
+        }
       })
       .catch(() => {
         setRequests([])
         setQuestionnaires([])
+        setPartialFailed([])
+        setLoadFailure(presentHttpFailure({ offline: true }))
       })
       .finally(() => setLoading(false))
-  }, [workspace])
+  }, [workspace, loadAttempt])
 
   useEffect(() => {
     if (canEdit) load()
@@ -225,101 +288,132 @@ export default function RequestsPage() {
 
       {/* Requests table */}
       <Card className="p-0 overflow-hidden">
-        {loading ? (
-          <div className="p-6 text-center text-[var(--tc-muted)]">
-            Loading requests...
+        {loadFailure ? (
+          <div className="p-6">
+            <ErrorState
+              failure={loadFailure}
+              onRetry={() => setLoadAttempt((value) => value + 1)}
+            />
           </div>
-        ) : requests.length === 0 ? (
-          <div className="p-10 text-center">
-            <div className="text-3xl mb-3">📨</div>
-            <p className="text-sm font-medium text-[var(--tc-text)]">
-              No requests yet
+        ) : loading ? (
+          <LoadingState
+            label="Loading requests"
+            resetKey={loadAttempt}
+            onRetry={() => setLoadAttempt((value) => value + 1)}
+          >
+            <p className="p-6 text-center text-tc-label text-tc-muted">
+              Loading requests
             </p>
-            <p className="text-xs text-[var(--tc-muted)] mt-1 max-w-sm mx-auto">
-              Create a request to send a questionnaire or information request to
-              a vendor. You will get a secure link to share.
-            </p>
-            {canAdmin && (
-              <Button
-                className="mt-4"
-                size="sm"
-                onClick={() => setCreateOpen(true)}
-              >
-                Create First Request
-              </Button>
-            )}
-          </div>
+          </LoadingState>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-[var(--tc-border)] text-[10px] uppercase tracking-wider text-[var(--tc-muted)]">
-                  <th className="px-5 py-3 text-left font-semibold">Vendor</th>
-                  <th className="px-5 py-3 text-left font-semibold">
-                    Questionnaire
-                  </th>
-                  <th className="px-5 py-3 text-left font-semibold">Status</th>
-                  <th className="px-5 py-3 text-left font-semibold">Created</th>
-                  <th className="px-5 py-3 text-right font-semibold">
-                    Actions
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {requests.map((req) => (
-                  <tr
-                    key={req.id}
-                    className="border-b border-[var(--tc-border)] last:border-0 hover:bg-white/[0.02] transition"
+          <>
+            {partialFailed.length > 0 ? (
+              <PartialSuccess
+                failed={partialFailed}
+                onRetry={() => setLoadAttempt((value) => value + 1)}
+              />
+            ) : null}
+            {requests.length === 0 ? (
+              <div className="p-10 text-center">
+                <div className="text-3xl mb-3">📨</div>
+                <p className="text-sm font-medium text-[var(--tc-text)]">
+                  No requests yet
+                </p>
+                <p className="text-xs text-[var(--tc-muted)] mt-1 max-w-sm mx-auto">
+                  Create a request to send a questionnaire or information
+                  request to a vendor. You will get a secure link to share.
+                </p>
+                {canAdmin && (
+                  <Button
+                    className="mt-4"
+                    size="sm"
+                    onClick={() => setCreateOpen(true)}
                   >
-                    <td className="px-5 py-3">
-                      <span className="text-[var(--tc-text)] font-medium">
-                        {req.vendor_email}
-                      </span>
-                    </td>
-                    <td className="px-5 py-3 text-[var(--tc-muted)]">
-                      {qnrName(req.questionnaire_id)}
-                    </td>
-                    <td className="px-5 py-3">{statusBadge(req.status)}</td>
-                    <td className="px-5 py-3 text-[var(--tc-muted)] text-xs">
-                      {timeAgo(req.created_at)}
-                    </td>
-                    <td className="px-5 py-3">
-                      <div className="flex items-center justify-end gap-2">
-                        {req.link_token && (
-                          <button
-                            onClick={() =>
-                              copyLink(
-                                `/vendor-response?token=${req.link_token}`
-                              )
-                            }
-                            className="text-[11px] text-[var(--tc-primary)] hover:underline"
-                          >
-                            Copy Link
-                          </button>
-                        )}
-                        {canAdmin && req.status !== 'completed' && (
-                          <select
-                            value=""
-                            onChange={(e) => {
-                              if (e.target.value)
-                                updateStatus(req.id, e.target.value)
-                            }}
-                            className="text-[11px] rounded border border-[var(--tc-border)] bg-transparent text-[var(--tc-muted)] px-1.5 py-0.5 cursor-pointer"
-                          >
-                            <option value="">Update...</option>
-                            {req.status !== 'in_progress' && (
-                              <option value="in_progress">In Progress</option>
+                    Create First Request
+                  </Button>
+                )}
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-[var(--tc-border)] text-[10px] uppercase tracking-wider text-[var(--tc-muted)]">
+                      <th className="px-5 py-3 text-left font-semibold">
+                        Vendor
+                      </th>
+                      <th className="px-5 py-3 text-left font-semibold">
+                        Questionnaire
+                      </th>
+                      <th className="px-5 py-3 text-left font-semibold">
+                        Status
+                      </th>
+                      <th className="px-5 py-3 text-left font-semibold">
+                        Created
+                      </th>
+                      <th className="px-5 py-3 text-right font-semibold">
+                        Actions
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {requests.map((req) => (
+                      <tr
+                        key={req.id}
+                        className="border-b border-[var(--tc-border)] last:border-0 hover:bg-white/[0.02] transition"
+                      >
+                        <td className="px-5 py-3">
+                          <span className="text-[var(--tc-text)] font-medium">
+                            {req.vendor_email}
+                          </span>
+                        </td>
+                        <td className="px-5 py-3 text-[var(--tc-muted)]">
+                          {qnrName(req.questionnaire_id)}
+                        </td>
+                        <td className="px-5 py-3">{statusBadge(req.status)}</td>
+                        <td className="px-5 py-3 text-[var(--tc-muted)] text-xs">
+                          {timeAgo(req.created_at)}
+                        </td>
+                        <td className="px-5 py-3">
+                          <div className="flex items-center justify-end gap-2">
+                            {req.link_token && (
+                              <button
+                                onClick={() =>
+                                  copyLink(
+                                    `/vendor-response?token=${req.link_token}`
+                                  )
+                                }
+                                className="text-[11px] text-[var(--tc-primary)] hover:underline"
+                              >
+                                Copy Link
+                              </button>
                             )}
-                            <option value="completed">Completed</option>
-                          </select>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                            {canAdmin && req.status !== 'completed' && (
+                              <select
+                                value=""
+                                onChange={(e) => {
+                                  if (e.target.value)
+                                    updateStatus(req.id, e.target.value)
+                                }}
+                                className="text-[11px] rounded border border-[var(--tc-border)] bg-transparent text-[var(--tc-muted)] px-1.5 py-0.5 cursor-pointer"
+                              >
+                                <option value="">Update...</option>
+                                {req.status !== 'in_progress' && (
+                                  <option value="in_progress">
+                                    In Progress
+                                  </option>
+                                )}
+                                <option value="completed">Completed</option>
+                              </select>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </>
         )}
       </Card>
 

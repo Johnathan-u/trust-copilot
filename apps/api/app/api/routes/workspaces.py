@@ -12,7 +12,7 @@ from app.core.auth_deps import require_can_admin, require_session
 from app.core.config import SIGNUP_POLICY_SELF_SIGNUP, get_settings
 from app.core.database import get_db
 from app.core.rate_limit import is_rate_limited, record_attempt, retry_after_seconds
-from app.core.session import sign_session
+from app.core.session import is_production_env, sign_session
 from app.models import User, Workspace, WorkspaceMember
 from app.services.answer_generation import resolve_model
 
@@ -23,12 +23,11 @@ SESSION_MAX_AGE = 86400 * 7
 
 
 def _session_cookie_kwargs(max_age: int) -> dict:
-    s = get_settings()
     return {
         "httponly": True,
         "samesite": "lax",
         "path": "/",
-        "secure": s.app_env == "production",
+        "secure": is_production_env(),
         "max_age": max_age,
     }
 

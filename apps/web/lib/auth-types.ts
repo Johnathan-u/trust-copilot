@@ -1,5 +1,7 @@
 /** Auth types aligned with GET /api/auth/me and switch-workspace (AUTH-203, WEB-201). */
 
+import type { ApiFailurePresentation } from './api-error'
+
 export interface AuthUser {
   id: number
   email: string
@@ -32,6 +34,8 @@ export interface AuthState {
   permissions: AuthPermissions
   loading: boolean
   error: string | null
+  failure: ApiFailurePresentation | null
+  requestId: number
   needs_onboarding?: boolean
   subscription?: SubscriptionInfo
   mfa_enrolled?: boolean

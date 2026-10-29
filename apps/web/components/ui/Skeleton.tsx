@@ -14,7 +14,7 @@ export function Skeleton({ className = '', width, height }: SkeletonProps) {
     style.height = typeof height === 'number' ? `${height}px` : height
   return (
     <div
-      className={`animate-pulse rounded-lg bg-[var(--tc-border)]/60 ${className}`}
+      className={`tc-skeleton animate-pulse rounded-lg bg-[var(--tc-border)]/60 motion-reduce:animate-none ${className}`}
       style={style}
       aria-hidden
     />

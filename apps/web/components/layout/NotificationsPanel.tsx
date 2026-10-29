@@ -2,6 +2,9 @@
 
 import { useCallback, useEffect, useId, useRef, useState } from 'react'
 import Link from 'next/link'
+import { EmptyState, ErrorState, LoadingState } from '@/components/ui'
+import type { ApiFailurePresentation } from '@/lib/api-error'
+import { failureOf, isAbortError, readSectionJson } from '@/lib/section-load'
 
 export type InAppNotification = {
   id: number
@@ -108,26 +111,47 @@ export function NotificationsPanel({
   }, [onClose])
   const [notifications, setNotifications] = useState<InAppNotification[]>([])
   const [loading, setLoading] = useState(false)
-  const [error, setError] = useState(false)
+  const [failure, setFailure] = useState<ApiFailurePresentation | null>(null)
+  const [loadId, setLoadId] = useState(0)
 
   const fetchNotifications = useCallback(() => {
+    const controller = new AbortController()
     setLoading(true)
-    setError(false)
-    fetch('/api/in-app-notifications?limit=20', { credentials: 'include' })
-      .then((r) => (r.ok ? r.json() : Promise.reject()))
-      .then((d) => {
-        setNotifications(d.notifications ?? [])
-        const unread = (d.notifications ?? []).filter(
-          (n: InAppNotification) => !n.is_read
-        ).length
+    setFailure(null)
+    setLoadId((value) => value + 1)
+    fetch('/api/in-app-notifications?limit=20', {
+      credentials: 'include',
+      signal: controller.signal,
+    })
+      .then((response) => readSectionJson(response))
+      .then((data) => {
+        const record =
+          data && typeof data === 'object'
+            ? (data as { notifications?: unknown })
+            : {}
+        const rows = Array.isArray(record.notifications)
+          ? (record.notifications as InAppNotification[])
+          : null
+        if (!rows) {
+          throw new Error('malformed')
+        }
+        setNotifications(rows)
+        const unread = rows.filter((n) => !n.is_read).length
         onUnreadCountChange?.(unread)
+        setFailure(null)
       })
-      .catch(() => setError(true))
+      .catch((error: unknown) => {
+        if (isAbortError(error)) return
+        setNotifications([])
+        setFailure(failureOf(error))
+      })
       .finally(() => setLoading(false))
+    return () => controller.abort()
   }, [onUnreadCountChange])
 
   useEffect(() => {
-    if (open) fetchNotifications()
+    if (!open) return
+    return fetchNotifications()
   }, [open, fetchNotifications])
 
   useEffect(() => {
@@ -226,20 +250,32 @@ export function NotificationsPanel({
 
       <div className="max-h-[min(400px,65vh)] overflow-y-auto">
         {loading ? (
-          <div className="px-4 py-8 text-center text-sm text-[var(--tc-muted)]">
-            Loading...
-          </div>
-        ) : error ? (
-          <div className="px-4 py-8 text-center text-sm text-[var(--tc-danger)]">
-            Failed to load notifications
+          <LoadingState
+            label="Loading notifications"
+            onRetry={fetchNotifications}
+            resetKey={loadId}
+          >
+            <p className="px-4 py-8 text-center text-tc-label text-tc-muted">
+              Loading notifications
+            </p>
+          </LoadingState>
+        ) : failure ? (
+          <div className="p-tc-4">
+            <ErrorState failure={failure} onRetry={fetchNotifications} />
           </div>
         ) : notifications.length === 0 ? (
-          <div className="px-4 py-10 text-center">
-            <div className="text-2xl mb-2 opacity-40">🔔</div>
-            <div className="text-sm text-[var(--tc-muted)]">
-              No notifications
-            </div>
-          </div>
+          <EmptyState
+            title="No notifications"
+            description="Nothing new is waiting in this account."
+            action={
+              <Link
+                href="/dashboard/notifications"
+                className="inline-flex min-h-tc-8 items-center justify-center rounded-tc-sm border border-tc-border-strong bg-tc-surface-raised px-tc-4 text-tc-label font-semibold text-tc-text"
+              >
+                Open notifications
+              </Link>
+            }
+          />
         ) : (
           <ul>
             {notifications.map((n) => {

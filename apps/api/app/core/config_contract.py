@@ -843,13 +843,42 @@ def _is_marker_token(token: str) -> bool:
     )
 
 
+def _strip_trailing_placeholder_noise(value: str) -> str:
+    """Drop trailing digits and punctuation so ``changeme123`` and ``ChangeMe123!`` match."""
+    end = len(value)
+    while end > 0 and (value[end - 1].isdigit() or not value[end - 1].isalnum()):
+        end -= 1
+    return value[:end]
+
+
+_FIXTURE_MARKER_PREFIXES = ("example", "test", "synthetic")
+
+
+def _placeholder_lookup_keys(value: str) -> tuple[str, ...]:
+    """Keys for the exact-placeholder set.
+
+    Trailing digits and punctuation are removed first. A single leading ``example``, ``test``
+    or ``synthetic`` segment is also removed so a fixture can carry a scanner marker and still
+    be judged as the placeholder it wraps (``test-changeme123``). The remainder of a real
+    credential is not in the placeholder set, so that prefix is not itself a refusal.
+    """
+    lowered = value.strip().lower()
+    keys = [_strip_trailing_placeholder_noise(lowered)]
+    for sep in ("-", "_", ".", ":", "/"):
+        head, punct, tail = lowered.partition(sep)
+        if punct and head in _FIXTURE_MARKER_PREFIXES and tail:
+            keys.append(_strip_trailing_placeholder_noise(tail))
+    return tuple(dict.fromkeys(k for k in keys if k))
+
+
 def is_known_default_or_placeholder(value: str | None) -> bool:
     """True for unset values, shipped/vendor defaults and documentation placeholders.
 
     Matching is on the whole value (case-insensitive), never on substrings, so strong random
     secrets are not refused because they happen to contain a marker word. Marker words count
     only as whole tokens, and only when what remains is too short or too repetitive to be a
-    generated credential.
+    generated credential. Before the exact-placeholder lookup, trailing digits and punctuation
+    are stripped (``changeme123``, ``ChangeMe123!``, ``example123``).
     """
     if value is None:
         return True
@@ -857,7 +886,14 @@ def is_known_default_or_placeholder(value: str | None) -> bool:
     v = raw.lower()
     if not v:
         return True
-    if v in KNOWN_DEFAULT_CREDENTIALS or v in _EXACT_PLACEHOLDERS:
+    lookup_keys = _placeholder_lookup_keys(raw)
+    if (
+        v in KNOWN_DEFAULT_CREDENTIALS
+        or v in _EXACT_PLACEHOLDERS
+        or any(
+            key in _EXACT_PLACEHOLDERS or key in _PLACEHOLDER_MARKER_TOKENS for key in lookup_keys
+        )
+    ):
         return True
     if v.startswith("<") and v.endswith(">"):  # e.g. <secret>, <your api key>
         return True
@@ -977,6 +1013,36 @@ def email_delivery_enabled(env: Mapping[str, str] | None = None) -> bool:
     return bool((env.get("SMTP_HOST") or "").strip())
 
 
+_PLACEHOLDER_ONLY_NAMES = (
+    "S3_ACCESS_KEY",
+    "OPENAI_API_KEY",
+    "SMTP_PASSWORD",
+    "STRIPE_SECRET_KEY",
+    "STRIPE_WEBHOOK_SECRET",
+    "STRIPE_WEBHOOK_SECRETS",
+    "OAUTH_GOOGLE_CLIENT_SECRET",
+    "OAUTH_GITHUB_CLIENT_SECRET",
+    "OAUTH_MICROSOFT_CLIENT_SECRET",
+    "OIDC_CLIENT_SECRET",
+    "IDME_CLIENT_SECRET",
+)
+
+
+def _note_placeholder_only_variants(
+    env: Mapping[str, str], problems: list[Problem], *, fatal: bool
+) -> None:
+    """Warn (dev) for placeholder-only variables. Production checks stay in the fail-closed block."""
+    for name in _PLACEHOLDER_ONLY_NAMES:
+        raw = env.get(name) or ""
+        items = (
+            [i.strip() for i in raw.split(",")]
+            if name == "STRIPE_WEBHOOK_SECRETS"
+            else [raw.strip()]
+        )
+        if any(i and is_known_default_or_placeholder(i) for i in items):
+            problems.append(Problem(name, "is a known default or placeholder", fatal=fatal))
+
+
 def validate_environment(env: Mapping[str, str] | None = None) -> list[Problem]:
     """Return contract problems for ``env`` (defaults to os.environ). Never includes values.
 
@@ -1046,6 +1112,7 @@ def validate_environment(env: Mapping[str, str] | None = None) -> list[Problem]:
         )
 
     if not production:
+        _note_placeholder_only_variants(env, problems, fatal=False)
         return problems
 
     # --- Production: signing, storage and database credentials (fail closed) ---

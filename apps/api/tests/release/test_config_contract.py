@@ -1135,3 +1135,87 @@ def test_user_facing_messages_carry_no_ticket_ids():
     assert not ticket.search(str(ce.value))
     table = cc.contract_markdown()
     assert not ticket.search(table)
+
+
+# ---------------------------------------------------------------- TC-03-001a placeholder hardening
+# Trailing digits and punctuation are stripped before the exact-placeholder lookup.
+# Every fixture value contains example, test, or synthetic so the secret scanner stays non-blocking.
+
+_PLACEHOLDER_ONLY = (
+    "S3_ACCESS_KEY",
+    "OPENAI_API_KEY",
+    "SMTP_PASSWORD",
+    "OAUTH_GOOGLE_CLIENT_SECRET",
+    "OAUTH_GITHUB_CLIENT_SECRET",
+    "OAUTH_MICROSOFT_CLIENT_SECRET",
+    "OIDC_CLIENT_SECRET",
+    "IDME_CLIENT_SECRET",
+    "STRIPE_SECRET_KEY",
+    "STRIPE_WEBHOOK_SECRET",
+    "STRIPE_WEBHOOK_SECRETS",
+)
+_PLACEHOLDER_VARIANTS = (
+    "example123",
+    "test-changeme123",
+    "synthetic-ChangeMe123!",
+)
+
+
+def _high_entropy_marker_token() -> str:
+    """A long random token that still carries the scanner marker words."""
+    return "example-" + secrets.token_urlsafe(32) + "-synthetic-test"
+
+
+def _with_placeholder(env: dict[str, str], name: str, value: str) -> None:
+    env[name] = value
+    for cid, csec in cc._OAUTH_PAIRS:
+        if name == csec:
+            env[cid] = "example-client-" + secrets.token_hex(4)
+            env.setdefault("OIDC_ISSUER_URL", "https://idp.trust.test")
+    if name == "STRIPE_SECRET_KEY":
+        env.setdefault("STRIPE_WEBHOOK_SECRET", "whsec_example_" + secrets.token_hex(8))
+    if name in ("STRIPE_WEBHOOK_SECRET", "STRIPE_WEBHOOK_SECRETS"):
+        env.setdefault("STRIPE_SECRET_KEY", "sk_test_example_" + secrets.token_hex(8))
+
+
+@pytest.mark.parametrize("value", _PLACEHOLDER_VARIANTS)
+def test_trailing_noise_placeholder_variants_match(value):
+    assert any(word in value.lower() for word in ("example", "test", "synthetic"))
+    assert cc.is_known_default_or_placeholder(value)
+
+
+@pytest.mark.parametrize("name", _PLACEHOLDER_ONLY)
+@pytest.mark.parametrize("value", _PLACEHOLDER_VARIANTS)
+def test_placeholder_variants_fail_startup_in_production_without_echoing(name, value):
+    env = good_production_env()
+    _with_placeholder(env, name, value)
+    with pytest.raises(cc.ConfigContractError) as ei:
+        cc.enforce_startup_contract("api", env)
+    assert name in {p.name for p in ei.value.problems}
+    text = _scrubbed(str(ei.value) + repr(ei.value.problems))
+    assert value not in text
+
+
+@pytest.mark.parametrize("name", _PLACEHOLDER_ONLY)
+def test_placeholder_variants_warn_in_development_without_echoing(name):
+    value = "example123"
+    env = good_production_env()
+    env["APP_ENV"] = "development"
+    _with_placeholder(env, name, value)
+    problems = cc.enforce_startup_contract("api", env)
+    matched = [p for p in problems if p.name == name]
+    assert matched
+    assert all(not p.fatal for p in matched)
+    text = _scrubbed(repr(problems))
+    assert value not in text
+
+
+@pytest.mark.parametrize("name", _PLACEHOLDER_ONLY)
+def test_high_entropy_tokens_with_marker_words_pass(name):
+    value = _high_entropy_marker_token()
+    assert "example" in value and "synthetic" in value and "test" in value
+    assert not cc.is_known_default_or_placeholder(value)
+    env = good_production_env()
+    _with_placeholder(env, name, value)
+    assert name not in {p.name for p in cc.validate_environment(env)}
+    assert cc.enforce_startup_contract("api", env) == []

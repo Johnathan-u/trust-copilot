@@ -5,6 +5,8 @@ import { useParams } from 'next/navigation'
 import Link from 'next/link'
 import {
   Button,
+  ErrorState,
+  LoadingState,
   Modal,
   Skeleton,
   TableSkeleton,
@@ -14,6 +16,8 @@ import {
 } from '@/components/ui'
 import type { TagData } from '@/components/ui'
 import { useAuth } from '@/contexts/AuthContext'
+import type { ApiFailurePresentation } from '@/lib/api-error'
+import { failureOf, isAbortError, readSectionJson } from '@/lib/section-load'
 import { useAISettings } from '@/contexts/AISettingsContext'
 import {
   answerStatusLabel,
@@ -90,6 +94,9 @@ export default function ReviewPage() {
   const [isGenerateRequestInFlight, setIsGenerateRequestInFlight] =
     useState(false)
   const [loadError, setLoadError] = useState<boolean>(false)
+  const [loadFailure, setLoadFailure] = useState<ApiFailurePresentation | null>(
+    null
+  )
   const pendingSaves = useRef<
     Map<
       number,
@@ -155,21 +162,47 @@ export default function ReviewPage() {
       cache: 'no-store',
       headers: { 'Cache-Control': 'no-cache', Pragma: 'no-cache' },
     })
-      .then((r) => (r.ok ? r.json() : null))
+      .then((r) => readSectionJson(r))
       .then((data) => {
-        setQnr(data)
+        setQnr(data as Qnr)
         setLoadError(false)
+        setLoadFailure(null)
       })
-      .catch(() => {
+      .catch((error: unknown) => {
+        if (isAbortError(error)) return
         setQnr(null)
         setLoadError(true)
+        setLoadFailure(failureOf(error))
       })
     fetch(`/api/exports/records?workspace_id=${workspaceId}`, {
       credentials: 'include',
     })
-      .then((r) => (r.ok ? r.json() : []))
-      .then(setExportRecords)
-      .catch(() => setExportRecords([]))
+      .then((r) => readSectionJson(r))
+      .then((data) => {
+        if (Array.isArray(data)) setExportRecords(data)
+        else if (
+          data &&
+          typeof data === 'object' &&
+          Array.isArray((data as { records?: unknown }).records)
+        ) {
+          setExportRecords((data as { records: typeof exportRecords }).records)
+        } else if (
+          data &&
+          typeof data === 'object' &&
+          Array.isArray((data as { items?: unknown }).items)
+        ) {
+          setExportRecords((data as { items: typeof exportRecords }).items)
+        } else {
+          throw new Error('malformed')
+        }
+      })
+      .catch((error: unknown) => {
+        if (isAbortError(error)) return
+        setExportRecords([])
+        if (!isAbortError(error)) {
+          setLoadFailure((current) => current ?? failureOf(error))
+        }
+      })
   }, [id, workspaceId])
 
   useEffect(() => {
@@ -567,22 +600,25 @@ export default function ReviewPage() {
   if (!qnr) {
     return (
       <div className="min-w-0 p-7">
-        <div className="space-y-6">
-          <Skeleton width={300} height={28} />
-          <TableSkeleton rows={8} cols={4} />
-          {loadError && (
-            <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-200">
-              Failed to load questionnaire.{' '}
-              <button
-                type="button"
-                onClick={() => refresh()}
-                className="underline font-medium"
-              >
-                Retry
-              </button>
+        {loadFailure || loadError ? (
+          <ErrorState
+            failure={
+              loadFailure ?? {
+                kind: 'rejected',
+                title: 'Could not load this',
+                description: 'The request did not succeed. Try again.',
+              }
+            }
+            onRetry={() => refresh()}
+          />
+        ) : (
+          <LoadingState label="Loading review" onRetry={() => refresh()}>
+            <div className="space-y-6">
+              <Skeleton width={300} height={28} />
+              <TableSkeleton rows={8} cols={4} />
             </div>
-          )}
-        </div>
+          </LoadingState>
+        )}
       </div>
     )
   }
