@@ -22,5 +22,17 @@ class Control(Base):
     control_id = Column(String(64), nullable=False)
     name = Column(String(255), nullable=True)
     status = Column(String(32), nullable=False, default="in_review")
+    # TC-21-002 canonical pair. Null on rows written before this contract.
+    # content_version stays null while TC-01-007 is open.
+    canonical_key = Column(String(160), nullable=True)
+    content_version = Column(String(32), nullable=True)
+    owner_user_id = Column(
+        Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True
+    )
+    owner_team = Column(String(128), nullable=True)
+    lifecycle = Column(String(32), nullable=True)
+    workspace_control_id = Column(
+        Integer, ForeignKey("workspace_controls.id", ondelete="SET NULL"), nullable=True, index=True
+    )
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
