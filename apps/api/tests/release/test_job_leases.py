@@ -227,6 +227,51 @@ def test_null_lease_grace_defaults_and_clamps(monkeypatch):
     assert null_lease_grace_seconds() == 18000  # raised to 5 times the longer lease
 
 
+def test_grace_comparison_uses_utc_database_now(db):
+    """NULL-lease age is database ``now()``, and this session's TimeZone is UTC."""
+    import inspect
+
+    from app.core.job_lease import lock_null_lease_past_grace
+
+    zone = db.execute(text("SHOW TimeZone")).scalar()
+    assert zone in {"UTC", "Etc/UTC"}
+    source = inspect.getsource(lock_null_lease_past_grace)
+    assert "now()" in source
+    assert "utcnow" not in source
+    offset = db.execute(text("SELECT EXTRACT(TIMEZONE FROM now())")).scalar()
+    assert float(offset) == 0
+
+
+@pytest.mark.unit
+def test_non_utc_database_time_zone_logs_a_warning(caplog):
+    import logging
+
+    from app.core.database import warn_if_database_time_zone_is_not_utc
+
+    class _Result:
+        def scalar(self):
+            return "America/New_York"
+
+    class _Conn:
+        def execute(self, *_args, **_kwargs):
+            return _Result()
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *_args):
+            return False
+
+    class _Engine:
+        def connect(self):
+            return _Conn()
+
+    with caplog.at_level(logging.WARNING):
+        warn_if_database_time_zone_is_not_utc(_Engine())
+    assert "America/New_York" in caplog.text
+    assert "assumes UTC" in caplog.text
+
+
 @pytest.mark.unit
 def test_heartbeat_is_at_most_half_the_lease(monkeypatch):
     """A value under the lease still clamps when two beats would not fit."""

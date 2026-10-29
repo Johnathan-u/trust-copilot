@@ -1474,6 +1474,9 @@ def main():
 
     for _problem in enforce_startup_contract("worker"):
         print(f"config warning: {_problem}", flush=True)
+    from app.core.database import warn_if_database_time_zone_is_not_utc
+
+    warn_if_database_time_zone_is_not_utc()
     print(
         f"Trust Copilot worker started (threads: {WORKER_MIN_THREADS}-{WORKER_MAX_THREADS}, initial: {WORKER_INITIAL_THREADS})"
     )
