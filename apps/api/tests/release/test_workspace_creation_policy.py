@@ -368,3 +368,139 @@ def test_contract_validates_workspace_settings(app_env):
     }
     assert all(p.fatal == (app_env == "production") for p in problems)
     assert not any("open-to-everyone" in str(p) or "many" in str(p) for p in problems)
+
+
+# --- TC-04-001b creation policy read and limiter outage ------------------------------------
+
+_POLICY_PATH = "/api/workspaces/creation-policy"
+
+
+class _BoomBackend:
+    """Stand-in store that always errors. The message is a synthetic test marker."""
+
+    def check(self, *args, **kwargs):
+        raise RuntimeError("synthetic example test store")
+
+    def record(self, *args, **kwargs):
+        raise RuntimeError("synthetic example test store")
+
+    def retry_after(self, *args, **kwargs):
+        raise RuntimeError("synthetic example test store")
+
+
+def _policy(client: TestClient):
+    return client.get(_POLICY_PATH)
+
+
+def _assert_only_boolean(body: dict, expected: bool) -> None:
+    assert set(body) == {"can_create_workspace"}
+    assert body["can_create_workspace"] is expected
+
+
+def test_creation_policy_requires_authentication(client: TestClient) -> None:
+    r = _policy(client)
+    assert r.status_code == 401
+
+
+def test_creation_policy_invitation_only_plain_verified_user_is_false(
+    client: TestClient, make_user
+) -> None:
+    user = make_user(verified=True)
+    _login(client, user)
+    r = _policy(client)
+    assert r.status_code == 200, r.text
+    _assert_only_boolean(r.json(), False)
+
+
+def test_creation_policy_admin_is_true(client: TestClient, make_user) -> None:
+    user = make_user(verified=True, memberships=((1, "admin"),))
+    _login(client, user)
+    r = _policy(client)
+    assert r.status_code == 200, r.text
+    _assert_only_boolean(r.json(), True)
+
+
+def test_creation_policy_operator_is_true(client: TestClient, make_user, monkeypatch) -> None:
+    user = make_user(verified=True)
+    _set_env(monkeypatch, DEPLOYMENT_OPERATOR_EMAILS=user.email)
+    _login(client, user)
+    r = _policy(client)
+    assert r.status_code == 200, r.text
+    _assert_only_boolean(r.json(), True)
+
+
+def test_creation_policy_self_signup_verified_is_true(
+    client: TestClient, make_user, monkeypatch
+) -> None:
+    _set_env(monkeypatch, SIGNUP_POLICY="self_signup")
+    user = make_user(verified=True)
+    _login(client, user)
+    r = _policy(client)
+    assert r.status_code == 200, r.text
+    _assert_only_boolean(r.json(), True)
+
+
+def test_creation_policy_self_signup_unverified_is_false(
+    client: TestClient, make_user, monkeypatch
+) -> None:
+    _set_env(monkeypatch, SIGNUP_POLICY="self_signup")
+    user = make_user(verified=False)
+    _login(client, user)
+    r = _policy(client)
+    assert r.status_code == 200, r.text
+    _assert_only_boolean(r.json(), False)
+
+
+def test_store_error_is_503_in_production_and_creates_nothing(
+    client: TestClient, db_session: Session, make_user, monkeypatch, caplog
+) -> None:
+    import logging
+
+    import app.core.rate_limit as rl
+
+    user = make_user(verified=True)
+    _login(client, user)
+    _set_env(monkeypatch, SIGNUP_POLICY="self_signup", APP_ENV="production")
+    monkeypatch.setattr(rl, "_backend_instance", lambda: _BoomBackend())
+    with caplog.at_level(logging.WARNING, logger=rl._rl_logger.name):
+        r = _create(client, "example-outage")
+    assert r.status_code == 503, r.text
+    assert r.json()["detail"] == "Workspace creation is temporarily unavailable. Try again later."
+    assert r.headers.get("Retry-After") == "60"
+    _assert_generic(r.json()["detail"])
+    assert "TC-" not in r.json()["detail"]
+    assert "synthetic example test store" not in caplog.text
+    assert "refusing the request" in caplog.text
+    assert _admin_memberships(db_session, user) == 0
+
+
+def test_store_error_still_creates_in_development(
+    client: TestClient, db_session: Session, make_user, monkeypatch, caplog
+) -> None:
+    import logging
+
+    import app.core.rate_limit as rl
+
+    user = make_user(verified=True)
+    _login(client, user)
+    _set_env(monkeypatch, SIGNUP_POLICY="self_signup", APP_ENV="development")
+    monkeypatch.setattr(rl, "_backend_instance", lambda: _BoomBackend())
+    with caplog.at_level(logging.WARNING, logger=rl._rl_logger.name):
+        r = _create(client, "example-dev-outage")
+    assert r.status_code == 200, r.text
+    assert "synthetic example test store" not in caplog.text
+    assert "allowing the request" in caplog.text
+    assert _admin_memberships(db_session, user) == 1
+
+
+def test_in_memory_limiter_without_redis_url_is_unchanged(monkeypatch) -> None:
+    import app.core.rate_limit as rl
+
+    monkeypatch.delenv("REDIS_URL", raising=False)
+    monkeypatch.setattr(rl, "_backend", None)
+    backend = rl._get_backend()
+    assert isinstance(backend, rl._InMemoryBackend)
+    key = "example-synthetic-test-workspace-create"
+    assert backend.check(key, 1, 3600.0) is False
+    backend.record(key, 1, 3600.0)
+    assert backend.check(key, 1, 3600.0) is True

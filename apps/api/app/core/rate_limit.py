@@ -50,8 +50,15 @@ class _InMemoryBackend:
             return max(0.0, start + window_sec - _now())
 
 
+class RateLimitBackendError(Exception):
+    """The rate-limit store did not answer. Raised only when the caller fails closed."""
+
+
 class _RedisBackend:
-    """Redis-backed rate limit. Uses INCR + EXPIRE for sliding window."""
+    """Redis-backed rate limit. Uses INCR + EXPIRE for sliding window.
+
+    Store errors propagate. Callers fail open unless they pass ``fail_closed``.
+    """
 
     def __init__(self, redis_url: str):
         import redis
@@ -59,31 +66,22 @@ class _RedisBackend:
         self._client = redis.from_url(redis_url, decode_responses=True)
 
     def check(self, key: str, max_attempts: int, window_sec: float) -> bool:
-        try:
-            rkey = f"rate:{key}"
-            count = self._client.get(rkey)
-            if count is None:
-                return False
-            return int(count) >= max_attempts
-        except Exception:
-            return False  # Fail open on Redis errors
+        rkey = f"rate:{key}"
+        count = self._client.get(rkey)
+        if count is None:
+            return False
+        return int(count) >= max_attempts
 
     def record(self, key: str, max_attempts: int, window_sec: float) -> None:
-        try:
-            rkey = f"rate:{key}"
-            pipe = self._client.pipeline()
-            pipe.incr(rkey)
-            pipe.expire(rkey, int(window_sec) + 1)
-            pipe.execute()
-        except Exception:
-            pass  # Fail open
+        rkey = f"rate:{key}"
+        pipe = self._client.pipeline()
+        pipe.incr(rkey)
+        pipe.expire(rkey, int(window_sec) + 1)
+        pipe.execute()
 
     def retry_after(self, key: str, window_sec: float) -> float:
-        try:
-            ttl = self._client.ttl(f"rate:{key}")
-            return float(ttl) if ttl and ttl > 0 else float(window_sec)
-        except Exception:
-            return float(window_sec)
+        ttl = self._client.ttl(f"rate:{key}")
+        return float(ttl) if ttl and ttl > 0 else float(window_sec)
 
 
 def _get_backend():
@@ -123,13 +121,33 @@ def _backend_instance():
     return _backend
 
 
+def _warn_store_unavailable(*, refused: bool) -> None:
+    """Log a store outage without the exception text, which can contain a connection target."""
+    if refused:
+        _rl_logger.warning("Rate-limit store unavailable; refusing the request")
+    else:
+        _rl_logger.warning("Rate-limit store unavailable; allowing the request")
+
+
 def is_rate_limited(
     key: str,
     max_attempts: int = DEFAULT_MAX_ATTEMPTS,
     window_sec: float = DEFAULT_WINDOW_SECONDS,
+    *,
+    fail_closed: bool = False,
 ) -> bool:
-    """Return True if the key is over the limit. Does not increment."""
-    return _backend_instance().check(key, max_attempts, window_sec)
+    """Return True if the key is over the limit. Does not increment.
+
+    Store errors fail open (return False) unless ``fail_closed`` is set, in which case
+    ``RateLimitBackendError`` is raised. Other routes keep the fail-open default.
+    """
+    try:
+        return _backend_instance().check(key, max_attempts, window_sec)
+    except Exception:
+        _warn_store_unavailable(refused=fail_closed)
+        if fail_closed:
+            raise RateLimitBackendError()
+        return False
 
 
 def record_attempt(
@@ -137,8 +155,14 @@ def record_attempt(
     max_attempts: int = DEFAULT_MAX_ATTEMPTS,
     window_sec: float = DEFAULT_WINDOW_SECONDS,
 ) -> None:
-    """Record one attempt for the key (e.g. after a login try or API request)."""
-    _backend_instance().record(key, max_attempts, window_sec)
+    """Record one attempt for the key (e.g. after a login try or API request).
+
+    A store error is ignored so a completed action is not turned into a failure.
+    """
+    try:
+        _backend_instance().record(key, max_attempts, window_sec)
+    except Exception:
+        _warn_store_unavailable(refused=False)
 
 
 def retry_after_seconds(key: str, window_sec: float) -> int:
