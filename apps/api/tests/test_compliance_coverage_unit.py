@@ -468,6 +468,9 @@ class TestComplianceCoverageComputation:
         assert len(items) == 3
         assert items[0]["title"] == "Vendor Risk Management Policy"
         assert items[0]["improves_questions"] == 3
+        assert items[0]["evidence_ids"] == []
+        assert items[0]["control_ids"] == []
+        assert items[0]["question_ids"] == []
         assert items[1]["title"] == "Incident Response Plan"
         assert items[1]["improves_questions"] == 2
 
@@ -480,6 +483,9 @@ class TestComplianceCoverageComputation:
         assert any("Incident Response" in t for t in titles)
         for item in items:
             assert item["improves_questions"] >= 1
+            assert item["evidence_ids"] == []
+            assert item["control_ids"] == []
+            assert isinstance(item["question_ids"], list)
 
     # ── Edge cases ─────────────────────────────────────────────────────────
 

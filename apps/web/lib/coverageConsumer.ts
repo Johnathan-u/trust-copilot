@@ -29,16 +29,49 @@ export type ControlCoverage = {
   explanations: ControlExplanation[]
 }
 
+export type RecommendedEvidence = {
+  title: string
+  improves_questions: number
+  evidence_ids: number[]
+  control_ids: number[]
+  question_ids: number[]
+}
+
 export type CoverageResponse = {
   kpi: Record<string, unknown>
   framework_coverage: unknown[]
   blind_spots: unknown[]
   weak_areas: unknown[]
   evidence_strength: unknown[]
-  recommended_evidence: unknown[]
+  recommended_evidence: RecommendedEvidence[]
   trends: unknown[]
   drill_down: unknown[]
   control_coverage: ControlCoverage
+}
+
+function idList(value: unknown): number[] {
+  if (!Array.isArray(value)) return []
+  return value.filter(
+    (item): item is number => typeof item === 'number' && Number.isFinite(item)
+  )
+}
+
+function recommendation(value: unknown): RecommendedEvidence | null {
+  if (!isRecord(value)) return null
+  if (
+    typeof value.title !== 'string' ||
+    typeof value.improves_questions !== 'number' ||
+    !Number.isFinite(value.improves_questions)
+  ) {
+    return null
+  }
+  return {
+    title: value.title,
+    improves_questions: value.improves_questions,
+    evidence_ids: idList(value.evidence_ids),
+    control_ids: idList(value.control_ids),
+    question_ids: idList(value.question_ids),
+  }
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -111,7 +144,11 @@ export function parseCoverageResponse(body: unknown): CoverageResponse {
     blind_spots: body.blind_spots as unknown[],
     weak_areas: body.weak_areas as unknown[],
     evidence_strength: body.evidence_strength as unknown[],
-    recommended_evidence: body.recommended_evidence as unknown[],
+    recommended_evidence: Array.isArray(body.recommended_evidence)
+      ? body.recommended_evidence
+          .map(recommendation)
+          .filter((item): item is RecommendedEvidence => item !== null)
+      : [],
     trends: body.trends as unknown[],
     drill_down: body.drill_down as unknown[],
     control_coverage: {
