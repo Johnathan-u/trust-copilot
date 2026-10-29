@@ -64,7 +64,12 @@ function explanation(value: unknown): ControlExplanation {
   ) {
     throw new Error('coverage explanation is incomplete')
   }
-  if (value.framework_id !== null && typeof value.framework_id !== 'number') {
+  let frameworkId: number | null
+  if (value.framework_id === null) {
+    frameworkId = null
+  } else if (typeof value.framework_id === 'number') {
+    frameworkId = value.framework_id
+  } else {
     throw new Error('coverage explanation framework id is invalid')
   }
   return {
@@ -73,7 +78,7 @@ function explanation(value: unknown): ControlExplanation {
     rule: value.rule,
     effect,
     denominator_changed: value.denominator_changed,
-    framework_id: value.framework_id,
+    framework_id: frameworkId,
   }
 }
 
