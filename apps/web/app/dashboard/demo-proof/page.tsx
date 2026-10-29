@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { Button, Card, EmptyState } from '@/components/ui'
 import { useAuth } from '@/contexts/AuthContext'
 import { presentDemoProof } from '@/lib/demoProofSummary.mjs'
+import { useKeyedGeneration } from '@/components/ui/useKeyedGeneration'
 
 type Presented = ReturnType<typeof presentDemoProof>
 
@@ -45,54 +46,64 @@ export default function DemoProofPage() {
   const [presented, setPresented] = useState<Presented | null>(null)
 
   const requestSummary = useCallback(
-    async (method: 'GET' | 'POST') => {
-      if (method === 'POST') setSaving(true)
-      else setLoading(true)
-      setError(null)
-      try {
-        const params = new URLSearchParams()
-        if (windowStart.trim()) params.set('window_start', windowStart.trim())
-        if (windowEnd.trim()) params.set('window_end', windowEnd.trim())
-        const query = params.toString()
-        const response = await fetch(
-          query ? `/api/demo-proof?${query}` : '/api/demo-proof',
-          {
-            method,
-            credentials: 'include',
+    (method: 'GET' | 'POST') => {
+      const params = new URLSearchParams()
+      if (windowStart.trim()) params.set('window_start', windowStart.trim())
+      if (windowEnd.trim()) params.set('window_end', windowEnd.trim())
+      const query = params.toString()
+      return fetch(query ? `/api/demo-proof?${query}` : '/api/demo-proof', {
+        method,
+        credentials: 'include',
+      })
+        .then(async (response) => {
+          const body = await response.json().catch(() => null)
+          if (!response.ok) {
+            setPresented(null)
+            setError(errorMessage(response.status, body))
+            return
           }
-        )
-        const body = await response.json().catch(() => null)
-        if (!response.ok) {
+          const next = presentDemoProof(body)
+          setPresented(next)
+          if (
+            next.state === 'rejected' ||
+            next.state === 'unsupported_schema' ||
+            next.state === 'unavailable'
+          ) {
+            setError(next.reason || 'This summary cannot be shown.')
+          }
+        })
+        .catch(() => {
           setPresented(null)
-          setError(errorMessage(response.status, body))
-          return
-        }
-        const next = presentDemoProof(body)
-        setPresented(next)
-        if (
-          next.state === 'rejected' ||
-          next.state === 'unsupported_schema' ||
-          next.state === 'unavailable'
-        ) {
-          setError(next.reason || 'This summary cannot be shown.')
-        }
-      } catch {
-        setPresented(null)
-        setError('Network error loading the demonstration summary.')
-      } finally {
-        if (method === 'POST') setSaving(false)
-        else setLoading(false)
-      }
+          setError('Network error loading the demonstration summary.')
+        })
+        .finally(() => {
+          if (method === 'POST') setSaving(false)
+          else setLoading(false)
+        })
     },
     [windowStart, windowEnd]
   )
 
-  const load = useCallback(() => requestSummary('GET'), [requestSummary])
-  const save = useCallback(() => requestSummary('POST'), [requestSummary])
+  const load = useCallback(() => {
+    setLoading(true)
+    setError(null)
+    return requestSummary('GET')
+  }, [requestSummary])
+  const save = useCallback(() => {
+    setSaving(true)
+    setError(null)
+    return requestSummary('POST')
+  }, [requestSummary])
+
+  const summaryKey = useKeyedGeneration(`${windowStart}\n${windowEnd}`)
+  if (summaryKey.changed) {
+    setLoading(true)
+    setError(null)
+  }
 
   useEffect(() => {
-    void load()
-  }, [load])
+    void requestSummary('GET')
+  }, [requestSummary])
 
   const showRows = presented && presented.rows.length > 0 && !error
 

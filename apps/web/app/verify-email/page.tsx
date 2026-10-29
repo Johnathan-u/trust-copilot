@@ -4,20 +4,27 @@ import { Suspense, useEffect, useRef, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { Card, Button } from '@/components/ui'
+import { verificationWithoutToken } from '@/lib/render-state'
+import { useKeyedGeneration } from '@/components/ui/useKeyedGeneration'
 
 function VerifyEmailContent() {
   const searchParams = useSearchParams()
   const token = searchParams.get('token')
-  const [status, setStatus] = useState<'loading' | 'ok' | 'error'>('loading')
-  const [message, setMessage] = useState('')
+  const initialToken = verificationWithoutToken(token)
+  const [status, setStatus] = useState<'loading' | 'ok' | 'error'>(
+    initialToken.status
+  )
+  const [message, setMessage] = useState(initialToken.message)
+  const tokenKey = useKeyedGeneration(token ?? '', { runOnMount: false })
+  if (tokenKey.changed && !token) {
+    const missing = verificationWithoutToken(null)
+    setStatus(missing.status)
+    setMessage(missing.message)
+  }
 
   const called = useRef(false)
   useEffect(() => {
-    if (!token) {
-      setStatus('error')
-      setMessage('Missing verification link.')
-      return
-    }
+    if (!token) return
     if (called.current) return
     called.current = true
     fetch(`/api/auth/verify-email?token=${encodeURIComponent(token)}`, {

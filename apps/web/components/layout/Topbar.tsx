@@ -25,6 +25,8 @@ import {
   isAppNavActive,
 } from '@/lib/app-navigation'
 import { disclosureTriggerProps } from '@/lib/disclosure'
+import { inactiveSearch } from '@/lib/render-state'
+import { useKeyedGeneration } from '@/components/ui/useKeyedGeneration'
 
 function initials(displayName: string | null, email: string): string {
   if (displayName?.trim()) {
@@ -176,23 +178,31 @@ export function Topbar({ navOpen, onToggleNav, menuButtonRef }: TopbarProps) {
     return () => clearInterval(id)
   }, [pathname, fetchUnread])
 
-  useEffect(() => {
-    if (!paletteOpen) return
+  const paletteKey = useKeyedGeneration(paletteOpen ? 'open' : 'closed', {
+    runOnMount: false,
+  })
+  if (paletteKey.changed && paletteOpen) {
     setQuery('')
     setSearchDocs([])
     setSearchQnrs([])
-  }, [paletteOpen])
+  }
+
+  const searchInactive = inactiveSearch(query, workspace?.id)
+  const [seenSearchInactive, setSeenSearchInactive] = useState(searchInactive)
+  if (searchInactive !== seenSearchInactive) {
+    setSeenSearchInactive(searchInactive)
+    if (searchInactive) {
+      setSearchDocs([])
+      setSearchQnrs([])
+      setSearchFailure(null)
+    }
+  }
 
   useEffect(() => {
     if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current)
     const q = query.trim()
     const workspaceId = workspace?.id
-    if (q.length < 2 || workspaceId == null) {
-      setSearchDocs([])
-      setSearchQnrs([])
-      setSearchFailure(null)
-      return
-    }
+    if (workspaceId == null || inactiveSearch(q, workspaceId)) return
     searchDebounceRef.current = setTimeout(() => {
       void Promise.all([
         loadSection(

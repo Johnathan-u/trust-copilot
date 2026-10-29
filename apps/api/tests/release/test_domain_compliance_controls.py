@@ -654,6 +654,53 @@ def test_accept_suggested_failed_commit_releases_the_claim(client, restored_rows
     assert _table_count("control_evidence_links") == links_before + 1
 
 
+@pytest.mark.parametrize("failure", ["tags", "store"])
+def test_accept_suggested_post_commit_failure_retries_without_duplicate(client, failure):
+    """A post-commit tag or store error must not leave the claim in progress."""
+    actors = _actors()
+    _login(client, ADMIN_EMAIL, ADMIN_PASSWORD)
+    created = _control(client, f"Settle {failure} {uuid.uuid4().hex[:8]}")
+    chunk_id = _chunk(actors["workspace_id"])
+    key = f"acc-settle-{failure}-{uuid.uuid4().hex}"
+    evidence_before = _table_count("evidence_items")
+    links_before = _table_count("control_evidence_links")
+    quiet = TestClient(
+        app, base_url=TEST_ORIGIN, headers=TEST_HEADERS, raise_server_exceptions=False
+    )
+    _login(quiet, ADMIN_EMAIL, ADMIN_PASSWORD)
+    target = (
+        "app.services.tag_service.list_tags_for_document"
+        if failure == "tags"
+        else "app.api.routes.compliance_controls.idempotency_set"
+    )
+
+    def boom(*_args, **_kwargs):
+        raise RuntimeError(f"forced {failure} failure")
+
+    with patch(target, side_effect=boom):
+        first = _accept(quiet, created["id"], chunk_id, key)
+    assert first.status_code != 409, first.text
+    assert _table_count("evidence_items") == evidence_before + 1
+    assert _table_count("control_evidence_links") == links_before + 1
+    retried = _accept(client, created["id"], chunk_id, key)
+    assert retried.status_code == 200, retried.text
+    assert retried.status_code != 409
+    assert _table_count("evidence_items") == evidence_before + 1
+    assert _table_count("control_evidence_links") == links_before + 1
+    session = _db()
+    try:
+        stored_evidence = session.execute(
+            text("SELECT evidence_id FROM control_evidence_links WHERE control_id = :c"),
+            {"c": created["id"]},
+        ).scalar()
+    finally:
+        session.close()
+    assert retried.json()["evidence_id"] == stored_evidence
+    assert retried.json()["evidence"]["id"] == stored_evidence
+    if first.status_code == 200:
+        assert retried.json() == first.json()
+
+
 def _call(client, method: str, path: str, body: dict | None):
     if method == "GET":
         return client.get(path)

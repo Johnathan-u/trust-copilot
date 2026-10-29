@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Button, Card } from '@/components/ui'
 import { useAuth } from '@/contexts/AuthContext'
+import { useKeyedGeneration } from '@/components/ui/useKeyedGeneration'
 import {
   catalogStatusLabel,
   catalogRightsLabel,
@@ -25,35 +26,42 @@ export default function ComplianceFrameworksPage() {
   const [banner, setBanner] = useState<Banner | null>(null)
   const [busyKey, setBusyKey] = useState<string | null>(null)
 
-  const load = useCallback(async () => {
-    setLoading(true)
-    setLoadError(null)
-    try {
-      const res = await fetch('/api/compliance/frameworks', {
-        credentials: 'include',
+  const queryCatalogs = useCallback(() => {
+    return fetch('/api/compliance/frameworks', { credentials: 'include' })
+      .then(async (res) => {
+        const body = await res.json().catch(() => null)
+        if (!res.ok) {
+          const parsed = parseEnableError(body)
+          setLoadError(
+            parsed.message || 'Framework catalogs could not be loaded.'
+          )
+          setItems([])
+          return
+        }
+        setItems(parseCatalogList(body))
       })
-      const body = await res.json().catch(() => null)
-      if (!res.ok) {
-        const parsed = parseEnableError(body)
-        setLoadError(
-          parsed.message || 'Framework catalogs could not be loaded.'
-        )
+      .catch(() => {
+        setLoadError('Framework catalogs could not be loaded.')
         setItems([])
-        return
-      }
-      const rows = parseCatalogList(body)
-      setItems(rows)
-    } catch {
-      setLoadError('Framework catalogs could not be loaded.')
-      setItems([])
-    } finally {
-      setLoading(false)
-    }
+      })
+      .finally(() => setLoading(false))
   }, [])
 
+  const load = useCallback(() => {
+    setLoading(true)
+    setLoadError(null)
+    return queryCatalogs()
+  }, [queryCatalogs])
+
+  const catalogKey = useKeyedGeneration('catalogs')
+  if (catalogKey.changed) {
+    setLoading(true)
+    setLoadError(null)
+  }
+
   useEffect(() => {
-    void load()
-  }, [load])
+    void queryCatalogs()
+  }, [queryCatalogs])
 
   const onEnable = async (item: FrameworkCatalogItem) => {
     const payload = enableRequestBody(item)

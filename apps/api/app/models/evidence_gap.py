@@ -11,9 +11,11 @@ GAP_STATUSES = ("open", "accepted", "dismissed")
 # System-only status (TC-02-BUG-018): regeneration closed the gap because its question was removed
 # or now has a sufficient answer (not insufficient, rejected or flagged). Never set by a user, never
 # deleted. A later insufficient answer opens a new gap instead of reopening this row, so the history
-# stays readable. The closure is recorded by appending a final line to ``reason``:
-#   ``[resolved on regeneration: <question_removed|answer_sufficient> at <UTC ISO-8601>Z]``
-# with the original reason text kept intact above it (TC-02-BUG-018a: real closed_at/close_reason).
+# stays readable. No API route sets a resolved row back to open. Closing (TC-02-BUG-018a) writes
+# ``closed_at`` and ``close_reason`` (``question_removed`` or ``answer_sufficient``) and leaves
+# ``reason`` unchanged. Rows closed before that migration may still carry a final line
+# ``[resolved on regeneration: <code> at <UTC ISO-8601>Z]``; the migration copies it onto the
+# columns and does not strip it. Manual status changes do not write these columns.
 # User- and buyer-facing gap totals must exclude this status and, where all statuses are shown,
 # report it separately.
 GAP_STATUS_RESOLVED = "resolved"
@@ -59,3 +61,7 @@ class EvidenceGap(Base):
         onupdate=lambda: datetime.now(timezone.utc),
         nullable=False,
     )
+    # TC-02-BUG-018a. Null until regeneration closes the row. Nullable on purpose: open,
+    # accepted and dismissed rows have no closure, and manual status changes do not fill these.
+    closed_at = Column(DateTime(timezone=True), nullable=True)
+    close_reason = Column(String(32), nullable=True)

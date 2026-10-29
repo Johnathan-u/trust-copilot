@@ -5,6 +5,8 @@ import { Card, ErrorState, LoadingState } from '@/components/ui'
 import { useAuth } from '@/contexts/AuthContext'
 import type { ApiFailurePresentation } from '@/lib/api-error'
 import { failureOf, isAbortError, readSectionJson } from '@/lib/section-load'
+import { pageAfterFilterChange } from '@/lib/render-state'
+import { useKeyedGeneration } from '@/components/ui/useKeyedGeneration'
 import { NOTIFICATION_LABELS } from '@/lib/notification-labels'
 
 const NOTIF_LABELS: Record<string, string> = Object.fromEntries(
@@ -661,8 +663,7 @@ export default function AuditPage() {
   const [expanded, setExpanded] = useState<number | null>(null)
   const pageSize = 50
 
-  const load = useCallback(() => {
-    setLoading(true)
+  const queryEvents = useCallback(() => {
     const params = new URLSearchParams({
       page: String(page),
       page_size: String(pageSize),
@@ -671,7 +672,6 @@ export default function AuditPage() {
     if (filter && !filter.startsWith('cat:')) {
       params.set('action', filter)
     }
-    setLoadFailure(null)
     fetch(`/api/audit/events?${params}`, { credentials: 'include' })
       .then((r) => readSectionJson(r))
       .then((data) => {
@@ -695,14 +695,33 @@ export default function AuditPage() {
       .finally(() => setLoading(false))
   }, [page, since, filter])
 
-  useEffect(() => {
-    if (canAdmin) load()
-    else setLoading(false)
-  }, [canAdmin, load])
+  const load = useCallback(() => {
+    setLoading(true)
+    setLoadFailure(null)
+    queryEvents()
+  }, [queryEvents])
+
+  const filterKey = `${filter}|${since}`
+  const filterGen = useKeyedGeneration(filterKey, { runOnMount: false })
+  const pageForLoad = pageAfterFilterChange(
+    filterGen.changed ? '' : filterKey,
+    filterKey,
+    page
+  )
+  if (filterGen.changed && pageForLoad !== page) setPage(pageForLoad)
+
+  const eventsKey = useKeyedGeneration(
+    `${canAdmin ? '1' : '0'}|${filterGen.changed ? pageForLoad : page}|${since}|${filter}`
+  )
+  if (eventsKey.changed) {
+    setLoading(canAdmin)
+    if (canAdmin) setLoadFailure(null)
+  }
 
   useEffect(() => {
-    setPage(1)
-  }, [filter, since])
+    if (!canAdmin) return
+    queryEvents()
+  }, [canAdmin, queryEvents])
 
   if (!canAdmin) {
     return (

@@ -4,6 +4,8 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
 import { Button, Card, Input, Skeleton } from '@/components/ui'
+import { useKeyedGeneration } from '@/components/ui/useKeyedGeneration'
+import { proofChainRequest } from '@/lib/render-state'
 
 type ChainNode = {
   id: number
@@ -63,42 +65,66 @@ export default function ProofChainPage() {
   const [error, setError] = useState<string | null>(null)
   const [data, setData] = useState<ChainResponse | null>(null)
 
-  const loadChain = useCallback(async (raw: string) => {
-    const id = parseInt(raw, 10)
-    if (Number.isNaN(id) || id < 1) {
-      setError('Enter a valid answer ID (positive integer).')
-      setData(null)
-      return
-    }
-    setLoading(true)
-    setError(null)
-    setData(null)
-    try {
-      const r = await fetch(`/api/proof-graph/chain/answer/${id}`, {
-        credentials: 'include',
+  const queryChain = useCallback((id: number) => {
+    return fetch(`/api/proof-graph/chain/answer/${id}`, {
+      credentials: 'include',
+    })
+      .then(async (r) => {
+        if (r.status === 404) {
+          setError(
+            'No proof chain for this answer. Run proof graph sync (API POST /api/proof-graph/sync) after linking answers to your golden library, or use Review after generation.'
+          )
+          return
+        }
+        if (!r.ok) {
+          setError(`Could not load chain (${r.status}).`)
+          return
+        }
+        const body = (await r.json()) as ChainResponse
+        setData(body)
       })
-      if (r.status === 404) {
-        setError(
-          'No proof chain for this answer. Run proof graph sync (API POST /api/proof-graph/sync) after linking answers to your golden library, or use Review after generation.'
-        )
-        return
-      }
-      if (!r.ok) {
-        setError(`Could not load chain (${r.status}).`)
-        return
-      }
-      const body = (await r.json()) as ChainResponse
-      setData(body)
-    } catch {
-      setError('Network error loading proof chain.')
-    } finally {
-      setLoading(false)
-    }
+      .catch(() => {
+        setError('Network error loading proof chain.')
+      })
+      .finally(() => setLoading(false))
   }, [])
 
+  const loadChain = useCallback(
+    (raw: string) => {
+      const request = proofChainRequest(raw)
+      if (request.error) {
+        setError(request.error)
+        setData(null)
+        setLoading(false)
+        return
+      }
+      setLoading(true)
+      setError(null)
+      setData(null)
+      return queryChain(request.id)
+    },
+    [queryChain]
+  )
+
+  const chainKey = useKeyedGeneration(initialId)
+  if (chainKey.changed && initialId) {
+    const request = proofChainRequest(initialId)
+    if (request.error) {
+      setError(request.error)
+      setData(null)
+      setLoading(false)
+    } else {
+      setLoading(true)
+      setError(null)
+      setData(null)
+    }
+  }
+
   useEffect(() => {
-    if (initialId) void loadChain(initialId)
-  }, [initialId, loadChain])
+    const request = proofChainRequest(initialId)
+    if (request.id == null) return
+    void queryChain(request.id)
+  }, [initialId, queryChain])
 
   const steps = useMemo(() => data?.chain ?? [], [data])
 

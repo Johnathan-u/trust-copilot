@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import type { ApiFailurePresentation } from '@/lib/api-error'
 import { failureOf, isAbortError } from '@/lib/section-load'
 import { listPhase, type SectionPhase } from '@/lib/ui-state'
+import { useKeyedGeneration } from '@/components/ui/useKeyedGeneration'
 
 export function useSectionQuery<T>(options: {
   enabled?: boolean
@@ -22,6 +23,13 @@ export function useSectionQuery<T>(options: {
   const [failure, setFailure] = useState<ApiFailurePresentation | null>(null)
   const [loadId, setLoadId] = useState(0)
   const [reloadToken, setReloadToken] = useState(0)
+  const requestKey = `${enabled ? '1' : '0'}\n${depsKey}\n${reloadToken}`
+  const generation = useKeyedGeneration(requestKey)
+  if (generation.changed && enabled) {
+    setPhase('loading')
+    setFailure(null)
+    setLoadId(generation.generation)
+  }
 
   const reload = useCallback(() => {
     setReloadToken((value) => value + 1)
@@ -31,9 +39,6 @@ export function useSectionQuery<T>(options: {
     if (!enabled) return
     const controller = new AbortController()
     let active = true
-    setPhase('loading')
-    setFailure(null)
-    setLoadId((value) => value + 1)
     loadRef
       .current(controller.signal)
       .then((next) => {
