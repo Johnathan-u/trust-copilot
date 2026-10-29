@@ -12,7 +12,7 @@ from app.services import email_service
 def test_sensitive_failure_logs_only_exception_class_and_random_id(
     monkeypatch, capsys, production, port
 ):
-    secret = "synthetic-bearer-and-reply-content"
+    secret = "test-only-bearer-and-reply-content"
     provider = email_service.SmtpEmailProvider(
         "synthetic-host", port, None, None, "sender@example.com"
     )
