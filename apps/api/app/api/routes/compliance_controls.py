@@ -609,6 +609,42 @@ def _accept_idempotency_key(request: Request, workspace_id: int, control_id: int
     return f"accept-suggested:{workspace_id}:{control_id}:{raw}"
 
 
+def _settle_accept_claim(
+    db: Session,
+    key: str | None,
+    owner: str | None,
+    payload: dict | None,
+    link: ControlEvidenceLink,
+    ev: EvidenceItem,
+) -> None:
+    """Store the committed accept-suggested result so a retry does not see 409.
+
+    The evidence item and link are already committed. This rollback only clears a
+    failed post-commit transaction; it does not remove those rows. The claim is
+    completed with that stored result. Releasing it would let the retry insert
+    another evidence item and another link. Tag lookup is not part of the write,
+    so a failed lookup is stored with an empty tag list. A failed ``idempotency_set``
+    is stored again through the idempotency core.
+    """
+    if not key:
+        return
+    db.rollback()
+    if payload is None:
+        db.refresh(link)
+        db.refresh(ev)
+        payload = {**_link_dict(link), "evidence": _evidence_dict(ev, tags=[])}
+    try:
+        idempotency_set(db, key, 200, payload, owner=owner)
+    except Exception:
+        logger.exception(
+            "accept-suggested idempotency store failed after commit; storing the committed result"
+        )
+        db.rollback()
+        from app.core.idempotency import set as complete_claim
+
+        complete_claim(db, key, 200, payload, owner=owner)
+
+
 def _claim_or_replay(db: Session, key: str | None) -> tuple[JSONResponse | None, str | None]:
     """Replay a stored response, or claim the key and return this request's owner token.
 
@@ -643,7 +679,8 @@ def accept_suggested_evidence(
     """Create evidence from a suggested chunk and link it to the control. Requires admin.
 
     Idempotency-Key is optional. A retry with the same key returns the first response
-    and does not create another evidence item or link.
+    and does not create another evidence item or link. After the evidence commit
+    succeeds, the claim is completed even if tag lookup or the idempotency store fails.
     """
     ws = session.get("workspace_id")
     if not ws:
@@ -704,22 +741,24 @@ def accept_suggested_evidence(
         if key:
             idempotency_release(db, key, owner=owner)
         raise
-    db.refresh(link)
-    db.refresh(ev)
-    compliance_evidence_linked_total.inc()
-    logger.info(
-        "evidence_linked",
-        extra={"control_id": control_id, "evidence_id": ev.id, "workspace_id": ws},
-    )
-    ev_tags = []
-    if ev.document_id:
-        from app.services.tag_service import list_tags_for_document
+    payload = None
+    try:
+        db.refresh(link)
+        db.refresh(ev)
+        compliance_evidence_linked_total.inc()
+        logger.info(
+            "evidence_linked",
+            extra={"control_id": control_id, "evidence_id": ev.id, "workspace_id": ws},
+        )
+        ev_tags = []
+        if ev.document_id:
+            from app.services.tag_service import list_tags_for_document
 
-        ev_tags = list_tags_for_document(db, ev.document_id, ws)
-    payload = {**_link_dict(link), "evidence": _evidence_dict(ev, tags=ev_tags)}
-    if key:
-        idempotency_set(db, key, 200, payload, owner=owner)
-    return payload
+            ev_tags = list_tags_for_document(db, ev.document_id, ws)
+        payload = {**_link_dict(link), "evidence": _evidence_dict(ev, tags=ev_tags)}
+        return payload
+    finally:
+        _settle_accept_claim(db, key, owner, payload, link, ev)
 
 
 @router.post("/{control_id}/suggest-evidence", response_model=list)
