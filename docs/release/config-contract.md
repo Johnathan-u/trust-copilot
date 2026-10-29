@@ -107,6 +107,7 @@ Source of truth: `apps/api/app/core/config_contract.py`. The table between the m
 | `JOB_LEASE_SECONDS` | int | optional | no | 60 | How long a worker owns a running job before another worker may recover it. Clamped to 10-3600. |  |
 | `JOB_LEASE_HEARTBEAT_SECONDS` | int | optional | no | 15 | How often the owner renews that lease. Clamped to 1-1200 and kept below the lease. |  |
 | `JOB_NULL_LEASE_GRACE_SECONDS` | int | optional | no | 3600 | How long a running job with a NULL lease is left alone. Clamped to at least 5 times JOB_LEASE_SECONDS and at most 86400. |  |
+| `STORAGE_ORPHAN_GRACE_SECONDS` | int | optional | no | 7200 | How long an unreferenced storage object is kept. The sweep deletes it only when it is strictly older. Clamped to 60-604800. |  |
 | `RETRIEVAL_MAX_THREADS` | int | optional | no | 8 | Max worker threads for batched retrieval (1-32); also capped by the DB pool size. |  |
 | `TRUST_COPILOT_IN_DOCKER` | bool | optional | no | auto (/.dockerenv) | Keeps `postgres` hostname in DATABASE_URL. |  |
 | `COMPLETION_MODEL` | string | optional | no | gpt-4o-mini | Answer-generation model. |  |

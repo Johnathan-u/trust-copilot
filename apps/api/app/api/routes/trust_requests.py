@@ -32,6 +32,7 @@ from app.services.registry_lifecycle import (
     update_metadata_json_fields,
 )
 from app.services.storage import StorageClient, get_storage
+from app.services.storage_reconcile import discard_if_unreferenced
 
 logger = logging.getLogger(__name__)
 
@@ -234,16 +235,21 @@ def submit_trust_request_with_attachment(
     db.refresh(req)
 
     if document and document.filename and document.file:
+        stored_key: str | None = None
         try:
-            key, filename, size = file_svc.upload_trust_request_attachment(ws_id, req.id, document)
+            stored_key, filename, size = file_svc.upload_trust_request_attachment(
+                ws_id, req.id, document
+            )
             req.attachment_filename = filename
-            req.attachment_storage_key = key
+            req.attachment_storage_key = stored_key
             req.attachment_size = size
             db.commit()
             db.refresh(req)
         except HTTPException:
             raise
         except Exception:
+            db.rollback()
+            discard_if_unreferenced(db, file_svc._storage, file_svc._storage.bucket_raw, stored_key)
             logger.exception("trust_request attachment upload failed for id=%s", req.id)
 
     logger.info(
