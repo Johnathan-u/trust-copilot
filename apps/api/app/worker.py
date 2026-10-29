@@ -808,6 +808,26 @@ def _queued_duplicate_id(session, job: Job) -> int | None:
     return row[0] if row else None
 
 
+def _still_running_for_owner(session, job: Job) -> bool:
+    """Lock the row. True only when it is still ``running`` for this owner.
+
+    A cancel, or another worker, that already committed a different status or owner makes this
+    false. The caller then skips the terminal write. ``lease_owner`` NULL matches NULL.
+    """
+    owner = _lease_owner(job)
+    with session.no_autoflush:
+        row = session.execute(
+            text("SELECT status, lease_owner FROM jobs WHERE id = :id FOR UPDATE"),
+            {"id": job.id},
+        ).fetchone()
+    if row is None:
+        return False
+    status, lease_owner = row[0], row[1]
+    if status != JobStatus.RUNNING.value:
+        return False
+    return lease_owner == owner
+
+
 def _try_schedule_retry(
     session, job: Job, code: str, message: str, next_at: datetime
 ) -> int | None:
@@ -897,6 +917,15 @@ def _handle_job_failure(
             job.id,
             job.kind,
             type(exc).__name__,
+        )
+        return
+    # A cancel (or a lost lease) that committed while this attempt ran must not be overwritten
+    # by a retry or a failure row.
+    if not _still_running_for_owner(session, job):
+        session.rollback()
+        log.warning(
+            "job_id=%s is no longer running for this owner; failure was not applied",
+            job.id,
         )
         return
     code = classify(exc)
@@ -1325,7 +1354,11 @@ def _process_one_job() -> bool:
             # TC-10-001: lock and confirm the lease BEFORE the completion is flushed.
             # persist_audit flushes then commits, so a fence check after that flush would see
             # status=completed and refuse the commit that just wrote it.
+            # A cancel clears the lease, so the heartbeat loses and this confirm raises LeaseLost.
+            # The result is not written.
             if owner:
+                if lease_heartbeat is not None and lease_heartbeat.lost:
+                    raise LeaseLost(leased_job_id)
                 confirm_lease_for_commit(session, leased_job_id, owner)
                 uninstall_commit_fence(session)
             job.status = JobStatus.COMPLETED.value
