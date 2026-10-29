@@ -163,6 +163,9 @@ function HBar({
               type="category"
               dataKey={nameKey}
               width={100}
+              tickFormatter={(value: string) =>
+                value.length > 22 ? `${value.slice(0, 22)}…` : value
+              }
               tick={{ fill: 'var(--tc-text)', fontSize: 11 }}
               tickLine={false}
             />
@@ -188,7 +191,7 @@ function HBar({
         <summary className="min-h-11 cursor-pointer py-3">
           View chart data
         </summary>
-        <table className="w-full text-left">
+        <table className="w-full table-fixed text-left">
           <caption className="sr-only">Chart values</caption>
           <thead>
             <tr>
@@ -503,7 +506,10 @@ function CoverageReport() {
               />
               <div className="mt-2 flex flex-wrap gap-4 text-[11px] text-[var(--tc-muted)] px-1">
                 {framework_coverage.map((f) => (
-                  <span key={f.framework}>
+                  <span
+                    key={f.framework}
+                    className="min-w-0 max-w-full break-words"
+                  >
                     {f.framework}:{' '}
                     <span className="text-[var(--tc-text)] font-medium">
                       {f.drafted}
@@ -595,7 +601,7 @@ function CoverageReport() {
                   >
                     <div className="min-w-0 flex items-center gap-3">
                       <span className="text-lg">📄</span>
-                      <span className="text-sm text-[var(--tc-text)] font-medium">
+                      <span className="min-w-0 break-words text-sm text-[var(--tc-text)] font-medium">
                         {r.title}
                         <span className="mt-1 block text-tc-caption font-normal text-tc-muted">
                           Source detail is unavailable for this recommendation.
@@ -687,7 +693,7 @@ function CoverageReport() {
                   View trend data
                 </summary>
                 <div className="overflow-x-auto">
-                  <table className="w-full text-left">
+                  <table className="w-full table-fixed text-left">
                     <caption className="sr-only">
                       Cumulative historical answer records
                     </caption>

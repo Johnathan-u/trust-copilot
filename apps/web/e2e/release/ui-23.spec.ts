@@ -294,6 +294,30 @@ for (const width of [360, 768, 1440]) {
     page,
   }, testInfo) => {
     await installApi(page)
+    const longTitle = 'Long evidence label '.repeat(16)
+    const longSubject = 'AccessManagement'.repeat(14)
+    await page.route('**/api/evidence-gaps', (route) =>
+      json(route, {
+        schema_version: 'evidence-gap-ownership/v1',
+        gaps: [
+          gap,
+          {
+            ...gap,
+            id: 93,
+            suggested_evidence_doc_title: longTitle,
+            reason: 'Long reason '.repeat(30),
+          },
+        ],
+      })
+    )
+    await page.route('**/api/compliance-coverage', (route) =>
+      json(route, {
+        ...coverage,
+        framework_coverage: [
+          { ...coverage.framework_coverage[0], framework: longSubject },
+        ],
+      })
+    )
     await page.setViewportSize({ width, height: 900 })
     await page.goto('/dashboard/compliance-gaps')
     await expect(
@@ -302,6 +326,10 @@ for (const width of [360, 768, 1440]) {
     await page.getByLabel('Gap status', { exact: true }).focus()
     await expect(page.getByLabel('Gap status', { exact: true })).toBeFocused()
     await page.keyboard.press('Tab')
+    await page.getByText('View chart data', { exact: true }).first().click()
+    await expect(
+      page.getByRole('rowheader', { name: longSubject, exact: true })
+    ).toBeVisible()
     const main = page.locator('#main-content')
     expect(await main.evaluate((el) => el.scrollWidth <= el.clientWidth)).toBe(
       true
