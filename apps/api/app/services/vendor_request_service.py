@@ -327,7 +327,10 @@ def send(
             body_text=f"{row.message or 'Please respond to this security information request.'}\n\n{base}/vendor-response?token={token}",
         )
         try:
-            accepted = provider.send(message) is True
+            if isinstance(provider, email_service.SmtpEmailProvider):
+                accepted = provider.send(message, sensitive=True) is True
+            else:
+                accepted = provider.send(message) is True
         except Exception:
             accepted = False
         row.delivery_status = "accepted" if accepted else "uncertain"

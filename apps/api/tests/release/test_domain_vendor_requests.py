@@ -378,7 +378,8 @@ def test_send_and_resend_rotate_grants_and_replay_without_delivery(domain):
         def __init__(self):
             self.messages = []
 
-        def send(self, message):
+        def send(self, message, *, sensitive=False):
+            assert sensitive is True
             self.messages.append(message)
             return True
 
@@ -424,7 +425,8 @@ def test_uncertain_delivery_is_persisted_without_automatic_retry(domain):
         def __init__(self):
             self.calls = 0
 
-        def send(self, message):
+        def send(self, message, *, sensitive=False):
+            assert sensitive is True
             self.calls += 1
             raise TimeoutError("SYNTHETIC-PROVIDER-SECRET")
 
