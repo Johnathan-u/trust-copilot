@@ -3,7 +3,6 @@
 import os
 import base64
 import hashlib
-import hmac
 import json
 import logging
 import secrets
@@ -36,7 +35,6 @@ from app.core.mfa import (  # noqa: E402
 from app.core.password import hash_password, verify_password  # noqa: E402
 from app.core.rate_limit import get_client_ip, is_rate_limited, record_attempt  # noqa: E402
 from app.core.session import (  # noqa: E402
-    get_session_secret,
     is_production_env,
     sign_session,
     verify_token,
@@ -520,6 +518,7 @@ def _login_impl(req: LoginRequest, request: Request, response: Response, db: Ses
             UserSession(
                 user_id=user.id,
                 session_id=session_id,
+                signing_key_id=_session_key_id(),
                 user_agent=request.headers.get("user-agent"),
                 ip_address=get_client_ip(request),
             )
@@ -545,7 +544,10 @@ def _login_impl(req: LoginRequest, request: Request, response: Response, db: Ses
     mfa_row = (
         db.query(UserMfa).filter(UserMfa.user_id == user.id, UserMfa.enabled.is_(True)).first()
     )
-    if mfa_row:
+    from app.core.mfa import mfa_reenrol_required
+
+    reenrol = bool(mfa_row and mfa_reenrol_required(mfa_row.totp_secret_encrypted))
+    if mfa_row and not reenrol:
         mfa_token_raw = secrets.token_urlsafe(32)
         mfa_token_hash_val = _token_hash(mfa_token_raw)
         expires_at = datetime.now(timezone.utc) + timedelta(minutes=5)
@@ -579,6 +581,7 @@ def _login_impl(req: LoginRequest, request: Request, response: Response, db: Ses
         UserSession(
             user_id=user.id,
             session_id=session_id,
+            signing_key_id=_session_key_id(),
             user_agent=request.headers.get("user-agent"),
             ip_address=get_client_ip(request),
         )
@@ -597,7 +600,10 @@ def _login_impl(req: LoginRequest, request: Request, response: Response, db: Ses
     response.set_cookie(
         key=SESSION_COOKIE, value=token, **_session_cookie_kwargs(max_age, persistent=remember)
     )
-    return {"user": _user_response(user), "workspace_id": member.workspace_id}
+    body = {"user": _user_response(user), "workspace_id": member.workspace_id}
+    if reenrol:
+        body["mfa_reenrol_required"] = True
+    return body
 
 
 @router.post("/logout")
@@ -687,6 +693,13 @@ async def revoke_other_sessions(
 
 # ----- ENT-201: OAuth (Google, Microsoft) -----
 
+
+def _session_key_id() -> str:
+    from app.core.keys import current_session_key_id
+
+    return current_session_key_id()
+
+
 OAUTH_STATE_COOKIE = "oauth_state"
 OAUTH_STATE_MAX_AGE = 600  # 10 min
 
@@ -701,25 +714,19 @@ def _oauth_create_signed_state(provider: str) -> str:
         "n": secrets.token_urlsafe(16),
         "t": int(time.time()),
     }
+    from app.core.keys import sign_with_purpose
+
     data = base64.urlsafe_b64encode(json.dumps(payload).encode()).decode()
-    sig = hmac.new(
-        get_session_secret().encode(),
-        data.encode(),
-        "sha256",
-    ).hexdigest()
-    return f"{data}.{sig}"
+    return sign_with_purpose("oauth_state", data)
 
 
 def _oauth_verify_signed_state(state: str, expected_provider: str) -> bool:
     """Verify signed state: signature and expiry. No server-side store needed."""
     try:
-        data, sig = state.rsplit(".", 1)
-        expected = hmac.new(
-            get_session_secret().encode(),
-            data.encode(),
-            "sha256",
-        ).hexdigest()
-        if not hmac.compare_digest(sig, expected):
+        from app.core.keys import verify_with_purpose
+
+        data = verify_with_purpose("oauth_state", state, accept_retired=True)
+        if data is None:
             return False
         payload = json.loads(base64.urlsafe_b64decode(data).decode())
         if payload.get("p") != expected_provider:
@@ -773,6 +780,7 @@ def _oauth_set_session_and_redirect(
         UserSession(
             user_id=user.id,
             session_id=session_id,
+            signing_key_id=_session_key_id(),
             user_agent=None,
             ip_address=None,
         )
@@ -2063,7 +2071,9 @@ async def mfa_setup(request: Request, db: Session = Depends(get_db)):
     if not user:
         raise HTTPException(status_code=401, detail="User not found")
     existing = db.query(UserMfa).filter(UserMfa.user_id == user_id).first()
-    if existing and existing.enabled:
+    from app.core.mfa import mfa_reenrol_required
+
+    if existing and existing.enabled and not mfa_reenrol_required(existing.totp_secret_encrypted):
         raise HTTPException(status_code=400, detail="MFA is already enabled")
     secret = generate_totp_secret()
     encrypted = encrypt_totp_secret(secret)
@@ -2176,6 +2186,7 @@ def mfa_verify_login(
         UserSession(
             user_id=user.id,
             session_id=session_id,
+            signing_key_id=_session_key_id(),
             user_agent=request.headers.get("user-agent"),
             ip_address=get_client_ip(request),
         )

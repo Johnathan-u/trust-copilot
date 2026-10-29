@@ -19,6 +19,22 @@ Source of truth: `apps/api/app/core/config_contract.py`. The table between the m
 * Error messages list variable names and reasons only, never values.
 * **Non-production**: only malformed values that would crash `Settings()` and unknown `APP_ENV` values are fatal;
   everything else is reported as a warning.
+* **Key rotation.** Session signing, OAuth state, MFA and connector encryption each have an optional
+  keyring (`SESSION_KEYRING`, `OAUTH_STATE_KEYRING`, `MFA_KEYRING`, `CONNECTOR_KEYRING`). The first
+  `kid:secret` is the current key; later entries are retired. Unset keyrings derive `v0-legacy` from
+  `SESSION_SECRET` with HKDF and a purpose label. Unprefixed ciphertext and cookies still open with
+  the previous sha256 or HMAC derivation. Production rejects a weak purpose key, a repeated key id,
+  and the same key material used for two purposes. Errors name the variable only.
+  Rehearse rotation on a database copy, never against production:
+
+  `cd apps/api && python scripts/rotate_purpose_keys.py --dry-run`
+
+  The command prints counts only. It re-encrypts rows onto the current key id, skips rows already
+  there, and can resume with `--after-id`. An MFA secret that cannot be opened is marked for
+  re-enrolment (`reenrol.<kid>`): MFA stays enabled, password login returns `mfa_reenrol_required`,
+  and `POST /api/auth/mfa/setup` accepts a new secret. Sessions whose signing key id is retired, or
+  missing once a non-legacy session key is current, are deleted. Custody is versioned env keyrings,
+  not a KMS.
 * **Rate limiting.** Unless `REDIS_URL` is set, the limiter in `app.core.rate_limit` is in-memory and
   per-process. The Redis backend fails open on store errors for every route except `POST /api/workspaces`.
   In production that route fails closed (HTTP 503, a generic detail, and `Retry-After`) because workspace
@@ -43,7 +59,11 @@ Source of truth: `apps/api/app/core/config_contract.py`. The table between the m
 | Variable | Type | Production | Secret | Non-production default | Description | Owner prerequisite |
 |---|---|---|---|---|---|---|
 | `APP_ENV` | enum(development|test|staging|production) | required | no | development | Runtime mode. Only `production` enables the fail-closed checks below; unknown values are rejected. |  |
-| `SESSION_SECRET` | secret string (>=32 chars, >=8 distinct chars) | required | yes | random per-process key (dev/test only) | Signs `tc_session` cookies and OAuth state; derives MFA/Slack/credential-store keys. Placeholders rejected. |  |
+| `SESSION_SECRET` | secret string (>=32 chars, >=8 distinct chars) | required | yes | random per-process key (dev/test only) | Signs legacy cookies and derives purpose keys when a purpose keyring is unset. Placeholders rejected. |  |
+| `SESSION_KEYRING` | kid:secret,kid:secret | optional | yes | unset (HKDF from SESSION_SECRET, id v0-legacy) | Session signing keys. First entry is current; later entries are retired. No value is echoed. |  |
+| `OAUTH_STATE_KEYRING` | kid:secret,kid:secret | optional | yes | unset (HKDF from SESSION_SECRET, id v0-legacy) | OAuth state signing keys. CSRF stays an Origin/Referer check. No value is echoed. |  |
+| `MFA_KEYRING` | kid:secret,kid:secret | optional | yes | unset (HKDF from SESSION_SECRET, id v0-legacy) | MFA secret encryption keys. First entry is current; later entries decrypt only. No value is echoed. |  |
+| `CONNECTOR_KEYRING` | kid:secret,kid:secret | optional | yes | unset (HKDF from SESSION_SECRET, id v0-legacy) | Connector token encryption keys (credential store, Slack, Gmail). No value is echoed. |  |
 | `DATABASE_URL` | postgresql URL with user and password | required | yes | local dev URL on localhost:5432 (dev only) | Postgres DSN. Production: must be set explicitly; vendor-default/placeholder or short (<16) passwords rejected. | Managed or self-hosted PostgreSQL 16 + pgvector |
 | `POSTGRES_USER` | string | conditional | no | compose dev default | Postgres container superuser (compose). If visible to the app in production, must not be a vendor default. |  |
 | `POSTGRES_PASSWORD` | secret string (>=16 chars) | conditional | yes | compose dev default | Postgres container password (compose). If visible in production, defaults/placeholders/short values rejected. |  |

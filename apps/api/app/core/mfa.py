@@ -1,29 +1,33 @@
 """MFA helpers (AUTH-211): TOTP secret encryption and verification."""
 
-import base64
-import hashlib
-
 import pyotp
-from cryptography.fernet import Fernet
 
-
-def _fernet() -> Fernet:
-    """Fernet key derived from session secret (32 bytes for key)."""
-    from app.core.session import get_session_secret
-
-    raw = hashlib.sha256(get_session_secret().encode()).digest()
-    key = base64.urlsafe_b64encode(raw)
-    return Fernet(key)
+from app.core.keys import MfaReenrolRequired, open_sealed, seal
 
 
 def encrypt_totp_secret(secret: str) -> str:
     """Encrypt TOTP base32 secret for storage."""
-    return _fernet().encrypt(secret.encode()).decode()
+    return seal("mfa", secret)
 
 
 def decrypt_totp_secret(encrypted: str) -> str:
     """Decrypt stored secret to base32."""
-    return _fernet().decrypt(encrypted.encode()).decode()
+    return open_sealed("mfa", encrypted)
+
+
+def mfa_reenrol_required(encrypted: str | None) -> bool:
+    """True when rotation could not open the stored MFA secret."""
+    if not encrypted:
+        return False
+    if encrypted.startswith("reenrol."):
+        return True
+    try:
+        decrypt_totp_secret(encrypted)
+    except MfaReenrolRequired:
+        return True
+    except Exception:
+        return False
+    return False
 
 
 def generate_totp_secret() -> str:
