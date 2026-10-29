@@ -2,7 +2,10 @@
 
 import { useEffect, useState, useCallback } from 'react'
 import { Button, Card, Input, useDestructiveConfirm } from '@/components/ui'
+import { ErrorState, LoadingState } from '@/components/ui'
 import { useAuth } from '@/contexts/AuthContext'
+import type { ApiFailurePresentation } from '@/lib/api-error'
+import { failureOf, isAbortError, readSectionJson } from '@/lib/section-load'
 
 /* ── Types ── */
 
@@ -121,28 +124,48 @@ export default function SecurityPage() {
   const [mfaStatus, setMfaStatus] = useState<MfaStatus | null>(null)
   const [events, setEvents] = useState<SecurityEvent[]>([])
   const [loading, setLoading] = useState(true)
+  const [loadFailure, setLoadFailure] = useState<ApiFailurePresentation | null>(
+    null
+  )
 
   const loadAll = useCallback(() => {
     setLoading(true)
+    setLoadFailure(null)
     Promise.all([
       fetch('/api/auth/sessions', { credentials: 'include' }).then((r) =>
-        r.ok ? r.json() : { sessions: [] }
+        readSectionJson(r)
       ),
       fetch('/api/auth/mfa/status', { credentials: 'include' }).then((r) =>
-        r.ok ? r.json() : { enabled: false }
+        readSectionJson(r)
       ),
       isAdmin
         ? fetch('/api/audit/events?action=auth.&since_hours=720&page_size=20', {
             credentials: 'include',
-          }).then((r) => (r.ok ? r.json() : { items: [] }))
-        : Promise.resolve({ items: [] }),
+          }).then((r) => readSectionJson(r))
+        : Promise.resolve({ items: [] as SecurityEvent[] }),
     ])
       .then(([sessData, mfaData, eventsData]) => {
-        setSessions(sessData.sessions || [])
-        setMfaStatus(mfaData as MfaStatus)
-        setEvents((eventsData.items || []) as SecurityEvent[])
+        const sessionsBody = sessData as { sessions?: Session[] }
+        const mfaBody = mfaData as MfaStatus
+        const eventsBody = eventsData as { items?: SecurityEvent[] }
+        if (
+          !Array.isArray(sessionsBody.sessions) ||
+          typeof mfaBody?.enabled !== 'boolean'
+        ) {
+          throw new Error('malformed')
+        }
+        setSessions(sessionsBody.sessions)
+        setMfaStatus(mfaBody)
+        setEvents(eventsBody.items || [])
+        setLoadFailure(null)
       })
-      .catch(() => {})
+      .catch((error: unknown) => {
+        if (isAbortError(error)) return
+        setSessions([])
+        setMfaStatus(null)
+        setEvents([])
+        setLoadFailure(failureOf(error))
+      })
       .finally(() => setLoading(false))
   }, [isAdmin])
 
@@ -194,9 +217,25 @@ export default function SecurityPage() {
         <h1 className="text-2xl font-bold text-[var(--tc-text)]">
           Account Security
         </h1>
-        <Card className="p-6 text-center text-[var(--tc-muted)]">
-          Loading security information...
-        </Card>
+        <LoadingState
+          label="Loading security information"
+          onRetry={() => void loadAll()}
+        >
+          <Card className="p-6 text-center text-tc-muted">
+            Loading security information
+          </Card>
+        </LoadingState>
+      </div>
+    )
+  }
+
+  if (loadFailure) {
+    return (
+      <div className="space-y-6 max-w-3xl">
+        <h1 className="text-2xl font-bold text-[var(--tc-text)]">
+          Account Security
+        </h1>
+        <ErrorState failure={loadFailure} onRetry={() => void loadAll()} />
       </div>
     )
   }

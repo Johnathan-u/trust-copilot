@@ -1,9 +1,17 @@
 'use client'
 
 import { useCallback, useEffect, useState } from 'react'
-import { Button, Card, EmptyState } from '@/components/ui'
+import {
+  Button,
+  Card,
+  EmptyState,
+  ErrorState,
+  LoadingState,
+} from '@/components/ui'
 import { ListSkeleton } from '@/components/ui/Skeleton'
 import { useAuth } from '@/contexts/AuthContext'
+import type { ApiFailurePresentation } from '@/lib/api-error'
+import { presentHttpFailure } from '@/lib/api-error'
 import {
   parseCaseStudyError,
   parseCaseStudyResponse,
@@ -28,6 +36,9 @@ export default function CaseStudiesPage() {
   const [selectedId, setSelectedId] = useState<number | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [loadFailure, setLoadFailure] = useState<ApiFailurePresentation | null>(
+    null
+  )
   const [form, setForm] = useState(emptyForm)
   const [saving, setSaving] = useState(false)
 
@@ -46,14 +57,20 @@ export default function CaseStudiesPage() {
       .then(async (response) => {
         const body = await response.json().catch(() => ({}))
         if (!response.ok) {
-          setError(parseCaseStudyError(body).message)
+          setLoadFailure(presentHttpFailure({ status: response.status }))
+          setError(null)
           setStudies([])
           return
         }
         applyList(body)
         setError(null)
+        setLoadFailure(null)
       })
-      .catch(() => setError('Case studies could not be loaded.'))
+      .catch(() => {
+        setStudies([])
+        setError(null)
+        setLoadFailure(presentHttpFailure({ offline: true }))
+      })
       .finally(() => setLoading(false))
   }, [])
 
@@ -277,8 +294,12 @@ export default function CaseStudiesPage() {
         </Card>
       )}
 
-      {loading ? (
-        <ListSkeleton />
+      {loadFailure ? (
+        <ErrorState failure={loadFailure} onRetry={() => void load()} />
+      ) : loading ? (
+        <LoadingState label="Loading case studies" onRetry={() => void load()}>
+          <ListSkeleton />
+        </LoadingState>
       ) : studies.length === 0 ? (
         <EmptyState
           title="No case studies"

@@ -1,8 +1,17 @@
 'use client'
 
 import { useCallback, useEffect, useState } from 'react'
-import { Button, Card, Modal, useDestructiveConfirm } from '@/components/ui'
+import {
+  Button,
+  Card,
+  ErrorState,
+  LoadingState,
+  Modal,
+  useDestructiveConfirm,
+} from '@/components/ui'
 import { useAuth } from '@/contexts/AuthContext'
+import type { ApiFailurePresentation } from '@/lib/api-error'
+import { failureOf, isAbortError, readSectionJson } from '@/lib/section-load'
 import { deleteNotificationPolicy } from '@/lib/notification-policy-delete'
 import { toggleNotificationPolicy } from '@/lib/notification-policy-toggle'
 import {
@@ -114,6 +123,9 @@ export default function ComplianceAlertsPage() {
   const [logTotal, setLogTotal] = useState(0)
   const [logPage, setLogPage] = useState(1)
   const [loading, setLoading] = useState(true)
+  const [loadFailure, setLoadFailure] = useState<ApiFailurePresentation | null>(
+    null
+  )
   const [addOpen, setAddOpen] = useState(false)
   const [addEvt, setAddEvt] = useState('')
   const [addRecipType, setAddRecipType] = useState('admins')
@@ -189,28 +201,50 @@ export default function ComplianceAlertsPage() {
 
   const load = useCallback(() => {
     setLoading(true)
+    setLoadFailure(null)
     Promise.all([
       fetch('/api/compliance-alerts/active', { credentials: 'include' }).then(
-        (r) => (r.ok ? r.json() : { alerts: [] })
+        (r) => readSectionJson(r)
       ),
       fetch('/api/notifications/event-types', { credentials: 'include' }).then(
-        (r) => (r.ok ? r.json() : { event_types: [] })
+        (r) => readSectionJson(r)
       ),
       fetch('/api/notifications/policies', { credentials: 'include' }).then(
-        (r) => (r.ok ? r.json() : { policies: [] })
+        (r) => readSectionJson(r)
       ),
       fetch(`/api/notifications/log?page=${logPage}&page_size=25`, {
         credentials: 'include',
-      }).then((r) => (r.ok ? r.json() : { entries: [], total: 0 })),
+      }).then((r) => readSectionJson(r)),
     ])
       .then(([alertsData, evtData, polData, logData]) => {
-        setActiveAlerts(alertsData.alerts ?? [])
-        setEventTypes(evtData.event_types ?? [])
-        setPolicies(polData.policies ?? [])
-        setLogEntries(logData.entries ?? [])
-        setLogTotal(logData.total ?? 0)
+        const alerts = alertsData as { alerts?: ActiveAlert[] }
+        const events = evtData as { event_types?: string[] }
+        const policies = polData as { policies?: Policy[] }
+        const log = logData as { entries?: LogEntry[]; total?: number }
+        if (
+          !Array.isArray(alerts.alerts) ||
+          !Array.isArray(events.event_types) ||
+          !Array.isArray(policies.policies) ||
+          !Array.isArray(log.entries)
+        ) {
+          throw new Error('malformed')
+        }
+        setActiveAlerts(alerts.alerts)
+        setEventTypes(events.event_types)
+        setPolicies(policies.policies)
+        setLogEntries(log.entries)
+        setLogTotal(log.total ?? 0)
+        setLoadFailure(null)
       })
-      .catch(() => {})
+      .catch((error: unknown) => {
+        if (isAbortError(error)) return
+        setActiveAlerts([])
+        setEventTypes([])
+        setPolicies([])
+        setLogEntries([])
+        setLogTotal(0)
+        setLoadFailure(failureOf(error))
+      })
       .finally(() => setLoading(false))
   }, [logPage])
 
@@ -380,10 +414,14 @@ export default function ComplianceAlertsPage() {
 
       {channelCard}
 
-      {loading ? (
-        <Card className="p-6">
-          <p className="text-[var(--tc-muted)]">Loading alerts...</p>
-        </Card>
+      {loadFailure ? (
+        <ErrorState failure={loadFailure} onRetry={() => void load()} />
+      ) : loading ? (
+        <LoadingState label="Loading alerts" onRetry={() => void load()}>
+          <Card className="p-6">
+            <p className="text-tc-label text-tc-muted">Loading alerts</p>
+          </Card>
+        </LoadingState>
       ) : (
         <>
           {/* ── SECTION 1 — Active Alerts / Important Now ── */}

@@ -97,9 +97,9 @@ def resolve_workspace_for_trust_request(
         return ws.id, "explicit_id"
 
     from app.core.config import get_settings
+    from app.core.session import is_production_env
 
-    settings = get_settings()
-    if settings.app_env == "production":
+    if is_production_env({"APP_ENV": get_settings().app_env}):
         raise HTTPException(
             status_code=400,
             detail="Workspace slug is required for public trust submissions",
