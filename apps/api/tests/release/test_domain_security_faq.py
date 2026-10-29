@@ -16,7 +16,7 @@ from sqlalchemy.exc import DBAPIError, IntegrityError
 from sqlalchemy.orm import Session
 
 from app.core.session import sign_session
-from app.models import ApiKey, AuditEvent, EvidenceItem, User, Workspace, WorkspaceMember
+from app.models import ApiKey, AuditEvent, Document, EvidenceItem, User, Workspace, WorkspaceMember
 from app.models.security_faq import SecurityFAQ, SecurityFAQRevision, SecurityFAQSource
 
 ARCHIVES = (
@@ -36,6 +36,7 @@ def domain(client, db_session):
         "security_faq_sources",
         "security_faq_revisions",
         "evidence_items",
+        "documents",
         "audit_events",
         "idempotency_keys",
         "api_keys",
@@ -110,6 +111,9 @@ def domain(client, db_session):
         synchronize_session=False
     )
     db_session.query(EvidenceItem).filter(EvidenceItem.workspace_id.in_(ids)).delete(
+        synchronize_session=False
+    )
+    db_session.query(Document).filter(Document.workspace_id.in_(ids)).delete(
         synchronize_session=False
     )
     db_session.query(WorkspaceMember).filter(WorkspaceMember.workspace_id.in_(ids)).delete(
@@ -771,3 +775,21 @@ def test_idempotency_claim_commit_cannot_bypass_a_concurrent_demotion(domain, mo
         .scalar()
         == 0
     )
+
+
+def test_document_replacement_invalidates_reviewed_evidence(domain):
+    d = domain
+    document = Document(
+        workspace_id=d["ws"], storage_key=f"synthetic/{d['suffix']}/v1.txt", filename="Policy.txt"
+    )
+    d["db"].add(document)
+    d["db"].flush()
+    d["db"].get(EvidenceItem, d["evidence"]).document_id = document.id
+    d["db"].commit()
+    faq = publish(d)
+    document.storage_key = f"synthetic/{d['suffix']}/v2.txt"
+    d["db"].commit()
+    assert d["client"].get("/api/security-faq/published").json()["faqs"] == []
+    assert action(d, faq, "publish").status_code == 409
+    assert action(d, faq, "approve", verified=True).status_code == 200
+    assert action(d, faq, "publish").status_code == 200

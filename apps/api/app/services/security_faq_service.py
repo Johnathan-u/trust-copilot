@@ -178,15 +178,12 @@ def _check_sources(db, workspace_id, ids, *, approved=False, lock=False):
         raise HTTPException(404, "Evidence not found")
     for row in rows:
         if row.document_id:
-            doc = (
-                db.query(Document.id)
-                .filter(
-                    Document.id == row.document_id,
-                    Document.workspace_id == workspace_id,
-                    Document.deleted_at.is_(None),
-                )
-                .first()
+            doc_query = db.query(Document.id).filter(
+                Document.id == row.document_id,
+                Document.workspace_id == workspace_id,
+                Document.deleted_at.is_(None),
             )
+            doc = (doc_query.with_for_update(read=True) if lock else doc_query).first()
             if doc is None:
                 raise HTTPException(404, "Evidence not found")
         if approved and row.approval_status != "approved":
@@ -204,12 +201,28 @@ def _evidence_digest(db, item):
         .order_by(EvidenceItem.id)
         .all()
     )
+    documents = {
+        d.id: [
+            d.storage_key,
+            d.filename,
+            d.content_type,
+            d.metadata_,
+            d.updated_at.isoformat() if d.updated_at else None,
+        ]
+        for d in db.query(Document)
+        .filter(
+            Document.id.in_([r.document_id for r in rows if r.document_id]),
+            Document.workspace_id == item.workspace_id,
+        )
+        .populate_existing()
+    }
     values = [
         [
             r.id,
             r.title,
             r.source_type,
             r.document_id,
+            documents.get(r.document_id),
             r.source_metadata,
             r.approval_status,
             r.approved_by_user_id,
