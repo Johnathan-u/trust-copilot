@@ -320,9 +320,12 @@ function ControlForm({
         credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          ...(requestedOwner !== null ? { owner_user_id: requestedOwner } : {}),
-          owner_team: team,
-          status: lifecycle,
+          ...(requestedOwner !== null &&
+          requestedOwner !== baseline.owner_user_id
+            ? { owner_user_id: requestedOwner }
+            : {}),
+          ...(team !== (baseline.owner_team ?? '') ? { owner_team: team } : {}),
+          ...(lifecycle !== baseline.lifecycle ? { status: lifecycle } : {}),
         }),
       })
       const acknowledged = readControl(await readSectionJson(response))
@@ -482,6 +485,29 @@ function EvidenceReview({
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
   const [saved, setSaved] = useState(false)
+  const [freshnessKnown, setFreshnessKnown] = useState(true)
+
+  async function refreshFreshness() {
+    const body = await readSectionJson(
+      await fetch(`/api/compliance/controls/${controlId}/evidence`, {
+        credentials: 'include',
+      })
+    )
+    const refreshed = readEvidence(body).find((item) => item.id === link.id)
+    if (!refreshed) throw new Error('Evidence unavailable')
+    setLink(refreshed)
+    setFreshnessKnown(true)
+  }
+  async function retryFreshness() {
+    setBusy(true)
+    try {
+      await refreshFreshness()
+    } catch {
+      setFreshnessKnown(false)
+    } finally {
+      setBusy(false)
+    }
+  }
   async function review() {
     if (busy) return
     setBusy(true)
@@ -500,11 +526,20 @@ function EvidenceReview({
         )
       )
       const acknowledged = readEvidence([body])[0]
-      if (acknowledged.verified === link.verified)
+      if (
+        acknowledged.id !== link.id ||
+        acknowledged.verified === link.verified
+      )
         throw new Error('Unconfirmed review')
-      // Review responses do not re-evaluate expiry metadata; retain the read snapshot.
       setLink({ ...link, verified: acknowledged.verified })
       setSaved(true)
+      setFreshnessKnown(false)
+      // The read endpoint evaluates expiry metadata and verification age together.
+      try {
+        await refreshFreshness()
+      } catch {
+        setFreshnessKnown(false)
+      }
     } catch {
       setError(
         'Evidence review could not be saved. Its verification status is unchanged. Try again.'
@@ -528,11 +563,13 @@ function EvidenceReview({
         <div>
           <dt className="text-tc-muted">Freshness</dt>
           <dd className="text-tc-text">
-            {link.expired
-              ? 'Expired'
-              : link.stale
-                ? 'Needs refresh'
-                : 'Current according to the latest check'}
+            {!freshnessKnown
+              ? 'Freshness unavailable'
+              : link.expired
+                ? 'Expired'
+                : link.stale
+                  ? 'Needs refresh'
+                  : 'Current according to the latest check'}
           </dd>
         </div>
       </dl>
@@ -543,6 +580,15 @@ function EvidenceReview({
             ? 'Mark unverified'
             : 'Verify evidence link'}
       </Button>
+      {!freshnessKnown ? (
+        <Button
+          variant="secondary"
+          disabled={busy}
+          onClick={() => void retryFreshness()}
+        >
+          Retry freshness check
+        </Button>
+      ) : null}
       {error ? (
         <p role="alert" className="text-tc-text">
           {error}

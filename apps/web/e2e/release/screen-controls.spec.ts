@@ -290,7 +290,7 @@ test('save sends selected member, waits for acknowledgement and keeps rejected e
     page.getByRole('button', { name: 'Saving changes', exact: true })
   ).toBeDisabled()
   await expect(page.getByText('Changes saved', { exact: true })).toHaveCount(0)
-  await expect.poll(() => posted).toMatchObject({ owner_user_id: 43 })
+  await expect.poll(() => posted).toEqual({ owner_user_id: 43 })
   release()
   await expect(page.getByRole('alert')).toContainText(
     'Changes could not be saved'
@@ -492,14 +492,31 @@ for (const width of [360, 768, 1440]) {
   })
 }
 
-test('successful evidence review preserves the expiry snapshot', async ({
+test('successful evidence review refreshes expiry and verification state', async ({
   page,
 }) => {
   await installApi(page)
-  await page.route('**/api/compliance/controls/41/evidence/61', (route) =>
-    json(route, {
+  let verified = true
+  await page.route('**/api/compliance/controls/41/evidence', (route) =>
+    json(route, [
+      {
+        id: 61,
+        verified,
+        stale: true,
+        expired: true,
+        evidence: {
+          title: 'Access review record',
+          source_type: 'manual',
+          created_at: null,
+        },
+      },
+    ])
+  )
+  await page.route('**/api/compliance/controls/41/evidence/61', (route) => {
+    verified = false
+    return json(route, {
       id: 61,
-      verified: false,
+      verified,
       stale: false,
       expired: false,
       evidence: {
@@ -508,7 +525,7 @@ test('successful evidence review preserves the expiry snapshot', async ({
         created_at: null,
       },
     })
-  )
+  })
   await page.goto('/dashboard/controls/41')
   await page
     .getByRole('button', { name: 'Mark unverified', exact: true })
@@ -520,4 +537,85 @@ test('successful evidence review preserves the expiry snapshot', async ({
     page.getByRole('button', { name: 'Verify evidence link', exact: true })
   ).toBeVisible()
   await expect(page.getByText('Expired', { exact: true })).toBeVisible()
+})
+
+test('unverifying an old link refreshes its newly stale freshness', async ({
+  page,
+}) => {
+  await installApi(page)
+  let verified = true
+  await page.route('**/api/compliance/controls/41/evidence', (route) =>
+    json(route, [
+      {
+        id: 61,
+        verified,
+        stale: !verified,
+        expired: false,
+        evidence: {
+          title: 'Access review record',
+          source_type: 'manual',
+          created_at: '2026-01-01T00:00:00Z',
+        },
+      },
+    ])
+  )
+  await page.route('**/api/compliance/controls/41/evidence/61', (route) => {
+    verified = false
+    return json(route, {
+      id: 61,
+      verified,
+      stale: true,
+      expired: false,
+      evidence: {
+        title: 'Access review record',
+        source_type: 'manual',
+        created_at: '2026-01-01T00:00:00Z',
+      },
+    })
+  })
+  await page.goto('/dashboard/controls/41')
+  await expect(
+    page.getByText('Current according to the latest check')
+  ).toBeVisible()
+  await page
+    .getByRole('button', { name: 'Mark unverified', exact: true })
+    .click()
+  await expect(page.getByText('Needs refresh', { exact: true })).toBeVisible()
+})
+
+test('confirmed review with failed freshness read remains an explicit partial success', async ({
+  page,
+}) => {
+  await installApi(page)
+  let reviewed = false
+  await page.route('**/api/compliance/controls/41/evidence', (route) =>
+    reviewed ? json(route, {}, 500) : route.fallback()
+  )
+  await page.route('**/api/compliance/controls/41/evidence/61', (route) => {
+    reviewed = true
+    return json(route, {
+      id: 61,
+      verified: false,
+      stale: false,
+      expired: false,
+      evidence: {
+        title: 'Access review record',
+        source_type: 'manual',
+        created_at: null,
+      },
+    })
+  })
+  await page.goto('/dashboard/controls/41')
+  await page
+    .getByRole('button', { name: 'Mark unverified', exact: true })
+    .click()
+  await expect(
+    page.getByText('Evidence review saved', { exact: true })
+  ).toBeVisible()
+  await expect(
+    page.getByText('Freshness unavailable', { exact: true })
+  ).toBeVisible()
+  await expect(
+    page.getByRole('button', { name: 'Retry freshness check' })
+  ).toBeEnabled()
 })
