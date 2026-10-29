@@ -3,6 +3,7 @@
 import logging
 import json
 from datetime import datetime, timezone
+from uuid import uuid4
 
 from fastapi import (
     APIRouter,
@@ -28,7 +29,7 @@ from app.core.database import get_db
 from app.models import TrustRequest, TrustRequestNote, User, Workspace, WorkspaceMember
 from app.models.trust_request_note import NOTE_TYPE_INTERNAL, NOTE_TYPE_REPLY
 from app.services import trust_request_service as trust_svc
-from app.services.file_service import ALLOWED_RAW_EXTENSIONS, FileService
+from app.services.file_service import ALLOWED_RAW_EXTENSIONS, sanitize_filename
 from pathlib import Path
 import hashlib
 from app.core.config import get_settings
@@ -50,10 +51,6 @@ from app.services.storage import StorageClient, get_storage
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/trust-requests", tags=["trust-requests"])
-
-
-def get_file_service(storage: StorageClient = Depends(get_storage)) -> FileService:
-    return FileService(storage)
 
 
 def require_current_reviewer(
@@ -191,7 +188,7 @@ def _persist_intake(
     db: Session,
     client_key: str | None,
     document: UploadFile | None = None,
-    file_svc: FileService | None = None,
+    storage: StorageClient | None = None,
 ):
     host = request.headers.get("host") or ""
     path = request.headers.get("x-trust-path") or ""
@@ -203,8 +200,11 @@ def _persist_intake(
         submitted_path=path,
     )
     file_hash = None
+    content = None
+    filename = None
     if document and document.filename and document.file:
-        ext = Path(document.filename).suffix.lower()
+        filename = sanitize_filename(document.filename)
+        ext = Path(filename).suffix.lower()
         if ext not in ALLOWED_RAW_EXTENSIONS:
             raise HTTPException(400, "File type is not supported.")
         content = document.file.read(get_settings().max_upload_bytes + 1)
@@ -212,7 +212,6 @@ def _persist_intake(
         if len(content) > get_settings().max_upload_bytes:
             raise HTTPException(413, "File is too large.")
         file_hash = hashlib.sha256(content).hexdigest()
-        del content
     digest = trust_svc.fingerprint(
         {
             **body.model_dump(),
@@ -243,22 +242,24 @@ def _persist_intake(
         db.flush()
         req.display_id = build_display_id("trust_request", req.id)
         if file_hash is not None:
-            uploaded_key, filename, size = file_svc.upload_trust_request_attachment(
-                ws_id, req.id, document
+            # Own the key before the network call: an upload may write then time out.
+            uploaded_key = f"trust-requests/{ws_id}/{req.id}/{uuid4().hex}{ext}"
+            storage.upload(
+                storage.bucket_raw, uploaded_key, content, content_type=document.content_type
             )
             req.attachment_filename, req.attachment_storage_key, req.attachment_size = (
                 filename,
                 uploaded_key,
-                size,
+                len(content),
             )
         response = _to_dict(req, db)
         trust_svc.finish_intake(db, key, owner, digest, response)
         return response
     except Exception as exc:
         trust_svc.abort_intake(db, key, owner)
-        if uploaded_key and file_svc:
+        if uploaded_key and storage:
             try:
-                file_svc.delete_raw(uploaded_key)
+                storage.delete(storage.bucket_raw, uploaded_key)
             except Exception:
                 logger.error("trust attachment cleanup requires reconciliation")
         if isinstance(exc, HTTPException):
@@ -291,7 +292,7 @@ def submit_trust_request_with_attachment(
     workspace_slug: str | None = Form(None),
     document: UploadFile | None = File(None),
     db: Session = Depends(get_db),
-    file_svc: FileService = Depends(get_file_service),
+    storage: StorageClient = Depends(get_storage),
     idempotency_key: str | None = Header(None, alias="Idempotency-Key"),
 ):
     """Submit a trust request with one permitted, bounded attachment."""
@@ -306,7 +307,7 @@ def submit_trust_request_with_attachment(
         )
     except ValidationError as exc:
         raise RequestValidationError(exc.errors()) from None
-    return _persist_intake(body, request, db, idempotency_key, document, file_svc)
+    return _persist_intake(body, request, db, idempotency_key, document, storage)
 
 
 # ---------------------------------------------------------------------------

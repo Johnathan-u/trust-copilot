@@ -191,9 +191,12 @@ def submit(d, headers=None):
 
 def test_attachment_storage_failure_is_honest_and_creates_no_orphan(domain):
     before = counts(domain["db"])
-    with patch(
-        "app.api.routes.trust_requests.FileService.upload_trust_request_attachment",
-        side_effect=RuntimeError("SYNTHETIC-SENSITIVE-PROVIDER-DETAIL"),
+    with (
+        patch(
+            "app.api.routes.trust_requests.StorageClient.upload",
+            side_effect=RuntimeError("SYNTHETIC-SENSITIVE-PROVIDER-DETAIL"),
+        ),
+        patch("app.api.routes.trust_requests.StorageClient.delete"),
     ):
         response = submit(domain)
     assert response.status_code == 502
@@ -262,13 +265,9 @@ def test_attachment_is_durable_downloadable_and_retry_does_not_reupload(domain):
 
 def test_post_upload_database_failure_compensates_blob_and_releases_retry(domain):
     before = counts(domain["db"])
-    key = f"trust-requests/1/{domain['own']}/synthetic.txt"
     with (
-        patch(
-            "app.api.routes.trust_requests.FileService.upload_trust_request_attachment",
-            return_value=(key, "request.txt", 17),
-        ),
-        patch("app.api.routes.trust_requests.FileService.delete_raw") as delete,
+        patch("app.api.routes.trust_requests.StorageClient.upload") as upload,
+        patch("app.api.routes.trust_requests.StorageClient.delete") as delete,
         patch(
             "app.services.trust_request_service.finish_intake", side_effect=RuntimeError("PRIVATE")
         ),
@@ -276,7 +275,36 @@ def test_post_upload_database_failure_compensates_blob_and_releases_retry(domain
         response = submit(domain, {"Idempotency-Key": domain["suffix"] + "-failure"})
     assert response.status_code == 502
     assert "PRIVATE" not in response.text
-    delete.assert_called_once_with(key)
+    bucket, key = upload.call_args.args[:2]
+    delete.assert_called_once_with(bucket, key)
+    assert counts(domain["db"]) == before
+
+
+def test_attachment_timeout_after_write_compensates_known_key(domain):
+    from app.main import app
+    from app.services.storage import get_storage
+
+    class Storage:
+        bucket_raw = "synthetic"
+        objects = {}
+        deleted = []
+
+        def upload(self, bucket, key, content, **kwargs):
+            self.objects[key] = content
+            raise TimeoutError("SYNTHETIC-PRIVATE-STORAGE-TIMEOUT")
+
+        def delete(self, bucket, key):
+            self.deleted.append(key)
+            self.objects.pop(key, None)
+
+    storage = Storage()
+    before = counts(domain["db"])
+    with patch.dict(app.dependency_overrides, {get_storage: lambda: storage}):
+        response = submit(domain, {"Idempotency-Key": domain["suffix"] + "-timeout"})
+    assert response.status_code == 502
+    assert "SYNTHETIC-PRIVATE" not in response.text
+    assert len(storage.deleted) == 1
+    assert not storage.objects
     assert counts(domain["db"]) == before
 
 
@@ -366,8 +394,9 @@ def test_public_intake_retry_is_one_persisted_request(domain):
         ("requester_email", "a\0@example.com"),
         ("requester_email", "İ" * 243 + "@example.com"),
         ("message", "hello\0there"),
+        ("message", "hello\ud800there"),
     ],
-    ids=["nul-email", "unicode-expansion", "nul-message"],
+    ids=["nul-email", "unicode-expansion", "nul-message", "surrogate-message"],
 )
 def test_intake_schema_rejects_unstorable_text(field, value):
     from app.api.routes.trust_requests import TrustRequestCreate
@@ -435,6 +464,31 @@ def test_approved_revision_delivery_and_retry_survive_new_db_session(domain):
     response = client.patch(f"/api/trust-requests/{domain['own']}", json={"status": "completed"})
     assert response.status_code == 200
     assert response.json()["status"] == "completed"
+
+
+def test_delivery_outcome_survives_request_archival_during_send(domain):
+    from datetime import datetime, timezone
+
+    note_id = _draft(domain)
+    client = _human(domain)
+    assert (
+        client.post(_reply_url(domain, note_id, "approve"), json={"revision": 1}).status_code == 200
+    )
+
+    class Provider:
+        def send(self, message):
+            domain["db"].get(TrustRequest, domain["own"]).deleted_at = datetime.now(timezone.utc)
+            domain["db"].commit()
+            return True
+
+    with patch("app.services.trust_request_service.get_email_provider", return_value=Provider()):
+        sent = client.post(_reply_url(domain, note_id, "send"), json={"revision": 1})
+    assert sent.status_code == 200
+    assert sent.json()["delivery_status"] == "accepted"
+    assert sent.json()["delivery_accepted_at"] is not None
+    assert client.get(f"/api/trust-requests/{domain['own']}").status_code == 404
+    domain["db"].expire_all()
+    assert domain["db"].get(TrustRequestNote, note_id).delivery_status == "accepted"
 
 
 def test_edit_invalidates_approval_and_stale_revision_cannot_send(domain):
@@ -675,7 +729,9 @@ def test_assigning_suspended_member_fails_without_changing_status(domain):
     assert domain["db"].get(TrustRequest, domain["foreign"]).status == "new"
 
 
-@pytest.mark.parametrize("changed_while_downgraded", [False, True])
+@pytest.mark.parametrize(
+    "changed_while_downgraded", [None, "body", "recipient", "subject", "workspace"]
+)
 def test_migration_restores_nondefault_reply_provenance(domain, changed_while_downgraded):
     import importlib.util
     from pathlib import Path
@@ -719,12 +775,22 @@ def test_migration_restores_nondefault_reply_provenance(domain, changed_while_do
                     {"id": note_id},
                 ).one()
                 assert held == (3, "delivery_outcome_unknown")
-                if changed_while_downgraded:
+                if changed_while_downgraded == "body":
                     connection.execute(
                         text(
                             "UPDATE trust_request_notes SET body='Changed by old app' WHERE id=:id"
                         ),
                         {"id": note_id},
+                    )
+                elif changed_while_downgraded:
+                    change = {
+                        "recipient": "requester_email='different@example.com'",
+                        "subject": "subject='Changed subject'",
+                        "workspace": "workspace_id=2",
+                    }[changed_while_downgraded]
+                    connection.execute(
+                        text(f"UPDATE trust_requests SET {change} WHERE id=:id"),
+                        {"id": domain["own"]},
                     )
                 migration.upgrade()
             restored = (

@@ -135,16 +135,16 @@ def add_audit(
     )
 
 
-def reply_for_update(db: Session, workspace_id: int, request_id: int, note_id: int):
-    req = (
-        db.query(TrustRequest)
-        .filter(
-            TrustRequest.id == request_id,
-            TrustRequest.workspace_id == workspace_id,
-            TrustRequest.deleted_at.is_(None),
-        )
-        .first()
+def reply_for_update(
+    db: Session, workspace_id: int, request_id: int, note_id: int, *, include_archived: bool = False
+):
+    request_query = db.query(TrustRequest).filter(
+        TrustRequest.id == request_id,
+        TrustRequest.workspace_id == workspace_id,
     )
+    if not include_archived:
+        request_query = request_query.filter(TrustRequest.deleted_at.is_(None))
+    req = request_query.first()
     if req is None:
         raise HTTPException(404, "Reply not found")
     note = (
@@ -249,7 +249,7 @@ def send_reply(
     except Exception:
         accepted = False
     # False/exception is uncertain: SMTP may have accepted before losing the response.
-    req, note = reply_for_update(db, workspace_id, request_id, note_id)
+    req, note = reply_for_update(db, workspace_id, request_id, note_id, include_archived=True)
     note.delivery_status = "accepted" if accepted else "uncertain"
     note.delivery_error = None if accepted else "delivery_outcome_unknown"
     if accepted:

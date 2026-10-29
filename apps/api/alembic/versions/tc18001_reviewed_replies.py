@@ -2,11 +2,12 @@
 
 Downgrade moves the added values into hold tables attached to the original rows.
 Upgrade restores them without inventing legacy approval. If an old application edits
-body text while downgraded, the held approval is retained in the hold table but is
-not restored onto the changed body. The new revision requires fresh review.
+body text or its request's recipient, subject or workspace while downgraded,
+the held approval is retained but is not restored. The reply needs fresh review.
 """
 
 import hashlib
+import json
 
 import sqlalchemy as sa
 from alembic import op
@@ -19,6 +20,24 @@ depends_on = None
 NOTE = "trust_request_notes"
 NOTE_HOLD = "tc18001_reply_hold"
 REQ_HOLD = "tc18001_intake_hold"
+
+
+def review_hash(row):
+    """Bind held review to the immutable text and its delivery/tenant context."""
+    context = {
+        name: row[name]
+        for name in (
+            "body",
+            "trust_request_id",
+            "workspace_id",
+            "requester_email",
+            "subject",
+            "note_type",
+        )
+    }
+    return hashlib.sha256(
+        json.dumps(context, sort_keys=True, ensure_ascii=True).encode()
+    ).hexdigest()
 
 
 def columns():
@@ -64,12 +83,14 @@ def upgrade():
     names = [c.name for c in columns()]
     if NOTE_HOLD in tables:
         held = bind.execute(
-            sa.text(f"SELECT h.*, n.body FROM {NOTE_HOLD} h JOIN {NOTE} n ON n.id=h.note_id")
+            sa.text(
+                f"SELECT h.*, n.body, n.trust_request_id, n.note_type, r.workspace_id, r.requester_email, r.subject FROM {NOTE_HOLD} h JOIN {NOTE} n ON n.id=h.note_id JOIN trust_requests r ON r.id=n.trust_request_id"
+            )
         ).mappings()
         for row in held:
             values = {name: row[name] for name in names}
-            same_body = hashlib.sha256(row["body"].encode()).hexdigest() == row["body_hash"]
-            if not same_body:
+            same_context = review_hash(row) == row["review_hash"]
+            if not same_context:
                 # Old binaries cannot update the hidden revision. Re-review the changed text.
                 values.update(
                     body_revision=None,
@@ -119,7 +140,7 @@ def downgrade():
                 sa.ForeignKey(f"{NOTE}.id", ondelete="CASCADE"),
                 primary_key=True,
             ),
-            sa.Column("body_hash", sa.String(64), nullable=False),
+            sa.Column("review_hash", sa.String(64), nullable=False),
             *columns(),
         )
     if REQ_HOLD not in tables:
@@ -134,19 +155,23 @@ def downgrade():
             sa.Column("intake_version", sa.Integer(), nullable=True),
         )
     names = [c.name for c in columns()]
-    for row in bind.execute(sa.text(f"SELECT id, body, {', '.join(names)} FROM {NOTE}")).mappings():
+    for row in bind.execute(
+        sa.text(
+            f"SELECT n.id, n.body, n.trust_request_id, n.note_type, r.workspace_id, r.requester_email, r.subject, {', '.join('n.'+name for name in names)} FROM {NOTE} n JOIN trust_requests r ON r.id=n.trust_request_id"
+        )
+    ).mappings():
         values = {name: row[name] for name in names}
         if all(value is None for value in values.values()):
             continue
         bind.execute(
             sa.text(
-                f"INSERT INTO {NOTE_HOLD} (note_id,body_hash,{','.join(names)}) VALUES (:id,:body_hash,{','.join(':'+n for n in names)}) ON CONFLICT (note_id) DO UPDATE SET body_hash=EXCLUDED.body_hash,"
+                f"INSERT INTO {NOTE_HOLD} (note_id,review_hash,{','.join(names)}) VALUES (:id,:review_hash,{','.join(':'+n for n in names)}) ON CONFLICT (note_id) DO UPDATE SET review_hash=EXCLUDED.review_hash,"
                 + ",".join(f"{n}=EXCLUDED.{n}" for n in names)
             ),
             {
                 **values,
                 "id": row["id"],
-                "body_hash": hashlib.sha256(row["body"].encode()).hexdigest(),
+                "review_hash": review_hash(row),
             },
         )
     bind.execute(
