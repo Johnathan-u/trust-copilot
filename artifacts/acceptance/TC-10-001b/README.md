@@ -1,10 +1,12 @@
 # TC-10-001b acceptance evidence
 
-These commands ran on `2ed56213b532f4706c4d00a4b68aa97d238180ca` (`2ed5621`). This README commit does not change that code.
+These commands ran on merge `bc6a4dda1376b7de3bdbcaedec4bf946f481ecdd` (`bc6a4dd`). This README commit does not change that code.
 
-`2ed5621` documents the grace recovery. The behavior is `50af065`. No migration. Alembic head stayed `tc10001_job_leases`.
+`bc6a4dd` is a pure merge of `origin/master` `80607881320e1fa2c6416c55730eb98a56449f26` (`8060788`) into `ee0389e`. Parents: `ee0389e8c399d0283def77b7d560a12022fb7a21` and `80607881320e1fa2c6416c55730eb98a56449f26`. The merge had no conflicts. Its diff against `ee0389e` is only the files those master commits changed.
 
-Base at branch cut: `origin/master` `b90a1e8de1c455bf27bdf09db4ebb2f71deb70f3` (`b90a1e8`). #94 is squash `da47b43` on that history.
+This branch still adds no migration. The commits before the merge (`50af065`, `2ed5621`, `ee0389e`) do not touch `alembic/versions`. Master added `084_tc02001a_parent_workspace_move.py`, revision `tc02001a_parent_ws_move`, `down_revision = tc10001_job_leases`. `alembic heads` prints one head: `tc02001a_parent_ws_move`.
+
+Base at branch cut was `b90a1e8de1c455bf27bdf09db4ebb2f71deb70f3` (`b90a1e8`). #94 is squash `da47b43` on that history.
 
 ## Environment
 
@@ -22,18 +24,20 @@ No migration. `jobs.updated_at` and `jobs.started_at` already exist. The grace p
 
 | What | Command | SHA | Exit | Totals |
 |---|---|---|---|---|
-| Ruff | `cd apps/api && ruff check . && ruff format --check .` | `2ed56213b532f4706c4d00a4b68aa97d238180ca` | 0 | check passed; 667 files already formatted |
-| Alembic heads | `cd apps/api && alembic heads` | `2ed56213b532f4706c4d00a4b68aa97d238180ca` | 0 | `tc10001_job_leases (head)` |
-| Config contract (generated doc, env scan) | `pytest tests/release/test_config_contract.py::test_contract_doc_is_generated_from_code tests/release/test_config_contract.py::test_every_env_var_read_by_the_api_is_in_the_contract -q --tb=line` | `2ed56213b532f4706c4d00a4b68aa97d238180ca` | 0 | **2 passed** |
-| Lease tests, including TC-10-001b | `pytest tests/release/test_job_leases.py -q --tb=line` | `2ed56213b532f4706c4d00a4b68aa97d238180ca` | 0 | **24 passed** |
-| Threaded model outcomes | `pytest tests/release/test_model_outcomes_threaded.py -q --tb=line` | `2ed56213b532f4706c4d00a4b68aa97d238180ca` | 0 | **1 passed** |
-| Safe collection | `pytest tests/release/test_safe_collection.py -q --tb=line` | `2ed56213b532f4706c4d00a4b68aa97d238180ca` | 0 | **29 passed** |
-| Heads / migration | `pytest tests/release/test_cross_workspace_refs.py::test_trigger_revision_is_on_the_single_alembic_head_chain tests/release/test_provider_adapter.py::test_migration_columns_present tests/release/test_provider_adapter.py::test_migration_has_unique_descriptive_revision_after_075 tests/release/test_job_retries.py::test_migration_downgrade_and_upgrade_roundtrip -q --tb=line` | `2ed56213b532f4706c4d00a4b68aa97d238180ca` | 0 | **4 passed** |
-| Retries | `pytest tests/release/test_job_retries.py -q --tb=line` | `2ed56213b532f4706c4d00a4b68aa97d238180ca` | 0 | **70 passed** |
-| Idempotency | `pytest tests/release/test_job_idempotency.py -q --tb=line` | `2ed56213b532f4706c4d00a4b68aa97d238180ca` | 0 | **47 passed** |
-| TC-10-003d | `pytest tests/release/test_auto_generate_enqueue_conflict.py -q --tb=line` | `2ed56213b532f4706c4d00a4b68aa97d238180ca` | 0 | **5 passed** |
+| Ruff | `cd apps/api && ruff check . && ruff format --check .` | `bc6a4dda1376b7de3bdbcaedec4bf946f481ecdd` | 0 | check passed; format check passed |
+| Alembic heads | `cd apps/api && alembic heads` | `bc6a4dda1376b7de3bdbcaedec4bf946f481ecdd` | 0 | `tc02001a_parent_ws_move (head)` |
+| Config contract | `pytest tests/release/test_config_contract.py -q --tb=line` | `bc6a4dda1376b7de3bdbcaedec4bf946f481ecdd` | 0 | **627 passed** |
+| Lease tests, including TC-10-001b | `pytest tests/release/test_job_leases.py -q --tb=line` | `bc6a4dda1376b7de3bdbcaedec4bf946f481ecdd` | 0 on re-run | **24 passed** |
+| Threaded model outcomes | `pytest tests/release/test_model_outcomes_threaded.py -q --tb=line` | `bc6a4dda1376b7de3bdbcaedec4bf946f481ecdd` | 0 | **1 passed** |
+| Safe collection | `pytest tests/release/test_safe_collection.py -q --tb=line` | `bc6a4dda1376b7de3bdbcaedec4bf946f481ecdd` | 0 | **29 passed** |
+| Heads / migration | `pytest tests/release/test_cross_workspace_refs.py::test_trigger_revision_is_on_the_single_alembic_head_chain tests/release/test_provider_adapter.py::test_migration_columns_present tests/release/test_provider_adapter.py::test_migration_has_unique_descriptive_revision_after_075 tests/release/test_job_retries.py::test_migration_downgrade_and_upgrade_roundtrip -q --tb=line` | `bc6a4dda1376b7de3bdbcaedec4bf946f481ecdd` | 0 | **4 passed** |
+| Retries | `pytest tests/release/test_job_retries.py -q --tb=line` | `bc6a4dda1376b7de3bdbcaedec4bf946f481ecdd` | 0 | **70 passed** |
+| Idempotency | `pytest tests/release/test_job_idempotency.py -q --tb=line` | `bc6a4dda1376b7de3bdbcaedec4bf946f481ecdd` | 0 | **47 passed** |
+| TC-10-003d | `pytest tests/release/test_auto_generate_enqueue_conflict.py -q --tb=line` | `bc6a4dda1376b7de3bdbcaedec4bf946f481ecdd` | 0 | **5 passed** |
 
-Suites ran one after another. After the last one, `alembic_version` was still `tc10001_job_leases`.
+Suites ran one after another. The test database was upgraded to `tc02001a_parent_ws_move` before the run, and `alembic_version` was still that revision after the last suite.
+
+The first lease run returned 5 from `test_null_lease_older_than_the_grace_is_recovered_once` because four pre-existing expired jobs in `trustcopilot_test` were classified in the same call (23 passed, 1 failed). The re-run on the same SHA, after those rows were no longer running, was 24 passed.
 
 ## What fails on master `b90a1e8`
 
