@@ -2,7 +2,7 @@
 
 from datetime import datetime, timezone
 
-from sqlalchemy import Column, DateTime, Float, ForeignKey, Integer, String, Text
+from sqlalchemy import CheckConstraint, Column, DateTime, Float, ForeignKey, Integer, String, Text
 
 from app.core.database import Base
 
@@ -20,10 +20,37 @@ GAP_STATUSES = ("open", "accepted", "dismissed")
 # report it separately.
 GAP_STATUS_RESOLVED = "resolved"
 ALL_GAP_STATUSES = GAP_STATUSES + (GAP_STATUS_RESOLVED,)
+# Codes regeneration stores on close_reason. NULL is also stored: a new gap has no closure,
+# and the 018a backfill leaves NULL when a resolved row has no parseable note.
+GAP_CLOSE_REASON_QUESTION_REMOVED = "question_removed"
+GAP_CLOSE_REASON_ANSWER_SUFFICIENT = "answer_sufficient"
+GAP_CLOSE_REASONS = (
+    GAP_CLOSE_REASON_QUESTION_REMOVED,
+    GAP_CLOSE_REASON_ANSWER_SUFFICIENT,
+)
+
+CK_EVIDENCE_GAPS_STATUS = "ck_evidence_gaps_status"
+CK_EVIDENCE_GAPS_CLOSE_REASON = "ck_evidence_gaps_close_reason"
+
+
+def _sql_in(column: str, values: tuple[str, ...]) -> str:
+    literals = ", ".join("'" + value + "'" for value in values)
+    return f"{column} IN ({literals})"
+
+
+# Same text as bug018b_gap_status_checks. A check that close_reason is set only when
+# status is resolved is intentionally absent: manual status changes leave close_reason
+# in place, and some resolved rows have a NULL close_reason.
+STATUS_CHECK_SQL = _sql_in("status", ALL_GAP_STATUSES)
+CLOSE_REASON_CHECK_SQL = "close_reason IS NULL OR " + _sql_in("close_reason", GAP_CLOSE_REASONS)
 
 
 class EvidenceGap(Base):
     __tablename__ = "evidence_gaps"
+    __table_args__ = (
+        CheckConstraint(STATUS_CHECK_SQL, name=CK_EVIDENCE_GAPS_STATUS),
+        CheckConstraint(CLOSE_REASON_CHECK_SQL, name=CK_EVIDENCE_GAPS_CLOSE_REASON),
+    )
 
     id = Column(Integer, primary_key=True, index=True)
     workspace_id = Column(

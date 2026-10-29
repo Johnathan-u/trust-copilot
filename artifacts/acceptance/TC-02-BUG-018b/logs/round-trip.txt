@@ -1,0 +1,44 @@
+=== alembic heads (exit 0) ===
+bug018b_gap_status_checks (head)
+
+=== constraints before ===
+('ck_evidence_gaps_close_reason', "CHECK (((close_reason IS NULL) OR ((close_reason)::text = ANY ((ARRAY['question_removed'::character varying, 'answer_sufficient'::character varying])::text[]))))", True)
+('ck_evidence_gaps_status', "CHECK (((status)::text = ANY ((ARRAY['open'::character varying, 'accepted'::character varying, 'dismissed'::character varying, 'resolved'::character varying])::text[])))", True)
+
+=== inserted id 126 ===
+('resolved', 'answer_sufficient', 'bug018b-log-row', datetime.datetime(2026, 10, 27, 14, 30, 15, tzinfo=datetime.timezone.utc))
+
+=== alembic downgrade tc21005_mapping_version (exit 0) ===
+INFO  [alembic.runtime.migration] Context impl PostgresqlImpl.
+INFO  [alembic.runtime.migration] Will assume transactional DDL.
+INFO  [alembic.runtime.migration] Running downgrade bug018b_gap_status_checks -> tc21005_mapping_version, CHECK constraints on evidence gap status and close_reason (TC-02-BUG-018b).
+
+=== constraints after downgrade ===
+[]
+
+=== row after downgrade ===
+('resolved', 'answer_sufficient', 'bug018b-log-row', datetime.datetime(2026, 10, 27, 14, 30, 15, tzinfo=datetime.timezone.utc))
+
+=== alembic upgrade head (exit 0) ===
+INFO  [alembic.runtime.migration] Context impl PostgresqlImpl.
+INFO  [alembic.runtime.migration] Will assume transactional DDL.
+INFO  [alembic.runtime.migration] Running upgrade tc21005_mapping_version -> bug018b_gap_status_checks, CHECK constraints on evidence gap status and close_reason (TC-02-BUG-018b).
+
+=== constraints after upgrade ===
+('ck_evidence_gaps_close_reason', "CHECK (((close_reason IS NULL) OR ((close_reason)::text = ANY ((ARRAY['question_removed'::character varying, 'answer_sufficient'::character varying])::text[]))))", True)
+('ck_evidence_gaps_status', "CHECK (((status)::text = ANY ((ARRAY['open'::character varying, 'accepted'::character varying, 'dismissed'::character varying, 'resolved'::character varying])::text[])))", True)
+
+=== row after upgrade ===
+('resolved', 'answer_sufficient', 'bug018b-log-row', datetime.datetime(2026, 10, 27, 14, 30, 15, tzinfo=datetime.timezone.utc))
+
+=== deleted synthetic row ===
+126
+
+=== alembic heads (exit 0) ===
+bug018b_gap_status_checks (head)
+
+=== alembic current (exit 0) ===
+bug018b_gap_status_checks (head)
+INFO  [alembic.runtime.migration] Context impl PostgresqlImpl.
+INFO  [alembic.runtime.migration] Will assume transactional DDL.
+
