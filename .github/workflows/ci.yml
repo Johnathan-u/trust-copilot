@@ -221,14 +221,22 @@ jobs:
           rm -f ../../artifacts/acceptance/TC-14-006/axe-*.json
           rm -f ../../artifacts/acceptance/TC-14-003a/axe-*.json
           rm -f ../../artifacts/acceptance/TC-16-BUG-001/axe-*.json
+<<<<<<< de66791b54507b122a9b2010ac54ef204525d92c
           rm -f ../../artifacts/acceptance/TC-04-001a-web/axe-*.json
+=======
+          rm -f ../../artifacts/acceptance/TC-14-006b/axe-*.json
+>>>>>>> cfeda5f02136ff4625923e2f551dadb832f286fc
 
           candidates=(
             e2e/release/design-tokens.spec.ts
             e2e/release/responsive-shell.spec.ts
             e2e/release/dialog-toast.spec.ts
             e2e/release/settings-access.spec.ts
+<<<<<<< de66791b54507b122a9b2010ac54ef204525d92c
             e2e/release/workspace-create-denied.spec.ts
+=======
+            e2e/release/drawer-followups.spec.ts
+>>>>>>> cfeda5f02136ff4625923e2f551dadb832f286fc
           )
           specs=()
           for spec in "${candidates[@]}"; do
@@ -254,6 +262,7 @@ jobs:
             --axe-dir ../../artifacts/acceptance/TC-14-006 \
             --axe-dir ../../artifacts/acceptance/TC-14-003a \
             --axe-dir ../../artifacts/acceptance/TC-16-BUG-001 \
+            --axe-dir ../../artifacts/acceptance/TC-14-006b \
             --require-spec e2e/release/design-tokens.spec.ts \
             --min-tests 4 \
             --require-spec e2e/release/responsive-shell.spec.ts \
@@ -262,9 +271,14 @@ jobs:
             --min-tests 8 \
             --require-spec e2e/release/settings-access.spec.ts \
             --min-tests 3 \
+<<<<<<< de66791b54507b122a9b2010ac54ef204525d92c
             --require-spec e2e/release/workspace-create-denied.spec.ts \
             --min-tests 8 \
             --axe-dir ../../artifacts/acceptance/TC-04-001a-web
+=======
+            --require-spec e2e/release/drawer-followups.spec.ts \
+            --min-tests 3
+>>>>>>> cfeda5f02136ff4625923e2f551dadb832f286fc
           checker_status=$?
           set -e
           echo "playwright exit ${playwright_status}; axe check exit ${checker_status}"
@@ -317,11 +331,20 @@ jobs:
           if-no-files-found: warn
           retention-days: 14
 
+<<<<<<< de66791b54507b122a9b2010ac54ef204525d92c
       - name: Upload workspace creation axe JSON
         if: ${{ !cancelled() }}
         uses: actions/upload-artifact@v4
         with:
           name: workspace-create-denied-axe-json
           path: artifacts/acceptance/TC-04-001a-web/axe-*.json
+=======
+      - name: Upload drawer follow-up axe JSON
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: drawer-followups-axe-json
+          path: artifacts/acceptance/TC-14-006b/axe-*.json
+>>>>>>> cfeda5f02136ff4625923e2f551dadb832f286fc
           if-no-files-found: warn
           retention-days: 14

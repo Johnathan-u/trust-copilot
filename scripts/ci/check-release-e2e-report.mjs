@@ -17,12 +17,20 @@
  *     --axe-dir artifacts/acceptance/TC-14-006 \
  *     --axe-dir artifacts/acceptance/TC-14-003a \
  *     --axe-dir artifacts/acceptance/TC-16-BUG-001 \
+<<<<<<< de66791b54507b122a9b2010ac54ef204525d92c
  *     --axe-dir artifacts/acceptance/TC-04-001a-web \
+=======
+ *     --axe-dir artifacts/acceptance/TC-14-006b \
+>>>>>>> cfeda5f02136ff4625923e2f551dadb832f286fc
  *     --require-spec e2e/release/design-tokens.spec.ts --min-tests 4 \
  *     --require-spec e2e/release/responsive-shell.spec.ts --min-tests 8 \
  *     --require-spec e2e/release/dialog-toast.spec.ts --min-tests 8 \
  *     --require-spec e2e/release/settings-access.spec.ts --min-tests 3 \
+<<<<<<< de66791b54507b122a9b2010ac54ef204525d92c
  *     --require-spec e2e/release/workspace-create-denied.spec.ts --min-tests 8
+=======
+ *     --require-spec e2e/release/drawer-followups.spec.ts --min-tests 3
+>>>>>>> cfeda5f02136ff4625923e2f551dadb832f286fc
  */
 import { existsSync, readFileSync, readdirSync } from 'node:fs'
 import path from 'node:path'
