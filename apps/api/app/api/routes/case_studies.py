@@ -594,7 +594,9 @@ async def publish_case_study(
             return JSONResponse(status_code=exc.status_code, content=body)
         db.commit()
     except Exception:
-        # Only this request's claim is released. A reclaimed key is left alone.
+        # A failed commit leaves the session unusable until it is rolled back.
+        # Release only this request's claim after that, so a retry can claim at once.
+        db.rollback()
         if key:
             idempotency_release(db, key, owner=owner)
         raise

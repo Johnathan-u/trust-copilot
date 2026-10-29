@@ -176,6 +176,61 @@ def test_stale_owner_set_and_release_leave_the_new_claim(admin_client, tracked):
     assert _stored_flags(study["id"])["status"] == "published"
 
 
+def test_failed_publish_commit_releases_the_claim_for_immediate_retry(admin_client, tracked):
+    from sqlalchemy.orm import Session
+
+    from app.services import case_study_service as cs
+
+    study = _ready(admin_client)
+    tracked["studies"].append(study["id"])
+    key = f"cs-commit-{uuid.uuid4().hex}"
+    storage = _storage_key(study, key)
+    tracked["keys"].append(storage)
+    real_publish = cs.publish
+    real_commit = Session.commit
+    armed = {"on": False}
+
+    def publish_then_arm(*args, **kwargs):
+        result = real_publish(*args, **kwargs)
+        armed["on"] = True
+        return result
+
+    def failing_commit(self, *args, **kwargs):
+        if armed["on"]:
+            armed["on"] = False
+            raise RuntimeError("forced commit failure")
+        return real_commit(self, *args, **kwargs)
+
+    quiet = TestClient(
+        app, base_url=TEST_ORIGIN, headers=TEST_HEADERS, raise_server_exceptions=False
+    )
+    _admin(quiet)
+    with (
+        patch("app.api.routes.case_studies.cs.publish", side_effect=publish_then_arm),
+        patch.object(Session, "commit", failing_commit),
+    ):
+        failed = quiet.post(
+            f"/api/case-studies/{study['id']}/publish",
+            json={"expected_revision": study["revision"]},
+            headers={"Idempotency-Key": key},
+        )
+    assert failed.status_code == 500
+    db = SessionLocal()
+    try:
+        assert _owner_of(db, storage) is None
+    finally:
+        db.close()
+    assert _stored_flags(study["id"])["status"] != "published"
+    retried = _publish(admin_client, study, headers={"Idempotency-Key": key})
+    assert retried.status_code == 200, retried.text
+    assert retried.json()["status"] == "published"
+    db = SessionLocal()
+    try:
+        assert _owner_of(db, storage)
+    finally:
+        db.close()
+
+
 def test_stale_owner_release_on_unexpected_error_leaves_the_new_claim(admin_client, tracked):
     from app.core import idempotency
 
