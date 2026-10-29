@@ -14,7 +14,7 @@ from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 
 from app.api.routes.compliance_gaps import _classify_evidence
-from app.core.auth_deps import require_can_review
+from app.core.auth_deps import require_can_admin, require_can_review
 from app.core.database import get_db
 from app.core.idempotency import claim as idempotency_claim
 from app.core.idempotency import get as idempotency_get
@@ -441,7 +441,7 @@ def decide_gap(
     body: dict,
     request: Request,
     db: Session = Depends(get_db),
-    _user=Depends(require_can_review),
+    _user=Depends(require_can_admin),
 ):
     workspace_id = request.state.workspace_id
     key = _idempotency_key(request, workspace_id)
@@ -482,7 +482,7 @@ def resolve_gap(
     body: dict,
     request: Request,
     db: Session = Depends(get_db),
-    _user=Depends(require_can_review),
+    _user=Depends(require_can_admin),
 ):
     workspace_id = request.state.workspace_id
     key = _idempotency_key(request, workspace_id)
