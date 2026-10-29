@@ -3,6 +3,7 @@
 Runs on PostgreSQL. Labels are synthetic, not framework text.
 """
 
+import logging
 import os
 import subprocess
 import sys
@@ -699,6 +700,32 @@ def test_accept_suggested_post_commit_failure_retries_without_duplicate(client, 
     assert retried.json()["evidence"]["id"] == stored_evidence
     if first.status_code == 200:
         assert retried.json() == first.json()
+
+
+def test_second_idempotency_store_failure_keeps_the_original_error(client, caplog):
+    """A second store failure must not replace the tag-lookup error."""
+    actors = _actors()
+    _login(client, ADMIN_EMAIL, ADMIN_PASSWORD)
+    created = _control(client, f"Mask {uuid.uuid4().hex[:8]}")
+    chunk_id = _chunk(actors["workspace_id"])
+    key = f"acc-mask-{uuid.uuid4().hex}"
+
+    def tags_boom(*_args, **_kwargs):
+        raise RuntimeError("forced tags failure")
+
+    def store_boom(*_args, **_kwargs):
+        raise RuntimeError("forced store failure")
+
+    with caplog.at_level(logging.ERROR, logger="app.api.routes.compliance_controls"):
+        with (
+            patch("app.services.tag_service.list_tags_for_document", side_effect=tags_boom),
+            patch("app.api.routes.compliance_controls.idempotency_set", side_effect=store_boom),
+            patch("app.core.idempotency.set", side_effect=store_boom),
+        ):
+            with pytest.raises(RuntimeError, match="forced tags failure"):
+                _accept(client, created["id"], chunk_id, key)
+    assert "the original error is unchanged" in caplog.text
+    assert "forced store failure" in caplog.text
 
 
 def _call(client, method: str, path: str, body: dict | None):
