@@ -695,6 +695,96 @@ def test_post_commit_store_failure_retries_without_a_second_version(client):
     assert _table_count("control_mapping_override") == before + 1
 
 
+def test_migrated_schema_matches_the_model():
+    import importlib.util
+
+    from alembic.operations import Operations
+    from alembic.runtime.migration import MigrationContext
+    from sqlalchemy import inspect
+
+    from app.models.control_mapping_override import ControlMappingHistory, ControlMappingOverride
+
+    path = os.path.join(API_ROOT, "alembic", "versions", "082_tc21005_mapping_version.py")
+    spec = importlib.util.spec_from_file_location("tc21005_mig_schema", path)
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    actors = _actors()
+    orphan_id = 2_100_000_000 + (uuid.uuid4().int % 50_000_000)
+
+    def apply() -> None:
+        with engine.begin() as conn:
+            ctx = MigrationContext.configure(conn)
+            with Operations.context(ctx):
+                mod.upgrade()
+
+    apply()
+    session = _db()
+    try:
+        session.execute(
+            text(
+                "INSERT INTO tc21005_mapping_hold ("
+                "id, mapping_id, version, workspace_id, question_hash, control_ids, state, "
+                "rationale, reviewed_by_user_id, reviewed_at, recorded_at"
+                ") VALUES ("
+                ":id, :id, 1, :ws, 'orphan', CAST('[]' AS json), 'proposed', "
+                "NULL, NULL, NULL, :recorded)"
+            ),
+            {
+                "id": orphan_id,
+                "ws": actors["workspace_id"],
+                "recorded": datetime(2020, 1, 1, 0, 0, 0),
+            },
+        )
+        session.commit()
+    finally:
+        session.close()
+    apply()
+    session = _db()
+    try:
+        assert (
+            session.execute(
+                text("SELECT count(*) FROM tc21005_mapping_history WHERE id = :id"),
+                {"id": orphan_id},
+            ).scalar()
+            == 0
+        )
+        assert (
+            session.execute(
+                text("SELECT count(*) FROM tc21005_mapping_hold WHERE id = :id"),
+                {"id": orphan_id},
+            ).scalar()
+            == 0
+        )
+    finally:
+        session.close()
+    inspected = inspect(engine)
+    live_fk = next(
+        fk
+        for fk in inspected.get_foreign_keys("tc21005_mapping_history")
+        if fk["constrained_columns"] == ["mapping_id"]
+    )
+    model_fk = next(iter(ControlMappingHistory.__table__.foreign_keys))
+    assert live_fk["referred_table"] == model_fk.column.table.name
+    assert live_fk["referred_columns"] == [model_fk.column.name]
+    assert (live_fk.get("options") or {}).get("ondelete") == model_fk.ondelete == "CASCADE"
+    history_indexes = {
+        tuple(idx["column_names"]) for idx in inspected.get_indexes("tc21005_mapping_history")
+    }
+    override_indexes = {
+        tuple(idx["column_names"]) for idx in inspected.get_indexes("control_mapping_override")
+    }
+    assert ("mapping_id",) in history_indexes
+    assert ("reviewed_by_user_id",) in override_indexes
+    assert any(
+        tuple(col.name for col in idx.columns) == ("mapping_id",)
+        for idx in ControlMappingHistory.__table__.indexes
+    )
+    assert any(
+        tuple(col.name for col in idx.columns) == ("reviewed_by_user_id",)
+        for idx in ControlMappingOverride.__table__.indexes
+    )
+
+
 def test_migration_round_trip_restores_mapping_history():
     import importlib.util
 

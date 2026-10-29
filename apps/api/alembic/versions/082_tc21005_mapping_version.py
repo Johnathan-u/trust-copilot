@@ -29,6 +29,9 @@ _HISTORY = "tc21005_mapping_history"
 _HOLD = "tc21005_mapping_hold"
 _ATTR_HOLD = "tc21005_mapping_attr_hold"
 _REVIEWER_FK = "fk_control_mapping_override_reviewer"
+_REVIEWER_INDEX = "ix_control_mapping_override_reviewed_by_user_id"
+_HISTORY_FK = "fk_tc21005_mapping_history_mapping"
+_HISTORY_INDEX = "ix_tc21005_mapping_history_mapping_id"
 _VERSION_COLUMNS = (
     "state",
     "rationale",
@@ -51,9 +54,17 @@ def _columns(table: str) -> set[str]:
 
 
 def _fk_names(table: str) -> set[str]:
+    if table not in _tables():
+        return set()
     return {
         fk["name"] for fk in sa.inspect(op.get_bind()).get_foreign_keys(table) if fk.get("name")
     }
+
+
+def _index_names(table: str) -> set[str]:
+    if table not in _tables():
+        return set()
+    return {idx["name"] for idx in sa.inspect(op.get_bind()).get_indexes(table)}
 
 
 def _history_table() -> None:
@@ -191,10 +202,36 @@ def upgrade() -> None:
             WHERE NOT EXISTS (
                 SELECT 1 FROM {_HISTORY} AS live WHERE live.id = held.id
             )
+              AND EXISTS (
+                SELECT 1 FROM {_CURRENT} AS mapping WHERE mapping.id = held.mapping_id
+              )
             """
         )
     )
     op.get_bind().execute(sa.text(f"DELETE FROM {_HOLD}"))
+    op.get_bind().execute(
+        sa.text(
+            f"""
+            DELETE FROM {_HISTORY} AS hist
+            WHERE NOT EXISTS (
+                SELECT 1 FROM {_CURRENT} AS mapping WHERE mapping.id = hist.mapping_id
+            )
+            """
+        )
+    )
+    if _HISTORY_FK not in _fk_names(_HISTORY):
+        op.create_foreign_key(
+            _HISTORY_FK,
+            _HISTORY,
+            _CURRENT,
+            ["mapping_id"],
+            ["id"],
+            ondelete="CASCADE",
+        )
+    if _HISTORY_INDEX not in _index_names(_HISTORY):
+        op.create_index(_HISTORY_INDEX, _HISTORY, ["mapping_id"])
+    if _REVIEWER_INDEX not in _index_names(_CURRENT):
+        op.create_index(_REVIEWER_INDEX, _CURRENT, ["reviewed_by_user_id"])
     op.get_bind().execute(
         sa.text(
             f"""
@@ -244,6 +281,8 @@ def downgrade() -> None:
                 """
             )
         )
+    if _REVIEWER_INDEX in _index_names(_CURRENT):
+        op.drop_index(_REVIEWER_INDEX, table_name=_CURRENT)
     if _REVIEWER_FK in _fk_names(_CURRENT):
         op.drop_constraint(_REVIEWER_FK, _CURRENT, type_="foreignkey")
     for name in (
