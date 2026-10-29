@@ -56,14 +56,15 @@ from app.core.job_lease import (  # noqa: E402
     LEASE_EXPIRED_MESSAGE,
     JobLeaseHeartbeat,
     LeaseLost,
+    claim_lease_expiry,
     confirm_lease_for_commit,
     install_commit_fence,
     lease_heartbeat_seconds,
     lease_seconds,
+    lock_expired_lease,
     new_lease_owner_token,
     owns_lease,
     renew_lease,
-    steal_expired_leases,
     uninstall_commit_fence,
 )
 from app.services.file_service import FileService  # noqa: E402
@@ -218,10 +219,11 @@ def claim_job(session) -> Job | None:
         None  # the scheduled retry is now running (error/error_code keep the last failure)
     )
     # TC-10-001: one owner token per claim. The row lock above is what makes the claim exclusive;
-    # the token is what later heartbeats and commits check.
-    now = _utcnow_naive()
-    job.lease_owner = new_lease_owner_token()
-    job.lease_expires_at = now + timedelta(seconds=lease_seconds())
+    # the token is what later heartbeats and commits check. Expiry is the database clock.
+    owner = new_lease_owner_token()
+    job.lease_owner = owner
+    session.flush()
+    claim_lease_expiry(session, job.id, owner, lease_seconds())
     session.commit()
     session.refresh(job)
     # TC-10-003: provider calls of earlier attempts that never settled may have been charged.
@@ -853,7 +855,13 @@ def _job_already_completed(session, job: Job) -> bool:
 
 
 def _handle_job_failure(
-    session, job: Job, payload: dict, exc: Exception, duration_ms: float
+    session,
+    job: Job,
+    payload: dict,
+    exc: Exception,
+    duration_ms: float,
+    *,
+    rollback_first: bool = True,
 ) -> None:
     """TC-10-002: classify the failure, then either schedule a bounded retry or fail explicitly.
 
@@ -865,7 +873,9 @@ def _handle_job_failure(
     Raw provider/storage bodies are never stored in ``job.error`` for upstream codes.
     """
     log = logging.getLogger(__name__)
-    session.rollback()
+    # Recovery holds FOR UPDATE and must not drop that lock before the status write.
+    if rollback_first:
+        session.rollback()
     if _job_already_completed(session, job):
         # The job's completion is already committed (e.g. a post-commit step raised). Never turn it into a
         # failure or retry, and keep the error_code it completed with (a completed job can carry a
@@ -1079,7 +1089,6 @@ def _start_job_lease_heartbeat(job_id: int, owner: str) -> JobLeaseHeartbeat:
         return renew_lease(
             job_id,
             owner,
-            now=_utcnow_naive(),
             extend_seconds=lease_seconds(),
             session_factory=SessionFactory,
         )
@@ -1110,32 +1119,43 @@ def _audit_lease_lost(job_id: int, workspace_id: int | None, owner: str) -> None
         session.close()
 
 
-def recover_abandoned_jobs(session) -> int:
+def recover_abandoned_jobs(session, *, limit: int = 20) -> int:
     """Send running jobs with an expired lease back through retry classification (TC-10-001).
 
-    The attempt was already counted at claim time. ``_handle_job_failure`` applies the same
-    backoff and attempt cap as any other retryable failure. A NULL lease is left alone.
-    Returns how many jobs were recovered. Audited as ``job.abandoned`` plus the retry or failure event.
+    Each job is locked with ``FOR UPDATE SKIP LOCKED``, given a new owner token, and classified
+    in that same transaction (``rollback_first=False``). A second recoverer cannot take the row
+    until this commit, and by then the status is no longer ``running``. The attempt was already
+    counted at claim time. A NULL lease is left alone. Audited as ``job.abandoned`` plus the
+    retry or failure event.
     """
-    now = _utcnow_naive()
-    token = new_lease_owner_token()
-    hold = now + timedelta(seconds=lease_seconds())
-    stolen = steal_expired_leases(session, now=now, owner=token, hold_until=hold)
-    if not stolen:
-        return 0
     exc = RetryableJobError(LEASE_EXPIRED, LEASE_EXPIRED_MESSAGE)
     count = 0
-    for job_id, previous_owner in stolen:
-        job = session.get(Job, job_id)
-        if job is None:
-            continue
-        payload = json.loads(job.payload) if job.payload else {}
-        prefix = (previous_owner or "")[:8]
-        _handle_job_failure(session, job, payload, exc, 0.0)
+    while count < limit:
+        locked = lock_expired_lease(session)
+        if locked is None:
+            session.rollback()
+            return count
+        job_id, previous_owner = locked
+        token = new_lease_owner_token()
+        claim_lease_expiry(session, job_id, token, lease_seconds())
         session.expire_all()
         job = session.get(Job, job_id)
-        if job is None:
-            continue
+        if job is None or job.lease_owner != token:
+            session.rollback()
+            return count
+        payload = json.loads(job.payload) if job.payload else {}
+        prefix = (previous_owner or "")[:8]
+        attempt_before = int(job.attempt or 0)
+        _handle_job_failure(session, job, payload, exc, 0.0, rollback_first=False)
+        session.expire_all()
+        job = session.get(Job, job_id)
+        if (
+            job is None
+            or int(job.attempt or 0) != attempt_before
+            or job.status not in (JobStatus.QUEUED.value, JobStatus.FAILED.value)
+        ):
+            session.rollback()
+            return count
         _persist_job_audit(
             session,
             job,
@@ -1144,7 +1164,7 @@ def recover_abandoned_jobs(session) -> int:
             error=job.error,
             extra={
                 "error_code": LEASE_EXPIRED,
-                "attempt": int(job.attempt or 0),
+                "attempt": attempt_before,
                 "max_attempts": effective_max_attempts(job.max_attempts),
                 "previous_owner_prefix": prefix,
                 "status": job.status,
@@ -1230,13 +1250,13 @@ def _process_one_job() -> bool:
         try:
             if owner:
                 lease_heartbeat = _start_job_lease_heartbeat(leased_job_id, owner)
-                install_commit_fence(session, leased_job_id, owner, _utcnow_naive)
+                install_commit_fence(session, leased_job_id, owner)
             run_job(job, session)
             # TC-10-001: lock and confirm the lease BEFORE the completion is flushed.
             # persist_audit flushes then commits, so a fence check after that flush would see
             # status=completed and refuse the commit that just wrote it.
             if owner:
-                confirm_lease_for_commit(session, leased_job_id, owner, _utcnow_naive())
+                confirm_lease_for_commit(session, leased_job_id, owner)
                 uninstall_commit_fence(session)
             job.status = JobStatus.COMPLETED.value
             job.completed_at = datetime.now(timezone.utc)
@@ -1320,9 +1340,7 @@ def _process_one_job() -> bool:
                 _audit_lease_lost(leased_job_id, leased_workspace_id, owner or "")
         except Exception as e:
             uninstall_commit_fence(session)
-            lost = bool(owner) and not owns_lease(
-                SessionFactory, leased_job_id, owner, _utcnow_naive()
-            )
+            lost = bool(owner) and not owns_lease(SessionFactory, leased_job_id, owner)
             if lost and not _job_already_completed(session, job):
                 session.rollback()
                 _audit_lease_lost(leased_job_id, leased_workspace_id, owner or "")

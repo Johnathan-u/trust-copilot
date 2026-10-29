@@ -6,9 +6,10 @@ Renewal is an ``UPDATE ... WHERE lease_owner = :owner AND lease_expires_at > :no
 so a stale owner cannot extend it. A commit fence takes the same row ``FOR UPDATE`` and refuses
 the commit when that token no longer holds a live lease.
 
-Abandoned jobs (``running`` and ``lease_expires_at`` in the past) are selected with
-``FOR UPDATE SKIP LOCKED`` and handed back to the existing retry classifier. A NULL expiry is
-not abandoned: rows written before this lease existed stay untouched.
+Lease instants use the database clock (``now()``), not the worker process clock.
+Abandoned jobs (``running`` and ``lease_expires_at <= now()``) are locked with
+``FOR UPDATE SKIP LOCKED``. The token swap and the retry classification commit together.
+A NULL expiry is not abandoned: rows written before this lease existed stay untouched.
 """
 
 from __future__ import annotations
@@ -18,8 +19,6 @@ import os
 import secrets
 import threading
 from collections.abc import Callable
-from datetime import datetime, timedelta
-
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
@@ -73,8 +72,9 @@ def lease_seconds() -> int:
 def lease_heartbeat_seconds() -> int:
     """How often the owner renews the lease.
 
-    Clamped to [1, 1200] and forced below the lease. A heartbeat that is not shorter than the
-    lease cannot land a renewal before expiry, so it is replaced with about one third of the lease.
+    Clamped to [1, 1200]. A missed beat must still leave a full interval, so the heartbeat is
+    kept at most half the lease (``heartbeat * 2 <= lease``). A larger value is replaced with
+    ``lease // 2``.
     """
     global _clamp_logged
     lease = lease_seconds()
@@ -84,43 +84,30 @@ def lease_heartbeat_seconds() -> int:
         MIN_HEARTBEAT_SECONDS,
         MAX_HEARTBEAT_SECONDS,
     )
-    if raw < lease:
+    if raw * 2 <= lease:
         return raw
-    clamped = max(MIN_HEARTBEAT_SECONDS, (lease - 1) // 3)
-    if clamped >= lease:
-        clamped = max(1, lease - 1)
+    clamped = max(1, lease // 2)
     if not _clamp_logged:
         _clamp_logged = True
         logger.warning(
-            "JOB_LEASE_HEARTBEAT_SECONDS must be lower than JOB_LEASE_SECONDS; using %s",
+            "JOB_LEASE_HEARTBEAT_SECONDS must be at most half JOB_LEASE_SECONDS; using %s",
             clamped,
         )
     return clamped
-
-
-def _naive(value: datetime | None) -> datetime | None:
-    """Compare timestamps as naive UTC. Aware values are converted; other types are not a lease."""
-    if value is None or not isinstance(value, datetime):
-        return None
-    if value.tzinfo is not None:
-        from datetime import timezone
-
-        return value.astimezone(timezone.utc).replace(tzinfo=None)
-    return value
 
 
 def renew_lease(
     job_id: int,
     owner: str,
     *,
-    now: datetime,
     extend_seconds: int,
     session: Session | None = None,
     session_factory: Callable[[], Session] | None = None,
 ) -> bool:
     """Extend the lease. True only when ``owner`` still holds a running, unexpired lease.
 
-    ``UPDATE ... WHERE lease_owner = :owner AND lease_expires_at > :now RETURNING id``.
+    Expiry is the database clock: ``lease_expires_at > now()``, and the new expiry is
+    ``now()`` plus ``extend_seconds``. A Python clock is not consulted.
     """
     close = session is None
     if session is None:
@@ -132,20 +119,15 @@ def renew_lease(
             text(
                 """
                 UPDATE jobs
-                SET lease_expires_at = :expires
+                SET lease_expires_at = now() + make_interval(secs => :seconds)
                 WHERE id = :id
                   AND lease_owner = :owner
                   AND status = 'running'
-                  AND lease_expires_at > :now
+                  AND lease_expires_at > now()
                 RETURNING id
                 """
             ),
-            {
-                "id": job_id,
-                "owner": owner,
-                "now": now,
-                "expires": now + timedelta(seconds=extend_seconds),
-            },
+            {"id": job_id, "owner": owner, "seconds": float(extend_seconds)},
         ).fetchone()
         session.commit()
         return row is not None
@@ -157,10 +139,8 @@ def renew_lease(
             session.close()
 
 
-def owns_lease(
-    session_factory: Callable[[], Session], job_id: int, owner: str, now: datetime
-) -> bool:
-    """True when the committed row is still running under ``owner`` and the lease has not expired."""
+def owns_lease(session_factory: Callable[[], Session], job_id: int, owner: str) -> bool:
+    """True when the committed row is still running under ``owner`` and ``lease_expires_at > now()``."""
     session = session_factory()
     try:
         row = session.execute(
@@ -171,117 +151,97 @@ def owns_lease(
                 WHERE id = :id
                   AND lease_owner = :owner
                   AND status = 'running'
-                  AND lease_expires_at > :now
+                  AND lease_expires_at > now()
                 """
             ),
-            {"id": job_id, "owner": owner, "now": now},
+            {"id": job_id, "owner": owner},
         ).fetchone()
         return row is not None
     finally:
         session.close()
 
 
-def steal_expired_leases(
-    session: Session,
-    *,
-    now: datetime,
-    owner: str,
-    hold_until: datetime,
-    limit: int = 20,
-) -> list[tuple[int, str | None]]:
-    """Lock expired running leases and retoken them. Returns ``(job_id, previous_owner)``.
+def lock_expired_lease(session: Session) -> tuple[int, str | None] | None:
+    """Lock one running job whose lease is already past ``now()``.
 
-    ``SELECT ... FOR UPDATE SKIP LOCKED`` so two recoverers cannot take the same row.
-    A NULL ``lease_expires_at`` is not expired. Commits the steal. Returns [] when the
-    session cannot execute SQL (a test double).
+    ``FOR UPDATE SKIP LOCKED`` so a second recoverer takes a different row, or none.
+    Does not commit: the caller swaps the token and classifies the failure in this transaction.
+    A NULL ``lease_expires_at`` is not expired.
     """
-    fetched = session.execute(
+    row = session.execute(
         text(
             """
             SELECT id, lease_owner
             FROM jobs
             WHERE status = 'running'
               AND lease_expires_at IS NOT NULL
-              AND lease_expires_at <= :now
+              AND lease_expires_at <= now()
             ORDER BY lease_expires_at, id
             FOR UPDATE SKIP LOCKED
-            LIMIT :limit
+            LIMIT 1
+            """
+        )
+    ).fetchone()
+    if row is None:
+        return None
+    previous = row[1] if isinstance(row[1], str) else None
+    return int(row[0]), previous
+
+
+def claim_lease_expiry(session: Session, job_id: int, owner: str, seconds: int) -> None:
+    """Set the lease expiry from the database clock. Does not commit."""
+    session.execute(
+        text(
+            """
+            UPDATE jobs
+            SET lease_owner = :owner,
+                lease_expires_at = now() + make_interval(secs => :seconds)
+            WHERE id = :id
             """
         ),
-        {"now": now, "limit": limit},
-    ).fetchall()
-    if not isinstance(fetched, list):
-        return []
-    if not fetched:
-        session.rollback()
-        return []
-    for row in fetched:
-        session.execute(
-            text(
-                """
-                UPDATE jobs
-                SET lease_owner = :owner, lease_expires_at = :hold
-                WHERE id = :id
-                """
-            ),
-            {"owner": owner, "hold": hold_until, "id": row[0]},
-        )
-    session.commit()
-    return [(int(row[0]), row[1]) for row in fetched]
-
-
-def _row_owned(row, owner: str, now: datetime) -> bool:
-    if row is None:
-        return False
-    lease_owner = row[0]
-    status = row[1]
-    expires = _naive(row[2])
-    moment = _naive(now)
-    return (
-        lease_owner == owner
-        and status == "running"
-        and expires is not None
-        and moment is not None
-        and expires > moment
+        {"id": job_id, "owner": owner, "seconds": float(seconds)},
     )
 
 
-def confirm_lease_for_commit(session: Session, job_id: int, owner: str, now: datetime) -> None:
-    """Lock the job row and raise LeaseLost unless ``owner`` still holds a live lease.
-
-    Call this before writing the completion, then commit in the same transaction.
-    The row lock stops a recoverer until that commit. ``no_autoflush`` keeps a pending
-    status change off the row until the check has passed.
-    """
+def lease_is_held(session: Session, job_id: int, owner: str, *, lock: bool) -> bool:
+    """True when this owner still has a running lease with ``lease_expires_at > now()``."""
+    suffix = " FOR UPDATE" if lock else ""
     with session.no_autoflush:
         row = session.execute(
             text(
-                """
-                SELECT lease_owner, status, lease_expires_at
+                f"""
+                SELECT 1
                 FROM jobs
                 WHERE id = :id
-                FOR UPDATE
+                  AND lease_owner = :owner
+                  AND status = 'running'
+                  AND lease_expires_at > now()
+                {suffix}
                 """
             ),
-            {"id": job_id},
+            {"id": job_id, "owner": owner},
         ).fetchone()
-    if not _row_owned(row, owner, now):
+    return row is not None
+
+
+def confirm_lease_for_commit(session: Session, job_id: int, owner: str) -> None:
+    """Lock the job row and raise LeaseLost unless ``owner`` still holds a live lease.
+
+    The comparison is ``lease_expires_at > now()`` in the database. Call this before writing
+    the completion, then commit in the same transaction.
+    """
+    if not lease_is_held(session, job_id, owner, lock=True):
         session.rollback()
         raise LeaseLost(job_id)
 
 
-def install_commit_fence(
-    session: Session,
-    job_id: int,
-    owner: str,
-    clock: Callable[[], datetime],
-) -> None:
+def install_commit_fence(session: Session, job_id: int, owner: str) -> None:
     """Refuse ``session.commit`` unless this owner still holds a live lease.
 
-    The check is ``SELECT ... FOR UPDATE`` with autoflush off, so a pending completion is not
-    written before the lease is confirmed. The row lock is held until the commit, which stops a
-    recoverer from stealing the lease in that window. After the job is no longer running for this
-    owner, later commits in the same session (notifications) are allowed.
+    The check is ``lease_expires_at > now()`` under ``FOR UPDATE``, with autoflush off, so a
+    pending completion is not written before the lease is confirmed. The row lock is held until
+    the commit. After the job is no longer running for this owner, later commits in the same
+    session (notifications) are allowed.
     """
     if getattr(session, "_lease_fence_original", None) is not None:
         return
@@ -291,33 +251,11 @@ def install_commit_fence(
     def fenced_commit():
         if not getattr(session, "_lease_fence_open", True):
             return original()
-        with session.no_autoflush:
-            row = session.execute(
-                text(
-                    """
-                    SELECT lease_owner, status, lease_expires_at
-                    FROM jobs
-                    WHERE id = :id
-                    FOR UPDATE
-                    """
-                ),
-                {"id": job_id},
-            ).fetchone()
-        if not _row_owned(row, owner, clock()):
+        if not lease_is_held(session, job_id, owner, lock=True):
             session.rollback()
             raise LeaseLost(job_id)
         result = original()
-        with session.no_autoflush:
-            still = session.execute(
-                text(
-                    """
-                    SELECT 1 FROM jobs
-                    WHERE id = :id AND status = 'running' AND lease_owner = :owner
-                    """
-                ),
-                {"id": job_id, "owner": owner},
-            ).fetchone()
-        if still is None:
+        if not lease_is_held(session, job_id, owner, lock=False):
             session._lease_fence_open = False  # type: ignore[attr-defined]
         return result
 

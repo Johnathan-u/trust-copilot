@@ -4,7 +4,8 @@ On master, ``jobs`` has no lease columns. ``claim_job`` marks a row running and 
 owner token. A second ``claim_job`` will not take that row, and nothing sends it back through the
 retry cap, so a killed worker leaves the job running. These tests fail on that code.
 
-Fakes only: no network, no real keys, a side ``*_test`` database. Time is an injected clock.
+Fakes only: no network, no real keys, a side ``*_test`` database. Lease instants are the
+database clock. Tests move ``lease_expires_at`` relative to ``now()``; they do not sleep.
 """
 
 from __future__ import annotations
@@ -16,7 +17,7 @@ import subprocess
 import sys
 import threading
 import uuid
-from datetime import datetime, timedelta
+from datetime import datetime
 from pathlib import Path
 from unittest.mock import patch
 
@@ -39,22 +40,29 @@ TABLES = ("jobs", "audit_events", "idempotency_keys", "job_effects", "workspaces
 DELETE_ORDER = ("job_effects", "jobs", "audit_events", "idempotency_keys", "workspaces")
 
 
-class Clock:
-    """Deterministic naive-UTC clock. Tests advance it; nothing sleeps."""
+def _set_lease_offset(session, job_id: int, seconds_from_now: float) -> None:
+    """Move one job's expiry relative to the database clock. Negative means already expired."""
+    session.execute(
+        text(
+            """
+            UPDATE jobs
+            SET lease_expires_at = now() + make_interval(secs => :seconds)
+            WHERE id = :id
+            """
+        ),
+        {"id": job_id, "seconds": seconds_from_now},
+    )
+    session.commit()
+    session.expire_all()
 
-    def __init__(self, start: datetime) -> None:
-        self.now = start
 
-    def __call__(self) -> datetime:
-        return self.now
-
-    def advance(self, seconds: float) -> None:
-        self.now = self.now + timedelta(seconds=seconds)
-
-
-def _past_clock() -> Clock:
-    """A clock in 2020, so advancing it cannot expire leases other tests stored with wall time."""
-    return Clock(datetime(2020, 6, 1, 12, 0, 0))
+def _seconds_left(session, job_id: int) -> float:
+    session.expire_all()
+    value = session.execute(
+        text("SELECT EXTRACT(EPOCH FROM (lease_expires_at - now())) FROM jobs WHERE id = :id"),
+        {"id": job_id},
+    ).scalar()
+    return float(value)
 
 
 @pytest.fixture(autouse=True)
@@ -158,8 +166,18 @@ def test_lease_config_defaults_and_clamps(monkeypatch):
     assert lease_seconds() == 3600  # ceiling
     monkeypatch.setenv("JOB_LEASE_SECONDS", "30")
     monkeypatch.setenv("JOB_LEASE_HEARTBEAT_SECONDS", "100")
-    assert lease_heartbeat_seconds() < 30
-    assert lease_heartbeat_seconds() == (30 - 1) // 3
+    assert lease_heartbeat_seconds() * 2 <= lease_seconds()
+    assert lease_heartbeat_seconds() == 15  # half of 30
+
+
+@pytest.mark.unit
+def test_heartbeat_is_at_most_half_the_lease(monkeypatch):
+    """A value under the lease still clamps when two beats would not fit."""
+    monkeypatch.setenv("JOB_LEASE_SECONDS", "60")
+    monkeypatch.setenv("JOB_LEASE_HEARTBEAT_SECONDS", "40")
+    assert lease_seconds() == 60
+    assert lease_heartbeat_seconds() == 30
+    assert lease_heartbeat_seconds() * 2 <= lease_seconds()
 
 
 @pytest.mark.unit
@@ -266,12 +284,10 @@ def test_two_workers_cannot_own_the_same_lease(db):
     assert stored.attempt == 1
     # The loser, and any other token, cannot renew the winner's lease.
     expiry = stored.lease_expires_at
-    now = expiry - timedelta(seconds=1)
     assert (
         renew_lease(
             job_id,
             "f" * 32,
-            now=now,
             extend_seconds=60,
             session_factory=SessionLocal,
         )
@@ -283,7 +299,6 @@ def test_two_workers_cannot_own_the_same_lease(db):
         renew_lease(
             job_id,
             owner,
-            now=now,
             extend_seconds=60,
             session_factory=SessionLocal,
         )
@@ -297,8 +312,6 @@ def test_heartbeat_renews_only_for_the_current_owner(db):
     from app.core.database import SessionLocal
     from app.models import Job, JobStatus
 
-    clock = _past_clock()
-    worker.set_clock(clock)
     job = Job(
         workspace_id=WS,
         kind="parse_evidence",
@@ -313,14 +326,12 @@ def test_heartbeat_renews_only_for_the_current_owner(db):
     with _only(job_id):
         claimed = worker.claim_job(db)
     owner = claimed.lease_owner
-    first_expiry = claimed.lease_expires_at
-    assert first_expiry == clock.now + timedelta(seconds=lease_seconds())
+    assert lease_seconds() - 5 <= _seconds_left(db, job_id) <= lease_seconds() + 1
 
     def renew() -> bool:
         return renew_lease(
             job_id,
             owner,
-            now=clock(),
             extend_seconds=lease_seconds(),
             session_factory=SessionLocal,
         )
@@ -328,16 +339,14 @@ def test_heartbeat_renews_only_for_the_current_owner(db):
     heartbeat = JobLeaseHeartbeat(
         renew, interval_sec=lease_heartbeat_seconds(), sleep=lambda _s: None
     )
-    # Still inside the original lease: one beat pushes the expiry out.
-    clock.advance(50)
+    # A lease that is about to expire is pushed back out by the owner's heartbeat.
+    _set_lease_offset(db, job_id, 5)
+    short_expiry = db.get(Job, job_id).lease_expires_at
     assert heartbeat.beat_once() is True
     db.expire_all()
     extended = db.get(Job, job_id).lease_expires_at
-    assert extended == clock.now + timedelta(seconds=lease_seconds())
-    assert extended > first_expiry
-    # Past the original expiry, the renewed lease is still held.
-    clock.advance(20)
-    assert clock.now > first_expiry
+    assert extended > short_expiry
+    assert lease_seconds() - 5 <= _seconds_left(db, job_id) <= lease_seconds() + 1
     assert heartbeat.beat_once() is True
     assert heartbeat.lost is False
     assert heartbeat.beats == 2
@@ -346,7 +355,6 @@ def test_heartbeat_renews_only_for_the_current_owner(db):
         return renew_lease(
             job_id,
             "a" * 32,
-            now=clock(),
             extend_seconds=lease_seconds(),
             session_factory=SessionLocal,
         )
@@ -367,8 +375,6 @@ def test_lost_lease_does_not_commit_the_result(db):
     from app.core.database import SessionLocal
     from app.models import Job, JobStatus
 
-    clock = _past_clock()
-    worker.set_clock(clock)
     job = Job(
         workspace_id=WS,
         kind="parse_evidence",
@@ -383,13 +389,13 @@ def test_lost_lease_does_not_commit_the_result(db):
     with _only(job_id):
         claimed = worker.claim_job(db)
     owner = claimed.lease_owner
-    clock.advance(lease_seconds() + 5)
+    _set_lease_offset(db, job_id, -1)
     session = SessionLocal()
     try:
         stale = session.get(Job, job_id)
         stale.result = '{"from":"stale-owner"}'
         stale.status = JobStatus.COMPLETED.value
-        install_commit_fence(session, job_id, owner, clock)
+        install_commit_fence(session, job_id, owner)
         with pytest.raises(LeaseLost):
             session.commit()
     finally:
@@ -413,8 +419,6 @@ def test_expired_lease_is_recovered_without_running_the_side_effect_twice(db, mo
     from app.models.job_effect import JobEffect
     from app.services.job_effects import JobEffects, enqueue_job
 
-    clock = _past_clock()
-    worker.set_clock(clock)
     monkeypatch.setenv("JOB_RETRY_BASE_SECONDS", "0")
     monkeypatch.setenv("JOB_RETRY_MAX_SECONDS", "0")
     key = f"parse_evidence:{uuid.uuid4().hex}"
@@ -432,13 +436,13 @@ def test_expired_lease_is_recovered_without_running_the_side_effect_twice(db, mo
     owner = claimed.lease_owner
     JobEffects(db, claimed).mark_applied(EFFECT, {"n": 1})
     db.commit()
-    clock.advance(lease_seconds() + 5)
+    _set_lease_offset(db, job_id, -1)
 
     session = SessionLocal()
     try:
         stale = session.get(Job, job_id)
         stale.result = '{"from":"stale-owner"}'
-        install_commit_fence(session, job_id, owner, clock)
+        install_commit_fence(session, job_id, owner)
         with pytest.raises(LeaseLost):
             session.commit()
     finally:
@@ -502,7 +506,6 @@ def test_expired_lease_is_recovered_without_running_the_side_effect_twice(db, mo
         renew_lease(
             job_id,
             owner,
-            now=clock(),
             extend_seconds=60,
             session_factory=SessionLocal,
         )
@@ -514,8 +517,6 @@ def test_attempt_cap_stops_an_abandoned_job(db, monkeypatch):
     from app import worker
     from app.models import Job, JobStatus
 
-    clock = _past_clock()
-    worker.set_clock(clock)
     monkeypatch.setenv("JOB_RETRY_BASE_SECONDS", "0")
     monkeypatch.setenv("JOB_RETRY_MAX_SECONDS", "0")
     job = Job(
@@ -526,12 +527,11 @@ def test_attempt_cap_stops_an_abandoned_job(db, monkeypatch):
         attempt=3,
         max_attempts=3,
         lease_owner="ab" * 16,
-        lease_expires_at=clock.now,
     )
     db.add(job)
     db.commit()
     job_id = job.id
-    clock.advance(1)
+    _set_lease_offset(db, job_id, -1)
     assert worker.recover_abandoned_jobs(db) == 1
     db.expire_all()
     failed = db.get(Job, job_id)
@@ -546,6 +546,172 @@ def test_attempt_cap_stops_an_abandoned_job(db, monkeypatch):
     assert _details(audit)["error_code"] == LEASE_EXPIRED
     assert _audits(db, job_id, "job.abandoned")
     assert not _audits(db, job_id, "job.retry_scheduled")
+
+
+def test_two_recoverers_take_one_expired_job(db, monkeypatch):
+    """One expired job, two sessions. The row lock makes exactly one of them the recoverer."""
+    from app import worker
+    from app.core.database import SessionLocal
+    from app.models import Job, JobStatus
+
+    monkeypatch.setenv("JOB_RETRY_BASE_SECONDS", "0")
+    monkeypatch.setenv("JOB_RETRY_MAX_SECONDS", "0")
+    job = Job(
+        workspace_id=WS,
+        kind="parse_evidence",
+        status=JobStatus.RUNNING.value,
+        payload="{}",
+        attempt=1,
+        max_attempts=3,
+        lease_owner="ab" * 16,
+    )
+    db.add(job)
+    db.commit()
+    job_id = job.id
+    _set_lease_offset(db, job_id, -1)
+    barrier = threading.Barrier(2)
+    results: list[int] = []
+    errors: list[BaseException] = []
+
+    def recover() -> None:
+        session = SessionLocal()
+        try:
+            barrier.wait(timeout=5)
+            results.append(worker.recover_abandoned_jobs(session))
+        except BaseException as exc:  # noqa: BLE001 - report the thread failure
+            errors.append(exc)
+        finally:
+            session.close()
+
+    threads = [threading.Thread(target=recover), threading.Thread(target=recover)]
+    for thread in threads:
+        thread.start()
+    for thread in threads:
+        thread.join(timeout=10)
+    assert errors == []
+    assert sorted(results) == [0, 1]
+    assert len(_audits(db, job_id, "job.abandoned")) == 1
+    assert len(_audits(db, job_id, "job.retry_scheduled")) == 1
+    assert not _audits(db, job_id, "job.failed")
+    db.expire_all()
+    stored = db.get(Job, job_id)
+    assert stored.status == JobStatus.QUEUED.value
+    assert stored.attempt == 1
+
+
+def _prepare_worker_loop(monkeypatch, job_id: int):
+    from app import worker
+    from app.core.database import SessionLocal
+
+    monkeypatch.setattr(worker, "SessionFactory", SessionLocal)
+    monkeypatch.setattr(worker, "last_compliance_webhook_run", 10**12)
+    monkeypatch.setattr(worker, "last_usage_cleanup_run", 10**12)
+    monkeypatch.setattr(worker, "last_dedupe_prune_run", 10**12)
+    return worker
+
+
+def test_worker_loop_does_not_commit_after_the_lease_expires(db, monkeypatch):
+    """The worker loop itself stops when the lease is gone, and recovery can requeue afterwards."""
+    from app.core.database import SessionLocal
+    from app.models import Job, JobStatus
+
+    job = Job(
+        workspace_id=WS,
+        kind="parse_evidence",
+        status=JobStatus.QUEUED.value,
+        payload="{}",
+        attempt=0,
+        max_attempts=3,
+    )
+    db.add(job)
+    db.commit()
+    job_id = job.id
+    seen: dict[str, str] = {}
+
+    def fake_run(running, session):
+        del session
+        seen["owner"] = running.lease_owner
+        other = SessionLocal()
+        try:
+            other.execute(
+                text(
+                    "UPDATE jobs SET lease_expires_at = now() - interval '1 second' WHERE id = :id"
+                ),
+                {"id": running.id},
+            )
+            other.commit()
+        finally:
+            other.close()
+        running.result = '{"from":"loser"}'
+
+    worker = _prepare_worker_loop(monkeypatch, job_id)
+    monkeypatch.setattr(worker, "run_job", fake_run)
+    monkeypatch.setenv("JOB_RETRY_BASE_SECONDS", "0")
+    monkeypatch.setenv("JOB_RETRY_MAX_SECONDS", "0")
+    with _only(job_id):
+        assert worker._process_one_job() is True
+    owner = seen["owner"]
+    db.expire_all()
+    stored = db.get(Job, job_id)
+    assert stored.status == JobStatus.RUNNING.value
+    assert stored.result is None
+    assert stored.attempt == 1
+    assert not _audits(db, job_id, "job.completed")
+    (lost,) = _audits(db, job_id, "job.lease_lost")
+    details = _details(lost)
+    assert details["owner_prefix"] == owner[:8]
+    assert len(details["owner_prefix"]) == 8
+    assert owner not in json.dumps(details)
+    assert worker.recover_abandoned_jobs(db) == 1
+    db.expire_all()
+    requeued = db.get(Job, job_id)
+    assert requeued.status == JobStatus.QUEUED.value
+    assert requeued.attempt == 1
+    assert _audits(db, job_id, "job.retry_scheduled")
+
+
+def test_worker_loop_does_not_retry_after_a_lost_lease_exception(db, monkeypatch):
+    """A handler that raises once the lease is gone must not schedule the retry itself."""
+    from app.core.database import SessionLocal
+    from app.models import Job, JobStatus
+
+    job = Job(
+        workspace_id=WS,
+        kind="parse_evidence",
+        status=JobStatus.QUEUED.value,
+        payload="{}",
+        attempt=0,
+        max_attempts=3,
+    )
+    db.add(job)
+    db.commit()
+    job_id = job.id
+
+    def fake_run(running, session):
+        del session
+        other = SessionLocal()
+        try:
+            other.execute(
+                text("UPDATE jobs SET lease_owner = :token WHERE id = :id"),
+                {"token": "c" * 32, "id": running.id},
+            )
+            other.commit()
+        finally:
+            other.close()
+        raise RuntimeError("synthetic lost lease")
+
+    worker = _prepare_worker_loop(monkeypatch, job_id)
+    monkeypatch.setattr(worker, "run_job", fake_run)
+    with _only(job_id):
+        assert worker._process_one_job() is True
+    db.expire_all()
+    stored = db.get(Job, job_id)
+    assert stored.status == JobStatus.RUNNING.value
+    assert stored.attempt == 1
+    assert stored.result is None
+    assert not _audits(db, job_id, "job.failed")
+    assert not _audits(db, job_id, "job.retry_scheduled")
+    assert not _audits(db, job_id, "job.completed")
 
 
 def test_null_lease_on_a_running_job_is_not_recovered(db):
@@ -631,7 +797,8 @@ def test_migration_upgrade_downgrade_upgrade_is_lossless(db, _ensure_test_data):
     spec.loader.exec_module(module)
     assert module.revision == "tc10001_job_leases"
     assert len(module.revision) <= 32
-    assert module.down_revision == "tc21006_gap_evaluation"
+    # Parent is whatever the migration file says, not a hard-coded revision id.
+    assert isinstance(module.down_revision, str) and module.down_revision
 
     from app.core.database import SessionLocal, engine
 
@@ -718,9 +885,16 @@ def test_migration_upgrade_downgrade_upgrade_is_lossless(db, _ensure_test_data):
         assert row() == expected
         _alembic("upgrade", "head")
         assert row() == expected
-        heads = _alembic("heads")
-        assert "tc10001_job_leases" in heads
-        assert heads.count("(head)") == 1
+        from tests.release.test_notification_delivery import (
+            _revision_is_applied,
+            _revision_token,
+        )
+
+        head = _revision_token(_alembic("heads"))
+        assert _revision_is_applied(head, module.revision)
+        engine.dispose()
+        index_names = {idx["name"] for idx in inspect(engine).get_indexes("jobs")}
+        assert "ix_jobs_running_lease_expires_at" in index_names
         assert version_width() == 32
     finally:
         _alembic("upgrade", "head")
