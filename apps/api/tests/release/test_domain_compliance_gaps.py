@@ -554,6 +554,45 @@ def test_rescan_leaves_accepted_and_dismissed_rows(client):
     )
 
 
+def test_foreign_evidence_ids_are_omitted(client):
+    actors = _actors()
+    control_id = _control(actors["workspace_id"], f"Foreign evidence {uuid.uuid4().hex[:8]}")
+    foreign_evidence = _evidence(actors["other_workspace_id"], approval="approved")
+    _link(control_id, foreign_evidence)
+    _login(client, REVIEWER_EMAIL, REVIEWER_PASSWORD)
+    listed = client.get("/api/compliance/gaps", params={"control_id": control_id})
+    assert listed.status_code == 200, listed.text
+    assert str(foreign_evidence) not in listed.text
+    body = listed.json()["gaps"][0]
+    assert body["evidence_ids"] == []
+    assert body["reason"]["evidence_ids"] == []
+    assert body["state"] == "unknown"
+    assert body["rule"] == "missing_evidence_row"
+    _login(client, ADMIN_EMAIL, ADMIN_PASSWORD)
+    with patch("app.api.routes.compliance_gaps.notify_admins"):
+        scanned = client.post("/api/compliance/gaps/scan-and-notify")
+    assert scanned.status_code == 200, scanned.text
+    assert str(foreign_evidence) not in scanned.text
+    session = _db()
+    try:
+        stored = session.execute(
+            text(
+                "SELECT reason, evidence_refs, evaluation_state, rule_code "
+                "FROM evidence_gaps WHERE control_id = :id AND gap_type = 'control_check'"
+            ),
+            {"id": control_id},
+        ).fetchall()
+    finally:
+        session.close()
+    assert stored
+    for row in stored:
+        blob = " ".join("" if value is None else str(value) for value in row)
+        assert str(foreign_evidence) not in blob
+        assert row.evidence_refs == "[]"
+        assert row.evaluation_state == "unknown"
+        assert row.rule_code == "missing_evidence_row"
+
+
 def test_migration_round_trip_restores_gap_evaluation():
     before_counts = _counts()
     before_ids = _ids()

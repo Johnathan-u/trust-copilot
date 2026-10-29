@@ -114,7 +114,8 @@ def _classify_evidence(
     if ev is None:
         return "unknown", "missing_evidence_row", evidence_id
     if ev.workspace_id != workspace_id:
-        return "gap", "foreign_evidence", ev.id
+        # Another workspace's evidence id is not returned. Treat the link as missing.
+        return "unknown", "missing_evidence_row", None
     if ev.approval_status != "approved":
         return "gap", "not_approved", ev.id
     if ev.document_id is not None:
@@ -189,7 +190,8 @@ def evaluate_control(db: Session, wc: WorkspaceControl, workspace_id: int) -> di
             )
             if state == "clear":
                 return None
-            evidence_ids.append(evidence_id)
+            if evidence_id is not None:
+                evidence_ids.append(evidence_id)
             if best is None or _SEVERITY[state] > _SEVERITY[best[0]]:
                 best = (state, rule, evidence_id)
         assert best is not None
