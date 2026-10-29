@@ -445,7 +445,11 @@ def verify_control(
     session: dict = Depends(require_can_review),
     db: Session = Depends(get_db),
 ):
-    """Mark control as verified. Requires at least one linked evidence. Records who verified and when. Requires review permission."""
+    """Mark control as verified. Requires review permission and at least one linked evidence.
+
+    Records who verified and when. sync_workspace_row copies verified onto the
+    paired legacy control: lifecycle verified, legacy status implemented.
+    """
     ws = session.get("workspace_id")
     if not ws:
         raise HTTPException(status_code=403, detail="No workspace")
