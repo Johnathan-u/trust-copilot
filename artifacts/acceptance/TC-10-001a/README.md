@@ -1,6 +1,8 @@
 # TC-10-001a acceptance evidence
 
-These commands ran on `0c618faa5cc208be295a25786e9e29c1143ca19d` (`0c618fa`). This README commit does not change that code.
+These commands ran on `daf28fa38cfca48d17474400348ded32502c5634` (`daf28fa`). This README commit does not change that code.
+
+`daf28fa` stops the recovery loop from locking the same row again when the owner-token swap has not committed. Continuing there hung `worker._process_one_job` on a non-database session, and the first CI build (`4f02d31`) was canceled in `test_model_outcomes_threaded`. A conflict after the classifying commit still continues through the rest of the batch.
 
 Base is `origin/master` `a2458c9e2ae3c7b5f4cad7f293211afbb19e4687` (`a2458c9`), the squash of #84. Alembic head is `tc10001_job_leases`. This branch adds no migration.
 
@@ -16,14 +18,15 @@ Base is `origin/master` `a2458c9e2ae3c7b5f4cad7f293211afbb19e4687` (`a2458c9`), 
 
 | What | Command | SHA | Exit | Totals |
 |---|---|---|---|---|
-| Ruff | `cd apps/api && ruff check . && ruff format --check .` | `0c618faa5cc208be295a25786e9e29c1143ca19d` | 0 | check passed; format check passed |
-| Alembic heads | `cd apps/api && alembic heads` | `0c618faa5cc208be295a25786e9e29c1143ca19d` | 0 | `tc10001_job_leases (head)` |
-| TC-10-001 and TC-10-001a lease tests | `cd apps/api && SESSION_SECRET=test-secret TC_REQUIRE_DB=1 python -m pytest tests/release/test_job_leases.py -q --tb=line -p no:cacheprovider` | `0c618faa5cc208be295a25786e9e29c1143ca19d` | 0 | **18 passed** |
-| Safe collection | `cd apps/api && SESSION_SECRET=test-secret TC_REQUIRE_DB=1 python -m pytest tests/release/test_safe_collection.py -q --tb=line -p no:cacheprovider` | `0c618faa5cc208be295a25786e9e29c1143ca19d` | 0 | **29 passed** |
-| Heads / migration | `pytest tests/release/test_cross_workspace_refs.py::test_trigger_revision_is_on_the_single_alembic_head_chain tests/release/test_provider_adapter.py::test_migration_columns_present tests/release/test_provider_adapter.py::test_migration_has_unique_descriptive_revision_after_075 tests/release/test_job_retries.py::test_migration_downgrade_and_upgrade_roundtrip -q --tb=line` | `0c618faa5cc208be295a25786e9e29c1143ca19d` | 0 | **4 passed** |
-| Retries | `pytest tests/release/test_job_retries.py -q --tb=line` | `0c618faa5cc208be295a25786e9e29c1143ca19d` | 0 | **70 passed** |
-| Idempotency | `pytest tests/release/test_job_idempotency.py -q --tb=line` | `0c618faa5cc208be295a25786e9e29c1143ca19d` | 0 | **47 passed** |
-| TC-10-003d | `pytest tests/release/test_auto_generate_enqueue_conflict.py -q --tb=line` | `0c618faa5cc208be295a25786e9e29c1143ca19d` | 0 | **5 passed** |
+| Ruff | `cd apps/api && ruff check . && ruff format --check .` | `daf28fa38cfca48d17474400348ded32502c5634` | 0 | check passed; format check passed |
+| Alembic heads | `cd apps/api && alembic heads` | `daf28fa38cfca48d17474400348ded32502c5634` | 0 | `tc10001_job_leases (head)` |
+| TC-10-001 and TC-10-001a lease tests | `cd apps/api && SESSION_SECRET=test-secret TC_REQUIRE_DB=1 python -m pytest tests/release/test_job_leases.py -q --tb=line -p no:cacheprovider` | `daf28fa38cfca48d17474400348ded32502c5634` | 0 | **18 passed** |
+| Threaded model outcomes (the test the first CI build hung on) | `pytest tests/release/test_model_outcomes_threaded.py -q --tb=line` | `daf28fa38cfca48d17474400348ded32502c5634` | 0 | **1 passed** |
+| Safe collection | `cd apps/api && SESSION_SECRET=test-secret TC_REQUIRE_DB=1 python -m pytest tests/release/test_safe_collection.py -q --tb=line -p no:cacheprovider` | `daf28fa38cfca48d17474400348ded32502c5634` | 0 | **29 passed** |
+| Heads / migration | `pytest tests/release/test_cross_workspace_refs.py::test_trigger_revision_is_on_the_single_alembic_head_chain tests/release/test_provider_adapter.py::test_migration_columns_present tests/release/test_provider_adapter.py::test_migration_has_unique_descriptive_revision_after_075 tests/release/test_job_retries.py::test_migration_downgrade_and_upgrade_roundtrip -q --tb=line` | `daf28fa38cfca48d17474400348ded32502c5634` | 0 | **4 passed** |
+| Retries | `pytest tests/release/test_job_retries.py -q --tb=line` | `daf28fa38cfca48d17474400348ded32502c5634` | 0 | **70 passed** |
+| Idempotency | `pytest tests/release/test_job_idempotency.py -q --tb=line` | `daf28fa38cfca48d17474400348ded32502c5634` | 0 | **47 passed** |
+| TC-10-003d | `pytest tests/release/test_auto_generate_enqueue_conflict.py -q --tb=line` | `daf28fa38cfca48d17474400348ded32502c5634` | 0 | **5 passed** |
 
 Suites ran one after another. After the last one, `alembic_version` was still `tc10001_job_leases`.
 
