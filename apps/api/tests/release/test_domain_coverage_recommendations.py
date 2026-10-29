@@ -300,6 +300,110 @@ def test_recommendations_carry_live_same_workspace_ids(client: TestClient, resto
     assert after_stamp == before_stamp
 
 
+def test_every_fixture_recommendation_has_a_drill_target(restored_counts):
+    """Questions counted by improves_questions are the live question ids."""
+    token = uuid.uuid4().hex[:10]
+    session = _db()
+    try:
+        workspace = Workspace(name="Synthetic drill", slug=f"tc21007b-drill-{token}")
+        session.add(workspace)
+        session.flush()
+        questionnaire = Questionnaire(
+            workspace_id=workspace.id, filename=f"drill-{token}.txt", status="parsed"
+        )
+        session.add(questionnaire)
+        session.flush()
+        first_question = Question(questionnaire_id=questionnaire.id, text="Synthetic first")
+        second_question = Question(questionnaire_id=questionnaire.id, text="Synthetic second")
+        session.add_all([first_question, second_question])
+        session.flush()
+        document = Document(
+            workspace_id=workspace.id,
+            storage_key=f"synthetic/drill-{token}",
+            filename=f"drill-{token}.txt",
+        )
+        session.add(document)
+        session.flush()
+        evidence = EvidenceItem(
+            workspace_id=workspace.id,
+            document_id=document.id,
+            source_type="document",
+            title=f"Synthetic drill evidence {token}",
+        )
+        session.add(evidence)
+        session.flush()
+        control = WorkspaceControl(
+            workspace_id=workspace.id,
+            custom_name=f"Synthetic drill control {token}",
+            status="not_implemented",
+        )
+        session.add(control)
+        session.flush()
+        question_title = f"Synthetic questions {token}"
+        evidence_title = f"Synthetic evidence doc {token}"
+        control_title = f"Synthetic control doc {token}"
+        session.add_all(
+            [
+                EvidenceGap(
+                    workspace_id=workspace.id,
+                    gap_type="missing_evidence",
+                    status="open",
+                    suggested_evidence_doc_title=question_title,
+                    question_id=first_question.id,
+                    created_at=_stamp(),
+                    updated_at=_stamp(),
+                ),
+                EvidenceGap(
+                    workspace_id=workspace.id,
+                    gap_type="missing_evidence",
+                    status="open",
+                    suggested_evidence_doc_title=question_title,
+                    question_id=second_question.id,
+                    created_at=_stamp(),
+                    updated_at=_stamp(),
+                ),
+                EvidenceGap(
+                    workspace_id=workspace.id,
+                    gap_type="missing_evidence",
+                    status="open",
+                    suggested_evidence_doc_title=evidence_title,
+                    evidence_refs=json.dumps([evidence.id]),
+                    created_at=_stamp(),
+                    updated_at=_stamp(),
+                ),
+                EvidenceGap(
+                    workspace_id=workspace.id,
+                    gap_type="missing_evidence",
+                    status="open",
+                    suggested_evidence_doc_title=control_title,
+                    control_id=control.id,
+                    created_at=_stamp(),
+                    updated_at=_stamp(),
+                ),
+            ]
+        )
+        session.commit()
+        workspace_id = workspace.id
+        question_ids = [first_question.id, second_question.id]
+        evidence_id = evidence.id
+        control_id = control.id
+    finally:
+        session.close()
+
+    payload = _coverage(workspace_id)
+    rows = payload["recommended_evidence"]
+    assert rows
+    for item in rows:
+        assert item["evidence_ids"] or item["control_ids"] or item["question_ids"], item
+    questions = next(item for item in rows if item["title"] == question_title)
+    assert questions["improves_questions"] == 2
+    assert questions["question_ids"] == sorted(question_ids)
+    evidence_row = next(item for item in rows if item["title"] == evidence_title)
+    assert evidence_row["evidence_ids"] == [evidence_id]
+    control_row = next(item for item in rows if item["title"] == control_title)
+    assert control_row["control_ids"] == [control_id]
+
+
 def test_inferred_recommendation_uses_the_stored_question(restored_counts):
     token = uuid.uuid4().hex[:10]
     session = _db()
