@@ -4,7 +4,11 @@ import { useEffect, useState, useCallback } from 'react'
 import { Button, Card, Input, useDestructiveConfirm } from '@/components/ui'
 import { ErrorState, LoadingState } from '@/components/ui'
 import { useAuth } from '@/contexts/AuthContext'
-import type { ApiFailurePresentation } from '@/lib/api-error'
+import {
+  mutationFailureNotice,
+  type ApiFailurePresentation,
+} from '@/lib/api-error'
+import { actionVerb } from '@/lib/action-copy'
 import { failureOf, isAbortError, readSectionJson } from '@/lib/section-load'
 import { useKeyedGeneration } from '@/components/ui/useKeyedGeneration'
 
@@ -708,6 +712,7 @@ function WorkspacePolicySection() {
   const [sessionDays, setSessionDays] = useState<number | ''>('')
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
+  const [saveError, setSaveError] = useState<string | null>(null)
 
   useEffect(() => {
     fetch('/api/workspaces/current', { credentials: 'include' })
@@ -729,6 +734,8 @@ function WorkspacePolicySection() {
   const save = async (e: React.FormEvent) => {
     e.preventDefault()
     setSaving(true)
+    setSaved(false)
+    setSaveError(null)
     const sessionMax =
       sessionDays === '' || sessionDays === 0
         ? null
@@ -748,6 +755,16 @@ function WorkspacePolicySection() {
         setPolicy(d)
         setSaved(true)
         setTimeout(() => setSaved(false), 2000)
+      } else {
+        const data = await res.json().catch(() => null)
+        setSaved(false)
+        setSaveError(
+          mutationFailureNotice(
+            res.status,
+            data,
+            'The change was not saved. Try again.'
+          ).message
+        )
       }
     } finally {
       setSaving(false)
@@ -813,10 +830,21 @@ function WorkspacePolicySection() {
         </div>
 
         <div className="flex items-center gap-2">
-          <Button type="submit" size="sm" disabled={saving}>
-            {saving ? 'Saving...' : 'Save Policy'}
+          <Button type="submit" size="sm" disabled={saving} loading={saving}>
+            {saving
+              ? actionVerb('save', 'pending')
+              : `${actionVerb('save', 'idle')} policy`}
           </Button>
-          {saved && <span className="text-xs text-emerald-400">Saved</span>}
+          {saved && !saving && (
+            <span className="text-xs text-[var(--tc-success)]">
+              {actionVerb('save', 'success')}
+            </span>
+          )}
+          {saveError && (
+            <span role="alert" className="text-xs text-[var(--tc-danger)]">
+              {saveError}
+            </span>
+          )}
         </div>
       </form>
     </Card>

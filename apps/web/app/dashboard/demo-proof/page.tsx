@@ -5,11 +5,15 @@ import Link from 'next/link'
 import { Button, Card, EmptyState } from '@/components/ui'
 import { useAuth } from '@/contexts/AuthContext'
 import { presentDemoProof } from '@/lib/demoProofSummary.mjs'
+import { presentActionFailure } from '@/lib/api-error'
+import { actionVerb } from '@/lib/action-copy'
 import { useKeyedGeneration } from '@/components/ui/useKeyedGeneration'
 
 type Presented = ReturnType<typeof presentDemoProof>
 
 function errorMessage(status: number, body: unknown): string {
+  const mapped = presentActionFailure({ status, data: body })
+  if (mapped) return mapped.message
   if (body && typeof body === 'object') {
     const record = body as {
       message?: unknown
@@ -21,7 +25,6 @@ function errorMessage(status: number, body: unknown): string {
     if (typeof record.detail === 'string' && record.detail) return record.detail
   }
   if (status === 401) return 'Sign in to view this summary.'
-  if (status === 403) return 'You do not have access to this workspace summary.'
   return 'The summary could not be loaded.'
 }
 
@@ -36,14 +39,19 @@ function windowText(row: {
 }
 
 export default function DemoProofPage() {
-  const { permissions } = useAuth()
+  const { permissions, workspace } = useAuth()
   const canEdit = permissions.can_edit
   const [windowStart, setWindowStart] = useState('')
   const [windowEnd, setWindowEnd] = useState('')
   const [loading, setLoading] = useState(false)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [savedGeneration, setSavedGeneration] = useState<number | null>(null)
   const [presented, setPresented] = useState<Presented | null>(null)
+  const summaryKey = useKeyedGeneration(
+    JSON.stringify([workspace?.id, windowStart, windowEnd])
+  )
+  const summaryGeneration = summaryKey.generation
 
   const requestSummary = useCallback(
     (method: 'GET' | 'POST') => {
@@ -59,6 +67,7 @@ export default function DemoProofPage() {
           const body = await response.json().catch(() => null)
           if (!response.ok) {
             setPresented(null)
+            if (method === 'POST') setSavedGeneration(null)
             setError(errorMessage(response.status, body))
             return
           }
@@ -69,7 +78,10 @@ export default function DemoProofPage() {
             next.state === 'unsupported_schema' ||
             next.state === 'unavailable'
           ) {
+            if (method === 'POST') setSavedGeneration(null)
             setError(next.reason || 'This summary cannot be shown.')
+          } else if (method === 'POST') {
+            setSavedGeneration(summaryGeneration)
           }
         })
         .catch(() => {
@@ -81,7 +93,7 @@ export default function DemoProofPage() {
           else setLoading(false)
         })
     },
-    [windowStart, windowEnd]
+    [windowStart, windowEnd, summaryGeneration]
   )
 
   const load = useCallback(() => {
@@ -91,11 +103,11 @@ export default function DemoProofPage() {
   }, [requestSummary])
   const save = useCallback(() => {
     setSaving(true)
+    setSavedGeneration(null)
     setError(null)
     return requestSummary('POST')
   }, [requestSummary])
 
-  const summaryKey = useKeyedGeneration(`${windowStart}\n${windowEnd}`)
   if (summaryKey.changed) {
     setLoading(true)
     setError(null)
@@ -168,9 +180,22 @@ export default function DemoProofPage() {
             />
           </div>
           {canEdit && (
-            <Button type="button" loading={saving} onClick={() => void save()}>
-              Save summary
-            </Button>
+            <>
+              <Button
+                type="button"
+                loading={saving}
+                onClick={() => void save()}
+              >
+                {saving
+                  ? actionVerb('save', 'pending')
+                  : `${actionVerb('save', 'idle')} summary`}
+              </Button>
+              {savedGeneration === summaryGeneration && !saving ? (
+                <span className="text-sm text-[var(--tc-success)]">
+                  {actionVerb('save', 'success')}
+                </span>
+              ) : null}
+            </>
           )}
           <Button
             type="button"

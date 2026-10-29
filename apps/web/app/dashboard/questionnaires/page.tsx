@@ -18,9 +18,14 @@ import {
   BulkDeleteConfirmationModal,
   MetadataEditorModal,
   RegistryRowActionsMenu,
+  Toast,
+  ToastViewport,
 } from '@/components/ui'
 import { useAuth } from '@/contexts/AuthContext'
-import type { ApiFailurePresentation } from '@/lib/api-error'
+import {
+  mutationFailureNotice,
+  type ApiFailurePresentation,
+} from '@/lib/api-error'
 import {
   failureOf,
   isAbortError,
@@ -34,7 +39,7 @@ import {
   SUBJECT_AREA_OPTIONS,
   normalizeLabels,
 } from '@/lib/listMetadata'
-import { formatApiErrorDetail } from '@/lib/api-error'
+import { actionVerb, confirmedActionNotice } from '@/lib/action-copy'
 
 export default function QuestionnairesPage() {
   const { workspace, permissions } = useAuth()
@@ -60,6 +65,11 @@ export default function QuestionnairesPage() {
   const [refreshing, setRefreshing] = useState(false)
   const [uploading, setUploading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [uploadNotice, setUploadNotice] = useState<{
+    title: string
+    message: string
+    type: 'success' | 'error'
+  } | null>(null)
   const [search, setSearch] = useState('')
   const [framework, setFramework] = useState('')
   const [subjectArea, setSubjectArea] = useState('')
@@ -210,6 +220,7 @@ export default function QuestionnairesPage() {
     setUploading(true)
     setUploadModalOpen(false)
     setError(null)
+    setUploadNotice(null)
     const fd = new FormData()
     fd.append('workspace_id', String(workspaceId))
     fd.append('file', uploadFile)
@@ -223,12 +234,20 @@ export default function QuestionnairesPage() {
       body: fd,
     })
       .then(async (r) => {
-        const b = await r.json().catch(() => ({}))
-        return r.ok
-          ? b
-          : Promise.reject(new Error(formatApiErrorDetail(b, 'Upload failed')))
-      })
-      .then(() => {
+        const data = await r.json().catch(() => null)
+        if (!r.ok) {
+          const notice = mutationFailureNotice(
+            r.status,
+            data,
+            'The file was not stored. Try again.'
+          )
+          setUploadNotice({ ...notice, type: 'error' })
+          return
+        }
+        setUploadNotice({
+          ...confirmedActionNotice('upload'),
+          type: 'success',
+        })
         if (workspaceId == null) return
         const params = new URLSearchParams({
           workspace_id: String(workspaceId),
@@ -253,8 +272,12 @@ export default function QuestionnairesPage() {
             setLoadFailure(failureOf(error))
           })
       })
-      .catch((err) =>
-        setError(err instanceof Error ? err.message : 'Upload failed')
+      .catch(() =>
+        setUploadNotice({
+          title: 'Could not complete that',
+          message: 'The file was not stored. Try again.',
+          type: 'error',
+        })
       )
       .finally(() => {
         setUploading(false)
@@ -422,9 +445,13 @@ export default function QuestionnairesPage() {
             <Button
               type="button"
               loading={uploading}
+              aria-busy={uploading}
+              data-upload-state={uploading ? 'pending' : 'idle'}
               onClick={() => document.getElementById('qnr-upload')?.click()}
             >
-              {uploading ? 'Uploading…' : 'Choose file'}
+              {uploading
+                ? actionVerb('upload', 'pending')
+                : actionVerb('upload', 'idle')}
             </Button>
           </label>
         </Card>
@@ -761,10 +788,22 @@ export default function QuestionnairesPage() {
             >
               Cancel
             </button>
-            <Button onClick={confirmUpload}>Upload</Button>
+            <Button onClick={confirmUpload}>
+              {actionVerb('upload', 'idle')}
+            </Button>
           </div>
         </div>
       </Modal>
+      {uploadNotice && (
+        <ToastViewport>
+          <Toast
+            title={uploadNotice.title}
+            message={uploadNotice.message}
+            type={uploadNotice.type}
+            onDismiss={() => setUploadNotice(null)}
+          />
+        </ToastViewport>
+      )}
     </div>
   )
 }
