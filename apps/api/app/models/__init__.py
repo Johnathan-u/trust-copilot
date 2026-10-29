@@ -97,6 +97,7 @@ from app.models.case_study import (
 )
 from app.models.control_state import ControlStateSnapshot
 from app.models.alert_acknowledgment import AlertAcknowledgment
+from app.models.compliance_alert import ComplianceAlert
 from app.models.nda_access_request import NdaAccessRequest
 from app.models.shareable_space import ShareableSpace
 from app.models.golden_answer import GoldenAnswer
@@ -236,6 +237,7 @@ __all__ = [
     "CaseStudyResultPermission",
     "ControlStateSnapshot",
     "AlertAcknowledgment",
+    "ComplianceAlert",
     "NdaAccessRequest",
     "ShareableSpace",
     "GoldenAnswer",
