@@ -791,6 +791,25 @@ def test_concurrent_question_creates_leave_one_open_row(client):
     assert count == 1
 
 
+def test_bad_ids_are_422(client):
+    actors = _actors()
+    control_id = _control(actors["workspace_id"], f"Bad {uuid.uuid4().hex[:8]}")
+    gap_id = _gap(actors["workspace_id"], gap_type="control_check", control_id=control_id)
+    _login(client, ADMIN_EMAIL, ADMIN_PASSWORD)
+    boolean_id = client.post(
+        "/api/evidence-gaps",
+        json={"gap_type": "control_check", "control_id": True},
+    )
+    boolean_evidence = client.post(
+        f"/api/evidence-gaps/{gap_id}/resolve",
+        json={"evidence_id": True},
+    )
+    blank = client.post("/api/evidence-gaps", json={"gap_type": "   "})
+    assert boolean_id.status_code == 422, boolean_id.text
+    assert boolean_evidence.status_code == 422, boolean_evidence.text
+    assert blank.status_code == 422, blank.text
+
+
 def test_idempotency_keys_do_not_collide_across_gaps(client):
     actors = _actors()
     first_control = _control(actors["workspace_id"], f"Key A {uuid.uuid4().hex[:8]}")

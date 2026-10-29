@@ -7,8 +7,10 @@ and the evidence backs the gap's control or question.
 import json
 import logging
 from datetime import datetime, timezone
+from typing import Literal
 
 from fastapi import APIRouter, Depends, HTTPException, Request
+from pydantic import BaseModel, field_validator
 from fastapi.responses import JSONResponse
 from sqlalchemy import text
 from sqlalchemy.exc import IntegrityError
@@ -45,6 +47,50 @@ EVIDENCE_NOT_FOUND = "Evidence not found"
 _DECIDED = {"accepted", "dismissed"}
 _HIGH_STATES = {"failed", "unknown", "stale"}
 _HIGH_AGE_DAYS = 14
+
+def _strict_id(value: object) -> int | None:
+    if value is None:
+        return None
+    if isinstance(value, bool) or not isinstance(value, int):
+        raise ValueError("must be an integer")
+    return value
+
+
+class EnsureGapBody(BaseModel):
+    gap_type: str
+    control_id: int | None = None
+    question_id: int | None = None
+    reason: str | None = None
+
+    @field_validator("gap_type")
+    @classmethod
+    def gap_type_text(cls, value: str) -> str:
+        text_value = value.strip()
+        if not text_value:
+            raise ValueError("gap_type is required")
+        return text_value
+
+    @field_validator("control_id", "question_id", mode="before")
+    @classmethod
+    def strict_ids(cls, value: object) -> int | None:
+        return _strict_id(value)
+
+
+class DecisionBody(BaseModel):
+    status: Literal["accepted", "dismissed"]
+
+
+class ResolveBody(BaseModel):
+    evidence_id: int
+
+    @field_validator("evidence_id", mode="before")
+    @classmethod
+    def strict_evidence_id(cls, value: object) -> int:
+        parsed = _strict_id(value)
+        if parsed is None:
+            raise ValueError("evidence_id is required")
+        return parsed
+
 
 router = APIRouter(prefix="/evidence-gaps", tags=["evidence-gaps"])
 
@@ -372,7 +418,7 @@ def get_gap(
 
 @router.post("")
 def ensure_open_gap(
-    body: dict,
+    body: EnsureGapBody,
     request: Request,
     db: Session = Depends(get_db),
     _user=Depends(require_can_review),
@@ -389,19 +435,17 @@ def ensure_open_gap(
         return cached
     status_code = 200
     try:
-        gap_type = (body.get("gap_type") or "").strip()
-        if not gap_type:
-            raise HTTPException(status_code=422, detail="gap_type is required")
-        control_id = body.get("control_id")
-        question_id = body.get("question_id")
+        gap_type = body.gap_type
+        control_id = body.control_id
+        question_id = body.question_id
         questionnaire_id = None
         if question_id is not None:
-            question = _question_in_workspace(db, int(question_id), workspace_id)
+            question = _question_in_workspace(db, question_id, workspace_id)
             questionnaire_id = question.questionnaire_id
             _lock_questionnaire_gap_writes(db, questionnaire_id)
         if control_id is not None:
-            _control_in_workspace(db, int(control_id), workspace_id)
-            _lock_control_gap_writes(db, int(control_id))
+            _control_in_workspace(db, control_id, workspace_id)
+            _lock_control_gap_writes(db, control_id)
         if control_id is None and question_id is None:
             raise HTTPException(status_code=422, detail="control_id or question_id is required")
         query = db.query(EvidenceGap).filter(
@@ -410,16 +454,16 @@ def ensure_open_gap(
         )
         if question_id is not None and gap_type != "control_check":
             query = query.filter(
-                EvidenceGap.question_id == int(question_id),
+                EvidenceGap.question_id == question_id,
                 EvidenceGap.gap_type != "control_check",
             )
         elif control_id is not None:
             query = query.filter(
-                EvidenceGap.control_id == int(control_id),
+                EvidenceGap.control_id == control_id,
                 EvidenceGap.gap_type == gap_type,
             )
         else:
-            query = query.filter(EvidenceGap.question_id == int(question_id))
+            query = query.filter(EvidenceGap.question_id == question_id)
         existing = query.order_by(EvidenceGap.id).all()
         decided = [row for row in existing if row.status in _DECIDED]
         open_rows = [row for row in existing if row.status == "open"]
@@ -433,9 +477,9 @@ def ensure_open_gap(
                 questionnaire_id=questionnaire_id,
                 gap_type=gap_type,
                 status="open",
-                control_id=int(control_id) if control_id is not None else None,
-                question_id=int(question_id) if question_id is not None else None,
-                reason=(body.get("reason") or "").strip() or "No eligible evidence is linked.",
+                control_id=control_id,
+                question_id=question_id,
+                reason=(body.reason or "").strip() or "No eligible evidence is linked.",
                 evidence_refs="[]",
             )
             try:
@@ -471,7 +515,7 @@ def ensure_open_gap(
 @router.post("/{gap_id}/decision")
 def decide_gap(
     gap_id: int,
-    body: dict,
+    body: DecisionBody,
     request: Request,
     db: Session = Depends(get_db),
     _user=Depends(require_can_admin),
@@ -482,9 +526,7 @@ def decide_gap(
     if cached is not None:
         return cached
     try:
-        status = body.get("status")
-        if status not in _DECIDED:
-            raise HTTPException(status_code=422, detail="status must be accepted or dismissed")
+        status = body.status
         gap = _gap_in_workspace(db, gap_id, workspace_id)
         if gap.status != "open":
             raise HTTPException(status_code=409, detail="Gap is already decided")
@@ -514,7 +556,7 @@ def decide_gap(
 @router.post("/{gap_id}/resolve")
 def resolve_gap(
     gap_id: int,
-    body: dict,
+    body: ResolveBody,
     request: Request,
     db: Session = Depends(get_db),
     _user=Depends(require_can_review),
@@ -525,9 +567,7 @@ def resolve_gap(
     if cached is not None:
         return cached
     try:
-        evidence_id = body.get("evidence_id")
-        if not isinstance(evidence_id, int):
-            raise HTTPException(status_code=422, detail="evidence_id is required")
+        evidence_id = body.evidence_id
         gap = _gap_in_workspace(db, gap_id, workspace_id)
         if gap.status != "open":
             raise HTTPException(status_code=409, detail="Gap is not open")
