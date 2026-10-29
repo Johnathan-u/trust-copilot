@@ -1,0 +1,11 @@
+BEGIN;
+
+-- Running downgrade bug018b_gap_status_checks -> tc21005_mapping_version
+
+ALTER TABLE evidence_gaps DROP CONSTRAINT ck_evidence_gaps_close_reason;
+
+ALTER TABLE evidence_gaps DROP CONSTRAINT ck_evidence_gaps_status;
+
+UPDATE alembic_version SET version_num='tc21005_mapping_version' WHERE alembic_version.version_num = 'bug018b_gap_status_checks';
+
+COMMIT;

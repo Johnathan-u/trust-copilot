@@ -33,7 +33,7 @@ The revision id `bug018c_one_open_gap` is 20 characters, so it fits `alembic_ver
 
 ## Migration
 
-Revision `bug018c_one_open_gap` (`apps/api/alembic/versions/bug018c_one_open_gap.py`). `down_revision` is master's Alembic head at push. The module does not import the application package.
+Revision `bug018c_one_open_gap` (`apps/api/alembic/versions/bug018c_one_open_gap.py`). `down_revision` is `bug018b_gap_status_checks` (master's Alembic head at `5b97a33`). The chain is `tc21006_gap_evaluation` then `bug018b_gap_status_checks` then this revision. The module does not import the application package. The excluded gap type is `CONTROL_CHECK` (`control_check`), the same constant the scan route imports.
 
 Before `CREATE UNIQUE INDEX`, upgrade counts questions that already have more than one open row inside the index predicate. A hit raises `OpenGapDuplicate` with the question count, the open-row count and example gap ids (at most five), and creates nothing. It does not delete or close rows.
 
@@ -81,4 +81,4 @@ Offline `alembic --sql` skips the pre-scan. There is no database to read.
 
 `update_evidence_gap_status` treats a unique violation as already open by returning the other open gap's dict. The caller sees that row's id, and nothing in the payload says it is a different row from the one requested. That should be a 409 once a route calls this helper. The helper's return value is unchanged until then.
 
-When #76 (`tc21006_gap_evaluation`) and #78 (`bug018b_gap_status_checks`) have merged, this revision should re-parent onto `bug018b_gap_status_checks`. `GAP_TYPE_CONTROL_CHECK` should then be the same constant as #76's `CONTROL_CHECK`. Not done in this change. Parent remains master's current head.
+Re-parented onto `bug018b_gap_status_checks` after that revision merged. The scan gap type is `CONTROL_CHECK` on the model; the compliance-gaps route imports it and does not define a second copy.

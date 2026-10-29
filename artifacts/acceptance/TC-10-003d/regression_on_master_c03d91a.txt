@@ -1,0 +1,133 @@
+============================= test session starts ==============================
+platform linux -- Python 3.12.3, pytest-9.1.1, pluggy-1.7.0 -- /tmp/tc-venv/bin/python
+cachedir: .pytest_cache
+rootdir: /workspace/apps/api
+configfile: pyproject.toml
+plugins: anyio-4.15.1
+collecting ... collected 5 items
+
+tests/release/test_auto_generate_enqueue_conflict.py::test_parse_job_stays_completed_when_auto_generate_enqueue_conflicts FAILED [ 20%]
+tests/release/test_auto_generate_enqueue_conflict.py::test_happy_path_enqueues_exactly_one_generate_job PASSED [ 40%]
+tests/release/test_auto_generate_enqueue_conflict.py::test_non_conflict_exception_keeps_parse_job_completed PASSED [ 60%]
+tests/release/test_auto_generate_enqueue_conflict.py::test_non_conflict_rollback_does_not_drop_committed_parse_completion PASSED [ 80%]
+tests/release/test_auto_generate_enqueue_conflict.py::test_touched_route_openapi_has_no_ticket_or_requirement_ids FAILED [100%]
+
+=================================== FAILURES ===================================
+_____ test_parse_job_stays_completed_when_auto_generate_enqueue_conflicts ______
+tests/release/test_auto_generate_enqueue_conflict.py:207: in test_parse_job_stays_completed_when_auto_generate_enqueue_conflicts
+    assert saved["result"] == {"count": 1, "auto_generate": "enqueue_conflict"}
+E   AssertionError: assert {'count': 1} == {'count': 1, 'auto_generate': 'enqueue_conflict'}
+E
+E     Common items:
+E     {'count': 1}
+E     Right contains 1 more item:
+E     {'auto_generate': 'enqueue_conflict'}
+E
+E     Full diff:
+E       {
+E           'count': 1,
+E     -     'auto_generate': 'enqueue_conflict',
+E       }
+------------------------------ Captured log call -------------------------------
+WARNING  app.services.job_effects:job_effects.py:127 enqueue_job: lost the queued-slot race on every attempt; reporting a retryable conflict (workspace_id=1 kind=generate_answers attempts=2)
+_________ test_touched_route_openapi_has_no_ticket_or_requirement_ids __________
+tests/release/test_auto_generate_enqueue_conflict.py:326: in test_touched_route_openapi_has_no_ticket_or_requirement_ids
+    assert violations == []
+E   AssertionError: assert [('post', '/api/questionnaires/upload', ['QNR-01', 'QNR-13']), ('get', '/api/questionnaires', ['QNR-02']), ('get', '/api/questionnaires/', ['QNR-02']), ('get', '/api/questionnaires/{qnr_id}', ['QNR-02'])] == []
+E
+E     Left contains 4 more items, first extra item: ('post', '/api/questionnaires/upload', ['QNR-01', 'QNR-13'])
+E
+E     Full diff:
+E     - []
+E     + [
+E     +     (
+E     +         'post',
+E     +         '/api/questionnaires/upload',
+E     +         [
+E     +             'QNR-01',
+E     +             'QNR-13',
+E     +         ],
+E     +     ),
+E     +     (
+E     +         'get',
+E     +         '/api/questionnaires',
+E     +         [
+E     +             'QNR-02',
+E     +         ],
+E     +     ),
+E     +     (
+E     +         'get',
+E     +         '/api/questionnaires/',
+E     +         [
+E     +             'QNR-02',
+E     +         ],
+E     +     ),
+E     +     (
+E     +         'get',
+E     +         '/api/questionnaires/{qnr_id}',
+E     +         [
+E     +             'QNR-02',
+E     +         ],
+E     +     ),
+E     + ]
+=============================== warnings summary ===============================
+tests/release/test_auto_generate_enqueue_conflict.py::test_parse_job_stays_completed_when_auto_generate_enqueue_conflicts
+tests/release/test_auto_generate_enqueue_conflict.py::test_happy_path_enqueues_exactly_one_generate_job
+tests/release/test_auto_generate_enqueue_conflict.py::test_happy_path_enqueues_exactly_one_generate_job
+tests/release/test_auto_generate_enqueue_conflict.py::test_non_conflict_exception_keeps_parse_job_completed
+tests/release/test_auto_generate_enqueue_conflict.py::test_non_conflict_rollback_does_not_drop_committed_parse_completion
+  /tmp/tc-venv/lib/python3.12/site-packages/sqlalchemy/sql/schema.py:3627: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    return util.wrap_callable(lambda ctx: fn(), fn)  # type: ignore
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED tests/release/test_auto_generate_enqueue_conflict.py::test_parse_job_stays_completed_when_auto_generate_enqueue_conflicts - AssertionError: assert {'count': 1} == {'count': 1, 'auto_generate': 'enqueue_conflict'}
+
+  Common items:
+  {'count': 1}
+  Right contains 1 more item:
+  {'auto_generate': 'enqueue_conflict'}
+
+  Full diff:
+    {
+        'count': 1,
+  -     'auto_generate': 'enqueue_conflict',
+    }
+FAILED tests/release/test_auto_generate_enqueue_conflict.py::test_touched_route_openapi_has_no_ticket_or_requirement_ids - AssertionError: assert [('post', '/api/questionnaires/upload', ['QNR-01', 'QNR-13']), ('get', '/api/questionnaires', ['QNR-02']), ('get', '/api/questionnaires/', ['QNR-02']), ('get', '/api/questionnaires/{qnr_id}', ['QNR-02'])] == []
+
+  Left contains 4 more items, first extra item: ('post', '/api/questionnaires/upload', ['QNR-01', 'QNR-13'])
+
+  Full diff:
+  - []
+  + [
+  +     (
+  +         'post',
+  +         '/api/questionnaires/upload',
+  +         [
+  +             'QNR-01',
+  +             'QNR-13',
+  +         ],
+  +     ),
+  +     (
+  +         'get',
+  +         '/api/questionnaires',
+  +         [
+  +             'QNR-02',
+  +         ],
+  +     ),
+  +     (
+  +         'get',
+  +         '/api/questionnaires/',
+  +         [
+  +             'QNR-02',
+  +         ],
+  +     ),
+  +     (
+  +         'get',
+  +         '/api/questionnaires/{qnr_id}',
+  +         [
+  +             'QNR-02',
+  +         ],
+  +     ),
+  + ]
+=================== 2 failed, 3 passed, 5 warnings in 1.61s ====================

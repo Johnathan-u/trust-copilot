@@ -36,14 +36,14 @@ This module does not import the application package. Tests lock these
 literals to the model.
 
 Revision ID: bug018c_one_open_gap
-Revises: tc21005_mapping_version
+Revises: bug018b_gap_status_checks
 """
 
 import sqlalchemy as sa
 from alembic import context, op
 
 revision = "bug018c_one_open_gap"
-down_revision = "tc21005_mapping_version"
+down_revision = "bug018b_gap_status_checks"
 branch_labels = None
 depends_on = None
 

@@ -30,7 +30,7 @@ from app.models.evidence_gap import EvidenceGap
 
 API_ROOT = Path(__file__).resolve().parents[2]
 REVISION = "bug018c_one_open_gap"
-PARENT = "tc21005_mapping_version"
+PARENT = "bug018b_gap_status_checks"
 MIGRATION = API_ROOT / "alembic" / "versions" / f"{REVISION}.py"
 _MARKER = "bug018c-synthetic"
 # Children before parents. Same autouse shape as the TC-21-005 tests, with a
@@ -565,9 +565,10 @@ def test_status_update_treats_unique_violation_as_already_open(db_session: Sessi
 
 def test_model_index_matches_the_migration():
     module = _load_migration()
+    from app.api.routes.compliance_gaps import CONTROL_CHECK as route_control_check
     from app.models.evidence_gap import (
+        CONTROL_CHECK,
         GAP_STATUS_OPEN,
-        GAP_TYPE_CONTROL_CHECK,
         ONE_OPEN_GAP_INDEX_COLUMNS,
         ONE_OPEN_GAP_INDEX_WHERE,
         UQ_EVIDENCE_GAPS_ONE_OPEN_PER_QUESTION,
@@ -577,7 +578,8 @@ def test_model_index_matches_the_migration():
     assert len(module.revision) <= 32
     assert module.down_revision == PARENT
     assert module.OPEN_STATUS == GAP_STATUS_OPEN == "open"
-    assert module.EXCLUDED_GAP_TYPE == GAP_TYPE_CONTROL_CHECK == "control_check"
+    assert route_control_check is CONTROL_CHECK
+    assert module.EXCLUDED_GAP_TYPE == CONTROL_CHECK == "control_check"
     assert module.INDEX_NAME == UQ_EVIDENCE_GAPS_ONE_OPEN_PER_QUESTION
     assert module.INDEX_COLUMNS == ONE_OPEN_GAP_INDEX_COLUMNS
     assert module.INDEX_WHERE == ONE_OPEN_GAP_INDEX_WHERE
