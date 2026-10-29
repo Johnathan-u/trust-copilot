@@ -1,0 +1,548 @@
+...................................F.................................... [  2%]
+........................................................................ [  4%]
+........................................................................ [  7%]
+........................................................................ [  9%]
+........................................................................ [ 11%]
+........................................................................ [ 14%]
+........................................................................ [ 16%]
+........................................................................ [ 18%]
+........................................................................ [ 21%]
+........................................................................ [ 23%]
+...................................................................F.... [ 26%]
+.....................F.................................................. [ 28%]
+........................................................................ [ 30%]
+........................................................................ [ 33%]
+.....................................................F.................. [ 35%]
+........................................................................ [ 37%]
+........................................................................ [ 40%]
+........................................................................ [ 42%]
+........................................................................ [ 45%]
+........................................................................ [ 47%]
+........................................................................ [ 49%]
+............................................................ssssssssss.. [ 52%]
+........................................................................ [ 54%]
+........................................................................ [ 56%]
+........................................................................ [ 59%]
+........................................................................ [ 61%]
+........................................................................ [ 64%]
+........................................................................ [ 66%]
+........................................................................ [ 68%]
+........................................................................ [ 71%]
+........................................................................ [ 73%]
+........................................................................ [ 75%]
+........................................................................ [ 78%]
+........................................................................ [ 80%]
+........................................................................ [ 83%]
+........................................................................ [ 85%]
+........................................................................ [ 87%]
+........................................................................ [ 90%]
+........................................................................ [ 92%]
+........................................................................ [ 94%]
+........................................................................ [ 97%]
+........................................................................ [ 99%]
+.........                                                                [100%]
+=================================== FAILURES ===================================
+E   AssertionError: assert 'tc10002_job_retries' in ''
+     +  where '' = CompletedProcess(args=['/tmp/api-venv/bin/python', '-m', 'alembic', 'current'], returncode=0, stdout='', stderr='INFO ...c.runtime.migration] Context impl PostgresqlImpl.\nINFO  [alembic.runtime.migration] Will assume transactional DDL.\n').stdout
+------------------------------ Captured log call -------------------------------
+INFO     alembic.runtime.plugins:plugins.py:37 setup plugin alembic.autogenerate.schemas
+INFO     alembic.runtime.plugins:plugins.py:37 setup plugin alembic.autogenerate.tables
+INFO     alembic.runtime.plugins:plugins.py:37 setup plugin alembic.autogenerate.types
+INFO     alembic.runtime.plugins:plugins.py:37 setup plugin alembic.autogenerate.constraints
+INFO     alembic.runtime.plugins:plugins.py:37 setup plugin alembic.autogenerate.defaults
+INFO     alembic.runtime.plugins:plugins.py:37 setup plugin alembic.autogenerate.comments
+INFO     alembic.runtime.plugins:plugins.py:37 setup plugin alembic.ext.checkconstraint_byname
+/workspace/apps/api/tests/release/test_billing_provider.py:1276: AssertionError: assert 'tc10002_job_retries' in ''
+E   AssertionError: typescript is not installed under apps/web. Install web dependencies before this test.
+
+    assert 1 == 0
+     +  where 1 = CompletedProcess(args=['node', '/workspace/apps/api/tests/release/run_case_study_consumer.mjs'], returncode=1, stdout='', stderr='typescript is not installed under apps/web. Install web dependencies before this test.\n').returncode
+------------------------------ Captured log setup ------------------------------
+INFO     app.core.rate_limit:rate_limit.py:112 Rate-limit backend: in-memory (dev/test)
+INFO     trustcopilot.audit:audit.py:34 audit {"ts": "2026-10-29T12:32:39.786013+00:00", "action": "auth.login", "user_id": 3, "email": "admin@trust.local", "workspace_id": 1}
+INFO     app.request:main.py:284 request
+INFO     httpx2:_client.py:1084 HTTP Request: POST http://localhost/api/auth/login "HTTP/1.1 200 OK"
+------------------------------ Captured log call -------------------------------
+INFO     trustcopilot.audit:audit.py:34 audit {"ts": "2026-10-29T12:32:39.804256+00:00", "action": "case_study.create", "user_id": 3, "email": "admin@trust.local", "workspace_id": 1, "resource_type": "case_study", "resource_id": 15, "synthetic": false, "customer_claim": false}
+INFO     app.request:main.py:284 request
+INFO     httpx2:_client.py:1084 HTTP Request: POST http://localhost/api/case-studies "HTTP/1.1 200 OK"
+INFO     trustcopilot.audit:audit.py:34 audit {"ts": "2026-10-29T12:32:39.821150+00:00", "action": "case_study.consent", "user_id": 3, "email": "admin@trust.local", "workspace_id": 1, "resource_type": "case_study", "resource_id": 15, "organization_name": "SYNTHETIC-ORG-PLACEHOLDER", "consent_id": 13, "revision": 1}
+INFO     app.request:main.py:284 request
+INFO     httpx2:_client.py:1084 HTTP Request: POST http://localhost/api/case-studies/15/consents "HTTP/1.1 200 OK"
+INFO     trustcopilot.audit:audit.py:34 audit {"ts": "2026-10-29T12:32:39.830479+00:00", "action": "case_study.result_permission", "user_id": 3, "email": "admin@trust.local", "workspace_id": 1, "resource_type": "case_study", "resource_id": 15, "consent_id": 13, "result_key": "quote", "permission_id": 27, "revision": 1}
+INFO     app.request:main.py:284 request
+INFO     httpx2:_client.py:1084 HTTP Request: POST http://localhost/api/case-studies/15/result-permissions "HTTP/1.1 200 OK"
+INFO     trustcopilot.audit:audit.py:34 audit {"ts": "2026-10-29T12:32:39.881114+00:00", "action": "auth.login", "user_id": 3, "email": "admin@trust.local", "workspace_id": 1}
+INFO     app.request:main.py:284 request
+INFO     httpx2:_client.py:1084 HTTP Request: POST http://localhost/api/auth/login "HTTP/1.1 200 OK"
+INFO     trustcopilot.audit:audit.py:34 audit {"ts": "2026-10-29T12:32:39.894102+00:00", "action": "case_study.submit_review", "user_id": 3, "email": "admin@trust.local", "workspace_id": 1, "resource_type": "case_study", "resource_id": 15, "revision": 1, "review_status": "pending"}
+INFO     app.request:main.py:284 request
+INFO     httpx2:_client.py:1084 HTTP Request: POST http://localhost/api/case-studies/15/submit-review "HTTP/1.1 200 OK"
+INFO     trustcopilot.audit:audit.py:34 audit {"ts": "2026-10-29T12:32:39.942442+00:00", "action": "auth.login", "user_id": 2, "email": "reviewer@trust.local", "workspace_id": 1}
+INFO     app.request:main.py:284 request
+INFO     httpx2:_client.py:1084 HTTP Request: POST http://localhost/api/auth/login "HTTP/1.1 200 OK"
+INFO     trustcopilot.audit:audit.py:34 audit {"ts": "2026-10-29T12:32:39.960226+00:00", "action": "case_study.review", "user_id": 2, "email": "reviewer@trust.local", "workspace_id": 1, "resource_type": "case_study", "resource_id": 15, "decision": "approve", "review_status": "approved"}
+INFO     app.request:main.py:284 request
+INFO     httpx2:_client.py:1084 HTTP Request: POST http://localhost/api/case-studies/15/review "HTTP/1.1 200 OK"
+INFO     trustcopilot.audit:audit.py:34 audit {"ts": "2026-10-29T12:32:40.002032+00:00", "action": "auth.login", "user_id": 3, "email": "admin@trust.local", "workspace_id": 1}
+INFO     app.request:main.py:284 request
+INFO     httpx2:_client.py:1084 HTTP Request: POST http://localhost/api/auth/login "HTTP/1.1 200 OK"
+INFO     trustcopilot.audit:audit.py:34 audit {"ts": "2026-10-29T12:32:40.048884+00:00", "action": "auth.login", "user_id": 3, "email": "admin@trust.local", "workspace_id": 1}
+INFO     app.request:main.py:284 request
+INFO     httpx2:_client.py:1084 HTTP Request: POST http://localhost/api/auth/login "HTTP/1.1 200 OK"
+INFO     trustcopilot.audit:audit.py:34 audit {"ts": "2026-10-29T12:32:40.078816+00:00", "action": "case_study.publish", "user_id": 3, "email": "admin@trust.local", "workspace_id": 1, "resource_type": "case_study", "resource_id": 15, "customer_claim": true, "synthetic": false, "data_basis": "consented_customer", "revision": 1}
+INFO     app.request:main.py:284 request
+INFO     httpx2:_client.py:1084 HTTP Request: POST http://localhost/api/case-studies/15/publish "HTTP/1.1 200 OK"
+INFO     app.request:main.py:284 request
+INFO     httpx2:_client.py:1084 HTTP Request: GET http://localhost/openapi.json "HTTP/1.1 200 OK"
+INFO     app.request:main.py:284 request
+INFO     httpx2:_client.py:1084 HTTP Request: GET http://localhost/api/case-studies/15 "HTTP/1.1 200 OK"
+/workspace/apps/api/tests/release/test_domain_case_studies.py:227: AssertionError: typescript is not installed under apps/web. Install web dependencies before this test.
+E   AssertionError: v22.23.4
+
+    assert False
+     +  where False = <built-in method startswith of str object at 0x7ff47c6f1730>('v24.')
+     +    where <built-in method startswith of str object at 0x7ff47c6f1730> = 'v22.23.4\n'.startswith
+     +      where 'v22.23.4\n' = CompletedProcess(args=['/exec-daemon/node', '--version'], returncode=0, stdout='v22.23.4\n', stderr='').stdout
+------------------------------ Captured log call -------------------------------
+INFO     app.core.rate_limit:rate_limit.py:112 Rate-limit backend: in-memory (dev/test)
+INFO     trustcopilot.audit:audit.py:34 audit {"ts": "2026-10-29T12:32:55.456218+00:00", "action": "auth.login", "user_id": 134, "email": "tc21002-admin@trust.local", "workspace_id": 5}
+INFO     app.request:main.py:284 request
+INFO     httpx2:_client.py:1084 HTTP Request: POST http://localhost/api/auth/login "HTTP/1.1 200 OK"
+INFO     app.request:main.py:284 request
+INFO     httpx2:_client.py:1084 HTTP Request: POST http://localhost/api/controls/ "HTTP/1.1 200 OK"
+INFO     app.request:main.py:284 request
+INFO     httpx2:_client.py:1084 HTTP Request: POST http://localhost/api/controls/ "HTTP/1.1 200 OK"
+INFO     app.request:main.py:284 request
+INFO     httpx2:_client.py:1084 HTTP Request: GET http://localhost/api/controls "HTTP/1.1 200 OK"
+INFO     app.request:main.py:284 request
+INFO     httpx2:_client.py:1084 HTTP Request: GET http://localhost/api/compliance/controls "HTTP/1.1 200 OK"
+/workspace/apps/api/tests/release/test_domain_controls.py:252: AssertionError: v22.23.4
+E   AssertionError: INFO  [alembic.runtime.migration] Context impl PostgresqlImpl.
+      INFO  [alembic.runtime.migration] Will assume transactional DDL.
+      INFO  [alembic.runtime.migration] Running upgrade  -> 001, Initial schema: workspaces, jobs, documents.
+      INFO  [alembic.runtime.migration] Running upgrade 001 -> 002, Users, workspace_members, questionnaires, questions.
+      INFO  [alembic.runtime.migration] Running upgrade 002 -> 003, Seed default workspace for dev.
+      INFO  [alembic.runtime.migration] Running upgrade 003 -> 004, Chunks table with pgvector for semantic search (DOC-08, RET-01).
+      INFO  [alembic.runtime.migration] Running upgrade 004 -> 005, Add storage_key to questionnaires.
+      INFO  [alembic.runtime.migration] Running upgrade 005 -> 006, Export records and trust articles (EXP-01, TC-01).
+      INFO  [alembic.runtime.migration] Running upgrade 006 -> 007, Answers table (AI-05).
+      INFO  [alembic.runtime.migration] Running upgrade 007 -> 008, Trust requests table (TC-04).
+      INFO  [alembic.runtime.migration] Running upgrade 008 -> 009, Audit events table (AUD-201).
+      INFO  [alembic.runtime.migration] Running upgrade 009 -> 010, Email verified + verification and reset tokens (AUTH-207, AUTH-209).
+      INFO  [alembic.runtime.migration] Running upgrade 010 -> 011, Invites table (AUTH-208).
+      INFO  [alembic.runtime.migration] Running upgrade 011 -> 012, User MFA tables (AUTH-211, AUTH-212).
+      INFO  [alembic.runtime.migration] Running upgrade 012 -> 013, User sessions table for list/revoke (AUTH-213).
+      INFO  [alembic.runtime.migration] Running upgrade 013 -> 014, User OAuth accounts table (ENT-201).
+      INFO  [alembic.runtime.migration] Running upgrade 014 -> 015, Workspace auth policy columns (ENT-202).
+      INFO  [alembic.runtime.migration] Running upgrade 015 -> 016, Workspace AI settings (model + temperature).
+      INFO  [alembic.runtime.migration] Running upgrade 016 -> 017, Trust request assignee (TC-H-B1).
+      INFO  [alembic.runtime.migration] Running upgrade 017 -> 018, Trust request notes (TC-H-B2).
+      INFO  [alembic.runtime.migration] Running upgrade 018 -> 019, Trust article category/section (TC-R-B1).
+      INFO  [alembic.runtime.migration] Running upgrade 019 -> 020, Trust Center: controls, evidence linking, policy flag, acknowledgments, vendor requests (TC-R-B2, B3, B5, B6).
+      INFO  [alembic.runtime.migration] Running upgrade 020 -> 021, Add optional attachment to trust requests (public form upload).
+      INFO  [alembic.runtime.migration] Running upgrade 021 -> 022, TC-H-B1: Trust request status workflow — canonical statuses, default new.
+      INFO  [alembic.runtime.migration] Running upgrade 022 -> 023, TC-H-B2: Add note_type to trust_request_notes (internal_note vs reply).
+      INFO  [alembic.runtime.migration] Running upgrade 023 -> 024, Add hnsw index on chunks.embedding for scalable semantic search.
+      INFO  [alembic.runtime.migration] Running upgrade 024 -> 025, API keys table for machine auth.
+      INFO  [alembic.runtime.migration] Running upgrade 025 -> 026, Worker heartbeat table for /workerz visibility.
+      INFO  [alembic.runtime.migration] Running upgrade 026 -> 027, Document index_error for failure reason (pre-pilot).
+      INFO  [alembic.runtime.migration] Running upgrade 027 -> 028, Answer pipeline caches and corpus version.
+      INFO  [alembic.runtime.migration] Running upgrade 028 -> 029, Idempotency keys table for shared store across API replicas.
+      INFO  [alembic.runtime.migration] Running upgrade 029 -> 030, Compliance foundation: frameworks, framework_controls, workspace_controls, evidence, mappings.
+      INFO  [alembic.runtime.migration] Running upgrade 030 -> 031, Phase 2: question-control mapping log and manual overrides. No changes to Phase 1 tables.
+      INFO  [alembic.runtime.migration] Running upgrade 031 -> 032, Phase 4: Evidence last_verified_at; control verified_at / verified_by_user_id.
+      INFO  [alembic.runtime.migration] Running upgrade 032 -> 033, Phase 5: Workspace staleness config, compliance webhook outbox.
+      INFO  [alembic.runtime.migration] Running upgrade 033 -> 034, Phase 6: Webhook outbox delivery fields, workspace webhook URL.
+      INFO  [alembic.runtime.migration] Running upgrade 034 -> 035, Add 14 missing tables (Phase A-F, dashboard, quotas) and 3 missing columns.
+      INFO  [alembic.runtime.migration] Running upgrade 035 -> 036, Add tags and document_tags tables for enterprise document tagging.
+      INFO  [alembic.runtime.migration] Running upgrade 036 -> 037, AI mapping and governance tables.
+      INFO  [alembic.runtime.migration] Running upgrade 037 -> 038, Registry list metadata across core modules.
+      INFO  [alembic.runtime.migration] Running upgrade 038 -> 039, Add invite_code_hash for email verification step before accept (AUTH-208).
+      INFO  [alembic.runtime.migration] Running upgrade 039 -> 040, Add routing debug fields and attachment_size to trust_requests.
+      INFO  [alembic.runtime.migration] Running upgrade 040 -> 041, Add status and updated_at to question_mapping_preferences for questionnaire mapping flow.
+      INFO  [alembic.runtime.migration] Running upgrade 041 -> 042, Questionnaire soft framework preference for AI control mapping.
+      INFO  [alembic.runtime.migration] Running upgrade 042 -> 043, Questionnaire-scoped answer evidence (document allowlist for AI answers).
+      INFO  [alembic.runtime.migration] Running upgrade 043 -> 044, Questionnaire AI mapping prefers subject areas (categories), not frameworks.
+      INFO  [alembic.runtime.migration] Running upgrade 044 -> 045, Enterprise AI pipeline: question mapping signals, answer outcome fields, workspace usage tracking.
+      INFO  [alembic.runtime.migration] Running upgrade 045 -> 046, Placeholder migration to fix chain (046 was missing).
+      INFO  [alembic.runtime.migration] Running upgrade 046 -> 047, Evidence gaps table for AI-generated gap analysis.
+      INFO  [alembic.runtime.migration] Running upgrade 047 -> 048, Add evidence_fingerprint to answers table.
+      INFO  [alembic.runtime.migration] Running upgrade 048 -> 049, Add message column to vendor_requests table.
+      INFO  [alembic.runtime.migration] Running upgrade 049 -> 050, Create evidence_gaps table.
+      INFO  [alembic.runtime.migration] Running upgrade 050 -> 051, Create subscriptions table for Stripe billing.
+      INFO  [alembic.runtime.migration] Running upgrade 051 -> 052, Per-workspace feature flags.
+      INFO  [alembic.runtime.migration] Running upgrade 052 -> 053, Create credit_ledgers and credit_transactions tables.
+      INFO  [alembic.runtime.migration] Running upgrade 053 -> 054, Create operator_queue_items table.
+      INFO  [alembic.runtime.migration] Running upgrade 054 -> 055, Create security_faq table.
+      INFO  [alembic.runtime.migration] Running upgrade 055 -> 056, Create source_registry table.
+      INFO  [alembic.runtime.migration] Running upgrade 056 -> 057, Create credential_store table.
+      INFO  [alembic.runtime.migration] Running upgrade 057 -> 058, Create product_events table.
+      INFO  [alembic.runtime.migration] Running upgrade 058 -> 059, Create case_studies table.
+      INFO  [alembic.runtime.migration] Running upgrade 059 -> 060, Create control_state_snapshots table.
+      INFO  [alembic.runtime.migration] Running upgrade 060 -> 061, Create alert_acknowledgments table.
+      INFO  [alembic.runtime.migration] Running upgrade 061 -> 062, Create nda_access_requests table.
+      INFO  [alembic.runtime.migration] Running upgrade 062 -> 063, Create shareable_spaces table.
+      INFO  [alembic.runtime.migration] Running upgrade 063 -> 064, Create golden_answers table.
+      INFO  [alembic.runtime.migration] Running upgrade 064 -> 065, answer approval events and golden_answers reviewer columns
+      INFO  [alembic.runtime.migration] Running upgrade 065 -> 066, evidence item approval columns
+      INFO  [alembic.runtime.migration] Running upgrade 066 -> 067, freshness policies table
+      INFO  [alembic.runtime.migration] Running upgrade 067 -> 068, retention policies table
+      INFO  [alembic.runtime.migration] Running upgrade 068 -> 069, deals table
+      INFO  [alembic.runtime.migration] Running upgrade 069 -> 070, remediation playbooks and tickets
+      INFO  [alembic.runtime.migration] Running upgrade 070 -> 071, remediation evidence linkage, audit log, automation opt-in
+      INFO  [alembic.runtime.migration] Running upgrade 071 -> 072, trust promises and contract documents (E2-08, E2-09)
+      INFO  [alembic.runtime.migration] Running upgrade 072 -> 073, Buyer portal, escalations, satisfaction, snapshots (E4-20..E4-24)
+      INFO  [alembic.runtime.migration] Running upgrade 073 -> 074, Proof graph, artifact hashes, diffs, reuse provenance (E5-25..E5-30)
+      INFO  [alembic.runtime.migration] Running upgrade 074 -> 075, Answer delivery outcome tags (E6-31)
+      INFO  [alembic.runtime.migration] Running upgrade 075 -> tc21001_framework_catalog_rights, Framework catalog version, provenance, rights, and enablement.
+      INFO  [alembic.runtime.migration] Running upgrade tc21001_framework_catalog_rights -> tc11001_model_outcome_codes, Typed model outcome and job error codes (TC-11-001)
+      INFO  [alembic.runtime.migration] Running upgrade tc11001_model_outcome_codes -> tc10003_job_idempotency, TC-10-003: idempotent job side effects.
+      INFO  [alembic.runtime.migration] Running upgrade tc10003_job_idempotency -> tc25011_demo_proof_summaries, Demo proof summaries.
+      INFO  [alembic.runtime.migration] Running upgrade tc25011_demo_proof_summaries -> tc25005_case_study_consent, Consent-backed case study publication (TC-25-005).
+      INFO  [alembic.runtime.migration] Running upgrade tc25005_case_study_consent -> tc10002_job_retries, TC-10-002: scheduled job retries.
+      INFO  [alembic.runtime.migration] Running upgrade tc10002_job_retries -> tc24001_stripe_webhook_events, Stripe webhook replay store and subscription event watermarks.
+      INFO  [alembic.runtime.migration] Running upgrade tc24001_stripe_webhook_events -> tc10003b_idempotency_owner_token, TC-10-003b: owner token on idempotency claims.
+      INFO  [alembic.runtime.migration] Running upgrade tc10003b_idempotency_owner_token -> tc19008_notification_delivery, Notification channel preferences and delivery attempts (TC-19-008).
+      INFO  [alembic.runtime.migration] Running upgrade tc19008_notification_delivery -> tc06001_same_workspace_refs, Same-workspace triggers for evidence_items, export_records and evidence_gaps (TC-06-BUG-001)
+      INFO  [alembic.runtime.migration] Running upgrade tc06001_same_workspace_refs -> tc21002_control_contract, TC-21-002: canonical control pairing columns.
+      Traceback (most recent call last):
+        File "/tmp/api-venv/lib/python3.12/site-packages/sqlalchemy/engine/base.py", line 1976, in _exec_single_context
+          self.dialect.do_execute(
+        File "/tmp/api-venv/lib/python3.12/site-packages/sqlalchemy/engine/default.py", line 964, in do_execute
+          cursor.execute(statement, parameters)
+      psycopg2.OperationalError: SSL connection has been closed unexpectedly
+
+
+      The above exception was the direct cause of the following exception:
+
+      Traceback (most recent call last):
+        File "<frozen runpy>", line 198, in _run_module_as_main
+        File "<frozen runpy>", line 88, in _run_code
+        File "/tmp/api-venv/lib/python3.12/site-packages/alembic/__main__.py", line 4, in <module>
+          main(prog="alembic")
+        File "/tmp/api-venv/lib/python3.12/site-packages/alembic/config.py", line 1039, in main
+          CommandLine(prog=prog).main(argv=argv)
+        File "/tmp/api-venv/lib/python3.12/site-packages/alembic/config.py", line 1029, in main
+          self.run_cmd(cfg, options)
+        File "/tmp/api-venv/lib/python3.12/site-packages/alembic/config.py", line 963, in run_cmd
+          fn(
+        File "/tmp/api-venv/lib/python3.12/site-packages/alembic/command.py", line 487, in upgrade
+          script.run_env()
+        File "/tmp/api-venv/lib/python3.12/site-packages/alembic/script/base.py", line 550, in run_env
+          util.load_python_file(self.dir, "env.py")
+        File "/tmp/api-venv/lib/python3.12/site-packages/alembic/util/pyfiles.py", line 114, in load_python_file
+          module = load_module_py(module_id, path)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        File "/tmp/api-venv/lib/python3.12/site-packages/alembic/util/pyfiles.py", line 132, in load_module_py
+          spec.loader.exec_module(module)  # type: ignore
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        File "<frozen importlib._bootstrap_external>", line 995, in exec_module
+        File "<frozen importlib._bootstrap>", line 488, in _call_with_frames_removed
+        File "/workspace/apps/api/alembic/env.py", line 73, in <module>
+          run_migrations_online()
+        File "/workspace/apps/api/alembic/env.py", line 67, in run_migrations_online
+          context.run_migrations()
+        File "<string>", line 8, in run_migrations
+        File "/tmp/api-venv/lib/python3.12/site-packages/alembic/runtime/environment.py", line 970, in run_migrations
+          self.get_context().run_migrations(**kw)
+        File "/tmp/api-venv/lib/python3.12/site-packages/alembic/runtime/migration.py", line 616, in run_migrations
+          step.migration_fn(**kw)
+        File "/workspace/apps/api/alembic/versions/079_tc21002_control_contract.py", line 58, in upgrade
+          _add_column(_CONTROLS, sa.Column("content_version", sa.String(_VERSION_LEN), nullable=True))
+        File "/workspace/apps/api/alembic/versions/079_tc21002_control_contract.py", line 48, in _add_column
+          op.add_column(table, column)
+        File "<string>", line 8, in add_column
+        File "<string>", line 3, in add_column
+        File "/tmp/api-venv/lib/python3.12/site-packages/alembic/operations/ops.py", line 2236, in add_column
+          return operations.invoke(op)
+                 ^^^^^^^^^^^^^^^^^^^^^
+        File "/tmp/api-venv/lib/python3.12/site-packages/alembic/operations/base.py", line 448, in invoke
+          return fn(self, operation)
+                 ^^^^^^^^^^^^^^^^^^^
+        File "/tmp/api-venv/lib/python3.12/site-packages/alembic/operations/toimpl.py", line 181, in add_column
+          operations.impl.add_column(
+        File "/tmp/api-venv/lib/python3.12/site-packages/alembic/ddl/impl.py", line 384, in add_column
+          self._exec(
+        File "/tmp/api-venv/lib/python3.12/site-packages/alembic/ddl/impl.py", line 252, in _exec
+          return conn.execute(construct, params)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        File "/tmp/api-venv/lib/python3.12/site-packages/sqlalchemy/engine/base.py", line 1428, in execute
+          return meth(
+                 ^^^^^
+        File "/tmp/api-venv/lib/python3.12/site-packages/sqlalchemy/sql/ddl.py", line 188, in _execute_on_connection
+          return connection._execute_ddl(
+                 ^^^^^^^^^^^^^^^^^^^^^^^^
+        File "/tmp/api-venv/lib/python3.12/site-packages/sqlalchemy/engine/base.py", line 1539, in _execute_ddl
+          ret = self._execute_context(
+                ^^^^^^^^^^^^^^^^^^^^^^
+        File "/tmp/api-venv/lib/python3.12/site-packages/sqlalchemy/engine/base.py", line 1855, in _execute_context
+          return self._exec_single_context(
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^
+        File "/tmp/api-venv/lib/python3.12/site-packages/sqlalchemy/engine/base.py", line 1995, in _exec_single_context
+          self._handle_dbapi_exception(
+        File "/tmp/api-venv/lib/python3.12/site-packages/sqlalchemy/engine/base.py", line 2372, in _handle_dbapi_exception
+          raise sqlalchemy_exception.with_traceback(exc_info[2]) from e
+        File "/tmp/api-venv/lib/python3.12/site-packages/sqlalchemy/engine/base.py", line 1976, in _exec_single_context
+          self.dialect.do_execute(
+        File "/tmp/api-venv/lib/python3.12/site-packages/sqlalchemy/engine/default.py", line 964, in do_execute
+          cursor.execute(statement, parameters)
+      sqlalchemy.exc.OperationalError: (psycopg2.OperationalError) SSL connection has been closed unexpectedly
+
+      [SQL: ALTER TABLE controls ADD COLUMN content_version VARCHAR(32)]
+      (Background on this error at: https://sqlalche.me/e/20/e3q8)
+
+    assert 1 == 0
+     +  where 1 = CompletedProcess(args=['/tmp/api-venv/bin/python', '-m', 'alembic', 'upgrade', 'head'], returncode=1, stdout='', stder...ABLE controls ADD COLUMN content_version VARCHAR(32)]\n(Background on this error at: https://sqlalche.me/e/20/e3q8)\n').returncode
+/workspace/apps/api/tests/release/test_notification_delivery.py:1240: AssertionError: INFO  [alembic.runtime.migration] Context impl PostgresqlImpl.
+=============================== warnings summary ===============================
+tests/release/test_answer_sweep_direct_evidence.py: 16 warnings
+tests/release/test_billing_provider.py: 37 warnings
+tests/release/test_body_reference_workspace_scope.py: 5071 warnings
+tests/release/test_case_study_idempotency_owner.py: 44 warnings
+tests/release/test_cross_workspace_refs.py: 151 warnings
+tests/release/test_deal_questionnaire_link_scope.py: 82 warnings
+tests/release/test_domain_case_studies.py: 134 warnings
+tests/release/test_domain_compliance_frameworks.py: 41 warnings
+tests/release/test_domain_controls.py: 69 warnings
+tests/release/test_domain_controls_unique_key.py: 29 warnings
+tests/release/test_domain_demo_proof.py: 44 warnings
+tests/release/test_evidence_gap_generation.py: 94 warnings
+tests/release/test_job_idempotency.py: 61 warnings
+tests/release/test_job_retries.py: 123 warnings
+tests/release/test_notification_delivery.py: 176 warnings
+tests/release/test_provider_adapter.py: 9 warnings
+tests/release/test_trust_article_slug_workspace.py: 12 warnings
+tests/release/test_upload_enqueue_conflict.py: 28 warnings
+tests/release/test_vendor_request_questionnaire_scope.py: 16 warnings
+tests/release/test_workspace_creation_policy.py: 32 warnings
+tests/test_ai_mappings.py: 57 warnings
+tests/test_alert_management.py: 8 warnings
+tests/test_alerting_engine.py: 12 warnings
+tests/test_answer_approval.py: 98 warnings
+tests/test_answer_generation_openai_required.py: 2 warnings
+tests/test_answer_outcomes.py: 12 warnings
+tests/test_answer_pipeline.py: 4 warnings
+tests/test_answer_tiers.py: 2 warnings
+tests/test_auth.py: 11 warnings
+tests/test_auth_flows.py: 2 warnings
+tests/test_auth_sessions_api.py: 5 warnings
+tests/test_auth_workspace.py: 10 warnings
+tests/test_automate_everything.py: 33 warnings
+tests/test_aws_connector.py: 10 warnings
+tests/test_benchmarks.py: 4 warnings
+tests/test_buyer_portal_proof_graph.py: 89 warnings
+tests/test_case_studies.py: 16 warnings
+tests/test_citation_composer.py: 10 warnings
+tests/test_cloud_connectors.py: 16 warnings
+tests/test_compliance_questionnaire_gaps_integration.py: 24 warnings
+tests/test_confidence_routing.py: 8 warnings
+tests/test_confidence_scoring.py: 9 warnings
+tests/test_connector_health.py: 6 warnings
+tests/test_connector_wizard.py: 12 warnings
+tests/test_contracts.py: 19 warnings
+tests/test_control_engine.py: 8 warnings
+tests/test_control_timeline.py: 6 warnings
+tests/test_controls_api.py: 51 warnings
+tests/test_credential_store.py: 14 warnings
+tests/test_credit_ledger.py: 22 warnings
+tests/test_credit_prompts.py: 4 warnings
+tests/test_crm_connectors.py: 20 warnings
+tests/test_dashboard_cards.py: 139 warnings
+tests/test_deals.py: 46 warnings
+tests/test_demo_proof.py: 10 warnings
+tests/test_evidence_approval.py: 13 warnings
+tests/test_evidence_cards.py: 4 warnings
+tests/test_evidence_diff.py: 4 warnings
+tests/test_evidence_search.py: 21 warnings
+tests/test_executive_dashboard.py: 4 warnings
+tests/test_export_pack.py: 10 warnings
+tests/test_feature_flags.py: 16 warnings
+tests/test_feedback_capture.py: 4 warnings
+tests/test_freshness_policies.py: 21 warnings
+tests/test_generate_export.py: 9 warnings
+tests/test_github_connector.py: 10 warnings
+tests/test_golden_answers.py: 39 warnings
+tests/test_google_connector.py: 10 warnings
+tests/test_in_app_notifications.py: 44 warnings
+tests/test_ingestion_pipeline.py: 13 warnings
+tests/test_invite_flow_p14.py: 75 warnings
+tests/test_jobs_api.py: 6 warnings
+tests/test_knowledge_packs.py: 2 warnings
+tests/test_login_email_regression.py: 8 warnings
+tests/test_members_invites.py: 49 warnings
+tests/test_monitoring.py: 4 warnings
+tests/test_multi_tenant.py: 45 warnings
+tests/test_nda_access.py: 34 warnings
+tests/test_notification_fire_points.py: 94 warnings
+tests/test_operator_queue.py: 22 warnings
+tests/test_p1_multi_tenant_hardening.py: 14 warnings
+tests/test_pdf_failure_surfacing.py: 24 warnings
+tests/test_phase_a_user_admin.py: 153 warnings
+tests/test_phase_b_custom_roles.py: 93 warnings
+tests/test_phase_c_notifications.py: 248 warnings
+tests/test_phase_d_slack.py: 189 warnings
+tests/test_phase_e_slack_ingest.py: 106 warnings
+tests/test_phase_f_gmail.py: 104 warnings
+tests/test_product_events.py: 14 warnings
+tests/test_promises.py: 21 warnings
+tests/test_proof_widgets.py: 4 warnings
+tests/test_qa_201_cross_workspace_auth.py: 12 warnings
+tests/test_questionnaire_answer_evidence.py: 4 warnings
+tests/test_questionnaire_mapping_evidence.py: 21 warnings
+tests/test_questionnaire_mappings.py: 40 warnings
+tests/test_questionnaires_exports_list_api.py: 4 warnings
+tests/test_registry_lifecycle_api.py: 49 warnings
+tests/test_remediation.py: 56 warnings
+tests/test_remediation_loop.py: 23 warnings
+tests/test_remember_me.py: 13 warnings
+tests/test_retention.py: 19 warnings
+tests/test_reuse_analytics.py: 4 warnings
+tests/test_roi_calculator.py: 4 warnings
+tests/test_security_faq.py: 24 warnings
+tests/test_security_page.py: 4 warnings
+tests/test_security_remediation.py: 16 warnings
+tests/test_session_concurrency.py: 13 warnings
+tests/test_shareable_spaces.py: 21 warnings
+tests/test_signal_mapping.py: 10 warnings
+tests/test_sla_tracking.py: 4 warnings
+tests/test_sli.py: 4 warnings
+tests/test_source_registry.py: 18 warnings
+tests/test_tags.py: 76 warnings
+tests/test_tenant_isolation.py: 28 warnings
+tests/test_trust_articles_api.py: 43 warnings
+tests/test_trust_center_analytics.py: 4 warnings
+tests/test_trust_center_publish.py: 14 warnings
+tests/test_trust_requests_api.py: 51 warnings
+tests/test_upload_parse_review.py: 2 warnings
+tests/test_vendor_requests_api.py: 54 warnings
+tests/test_vendor_response_api.py: 9 warnings
+tests/test_wave2_p13_p21_api.py: 9 warnings
+tests/test_wave3_p23_p29_api.py: 12 warnings
+tests/test_workspaces_members_api.py: 8 warnings
+  /tmp/api-venv/lib/python3.12/site-packages/sqlalchemy/sql/schema.py:3627: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    return util.wrap_callable(lambda ctx: fn(), fn)  # type: ignore
+
+tests/release/test_billing_provider.py::test_migration_fresh_install_upgrade_and_downgrade
+tests/release/test_cross_workspace_refs.py::test_trigger_revision_is_on_the_single_alembic_head_chain
+tests/release/test_domain_controls.py::test_migration_upgrade_downgrade_upgrade_again
+tests/release/test_domain_controls_unique_key.py::test_migration_clears_only_duplicate_keys_and_downgrade_restores_them
+tests/release/test_notification_delivery.py::test_migration_upgrades_and_downgrades_on_a_fresh_database
+tests/release/test_provider_adapter.py::test_migration_columns_present
+tests/release/test_provider_adapter.py::test_migration_has_unique_descriptive_revision_after_075
+  /tmp/api-venv/lib/python3.12/site-packages/alembic/config.py:604: DeprecationWarning: No path_separator found in configuration; falling back to legacy splitting on spaces, commas, and colons for prepend_sys_path.  Consider adding path_separator=os to Alembic config.
+    util.warn_deprecated(
+
+tests/release/test_cross_workspace_refs.py::test_same_workspace_document_write_still_works[1]
+  /workspace/apps/api/app/api/routes/compliance_controls.py:522: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    now = datetime.utcnow()
+
+tests/release/test_domain_controls_unique_key.py::test_reviewer_verify_syncs_verified_status_and_get_stays_read_only
+tests/test_notification_fire_points.py::TestControlVerifiedFirePoint::test_control_verified_notifies
+  /workspace/apps/api/app/api/routes/compliance_controls.py:467: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    now = datetime.utcnow()
+
+tests/release/test_job_idempotency.py::test_parse_stale_input_is_superseded[deleted]
+  /workspace/apps/api/tests/release/test_job_idempotency.py:364: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    qnr.deleted_at = datetime.utcnow()
+
+tests/release/test_job_idempotency.py::test_generate_never_overwrites_approved_or_newer_answers
+  /workspace/apps/api/tests/release/test_job_idempotency.py:585: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    old = datetime.utcnow() - timedelta(hours=2)
+
+tests/release/test_job_idempotency.py::test_generate_never_overwrites_approved_or_newer_answers
+  /workspace/apps/api/tests/release/test_job_idempotency.py:611: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    created_at=datetime.utcnow() - timedelta(minutes=5),
+
+tests/release/test_job_idempotency.py::test_generate_rerun_is_idempotent_and_counts_usage_once
+  /workspace/apps/api/tests/release/test_job_idempotency.py:652: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    created_at=datetime.utcnow() - timedelta(minutes=1),
+
+tests/release/test_job_idempotency.py::test_upsert_guard_rechecks_answer_approved_mid_run
+  /workspace/apps/api/tests/release/test_job_idempotency.py:680: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    created_at=datetime.utcnow() - timedelta(hours=1),
+
+tests/release/test_job_idempotency.py::test_upsert_guard_rechecks_answer_approved_mid_run
+  /workspace/apps/api/tests/release/test_job_idempotency.py:681: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    updated_at=datetime.utcnow() - timedelta(hours=1),
+
+tests/release/test_job_idempotency.py::test_upsert_guard_rechecks_answer_approved_mid_run
+  /workspace/apps/api/tests/release/test_job_idempotency.py:685: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    guard = AnswerWriteGuard(datetime.utcnow() - timedelta(minutes=30))
+
+tests/release/test_job_retries.py::test_transient_failure_schedules_bounded_retry_and_is_not_claimable_early
+  /workspace/apps/api/tests/release/test_job_retries.py:314: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    before = datetime.utcnow()
+
+tests/release/test_job_retries.py::test_claim_increments_attempt_and_clears_schedule
+  /workspace/apps/api/tests/release/test_job_retries.py:338: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    job.next_attempt_at = datetime.utcnow() - timedelta(seconds=1)
+
+tests/release/test_job_retries.py::test_retry_exhaustion_fails_visibly_never_completed
+  /workspace/apps/api/tests/release/test_job_retries.py:360: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    assert not _claimable(db, job.id, now=datetime.utcnow() + timedelta(days=1))
+
+tests/release/test_job_retries.py::test_process_one_job_end_to_end_retry_then_success
+  /workspace/apps/api/tests/release/test_job_retries.py:544: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    j.next_attempt_at = datetime.utcnow() - timedelta(seconds=1)
+
+tests/release/test_job_retries.py::test_retry_then_success_clears_only_the_stale_attempt_error
+  /workspace/apps/api/tests/release/test_job_retries.py:617: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    j.next_attempt_at = datetime.utcnow() - timedelta(seconds=1)
+
+tests/release/test_job_retries.py::test_failure_handler_never_overwrites_a_committed_completion[exc0]
+tests/release/test_job_retries.py::test_failure_handler_never_overwrites_a_committed_completion[exc1]
+tests/release/test_job_retries.py::test_failure_handler_never_overwrites_a_committed_completion[exc2]
+  /workspace/apps/api/tests/release/test_job_retries.py:633: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    job.completed_at = datetime.utcnow()
+
+tests/release/test_job_retries.py::test_generate_transient_llm_errors_retry_only_failed_questions
+tests/release/test_job_retries.py::test_generate_auth_error_stops_explicitly
+tests/release/test_job_retries.py::test_generate_bad_request_question_stays_visible_placeholder
+tests/release/test_job_retries.py::test_generate_missing_api_key_is_terminal_config_error
+  /workspace/apps/api/tests/release/test_job_retries.py:755: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    created_at=datetime.utcnow() - timedelta(minutes=1),
+
+tests/release/test_job_retries.py::test_write_guard_does_not_protect_llm_error_placeholders
+  /workspace/apps/api/tests/release/test_job_retries.py:870: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    cutoff = datetime.utcnow() - timedelta(hours=1)
+
+tests/release/test_job_retries.py::test_write_guard_does_not_protect_llm_error_placeholders
+  /workspace/apps/api/tests/release/test_job_retries.py:872: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    newer = datetime.utcnow()
+
+tests/release/test_workspace_creation_policy.py: 18 warnings
+  /workspace/apps/api/app/api/routes/workspaces.py:122: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    now = datetime.utcnow()
+
+tests/test_dashboard_cards.py::TestAdminCRUD::test_update_card
+  /workspace/apps/api/app/api/routes/dashboard_cards.py:275: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    card.updated_at = datetime.utcnow()
+
+tests/test_p1_multi_tenant_hardening.py::TestFairScheduling::test_claim_job_rotates_workspaces
+tests/test_p1_multi_tenant_hardening.py::TestFairScheduling::test_claim_job_rotates_workspaces
+tests/test_p1_multi_tenant_hardening.py::TestFairScheduling::test_claim_job_rotates_workspaces
+  /workspace/apps/api/tests/test_p1_multi_tenant_hardening.py:185: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    created_at=datetime.utcnow(),
+
+tests/test_p1_multi_tenant_hardening.py::TestFairScheduling::test_claim_job_rotates_workspaces
+  /workspace/apps/api/tests/test_p1_multi_tenant_hardening.py:194: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    created_at=datetime.utcnow(),
+
+tests/test_p1_multi_tenant_hardening.py::TestFairScheduling::test_claim_falls_back_when_only_one_workspace
+  /workspace/apps/api/tests/test_p1_multi_tenant_hardening.py:237: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    created_at=datetime.utcnow(),
+
+tests/test_phase_e_slack_ingest.py::TestControlSuggestions::test_suggestion_status_review
+tests/test_phase_e_slack_ingest.py::TestControlSuggestions::test_suggestion_review_audit_logged
+  /workspace/apps/api/app/api/routes/slack_ingest.py:327: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    sug.reviewed_at = datetime.utcnow()
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED tests/release/test_billing_provider.py::test_migration_fresh_install_upgrade_and_downgrade
+FAILED tests/release/test_domain_case_studies.py::test_ac3_schema_consumer_and_persisted_outcome_agree_across_retry
+FAILED tests/release/test_domain_controls.py::test_routes_agree_on_canonical_contract_and_retry
+FAILED tests/release/test_notification_delivery.py::test_migration_upgrades_and_downgrades_on_a_fresh_database
+4 failed, 3019 passed, 11 skipped, 9329 warnings in 178.21s (0:02:58)
+BRANCH_EXIT:1
