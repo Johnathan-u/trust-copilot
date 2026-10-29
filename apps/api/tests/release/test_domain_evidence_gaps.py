@@ -295,6 +295,64 @@ def _gap(workspace_id: int, **kwargs) -> int:
         session.close()
 
 
+def _row(gap_id: int) -> tuple:
+    session = _db()
+    try:
+        return tuple(
+            session.execute(
+                text(
+                    "SELECT status, close_reason, evidence_refs, evaluation_state, rule_code "
+                    "FROM evidence_gaps WHERE id = :id"
+                ),
+                {"id": gap_id},
+            ).one()
+        )
+    finally:
+        session.close()
+
+
+def test_review_cannot_decide_or_resolve(client):
+    actors = _actors()
+    control_id = _control(actors["workspace_id"], f"Denied {uuid.uuid4().hex[:8]}")
+    gap_id = _gap(actors["workspace_id"], gap_type="control_check", control_id=control_id)
+    approved, _doc = _evidence(actors["workspace_id"], approval="approved")
+    _link(control_id, approved)
+    stored = _row(gap_id)
+    for role, email, password in (
+        ("reviewer", REVIEWER_EMAIL, REVIEWER_PASSWORD),
+        ("editor", EDITOR_EMAIL, EDITOR_PASSWORD),
+    ):
+        _login(client, email, password)
+        before_audit = _counts()["audit_events"]
+        before_keys = _counts()["idempotency_keys"]
+        decided = client.post(
+            f"/api/evidence-gaps/{gap_id}/decision",
+            json={"status": "accepted"},
+            headers={"Idempotency-Key": f"deny-d-{role}"},
+        )
+        resolved = client.post(
+            f"/api/evidence-gaps/{gap_id}/resolve",
+            json={"evidence_id": approved},
+            headers={"Idempotency-Key": f"deny-r-{role}"},
+        )
+        assert decided.status_code == 403, (role, decided.text)
+        assert resolved.status_code == 403, (role, resolved.text)
+        assert decided.json()["detail"] == "Insufficient permissions"
+        assert resolved.json()["detail"] == "Insufficient permissions"
+        assert _row(gap_id) == stored
+        assert _counts()["audit_events"] == before_audit
+        assert _counts()["idempotency_keys"] == before_keys
+    _login(client, ADMIN_EMAIL, ADMIN_PASSWORD)
+    accepted = client.post(f"/api/evidence-gaps/{gap_id}/decision", json={"status": "accepted"})
+    assert accepted.status_code == 200, accepted.text
+    assert accepted.json()["status"] == "accepted"
+    other = _gap(actors["workspace_id"], gap_type="control_check", control_id=control_id)
+    cleared = client.post(f"/api/evidence-gaps/{other}/resolve", json={"evidence_id": approved})
+    assert cleared.status_code == 200, cleared.text
+    assert cleared.json()["status"] == "resolved"
+    assert cleared.json()["close_reason"] == CONTROL_CHECK_CLOSE_REASON
+
+
 def test_denial_at_each_permission_level(client):
     _actors()
     client.cookies.clear()
@@ -406,7 +464,7 @@ def test_resolve_requires_eligible_backing_evidence(client):
     pending, _pending_doc = _evidence(actors["workspace_id"], approval="pending")
     _link(control_id, pending)
     approved, _approved_doc = _evidence(actors["workspace_id"], approval="approved")
-    _login(client, REVIEWER_EMAIL, REVIEWER_PASSWORD)
+    _login(client, ADMIN_EMAIL, ADMIN_PASSWORD)
     before = _counts()
     listed = client.get(f"/api/evidence-gaps/{gap_id}")
     assert listed.status_code == 200, listed.text
@@ -487,7 +545,7 @@ def test_reviewer_decision_is_not_overwritten_or_reopened(client):
     gap_id = _gap(actors["workspace_id"], gap_type="control_check", control_id=control_id)
     approved, _doc = _evidence(actors["workspace_id"], approval="approved")
     _link(control_id, approved)
-    _login(client, REVIEWER_EMAIL, REVIEWER_PASSWORD)
+    _login(client, ADMIN_EMAIL, ADMIN_PASSWORD)
     decided = client.post(f"/api/evidence-gaps/{gap_id}/decision", json={"status": "accepted"})
     assert decided.status_code == 200, decided.text
     assert decided.json()["status"] == "accepted"
@@ -580,7 +638,7 @@ def test_question_gap_resolves_only_when_the_answer_cites_the_document(client):
     finally:
         session.close()
     gap_id = _gap(actors["workspace_id"], gap_type="missing_evidence", question_id=question_id)
-    _login(client, EDITOR_EMAIL, EDITOR_PASSWORD)
+    _login(client, ADMIN_EMAIL, ADMIN_PASSWORD)
     resolved = client.post(
         f"/api/evidence-gaps/{gap_id}/resolve", json={"evidence_id": evidence_id}
     )
