@@ -405,6 +405,48 @@ def test_manual_retry_records_the_actor_and_prior_attempt(client: TestClient, db
     assert details["prior_status"] == JobStatus.FAILED.value
 
 
+def test_two_manual_retries_one_wins(db):
+    """Two admins retry one failed job. One re-queues it and the other gets 409."""
+    from app.main import app
+    from tests.conftest import TEST_HEADERS, TEST_ORIGIN
+
+    job = _job(
+        db,
+        status=JobStatus.FAILED.value,
+        attempt=2,
+        error_code="rate_limited",
+        error="Attempt 2 of 3 failed (rate_limited): synthetic.",
+    )
+    barrier = threading.Barrier(2)
+    codes: list[int] = []
+    errors: list[BaseException] = []
+
+    def retry() -> None:
+        client = TestClient(app, base_url=TEST_ORIGIN, headers=TEST_HEADERS)
+        try:
+            _admin(client)
+            barrier.wait(timeout=5)
+            response = client.post(f"/api/jobs/{job.id}/retry?workspace_id={WS}")
+            codes.append(response.status_code)
+        except BaseException as exc:  # noqa: BLE001 - report the thread failure
+            errors.append(exc)
+        finally:
+            client.close()
+
+    threads = [threading.Thread(target=retry), threading.Thread(target=retry)]
+    for thread in threads:
+        thread.start()
+    for thread in threads:
+        thread.join(timeout=15)
+    assert errors == []
+    assert sorted(codes) == [200, 409]
+    db.expire_all()
+    stored = db.get(Job, job.id)
+    assert stored.status == JobStatus.QUEUED.value
+    assert stored.attempt == 0
+    assert len(_audits(db, job.id, "job.manual_retry")) == 1
+
+
 def test_manual_retry_by_a_non_admin_is_forbidden(client: TestClient, db):
     _login(client, "editor@trust.local", "e")
     job = _job(
