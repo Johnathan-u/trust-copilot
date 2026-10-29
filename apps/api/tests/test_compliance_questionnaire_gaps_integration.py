@@ -155,6 +155,7 @@ def test_approved_mapping_with_evidence_no_questionnaire_gap(
         document_id=doc.id,
         title="Proof",
         source_type="document",
+        approval_status="approved",
     )
     db_session.add(ev)
     db_session.commit()
