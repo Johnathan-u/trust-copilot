@@ -1,12 +1,11 @@
 """Phase C: Notification policies, delivery log, and unsubscribe API."""
 
 from fastapi import APIRouter, Depends, HTTPException, Query
-from pydantic import BaseModel
+from pydantic import BaseModel, Field, field_validator
 from sqlalchemy import and_
 from sqlalchemy.orm import Session
 
 from app.core.audit import persist_audit
-from app.core.auth_deps import require_can_admin, require_session
 from app.core.database import get_db
 from app.models import (
     NOTIFICATION_CHANNELS,
@@ -18,6 +17,11 @@ from app.models import (
     NotificationUnsubscribe,
 )
 from app.models.in_app_notification import InAppNotification
+from app.services.notification_policy_service import (
+    require_notification_admin,
+    require_notification_session,
+    validate_recipient,
+)
 from app.services.notification_preferences import (
     effective_channels,
     list_preferences,
@@ -31,17 +35,30 @@ router = APIRouter(prefix="/notifications", tags=["notifications"])
 # ---- Schemas ----
 
 
-class PolicyCreateRequest(BaseModel):
-    event_type: str
+class PolicyRecipientFields(BaseModel):
+    recipient_value: str | None = Field(None, max_length=255)
+
+    @field_validator("recipient_value")
+    @classmethod
+    def safe_recipient(cls, value: str | None) -> str | None:
+        if value is not None:
+            value = value.strip()
+            if any(ord(char) < 32 or 127 <= ord(char) <= 159 for char in value):
+                raise ValueError("recipient_value cannot contain control characters")
+            if len(value.lower()) > 255:
+                raise ValueError("Normalized recipient_value cannot exceed 255 characters")
+        return value
+
+
+class PolicyCreateRequest(PolicyRecipientFields):
+    event_type: str = Field(max_length=64)
     enabled: bool = True
-    recipient_type: str = "admins"
-    recipient_value: str | None = None
+    recipient_type: str = Field("admins", max_length=32)
 
 
-class PolicyUpdateRequest(BaseModel):
+class PolicyUpdateRequest(PolicyRecipientFields):
     enabled: bool | None = None
-    recipient_type: str | None = None
-    recipient_value: str | None = None
+    recipient_type: str | None = Field(None, max_length=32)
 
 
 class UnsubscribeRequest(BaseModel):
@@ -58,7 +75,7 @@ class ChannelPreferencePut(BaseModel):
 
 
 @router.get("/event-types")
-async def list_event_types(session: dict = Depends(require_session)):
+async def list_event_types(session: dict = Depends(require_notification_session)):
     """Return supported notification event types."""
     return {"event_types": NOTIFICATION_EVENT_TYPES}
 
@@ -66,7 +83,7 @@ async def list_event_types(session: dict = Depends(require_session)):
 @router.get("/policies")
 async def list_policies(
     db: Session = Depends(get_db),
-    session: dict = Depends(require_can_admin),
+    session: dict = Depends(require_notification_admin),
 ):
     """List all notification policies for this workspace."""
     ws = session["workspace_id"]
@@ -95,22 +112,14 @@ async def list_policies(
 async def create_policy(
     req: PolicyCreateRequest,
     db: Session = Depends(get_db),
-    session: dict = Depends(require_can_admin),
+    session: dict = Depends(require_notification_admin),
 ):
     """Create a notification policy for an event type."""
     ws = session["workspace_id"]
     et = (req.event_type or "").strip()
     if et not in NOTIFICATION_EVENT_TYPES:
         raise HTTPException(status_code=400, detail=f"Unknown event type: {et}")
-    rt = (req.recipient_type or "").strip().lower()
-    if rt not in ("all", "admins", "role", "user"):
-        raise HTTPException(
-            status_code=400, detail="recipient_type must be all, admins, role, or user"
-        )
-    if rt in ("role", "user") and not (req.recipient_value or "").strip():
-        raise HTTPException(
-            status_code=400, detail=f"recipient_value required for recipient_type='{rt}'"
-        )
+    rt, value = validate_recipient(db, ws, req.recipient_type, req.recipient_value)
     existing = (
         db.query(NotificationPolicy)
         .filter(NotificationPolicy.workspace_id == ws, NotificationPolicy.event_type == et)
@@ -126,7 +135,7 @@ async def create_policy(
         event_type=et,
         enabled=req.enabled,
         recipient_type=rt,
-        recipient_value=(req.recipient_value or "").strip() or None,
+        recipient_value=value,
     )
     db.add(p)
     db.commit()
@@ -154,7 +163,7 @@ async def update_policy(
     policy_id: int,
     req: PolicyUpdateRequest,
     db: Session = Depends(get_db),
-    session: dict = Depends(require_can_admin),
+    session: dict = Depends(require_notification_admin),
 ):
     """Update an existing notification policy."""
     ws = session["workspace_id"]
@@ -165,20 +174,29 @@ async def update_policy(
     )
     if not p:
         raise HTTPException(status_code=404, detail="Policy not found")
+    # A stale recipient must not prevent an administrator from disabling a rule.
+    # Supplied routing fields and all enabling writes still require validation.
+    disable_only = req.enabled is False and not (
+        req.model_fields_set & {"recipient_type", "recipient_value"}
+    )
+    if disable_only:
+        rt, value = p.recipient_type, p.recipient_value
+    else:
+        rt, value = validate_recipient(
+            db,
+            ws,
+            req.recipient_type if req.recipient_type is not None else p.recipient_type,
+            req.recipient_value if "recipient_value" in req.model_fields_set else p.recipient_value,
+        )
+    prospective = {"recipient_type": rt, "recipient_value": value}
+    if req.enabled is not None:
+        prospective["enabled"] = req.enabled
     changes = {}
-    if req.enabled is not None and p.enabled != req.enabled:
-        changes["enabled"] = {"from": p.enabled, "to": req.enabled}
-        p.enabled = req.enabled
-    if req.recipient_type is not None:
-        rt = req.recipient_type.strip().lower()
-        if rt not in ("all", "admins", "role", "user"):
-            raise HTTPException(status_code=400, detail="Invalid recipient_type")
-        if p.recipient_type != rt:
-            changes["recipient_type"] = {"from": p.recipient_type, "to": rt}
-            p.recipient_type = rt
-    if req.recipient_value is not None and p.recipient_value != req.recipient_value:
-        changes["recipient_value"] = {"from": p.recipient_value, "to": req.recipient_value}
-        p.recipient_value = req.recipient_value.strip() or None
+    for field, value in prospective.items():
+        old = getattr(p, field)
+        if old != value:
+            changes[field] = {"from": old, "to": value}
+            setattr(p, field, value)
     db.commit()
     db.refresh(p)
     if changes:
@@ -204,7 +222,7 @@ async def update_policy(
 async def delete_policy(
     policy_id: int,
     db: Session = Depends(get_db),
-    session: dict = Depends(require_can_admin),
+    session: dict = Depends(require_notification_admin),
 ):
     """Delete a notification policy."""
     ws = session["workspace_id"]
@@ -238,7 +256,7 @@ async def list_delivery_log(
     page_size: int = Query(50, ge=1, le=200),
     status_filter: str | None = Query(None, alias="status"),
     db: Session = Depends(get_db),
-    session: dict = Depends(require_can_admin),
+    session: dict = Depends(require_notification_admin),
 ):
     """Paginated delivery log for this workspace."""
     ws = session["workspace_id"]
@@ -247,7 +265,7 @@ async def list_delivery_log(
         q = q.filter(NotificationLog.status == status_filter)
     total = q.count()
     rows = (
-        q.order_by(NotificationLog.created_at.desc())
+        q.order_by(NotificationLog.created_at.desc(), NotificationLog.id.desc())
         .offset((page - 1) * page_size)
         .limit(page_size)
         .all()
@@ -282,7 +300,7 @@ async def list_delivery_log(
 @router.get("/unsubscribes")
 async def list_my_unsubscribes(
     db: Session = Depends(get_db),
-    session: dict = Depends(require_session),
+    session: dict = Depends(require_notification_session),
 ):
     """List event types the current user has unsubscribed from."""
     uid = session.get("user_id")
@@ -301,7 +319,7 @@ async def list_my_unsubscribes(
 async def add_unsubscribe(
     req: UnsubscribeRequest,
     db: Session = Depends(get_db),
-    session: dict = Depends(require_session),
+    session: dict = Depends(require_notification_session),
 ):
     """Opt out of a specific notification event type."""
     uid = session.get("user_id")
@@ -333,7 +351,7 @@ async def add_unsubscribe(
 async def remove_unsubscribe(
     unsub_id: int,
     db: Session = Depends(get_db),
-    session: dict = Depends(require_session),
+    session: dict = Depends(require_notification_session),
 ):
     """Re-subscribe to a notification event type."""
     uid = session.get("user_id")
@@ -366,7 +384,7 @@ def _preference_body(row: NotificationChannelPreference) -> dict:
 @router.get("/channel-preferences")
 async def get_channel_preferences(
     db: Session = Depends(get_db),
-    session: dict = Depends(require_session),
+    session: dict = Depends(require_notification_session),
 ):
     """Channel switches for the current user. Schema version 1.
 
@@ -395,7 +413,7 @@ async def get_channel_preferences(
 async def put_channel_preference(
     req: ChannelPreferencePut,
     db: Session = Depends(get_db),
-    session: dict = Depends(require_session),
+    session: dict = Depends(require_notification_session),
 ):
     """Set one channel-wide or event-specific preference for the current user."""
     uid = session.get("user_id")
@@ -432,12 +450,12 @@ async def list_delivery_attempts(
     page: int = Query(1, ge=1),
     page_size: int = Query(50, ge=1, le=200),
     db: Session = Depends(get_db),
-    session: dict = Depends(require_can_admin),
+    session: dict = Depends(require_notification_admin),
 ):
     """Each delivery try and its state. Errors are redacted. Schema version 1.
 
     The legacy ``/log`` list is unchanged aside from additive fields. This
-    list is the attempt ledger. Rule and template management stay on a later ticket.
+    list is the attempt ledger. Notification copy uses the shared static renderer.
     """
     ws = session["workspace_id"]
     q = (
@@ -480,7 +498,7 @@ async def list_delivery_attempts(
                 or None,
                 "error_code": attempt.error_code,
                 "error": redact_notification_text(attempt.error_message) or None,
-                "in_app_notification_id": attempt.in_app_notification_id,
+                "in_app_notification_id": None if note is None else note.id,
                 "is_read": None if note is None else bool(note.is_read),
                 "created_at": attempt.created_at.isoformat() if attempt.created_at else None,
             }

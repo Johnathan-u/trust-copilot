@@ -90,6 +90,7 @@ def get_compliance_coverage(db: Session, workspace_id: int) -> dict:
         lambda: {"total": 0, "drafted": 0, "insufficient": 0}
     )
     subj_insuff: Counter[str] = Counter()
+    subj_questions: dict[str, set[int]] = defaultdict(set)
     subj_conf: dict[str, list[int]] = defaultdict(list)
     subj_evidence: dict[str, list[int]] = defaultdict(list)
     daily_stats: dict[str, dict[str, int]] = defaultdict(
@@ -157,6 +158,8 @@ def get_compliance_coverage(db: Session, workspace_id: int) -> dict:
         for subj in subj_list:
             if is_insuff:
                 subj_insuff[subj] += 1
+                if isinstance(qid, int) and not isinstance(qid, bool):
+                    subj_questions[subj].add(qid)
             if conf is not None:
                 subj_conf[subj].append(conf)
             subj_evidence[subj].append(cit_count)
@@ -259,14 +262,26 @@ def get_compliance_coverage(db: Session, workspace_id: int) -> dict:
             .limit(8)
             .all()
         )
-        gap_suggestions = [
-            {"title": title, "improves_questions": int(cnt)} for title, cnt in gap_rows if title
-        ]
+        gap_suggestions = [_recommendation(title, int(cnt)) for title, cnt in gap_rows if title]
     except Exception:
-        pass
+        gap_suggestions = []
 
-    if not gap_suggestions:
-        gap_suggestions = _infer_evidence_suggestions(subj_insuff, subj_evidence)
+    if gap_suggestions:
+        try:
+            detail_rows = (
+                db.query(EvidenceGap)
+                .filter(
+                    EvidenceGap.workspace_id == workspace_id,
+                    EvidenceGap.status == "open",
+                    EvidenceGap.suggested_evidence_doc_title.isnot(None),
+                )
+                .all()
+            )
+            _attach_gap_provenance(db, workspace_id, gap_suggestions, detail_rows)
+        except Exception:
+            pass
+    else:
+        gap_suggestions = _infer_evidence_suggestions(subj_insuff, subj_questions)
 
     # ---------- Trends ----------
     trends: list[dict] = []
@@ -494,9 +509,136 @@ def control_coverage(db: Session, workspace_id: int) -> dict:
     }
 
 
+def _recommendation(title: str, improves_questions: int) -> dict:
+    return {
+        "title": title,
+        "improves_questions": improves_questions,
+        "evidence_ids": [],
+        "control_ids": [],
+        "question_ids": [],
+    }
+
+
+def _stored_ints(values) -> list[int]:
+    found = []
+    if not isinstance(values, list):
+        return found
+    for item in values:
+        if isinstance(item, bool) or not isinstance(item, int):
+            continue
+        found.append(item)
+    return found
+
+
+def _parse_evidence_refs(raw: str | None) -> list[int]:
+    try:
+        parsed = json.loads(raw or "[]")
+    except (TypeError, ValueError):
+        return []
+    return _stored_ints(parsed)
+
+
+def _live_question_ids(db: Session, workspace_id: int, wanted: set[int]) -> set[int]:
+    if not wanted:
+        return set()
+    rows = (
+        db.query(Question.id)
+        .join(Questionnaire, Questionnaire.id == Question.questionnaire_id)
+        .filter(
+            Question.id.in_(wanted),
+            Questionnaire.workspace_id == workspace_id,
+            Questionnaire.deleted_at.is_(None),
+        )
+        .all()
+    )
+    return {row.id for row in rows}
+
+
+def _live_control_ids(db: Session, workspace_id: int, wanted: set[int]) -> set[int]:
+    if not wanted:
+        return set()
+    rows = (
+        db.query(WorkspaceControl.id)
+        .filter(
+            WorkspaceControl.id.in_(wanted),
+            WorkspaceControl.workspace_id == workspace_id,
+        )
+        .all()
+    )
+    return {row.id for row in rows}
+
+
+def _live_evidence_ids(db: Session, workspace_id: int, wanted: set[int]) -> set[int]:
+    """Same-workspace evidence. A deleted or foreign document drops the id."""
+    if not wanted:
+        return set()
+    rows = (
+        db.query(
+            EvidenceItem.id,
+            EvidenceItem.workspace_id,
+            EvidenceItem.document_id,
+            Document.deleted_at,
+            Document.workspace_id,
+        )
+        .outerjoin(Document, Document.id == EvidenceItem.document_id)
+        .filter(EvidenceItem.id.in_(wanted))
+        .all()
+    )
+    live: set[int] = set()
+    for evidence_id, evidence_workspace, document_id, deleted_at, document_workspace in rows:
+        if evidence_workspace != workspace_id:
+            continue
+        if document_id is not None and (
+            deleted_at is not None or document_workspace != workspace_id
+        ):
+            continue
+        live.add(evidence_id)
+    return live
+
+
+def _attach_gap_provenance(
+    db: Session, workspace_id: int, suggestions: list[dict], gaps: list
+) -> None:
+    by_title: dict[str, list] = defaultdict(list)
+    for gap in gaps:
+        title = getattr(gap, "suggested_evidence_doc_title", None)
+        if title:
+            by_title[title].append(gap)
+    question_ids: set[int] = set()
+    control_ids: set[int] = set()
+    evidence_ids: set[int] = set()
+    per_title: dict[str, tuple[list[int], list[int], list[int]]] = {}
+    for title, rows in by_title.items():
+        questions: list[int] = []
+        controls: list[int] = []
+        evidence: list[int] = []
+        for gap in rows:
+            question_id = getattr(gap, "question_id", None)
+            control_id = getattr(gap, "control_id", None)
+            if isinstance(question_id, int) and not isinstance(question_id, bool):
+                questions.append(question_id)
+            if isinstance(control_id, int) and not isinstance(control_id, bool):
+                controls.append(control_id)
+            evidence.extend(_parse_evidence_refs(getattr(gap, "evidence_refs", None)))
+        per_title[title] = (questions, controls, evidence)
+        question_ids.update(questions)
+        control_ids.update(controls)
+        evidence_ids.update(evidence)
+    live_questions = _live_question_ids(db, workspace_id, question_ids)
+    live_controls = _live_control_ids(db, workspace_id, control_ids)
+    live_evidence = _live_evidence_ids(db, workspace_id, evidence_ids)
+    for item in suggestions:
+        questions, controls, evidence = per_title.get(item["title"], ([], [], []))
+        item["question_ids"] = sorted(
+            {item_id for item_id in questions if item_id in live_questions}
+        )
+        item["control_ids"] = sorted({item_id for item_id in controls if item_id in live_controls})
+        item["evidence_ids"] = sorted({item_id for item_id in evidence if item_id in live_evidence})
+
+
 def _infer_evidence_suggestions(
     subj_insuff: Counter[str],
-    subj_evidence: dict[str, list[int]],
+    subj_questions: dict[str, set[int]],
 ) -> list[dict]:
     """When no EvidenceGap rows exist, infer suggestions from insufficient subjects."""
     suggestions = []
@@ -504,5 +646,18 @@ def _infer_evidence_suggestions(
         if subj == "Uncategorized":
             continue
         doc_title = suggested_evidence_title(subj)
-        suggestions.append({"title": f"Upload {doc_title}", "improves_questions": count})
+        question_ids = sorted(
+            item
+            for item in subj_questions.get(subj, set())
+            if isinstance(item, int) and not isinstance(item, bool)
+        )
+        suggestions.append(
+            {
+                "title": f"Upload {doc_title}",
+                "improves_questions": count,
+                "evidence_ids": [],
+                "control_ids": [],
+                "question_ids": question_ids,
+            }
+        )
     return suggestions

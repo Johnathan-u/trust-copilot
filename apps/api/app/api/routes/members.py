@@ -99,7 +99,7 @@ async def list_members(
     db: Session = Depends(get_db),
     session: dict = Depends(require_can_admin),
 ):
-    """AUTH-216: List workspace members (current workspace from session)."""
+    """List workspace members (current workspace from session)."""
     workspace_id = session["workspace_id"]
     members = (
         db.query(WorkspaceMember, User)
@@ -129,7 +129,7 @@ async def list_invites(
     db: Session = Depends(get_db),
     session: dict = Depends(require_can_admin),
 ):
-    """AUTH-208: List pending invites for current workspace."""
+    """List pending invites for current workspace."""
     workspace_id = session["workspace_id"]
     invites = (
         db.query(Invite, User)
@@ -159,7 +159,7 @@ async def create_invite(
     db: Session = Depends(get_db),
     session: dict = Depends(require_can_admin),
 ):
-    """AUTH-208: Create workspace invite; send email with accept link."""
+    """Create workspace invite; send email with accept link."""
     workspace_id = session["workspace_id"]
     email = (req.email or "").strip().lower()
     if not email or "@" not in email:
@@ -265,7 +265,7 @@ async def revoke_invite(
     db: Session = Depends(get_db),
     session: dict = Depends(require_can_admin),
 ):
-    """AUTH-208: Revoke a pending invite."""
+    """Revoke a pending invite."""
     workspace_id = session["workspace_id"]
     inv = (
         db.query(Invite)
@@ -296,7 +296,7 @@ async def update_member_role(
     db: Session = Depends(get_db),
     session: dict = Depends(require_can_admin),
 ):
-    """AUTH-216: Change member role. AUTH-215: Last admin cannot demote self."""
+    """Change member role. The last admin cannot demote self."""
     workspace_id = session["workspace_id"]
     user_id = session.get("user_id")
     role = _validate_role(req.role, workspace_id, db)
@@ -361,7 +361,7 @@ async def remove_member(
     db: Session = Depends(get_db),
     session: dict = Depends(require_can_admin),
 ):
-    """AUTH-216: Remove member from workspace. AUTH-215: Last admin cannot remove self."""
+    """Remove member from workspace. The last admin cannot remove self."""
     workspace_id = session["workspace_id"]
     user_id = session.get("user_id")
     mem = (
@@ -527,7 +527,7 @@ async def admin_reset_mfa(
     db: Session = Depends(get_db),
     session: dict = Depends(require_can_admin),
 ):
-    """AUTH-212: Admin-assisted MFA recovery. Reset target user's MFA (same workspace). Strong audit."""
+    """Admin-assisted MFA recovery. Reset target user's MFA (same workspace). Strong audit."""
     workspace_id = session["workspace_id"]
     admin_uid = session.get("user_id")
     target_mem = (

@@ -19,7 +19,7 @@ def search(
     session: dict = Depends(require_can_review),
     db: Session = Depends(get_db),
 ):
-    """Semantic + keyword search over document chunks (uses embedding when OPENAI_API_KEY set)."""
+    """Semantic + keyword search over document chunks (uses embedding when an embedding key is configured)."""
     if session.get("workspace_id") != workspace_id:
         raise HTTPException(status_code=403, detail="Access denied")
     from app.services.embedding_service import embed_text

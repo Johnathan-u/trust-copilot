@@ -9,7 +9,8 @@ the commit when that token no longer holds a live lease.
 Lease instants use the database clock (``now()``), not the worker process clock.
 Abandoned jobs (``running`` and ``lease_expires_at <= now()``) are locked with
 ``FOR UPDATE SKIP LOCKED``. The token swap and the retry classification commit together.
-A NULL expiry is not abandoned: rows written before this lease existed stay untouched.
+A NULL lease is not an expired lease. It is abandoned only after
+``JOB_NULL_LEASE_GRACE_SECONDS`` (TC-10-001b), measured with ``now()``.
 """
 
 from __future__ import annotations
@@ -30,11 +31,16 @@ MIN_LEASE_SECONDS = 10
 MAX_LEASE_SECONDS = 3600
 MIN_HEARTBEAT_SECONDS = 1
 MAX_HEARTBEAT_SECONDS = 1200
+# Several times the default lease, and as long as the default max job runtime.
+DEFAULT_NULL_LEASE_GRACE_SECONDS = 3600
+MAX_NULL_LEASE_GRACE_SECONDS = 86400
+NULL_LEASE_GRACE_LEASE_MULTIPLE = 5
 
 # Shown on the job and in the audit trail. Not an upstream body.
 LEASE_EXPIRED_MESSAGE = "Worker lease expired before the job finished; the attempt was abandoned"
 
 _clamp_logged = False
+_grace_clamp_logged = False
 
 
 class LeaseLost(Exception):
@@ -91,6 +97,37 @@ def lease_heartbeat_seconds() -> int:
         _clamp_logged = True
         logger.warning(
             "JOB_LEASE_HEARTBEAT_SECONDS must be at most half JOB_LEASE_SECONDS; using %s",
+            clamped,
+        )
+    return clamped
+
+
+def null_lease_grace_seconds() -> int:
+    """How long a running job with a NULL lease is left alone (TC-10-001b).
+
+    Default 3600. Clamped to ``[5 * JOB_LEASE_SECONDS, 86400]``. A shorter setting is raised
+    so the grace stays several times the lease. An invalid value falls back to 3600, then the
+    same clamp. Callers compare ``COALESCE(updated_at, started_at)`` to database ``now()``
+    minus this many seconds. A Python clock is not consulted for that comparison.
+    """
+    global _grace_clamp_logged
+    floor = lease_seconds() * NULL_LEASE_GRACE_LEASE_MULTIPLE
+    raw = (os.environ.get("JOB_NULL_LEASE_GRACE_SECONDS") or "").strip()
+    if not raw:
+        chosen = DEFAULT_NULL_LEASE_GRACE_SECONDS
+    else:
+        try:
+            chosen = int(raw)
+        except ValueError:
+            chosen = DEFAULT_NULL_LEASE_GRACE_SECONDS
+    clamped = min(max(chosen, floor), MAX_NULL_LEASE_GRACE_SECONDS)
+    if clamped != chosen and not _grace_clamp_logged:
+        _grace_clamp_logged = True
+        logger.warning(
+            "JOB_NULL_LEASE_GRACE_SECONDS must be at least %s times JOB_LEASE_SECONDS "
+            "and at most %s; using %s",
+            NULL_LEASE_GRACE_LEASE_MULTIPLE,
+            MAX_NULL_LEASE_GRACE_SECONDS,
             clamped,
         )
     return clamped
@@ -181,6 +218,36 @@ def lock_expired_lease(session: Session) -> tuple[int, str | None] | None:
             LIMIT 1
             """
         )
+    ).fetchone()
+    if row is None:
+        return None
+    previous = row[1] if isinstance(row[1], str) else None
+    return int(row[0]), previous
+
+
+def lock_null_lease_past_grace(
+    session: Session, grace_seconds: int
+) -> tuple[int, str | None] | None:
+    """Lock one running job with a NULL lease whose age is past ``grace_seconds``.
+
+    ``FOR UPDATE SKIP LOCKED``. Age is ``COALESCE(updated_at, started_at)`` compared with
+    database ``now()``. A row with both timestamps NULL is not selected. Does not commit.
+    """
+    row = session.execute(
+        text(
+            """
+            SELECT id, lease_owner
+            FROM jobs
+            WHERE status = 'running'
+              AND lease_owner IS NULL
+              AND lease_expires_at IS NULL
+              AND COALESCE(updated_at, started_at) <= now() - make_interval(secs => :grace)
+            ORDER BY COALESCE(updated_at, started_at), id
+            FOR UPDATE SKIP LOCKED
+            LIMIT 1
+            """
+        ),
+        {"grace": float(grace_seconds)},
     ).fetchone()
     if row is None:
         return None
