@@ -50,6 +50,12 @@ function nullableString(value: unknown, label: string): string | null {
   return value
 }
 
+function nullableId(value: unknown, label: string): number | null {
+  if (value === null) return null
+  if (typeof value === 'number') return value
+  throw new Error(`${label} is invalid`)
+}
+
 function idList(value: unknown, label: string): number[] {
   if (!Array.isArray(value) || value.some((item) => typeof item !== 'number')) {
     throw new Error(`${label} must be a list of ids`)
@@ -94,12 +100,8 @@ export function parseDeal(value: unknown): DealRecord {
     throw new Error('expected close date is invalid')
   if (actual !== null && !DAY.test(actual))
     throw new Error('actual close date is invalid')
-  const owner = value.owner_user_id
-  if (owner !== null && typeof owner !== 'number')
-    throw new Error('owner is invalid')
-  const room = value.room_id
-  if (room !== null && typeof room !== 'number')
-    throw new Error('room is invalid')
+  const owner = nullableId(value.owner_user_id, 'owner')
+  const room = nullableId(value.room_id, 'room')
   if (!Array.isArray(value.requested_frameworks)) {
     throw new Error('requested frameworks must be a list')
   }
@@ -156,11 +158,16 @@ export function parseDealAnalytics(value: unknown): {
   if (revenueWon === null || revenuePipeline === null) {
     throw new Error('deal analytics amounts are missing')
   }
-  const winRate = value.win_rate
-  if (
-    winRate !== null &&
-    (typeof winRate !== 'string' || !/^(0|[1-9]\d*)\.\d$/.test(winRate))
+  const winRateValue = value.win_rate
+  let winRate: string | null
+  if (winRateValue === null) {
+    winRate = null
+  } else if (
+    typeof winRateValue === 'string' &&
+    /^(0|[1-9]\d*)\.\d$/.test(winRateValue)
   ) {
+    winRate = winRateValue
+  } else {
     throw new Error('win rate must be a one-decimal string or null')
   }
   return {
