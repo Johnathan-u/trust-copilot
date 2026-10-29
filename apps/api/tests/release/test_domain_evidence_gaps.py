@@ -512,9 +512,8 @@ def test_resolve_requires_eligible_backing_evidence(client):
     assert unlinked.status_code == 400, unlinked.text
     _link(control_id, approved)
     key = f"resolve-{uuid.uuid4().hex}"
-    with patch(
-        "app.api.routes.evidence_gaps.notify_admins", side_effect=RuntimeError("delivery failed")
-    ):
+    with patch("app.api.routes.evidence_gaps.notify_admins") as notify:
+        notify.side_effect = RuntimeError("delivery failed")
         failed = client.post(
             f"/api/evidence-gaps/{gap_id}/resolve",
             json={"evidence_id": approved},
@@ -523,6 +522,8 @@ def test_resolve_requires_eligible_backing_evidence(client):
     assert failed.status_code == 200, failed.text
     assert failed.json()["resolved"] is True
     assert failed.json()["notification_error"] == "delivery_failed"
+    assert str(gap_id) not in notify.call_args.args[3]
+    assert "control_check" in notify.call_args.args[3]
     assert failed.json()["close_reason"] == CONTROL_CHECK_CLOSE_REASON
     assert str(approved) in failed.text
     retried = client.post(

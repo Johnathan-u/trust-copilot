@@ -551,11 +551,12 @@ def resolve_gap(
         payload["resolved"] = True
         payload["notified"] = False
         try:
+            label = (gap.suggested_evidence_doc_title or gap.reason or "Evidence gap").strip()
             notify_admins(
                 db,
                 workspace_id,
                 "Evidence gap resolved",
-                f"gap {gap.id} {gap.gap_type}",
+                f"{label} ({gap.gap_type})",
                 category="success",
                 link="/dashboard/compliance-gaps",
             )
