@@ -329,6 +329,158 @@ def _reset_message_providers() -> None:
         return
 
 
+# TC-02-TEST-001: login fixtures commit user_sessions and auth.login rows that
+# outlive the test. audit_events is not append-only (no delete trigger, rule,
+# or ORM guard), so this uses the same direct DELETE as other test cleanups.
+# Only ids above the pre-test maximum are removed. Production code is unchanged.
+_LOGIN_RESIDUE_POLICY = (
+    "TC-02-TEST-001: audit_events has no append-only trigger or rule; "
+    "test teardown deletes only user_sessions and auth.login audit rows "
+    "with ids above the pre-test maximum, using the same direct DELETE as "
+    "other test cleanup fixtures. Seeded rows are left in place."
+)
+_login_residue_policy_logged = False
+_login_residue_baseline: tuple[int, int] | None = None
+
+
+def _login_residue_connect():
+    from app.core.database import SessionLocal
+
+    return SessionLocal()
+
+
+def _login_residue_guard(db) -> bool:
+    """True when audit_events has a DELETE trigger. Log the cleanup choice once."""
+    global _login_residue_policy_logged
+    from sqlalchemy.exc import SQLAlchemyError
+
+    try:
+        guarded = db.execute(
+            text(
+                """
+                SELECT count(*)
+                FROM pg_trigger t
+                JOIN pg_class c ON c.oid = t.tgrelid
+                WHERE c.relname = 'audit_events'
+                  AND NOT t.tgisinternal
+                  AND (t.tgtype & 8) <> 0
+                """
+            )
+        ).scalar()
+    except SQLAlchemyError:
+        db.rollback()
+        return False
+    has_guard = int(guarded or 0) > 0
+    if not _login_residue_policy_logged:
+        import logging
+
+        log = logging.getLogger("tc.tests.login_residue")
+        if has_guard:
+            log.info(
+                "TC-02-TEST-001: audit_events has a DELETE trigger. "
+                "Production code is unchanged. Test teardown disables user "
+                "triggers only for the auth.login rows created during the test, "
+                "then enables them again."
+            )
+        else:
+            log.info(_LOGIN_RESIDUE_POLICY)
+        _login_residue_policy_logged = True
+    return has_guard
+
+
+def _login_residue_snapshot() -> dict | None:
+    from sqlalchemy.exc import SQLAlchemyError
+
+    db = _login_residue_connect()
+    try:
+        guarded = _login_residue_guard(db)
+        sessions_max = db.execute(text("SELECT COALESCE(MAX(id), 0) FROM user_sessions")).scalar()
+        audit_max = db.execute(
+            text("SELECT COALESCE(MAX(id), 0) FROM audit_events WHERE action = 'auth.login'")
+        ).scalar()
+        return {
+            "sessions_max": int(sessions_max or 0),
+            "audit_max": int(audit_max or 0),
+            "audit_guard": guarded,
+        }
+    except SQLAlchemyError:
+        db.rollback()
+        return None
+    finally:
+        db.close()
+
+
+def _login_residue_counts() -> tuple[int, int] | None:
+    from sqlalchemy.exc import SQLAlchemyError
+
+    db = _login_residue_connect()
+    try:
+        sessions = db.execute(text("SELECT COUNT(*) FROM user_sessions")).scalar()
+        audits = db.execute(
+            text("SELECT COUNT(*) FROM audit_events WHERE action = 'auth.login'")
+        ).scalar()
+        return int(sessions or 0), int(audits or 0)
+    except SQLAlchemyError:
+        db.rollback()
+        return None
+    finally:
+        db.close()
+
+
+def _login_residue_delete(bounds: dict | None) -> None:
+    if not bounds:
+        return
+    db = _login_residue_connect()
+    try:
+        db.execute(
+            text("DELETE FROM user_sessions WHERE id > :max_id"),
+            {"max_id": bounds["sessions_max"]},
+        )
+        if bounds["audit_guard"]:
+            db.execute(text("ALTER TABLE audit_events DISABLE TRIGGER USER"))
+        db.execute(
+            text("DELETE FROM audit_events WHERE action = 'auth.login' AND id > :max_id"),
+            {"max_id": bounds["audit_max"]},
+        )
+        if bounds["audit_guard"]:
+            db.execute(text("ALTER TABLE audit_events ENABLE TRIGGER USER"))
+        db.commit()
+    except Exception:
+        db.rollback()
+        if bounds["audit_guard"]:
+            db.execute(text("ALTER TABLE audit_events ENABLE TRIGGER USER"))
+            db.commit()
+        raise
+    finally:
+        db.close()
+
+
+@pytest.fixture(scope="session", autouse=True)
+def _login_residue_session_baseline():
+    """Fail the session if login sessions or auth.login rows outlive the suite."""
+    global _login_residue_baseline
+    _login_residue_baseline = _login_residue_counts()
+    yield
+    if _login_residue_baseline is None:
+        return
+    end = _login_residue_counts()
+    if end is None or end == _login_residue_baseline:
+        return
+    before = _login_residue_baseline
+    pytest.fail(
+        "TC-02-TEST-001: login residue remained after the suite: "
+        f"user_sessions {before[0]} -> {end[0]}, auth.login {before[1]} -> {end[1]}"
+    )
+
+
+@pytest.fixture(autouse=True)
+def _teardown_login_residue():
+    """Drop user_sessions and auth.login rows created during this test only."""
+    bounds = _login_residue_snapshot()
+    yield
+    _login_residue_delete(bounds)
+
+
 @pytest.fixture(autouse=True)
 def _disable_rate_limit():
     """Reset in-memory rate limit counters and settings cache between tests."""
