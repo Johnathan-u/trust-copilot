@@ -1,14 +1,14 @@
 """Reviewed FAQ lifecycle and source ownership; lossless rollback archives.
 
 Revision ID: tc17004_faq_review
-Revises: bug018c_one_open_gap
+Revises: tc10001_job_leases
 """
 
 from alembic import op
 import sqlalchemy as sa
 
 revision = "tc17004_faq_review"
-down_revision = "bug018c_one_open_gap"
+down_revision = "tc10001_job_leases"
 branch_labels = None
 depends_on = None
 
