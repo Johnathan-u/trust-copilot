@@ -1,6 +1,6 @@
 # Response-size streaming limit evidence
 
-Status: updated implementation awaiting exact-head CI and Coordinator re-review. This replaces the first-pass evidence superseded by the decompression-bomb review.
+Status: tested code has all four required CI checks green; Coordinator re-review pending. Any later evidence-only head remains draft until its own required CI checks pass. This replaces the first-pass evidence superseded by the decompression-bomb review.
 
 Environment: Linux, Python 3.12, exact hashed requirements-dev.lock; HTTPX 0.28.1, pytest 9.1.1, ruff 0.5.6. No local PostgreSQL or provider network calls. All response fixtures are synthetic HTTPX raw streams.
 
@@ -8,7 +8,7 @@ Environment: Linux, Python 3.12, exact hashed requirements-dev.lock; HTTPX 0.28.
 
 On unchanged first-pass commit `f80aa2e3160cafc3d4dc53b27cf66bb749fb648e`, the strengthened 27-test module returned exit 1: **13 failed, 14 passed**. Failures covered excessive traced allocation for gzip bombs, nested/unsupported encodings, early declared-length rejection, redirect bodies, and accepting truncated gzip.
 
-After implementing raw streaming with capped stdlib zlib decompression, the working-tree run returned exit 0: **97 passed, 0 failed, 0 skipped** (27 response-limit, 41 provider-wiring, 29 safe-collection). Exact published-code SHA verification and full CI results will be recorded after publication. Ruff check/format, diff check, and changed-path secret scan passed.
+On exact published code SHA `718378a8d5c56fb945c1cf28c86b8fccd2d09422`, raw streaming with capped stdlib zlib decompression returned exit 0: **97 passed, 0 failed, 0 skipped** (27 response-limit, 41 provider-wiring, 29 safe-collection). The exact-head local run took 14.71 seconds; `pytest-local.txt` contains its output. Ruff check/format, diff check, and changed-path secret scan passed.
 
 ```sh
 # From apps/api with the locked virtual environment on PATH:
@@ -19,7 +19,7 @@ The memory tests construct compressed fixtures before tracing and require alloca
 
 ## Required checks
 
-Full CI on the updated PR head is required before readiness. Local inclusion of `test_notification_delivery.py` produced 22 setup errors because PostgreSQL was unavailable; those are not passes. Initial inherited SOCKS proxy settings caused five provider-construction failures; clearing test proxy variables restored baseline behavior without adding a dependency or changing production proxy settings.
+On `718378a8d5c56fb945c1cf28c86b8fccd2d09422`, both [pull-request CI](https://github.com/Johnathan-u/trust-copilot/actions/runs/40922859237) and [push CI](https://github.com/Johnathan-u/trust-copilot/actions/runs/40922849081) completed successfully. Both `build` and `web-release-e2e` passed in each run: all four required checks green. The build includes PostgreSQL-backed API tests in the pinned pgvector16 CI service. This records the tested code SHA; the evidence-only follow-up head and its CI results are recorded in the PR/coordination thread to avoid a self-referential commit hash. Local inclusion of `test_notification_delivery.py` produced 22 setup errors because PostgreSQL was unavailable; those are not passes. Initial inherited SOCKS proxy settings caused five provider-construction failures; clearing test proxy variables restored baseline behavior without adding a dependency or changing production proxy settings.
 
 ## Review scope
 
