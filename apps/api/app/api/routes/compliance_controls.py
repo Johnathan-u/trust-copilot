@@ -24,6 +24,13 @@ from app.models import (
     Workspace,
     WORKSPACE_CONTROL_STATUSES,
 )
+from app.services.control_contract import (
+    canonical_payload,
+    legacy_for_workspace,
+    new_request_id,
+    sync_workspace_row,
+    upsert_workspace_control,
+)
 from app.services.evidence_suggestion import suggest_evidence as suggest_evidence_service
 from app.services.tag_service import list_tags_for_documents
 from app.core.compliance_rate_limit import check_compliance_write_allowed
@@ -120,6 +127,7 @@ def _workspace_control_dict(
         "evidence_count": evidence_count,
         "max_confidence": round(max_confidence, 4) if max_confidence is not None else None,
         "has_verified": has_verified if has_verified is not None else False,
+        "canonical": canonical_payload(db, legacy_for_workspace(db, wc), wc),
     }
 
 
@@ -338,20 +346,23 @@ def create_control(
         raise HTTPException(
             status_code=400, detail=f"Invalid status. Allowed: {WORKSPACE_CONTROL_STATUSES}"
         )
-    wc = WorkspaceControl(
+    result = upsert_workspace_control(
+        db,
         workspace_id=ws,
         framework_control_id=body.framework_control_id,
-        custom_name=body.custom_name.strip() if body.custom_name else None,
-        status=body.status,
+        custom_name=body.custom_name,
+        workspace_status=body.status,
         owner_user_id=body.owner_user_id,
-        owner_team=body.owner_team.strip() if body.owner_team else None,
+        owner_team=body.owner_team,
+        request_id=new_request_id(),
     )
-    db.add(wc)
-    db.commit()
-    db.refresh(wc)
-    compliance_control_created_total.inc()
+    if result.http_status >= 400:
+        raise HTTPException(status_code=result.http_status, detail=result.error)
+    if result.created:
+        compliance_control_created_total.inc()
+    wc = result.ids.get("workspace")
     logger.info("control_created", extra={"control_id": wc.id, "workspace_id": ws})
-    return _workspace_control_dict(wc, db, 0)
+    return _workspace_control_dict(wc, db)
 
 
 @router.get("/{control_id}", response_model=dict)
@@ -422,8 +433,9 @@ def patch_control(
         wc.owner_user_id = body.owner_user_id
     if body.owner_team is not None:
         wc.owner_team = body.owner_team.strip() or None
-    db.commit()
-    db.refresh(wc)
+    synced = sync_workspace_row(db, wc, request_id=new_request_id())
+    if synced.http_status >= 400:
+        raise HTTPException(status_code=synced.http_status, detail=synced.error)
     return _workspace_control_dict(wc, db)
 
 
@@ -452,8 +464,9 @@ def verify_control(
     wc.status = "verified"
     wc.verified_at = now
     wc.verified_by_user_id = session.get("user_id")
-    db.commit()
-    db.refresh(wc)
+    synced = sync_workspace_row(db, wc, request_id=new_request_id())
+    if synced.http_status >= 400:
+        raise HTTPException(status_code=synced.http_status, detail=synced.error)
     compliance_control_status_changed_total.inc()
     try:
         emit_compliance_event(
@@ -527,6 +540,13 @@ def _link_dict(
         "created_at": link.created_at.isoformat() if link.created_at else None,
         "stale": stale,
         "expired": expired,
+        "canonical": {
+            "contract_version": "control-evidence/v1",
+            "target_kind": "evidence_item",
+            "workspace_scoped": True,
+            "exactly_one_target": True,
+            "evidence_item_id": link.evidence_id,
+        },
     }
 
 

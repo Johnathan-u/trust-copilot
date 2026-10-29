@@ -1,0 +1,9 @@
+SHA d3145d20b53cc99481f3b6af03d8c5f15e2b25a7
+working directory: apps/api
+command: python -m pytest tests/release/test_domain_controls.py -q
+alembic heads: tc21002_control_contract (head)
+
+......                                                                   [100%]
+6 passed, 63 warnings in 5.04s
+exit status: 0
+skipped: 0
