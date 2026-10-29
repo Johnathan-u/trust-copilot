@@ -1,0 +1,35 @@
+branch 3034 {'skipped': 11, 'passed': 3019, 'failed': 4}
+master 3017 {'skipped': 11, 'passed': 3003, 'failed': 3}
+branch minus master (new test ids): 17
+  passed  tests.release.test_upload_enqueue_conflict::test_concurrent_conflicting_uploads_leave_nothing_then_retries_create_one_each[documents]
+  passed  tests.release.test_upload_enqueue_conflict::test_concurrent_conflicting_uploads_leave_nothing_then_retries_create_one_each[questionnaires]
+  passed  tests.release.test_upload_enqueue_conflict::test_concurrent_same_key_uploads_create_exactly_one_row[documents]
+  passed  tests.release.test_upload_enqueue_conflict::test_concurrent_same_key_uploads_create_exactly_one_row[questionnaires]
+  passed  tests.release.test_upload_enqueue_conflict::test_enqueue_conflict_409_leaves_no_row_job_or_object_and_retry_creates_one[documents]
+  passed  tests.release.test_upload_enqueue_conflict::test_enqueue_conflict_409_leaves_no_row_job_or_object_and_retry_creates_one[questionnaires]
+  passed  tests.release.test_upload_enqueue_conflict::test_enqueue_conflict_with_commit_false_rolls_back_the_callers_row
+  passed  tests.release.test_upload_enqueue_conflict::test_enqueue_job_commit_false_leaves_commit_to_the_caller
+  passed  tests.release.test_upload_enqueue_conflict::test_forbidden_and_invalid_key_store_nothing[documents]
+  passed  tests.release.test_upload_enqueue_conflict::test_forbidden_and_invalid_key_store_nothing[questionnaires]
+  passed  tests.release.test_upload_enqueue_conflict::test_idempotency_key_retry_after_409_and_replay_never_duplicate[documents]
+  passed  tests.release.test_upload_enqueue_conflict::test_idempotency_key_retry_after_409_and_replay_never_duplicate[questionnaires]
+  passed  tests.release.test_upload_enqueue_conflict::test_idempotency_set_commit_false_is_atomic_with_caller_and_fenced
+  passed  tests.release.test_upload_enqueue_conflict::test_lost_idempotency_claim_rolls_back_the_upload[documents]
+  passed  tests.release.test_upload_enqueue_conflict::test_lost_idempotency_claim_rolls_back_the_upload[questionnaires]
+  passed  tests.release.test_upload_enqueue_conflict::test_storage_delete_failure_still_returns_409_without_a_row[documents]
+  passed  tests.release.test_upload_enqueue_conflict::test_storage_delete_failure_still_returns_409_without_a_row[questionnaires]
+master minus branch: 0
+status differs on shared ids:
+  master=passed branch=failed  tests.release.test_notification_delivery::test_migration_upgrades_and_downgrades_on_a_fresh_database
+Isolated reruns after the parallel full suites (same Postgres was serving both):
+- tests/release/test_notification_delivery.py::test_migration_upgrades_and_downgrades_on_a_fresh_database passed. The branch failure above was psycopg2 "SSL connection has been closed unexpectedly" while two fresh-database migrations ran at once. Not a product assertion.
+- tests/release/test_billing_provider.py::test_migration_fresh_install_upgrade_and_downgrade passed alone. The shared full-suite failure was the same parallel load (empty alembic stdout / connection error).
+
+Shared failures that remain environmental on both trees:
+- tests.release.test_domain_case_studies::test_ac3_schema_consumer_and_persisted_outcome_agree_across_retry (typescript is not installed under apps/web)
+- tests.release.test_domain_controls::test_routes_agree_on_canonical_contract_and_retry (node version check; this environment reports v22.23.4)
+
+shared failures in the parallel full-suite logs:
+  tests.release.test_billing_provider::test_migration_fresh_install_upgrade_and_downgrade
+  tests.release.test_domain_case_studies::test_ac3_schema_consumer_and_persisted_outcome_agree_across_retry
+  tests.release.test_domain_controls::test_routes_agree_on_canonical_contract_and_retry
