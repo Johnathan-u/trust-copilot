@@ -51,6 +51,12 @@ export function persistentToastRegions(): readonly PersistentToastRegion[] {
   ]
 }
 
+/** True when this node is the toast root or one of its two live regions. */
+export function isPersistentToastLiveHost(id: string): boolean {
+  if (id === TOAST_LIVE_ROOT_ID) return true
+  return persistentToastRegions().some((region) => region.id === id)
+}
+
 export function liveRegionForSeverity(
   severity: ToastSeverity
 ): ToastLiveRegion {
