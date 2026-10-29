@@ -308,6 +308,59 @@ def test_attachment_timeout_after_write_compensates_known_key(domain):
     assert counts(domain["db"]) == before
 
 
+@pytest.mark.parametrize("delete_fails", [False, True])
+def test_abort_failure_does_not_prevent_storage_compensation(delete_fails, caplog):
+    """A database outage cannot bypass cleanup or expose either backend's exception."""
+    from io import BytesIO
+    from unittest.mock import MagicMock
+    from fastapi import HTTPException, Request, UploadFile
+    from app.api.routes.trust_requests import TrustRequestCreate, _persist_intake
+
+    class Storage:
+        bucket_raw = "synthetic"
+        objects = {}
+        deleted = []
+
+        def upload(self, bucket, key, content, **kwargs):
+            self.objects[key] = content
+            raise TimeoutError("PRIVATE-UPLOAD-ERROR")
+
+        def delete(self, bucket, key):
+            self.deleted.append(key)
+            if delete_fails:
+                raise RuntimeError("PRIVATE-DELETE-ERROR")
+            self.objects.pop(key, None)
+
+    storage = Storage()
+    db = MagicMock()
+    db.add.side_effect = lambda row: setattr(row, "id", 123)
+    request = Request({"type": "http", "headers": [(b"host", b"localhost")]})
+    body = TrustRequestCreate(
+        requester_email="synthetic@example.com", message="PRIVATE-BODY", workspace_id=1
+    )
+    upload = UploadFile(filename="private-document.txt", file=BytesIO(b"PRIVATE-ATTACHMENT"))
+    with (
+        patch(
+            "app.api.routes.trust_requests.resolve_workspace_for_trust_request",
+            return_value=(1, "explicit_id"),
+        ),
+        patch(
+            "app.services.trust_request_service.abort_intake",
+            side_effect=RuntimeError("PRIVATE-DB-ERROR"),
+        ),
+        pytest.raises(HTTPException) as error,
+    ):
+        _persist_intake(body, request, db, None, upload, storage)
+    assert error.value.status_code == 502
+    assert len(storage.deleted) == 1
+    assert bool(storage.objects) == delete_fails
+    assert "PRIVATE-" not in str(error.value.detail) + caplog.text
+    assert "synthetic@example.com" not in caplog.text
+    assert "private-document.txt" not in caplog.text
+    if delete_fails:
+        assert storage.deleted[0] in caplog.text  # Opaque key makes reconciliation possible.
+
+
 def test_invalid_retry_header_is_422_without_rows(domain):
     before = counts(domain["db"])
     response = submit(domain, {"Idempotency-Key": "invalid key"})
@@ -727,6 +780,31 @@ def test_assigning_suspended_member_fails_without_changing_status(domain):
     assert response.status_code == 400
     domain["db"].expire_all()
     assert domain["db"].get(TrustRequest, domain["foreign"]).status == "new"
+
+
+def test_assignment_and_status_are_durable_and_can_be_cleared(domain):
+    from app.core.database import SessionLocal
+
+    client = _human(domain)
+    response = client.patch(
+        f"/api/trust-requests/{domain['own']}",
+        json={"assignee_id": domain["user"], "status": "in_progress"},
+    )
+    assert response.status_code == 200
+    assert response.json()["assignee_id"] == domain["user"]
+    with SessionLocal() as fresh:
+        row = fresh.get(TrustRequest, domain["own"])
+        assert row.assignee_id == domain["user"]
+        assert row.status == response.json()["status"] == "in_progress"
+    cleared = client.patch(
+        f"/api/trust-requests/{domain['own']}", json={"assignee_id": 0, "status": "pending_review"}
+    )
+    assert cleared.status_code == 200
+    assert cleared.json()["assignee_id"] is None
+    with SessionLocal() as fresh:
+        row = fresh.get(TrustRequest, domain["own"])
+        assert row.assignee_id is None
+        assert row.status == cleared.json()["status"] == "pending_review"
 
 
 @pytest.mark.parametrize(

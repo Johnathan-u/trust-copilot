@@ -256,15 +256,23 @@ def _persist_intake(
         trust_svc.finish_intake(db, key, owner, digest, response)
         return response
     except Exception as exc:
-        trust_svc.abort_intake(db, key, owner)
+        abort_failed = False
+        try:
+            trust_svc.abort_intake(db, key, owner)
+        except Exception:
+            abort_failed = True
+            logger.error("trust intake database cleanup requires reconciliation")
         if uploaded_key and storage:
             try:
                 storage.delete(storage.bucket_raw, uploaded_key)
             except Exception:
-                logger.error("trust attachment cleanup requires reconciliation")
-        if isinstance(exc, HTTPException):
+                logger.error(
+                    "trust attachment cleanup requires reconciliation storage_key=%s",
+                    uploaded_key,
+                )
+        if isinstance(exc, HTTPException) and not abort_failed:
             raise
-        if isinstance(exc, trust_svc.idempotency.IdempotencyClaimLost):
+        if isinstance(exc, trust_svc.idempotency.IdempotencyClaimLost) and not abort_failed:
             raise HTTPException(409, "This request lost its retry lease. Please retry.") from None
         logger.error("trust intake persistence failed (%s)", type(exc).__name__)
         raise HTTPException(502, "The request could not be saved. Please retry.") from None
