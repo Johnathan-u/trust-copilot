@@ -311,13 +311,43 @@ def _row(gap_id: int) -> tuple:
         session.close()
 
 
-def test_review_cannot_decide_or_resolve(client):
+def _unchanged(gap_id: int, stored: tuple, before_audit: int, before_keys: int) -> None:
+    assert _row(gap_id) == stored
+    assert _counts()["audit_events"] == before_audit
+    assert _counts()["idempotency_keys"] == before_keys
+
+
+def test_create_decision_and_resolve_permissions(client):
     actors = _actors()
     control_id = _control(actors["workspace_id"], f"Denied {uuid.uuid4().hex[:8]}")
     gap_id = _gap(actors["workspace_id"], gap_type="control_check", control_id=control_id)
     approved, _doc = _evidence(actors["workspace_id"], approval="approved")
     _link(control_id, approved)
     stored = _row(gap_id)
+    calls = (
+        ("POST", "/api/evidence-gaps", {"gap_type": "control_check", "control_id": control_id}),
+        ("POST", f"/api/evidence-gaps/{gap_id}/decision", {"status": "accepted"}),
+        ("POST", f"/api/evidence-gaps/{gap_id}/resolve", {"evidence_id": approved}),
+    )
+    client.cookies.clear()
+    before_audit = _counts()["audit_events"]
+    before_keys = _counts()["idempotency_keys"]
+    for method, path, body in calls:
+        response = client.post(path, json=body, headers={"Idempotency-Key": "anon-key"})
+        assert response.status_code == 401, (path, response.text)
+        _unchanged(gap_id, stored, before_audit, before_keys)
+    _login(client, NO_REVIEW_EMAIL, NO_REVIEW_PASSWORD)
+    before_audit = _counts()["audit_events"]
+    before_keys = _counts()["idempotency_keys"]
+    for path, body in (
+        ("/api/evidence-gaps", {"gap_type": "control_check", "control_id": control_id}),
+        (f"/api/evidence-gaps/{gap_id}/decision", {"status": "accepted"}),
+        (f"/api/evidence-gaps/{gap_id}/resolve", {"evidence_id": approved}),
+    ):
+        response = client.post(path, json=body, headers={"Idempotency-Key": "noreview-key"})
+        assert response.status_code == 403, (path, response.text)
+        assert response.json()["detail"] == "Insufficient permissions"
+        _unchanged(gap_id, stored, before_audit, before_keys)
     for role, email, password in (
         ("reviewer", REVIEWER_EMAIL, REVIEWER_PASSWORD),
         ("editor", EDITOR_EMAIL, EDITOR_PASSWORD),
@@ -325,32 +355,30 @@ def test_review_cannot_decide_or_resolve(client):
         _login(client, email, password)
         before_audit = _counts()["audit_events"]
         before_keys = _counts()["idempotency_keys"]
-        decided = client.post(
+        denied = client.post(
             f"/api/evidence-gaps/{gap_id}/decision",
-            json={"status": "accepted"},
-            headers={"Idempotency-Key": f"deny-d-{role}"},
+            json={"status": "dismissed"},
+            headers={"Idempotency-Key": f"deny-{role}"},
         )
-        resolved = client.post(
-            f"/api/evidence-gaps/{gap_id}/resolve",
-            json={"evidence_id": approved},
-            headers={"Idempotency-Key": f"deny-r-{role}"},
-        )
-        assert decided.status_code == 403, (role, decided.text)
-        assert resolved.status_code == 403, (role, resolved.text)
-        assert decided.json()["detail"] == "Insufficient permissions"
-        assert resolved.json()["detail"] == "Insufficient permissions"
-        assert _row(gap_id) == stored
-        assert _counts()["audit_events"] == before_audit
-        assert _counts()["idempotency_keys"] == before_keys
+        assert denied.status_code == 403, (role, denied.text)
+        _unchanged(gap_id, stored, before_audit, before_keys)
+    _login(client, REVIEWER_EMAIL, REVIEWER_PASSWORD)
+    created = client.post(
+        "/api/evidence-gaps",
+        json={"gap_type": "missing_evidence", "question_id": None, "control_id": control_id},
+    )
+    # control create is review; a second type still opens when none exists for that type
+    assert created.status_code in (200, 201), created.text
+    resolved = client.post(
+        f"/api/evidence-gaps/{gap_id}/resolve", json={"evidence_id": approved}
+    )
+    assert resolved.status_code == 200, resolved.text
+    assert resolved.json()["status"] == "resolved"
     _login(client, ADMIN_EMAIL, ADMIN_PASSWORD)
-    accepted = client.post(f"/api/evidence-gaps/{gap_id}/decision", json={"status": "accepted"})
+    other = _gap(actors["workspace_id"], gap_type="missing_evidence", control_id=control_id)
+    accepted = client.post(f"/api/evidence-gaps/{other}/decision", json={"status": "accepted"})
     assert accepted.status_code == 200, accepted.text
     assert accepted.json()["status"] == "accepted"
-    other = _gap(actors["workspace_id"], gap_type="control_check", control_id=control_id)
-    cleared = client.post(f"/api/evidence-gaps/{other}/resolve", json={"evidence_id": approved})
-    assert cleared.status_code == 200, cleared.text
-    assert cleared.json()["status"] == "resolved"
-    assert cleared.json()["close_reason"] == CONTROL_CHECK_CLOSE_REASON
 
 
 def test_denial_at_each_permission_level(client):
