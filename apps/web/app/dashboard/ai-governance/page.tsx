@@ -12,6 +12,7 @@ import {
   readSectionJson,
   sectionFailure,
 } from '@/lib/section-load'
+import { parseCoverageResponse } from '@/lib/coverageConsumer'
 import { pageMode, type FailedSection } from '@/lib/ui-state'
 import { useKeyedGeneration } from '@/components/ui/useKeyedGeneration'
 
@@ -126,7 +127,13 @@ export default function AIInsightsPage() {
       ),
       loadSection(
         fetch('/api/compliance-coverage', { credentials: 'include' }),
-        (data) => data as CoverageData
+        (data) => {
+          const parsed = parseCoverageResponse(data)
+          return {
+            recommended_evidence:
+              parsed.recommended_evidence as CoverageData['recommended_evidence'],
+          }
+        }
       ),
     ])
       .then(([ins, cov]) => {
