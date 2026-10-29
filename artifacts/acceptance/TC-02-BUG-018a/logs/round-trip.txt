@@ -33,3 +33,17 @@ bug018a_gap_closed_at_reason (head)
 INFO  [alembic.runtime.migration] Context impl PostgresqlImpl.
 INFO  [alembic.runtime.migration] Will assume transactional DDL.
 bug018a_gap_closed_at_reason (head)
+
+=== data round trip (lossless downgrade) ===
+test_downgrade_round_trip_preserves_old_notes_and_column_only_rows
+Old note rows: reason unchanged across downgrade.
+Column-only rows: downgrade appends [resolved on regeneration: <code> at <UTC seconds>Z] unless that line is already last.
+Next upgrade parses the note back into close_reason and closed_at.
+...............................                                          [100%]
+=============================== warnings summary ===============================
+tests/release/test_evidence_gap_closure_columns.py::test_migration_upgrade_downgrade_upgrade_round_trip
+  /tmp/tc-venv/lib/python3.12/site-packages/alembic/config.py:604: DeprecationWarning: No path_separator found in configuration; falling back to legacy splitting on spaces, commas, and colons for prepend_sys_path.  Consider adding path_separator=os to Alembic config.
+    util.warn_deprecated(
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+31 passed, 1 warning in 12.68s

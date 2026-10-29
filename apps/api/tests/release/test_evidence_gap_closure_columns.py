@@ -69,6 +69,30 @@ def _alembic_ok(*args: str) -> str:
     return result.stdout
 
 
+def _revision_reaches_every_head(revision: str) -> None:
+    """``revision`` is a head, or an ancestor of every head. Does not pin the head id."""
+    from alembic.config import Config
+    from alembic.script import ScriptDirectory
+
+    script = ScriptDirectory.from_config(Config(str(API_ROOT / "alembic.ini")))
+    heads = script.get_heads()
+    assert heads
+
+    def reaches(current: str | None, seen: set[str] | None = None) -> bool:
+        walked: set[str] = set() if seen is None else seen
+        while current and current not in walked:
+            if current == revision:
+                return True
+            walked.add(current)
+            down = script.get_revision(current).down_revision
+            if isinstance(down, tuple):
+                return all(reaches(item, set(walked)) for item in down)
+            current = down
+        return False
+
+    assert all(reaches(head) for head in heads), (heads, revision)
+
+
 @pytest.fixture
 def qnr(db_session: Session):
     row = Questionnaire(
@@ -451,6 +475,38 @@ def test_historical_note_matches_the_backfill_pattern():
     assert module.down_revision == PARENT
 
 
+def _insert_columns(
+    conn,
+    *,
+    reason: str | None,
+    status: str,
+    close_reason: str | None,
+    closed_at: datetime | None,
+) -> int:
+    row = conn.execute(
+        text(
+            """
+            INSERT INTO evidence_gaps (
+                workspace_id, gap_type, reason, status, created_at, updated_at,
+                close_reason, closed_at
+            ) VALUES (
+                1, 'missing_evidence', :reason, :status,
+                TIMESTAMP '2026-01-01 00:00:00', TIMESTAMP '2026-01-01 00:00:00',
+                :close_reason, :closed_at
+            )
+            RETURNING id
+            """
+        ),
+        {
+            "reason": reason,
+            "status": status,
+            "close_reason": close_reason,
+            "closed_at": closed_at,
+        },
+    ).one()
+    return int(row.id)
+
+
 def _insert_legacy(conn, *, reason: str | None, status: str, updated_at: datetime) -> int:
     row = conn.execute(
         text(
@@ -673,11 +729,120 @@ def test_migration_upgrade_downgrade_upgrade_round_trip(db_session: Session):
         assert "close_reason" not in names()
         _alembic_ok("upgrade", "head")
         assert {"closed_at", "close_reason"} <= names()
-        heads = [line for line in _alembic_ok("heads").splitlines() if line.strip()]
-        assert len(heads) == 1
-        assert REVISION in heads[0] and "(head)" in heads[0]
+        _revision_reaches_every_head(REVISION)
     finally:
         _alembic("upgrade", "head")
+
+
+def test_downgrade_round_trip_preserves_old_notes_and_column_only_rows(db_session: Session):
+    """Upgrade, downgrade, upgrade loses nothing.
+
+    An old delimited note stays byte for byte. A row closed only in the new
+    columns gets that same note on downgrade, and the next upgrade restores
+    ``close_reason`` and ``closed_at`` from it.
+    """
+    from app.core.database import engine
+
+    module = _load_migration()
+    db_session.rollback()
+    engine.dispose()
+    old_reason = (
+        "Opening text.\n[resolved on regeneration: question_removed at 2026-10-27T14:30:15Z]"
+    )
+    column_reason = "Column only opening."
+    old_at = datetime(2026, 10, 27, 14, 30, 15, tzinfo=timezone.utc)
+    column_at = datetime(2026, 11, 2, 3, 4, 5, tzinfo=timezone.utc)
+    null_at = datetime(2026, 4, 1, 0, 0, 1, tzinfo=timezone.utc)
+    ids: dict[str, int] = {}
+    try:
+        _alembic_ok("upgrade", "head")
+        with engine.begin() as conn:
+            ids["old"] = _insert_columns(
+                conn,
+                reason=old_reason,
+                status="resolved",
+                close_reason="question_removed",
+                closed_at=old_at,
+            )
+            ids["column"] = _insert_columns(
+                conn,
+                reason=column_reason,
+                status="resolved",
+                close_reason="answer_sufficient",
+                closed_at=column_at,
+            )
+            ids["null_reason"] = _insert_columns(
+                conn,
+                reason=None,
+                status="resolved",
+                close_reason="answer_sufficient",
+                closed_at=null_at,
+            )
+            ids["open"] = _insert_columns(
+                conn,
+                reason="Still open.",
+                status="open",
+                close_reason=None,
+                closed_at=None,
+            )
+
+        _alembic_ok("downgrade", module.down_revision)
+        with engine.connect() as conn:
+            stored = {
+                key: conn.execute(
+                    text("SELECT reason FROM evidence_gaps WHERE id = :id"),
+                    {"id": gap_id},
+                ).scalar()
+                for key, gap_id in ids.items()
+            }
+        assert stored["old"] == old_reason
+        assert stored["column"] == (
+            "Column only opening.\n"
+            "[resolved on regeneration: answer_sufficient at 2026-11-02T03:04:05Z]"
+        )
+        assert stored["null_reason"] == (
+            "[resolved on regeneration: answer_sufficient at 2026-04-01T00:00:01Z]"
+        )
+        assert stored["open"] == "Still open."
+
+        _alembic_ok("upgrade", "head")
+        with engine.connect() as conn:
+            conn.execute(text("SET TIME ZONE 'America/New_York'"))
+            try:
+                restored = {
+                    key: conn.execute(
+                        text(
+                            "SELECT reason, close_reason, closed_at "
+                            "FROM evidence_gaps WHERE id = :id"
+                        ),
+                        {"id": gap_id},
+                    ).one()
+                    for key, gap_id in ids.items()
+                }
+            finally:
+                conn.execute(text("SET TIME ZONE 'UTC'"))
+        assert restored["old"].reason == old_reason
+        assert restored["old"].close_reason == "question_removed"
+        assert _utc(restored["old"].closed_at) == old_at
+        assert restored["column"].reason == stored["column"]
+        assert restored["column"].close_reason == "answer_sufficient"
+        assert _utc(restored["column"].closed_at) == column_at
+        assert restored["null_reason"].reason == stored["null_reason"]
+        assert restored["null_reason"].close_reason == "answer_sufficient"
+        assert _utc(restored["null_reason"].closed_at) == null_at
+        assert restored["open"].reason == "Still open."
+        assert restored["open"].close_reason is None
+        assert restored["open"].closed_at is None
+    finally:
+        _alembic("upgrade", "head")
+        if ids:
+            with engine.begin() as conn:
+                conn.execute(
+                    text("DELETE FROM evidence_gaps WHERE id IN :ids").bindparams(
+                        bindparam("ids", expanding=True)
+                    ),
+                    {"ids": list(ids.values())},
+                )
 
 
 def test_offline_sql_adds_and_drops_the_columns():
@@ -698,3 +863,5 @@ def test_offline_sql_adds_and_drops_the_columns():
     assert "DROP COLUMN CLOSE_REASON" in down
     assert "DROP COLUMN CLOSED_AT" in down
     assert "ADD COLUMN" not in down
+    assert "resolved on regeneration" in downgrade
+    assert downgrade.upper().index("UPDATE EVIDENCE_GAPS") < down.index("DROP COLUMN")

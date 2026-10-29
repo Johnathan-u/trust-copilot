@@ -15,8 +15,12 @@ gets ``closed_at = updated_at`` (naive ``updated_at`` is UTC) and a NULL
 statement again does not rewrite a row whose ``closed_at`` or ``close_reason``
 is already set.
 
-Downgrade drops both columns. It does not rewrite ``reason`` and does not
-rebuild a note for rows closed after this revision.
+Downgrade is lossless. A row whose last ``reason`` line is already the note
+is left untouched. A row that has ``closed_at`` and a known ``close_reason``
+but no such last line gets that same note appended (or used as the whole
+``reason`` when ``reason`` is NULL or empty) before the columns are dropped.
+Upgrade can parse the note again. The note is whole UTC seconds, the same
+grammar ``resolution_note()`` writes.
 
 This module does not import the application package.
 
@@ -84,6 +88,39 @@ def backfill_sql() -> str:
     return _BACKFILL_SQL.replace("__NOTE_RE__", NOTE_LINE_RE)
 
 
+# Append the historical note only when it is not already the last line of reason.
+# Whole UTC seconds, so upgrade's NOTE_LINE_RE parses it back into the columns.
+_PRESERVE_SQL = """
+UPDATE evidence_gaps AS g
+SET reason = CASE
+    WHEN g.reason IS NULL OR g.reason = '' THEN note.line
+    ELSE g.reason || E'\\n' || note.line
+END
+FROM (
+    SELECT
+        id,
+        '[resolved on regeneration: ' || close_reason || ' at '
+            || to_char(closed_at AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS')
+            || 'Z]' AS line
+    FROM evidence_gaps
+    WHERE closed_at IS NOT NULL
+      AND close_reason IN ('question_removed', 'answer_sufficient')
+) AS note
+WHERE g.id = note.id
+  AND (
+        g.reason IS NULL
+        OR (regexp_split_to_array(g.reason, E'\\n'))[
+            cardinality(regexp_split_to_array(g.reason, E'\\n'))
+        ] IS DISTINCT FROM note.line
+      )
+"""
+
+
+def preserve_sql() -> str:
+    """SQL that copies closure columns back into ``reason`` before they are dropped."""
+    return _PRESERVE_SQL
+
+
 def upgrade() -> None:
     op.add_column(
         _TABLE,
@@ -97,5 +134,6 @@ def upgrade() -> None:
 
 
 def downgrade() -> None:
+    op.execute(sa.text(preserve_sql()))
     op.drop_column(_TABLE, "close_reason")
     op.drop_column(_TABLE, "closed_at")

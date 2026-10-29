@@ -2,6 +2,29 @@ BEGIN;
 
 -- Running downgrade bug018a_gap_closed_at_reason -> tc21002a_canonical_uniq
 
+UPDATE evidence_gaps AS g
+SET reason = CASE
+    WHEN g.reason IS NULL OR g.reason = '' THEN note.line
+    ELSE g.reason || E'\n' || note.line
+END
+FROM (
+    SELECT
+        id,
+        '[resolved on regeneration: ' || close_reason || ' at '
+            || to_char(closed_at AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS')
+            || 'Z]' AS line
+    FROM evidence_gaps
+    WHERE closed_at IS NOT NULL
+      AND close_reason IN ('question_removed', 'answer_sufficient')
+) AS note
+WHERE g.id = note.id
+  AND (
+        g.reason IS NULL
+        OR (regexp_split_to_array(g.reason, E'\n'))[
+            cardinality(regexp_split_to_array(g.reason, E'\n'))
+        ] IS DISTINCT FROM note.line
+      );
+
 ALTER TABLE evidence_gaps DROP COLUMN close_reason;
 
 ALTER TABLE evidence_gaps DROP COLUMN closed_at;

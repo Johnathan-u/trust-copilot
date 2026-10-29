@@ -40,7 +40,14 @@ No API route sets a resolved gap back to `open`. The status helpers exist on the
 
 Revision `bug018a_gap_closed_at_reason` (`apps/api/alembic/versions/bug018a_gap_closed_at_reason.py`). `down_revision` is master's single head at push, `tc21002a_canonical_uniq` (TC-21-002a landed on master after this branch started from `bug019_article_slug_ws`). The module does not import the application package.
 
-Upgrade adds the two nullable columns, then backfills. Downgrade drops `close_reason` and `closed_at`. It does not rewrite `reason` and does not rebuild a note for rows closed after this revision, so a downgrade drops the closure time and code for those rows.
+Upgrade adds the two nullable columns, then backfills. It does not write `reason`.
+
+Downgrade is lossless. Before it drops the columns, every row with `closed_at` and a known `close_reason` (`question_removed` or `answer_sufficient`) keeps that information in `reason`:
+
+- If the last line of `reason` is already `[resolved on regeneration: <code> at <UTC seconds>Z]` for those column values, `reason` is not changed.
+- Otherwise that note is appended on its own line, or becomes the whole `reason` when `reason` is NULL or empty.
+
+A later upgrade parses the note back into the columns. The note is whole UTC seconds, the same grammar as `resolution_note()`, so a downgrade and upgrade restore that instant (sub-second digits are not part of the note). Rows with no `close_reason` (the backfill fallback) already have their original `reason` text; downgrade does not invent a code for them.
 
 ### Backfill
 
@@ -69,9 +76,10 @@ Running the statement again does not change a row that already has `closed_at` o
 | `test_reinsufficient_question_keeps_the_resolved_row` | A new open gap; the resolved row keeps its columns. |
 | `test_gap_payload_exposes_closure_columns` | Both fields are in the gap dict; existing keys remain. |
 | `test_historical_note_matches_the_backfill_pattern` | `resolution_note()` output matches `NOTE_LINE_RE`. The migration does not import `app`. |
-| `test_backfill_parses_old_notes_and_falls_back_to_updated_at` | Both note codes, last-line wins, note-only reason, missing note, malformed code, NULL reason, and non-resolved rows. Idempotent re-run. Downgrade keeps `reason`; upgrade parses it again. |
-| `test_migration_upgrade_downgrade_upgrade_round_trip` | Columns exist, go away, and come back. Types are timestamptz and `varchar(32)`, both nullable. One alembic head. |
-| `test_offline_sql_adds_and_drops_the_columns` | `alembic upgrade` / `downgrade` `--sql` emits the add, the backfill, and the drops. |
+| `test_backfill_parses_old_notes_and_falls_back_to_updated_at` | Both note codes, last-line wins, note-only reason, missing note, malformed code, NULL reason, and non-resolved rows. Idempotent re-run. Downgrade leaves an existing note in place; upgrade parses it again. |
+| `test_downgrade_round_trip_preserves_old_notes_and_column_only_rows` | Upgrade, downgrade, upgrade. An old note stays byte for byte and its columns come back. A column-only row gains the note on downgrade and gets the same `close_reason` and `closed_at` on the next upgrade. |
+| `test_migration_upgrade_downgrade_upgrade_round_trip` | Columns exist, go away, and come back. Types are timestamptz and `varchar(32)`, both nullable. `bug018a_gap_closed_at_reason` is the head or an ancestor of every head. |
+| `test_offline_sql_adds_and_drops_the_columns` | `alembic upgrade` / `downgrade` `--sql` emits the add, the backfill, the note preserve, and the drops. Upgrade does not set `reason`. |
 
 ## Out of scope
 
@@ -79,10 +87,9 @@ Running the statement again does not change a row that already has `closed_at` o
 - Changing which gaps are closed (TC-02-BUG-018 rules stay).
 - A check constraint on `status` or `close_reason`.
 - Stripping historical notes out of `reason`.
-- Rebuilding the note on downgrade.
 
 ## Acceptance criteria
 
-- Migration upgrades and downgrades cleanly on the side test DB; a single alembic head.
+- Migration upgrades and downgrades cleanly on the side test DB. This revision is the head, or an ancestor of every head when a later migration exists.
 - Backfill is idempotent and covered by a test with synthetic rows in both note formats and without a note.
 - Regeneration writes `closed_at` / `close_reason`; existing TC-02-BUG-018 tests still pass with assertions moved to the new columns.

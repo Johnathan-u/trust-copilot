@@ -6,7 +6,7 @@ The suites below ran on merge commit `c51c93243d6a5905f5d122608dde9eb2f9cfa8ff` 
 
 | File | What it shows |
 |---|---|
-| `logs/round-trip.txt` | Upgrade, downgrade to `tc21002a_canonical_uniq`, upgrade again. Columns disappear and come back as `timestamp with time zone` and `character varying(32)`, both nullable. One head. |
+| `logs/round-trip.txt` | Schema upgrade/downgrade/upgrade, then the data round trip: an old note is unchanged, a column-only row gets the note on downgrade, and the next upgrade restores `close_reason` and `closed_at`. |
 | `logs/offline-sql-upgrade.txt` | `alembic upgrade tc21002a_canonical_uniq:bug018a_gap_closed_at_reason --sql`. Adds the columns and the backfill `UPDATE`. Does not connect. |
 | `logs/offline-sql-downgrade.txt` | `alembic downgrade bug018a_gap_closed_at_reason:tc21002a_canonical_uniq --sql`. Drops both columns. |
 | `logs/offline-sql-upgrade-stderr.txt` | Alembic's offline-mode log lines for the upgrade SQL. |
@@ -24,7 +24,9 @@ The suites below ran on merge commit `c51c93243d6a5905f5d122608dde9eb2f9cfa8ff` 
 
 **New tests, all 12, fail on master.** `logs/regression-master.txt`. Closing still appends the note (`test_closing_preserves_reason_text_including_an_embedded_note`). The model has no `closed_at` / `close_reason` (`AttributeError`, and `TypeError` on the constructor). The migration file is absent, so the backfill, round trip, offline SQL, and note-pattern tests fail on `assert path.is_file()`.
 
-**Gap tests on the branch.** 62 passed: 12 closure-column tests, 16 regeneration tests, 5 totals tests, 29 safe-collection tests. Totals assertions are unchanged; that file no longer calls `setval`.
+**Gap tests on the branch.** 63 passed: 13 closure-column tests (including the lossless downgrade round trip), 16 regeneration tests, 5 totals tests, 29 safe-collection tests. Totals assertions are unchanged; that file no longer calls `setval`.
+
+**Downgrade.** Rows that already end with the historical note keep that `reason` byte for byte. Rows closed only in the columns get `[resolved on regeneration: <code> at <UTC seconds>Z]` appended before the columns are dropped. Upgrade does not write `reason`. The head check accepts `bug018a_gap_closed_at_reason` or any descendant; it does not require that revision to be the only head.
 
 **Full suite, compared by test id** (`logs/suite-compare.txt`).
 
