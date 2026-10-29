@@ -55,6 +55,7 @@ from app.api.routes import compliance_evidence as compliance_evidence_router  # 
 from app.api.routes import compliance_frameworks as compliance_frameworks_router  # noqa: E402
 from app.api.routes import compliance_mappings as compliance_mappings_router  # noqa: E402
 from app.api.routes import compliance_gaps as compliance_gaps_router  # noqa: E402
+from app.api.routes import evidence_gaps as evidence_gaps_router  # noqa: E402
 from app.api.routes import compliance_coverage as compliance_coverage_router  # noqa: E402
 from app.api.routes import compliance_alerts as compliance_alerts_router  # noqa: E402
 from app.api.routes import compliance_export as compliance_export_router  # noqa: E402
@@ -414,6 +415,7 @@ app.include_router(compliance_evidence_router.router, prefix="/api")
 app.include_router(compliance_frameworks_router.router, prefix="/api")
 app.include_router(compliance_mappings_router.router, prefix="/api")
 app.include_router(compliance_gaps_router.router, prefix="/api")
+app.include_router(evidence_gaps_router.router, prefix="/api")
 app.include_router(compliance_coverage_router.router, prefix="/api")
 app.include_router(compliance_alerts_router.router, prefix="/api")
 app.include_router(compliance_export_router.router, prefix="/api")

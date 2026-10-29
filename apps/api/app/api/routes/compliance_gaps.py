@@ -12,8 +12,8 @@ from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from fastapi.responses import JSONResponse
+from sqlalchemy import func, text
 from sqlalchemy.orm import Session
-from sqlalchemy import func
 
 from app.core.auth_deps import require_can_admin, require_can_review
 from app.core.database import get_db
@@ -404,6 +404,18 @@ def _settle(db: Session, key: str | None, owner: str | None, payload: dict | Non
             )
 
 
+def _lock_control_gap_writes(db: Session, control_id: int) -> None:
+    """Same transaction lock as a manual open control gap (pg_advisory_xact_lock 150016)."""
+    bind = db.get_bind()
+    dialect = getattr(getattr(bind, "dialect", None), "name", None)
+    if dialect != "postgresql":
+        return
+    db.execute(
+        text("SELECT pg_advisory_xact_lock(150016, :control_id)"),
+        {"control_id": int(control_id)},
+    )
+
+
 def _persist_control_checks(db: Session, workspace_id: int, gaps: list[dict]) -> set[int]:
     """Update open control-check rows. Return control ids a reviewer already decided.
 
@@ -435,10 +447,20 @@ def _persist_control_checks(db: Session, workspace_id: int, gaps: list[dict]) ->
     for item in gaps:
         control_id = int(item["control_id"])
         seen.add(control_id)
+        _lock_control_gap_writes(db, control_id)
         if control_id in decided:
             continue
         refs = json.dumps(item["evidence_ids"])
-        open_rows = open_by_control.get(control_id) or []
+        open_rows = (
+            db.query(EvidenceGap)
+            .filter(
+                EvidenceGap.workspace_id == workspace_id,
+                EvidenceGap.control_id == control_id,
+                EvidenceGap.gap_type == CONTROL_CHECK,
+                EvidenceGap.status == "open",
+            )
+            .all()
+        )
         if not open_rows:
             db.add(
                 EvidenceGap(
