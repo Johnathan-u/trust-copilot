@@ -11,7 +11,12 @@ from sqlalchemy.orm import Session
 from app.core.auth_deps import require_can_admin, require_session
 from app.core.config import SIGNUP_POLICY_SELF_SIGNUP, get_settings
 from app.core.database import get_db
-from app.core.rate_limit import is_rate_limited, record_attempt, retry_after_seconds
+from app.core.rate_limit import (
+    RateLimitBackendError,
+    is_rate_limited,
+    record_attempt,
+    retry_after_seconds,
+)
 from app.core.session import is_production_env, sign_session
 from app.models import User, Workspace, WorkspaceMember
 from app.services.answer_generation import resolve_model
@@ -42,6 +47,8 @@ _CREATE_WINDOW_SEC = 3600.0
 _CREATE_DENIED = "Workspace creation is not available for this account."
 _CREATE_CAP_REACHED = "This account has reached its workspace limit."
 _CREATE_THROTTLED = "Too many workspaces created recently. Try again later."
+_CREATE_UNAVAILABLE = "Workspace creation is temporarily unavailable. Try again later."
+_CREATE_UNAVAILABLE_RETRY_AFTER = "60"
 
 
 def _is_deployment_operator(user: User, settings) -> bool:
@@ -103,7 +110,21 @@ async def create_workspace(
         raise HTTPException(status_code=403, detail=_CREATE_DENIED)
     rate_key = f"workspace_create:user:{user_id}"
     per_hour = settings.workspace_create_per_hour
-    if is_rate_limited(rate_key, max_attempts=per_hour, window_sec=_CREATE_WINDOW_SEC):
+    # Production fails closed if the shared store errors. Other limiter callers stay fail-open.
+    try:
+        limited = is_rate_limited(
+            rate_key,
+            max_attempts=per_hour,
+            window_sec=_CREATE_WINDOW_SEC,
+            fail_closed=is_production_env(),
+        )
+    except RateLimitBackendError:
+        raise HTTPException(
+            status_code=503,
+            detail=_CREATE_UNAVAILABLE,
+            headers={"Retry-After": _CREATE_UNAVAILABLE_RETRY_AFTER},
+        )
+    if limited:
         raise HTTPException(
             status_code=429,
             detail=_CREATE_THROTTLED,
@@ -142,6 +163,26 @@ async def create_workspace(
             **_session_cookie_kwargs(SESSION_MAX_AGE),
         )
     return {"id": ws.id, "name": ws.name, "slug": ws.slug}
+
+
+@router.get("/creation-policy")
+async def workspace_creation_policy(
+    session: dict = Depends(require_session),
+    db: Session = Depends(get_db),
+):
+    """Whether the signed-in user passes the same signup-policy gate as POST /api/workspaces.
+
+    The path is ``creation-policy`` so it sits next to workspace creation and is not a
+    slug. The cap and the hourly throttle are not part of this boolean: POST still
+    returns 409 or 429 for those. The body is only ``can_create_workspace``.
+    """
+    user_id = session.get("user_id")
+    if not user_id:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    return {"can_create_workspace": _may_create_workspace(db, user, get_settings())}
 
 
 def _slug_from_name(name: str) -> str:
