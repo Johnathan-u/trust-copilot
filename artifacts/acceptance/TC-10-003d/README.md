@@ -3,7 +3,7 @@
 Branch `tc/core/TC-10-003d`. Cut from `c03d91a0510f2621cbd3c7c2de8fa62fdb541dd6`. `origin/master` then moved to `2a8b1dc319e7b80bfd5d75e8a3e6236bdd079800` and was merged in.
 Synthetic data only. The new tests use the local database whose name ends in `_test`. No network calls and no model calls.
 
-`alembic heads` is one head, `bug018a_gap_closed_at_reason`. No migration in this change.
+`alembic heads` after the latest merge of `origin/master` is one head, `tc21005_mapping_version` (TC-21-005). This branch adds no migration.
 
 Option (a): the worker commits the parse-job completion before `maybe_auto_generate`. An `EnqueueConflictError` is logged and stored as `result.auto_generate = enqueue_conflict`. It does not fail the parse job and does not leave a generate row.
 
