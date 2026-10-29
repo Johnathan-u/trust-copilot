@@ -73,6 +73,7 @@ def _reset_lease_hooks():
 
     worker.set_clock(None)
     job_lease._clamp_logged = False
+    job_lease._grace_clamp_logged = False
 
 
 @pytest.fixture
@@ -168,6 +169,26 @@ def test_lease_config_defaults_and_clamps(monkeypatch):
     monkeypatch.setenv("JOB_LEASE_HEARTBEAT_SECONDS", "100")
     assert lease_heartbeat_seconds() * 2 <= lease_seconds()
     assert lease_heartbeat_seconds() == 15  # half of 30
+
+
+@pytest.mark.unit
+def test_null_lease_grace_defaults_and_clamps(monkeypatch):
+    """The grace stays several times the lease, and an invalid value falls back to 3600."""
+    from app.core.job_lease import null_lease_grace_seconds
+
+    monkeypatch.delenv("JOB_LEASE_SECONDS", raising=False)
+    monkeypatch.delenv("JOB_NULL_LEASE_GRACE_SECONDS", raising=False)
+    assert null_lease_grace_seconds() == 3600
+    monkeypatch.setenv("JOB_NULL_LEASE_GRACE_SECONDS", "nope")
+    assert null_lease_grace_seconds() == 3600
+    monkeypatch.setenv("JOB_LEASE_SECONDS", "60")
+    monkeypatch.setenv("JOB_NULL_LEASE_GRACE_SECONDS", "10")
+    assert null_lease_grace_seconds() == 300  # 5 times the lease
+    monkeypatch.setenv("JOB_NULL_LEASE_GRACE_SECONDS", "999999")
+    assert null_lease_grace_seconds() == 86400
+    monkeypatch.setenv("JOB_LEASE_SECONDS", "3600")
+    monkeypatch.setenv("JOB_NULL_LEASE_GRACE_SECONDS", "3600")
+    assert null_lease_grace_seconds() == 18000  # raised to 5 times the longer lease
 
 
 @pytest.mark.unit
@@ -848,8 +869,171 @@ def test_worker_loop_does_not_retry_after_a_lost_lease_exception(db, monkeypatch
     assert not _audits(db, job_id, "job.completed")
 
 
+def _age_job(db, job_id: int, *, updated_age: float | None, started_age: float | None) -> None:
+    """Move timestamps relative to the database clock. None stores NULL."""
+    db.execute(
+        text(
+            """
+            UPDATE jobs
+            SET updated_at = CASE
+                    WHEN :updated_age IS NULL THEN NULL
+                    ELSE now() - make_interval(secs => :updated_age)
+                END,
+                started_at = CASE
+                    WHEN :started_age IS NULL THEN NULL
+                    ELSE now() - make_interval(secs => :started_age)
+                END
+            WHERE id = :id
+            """
+        ),
+        {"id": job_id, "updated_age": updated_age, "started_age": started_age},
+    )
+    db.commit()
+    db.expire_all()
+
+
+def _null_running(db) -> int:
+    from app.models import Job, JobStatus
+
+    job = Job(
+        workspace_id=WS,
+        kind="parse_evidence",
+        status=JobStatus.RUNNING.value,
+        payload="{}",
+        attempt=1,
+        max_attempts=3,
+        lease_owner=None,
+        lease_expires_at=None,
+    )
+    db.add(job)
+    db.commit()
+    return job.id
+
+
+def _grace(monkeypatch, seconds: str = "600") -> None:
+    monkeypatch.setenv("JOB_LEASE_SECONDS", "60")
+    monkeypatch.setenv("JOB_NULL_LEASE_GRACE_SECONDS", seconds)
+    monkeypatch.setenv("JOB_RETRY_BASE_SECONDS", "0")
+    monkeypatch.setenv("JOB_RETRY_MAX_SECONDS", "0")
+
+
+def test_null_lease_older_than_the_grace_is_recovered_once(db, monkeypatch):
+    """A NULL-lease job past the grace is classified once, with both audits."""
+    from app import worker
+    from app.models import Job, JobStatus
+
+    _grace(monkeypatch)
+    job_id = _null_running(db)
+    _age_job(db, job_id, updated_age=601, started_age=601)
+    assert worker.recover_abandoned_jobs(db) == 1
+    assert worker.recover_abandoned_jobs(db) == 0
+    db.expire_all()
+    stored = db.get(Job, job_id)
+    assert stored.status == JobStatus.QUEUED.value
+    assert stored.attempt == 1
+    assert stored.lease_owner is None and stored.lease_expires_at is None
+    assert len(_audits(db, job_id, "job.abandoned")) == 1
+    assert len(_audits(db, job_id, "job.retry_scheduled")) == 1
+    assert not _audits(db, job_id, "job.failed")
+
+
+def test_null_lease_younger_than_the_grace_is_untouched(db, monkeypatch):
+    """A recent updated_at keeps the job, even when started_at is already past the grace."""
+    from app import worker
+    from app.models import Job, JobStatus
+
+    _grace(monkeypatch)
+    job_id = _null_running(db)
+    _age_job(db, job_id, updated_age=10, started_age=5000)
+    assert worker.recover_abandoned_jobs(db) == 0
+    db.expire_all()
+    stored = db.get(Job, job_id)
+    assert stored.status == JobStatus.RUNNING.value
+    assert stored.attempt == 1
+    assert stored.lease_owner is None and stored.lease_expires_at is None
+    assert not _audits(db, job_id, "job.abandoned")
+    assert not _audits(db, job_id, "job.retry_scheduled")
+
+
+def test_null_lease_uses_started_at_when_updated_at_is_null(db, monkeypatch):
+    """With no updated_at, started_at is the age. Both NULL stays unrecovered."""
+    from app import worker
+    from app.models import Job, JobStatus
+
+    _grace(monkeypatch)
+    aged = _null_running(db)
+    _age_job(db, aged, updated_age=None, started_age=601)
+    blank = _null_running(db)
+    _age_job(db, blank, updated_age=None, started_age=None)
+    assert worker.recover_abandoned_jobs(db) == 1
+    db.expire_all()
+    assert db.get(Job, aged).status == JobStatus.QUEUED.value
+    assert len(_audits(db, aged, "job.abandoned")) == 1
+    stored = db.get(Job, blank)
+    assert stored.status == JobStatus.RUNNING.value
+    assert stored.lease_owner is None
+    assert not _audits(db, blank, "job.abandoned")
+
+
+def test_two_recoverers_take_one_null_lease_job(db, monkeypatch):
+    """Two sessions, one NULL-lease job past the grace: one recovers it and the other does not."""
+    from app import worker
+    from app.core.database import SessionLocal
+    from app.models import Job, JobStatus
+
+    _grace(monkeypatch)
+    job_id = _null_running(db)
+    _age_job(db, job_id, updated_age=601, started_age=601)
+    barrier = threading.Barrier(2)
+    results: list[int] = []
+    errors: list[BaseException] = []
+
+    def recover() -> None:
+        session = SessionLocal()
+        try:
+            barrier.wait(timeout=5)
+            results.append(worker.recover_abandoned_jobs(session))
+        except BaseException as exc:  # noqa: BLE001 - report the thread failure
+            errors.append(exc)
+        finally:
+            session.close()
+
+    threads = [threading.Thread(target=recover), threading.Thread(target=recover)]
+    for thread in threads:
+        thread.start()
+    for thread in threads:
+        thread.join(timeout=10)
+    assert errors == []
+    assert sorted(results) == [0, 1]
+    assert len(_audits(db, job_id, "job.abandoned")) == 1
+    assert len(_audits(db, job_id, "job.retry_scheduled")) == 1
+    db.expire_all()
+    stored = db.get(Job, job_id)
+    assert stored.status == JobStatus.QUEUED.value
+    assert stored.attempt == 1
+
+
+def test_mixed_null_and_expired_leases_are_all_recovered(db, monkeypatch):
+    """One expired lease and one NULL lease past the grace are both recovered."""
+    from app import worker
+    from app.models import Job, JobStatus
+
+    _grace(monkeypatch)
+    expired = _expired_running(db)
+    null_id = _null_running(db)
+    _age_job(db, null_id, updated_age=601, started_age=601)
+    assert worker.recover_abandoned_jobs(db) == 2
+    db.expire_all()
+    for job_id in (expired, null_id):
+        stored = db.get(Job, job_id)
+        assert stored.status == JobStatus.QUEUED.value
+        assert stored.attempt == 1
+        assert len(_audits(db, job_id, "job.abandoned")) == 1
+        assert len(_audits(db, job_id, "job.retry_scheduled")) == 1
+
+
 def test_null_lease_on_a_running_job_is_not_recovered(db):
-    """Rows from before leases existed stay running. NULL is not an expired lease."""
+    """A fresh NULL lease is inside the grace. NULL alone is not an expired lease."""
     from app import worker
     from app.models import Job, JobStatus
 

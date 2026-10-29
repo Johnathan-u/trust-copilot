@@ -67,7 +67,8 @@ class Job(Base):
     # TC-10-002: for a QUEUED retry, the earliest time it may be claimed (nullable/additive). TC-10-002 also
     # writes error_code above (TC-11-001 model_* codes for model failures, app.core.job_errors codes otherwise).
     next_attempt_at = Column(DateTime, nullable=True)
-    # TC-10-001: owner token and expiry of the worker lease. NULL means unowned (not abandoned).
+    # TC-10-001: owner token and expiry. NULL is not an expired lease. TC-10-001b abandons it
+    # only after JOB_NULL_LEASE_GRACE_SECONDS.
     lease_owner = Column(String(64), nullable=True)
     lease_expires_at = Column(DateTime, nullable=True)
     started_at = Column(DateTime, nullable=True)

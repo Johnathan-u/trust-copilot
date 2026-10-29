@@ -62,7 +62,9 @@ from app.core.job_lease import (  # noqa: E402
     lease_heartbeat_seconds,
     lease_seconds,
     lock_expired_lease,
+    lock_null_lease_past_grace,
     new_lease_owner_token,
+    null_lease_grace_seconds,
     owns_lease,
     renew_lease,
     uninstall_commit_fence,
@@ -1173,7 +1175,7 @@ def _flush_abandoned_audit(
 
 
 def recover_abandoned_jobs(session, *, limit: int = 20) -> int:
-    """Send running jobs with an expired lease back through retry classification (TC-10-001a).
+    """Send abandoned running jobs back through retry classification (TC-10-001, TC-10-001b).
 
     One row is atomic. ``FOR UPDATE SKIP LOCKED``, the replacement owner token, the
     ``job.abandoned`` audit row, and the retry-or-fail classification commit together.
@@ -1184,16 +1186,20 @@ def recover_abandoned_jobs(session, *, limit: int = 20) -> int:
     job before this loop reads it again. That claim is a normal claim of a queued job.
     If the post-commit read no longer shows the classified status, this row is logged
     and the loop continues. The abandoned audit is already committed. The remaining
-    expired rows are still recovered.
+    rows are still recovered.
 
-    A NULL lease is not abandoned. The attempt was counted at claim time and is not
-    incremented here.
+    An expired lease is taken first. A NULL lease is not an expired lease. It is abandoned
+    only when ``COALESCE(updated_at, started_at)`` is at least ``JOB_NULL_LEASE_GRACE_SECONDS``
+    before database ``now()`` (TC-10-001b). A younger row, or a row with neither timestamp,
+    is left alone. The attempt was counted at claim time and is not incremented here.
     """
     log = logging.getLogger(__name__)
     exc = RetryableJobError(LEASE_EXPIRED, LEASE_EXPIRED_MESSAGE)
     count = 0
     while count < limit:
         locked = lock_expired_lease(session)
+        if locked is None:
+            locked = lock_null_lease_past_grace(session, null_lease_grace_seconds())
         if locked is None:
             session.rollback()
             return count
@@ -1203,7 +1209,7 @@ def recover_abandoned_jobs(session, *, limit: int = 20) -> int:
         session.expire_all()
         job = session.get(Job, job_id)
         if job is None or job.lease_owner != token:
-            # The swap is still uncommitted. Continuing would lock this same expired row again.
+            # The swap is still uncommitted. Continuing would lock this same row again.
             log.warning(
                 "abandoned job recovery skipped job_id=%s; lease token was not kept", job_id
             )

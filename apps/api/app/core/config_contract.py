@@ -579,6 +579,14 @@ CONTRACT: tuple[ConfigVar, ...] = (
         "How often the owner renews that lease. Clamped to 1-1200 and kept below the lease.",
     ),
     ConfigVar(
+        "JOB_NULL_LEASE_GRACE_SECONDS",
+        "int",
+        "optional",
+        False,
+        "3600",
+        "How long a running job with a NULL lease is left alone. Clamped to at least 5 times JOB_LEASE_SECONDS and at most 86400.",
+    ),
+    ConfigVar(
         "RETRIEVAL_MAX_THREADS",
         "int",
         "optional",
