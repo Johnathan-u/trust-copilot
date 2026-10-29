@@ -482,7 +482,7 @@ def resolve_gap(
     body: dict,
     request: Request,
     db: Session = Depends(get_db),
-    _user=Depends(require_can_admin),
+    _user=Depends(require_can_review),
 ):
     workspace_id = request.state.workspace_id
     key = _idempotency_key(request, workspace_id)
