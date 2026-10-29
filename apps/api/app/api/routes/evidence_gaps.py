@@ -248,6 +248,33 @@ def _gap_in_workspace(db: Session, gap_id: int, workspace_id: int) -> EvidenceGa
     return row
 
 
+def _update_open_gap(db: Session, gap_id: int, workspace_id: int, values: dict) -> bool:
+    """Conditional update. Only the caller that still sees status open wins."""
+    assignments = ", ".join(f"{name} = :{name}" for name in values)
+    row = db.execute(
+        text(
+            f"""
+            UPDATE evidence_gaps
+            SET {assignments}
+            WHERE id = :gap_id AND workspace_id = :workspace_id AND status = 'open'
+            RETURNING id
+            """
+        ),
+        {"gap_id": gap_id, "workspace_id": workspace_id, **values},
+    ).first()
+    db.expire_all()
+    return row is not None
+
+
+def _closed_conflict(db: Session, gap_id: int, workspace_id: int, *, decision: bool) -> None:
+    gap = _gap_in_workspace(db, gap_id, workspace_id)
+    if decision and gap.status == "resolved":
+        raise HTTPException(status_code=409, detail="already resolved")
+    if decision:
+        raise HTTPException(status_code=409, detail="Gap is already decided")
+    raise HTTPException(status_code=409, detail="Gap is not open")
+
+
 def _control_in_workspace(db: Session, control_id: int, workspace_id: int) -> WorkspaceControl:
     row = (
         db.query(WorkspaceControl)
@@ -568,13 +595,21 @@ def decide_gap(
         return cached
     try:
         status = body.status
+        current = _gap_in_workspace(db, gap_id, workspace_id)
+        visible = _visible_evidence_ids(db, workspace_id, current.evidence_refs)
+        won = _update_open_gap(
+            db,
+            gap_id,
+            workspace_id,
+            {
+                "status": status,
+                "evidence_refs": json.dumps(visible),
+                "updated_at": _now(),
+            },
+        )
+        if not won:
+            _closed_conflict(db, gap_id, workspace_id, decision=True)
         gap = _gap_in_workspace(db, gap_id, workspace_id)
-        if gap.status != "open":
-            raise HTTPException(status_code=409, detail="Gap is already decided")
-        visible = _visible_evidence_ids(db, workspace_id, gap.evidence_refs)
-        gap.evidence_refs = json.dumps(visible)
-        gap.status = status
-        gap.updated_at = _now()
         _record_audit(db, session, "gap_decided", gap, workspace_id)
         db.commit()
         db.refresh(gap)
@@ -610,26 +645,38 @@ def resolve_gap(
         return cached
     try:
         evidence_id = body.evidence_id
-        gap = _gap_in_workspace(db, gap_id, workspace_id)
-        if gap.status != "open":
-            raise HTTPException(status_code=409, detail="Gap is not open")
+        current = _gap_in_workspace(db, gap_id, workspace_id)
+        if current.status != "open":
+            _closed_conflict(db, gap_id, workspace_id, decision=False)
         ev = _evidence_in_workspace(db, evidence_id, workspace_id)
-        rule = evidence_backs_gap(db, gap, ev, _now())
+        rule = evidence_backs_gap(db, current, ev, _now())
         if rule is not None:
             raise HTTPException(status_code=400, detail={"rule": rule, "resolved": False})
-        visible = _visible_evidence_ids(db, workspace_id, gap.evidence_refs)
+        visible = _visible_evidence_ids(db, workspace_id, current.evidence_refs)
         if ev.id not in visible:
             visible.append(ev.id)
-        gap.evidence_refs = json.dumps(visible)
-        gap.status = "resolved"
-        if gap.question_id is not None and gap.gap_type != CONTROL_CHECK:
-            gap.close_reason = "answer_sufficient"
+        closed_at = _now()
+        if current.question_id is not None and current.gap_type != CONTROL_CHECK:
+            close_reason = "answer_sufficient"
         else:
-            gap.close_reason = CONTROL_CHECK_CLOSE_REASON
-        gap.closed_at = _now()
-        gap.updated_at = gap.closed_at
-        gap.evaluation_state = "clear"
-        gap.rule_code = "evidence_qualifies"
+            close_reason = CONTROL_CHECK_CLOSE_REASON
+        won = _update_open_gap(
+            db,
+            gap_id,
+            workspace_id,
+            {
+                "status": "resolved",
+                "evidence_refs": json.dumps(visible),
+                "close_reason": close_reason,
+                "closed_at": closed_at,
+                "updated_at": closed_at,
+                "evaluation_state": "clear",
+                "rule_code": "evidence_qualifies",
+            },
+        )
+        if not won:
+            _closed_conflict(db, gap_id, workspace_id, decision=False)
+        gap = _gap_in_workspace(db, gap_id, workspace_id)
         _record_audit(db, session, "gap_resolved", gap, workspace_id)
         db.commit()
         db.refresh(gap)

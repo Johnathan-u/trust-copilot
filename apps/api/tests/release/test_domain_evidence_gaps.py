@@ -820,7 +820,88 @@ def test_concurrent_question_creates_leave_one_open_row(client):
     assert count == 1
 
 
-def test_bad_ids_are_422(client):
+def test_decision_and_resolve_race_for_one_open_gap(client):
+    import threading
+
+    from fastapi.testclient import TestClient
+
+    from app.main import app
+    from tests.conftest import TEST_HEADERS, TEST_ORIGIN
+
+    actors = _actors()
+    control_id = _control(actors["workspace_id"], f"Race {uuid.uuid4().hex[:8]}")
+    gap_id = _gap(actors["workspace_id"], gap_type=CONTROL_CHECK, control_id=control_id)
+    evidence_id, _doc = _evidence(actors["workspace_id"], approval="approved")
+    _link(control_id, evidence_id)
+    _login(client, ADMIN_EMAIL, ADMIN_PASSWORD)
+    token = client.cookies.get("tc_session")
+    barrier = threading.Barrier(2)
+    outcomes: list[tuple[str, int, dict]] = []
+
+    def post(path: str, body: dict, raw_key: str) -> None:
+        local = TestClient(app, base_url=TEST_ORIGIN, headers=TEST_HEADERS)
+        local.cookies.set("tc_session", token)
+        barrier.wait()
+        response = local.post(path, json=body, headers={"Idempotency-Key": raw_key})
+        outcomes.append((raw_key, response.status_code, response.json()))
+
+    threads = [
+        threading.Thread(
+            target=post,
+            args=(
+                f"/api/evidence-gaps/{gap_id}/decision",
+                {"status": "accepted"},
+                "race-decide",
+            ),
+        ),
+        threading.Thread(
+            target=post,
+            args=(
+                f"/api/evidence-gaps/{gap_id}/resolve",
+                {"evidence_id": evidence_id},
+                "race-resolve",
+            ),
+        ),
+    ]
+    for thread in threads:
+        thread.start()
+    for thread in threads:
+        thread.join()
+    assert sorted(item[1] for item in outcomes) == [200, 409], outcomes
+    winner = next(item for item in outcomes if item[1] == 200)
+    loser = next(item for item in outcomes if item[1] == 409)
+    if winner[2]["status"] == "resolved":
+        assert loser[2]["detail"] == "already resolved"
+    else:
+        assert loser[2]["detail"] == "Gap is not open"
+    session = _db()
+    try:
+        status = session.execute(
+            text("SELECT status FROM evidence_gaps WHERE id = :id"),
+            {"id": gap_id},
+        ).scalar()
+        audits = session.execute(
+            text(
+                "SELECT count(*) FROM audit_events "
+                "WHERE resource_type = 'evidence_gap' AND resource_id = :id "
+                "AND action IN ('gap_decided', 'gap_resolved')"
+            ),
+            {"id": str(gap_id)},
+        ).scalar()
+        loser_keys = session.execute(
+            text("SELECT count(*) FROM idempotency_keys WHERE idempotency_key LIKE :needle"),
+            {"needle": f"%:{loser[0]}"},
+        ).scalar()
+        winner_keys = session.execute(
+            text("SELECT count(*) FROM idempotency_keys WHERE idempotency_key LIKE :needle"),
+            {"needle": f"%:{winner[0]}"},
+        ).scalar()
+    finally:
+        session.close()
+    assert status == winner[2]["status"]
+    assert audits == 1
+    assert loser_keys == 0
+    assert winner_keys == 1
     actors = _actors()
     control_id = _control(actors["workspace_id"], f"Bad {uuid.uuid4().hex[:8]}")
     gap_id = _gap(actors["workspace_id"], gap_type=CONTROL_CHECK, control_id=control_id)
