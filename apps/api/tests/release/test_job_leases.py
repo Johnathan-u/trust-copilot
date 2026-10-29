@@ -631,7 +631,7 @@ def test_migration_upgrade_downgrade_upgrade_is_lossless(db, _ensure_test_data):
     spec.loader.exec_module(module)
     assert module.revision == "tc10001_job_leases"
     assert len(module.revision) <= 32
-    assert module.down_revision == "tc21005_mapping_version"
+    assert module.down_revision == "tc21006_gap_evaluation"
 
     from app.core.database import SessionLocal, engine
 
