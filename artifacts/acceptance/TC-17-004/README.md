@@ -1,5 +1,23 @@
 # TC-17-004 acceptance in progress
 
+## Continuation — 2026-10-30
+
+Claim: #85 comment6511380086. Prior head `3ff096949fccca25ac58cd003f1191749d26c0aa` is preserved. Pure merge `daa725a922d987a914ecb0d3724986e9625f1bcc` has parents `3ff0969` and actual master `499f8af`; tree `0c434e6b7de74151b02231823553fbaaa810e5e8` exactly matches automatic `git merge-tree`, with no conflict or manual product edits. The separate parent update changes only `tc17004_faq_review.down_revision` to the landed `tc18001_reviewed_replies`, plus these evidence/ticket records.
+
+On the resulting tree, 13 schema/head checks passed (63 DB cases deselected), scoped Ruff and formatting passed, and Alembic reports the single head `tc17004_faq_review`. The targeted offline upgrade `tc18001_reviewed_replies:tc17004_faq_review --sql` compiled successfully (129 lines). A full-history offline attempt stops in existing migration038's data-dependent `.mappings()` call; it does not qualify the full chain. No local PostgreSQL or browser execution is claimed. Final published-head push and pull_request build plus web-release-e2e, including real database round trips, remain required. Local/published commit and tree mapping will be recorded by the coordinator in #85 and the PR.
+
+Commands:
+
+```sh
+python -m pytest tests/release/test_domain_security_faq.py -q -k 'schema_rejects or revision_is_on_single_head_chain'
+python -m alembic heads
+python -m alembic upgrade tc18001_reviewed_replies:tc17004_faq_review --sql
+python -m ruff check alembic/versions/tc17004_faq_review.py
+python -m ruff format --check alembic/versions/tc17004_faq_review.py
+```
+
+## Earlier evidence
+
 Regression commit `e26f8284dbb7f02b9b673da5f5456e6edbb62fc9` was tested by [CI run 40922365521](https://github.com/Johnathan-u/trust-copilot/actions/runs/40922365521): **14 failed, 3194 passed, 1 skipped**. The skip is the external blind pack; the failures were the new FAQ lifecycle, source/scope, action and schema cases. Migration, lint, safe collection, pre-commit and web-release-e2e passed. The regression commit intentionally preceded implementation.
 
 The current implementation adds content snapshots, same-workspace source references, explicit human review and publication, durable create retry, source-change invalidation, and current membership/role checks. New fixtures restore FAQ, source/history, evidence, audit, idempotency, API-key, membership, user and workspace counts. Rollback archives are asserted absent after re-upgrade; no trigger/FK bypass is used.
