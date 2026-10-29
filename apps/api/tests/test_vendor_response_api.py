@@ -7,8 +7,39 @@ from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 
 from app.core.password import hash_password
-from app.models import User, VendorRequest, WorkspaceMember
+from app.models import AuditEvent, User, VendorRequest, WorkspaceMember
 from app.models.questionnaire import Question, Questionnaire
+
+
+@pytest.fixture(autouse=True)
+def cleanup_vendor_rows(client: TestClient, db_session: Session):
+    """Restore rows created by this module; login residue has its shared fixture."""
+    models = (VendorRequest, User, WorkspaceMember)
+    before = {model: {row[0] for row in db_session.query(model.id).all()} for model in models}
+    audit_before = (
+        db_session.query(AuditEvent).filter(AuditEvent.resource_type == "vendor_request").count()
+    )
+    yield
+    db_session.rollback()
+    created = {
+        model: {row[0] for row in db_session.query(model.id).all()} - before[model]
+        for model in models
+    }
+    db_session.query(AuditEvent).filter(
+        AuditEvent.resource_type == "vendor_request",
+        AuditEvent.resource_id.in_([str(i) for i in created[VendorRequest]]),
+    ).delete(synchronize_session=False)
+    for model in (VendorRequest, WorkspaceMember, User):
+        db_session.query(model).filter(model.id.in_(created[model])).delete(
+            synchronize_session=False
+        )
+    db_session.commit()
+    for model in models:
+        assert {row[0] for row in db_session.query(model.id).all()} == before[model]
+    assert (
+        db_session.query(AuditEvent).filter(AuditEvent.resource_type == "vendor_request").count()
+        == audit_before
+    )
 
 
 @pytest.fixture
@@ -187,7 +218,7 @@ def test_no_internal_fields_exposed(client: TestClient, vendor_request_with_qnr)
 # ── Status reflected ──────────────────────────────────────────────────────
 
 
-def test_completed_status_reflected(
+def test_cosmetic_completed_status_remains_unproven(
     client: TestClient, db_session: Session, vendor_request_with_qnr
 ) -> None:
     vr, _ = vendor_request_with_qnr
@@ -196,7 +227,7 @@ def test_completed_status_reflected(
 
     r = client.get("/api/vendor-response", params={"token": vr.link_token})
     assert r.status_code == 200
-    assert r.json()["status"] == "completed"
+    assert r.json()["status"] == "pending"
 
 
 def test_in_progress_status_reflected(

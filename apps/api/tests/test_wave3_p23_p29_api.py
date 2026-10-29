@@ -56,11 +56,11 @@ def test_p25_ai_governance_settings_requires_session(client: TestClient) -> None
     assert r.status_code == 401
 
 
-def test_p27_vendor_request_empty_email_400(client: TestClient, vendor_admin_ws1: User) -> None:
+def test_p27_vendor_request_empty_email_422(client: TestClient, vendor_admin_ws1: User) -> None:
     client.post("/api/auth/login", json={"email": vendor_admin_ws1.email, "password": "a"})
     r = client.post("/api/vendor-requests/", json={"vendor_email": "   "})
-    assert r.status_code == 400
-    assert "vendor" in (r.json().get("detail") or "").lower()
+    assert r.status_code == 422
+    assert r.json()["detail"][0]["loc"] == ["body", "vendor_email"]
 
 
 def test_p27_vendor_requests_reviewer_can_list(client: TestClient) -> None:

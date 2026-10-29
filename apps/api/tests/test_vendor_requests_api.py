@@ -224,7 +224,7 @@ def test_list_returns_created_requests(client: TestClient, admin_user: User) -> 
 
 
 def test_list_does_not_expose_share_url(client: TestClient, admin_user: User) -> None:
-    """List endpoint returns link_token but not share_url (only create does)."""
+    """List retains the link_token key but never returns a raw grant."""
     _login_admin(client, admin_user)
     client.post("/api/vendor-requests/", json={"vendor_email": "nourl@test.com"})
     r = client.get("/api/vendor-requests")
@@ -347,7 +347,7 @@ def test_full_lifecycle_create_update_list(client: TestClient, admin_user: User)
     assert hit["status"] == "in_progress"
     assert hit["vendor_email"] == "lifecycle@vendor.com"
     assert hit["message"] == "Please review"
-    assert hit["link_token"] is not None
+    assert hit["link_token"] is None
 
 
 # ── Model statuses match spec ────────────────────────────────────────────

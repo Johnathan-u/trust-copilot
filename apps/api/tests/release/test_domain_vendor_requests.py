@@ -451,7 +451,8 @@ def test_stale_admin_session_cannot_mutate(domain, change, operation):
     member = WorkspaceMember(workspace_id=1, user_id=user.id, role="admin", suspended=False)
     domain["db"].add(member)
     domain["db"].commit()
-    token = sign_session(user.id, user.email, 1, "admin")
+    user_id = user.id
+    token = sign_session(user_id, user.email, 1, "admin")
     if change == "removed":
         domain["db"].delete(member)
     elif change == "demoted":
@@ -482,13 +483,261 @@ def test_stale_admin_session_cannot_mutate(domain, change, operation):
     finally:
         domain["client"].cookies.clear()
         domain["db"].rollback()
-        domain["db"].query(WorkspaceMember).filter(WorkspaceMember.user_id == user.id).delete(
+        domain["db"].query(WorkspaceMember).filter(WorkspaceMember.user_id == user_id).delete(
             synchronize_session=False
         )
-        domain["db"].query(User).filter(User.id == user.id).delete(synchronize_session=False)
+        domain["db"].query(User).filter(User.id == user_id).delete(synchronize_session=False)
         domain["db"].commit()
         assert (
-            domain["db"].query(WorkspaceMember).filter(WorkspaceMember.user_id == user.id).count()
+            domain["db"].query(WorkspaceMember).filter(WorkspaceMember.user_id == user_id).count()
             == 0
         )
-        assert domain["db"].get(User, user.id) is None
+        assert domain["db"].get(User, user_id) is None
+
+
+def test_migration_round_trip_preserves_non_default_lifecycle(domain):
+    import os
+    import subprocess
+    import sys
+    from datetime import timezone
+    from pathlib import Path
+    from alembic.config import Config
+    from alembic.script import ScriptDirectory
+    from app.core.database import engine
+
+    created = create(domain).json()
+    assert created.get("expires_at") is not None
+    row_id = created["id"]
+    row = domain["db"].get(VendorRequest, row_id)
+    now = datetime.now(timezone.utc)
+    row.revoked_at = now
+    row.delivery_status = "accepted"
+    row.last_delivery_at = now
+    row.last_delivery_error = "synthetic_safe_reason"
+    row.submitted_at = now
+    row.response_payload = "Synthetic non-default reply"
+    row.response_digest = hashlib.sha256(row.response_payload.encode()).hexdigest()
+    domain["db"].commit()
+    names = (
+        "expires_at",
+        "revoked_at",
+        "delivery_status",
+        "last_delivery_at",
+        "last_delivery_error",
+        "submitted_at",
+        "response_payload",
+        "response_digest",
+        "link_token_hash",
+    )
+    columns = ", ".join(names)
+    expected = tuple(
+        domain["db"]
+        .execute(text(f"SELECT {columns} FROM vendor_requests WHERE id=:id"), {"id": row_id})
+        .one()
+    )
+    domain["db"].rollback()
+    api_root = Path(__file__).resolve().parents[2]
+    scripts = ScriptDirectory.from_config(Config(str(api_root / "alembic.ini")))
+    revision = "tc18002_vendor_lifecycle"
+    parent = scripts.get_revision(revision).down_revision
+
+    def migrate(target, direction, succeeds=True):
+        result = subprocess.run(
+            [sys.executable, "-m", "alembic", direction, target],
+            cwd=api_root,
+            env={**os.environ, "TRUST_COPILOT_TESTING": "1"},
+            capture_output=True,
+            text=True,
+        )
+        assert (result.returncode == 0) == succeeds, result.stdout[-2000:] + result.stderr[-2000:]
+        engine.dispose()
+
+    try:
+        migrate(parent, "downgrade")
+        with engine.begin() as connection:
+            connection.execute(
+                text("UPDATE vendor_requests SET message='changed during downtime' WHERE id=:id"),
+                {"id": row_id},
+            )
+        migrate(revision, "upgrade", succeeds=False)
+        with engine.begin() as connection:
+            assert (
+                connection.execute(
+                    text("SELECT count(*) FROM tc18002_vendor_hold WHERE id=:id"), {"id": row_id}
+                ).scalar()
+                == 1
+            )
+            connection.execute(
+                text("UPDATE vendor_requests SET message='Please review.' WHERE id=:id"),
+                {"id": row_id},
+            )
+        migrate(revision, "upgrade")
+        restored = tuple(
+            domain["db"]
+            .execute(text(f"SELECT {columns} FROM vendor_requests WHERE id=:id"), {"id": row_id})
+            .one()
+        )
+        assert restored == expected
+        assert domain["db"].execute(text("SELECT count(*) FROM tc18002_vendor_hold")).scalar() == 0
+        domain["db"].rollback()
+    finally:
+        migrate("head", "upgrade")
+        domain["db"].expire_all()
+    for head in scripts.get_heads():
+        assert revision in {rev.revision for rev in scripts.walk_revisions(base="base", head=head)}
+
+
+def test_database_rejects_oversized_response_and_invalid_delivery_state(domain):
+    from sqlalchemy.exc import DataError, IntegrityError
+
+    created = create(domain).json()
+    assert created.get("expires_at") is not None
+    for assignment, value in (("response_payload", "x" * 20001), ("delivery_status", "invented")):
+        with pytest.raises((DataError, IntegrityError)):
+            domain["db"].execute(
+                text(f"UPDATE vendor_requests SET {assignment} = :value WHERE id=:id"),
+                {"value": value, "id": created["id"]},
+            )
+            domain["db"].commit()
+        domain["db"].rollback()
+
+
+@pytest.mark.parametrize("operation", ["send", "resend", "revoke"])
+def test_lifecycle_requires_credentials_before_database_access(operation):
+    from fastapi import FastAPI
+    from fastapi.testclient import TestClient
+    from app.api.routes.vendor_requests import router
+
+    app = FastAPI()
+    app.include_router(router)
+    with TestClient(app) as client:
+        result = client.post(f"/vendor-requests/123/{operation}")
+    assert result.status_code == 401
+
+
+def test_final_submit_validates_body_before_database_access():
+    from fastapi import FastAPI
+    from fastapi.testclient import TestClient
+    from app.api.routes.vendor_response import router
+
+    app = FastAPI()
+    app.include_router(router)
+    with TestClient(app) as client:
+        result = client.post(
+            "/vendor-response/submit", json={"token": "long-enough-token", "response": " "}
+        )
+    assert result.status_code == 422
+
+
+@pytest.mark.parametrize("field", ["message", "response"])
+def test_schema_rejects_non_utf8_text(field):
+    from pydantic import ValidationError
+    from app.api.routes.vendor_requests import VendorRequestCreate
+    from app.api.routes.vendor_response import FinalVendorResponse
+
+    with pytest.raises(ValidationError):
+        if field == "message":
+            VendorRequestCreate(vendor_email="vendor@example.com", message="\ud800")
+        else:
+            FinalVendorResponse(token="valid-token-value", response="\ud800")
+
+
+def test_schema_rejects_control_in_public_token():
+    from pydantic import ValidationError
+    from app.api.routes.vendor_response import FinalVendorResponse
+
+    with pytest.raises(ValidationError):
+        FinalVendorResponse(token="long-token\x00value", response="Valid reply")
+
+
+def test_legacy_grant_expires_without_get_mutation(domain):
+    from datetime import timedelta
+
+    row = domain["db"].get(VendorRequest, domain["own"])
+    token = "legacy-" + domain["suffix"]
+    row.link_token = token
+    row.created_at = datetime.utcnow() - timedelta(days=8)
+    domain["db"].commit()
+    before = counts(domain["db"])
+    result = domain["client"].get("/api/vendor-response", params={"token": token})
+    assert result.status_code == 404
+    domain["db"].refresh(row)
+    assert row.expires_at is None
+    assert row.link_token == token
+    assert counts(domain["db"]) == before
+
+
+def test_delivery_intent_survives_post_send_commit_failure(domain):
+    from unittest.mock import patch
+    from fastapi import HTTPException
+    from app.core.database import SessionLocal
+    from app.services import vendor_request_service as service
+
+    created = create(domain).json()
+    db = domain["db"]
+    real_commit = db.commit
+    attempted = []
+
+    class Provider:
+        def send(self, message):
+            with SessionLocal() as fresh:
+                assert fresh.get(VendorRequest, created["id"]).delivery_status == "sending"
+            attempted.append(message)
+            return True
+
+    def fail_outcome_commit():
+        if attempted:
+            raise RuntimeError("synthetic outcome persistence failure")
+        real_commit()
+
+    key = domain["suffix"] + ":crash"
+    with patch("app.services.email_service.get_email_provider", return_value=Provider()):
+        with patch.object(db, "commit", side_effect=fail_outcome_commit):
+            with pytest.raises(RuntimeError, match="synthetic outcome"):
+                service.send(db, 1, created["id"], key, False, {})
+        with SessionLocal() as fresh:
+            assert fresh.get(VendorRequest, created["id"]).delivery_status == "sending"
+        replay = service.send(db, 1, created["id"], key, False, {})
+        assert replay["delivery_status"] == "sending"
+        with pytest.raises(HTTPException) as conflict:
+            service.send(db, 1, created["id"], domain["suffix"] + ":crash-retry", True, {})
+        assert conflict.value.status_code == 409
+    assert len(attempted) == 1
+
+
+def test_creation_lost_claim_rolls_back_request_and_preserves_new_owner(domain):
+    from unittest.mock import patch
+    from app.core import idempotency
+    from app.core.database import SessionLocal
+    from app.services import vendor_request_service as service
+
+    key = domain["suffix"] + ":fenced"
+    scoped = idempotency.scoped_key(1, "vendor-create", "new", key)
+    before = domain["db"].query(VendorRequest).count()
+    real_set = idempotency.set
+
+    def take_claim(*args, **kwargs):
+        with SessionLocal() as fresh:
+            fresh.execute(
+                text(
+                    "UPDATE idempotency_keys SET owner_token='replacement' WHERE idempotency_key=:k"
+                ),
+                {"k": scoped},
+            )
+            fresh.commit()
+        return real_set(*args, **kwargs)
+
+    with patch("app.core.idempotency.set", side_effect=take_claim):
+        with pytest.raises(idempotency.IdempotencyClaimLost):
+            service.create_request(
+                domain["db"], 1, domain["suffix"] + "@example.com", None, None, 7, key, {}
+            )
+    assert domain["db"].query(VendorRequest).count() == before
+    assert (
+        domain["db"]
+        .execute(
+            text("SELECT owner_token FROM idempotency_keys WHERE idempotency_key=:k"), {"k": scoped}
+        )
+        .scalar()
+        == "replacement"
+    )
