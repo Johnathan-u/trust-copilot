@@ -11,6 +11,8 @@ from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import JSONResponse
+from sqlalchemy import text
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.api.routes.compliance_gaps import _classify_evidence
@@ -31,6 +33,7 @@ from app.models import (
     Questionnaire,
     WorkspaceControl,
 )
+from app.services.evidence_gap_service import _lock_questionnaire_gap_writes
 from app.services.in_app_notification_service import notify_admins
 
 logger = logging.getLogger(__name__)
@@ -223,6 +226,23 @@ def _evidence_in_workspace(db: Session, evidence_id: int, workspace_id: int) -> 
     return row
 
 
+def _insert_open_gap(db: Session, chosen: EvidenceGap) -> None:
+    with db.begin_nested():
+        db.add(chosen)
+        db.flush()
+
+
+def _lock_control_gap_writes(db: Session, control_id: int) -> None:
+    bind = db.get_bind()
+    dialect = getattr(getattr(bind, "dialect", None), "name", None)
+    if dialect != "postgresql":
+        return
+    db.execute(
+        text("SELECT pg_advisory_xact_lock(150016, :control_id)"),
+        {"control_id": int(control_id)},
+    )
+
+
 def _question_cites_document(db: Session, question_id: int, document_id: int | None) -> bool:
     if document_id is None:
         return False
@@ -375,19 +395,30 @@ def ensure_open_gap(
             raise HTTPException(status_code=422, detail="gap_type is required")
         control_id = body.get("control_id")
         question_id = body.get("question_id")
+        questionnaire_id = None
+        if question_id is not None:
+            question = _question_in_workspace(db, int(question_id), workspace_id)
+            questionnaire_id = question.questionnaire_id
+            _lock_questionnaire_gap_writes(db, questionnaire_id)
         if control_id is not None:
             _control_in_workspace(db, int(control_id), workspace_id)
-        if question_id is not None:
-            _question_in_workspace(db, int(question_id), workspace_id)
+            _lock_control_gap_writes(db, int(control_id))
         if control_id is None and question_id is None:
             raise HTTPException(status_code=422, detail="control_id or question_id is required")
         query = db.query(EvidenceGap).filter(
             EvidenceGap.workspace_id == workspace_id,
-            EvidenceGap.gap_type == gap_type,
             EvidenceGap.status != "resolved",
         )
-        if control_id is not None:
-            query = query.filter(EvidenceGap.control_id == int(control_id))
+        if question_id is not None and gap_type != "control_check":
+            query = query.filter(
+                EvidenceGap.question_id == int(question_id),
+                EvidenceGap.gap_type != "control_check",
+            )
+        elif control_id is not None:
+            query = query.filter(
+                EvidenceGap.control_id == int(control_id),
+                EvidenceGap.gap_type == gap_type,
+            )
         else:
             query = query.filter(EvidenceGap.question_id == int(question_id))
         existing = query.order_by(EvidenceGap.id).all()
@@ -400,16 +431,23 @@ def ensure_open_gap(
         else:
             chosen = EvidenceGap(
                 workspace_id=workspace_id,
+                questionnaire_id=questionnaire_id,
                 gap_type=gap_type,
                 status="open",
                 control_id=int(control_id) if control_id is not None else None,
                 question_id=int(question_id) if question_id is not None else None,
-                reason="synthetic gap",
+                reason=(body.get("reason") or "").strip() or "No eligible evidence is linked.",
                 evidence_refs="[]",
             )
-            db.add(chosen)
-            db.flush()
-            status_code = 201
+            try:
+                _insert_open_gap(db, chosen)
+                status_code = 201
+            except IntegrityError:
+                again = query.filter(EvidenceGap.status == "open").order_by(EvidenceGap.id).first()
+                if again is None:
+                    raise HTTPException(status_code=409, detail="Open gap already exists") from None
+                chosen = again
+                status_code = 200
         if status_code == 201:
             db.commit()
             db.refresh(chosen)

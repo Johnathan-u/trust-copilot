@@ -687,6 +687,109 @@ def test_decided_row_is_not_rewritten_by_reads_or_retry(client):
     assert stored.updated_at.replace(tzinfo=None) == stamp
 
 
+def test_question_gaps_share_one_open_row_and_survive_a_conflict(client):
+    actors = _actors()
+    session = _db()
+    try:
+        _sync_sequence(session, "questionnaires")
+        qnr = Questionnaire(workspace_id=actors["workspace_id"], filename="race.txt", status="parsed")
+        session.add(qnr)
+        session.flush()
+        _sync_sequence(session, "questions")
+        question = Question(questionnaire_id=qnr.id, text="Synthetic race question")
+        session.add(question)
+        session.commit()
+        question_id = question.id
+        questionnaire_id = qnr.id
+    finally:
+        session.close()
+    _login(client, REVIEWER_EMAIL, REVIEWER_PASSWORD)
+    first = client.post(
+        "/api/evidence-gaps",
+        json={"gap_type": "missing_evidence", "question_id": question_id, "reason": "Need a file"},
+    )
+    assert first.status_code == 201, first.text
+    assert first.json()["questionnaire_id"] == questionnaire_id
+    second = client.post(
+        "/api/evidence-gaps",
+        json={"gap_type": "other_gap", "question_id": question_id},
+    )
+    assert second.status_code == 200, second.text
+    assert second.json()["id"] == first.json()["id"]
+    assert second.json()["created"] is False
+    from sqlalchemy.exc import IntegrityError
+
+    def boom(db, chosen):
+        raise IntegrityError("INSERT", {}, Exception("duplicate key"))
+
+    with patch("app.api.routes.evidence_gaps._insert_open_gap", side_effect=boom):
+        conflict = client.post(
+            "/api/evidence-gaps",
+            json={
+                "gap_type": "control_check",
+                "control_id": _control(actors["workspace_id"], f"Conflict {uuid.uuid4().hex[:6]}"),
+            },
+        )
+    assert conflict.status_code == 409, conflict.text
+
+
+def test_concurrent_question_creates_leave_one_open_row(client):
+    import threading
+
+    from fastapi.testclient import TestClient
+
+    from app.main import app
+    from tests.conftest import TEST_HEADERS, TEST_ORIGIN
+
+    actors = _actors()
+    session = _db()
+    try:
+        _sync_sequence(session, "questionnaires")
+        qnr = Questionnaire(workspace_id=actors["workspace_id"], filename="conc.txt", status="parsed")
+        session.add(qnr)
+        session.flush()
+        _sync_sequence(session, "questions")
+        question = Question(questionnaire_id=qnr.id, text="Synthetic concurrent question")
+        session.add(question)
+        session.commit()
+        question_id = question.id
+    finally:
+        session.close()
+    _login(client, REVIEWER_EMAIL, REVIEWER_PASSWORD)
+    token = client.cookies.get("tc_session")
+    barrier = threading.Barrier(2)
+    results: list[int] = []
+
+    def post_one() -> None:
+        local = TestClient(app, base_url=TEST_ORIGIN, headers=TEST_HEADERS)
+        local.cookies.set("tc_session", token)
+        barrier.wait()
+        response = local.post(
+            "/api/evidence-gaps",
+            json={"gap_type": "missing_evidence", "question_id": question_id},
+        )
+        results.append(response.status_code)
+
+    threads = [threading.Thread(target=post_one) for _ in range(2)]
+    for thread in threads:
+        thread.start()
+    for thread in threads:
+        thread.join()
+    assert sorted(results) == [200, 201]
+    session = _db()
+    try:
+        count = session.execute(
+            text(
+                "SELECT count(*) FROM evidence_gaps "
+                "WHERE question_id = :id AND status = 'open'"
+            ),
+            {"id": question_id},
+        ).scalar()
+    finally:
+        session.close()
+    assert count == 1
+
+
 def test_idempotency_keys_do_not_collide_across_gaps(client):
     actors = _actors()
     first_control = _control(actors["workspace_id"], f"Key A {uuid.uuid4().hex[:8]}")
