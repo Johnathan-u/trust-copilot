@@ -127,6 +127,8 @@ Source of truth: `apps/api/app/core/config_contract.py`. The table between the m
 | `WORKER_JOB_MAX_RUNTIME_SEC` | int | optional | no | 3600 | A single job running longer than this stops refreshing the heartbeat. |  |
 | `WORKER_LOOP_STALL_SEC` | int | optional | no | 120 | Claim-loop stall after which the heartbeat stops being refreshed. |  |
 | `WORKER_HEARTBEAT_FILE` | path | optional | no | /tmp/trustcopilot-worker.heartbeat | Heartbeat file read by the worker container probe. |  |
+| `JOB_LEASE_SECONDS` | int | optional | no | 60 | How long a worker owns a running job before another worker may recover it. Clamped to 10-3600. |  |
+| `JOB_LEASE_HEARTBEAT_SECONDS` | int | optional | no | 15 | How often the owner renews that lease. Clamped to 1-1200 and kept below the lease. |  |
 | `RETRIEVAL_MAX_THREADS` | int | optional | no | 8 | Max worker threads for batched retrieval (1-32); also capped by the DB pool size. |  |
 | `TRUST_COPILOT_IN_DOCKER` | bool | optional | no | auto (/.dockerenv) | Keeps `postgres` hostname in DATABASE_URL. |  |
 | `COMPLETION_MODEL` | string | optional | no | gpt-4o-mini | Answer-generation model. |  |

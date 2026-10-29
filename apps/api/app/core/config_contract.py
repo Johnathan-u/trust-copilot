@@ -593,6 +593,23 @@ CONTRACT: tuple[ConfigVar, ...] = (
         "/tmp/trustcopilot-worker.heartbeat",
         "Heartbeat file read by the worker container probe.",
     ),
+    # Per-job lease (see docs/release/tickets/TC-10-001.md). Distinct from the process heartbeat above.
+    ConfigVar(
+        "JOB_LEASE_SECONDS",
+        "int",
+        "optional",
+        False,
+        "60",
+        "How long a worker owns a running job before another worker may recover it. Clamped to 10-3600.",
+    ),
+    ConfigVar(
+        "JOB_LEASE_HEARTBEAT_SECONDS",
+        "int",
+        "optional",
+        False,
+        "15",
+        "How often the owner renews that lease. Clamped to 1-1200 and kept below the lease.",
+    ),
     ConfigVar(
         "RETRIEVAL_MAX_THREADS",
         "int",
