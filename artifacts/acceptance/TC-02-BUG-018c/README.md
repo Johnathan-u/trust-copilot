@@ -2,7 +2,7 @@
 
 Synthetic rows only, on disposable side PostgreSQL databases whose names end in `_test` (`trustcopilot_test` for the branch, `trustcopilot_master_test` for master). No model calls and no network calls from the tests. Local Postgres 16 with pgvector. Ruff 0.5.6.
 
-Base is `origin/master` `6a26d60e44433720cf329cba08a8f096cb22e682`. The re-run logs below (`review-fix-tests.txt`, `alembic-heads.txt`, `offline-sql-*.txt`, `regression-master.txt`) were produced on the code tree of the commit that renames the revision to `bug018c_one_open_gap` (parent `tc21005_mapping_version`). That commit's SHA is the head named under Testing (author) in the PR. `logs/full-suite-branch.txt` and `logs/full-suite-master.txt` are the earlier full-suite run on `b7da8b3`, before this rename.
+Base is `origin/master` `6a26d60e44433720cf329cba08a8f096cb22e682`. The re-run logs below (`review-fix-tests.txt`, `alembic-heads.txt`, `offline-sql-*.txt`, `regression-master.txt`) were produced on the code tree of commit `04832ce4113cdce7c514d68e728d735c8cb7f296`. Writing this sentence moved the head, same as TC-02-BUG-018b. `logs/full-suite-branch.txt` and `logs/full-suite-master.txt` are the earlier full-suite run on `b7da8b3`, before this rename.
 
 | File | What it shows |
 |---|---|
