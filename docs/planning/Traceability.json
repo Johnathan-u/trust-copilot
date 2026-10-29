@@ -1,0 +1,1613 @@
+[
+  {
+    "kind": "API",
+    "name": "ai_insights",
+    "path": "apps/api/app/api/routes/ai_insights.py",
+    "operation_count": 1,
+    "delivery_tickets": [
+      "TC-21-012"
+    ],
+    "security_ticket": "TC-06-005",
+    "scope": "REQUIRED FOR FULL RELEASE",
+    "source": "https://github.com/Johnathan-u/trust-copilot/blob/c20f949161ac12a619b396d30904448ffd74d532/apps/api/app/api/routes/ai_insights.py"
+  },
+  {
+    "kind": "API",
+    "name": "ai_mappings",
+    "path": "apps/api/app/api/routes/ai_mappings.py",
+    "operation_count": 25,
+    "delivery_tickets": [
+      "TC-21-011"
+    ],
+    "security_ticket": "TC-06-005",
+    "scope": "REQUIRED FOR FULL RELEASE",
+    "source": "https://github.com/Johnathan-u/trust-copilot/blob/c20f949161ac12a619b396d30904448ffd74d532/apps/api/app/api/routes/ai_mappings.py"
+  },
+  {
+    "kind": "API",
+    "name": "alert_management",
+    "path": "apps/api/app/api/routes/alert_management.py",
+    "operation_count": 2,
+    "delivery_tickets": [
+      "TC-22-005"
+    ],
+    "security_ticket": "TC-06-005",
+    "scope": "REQUIRED FOR FULL RELEASE",
+    "source": "https://github.com/Johnathan-u/trust-copilot/blob/c20f949161ac12a619b396d30904448ffd74d532/apps/api/app/api/routes/alert_management.py"
+  },
+  {
+    "kind": "API",
+    "name": "alerting_engine",
+    "path": "apps/api/app/api/routes/alerting_engine.py",
+    "operation_count": 5,
+    "delivery_tickets": [
+      "TC-22-006"
+    ],
+    "security_ticket": "TC-06-005",
+    "scope": "REQUIRED FOR FULL RELEASE",
+    "source": "https://github.com/Johnathan-u/trust-copilot/blob/c20f949161ac12a619b396d30904448ffd74d532/apps/api/app/api/routes/alerting_engine.py"
+  },
+  {
+    "kind": "API",
+    "name": "answer_approval",
+    "path": "apps/api/app/api/routes/answer_approval.py",
+    "operation_count": 10,
+    "delivery_tickets": [
+      "TC-12-006"
+    ],
+    "security_ticket": "TC-06-005",
+    "scope": "REQUIRED FOR FULL RELEASE",
+    "source": "https://github.com/Johnathan-u/trust-copilot/blob/c20f949161ac12a619b396d30904448ffd74d532/apps/api/app/api/routes/answer_approval.py"
+  },
+  {
+    "kind": "API",
+    "name": "answer_outcomes",
+    "path": "apps/api/app/api/routes/answer_outcomes.py",
+    "operation_count": 3,
+    "delivery_tickets": [
+      "TC-23-006"
+    ],
+    "security_ticket": "TC-06-005",
+    "scope": "REQUIRED FOR FULL RELEASE",
+    "source": "https://github.com/Johnathan-u/trust-copilot/blob/c20f949161ac12a619b396d30904448ffd74d532/apps/api/app/api/routes/answer_outcomes.py"
+  },
+  {
+    "kind": "API",
+    "name": "answer_tiers",
+    "path": "apps/api/app/api/routes/answer_tiers.py",
+    "operation_count": 2,
+    "delivery_tickets": [
+      "TC-12-008"
+    ],
+    "security_ticket": "TC-06-005",
+    "scope": "REQUIRED FOR FULL RELEASE",
+    "source": "https://github.com/Johnathan-u/trust-copilot/blob/c20f949161ac12a619b396d30904448ffd74d532/apps/api/app/api/routes/answer_tiers.py"
+  },
+  {
+    "kind": "API",
+    "name": "answers",
+    "path": "apps/api/app/api/routes/answers.py",
+    "operation_count": 3,
+    "delivery_tickets": [
+      "TC-12-001",
+      "TC-12-002",
+      "TC-12-003",
+      "TC-12-004"
+    ],
+    "security_ticket": "TC-06-005",
+    "scope": "REQUIRED FOR FULL RELEASE",
+    "source": "https://github.com/Johnathan-u/trust-copilot/blob/c20f949161ac12a619b396d30904448ffd74d532/apps/api/app/api/routes/answers.py"
+  },
+  {
+    "kind": "API",
+    "name": "audit",
+    "path": "apps/api/app/api/routes/audit.py",
+    "operation_count": 2,
+    "delivery_tickets": [
+      "TC-16-003"
+    ],
+    "security_ticket": "TC-06-005",
+    "scope": "REQUIRED FOR FULL RELEASE",
+    "source": "https://github.com/Johnathan-u/trust-copilot/blob/c20f949161ac12a619b396d30904448ffd74d532/apps/api/app/api/routes/audit.py"
+  },
+  {
+    "kind": "API",
+    "name": "auth",
+    "path": "apps/api/app/api/routes/auth.py",
+    "operation_count": 32,
+    "delivery_tickets": [
+      "TC-04-001",
+      "TC-04-002",
+      "TC-04-003",
+      "TC-04-004",
+      "TC-05-004",
+      "TC-05-005",
+      "TC-05-006",
+      "TC-05-007",
+      "TC-05-008",
+      "TC-05-001"
+    ],
+    "security_ticket": "TC-06-005",
+    "scope": "REQUIRED FOR FULL RELEASE",
+    "source": "https://github.com/Johnathan-u/trust-copilot/blob/c20f949161ac12a619b396d30904448ffd74d532/apps/api/app/api/routes/auth.py"
+  },
+  {
+    "kind": "API",
+    "name": "aws_connector",
+    "path": "apps/api/app/api/routes/aws_connector.py",
+    "operation_count": 5,
+    "delivery_tickets": [
+      "TC-20-008",
+      "TC-20-009",
+      "TC-20-010",
+      "TC-20-011",
+      "TC-20-012",
+      "TC-20-013"
+    ],
+    "security_ticket": "TC-06-005",
+    "scope": "REQUIRED FOR FULL RELEASE",
+    "source": "https://github.com/Johnathan-u/trust-copilot/blob/c20f949161ac12a619b396d30904448ffd74d532/apps/api/app/api/routes/aws_connector.py"
+  },
+  {
+    "kind": "API",
+    "name": "benchmarks",
+    "path": "apps/api/app/api/routes/benchmarks.py",
+    "operation_count": 1,
+    "delivery_tickets": [
+      "TC-25-003"
+    ],
+    "security_ticket": "TC-06-005",
+    "scope": "REQUIRED FOR FULL RELEASE",
+    "source": "https://github.com/Johnathan-u/trust-copilot/blob/c20f949161ac12a619b396d30904448ffd74d532/apps/api/app/api/routes/benchmarks.py"
+  },
+  {
+    "kind": "API",
+    "name": "billing",
+    "path": "apps/api/app/api/routes/billing.py",
+    "operation_count": 4,
+    "delivery_tickets": [
+      "TC-24-001",
+      "TC-24-002",
+      "TC-24-005"
+    ],
+    "security_ticket": "TC-06-005",
+    "scope": "REQUIRED FOR FULL RELEASE",
+    "source": "https://github.com/Johnathan-u/trust-copilot/blob/c20f949161ac12a619b396d30904448ffd74d532/apps/api/app/api/routes/billing.py"
+  },
+  {
+    "kind": "API",
+    "name": "buyer_portal",
+    "path": "apps/api/app/api/routes/buyer_portal.py",
+    "operation_count": 13,
+    "delivery_tickets": [
+      "TC-17-007"
+    ],
+    "security_ticket": "TC-06-005",
+    "scope": "REQUIRED FOR FULL RELEASE",
+    "source": "https://github.com/Johnathan-u/trust-copilot/blob/c20f949161ac12a619b396d30904448ffd74d532/apps/api/app/api/routes/buyer_portal.py"
+  },
+  {
+    "kind": "API",
+    "name": "case_studies",
+    "path": "apps/api/app/api/routes/case_studies.py",
+    "operation_count": 6,
+    "delivery_tickets": [
+      "TC-25-005"
+    ],
+    "security_ticket": "TC-06-005",
+    "scope": "REQUIRED FOR FULL RELEASE",
+    "source": "https://github.com/Johnathan-u/trust-copilot/blob/c20f949161ac12a619b396d30904448ffd74d532/apps/api/app/api/routes/case_studies.py"
+  },
+  {
+    "kind": "API",
+    "name": "citation_composer",
+    "path": "apps/api/app/api/routes/citation_composer.py",
+    "operation_count": 2,
+    "delivery_tickets": [
+      "TC-12-010"
+    ],
+    "security_ticket": "TC-06-005",
+    "scope": "REQUIRED FOR FULL RELEASE",
+    "source": "https://github.com/Johnathan-u/trust-copilot/blob/c20f949161ac12a619b396d30904448ffd74d532/apps/api/app/api/routes/citation_composer.py"
+  },
+  {
+    "kind": "API",
+    "name": "cloud_connectors",
+    "path": "apps/api/app/api/routes/cloud_connectors.py",
+    "operation_count": 6,
+    "delivery_tickets": [
+      "TC-20-005",
+      "TC-20-006",
+      "TC-20-007",
+      "TC-20-025",
+      "TC-20-026",
+      "TC-20-027",
+      "TC-20-028",
+      "TC-20-029",
+      "TC-20-030",
+      "TC-20-031",
+      "TC-20-032",
+      "TC-20-033",
+      "TC-20-034",
+      "TC-20-035",
+      "TC-20-036",
+      "TC-20-037",
+      "TC-20-038",
+      "TC-20-039",
+      "TC-20-040",
+      "TC-20-041",
+      "TC-20-042",
+      "TC-20-043",
+      "TC-20-044",
+      "TC-20-045"
+    ],
+    "security_ticket": "TC-06-005",
+    "scope": "REQUIRED FOR FULL RELEASE",
+    "source": "https://github.com/Johnathan-u/trust-copilot/blob/c20f949161ac12a619b396d30904448ffd74d532/apps/api/app/api/routes/cloud_connectors.py"
+  },
+  {
+    "kind": "API",
+    "name": "compliance_alerts",
+    "path": "apps/api/app/api/routes/compliance_alerts.py",
+    "operation_count": 1,
+    "delivery_tickets": [
+      "TC-21-008"
+    ],
+    "security_ticket": "TC-06-005",
+    "scope": "REQUIRED FOR FULL RELEASE",
+    "source": "https://github.com/Johnathan-u/trust-copilot/blob/c20f949161ac12a619b396d30904448ffd74d532/apps/api/app/api/routes/compliance_alerts.py"
+  },
+  {
+    "kind": "API",
+    "name": "compliance_audit",
+    "path": "apps/api/app/api/routes/compliance_audit.py",
+    "operation_count": 5,
+    "delivery_tickets": [
+      "TC-21-010"
+    ],
+    "security_ticket": "TC-06-005",
+    "scope": "REQUIRED FOR FULL RELEASE",
+    "source": "https://github.com/Johnathan-u/trust-copilot/blob/c20f949161ac12a619b396d30904448ffd74d532/apps/api/app/api/routes/compliance_audit.py"
+  },
+  {
+    "kind": "API",
+    "name": "compliance_controls",
+    "path": "apps/api/app/api/routes/compliance_controls.py",
+    "operation_count": 12,
+    "delivery_tickets": [
+      "TC-21-003"
+    ],
+    "security_ticket": "TC-06-005",
+    "scope": "REQUIRED FOR FULL RELEASE",
+    "source": "https://github.com/Johnathan-u/trust-copilot/blob/c20f949161ac12a619b396d30904448ffd74d532/apps/api/app/api/routes/compliance_controls.py"
+  },
+  {
+    "kind": "API",
+    "name": "compliance_coverage",
+    "path": "apps/api/app/api/routes/compliance_coverage.py",
+    "operation_count": 1,
+    "delivery_tickets": [
+      "TC-21-007"
+    ],
+    "security_ticket": "TC-06-005",
+    "scope": "REQUIRED FOR FULL RELEASE",
+    "source": "https://github.com/Johnathan-u/trust-copilot/blob/c20f949161ac12a619b396d30904448ffd74d532/apps/api/app/api/routes/compliance_coverage.py"
+  },
+  {
+    "kind": "API",
+    "name": "compliance_evidence",
+    "path": "apps/api/app/api/routes/compliance_evidence.py",
+    "operation_count": 4,
+    "delivery_tickets": [
+      "TC-21-004"
+    ],
+    "security_ticket": "TC-06-005",
+    "scope": "REQUIRED FOR FULL RELEASE",
+    "source": "https://github.com/Johnathan-u/trust-copilot/blob/c20f949161ac12a619b396d30904448ffd74d532/apps/api/app/api/routes/compliance_evidence.py"
+  },
+  {
+    "kind": "API",
+    "name": "compliance_export",
+    "path": "apps/api/app/api/routes/compliance_export.py",
+    "operation_count": 3,
+    "delivery_tickets": [
+      "TC-21-009"
+    ],
+    "security_ticket": "TC-06-005",
+    "scope": "REQUIRED FOR FULL RELEASE",
+    "source": "https://github.com/Johnathan-u/trust-copilot/blob/c20f949161ac12a619b396d30904448ffd74d532/apps/api/app/api/routes/compliance_export.py"
+  },
+  {
+    "kind": "API",
+    "name": "compliance_frameworks",
+    "path": "apps/api/app/api/routes/compliance_frameworks.py",
+    "operation_count": 2,
+    "delivery_tickets": [
+      "TC-21-001"
+    ],
+    "security_ticket": "TC-06-005",
+    "scope": "REQUIRED FOR FULL RELEASE",
+    "source": "https://github.com/Johnathan-u/trust-copilot/blob/c20f949161ac12a619b396d30904448ffd74d532/apps/api/app/api/routes/compliance_frameworks.py"
+  },
+  {
+    "kind": "API",
+    "name": "compliance_gaps",
+    "path": "apps/api/app/api/routes/compliance_gaps.py",
+    "operation_count": 2,
+    "delivery_tickets": [
+      "TC-21-006"
+    ],
+    "security_ticket": "TC-06-005",
+    "scope": "REQUIRED FOR FULL RELEASE",
+    "source": "https://github.com/Johnathan-u/trust-copilot/blob/c20f949161ac12a619b396d30904448ffd74d532/apps/api/app/api/routes/compliance_gaps.py"
+  },
+  {
+    "kind": "API",
+    "name": "compliance_mappings",
+    "path": "apps/api/app/api/routes/compliance_mappings.py",
+    "operation_count": 4,
+    "delivery_tickets": [
+      "TC-21-005"
+    ],
+    "security_ticket": "TC-06-005",
+    "scope": "REQUIRED FOR FULL RELEASE",
+    "source": "https://github.com/Johnathan-u/trust-copilot/blob/c20f949161ac12a619b396d30904448ffd74d532/apps/api/app/api/routes/compliance_mappings.py"
+  },
+  {
+    "kind": "API",
+    "name": "confidence_routing",
+    "path": "apps/api/app/api/routes/confidence_routing.py",
+    "operation_count": 5,
+    "delivery_tickets": [
+      "TC-12-012"
+    ],
+    "security_ticket": "TC-06-005",
+    "scope": "REQUIRED FOR FULL RELEASE",
+    "source": "https://github.com/Johnathan-u/trust-copilot/blob/c20f949161ac12a619b396d30904448ffd74d532/apps/api/app/api/routes/confidence_routing.py"
+  },
+  {
+    "kind": "API",
+    "name": "confidence_scoring",
+    "path": "apps/api/app/api/routes/confidence_scoring.py",
+    "operation_count": 2,
+    "delivery_tickets": [
+      "TC-12-011"
+    ],
+    "security_ticket": "TC-06-005",
+    "scope": "REQUIRED FOR FULL RELEASE",
+    "source": "https://github.com/Johnathan-u/trust-copilot/blob/c20f949161ac12a619b396d30904448ffd74d532/apps/api/app/api/routes/confidence_scoring.py"
+  },
+  {
+    "kind": "API",
+    "name": "connector_health",
+    "path": "apps/api/app/api/routes/connector_health.py",
+    "operation_count": 1,
+    "delivery_tickets": [
+      "TC-20-003"
+    ],
+    "security_ticket": "TC-06-005",
+    "scope": "REQUIRED FOR FULL RELEASE",
+    "source": "https://github.com/Johnathan-u/trust-copilot/blob/c20f949161ac12a619b396d30904448ffd74d532/apps/api/app/api/routes/connector_health.py"
+  },
+  {
+    "kind": "API",
+    "name": "connector_wizard",
+    "path": "apps/api/app/api/routes/connector_wizard.py",
+    "operation_count": 5,
+    "delivery_tickets": [
+      "TC-20-001",
+      "TC-20-002",
+      "TC-15-036"
+    ],
+    "security_ticket": "TC-06-005",
+    "scope": "REQUIRED FOR FULL RELEASE",
+    "source": "https://github.com/Johnathan-u/trust-copilot/blob/c20f949161ac12a619b396d30904448ffd74d532/apps/api/app/api/routes/connector_wizard.py"
+  },
+  {
+    "kind": "API",
+    "name": "contracts",
+    "path": "apps/api/app/api/routes/contracts.py",
+    "operation_count": 2,
+    "delivery_tickets": [
+      "TC-23-002"
+    ],
+    "security_ticket": "TC-06-005",
+    "scope": "REQUIRED FOR FULL RELEASE",
+    "source": "https://github.com/Johnathan-u/trust-copilot/blob/c20f949161ac12a619b396d30904448ffd74d532/apps/api/app/api/routes/contracts.py"
+  },
+  {
+    "kind": "API",
+    "name": "control_engine",
+    "path": "apps/api/app/api/routes/control_engine.py",
+    "operation_count": 4,
+    "delivery_tickets": [
+      "TC-22-002"
+    ],
+    "security_ticket": "TC-06-005",
+    "scope": "REQUIRED FOR FULL RELEASE",
+    "source": "https://github.com/Johnathan-u/trust-copilot/blob/c20f949161ac12a619b396d30904448ffd74d532/apps/api/app/api/routes/control_engine.py"
+  },
+  {
+    "kind": "API",
+    "name": "control_timeline",
+    "path": "apps/api/app/api/routes/control_timeline.py",
+    "operation_count": 1,
+    "delivery_tickets": [
+      "TC-22-003"
+    ],
+    "security_ticket": "TC-06-005",
+    "scope": "REQUIRED FOR FULL RELEASE",
+    "source": "https://github.com/Johnathan-u/trust-copilot/blob/c20f949161ac12a619b396d30904448ffd74d532/apps/api/app/api/routes/control_timeline.py"
+  },
+  {
+    "kind": "API",
+    "name": "controls",
+    "path": "apps/api/app/api/routes/controls.py",
+    "operation_count": 8,
+    "delivery_tickets": [
+      "TC-21-002"
+    ],
+    "security_ticket": "TC-06-005",
+    "scope": "REQUIRED FOR FULL RELEASE",
+    "source": "https://github.com/Johnathan-u/trust-copilot/blob/c20f949161ac12a619b396d30904448ffd74d532/apps/api/app/api/routes/controls.py"
+  },
+  {
+    "kind": "API",
+    "name": "credentials",
+    "path": "apps/api/app/api/routes/credentials.py",
+    "operation_count": 5,
+    "delivery_tickets": [
+      "TC-20-002",
+      "TC-07-002"
+    ],
+    "security_ticket": "TC-06-005",
+    "scope": "REQUIRED FOR FULL RELEASE",
+    "source": "https://github.com/Johnathan-u/trust-copilot/blob/c20f949161ac12a619b396d30904448ffd74d532/apps/api/app/api/routes/credentials.py"
+  },
+  {
+    "kind": "API",
+    "name": "credit_prompts",
+    "path": "apps/api/app/api/routes/credit_prompts.py",
+    "operation_count": 1,
+    "delivery_tickets": [
+      "TC-24-004"
+    ],
+    "security_ticket": "TC-06-005",
+    "scope": "REQUIRED FOR FULL RELEASE",
+    "source": "https://github.com/Johnathan-u/trust-copilot/blob/c20f949161ac12a619b396d30904448ffd74d532/apps/api/app/api/routes/credit_prompts.py"
+  },
+  {
+    "kind": "API",
+    "name": "credits",
+    "path": "apps/api/app/api/routes/credits.py",
+    "operation_count": 6,
+    "delivery_tickets": [
+      "TC-24-003"
+    ],
+    "security_ticket": "TC-06-005",
+    "scope": "REQUIRED FOR FULL RELEASE",
+    "source": "https://github.com/Johnathan-u/trust-copilot/blob/c20f949161ac12a619b396d30904448ffd74d532/apps/api/app/api/routes/credits.py"
+  },
+  {
+    "kind": "API",
+    "name": "crm_connectors",
+    "path": "apps/api/app/api/routes/crm_connectors.py",
+    "operation_count": 3,
+    "delivery_tickets": [
+      "TC-20-049",
+      "TC-20-050",
+      "TC-20-051",
+      "TC-20-052",
+      "TC-20-053",
+      "TC-20-054"
+    ],
+    "security_ticket": "TC-06-005",
+    "scope": "REQUIRED FOR FULL RELEASE",
+    "source": "https://github.com/Johnathan-u/trust-copilot/blob/c20f949161ac12a619b396d30904448ffd74d532/apps/api/app/api/routes/crm_connectors.py"
+  },
+  {
+    "kind": "API",
+    "name": "dashboard_cards",
+    "path": "apps/api/app/api/routes/dashboard_cards.py",
+    "operation_count": 8,
+    "delivery_tickets": [
+      "TC-25-001"
+    ],
+    "security_ticket": "TC-06-005",
+    "scope": "REQUIRED FOR FULL RELEASE",
+    "source": "https://github.com/Johnathan-u/trust-copilot/blob/c20f949161ac12a619b396d30904448ffd74d532/apps/api/app/api/routes/dashboard_cards.py"
+  },
+  {
+    "kind": "API",
+    "name": "deals",
+    "path": "apps/api/app/api/routes/deals.py",
+    "operation_count": 14,
+    "delivery_tickets": [
+      "TC-23-001"
+    ],
+    "security_ticket": "TC-06-005",
+    "scope": "REQUIRED FOR FULL RELEASE",
+    "source": "https://github.com/Johnathan-u/trust-copilot/blob/c20f949161ac12a619b396d30904448ffd74d532/apps/api/app/api/routes/deals.py"
+  },
+  {
+    "kind": "API",
+    "name": "demo_proof",
+    "path": "apps/api/app/api/routes/demo_proof.py",
+    "operation_count": 5,
+    "delivery_tickets": [
+      "TC-25-011"
+    ],
+    "security_ticket": "TC-06-005",
+    "scope": "REQUIRED FOR FULL RELEASE",
+    "source": "https://github.com/Johnathan-u/trust-copilot/blob/c20f949161ac12a619b396d30904448ffd74d532/apps/api/app/api/routes/demo_proof.py"
+  },
+  {
+    "kind": "API",
+    "name": "documents",
+    "path": "apps/api/app/api/routes/documents.py",
+    "operation_count": 8,
+    "delivery_tickets": [
+      "TC-08-001",
+      "TC-07-006",
+      "TC-08-007",
+      "TC-08-002"
+    ],
+    "security_ticket": "TC-06-005",
+    "scope": "REQUIRED FOR FULL RELEASE",
+    "source": "https://github.com/Johnathan-u/trust-copilot/blob/c20f949161ac12a619b396d30904448ffd74d532/apps/api/app/api/routes/documents.py"
+  },
+  {
+    "kind": "API",
+    "name": "evidence_approval",
+    "path": "apps/api/app/api/routes/evidence_approval.py",
+    "operation_count": 6,
+    "delivery_tickets": [
+      "TC-12-007"
+    ],
+    "security_ticket": "TC-06-005",
+    "scope": "REQUIRED FOR FULL RELEASE",
+    "source": "https://github.com/Johnathan-u/trust-copilot/blob/c20f949161ac12a619b396d30904448ffd74d532/apps/api/app/api/routes/evidence_approval.py"
+  },
+  {
+    "kind": "API",
+    "name": "evidence_cards",
+    "path": "apps/api/app/api/routes/evidence_cards.py",
+    "operation_count": 2,
+    "delivery_tickets": [
+      "TC-12-013"
+    ],
+    "security_ticket": "TC-06-005",
+    "scope": "REQUIRED FOR FULL RELEASE",
+    "source": "https://github.com/Johnathan-u/trust-copilot/blob/c20f949161ac12a619b396d30904448ffd74d532/apps/api/app/api/routes/evidence_cards.py"
+  },
+  {
+    "kind": "API",
+    "name": "evidence_diff",
+    "path": "apps/api/app/api/routes/evidence_diff.py",
+    "operation_count": 2,
+    "delivery_tickets": [
+      "TC-22-012"
+    ],
+    "security_ticket": "TC-06-005",
+    "scope": "REQUIRED FOR FULL RELEASE",
+    "source": "https://github.com/Johnathan-u/trust-copilot/blob/c20f949161ac12a619b396d30904448ffd74d532/apps/api/app/api/routes/evidence_diff.py"
+  },
+  {
+    "kind": "API",
+    "name": "evidence_gaps",
+    "path": "apps/api/app/api/routes/evidence_gaps.py",
+    "operation_count": 0,
+    "delivery_tickets": [
+      "TC-21-013"
+    ],
+    "security_ticket": "TC-06-005",
+    "scope": "REQUIRED FOR FULL RELEASE",
+    "source": "https://github.com/Johnathan-u/trust-copilot/blob/c20f949161ac12a619b396d30904448ffd74d532/apps/api/app/api/routes/evidence_gaps.py"
+  },
+  {
+    "kind": "API",
+    "name": "evidence_search",
+    "path": "apps/api/app/api/routes/evidence_search.py",
+    "operation_count": 3,
+    "delivery_tickets": [
+      "TC-08-010"
+    ],
+    "security_ticket": "TC-06-005",
+    "scope": "REQUIRED FOR FULL RELEASE",
+    "source": "https://github.com/Johnathan-u/trust-copilot/blob/c20f949161ac12a619b396d30904448ffd74d532/apps/api/app/api/routes/evidence_search.py"
+  },
+  {
+    "kind": "API",
+    "name": "executive_dashboard",
+    "path": "apps/api/app/api/routes/executive_dashboard.py",
+    "operation_count": 1,
+    "delivery_tickets": [
+      "TC-25-002"
+    ],
+    "security_ticket": "TC-06-005",
+    "scope": "REQUIRED FOR FULL RELEASE",
+    "source": "https://github.com/Johnathan-u/trust-copilot/blob/c20f949161ac12a619b396d30904448ffd74d532/apps/api/app/api/routes/executive_dashboard.py"
+  },
+  {
+    "kind": "API",
+    "name": "export_pack",
+    "path": "apps/api/app/api/routes/export_pack.py",
+    "operation_count": 4,
+    "delivery_tickets": [
+      "TC-13-007"
+    ],
+    "security_ticket": "TC-06-005",
+    "scope": "REQUIRED FOR FULL RELEASE",
+    "source": "https://github.com/Johnathan-u/trust-copilot/blob/c20f949161ac12a619b396d30904448ffd74d532/apps/api/app/api/routes/export_pack.py"
+  },
+  {
+    "kind": "API",
+    "name": "exports",
+    "path": "apps/api/app/api/routes/exports.py",
+    "operation_count": 4,
+    "delivery_tickets": [
+      "TC-13-001",
+      "TC-13-002",
+      "TC-13-004",
+      "TC-13-005"
+    ],
+    "security_ticket": "TC-06-005",
+    "scope": "REQUIRED FOR FULL RELEASE",
+    "source": "https://github.com/Johnathan-u/trust-copilot/blob/c20f949161ac12a619b396d30904448ffd74d532/apps/api/app/api/routes/exports.py"
+  },
+  {
+    "kind": "API",
+    "name": "feature_flags",
+    "path": "apps/api/app/api/routes/feature_flags.py",
+    "operation_count": 4,
+    "delivery_tickets": [
+      "TC-16-006"
+    ],
+    "security_ticket": "TC-06-005",
+    "scope": "REQUIRED FOR FULL RELEASE",
+    "source": "https://github.com/Johnathan-u/trust-copilot/blob/c20f949161ac12a619b396d30904448ffd74d532/apps/api/app/api/routes/feature_flags.py"
+  },
+  {
+    "kind": "API",
+    "name": "feedback_capture",
+    "path": "apps/api/app/api/routes/feedback_capture.py",
+    "operation_count": 2,
+    "delivery_tickets": [
+      "TC-12-014"
+    ],
+    "security_ticket": "TC-06-005",
+    "scope": "REQUIRED FOR FULL RELEASE",
+    "source": "https://github.com/Johnathan-u/trust-copilot/blob/c20f949161ac12a619b396d30904448ffd74d532/apps/api/app/api/routes/feedback_capture.py"
+  },
+  {
+    "kind": "API",
+    "name": "freshness_policies",
+    "path": "apps/api/app/api/routes/freshness_policies.py",
+    "operation_count": 5,
+    "delivery_tickets": [
+      "TC-22-008"
+    ],
+    "security_ticket": "TC-06-005",
+    "scope": "REQUIRED FOR FULL RELEASE",
+    "source": "https://github.com/Johnathan-u/trust-copilot/blob/c20f949161ac12a619b396d30904448ffd74d532/apps/api/app/api/routes/freshness_policies.py"
+  },
+  {
+    "kind": "API",
+    "name": "github_connector",
+    "path": "apps/api/app/api/routes/github_connector.py",
+    "operation_count": 4,
+    "delivery_tickets": [
+      "TC-20-014",
+      "TC-20-015",
+      "TC-20-016",
+      "TC-20-017",
+      "TC-20-018",
+      "TC-20-019"
+    ],
+    "security_ticket": "TC-06-005",
+    "scope": "REQUIRED FOR FULL RELEASE",
+    "source": "https://github.com/Johnathan-u/trust-copilot/blob/c20f949161ac12a619b396d30904448ffd74d532/apps/api/app/api/routes/github_connector.py"
+  },
+  {
+    "kind": "API",
+    "name": "gmail",
+    "path": "apps/api/app/api/routes/gmail.py",
+    "operation_count": 12,
+    "delivery_tickets": [
+      "TC-19-001",
+      "TC-19-005",
+      "TC-19-006",
+      "TC-19-007"
+    ],
+    "security_ticket": "TC-06-005",
+    "scope": "REQUIRED FOR FULL RELEASE",
+    "source": "https://github.com/Johnathan-u/trust-copilot/blob/c20f949161ac12a619b396d30904448ffd74d532/apps/api/app/api/routes/gmail.py"
+  },
+  {
+    "kind": "API",
+    "name": "golden_answers",
+    "path": "apps/api/app/api/routes/golden_answers.py",
+    "operation_count": 9,
+    "delivery_tickets": [
+      "TC-12-005"
+    ],
+    "security_ticket": "TC-06-005",
+    "scope": "REQUIRED FOR FULL RELEASE",
+    "source": "https://github.com/Johnathan-u/trust-copilot/blob/c20f949161ac12a619b396d30904448ffd74d532/apps/api/app/api/routes/golden_answers.py"
+  },
+  {
+    "kind": "API",
+    "name": "google_connector",
+    "path": "apps/api/app/api/routes/google_connector.py",
+    "operation_count": 4,
+    "delivery_tickets": [
+      "TC-20-020",
+      "TC-20-021",
+      "TC-20-022",
+      "TC-20-023",
+      "TC-20-024"
+    ],
+    "security_ticket": "TC-06-005",
+    "scope": "REQUIRED FOR FULL RELEASE",
+    "source": "https://github.com/Johnathan-u/trust-copilot/blob/c20f949161ac12a619b396d30904448ffd74d532/apps/api/app/api/routes/google_connector.py"
+  },
+  {
+    "kind": "API",
+    "name": "in_app_notifications",
+    "path": "apps/api/app/api/routes/in_app_notifications.py",
+    "operation_count": 4,
+    "delivery_tickets": [
+      "TC-19-010"
+    ],
+    "security_ticket": "TC-06-005",
+    "scope": "REQUIRED FOR FULL RELEASE",
+    "source": "https://github.com/Johnathan-u/trust-copilot/blob/c20f949161ac12a619b396d30904448ffd74d532/apps/api/app/api/routes/in_app_notifications.py"
+  },
+  {
+    "kind": "API",
+    "name": "incident_pages",
+    "path": "apps/api/app/api/routes/incident_pages.py",
+    "operation_count": 3,
+    "delivery_tickets": [
+      "TC-25-010"
+    ],
+    "security_ticket": "TC-06-005",
+    "scope": "REQUIRED FOR FULL RELEASE",
+    "source": "https://github.com/Johnathan-u/trust-copilot/blob/c20f949161ac12a619b396d30904448ffd74d532/apps/api/app/api/routes/incident_pages.py"
+  },
+  {
+    "kind": "API",
+    "name": "ingestion",
+    "path": "apps/api/app/api/routes/ingestion.py",
+    "operation_count": 3,
+    "delivery_tickets": [
+      "TC-22-001"
+    ],
+    "security_ticket": "TC-06-005",
+    "scope": "REQUIRED FOR FULL RELEASE",
+    "source": "https://github.com/Johnathan-u/trust-copilot/blob/c20f949161ac12a619b396d30904448ffd74d532/apps/api/app/api/routes/ingestion.py"
+  },
+  {
+    "kind": "API",
+    "name": "jobs",
+    "path": "apps/api/app/api/routes/jobs.py",
+    "operation_count": 1,
+    "delivery_tickets": [
+      "TC-10-001",
+      "TC-10-002",
+      "TC-10-003",
+      "TC-10-004"
+    ],
+    "security_ticket": "TC-06-005",
+    "scope": "REQUIRED FOR FULL RELEASE",
+    "source": "https://github.com/Johnathan-u/trust-copilot/blob/c20f949161ac12a619b396d30904448ffd74d532/apps/api/app/api/routes/jobs.py"
+  },
+  {
+    "kind": "API",
+    "name": "knowledge_packs",
+    "path": "apps/api/app/api/routes/knowledge_packs.py",
+    "operation_count": 1,
+    "delivery_tickets": [
+      "TC-12-009"
+    ],
+    "security_ticket": "TC-06-005",
+    "scope": "REQUIRED FOR FULL RELEASE",
+    "source": "https://github.com/Johnathan-u/trust-copilot/blob/c20f949161ac12a619b396d30904448ffd74d532/apps/api/app/api/routes/knowledge_packs.py"
+  },
+  {
+    "kind": "API",
+    "name": "members",
+    "path": "apps/api/app/api/routes/members.py",
+    "operation_count": 16,
+    "delivery_tickets": [
+      "TC-16-001",
+      "TC-05-003",
+      "TC-04-005"
+    ],
+    "security_ticket": "TC-06-005",
+    "scope": "REQUIRED FOR FULL RELEASE",
+    "source": "https://github.com/Johnathan-u/trust-copilot/blob/c20f949161ac12a619b396d30904448ffd74d532/apps/api/app/api/routes/members.py"
+  },
+  {
+    "kind": "API",
+    "name": "monitoring",
+    "path": "apps/api/app/api/routes/monitoring.py",
+    "operation_count": 1,
+    "delivery_tickets": [
+      "TC-22-004"
+    ],
+    "security_ticket": "TC-06-005",
+    "scope": "REQUIRED FOR FULL RELEASE",
+    "source": "https://github.com/Johnathan-u/trust-copilot/blob/c20f949161ac12a619b396d30904448ffd74d532/apps/api/app/api/routes/monitoring.py"
+  },
+  {
+    "kind": "API",
+    "name": "nda_access",
+    "path": "apps/api/app/api/routes/nda_access.py",
+    "operation_count": 6,
+    "delivery_tickets": [
+      "TC-17-006"
+    ],
+    "security_ticket": "TC-06-005",
+    "scope": "REQUIRED FOR FULL RELEASE",
+    "source": "https://github.com/Johnathan-u/trust-copilot/blob/c20f949161ac12a619b396d30904448ffd74d532/apps/api/app/api/routes/nda_access.py"
+  },
+  {
+    "kind": "API",
+    "name": "notifications",
+    "path": "apps/api/app/api/routes/notifications.py",
+    "operation_count": 9,
+    "delivery_tickets": [
+      "TC-19-009"
+    ],
+    "security_ticket": "TC-06-005",
+    "scope": "REQUIRED FOR FULL RELEASE",
+    "source": "https://github.com/Johnathan-u/trust-copilot/blob/c20f949161ac12a619b396d30904448ffd74d532/apps/api/app/api/routes/notifications.py"
+  },
+  {
+    "kind": "API",
+    "name": "operator_queue",
+    "path": "apps/api/app/api/routes/operator_queue.py",
+    "operation_count": 6,
+    "delivery_tickets": [
+      "TC-22-011"
+    ],
+    "security_ticket": "TC-06-005",
+    "scope": "REQUIRED FOR FULL RELEASE",
+    "source": "https://github.com/Johnathan-u/trust-copilot/blob/c20f949161ac12a619b396d30904448ffd74d532/apps/api/app/api/routes/operator_queue.py"
+  },
+  {
+    "kind": "API",
+    "name": "product_events",
+    "path": "apps/api/app/api/routes/product_events.py",
+    "operation_count": 5,
+    "delivery_tickets": [
+      "TC-25-006"
+    ],
+    "security_ticket": "TC-06-005",
+    "scope": "REQUIRED FOR FULL RELEASE",
+    "source": "https://github.com/Johnathan-u/trust-copilot/blob/c20f949161ac12a619b396d30904448ffd74d532/apps/api/app/api/routes/product_events.py"
+  },
+  {
+    "kind": "API",
+    "name": "promises",
+    "path": "apps/api/app/api/routes/promises.py",
+    "operation_count": 8,
+    "delivery_tickets": [
+      "TC-23-003"
+    ],
+    "security_ticket": "TC-06-005",
+    "scope": "REQUIRED FOR FULL RELEASE",
+    "source": "https://github.com/Johnathan-u/trust-copilot/blob/c20f949161ac12a619b396d30904448ffd74d532/apps/api/app/api/routes/promises.py"
+  },
+  {
+    "kind": "API",
+    "name": "proof_graph",
+    "path": "apps/api/app/api/routes/proof_graph.py",
+    "operation_count": 10,
+    "delivery_tickets": [
+      "TC-23-004"
+    ],
+    "security_ticket": "TC-06-005",
+    "scope": "REQUIRED FOR FULL RELEASE",
+    "source": "https://github.com/Johnathan-u/trust-copilot/blob/c20f949161ac12a619b396d30904448ffd74d532/apps/api/app/api/routes/proof_graph.py"
+  },
+  {
+    "kind": "API",
+    "name": "proof_widgets",
+    "path": "apps/api/app/api/routes/proof_widgets.py",
+    "operation_count": 1,
+    "delivery_tickets": [
+      "TC-23-005"
+    ],
+    "security_ticket": "TC-06-005",
+    "scope": "REQUIRED FOR FULL RELEASE",
+    "source": "https://github.com/Johnathan-u/trust-copilot/blob/c20f949161ac12a619b396d30904448ffd74d532/apps/api/app/api/routes/proof_widgets.py"
+  },
+  {
+    "kind": "API",
+    "name": "questionnaires",
+    "path": "apps/api/app/api/routes/questionnaires.py",
+    "operation_count": 16,
+    "delivery_tickets": [
+      "TC-09-001",
+      "TC-09-002",
+      "TC-09-003",
+      "TC-09-005",
+      "TC-09-007",
+      "TC-09-008"
+    ],
+    "security_ticket": "TC-06-005",
+    "scope": "REQUIRED FOR FULL RELEASE",
+    "source": "https://github.com/Johnathan-u/trust-copilot/blob/c20f949161ac12a619b396d30904448ffd74d532/apps/api/app/api/routes/questionnaires.py"
+  },
+  {
+    "kind": "API",
+    "name": "remediation",
+    "path": "apps/api/app/api/routes/remediation.py",
+    "operation_count": 15,
+    "delivery_tickets": [
+      "TC-22-007"
+    ],
+    "security_ticket": "TC-06-005",
+    "scope": "REQUIRED FOR FULL RELEASE",
+    "source": "https://github.com/Johnathan-u/trust-copilot/blob/c20f949161ac12a619b396d30904448ffd74d532/apps/api/app/api/routes/remediation.py"
+  },
+  {
+    "kind": "API",
+    "name": "retention",
+    "path": "apps/api/app/api/routes/retention.py",
+    "operation_count": 5,
+    "delivery_tickets": [
+      "TC-08-008",
+      "TC-08-007"
+    ],
+    "security_ticket": "TC-06-005",
+    "scope": "REQUIRED FOR FULL RELEASE",
+    "source": "https://github.com/Johnathan-u/trust-copilot/blob/c20f949161ac12a619b396d30904448ffd74d532/apps/api/app/api/routes/retention.py"
+  },
+  {
+    "kind": "API",
+    "name": "reuse_analytics",
+    "path": "apps/api/app/api/routes/reuse_analytics.py",
+    "operation_count": 1,
+    "delivery_tickets": [
+      "TC-25-007"
+    ],
+    "security_ticket": "TC-06-005",
+    "scope": "REQUIRED FOR FULL RELEASE",
+    "source": "https://github.com/Johnathan-u/trust-copilot/blob/c20f949161ac12a619b396d30904448ffd74d532/apps/api/app/api/routes/reuse_analytics.py"
+  },
+  {
+    "kind": "API",
+    "name": "roi_calculator",
+    "path": "apps/api/app/api/routes/roi_calculator.py",
+    "operation_count": 1,
+    "delivery_tickets": [
+      "TC-25-004"
+    ],
+    "security_ticket": "TC-06-005",
+    "scope": "REQUIRED FOR FULL RELEASE",
+    "source": "https://github.com/Johnathan-u/trust-copilot/blob/c20f949161ac12a619b396d30904448ffd74d532/apps/api/app/api/routes/roi_calculator.py"
+  },
+  {
+    "kind": "API",
+    "name": "search",
+    "path": "apps/api/app/api/routes/search.py",
+    "operation_count": 2,
+    "delivery_tickets": [
+      "TC-08-010"
+    ],
+    "security_ticket": "TC-06-005",
+    "scope": "REQUIRED FOR FULL RELEASE",
+    "source": "https://github.com/Johnathan-u/trust-copilot/blob/c20f949161ac12a619b396d30904448ffd74d532/apps/api/app/api/routes/search.py"
+  },
+  {
+    "kind": "API",
+    "name": "security_faq",
+    "path": "apps/api/app/api/routes/security_faq.py",
+    "operation_count": 7,
+    "delivery_tickets": [
+      "TC-17-004"
+    ],
+    "security_ticket": "TC-06-005",
+    "scope": "REQUIRED FOR FULL RELEASE",
+    "source": "https://github.com/Johnathan-u/trust-copilot/blob/c20f949161ac12a619b396d30904448ffd74d532/apps/api/app/api/routes/security_faq.py"
+  },
+  {
+    "kind": "API",
+    "name": "security_page",
+    "path": "apps/api/app/api/routes/security_page.py",
+    "operation_count": 1,
+    "delivery_tickets": [
+      "TC-17-003"
+    ],
+    "security_ticket": "TC-06-005",
+    "scope": "REQUIRED FOR FULL RELEASE",
+    "source": "https://github.com/Johnathan-u/trust-copilot/blob/c20f949161ac12a619b396d30904448ffd74d532/apps/api/app/api/routes/security_page.py"
+  },
+  {
+    "kind": "API",
+    "name": "shareable_spaces",
+    "path": "apps/api/app/api/routes/shareable_spaces.py",
+    "operation_count": 4,
+    "delivery_tickets": [
+      "TC-17-005"
+    ],
+    "security_ticket": "TC-06-005",
+    "scope": "REQUIRED FOR FULL RELEASE",
+    "source": "https://github.com/Johnathan-u/trust-copilot/blob/c20f949161ac12a619b396d30904448ffd74d532/apps/api/app/api/routes/shareable_spaces.py"
+  },
+  {
+    "kind": "API",
+    "name": "signal_mapping",
+    "path": "apps/api/app/api/routes/signal_mapping.py",
+    "operation_count": 3,
+    "delivery_tickets": [
+      "TC-22-009"
+    ],
+    "security_ticket": "TC-06-005",
+    "scope": "REQUIRED FOR FULL RELEASE",
+    "source": "https://github.com/Johnathan-u/trust-copilot/blob/c20f949161ac12a619b396d30904448ffd74d532/apps/api/app/api/routes/signal_mapping.py"
+  },
+  {
+    "kind": "API",
+    "name": "sla_tracking",
+    "path": "apps/api/app/api/routes/sla_tracking.py",
+    "operation_count": 1,
+    "delivery_tickets": [
+      "TC-22-010"
+    ],
+    "security_ticket": "TC-06-005",
+    "scope": "REQUIRED FOR FULL RELEASE",
+    "source": "https://github.com/Johnathan-u/trust-copilot/blob/c20f949161ac12a619b396d30904448ffd74d532/apps/api/app/api/routes/sla_tracking.py"
+  },
+  {
+    "kind": "API",
+    "name": "slack",
+    "path": "apps/api/app/api/routes/slack.py",
+    "operation_count": 6,
+    "delivery_tickets": [
+      "TC-19-001",
+      "TC-19-002",
+      "TC-19-004"
+    ],
+    "security_ticket": "TC-06-005",
+    "scope": "REQUIRED FOR FULL RELEASE",
+    "source": "https://github.com/Johnathan-u/trust-copilot/blob/c20f949161ac12a619b396d30904448ffd74d532/apps/api/app/api/routes/slack.py"
+  },
+  {
+    "kind": "API",
+    "name": "slack_ingest",
+    "path": "apps/api/app/api/routes/slack_ingest.py",
+    "operation_count": 8,
+    "delivery_tickets": [
+      "TC-19-003"
+    ],
+    "security_ticket": "TC-06-005",
+    "scope": "REQUIRED FOR FULL RELEASE",
+    "source": "https://github.com/Johnathan-u/trust-copilot/blob/c20f949161ac12a619b396d30904448ffd74d532/apps/api/app/api/routes/slack_ingest.py"
+  },
+  {
+    "kind": "API",
+    "name": "sli",
+    "path": "apps/api/app/api/routes/sli.py",
+    "operation_count": 1,
+    "delivery_tickets": [
+      "TC-25-009"
+    ],
+    "security_ticket": "TC-06-005",
+    "scope": "REQUIRED FOR FULL RELEASE",
+    "source": "https://github.com/Johnathan-u/trust-copilot/blob/c20f949161ac12a619b396d30904448ffd74d532/apps/api/app/api/routes/sli.py"
+  },
+  {
+    "kind": "API",
+    "name": "source_registry",
+    "path": "apps/api/app/api/routes/source_registry.py",
+    "operation_count": 5,
+    "delivery_tickets": [
+      "TC-20-001",
+      "TC-20-003",
+      "TC-20-004"
+    ],
+    "security_ticket": "TC-06-005",
+    "scope": "REQUIRED FOR FULL RELEASE",
+    "source": "https://github.com/Johnathan-u/trust-copilot/blob/c20f949161ac12a619b396d30904448ffd74d532/apps/api/app/api/routes/source_registry.py"
+  },
+  {
+    "kind": "API",
+    "name": "tags",
+    "path": "apps/api/app/api/routes/tags.py",
+    "operation_count": 6,
+    "delivery_tickets": [
+      "TC-08-011"
+    ],
+    "security_ticket": "TC-06-005",
+    "scope": "REQUIRED FOR FULL RELEASE",
+    "source": "https://github.com/Johnathan-u/trust-copilot/blob/c20f949161ac12a619b396d30904448ffd74d532/apps/api/app/api/routes/tags.py"
+  },
+  {
+    "kind": "API",
+    "name": "trust_articles",
+    "path": "apps/api/app/api/routes/trust_articles.py",
+    "operation_count": 8,
+    "delivery_tickets": [
+      "TC-17-001"
+    ],
+    "security_ticket": "TC-06-005",
+    "scope": "REQUIRED FOR FULL RELEASE",
+    "source": "https://github.com/Johnathan-u/trust-copilot/blob/c20f949161ac12a619b396d30904448ffd74d532/apps/api/app/api/routes/trust_articles.py"
+  },
+  {
+    "kind": "API",
+    "name": "trust_center_analytics",
+    "path": "apps/api/app/api/routes/trust_center_analytics.py",
+    "operation_count": 1,
+    "delivery_tickets": [
+      "TC-25-008"
+    ],
+    "security_ticket": "TC-06-005",
+    "scope": "REQUIRED FOR FULL RELEASE",
+    "source": "https://github.com/Johnathan-u/trust-copilot/blob/c20f949161ac12a619b396d30904448ffd74d532/apps/api/app/api/routes/trust_center_analytics.py"
+  },
+  {
+    "kind": "API",
+    "name": "trust_center_publish",
+    "path": "apps/api/app/api/routes/trust_center_publish.py",
+    "operation_count": 2,
+    "delivery_tickets": [
+      "TC-17-002"
+    ],
+    "security_ticket": "TC-06-005",
+    "scope": "REQUIRED FOR FULL RELEASE",
+    "source": "https://github.com/Johnathan-u/trust-copilot/blob/c20f949161ac12a619b396d30904448ffd74d532/apps/api/app/api/routes/trust_center_publish.py"
+  },
+  {
+    "kind": "API",
+    "name": "trust_requests",
+    "path": "apps/api/app/api/routes/trust_requests.py",
+    "operation_count": 17,
+    "delivery_tickets": [
+      "TC-18-001"
+    ],
+    "security_ticket": "TC-06-005",
+    "scope": "REQUIRED FOR FULL RELEASE",
+    "source": "https://github.com/Johnathan-u/trust-copilot/blob/c20f949161ac12a619b396d30904448ffd74d532/apps/api/app/api/routes/trust_requests.py"
+  },
+  {
+    "kind": "API",
+    "name": "vendor_requests",
+    "path": "apps/api/app/api/routes/vendor_requests.py",
+    "operation_count": 4,
+    "delivery_tickets": [
+      "TC-18-002"
+    ],
+    "security_ticket": "TC-06-005",
+    "scope": "REQUIRED FOR FULL RELEASE",
+    "source": "https://github.com/Johnathan-u/trust-copilot/blob/c20f949161ac12a619b396d30904448ffd74d532/apps/api/app/api/routes/vendor_requests.py"
+  },
+  {
+    "kind": "API",
+    "name": "vendor_response",
+    "path": "apps/api/app/api/routes/vendor_response.py",
+    "operation_count": 1,
+    "delivery_tickets": [
+      "TC-18-003"
+    ],
+    "security_ticket": "TC-06-005",
+    "scope": "REQUIRED FOR FULL RELEASE",
+    "source": "https://github.com/Johnathan-u/trust-copilot/blob/c20f949161ac12a619b396d30904448ffd74d532/apps/api/app/api/routes/vendor_response.py"
+  },
+  {
+    "kind": "API",
+    "name": "workspaces",
+    "path": "apps/api/app/api/routes/workspaces.py",
+    "operation_count": 4,
+    "delivery_tickets": [
+      "TC-16-002",
+      "TC-08-008",
+      "TC-16-001"
+    ],
+    "security_ticket": "TC-06-005",
+    "scope": "REQUIRED FOR FULL RELEASE",
+    "source": "https://github.com/Johnathan-u/trust-copilot/blob/c20f949161ac12a619b396d30904448ffd74d532/apps/api/app/api/routes/workspaces.py"
+  },
+  {
+    "kind": "Page",
+    "name": "/accept-invite",
+    "path": "apps/web/app/accept-invite/page.tsx",
+    "operation_count": 0,
+    "delivery_tickets": [
+      "TC-15-009"
+    ],
+    "security_ticket": "TC-06-005",
+    "scope": "REQUIRED FOR FULL RELEASE",
+    "source": "https://github.com/Johnathan-u/trust-copilot/blob/c20f949161ac12a619b396d30904448ffd74d532/apps/web/app/accept-invite/page.tsx"
+  },
+  {
+    "kind": "Page",
+    "name": "/checkout",
+    "path": "apps/web/app/checkout/page.tsx",
+    "operation_count": 0,
+    "delivery_tickets": [
+      "TC-15-003"
+    ],
+    "security_ticket": "TC-06-005",
+    "scope": "REQUIRED FOR FULL RELEASE",
+    "source": "https://github.com/Johnathan-u/trust-copilot/blob/c20f949161ac12a619b396d30904448ffd74d532/apps/web/app/checkout/page.tsx"
+  },
+  {
+    "kind": "Page",
+    "name": "/dashboard/ai-governance",
+    "path": "apps/web/app/dashboard/ai-governance/page.tsx",
+    "operation_count": 0,
+    "delivery_tickets": [
+      "TC-15-035"
+    ],
+    "security_ticket": "TC-06-005",
+    "scope": "REQUIRED FOR FULL RELEASE",
+    "source": "https://github.com/Johnathan-u/trust-copilot/blob/c20f949161ac12a619b396d30904448ffd74d532/apps/web/app/dashboard/ai-governance/page.tsx"
+  },
+  {
+    "kind": "Page",
+    "name": "/dashboard/audit",
+    "path": "apps/web/app/dashboard/audit/page.tsx",
+    "operation_count": 0,
+    "delivery_tickets": [
+      "TC-15-032"
+    ],
+    "security_ticket": "TC-06-005",
+    "scope": "REQUIRED FOR FULL RELEASE",
+    "source": "https://github.com/Johnathan-u/trust-copilot/blob/c20f949161ac12a619b396d30904448ffd74d532/apps/web/app/dashboard/audit/page.tsx"
+  },
+  {
+    "kind": "Page",
+    "name": "/dashboard/compliance-gaps",
+    "path": "apps/web/app/dashboard/compliance-gaps/page.tsx",
+    "operation_count": 0,
+    "delivery_tickets": [
+      "TC-15-025"
+    ],
+    "security_ticket": "TC-06-005",
+    "scope": "REQUIRED FOR FULL RELEASE",
+    "source": "https://github.com/Johnathan-u/trust-copilot/blob/c20f949161ac12a619b396d30904448ffd74d532/apps/web/app/dashboard/compliance-gaps/page.tsx"
+  },
+  {
+    "kind": "Page",
+    "name": "/dashboard/documents",
+    "path": "apps/web/app/dashboard/documents/page.tsx",
+    "operation_count": 0,
+    "delivery_tickets": [
+      "TC-15-016"
+    ],
+    "security_ticket": "TC-06-005",
+    "scope": "REQUIRED FOR FULL RELEASE",
+    "source": "https://github.com/Johnathan-u/trust-copilot/blob/c20f949161ac12a619b396d30904448ffd74d532/apps/web/app/dashboard/documents/page.tsx"
+  },
+  {
+    "kind": "Page",
+    "name": "/dashboard/exports",
+    "path": "apps/web/app/dashboard/exports/page.tsx",
+    "operation_count": 0,
+    "delivery_tickets": [
+      "TC-15-022"
+    ],
+    "security_ticket": "TC-06-005",
+    "scope": "REQUIRED FOR FULL RELEASE",
+    "source": "https://github.com/Johnathan-u/trust-copilot/blob/c20f949161ac12a619b396d30904448ffd74d532/apps/web/app/dashboard/exports/page.tsx"
+  },
+  {
+    "kind": "Page",
+    "name": "/dashboard/gmail",
+    "path": "apps/web/app/dashboard/gmail/page.tsx",
+    "operation_count": 0,
+    "delivery_tickets": [
+      "TC-15-031"
+    ],
+    "security_ticket": "TC-06-005",
+    "scope": "REQUIRED FOR FULL RELEASE",
+    "source": "https://github.com/Johnathan-u/trust-copilot/blob/c20f949161ac12a619b396d30904448ffd74d532/apps/web/app/dashboard/gmail/page.tsx"
+  },
+  {
+    "kind": "Page",
+    "name": "/dashboard/members",
+    "path": "apps/web/app/dashboard/members/page.tsx",
+    "operation_count": 0,
+    "delivery_tickets": [
+      "TC-15-028"
+    ],
+    "security_ticket": "TC-06-005",
+    "scope": "REQUIRED FOR FULL RELEASE",
+    "source": "https://github.com/Johnathan-u/trust-copilot/blob/c20f949161ac12a619b396d30904448ffd74d532/apps/web/app/dashboard/members/page.tsx"
+  },
+  {
+    "kind": "Page",
+    "name": "/dashboard/notifications",
+    "path": "apps/web/app/dashboard/notifications/page.tsx",
+    "operation_count": 0,
+    "delivery_tickets": [
+      "TC-15-029"
+    ],
+    "security_ticket": "TC-06-005",
+    "scope": "REQUIRED FOR FULL RELEASE",
+    "source": "https://github.com/Johnathan-u/trust-copilot/blob/c20f949161ac12a619b396d30904448ffd74d532/apps/web/app/dashboard/notifications/page.tsx"
+  },
+  {
+    "kind": "Page",
+    "name": "/dashboard",
+    "path": "apps/web/app/dashboard/page.tsx",
+    "operation_count": 0,
+    "delivery_tickets": [
+      "TC-15-015"
+    ],
+    "security_ticket": "TC-06-005",
+    "scope": "REQUIRED FOR FULL RELEASE",
+    "source": "https://github.com/Johnathan-u/trust-copilot/blob/c20f949161ac12a619b396d30904448ffd74d532/apps/web/app/dashboard/page.tsx"
+  },
+  {
+    "kind": "Page",
+    "name": "/dashboard/proof-chain",
+    "path": "apps/web/app/dashboard/proof-chain/page.tsx",
+    "operation_count": 0,
+    "delivery_tickets": [
+      "TC-15-026"
+    ],
+    "security_ticket": "TC-06-005",
+    "scope": "REQUIRED FOR FULL RELEASE",
+    "source": "https://github.com/Johnathan-u/trust-copilot/blob/c20f949161ac12a619b396d30904448ffd74d532/apps/web/app/dashboard/proof-chain/page.tsx"
+  },
+  {
+    "kind": "Page",
+    "name": "/dashboard/questionnaires/[id]",
+    "path": "apps/web/app/dashboard/questionnaires/[id]/page.tsx",
+    "operation_count": 0,
+    "delivery_tickets": [
+      "TC-15-018"
+    ],
+    "security_ticket": "TC-06-005",
+    "scope": "REQUIRED FOR FULL RELEASE",
+    "source": "https://github.com/Johnathan-u/trust-copilot/blob/c20f949161ac12a619b396d30904448ffd74d532/apps/web/app/dashboard/questionnaires/[id]/page.tsx"
+  },
+  {
+    "kind": "Page",
+    "name": "/dashboard/questionnaires",
+    "path": "apps/web/app/dashboard/questionnaires/page.tsx",
+    "operation_count": 0,
+    "delivery_tickets": [
+      "TC-15-017"
+    ],
+    "security_ticket": "TC-06-005",
+    "scope": "REQUIRED FOR FULL RELEASE",
+    "source": "https://github.com/Johnathan-u/trust-copilot/blob/c20f949161ac12a619b396d30904448ffd74d532/apps/web/app/dashboard/questionnaires/page.tsx"
+  },
+  {
+    "kind": "Page",
+    "name": "/dashboard/requests",
+    "path": "apps/web/app/dashboard/requests/page.tsx",
+    "operation_count": 0,
+    "delivery_tickets": [
+      "TC-15-023"
+    ],
+    "security_ticket": "TC-06-005",
+    "scope": "REQUIRED FOR FULL RELEASE",
+    "source": "https://github.com/Johnathan-u/trust-copilot/blob/c20f949161ac12a619b396d30904448ffd74d532/apps/web/app/dashboard/requests/page.tsx"
+  },
+  {
+    "kind": "Page",
+    "name": "/dashboard/review/[id]",
+    "path": "apps/web/app/dashboard/review/[id]/page.tsx",
+    "operation_count": 0,
+    "delivery_tickets": [
+      "TC-15-020",
+      "TC-15-021"
+    ],
+    "security_ticket": "TC-06-005",
+    "scope": "REQUIRED FOR FULL RELEASE",
+    "source": "https://github.com/Johnathan-u/trust-copilot/blob/c20f949161ac12a619b396d30904448ffd74d532/apps/web/app/dashboard/review/[id]/page.tsx"
+  },
+  {
+    "kind": "Page",
+    "name": "/dashboard/review",
+    "path": "apps/web/app/dashboard/review/page.tsx",
+    "operation_count": 0,
+    "delivery_tickets": [
+      "TC-15-019"
+    ],
+    "security_ticket": "TC-06-005",
+    "scope": "REQUIRED FOR FULL RELEASE",
+    "source": "https://github.com/Johnathan-u/trust-copilot/blob/c20f949161ac12a619b396d30904448ffd74d532/apps/web/app/dashboard/review/page.tsx"
+  },
+  {
+    "kind": "Page",
+    "name": "/dashboard/security",
+    "path": "apps/web/app/dashboard/security/page.tsx",
+    "operation_count": 0,
+    "delivery_tickets": [
+      "TC-15-033"
+    ],
+    "security_ticket": "TC-06-005",
+    "scope": "REQUIRED FOR FULL RELEASE",
+    "source": "https://github.com/Johnathan-u/trust-copilot/blob/c20f949161ac12a619b396d30904448ffd74d532/apps/web/app/dashboard/security/page.tsx"
+  },
+  {
+    "kind": "Page",
+    "name": "/dashboard/settings",
+    "path": "apps/web/app/dashboard/settings/page.tsx",
+    "operation_count": 0,
+    "delivery_tickets": [
+      "TC-15-034"
+    ],
+    "security_ticket": "TC-06-005",
+    "scope": "REQUIRED FOR FULL RELEASE",
+    "source": "https://github.com/Johnathan-u/trust-copilot/blob/c20f949161ac12a619b396d30904448ffd74d532/apps/web/app/dashboard/settings/page.tsx"
+  },
+  {
+    "kind": "Page",
+    "name": "/dashboard/slack",
+    "path": "apps/web/app/dashboard/slack/page.tsx",
+    "operation_count": 0,
+    "delivery_tickets": [
+      "TC-15-030"
+    ],
+    "security_ticket": "TC-06-005",
+    "scope": "REQUIRED FOR FULL RELEASE",
+    "source": "https://github.com/Johnathan-u/trust-copilot/blob/c20f949161ac12a619b396d30904448ffd74d532/apps/web/app/dashboard/slack/page.tsx"
+  },
+  {
+    "kind": "Page",
+    "name": "/dashboard/trust-center",
+    "path": "apps/web/app/dashboard/trust-center/page.tsx",
+    "operation_count": 0,
+    "delivery_tickets": [
+      "TC-15-027"
+    ],
+    "security_ticket": "TC-06-005",
+    "scope": "REQUIRED FOR FULL RELEASE",
+    "source": "https://github.com/Johnathan-u/trust-copilot/blob/c20f949161ac12a619b396d30904448ffd74d532/apps/web/app/dashboard/trust-center/page.tsx"
+  },
+  {
+    "kind": "Page",
+    "name": "/dashboard/vendor-requests",
+    "path": "apps/web/app/dashboard/vendor-requests/page.tsx",
+    "operation_count": 0,
+    "delivery_tickets": [
+      "TC-15-024"
+    ],
+    "security_ticket": "TC-06-005",
+    "scope": "REQUIRED FOR FULL RELEASE",
+    "source": "https://github.com/Johnathan-u/trust-copilot/blob/c20f949161ac12a619b396d30904448ffd74d532/apps/web/app/dashboard/vendor-requests/page.tsx"
+  },
+  {
+    "kind": "Page",
+    "name": "/forgot-password",
+    "path": "apps/web/app/forgot-password/page.tsx",
+    "operation_count": 0,
+    "delivery_tickets": [
+      "TC-15-006"
+    ],
+    "security_ticket": "TC-06-005",
+    "scope": "REQUIRED FOR FULL RELEASE",
+    "source": "https://github.com/Johnathan-u/trust-copilot/blob/c20f949161ac12a619b396d30904448ffd74d532/apps/web/app/forgot-password/page.tsx"
+  },
+  {
+    "kind": "Page",
+    "name": "/login",
+    "path": "apps/web/app/login/page.tsx",
+    "operation_count": 0,
+    "delivery_tickets": [
+      "TC-15-004"
+    ],
+    "security_ticket": "TC-06-005",
+    "scope": "REQUIRED FOR FULL RELEASE",
+    "source": "https://github.com/Johnathan-u/trust-copilot/blob/c20f949161ac12a619b396d30904448ffd74d532/apps/web/app/login/page.tsx"
+  },
+  {
+    "kind": "Page",
+    "name": "/onboarding",
+    "path": "apps/web/app/onboarding/page.tsx",
+    "operation_count": 0,
+    "delivery_tickets": [
+      "TC-15-010"
+    ],
+    "security_ticket": "TC-06-005",
+    "scope": "REQUIRED FOR FULL RELEASE",
+    "source": "https://github.com/Johnathan-u/trust-copilot/blob/c20f949161ac12a619b396d30904448ffd74d532/apps/web/app/onboarding/page.tsx"
+  },
+  {
+    "kind": "Page",
+    "name": "/",
+    "path": "apps/web/app/page.tsx",
+    "operation_count": 0,
+    "delivery_tickets": [
+      "TC-15-001"
+    ],
+    "security_ticket": "TC-06-005",
+    "scope": "REQUIRED FOR FULL RELEASE",
+    "source": "https://github.com/Johnathan-u/trust-copilot/blob/c20f949161ac12a619b396d30904448ffd74d532/apps/web/app/page.tsx"
+  },
+  {
+    "kind": "Page",
+    "name": "/pricing",
+    "path": "apps/web/app/pricing/page.tsx",
+    "operation_count": 0,
+    "delivery_tickets": [
+      "TC-15-002"
+    ],
+    "security_ticket": "TC-06-005",
+    "scope": "REQUIRED FOR FULL RELEASE",
+    "source": "https://github.com/Johnathan-u/trust-copilot/blob/c20f949161ac12a619b396d30904448ffd74d532/apps/web/app/pricing/page.tsx"
+  },
+  {
+    "kind": "Page",
+    "name": "/register",
+    "path": "apps/web/app/register/page.tsx",
+    "operation_count": 0,
+    "delivery_tickets": [
+      "TC-15-005"
+    ],
+    "security_ticket": "TC-06-005",
+    "scope": "REQUIRED FOR FULL RELEASE",
+    "source": "https://github.com/Johnathan-u/trust-copilot/blob/c20f949161ac12a619b396d30904448ffd74d532/apps/web/app/register/page.tsx"
+  },
+  {
+    "kind": "Page",
+    "name": "/reset-password",
+    "path": "apps/web/app/reset-password/page.tsx",
+    "operation_count": 0,
+    "delivery_tickets": [
+      "TC-15-007"
+    ],
+    "security_ticket": "TC-06-005",
+    "scope": "REQUIRED FOR FULL RELEASE",
+    "source": "https://github.com/Johnathan-u/trust-copilot/blob/c20f949161ac12a619b396d30904448ffd74d532/apps/web/app/reset-password/page.tsx"
+  },
+  {
+    "kind": "Page",
+    "name": "/trust/[slug]",
+    "path": "apps/web/app/trust/[slug]/page.tsx",
+    "operation_count": 0,
+    "delivery_tickets": [
+      "TC-15-012"
+    ],
+    "security_ticket": "TC-06-005",
+    "scope": "REQUIRED FOR FULL RELEASE",
+    "source": "https://github.com/Johnathan-u/trust-copilot/blob/c20f949161ac12a619b396d30904448ffd74d532/apps/web/app/trust/[slug]/page.tsx"
+  },
+  {
+    "kind": "Page",
+    "name": "/trust",
+    "path": "apps/web/app/trust/page.tsx",
+    "operation_count": 0,
+    "delivery_tickets": [
+      "TC-15-011"
+    ],
+    "security_ticket": "TC-06-005",
+    "scope": "REQUIRED FOR FULL RELEASE",
+    "source": "https://github.com/Johnathan-u/trust-copilot/blob/c20f949161ac12a619b396d30904448ffd74d532/apps/web/app/trust/page.tsx"
+  },
+  {
+    "kind": "Page",
+    "name": "/vendor-response",
+    "path": "apps/web/app/vendor-response/page.tsx",
+    "operation_count": 0,
+    "delivery_tickets": [
+      "TC-15-013",
+      "TC-15-014"
+    ],
+    "security_ticket": "TC-06-005",
+    "scope": "REQUIRED FOR FULL RELEASE",
+    "source": "https://github.com/Johnathan-u/trust-copilot/blob/c20f949161ac12a619b396d30904448ffd74d532/apps/web/app/vendor-response/page.tsx"
+  },
+  {
+    "kind": "Page",
+    "name": "/verify-email",
+    "path": "apps/web/app/verify-email/page.tsx",
+    "operation_count": 0,
+    "delivery_tickets": [
+      "TC-15-008"
+    ],
+    "security_ticket": "TC-06-005",
+    "scope": "REQUIRED FOR FULL RELEASE",
+    "source": "https://github.com/Johnathan-u/trust-copilot/blob/c20f949161ac12a619b396d30904448ffd74d532/apps/web/app/verify-email/page.tsx"
+  }
+]
