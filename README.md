@@ -100,7 +100,11 @@ Session signing, OAuth state, MFA and connector encryption can each have a versi
 
 `cd apps/api && python scripts/rotate_purpose_keys.py --dry-run`
 
-The command prints counts only. See [docs/release/config-contract.md](docs/release/config-contract.md)
+The command prints counts only. An MFA secret it cannot open is marked `reenrol.<kid>`.
+Password login then fails with `mfa_reset_required` and does not start a session. An
+administrator of that workspace clears the marker with
+`POST /api/members/clear-mfa-reenrol/{user_id}`; the user enrols again on the next login.
+See [docs/release/config-contract.md](docs/release/config-contract.md)
 and [docs/release/tickets/TC-07-002.md](docs/release/tickets/TC-07-002.md).
 
 See `.env.example`. Required: `DATABASE_URL`, `SESSION_SECRET`, `S3_*`. Optional: `OPENAI_API_KEY` (needed for embeddings and answer generation).

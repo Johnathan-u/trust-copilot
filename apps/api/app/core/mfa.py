@@ -1,8 +1,9 @@
 """MFA helpers (AUTH-211): TOTP secret encryption and verification."""
 
 import pyotp
+from sqlalchemy.orm import Session
 
-from app.core.keys import MfaReenrolRequired, open_sealed, seal
+from app.core.keys import REENROL_MARK, KeyErrorSafe, MfaReenrolRequired, open_sealed, seal
 
 
 def encrypt_totp_secret(secret: str) -> str:
@@ -16,18 +17,34 @@ def decrypt_totp_secret(encrypted: str) -> str:
 
 
 def mfa_reenrol_required(encrypted: str | None) -> bool:
-    """True when rotation could not open the stored MFA secret."""
-    if not encrypted:
-        return False
-    if encrypted.startswith("reenrol."):
-        return True
+    """True when the stored MFA secret is the undecryptable ``reenrol.<kid>`` marker."""
+    return bool(encrypted) and encrypted.startswith(f"{REENROL_MARK}.")
+
+
+def decrypt_mfa_for_user(
+    db: Session,
+    *,
+    user_id: int,
+    encrypted: str,
+    resource_id: int | None = None,
+) -> str:
+    """Open an MFA secret. A failure is audited with user id, key id and reason only."""
     try:
-        decrypt_totp_secret(encrypted)
-    except MfaReenrolRequired:
-        return True
-    except Exception:
-        return False
-    return False
+        return decrypt_totp_secret(encrypted)
+    except (KeyErrorSafe, MfaReenrolRequired) as exc:
+        from app.core.audit import record_decrypt_failure
+
+        reason = "reenrol_marker" if isinstance(exc, MfaReenrolRequired) else "decrypt_failed"
+        record_decrypt_failure(
+            db,
+            user_id=user_id,
+            stored=encrypted,
+            reason=reason,
+            resource_type="user_mfa",
+            resource_id=resource_id,
+            commit=True,
+        )
+        raise
 
 
 def generate_totp_secret() -> str:

@@ -154,6 +154,26 @@ def seal(purpose: str, plaintext: str, env: dict[str, str] | None = None) -> str
     return sealed
 
 
+def stored_key_id(stored: str | None) -> str:
+    """Key id embedded in a ciphertext, or ``unknown`` when there is none.
+
+    The returned id matches the key-id grammar. The token itself is never returned.
+    """
+    if not isinstance(stored, str) or not stored:
+        return "unknown"
+    if stored.startswith(f"{REENROL_MARK}."):
+        kid = stored.split(".", 1)[1]
+    elif stored.startswith(_FERNET_PREFIX):
+        return "unknown"
+    elif "." in stored:
+        kid = stored.split(".", 1)[0]
+    else:
+        return "unknown"
+    if _KID_RE.fullmatch(kid):
+        return kid
+    return "unknown"
+
+
 def open_sealed(purpose: str, stored: str, env: dict[str, str] | None = None) -> str:
     if stored.startswith(f"{REENROL_MARK}."):
         raise MfaReenrolRequired("mfa secret must be enrolled again")

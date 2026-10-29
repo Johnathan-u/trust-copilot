@@ -30,11 +30,14 @@ Source of truth: `apps/api/app/core/config_contract.py`. The table between the m
   `cd apps/api && python scripts/rotate_purpose_keys.py --dry-run`
 
   The command prints counts only. It re-encrypts rows onto the current key id, skips rows already
-  there, and can resume with `--after-id`. An MFA secret that cannot be opened is marked for
-  re-enrolment (`reenrol.<kid>`): MFA stays enabled, password login returns `mfa_reenrol_required`,
-  and `POST /api/auth/mfa/setup` accepts a new secret. Sessions whose signing key id is retired, or
-  missing once a non-legacy session key is current, are deleted. Custody is versioned env keyrings,
-  not a KMS.
+  there, and can resume with `--after-id`. An MFA secret that cannot be opened is marked
+  `reenrol.<kid>` and stays enabled. Password login then fails with `mfa_reset_required` and
+  issues no session, so setup is unreachable until an administrator of that workspace calls
+  `POST /api/members/clear-mfa-reenrol/{user_id}`. That clears the marker, writes an audit row
+  (actor, target, workspace), and leaves MFA required. The user enrols with the normal setup
+  flow on the next login. Failed decrypts are audited with user id, key id and reason only.
+  Sessions whose signing key id is retired, or missing once a non-legacy session key is current,
+  are deleted. Custody is versioned env keyrings, not a KMS.
 * **Rate limiting.** Unless `REDIS_URL` is set, the limiter in `app.core.rate_limit` is in-memory and
   per-process. The Redis backend fails open on store errors for every route except `POST /api/workspaces`.
   In production that route fails closed (HTTP 503, a generic detail, and `Retry-After`) because workspace

@@ -14,22 +14,25 @@ from urllib.parse import urlsplit
 from fastapi import APIRouter, Depends, HTTPException, Request, Response
 
 logger = logging.getLogger(__name__)
-from fastapi.responses import RedirectResponse  # noqa: E402
+from fastapi.responses import JSONResponse, RedirectResponse  # noqa: E402
 
 from pydantic import BaseModel  # noqa: E402
 from sqlalchemy.exc import OperationalError, SQLAlchemyError  # noqa: E402
 from sqlalchemy.orm import Session  # noqa: E402
 
-from app.core.audit import audit_log, persist_audit  # noqa: E402
+from app.core.api_errors import ApiError, api_error_response, current_request_id  # noqa: E402
+from app.core.audit import audit_log, persist_audit, record_decrypt_failure  # noqa: E402
 from app.core.debug_session_log import append_session_debug  # noqa: E402
 from app.core.auth_deps import get_session, require_session, require_valid_session  # noqa: E402
 from app.core.config import get_settings  # noqa: E402
 from app.core.database import get_db  # noqa: E402
+from app.core.keys import KeyErrorSafe, MfaReenrolRequired  # noqa: E402
 from app.core.mfa import (  # noqa: E402
-    decrypt_totp_secret,
+    decrypt_mfa_for_user,
     encrypt_totp_secret,
     generate_totp_secret,
     get_totp_uri,
+    mfa_reenrol_required,
     verify_totp,
 )
 from app.core.password import hash_password, verify_password  # noqa: E402
@@ -433,6 +436,8 @@ def login(req: LoginRequest, request: Request, response: Response, db: Session =
     """Session-based login. If MFA enabled, return requires_mfa + mfa_token (AUTH-211). AUTH-210: rate limited."""
     try:
         out = _login_impl(req, request, response, db)
+        if isinstance(out, JSONResponse):
+            return out
         # #region agent log
         try:
             append_session_debug(
@@ -544,10 +549,28 @@ def _login_impl(req: LoginRequest, request: Request, response: Response, db: Ses
     mfa_row = (
         db.query(UserMfa).filter(UserMfa.user_id == user.id, UserMfa.enabled.is_(True)).first()
     )
-    from app.core.mfa import mfa_reenrol_required
-
-    reenrol = bool(mfa_row and mfa_reenrol_required(mfa_row.totp_secret_encrypted))
-    if mfa_row and not reenrol:
+    if mfa_row and mfa_reenrol_required(mfa_row.totp_secret_encrypted):
+        record_decrypt_failure(
+            db,
+            user_id=user.id,
+            stored=mfa_row.totp_secret_encrypted,
+            reason="reenrol_marker",
+            resource_type="user_mfa",
+            resource_id=mfa_row.id,
+            commit=True,
+        )
+        return api_error_response(
+            ApiError(
+                code="mfa_reset_required",
+                message=(
+                    "An administrator must reset multi-factor authentication before you can sign in."
+                ),
+                request_id=current_request_id(request),
+                retryable=False,
+            ),
+            403,
+        )
+    if mfa_row:
         mfa_token_raw = secrets.token_urlsafe(32)
         mfa_token_hash_val = _token_hash(mfa_token_raw)
         expires_at = datetime.now(timezone.utc) + timedelta(minutes=5)
@@ -600,10 +623,7 @@ def _login_impl(req: LoginRequest, request: Request, response: Response, db: Ses
     response.set_cookie(
         key=SESSION_COOKIE, value=token, **_session_cookie_kwargs(max_age, persistent=remember)
     )
-    body = {"user": _user_response(user), "workspace_id": member.workspace_id}
-    if reenrol:
-        body["mfa_reenrol_required"] = True
-    return body
+    return {"user": _user_response(user), "workspace_id": member.workspace_id}
 
 
 @router.post("/logout")
@@ -2071,9 +2091,7 @@ async def mfa_setup(request: Request, db: Session = Depends(get_db)):
     if not user:
         raise HTTPException(status_code=401, detail="User not found")
     existing = db.query(UserMfa).filter(UserMfa.user_id == user_id).first()
-    from app.core.mfa import mfa_reenrol_required
-
-    if existing and existing.enabled and not mfa_reenrol_required(existing.totp_secret_encrypted):
+    if existing and existing.enabled:
         raise HTTPException(status_code=400, detail="MFA is already enabled")
     secret = generate_totp_secret()
     encrypted = encrypt_totp_secret(secret)
@@ -2103,7 +2121,15 @@ async def mfa_confirm(req: MfaConfirmRequest, request: Request, db: Session = De
         raise HTTPException(status_code=400, detail="Start MFA setup first")
     if row.enabled:
         raise HTTPException(status_code=400, detail="MFA is already enabled")
-    secret = decrypt_totp_secret(row.totp_secret_encrypted)
+    try:
+        secret = decrypt_mfa_for_user(
+            db,
+            user_id=user_id,
+            encrypted=row.totp_secret_encrypted,
+            resource_id=row.id,
+        )
+    except (KeyErrorSafe, MfaReenrolRequired):
+        raise HTTPException(status_code=400, detail="Invalid code")
     if not verify_totp(secret, (req.code or "").strip()):
         persist_audit(db, "auth.mfa_confirm_failed", user_id=user_id, email=user.email)
         raise HTTPException(status_code=400, detail="Invalid code")
@@ -2157,10 +2183,41 @@ def mfa_verify_login(
         db.delete(mlt)
         db.commit()
         raise HTTPException(status_code=400, detail="MFA not enabled")
+    if mfa_reenrol_required(mfa_row.totp_secret_encrypted):
+        db.delete(mlt)
+        record_decrypt_failure(
+            db,
+            user_id=user.id,
+            stored=mfa_row.totp_secret_encrypted,
+            reason="reenrol_marker",
+            resource_type="user_mfa",
+            resource_id=mfa_row.id,
+            commit=True,
+        )
+        return api_error_response(
+            ApiError(
+                code="mfa_reset_required",
+                message=(
+                    "An administrator must reset multi-factor authentication before you can sign in."
+                ),
+                request_id=current_request_id(request),
+                retryable=False,
+            ),
+            403,
+        )
     verified = False
     if len(code) == 6 and code.isdigit():
-        secret = decrypt_totp_secret(mfa_row.totp_secret_encrypted)
-        verified = verify_totp(secret, code)
+        try:
+            secret = decrypt_mfa_for_user(
+                db,
+                user_id=user.id,
+                encrypted=mfa_row.totp_secret_encrypted,
+                resource_id=mfa_row.id,
+            )
+        except (KeyErrorSafe, MfaReenrolRequired):
+            verified = False
+        else:
+            verified = verify_totp(secret, code)
     if not verified:
         code_hash = _recovery_code_hash(code)
         rc = (

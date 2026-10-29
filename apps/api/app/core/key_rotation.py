@@ -42,7 +42,15 @@ def _already_current(stored: str, purpose: str) -> bool:
     return stored.startswith(f"{kid}.")
 
 
+def _row_user_id(row: object) -> int | None:
+    value = getattr(row, "user_id", None)
+    if isinstance(value, int) and not isinstance(value, bool):
+        return value
+    return None
+
+
 def _rotate_column(
+    db: Session,
     rows: list,
     purpose: str,
     read: Callable,
@@ -51,6 +59,8 @@ def _rotate_column(
     dry_run: bool,
     on_fail: Callable | None,
 ) -> dict[str, int]:
+    from app.core.audit import record_decrypt_failure
+
     counts = {"reencrypted": 0, "unchanged": 0, "failed": 0, "reenrol": 0}
     for row in rows:
         stored = read(row)
@@ -65,7 +75,17 @@ def _rotate_column(
             continue
         try:
             plain = open_sealed(purpose, stored)
-        except (KeyErrorSafe, MfaReenrolRequired):
+        except (KeyErrorSafe, MfaReenrolRequired) as exc:
+            reason = "reenrol_marker" if isinstance(exc, MfaReenrolRequired) else "decrypt_failed"
+            record_decrypt_failure(
+                db,
+                user_id=_row_user_id(row),
+                stored=stored if isinstance(stored, str) else None,
+                reason=reason,
+                resource_type=getattr(row, "__tablename__", purpose),
+                resource_id=getattr(row, "id", None),
+                commit=False,
+            )
             if on_fail is not None:
                 if not dry_run:
                     on_fail(row)
@@ -121,6 +141,7 @@ def rotate_keys(
         row.enabled = True
 
     mfa = _rotate_column(
+        db,
         take(UserMfa, UserMfa.id),
         "mfa",
         lambda row: row.totp_secret_encrypted,
@@ -129,6 +150,7 @@ def rotate_keys(
         on_fail=mark_reenrol,
     )
     connectors = _rotate_column(
+        db,
         take(CredentialStore, CredentialStore.id),
         "connector",
         lambda row: row.encrypted_value,
@@ -137,6 +159,7 @@ def rotate_keys(
         on_fail=None,
     )
     slack = _rotate_column(
+        db,
         take(SlackIntegration, SlackIntegration.id),
         "connector",
         lambda row: row.bot_token_encrypted,
@@ -146,6 +169,7 @@ def rotate_keys(
     )
     gmail_rows = take(GmailIntegration, GmailIntegration.id)
     gmail_access = _rotate_column(
+        db,
         gmail_rows,
         "connector",
         lambda row: row.access_token_encrypted,
@@ -154,6 +178,7 @@ def rotate_keys(
         on_fail=None,
     )
     gmail_refresh = _rotate_column(
+        db,
         gmail_rows,
         "connector",
         lambda row: row.refresh_token_encrypted,

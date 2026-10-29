@@ -1,10 +1,11 @@
-"""TC-07-002: purpose keyrings, legacy reads, rotation and MFA re-enrolment.
+"""TC-07-002: purpose keyrings, legacy reads, rotation and MFA reset.
 
 Synthetic keys and plaintext only. Every stored value contains a marker word.
 """
 
 import base64
 import hashlib
+import json
 import uuid
 
 import pytest
@@ -19,8 +20,9 @@ from app.core.keys import (
     seal,
 )
 from app.core.key_rotation import rotate_keys
-from app.core.mfa import mfa_reenrol_required
+from app.core.mfa import decrypt_mfa_for_user, mfa_reenrol_required
 from app.core.session import get_session_secret, sign_session, verify_token
+from app.models.audit_event import AuditEvent
 from app.models.credential_store import CredentialStore
 from app.models.user import User
 from app.models.user_mfa import UserMfa
@@ -190,6 +192,84 @@ def test_mfa_reenrol_when_secret_cannot_be_opened(db_session: Session, monkeypat
     assert row.enabled is True
     assert mfa_reenrol_required(row.totp_secret_encrypted)
     assert "synthetic example" not in row.totp_secret_encrypted
+    audited = (
+        db_session.query(AuditEvent)
+        .filter(AuditEvent.action == "crypto.decrypt_failed", AuditEvent.user_id == user.id)
+        .all()
+    )
+    assert audited
+    for event in audited:
+        details = json.loads(event.details)
+        assert set(details) == {"key_id", "reason"}
+        assert details["reason"] == "decrypt_failed"
+        assert "gAAAA" not in event.details
+        assert event.email is None
+
+
+def test_rotation_and_mfa_decrypt_failures_are_audited(db_session: Session, monkeypatch):
+    monkeypatch.setenv("MFA_KEYRING", f"m2:{MFA_B}")
+    monkeypatch.setenv("CONNECTOR_KEYRING", f"c2:{MFA_B}")
+    user = _user(db_session, "audit")
+    bad_mfa = "gAAAA-synthetic-example-not-a-real-token"
+    bad_conn = "c1.synthetic-example-not-a-token"
+    db_session.add(UserMfa(user_id=user.id, totp_secret_encrypted=bad_mfa, enabled=True))
+    cred = CredentialStore(
+        workspace_id=1,
+        source_type="synthetic-example",
+        credential_type=f"example-audit-{uuid.uuid4().hex[:8]}",
+        encrypted_value=bad_conn,
+    )
+    db_session.add(cred)
+    db_session.commit()
+    rotate_keys(db_session, dry_run=True, commit=False)
+    rotate_keys(db_session, dry_run=False, commit=False)
+    mfa_events = (
+        db_session.query(AuditEvent)
+        .filter(AuditEvent.action == "crypto.decrypt_failed", AuditEvent.user_id == user.id)
+        .all()
+    )
+    assert len(mfa_events) == 2
+    for event in mfa_events:
+        assert json.loads(event.details) == {"key_id": "unknown", "reason": "decrypt_failed"}
+        assert bad_mfa not in event.details
+        assert MFA_B not in event.details
+    conn_events = (
+        db_session.query(AuditEvent)
+        .filter(
+            AuditEvent.action == "crypto.decrypt_failed",
+            AuditEvent.resource_type == "credential_store",
+            AuditEvent.resource_id == str(cred.id),
+        )
+        .all()
+    )
+    assert len(conn_events) == 2
+    for event in conn_events:
+        assert event.user_id is None
+        assert json.loads(event.details) == {"key_id": "c1", "reason": "decrypt_failed"}
+        assert bad_conn not in event.details
+        assert MFA_B not in event.details
+
+
+def test_mfa_helper_audits_a_failed_decrypt(db_session: Session, monkeypatch):
+    monkeypatch.setenv("MFA_KEYRING", f"m2:{MFA_B}")
+    user = _user(db_session, "helper")
+    db_session.commit()
+    bad_mfa = "m1.synthetic-example-not-a-token"
+    with pytest.raises(KeyErrorSafe):
+        decrypt_mfa_for_user(db_session, user_id=user.id, encrypted=bad_mfa, resource_id=user.id)
+    direct = (
+        db_session.query(AuditEvent)
+        .filter(
+            AuditEvent.action == "crypto.decrypt_failed",
+            AuditEvent.user_id == user.id,
+            AuditEvent.resource_id == str(user.id),
+        )
+        .one()
+    )
+    assert json.loads(direct.details) == {"key_id": "m1", "reason": "decrypt_failed"}
+    assert bad_mfa not in direct.details
+    assert MFA_A not in direct.details
+    assert MFA_B not in direct.details
 
 
 def test_retired_session_rows_are_revoked(db_session: Session, monkeypatch):
