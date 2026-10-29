@@ -306,6 +306,9 @@ for (const width of [360, 768, 1440]) {
     expect(await main.evaluate((el) => el.scrollWidth <= el.clientWidth)).toBe(
       true
     )
+    await expect(
+      main.locator('[aria-hidden="true"] svg[tabindex="0"]')
+    ).toHaveCount(0)
     const result = await new AxeBuilder({ page })
       .include('#main-content')
       .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'])
@@ -405,7 +408,51 @@ test('coverage failure and empty questionnaire data do not hide the gap list', a
     .getByRole('button', { name: 'Try again' })
     .click()
   await expect(page.getByText(/No questionnaire data yet/)).toBeVisible()
+  await expect(
+    page.getByRole('heading', { name: 'Control denominator' })
+  ).toBeVisible()
+  await expect(
+    page.getByText('0 qualified of 1 applicable', { exact: true })
+  ).toBeVisible()
   await expect(page.locator('#main-content [data-state="error"]')).toHaveCount(
     0
   )
+})
+
+test('retained answer revisions are labelled as record ratios, including values above 100 percent', async ({
+  page,
+}) => {
+  await installApi(page)
+  await page.route('**/api/compliance-coverage', (route) =>
+    json(route, {
+      ...coverage,
+      kpi: {
+        ...coverage.kpi,
+        total_questions: 1,
+        total_drafted: 2,
+        total_insufficient: 3,
+        coverage_pct: 200,
+        insufficient_pct: 300,
+      },
+      recommended_evidence: [
+        { title: 'Review access logs', improves_questions: 2 },
+      ],
+    })
+  )
+  await page.goto('/dashboard/compliance-gaps')
+  await expect(
+    page.getByText('2 draft answer records / 1 questions', { exact: true })
+  ).toBeVisible()
+  await expect(
+    page.getByText('3 insufficient answer records / 1 questions', {
+      exact: true,
+    })
+  ).toBeVisible()
+  await expect(
+    page.getByText(/Retained revisions can make these ratios exceed 100%/)
+  ).toBeVisible()
+  await expect(page.getByText(/Reported suggestion count:/)).toContainText('2')
+  await expect(
+    page.getByText('Source detail is unavailable for this recommendation.')
+  ).toBeVisible()
 })

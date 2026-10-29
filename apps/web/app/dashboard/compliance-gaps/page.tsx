@@ -149,6 +149,7 @@ function HBar({
       <div aria-hidden="true" style={{ width: '100%', height: h }}>
         <ResponsiveContainer width="100%" height="100%">
           <BarChart
+            accessibilityLayer={false}
             data={data}
             layout="vertical"
             margin={{ left: 0, right: 12, top: 4, bottom: 4 }}
@@ -414,6 +415,38 @@ function CoverageReport() {
         workspace. Drafted answers may still require review. Historical trends
         are cumulative, not a comparison between reporting periods.
       </p>
+      <Card className="p-5">
+        <SectionHeader
+          title="Control denominator"
+          sub={`${control_coverage.numerator} qualified of ${control_coverage.denominator} applicable`}
+        />
+        {denominatorNotes(control_coverage).length === 0 ? (
+          <p className="text-xs text-[var(--tc-muted)]">
+            No disabled, unknown, stale, or denominator changes.
+          </p>
+        ) : (
+          <ul className="space-y-1 text-xs text-[var(--tc-text)]">
+            {denominatorNotes(control_coverage).map((item) => (
+              <li key={item.control_id}>
+                Control evaluation:{' '}
+                {evaluationStates[item.state] || 'Review needed'} (
+                {evaluationRules[item.rule] ||
+                  'Review the control evaluation for details'}
+                {item.denominator_changed
+                  ? ', left out of the denominator'
+                  : ''}
+                )
+              </li>
+            ))}
+          </ul>
+        )}
+      </Card>
+
+      <p className="text-tc-label text-tc-muted">
+        Draft and insufficient percentages are answer-record counts divided by
+        questionnaire questions. Retained revisions can make these ratios exceed
+        100%; they do not count distinct answered questions.
+      </p>
       {isEmpty ? (
         <Card className="p-6">
           <p className="text-[var(--tc-muted)]">
@@ -426,21 +459,21 @@ function CoverageReport() {
           {/* SECTION 1 — KPI Cards */}
           <div className="flex flex-wrap gap-3">
             <KPICard
-              label="Draft answer coverage"
+              label="Draft records per question"
               value={`${kpi.coverage_pct}%`}
-              sub={`${kpi.total_drafted} of ${kpi.total_questions} questions have draft answer records`}
+              sub={`${kpi.total_drafted} draft answer records / ${kpi.total_questions} questions`}
               color="#10b981"
             />
             <KPICard
               label="High Confidence"
               value={`${kpi.high_confidence_pct}%`}
-              sub="of drafted answers"
+              sub="of draft answer records"
               color="#5b7cff"
             />
             <KPICard
-              label="Insufficient"
+              label="Insufficient records per question"
               value={`${kpi.insufficient_pct}%`}
-              sub={`${kpi.total_insufficient} questions lack evidence`}
+              sub={`${kpi.total_insufficient} insufficient answer records / ${kpi.total_questions} questions`}
               color={kpi.insufficient_pct > 20 ? '#ef4444' : '#f59e0b'}
             />
             <KPICard
@@ -456,7 +489,7 @@ function CoverageReport() {
             <Card className="p-5">
               <SectionHeader
                 title="Framework Coverage"
-                sub="Answer coverage by detected framework"
+                sub="Draft answer records divided by all answer records, by detected framework"
               />
               <HBar
                 data={framework_coverage.map((f) => ({
@@ -486,33 +519,6 @@ function CoverageReport() {
               </div>
             </Card>
           )}
-
-          <Card className="p-5">
-            <SectionHeader
-              title="Control denominator"
-              sub={`${control_coverage.numerator} qualified of ${control_coverage.denominator} applicable`}
-            />
-            {denominatorNotes(control_coverage).length === 0 ? (
-              <p className="text-xs text-[var(--tc-muted)]">
-                No disabled, unknown, stale, or denominator changes.
-              </p>
-            ) : (
-              <ul className="space-y-1 text-xs text-[var(--tc-text)]">
-                {denominatorNotes(control_coverage).map((item) => (
-                  <li key={item.control_id}>
-                    Control evaluation:{' '}
-                    {evaluationStates[item.state] || 'Review needed'} (
-                    {evaluationRules[item.rule] ||
-                      'Review the control evaluation for details'}
-                    {item.denominator_changed
-                      ? ', left out of the denominator'
-                      : ''}
-                    )
-                  </li>
-                ))}
-              </ul>
-            )}
-          </Card>
 
           {/* SECTION 3 — Blind Spots */}
           {blind_spots.length > 0 && (
@@ -597,11 +603,10 @@ function CoverageReport() {
                       </span>
                     </div>
                     <span className="text-xs text-[var(--tc-muted)] whitespace-nowrap">
-                      suggested for{' '}
+                      Reported suggestion count:{' '}
                       <span className="text-[var(--tc-text)] font-semibold">
                         {r.improves_questions}
-                      </span>{' '}
-                      questions
+                      </span>
                     </span>
                   </div>
                 ))}
@@ -619,6 +624,7 @@ function CoverageReport() {
               <div aria-hidden="true" style={{ width: '100%', height: 260 }}>
                 <ResponsiveContainer width="100%" height="100%">
                   <LineChart
+                    accessibilityLayer={false}
                     data={trends}
                     margin={{ left: 8, right: 16, top: 8, bottom: 4 }}
                   >

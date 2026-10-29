@@ -36,3 +36,15 @@ Tested commit `592a8450faca4c569a728016bfaf9a33394d0aa1`, tree
 Logs are normalized for line endings and trailing whitespace only. No browser
 result is included in these local totals. Independent review and exact-head CI
 remain pending.
+
+## Independent review corrections
+
+The control denominator now remains visible when there are zero questionnaire
+questions. KPI ratios are labelled retained answer records per question (which
+can exceed 100%), and recommendation counts no longer imply distinct questions.
+Hidden charts explicitly disable the Recharts accessibility layer; their equivalent
+tables provide keyboard-accessible data. Browser regressions cover these cases.
+After these changes, typecheck, lint, 175 unit tests and production build all
+passed on the working tree captured by the following review-fix commit. Exact-head
+CI and browser evidence remain required; the initial checkpoint logs above have
+not been overwritten or presented as a later run.
