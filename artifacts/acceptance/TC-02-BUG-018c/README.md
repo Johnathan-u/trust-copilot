@@ -2,7 +2,7 @@
 
 Synthetic rows only, on disposable side PostgreSQL databases whose names end in `_test` (`trustcopilot_test` for the branch, `trustcopilot_master_test` for master). No model calls and no network calls from the tests. Local Postgres 16 with pgvector. Ruff 0.5.6.
 
-Base is `origin/master` `6a26d60e44433720cf329cba08a8f096cb22e682`. The re-run logs below (`review-fix-tests.txt`, `alembic-heads.txt`, `offline-sql-*.txt`, `regression-master.txt`) were produced on the code tree of commit `04832ce4113cdce7c514d68e728d735c8cb7f296`. Writing this sentence moved the head, same as TC-02-BUG-018b. `logs/full-suite-branch.txt` and `logs/full-suite-master.txt` are the earlier full-suite run on `b7da8b3`, before this rename.
+Base is `origin/master` `5b97a33d0cd43d07ebba901901d5433d7725eb43`. The re-parent suites were produced on the code tree of commit `0e2c731221e795879274b447be3456cf38982328` (merge of that master; `down_revision` is `bug018b_gap_status_checks`). Writing this sentence moved the head, same as TC-02-BUG-018b. Those suites ran one after another on `trustcopilot_test`: index file 14 passed, safe-collection guard 29 passed, status-check file 10 passed, domain compliance gaps 8 passed, questionnaire-gap integration 6 passed, compliance-gap unit 5 passed, notification delivery 22 passed. `logs/full-suite-branch.txt` and `logs/full-suite-master.txt` are the earlier full-suite run on `b7da8b3`.
 
 | File | What it shows |
 |---|---|
@@ -26,4 +26,6 @@ Base is `origin/master` `6a26d60e44433720cf329cba08a8f096cb22e682`. The re-run l
 
 **Pre-scan.** Questions that already have more than one open row inside the predicate fail the upgrade with counts and example ids. No row is deleted or closed. `DEDUPE_SQL` keeps the newest open row and sets the older ones to `resolved` with `close_reason` left unchanged.
 
-**Index file.** 14 tests. All 14 passed on this code tree. 10 failed on master `6a26d60`.
+**Re-parent.** `bug018c_one_open_gap` revises `bug018b_gap_status_checks`. `alembic heads` is that one revision. The scan gap type is `CONTROL_CHECK` on the model; the compliance-gaps route imports it.
+
+**Index file.** 14 tests, 14 passed on `0e2c731`. 10 of those 14 failed on the pre-merge master `6a26d60`.
