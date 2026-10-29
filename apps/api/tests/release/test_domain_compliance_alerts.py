@@ -600,7 +600,9 @@ def test_concurrent_scans_leave_one_active_alert(client):
             first.start()
             assert holding.wait(timeout=8), "scan never took the alert lock"
             second.start()
-            assert _wait_for_lock(), "second scan did not wait on the alert lock"
+            assert _wait_for_lock(
+                actors["workspace_id"]
+            ), "second scan did not wait on the alert lock"
     finally:
         release.set()
         for thread in (first, second):
@@ -614,40 +616,35 @@ def test_concurrent_scans_leave_one_active_alert(client):
     assert rows[0].status == "active"
 
 
-def _wait_for_lock(timeout: float = 5.0) -> bool:
+def _wait_for_lock(workspace_id: int, timeout: float = 5.0) -> bool:
     import time
 
     deadline = time.time() + timeout
     while time.time() < deadline:
-        if _lock_wait_visible():
+        if _ungranted_advisory_lock(workspace_id):
             return True
         time.sleep(0.05)
     return False
 
 
-def _lock_wait_visible() -> bool:
+def _ungranted_advisory_lock(workspace_id: int) -> bool:
     session = _db()
     try:
         row = session.execute(
             text(
                 """
                 SELECT 1
-                FROM pg_stat_activity
-                WHERE pid <> pg_backend_pid()
-                  AND datname = current_database()
-                  AND wait_event_type = 'Lock'
-                  AND wait_event IN ('advisory', 'transactionid', 'tuple')
-                UNION ALL
-                SELECT 1
                 FROM pg_locks
-                WHERE NOT granted
-                  AND locktype IN ('advisory', 'transactionid', 'tuple')
-                  AND pid IN (
-                    SELECT pid FROM pg_stat_activity WHERE datname = current_database()
-                  )
+                JOIN pg_stat_activity ON pg_stat_activity.pid = pg_locks.pid
+                WHERE NOT pg_locks.granted
+                  AND pg_locks.locktype = 'advisory'
+                  AND pg_locks.classid = 150017
+                  AND pg_locks.objid = :workspace_id
+                  AND pg_stat_activity.datname = current_database()
                 LIMIT 1
                 """
-            )
+            ),
+            {"workspace_id": int(workspace_id)},
         ).first()
         return row is not None
     finally:
