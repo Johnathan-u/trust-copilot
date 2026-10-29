@@ -50,8 +50,9 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
     <button
       ref={ref}
       className={`inline-flex items-center justify-center gap-tc-2 font-semibold transition-colors duration-[var(--tc-duration-fast)] ease-[var(--tc-ease)] disabled:cursor-not-allowed disabled:border-[var(--tc-disabled-border)] disabled:bg-[var(--tc-disabled-bg)] disabled:text-[var(--tc-disabled-fg)] disabled:hover:bg-[var(--tc-disabled-bg)] ${variants[variant]} ${sizes[size]} ${className}`}
-      disabled={disabled || loading}
       {...props}
+      aria-busy={loading || props['aria-busy'] ? true : undefined}
+      disabled={disabled || loading}
     >
       {loading && <Spinner size={spinnerSizes[size]} />}
       {children}

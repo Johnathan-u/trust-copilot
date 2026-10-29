@@ -1,0 +1,76 @@
+npm warn Unknown env config "http-proxy". This will stop working in the next major version of npm.
+
+> trust-copilot-web@0.1.0 build
+> next build
+
+▲ Next.js 16.4.3 (Turbopack)
+✓ Running next.config.js took 22ms
+
+⚠ The "middleware" file convention is deprecated. Please use "proxy" instead.
+
+  To migrate automatically, run:
+  npx @next/codemod@canary middleware-to-proxy .
+
+  Learn more: https://nextjs.org/docs/messages/middleware-to-proxy
+  Creating an optimized production build ...
+✓ Compiled successfully in 1436ms
+  Running TypeScript ...
+  Finished TypeScript in 2.9s ...
+  Collecting page data using 8 workers ...
+  Generating static pages using 8 workers (0/39) ...
+  Generating static pages using 8 workers (9/39)
+  Generating static pages using 8 workers (19/39)
+  Generating static pages using 8 workers (29/39)
+✓ Generating static pages using 8 workers (39/39) in 530ms
+  Finalizing page optimization ...
+
+Route (app)
+┌ ○ /
+├ ○ /_not-found
+├ ○ /accept-invite
+├ ƒ /api/[[...path]]
+├ ○ /checkout
+├ ○ /dashboard
+├ ○ /dashboard/ai-governance
+├ ○ /dashboard/audit
+├ ○ /dashboard/case-studies
+├ ○ /dashboard/compliance-frameworks
+├ ○ /dashboard/compliance-gaps
+├ ○ /dashboard/controls
+├ ƒ /dashboard/controls/[id]
+├ ○ /dashboard/demo-proof
+├ ○ /dashboard/documents
+├ ○ /dashboard/exports
+├ ○ /dashboard/gmail
+├ ○ /dashboard/members
+├ ○ /dashboard/notifications
+├ ○ /dashboard/proof-chain
+├ ○ /dashboard/questionnaires
+├ ƒ /dashboard/questionnaires/[id]
+├ ○ /dashboard/requests
+├ ○ /dashboard/review
+├ ƒ /dashboard/review/[id]
+├ ○ /dashboard/security
+├ ○ /dashboard/settings
+├ ○ /dashboard/slack
+├ ○ /dashboard/trust-center
+├ ○ /dashboard/vendor-requests
+├ ƒ /design-dialogs
+├ ƒ /design-tokens
+├ ○ /forgot-password
+├ ○ /icon.svg
+├ ○ /login
+├ ○ /onboarding
+├ ○ /pricing
+├ ○ /register
+├ ○ /reset-password
+├ ○ /trust
+├ ƒ /trust/[slug]
+├ ○ /vendor-response
+└ ○ /verify-email
+
+
+ƒ Proxy (Middleware)
+
+○  (Static)   prerendered as static content
+ƒ  (Dynamic)  server-rendered on demand

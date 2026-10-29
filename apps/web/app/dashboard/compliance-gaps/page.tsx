@@ -8,6 +8,7 @@ import {
   denominatorNotes,
   parseCoverageResponse,
   type ControlCoverage,
+  type RecommendedEvidence,
 } from '@/lib/coverageConsumer'
 import { failureOf, isAbortError, readSectionJson } from '@/lib/section-load'
 import {
@@ -50,7 +51,6 @@ type EvidenceStrength = {
   avg_evidence_count: number
   total_answers: number
 }
-type RecommendedEvidence = { title: string; improves_questions: number }
 type TrendPoint = {
   date: string
   coverage_pct: number

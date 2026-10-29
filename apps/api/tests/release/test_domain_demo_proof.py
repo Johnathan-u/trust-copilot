@@ -773,11 +773,6 @@ def test_foreign_reference_partial_failure_excludes_other_workspace(client):
             [valid, foreign_evidence, deleted_evidence, valid_export, foreign_export, foreign_gap]
         )
         db.commit()
-        other_doc.workspace_id = other.id
-        other_q.workspace_id = other.id
-        db.commit()
-        for row in (foreign_evidence, deleted_evidence, foreign_export, foreign_gap):
-            db.refresh(row)
         foreign_ids = {
             "evidence": foreign_evidence.id,
             "deleted": deleted_evidence.id,
@@ -785,6 +780,13 @@ def test_foreign_reference_partial_failure_excludes_other_workspace(client):
             "gap": foreign_gap.id,
             "other_doc": other_doc.id,
         }
+        other_workspace_id = other.id
+        other_doc_id = other_doc.id
+        other_q_id = other_q.id
+        from tests.release.test_parent_workspace_move import move_parent_before_triggers
+
+        move_parent_before_triggers(db, "documents", other_doc_id, other_workspace_id)
+        move_parent_before_triggers(db, "questionnaires", other_q_id, other_workspace_id)
     finally:
         db.close()
 
