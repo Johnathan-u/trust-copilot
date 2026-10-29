@@ -21,7 +21,11 @@ from app.services.message_providers.errors import (
     failure_result,
     safe_message,
 )
-from app.services.message_providers.outbound_http import MAX_RESPONSE_BYTES, OutboundHttpDenied
+from app.services.message_providers.outbound_http import (
+    MAX_RESPONSE_BYTES,
+    OutboundHttpDenied,
+    ProviderResponseTooLarge,
+)
 
 DEFAULT_MAX_ATTEMPTS = 3
 
@@ -363,6 +367,15 @@ class BoundedRetrySeam:
         for attempt in range(1, self.max_attempts + 1):
             try:
                 response = call()
+            except ProviderResponseTooLarge as exc:
+                last = _fail(
+                    status_code=exc.status_code,
+                    error_code=ERROR_UNKNOWN,
+                    attempts=attempt,
+                    provider_error="response_too_large",
+                    retryable=False,
+                    message="The provider response exceeded the size limit.",
+                )
             except OutboundHttpDenied:
                 denied = _fail(
                     status_code=None,

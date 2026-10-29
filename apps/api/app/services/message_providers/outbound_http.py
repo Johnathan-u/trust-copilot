@@ -35,6 +35,14 @@ class OutboundHttpDenied(Exception):
         self.host = host
 
 
+class ProviderResponseTooLarge(Exception):
+    """The decoded provider response exceeded the allowed body size."""
+
+    def __init__(self, status_code: int):
+        super().__init__("The provider response exceeded the size limit.")
+        self.status_code = status_code
+
+
 class OutboundHttpSeam:
     def __init__(
         self,
@@ -61,13 +69,34 @@ class OutboundHttpSeam:
         params: dict | None = None,
     ) -> httpx.Response:
         self.assert_allowed(url)
-        return self._client.request(
+        with self._client.stream(
             method,
             url,
             headers=headers,
             content=content,
             params=params,
-        )
+        ) as response:
+            body = bytearray()
+            for chunk in response.iter_bytes():
+                # Measure decoded bytes, independent of Content-Length. Check
+                # before retaining the chunk and never consume the next one.
+                if len(body) + len(chunk) > MAX_RESPONSE_BYTES:
+                    raise ProviderResponseTooLarge(response.status_code)
+                body.extend(chunk)
+
+            # The content has already been decoded. Install the original
+            # headers after constructing the buffered response so HTTPX does
+            # not try to decompress the same bytes for a second time.
+            buffered = httpx.Response(
+                response.status_code,
+                content=bytes(body),
+                request=response.request,
+                extensions=response.extensions,
+                history=response.history,
+                default_encoding=response.default_encoding,
+            )
+            buffered.headers = response.headers.copy()
+            return buffered
 
     @staticmethod
     def assert_allowed(url: str) -> None:
