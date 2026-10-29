@@ -1,0 +1,493 @@
+...................................F.................................... [  2%]
+........................................................................ [  4%]
+........................................................................ [  7%]
+........................................................................ [  9%]
+........................................................................ [ 11%]
+........................................................................ [ 14%]
+........................................................................ [ 16%]
+........................................................................ [ 19%]
+........................................................................ [ 21%]
+........................................................................ [ 23%]
+...................................................................F.... [ 26%]
+.....................F.................................................. [ 28%]
+........................................................................ [ 31%]
+........................................................................ [ 33%]
+........................................................................ [ 35%]
+........................................................................ [ 38%]
+........................................................................ [ 40%]
+........................................................................ [ 42%]
+........................................................................ [ 45%]
+........................................................................ [ 47%]
+........................................................................ [ 50%]
+...........................................ssssssssss................... [ 52%]
+........................................................................ [ 54%]
+........................................................................ [ 57%]
+........................................................................ [ 59%]
+........................................................................ [ 62%]
+........................................................................ [ 64%]
+........................................................................ [ 66%]
+........................................................................ [ 69%]
+........................................................................ [ 71%]
+........................................................................ [ 74%]
+........................................................................ [ 76%]
+........................................................................ [ 78%]
+........................................................................ [ 81%]
+........................................................................ [ 83%]
+........................................................................ [ 85%]
+........................................................................ [ 88%]
+........................................................................ [ 90%]
+........................................................................ [ 93%]
+........................................................................ [ 95%]
+........................................................................ [ 97%]
+................................................................         [100%]
+=================================== FAILURES ===================================
+E   AssertionError: Traceback (most recent call last):
+        File "/tmp/api-venv/lib/python3.12/site-packages/sqlalchemy/engine/base.py", line 144, in __init__
+          self._dbapi_connection = engine.raw_connection()
+                                   ^^^^^^^^^^^^^^^^^^^^^^^
+        File "/tmp/api-venv/lib/python3.12/site-packages/sqlalchemy/engine/base.py", line 3326, in raw_connection
+          return self.pool.connect()
+                 ^^^^^^^^^^^^^^^^^^^
+        File "/tmp/api-venv/lib/python3.12/site-packages/sqlalchemy/pool/base.py", line 448, in connect
+          return _ConnectionFairy._checkout(self)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        File "/tmp/api-venv/lib/python3.12/site-packages/sqlalchemy/pool/base.py", line 1320, in _checkout
+          fairy = _ConnectionRecord.checkout(pool)
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        File "/tmp/api-venv/lib/python3.12/site-packages/sqlalchemy/pool/base.py", line 712, in checkout
+          rec = pool._do_get()
+                ^^^^^^^^^^^^^^
+        File "/tmp/api-venv/lib/python3.12/site-packages/sqlalchemy/pool/impl.py", line 307, in _do_get
+          return self._create_connection()
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^
+        File "/tmp/api-venv/lib/python3.12/site-packages/sqlalchemy/pool/base.py", line 389, in _create_connection
+          return _ConnectionRecord(self)
+                 ^^^^^^^^^^^^^^^^^^^^^^^
+        File "/tmp/api-venv/lib/python3.12/site-packages/sqlalchemy/pool/base.py", line 674, in __init__
+          self.__connect()
+        File "/tmp/api-venv/lib/python3.12/site-packages/sqlalchemy/pool/base.py", line 921, in __connect
+          with util.safe_reraise():
+        File "/tmp/api-venv/lib/python3.12/site-packages/sqlalchemy/util/langhelpers.py", line 122, in __exit__
+          raise exc_value.with_traceback(exc_tb)
+        File "/tmp/api-venv/lib/python3.12/site-packages/sqlalchemy/pool/base.py", line 917, in __connect
+          self.dbapi_connection = connection = pool._invoke_creator(self)
+                                               ^^^^^^^^^^^^^^^^^^^^^^^^^^
+        File "/tmp/api-venv/lib/python3.12/site-packages/sqlalchemy/engine/create.py", line 667, in connect
+          return dialect.connect(*cargs_tup, **cparams)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        File "/tmp/api-venv/lib/python3.12/site-packages/sqlalchemy/engine/default.py", line 642, in connect
+          return self.loaded_dbapi.connect(*cargs, **cparams)  # type: ignore[no-any-return]  # NOQA: E501
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        File "/tmp/api-venv/lib/python3.12/site-packages/psycopg2/__init__.py", line 122, in connect
+          conn = _connect(dsn, connection_factory=connection_factory, **kwasync)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+      psycopg2.OperationalError: connection to server at "localhost" (::1), port 5432 failed: FATAL:  database "trustcopilot_tc24001_migration_test" does not exist
+
+
+      The above exception was the direct cause of the following exception:
+
+      Traceback (most recent call last):
+        File "<frozen runpy>", line 198, in _run_module_as_main
+        File "<frozen runpy>", line 88, in _run_code
+        File "/tmp/api-venv/lib/python3.12/site-packages/alembic/__main__.py", line 4, in <module>
+          main(prog="alembic")
+        File "/tmp/api-venv/lib/python3.12/site-packages/alembic/config.py", line 1039, in main
+          CommandLine(prog=prog).main(argv=argv)
+        File "/tmp/api-venv/lib/python3.12/site-packages/alembic/config.py", line 1029, in main
+          self.run_cmd(cfg, options)
+        File "/tmp/api-venv/lib/python3.12/site-packages/alembic/config.py", line 963, in run_cmd
+          fn(
+        File "/tmp/api-venv/lib/python3.12/site-packages/alembic/command.py", line 487, in upgrade
+          script.run_env()
+        File "/tmp/api-venv/lib/python3.12/site-packages/alembic/script/base.py", line 550, in run_env
+          util.load_python_file(self.dir, "env.py")
+        File "/tmp/api-venv/lib/python3.12/site-packages/alembic/util/pyfiles.py", line 114, in load_python_file
+          module = load_module_py(module_id, path)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        File "/tmp/api-venv/lib/python3.12/site-packages/alembic/util/pyfiles.py", line 132, in load_module_py
+          spec.loader.exec_module(module)  # type: ignore
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        File "<frozen importlib._bootstrap_external>", line 995, in exec_module
+        File "<frozen importlib._bootstrap>", line 488, in _call_with_frames_removed
+        File "/tmp/master-tc10003c/apps/api/alembic/env.py", line 73, in <module>
+          run_migrations_online()
+        File "/tmp/master-tc10003c/apps/api/alembic/env.py", line 64, in run_migrations_online
+          with connectable.connect() as connection:
+               ^^^^^^^^^^^^^^^^^^^^^
+        File "/tmp/api-venv/lib/python3.12/site-packages/sqlalchemy/engine/base.py", line 3302, in connect
+          return self._connection_cls(self)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^
+        File "/tmp/api-venv/lib/python3.12/site-packages/sqlalchemy/engine/base.py", line 146, in __init__
+          Connection._handle_dbapi_exception_noconnection(
+        File "/tmp/api-venv/lib/python3.12/site-packages/sqlalchemy/engine/base.py", line 2457, in _handle_dbapi_exception_noconnection
+          raise sqlalchemy_exception.with_traceback(exc_info[2]) from e
+        File "/tmp/api-venv/lib/python3.12/site-packages/sqlalchemy/engine/base.py", line 144, in __init__
+          self._dbapi_connection = engine.raw_connection()
+                                   ^^^^^^^^^^^^^^^^^^^^^^^
+        File "/tmp/api-venv/lib/python3.12/site-packages/sqlalchemy/engine/base.py", line 3326, in raw_connection
+          return self.pool.connect()
+                 ^^^^^^^^^^^^^^^^^^^
+        File "/tmp/api-venv/lib/python3.12/site-packages/sqlalchemy/pool/base.py", line 448, in connect
+          return _ConnectionFairy._checkout(self)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        File "/tmp/api-venv/lib/python3.12/site-packages/sqlalchemy/pool/base.py", line 1320, in _checkout
+          fairy = _ConnectionRecord.checkout(pool)
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        File "/tmp/api-venv/lib/python3.12/site-packages/sqlalchemy/pool/base.py", line 712, in checkout
+          rec = pool._do_get()
+                ^^^^^^^^^^^^^^
+        File "/tmp/api-venv/lib/python3.12/site-packages/sqlalchemy/pool/impl.py", line 307, in _do_get
+          return self._create_connection()
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^
+        File "/tmp/api-venv/lib/python3.12/site-packages/sqlalchemy/pool/base.py", line 389, in _create_connection
+          return _ConnectionRecord(self)
+                 ^^^^^^^^^^^^^^^^^^^^^^^
+        File "/tmp/api-venv/lib/python3.12/site-packages/sqlalchemy/pool/base.py", line 674, in __init__
+          self.__connect()
+        File "/tmp/api-venv/lib/python3.12/site-packages/sqlalchemy/pool/base.py", line 921, in __connect
+          with util.safe_reraise():
+        File "/tmp/api-venv/lib/python3.12/site-packages/sqlalchemy/util/langhelpers.py", line 122, in __exit__
+          raise exc_value.with_traceback(exc_tb)
+        File "/tmp/api-venv/lib/python3.12/site-packages/sqlalchemy/pool/base.py", line 917, in __connect
+          self.dbapi_connection = connection = pool._invoke_creator(self)
+                                               ^^^^^^^^^^^^^^^^^^^^^^^^^^
+        File "/tmp/api-venv/lib/python3.12/site-packages/sqlalchemy/engine/create.py", line 667, in connect
+          return dialect.connect(*cargs_tup, **cparams)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        File "/tmp/api-venv/lib/python3.12/site-packages/sqlalchemy/engine/default.py", line 642, in connect
+          return self.loaded_dbapi.connect(*cargs, **cparams)  # type: ignore[no-any-return]  # NOQA: E501
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        File "/tmp/api-venv/lib/python3.12/site-packages/psycopg2/__init__.py", line 122, in connect
+          conn = _connect(dsn, connection_factory=connection_factory, **kwasync)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+      sqlalchemy.exc.OperationalError: (psycopg2.OperationalError) connection to server at "localhost" (::1), port 5432 failed: FATAL:  database "trustcopilot_tc24001_migration_test" does not exist
+
+      (Background on this error at: https://sqlalche.me/e/20/e3q8)
+
+    assert 1 == 0
+     +  where 1 = CompletedProcess(args=['/tmp/api-venv/bin/python', '-m', 'alembic', 'upgrade', 'head'], returncode=1, stdout='', stder...trustcopilot_tc24001_migration_test" does not exist\n\n(Background on this error at: https://sqlalche.me/e/20/e3q8)\n').returncode
+------------------------------ Captured log call -------------------------------
+INFO     alembic.runtime.plugins:plugins.py:37 setup plugin alembic.autogenerate.schemas
+INFO     alembic.runtime.plugins:plugins.py:37 setup plugin alembic.autogenerate.tables
+INFO     alembic.runtime.plugins:plugins.py:37 setup plugin alembic.autogenerate.types
+INFO     alembic.runtime.plugins:plugins.py:37 setup plugin alembic.autogenerate.constraints
+INFO     alembic.runtime.plugins:plugins.py:37 setup plugin alembic.autogenerate.defaults
+INFO     alembic.runtime.plugins:plugins.py:37 setup plugin alembic.autogenerate.comments
+INFO     alembic.runtime.plugins:plugins.py:37 setup plugin alembic.ext.checkconstraint_byname
+/tmp/master-tc10003c/apps/api/tests/release/test_billing_provider.py:1269: AssertionError: Traceback (most recent call last):
+E   AssertionError: typescript is not installed under apps/web. Install web dependencies before this test.
+
+    assert 1 == 0
+     +  where 1 = CompletedProcess(args=['node', '/tmp/master-tc10003c/apps/api/tests/release/run_case_study_consumer.mjs'], returncode=1, stdout='', stderr='typescript is not installed under apps/web. Install web dependencies before this test.\n').returncode
+------------------------------ Captured log setup ------------------------------
+INFO     app.core.rate_limit:rate_limit.py:112 Rate-limit backend: in-memory (dev/test)
+INFO     trustcopilot.audit:audit.py:34 audit {"ts": "2026-10-29T12:32:40.659171+00:00", "action": "auth.login", "user_id": 3, "email": "admin@trust.local", "workspace_id": 1}
+INFO     app.request:main.py:283 request
+INFO     httpx2:_client.py:1084 HTTP Request: POST http://localhost/api/auth/login "HTTP/1.1 200 OK"
+------------------------------ Captured log call -------------------------------
+INFO     trustcopilot.audit:audit.py:34 audit {"ts": "2026-10-29T12:32:40.677024+00:00", "action": "case_study.create", "user_id": 3, "email": "admin@trust.local", "workspace_id": 1, "resource_type": "case_study", "resource_id": 15, "synthetic": false, "customer_claim": false}
+INFO     app.request:main.py:283 request
+INFO     httpx2:_client.py:1084 HTTP Request: POST http://localhost/api/case-studies "HTTP/1.1 200 OK"
+INFO     trustcopilot.audit:audit.py:34 audit {"ts": "2026-10-29T12:32:40.685756+00:00", "action": "case_study.consent", "user_id": 3, "email": "admin@trust.local", "workspace_id": 1, "resource_type": "case_study", "resource_id": 15, "organization_name": "SYNTHETIC-ORG-PLACEHOLDER", "consent_id": 13, "revision": 1}
+INFO     app.request:main.py:283 request
+INFO     httpx2:_client.py:1084 HTTP Request: POST http://localhost/api/case-studies/15/consents "HTTP/1.1 200 OK"
+INFO     trustcopilot.audit:audit.py:34 audit {"ts": "2026-10-29T12:32:40.695639+00:00", "action": "case_study.result_permission", "user_id": 3, "email": "admin@trust.local", "workspace_id": 1, "resource_type": "case_study", "resource_id": 15, "consent_id": 13, "result_key": "quote", "permission_id": 27, "revision": 1}
+INFO     app.request:main.py:283 request
+INFO     httpx2:_client.py:1084 HTTP Request: POST http://localhost/api/case-studies/15/result-permissions "HTTP/1.1 200 OK"
+INFO     trustcopilot.audit:audit.py:34 audit {"ts": "2026-10-29T12:32:40.747695+00:00", "action": "auth.login", "user_id": 3, "email": "admin@trust.local", "workspace_id": 1}
+INFO     app.request:main.py:283 request
+INFO     httpx2:_client.py:1084 HTTP Request: POST http://localhost/api/auth/login "HTTP/1.1 200 OK"
+INFO     trustcopilot.audit:audit.py:34 audit {"ts": "2026-10-29T12:32:40.764122+00:00", "action": "case_study.submit_review", "user_id": 3, "email": "admin@trust.local", "workspace_id": 1, "resource_type": "case_study", "resource_id": 15, "revision": 1, "review_status": "pending"}
+INFO     app.request:main.py:283 request
+INFO     httpx2:_client.py:1084 HTTP Request: POST http://localhost/api/case-studies/15/submit-review "HTTP/1.1 200 OK"
+INFO     trustcopilot.audit:audit.py:34 audit {"ts": "2026-10-29T12:32:40.803410+00:00", "action": "auth.login", "user_id": 2, "email": "reviewer@trust.local", "workspace_id": 1}
+INFO     app.request:main.py:283 request
+INFO     httpx2:_client.py:1084 HTTP Request: POST http://localhost/api/auth/login "HTTP/1.1 200 OK"
+INFO     trustcopilot.audit:audit.py:34 audit {"ts": "2026-10-29T12:32:40.832858+00:00", "action": "case_study.review", "user_id": 2, "email": "reviewer@trust.local", "workspace_id": 1, "resource_type": "case_study", "resource_id": 15, "decision": "approve", "review_status": "approved"}
+INFO     app.request:main.py:283 request
+INFO     httpx2:_client.py:1084 HTTP Request: POST http://localhost/api/case-studies/15/review "HTTP/1.1 200 OK"
+INFO     trustcopilot.audit:audit.py:34 audit {"ts": "2026-10-29T12:32:40.873016+00:00", "action": "auth.login", "user_id": 3, "email": "admin@trust.local", "workspace_id": 1}
+INFO     app.request:main.py:283 request
+INFO     httpx2:_client.py:1084 HTTP Request: POST http://localhost/api/auth/login "HTTP/1.1 200 OK"
+INFO     trustcopilot.audit:audit.py:34 audit {"ts": "2026-10-29T12:32:40.927880+00:00", "action": "auth.login", "user_id": 3, "email": "admin@trust.local", "workspace_id": 1}
+INFO     app.request:main.py:283 request
+INFO     httpx2:_client.py:1084 HTTP Request: POST http://localhost/api/auth/login "HTTP/1.1 200 OK"
+INFO     trustcopilot.audit:audit.py:34 audit {"ts": "2026-10-29T12:32:40.951854+00:00", "action": "case_study.publish", "user_id": 3, "email": "admin@trust.local", "workspace_id": 1, "resource_type": "case_study", "resource_id": 15, "customer_claim": true, "synthetic": false, "data_basis": "consented_customer", "revision": 1}
+INFO     app.request:main.py:283 request
+INFO     httpx2:_client.py:1084 HTTP Request: POST http://localhost/api/case-studies/15/publish "HTTP/1.1 200 OK"
+INFO     app.request:main.py:283 request
+INFO     httpx2:_client.py:1084 HTTP Request: GET http://localhost/openapi.json "HTTP/1.1 200 OK"
+INFO     app.request:main.py:283 request
+INFO     httpx2:_client.py:1084 HTTP Request: GET http://localhost/api/case-studies/15 "HTTP/1.1 200 OK"
+/tmp/master-tc10003c/apps/api/tests/release/test_domain_case_studies.py:227: AssertionError: typescript is not installed under apps/web. Install web dependencies before this test.
+E   AssertionError: v22.23.4
+
+    assert False
+     +  where False = <built-in method startswith of str object at 0x7fae974a31f0>('v24.')
+     +    where <built-in method startswith of str object at 0x7fae974a31f0> = 'v22.23.4\n'.startswith
+     +      where 'v22.23.4\n' = CompletedProcess(args=['/exec-daemon/node', '--version'], returncode=0, stdout='v22.23.4\n', stderr='').stdout
+------------------------------ Captured log call -------------------------------
+INFO     app.core.rate_limit:rate_limit.py:112 Rate-limit backend: in-memory (dev/test)
+INFO     trustcopilot.audit:audit.py:34 audit {"ts": "2026-10-29T12:32:56.382685+00:00", "action": "auth.login", "user_id": 134, "email": "tc21002-admin@trust.local", "workspace_id": 5}
+INFO     app.request:main.py:283 request
+INFO     httpx2:_client.py:1084 HTTP Request: POST http://localhost/api/auth/login "HTTP/1.1 200 OK"
+INFO     app.request:main.py:283 request
+INFO     httpx2:_client.py:1084 HTTP Request: POST http://localhost/api/controls/ "HTTP/1.1 200 OK"
+INFO     app.request:main.py:283 request
+INFO     httpx2:_client.py:1084 HTTP Request: POST http://localhost/api/controls/ "HTTP/1.1 200 OK"
+INFO     app.request:main.py:283 request
+INFO     httpx2:_client.py:1084 HTTP Request: GET http://localhost/api/controls "HTTP/1.1 200 OK"
+INFO     app.request:main.py:283 request
+INFO     httpx2:_client.py:1084 HTTP Request: GET http://localhost/api/compliance/controls "HTTP/1.1 200 OK"
+/tmp/master-tc10003c/apps/api/tests/release/test_domain_controls.py:252: AssertionError: v22.23.4
+=============================== warnings summary ===============================
+tests/release/test_answer_sweep_direct_evidence.py: 16 warnings
+tests/release/test_billing_provider.py: 37 warnings
+tests/release/test_body_reference_workspace_scope.py: 5071 warnings
+tests/release/test_case_study_idempotency_owner.py: 44 warnings
+tests/release/test_cross_workspace_refs.py: 151 warnings
+tests/release/test_deal_questionnaire_link_scope.py: 82 warnings
+tests/release/test_domain_case_studies.py: 134 warnings
+tests/release/test_domain_compliance_frameworks.py: 41 warnings
+tests/release/test_domain_controls.py: 69 warnings
+tests/release/test_domain_controls_unique_key.py: 29 warnings
+tests/release/test_domain_demo_proof.py: 44 warnings
+tests/release/test_evidence_gap_generation.py: 94 warnings
+tests/release/test_job_idempotency.py: 61 warnings
+tests/release/test_job_retries.py: 123 warnings
+tests/release/test_notification_delivery.py: 176 warnings
+tests/release/test_provider_adapter.py: 9 warnings
+tests/release/test_trust_article_slug_workspace.py: 12 warnings
+tests/release/test_vendor_request_questionnaire_scope.py: 16 warnings
+tests/release/test_workspace_creation_policy.py: 32 warnings
+tests/test_ai_mappings.py: 57 warnings
+tests/test_alert_management.py: 8 warnings
+tests/test_alerting_engine.py: 12 warnings
+tests/test_answer_approval.py: 98 warnings
+tests/test_answer_generation_openai_required.py: 2 warnings
+tests/test_answer_outcomes.py: 12 warnings
+tests/test_answer_pipeline.py: 4 warnings
+tests/test_answer_tiers.py: 2 warnings
+tests/test_auth.py: 11 warnings
+tests/test_auth_flows.py: 2 warnings
+tests/test_auth_sessions_api.py: 5 warnings
+tests/test_auth_workspace.py: 10 warnings
+tests/test_automate_everything.py: 31 warnings
+tests/test_aws_connector.py: 10 warnings
+tests/test_benchmarks.py: 4 warnings
+tests/test_buyer_portal_proof_graph.py: 69 warnings
+tests/test_case_studies.py: 16 warnings
+tests/test_citation_composer.py: 10 warnings
+tests/test_cloud_connectors.py: 16 warnings
+tests/test_compliance_questionnaire_gaps_integration.py: 24 warnings
+tests/test_confidence_routing.py: 8 warnings
+tests/test_confidence_scoring.py: 9 warnings
+tests/test_connector_health.py: 6 warnings
+tests/test_connector_wizard.py: 12 warnings
+tests/test_contracts.py: 19 warnings
+tests/test_control_engine.py: 8 warnings
+tests/test_control_timeline.py: 6 warnings
+tests/test_controls_api.py: 51 warnings
+tests/test_credential_store.py: 14 warnings
+tests/test_credit_ledger.py: 22 warnings
+tests/test_credit_prompts.py: 4 warnings
+tests/test_crm_connectors.py: 20 warnings
+tests/test_dashboard_cards.py: 139 warnings
+tests/test_deals.py: 46 warnings
+tests/test_demo_proof.py: 10 warnings
+tests/test_evidence_approval.py: 13 warnings
+tests/test_evidence_cards.py: 4 warnings
+tests/test_evidence_diff.py: 4 warnings
+tests/test_evidence_search.py: 21 warnings
+tests/test_executive_dashboard.py: 4 warnings
+tests/test_export_pack.py: 10 warnings
+tests/test_feature_flags.py: 16 warnings
+tests/test_feedback_capture.py: 4 warnings
+tests/test_freshness_policies.py: 21 warnings
+tests/test_generate_export.py: 9 warnings
+tests/test_github_connector.py: 10 warnings
+tests/test_golden_answers.py: 39 warnings
+tests/test_google_connector.py: 10 warnings
+tests/test_in_app_notifications.py: 44 warnings
+tests/test_ingestion_pipeline.py: 13 warnings
+tests/test_invite_flow_p14.py: 75 warnings
+tests/test_jobs_api.py: 6 warnings
+tests/test_knowledge_packs.py: 2 warnings
+tests/test_login_email_regression.py: 8 warnings
+tests/test_members_invites.py: 49 warnings
+tests/test_monitoring.py: 4 warnings
+tests/test_multi_tenant.py: 45 warnings
+tests/test_nda_access.py: 34 warnings
+tests/test_notification_fire_points.py: 94 warnings
+tests/test_operator_queue.py: 22 warnings
+tests/test_p1_multi_tenant_hardening.py: 14 warnings
+tests/test_pdf_failure_surfacing.py: 24 warnings
+tests/test_phase_a_user_admin.py: 153 warnings
+tests/test_phase_b_custom_roles.py: 93 warnings
+tests/test_phase_c_notifications.py: 248 warnings
+tests/test_phase_d_slack.py: 189 warnings
+tests/test_phase_e_slack_ingest.py: 106 warnings
+tests/test_phase_f_gmail.py: 104 warnings
+tests/test_product_events.py: 14 warnings
+tests/test_promises.py: 21 warnings
+tests/test_proof_widgets.py: 4 warnings
+tests/test_qa_201_cross_workspace_auth.py: 12 warnings
+tests/test_questionnaire_answer_evidence.py: 4 warnings
+tests/test_questionnaire_mapping_evidence.py: 21 warnings
+tests/test_questionnaire_mappings.py: 40 warnings
+tests/test_questionnaires_exports_list_api.py: 4 warnings
+tests/test_registry_lifecycle_api.py: 49 warnings
+tests/test_remediation.py: 56 warnings
+tests/test_remediation_loop.py: 23 warnings
+tests/test_remember_me.py: 13 warnings
+tests/test_retention.py: 19 warnings
+tests/test_reuse_analytics.py: 4 warnings
+tests/test_roi_calculator.py: 4 warnings
+tests/test_security_faq.py: 24 warnings
+tests/test_security_page.py: 4 warnings
+tests/test_security_remediation.py: 16 warnings
+tests/test_session_concurrency.py: 13 warnings
+tests/test_shareable_spaces.py: 21 warnings
+tests/test_signal_mapping.py: 10 warnings
+tests/test_sla_tracking.py: 4 warnings
+tests/test_sli.py: 4 warnings
+tests/test_source_registry.py: 18 warnings
+tests/test_tags.py: 76 warnings
+tests/test_tenant_isolation.py: 28 warnings
+tests/test_trust_articles_api.py: 43 warnings
+tests/test_trust_center_analytics.py: 4 warnings
+tests/test_trust_center_publish.py: 14 warnings
+tests/test_trust_requests_api.py: 51 warnings
+tests/test_upload_parse_review.py: 2 warnings
+tests/test_vendor_requests_api.py: 54 warnings
+tests/test_vendor_response_api.py: 9 warnings
+tests/test_wave2_p13_p21_api.py: 9 warnings
+tests/test_wave3_p23_p29_api.py: 12 warnings
+tests/test_workspaces_members_api.py: 8 warnings
+  /tmp/api-venv/lib/python3.12/site-packages/sqlalchemy/sql/schema.py:3627: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    return util.wrap_callable(lambda ctx: fn(), fn)  # type: ignore
+
+tests/release/test_billing_provider.py::test_migration_fresh_install_upgrade_and_downgrade
+tests/release/test_cross_workspace_refs.py::test_trigger_revision_is_on_the_single_alembic_head_chain
+tests/release/test_domain_controls.py::test_migration_upgrade_downgrade_upgrade_again
+tests/release/test_domain_controls_unique_key.py::test_migration_clears_only_duplicate_keys_and_downgrade_restores_them
+tests/release/test_notification_delivery.py::test_migration_upgrades_and_downgrades_on_a_fresh_database
+tests/release/test_notification_delivery.py::test_migration_upgrades_and_downgrades_on_a_fresh_database
+tests/release/test_notification_delivery.py::test_migration_upgrades_and_downgrades_on_a_fresh_database
+tests/release/test_provider_adapter.py::test_migration_columns_present
+tests/release/test_provider_adapter.py::test_migration_has_unique_descriptive_revision_after_075
+  /tmp/api-venv/lib/python3.12/site-packages/alembic/config.py:604: DeprecationWarning: No path_separator found in configuration; falling back to legacy splitting on spaces, commas, and colons for prepend_sys_path.  Consider adding path_separator=os to Alembic config.
+    util.warn_deprecated(
+
+tests/release/test_cross_workspace_refs.py::test_same_workspace_document_write_still_works[1]
+  /tmp/master-tc10003c/apps/api/app/api/routes/compliance_controls.py:522: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    now = datetime.utcnow()
+
+tests/release/test_domain_controls_unique_key.py::test_reviewer_verify_syncs_verified_status_and_get_stays_read_only
+tests/test_notification_fire_points.py::TestControlVerifiedFirePoint::test_control_verified_notifies
+  /tmp/master-tc10003c/apps/api/app/api/routes/compliance_controls.py:467: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    now = datetime.utcnow()
+
+tests/release/test_job_idempotency.py::test_parse_stale_input_is_superseded[deleted]
+  /tmp/master-tc10003c/apps/api/tests/release/test_job_idempotency.py:364: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    qnr.deleted_at = datetime.utcnow()
+
+tests/release/test_job_idempotency.py::test_generate_never_overwrites_approved_or_newer_answers
+  /tmp/master-tc10003c/apps/api/tests/release/test_job_idempotency.py:585: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    old = datetime.utcnow() - timedelta(hours=2)
+
+tests/release/test_job_idempotency.py::test_generate_never_overwrites_approved_or_newer_answers
+  /tmp/master-tc10003c/apps/api/tests/release/test_job_idempotency.py:611: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    created_at=datetime.utcnow() - timedelta(minutes=5),
+
+tests/release/test_job_idempotency.py::test_generate_rerun_is_idempotent_and_counts_usage_once
+  /tmp/master-tc10003c/apps/api/tests/release/test_job_idempotency.py:652: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    created_at=datetime.utcnow() - timedelta(minutes=1),
+
+tests/release/test_job_idempotency.py::test_upsert_guard_rechecks_answer_approved_mid_run
+  /tmp/master-tc10003c/apps/api/tests/release/test_job_idempotency.py:680: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    created_at=datetime.utcnow() - timedelta(hours=1),
+
+tests/release/test_job_idempotency.py::test_upsert_guard_rechecks_answer_approved_mid_run
+  /tmp/master-tc10003c/apps/api/tests/release/test_job_idempotency.py:681: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    updated_at=datetime.utcnow() - timedelta(hours=1),
+
+tests/release/test_job_idempotency.py::test_upsert_guard_rechecks_answer_approved_mid_run
+  /tmp/master-tc10003c/apps/api/tests/release/test_job_idempotency.py:685: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    guard = AnswerWriteGuard(datetime.utcnow() - timedelta(minutes=30))
+
+tests/release/test_job_retries.py::test_transient_failure_schedules_bounded_retry_and_is_not_claimable_early
+  /tmp/master-tc10003c/apps/api/tests/release/test_job_retries.py:314: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    before = datetime.utcnow()
+
+tests/release/test_job_retries.py::test_claim_increments_attempt_and_clears_schedule
+  /tmp/master-tc10003c/apps/api/tests/release/test_job_retries.py:338: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    job.next_attempt_at = datetime.utcnow() - timedelta(seconds=1)
+
+tests/release/test_job_retries.py::test_retry_exhaustion_fails_visibly_never_completed
+  /tmp/master-tc10003c/apps/api/tests/release/test_job_retries.py:360: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    assert not _claimable(db, job.id, now=datetime.utcnow() + timedelta(days=1))
+
+tests/release/test_job_retries.py::test_process_one_job_end_to_end_retry_then_success
+  /tmp/master-tc10003c/apps/api/tests/release/test_job_retries.py:544: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    j.next_attempt_at = datetime.utcnow() - timedelta(seconds=1)
+
+tests/release/test_job_retries.py::test_retry_then_success_clears_only_the_stale_attempt_error
+  /tmp/master-tc10003c/apps/api/tests/release/test_job_retries.py:617: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    j.next_attempt_at = datetime.utcnow() - timedelta(seconds=1)
+
+tests/release/test_job_retries.py::test_failure_handler_never_overwrites_a_committed_completion[exc0]
+tests/release/test_job_retries.py::test_failure_handler_never_overwrites_a_committed_completion[exc1]
+tests/release/test_job_retries.py::test_failure_handler_never_overwrites_a_committed_completion[exc2]
+  /tmp/master-tc10003c/apps/api/tests/release/test_job_retries.py:633: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    job.completed_at = datetime.utcnow()
+
+tests/release/test_job_retries.py::test_generate_transient_llm_errors_retry_only_failed_questions
+tests/release/test_job_retries.py::test_generate_auth_error_stops_explicitly
+tests/release/test_job_retries.py::test_generate_bad_request_question_stays_visible_placeholder
+tests/release/test_job_retries.py::test_generate_missing_api_key_is_terminal_config_error
+  /tmp/master-tc10003c/apps/api/tests/release/test_job_retries.py:755: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    created_at=datetime.utcnow() - timedelta(minutes=1),
+
+tests/release/test_job_retries.py::test_write_guard_does_not_protect_llm_error_placeholders
+  /tmp/master-tc10003c/apps/api/tests/release/test_job_retries.py:870: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    cutoff = datetime.utcnow() - timedelta(hours=1)
+
+tests/release/test_job_retries.py::test_write_guard_does_not_protect_llm_error_placeholders
+  /tmp/master-tc10003c/apps/api/tests/release/test_job_retries.py:872: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    newer = datetime.utcnow()
+
+tests/release/test_workspace_creation_policy.py: 18 warnings
+  /tmp/master-tc10003c/apps/api/app/api/routes/workspaces.py:122: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    now = datetime.utcnow()
+
+tests/test_dashboard_cards.py::TestAdminCRUD::test_update_card
+  /tmp/master-tc10003c/apps/api/app/api/routes/dashboard_cards.py:275: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    card.updated_at = datetime.utcnow()
+
+tests/test_p1_multi_tenant_hardening.py::TestFairScheduling::test_claim_job_rotates_workspaces
+tests/test_p1_multi_tenant_hardening.py::TestFairScheduling::test_claim_job_rotates_workspaces
+tests/test_p1_multi_tenant_hardening.py::TestFairScheduling::test_claim_job_rotates_workspaces
+  /tmp/master-tc10003c/apps/api/tests/test_p1_multi_tenant_hardening.py:185: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    created_at=datetime.utcnow(),
+
+tests/test_p1_multi_tenant_hardening.py::TestFairScheduling::test_claim_job_rotates_workspaces
+  /tmp/master-tc10003c/apps/api/tests/test_p1_multi_tenant_hardening.py:194: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    created_at=datetime.utcnow(),
+
+tests/test_p1_multi_tenant_hardening.py::TestFairScheduling::test_claim_falls_back_when_only_one_workspace
+  /tmp/master-tc10003c/apps/api/tests/test_p1_multi_tenant_hardening.py:237: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    created_at=datetime.utcnow(),
+
+tests/test_phase_e_slack_ingest.py::TestControlSuggestions::test_suggestion_status_review
+tests/test_phase_e_slack_ingest.py::TestControlSuggestions::test_suggestion_review_audit_logged
+  /tmp/master-tc10003c/apps/api/app/api/routes/slack_ingest.py:327: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    sug.reviewed_at = datetime.utcnow()
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED tests/release/test_billing_provider.py::test_migration_fresh_install_upgrade_and_downgrade
+FAILED tests/release/test_domain_case_studies.py::test_ac3_schema_consumer_and_persisted_outcome_agree_across_retry
+FAILED tests/release/test_domain_controls.py::test_routes_agree_on_canonical_contract_and_retry
+3 failed, 3003 passed, 11 skipped, 9281 warnings in 180.00s (0:02:59)
+MASTER_EXIT:1

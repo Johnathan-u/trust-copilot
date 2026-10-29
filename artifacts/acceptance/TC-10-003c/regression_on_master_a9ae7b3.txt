@@ -1,0 +1,113 @@
+FFFFFFFFFFFFFFFFF                                                        [100%]
+=================================== FAILURES ===================================
+E   TypeError: enqueue_job() got an unexpected keyword argument 'commit'
+/tmp/master-tc10003c/apps/api/tests/release/test_upload_enqueue_conflict.py:256: TypeError: enqueue_job() got an unexpected keyword argument 'commit'
+E   TypeError: enqueue_job() got an unexpected keyword argument 'commit'
+/tmp/master-tc10003c/apps/api/tests/release/test_upload_enqueue_conflict.py:325: TypeError: enqueue_job() got an unexpected keyword argument 'commit'
+E   TypeError: set() got an unexpected keyword argument 'commit'
+/tmp/master-tc10003c/apps/api/tests/release/test_upload_enqueue_conflict.py:353: TypeError: set() got an unexpected keyword argument 'commit'
+E   assert [<app.models....7f57d71fe600>] == []
+
+      Left contains one more item: <app.models.document.Document object at 0x7f57d71fe600>
+      Use -v to get more diff
+------------------------------ Captured log call -------------------------------
+WARNING  app.services.job_effects:job_effects.py:120 enqueue_job: lost the queued-slot race on every attempt; reporting a retryable conflict (workspace_id=1 kind=index_document attempts=2)
+/tmp/master-tc10003c/apps/api/tests/release/test_upload_enqueue_conflict.py:414: assert [<app.models....7f57d71fe600>] == []
+E   assert [<app.models....7f57d6536390>] == []
+
+      Left contains one more item: <app.models.questionnaire.Questionnaire object at 0x7f57d6536390>
+      Use -v to get more diff
+------------------------------ Captured log call -------------------------------
+WARNING  app.services.job_effects:job_effects.py:120 enqueue_job: lost the queued-slot race on every attempt; reporting a retryable conflict (workspace_id=1 kind=parse_questionnaire attempts=2)
+/tmp/master-tc10003c/apps/api/tests/release/test_upload_enqueue_conflict.py:414: assert [<app.models....7f57d6536390>] == []
+E   assert [<app.models....7f57d641f860>] == []
+
+      Left contains one more item: <app.models.document.Document object at 0x7f57d641f860>
+      Use -v to get more diff
+------------------------------ Captured log call -------------------------------
+WARNING  app.services.job_effects:job_effects.py:120 enqueue_job: lost the queued-slot race on every attempt; reporting a retryable conflict (workspace_id=1 kind=index_document attempts=2)
+/tmp/master-tc10003c/apps/api/tests/release/test_upload_enqueue_conflict.py:442: assert [<app.models....7f57d641f860>] == []
+E   assert [<app.models....7f57d64903e0>] == []
+
+      Left contains one more item: <app.models.questionnaire.Questionnaire object at 0x7f57d64903e0>
+      Use -v to get more diff
+------------------------------ Captured log call -------------------------------
+WARNING  app.services.job_effects:job_effects.py:120 enqueue_job: lost the queued-slot race on every attempt; reporting a retryable conflict (workspace_id=1 kind=parse_questionnaire attempts=2)
+/tmp/master-tc10003c/apps/api/tests/release/test_upload_enqueue_conflict.py:442: assert [<app.models....7f57d64903e0>] == []
+E   assert [<app.models....7f57d641c710>] == []
+
+      Left contains one more item: <app.models.document.Document object at 0x7f57d641c710>
+      Use -v to get more diff
+------------------------------ Captured log call -------------------------------
+WARNING  app.services.job_effects:job_effects.py:120 enqueue_job: lost the queued-slot race on every attempt; reporting a retryable conflict (workspace_id=1 kind=index_document attempts=2)
+/tmp/master-tc10003c/apps/api/tests/release/test_upload_enqueue_conflict.py:473: assert [<app.models....7f57d641c710>] == []
+E   assert [<app.models....7f57d641ddf0>] == []
+
+      Left contains one more item: <app.models.questionnaire.Questionnaire object at 0x7f57d641ddf0>
+      Use -v to get more diff
+------------------------------ Captured log call -------------------------------
+WARNING  app.services.job_effects:job_effects.py:120 enqueue_job: lost the queued-slot race on every attempt; reporting a retryable conflict (workspace_id=1 kind=parse_questionnaire attempts=2)
+/tmp/master-tc10003c/apps/api/tests/release/test_upload_enqueue_conflict.py:473: assert [<app.models....7f57d641ddf0>] == []
+E   AssertionError: {"id":7,"display_id":"DOC-000007","filename":"synthetic.txt","status":"uploaded","storage_key":"raw/1/9425ce34659f469e923d67f38860ce74.txt","job_id":20,"frameworks":["Other"],"subject_areas":["Other"]}
+    assert 200 == 409
+     +  where 200 = <Response [200 OK]>.status_code
+/tmp/master-tc10003c/apps/api/tests/release/test_upload_enqueue_conflict.py:202: AssertionError: {"id":7,"display_id":"DOC-000007","filename":"synthetic.txt","status":"uploaded","storage_key":"raw/1/9425ce34659f469e923d67f38860ce74.txt","job_id":20,"frameworks":["Other"],"subject_areas":["Other"]}
+E   AssertionError: {"id":4,"display_id":"QNR-000004","filename":"synthetic.txt","status":"uploaded","job_id":21}
+    assert 200 == 409
+     +  where 200 = <Response [200 OK]>.status_code
+/tmp/master-tc10003c/apps/api/tests/release/test_upload_enqueue_conflict.py:202: AssertionError: {"id":4,"display_id":"QNR-000004","filename":"synthetic.txt","status":"uploaded","job_id":21}
+E   AssertionError: {"id":8,"display_id":"DOC-000008","filename":"synthetic.txt","status":"uploaded","storage_key":"raw/1/04d960cc09114fa399271858c2a4a88a.txt","job_id":22,"frameworks":["Other"],"subject_areas":["Other"]}
+    assert 200 == 400
+     +  where 200 = <Response [200 OK]>.status_code
+/tmp/master-tc10003c/apps/api/tests/release/test_upload_enqueue_conflict.py:524: AssertionError: {"id":8,"display_id":"DOC-000008","filename":"synthetic.txt","status":"uploaded","storage_key":"raw/1/04d960cc09114fa399271858c2a4a88a.txt","job_id":22,"frameworks":["Other"],"subject_areas":["Other"]}
+E   AssertionError: {"id":5,"display_id":"QNR-000005","filename":"synthetic.txt","status":"uploaded","job_id":23}
+    assert 200 == 400
+     +  where 200 = <Response [200 OK]>.status_code
+/tmp/master-tc10003c/apps/api/tests/release/test_upload_enqueue_conflict.py:524: AssertionError: {"id":5,"display_id":"QNR-000005","filename":"synthetic.txt","status":"uploaded","job_id":23}
+E   assert 2 == 1
+     +  where 2 = len([<app.models.document.Document object at 0x7f57d71fe6c0>, <app.models.document.Document object at 0x7f57d71fc800>])
+/tmp/master-tc10003c/apps/api/tests/release/test_upload_enqueue_conflict.py:559: assert 2 == 1
+E   assert 2 == 1
+     +  where 2 = len([<app.models.questionnaire.Questionnaire object at 0x7f57d716d6a0>, <app.models.questionnaire.Questionnaire object at 0x7f57d716de50>])
+/tmp/master-tc10003c/apps/api/tests/release/test_upload_enqueue_conflict.py:559: assert 2 == 1
+E   assert [<app.models....7f57d6532a50>] == []
+
+      Left contains 2 more items, first extra item: <app.models.document.Document object at 0x7f57d6532fc0>
+      Use -v to get more diff
+------------------------------ Captured log call -------------------------------
+WARNING  app.services.job_effects:job_effects.py:120 enqueue_job: lost the queued-slot race on every attempt; reporting a retryable conflict (workspace_id=1 kind=index_document attempts=2)
+WARNING  app.services.job_effects:job_effects.py:120 enqueue_job: lost the queued-slot race on every attempt; reporting a retryable conflict (workspace_id=1 kind=index_document attempts=2)
+/tmp/master-tc10003c/apps/api/tests/release/test_upload_enqueue_conflict.py:604: assert [<app.models....7f57d6532a50>] == []
+E   assert [<app.models....7f57d62b4d40>] == []
+
+      Left contains 2 more items, first extra item: <app.models.questionnaire.Questionnaire object at 0x7f57d62b4290>
+      Use -v to get more diff
+------------------------------ Captured log call -------------------------------
+WARNING  app.services.job_effects:job_effects.py:120 enqueue_job: lost the queued-slot race on every attempt; reporting a retryable conflict (workspace_id=1 kind=parse_questionnaire attempts=2)
+WARNING  app.services.job_effects:job_effects.py:120 enqueue_job: lost the queued-slot race on every attempt; reporting a retryable conflict (workspace_id=1 kind=parse_questionnaire attempts=2)
+/tmp/master-tc10003c/apps/api/tests/release/test_upload_enqueue_conflict.py:604: assert [<app.models....7f57d62b4d40>] == []
+=============================== warnings summary ===============================
+tests/release/test_upload_enqueue_conflict.py: 28 warnings
+  /tmp/api-venv/lib/python3.12/site-packages/sqlalchemy/sql/schema.py:3627: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    return util.wrap_callable(lambda ctx: fn(), fn)  # type: ignore
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED tests/release/test_upload_enqueue_conflict.py::test_enqueue_job_commit_false_leaves_commit_to_the_caller
+FAILED tests/release/test_upload_enqueue_conflict.py::test_enqueue_conflict_with_commit_false_rolls_back_the_callers_row
+FAILED tests/release/test_upload_enqueue_conflict.py::test_idempotency_set_commit_false_is_atomic_with_caller_and_fenced
+FAILED tests/release/test_upload_enqueue_conflict.py::test_enqueue_conflict_409_leaves_no_row_job_or_object_and_retry_creates_one[documents]
+FAILED tests/release/test_upload_enqueue_conflict.py::test_enqueue_conflict_409_leaves_no_row_job_or_object_and_retry_creates_one[questionnaires]
+FAILED tests/release/test_upload_enqueue_conflict.py::test_idempotency_key_retry_after_409_and_replay_never_duplicate[documents]
+FAILED tests/release/test_upload_enqueue_conflict.py::test_idempotency_key_retry_after_409_and_replay_never_duplicate[questionnaires]
+FAILED tests/release/test_upload_enqueue_conflict.py::test_storage_delete_failure_still_returns_409_without_a_row[documents]
+FAILED tests/release/test_upload_enqueue_conflict.py::test_storage_delete_failure_still_returns_409_without_a_row[questionnaires]
+FAILED tests/release/test_upload_enqueue_conflict.py::test_lost_idempotency_claim_rolls_back_the_upload[documents]
+FAILED tests/release/test_upload_enqueue_conflict.py::test_lost_idempotency_claim_rolls_back_the_upload[questionnaires]
+FAILED tests/release/test_upload_enqueue_conflict.py::test_forbidden_and_invalid_key_store_nothing[documents]
+FAILED tests/release/test_upload_enqueue_conflict.py::test_forbidden_and_invalid_key_store_nothing[questionnaires]
+FAILED tests/release/test_upload_enqueue_conflict.py::test_concurrent_same_key_uploads_create_exactly_one_row[documents]
+FAILED tests/release/test_upload_enqueue_conflict.py::test_concurrent_same_key_uploads_create_exactly_one_row[questionnaires]
+FAILED tests/release/test_upload_enqueue_conflict.py::test_concurrent_conflicting_uploads_leave_nothing_then_retries_create_one_each[documents]
+FAILED tests/release/test_upload_enqueue_conflict.py::test_concurrent_conflicting_uploads_leave_nothing_then_retries_create_one_each[questionnaires]
+17 failed, 28 warnings in 3.61s

@@ -42,6 +42,18 @@ class IdempotencyKeyError(ValueError):
     """The client sent an Idempotency-Key that is empty, too long, or illegal."""
 
 
+class IdempotencyClaimLost(RuntimeError):
+    """``set(commit=False)`` lost the owner-token fence (TC-10-003c).
+
+    The update matched no row and nothing was committed. The caller must roll back;
+    committing afterwards would persist work this key will not record. The API maps
+    this to the same retryable 409 as ``EnqueueConflictError``.
+    """
+
+    def __init__(self) -> None:
+        super().__init__("idempotency claim is no longer owned by this request")
+
+
 def _now() -> datetime:
     return datetime.now(timezone.utc)
 
@@ -136,6 +148,20 @@ def _owner_clause(owner: str | None) -> str:
     return "" if owner is None else " AND owner_token = :owner"
 
 
+def _release_statement(db: Session, key: str, owner: str | None):
+    """Run the fenced in-progress DELETE. Does not commit."""
+    params: dict = {"k": key.strip()}
+    if owner is not None:
+        params["owner"] = owner
+    return db.execute(
+        text(
+            "DELETE FROM idempotency_keys WHERE idempotency_key = :k AND response_body IS NULL"
+            + _owner_clause(owner)
+        ),
+        params,
+    )
+
+
 def set(
     db: Session,
     key: str,
@@ -144,6 +170,7 @@ def set(
     ttl_sec: int = _DEFAULT_TTL_SEC,
     *,
     owner: str | None = None,
+    commit: bool = True,
 ) -> bool:
     """Store the response and extend the short in-progress lease to the full TTL.
 
@@ -153,17 +180,27 @@ def set(
     TC-10-003b: with ``owner`` (the token returned by :func:`claim`), the row is only updated while it still
     carries that token. A stale owner (lease expired, key reclaimed by another request) is a no-op.
     Returns True if a row was written.
+
+    ``commit`` defaults to True. ``commit=False`` (TC-10-003c) flushes into the caller's transaction and
+    leaves the commit to the caller. If ``owner`` is set and the claim was lost, ``IdempotencyClaimLost``
+    is raised and the caller rolls back; this function does not commit or roll back on that path.
     """
     if not _valid_key(key):
         return False
     if status_code >= 500:
         logger.info("idempotency: not caching %s response; releasing claim", status_code)
-        release(db, key, owner=owner)
+        if commit:
+            release(db, key, owner=owner)
+            return False
+        result = _release_statement(db, key, owner)
+        if owner is not None and not result.rowcount:
+            logger.warning("idempotency set skipped: claim is no longer owned by this request")
+            raise IdempotencyClaimLost()
         return False
     k = key.strip()
     expires = _now() + timedelta(seconds=ttl_sec)
     body_str = json.dumps(response_body)
-    params = {"k": k, "sc": status_code, "body": body_str, "expires_at": expires}
+    params: dict = {"k": k, "sc": status_code, "body": body_str, "expires_at": expires}
     if owner is not None:
         params["owner"] = owner
     try:
@@ -177,11 +214,19 @@ def set(
             ),
             params,
         )
-        db.commit()
+        written = bool(result.rowcount)
+        if not written and owner is not None and not commit:
+            logger.warning("idempotency set skipped: claim is no longer owned by this request")
+            raise IdempotencyClaimLost()
+        if commit:
+            db.commit()
+        else:
+            db.flush()
+    except IdempotencyClaimLost:
+        raise
     except Exception:
         db.rollback()
         raise
-    written = bool(result.rowcount)
     if not written and owner is not None:
         logger.warning("idempotency set skipped: claim is no longer owned by this request")
     return written
@@ -238,17 +283,8 @@ def release(db: Session, key: str, *, owner: str | None = None) -> bool:
     """
     if not _valid_key(key):
         return False
-    params = {"k": key.strip()}
-    if owner is not None:
-        params["owner"] = owner
     try:
-        result = db.execute(
-            text(
-                "DELETE FROM idempotency_keys WHERE idempotency_key = :k AND response_body IS NULL"
-                + _owner_clause(owner)
-            ),
-            params,
-        )
+        result = _release_statement(db, key, owner)
         db.commit()
     except Exception:
         db.rollback()

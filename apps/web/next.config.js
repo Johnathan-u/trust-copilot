@@ -3,6 +3,8 @@ const path = require('path')
 /** @type {import('next').NextConfig} */
 const apiBase = process.env.API_UPSTREAM || 'http://localhost:8000'
 const nextConfig = {
+  // A second dev server (contact-link browser checks) uses its own output dir.
+  distDir: process.env.NEXT_DIST_DIR || '.next',
   // TC-02-003: emit a self-contained server bundle (.next/standalone) so the
   // production image ships only traced runtime files, not dev/test tooling.
   output: 'standalone',
