@@ -134,15 +134,16 @@ def _visible_evidence_ids(db: Session, workspace_id: int, raw: str | None) -> li
         return []
     if not isinstance(parsed, list):
         return []
-    visible: list[int] = []
-    for item in parsed:
-        if not isinstance(item, int):
-            continue
-        ev = db.query(EvidenceItem).filter(EvidenceItem.id == item).first()
-        if ev is not None and ev.workspace_id != workspace_id:
-            continue
-        visible.append(item)
-    return visible
+    wanted = [item for item in parsed if isinstance(item, int) and not isinstance(item, bool)]
+    if not wanted:
+        return []
+    rows = (
+        db.query(EvidenceItem.id, EvidenceItem.workspace_id)
+        .filter(EvidenceItem.id.in_(wanted))
+        .all()
+    )
+    foreign = {row.id for row in rows if row.workspace_id != workspace_id}
+    return [item for item in wanted if item not in foreign]
 
 
 def _owner_id(db: Session, gap: EvidenceGap, workspace_id: int) -> int | None:
