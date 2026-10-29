@@ -21,6 +21,7 @@ export interface DialogProps {
   placement?: DialogPlacement
   size?: DialogSize
   children?: ReactNode
+  id?: string
   initialFocusRef?: RefObject<HTMLElement | null>
   returnFocusRef?: RefObject<HTMLElement | null>
   closeDisabled?: boolean
@@ -31,8 +32,7 @@ export interface DialogProps {
 /**
  * Shared modal shell. Focus moves inside on open, Tab cycles inside the dialog,
  * Escape closes it, and focus returns to the trigger. The rest of the page is
- * inert. `placement="drawer-end"` or `"drawer-start"` is the same behavior for
- * a later navigation drawer (TC-14-006); this ticket does not mount that drawer.
+ * inert. `placement="drawer-start"` is the mobile navigation drawer.
  */
 export function Dialog({
   open,
@@ -43,6 +43,7 @@ export function Dialog({
   placement = 'center',
   size = 'md',
   children,
+  id,
   initialFocusRef,
   returnFocusRef,
   closeDisabled = false,
@@ -88,6 +89,7 @@ export function Dialog({
       />
       <div
         ref={dialogRef}
+        id={id}
         role={role}
         aria-modal="true"
         aria-labelledby={titleId}
