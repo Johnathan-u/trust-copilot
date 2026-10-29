@@ -350,7 +350,9 @@ test('failed evidence verification stays unconfirmed and does not change lifecyc
   await expect(
     page.getByRole('button', { name: 'Mark unverified', exact: true })
   ).toBeEnabled()
-  await expect(page.getByLabel('Lifecycle')).toHaveValue('verified')
+  await expect(page.getByLabel('Lifecycle', { exact: true })).toHaveValue(
+    'verified'
+  )
   await expect(page.locator('#main-content')).not.toContainText(
     'Private evidence details'
   )
@@ -439,7 +441,7 @@ test('control library route serves the page instead of a missing route', async (
 for (const width of [360, 768, 1440]) {
   test(`control screens remain usable at ${width}px with keyboard and accessibility checks`, async ({
     page,
-  }) => {
+  }, testInfo) => {
     await installApi(page)
     await page.setViewportSize({ width, height: 900 })
     const evidenceDir = path.resolve('../../artifacts/acceptance/TC-15-042')
@@ -487,6 +489,14 @@ for (const width of [360, 768, 1440]) {
       await page.screenshot({
         path: path.join(evidenceDir, 'screenshots', `${name}-${width}.png`),
         fullPage: true,
+      })
+      await testInfo.attach(`${name}-${width}`, {
+        path: path.join(evidenceDir, 'screenshots', `${name}-${width}.png`),
+        contentType: 'image/png',
+      })
+      await testInfo.attach(`axe-${name}-${width}`, {
+        path: path.join(evidenceDir, `axe-${name}-${width}.json`),
+        contentType: 'application/json',
       })
     }
   })
