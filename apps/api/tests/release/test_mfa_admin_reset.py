@@ -8,6 +8,7 @@ import uuid
 
 import pyotp
 from fastapi.testclient import TestClient
+from sqlalchemy import text
 from sqlalchemy.orm import Session
 
 from app.core.password import hash_password
@@ -34,6 +35,12 @@ def _user(db: Session, tag: str) -> User:
 
 
 def _workspace(db: Session, tag: str) -> Workspace:
+    db.execute(
+        text(
+            "SELECT setval(pg_get_serial_sequence('workspaces', 'id'), "
+            "(SELECT COALESCE(MAX(id), 1) FROM workspaces))"
+        )
+    )
     row = Workspace(
         name=f"synthetic example {tag}",
         slug=f"synthetic-example-{tag}-{uuid.uuid4().hex[:10]}",
