@@ -23,7 +23,6 @@ from app.core.api_errors import (
     outcome_payload,
 )
 from app.core.idempotency import (
-    IdempotencyClaimLost,
     IdempotencyKeyError,
     claim as idempotency_claim,
     get as idempotency_get,
@@ -54,7 +53,7 @@ from app.services.compliance_hooks import (
 )
 from app.services.mapping_llm_rerank import get_rerank_perf_snapshot, reset_rerank_perf_stats
 from app.services.file_service import FileService
-from app.services.job_effects import EnqueueConflictError, enqueue_job, job_idempotency_key
+from app.services.job_effects import enqueue_job, job_idempotency_key
 from app.services.upload_enqueue import UPLOAD_IDEMPOTENCY_RESOURCE, discard_stored_upload
 from app.services.questionnaire_mapping_evidence import (
     batch_supporting_evidence_for_workspace_controls,
@@ -155,9 +154,9 @@ def upload_questionnaire(
 ):
     """Upload questionnaire file (QNR-01). Enqueues parse job (QNR-13).
 
-    The questionnaire, its parse job, and the optional Idempotency-Key response commit once
-    (TC-10-003c). A retryable enqueue conflict rolls that transaction back and deletes the
-    stored object so the client's retry does not create a second row.
+    The questionnaire, its parse job, and the optional Idempotency-Key response commit once.
+    A retryable enqueue conflict rolls that transaction back and deletes the stored object
+    so the client's retry does not create a second row.
     """
     # Authorize before the idempotency store or object storage: a 403 is never cached or stored.
     if session.get("workspace_id") != workspace_id:
@@ -219,11 +218,6 @@ def upload_questionnaire(
         if idem_key:
             idempotency_set(db, idem_key, 200, result, owner=idem_owner, commit=False)
         db.commit()
-    except (EnqueueConflictError, IdempotencyClaimLost):
-        db.rollback()
-        discard_stored_upload(file_svc._storage, stored_key)
-        _release_upload_claim(db, idem_key, idem_owner)
-        raise
     except Exception:
         db.rollback()
         discard_stored_upload(file_svc._storage, stored_key)
