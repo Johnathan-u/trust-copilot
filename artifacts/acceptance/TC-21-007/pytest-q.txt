@@ -1,15 +1,23 @@
-SHA 8ac53bb71ea790f5997d3427caa3b4a48cfb1671
-parent of the evidence commit: 8ac53bb71ea790f5997d3427caa3b4a48cfb1671
+SHA 3b00c1c53865f1967658607b38fdb3b4906df71e
+parent of the evidence commit: 3b00c1c53865f1967658607b38fdb3b4906df71e
 working directory: apps/api
-command: python -m pytest tests/release/test_domain_compliance_coverage.py -q
 interpreter: /tmp/tc-venv/bin/python
 alembic heads: tc21005_mapping_version (head)
 
+command: python -m pytest tests/release/test_domain_compliance_coverage.py -q
 ....                                                                     [100%]
-4 passed, 70 warnings in 2.08s
+4 passed, 70 warnings in 2.26s
+exit status: 0
+
+command: python -m pytest tests/release/test_domain_compliance_mappings.py -q
+..........                                                               [100%]
+10 passed, 185 warnings in 6.89s
 exit status: 0
 
 working directory: apps/web
 command: npm run test:unit -- lib/coverageConsumer.test.ts
 4 passed
+exit status: 0
+
+command: npm run typecheck
 exit status: 0

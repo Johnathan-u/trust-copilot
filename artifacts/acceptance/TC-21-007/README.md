@@ -2,23 +2,27 @@
 
 Framework catalogs stay **BLOCKED** pending **TC-01-007**. This run did not add framework requirement text. There is no migration.
 
-## Commands
+The mapping hold-id change is outside this ticket. `test_domain_compliance_mappings.py` (TC-21-005) used to draw an id up to 2149999999, which overflows a signed integer. The span is now capped at 2140000000.
 
-```text
-python -m pytest tests/release/test_domain_compliance_coverage.py -q
-```
+## Commands
 
 Working directory `apps/api`. Interpreter `/tmp/tc-venv/bin/python`.
 
 ```text
-npm run test:unit -- lib/coverageConsumer.test.ts
+python -m pytest tests/release/test_domain_compliance_coverage.py -q
+python -m pytest tests/release/test_domain_compliance_mappings.py -q
 ```
 
 Working directory `apps/web`. Node 24.
 
+```text
+npm run test:unit -- lib/coverageConsumer.test.ts
+npm run typecheck
+```
+
 ## SHA
 
-Tests ran on `8ac53bb71ea790f5997d3427caa3b4a48cfb1671`. That commit is the parent of this evidence commit. This file was added after that commit and does not change the code under test.
+Tests ran on `3b00c1c53865f1967658607b38fdb3b4906df71e`. That commit is the parent of this evidence commit. This file was added after that commit and does not change the code under test.
 
 ## Environment
 
@@ -31,7 +35,9 @@ Tests ran on `8ac53bb71ea790f5997d3427caa3b4a48cfb1671`. That commit is the pare
 
 | Command | Exit | Total |
 |---|---|---|
-| `python -m pytest tests/release/test_domain_compliance_coverage.py -q` | 0 | 4 passed, 70 warnings, 2.08s |
+| `python -m pytest tests/release/test_domain_compliance_coverage.py -q` | 0 | 4 passed, 70 warnings, 2.26s |
+| `python -m pytest tests/release/test_domain_compliance_mappings.py -q` | 0 | 10 passed, 185 warnings, 6.89s |
 | `npm run test:unit -- lib/coverageConsumer.test.ts` | 0 | 4 passed |
+| `npm run typecheck` | 0 | types generated, `tsc --noEmit` clean |
 
-Pytest printed `4 passed, 70 warnings in 2.08s` and did not report a skipped test. The quiet progress line was `....`.
+Pytest did not report a skipped test. The coverage progress line was `....`. The mapping progress line was `..........`.
