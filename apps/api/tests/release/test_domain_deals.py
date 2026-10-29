@@ -484,6 +484,24 @@ def _migration_parent() -> str:
     return parent
 
 
+def _deal_hold_counts() -> tuple[int, int]:
+    session = SessionLocal()
+    try:
+        deals = session.execute(text("SELECT count(*) FROM deals")).scalar()
+        hold = session.execute(text(f"SELECT count(*) FROM {HOLD}")).scalar()
+        return int(deals or 0), int(hold or 0)
+    finally:
+        session.close()
+
+
+@pytest.fixture(autouse=True)
+def _restored_deal_and_hold_counts():
+    """Every test removes the deal and hold rows it creates."""
+    before = _deal_hold_counts()
+    yield
+    assert _deal_hold_counts() == before
+
+
 def _alembic(*args: str) -> str:
     env = {**os.environ, "TRUST_COPILOT_TESTING": "1"}
     engine.dispose()
@@ -501,6 +519,7 @@ def _alembic(*args: str) -> str:
 
 def test_amount_backfill_downgrade_and_upgrade_round_trip():
     """A non-representable float is held, restored as the same text, then re-held."""
+    before = _deal_hold_counts()
     parent = _migration_parent()
     _alembic("downgrade", parent)
     token = uuid.uuid4().hex[:8]
@@ -543,6 +562,7 @@ def test_amount_backfill_downgrade_and_upgrade_round_trip():
             {"id": inexact_id},
         ).scalar()
         session.commit()
+        assert "." in original_inexact and len(original_inexact.split(".", 1)[1]) > 2
     finally:
         session.close()
 
@@ -634,6 +654,7 @@ def test_amount_backfill_downgrade_and_upgrade_round_trip():
         reheld = hold(inexact_id)
         assert reheld[0] == original_inexact
         assert reheld[1] == HOLD_REASON
+        assert again[inexact_id][4] is None
     finally:
         _alembic("upgrade", "head")
         fresh = SessionLocal()
@@ -649,3 +670,5 @@ def test_amount_backfill_downgrade_and_upgrade_round_trip():
             fresh.commit()
         finally:
             fresh.close()
+    assert _deal_hold_counts() == before
+    assert _deal_hold_counts() == before
