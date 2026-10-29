@@ -397,11 +397,278 @@ class TestDeliveryLog:
         assert r.status_code == 200
 
     def test_delivery_log_scoped_to_workspace(self, client: TestClient) -> None:
-        """Log entries should only show for the current workspace."""
-        _login_admin(client)
-        r = client.get("/api/notifications/log?page_size=100")
-        entries = r.json()["entries"]  # noqa: F841
-        # All entries in the log should be for workspace 1 (current session)
-        # We can't check workspace_id in the response since it's not returned,
-        # but the query filters by workspace — this is a structural verification
-        assert r.status_code == 200
+        """Workspace B cannot read workspace A's log rows or delivery attempts, and the reverse.
+
+        Covers the list and status filter, a foreign workspace_id query, an admin
+        session, and an admin API key. Guessing the other workspace's id is a 404
+        with no row body.
+        """
+        from uuid import uuid4
+
+        from app.core.database import SessionLocal
+        from app.core.password import hash_password
+        from app.models import (
+            ApiKey,
+            InAppNotification,
+            NotificationDeliveryAttempt,
+            NotificationLog,
+            User,
+            WorkspaceMember,
+        )
+
+        marker_a = "bug007-marker-workspace-a"
+        marker_b = "bug007-marker-workspace-b"
+        raw_key_a = "fake-bug007-workspace-a"
+        raw_key_b = "fake-bug007-workspace-b"
+        token = uuid4().hex
+        email_a = f"bug007-a-{token}@test.local"
+        email_b = f"bug007-b-{token}@test.local"
+        user_ids: list[int] = []
+
+        def _user(db, email: str) -> User:
+            user = db.query(User).filter(User.email == email).one_or_none()
+            if user is None:
+                user = User(
+                    email=email,
+                    password_hash=hash_password("j"),
+                    display_name=email,
+                )
+                db.add(user)
+                db.flush()
+            return user
+
+        def _admin(db, user: User, workspace_id: int) -> None:
+            mem = (
+                db.query(WorkspaceMember)
+                .filter(
+                    WorkspaceMember.user_id == user.id,
+                    WorkspaceMember.workspace_id == workspace_id,
+                )
+                .one_or_none()
+            )
+            if mem is None:
+                db.add(WorkspaceMember(workspace_id=workspace_id, user_id=user.id, role="admin"))
+            else:
+                mem.role = "admin"
+
+        db = SessionLocal()
+        try:
+            user_a = _user(db, email_a)
+            user_b = _user(db, email_b)
+            _admin(db, user_a, 1)
+            _admin(db, user_b, 2)
+            note_a = InAppNotification(
+                workspace_id=1,
+                user_id=user_a.id,
+                title="Workspace A",
+                body=marker_a,
+                is_read=False,
+            )
+            note_b = InAppNotification(
+                workspace_id=2,
+                user_id=user_b.id,
+                title="Workspace B",
+                body=marker_b,
+                is_read=True,
+            )
+            db.add(note_a)
+            db.add(note_b)
+            db.flush()
+            log_a = NotificationLog(
+                workspace_id=1,
+                event_type="bug007.isolation",
+                channel="email",
+                recipient_email="a@example.com",
+                subject=marker_a,
+                status="sent",
+            )
+            log_b = NotificationLog(
+                workspace_id=2,
+                event_type="bug007.isolation",
+                channel="email",
+                recipient_email="b@example.com",
+                subject=marker_b,
+                status="failed",
+            )
+            db.add(log_a)
+            db.add(log_b)
+            db.flush()
+            own_attempt = NotificationDeliveryAttempt(
+                workspace_id=1,
+                event_type="bug007.isolation",
+                channel="in_app",
+                recipient=marker_a,
+                user_id=user_a.id,
+                dedupe_key="bug007:1:own",
+                state="sent",
+                rendered_subject=marker_a,
+                rendered_body=marker_a,
+                in_app_notification_id=note_a.id,
+                notification_log_id=log_a.id,
+            )
+            poisoned = NotificationDeliveryAttempt(
+                workspace_id=1,
+                event_type="bug007.isolation",
+                channel="in_app",
+                recipient=marker_a,
+                user_id=user_a.id,
+                dedupe_key="bug007:1:poison",
+                state="sent",
+                rendered_subject=marker_a,
+                rendered_body=marker_a,
+                in_app_notification_id=note_b.id,
+            )
+            attempt_b = NotificationDeliveryAttempt(
+                workspace_id=2,
+                event_type="bug007.isolation",
+                channel="email",
+                recipient=marker_b,
+                user_id=user_b.id,
+                dedupe_key="bug007:2:own",
+                state="dead-lettered",
+                rendered_subject=marker_b,
+                rendered_body=marker_b,
+                notification_log_id=log_b.id,
+            )
+            db.add(own_attempt)
+            db.add(poisoned)
+            db.add(attempt_b)
+            import hashlib
+
+            for raw, workspace_id in ((raw_key_a, 1), (raw_key_b, 2)):
+                digest = hashlib.sha256(raw.encode()).hexdigest()
+                existing = db.query(ApiKey).filter(ApiKey.key_hash == digest).one_or_none()
+                if existing is None:
+                    db.add(
+                        ApiKey(
+                            workspace_id=workspace_id,
+                            key_hash=digest,
+                            label="fake-bug007",
+                            role="admin",
+                        )
+                    )
+                else:
+                    existing.workspace_id = workspace_id
+                    existing.role = "admin"
+            db.commit()
+            user_ids.extend([int(user_a.id), int(user_b.id)])
+            ids = {
+                "log_a": log_a.id,
+                "log_b": log_b.id,
+                "attempt_a": own_attempt.id,
+                "poison": poisoned.id,
+                "attempt_b": attempt_b.id,
+            }
+        finally:
+            db.close()
+
+        def _assert_isolated(response_log, response_attempts, own: str, other: str) -> None:
+            assert response_log.status_code == 200, response_log.text
+            assert response_attempts.status_code == 200, response_attempts.text
+            assert own in response_log.text
+            assert other not in response_log.text
+            assert own in response_attempts.text
+            assert other not in response_attempts.text
+
+        def _lists(actor: TestClient, foreign_workspace_id: int, headers: dict | None = None):
+            log = actor.get(
+                f"/api/notifications/log?page_size=200&workspace_id={foreign_workspace_id}",
+                headers=headers,
+            )
+            attempts = actor.get(
+                "/api/notifications/delivery-attempts"
+                f"?page_size=200&workspace_id={foreign_workspace_id}",
+                headers=headers,
+            )
+            return log, attempts
+
+        try:
+            logged_a = client.post("/api/auth/login", json={"email": email_a, "password": "j"})
+            assert logged_a.status_code == 200, logged_a.text
+            log_a_resp, attempts_a = _lists(client, 2)
+            _assert_isolated(log_a_resp, attempts_a, marker_a, marker_b)
+            failed = client.get("/api/notifications/log?page_size=200&status=failed")
+            assert failed.status_code == 200
+            assert marker_b not in failed.text
+            attempts_body = attempts_a.json()["attempts"]
+            own_row = next(row for row in attempts_body if row["id"] == ids["attempt_a"])
+            poison_row = next(row for row in attempts_body if row["id"] == ids["poison"])
+            assert own_row["is_read"] is False
+            assert poison_row["is_read"] is None
+            assert marker_b not in str(poison_row)
+
+            for path in (
+                f"/api/notifications/log/{ids['log_b']}",
+                f"/api/notifications/delivery-attempts/{ids['attempt_b']}",
+            ):
+                guessed = client.get(path)
+                assert guessed.status_code == 404, guessed.text
+                assert guessed.status_code != 403
+                assert marker_b not in guessed.text
+                assert marker_a not in guessed.text
+
+            client.cookies.clear()
+            logged_b = client.post("/api/auth/login", json={"email": email_b, "password": "j"})
+            assert logged_b.status_code == 200, logged_b.text
+            assert logged_b.json()["workspace_id"] == 2
+            log_b_resp, attempts_b = _lists(client, 1)
+            _assert_isolated(log_b_resp, attempts_b, marker_b, marker_a)
+            sent = client.get("/api/notifications/log?page_size=200&status=sent")
+            assert sent.status_code == 200
+            assert marker_a not in sent.text
+            for path in (
+                f"/api/notifications/log/{ids['log_a']}",
+                f"/api/notifications/delivery-attempts/{ids['attempt_a']}",
+                f"/api/notifications/delivery-attempts/{ids['poison']}",
+            ):
+                guessed = client.get(path)
+                assert guessed.status_code == 404, guessed.text
+                assert marker_a not in guessed.text
+
+            client.cookies.clear()
+            from app.main import app
+
+            key_client = TestClient(
+                app, base_url="http://localhost", headers={"Origin": "http://localhost"}
+            )
+            log_key_a, attempts_key_a = _lists(
+                key_client, 2, headers={"Authorization": f"Bearer {raw_key_a}"}
+            )
+            _assert_isolated(log_key_a, attempts_key_a, marker_a, marker_b)
+            log_key_b, attempts_key_b = _lists(
+                key_client, 1, headers={"Authorization": f"Bearer {raw_key_b}"}
+            )
+            _assert_isolated(log_key_b, attempts_key_b, marker_b, marker_a)
+            guessed_key = key_client.get(
+                f"/api/notifications/log/{ids['log_a']}",
+                headers={"Authorization": f"Bearer {raw_key_b}"},
+            )
+            assert guessed_key.status_code == 404
+            assert marker_a not in guessed_key.text
+        finally:
+            db = SessionLocal()
+            try:
+                db.query(NotificationDeliveryAttempt).filter(
+                    NotificationDeliveryAttempt.dedupe_key.in_(
+                        ["bug007:1:own", "bug007:1:poison", "bug007:2:own"]
+                    )
+                ).delete(synchronize_session=False)
+                db.query(NotificationLog).filter(
+                    NotificationLog.event_type == "bug007.isolation"
+                ).delete(synchronize_session=False)
+                db.query(InAppNotification).filter(
+                    InAppNotification.body.in_([marker_a, marker_b])
+                ).delete(synchronize_session=False)
+                db.query(ApiKey).filter(ApiKey.label == "fake-bug007").delete(
+                    synchronize_session=False
+                )
+                if user_ids:
+                    db.query(WorkspaceMember).filter(WorkspaceMember.user_id.in_(user_ids)).delete(
+                        synchronize_session=False
+                    )
+                    db.query(User).filter(User.id.in_(user_ids)).delete(synchronize_session=False)
+                db.commit()
+                remaining = db.query(User).filter(User.email.like("bug007-%")).count()
+                assert remaining == 0
+            finally:
+                db.close()
