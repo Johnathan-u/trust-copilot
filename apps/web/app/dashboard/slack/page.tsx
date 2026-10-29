@@ -12,6 +12,7 @@ import {
 } from '@/components/ui'
 import { useAuth } from '@/contexts/AuthContext'
 import type { ApiFailurePresentation } from '@/lib/api-error'
+import { useKeyedGeneration } from '@/components/ui/useKeyedGeneration'
 import { failureOf, isAbortError, readSectionJson } from '@/lib/section-load'
 
 /* ──────────────────── Types ──────────────────── */
@@ -220,8 +221,7 @@ export default function SlackPage() {
   const [ingestRunning, setIngestRunning] = useState<number | null>(null)
   const [ingestResult, setIngestResult] = useState<string | null>(null)
 
-  const load = useCallback(() => {
-    setLoading(true)
+  const queryStatus = useCallback(() => {
     Promise.all([
       fetch('/api/slack/status', { credentials: 'include' }),
       fetch('/api/notifications/event-types', { credentials: 'include' }),
@@ -287,10 +287,18 @@ export default function SlackPage() {
       .finally(() => setLoading(false))
   }, [])
 
+  const load = useCallback(() => {
+    setLoading(true)
+    queryStatus()
+  }, [queryStatus])
+
+  const adminKey = useKeyedGeneration(canAdmin ? '1' : '0')
+  if (adminKey.changed) setLoading(canAdmin)
+
   useEffect(() => {
-    if (canAdmin) load()
-    else setLoading(false)
-  }, [canAdmin, load])
+    if (!canAdmin) return
+    queryStatus()
+  }, [canAdmin, queryStatus])
 
   const connect = async (e: React.FormEvent) => {
     e.preventDefault()

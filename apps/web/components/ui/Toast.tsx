@@ -1,7 +1,8 @@
 'use client'
 
-import { useEffect, useRef, useState, type ReactNode } from 'react'
+import { useEffect, useRef, useSyncExternalStore, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
+import { subscribeToastRegion, toastPortalTarget } from '@/lib/render-state'
 import {
   autoDismissMs,
   persistentToastRegions,
@@ -42,8 +43,8 @@ const tone: Record<ToastSeverity, { bg: string; fg: string; glyph: string }> = {
 /**
  * Visual toast. Its text is portaled into the one live region for that
  * politeness. The region is mounted by `ToastLiveRegions` before any text
- * exists. The region node is read in an effect, after that empty region has
- * committed, so the first render does not disagree with the server.
+ * exists. The region node is read from the document with a server snapshot
+ * of null, so the first render does not disagree with the server.
  * `aria-atomic` sits on this card. The region keeps `aria-live`, and a new
  * card is the change that gets announced. Atomic on the card keeps a second
  * toast in the same region from being read again as part of that change.
@@ -70,10 +71,11 @@ export function Toast({
   }, [title, message, type, hasAction])
 
   const regionId = toastRegionId(type)
-  const [region, setRegion] = useState<HTMLElement | null>(null)
-  useEffect(() => {
-    setRegion(document.getElementById(regionId))
-  }, [regionId])
+  const region = useSyncExternalStore(
+    subscribeToastRegion,
+    () => toastPortalTarget(false, document.getElementById(regionId)),
+    () => toastPortalTarget(true, null)
+  )
 
   const icon = tone[type]
   const card = (

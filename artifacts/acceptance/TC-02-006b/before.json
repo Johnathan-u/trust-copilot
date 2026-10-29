@@ -1,0 +1,239 @@
+{
+  "rule": "react-hooks/set-state-in-effect",
+  "level": "error",
+  "command": "npx eslint . --rule 'react-hooks/set-state-in-effect: error' --format json",
+  "cwd": "apps/web",
+  "base": "ebfbde94befca714adcae99590754cef7d5c7a84",
+  "findingCount": 39,
+  "fileCount": 31,
+  "byFile": {
+    "apps/web/app/dashboard/ai-governance/page.tsx": 2,
+    "apps/web/app/dashboard/audit/page.tsx": 2,
+    "apps/web/app/dashboard/case-studies/page.tsx": 2,
+    "apps/web/app/dashboard/compliance-frameworks/page.tsx": 1,
+    "apps/web/app/dashboard/compliance-gaps/page.tsx": 1,
+    "apps/web/app/dashboard/demo-proof/page.tsx": 1,
+    "apps/web/app/dashboard/documents/page.tsx": 1,
+    "apps/web/app/dashboard/exports/page.tsx": 1,
+    "apps/web/app/dashboard/gmail/page.tsx": 1,
+    "apps/web/app/dashboard/members/page.tsx": 1,
+    "apps/web/app/dashboard/notifications/page.tsx": 1,
+    "apps/web/app/dashboard/page.tsx": 2,
+    "apps/web/app/dashboard/proof-chain/page.tsx": 1,
+    "apps/web/app/dashboard/questionnaires/page.tsx": 1,
+    "apps/web/app/dashboard/requests/page.tsx": 1,
+    "apps/web/app/dashboard/review/[id]/page.tsx": 3,
+    "apps/web/app/dashboard/security/page.tsx": 1,
+    "apps/web/app/dashboard/slack/page.tsx": 1,
+    "apps/web/app/dashboard/trust-center/page.tsx": 1,
+    "apps/web/app/trust/[slug]/page.tsx": 1,
+    "apps/web/app/trust/page.tsx": 1,
+    "apps/web/app/vendor-response/page.tsx": 1,
+    "apps/web/app/verify-email/page.tsx": 1,
+    "apps/web/components/CommandPalette.tsx": 2,
+    "apps/web/components/layout/DashboardShell.tsx": 1,
+    "apps/web/components/layout/NotificationsPanel.tsx": 1,
+    "apps/web/components/layout/Topbar.tsx": 2,
+    "apps/web/components/ui/LoadingState.tsx": 1,
+    "apps/web/components/ui/Toast.tsx": 1,
+    "apps/web/components/ui/useSectionQuery.ts": 1,
+    "apps/web/contexts/AuthContext.tsx": 1
+  },
+  "findings": [
+    {
+      "file": "apps/web/app/dashboard/ai-governance/page.tsx",
+      "line": 165,
+      "column": 5
+    },
+    {
+      "file": "apps/web/app/dashboard/ai-governance/page.tsx",
+      "line": 746,
+      "column": 5
+    },
+    {
+      "file": "apps/web/app/dashboard/audit/page.tsx",
+      "line": 699,
+      "column": 19
+    },
+    {
+      "file": "apps/web/app/dashboard/audit/page.tsx",
+      "line": 704,
+      "column": 5
+    },
+    {
+      "file": "apps/web/app/dashboard/case-studies/page.tsx",
+      "line": 78,
+      "column": 5
+    },
+    {
+      "file": "apps/web/app/dashboard/case-studies/page.tsx",
+      "line": 373,
+      "column": 5
+    },
+    {
+      "file": "apps/web/app/dashboard/compliance-frameworks/page.tsx",
+      "line": 55,
+      "column": 10
+    },
+    {
+      "file": "apps/web/app/dashboard/compliance-gaps/page.tsx",
+      "line": 204,
+      "column": 5
+    },
+    {
+      "file": "apps/web/app/dashboard/demo-proof/page.tsx",
+      "line": 94,
+      "column": 10
+    },
+    {
+      "file": "apps/web/app/dashboard/documents/page.tsx",
+      "line": 167,
+      "column": 5
+    },
+    {
+      "file": "apps/web/app/dashboard/exports/page.tsx",
+      "line": 46,
+      "column": 7
+    },
+    {
+      "file": "apps/web/app/dashboard/gmail/page.tsx",
+      "line": 162,
+      "column": 19
+    },
+    {
+      "file": "apps/web/app/dashboard/members/page.tsx",
+      "line": 203,
+      "column": 19
+    },
+    {
+      "file": "apps/web/app/dashboard/notifications/page.tsx",
+      "line": 252,
+      "column": 19
+    },
+    {
+      "file": "apps/web/app/dashboard/page.tsx",
+      "line": 157,
+      "column": 23
+    },
+    {
+      "file": "apps/web/app/dashboard/page.tsx",
+      "line": 526,
+      "column": 7
+    },
+    {
+      "file": "apps/web/app/dashboard/proof-chain/page.tsx",
+      "line": 100,
+      "column": 25
+    },
+    {
+      "file": "apps/web/app/dashboard/questionnaires/page.tsx",
+      "line": 124,
+      "column": 7
+    },
+    {
+      "file": "apps/web/app/dashboard/requests/page.tsx",
+      "line": 186,
+      "column": 18
+    },
+    {
+      "file": "apps/web/app/dashboard/review/[id]/page.tsx",
+      "line": 120,
+      "column": 7
+    },
+    {
+      "file": "apps/web/app/dashboard/review/[id]/page.tsx",
+      "line": 209,
+      "column": 5
+    },
+    {
+      "file": "apps/web/app/dashboard/review/[id]/page.tsx",
+      "line": 589,
+      "column": 7
+    },
+    {
+      "file": "apps/web/app/dashboard/security/page.tsx",
+      "line": 173,
+      "column": 5
+    },
+    {
+      "file": "apps/web/app/dashboard/slack/page.tsx",
+      "line": 291,
+      "column": 19
+    },
+    {
+      "file": "apps/web/app/dashboard/trust-center/page.tsx",
+      "line": 146,
+      "column": 5
+    },
+    {
+      "file": "apps/web/app/trust/[slug]/page.tsx",
+      "line": 83,
+      "column": 5
+    },
+    {
+      "file": "apps/web/app/trust/page.tsx",
+      "line": 21,
+      "column": 7
+    },
+    {
+      "file": "apps/web/app/vendor-response/page.tsx",
+      "line": 50,
+      "column": 7
+    },
+    {
+      "file": "apps/web/app/verify-email/page.tsx",
+      "line": 17,
+      "column": 7
+    },
+    {
+      "file": "apps/web/components/CommandPalette.tsx",
+      "line": 55,
+      "column": 5
+    },
+    {
+      "file": "apps/web/components/CommandPalette.tsx",
+      "line": 70,
+      "column": 5
+    },
+    {
+      "file": "apps/web/components/layout/DashboardShell.tsx",
+      "line": 48,
+      "column": 5
+    },
+    {
+      "file": "apps/web/components/layout/NotificationsPanel.tsx",
+      "line": 154,
+      "column": 12
+    },
+    {
+      "file": "apps/web/components/layout/Topbar.tsx",
+      "line": 181,
+      "column": 5
+    },
+    {
+      "file": "apps/web/components/layout/Topbar.tsx",
+      "line": 191,
+      "column": 7
+    },
+    {
+      "file": "apps/web/components/ui/LoadingState.tsx",
+      "line": 31,
+      "column": 5
+    },
+    {
+      "file": "apps/web/components/ui/Toast.tsx",
+      "line": 75,
+      "column": 5
+    },
+    {
+      "file": "apps/web/components/ui/useSectionQuery.ts",
+      "line": 34,
+      "column": 5
+    },
+    {
+      "file": "apps/web/contexts/AuthContext.tsx",
+      "line": 165,
+      "column": 5
+    }
+  ]
+}

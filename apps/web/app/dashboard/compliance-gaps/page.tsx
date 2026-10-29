@@ -185,8 +185,7 @@ export default function ComplianceCoveragePage() {
   )
   const [showDrillDown, setShowDrillDown] = useState(false)
 
-  const fetchData = useCallback(() => {
-    setLoadFailure(null)
+  const queryCoverage = useCallback(() => {
     fetch('/api/compliance-coverage', { credentials: 'include' })
       .then((r) => readSectionJson(r))
       .then((d) => {
@@ -200,10 +199,14 @@ export default function ComplianceCoveragePage() {
       .finally(() => setLoading(false))
   }, [])
 
+  const fetchData = useCallback(() => {
+    setLoadFailure(null)
+    queryCoverage()
+  }, [queryCoverage])
+
   useEffect(() => {
-    setLoading(true)
-    fetchData()
-  }, [fetchData])
+    queryCoverage()
+  }, [queryCoverage])
 
   useEffect(() => {
     const id = setInterval(fetchData, 60_000)

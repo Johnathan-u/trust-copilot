@@ -1,8 +1,10 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { slowLoadingAfterChange } from '@/lib/render-state'
 import { SKELETON_TIMEOUT_MS } from '@/lib/ui-state'
 import { TakingLonger } from './TakingLonger'
+import { useKeyedGeneration } from './useKeyedGeneration'
 
 interface LoadingStateProps {
   label?: string
@@ -25,10 +27,13 @@ export function LoadingState({
   children,
 }: LoadingStateProps) {
   const [slow, setSlow] = useState(false)
+  const timerKey = `${active ? '1' : '0'}\n${String(resetKey)}\n${timeoutMs}`
+  const timer = useKeyedGeneration(timerKey, { runOnMount: false })
+  const nextSlow = slowLoadingAfterChange(active, timer.changed, slow)
+  if (nextSlow !== slow) setSlow(nextSlow)
 
   useEffect(() => {
     if (!active) return
-    setSlow(false)
     const id = window.setTimeout(() => setSlow(true), timeoutMs)
     return () => window.clearTimeout(id)
   }, [active, resetKey, timeoutMs])

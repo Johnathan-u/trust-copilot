@@ -5,6 +5,7 @@ import { useParams } from 'next/navigation'
 import Link from 'next/link'
 import { Button, Card, Input, Modal } from '@/components/ui'
 import { MarkdownContent } from '@/components/MarkdownContent'
+import { useKeyedGeneration } from '@/components/ui/useKeyedGeneration'
 
 const ALLOWED_EXTENSIONS = '.pdf,.docx,.doc,.xlsx,.xls,.txt'
 
@@ -78,9 +79,11 @@ export default function WorkspaceTrustPage() {
   const [selectedFileName, setSelectedFileName] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
+  const slugKey = useKeyedGeneration(slug)
+  if (slugKey.changed && slug) setLoading(true)
+
   useEffect(() => {
     if (!slug) return
-    setLoading(true)
     fetch(`/api/workspaces/by-slug/${encodeURIComponent(slug)}`)
       .then((r) => {
         if (!r.ok) {

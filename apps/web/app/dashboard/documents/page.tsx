@@ -20,6 +20,8 @@ import {
 } from '@/components/ui'
 import { useAuth } from '@/contexts/AuthContext'
 import type { ApiFailurePresentation } from '@/lib/api-error'
+import { useKeyedGeneration } from '@/components/ui/useKeyedGeneration'
+import { listLoadFlags } from '@/lib/render-state'
 import {
   failureOf,
   isAbortError,
@@ -114,14 +116,8 @@ export default function DocumentsPage() {
         selectSome && !selectAll
   }, [selectSome, selectAll])
 
-  const fetchDocs = useCallback(() => {
-    if (workspaceId == null) {
-      setLoading(false)
-      return
-    }
-    setLoadFailure(null)
-    setLoading((prev) => (docs.length === 0 ? true : prev))
-    setRefreshing(true)
+  const requestDocs = useCallback(() => {
+    if (workspaceId == null) return
     const params = new URLSearchParams({ workspace_id: String(workspaceId) })
     if (search.trim()) params.set('search', search.trim())
     if (framework) params.set('framework', framework)
@@ -163,9 +159,43 @@ export default function DocumentsPage() {
     loadAttempt,
   ])
 
+  const fetchDocs = useCallback(() => {
+    if (workspaceId == null) {
+      setLoading(false)
+      return
+    }
+    setLoadFailure(null)
+    setLoading((prev) => (docs.length === 0 ? true : prev))
+    setRefreshing(true)
+    requestDocs()
+  }, [workspaceId, docs.length, requestDocs])
+
+  const docsKey = [
+    workspaceId ?? '',
+    search,
+    framework,
+    subjectArea,
+    status,
+    createdFrom,
+    createdTo,
+    archivedMode,
+    loadAttempt,
+  ].join('\n')
+  const docsGen = useKeyedGeneration(docsKey)
+  if (docsGen.changed) {
+    const flags = listLoadFlags({
+      enabled: workspaceId != null,
+      hasRows: docs.length > 0,
+    })
+    if (flags.loading !== null) setLoading(flags.loading)
+    if (flags.refreshing) setRefreshing(true)
+    if (flags.clearFailure) setLoadFailure(null)
+  }
+
   useEffect(() => {
-    fetchDocs()
-  }, [fetchDocs])
+    if (workspaceId == null) return
+    requestDocs()
+  }, [workspaceId, requestDocs])
 
   const onFileSelected = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
