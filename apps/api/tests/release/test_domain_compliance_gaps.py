@@ -65,6 +65,30 @@ def _db() -> Session:
     return SessionLocal()
 
 
+def _revision_reaches_every_head(revision: str) -> None:
+    """``revision`` is a head, or an ancestor of every head. Does not pin the head id."""
+    from alembic.config import Config
+    from alembic.script import ScriptDirectory
+
+    script = ScriptDirectory.from_config(Config(os.path.join(API_ROOT, "alembic.ini")))
+    heads = script.get_heads()
+    assert heads
+
+    def reaches(current: str | None, seen: set[str] | None = None) -> bool:
+        walked: set[str] = set() if seen is None else seen
+        while current and current not in walked:
+            if current == revision:
+                return True
+            walked.add(current)
+            down = script.get_revision(current).down_revision
+            if isinstance(down, tuple):
+                return all(reaches(item, set(walked)) for item in down)
+            current = down
+        return False
+
+    assert all(reaches(head) for head in heads), (heads, revision)
+
+
 def _control_index_present(session: Session) -> bool:
     from app.models.evidence_gap import EvidenceGap
 
@@ -549,9 +573,7 @@ def test_migration_round_trip_restores_gap_evaluation():
                 assert not _control_index_present(session)
             finally:
                 session.close()
-            heads = [line.strip() for line in alembic("heads").splitlines() if "(head)" in line]
-            assert len(heads) == 1
-            assert REVISION in heads[0]
+            _revision_reaches_every_head(REVISION)
         finally:
             alembic("upgrade", "head")
             wipe()
