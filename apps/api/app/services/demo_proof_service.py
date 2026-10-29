@@ -24,7 +24,7 @@ from sqlalchemy.orm import Session
 from app.models.answer import Answer
 from app.models.demo_proof_summary import DemoProofSummary
 from app.models.document import Document
-from app.models.evidence_gap import EvidenceGap
+from app.models.evidence_gap import GAP_STATUS_RESOLVED, EvidenceGap
 from app.models.evidence_item import EvidenceItem
 from app.models.export_record import ExportRecord
 from app.models.questionnaire import Question, Questionnaire
@@ -1040,9 +1040,14 @@ def _collect_exports(db: Session, workspace_id: int, window) -> dict:
 def _collect_gaps(db: Session, workspace_id: int, window) -> dict:
     rows = db.query(EvidenceGap).filter(EvidenceGap.workspace_id == workspace_id).all()
     included = []
-    exclusions = _empty_exclusions()
+    # TC-02-BUG-018: gaps closed by regeneration are not identified gaps. They are excluded from
+    # the value and counted separately under exclusions["resolved"] (this metric only).
+    exclusions = {**_empty_exclusions(), "resolved": 0}
     failures = []
     for row in rows:
+        if row.status == GAP_STATUS_RESOLVED:
+            exclusions["resolved"] += 1
+            continue
         problem = _gap_problem(db, workspace_id, row)
         if problem is not None:
             exclusions["foreign_reference"] += 1

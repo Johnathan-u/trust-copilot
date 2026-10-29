@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session
 
 from app.models.answer import Answer
 from app.models.document import Document
-from app.models.evidence_gap import EvidenceGap
+from app.models.evidence_gap import GAP_STATUS_RESOLVED, EvidenceGap
 from app.models.questionnaire import Question, Questionnaire
 from app.models.workspace import Workspace
 
@@ -171,7 +171,11 @@ def generate_evidence_bundle(
                 }
             )
 
-    gaps = db.query(EvidenceGap).filter(EvidenceGap.workspace_id == workspace_id).limit(20).all()
+    # TC-02-BUG-018: gaps closed by regeneration are not listed as gaps; only their count is
+    # reported, separately, under evidence_gaps_resolved.
+    ws_gaps = db.query(EvidenceGap).filter(EvidenceGap.workspace_id == workspace_id)
+    gaps = ws_gaps.filter(EvidenceGap.status != GAP_STATUS_RESOLVED).limit(20).all()
+    resolved_gaps = ws_gaps.filter(EvidenceGap.status == GAP_STATUS_RESOLVED).count()
     gap_list = [
         {
             "control_area": g.control_area if hasattr(g, "control_area") else None,
@@ -190,6 +194,7 @@ def generate_evidence_bundle(
         "documents": documents,
         "total_citations": len(cited_sources),
         "evidence_gaps": gap_list,
+        "evidence_gaps_resolved": resolved_gaps,
         "bundle_generated_at": datetime.now(timezone.utc).isoformat(),
     }
 

@@ -11,6 +11,18 @@ export const APP_NAV_COMPACT_MEDIA = `(max-width: ${APP_NAV_DOCK_MIN_PX - 1}px)`
 
 export const APP_NAV_DOCK_MEDIA = `(min-width: ${APP_NAV_DOCK_MIN_PX}px)`
 
+/**
+ * Complementary region that holds the workspace switcher and the application
+ * navigation. Named so it is not announced with the same label as the nav.
+ */
+export const APP_SIDEBAR_LANDMARK_LABEL = 'Sidebar'
+
+/**
+ * Navigation landmark inside the sidebar. "Application" names the destination
+ * set. "Main" would collide with the main content landmark.
+ */
+export const APP_NAV_LANDMARK_LABEL = 'Application'
+
 export type AppNavSection = 'core' | 'compliance' | 'admin'
 
 export type AppNavItem = {
