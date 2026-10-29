@@ -994,6 +994,32 @@ def test_bad_ids_are_422(client):
     assert nul_reason.status_code == 422, nul_reason.text
 
 
+def test_create_idempotency_key_is_bound_to_the_body(client):
+    actors = _actors()
+    control_id = _control(actors["workspace_id"], f"Hash {uuid.uuid4().hex[:8]}")
+    _login(client, REVIEWER_EMAIL, REVIEWER_PASSWORD)
+    body = {
+        "gap_type": CONTROL_CHECK,
+        "control_id": control_id,
+        "reason": "first synthetic reason",
+    }
+    other = {**body, "reason": "second synthetic reason"}
+    headers = {"Idempotency-Key": "body-hash"}
+    before_gaps = _counts()["evidence_gaps"]
+    before_keys = _counts()["idempotency_keys"]
+    first = client.post("/api/evidence-gaps", json=body, headers=headers)
+    assert first.status_code == 201, first.text
+    assert "_request_sha256" not in first.json()
+    mismatch = client.post("/api/evidence-gaps", json=other, headers=headers)
+    assert mismatch.status_code == 422, mismatch.text
+    assert _counts()["evidence_gaps"] == before_gaps + 1
+    assert _counts()["idempotency_keys"] == before_keys + 1
+    replay = client.post("/api/evidence-gaps", json=body, headers=headers)
+    assert replay.status_code == 201, replay.text
+    assert replay.json() == first.json()
+    assert _counts()["evidence_gaps"] == before_gaps + 1
+
+
 def test_idempotency_keys_do_not_collide_across_gaps(client):
     actors = _actors()
     first_control = _control(actors["workspace_id"], f"Key A {uuid.uuid4().hex[:8]}")

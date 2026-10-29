@@ -4,6 +4,7 @@ GET does not write. A gap closes only when the shared evidence check is clear
 and the evidence backs the gap's control or question.
 """
 
+import hashlib
 import json
 import logging
 from datetime import datetime, timezone
@@ -45,6 +46,7 @@ from app.services.in_app_notification_service import notify_admins
 logger = logging.getLogger(__name__)
 
 SCHEMA_VERSION = "evidence-gap-ownership/v1"
+_REQUEST_HASH = "_request_sha256"
 GAP_NOT_FOUND = "Gap not found"
 CONTROL_NOT_FOUND = "Control not found"
 QUESTION_NOT_FOUND = "Question not found"
@@ -436,6 +438,86 @@ def _idempotency_key(
     return f"evidence-gaps:{workspace_id}:{action}:{subject}:{raw}"
 
 
+def _body_hash(body: EnsureGapBody) -> str:
+    raw = json.dumps(body.model_dump(mode="json"), sort_keys=True, separators=(",", ":"))
+    return hashlib.sha256(raw.encode()).hexdigest()
+
+
+def _idempotency_record(db: Session, key: str) -> tuple[int, dict | None] | None:
+    row = db.execute(
+        text(
+            """
+            SELECT status_code, response_body
+            FROM idempotency_keys
+            WHERE idempotency_key = :key AND expires_at > :now
+            """
+        ),
+        {"key": key, "now": _now()},
+    ).first()
+    if row is None:
+        return None
+    stored = None
+    if row[1]:
+        try:
+            parsed = json.loads(row[1])
+        except (TypeError, ValueError):
+            parsed = None
+        if isinstance(parsed, dict):
+            stored = parsed
+    return int(row[0]), stored
+
+
+def _public_payload(stored: dict) -> dict:
+    payload = dict(stored)
+    payload.pop(_REQUEST_HASH, None)
+    return payload
+
+
+def _replay_matching_body(db: Session, key: str, body_hash: str) -> JSONResponse | None:
+    record = _idempotency_record(db, key)
+    if record is None:
+        return None
+    status, stored = record
+    recorded = stored.get(_REQUEST_HASH) if stored else None
+    if isinstance(recorded, str) and recorded != body_hash:
+        raise HTTPException(
+            status_code=422,
+            detail="Idempotency-Key was already used with a different request body",
+        )
+    if status == 0 or not stored or not isinstance(recorded, str):
+        return None
+    return JSONResponse(content=_public_payload(stored), status_code=status)
+
+
+def _remember_body_hash(db: Session, key: str, owner: str, body_hash: str) -> None:
+    db.execute(
+        text(
+            """
+            UPDATE idempotency_keys
+            SET response_body = :body
+            WHERE idempotency_key = :key AND owner_token = :owner AND status_code = 0
+            """
+        ),
+        {"body": json.dumps({_REQUEST_HASH: body_hash}), "key": key, "owner": owner},
+    )
+    db.commit()
+
+
+def _drop_owned_claim(db: Session, key: str, owner: str | None) -> None:
+    if not owner:
+        return
+    db.execute(
+        text(
+            """
+            DELETE FROM idempotency_keys
+            WHERE idempotency_key = :key AND owner_token = :owner AND status_code = 0
+            """
+        ),
+        {"key": key, "owner": owner},
+    )
+    db.commit()
+
+
 def _claim_or_replay(db: Session, key: str | None):
     if not key:
         return None, None
@@ -507,10 +589,22 @@ def ensure_open_gap(
     Concurrent inserts use a transaction lock and return the existing row on conflict.
     """
     workspace_id = request.state.workspace_id
+    body_hash = _body_hash(body)
     key = _idempotency_key(request, workspace_id, "create", "new")
-    cached, owner = _claim_or_replay(db, key)
-    if cached is not None:
-        return cached
+    owner = None
+    if key:
+        cached = _replay_matching_body(db, key, body_hash)
+        if cached is not None:
+            return cached
+        owner = idempotency_claim(db, key)
+        if owner is None:
+            cached = _replay_matching_body(db, key, body_hash)
+            if cached is not None:
+                return cached
+            raise HTTPException(
+                status_code=409, detail="Request in progress; retry with same Idempotency-Key"
+            )
+        _remember_body_hash(db, key, owner, body_hash)
     status_code = 200
     try:
         gap_type = body.gap_type
@@ -566,20 +660,21 @@ def ensure_open_gap(
             db.refresh(chosen)
         payload = gap_payload(db, chosen, workspace_id)
         payload["created"] = status_code == 201
+        stored = {**payload, _REQUEST_HASH: body_hash}
         return JSONResponse(content=payload, status_code=status_code)
     except HTTPException:
         db.rollback()
         if key:
-            idempotency_release(db, key, owner=owner)
+            _drop_owned_claim(db, key, owner)
         raise
     except Exception:
         db.rollback()
         if key:
-            idempotency_release(db, key, owner=owner)
+            _drop_owned_claim(db, key, owner)
         raise
     finally:
-        if key and "payload" in locals() and isinstance(payload, dict):
-            _settle(db, key, owner, status_code, payload)
+        if key and "stored" in locals() and isinstance(stored, dict):
+            _settle(db, key, owner, status_code, stored)
 
 
 def _record_audit(
