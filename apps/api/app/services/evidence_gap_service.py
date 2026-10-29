@@ -284,7 +284,10 @@ def list_evidence_gaps(
     offset: int = 0,
 ) -> list[dict]:
     """Return evidence gap rows for a workspace, optionally filtered."""
-    q = db.query(EvidenceGap).filter(EvidenceGap.workspace_id == workspace_id)
+    q = db.query(EvidenceGap).filter(
+        EvidenceGap.workspace_id == workspace_id,
+        EvidenceGap.gap_type != "control_check",
+    )
     if status:
         q = q.filter(EvidenceGap.status == status)
     if questionnaire_id:
@@ -365,7 +368,10 @@ def gap_summary(db: Session, workspace_id: int) -> dict:
     """
     rows = (
         db.query(EvidenceGap.status, func.count(EvidenceGap.id))
-        .filter(EvidenceGap.workspace_id == workspace_id)
+        .filter(
+            EvidenceGap.workspace_id == workspace_id,
+            EvidenceGap.gap_type != "control_check",
+        )
         .group_by(EvidenceGap.status)
         .all()
     )

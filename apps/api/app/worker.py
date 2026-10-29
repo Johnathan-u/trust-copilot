@@ -77,6 +77,7 @@ from app.services.in_app_notification_service import notify_admins, notify_works
 from app.services.automation_service import maybe_auto_generate, evaluate_generation_result  # noqa: E402
 from app.services.compliance_event_service import evaluate_and_fire_compliance_events  # noqa: E402
 from app.services.job_effects import (  # noqa: E402
+    EnqueueConflictError,
     JobEffects,
     enqueue_job,
     job_idempotency_key,
@@ -237,6 +238,28 @@ def claim_job(session) -> Job | None:
 def _set_outcome(job: Job, outcome: str, **extra) -> None:
     """Record a no-op outcome (already applied / superseded) in the job result (TC-10-003)."""
     job.result = json.dumps({"outcome": outcome, **extra})
+
+
+def _record_auto_generate_enqueue_conflict(job: Job) -> None:
+    """Note a lost auto-generate enqueue on the parse job. The session was just rolled back.
+
+    The parse outcome already stored on ``job.result`` is kept. ``auto_generate`` is how the
+    conflict is recorded on that outcome. No generate row is written here.
+    """
+    logging.getLogger(__name__).warning(
+        "auto-generate enqueue conflict job_id=%s workspace_id=%s; "
+        "parse completion kept, no generate job committed",
+        job.id,
+        job.workspace_id,
+    )
+    try:
+        data = json.loads(job.result) if job.result else {}
+    except (TypeError, ValueError):
+        data = {"previous_result": job.result}
+    if not isinstance(data, dict):
+        data = {"previous_result": data}
+    data["auto_generate"] = "enqueue_conflict"
+    job.result = json.dumps(data)
 
 
 def _job_outcome(job: Job) -> str | None:
@@ -1277,8 +1300,15 @@ def _process_one_job() -> bool:
                 except Exception:
                     pass
             elif job.kind == "parse_questionnaire" and _job_outcome(job) != "superseded":
+                # TC-10-003d: commit the parse completion before auto-generate.
+                # enqueue_job rolls this session back when it raises EnqueueConflictError,
+                # which would drop completion state that was still pending. The conflict
+                # is logged and recorded on the job result; it does not fail the parse.
+                session.commit()
                 try:
                     maybe_auto_generate(session, job, payload)
+                except EnqueueConflictError:
+                    _record_auto_generate_enqueue_conflict(job)
                 except Exception:
                     pass
             session.commit()
