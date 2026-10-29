@@ -21,6 +21,8 @@
  *     --require-spec e2e/release/responsive-shell.spec.ts --min-tests 8 \
  *     --require-spec e2e/release/dialog-toast.spec.ts --min-tests 8 \
  *     --require-spec e2e/release/settings-access.spec.ts --min-tests 3
+ *     --require-spec e2e/release/state-components.spec.ts --min-tests 8
+ *     --axe-dir artifacts/acceptance/TC-14-005
  */
 import { existsSync, readFileSync, readdirSync } from 'node:fs'
 import path from 'node:path'

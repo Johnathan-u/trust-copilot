@@ -8,6 +8,8 @@ import {
   Modal,
   QuestionnaireListSkeleton,
   EmptyState,
+  ErrorState,
+  LoadingState,
   DisplayIdText,
   CreatedTimestampText,
   CategoryChipsRow,
@@ -18,6 +20,13 @@ import {
   RegistryRowActionsMenu,
 } from '@/components/ui'
 import { useAuth } from '@/contexts/AuthContext'
+import type { ApiFailurePresentation } from '@/lib/api-error'
+import {
+  failureOf,
+  isAbortError,
+  listFromPayload,
+  readSectionJson,
+} from '@/lib/section-load'
 import {
   FRAMEWORK_OPTIONS,
   SUBJECT_AREA_OPTIONS,
@@ -42,6 +51,10 @@ export default function QuestionnairesPage() {
     }[]
   >([])
   const [loading, setLoading] = useState(true)
+  const [loadFailure, setLoadFailure] = useState<ApiFailurePresentation | null>(
+    null
+  )
+  const [loadAttempt, setLoadAttempt] = useState(0)
   const [refreshing, setRefreshing] = useState(false)
   const [uploading, setUploading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -111,6 +124,7 @@ export default function QuestionnairesPage() {
       setLoading(false)
       return
     }
+    setLoadFailure(null)
     if (qnrs.length === 0) setLoading(true)
     setRefreshing(true)
     const params = new URLSearchParams({ workspace_id: String(workspaceId) })
@@ -126,31 +140,21 @@ export default function QuestionnairesPage() {
       credentials: 'include',
     })
       .then(async (res) => {
-        const data = await res.json().catch(() => ({}))
-        if (!res.ok) {
-          return []
-        }
-        type Qnr = {
-          id: number
-          display_id: string
-          filename: string
-          status: string
-          created_at: string | null
-          frameworks?: string[]
-          subject_areas?: string[]
-        }
-        return Array.isArray(data)
-          ? (data as Qnr[])
-          : Array.isArray((data as { items?: Qnr[] })?.items)
-            ? (data as { items: Qnr[] }).items
-            : Array.isArray(
-                  (data as { questionnaires?: Qnr[] })?.questionnaires
-                )
-              ? (data as { questionnaires: Qnr[] }).questionnaires
-              : []
+        const data = await readSectionJson(res)
+        return listFromPayload<(typeof qnrs)[number]>(data, [
+          'items',
+          'questionnaires',
+        ])
       })
-      .then(setQnrs)
-      .catch(() => setQnrs([]))
+      .then((rows) => {
+        setQnrs(rows)
+        setLoadFailure(null)
+      })
+      .catch((error: unknown) => {
+        if (isAbortError(error)) return
+        setQnrs([])
+        setLoadFailure(failureOf(error))
+      })
       .finally(() => {
         setLoading(false)
         setRefreshing(false)
@@ -165,6 +169,7 @@ export default function QuestionnairesPage() {
     createdFrom,
     createdTo,
     archivedMode,
+    loadAttempt,
   ])
 
   const onFileSelected = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -214,8 +219,22 @@ export default function QuestionnairesPage() {
         fetch(`/api/questionnaires/?${params.toString()}`, {
           credentials: 'include',
         })
-          .then((r) => (r.ok ? r.json() : []))
-          .then((data) => setQnrs(Array.isArray(data) ? data : []))
+          .then(async (r) => {
+            const data = await readSectionJson(r)
+            return listFromPayload<(typeof qnrs)[number]>(data, [
+              'items',
+              'questionnaires',
+            ])
+          })
+          .then((rows) => {
+            setQnrs(rows)
+            setLoadFailure(null)
+          })
+          .catch((error: unknown) => {
+            if (isAbortError(error)) return
+            setQnrs([])
+            setLoadFailure(failureOf(error))
+          })
       })
       .catch((err) =>
         setError(err instanceof Error ? err.message : 'Upload failed')
@@ -470,8 +489,19 @@ export default function QuestionnairesPage() {
             {error}
           </div>
         )}
-        {loading ? (
-          <QuestionnaireListSkeleton />
+        {loadFailure ? (
+          <ErrorState
+            failure={loadFailure}
+            onRetry={() => setLoadAttempt((value) => value + 1)}
+          />
+        ) : loading ? (
+          <LoadingState
+            label="Loading questionnaires"
+            resetKey={loadAttempt}
+            onRetry={() => setLoadAttempt((value) => value + 1)}
+          >
+            <QuestionnaireListSkeleton />
+          </LoadingState>
         ) : (Array.isArray(qnrs) ? qnrs : []).length === 0 ? (
           <EmptyState
             title="No questionnaires yet"

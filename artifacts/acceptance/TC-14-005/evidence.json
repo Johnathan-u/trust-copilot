@@ -1,0 +1,56 @@
+{
+  "ticket": "TC-14-005",
+  "branch": "tc/web/TC-14-005",
+  "testedCommit": "PENDING",
+  "baseline": "8ab5e3f93f2711373fbb385e083920d38a43ae7b",
+  "ancestor": "6f620b1",
+  "environment": {
+    "os": "Linux 6.12.94+ x86_64",
+    "node": "v24.22.1",
+    "npm": "11.19.1",
+    "next": "16.4.3",
+    "vitest": "5.0.5",
+    "playwright": "1.64.1",
+    "chromium": "chromium-1248",
+    "axePlaywright": "4.14.0",
+    "cwd": "apps/web"
+  },
+  "runs": [
+    {
+      "command": "npm run lint",
+      "exitStatus": 0
+    },
+    {
+      "command": "npm run typecheck",
+      "exitStatus": 0
+    },
+    {
+      "command": "npm run test:unit",
+      "exitStatus": 0,
+      "passed": 134,
+      "failed": 0,
+      "skipped": 0,
+      "filesPassed": 21
+    },
+    {
+      "command": "npm run build",
+      "exitStatus": 0
+    },
+    {
+      "command": "npx playwright test e2e/release/design-tokens.spec.ts e2e/release/responsive-shell.spec.ts e2e/release/dialog-toast.spec.ts e2e/release/settings-access.spec.ts e2e/release/state-components.spec.ts --retries=0",
+      "exitStatus": 0,
+      "passed": 32,
+      "failed": 0,
+      "skipped": 0,
+      "specs": {
+        "e2e/release/design-tokens.spec.ts": 4,
+        "e2e/release/dialog-toast.spec.ts": 8,
+        "e2e/release/responsive-shell.spec.ts": 8,
+        "e2e/release/settings-access.spec.ts": 3,
+        "e2e/release/state-components.spec.ts": 9
+      },
+      "axeViolations": 0
+    }
+  ],
+  "notes": "Synthetic session and mocked API responses only. No credentials or customer data. Evidence files are committed after the tested SHA. Node 24.22.1. The release suite above is the web-release-e2e set."
+}

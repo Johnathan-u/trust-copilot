@@ -1,8 +1,10 @@
 'use client'
 
 import { useCallback, useEffect, useState } from 'react'
-import { Card } from '@/components/ui'
+import { Card, ErrorState, LoadingState } from '@/components/ui'
 import { ListSkeleton } from '@/components/ui/Skeleton'
+import type { ApiFailurePresentation } from '@/lib/api-error'
+import { failureOf, isAbortError, readSectionJson } from '@/lib/section-load'
 import {
   BarChart,
   Bar,
@@ -178,17 +180,23 @@ function HBar({
 export default function ComplianceCoveragePage() {
   const [data, setData] = useState<CoverageData | null>(null)
   const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+  const [loadFailure, setLoadFailure] = useState<ApiFailurePresentation | null>(
+    null
+  )
   const [showDrillDown, setShowDrillDown] = useState(false)
 
   const fetchData = useCallback(() => {
+    setLoadFailure(null)
     fetch('/api/compliance-coverage', { credentials: 'include' })
-      .then((r) => {
-        if (!r.ok) throw new Error(`${r.status}`)
-        return r.json()
+      .then((r) => readSectionJson(r))
+      .then((d) => {
+        setData(d as CoverageData)
+        setLoadFailure(null)
       })
-      .then((d) => setData(d as CoverageData))
-      .catch((e) => setError(e.message))
+      .catch((error: unknown) => {
+        if (isAbortError(error)) return
+        setLoadFailure(failureOf(error))
+      })
       .finally(() => setLoading(false))
   }, [])
 
@@ -214,13 +222,21 @@ export default function ComplianceCoveragePage() {
           </p>
         </div>
         <Card className="p-6">
-          <ListSkeleton rows={8} />
+          <LoadingState
+            label="Loading coverage"
+            onRetry={() => {
+              setLoading(true)
+              fetchData()
+            }}
+          >
+            <ListSkeleton rows={8} />
+          </LoadingState>
         </Card>
       </div>
     )
   }
 
-  if (error || !data) {
+  if (loadFailure || !data) {
     return (
       <div className="min-w-0 space-y-6">
         <div>
@@ -231,13 +247,19 @@ export default function ComplianceCoveragePage() {
             See where your evidence is strong, weak, and missing.
           </p>
         </div>
-        <Card className="p-6">
-          <p className="text-[var(--tc-muted)]">
-            {data?.kpi?.total_questions === 0
-              ? 'No questionnaire data yet. Upload a questionnaire and generate answers to see coverage.'
-              : `Unable to load coverage data. ${error ?? ''}`}
-          </p>
-        </Card>
+        <ErrorState
+          failure={
+            loadFailure ?? {
+              kind: 'rejected',
+              title: 'Could not load this',
+              description: 'The request did not succeed. Try again.',
+            }
+          }
+          onRetry={() => {
+            setLoading(true)
+            fetchData()
+          }}
+        />
       </div>
     )
   }

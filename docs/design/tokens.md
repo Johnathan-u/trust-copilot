@@ -89,3 +89,5 @@ An unknown value does not switch the theme. Dark stays the default.
 Shared controls in `apps/web/components/ui` and the dashboard sidebar read these tokens. Tailwind color utilities that point at `var(--tc-*)` do not support opacity modifiers such as `bg-tc-surface/60`.
 
 API error text uses `apiErrorPresentation()` in `lib/api-error.ts`. The formatted message is unchanged. The status is always `danger`, so a failure or denial is shown with the danger tokens and does not echo unrelated fields.
+
+Page sections use the same tokens for loading, empty, error, and partial success. A skeleton is not the only feedback for longer than 8 seconds. After that, a status region offers retry. An error uses `role="alert"`, a text label, and a retry button. Empty and error are different states. The words come from `presentHttpFailure()` and do not include status codes or account-role names. See `docs/release/tickets/TC-14-005.md`.
