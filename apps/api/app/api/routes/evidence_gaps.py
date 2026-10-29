@@ -1,8 +1,7 @@
 """Evidence gap ownership and resolution.
 
-The module had no routes. These stay on review. GET does not write.
-Resolve reuses the TC-21-006 evidence classification. A gap closes only when
-that check is clear and the evidence backs the gap's control or question.
+GET does not write. A gap closes only when the shared evidence check is clear
+and the evidence backs the gap's control or question.
 """
 
 import json
@@ -381,7 +380,7 @@ def ensure_open_gap(
     """Return the one open gap for this control or question and gap type.
 
     A reviewer decision is not reopened. Extra open rows are explained, not deleted.
-    There is no unique constraint; concurrent inserts remain TC-21-006b.
+    Concurrent inserts use a transaction lock and return the existing row on conflict.
     """
     workspace_id = request.state.workspace_id
     key = _idempotency_key(request, workspace_id, "create", "new")
