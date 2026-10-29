@@ -1173,13 +1173,21 @@ def _flush_abandoned_audit(
 
 
 def recover_abandoned_jobs(session, *, limit: int = 20) -> int:
-    """Send running jobs with an expired lease back through retry classification (TC-10-001).
+    """Send running jobs with an expired lease back through retry classification (TC-10-001a).
 
-    Each job is locked with ``FOR UPDATE SKIP LOCKED``, given a new owner token, and classified
-    in that same transaction (``rollback_first=False``). A second recoverer cannot take the row
-    until this commit, and by then the status is no longer ``running``. The attempt was already
-    counted at claim time. A NULL lease is left alone. Audited as ``job.abandoned`` plus the
-    retry or failure event.
+    One row is atomic. ``FOR UPDATE SKIP LOCKED``, the replacement owner token, the
+    ``job.abandoned`` audit row, and the retry-or-fail classification commit together.
+    The abandoned audit is flushed before that commit, so a claim cannot land between
+    the classification and the audit.
+
+    The next row is not atomic with this one. After the commit a worker may claim the
+    job before this loop reads it again. That claim is a normal claim of a queued job.
+    If the post-commit read no longer shows the classified status, this row is logged
+    and the loop continues. The abandoned audit is already committed. The remaining
+    expired rows are still recovered.
+
+    A NULL lease is not abandoned. The attempt was counted at claim time and is not
+    incremented here.
     """
     log = logging.getLogger(__name__)
     exc = RetryableJobError(LEASE_EXPIRED, LEASE_EXPIRED_MESSAGE)
