@@ -191,6 +191,21 @@ def _delete(conn, ids: list[int]) -> None:
     )
 
 
+def _delete_then_upgrade(engine, ids: list[int]) -> None:
+    """Delete synthetic rows, then return the shared database to head.
+
+    The delete runs first so violating rows cannot make ``upgrade head`` fail
+    and so they are not left behind. The upgrade is in a ``finally`` so a
+    delete error still attempts to move the database off the parent revision.
+    """
+    try:
+        if ids:
+            with engine.begin() as conn:
+                _delete(conn, ids)
+    finally:
+        _alembic("upgrade", "head")
+
+
 def _checks(conn) -> dict[str, bool]:
     rows = conn.execute(
         text(
@@ -427,7 +442,8 @@ def test_prescan_fails_on_violations_and_passes_on_clean_data(db_session: Sessio
 
         with engine.begin() as conn:
             _delete(conn, ids[1:])
-            ids[:] = [kept]
+        ids[:] = [kept]
+        with engine.connect() as conn:
             assert module.violation_reports(conn) == []
 
         _alembic_ok("upgrade", "head")
@@ -437,11 +453,10 @@ def test_prescan_fails_on_violations_and_passes_on_clean_data(db_session: Sessio
             assert checks[module.CK_EVIDENCE_GAPS_STATUS] is True
             assert checks[module.CK_EVIDENCE_GAPS_CLOSE_REASON] is True
     finally:
-        _alembic("upgrade", "head")
-        if ids:
-            with engine.begin() as conn:
-                _delete(conn, ids)
-        engine.dispose()
+        try:
+            _delete_then_upgrade(engine, ids)
+        finally:
+            engine.dispose()
 
 
 def test_upgrade_downgrade_upgrade_round_trip(db_session: Session):
@@ -488,11 +503,10 @@ def test_upgrade_downgrade_upgrade_round_trip(db_session: Session):
             assert {gap_id: _snapshot(conn, gap_id) for gap_id in ids} == original
         _revision_reaches_every_head(REVISION)
     finally:
-        _alembic("upgrade", "head")
-        if ids:
-            with engine.begin() as conn:
-                _delete(conn, ids)
-        engine.dispose()
+        try:
+            _delete_then_upgrade(engine, ids)
+        finally:
+            engine.dispose()
 
 
 def test_revision_is_head_or_ancestor_of_every_head():

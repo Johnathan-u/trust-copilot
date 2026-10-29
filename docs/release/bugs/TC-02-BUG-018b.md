@@ -37,7 +37,7 @@ Revision `bug018b_gap_status_checks` (`apps/api/alembic/versions/bug018b_gap_sta
 | `ck_evidence_gaps_status` | `status IN ('open', 'accepted', 'dismissed', 'resolved')` |
 | `ck_evidence_gaps_close_reason` | `close_reason IS NULL OR close_reason IN ('question_removed', 'answer_sufficient')` |
 
-Upgrade reads existing rows first. If any row would fail a check, it raises `EvidenceGapCheckViolation` with the constraint name, the full count, and up to five example ids, and it does not add the constraint or change a row. On a clean table each check is `ADD CONSTRAINT ... NOT VALID`, then `VALIDATE CONSTRAINT`.
+Upgrade reads existing rows first. If any row would fail a check, it raises `EvidenceGapCheckViolation` with the constraint name, the full count, and up to five example ids, and it does not add the constraint or change a row. On a clean table each check is `ADD CONSTRAINT ... NOT VALID`, then `VALIDATE CONSTRAINT`, so the checks are validated against existing rows. `apps/api/alembic/env.py` runs the whole migration in one transaction, so both steps share that transaction and `NOT VALID` does not shorten the lock.
 
 Downgrade drops only the two constraints. It does not rewrite rows, so it is lossless.
 

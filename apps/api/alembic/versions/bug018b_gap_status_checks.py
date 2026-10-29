@@ -7,8 +7,9 @@ not import the application package. Tests lock the two copies together.
 
 Upgrade pre-scans for rows that would fail either check. A hit raises with
 the count and example ids and does not change any row. On a clean table each
-check is added NOT VALID, then validated, so existing rows are checked without
-a long ACCESS EXCLUSIVE lock.
+check is added NOT VALID, then validated, so the checks are validated against
+existing rows. ``env.py`` runs the whole migration in one transaction, so both
+steps share that transaction and this does not shorten the lock.
 
 Downgrade drops only those two constraints. It does not rewrite rows.
 

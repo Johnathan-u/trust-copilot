@@ -194,8 +194,9 @@ title only:
 - `status` and `close_reason` had no check. The writers store `open`, `accepted`, `dismissed`
   and `resolved`, and `close_reason` of NULL, `question_removed` or `answer_sufficient`.
 - Fix: `ck_evidence_gaps_status` and `ck_evidence_gaps_close_reason`, added NOT VALID then
-  validated. The migration pre-scans and fails with counts and example ids instead of rewriting
-  rows. Downgrade drops only the constraints.
+  validated against existing rows. `alembic/env.py` runs that migration in one transaction, so
+  the two steps do not shorten the lock. The migration pre-scans and fails with counts and
+  example ids instead of rewriting rows. Downgrade drops only the constraints.
 - A check that `close_reason` is set only when `status = resolved` was not added.
   `update_evidence_gap_status` and `bulk_update_by_title` change status and leave `close_reason`,
   and the 018a backfill leaves `close_reason` NULL on some resolved rows.
