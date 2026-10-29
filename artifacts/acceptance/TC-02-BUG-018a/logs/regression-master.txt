@@ -1,0 +1,65 @@
+FFFFFFFFFFFF                                                             [100%]
+=================================== FAILURES ===================================
+E   AttributeError: 'EvidenceGap' object has no attribute 'close_reason'
+/tmp/tc-master/apps/api/tests/release/test_evidence_gap_closure_columns.py:173: AttributeError: 'EvidenceGap' object has no attribute 'close_reason'
+E   AttributeError: 'EvidenceGap' object has no attribute 'close_reason'
+/tmp/tc-master/apps/api/tests/release/test_evidence_gap_closure_columns.py:202: AttributeError: 'EvidenceGap' object has no attribute 'close_reason'
+E   AssertionError: assert 'Keep this\n[...29T12:45:00Z]' == 'Keep this\n[...0Z]\nexactly.'
+
+      Skipping 76 identical leading characters in diff, use -v to show
+        Z]
+      - exactly.
+      + exactly.
+      ?         +
+      + [resolved on regeneration: answer_sufficient at 2026-10-29T12:45:00Z]
+/tmp/tc-master/apps/api/tests/release/test_evidence_gap_closure_columns.py:222: AssertionError: assert 'Keep this\n[...29T12:45:00Z]' == 'Keep this\n[...0Z]\nexactly.'
+E   AttributeError: 'EvidenceGap' object has no attribute 'closed_at'
+/tmp/tc-master/apps/api/tests/release/test_evidence_gap_closure_columns.py:240: AttributeError: 'EvidenceGap' object has no attribute 'closed_at'
+E   AttributeError: 'EvidenceGap' object has no attribute 'closed_at'
+/tmp/tc-master/apps/api/tests/release/test_evidence_gap_closure_columns.py:267: AttributeError: 'EvidenceGap' object has no attribute 'closed_at'
+E   TypeError: 'closed_at' is an invalid keyword argument for EvidenceGap
+/tmp/tc-venv/lib/python3.12/site-packages/sqlalchemy/orm/decl_base.py:2193: TypeError: 'closed_at' is an invalid keyword argument for EvidenceGap
+E   AttributeError: 'EvidenceGap' object has no attribute 'closed_at'
+/tmp/tc-master/apps/api/tests/release/test_evidence_gap_closure_columns.py:360: AttributeError: 'EvidenceGap' object has no attribute 'closed_at'
+E   TypeError: 'closed_at' is an invalid keyword argument for EvidenceGap
+/tmp/tc-venv/lib/python3.12/site-packages/sqlalchemy/orm/decl_base.py:2193: TypeError: 'closed_at' is an invalid keyword argument for EvidenceGap
+E   AssertionError: PosixPath('/tmp/tc-master/apps/api/alembic/versions/bug018a_gap_closed_at_reason.py')
+    assert False
+     +  where False = is_file()
+     +    where is_file = PosixPath('/tmp/tc-master/apps/api/alembic/versions/bug018a_gap_closed_at_reason.py').is_file
+/tmp/tc-master/apps/api/tests/release/test_evidence_gap_closure_columns.py:41: AssertionError: PosixPath('/tmp/tc-master/apps/api/alembic/versions/bug018a_gap_closed_at_reason.py')
+E   AssertionError: PosixPath('/tmp/tc-master/apps/api/alembic/versions/bug018a_gap_closed_at_reason.py')
+    assert False
+     +  where False = is_file()
+     +    where is_file = PosixPath('/tmp/tc-master/apps/api/alembic/versions/bug018a_gap_closed_at_reason.py').is_file
+/tmp/tc-master/apps/api/tests/release/test_evidence_gap_closure_columns.py:41: AssertionError: PosixPath('/tmp/tc-master/apps/api/alembic/versions/bug018a_gap_closed_at_reason.py')
+E   AssertionError: PosixPath('/tmp/tc-master/apps/api/alembic/versions/bug018a_gap_closed_at_reason.py')
+    assert False
+     +  where False = is_file()
+     +    where is_file = PosixPath('/tmp/tc-master/apps/api/alembic/versions/bug018a_gap_closed_at_reason.py').is_file
+/tmp/tc-master/apps/api/tests/release/test_evidence_gap_closure_columns.py:41: AssertionError: PosixPath('/tmp/tc-master/apps/api/alembic/versions/bug018a_gap_closed_at_reason.py')
+E   AssertionError: PosixPath('/tmp/tc-master/apps/api/alembic/versions/bug018a_gap_closed_at_reason.py')
+    assert False
+     +  where False = is_file()
+     +    where is_file = PosixPath('/tmp/tc-master/apps/api/alembic/versions/bug018a_gap_closed_at_reason.py').is_file
+/tmp/tc-master/apps/api/tests/release/test_evidence_gap_closure_columns.py:41: AssertionError: PosixPath('/tmp/tc-master/apps/api/alembic/versions/bug018a_gap_closed_at_reason.py')
+=============================== warnings summary ===============================
+tests/release/test_evidence_gap_closure_columns.py: 23 warnings
+  /tmp/tc-venv/lib/python3.12/site-packages/sqlalchemy/sql/schema.py:3627: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    return util.wrap_callable(lambda ctx: fn(), fn)  # type: ignore
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED tests/release/test_evidence_gap_closure_columns.py::test_closing_sets_columns_when_answer_becomes_sufficient
+FAILED tests/release/test_evidence_gap_closure_columns.py::test_closing_sets_columns_when_question_is_removed
+FAILED tests/release/test_evidence_gap_closure_columns.py::test_closing_preserves_reason_text_including_an_embedded_note
+FAILED tests/release/test_evidence_gap_closure_columns.py::test_accepted_and_dismissed_gaps_keep_null_closure_columns
+FAILED tests/release/test_evidence_gap_closure_columns.py::test_llm_error_placeholder_does_not_write_closure_columns
+FAILED tests/release/test_evidence_gap_closure_columns.py::test_manual_status_changes_do_not_write_closure_columns
+FAILED tests/release/test_evidence_gap_closure_columns.py::test_reinsufficient_question_keeps_the_resolved_row
+FAILED tests/release/test_evidence_gap_closure_columns.py::test_gap_payload_exposes_closure_columns
+FAILED tests/release/test_evidence_gap_closure_columns.py::test_historical_note_matches_the_backfill_pattern
+FAILED tests/release/test_evidence_gap_closure_columns.py::test_backfill_parses_old_notes_and_falls_back_to_updated_at
+FAILED tests/release/test_evidence_gap_closure_columns.py::test_migration_upgrade_downgrade_upgrade_round_trip
+FAILED tests/release/test_evidence_gap_closure_columns.py::test_offline_sql_adds_and_drops_the_columns
+12 failed, 23 warnings in 0.59s

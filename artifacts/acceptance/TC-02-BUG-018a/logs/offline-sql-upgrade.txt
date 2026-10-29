@@ -1,0 +1,45 @@
+BEGIN;
+
+-- Running upgrade tc21002a_canonical_uniq -> bug018a_gap_closed_at_reason
+
+ALTER TABLE evidence_gaps ADD COLUMN closed_at TIMESTAMP WITH TIME ZONE;
+
+ALTER TABLE evidence_gaps ADD COLUMN close_reason VARCHAR(32);
+
+UPDATE evidence_gaps AS g
+SET
+    close_reason = parsed.code,
+    closed_at = COALESCE(parsed.closed_at, g.updated_at AT TIME ZONE 'UTC')
+FROM (
+    SELECT
+        id,
+        note[1] AS code,
+        CASE
+            WHEN note[2] IS NULL THEN NULL
+            ELSE note[2]::timestamptz
+        END AS closed_at
+    FROM (
+        SELECT
+            id,
+            regexp_match(last_line, '^\[resolved on regeneration: (question_removed|answer_sufficient) at ([0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z)\]$') AS note
+        FROM (
+            SELECT
+                id,
+                (regexp_split_to_array(COALESCE(reason, ''), E'\n'))[
+                    cardinality(regexp_split_to_array(COALESCE(reason, ''), E'\n'))
+                ] AS last_line
+            FROM evidence_gaps
+            WHERE status = 'resolved'
+              AND closed_at IS NULL
+              AND close_reason IS NULL
+        ) AS lines
+    ) AS matched
+) AS parsed
+WHERE g.id = parsed.id
+  AND g.status = 'resolved'
+  AND g.closed_at IS NULL
+  AND g.close_reason IS NULL;
+
+UPDATE alembic_version SET version_num='bug018a_gap_closed_at_reason' WHERE alembic_version.version_num = 'tc21002a_canonical_uniq';
+
+COMMIT;
