@@ -695,6 +695,32 @@ def test_post_commit_store_failure_retries_without_a_second_version(client):
     assert _table_count("control_mapping_override") == before + 1
 
 
+def test_rollback_notifies_without_a_real_send(client):
+    actors = _actors()
+    control_id = _control(actors["workspace_id"], f"Notify {uuid.uuid4().hex[:8]}")
+    question = f"synthetic rollback notify {uuid.uuid4().hex[:8]}"
+    _login(client, ADMIN_EMAIL, ADMIN_PASSWORD)
+    confirmed = client.post(
+        "/api/compliance/control-mappings/confirm",
+        json={"question": question, "control_ids": [control_id]},
+    )
+    assert confirmed.status_code == 200, confirmed.text
+    before = _table_count("in_app_notifications")
+    with (
+        patch("app.api.routes.compliance_mappings.notify_admins") as notify,
+        patch("app.api.routes.compliance_mappings.emit_compliance_event") as emit,
+    ):
+        rolled = client.post(
+            "/api/compliance/control-mappings/rollback",
+            json={"question": question},
+        )
+    assert rolled.status_code == 200, rolled.text
+    assert notify.called
+    assert notify.call_args.args[2] == "Mapping rolled back"
+    assert emit.called
+    assert _table_count("in_app_notifications") == before
+
+
 def test_migrated_schema_matches_the_model():
     import importlib.util
 

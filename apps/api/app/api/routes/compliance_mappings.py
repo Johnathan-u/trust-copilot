@@ -422,8 +422,11 @@ def _run_mutation(db: Session, request: Request, session: dict, action: str, que
             idempotency_release(db, key, owner=owner)
         raise
     try:
-        if payload.get("updated") and action in ("confirm", "override"):
-            event = EVENT_MAPPING_OVERRIDDEN if action == "override" else EVENT_MAPPING_CONFIRMED
+        if payload.get("updated") and action in ("confirm", "override", "rollback"):
+            if action == "override" or payload.get("state") == "overridden":
+                event = EVENT_MAPPING_OVERRIDDEN
+            else:
+                event = EVENT_MAPPING_CONFIRMED
             try:
                 emit_compliance_event(
                     db,
