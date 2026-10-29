@@ -6,8 +6,8 @@
   (same body as a missing id) when the item no longer exists after the workspace check. They used
   to return 200 with a `null` body or `{"deleted": true}`. `GET` already behaves this way (#47).
 - `POST /api/promises` returns 422 when `source_type` is `questionnaire_answer`, `trust_article` or
-  `contract_clause` and `source_ref_id` is missing or null. Other source types (`manual`, `sla`,
-  `verbal`, ...) still accept no `source_ref_id`.
+  `contract_clause` and `source_ref_id` is missing or null. The `detail` is a plain string for now.
+  Other source types (`manual`, `sla`, `verbal`, ...) still accept no `source_ref_id`.
 - Behaviour change shipped in #47 (TC-06-BUG-013a), recorded here because no release note existed:
   `POST /api/proof-graph/artifacts/verify` now returns 404 for a missing id, or an id from another
   workspace, of a known `artifact_kind`. It used to return 200 with
