@@ -16,12 +16,11 @@ re-holds the same float text and does not invent currency, room, document, or
 actual-close values that were never stored on the old row. close_date is left
 in place, so the expected-close backfill can be derived again.
 
-Parent is the single alembic head on origin/master a2458c9 (tc10001_job_leases).
-tc21006_gap_evaluation already has descendants, so parenting there would add a
-second head. The revision id is 17 characters.
+down_revision is the single alembic head on master when this file is
+parented. Re-parent by changing that one assignment. The revision id is
+17 characters.
 
 Revision ID: tc23001_deal_types
-Revises: tc10001_job_leases
 """
 
 from alembic import op

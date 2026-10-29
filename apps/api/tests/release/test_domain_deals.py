@@ -32,7 +32,6 @@ from app.models.workspace import Workspace
 
 API_ROOT = Path(__file__).resolve().parents[2]
 REVISION = "tc23001_deal_types"
-PARENT = "tc10001_job_leases"
 HOLD = "tc23001_deal_amount_hold"
 HOLD_REASON = "float value is not exactly representable as numeric(18,2)"
 AMOUNT = "990001.23"
@@ -150,7 +149,7 @@ def test_revision_is_an_ancestor_of_every_head():
     heads = script.get_heads()
     assert heads
     assert len(REVISION) <= 32
-    assert script.get_revision(REVISION).down_revision == PARENT
+    # The revision is a head, or an ancestor of every head. The parent id is not pinned.
 
     def reaches(current: str | None, seen: set[str] | None = None) -> bool:
         walked: set[str] = set() if seen is None else seen
@@ -474,6 +473,17 @@ def test_writes_stay_admin_and_a_denial_changes_nothing(method, path, body, clie
         db_session.commit()
 
 
+def _migration_parent() -> str:
+    """The parent named by the migration. Callers do not hard-code that id."""
+    from alembic.config import Config
+    from alembic.script import ScriptDirectory
+
+    script = ScriptDirectory.from_config(Config(str(API_ROOT / "alembic.ini")))
+    parent = script.get_revision(REVISION).down_revision
+    assert isinstance(parent, str) and parent
+    return parent
+
+
 def _alembic(*args: str) -> str:
     env = {**os.environ, "TRUST_COPILOT_TESTING": "1"}
     engine.dispose()
@@ -490,8 +500,9 @@ def _alembic(*args: str) -> str:
 
 
 def test_amount_backfill_downgrade_and_upgrade_round_trip():
-    """Exact floats stay numeric. Inexact floats are explained, restored, and re-held."""
-    _alembic("downgrade", PARENT)
+    """A non-representable float is held, restored as the same text, then re-held."""
+    parent = _migration_parent()
+    _alembic("downgrade", parent)
     token = uuid.uuid4().hex[:8]
     session = SessionLocal()
     try:
@@ -597,7 +608,7 @@ def test_amount_backfill_downgrade_and_upgrade_round_trip():
         assert expected == "2026-04-15"
         assert currency == "currency"
 
-        _alembic("downgrade", PARENT)
+        _alembic("downgrade", parent)
         downgraded = read()
         assert downgraded[exact_id][4] == "100000"
         assert downgraded[inexact_id][4] == original_inexact
