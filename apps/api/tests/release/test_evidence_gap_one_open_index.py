@@ -29,7 +29,7 @@ from app.models import Answer, Question, Questionnaire
 from app.models.evidence_gap import EvidenceGap
 
 API_ROOT = Path(__file__).resolve().parents[2]
-REVISION = "bug018c_one_open_gap_per_question"
+REVISION = "bug018c_one_open_gap"
 PARENT = "tc21005_mapping_version"
 MIGRATION = API_ROOT / "alembic" / "versions" / f"{REVISION}.py"
 _MARKER = "bug018c-synthetic"
@@ -574,6 +574,7 @@ def test_model_index_matches_the_migration():
     )
 
     assert module.revision == REVISION
+    assert len(module.revision) <= 32
     assert module.down_revision == PARENT
     assert module.OPEN_STATUS == GAP_STATUS_OPEN == "open"
     assert module.EXCLUDED_GAP_TYPE == GAP_TYPE_CONTROL_CHECK == "control_check"
@@ -874,6 +875,16 @@ def test_revision_is_head_or_ancestor_of_every_head():
     _revision_reaches_every_head(REVISION)
 
 
+def test_revision_id_fits_in_alembic_version_num():
+    """``alembic_version.version_num`` is varchar(32). A longer id cannot be stamped."""
+    module = _load_migration()
+    source = MIGRATION.read_text(encoding="utf-8")
+    assert module.revision == REVISION
+    assert len(module.revision) <= 32
+    assert "_widen_version_num" not in source
+    assert "alter_column" not in source
+
+
 def test_offline_sql_creates_partial_unique_index_and_downgrade_drops_it():
     module = _load_migration()
     upgrade = _alembic_ok("upgrade", f"{module.down_revision}:{module.revision}", "--sql")
@@ -889,6 +900,8 @@ def test_offline_sql_creates_partial_unique_index_and_downgrade_drops_it():
     assert "UPDATE EVIDENCE_GAPS" not in upper
     assert "DELETE FROM EVIDENCE_GAPS" not in upper
     assert "INSERT INTO EVIDENCE_GAPS" not in upper
+    assert "ALTER TABLE ALEMBIC_VERSION" not in upper
+    assert "VARCHAR(64)" not in upper
     down = _norm_sql(downgrade)
     down_upper = down.upper()
     assert f"DROP INDEX {module.INDEX_NAME}" in down

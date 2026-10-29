@@ -25,7 +25,7 @@ ALL_GAP_STATUSES = GAP_STATUSES + (GAP_STATUS_RESOLVED,)
 # writer leaves question_id null. They are not "one open gap per question".
 GAP_TYPE_CONTROL_CHECK = "control_check"
 # TC-02-BUG-018c. One open gap for a question inside a workspace and questionnaire.
-# The migration duplicates these literals and does not import this package.
+# bug018c_one_open_gap duplicates these literals and does not import this package.
 # question_id IS NOT NULL and the control-check type is excluded so scan rows,
 # which have no question, are not in the index. questionnaire_id is nullable;
 # PostgreSQL does not treat NULL as equal.

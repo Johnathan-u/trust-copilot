@@ -1300,9 +1300,7 @@ def test_migration_upgrades_and_downgrades_on_a_fresh_database():
                     "WHERE table_name = 'alembic_version' AND column_name = 'version_num'"
                 )
             ).scalar()
-            # bug018c_one_open_gap_per_question is 33 characters. That revision widens
-            # alembic_version.version_num from varchar(32) to varchar(64).
-            assert version_width == 64
+            assert version_width == 32
         engine.dispose()
 
         down = run("downgrade", parent)

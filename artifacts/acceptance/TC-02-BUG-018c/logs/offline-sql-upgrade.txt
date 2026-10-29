@@ -1,11 +1,9 @@
 BEGIN;
 
--- Running upgrade tc21005_mapping_version -> bug018c_one_open_gap_per_question
-
-ALTER TABLE alembic_version ALTER COLUMN version_num TYPE VARCHAR(64);
+-- Running upgrade tc21005_mapping_version -> bug018c_one_open_gap
 
 CREATE UNIQUE INDEX uq_evidence_gaps_one_open_per_question ON evidence_gaps (workspace_id, questionnaire_id, question_id) WHERE status = 'open' AND question_id IS NOT NULL AND gap_type <> 'control_check';
 
-UPDATE alembic_version SET version_num='bug018c_one_open_gap_per_question' WHERE alembic_version.version_num = 'tc21005_mapping_version';
+UPDATE alembic_version SET version_num='bug018c_one_open_gap' WHERE alembic_version.version_num = 'tc21005_mapping_version';
 
 COMMIT;

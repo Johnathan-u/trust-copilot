@@ -29,11 +29,11 @@ Accepted and dismissed rows are outside the predicate. The generator still treat
 
 Downgrade drops only the index. It does not rewrite rows.
 
-The revision id is 33 characters and Alembic's `alembic_version.version_num` is `varchar(32)`. Upgrade widens that column to `varchar(64)` before the stamp. Downgrade does not shrink it: the stored version is still this revision id until the stamp moves, and shrinking first would fail. `test_migration_upgrades_and_downgrades_on_a_fresh_database` (TC-19-008) asserts the width at head, so that assertion is 64.
+The revision id `bug018c_one_open_gap` is 20 characters, so it fits `alembic_version.version_num` (`varchar(32)`). This revision does not alter that column. Downgrade drops only the index.
 
 ## Migration
 
-Revision `bug018c_one_open_gap_per_question` (`apps/api/alembic/versions/bug018c_one_open_gap_per_question.py`). `down_revision` is master's Alembic head at push. The module does not import the application package.
+Revision `bug018c_one_open_gap` (`apps/api/alembic/versions/bug018c_one_open_gap.py`). `down_revision` is master's Alembic head at push. The module does not import the application package.
 
 Before `CREATE UNIQUE INDEX`, upgrade counts questions that already have more than one open row inside the index predicate. A hit raises `OpenGapDuplicate` with the question count, the open-row count and example gap ids (at most five), and creates nothing. It does not delete or close rows.
 
@@ -76,3 +76,9 @@ Offline `alembic --sql` skips the pre-scan. There is no database to read.
 - Existing duplicates fail the upgrade with counts and sample ids. No row is deleted or closed by the migration.
 - Downgrade drops only the index.
 - The generator still opens one gap per insufficient question and does not raise `IntegrityError` for this index under the advisory lock. A conflict that still occurs is treated as already open.
+
+## Open questions
+
+`update_evidence_gap_status` treats a unique violation as already open by returning the other open gap's dict. The caller sees that row's id, and nothing in the payload says it is a different row from the one requested. That should be a 409 once a route calls this helper. The helper's return value is unchanged until then.
+
+When #76 (`tc21006_gap_evaluation`) and #78 (`bug018b_gap_status_checks`) have merged, this revision should re-parent onto `bug018b_gap_status_checks`. `GAP_TYPE_CONTROL_CHECK` should then be the same constant as #76's `CONTROL_CHECK`. Not done in this change. Parent remains master's current head.

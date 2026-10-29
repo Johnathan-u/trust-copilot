@@ -29,24 +29,20 @@ questionnaire closes, and ``evidence_sufficient`` only for a scan close. NULL
 when a note is missing. The statement is not executed here. Scan rows are
 not in it.
 
-Downgrade drops only the index. It does not shrink ``alembic_version``.
-
-``bug018c_one_open_gap_per_question`` is 33 characters. Alembic's version
-column is ``varchar(32)``, so upgrade widens it to ``varchar(64)`` before
-the stamp. Downgrade cannot shrink it while this revision id is still the
-stored version.
+Downgrade drops only the index. The revision id fits ``alembic_version.version_num``
+(``varchar(32)``), so this revision does not alter that column.
 
 This module does not import the application package. Tests lock these
 literals to the model.
 
-Revision ID: bug018c_one_open_gap_per_question
+Revision ID: bug018c_one_open_gap
 Revises: tc21005_mapping_version
 """
 
 import sqlalchemy as sa
 from alembic import context, op
 
-revision = "bug018c_one_open_gap_per_question"
+revision = "bug018c_one_open_gap"
 down_revision = "tc21005_mapping_version"
 branch_labels = None
 depends_on = None
@@ -169,18 +165,7 @@ def duplicate_open_gaps(connection) -> tuple[int, int, list[int]]:
     return questions, open_rows, _example_ids(row[2])
 
 
-def _widen_version_num() -> None:
-    """This revision id does not fit in alembic's default varchar(32)."""
-    op.alter_column(
-        "alembic_version",
-        "version_num",
-        existing_type=sa.String(length=32),
-        type_=sa.String(length=64),
-    )
-
-
 def upgrade() -> None:
-    _widen_version_num()
     # Offline --sql has no rows to scan. Online, refuse before any DDL.
     if not context.is_offline_mode():
         questions, open_rows, example_ids = duplicate_open_gaps(op.get_bind())
