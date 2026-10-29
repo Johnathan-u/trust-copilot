@@ -558,6 +558,25 @@ def test_foreign_evidence_ids_are_omitted(client):
     actors = _actors()
     control_id = _control(actors["workspace_id"], f"Foreign evidence {uuid.uuid4().hex[:8]}")
     foreign_evidence = _evidence(actors["other_workspace_id"], approval="approved")
+    # A fresh database numbers evidence from 1, so the raw id can collide with control_id.
+    # This marker cannot be a substring of those small ids.
+    marker = 88021006
+    session = _db()
+    try:
+        session.execute(
+            text("UPDATE evidence_items SET id = :marker WHERE id = :old"),
+            {"marker": marker, "old": foreign_evidence},
+        )
+        session.execute(
+            text(
+                "SELECT setval(pg_get_serial_sequence('evidence_items', 'id'), "
+                "(SELECT COALESCE(MAX(id), 1) FROM evidence_items))"
+            )
+        )
+        session.commit()
+    finally:
+        session.close()
+    foreign_evidence = marker
     _link(control_id, foreign_evidence)
     _login(client, REVIEWER_EMAIL, REVIEWER_PASSWORD)
     listed = client.get("/api/compliance/gaps", params={"control_id": control_id})
