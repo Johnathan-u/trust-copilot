@@ -6,14 +6,14 @@ same non-null key, the oldest row keeps it. Later rows keep their status,
 name, and evidence, and their key is stored here so downgrade can put it back.
 
 Revision ID: tc21002a_canonical_uniq
-Revises: tc21002_control_contract
+Revises: bug019_article_slug_ws
 """
 
 from alembic import op
 import sqlalchemy as sa
 
 revision = "tc21002a_canonical_uniq"
-down_revision = "tc21002_control_contract"
+down_revision = "bug019_article_slug_ws"
 branch_labels = None
 depends_on = None
 

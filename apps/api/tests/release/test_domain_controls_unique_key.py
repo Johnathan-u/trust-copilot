@@ -28,7 +28,7 @@ from tests.release.test_domain_controls import (
 )
 
 API_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
-PARENT = "tc21002_control_contract"
+PARENT = "bug019_article_slug_ws"
 REVISION = "tc21002a_canonical_uniq"
 
 
@@ -260,6 +260,9 @@ def test_migration_clears_only_duplicate_keys_and_downgrade_restores_them():
             session.close()
     finally:
         alembic("upgrade", "head")
-    heads = [line.strip() for line in alembic("heads").splitlines() if "(head)" in line]
-    assert len(heads) == 1
-    assert REVISION in heads[0]
+    heads_out = alembic("heads")
+    head_lines = [line.strip() for line in heads_out.splitlines() if "(head)" in line]
+    assert len(head_lines) == 1
+    from tests.release.test_billing_provider import _revision_is_applied, _revision_token
+
+    assert _revision_is_applied(_revision_token(heads_out), REVISION)
