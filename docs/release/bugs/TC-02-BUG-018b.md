@@ -31,7 +31,7 @@ No other application module assigns `EvidenceGap.status` or `EvidenceGap.close_r
 
 ## Checks
 
-Revision `bug018b_gap_status_checks` (`apps/api/alembic/versions/bug018b_gap_status_checks.py`). `down_revision` is master's single head at implementation, `tc21005_mapping_version`. The module does not import the application package. The same expressions are on `EvidenceGap.__table_args__`.
+Revision `bug018b_gap_status_checks` (`apps/api/alembic/versions/bug018b_gap_status_checks.py`). `down_revision` is master's single head after TC-21-006, `tc21006_gap_evaluation`. The module does not import the application package. The same expressions are on `EvidenceGap.__table_args__`.
 
 | Name | Expression |
 |---|---|

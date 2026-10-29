@@ -32,7 +32,7 @@ from app.services.evidence_gap_service import (
 
 API_ROOT = Path(__file__).resolve().parents[2]
 REVISION = "bug018b_gap_status_checks"
-PARENT = "tc21005_mapping_version"
+PARENT = "tc21006_gap_evaluation"
 MIGRATION = API_ROOT / "alembic" / "versions" / f"{REVISION}.py"
 _MARKER = "bug018b-synthetic"
 # Children before parents. Same autouse shape as the TC-21-005 tests (#72):

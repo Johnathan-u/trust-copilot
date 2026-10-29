@@ -1,7 +1,8 @@
 """CHECK constraints on evidence gap status and close_reason (TC-02-BUG-018b).
 
 ``evidence_gaps.status`` is written as open, accepted, dismissed or resolved.
-``close_reason`` is written as NULL, question_removed or answer_sufficient.
+``close_reason`` is written as NULL, question_removed, answer_sufficient, or
+evidence_sufficient (``CONTROL_CHECK_CLOSE_REASON`` on control_check scan rows).
 The literals below are duplicated from the model on purpose. This module does
 not import the application package. Tests lock the two copies together.
 
@@ -17,14 +18,14 @@ A third check, that close_reason is non-null only when status is resolved, is
 not added. See ``SKIPPED_PRESENCE_CHECK``.
 
 Revision ID: bug018b_gap_status_checks
-Revises: tc21005_mapping_version
+Revises: tc21006_gap_evaluation
 """
 
 import sqlalchemy as sa
 from alembic import context, op
 
 revision = "bug018b_gap_status_checks"
-down_revision = "tc21005_mapping_version"
+down_revision = "tc21006_gap_evaluation"
 branch_labels = None
 depends_on = None
 
