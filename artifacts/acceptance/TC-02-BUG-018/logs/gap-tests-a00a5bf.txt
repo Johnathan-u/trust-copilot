@@ -1,0 +1,52 @@
+# New and updated tests on master 58b8c87 with evidence_gap_service.py, models/evidence_gap.py and the four totals services taken from the first fix revision a00a5bf (run before master moved to a702056)
+tc24001_stripe_webhook_events (head)
+........FF...FFFFFFFF                                                    [100%]
+=================================== FAILURES ===================================
+E   ValueError: not enough values to unpack (expected 2, got 1)
+/repo/apps/api/tests/release/test_evidence_gap_generation.py:434: ValueError: not enough values to unpack (expected 2, got 1)
+E   AssertionError: assert False
+     +  where False = <built-in method startswith of str object at 0x7f610e2640f0>('[resolved on regeneration: question_removed at ')
+     +    where <built-in method startswith of str object at 0x7f610e2640f0> = 'No workspace evidence supports an answer to this question. Reason code: no_citations. Resolved on regeneration: question_removed.'.startswith
+/repo/apps/api/tests/release/test_evidence_gap_generation.py:479: AssertionError: assert False
+E   AssertionError: assert 'resolved' == 'open'
+
+      - open
+      + resolved
+/repo/apps/api/tests/release/test_evidence_gap_generation.py:651: AssertionError: assert 'resolved' == 'open'
+E   AssertionError: assert 'resolved' == 'open'
+
+      - open
+      + resolved
+/repo/apps/api/tests/release/test_evidence_gap_generation.py:651: AssertionError: assert 'resolved' == 'open'
+E   ImportError: cannot import name 'append_resolution_note' from 'app.services.evidence_gap_service' (/repo/apps/api/app/services/evidence_gap_service.py)
+/repo/apps/api/tests/release/test_evidence_gap_generation.py:666: ImportError: cannot import name 'append_resolution_note' from 'app.services.evidence_gap_service' (/repo/apps/api/app/services/evidence_gap_service.py)
+E   AssertionError: assert ['accepted', ...', 'resolved'] == ['accepted', 'open']
+
+      Left contains 2 more items, first extra item: 'resolved'
+      Use -v to get more diff
+/repo/apps/api/tests/release/test_gap_totals_exclude_resolved.py:83: AssertionError: assert ['accepted', ...', 'resolved'] == ['accepted', 'open']
+E   assert 4 == 2
+/repo/apps/api/tests/release/test_gap_totals_exclude_resolved.py:93: assert 4 == 2
+E   assert 4 == 2
+/repo/apps/api/tests/release/test_gap_totals_exclude_resolved.py:105: assert 4 == 2
+E   assert (4 - 0) == 2
+/repo/apps/api/tests/release/test_gap_totals_exclude_resolved.py:116: assert (4 - 0) == 2
+E   AssertionError: assert {'open': 1, '...lved': 2, ...} == {'open': 1, '...lved': 2, ...}
+
+      Omitting 4 identical items, use -vv to show
+      Differing items:
+      {'total': 4} != {'total': 2}
+      Use -v to get more diff
+/repo/apps/api/tests/release/test_gap_totals_exclude_resolved.py:124: AssertionError: assert {'open': 1, '...lved': 2, ...} == {'open': 1, '...lved': 2, ...}
+=========================== short test summary info ============================
+FAILED tests/release/test_evidence_gap_generation.py::test_regeneration_resolves_gap_when_answer_becomes_sufficient
+FAILED tests/release/test_evidence_gap_generation.py::test_regeneration_resolves_gap_when_question_is_removed
+FAILED tests/release/test_evidence_gap_generation.py::test_regeneration_keeps_gap_open_when_answer_is_rejected_or_flagged[rejected]
+FAILED tests/release/test_evidence_gap_generation.py::test_regeneration_keeps_gap_open_when_answer_is_rejected_or_flagged[flagged]
+FAILED tests/release/test_evidence_gap_generation.py::test_resolution_note_format_is_delimited_and_keeps_reason
+FAILED tests/release/test_gap_totals_exclude_resolved.py::test_export_pack_evidence_bundle_lists_resolved_separately
+FAILED tests/release/test_gap_totals_exclude_resolved.py::test_demo_proof_gap_metric_excludes_resolved
+FAILED tests/release/test_gap_totals_exclude_resolved.py::test_benchmark_evidence_metrics_exclude_resolved
+FAILED tests/release/test_gap_totals_exclude_resolved.py::test_executive_dashboard_gap_total_excludes_resolved
+FAILED tests/release/test_gap_totals_exclude_resolved.py::test_gap_summary_total_excludes_resolved
+10 failed, 11 passed in 4.76s
