@@ -14,8 +14,7 @@ const sizeMap = {
 export function Spinner({ size = 'md', className = '' }: SpinnerProps) {
   return (
     <span
-      role="status"
-      aria-label="Loading"
+      aria-hidden="true"
       className={`inline-block animate-spin rounded-full border-[var(--tc-muted)] border-t-[var(--tc-primary)] ${sizeMap[size]} ${className}`}
     />
   )

@@ -17,12 +17,10 @@ import pytest
 # expression itself rather than listed as allowed hits.
 TICKET_ID = re.compile(r"\b(?!SHA-|UTF-|ISO-)[A-Z]{2,5}-\d{2,3}[a-z]?\b|\bTC-\d{2}-")
 
-# UPPER_SNAKE names that end like an environment variable. Longer suffixes are
-# listed first so ``_SECONDS`` is not reported as ``_SEC``.
-ENV_NAME = re.compile(
-    r"\b[A-Z][A-Z0-9_]*(?:_SECONDS|_SECS|_SECRET|_PASSWORD|_TIMEOUT|_ENABLED|_TOKEN"
-    r"|_PATH|_PORT|_HOST|_DSN|_URI|_URL|_DIR|_KEY|_SEC|_MS)\b"
-)
+# Any upper-case identifier that contains an underscore. A suffix list missed
+# names such as APP_ENV, S3_BUCKET and RATE_LIMIT_RPM_PER_IP. The published
+# OpenAPI scan found no matches, so there is no exclusion list.
+ENV_NAME = re.compile(r"\b[A-Z][A-Z0-9]*_[A-Z0-9_]*[A-Z0-9]\b")
 
 _TEXT_KEYS = ("summary", "description")
 
@@ -106,3 +104,23 @@ def test_published_openapi_has_no_env_names():
 @pytest.mark.parametrize("sample", ["SHA-256", "UTF-8", "ISO-8601", "hash with SHA-256 and UTF-8"])
 def test_ticket_pattern_does_not_match_standards_tokens(sample):
     assert TICKET_ID.search(sample) is None
+
+
+@pytest.mark.parametrize(
+    "sample",
+    [
+        "waits for READINESS_TIMEOUT_SEC",
+        "stale after WORKER_HEARTBEAT_STALE_SEC",
+        "when OPENAI_API_KEY is configured",
+        "capped by RATE_LIMIT_RPM_PER_IP",
+        "stored in S3_BUCKET",
+        "selected by APP_ENV",
+    ],
+)
+def test_env_pattern_matches_uppercase_names_with_an_underscore(sample):
+    assert ENV_NAME.search(sample)
+
+
+@pytest.mark.parametrize("sample", ["ordinary words", "SHA-256", "UTF-8"])
+def test_env_pattern_ignores_ordinary_words_and_standards_tokens(sample):
+    assert ENV_NAME.search(sample) is None
