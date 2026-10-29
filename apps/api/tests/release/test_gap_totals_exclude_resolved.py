@@ -14,7 +14,7 @@ from collections.abc import Iterator
 from contextlib import contextmanager
 
 import pytest
-from sqlalchemy import text
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.models import Question, Questionnaire
@@ -29,50 +29,73 @@ RESOLVED_REASON = (
 
 @contextmanager
 def _seeded_workspace(db: Session) -> Iterator[tuple[int, int]]:
-    """A synthetic workspace with a questionnaire and gaps: open, accepted, resolved, resolved."""
-    # Migrations and the session fixture insert workspace ids explicitly, so a
-    # fresh database leaves the serial sequence behind those rows.
-    db.execute(
-        text(
-            "SELECT setval(pg_get_serial_sequence('workspaces', 'id'), "
-            "(SELECT COALESCE(MAX(id), 1) FROM workspaces))"
-        )
-    )
-    tag = uuid.uuid4().hex[:8]
-    ws = Workspace(name=f"TC-02-BUG-018 totals {tag}", slug=f"tc02bug018-{tag}")
-    db.add(ws)
-    db.flush()
-    qnr = Questionnaire(workspace_id=ws.id, filename=f"bug018-{tag}.xlsx", status="parsed")
-    db.add(qnr)
-    db.flush()
-    questions = [
-        Question(questionnaire_id=qnr.id, text=f"Synthetic Zorblat control {i}?") for i in range(4)
-    ]
-    db.add_all(questions)
-    db.flush()
-    for question, status in zip(questions, ("open", "accepted", "resolved", "resolved")):
-        db.add(
-            EvidenceGap(
-                workspace_id=ws.id,
-                questionnaire_id=qnr.id,
-                question_id=question.id,
-                gap_type="missing_evidence",
-                reason=RESOLVED_REASON if status == "resolved" else "Synthetic open gap.",
-                status=status,
+    """A synthetic workspace with a questionnaire and gaps: open, accepted, resolved, resolved.
+
+    Primary keys are explicit. This does not call ``nextval`` or ``setval`` on the shared
+    serial sequences. ``setval`` on ``workspaces`` raced other tests that insert into the
+    same sequence.
+    """
+    ws_id = qnr_id = None
+    question_ids: list[int] = []
+    gap_ids: list[int] = []
+    for _attempt in range(8):
+        base = 100_000_000 + (uuid.uuid4().int % 40_000_000)
+        tag = uuid.uuid4().hex[:8]
+        ws_id = base
+        qnr_id = base
+        question_ids = [base + i for i in range(4)]
+        gap_ids = [base + i for i in range(4)]
+        try:
+            db.add(
+                Workspace(id=ws_id, name=f"TC-02-BUG-018 totals {tag}", slug=f"tc02bug018-{tag}")
             )
-        )
-    db.commit()
-    ws_id, qnr_id = ws.id, qnr.id
+            db.flush()
+            db.add(
+                Questionnaire(
+                    id=qnr_id,
+                    workspace_id=ws_id,
+                    filename=f"bug018-{tag}.xlsx",
+                    status="parsed",
+                )
+            )
+            db.flush()
+            questions = [
+                Question(
+                    id=qid,
+                    questionnaire_id=qnr_id,
+                    text=f"Synthetic Zorblat control {i}?",
+                )
+                for i, qid in enumerate(question_ids)
+            ]
+            db.add_all(questions)
+            db.flush()
+            for gap_id, question, status in zip(
+                gap_ids, questions, ("open", "accepted", "resolved", "resolved")
+            ):
+                db.add(
+                    EvidenceGap(
+                        id=gap_id,
+                        workspace_id=ws_id,
+                        questionnaire_id=qnr_id,
+                        question_id=question.id,
+                        gap_type="missing_evidence",
+                        reason=RESOLVED_REASON if status == "resolved" else "Synthetic open gap.",
+                        status=status,
+                    )
+                )
+            db.commit()
+            break
+        except IntegrityError:
+            db.rollback()
+            ws_id = qnr_id = None
+    else:
+        raise RuntimeError("could not allocate explicit ids without touching sequences")
     try:
         yield ws_id, qnr_id
     finally:
         db.rollback()
-        db.query(EvidenceGap).filter(EvidenceGap.workspace_id == ws_id).delete(
-            synchronize_session=False
-        )
-        db.query(Question).filter(Question.questionnaire_id == qnr_id).delete(
-            synchronize_session=False
-        )
+        db.query(EvidenceGap).filter(EvidenceGap.id.in_(gap_ids)).delete(synchronize_session=False)
+        db.query(Question).filter(Question.id.in_(question_ids)).delete(synchronize_session=False)
         db.query(Questionnaire).filter(Questionnaire.id == qnr_id).delete(synchronize_session=False)
         db.query(Workspace).filter(Workspace.id == ws_id).delete(synchronize_session=False)
         db.commit()
