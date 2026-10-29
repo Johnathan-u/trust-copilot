@@ -224,6 +224,7 @@ jobs:
           rm -f ../../artifacts/acceptance/TC-14-005/axe-*.json
           rm -f ../../artifacts/acceptance/TC-14-006b/axe-*.json
           rm -f ../../artifacts/acceptance/TC-04-001a-web/axe-*.json
+          rm -f ../../artifacts/acceptance/TC-15-042/axe-*.json
           rm -f ../../artifacts/acceptance/TC-14-008/axe-*.json
 
           candidates=(
@@ -236,6 +237,7 @@ jobs:
             e2e/release/workspace-create-denied.spec.ts
             e2e/release/microcopy-states.spec.ts
             e2e/release/screen-controls.spec.ts
+            e2e/release/ui-23.spec.ts
             e2e/release/notification-inbox.spec.ts
           )
           specs=()
@@ -265,6 +267,7 @@ jobs:
             --axe-dir ../../artifacts/acceptance/TC-14-006b \
             --axe-dir ../../artifacts/acceptance/TC-14-005 \
             --axe-dir ../../artifacts/acceptance/TC-04-001a-web \
+            --axe-dir ../../artifacts/acceptance/TC-15-042 \
             --require-spec e2e/release/design-tokens.spec.ts \
             --min-tests 4 \
             --require-spec e2e/release/responsive-shell.spec.ts \
@@ -279,6 +282,8 @@ jobs:
             --min-tests 3 \
             --require-spec e2e/release/workspace-create-denied.spec.ts \
             --min-tests 8 \
+            --require-spec e2e/release/screen-controls.spec.ts \
+            --min-tests 22 \
             --axe-dir ../../artifacts/acceptance/TC-14-008 \
             --require-spec e2e/release/microcopy-states.spec.ts \
             --min-tests 11 \
@@ -360,6 +365,15 @@ jobs:
         with:
           name: workspace-create-denied-axe-json
           path: artifacts/acceptance/TC-04-001a-web/axe-*.json
+          if-no-files-found: warn
+          retention-days: 14
+
+      - name: Upload control screens axe JSON
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: control-screens-axe-json
+          path: artifacts/acceptance/TC-15-042/axe-*.json
           if-no-files-found: warn
           retention-days: 14
 
