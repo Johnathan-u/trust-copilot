@@ -459,6 +459,38 @@ def test_numerator_explanations_and_retry(client):
     assert again == coverage
 
 
+def test_foreign_workspace_evidence_is_outside_the_numerator(client):
+    actors = _actors()
+    control_id = _control(actors["workspace_id"], f"Foreign evidence {uuid.uuid4().hex[:8]}")
+    foreign_evidence = _evidence(actors["other_workspace_id"], approval="approved")
+    marker = 88021007
+    session = _db()
+    try:
+        session.execute(
+            text("UPDATE evidence_items SET id = :marker WHERE id = :old"),
+            {"marker": marker, "old": foreign_evidence},
+        )
+        session.execute(
+            text(
+                "SELECT setval(pg_get_serial_sequence('evidence_items', 'id'), "
+                "(SELECT COALESCE(MAX(id), 1) FROM evidence_items))"
+            )
+        )
+        session.commit()
+    finally:
+        session.close()
+    _link(control_id, marker)
+    _login(client, REVIEWER_EMAIL, REVIEWER_PASSWORD)
+    response = _coverage(client)
+    assert response.status_code == 200, response.text
+    assert str(marker) not in response.text
+    coverage = response.json()["control_coverage"]
+    by_id = {item["control_id"]: item for item in coverage["explanations"]}
+    assert by_id[control_id]["effect"] == "excluded_from_numerator"
+    assert control_id not in coverage["qualified_control_ids"]
+    assert coverage["numerator"] == 0
+
+
 def test_partial_failure_keeps_the_other_control(client):
     actors = _actors()
     kept = _control(actors["workspace_id"], f"Kept {uuid.uuid4().hex[:8]}")
