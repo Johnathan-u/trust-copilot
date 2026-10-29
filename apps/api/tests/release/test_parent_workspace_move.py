@@ -226,6 +226,13 @@ def test_legacy_row_reads_and_unrelated_update_succeed_but_move_does_not(
     db_session.commit()
     doc.filename = "example-legacy-renamed.pdf"
     db_session.commit()
+    # Seed workspaces use explicit ids, so a fresh database's sequence still points at them.
+    db_session.execute(
+        text(
+            "SELECT setval(pg_get_serial_sequence('workspaces', 'id'), "
+            "(SELECT COALESCE(MAX(id), 1) FROM workspaces))"
+        )
+    )
     third = Workspace(name="Synthetic example third", slug=f"example-third-{doc.id}")
     db_session.add(third)
     db_session.commit()
