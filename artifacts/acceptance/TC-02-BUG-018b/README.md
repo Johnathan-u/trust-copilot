@@ -4,18 +4,18 @@ Synthetic rows only, on disposable side PostgreSQL databases whose names end in 
 
 ## This run
 
-Results were produced on the code tree of commit `b6d65b72eafef88552ca27f45b7322f69f23d94b`.
+Results were produced on the code tree of commit `7d6d2f776020667e1b2b8f7098ee18a9cb38d097`.
 
-That is the review-fix commit those commands checked out: 10 passed in `tests/release/test_evidence_gap_status_checks.py`, and 29 passed in `tests/release/test_safe_collection.py`. Writing this SHA into the README changes the branch head. The test module and the migration are the bytes from that commit. The same two commands were run again on the branch head after this paragraph was added; the counts were unchanged.
+That revision re-parents `bug018b_gap_status_checks` onto `tc21006_gap_evaluation`. Pytest checked out that commit: 10 passed in `tests/release/test_evidence_gap_status_checks.py`, and 29 passed in `tests/release/test_safe_collection.py`. The single-head check in `test_cross_workspace_refs.py` and the TC-21-006 gap tests also passed in the same run (48 passed together). Writing this SHA into the README changes the branch head. The test module and the migration are the bytes from `7d6d2f7`. The same status-check file and safe-collection guard were run again on the branch head after this paragraph was added; the counts were unchanged.
 
 | Command | Result |
 |---|---|
 | `tests/release/test_evidence_gap_status_checks.py` | 10 passed |
 | `tests/release/test_safe_collection.py` | 29 passed |
 
-`logs/status-checks.txt` and `logs/safe-collection.txt` are that run. Afterwards, no `bug018b-synthetic` rows remained and `alembic_version` was `bug018b_gap_status_checks`. `logs/alembic-heads.txt` is `bug018b_gap_status_checks (head)`.
+`logs/status-checks.txt` and `logs/safe-collection.txt` are the earlier run. The re-parent run is `logs/reparent-tests.txt`: 10 status-check tests, 29 safe-collection tests, and the alembic head check plus the control-scan gap tests, 48 passed in all.
 
-`origin/master` had not moved (`6a26d60e44433720cf329cba08a8f096cb22e682`), so this commit is not a merge. The migration parent is still master's head, `tc21005_mapping_version`.
+`origin/master` is `bff2c39f5ebcf30926e7fad0b854fb5a56e70f0e`. This branch merged it, then set `down_revision` to `tc21006_gap_evaluation`. `alembic heads` is `bug018b_gap_status_checks`.
 
 The status-check file has 10 tests. Teardown still records `max(id)` and the row count for `evidence_gaps`, `questions`, `questionnaires`, `jobs`, `audit_events` and `workspaces`, deletes every higher id, and requires the counts to match. It does not call `setval`. The migration tests delete synthetic rows and then run `upgrade head`, with the upgrade in a `finally`.
 
