@@ -197,7 +197,7 @@ def _token_hash(token: str) -> str:
 
 @router.post("/register")
 def register(req: RegisterRequest, request: Request, db: Session = Depends(get_db)):
-    """AUTH-207: Register; create user (email_verified=False), send verification code + link."""
+    """Register; create user (email_verified=False), send verification code + link."""
     email = (req.email or "").strip().lower()
     if not email or "@" not in email:
         raise HTTPException(status_code=400, detail="Invalid email")
@@ -274,7 +274,7 @@ def verify_code(req: VerifyCodeRequest, db: Session = Depends(get_db)):
 
 @router.post("/verify-email")
 def verify_email(token: str, db: Session = Depends(get_db)):
-    """AUTH-207: Verify email from link; set user.email_verified=True and delete token."""
+    """Verify email from link; set user.email_verified=True and delete token."""
     if not token:
         raise HTTPException(status_code=400, detail="Missing token")
     h = _token_hash(token)
@@ -301,7 +301,7 @@ def verify_email(token: str, db: Session = Depends(get_db)):
 
 @router.post("/forgot-password")
 def forgot_password(req: ForgotPasswordRequest, request: Request, db: Session = Depends(get_db)):
-    """AUTH-209: Request password reset. Generic response; send email if account exists."""
+    """Request password reset. Generic response; send email if account exists."""
     email = (req.email or "").strip().lower()
     ip_key = f"reset:ip:{get_client_ip(request)}"
     if is_rate_limited(ip_key):
@@ -345,7 +345,7 @@ def forgot_password(req: ForgotPasswordRequest, request: Request, db: Session = 
 
 @router.post("/reset-password")
 def reset_password(req: ResetPasswordRequest, request: Request, db: Session = Depends(get_db)):
-    """AUTH-209: Set new password from token. Do not auto-sign in. Rate limited by IP."""
+    """Set new password from token. Do not auto-sign in. Rate limited by IP."""
     ip_key = f"reset_password:ip:{get_client_ip(request)}"
     if is_rate_limited(ip_key):
         raise HTTPException(status_code=429, detail="Too many attempts. Try again later.")
@@ -432,7 +432,7 @@ def _is_db_connection_error(e: Exception) -> bool:
 
 @router.post("/login")
 def login(req: LoginRequest, request: Request, response: Response, db: Session = Depends(get_db)):
-    """Session-based login. If MFA enabled, return requires_mfa + mfa_token (AUTH-211). AUTH-210: rate limited."""
+    """Session-based login. If MFA enabled, return requires_mfa + mfa_token. Rate limited."""
     try:
         out = _login_impl(req, request, response, db)
         # #region agent log
@@ -602,7 +602,7 @@ def _login_impl(req: LoginRequest, request: Request, response: Response, db: Ses
 
 @router.post("/logout")
 def logout(response: Response, request: Request, db: Session = Depends(get_db)):
-    """Logout - clear session cookie and remove from session store (AUTH-213)."""
+    """Logout - clear session cookie and remove from session store."""
     session = get_session(request)
     if session:
         sid = session.get("session_id")
@@ -633,7 +633,7 @@ def logout(response: Response, request: Request, db: Session = Depends(get_db)):
 async def list_sessions(
     session: dict = Depends(require_valid_session), db: Session = Depends(get_db)
 ):
-    """AUTH-213: List current user's sessions (device/location)."""
+    """List current user's sessions (device/location)."""
     user_id = session.get("user_id")
     current_sid = session.get("session_id")
     rows = (
@@ -661,7 +661,7 @@ async def list_sessions(
 async def revoke_other_sessions(
     session: dict = Depends(require_valid_session), db: Session = Depends(get_db)
 ):
-    """AUTH-213: Invalidate all other sessions for current user; keep current."""
+    """Invalidate all other sessions for current user; keep current."""
     user_id = session.get("user_id")
     current_sid = session.get("session_id")
     if not current_sid:
@@ -796,7 +796,7 @@ def _oauth_set_session_and_redirect(
 
 @router.get("/oauth/providers")
 def oauth_providers():
-    """Return which OAuth/SSO providers are configured (for login page buttons). WEB-214: sso when OIDC enabled."""
+    """Return which OAuth/SSO providers are configured (for login page buttons). SSO is included when OIDC is enabled."""
     s = get_settings()
     oidc_ok = bool(s.oidc_issuer_url and s.oidc_client_id and s.oidc_client_secret)
     return {
@@ -829,7 +829,7 @@ def oauth_redirect_uri(provider: str = "google"):
 
 @router.get("/oauth/google")
 async def oauth_google_start(request: Request, response: Response):
-    """Redirect to Google OAuth consent. ENT-201. Uses signed state so callback works even if cookie is lost on redirect."""
+    """Redirect to Google OAuth consent. Uses signed state so callback works even if cookie is lost on redirect."""
     if not get_settings().oauth_google_client_id:
         raise HTTPException(status_code=404, detail="Google OAuth not configured")
     state = _oauth_create_signed_state("google")
@@ -851,7 +851,7 @@ async def oauth_google_callback(
     state: str | None = None,
     db: Session = Depends(get_db),
 ):
-    """Handle Google OAuth callback; find or create user, issue session. ENT-201. Accepts signed state or cookie."""
+    """Handle Google OAuth callback; find or create user, issue session. Accepts signed state or cookie."""
     logger.info(
         "oauth_google_callback entry code=%s state_len=%s",
         bool(code),
@@ -1257,7 +1257,7 @@ async def _oauth_github_callback_impl(request: Request, code: str, state: str, d
 
 @router.get("/oauth/microsoft")
 async def oauth_microsoft_start(request: Request, response: Response):
-    """Redirect to Microsoft OAuth consent. ENT-201."""
+    """Redirect to Microsoft OAuth consent."""
     if not get_settings().oauth_microsoft_client_id:
         raise HTTPException(status_code=404, detail="Microsoft OAuth not configured")
     state = generate_state()
@@ -1279,7 +1279,7 @@ async def oauth_microsoft_callback(
     state: str | None = None,
     db: Session = Depends(get_db),
 ):
-    """Handle Microsoft OAuth callback; find or create user, issue session. ENT-201."""
+    """Handle Microsoft OAuth callback; find or create user, issue session."""
     if not code or not state:
         raise HTTPException(status_code=400, detail="Missing code or state")
     cookie = request.cookies.get(OAUTH_STATE_COOKIE)
@@ -1407,7 +1407,7 @@ SSO_STATE_MAX_AGE = 600
 
 @router.get("/sso")
 async def sso_start(request: Request, response: Response):
-    """Redirect to configured OIDC IdP. WEB-214 entry point."""
+    """Redirect to configured OIDC IdP. This is the SSO entry point."""
     s = get_settings()
     if not s.oidc_issuer_url or not s.oidc_client_id:
         raise HTTPException(status_code=404, detail="SSO not configured")
@@ -1435,7 +1435,7 @@ async def sso_callback(
     state: str | None = None,
     db: Session = Depends(get_db),
 ):
-    """OIDC callback: exchange code, JIT user/workspace (ENT-204), issue session."""
+    """OIDC callback: exchange code, provision the user and workspace just in time, issue session."""
     if not code or not state:
         raise HTTPException(status_code=400, detail="Missing code or state")
     cookie = request.cookies.get(SSO_STATE_COOKIE)
@@ -1559,7 +1559,7 @@ IDME_STATE_MAX_AGE = 600
 
 @router.get("/idme")
 async def idme_start(request: Request, response: Response):
-    """Redirect to id.me authorization. ENT-205."""
+    """Redirect to id.me authorization."""
     if not get_settings().idme_client_id:
         raise HTTPException(status_code=404, detail="id.me not configured")
     redirect_uri = _idme_redirect_uri()
@@ -1583,7 +1583,7 @@ async def idme_callback(
     state: str | None = None,
     db: Session = Depends(get_db),
 ):
-    """id.me callback. ENT-206: strict state validation, static redirect URI, server-side token only."""
+    """id.me callback. Strict state validation, static redirect URI, server-side token only."""
     if not code or not state:
         raise HTTPException(status_code=400, detail="Missing code or state")
     cookie = request.cookies.get(IDME_STATE_COOKIE)
@@ -1710,7 +1710,7 @@ SUSPICIOUS_ACTIONS = frozenset(
 async def list_alerts(
     session: dict = Depends(require_valid_session), db: Session = Depends(get_db)
 ):
-    """WEB-211: Recent suspicious auth events for current user (in-app alerts)."""
+    """Recent suspicious auth events for current user (in-app alerts)."""
     user_id = session.get("user_id")
     since = datetime.now(timezone.utc) - timedelta(days=7)
     rows = (
@@ -1765,7 +1765,7 @@ def _permissions(role: str | None, workspace_id: int | None = None, db=None) -> 
 
 @router.get("/me")
 def me(request: Request, db: Session = Depends(get_db)):
-    """Return current user, workspace, workspaces list, role, permissions (AUTH-203)."""
+    """Return current user, workspace, workspaces list, role, and permissions."""
     cookie = request.cookies.get(SESSION_COOKIE)
     if not cookie:
         raise HTTPException(status_code=401, detail="Not authenticated")
@@ -1869,7 +1869,7 @@ async def switch_workspace(
     response: Response,
     db: Session = Depends(get_db),
 ):
-    """Switch active workspace; reissue session with new workspace_id and role (AUTH-204)."""
+    """Switch active workspace; reissue session with new workspace_id and role."""
     session = await require_session(request, db)
     user_id = session.get("user_id")
     email = session.get("email", "")
@@ -1958,7 +1958,7 @@ def verify_invite_code(
 
 @router.post("/accept-invite")
 def accept_invite(req: AcceptInviteRequest, db: Session = Depends(get_db)):
-    """AUTH-208: Accept workspace invite by token. New user: set password and create account. Existing user: confirm email and add to workspace.
+    """Accept workspace invite by token. New user: set password and create account. Existing user: confirm email and add to workspace.
     For new invites, obtain token via POST /verify-invite-code. Legacy invites (no verification code) may still use a token from an old link."""
     if not req.token or not req.token.strip():
         raise HTTPException(status_code=400, detail="Invalid or expired link")
@@ -2113,7 +2113,7 @@ async def mfa_confirm(req: MfaConfirmRequest, request: Request, db: Session = De
 def mfa_verify_login(
     req: MfaVerifyLoginRequest, request: Request, response: Response, db: Session = Depends(get_db)
 ):
-    """Complete login after MFA: accept mfa_token + code (TOTP or recovery), issue session (AUTH-211)."""
+    """Complete login after MFA: accept mfa_token + code (TOTP or recovery), issue session."""
     code = (req.code or "").strip()
     token_raw = (req.mfa_token or "").strip()
     if not token_raw or not code:
