@@ -599,6 +599,104 @@ def test_two_recoverers_take_one_expired_job(db, monkeypatch):
     assert stored.attempt == 1
 
 
+def _expired_running(db, attempt: int = 1, max_attempts: int = 3) -> int:
+    from app.models import Job, JobStatus
+
+    job = Job(
+        workspace_id=WS,
+        kind="parse_evidence",
+        status=JobStatus.RUNNING.value,
+        payload="{}",
+        attempt=attempt,
+        max_attempts=max_attempts,
+        lease_owner="ab" * 16,
+    )
+    db.add(job)
+    db.commit()
+    _set_lease_offset(db, job.id, -1)
+    return job.id
+
+
+def _reclaim(job_id: int) -> None:
+    """A second worker claims the job the moment classification has committed it."""
+    from app.core.database import SessionLocal
+
+    other = SessionLocal()
+    try:
+        other.execute(
+            text(
+                """
+                UPDATE jobs
+                SET status = 'running',
+                    attempt = attempt + 1,
+                    lease_owner = :owner,
+                    lease_expires_at = now() + interval '60 seconds',
+                    next_attempt_at = NULL
+                WHERE id = :id AND status = 'queued'
+                """
+            ),
+            {"id": job_id, "owner": "d" * 32},
+        )
+        other.commit()
+    finally:
+        other.close()
+
+
+def test_reclaim_after_classify_keeps_one_abandoned_audit(db, monkeypatch):
+    """A claim in the gap after classification still leaves the abandoned audit."""
+    from app import worker
+    from app.models import Job, JobStatus
+
+    monkeypatch.setenv("JOB_RETRY_BASE_SECONDS", "0")
+    monkeypatch.setenv("JOB_RETRY_MAX_SECONDS", "0")
+    job_id = _expired_running(db)
+    real = worker._persist_job_audit
+
+    def hooked(session, job, action, payload, error=None, extra=None):
+        real(session, job, action, payload, error=error, extra=extra)
+        if action == "job.retry_scheduled" and job.id == job_id:
+            _reclaim(job_id)
+
+    monkeypatch.setattr(worker, "_persist_job_audit", hooked)
+    worker.recover_abandoned_jobs(db)
+    db.expire_all()
+    assert len(_audits(db, job_id, "job.abandoned")) == 1
+    assert len(_audits(db, job_id, "job.retry_scheduled")) == 1
+    stored = db.get(Job, job_id)
+    assert stored.status == JobStatus.RUNNING.value
+    assert stored.attempt == 2
+
+
+def test_one_conflict_in_a_batch_still_recovers_the_others(db, monkeypatch):
+    """A conflict on one of three expired jobs does not drop the other two."""
+    from app import worker
+    from app.models import Job, JobStatus
+
+    monkeypatch.setenv("JOB_RETRY_BASE_SECONDS", "0")
+    monkeypatch.setenv("JOB_RETRY_MAX_SECONDS", "0")
+    ids = [_expired_running(db) for _ in range(3)]
+    conflict_id = ids[1]
+    real = worker._persist_job_audit
+
+    def hooked(session, job, action, payload, error=None, extra=None):
+        real(session, job, action, payload, error=error, extra=extra)
+        if action == "job.retry_scheduled" and job.id == conflict_id:
+            _reclaim(conflict_id)
+
+    monkeypatch.setattr(worker, "_persist_job_audit", hooked)
+    worker.recover_abandoned_jobs(db)
+    db.expire_all()
+    for job_id in ids:
+        assert len(_audits(db, job_id, "job.abandoned")) == 1
+    for job_id in (ids[0], ids[2]):
+        stored = db.get(Job, job_id)
+        assert stored.status == JobStatus.QUEUED.value
+        assert stored.attempt == 1
+    conflicted = db.get(Job, conflict_id)
+    assert conflicted.status == JobStatus.RUNNING.value
+    assert conflicted.attempt == 2
+
+
 def _prepare_worker_loop(monkeypatch, job_id: int):
     from app import worker
     from app.core.database import SessionLocal

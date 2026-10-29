@@ -862,6 +862,7 @@ def _handle_job_failure(
     duration_ms: float,
     *,
     rollback_first: bool = True,
+    abandoned_owner_prefix: str | None = None,
 ) -> None:
     """TC-10-002: classify the failure, then either schedule a bounded retry or fail explicitly.
 
@@ -933,6 +934,10 @@ def _handle_job_failure(
                 max_attempts,
                 delay,
             )
+            if abandoned_owner_prefix is not None:
+                _flush_abandoned_audit(
+                    session, job, payload, abandoned_owner_prefix, attempt, max_attempts
+                )
             _persist_job_audit(
                 session,
                 job,
@@ -994,6 +999,8 @@ def _handle_job_failure(
         code,
         message[:200],
     )
+    if abandoned_owner_prefix is not None:
+        _flush_abandoned_audit(session, job, payload, abandoned_owner_prefix, attempt, max_attempts)
     _persist_job_audit(
         session,
         job,
@@ -1119,6 +1126,43 @@ def _audit_lease_lost(job_id: int, workspace_id: int | None, owner: str) -> None
         session.close()
 
 
+def _flush_abandoned_audit(
+    session, job: Job, payload: dict, owner_prefix: str, attempt: int, max_attempts: int
+) -> None:
+    """Add ``job.abandoned`` to the open transaction. The classifying commit writes it.
+
+    ``persist_audit`` commits, so this must not call it. The classification's own audit
+    commit is what makes this row durable.
+    """
+    from app.models import AuditEvent
+
+    details = {
+        "kind": job.kind,
+        "workspace_id": job.workspace_id,
+        "error_code": LEASE_EXPIRED,
+        "attempt": attempt,
+        "max_attempts": max_attempts,
+        "previous_owner_prefix": owner_prefix,
+        "status": job.status,
+    }
+    if payload.get("document_id") is not None:
+        details["document_id"] = payload["document_id"]
+    if payload.get("questionnaire_id") is not None:
+        details["questionnaire_id"] = payload["questionnaire_id"]
+    if job.error:
+        details["error"] = str(job.error)[:1000]
+    session.add(
+        AuditEvent(
+            action="job.abandoned",
+            workspace_id=job.workspace_id,
+            resource_type="job",
+            resource_id=str(job.id),
+            details=json.dumps(details),
+        )
+    )
+    session.flush()
+
+
 def recover_abandoned_jobs(session, *, limit: int = 20) -> int:
     """Send running jobs with an expired lease back through retry classification (TC-10-001).
 
@@ -1128,6 +1172,7 @@ def recover_abandoned_jobs(session, *, limit: int = 20) -> int:
     counted at claim time. A NULL lease is left alone. Audited as ``job.abandoned`` plus the
     retry or failure event.
     """
+    log = logging.getLogger(__name__)
     exc = RetryableJobError(LEASE_EXPIRED, LEASE_EXPIRED_MESSAGE)
     count = 0
     while count < limit:
@@ -1141,12 +1186,23 @@ def recover_abandoned_jobs(session, *, limit: int = 20) -> int:
         session.expire_all()
         job = session.get(Job, job_id)
         if job is None or job.lease_owner != token:
+            log.warning(
+                "abandoned job recovery skipped job_id=%s; lease token was not kept", job_id
+            )
             session.rollback()
-            return count
+            continue
         payload = json.loads(job.payload) if job.payload else {}
         prefix = (previous_owner or "")[:8]
         attempt_before = int(job.attempt or 0)
-        _handle_job_failure(session, job, payload, exc, 0.0, rollback_first=False)
+        _handle_job_failure(
+            session,
+            job,
+            payload,
+            exc,
+            0.0,
+            rollback_first=False,
+            abandoned_owner_prefix=prefix,
+        )
         session.expire_all()
         job = session.get(Job, job_id)
         if (
@@ -1154,22 +1210,12 @@ def recover_abandoned_jobs(session, *, limit: int = 20) -> int:
             or int(job.attempt or 0) != attempt_before
             or job.status not in (JobStatus.QUEUED.value, JobStatus.FAILED.value)
         ):
+            log.warning(
+                "abandoned job recovery lost job_id=%s after classify; continuing the batch",
+                job_id,
+            )
             session.rollback()
-            return count
-        _persist_job_audit(
-            session,
-            job,
-            "job.abandoned",
-            payload,
-            error=job.error,
-            extra={
-                "error_code": LEASE_EXPIRED,
-                "attempt": attempt_before,
-                "max_attempts": effective_max_attempts(job.max_attempts),
-                "previous_owner_prefix": prefix,
-                "status": job.status,
-            },
-        )
+            continue
         count += 1
     return count
 
