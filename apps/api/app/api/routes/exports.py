@@ -70,7 +70,7 @@ def _store_and_raise_client_error(db: Session, idem_key: str, idem_owner: str | 
 
 
 class GenerateAnswersBody(BaseModel):
-    """Optional overrides for answer generation (AI-02, AI-05, AI-06)."""
+    """Optional overrides for answer generation."""
 
     model: str | None = None
     response_style: str | None = None
@@ -85,7 +85,7 @@ def trigger_generate(
     session: dict = Depends(require_can_export),
     db: Session = Depends(get_db),
 ):
-    """Enqueue generate_answers job. Optional body: model, response_style (AI-06). Supports Idempotency-Key header."""
+    """Enqueue generate_answers job. Optional body: model, response_style. Supports Idempotency-Key header."""
     # TC-10-003: authorize before touching the idempotency store (no cached 403s), and scope the client key
     # to workspace + route + questionnaire so it cannot replay another workspace's or route's response.
     if session.get("workspace_id") != workspace_id:
@@ -211,7 +211,7 @@ def trigger_export(
     session: dict = Depends(require_can_export),
     db: Session = Depends(get_db),
 ):
-    """Enqueue export job (EXP-07). Optional body: format (xlsx or docx). Supports Idempotency-Key header."""
+    """Enqueue export job. Optional body: format (xlsx or docx). Supports Idempotency-Key header."""
     # TC-10-003: authorize before touching the idempotency store (no cached 403s), and scope the client key
     # to workspace + route + questionnaire so it cannot replay another workspace's or route's response.
     if session.get("workspace_id") != workspace_id:

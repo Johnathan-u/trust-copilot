@@ -1,0 +1,7 @@
+npm warn Unknown env config "http-proxy". This will stop working in the next major version of npm.
+
+> trust-copilot-web@0.1.0 typecheck
+> next typegen && tsc --noEmit -p .
+
+Generating route types...
+✓ Types generated successfully

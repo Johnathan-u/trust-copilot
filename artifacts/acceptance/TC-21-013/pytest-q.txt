@@ -1,0 +1,10 @@
+SHA 94ab773f04b0be8ae66d73fa691ab13386f9d231
+merge 05f494f1c81fd991eaca6d29ef0fc01569b41b45
+merge parents: 96e7f89a887140babd4be2919d0a155696a25f7c d9ab8b652b93e56ed8b741b67e571004e17d551a
+working directory: apps/api
+interpreter: /tmp/tc-venv/bin/python
+alembic heads: tc10001_job_leases
+
+command: python -m pytest tests/release -q
+1816 passed, 7177 warnings in 182.55s
+exit status: 0
