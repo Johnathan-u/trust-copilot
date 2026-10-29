@@ -16,7 +16,16 @@ from sqlalchemy.exc import DBAPIError, IntegrityError
 from sqlalchemy.orm import Session
 
 from app.core.session import sign_session
-from app.models import ApiKey, AuditEvent, Document, EvidenceItem, User, Workspace, WorkspaceMember
+from app.models import (
+    ApiKey,
+    AuditEvent,
+    CustomRole,
+    Document,
+    EvidenceItem,
+    User,
+    Workspace,
+    WorkspaceMember,
+)
 from app.models.security_faq import SecurityFAQ, SecurityFAQRevision, SecurityFAQSource
 
 ARCHIVES = (
@@ -40,6 +49,7 @@ def domain(client, db_session):
         "audit_events",
         "idempotency_keys",
         "api_keys",
+        "custom_roles",
     )
     before = {t: db_session.execute(text(f"SELECT count(*) FROM {t}")).scalar() for t in tables}
     suffix = secrets.token_hex(8)
@@ -117,6 +127,9 @@ def domain(client, db_session):
         synchronize_session=False
     )
     db_session.query(WorkspaceMember).filter(WorkspaceMember.workspace_id.in_(ids)).delete(
+        synchronize_session=False
+    )
+    db_session.query(CustomRole).filter(CustomRole.workspace_id.in_(ids)).delete(
         synchronize_session=False
     )
     db_session.query(User).filter(User.id.in_(actors.values())).delete(synchronize_session=False)
@@ -793,3 +806,113 @@ def test_document_replacement_invalidates_reviewed_evidence(domain):
     assert action(d, faq, "publish").status_code == 409
     assert action(d, faq, "approve", verified=True).status_code == 200
     assert action(d, faq, "publish").status_code == 200
+
+
+def test_current_custom_role_revocation_overrides_signed_admin_role(domain):
+    d = domain
+    role = CustomRole(
+        workspace_id=d["ws"], name=f"faq-{d['suffix']}", can_admin=True, can_review=True
+    )
+    d["db"].add(role)
+    member = (
+        d["db"]
+        .query(WorkspaceMember)
+        .filter_by(workspace_id=d["ws"], user_id=d["actors"]["admin"])
+        .one()
+    )
+    member.role = role.name
+    d["db"].commit()
+    response = create(d)
+    assert response.status_code == 200
+    faq = response.json()
+    role.can_admin = False
+    role.can_review = False
+    d["db"].commit()
+    assert create(d).status_code == 403
+    assert action(d, faq, "approve", verified=True).status_code == 403
+    role.can_review = True
+    d["db"].commit()
+    assert action(d, faq, "approve", verified=True).status_code == 200
+    assert action(d, faq, "publish").status_code == 403
+
+
+@pytest.mark.parametrize("change", ["deleted", "foreign"])
+def test_missing_and_unavailable_document_sources_are_equal_404(domain, change):
+    from datetime import datetime, timezone
+
+    d = domain
+    document = Document(
+        workspace_id=d["ws"],
+        storage_key=f"synthetic/{d['suffix']}/source.txt",
+        filename="Source.txt",
+    )
+    d["db"].add(document)
+    d["db"].flush()
+    d["db"].get(EvidenceItem, d["evidence"]).document_id = document.id
+    d["db"].commit()
+    if change == "deleted":
+        document.deleted_at = datetime.now(timezone.utc)
+    else:
+        document.workspace_id = d["foreign_ws"]
+    d["db"].commit()
+    unavailable = create(d)
+    missing = create(d, source_evidence_ids=[2147483647])
+    assert unavailable.status_code == missing.status_code == 404
+    assert unavailable.json() == missing.json()
+
+
+def test_public_security_page_contains_only_current_reviewed_publications(domain):
+    d = domain
+    seeded = d["client"].post("/api/security-faq/seed")
+    assert seeded.status_code == 200 and seeded.json()["created"] > 0
+    for state in ("draft", "approved", "withdrawn"):
+        response = create(d, question=f"Hidden {state}?", answer=f"Private {state} answer")
+        assert response.status_code == 200, response.text
+        faq = response.json()
+        if state != "draft":
+            assert action(d, faq, "approve", verified=True).status_code == 200
+        if state == "withdrawn":
+            assert action(d, faq, "publish").status_code == 200
+            assert action(d, faq, "withdraw").status_code == 200
+    publish(d)
+    before = (
+        d["db"]
+        .execute(
+            text("SELECT to_jsonb(f) FROM security_faq f WHERE workspace_id=:ws ORDER BY id"),
+            {"ws": d["ws"]},
+        )
+        .scalars()
+        .all()
+    )
+    audits = d["db"].query(AuditEvent).filter_by(workspace_id=d["ws"]).count()
+    page = d["client"].get("/api/security-page")
+    assert page.status_code == 200, page.text
+    assert page.json()["sections"] == [
+        {
+            "category": "security",
+            "title": "Security",
+            "items": [
+                {
+                    "question": "How are backups tested?",
+                    "answer": "Restores are exercised monthly.",
+                    "frameworks": [],
+                }
+            ],
+        }
+    ]
+    after = (
+        d["db"]
+        .execute(
+            text("SELECT to_jsonb(f) FROM security_faq f WHERE workspace_id=:ws ORDER BY id"),
+            {"ws": d["ws"]},
+        )
+        .scalars()
+        .all()
+    )
+    assert after == before
+    assert d["db"].query(AuditEvent).filter_by(workspace_id=d["ws"]).count() == audits
+    d["db"].get(EvidenceItem, d["evidence"]).title = "Support changed after publication"
+    d["db"].commit()
+    refreshed = d["client"].get("/api/security-page")
+    assert refreshed.status_code == 200
+    assert refreshed.json()["sections"] == []
