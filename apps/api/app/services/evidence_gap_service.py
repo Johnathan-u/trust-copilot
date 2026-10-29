@@ -7,6 +7,15 @@ and allow users to accept/dismiss individual gap suggestions.
 deterministic and makes no model calls: every answer that ended as insufficient evidence
 for an evidence reason becomes one open ``missing_evidence`` gap. Model failures are not
 evidence gaps and are skipped; they are retried as answer-generation failures instead.
+
+Status values this module writes are ``open``, ``accepted``, ``dismissed`` and ``resolved``
+(``ALL_GAP_STATUSES``). ``close_reason`` is left NULL or set to ``question_removed`` or
+``answer_sufficient``. The database check also allows ``evidence_sufficient``
+(``CONTROL_CHECK_CLOSE_REASON``), which the control-check scan writes when it resolves
+a row (TC-02-BUG-018b).
+Manual status changes do not clear ``close_reason``, so a row that is no longer
+``resolved`` may still carry a closure code. Some resolved rows also keep a NULL
+``close_reason`` when the historical note could not be parsed.
 """
 
 from __future__ import annotations
@@ -21,6 +30,8 @@ from sqlalchemy.orm import Session
 from app.models import Answer, Question, Questionnaire
 from app.models.evidence_gap import (
     ALL_GAP_STATUSES,
+    GAP_CLOSE_REASON_ANSWER_SUFFICIENT,
+    GAP_CLOSE_REASON_QUESTION_REMOVED,
     GAP_STATUS_RESOLVED,
     GAP_STATUSES,
     EvidenceGap,
@@ -109,8 +120,8 @@ def _lock_questionnaire_gap_writes(db: Session, questionnaire_id: int) -> None:
 # status (draft, approved) counts as a sufficient answer.
 GAP_BLOCKING_ANSWER_STATUSES = (INSUFFICIENT_STATUS, "rejected", "flagged")
 # Closure codes stored on ``EvidenceGap.close_reason`` when regeneration resolves a gap.
-RESOLVED_QUESTION_REMOVED = "question_removed"
-RESOLVED_ANSWER_SUFFICIENT = "answer_sufficient"
+RESOLVED_QUESTION_REMOVED = GAP_CLOSE_REASON_QUESTION_REMOVED
+RESOLVED_ANSWER_SUFFICIENT = GAP_CLOSE_REASON_ANSWER_SUFFICIENT
 # Historical note TC-02-BUG-018 appended to ``reason`` before closed_at / close_reason existed.
 # New closures do not append it. The 018a migration parses the last line of ``reason`` with this
 # grammar (``NOTE_LINE_RE`` in the revision) and leaves the text in place.

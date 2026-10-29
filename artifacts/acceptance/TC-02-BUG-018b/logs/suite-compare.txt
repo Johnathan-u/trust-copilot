@@ -1,0 +1,18 @@
+Compared by test id. Branch is this revision; master is origin/master 6a26d60.
+branch tests: 3155 {'skipped': 11, 'passed': 3142, 'failed': 2}
+master tests: 3146 {'skipped': 11, 'passed': 3133, 'failed': 2}
+only on branch: 9
+  branch-only passed tests.release.test_evidence_gap_status_checks::test_model_checks_match_the_migration
+  branch-only passed tests.release.test_evidence_gap_status_checks::test_non_resolved_row_may_keep_close_reason
+  branch-only passed tests.release.test_evidence_gap_status_checks::test_offline_sql_adds_not_valid_then_validates
+  branch-only passed tests.release.test_evidence_gap_status_checks::test_prescan_fails_on_violations_and_passes_on_clean_data
+  branch-only passed tests.release.test_evidence_gap_status_checks::test_revision_is_head_or_ancestor_of_every_head
+  branch-only passed tests.release.test_evidence_gap_status_checks::test_unknown_close_reason_is_rejected
+  branch-only passed tests.release.test_evidence_gap_status_checks::test_unknown_status_is_rejected
+  branch-only passed tests.release.test_evidence_gap_status_checks::test_upgrade_downgrade_upgrade_round_trip
+  branch-only passed tests.release.test_evidence_gap_status_checks::test_values_the_app_writes_are_accepted
+only on master: 0
+outcome changed: 0
+failed on both: 2
+  tests.release.test_domain_case_studies::test_ac3_schema_consumer_and_persisted_outcome_agree_across_retry
+  tests.release.test_domain_controls::test_routes_agree_on_canonical_contract_and_retry
