@@ -6,13 +6,13 @@ questions and answers. Existing cross-workspace rows are not rewritten. An updat
 not change the workspace column is not checked.
 
 Revision ID: tc02001a_parent_ws_move
-Revises: tc21006_gap_evaluation
+Revises: bug018b_gap_status_checks
 """
 
 from alembic import op
 
 revision = "tc02001a_parent_ws_move"
-down_revision = "tc21006_gap_evaluation"
+down_revision = "bug018b_gap_status_checks"
 branch_labels = None
 depends_on = None
 
