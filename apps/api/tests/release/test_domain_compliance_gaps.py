@@ -20,6 +20,7 @@ from app.api.routes import compliance_gaps as gaps_mod
 from app.core.database import SessionLocal, engine
 from app.core.password import hash_password
 from app.models import (
+    CONTROL_CHECK_CLOSE_REASON,
     ControlEvidenceLink,
     Document,
     EvidenceGap,
@@ -552,6 +553,59 @@ def test_rescan_leaves_accepted_and_dismissed_rows(client):
         [(accepted_control, "accepted"), (dismissed_control, "dismissed")],
         key=lambda item: item[0],
     )
+
+
+def test_cleared_control_check_uses_the_named_close_reason(client):
+    assert CONTROL_CHECK_CLOSE_REASON == "evidence_sufficient"
+    assert CONTROL_CHECK_CLOSE_REASON != "answer_sufficient"
+    actors = _actors()
+    control_id = _control(actors["workspace_id"], f"Clearing {uuid.uuid4().hex[:8]}")
+    session = _db()
+    try:
+        _sync_sequence(session, "evidence_gaps")
+        row = EvidenceGap(
+            workspace_id=actors["workspace_id"],
+            gap_type="control_check",
+            reason='{"rule": "no_evidence"}',
+            status="open",
+            control_id=control_id,
+            evaluation_state="gap",
+            rule_code="no_evidence",
+            evidence_refs="[]",
+            next_action="collect_evidence",
+        )
+        session.add(row)
+        session.commit()
+        gap_id = row.id
+    finally:
+        session.close()
+    approved = _evidence(actors["workspace_id"], approval="approved")
+    _link(control_id, approved)
+    _login(client, ADMIN_EMAIL, ADMIN_PASSWORD)
+    with patch("app.api.routes.compliance_gaps.notify_admins"):
+        scanned = client.post("/api/compliance/gaps/scan-and-notify")
+    assert scanned.status_code == 200, scanned.text
+    session = _db()
+    try:
+        stored = session.execute(
+            text(
+                "SELECT status, close_reason FROM evidence_gaps "
+                "WHERE id = :id AND gap_type = 'control_check'"
+            ),
+            {"id": gap_id},
+        ).one()
+        extra = session.execute(
+            text(
+                "SELECT count(*) FROM evidence_gaps "
+                "WHERE control_id = :id AND gap_type = 'control_check'"
+            ),
+            {"id": control_id},
+        ).scalar()
+    finally:
+        session.close()
+    assert stored.status == "resolved"
+    assert stored.close_reason == CONTROL_CHECK_CLOSE_REASON
+    assert extra == 1
 
 
 def test_foreign_evidence_ids_are_omitted(client):

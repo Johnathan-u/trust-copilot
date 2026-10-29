@@ -23,6 +23,7 @@ from app.core.idempotency import release as idempotency_release
 from app.core.idempotency import set as idempotency_set
 from app.models import (
     Document,
+    CONTROL_CHECK_CLOSE_REASON,
     EvidenceGap,
     EvidenceItem,
     EvidenceMetadata,
@@ -468,7 +469,7 @@ def _persist_control_checks(db: Session, workspace_id: int, gaps: list[dict]) ->
         for row in open_rows:
             row.status = "resolved"
             row.closed_at = now
-            row.close_reason = "evidence_sufficient"
+            row.close_reason = CONTROL_CHECK_CLOSE_REASON
             row.updated_at = now
     return decided
 

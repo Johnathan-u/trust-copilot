@@ -20,6 +20,9 @@ GAP_STATUSES = ("open", "accepted", "dismissed")
 # report it separately.
 GAP_STATUS_RESOLVED = "resolved"
 ALL_GAP_STATUSES = GAP_STATUSES + (GAP_STATUS_RESOLVED,)
+# A control-check row closes because qualifying evidence now exists.
+# This is not answer_sufficient, which means a questionnaire answer became sufficient.
+CONTROL_CHECK_CLOSE_REASON = "evidence_sufficient"
 
 
 class EvidenceGap(Base):
