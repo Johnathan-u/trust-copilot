@@ -10,6 +10,7 @@ from sqlalchemy.orm import Session
 
 from app.models.evidence_item import EvidenceItem
 from app.models.source_registry import SourceRegistry
+from app.services.workspace_integrity import require_same_workspace
 
 logger = logging.getLogger(__name__)
 
@@ -22,7 +23,11 @@ def ingest_evidence(
     source_metadata: str | None = None,
     document_id: int | None = None,
 ) -> dict:
-    """Ingest a single evidence item from any connector source."""
+    """Ingest a single evidence item from any connector source.
+
+    document_id must belong to workspace_id (raises CrossWorkspaceReference / InvalidReference).
+    """
+    require_same_workspace(db, workspace_id, document_id=document_id)
     evidence = EvidenceItem(
         workspace_id=workspace_id,
         source_type=source_type,
@@ -59,7 +64,12 @@ def ingest_batch(
     source_type: str,
     items: list[dict],
 ) -> dict:
-    """Ingest multiple evidence items in a batch."""
+    """Ingest multiple evidence items in a batch.
+
+    Every document_id is checked before any row is added, so a bad item rejects the whole batch.
+    """
+    for item in items:
+        require_same_workspace(db, workspace_id, document_id=item.get("document_id"))
     results = []
     for item in items:
         result = ingest_evidence(
