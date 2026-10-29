@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import gzip
+import tracemalloc
 import zlib
 
 import httpx
@@ -63,7 +64,7 @@ def test_oversized_stream_stops_before_later_chunks_and_does_not_retry(length, s
     headers = {} if length is None else {"Content-Length": length}
     result, calls, attempts = call_stream(stream, headers=headers, status=status)
 
-    assert stream.consumed == 2
+    assert stream.consumed == (0 if length == "999999999" else 2)
     assert stream.closed
     assert len(calls) == 1
     assert not result.ok
@@ -147,4 +148,80 @@ def test_small_success_preserves_response_metadata():
         assert response.is_closed
     finally:
         seam.close()
+    assert stream.closed
+
+
+def compressed_zeros(size):
+    compressor = zlib.compressobj(wbits=31)
+    pieces = [compressor.compress(b"\0" * 65_536) for _ in range(size // 65_536)]
+    return b"".join(pieces) + compressor.flush()
+
+
+@pytest.mark.parametrize("nested", [False, True])
+def test_compressed_bomb_is_rejected_with_bounded_allocation(nested):
+    payload = compressed_zeros(32 * 1024 * 1024)
+    if nested:
+        payload = gzip.compress(payload)
+    stream = TrackedStream([payload, b"unread tail"])
+    tracemalloc.start()
+    try:
+        result, calls, _ = call_stream(
+            stream, headers={"Content-Encoding": "gzip, gzip" if nested else "gzip"}
+        )
+        _, peak = tracemalloc.get_traced_memory()
+    finally:
+        tracemalloc.stop()
+    assert peak < 8 * 1024 * 1024, peak
+    assert result.provider_error == "response_too_large"
+    assert result.retryable is False
+    assert len(calls) == 1
+    assert stream.consumed == (0 if nested else 1)
+    assert stream.closed
+
+
+@pytest.mark.parametrize("encoding", ["gzip", "deflate"])
+def test_exact_limit_compressed_json_succeeds(encoding):
+    body = b'{"ok":true,"value":"' + b"x" * (LIMIT - 22) + b'"}'
+    payload = gzip.compress(body) if encoding == "gzip" else zlib.compress(body)
+    stream = TrackedStream([payload[:11], payload[11:]])
+    result, _, _ = call_stream(stream, headers={"Content-Encoding": encoding})
+    assert result.ok
+    assert len(result.body["value"]) == LIMIT - 22
+    assert stream.closed
+
+
+@pytest.mark.parametrize("encoding", ["br", "gzip, identity", "identity, identity"])
+def test_unsupported_or_multiple_encoding_is_rejected_without_reading(encoding):
+    stream = TrackedStream([b"must not read"])
+    result, calls, _ = call_stream(stream, headers={"Content-Encoding": encoding})
+    assert result.provider_error == "response_too_large"
+    assert result.retryable is False
+    assert len(calls) == 1
+    assert stream.consumed == 0
+    assert stream.closed
+
+
+@pytest.mark.parametrize("status", [301, 302, 307, 308])
+def test_redirect_is_classified_without_reading_body(status):
+    stream = TrackedStream([b"x" * (LIMIT + 1)])
+    result, calls, _ = call_stream(
+        stream,
+        status=status,
+        headers={"Location": "https://untrusted.example/", "Content-Length": str(LIMIT + 1)},
+    )
+    assert result.provider_error == "redirect_blocked"
+    assert result.status_code == status
+    assert result.retryable is False
+    assert len(calls) == 1
+    assert stream.consumed == 0
+    assert stream.closed
+
+
+def test_truncated_gzip_cannot_be_accepted_as_success():
+    # Missing the gzip checksum/size trailer still yields valid JSON to HTTPX.
+    stream = TrackedStream([gzip.compress(b'{"ok":true}')[:-8]])
+    result, calls, _ = call_stream(stream, headers={"Content-Encoding": "gzip"})
+    assert not result.ok
+    assert result.retryable is False
+    assert len(calls) == 1
     assert stream.closed

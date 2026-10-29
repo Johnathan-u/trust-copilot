@@ -24,6 +24,7 @@ from app.services.message_providers.errors import (
 from app.services.message_providers.outbound_http import (
     MAX_RESPONSE_BYTES,
     OutboundHttpDenied,
+    ProviderResponseInvalidEncoding,
     ProviderResponseTooLarge,
 )
 
@@ -375,6 +376,15 @@ class BoundedRetrySeam:
                     provider_error="response_too_large",
                     retryable=False,
                     message="The provider response exceeded the size limit.",
+                )
+            except ProviderResponseInvalidEncoding as exc:
+                last = _fail(
+                    status_code=exc.status_code,
+                    error_code=ERROR_UNKNOWN,
+                    attempts=attempt,
+                    provider_error="invalid_encoding",
+                    retryable=False,
+                    message="The provider response encoding was invalid.",
                 )
             except OutboundHttpDenied:
                 denied = _fail(

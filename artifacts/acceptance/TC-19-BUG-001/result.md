@@ -1,34 +1,30 @@
 # Response-size streaming limit evidence
 
-Code and tests SHA: `e617c4ff0dc3afbf21f0a59976596f1e37239f80`.
-Base: `5b97a33d0cd43d07ebba901901d5433d7725eb43`.
+Status: updated implementation awaiting exact-head CI and Coordinator re-review. This replaces the first-pass evidence superseded by the decompression-bomb review.
 
-Environment: Linux, Python 3.12, the repository `requirements-dev.lock` installed with hashes; HTTPX 0.28.1, pytest 9.1.1, ruff 0.5.6. No PostgreSQL service, provider account, or live provider call. All new tests use `httpx.MockTransport` and a tracked synthetic byte stream.
+Environment: Linux, Python 3.12, exact hashed requirements-dev.lock; HTTPX 0.28.1, pytest 9.1.1, ruff 0.5.6. No local PostgreSQL or provider network calls. All response fixtures are synthetic HTTPX raw streams.
 
-## Verified local command
+## Regression evidence
 
-From `apps/api`, with the locked virtual environment on PATH:
+On unchanged first-pass commit `f80aa2e3160cafc3d4dc53b27cf66bb749fb648e`, the strengthened 27-test module returned exit 1: **13 failed, 14 passed**. Failures covered excessive traced allocation for gzip bombs, nested/unsupported encodings, early declared-length rejection, redirect bodies, and accepting truncated gzip.
+
+After implementing raw streaming with capped stdlib zlib decompression, the working-tree run returned exit 0: **97 passed, 0 failed, 0 skipped** (27 response-limit, 41 provider-wiring, 29 safe-collection). Exact published-code SHA verification and full CI results will be recorded after publication. Ruff check/format, diff check, and changed-path secret scan passed.
 
 ```sh
+# From apps/api with the locked virtual environment on PATH:
 env -u ALL_PROXY -u all_proxy -u HTTPS_PROXY -u https_proxy -u HTTP_PROXY -u http_proxy PYTHONPATH=. python -m pytest tests/release/test_message_provider_response_limit.py tests/release/test_message_provider_wiring.py tests/release/test_safe_collection.py -q
 ```
 
-Exit 0: **85 passed, 0 failed, 0 skipped**. Log: `pytest-local.txt`.
+The memory tests construct compressed fixtures before tracing and require allocation below 8 MiB while rejecting single/nested gzip representations of 32 MiB. The decoder limits each output allocation to the remaining body allowance plus one byte. An independent 16 MiB probe reported approximately 2.16 MB traced allocation, one raw chunk consumed, closure, and no retry.
 
-The new test file has 15 tests. Before the implementation change, on the base transport, it returned exit 1: 10 failed because the third response chunk was consumed, 5 passed. The same tests pass with the streaming limit.
+## Required checks
 
-Ruff `check` and `format --check` on the two implementation files and new test file: exit 0. `git diff --check`: exit 0. `scripts/security/secret_inventory.py paths` on changed files: exit 0, 0 blocking findings.
+Full CI on the updated PR head is required before readiness. Local inclusion of `test_notification_delivery.py` produced 22 setup errors because PostgreSQL was unavailable; those are not passes. Initial inherited SOCKS proxy settings caused five provider-construction failures; clearing test proxy variables restored baseline behavior without adding a dependency or changing production proxy settings.
 
-## Required CI verification
+## Review scope
 
-Adding `tests/release/test_notification_delivery.py` locally produced **85 passed and 22 setup errors**, exit 1. Every error reports `Postgres is required for TC-19-008; not skipping`; the local database service is unavailable. This is not a passing notification-delivery run. The existing full GitHub CI must pass on the PR head before Coordinator merge, including the PostgreSQL-backed suite. CI status remains pending here.
+The Coordinator's bounded-decompression requirement is implemented. Nested or unsupported encoding is rejected before body consumption. Raw DEFLATE is rejected; gzip and zlib-wrapped compressed responses follow the prescribed `wbits=47` behavior. Incomplete or trailing compressed data fails nonretryably. Redirects are classified before reading their body; a declared length above the cap is rejected early.
 
-An initial provider-wiring attempt inherited SOCKS proxy environment variables and failed five provider-construction tests because optional `socksio` was absent. Clearing proxy variables restored the unchanged baseline and the final 85-test run. No dependency or production proxy setting was changed.
+Fresh independent review: 27 tests passed, no critical or important code finding. Deferred minor: the reconstructed internal response omits HTTPX elapsed/download counters; current callers consume neither.
 
-## Review and scope
-
-An independent reviewer ran all 15 new tests and found no critical or important issues. Deferred minor: buffered response reconstruction does not retain HTTPX elapsed/download counters; existing provider consumers use neither. Status, headers, request, decoded JSON, error shape, and retry policy are preserved.
-
-The cap applies to retained decoded body bytes and stops before the next decoded chunk. HTTPX may temporarily decompress one transport chunk beyond the cap; this is not a strict process-memory ceiling. No new decompressor or dependency is introduced.
-
-No database rows, migrations, API routes, OpenAPI schemas, credentials, or provider scopes change. This proves transport control behavior only; it does not qualify a real Slack/Gmail sandbox integration.
+No database rows, migration, API route/schema, credential, provider scope, or dependency changes. This qualifies transport controls, not real-provider sandbox behavior.
