@@ -2,9 +2,11 @@
 
 import uuid
 from contextlib import contextmanager
+from datetime import datetime
 
 import pytest
 from fastapi.testclient import TestClient
+from pydantic import ValidationError
 from sqlalchemy import bindparam, text
 
 from app.core.database import SessionLocal, engine
@@ -46,6 +48,25 @@ def snapshot():
             name: {row[0] for row in db.execute(text(f"SELECT {key} FROM {name}"))}
             for name, key in TABLE_KEYS
         }
+
+
+def row_snapshot():
+    """Read-only requests must preserve values as well as row counts."""
+    with SessionLocal() as db:
+        return {
+            name: list(db.execute(text(f"SELECT * FROM {name} ORDER BY {key}")))
+            for name, key in TABLE_KEYS
+        }
+
+
+@pytest.mark.parametrize("model_name", ["PolicyCreateRequest", "PolicyUpdateRequest"])
+@pytest.mark.parametrize("value", ["r" * 256, "role\x00name", "role\nname", "İ" * 128])
+def test_policy_schemas_reject_unsafe_or_oversized_recipient_values(model_name, value):
+    from app.api.routes import notifications
+
+    model = getattr(notifications, model_name)
+    with pytest.raises(ValidationError):
+        model(event_type="member.joined", recipient_type="role", recipient_value=value)
 
 
 @pytest.fixture
@@ -282,11 +303,12 @@ def test_gets_are_read_only_and_logs_are_scoped_and_stably_paginated(actors):
                         delivery_state="dead-lettered",
                         delivered_to_provider=False,
                         provider_mode="http",
+                        created_at=datetime(2026, 1, 2, 3, 4, 5),
                     )
                 )
         db.commit()
     with client_for(actors) as client:
-        before = snapshot()
+        before = row_snapshot()
         for path in (
             "event-types",
             "policies",
@@ -301,11 +323,13 @@ def test_gets_are_read_only_and_logs_are_scoped_and_stably_paginated(actors):
         ]
         assert [p["total"] for p in pages] == [3, 3, 3]
         assert len({p["entries"][0]["id"] for p in pages}) == 3
+        ids = [p["entries"][0]["id"] for p in pages]
+        assert ids == sorted(ids, reverse=True)
         assert all(p["entries"][0]["delivered_to_provider"] is False for p in pages)
         assert all(
             f"recipient-{actors['ws']}-" in p["entries"][0]["recipient_email"] for p in pages
         )
-        assert snapshot() == before
+        assert row_snapshot() == before
 
 
 def test_delivery_log_cannot_expose_foreign_in_app_reference(actors):
@@ -362,3 +386,127 @@ def test_personal_preferences_retry_and_unsubscribe_are_scoped(actors):
         missing = client.delete("/api/notifications/unsubscribes/2000000000")
         assert foreign.status_code == missing.status_code == 404
         assert foreign.json() == missing.json()
+
+
+@pytest.mark.parametrize("role", ["admin", "editor", "reviewer", "local-role"])
+def test_policy_accepts_builtin_and_current_workspace_roles(actors, role):
+    with client_for(actors) as client:
+        response = client.post(
+            "/api/notifications/policies",
+            json={
+                "event_type": "member.joined",
+                "recipient_type": "role",
+                "recipient_value": f" {role.upper()} ",
+            },
+        )
+        assert response.status_code == 200, response.text
+        assert response.json()["recipient_value"] == role
+
+
+@pytest.mark.parametrize("channel", ["email", "slack", "in_app"])
+def test_static_renderer_preserves_copy_and_redaction_contract(channel):
+    from app.services.notification_templates import render_notification
+
+    rendered = render_notification(
+        "member.joined", channel, "A&B <Workspace>", "token=xoxb-private-value"
+    )
+    assert rendered.template_key == f"member.joined:{channel}"
+    assert rendered.label == rendered.title == "Member joined workspace"
+    assert rendered.label in rendered.subject
+    assert rendered.label in rendered.slack_text
+    assert rendered.label in rendered.body_text
+    assert "A&amp;B &lt;Workspace&gt;" in rendered.body_html
+    assert "xoxb-private-value" not in repr(rendered)
+    assert rendered.link == "/dashboard/notifications"
+
+
+@pytest.mark.parametrize("accepted", [True, False])
+def test_provider_result_retry_and_dedupe_survive_new_connection(actors, monkeypatch, accepted):
+    from app.services import notification_service
+
+    class FixtureProvider:
+        provider_mode = "fixture"
+        counts_as_provider = True
+
+        def __init__(self):
+            self.calls = []
+
+        def send(self, message):
+            self.calls.append(message)
+            return accepted and len(self.calls) > 1
+
+    provider = FixtureProvider()
+    monkeypatch.setattr(notification_service, "get_email_provider", lambda: provider)
+    event_id = uuid.uuid4().hex
+    with client_for(actors) as client:
+        response = client.post(
+            "/api/notifications/policies",
+            json={
+                "event_type": "member.joined",
+                "recipient_type": "user",
+                "recipient_value": str(actors["editor"]["id"]),
+            },
+        )
+        assert response.status_code == 200
+        with SessionLocal() as db:
+            sent = notification_service.fire_notification(
+                db, actors["ws"], "member.joined", "Safe detail", "Workspace", event_id
+            )
+        assert sent == int(accepted)
+        assert len(provider.calls) == (2 if accepted else 3)
+        assert all(m.to == actors["editor"]["email"] for m in provider.calls)
+        engine.dispose()
+        log = client.get("/api/notifications/log").json()["entries"][0]
+        assert log["status"] == ("sent" if accepted else "failed")
+        assert log["delivery_state"] == ("sent" if accepted else "dead-lettered")
+        assert log["delivered_to_provider"] is accepted
+        assert log["provider_mode"] == "fixture"
+        assert log["attempt_count"] == (2 if accepted else 3)
+        attempts = client.get("/api/notifications/delivery-attempts").json()["attempts"]
+        email = [row for row in attempts if row["channel"] == "email"]
+        assert email[0]["state"] == log["delivery_state"]
+        assert email[0]["delivered_to_provider"] is accepted
+        assert email[0]["template_key"] == "member.joined:email"
+        assert {r["state"] for r in email} == {"queued", "retrying", log["delivery_state"]}
+        assert all(r["delivered_to_provider"] is False for r in email[1:])
+        if accepted:
+            # A persisted claim, not an in-process cache, prevents another send.
+            with SessionLocal() as db:
+                assert (
+                    notification_service.fire_notification(
+                        db, actors["ws"], "member.joined", "Safe detail", "Workspace", event_id
+                    )
+                    == 0
+                )
+            assert len(provider.calls) == 2
+            assert client.get("/api/notifications/log").json()["total"] == 1
+            attempts = client.get("/api/notifications/delivery-attempts").json()["attempts"]
+            assert next(r for r in attempts if r["channel"] == "email")["state"] == "deduped"
+
+
+@pytest.mark.parametrize("change", ["removed", "suspended"])
+@pytest.mark.parametrize(
+    "method,path,payload",
+    [
+        ("post", "/unsubscribes", {"event_type": "member.joined"}),
+        ("delete", "/unsubscribes/2000000000", None),
+        ("put", "/channel-preferences", {"channel": "email", "enabled": False}),
+    ],
+)
+def test_personal_mutations_recheck_membership(actors, change, method, path, payload):
+    with client_for(actors, "editor") as client:
+        with SessionLocal() as db:
+            member = (
+                db.query(WorkspaceMember)
+                .filter_by(workspace_id=actors["ws"], user_id=actors["editor"]["id"])
+                .one()
+            )
+            if change == "removed":
+                db.delete(member)
+            else:
+                member.suspended = True
+            db.commit()
+        response = client.request(
+            method, "/api/notifications" + path, **({"json": payload} if payload else {})
+        )
+        assert response.status_code == 403
