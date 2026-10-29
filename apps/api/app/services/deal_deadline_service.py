@@ -7,6 +7,7 @@ from datetime import datetime, timedelta, timezone
 from sqlalchemy.orm import Session
 
 from app.models.deal import Deal
+from app.services.deal_service import money_text
 
 logger = logging.getLogger(__name__)
 
@@ -35,7 +36,7 @@ def get_upcoming_deadlines(db: Session, workspace_id: int, within_days: int = 14
                 {
                     "deal_id": deal.id,
                     "company_name": deal.company_name,
-                    "deal_value_arr": deal.deal_value_arr,
+                    "deal_value_arr": money_text(deal.deal_value_arr),
                     "stage": deal.stage,
                     "close_date": deal.close_date.isoformat(),
                     "days_until_close": max(days_until, 0),
@@ -69,7 +70,7 @@ def get_overdue_deals(db: Session, workspace_id: int) -> list[dict]:
                 {
                     "deal_id": deal.id,
                     "company_name": deal.company_name,
-                    "deal_value_arr": deal.deal_value_arr,
+                    "deal_value_arr": money_text(deal.deal_value_arr),
                     "stage": deal.stage,
                     "close_date": deal.close_date.isoformat(),
                     "days_overdue": days_overdue,

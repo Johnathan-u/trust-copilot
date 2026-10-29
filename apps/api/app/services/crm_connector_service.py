@@ -11,6 +11,7 @@ from datetime import datetime, timezone  # noqa: F401
 from sqlalchemy.orm import Session
 
 from app.models.deal import Deal
+from app.services.deal_service import parse_amount
 
 logger = logging.getLogger(__name__)
 
@@ -49,7 +50,7 @@ def sync_salesforce(db: Session, workspace_id: int) -> dict:
         )
         if existing:
             existing.company_name = opp["company_name"]
-            existing.deal_value_arr = opp["deal_value"]
+            existing.deal_value_arr = parse_amount(opp["deal_value"])
             existing.stage = opp["stage"]
             synced.append({"action": "updated", "external_id": opp["external_id"]})
         else:
@@ -58,7 +59,7 @@ def sync_salesforce(db: Session, workspace_id: int) -> dict:
                 company_name=opp["company_name"],
                 buyer_contact_name=opp["contact_name"],
                 buyer_contact_email=opp["contact_email"],
-                deal_value_arr=opp["deal_value"],
+                deal_value_arr=parse_amount(opp["deal_value"]),
                 stage=opp["stage"],
                 crm_source="salesforce",
                 crm_external_id=opp["external_id"],
@@ -100,7 +101,7 @@ def sync_hubspot(db: Session, workspace_id: int) -> dict:
         )
         if existing:
             existing.company_name = d["company_name"]
-            existing.deal_value_arr = d["deal_value"]
+            existing.deal_value_arr = parse_amount(d["deal_value"])
             existing.stage = d["stage"]
             synced.append({"action": "updated", "external_id": d["external_id"]})
         else:
@@ -109,7 +110,7 @@ def sync_hubspot(db: Session, workspace_id: int) -> dict:
                 company_name=d["company_name"],
                 buyer_contact_name=d["contact_name"],
                 buyer_contact_email=d["contact_email"],
-                deal_value_arr=d["deal_value"],
+                deal_value_arr=parse_amount(d["deal_value"]),
                 stage=d["stage"],
                 crm_source="hubspot",
                 crm_external_id=d["external_id"],

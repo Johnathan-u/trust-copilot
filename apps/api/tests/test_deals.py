@@ -34,7 +34,7 @@ class TestDealService:
         )
         db_session.commit()
         assert result["company_name"] == "Test Corp"
-        assert result["deal_value_arr"] == 100000
+        assert result["deal_value_arr"] == "100000.00"
 
     def test_list_deals(self, db_session):
         ws = db_session.query(Workspace).first()
@@ -161,6 +161,7 @@ class TestDealAPI:
             json={
                 "company_name": "API Corp",
                 "deal_value_arr": 120000,
+                "currency": "USD",
                 "stage": "prospect",
             },
         )
