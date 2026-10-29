@@ -45,10 +45,13 @@ describe('dialog primitive contract', () => {
   it('leaves a backdrop strip beside a drawer and does not let the content wrapper fill it', () => {
     for (const placement of ['drawer-start', 'drawer-end'] as const) {
       const panel = dialogPlacementClass[placement].panel
+      expect(panel).toContain('w-[min(20rem,calc(100%-2.75rem))]')
+      expect(panel).toContain('max-w-[calc(100%-2.75rem)]')
       expect(panel).toContain(`calc(100%-${DRAWER_BACKDROP_STRIP})`)
       expect(panel).toContain('shrink-0')
       expect(panel).toContain('min-w-0')
       expect(panel).not.toContain('min(100%,20rem)')
+      expect(panel).not.toContain('${')
     }
     expect(DRAWER_BACKDROP_STRIP).toBe('2.75rem')
     expect(dialogContentClass).toContain('min-w-0')

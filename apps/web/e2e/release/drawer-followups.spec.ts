@@ -206,7 +206,11 @@ test.describe('drawer and dialog follow-ups', () => {
   test('a viewport of 320px and below keeps a tappable backdrop strip', async ({
     page,
   }) => {
-    for (const width of [320, 300]) {
+    const expectedWidth: Record<number, number> = {
+      320: 276,
+      600: 320,
+    }
+    for (const width of [320, 300, 600]) {
       await openDashboard(page, width, 700)
       await page.getByRole('button', { name: 'Open navigation' }).click()
       const dialog = page.getByRole('dialog', { name: 'Navigation' })
@@ -215,6 +219,10 @@ test.describe('drawer and dialog follow-ups', () => {
       expect(panel).not.toBeNull()
       expect(panel!.width).toBeLessThan(width - 24)
       expect(panel!.x + panel!.width).toBeLessThan(width - 16)
+      const target = expectedWidth[width]
+      if (target != null) {
+        expect(Math.abs(panel!.width - target)).toBeLessThanOrEqual(1)
+      }
 
       if (width === 320) {
         await page.screenshot({

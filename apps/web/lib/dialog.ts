@@ -46,23 +46,19 @@ export function chooseReturnFocus<
 
 /**
  * Width reserved beside a drawer so a 320px viewport still has a tap target
- * on the backdrop. The content wrapper stays `min-w-0 max-w-full` and does
- * not use `flex-1` on the row axis, so it cannot grow across that strip.
+ * on the backdrop. Documented here for tests. The panel classes below are
+ * written out in full so Tailwind can see them; do not interpolate this
+ * value into a class name.
  */
 export const DRAWER_BACKDROP_STRIP = '2.75rem'
 
 export const dialogContentClass = 'min-h-0 min-w-0 max-w-full text-tc-text'
 
-function drawerPanel(edge: 'border-r' | 'border-l'): string {
-  const capped = `calc(100%-${DRAWER_BACKDROP_STRIP})`
-  return [
-    'relative z-10 flex h-full max-h-[100dvh]',
-    `w-[min(20rem,${capped})] max-w-[${capped}]`,
-    'min-w-0 shrink-0 flex-col overflow-y-auto overscroll-contain',
-    edge,
-    'border-tc-border p-tc-4 shadow-[var(--tc-shadow)]',
-  ].join(' ')
-}
+const drawerStartPanel =
+  'relative z-10 flex h-full max-h-[100dvh] w-[min(20rem,calc(100%-2.75rem))] max-w-[calc(100%-2.75rem)] min-w-0 shrink-0 flex-col overflow-y-auto overscroll-contain border-r border-tc-border p-tc-4 shadow-[var(--tc-shadow)]'
+
+const drawerEndPanel =
+  'relative z-10 flex h-full max-h-[100dvh] w-[min(20rem,calc(100%-2.75rem))] max-w-[calc(100%-2.75rem)] min-w-0 shrink-0 flex-col overflow-y-auto overscroll-contain border-l border-tc-border p-tc-4 shadow-[var(--tc-shadow)]'
 
 export function dialogRoleForDestructive(destructive: boolean): DialogRole {
   return destructive ? 'alertdialog' : 'dialog'
@@ -98,11 +94,11 @@ export const dialogPlacementClass: Record<
   },
   'drawer-start': {
     root: 'fixed inset-0 z-50 flex justify-start',
-    panel: drawerPanel('border-r'),
+    panel: drawerStartPanel,
   },
   'drawer-end': {
     root: 'fixed inset-0 z-50 flex justify-end',
-    panel: drawerPanel('border-l'),
+    panel: drawerEndPanel,
   },
 }
 
