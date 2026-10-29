@@ -1,0 +1,17 @@
+SHA 7d1d718edb61214ea3b9835938329c98470eb7ef
+parent of the evidence commit: 7d1d718edb61214ea3b9835938329c98470eb7ef
+working directory: apps/api
+command: python -m pytest tests/release/test_domain_evidence_gaps.py -q
+.......                                                                  [100%]
+7 passed, 60 warnings in 2.94s
+exit status: 0
+
+working directory: apps/web
+command: npm run test:unit -- lib/evidenceGapConsumer.test.ts
+3 passed
+exit status: 0
+
+command: npm run typecheck
+exit status: 0
+
+not pushed
