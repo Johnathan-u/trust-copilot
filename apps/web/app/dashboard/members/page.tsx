@@ -13,6 +13,8 @@ import {
   TableSkeleton,
 } from '@/components/ui'
 import { useAuth } from '@/contexts/AuthContext'
+import { useKeyedGeneration } from '@/components/ui/useKeyedGeneration'
+import { listLoadFlags } from '@/lib/render-state'
 import {
   apiErrorAnnouncement,
   formatApiErrorDetail,
@@ -119,9 +121,7 @@ export default function MembersPage() {
     []
   )
 
-  const load = () => {
-    if (members.length === 0) setLoading(true)
-    setRefreshing(true)
+  const queryMembers = () => {
     Promise.all([
       loadSection(fetch('/api/members', { credentials: 'include' }), (data) =>
         listFromPayload<Member>(data, ['members'])
@@ -196,13 +196,30 @@ export default function MembersPage() {
       })
   }
 
+  const load = () => {
+    if (members.length === 0) setLoading(true)
+    setRefreshing(true)
+    queryMembers()
+  }
+
+  const memberKey = useKeyedGeneration(
+    `${canAdmin ? '1' : '0'}|${workspace?.id ?? ''}|${loadAttempt}`
+  )
+  if (memberKey.changed) {
+    const flags = listLoadFlags({
+      enabled: canAdmin,
+      hasRows: members.length > 0,
+    })
+    if (flags.loading !== null) setLoading(flags.loading)
+    if (flags.refreshing) setRefreshing(true)
+  }
+
   const allRoleNames =
     roles.length > 0 ? roles.map((r) => r.name) : BUILTIN_ROLES
 
   useEffect(() => {
-    if (canAdmin) load()
-    else setLoading(false)
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- pre-existing: load() is re-created every render; adding it would refetch in a loop (TC-02-006 follow-up)
+    if (!canAdmin) return
+    queryMembers()
   }, [canAdmin, workspace?.id, loadAttempt])
 
   const openConfirm = (action: ConfirmAction) => {

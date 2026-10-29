@@ -43,7 +43,11 @@ def _indexes(session, table: str) -> set[str]:
 def test_reviewer_verify_syncs_verified_status_and_get_stays_read_only(client):
     actors = _actors()
     _login(client, ADMIN_EMAIL, ADMIN_PASSWORD)
-    created = _create(client, f"C-ver-{uuid.uuid4().hex[:8]}")
+    created = _create(
+        client,
+        f"C-ver-{uuid.uuid4().hex[:8]}",
+        name=f"Synthetic {uuid.uuid4().hex[:8]}",
+    )
     session = _fresh()
     try:
         legacy = session.query(Control).filter(Control.id == created["id"]).one()
@@ -53,6 +57,7 @@ def test_reviewer_verify_syncs_verified_status_and_get_stays_read_only(client):
             workspace_id=actors["workspace_id"],
             source_type="manual",
             title="Synthetic evidence",
+            approval_status="approved",
         )
         session.add(evidence)
         session.flush()

@@ -12,6 +12,7 @@ import {
 } from '@/components/ui'
 import { useAuth } from '@/contexts/AuthContext'
 import type { ApiFailurePresentation } from '@/lib/api-error'
+import { useKeyedGeneration } from '@/components/ui/useKeyedGeneration'
 import { failureOf, isAbortError, readSectionJson } from '@/lib/section-load'
 
 /* ──────────────────── Types ──────────────────── */
@@ -114,8 +115,7 @@ export default function GmailPage() {
   const [ingestRunning, setIngestRunning] = useState<number | null>(null)
   const [ingestResult, setIngestResult] = useState<string | null>(null)
 
-  const load = useCallback(() => {
-    setLoading(true)
+  const queryStatus = useCallback(() => {
     fetch('/api/gmail/status', { credentials: 'include' })
       .then(async (r) => (await readSectionJson(r)) as GmailStatus)
       .then((d) => {
@@ -158,10 +158,18 @@ export default function GmailPage() {
       .finally(() => setLoading(false))
   }, [])
 
+  const load = useCallback(() => {
+    setLoading(true)
+    queryStatus()
+  }, [queryStatus])
+
+  const adminKey = useKeyedGeneration(canAdmin ? '1' : '0')
+  if (adminKey.changed) setLoading(canAdmin)
+
   useEffect(() => {
-    if (canAdmin) load()
-    else setLoading(false)
-  }, [canAdmin, load])
+    if (!canAdmin) return
+    queryStatus()
+  }, [canAdmin, queryStatus])
 
   const connect = async (e: React.FormEvent) => {
     e.preventDefault()

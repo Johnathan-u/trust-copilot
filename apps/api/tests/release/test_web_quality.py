@@ -56,15 +56,16 @@ REQUIRED_RULESETS = (
     "nextPlugin.configs['core-web-vitals']",
 )
 # Rules allowed to be switched off globally, each with a documented reason in
-# docs/release/tickets/TC-02-006.md.
+# docs/release/tickets/TC-02-006.md. TC-02-006b removed set-state-in-effect
+# from this set; that rule is now enforced.
 ALLOWED_OFF_RULES = {
-    "react-hooks/set-state-in-effect",  # needs React Compiler-era refactor; follow-up
     "@typescript-eslint/no-require-imports",  # CommonJS config/scripts only
 }
 # Rules that must never be disabled globally.
 CORE_RULES = (
     "react-hooks/rules-of-hooks",
     "react-hooks/exhaustive-deps",
+    "react-hooks/set-state-in-effect",
     "@typescript-eslint/no-unused-vars",
     "@typescript-eslint/no-explicit-any",
     "no-undef",
