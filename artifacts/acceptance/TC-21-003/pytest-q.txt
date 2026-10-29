@@ -1,0 +1,9 @@
+SHA 4b4da1d2419616e36750901152150467fea4f89a
+working directory: apps/api
+command: python -m pytest tests/release/test_domain_compliance_controls.py -q
+alembic heads: tc21003_evidence_link_uniq (head)
+
+.....                                                                    [100%]
+5 passed, 68 warnings in 7.23s
+exit status: 0
+skipped: 0

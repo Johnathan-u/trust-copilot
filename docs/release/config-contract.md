@@ -145,4 +145,5 @@ Source of truth: `apps/api/app/core/config_contract.py`. The table between the m
 | `TC_SESSION_SECRET` | secret string | forbidden | yes | unset | Live-API script helper (local stacks only). |  |
 | `NEXT_PUBLIC_DEMO_LOGIN_EMAIL` | email | forbidden | no | unset | One-click demo login (build-time, local demo only). |  |
 | `NEXT_PUBLIC_DEMO_LOGIN_PASSWORD` | secret string | forbidden | yes | unset | One-click demo login (build-time, local demo only). |  |
+| `NEXT_PUBLIC_SALES_CONTACT` | email or https URL | optional | no | unset | Optional contact on invitation screens. An email address or an https URL. Unset hides the link. Any other value is ignored. |  |
 <!-- END GENERATED CONFIG CONTRACT -->
