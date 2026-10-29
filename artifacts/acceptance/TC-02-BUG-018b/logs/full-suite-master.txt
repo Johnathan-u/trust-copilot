@@ -197,7 +197,7 @@ tests/test_workspaces_members_api.py ....                                [100%]
 
 =================================== FAILURES ===================================
 E   AssertionError: typescript is not installed under apps/web. Install web dependencies before this test.
-      
+
     assert 1 == 0
      +  where 1 = CompletedProcess(args=['node', '/tmp/tc-master/apps/api/tests/release/run_case_study_consumer.mjs'], returncode=1, stdout='', stderr='typescript is not installed under apps/web. Install web dependencies before this test.\n').returncode
 ------------------------------ Captured log setup ------------------------------
@@ -242,7 +242,7 @@ INFO     app.request:main.py:284 request
 INFO     httpx2:_client.py:1084 HTTP Request: GET http://localhost/api/case-studies/15 "HTTP/1.1 200 OK"
 /tmp/tc-master/apps/api/tests/release/test_domain_case_studies.py:227: AssertionError: typescript is not installed under apps/web. Install web dependencies before this test.
 E   AssertionError: v22.23.4
-      
+
     assert False
      +  where False = <built-in method startswith of str object at 0x7fc1ab10af70>('v24.')
      +    where <built-in method startswith of str object at 0x7fc1ab10af70> = 'v22.23.4\n'.startswith

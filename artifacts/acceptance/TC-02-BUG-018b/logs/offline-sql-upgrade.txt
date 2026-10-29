@@ -13,4 +13,3 @@ ALTER TABLE evidence_gaps VALIDATE CONSTRAINT ck_evidence_gaps_close_reason;
 UPDATE alembic_version SET version_num='bug018b_gap_status_checks' WHERE alembic_version.version_num = 'tc21005_mapping_version';
 
 COMMIT;
-
