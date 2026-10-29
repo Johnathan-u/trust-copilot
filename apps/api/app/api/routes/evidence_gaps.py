@@ -27,6 +27,7 @@ from app.models import (
     CONTROL_CHECK_CLOSE_REASON,
     Answer,
     Chunk,
+    AuditEvent,
     ControlEvidenceLink,
     EvidenceGap,
     EvidenceItem,
@@ -513,13 +514,27 @@ def ensure_open_gap(
             _settle(db, key, owner, status_code, payload)
 
 
+def _record_audit(db: Session, session: dict, action: str, gap: EvidenceGap, workspace_id: int) -> None:
+    db.add(
+        AuditEvent(
+            action=action,
+            user_id=session.get("user_id"),
+            email=session.get("email"),
+            workspace_id=workspace_id,
+            resource_type="evidence_gap",
+            resource_id=str(gap.id),
+            details=json.dumps({"status": gap.status}),
+        )
+    )
+
+
 @router.post("/{gap_id}/decision")
 def decide_gap(
     gap_id: int,
     body: DecisionBody,
     request: Request,
     db: Session = Depends(get_db),
-    _user=Depends(require_can_admin),
+    session: dict = Depends(require_can_admin),
 ):
     workspace_id = request.state.workspace_id
     key = _idempotency_key(request, workspace_id, "decision", str(gap_id))
@@ -535,6 +550,7 @@ def decide_gap(
         gap.evidence_refs = json.dumps(visible)
         gap.status = status
         gap.updated_at = _now()
+        _record_audit(db, session, "gap_decided", gap, workspace_id)
         db.commit()
         db.refresh(gap)
         payload = gap_payload(db, gap, workspace_id)
@@ -560,7 +576,7 @@ def resolve_gap(
     body: ResolveBody,
     request: Request,
     db: Session = Depends(get_db),
-    _user=Depends(require_can_review),
+    session: dict = Depends(require_can_review),
 ):
     workspace_id = request.state.workspace_id
     key = _idempotency_key(request, workspace_id, "resolve", str(gap_id))
@@ -586,6 +602,7 @@ def resolve_gap(
         gap.updated_at = gap.closed_at
         gap.evaluation_state = "clear"
         gap.rule_code = "evidence_qualifies"
+        _record_audit(db, session, "gap_resolved", gap, workspace_id)
         db.commit()
         db.refresh(gap)
         payload = gap_payload(db, gap, workspace_id)

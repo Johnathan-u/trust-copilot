@@ -541,6 +541,18 @@ def test_resolve_requires_eligible_backing_evidence(client):
         session.close()
     assert stored.status == "resolved"
     assert stored.close_reason == CONTROL_CHECK_CLOSE_REASON
+    session = _db()
+    try:
+        audit = session.execute(
+            text(
+                "SELECT user_id FROM audit_events "
+                "WHERE action = 'gap_resolved' AND resource_id = :id"
+            ),
+            {"id": str(gap_id)},
+        ).one()
+    finally:
+        session.close()
+    assert audit.user_id == actors["admin_id"]
 
 
 def test_duplicate_open_gap_is_explained_and_not_created(client):
@@ -576,6 +588,19 @@ def test_reviewer_decision_is_not_overwritten_or_reopened(client):
     decided = client.post(f"/api/evidence-gaps/{gap_id}/decision", json={"status": "accepted"})
     assert decided.status_code == 200, decided.text
     assert decided.json()["status"] == "accepted"
+    session = _db()
+    try:
+        audit = session.execute(
+            text(
+                "SELECT action, user_id FROM audit_events "
+                "WHERE action = 'gap_decided' AND resource_id = :id"
+            ),
+            {"id": str(gap_id)},
+        ).one()
+    finally:
+        session.close()
+    assert audit.action == "gap_decided"
+    assert audit.user_id == actors["admin_id"]
     kept = client.post(f"/api/evidence-gaps/{gap_id}/decision", json={"status": "dismissed"})
     assert kept.status_code == 409, kept.text
     assert _row(gap_id)[0] == "accepted"
