@@ -1,13 +1,16 @@
 """Personal notification access and read state on PostgreSQL."""
 
 import hashlib
+import importlib.util
 import uuid
 from contextlib import contextmanager
-from datetime import datetime
+from datetime import datetime, timezone
+from pathlib import Path
 
 import pytest
 from fastapi.testclient import TestClient
-from sqlalchemy import bindparam, text
+from sqlalchemy import bindparam, inspect, text
+from sqlalchemy.exc import IntegrityError
 
 from app.core.database import SessionLocal, engine
 from app.core.password import hash_password
@@ -23,7 +26,10 @@ from tests.conftest import TEST_HEADERS
 from app.models.in_app_notification import InAppNotification
 
 pytestmark = pytest.mark.integration
+RECEIPT_KEY = "workspace_id::text || ':' || notification_id::text || ':' || user_id::text"
 TABLE_KEYS = (
+    ("in_app_notification_receipts", RECEIPT_KEY),
+    ("in_app_notification_receipts_archive", RECEIPT_KEY),
     ("notification_delivery_attempts", "id"),
     ("notification_log", "id"),
     ("notification_dedupe_claims", "dedupe_key"),
@@ -47,6 +53,7 @@ def snapshot():
         return {
             name: {row[0] for row in db.execute(text(f"SELECT {key} FROM {name}"))}
             for name, key in TABLE_KEYS
+            if inspect(db.connection()).has_table(name)
         }
 
 
@@ -55,6 +62,7 @@ def row_snapshot():
         return {
             name: list(db.execute(text(f"SELECT * FROM {name} ORDER BY {key}")))
             for name, key in TABLE_KEYS
+            if inspect(db.connection()).has_table(name)
         }
 
 
@@ -108,7 +116,7 @@ def actors(_ensure_test_data):
         current = snapshot()
         with SessionLocal() as db:
             for name, key in TABLE_KEYS:
-                created = list(current[name] - before[name])
+                created = list(current.get(name, set()) - before.get(name, set()))
                 if created:
                     stmt = text(f"DELETE FROM {name} WHERE {key} IN :ids").bindparams(
                         bindparam("ids", expanding=True)
@@ -117,7 +125,8 @@ def actors(_ensure_test_data):
             db.commit()
         after = snapshot()
         assert after == before, {
-            name: (len(before[name]), len(after[name])) for name, _ in TABLE_KEYS
+            name: (len(before.get(name, set())), len(after.get(name, set())))
+            for name, _ in TABLE_KEYS
         }
 
 
@@ -133,12 +142,15 @@ def client_for(actors, role="admin"):
         yield client
 
 
-def note(actors, *, role="editor", workspace=None, admin_only=False, title="Inbox item"):
+def note(
+    actors, *, role="editor", workspace=None, admin_only=False, title="Inbox item", is_read=False
+):
     with SessionLocal() as db:
         row = InAppNotification(
             workspace_id=workspace or actors["ws"],
             user_id=actors[role]["id"] if role else None,
             title=title,
+            is_read=is_read,
             body="Synthetic content",
             admin_only=admin_only,
             created_at=datetime(2026, 1, 1),
@@ -305,6 +317,19 @@ def test_dispatch_does_not_create_an_inbox_item_for_an_unauthorized_recipient(ac
         assert db.query(InAppNotification).count() == count
 
 
+def test_dispatch_database_failure_rolls_back_without_a_partial_notification(actors):
+    from app.services.in_app_notification_service import notify_user
+
+    with SessionLocal() as db:
+        count = db.query(InAppNotification).count()
+        # Exceed the real database column bound to exercise the rollback path.
+        assert notify_user(db, actors["ws"], actors["editor"]["id"], "x" * 256) is None
+        assert db.query(InAppNotification).count() == count
+        valid = notify_user(db, actors["ws"], actors["editor"]["id"], "x" * 255)
+        assert valid is not None
+        assert db.query(InAppNotification).count() == count + 1
+
+
 def test_personal_preference_is_visible_only_to_its_user(actors):
     with client_for(actors, "editor") as client:
         response = client.put(
@@ -321,3 +346,231 @@ def test_personal_preference_is_visible_only_to_its_user(actors):
             client.get("/api/notifications/channel-preferences").json()["effective"]["in_app"]
             is False
         )
+
+
+def require_receipt_table():
+    assert inspect(engine).has_table(
+        "in_app_notification_receipts"
+    ), "Broadcast read state requires the approved per-member receipt table"
+
+
+def receipts(notification_id):
+    require_receipt_table()
+    with SessionLocal() as db:
+        return list(
+            db.execute(
+                text(
+                    "SELECT workspace_id, notification_id, user_id, read_at "
+                    "FROM in_app_notification_receipts WHERE notification_id=:id ORDER BY user_id"
+                ),
+                {"id": notification_id},
+            )
+        )
+
+
+@pytest.mark.parametrize("action", ["one", "all"])
+def test_broadcast_read_creates_only_callers_receipt_and_preserves_timestamp(actors, action):
+    require_receipt_table()
+    shared = note(actors, role=None)
+    hidden = note(actors, role=None, admin_only=True)
+    with client_for(actors, "editor") as client:
+        path = f"/{shared}/read" if action == "one" else "/read-all"
+        response = client.post("/api/in-app-notifications" + path)
+        assert response.status_code == 200
+        first = receipts(shared)
+        assert len(first) == 1
+        assert tuple(first[0][:3]) == (actors["ws"], shared, actors["editor"]["id"])
+        assert first[0].read_at is not None
+        assert client.post("/api/in-app-notifications" + path).status_code == 200
+        engine.dispose()
+        before_gets = row_snapshot()
+        listed = client.get("/api/in-app-notifications").json()["notifications"]
+        assert [(row["id"], row["is_read"]) for row in listed] == [(shared, True)]
+        assert client.get("/api/in-app-notifications/unread-count").json() == {"count": 0}
+        assert row_snapshot() == before_gets
+        assert receipts(shared) == first
+    assert receipts(hidden) == []
+    with SessionLocal() as db:
+        assert db.get(InAppNotification, shared).is_read is False
+
+
+@pytest.mark.parametrize("action", ["one", "all"])
+def test_legacy_read_broadcast_stays_read_without_backfilling_receipts(actors, action):
+    require_receipt_table()
+    shared = note(actors, role=None, is_read=True)
+    for role in ("editor", "reviewer"):
+        with client_for(actors, role) as client:
+            before = row_snapshot()
+            assert client.get("/api/in-app-notifications/unread-count").json() == {"count": 0}
+            assert (
+                client.get("/api/in-app-notifications").json()["notifications"][0]["is_read"]
+                is True
+            )
+            assert row_snapshot() == before
+            path = f"/{shared}/read" if action == "one" else "/read-all"
+            response = client.post("/api/in-app-notifications" + path)
+            assert response.status_code == 200
+            if action == "all":
+                assert response.json() == {"updated": 0}
+    assert receipts(shared) == []
+    with SessionLocal() as db:
+        assert db.get(InAppNotification, shared).is_read is True
+
+
+@pytest.mark.parametrize("reference", ["notification", "member"])
+@pytest.mark.parametrize("operation", ["insert", "update"])
+def test_receipts_reject_cross_workspace_references(actors, reference, operation):
+    require_receipt_table()
+    own = note(actors, role=None)
+    foreign = note(actors, role=None, workspace=actors["other_ws"])
+    with SessionLocal() as db:
+        params = {"ws": actors["ws"], "nid": own, "uid": actors["editor"]["id"]}
+        insert = text(
+            "INSERT INTO in_app_notification_receipts "
+            "(workspace_id, notification_id, user_id, read_at) "
+            "VALUES (:ws,:nid,:uid,:at)"
+        )
+        params["at"] = datetime(2020, 2, 3, 4, 5, 6, 123456, tzinfo=timezone.utc)
+        if operation == "update":
+            db.execute(insert, params)
+            db.commit()
+        if reference == "notification":
+            params["nid"] = foreign
+        else:
+            params["uid"] = actors["other"]["id"]
+        with pytest.raises(IntegrityError) as exc:
+            db.execute(
+                insert
+                if operation == "insert"
+                else text(
+                    "UPDATE in_app_notification_receipts SET notification_id=:nid,user_id=:uid "
+                    "WHERE workspace_id=:ws"
+                ),
+                params,
+            )
+            db.commit()
+        assert exc.value.orig.pgcode == "23503"
+        db.rollback()
+    if operation == "update":
+        assert tuple(receipts(own)[0][:3]) == (actors["ws"], own, actors["editor"]["id"])
+
+
+@contextmanager
+def receipt_migration(actors):
+    from alembic.operations import Operations
+    from alembic.runtime.migration import MigrationContext
+
+    path = Path(__file__).resolve().parents[2] / "alembic/versions/tc19010_inbox_receipts.py"
+    assert path.is_file(), "The approved receipt schema requires a reversible migration"
+    spec = importlib.util.spec_from_file_location("tc19010_receipts_test", path)
+    migration = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(migration)
+    require_receipt_table()
+    # PostgreSQL transactional DDL keeps every receipt/schema change isolated.
+    with engine.connect() as connection:
+        transaction = connection.begin()
+        try:
+            with Operations.context(MigrationContext.configure(connection)):
+                yield connection, migration
+        finally:
+            transaction.rollback()
+
+
+def test_receipt_migration_roundtrip_preserves_nondefault_data_and_legacy_rows(actors):
+    shared = note(actors, role=None, is_read=True)
+    with receipt_migration(actors) as (connection, migration):
+        expected_time = datetime(2019, 7, 6, 5, 4, 3, 123456, tzinfo=timezone.utc)
+        connection.execute(
+            text(
+                "INSERT INTO in_app_notification_receipts "
+                "(workspace_id, notification_id, user_id, read_at) VALUES (:ws,:nid,:uid,:at)"
+            ),
+            {"ws": actors["ws"], "nid": shared, "uid": actors["editor"]["id"], "at": expected_time},
+        )
+        connection.execute(
+            text(
+                "INSERT INTO in_app_notification_receipts "
+                "(workspace_id, notification_id, user_id, read_at) VALUES (:ws,:nid,:uid,:at)"
+            ),
+            {
+                "ws": actors["ws"],
+                "nid": shared,
+                "uid": actors["reviewer"]["id"],
+                "at": datetime(2022, 3, 4, 5, 6, 7, 654321, tzinfo=timezone.utc),
+            },
+        )
+        expected = list(
+            connection.execute(
+                text(
+                    "SELECT * FROM in_app_notification_receipts ORDER BY workspace_id, notification_id, user_id"
+                )
+            )
+        )
+        legacy = list(connection.execute(text("SELECT * FROM in_app_notifications ORDER BY id")))
+        for _ in range(2):
+            migration.downgrade()
+            assert not inspect(connection).has_table("in_app_notification_receipts")
+            assert (
+                list(
+                    connection.execute(
+                        text(
+                            "SELECT * FROM in_app_notification_receipts_archive ORDER BY workspace_id, notification_id, user_id"
+                        )
+                    )
+                )
+                == expected
+            )
+            assert (
+                list(connection.execute(text("SELECT * FROM in_app_notifications ORDER BY id")))
+                == legacy
+            )
+            migration.upgrade()
+            assert (
+                list(
+                    connection.execute(
+                        text(
+                            "SELECT * FROM in_app_notification_receipts ORDER BY workspace_id, notification_id, user_id"
+                        )
+                    )
+                )
+                == expected
+            )
+            assert not inspect(connection).has_table("in_app_notification_receipts_archive")
+            assert (
+                list(connection.execute(text("SELECT * FROM in_app_notifications ORDER BY id")))
+                == legacy
+            )
+
+
+def test_receipt_migration_restore_fails_closed_if_membership_was_removed(actors):
+    shared = note(actors, role=None)
+    with receipt_migration(actors) as (connection, migration):
+        connection.execute(
+            text(
+                "INSERT INTO in_app_notification_receipts "
+                "(workspace_id, notification_id, user_id, read_at) VALUES (:ws,:nid,:uid,:at)"
+            ),
+            {
+                "ws": actors["ws"],
+                "nid": shared,
+                "uid": actors["editor"]["id"],
+                "at": datetime(2021, 1, 2, tzinfo=timezone.utc),
+            },
+        )
+        migration.downgrade()
+        archived = list(
+            connection.execute(text("SELECT * FROM in_app_notification_receipts_archive"))
+        )
+        connection.execute(
+            text("DELETE FROM workspace_members WHERE workspace_id=:ws AND user_id=:uid"),
+            {"ws": actors["ws"], "uid": actors["editor"]["id"]},
+        )
+        with pytest.raises(IntegrityError) as exc:
+            with connection.begin_nested():
+                migration.upgrade()
+        assert exc.value.orig.pgcode == "23503"
+        assert (
+            list(connection.execute(text("SELECT * FROM in_app_notification_receipts_archive")))
+            == archived
+        )
+        assert not inspect(connection).has_table("in_app_notification_receipts")
