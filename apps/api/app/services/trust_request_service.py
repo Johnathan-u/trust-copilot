@@ -22,6 +22,10 @@ from app.services.email_service import (
 )
 
 
+class IntakeCommitUncertain(RuntimeError):
+    """COMMIT began, so a lost acknowledgement cannot prove the write rolled back."""
+
+
 def validate_mailbox(value: str) -> str:
     """Accept ordinary ASCII mailboxes; reject controls and ambiguous header syntax."""
     value = value.strip(" ").lower()
@@ -102,7 +106,12 @@ def finish_intake(db: Session, key: str, owner: str | None, digest: str, respons
         idempotency.set(
             db, key, 200, {"request_hash": digest, "response": response}, owner=owner, commit=False
         )
-    db.commit()
+    # Surface constraint/owner-fence failures before entering the uncertain commit boundary.
+    db.flush()
+    try:
+        db.commit()
+    except Exception:
+        raise IntakeCommitUncertain() from None
 
 
 def abort_intake(db: Session, key: str, owner: str | None) -> None:

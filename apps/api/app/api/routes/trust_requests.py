@@ -256,6 +256,22 @@ def _persist_intake(
         trust_svc.finish_intake(db, key, owner, digest, response)
         return response
     except Exception as exc:
+        if isinstance(exc, trust_svc.IntakeCommitUncertain):
+            # Never delete a possibly committed attachment or a completed retry response.
+            # Without a reliable fresh database read, retain both for replay/reconciliation.
+            try:
+                db.rollback()
+            except Exception:
+                logger.error("trust intake database cleanup requires reconciliation")
+            logger.error(
+                "trust intake save outcome requires reconciliation request_id=%s storage_key=%s",
+                response["id"],
+                uploaded_key,
+            )
+            raise HTTPException(
+                502,
+                "The save outcome could not be confirmed. Retry using the same request key if supplied.",
+            ) from None
         abort_failed = False
         try:
             trust_svc.abort_intake(db, key, owner)

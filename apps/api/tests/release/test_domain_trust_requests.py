@@ -361,6 +361,104 @@ def test_abort_failure_does_not_prevent_storage_compensation(delete_fails, caplo
         assert storage.deleted[0] in caplog.text  # Opaque key makes reconciliation possible.
 
 
+@pytest.mark.parametrize("rollback_fails", [False, True])
+def test_uncertain_commit_retains_attachment_without_destructive_cleanup(rollback_fails, caplog):
+    from io import BytesIO
+    from unittest.mock import MagicMock
+    from fastapi import HTTPException, Request, UploadFile
+    from app.api.routes.trust_requests import TrustRequestCreate, _persist_intake
+
+    class Storage:
+        bucket_raw = "synthetic"
+        objects = {}
+        deleted = []
+
+        def upload(self, bucket, key, content, **kwargs):
+            self.objects[key] = content
+
+        def delete(self, bucket, key):
+            self.deleted.append(key)
+            self.objects.pop(key, None)
+
+    storage, db = Storage(), MagicMock()
+    db.add.side_effect = lambda row: setattr(row, "id", 123)
+    db.commit.side_effect = RuntimeError("PRIVATE-COMMIT-ACK-LOST")
+    if rollback_fails:
+        db.rollback.side_effect = RuntimeError("PRIVATE-ROLLBACK-ERROR")
+    request = Request({"type": "http", "headers": [(b"host", b"localhost")]})
+    body = TrustRequestCreate(
+        requester_email="synthetic@example.com", message="PRIVATE-BODY", workspace_id=1
+    )
+    upload = UploadFile(filename="private-document.txt", file=BytesIO(b"PRIVATE-ATTACHMENT"))
+    with (
+        patch(
+            "app.api.routes.trust_requests.resolve_workspace_for_trust_request",
+            return_value=(1, "explicit_id"),
+        ),
+        pytest.raises(HTTPException) as error,
+    ):
+        _persist_intake(body, request, db, None, upload, storage)
+    assert error.value.status_code == 502
+    assert len(storage.objects) == 1
+    assert not storage.deleted
+    assert next(iter(storage.objects)) in caplog.text
+    assert "PRIVATE-" not in str(error.value.detail) + caplog.text
+
+
+def test_commit_then_lost_ack_preserves_blob_row_and_idempotent_replay(domain):
+    from app.main import app
+    from app.services.storage import get_storage
+    from app.services import trust_request_service
+    from app.core.database import SessionLocal
+
+    class Storage:
+        bucket_raw = "synthetic"
+        objects = {}
+        uploads = 0
+        deleted = []
+
+        def upload(self, bucket, key, content, **kwargs):
+            self.objects[key] = content
+            self.uploads += 1
+
+        def delete(self, bucket, key):
+            self.deleted.append(key)
+            self.objects.pop(key, None)
+
+    storage = Storage()
+    finish = trust_request_service.finish_intake
+
+    def finish_with_lost_commit_ack(db, *args, **kwargs):
+        real_commit = db.commit
+
+        def commit_then_raise():
+            real_commit()
+            raise RuntimeError("PRIVATE-COMMIT-ACK-LOST")
+
+        with patch.object(db, "commit", side_effect=commit_then_raise):
+            return finish(db, *args, **kwargs)
+
+    headers = {"Idempotency-Key": domain["suffix"] + "-lost-ack"}
+    with patch.dict(app.dependency_overrides, {get_storage: lambda: storage}):
+        with patch(
+            "app.services.trust_request_service.finish_intake",
+            side_effect=finish_with_lost_commit_ack,
+        ):
+            uncertain = submit(domain, headers)
+        assert uncertain.status_code == 502
+        assert "PRIVATE-" not in uncertain.text
+        assert len(storage.objects) == 1
+        assert not storage.deleted
+        retry = submit(domain, headers)
+    assert retry.status_code == 200
+    assert storage.uploads == 1
+    with SessionLocal() as fresh:
+        row = fresh.get(TrustRequest, retry.json()["id"])
+        assert row.requester_email == f"{domain['suffix']}@example.com"
+        assert row.attachment_storage_key == retry.json()["attachment_storage_key"]
+        assert storage.objects[row.attachment_storage_key] == b"Synthetic request"
+
+
 def test_invalid_retry_header_is_422_without_rows(domain):
     before = counts(domain["db"])
     response = submit(domain, {"Idempotency-Key": "invalid key"})
