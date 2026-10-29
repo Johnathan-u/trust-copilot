@@ -1,57 +1,79 @@
 # Control library and detail evidence
 
-Local tested commit: `ccb2be1a52ce70350841c9d8a83d7caa4eeb17e9`.
-Published code commit: `7a3db78f482489625bf335c4707a150440058ca4`.
-Both have identical Git tree `9a5092b9c90cf27e8e7dfffcc5f0fb139889bf06`.
-GitHub git-data publishing changes commit metadata; the branch preserves the
-original base, an implementation commit, a pure master merge, and review fixes.
-No claim is made that browser interaction was verified locally.
+Qualified implementation checkpoint: `7c8ac622e99d6385d4d83347dc5124b5a8efced4`.
+Git tree: `8bf6568773c0cb9181b9aa3d71efd83d91dc61eb`.
+All four required checks passed on this exact head: push run
+[40924117490](https://github.com/Johnathan-u/trust-copilot/actions/runs/40924117490)
+and PR run
+[40924126208](https://github.com/Johnathan-u/trust-copilot/actions/runs/40924126208).
 
-Environment: Linux x86_64, Node 24.22.1, npm 11.9.0; locked `npm ci --ignore-scripts`.
-No provider calls or database writes. HTTP fixtures are synthetic and do not
+## Browser qualification
+
+On the PR run, `web-release-e2e` job
+[123624976027](https://github.com/Johnathan-u/trust-copilot/actions/runs/40924126208/job/123624976027)
+ran the explicit release spec list, including `e2e/release/screen-controls.spec.ts`:
+**21/21 control cases passed**, with **64/64 tests passed** across the release
+suite. Playwright exit status was 0 and the axe checker exit status was 0.
+The workflow uses Ubuntu, the repository-pinned Node version, locked
+`npm ci --ignore-scripts`, and Playwright Chromium. The focused command is
+`npx playwright test e2e/release/screen-controls.spec.ts` from `apps/web`.
+
+The [Playwright HTML report artifact](https://github.com/Johnathan-u/trust-copilot/actions/runs/40924126208/artifacts/12919348682)
+contains attachments named `library-360`, `detail-360`, `library-768`,
+`detail-768`, `library-1440`, `detail-1440`, plus matching `axe-<view>-<width>`
+JSON attachments. All three viewport reports have `violations: []` (identical
+library/detail JSON content may be deduplicated in the archive). Before attachment,
+the tests write screenshots to `artifacts/acceptance/TC-15-042/screenshots/` and
+axe output to `artifacts/acceptance/TC-15-042/axe-<view>-<width>.json` on the runner.
+These are retained through the HTML artifact, not a dedicated axe upload step.
+
+The browser cases cover roles, denied/not-found/malformed reads, partial evaluation
+failure, owner-only PATCH acknowledgement/rejection, dirty-link confirmation,
+expired and newly stale evidence after review, partial review success, keyboard
+focus and responsive containment. The library and detail screenshots were visually
+inspected at 360, 768 and 1440 pixels: no layout blocker; the library table scrolls
+within its container at narrow widths. No local browser execution is claimed.
+
+## Local checkpoint and retained logs
+
+The local logs in this directory are from commit
+`ccb2be1a52ce70350841c9d8a83d7caa4eeb17e9`, published as
+`7a3db78f482489625bf335c4707a150440058ca4` with identical tree
+`9a5092b9c90cf27e8e7dfffcc5f0fb139889bf06`. Later product-label fixes are covered by
+the exact-head CI above. Local environment: Linux x86_64, Node 24.22.1, npm 11.9.0.
+
+| Command (apps/web) | Exit | Result |
+| --- | --- | --- |
+| `npm run typecheck` | 0 | Type generation and TypeScript passed |
+| `npm run lint` | 0 | Zero errors/warnings |
+| `npm run test:unit` | 0 | 26 files, 170 tests passed |
+| `npm run build` | 0 | Production build succeeded |
+| `npx playwright test --config=playwright.local.config.ts e2e/release/screen-controls.spec.ts -g 'route serves'` | 0 | One request-only route test passed |
+
+The route test first failed with expected 200 / actual 404 before implementation.
+The local hostname-only Playwright configuration is not shipped. Browser downloads
+were unavailable locally; the successful browser evidence above comes from CI.
+Fixtures are synthetic, with no provider calls or database writes. They do not
 qualify real catalog rights or integrated backend acceptance.
 
-## Executed checks
+## Accepted-pending limits
 
-From `apps/web`:
-
-| Command | Exit | Result |
-| --- | --- | --- |
-| `npm run typecheck` | 0 | Type generation and TypeScript pass |
-| `npm run lint` | 0 | Zero lint errors/warnings |
-| `npm run test:unit` | 0 | 26 files, 170 tests passed (existing suite) |
-| `npm run build` | 0 | Production build succeeded |
-| `npx playwright test --config=playwright.local.config.ts e2e/release/screen-controls.spec.ts -g 'route serves'` | 0 | 1 request-only test passed |
-
-The request-only test first failed with expected 200 / actual 404 before the
-route existed. The local uncommitted Playwright config only sets an explicit
-127.0.0.1 hostname because interface discovery is blocked in this container.
-It is not shipped. The supplied browser spec is now in CI's explicit spec list.
-
-## Pending qualification and known limitations
-
-- Full `screen-controls.spec.ts` browser run, 360/768/1440 screenshots, keyboard
-  and axe results: pending exact-head CI. Local Playwright Chromium download
-  returned truncated/empty archives; no interactive browser test is reported as
-  passed, and no screenshot/axe artifact is claimed present.
-- Framework activation: the current API blocks every production catalog pending
-  rights clearance. The UI shows that state; no licensed activation is qualified.
-- Sidebar discovery entry awaits #75 and Coordinator notice. No shared UI changed.
+- AC1 licensed-framework activation remains rights-blocked by owner decision
+  TC-01-007, accepted-pending in Coordinator review 6504688809. The UI shows the
+  API's rights state; licensed activation is not claimed complete.
+- Sidebar discovery awaits #75 and Coordinator notice. No shared UI changed.
 - Page-local links and beforeunload guard dirty edits. Browser Back and workspace
-  switching are accepted follow-up TC-14-014 under Coordinator ruling 6503678126.
-- Member names are admin-only; nonadmins see team / assigned-member labels.
-  Owner removal is not offered because the current compliance PATCH ignores null.
-- Backend evidence responses provide linked-item metadata, not source-content
-  preview. This page does not invent a download or source-preview contract.
+  switching remain follow-up TC-14-014 under ruling 6503678126.
+- Member names are admin-only; other roles see team / assigned-member labels.
+  Owner removal is unavailable because the current compliance PATCH ignores null.
+- Evidence responses provide linked-item metadata, not source-content preview.
+- Per-spec CI summary and dedicated axe upload inclusion are non-blocking follow-ups
+  from review 6504688809. Tests execute and attachments are in the HTML artifact.
 
 ## Independent review
 
-A separate read-only reviewer found three issues. Owner-only PATCH now omits
-unchanged lifecycle. Evidence verification now reloads freshness from GET and
-preserves confirmed mutation plus explicit unknown freshness if that read fails.
-The shared navigation issue was ruled on by the Coordinator as TC-14-014.
-New browser regression cases are present; their execution is pending CI.
-
-## First CI feedback
-
-At `5c80adbfe7a690fe0eb54a86cef3122b08dc4f61`, the browser suite ran: 57 passed, 7 failed. Six failures exposed an ambiguous Owner field label, now given an explicit accessible name; one assertion matched unrelated global alert regions, now scoped to the page. The build job passed lint, formatting and 170 unit tests, then rejected evidence-log whitespace; logs are normalized without changing recorded outcomes. After these fixes, local typecheck and scoped ESLint passed. Full exact-head CI is still required.
+A separate reviewer found owner-only PATCH, freshness refresh and shared-navigation
+issues. The first two were fixed and rechecked; the navigation limit was accepted
+as TC-14-014. Browser regressions subsequently passed at the checkpoint above.
+The initial CI label/selector and log-whitespace failures were corrected before
+that successful run. No unresolved blocking finding remains in the reviewed scope.
