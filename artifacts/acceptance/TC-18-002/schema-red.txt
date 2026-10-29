@@ -1,0 +1,67 @@
+FFFF                                                                     [100%]
+=================================== FAILURES ===================================
+__________ test_create_schema_rejects_malformed_addresses[missing-at] __________
+
+email = 'missing-at'
+
+    @pytest.mark.parametrize(
+        "email", ["missing-at", "two@@example.com", "a@example.com\r\nBcc:x@y.com"]
+    )
+    def test_create_schema_rejects_malformed_addresses(email):
+        from pydantic import ValidationError
+        from app.api.routes.vendor_requests import VendorRequestCreate
+    
+>       with pytest.raises(ValidationError):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValidationError
+
+tests/release/test_domain_vendor_requests.py:166: Failed
+_______ test_create_schema_rejects_malformed_addresses[two@@example.com] _______
+
+email = 'two@@example.com'
+
+    @pytest.mark.parametrize(
+        "email", ["missing-at", "two@@example.com", "a@example.com\r\nBcc:x@y.com"]
+    )
+    def test_create_schema_rejects_malformed_addresses(email):
+        from pydantic import ValidationError
+        from app.api.routes.vendor_requests import VendorRequestCreate
+    
+>       with pytest.raises(ValidationError):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValidationError
+
+tests/release/test_domain_vendor_requests.py:166: Failed
+_ test_create_schema_rejects_malformed_addresses[a@example.com\r\nBcc:x@y.com] _
+
+email = 'a@example.com\r\nBcc:x@y.com'
+
+    @pytest.mark.parametrize(
+        "email", ["missing-at", "two@@example.com", "a@example.com\r\nBcc:x@y.com"]
+    )
+    def test_create_schema_rejects_malformed_addresses(email):
+        from pydantic import ValidationError
+        from app.api.routes.vendor_requests import VendorRequestCreate
+    
+>       with pytest.raises(ValidationError):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValidationError
+
+tests/release/test_domain_vendor_requests.py:166: Failed
+______________________ test_create_schema_bounds_message _______________________
+
+    def test_create_schema_bounds_message():
+        from pydantic import ValidationError
+        from app.api.routes.vendor_requests import VendorRequestCreate
+    
+>       with pytest.raises(ValidationError):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValidationError
+
+tests/release/test_domain_vendor_requests.py:174: Failed
+=========================== short test summary info ============================
+FAILED tests/release/test_domain_vendor_requests.py::test_create_schema_rejects_malformed_addresses[missing-at]
+FAILED tests/release/test_domain_vendor_requests.py::test_create_schema_rejects_malformed_addresses[two@@example.com]
+FAILED tests/release/test_domain_vendor_requests.py::test_create_schema_rejects_malformed_addresses[a@example.com\r\nBcc:x@y.com]
+FAILED tests/release/test_domain_vendor_requests.py::test_create_schema_bounds_message
+4 failed, 12 deselected in 0.53s

@@ -239,13 +239,14 @@ def test_update_status_to_in_progress(client: TestClient, admin_user: User) -> N
 
 
 def test_update_status_to_completed(client: TestClient, admin_user: User) -> None:
-    """PATCH transitions pending → completed."""
+    """A status patch cannot stand in for a submitted response."""
     _login_admin(client, admin_user)
     create = client.post("/api/vendor-requests/", json={"vendor_email": "done@test.com"})
     req_id = create.json()["id"]
     r = client.patch(f"/api/vendor-requests/{req_id}", json={"status": "completed"})
-    assert r.status_code == 200
-    assert r.json()["status"] == "completed"
+    assert r.status_code == 409
+    listing = client.get("/api/vendor-requests").json()
+    assert next(row for row in listing if row["id"] == req_id)["status"] == "pending"
 
 
 def test_update_status_invalid_rejected(client: TestClient, admin_user: User) -> None:
@@ -279,18 +280,18 @@ def test_status_persists_across_list(client: TestClient, admin_user: User) -> No
     _login_admin(client, admin_user)
     create = client.post("/api/vendor-requests/", json={"vendor_email": "persist@test.com"})
     req_id = create.json()["id"]
-    client.patch(f"/api/vendor-requests/{req_id}", json={"status": "completed"})
+    client.patch(f"/api/vendor-requests/{req_id}", json={"status": "in_progress"})
     r = client.get("/api/vendor-requests")
     hit = next((i for i in r.json() if i["id"] == req_id), None)
     assert hit is not None
-    assert hit["status"] == "completed"
+    assert hit["status"] == "in_progress"
 
 
 # ── Full lifecycle ────────────────────────────────────────────────────────
 
 
 def test_full_lifecycle_create_update_list(client: TestClient, admin_user: User) -> None:
-    """End-to-end: create → verify pending → update in_progress → update completed → list confirms."""
+    """Create and track progress; a cosmetic completion attempt preserves that progress."""
     _login_admin(client, admin_user)
 
     cr = client.post(
@@ -307,12 +308,12 @@ def test_full_lifecycle_create_update_list(client: TestClient, admin_user: User)
     assert r1.json()["status"] == "in_progress"
 
     r2 = client.patch(f"/api/vendor-requests/{req_id}", json={"status": "completed"})
-    assert r2.json()["status"] == "completed"
+    assert r2.status_code == 409
 
     listing = client.get("/api/vendor-requests")
     hit = next((i for i in listing.json() if i["id"] == req_id), None)
     assert hit is not None
-    assert hit["status"] == "completed"
+    assert hit["status"] == "in_progress"
     assert hit["vendor_email"] == "lifecycle@vendor.com"
     assert hit["message"] == "Please review"
     assert hit["link_token"] is not None

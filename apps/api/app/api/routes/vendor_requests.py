@@ -1,9 +1,10 @@
 """Vendor risk: send questionnaire to vendor (TC-R-B6)."""
 
+import re
 import secrets
 
 from fastapi import APIRouter, Depends, HTTPException
-from pydantic import BaseModel
+from pydantic import BaseModel, Field, field_validator
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
@@ -16,9 +17,30 @@ router = APIRouter(prefix="/vendor-requests", tags=["vendor-requests"])
 
 
 class VendorRequestCreate(BaseModel):
-    vendor_email: str
-    questionnaire_id: int | None = None
-    message: str | None = None
+    vendor_email: str = Field(max_length=255)
+    questionnaire_id: int | None = Field(default=None, gt=0)
+    message: str | None = Field(default=None, max_length=10000)
+
+    @field_validator("vendor_email")
+    @classmethod
+    def validate_vendor_email(cls, value: str) -> str:
+        if not value.isascii():
+            raise ValueError("Enter a valid email address")
+        value = value.strip(" ").lower()
+        atom = r"[a-z0-9!#$%&'*+/=?^_`{|}~-]+"
+        label = r"[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?"
+        if not re.fullmatch(rf"{atom}(?:\.{atom})*@(?:{label}\.)+[a-z]{{2,63}}", value):
+            raise ValueError("Enter a valid email address")
+        if len(value.split("@", 1)[0]) > 64:
+            raise ValueError("Enter a valid email address")
+        return value
+
+    @field_validator("message")
+    @classmethod
+    def validate_message(cls, value: str | None) -> str | None:
+        if value is not None and "\x00" in value:
+            raise ValueError("Message contains an unsupported character")
+        return value
 
 
 class VendorRequestUpdate(BaseModel):
@@ -140,6 +162,11 @@ def update_vendor_request(
     if not v:
         raise HTTPException(status_code=404, detail="Request not found")
     if body.status is not None:
+        if body.status == "completed":
+            raise HTTPException(
+                status_code=409,
+                detail="Completion requires a submitted vendor response.",
+            )
         if body.status not in VENDOR_REQUEST_STATUSES:
             raise HTTPException(
                 status_code=400,
