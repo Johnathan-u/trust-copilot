@@ -165,8 +165,10 @@ def question_to_controls(
 
     scored: list[tuple[int, float]] = []
     for wc in wcs:
-        title_words = set(re.findall(r"\b\w{3,}\b", (wc.title or "").lower()))
-        desc_words = set(re.findall(r"\b\w{3,}\b", (wc.description or "").lower()))
+        label = getattr(wc, "title", None) or getattr(wc, "custom_name", None) or ""
+        description = getattr(wc, "description", None) or ""
+        title_words = set(re.findall(r"\b\w{3,}\b", label.lower()))
+        desc_words = set(re.findall(r"\b\w{3,}\b", description.lower()))
         control_words = title_words | desc_words
 
         if wc.framework_control_id:
@@ -176,7 +178,10 @@ def question_to_controls(
                 .first()
             )
             if fc:
-                control_words.update(re.findall(r"\b\w{3,}\b", (fc.title or "").lower()))
+                framework_label = (
+                    getattr(fc, "title", None) or getattr(fc, "control_key", None) or ""
+                )
+                control_words.update(re.findall(r"\b\w{3,}\b", framework_label.lower()))
 
         overlap = q_words & control_words
         meaningful = overlap & _COMMON_SECURITY_KEYWORDS
