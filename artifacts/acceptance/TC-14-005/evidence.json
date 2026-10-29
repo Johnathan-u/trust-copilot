@@ -1,7 +1,7 @@
 {
   "ticket": "TC-14-005",
   "branch": "tc/web/TC-14-005",
-  "testedCommit": "PENDING",
+  "testedCommit": "6dcf5b3f10acad0bab3ef55f1559f9a41769eb74",
   "baseline": "8ab5e3f93f2711373fbb385e083920d38a43ae7b",
   "ancestor": "6f620b1",
   "environment": {
