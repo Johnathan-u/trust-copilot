@@ -4,7 +4,9 @@ Synthetic rows only, on disposable side PostgreSQL databases whose names end in 
 
 ## This run
 
-Results were produced on the code tree of this review-fix commit. The commit SHA is the head in the pull request Testing (author) section. This README and the two logs below are part of that same commit, so the SHA includes them; they do not change `test_evidence_gap_status_checks.py` or the migration that were executed.
+Results were produced on the code tree of commit `b6d65b72eafef88552ca27f45b7322f69f23d94b`.
+
+That is the review-fix commit those commands checked out: 10 passed in `tests/release/test_evidence_gap_status_checks.py`, and 29 passed in `tests/release/test_safe_collection.py`. Writing this SHA into the README changes the branch head. The test module and the migration are the bytes from that commit. The same two commands were run again on the branch head after this paragraph was added; the counts were unchanged.
 
 | Command | Result |
 |---|---|
