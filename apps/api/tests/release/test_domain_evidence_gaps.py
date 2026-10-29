@@ -904,6 +904,62 @@ def test_decision_and_resolve_race_for_one_open_gap(client):
     assert winner_keys == 1
 
 
+def test_scan_and_manual_create_leave_one_open_control_gap(client):
+    import threading
+
+    from fastapi.testclient import TestClient
+
+    from app.api.routes import compliance_gaps as scan_mod
+    from app.main import app
+    from tests.conftest import TEST_HEADERS, TEST_ORIGIN
+
+    actors = _actors()
+    control_id = _control(actors["workspace_id"], f"Scan race {uuid.uuid4().hex[:8]}")
+    scan_mod._last_gap_notify.pop(actors["workspace_id"], None)
+    _login(client, ADMIN_EMAIL, ADMIN_PASSWORD)
+    token = client.cookies.get("tc_session")
+    barrier = threading.Barrier(2)
+    codes: list[int] = []
+
+    def call(path: str, body: dict | None) -> None:
+        local = TestClient(app, base_url=TEST_ORIGIN, headers=TEST_HEADERS)
+        local.cookies.set("tc_session", token)
+        barrier.wait()
+        if body is None:
+            response = local.post(path)
+        else:
+            response = local.post(path, json=body)
+        codes.append(response.status_code)
+
+    threads = [
+        threading.Thread(target=call, args=("/api/compliance/gaps/scan-and-notify", None)),
+        threading.Thread(
+            target=call,
+            args=(
+                "/api/evidence-gaps",
+                {"gap_type": CONTROL_CHECK, "control_id": control_id},
+            ),
+        ),
+    ]
+    for thread in threads:
+        thread.start()
+    for thread in threads:
+        thread.join()
+    assert codes == [200, 200] or sorted(codes) == [200, 201], codes
+    session = _db()
+    try:
+        count = session.execute(
+            text(
+                "SELECT count(*) FROM evidence_gaps "
+                "WHERE control_id = :id AND gap_type = :gap_type AND status = 'open'"
+            ),
+            {"id": control_id, "gap_type": CONTROL_CHECK},
+        ).scalar()
+    finally:
+        session.close()
+    assert count == 1
+
+
 def test_bad_ids_are_422(client):
     actors = _actors()
     control_id = _control(actors["workspace_id"], f"Bad {uuid.uuid4().hex[:8]}")
