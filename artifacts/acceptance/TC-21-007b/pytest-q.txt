@@ -1,0 +1,7 @@
+SHA da54ed83697302319ca1b78170248b0e0de1f5fc
+command: python -m pytest tests/test_compliance_coverage_unit.py tests/release/test_domain_coverage_recommendations.py tests/release/test_domain_compliance_coverage.py -q
+46 passed, 90 warnings in 3.40s
+exit status: 0
+
+vitest lib/coverageConsumer.test.ts: 5 passed
+exit status: 0
