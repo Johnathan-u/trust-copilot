@@ -4,7 +4,11 @@ import { useCallback, useEffect, useState } from 'react'
 import { Button, Card, ToastNotice } from '@/components/ui'
 import { ErrorState, LoadingState, PartialSuccess } from '@/components/ui'
 import { useAuth } from '@/contexts/AuthContext'
-import type { ApiFailurePresentation } from '@/lib/api-error'
+import {
+  mutationFailureNotice,
+  type ApiFailurePresentation,
+} from '@/lib/api-error'
+import { actionVerb, ACTION_SUCCESS_DETAIL } from '@/lib/action-copy'
 import {
   failureOf,
   isAbortError,
@@ -704,8 +708,8 @@ export default function AIInsightsPage() {
 
       {toast && (
         <ToastNotice
-          title="Info"
-          message={toast}
+          title={toast}
+          message={ACTION_SUCCESS_DETAIL.save}
           type="success"
           onDismiss={() => setToast(null)}
         />
@@ -742,6 +746,7 @@ function AdvancedSettings({ onToast }: { onToast: (m: string) => void }) {
   const [settings, setSettings] = useState<GovSettings>({})
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
+  const [saveError, setSaveError] = useState<string | null>(null)
   const [settingsFailure, setSettingsFailure] =
     useState<ApiFailurePresentation | null>(null)
   const [settingsAttempt, setSettingsAttempt] = useState(0)
@@ -770,6 +775,7 @@ function AdvancedSettings({ onToast }: { onToast: (m: string) => void }) {
 
   const onSave = () => {
     setSaving(true)
+    setSaveError(null)
     const { id, workspace_id, created_at, updated_at, ...data } = settings
     fetch('/api/ai-governance/settings', {
       method: 'PATCH',
@@ -777,13 +783,22 @@ function AdvancedSettings({ onToast }: { onToast: (m: string) => void }) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data),
     })
-      .then((r) => (r.ok ? r.json() : null))
-      .then((d) => {
-        if (d) {
-          setSettings(d)
-          onToast('Settings saved')
+      .then(async (r) => {
+        const body = await r.json().catch(() => null)
+        if (!r.ok || !body) {
+          setSaveError(
+            mutationFailureNotice(
+              r.status,
+              body,
+              'The change was not saved. Try again.'
+            ).message
+          )
+          return
         }
+        setSettings(body)
+        onToast(actionVerb('save', 'success'))
       })
+      .catch(() => setSaveError('The change was not saved. Try again.'))
       .finally(() => setSaving(false))
   }
 
@@ -901,9 +916,16 @@ function AdvancedSettings({ onToast }: { onToast: (m: string) => void }) {
       </div>
 
       <div className="pt-2">
-        <Button onClick={onSave} disabled={saving}>
-          {saving ? 'Saving...' : 'Save Settings'}
+        <Button onClick={onSave} disabled={saving} loading={saving}>
+          {saving
+            ? actionVerb('save', 'pending')
+            : `${actionVerb('save', 'idle')} settings`}
         </Button>
+        {saveError ? (
+          <span role="alert" className="ml-2 text-xs text-[var(--tc-danger)]">
+            {saveError}
+          </span>
+        ) : null}
       </div>
     </Card>
   )

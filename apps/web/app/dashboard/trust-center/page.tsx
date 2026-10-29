@@ -14,7 +14,11 @@ import {
 } from '@/components/ui'
 import { ListSkeleton } from '@/components/ui/Skeleton'
 import { useAuth } from '@/contexts/AuthContext'
-import type { ApiFailurePresentation } from '@/lib/api-error'
+import {
+  mutationFailureNotice,
+  type ApiFailurePresentation,
+} from '@/lib/api-error'
+import { actionVerb } from '@/lib/action-copy'
 import { useKeyedGeneration } from '@/components/ui/useKeyedGeneration'
 import { listLoadFlags } from '@/lib/render-state'
 import {
@@ -246,8 +250,15 @@ export default function TrustCenterPage() {
           }),
         })
         if (!res.ok) {
-          const err = await res.json().catch(() => ({}))
-          throw new Error(err.detail ?? res.statusText)
+          const err = await res.json().catch(() => null)
+          setError(
+            mutationFailureNotice(
+              res.status,
+              err,
+              'The change was not saved. Try again.'
+            ).message
+          )
+          return
         }
       } else {
         const res = await fetch('/api/trust-articles/', {
@@ -264,8 +275,15 @@ export default function TrustCenterPage() {
           }),
         })
         if (!res.ok) {
-          const err = await res.json().catch(() => ({}))
-          throw new Error(err.detail ?? res.statusText)
+          const err = await res.json().catch(() => null)
+          setError(
+            mutationFailureNotice(
+              res.status,
+              err,
+              'The article was not created. Try again.'
+            ).message
+          )
+          return
         }
       }
       load()
@@ -593,7 +611,11 @@ export default function TrustCenterPage() {
               Cancel
             </Button>
             <Button type="submit" disabled={submitting}>
-              {submitting ? 'Saving...' : editId ? 'Save' : 'Create'}
+              {submitting
+                ? actionVerb('save', 'pending')
+                : editId
+                  ? actionVerb('save', 'idle')
+                  : 'Create'}
             </Button>
           </div>
         </form>

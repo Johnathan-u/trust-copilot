@@ -6,7 +6,11 @@ import Link from 'next/link'
 import { Button, Card, Skeleton } from '@/components/ui'
 import { ErrorState, LoadingState } from '@/components/ui'
 import { useAuth } from '@/contexts/AuthContext'
-import type { ApiFailurePresentation } from '@/lib/api-error'
+import {
+  mutationFailureNotice,
+  type ApiFailurePresentation,
+} from '@/lib/api-error'
+import { actionVerb } from '@/lib/action-copy'
 import { failureOf, isAbortError, readSectionJson } from '@/lib/section-load'
 
 interface ParsedQuestion {
@@ -167,6 +171,7 @@ export default function QuestionnaireDetailPage() {
   const saveAnswerEvidence = async () => {
     if (workspaceId == null || !canEdit) return
     setSavingEvidence(true)
+    setEvidenceSaved(false)
     setEvidenceError(null)
     try {
       const r = await fetch(
@@ -179,8 +184,16 @@ export default function QuestionnaireDetailPage() {
         }
       )
       if (!r.ok) {
-        const err = await r.json().catch(() => ({}))
-        throw new Error((err as { detail?: string }).detail || 'Save failed')
+        const err = await r.json().catch(() => null)
+        setEvidenceSaved(false)
+        setEvidenceError(
+          mutationFailureNotice(
+            r.status,
+            err,
+            'The change was not saved. Try again.'
+          ).message
+        )
+        return
       }
       const data = await r.json()
       setQnr((q) =>
@@ -373,10 +386,14 @@ export default function QuestionnaireDetailPage() {
                 onClick={saveAnswerEvidence}
                 disabled={savingEvidence}
               >
-                {savingEvidence ? 'Saving…' : 'Save answer evidence'}
+                {savingEvidence
+                  ? actionVerb('save', 'pending')
+                  : `${actionVerb('save', 'idle')} answer evidence`}
               </Button>
-              {evidenceSaved && (
-                <span className="text-xs text-emerald-400">Saved.</span>
+              {evidenceSaved && !savingEvidence && (
+                <span className="text-xs text-[var(--tc-success)]">
+                  {actionVerb('save', 'success')}
+                </span>
               )}
               {evidenceError && (
                 <span className="text-xs text-red-400">{evidenceError}</span>

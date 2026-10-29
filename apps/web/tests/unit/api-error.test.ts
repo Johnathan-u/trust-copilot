@@ -4,6 +4,8 @@ import {
   ApiRequestError,
   MALFORMED_RESPONSE_DESCRIPTION,
   formatApiErrorDetail,
+  mutationFailureNotice,
+  presentActionFailure,
   presentHttpFailure,
 } from '@/lib/api-error'
 import { readSectionJson } from '@/lib/section-load'
@@ -155,5 +157,127 @@ describe('presentHttpFailure', () => {
       expect(failure.title).not.toMatch(/permission/i)
       expect((error as Error).message).not.toMatch(/permission/i)
     }
+  })
+})
+
+const ACTION_LEAKS = [
+  ...LEAKS,
+  'corrupt',
+  'definitely',
+  'does not exist',
+  'guaranteed',
+]
+
+describe('presentActionFailure', () => {
+  it('gives the four failures distinct next steps', () => {
+    const model = presentActionFailure({
+      status: 400,
+      data: { detail: 'Unsupported model' },
+    })
+    const format = presentActionFailure({
+      status: 400,
+      data: {
+        detail:
+          'File must have an allowed extension. Allowed: .docx, .pdf, .xlsx',
+      },
+    })
+    const evidence = presentActionFailure({
+      data: {
+        code: 'no_evidence',
+        message:
+          'No eligible evidence was found for this question, so no model call was made.',
+      },
+    })
+    const denied = presentActionFailure({
+      status: 403,
+      data: { detail: 'Insufficient permissions for admin role' },
+    })
+
+    expect(model?.kind).toBe('unsupported_model')
+    expect(format?.kind).toBe('unsupported_format')
+    expect(evidence?.kind).toBe('no_evidence')
+    expect(denied?.kind).toBe('permission')
+    expect(
+      new Set([model?.title, format?.title, evidence?.title, denied?.title])
+        .size
+    ).toBe(4)
+    expect(
+      new Set([
+        model?.message,
+        format?.message,
+        evidence?.message,
+        denied?.message,
+      ]).size
+    ).toBe(4)
+
+    for (const failure of [model, format, evidence, denied]) {
+      const text = `${failure?.title} ${failure?.message}`.toLowerCase()
+      for (const leak of ACTION_LEAKS) {
+        expect(text, text).not.toContain(leak)
+      }
+      expect(text).not.toContain('allowed:')
+      expect(text).not.toContain('admin role')
+    }
+    expect(model?.message).toMatch(/supported model/i)
+    expect(format?.message).toMatch(/supported format/i)
+    expect(evidence?.message).toMatch(/add evidence/i)
+    expect(denied?.message).toMatch(/try again/i)
+  })
+
+  it('does not treat nearby failures as one of the four', () => {
+    expect(
+      presentActionFailure({
+        data: {
+          code: 'model_abstained',
+          message:
+            'The model reviewed the supplied evidence and judged it insufficient to answer.',
+        },
+      })
+    ).toBeNull()
+    expect(
+      presentActionFailure({
+        data: { code: 'model_error', message: 'The model call failed.' },
+      })
+    ).toBeNull()
+    expect(
+      presentActionFailure({
+        status: 400,
+        data: { detail: 'The unsupported model setting might be wrong later' },
+      })
+    ).toBeNull()
+    expect(
+      presentActionFailure({ status: 401, data: { detail: 'Sign in' } })
+    ).toBeNull()
+    expect(
+      presentActionFailure({ status: 500, data: { detail: 'boom' } })
+    ).toBeNull()
+    expect(presentActionFailure({ status: 422, data: {} })).toBeNull()
+  })
+
+  it('recognises format and model codes without copying them into the sentence', () => {
+    expect(
+      presentActionFailure({ data: { error_code: 'model_unavailable' } })?.kind
+    ).toBe('unsupported_model')
+    expect(
+      presentActionFailure({
+        data: { detail: 'format must be xlsx or docx' },
+      })?.kind
+    ).toBe('unsupported_format')
+    expect(
+      presentActionFailure({ data: { outcome_code: 'no_evidence' } })?.message
+    ).not.toMatch(/model call/i)
+    const notice = mutationFailureNotice(
+      403,
+      { detail: 'Insufficient permissions for admin role' },
+      'Upload failed'
+    )
+    expect(notice.title).toBe('Action not available')
+    expect(notice.message).not.toMatch(/admin/i)
+    expect(
+      mutationFailureNotice(400, { detail: 'Title is required' }, 'Save failed')
+    ).toEqual({
+      title: 'Could not complete that',
+      message: 'Title is required',
+    })
   })
 })

@@ -11,7 +11,8 @@ import {
 import { ListSkeleton } from '@/components/ui/Skeleton'
 import { useAuth } from '@/contexts/AuthContext'
 import type { ApiFailurePresentation } from '@/lib/api-error'
-import { presentHttpFailure } from '@/lib/api-error'
+import { mutationFailureNotice, presentHttpFailure } from '@/lib/api-error'
+import { actionVerb } from '@/lib/action-copy'
 import {
   caseStudyQuoteFields,
   shouldResetCaseStudyFields,
@@ -45,6 +46,7 @@ export default function CaseStudiesPage() {
   )
   const [form, setForm] = useState(emptyForm)
   const [saving, setSaving] = useState(false)
+  const [createPending, setCreatePending] = useState(false)
 
   const applyList = (payload: unknown) => {
     const rec =
@@ -110,8 +112,16 @@ export default function CaseStudiesPage() {
       })
       const body = await response.json().catch(() => ({}))
       if (!response.ok) {
-        const parsed = parseCaseStudyError(body)
-        setError(parsed.message)
+        const mapped = mutationFailureNotice(
+          response.status,
+          body,
+          'The change was not saved. Try again.'
+        )
+        setError(
+          mapped.title === 'Could not complete that'
+            ? parseCaseStudyError(body).message
+            : mapped.message
+        )
         return null
       }
       return replaceSelected(body)
@@ -129,6 +139,7 @@ export default function CaseStudiesPage() {
         ? { [form.metric_key.trim()]: form.metric_value.trim() }
         : undefined
     setSaving(true)
+    setCreatePending(true)
     setError(null)
     try {
       const response = await fetch('/api/case-studies', {
@@ -146,7 +157,16 @@ export default function CaseStudiesPage() {
       })
       const body = await response.json().catch(() => ({}))
       if (!response.ok) {
-        setError(parseCaseStudyError(body).message)
+        const mapped = mutationFailureNotice(
+          response.status,
+          body,
+          'The draft could not be saved.'
+        )
+        setError(
+          mapped.title === 'Could not complete that'
+            ? parseCaseStudyError(body).message
+            : mapped.message
+        )
         return
       }
       replaceSelected(body)
@@ -155,6 +175,7 @@ export default function CaseStudiesPage() {
       setError('The draft could not be saved.')
     } finally {
       setSaving(false)
+      setCreatePending(false)
     }
   }
 
@@ -294,8 +315,14 @@ export default function CaseStudiesPage() {
               </label>
             </div>
             <div>
-              <Button type="submit" disabled={saving || !form.title.trim()}>
-                Save draft
+              <Button
+                type="submit"
+                disabled={saving || !form.title.trim()}
+                loading={createPending}
+              >
+                {createPending
+                  ? actionVerb('save', 'pending')
+                  : `${actionVerb('save', 'idle')} draft`}
               </Button>
             </div>
           </form>
@@ -376,6 +403,7 @@ function StudyDetail({
   const [consentReference, setConsentReference] = useState('')
   const [resultKey, setResultKey] = useState(study.quoted_results[0] ?? '')
   const [consentId, setConsentId] = useState('')
+  const [approvePending, setApprovePending] = useState(false)
   const quoteSource = {
     id: study.id,
     companyName: study.company_name,
@@ -431,14 +459,18 @@ function StudyDetail({
             <Button
               type="button"
               disabled={saving}
-              onClick={() =>
+              loading={approvePending}
+              onClick={() => {
+                setApprovePending(true)
                 void onAction(`/api/case-studies/${study.id}/review`, {
                   ...revision,
                   decision: 'approve',
-                })
-              }
+                }).finally(() => setApprovePending(false))
+              }}
             >
-              Approve review
+              {approvePending
+                ? actionVerb('approve', 'pending')
+                : `${actionVerb('approve', 'idle')} review`}
             </Button>
             <Button
               type="button"

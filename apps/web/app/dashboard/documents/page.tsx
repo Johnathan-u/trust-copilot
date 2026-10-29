@@ -17,9 +17,15 @@ import {
   BulkDeleteConfirmationModal,
   MetadataEditorModal,
   RegistryRowActionsMenu,
+  Toast,
+  ToastViewport,
 } from '@/components/ui'
 import { useAuth } from '@/contexts/AuthContext'
-import type { ApiFailurePresentation } from '@/lib/api-error'
+import {
+  mutationFailureNotice,
+  type ApiFailurePresentation,
+} from '@/lib/api-error'
+import { actionVerb, confirmedActionNotice } from '@/lib/action-copy'
 import { useKeyedGeneration } from '@/components/ui/useKeyedGeneration'
 import { listLoadFlags } from '@/lib/render-state'
 import {
@@ -65,6 +71,11 @@ export default function DocumentsPage() {
   const [refreshing, setRefreshing] = useState(false)
   const [uploading, setUploading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [uploadNotice, setUploadNotice] = useState<{
+    title: string
+    message: string
+    type: 'success' | 'error'
+  } | null>(null)
   const [search, setSearch] = useState('')
   const [framework, setFramework] = useState('')
   const [subjectArea, setSubjectArea] = useState('')
@@ -223,6 +234,7 @@ export default function DocumentsPage() {
     setUploading(true)
     setUploadModalOpen(false)
     setError(null)
+    setUploadNotice(null)
     const fd = new FormData()
     fd.append('workspace_id', String(workspaceId))
     fd.append('file', uploadFile)
@@ -236,12 +248,28 @@ export default function DocumentsPage() {
       body: fd,
     })
       .then(async (r) => {
-        const b = await r.json().catch(() => ({}))
-        return r.ok ? b : Promise.reject(new Error(b.detail || 'Upload failed'))
+        const data = await r.json().catch(() => null)
+        if (!r.ok) {
+          const notice = mutationFailureNotice(
+            r.status,
+            data,
+            'The file was not stored. Try again.'
+          )
+          setUploadNotice({ ...notice, type: 'error' })
+          return
+        }
+        setUploadNotice({
+          ...confirmedActionNotice('upload'),
+          type: 'success',
+        })
+        fetchDocs()
       })
-      .then(() => fetchDocs())
-      .catch((err) =>
-        setError(err instanceof Error ? err.message : 'Upload failed')
+      .catch(() =>
+        setUploadNotice({
+          title: 'Could not complete that',
+          message: 'The file was not stored. Try again.',
+          type: 'error',
+        })
       )
       .finally(() => {
         setUploading(false)
@@ -282,7 +310,13 @@ export default function DocumentsPage() {
         dependencies?: Record<string, number | string>
       }
       if (!r.ok) {
-        setError((data?.detail as string) || 'Delete failed')
+        setError(
+          mutationFailureNotice(
+            r.status,
+            data,
+            'The document was not removed. Try again.'
+          ).message
+        )
       } else {
         setDeleteDeps(data.dependencies || {})
         setDeleteDoc(null)
@@ -319,7 +353,13 @@ export default function DocumentsPage() {
       )
       const data = await r.json().catch(() => ({}))
       if (!r.ok) {
-        setError((data?.detail as string) || 'Bulk delete failed')
+        setError(
+          mutationFailureNotice(
+            r.status,
+            data,
+            'The documents were not removed. Try again.'
+          ).message
+        )
       } else {
         setSelectedIds(new Set())
         setBulkDeleteOpen(false)
@@ -389,12 +429,16 @@ export default function DocumentsPage() {
             <Button
               type="button"
               loading={uploading}
+              aria-busy={uploading}
+              data-upload-state={uploading ? 'pending' : 'idle'}
               onClick={(e) => {
                 e.preventDefault()
                 document.getElementById('doc-upload')?.click()
               }}
             >
-              {uploading ? 'Uploading…' : 'Choose file'}
+              {uploading
+                ? actionVerb('upload', 'pending')
+                : actionVerb('upload', 'idle')}
             </Button>
           </label>
         </Card>
@@ -738,10 +782,22 @@ export default function DocumentsPage() {
             >
               Cancel
             </button>
-            <Button onClick={confirmUpload}>Upload</Button>
+            <Button onClick={confirmUpload}>
+              {actionVerb('upload', 'idle')}
+            </Button>
           </div>
         </div>
       </Modal>
+      {uploadNotice && (
+        <ToastViewport>
+          <Toast
+            title={uploadNotice.title}
+            message={uploadNotice.message}
+            type={uploadNotice.type}
+            onDismiss={() => setUploadNotice(null)}
+          />
+        </ToastViewport>
+      )}
     </div>
   )
 }

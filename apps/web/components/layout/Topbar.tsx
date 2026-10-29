@@ -5,7 +5,11 @@ import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { useAuth } from '@/contexts/AuthContext'
 import { ErrorState } from '@/components/ui'
-import type { ApiFailurePresentation } from '@/lib/api-error'
+import {
+  mutationFailureNotice,
+  type ApiFailurePresentation,
+} from '@/lib/api-error'
+import { actionVerb } from '@/lib/action-copy'
 import {
   listFromPayload,
   loadSection,
@@ -101,6 +105,8 @@ export function Topbar({ navOpen, onToggleNav, menuButtonRef }: TopbarProps) {
   const menuRef = useRef<HTMLDivElement>(null)
 
   const [aiSaving, setAiSaving] = useState(false)
+  const [aiSaved, setAiSaved] = useState(false)
+  const [aiSaveError, setAiSaveError] = useState<string | null>(null)
   const [automateEverything, setAutomateEverything] = useState(false)
 
   const visibleNav = useMemo(
@@ -308,6 +314,8 @@ export function Topbar({ navOpen, onToggleNav, menuButtonRef }: TopbarProps) {
   const saveAiSettings = async () => {
     if (!isAdmin) return
     setAiSaving(true)
+    setAiSaved(false)
+    setAiSaveError(null)
     try {
       const styleConfig = RESPONSE_STYLES.find((s) => s.value === responseStyle)
       const temperature = styleConfig?.temperature ?? 0.35
@@ -315,7 +323,7 @@ export function Topbar({ navOpen, onToggleNav, menuButtonRef }: TopbarProps) {
         aiModel && AI_MODEL_OPTIONS.some((m) => m.value === aiModel)
           ? aiModel
           : null
-      await fetch('/api/workspaces/current', {
+      const response = await fetch('/api/workspaces/current', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
@@ -324,6 +332,20 @@ export function Topbar({ navOpen, onToggleNav, menuButtonRef }: TopbarProps) {
           ai_temperature: temperature,
         }),
       })
+      const data = await response.json().catch(() => null)
+      if (!response.ok) {
+        setAiSaveError(
+          mutationFailureNotice(
+            response.status,
+            data,
+            'The change was not saved. Try again.'
+          ).message
+        )
+        return
+      }
+      setAiSaved(true)
+    } catch {
+      setAiSaveError('The change was not saved. Try again.')
     } finally {
       setAiSaving(false)
     }
@@ -684,8 +706,23 @@ export function Topbar({ navOpen, onToggleNav, menuButtonRef }: TopbarProps) {
                         disabled={aiSaving}
                         className="w-full rounded-lg border border-white/10 bg-white/5 py-1.5 text-[11px] font-medium text-[var(--tc-text)] hover:bg-white/10 disabled:opacity-50 transition-colors"
                       >
-                        {aiSaving ? 'Saving...' : 'Save for workspace'}
+                        {aiSaving
+                          ? actionVerb('save', 'pending')
+                          : `${actionVerb('save', 'idle')} for workspace`}
                       </button>
+                      {aiSaved && !aiSaving ? (
+                        <p className="text-[11px] text-[var(--tc-success)]">
+                          {actionVerb('save', 'success')}
+                        </p>
+                      ) : null}
+                      {aiSaveError ? (
+                        <p
+                          role="alert"
+                          className="text-[11px] text-[var(--tc-danger)]"
+                        >
+                          {aiSaveError}
+                        </p>
+                      ) : null}
                     </div>
 
                     <div className="mt-3 pt-3 border-t border-white/5">
