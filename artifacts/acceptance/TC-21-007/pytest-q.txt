@@ -1,0 +1,15 @@
+SHA 8ac53bb71ea790f5997d3427caa3b4a48cfb1671
+parent of the evidence commit: 8ac53bb71ea790f5997d3427caa3b4a48cfb1671
+working directory: apps/api
+command: python -m pytest tests/release/test_domain_compliance_coverage.py -q
+interpreter: /tmp/tc-venv/bin/python
+alembic heads: tc21005_mapping_version (head)
+
+....                                                                     [100%]
+4 passed, 70 warnings in 2.08s
+exit status: 0
+
+working directory: apps/web
+command: npm run test:unit -- lib/coverageConsumer.test.ts
+4 passed
+exit status: 0
