@@ -830,6 +830,7 @@ def _lock_wait_visible() -> bool:
                 SELECT 1
                 FROM pg_stat_activity
                 WHERE pid <> pg_backend_pid()
+                  AND datname = current_database()
                   AND wait_event_type = 'Lock'
                   AND wait_event IN ('advisory', 'transactionid', 'tuple')
                 UNION ALL
@@ -837,6 +838,11 @@ def _lock_wait_visible() -> bool:
                 FROM pg_locks
                 WHERE NOT granted
                   AND locktype IN ('advisory', 'transactionid', 'tuple')
+                  AND pid IN (
+                    SELECT pid
+                    FROM pg_stat_activity
+                    WHERE datname = current_database()
+                  )
                 LIMIT 1
                 """
             )
@@ -890,30 +896,35 @@ def test_decision_and_resolve_race_for_one_open_gap(client):
         response = local.post(path, json=body, headers={"Idempotency-Key": raw_key})
         outcomes.append((raw_key, response.status_code, response.json()))
 
-    with patch("app.api.routes.evidence_gaps._update_open_gap", side_effect=update_and_hold):
-        decision = threading.Thread(
-            target=post,
-            args=(
-                f"/api/evidence-gaps/{gap_id}/decision",
-                {"status": "accepted"},
-                "race-decide",
-            ),
-        )
-        decision.start()
-        assert holding.wait(timeout=8), "decision never locked the open row"
-        resolve = threading.Thread(
-            target=post,
-            args=(
-                f"/api/evidence-gaps/{gap_id}/resolve",
-                {"evidence_id": evidence_id},
-                "race-resolve",
-            ),
-        )
-        resolve.start()
-        assert _wait_for_lock(), "resolve did not wait on the open-row lock"
+    decision = threading.Thread(
+        target=post,
+        args=(
+            f"/api/evidence-gaps/{gap_id}/decision",
+            {"status": "accepted"},
+            "race-decide",
+        ),
+    )
+    resolve = threading.Thread(
+        target=post,
+        args=(
+            f"/api/evidence-gaps/{gap_id}/resolve",
+            {"evidence_id": evidence_id},
+            "race-resolve",
+        ),
+    )
+    try:
+        with patch("app.api.routes.evidence_gaps._update_open_gap", side_effect=update_and_hold):
+            decision.start()
+            assert holding.wait(timeout=8), "decision never locked the open row"
+            resolve.start()
+            assert _wait_for_lock(), "resolve did not wait on the open-row lock"
+    finally:
         release.set()
-        decision.join(timeout=8)
-        resolve.join(timeout=8)
+        for t in (decision, resolve):
+            if t.ident is not None:
+                t.join(timeout=10)
+    for t in (decision, resolve):
+        assert not t.is_alive()
     assert sorted(item[1] for item in outcomes) == [200, 409], outcomes
     winner = next(item for item in outcomes if item[1] == 200)
     loser = next(item for item in outcomes if item[1] == 409)
@@ -985,25 +996,30 @@ def test_scan_and_manual_create_leave_one_open_control_gap(client):
             response = local.post(path, json=body)
         codes.append(response.status_code)
 
-    with patch(
-        "app.api.routes.compliance_gaps._lock_control_gap_writes",
-        side_effect=lock_and_hold,
-    ):
-        scan = threading.Thread(target=call, args=("/api/compliance/gaps/scan-and-notify", None))
-        scan.start()
-        assert holding.wait(timeout=8), "scan never took the control lock"
-        create = threading.Thread(
-            target=call,
-            args=(
-                "/api/evidence-gaps",
-                {"gap_type": CONTROL_CHECK, "control_id": control_id},
-            ),
-        )
-        create.start()
-        assert _wait_for_lock(), "create did not wait on the control advisory lock"
+    scan = threading.Thread(target=call, args=("/api/compliance/gaps/scan-and-notify", None))
+    create = threading.Thread(
+        target=call,
+        args=(
+            "/api/evidence-gaps",
+            {"gap_type": CONTROL_CHECK, "control_id": control_id},
+        ),
+    )
+    try:
+        with patch(
+            "app.api.routes.compliance_gaps._lock_control_gap_writes",
+            side_effect=lock_and_hold,
+        ):
+            scan.start()
+            assert holding.wait(timeout=8), "scan never took the control lock"
+            create.start()
+            assert _wait_for_lock(), "create did not wait on the control advisory lock"
+    finally:
         release.set()
-        scan.join(timeout=8)
-        create.join(timeout=8)
+        for t in (scan, create):
+            if t.ident is not None:
+                t.join(timeout=10)
+    for t in (scan, create):
+        assert not t.is_alive()
     assert sorted(codes) in ([200, 200], [200, 201]), codes
     session = _db()
     try:
