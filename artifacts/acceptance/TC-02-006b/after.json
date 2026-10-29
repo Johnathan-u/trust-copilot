@@ -1,0 +1,10 @@
+{
+  "rule": "react-hooks/set-state-in-effect",
+  "level": "error",
+  "command": "npm run lint",
+  "cwd": "apps/web",
+  "exitStatus": 0,
+  "errorCount": 0,
+  "warningCount": 0,
+  "findingCount": 0
+}

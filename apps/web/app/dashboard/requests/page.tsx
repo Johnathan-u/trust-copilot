@@ -20,6 +20,7 @@ import {
 } from '@/lib/section-load'
 import { presentHttpFailure } from '@/lib/api-error'
 import { pageMode, type FailedSection } from '@/lib/ui-state'
+import { useKeyedGeneration } from '@/components/ui/useKeyedGeneration'
 
 /* ──────────────────── Types ──────────────────── */
 
@@ -112,9 +113,7 @@ export default function RequestsPage() {
   } | null>(null)
   const [copied, setCopied] = useState(false)
 
-  const load = useCallback(() => {
-    setLoading(true)
-    setLoadFailure(null)
+  const queryRequests = useCallback(() => {
     void loadAttempt
     const requestsPromise = loadSection(
       fetch('/api/vendor-requests', { credentials: 'include' }),
@@ -182,10 +181,24 @@ export default function RequestsPage() {
       .finally(() => setLoading(false))
   }, [workspace, loadAttempt])
 
+  const load = useCallback(() => {
+    setLoading(true)
+    setLoadFailure(null)
+    queryRequests()
+  }, [queryRequests])
+
+  const requestKey = useKeyedGeneration(
+    `${canEdit ? '1' : '0'}|${workspace?.id ?? ''}|${loadAttempt}`
+  )
+  if (requestKey.changed) {
+    setLoading(canEdit)
+    if (canEdit) setLoadFailure(null)
+  }
+
   useEffect(() => {
-    if (canEdit) load()
-    else setLoading(false)
-  }, [canEdit, load])
+    if (!canEdit) return
+    queryRequests()
+  }, [canEdit, queryRequests])
 
   if (!canEdit) {
     return (

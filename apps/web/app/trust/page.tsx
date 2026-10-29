@@ -1,9 +1,10 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { Card } from '@/components/ui'
+import { trustLandingPath } from '@/lib/render-state'
 
 /**
  * In local/dev, NEXT_PUBLIC_TRUST_DEFAULT_SLUG can be set to auto-redirect
@@ -14,16 +15,13 @@ const DEFAULT_SLUG = process.env.NEXT_PUBLIC_TRUST_DEFAULT_SLUG || ''
 
 export default function TrustLandingPage() {
   const router = useRouter()
-  const [redirecting, setRedirecting] = useState(false)
+  const redirectPath = trustLandingPath(DEFAULT_SLUG)
 
   useEffect(() => {
-    if (DEFAULT_SLUG) {
-      setRedirecting(true)
-      router.replace(`/trust/${DEFAULT_SLUG}`)
-    }
-  }, [router])
+    if (redirectPath) router.replace(redirectPath)
+  }, [router, redirectPath])
 
-  if (redirecting) {
+  if (redirectPath) {
     return (
       <div className="flex min-h-screen items-center justify-center">
         <span className="inline-block h-6 w-6 animate-spin rounded-full border-2 border-[var(--tc-muted)] border-t-[var(--tc-primary)]" />

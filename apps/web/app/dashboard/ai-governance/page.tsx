@@ -13,6 +13,7 @@ import {
   sectionFailure,
 } from '@/lib/section-load'
 import { pageMode, type FailedSection } from '@/lib/ui-state'
+import { useKeyedGeneration } from '@/components/ui/useKeyedGeneration'
 
 type ConfDist = { high: number; medium: number; low: number; none: number }
 
@@ -117,8 +118,7 @@ export default function AIInsightsPage() {
   const [partialFailed, setPartialFailed] = useState<FailedSection[]>([])
   const [advOpen, setAdvOpen] = useState(false)
 
-  const fetchInsights = useCallback(() => {
-    setLoadFailure(null)
+  const queryInsights = useCallback(() => {
     Promise.all([
       loadSection(
         fetch('/api/ai-insights', { credentials: 'include' }),
@@ -161,10 +161,14 @@ export default function AIInsightsPage() {
       .finally(() => setLoading(false))
   }, [])
 
+  const fetchInsights = useCallback(() => {
+    setLoadFailure(null)
+    queryInsights()
+  }, [queryInsights])
+
   useEffect(() => {
-    setLoading(true)
-    fetchInsights()
-  }, [fetchInsights])
+    queryInsights()
+  }, [queryInsights])
 
   useEffect(() => {
     const id = setInterval(fetchInsights, 60_000)
@@ -741,10 +745,15 @@ function AdvancedSettings({ onToast }: { onToast: (m: string) => void }) {
   const [settingsFailure, setSettingsFailure] =
     useState<ApiFailurePresentation | null>(null)
   const [settingsAttempt, setSettingsAttempt] = useState(0)
-
-  useEffect(() => {
+  const settingsKey = useKeyedGeneration(String(settingsAttempt), {
+    runOnMount: false,
+  })
+  if (settingsKey.changed) {
     setLoading(true)
     setSettingsFailure(null)
+  }
+
+  useEffect(() => {
     fetch('/api/ai-governance/settings', { credentials: 'include' })
       .then((r) => readSectionJson(r))
       .then((data) => {

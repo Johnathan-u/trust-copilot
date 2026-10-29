@@ -6,6 +6,7 @@ import { ErrorState, LoadingState } from '@/components/ui'
 import { useAuth } from '@/contexts/AuthContext'
 import type { ApiFailurePresentation } from '@/lib/api-error'
 import { failureOf, isAbortError, readSectionJson } from '@/lib/section-load'
+import { useKeyedGeneration } from '@/components/ui/useKeyedGeneration'
 
 /* ── Types ── */
 
@@ -128,9 +129,7 @@ export default function SecurityPage() {
     null
   )
 
-  const loadAll = useCallback(() => {
-    setLoading(true)
-    setLoadFailure(null)
+  const querySecurity = useCallback(() => {
     Promise.all([
       fetch('/api/auth/sessions', { credentials: 'include' }).then((r) =>
         readSectionJson(r)
@@ -169,9 +168,21 @@ export default function SecurityPage() {
       .finally(() => setLoading(false))
   }, [isAdmin])
 
+  const loadAll = useCallback(() => {
+    setLoading(true)
+    setLoadFailure(null)
+    querySecurity()
+  }, [querySecurity])
+
+  const securityKey = useKeyedGeneration(isAdmin ? '1' : '0')
+  if (securityKey.changed) {
+    setLoading(true)
+    setLoadFailure(null)
+  }
+
   useEffect(() => {
-    loadAll()
-  }, [loadAll])
+    querySecurity()
+  }, [querySecurity])
 
   const mfaEnabled = mfaStatus?.enabled ?? mfa_enrolled ?? false
   const otherSessions = sessions.filter((s) => !s.current)

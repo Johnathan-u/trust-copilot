@@ -12,6 +12,7 @@ import {
 import { useAuth } from '@/contexts/AuthContext'
 import type { ApiFailurePresentation } from '@/lib/api-error'
 import { failureOf, isAbortError, readSectionJson } from '@/lib/section-load'
+import { useKeyedGeneration } from '@/components/ui/useKeyedGeneration'
 import { deleteNotificationPolicy } from '@/lib/notification-policy-delete'
 import { toggleNotificationPolicy } from '@/lib/notification-policy-toggle'
 import {
@@ -199,9 +200,7 @@ export default function ComplianceAlertsPage() {
       .catch(() => {})
   }, [canAdmin])
 
-  const load = useCallback(() => {
-    setLoading(true)
-    setLoadFailure(null)
+  const queryAlerts = useCallback(() => {
     Promise.all([
       fetch('/api/compliance-alerts/active', { credentials: 'include' }).then(
         (r) => readSectionJson(r)
@@ -248,10 +247,22 @@ export default function ComplianceAlertsPage() {
       .finally(() => setLoading(false))
   }, [logPage])
 
+  const load = useCallback(() => {
+    setLoading(true)
+    setLoadFailure(null)
+    queryAlerts()
+  }, [queryAlerts])
+
+  const alertsKey = useKeyedGeneration(`${canAdmin ? '1' : '0'}|${logPage}`)
+  if (alertsKey.changed) {
+    setLoading(canAdmin)
+    if (canAdmin) setLoadFailure(null)
+  }
+
   useEffect(() => {
-    if (canAdmin) load()
-    else setLoading(false)
-  }, [canAdmin, load])
+    if (!canAdmin) return
+    queryAlerts()
+  }, [canAdmin, queryAlerts])
 
   useEffect(() => {
     if (!canAdmin) return

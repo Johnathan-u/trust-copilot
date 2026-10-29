@@ -19,6 +19,11 @@ import { useAuth } from '@/contexts/AuthContext'
 import type { ApiFailurePresentation } from '@/lib/api-error'
 import { failureOf, isAbortError, readSectionJson } from '@/lib/section-load'
 import { useAISettings } from '@/contexts/AISettingsContext'
+import { useKeyedGeneration } from '@/components/ui/useKeyedGeneration'
+import {
+  shouldClearCitationTags,
+  wholeSecondsBetween,
+} from '@/lib/render-state'
 import {
   answerStatusLabel,
   formatGenerationElapsed,
@@ -114,12 +119,16 @@ export default function ReviewPage() {
   )
   const [apiReachable, setApiReachable] = useState<boolean | null>(null)
 
+  const drawerOpen = citationDrawer != null
+  const [seenDrawerOpen, setSeenDrawerOpen] = useState(drawerOpen)
+  if (seenDrawerOpen !== drawerOpen) {
+    if (shouldClearCitationTags(seenDrawerOpen, drawerOpen)) setCitationTags({})
+    setSeenDrawerOpen(drawerOpen)
+  }
+
   // Fetch parent-document tags when citation drawer opens
   useEffect(() => {
-    if (!citationDrawer) {
-      setCitationTags({})
-      return
-    }
+    if (!citationDrawer) return
     const chunkIds = citationDrawer.citations
       .map((c) => c.chunk_id)
       .filter((id): id is number => id != null)
@@ -153,9 +162,8 @@ export default function ReviewPage() {
     return () => clearTimeout(t)
   }, [workspaceId])
 
-  const refresh = useCallback(() => {
+  const queryReview = useCallback(() => {
     if (!id || workspaceId == null) return
-    setLoadError(false)
     const url = `/api/questionnaires/${id}?workspace_id=${workspaceId}&_t=${Date.now()}`
     fetch(url, {
       credentials: 'include',
@@ -205,9 +213,18 @@ export default function ReviewPage() {
       })
   }, [id, workspaceId])
 
+  const refresh = useCallback(() => {
+    if (!id || workspaceId == null) return
+    setLoadError(false)
+    queryReview()
+  }, [id, workspaceId, queryReview])
+
+  const reviewKey = useKeyedGeneration(`${id ?? ''}|${workspaceId ?? ''}`)
+  if (reviewKey.changed && id && workspaceId != null) setLoadError(false)
+
   useEffect(() => {
-    refresh()
-  }, [refresh])
+    queryReview()
+  }, [queryReview])
 
   const saveAnswer = useCallback(
     async (
@@ -583,19 +600,25 @@ export default function ReviewPage() {
     return () => clearInterval(t)
   }, [genJobId, exportJobId, pollJob])
 
+  const generationTicking = Boolean(genJobId) || isGenerateRequestInFlight
+  const generationKey = useKeyedGeneration(generationTicking ? '1' : '0', {
+    runOnMount: false,
+  })
+  if (generationKey.changed && !generationTicking) setGenElapsedSeconds(0)
+
   // Elapsed-time ticker so user sees the page is alive (not frozen) during long runs
   useEffect(() => {
-    if (!genJobId && !isGenerateRequestInFlight) {
-      setGenElapsedSeconds(0)
-      return
-    }
+    if (!generationTicking) return
     const start = genPollStartedAt.current ?? Date.now()
     const tick = () =>
-      setGenElapsedSeconds(Math.floor((Date.now() - start) / 1000))
-    tick()
-    const id = setInterval(tick, 1000)
-    return () => clearInterval(id)
-  }, [genJobId, isGenerateRequestInFlight])
+      setGenElapsedSeconds(wholeSecondsBetween(Date.now(), start))
+    const immediate = window.setTimeout(tick, 0)
+    const timer = window.setInterval(tick, 1000)
+    return () => {
+      window.clearTimeout(immediate)
+      window.clearInterval(timer)
+    }
+  }, [generationTicking, genJobId, isGenerateRequestInFlight])
 
   if (!qnr) {
     return (

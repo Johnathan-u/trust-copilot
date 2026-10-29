@@ -15,6 +15,8 @@ import {
 import { ListSkeleton } from '@/components/ui/Skeleton'
 import { useAuth } from '@/contexts/AuthContext'
 import type { ApiFailurePresentation } from '@/lib/api-error'
+import { useKeyedGeneration } from '@/components/ui/useKeyedGeneration'
+import { listLoadFlags } from '@/lib/render-state'
 import {
   failureOf,
   isAbortError,
@@ -115,14 +117,8 @@ export default function TrustCenterPage() {
     useState<ApiFailurePresentation | null>(null)
   const [policiesAttempt, setPoliciesAttempt] = useState(0)
   const [acknowledged, setAcknowledged] = useState<Set<number>>(new Set())
-  const load = () => {
-    if (workspaceId == null) {
-      setLoading(false)
-      return
-    }
-    if (articles.length === 0) setLoading(true)
-    setRefreshing(true)
-    setLoadFailure(null)
+  const queryArticles = () => {
+    if (workspaceId == null) return
     fetch(`/api/trust-articles?workspace_id=${workspaceId}`, {
       credentials: 'include',
     })
@@ -142,8 +138,31 @@ export default function TrustCenterPage() {
       })
   }
 
+  const load = () => {
+    if (workspaceId == null) {
+      setLoading(false)
+      return
+    }
+    if (articles.length === 0) setLoading(true)
+    setRefreshing(true)
+    setLoadFailure(null)
+    queryArticles()
+  }
+
+  const articleKey = useKeyedGeneration(`${workspaceId ?? ''}`)
+  if (articleKey.changed) {
+    const flags = listLoadFlags({
+      enabled: workspaceId != null,
+      hasRows: articles.length > 0,
+    })
+    if (flags.loading !== null) setLoading(flags.loading)
+    if (flags.refreshing) setRefreshing(true)
+    if (flags.clearFailure) setLoadFailure(null)
+  }
+
   useEffect(() => {
-    load()
+    if (workspaceId == null) return
+    queryArticles()
     // eslint-disable-next-line react-hooks/exhaustive-deps -- pre-existing: load() is re-created every render; adding it would refetch in a loop (TC-02-006 follow-up)
   }, [workspaceId])
 
