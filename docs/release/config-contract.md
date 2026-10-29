@@ -19,6 +19,11 @@ Source of truth: `apps/api/app/core/config_contract.py`. The table between the m
 * Error messages list variable names and reasons only, never values.
 * **Non-production**: only malformed values that would crash `Settings()` and unknown `APP_ENV` values are fatal;
   everything else is reported as a warning.
+* **Rate limiting.** Unless `REDIS_URL` is set, the limiter in `app.core.rate_limit` is in-memory and
+  per-process. The Redis backend fails open on store errors for every route except `POST /api/workspaces`.
+  In production that route fails closed (HTTP 503, a generic detail, and `Retry-After`) because workspace
+  creation is rare and abuse-sensitive. Development and test keep the fail-open behaviour and log a warning.
+  The log does not include store addresses or other secret values.
 
 ## Owner-account / infrastructure prerequisites
 
