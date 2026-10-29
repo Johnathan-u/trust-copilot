@@ -5,6 +5,7 @@ import { Button } from './Button'
 import { useDialogBehavior } from './useDialogBehavior'
 import {
   dialogAttributes,
+  dialogContentClass,
   dialogPlacementClass,
   dialogSizeClass,
   type DialogPlacement,
@@ -86,6 +87,7 @@ export function Dialog({
         style={{ background: 'var(--tc-overlay)' }}
         onClick={close}
         aria-hidden="true"
+        {...{ [dialogAttributes.backdrop]: '' }}
       />
       <div
         ref={dialogRef}
@@ -121,7 +123,7 @@ export function Dialog({
             {description}
           </p>
         ) : null}
-        <div className="text-tc-text">{children}</div>
+        <div className={dialogContentClass}>{children}</div>
       </div>
     </div>
   )

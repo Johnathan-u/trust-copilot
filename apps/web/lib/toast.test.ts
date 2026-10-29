@@ -3,9 +3,11 @@ import { apiErrorAnnouncement } from '@/lib/api-error'
 import {
   autoDismissMs,
   DEFAULT_STATUS_DISMISS_MS,
+  isPersistentToastLiveHost,
   liveRegionForSeverity,
   persistentToastRegions,
   TOAST_ALERT_REGION_ID,
+  TOAST_LIVE_ROOT_ID,
   TOAST_STATUS_REGION_ID,
   toastRegionId,
 } from '@/lib/toast'
@@ -43,6 +45,10 @@ describe('toast announcement policy', () => {
     }
     expect(toastRegionId('error')).toBe(TOAST_ALERT_REGION_ID)
     expect(TOAST_STATUS_REGION_ID).not.toBe(TOAST_ALERT_REGION_ID)
+    expect(isPersistentToastLiveHost(TOAST_LIVE_ROOT_ID)).toBe(true)
+    expect(isPersistentToastLiveHost(TOAST_STATUS_REGION_ID)).toBe(true)
+    expect(isPersistentToastLiveHost(TOAST_ALERT_REGION_ID)).toBe(true)
+    expect(isPersistentToastLiveHost('main-content')).toBe(false)
   })
 
   it('does not auto-dismiss a toast that has an action button', () => {

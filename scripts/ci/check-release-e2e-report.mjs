@@ -17,10 +17,12 @@
  *     --axe-dir artifacts/acceptance/TC-14-006 \
  *     --axe-dir artifacts/acceptance/TC-14-003a \
  *     --axe-dir artifacts/acceptance/TC-16-BUG-001 \
+ *     --axe-dir artifacts/acceptance/TC-14-006b \
  *     --require-spec e2e/release/design-tokens.spec.ts --min-tests 4 \
  *     --require-spec e2e/release/responsive-shell.spec.ts --min-tests 8 \
  *     --require-spec e2e/release/dialog-toast.spec.ts --min-tests 8 \
- *     --require-spec e2e/release/settings-access.spec.ts --min-tests 3
+ *     --require-spec e2e/release/settings-access.spec.ts --min-tests 3 \
+ *     --require-spec e2e/release/drawer-followups.spec.ts --min-tests 3
  */
 import { existsSync, readFileSync, readdirSync } from 'node:fs'
 import path from 'node:path'
