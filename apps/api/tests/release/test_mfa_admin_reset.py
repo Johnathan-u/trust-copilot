@@ -13,7 +13,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.core.password import hash_password
-from tests.release.committed_rows import OWNED, assert_back_to_baseline, counts, delete_owned
+from tests.release.conftest import OWNED, assert_back_to_baseline, counts, delete_owned
 from app.models.audit_event import AuditEvent
 from app.models.user import User, WorkspaceMember
 from app.models.user_mfa import UserMfa

@@ -27,7 +27,7 @@ from app.models.credential_store import CredentialStore
 from app.models.user import User
 from app.models.user_mfa import UserMfa
 from app.models.user_session import UserSession
-from tests.release.committed_rows import OWNED, assert_back_to_baseline, counts, delete_owned
+from tests.release.conftest import OWNED, assert_back_to_baseline, counts, delete_owned
 
 MFA_A = "synthetic-example-mfa-key-0123456789abcdef"
 MFA_B = "synthetic-example-mfa-key-fedcba9876543210"
