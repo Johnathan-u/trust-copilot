@@ -4,6 +4,7 @@ import logging
 from datetime import datetime
 
 from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
@@ -845,7 +846,7 @@ def set_evidence_verified(
     return out
 
 
-@router.post("/{control_id}/evidence", response_model=dict)
+@router.post("/{control_id}/evidence", response_model=dict, status_code=201)
 def link_evidence(
     control_id: int,
     body: LinkEvidenceBody,
@@ -883,7 +884,7 @@ def link_evidence(
         .first()
     )
     if existing:
-        return _link_dict(existing)
+        return JSONResponse(status_code=200, content=_link_dict(existing))
     link = ControlEvidenceLink(
         control_id=control_id,
         evidence_id=body.evidence_id,
@@ -905,7 +906,7 @@ def link_evidence(
         )
         if existing is None:
             raise
-        return _link_dict(existing)
+        return JSONResponse(status_code=200, content=_link_dict(existing))
     except Exception:
         db.rollback()
         raise

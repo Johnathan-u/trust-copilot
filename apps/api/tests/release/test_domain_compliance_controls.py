@@ -280,14 +280,22 @@ def test_verify_requires_qualifying_evidence_and_retry_is_stable(client):
         == 403
     )
     _login(client, ADMIN_EMAIL, ADMIN_PASSWORD)
+    session = _db()
+    try:
+        fresh_evidence = _evidence(
+            session, actors["workspace_id"], approval="approved", document_id=None
+        )
+        session.commit()
+    finally:
+        session.close()
     linked = client.post(
         f"/api/compliance/controls/{created['id']}/evidence",
-        json={"evidence_id": evidence_id},
+        json={"evidence_id": fresh_evidence},
     )
-    assert linked.status_code == 200, linked.text
+    assert linked.status_code == 201, linked.text
     replay = client.post(
         f"/api/compliance/controls/{created['id']}/evidence",
-        json={"evidence_id": evidence_id},
+        json={"evidence_id": fresh_evidence},
     )
     assert replay.status_code == 200
     assert replay.json()["id"] == linked.json()["id"]
@@ -298,7 +306,7 @@ def test_verify_requires_qualifying_evidence_and_retry_is_stable(client):
                 "SELECT count(*) FROM control_evidence_links "
                 "WHERE control_id = :c AND evidence_id = :e"
             ),
-            {"c": created["id"], "e": evidence_id},
+            {"c": created["id"], "e": fresh_evidence},
         ).scalar()
         assert count == 1
         foreign = _evidence(
