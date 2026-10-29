@@ -23,7 +23,6 @@ export type FrameworkCatalogItem = {
   enablement_state?: string | null
   catalog_kind?: string | null
   production_catalog?: boolean
-  rights_ticket?: string | null
   contract_version?: string | null
   content_version?: string | null
   content_origin?: string | null
@@ -45,7 +44,6 @@ export type FrameworkCatalogError = {
   rights_status?: string | null
   licence_status?: string | null
   enablement_state?: string | null
-  rights_ticket?: string | null
   partial_failure?: boolean
   steps?: Array<Record<string, string>> | null
 }
@@ -100,7 +98,11 @@ export function catalogDisplayState(
   return 'blocked'
 }
 
-/** Rights column. Never render the stored rights_status enum. */
+/**
+ * Rights column. The argument is ignored on purpose: every advertised framework
+ * stays "Pending content licensing" until TC-01-007 content licensing clears.
+ * Change this function when that decision starts returning a cleared catalog.
+ */
 export function catalogRightsLabel(_item: FrameworkCatalogItem): string {
   return 'Pending content licensing'
 }

@@ -25,4 +25,8 @@ class ControlEvidence(Base):
     export_record_id = Column(
         Integer, ForeignKey("export_records.id", ondelete="CASCADE"), nullable=True, index=True
     )
+    # Canonical evidence item mirrored for the compliance control, when the mirror succeeded.
+    evidence_item_id = Column(
+        Integer, ForeignKey("evidence_items.id", ondelete="SET NULL"), nullable=True, index=True
+    )
     created_at = Column(DateTime, default=datetime.utcnow)
