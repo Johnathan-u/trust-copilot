@@ -1266,7 +1266,7 @@ def test_stale_owner_release_and_set_are_noops_after_reclaim(db):
 
 
 def test_legacy_owner_none_callers_keep_unconditional_behavior(db):
-    """(b) try_claim + set/release without owner (case_studies routes) behave as before TC-10-003b."""
+    """(b) try_claim + set/release without owner still behave as before TC-10-003b."""
     from app.core import idempotency
 
     key = f"owner-legacy-{uuid.uuid4().hex}"

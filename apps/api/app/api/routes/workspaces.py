@@ -9,10 +9,11 @@ from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from app.core.auth_deps import require_can_admin, require_session
-from app.core.config import get_settings
+from app.core.config import SIGNUP_POLICY_SELF_SIGNUP, get_settings
 from app.core.database import get_db
+from app.core.rate_limit import is_rate_limited, record_attempt, retry_after_seconds
 from app.core.session import sign_session
-from app.models import Workspace, WorkspaceMember
+from app.models import User, Workspace, WorkspaceMember
 from app.services.answer_generation import resolve_model
 
 router = APIRouter(prefix="/workspaces", tags=["workspaces"])
@@ -36,6 +37,49 @@ class CreateWorkspaceBody(BaseModel):
     name: str
 
 
+# TC-04-001a: who may create a workspace, how many they may administer, and how often.
+_ADMIN_ROLES = ("owner", "admin")
+_CREATE_WINDOW_SEC = 3600.0
+_CREATE_DENIED = "Workspace creation is not available for this account."
+_CREATE_CAP_REACHED = "This account has reached its workspace limit."
+_CREATE_THROTTLED = "Too many workspaces created recently. Try again later."
+
+
+def _is_deployment_operator(user: User, settings) -> bool:
+    """Host-configured operator account; requires a verified email."""
+    email = (user.email or "").strip().lower()
+    return bool(user.email_verified) and email in settings.deployment_operator_emails
+
+
+def _may_create_workspace(db: Session, user: User, settings) -> bool:
+    """Signup policy: invitation-only allows active owners/admins and deployment operators;
+    self-signup additionally allows any email-verified user."""
+    if _is_deployment_operator(user, settings):
+        return True
+    is_active_admin = (
+        db.query(WorkspaceMember.id)
+        .filter(
+            WorkspaceMember.user_id == user.id,
+            WorkspaceMember.role.in_(_ADMIN_ROLES),
+            WorkspaceMember.suspended.is_(False),
+        )
+        .first()
+        is not None
+    )
+    if is_active_admin:
+        return True
+    return settings.signup_policy == SIGNUP_POLICY_SELF_SIGNUP and bool(user.email_verified)
+
+
+def _admin_membership_count(db: Session, user_id: int) -> int:
+    return (
+        db.query(func.count(WorkspaceMember.id))
+        .filter(WorkspaceMember.user_id == user_id, WorkspaceMember.role.in_(_ADMIN_ROLES))
+        .scalar()
+        or 0
+    )
+
+
 @router.post("")
 async def create_workspace(
     body: CreateWorkspaceBody,
@@ -44,13 +88,33 @@ async def create_workspace(
     session: dict = Depends(require_session),
     db: Session = Depends(get_db),
 ):
-    """Create a new workspace; current user becomes admin (B3). Reissues session cookie with new workspace context."""
+    """Create a new workspace; current user becomes admin (B3). Reissues session cookie with new workspace context.
+
+    Subject to the signup policy (403), a per-user hourly throttle (429 with
+    Retry-After) and a per-user cap on owner/admin memberships (409)."""
     user_id = session.get("user_id")
     if not user_id:
         raise HTTPException(status_code=401, detail="Not authenticated")
+    settings = get_settings()
+    # Lock the user row so concurrent requests cannot both pass the cap check.
+    user = db.query(User).filter(User.id == user_id).with_for_update().first()
+    if not user:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    if not _may_create_workspace(db, user, settings):
+        raise HTTPException(status_code=403, detail=_CREATE_DENIED)
+    rate_key = f"workspace_create:user:{user_id}"
+    per_hour = settings.workspace_create_per_hour
+    if is_rate_limited(rate_key, max_attempts=per_hour, window_sec=_CREATE_WINDOW_SEC):
+        raise HTTPException(
+            status_code=429,
+            detail=_CREATE_THROTTLED,
+            headers={"Retry-After": str(retry_after_seconds(rate_key, _CREATE_WINDOW_SEC))},
+        )
     name = (body.name or "").strip()
     if not name or len(name) > 255:
         raise HTTPException(status_code=400, detail="Name required (max 255 chars)")
+    if _admin_membership_count(db, user_id) >= settings.workspace_admin_cap_per_user:
+        raise HTTPException(status_code=409, detail=_CREATE_CAP_REACHED)
     slug = _slug_from_name(name)
     existing = db.query(Workspace).filter(Workspace.slug == slug).first()
     if existing:
@@ -62,6 +126,7 @@ async def create_workspace(
     db.add(WorkspaceMember(workspace_id=ws.id, user_id=user_id, role="admin"))
     db.commit()
     db.refresh(ws)
+    record_attempt(rate_key, max_attempts=per_hour, window_sec=_CREATE_WINDOW_SEC)
     session_id = session.get("session_id")
     if session_id:
         token = sign_session(

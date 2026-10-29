@@ -64,6 +64,10 @@ Source of truth: `apps/api/app/core/config_contract.py`. The table between the m
 | `SMTP_FROM` | email | conditional | no | unset | From address. Production: required when email delivery is enabled. |  |
 | `REDIS_URL` | URL | optional | yes | unset (in-memory rate limiting) | Shared rate-limit store. |  |
 | `RATE_LIMIT_RPM_PER_IP` | int >= 0 | optional | no | 120 | Per-IP request limit (0 disables). |  |
+| `SIGNUP_POLICY` | enum(invitation_only|self_signup) | optional | no | invitation_only | Who may create a workspace. `invitation_only`: existing workspace owners/admins and deployment operators only. `self_signup`: also any user with a verified email. An unknown value acts as `invitation_only` and stops a production start. |  |
+| `WORKSPACE_ADMIN_CAP_PER_USER` | int >= 1 | optional | no | 3 | Most workspaces one user may own or administer; creating beyond it is refused. |  |
+| `WORKSPACE_CREATE_PER_HOUR` | int >= 1 | optional | no | 5 | Most workspaces one user may create per hour; beyond it the request is throttled. |  |
+| `DEPLOYMENT_OPERATOR_EMAILS` | comma-separated emails | optional | no | unset | Deployment operator accounts (case-insensitive; email must be verified). Operators may create workspaces under `invitation_only`. |  |
 | `TRUSTED_PROXY_IPS` | comma-separated IPs | optional | no | unset | Proxies allowed to set X-Forwarded-For. |  |
 | `MAX_UPLOAD_BYTES` | int > 0 | optional | no | 52428800 | Upload size limit. |  |
 | `EXPORT_ANSWER_COL_OFFSET` | int | optional | no | 1 | Export answer column offset. |  |
