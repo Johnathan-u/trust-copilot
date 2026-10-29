@@ -18,6 +18,8 @@ depends_on = None
 
 _TABLE = "evidence_gaps"
 _HOLD = "tc21006_gap_eval_hold"
+# Column(index=True) on EvidenceGap.control_id. SQLAlchemy names that ix_<table>_<column>.
+_CONTROL_INDEX = "ix_evidence_gaps_control_id"
 _COLUMNS = (
     "control_id",
     "evaluation_state",
@@ -34,6 +36,10 @@ def _tables() -> set[str]:
 
 def _columns(table: str) -> set[str]:
     return {col["name"] for col in sa.inspect(op.get_bind()).get_columns(table)}
+
+
+def _index_names(table: str) -> set[str]:
+    return {idx["name"] for idx in sa.inspect(op.get_bind()).get_indexes(table)}
 
 
 def _hold_table() -> None:
@@ -64,6 +70,8 @@ def upgrade() -> None:
     for name, type_ in specs:
         if name not in columns:
             op.add_column(_TABLE, sa.Column(name, type_, nullable=True))
+    if _CONTROL_INDEX not in _index_names(_TABLE):
+        op.create_index(_CONTROL_INDEX, _TABLE, ["control_id"])
     if _HOLD not in _tables():
         _hold_table()
     op.get_bind().execute(
@@ -115,6 +123,8 @@ def downgrade() -> None:
                 """
             )
         )
+    if _CONTROL_INDEX in _index_names(_TABLE):
+        op.drop_index(_CONTROL_INDEX, table_name=_TABLE)
     for name in reversed(_COLUMNS):
         if name in columns:
             op.drop_column(_TABLE, name)

@@ -33,6 +33,7 @@ from app.models import (
 API_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
 PARENT = "tc21005_mapping_version"
 REVISION = "tc21006_gap_evaluation"
+CONTROL_INDEX = "ix_evidence_gaps_control_id"
 SLUG = "tc21006"
 ADMIN_EMAIL = "tc21006-admin@trust.local"
 EDITOR_EMAIL = "tc21006-editor@trust.local"
@@ -62,6 +63,25 @@ _COUNTED = (
 
 def _db() -> Session:
     return SessionLocal()
+
+
+def _control_index_present(session: Session) -> bool:
+    from app.models.evidence_gap import EvidenceGap
+
+    expected = {
+        idx.name
+        for idx in EvidenceGap.__table__.indexes
+        if any(column.name == "control_id" for column in idx.columns)
+    }
+    assert expected == {CONTROL_INDEX}
+    found = session.execute(
+        text(
+            "SELECT indexname FROM pg_indexes "
+            "WHERE tablename = 'evidence_gaps' AND indexname = :name"
+        ),
+        {"name": CONTROL_INDEX},
+    ).fetchall()
+    return bool(found)
 
 
 def _sync_sequence(session: Session, table: str) -> None:
@@ -520,6 +540,13 @@ def test_migration_round_trip_restores_gap_evaluation():
                     ).scalar()
                     == 0
                 )
+                assert _control_index_present(session)
+            finally:
+                session.close()
+            alembic("downgrade", PARENT)
+            session = _db()
+            try:
+                assert not _control_index_present(session)
             finally:
                 session.close()
             heads = [line.strip() for line in alembic("heads").splitlines() if "(head)" in line]
