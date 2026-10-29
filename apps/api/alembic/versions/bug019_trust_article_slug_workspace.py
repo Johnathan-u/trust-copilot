@@ -12,14 +12,14 @@ more than one row. It does not delete or rewrite rows.
 This module does not import the application package.
 
 Revision ID: bug019_article_slug_ws
-Revises: tc06001_same_workspace_refs
+Revises: tc21002_control_contract
 """
 
 import sqlalchemy as sa
 from alembic import op
 
 revision = "bug019_article_slug_ws"
-down_revision = "tc06001_same_workspace_refs"
+down_revision = "tc21002_control_contract"
 branch_labels = None
 depends_on = None
 
