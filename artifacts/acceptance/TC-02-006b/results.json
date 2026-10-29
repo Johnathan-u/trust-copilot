@@ -1,6 +1,9 @@
 {
   "ticket": "TC-02-006b",
   "base": "ebfbde94befca714adcae99590754cef7d5c7a84",
+  "implementationCommit": "433b69e8134683dbab85f9c655d8ffed6588235b",
+  "mergedMaster": "a53dc7c2661cfc6253f9dc4a16231b33fe1bce4a",
+  "mergeCommit": "85c20161097bd9c37fd15c5a86116f0e55dbab50",
   "environment": {
     "os": "Linux",
     "node": "v24.22.1",
@@ -43,9 +46,9 @@
       "command": "npm run test:unit",
       "cwd": "apps/web",
       "exitStatus": 0,
-      "files": 22,
-      "tests": 150,
-      "passed": 150,
+      "files": 24,
+      "tests": 164,
+      "passed": 164,
       "failed": 0,
       "skipped": 0
     },
@@ -55,12 +58,13 @@
       "exitStatus": 0
     },
     {
-      "command": "npx playwright test e2e/release/design-tokens.spec.ts e2e/release/responsive-shell.spec.ts e2e/release/dialog-toast.spec.ts e2e/release/settings-access.spec.ts e2e/release/state-components.spec.ts e2e/release/drawer-followups.spec.ts --retries=0",
+      "command": "npx playwright test e2e/release/design-tokens.spec.ts e2e/release/responsive-shell.spec.ts e2e/release/dialog-toast.spec.ts e2e/release/settings-access.spec.ts e2e/release/state-components.spec.ts e2e/release/drawer-followups.spec.ts e2e/release/workspace-create-denied.spec.ts --retries=0",
       "cwd": "apps/web",
       "exitStatus": 0,
-      "passed": 35,
+      "passed": 43,
       "failed": 0,
-      "note": "Suite present on ebfbde9. Checker exit 0. Other tickets' axe JSON was restored after the run."
+      "checkerExitStatus": 0,
+      "note": "Full release suite after merging origin/master a53dc7c. Checker exit 0. Other tickets' axe JSON was restored after the run."
     }
   ]
 }
