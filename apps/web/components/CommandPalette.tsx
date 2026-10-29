@@ -22,6 +22,7 @@ interface CommandPaletteProps {
   query: string
   onQueryChange: (q: string) => void
   placeholder?: string
+  alert?: React.ReactNode
 }
 
 function flattenSections(
@@ -37,6 +38,7 @@ export function CommandPalette({
   query,
   onQueryChange,
   placeholder = 'Search or jump to action…',
+  alert = null,
 }: CommandPaletteProps) {
   const inputRef = useRef<HTMLInputElement>(null)
   const listRef = useRef<HTMLDivElement>(null)
@@ -192,7 +194,8 @@ export function CommandPalette({
               </div>
             )
           })}
-          {flatItems.length === 0 && (
+          {alert}
+          {flatItems.length === 0 && !alert && (
             <div className="px-4 py-6 text-center text-sm text-[var(--tc-muted)]">
               No results. Try a different search or jump to a page above.
             </div>

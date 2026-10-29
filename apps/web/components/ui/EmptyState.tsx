@@ -5,6 +5,7 @@ interface EmptyStateProps {
   description: string
   action?: React.ReactNode
   className?: string
+  titleAs?: 'p' | 'h2'
 }
 
 export function EmptyState({
@@ -12,12 +13,17 @@ export function EmptyState({
   description,
   action,
   className = '',
+  titleAs = 'p',
 }: EmptyStateProps) {
+  const TitleTag = titleAs === 'h2' ? 'h2' : 'p'
   return (
     <div
-      className={`flex flex-col items-center justify-center px-tc-6 py-tc-12 text-center ${className}`}
+      data-state="empty"
+      className={`flex flex-col items-center justify-center px-tc-4 py-tc-12 text-center ${className}`}
     >
-      <p className="mb-tc-1 text-tc-body font-medium text-tc-text">{title}</p>
+      <TitleTag className="mb-tc-1 text-tc-body font-medium text-tc-text">
+        {title}
+      </TitleTag>
       <p className="mb-tc-4 max-w-sm text-tc-label text-tc-muted">
         {description}
       </p>

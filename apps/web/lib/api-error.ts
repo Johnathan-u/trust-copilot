@@ -80,3 +80,86 @@ export async function throwIfResponseNotOk(response: Response): Promise<void> {
   const fallback = response.statusText.trim() || 'Request failed'
   throw new Error(formatApiErrorDetail(data, fallback))
 }
+
+/**
+ * Neutral page-state copy for a failed read.
+ * The strings do not include status codes, role names, or permission flags,
+ * and they do not echo the response body.
+ */
+export const API_FAILURE_KINDS = [
+  'offline',
+  'forbidden',
+  'not_found',
+  'server',
+  'rejected',
+] as const
+
+export type ApiFailureKind = (typeof API_FAILURE_KINDS)[number]
+
+export interface ApiFailurePresentation {
+  kind: ApiFailureKind
+  title: string
+  description: string
+}
+
+const FAILURE_COPY: Record<
+  ApiFailureKind,
+  { title: string; description: string }
+> = {
+  offline: {
+    title: 'Offline',
+    description: 'The service could not be reached. Try again.',
+  },
+  forbidden: {
+    title: 'This section is not available',
+    description: 'It cannot be opened from this account.',
+  },
+  not_found: {
+    title: 'We could not find that',
+    description: 'It may have been moved or removed.',
+  },
+  server: {
+    title: 'Something went wrong',
+    description: 'The service could not complete this request. Try again.',
+  },
+  rejected: {
+    title: 'Could not load this',
+    description: 'The request did not succeed. Try again.',
+  },
+}
+
+export const MALFORMED_RESPONSE_DESCRIPTION =
+  'The response could not be read. Try again.'
+
+export function presentHttpFailure(input: {
+  status?: number | null
+  offline?: boolean
+  malformed?: boolean
+}): ApiFailurePresentation {
+  if (input.offline) return { kind: 'offline', ...FAILURE_COPY.offline }
+  if (input.malformed) {
+    return {
+      kind: 'rejected',
+      title: FAILURE_COPY.rejected.title,
+      description: MALFORMED_RESPONSE_DESCRIPTION,
+    }
+  }
+  const status = input.status ?? 0
+  if (status === 403) return { kind: 'forbidden', ...FAILURE_COPY.forbidden }
+  if (status === 404) return { kind: 'not_found', ...FAILURE_COPY.not_found }
+  if (status >= 500 && status <= 599) {
+    return { kind: 'server', ...FAILURE_COPY.server }
+  }
+  if (status === 0) return { kind: 'offline', ...FAILURE_COPY.offline }
+  return { kind: 'rejected', ...FAILURE_COPY.rejected }
+}
+
+export class ApiRequestError extends Error {
+  readonly failure: ApiFailurePresentation
+
+  constructor(failure: ApiFailurePresentation) {
+    super(failure.title)
+    this.name = 'ApiRequestError'
+    this.failure = failure
+  }
+}

@@ -8,6 +8,7 @@ import React, {
   useState,
 } from 'react'
 import type { AuthState, MeResponse } from '@/lib/auth-types'
+import { presentHttpFailure } from '@/lib/api-error'
 
 const initialState: AuthState = {
   user: null,
@@ -21,6 +22,8 @@ const initialState: AuthState = {
   },
   loading: true,
   error: null,
+  failure: null,
+  requestId: 0,
 }
 
 const AuthContext = createContext<
@@ -52,6 +55,8 @@ function parseMe(data: MeResponse): AuthState {
     },
     loading: false,
     error: null,
+    failure: null,
+    requestId: 0,
     needs_onboarding: data.needs_onboarding,
     subscription: data.subscription,
     mfa_enrolled: data.mfa_enrolled,
@@ -64,7 +69,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [state, setState] = useState<AuthState>(initialState)
 
   const refresh = useCallback(async () => {
-    setState((s) => ({ ...s, loading: true, error: null }))
+    setState((s) => ({
+      ...s,
+      loading: true,
+      error: null,
+      failure: null,
+      requestId: s.requestId + 1,
+    }))
     const controller = new AbortController()
     const timeoutId = setTimeout(() => controller.abort(), 15000)
     try {
@@ -74,24 +85,44 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       })
       clearTimeout(timeoutId)
       if (!res.ok) {
+        const failure =
+          res.status === 401 ? null : presentHttpFailure({ status: res.status })
         setState((s) => ({
           ...s,
           user: null,
           workspace: null,
           workspaces: [],
           loading: false,
-          error: res.status === 401 ? null : 'Failed to load session',
+          error: failure ? failure.title : null,
+          failure,
         }))
         return
       }
-      const data: MeResponse = await res.json()
-      setState(parseMe(data))
+      let data: MeResponse
+      try {
+        data = (await res.json()) as MeResponse
+      } catch {
+        const failure = presentHttpFailure({ malformed: true })
+        setState((s) => ({
+          ...s,
+          user: null,
+          workspace: null,
+          workspaces: [],
+          loading: false,
+          error: failure.title,
+          failure,
+        }))
+        return
+      }
+      setState((s) => ({ ...parseMe(data), requestId: s.requestId }))
     } catch {
       clearTimeout(timeoutId)
+      const failure = presentHttpFailure({ offline: true })
       setState((s) => ({
         ...s,
         loading: false,
-        error: 'Failed to load session',
+        error: failure.title,
+        failure,
       }))
     }
   }, [])
