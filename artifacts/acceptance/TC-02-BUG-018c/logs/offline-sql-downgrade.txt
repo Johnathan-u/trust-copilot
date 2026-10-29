@@ -1,0 +1,9 @@
+BEGIN;
+
+-- Running downgrade bug018c_one_open_gap_per_question -> tc21005_mapping_version
+
+DROP INDEX uq_evidence_gaps_one_open_per_question;
+
+UPDATE alembic_version SET version_num='tc21005_mapping_version' WHERE alembic_version.version_num = 'bug018c_one_open_gap_per_question';
+
+COMMIT;
