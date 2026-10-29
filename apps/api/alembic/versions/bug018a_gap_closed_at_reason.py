@@ -25,14 +25,14 @@ grammar ``resolution_note()`` writes.
 This module does not import the application package.
 
 Revision ID: bug018a_gap_closed_at_reason
-Revises: tc21002a_canonical_uniq
+Revises: tc21003_evidence_link_uniq
 """
 
 import sqlalchemy as sa
 from alembic import op
 
 revision = "bug018a_gap_closed_at_reason"
-down_revision = "tc21002a_canonical_uniq"
+down_revision = "tc21003_evidence_link_uniq"
 branch_labels = None
 depends_on = None
 

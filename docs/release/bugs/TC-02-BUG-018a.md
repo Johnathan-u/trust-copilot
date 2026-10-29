@@ -38,7 +38,7 @@ No API route sets a resolved gap back to `open`. The status helpers exist on the
 
 ## Migration
 
-Revision `bug018a_gap_closed_at_reason` (`apps/api/alembic/versions/bug018a_gap_closed_at_reason.py`). `down_revision` is master's single head at push, `tc21002a_canonical_uniq` (TC-21-002a landed on master after this branch started from `bug019_article_slug_ws`). The module does not import the application package.
+Revision `bug018a_gap_closed_at_reason` (`apps/api/alembic/versions/bug018a_gap_closed_at_reason.py`). `down_revision` is master's head when this was last pushed, `tc21003_evidence_link_uniq` (TC-21-003). It was re-parented from `bug019_article_slug_ws` onto `tc21002a_canonical_uniq` and then onto `tc21003_evidence_link_uniq` as those revisions landed. The module does not import the application package. A later migration may become the head; this revision stays an ancestor of every head.
 
 Upgrade adds the two nullable columns, then backfills. It does not write `reason`.
 

@@ -27,7 +27,7 @@ from app.models.evidence_gap import EvidenceGap
 WS_ID = 1
 API_ROOT = Path(__file__).resolve().parents[2]
 REVISION = "bug018a_gap_closed_at_reason"
-PARENT = "tc21002a_canonical_uniq"
+PARENT = "tc21003_evidence_link_uniq"
 MIGRATION = API_ROOT / "alembic" / "versions" / f"{REVISION}.py"
 
 _TRICKY_REASON = (
