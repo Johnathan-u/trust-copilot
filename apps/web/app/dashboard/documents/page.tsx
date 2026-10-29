@@ -146,7 +146,7 @@ export default function DocumentsPage() {
         setLoading(false)
         setRefreshing(false)
       })
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- loadAttempt is not read in the callback; it is listed so a retry changes the callback and refetches
   }, [
     workspaceId,
     search,
