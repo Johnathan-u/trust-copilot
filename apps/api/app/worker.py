@@ -844,11 +844,20 @@ def _clear_stale_attempt_error(
         job.error = None
 
 
-def _job_already_completed(session, job: Job) -> bool:
-    """True when the database already records ``job`` as completed (checked after a rollback)."""
+def _job_already_completed(session, job: Job, *, reraise: bool = False) -> bool:
+    """True when the database already records ``job`` as completed.
+
+    The normal failure path rolls back and returns False when the status query fails, so a
+    worker whose transaction is already broken can still classify the failure. Recovery holds
+    ``FOR UPDATE`` (TC-10-001a). Rolling back there would drop that lock after the token swap
+    and then classify without it, so ``reraise=True`` lets the error propagate. The caller
+    rolls the open transaction back, and the job stays as it was.
+    """
     try:
         status = session.query(Job.status).filter(Job.id == job.id).scalar()
     except Exception:
+        if reraise:
+            raise
         session.rollback()
         return False
     return status == JobStatus.COMPLETED.value
@@ -877,7 +886,7 @@ def _handle_job_failure(
     # Recovery holds FOR UPDATE and must not drop that lock before the status write.
     if rollback_first:
         session.rollback()
-    if _job_already_completed(session, job):
+    if _job_already_completed(session, job, reraise=not rollback_first):
         # The job's completion is already committed (e.g. a post-commit step raised). Never turn it into a
         # failure or retry, and keep the error_code it completed with (a completed job can carry a
         # non-fatal code, e.g. TC-02-BUG-015's evidence_gaps_failed).

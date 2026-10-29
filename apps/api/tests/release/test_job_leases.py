@@ -697,6 +697,42 @@ def test_one_conflict_in_a_batch_still_recovers_the_others(db, monkeypatch):
     assert conflicted.attempt == 2
 
 
+def test_recovery_reraises_when_completed_status_query_fails(db, monkeypatch):
+    """A status-query error during recovery propagates and leaves the job untouched."""
+    from app import worker
+    from app.core.database import SessionLocal
+    from app.models import Job, JobStatus
+
+    monkeypatch.setenv("JOB_RETRY_BASE_SECONDS", "0")
+    monkeypatch.setenv("JOB_RETRY_MAX_SECONDS", "0")
+    job_id = _expired_running(db)
+    owner = "ab" * 16
+    session = SessionLocal()
+    original = session.query
+
+    def query(*args, **kwargs):
+        if args and args[0] is Job.status:
+            raise RuntimeError("synthetic status query failure")
+        return original(*args, **kwargs)
+
+    session.query = query
+    try:
+        with pytest.raises(RuntimeError, match="synthetic status query failure"):
+            worker.recover_abandoned_jobs(session)
+    finally:
+        session.rollback()
+        session.close()
+    db.expire_all()
+    stored = db.get(Job, job_id)
+    assert stored.status == JobStatus.RUNNING.value
+    assert stored.lease_owner == owner
+    assert stored.attempt == 1
+    assert _seconds_left(db, job_id) < 0
+    assert not _audits(db, job_id, "job.abandoned")
+    assert not _audits(db, job_id, "job.retry_scheduled")
+    assert not _audits(db, job_id, "job.failed")
+
+
 def _prepare_worker_loop(monkeypatch, job_id: int):
     from app import worker
     from app.core.database import SessionLocal
