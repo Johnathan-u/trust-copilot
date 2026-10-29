@@ -508,7 +508,7 @@ def metrics():
 
 @app.get("/healthz")
 def healthz():
-    """Liveness (TC-03-003): process is up and serving. Never touches DB/S3/worker, so dependency
+    """Liveness: process is up and serving. Never touches DB/S3/worker, so dependency
     loss cannot make the orchestrator restart a healthy API process. Use /readyz for dependencies."""
     return {"status": "ok"}
 
