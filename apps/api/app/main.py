@@ -190,6 +190,15 @@ async def lifespan(app: FastAPI):
     from app.core.session import enforce_production_session_secret, is_production_env
 
     enforce_production_session_secret("api")
+    # TC-03-001: the rest of the configuration contract (default/placeholder DB, S3, MinIO and
+    # provider credentials, URLs, dev/demo switches) runs next, still before any DB or S3 call.
+    # It uses the same production detector (is_production_env) and fails closed in production.
+    from app.core.config_contract import enforce_startup_contract
+
+    for _problem in enforce_startup_contract("api"):
+        import logging
+
+        logging.getLogger("app.main").warning("config contract: %s", _problem)
     s = get_settings()
     print(f"FRONTEND_URL={s.frontend_url!r} trusted_origins={s.trusted_origins!r}", flush=True)
     _verify_db_connectivity()

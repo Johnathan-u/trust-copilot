@@ -12,6 +12,11 @@ from app.core.auth_deps import require_can_admin, require_can_review
 from app.core.database import get_db
 from app.models import EvidenceItem, EvidenceMetadata, EVIDENCE_SOURCE_TYPES
 from app.services.tag_service import list_tags_for_document
+from app.services.workspace_integrity import (
+    NOT_FOUND_DETAIL,
+    CrossWorkspaceReference,
+    require_same_workspace,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -38,6 +43,10 @@ def create_evidence(
         raise HTTPException(
             status_code=400, detail=f"Invalid source_type. Allowed: {EVIDENCE_SOURCE_TYPES}"
         )
+    try:
+        require_same_workspace(db, ws, document_id=body.document_id)
+    except CrossWorkspaceReference:
+        raise HTTPException(status_code=404, detail=NOT_FOUND_DETAIL)
     e = EvidenceItem(
         workspace_id=ws,
         document_id=body.document_id,
