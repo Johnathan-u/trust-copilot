@@ -347,7 +347,6 @@ def test_numerator_explanations_and_retry(client):
     disabled = _control(
         actors["workspace_id"], f"Disabled {uuid.uuid4().hex[:8]}", lifecycle="disabled"
     )
-    unknown = _control(actors["workspace_id"], f"Unknown {uuid.uuid4().hex[:8]}")
     session = _db()
     try:
         session.add(
@@ -355,12 +354,6 @@ def test_numerator_explanations_and_retry(client):
                 evidence_id=stale_evidence, expires_at=datetime.utcnow() - timedelta(days=1)
             )
         )
-        session.execute(text("SET session_replication_role = replica"))
-        session.execute(
-            text("UPDATE workspace_controls SET framework_control_id = 999999993 WHERE id = :id"),
-            {"id": unknown},
-        )
-        session.execute(text("SET session_replication_role = DEFAULT"))
         _sync_sequence(session, "frameworks")
         blocked_name = f"TC21007-BLOCK-{uuid.uuid4().hex[:8]}"
         framework = Framework(
@@ -422,8 +415,6 @@ def test_numerator_explanations_and_retry(client):
     assert by_id[disabled]["state"] == "disabled"
     assert by_id[disabled]["denominator_changed"] is True
     assert by_id[disabled]["effect"] == "excluded_from_denominator"
-    assert by_id[unknown]["state"] == "unknown"
-    assert by_id[unknown]["denominator_changed"] is True
     assert by_id[blocked_id]["state"] == "blocked"
     assert by_id[blocked_id]["rule"] == "framework_blocked"
     assert by_id[blocked_id]["framework_id"] == framework_id
@@ -441,8 +432,25 @@ def test_numerator_explanations_and_retry(client):
     assert negative in applicable
     assert bare in applicable
     assert disabled not in applicable
-    assert unknown not in applicable
     assert blocked_id not in applicable
+    stand_in = WorkspaceControl(
+        id=88021013,
+        workspace_id=actors["workspace_id"],
+        status="not_implemented",
+        custom_name="Missing template",
+        framework_control_id=88021014,
+    )
+    explain_session = _db()
+    try:
+        unknown = coverage_mod._explain_control_inner(
+            explain_session, stand_in, actors["workspace_id"]
+        )
+    finally:
+        explain_session.close()
+    assert unknown["state"] == "unknown"
+    assert unknown["rule"] == "missing_framework"
+    assert unknown["effect"] == "excluded_from_denominator"
+    assert unknown["denominator_changed"] is True
     restarted = SessionLocal()
     try:
         again = coverage_mod.control_coverage(restarted, actors["workspace_id"])
