@@ -1,0 +1,7 @@
+cd apps/web
+npm run lint
+npx prettier --check "app/**/*.{ts,tsx}" "components/**/*.{ts,tsx}" "lib/**/*.{ts,tsx}" "e2e/**/*.ts" "tests/**/*.ts" "eslint.config.mjs"
+npm run typecheck
+npm run test:unit
+npm run build
+npx playwright test e2e/release/design-tokens.spec.ts e2e/release/responsive-shell.spec.ts e2e/release/dialog-toast.spec.ts e2e/release/settings-access.spec.ts e2e/release/state-components.spec.ts e2e/release/drawer-followups.spec.ts e2e/release/workspace-create-denied.spec.ts e2e/release/microcopy-states.spec.ts --retries=0 --reporter=list
