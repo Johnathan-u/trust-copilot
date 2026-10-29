@@ -27,7 +27,7 @@ From the repo root. Exit 0. `{"block": 0, ...}`.
 cd apps/api && python -m pytest -rs --tb=line
 ```
 
-Env: `TC_REQUIRE_DB=1`, `TC_REQUIRE_WEB_TOOLCHAIN=1`, `TRUST_COPILOT_TESTING=1`, `SESSION_SECRET=test-secret`, Node 24.22.1 on `PATH`. Fresh local database `tc03002_fresh_test` on the pinned pgvector container. Exit 0. 3275 passed, 1 skipped.
+Env: `TC_REQUIRE_DB=1`, `TC_REQUIRE_WEB_TOOLCHAIN=1`, `TRUST_COPILOT_TESTING=1`, `SESSION_SECRET=test-secret`, Node 24.22.1 on `PATH`. Fresh local database `tc03002_fresh_test` on the pinned pgvector container. After merging master `b70ba0f`: exit 0, 3281 passed, 1 skipped. Before that merge: exit 0, 3275 passed, 1 skipped.
 
 ```
 docker compose -p tc03002 -f docker-compose.yml -f /tmp/tc03002-override.yml up -d postgres

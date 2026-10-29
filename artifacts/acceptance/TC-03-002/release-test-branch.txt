@@ -1,5 +1,5 @@
 command: cd apps/api && python -m pytest tests/release/test_compose_stack.py -q --tb=line
-sha: branch working tree on baseline 80607881320e1fa2c6416c55730eb98a56449f26
+sha: 16930e9405fa0f704bc695cbbe52b049c584adac
 env: no database (static file assertions)
 exit: 0
-totals: 7 passed
+totals: 7 passed (re-run after the master merge, together with the job-lease tests: 33 passed)
