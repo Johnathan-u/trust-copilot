@@ -65,3 +65,10 @@ class EvidenceGap(Base):
     # accepted and dismissed rows have no closure, and manual status changes do not fill these.
     closed_at = Column(DateTime(timezone=True), nullable=True)
     close_reason = Column(String(32), nullable=True)
+    # TC-21-006 control-scan rows (gap_type control_check). Null on questionnaire gaps.
+    control_id = Column(Integer, nullable=True, index=True)
+    evaluation_state = Column(String(16), nullable=True)
+    rule_code = Column(String(64), nullable=True)
+    evidence_refs = Column(Text, nullable=True)
+    next_action = Column(String(64), nullable=True)
+    owner_user_id = Column(Integer, nullable=True)

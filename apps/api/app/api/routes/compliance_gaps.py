@@ -1,15 +1,31 @@
-"""Phase 2: Gap detection - controls with no or low-confidence evidence."""
+"""Phase 2: Gap detection - controls with no or low-confidence evidence.
 
+TC-21-006 explains each applicable control with a state, a rule, and a next step.
+A file count is not enough. GET does not write.
+"""
+
+import json
+import logging
 import time
 from collections import defaultdict
+from datetime import datetime, timezone
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
+from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 
 from app.core.auth_deps import require_can_admin, require_can_review
 from app.core.database import get_db
+from app.core.idempotency import claim as idempotency_claim
+from app.core.idempotency import get as idempotency_get
+from app.core.idempotency import release as idempotency_release
+from app.core.idempotency import set as idempotency_set
 from app.models import (
+    Document,
+    EvidenceGap,
+    EvidenceItem,
+    EvidenceMetadata,
     WorkspaceControl,
     FrameworkControl,
     Framework,
@@ -19,6 +35,24 @@ from app.models.ai_mapping import QuestionMappingPreference
 from app.models.questionnaire import Question, Questionnaire
 from app.api.constants import LOW_CONFIDENCE_THRESHOLD
 from app.services.in_app_notification_service import notify_admins
+
+logger = logging.getLogger(__name__)
+
+CONTROL_NOT_FOUND = "Control not found"
+CONTROL_CHECK = "control_check"
+_BLOCKED_RIGHTS = {"blocked_pending_rights", "blocked"}
+_ACTIONS = {
+    "no_evidence": "collect_evidence",
+    "not_approved": "approve_evidence",
+    "deleted_document": "replace_deleted_evidence",
+    "foreign_evidence": "replace_evidence",
+    "expired": "refresh_evidence",
+    "missing_evidence_row": "resolve_reference",
+    "missing_document": "resolve_reference",
+    "missing_framework": "resolve_reference",
+    "check_error": "retry_check",
+}
+_SEVERITY = {"gap": 1, "stale": 2, "unknown": 3, "failed": 4}
 
 router = APIRouter(prefix="/compliance/gaps", tags=["compliance-gaps"])
 
@@ -59,48 +93,129 @@ def _control_display_fields(
     return control_key, title, framework_name
 
 
+def _scope(db: Session, wc: WorkspaceControl) -> str:
+    """applicable, unknown, or skipped. Blocked catalogs are not applicable."""
+    if not wc.framework_control_id:
+        return "applicable"
+    fc = db.query(FrameworkControl).filter(FrameworkControl.id == wc.framework_control_id).first()
+    if fc is None:
+        return "unknown"
+    fw = db.query(Framework).filter(Framework.id == fc.framework_id).first()
+    if fw is None:
+        return "unknown"
+    if (fw.rights_status or "").strip().lower() in _BLOCKED_RIGHTS:
+        return "skipped"
+    return "applicable"
+
+
+def _classify_evidence(
+    db: Session, ev: EvidenceItem | None, evidence_id: int, workspace_id: int, now
+):
+    if ev is None:
+        return "unknown", "missing_evidence_row", evidence_id
+    if ev.workspace_id != workspace_id:
+        return "gap", "foreign_evidence", ev.id
+    if ev.approval_status != "approved":
+        return "gap", "not_approved", ev.id
+    if ev.document_id is not None:
+        doc = db.query(Document).filter(Document.id == ev.document_id).first()
+        if doc is None or doc.workspace_id != workspace_id:
+            return "unknown", "missing_document", ev.id
+        if doc.deleted_at is not None:
+            return "gap", "deleted_document", ev.id
+    metas = db.query(EvidenceMetadata).filter(EvidenceMetadata.evidence_id == ev.id).all()
+    for meta in metas:
+        if meta.expires_at is not None and meta.expires_at <= now:
+            return "stale", "expired", ev.id
+    return "clear", None, ev.id
+
+
+def _next_step(wc: WorkspaceControl, rule: str) -> dict:
+    owner = wc.owner_user_id
+    return {
+        "owner_user_id": owner,
+        "owner_missing": owner is None,
+        "action": _ACTIONS[rule],
+    }
+
+
+def _gap_row(
+    db: Session, wc: WorkspaceControl, state: str, rule: str, evidence_ids: list[int]
+) -> dict:
+    link_stats = (
+        db.query(
+            func.count(ControlEvidenceLink.id),
+            func.max(ControlEvidenceLink.confidence_score),
+        ).filter(ControlEvidenceLink.control_id == wc.id)
+    ).first()
+    evidence_count = link_stats[0] or 0
+    max_conf = link_stats[1]
+    control_key, title, framework_name = _control_display_fields(db, wc)
+    reason = {"rule": rule, "control_id": wc.id, "evidence_ids": evidence_ids}
+    return {
+        "control_id": wc.id,
+        "control_key": control_key,
+        "name": title,
+        "framework": framework_name,
+        "evidence_count": evidence_count,
+        "max_confidence": round(float(max_conf), 4) if max_conf is not None else None,
+        "gap_reason": rule,
+        "state": state,
+        "rule": rule,
+        "evidence_ids": evidence_ids,
+        "reason": reason,
+        "next_step": _next_step(wc, rule),
+    }
+
+
+def evaluate_control(db: Session, wc: WorkspaceControl, workspace_id: int) -> dict | None:
+    """Return a gap, unknown, stale, or failed result. None means the control is clear."""
+    try:
+        scope = _scope(db, wc)
+        if scope == "skipped":
+            return None
+        if scope == "unknown":
+            return _gap_row(db, wc, "unknown", "missing_framework", [])
+        now = datetime.now(timezone.utc).replace(tzinfo=None)
+        links = db.query(ControlEvidenceLink).filter(ControlEvidenceLink.control_id == wc.id).all()
+        if not links:
+            return _gap_row(db, wc, "gap", "no_evidence", [])
+        best: tuple[str, str, int] | None = None
+        evidence_ids: list[int] = []
+        for link in links:
+            ev = db.query(EvidenceItem).filter(EvidenceItem.id == link.evidence_id).first()
+            state, rule, evidence_id = _classify_evidence(
+                db, ev, link.evidence_id, workspace_id, now
+            )
+            if state == "clear":
+                return None
+            evidence_ids.append(evidence_id)
+            if best is None or _SEVERITY[state] > _SEVERITY[best[0]]:
+                best = (state, rule, evidence_id)
+        assert best is not None
+        return _gap_row(db, wc, best[0], best[1], evidence_ids)
+    except Exception:
+        logger.exception("compliance gap check failed", extra={"control_id": wc.id})
+        return _gap_row(db, wc, "failed", "check_error", [])
+
+
 def global_gaps_list(
     db: Session,
     workspace_id: int,
     low_confidence_threshold: float,
 ) -> list[dict]:
-    """Workspace-wide control gaps (no / low-confidence evidence)."""
-    rows = db.query(WorkspaceControl).filter(WorkspaceControl.workspace_id == workspace_id).all()
+    """Applicable controls that are gap, unknown, stale, or failed.
 
+    ``low_confidence_threshold`` is accepted for callers and is not a pass.
+    A count of linked files is not a pass.
+    """
+    del low_confidence_threshold
+    rows = db.query(WorkspaceControl).filter(WorkspaceControl.workspace_id == workspace_id).all()
     out = []
     for wc in rows:
-        link_stats = (
-            db.query(
-                func.count(ControlEvidenceLink.id),
-                func.max(ControlEvidenceLink.confidence_score),
-            ).filter(ControlEvidenceLink.control_id == wc.id)
-        ).first()
-        evidence_count = link_stats[0] or 0
-        max_conf = link_stats[1]
-        if max_conf is None:
-            max_conf = 0.0
-
-        if evidence_count == 0:
-            gap_reason = "no_evidence"
-        elif max_conf < low_confidence_threshold:
-            gap_reason = "low_confidence"
-        else:
-            continue
-
-        control_key, title, framework_name = _control_display_fields(db, wc)
-
-        out.append(
-            {
-                "control_id": wc.id,
-                "control_key": control_key,
-                "name": title,
-                "framework": framework_name,
-                "evidence_count": evidence_count,
-                "max_confidence": round(max_conf, 4) if max_conf is not None else None,
-                "gap_reason": gap_reason,
-            }
-        )
-
+        item = evaluate_control(db, wc, workspace_id)
+        if item is not None:
+            out.append(item)
     return out
 
 
@@ -122,14 +237,6 @@ def questionnaire_evidence_gaps_list(db: Session, workspace_id: int) -> list[dic
         return []
 
     ctrl_ids = sorted({int(m.preferred_control_id) for m in mappings})
-    link_rows = (
-        db.query(ControlEvidenceLink.control_id, func.count(ControlEvidenceLink.id))
-        .filter(ControlEvidenceLink.control_id.in_(ctrl_ids))
-        .group_by(ControlEvidenceLink.control_id)
-        .all()
-    )
-    link_count_by_control = {int(r[0]): int(r[1] or 0) for r in link_rows}
-
     wcs = {
         wc.id: wc
         for wc in db.query(WorkspaceControl)
@@ -154,7 +261,9 @@ def questionnaire_evidence_gaps_list(db: Session, workspace_id: int) -> list[dic
     by_control: dict[int, list[QuestionMappingPreference]] = defaultdict(list)
     for m in mappings:
         cid = int(m.preferred_control_id)
-        if link_count_by_control.get(cid, 0) > 0:
+        from app.api.routes.compliance_controls import _has_qualifying_evidence
+
+        if _has_qualifying_evidence(db, cid, workspace_id):
             continue
         if cid not in wcs:
             continue
@@ -208,27 +317,143 @@ def questionnaire_evidence_gaps_list(db: Session, workspace_id: int) -> list[dic
     return out
 
 
+def _controls_for_read(db: Session, workspace_id: int, control_id: int | None):
+    if control_id is None:
+        return None
+    row = (
+        db.query(WorkspaceControl)
+        .filter(WorkspaceControl.id == control_id, WorkspaceControl.workspace_id == workspace_id)
+        .first()
+    )
+    if row is None:
+        raise HTTPException(status_code=404, detail=CONTROL_NOT_FOUND)
+    return row
+
+
 @router.get("")
 def list_gaps(
     low_confidence_threshold: float = Query(LOW_CONFIDENCE_THRESHOLD, ge=0, le=1),
+    control_id: int | None = Query(None),
     session: dict = Depends(require_can_review),
     db: Session = Depends(get_db),
 ):
-    """
-    Returns workspace-wide control gaps plus questionnaire-driven no-evidence gaps.
+    """Read-only gap list. This route does not persist.
 
-    - ``gaps``: controls with no evidence or only low-confidence evidence (unchanged shape per row).
-    - ``questionnaire_evidence_gaps``: approved/manual mapped controls with zero ControlEvidenceLink rows,
-      grouped by control with questionnaire context for each distinct question.
+    A missing control id and a control from another workspace return the same 404.
     """
     ws = session.get("workspace_id")
     if ws is None:
         return {"gaps": [], "questionnaire_evidence_gaps": []}
-
+    chosen = _controls_for_read(db, ws, control_id)
+    gaps = global_gaps_list(db, ws, low_confidence_threshold)
+    if chosen is not None:
+        gaps = [item for item in gaps if item["control_id"] == chosen.id]
     return {
-        "gaps": global_gaps_list(db, ws, low_confidence_threshold),
+        "gaps": gaps,
         "questionnaire_evidence_gaps": questionnaire_evidence_gaps_list(db, ws),
     }
+
+
+def _idempotency_key(request: Request | None, workspace_id: int) -> str | None:
+    if request is None:
+        return None
+    raw = (request.headers.get("Idempotency-Key") or "").strip()
+    if not raw:
+        return None
+    if len(raw) > 160:
+        raise HTTPException(status_code=422, detail="Idempotency-Key is too long")
+    return f"gaps:{workspace_id}:{raw}"
+
+
+def _claim_or_replay(db: Session, key: str | None):
+    if not key:
+        return None, None
+    cached = idempotency_get(db, key)
+    if cached:
+        return JSONResponse(content=cached[1], status_code=cached[0]), None
+    owner = idempotency_claim(db, key)
+    if owner is None:
+        cached_again = idempotency_get(db, key)
+        if cached_again:
+            return JSONResponse(content=cached_again[1], status_code=cached_again[0]), None
+        raise HTTPException(
+            status_code=409, detail="Request in progress; retry with same Idempotency-Key"
+        )
+    return None, owner
+
+
+def _settle(db: Session, key: str | None, owner: str | None, payload: dict | None) -> None:
+    if not key or payload is None:
+        return
+    db.rollback()
+    try:
+        idempotency_set(db, key, 200, payload, owner=owner)
+    except Exception:
+        logger.exception("gap scan idempotency store failed after commit")
+        db.rollback()
+        from app.core.idempotency import set as complete_claim
+
+        try:
+            complete_claim(db, key, 200, payload, owner=owner)
+        except Exception:
+            logger.exception(
+                "gap scan second idempotency store failed after commit; the original error is unchanged"
+            )
+
+
+def _persist_control_checks(db: Session, workspace_id: int, gaps: list[dict]) -> int:
+    if not isinstance(db, Session):
+        return 0
+    existing = {
+        row.control_id: row
+        for row in db.query(EvidenceGap)
+        .filter(
+            EvidenceGap.workspace_id == workspace_id,
+            EvidenceGap.gap_type == CONTROL_CHECK,
+            EvidenceGap.status != "resolved",
+        )
+        .all()
+        if row.control_id is not None
+    }
+    seen: set[int] = set()
+    now = datetime.now(timezone.utc)
+    for item in gaps:
+        control_id = int(item["control_id"])
+        seen.add(control_id)
+        row = existing.get(control_id)
+        refs = json.dumps(item["evidence_ids"])
+        if row is None:
+            db.add(
+                EvidenceGap(
+                    workspace_id=workspace_id,
+                    gap_type=CONTROL_CHECK,
+                    reason=json.dumps(item["reason"]),
+                    status="open",
+                    control_id=control_id,
+                    evaluation_state=item["state"],
+                    rule_code=item["rule"],
+                    evidence_refs=refs,
+                    next_action=item["next_step"]["action"],
+                    owner_user_id=item["next_step"]["owner_user_id"],
+                )
+            )
+        else:
+            row.reason = json.dumps(item["reason"])
+            row.evaluation_state = item["state"]
+            row.rule_code = item["rule"]
+            row.evidence_refs = refs
+            row.next_action = item["next_step"]["action"]
+            row.owner_user_id = item["next_step"]["owner_user_id"]
+            row.status = "open"
+            row.updated_at = now
+    for control_id, row in existing.items():
+        if control_id in seen or row.status != "open":
+            continue
+        row.status = "resolved"
+        row.closed_at = now
+        row.close_reason = "evidence_sufficient"
+        row.updated_at = now
+    return len(gaps)
 
 
 @router.post("/scan-and-notify", response_model=dict)
@@ -236,37 +461,66 @@ def scan_and_notify_gaps(
     low_confidence_threshold: float = Query(LOW_CONFIDENCE_THRESHOLD, ge=0, le=1),
     session: dict = Depends(require_can_admin),
     db: Session = Depends(get_db),
+    request: Request = None,
 ):
-    """Run a gap scan and notify admins if gaps are found. Rate-limited to once per hour per workspace."""
+    """Run a gap scan, persist the explainable results, then notify admins.
+
+    Rate-limited to once per hour per workspace. A failed notification does not
+    roll back the saved results. Idempotency-Key is optional.
+    """
     ws = session.get("workspace_id")
     if ws is None:
         return {"gaps": 0, "notified": False}
 
-    now = _clock()
-    last = _last_gap_notify.get(ws)
-    # No previous notification means no cooldown. (Defaulting to 0 put every workspace in
-    # cooldown for the first hour after host boot, which made CI runners flaky.)
-    if last is not None and now - last < GAP_NOTIFY_COOLDOWN:
-        gaps = global_gaps_list(db, ws, low_confidence_threshold)
-        return {"gaps": len(gaps), "notified": False, "reason": "cooldown"}
-
-    gaps = global_gaps_list(db, ws, low_confidence_threshold)
-    if gaps:
-        try:
-            no_ev = sum(1 for g in gaps if g["gap_reason"] == "no_evidence")
-            low_conf = sum(1 for g in gaps if g["gap_reason"] == "low_confidence")
-            body = f"{no_ev} control(s) missing evidence, {low_conf} with low confidence."
-            notify_admins(
-                db,
-                ws,
-                f"{len(gaps)} compliance gap(s) detected",
-                body,
-                category="warning",
-                link="/dashboard/compliance-gaps",
-            )
-            _last_gap_notify[ws] = now
-        except Exception:
-            pass
-        return {"gaps": len(gaps), "notified": True}
-
-    return {"gaps": 0, "notified": False}
+    key = _idempotency_key(request, ws)
+    cached, owner = _claim_or_replay(db, key)
+    if cached is not None:
+        return cached
+    try:
+        now = _clock()
+        last = _last_gap_notify.get(ws)
+        # No previous notification means no cooldown. (Defaulting to 0 put every workspace in
+        # cooldown for the first hour after host boot, which made CI runners flaky.)
+        if last is not None and now - last < GAP_NOTIFY_COOLDOWN:
+            gaps = global_gaps_list(db, ws, low_confidence_threshold)
+            payload = {"gaps": len(gaps), "notified": False, "reason": "cooldown"}
+        else:
+            gaps = global_gaps_list(db, ws, low_confidence_threshold)
+            persisted = _persist_control_checks(db, ws, gaps)
+            if isinstance(db, Session):
+                db.commit()
+            payload = {
+                "gaps": len(gaps),
+                "notified": False,
+                "persisted": persisted,
+                "states": sorted({item.get("state", "gap") for item in gaps}),
+            }
+            if gaps:
+                try:
+                    body = ", ".join(
+                        f"{item.get('state', 'gap')}:{item.get('rule', item.get('gap_reason', 'gap'))}"
+                        for item in gaps[:12]
+                    )
+                    notify_admins(
+                        db,
+                        ws,
+                        f"{len(gaps)} compliance gap(s) detected",
+                        body,
+                        category="warning",
+                        link="/dashboard/compliance-gaps",
+                    )
+                    _last_gap_notify[ws] = now
+                    payload["notified"] = True
+                except Exception:
+                    db.rollback()
+                    payload["notified"] = False
+                    payload["notification_error"] = "delivery_failed"
+        return payload
+    except Exception:
+        db.rollback()
+        if key:
+            idempotency_release(db, key, owner=owner)
+        raise
+    finally:
+        if key and "payload" in locals() and isinstance(payload, dict):
+            _settle(db, key, owner, payload)
