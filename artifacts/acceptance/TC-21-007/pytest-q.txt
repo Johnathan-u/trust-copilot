@@ -1,17 +1,17 @@
-SHA 3b00c1c53865f1967658607b38fdb3b4906df71e
-parent of the evidence commit: 3b00c1c53865f1967658607b38fdb3b4906df71e
+SHA ac5c33cd455e796656e138e89f768ee6fae0ed05
+parent of the evidence commit: ac5c33cd455e796656e138e89f768ee6fae0ed05
 working directory: apps/api
 interpreter: /tmp/tc-venv/bin/python
 alembic heads: tc21005_mapping_version (head)
 
 command: python -m pytest tests/release/test_domain_compliance_coverage.py -q
-....                                                                     [100%]
-4 passed, 70 warnings in 2.26s
+.....                                                                    [100%]
+5 passed, 77 warnings in 2.43s
 exit status: 0
 
 command: python -m pytest tests/release/test_domain_compliance_mappings.py -q
 ..........                                                               [100%]
-10 passed, 185 warnings in 6.89s
+10 passed, 185 warnings in 6.84s
 exit status: 0
 
 working directory: apps/web

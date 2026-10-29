@@ -2,6 +2,8 @@
 
 Framework catalogs stay **BLOCKED** pending **TC-01-007**. This run did not add framework requirement text. There is no migration.
 
+The unknown-reference check calls `_explain_control_inner` with a stand-in control. It does not set `session_replication_role` or disable triggers. Evidence owned by another workspace is linked with a real foreign key and is not counted.
+
 The mapping hold-id change is outside this ticket. `test_domain_compliance_mappings.py` (TC-21-005) used to draw an id up to 2149999999, which overflows a signed integer. The span is now capped at 2140000000.
 
 ## Commands
@@ -22,7 +24,7 @@ npm run typecheck
 
 ## SHA
 
-Tests ran on `3b00c1c53865f1967658607b38fdb3b4906df71e`. That commit is the parent of this evidence commit. This file was added after that commit and does not change the code under test.
+Tests ran on `ac5c33cd455e796656e138e89f768ee6fae0ed05`. That commit is the parent of this evidence commit. This file was added after that commit and does not change the code under test.
 
 ## Environment
 
@@ -35,9 +37,9 @@ Tests ran on `3b00c1c53865f1967658607b38fdb3b4906df71e`. That commit is the pare
 
 | Command | Exit | Total |
 |---|---|---|
-| `python -m pytest tests/release/test_domain_compliance_coverage.py -q` | 0 | 4 passed, 70 warnings, 2.26s |
-| `python -m pytest tests/release/test_domain_compliance_mappings.py -q` | 0 | 10 passed, 185 warnings, 6.89s |
+| `python -m pytest tests/release/test_domain_compliance_coverage.py -q` | 0 | 5 passed, 77 warnings, 2.43s |
+| `python -m pytest tests/release/test_domain_compliance_mappings.py -q` | 0 | 10 passed, 185 warnings, 6.84s |
 | `npm run test:unit -- lib/coverageConsumer.test.ts` | 0 | 4 passed |
 | `npm run typecheck` | 0 | types generated, `tsc --noEmit` clean |
 
-Pytest did not report a skipped test. The coverage progress line was `....`. The mapping progress line was `..........`.
+Pytest did not report a skipped test. The coverage progress line was `.....`. The mapping progress line was `..........`.
