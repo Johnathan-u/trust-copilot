@@ -299,12 +299,12 @@ def test_get_is_read_only_until_a_scan_persists_one_alert(client):
     actors = _actors()
     _questions(actors["workspace_id"])
     _login(client, ADMIN_EMAIL, ADMIN_PASSWORD)
-    before = _counts()["compliance_alerts"]
+    before = _counts()
     listed = client.get("/api/compliance-alerts/active")
     assert listed.status_code == 200, listed.text
     assert listed.json()["schema_version"] == alerts_mod.SCHEMA_VERSION
     assert listed.json()["alerts"] == []
-    assert _counts()["compliance_alerts"] == before
+    assert _counts() == before
 
     scanned = _scan(client)
     assert scanned.status_code == 200, scanned.text
@@ -331,9 +331,11 @@ def test_get_is_read_only_until_a_scan_persists_one_alert(client):
         ).scalar()
     finally:
         session.close()
+    before_get = _counts()
     again = client.get("/api/compliance-alerts/active")
     assert again.status_code == 200
     assert again.json()["alerts"][0]["id"] == alert["id"]
+    assert _counts() == before_get
     session = _db()
     try:
         assert (
