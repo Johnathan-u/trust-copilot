@@ -4,14 +4,14 @@ Nullable. Existing rows stay null and keep working with unprefixed cookies.
 Downgrade drops the column only.
 
 Revision ID: tc07002_session_key_id
-Revises: tc10001_job_leases
+Revises: tc02001a_parent_ws_move
 """
 
 import sqlalchemy as sa
 from alembic import op
 
 revision = "tc07002_session_key_id"
-down_revision = "tc10001_job_leases"
+down_revision = "tc02001a_parent_ws_move"
 branch_labels = None
 depends_on = None
 
