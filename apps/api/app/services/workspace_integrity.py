@@ -11,6 +11,7 @@ for new writes to evidence_items, export_records and evidence_gaps.
 
 from __future__ import annotations
 
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.models import Answer, Document, Question, Questionnaire
@@ -24,6 +25,13 @@ class CrossWorkspaceReference(LookupError):
 
 class InvalidReference(ValueError):
     """A referenced id is not an integer."""
+
+
+class ParentWorkspaceMoveBlocked(Exception):
+    """Moving a parent would leave a child reference in another workspace."""
+
+
+PARENT_MOVE_DETAIL = "The update could not be saved."
 
 
 def db_exists(query) -> bool:
@@ -86,3 +94,46 @@ def require_same_workspace(db: Session, workspace_id: int, **refs: int | None) -
             raise InvalidReference(name)
         if not check(db, workspace_id, value):
             raise CrossWorkspaceReference(name)
+
+
+def _is_parent_move_error(exc: IntegrityError) -> bool:
+    orig = getattr(exc, "orig", None)
+    text = " ".join(str(part) for part in (orig, exc) if part)
+    return "parent workspace move rejected" in text
+
+
+def reassign_parent_workspace(
+    db: Session,
+    row: Document | Questionnaire | Question | Answer,
+    *,
+    workspace_id: int | None = None,
+    questionnaire_id: int | None = None,
+    question_id: int | None = None,
+) -> None:
+    """Move a parent. Raises ParentWorkspaceMoveBlocked when a child would be left behind.
+
+    Documents and questionnaires take workspace_id. Questions take questionnaire_id.
+    Answers take question_id. The database trigger is the enforcement point; this wrapper
+    turns that failure into the domain error so callers do not see a driver exception.
+    """
+    try:
+        with db.begin_nested():
+            if isinstance(row, (Document, Questionnaire)):
+                if workspace_id is None:
+                    raise InvalidReference("workspace_id")
+                row.workspace_id = workspace_id
+            elif isinstance(row, Question):
+                if questionnaire_id is None:
+                    raise InvalidReference("questionnaire_id")
+                row.questionnaire_id = questionnaire_id
+            elif isinstance(row, Answer):
+                if question_id is None:
+                    raise InvalidReference("question_id")
+                row.question_id = question_id
+            else:
+                raise InvalidReference("row")
+            db.flush()
+    except IntegrityError as exc:
+        if _is_parent_move_error(exc):
+            raise ParentWorkspaceMoveBlocked() from None
+        raise

@@ -375,6 +375,19 @@ app.add_exception_handler(
 app.add_exception_handler(
     IdempotencyClaimLost, enqueue_conflict_handler
 )  # TC-10-003c: lost upload claim is the same retryable 409
+
+
+def _parent_workspace_move_handler(request, exc):  # noqa: ARG001
+    from fastapi.responses import JSONResponse
+
+    from app.services.workspace_integrity import PARENT_MOVE_DETAIL
+
+    return JSONResponse(status_code=409, content={"detail": PARENT_MOVE_DETAIL})
+
+
+from app.services.workspace_integrity import ParentWorkspaceMoveBlocked  # noqa: E402
+
+app.add_exception_handler(ParentWorkspaceMoveBlocked, _parent_workspace_move_handler)
 app.add_middleware(StructuredLoggingMiddleware)
 app.add_middleware(GlobalRateLimitMiddleware)
 app.add_middleware(CSRFMiddleware)
