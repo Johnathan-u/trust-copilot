@@ -1,0 +1,10 @@
+branch tests: 3131  passed=3118 failed=2 skipped=11
+master tests: 3126  passed=3113 failed=2 skipped=11
+only on branch: 5
+  branch-only passed  tests.release.test_auto_generate_enqueue_conflict::test_happy_path_enqueues_exactly_one_generate_job
+  branch-only passed  tests.release.test_auto_generate_enqueue_conflict::test_non_conflict_exception_keeps_parse_job_completed
+  branch-only passed  tests.release.test_auto_generate_enqueue_conflict::test_non_conflict_rollback_does_not_drop_committed_parse_completion
+  branch-only passed  tests.release.test_auto_generate_enqueue_conflict::test_parse_job_stays_completed_when_auto_generate_enqueue_conflicts
+  branch-only passed  tests.release.test_auto_generate_enqueue_conflict::test_touched_route_openapi_has_no_ticket_or_requirement_ids
+only on master: 0
+shared ids with a different result: 0
