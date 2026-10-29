@@ -1203,11 +1203,12 @@ def recover_abandoned_jobs(session, *, limit: int = 20) -> int:
         session.expire_all()
         job = session.get(Job, job_id)
         if job is None or job.lease_owner != token:
+            # The swap is still uncommitted. Continuing would lock this same expired row again.
             log.warning(
                 "abandoned job recovery skipped job_id=%s; lease token was not kept", job_id
             )
             session.rollback()
-            continue
+            return count
         payload = json.loads(job.payload) if job.payload else {}
         prefix = (previous_owner or "")[:8]
         attempt_before = int(job.attempt or 0)
