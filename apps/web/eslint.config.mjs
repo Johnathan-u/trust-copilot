@@ -52,13 +52,10 @@ export default defineConfig([
           ignoreRestSiblings: true,
         },
       ],
-      // React Compiler diagnostic for the fetch-on-mount pattern
-      // (`useEffect(() => { setLoading(true); fetch(...) })`) used across the
-      // dashboard. The app does not enable the React Compiler, the pattern is
-      // correct React 19 code, and rewriting ~30 data-loading effects is out of
-      // scope for a gate ticket. Follow-up: migrate to a data-fetching hook and
-      // re-enable. All other React Hooks/Compiler rules stay at "error".
-      'react-hooks/set-state-in-effect': 'off',
+      // TC-02-006b: synchronous setState inside an effect is an error.
+      // Fetch results belong in the async callback. Resets happen during
+      // render. Event handlers may set state directly.
+      'react-hooks/set-state-in-effect': 'error',
     },
   },
   {

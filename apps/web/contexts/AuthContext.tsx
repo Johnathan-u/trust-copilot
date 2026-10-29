@@ -68,7 +68,62 @@ function parseMe(data: MeResponse): AuthState {
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [state, setState] = useState<AuthState>(initialState)
 
-  const refresh = useCallback(async () => {
+  const pull = useCallback(() => {
+    const controller = new AbortController()
+    const timeoutId = setTimeout(() => controller.abort(), 15000)
+    return fetch('/api/auth/me', {
+      credentials: 'include',
+      signal: controller.signal,
+    })
+      .then(async (res) => {
+        clearTimeout(timeoutId)
+        if (!res.ok) {
+          const failure =
+            res.status === 401
+              ? null
+              : presentHttpFailure({ status: res.status })
+          setState((s) => ({
+            ...s,
+            user: null,
+            workspace: null,
+            workspaces: [],
+            loading: false,
+            error: failure ? failure.title : null,
+            failure,
+          }))
+          return
+        }
+        let data: MeResponse
+        try {
+          data = (await res.json()) as MeResponse
+        } catch {
+          const failure = presentHttpFailure({ malformed: true })
+          setState((s) => ({
+            ...s,
+            user: null,
+            workspace: null,
+            workspaces: [],
+            loading: false,
+            error: failure.title,
+            failure,
+          }))
+          return
+        }
+        setState((s) => ({ ...parseMe(data), requestId: s.requestId }))
+      })
+      .catch(() => {
+        clearTimeout(timeoutId)
+        const failure = presentHttpFailure({ offline: true })
+        setState((s) => ({
+          ...s,
+          loading: false,
+          error: failure.title,
+          failure,
+        }))
+      })
+  }, [])
+
+  const refresh = useCallback(() => {
     setState((s) => ({
       ...s,
       loading: true,
@@ -76,56 +131,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       failure: null,
       requestId: s.requestId + 1,
     }))
-    const controller = new AbortController()
-    const timeoutId = setTimeout(() => controller.abort(), 15000)
-    try {
-      const res = await fetch('/api/auth/me', {
-        credentials: 'include',
-        signal: controller.signal,
-      })
-      clearTimeout(timeoutId)
-      if (!res.ok) {
-        const failure =
-          res.status === 401 ? null : presentHttpFailure({ status: res.status })
-        setState((s) => ({
-          ...s,
-          user: null,
-          workspace: null,
-          workspaces: [],
-          loading: false,
-          error: failure ? failure.title : null,
-          failure,
-        }))
-        return
-      }
-      let data: MeResponse
-      try {
-        data = (await res.json()) as MeResponse
-      } catch {
-        const failure = presentHttpFailure({ malformed: true })
-        setState((s) => ({
-          ...s,
-          user: null,
-          workspace: null,
-          workspaces: [],
-          loading: false,
-          error: failure.title,
-          failure,
-        }))
-        return
-      }
-      setState((s) => ({ ...parseMe(data), requestId: s.requestId }))
-    } catch {
-      clearTimeout(timeoutId)
-      const failure = presentHttpFailure({ offline: true })
-      setState((s) => ({
-        ...s,
-        loading: false,
-        error: failure.title,
-        failure,
-      }))
-    }
-  }, [])
+    return pull()
+  }, [pull])
 
   const switchWorkspace = useCallback(
     async (workspaceId: number): Promise<boolean> => {
@@ -162,8 +169,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   )
 
   useEffect(() => {
-    refresh()
-  }, [refresh])
+    void pull()
+  }, [pull])
 
   return (
     <AuthContext.Provider value={{ ...state, refresh, switchWorkspace }}>

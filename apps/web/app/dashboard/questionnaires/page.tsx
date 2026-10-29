@@ -27,6 +27,8 @@ import {
   listFromPayload,
   readSectionJson,
 } from '@/lib/section-load'
+import { useKeyedGeneration } from '@/components/ui/useKeyedGeneration'
+import { listLoadFlags } from '@/lib/render-state'
 import {
   FRAMEWORK_OPTIONS,
   SUBJECT_AREA_OPTIONS,
@@ -119,14 +121,30 @@ export default function QuestionnairesPage() {
         selectSome && !selectAll
   }, [selectSome, selectAll])
 
+  const qnrKey = [
+    workspaceId ?? '',
+    search,
+    framework,
+    subjectArea,
+    status,
+    createdFrom,
+    createdTo,
+    archivedMode,
+    loadAttempt,
+  ].join('\n')
+  const qnrGen = useKeyedGeneration(qnrKey)
+  if (qnrGen.changed) {
+    const flags = listLoadFlags({
+      enabled: workspaceId != null,
+      hasRows: qnrs.length > 0,
+    })
+    if (flags.loading !== null) setLoading(flags.loading)
+    if (flags.refreshing) setRefreshing(true)
+    if (flags.clearFailure) setLoadFailure(null)
+  }
+
   useEffect(() => {
-    if (workspaceId == null) {
-      setLoading(false)
-      return
-    }
-    setLoadFailure(null)
-    if (qnrs.length === 0) setLoading(true)
-    setRefreshing(true)
+    if (workspaceId == null) return
     const params = new URLSearchParams({ workspace_id: String(workspaceId) })
     if (search.trim()) params.set('search', search.trim())
     if (framework) params.set('framework', framework)
@@ -159,7 +177,6 @@ export default function QuestionnairesPage() {
         setLoading(false)
         setRefreshing(false)
       })
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- qnrs.length only chooses the initial loading flag; listing qnrs would refetch after every successful load
   }, [
     workspaceId,
     search,

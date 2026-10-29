@@ -20,6 +20,7 @@ import {
   listFromPayload,
   readSectionJson,
 } from '@/lib/section-load'
+import { useKeyedGeneration } from '@/components/ui/useKeyedGeneration'
 
 type ExportRecord = {
   id: number
@@ -40,14 +41,17 @@ export default function ExportsPage() {
   )
   const [loadAttempt, setLoadAttempt] = useState(0)
   const [errorToast, setErrorToast] = useState<string | null>(null)
+  const exportKey = useKeyedGeneration(`${workspaceId ?? ''}|${loadAttempt}`)
+  if (exportKey.changed) {
+    if (workspaceId == null) setLoading(false)
+    else {
+      setLoading(true)
+      setLoadFailure(null)
+    }
+  }
 
   useEffect(() => {
-    if (workspaceId == null) {
-      setLoading(false)
-      return
-    }
-    setLoading(true)
-    setLoadFailure(null)
+    if (workspaceId == null) return
     fetch(`/api/exports/records?workspace_id=${workspaceId}`, {
       credentials: 'include',
     })

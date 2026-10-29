@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { EmptyState, ErrorState, LoadingState } from '@/components/ui'
 import type { ApiFailurePresentation } from '@/lib/api-error'
 import { failureOf, isAbortError, readSectionJson } from '@/lib/section-load'
+import { useKeyedGeneration } from '@/components/ui/useKeyedGeneration'
 
 export type InAppNotification = {
   id: number
@@ -116,9 +117,6 @@ export function NotificationsPanel({
 
   const fetchNotifications = useCallback(() => {
     const controller = new AbortController()
-    setLoading(true)
-    setFailure(null)
-    setLoadId((value) => value + 1)
     fetch('/api/in-app-notifications?limit=20', {
       credentials: 'include',
       signal: controller.signal,
@@ -148,6 +146,22 @@ export function NotificationsPanel({
       .finally(() => setLoading(false))
     return () => controller.abort()
   }, [onUnreadCountChange])
+
+  const reloadNotifications = useCallback(() => {
+    setLoading(true)
+    setFailure(null)
+    setLoadId((value) => value + 1)
+    return fetchNotifications()
+  }, [fetchNotifications])
+
+  const panelKey = useKeyedGeneration(open ? 'open' : 'closed', {
+    runOnMount: false,
+  })
+  if (panelKey.changed && open) {
+    setLoading(true)
+    setFailure(null)
+    setLoadId(panelKey.generation)
+  }
 
   useEffect(() => {
     if (!open) return
@@ -252,7 +266,7 @@ export function NotificationsPanel({
         {loading ? (
           <LoadingState
             label="Loading notifications"
-            onRetry={fetchNotifications}
+            onRetry={reloadNotifications}
             resetKey={loadId}
           >
             <p className="px-4 py-8 text-center text-tc-label text-tc-muted">
@@ -261,7 +275,7 @@ export function NotificationsPanel({
           </LoadingState>
         ) : failure ? (
           <div className="p-tc-4">
-            <ErrorState failure={failure} onRetry={fetchNotifications} />
+            <ErrorState failure={failure} onRetry={reloadNotifications} />
           </div>
         ) : notifications.length === 0 ? (
           <EmptyState

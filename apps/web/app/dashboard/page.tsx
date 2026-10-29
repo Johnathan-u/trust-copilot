@@ -27,6 +27,7 @@ import {
   readSectionJson,
 } from '@/lib/section-load'
 import { pageMode } from '@/lib/ui-state'
+import { cardFormDraft, cardFormInputsChanged } from '@/lib/render-state'
 
 type DashboardCard = {
   id?: number
@@ -135,26 +136,28 @@ export default function DashboardPage() {
     null
   )
 
-  const fetchMeta = useCallback(async () => {
-    try {
-      const res = await fetch('/api/dashboard/cards/allowed-routes', {
-        credentials: 'include',
+  const fetchMeta = useCallback(() => {
+    return fetch('/api/dashboard/cards/allowed-routes', {
+      credentials: 'include',
+    })
+      .then((res) => readSectionJson(res))
+      .then((data) => {
+        if (!data || typeof data !== 'object' || Array.isArray(data)) {
+          throw new Error('malformed')
+        }
+        setAllowedMeta(data as AllowedMeta)
+        setMetaFailure(null)
       })
-      const data = await readSectionJson(res)
-      if (!data || typeof data !== 'object' || Array.isArray(data)) {
-        throw new Error('malformed')
-      }
-      setAllowedMeta(data as AllowedMeta)
-      setMetaFailure(null)
-    } catch (error) {
-      if (isAbortError(error)) return
-      setAllowedMeta(null)
-      setMetaFailure(failureOf(error))
-    }
+      .catch((error: unknown) => {
+        if (isAbortError(error)) return
+        setAllowedMeta(null)
+        setMetaFailure(failureOf(error))
+      })
   }, [])
 
   useEffect(() => {
-    if (isAdmin) void fetchMeta()
+    if (!isAdmin) return
+    void fetchMeta()
   }, [isAdmin, fetchMeta])
 
   const dismissToast = () => setToast(null)
@@ -520,26 +523,22 @@ function CardFormModal({
   const [size, setSize] = useState('medium')
   const [enabled, setEnabled] = useState(true)
   const [saving, setSaving] = useState(false)
-
-  useEffect(() => {
-    if (card) {
-      setTitle(card.title)
-      setDescription(card.description ?? '')
-      setIcon(card.icon)
-      setTargetRoute(card.target_route)
-      setVisibility(card.visibility_scope ?? 'all')
-      setSize(card.size ?? 'medium')
-      setEnabled(card.is_enabled ?? true)
-    } else {
-      setTitle('')
-      setDescription('')
-      setIcon('document')
-      setTargetRoute(allowedMeta?.routes[0] ?? '/dashboard/documents')
-      setVisibility('all')
-      setSize('medium')
-      setEnabled(true)
-    }
-  }, [card, allowedMeta, isOpen])
+  const formSource = { card, allowedMeta, isOpen }
+  const [seenForm, setSeenForm] = useState<typeof formSource | null>(null)
+  if (cardFormInputsChanged(seenForm, formSource)) {
+    const draft = cardFormDraft(
+      card,
+      allowedMeta?.routes[0] ?? '/dashboard/documents'
+    )
+    setSeenForm(formSource)
+    setTitle(draft.title)
+    setDescription(draft.description)
+    setIcon(draft.icon)
+    setTargetRoute(draft.targetRoute)
+    setVisibility(draft.visibility)
+    setSize(draft.size)
+    setEnabled(draft.enabled)
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()

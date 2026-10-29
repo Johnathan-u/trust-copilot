@@ -2,6 +2,8 @@
 
 import { Suspense, useEffect, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
+import { useKeyedGeneration } from '@/components/ui/useKeyedGeneration'
+import { vendorRequestWithoutToken } from '@/lib/render-state'
 
 type QuestionnaireInfo = {
   name: string
@@ -41,16 +43,19 @@ function VendorResponseContent() {
   const token = searchParams.get('token')
 
   const [data, setData] = useState<RequestData | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+  const initialToken = vendorRequestWithoutToken(token)
+  const [loading, setLoading] = useState(initialToken.loading)
+  const [error, setError] = useState<string | null>(initialToken.error)
   const [started, setStarted] = useState(false)
+  const tokenKey = useKeyedGeneration(token ?? '', { runOnMount: false })
+  if (tokenKey.changed) {
+    const next = vendorRequestWithoutToken(token)
+    setLoading(next.loading)
+    setError(next.error)
+  }
 
   useEffect(() => {
-    if (!token) {
-      setError('No token provided. Please check your link and try again.')
-      setLoading(false)
-      return
-    }
+    if (!token) return
     fetch(`/api/vendor-response?token=${encodeURIComponent(token)}`)
       .then((r) => {
         if (r.status === 404) throw new Error('invalid')

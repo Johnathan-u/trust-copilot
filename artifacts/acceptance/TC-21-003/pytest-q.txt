@@ -1,9 +1,7 @@
-SHA 4b4da1d2419616e36750901152150467fea4f89a
-working directory: apps/api
-command: python -m pytest tests/release/test_domain_compliance_controls.py -q
-alembic heads: tc21003_evidence_link_uniq (head)
+The previous contents of this file claimed 5 passed at 4b4da1d2419616e36750901152150467fea4f89a. That record is stale.
 
-.....                                                                    [100%]
-5 passed, 68 warnings in 7.23s
+The current run is artifacts/acceptance/TC-21-003a/pytest-q.txt.
+SHA 55d1fbd16a35563b855200358233c7626ab69430
+command: python -m pytest tests/release/test_domain_compliance_controls.py -q
+12 passed, 238 warnings in 9.63s
 exit status: 0
-skipped: 0

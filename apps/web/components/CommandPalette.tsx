@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react'
 import { useDialogBehavior } from '@/components/ui/useDialogBehavior'
 import { dialogAttributes } from '@/lib/dialog'
+import { nextPaletteIndex } from '@/lib/render-state'
 
 export type CommandPaletteItem = {
   id: string
@@ -49,11 +50,20 @@ export function CommandPalette({
   const [selectedIndex, setSelectedIndex] = useState(0)
   const flatItems = useMemo(() => flattenSections(sections), [sections])
   const itemCount = flatItems.length
-
-  useEffect(() => {
-    if (!open) return
-    setSelectedIndex(0)
-  }, [open])
+  const [seenOpen, setSeenOpen] = useState(open)
+  const [seenCount, setSeenCount] = useState(itemCount)
+  if (seenOpen !== open || seenCount !== itemCount) {
+    const nextIndex = nextPaletteIndex({
+      open,
+      previouslyOpen: seenOpen,
+      index: selectedIndex,
+      count: itemCount,
+      countChanged: seenCount !== itemCount,
+    })
+    setSeenOpen(open)
+    setSeenCount(itemCount)
+    if (nextIndex !== selectedIndex) setSelectedIndex(nextIndex)
+  }
 
   useDialogBehavior({
     open,
@@ -65,10 +75,6 @@ export function CommandPalette({
     closeOnEscape: true,
     lockScroll: true,
   })
-
-  useEffect(() => {
-    setSelectedIndex((i) => (itemCount ? Math.min(i, itemCount - 1) : 0))
-  }, [itemCount])
 
   useEffect(() => {
     const item = flatItems[selectedIndex]

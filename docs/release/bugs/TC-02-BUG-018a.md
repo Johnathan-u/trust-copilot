@@ -1,7 +1,7 @@
 # TC-02-BUG-018a Record gap closure in dedicated columns
 
 **Epic:** E21 Compliance controls, mappings and gaps · **Type:** Bug follow-up (schema) · **Priority:** P3
-**Origin:** Ruling on TC-02-BUG-018. Filed only; not implemented.
+**Origin:** Ruling on TC-02-BUG-018. Implemented on `tc/core/TC-02-BUG-018a`.
 
 ## Problem
 
@@ -11,29 +11,85 @@ TC-02-BUG-018 closes stale evidence gaps without a migration. It records the clo
 [resolved on regeneration: <question_removed|answer_sufficient> at <UTC ISO-8601>Z]
 ```
 
-That is enough for now but has limits:
+That was enough to ship the close, and it has limits:
 
 - `updated_at` changes on any later edit, so it is not a reliable closure time.
 - Closure reasons can only be queried by parsing `reason` text.
 - `reason` mixes the opening explanation with closure history.
 
-## Proposed change
+## Design
 
-1. Alembic migration (unique, descriptive revision id; re-parent onto master's head at merge time) adding to `evidence_gaps`:
-   - `closed_at TIMESTAMP WITH TIME ZONE NULL`
-   - `close_reason VARCHAR(64) NULL` (`question_removed`, `answer_sufficient`; room for later codes)
-2. Backfill: for rows with `status = 'resolved'`, parse the last `[resolved on regeneration: <code> at <ts>]` line of `reason` into `close_reason` / `closed_at`; fall back to `updated_at` and leave `close_reason` NULL if the line is missing. Decide whether to strip the note from `reason` (default: keep it, the text is history).
-3. `generate_gaps_for_questionnaire` writes `closed_at` and `close_reason` and stops appending to `reason`.
-4. Expose both fields in the gap API payload (`_gap_to_dict`) and, if wanted, the gaps view.
-5. Optional, separate decision: a check constraint on `status` values.
+`generate_gaps_for_questionnaire` still closes the same rows, under the same `pg_advisory_xact_lock(150015, questionnaire_id)`, and still never deletes them. Closing now writes:
+
+| Column | Type | Value |
+|---|---|---|
+| `closed_at` | `TIMESTAMP WITH TIME ZONE` NULL | Closure time (UTC). |
+| `close_reason` | `VARCHAR(32)` NULL | `question_removed` or `answer_sufficient`. |
+
+`reason` is not modified. The original opening text stays byte for byte, including any historical note already stored there. A new open gap for a question that becomes insufficient again does not copy these columns; the resolved row stays as history with its `closed_at` and `close_reason`.
+
+Only that close writes the columns. `update_evidence_gap_status` and `bulk_update_by_title` change `status` and `updated_at` and leave `closed_at` / `close_reason` alone. Accepted and dismissed gaps are still never closed or reopened by regeneration, and `llm_error` / `model_*` placeholders still neither open nor close a gap.
+
+`_gap_to_dict` (used by `list_evidence_gaps`, `get_evidence_gap` and `update_evidence_gap_status`) adds `closed_at` and `close_reason`. Existing keys stay.
+
+No API route sets a resolved gap back to `open`. The status helpers exist on the service and are not mounted under `app/api`. See TC-02-BUG-018, resolved decision 5.
+
+`VARCHAR(32)` holds the two codes (16 and 17 characters) with room for another short code. A longer code would be a follow-up that widens the column. There is no check constraint on `close_reason` or `status`.
+
+## Migration
+
+Revision `bug018a_gap_closed_at_reason` (`apps/api/alembic/versions/bug018a_gap_closed_at_reason.py`). `down_revision` is master's head when this was last pushed, `tc21003_evidence_link_uniq` (TC-21-003). It was re-parented from `bug019_article_slug_ws` onto `tc21002a_canonical_uniq` and then onto `tc21003_evidence_link_uniq` as those revisions landed. The module does not import the application package. A later migration may become the head; this revision stays an ancestor of every head.
+
+Upgrade adds the two nullable columns, then backfills. It does not write `reason`.
+
+Downgrade is lossless. Before it drops the columns, every row with `closed_at` and a known `close_reason` (`question_removed` or `answer_sufficient`) keeps that information in `reason`:
+
+- If the last line of `reason` is already `[resolved on regeneration: <code> at <UTC seconds>Z]` for those column values, `reason` is not changed.
+- Otherwise that note is appended on its own line, or becomes the whole `reason` when `reason` is NULL or empty.
+
+A later upgrade parses the note back into the columns. The note is whole UTC seconds, the same grammar as `resolution_note()`, so a downgrade and upgrade restore that instant (sub-second digits are not part of the note). Rows with no `close_reason` (the backfill fallback) already have their original `reason` text; downgrade does not invent a code for them.
+
+### Backfill
+
+Only `status = 'resolved'` rows whose `closed_at` and `close_reason` are both still NULL are updated. The last line of `reason` is matched against the historical note grammar (`NOTE_LINE_RE`, the same string `resolution_note()` writes):
+
+- Match: `close_reason` is the code and `closed_at` is the `Z` timestamp.
+- No match (missing line, NULL `reason`, or a code other than the two known ones): `close_reason` stays NULL and `closed_at` is `updated_at` interpreted as UTC (`AT TIME ZONE 'UTC'`), so the session TimeZone does not move it.
+- An earlier note line that is not the last line is ignored. The last line wins.
+- Open, accepted and dismissed rows are not updated, even if `reason` contains a note.
+- `reason` is never written.
+
+Running the statement again does not change a row that already has `closed_at` or `close_reason` set. A later edit of `updated_at` does not move `closed_at`.
+
+## Tests
+
+`apps/api/tests/release/test_evidence_gap_closure_columns.py`, plus the TC-02-BUG-018 regeneration tests, whose closure assertions now read the columns. Synthetic rows, the side `*_test` database, no network. `tests/release/test_gap_totals_exclude_resolved.py` no longer calls `setval` on the workspaces sequence; it inserts explicit primary keys so it does not touch shared serial sequences. The totals assertions are unchanged.
+
+| Test | Checks |
+|---|---|
+| `test_closing_sets_columns_when_answer_becomes_sufficient` | `answer_sufficient`, `closed_at` set, reason unchanged, the other gap stays open with NULL columns. |
+| `test_closing_sets_columns_when_question_is_removed` | `question_removed`, reason unchanged. |
+| `test_closing_preserves_reason_text_including_an_embedded_note` | A reason that already contains a note is kept byte for byte. The column code comes from the answer, not from that text. |
+| `test_accepted_and_dismissed_gaps_keep_null_closure_columns` | Accepted and dismissed rows are untouched, including the new columns. |
+| `test_llm_error_placeholder_does_not_write_closure_columns` | Placeholders neither open nor close a gap. |
+| `test_manual_status_changes_do_not_write_closure_columns` | Status helpers do not fill the columns, and do not clear them on a resolved row. |
+| `test_reinsufficient_question_keeps_the_resolved_row` | A new open gap; the resolved row keeps its columns. |
+| `test_gap_payload_exposes_closure_columns` | Both fields are in the gap dict; existing keys remain. |
+| `test_historical_note_matches_the_backfill_pattern` | `resolution_note()` output matches `NOTE_LINE_RE`. The migration does not import `app`. |
+| `test_backfill_parses_old_notes_and_falls_back_to_updated_at` | Both note codes, last-line wins, note-only reason, missing note, malformed code, NULL reason, and non-resolved rows. Idempotent re-run. Downgrade leaves an existing note in place; upgrade parses it again. |
+| `test_downgrade_round_trip_preserves_old_notes_and_column_only_rows` | Upgrade, downgrade, upgrade. An old note stays byte for byte and its columns come back. A column-only row gains the note on downgrade and gets the same `close_reason` and `closed_at` on the next upgrade. |
+| `test_migration_upgrade_downgrade_upgrade_round_trip` | Columns exist, go away, and come back. Types are timestamptz and `varchar(32)`, both nullable. `bug018a_gap_closed_at_reason` is the head or an ancestor of every head. |
+| `test_offline_sql_adds_and_drops_the_columns` | `alembic upgrade` / `downgrade` `--sql` emits the add, the backfill, the note preserve, and the drops. Upgrade does not set `reason`. |
 
 ## Out of scope
 
 - The partial unique index on open gaps per question (separate decision; needs a dedupe migration).
 - Changing which gaps are closed (TC-02-BUG-018 rules stay).
+- A check constraint on `status` or `close_reason`.
+- Stripping historical notes out of `reason`.
 
 ## Acceptance criteria
 
-- Migration upgrades and downgrades cleanly on the side test DB; a single alembic head.
+- Migration upgrades and downgrades cleanly on the side test DB. This revision is the head, or an ancestor of every head when a later migration exists.
 - Backfill is idempotent and covered by a test with synthetic rows in both note formats and without a note.
 - Regeneration writes `closed_at` / `close_reason`; existing TC-02-BUG-018 tests still pass with assertions moved to the new columns.

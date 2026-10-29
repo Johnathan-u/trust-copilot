@@ -13,6 +13,10 @@ import { useAuth } from '@/contexts/AuthContext'
 import type { ApiFailurePresentation } from '@/lib/api-error'
 import { presentHttpFailure } from '@/lib/api-error'
 import {
+  caseStudyQuoteFields,
+  shouldResetCaseStudyFields,
+} from '@/lib/render-state'
+import {
   parseCaseStudyError,
   parseCaseStudyResponse,
   type CaseStudyView,
@@ -51,8 +55,7 @@ export default function CaseStudiesPage() {
     setStudies(rows.map((row) => parseCaseStudyResponse(row)))
   }
 
-  const load = useCallback(() => {
-    setLoading(true)
+  const queryStudies = useCallback(() => {
     fetch('/api/case-studies', { credentials: 'include' })
       .then(async (response) => {
         const body = await response.json().catch(() => ({}))
@@ -74,9 +77,14 @@ export default function CaseStudiesPage() {
       .finally(() => setLoading(false))
   }, [])
 
+  const load = useCallback(() => {
+    setLoading(true)
+    queryStudies()
+  }, [queryStudies])
+
   useEffect(() => {
-    load()
-  }, [load])
+    queryStudies()
+  }, [queryStudies])
 
   const selected = studies.find((item) => item.id === selectedId) ?? null
 
@@ -368,11 +376,18 @@ function StudyDetail({
   const [consentReference, setConsentReference] = useState('')
   const [resultKey, setResultKey] = useState(study.quoted_results[0] ?? '')
   const [consentId, setConsentId] = useState('')
-
-  useEffect(() => {
-    setOrganizationName(study.company_name ?? '')
-    setResultKey(study.quoted_results[0] ?? '')
-  }, [study.id, study.company_name, study.quoted_results])
+  const quoteSource = {
+    id: study.id,
+    companyName: study.company_name,
+    quotedResults: study.quoted_results,
+  }
+  const [seenQuote, setSeenQuote] = useState(quoteSource)
+  if (shouldResetCaseStudyFields(seenQuote, quoteSource)) {
+    const fields = caseStudyQuoteFields(study)
+    setSeenQuote(quoteSource)
+    setOrganizationName(fields.organizationName)
+    setResultKey(fields.resultKey)
+  }
 
   const revision = { expected_revision: study.revision }
 

@@ -1,0 +1,22 @@
+Compared by test id after merging origin/master cfeda5f.
+branch tests: 3029 {'skipped': 11, 'passed': 3015, 'failed': 3}
+master tests: 3017 {'skipped': 11, 'passed': 3003, 'failed': 3}
+only on branch: 12
+  branch-only passed tests.release.test_evidence_gap_closure_columns::test_accepted_and_dismissed_gaps_keep_null_closure_columns
+  branch-only passed tests.release.test_evidence_gap_closure_columns::test_backfill_parses_old_notes_and_falls_back_to_updated_at
+  branch-only passed tests.release.test_evidence_gap_closure_columns::test_closing_preserves_reason_text_including_an_embedded_note
+  branch-only passed tests.release.test_evidence_gap_closure_columns::test_closing_sets_columns_when_answer_becomes_sufficient
+  branch-only passed tests.release.test_evidence_gap_closure_columns::test_closing_sets_columns_when_question_is_removed
+  branch-only passed tests.release.test_evidence_gap_closure_columns::test_gap_payload_exposes_closure_columns
+  branch-only passed tests.release.test_evidence_gap_closure_columns::test_historical_note_matches_the_backfill_pattern
+  branch-only passed tests.release.test_evidence_gap_closure_columns::test_llm_error_placeholder_does_not_write_closure_columns
+  branch-only passed tests.release.test_evidence_gap_closure_columns::test_manual_status_changes_do_not_write_closure_columns
+  branch-only passed tests.release.test_evidence_gap_closure_columns::test_migration_upgrade_downgrade_upgrade_round_trip
+  branch-only passed tests.release.test_evidence_gap_closure_columns::test_offline_sql_adds_and_drops_the_columns
+  branch-only passed tests.release.test_evidence_gap_closure_columns::test_reinsufficient_question_keeps_the_resolved_row
+only on master: 0
+outcome changed: 0
+failed on both: 3
+  tests.release.test_billing_provider::test_migration_fresh_install_upgrade_and_downgrade
+  tests.release.test_domain_case_studies::test_ac3_schema_consumer_and_persisted_outcome_agree_across_retry
+  tests.release.test_domain_controls::test_routes_agree_on_canonical_contract_and_retry

@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react'
 import { usePathname } from 'next/navigation'
 import { useAuth } from '@/contexts/AuthContext'
 import { APP_NAV_COMPACT_MEDIA } from '@/lib/app-navigation'
+import { navOpenForPath } from '@/lib/render-state'
 import { Button, ErrorState, LoadingState } from '@/components/ui'
 import { MfaRequiredBanner } from './MfaRequiredBanner'
 import { NavDrawer } from './NavDrawer'
@@ -30,7 +31,13 @@ export function DashboardShell({ children }: DashboardShellProps) {
   const pathname = usePathname()
   const [navOpen, setNavOpen] = useState(false)
   const [compact, setCompact] = useState(false)
+  const [seenPath, setSeenPath] = useState(pathname)
   const menuButtonRef = useRef<HTMLButtonElement>(null)
+  if (seenPath !== pathname) {
+    const nextOpen = navOpenForPath(seenPath, pathname, navOpen)
+    setSeenPath(pathname)
+    if (nextOpen !== navOpen) setNavOpen(nextOpen)
+  }
 
   useEffect(() => {
     const media = window.matchMedia(APP_NAV_COMPACT_MEDIA)
@@ -43,10 +50,6 @@ export function DashboardShell({ children }: DashboardShellProps) {
     media.addEventListener('change', apply)
     return () => media.removeEventListener('change', apply)
   }, [])
-
-  useEffect(() => {
-    setNavOpen(false)
-  }, [pathname])
 
   useEffect(() => {
     if (loading) return
