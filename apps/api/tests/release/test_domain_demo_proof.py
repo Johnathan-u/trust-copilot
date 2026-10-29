@@ -685,8 +685,10 @@ def test_foreign_reference_partial_failure_excludes_other_workspace(client):
             filename="SYNTHETIC TEST PLACEHOLDER own.txt",
             status="indexed",
         )
+        # Legacy cross-workspace rows: TC-06-BUG-001 triggers reject new cross-workspace child
+        # writes, so the "foreign" parents start in the owner's workspace and are moved below.
         other_doc = Document(
-            workspace_id=other.id,
+            workspace_id=own.id,
             storage_key=f"synthetic-test/{token}/other",
             filename=marker,
             status="indexed",
@@ -704,7 +706,7 @@ def test_foreign_reference_partial_failure_excludes_other_workspace(client):
         own_q = Questionnaire(
             workspace_id=own.id, filename="SYNTHETIC TEST PLACEHOLDER own.xlsx", status="parsed"
         )
-        other_q = Questionnaire(workspace_id=other.id, filename=marker + ".xlsx", status="parsed")
+        other_q = Questionnaire(workspace_id=own.id, filename=marker + ".xlsx", status="parsed")
         _stamp(own_q)
         _stamp(other_q)
         db.add_all([own_doc, other_doc, deleted_doc, own_q, other_q])
@@ -770,6 +772,9 @@ def test_foreign_reference_partial_failure_excludes_other_workspace(client):
         db.add_all(
             [valid, foreign_evidence, deleted_evidence, valid_export, foreign_export, foreign_gap]
         )
+        db.commit()
+        other_doc.workspace_id = other.id
+        other_q.workspace_id = other.id
         db.commit()
         for row in (foreign_evidence, deleted_evidence, foreign_export, foreign_gap):
             db.refresh(row)
