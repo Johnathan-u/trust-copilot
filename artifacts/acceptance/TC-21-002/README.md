@@ -27,7 +27,7 @@ Tests ran on `d3145d20b53cc99481f3b6af03d8c5f15e2b25a7` (merge of `1c8456be724f6
 - SQLAlchemy 2.0.55
 - Alembic 1.20.1
 - Node 24.22.1 for the UI reader imported by the agreement test
-- `alembic heads`: `tc21002_control_contract (head)`, parent `tc19008_notification_delivery`
+- `alembic heads`: `tc21002_control_contract (head)`, parent `tc06001_same_workspace_refs`
 
 ## Totals
 

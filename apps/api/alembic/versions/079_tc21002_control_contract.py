@@ -5,14 +5,14 @@ content_version is a null slot until TC-01-007; this revision does not store a
 licensed version and does not insert framework text.
 
 Revision ID: tc21002_control_contract
-Revises: tc19008_notification_delivery
+Revises: tc06001_same_workspace_refs
 """
 
 from alembic import op
 import sqlalchemy as sa
 
 revision = "tc21002_control_contract"
-down_revision = "tc19008_notification_delivery"
+down_revision = "tc06001_same_workspace_refs"
 branch_labels = None
 depends_on = None
 
