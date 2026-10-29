@@ -163,6 +163,7 @@ title only:
 | TC-02-BUG-015 | `apps/api/app/services/answer_generation.py` + `evidence_gap_service.py` | missing function, swallowed error | Answer generation imported a `generate_gaps_for_questionnaire` that no longer existed and a broad `except` dropped the `ImportError`, so no evidence gap was ever written and `gaps_generated` was always 0 | worker job (answer generation), not a request | E11 (E21 gaps) | Medium |
 | TC-02-BUG-018 | `apps/api/app/services/evidence_gap_service.py` (`generate_gaps_for_questionnaire`) | stale state | Regeneration never closed an open gap once its answer became sufficient or its question was removed, so gap totals in the gaps view, export pack, demo proof, benchmarks and executive dashboard overstated missing evidence | worker job (answer generation); totals on request paths | E21 (E11) | Medium |
 | TC-02-BUG-018a | `apps/api/app/models/evidence_gap.py`, `evidence_gap_service.py` | closure metadata in free text | Closure time lived only in `updated_at`, and the code lived in a delimited line of `reason`, so a later edit moved the time and the opening explanation was mixed with closure history | worker job (answer generation); gap payload from `list_evidence_gaps` / `get_evidence_gap` | E21 | Low |
+| TC-02-BUG-018b | `apps/api/app/models/evidence_gap.py`, `alembic/versions/bug018b_gap_status_checks.py` | unconstrained status and close_reason | `evidence_gaps.status` and `close_reason` accepted any string the column width allowed, so a bad write could not be rejected by the database | worker job (answer generation); status helpers on the gap service | E21 | Low |
 
 ### TC-02-BUG-015: evidence gaps were never generated
 - The LLM gap analyser was removed in `571a158`; the import in answer generation was left behind and its
@@ -188,6 +189,19 @@ title only:
   missing, and does not rewrite `reason`. Accepted, dismissed and open rows are not backfilled.
   Manual status changes do not write the columns. No API route sets a resolved gap back to open.
 - Ticket `docs/release/bugs/TC-02-BUG-018a.md`.
+
+### TC-02-BUG-018b: check constraints on gap status and close_reason
+- `status` and `close_reason` had no check. The writers store `open`, `accepted`, `dismissed`
+  and `resolved`, and `close_reason` of NULL, `question_removed`, `answer_sufficient`, or
+  `evidence_sufficient` (the control-check scan code from PR #76).
+- Fix: `ck_evidence_gaps_status` and `ck_evidence_gaps_close_reason`, added NOT VALID then
+  validated against existing rows. `alembic/env.py` runs that migration in one transaction, so
+  the two steps do not shorten the lock. The migration pre-scans and fails with counts and
+  example ids instead of rewriting rows. Downgrade drops only the constraints.
+- A check that `close_reason` is set only when `status = resolved` was not added.
+  `update_evidence_gap_status` and `bulk_update_by_title` change status and leave `close_reason`,
+  and the 018a backfill leaves `close_reason` NULL on some resolved rows.
+- Ticket `docs/release/bugs/TC-02-BUG-018b.md`.
 
 ## Verified not bugs (no entry)
 - F841 with no hidden logic: `tags.py:87` `dt`, `automation_service.py:161` `summary` (the
