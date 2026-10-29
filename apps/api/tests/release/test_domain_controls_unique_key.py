@@ -34,9 +34,7 @@ REVISION = "tc21002a_canonical_uniq"
 
 def _indexes(session, table: str) -> set[str]:
     rows = session.execute(
-        __import__("sqlalchemy").text(
-            "SELECT indexname FROM pg_indexes WHERE tablename = :table"
-        ),
+        __import__("sqlalchemy").text("SELECT indexname FROM pg_indexes WHERE tablename = :table"),
         {"table": table},
     ).fetchall()
     return {row[0] for row in rows}
@@ -83,7 +81,9 @@ def test_reviewer_verify_syncs_verified_status_and_get_stays_read_only(client):
         legacy = session.query(Control).filter(Control.id == created["id"]).one()
         assert legacy.lifecycle == "verified"
         assert legacy.status == "implemented"
-        workspace = session.query(WorkspaceControl).filter(WorkspaceControl.id == workspace_id).one()
+        workspace = (
+            session.query(WorkspaceControl).filter(WorkspaceControl.id == workspace_id).one()
+        )
         assert workspace.status == "verified"
         assert workspace.lifecycle == "verified"
         before = (legacy.updated_at, workspace.updated_at)
@@ -95,7 +95,9 @@ def test_reviewer_verify_syncs_verified_status_and_get_stays_read_only(client):
     session = _fresh()
     try:
         legacy = session.query(Control).filter(Control.id == created["id"]).one()
-        workspace = session.query(WorkspaceControl).filter(WorkspaceControl.id == workspace_id).one()
+        workspace = (
+            session.query(WorkspaceControl).filter(WorkspaceControl.id == workspace_id).one()
+        )
         assert (legacy.updated_at, workspace.updated_at) == before
     finally:
         session.close()
@@ -250,9 +252,7 @@ def test_migration_clears_only_duplicate_keys_and_downgrade_restores_them():
         session = _fresh()
         try:
             restored = session.execute(
-                __import__("sqlalchemy").text(
-                    "SELECT canonical_key FROM controls WHERE id = :id"
-                ),
+                __import__("sqlalchemy").text("SELECT canonical_key FROM controls WHERE id = :id"),
                 {"id": ids[1].id},
             ).scalar()
             assert restored == key
