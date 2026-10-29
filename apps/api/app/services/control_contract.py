@@ -73,6 +73,15 @@ class ContractResult:
     ids: dict = field(default_factory=dict)
 
 
+def _canonical_unique_violation(exc: IntegrityError) -> bool:
+    """True when the partial unique index on (workspace, canonical key) rejected a second row."""
+    orig = getattr(exc, "orig", None)
+    if getattr(orig, "pgcode", None) != "23505":
+        return False
+    message = str(orig).lower()
+    return "canonical" in message
+
+
 def canonical_key(framework: str, control_key: str) -> str:
     """Identity shared by both routes. Not a framework catalog title."""
     left = " ".join((framework or "").split())
@@ -345,8 +354,13 @@ def upsert_legacy_control(
     request_id: str | None = None,
     event_workspace_id: int | None = None,
     legacy_id: int | None = None,
+    _attempt: int = 0,
 ) -> ContractResult:
-    """Create or reuse the legacy row and its compliance pair. Same input, same row."""
+    """Create or reuse the legacy row and its compliance pair. Same input, same row.
+
+    A concurrent insert that loses the partial unique index retries once and
+    updates the row that won. It does not insert a second canonical key.
+    """
     framework = " ".join(framework.split())
     control_key = " ".join(control_key.split())
     if not framework or not control_key:
@@ -362,79 +376,98 @@ def upsert_legacy_control(
         return ContractResult(404, {}, error=owner_problem)
     key = canonical_key(framework, control_key)
     lifecycle = LEGACY_TO_LIFECYCLE[legacy_status]
-    if legacy_id is not None:
-        legacy = (
-            db.query(Control)
-            .filter(Control.id == legacy_id, Control.workspace_id == workspace_id)
-            .first()
-        )
-        if legacy is None:
-            return ContractResult(404, {}, error={"detail": "Control not found"})
-        other = _find_legacy(db, workspace_id, key, framework, control_key)
-        if other is not None and other.id != legacy.id:
-            return ContractResult(
-                409,
-                {},
-                error={
-                    "contract_version": ERROR_CONTRACT_VERSION,
-                    "code": "control_identity_conflict",
-                    "message": "Another control already uses this framework and control id",
-                    "retryable": False,
-                    "partial_failure": False,
-                },
+    try:
+        if legacy_id is not None:
+            legacy = (
+                db.query(Control)
+                .filter(Control.id == legacy_id, Control.workspace_id == workspace_id)
+                .first()
             )
-        created = False
-    else:
-        legacy = _find_legacy(db, workspace_id, key, framework, control_key)
-        created = legacy is None
-    if legacy is None:
-        legacy = Control(
+            if legacy is None:
+                return ContractResult(404, {}, error={"detail": "Control not found"})
+            other = _find_legacy(db, workspace_id, key, framework, control_key)
+            if other is not None and other.id != legacy.id:
+                return ContractResult(
+                    409,
+                    {},
+                    error={
+                        "contract_version": ERROR_CONTRACT_VERSION,
+                        "code": "control_identity_conflict",
+                        "message": "Another control already uses this framework and control id",
+                        "retryable": False,
+                        "partial_failure": False,
+                    },
+                )
+            created = False
+        else:
+            legacy = _find_legacy(db, workspace_id, key, framework, control_key)
+            created = legacy is None
+        if legacy is None:
+            legacy = Control(
+                workspace_id=workspace_id,
+                framework=framework,
+                control_id=control_key,
+                name=name,
+                status=legacy_status,
+            )
+            db.add(legacy)
+            db.flush()
+        else:
+            legacy.framework = framework
+            legacy.control_id = control_key
+        workspace = _find_workspace(db, workspace_id, key, legacy.workspace_control_id)
+        if workspace is None:
+            workspace = WorkspaceControl(
+                workspace_id=workspace_id,
+                status=LIFECYCLE_TO_WORKSPACE[lifecycle],
+                custom_name=name,
+            )
+            db.add(workspace)
+            db.flush()
+        _apply_pair(
+            legacy,
+            workspace,
+            key=key,
+            lifecycle=lifecycle,
+            owner_user_id=owner_user_id,
+            owner_team=owner_team.strip() if owner_team else None,
+            legacy_status=legacy_status,
+            name=name,
+        )
+        for other in (
+            db.query(Control)
+            .filter(
+                Control.workspace_id == workspace_id,
+                Control.canonical_key == key,
+                Control.id != legacy.id,
+            )
+            .all()
+        ):
+            other.lifecycle = lifecycle
+            other.status = legacy_status
+            other.content_version = None
+            other.owner_user_id = owner_user_id
+            other.owner_team = legacy.owner_team
+            other.workspace_control_id = workspace.id
+        db.commit()
+    except IntegrityError as exc:
+        db.rollback()
+        if _attempt or not _canonical_unique_violation(exc):
+            raise
+        return upsert_legacy_control(
+            db,
             workspace_id=workspace_id,
             framework=framework,
-            control_id=control_key,
+            control_key=control_key,
             name=name,
-            status=legacy_status,
+            legacy_status=legacy_status,
+            owner_user_id=owner_user_id,
+            owner_team=owner_team,
+            request_id=request_id,
+            event_workspace_id=event_workspace_id,
+            legacy_id=legacy_id,
+            _attempt=1,
         )
-        db.add(legacy)
-        db.flush()
-    else:
-        legacy.framework = framework
-        legacy.control_id = control_key
-    workspace = _find_workspace(db, workspace_id, key, legacy.workspace_control_id)
-    if workspace is None:
-        workspace = WorkspaceControl(
-            workspace_id=workspace_id,
-            status=LIFECYCLE_TO_WORKSPACE[lifecycle],
-            custom_name=name,
-        )
-        db.add(workspace)
-        db.flush()
-    _apply_pair(
-        legacy,
-        workspace,
-        key=key,
-        lifecycle=lifecycle,
-        owner_user_id=owner_user_id,
-        owner_team=owner_team.strip() if owner_team else None,
-        legacy_status=legacy_status,
-        name=name,
-    )
-    for other in (
-        db.query(Control)
-        .filter(
-            Control.workspace_id == workspace_id,
-            Control.canonical_key == key,
-            Control.id != legacy.id,
-        )
-        .all()
-    ):
-        other.lifecycle = lifecycle
-        other.status = legacy_status
-        other.content_version = None
-        other.owner_user_id = owner_user_id
-        other.owner_team = legacy.owner_team
-        other.workspace_control_id = workspace.id
-    db.commit()
     db.refresh(legacy)
     legacy_id = legacy.id
     workspace_id_row = workspace.id
@@ -558,6 +591,7 @@ def sync_workspace_row(
     *,
     request_id: str | None = None,
     event_workspace_id: int | None = None,
+    _attempt: int = 0,
 ) -> ContractResult:
     """Copy this compliance row's lifecycle onto the legacy row. Does not insert a second pair."""
     if workspace.status not in WORKSPACE_TO_LIFECYCLE:
@@ -583,34 +617,47 @@ def sync_workspace_row(
         control_key = f"control-{workspace.id}"
     key = canonical_key(framework_name, control_key)
     lifecycle = WORKSPACE_TO_LIFECYCLE[workspace.status]
-    legacy = legacy_for_workspace(db, workspace)
-    if legacy is None:
-        legacy = _find_legacy(db, workspace.workspace_id, key, framework_name, control_key)
-    created = legacy is None
-    if legacy is None:
-        legacy = Control(
-            workspace_id=workspace.workspace_id,
-            framework=framework_name,
-            control_id=control_key,
+    try:
+        legacy = legacy_for_workspace(db, workspace)
+        if legacy is None:
+            legacy = _find_legacy(db, workspace.workspace_id, key, framework_name, control_key)
+        created = legacy is None
+        if legacy is None:
+            legacy = Control(
+                workspace_id=workspace.workspace_id,
+                framework=framework_name,
+                control_id=control_key,
+                name=workspace.custom_name,
+                status=LIFECYCLE_TO_LEGACY[lifecycle],
+            )
+            db.add(legacy)
+            db.flush()
+        else:
+            legacy.framework = framework_name
+            legacy.control_id = control_key
+        _apply_pair(
+            legacy,
+            workspace,
+            key=key,
+            lifecycle=lifecycle,
+            owner_user_id=workspace.owner_user_id,
+            owner_team=workspace.owner_team,
+            legacy_status=LIFECYCLE_TO_LEGACY[lifecycle],
             name=workspace.custom_name,
-            status=LIFECYCLE_TO_LEGACY[lifecycle],
         )
-        db.add(legacy)
-        db.flush()
-    else:
-        legacy.framework = framework_name
-        legacy.control_id = control_key
-    _apply_pair(
-        legacy,
-        workspace,
-        key=key,
-        lifecycle=lifecycle,
-        owner_user_id=workspace.owner_user_id,
-        owner_team=workspace.owner_team,
-        legacy_status=LIFECYCLE_TO_LEGACY[lifecycle],
-        name=workspace.custom_name,
-    )
-    db.commit()
+        db.commit()
+    except IntegrityError as exc:
+        db.rollback()
+        if _attempt or not _canonical_unique_violation(exc):
+            raise
+        db.refresh(workspace)
+        return sync_workspace_row(
+            db,
+            workspace,
+            request_id=request_id,
+            event_workspace_id=event_workspace_id,
+            _attempt=1,
+        )
     db.refresh(legacy)
     failure = _record_event(
         db,
