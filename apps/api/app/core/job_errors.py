@@ -4,7 +4,8 @@ A job failure is classified into a stable, typed ``error_code``:
 
 * **retryable** (transient): ``rate_limited`` (429), ``timeout`` (408/504, client timeouts),
   ``upstream_unavailable`` (other 5xx), ``connection_error`` (network/DNS/refused),
-  ``database_unavailable`` (DB connection lost / operational error);
+  ``database_unavailable`` (DB connection lost / operational error), ``lease_expired`` (the worker
+  lost its job lease before finishing; the attempt is abandoned and retried under the same cap);
 * **terminal** (retrying cannot help): ``bad_input``, ``not_found``, ``auth_failed``, ``permission_denied``,
   ``config_error``, ``internal_error``.
 
@@ -37,6 +38,9 @@ TIMEOUT = "timeout"
 UPSTREAM_UNAVAILABLE = "upstream_unavailable"
 CONNECTION_ERROR = "connection_error"
 DATABASE_UNAVAILABLE = "database_unavailable"
+# A worker's lease expired before it finished. Retryable: the attempt is abandoned and the
+# side-effect ledger (TC-10-003) makes the next attempt safe. Not an upstream/provider failure.
+LEASE_EXPIRED = "lease_expired"
 
 BAD_INPUT = "bad_input"
 NOT_FOUND = "not_found"
@@ -46,7 +50,14 @@ CONFIG_ERROR = "config_error"
 INTERNAL_ERROR = "internal_error"
 
 RETRYABLE_CODES = frozenset(
-    {RATE_LIMITED, TIMEOUT, UPSTREAM_UNAVAILABLE, CONNECTION_ERROR, DATABASE_UNAVAILABLE}
+    {
+        RATE_LIMITED,
+        TIMEOUT,
+        UPSTREAM_UNAVAILABLE,
+        CONNECTION_ERROR,
+        DATABASE_UNAVAILABLE,
+        LEASE_EXPIRED,
+    }
 )
 TERMINAL_CODES = frozenset(
     {
@@ -61,7 +72,8 @@ TERMINAL_CODES = frozenset(
 ALL_CODES = RETRYABLE_CODES | TERMINAL_CODES
 
 # Codes whose provider/storage message may echo a raw upstream body: never expose ``str(exc)`` for these.
-_UPSTREAM_CODES = RETRYABLE_CODES | {AUTH_FAILED, PERMISSION_DENIED}
+# ``lease_expired`` is our own message, not an upstream body.
+_UPSTREAM_CODES = (RETRYABLE_CODES - {LEASE_EXPIRED}) | {AUTH_FAILED, PERMISSION_DENIED}
 
 
 def _model_spec(code: str | None):
