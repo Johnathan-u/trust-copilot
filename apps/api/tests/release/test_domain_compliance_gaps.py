@@ -548,7 +548,10 @@ def test_rescan_leaves_accepted_and_dismissed_rows(client):
         ).fetchall()
     finally:
         session.close()
-    assert statuses == [(accepted_control, "accepted"), (dismissed_control, "dismissed")]
+    assert statuses == sorted(
+        [(accepted_control, "accepted"), (dismissed_control, "dismissed")],
+        key=lambda item: item[0],
+    )
 
 
 def test_migration_round_trip_restores_gap_evaluation():
