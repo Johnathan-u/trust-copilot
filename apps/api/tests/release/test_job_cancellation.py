@@ -506,6 +506,37 @@ def test_manual_retry_of_a_queued_job_is_a_conflict(client: TestClient, db):
     assert not _audits(db, job.id, "job.manual_retry")
 
 
+def test_manual_retry_refuses_when_another_open_job_has_the_same_key(client: TestClient, db):
+    """A running copy of the same input blocks the retry. The queued-only unique index would not."""
+    _admin(client)
+    key = f"parse_evidence:{uuid.uuid4().hex}"
+    running = _job(
+        db,
+        status=JobStatus.RUNNING.value,
+        attempt=1,
+        idempotency_key=key,
+        lease_owner="ab" * 16,
+    )
+    failed = _job(
+        db,
+        status=JobStatus.FAILED.value,
+        attempt=2,
+        error_code="rate_limited",
+        error="Attempt 2 of 3 failed (rate_limited): synthetic.",
+        idempotency_key=key,
+    )
+    response = client.post(f"/api/jobs/{failed.id}/retry?workspace_id={WS}")
+    assert response.status_code == 409
+    body = response.json()
+    assert body["error"]["code"] == "idempotency_conflict"
+    assert body["detail"] == body["error"]["message"]
+    assert body["error"]["retryable"] is False
+    db.expire_all()
+    assert db.get(Job, failed.id).status == JobStatus.FAILED.value
+    assert db.get(Job, running.id).status == JobStatus.RUNNING.value
+    assert not _audits(db, failed.id, "job.manual_retry")
+
+
 def test_enqueue_after_cancel_does_not_resurrect_the_cancelled_job(db):
     from app.services.job_control import cancel_job
     from app.services.job_effects import enqueue_job

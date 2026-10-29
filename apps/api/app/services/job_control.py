@@ -106,6 +106,21 @@ def retry_job(
     if job.status not in _RETRYABLE:
         session.rollback()
         return "not_retryable", job
+    if job.idempotency_key:
+        other = (
+            session.query(Job.id)
+            .filter(
+                Job.workspace_id == job.workspace_id,
+                Job.kind == job.kind,
+                Job.idempotency_key == job.idempotency_key,
+                Job.id != job.id,
+                Job.status.in_((JobStatus.QUEUED.value, JobStatus.RUNNING.value)),
+            )
+            .first()
+        )
+        if other is not None:
+            session.rollback()
+            return "conflict", None
     prior = _prior(job)
     job.status = JobStatus.QUEUED.value
     job.attempt = 0

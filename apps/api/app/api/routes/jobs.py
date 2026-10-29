@@ -163,7 +163,7 @@ def retry_job_route(
         actor_user_id=session.get("user_id"),
         actor_email=session.get("email"),
     )
-    if kind == "missing" or job is None:
+    if kind == "missing":
         raise HTTPException(status_code=404, detail="Job not found")
     if kind == "not_retryable":
         return _conflict(request, "job_not_retryable", _NOT_RETRYABLE)
