@@ -3,7 +3,7 @@
 import logging
 from datetime import datetime
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 from sqlalchemy.exc import IntegrityError
@@ -11,6 +11,10 @@ from sqlalchemy.orm import Session
 
 from app.core.auth_deps import require_can_admin, require_can_review
 from app.core.database import get_db
+from app.core.idempotency import claim as idempotency_claim
+from app.core.idempotency import get as idempotency_get
+from app.core.idempotency import release as idempotency_release
+from app.core.idempotency import set as idempotency_set
 from app.core.metrics import (
     compliance_control_created_total,
     compliance_control_status_changed_total,
@@ -595,14 +599,52 @@ def _link_dict(
     }
 
 
+def _accept_idempotency_key(request: Request, workspace_id: int, control_id: int) -> str | None:
+    """Optional key, scoped like a case-study publish key. Absent means no claim."""
+    raw = (request.headers.get("Idempotency-Key") or "").strip()
+    if not raw:
+        return None
+    if len(raw) > 180:
+        raise HTTPException(status_code=422, detail="Idempotency-Key is too long")
+    return f"accept-suggested:{workspace_id}:{control_id}:{raw}"
+
+
+def _claim_or_replay(db: Session, key: str | None) -> tuple[JSONResponse | None, str | None]:
+    """Replay a stored response, or claim the key and return this request's owner token.
+
+    The token is passed to set and release. A late finisher whose lease expired and was
+    reclaimed cannot overwrite or release the new owner's claim. A stored body is
+    replayed, and an in-progress key is 409.
+    """
+    if not key:
+        return None, None
+    cached = idempotency_get(db, key)
+    if cached:
+        return JSONResponse(content=cached[1], status_code=cached[0]), None
+    owner = idempotency_claim(db, key)
+    if owner is None:
+        cached_again = idempotency_get(db, key)
+        if cached_again:
+            return JSONResponse(content=cached_again[1], status_code=cached_again[0]), None
+        raise HTTPException(
+            status_code=409, detail="Request in progress; retry with same Idempotency-Key"
+        )
+    return None, owner
+
+
 @router.post("/{control_id}/evidence/accept-suggested", response_model=dict)
 def accept_suggested_evidence(
     control_id: int,
     body: AcceptSuggestedEvidenceBody,
+    request: Request,
     session: dict = Depends(require_can_admin),
     db: Session = Depends(get_db),
 ):
-    """Create evidence from a suggested chunk and link it to the control. Requires admin."""
+    """Create evidence from a suggested chunk and link it to the control. Requires admin.
+
+    Idempotency-Key is optional. A retry with the same key returns the first response
+    and does not create another evidence item or link.
+    """
     ws = session.get("workspace_id")
     if not ws:
         raise HTTPException(status_code=403, detail="No workspace")
@@ -632,6 +674,10 @@ def accept_suggested_evidence(
         require_same_workspace(db, ws, document_id=doc_id)
     except CrossWorkspaceReference:
         raise HTTPException(status_code=404, detail=NOT_FOUND_DETAIL)
+    key = _accept_idempotency_key(request, ws, control_id)
+    cached, owner = _claim_or_replay(db, key)
+    if cached is not None:
+        return cached
     title = (body.snippet or ch.text or "")[:255].strip() or f"Chunk {body.chunk_id}"
     score = max(0, min(1, body.confidence))
     try:
@@ -652,7 +698,11 @@ def accept_suggested_evidence(
         db.add(link)
         db.commit()
     except Exception:
+        # A failed commit leaves the session unusable until it is rolled back.
+        # Release only this request's claim after that, so a retry can claim at once.
         db.rollback()
+        if key:
+            idempotency_release(db, key, owner=owner)
         raise
     db.refresh(link)
     db.refresh(ev)
@@ -666,7 +716,10 @@ def accept_suggested_evidence(
         from app.services.tag_service import list_tags_for_document
 
         ev_tags = list_tags_for_document(db, ev.document_id, ws)
-    return {**_link_dict(link), "evidence": _evidence_dict(ev, tags=ev_tags)}
+    payload = {**_link_dict(link), "evidence": _evidence_dict(ev, tags=ev_tags)}
+    if key:
+        idempotency_set(db, key, 200, payload, owner=owner)
+    return payload
 
 
 @router.post("/{control_id}/suggest-evidence", response_model=list)

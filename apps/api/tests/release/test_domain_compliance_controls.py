@@ -8,10 +8,11 @@ import subprocess
 import sys
 import uuid
 from datetime import datetime, timedelta
+from unittest.mock import patch
 
 import pytest
 from fastapi.testclient import TestClient
-from sqlalchemy import text
+from sqlalchemy import bindparam, text
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
@@ -44,6 +45,25 @@ EDITOR_PASSWORD = "test-e"
 REVIEWER_PASSWORD = "test-r"
 OTHER_PASSWORD = "test-o"
 DENIED = "Verified status requires approved, current evidence linked in this workspace"
+_COUNTED = (
+    "tc21003_link_hold",
+    "control_evidence_links",
+    "evidence_metadata",
+    "chunks",
+    "evidence_items",
+    "documents",
+    "in_app_notifications",
+    "compliance_webhook_outbox",
+    "audit_events",
+    "control_contract_events",
+    "controls",
+    "workspace_controls",
+    "user_sessions",
+    "idempotency_keys",
+    "workspace_members",
+    "users",
+    "workspaces",
+)
 
 
 def _db() -> Session:
@@ -134,6 +154,107 @@ def _control(client, name: str) -> dict:
     return response.json()
 
 
+def _reset_login_limit() -> None:
+    """Login is limited to 10 attempts per minute per IP. This file logs in more than that."""
+    from app.core import rate_limit
+
+    with rate_limit._lock:
+        rate_limit._store.clear()
+
+
+def _counts() -> dict[str, int]:
+    session = _db()
+    try:
+        return {
+            name: int(session.execute(text(f"SELECT count(*) FROM {name}")).scalar() or 0)
+            for name in _COUNTED
+        }
+    finally:
+        session.close()
+
+
+def _ids() -> dict[str, set[int]]:
+    session = _db()
+    try:
+        found = {}
+        for name in _COUNTED:
+            rows = session.execute(text(f"SELECT id FROM {name}")).fetchall()
+            found[name] = {row[0] for row in rows}
+        return found
+    finally:
+        session.close()
+
+
+def _delete_created(before: dict[str, set[int]]) -> None:
+    session = _db()
+    try:
+        for name in _COUNTED:
+            current = {row[0] for row in session.execute(text(f"SELECT id FROM {name}")).fetchall()}
+            created = sorted(current - before[name])
+            if not created:
+                continue
+            statement = text(f"DELETE FROM {name} WHERE id IN :ids").bindparams(
+                bindparam("ids", expanding=True)
+            )
+            session.execute(statement, {"ids": created})
+        session.commit()
+    except Exception:
+        session.rollback()
+        raise
+    finally:
+        session.close()
+
+
+@pytest.fixture(autouse=True)
+def restored_rows(request):
+    """Delete every row this test creates and require the counted tables to match.
+
+    The migration test drops and recreates tc21003_link_hold, so it cleans up itself.
+    """
+    if request.node.originalname == "test_migration_dedupes_links_and_downgrade_restores_them":
+        yield
+        return
+    _reset_login_limit()
+    before_counts = _counts()
+    before_ids = _ids()
+    try:
+        yield
+    finally:
+        _delete_created(before_ids)
+        after_counts = _counts()
+        assert after_counts == before_counts, {"before": before_counts, "after": after_counts}
+        print(f"TC21003_COUNTS before={before_counts} after={after_counts}")
+
+
+def _chunk(workspace_id: int) -> int:
+    session = _db()
+    try:
+        _sync_sequence(session, "documents")
+        doc = Document(
+            workspace_id=workspace_id,
+            storage_key=f"tc21003/{uuid.uuid4().hex}",
+            filename="chunk.txt",
+            status="uploaded",
+        )
+        session.add(doc)
+        session.flush()
+        _sync_sequence(session, "chunks")
+        chunk = Chunk(workspace_id=workspace_id, document_id=doc.id, text="synthetic")
+        session.add(chunk)
+        session.commit()
+        return chunk.id
+    finally:
+        session.close()
+
+
+def _table_count(table: str) -> int:
+    session = _db()
+    try:
+        return int(session.execute(text(f"SELECT count(*) FROM {table}")).scalar() or 0)
+    finally:
+        session.close()
+
+
 def _evidence(
     session: Session, workspace_id: int, *, approval: str, document_id: int | None
 ) -> int:
@@ -169,7 +290,7 @@ def test_permissions_workspace_mismatch_and_read_only_gets(client):
     assert editor_refused.status_code == 403
 
     _login(client, ADMIN_EMAIL, ADMIN_PASSWORD)
-    created = _control(client, "Synthetic control")
+    created = _control(client, f"Synthetic {uuid.uuid4().hex[:8]}")
     session = _db()
     try:
         before = session.execute(
@@ -209,7 +330,7 @@ def test_permissions_workspace_mismatch_and_read_only_gets(client):
 def test_verify_requires_qualifying_evidence_and_retry_is_stable(client):
     actors = _actors()
     _login(client, ADMIN_EMAIL, ADMIN_PASSWORD)
-    created = _control(client, "Verify synthetic")
+    created = _control(client, f"Verify {uuid.uuid4().hex[:8]}")
     session = _db()
     try:
         pending = _evidence(session, actors["workspace_id"], approval="pending", document_id=None)
@@ -331,7 +452,7 @@ def test_verify_requires_qualifying_evidence_and_retry_is_stable(client):
 def test_deleted_document_and_link_verified_flag(client):
     actors = _actors()
     _login(client, ADMIN_EMAIL, ADMIN_PASSWORD)
-    created = _control(client, "Document synthetic")
+    created = _control(client, f"Document {uuid.uuid4().hex[:8]}")
     session = _db()
     try:
         _sync_sequence(session, "documents")
@@ -374,7 +495,7 @@ def test_deleted_document_and_link_verified_flag(client):
 def test_accept_suggested_failure_leaves_no_partial_state(client):
     actors = _actors()
     _login(client, ADMIN_EMAIL, ADMIN_PASSWORD)
-    created = _control(client, "Accept synthetic")
+    created = _control(client, f"Accept {uuid.uuid4().hex[:8]}")
     _login(client, REVIEWER_EMAIL, REVIEWER_PASSWORD)
     assert (
         client.post(
@@ -441,6 +562,94 @@ def test_accept_suggested_failure_leaves_no_partial_state(client):
         assert links == before_links
     finally:
         session.close()
+
+
+def _accept(client, control_id: int, chunk_id: int, key: str):
+    return client.post(
+        f"/api/compliance/controls/{control_id}/evidence/accept-suggested",
+        json={"chunk_id": chunk_id, "confidence": 0.5},
+        headers={"Idempotency-Key": key},
+    )
+
+
+def test_accept_suggested_same_key_retry_creates_nothing_new(client, restored_rows):
+    actors = _actors()
+    _login(client, ADMIN_EMAIL, ADMIN_PASSWORD)
+    created = _control(client, f"Idem {uuid.uuid4().hex[:8]}")
+    chunk_id = _chunk(actors["workspace_id"])
+    key = f"acc-{uuid.uuid4().hex}"
+    storage = f"accept-suggested:{actors['workspace_id']}:{created['id']}:{key}"
+    evidence_before = _table_count("evidence_items")
+    links_before = _table_count("control_evidence_links")
+    first = _accept(client, created["id"], chunk_id, key)
+    assert first.status_code == 200, first.text
+    body = first.json()
+    assert _table_count("evidence_items") == evidence_before + 1
+    assert _table_count("control_evidence_links") == links_before + 1
+    session = _db()
+    try:
+        owner = session.execute(
+            text("SELECT owner_token FROM idempotency_keys WHERE idempotency_key = :k"),
+            {"k": storage},
+        ).scalar()
+        assert owner
+    finally:
+        session.close()
+    retried = _accept(client, created["id"], chunk_id, key)
+    assert retried.status_code == 200
+    assert retried.json() == body
+    assert _table_count("evidence_items") == evidence_before + 1
+    assert _table_count("control_evidence_links") == links_before + 1
+
+
+def test_accept_suggested_failed_commit_releases_the_claim(client, restored_rows):
+    from sqlalchemy.orm import Session as OrmSession
+
+    actors = _actors()
+    _login(client, ADMIN_EMAIL, ADMIN_PASSWORD)
+    created = _control(client, f"Fail {uuid.uuid4().hex[:8]}")
+    chunk_id = _chunk(actors["workspace_id"])
+    key = f"acc-fail-{uuid.uuid4().hex}"
+    storage = f"accept-suggested:{actors['workspace_id']}:{created['id']}:{key}"
+    evidence_before = _table_count("evidence_items")
+    links_before = _table_count("control_evidence_links")
+    real_commit = OrmSession.commit
+    seen = {"n": 0}
+
+    def failing_commit(self, *args, **kwargs):
+        seen["n"] += 1
+        if seen["n"] == 2:
+            raise RuntimeError("forced commit failure")
+        return real_commit(self, *args, **kwargs)
+
+    quiet = TestClient(
+        app, base_url=TEST_ORIGIN, headers=TEST_HEADERS, raise_server_exceptions=False
+    )
+    _login(quiet, ADMIN_EMAIL, ADMIN_PASSWORD)
+    with patch.object(OrmSession, "commit", failing_commit):
+        failed = _accept(quiet, created["id"], chunk_id, key)
+    assert failed.status_code == 500, failed.text
+    assert seen["n"] >= 3
+    assert _table_count("evidence_items") == evidence_before
+    assert _table_count("control_evidence_links") == links_before
+    session = _db()
+    try:
+        owner = session.execute(
+            text("SELECT owner_token FROM idempotency_keys WHERE idempotency_key = :k"),
+            {"k": storage},
+        ).scalar()
+        assert owner is None
+    finally:
+        session.close()
+    retried = _accept(client, created["id"], chunk_id, key)
+    assert retried.status_code == 200, retried.text
+    assert _table_count("evidence_items") == evidence_before + 1
+    assert _table_count("control_evidence_links") == links_before + 1
+    replay = _accept(client, created["id"], chunk_id, key)
+    assert replay.status_code == 200
+    assert replay.json() == retried.json()
+    assert _table_count("evidence_items") == evidence_before + 1
+    assert _table_count("control_evidence_links") == links_before + 1
 
 
 def test_migration_dedupes_links_and_downgrade_restores_them():
