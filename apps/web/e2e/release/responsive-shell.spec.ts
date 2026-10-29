@@ -143,6 +143,70 @@ async function openShell(
   await expect(page.locator('html')).toHaveAttribute('data-theme', theme)
 }
 
+async function expectUniqueLandmarkNames(page: Page) {
+  const landmarks = await page.evaluate(() => {
+    const selector = [
+      'header',
+      'nav',
+      'main',
+      'aside',
+      'footer',
+      '[role="banner"]',
+      '[role="navigation"]',
+      '[role="main"]',
+      '[role="complementary"]',
+      '[role="contentinfo"]',
+      '[role="search"]',
+      '[role="region"]',
+    ].join(',')
+    const implicit: Record<string, string> = {
+      HEADER: 'banner',
+      NAV: 'navigation',
+      MAIN: 'main',
+      ASIDE: 'complementary',
+      FOOTER: 'contentinfo',
+    }
+    const visibleToSr = (el: Element) => {
+      if (!(el instanceof HTMLElement)) return false
+      if (el.closest('[hidden], [inert]')) return false
+      const style = getComputedStyle(el)
+      if (style.display === 'none' || style.visibility === 'hidden')
+        return false
+      let node: HTMLElement | null = el
+      while (node) {
+        if (node.getAttribute('aria-hidden') === 'true') return false
+        node = node.parentElement
+      }
+      return true
+    }
+    return Array.from(document.querySelectorAll(selector))
+      .filter(visibleToSr)
+      .map((el) => {
+        const role = el.getAttribute('role') || implicit[el.tagName] || ''
+        const labelledBy = el.getAttribute('aria-labelledby')
+        let name = el.getAttribute('aria-label') || ''
+        if (!name && labelledBy) {
+          name = labelledBy
+            .split(/\s+/)
+            .map((id) => document.getElementById(id)?.textContent || '')
+            .join(' ')
+        }
+        return { role, name: name.replace(/\s+/g, ' ').trim() }
+      })
+  })
+  const named = landmarks
+    .map((item) => item.name.toLowerCase())
+    .filter((name) => name.length > 0)
+  const duplicateNames = named.filter(
+    (name, index) => named.indexOf(name) !== index
+  )
+  expect(duplicateNames, JSON.stringify(landmarks)).toEqual([])
+  const keys = landmarks.map(
+    (item) => `${item.role}|${item.name.toLowerCase()}`
+  )
+  expect(new Set(keys).size, JSON.stringify(landmarks)).toBe(keys.length)
+}
+
 async function expectNoPageOverflow(page: Page) {
   const overflow = await page.evaluate(() => ({
     scroll: Math.max(
@@ -205,19 +269,31 @@ test.describe('responsive application shell', () => {
     await page.keyboard.press('Enter')
     const dialog = page.getByRole('dialog', { name: 'Navigation' })
     await expect(dialog).toBeVisible()
-    await expect(dialog.getByRole('button', { name: 'Close' })).toBeFocused()
+    await expect(dialog.getByRole('link', { name: 'Home' })).toBeFocused()
     await expect(dialog.getByRole('link', { name: 'Home' })).toHaveAttribute(
       'aria-current',
       'page'
     )
     await expect(
+      dialog.getByRole('complementary', { name: 'Sidebar' })
+    ).toBeVisible()
+    await expect(
+      dialog.getByRole('navigation', { name: 'Application' })
+    ).toBeVisible()
+    await expectUniqueLandmarkNames(page)
+    await expect(
       dialog.getByRole('button', { name: 'Compliance' })
     ).toHaveAttribute('aria-expanded', 'false')
 
     await page.keyboard.press('Shift+Tab')
-    await expect(dialog.getByRole('button', { name: 'Admin' })).toBeFocused()
+    await expect(dialog.getByRole('button', { name: 'Close' })).toBeFocused()
+    await page.keyboard.press('Tab')
+    await expect(dialog.getByRole('link', { name: 'Home' })).toBeFocused()
+    await dialog.getByRole('button', { name: 'Admin' }).focus()
     await page.keyboard.press('Tab')
     await expect(dialog.getByRole('button', { name: 'Close' })).toBeFocused()
+    await page.keyboard.press('Shift+Tab')
+    await expect(dialog.getByRole('button', { name: 'Admin' })).toBeFocused()
 
     await dialog.getByRole('button', { name: 'Compliance' }).focus()
     await page.keyboard.press('Enter')
@@ -264,8 +340,10 @@ test.describe('responsive application shell', () => {
     await page.screenshot({
       path: path.join(screenshotDir, 'shell-dark-360-open.png'),
     })
+    await expectUniqueLandmarkNames(page)
     await writeAxe(page, 'auth-dark-360-open')
     await page.keyboard.press('Escape')
+    await expectUniqueLandmarkNames(page)
     await writeAxe(page, 'auth-dark-360-closed')
   })
 
@@ -294,6 +372,11 @@ test.describe('responsive application shell', () => {
       const sidebar = page.locator('[data-sidebar-placement="dock"]')
       const main = page.locator('#main-content')
       await expect(sidebar).toBeVisible()
+      await expect(sidebar).toHaveAttribute('aria-label', 'Sidebar')
+      await expect(
+        sidebar.getByRole('navigation', { name: 'Application' })
+      ).toBeVisible()
+      await expectUniqueLandmarkNames(page)
       await expect(sidebar.getByRole('link', { name: 'Home' })).toHaveAttribute(
         'aria-current',
         'page'
@@ -364,6 +447,7 @@ test.describe('responsive application shell', () => {
       await page.screenshot({
         path: path.join(screenshotDir, `shell-dark-${viewport.name}.png`),
       })
+      await expectUniqueLandmarkNames(page)
       await writeAxe(page, `auth-dark-${viewport.name}`)
     })
   }
@@ -390,6 +474,7 @@ test.describe('responsive application shell', () => {
     await page.screenshot({
       path: path.join(screenshotDir, 'shell-light-1440.png'),
     })
+    await expectUniqueLandmarkNames(page)
     await writeAxe(page, 'auth-light-1440')
 
     await page.setViewportSize({ width: 768, height: 1024 })
@@ -401,6 +486,7 @@ test.describe('responsive application shell', () => {
     await page.screenshot({
       path: path.join(screenshotDir, 'shell-light-768.png'),
     })
+    await expectUniqueLandmarkNames(page)
     await writeAxe(page, 'auth-light-768')
 
     await page.setViewportSize({ width: 360, height: 800 })
@@ -410,6 +496,7 @@ test.describe('responsive application shell', () => {
     await page.screenshot({
       path: path.join(screenshotDir, 'shell-light-360-closed.png'),
     })
+    await expectUniqueLandmarkNames(page)
     await writeAxe(page, 'auth-light-360-closed')
     await openNav.click()
     const dialog = page.getByRole('dialog', { name: 'Navigation' })
@@ -417,6 +504,7 @@ test.describe('responsive application shell', () => {
     await page.screenshot({
       path: path.join(screenshotDir, 'shell-light-360-open.png'),
     })
+    await expectUniqueLandmarkNames(page)
     await writeAxe(page, 'auth-light-360-open')
     await page.keyboard.press('Escape')
     await expect(dialog).toBeHidden()
