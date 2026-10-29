@@ -19,7 +19,12 @@ from sqlalchemy import func, text
 from sqlalchemy.orm import Session
 
 from app.models import Answer, Question, Questionnaire
-from app.models.evidence_gap import EvidenceGap, GAP_STATUSES
+from app.models.evidence_gap import (
+    ALL_GAP_STATUSES,
+    GAP_STATUS_RESOLVED,
+    GAP_STATUSES,
+    EvidenceGap,
+)
 from app.models.question_mapping_signal import QuestionMappingSignal
 
 # Subject label -> document a reviewer should upload. Shared with compliance_coverage so
@@ -99,61 +104,138 @@ def _lock_questionnaire_gap_writes(db: Session, questionnaire_id: int) -> None:
     )
 
 
-def generate_gaps_for_questionnaire(db: Session, workspace_id: int, questionnaire_id: int) -> dict:
-    """Create one open evidence gap per insufficient-evidence answer in a questionnaire.
+# TC-02-BUG-018: answer statuses that keep a question's gap open. Insufficient evidence, plus a
+# human or system judgement that the answer is not good enough (rejected / flagged). Any other
+# status (draft, approved) counts as a sufficient answer.
+GAP_BLOCKING_ANSWER_STATUSES = (INSUFFICIENT_STATUS, "rejected", "flagged")
+# Closure codes appended to ``EvidenceGap.reason`` when regeneration resolves a gap.
+RESOLVED_QUESTION_REMOVED = "question_removed"
+RESOLVED_ANSWER_SUFFICIENT = "answer_sufficient"
+# Delimiter of the appended closure note. The original reason is kept byte for byte, then a newline,
+# then ``[resolved on regeneration: <code> at <UTC ISO-8601, seconds, Z>]``. Interim until
+# TC-02-BUG-018a adds closed_at / close_reason columns.
+RESOLUTION_NOTE_PREFIX = "[resolved on regeneration: "
 
-    Idempotent: a question that already has a gap (any status) is left alone, so reruns do
-    not duplicate and accepted/dismissed gaps are not reopened. Concurrent callers take a
-    transaction advisory lock before reading existing gaps, so two overlapping runs still
-    insert once. Scoped to the workspace that owns the questionnaire. Returns
-    ``{"generated": n, "total_insufficient": m}``.
+
+def resolution_note(code: str, at: datetime) -> str:
+    """The closure note, e.g. ``[resolved on regeneration: answer_sufficient at 2026-10-27T14:00:00Z]``."""
+    ts = at.astimezone(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
+    return f"{RESOLUTION_NOTE_PREFIX}{code} at {ts}]"
+
+
+def append_resolution_note(reason: str | None, code: str, at: datetime) -> str:
+    """Original reason unchanged, closure note on its own final line."""
+    note = resolution_note(code, at)
+    return f"{reason}\n{note}" if reason else note
+
+
+def generate_gaps_for_questionnaire(db: Session, workspace_id: int, questionnaire_id: int) -> dict:
+    """Bring a questionnaire's ``missing_evidence`` gaps in line with its current answers.
+
+    - Opens one gap per insufficient-evidence answer that has no open, accepted or dismissed gap.
+      Accepted and dismissed gaps are user decisions and are never reopened or duplicated.
+    - Closes (TC-02-BUG-018) open gaps whose question no longer exists in the questionnaire
+      (``question_removed``) or whose question now has answers and none is insufficient, rejected
+      or flagged (``answer_sufficient``). Closing sets ``status="resolved"``, bumps ``updated_at``
+      and appends ``\n[resolved on regeneration: <code> at <UTC ISO ts>]`` to ``reason``, keeping
+      the original text intact. Rows are never deleted. If the answer later becomes
+      insufficient again, a new open gap is created and the resolved row stays as history.
+    - Model-failure placeholders (``insufficient_reason == "llm_error"`` or a ``model_*`` outcome)
+      neither open nor close a gap. Neither does a question with no answer row yet.
+
+    Every read and write runs after ``pg_advisory_xact_lock(150015, questionnaire_id)`` in one
+    transaction, so overlapping runs serialize and leave exactly one open gap per insufficient
+    question. Scoped to the workspace that owns the questionnaire. Returns
+    ``{"generated": n, "total_insufficient": m, "resolved": r}``.
     """
+    owned = (
+        db.query(Questionnaire.id)
+        .filter(Questionnaire.id == questionnaire_id, Questionnaire.workspace_id == workspace_id)
+        .first()
+    )
+    if owned is None:
+        return {"generated": 0, "total_insufficient": 0, "resolved": 0}
+
+    # Same session and transaction as the commit at the end of this function. The answer, question
+    # and gap reads below happen after the lock so a second run sees the first run's commit.
+    _lock_questionnaire_gap_writes(db, questionnaire_id)
+
     rows = (
         db.query(Answer, Question)
         .join(Question, Question.id == Answer.question_id)
-        .join(Questionnaire, Questionnaire.id == Question.questionnaire_id)
-        .filter(
-            Question.questionnaire_id == questionnaire_id,
-            Questionnaire.workspace_id == workspace_id,
-            Answer.status == INSUFFICIENT_STATUS,
-        )
-        .order_by(Question.id)
+        .filter(Question.questionnaire_id == questionnaire_id)
+        .order_by(Question.id, Answer.id)
         .all()
     )
-    eligible = [
-        (a, q)
-        for a, q in rows
-        if (a.outcome_code is None or a.outcome_code in GAP_OUTCOME_CODES)
-        and a.insufficient_reason != LLM_ERROR_REASON
-    ]
-    if not eligible:
-        return {"generated": 0, "total_insufficient": 0}
-
-    # Same session and transaction as the commit at the end of this function. Releasing the
-    # lock any earlier would let a second run read "no gaps" and insert duplicates.
-    _lock_questionnaire_gap_writes(db, questionnaire_id)
-    question_ids = [q.id for _a, q in eligible]
-    existing = {
+    current_question_ids = {
         qid
-        for (qid,) in db.query(EvidenceGap.question_id)
+        for (qid,) in db.query(Question.id).filter(Question.questionnaire_id == questionnaire_id)
+    }
+    answered: set[int] = set()
+    # Any insufficient, rejected or flagged row (llm_error / model_* placeholders included).
+    blocking_any: set[int] = set()
+    eligible: list[tuple[Answer, Question]] = []
+    for a, q in rows:
+        answered.add(q.id)
+        if a.status in GAP_BLOCKING_ANSWER_STATUSES:
+            blocking_any.add(q.id)
+        if a.status != INSUFFICIENT_STATUS:
+            continue
+        if (
+            a.outcome_code is None or a.outcome_code in GAP_OUTCOME_CODES
+        ) and a.insufficient_reason != LLM_ERROR_REASON:
+            eligible.append((a, q))
+
+    gaps = (
+        db.query(EvidenceGap)
         .filter(
             EvidenceGap.workspace_id == workspace_id,
             EvidenceGap.questionnaire_id == questionnaire_id,
-            EvidenceGap.question_id.in_(question_ids),
         )
+        .order_by(EvidenceGap.id)
         .all()
+    )
+
+    # Close stale open gaps. Accepted/dismissed (user decisions) and resolved rows are not touched.
+    now = datetime.now(timezone.utc)
+    resolved = 0
+    for gap in gaps:
+        if gap.status != "open" or gap.gap_type != GAP_TYPE_MISSING_EVIDENCE:
+            continue
+        if gap.question_id is None or gap.question_id not in current_question_ids:
+            code = RESOLVED_QUESTION_REMOVED
+        elif gap.question_id in answered and gap.question_id not in blocking_any:
+            code = RESOLVED_ANSWER_SUFFICIENT
+        else:
+            # Still insufficient, rejected, flagged, an llm_error/model_* placeholder, or not
+            # answered yet: the gap stays open.
+            continue
+        gap.status = GAP_STATUS_RESOLVED
+        gap.reason = append_resolution_note(gap.reason, code, now)
+        gap.updated_at = now
+        resolved += 1
+
+    # A question is covered by any gap (any type) except one this generator resolved, so user
+    # decisions (accepted/dismissed) still block a duplicate exactly as before.
+    existing = {
+        g.question_id for g in gaps if g.question_id is not None and g.status != GAP_STATUS_RESOLVED
     }
-    signal_subjects = {
-        qid: _subjects(raw, nested=False)
-        for qid, raw in db.query(
-            QuestionMappingSignal.question_id, QuestionMappingSignal.subject_labels_json
-        )
-        .filter(
-            QuestionMappingSignal.workspace_id == workspace_id,
-            QuestionMappingSignal.question_id.in_(question_ids),
-        )
-        .all()
-    }
+    question_ids = [q.id for _a, q in eligible]
+    signal_subjects = (
+        {
+            qid: _subjects(raw, nested=False)
+            for qid, raw in db.query(
+                QuestionMappingSignal.question_id, QuestionMappingSignal.subject_labels_json
+            )
+            .filter(
+                QuestionMappingSignal.workspace_id == workspace_id,
+                QuestionMappingSignal.question_id.in_(question_ids),
+            )
+            .all()
+        }
+        if question_ids
+        else {}
+    )
 
     generated = 0
     for answer, question in eligible:
@@ -181,7 +263,7 @@ def generate_gaps_for_questionnaire(db: Session, workspace_id: int, questionnair
         existing.add(question.id)
         generated += 1
     db.commit()
-    return {"generated": generated, "total_insufficient": len(eligible)}
+    return {"generated": generated, "total_insufficient": len(eligible), "resolved": resolved}
 
 
 def list_evidence_gaps(
@@ -262,17 +344,21 @@ def bulk_update_by_title(
 
 
 def gap_summary(db: Session, workspace_id: int) -> dict:
-    """Aggregate counts by status."""
+    """Aggregate counts by status.
+
+    ``total`` counts gaps still in play (open, accepted, dismissed). Gaps closed by regeneration
+    (TC-02-BUG-018) are reported separately under ``resolved`` and never added to ``total``.
+    """
     rows = (
         db.query(EvidenceGap.status, func.count(EvidenceGap.id))
         .filter(EvidenceGap.workspace_id == workspace_id)
         .group_by(EvidenceGap.status)
         .all()
     )
-    counts = {s: 0 for s in GAP_STATUSES}
+    counts = {s: 0 for s in ALL_GAP_STATUSES}
     for status, cnt in rows:
         counts[status] = cnt
-    counts["total"] = sum(counts.values())
+    counts["total"] = sum(counts[s] for s in GAP_STATUSES)
     return counts
 
 

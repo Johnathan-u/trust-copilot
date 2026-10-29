@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session
 
 from app.models.answer import Answer
 from app.models.document import Document
-from app.models.evidence_gap import EvidenceGap
+from app.models.evidence_gap import GAP_STATUS_RESOLVED, EvidenceGap
 from app.models.export_record import ExportRecord
 from app.models.job import Job
 from app.models.questionnaire import Question, Questionnaire
@@ -115,8 +115,13 @@ def _answer_metrics(db: Session, workspace_id: int) -> dict:
 
 def _evidence_metrics(db: Session, workspace_id: int) -> dict:
     docs = db.query(Document).filter(Document.workspace_id == workspace_id).count()
-    gaps = db.query(EvidenceGap).filter(EvidenceGap.workspace_id == workspace_id).count()
-    return {"total_documents": docs, "evidence_gaps": gaps}
+    # TC-02-BUG-018: gaps closed by regeneration are not gaps any more; report them separately.
+    ws_gaps = db.query(EvidenceGap).filter(EvidenceGap.workspace_id == workspace_id)
+    return {
+        "total_documents": docs,
+        "evidence_gaps": ws_gaps.filter(EvidenceGap.status != GAP_STATUS_RESOLVED).count(),
+        "evidence_gaps_resolved": ws_gaps.filter(EvidenceGap.status == GAP_STATUS_RESOLVED).count(),
+    }
 
 
 def _ai_usage(db: Session, workspace_id: int) -> dict:

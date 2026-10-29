@@ -6,7 +6,18 @@ from sqlalchemy import Column, DateTime, Float, ForeignKey, Integer, String, Tex
 
 from app.core.database import Base
 
+# Statuses a user can set (API / bulk update). Unchanged by TC-02-BUG-018.
 GAP_STATUSES = ("open", "accepted", "dismissed")
+# System-only status (TC-02-BUG-018): regeneration closed the gap because its question was removed
+# or now has a sufficient answer (not insufficient, rejected or flagged). Never set by a user, never
+# deleted. A later insufficient answer opens a new gap instead of reopening this row, so the history
+# stays readable. The closure is recorded by appending a final line to ``reason``:
+#   ``[resolved on regeneration: <question_removed|answer_sufficient> at <UTC ISO-8601>Z]``
+# with the original reason text kept intact above it (TC-02-BUG-018a: real closed_at/close_reason).
+# User- and buyer-facing gap totals must exclude this status and, where all statuses are shown,
+# report it separately.
+GAP_STATUS_RESOLVED = "resolved"
+ALL_GAP_STATUSES = GAP_STATUSES + (GAP_STATUS_RESOLVED,)
 
 
 class EvidenceGap(Base):

@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import json
 import logging
+import re
 import threading
 import time
 import uuid
@@ -196,7 +197,7 @@ def test_generator_skips_model_failures_and_existing_gaps(db_session: Session, q
     db.commit()
 
     first = generate_gaps_for_questionnaire(db, WS_ID, qnr.id)
-    assert first == {"generated": 1, "total_insufficient": 1}
+    assert first == {"generated": 1, "total_insufficient": 1, "resolved": 0}
     (gap,) = _gaps(db, qnr.id)
     assert gap.question_id == q1.id
     assert gap.suggested_evidence_doc_title == "Access Control Policy"
@@ -205,13 +206,14 @@ def test_generator_skips_model_failures_and_existing_gaps(db_session: Session, q
     gap.status = "dismissed"
     db.commit()
     again = generate_gaps_for_questionnaire(db, WS_ID, qnr.id)
-    assert again == {"generated": 0, "total_insufficient": 1}
+    assert again == {"generated": 0, "total_insufficient": 1, "resolved": 0}
     assert [g.status for g in _gaps(db, qnr.id)] == ["dismissed"]
 
     # Workspace scoping: another workspace id never sees this questionnaire.
     assert generate_gaps_for_questionnaire(db, 987654321, qnr.id) == {
         "generated": 0,
         "total_insufficient": 0,
+        "resolved": 0,
     }
 
 
@@ -301,7 +303,7 @@ def test_generator_skips_llm_error_placeholders(db_session: Session, qnr):
     db.commit()
 
     result = generate_gaps_for_questionnaire(db, WS_ID, qnr.id)
-    assert result == {"generated": 1, "total_insufficient": 1}
+    assert result == {"generated": 1, "total_insufficient": 1, "resolved": 0}
     (gap,) = _gaps(db, qnr.id)
     assert gap.question_id == q3.id
 
@@ -368,3 +370,305 @@ def test_concurrent_generators_insert_one_gap_per_question(db_session: Session, 
         assert [g.question_id for g in gaps] == [
             q.id for q in questions
         ], f"trial {trial} wrote {len(gaps)} gaps for {len(questions)} questions"
+
+
+# ---------------------------------------------------------------------------------------------
+# TC-02-BUG-018: regeneration closes stale open gaps (status "resolved"), never deletes them.
+# Each test below fails on ce4d861, where a stale open gap stays open forever.
+# ---------------------------------------------------------------------------------------------
+
+
+def _insufficient(question_id: int, **kw) -> Answer:
+    fields = {
+        "text": "Insufficient evidence.",
+        "status": "insufficient_evidence",
+        "outcome_code": "no_evidence",
+        "insufficient_reason": "no_citations",
+    }
+    fields.update(kw)
+    return Answer(question_id=question_id, **fields)
+
+
+def _set_answer(db: Session, question_id: int, **fields) -> None:
+    db.query(Answer).filter(Answer.question_id == question_id).update(
+        fields, synchronize_session=False
+    )
+    db.commit()
+
+
+_SUFFICIENT = {
+    "text": "Synthetic grounded draft.",
+    "status": "draft",
+    "outcome_code": None,
+    "insufficient_reason": None,
+}
+_INSUFFICIENT = {
+    "text": "Insufficient evidence.",
+    "status": "insufficient_evidence",
+    "outcome_code": "no_evidence",
+    "insufficient_reason": "no_citations",
+}
+
+
+def test_regeneration_resolves_gap_when_answer_becomes_sufficient(db_session: Session, qnr):
+    from app.services.evidence_gap_service import generate_gaps_for_questionnaire
+
+    db = db_session
+    q1, q2, _q3 = _questions(db, qnr.id)
+    db.add_all([_insufficient(q1.id), _insufficient(q2.id)])
+    db.commit()
+    assert generate_gaps_for_questionnaire(db, WS_ID, qnr.id)["generated"] == 2
+    (gap1, gap2) = _gaps(db, qnr.id)
+    gap1_id, opened_at, opened_reason = gap1.id, gap1.updated_at, gap1.reason
+    assert "no_citations" in opened_reason
+
+    _set_answer(db, q1.id, **_SUFFICIENT)  # new evidence -> grounded draft
+    result = generate_gaps_for_questionnaire(db, WS_ID, qnr.id)
+
+    gaps = {g.id: g for g in _gaps(db, qnr.id)}
+    assert len(gaps) == 2  # closed, not deleted
+    closed = gaps[gap1_id]
+    assert closed.status == "resolved"
+    assert closed.question_id == q1.id
+    # Original reason kept byte for byte; closure note on its own delimited final line.
+    original, note = closed.reason.rsplit("\n", 1)
+    assert original == opened_reason
+    assert re.fullmatch(
+        r"\[resolved on regeneration: answer_sufficient at \d{4}-\d\d-\d\dT\d\d:\d\d:\d\dZ\]",
+        note,
+    ), note
+    assert closed.updated_at is not None and closed.updated_at >= opened_at
+    assert gaps[gap2.id].status == "open"
+    assert result == {"generated": 0, "total_insufficient": 1, "resolved": 1}
+
+    # Rerun is a no-op; the note is not appended twice.
+    again = generate_gaps_for_questionnaire(db, WS_ID, qnr.id)
+    assert again == {"generated": 0, "total_insufficient": 1, "resolved": 0}
+    assert _gaps(db, qnr.id)[0].reason.count("answer_sufficient") == 1
+
+    # Insufficient again -> one new open gap; the resolved row stays as history.
+    _set_answer(db, q1.id, **_INSUFFICIENT)
+    reopened = generate_gaps_for_questionnaire(db, WS_ID, qnr.id)
+    assert reopened == {"generated": 1, "total_insufficient": 2, "resolved": 0}
+    q1_gaps = sorted((g for g in _gaps(db, qnr.id) if g.question_id == q1.id), key=lambda g: g.id)
+    assert [g.status for g in q1_gaps] == ["resolved", "open"]
+    assert q1_gaps[0].id == gap1_id
+
+
+def test_regeneration_resolves_gap_when_question_is_removed(db_session: Session, qnr):
+    from app.services.evidence_gap_service import generate_gaps_for_questionnaire
+
+    db = db_session
+    q1, q2, _q3 = _questions(db, qnr.id)
+    db.add_all([_insufficient(q1.id), _insufficient(q2.id)])
+    db.commit()
+    generate_gaps_for_questionnaire(db, WS_ID, qnr.id)
+    gap2_id = next(g.id for g in _gaps(db, qnr.id) if g.question_id == q2.id)
+
+    # The question is removed from the questionnaire (FKs on the gap are ON DELETE SET NULL).
+    db.query(Answer).filter(Answer.question_id == q2.id).delete(synchronize_session=False)
+    db.query(Question).filter(Question.id == q2.id).delete(synchronize_session=False)
+    db.commit()
+
+    result = generate_gaps_for_questionnaire(db, WS_ID, qnr.id)
+    gaps = {g.id: g for g in _gaps(db, qnr.id)}
+    assert len(gaps) == 2
+    removed = gaps[gap2_id]
+    assert removed.question_id is None
+    assert removed.status == "resolved"
+    assert removed.reason.splitlines()[-1].startswith(
+        "[resolved on regeneration: question_removed at "
+    )
+    assert removed.reason.splitlines()[0].startswith("No workspace evidence supports")
+    assert [g.status for g in gaps.values() if g.question_id == q1.id] == ["open"]
+    assert result == {"generated": 0, "total_insufficient": 1, "resolved": 1}
+
+
+def test_regeneration_preserves_manually_accepted_and_dismissed_gaps(db_session: Session, qnr):
+    from app.services.evidence_gap_service import generate_gaps_for_questionnaire
+
+    db = db_session
+    q1, q2, q3 = _questions(db, qnr.id)
+    db.add_all([_insufficient(q.id) for q in (q1, q2, q3)])
+    db.commit()
+    generate_gaps_for_questionnaire(db, WS_ID, qnr.id)
+    by_q = {g.question_id: g for g in _gaps(db, qnr.id)}
+    by_q[q1.id].status = "accepted"
+    by_q[q2.id].status = "dismissed"
+    db.commit()
+    manual = {
+        g.question_id: (g.status, g.reason, g.updated_at)
+        for g in _gaps(db, qnr.id)
+        if g.question_id in (q1.id, q2.id)
+    }
+
+    for q in (q1, q2, q3):
+        _set_answer(db, q.id, **_SUFFICIENT)
+    result = generate_gaps_for_questionnaire(db, WS_ID, qnr.id)
+    after = {g.question_id: g for g in _gaps(db, qnr.id)}
+    assert after[q3.id].status == "resolved"
+    for qid, (status, reason, updated_at) in manual.items():
+        assert (after[qid].status, after[qid].reason, after[qid].updated_at) == (
+            status,
+            reason,
+            updated_at,
+        )
+    assert result == {"generated": 0, "total_insufficient": 0, "resolved": 1}
+
+    # User decisions still block a duplicate when the answers turn insufficient again.
+    for q in (q1, q2):
+        _set_answer(db, q.id, **_INSUFFICIENT)
+    again = generate_gaps_for_questionnaire(db, WS_ID, qnr.id)
+    assert again == {"generated": 0, "total_insufficient": 2, "resolved": 0}
+    assert sorted(g.status for g in _gaps(db, qnr.id)) == ["accepted", "dismissed", "resolved"]
+
+
+def test_regeneration_leaves_llm_error_placeholders_untouched(db_session: Session, qnr):
+    from app.services.evidence_gap_service import generate_gaps_for_questionnaire
+
+    db = db_session
+    q1, q2, q3 = _questions(db, qnr.id)
+    db.add_all([_insufficient(q1.id), _insufficient(q3.id)])
+    db.commit()
+    generate_gaps_for_questionnaire(db, WS_ID, qnr.id)
+    before = {g.question_id: (g.id, g.status, g.reason, g.updated_at) for g in _gaps(db, qnr.id)}
+
+    # q1's rerun hit a provider failure: TC-10-002 placeholder. q2 only has a placeholder.
+    # q3 got evidence, so its gap closes (the part that fails on ce4d861).
+    _set_answer(db, q1.id, outcome_code="model_timeout", insufficient_reason="llm_error")
+    db.add(_insufficient(q2.id, outcome_code="model_timeout", insufficient_reason="llm_error"))
+    db.commit()
+    _set_answer(db, q3.id, **_SUFFICIENT)
+
+    result = generate_gaps_for_questionnaire(db, WS_ID, qnr.id)
+    after = {g.question_id: g for g in _gaps(db, qnr.id)}
+    assert set(after) == {q1.id, q3.id}  # no gap opened for the q2 placeholder
+    g1 = after[q1.id]
+    assert (g1.id, g1.status, g1.reason, g1.updated_at) == before[q1.id]  # not closed
+    assert after[q3.id].status == "resolved"
+    assert result == {"generated": 0, "total_insufficient": 0, "resolved": 1}
+
+
+def test_concurrent_regeneration_resolves_once_and_keeps_one_open_gap(db_session: Session, qnr):
+    """Overlapping regenerations: stale gap closed once, one open gap per insufficient question."""
+    from sqlalchemy.orm import Session as SASession
+
+    from app.core.database import SessionLocal
+    from app.services.evidence_gap_service import generate_gaps_for_questionnaire
+
+    db = db_session
+    qnr_id = qnr.id
+    q1, q2, q3 = _questions(db, qnr_id)
+    db.add_all([_insufficient(q1.id), _insufficient(q2.id), _insufficient(q3.id)])
+    db.commit()
+    _set_answer(db, q1.id, **_SUFFICIENT)
+
+    original_commit = SASession.commit
+
+    def _commit_after_pause(self):
+        time.sleep(0.2)
+        return original_commit(self)
+
+    for trial in range(4):
+        db.query(EvidenceGap).filter(EvidenceGap.questionnaire_id == qnr_id).delete(
+            synchronize_session=False
+        )
+        # Stale state from an earlier run: q1 and q2 open, q3 resolved by an earlier run.
+        for question, status in ((q1, "open"), (q2, "open"), (q3, "resolved")):
+            db.add(
+                EvidenceGap(
+                    workspace_id=WS_ID,
+                    questionnaire_id=qnr_id,
+                    question_id=question.id,
+                    gap_type="missing_evidence",
+                    reason="Synthetic earlier gap.",
+                    status=status,
+                )
+            )
+        db.commit()
+        barrier = threading.Barrier(2)
+        errors: list[BaseException] = []
+        results: list[dict] = []
+
+        def _run() -> None:
+            session = SessionLocal()
+            try:
+                barrier.wait(timeout=5)
+                results.append(generate_gaps_for_questionnaire(session, WS_ID, qnr_id))
+            except BaseException as exc:  # reported below; a leaked thread must not hide it
+                errors.append(exc)
+            finally:
+                session.close()
+
+        with patch.object(SASession, "commit", _commit_after_pause):
+            threads = [
+                threading.Thread(target=_run, name=f"gap-regen-{trial}-{i}") for i in range(2)
+            ]
+            for thread in threads:
+                thread.start()
+            for thread in threads:
+                thread.join(timeout=10)
+        assert errors == []
+        assert not any(thread.is_alive() for thread in threads)
+
+        gaps = _gaps(db, qnr_id)
+        open_qids = sorted(g.question_id for g in gaps if g.status == "open")
+        assert open_qids == [q2.id, q3.id], f"trial {trial}: open gaps for {open_qids}"
+        (q1_gap,) = [g for g in gaps if g.question_id == q1.id]
+        assert q1_gap.status == "resolved"
+        assert q1_gap.reason.count("answer_sufficient") == 1
+        assert sorted(g.status for g in gaps if g.question_id == q3.id) == ["open", "resolved"]
+        assert sum(r["resolved"] for r in results) == 1
+        assert sum(r["generated"] for r in results) == 1
+
+
+@pytest.mark.parametrize("judged_status", ["rejected", "flagged"])
+def test_regeneration_keeps_gap_open_when_answer_is_rejected_or_flagged(
+    db_session: Session, qnr, judged_status: str
+):
+    """A rejected or flagged answer is not sufficient: its gap stays open (ruling 3).
+
+    q2 shows the same rerun still closes a gap whose answer is a plain draft, so the test fails
+    on a base without the close-on-regeneration fix and on one that treats rejected/flagged as
+    sufficient.
+    """
+    from app.services.evidence_gap_service import generate_gaps_for_questionnaire
+
+    db = db_session
+    q1, q2, _q3 = _questions(db, qnr.id)
+    db.add_all([_insufficient(q1.id), _insufficient(q2.id)])
+    db.commit()
+    generate_gaps_for_questionnaire(db, WS_ID, qnr.id)
+    before = {g.question_id: (g.id, g.reason, g.updated_at) for g in _gaps(db, qnr.id)}
+
+    # A reviewer (or the system) judged q1's new answer not good enough; q2 got a grounded draft.
+    _set_answer(db, q1.id, **{**_SUFFICIENT, "status": judged_status})
+    _set_answer(db, q2.id, **_SUFFICIENT)
+    result = generate_gaps_for_questionnaire(db, WS_ID, qnr.id)
+
+    after = {g.question_id: g for g in _gaps(db, qnr.id)}
+    g1 = after[q1.id]
+    assert g1.status == "open"
+    assert (g1.id, g1.reason, g1.updated_at) == before[q1.id]
+    assert after[q2.id].status == "resolved"
+    assert result == {"generated": 0, "total_insufficient": 0, "resolved": 1}
+
+    # A second answer row that is sufficient does not outvote the rejected/flagged one.
+    db.add(Answer(question_id=q1.id, **_SUFFICIENT))
+    db.commit()
+    assert generate_gaps_for_questionnaire(db, WS_ID, qnr.id)["resolved"] == 0
+    assert _gaps(db, qnr.id)[0].status == "open"
+
+
+def test_resolution_note_format_is_delimited_and_keeps_reason():
+    from datetime import datetime, timedelta, timezone
+
+    from app.services.evidence_gap_service import append_resolution_note
+
+    at = datetime(2026, 10, 27, 9, 30, 15, 123456, tzinfo=timezone(timedelta(hours=-5)))
+    assert append_resolution_note("Original\nreason.", "question_removed", at) == (
+        "Original\nreason.\n[resolved on regeneration: question_removed at 2026-10-27T14:30:15Z]"
+    )
+    assert append_resolution_note(None, "answer_sufficient", at) == (
+        "[resolved on regeneration: answer_sufficient at 2026-10-27T14:30:15Z]"
+    )
