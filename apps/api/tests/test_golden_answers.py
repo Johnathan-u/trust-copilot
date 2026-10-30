@@ -50,7 +50,7 @@ class TestGoldenAnswerService:
         ws = db_session.query(Workspace).first()
         created = ga.create_golden_answer(db_session, ws.id, "Review Q", "Review A")
         db_session.commit()
-        reviewed = ga.review_golden_answer(db_session, created["id"])
+        reviewed = ga.review_golden_answer(db_session, created["id"], workspace_id=ws.id)
         db_session.commit()
         assert reviewed["status"] == "approved"
         assert reviewed["last_reviewed_at"] is not None
@@ -71,7 +71,7 @@ class TestGoldenAnswerService:
             db_session, ws.id, "Lineage Q", "Lineage A", control_ids=[1, 2], evidence_ids=[3]
         )
         db_session.commit()
-        lineage = ga.get_lineage(db_session, created["id"])
+        lineage = ga.get_lineage(db_session, created["id"], workspace_id=ws.id)
         assert lineage["control_ids"] == [1, 2]
         assert lineage["evidence_ids"] == [3]
 
@@ -79,10 +79,10 @@ class TestGoldenAnswerService:
         ws = db_session.query(Workspace).first()
         created = ga.create_golden_answer(db_session, ws.id, "Reuse Q", "Reuse A")
         db_session.commit()
-        ga.record_reuse(db_session, created["id"])
-        ga.record_reuse(db_session, created["id"])
+        ga.record_reuse(db_session, created["id"], workspace_id=ws.id)
+        ga.record_reuse(db_session, created["id"], workspace_id=ws.id)
         db_session.commit()
-        result = ga.get_golden_answer(db_session, created["id"])
+        result = ga.get_golden_answer(db_session, created["id"], workspace_id=ws.id)
         assert result["reuse_count"] == 2
 
     def test_find_similar(self, db_session):
