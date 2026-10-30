@@ -159,25 +159,31 @@ def sign_session(
     session_id: str | None = None,
     max_age_seconds: int | None = None,
     mfa_enrol_only: bool = False,
+    *,
+    expires_at: int | None = None,
+    cookie_persistent: bool = False,
 ) -> str:
-    """Create session token. ENT-202: max_age_seconds sets exp claim (per-workspace policy)."""
+    """Create a session; an established absolute expiry takes precedence over relative age."""
     payload = {
         "user_id": user_id,
         "email": email,
         "workspace_id": workspace_id,
         "role": role,
+        "cookie_persistent": cookie_persistent is True,
     }
     if session_id:
         payload["session_id"] = session_id
     if mfa_enrol_only:
         payload["mfa_enrol_only"] = True
-    if max_age_seconds is not None:
+    if expires_at is not None:
+        payload["exp"] = expires_at
+    elif max_age_seconds is not None:
         payload["exp"] = int(time.time()) + max_age_seconds
     return sign_token(payload)
 
 
 def verify_token(token: str) -> dict | None:
-    """Verify and decode token, return payload or None. Rejects expired tokens (SESS-201)."""
+    """Verify a signed session's required expiry and identifier before returning it."""
     try:
         if not token or "." not in token:
             return None
@@ -187,9 +193,14 @@ def verify_token(token: str) -> dict | None:
         if data is None:
             return None
         payload = json.loads(base64.urlsafe_b64decode(data).decode())
+        if not isinstance(payload, dict):
+            return None
         exp = payload.get("exp")
-        if exp is not None and int(exp) < time.time():
-            return None  # Expired
+        if type(exp) is not int or exp <= time.time():
+            return None
+        session_id = payload.get("session_id")
+        if not isinstance(session_id, str) or not session_id.strip():
+            return None
         return payload
     except Exception:
         return None

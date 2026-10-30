@@ -1,16 +1,19 @@
 """Auth dependencies for workspace isolation (OPS-02) and RBAC (AUTH-205)."""
 
 import hashlib
+from datetime import datetime, timedelta, timezone
 from fastapi import Depends, HTTPException, Request
+from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
 from app.core.mfa import mfa_reenrol_pending, mfa_reenrol_required
 from app.core.roles import BUILTIN_ROLES, can_admin, can_edit, can_export, can_review
 from app.core.session import verify_token
-from app.models import ApiKey, CustomRole, UserMfa, UserSession, WorkspaceMember
+from app.models import ApiKey, CustomRole, UserMfa, UserSession, Workspace, WorkspaceMember
 
 SESSION_COOKIE = "tc_session"
+DEFAULT_SESSION_MAX_AGE_SECONDS = 86400 * 7
 _MFA_ENROL_ROUTES = frozenset(
     {
         ("GET", "/api/auth/me"),
@@ -53,6 +56,60 @@ def get_session(request: Request) -> dict | None:
     ):
         return None
     return session
+
+
+def workspace_session_max_age_seconds(db: Session, workspace_id: int) -> int:
+    """Read the current tenant cap; workspace zero is account-only onboarding."""
+    if workspace_id == 0:
+        return DEFAULT_SESSION_MAX_AGE_SECONDS
+    try:
+        workspace = (
+            db.query(Workspace).filter(Workspace.id == workspace_id).populate_existing().first()
+        )
+    except SQLAlchemyError as exc:
+        raise HTTPException(status_code=503, detail="Session policy unavailable") from exc
+    if workspace is None:
+        raise HTTPException(status_code=403, detail="Active workspace membership required")
+    age = workspace.session_max_age_seconds
+    return int(age) if age is not None and age > 0 else DEFAULT_SESSION_MAX_AGE_SECONDS
+
+
+def enforce_session_record(session: dict, db: Session) -> float:
+    """Validate the owned row and return its absolute, currently permitted deadline."""
+    user_id = session.get("user_id")
+    if not user_id:
+        # Preserve the existing denial for a cookie with no human identity.
+        # API keys use their separate authenticated branch and never enter here.
+        raise HTTPException(status_code=403, detail="Active workspace membership required")
+    if type(user_id) is not int or user_id < 1:
+        raise HTTPException(status_code=401, detail="Session invalidated")
+    row = (
+        db.query(UserSession)
+        .filter(
+            UserSession.session_id == session.get("session_id"),
+            UserSession.user_id == user_id,
+        )
+        .first()
+    )
+    if row is None:
+        raise HTTPException(status_code=401, detail="Session invalidated")
+    try:
+        created = row.created_at
+        created = (
+            created.replace(tzinfo=timezone.utc)
+            if created.tzinfo is None
+            else created.astimezone(timezone.utc)
+        )
+        now = datetime.now(timezone.utc)
+        if created > now:
+            raise ValueError("Future session creation")
+        age = workspace_session_max_age_seconds(db, session.get("workspace_id"))
+        deadline = created + timedelta(seconds=age)
+    except (AttributeError, OverflowError, TypeError, ValueError) as exc:
+        raise HTTPException(status_code=401, detail="Session invalidated") from exc
+    if now >= deadline:
+        raise HTTPException(status_code=401, detail="Session expired")
+    return min(deadline.timestamp(), session["exp"])
 
 
 def enforce_mfa_enrol_session(request: Request, session: dict, db: Session) -> None:
@@ -153,11 +210,7 @@ async def require_session(request: Request, db: Session = Depends(get_db)) -> di
     session = get_session(request)
     if not session:
         raise HTTPException(status_code=401, detail="Not authenticated")
-    session_id = session.get("session_id")
-    if session_id:
-        row = db.query(UserSession).filter(UserSession.session_id == session_id).first()
-        if not row:
-            raise HTTPException(status_code=401, detail="Session invalidated")
+    enforce_session_record(session, db)
     enforce_mfa_enrol_session(request, session, db)
     session = resolve_current_membership(request, session, db)
     _set_request_workspace_id(request, session.get("workspace_id"))

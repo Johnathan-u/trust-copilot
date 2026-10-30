@@ -8,7 +8,15 @@ import pytest
 from pydantic import ValidationError
 from sqlalchemy import text
 
-from app.models import ApiKey, AuditEvent, TrustRequest, TrustRequestNote, User, WorkspaceMember
+from app.models import (
+    ApiKey,
+    AuditEvent,
+    TrustRequest,
+    TrustRequestNote,
+    User,
+    UserSession,
+    WorkspaceMember,
+)
 from app.core.session import sign_session
 
 TABLES = (
@@ -19,6 +27,7 @@ TABLES = (
     "idempotency_keys",
     "users",
     "workspace_members",
+    "user_sessions",
 )
 
 
@@ -45,6 +54,8 @@ def domain(client, db_session):
     person = User(email=f"{suffix}-reviewer@example.com", password_hash=secrets.token_hex(32))
     db_session.add(person)
     db_session.flush()
+    session_id = f"trust-{suffix}"
+    db_session.add(UserSession(user_id=person.id, session_id=session_id))
     db_session.add(
         WorkspaceMember(workspace_id=1, user_id=person.id, role="reviewer", suspended=False)
     )
@@ -68,6 +79,7 @@ def domain(client, db_session):
         "suffix": suffix,
         "headers": headers,
         "user": person.id,
+        "session_id": session_id,
         "own": rows[0].id,
         "foreign": rows[1].id,
         "unscoped": rows[2].id,
@@ -102,6 +114,9 @@ def domain(client, db_session):
     )
     db_session.query(ApiKey).filter(ApiKey.label == suffix).delete(synchronize_session=False)
     db_session.query(WorkspaceMember).filter(WorkspaceMember.user_id == person.id).delete(
+        synchronize_session=False
+    )
+    db_session.query(UserSession).filter(UserSession.user_id == person.id).delete(
         synchronize_session=False
     )
     db_session.query(User).filter(User.id == person.id).delete(synchronize_session=False)
@@ -560,7 +575,15 @@ def test_intake_schema_rejects_unstorable_text(field, value):
 
 def _human(domain):
     domain["client"].cookies.set(
-        "tc_session", sign_session(domain["user"], "reviewer@example.com", 1, "reviewer")
+        "tc_session",
+        sign_session(
+            domain["user"],
+            "reviewer@example.com",
+            1,
+            "reviewer",
+            session_id=domain["session_id"],
+            max_age_seconds=3600,
+        ),
     )
     return domain["client"]
 
@@ -793,7 +816,14 @@ def test_expired_human_session_cannot_approve_or_send(domain, action):
     note = _draft(domain)
     domain["client"].cookies.set(
         "tc_session",
-        sign_session(domain["user"], "reviewer@example.com", 1, "reviewer", max_age_seconds=-1),
+        sign_session(
+            domain["user"],
+            "reviewer@example.com",
+            1,
+            "reviewer",
+            session_id=domain["session_id"],
+            max_age_seconds=-1,
+        ),
     )
     before = counts(domain["db"])
     response = domain["client"].post(_reply_url(domain, note, action), json={"revision": 1})
@@ -880,9 +910,21 @@ def test_assigning_suspended_member_fails_without_changing_status(domain):
         db.add(actor)
         db.flush()
         actor_id = actor.id
+        session_id = f"{domain['suffix']}-ws2-admin"
+        db.add(UserSession(user_id=actor_id, session_id=session_id))
         db.add(WorkspaceMember(workspace_id=2, user_id=actor_id, role="admin", suspended=False))
         db.commit()
-        domain["client"].cookies.set("tc_session", sign_session(actor_id, actor.email, 2, "admin"))
+        domain["client"].cookies.set(
+            "tc_session",
+            sign_session(
+                actor_id,
+                actor.email,
+                2,
+                "admin",
+                session_id=session_id,
+                max_age_seconds=3600,
+            ),
+        )
         request_before = counts(db)
         response = domain["client"].patch(
             f"/api/trust-requests/{domain['foreign']}",
@@ -902,6 +944,9 @@ def test_assigning_suspended_member_fails_without_changing_status(domain):
                 synchronize_session=False
             )
             db.query(WorkspaceMember).filter(WorkspaceMember.user_id == actor_id).delete(
+                synchronize_session=False
+            )
+            db.query(UserSession).filter(UserSession.user_id == actor_id).delete(
                 synchronize_session=False
             )
             db.query(User).filter(User.id == actor_id).delete(synchronize_session=False)

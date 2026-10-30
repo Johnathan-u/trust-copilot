@@ -723,6 +723,19 @@ class UpdateCustomRoleRequest(BaseModel):
     can_admin: bool | None = None
 
 
+_ROLE_PERMISSION_FIELDS = ("can_edit", "can_review", "can_export", "can_admin")
+
+
+def _require_role_grants(db: Session, session: dict, newly_enabled: list[str]) -> None:
+    # Snapshot before touching the target: it may be the actor's own custom role.
+    permissions = {
+        field: _resolve_permission(session.get("role"), field, session["workspace_id"], db)
+        for field in _ROLE_PERMISSION_FIELDS
+    }
+    if any(not permissions[field] for field in newly_enabled):
+        raise HTTPException(status_code=403, detail="Cannot grant permissions you do not have")
+
+
 def _role_to_dict(cr: CustomRole) -> dict:
     return {
         "id": cr.id,
@@ -779,6 +792,9 @@ async def create_custom_role(
     )
     if existing:
         raise HTTPException(status_code=400, detail=f"Role '{name}' already exists")
+    _require_role_grants(
+        db, session, [field for field in _ROLE_PERMISSION_FIELDS if getattr(req, field)]
+    )
     cr = CustomRole(
         workspace_id=workspace_id,
         name=name,
@@ -825,10 +841,19 @@ async def update_custom_role(
     )
     if not cr:
         raise HTTPException(status_code=404, detail="Custom role not found")
+    _require_role_grants(
+        db,
+        session,
+        [
+            field
+            for field in _ROLE_PERMISSION_FIELDS
+            if getattr(req, field) is True and not getattr(cr, field)
+        ],
+    )
     changes = {}
     if req.description is not None:
         cr.description = req.description.strip() or None
-    for field in ("can_edit", "can_review", "can_export", "can_admin"):
+    for field in _ROLE_PERMISSION_FIELDS:
         val = getattr(req, field)
         if val is not None:
             old = getattr(cr, field)

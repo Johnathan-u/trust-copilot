@@ -1,0 +1,69 @@
+TC-04-004b current absolute session policy, 2026-10-30 UTC
+Claim: #85 comment 6514687779
+Base: a97b947454b63d849097207b5f79a01323b06d3a
+
+Initial local HTTP regressions: 23 failed / 12 passed / 35 deselected; exit 1.
+Repaired initial local HTTP regressions: 35 passed / 35 deselected; exit 0.
+Final related local session/principal/MFA/signing/key selection: 134 passed / 114 deselected; exit 0.
+Final new policy suite: 74 collected, 37 SQLite + 37 PostgreSQL.
+Required whole PostgreSQL suite: exit 3 before execution, localhost:5432 connection refused.
+Initial broad unit attempt: 1 failed / 748 passed / 46 skipped; new synthetic literal triggered unchanged secret scanner.
+Repair: generate test password per run; explicitly classify imported DB fixture suite as integration.
+Final broad unit selection (proxy variables unset): 714 passed / 11 skipped / 3344 deselected; exit 0.
+Ruff check/format, Python compileall and git diff --check: exit 0.
+Real auth/HTTP and stored SQLite state; injected DB query error controls explicitly bounded.
+Full-row denial invariants, external-row preservation, exact owned cleanup; no existing fixture edits.
+No provider/browser/production-lifespan/PostgreSQL qualification claimed.
+Publication waits separate integration of landed #127, independent review and exact-head CI.
+
+Independent-review repair, #85 scope extension 6514900298
+Review base: 5f9dad0b4cf60f3dba7d4f4a0d61dcf50b9be08d; landed #127 integrated separately.
+Corrected new HTTP controls on unchanged reviewed runtime: 5 failed / 79 deselected; exit 1.
+Same new controls after repair: 5 passed / 79 deselected; exit 0.
+Final related local selection: 139 passed / 119 deselected; exit 0.
+Final broad unit selection: 714 passed / 11 skipped / 3354 deselected; exit 0.
+Final policy collection: 84 cases, 42 SQLite + 42 PostgreSQL.
+Ruff check/format, compileall on four changed Python files and git diff --check: exit 0.
+Absolute expiry survives real signer clock advance; expired-during-signing returns denial without cookie/audit writes.
+Second policy-query MFA failure preserves every row and no cookie; successful retry returns recovery codes/new session.
+Initial harness cookie quoting/domain issues corrected before counted baseline reproduction.
+No prior assertion removed, verifier relaxed, or PostgreSQL qualification claimed.
+
+Recovery CI-helper repair, #85 comment 6515297056
+Base: 5ede7b6cd476965ef0b1ed36ef2d80e6ad862427, published #131 head.
+Actual push run41003527180/job123893133838: 14 failed,4064 passed,1 skipped.
+Failures are current_row subscripting None after verifying quoted jar cookies.
+
+Restored the missing local environment with the unchanged committed lock:
+uv venv /tmp/tc-backend-venv --python python3.12
+uv pip sync --python /tmp/tc-backend-venv/bin/python --require-hashes apps/api/requirements-dev.lock
+  Both exit0; Python3.12.14,67 exact locked packages installed. No repo dependency edits.
+
+Read-only real HTTP/stored SQLite reproduction varied fixture email length:
+  Unquoted jar: parsed token valid, /auth/me200, old current_row succeeds.
+  Quoted jar (two payload lengths): parsed token valid, /auth/me200,
+  old current_row raises TypeError from subscripting None.
+  Owned fixture cleanup completed. No token/password included in evidence.
+python -m pytest tests/release/test_remember_policy.py -k 'sqlite and cookie_encodings' -q --tb=short
+  Before helper repair:1 failed,1 passed,86 deselected in4.15s.
+  The failing quoted-cookie case reproduces the CI helper error.
+Repair: parse the jar cookie with SimpleCookie before unchanged verify_token.
+Only the helper and two new real-login encoding cases per backend change in Python.
+All original assertions and all production files remain unchanged.
+python -m pytest tests/release/test_remember_policy.py tests/release/test_session_validation.py tests/release/test_principal_contract.py tests/release/test_mfa_reenrol_security.py tests/release/test_session_signing_key_migration.py tests/release/test_key_rotation.py -q -k 'not postgres and not fresh_database and not reencrypts and not resumes_from and not mfa_reenrol_when and not failures_are_audited and not helper_audits and not retired_session_rows'
+  Exit0:141 passed,121 deselected in58.06s, including all44 SQLite policy cases.
+  Existing datetime.utcnow warnings remain (1073); no suppression added.
+python -m pytest tests/release/test_remember_policy.py --collect-only -q
+  Exit0:88 cases collected in0.96s (44 SQLite,44 PostgreSQL).
+python -m pytest tests/release/test_safe_collection.py -q
+  Exit0:29 passed in52.00s.
+TC_REQUIRE_DB=1 python -m pytest -q
+  Exit3 before execution: localhost5432 IPv4/IPv6 connection refused.
+  PostgreSQL and full-suite success remain unqualified locally.
+ruff check/format --check, py_compile on the changed test, git diff --check:
+  Exit0. No runtime, dependency, fixture, schema, migration or CI changes.
+AST comparison against repair base: all19 prior functions except current_row
+  are identical; only the real-cookie-encoding test is added.
+secret_inventory.py paths <the four changed test/evidence/release files>:
+  Exit0,zero findings.
+Independent review and four final-head CI jobs remain required before merge.
