@@ -1,0 +1,17 @@
+CI regression: PR run 40994457550, build job 123864221668, reported by coordinator.
+Failed check: tests/release/test_web_quality.py::test_unit_suite_covers_runtime_modules_with_real_assertions
+Finding: lib/trust-request-consumer: runtime module has no unit test
+
+Local RED: /tmp/tc-backend-venv/bin/python -m pytest tests/release/test_web_quality.py::test_unit_suite_covers_runtime_modules_with_real_assertions -q
+Working directory: apps/api
+Result: 1 failed, exit 1; same finding as CI.
+
+Repair: change the real consumer test import from ./trust-request-consumer to @/lib/trust-request-consumer.
+The unchanged quality scanner recognizes the existing canonical alias. No tests, assertions or scanner checks were removed, duplicated or bypassed.
+
+Local GREEN: same targeted test, 1 passed, exit 0.
+Consumer suite: npm run test:unit -- lib/trust-request-consumer.test.ts; 25 passed, exit 0.
+Full current integrated-branch unit suite: npm run test:unit; 309 passed across 39 files, exit 0.
+Focused ESLint and Prettier checks: passed, exit 0.
+Browser specification unchanged: 22 cases; no new local Chromium execution claimed.
+Exact repaired-head CI remains required.

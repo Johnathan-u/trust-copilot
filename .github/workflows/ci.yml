@@ -235,6 +235,7 @@ jobs:
           # The specs rewrite these files. Remove the checkout copies first so a
           # stale committed report cannot satisfy the axe gate. The job never commits.
           rm -f ../../artifacts/acceptance/TC-15-049a/axe-*.json
+          rm -f ../../artifacts/acceptance/TC-15-039a/axe-*.json
           rm -f ../../artifacts/acceptance/TC-14-001/axe-*.json
           rm -f ../../artifacts/acceptance/TC-14-006/axe-*.json
           rm -f ../../artifacts/acceptance/TC-14-003a/axe-*.json
@@ -249,6 +250,7 @@ jobs:
 
           candidates=(
             e2e/release/screen-deals.spec.ts
+            e2e/release/screen-trust-requests.spec.ts
             e2e/release/design-tokens.spec.ts
             e2e/release/responsive-shell.spec.ts
             e2e/release/dialog-toast.spec.ts
@@ -286,6 +288,9 @@ jobs:
             --axe-dir ../../artifacts/acceptance/TC-15-049a \
             --require-spec e2e/release/screen-deals.spec.ts \
             --min-tests 31 \
+            --axe-dir ../../artifacts/acceptance/TC-15-039a \
+            --require-spec e2e/release/screen-trust-requests.spec.ts \
+            --min-tests 22 \
             --axe-dir ../../artifacts/acceptance/TC-14-001 \
             --axe-dir ../../artifacts/acceptance/TC-14-006 \
             --axe-dir ../../artifacts/acceptance/TC-14-003a \
@@ -334,6 +339,15 @@ jobs:
         with:
           name: deals-axe-json
           path: artifacts/acceptance/TC-15-049a/axe-*.json
+          if-no-files-found: warn
+          retention-days: 14
+
+      - name: Upload incoming trust requests axe JSON
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: incoming-trust-requests-axe-json
+          path: artifacts/acceptance/TC-15-039a/axe-*.json
           if-no-files-found: warn
           retention-days: 14
 

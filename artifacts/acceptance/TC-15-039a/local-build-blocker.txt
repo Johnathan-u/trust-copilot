@@ -1,0 +1,7 @@
+Command: npm run build
+Exit: 1
+Error: Turbopack build failed with 1 error: Could not find the Next.js package (next/package.json)
+Resolution root: apps/web
+The local node_modules link points to the existing sibling checkout. Turbopack does not compile files outside the workspace root.
+No Next configuration or dependency change was made to bypass this local setup limitation.
+The temporary runtime link is removed before commit. Exact-head CI must install the locked dependencies in the checkout and run the normal build.

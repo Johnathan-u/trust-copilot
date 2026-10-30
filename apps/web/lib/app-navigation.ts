@@ -67,6 +67,12 @@ export const appNavItems: readonly AppNavItem[] = [
     section: 'core',
     requiresEdit: true,
   },
+  {
+    href: '/dashboard/trust-requests',
+    label: 'Incoming Trust requests',
+    icon: '📥',
+    section: 'core',
+  },
   { href: '/dashboard/exports', label: 'Exports', icon: '⬇', section: 'core' },
   {
     href: '/dashboard/compliance-gaps',
