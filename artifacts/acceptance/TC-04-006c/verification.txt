@@ -1,0 +1,85 @@
+TC-04-006c local verification, 2026-10-30
+Base: bc423f11f74b23bd56a3d92e1f9b491c39c60258
+
+apps/web:
+- npm run test:unit
+  PASS: 421 tests across 43 files, including 18 new mocked logout-all controls.
+- npm run typecheck
+  PASS: Next route generation and tsc --noEmit.
+- eslint app/dashboard/security/page.tsx tests/unit/logout-all.test.ts
+  playwright.logout-all.config.ts e2e/integration/logout-all.acceptance.ts
+  PASS, exit 0.
+- prettier --check [the same four files]
+  PASS, exit 0.
+- playwright test --config=playwright.logout-all.config.ts --list --reporter=list
+  COLLECTED ONLY: 3 cases (360/768/1440), not browser execution.
+- Actual chromium.launch({headless:true})
+  UNAVAILABLE, exit 1: chromium_headless_shell-1248 executable does not exist.
+
+apps/api:
+- python -m pytest tests/release/test_logout_all.py -k sqlite -q
+  PASS: 27 passed, 27 PostgreSQL cases deselected; 428 existing warnings.
+- python -m pytest tests/release/test_safe_collection.py -q
+  PASS: 29 passed.
+- python -m pytest tests/release/test_logout_all_browser.py --collect-only -q
+  COLLECTED ONLY: 1 owning pytest case, not browser/PostgreSQL execution.
+- TC_REQUIRE_DB=1 python -m pytest tests/release/test_logout_all_browser.py -q
+  UNAVAILABLE, exit 3: local PostgreSQL localhost:5432 connection refused.
+  No skip or mock was substituted for required real acceptance.
+- ruff check / ruff format --check tests/release/test_logout_all_browser.py
+  PASS, exit 0.
+- Extracted guarded Python subprocess bootstrap compiles successfully.
+
+Negative controls (temporary runtime edits, restored):
+- Remove synchronous ref guard: selected test FAILS (two POSTs vs one).
+- Accept any 200 acknowledgment: seven malformed-success tests FAIL.
+Initial red: missing UI action caused 16/17 failures; existing revoke-others passed.
+Additional red: boolean duplicate guard closed the dialog early; the strengthened
+pending-dialog assertion failed, then passed with the shared completion promise.
+
+CI preservation check:
+- Removing only the added logout-all artifact-upload step yields byte-for-byte
+  original ci.yml. No test command, dependency install, threshold or gate changed.
+- git diff --check: PASS.
+
+Qualification limitations:
+- No actual local PostgreSQL, Chromium, screenshot or axe pass.
+- Independent review, dependency integration, all four exact-head CI gates pending.
+- Full frozen TC-04-006 idle/activity policy and visible expiry warning remain open.
+
+Initial implementation/harness SHA-256 (15e8a6f):
+ce7884c7073ae425ef0ad46bad0ecedb0fc2ee6edc4b027ca11b5492a8fbb09d  apps/web/app/dashboard/security/page.tsx
+0368e11161f845950c958a52dc4712f242eca37c21556cbdbfe8dcc553a13d4d  apps/web/tests/unit/logout-all.test.ts
+811ec246f3cbdd600dea5e3e97e08ed4dbca50501c99e500dad66c44c88df8db  apps/web/e2e/integration/logout-all.acceptance.ts
+9772d935482eacd4092f4d849c63b33276501967b8a9b0a24d7d6c2fd04a09a4  apps/web/playwright.logout-all.config.ts
+3bad2f8811ca22b1a33364fa81e373dcbd60deb05ac23997f542bfe1dceb0818  apps/api/tests/release/test_logout_all_browser.py
+67446b3c049c9d61f625b665344840d7fdf31756766f0225f847cc4ca9fff7df  .github/workflows/ci.yml
+
+Independent-review report-secrecy repair, 2026-10-30:
+- Installed Playwright 1.64.1 renderers inspected: Frame.type and Frame.fill
+  expose supplied credential text; ElementHandle.evaluateExpression omits its
+  separately serialized argument from recorded title/params.
+- Temporary negative control restoring pressSequentially in the actual helper:
+  pytest exit 1 at the decoded report marker check; 1 failed, 1 deselected.
+  Original repaired helper restored afterward.
+- python -m pytest tests/release/test_logout_all_browser.py tests/release/test_safe_collection.py -m unit -q --tb=short
+  PASS: 30 passed, 1 real-browser/PG case deselected, 21.55 seconds.
+- The reporter regression generates one success and one intentional failure using
+  installed HTML/JSON reporters, checks raw and decoded HTML ZIP payloads for the
+  synthetic credential, and preserves the failure diagnostic. Injected plain and
+  compressed leaks are withheld and fail the artifact scan as required.
+- npm run typecheck; focused ESLint/Prettier; Ruff check/format: PASS.
+- Browser collection remains 3 cases (360/768/1440); all six axe outputs required.
+- Exact AST proof: 43 existing expect calls, complete axe writer, and all 21
+  existing real-browser/database assertions unchanged.
+- Runtime security page, web unit controls, browser config and ci.yml unchanged
+  from 15e8a6f. This repair does not modify shared workflow ownership.
+- No local PostgreSQL or actual Chromium pass; exact-head CI/re-review pending.
+- Retained generated-report proof (same reporter test, no browser):
+  python -m pytest tests/release/test_logout_all_browser.py -m unit -q --tb=short --basetemp=/tmp/tc-logout-ui-checks/report-artifact-proof
+  PASS: 1 passed, 1 deselected, 4.23 seconds. Generated HTML/JSON contain one
+  expected success and one intentional failure; the failure diagnostic remains.
+
+Repaired harness SHA-256:
+74356537c6a40f3f5d17b3f1958954be82361b9bd25ce9ccfbf505b74ef0c288  apps/web/e2e/integration/logout-all.acceptance.ts
+e6128096e57c97b5a81eec8bc2d035575980f16308e0295603ce05b970ab4efd  apps/api/tests/release/test_logout_all_browser.py
