@@ -27,7 +27,7 @@ from alembic import op
 import sqlalchemy as sa
 
 revision = "tc23001_deal_types"
-down_revision = "tc10001_job_leases"
+down_revision = "tc07002_session_key_id"
 branch_labels = None
 depends_on = None
 

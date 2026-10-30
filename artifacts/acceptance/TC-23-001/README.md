@@ -65,3 +65,21 @@ Tests ran on `fd5221e9b429da14a974d5177a120061fc348480`. That commit is the pure
 ## Typecheck fix
 
 CI build on `9730486` failed `tsc` in `dealConsumer.ts`: `owner_user_id`, `room_id`, and `win_rate` stayed `unknown`. The parser now assigns them from an explicit null or typed branch. `npm run typecheck` and `dealConsumer.test.ts` (3 passed) ran on `89af4f3df776ef5a5f7284a0f84a1dd152ff4cc8`.
+
+## Landing integration, 2026-10-30
+
+After #93 landed at `2ce464d7cbdcc25c336714cb1b642c8d8cb396d7`, pure merge
+`603e4b1deb6d3a33e35bff448646bc8c249523be` incorporated that master without
+conflicts. A separate parent change now points `tc23001_deal_types` at the actual
+landed `tc07002_session_key_id`. Earlier parent references above are historical.
+
+From `apps/api`, `/tmp/tc-backend-venv/bin/alembic heads` reports only
+`tc23001_deal_types`. Targeted `alembic upgrade
+tc07002_session_key_id:tc23001_deal_types --sql` and the reverse `downgrade --sql`
+both render transactionally. `python -m pytest
+tests/test_deal_integrity_controls.py -q` passes all nine controls after the
+merge (five existing Python 3.12 datetime-adapter warnings).
+
+This is offline/local integration evidence, not PostgreSQL execution. Independent
+integration review and exact final-head push/pull-request build and browser jobs
+remain required; the non-default archive round trips must execute in CI.
