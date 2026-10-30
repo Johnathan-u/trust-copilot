@@ -1,0 +1,22 @@
+F                                                                        [100%]
+=================================== FAILURES ===================================
+_ test_create_binds_effective_workspace_and_is_readable_by_creator[sqlite-omitted] _
+tests/release/test_authorization_trust_articles.py:251: in test_create_binds_effective_workspace_and_is_readable_by_creator
+    assert result["workspace_id"] == state["workspaces"][0].id
+E   assert None == 200952453
+E    +  where 200952453 = <app.models.workspace.Workspace object at 0x7f9a072227e0>.id
+------------------------------ Captured log call -------------------------------
+INFO     trustcopilot.audit:audit.py:34 audit {"ts": "2026-10-30T20:32:54.401529+00:00", "action": "trust_article.create", "email": "article-own-cc9d411381049f64@example.com", "resource_type": "trust_article", "resource_id": 7, "slug": "new-cc9d411381049f64"}
+=============================== warnings summary ===============================
+../../../../../../tmp/tc-backend-venv/lib/python3.12/site-packages/_pytest/config/__init__.py:1345
+  /tmp/tc-backend-venv/lib/python3.12/site-packages/_pytest/config/__init__.py:1345: PytestAssertRewriteWarning: Module already imported so cannot be rewritten; anyio
+    self._mark_plugins_for_rewrite(hook, disable_autoload)
+
+tests/release/test_authorization_trust_articles.py: 16 warnings
+  /tmp/tc-backend-venv/lib/python3.12/site-packages/sqlalchemy/sql/schema.py:3627: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    return util.wrap_callable(lambda ctx: fn(), fn)  # type: ignore
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED tests/release/test_authorization_trust_articles.py::test_create_binds_effective_workspace_and_is_readable_by_creator[sqlite-omitted]
+1 failed, 127 deselected, 17 warnings in 0.59s

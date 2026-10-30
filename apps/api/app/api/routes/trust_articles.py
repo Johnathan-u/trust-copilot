@@ -139,14 +139,14 @@ def create_trust_article(
         db.query(TrustArticle)
         .filter(
             TrustArticle.slug == body.slug,
-            TrustArticle.workspace_id == body.workspace_id,
+            TrustArticle.workspace_id == ws,
         )
         .first()
     )
     if existing:
         raise HTTPException(status_code=400, detail=f"Slug '{body.slug}' already exists")
     article = TrustArticle(
-        workspace_id=body.workspace_id,
+        workspace_id=ws,
         slug=body.slug,
         title=body.title,
         content=body.content or "",
@@ -181,7 +181,7 @@ def update_trust_article(
     article = db.query(TrustArticle).filter(TrustArticle.id == article_id).first()
     if not article:
         raise HTTPException(status_code=404, detail="Trust article not found")
-    if article.workspace_id is not None and session.get("workspace_id") != article.workspace_id:
+    if session.get("workspace_id") != article.workspace_id:
         raise HTTPException(status_code=403, detail="Access denied")
     if body.slug is not None:
         existing = (
@@ -221,7 +221,7 @@ def delete_trust_article(
     article = db.query(TrustArticle).filter(TrustArticle.id == article_id).first()
     if not article:
         raise HTTPException(status_code=404, detail="Trust article not found")
-    if article.workspace_id is not None and session.get("workspace_id") != article.workspace_id:
+    if session.get("workspace_id") != article.workspace_id:
         raise HTTPException(status_code=403, detail="Access denied")
     slug, ws_id = article.slug, article.workspace_id
     db.delete(article)
