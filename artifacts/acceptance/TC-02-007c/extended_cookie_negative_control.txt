@@ -1,0 +1,34 @@
+FFF
+=================================== FAILURES ===================================
+_ test_creation_preserves_the_existing_and_target_absolute_deadlines[sqlite-signed] _
+tests/release/test_session_persistence.py:235: in test_creation_preserves_the_existing_and_target_absolute_deadlines
+    assert int(issued_cookie(response)["max-age"]) == deadline - issued_at
+E   AssertionError: assert 86401 == (1793442650 - 1793356250)
+E    +  where 86401 = int('86401')
+_ test_creation_preserves_the_existing_and_target_absolute_deadlines[sqlite-current-policy] _
+tests/release/test_session_persistence.py:235: in test_creation_preserves_the_existing_and_target_absolute_deadlines
+    assert int(issued_cookie(response)["max-age"]) == deadline - issued_at
+E   AssertionError: assert 31 == (1793356280 - 1793356250)
+E    +  where 31 = int('31')
+_ test_creation_preserves_the_existing_and_target_absolute_deadlines[sqlite-new-workspace-default] _
+tests/release/test_session_persistence.py:235: in test_creation_preserves_the_existing_and_target_absolute_deadlines
+    assert int(issued_cookie(response)["max-age"]) == deadline - issued_at
+E   AssertionError: assert 604771 == (1793961021 - 1793356251)
+E    +  where 604771 = int('604771')
+=============================== warnings summary ===============================
+tests/release/test_session_persistence.py: 30 warnings
+  /tmp/tc-backend-venv/lib/python3.12/site-packages/sqlalchemy/sql/schema.py:3627: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    return util.wrap_callable(lambda ctx: fn(), fn)  # type: ignore
+
+tests/release/test_session_persistence.py::test_creation_preserves_the_existing_and_target_absolute_deadlines[sqlite-signed]
+tests/release/test_session_persistence.py::test_creation_preserves_the_existing_and_target_absolute_deadlines[sqlite-current-policy]
+tests/release/test_session_persistence.py::test_creation_preserves_the_existing_and_target_absolute_deadlines[sqlite-new-workspace-default]
+  /workspace/scratch/3faeebcaa421/trust-copilot-ci-repair/apps/api/app/api/routes/workspaces.py:149: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    now = datetime.utcnow()
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED tests/release/test_session_persistence.py::test_creation_preserves_the_existing_and_target_absolute_deadlines[sqlite-signed]
+FAILED tests/release/test_session_persistence.py::test_creation_preserves_the_existing_and_target_absolute_deadlines[sqlite-current-policy]
+FAILED tests/release/test_session_persistence.py::test_creation_preserves_the_existing_and_target_absolute_deadlines[sqlite-new-workspace-default]
+3 failed, 93 deselected, 33 warnings in 2.54s

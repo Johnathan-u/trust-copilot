@@ -1,0 +1,55 @@
+TC-15-039b local command ledger — 2026-10-30
+Source base: 50f0418296e4238bfb402f67250df6d299e76ccc plus this new-file change.
+Python: existing /tmp/tc-backend-venv. Node: 24.22.1.
+Frontend packages: existing locked sibling toolchain; temporary node_modules
+symlink used for checks only and removed before commit. No install or upgrade.
+
+From apps/api:
+python -m pytest tests/release/test_trust_requests_browser.py --collect-only -q
+  PASS: 1 test collected. Collection is not runtime execution.
+TC_REQUIRE_DB=1 TC_REQUIRE_WEB_TOOLCHAIN=1 python -m pytest tests/release/test_trust_requests_browser.py -q
+  BLOCKED/FAIL: exit 3. Alembic upgrade could not connect to localhost:5432
+  (IPv4 and IPv6 connection refused). TC_REQUIRE_DB aborted rather than skipped.
+TC_REQUIRE_DB=0 python -m pytest tests/release/test_domain_in_app_notifications.py::test_inbox_cleanup_kills_term_ignoring_child_after_parent_exit -q
+  PASS: 2 passed in 1.52s. Existing helper source was not modified.
+python -m pytest tests/release/test_safe_collection.py -q
+  PASS: 29 passed in 21.20s, including guarded collection of the new harness.
+
+From apps/web:
+node node_modules/typescript/bin/tsc --noEmit --incremental false
+  PASS: exit 0.
+node node_modules/eslint/bin/eslint.js playwright.trust-requests.config.ts e2e/integration/trust-requests.acceptance.ts --max-warnings=0
+  PASS: exit 0.
+node node_modules/prettier/bin/prettier.cjs --check playwright.trust-requests.config.ts e2e/integration/trust-requests.acceptance.ts
+  PASS: both files formatted.
+node node_modules/@playwright/test/cli.js test --config=playwright.trust-requests.config.ts --list --reporter=line
+  PASS: 2 tests in 1 file. No browser execution is implied.
+TC_SEED_DEMO_PASSWORD=test-password TC_SEED_ADMIN_PASSWORD=test-password node node_modules/@playwright/test/cli.js test --list --reporter=line
+  PASS: 211 tests in 20 files; trust-requests.acceptance.ts absent.
+  Initial default discovery without synthetic seed variables failed the existing
+  credential requirement; no credential file was loaded or written.
+Locked chromium.executablePath() availability diagnostic
+  false: executable absent. No Chromium execution is claimed.
+
+From repository root:
+ruff check apps/api/tests/release/test_trust_requests_browser.py
+ruff format --check apps/api/tests/release/test_trust_requests_browser.py
+python -m py_compile apps/api/tests/release/test_trust_requests_browser.py
+  PASS.
+python scripts/security/secret_inventory.py paths <the six new source/evidence files>
+  PASS: 0 block; 2 review findings for explicit synthetic test-key/test-secret
+  storage fixtures. The initial long synthetic strings were flagged, so the
+  fixture values were shortened; the scanner and its rules were unchanged.
+git diff --check
+  PASS.
+
+Exact bootstrap/real StorageClient child-process diagnostic (no API or DB):
+  constructor_storage_attempts: 0
+  startup_denials: 1
+  deliberate_post_ready_storage_denial_detected: true
+  deliberate_external_dns_denial_detected: true
+  The diagnostic deliberately induces two forbidden attempts to prove detection;
+  a real acceptance run requires zero such post-readiness/external attempts.
+
+Required next: independent source review, integrate landed #120 + #121, real
+PostgreSQL/Next/API/Chromium CI execution and sanitized report upload at final head.

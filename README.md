@@ -2,6 +2,20 @@
 
 AI-assisted questionnaire and evidence platform for security and compliance. Upload customer questionnaires (SOC2, ISO, vendor due diligence), parse them, retrieve relevant evidence from uploaded documents, generate AI draft answers with citations, and export completed responses back into XLSX.
 
+## Project status and backlog
+
+Open [the shared backlog tracker](https://johnathan-u.github.io/trust-copilot/docs/tracker/)
+on the repository's existing GitHub Pages site. For offline use, open
+[docs/tracker/index.html](docs/tracker/index.html) from a repository checkout, or
+serve the repository with `python -m http.server 8080` and visit
+`http://localhost:8080/docs/tracker/`. It contains the full release plan, current
+state, evidence, blockers, dependencies and release gates for humans and AI.
+
+**Grok PM and Codex PM:** use [the shared PM protocol](docs/release/PM_BACKLOG_PROTOCOL.md)
+and [machine-readable state](docs/planning/backlog-state.json). Progress is based
+on verified original-parent acceptance, with an explicitly pending baseline until
+reconciliation is complete. Issue #85 remains the assignment/decision ledger.
+
 ## Quick start
 
 **Easiest:** `.\scripts\start.ps1` (Windows) — starts services, runs migrations, seeds demo.

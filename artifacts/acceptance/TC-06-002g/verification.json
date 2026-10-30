@@ -1,0 +1,277 @@
+{
+  "ticket": "TC-06-002g",
+  "date": "2026-10-30",
+  "points": 3,
+  "status": "locally implemented; independent review, landed-parent integration and PostgreSQL/CI qualification pending",
+  "claim": "https://github.com/Johnathan-u/trust-copilot/issues/85#issuecomment-6516356364",
+  "base_commit": "244ef4df9a3f4aa31372f0882f85746111d874fc",
+  "base_dependency": "Reviewed #128 / TC-12-001 head; actual landed parent must be integrated before qualification",
+  "code_commit": "1459115d759f2e6b0b4d23c9294fc38a272de43a",
+  "code_tree": "f96f3e1dff9f23141f4141b8be67bfe4901f9850",
+  "source_blobs": {
+    "apps/api/app/api/routes/answers.py": "36694a6d314935d317facad47258ab82d8cc43cf",
+    "apps/api/tests/release/test_authorization_answer_mutations.py": "e6e6e3d456f07a771eb19a650a0ee4a555dd4c2b",
+    "apps/api/tests/release/test_answer_routing.py": "e53182b61f5e823750a726e74a176a7e95cf6347",
+    "apps/api/app/core/workspace_refs.py": "451ed39b5ac0b891370d1370dead03141616064e"
+  },
+  "unchanged_bulk_ast_sha256": "f387bc58f80a8ef22e136f24a33296d1e2316953d8d19f266186d818164cdf60",
+  "scope": {
+    "changed": [
+      "Import existing require_in_workspace helper",
+      "Create/upsert current-question parent guard after existing foreign check",
+      "PATCH current-answer parent guard after existing foreign check",
+      "New release matrix and child documentation/evidence"
+    ],
+    "preserved": [
+      "Foreign/moved/foreign-archived 403 Access denied",
+      "Missing object Question not found / Answer not found 404 bodies",
+      "Canonical and slash POST decorators/order",
+      "Entire bulk handler and request schemas",
+      "Own response, text, status and model outcome semantics",
+      "Current stored-session and review-permission contract",
+      "Reviewed parent suite and its fixtures/helpers unchanged"
+    ],
+    "excluded": [
+      "Auth, roles, model/schema, dependency, generation and UI edits",
+      "Constraint bypass or impossible orphan construction",
+      "Full parent qualification"
+    ]
+  },
+  "environment": {
+    "python": "3.12.14",
+    "dependencies": "Existing locked /tmp/tc-backend-venv; no dependency changes",
+    "postgresql": "Unavailable at localhost:5432",
+    "provider_calls": 0,
+    "default_command_cwd": "apps/api"
+  },
+  "matrix": {
+    "sqlite_cases": 91,
+    "postgres_cases": 91,
+    "parent_sqlite_cases": 67,
+    "parent_postgres_cases": 67,
+    "actions": [
+      "create",
+      "create-slash",
+      "upsert",
+      "upsert-slash",
+      "patch"
+    ],
+    "parent_cases": [
+      "own active",
+      "own archived",
+      "foreign",
+      "foreign archived",
+      "moved",
+      "hard-deleted questionnaire with FK cascades",
+      "hard-deleted question with FK cascade",
+      "unknown object"
+    ],
+    "authority": [
+      "admin",
+      "editor",
+      "reviewer",
+      "no-review custom role",
+      "suspended member",
+      "removed member",
+      "removed session"
+    ],
+    "semantics": [
+      "Human text clears model outcome only when changed",
+      "Upsert empty text preserves existing text",
+      "PATCH empty text clears existing text",
+      "Same text preserves model outcome",
+      "Omitted/null PATCH fields preserved",
+      "Existing custom/empty status behavior preserved",
+      "Retry after successful write rechecks archived parent"
+    ]
+  },
+  "fixture": {
+    "reuse": "apps/api/tests/release/test_answer_routing.py::answers_authority, snapshot, assert_answer_changes; unchanged",
+    "auth": "Actual stored user/membership/session and expiring signed cookie; only get_db overridden",
+    "sqlite": "Real FK ON enforced; actual models; no schema substitutions",
+    "postgresql": "Actual migrated_db fixture and SessionLocal; no FK or trigger bypass",
+    "full_row_tables": [
+      "answers",
+      "questions",
+      "questionnaires",
+      "documents",
+      "audit_events",
+      "user_mfa",
+      "user_sessions",
+      "api_keys",
+      "custom_roles",
+      "workspace_members",
+      "users",
+      "workspaces"
+    ],
+    "denials": "HTTP body/status, no redirect, no SQL INSERT/UPDATE/DELETE even before rollback, no pending ORM mutations, every full row unchanged",
+    "success": "Only asserted answer fields and intentionally updated answer timestamp may differ; all other fields/rows unchanged",
+    "cleanup": "Capture request-created answer IDs through exact owned question IDs; delete exact owned IDs in FK order; full original-row snapshot comparison; no sequence resets",
+    "missing_chain_limit": "Cascading hard deletion removes child questions/answers; no surviving impossible orphan was manufactured or claimed as executed evidence"
+  },
+  "checks": [
+    {
+      "name": "unchanged-parent baseline",
+      "command": "/tmp/tc-backend-venv/bin/python -m pytest tests/release/test_authorization_answer_mutations.py -m unit -q --tb=short",
+      "runtime_commit": "244ef4df9a3f4aa31372f0882f85746111d874fc",
+      "exit_code": 1,
+      "failed": 10,
+      "passed": 81,
+      "deselected": 91,
+      "reason": "All five archived-parent writes and all five post-success archived retries returned 200"
+    },
+    {
+      "name": "repaired SQLite new and parent suites",
+      "command": "/tmp/tc-backend-venv/bin/python -m pytest tests/release/test_authorization_answer_mutations.py tests/release/test_answer_routing.py -m unit -q --tb=short",
+      "exit_code": 0,
+      "passed": 158,
+      "deselected": 158,
+      "new_passed": 91,
+      "parent_passed": 67,
+      "warnings": "1839 existing datetime.utcnow deprecation warnings"
+    },
+    {
+      "name": "collection",
+      "command": "/tmp/tc-backend-venv/bin/python -m pytest tests/release/test_authorization_answer_mutations.py tests/release/test_answer_routing.py --collect-only -q",
+      "exit_code": 0,
+      "collected": 316,
+      "new_cases": 182,
+      "parent_cases": 134
+    },
+    {
+      "name": "required full pytest",
+      "command": "TC_REQUIRE_DB=1 /tmp/tc-backend-venv/bin/python -m pytest -q",
+      "exit_code": 3,
+      "tests_executed": 0,
+      "reason": "PostgreSQL localhost:5432 refused connection; existing required session hook exits before tests"
+    },
+    {
+      "name": "repository collection safety",
+      "command": "/tmp/tc-backend-venv/bin/python -m pytest tests/release/test_safe_collection.py -q",
+      "exit_code": 0,
+      "passed": 29
+    },
+    {
+      "name": "scoped lint",
+      "command": "/tmp/tc-backend-venv/bin/python -m ruff check apps/api/app/api/routes/answers.py apps/api/tests/release/test_authorization_answer_mutations.py",
+      "cwd": "repository",
+      "exit_code": 0
+    },
+    {
+      "name": "scoped formatting",
+      "command": "/tmp/tc-backend-venv/bin/python -m ruff format --check apps/api/app/api/routes/answers.py apps/api/tests/release/test_authorization_answer_mutations.py",
+      "cwd": "repository",
+      "exit_code": 0
+    },
+    {
+      "name": "code secret inventory",
+      "command": "/tmp/tc-backend-venv/bin/python scripts/security/secret_inventory.py paths apps/api/app/api/routes/answers.py apps/api/tests/release/test_authorization_answer_mutations.py --root . --fail-on block",
+      "cwd": "repository",
+      "exit_code": 0,
+      "findings": 0
+    },
+    {
+      "name": "whitespace",
+      "command": "git diff --check; git diff --cached --check",
+      "cwd": "repository",
+      "exit_code": 0
+    },
+    {
+      "name": "parent behavior freeze",
+      "command": "Python AST comparison: only create_answer/update_answer bodies differ; schemas and bulk identical; all route decorators and order identical; git diff of parent test empty",
+      "cwd": "repository",
+      "exit_code": 0
+    },
+    {
+      "name": "documentation secret inventory",
+      "command": "/tmp/tc-backend-venv/bin/python scripts/security/secret_inventory.py paths docs/release/tickets/TC-06-002g.md artifacts/acceptance/TC-06-002g --root . --fail-on block",
+      "cwd": "repository",
+      "exit_code": 0,
+      "findings": 0
+    },
+    {
+      "name": "evidence consistency",
+      "command": "Python JSON parse, four git blob comparisons, unchanged parent/helper checks, runtime changed-file scope and relative Markdown link existence checks",
+      "cwd": "repository",
+      "exit_code": 0
+    }
+  ],
+  "negative_controls": [
+    {
+      "name": "create_scope_removed",
+      "selected_test": "tests/release/test_authorization_answer_mutations.py::test_unavailable_or_foreign_parent_preserves_rows_and_error_contract[sqlite-archived-create]",
+      "mutation": "removed",
+      "exit_code": 1,
+      "failed": 1,
+      "assertion": "assert 200 == 404"
+    },
+    {
+      "name": "patch_scope_removed",
+      "selected_test": "tests/release/test_authorization_answer_mutations.py::test_unavailable_or_foreign_parent_preserves_rows_and_error_contract[sqlite-archived-patch]",
+      "mutation": "removed",
+      "exit_code": 1,
+      "failed": 1,
+      "assertion": "assert 200 == 404"
+    },
+    {
+      "name": "late_upsert_scope",
+      "selected_test": "tests/release/test_authorization_answer_mutations.py::test_unavailable_or_foreign_parent_preserves_rows_and_error_contract[sqlite-archived-upsert]",
+      "mutation": "late",
+      "exit_code": 1,
+      "failed": 1,
+      "assertion": "Parent authorization must precede SQL writes"
+    },
+    {
+      "name": "late_patch_scope",
+      "selected_test": "tests/release/test_authorization_answer_mutations.py::test_unavailable_or_foreign_parent_preserves_rows_and_error_contract[sqlite-archived-patch]",
+      "mutation": "late",
+      "exit_code": 1,
+      "failed": 1,
+      "assertion": "Parent authorization must precede SQL writes"
+    },
+    {
+      "name": "create_foreign_order",
+      "selected_test": "tests/release/test_authorization_answer_mutations.py::test_unavailable_or_foreign_parent_preserves_rows_and_error_contract[sqlite-foreign-create]",
+      "mutation": "early",
+      "exit_code": 1,
+      "failed": 1,
+      "assertion": "assert 404 == 403"
+    },
+    {
+      "name": "patch_foreign_order",
+      "selected_test": "tests/release/test_authorization_answer_mutations.py::test_unavailable_or_foreign_parent_preserves_rows_and_error_contract[sqlite-foreign-patch]",
+      "mutation": "early",
+      "exit_code": 1,
+      "failed": 1,
+      "assertion": "assert 404 == 403"
+    }
+  ],
+  "negative_control_method": "Copy app to TemporaryDirectory, anchor/verify copied app import, mutate selected copied handler only, run selected real test, remove temporary copy; repository source remains unchanged",
+  "negative_control_coverage": [
+    "Each removed parent guard reintroduces archived HTTP200",
+    "Each late guard permits autoflush UPDATE before HTTP404, detected by SQL observer",
+    "Each early guard changes preserved foreign403 to404, detected by response assertion"
+  ],
+  "development_lint_failure": {
+    "exit_code": 1,
+    "errors": 6,
+    "code": "F811",
+    "reason": "Imported fixture name repeated as pytest function parameter",
+    "resolution": "Module-qualified aliases of the same unchanged parent fixture/helpers; final Ruff passes; assertions unchanged"
+  },
+  "not_claimed": [
+    "Local PostgreSQL execution success",
+    "Full pytest success",
+    "Execution success for impossible orphan states",
+    "Future CI success",
+    "Full TC-06-001 or TC-06-002 closure",
+    "Publication or merge"
+  ],
+  "remaining_gates": [
+    "Independent review of final code/test/docs head",
+    "Integrate actual landed #128",
+    "91 new and 67 parent PostgreSQL cases on integrated final head",
+    "Exact-head build and web-release-e2e for both push and pull_request",
+    "Coordinator publication capacity and merge authority"
+  ]
+}

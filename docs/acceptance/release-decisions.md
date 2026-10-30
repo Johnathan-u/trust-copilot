@@ -81,6 +81,22 @@ Recording format once decided: change Status to `DECIDED YYYY-MM-DD`, then add t
 | 2026-10-27 | R4: E01 legal tickets gate release (G0/G5), not engineering start | TC-02-002, TC-09-007/008, TC-21-001, TC-21-014..022 | `scope-freeze.md` §8 |
 | 2026-10-27 | Filename ruling: `scope-freeze.md`, `release-decisions.md`, and `claims-register.md` are the canonical acceptance docs. The ticket-proposed names `scope-contract.md` and `decision-control.md` are aliases. | TC-01-001, TC-01-006 | this file |
 
+## Shared progress reporting — owner request, 2026-10-30
+
+The owner requested a repository HTML/CSS information radiator for humans and AI,
+with Grok and Codex PM adoption. TC-01-006a implements this bounded operational
+child (5 provisional points, excluded from the frozen original denominator).
+The authoritative scope remains the original planning package; recorded current
+state is `docs/planning/backlog-state.json`, displayed by `docs/tracker/index.html`.
+Both PMs follow `docs/release/PM_BACKLOG_PROTOCOL.md` after each meaningful batch.
+
+The single headline measure is accepted original-parent points / 1,864 after
+baseline verification. Until then, report the baseline as pending. Child work,
+epics, merged PRs and artifact presence do not automatically earn points. Record
+scope changes explicitly with a new version; retain open release/owner gates.
+Issue #85 remains the assignment/decision ledger. The coordinator lease,
+independent review, exact-head CI and all owner-only decisions remain in force.
+
 ## 5. Acceptance mapping
 
 - **TC-01-006-AC1** (product, domain, security, legal, and buyer decision owners named by role): §1.

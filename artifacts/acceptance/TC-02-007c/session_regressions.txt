@@ -1,0 +1,15 @@
+........................................................................ [ 61%]
+..............................................                           [100%]
+=============================== warnings summary ===============================
+tests/release/test_session_persistence.py: 531 warnings
+tests/release/test_remember_policy.py: 440 warnings
+tests/release/test_session_validation.py: 200 warnings
+  /tmp/tc-backend-venv/lib/python3.12/site-packages/sqlalchemy/sql/schema.py:3627: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    return util.wrap_callable(lambda ctx: fn(), fn)  # type: ignore
+
+tests/release/test_session_persistence.py: 25 warnings
+  /workspace/scratch/3faeebcaa421/trust-copilot-ci-repair/apps/api/app/api/routes/workspaces.py:149: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    now = datetime.utcnow()
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+118 passed, 117 deselected, 1196 warnings in 64.89s (0:01:04)

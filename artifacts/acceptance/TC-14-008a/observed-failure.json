@@ -1,0 +1,15 @@
+{
+  "name": "actions-light-360",
+  "state": "actions",
+  "theme": "light",
+  "viewport": 360,
+  "violationCount": 1,
+  "violations": [
+    {
+      "id": "color-contrast",
+      "impact": "serious",
+      "help": "Elements must meet minimum color contrast ratio thresholds",
+      "nodes": 2
+    }
+  ]
+}
