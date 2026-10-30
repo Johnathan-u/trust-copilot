@@ -1,0 +1,81 @@
+{
+  "hook_release": "v4.6.0",
+  "official_unmodified_sources": [
+    {
+      "file": "end_of_file_fixer.py",
+      "git_blob": "a30dce9276d1e04ae372d7f74cbdfe3efe4dd640",
+      "url": "https://github.com/pre-commit/pre-commit-hooks/blob/v4.6.0/pre_commit_hooks/end_of_file_fixer.py",
+      "tag": "v4.6.0"
+    },
+    {
+      "file": "trailing_whitespace_fixer.py",
+      "git_blob": "84f50671f2361198effb90fe576405cac7f27e2e",
+      "url": "https://github.com/pre-commit/pre-commit-hooks/blob/v4.6.0/pre_commit_hooks/trailing_whitespace_fixer.py",
+      "tag": "v4.6.0"
+    }
+  ],
+  "python": "/tmp/tc-backend-venv/bin/python",
+  "checked_text_files": 42,
+  "files": [
+    "apps/web/app/dashboard/trust-requests/page.tsx",
+    "apps/web/e2e/release/screen-trust-requests.spec.ts",
+    "docs/release/tickets/TC-15-039d.md",
+    "artifacts/acceptance/TC-15-039d/README.md",
+    "artifacts/acceptance/TC-15-039d/assertion-preservation.json",
+    "artifacts/acceptance/TC-15-039d/candidate/approval-dark-1440-axe.json",
+    "artifacts/acceptance/TC-15-039d/candidate/approval-dark-1440-hover.json",
+    "artifacts/acceptance/TC-15-039d/candidate/approval-dark-1440-state.json",
+    "artifacts/acceptance/TC-15-039d/candidate/approval-dark-360-axe.json",
+    "artifacts/acceptance/TC-15-039d/candidate/approval-dark-360-hover.json",
+    "artifacts/acceptance/TC-15-039d/candidate/approval-dark-360-state.json",
+    "artifacts/acceptance/TC-15-039d/candidate/approval-dark-768-axe.json",
+    "artifacts/acceptance/TC-15-039d/candidate/approval-dark-768-hover.json",
+    "artifacts/acceptance/TC-15-039d/candidate/approval-dark-768-state.json",
+    "artifacts/acceptance/TC-15-039d/candidate/approval-light-1440-axe.json",
+    "artifacts/acceptance/TC-15-039d/candidate/approval-light-1440-hover.json",
+    "artifacts/acceptance/TC-15-039d/candidate/approval-light-1440-state.json",
+    "artifacts/acceptance/TC-15-039d/candidate/approval-light-360-axe.json",
+    "artifacts/acceptance/TC-15-039d/candidate/approval-light-360-hover.json",
+    "artifacts/acceptance/TC-15-039d/candidate/approval-light-360-state.json",
+    "artifacts/acceptance/TC-15-039d/candidate/approval-light-768-axe.json",
+    "artifacts/acceptance/TC-15-039d/candidate/approval-light-768-hover.json",
+    "artifacts/acceptance/TC-15-039d/candidate/approval-light-768-state.json",
+    "artifacts/acceptance/TC-15-039d/ci/failing-incoming-768.json",
+    "artifacts/acceptance/TC-15-039d/ci/provenance.json",
+    "artifacts/acceptance/TC-15-039d/commands/eslint.txt",
+    "artifacts/acceptance/TC-15-039d/commands/final-owning-suite.txt",
+    "artifacts/acceptance/TC-15-039d/commands/local-playwright.config.cjs",
+    "artifacts/acceptance/TC-15-039d/commands/owning-unit.txt",
+    "artifacts/acceptance/TC-15-039d/commands/prettier.txt",
+    "artifacts/acceptance/TC-15-039d/commands/typecheck.txt",
+    "artifacts/acceptance/TC-15-039d/commands/typegen.txt",
+    "artifacts/acceptance/TC-15-039d/controls/baseline-six-cases.json",
+    "artifacts/acceptance/TC-15-039d/controls/final-original-dark-768.json",
+    "artifacts/acceptance/TC-15-039d/controls/foreground-only-light-768.json",
+    "artifacts/acceptance/TC-15-039d/original-scans/axe-incoming-1440.json",
+    "artifacts/acceptance/TC-15-039d/original-scans/axe-incoming-360.json",
+    "artifacts/acceptance/TC-15-039d/original-scans/axe-incoming-768.json",
+    "artifacts/acceptance/TC-15-039d/source-proof.json",
+    "artifacts/acceptance/TC-15-039d/validation.json",
+    "artifacts/acceptance/TC-15-039d/artifact-hooks.json",
+    "artifacts/acceptance/TC-15-039d/evidence-manifest.json"
+  ],
+  "binary_images_excluded_as_types_text_does": 8,
+  "executions": [
+    {
+      "script": "end_of_file_fixer.py",
+      "exit_code": 0,
+      "stdout": "",
+      "stderr": "",
+      "file_bytes_changed": false
+    },
+    {
+      "script": "trailing_whitespace_fixer.py",
+      "exit_code": 0,
+      "stdout": "",
+      "stderr": "",
+      "file_bytes_changed": false
+    }
+  ],
+  "method": "Run both exact pinned entrypoint scripts against byte-identical isolated copies of every changed/new text file, including this proof and the manifest; require zero exit and no byte changes. PNGs excluded as repository hook types:text requires."
+}
