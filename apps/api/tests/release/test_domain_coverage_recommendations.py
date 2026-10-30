@@ -148,13 +148,19 @@ def test_recommendations_carry_live_same_workspace_ids(client: TestClient, resto
             status="parsed",
             deleted_at=_stamp(),
         )
-        session.add_all([own_qnr, deleted_qnr])
+        foreign_qnr = Questionnaire(
+            workspace_id=other.id, filename=f"foreign-{token}.txt", status="parsed"
+        )
+        session.add_all([own_qnr, deleted_qnr, foreign_qnr])
         session.flush()
         own_question = Question(questionnaire_id=own_qnr.id, text="Synthetic own question")
         deleted_question = Question(
             questionnaire_id=deleted_qnr.id, text="Synthetic deleted question"
         )
-        session.add_all([own_question, deleted_question])
+        foreign_question = Question(
+            questionnaire_id=foreign_qnr.id, text="Synthetic foreign question"
+        )
+        session.add_all([own_question, deleted_question, foreign_question])
         session.flush()
         own_doc = Document(
             workspace_id=workspace.id,
@@ -239,7 +245,16 @@ def test_recommendations_carry_live_same_workspace_ids(client: TestClient, resto
             created_at=_stamp(),
             updated_at=_stamp(),
         )
-        session.add_all([sourced, dropped, empty])
+        foreign_gap = EvidenceGap(
+            workspace_id=other.id,
+            gap_type="missing_evidence",
+            status="open",
+            suggested_evidence_doc_title=sourced.suggested_evidence_doc_title,
+            question_id=foreign_question.id,
+            created_at=_stamp(),
+            updated_at=_stamp(),
+        )
+        session.add_all([sourced, dropped, empty, foreign_gap])
         session.commit()
         workspace_id = workspace.id
         email = user.email
@@ -247,6 +262,7 @@ def test_recommendations_carry_live_same_workspace_ids(client: TestClient, resto
         own_evidence_id = own_evidence.id
         own_control_id = own_control.id
         own_question_id = own_question.id
+        own_questionnaire_id = own_qnr.id
         sourced_title = sourced.suggested_evidence_doc_title
         dropped_title = dropped.suggested_evidence_doc_title
         empty_title = empty.suggested_evidence_doc_title
@@ -260,15 +276,20 @@ def test_recommendations_carry_live_same_workspace_ids(client: TestClient, resto
     assert sourced_row["evidence_ids"] == [own_evidence_id]
     assert sourced_row["control_ids"] == [own_control_id]
     assert sourced_row["question_ids"] == [own_question_id]
+    assert sourced_row["question_sources"] == [
+        {"question_id": own_question_id, "questionnaire_id": own_questionnaire_id}
+    ]
     assert sourced_row["improves_questions"] == 1
     dropped_row = by_title[dropped_title]
     assert dropped_row["evidence_ids"] == []
     assert dropped_row["control_ids"] == []
     assert dropped_row["question_ids"] == []
+    assert dropped_row["question_sources"] == []
     assert dropped_row["improves_questions"] == 1
     assert by_title[empty_title]["evidence_ids"] == []
     assert by_title[empty_title]["control_ids"] == []
     assert by_title[empty_title]["question_ids"] == []
+    assert by_title[empty_title]["question_sources"] == []
 
     session = _db()
     try:
@@ -288,6 +309,7 @@ def test_recommendations_carry_live_same_workspace_ids(client: TestClient, resto
     assert response.status_code == 200, response.text
     body = {item["title"]: item for item in response.json()["recommended_evidence"]}
     assert body[sourced_title]["evidence_ids"] == [own_evidence_id]
+    assert body[sourced_title]["question_sources"] == sourced_row["question_sources"]
     assert _counts() == before
     session = _db()
     try:
@@ -301,7 +323,7 @@ def test_recommendations_carry_live_same_workspace_ids(client: TestClient, resto
 
 
 def test_every_fixture_recommendation_has_a_drill_target(restored_counts):
-    """Questions counted by improves_questions are the live question ids."""
+    """Duplicate gaps keep their count and each distinct question's actual parent."""
     token = uuid.uuid4().hex[:10]
     session = _db()
     try:
@@ -311,10 +333,15 @@ def test_every_fixture_recommendation_has_a_drill_target(restored_counts):
         questionnaire = Questionnaire(
             workspace_id=workspace.id, filename=f"drill-{token}.txt", status="parsed"
         )
-        session.add(questionnaire)
+        second_questionnaire = Questionnaire(
+            workspace_id=workspace.id, filename=f"drill-second-{token}.txt", status="parsed"
+        )
+        session.add_all([questionnaire, second_questionnaire])
         session.flush()
         first_question = Question(questionnaire_id=questionnaire.id, text="Synthetic first")
-        second_question = Question(questionnaire_id=questionnaire.id, text="Synthetic second")
+        second_question = Question(
+            questionnaire_id=second_questionnaire.id, text="Synthetic second"
+        )
         session.add_all([first_question, second_question])
         session.flush()
         document = Document(
@@ -359,6 +386,16 @@ def test_every_fixture_recommendation_has_a_drill_target(restored_counts):
                     status="open",
                     suggested_evidence_doc_title=question_title,
                     question_id=second_question.id,
+                    questionnaire_id=questionnaire.id,
+                    created_at=_stamp(),
+                    updated_at=_stamp(),
+                ),
+                EvidenceGap(
+                    workspace_id=workspace.id,
+                    gap_type="missing_evidence",
+                    status="open",
+                    suggested_evidence_doc_title=question_title,
+                    question_id=first_question.id,
                     created_at=_stamp(),
                     updated_at=_stamp(),
                 ),
@@ -385,6 +422,10 @@ def test_every_fixture_recommendation_has_a_drill_target(restored_counts):
         session.commit()
         workspace_id = workspace.id
         question_ids = [first_question.id, second_question.id]
+        question_sources = [
+            {"question_id": first_question.id, "questionnaire_id": questionnaire.id},
+            {"question_id": second_question.id, "questionnaire_id": second_questionnaire.id},
+        ]
         evidence_id = evidence.id
         control_id = control.id
     finally:
@@ -396,12 +437,17 @@ def test_every_fixture_recommendation_has_a_drill_target(restored_counts):
     for item in rows:
         assert item["evidence_ids"] or item["control_ids"] or item["question_ids"], item
     questions = next(item for item in rows if item["title"] == question_title)
-    assert questions["improves_questions"] == 2
+    assert questions["improves_questions"] == 3
     assert questions["question_ids"] == sorted(question_ids)
+    assert questions["question_sources"] == sorted(
+        question_sources, key=lambda row: row["question_id"]
+    )
     evidence_row = next(item for item in rows if item["title"] == evidence_title)
     assert evidence_row["evidence_ids"] == [evidence_id]
+    assert evidence_row["question_sources"] == []
     control_row = next(item for item in rows if item["title"] == control_title)
     assert control_row["control_ids"] == [control_id]
+    assert control_row["question_sources"] == []
 
 
 def test_inferred_recommendation_uses_the_stored_question(restored_counts):
@@ -434,6 +480,7 @@ def test_inferred_recommendation_uses_the_stored_question(restored_counts):
         session.commit()
         workspace_id = workspace.id
         question_id = question.id
+        questionnaire_id = questionnaire.id
     finally:
         session.close()
 
@@ -444,5 +491,8 @@ def test_inferred_recommendation_uses_the_stored_question(restored_counts):
     assert len(match) == 1
     assert match[0]["evidence_ids"] == []
     assert match[0]["control_ids"] == []
+    assert match[0]["question_sources"] == [
+        {"question_id": question_id, "questionnaire_id": questionnaire_id}
+    ]
     assert match[0]["improves_questions"] >= 1
     assert payload["control_coverage"]["schema_version"] == CONTROL_COVERAGE_SCHEMA

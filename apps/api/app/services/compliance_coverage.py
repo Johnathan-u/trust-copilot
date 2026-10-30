@@ -282,6 +282,17 @@ def get_compliance_coverage(db: Session, workspace_id: int) -> dict:
             pass
     else:
         gap_suggestions = _infer_evidence_suggestions(subj_insuff, subj_questions)
+        live_questions = _live_question_sources(
+            db,
+            workspace_id,
+            {qid for item in gap_suggestions for qid in item["question_ids"]},
+        )
+        for item in gap_suggestions:
+            item["question_sources"] = [
+                {"question_id": qid, "questionnaire_id": live_questions[qid]}
+                for qid in item["question_ids"]
+                if qid in live_questions
+            ]
 
     # ---------- Trends ----------
     trends: list[dict] = []
@@ -516,6 +527,7 @@ def _recommendation(title: str, improves_questions: int) -> dict:
         "evidence_ids": [],
         "control_ids": [],
         "question_ids": [],
+        "question_sources": [],
     }
 
 
@@ -538,11 +550,11 @@ def _parse_evidence_refs(raw: str | None) -> list[int]:
     return _stored_ints(parsed)
 
 
-def _live_question_ids(db: Session, workspace_id: int, wanted: set[int]) -> set[int]:
+def _live_question_sources(db: Session, workspace_id: int, wanted: set[int]) -> dict[int, int]:
     if not wanted:
-        return set()
+        return {}
     rows = (
-        db.query(Question.id)
+        db.query(Question.id, Question.questionnaire_id)
         .join(Questionnaire, Questionnaire.id == Question.questionnaire_id)
         .filter(
             Question.id.in_(wanted),
@@ -551,7 +563,7 @@ def _live_question_ids(db: Session, workspace_id: int, wanted: set[int]) -> set[
         )
         .all()
     )
-    return {row.id for row in rows}
+    return {row.id: row.questionnaire_id for row in rows}
 
 
 def _live_control_ids(db: Session, workspace_id: int, wanted: set[int]) -> set[int]:
@@ -624,7 +636,7 @@ def _attach_gap_provenance(
         question_ids.update(questions)
         control_ids.update(controls)
         evidence_ids.update(evidence)
-    live_questions = _live_question_ids(db, workspace_id, question_ids)
+    live_questions = _live_question_sources(db, workspace_id, question_ids)
     live_controls = _live_control_ids(db, workspace_id, control_ids)
     live_evidence = _live_evidence_ids(db, workspace_id, evidence_ids)
     for item in suggestions:
@@ -632,6 +644,10 @@ def _attach_gap_provenance(
         item["question_ids"] = sorted(
             {item_id for item_id in questions if item_id in live_questions}
         )
+        item["question_sources"] = [
+            {"question_id": qid, "questionnaire_id": live_questions[qid]}
+            for qid in item["question_ids"]
+        ]
         item["control_ids"] = sorted({item_id for item_id in controls if item_id in live_controls})
         item["evidence_ids"] = sorted({item_id for item_id in evidence if item_id in live_evidence})
 
@@ -658,6 +674,7 @@ def _infer_evidence_suggestions(
                 "evidence_ids": [],
                 "control_ids": [],
                 "question_ids": question_ids,
+                "question_sources": [],
             }
         )
     return suggestions
