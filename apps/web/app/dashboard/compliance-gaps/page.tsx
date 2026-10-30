@@ -5,13 +5,17 @@ import { useAuth } from '@/contexts/AuthContext'
 import { presentHttpFailure } from '@/lib/api-error'
 import { recordFromPayload } from '@/lib/section-load'
 import { EvidenceGapList, SnapshotNote, useSnapshot } from './gap-report'
+import {
+  readRecommendations,
+  type Recommendation,
+} from './recommendation-contract'
+import { Recommendations } from './recommendations'
 import { Card, ErrorState, LoadingState } from '@/components/ui'
 import { ListSkeleton } from '@/components/ui/Skeleton'
 import {
   denominatorNotes,
   parseCoverageResponse,
   type ControlCoverage,
-  type RecommendedEvidence,
 } from '@/lib/coverageConsumer'
 import {
   BarChart,
@@ -74,7 +78,7 @@ type CoverageData = {
   blind_spots: BlindSpot[]
   weak_areas: WeakArea[]
   evidence_strength: EvidenceStrength[]
-  recommended_evidence: RecommendedEvidence[]
+  recommended_evidence: Recommendation[]
   trends: TrendPoint[]
   drill_down: DrillRow[]
   control_coverage: ControlCoverage
@@ -246,12 +250,15 @@ export default function ComplianceCoveragePage() {
         canExport={permissions.can_export}
         canAdmin={permissions.can_admin}
       />
-      <CoverageReport />
+      <CoverageReport workspaceId={workspace.id} />
     </div>
   )
 }
 
 function readCoverage(value: unknown) {
+  const recommendations = readRecommendations(
+    recordFromPayload(value).recommended_evidence
+  )
   const data = parseCoverageResponse(value)
   const kpi = recordFromPayload(data.kpi)
   for (const field of [
@@ -310,7 +317,7 @@ function readCoverage(value: unknown) {
         throw new Error('Incomplete coverage row')
     }
   }
-  return data as CoverageData
+  return { ...data, recommended_evidence: recommendations } as CoverageData
 }
 const evaluationStates: Record<string, string> = {
   stale: 'Stale evidence',
@@ -331,7 +338,7 @@ const evaluationRules: Record<string, string> = {
   unapproved: 'Evidence is awaiting approval',
   pending_rights: 'Framework content is awaiting approval',
 }
-function CoverageReport() {
+function CoverageReport({ workspaceId }: { workspaceId: number }) {
   const result = useSnapshot('/api/compliance-coverage', readCoverage)
   const { data, failure: loadFailure } = result
   const loading = !data && !loadFailure
@@ -448,6 +455,10 @@ function CoverageReport() {
         )}
       </Card>
 
+      <Recommendations
+        recommendations={recommended_evidence}
+        workspaceId={workspaceId}
+      />
       <p className="text-tc-label text-tc-muted">
         Draft and insufficient percentages are answer-record counts divided by
         questionnaire questions. Retained revisions can make these ratios exceed
@@ -586,40 +597,6 @@ function CoverageReport() {
                 nameKey="name"
                 colors={TEAL}
               />
-            </Card>
-          )}
-
-          {/* SECTION 6 — Recommended Evidence */}
-          {recommended_evidence.length > 0 && (
-            <Card className="p-5">
-              <SectionHeader
-                title="Recommended Next Evidence"
-                sub="Suggested documents to review against missing evidence"
-              />
-              <div className="space-y-2">
-                {recommended_evidence.map((r, i) => (
-                  <div
-                    key={i}
-                    className="flex flex-wrap gap-3 items-center justify-between rounded-lg border border-[var(--tc-border)] px-4 py-3 hover:bg-white/[0.02] transition"
-                  >
-                    <div className="min-w-0 flex items-center gap-3">
-                      <span className="text-lg">📄</span>
-                      <span className="min-w-0 break-words text-sm text-[var(--tc-text)] font-medium">
-                        {r.title}
-                        <span className="mt-1 block text-tc-caption font-normal text-tc-muted">
-                          Source detail is unavailable for this recommendation.
-                        </span>
-                      </span>
-                    </div>
-                    <span className="text-xs text-[var(--tc-muted)] whitespace-nowrap">
-                      Reported suggestion count:{' '}
-                      <span className="text-[var(--tc-text)] font-semibold">
-                        {r.improves_questions}
-                      </span>
-                    </span>
-                  </div>
-                ))}
-              </div>
             </Card>
           )}
 
