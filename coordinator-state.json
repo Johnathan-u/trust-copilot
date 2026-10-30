@@ -1,14 +1,14 @@
 {
   "schema_version": 1,
-  "lease_owner": "run-1793318175669-cws1yi3xqqa",
-  "lease_expires_at": "2026-10-30T01:56:15.670Z",
-  "updated_at": "2026-10-29T23:56:15.670Z",
+  "lease_owner": null,
+  "lease_expires_at": null,
+  "updated_at": "2026-10-30T00:04:04.436Z",
   "automation_id": "6ae3c75d14788191b6f3e0838035bcef",
   "last_master_sha": "499f8af76c427dab5ef2f8ca7ffc2a257129e6ed",
-  "checkpoint": "Continuation merged #75→0596810, #89→8f41a97, #102→a7cf57c, #92→7ef1f14 (approved partial; AC6 remains), #88→499f8af, all independently reviewed + 4 exact-head green checks. Master499f8af76c427dab5ef2f8ca7ffc2a257129e6ed CI40972978492 running; check first, repair any failure before unrelated merges. Current Alembic head tc18001_reviewed_replies (parent tc18002_vendor_lifecycle). #111 head4bc0af8ac29700a87ea77fe512078dbad6ebf3b3 independently approved (8 new regressions/198 units, final pure master merge reviewed); push40972754796/PR40972766944 running. #112 head285c7b7ae285066747ac5f5388b0508bdd25cf84 approved (16 red→18 new +9 existing green,208 total); push40972889007 running/PR40972904037 queued; closes#110 only upon qualified merge. Both draft until all4 final-head checks. Next #91 current3ff096949fccca25ac58cd003f1191749d26c0aa: pure actual-master merge, separate re-parent onto actual landed tc18001_reviewed_replies, independent review/fresh CI. #93/#96/#95 must serialize against actual chain. Frontend TC-15-025 AC6 now executable via merged99; TC-15-024 vendor consumer and single Controls Sidebar entry authorized. Claim files in85 before edit. No active workers; scratch disposable. Evidence in85 comment6510924868.",
+  "checkpoint": "Master499f8af76c427dab5ef2f8ca7ffc2a257129e6ed CI40972978492 fully GREEN. No merges this batch. #111 fixture repair published253ecc463f582e94a5222d9e1b6359e81518cdbd (independent review passed, only syntheticcookie+URLassertion; all7behaviorcases retained), push40976864989/PR40976872158 running. #91 resumed: pure merge dd6b1cee and separate migration reparent/evidence cd74f998798cad454a594428ab342671855e1d49; exacttreea7523c8 reviewed, 13schema/headpass independently, onebranchheadtc17004_faq_review parenttc18001_reviewed_replies; push40976819720/PR40976828998 running. #112 unchanged285c7b7ae285066747ac5f5388b0508bdd25cf84 push40972889007 bothgreen; PR40972904037 webgreen, originalbuildfailed PostgreSQLstartup, rerunbuild123805769187 now running afterpassingstartup. Await exact4green beforeeachmerge. #91 owns nextmigration slot; other migrations must serialize afteractualhead. Frontend TC15-025 AC6/TC15-024 and singleControlsSidebarentry stillauthorized, claimfilesbeforeedits. No workersactive; local work disposable. Batch evidence #85 comment6511481182.",
   "blocked_items": [
-    "Latest master CI and final #111/#112 CI pending; never count older green heads.",
-    "#91/#93/#96/#95 require serialized actual-head migration integration; #95 AC3 needs111.",
-    "Local Chromium unavailable and local PostgreSQL unavailable during this run; local full backend suite was NOT green. GitHub final88 CI passed. Real-provider/UI acceptance still bounded; owner-only gates separate."
+    "#91 and #111 all final-head CI pending; #112 PRbuild rerun pending after transient PostgreSQL startup failure.",
+    "Master migration remains tc18001_reviewed_replies until91lands; serialize93/96/95;95 AC3needs111.",
+    "Local browser unavailable; no localDB/fullsuite acceptance claimed for91. Owner-only rights/accounts/spend/sale/production gates unchanged."
   ]
 }
