@@ -5,7 +5,7 @@ import re
 import time
 from concurrent.futures import ThreadPoolExecutor
 
-from sqlalchemy import and_, or_, text
+from sqlalchemy import and_, exists, or_, text
 from sqlalchemy.orm import Session
 
 from app.core.config import get_settings
@@ -21,7 +21,7 @@ from app.core.pipeline_logging import (
     log_retrieval_success,
 )
 from app.core.metrics import RETRIEVAL_DURATION_SECONDS
-from app.models import Chunk
+from app.models import Chunk, Document
 from app.services.vector_util import embedding_to_vector_literal, validate_embedding_dimension
 
 logger = logging.getLogger(__name__)
@@ -232,7 +232,14 @@ class RetrievalService:
         terms = _extract_terms(query)
         if not terms:
             return []
-        base = Chunk.workspace_id == workspace_id
+        base = and_(
+            Chunk.workspace_id == workspace_id,
+            exists().where(
+                Document.id == Chunk.document_id,
+                Document.workspace_id == workspace_id,
+                Document.deleted_at.is_(None),
+            ),
+        )
         if doc_scope:
             base = and_(base, Chunk.document_id.in_(list(doc_scope)))
         all_cond = or_(*[Chunk.text.ilike(f"%{t}%") for t in terms])
@@ -303,6 +310,11 @@ class RetrievalService:
                        1 - (embedding <=> CAST(:vec AS vector)) AS score
                 FROM chunks
                 WHERE workspace_id = :ws AND embedding IS NOT NULL
+                AND EXISTS (
+                    SELECT 1 FROM documents d
+                    WHERE d.id = chunks.document_id
+                      AND d.workspace_id = :ws AND d.deleted_at IS NULL
+                )
                 {scope_sql}
                 ORDER BY embedding <=> CAST(:vec AS vector)
                 LIMIT :lim
@@ -334,7 +346,13 @@ class RetrievalService:
             limit,
         )
         q = self._db.query(Chunk).filter(
-            Chunk.workspace_id == workspace_id, Chunk.embedding.isnot(None)
+            Chunk.workspace_id == workspace_id,
+            Chunk.embedding.isnot(None),
+            exists().where(
+                Document.id == Chunk.document_id,
+                Document.workspace_id == workspace_id,
+                Document.deleted_at.is_(None),
+            ),
         )
         if doc_scope:
             q = q.filter(Chunk.document_id.in_(list(doc_scope)))

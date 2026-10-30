@@ -1,0 +1,221 @@
+{
+  "ticket": "TC-06-002d",
+  "date": "2026-10-30",
+  "status": "locally implemented; independent review and PostgreSQL/CI qualification pending",
+  "points": 5,
+  "claim": "https://github.com/Johnathan-u/trust-copilot/issues/85#issuecomment-6515017225",
+  "base_commit": "8f0cc07872057007d635e7bee17687f5fadc696b",
+  "code_commit": "4ec5797eb3f6655a976733a13924bbe39b3457e0",
+  "code_tree": "bc41deb6c1d0a92e4f2f999c2823fc98f639b5f9",
+  "source_blobs": {
+    "apps/api/app/services/retrieval.py": "7fa652f31e2bd72666415693f7decc77473ef3b0",
+    "apps/api/tests/release/test_authorization_core_retrieval.py": "885787808de0e3d35c7de097a785e643564a06b6"
+  },
+  "reconstruction": "Prior unpublished commits were unavailable after runtime reset. This is a new local implementation/test commit with fresh results, not recovered commits or transferred prior execution evidence.",
+  "environment": {
+    "python": "3.12.14",
+    "dependencies": "Coordinator restored existing requirements-dev.lock with uv pip sync --require-hashes; no repository dependency changes",
+    "postgresql": "Unavailable at localhost:5432",
+    "provider_calls": 0,
+    "default_check_cwd": "apps/api"
+  },
+  "scope": "SQL EXISTS current Document FK parent, same workspace and deleted_at IS NULL before keyword/fallback/vector limits; parentless chunks ineligible and retained. Scoring, metadata output, scope semantics, threading and archived export behavior unchanged.",
+  "fixture": {
+    "sqlite": "Real SQL and FK ON; real stored user, reviewer membership and expiring signed session; only get_db overridden",
+    "postgresql": "Existing migrated_db prerequisite; required CI mode cannot silently skip missing service",
+    "cases": {
+      "sqlite": 30,
+      "postgresql_shared": 30,
+      "additional_pgvector": 11
+    },
+    "embeddings": "Known synthetic 1536-dimensional vectors; actual pgvector operator in PostgreSQL tests; no provider calls or SQL/vector/auth mocks",
+    "full_row_snapshot_tables": [
+      "chunks",
+      "question_mapping_preferences",
+      "questions",
+      "questionnaires",
+      "documents",
+      "workspace_controls",
+      "framework_controls",
+      "frameworks",
+      "tags",
+      "ai_governance_settings",
+      "audit_events",
+      "user_mfa",
+      "user_sessions",
+      "api_keys",
+      "custom_roles",
+      "workspace_members",
+      "users",
+      "workspaces"
+    ],
+    "cleanup": "Exact IDs recorded after each fixture flush, FK-safe deletion order, full original snapshot equality; no table-wide cleanup or sequence reset"
+  },
+  "checks": [
+    {
+      "name": "unchanged-source red baseline",
+      "command": "/tmp/tc-backend-venv/bin/python -m pytest tests/release/test_authorization_core_retrieval.py -m unit -q --tb=short",
+      "source": "8f0cc07872057007d635e7bee17687f5fadc696b",
+      "exit_code": 1,
+      "failed": 20,
+      "passed": 10,
+      "deselected": 41
+    },
+    {
+      "name": "repaired SQLite suite and rerun after controls",
+      "command": "/tmp/tc-backend-venv/bin/python -m pytest tests/release/test_authorization_core_retrieval.py -m unit -q --tb=short",
+      "exit_code": 0,
+      "passed": 30,
+      "deselected": 41,
+      "warnings": "300 existing datetime.utcnow deprecation warnings"
+    },
+    {
+      "name": "safe collection",
+      "command": "/tmp/tc-backend-venv/bin/python -m pytest tests/release/test_authorization_core_retrieval.py --collect-only -q",
+      "exit_code": 0,
+      "collected": 71
+    },
+    {
+      "name": "required PostgreSQL",
+      "command": "TC_REQUIRE_DB=1 /tmp/tc-backend-venv/bin/python -m pytest tests/release/test_authorization_core_retrieval.py -m integration -q --tb=short",
+      "exit_code": 3,
+      "tests_executed": 0,
+      "reason": "localhost:5432 connection refused; existing session hook aborts before tests"
+    },
+    {
+      "name": "broader existing selection",
+      "command": "/tmp/tc-backend-venv/bin/python -m pytest tests/test_questionnaire_answer_evidence.py tests/test_indexing_enterprise_fixes.py -k 'retrieval or vector_util' -q --tb=short",
+      "exit_code": 1,
+      "passed": 6,
+      "deselected": 9,
+      "errors": 1,
+      "reason": "test_generate_answers_passes_document_ids_to_retrieval fixture cannot connect to PostgreSQL"
+    },
+    {
+      "name": "explicit existing local checks",
+      "command": "/tmp/tc-backend-venv/bin/python -m pytest tests/test_questionnaire_answer_evidence.py::test_retrieval_cache_scope_suffix_stable tests/test_questionnaire_answer_evidence.py::test_retrieval_search_applies_document_scope_keyword tests/test_indexing_enterprise_fixes.py::test_retrieval_rejects_wrong_dimension tests/test_indexing_enterprise_fixes.py::test_retrieval_pgvector_sql_uses_safe_cast tests/test_indexing_enterprise_fixes.py::test_vector_util_validate_embedding_dimension tests/test_indexing_enterprise_fixes.py::test_vector_util_embedding_to_vector_literal_no_scientific -q --tb=short",
+      "exit_code": 0,
+      "passed": 6
+    },
+    {
+      "name": "repository collection safety",
+      "command": "/tmp/tc-backend-venv/bin/python -m pytest tests/release/test_safe_collection.py -q",
+      "exit_code": 0,
+      "passed": 29
+    },
+    {
+      "name": "scoped lint",
+      "command": "/tmp/tc-backend-venv/bin/python -m ruff check apps/api/app/services/retrieval.py apps/api/tests/release/test_authorization_core_retrieval.py",
+      "cwd": "repository",
+      "exit_code": 0
+    },
+    {
+      "name": "scoped format",
+      "command": "/tmp/tc-backend-venv/bin/python -m ruff format --check apps/api/app/services/retrieval.py apps/api/tests/release/test_authorization_core_retrieval.py",
+      "cwd": "repository",
+      "exit_code": 0
+    },
+    {
+      "name": "code secret inventory",
+      "command": "/tmp/tc-backend-venv/bin/python scripts/security/secret_inventory.py paths apps/api/app/services/retrieval.py apps/api/tests/release/test_authorization_core_retrieval.py --root . --fail-on block",
+      "cwd": "repository",
+      "exit_code": 0,
+      "findings": 0
+    },
+    {
+      "name": "whitespace",
+      "command": "git diff --check",
+      "cwd": "repository",
+      "exit_code": 0
+    },
+    {
+      "name": "documentation secret inventory",
+      "command": "/tmp/tc-backend-venv/bin/python scripts/security/secret_inventory.py paths docs/release/tickets/TC-06-002d.md artifacts/acceptance/TC-06-002d/README.md artifacts/acceptance/TC-06-002d/verification.json --root . --fail-on block",
+      "cwd": "repository",
+      "exit_code": 0,
+      "findings": 0
+    }
+  ],
+  "negative_controls": [
+    {
+      "control": "keyword_parent",
+      "command": [
+        "/tmp/tc-backend-venv/bin/python",
+        "-m",
+        "pytest",
+        "tests/release/test_authorization_core_retrieval.py::test_all_paths_require_current_parent[sqlite-keyword]",
+        "-q",
+        "--tb=short"
+      ],
+      "exit_code": 1,
+      "expected": "one assertion failure"
+    },
+    {
+      "control": "fallback_parent",
+      "command": [
+        "/tmp/tc-backend-venv/bin/python",
+        "-m",
+        "pytest",
+        "tests/release/test_authorization_core_retrieval.py::test_all_paths_require_current_parent[sqlite-fallback]",
+        "-q",
+        "--tb=short"
+      ],
+      "exit_code": 1,
+      "expected": "one assertion failure"
+    },
+    {
+      "control": "workspace",
+      "command": [
+        "/tmp/tc-backend-venv/bin/python",
+        "-m",
+        "pytest",
+        "tests/release/test_authorization_core_retrieval.py::test_all_paths_require_current_parent[sqlite-keyword]",
+        "-q",
+        "--tb=short"
+      ],
+      "exit_code": 1,
+      "expected": "one assertion failure"
+    },
+    {
+      "control": "archive",
+      "command": [
+        "/tmp/tc-backend-venv/bin/python",
+        "-m",
+        "pytest",
+        "tests/release/test_authorization_core_retrieval.py::test_all_paths_require_current_parent[sqlite-keyword]",
+        "-q",
+        "--tb=short"
+      ],
+      "exit_code": 1,
+      "expected": "one assertion failure"
+    },
+    {
+      "control": "metadata_authority",
+      "command": [
+        "/tmp/tc-backend-venv/bin/python",
+        "-m",
+        "pytest",
+        "tests/release/test_authorization_core_retrieval.py::test_all_paths_require_current_parent[sqlite-keyword]",
+        "-q",
+        "--tb=short"
+      ],
+      "exit_code": 1,
+      "expected": "one assertion failure"
+    }
+  ],
+  "negative_control_restoration": "Source restored in finally; scoped lint and 30 SQLite cases rerun successfully before code commit",
+  "not_claimed": [
+    "PostgreSQL or pgvector execution success",
+    "PG negative-control execution",
+    "Full pytest success",
+    "Future CI success",
+    "Closure of TC-06-001, TC-06-002 or TC-08-004",
+    "Publication or merge"
+  ],
+  "remaining_gates": [
+    "Independent review of reconstructed code/test/docs head",
+    "All 41 required PostgreSQL cases, including 11 real pgvector cases",
+    "Exact-head build and web-release-e2e on push and pull_request",
+    "Coordinator publication capacity and merge authority"
+  ]
+}
