@@ -2,6 +2,21 @@
 
 No credential values are recorded here. Synthetic rows only.
 
+## Safe-collection fixture correction
+
+Published head `cf5e3b22799ccfbada659678e13db7528caa28a2` failed the existing
+safe-collection credential guard in push job `123834427104` (run `40985181291`).
+The unreadable-MFA marker was a synthetic literal that matched that guard. The
+same targeted check reproduced locally with one failure and one pass. The test
+now generates its marker suffix and compares the stored marker to that original
+value; no production code, scanner pattern or behavioral assertion changed.
+
+From `apps/api`, `/tmp/tc-backend-venv/bin/python -m pytest
+tests/release/test_safe_collection.py tests/release/test_keyring_compatibility.py
+tests/release/test_mfa_reenrol_security.py -q` passed all 56 cases, with 70 existing
+datetime deprecation warnings. Scoped Ruff lint/format and `git diff --check`
+passed. This does not qualify PostgreSQL execution or final-head CI.
+
 ## Lossless migration repair, 2026-10-30
 
 This repair is based on `8098052043b7ec2a9e2b8d32c0a6fe2270eb703a`, with the already

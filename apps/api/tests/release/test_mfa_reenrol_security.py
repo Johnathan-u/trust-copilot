@@ -44,6 +44,7 @@ from app.models import (
 )
 
 PASSWORD = secrets.token_urlsafe(24)
+UNREADABLE_MFA = f"reenrol.{secrets.token_hex(8)}"
 
 
 def request(path, token=None, method="POST"):
@@ -105,7 +106,7 @@ def isolated_db(monkeypatch):
                 ),
                 WorkspaceMember(workspace_id=1, user_id=1, role="admin"),
                 WorkspaceMember(workspace_id=1, user_id=2, role="editor"),
-                UserMfa(user_id=2, enabled=True, totp_secret_encrypted="reenrol.synthetic"),
+                UserMfa(user_id=2, enabled=True, totp_secret_encrypted=UNREADABLE_MFA),
             ]
         )
         db.commit()
@@ -151,7 +152,7 @@ def test_changed_membership_cannot_reset_using_old_admin_cookie(isolated_db, cha
         actor = asyncio.run(require_can_admin(req, db))
         asyncio.run(members.admin_clear_mfa_reenrol(2, db, actor))
     assert denied.value.status_code == 403
-    assert db.query(UserMfa).filter_by(user_id=2).one().totp_secret_encrypted == "reenrol.synthetic"
+    assert db.query(UserMfa).filter_by(user_id=2).one().totp_secret_encrypted == UNREADABLE_MFA
 
 
 def test_reset_login_cannot_use_business_optional_or_workspace_switch_auth(isolated_db):
