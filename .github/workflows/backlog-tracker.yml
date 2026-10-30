@@ -1,0 +1,59 @@
+name: Backlog tracker
+
+on:
+  push:
+    paths:
+      - 'scripts/backlog_tracker.py'
+      - 'scripts/tests/test_backlog_tracker.py'
+      - 'docs/planning/TrustCopilot_Execution_Backlog.json'
+      - 'docs/planning/backlog-state.json'
+      - 'docs/tracker/**'
+      - '.github/workflows/backlog-tracker.yml'
+  pull_request:
+    paths:
+      - 'scripts/backlog_tracker.py'
+      - 'scripts/tests/test_backlog_tracker.py'
+      - 'docs/planning/TrustCopilot_Execution_Backlog.json'
+      - 'docs/planning/backlog-state.json'
+      - 'docs/tracker/**'
+      - '.github/workflows/backlog-tracker.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  validate-backlog:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Check original scope, evidence ledger and generated snapshot
+        run: python scripts/backlog_tracker.py check
+      - name: Exercise acceptance, regressions and concurrent updates
+        run: python -m unittest discover -s scripts/tests -p 'test_backlog_tracker.py' -v
+      - name: Verify deterministic rebuild
+        run: |
+          python scripts/backlog_tracker.py build
+          git diff --exit-code -- docs/tracker/data.js
+
+  verify-dashboard:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: apps/web/.nvmrc
+      - name: Install existing locked browser-test dependency
+        working-directory: apps/web
+        run: npm ci --ignore-scripts
+      - name: Install Chromium
+        working-directory: apps/web
+        run: npx --no-install playwright install --with-deps chromium
+      - name: Verify dashboard behavior, offline use and mobile access
+        run: node --test docs/tracker/tests/browser.test.cjs

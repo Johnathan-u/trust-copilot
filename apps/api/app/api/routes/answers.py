@@ -6,7 +6,7 @@ enqueues ``generate_answers`` via ``POST /api/exports/generate/{questionnaire_id
 """
 
 from fastapi import APIRouter, Depends, HTTPException
-from pydantic import BaseModel
+from pydantic import BaseModel, StrictInt
 from sqlalchemy.orm import Session
 
 from app.core.auth_deps import require_can_review
@@ -28,10 +28,11 @@ class AnswerUpdate(BaseModel):
 
 
 class BulkUpdateBody(BaseModel):
-    question_ids: list[int]
+    question_ids: list[StrictInt]
     status: str
 
 
+@router.post("")
 @router.post("/")
 def create_answer(
     body: AnswerCreate,
@@ -66,6 +67,56 @@ def create_answer(
     return {"id": a.id, "question_id": a.question_id, "text": a.text, "status": a.status}
 
 
+@router.patch("/bulk")
+def bulk_update_status(
+    body: BulkUpdateBody,
+    session: dict = Depends(require_can_review),
+    db: Session = Depends(get_db),
+):
+    """Bulk update answer status. Creates answers if missing."""
+    if (
+        not body.question_ids
+        or len(set(body.question_ids)) != len(body.question_ids)
+        or any(qid <= 0 or qid > 2147483647 for qid in body.question_ids)
+        or body.status
+        not in (
+            "draft",
+            "approved",
+            "rejected",
+            "flagged",
+            "pending",
+            "insufficient_evidence",
+        )
+    ):
+        raise HTTPException(status_code=400, detail="Invalid request")
+    # Resolve the entire set through current, available workspace parents before
+    # adding or changing any answer. Unknown and unauthorized IDs are identical.
+    questions = (
+        db.query(Question)
+        .join(Questionnaire, Questionnaire.id == Question.questionnaire_id)
+        .filter(
+            Question.id.in_(body.question_ids),
+            Questionnaire.workspace_id == session.get("workspace_id"),
+            Questionnaire.deleted_at.is_(None),
+        )
+        .all()
+    )
+    if len(questions) != len(body.question_ids):
+        raise HTTPException(status_code=404, detail="Question not found")
+    answers = db.query(Answer).filter(Answer.question_id.in_(body.question_ids)).all()
+    existing_qids = {a.question_id for a in answers}
+    for qid in body.question_ids:
+        if qid not in existing_qids:
+            a = Answer(question_id=qid, text="", status=body.status)
+            db.add(a)
+            existing_qids.add(qid)
+        else:
+            a = next(x for x in answers if x.question_id == qid)
+            a.status = body.status
+    db.commit()
+    return {"updated": len(body.question_ids), "status": body.status}
+
+
 @router.patch("/{answer_id}")
 def update_answer(
     answer_id: int,
@@ -91,39 +142,3 @@ def update_answer(
     db.commit()
     db.refresh(a)
     return {"id": a.id, "question_id": a.question_id, "text": a.text, "status": a.status}
-
-
-@router.patch("/bulk")
-def bulk_update_status(
-    body: BulkUpdateBody,
-    session: dict = Depends(require_can_review),
-    db: Session = Depends(get_db),
-):
-    """Bulk update answer status. Creates answers if missing."""
-    if not body.question_ids or body.status not in (
-        "draft",
-        "approved",
-        "rejected",
-        "flagged",
-        "pending",
-        "insufficient_evidence",
-    ):
-        raise HTTPException(status_code=400, detail="Invalid request")
-    questions = db.query(Question).filter(Question.id.in_(body.question_ids)).all()
-    qnrs = {q.questionnaire_id for q in questions}
-    for qnr_id in qnrs:
-        qnr = db.query(Questionnaire).filter(Questionnaire.id == qnr_id).first()
-        if qnr and qnr.workspace_id != session.get("workspace_id"):
-            raise HTTPException(status_code=403, detail="Access denied")
-    answers = db.query(Answer).filter(Answer.question_id.in_(body.question_ids)).all()
-    existing_qids = {a.question_id for a in answers}
-    for qid in body.question_ids:
-        if qid not in existing_qids:
-            a = Answer(question_id=qid, text="", status=body.status)
-            db.add(a)
-            existing_qids.add(qid)
-        else:
-            a = next(x for x in answers if x.question_id == qid)
-            a.status = body.status
-    db.commit()
-    return {"updated": len(body.question_ids), "status": body.status}

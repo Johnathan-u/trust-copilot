@@ -1,0 +1,43 @@
+TC-02-007b local verification — 2026-10-30
+Base: da6d6eedb8c256d1e5e775fcfdf8b1a3250f34bb
+Failed CI: run 41015331271 / job 123930270947 (PR #138)
+
+Before fix, from apps/api:
+python -m pytest tests/release/test_ci_postgres_readiness.py -q --tb=short
+Exit 1: 4 failed. Bootstrap scenario returned exit 1 instead of required success:
+its socket-only server satisfied the loop, then the simulated shutdown rejected
+its final socket probe. The other cases detected socket transport instead of TCP.
+
+After fix, from apps/api:
+python -m pytest tests/release/test_ci_postgres_readiness.py tests/release/test_workflow_permissions.py -q --tb=short
+Exit 0: 24 passed (4 new lifecycle controls, 20 existing permission controls).
+
+Final selection, from apps/api:
+python -m pytest tests/release/test_ci_postgres_readiness.py tests/release/test_workflow_permissions.py tests/release/test_safe_collection.py -q --tb=short
+Exit 0: 53 passed in 38.33 seconds. No skips.
+
+Temporary negative controls, restored before final selection:
+- Remove only final readiness probe: final-failure control exits pytest 1;
+  actual shell exit 0 versus required 1. One failed, three deselected.
+- Extend loop to 61 attempts: exhaustion control exits pytest 1;
+  62 probes versus required 61. One failed, three deselected.
+
+Static verification:
+- Ruff check and Ruff format --check: pass.
+- Prettier check of ci.yml and formatting of the two Markdown files: pass.
+- git diff --check: pass.
+- Removing only the two added host arguments and two explanatory comments from
+  ci.yml reproduces the base workflow byte-for-byte. No image/digest, isolation,
+  credential, retry, final-check, dependency, upload, or test gate changed.
+
+Source diagnosis and limitations:
+- Decoded failing job log and official upstream Dockerfiles/entrypoint reviewed;
+  primary URLs and precise inference are in README.md.
+- No Docker/Podman executable is available locally. Tests simulate command states,
+  not a real container; no local image extraction or container-startup pass claimed.
+- No exact pinned-digest-to-upstream-revision mapping claimed.
+- Independent review and all four exact-head CI gates remain required.
+
+Verified source SHA-256:
+0d59dce78d9a6777824fd42781918509208a29a213c78fb64735303a5ed5cee0  .github/workflows/ci.yml
+9eed8aa2b4dd9a3a3b52d70f5aa51a3c592dee553f849d066f86ffe539f34d3d  apps/api/tests/release/test_ci_postgres_readiness.py
