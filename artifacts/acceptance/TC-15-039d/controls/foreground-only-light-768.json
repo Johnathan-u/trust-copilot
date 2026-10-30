@@ -1,0 +1,210 @@
+{
+  "phase": "foreground-only-light",
+  "state": {
+    "theme": "light",
+    "width": 768,
+    "state": {
+      "before": {
+        "disabled": true,
+        "disabledSelector": true,
+        "focused": false,
+        "color": "rgb(100, 116, 139)",
+        "backgroundColor": "rgb(226, 232, 240)",
+        "outlineWidth": "3px",
+        "transitionProperty": "background-color, border-color, text-decoration-color, fill, stroke",
+        "transitionDuration": "0.15s",
+        "transitionTimingFunction": "cubic-bezier(0.2, 0, 0, 1)"
+      },
+      "removal": {
+        "held": {
+          "disabled": false,
+          "disabledSelector": false,
+          "focused": false,
+          "color": "rgb(255, 255, 255)",
+          "backgroundColor": "rgb(226, 232, 240)",
+          "outlineWidth": "3px",
+          "transitionProperty": "background-color, border-color, text-decoration-color, fill, stroke",
+          "transitionDuration": "0.15s",
+          "transitionTimingFunction": "cubic-bezier(0.2, 0, 0, 1)"
+        },
+        "transitions": [
+          {
+            "property": "background-color",
+            "keyframes": [
+              {
+                "offset": 0,
+                "easing": "linear",
+                "composite": "auto",
+                "backgroundColor": "rgb(226, 232, 240)",
+                "computedOffset": 0
+              },
+              {
+                "offset": 1,
+                "easing": "linear",
+                "composite": "auto",
+                "backgroundColor": "rgb(15, 118, 110)",
+                "computedOffset": 1
+              }
+            ]
+          },
+          {
+            "property": "border-bottom-color",
+            "keyframes": [
+              {
+                "offset": 0,
+                "easing": "linear",
+                "composite": "auto",
+                "borderBottomColor": "rgb(100, 116, 139)",
+                "computedOffset": 0
+              },
+              {
+                "offset": 1,
+                "easing": "linear",
+                "composite": "auto",
+                "borderBottomColor": "rgba(0, 0, 0, 0)",
+                "computedOffset": 1
+              }
+            ]
+          },
+          {
+            "property": "border-left-color",
+            "keyframes": [
+              {
+                "offset": 0,
+                "easing": "linear",
+                "composite": "auto",
+                "borderLeftColor": "rgb(100, 116, 139)",
+                "computedOffset": 0
+              },
+              {
+                "offset": 1,
+                "easing": "linear",
+                "composite": "auto",
+                "borderLeftColor": "rgba(0, 0, 0, 0)",
+                "computedOffset": 1
+              }
+            ]
+          },
+          {
+            "property": "border-right-color",
+            "keyframes": [
+              {
+                "offset": 0,
+                "easing": "linear",
+                "composite": "auto",
+                "borderRightColor": "rgb(100, 116, 139)",
+                "computedOffset": 0
+              },
+              {
+                "offset": 1,
+                "easing": "linear",
+                "composite": "auto",
+                "borderRightColor": "rgba(0, 0, 0, 0)",
+                "computedOffset": 1
+              }
+            ]
+          },
+          {
+            "property": "border-top-color",
+            "keyframes": [
+              {
+                "offset": 0,
+                "easing": "linear",
+                "composite": "auto",
+                "borderTopColor": "rgb(100, 116, 139)",
+                "computedOffset": 0
+              },
+              {
+                "offset": 1,
+                "easing": "linear",
+                "composite": "auto",
+                "borderTopColor": "rgba(0, 0, 0, 0)",
+                "computedOffset": 1
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "enabled": {
+      "disabled": false,
+      "disabledSelector": false,
+      "focused": true,
+      "color": "rgb(255, 255, 255)",
+      "backgroundColor": "rgb(226, 232, 240)",
+      "outlineWidth": "2px",
+      "transitionProperty": "background-color, border-color, text-decoration-color, fill, stroke",
+      "transitionDuration": "0.15s",
+      "transitionTimingFunction": "cubic-bezier(0.2, 0, 0, 1)"
+    }
+  },
+  "axe": {
+    "theme": "light",
+    "width": 768,
+    "violationCount": 1,
+    "violations": [
+      {
+        "id": "color-contrast",
+        "impact": "serious",
+        "nodes": 1
+      }
+    ],
+    "violationDetails": [
+      {
+        "id": "color-contrast",
+        "impact": "serious",
+        "tags": [
+          "cat.color",
+          "wcag2aa",
+          "wcag143",
+          "TTv5",
+          "TT13.c",
+          "EN-301-549",
+          "EN-9.1.4.3",
+          "ACT",
+          "RGAAv4",
+          "RGAA-3.2.1"
+        ],
+        "description": "Ensure the contrast between foreground and background colors meets WCAG 2 AA minimum contrast ratio thresholds",
+        "help": "Elements must meet minimum color contrast ratio thresholds",
+        "helpUrl": "https://dequeuniversity.com/rules/axe/4.14/color-contrast?application=playwright",
+        "nodes": [
+          {
+            "any": [
+              {
+                "id": "color-contrast",
+                "data": {
+                  "fgColor": "#ffffff",
+                  "bgColor": "#e2e8f0",
+                  "contrastRatio": 1.23,
+                  "fontSize": "10.5pt (14px)",
+                  "fontWeight": "normal",
+                  "messageKey": null,
+                  "expectedContrastRatio": "4.5:1"
+                },
+                "relatedNodes": [
+                  {
+                    "html": "<button class=\"inline-flex items-ce...\" style=\"transition-property:...\">",
+                    "target": [
+                      ".flex-wrap.gap-tc-2.flex > .bg-tc-primary-solid.hover\\:bg-\\[var\\(--tc-primary-solid-hover\\)\\].text-tc-on-primary"
+                    ]
+                  }
+                ],
+                "impact": "serious",
+                "message": "Element has insufficient color contrast of 1.23 (foreground color: #ffffff, background color: #e2e8f0, font size: 10.5pt (14px), font weight: normal). Expected contrast ratio of 4.5:1"
+              }
+            ],
+            "all": [],
+            "none": [],
+            "impact": "serious",
+            "html": "<button class=\"inline-flex items-ce...\" style=\"transition-property:...\">",
+            "target": [
+              ".flex-wrap.gap-tc-2.flex > .bg-tc-primary-solid.hover\\:bg-\\[var\\(--tc-primary-solid-hover\\)\\].text-tc-on-primary"
+            ],
+            "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 1.23 (foreground color: #ffffff, background color: #e2e8f0, font size: 10.5pt (14px), font weight: normal). Expected contrast ratio of 4.5:1"
+          }
+        ]
+      }
+    ]
+  }
+}
