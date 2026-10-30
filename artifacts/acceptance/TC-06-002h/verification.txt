@@ -1,0 +1,57 @@
+TC-06-002h local verification — 2026-10-30
+Base: 90146e0cfe2220beb3e43f98f6073262f7c0abfb
+Claim/ruling: #85/6517430971 and #85/6532920880.
+Runtime scope: app/services/job_control.py only.
+Source blob: af3f9eb855e13098d7f56ea16b269d7ba7262f91
+Test blob: fe8d5c2b2e928985a19da25a4a88914b943c800c
+
+Environment: existing /tmp/tc-backend-venv, Python 3.12.14.
+Normal conftest provider-environment scrub and outbound network guard active.
+No provider/model/object-storage calls or worker job execution.
+No dependencies or schema changes.
+
+Read-only intake used the unchanged base with real stored-auth HTTP and disposable
+FK-enforced SQLite. All 11 unsafe reference cases returned 200, requeued the job
+and wrote job.manual_retry without a questionnaire/document SELECT. Parentless
+legacy retries, own malformed cancellation, current-principal denials, existing
+404/409 outcomes and prior result preservation were separately confirmed.
+
+TDD before the runtime edit, from apps/api:
+/tmp/tc-backend-venv/bin/python -m pytest tests/release/test_authorization_job_retry.py -q -k 'sqlite and (invalid_reference_denies or workspace_mismatch or reference_types)' --tb=no
+  Exit 1: 47 failed, 136 deselected. No setup errors.
+/tmp/tc-backend-venv/bin/python -m pytest tests/release/test_authorization_job_retry.py -q -k 'sqlite and workspace_mismatch' --tb=short
+  Exit 1: 1 failed, 182 deselected; observed HTTP 200 instead of expected 404.
+
+After the repair and complete current-reference/numeric-coercion matrix:
+/tmp/tc-backend-venv/bin/python -m pytest tests/release/test_authorization_job_retry.py -q -k sqlite --tb=short
+  Exit 0: 103 passed, 104 deselected.
+  Explicit invalid references cannot write any monitored row or execute non-SELECT
+  SQL. Allowed retries commit the intended columns and exactly one prior-state audit.
+  Active references, legacy payloads, cancellation and unexpected-error propagation pass.
+/tmp/tc-backend-venv/bin/python -m pytest tests/release/test_authorization_job_retry.py tests/release/test_job_cancellation.py --collect-only -q
+  Exit 0: 222 collected (207 new, 15 unchanged cancellation tests).
+/tmp/tc-backend-venv/bin/python -m pytest tests/release/test_job_history.py -q -k 'not postgres' --tb=short
+  Exit 0: 16 passed, 32 deselected. Existing local projection controls remain green.
+/tmp/tc-backend-venv/bin/python -m pytest tests/release/test_job_cancellation.py -q -m unit --tb=short
+  Exit 0: 1 passed, 14 deselected.
+/tmp/tc-backend-venv/bin/python -m pytest tests/release/test_safe_collection.py -q --tb=short
+  Exit 0: 29 passed.
+
+Required complete suite attempt:
+TC_REQUIRE_DB=1 TC_TEST_DATABASE_URL=<isolated local tc_job_retry_test URL> /tmp/tc-backend-venv/bin/python -m pytest -q
+  Exit 3 before execution: migration connection to 127.0.0.1:5432 refused.
+  No PostgreSQL/full-suite qualification is claimed. All 104 PostgreSQL cases and
+  legacy database checks must run in mandatory migrated PostgreSQL CI.
+
+Scoped Ruff check/format and py_compile: exit 0.
+Secret inventory on all claimed paths: zero findings. git diff --check: exit 0.
+Runtime routes, worker, models, migrations, shared reference helpers and all legacy
+job tests remain unchanged from base.
+Existing SQLAlchemy datetime.utcnow deprecation warnings remain.
+One intermediate invocation used repository-root cwd with an apps/api-relative
+path and exited 4 before collection; the corrected apps/api invocation above passed.
+
+Tests snapshot full-row hashes in twelve real model tables, retain FK enforcement,
+and clean only explicitly owned fixture and HTTP-created row IDs. PostgreSQL's
+partial-index conflict case is PostgreSQL-only; no SQLite index bypass was added.
+No independent review, required-CI, merge or full-parent completion is claimed.

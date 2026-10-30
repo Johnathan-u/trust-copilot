@@ -7,12 +7,15 @@ event, not on new columns.
 
 from __future__ import annotations
 
+import json
 from datetime import datetime, timezone
 
+from fastapi import HTTPException
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.core.audit import persist_audit
+from app.core.workspace_refs import require_in_workspace
 from app.models import Job, JobStatus
 
 _OPEN = frozenset({JobStatus.QUEUED.value, JobStatus.RUNNING.value})
@@ -38,6 +41,38 @@ def _prior(job: Job) -> dict:
         "prior_error": None if error is None else str(error)[:1000],
         "prior_attempt": int(job.attempt or 0),
     }
+
+
+def _retry_references_valid(session: Session, job: Job) -> bool:
+    """Check explicit references without changing reference-free legacy payloads."""
+    try:
+        payload = json.loads(job.payload) if job.payload else {}
+    except (TypeError, ValueError, RecursionError):
+        return True
+    if not isinstance(payload, dict):
+        return True
+    for field, kind in (
+        ("workspace_id", None),
+        ("questionnaire_id", "questionnaire"),
+        ("document_id", "document"),
+    ):
+        if field not in payload:
+            continue
+        reference = payload[field]
+        # IDs are database integers: bools, nulls and coercible strings are not IDs.
+        if type(reference) is not int or not 0 < reference <= 2147483647:
+            return False
+        if kind is None:
+            if reference != job.workspace_id:
+                return False
+            continue
+        try:
+            require_in_workspace(session, job.workspace_id, kind, reference)
+        except HTTPException as exc:
+            if exc.status_code != 404:
+                raise
+            return False
+    return True
 
 
 def cancel_job(
@@ -121,6 +156,9 @@ def retry_job(
         if other is not None:
             session.rollback()
             return "conflict", None
+    if not _retry_references_valid(session, job):
+        session.rollback()
+        return "missing", None
     prior = _prior(job)
     job.status = JobStatus.QUEUED.value
     job.attempt = 0
