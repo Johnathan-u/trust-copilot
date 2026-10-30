@@ -3,9 +3,9 @@
   "status": "IN_REVIEW",
   "scope": "Personal inbox API, active recipient validation, approved broadcast receipts and lossless migration",
   "acceptance": {
-    "AC1": "PENDING implementation PostgreSQL result",
-    "AC2": "PENDING implementation PostgreSQL result",
-    "AC3": "PENDING TC-19-010a frontend merge and integrated acceptance"
+    "AC1": "Historical implementation PostgreSQL CI green; final landing-head CI pending",
+    "AC2": "Historical implementation PostgreSQL CI green; final landing-head CI pending",
+    "AC3": "Frontend #111 merged; integrated API/UI and full process restart acceptance still pending"
   },
   "coordinator_ruling": "https://github.com/Johnathan-u/trust-copilot/issues/85#issuecomment-6504557554",
   "observed_runs": [
@@ -106,5 +106,26 @@
     "outcome": "No blocking code finding; checked visibility/current permissions, personal/broadcast semantics, conflict handling, historical read preservation, FK/model agreement, strict archive restoration and concurrency/round-trip tests",
     "qualification": "Published-head PostgreSQL CI pending; duplicate-membership preflight and AC3/migration-slot documentation required and included"
   },
-  "published_equivalent_code_checkpoint": "9b708bf509e104b185ad58560f35c4343f4faacf"
+  "published_equivalent_code_checkpoint": "9b708bf509e104b185ad58560f35c4343f4faacf",
+  "landing_2026_10_30": {
+    "master_migration_base": "58c9e563d60c19c20225a1c317fc4d85d343ab2e",
+    "parent": "tc17004_faq_review",
+    "pure_merge": "b8ca69db04934fbc10fe4f01c61f937cf8553d81",
+    "ruling": "https://github.com/Johnathan-u/trust-copilot/issues/85#issuecomment-6511936256",
+    "historical_head": "7ea5bf4c002d010e81ebdf46c09ed5f0aff9202c",
+    "historical_green_runs": [
+      40935533458,
+      40935542201
+    ],
+    "frontend_merge": "807364ce4369150302bcf1a3f96c5384ca43904f",
+    "local_checks": [
+      "alembic heads: one tc19010_inbox_receipts",
+      "targeted upgrade and downgrade SQL generated successfully",
+      "32 inbox cases collected; not executed against PostgreSQL",
+      "targeted Ruff, format and diff checks passed"
+    ],
+    "local_limit": "No PostgreSQL available; no database, full process restart or integrated browser qualification claimed",
+    "final_head_ci": "PENDING",
+    "migration_blob": "953db734b5ed9598a6fde40bf316881f029702cb"
+  }
 }

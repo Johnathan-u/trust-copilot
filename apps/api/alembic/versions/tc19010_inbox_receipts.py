@@ -10,10 +10,10 @@ Re-upgrade restores all archived rows in the migration transaction. Invalid
 references fail the upgrade and preserve the archive; no row is skipped or lost.
 
 Revision ID: tc19010_inbox_receipts
-Revises: tc02001a_parent_ws_move
+Revises: tc17004_faq_review
 
-PROVISIONAL parent at master 8060788 for a single CI head. Landing slot follows TC-17-004
-and TC-23-001; reparent in a separate commit once both have landed.
+Landing parent is the actual FAQ head on master 58c9e563. The coordinator
+advanced this independent migration ahead of blocked key/deal work in issue #85.
 """
 
 import sqlalchemy as sa
@@ -21,7 +21,7 @@ import sqlalchemy as sa
 from alembic import op
 
 revision = "tc19010_inbox_receipts"
-down_revision = "tc02001a_parent_ws_move"
+down_revision = "tc17004_faq_review"
 branch_labels = None
 depends_on = None
 
