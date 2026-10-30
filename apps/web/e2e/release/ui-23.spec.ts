@@ -3,6 +3,29 @@ import AxeBuilder from '@axe-core/playwright'
 import { mkdirSync, writeFileSync } from 'node:fs'
 import path from 'node:path'
 
+const recommendation = {
+  title: 'Quarterly access review recommendation',
+  improves_questions: 3,
+  evidence_ids: [71],
+  control_ids: [41],
+  question_ids: [31],
+  question_sources: [{ question_id: 31, questionnaire_id: 21 }],
+}
+const questionnaire = {
+  id: 21,
+  filename: 'Source questionnaire',
+  document_id: null,
+  status: 'parsed',
+  parse_metadata: null,
+  questions: [
+    {
+      id: 31,
+      text: 'How do you review access?',
+      section: 'Access management',
+      answer_type: null,
+    },
+  ],
+}
 const coverage = {
   kpi: {
     total_questions: 4,
@@ -28,7 +51,7 @@ const coverage = {
   ],
   weak_areas: [],
   evidence_strength: [],
-  recommended_evidence: [],
+  recommended_evidence: [recommendation],
   trends: [],
   drill_down: [],
   control_coverage: {
@@ -153,6 +176,9 @@ async function installApi(page: Page, role = 'reviewer') {
         gaps: [gap],
       })
     if (p === '/api/evidence-search') return json(route, evidencePage())
+    if (p === '/api/compliance/evidence/71') return json(route, evidence)
+    if (p === '/api/questionnaires/21') return json(route, questionnaire)
+    if (p === '/api/documents') return json(route, [])
     if (p.includes('unread-count')) return json(route, { count: 0 })
     if (p.includes('/auth/alerts')) return json(route, { alerts: [] })
     return json(route, {})
@@ -262,7 +288,216 @@ test('viewer receives denial without fetching private gap data', async ({
     page.getByRole('heading', { name: 'This section is not available' })
   ).toBeVisible()
   expect(calls.filter((call) => call.path === '/api/evidence-gaps')).toEqual([])
+  expect(
+    calls.filter(
+      (call) =>
+        call.path === '/api/compliance-coverage' ||
+        call.path.startsWith('/api/compliance/evidence/') ||
+        call.path.startsWith('/api/questionnaires/')
+    )
+  ).toEqual([])
 })
+
+test('recommendations disclose real evidence and matching questions on demand without writes', async ({
+  page,
+}) => {
+  const calls = await installApi(page)
+  await page.goto('/dashboard/compliance-gaps')
+  const recommendations = page.getByRole('region', {
+    name: 'Recommended Next Evidence',
+  })
+  await expect(recommendations.getByText(recommendation.title)).toBeVisible()
+  expect(
+    calls.filter(
+      (call) =>
+        call.path.startsWith('/api/compliance/evidence/') ||
+        call.path.startsWith('/api/questionnaires/')
+    )
+  ).toEqual([])
+  await expect(
+    recommendations.getByRole('link', { name: 'View control 41' })
+  ).toHaveAttribute('href', '/dashboard/controls/41')
+  await recommendations
+    .getByRole('button', { name: 'View evidence 71' })
+    .click()
+  await expect(
+    recommendations.getByText('Quarterly access review', { exact: true })
+  ).toBeVisible()
+  await recommendations
+    .getByRole('button', { name: 'View question 31' })
+    .click()
+  await expect(
+    recommendations.getByText(questionnaire.questions[0].text)
+  ).toBeVisible()
+  await expect(
+    recommendations.getByText(/Reported suggestion count:/)
+  ).toContainText('3')
+  const questionnaireLink = recommendations.getByRole('link', {
+    name: 'Open source questionnaire',
+  })
+  await expect(questionnaireLink).toHaveAttribute(
+    'href',
+    '/dashboard/questionnaires/21'
+  )
+  expect(calls.filter((call) => call.method !== 'GET')).toEqual([])
+  await questionnaireLink.click()
+  await expect(page).toHaveURL(/\/dashboard\/questionnaires\/21$/)
+  await expect(page.getByText(questionnaire.questions[0].text)).toBeVisible()
+})
+
+test('legacy and empty provenance stay visible without invented source links', async ({
+  page,
+}) => {
+  const calls = await installApi(page)
+  await page.route('**/api/compliance-coverage', (route) =>
+    json(route, {
+      ...coverage,
+      kpi: { ...coverage.kpi, total_questions: 0 },
+      recommended_evidence: [
+        {
+          title: 'No live sources',
+          improves_questions: 7,
+          evidence_ids: [],
+          control_ids: [],
+          question_ids: [],
+          question_sources: [],
+        },
+        {
+          title: 'Legacy question source',
+          improves_questions: 2,
+          question_ids: [31],
+        },
+      ],
+    })
+  )
+  await page.goto('/dashboard/compliance-gaps')
+  const recommendations = page.getByRole('region', {
+    name: 'Recommended Next Evidence',
+  })
+  await expect(recommendations.getByText('No live sources')).toBeVisible()
+  await expect(
+    recommendations.getByText(
+      'Source detail is unavailable for this recommendation.'
+    )
+  ).toBeVisible()
+  await expect(
+    recommendations.getByText(/Question sources without detail: 1/)
+  ).toBeVisible()
+  await expect(recommendations.getByRole('link')).toHaveCount(0)
+  await expect(recommendations.getByRole('button')).toHaveCount(0)
+  expect(
+    calls.filter(
+      (call) =>
+        call.path.startsWith('/api/compliance/evidence/') ||
+        call.path.startsWith('/api/questionnaires/')
+    )
+  ).toEqual([])
+})
+
+test('malformed recommendation provenance fails the coverage read and retry recovers', async ({
+  page,
+}) => {
+  await installApi(page)
+  let malformed = true
+  await page.route('**/api/compliance-coverage', (route) =>
+    json(route, {
+      ...coverage,
+      recommended_evidence: [
+        { ...recommendation, control_ids: malformed ? ['../other'] : [41] },
+      ],
+    })
+  )
+  await page.goto('/dashboard/compliance-gaps')
+  await expect(
+    page.getByText('Access review record', { exact: true })
+  ).toBeVisible()
+  const error = page.locator('#main-content [data-state="error"]')
+  await expect(error).toBeVisible()
+  await expect(
+    page.getByRole('region', { name: 'Recommended Next Evidence' })
+  ).toHaveCount(0)
+  malformed = false
+  await error.getByRole('button', { name: 'Try again' }).click()
+  await expect(
+    page.getByRole('link', { name: 'View control 41' })
+  ).toBeVisible()
+  await expect(error).toHaveCount(0)
+})
+
+for (const failure of [
+  'forbidden',
+  'missing',
+  'foreign',
+  'mismatched-question',
+] as const) {
+  test(`source detail rejects ${failure} and can retry without exposing unverified data`, async ({
+    page,
+  }) => {
+    await installApi(page)
+    let broken = true
+    const question = failure === 'mismatched-question'
+    await page.route(
+      question ? '**/api/questionnaires/21?*' : '**/api/compliance/evidence/71',
+      (route) => {
+        if (!broken) return json(route, question ? questionnaire : evidence)
+        if (failure === 'forbidden' || failure === 'missing')
+          return json(
+            route,
+            { detail: 'Private failure content' },
+            failure === 'forbidden' ? 403 : 404
+          )
+        return json(
+          route,
+          question
+            ? {
+                ...questionnaire,
+                questions: [
+                  {
+                    ...questionnaire.questions[0],
+                    id: 32,
+                    text: 'Private question content',
+                  },
+                ],
+              }
+            : {
+                ...evidence,
+                workspace_id: 8,
+                title: 'Private foreign evidence',
+              }
+        )
+      }
+    )
+    await page.goto('/dashboard/compliance-gaps')
+    const recommendations = page.getByRole('region', {
+      name: 'Recommended Next Evidence',
+    })
+    await recommendations
+      .getByRole('button', {
+        name: question ? 'View question 31' : 'View evidence 71',
+      })
+      .click()
+    await expect(
+      recommendations.getByText(
+        question
+          ? 'Question source unavailable.'
+          : 'Evidence source unavailable.'
+      )
+    ).toBeVisible()
+    await expect(recommendations).not.toContainText('Private')
+    await expect(
+      recommendations.getByRole('link', { name: 'Open source questionnaire' })
+    ).toHaveCount(0)
+    broken = false
+    await recommendations.getByRole('button', { name: 'Try again' }).click()
+    await expect(
+      recommendations.getByText(
+        question ? questionnaire.questions[0].text : evidence.title,
+        { exact: true }
+      )
+    ).toBeVisible()
+    await expect(recommendations.locator('[data-state="error"]')).toHaveCount(0)
+  })
+}
 
 test('background polling pauses while hidden and failures retain a labelled snapshot', async ({
   page,
@@ -341,6 +576,7 @@ for (const width of [360, 768, 1440]) {
         framework_coverage: [
           { ...coverage.framework_coverage[0], framework: longSubject },
         ],
+        recommended_evidence: [{ ...recommendation, title: longTitle }],
       })
     )
     await page.setViewportSize({ width, height: 900 })
@@ -355,6 +591,32 @@ for (const width of [360, 768, 1440]) {
     await expect(
       page.getByRole('rowheader', { name: longSubject, exact: true })
     ).toBeVisible()
+    const recommendationRegion = page.getByRole('region', {
+      name: 'Recommended Next Evidence',
+    })
+    await recommendationRegion
+      .getByRole('button', { name: 'View evidence 71' })
+      .focus()
+    await page.keyboard.press('Enter')
+    await expect(
+      recommendationRegion.getByRole('button', { name: 'Hide evidence 71' })
+    ).toBeFocused()
+    await expect(
+      recommendationRegion.getByText('Quarterly access review', { exact: true })
+    ).toBeVisible()
+    await recommendationRegion
+      .getByRole('button', { name: 'View question 31' })
+      .focus()
+    await page.keyboard.press('Enter')
+    await expect(
+      recommendationRegion.getByText(questionnaire.questions[0].text)
+    ).toBeVisible()
+    await page.keyboard.press('Tab')
+    await expect(
+      recommendationRegion.getByRole('link', {
+        name: 'Open source questionnaire',
+      })
+    ).toBeFocused()
     const main = page.locator('#main-content')
     expect(await main.evaluate((el) => el.scrollWidth <= el.clientWidth)).toBe(
       true
@@ -481,18 +743,42 @@ test('changing workspace clears the previous snapshot before the new read comple
       gaps: [],
     })
   })
+  await page.route('**/api/compliance-coverage', async (route) => {
+    if (!changed) return route.fallback()
+    await pending
+    return json(route, { ...coverage, recommended_evidence: [] })
+  })
+  await page.route('**/api/questionnaires/21?*', async (route) => {
+    await pending
+    return json(route, questionnaire)
+  })
   await page.goto('/dashboard/compliance-gaps')
   await expect(
     page.getByText('Access review record', { exact: true })
+  ).toBeVisible()
+  await page.getByRole('button', { name: 'View evidence 71' }).click()
+  await expect(
+    page.getByText('Quarterly access review', { exact: true })
+  ).toBeVisible()
+  await page.getByRole('button', { name: 'View question 31' }).click()
+  await expect(
+    page.getByText('Loading question source', { exact: true })
   ).toBeVisible()
   await page.getByLabel('Workspace', { exact: true }).selectOption('8')
   await expect(
     page.getByText('Access review record', { exact: true })
   ).toHaveCount(0)
+  await expect(
+    page.getByText('Quarterly access review', { exact: true })
+  ).toHaveCount(0)
   release()
   await expect(
     page.getByText('No evidence gaps', { exact: true })
   ).toBeVisible()
+  await expect(page.getByText(questionnaire.questions[0].text)).toHaveCount(0)
+  await expect(
+    page.getByRole('link', { name: 'Open source questionnaire' })
+  ).toHaveCount(0)
 })
 
 test('coverage failure and empty questionnaire data do not hide the gap list', async ({
