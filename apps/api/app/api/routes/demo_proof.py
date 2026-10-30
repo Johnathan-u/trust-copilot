@@ -9,7 +9,7 @@ Existing 401 and suspended-member 403 responses keep their current detail text.
 
 import uuid
 
-from fastapi import APIRouter, Depends, Query, Request
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 
@@ -56,8 +56,30 @@ def _api_error(
     return JSONResponse(status_code=status, content=body)
 
 
-def _guard(request: Request, db: Session, session: dict, workspace_id: int | None):
+async def _require_demo_session(
+    request: Request, db: Session = Depends(get_db)
+) -> dict | JSONResponse:
+    """Preserve this API's membership error envelope without granting authority."""
+    try:
+        return await require_session(request, db)
+    except HTTPException as exc:
+        if exc.status_code != 403:
+            raise
+        if exc.detail == "Active workspace membership required":
+            message = "This session is not a current member of the workspace."
+        elif exc.detail == "Complete workspace setup first":
+            message = "This session is not a member of a workspace."
+        else:
+            # Authentication, MFA, suspension and other denials retain their
+            # existing status/detail. Only the two membership failures map here.
+            raise
+        return _api_error(403, "not_a_member", message, request)
+
+
+def _guard(request: Request, db: Session, session: dict | JSONResponse, workspace_id: int | None):
     """Recheck current membership. Reject a workspace id that is not the session workspace."""
+    if isinstance(session, JSONResponse):
+        return session
     session_workspace = session.get("workspace_id")
     if workspace_id is not None and workspace_id != session_workspace:
         return _api_error(
@@ -117,7 +139,7 @@ async def get_demo_package(
     window_start: str | None = Query(default=None),
     window_end: str | None = Query(default=None),
     workspace_id: int | None = Query(default=None),
-    session: dict = Depends(require_session),
+    session: dict | JSONResponse = Depends(_require_demo_session),
     db: Session = Depends(get_db),
 ):
     """Full package. Reads stored rows and does not write a snapshot."""
@@ -159,7 +181,7 @@ async def save_demo_package(
     window_start: str | None = Query(default=None),
     window_end: str | None = Query(default=None),
     workspace_id: int | None = Query(default=None),
-    session: dict = Depends(require_session),
+    session: dict | JSONResponse = Depends(_require_demo_session),
     db: Session = Depends(get_db),
 ):
     """Store a snapshot for the caller's workspace and return that package.
@@ -172,6 +194,8 @@ async def save_demo_package(
     edit permission, and every API key are rejected. A workspace id that is
     not the session workspace is not found.
     """
+    if isinstance(session, JSONResponse):
+        return session
     session_workspace = session.get("workspace_id")
     if workspace_id is not None and workspace_id != session_workspace:
         return _api_error(
@@ -225,7 +249,7 @@ async def get_persisted_summary(
     summary_id: int,
     request: Request,
     workspace_id: int | None = Query(default=None),
-    session: dict = Depends(require_session),
+    session: dict | JSONResponse = Depends(_require_demo_session),
     db: Session = Depends(get_db),
 ):
     """Read one persisted snapshot. A snapshot from another workspace is not found."""
@@ -256,7 +280,7 @@ async def get_persisted_summary(
 async def get_sample_questionnaire(
     request: Request,
     workspace_id: int | None = Query(default=None),
-    session: dict = Depends(require_session),
+    session: dict | JSONResponse = Depends(_require_demo_session),
     db: Session = Depends(get_db),
 ):
     """Synthetic sample questionnaire. Not stored evidence and not commercial traction."""
@@ -270,7 +294,7 @@ async def get_sample_questionnaire(
 async def get_coverage_report(
     request: Request,
     workspace_id: int | None = Query(default=None),
-    session: dict = Depends(require_session),
+    session: dict | JSONResponse = Depends(_require_demo_session),
     db: Session = Depends(get_db),
 ):
     """Coverage figures for the synthetic sample only."""
@@ -284,7 +308,7 @@ async def get_coverage_report(
 async def get_gap_list(
     request: Request,
     workspace_id: int | None = Query(default=None),
-    session: dict = Depends(require_session),
+    session: dict | JSONResponse = Depends(_require_demo_session),
     db: Session = Depends(get_db),
 ):
     """Gap list for the synthetic sample only."""
@@ -298,7 +322,7 @@ async def get_gap_list(
 async def get_walkthrough(
     request: Request,
     workspace_id: int | None = Query(default=None),
-    session: dict = Depends(require_session),
+    session: dict | JSONResponse = Depends(_require_demo_session),
     db: Session = Depends(get_db),
 ):
     """Synthetic walkthrough. Step text is not evidence."""

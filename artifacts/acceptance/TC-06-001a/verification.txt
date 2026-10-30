@@ -1,0 +1,146 @@
+BASELINE: exact c2ac170f runtime files, final tests; exit 1.
+.FFFFF.FFFF.FF.F.FF...                                                   [100%]
+=========================== short test summary info ============================
+FAILED tests/release/test_principal_contract.py::test_cookie_permissions_follow_current_membership[sqlite-editor]
+FAILED tests/release/test_principal_contract.py::test_cookie_permissions_follow_current_membership[sqlite-reviewer]
+FAILED tests/release/test_principal_contract.py::test_cookie_permissions_follow_current_membership[sqlite-custom]
+FAILED tests/release/test_principal_contract.py::test_cookie_permissions_follow_current_membership[sqlite-unconfigured]
+FAILED tests/release/test_principal_contract.py::test_required_optional_and_me_deny_inactive_membership[sqlite-required-removed]
+FAILED tests/release/test_principal_contract.py::test_required_optional_and_me_deny_inactive_membership[sqlite-optional-removed]
+FAILED tests/release/test_principal_contract.py::test_required_optional_and_me_deny_inactive_membership[sqlite-optional-suspended]
+FAILED tests/release/test_principal_contract.py::test_required_optional_and_me_deny_inactive_membership[sqlite-me-removed]
+FAILED tests/release/test_principal_contract.py::test_required_optional_and_me_deny_inactive_membership[sqlite-me-suspended]
+FAILED tests/release/test_principal_contract.py::test_membership_and_custom_permission_changes_apply_on_the_next_request[sqlite]
+FAILED tests/release/test_principal_contract.py::test_api_key_authentication_preserves_existing_workspace_role_rules[sqlite]
+FAILED tests/release/test_principal_contract.py::test_workspace_switch_uses_current_active_target_membership[sqlite-suspended]
+FAILED tests/release/test_principal_contract.py::test_pending_onboarding_is_account_only_and_can_create_its_first_workspace[sqlite]
+FAILED tests/release/test_principal_contract.py::test_stale_pending_role_does_not_skip_positive_workspace_membership[sqlite]
+14 failed, 8 passed, 22 deselected, 185 warnings in 2.50s
+
+
+REPAIRED SQLITE HTTP: exit 0
+......................                                                   [100%]
+=============================== warnings summary ===============================
+tests/release/test_principal_contract.py: 185 warnings
+  /tmp/tc-backend-venv/lib/python3.12/site-packages/sqlalchemy/sql/schema.py:3627: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    return util.wrap_callable(lambda ctx: fn(), fn)  # type: ignore
+
+tests/release/test_principal_contract.py::test_api_key_authentication_preserves_existing_workspace_role_rules[sqlite]
+  /workspace/scratch/ac0fa793e50b/tc-principal-repair/apps/api/tests/release/test_principal_contract.py:306: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    key.expires_at = datetime.utcnow() - timedelta(seconds=1)
+
+tests/release/test_principal_contract.py::test_api_key_authentication_preserves_existing_workspace_role_rules[sqlite]
+  /workspace/scratch/ac0fa793e50b/tc-principal-repair/apps/api/app/core/auth_deps.py:100: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    if row.expires_at and row.expires_at <= datetime.utcnow():
+
+tests/release/test_principal_contract.py::test_pending_onboarding_is_account_only_and_can_create_its_first_workspace[sqlite]
+  /workspace/scratch/ac0fa793e50b/tc-principal-repair/apps/api/app/api/routes/workspaces.py:142: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    now = datetime.utcnow()
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+22 passed, 22 deselected, 188 warnings in 2.99s
+
+
+COLLECTION ONLY: exit 0
+tests/release/test_principal_contract.py::test_cookie_permissions_follow_current_membership[sqlite-admin]
+tests/release/test_principal_contract.py::test_cookie_permissions_follow_current_membership[sqlite-editor]
+tests/release/test_principal_contract.py::test_cookie_permissions_follow_current_membership[sqlite-reviewer]
+tests/release/test_principal_contract.py::test_cookie_permissions_follow_current_membership[sqlite-custom]
+tests/release/test_principal_contract.py::test_cookie_permissions_follow_current_membership[sqlite-unconfigured]
+tests/release/test_principal_contract.py::test_cookie_permissions_follow_current_membership[postgres-admin]
+tests/release/test_principal_contract.py::test_cookie_permissions_follow_current_membership[postgres-editor]
+tests/release/test_principal_contract.py::test_cookie_permissions_follow_current_membership[postgres-reviewer]
+tests/release/test_principal_contract.py::test_cookie_permissions_follow_current_membership[postgres-custom]
+tests/release/test_principal_contract.py::test_cookie_permissions_follow_current_membership[postgres-unconfigured]
+tests/release/test_principal_contract.py::test_required_optional_and_me_deny_inactive_membership[sqlite-required-removed]
+tests/release/test_principal_contract.py::test_required_optional_and_me_deny_inactive_membership[sqlite-required-suspended]
+tests/release/test_principal_contract.py::test_required_optional_and_me_deny_inactive_membership[sqlite-optional-removed]
+tests/release/test_principal_contract.py::test_required_optional_and_me_deny_inactive_membership[sqlite-optional-suspended]
+tests/release/test_principal_contract.py::test_required_optional_and_me_deny_inactive_membership[sqlite-me-removed]
+tests/release/test_principal_contract.py::test_required_optional_and_me_deny_inactive_membership[sqlite-me-suspended]
+tests/release/test_principal_contract.py::test_required_optional_and_me_deny_inactive_membership[postgres-required-removed]
+tests/release/test_principal_contract.py::test_required_optional_and_me_deny_inactive_membership[postgres-required-suspended]
+tests/release/test_principal_contract.py::test_required_optional_and_me_deny_inactive_membership[postgres-optional-removed]
+tests/release/test_principal_contract.py::test_required_optional_and_me_deny_inactive_membership[postgres-optional-suspended]
+tests/release/test_principal_contract.py::test_required_optional_and_me_deny_inactive_membership[postgres-me-removed]
+tests/release/test_principal_contract.py::test_required_optional_and_me_deny_inactive_membership[postgres-me-suspended]
+tests/release/test_principal_contract.py::test_anonymous_optional_auth_never_exposes_unpublished_articles[sqlite]
+tests/release/test_principal_contract.py::test_anonymous_optional_auth_never_exposes_unpublished_articles[postgres]
+tests/release/test_principal_contract.py::test_membership_and_custom_permission_changes_apply_on_the_next_request[sqlite]
+tests/release/test_principal_contract.py::test_membership_and_custom_permission_changes_apply_on_the_next_request[postgres]
+tests/release/test_principal_contract.py::test_api_key_authentication_preserves_existing_workspace_role_rules[sqlite]
+tests/release/test_principal_contract.py::test_api_key_authentication_preserves_existing_workspace_role_rules[postgres]
+tests/release/test_principal_contract.py::test_workspace_switch_uses_current_active_target_membership[sqlite-active]
+tests/release/test_principal_contract.py::test_workspace_switch_uses_current_active_target_membership[sqlite-suspended]
+tests/release/test_principal_contract.py::test_workspace_switch_uses_current_active_target_membership[sqlite-missing]
+tests/release/test_principal_contract.py::test_workspace_switch_uses_current_active_target_membership[postgres-active]
+tests/release/test_principal_contract.py::test_workspace_switch_uses_current_active_target_membership[postgres-suspended]
+tests/release/test_principal_contract.py::test_workspace_switch_uses_current_active_target_membership[postgres-missing]
+tests/release/test_principal_contract.py::test_pending_onboarding_is_account_only_and_can_create_its_first_workspace[sqlite]
+tests/release/test_principal_contract.py::test_pending_onboarding_is_account_only_and_can_create_its_first_workspace[postgres]
+tests/release/test_principal_contract.py::test_stale_pending_role_does_not_skip_positive_workspace_membership[sqlite]
+tests/release/test_principal_contract.py::test_stale_pending_role_does_not_skip_positive_workspace_membership[postgres]
+tests/release/test_principal_contract.py::test_mfa_enrolment_keeps_zero_permissions_and_existing_account_routes[sqlite]
+tests/release/test_principal_contract.py::test_mfa_enrolment_keeps_zero_permissions_and_existing_account_routes[postgres]
+tests/release/test_principal_contract.py::test_mfa_enrolment_does_not_bypass_inactive_membership[sqlite-removed]
+tests/release/test_principal_contract.py::test_mfa_enrolment_does_not_bypass_inactive_membership[sqlite-suspended]
+tests/release/test_principal_contract.py::test_mfa_enrolment_does_not_bypass_inactive_membership[postgres-removed]
+tests/release/test_principal_contract.py::test_mfa_enrolment_does_not_bypass_inactive_membership[postgres-suspended]
+
+44 tests collected in 0.41s
+
+
+EXISTING LOCAL MFA/KEY CONTROLS: exit 0
+..........................                                               [100%]
+=============================== warnings summary ===============================
+tests/release/test_mfa_reenrol_security.py: 70 warnings
+  /tmp/tc-backend-venv/lib/python3.12/site-packages/sqlalchemy/sql/schema.py:3627: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    return util.wrap_callable(lambda ctx: fn(), fn)  # type: ignore
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+26 passed, 7 deselected, 70 warnings in 2.56s
+
+
+EXISTING LOCAL ONBOARDING CONTROLS: exit 0
+......                                                                   [100%]
+6 passed, 24 deselected in 0.52s
+
+
+STRICT POSTGRESQL: exit 3; no tests executed. Last output:
+  File "/tmp/tc-backend-venv/lib/python3.12/site-packages/psycopg2/__init__.py", line 122, in connect
+    conn = _connect(dsn, connection_factory=connection_factory, **kwasync)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+sqlalchemy.exc.OperationalError: (psycopg2.OperationalError) connection to server at "localhost" (::1), port 5432 failed: Connection refused
+	Is the server running on that host and accepting TCP/IP connections?
+connection to server at "localhost" (127.0.0.1), port 5432 failed: Connection refused
+	Is the server running on that host and accepting TCP/IP connections?
+
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+
+Exit: TC_REQUIRE_DB=1: Postgres test database unavailable or incompatible (see 'WARNING: test DB setup failed' above; start the local test Postgres or set TC_TEST_DATABASE_URL to a local *_test database)
+! _pytest.outcomes.Exit: TC_REQUIRE_DB=1: Postgres test database unavailable or incompatible (see 'WARNING: test DB setup failed' above; start the local test Postgres or set TC_TEST_DATABASE_URL to a local *_test database) !
+
+BROAD RELATED RUN: exit 1; PostgreSQL unavailable. Final summary:
+=========================== short test summary info ============================
+FAILED tests/release/test_session_signing_key_migration.py::test_signing_key_column_round_trips_on_a_fresh_database
+ERROR tests/release/test_mfa_admin_reset.py::test_reenrol_login_issues_no_session_and_admin_reset_restores_enrolment
+ERROR tests/release/test_mfa_admin_reset.py::test_reenrol_reset_denies_non_admin_and_cross_workspace_admin
+ERROR tests/release/test_key_rotation.py::test_rotation_reencrypts_under_the_new_key_id
+ERROR tests/release/test_key_rotation.py::test_rotation_resumes_from_after_id
+ERROR tests/release/test_key_rotation.py::test_mfa_reenrol_when_secret_cannot_be_opened
+ERROR tests/release/test_key_rotation.py::test_rotation_and_mfa_decrypt_failures_are_audited
+ERROR tests/release/test_key_rotation.py::test_mfa_helper_audits_a_failed_decrypt
+ERROR tests/release/test_key_rotation.py::test_retired_session_rows_are_revoked
+1 failed, 32 passed, 28 skipped, 70 warnings, 8 errors in 6.41s
+
+
+CI COMPATIBILITY FOLLOW-UP (2026-10-30)
+Original published head: 15c2397b3260068e1a7ab4a76f1965720007d80d
+Claims #85/6513908710 and #85/6513969824.
+Pre-repair local HTTP: 3 failed, 47 deselected; suspended detail mismatch and removed/pending missing code.
+Final principal SQLite HTTP: 45 passed, 45 deselected.
+Existing local MFA/key/signing: 26 passed, 7 deselected.
+Principal + domain trust requests + domain demo proof collection: 189 tests. Principal alone: 90 (45 per database).
+Strict PG principal + original two CI failures: exit 3, PostgreSQL connection refused; no tests executed.
+Ruff check, Ruff format check, compileall and git diff --check: exit 0.
+Independent review and new exact-head CI remain required.

@@ -868,16 +868,45 @@ def test_migrated_reply_indexes_and_foreign_key_match_model(domain):
 
 def test_assigning_suspended_member_fails_without_changing_status(domain):
     # The human is suspended in ws2, so an own request in ws2 cannot assign them.
-    from app.core.session import sign_session
-
-    domain["client"].cookies.set("tc_session", sign_session(None, "admin@example.com", 2, "admin"))
-    response = domain["client"].patch(
-        f"/api/trust-requests/{domain['foreign']}",
-        json={"assignee_id": domain["user"], "status": "in_progress"},
+    # Authenticate a real active administrator; uid=None is not a human actor.
+    db = domain["db"]
+    before = counts(db)
+    actor = User(
+        email=f"{domain['suffix']}-ws2-admin@example.com",
+        password_hash=secrets.token_hex(32),
     )
-    assert response.status_code == 400
-    domain["db"].expire_all()
-    assert domain["db"].get(TrustRequest, domain["foreign"]).status == "new"
+    actor_id = None
+    try:
+        db.add(actor)
+        db.flush()
+        actor_id = actor.id
+        db.add(WorkspaceMember(workspace_id=2, user_id=actor_id, role="admin", suspended=False))
+        db.commit()
+        domain["client"].cookies.set("tc_session", sign_session(actor_id, actor.email, 2, "admin"))
+        request_before = counts(db)
+        response = domain["client"].patch(
+            f"/api/trust-requests/{domain['foreign']}",
+            json={"assignee_id": domain["user"], "status": "in_progress"},
+        )
+        assert response.status_code == 400
+        db.expire_all()
+        row = db.get(TrustRequest, domain["foreign"])
+        assert row.status == "new"
+        assert row.assignee_id is None
+        assert counts(db) == request_before
+    finally:
+        domain["client"].cookies.clear()
+        db.rollback()
+        if actor_id is not None:
+            db.query(AuditEvent).filter(AuditEvent.user_id == actor_id).delete(
+                synchronize_session=False
+            )
+            db.query(WorkspaceMember).filter(WorkspaceMember.user_id == actor_id).delete(
+                synchronize_session=False
+            )
+            db.query(User).filter(User.id == actor_id).delete(synchronize_session=False)
+            db.commit()
+        assert counts(db) == before
 
 
 def test_assignment_and_status_are_durable_and_can_be_cleared(domain):

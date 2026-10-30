@@ -28,6 +28,7 @@ from app.core.auth_deps import (  # noqa: E402
     get_session,
     require_session,
     require_valid_session,
+    resolve_current_membership,
 )
 from app.core.config import get_settings  # noqa: E402
 from app.core.database import get_db  # noqa: E402
@@ -1819,13 +1820,14 @@ def me(request: Request, db: Session = Depends(get_db)):
         if not row:
             raise HTTPException(status_code=401, detail="Session invalidated")
     enforce_mfa_enrol_session(request, session, db)
+    session = resolve_current_membership(request, session, db)
     user_id = session.get("user_id")
-    workspace_id = session.get("workspace_id", 1)
-    role = session.get("role", "editor")
+    workspace_id = session.get("workspace_id")
+    role = session.get("role")
     user = db.query(User).filter(User.id == user_id).first()
     if not user:
         raise HTTPException(status_code=401, detail="User not found")
-    if workspace_id == 0 or role == "pending":
+    if workspace_id == 0 and role == "pending":
         return {
             "id": user.id,
             "email": user.email or "",
@@ -1943,9 +1945,10 @@ async def switch_workspace(
             WorkspaceMember.user_id == user_id,
             WorkspaceMember.workspace_id == body.workspace_id,
         )
+        .populate_existing()
         .first()
     )
-    if not member:
+    if not member or member.suspended:
         raise HTTPException(status_code=403, detail="Not a member of this workspace")
     ws = db.query(Workspace).filter(Workspace.id == body.workspace_id).first()
     existing_session_id = session.get("session_id")
