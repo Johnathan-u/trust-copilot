@@ -250,3 +250,15 @@ Tested blobs: `recommendations.tsx` `0b5586fb51881b12b54a013ecd710e316a100663`;
 `ui-23.spec.ts` `0e783da0735e364ff25a122f17f1031fe7b951da`.
 Local browser, screenshot and axe execution remain unqualified. Independent
 review and exact-final-head push/pull-request CI checks are still required.
+
+## Destination fixture follow-up
+
+At published head `4ebe70d28d1ebb894cc56c300f730ff10cafaa49`, push run
+`40983390140` browser job `123828570500` passed 104 cases and failed one: the
+source-link scenario reached the questionnaire URL, but its page crashed on the
+generic `{}` response for questionnaire answer statistics. Independent review
+traced the missing `status_breakdown` field to that test fixture. The fixture now
+returns the real statistics response shape, including empty breakdown objects.
+The click, URL and question-text assertions are unchanged, and all 29 UI-23
+cases still collect. Scoped Prettier and whitespace checks pass. No product
+navigation change or local browser pass is claimed; final-head CI is required.

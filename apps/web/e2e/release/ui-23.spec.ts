@@ -178,6 +178,18 @@ async function installApi(page: Page, role = 'reviewer') {
     if (p === '/api/evidence-search') return json(route, evidencePage())
     if (p === '/api/compliance/evidence/71') return json(route, evidence)
     if (p === '/api/questionnaires/21') return json(route, questionnaire)
+    if (p === '/api/ai-governance/questionnaire-answer-stats/21')
+      return json(route, {
+        questionnaire_id: 21,
+        total_questions: 1,
+        total_answers: 0,
+        answered: 0,
+        not_answered: 1,
+        status_breakdown: {},
+        gating_breakdown: {},
+        insufficient_breakdown: {},
+        category_gaps: {},
+      })
     if (p === '/api/documents') return json(route, [])
     if (p.includes('unread-count')) return json(route, { count: 0 })
     if (p.includes('/auth/alerts')) return json(route, { alerts: [] })
