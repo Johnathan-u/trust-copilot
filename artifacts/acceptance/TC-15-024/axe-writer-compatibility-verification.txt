@@ -1,0 +1,118 @@
+Synthetic checker compatibility evidence. No browser or axe analysis executed.
+Base: 9bbc9c26f1579021d4ee39b07586d4e081bcb42a
+Commands run from repository root: node /tmp/tc-vendor-ui-checks/check-axe-writers.cjs [clean|violation|mismatch]
+The first clean run was before the writer fix; all other controls used the corrected writers.
+
+Runner source:
+const fs = require('node:fs')
+const os = require('node:os')
+const path = require('node:path')
+const vm = require('node:vm')
+const { spawnSync } = require('node:child_process')
+const root = process.cwd()
+const ts = require(path.join(root, 'apps/web/node_modules/typescript'))
+const source = fs.readFileSync(path.join(root, 'apps/web/e2e/release/ui-22.spec.ts'), 'utf8')
+const ast = ts.createSourceFile('ui-22.spec.ts', source, ts.ScriptTarget.Latest, true)
+const writers = []
+function visit(node) {
+  if (ts.isCallExpression(node) && node.expression.getText(ast) === 'writeFileSync') {
+    writers.push(node.arguments[1].getText(ast))
+  }
+  ts.forEachChild(node, visit)
+}
+visit(ast)
+if (writers.length !== 2) throw new Error('Expected both actual axe writers')
+const fixture = fs.mkdtempSync(path.join(os.tmpdir(), 'tc-ui22-synthetic-axe-'))
+try {
+  const axeDir = path.join(fixture, 'synthetic-axe')
+  const htmlDir = path.join(fixture, 'synthetic-html')
+  fs.mkdirSync(axeDir)
+  fs.mkdirSync(htmlDir)
+  fs.writeFileSync(path.join(htmlDir, 'index.html'), '<title>Synthetic checker fixture</title>')
+  const reportPath = path.join(fixture, 'synthetic-report.json')
+  fs.writeFileSync(reportPath, JSON.stringify({
+    suites: [{ specs: Array.from({ length: 22 }, () => ({
+      file: 'release/ui-22.spec.ts', tests: [{ status: 'expected' }]
+    })) }], stats: { unexpected: 0, skipped: 0 }
+  }))
+  const mode = process.argv[2] || 'clean'
+  const violations = mode === 'violation' ? [{ id: 'synthetic-control', impact: 'moderate', nodes: 1 }] : []
+  for (const width of [360, 768, 1440]) {
+    for (const [index, writer] of writers.entries()) {
+      const json = vm.runInNewContext(writer, { width, violations, tableViolations: violations, JSON })
+      const report = JSON.parse(json)
+      if (mode === 'mismatch') report.violationCount = report.violations.length + 1
+      fs.writeFileSync(path.join(axeDir, `axe-${index === 0 ? 'dialog' : 'list'}-${width}.json`), JSON.stringify(report))
+    }
+  }
+  console.log(`SYNTHETIC CHECKER CONTROL (${mode}): evaluates both actual JSON writer expressions; no browser or axe analysis executed.`)
+  const result = spawnSync(process.execPath, [
+    'scripts/ci/check-release-e2e-report.mjs',
+    '--report', reportPath, '--html-report', htmlDir, '--axe-dir', axeDir,
+    '--require-spec', 'e2e/release/ui-22.spec.ts', '--min-tests', '22'
+  ], { cwd: root, encoding: 'utf8' })
+  process.stdout.write(result.stdout)
+  process.stderr.write(result.stderr)
+  console.log(`Checker exit status: ${result.status}`)
+  process.exitCode = result.status ?? 2
+} finally {
+  fs.rmSync(fixture, { recursive: true, force: true })
+}
+
+
+red-axe-writer-schema.log
+SYNTHETIC CHECKER CONTROL (clean): evaluates both actual JSON writer expressions; no browser or axe analysis executed.
+ui-22.spec.ts: 22 passed, 0 failed, 0 skipped, 0 flaky
+axe violations: 0
+ERROR: synthetic-axe/axe-dialog-1440.json is not a usable axe report
+ERROR: synthetic-axe/axe-dialog-360.json is not a usable axe report
+ERROR: synthetic-axe/axe-dialog-768.json is not a usable axe report
+ERROR: synthetic-axe/axe-list-1440.json is not a usable axe report
+ERROR: synthetic-axe/axe-list-360.json is not a usable axe report
+ERROR: synthetic-axe/axe-list-768.json is not a usable axe report
+Checker exit status: 1
+
+
+green-axe-writer-schema.log
+SYNTHETIC CHECKER CONTROL (clean): evaluates both actual JSON writer expressions; no browser or axe analysis executed.
+ui-22.spec.ts: 22 passed, 0 failed, 0 skipped, 0 flaky
+synthetic-axe/axe-dialog-1440.json: 0 violations
+synthetic-axe/axe-dialog-360.json: 0 violations
+synthetic-axe/axe-dialog-768.json: 0 violations
+synthetic-axe/axe-list-1440.json: 0 violations
+synthetic-axe/axe-list-360.json: 0 violations
+synthetic-axe/axe-list-768.json: 0 violations
+axe violations: 0
+Checker exit status: 0
+
+
+control-axe-violation.log
+SYNTHETIC CHECKER CONTROL (violation): evaluates both actual JSON writer expressions; no browser or axe analysis executed.
+ui-22.spec.ts: 22 passed, 0 failed, 0 skipped, 0 flaky
+synthetic-axe/axe-dialog-1440.json: 1 violations synthetic-control:moderate
+synthetic-axe/axe-dialog-360.json: 1 violations synthetic-control:moderate
+synthetic-axe/axe-dialog-768.json: 1 violations synthetic-control:moderate
+synthetic-axe/axe-list-1440.json: 1 violations synthetic-control:moderate
+synthetic-axe/axe-list-360.json: 1 violations synthetic-control:moderate
+synthetic-axe/axe-list-768.json: 1 violations synthetic-control:moderate
+axe violations: 6
+ERROR: synthetic-axe/axe-dialog-1440.json has 1 axe violation(s)
+ERROR: synthetic-axe/axe-dialog-360.json has 1 axe violation(s)
+ERROR: synthetic-axe/axe-dialog-768.json has 1 axe violation(s)
+ERROR: synthetic-axe/axe-list-1440.json has 1 axe violation(s)
+ERROR: synthetic-axe/axe-list-360.json has 1 axe violation(s)
+ERROR: synthetic-axe/axe-list-768.json has 1 axe violation(s)
+Checker exit status: 1
+
+
+control-axe-mismatch.log
+SYNTHETIC CHECKER CONTROL (mismatch): evaluates both actual JSON writer expressions; no browser or axe analysis executed.
+ui-22.spec.ts: 22 passed, 0 failed, 0 skipped, 0 flaky
+axe violations: 0
+ERROR: synthetic-axe/axe-dialog-1440.json is not a usable axe report
+ERROR: synthetic-axe/axe-dialog-360.json is not a usable axe report
+ERROR: synthetic-axe/axe-dialog-768.json is not a usable axe report
+ERROR: synthetic-axe/axe-list-1440.json is not a usable axe report
+ERROR: synthetic-axe/axe-list-360.json is not a usable axe report
+ERROR: synthetic-axe/axe-list-768.json is not a usable axe report
+Checker exit status: 1

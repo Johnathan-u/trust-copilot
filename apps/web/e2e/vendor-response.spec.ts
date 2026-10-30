@@ -18,7 +18,7 @@ async function createRequestViaAPI(
   page: Page,
   email?: string,
   message?: string
-): Promise<{ link_token: string; share_url: string }> {
+): Promise<{ id: number; link_token: string; share_url: string }> {
   const res = await page.request.post('/api/vendor-requests/', {
     data: {
       vendor_email: email ?? `e2e-vr-${Date.now()}@test.com`,
@@ -27,7 +27,7 @@ async function createRequestViaAPI(
   })
   expect(res.ok()).toBeTruthy()
   const data = await res.json()
-  return { link_token: data.link_token, share_url: data.share_url }
+  return { id: data.id, link_token: data.link_token, share_url: data.share_url }
 }
 
 test.describe('Vendor Response landing page — public, unauthenticated', () => {
@@ -132,16 +132,10 @@ test.describe('Vendor Response landing page — public, unauthenticated', () => 
     await loginAsAdmin(page)
     const { link_token } = await createRequestViaAPI(page)
 
-    const listRes = await page.request.get('/api/vendor-requests/')
-    const items = await listRes.json()
-    const match = items.find(
-      (i: { link_token: string }) => i.link_token === link_token
-    )
-    expect(match).toBeTruthy()
-
-    await page.request.patch(`/api/vendor-requests/${match.id}`, {
-      data: { status: 'completed' },
+    const submitted = await page.request.post('/api/vendor-response/submit', {
+      data: { token: link_token, response: 'Synthetic final vendor response' },
     })
+    expect(submitted.ok()).toBeTruthy()
 
     await page.goto(`/vendor-response?token=${link_token}`)
     await page.waitForLoadState('networkidle')
@@ -154,17 +148,13 @@ test.describe('Vendor Response landing page — public, unauthenticated', () => 
 
   test('status update from admin reflects on vendor page', async ({ page }) => {
     await loginAsAdmin(page)
-    const { link_token } = await createRequestViaAPI(page)
+    const { id, link_token } = await createRequestViaAPI(page)
 
     await page.goto(`/vendor-response?token=${link_token}`)
     await page.waitForLoadState('networkidle')
     await expect(page.getByText(/Pending/i)).toBeVisible({ timeout: 10_000 })
 
-    const listRes = await page.request.get('/api/vendor-requests/')
-    const match = (await listRes.json()).find(
-      (i: { link_token: string }) => i.link_token === link_token
-    )
-    await page.request.patch(`/api/vendor-requests/${match.id}`, {
+    await page.request.patch(`/api/vendor-requests/${id}`, {
       data: { status: 'in_progress' },
     })
 
@@ -289,7 +279,7 @@ test.describe('Vendor Response landing page — public, unauthenticated', () => 
     })
     await expect(page.getByText('Integrated flow test')).toBeVisible()
 
-    // ── Step 6: Admin updates status → Completed on dashboard ───────────
+    // ── Step 6: Only a persisted vendor submission completes the request ──
     await page.goto('/dashboard/requests')
     await page.waitForLoadState('networkidle')
 
@@ -297,7 +287,14 @@ test.describe('Vendor Response landing page — public, unauthenticated', () => 
     await expect(rowFinal).toBeVisible({ timeout: 10_000 })
     const finalSelect = rowFinal.locator('select')
     await expect(finalSelect).toBeVisible({ timeout: 5_000 })
-    await finalSelect.selectOption('completed')
+    await expect(finalSelect.locator('option[value="completed"]')).toHaveCount(
+      0
+    )
+    const submitted = await page.request.post('/api/vendor-response/submit', {
+      data: { token, response: 'Synthetic final vendor response' },
+    })
+    expect(submitted.ok()).toBeTruthy()
+    await page.reload()
     await page.waitForLoadState('networkidle')
     await expect(rowFinal.getByText(/Completed/i)).toBeVisible({
       timeout: 10_000,

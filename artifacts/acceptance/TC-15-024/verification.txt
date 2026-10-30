@@ -1,0 +1,274 @@
+TC-15-024 actual verification output; excerpts are labelled. ANSI color escapes and trailing whitespace removed.
+
+--- Baseline unit suite (baseline-unit.log) ---
+
+ RUN  v5.0.5 /workspace/scratch/ac0fa793e50b/tc-vendor-ui/apps/web
+
+
+ Test Files  36 passed (36)
+      Tests  251 passed (251)
+   Start at  02:30:00
+   Duration  2.78s (transform 31%, environment 27%, tests 21%, import 18%, worker 2%)
+
+    Isolate  36 workers spawned · ~266ms startup each (spawn + environment, per file)
+             at least ~1.10s faster with isolate: false — reuses workers across files instead of one per file
+
+
+--- Original Requests regressions (excerpt) (red-unit.log) ---
+       |                                                 ^
+    226|   expect(document.body.textContent).not.toContain('foreign-token')
+    227| })
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[15/15]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  15 failed | 3 passed (18)
+   Start at  02:31:01
+   Duration  3.91s (tests 89%, environment 5%, import 3%, transform 3%)
+
+
+--- Off-site link negative control (excerpt) (red-link.log) ---
+       |                       ^
+    238|   expect(screen.queryByText('Request Created')).toBeNull()
+    239|   expect(document.body.textContent).not.toContain('private-token')
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 18 skipped (19)
+   Start at  02:40:04
+   Duration  1.70s (tests 71%, environment 14%, import 8%, transform 6%)
+
+
+--- Stale clipboard negative control (excerpt) (red-copy.log) ---
+       |                                                             ^
+    279|   expect(screen.getByRole('button', { name: 'Copy' })).toBeTruthy()
+    280| })
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 19 skipped (20)
+   Start at  02:42:18
+   Duration  717ms (environment 35%, tests 25%, import 21%, transform 18%, worker 1%)
+
+
+--- Concurrent dialog negative control (excerpt) (red-concurrent-dialog.log) ---
+       |                                                                                           ^
+    119|   await act(async () =>
+    120|     pending.resolve(
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 19 skipped (20)
+   Start at  02:47:35
+   Duration  699ms (environment 36%, import 25%, transform 24%, tests 14%, worker 1%)
+
+
+--- Final complete web quality (quality-final.log) ---
+npm warn Unknown env config "http-proxy". This will stop working in the next major version of npm.
+
+> trust-copilot-web@0.1.0 quality
+> npm run typecheck && npm run lint && npm run format:check && npm run test:unit
+
+npm warn Unknown env config "http-proxy". This will stop working in the next major version of npm.
+
+> trust-copilot-web@0.1.0 typecheck
+> next typegen && tsc --noEmit -p .
+
+Generating route types...
+✓ Types generated successfully
+npm warn Unknown env config "http-proxy". This will stop working in the next major version of npm.
+
+> trust-copilot-web@0.1.0 lint
+> eslint . --max-warnings=0
+
+npm warn Unknown env config "http-proxy". This will stop working in the next major version of npm.
+
+> trust-copilot-web@0.1.0 format:check
+> prettier --check "**/*.{ts,tsx,js,jsx,json,md}"
+
+Checking formatting...
+All matched files use Prettier code style!
+npm warn Unknown env config "http-proxy". This will stop working in the next major version of npm.
+
+> trust-copilot-web@0.1.0 test:unit
+> vitest run
+
+(!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+  - ESM syntax in a file loaded as CommonJS (vitest.config.ts:1:1). Use a `.mjs` extension or set `"type": "module"` in the closest package.json
+Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.
+
+ RUN  v5.0.5 /workspace/scratch/ac0fa793e50b/tc-vendor-ui/apps/web
+
+
+ Test Files  37 passed (37)
+      Tests  271 passed (271)
+   Start at  02:48:27
+   Duration  2.60s (tests 32%, environment 30%, import 22%, transform 13%, worker 2%)
+
+    Isolate  37 workers spawned · ~263ms startup each (spawn + environment, per file)
+             at least ~1.13s faster with isolate: false — reuses workers across files instead of one per file
+
+
+--- Final production build (build-final.log) ---
+npm warn Unknown env config "http-proxy". This will stop working in the next major version of npm.
+
+> trust-copilot-web@0.1.0 build
+> next build
+
+▲ Next.js 16.4.3 (Turbopack)
+✓ Running next.config.js took 16ms
+
+⚠ The "middleware" file convention is deprecated. Please use "proxy" instead.
+
+  To migrate automatically, run:
+  npx @next/codemod@canary middleware-to-proxy .
+
+  Learn more: https://nextjs.org/docs/messages/middleware-to-proxy
+  Creating an optimized production build ...
+✓ Compiled successfully in 1292ms
+  Running TypeScript ...
+  Finished TypeScript in 3.0s ...
+  Collecting page data using 8 workers ...
+  Generating static pages using 8 workers (0/39) ...
+  Generating static pages using 8 workers (9/39)
+  Generating static pages using 8 workers (19/39)
+  Generating static pages using 8 workers (29/39)
+✓ Generating static pages using 8 workers (39/39) in 522ms
+  Finalizing page optimization ...
+
+Route (app)
+┌ ○ /
+├ ○ /_not-found
+├ ○ /accept-invite
+├ ƒ /api/[[...path]]
+├ ○ /checkout
+├ ○ /dashboard
+├ ○ /dashboard/ai-governance
+├ ○ /dashboard/audit
+├ ○ /dashboard/case-studies
+├ ○ /dashboard/compliance-frameworks
+├ ○ /dashboard/compliance-gaps
+├ ○ /dashboard/controls
+├ ƒ /dashboard/controls/[id]
+├ ○ /dashboard/demo-proof
+├ ○ /dashboard/documents
+├ ○ /dashboard/exports
+├ ○ /dashboard/gmail
+├ ○ /dashboard/members
+├ ○ /dashboard/notifications
+├ ○ /dashboard/proof-chain
+├ ○ /dashboard/questionnaires
+├ ƒ /dashboard/questionnaires/[id]
+├ ○ /dashboard/requests
+├ ○ /dashboard/review
+├ ƒ /dashboard/review/[id]
+├ ○ /dashboard/security
+├ ○ /dashboard/settings
+├ ○ /dashboard/slack
+├ ○ /dashboard/trust-center
+├ ƒ /dashboard/vendor-requests
+├ ƒ /design-dialogs
+├ ƒ /design-tokens
+├ ○ /forgot-password
+├ ○ /icon.svg
+├ ○ /login
+├ ○ /onboarding
+├ ○ /pricing
+├ ○ /register
+├ ○ /reset-password
+├ ○ /trust
+├ ƒ /trust/[slug]
+├ ○ /vendor-response
+└ ○ /verify-email
+
+
+ƒ Proxy (Middleware)
+
+○  (Static)   prerendered as static content
+ƒ  (Dynamic)  server-rendered on demand
+
+
+--- Original alias HTTP negative control (red-alias-local.log) ---
+
+Running 1 test using 1 worker
+
+(node:85) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  1 [chromium] › e2e/release/ui-22.spec.ts:5:5 › legacy bookmark is a server redirect with no approved query parameters (561ms)
+
+
+  1) [chromium] › e2e/release/ui-22.spec.ts:5:5 › legacy bookmark is a server redirect with no approved query parameters
+
+    Error: expect(received).toBe(expected) // Object.is equality
+
+    Expected: 307
+    Received: 200
+
+       7 |     headers: { Cookie: 'tc_session=synthetic-session' }, maxRedirects: 0,
+       8 |   })
+    >  9 |   expect(response.status()).toBe(307)
+         |                             ^
+      10 |   expect(response.headers().location).toBe('/dashboard/requests')
+      11 | })
+      12 |
+        at /workspace/scratch/ac0fa793e50b/tc-vendor-ui/apps/web/e2e/release/ui-22.spec.ts:9:29
+
+    Error Context: test-results/release-ui-22-legacy-bookm-e6f1c-o-approved-query-parameters-chromium/error-context.md
+
+  1 failed
+    [chromium] › e2e/release/ui-22.spec.ts:5:5 › legacy bookmark is a server redirect with no approved query parameters
+PLAYWRIGHT_EXIT=1
+
+--- Final alias HTTP control (green-alias-route.log) ---
+
+Running 1 test using 1 worker
+
+(node:84) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  1 [chromium] › e2e/release/ui-22.spec.ts:8:5 › legacy bookmark is a server redirect with no approved query parameters (258ms)
+
+  1 passed (799ms)
+PLAYWRIGHT_EXIT=0
+
+--- Browser environment blocker (browser-blocked.log) ---
+npm warn Unknown env config "http-proxy". This will stop working in the next major version of npm.
+
+Running 1 test using 1 worker
+
+(node:32) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  1 [chromium] › e2e/release/ui-22.spec.ts:258:5 › empty requests remain an honest empty state with an available create action (4ms)
+
+
+  1) [chromium] › e2e/release/ui-22.spec.ts:258:5 › empty requests remain an honest empty state with an available create action
+
+    Error: browserType.launch: Executable doesn't exist at /root/.cache/ms-playwright/chromium_headless_shell-1248/chrome-headless-shell-linux64/chrome-headless-shell
+    ╔════════════════════════════════════════════════════════════╗
+    ║ Looks like Playwright was just installed or updated.       ║
+    ║ Please run the following command to download new browsers: ║
+    ║                                                            ║
+    ║     npx playwright install                                 ║
+    ║                                                            ║
+    ║ <3 Playwright Team                                         ║
+    ╚════════════════════════════════════════════════════════════╝
+
+    Error Context: test-results/release-ui-22-empty-reques-222ed--an-available-create-action-chromium/error-context.md
+
+  1 failed
+    [chromium] › e2e/release/ui-22.spec.ts:258:5 › empty requests remain an honest empty state with an available create action
+
+--- Release browser collection (excerpt) (collect-ui22.log) ---
+  [chromium] › release/ui-22.spec.ts:463:5 › only recorded submission presents completed state, while an expired grant remains explicit
+  [chromium] › release/ui-22.spec.ts:490:5 › late old-workspace reads cannot replace the new workspace list
+  [chromium] › release/ui-22.spec.ts:511:5 › late old-workspace send cannot show its token or result in the new workspace
+  [chromium] › release/ui-22.spec.ts:540:7 › long content, keyboard dialog and accessibility at 360px
+  [chromium] › release/ui-22.spec.ts:540:7 › long content, keyboard dialog and accessibility at 768px
+  [chromium] › release/ui-22.spec.ts:540:7 › long content, keyboard dialog and accessibility at 1440px
+Total: 21 tests in 1 file
