@@ -474,5 +474,19 @@
     "web_job": 124097709130,
     "axe_artifact": 12982124194,
     "source": "observed-ci/axe-actions-light-360.json"
-  }
+  },
+  "raw_command_sha256": {
+    "prettier.txt": "17aa973d3f004560237d9a95171210b0671deff23d61628eecf7322ff5938f20",
+    "baseline.txt": "6fe07b2b9ca269c81857c28e4c013e6647a3c21683c3965a383461509fd12819",
+    "web-units.txt": "80ef048d47d1ba77ea5f9e9537504f2f32a050fbcf96076e9440aead78fed64b",
+    "full-spec.txt": "a1df9ae16920ae976d1d92346e6f478209aa6170ecc131cb4c4a86efd5082191",
+    "typegen.txt": "adba4af9194e10e47dda75ff0fd0f8c2b756474896d0eba5612799c527ff372a",
+    "typecheck.txt": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "focused-green.txt": "e629cf5a61b9ac5b95d1d7f2dae33ce919638ebd0811cf01705fd25f0408f21b",
+    "negative-hover.txt": "16a13a891f723b8e3b3a398b9dbae2564f4ba00e388765625687f44168634547",
+    "restored-green.txt": "36ffdab5e7d15dec9c8788de86d2248d3ee0d121bb2b01cb4a6c1a147b67845a",
+    "negative-original.txt": "f9bb8330f6366957221ce0fe7fcd6d911b9413430b67db373e5c873b6c9e3a2b",
+    "eslint.txt": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "command_transcript_normalization": "Committed command transcripts trim trailing spaces and blank EOF lines only. Original unmodified logs remain under /tmp/tc-14-008b-work and are pinned by raw_command_sha256. Raw axe JSON is unmodified."
 }

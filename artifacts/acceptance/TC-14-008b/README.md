@@ -69,7 +69,8 @@ per-test results, durations, zero-retry outcomes, raw-report hashes, controls,
 known limitations and remaining gates. `green/` contains all 12 passing axe
 reports; `colors/` contains the actual immediate and sampled browser colors;
 `screenshots/` contains six synthetic dark/light captures. Command outputs are
-in `commands/`. `evidence-sha256.json` hashes the retained files.
+in `commands/`; display-only trailing spaces/blank EOF lines are trimmed, and
+`verification.json` pins each original raw log hash. `evidence-sha256.json` hashes the retained files.
 
 The local app was an exact source snapshot on 127.0.0.1:13251, using Next 16.4.3
 with Turbopack, existing copied locked dependencies, Playwright 1.64.1 and pinned

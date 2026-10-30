@@ -12,7 +12,7 @@ Running 3 tests using 1 worker
   ✘  3 [chromium] › e2e/release/microcopy-states.spec.ts:596:9 › confirmed action and failure copy › ghost export labels keep contrast during theme changes at 1440px (3.5s)
 
 
-  1) [chromium] › e2e/release/microcopy-states.spec.ts:596:9 › confirmed action and failure copy › ghost export labels keep contrast during theme changes at 360px 
+  1) [chromium] › e2e/release/microcopy-states.spec.ts:596:9 › confirmed action and failure copy › ghost export labels keep contrast during theme changes at 360px
 
     Error: [
       {
@@ -58,7 +58,7 @@ Running 3 tests using 1 worker
 
     Error Context: ../../../results-red/release-microcopy-states-c-35f9b-ring-theme-changes-at-360px-chromium/error-context.md
 
-  2) [chromium] › e2e/release/microcopy-states.spec.ts:596:9 › confirmed action and failure copy › ghost export labels keep contrast during theme changes at 768px 
+  2) [chromium] › e2e/release/microcopy-states.spec.ts:596:9 › confirmed action and failure copy › ghost export labels keep contrast during theme changes at 768px
 
     Error: [
       {
@@ -104,7 +104,7 @@ Running 3 tests using 1 worker
 
     Error Context: ../../../results-red/release-microcopy-states-c-1767c-ring-theme-changes-at-768px-chromium/error-context.md
 
-  3) [chromium] › e2e/release/microcopy-states.spec.ts:596:9 › confirmed action and failure copy › ghost export labels keep contrast during theme changes at 1440px 
+  3) [chromium] › e2e/release/microcopy-states.spec.ts:596:9 › confirmed action and failure copy › ghost export labels keep contrast during theme changes at 1440px
 
     Error: [
       {
@@ -151,6 +151,6 @@ Running 3 tests using 1 worker
     Error Context: ../../../results-red/release-microcopy-states-c-dbac2-ing-theme-changes-at-1440px-chromium/error-context.md
 
   3 failed
-    [chromium] › e2e/release/microcopy-states.spec.ts:596:9 › confirmed action and failure copy › ghost export labels keep contrast during theme changes at 360px 
-    [chromium] › e2e/release/microcopy-states.spec.ts:596:9 › confirmed action and failure copy › ghost export labels keep contrast during theme changes at 768px 
-    [chromium] › e2e/release/microcopy-states.spec.ts:596:9 › confirmed action and failure copy › ghost export labels keep contrast during theme changes at 1440px 
+    [chromium] › e2e/release/microcopy-states.spec.ts:596:9 › confirmed action and failure copy › ghost export labels keep contrast during theme changes at 360px
+    [chromium] › e2e/release/microcopy-states.spec.ts:596:9 › confirmed action and failure copy › ghost export labels keep contrast during theme changes at 768px
+    [chromium] › e2e/release/microcopy-states.spec.ts:596:9 › confirmed action and failure copy › ghost export labels keep contrast during theme changes at 1440px

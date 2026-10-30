@@ -6,7 +6,7 @@ Running 1 test using 1 worker
   ✘  1 [chromium] › e2e/release/microcopy-states.spec.ts:596:9 › confirmed action and failure copy › ghost export labels keep contrast during theme changes at 360px (4.8s)
 
 
-  1) [chromium] › e2e/release/microcopy-states.spec.ts:596:9 › confirmed action and failure copy › ghost export labels keep contrast during theme changes at 360px 
+  1) [chromium] › e2e/release/microcopy-states.spec.ts:596:9 › confirmed action and failure copy › ghost export labels keep contrast during theme changes at 360px
 
     Error: expect(received).toContain(expected) // indexOf
 
@@ -37,4 +37,4 @@ Running 1 test using 1 worker
     Error Context: ../../../results-negative-hover/release-microcopy-states-c-35f9b-ring-theme-changes-at-360px-chromium/error-context.md
 
   1 failed
-    [chromium] › e2e/release/microcopy-states.spec.ts:596:9 › confirmed action and failure copy › ghost export labels keep contrast during theme changes at 360px 
+    [chromium] › e2e/release/microcopy-states.spec.ts:596:9 › confirmed action and failure copy › ghost export labels keep contrast during theme changes at 360px
