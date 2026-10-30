@@ -76,8 +76,8 @@ case_name = 'foreign_payload_and_parent', replay = False
         persist_payload(c, c.payload)
 >       assert_denied_without_effects(c)
 
-tests/release/test_authorization_export_worker.py:310: 
-_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/release/test_authorization_export_worker.py:310:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
 
 case = namespace(db=<sqlalchemy.orm.session.Session object at 0x7f82b5a7b200>, engine=Engine(sqlite://), add=<function export...st-raw', 'raw/6df316078da1e964/FOREIGN.xlsx'), ('upload', 'test-exports', 'exports/2/job-1.xlsx')], fail_upload=False))
 
@@ -166,8 +166,8 @@ case_name = 'foreign_workspace', replay = False
         persist_payload(c, c.payload)
 >       assert_denied_without_effects(c)
 
-tests/release/test_authorization_export_worker.py:310: 
-_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/release/test_authorization_export_worker.py:310:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
 
 case = namespace(db=<sqlalchemy.orm.session.Session object at 0x7f82b4c4a750>, engine=Engine(sqlite://), add=<function export..._Types].xmlPK\x05\x06\x00\x00\x00\x00\t\x00\t\x00>\x02\x00\x00\x98\x10\x00\x00\x00\x00'}, calls=[], fail_upload=False))
 
@@ -187,7 +187,7 @@ case = namespace(db=<sqlalchemy.orm.session.Session object at 0x7f82b4c4a750>, e
         assert not is_retryable_code(classify(caught.value))
 >       assert safe_error_message(caught.value) == "Export references are unavailable"
 E       AssertionError: assert 'Questionnair...r has no file' == 'Export refer...e unavailable'
-E         
+E
 E         - Export references are unavailable
 E         + Questionnaire not found or has no file
 
@@ -268,8 +268,8 @@ case_name = 'foreign_parent', replay = False
         persist_payload(c, c.payload)
 >       assert_denied_without_effects(c)
 
-tests/release/test_authorization_export_worker.py:310: 
-_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/release/test_authorization_export_worker.py:310:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
 
 case = namespace(db=<sqlalchemy.orm.session.Session object at 0x7f82b41e60f0>, engine=Engine(sqlite://), add=<function export..._Types].xmlPK\x05\x06\x00\x00\x00\x00\t\x00\t\x00>\x02\x00\x00\x98\x10\x00\x00\x00\x00'}, calls=[], fail_upload=False))
 
@@ -289,7 +289,7 @@ case = namespace(db=<sqlalchemy.orm.session.Session object at 0x7f82b41e60f0>, e
         assert not is_retryable_code(classify(caught.value))
 >       assert safe_error_message(caught.value) == "Export references are unavailable"
 E       AssertionError: assert 'Questionnair...r has no file' == 'Export refer...e unavailable'
-E         
+E
 E         - Export references are unavailable
 E         + Questionnaire not found or has no file
 
@@ -370,8 +370,8 @@ case_name = 'job_moved', replay = False
         persist_payload(c, c.payload)
 >       assert_denied_without_effects(c)
 
-tests/release/test_authorization_export_worker.py:310: 
-_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/release/test_authorization_export_worker.py:310:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
 
 case = namespace(db=<sqlalchemy.orm.session.Session object at 0x7f82b4af81a0>, engine=Engine(sqlite://), add=<function export... 'test-raw', 'raw/1f41c1f0a2bb9b3a/OWN.xlsx'), ('upload', 'test-exports', 'exports/1/job-1.xlsx')], fail_upload=False))
 
@@ -460,8 +460,8 @@ case_name = 'job_moved_stale_identity', replay = False
         persist_payload(c, c.payload)
 >       assert_denied_without_effects(c)
 
-tests/release/test_authorization_export_worker.py:310: 
-_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/release/test_authorization_export_worker.py:310:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
 
 case = namespace(db=<sqlalchemy.orm.session.Session object at 0x7f82b3efed20>, engine=Engine(sqlite://), add=<function export... 'test-raw', 'raw/16c7af30a11863f8/OWN.xlsx'), ('upload', 'test-exports', 'exports/1/job-1.xlsx')], fail_upload=False))
 
@@ -550,8 +550,8 @@ case_name = 'parent_moved', replay = False
         persist_payload(c, c.payload)
 >       assert_denied_without_effects(c)
 
-tests/release/test_authorization_export_worker.py:310: 
-_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/release/test_authorization_export_worker.py:310:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
 
 case = namespace(db=<sqlalchemy.orm.session.Session object at 0x7f82b402eed0>, engine=Engine(sqlite://), add=<function export..._Types].xmlPK\x05\x06\x00\x00\x00\x00\t\x00\t\x00>\x02\x00\x00\x98\x10\x00\x00\x00\x00'}, calls=[], fail_upload=False))
 
@@ -571,7 +571,7 @@ case = namespace(db=<sqlalchemy.orm.session.Session object at 0x7f82b402eed0>, e
         assert not is_retryable_code(classify(caught.value))
 >       assert safe_error_message(caught.value) == "Export references are unavailable"
 E       AssertionError: assert 'Questionnair...r has no file' == 'Export refer...e unavailable'
-E         
+E
 E         - Export references are unavailable
 E         + Questionnaire not found or has no file
 
@@ -652,8 +652,8 @@ case_name = 'parent_moved_stale_identity', replay = False
         persist_payload(c, c.payload)
 >       assert_denied_without_effects(c)
 
-tests/release/test_authorization_export_worker.py:310: 
-_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/release/test_authorization_export_worker.py:310:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
 
 case = namespace(db=<sqlalchemy.orm.session.Session object at 0x7f82b407c590>, engine=Engine(sqlite://), add=<function export..._Types].xmlPK\x05\x06\x00\x00\x00\x00\t\x00\t\x00>\x02\x00\x00\x98\x10\x00\x00\x00\x00'}, calls=[], fail_upload=False))
 
@@ -673,7 +673,7 @@ case = namespace(db=<sqlalchemy.orm.session.Session object at 0x7f82b407c590>, e
         assert not is_retryable_code(classify(caught.value))
 >       assert safe_error_message(caught.value) == "Export references are unavailable"
 E       AssertionError: assert 'Questionnair...r has no file' == 'Export refer...e unavailable'
-E         
+E
 E         - Export references are unavailable
 E         + Questionnaire not found or has no file
 
@@ -754,8 +754,8 @@ case_name = 'parent_archived', replay = False
         persist_payload(c, c.payload)
 >       assert_denied_without_effects(c)
 
-tests/release/test_authorization_export_worker.py:310: 
-_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/release/test_authorization_export_worker.py:310:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
 
 case = namespace(db=<sqlalchemy.orm.session.Session object at 0x7f82b3c8f4a0>, engine=Engine(sqlite://), add=<function export... 'test-raw', 'raw/6176e44709ba6f4b/OWN.xlsx'), ('upload', 'test-exports', 'exports/1/job-1.xlsx')], fail_upload=False))
 
@@ -844,8 +844,8 @@ case_name = 'parent_archived_stale_identity', replay = False
         persist_payload(c, c.payload)
 >       assert_denied_without_effects(c)
 
-tests/release/test_authorization_export_worker.py:310: 
-_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/release/test_authorization_export_worker.py:310:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
 
 case = namespace(db=<sqlalchemy.orm.session.Session object at 0x7f82b3f38950>, engine=Engine(sqlite://), add=<function export... 'test-raw', 'raw/2296be1c040dcbf4/OWN.xlsx'), ('upload', 'test-exports', 'exports/1/job-1.xlsx')], fail_upload=False))
 
@@ -934,8 +934,8 @@ case_name = 'parent_deleted', replay = False
         persist_payload(c, c.payload)
 >       assert_denied_without_effects(c)
 
-tests/release/test_authorization_export_worker.py:310: 
-_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/release/test_authorization_export_worker.py:310:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
 
 case = namespace(db=<sqlalchemy.orm.session.Session object at 0x7f82b3d38860>, engine=Engine(sqlite://), add=<function export..._Types].xmlPK\x05\x06\x00\x00\x00\x00\t\x00\t\x00>\x02\x00\x00\x98\x10\x00\x00\x00\x00'}, calls=[], fail_upload=False))
 
@@ -955,7 +955,7 @@ case = namespace(db=<sqlalchemy.orm.session.Session object at 0x7f82b3d38860>, e
         assert not is_retryable_code(classify(caught.value))
 >       assert safe_error_message(caught.value) == "Export references are unavailable"
 E       AssertionError: assert 'Questionnair...r has no file' == 'Export refer...e unavailable'
-E         
+E
 E         - Export references are unavailable
 E         + Questionnaire not found or has no file
 
@@ -1036,8 +1036,8 @@ case_name = 'parent_missing', replay = False
         persist_payload(c, c.payload)
 >       assert_denied_without_effects(c)
 
-tests/release/test_authorization_export_worker.py:310: 
-_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/release/test_authorization_export_worker.py:310:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
 
 case = namespace(db=<sqlalchemy.orm.session.Session object at 0x7f82bb1d5550>, engine=Engine(sqlite://), add=<function export..._Types].xmlPK\x05\x06\x00\x00\x00\x00\t\x00\t\x00>\x02\x00\x00\x98\x10\x00\x00\x00\x00'}, calls=[], fail_upload=False))
 
@@ -1057,7 +1057,7 @@ case = namespace(db=<sqlalchemy.orm.session.Session object at 0x7f82bb1d5550>, e
         assert not is_retryable_code(classify(caught.value))
 >       assert safe_error_message(caught.value) == "Export references are unavailable"
 E       AssertionError: assert 'Questionnair...r has no file' == 'Export refer...e unavailable'
-E         
+E
 E         - Export references are unavailable
 E         + Questionnaire not found or has no file
 
@@ -1138,8 +1138,8 @@ case_name = 'parent_without_file', replay = False
         persist_payload(c, c.payload)
 >       assert_denied_without_effects(c)
 
-tests/release/test_authorization_export_worker.py:310: 
-_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/release/test_authorization_export_worker.py:310:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
 
 case = namespace(db=<sqlalchemy.orm.session.Session object at 0x7f82b3f391c0>, engine=Engine(sqlite://), add=<function export..._Types].xmlPK\x05\x06\x00\x00\x00\x00\t\x00\t\x00>\x02\x00\x00\x98\x10\x00\x00\x00\x00'}, calls=[], fail_upload=False))
 
@@ -1159,7 +1159,7 @@ case = namespace(db=<sqlalchemy.orm.session.Session object at 0x7f82b3f391c0>, e
         assert not is_retryable_code(classify(caught.value))
 >       assert safe_error_message(caught.value) == "Export references are unavailable"
 E       AssertionError: assert 'Questionnair...r has no file' == 'Export refer...e unavailable'
-E         
+E
 E         - Export references are unavailable
 E         + Questionnaire not found or has no file
 
@@ -1181,11 +1181,11 @@ parameters = [(2, 2, 'exports/2/job-1.xlsx', 'FOREIGN.xlsx', 'completed', 1, ...
     ) -> CursorResult[Any]:
         """continue the _execute_context() method for a single DBAPI
         cursor.execute() or cursor.executemany() call.
-    
+
         """
         if dialect.bind_typing is BindTyping.SETINPUTSIZES:
             generic_setinputsizes = context._prepare_set_input_sizes()
-    
+
             if generic_setinputsizes:
                 try:
                     dialect.do_set_input_sizes(
@@ -1195,20 +1195,20 @@ parameters = [(2, 2, 'exports/2/job-1.xlsx', 'FOREIGN.xlsx', 'completed', 1, ...
                     self._handle_dbapi_exception(
                         e, str(statement), parameters, None, context
                     )
-    
+
         cursor, str_statement, parameters = (
             context.cursor,
             context.statement,
             context.parameters,
         )
-    
+
         effective_parameters: Optional[_AnyExecuteParams]
-    
+
         if not context.executemany:
             effective_parameters = parameters[0]
         else:
             effective_parameters = parameters
-    
+
         if self._has_events or self.engine._has_events:
             for fn in self.dispatch.before_cursor_execute:
                 str_statement, effective_parameters = fn(
@@ -1219,12 +1219,12 @@ parameters = [(2, 2, 'exports/2/job-1.xlsx', 'FOREIGN.xlsx', 'completed', 1, ...
                     context,
                     context.executemany,
                 )
-    
+
         if self._echo:
             self._log_info(str_statement)
-    
+
             stats = context._get_cache_stats()
-    
+
             if not self.engine.hide_parameters:
                 self._log_info(
                     "[%s] %r",
@@ -1240,7 +1240,7 @@ parameters = [(2, 2, 'exports/2/job-1.xlsx', 'FOREIGN.xlsx', 'completed', 1, ...
                     "[%s] [SQL parameters hidden due to hide_parameters=True]",
                     stats,
                 )
-    
+
         evt_handled: bool = False
         try:
             if context.execute_style is ExecuteStyle.EXECUTEMANY:
@@ -1293,8 +1293,8 @@ parameters = [(2, 2, 'exports/2/job-1.xlsx', 'FOREIGN.xlsx', 'completed', 1, ...
                         cursor, str_statement, effective_parameters, context
                     )
 
-/tmp/tc-backend-venv/lib/python3.12/site-packages/sqlalchemy/engine/base.py:1976: 
-_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+/tmp/tc-backend-venv/lib/python3.12/site-packages/sqlalchemy/engine/base.py:1976:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
 
 self = <sqlalchemy.dialects.sqlite.pysqlite.SQLiteDialect_pysqlite object at 0x7f82b3edb020>
 cursor = <sqlite3.Cursor object at 0x7f82b3e39cc0>
@@ -1384,8 +1384,8 @@ case_name = 'foreign_payload_and_parent', replay = True
         persist_payload(c, c.payload)
 >       assert_denied_without_effects(c)
 
-tests/release/test_authorization_export_worker.py:310: 
-_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/release/test_authorization_export_worker.py:310:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
 tests/release/test_authorization_export_worker.py:229: in assert_denied_without_effects
     worker.run_job(case.job, case.db)
 app/worker.py:775: in run_job
@@ -1441,7 +1441,7 @@ app/services/storage_reconcile.py:212: in commit_or_discard_object
     raise sqlalchemy_exception.with_traceback(exc_info[2]) from e
 /tmp/tc-backend-venv/lib/python3.12/site-packages/sqlalchemy/engine/base.py:1976: in _exec_single_context
     self.dialect.do_execute(
-_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
 
 self = <sqlalchemy.dialects.sqlite.pysqlite.SQLiteDialect_pysqlite object at 0x7f82b3edb020>
 cursor = <sqlite3.Cursor object at 0x7f82b3e39cc0>
@@ -1651,8 +1651,8 @@ Traceback (most recent call last):
   File "/tmp/tc-backend-venv/lib/python3.12/site-packages/sqlalchemy/engine/default.py", line 964, in do_execute
     cursor.execute(statement, parameters)
 sqlalchemy.exc.OperationalError: (sqlite3.OperationalError) no such table: trust_requests
-[SQL: SELECT trust_requests.id AS trust_requests_id 
-FROM trust_requests 
+[SQL: SELECT trust_requests.id AS trust_requests_id
+FROM trust_requests
 WHERE trust_requests.attachment_storage_key = ?
  LIMIT ? OFFSET ?]
 [parameters: ('exports/2/job-1.xlsx', 1, 0)]
@@ -1733,8 +1733,8 @@ case_name = 'foreign_workspace', replay = True
         persist_payload(c, c.payload)
 >       assert_denied_without_effects(c)
 
-tests/release/test_authorization_export_worker.py:310: 
-_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/release/test_authorization_export_worker.py:310:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
 
 case = namespace(db=<sqlalchemy.orm.session.Session object at 0x7f82b3d011c0>, engine=Engine(sqlite://), add=<function export..._Types].xmlPK\x05\x06\x00\x00\x00\x00\t\x00\t\x00>\x02\x00\x00\x98\x10\x00\x00\x00\x00'}, calls=[], fail_upload=False))
 
@@ -1754,7 +1754,7 @@ case = namespace(db=<sqlalchemy.orm.session.Session object at 0x7f82b3d011c0>, e
         assert not is_retryable_code(classify(caught.value))
 >       assert safe_error_message(caught.value) == "Export references are unavailable"
 E       AssertionError: assert 'Questionnair...r has no file' == 'Export refer...e unavailable'
-E         
+E
 E         - Export references are unavailable
 E         + Questionnaire not found or has no file
 
@@ -1835,8 +1835,8 @@ case_name = 'foreign_parent', replay = True
         persist_payload(c, c.payload)
 >       assert_denied_without_effects(c)
 
-tests/release/test_authorization_export_worker.py:310: 
-_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/release/test_authorization_export_worker.py:310:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
 
 case = namespace(db=<sqlalchemy.orm.session.Session object at 0x7f82b3cad040>, engine=Engine(sqlite://), add=<function export..._Types].xmlPK\x05\x06\x00\x00\x00\x00\t\x00\t\x00>\x02\x00\x00\x98\x10\x00\x00\x00\x00'}, calls=[], fail_upload=False))
 
@@ -1856,7 +1856,7 @@ case = namespace(db=<sqlalchemy.orm.session.Session object at 0x7f82b3cad040>, e
         assert not is_retryable_code(classify(caught.value))
 >       assert safe_error_message(caught.value) == "Export references are unavailable"
 E       AssertionError: assert 'Questionnair...r has no file' == 'Export refer...e unavailable'
-E         
+E
 E         - Export references are unavailable
 E         + Questionnaire not found or has no file
 
@@ -1937,8 +1937,8 @@ case_name = 'job_moved', replay = True
         persist_payload(c, c.payload)
 >       assert_denied_without_effects(c)
 
-tests/release/test_authorization_export_worker.py:310: 
-_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/release/test_authorization_export_worker.py:310:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
 
 case = namespace(db=<sqlalchemy.orm.session.Session object at 0x7f82b3a72f90>, engine=Engine(sqlite://), add=<function export..._Types].xmlPK\x05\x06\x00\x00\x00\x00\t\x00\t\x00>\x02\x00\x00\x98\x10\x00\x00\x00\x00'}, calls=[], fail_upload=False))
 
@@ -2027,8 +2027,8 @@ case_name = 'job_moved_stale_identity', replay = True
         persist_payload(c, c.payload)
 >       assert_denied_without_effects(c)
 
-tests/release/test_authorization_export_worker.py:310: 
-_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/release/test_authorization_export_worker.py:310:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
 
 case = namespace(db=<sqlalchemy.orm.session.Session object at 0x7f82b4186e70>, engine=Engine(sqlite://), add=<function export..._Types].xmlPK\x05\x06\x00\x00\x00\x00\t\x00\t\x00>\x02\x00\x00\x98\x10\x00\x00\x00\x00'}, calls=[], fail_upload=False))
 
@@ -2117,8 +2117,8 @@ case_name = 'parent_moved', replay = True
         persist_payload(c, c.payload)
 >       assert_denied_without_effects(c)
 
-tests/release/test_authorization_export_worker.py:310: 
-_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/release/test_authorization_export_worker.py:310:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
 
 case = namespace(db=<sqlalchemy.orm.session.Session object at 0x7f82b3e46d20>, engine=Engine(sqlite://), add=<function export..._Types].xmlPK\x05\x06\x00\x00\x00\x00\t\x00\t\x00>\x02\x00\x00\x98\x10\x00\x00\x00\x00'}, calls=[], fail_upload=False))
 
@@ -2138,7 +2138,7 @@ case = namespace(db=<sqlalchemy.orm.session.Session object at 0x7f82b3e46d20>, e
         assert not is_retryable_code(classify(caught.value))
 >       assert safe_error_message(caught.value) == "Export references are unavailable"
 E       AssertionError: assert 'Questionnair...r has no file' == 'Export refer...e unavailable'
-E         
+E
 E         - Export references are unavailable
 E         + Questionnaire not found or has no file
 
@@ -2219,8 +2219,8 @@ case_name = 'parent_moved_stale_identity', replay = True
         persist_payload(c, c.payload)
 >       assert_denied_without_effects(c)
 
-tests/release/test_authorization_export_worker.py:310: 
-_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/release/test_authorization_export_worker.py:310:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
 
 case = namespace(db=<sqlalchemy.orm.session.Session object at 0x7f82b358dfd0>, engine=Engine(sqlite://), add=<function export..._Types].xmlPK\x05\x06\x00\x00\x00\x00\t\x00\t\x00>\x02\x00\x00\x98\x10\x00\x00\x00\x00'}, calls=[], fail_upload=False))
 
@@ -2240,7 +2240,7 @@ case = namespace(db=<sqlalchemy.orm.session.Session object at 0x7f82b358dfd0>, e
         assert not is_retryable_code(classify(caught.value))
 >       assert safe_error_message(caught.value) == "Export references are unavailable"
 E       AssertionError: assert 'Questionnair...r has no file' == 'Export refer...e unavailable'
-E         
+E
 E         - Export references are unavailable
 E         + Questionnaire not found or has no file
 
@@ -2321,8 +2321,8 @@ case_name = 'parent_archived', replay = True
         persist_payload(c, c.payload)
 >       assert_denied_without_effects(c)
 
-tests/release/test_authorization_export_worker.py:310: 
-_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/release/test_authorization_export_worker.py:310:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
 
 case = namespace(db=<sqlalchemy.orm.session.Session object at 0x7f82b397d100>, engine=Engine(sqlite://), add=<function export..._Types].xmlPK\x05\x06\x00\x00\x00\x00\t\x00\t\x00>\x02\x00\x00\x98\x10\x00\x00\x00\x00'}, calls=[], fail_upload=False))
 
@@ -2411,8 +2411,8 @@ case_name = 'parent_archived_stale_identity', replay = True
         persist_payload(c, c.payload)
 >       assert_denied_without_effects(c)
 
-tests/release/test_authorization_export_worker.py:310: 
-_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/release/test_authorization_export_worker.py:310:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
 
 case = namespace(db=<sqlalchemy.orm.session.Session object at 0x7f82b3a72ba0>, engine=Engine(sqlite://), add=<function export..._Types].xmlPK\x05\x06\x00\x00\x00\x00\t\x00\t\x00>\x02\x00\x00\x98\x10\x00\x00\x00\x00'}, calls=[], fail_upload=False))
 
@@ -2501,8 +2501,8 @@ case_name = 'parent_deleted', replay = True
         persist_payload(c, c.payload)
 >       assert_denied_without_effects(c)
 
-tests/release/test_authorization_export_worker.py:310: 
-_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/release/test_authorization_export_worker.py:310:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
 
 case = namespace(db=<sqlalchemy.orm.session.Session object at 0x7f82b41868a0>, engine=Engine(sqlite://), add=<function export..._Types].xmlPK\x05\x06\x00\x00\x00\x00\t\x00\t\x00>\x02\x00\x00\x98\x10\x00\x00\x00\x00'}, calls=[], fail_upload=False))
 
@@ -2522,7 +2522,7 @@ case = namespace(db=<sqlalchemy.orm.session.Session object at 0x7f82b41868a0>, e
         assert not is_retryable_code(classify(caught.value))
 >       assert safe_error_message(caught.value) == "Export references are unavailable"
 E       AssertionError: assert 'Questionnair...r has no file' == 'Export refer...e unavailable'
-E         
+E
 E         - Export references are unavailable
 E         + Questionnaire not found or has no file
 
@@ -2603,8 +2603,8 @@ case_name = 'parent_missing', replay = True
         persist_payload(c, c.payload)
 >       assert_denied_without_effects(c)
 
-tests/release/test_authorization_export_worker.py:310: 
-_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/release/test_authorization_export_worker.py:310:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
 
 case = namespace(db=<sqlalchemy.orm.session.Session object at 0x7f82b358e4b0>, engine=Engine(sqlite://), add=<function export..._Types].xmlPK\x05\x06\x00\x00\x00\x00\t\x00\t\x00>\x02\x00\x00\x98\x10\x00\x00\x00\x00'}, calls=[], fail_upload=False))
 
@@ -2624,7 +2624,7 @@ case = namespace(db=<sqlalchemy.orm.session.Session object at 0x7f82b358e4b0>, e
         assert not is_retryable_code(classify(caught.value))
 >       assert safe_error_message(caught.value) == "Export references are unavailable"
 E       AssertionError: assert 'Questionnair...r has no file' == 'Export refer...e unavailable'
-E         
+E
 E         - Export references are unavailable
 E         + Questionnaire not found or has no file
 
@@ -2705,8 +2705,8 @@ case_name = 'parent_without_file', replay = True
         persist_payload(c, c.payload)
 >       assert_denied_without_effects(c)
 
-tests/release/test_authorization_export_worker.py:310: 
-_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/release/test_authorization_export_worker.py:310:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
 
 case = namespace(db=<sqlalchemy.orm.session.Session object at 0x7f82b35bd340>, engine=Engine(sqlite://), add=<function export..._Types].xmlPK\x05\x06\x00\x00\x00\x00\t\x00\t\x00>\x02\x00\x00\x98\x10\x00\x00\x00\x00'}, calls=[], fail_upload=False))
 
@@ -2726,7 +2726,7 @@ case = namespace(db=<sqlalchemy.orm.session.Session object at 0x7f82b35bd340>, e
         assert not is_retryable_code(classify(caught.value))
 >       assert safe_error_message(caught.value) == "Export references are unavailable"
 E       AssertionError: assert 'Questionnair...r has no file' == 'Export refer...e unavailable'
-E         
+E
 E         - Export references are unavailable
 E         + Questionnaire not found or has no file
 
@@ -2766,8 +2766,8 @@ field = 'workspace_id', value = None
         persist_payload(c, c.payload)
 >       assert_denied_without_effects(c)
 
-tests/release/test_authorization_export_worker.py:341: 
-_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/release/test_authorization_export_worker.py:341:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
 
 case = namespace(db=<sqlalchemy.orm.session.Session object at 0x7f82b2d100b0>, engine=Engine(sqlite://), add=<function export..._Types].xmlPK\x05\x06\x00\x00\x00\x00\t\x00\t\x00>\x02\x00\x00\x98\x10\x00\x00\x00\x00'}, calls=[], fail_upload=False))
 
@@ -2787,7 +2787,7 @@ case = namespace(db=<sqlalchemy.orm.session.Session object at 0x7f82b2d100b0>, e
         assert not is_retryable_code(classify(caught.value))
 >       assert safe_error_message(caught.value) == "Export references are unavailable"
 E       AssertionError: assert 'Missing ques... workspace_id' == 'Export refer...e unavailable'
-E         
+E
 E         - Export references are unavailable
 E         + Missing questionnaire_id or workspace_id
 
@@ -2827,8 +2827,8 @@ field = 'questionnaire_id', value = None
         persist_payload(c, c.payload)
 >       assert_denied_without_effects(c)
 
-tests/release/test_authorization_export_worker.py:341: 
-_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/release/test_authorization_export_worker.py:341:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
 
 case = namespace(db=<sqlalchemy.orm.session.Session object at 0x7f82b362fce0>, engine=Engine(sqlite://), add=<function export..._Types].xmlPK\x05\x06\x00\x00\x00\x00\t\x00\t\x00>\x02\x00\x00\x98\x10\x00\x00\x00\x00'}, calls=[], fail_upload=False))
 
@@ -2848,7 +2848,7 @@ case = namespace(db=<sqlalchemy.orm.session.Session object at 0x7f82b362fce0>, e
         assert not is_retryable_code(classify(caught.value))
 >       assert safe_error_message(caught.value) == "Export references are unavailable"
 E       AssertionError: assert 'Missing ques... workspace_id' == 'Export refer...e unavailable'
-E         
+E
 E         - Export references are unavailable
 E         + Missing questionnaire_id or workspace_id
 
@@ -2888,8 +2888,8 @@ field = 'workspace_id', value = 0
         persist_payload(c, c.payload)
 >       assert_denied_without_effects(c)
 
-tests/release/test_authorization_export_worker.py:341: 
-_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/release/test_authorization_export_worker.py:341:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
 
 case = namespace(db=<sqlalchemy.orm.session.Session object at 0x7f82b39397c0>, engine=Engine(sqlite://), add=<function export..._Types].xmlPK\x05\x06\x00\x00\x00\x00\t\x00\t\x00>\x02\x00\x00\x98\x10\x00\x00\x00\x00'}, calls=[], fail_upload=False))
 
@@ -2909,7 +2909,7 @@ case = namespace(db=<sqlalchemy.orm.session.Session object at 0x7f82b39397c0>, e
         assert not is_retryable_code(classify(caught.value))
 >       assert safe_error_message(caught.value) == "Export references are unavailable"
 E       AssertionError: assert 'Missing ques... workspace_id' == 'Export refer...e unavailable'
-E         
+E
 E         - Export references are unavailable
 E         + Missing questionnaire_id or workspace_id
 
@@ -2949,8 +2949,8 @@ field = 'questionnaire_id', value = 0
         persist_payload(c, c.payload)
 >       assert_denied_without_effects(c)
 
-tests/release/test_authorization_export_worker.py:341: 
-_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/release/test_authorization_export_worker.py:341:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
 
 case = namespace(db=<sqlalchemy.orm.session.Session object at 0x7f82b34ca300>, engine=Engine(sqlite://), add=<function export..._Types].xmlPK\x05\x06\x00\x00\x00\x00\t\x00\t\x00>\x02\x00\x00\x98\x10\x00\x00\x00\x00'}, calls=[], fail_upload=False))
 
@@ -2970,7 +2970,7 @@ case = namespace(db=<sqlalchemy.orm.session.Session object at 0x7f82b34ca300>, e
         assert not is_retryable_code(classify(caught.value))
 >       assert safe_error_message(caught.value) == "Export references are unavailable"
 E       AssertionError: assert 'Missing ques... workspace_id' == 'Export refer...e unavailable'
-E         
+E
 E         - Export references are unavailable
 E         + Missing questionnaire_id or workspace_id
 
@@ -3010,8 +3010,8 @@ field = 'workspace_id', value = -1
         persist_payload(c, c.payload)
 >       assert_denied_without_effects(c)
 
-tests/release/test_authorization_export_worker.py:341: 
-_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/release/test_authorization_export_worker.py:341:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
 
 case = namespace(db=<sqlalchemy.orm.session.Session object at 0x7f82b4c49d00>, engine=Engine(sqlite://), add=<function export..._Types].xmlPK\x05\x06\x00\x00\x00\x00\t\x00\t\x00>\x02\x00\x00\x98\x10\x00\x00\x00\x00'}, calls=[], fail_upload=False))
 
@@ -3031,7 +3031,7 @@ case = namespace(db=<sqlalchemy.orm.session.Session object at 0x7f82b4c49d00>, e
         assert not is_retryable_code(classify(caught.value))
 >       assert safe_error_message(caught.value) == "Export references are unavailable"
 E       AssertionError: assert 'Questionnair...r has no file' == 'Export refer...e unavailable'
-E         
+E
 E         - Export references are unavailable
 E         + Questionnaire not found or has no file
 
@@ -3071,8 +3071,8 @@ field = 'questionnaire_id', value = -1
         persist_payload(c, c.payload)
 >       assert_denied_without_effects(c)
 
-tests/release/test_authorization_export_worker.py:341: 
-_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/release/test_authorization_export_worker.py:341:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
 
 case = namespace(db=<sqlalchemy.orm.session.Session object at 0x7f82b358eed0>, engine=Engine(sqlite://), add=<function export..._Types].xmlPK\x05\x06\x00\x00\x00\x00\t\x00\t\x00>\x02\x00\x00\x98\x10\x00\x00\x00\x00'}, calls=[], fail_upload=False))
 
@@ -3092,7 +3092,7 @@ case = namespace(db=<sqlalchemy.orm.session.Session object at 0x7f82b358eed0>, e
         assert not is_retryable_code(classify(caught.value))
 >       assert safe_error_message(caught.value) == "Export references are unavailable"
 E       AssertionError: assert 'Questionnair...r has no file' == 'Export refer...e unavailable'
-E         
+E
 E         - Export references are unavailable
 E         + Questionnaire not found or has no file
 
@@ -3132,8 +3132,8 @@ field = 'workspace_id', value = True
         persist_payload(c, c.payload)
 >       assert_denied_without_effects(c)
 
-tests/release/test_authorization_export_worker.py:341: 
-_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/release/test_authorization_export_worker.py:341:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
 
 case = namespace(db=<sqlalchemy.orm.session.Session object at 0x7f82b348f2c0>, engine=Engine(sqlite://), add=<function export... 'test-raw', 'raw/206d705606a35cd9/OWN.xlsx'), ('upload', 'test-exports', 'exports/1/job-1.xlsx')], fail_upload=False))
 
@@ -3181,8 +3181,8 @@ field = 'questionnaire_id', value = True
         persist_payload(c, c.payload)
 >       assert_denied_without_effects(c)
 
-tests/release/test_authorization_export_worker.py:341: 
-_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/release/test_authorization_export_worker.py:341:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
 
 case = namespace(db=<sqlalchemy.orm.session.Session object at 0x7f82b3a72510>, engine=Engine(sqlite://), add=<function export... 'test-raw', 'raw/eda292cd92c5ab75/OWN.xlsx'), ('upload', 'test-exports', 'exports/1/job-1.xlsx')], fail_upload=False))
 
@@ -3230,8 +3230,8 @@ field = 'workspace_id', value = False
         persist_payload(c, c.payload)
 >       assert_denied_without_effects(c)
 
-tests/release/test_authorization_export_worker.py:341: 
-_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/release/test_authorization_export_worker.py:341:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
 
 case = namespace(db=<sqlalchemy.orm.session.Session object at 0x7f82b3d61dc0>, engine=Engine(sqlite://), add=<function export..._Types].xmlPK\x05\x06\x00\x00\x00\x00\t\x00\t\x00>\x02\x00\x00\x98\x10\x00\x00\x00\x00'}, calls=[], fail_upload=False))
 
@@ -3251,7 +3251,7 @@ case = namespace(db=<sqlalchemy.orm.session.Session object at 0x7f82b3d61dc0>, e
         assert not is_retryable_code(classify(caught.value))
 >       assert safe_error_message(caught.value) == "Export references are unavailable"
 E       AssertionError: assert 'Missing ques... workspace_id' == 'Export refer...e unavailable'
-E         
+E
 E         - Export references are unavailable
 E         + Missing questionnaire_id or workspace_id
 
@@ -3291,8 +3291,8 @@ field = 'questionnaire_id', value = False
         persist_payload(c, c.payload)
 >       assert_denied_without_effects(c)
 
-tests/release/test_authorization_export_worker.py:341: 
-_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/release/test_authorization_export_worker.py:341:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
 
 case = namespace(db=<sqlalchemy.orm.session.Session object at 0x7f82b2e98d10>, engine=Engine(sqlite://), add=<function export..._Types].xmlPK\x05\x06\x00\x00\x00\x00\t\x00\t\x00>\x02\x00\x00\x98\x10\x00\x00\x00\x00'}, calls=[], fail_upload=False))
 
@@ -3312,7 +3312,7 @@ case = namespace(db=<sqlalchemy.orm.session.Session object at 0x7f82b2e98d10>, e
         assert not is_retryable_code(classify(caught.value))
 >       assert safe_error_message(caught.value) == "Export references are unavailable"
 E       AssertionError: assert 'Missing ques... workspace_id' == 'Export refer...e unavailable'
-E         
+E
 E         - Export references are unavailable
 E         + Missing questionnaire_id or workspace_id
 
@@ -3352,8 +3352,8 @@ field = 'workspace_id', value = '1'
         persist_payload(c, c.payload)
 >       assert_denied_without_effects(c)
 
-tests/release/test_authorization_export_worker.py:341: 
-_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/release/test_authorization_export_worker.py:341:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
 
 case = namespace(db=<sqlalchemy.orm.session.Session object at 0x7f82b3f39b20>, engine=Engine(sqlite://), add=<function export... 'test-raw', 'raw/ef1dc6e8bd3108a8/OWN.xlsx'), ('upload', 'test-exports', 'exports/1/job-1.xlsx')], fail_upload=False))
 
@@ -3401,8 +3401,8 @@ field = 'questionnaire_id', value = '1'
         persist_payload(c, c.payload)
 >       assert_denied_without_effects(c)
 
-tests/release/test_authorization_export_worker.py:341: 
-_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/release/test_authorization_export_worker.py:341:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
 
 case = namespace(db=<sqlalchemy.orm.session.Session object at 0x7f82b2cdb5c0>, engine=Engine(sqlite://), add=<function export... 'test-raw', 'raw/4fd89145b758c953/OWN.xlsx'), ('upload', 'test-exports', 'exports/1/job-1.xlsx')], fail_upload=False))
 
@@ -3450,8 +3450,8 @@ field = 'workspace_id', value = ''
         persist_payload(c, c.payload)
 >       assert_denied_without_effects(c)
 
-tests/release/test_authorization_export_worker.py:341: 
-_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/release/test_authorization_export_worker.py:341:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
 
 case = namespace(db=<sqlalchemy.orm.session.Session object at 0x7f82b3ba3890>, engine=Engine(sqlite://), add=<function export..._Types].xmlPK\x05\x06\x00\x00\x00\x00\t\x00\t\x00>\x02\x00\x00\x98\x10\x00\x00\x00\x00'}, calls=[], fail_upload=False))
 
@@ -3471,7 +3471,7 @@ case = namespace(db=<sqlalchemy.orm.session.Session object at 0x7f82b3ba3890>, e
         assert not is_retryable_code(classify(caught.value))
 >       assert safe_error_message(caught.value) == "Export references are unavailable"
 E       AssertionError: assert 'Missing ques... workspace_id' == 'Export refer...e unavailable'
-E         
+E
 E         - Export references are unavailable
 E         + Missing questionnaire_id or workspace_id
 
@@ -3511,8 +3511,8 @@ field = 'questionnaire_id', value = ''
         persist_payload(c, c.payload)
 >       assert_denied_without_effects(c)
 
-tests/release/test_authorization_export_worker.py:341: 
-_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/release/test_authorization_export_worker.py:341:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
 
 case = namespace(db=<sqlalchemy.orm.session.Session object at 0x7f82b2f584a0>, engine=Engine(sqlite://), add=<function export..._Types].xmlPK\x05\x06\x00\x00\x00\x00\t\x00\t\x00>\x02\x00\x00\x98\x10\x00\x00\x00\x00'}, calls=[], fail_upload=False))
 
@@ -3532,7 +3532,7 @@ case = namespace(db=<sqlalchemy.orm.session.Session object at 0x7f82b2f584a0>, e
         assert not is_retryable_code(classify(caught.value))
 >       assert safe_error_message(caught.value) == "Export references are unavailable"
 E       AssertionError: assert 'Missing ques... workspace_id' == 'Export refer...e unavailable'
-E         
+E
 E         - Export references are unavailable
 E         + Missing questionnaire_id or workspace_id
 
@@ -3572,8 +3572,8 @@ field = 'workspace_id', value = '1e0'
         persist_payload(c, c.payload)
 >       assert_denied_without_effects(c)
 
-tests/release/test_authorization_export_worker.py:341: 
-_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/release/test_authorization_export_worker.py:341:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
 
 case = namespace(db=<sqlalchemy.orm.session.Session object at 0x7f82b590bce0>, engine=Engine(sqlite://), add=<function export...0\x00\x98\x10\x00\x00\x00\x00'}, calls=[('download', 'test-raw', 'raw/beebebbd448524c6/OWN.xlsx')], fail_upload=False))
 
@@ -3628,8 +3628,8 @@ field = 'questionnaire_id', value = '1e0'
         persist_payload(c, c.payload)
 >       assert_denied_without_effects(c)
 
-tests/release/test_authorization_export_worker.py:341: 
-_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/release/test_authorization_export_worker.py:341:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
 
 case = namespace(db=<sqlalchemy.orm.session.Session object at 0x7f82b2358da0>, engine=Engine(sqlite://), add=<function export... 'test-raw', 'raw/7c3c2fff79d22236/OWN.xlsx'), ('upload', 'test-exports', 'exports/1/job-1.xlsx')], fail_upload=False))
 
@@ -3677,8 +3677,8 @@ field = 'workspace_id', value = '1.0'
         persist_payload(c, c.payload)
 >       assert_denied_without_effects(c)
 
-tests/release/test_authorization_export_worker.py:341: 
-_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/release/test_authorization_export_worker.py:341:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
 
 case = namespace(db=<sqlalchemy.orm.session.Session object at 0x7f82b36dfd40>, engine=Engine(sqlite://), add=<function export...0\x00\x98\x10\x00\x00\x00\x00'}, calls=[('download', 'test-raw', 'raw/8c51c793844f2026/OWN.xlsx')], fail_upload=False))
 
@@ -3733,8 +3733,8 @@ field = 'questionnaire_id', value = '1.0'
         persist_payload(c, c.payload)
 >       assert_denied_without_effects(c)
 
-tests/release/test_authorization_export_worker.py:341: 
-_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/release/test_authorization_export_worker.py:341:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
 
 case = namespace(db=<sqlalchemy.orm.session.Session object at 0x7f82b237f800>, engine=Engine(sqlite://), add=<function export... 'test-raw', 'raw/13b445d3f050acec/OWN.xlsx'), ('upload', 'test-exports', 'exports/1/job-1.xlsx')], fail_upload=False))
 
@@ -3782,8 +3782,8 @@ field = 'workspace_id', value = 1.0
         persist_payload(c, c.payload)
 >       assert_denied_without_effects(c)
 
-tests/release/test_authorization_export_worker.py:341: 
-_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/release/test_authorization_export_worker.py:341:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
 
 case = namespace(db=<sqlalchemy.orm.session.Session object at 0x7f82b3dd8d10>, engine=Engine(sqlite://), add=<function export... 'test-raw', 'raw/23eeea8d0d4d77af/OWN.xlsx'), ('upload', 'test-exports', 'exports/1/job-1.xlsx')], fail_upload=False))
 
@@ -3831,8 +3831,8 @@ field = 'questionnaire_id', value = 1.0
         persist_payload(c, c.payload)
 >       assert_denied_without_effects(c)
 
-tests/release/test_authorization_export_worker.py:341: 
-_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/release/test_authorization_export_worker.py:341:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
 
 case = namespace(db=<sqlalchemy.orm.session.Session object at 0x7f82b4c4bb60>, engine=Engine(sqlite://), add=<function export... 'test-raw', 'raw/16ac5fead3353981/OWN.xlsx'), ('upload', 'test-exports', 'exports/1/job-1.xlsx')], fail_upload=False))
 
@@ -3880,8 +3880,8 @@ field = 'workspace_id', value = []
         persist_payload(c, c.payload)
 >       assert_denied_without_effects(c)
 
-tests/release/test_authorization_export_worker.py:341: 
-_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/release/test_authorization_export_worker.py:341:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
 
 case = namespace(db=<sqlalchemy.orm.session.Session object at 0x7f82b4185b50>, engine=Engine(sqlite://), add=<function export..._Types].xmlPK\x05\x06\x00\x00\x00\x00\t\x00\t\x00>\x02\x00\x00\x98\x10\x00\x00\x00\x00'}, calls=[], fail_upload=False))
 
@@ -3901,7 +3901,7 @@ case = namespace(db=<sqlalchemy.orm.session.Session object at 0x7f82b4185b50>, e
         assert not is_retryable_code(classify(caught.value))
 >       assert safe_error_message(caught.value) == "Export references are unavailable"
 E       AssertionError: assert 'Missing ques... workspace_id' == 'Export refer...e unavailable'
-E         
+E
 E         - Export references are unavailable
 E         + Missing questionnaire_id or workspace_id
 
@@ -3941,8 +3941,8 @@ field = 'questionnaire_id', value = []
         persist_payload(c, c.payload)
 >       assert_denied_without_effects(c)
 
-tests/release/test_authorization_export_worker.py:341: 
-_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/release/test_authorization_export_worker.py:341:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
 
 case = namespace(db=<sqlalchemy.orm.session.Session object at 0x7f82b35bfce0>, engine=Engine(sqlite://), add=<function export..._Types].xmlPK\x05\x06\x00\x00\x00\x00\t\x00\t\x00>\x02\x00\x00\x98\x10\x00\x00\x00\x00'}, calls=[], fail_upload=False))
 
@@ -3962,7 +3962,7 @@ case = namespace(db=<sqlalchemy.orm.session.Session object at 0x7f82b35bfce0>, e
         assert not is_retryable_code(classify(caught.value))
 >       assert safe_error_message(caught.value) == "Export references are unavailable"
 E       AssertionError: assert 'Missing ques... workspace_id' == 'Export refer...e unavailable'
-E         
+E
 E         - Export references are unavailable
 E         + Missing questionnaire_id or workspace_id
 
@@ -4002,8 +4002,8 @@ field = 'workspace_id', value = {}
         persist_payload(c, c.payload)
 >       assert_denied_without_effects(c)
 
-tests/release/test_authorization_export_worker.py:341: 
-_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/release/test_authorization_export_worker.py:341:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
 
 case = namespace(db=<sqlalchemy.orm.session.Session object at 0x7f82b3edaa20>, engine=Engine(sqlite://), add=<function export..._Types].xmlPK\x05\x06\x00\x00\x00\x00\t\x00\t\x00>\x02\x00\x00\x98\x10\x00\x00\x00\x00'}, calls=[], fail_upload=False))
 
@@ -4023,7 +4023,7 @@ case = namespace(db=<sqlalchemy.orm.session.Session object at 0x7f82b3edaa20>, e
         assert not is_retryable_code(classify(caught.value))
 >       assert safe_error_message(caught.value) == "Export references are unavailable"
 E       AssertionError: assert 'Missing ques... workspace_id' == 'Export refer...e unavailable'
-E         
+E
 E         - Export references are unavailable
 E         + Missing questionnaire_id or workspace_id
 
@@ -4063,8 +4063,8 @@ field = 'questionnaire_id', value = {}
         persist_payload(c, c.payload)
 >       assert_denied_without_effects(c)
 
-tests/release/test_authorization_export_worker.py:341: 
-_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/release/test_authorization_export_worker.py:341:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
 
 case = namespace(db=<sqlalchemy.orm.session.Session object at 0x7f82b3caf500>, engine=Engine(sqlite://), add=<function export..._Types].xmlPK\x05\x06\x00\x00\x00\x00\t\x00\t\x00>\x02\x00\x00\x98\x10\x00\x00\x00\x00'}, calls=[], fail_upload=False))
 
@@ -4084,7 +4084,7 @@ case = namespace(db=<sqlalchemy.orm.session.Session object at 0x7f82b3caf500>, e
         assert not is_retryable_code(classify(caught.value))
 >       assert safe_error_message(caught.value) == "Export references are unavailable"
 E       AssertionError: assert 'Missing ques... workspace_id' == 'Export refer...e unavailable'
-E         
+E
 E         - Export references are unavailable
 E         + Missing questionnaire_id or workspace_id
 
@@ -4124,8 +4124,8 @@ field = 'workspace_id', value = 2147483648
         persist_payload(c, c.payload)
 >       assert_denied_without_effects(c)
 
-tests/release/test_authorization_export_worker.py:341: 
-_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/release/test_authorization_export_worker.py:341:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
 
 case = namespace(db=<sqlalchemy.orm.session.Session object at 0x7f82b3edb140>, engine=Engine(sqlite://), add=<function export..._Types].xmlPK\x05\x06\x00\x00\x00\x00\t\x00\t\x00>\x02\x00\x00\x98\x10\x00\x00\x00\x00'}, calls=[], fail_upload=False))
 
@@ -4145,7 +4145,7 @@ case = namespace(db=<sqlalchemy.orm.session.Session object at 0x7f82b3edb140>, e
         assert not is_retryable_code(classify(caught.value))
 >       assert safe_error_message(caught.value) == "Export references are unavailable"
 E       AssertionError: assert 'Questionnair...r has no file' == 'Export refer...e unavailable'
-E         
+E
 E         - Export references are unavailable
 E         + Questionnaire not found or has no file
 
@@ -4185,8 +4185,8 @@ field = 'questionnaire_id', value = 2147483648
         persist_payload(c, c.payload)
 >       assert_denied_without_effects(c)
 
-tests/release/test_authorization_export_worker.py:341: 
-_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/release/test_authorization_export_worker.py:341:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
 
 case = namespace(db=<sqlalchemy.orm.session.Session object at 0x7f82b34ca4b0>, engine=Engine(sqlite://), add=<function export..._Types].xmlPK\x05\x06\x00\x00\x00\x00\t\x00\t\x00>\x02\x00\x00\x98\x10\x00\x00\x00\x00'}, calls=[], fail_upload=False))
 
@@ -4206,7 +4206,7 @@ case = namespace(db=<sqlalchemy.orm.session.Session object at 0x7f82b34ca4b0>, e
         assert not is_retryable_code(classify(caught.value))
 >       assert safe_error_message(caught.value) == "Export references are unavailable"
 E       AssertionError: assert 'Questionnair...r has no file' == 'Export refer...e unavailable'
-E         
+E
 E         - Export references are unavailable
 E         + Questionnaire not found or has no file
 
@@ -4246,8 +4246,8 @@ field = 'workspace_id', value = 100000000000000000...0000000000000000000
         persist_payload(c, c.payload)
 >       assert_denied_without_effects(c)
 
-tests/release/test_authorization_export_worker.py:341: 
-_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/release/test_authorization_export_worker.py:341:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
 tests/release/test_authorization_export_worker.py:229: in assert_denied_without_effects
     worker.run_job(case.job, case.db)
 app/worker.py:775: in run_job
@@ -4280,7 +4280,7 @@ app/worker.py:647: in run_export
     raise exc_info[1].with_traceback(exc_info[2])
 /tmp/tc-backend-venv/lib/python3.12/site-packages/sqlalchemy/engine/base.py:1976: in _exec_single_context
     self.dialect.do_execute(
-_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
 
 self = <sqlalchemy.dialects.sqlite.pysqlite.SQLiteDialect_pysqlite object at 0x7f82b2a67a40>
 cursor = <sqlite3.Cursor object at 0x7f82b2999140>
@@ -4328,8 +4328,8 @@ field = 'questionnaire_id', value = 100000000000000000...0000000000000000000
         persist_payload(c, c.payload)
 >       assert_denied_without_effects(c)
 
-tests/release/test_authorization_export_worker.py:341: 
-_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/release/test_authorization_export_worker.py:341:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
 tests/release/test_authorization_export_worker.py:229: in assert_denied_without_effects
     worker.run_job(case.job, case.db)
 app/worker.py:775: in run_job
@@ -4362,7 +4362,7 @@ app/worker.py:647: in run_export
     raise exc_info[1].with_traceback(exc_info[2])
 /tmp/tc-backend-venv/lib/python3.12/site-packages/sqlalchemy/engine/base.py:1976: in _exec_single_context
     self.dialect.do_execute(
-_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
 
 self = <sqlalchemy.dialects.sqlite.pysqlite.SQLiteDialect_pysqlite object at 0x7f82b29f4da0>
 cursor = <sqlite3.Cursor object at 0x7f82b2a6b5c0>
@@ -4385,13 +4385,13 @@ payload = None
         persist_payload(export_case, payload)
 >       assert_denied_without_effects(export_case)
 
-tests/release/test_authorization_export_worker.py:347: 
-_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/release/test_authorization_export_worker.py:347:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
 tests/release/test_authorization_export_worker.py:229: in assert_denied_without_effects
     worker.run_job(case.job, case.db)
 app/worker.py:775: in run_job
     run_export(job, session, payload)
-_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
 
 job = <app.models.job.Job object at 0x7f82b2a65460>
 session = <sqlalchemy.orm.session.Session object at 0x7f82b2a04a70>
@@ -4401,13 +4401,13 @@ payload = None
         """Export questionnaire with answers to XLSX or DOCX (EXP-07, EXP-05)."""
         import json
         from pathlib import Path
-    
+
         from app.models import Answer, ExportRecord, Question, Questionnaire
         from app.services.answer_evidence_policy import answer_text_for_export
         from app.services.docx_writer import create_export_from_questionnaire_docx
         from app.services.fallback_export import create_fallback_pack_docx
         from app.services.xlsx_writer import create_export_from_questionnaire
-    
+
         # Keep this attempt's token even if a rollback/refresh later sees a newer owner.
         owner = _lease_owner(job)
 >       qnr_id = payload.get("questionnaire_id")
@@ -4425,13 +4425,13 @@ payload = []
         persist_payload(export_case, payload)
 >       assert_denied_without_effects(export_case)
 
-tests/release/test_authorization_export_worker.py:347: 
-_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/release/test_authorization_export_worker.py:347:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
 tests/release/test_authorization_export_worker.py:229: in assert_denied_without_effects
     worker.run_job(case.job, case.db)
 app/worker.py:775: in run_job
     run_export(job, session, payload)
-_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
 
 job = <app.models.job.Job object at 0x7f82b34d7ad0>
 session = <sqlalchemy.orm.session.Session object at 0x7f82b2d140e0>
@@ -4441,13 +4441,13 @@ payload = []
         """Export questionnaire with answers to XLSX or DOCX (EXP-07, EXP-05)."""
         import json
         from pathlib import Path
-    
+
         from app.models import Answer, ExportRecord, Question, Questionnaire
         from app.services.answer_evidence_policy import answer_text_for_export
         from app.services.docx_writer import create_export_from_questionnaire_docx
         from app.services.fallback_export import create_fallback_pack_docx
         from app.services.xlsx_writer import create_export_from_questionnaire
-    
+
         # Keep this attempt's token even if a rollback/refresh later sees a newer owner.
         owner = _lease_owner(job)
 >       qnr_id = payload.get("questionnaire_id")
@@ -4465,13 +4465,13 @@ payload = True
         persist_payload(export_case, payload)
 >       assert_denied_without_effects(export_case)
 
-tests/release/test_authorization_export_worker.py:347: 
-_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/release/test_authorization_export_worker.py:347:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
 tests/release/test_authorization_export_worker.py:229: in assert_denied_without_effects
     worker.run_job(case.job, case.db)
 app/worker.py:775: in run_job
     run_export(job, session, payload)
-_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
 
 job = <app.models.job.Job object at 0x7f82b5a42a80>
 session = <sqlalchemy.orm.session.Session object at 0x7f82b2a15a60>
@@ -4481,13 +4481,13 @@ payload = True
         """Export questionnaire with answers to XLSX or DOCX (EXP-07, EXP-05)."""
         import json
         from pathlib import Path
-    
+
         from app.models import Answer, ExportRecord, Question, Questionnaire
         from app.services.answer_evidence_policy import answer_text_for_export
         from app.services.docx_writer import create_export_from_questionnaire_docx
         from app.services.fallback_export import create_fallback_pack_docx
         from app.services.xlsx_writer import create_export_from_questionnaire
-    
+
         # Keep this attempt's token even if a rollback/refresh later sees a newer owner.
         owner = _lease_owner(job)
 >       qnr_id = payload.get("questionnaire_id")
@@ -4505,13 +4505,13 @@ payload = 1
         persist_payload(export_case, payload)
 >       assert_denied_without_effects(export_case)
 
-tests/release/test_authorization_export_worker.py:347: 
-_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/release/test_authorization_export_worker.py:347:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
 tests/release/test_authorization_export_worker.py:229: in assert_denied_without_effects
     worker.run_job(case.job, case.db)
 app/worker.py:775: in run_job
     run_export(job, session, payload)
-_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
 
 job = <app.models.job.Job object at 0x7f82b4401640>
 session = <sqlalchemy.orm.session.Session object at 0x7f82b395a270>, payload = 1
@@ -4520,13 +4520,13 @@ session = <sqlalchemy.orm.session.Session object at 0x7f82b395a270>, payload = 1
         """Export questionnaire with answers to XLSX or DOCX (EXP-07, EXP-05)."""
         import json
         from pathlib import Path
-    
+
         from app.models import Answer, ExportRecord, Question, Questionnaire
         from app.services.answer_evidence_policy import answer_text_for_export
         from app.services.docx_writer import create_export_from_questionnaire_docx
         from app.services.fallback_export import create_fallback_pack_docx
         from app.services.xlsx_writer import create_export_from_questionnaire
-    
+
         # Keep this attempt's token even if a rollback/refresh later sees a newer owner.
         owner = _lease_owner(job)
 >       qnr_id = payload.get("questionnaire_id")
@@ -4544,13 +4544,13 @@ payload = 'payload'
         persist_payload(export_case, payload)
 >       assert_denied_without_effects(export_case)
 
-tests/release/test_authorization_export_worker.py:347: 
-_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/release/test_authorization_export_worker.py:347:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
 tests/release/test_authorization_export_worker.py:229: in assert_denied_without_effects
     worker.run_job(case.job, case.db)
 app/worker.py:775: in run_job
     run_export(job, session, payload)
-_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
 
 job = <app.models.job.Job object at 0x7f82b2a17b60>
 session = <sqlalchemy.orm.session.Session object at 0x7f82b3d63710>
@@ -4560,13 +4560,13 @@ payload = 'payload'
         """Export questionnaire with answers to XLSX or DOCX (EXP-07, EXP-05)."""
         import json
         from pathlib import Path
-    
+
         from app.models import Answer, ExportRecord, Question, Questionnaire
         from app.services.answer_evidence_policy import answer_text_for_export
         from app.services.docx_writer import create_export_from_questionnaire_docx
         from app.services.fallback_export import create_fallback_pack_docx
         from app.services.xlsx_writer import create_export_from_questionnaire
-    
+
         # Keep this attempt's token even if a rollback/refresh later sees a newer owner.
         owner = _lease_owner(job)
 >       qnr_id = payload.get("questionnaire_id")
@@ -4591,11 +4591,11 @@ parameters = [(1, 1, 'exports/1/job-1.xlsx', 'OWN.xlsx', 'completed', 1, ...)]
     ) -> CursorResult[Any]:
         """continue the _execute_context() method for a single DBAPI
         cursor.execute() or cursor.executemany() call.
-    
+
         """
         if dialect.bind_typing is BindTyping.SETINPUTSIZES:
             generic_setinputsizes = context._prepare_set_input_sizes()
-    
+
             if generic_setinputsizes:
                 try:
                     dialect.do_set_input_sizes(
@@ -4605,20 +4605,20 @@ parameters = [(1, 1, 'exports/1/job-1.xlsx', 'OWN.xlsx', 'completed', 1, ...)]
                     self._handle_dbapi_exception(
                         e, str(statement), parameters, None, context
                     )
-    
+
         cursor, str_statement, parameters = (
             context.cursor,
             context.statement,
             context.parameters,
         )
-    
+
         effective_parameters: Optional[_AnyExecuteParams]
-    
+
         if not context.executemany:
             effective_parameters = parameters[0]
         else:
             effective_parameters = parameters
-    
+
         if self._has_events or self.engine._has_events:
             for fn in self.dispatch.before_cursor_execute:
                 str_statement, effective_parameters = fn(
@@ -4629,12 +4629,12 @@ parameters = [(1, 1, 'exports/1/job-1.xlsx', 'OWN.xlsx', 'completed', 1, ...)]
                     context,
                     context.executemany,
                 )
-    
+
         if self._echo:
             self._log_info(str_statement)
-    
+
             stats = context._get_cache_stats()
-    
+
             if not self.engine.hide_parameters:
                 self._log_info(
                     "[%s] %r",
@@ -4650,7 +4650,7 @@ parameters = [(1, 1, 'exports/1/job-1.xlsx', 'OWN.xlsx', 'completed', 1, ...)]
                     "[%s] [SQL parameters hidden due to hide_parameters=True]",
                     stats,
                 )
-    
+
         evt_handled: bool = False
         try:
             if context.execute_style is ExecuteStyle.EXECUTEMANY:
@@ -4703,8 +4703,8 @@ parameters = [(1, 1, 'exports/1/job-1.xlsx', 'OWN.xlsx', 'completed', 1, ...)]
                         cursor, str_statement, effective_parameters, context
                     )
 
-/tmp/tc-backend-venv/lib/python3.12/site-packages/sqlalchemy/engine/base.py:1976: 
-_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+/tmp/tc-backend-venv/lib/python3.12/site-packages/sqlalchemy/engine/base.py:1976:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
 
 self = <sqlalchemy.dialects.sqlite.pysqlite.SQLiteDialect_pysqlite object at 0x7f82b3bc7440>
 cursor = <sqlite3.Cursor object at 0x7f82b2a6c0c0>
@@ -4767,8 +4767,8 @@ reference = 'foreign_workspace'
             assert rec.workspace_id == c.own.id and rec.questionnaire_id == c.qnr.id
 >       assert_denied_without_effects(c)
 
-tests/release/test_authorization_export_worker.py:392: 
-_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/release/test_authorization_export_worker.py:392:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
 tests/release/test_authorization_export_worker.py:229: in assert_denied_without_effects
     worker.run_job(case.job, case.db)
 app/worker.py:775: in run_job
@@ -4824,7 +4824,7 @@ app/services/storage_reconcile.py:212: in commit_or_discard_object
     raise sqlalchemy_exception.with_traceback(exc_info[2]) from e
 /tmp/tc-backend-venv/lib/python3.12/site-packages/sqlalchemy/engine/base.py:1976: in _exec_single_context
     self.dialect.do_execute(
-_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
 
 self = <sqlalchemy.dialects.sqlite.pysqlite.SQLiteDialect_pysqlite object at 0x7f82b3bc7440>
 cursor = <sqlite3.Cursor object at 0x7f82b2a6c0c0>
@@ -4960,8 +4960,8 @@ reference = 'foreign_questionnaire'
             assert rec.workspace_id == c.own.id and rec.questionnaire_id == c.qnr.id
 >       assert_denied_without_effects(c)
 
-tests/release/test_authorization_export_worker.py:392: 
-_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/release/test_authorization_export_worker.py:392:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
 
 case = namespace(db=<sqlalchemy.orm.session.Session object at 0x7f82b3d02ae0>, engine=Engine(sqlite://), add=<function export..._Types].xmlPK\x05\x06\x00\x00\x00\x00\t\x00\t\x00>\x02\x00\x00\x98\x10\x00\x00\x00\x00'}, calls=[], fail_upload=False))
 
@@ -5023,8 +5023,8 @@ reference = 'different_own_questionnaire'
             assert rec.workspace_id == c.own.id and rec.questionnaire_id == c.qnr.id
 >       assert_denied_without_effects(c)
 
-tests/release/test_authorization_export_worker.py:392: 
-_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/release/test_authorization_export_worker.py:392:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
 
 case = namespace(db=<sqlalchemy.orm.session.Session object at 0x7f82b3b9a840>, engine=Engine(sqlite://), add=<function export..._Types].xmlPK\x05\x06\x00\x00\x00\x00\t\x00\t\x00>\x02\x00\x00\x98\x10\x00\x00\x00\x00'}, calls=[], fail_upload=False))
 
@@ -5086,8 +5086,8 @@ reference = 'null_questionnaire'
             assert rec.workspace_id == c.own.id and rec.questionnaire_id == c.qnr.id
 >       assert_denied_without_effects(c)
 
-tests/release/test_authorization_export_worker.py:392: 
-_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/release/test_authorization_export_worker.py:392:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
 
 case = namespace(db=<sqlalchemy.orm.session.Session object at 0x7f82b2e9a690>, engine=Engine(sqlite://), add=<function export..._Types].xmlPK\x05\x06\x00\x00\x00\x00\t\x00\t\x00>\x02\x00\x00\x98\x10\x00\x00\x00\x00'}, calls=[], fail_upload=False))
 
@@ -5117,11 +5117,11 @@ parameters = [(1, 1, 'exports/1/job-1.xlsx', 'OWN.xlsx', 'completed', 1, ...)]
     ) -> CursorResult[Any]:
         """continue the _execute_context() method for a single DBAPI
         cursor.execute() or cursor.executemany() call.
-    
+
         """
         if dialect.bind_typing is BindTyping.SETINPUTSIZES:
             generic_setinputsizes = context._prepare_set_input_sizes()
-    
+
             if generic_setinputsizes:
                 try:
                     dialect.do_set_input_sizes(
@@ -5131,20 +5131,20 @@ parameters = [(1, 1, 'exports/1/job-1.xlsx', 'OWN.xlsx', 'completed', 1, ...)]
                     self._handle_dbapi_exception(
                         e, str(statement), parameters, None, context
                     )
-    
+
         cursor, str_statement, parameters = (
             context.cursor,
             context.statement,
             context.parameters,
         )
-    
+
         effective_parameters: Optional[_AnyExecuteParams]
-    
+
         if not context.executemany:
             effective_parameters = parameters[0]
         else:
             effective_parameters = parameters
-    
+
         if self._has_events or self.engine._has_events:
             for fn in self.dispatch.before_cursor_execute:
                 str_statement, effective_parameters = fn(
@@ -5155,12 +5155,12 @@ parameters = [(1, 1, 'exports/1/job-1.xlsx', 'OWN.xlsx', 'completed', 1, ...)]
                     context,
                     context.executemany,
                 )
-    
+
         if self._echo:
             self._log_info(str_statement)
-    
+
             stats = context._get_cache_stats()
-    
+
             if not self.engine.hide_parameters:
                 self._log_info(
                     "[%s] %r",
@@ -5176,7 +5176,7 @@ parameters = [(1, 1, 'exports/1/job-1.xlsx', 'OWN.xlsx', 'completed', 1, ...)]
                     "[%s] [SQL parameters hidden due to hide_parameters=True]",
                     stats,
                 )
-    
+
         evt_handled: bool = False
         try:
             if context.execute_style is ExecuteStyle.EXECUTEMANY:
@@ -5229,8 +5229,8 @@ parameters = [(1, 1, 'exports/1/job-1.xlsx', 'OWN.xlsx', 'completed', 1, ...)]
                         cursor, str_statement, effective_parameters, context
                     )
 
-/tmp/tc-backend-venv/lib/python3.12/site-packages/sqlalchemy/engine/base.py:1976: 
-_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+/tmp/tc-backend-venv/lib/python3.12/site-packages/sqlalchemy/engine/base.py:1976:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
 
 self = <sqlalchemy.dialects.sqlite.pysqlite.SQLiteDialect_pysqlite object at 0x7f82b2c01c10>
 cursor = <sqlite3.Cursor object at 0x7f82b1c196c0>
@@ -5293,8 +5293,8 @@ reference = 'moved_workspace_stale_identity'
             assert rec.workspace_id == c.own.id and rec.questionnaire_id == c.qnr.id
 >       assert_denied_without_effects(c)
 
-tests/release/test_authorization_export_worker.py:392: 
-_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/release/test_authorization_export_worker.py:392:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
 tests/release/test_authorization_export_worker.py:229: in assert_denied_without_effects
     worker.run_job(case.job, case.db)
 app/worker.py:775: in run_job
@@ -5350,7 +5350,7 @@ app/services/storage_reconcile.py:212: in commit_or_discard_object
     raise sqlalchemy_exception.with_traceback(exc_info[2]) from e
 /tmp/tc-backend-venv/lib/python3.12/site-packages/sqlalchemy/engine/base.py:1976: in _exec_single_context
     self.dialect.do_execute(
-_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
 
 self = <sqlalchemy.dialects.sqlite.pysqlite.SQLiteDialect_pysqlite object at 0x7f82b2c01c10>
 cursor = <sqlite3.Cursor object at 0x7f82b1c196c0>
@@ -5486,8 +5486,8 @@ reference = 'moved_parent_stale_identity'
             assert rec.workspace_id == c.own.id and rec.questionnaire_id == c.qnr.id
 >       assert_denied_without_effects(c)
 
-tests/release/test_authorization_export_worker.py:392: 
-_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/release/test_authorization_export_worker.py:392:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
 
 case = namespace(db=<sqlalchemy.orm.session.Session object at 0x7f82b2b8ce60>, engine=Engine(sqlite://), add=<function export..._Types].xmlPK\x05\x06\x00\x00\x00\x00\t\x00\t\x00>\x02\x00\x00\x97\x10\x00\x00\x00\x00'}, calls=[], fail_upload=False))
 

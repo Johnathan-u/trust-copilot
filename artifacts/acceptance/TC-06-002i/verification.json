@@ -64,7 +64,9 @@
         "Whitespace in byte-exact preserved artifacts/acceptance/TC-06-002i/red-sqlite.log"
       ],
       "raw_logs_preserved_byte_exact": true,
-      "correction_scope": "Evidence metadata/README only; production and test hashes unchanged."
+      "correction_scope": "Evidence metadata/README only; production and test hashes unchanged.",
+      "historical_at_local_commit": "da8ac46cd746315fed6e6782597cc8b9515c6ff1",
+      "superseded_by": "evidence_ci_repair"
     }
   },
   "db_scope": "Actual-model FK-on SQLite; migrated PostgreSQL counterparts retained but not executed locally.",
@@ -92,7 +94,7 @@
   "child_estimate_points": 3,
   "additional_original_scope_credit": 0,
   "evidence_files": {
-    "README.md": "7d960ca451c803c2a4642fe6e87e896e98a972546bac7eeeedcc5406811d5a42",
+    "README.md": "a65fa9f63ec4069d965f44c6ae4ef64543ee4053565eba8d4dae50d71c457914",
     "collection.log": "9e6abd2d3e6c9e06d3697c707ad6c2b362f47387696d8427cb1c47a1f4488f6a",
     "full-suite-strict-postgres.log": "df8db3959d47e8a00031e60b66745a88ca6a256c6bcc6ed8182aa605596100de",
     "green-sqlite.log": "580125148b7bf7479e66ac6b81017dbf5793864db9155b35de00b33801dce562",
@@ -103,12 +105,127 @@
     "negative-exact-replay.log": "e18aba7b8d7c3c2eeaa6f514c59746ac6a9a3b379be92d5313bc72f782f6adc9",
     "negative-job-payload.log": "1642dbf83e66f6a10cf41fe3bdefaae86bf141c85a1f004c74fa80584e14f241",
     "negative-reference-types.log": "f3dbff5e76d65e3c2721b7be3657602ea2149900234de068b7a3aa6af19536a2",
-    "negative_controls.py": "5ef1fb0480d8941683188e1a823223fe58a51a0c281cdef3311112164fa8b45e",
+    "negative_controls.py": "213978327d8609ae96e677c8a9c04cbd34307bfe30736f7aaa8dacdfa4f0023b",
     "red-added-cases.log": "7dc4c8b28a96acbe902ff0d8c2ed32fdc53c2e3db44e1a8ecfd91c4c2ef583d3",
-    "red-sqlite.log": "53204ffb773751726f0035b53816d3983bfc44ec723fe69cec800e62fbdff92f",
+    "red-sqlite.log": "cc21f6aaa1c4bc56a908bfbc9428391270701aa74349903802173dfd10bef75d",
     "related-export-and-lifecycle-unit.log": "a19dec7e21aedc5ad89109029305c0935b0f3d3fd2c7130372b7c763fbc5b2ce",
-    "related-export-and-lifecycle-unit.xml": "c522869cdba185142e02f37abc6d5595ad00888da0b139fecdcceb21fa6080f3",
+    "related-export-and-lifecycle-unit.xml": "65030288eceac0df09936763db8d73e2d230136a22bc3491aa4b8b9d202a07ce",
     "related-job-errors.log": "2685a8a8a5f6e069ac450da3c45adf3515d6663ba3be8a8175dc7b6aab5fda26",
     "safe-collection.log": "efc94bf53080716b7d9f19ac4d9d3cba7176cee13ed6aae65e6e3e0b85076fe7"
+  },
+  "evidence_normalization": {
+    "red-sqlite.log": {
+      "original_git_commit": "0c0fc02f03c38bb2c26ebfabc161539d29976ffe",
+      "original_git_path": "artifacts/acceptance/TC-06-002i/red-sqlite.log",
+      "original_git_blob": "d92c88693cac7c306bbe68c8681e9eaba31a43d6",
+      "original_sha256": "53204ffb773751726f0035b53816d3983bfc44ec723fe69cec800e62fbdff92f",
+      "original_git_tree": "978b6e194272ea7c0a408d2c73e7be576cbfa603",
+      "operation": "Remove trailing whitespace from 214 lines; preserve all other diagnostic content.",
+      "normalized_sha256": "cc21f6aaa1c4bc56a908bfbc9428391270701aa74349903802173dfd10bef75d",
+      "byte_exact_raw_output": false
+    },
+    "related-export-and-lifecycle-unit.xml": {
+      "original_git_commit": "0c0fc02f03c38bb2c26ebfabc161539d29976ffe",
+      "original_git_path": "artifacts/acceptance/TC-06-002i/related-export-and-lifecycle-unit.xml",
+      "original_git_blob": "ed578c04b0aba4624e0647cb8c8d570907d1256f",
+      "original_sha256": "c522869cdba185142e02f37abc6d5595ad00888da0b139fecdcceb21fa6080f3",
+      "original_git_tree": "978b6e194272ea7c0a408d2c73e7be576cbfa603",
+      "operation": "Append exactly one LF byte; preserve all XML content.",
+      "normalized_sha256": "65030288eceac0df09936763db8d73e2d230136a22bc3491aa4b8b9d202a07ce",
+      "byte_exact_raw_output": false
+    }
+  },
+  "evidence_ci_repair": {
+    "assignment_comment": "6534749154",
+    "failed_ci_build_run": "124333213804",
+    "original_published_head": "0c0fc02f03c38bb2c26ebfabc161539d29976ffe",
+    "local_base": "da8ac46cd746315fed6e6782597cc8b9515c6ff1",
+    "scope": "Acceptance artifacts only; production, tests, workflow and hook configuration unchanged.",
+    "reproduced_hook_exit_code": 1,
+    "reproduced_failed_hooks": [
+      "ruff (I001, E501)",
+      "ruff-format",
+      "trailing-whitespace",
+      "end-of-file-fixer"
+    ],
+    "final_hooks": {
+      "command": [
+        "python",
+        "-m",
+        "pre_commit",
+        "run",
+        "--files",
+        "artifacts/acceptance/TC-06-002i/README.md",
+        "artifacts/acceptance/TC-06-002i/collection.log",
+        "artifacts/acceptance/TC-06-002i/full-suite-strict-postgres.log",
+        "artifacts/acceptance/TC-06-002i/green-sqlite.log",
+        "artifacts/acceptance/TC-06-002i/negative-active-parent.log",
+        "artifacts/acceptance/TC-06-002i/negative-current-file.log",
+        "artifacts/acceptance/TC-06-002i/negative-current-job.log",
+        "artifacts/acceptance/TC-06-002i/negative-current-replay.log",
+        "artifacts/acceptance/TC-06-002i/negative-exact-replay.log",
+        "artifacts/acceptance/TC-06-002i/negative-job-payload.log",
+        "artifacts/acceptance/TC-06-002i/negative-reference-types.log",
+        "artifacts/acceptance/TC-06-002i/negative_controls.py",
+        "artifacts/acceptance/TC-06-002i/red-added-cases.log",
+        "artifacts/acceptance/TC-06-002i/red-sqlite.log",
+        "artifacts/acceptance/TC-06-002i/related-export-and-lifecycle-unit.log",
+        "artifacts/acceptance/TC-06-002i/related-export-and-lifecycle-unit.xml",
+        "artifacts/acceptance/TC-06-002i/related-job-errors.log",
+        "artifacts/acceptance/TC-06-002i/safe-collection.log",
+        "artifacts/acceptance/TC-06-002i/verification.json",
+        "docs/release/tickets/TC-06-002i.md"
+      ],
+      "environment": {
+        "PYTHONPATH": "/tmp/tc-evidence-hooks",
+        "PRE_COMMIT_HOME": "/tmp/tc-evidence-pre-commit-cache"
+      },
+      "runner_version": "4.7.0",
+      "ruff_version": "0.5.6",
+      "pre_commit_hooks_version": "4.6.0",
+      "config_sha256": "f3b26c403435365261f584b5bfbc426efba00b48ada511271b253e05b4a0686c",
+      "exit_code": 0,
+      "passed": [
+        "ruff",
+        "ruff-format",
+        "trailing-whitespace",
+        "end-of-file-fixer"
+      ],
+      "no_matching_files": [
+        "prettier",
+        "check-yaml"
+      ]
+    },
+    "helper_verification": {
+      "non_import_ast_identical": true,
+      "scrubbed_environment_import_precedes_worker": true,
+      "commands_from_apps_api": [
+        "/tmp/tc-backend-venv/bin/python ../../artifacts/acceptance/TC-06-002i/negative_controls.py reference_types",
+        "/tmp/tc-backend-venv/bin/python ../../artifacts/acceptance/TC-06-002i/negative_controls.py baseline_added_cases"
+      ],
+      "reference_types": {
+        "wrapper_exit_code": 0,
+        "expected_pytest_exit_code": 1,
+        "expected_failures": 1
+      },
+      "baseline_added_cases": {
+        "wrapper_exit_code": 0,
+        "expected_pytest_exit_code": 1,
+        "expected_failures": 4
+      },
+      "production_source_unchanged": true
+    },
+    "normalization_verified_against_original_bytes": true,
+    "full_diff_check": {
+      "command": "git diff --check dea5f5afe87dfa73a0321a0f0311847ed233432f",
+      "exit_code": 0
+    },
+    "unchanged_full_test_suites_rerun": false,
+    "raw_verification_log_sha256": {
+      "initial_hooks": "b3e041d9dea6fd91a5faac4b96615cc9b61f231c028064ed1dbddb333d1edc52",
+      "final_hooks": "76d4d9cfd93b23fc75dbbc3b7a75188c91e390a77c29a2551ec93ba0e742844e",
+      "helper_reference_types": "cfbbb1555a8cb106531d0580900d54a61e815b856a670f1267ebc6ea03ca26a4",
+      "helper_baseline_added_cases": "c278c7d3af84c3339b406da8142ba4c5bcb5794fd04f0f31847027e068055ff0"
+    }
   }
 }

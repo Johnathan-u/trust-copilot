@@ -15,8 +15,10 @@ unchanged; file hashes and the AST comparison are in `verification.json`.
 ## Executed results
 
 Commands below ran from `apps/api` using `/tmp/tc-backend-venv/bin/python`.
-The retained logs are the actual command output, including existing datetime
-deprecation warnings. No real model, provider or object-storage calls were made.
+The retained logs contain the actual command output, including existing datetime
+deprecation warnings. `red-sqlite.log` has trailing whitespace normalized and the
+JUnit XML has a terminal newline added, as documented below; neither is presented
+as byte-exact raw output. No real model, provider or object-storage calls were made.
 
 | Command after the Python executable | Result | Evidence |
 |---|---|---|
@@ -38,13 +40,26 @@ pytest exit 1 and verified the production file hash stayed unchanged. See
 `negative-*.log` and the reproducible `negative_controls.py`. No tracked source
 was changed for these controls.
 
-Whitespace verification is scoped to production, tests, the ticket, this README,
-the evidence runner and `verification.json`. The exact command and exit 0 are
-recorded in `verification.json`. The full base-to-head `git diff --check` exits 2
-solely for whitespace in the byte-exact preserved `red-sqlite.log`; raw output is
-not reformatted. The earlier unqualified passing check was `git diff --check` on
-the unstaged changes before the ignored raw logs were explicitly committed, not
-a full base-to-head check of the final evidence.
+## Evidence formatting repair
+
+PR #163 build run 124333213804 rejected evidence formatting: import ordering and
+line length in `negative_controls.py`, trailing whitespace in `red-sqlite.log`,
+and the missing terminal newline in `related-export-and-lifecycle-unit.xml`.
+The repair is assigned in issue #85 comment 6534749154. It changes only this
+child's acceptance artifacts; production, release tests, hooks and CI are unchanged.
+
+The helper's formatting and import order are corrected, with the existing scrubbed
+environment installed before importing the worker. The log is normalized only by
+removing trailing whitespace; the XML differs only by its final newline. Original
+SHA-256 values, Git blob/path references and the original published commit are
+retained in `verification.json` under `evidence_normalization`, alongside hashes
+of the normalized copies. The original bytes remain recoverable from Git history.
+No test result or diagnostic content is removed, and historical test runs are not
+relabeled as fresh execution.
+
+The earlier full base-to-head whitespace check failed solely on the raw log; its
+result remains recorded as historical evidence. `evidence_ci_repair` records the
+fresh complete affected-file hook run, helper verification and whitespace checks.
 
 ## What the tests establish
 
