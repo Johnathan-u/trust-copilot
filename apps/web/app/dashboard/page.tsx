@@ -19,7 +19,8 @@ import { securityNoticeLabel } from '@/components/layout/SecurityAlertsBanner'
 import { useShellAlerts } from '@/components/layout/ShellAlerts'
 import { useAuth } from '@/contexts/AuthContext'
 import type { ApiFailurePresentation } from '@/lib/api-error'
-import { presentHttpFailure } from '@/lib/api-error'
+import { mutationFailureNotice, presentHttpFailure } from '@/lib/api-error'
+import { actionVerb } from '@/lib/action-copy'
 import {
   failureOf,
   isAbortError,
@@ -476,7 +477,10 @@ export default function DashboardPage() {
             setShowAddModal(false)
             setEditCard(null)
             fetchCards()
-            showToast('success', editCard ? 'Card updated' : 'Card added')
+            showToast(
+              'success',
+              editCard ? actionVerb('save', 'success') : 'Card added'
+            )
           }}
           onError={(msg) => showToast('error', msg)}
         />
@@ -570,8 +574,18 @@ function CardFormModal({
       if (res.ok) {
         onSaved()
       } else {
-        const failure = presentHttpFailure({ status: res.status })
-        onError(`${failure.title}. ${failure.description}`)
+        const data = await res.json().catch(() => null)
+        const mapped = mutationFailureNotice(
+          res.status,
+          data,
+          'The change was not saved. Try again.'
+        )
+        if (mapped.title === 'Could not complete that') {
+          const failure = presentHttpFailure({ status: res.status })
+          onError(`${failure.title}. ${failure.description}`)
+        } else {
+          onError(`${mapped.title}. ${mapped.message}`)
+        }
       }
     } catch {
       onError('Failed to save card')
@@ -698,7 +712,11 @@ function CardFormModal({
             Cancel
           </Button>
           <Button size="sm" type="submit" disabled={saving}>
-            {saving ? 'Saving…' : isEdit ? 'Update' : 'Add Card'}
+            {saving
+              ? actionVerb('save', 'pending')
+              : isEdit
+                ? actionVerb('save', 'idle')
+                : 'Add card'}
           </Button>
         </div>
       </form>

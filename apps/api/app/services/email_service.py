@@ -3,6 +3,7 @@
 import os
 import smtplib
 import ssl
+import uuid
 from dataclasses import dataclass
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
@@ -57,7 +58,7 @@ class SmtpEmailProvider:
         self.from_addr = from_addr
         self.use_tls = use_tls
 
-    def send(self, message: EmailMessage) -> bool:
+    def send(self, message: EmailMessage, *, sensitive: bool = False) -> bool:
         try:
             mime = MIMEMultipart("alternative")
             mime["Subject"] = message.subject
@@ -85,6 +86,13 @@ class SmtpEmailProvider:
                     s.sendmail(self.from_addr, [message.to], raw)
             return True
         except Exception as e:
+            if sensitive:
+                # Never interpolate provider text or message content for bearer links/replies.
+                print(
+                    f"[EMAIL] SMTP send failed: {type(e).__name__}; message_id={uuid.uuid4().hex}",
+                    flush=True,
+                )
+                return False
             print(f"[EMAIL] SMTP send failed ({self.host}:{self.port}): {e}", flush=True)
             if not is_production_env():
                 # Dev convenience only; in production the body may carry reset/invite links (TC-03-001).

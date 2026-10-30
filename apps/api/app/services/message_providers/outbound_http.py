@@ -45,7 +45,7 @@ class ProviderResponseTooLarge(Exception):
 
 
 class ProviderResponseInvalidEncoding(Exception):
-    """The provider returned an incomplete or malformed compressed response."""
+    """The provider returned an unsupported, incomplete or malformed encoding."""
 
     def __init__(self, status_code: int):
         super().__init__("The provider response encoding was invalid.")
@@ -56,7 +56,7 @@ def _bounded_body(response: httpx.Response) -> bytes:
     """Read one supported content encoding without an unbounded decoder."""
     encoding = response.headers.get("Content-Encoding", "identity").strip().lower()
     if encoding not in ("identity", "gzip", "deflate"):
-        raise ProviderResponseTooLarge(response.status_code)
+        raise ProviderResponseInvalidEncoding(response.status_code)
     try:
         declared_length = int(response.headers.get("Content-Length", ""))
     except ValueError:

@@ -172,7 +172,7 @@ def test_compressed_bomb_is_rejected_with_bounded_allocation(nested):
     finally:
         tracemalloc.stop()
     assert peak < 8 * 1024 * 1024, peak
-    assert result.provider_error == "response_too_large"
+    assert result.provider_error == ("invalid_encoding" if nested else "response_too_large")
     assert result.retryable is False
     assert len(calls) == 1
     assert stream.consumed == (0 if nested else 1)
@@ -190,11 +190,13 @@ def test_exact_limit_compressed_json_succeeds(encoding):
     assert stream.closed
 
 
-@pytest.mark.parametrize("encoding", ["br", "gzip, identity", "identity, identity"])
-def test_unsupported_or_multiple_encoding_is_rejected_without_reading(encoding):
+@pytest.mark.parametrize("encoding", ["br", "gzip, identity", "identity, identity", "", " \t "])
+@pytest.mark.parametrize("status", [200, 429, 503])
+def test_unsupported_multiple_or_empty_encoding_is_rejected_without_reading(encoding, status):
     stream = TrackedStream([b"must not read"])
-    result, calls, _ = call_stream(stream, headers={"Content-Encoding": encoding})
-    assert result.provider_error == "response_too_large"
+    result, calls, _ = call_stream(stream, status=status, headers={"Content-Encoding": encoding})
+    assert result.provider_error == "invalid_encoding"
+    assert result.status_code == status
     assert result.retryable is False
     assert len(calls) == 1
     assert stream.consumed == 0
@@ -222,6 +224,7 @@ def test_truncated_gzip_cannot_be_accepted_as_success():
     stream = TrackedStream([gzip.compress(b'{"ok":true}')[:-8]])
     result, calls, _ = call_stream(stream, headers={"Content-Encoding": "gzip"})
     assert not result.ok
+    assert result.provider_error == "invalid_encoding"
     assert result.retryable is False
     assert len(calls) == 1
     assert stream.closed

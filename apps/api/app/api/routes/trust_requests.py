@@ -3,10 +3,22 @@
 import logging
 import json
 from datetime import datetime, timezone
+from uuid import uuid4
 
-from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, Request, UploadFile
+from fastapi import (
+    APIRouter,
+    Depends,
+    File,
+    Form,
+    Header,
+    HTTPException,
+    Query,
+    Request,
+    UploadFile,
+)
 from fastapi.responses import StreamingResponse
-from pydantic import BaseModel
+from fastapi.exceptions import RequestValidationError
+from pydantic import BaseModel, Field, ValidationError, field_validator
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
@@ -16,8 +28,11 @@ from app.core.audit import audit_log, persist_audit  # noqa: F401
 from app.core.database import get_db
 from app.models import TrustRequest, TrustRequestNote, User, Workspace, WorkspaceMember
 from app.models.trust_request_note import NOTE_TYPE_INTERNAL, NOTE_TYPE_REPLY
-from app.services.email_service import send_trust_reply_email
-from app.services.file_service import FileService
+from app.services import trust_request_service as trust_svc
+from app.services.file_service import ALLOWED_RAW_EXTENSIONS, sanitize_filename
+from pathlib import Path
+import hashlib
+from app.core.config import get_settings
 from app.services.registry_metadata import (
     FRAMEWORK_LABELS,
     SUBJECT_AREA_LABELS,
@@ -32,27 +47,46 @@ from app.services.registry_lifecycle import (
     update_metadata_json_fields,
 )
 from app.services.storage import StorageClient, get_storage
-from app.services.storage_reconcile import discard_if_unreferenced
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/trust-requests", tags=["trust-requests"])
 
 
-def get_file_service(storage: StorageClient = Depends(get_storage)) -> FileService:
-    return FileService(storage)
+def require_current_reviewer(
+    session: dict = Depends(require_can_review), db: Session = Depends(get_db)
+) -> dict:
+    trust_svc.require_current_reviewer(db, session)
+    return session
 
 
 TRUST_REQUEST_STATUSES = {"new", "in_progress", "pending_review", "completed"}
 
 
 class TrustRequestCreate(BaseModel):
-    requester_email: str
-    requester_name: str | None = None
-    subject: str | None = None
-    message: str
-    workspace_id: int | None = None
-    workspace_slug: str | None = None
+    requester_email: str = Field(max_length=255)
+    requester_name: str | None = Field(default=None, max_length=255)
+    subject: str | None = Field(default=None, max_length=255)
+    message: str = Field(min_length=1, max_length=10000)
+    workspace_id: int | None = Field(default=None, gt=0)
+    workspace_slug: str | None = Field(default=None, max_length=64)
+
+    @field_validator("requester_email")
+    @classmethod
+    def validate_email(cls, value: str) -> str:
+        return trust_svc.validate_mailbox(value)
+
+    @field_validator("requester_name", "subject", "message", "workspace_slug")
+    @classmethod
+    def validate_text_fields(cls, value: str | None) -> str | None:
+        return trust_svc.validate_text(value)
+
+    @field_validator("message")
+    @classmethod
+    def validate_message(cls, value: str) -> str:
+        if not value.strip():
+            raise ValueError("Message is required")
+        return value.strip()
 
 
 class TrustRequestUpdate(BaseModel):
@@ -148,16 +182,16 @@ def _to_dict(r: TrustRequest, db: Session | None = None) -> dict:
     return out
 
 
-@router.post("/")
-def create_trust_request(
+def _persist_intake(
     body: TrustRequestCreate,
     request: Request,
-    db: Session = Depends(get_db),
+    db: Session,
+    client_key: str | None,
+    document: UploadFile | None = None,
+    storage: StorageClient | None = None,
 ):
-    """Submit a trust information request (JSON). Public (no auth required)."""
-    host = request.headers.get("host") or request.headers.get("x-forwarded-host") or ""
+    host = request.headers.get("host") or ""
     path = request.headers.get("x-trust-path") or ""
-
     ws_id, method = resolve_workspace_for_trust_request(
         db,
         workspace_id=body.workspace_id,
@@ -165,29 +199,110 @@ def create_trust_request(
         submitted_host=host,
         submitted_path=path,
     )
+    file_hash = None
+    content = None
+    filename = None
+    if document and document.filename and document.file:
+        filename = sanitize_filename(document.filename)
+        ext = Path(filename).suffix.lower()
+        if ext not in ALLOWED_RAW_EXTENSIONS:
+            raise HTTPException(400, "File type is not supported.")
+        content = document.file.read(get_settings().max_upload_bytes + 1)
+        document.file.seek(0)
+        if len(content) > get_settings().max_upload_bytes:
+            raise HTTPException(413, "File is too large.")
+        file_hash = hashlib.sha256(content).hexdigest()
+    digest = trust_svc.fingerprint(
+        {
+            **body.model_dump(),
+            "attachment_hash": file_hash,
+            "attachment_name": document.filename if file_hash else None,
+        }
+    )
+    key, owner, cached = trust_svc.begin_intake(db, ws_id, client_key, digest)
+    if cached is not None:
+        return cached
+    uploaded_key = None
+    try:
+        req = TrustRequest(
+            workspace_id=ws_id,
+            requester_email=body.requester_email,
+            requester_name=body.requester_name,
+            subject=body.subject,
+            message=body.message,
+            frameworks_json=json.dumps(["Other"]),
+            subject_areas_json=json.dumps(["Other"]),
+            status="new",
+            intake_version=1,
+            submitted_host=host[:255] or None,
+            submitted_path=path[:255] or None,
+            resolution_method=method,
+        )
+        db.add(req)
+        db.flush()
+        req.display_id = build_display_id("trust_request", req.id)
+        if file_hash is not None:
+            # Own the key before the network call: an upload may write then time out.
+            uploaded_key = f"trust-requests/{ws_id}/{req.id}/{uuid4().hex}{ext}"
+            storage.upload(
+                storage.bucket_raw, uploaded_key, content, content_type=document.content_type
+            )
+            req.attachment_filename, req.attachment_storage_key, req.attachment_size = (
+                filename,
+                uploaded_key,
+                len(content),
+            )
+        response = _to_dict(req, db)
+        trust_svc.finish_intake(db, key, owner, digest, response)
+        return response
+    except Exception as exc:
+        if isinstance(exc, trust_svc.IntakeCommitUncertain):
+            # Never delete a possibly committed attachment or a completed retry response.
+            # Without a reliable fresh database read, retain both for replay/reconciliation.
+            try:
+                db.rollback()
+            except Exception:
+                logger.error("trust intake database cleanup requires reconciliation")
+            logger.error(
+                "trust intake save outcome requires reconciliation request_id=%s storage_key=%s",
+                response["id"],
+                uploaded_key,
+            )
+            raise HTTPException(
+                502,
+                "The save outcome could not be confirmed. Retry using the same request key if supplied.",
+            ) from None
+        abort_failed = False
+        try:
+            trust_svc.abort_intake(db, key, owner)
+        except Exception:
+            abort_failed = True
+            logger.error("trust intake database cleanup requires reconciliation")
+        if uploaded_key and storage:
+            try:
+                storage.delete(storage.bucket_raw, uploaded_key)
+            except Exception:
+                logger.error(
+                    "trust attachment cleanup requires reconciliation storage_key=%s",
+                    uploaded_key,
+                )
+        if isinstance(exc, HTTPException) and not abort_failed:
+            raise
+        if isinstance(exc, trust_svc.idempotency.IdempotencyClaimLost) and not abort_failed:
+            raise HTTPException(409, "This request lost its retry lease. Please retry.") from None
+        logger.error("trust intake persistence failed (%s)", type(exc).__name__)
+        raise HTTPException(502, "The request could not be saved. Please retry.") from None
 
-    req = TrustRequest(
-        workspace_id=ws_id,
-        requester_email=body.requester_email,
-        requester_name=body.requester_name,
-        subject=body.subject,
-        message=body.message,
-        frameworks_json=json.dumps(["Other"]),
-        subject_areas_json=json.dumps(["Other"]),
-        status="new",
-        submitted_host=host[:255] if host else None,
-        submitted_path=path[:255] if path else None,
-        resolution_method=method,
-    )
-    db.add(req)
-    db.flush()
-    req.display_id = build_display_id("trust_request", req.id)
-    db.commit()
-    db.refresh(req)
-    logger.info(
-        "trust_request_created id=%s workspace_id=%s method=%s host=%s", req.id, ws_id, method, host
-    )
-    return _to_dict(req, db)
+
+@router.post("/")
+def create_trust_request(
+    body: TrustRequestCreate,
+    request: Request,
+    db: Session = Depends(get_db),
+    idempotency_key: str | None = Header(None, alias="Idempotency-Key"),
+):
+    """Submit a bounded trust information request."""
+    return _persist_intake(body, request, db, idempotency_key)
 
 
 @router.post("/submit")
@@ -201,66 +316,22 @@ def submit_trust_request_with_attachment(
     workspace_slug: str | None = Form(None),
     document: UploadFile | None = File(None),
     db: Session = Depends(get_db),
-    file_svc: FileService = Depends(get_file_service),
+    storage: StorageClient = Depends(get_storage),
+    idempotency_key: str | None = Header(None, alias="Idempotency-Key"),
 ):
-    """Submit a trust information request with optional document upload. Public (no auth required)."""
-    host = request.headers.get("host") or request.headers.get("x-forwarded-host") or ""
-    path = request.headers.get("x-trust-path") or ""
-
-    ws_id, method = resolve_workspace_for_trust_request(
-        db,
-        workspace_id=workspace_id,
-        workspace_slug=workspace_slug,
-        submitted_host=host,
-        submitted_path=path,
-    )
-
-    req = TrustRequest(
-        workspace_id=ws_id,
-        requester_email=requester_email.strip(),
-        requester_name=(requester_name or "").strip() or None,
-        subject=(subject or "").strip() or None,
-        message=message.strip(),
-        frameworks_json=json.dumps(["Other"]),
-        subject_areas_json=json.dumps(["Other"]),
-        status="new",
-        submitted_host=host[:255] if host else None,
-        submitted_path=path[:255] if path else None,
-        resolution_method=method,
-    )
-    db.add(req)
-    db.flush()
-    req.display_id = build_display_id("trust_request", req.id)
-    db.commit()
-    db.refresh(req)
-
-    if document and document.filename and document.file:
-        stored_key: str | None = None
-        try:
-            stored_key, filename, size = file_svc.upload_trust_request_attachment(
-                ws_id, req.id, document
-            )
-            req.attachment_filename = filename
-            req.attachment_storage_key = stored_key
-            req.attachment_size = size
-            db.commit()
-            db.refresh(req)
-        except HTTPException:
-            raise
-        except Exception:
-            db.rollback()
-            discard_if_unreferenced(db, file_svc._storage, file_svc._storage.bucket_raw, stored_key)
-            logger.exception("trust_request attachment upload failed for id=%s", req.id)
-
-    logger.info(
-        "trust_request_submitted id=%s workspace_id=%s method=%s host=%s attachment=%s",
-        req.id,
-        ws_id,
-        method,
-        host,
-        req.attachment_filename or "none",
-    )
-    return _to_dict(req, db)
+    """Submit a trust request with one permitted, bounded attachment."""
+    try:
+        body = TrustRequestCreate(
+            requester_email=requester_email,
+            requester_name=requester_name,
+            subject=subject,
+            message=message,
+            workspace_id=workspace_id,
+            workspace_slug=workspace_slug,
+        )
+    except ValidationError as exc:
+        raise RequestValidationError(exc.errors()) from None
+    return _persist_intake(body, request, db, idempotency_key, document, storage)
 
 
 # ---------------------------------------------------------------------------
@@ -271,20 +342,22 @@ def submit_trust_request_with_attachment(
 @router.get("/{request_id}/attachment")
 def download_trust_request_attachment(
     request_id: int,
-    session: dict = Depends(require_can_review),
+    session: dict = Depends(require_current_reviewer),
     db: Session = Depends(get_db),
     storage: StorageClient = Depends(get_storage),
 ):
     """Download the attachment for a trust request. Requires auth."""
     req = (
         db.query(TrustRequest)
-        .filter(TrustRequest.id == request_id, TrustRequest.deleted_at.is_(None))
+        .filter(
+            TrustRequest.id == request_id,
+            TrustRequest.workspace_id == session.get("workspace_id"),
+            TrustRequest.deleted_at.is_(None),
+        )
         .first()
     )
     if not req:
         raise HTTPException(status_code=404, detail="Trust request not found")
-    if req.workspace_id is not None and session.get("workspace_id") != req.workspace_id:
-        raise HTTPException(status_code=403, detail="Access denied")
     if not req.attachment_storage_key:
         raise HTTPException(status_code=404, detail="No attachment on this trust request")
 
@@ -308,7 +381,7 @@ def download_trust_request_attachment(
 
 @router.get("/summary")
 def get_trust_requests_summary(
-    session: dict = Depends(require_can_review),
+    session: dict = Depends(require_current_reviewer),
     db: Session = Depends(get_db),
 ):
     """Return counts by status and completed_this_month. Same auth as list."""
@@ -358,7 +431,7 @@ def list_trust_requests(
     created_from: str | None = Query(None),
     created_to: str | None = Query(None),
     archived: str | None = Query(None, description="active|include|only"),
-    session: dict = Depends(require_can_review),
+    session: dict = Depends(require_current_reviewer),
     db: Session = Depends(get_db),
 ):
     """List trust requests. Requires auth (internal viewing). Scoped to session workspace only."""
@@ -416,19 +489,21 @@ def list_trust_requests(
 @router.get("/{request_id}")
 def get_trust_request(
     request_id: int,
-    session: dict = Depends(require_can_review),
+    session: dict = Depends(require_current_reviewer),
     db: Session = Depends(get_db),
 ):
     """Get a single trust request. Requires auth."""
     req = (
         db.query(TrustRequest)
-        .filter(TrustRequest.id == request_id, TrustRequest.deleted_at.is_(None))
+        .filter(
+            TrustRequest.id == request_id,
+            TrustRequest.workspace_id == session.get("workspace_id"),
+            TrustRequest.deleted_at.is_(None),
+        )
         .first()
     )
     if not req:
         raise HTTPException(status_code=404, detail="Trust request not found")
-    if req.workspace_id is not None and session.get("workspace_id") != req.workspace_id:
-        raise HTTPException(status_code=403, detail="Access denied")
     return _to_dict(req, db)
 
 
@@ -436,19 +511,21 @@ def get_trust_request(
 def update_trust_request(
     request_id: int,
     body: TrustRequestUpdate,
-    session: dict = Depends(require_can_review),
+    session: dict = Depends(require_current_reviewer),
     db: Session = Depends(get_db),
 ):
     """Update trust request status and/or assignee. Requires auth."""
     req = (
         db.query(TrustRequest)
-        .filter(TrustRequest.id == request_id, TrustRequest.deleted_at.is_(None))
+        .filter(
+            TrustRequest.id == request_id,
+            TrustRequest.workspace_id == session.get("workspace_id"),
+            TrustRequest.deleted_at.is_(None),
+        )
         .first()
     )
     if not req:
         raise HTTPException(status_code=404, detail="Trust request not found")
-    if req.workspace_id is not None and session.get("workspace_id") != req.workspace_id:
-        raise HTTPException(status_code=403, detail="Access denied")
 
     old_status = req.status
     old_assignee_id = req.assignee_id
@@ -458,7 +535,6 @@ def update_trust_request(
             raise HTTPException(
                 status_code=400, detail=f"Invalid status. Allowed: {sorted(TRUST_REQUEST_STATUSES)}"
             )
-        req.status = body.status
     if body.assignee_id is not None:
         new_assignee = body.assignee_id if body.assignee_id else None
         if new_assignee is not None and req.workspace_id is not None:
@@ -467,6 +543,7 @@ def update_trust_request(
                 .filter(
                     WorkspaceMember.workspace_id == req.workspace_id,
                     WorkspaceMember.user_id == new_assignee,
+                    WorkspaceMember.suspended.is_(False),
                 )
                 .first()
             )
@@ -476,6 +553,26 @@ def update_trust_request(
                     detail="Assignee must be a member of the request's workspace.",
                 )
         req.assignee_id = new_assignee
+    if body.status is not None:
+        if body.status == "completed":
+            delivered = (
+                db.query(TrustRequestNote.id)
+                .filter(
+                    TrustRequestNote.trust_request_id == req.id,
+                    TrustRequestNote.delivery_status == "accepted",
+                    TrustRequestNote.approved_revision == TrustRequestNote.body_revision,
+                    TrustRequestNote.approved_at.is_not(None),
+                    TrustRequestNote.approved_by.is_not(None),
+                    TrustRequestNote.delivery_accepted_at.is_not(None),
+                )
+                .first()
+            )
+            if delivered is None:
+                db.rollback()
+                raise HTTPException(
+                    409, "An approved reply must be accepted for delivery before completion."
+                )
+        req.status = body.status
 
     db.commit()
     db.refresh(req)
@@ -508,7 +605,7 @@ def update_trust_request(
 def bulk_delete_trust_requests(
     body: BulkDeleteBody,
     workspace_id: int = Query(...),
-    session: dict = Depends(require_can_review),
+    session: dict = Depends(require_current_reviewer),
     db: Session = Depends(get_db),
 ):
     """Bulk soft-delete trust requests."""
@@ -545,7 +642,7 @@ def bulk_delete_trust_requests(
 def delete_trust_request(
     request_id: int,
     workspace_id: int = Query(...),
-    session: dict = Depends(require_can_review),
+    session: dict = Depends(require_current_reviewer),
     db: Session = Depends(get_db),
 ):
     if session.get("workspace_id") != workspace_id:
@@ -587,7 +684,7 @@ def delete_trust_request(
 def delete_preview_trust_request(
     request_id: int,
     workspace_id: int = Query(...),
-    session: dict = Depends(require_can_review),
+    session: dict = Depends(require_current_reviewer),
     db: Session = Depends(get_db),
 ):
     if session.get("workspace_id") != workspace_id:
@@ -600,16 +697,6 @@ def delete_preview_trust_request(
     if not req:
         raise HTTPException(status_code=404, detail="Trust request not found")
     preview = build_delete_preview("trust_request", db, workspace_id, request_id)
-    persist_audit(
-        db,
-        "trust_request.delete_preview",
-        user_id=session.get("user_id"),
-        email=session.get("email"),
-        workspace_id=workspace_id,
-        resource_type="trust_request",
-        resource_id=req.id,
-        details={"display_id": req.display_id, "dependencies": preview.dependencies},
-    )
     return {
         "id": req.id,
         "display_id": req.display_id or preview.display_id,
@@ -625,7 +712,7 @@ def delete_preview_trust_request(
 def restore_trust_request(
     request_id: int,
     workspace_id: int = Query(...),
-    session: dict = Depends(require_can_review),
+    session: dict = Depends(require_current_reviewer),
     db: Session = Depends(get_db),
 ):
     if session.get("workspace_id") != workspace_id:
@@ -661,7 +748,7 @@ def update_trust_request_metadata(
     request_id: int,
     body: MetadataUpdateBody,
     workspace_id: int = Query(...),
-    session: dict = Depends(require_can_review),
+    session: dict = Depends(require_current_reviewer),
     db: Session = Depends(get_db),
 ):
     if session.get("workspace_id") != workspace_id:
@@ -696,12 +783,27 @@ def update_trust_request_metadata(
 
 
 class TrustRequestNoteCreate(BaseModel):
-    body: str
+    body: str = Field(min_length=1, max_length=10000)
+
+    @field_validator("body")
+    @classmethod
+    def validate_body(cls, value: str) -> str:
+        trust_svc.validate_text(value)
+        if not value.strip():
+            raise ValueError("Body is required")
+        return value.strip()
 
 
-class TrustRequestReplyCreate(BaseModel):
-    body: str
+class TrustRequestReplyCreate(TrustRequestNoteCreate):
     send_email: bool = False
+
+
+class ReplyRevision(BaseModel):
+    revision: int = Field(ge=1, le=1000000)
+
+
+class ReplyEdit(TrustRequestNoteCreate):
+    revision: int = Field(ge=0, le=999999)
 
 
 def _note_to_dict(n: TrustRequestNote, db: Session) -> dict:
@@ -711,6 +813,17 @@ def _note_to_dict(n: TrustRequestNote, db: Session) -> dict:
         "author_id": n.author_id,
         "note_type": getattr(n, "note_type", None) or NOTE_TYPE_INTERNAL,
         "body": n.body,
+        "body_revision": n.body_revision,
+        "approved_revision": n.approved_revision,
+        "approved_by": n.approved_by,
+        "approved_at": n.approved_at.isoformat() if n.approved_at else None,
+        "delivery_status": n.delivery_status,
+        "delivery_attempts": n.delivery_attempts,
+        "delivery_started_at": n.delivery_started_at.isoformat() if n.delivery_started_at else None,
+        "delivery_accepted_at": n.delivery_accepted_at.isoformat()
+        if n.delivery_accepted_at
+        else None,
+        "delivery_error": n.delivery_error,
         "created_at": n.created_at.isoformat() if n.created_at else None,
     }
     if n.author_id:
@@ -724,19 +837,21 @@ def _note_to_dict(n: TrustRequestNote, db: Session) -> dict:
 @router.get("/{request_id}/notes")
 def list_trust_request_notes(
     request_id: int,
-    session: dict = Depends(require_can_review),
+    session: dict = Depends(require_current_reviewer),
     db: Session = Depends(get_db),
 ):
     """List notes and replies for a trust request. Requires auth."""
     req = (
         db.query(TrustRequest)
-        .filter(TrustRequest.id == request_id, TrustRequest.deleted_at.is_(None))
+        .filter(
+            TrustRequest.id == request_id,
+            TrustRequest.workspace_id == session.get("workspace_id"),
+            TrustRequest.deleted_at.is_(None),
+        )
         .first()
     )
     if not req:
         raise HTTPException(status_code=404, detail="Trust request not found")
-    if req.workspace_id is not None and session.get("workspace_id") != req.workspace_id:
-        raise HTTPException(status_code=403, detail="Access denied")
     notes = (
         db.query(TrustRequestNote)
         .filter(TrustRequestNote.trust_request_id == request_id)
@@ -750,19 +865,21 @@ def list_trust_request_notes(
 def create_trust_request_note(
     request_id: int,
     body: TrustRequestNoteCreate,
-    session: dict = Depends(require_can_review),
+    session: dict = Depends(require_current_reviewer),
     db: Session = Depends(get_db),
 ):
     """Add an internal note to a trust request. Requires auth."""
     req = (
         db.query(TrustRequest)
-        .filter(TrustRequest.id == request_id, TrustRequest.deleted_at.is_(None))
+        .filter(
+            TrustRequest.id == request_id,
+            TrustRequest.workspace_id == session.get("workspace_id"),
+            TrustRequest.deleted_at.is_(None),
+        )
         .first()
     )
     if not req:
         raise HTTPException(status_code=404, detail="Trust request not found")
-    if req.workspace_id is not None and session.get("workspace_id") != req.workspace_id:
-        raise HTTPException(status_code=403, detail="Access denied")
     body_text = (body.body or "").strip()
     if not body_text:
         raise HTTPException(status_code=400, detail="Body is required")
@@ -771,6 +888,7 @@ def create_trust_request_note(
         author_id=session.get("user_id"),
         note_type=NOTE_TYPE_INTERNAL,
         body=body_text,
+        body_revision=1,
     )
     db.add(note)
     db.commit()
@@ -796,57 +914,81 @@ def create_trust_request_note(
 def create_trust_request_reply(
     request_id: int,
     body: TrustRequestReplyCreate,
-    session: dict = Depends(require_can_review),
+    session: dict = Depends(require_current_reviewer),
     db: Session = Depends(get_db),
 ):
-    """Add a reply to the requester; optionally send email."""
+    """Create a reply draft for explicit review before delivery."""
     req = (
         db.query(TrustRequest)
-        .filter(TrustRequest.id == request_id, TrustRequest.deleted_at.is_(None))
+        .filter(
+            TrustRequest.id == request_id,
+            TrustRequest.workspace_id == session.get("workspace_id"),
+            TrustRequest.deleted_at.is_(None),
+        )
         .first()
     )
     if not req:
         raise HTTPException(status_code=404, detail="Trust request not found")
-    if req.workspace_id is not None and session.get("workspace_id") != req.workspace_id:
-        raise HTTPException(status_code=403, detail="Access denied")
-    body_text = (body.body or "").strip()
-    if not body_text:
-        raise HTTPException(status_code=400, detail="Body is required")
+    if body.send_email:
+        raise HTTPException(409, "Create and approve the reply before sending it.")
     note = TrustRequestNote(
         trust_request_id=request_id,
         author_id=session.get("user_id"),
         note_type=NOTE_TYPE_REPLY,
-        body=body_text,
+        body=body.body,
+        body_revision=1,
+        delivery_status="draft",
+        delivery_attempts=0,
     )
     db.add(note)
+    db.flush()
+    trust_svc.add_audit(db, "trust_request.reply_added", req, note, session)
     db.commit()
     db.refresh(note)
+    return _note_to_dict(note, db)
 
-    email_sent = False
-    if body.send_email and req.requester_email:
-        try:
-            email_sent = send_trust_reply_email(
-                to=req.requester_email,
-                body=body_text,
-                subject=req.subject or None,
-            )
-        except Exception:
-            email_sent = False
 
-    persist_audit(
-        db,
-        "trust_request.reply_added",
-        user_id=session.get("user_id"),
-        email=session.get("email"),
-        workspace_id=req.workspace_id,
-        resource_type="trust_request_note",
-        resource_id=note.id,
-        details={
-            "trust_request_id": request_id,
-            "author_id": note.author_id,
-            "note_type": NOTE_TYPE_REPLY,
-            "email_sent": email_sent,
-        },
+@router.patch("/{request_id}/replies/{note_id}")
+def edit_trust_reply(
+    request_id: int,
+    note_id: int,
+    body: ReplyEdit,
+    session: dict = Depends(require_current_reviewer),
+    db: Session = Depends(get_db),
+):
+    """Edit an unsent reply and invalidate approval of its previous revision."""
+    note = trust_svc.edit_reply(
+        db, session.get("workspace_id"), request_id, note_id, body.revision, body.body, session
+    )
+    return _note_to_dict(note, db)
+
+
+@router.post("/{request_id}/replies/{note_id}/approve")
+def approve_trust_reply(
+    request_id: int,
+    note_id: int,
+    body: ReplyRevision,
+    session: dict = Depends(require_current_reviewer),
+    db: Session = Depends(get_db),
+):
+    """Approve the exact reply revision as a signed-in workspace member."""
+    note = trust_svc.approve_reply(
+        db, session.get("workspace_id"), request_id, note_id, body.revision, session
+    )
+    return _note_to_dict(note, db)
+
+
+@router.post("/{request_id}/replies/{note_id}/send")
+def send_trust_reply(
+    request_id: int,
+    note_id: int,
+    body: ReplyRevision,
+    session: dict = Depends(require_current_reviewer),
+    db: Session = Depends(get_db),
+):
+    """Send an approved reply once and report provider acceptance or uncertainty."""
+    note = trust_svc.send_reply(
+        db, session.get("workspace_id"), request_id, note_id, body.revision, session
     )
     return _note_to_dict(note, db)
 
@@ -854,7 +996,7 @@ def create_trust_request_reply(
 @router.post("/{request_id}/suggest-reply")
 def suggest_reply(
     request_id: int,
-    session: dict = Depends(require_can_review),
+    session: dict = Depends(require_current_reviewer),
     db: Session = Depends(get_db),
 ):
     """Generate a suggested reply draft for this trust request (AI). Requires auth."""
@@ -862,13 +1004,15 @@ def suggest_reply(
         raise HTTPException(status_code=400, detail="request_id must be a positive integer")
     req = (
         db.query(TrustRequest)
-        .filter(TrustRequest.id == request_id, TrustRequest.deleted_at.is_(None))
+        .filter(
+            TrustRequest.id == request_id,
+            TrustRequest.workspace_id == session.get("workspace_id"),
+            TrustRequest.deleted_at.is_(None),
+        )
         .first()
     )
     if not req:
         raise HTTPException(status_code=404, detail="Trust request not found")
-    if req.workspace_id is not None and session.get("workspace_id") != req.workspace_id:
-        raise HTTPException(status_code=403, detail="Access denied")
     from app.services.trust_request_draft import suggest_reply_draft
 
     try:
