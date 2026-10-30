@@ -11,14 +11,15 @@ all of the following hold:
 * the key sits under ``raw/{workspace}/``, ``trust-requests/{workspace}/`` or ``exports/{workspace}/``
 * no document, questionnaire, export, trust-request attachment, or evidence content ref uses it
 * no queued or running job names it as ``input_version`` or as a payload ``storage_key``
+* no queued or running export job owns its deterministic output key
 * the object store's ``LastModified`` is strictly older than the grace period
 
 Object age is the store clock, not a database column. Dry-run is the default for the CLI. The
 worker sweep deletes. Both are safe to run again. A missing ``LastModified`` is kept.
 
 Raw upload keys stay random. A content-hash key would let a rolled-back second upload of the same
-bytes delete the live original. The sweep lists keys instead of recomputing them. Export keys are
-already one object per job.
+bytes delete the live original. Export keys remain one object per job. Their job row serializes
+the final upload/record commit with orphan deletion, so an old listing cannot delete retry output.
 """
 
 from __future__ import annotations
@@ -47,6 +48,7 @@ from app.services.job_effects import EnqueueConflictError, enqueue_job, job_idem
 logger = logging.getLogger(__name__)
 
 _KEY_WORKSPACE = re.compile(r"^(raw|trust-requests|exports)/([0-9]+)/")
+_EXPORT_JOB_KEY = re.compile(r"^exports/([0-9]+)/job-([0-9]+)(?:\.[^/]+)?$")
 _ACTIVE_JOB = (JobStatus.QUEUED.value, JobStatus.RUNNING.value)
 
 
@@ -94,10 +96,17 @@ def _payload_storage_key(payload: str | None) -> str | None:
     return None
 
 
-def referenced_storage_keys(session: Session) -> set[str]:
-    """Every key a sweep must not delete. Raises if the database cannot be read.
+def _export_job_identity(key: str) -> tuple[int, int] | None:
+    """Owner of a deterministic export key, including a fallback output extension."""
+    match = _EXPORT_JOB_KEY.fullmatch(key)
+    return (int(match.group(1)), int(match.group(2))) if match else None
 
-    Soft-deleted rows are included. An archived document is still an original.
+
+def referenced_storage_keys(session: Session) -> set[str]:
+    """Explicitly referenced keys a sweep must not delete. Raises if the database cannot be read.
+
+    Soft-deleted rows are included. An archived document is still an original. Deterministic
+    export ownership is checked separately because a requested XLSX may produce a DOCX fallback.
     """
     keys: set[str] = set()
     columns = (
@@ -120,9 +129,25 @@ def referenced_storage_keys(session: Session) -> set[str]:
 
 
 def storage_key_is_referenced(session: Session, key: str) -> bool:
-    """True when any protecting row currently names ``key``. Raises if the read fails."""
+    """True when any protecting row currently names ``key``. Raises if the read fails.
+
+    Lock a deterministic export's owning job before checking references. Keep that lock until
+    the caller finishes deleting and ends its transaction: a retry must not start a PUT between
+    the reference check and DELETE. Active exports protect their output before its record commits.
+    """
     if not key:
         return True
+    identity = _export_job_identity(key)
+    if identity is not None:
+        workspace_id, job_id = identity
+        owner = (
+            session.query(Job.status)
+            .filter(Job.id == job_id, Job.workspace_id == workspace_id, Job.kind == "export")
+            .with_for_update()
+            .first()
+        )
+        if owner is not None and owner[0] in _ACTIVE_JOB:
+            return True
     point = (
         session.query(Document.id).filter(Document.storage_key == key).first(),
         session.query(Questionnaire.id).filter(Questionnaire.storage_key == key).first(),
@@ -244,6 +269,11 @@ def reconcile_orphan_objects(
         moment = moment.astimezone(timezone.utc)
     cutoff = moment - timedelta(seconds=grace)
     referenced = referenced_storage_keys(session)
+    active_exports = set(
+        session.query(Job.workspace_id, Job.id)
+        .filter(Job.kind == "export", Job.status.in_(_ACTIVE_JOB))
+        .all()
+    )
     candidates: list[tuple[str, str]] = []
     for bucket, _label in _buckets(storage):
         for item in storage.list_objects(bucket):
@@ -255,7 +285,7 @@ def reconcile_orphan_objects(
                 continue
             if workspace_id is not None and owner != int(workspace_id):
                 continue
-            if key in referenced:
+            if key in referenced or _export_job_identity(key) in active_exports:
                 continue
             modified = _as_utc(item.get("last_modified"))
             if modified is None or modified >= cutoff:
@@ -331,9 +361,16 @@ def sweep_orphans_best_effort(session: Session, storage=None) -> OrphanReconcile
         return None
 
 
-def _pending_ids(session: Session, kind: str, field: str) -> set[int]:
-    pending: set[int] = set()
-    rows = session.query(Job).filter(Job.kind == kind, Job.status.in_(_ACTIVE_JOB)).all()
+def _pending_ids(
+    session: Session, kind: str, field: str, inputs: dict[tuple[int, int], str | None]
+) -> set[tuple[int, int]]:
+    """Active work or a cancellation of the current input blocks automatic recovery."""
+    pending: set[tuple[int, int]] = set()
+    rows = (
+        session.query(Job)
+        .filter(Job.kind == kind, Job.status.in_((*_ACTIVE_JOB, JobStatus.CANCELLED.value)))
+        .all()
+    )
     for job in rows:
         try:
             payload = json.loads(job.payload or "{}")
@@ -341,23 +378,33 @@ def _pending_ids(session: Session, kind: str, field: str) -> set[int]:
             continue
         if isinstance(payload, dict) and field in payload:
             try:
-                pending.add(int(payload[field]))
+                identity = (job.workspace_id, int(payload[field]))
             except (TypeError, ValueError):
                 continue
+            if job.status == JobStatus.CANCELLED.value:
+                version = job.input_version or _payload_storage_key(job.payload)
+                if version and version != inputs.get(identity):
+                    continue
+            pending.add(identity)
     return pending
 
 
 def enqueue_missing_document_jobs(session: Session) -> int:
-    """Queue ``index_document`` for an uploaded document that has no queued or running index job.
+    """Recover an uploaded document without active work or cancellation of its current input.
 
     The document row is already committed. Each new job commits on its own. One failure is logged
     and the next document is still attempted. Returns how many jobs were created.
     """
-    pending = _pending_ids(session, "index_document", "document_id")
     added = 0
     docs = session.query(Document).filter(Document.status == "uploaded").all()
+    pending = _pending_ids(
+        session,
+        "index_document",
+        "document_id",
+        {(doc.workspace_id, doc.id): doc.storage_key for doc in docs},
+    )
     for doc in docs:
-        if doc.id in pending or not doc.storage_key:
+        if (doc.workspace_id, doc.id) in pending or not doc.storage_key:
             continue
         try:
             _job, created = enqueue_job(
@@ -392,16 +439,21 @@ def enqueue_missing_document_jobs(session: Session) -> int:
 
 
 def enqueue_missing_parse_jobs(session: Session) -> int:
-    """Queue ``parse_questionnaire`` for an uploaded questionnaire with no queued or running parse.
+    """Recover an uploaded questionnaire without active work or cancellation of its current input.
 
     Same commit shape as the document hook. A questionnaire with no storage key is skipped: there
     is no object to parse. Returns how many jobs were created.
     """
-    pending = _pending_ids(session, "parse_questionnaire", "questionnaire_id")
     added = 0
     rows = session.query(Questionnaire).filter(Questionnaire.status == "uploaded").all()
+    pending = _pending_ids(
+        session,
+        "parse_questionnaire",
+        "questionnaire_id",
+        {(qnr.workspace_id, qnr.id): qnr.storage_key for qnr in rows},
+    )
     for qnr in rows:
-        if qnr.id in pending or not qnr.storage_key:
+        if (qnr.workspace_id, qnr.id) in pending or not qnr.storage_key:
             continue
         try:
             _job, created = enqueue_job(

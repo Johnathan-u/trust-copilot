@@ -4,24 +4,26 @@ Two failure cases are covered. The object can be stored and the commit can still
 be committed and the job can still be missing. Orphans are removed only when nothing references
 them and they are strictly older than the grace period. A dry-run deletes nothing.
 
-Fakes only: an in-memory store, the side ``*_test`` database, no network, no real keys. The
-fixture records max(id) and counts, deletes rows above that id, and asserts the counts. It does
-not call setval. Storage objects are cleared with the fake.
+In-memory storage, no provider calls or real keys. Deterministic query schedules use SQLite;
+the locking and route tests require the side ``*_test`` PostgreSQL database. That fixture records
+max(id) and counts, deletes rows above that id, and asserts the counts. It does not call setval.
+Storage objects are cleared with the fake.
 """
 
 from __future__ import annotations
 
 import json
-import time
 import uuid
 from datetime import datetime, timedelta, timezone
 
 import pytest
 from fastapi.testclient import TestClient
-from sqlalchemy import text
+from sqlalchemy import create_engine, text
 from sqlalchemy.orm import Session as OrmSession
+from sqlalchemy.schema import CreateTable
 
 from app.core.database import SessionLocal
+from app.core.job_lease import LeaseLost
 from app.models import (
     Document,
     EvidenceVersion,
@@ -103,6 +105,12 @@ class MemoryStorage:
             raise RuntimeError("synthetic delete failure")
         self.objects.pop((bucket, key), None)
 
+    def upload(self, bucket, key, body, content_type=None):
+        return self.put(bucket, key, body)
+
+    def download(self, bucket, key):
+        return self.objects[(bucket, key)]["body"]
+
     def list_objects(self, bucket: str) -> list[dict]:
         if self.list_error is not None:
             raise self.list_error
@@ -167,6 +175,297 @@ def store():
         yield memory
     finally:
         memory.clear()
+
+
+@pytest.fixture
+def local_db():
+    """Real SQL queries for deterministic schedules; PostgreSQL lock tests still use ``db``.
+
+    Create tables without PostgreSQL-only partial indexes. This fixture does not qualify
+    database locking or replace the integration suite.
+    """
+    engine = create_engine("sqlite://")
+    with engine.begin() as connection:
+        for model in (
+            Document,
+            Questionnaire,
+            ExportRecord,
+            TrustRequest,
+            EvidenceVersion,
+            Job,
+        ):
+            connection.execute(CreateTable(model.__table__))
+    with OrmSession(engine) as session:
+        yield session
+    engine.dispose()
+
+
+@pytest.mark.unit
+@pytest.mark.parametrize("status", ["queued", "running"])
+@pytest.mark.parametrize("suffix", [".xlsx", ".docx"])
+def test_sweep_spares_export_retry_uploaded_after_the_listing(
+    local_db, store: MemoryStorage, monkeypatch, status, suffix
+):
+    job = Job(id=7, workspace_id=WS, kind="export", status="failed", input_version="raw/1/source")
+    local_db.add(job)
+    local_db.commit()
+    key = f"exports/{WS}/job-7{suffix}"
+    store.put(store.bucket_exports, key, b"old-attempt", when=NOW - timedelta(days=2))
+    original_list = store.list_objects
+
+    def retry_after_listing(bucket):
+        snapshot = original_list(bucket)
+        if bucket == store.bucket_exports:
+            job.status = status
+            local_db.commit()
+            store.put(bucket, key, b"retry-output", when=NOW)
+        return snapshot
+
+    monkeypatch.setattr(store, "list_objects", retry_after_listing)
+    result = _sweep(local_db, store, dry_run=False)
+    assert result.deleted == ()
+    assert result.spared == ((store.bucket_exports, key),)
+    assert store.objects[(store.bucket_exports, key)]["body"] == b"retry-output"
+    local_db.add(ExportRecord(workspace_id=WS, job_id=7, storage_key=key, filename="answers.xlsx"))
+    local_db.commit()
+    assert store.contains(store.bucket_exports, key)
+
+
+@pytest.mark.unit
+def test_stale_attempt_cleanup_keeps_winners_uncommitted_export(local_db, store: MemoryStorage):
+    local_db.add(Job(id=7, workspace_id=WS, kind="export", status="running", lease_owner="winner"))
+    local_db.commit()
+    key = f"exports/{WS}/job-7.docx"
+    store.put(store.bucket_exports, key, b"winner-output", when=NOW)
+    real_commit = local_db.commit
+
+    def lost_lease():
+        raise LeaseLost(7)
+
+    local_db.commit = lost_lease
+    with pytest.raises(LeaseLost):
+        commit_or_discard_object(local_db, store, store.bucket_exports, key)
+    local_db.commit = real_commit
+    # The winner has put its bytes, but its ExportRecord was not visible to cleanup yet.
+    local_db.add(ExportRecord(workspace_id=WS, job_id=7, storage_key=key, filename="answers.docx"))
+    local_db.commit()
+    assert store.objects[(store.bucket_exports, key)]["body"] == b"winner-output"
+    assert store.deletes == []
+
+
+@pytest.mark.unit
+def test_dry_run_protects_only_owned_active_export_keys(local_db, store: MemoryStorage):
+    local_db.add(Job(id=7, workspace_id=WS, kind="export", status="running"))
+    local_db.add(Job(id=8, workspace_id=WS, kind="parse_questionnaire", status="running"))
+    local_db.commit()
+    protected = ["exports/1/job-7.xlsx", "exports/1/job-7.docx"]
+    unowned = [
+        "exports/2/job-7.xlsx",
+        "exports/1/job-8.xlsx",
+        "exports/1/job-99.xlsx",
+        "exports/1/job-other.xlsx",
+    ]
+    for key in protected + unowned:
+        store.put(store.bucket_exports, key, when=NOW - timedelta(days=2))
+    dry = _sweep(local_db, store, dry_run=True)
+    assert dry.candidates == tuple(sorted((store.bucket_exports, key) for key in unowned))
+    assert store.deletes == []
+    done = _sweep(local_db, store, dry_run=False)
+    assert done.deleted == dry.candidates
+    assert all(store.contains(store.bucket_exports, key) for key in protected)
+
+
+@pytest.mark.unit
+@pytest.mark.parametrize(
+    "model,kind,field",
+    [
+        (Document, "index_document", "document_id"),
+        (Questionnaire, "parse_questionnaire", "questionnaire_id"),
+    ],
+)
+@pytest.mark.parametrize("same_input", [True, False])
+def test_recovery_preserves_cancellation_for_current_input(
+    local_db, model, kind, field, same_input
+):
+    current = "raw/1/current.xlsx"
+    local_db.add(
+        model(id=42, workspace_id=WS, storage_key=current, filename="q.xlsx", status="uploaded")
+    )
+    local_db.add(
+        Job(
+            id=7,
+            workspace_id=WS,
+            kind=kind,
+            status="cancelled",
+            input_version=current if same_input else "raw/1/previous.xlsx",
+            payload=json.dumps({field: 42}),
+        )
+    )
+    local_db.commit()
+    counts = reconcile_missing_jobs(local_db)
+    assert counts[kind] == (0 if same_input else 1)
+    assert local_db.get(Job, 7).status == "cancelled"
+    assert local_db.query(Job).filter(Job.status == "queued").count() == (0 if same_input else 1)
+
+
+def test_cancelled_parse_stays_cancelled_until_manual_retry(db):
+    from app.services.job_control import cancel_job, retry_job
+    from app.services.job_effects import enqueue_job, job_idempotency_key
+
+    qnr = Questionnaire(
+        workspace_id=WS,
+        storage_key=f"raw/{WS}/{uuid.uuid4().hex}.xlsx",
+        filename="cancelled.xlsx",
+        status="uploaded",
+    )
+    db.add(qnr)
+    db.commit()
+    job, _created = enqueue_job(
+        db,
+        workspace_id=WS,
+        kind="parse_questionnaire",
+        payload={"questionnaire_id": qnr.id, "storage_key": qnr.storage_key},
+        input_version=qnr.storage_key,
+        idempotency_key=job_idempotency_key("parse_questionnaire", WS, qnr.id, qnr.storage_key),
+    )
+    job_id, qnr_id = job.id, qnr.id
+    outcome, _job = cancel_job(
+        db, job_id, workspace_id=WS, actor_user_id=1, actor_email="admin@trust.local"
+    )
+    assert outcome == "cancelled"
+    reconcile_missing_jobs(db)
+    assert [
+        (item.id, item.status)
+        for item in _jobs_for(db, "parse_questionnaire", "questionnaire_id", qnr_id)
+    ] == [(job_id, "cancelled")]
+    outcome, _job = retry_job(
+        db, job_id, workspace_id=WS, actor_user_id=1, actor_email="admin@trust.local"
+    )
+    assert outcome == "retried"
+    reconcile_missing_jobs(db)
+    assert [
+        (item.id, item.status)
+        for item in _jobs_for(db, "parse_questionnaire", "questionnaire_id", qnr_id)
+    ] == [(job_id, "queued")]
+
+
+@pytest.mark.parametrize("status", ["failed", "cancelled", "completed"])
+def test_export_cleanup_locks_inactive_job_until_delete_finishes(db, store: MemoryStorage, status):
+    from sqlalchemy.exc import OperationalError
+
+    job = Job(workspace_id=WS, kind="export", status=status)
+    db.add(job)
+    db.commit()
+    key = f"exports/{WS}/job-{job.id}.xlsx"
+    store.put(store.bucket_exports, key, when=NOW - timedelta(days=2))
+    attempted: list[str] = []
+    original_delete = store.delete
+
+    def retry_during_delete(bucket, deleting_key):
+        retry = SessionLocal()
+        try:
+            retry.execute(text("SET LOCAL lock_timeout = '100ms'"))
+            try:
+                retry.execute(
+                    text("UPDATE jobs SET status = 'queued' WHERE id = :id"), {"id": job.id}
+                )
+            except OperationalError as error:
+                assert error.orig.pgcode == "55P03"
+                attempted.append("blocked")
+            else:
+                attempted.append("unprotected")
+        finally:
+            retry.rollback()
+            retry.close()
+        original_delete(bucket, deleting_key)
+
+    store.delete = retry_during_delete
+    assert discard_if_unreferenced(db, store, store.bucket_exports, key)
+    assert attempted == ["blocked"]
+    assert not store.contains(store.bucket_exports, key)
+
+
+def _export_attempt(session, store, monkeypatch):
+    from app import worker
+
+    qnr = Questionnaire(
+        workspace_id=WS, storage_key="raw/1/source.xlsx", filename="source.xlsx", status="parsed"
+    )
+    job = Job(
+        workspace_id=WS,
+        kind="export",
+        status="running",
+        lease_owner="original",
+        lease_expires_at=datetime.now(timezone.utc) + timedelta(hours=1),
+    )
+    session.add_all([qnr, job])
+    session.commit()
+    store.put(store.bucket_raw, qnr.storage_key, b"synthetic-source")
+    monkeypatch.setattr(worker, "StorageClient", lambda: store)
+    # Quota accounting is separately covered; this schedule concerns object ownership.
+    monkeypatch.setattr(worker, "_record_usage_once", lambda *args: None)
+    return job, {"workspace_id": WS, "questionnaire_id": qnr.id}
+
+
+def test_stale_export_attempt_cannot_overwrite_new_owners_output(
+    db, store: MemoryStorage, monkeypatch
+):
+    from app import worker
+
+    job, payload = _export_attempt(db, store, monkeypatch)
+    job_id = job.id
+    key = f"exports/{WS}/job-{job_id}.xlsx"
+    store.put(store.bucket_exports, key, b"winner-output")
+
+    def finish_render(*args, **kwargs):
+        # A new claim wins while the old worker is still producing its bytes.
+        with SessionLocal() as winner:
+            winner.query(Job).filter(Job.id == job_id).update({Job.lease_owner: "winner"})
+            winner.commit()
+        return b"stale-output"
+
+    monkeypatch.setattr("app.services.xlsx_writer.create_export_from_questionnaire", finish_render)
+    with pytest.raises(LeaseLost):
+        worker.run_export(job, db, payload)
+    assert store.objects[(store.bucket_exports, key)]["body"] == b"winner-output"
+    assert store.deletes == []
+
+
+def test_export_put_keeps_job_lock_through_record_commit(db, store: MemoryStorage, monkeypatch):
+    from app import worker
+    from sqlalchemy.exc import OperationalError
+
+    job, payload = _export_attempt(db, store, monkeypatch)
+    job_id = job.id
+    blocked: list[bool] = []
+
+    def put_while_takeover_attempts(bucket, key, body, content_type=None):
+        retry = SessionLocal()
+        try:
+            retry.execute(text("SET LOCAL lock_timeout = '100ms'"))
+            try:
+                retry.execute(
+                    text("UPDATE jobs SET lease_owner = 'winner' WHERE id = :id"), {"id": job_id}
+                )
+            except OperationalError as error:
+                assert error.orig.pgcode == "55P03"
+                blocked.append(True)
+            else:
+                blocked.append(False)
+        finally:
+            retry.rollback()
+            retry.close()
+        return store.put(bucket, key, body)
+
+    monkeypatch.setattr(store, "upload", put_while_takeover_attempts)
+    monkeypatch.setattr(
+        "app.services.xlsx_writer.create_export_from_questionnaire",
+        lambda *a, **k: b"winner-output",
+    )
+    worker.run_export(job, db, payload)
+    assert blocked == [True]
+    record = db.query(ExportRecord).filter(ExportRecord.job_id == job_id).one()
+    assert store.objects[(store.bucket_exports, record.storage_key)]["body"] == b"winner-output"
 
 
 def _mark(db, table: str) -> int:
@@ -846,10 +1145,15 @@ def test_idle_sweep_waits_out_the_grace(monkeypatch):
     monkeypatch.setattr("app.services.storage_reconcile.sweep_orphans_best_effort", fake_sweep)
     monkeypatch.setattr("app.services.storage_reconcile.orphan_grace_seconds", lambda: 7200)
     monkeypatch.setattr(worker, "SessionFactory", lambda: _Session())
-    monkeypatch.setattr(worker, "_last_orphan_sweep_monotonic", time.monotonic())
+    clock = [7199.0]
+    monkeypatch.setattr(worker.time, "monotonic", lambda: clock[0])
+    monkeypatch.setattr(worker, "_last_orphan_sweep_monotonic", 0.0)
     worker._maybe_sweep_orphans()
     assert calls == []
-    monkeypatch.setattr(worker, "_last_orphan_sweep_monotonic", 0.0)
+    clock[0] = 7200.0
+    worker._maybe_sweep_orphans()
+    assert calls == [1]
+    clock[0] = 7201.0
     worker._maybe_sweep_orphans()
     assert calls == [1]
 

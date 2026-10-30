@@ -632,6 +632,8 @@ def run_export(job: Job, session, payload: dict) -> None:
     from app.services.fallback_export import create_fallback_pack_docx
     from app.services.xlsx_writer import create_export_from_questionnaire
 
+    # Keep this attempt's token even if a rollback/refresh later sees a newer owner.
+    owner = _lease_owner(job)
     qnr_id = payload.get("questionnaire_id")
     ws_id = payload.get("workspace_id")
     if not qnr_id or not ws_id:
@@ -720,8 +722,16 @@ def run_export(job: Job, session, payload: dict) -> None:
         base = (qnr.filename or "export").rsplit(".", 1)[0]
         out_filename = f"{base}_answers_fallback.docx"
 
-    # Deterministic per-job key: a re-run overwrites the same object instead of orphaning a new one.
-    key = file_svc.upload_export(ws_id, out_bytes, out_filename, job_id=job.id)
+    # The deterministic key is shared by retries. Serialize the final PUT/record commit with
+    # claims, cancellation and orphan deletion using the existing job row lock. Render first,
+    # so the lock does not cover expensive document work. A stale owner must never PUT.
+    if owner:
+        confirm_lease_for_commit(session, job.id, owner)
+    try:
+        key = file_svc.upload_export(ws_id, out_bytes, out_filename, job_id=job.id)
+    except Exception:
+        session.rollback()
+        raise
     rec = ExportRecord(
         workspace_id=ws_id,
         questionnaire_id=qnr_id,
