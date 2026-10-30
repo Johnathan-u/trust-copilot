@@ -39,6 +39,18 @@ const AMOUNT = /^(0|[1-9]\d*)\.\d{2}$/
 const CURRENCY = /^[A-Z]{3}$/
 const DAY = /^\d{4}-\d{2}-\d{2}$/
 
+function validId(value: unknown): value is number {
+  return typeof value === 'number' && Number.isSafeInteger(value) && value > 0
+}
+
+function validDay(value: string): boolean {
+  if (!DAY.test(value) || value.startsWith('0000')) return false
+  const date = new Date(`${value}T00:00:00Z`)
+  return (
+    !Number.isNaN(date.getTime()) && date.toISOString().slice(0, 10) === value
+  )
+}
+
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
 }
@@ -52,12 +64,12 @@ function nullableString(value: unknown, label: string): string | null {
 
 function nullableId(value: unknown, label: string): number | null {
   if (value === null) return null
-  if (typeof value === 'number') return value
+  if (validId(value)) return value
   throw new Error(`${label} is invalid`)
 }
 
 function idList(value: unknown, label: string): number[] {
-  if (!Array.isArray(value) || value.some((item) => typeof item !== 'number')) {
+  if (!Array.isArray(value) || value.some((item) => !validId(item))) {
     throw new Error(`${label} must be a list of ids`)
   }
   return value
@@ -75,7 +87,7 @@ export function parseDeal(value: unknown): DealRecord {
   if (!isRecord(value)) throw new Error('deal response is missing')
   if (value.schema_version !== DEAL_SCHEMA)
     throw new Error('deal schema is unknown')
-  if (typeof value.id !== 'number' || typeof value.workspace_id !== 'number') {
+  if (!validId(value.id) || !validId(value.workspace_id)) {
     throw new Error('deal id is invalid')
   }
   if (typeof value.company_name !== 'string')
@@ -85,6 +97,8 @@ export function parseDeal(value: unknown): DealRecord {
     throw new Error('deal stage is unknown')
   }
   const dealAmount = amount(value.deal_value_arr)
+  if (dealAmount !== null && !/^(0|[1-9]\d{0,15})\.\d{2}$/.test(dealAmount))
+    throw new Error('deal amount exceeds the supported decimal range')
   const currency = nullableString(value.currency, 'currency')
   if (currency !== null && !CURRENCY.test(currency))
     throw new Error('currency is invalid')
@@ -93,9 +107,9 @@ export function parseDeal(value: unknown): DealRecord {
     'expected close date'
   )
   const actual = nullableString(value.actual_close_date, 'actual close date')
-  if (expected !== null && !DAY.test(expected))
+  if (expected !== null && !validDay(expected))
     throw new Error('expected close date is invalid')
-  if (actual !== null && !DAY.test(actual))
+  if (actual !== null && !validDay(actual))
     throw new Error('actual close date is invalid')
   const owner = nullableId(value.owner_user_id, 'owner')
   const room = nullableId(value.room_id, 'room')

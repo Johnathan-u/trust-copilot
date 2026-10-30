@@ -55,6 +55,27 @@ def get_session(request: Request) -> dict | None:
     return session
 
 
+def enforce_session_record(session: dict, db: Session) -> None:
+    """A human credential must name its own existing, non-revoked session."""
+    user_id = session.get("user_id")
+    if not user_id:
+        # Preserve the existing denial for a cookie with no human identity.
+        # API keys use their separate authenticated branch and never enter here.
+        raise HTTPException(status_code=403, detail="Active workspace membership required")
+    if type(user_id) is not int or user_id < 1:
+        raise HTTPException(status_code=401, detail="Session invalidated")
+    row = (
+        db.query(UserSession)
+        .filter(
+            UserSession.session_id == session.get("session_id"),
+            UserSession.user_id == user_id,
+        )
+        .first()
+    )
+    if row is None:
+        raise HTTPException(status_code=401, detail="Session invalidated")
+
+
 def enforce_mfa_enrol_session(request: Request, session: dict, db: Session) -> None:
     """Keep the administrator-reset flow restricted, including old normal cookies."""
     uid = session.get("user_id")
@@ -153,11 +174,7 @@ async def require_session(request: Request, db: Session = Depends(get_db)) -> di
     session = get_session(request)
     if not session:
         raise HTTPException(status_code=401, detail="Not authenticated")
-    session_id = session.get("session_id")
-    if session_id:
-        row = db.query(UserSession).filter(UserSession.session_id == session_id).first()
-        if not row:
-            raise HTTPException(status_code=401, detail="Session invalidated")
+    enforce_session_record(session, db)
     enforce_mfa_enrol_session(request, session, db)
     session = resolve_current_membership(request, session, db)
     _set_request_workspace_id(request, session.get("workspace_id"))

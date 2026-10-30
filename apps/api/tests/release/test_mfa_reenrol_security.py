@@ -145,7 +145,12 @@ def test_changed_membership_cannot_reset_using_old_admin_cookie(isolated_db, cha
     db.add(UserSession(user_id=1, session_id="synthetic-stale-admin"))
     db.commit()
     token = sign_session(
-        1, "synthetic-admin@example.com", 1, "admin", session_id="synthetic-stale-admin"
+        1,
+        "synthetic-admin@example.com",
+        1,
+        "admin",
+        session_id="synthetic-stale-admin",
+        max_age_seconds=3600,
     )
     req = request("/api/members/clear-mfa-reenrol/2", token)
     with pytest.raises(HTTPException) as denied:
@@ -192,7 +197,12 @@ def test_reset_invalidates_existing_sessions_and_blocks_legacy_cookie(isolated_d
     db.add(MfaRecoveryCode(user_id=2, code_hash="synthetic-before-reset-recovery"))
     db.commit()
     old = sign_session(
-        2, "synthetic-target@example.com", 1, "editor", session_id="synthetic-before-reset"
+        2,
+        "synthetic-target@example.com",
+        1,
+        "editor",
+        session_id="synthetic-before-reset",
+        max_age_seconds=3600,
     )
     legacy = sign_session(2, "synthetic-target@example.com", 1, "editor")
     reset(db)

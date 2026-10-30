@@ -119,7 +119,12 @@ def test_rotation_reencrypts_under_the_new_key_id(db_session: Session, monkeypat
 
 def test_retired_session_key_is_rejected(monkeypatch):
     monkeypatch.setenv("SESSION_KEYRING", f"v1:{SESS_A}")
-    token = sign_session(1, "synthetic-example@example.com", session_id="synthetic-example-sid")
+    token = sign_session(
+        1,
+        "synthetic-example@example.com",
+        session_id="synthetic-example-sid",
+        max_age_seconds=3600,
+    )
     assert token.startswith("v1.")
     assert verify_token(token) is not None
     monkeypatch.setenv("SESSION_KEYRING", f"v2:{SESS_B},v1:{SESS_A}")

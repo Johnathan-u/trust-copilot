@@ -177,7 +177,7 @@ def sign_session(
 
 
 def verify_token(token: str) -> dict | None:
-    """Verify and decode token, return payload or None. Rejects expired tokens (SESS-201)."""
+    """Verify a signed session's required expiry and identifier before returning it."""
     try:
         if not token or "." not in token:
             return None
@@ -187,9 +187,14 @@ def verify_token(token: str) -> dict | None:
         if data is None:
             return None
         payload = json.loads(base64.urlsafe_b64decode(data).decode())
+        if not isinstance(payload, dict):
+            return None
         exp = payload.get("exp")
-        if exp is not None and int(exp) < time.time():
-            return None  # Expired
+        if type(exp) is not int or exp <= time.time():
+            return None
+        session_id = payload.get("session_id")
+        if not isinstance(session_id, str) or not session_id.strip():
+            return None
         return payload
     except Exception:
         return None

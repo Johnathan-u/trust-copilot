@@ -55,6 +55,12 @@ export const appNavItems: readonly AppNavItem[] = [
   },
   { href: '/dashboard/review', label: 'Review', icon: '✅', section: 'core' },
   {
+    href: '/dashboard/deals',
+    label: 'Deals',
+    icon: '💼',
+    section: 'core',
+  },
+  {
     href: '/dashboard/requests',
     label: 'Requests',
     icon: '📨',
@@ -68,6 +74,12 @@ export const appNavItems: readonly AppNavItem[] = [
     section: 'core',
   },
   { href: '/dashboard/exports', label: 'Exports', icon: '⬇', section: 'core' },
+  {
+    href: '/dashboard/jobs',
+    label: 'Jobs',
+    icon: '◷',
+    section: 'core',
+  },
   {
     href: '/dashboard/compliance-gaps',
     label: 'Coverage',

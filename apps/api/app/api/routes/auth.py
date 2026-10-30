@@ -25,6 +25,7 @@ from app.core.audit import audit_log, persist_audit, record_decrypt_failure  # n
 from app.core.debug_session_log import append_session_debug  # noqa: E402
 from app.core.auth_deps import (  # noqa: E402
     enforce_mfa_enrol_session,
+    enforce_session_record,
     get_session,
     require_session,
     require_valid_session,
@@ -647,11 +648,18 @@ def logout(response: Response, request: Request, db: Session = Depends(get_db)):
     """Logout - clear session cookie and remove from session store."""
     session = get_session(request)
     if session:
+        try:
+            enforce_session_record(session, db)
+        except HTTPException:
+            # Clearing an invalid cookie is still safe, but it has no authority
+            # to revoke a stored session or attribute a logout audit event.
+            session = None
+    if session:
         sid = session.get("session_id")
         if sid:
-            db.query(UserSession).filter(UserSession.session_id == sid).delete(
-                synchronize_session=False
-            )
+            db.query(UserSession).filter(
+                UserSession.session_id == sid, UserSession.user_id == session["user_id"]
+            ).delete(synchronize_session=False)
             db.commit()
         audit_log(
             "auth.logout",
@@ -1814,11 +1822,7 @@ def me(request: Request, db: Session = Depends(get_db)):
     session = verify_token(cookie)
     if not session:
         raise HTTPException(status_code=401, detail="Invalid session")
-    session_id = session.get("session_id")
-    if session_id:
-        row = db.query(UserSession).filter(UserSession.session_id == session_id).first()
-        if not row:
-            raise HTTPException(status_code=401, detail="Session invalidated")
+    enforce_session_record(session, db)
     enforce_mfa_enrol_session(request, session, db)
     session = resolve_current_membership(request, session, db)
     user_id = session.get("user_id")
