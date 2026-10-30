@@ -534,6 +534,7 @@ def _login_impl(req: LoginRequest, request: Request, response: Response, db: Ses
             role="pending",
             session_id=session_id,
             max_age_seconds=max_age,
+            cookie_persistent=False,
         )
         response.set_cookie(
             key=SESSION_COOKIE, value=token, **_session_cookie_kwargs(max_age, persistent=False)
@@ -619,6 +620,7 @@ def _login_impl(req: LoginRequest, request: Request, response: Response, db: Ses
         session_id=session_id,
         max_age_seconds=max_age,
         mfa_enrol_only=reenrol_pending,
+        cookie_persistent=remember,
     )
     response.set_cookie(
         key=SESSION_COOKIE, value=token, **_session_cookie_kwargs(max_age, persistent=remember)
@@ -822,6 +824,7 @@ def _oauth_set_session_and_redirect(
         role=role,
         session_id=session_id,
         max_age_seconds=max_age,
+        cookie_persistent=True,
     )
     frontend = get_settings().frontend_url.rstrip("/")
     redirect_url = f"{frontend}/dashboard"
@@ -1948,6 +1951,7 @@ async def switch_workspace(
     existing_session_id = session.get("session_id")
     if not existing_session_id:
         raise HTTPException(status_code=400, detail="Cannot switch workspace for legacy session")
+    persistent = session.get("cookie_persistent") is True
     token = sign_session(
         user_id=user_id,
         email=email,
@@ -1955,11 +1959,14 @@ async def switch_workspace(
         role=member.role,
         session_id=existing_session_id,
         expires_at=expires_at,
+        cookie_persistent=persistent,
     )
     max_age = expires_at - int(time.time())
     if max_age <= 0:
         raise HTTPException(status_code=401, detail="Session expired")
-    response.set_cookie(key=SESSION_COOKIE, value=token, **_session_cookie_kwargs(max_age))
+    response.set_cookie(
+        key=SESSION_COOKIE, value=token, **_session_cookie_kwargs(max_age, persistent=persistent)
+    )
     persist_audit(
         db,
         "auth.workspace_switch",
@@ -2252,6 +2259,7 @@ async def mfa_confirm(
             member.role,
             session_id=new_session_id,
             max_age_seconds=max_age,
+            cookie_persistent=False,
         )
         response.set_cookie(
             key=SESSION_COOKIE, value=token, **_session_cookie_kwargs(max_age, persistent=False)
@@ -2377,6 +2385,7 @@ def mfa_verify_login(
         role=mlt.role,
         session_id=session_id,
         max_age_seconds=max_age,
+        cookie_persistent=remember,
     )
     response.set_cookie(
         key=SESSION_COOKIE, value=token, **_session_cookie_kwargs(max_age, persistent=remember)
