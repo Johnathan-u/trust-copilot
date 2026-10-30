@@ -364,3 +364,25 @@ it('asks the browser to warn before unloading an unsaved draft', async () => {
   window.dispatchEvent(event)
   expect(event.defaultPrevented).toBe(true)
 })
+
+it('exposes the complete company and contact as the row header name', async () => {
+  rows = [
+    {
+      ...deal,
+      buyer_contact_name: 'Synthetic Contact',
+      buyer_contact_email: 'buyer@example.com',
+    },
+  ]
+  await open()
+  const list = screen.getByRole('region', { name: 'Deals list' })
+  const header = within(list).getByRole('rowheader', {
+    name: 'Synthetic Buyer Synthetic Contact · buyer@example.com',
+  })
+  expect(header.textContent).toContain('Synthetic Buyer')
+  expect(header.textContent).toContain('Synthetic Contact · buyer@example.com')
+  expect(
+    within(list).queryByRole('rowheader', {
+      name: 'Other Buyer Synthetic Contact · buyer@example.com',
+    })
+  ).toBeNull()
+})

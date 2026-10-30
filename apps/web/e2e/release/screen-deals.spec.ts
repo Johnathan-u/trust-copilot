@@ -162,6 +162,16 @@ async function open(page: Page) {
     page.getByRole('heading', { name: 'Deals', exact: true })
   ).toBeVisible()
 }
+function companyHeader(page: Page, company: string) {
+  // Company and contact share the same row header. Match its complete accessible
+  // name so populated contacts do not make exact company-only text disappear.
+  return page
+    .getByRole('region', { name: 'Deals list', exact: true })
+    .getByRole('rowheader', {
+      name: `${company} ${record.buyer_contact_name} · ${record.buyer_contact_email}`,
+      exact: true,
+    })
+}
 async function create(page: Page) {
   await page.getByRole('button', { name: 'Create deal', exact: true }).click()
   const dialog = page.getByRole('dialog', { name: 'Create deal', exact: true })
@@ -174,9 +184,7 @@ for (const role of ['editor', 'reviewer', 'custom_read', 'unconfigured']) {
   }) => {
     await setup(page, role)
     await open(page)
-    await expect(
-      page.getByText('Synthetic Buyer', { exact: true })
-    ).toBeVisible()
+    await expect(companyHeader(page, 'Synthetic Buyer')).toBeVisible()
     await expect(page.getByRole('button', { name: 'Create deal' })).toHaveCount(
       0
     )
@@ -208,9 +216,7 @@ for (const status of [401, 403, 404, 500]) {
     await expect(page.getByText('No deals yet')).toHaveCount(0)
     state.readStatus = 200
     await page.getByRole('button', { name: 'Try again' }).click()
-    await expect(
-      page.getByText('Synthetic Buyer', { exact: true })
-    ).toBeVisible()
+    await expect(companyHeader(page, 'Synthetic Buyer')).toBeVisible()
   })
 }
 for (const [name, body] of [
@@ -230,9 +236,7 @@ for (const [name, body] of [
     await expect(
       page.getByText('The response could not be read. Try again.')
     ).toBeVisible()
-    await expect(
-      page.getByText('Synthetic Buyer', { exact: true })
-    ).toHaveCount(0)
+    await expect(companyHeader(page, 'Synthetic Buyer')).toHaveCount(0)
     await expect(page.getByText('No deals yet')).toHaveCount(0)
   })
 }
@@ -265,7 +269,7 @@ test('create preserves exact decimal strings and waits for acknowledgment plus a
   await expect(dialog.getByRole('button', { name: 'Save deal' })).toBeDisabled()
   pending.release()
   await expect(dialog).toHaveCount(0)
-  await expect(page.getByText('Server Buyer', { exact: true })).toBeVisible()
+  await expect(companyHeader(page, 'Server Buyer')).toBeVisible()
   await expect(page.getByText('Deal saved.', { exact: true })).toBeVisible()
 })
 test('legacy unknown currency is displayed honestly and unrelated edits do not invent money', async ({
@@ -282,7 +286,7 @@ test('legacy unknown currency is displayed honestly and unrelated edits do not i
   await page.getByRole('button', { name: 'Edit Synthetic Buyer' }).click()
   await page.getByLabel('Company name').fill('Renamed Buyer')
   await page.getByRole('button', { name: 'Save deal' }).click()
-  await expect(page.getByText('Renamed Buyer', { exact: true })).toBeVisible()
+  await expect(companyHeader(page, 'Renamed Buyer')).toBeVisible()
   expect(writes()[0]).toMatchObject({
     path: '/api/deals/41',
     method: 'PATCH',
@@ -372,7 +376,7 @@ test('acknowledged save and failed reload have distinct messages', async ({
   await expect(page.locator('[data-state="error"]')).toBeVisible()
   state.readStatus = 200
   await page.getByRole('button', { name: 'Try again' }).click()
-  await expect(page.getByText('Synthetic Buyer', { exact: true })).toBeVisible()
+  await expect(companyHeader(page, 'Synthetic Buyer')).toBeVisible()
 })
 test('discard warning preserves a draft on cancel and clears it only after confirmation', async ({
   page,
@@ -408,11 +412,9 @@ test('late previous-workspace list cannot replace current results', async ({
   await page
     .getByRole('combobox', { name: 'Workspace', exact: true })
     .selectOption('8')
-  await expect(page.getByText('Current Buyer', { exact: true })).toBeVisible()
+  await expect(companyHeader(page, 'Current Buyer')).toBeVisible()
   pending.release()
-  await expect(page.getByText('Synthetic Buyer', { exact: true })).toHaveCount(
-    0
-  )
+  await expect(companyHeader(page, 'Synthetic Buyer')).toHaveCount(0)
 })
 test('workspace change already in flight discards a late old-workspace save acknowledgment', async ({
   page,
@@ -427,7 +429,7 @@ test('workspace change already in flight discards a late old-workspace save ackn
   }
   await page.setViewportSize({ width: 1440, height: 900 })
   await open(page)
-  await expect(page.getByText('Synthetic Buyer', { exact: true })).toBeVisible()
+  await expect(companyHeader(page, 'Synthetic Buyer')).toBeVisible()
   await page
     .getByRole('combobox', { name: 'Workspace', exact: true })
     .selectOption('8')
@@ -442,7 +444,7 @@ test('workspace change already in flight discards a late old-workspace save ackn
   await dialog.getByRole('button', { name: 'Save deal' }).click()
   await expect.poll(() => writes().length).toBe(1)
   switching.release()
-  await expect(page.getByText('Current Buyer', { exact: true })).toBeVisible()
+  await expect(companyHeader(page, 'Current Buyer')).toBeVisible()
   saving.release()
   await expect(page.getByRole('dialog')).toHaveCount(0)
   await expect(page.getByText('Deal saved.', { exact: true })).toHaveCount(0)
