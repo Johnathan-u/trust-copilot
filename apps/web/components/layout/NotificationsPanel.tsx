@@ -113,7 +113,38 @@ export function NotificationsPanel({
   const [notifications, setNotifications] = useState<InAppNotification[]>([])
   const [loading, setLoading] = useState(false)
   const [failure, setFailure] = useState<ApiFailurePresentation | null>(null)
+  const [actionFailure, setActionFailure] =
+    useState<ApiFailurePresentation | null>(null)
+  const [unreadCount, setUnreadCount] = useState<number | null>(null)
   const [loadId, setLoadId] = useState(0)
+  const unreadRequest = useRef(0)
+
+  const refreshUnreadCount = useCallback(
+    async (signal?: AbortSignal) => {
+      const request = ++unreadRequest.current
+      const data = await readSectionJson(
+        await fetch('/api/in-app-notifications/unread-count', {
+          credentials: 'include',
+          signal,
+        })
+      )
+      const count =
+        data && typeof data === 'object'
+          ? (data as { count?: unknown }).count
+          : null
+      if (
+        typeof count !== 'number' ||
+        !Number.isSafeInteger(count) ||
+        count < 0
+      ) {
+        throw new Error('malformed')
+      }
+      if (signal?.aborted || request !== unreadRequest.current) return
+      setUnreadCount(count)
+      onUnreadCountChange?.(count)
+    },
+    [onUnreadCountChange]
+  )
 
   const fetchNotifications = useCallback(() => {
     const controller = new AbortController()
@@ -122,7 +153,7 @@ export function NotificationsPanel({
       signal: controller.signal,
     })
       .then((response) => readSectionJson(response))
-      .then((data) => {
+      .then(async (data) => {
         const record =
           data && typeof data === 'object'
             ? (data as { notifications?: unknown })
@@ -133,9 +164,10 @@ export function NotificationsPanel({
         if (!rows) {
           throw new Error('malformed')
         }
+        if (controller.signal.aborted) return
         setNotifications(rows)
-        const unread = rows.filter((n) => !n.is_read).length
-        onUnreadCountChange?.(unread)
+        await refreshUnreadCount(controller.signal)
+        if (controller.signal.aborted) return
         setFailure(null)
       })
       .catch((error: unknown) => {
@@ -145,11 +177,12 @@ export function NotificationsPanel({
       })
       .finally(() => setLoading(false))
     return () => controller.abort()
-  }, [onUnreadCountChange])
+  }, [refreshUnreadCount])
 
   const reloadNotifications = useCallback(() => {
     setLoading(true)
     setFailure(null)
+    setActionFailure(null)
     setLoadId((value) => value + 1)
     return fetchNotifications()
   }, [fetchNotifications])
@@ -192,30 +225,40 @@ export function NotificationsPanel({
   }, [open, anchorRef])
 
   const markRead = async (id: number) => {
-    await fetch(`/api/in-app-notifications/${id}/read`, {
-      method: 'POST',
-      credentials: 'include',
-    })
-    setNotifications((prev) =>
-      prev.map((n) => (n.id === id ? { ...n, is_read: true } : n))
-    )
-    onUnreadCountChange?.(
-      notifications.filter((n) => !n.is_read && n.id !== id).length
-    )
+    setActionFailure(null)
+    try {
+      await readSectionJson(
+        await fetch(`/api/in-app-notifications/${id}/read`, {
+          method: 'POST',
+          credentials: 'include',
+        })
+      )
+      setNotifications((prev) =>
+        prev.map((n) => (n.id === id ? { ...n, is_read: true } : n))
+      )
+      await refreshUnreadCount()
+    } catch (error) {
+      setActionFailure(failureOf(error))
+    }
   }
 
   const markAllRead = async () => {
-    await fetch('/api/in-app-notifications/read-all', {
-      method: 'POST',
-      credentials: 'include',
-    })
-    setNotifications((prev) => prev.map((n) => ({ ...n, is_read: true })))
-    onUnreadCountChange?.(0)
+    setActionFailure(null)
+    try {
+      await readSectionJson(
+        await fetch('/api/in-app-notifications/read-all', {
+          method: 'POST',
+          credentials: 'include',
+        })
+      )
+      setNotifications((prev) => prev.map((n) => ({ ...n, is_read: true })))
+      await refreshUnreadCount()
+    } catch (error) {
+      setActionFailure(failureOf(error))
+    }
   }
 
   if (!open) return null
-
-  const unreadCount = notifications.filter((n) => !n.is_read).length
 
   return (
     <div
@@ -235,11 +278,15 @@ export function NotificationsPanel({
             id={descriptionId}
             className="mt-0.5 text-xs text-[var(--tc-muted)]"
           >
-            {unreadCount > 0 ? `${unreadCount} unread` : 'All caught up'}
+            {unreadCount === null
+              ? 'Unread count unavailable'
+              : unreadCount > 0
+                ? `${unreadCount} unread`
+                : 'All caught up'}
           </p>
         </div>
         <div className="flex items-center gap-tc-2">
-          {unreadCount > 0 && (
+          {unreadCount !== null && unreadCount > 0 && (
             <button
               type="button"
               onClick={markAllRead}
@@ -263,6 +310,11 @@ export function NotificationsPanel({
       </div>
 
       <div className="max-h-[min(400px,65vh)] overflow-y-auto">
+        {actionFailure && (
+          <div className="p-tc-4">
+            <ErrorState failure={actionFailure} onRetry={reloadNotifications} />
+          </div>
+        )}
         {loading ? (
           <LoadingState
             label="Loading notifications"

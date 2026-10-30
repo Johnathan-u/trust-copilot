@@ -15,27 +15,31 @@ from app.models import User, WorkspaceMember
 
 
 @pytest.fixture
-def vendor_admin_ws1(db_session: Session) -> User:
-    """Admin in workspace 1 for vendor-request admin-only POST (same pattern as test_vendor_requests_api)."""
-    email = "admin-vendor@trust.local"
-    user = db_session.query(User).filter(User.email == email).first()
-    if not user:
-        user = User(email=email, password_hash=hash_password("a"), display_name="Admin Vendor")
-        db_session.add(user)
-        db_session.commit()
-        db_session.refresh(user)
-    mem = (
-        db_session.query(WorkspaceMember)
-        .filter(WorkspaceMember.user_id == user.id, WorkspaceMember.workspace_id == 1)
-        .first()
+def vendor_admin_ws1(db_session: Session):
+    """Use a scoped admin and restore user/member state after the test."""
+    user_count = db_session.query(User).count()
+    member_count = db_session.query(WorkspaceMember).count()
+    user = User(
+        email=f"vendor-admin-{uuid.uuid4().hex}@example.com",
+        password_hash=hash_password("a"),
+        display_name="Synthetic Vendor Admin",
     )
-    if not mem:
-        db_session.add(WorkspaceMember(workspace_id=1, user_id=user.id, role="admin"))
+    db_session.add(user)
+    db_session.flush()
+    user_id = user.id
+    db_session.add(WorkspaceMember(workspace_id=1, user_id=user_id, role="admin"))
+    db_session.commit()
+    try:
+        yield user
+    finally:
+        db_session.rollback()
+        db_session.query(WorkspaceMember).filter_by(user_id=user_id).delete(
+            synchronize_session=False
+        )
+        db_session.query(User).filter_by(id=user_id).delete(synchronize_session=False)
         db_session.commit()
-    else:
-        mem.role = "admin"
-        db_session.commit()
-    return user
+        assert db_session.query(User).count() == user_count
+        assert db_session.query(WorkspaceMember).count() == member_count
 
 
 def test_p23_dashboard_cards_requires_session(client: TestClient) -> None:
@@ -56,11 +60,11 @@ def test_p25_ai_governance_settings_requires_session(client: TestClient) -> None
     assert r.status_code == 401
 
 
-def test_p27_vendor_request_empty_email_400(client: TestClient, vendor_admin_ws1: User) -> None:
+def test_p27_vendor_request_empty_email_422(client: TestClient, vendor_admin_ws1: User) -> None:
     client.post("/api/auth/login", json={"email": vendor_admin_ws1.email, "password": "a"})
     r = client.post("/api/vendor-requests/", json={"vendor_email": "   "})
-    assert r.status_code == 400
-    assert "vendor" in (r.json().get("detail") or "").lower()
+    assert r.status_code == 422
+    assert r.json()["detail"][0]["loc"] == ["body", "vendor_email"]
 
 
 def test_p27_vendor_requests_reviewer_can_list(client: TestClient) -> None:

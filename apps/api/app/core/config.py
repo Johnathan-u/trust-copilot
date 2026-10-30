@@ -291,10 +291,15 @@ class Settings:
         self.worker_heartbeat_stale_sec: int = heartbeat_stale_sec()
         self.worker_job_max_runtime_sec: int = job_max_runtime_sec()
         # Per-job lease. The worker reads these functions on each claim and heartbeat, not this cache.
-        from app.core.job_lease import lease_heartbeat_seconds, lease_seconds
+        from app.core.job_lease import (
+            lease_heartbeat_seconds,
+            lease_seconds,
+            null_lease_grace_seconds,
+        )
 
         self.job_lease_seconds: int = lease_seconds()
         self.job_lease_heartbeat_seconds: int = lease_heartbeat_seconds()
+        self.job_null_lease_grace_seconds: int = null_lease_grace_seconds()
         try:
             self.readiness_timeout_sec: float = max(
                 0.1, float(os.getenv("READINESS_TIMEOUT_SEC", "3") or "3")

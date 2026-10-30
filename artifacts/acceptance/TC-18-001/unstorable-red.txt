@@ -1,0 +1,22 @@
+FFF                                                                      [100%]
+=================================== FAILURES ===================================
+____________ test_intake_schema_rejects_unstorable_text[nul-email] _____________
+apps/api/tests/release/test_domain_trust_requests.py:279: in test_intake_schema_rejects_unstorable_text
+    with pytest.raises(ValidationError):
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   Failed: DID NOT RAISE ValidationError
+________ test_intake_schema_rejects_unstorable_text[unicode-expansion] _________
+apps/api/tests/release/test_domain_trust_requests.py:279: in test_intake_schema_rejects_unstorable_text
+    with pytest.raises(ValidationError):
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   Failed: DID NOT RAISE ValidationError
+___________ test_intake_schema_rejects_unstorable_text[nul-message] ____________
+apps/api/tests/release/test_domain_trust_requests.py:279: in test_intake_schema_rejects_unstorable_text
+    with pytest.raises(ValidationError):
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   Failed: DID NOT RAISE ValidationError
+=========================== short test summary info ============================
+FAILED apps/api/tests/release/test_domain_trust_requests.py::test_intake_schema_rejects_unstorable_text[nul-email]
+FAILED apps/api/tests/release/test_domain_trust_requests.py::test_intake_schema_rejects_unstorable_text[unicode-expansion]
+FAILED apps/api/tests/release/test_domain_trust_requests.py::test_intake_schema_rejects_unstorable_text[nul-message]
+3 failed, 26 deselected in 0.59s

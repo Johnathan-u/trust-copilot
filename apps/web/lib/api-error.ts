@@ -163,3 +163,162 @@ export class ApiRequestError extends Error {
     this.failure = failure
   }
 }
+
+/**
+ * Mutation failures that need their own next step.
+ * Copy is fixed. It does not repeat the response body, name a role, or
+ * add a cause the payload did not identify.
+ */
+export const ACTION_FAILURE_KINDS = [
+  'unsupported_model',
+  'unsupported_format',
+  'no_evidence',
+  'permission',
+] as const
+
+export type ActionFailureKind = (typeof ACTION_FAILURE_KINDS)[number]
+
+export interface ActionFailurePresentation {
+  kind: ActionFailureKind
+  title: string
+  message: string
+}
+
+const ACTION_FAILURE_COPY: Record<
+  ActionFailureKind,
+  { title: string; message: string }
+> = {
+  unsupported_model: {
+    title: 'Model not available',
+    message:
+      'That model is not available for this request. Choose a supported model and try again.',
+  },
+  unsupported_format: {
+    title: 'File format not supported',
+    message:
+      'This file format is not supported. Choose a supported format and try again.',
+  },
+  no_evidence: {
+    title: 'No supporting evidence',
+    message:
+      'No eligible evidence was found for this item, so nothing was drafted. Add evidence that covers it, then try again.',
+  },
+  permission: {
+    title: 'Action not available',
+    message:
+      'This account cannot complete that action. Ask someone who manages access for this workspace, then try again.',
+  },
+}
+
+const MODEL_CODES = new Set(['unsupported_model', 'model_unavailable'])
+const FORMAT_CODES = new Set([
+  'unsupported_format',
+  'unsupported_file_format',
+  'extension_not_allowed',
+])
+const EVIDENCE_CODES = new Set(['no_evidence'])
+const PERMISSION_CODES = new Set([
+  'permission_denied',
+  'access_denied',
+  'forbidden',
+  'insufficient_permissions',
+])
+
+function collectActionSignals(data: unknown): {
+  codes: string[]
+  texts: string[]
+} {
+  const codes: string[] = []
+  const texts: string[] = []
+  const seen = new Set<unknown>()
+
+  const visit = (value: unknown, depth: number) => {
+    if (depth > 4 || value == null) return
+    if (typeof value === 'string') {
+      const text = value.trim()
+      if (text) texts.push(text)
+      return
+    }
+    if (typeof value !== 'object') return
+    if (seen.has(value)) return
+    seen.add(value)
+    if (Array.isArray(value)) {
+      for (const item of value) visit(item, depth + 1)
+      return
+    }
+    const record = value as Record<string, unknown>
+    for (const key of ['code', 'error_code', 'outcome_code']) {
+      const code = record[key]
+      if (typeof code === 'string' && code.trim()) {
+        codes.push(code.trim().toLowerCase())
+      }
+    }
+    for (const key of [
+      'detail',
+      'message',
+      'error',
+      'error_detail',
+      'outcome',
+    ]) {
+      if (key in record) visit(record[key], depth + 1)
+    }
+  }
+
+  visit(data, 0)
+  return { codes, texts }
+}
+
+function textMatches(texts: string[], pattern: RegExp): boolean {
+  return texts.some((text) => pattern.test(text))
+}
+
+/**
+ * Map a mutation payload onto one of the four known failures.
+ * Returns null when the payload does not identify one of those cases.
+ * Callers keep their own fallback for everything else.
+ */
+export function presentActionFailure(input: {
+  status?: number | null
+  data?: unknown
+}): ActionFailurePresentation | null {
+  const { codes, texts } = collectActionSignals(input.data)
+  const hasCode = (set: Set<string>) => codes.some((code) => set.has(code))
+  let kind: ActionFailureKind | null = null
+  if (hasCode(EVIDENCE_CODES)) kind = 'no_evidence'
+  else if (
+    hasCode(MODEL_CODES) ||
+    textMatches(texts, /^unsupported model\.?$/i)
+  ) {
+    kind = 'unsupported_model'
+  } else if (
+    hasCode(FORMAT_CODES) ||
+    textMatches(texts, /allowed extension/i) ||
+    textMatches(texts, /^unsupported (?:file )?format\.?$/i) ||
+    textMatches(texts, /^format must be /i)
+  ) {
+    kind = 'unsupported_format'
+  } else if (
+    input.status === 403 ||
+    hasCode(PERMISSION_CODES) ||
+    textMatches(texts, /^access denied\.?$/i) ||
+    textMatches(texts, /^insufficient permissions\b/i)
+  ) {
+    kind = 'permission'
+  }
+  if (!kind) return null
+  return { kind, ...ACTION_FAILURE_COPY[kind] }
+}
+
+/** Mapped failure when one matches; otherwise the existing detail formatter. */
+export function mutationFailureNotice(
+  status: number,
+  data: unknown,
+  fallback: string
+): { title: string; message: string } {
+  const mapped = presentActionFailure({ status, data })
+  if (mapped) return { title: mapped.title, message: mapped.message }
+  return {
+    title: 'Could not complete that',
+    message: formatApiErrorDetail(data, fallback),
+  }
+}

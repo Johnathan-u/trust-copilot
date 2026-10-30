@@ -62,7 +62,9 @@ from app.core.job_lease import (  # noqa: E402
     lease_heartbeat_seconds,
     lease_seconds,
     lock_expired_lease,
+    lock_null_lease_past_grace,
     new_lease_owner_token,
+    null_lease_grace_seconds,
     owns_lease,
     renew_lease,
     uninstall_commit_fence,
@@ -806,6 +808,28 @@ def _queued_duplicate_id(session, job: Job) -> int | None:
     return row[0] if row else None
 
 
+def _still_running_for_owner(session, job: Job) -> bool:
+    """Lock the row. True only when it is still ``running`` for this owner.
+
+    A cancel, or another worker, that already committed a different status or owner makes this
+    false. The caller then skips the terminal write. ``lease_owner`` NULL matches NULL.
+    """
+    owner = _lease_owner(job)
+    with session.no_autoflush:
+        row = session.execute(
+            text("SELECT status, lease_owner FROM jobs WHERE id = :id FOR UPDATE"),
+            {"id": job.id},
+        ).fetchone()
+    if row is None:
+        return False
+    status, lease_owner = row[0], row[1]
+    # Fail closed. Only the string "running" for this owner may take the write.
+    # None, a non-string, or any other status skips it.
+    if status != JobStatus.RUNNING.value:
+        return False
+    return lease_owner == owner
+
+
 def _try_schedule_retry(
     session, job: Job, code: str, message: str, next_at: datetime
 ) -> int | None:
@@ -895,6 +919,15 @@ def _handle_job_failure(
             job.id,
             job.kind,
             type(exc).__name__,
+        )
+        return
+    # A cancel (or a lost lease) that committed while this attempt ran must not be overwritten
+    # by a retry or a failure row.
+    if not _still_running_for_owner(session, job):
+        session.rollback()
+        log.warning(
+            "job_id=%s is no longer running for this owner; failure was not applied",
+            job.id,
         )
         return
     code = classify(exc)
@@ -1173,7 +1206,7 @@ def _flush_abandoned_audit(
 
 
 def recover_abandoned_jobs(session, *, limit: int = 20) -> int:
-    """Send running jobs with an expired lease back through retry classification (TC-10-001a).
+    """Send abandoned running jobs back through retry classification (TC-10-001, TC-10-001b).
 
     One row is atomic. ``FOR UPDATE SKIP LOCKED``, the replacement owner token, the
     ``job.abandoned`` audit row, and the retry-or-fail classification commit together.
@@ -1184,16 +1217,20 @@ def recover_abandoned_jobs(session, *, limit: int = 20) -> int:
     job before this loop reads it again. That claim is a normal claim of a queued job.
     If the post-commit read no longer shows the classified status, this row is logged
     and the loop continues. The abandoned audit is already committed. The remaining
-    expired rows are still recovered.
+    rows are still recovered.
 
-    A NULL lease is not abandoned. The attempt was counted at claim time and is not
-    incremented here.
+    An expired lease is taken first. A NULL lease is not an expired lease. It is abandoned
+    only when ``COALESCE(updated_at, started_at)`` is at least ``JOB_NULL_LEASE_GRACE_SECONDS``
+    before database ``now()`` (TC-10-001b). A younger row, or a row with neither timestamp,
+    is left alone. The attempt was counted at claim time and is not incremented here.
     """
     log = logging.getLogger(__name__)
     exc = RetryableJobError(LEASE_EXPIRED, LEASE_EXPIRED_MESSAGE)
     count = 0
     while count < limit:
         locked = lock_expired_lease(session)
+        if locked is None:
+            locked = lock_null_lease_past_grace(session, null_lease_grace_seconds())
         if locked is None:
             session.rollback()
             return count
@@ -1203,7 +1240,7 @@ def recover_abandoned_jobs(session, *, limit: int = 20) -> int:
         session.expire_all()
         job = session.get(Job, job_id)
         if job is None or job.lease_owner != token:
-            # The swap is still uncommitted. Continuing would lock this same expired row again.
+            # The swap is still uncommitted. Continuing would lock this same row again.
             log.warning(
                 "abandoned job recovery skipped job_id=%s; lease token was not kept", job_id
             )
@@ -1319,7 +1356,11 @@ def _process_one_job() -> bool:
             # TC-10-001: lock and confirm the lease BEFORE the completion is flushed.
             # persist_audit flushes then commits, so a fence check after that flush would see
             # status=completed and refuse the commit that just wrote it.
+            # A cancel clears the lease, so the heartbeat loses and this confirm raises LeaseLost.
+            # The result is not written.
             if owner:
+                if lease_heartbeat is not None and lease_heartbeat.lost:
+                    raise LeaseLost(leased_job_id)
                 confirm_lease_for_commit(session, leased_job_id, owner)
                 uninstall_commit_fence(session)
             job.status = JobStatus.COMPLETED.value
@@ -1435,6 +1476,9 @@ def main():
 
     for _problem in enforce_startup_contract("worker"):
         print(f"config warning: {_problem}", flush=True)
+    from app.core.database import warn_if_database_time_zone_is_not_utc
+
+    warn_if_database_time_zone_is_not_utc()
     print(
         f"Trust Copilot worker started (threads: {WORKER_MIN_THREADS}-{WORKER_MAX_THREADS}, initial: {WORKER_INITIAL_THREADS})"
     )

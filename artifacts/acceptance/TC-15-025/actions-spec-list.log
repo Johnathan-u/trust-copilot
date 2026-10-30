@@ -1,0 +1,29 @@
+Tested head: a6b8558687e3ca60051cc835abdf77b5e1908962
+Command: npx playwright test e2e/release/ui-23.spec.ts --list
+Exit: 0
+
+npm warn Unknown env config "http-proxy". This will stop working in the next major version of npm.
+Listing tests:
+  [chromium] › release/ui-23.spec.ts:163:5 › reviewer sees resolution, ownership and source links without administrator decisions or automatic writes
+  [chromium] › release/ui-23.spec.ts:196:5 › schema mismatch is an error, then retry recovers without stale failure
+  [chromium] › release/ui-23.spec.ts:226:5 › filters and permitted export reflect the displayed snapshot
+  [chromium] › release/ui-23.spec.ts:256:5 › viewer receives denial without fetching private gap data
+  [chromium] › release/ui-23.spec.ts:267:5 › background polling pauses while hidden and failures retain a labelled snapshot
+  [chromium] › release/ui-23.spec.ts:318:7 › gap report is accessible and contained at 360px
+  [chromium] › release/ui-23.spec.ts:318:7 › gap report is accessible and contained at 768px
+  [chromium] › release/ui-23.spec.ts:318:7 › gap report is accessible and contained at 1440px
+  [chromium] › release/ui-23.spec.ts:458:5 › changing workspace clears the previous snapshot before the new read completes
+  [chromium] › release/ui-23.spec.ts:498:5 › coverage failure and empty questionnaire data do not hide the gap list
+  [chromium] › release/ui-23.spec.ts:533:5 › retained answer revisions are labelled as record ratios, including values above 100 percent
+  [chromium] › release/ui-23.spec.ts:572:7 › administrator confirms accepted only after server acknowledgment
+  [chromium] › release/ui-23.spec.ts:572:7 › administrator confirms dismissed only after server acknowledgment
+  [chromium] › release/ui-23.spec.ts:658:7 › rejected gap decision (403) preserves the open row without a success notice
+  [chromium] › release/ui-23.spec.ts:658:7 › rejected gap decision (404) preserves the open row without a success notice
+  [chromium] › release/ui-23.spec.ts:658:7 › rejected gap decision (409) preserves the open row without a success notice
+  [chromium] › release/ui-23.spec.ts:709:5 › reviewer keeps a rejected evidence choice and uses a new request key when selecting different evidence
+  [chromium] › release/ui-23.spec.ts:772:5 › lost resolution response retries the same intent safely and reports notification failure independently
+  [chromium] › release/ui-23.spec.ts:831:5 › malformed successful response never becomes a confirmed decision
+  [chromium] › release/ui-23.spec.ts:846:5 › evidence choices recover from failure and empty results, and support bounded search and paging
+  [chromium] › release/ui-23.spec.ts:907:5 › closing the resolver and changing workspace ignores an old evidence response
+  [chromium] › release/ui-23.spec.ts:957:5 › permission revocation clears a confirmed private gap title and action state
+Total: 22 tests in 1 file

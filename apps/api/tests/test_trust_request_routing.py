@@ -195,7 +195,7 @@ class TestAttachmentDownload:
     """Test the attachment download endpoint."""
 
     def test_no_attachment_returns_404(self, _mock_db):
-        from app.core.auth_deps import require_can_review
+        from app.api.routes.trust_requests import require_current_reviewer
 
         mock_req = MagicMock()
         mock_req.workspace_id = 1
@@ -203,25 +203,25 @@ class TestAttachmentDownload:
         mock_req.attachment_storage_key = None
         _mock_db.query.return_value.filter.return_value.first.return_value = mock_req
 
-        app.dependency_overrides[require_can_review] = lambda: {"workspace_id": 1, "user_id": 1}
-
-        r = client.get("/api/trust-requests/1/attachment")
-        assert r.status_code == 404
-        assert "no attachment" in r.json()["detail"].lower()
-
-        app.dependency_overrides.pop(require_can_review, None)
+        with patch.dict(
+            app.dependency_overrides,
+            {require_current_reviewer: lambda: {"workspace_id": 1, "user_id": 1}},
+        ):
+            r = client.get("/api/trust-requests/1/attachment")
+            assert r.status_code == 404
+            assert "no attachment" in r.json()["detail"].lower()
 
     def test_missing_trust_request_returns_404(self, _mock_db):
-        from app.core.auth_deps import require_can_review
+        from app.api.routes.trust_requests import require_current_reviewer
 
         _mock_db.query.return_value.filter.return_value.first.return_value = None
 
-        app.dependency_overrides[require_can_review] = lambda: {"workspace_id": 1, "user_id": 1}
-
-        r = client.get("/api/trust-requests/999/attachment")
-        assert r.status_code == 404
-
-        app.dependency_overrides.pop(require_can_review, None)
+        with patch.dict(
+            app.dependency_overrides,
+            {require_current_reviewer: lambda: {"workspace_id": 1, "user_id": 1}},
+        ):
+            r = client.get("/api/trust-requests/999/attachment")
+            assert r.status_code == 404
 
 
 class TestToDictFields:
