@@ -1,0 +1,32 @@
+{
+  "base": "cc9cdf803d3ddfc7db35d157a0886fffbfc4c7ea",
+  "base_tree": "bf1a0f8bfec6e2c1b1f4d2fb8460dc8b2aae72f6",
+  "ticket_handoff_sha256": "be223bc969aaea723ed631a638027d2c11d0443324dde1ad0c525db26ed7f13e",
+  "source_blobs": {
+    "apps/web/app/dashboard/trust-requests/page.tsx": "429b019f7a6e1c6a6f33527d08aceeb16888de9b",
+    "apps/web/e2e/release/screen-trust-requests.spec.ts": "65cf5159841842f87669fb76d580fc39763315c1",
+    "apps/web/components/ui/Button.tsx": "f736d3a32e0ea8d1bd8d7d5d7307e8fe52f6b15f",
+    "apps/web/app/globals.css": "e4a960dc371216416572108903216ee85b944825",
+    "apps/web/package-lock.json": "575629e4ae16db39225d2434d17c8ddf95f1fe8d"
+  },
+  "candidate_blobs": {
+    "apps/web/app/dashboard/trust-requests/page.tsx": "91c0702f6add53c7ec20de1b5a8e16bf62d76ec2",
+    "apps/web/e2e/release/screen-trust-requests.spec.ts": "f4464dae61cc94332f716d68e15f481c6ca06e75",
+    "apps/web/components/ui/Button.tsx": "f736d3a32e0ea8d1bd8d7d5d7307e8fe52f6b15f",
+    "apps/web/app/globals.css": "e4a960dc371216416572108903216ee85b944825",
+    "apps/web/package-lock.json": "575629e4ae16db39225d2434d17c8ddf95f1fe8d"
+  },
+  "versions": {
+    "next": "16.4.3",
+    "@playwright/test": "1.64.1",
+    "playwright-core": "1.64.1",
+    "@axe-core/playwright": "4.14.0",
+    "typescript": "6.0.3",
+    "vitest": "5.0.5",
+    "node": "v24.22.1",
+    "browser": "Google Chrome for Testing 156.0.8078.4"
+  },
+  "only_product_change": "One Approve revision transitionProperty override; removing its four added lines reproduces the baseline page byte for byte.",
+  "snapshot_source_matches_worktree": true,
+  "next_snapshot_detail": "The isolated Next dev/typegen server adds .next-approval-contrast type includes to its temporary tsconfig.json and rewrites next-env.d.ts; tracked configuration is unchanged."
+}

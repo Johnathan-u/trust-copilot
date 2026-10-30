@@ -1,0 +1,49 @@
+TC-04-006b local verification
+Base: 0317a1846deb7f66b7a4f33ccd0f21877fec0b0d
+Worktree: /workspace/scratch/ac0fa793e50b/tc-logout-all
+Branch: codex/TC-04-006b-logout-all
+Interpreter: /tmp/tc-backend-venv/bin/python (Python 3.12)
+Commands ran from apps/api unless stated otherwise.
+
+Baseline, before new route:
+python -m pytest tests/release/test_logout_all.py -k sqlite -q --tb=short
+Exit 1: 21 failed, 2 passed, 23 deselected. New route returned404;
+existing logout/revoke-others behavior controls passed.
+
+New route, including four added production-cookie variants:
+python -m pytest tests/release/test_logout_all.py -k sqlite -q --tb=short
+Exit 0: 27 passed, 27 deselected; existing datetime deprecation warnings.
+
+python -m pytest tests/release/test_logout_all.py --collect-only -q
+Exit 0: 54 cases collected, 27 SQLite + 27 PostgreSQL.
+
+Temporary source negative controls, each with one selected real-auth SQLite case:
+- Unscoped deletion predicate: exit1, 1failed/53deselected; wrong revoked count.
+- Revoke-others alias retaining current SID: exit1, 1failed/53deselected; wrong count.
+- Commit deletion before audit: exit1, 1failed/53deselected; full-row rollback invariant.
+Source restored byte-for-byte in finally before final checks. Diagnostics live
+only under /tmp/tc-logout-all-checks and are not committed.
+
+Final combined selection:
+python -m pytest tests/release/test_logout_all.py tests/release/test_session_persistence.py tests/release/test_remember_policy.py tests/release/test_principal_contract.py tests/release/test_session_validation.py tests/release/test_mfa_reenrol_security.py -k 'not postgres' -q --tb=short
+Exit 0: 201 passed, 189 deselected, 2067 existing datetime deprecation warnings.
+
+env -u HTTP_PROXY -u HTTPS_PROXY -u ALL_PROXY -u http_proxy -u https_proxy -u all_proxy python -m pytest -m unit -q --tb=short
+Exit 0: 714 passed, 11 existing skipped, 3508 deselected, 12 warnings.
+
+TC_REQUIRE_DB=1 TC_TEST_DATABASE_URL=postgresql://postgres:postgres@localhost:5432/trustcopilot_test python -m pytest tests/release/test_logout_all.py -k postgres -q --tb=short
+Exit 3: localhost5432 connection refused; required PostgreSQL unavailable.
+No PostgreSQL execution/qualification claimed.
+
+ruff check app/api/routes/auth.py tests/release/test_logout_all.py
+Exit 0: all checks passed.
+ruff format --check app/api/routes/auth.py tests/release/test_logout_all.py
+Exit 0: both files already formatted.
+Python AST comparison: existing logout and revoke_other_sessions unchanged.
+git diff --check
+Exit 0.
+
+No browser, provider or new exact-head CI pass claimed. No publication.
+Required: independent review, reviewed dependency integration, all27 PostgreSQL
+cases, build+web-release-e2e on push and pull_request for the final head.
+Security-page action and actual multi-browser/idle-warning acceptance remain separate.

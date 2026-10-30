@@ -39,7 +39,14 @@ def compose_citations(db: Session, workspace_id: int, control_id: int) -> dict:
     links = db.query(ControlEvidenceLink).filter(ControlEvidenceLink.control_id == control_id).all()
     evidence_citations = []
     for link in links:
-        ev = db.query(EvidenceItem).filter(EvidenceItem.id == link.evidence_id).first()
+        ev = (
+            db.query(EvidenceItem)
+            .filter(
+                EvidenceItem.id == link.evidence_id,
+                EvidenceItem.workspace_id == workspace_id,
+            )
+            .first()
+        )
         if not ev:
             continue
         citation = {

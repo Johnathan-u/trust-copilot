@@ -1,0 +1,20 @@
+{
+  "old_expectations": 58,
+  "new_expectations": 67,
+  "all_original_expectation_expressions_identical": true,
+  "entire_original_source_preserved_except_final_describe_closure": true,
+  "original_themes": [
+    "dark",
+    "light"
+  ],
+  "original_widths": [
+    360,
+    768,
+    1440
+  ],
+  "original_scan_count": 6,
+  "original_helper_and_scan_bytes_identical": true,
+  "only_product_change": "ghost transition list excludes color; every other byte in Button matches the baseline after reversing that one expression",
+  "component_blob": "f736d3a32e0ea8d1bd8d7d5d7307e8fe52f6b15f",
+  "spec_blob": "f427e6f2f91a10829b5a6cf52f4a65e2183cfcd1"
+}

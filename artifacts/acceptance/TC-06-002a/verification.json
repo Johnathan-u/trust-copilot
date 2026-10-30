@@ -1,0 +1,139 @@
+{
+  "ticket": "TC-06-002a",
+  "claim": "https://github.com/Johnathan-u/trust-copilot/issues/85#issuecomment-6514312794",
+  "status": "implemented locally; independent review and exact-head PostgreSQL/CI qualification pending",
+  "initial_base": "6fb292e20f4e17254861f374459b87c4167e6c5a",
+  "implementation_commit": "89f64f31818ef38e9ae31ef09d27b70cfd5580bd",
+  "master_integration_commit": "4d4d47df66a55b5e3729718e5d7fdcc57be627e7",
+  "included_master": "5928f061e2967e9ca717879b0517a66f22f4d6c2",
+  "source_blobs": {
+    "apps/api/app/services/export_pack_service.py": "6e6ad0e8e414ad5f5619a5f53aa52e0e8df7febe",
+    "apps/api/tests/release/test_authorization_core_exports.py": "95a671bab6dc3e38c6ea845817cd9d80142b5e33"
+  },
+  "source_note": "The final test blob adds guaranteed Session/engine closing around fixture cleanup assertions after the separate master merge. The latest 29-case run covers this blob; production service is unchanged from the implementation commit.",
+  "environment": {
+    "python": "3.12.14",
+    "ruff": "0.5.6",
+    "runtime": "/tmp/tc-backend-venv",
+    "postgresql": "localhost:5432 unavailable; connection refused",
+    "sqlite": "in-memory, foreign_keys=ON"
+  },
+  "checks": [
+    {
+      "cwd": "apps/api",
+      "command": "python -m pytest tests/release/test_authorization_core_exports.py -m unit -q",
+      "exit_code": 0,
+      "passed": 29,
+      "deselected": 29
+    },
+    {
+      "cwd": "apps/api",
+      "command": "python -m pytest tests/release/test_authorization_core_exports.py --collect-only -q",
+      "exit_code": 0,
+      "collected": 58,
+      "sqlite": 29,
+      "postgresql": 29
+    },
+    {
+      "cwd": "apps/api",
+      "command": "TC_REQUIRE_DB=1 python -m pytest tests/release/test_authorization_core_exports.py -m integration -q --tb=short",
+      "exit_code": 3,
+      "passed": 0,
+      "reason": "Required PostgreSQL prerequisite fails; localhost5432 refuses connection. No test executed."
+    },
+    {
+      "cwd": "apps/api",
+      "command": "python -m pytest tests/release/test_principal_contract.py -k sqlite -q",
+      "exit_code": 0,
+      "passed": 45,
+      "deselected": 45
+    },
+    {
+      "cwd": "apps/api",
+      "command": "python -m pytest tests/release/test_safe_collection.py -q",
+      "exit_code": 0,
+      "passed": 29
+    },
+    {
+      "cwd": "apps/api",
+      "command": "python -m pytest tests/test_export_pack.py -q --tb=short",
+      "exit_code": 0,
+      "passed": 2,
+      "skipped": 11,
+      "note": "Only local recommendation helper checks ran; PostgreSQL-dependent service/API cases skipped. Not acceptance."
+    },
+    {
+      "cwd": "apps/api",
+      "command": "ruff check app/services/export_pack_service.py tests/release/test_authorization_core_exports.py",
+      "exit_code": 0
+    },
+    {
+      "cwd": "apps/api",
+      "command": "ruff format --check app/services/export_pack_service.py tests/release/test_authorization_core_exports.py",
+      "exit_code": 0
+    },
+    {
+      "cwd": ".",
+      "command": "git diff --check",
+      "exit_code": 0
+    }
+  ],
+  "red_green": {
+    "baseline_command": "python -m pytest tests/release/test_authorization_core_exports.py -m unit -q --tb=short",
+    "baseline_exit_code": 1,
+    "baseline_failed": 7,
+    "baseline_passed": 22,
+    "failures": [
+      "Foreign evidence endpoint returned200 rather than404.",
+      "Full/evidence mixed references counted4 citations instead of2.",
+      "Unresolved/malformed identities contributed to counts.",
+      "References to moved documents still appeared and counted."
+    ],
+    "final_passed": 29
+  },
+  "negative_controls": [
+    {
+      "control": "questionnaire_workspace",
+      "exit_code": 1,
+      "failed": true,
+      "source_restored": true
+    },
+    {
+      "control": "document_workspace",
+      "exit_code": 1,
+      "failed": true,
+      "source_restored": true
+    },
+    {
+      "control": "citation_count",
+      "exit_code": 1,
+      "failed": true,
+      "source_restored": true
+    }
+  ],
+  "fixture": {
+    "auth": "Real production router/service, session signing, stored User/WorkspaceMember/UserSession; only get_db injected.",
+    "databases": [
+      "SQLite local controls",
+      "Migrated PostgreSQL required acceptance"
+    ],
+    "read_only": "Before/after full-row snapshots of domain and authentication tables around every GET.",
+    "cleanup": "Record inserted IDs, delete only those IDs in FK-safe order, verify original full rows/counts, always close owned connections.",
+    "constraints": "SQLite foreign keys enabled; no FK/trigger bypass or sequence reset."
+  },
+  "preserved_contracts": [
+    "Existing full-pack/cover/summary response shape and role dependencies.",
+    "Indistinguishable foreign/missing questionnaire404.",
+    "Valid same-workspace document metadata, including archived objects.",
+    "Duplicate valid citations count separately; distinct documents counted once.",
+    "Evidence-gap workspace scoping and resolved/open metrics."
+  ],
+  "changed_contract": "Only references resolving to a current same-workspace Document contribute metadata and counts. Missing/malformed/unknown/foreign identities, including unresolved chunk-only entries, do not count as authorized document citations.",
+  "remaining_gates": [
+    "Independent review.",
+    "Final-head required build and web-release-e2e on both push and pull_request, including29 PostgreSQL cases.",
+    "Production middleware/startup and provider/storage execution unqualified.",
+    "Full TC-06-001 and TC-06-002 remain open.",
+    "Citation composer and answer-bulk defects remain separate untouched follow-ups."
+  ]
+}

@@ -9,10 +9,21 @@ engineering work does not wait for owner approval or for the former Grok
 coordinator. The Codex coordinator fills the Coordinator role in
 `docs/acceptance/release-decisions.md`; implementing workers never self-merge.
 
-Read `docs/release/CODEX_AUTONOMY.md` for the run protocol. Issue #85 is the live
-assignment and decision ledger. `docs/release/CODEX_HANDOFF.md` and
-`docs/planning/BACKLOG_STATUS.md` are dated starting points: reconcile them with
-current master, PRs and later rulings before acting.
+Read `docs/release/CODEX_AUTONOMY.md` for the run protocol and
+`docs/release/PM_BACKLOG_PROTOCOL.md` for the shared progress workflow. **Grok PM
+and Codex PM must use `docs/planning/backlog-state.json` and the human dashboard
+at `docs/tracker/index.html`, updating them after each meaningful work batch.**
+Original scope remains in `TrustCopilot_Execution_Backlog.json`; the tracker is
+generated with `python scripts/backlog_tracker.py build` and checked with `check`.
+Use the validated `update` command with the current revision; never hand-edit the
+generated snapshot. Report accepted original-parent points / 1,864 only after
+baseline verification; otherwise report the baseline as pending. PRs, children
+and epic totals do not earn additional completion credit.
+
+Issue #85 remains the live assignment and decision ledger. The coordinator lease
+and merge gates below remain mandatory. `docs/release/CODEX_HANDOFF.md` and
+`docs/planning/BACKLOG_STATUS.md` are historical starting points; current status
+comes from the tracker reconciled with master, PRs and later rulings.
 
 ## Scope discipline
 
