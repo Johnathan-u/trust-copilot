@@ -1,0 +1,90 @@
+TC-06-002e verification — 2026-10-30
+Base d0ec3fe33233e1cc0aa10b92cd7c8fbf2d2d5b5a.
+Worktree tc-job-artifact-authorization; branch codex/TC-06-002e-job-artifacts.
+Runtime /tmp/tc-backend-venv; unchanged locked dependencies, Python 3.12.
+
+From apps/api, before the runtime change:
+python -m pytest tests/release/test_authorization_core_job_artifacts.py -k sqlite -q --tb=short
+  58 failed, 15 passed, 73 deselected in 7.51s.
+  Failures covered foreign/moved/deleted parents, record mismatches, untrusted
+  keys/fields, malformed JSON/IDs, shared response projection and lookup failure.
+  The command wrapper displayed the saved log tail; its final shell exit was 0.
+  The pytest outcome was failing, not a passed test execution.
+
+After the export-only projection:
+python -m pytest tests/release/test_authorization_core_job_artifacts.py -k sqlite -q --tb=short
+  Exit 0: 73 passed, 73 deselected in 7.99s; 223 existing datetime warnings.
+
+Negative controls, each separately applied then restored exactly:
+  Remove Questionnaire.workspace_id predicate:
+    -k 'sqlite and current_questionnaire_parent_is_required and moved'
+    Exit 1: 1 failed, 145 deselected in 1.05s.
+  Remove ExportRecord.workspace_id predicate:
+    -k 'sqlite and export_record_must_match_job_workspace_and_questionnaire and foreign_workspace'
+    Exit 1: 1 failed, 145 deselected in 0.93s.
+  Copy result.get("storage_key") instead of record.storage_key:
+    -k 'sqlite and artifact_projection_uses_canonical_record'
+    Exit 1: 1 failed, 145 deselected in 1.08s.
+
+python -m pytest tests/release/test_job_history.py -m unit -q --tb=short
+  Exit 0: 16 passed, 32 deselected in 1.60s.
+python -m pytest tests/release/test_principal_contract.py tests/release/test_session_validation.py -k 'sqlite or expiry_boundary' -q --tb=short
+  Exit 0: 71 passed, 70 deselected in 18.21s.
+python -m pytest tests/release/test_authorization_core_job_artifacts.py --collect-only -q
+  Exit 0: 146 cases collected (73 SQLite / 73 PostgreSQL).
+
+PostgreSQL fixture distinction:
+  Existing parent-move trigger rejects questionnaire movement with SQLSTATE23514.
+  Existing same-workspace record trigger rejects record movement with23503.
+  Tests assert rejection/no row changes, then detach only their own nullable
+  questionnaire reference before the allowed move and assert result:null.
+  No trigger/FK bypass. SQLite directly exercises the inconsistent-state guard.
+
+After documenting the PostgreSQL trigger branches and restoring all controls:
+python -m pytest tests/release/test_authorization_core_job_artifacts.py -k sqlite -q --tb=short
+  Exit 0: 73 passed, 73 deselected in 9.58s.
+python -m pytest tests/release/test_safe_collection.py -q
+  Exit 0: 29 passed in 29.53s.
+TC_REQUIRE_DB=1 python -m pytest tests/release/test_authorization_core_job_artifacts.py -k postgres -q --tb=short
+  Exit 3 before cases execute: Alembic could not connect to localhost:5432
+  (IPv4 and IPv6 connection refused). No PostgreSQL pass/skip qualification.
+
+AST comparison against the base:
+  Every other original function/handler is identical, including GET, list,
+  cancel and retry. _public_job's lifecycle return dictionary is identical.
+  Only export-result selection, its helper and the model import are changed.
+ruff check and format --check on jobs.py and the new test; py_compile;
+git diff --check; secret_inventory.py paths on the five claimed files:
+  Exit 0; formatting unchanged; secret inventory: zero findings.
+
+Required remaining gates: independent review and all 73 migrated-PostgreSQL cases
+plus both standard jobs on push and pull_request for the final published head.
+No parent-ticket completion, positive storage/download, provider, action-authority,
+or fourth-PR claim. Coordinator owns publication.
+
+CI fixture repair — 2026-10-30:
+  Published preservation head a0d5e87d86759b5d6b1adeccbe26f52cb9fd7717.
+  Push41010994109 / build123916590609:2 failed,4187 passed,1 skipped in585.22s.
+  Failures: test_current_questionnaire_parent_is_required[postgres-moved]
+  at line306; test_export_record_must_match_job_workspace_and_questionnaire
+  [postgres-foreign_workspace] at line352. The final caller commits received
+  the intact23514/23503 trigger errors.
+  Exact source: move_owned_parent compared dialect.name to "postgres".
+  Configured SQLAlchemy engine.dialect.name is "postgresql". Importing the
+  scrubbed test environment and comparing the helper AST literal to the actual
+  configured engine, without connecting, proved False before and True after
+  changing only that literal. The rejection/detach branch had never executed;
+  no flush-ordering change is needed or made.
+  Full-file comparison confirms this is the only test-source change; all31
+  assertion ASTs and jobs.py's full runtime blob are unchanged.
+  Fresh repair checks:
+    python -m pytest tests/release/test_authorization_core_job_artifacts.py -k sqlite -q --tb=short
+      Exit0:73 passed,73 deselected in11.00s.
+    python -m pytest tests/release/test_job_history.py -m unit -q --tb=short
+      Exit0:16 passed,32 deselected in1.85s.
+    python -m pytest tests/release/test_authorization_core_job_artifacts.py --collect-only -q
+      Exit0:146 collected in0.79s; no case removed or skipped by the repair.
+    ruff check/format, py_compile, git diff --check:exit0.
+    Secret inventory over the four repair files:exit0,zero findings.
+  The repaired PostgreSQL branch still requires actual CI. No local PostgreSQL
+  execution or passing trigger-scenario claim is made from the dialect probe.
