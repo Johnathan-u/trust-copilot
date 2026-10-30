@@ -639,9 +639,73 @@ def _inbox_service(command, cwd, env, log_path):
             try:
                 process.wait(timeout=20)
             except subprocess.TimeoutExpired:
-                os.killpg(process.pid, signal.SIGKILL)
+                pass
+            finally:
+                # wait() observes only the parent. Next/browser descendants may
+                # survive its exit or ignore SIGTERM, so always finish this group.
+                try:
+                    os.killpg(process.pid, signal.SIGKILL)
+                except ProcessLookupError:
+                    pass
                 process.wait(timeout=10)
             assert process.returncode is not None, "Acceptance service was not reaped"
+
+
+@pytest.mark.parametrize("body_fails", [False, True])
+def test_inbox_cleanup_kills_term_ignoring_child_after_parent_exit(tmp_path, body_fails):
+    """Parent exit must not leave a browser/server descendant accepting connections."""
+    ready = tmp_path / "child-ready.json"
+    child = (
+        "import json, os, signal, socket, sys, time; from pathlib import Path; "
+        "signal.signal(signal.SIGTERM, signal.SIG_IGN); "
+        "listener = socket.socket(); listener.bind(('127.0.0.1', 0)); listener.listen(); "
+        "ready = Path(sys.argv[1]); pending = ready.with_suffix('.tmp'); "
+        "pending.write_text(json.dumps([os.getpid(), listener.getsockname()[1]])); "
+        "pending.replace(ready); "
+        "time.sleep(120)"
+    )
+    parent = (
+        "import subprocess, sys, time; "
+        "subprocess.Popen([sys.executable, '-c', sys.argv[1], sys.argv[2]]); time.sleep(120)"
+    )
+    process = None
+    try:
+        try:
+            with _inbox_service(
+                [sys.executable, "-c", parent, child, str(ready)],
+                tmp_path,
+                os.environ.copy(),
+                tmp_path / "process.log",
+            ) as process:
+                deadline = time.monotonic() + 10
+                while not ready.is_file():
+                    assert process.poll() is None, "Probe parent exited before child was ready"
+                    assert time.monotonic() < deadline, "Probe child did not become ready"
+                    time.sleep(0.05)
+                child_pid, port = json.loads(ready.read_text())
+                assert os.getpgid(child_pid) == process.pid
+                with socket.socket() as probe:
+                    assert probe.connect_ex(("127.0.0.1", port)) == 0
+                if body_fails:
+                    raise RuntimeError("simulated acceptance failure")
+        except RuntimeError as error:
+            assert body_fails and str(error) == "simulated acceptance failure"
+        assert process.returncode == -signal.SIGTERM, "Parent did not exit on SIGTERM"
+        deadline = time.monotonic() + 3
+        while True:
+            with socket.socket() as probe:
+                if probe.connect_ex(("127.0.0.1", port)) != 0:
+                    break
+            assert time.monotonic() < deadline, "Child survived parent exit and still listens"
+            time.sleep(0.05)
+    finally:
+        # Also clean up the regression's deliberate leak when testing a broken helper.
+        if process is not None:
+            try:
+                os.killpg(process.pid, signal.SIGKILL)
+            except ProcessLookupError:
+                pass
+            process.wait(timeout=10)
 
 
 def _inbox_wait_ready(process, url):

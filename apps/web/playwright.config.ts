@@ -40,6 +40,8 @@ if (!LOCAL_UPSTREAM_HOSTS.has(apiUpstreamHost)) {
 
 export default defineConfig({
   testDir: './e2e',
+  // The PostgreSQL fixture invokes this spec through playwright.inbox.config.ts.
+  testIgnore: '**/e2e/integration/notification-inbox.spec.ts',
   // When using saved storage from setup, run setup before chromium (dependencies).
   // Without E2E_SERVER_RUNNING, skip setup project so it never races with chromium.
   fullyParallel: !e2eServer,

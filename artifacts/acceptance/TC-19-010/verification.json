@@ -132,7 +132,7 @@
     "claim": "https://github.com/Johnathan-u/trust-copilot/issues/85#issuecomment-6512347402",
     "recovery": "https://github.com/Johnathan-u/trust-copilot/issues/85#issuecomment-6512534614",
     "base_sha": "5c4ffa0d550b0890ee4d8328d207eb96888535e2",
-    "tested_revision": "Acceptance-only worktree on base_sha; exact tested code blobs below. Worker returns final commit/tree separately.",
+    "tested_revision": "Initial implementation checkpoint 94b5b627add1f32f865866bf0a7342a5e02b07b8; its code blobs and checks below are preserved. Subsequent review fixes are recorded in review_followup.",
     "code_blobs": {
       "apps/api/tests/release/test_domain_in_app_notifications.py": "8d3ae776164f075f1421744d6fee5a899b3bbf79",
       "apps/web/e2e/integration/notification-inbox.spec.ts": "309d00a9fc529f077147a18d99d15324f37bcc2c",
@@ -231,6 +231,90 @@
     ],
     "qualified_restart_runs": [],
     "independent_review": "PENDING coordinator-assigned reviewer",
-    "exact_head_ci": "PENDING coordinator publication; four required build/web-release-e2e push/pull_request checks"
+    "exact_head_ci": "PENDING coordinator publication; four required build/web-release-e2e push/pull_request checks",
+    "review_followup": {
+      "claim": "https://github.com/Johnathan-u/trust-copilot/issues/85#issuecomment-6512733201",
+      "base_sha": "94b5b627add1f32f865866bf0a7342a5e02b07b8",
+      "changes": [
+        "Exact default-config testIgnore for e2e/integration/notification-inbox.spec.ts only; dedicated config and mandatory Python/CI invocation unchanged",
+        "Always SIGKILL remaining members of the owned start_new_session process group after bounded parent TERM wait, including already-exited parents and failure paths",
+        "Two actual subprocess regressions use a parent that exits on TERM and a listening child that ignores TERM; both normal and raised test-body exits require the child port to close"
+      ],
+      "code_blobs": {
+        "apps/api/tests/release/test_domain_in_app_notifications.py": "d473b4534f6504b69cd0f681b189782ec1abc2cb",
+        "apps/web/playwright.config.ts": "bdf170c9cf1a8d6f91211f003dac7fc11b913674",
+        "apps/web/playwright.inbox.config.ts": "f01f0d82cc77249469e02023605c04c1b202b7ac",
+        "apps/web/e2e/integration/notification-inbox.spec.ts": "309d00a9fc529f077147a18d99d15324f37bcc2c",
+        ".github/workflows/ci.yml": "338a910d3350b5cfd1ca30266977a8d0c069e372"
+      },
+      "red_evidence": [
+        {
+          "cwd": "apps/api",
+          "command": "env -u HTTP_PROXY -u HTTPS_PROXY -u ALL_PROXY -u http_proxy -u https_proxy -u all_proxy PYTHONPATH=. /tmp/tc-backend-venv/bin/python -m pytest tests/release/test_domain_in_app_notifications.py::test_inbox_cleanup_kills_term_ignoring_child_after_parent_exit -q",
+          "exit_status": 1,
+          "revision": "Base helper plus new regression; before cleanup fix",
+          "outcome": "2 failed in 7.55s, each with Child survived parent exit and still listens; regression finally block killed its deliberate leaks"
+        },
+        {
+          "cwd": "apps/web",
+          "command": "TC_SEED_DEMO_PASSWORD=discovery-only TC_SEED_ADMIN_PASSWORD=discovery-only node node_modules/@playwright/test/cli.js test --list --reporter=list",
+          "exit_status": 0,
+          "revision": "Base default Playwright configuration",
+          "outcome": "162 tests in 19 files, including the 2 dedicated integration phases without TC_INBOX_FIXTURE"
+        }
+      ],
+      "local_checks": [
+        {
+          "cwd": "apps/api",
+          "command": "env -u HTTP_PROXY -u HTTPS_PROXY -u ALL_PROXY -u http_proxy -u https_proxy -u all_proxy PYTHONPATH=. /tmp/tc-backend-venv/bin/python -m pytest tests/release/test_domain_in_app_notifications.py::test_inbox_cleanup_kills_term_ignoring_child_after_parent_exit -q",
+          "exit_status": 0,
+          "outcome": "2 passed in 1.69s; both orphan-child sockets close after parent exits on TERM; no PostgreSQL/browser required"
+        },
+        {
+          "cwd": "apps/web",
+          "command": "TC_SEED_DEMO_PASSWORD=discovery-only TC_SEED_ADMIN_PASSWORD=discovery-only node node_modules/@playwright/test/cli.js test --list --reporter=list",
+          "exit_status": 0,
+          "outcome": "160 tests in 18 files; line-by-line comparison with before listing confirms exactly the 2 dedicated phases removed and every other case unchanged, including 7 mocked inbox cases"
+        },
+        {
+          "cwd": "apps/web",
+          "command": "TC_SEED_DEMO_PASSWORD=discovery-only TC_SEED_ADMIN_PASSWORD=discovery-only E2E_SERVER_RUNNING=1 node node_modules/@playwright/test/cli.js test --list --reporter=list",
+          "exit_status": 0,
+          "outcome": "161 tests in 19 files (existing suite plus auth setup); no dedicated integration phase discovered"
+        },
+        {
+          "cwd": "apps/web",
+          "command": "node node_modules/@playwright/test/cli.js test --config=playwright.inbox.config.ts --list --reporter=list",
+          "exit_status": 0,
+          "outcome": "Both required restart phases remain discoverable in the dedicated configuration"
+        },
+        {
+          "cwd": "apps/web",
+          "command": "npm run typecheck && npx --no-install eslint playwright.config.ts playwright.inbox.config.ts e2e/integration/notification-inbox.spec.ts --max-warnings=0 && npx --no-install prettier --check playwright.config.ts playwright.inbox.config.ts e2e/integration/notification-inbox.spec.ts",
+          "exit_status": 0,
+          "outcome": "TypeScript, targeted ESLint and Prettier passed"
+        },
+        {
+          "cwd": ".",
+          "command": "/tmp/tc-backend-venv/bin/ruff check apps/api/tests/release/test_domain_in_app_notifications.py && /tmp/tc-backend-venv/bin/ruff format --check apps/api/tests/release/test_domain_in_app_notifications.py && git diff --check",
+          "exit_status": 0,
+          "outcome": "Targeted Ruff/format and whitespace checks passed"
+        },
+        {
+          "cwd": "apps/api",
+          "command": "env -u HTTP_PROXY -u HTTPS_PROXY -u ALL_PROXY -u http_proxy -u https_proxy -u all_proxy PYTHONPATH=. /tmp/tc-backend-venv/bin/python -m pytest tests/release/test_domain_in_app_notifications.py --collect-only -q",
+          "exit_status": 0,
+          "outcome": "35 module cases collected in 1.05s: 33 domain cases plus the 2 cleanup regressions; collection starts no service"
+        },
+        {
+          "cwd": "apps/api",
+          "command": "env -u HTTP_PROXY -u HTTPS_PROXY -u ALL_PROXY -u http_proxy -u https_proxy -u all_proxy PYTHONPATH=. /tmp/tc-backend-venv/bin/python -m pytest tests/release/test_safe_collection.py -q",
+          "exit_status": 0,
+          "outcome": "29 passed in 11.54s"
+        }
+      ],
+      "remaining_limits": "Real PostgreSQL/Chromium AC3 execution remains unavailable locally; prior prerequisite failures remain current limits. No CI, independent re-review, publication or merge claimed.",
+      "diagnostic_note": "Initial full default discovery without TC_SEED_DEMO_PASSWORD/TC_SEED_ADMIN_PASSWORD exited 1 in existing seed-dependent specs. Supplying synthetic discovery-only values enabled collection; no actual login or browser execution was attempted."
+    }
   }
 }
