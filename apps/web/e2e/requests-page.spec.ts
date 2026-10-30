@@ -227,7 +227,9 @@ test.describe('Requests page — outbound vendor request lifecycle', () => {
     expect(normalized).toContain('actions')
   })
 
-  test('Copy Link button exists in table row actions', async ({ page }) => {
+  test('raw links are not reconstructed from later list reads', async ({
+    page,
+  }) => {
     await loginAsAdmin(page)
     await page.goto('/dashboard/requests')
     await page.waitForLoadState('networkidle')
@@ -248,7 +250,7 @@ test.describe('Requests page — outbound vendor request lifecycle', () => {
 
     const row = page.locator('tr', { hasText: vendorEmail })
     const copyLink = row.getByText(/Copy Link/i)
-    await expect(copyLink).toBeVisible({ timeout: 10_000 })
+    await expect(copyLink).toHaveCount(0)
   })
 
   test('no internal model names exposed in UI text', async ({ page }) => {
@@ -335,8 +337,15 @@ test.describe('Requests page — outbound vendor request lifecycle', () => {
         data: { status: 'completed' },
       }
     )
-    expect(completeRes.ok()).toBeTruthy()
-    expect((await completeRes.json()).status).toBe('completed')
+    expect(completeRes.status()).toBe(409)
+    const submitRes = await page.request.post('/api/vendor-response/submit', {
+      data: {
+        token: created.link_token,
+        response: 'Synthetic final vendor response',
+      },
+    })
+    expect(submitRes.ok()).toBeTruthy()
+    expect((await submitRes.json()).status).toBe('completed')
 
     const finalList = await page.request.get('/api/vendor-requests/')
     const finalItem = (await finalList.json()).find(
@@ -374,11 +383,11 @@ test.describe('Requests page — outbound vendor request lifecycle', () => {
     const createRes = await page.request.post('/api/vendor-requests/', {
       data: { vendor_email: vendorEmail },
     })
-    const reqId = (await createRes.json()).id
-
-    await page.request.patch(`/api/vendor-requests/${reqId}`, {
-      data: { status: 'completed' },
+    const created = await createRes.json()
+    const submission = await page.request.post('/api/vendor-response/submit', {
+      data: { token: created.link_token, response: 'Synthetic final response' },
     })
+    expect(submission.ok()).toBeTruthy()
 
     await page.goto('/dashboard/requests')
     await page.waitForLoadState('networkidle')

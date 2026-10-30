@@ -1,0 +1,229 @@
+Negative controls before implementation (Vitest failed)
+npm warn Unknown env config "http-proxy". This will stop working in the next major version of npm.
+(!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+  - ESM syntax in a file loaded as CommonJS (vitest.config.ts:1:1). Use a `.mjs` extension or set `"type": "module"` in the closest package.json
+Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.
+
+ RUN  v5.0.5 /workspace/scratch/ac0fa793e50b/tc-vendor-ui/apps/web
+
+ ❯ tests/unit/vendor-requests.test.ts (24 tests | 4 failed) 633ms
+   × preserves the first one-time invitation across simultaneous rows until Done acknowledgment 22ms
+   × preserves the first one-time invitation across simultaneous rows until Close acknowledgment 19ms
+   × preserves the first one-time invitation across simultaneous rows until Escape acknowledgment 15ms
+   × serializes creation with row invitations until its one-time result is closed 42ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 4 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/unit/vendor-requests.test.ts > preserves the first one-time invitation across simultaneous rows until Done acknowledgment
+ FAIL  tests/unit/vendor-requests.test.ts > preserves the first one-time invitation across simultaneous rows until Close acknowledgment
+ FAIL  tests/unit/vendor-requests.test.ts > preserves the first one-time invitation across simultaneous rows until Escape acknowledgment
+AssertionError: expected [ { …(2) }, { …(2) } ] to have a length of 1 but got 2
+
+- Expected
++ Received
+
+- 1
++ 2
+
+ ❯ tests/unit/vendor-requests.test.ts:190:20
+    188|       resend.click()
+    189|     })
+    190|     expect(writes).toHaveLength(1)
+       |                    ^
+    191|     expect(resend.hasAttribute('disabled')).toBe(true)
+    192|     await act(async () =>
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/4]⎯
+
+ FAIL  tests/unit/vendor-requests.test.ts > serializes creation with row invitations until its one-time result is closed
+AssertionError: expected [ { …(2) }, { …(2) } ] to have a length of 1 but got 2
+
+- Expected
++ Received
+
+- 1
++ 2
+
+ ❯ tests/unit/vendor-requests.test.ts:234:18
+    232|   await create()
+    233|   fireEvent.click(send)
+    234|   expect(writes).toHaveLength(1)
+       |                  ^
+    235|   expect(send.hasAttribute('disabled')).toBe(true)
+    236|   await act(async () =>
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/4]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  4 failed | 20 passed (24)
+   Start at  03:00:31
+   Duration  1.24s (tests 58%, environment 21%, import 12%, transform 9%)
+
+
+Focused controls (exit 0)
+npm warn Unknown env config "http-proxy". This will stop working in the next major version of npm.
+(!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+  - ESM syntax in a file loaded as CommonJS (vitest.config.ts:1:1). Use a `.mjs` extension or set `"type": "module"` in the closest package.json
+Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.
+
+ RUN  v5.0.5 /workspace/scratch/ac0fa793e50b/tc-vendor-ui/apps/web
+
+
+ Test Files  1 passed (1)
+      Tests  25 passed (25)
+   Start at  03:03:03
+   Duration  1.30s (tests 65%, environment 17%, import 10%, transform 8%)
+
+
+Full web quality (exit 0)
+npm warn Unknown env config "http-proxy". This will stop working in the next major version of npm.
+
+> trust-copilot-web@0.1.0 quality
+> npm run typecheck && npm run lint && npm run format:check && npm run test:unit
+
+npm warn Unknown env config "http-proxy". This will stop working in the next major version of npm.
+
+> trust-copilot-web@0.1.0 typecheck
+> next typegen && tsc --noEmit -p .
+
+Generating route types...
+✓ Types generated successfully
+npm warn Unknown env config "http-proxy". This will stop working in the next major version of npm.
+
+> trust-copilot-web@0.1.0 lint
+> eslint . --max-warnings=0
+
+npm warn Unknown env config "http-proxy". This will stop working in the next major version of npm.
+
+> trust-copilot-web@0.1.0 format:check
+> prettier --check "**/*.{ts,tsx,js,jsx,json,md}"
+
+Checking formatting...
+All matched files use Prettier code style!
+npm warn Unknown env config "http-proxy". This will stop working in the next major version of npm.
+
+> trust-copilot-web@0.1.0 test:unit
+> vitest run
+
+(!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+  - ESM syntax in a file loaded as CommonJS (vitest.config.ts:1:1). Use a `.mjs` extension or set `"type": "module"` in the closest package.json
+Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.
+
+ RUN  v5.0.5 /workspace/scratch/ac0fa793e50b/tc-vendor-ui/apps/web
+
+
+ Test Files  37 passed (37)
+      Tests  276 passed (276)
+   Start at  03:03:43
+   Duration  2.40s (tests 34%, environment 32%, import 21%, transform 9%, worker 3%)
+
+    Isolate  37 workers spawned · ~243ms startup each (spawn + environment, per file)
+             at least ~1.04s faster with isolate: false — reuses workers across files instead of one per file
+
+
+Production build (exit 0)
+npm warn Unknown env config "http-proxy". This will stop working in the next major version of npm.
+
+> trust-copilot-web@0.1.0 build
+> next build
+
+▲ Next.js 16.4.3 (Turbopack)
+✓ Running next.config.js took 25ms
+
+⚠ The "middleware" file convention is deprecated. Please use "proxy" instead.
+
+  To migrate automatically, run:
+  npx @next/codemod@canary middleware-to-proxy .
+
+  Learn more: https://nextjs.org/docs/messages/middleware-to-proxy
+  Creating an optimized production build ...
+✓ Compiled successfully in 1269ms
+  Running TypeScript ...
+  Finished TypeScript in 3.1s ...
+  Collecting page data using 8 workers ...
+  Generating static pages using 8 workers (0/39) ...
+  Generating static pages using 8 workers (9/39)
+  Generating static pages using 8 workers (19/39)
+  Generating static pages using 8 workers (29/39)
+✓ Generating static pages using 8 workers (39/39) in 464ms
+  Finalizing page optimization ...
+
+Route (app)
+┌ ○ /
+├ ○ /_not-found
+├ ○ /accept-invite
+├ ƒ /api/[[...path]]
+├ ○ /checkout
+├ ○ /dashboard
+├ ○ /dashboard/ai-governance
+├ ○ /dashboard/audit
+├ ○ /dashboard/case-studies
+├ ○ /dashboard/compliance-frameworks
+├ ○ /dashboard/compliance-gaps
+├ ○ /dashboard/controls
+├ ƒ /dashboard/controls/[id]
+├ ○ /dashboard/demo-proof
+├ ○ /dashboard/documents
+├ ○ /dashboard/exports
+├ ○ /dashboard/gmail
+├ ○ /dashboard/members
+├ ○ /dashboard/notifications
+├ ○ /dashboard/proof-chain
+├ ○ /dashboard/questionnaires
+├ ƒ /dashboard/questionnaires/[id]
+├ ○ /dashboard/requests
+├ ○ /dashboard/review
+├ ƒ /dashboard/review/[id]
+├ ○ /dashboard/security
+├ ○ /dashboard/settings
+├ ○ /dashboard/slack
+├ ○ /dashboard/trust-center
+├ ƒ /dashboard/vendor-requests
+├ ƒ /design-dialogs
+├ ƒ /design-tokens
+├ ○ /forgot-password
+├ ○ /icon.svg
+├ ○ /login
+├ ○ /onboarding
+├ ○ /pricing
+├ ○ /register
+├ ○ /reset-password
+├ ○ /trust
+├ ƒ /trust/[slug]
+├ ○ /vendor-response
+└ ○ /verify-email
+
+
+ƒ Proxy (Middleware)
+
+○  (Static)   prerendered as static content
+ƒ  (Dynamic)  server-rendered on demand
+
+
+Browser case collection only (exit 0)
+npm warn Unknown env config "http-proxy". This will stop working in the next major version of npm.
+Listing tests:
+  [chromium] › release/ui-22.spec.ts:8:5 › legacy bookmark is a server redirect with no approved query parameters
+  [chromium] › release/ui-22.spec.ts:203:5 › bookmark navigation commits only the destination and Back returns to the preceding page
+  [chromium] › release/ui-22.spec.ts:232:7 › reviewer gets the actual read permission without administrator actions
+  [chromium] › release/ui-22.spec.ts:232:7 › viewer gets the actual read permission without administrator actions
+  [chromium] › release/ui-22.spec.ts:258:5 › empty requests remain an honest empty state with an available create action
+  [chromium] › release/ui-22.spec.ts:270:5 › list failure remains an error and retry obtains the acknowledged list
+  [chromium] › release/ui-22.spec.ts:287:5 › questionnaire failure retains requests and does not display internal ids
+  [chromium] › release/ui-22.spec.ts:300:5 › delayed create and its null-token replay do not fabricate a link or early success
+  [chromium] › release/ui-22.spec.ts:338:5 › creation exposes only the returned one-time link and copy waits for clipboard acknowledgment
+  [chromium] › release/ui-22.spec.ts:366:5 › progress rejection keeps the current state and reports the server failure
+  [chromium] › release/ui-22.spec.ts:384:5 › send retry preserves its key after a network failure and only confirms provider acceptance
+  [chromium] › release/ui-22.spec.ts:414:5 › simultaneous row invitations preserve each one-time link until its result is closed
+  [chromium] › release/ui-22.spec.ts:495:7 › unavailable never appears as accepted or delivered
+  [chromium] › release/ui-22.spec.ts:495:7 › uncertain never appears as accepted or delivered
+  [chromium] › release/ui-22.spec.ts:495:7 › sending never appears as accepted or delivered
+  [chromium] › release/ui-22.spec.ts:510:5 › revoke requires confirmation and an acknowledged response before displaying revoked
+  [chromium] › release/ui-22.spec.ts:541:5 › only recorded submission presents completed state, while an expired grant remains explicit
+  [chromium] › release/ui-22.spec.ts:568:5 › late old-workspace reads cannot replace the new workspace list
+  [chromium] › release/ui-22.spec.ts:594:5 › late old-workspace send cannot show its token or result in the new workspace
+  [chromium] › release/ui-22.spec.ts:636:7 › long content, keyboard dialog and accessibility at 360px
+  [chromium] › release/ui-22.spec.ts:636:7 › long content, keyboard dialog and accessibility at 768px
+  [chromium] › release/ui-22.spec.ts:636:7 › long content, keyboard dialog and accessibility at 1440px
+Total: 22 tests in 1 file

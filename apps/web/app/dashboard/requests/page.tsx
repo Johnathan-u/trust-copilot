@@ -1,9 +1,10 @@
 'use client'
 
-import { useCallback, useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import {
   Button,
   Card,
+  ConfirmDialog,
   ErrorState,
   Input,
   LoadingState,
@@ -17,17 +18,25 @@ import {
   type ApiFailurePresentation,
 } from '@/lib/api-error'
 import {
+  failureOf,
   listFromPayload,
   loadSection,
   sectionFailure,
 } from '@/lib/section-load'
-import { presentHttpFailure } from '@/lib/api-error'
 import { pageMode, type FailedSection } from '@/lib/ui-state'
-import { useKeyedGeneration } from '@/components/ui/useKeyedGeneration'
 
 /* ──────────────────── Types ──────────────────── */
 
 type VendorRequest = {
+  schema_version: '1'
+  workspace_id: number
+  delivery_status: string
+  expires_at: string | null
+  revoked_at: string | null
+  submitted_at: string | null
+  last_delivery_at: string | null
+  last_delivery_error: string | null
+  share_url?: string
   id: number
   vendor_email: string
   questionnaire_id: number | null
@@ -48,6 +57,8 @@ type Questionnaire = {
 const STATUS_STYLE: Record<string, { label: string; color: string }> = {
   pending: { label: 'Pending', color: 'bg-amber-500/15 text-amber-400' },
   in_progress: { label: 'In Progress', color: 'bg-blue-500/15 text-blue-400' },
+  expired: { label: 'Expired', color: 'bg-tc-surface-raised text-tc-muted' },
+  revoked: { label: 'Revoked', color: 'bg-tc-surface-raised text-tc-muted' },
   completed: {
     label: 'Completed',
     color: 'bg-emerald-500/15 text-emerald-400',
@@ -83,11 +94,85 @@ function timeAgo(iso: string | null): string {
 
 /* ──────────────────── Component ──────────────────── */
 
+const DELIVERY_LABELS: Record<string, string> = {
+  not_sent: 'Not sent',
+  sending: 'Delivery awaiting confirmation',
+  accepted: 'Accepted by email provider',
+  uncertain: 'Delivery outcome unknown',
+  unavailable: 'Email delivery unavailable',
+  unknown: 'No recorded delivery outcome',
+}
+
+function readRequest(data: unknown): VendorRequest {
+  if (!data || typeof data !== 'object')
+    throw new Error('Invalid request response')
+  const row = data as VendorRequest
+  if (
+    row.schema_version !== '1' ||
+    !Number.isInteger(row.id) ||
+    !Number.isInteger(row.workspace_id) ||
+    typeof row.vendor_email !== 'string' ||
+    !Object.hasOwn(STATUS_STYLE, row.status) ||
+    !Object.hasOwn(DELIVERY_LABELS, row.delivery_status) ||
+    ![
+      'expires_at',
+      'revoked_at',
+      'submitted_at',
+      'last_delivery_at',
+      'created_at',
+    ].every(
+      (field) =>
+        row[field as keyof VendorRequest] === null ||
+        typeof row[field as keyof VendorRequest] === 'string'
+    )
+  )
+    throw new Error('Invalid request response')
+  if (row.link_token !== null && typeof row.link_token !== 'string')
+    throw new Error('Invalid link')
+  if (
+    row.share_url !== undefined &&
+    (typeof row.share_url !== 'string' || !row.link_token)
+  )
+    throw new Error('Invalid link')
+  if (row.share_url) {
+    const url = new URL(row.share_url, window.location.origin)
+    if (
+      url.origin !== window.location.origin ||
+      url.pathname !== '/vendor-response' ||
+      url.searchParams.get('token') !== row.link_token
+    )
+      throw new Error('Invalid link')
+  }
+  return row
+}
+
+function currentStatus(row: VendorRequest) {
+  if (row.submitted_at) return 'completed'
+  if (row.revoked_at) return 'revoked'
+  return row.status === 'completed' ? 'pending' : row.status
+}
+
 export default function RequestsPage() {
   const { workspace, permissions } = useAuth()
-  const canEdit = permissions.can_edit
-  const canAdmin = permissions.can_admin
+  return (
+    <WorkspaceRequests
+      key={`${workspace?.id ?? ''}:${permissions.can_review}:${permissions.can_admin}`}
+      workspaceId={workspace?.id}
+      canReview={permissions.can_review}
+      canAdmin={permissions.can_admin}
+    />
+  )
+}
 
+function WorkspaceRequests({
+  workspaceId,
+  canReview,
+  canAdmin,
+}: {
+  workspaceId?: number
+  canReview: boolean
+  canAdmin: boolean
+}) {
   const [requests, setRequests] = useState<VendorRequest[]>([])
   const [questionnaires, setQuestionnaires] = useState<Questionnaire[]>([])
   const [loading, setLoading] = useState(true)
@@ -100,163 +185,224 @@ export default function RequestsPage() {
     message: string
     type: 'success' | 'error'
   } | null>(null)
-
-  // Create form state
   const [createOpen, setCreateOpen] = useState(false)
   const [email, setEmail] = useState('')
-  const [qnrId, setQnrId] = useState<string>('')
+  const [qnrId, setQnrId] = useState('')
   const [message, setMessage] = useState('')
   const [submitting, setSubmitting] = useState(false)
+  const [invitationBusy, setInvitationBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
-
-  // Created result
-  const [created, setCreated] = useState<{
-    share_url: string
-    link_token: string
-  } | null>(null)
+  const [created, setCreated] = useState<VendorRequest | null>(null)
+  const [resultKind, setResultKind] = useState<'create' | 'invitation'>(
+    'create'
+  )
   const [copied, setCopied] = useState(false)
+  const [pending, setPending] = useState<Record<number, boolean>>({})
+  const [actionErrors, setActionErrors] = useState<Record<number, string>>({})
+  const [revokeTarget, setRevokeTarget] = useState<VendorRequest | null>(null)
+  const alive = useRef(true)
+  const activeWrites = useRef(new Set<string>())
+  // One-time links share one result dialog. Claim synchronously before any
+  // request, and retain the claim until its displayed result is acknowledged.
+  const invitationPhase = useRef<'pending' | 'result' | null>(null)
+  const retryKeys = useRef(new Map<string, string>())
+  const createAttempt = useRef<{ fingerprint: string; key: string } | null>(
+    null
+  )
+  const readEpoch = useRef(0)
+  const copyEpoch = useRef(0)
 
-  const queryRequests = useCallback(() => {
-    void loadAttempt
-    const requestsPromise = loadSection(
-      fetch('/api/vendor-requests', { credentials: 'include' }),
-      (data) => listFromPayload<VendorRequest>(data, ['items', 'requests'])
-    )
-    const questionnairesPromise = workspace
-      ? loadSection(
-          fetch(`/api/questionnaires?workspace_id=${workspace.id}`, {
-            credentials: 'include',
-          }),
+  useEffect(() => {
+    alive.current = true
+    return () => {
+      alive.current = false
+    }
+  }, [])
+
+  useEffect(() => {
+    if (!canReview || !workspaceId) return
+    const epoch = ++readEpoch.current
+    const controller = new AbortController()
+    const read = async () => {
+      // Strict Mode replays setup/cleanup synchronously. Do not start business
+      // reads for a setup that has already been disposed before this microtask.
+      await Promise.resolve()
+      if (controller.signal.aborted) return
+      try {
+        const options = {
+          credentials: 'include' as const,
+          signal: controller.signal,
+        }
+        const requestPromise = loadSection(
+          fetch('/api/vendor-requests', options),
+          (data) =>
+            listFromPayload<unknown>(data, ['items', 'requests'])
+              .map(readRequest)
+              .map((row) => {
+                if (row.workspace_id !== workspaceId)
+                  throw new Error('Invalid workspace')
+                return row
+              })
+        )
+        const questionnairePromise = loadSection(
+          fetch(`/api/questionnaires?workspace_id=${workspaceId}`, options),
           (data) =>
             listFromPayload<Questionnaire>(data, ['items', 'questionnaires'])
         )
-      : Promise.resolve(null)
-    Promise.all([requestsPromise, questionnairesPromise])
-      .then(([requestResult, questionnaireResult]) => {
+        const [requestResult, questionnaireResult] = await Promise.all([
+          requestPromise,
+          questionnairePromise,
+        ])
+        if (
+          !alive.current ||
+          controller.signal.aborted ||
+          epoch !== readEpoch.current
+        )
+          return
         const snapshots = [
           {
             id: 'requests',
             label: 'Requests',
             phase: requestResult.ok
-              ? requestResult.data.length === 0
-                ? ('empty' as const)
-                : ('ready' as const)
+              ? requestResult.data.length
+                ? ('ready' as const)
+                : ('empty' as const)
               : ('error' as const),
             failure: sectionFailure(requestResult),
           },
-        ]
-        if (questionnaireResult) {
-          snapshots.push({
+          {
             id: 'questionnaires',
             label: 'Questionnaires',
             phase: questionnaireResult.ok
-              ? questionnaireResult.data.length === 0
-                ? 'empty'
-                : 'ready'
-              : 'error',
+              ? questionnaireResult.data.length
+                ? ('ready' as const)
+                : ('empty' as const)
+              : ('error' as const),
             failure: sectionFailure(questionnaireResult),
-          })
-        }
+          },
+        ]
         const mode = pageMode(snapshots[0], snapshots.slice(1))
         setRequests(requestResult.ok ? requestResult.data : [])
         setQuestionnaires(
-          questionnaireResult?.ok
-            ? questionnaireResult.data.filter((q) => q.status === 'completed')
-            : []
+          questionnaireResult.ok ? questionnaireResult.data : []
         )
-        if (mode.mode === 'error') {
-          setLoadFailure(mode.failure)
-          setPartialFailed([])
-        } else if (mode.mode === 'partial') {
-          setLoadFailure(null)
-          setPartialFailed(mode.failed)
-        } else {
-          setLoadFailure(null)
-          setPartialFailed([])
-        }
-      })
-      .catch(() => {
-        setRequests([])
-        setQuestionnaires([])
+        // The questionnaire selector is supplementary; it cannot turn a failed
+        // request list into an apparent empty list or a successful page.
+        setLoadFailure(
+          !requestResult.ok
+            ? sectionFailure(requestResult)
+            : mode.mode === 'error'
+              ? mode.failure
+              : null
+        )
+        setPartialFailed(
+          requestResult.ok && mode.mode === 'partial' ? mode.failed : []
+        )
+        setLoading(false)
+      } catch (error) {
+        if (
+          !alive.current ||
+          controller.signal.aborted ||
+          epoch !== readEpoch.current
+        )
+          return
+        setLoadFailure(failureOf(error))
         setPartialFailed([])
-        setLoadFailure(presentHttpFailure({ offline: true }))
-      })
-      .finally(() => setLoading(false))
-  }, [workspace, loadAttempt])
+        setLoading(false)
+      }
+    }
+    void read()
+    return () => {
+      controller.abort()
+    }
+  }, [workspaceId, canReview, loadAttempt])
 
-  const load = useCallback(() => {
+  const load = () => {
     setLoading(true)
     setLoadFailure(null)
-    queryRequests()
-  }, [queryRequests])
-
-  const requestKey = useKeyedGeneration(
-    `${canEdit ? '1' : '0'}|${workspace?.id ?? ''}|${loadAttempt}`
-  )
-  if (requestKey.changed) {
-    setLoading(canEdit)
-    if (canEdit) setLoadFailure(null)
+    setLoadAttempt((value) => value + 1)
   }
 
-  useEffect(() => {
-    if (!canEdit) return
-    queryRequests()
-  }, [canEdit, queryRequests])
-
-  if (!canEdit) {
+  if (!canReview)
     return (
       <div className="min-w-0 space-y-6">
-        <div>
-          <h1 className="text-2xl font-bold text-[var(--tc-text)]">Requests</h1>
-          <p className="mt-1 text-sm text-[var(--tc-muted)]">
-            You need editor or admin access to manage requests.
-          </p>
-        </div>
+        <h1 className="text-2xl font-bold text-tc-text">Requests</h1>
+        <p className="text-sm text-tc-muted">
+          You need review access to view requests.
+        </p>
       </div>
     )
-  }
 
-  const onCreate = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!email.trim()) {
-      setError('Vendor email is required')
-      return
+  const onCreate = async (event: React.FormEvent) => {
+    event.preventDefault()
+    if (!canAdmin || invitationPhase.current) return
+    const body = {
+      vendor_email: email.trim(),
+      ...(qnrId ? { questionnaire_id: Number(qnrId) } : {}),
+      ...(message.trim() ? { message: message.trim() } : {}),
     }
+    const fingerprint = JSON.stringify(body)
+    if (createAttempt.current?.fingerprint !== fingerprint)
+      createAttempt.current = { fingerprint, key: crypto.randomUUID() }
+    activeWrites.current.add('create')
+    invitationPhase.current = 'pending'
+    setInvitationBusy(true)
     setSubmitting(true)
     setError(null)
+    let resultDisplayed = false
     try {
-      const body: Record<string, unknown> = { vendor_email: email.trim() }
-      if (qnrId) body.questionnaire_id = parseInt(qnrId, 10)
-      if (message.trim()) body.message = message.trim()
-
-      const r = await fetch('/api/vendor-requests', {
+      const response = await fetch('/api/vendor-requests', {
         method: 'POST',
         credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body),
+        headers: {
+          'Content-Type': 'application/json',
+          'Idempotency-Key': createAttempt.current.key,
+        },
+        body: fingerprint,
       })
-      const d = await r.json().catch(() => ({}))
-      if (!r.ok) {
+      const data: unknown = await response.json().catch(() => null)
+      if (!alive.current) return
+      if (!response.ok) {
         setError(
           mutationFailureNotice(
-            r.status,
-            d,
+            response.status,
+            data,
             'The request was not created. Try again.'
           ).message
         )
         return
       }
-      setCreated({ share_url: d.share_url, link_token: d.link_token })
-      setToast({ message: 'Request created successfully', type: 'success' })
+      const row = readRequest(data)
+      if (row.workspace_id !== workspaceId) throw new Error('Invalid workspace')
+      createAttempt.current = null
+      copyEpoch.current++
+      invitationPhase.current = 'result'
+      setCreated(row)
+      setResultKind('create')
+      resultDisplayed = true
       load()
     } catch {
-      setError('Network error')
+      if (alive.current)
+        setError(
+          'Creation could not be confirmed. Retry the same details to check this request.'
+        )
     } finally {
-      setSubmitting(false)
+      activeWrites.current.delete('create')
+      if (alive.current) {
+        setSubmitting(false)
+        if (!resultDisplayed) {
+          invitationPhase.current = null
+          setInvitationBusy(false)
+        }
+      }
     }
   }
 
   const resetForm = () => {
+    if (invitationPhase.current === 'pending') return
+    invitationPhase.current = null
+    setInvitationBusy(false)
+    copyEpoch.current++
     setCreateOpen(false)
     setEmail('')
     setQnrId('')
@@ -264,38 +410,134 @@ export default function RequestsPage() {
     setError(null)
     setCreated(null)
     setCopied(false)
+    setResultKind('create')
   }
 
   const copyLink = async (url: string) => {
+    const epoch = ++copyEpoch.current
     try {
-      await navigator.clipboard.writeText(window.location.origin + url)
-      setCopied(true)
-      setTimeout(() => setCopied(false), 2000)
+      const target = new URL(url, window.location.origin)
+      if (
+        target.origin !== window.location.origin ||
+        target.pathname !== '/vendor-response'
+      )
+        throw new Error('Invalid link')
+      await navigator.clipboard.writeText(target.href)
+      if (alive.current && epoch === copyEpoch.current) setCopied(true)
     } catch {
-      setToast({ message: 'Failed to copy', type: 'error' })
+      if (alive.current && epoch === copyEpoch.current)
+        setToast({
+          message: 'The link could not be copied. Try again.',
+          type: 'error',
+        })
     }
   }
 
-  const updateStatus = async (id: number, status: string) => {
-    const r = await fetch(`/api/vendor-requests/${id}`, {
-      method: 'PATCH',
-      credentials: 'include',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ status }),
-    })
-    if (r.ok) load()
+  const mutate = async (
+    row: VendorRequest,
+    action: 'progress' | 'send' | 'resend' | 'revoke',
+    status?: string
+  ) => {
+    const resource = String(row.id)
+    const invitation = action === 'send' || action === 'resend'
+    if (
+      !canAdmin ||
+      activeWrites.current.has(resource) ||
+      (invitation && invitationPhase.current)
+    )
+      return
+    if (invitation) {
+      invitationPhase.current = 'pending'
+      setInvitationBusy(true)
+    }
+    activeWrites.current.add(resource)
+    setPending((current) => ({ ...current, [row.id]: true }))
+    setActionErrors((current) => ({ ...current, [row.id]: '' }))
+    const operation = `${row.id}:${action}`
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+    }
+    if (invitation) {
+      if (!retryKeys.current.has(operation))
+        retryKeys.current.set(operation, crypto.randomUUID())
+      headers['Idempotency-Key'] = retryKeys.current.get(operation)!
+    }
+    let resultDisplayed = false
+    try {
+      const response = await fetch(
+        `/api/vendor-requests/${row.id}${action === 'progress' ? '' : `/${action}`}`,
+        {
+          method: action === 'progress' ? 'PATCH' : 'POST',
+          credentials: 'include',
+          headers,
+          ...(action === 'progress'
+            ? { body: JSON.stringify({ status }) }
+            : {}),
+        }
+      )
+      const data: unknown = await response.json().catch(() => null)
+      if (!alive.current) return
+      if (!response.ok) {
+        setActionErrors((current) => ({
+          ...current,
+          [row.id]: mutationFailureNotice(
+            response.status,
+            data,
+            'The change was not confirmed. Try again.'
+          ).message,
+        }))
+        return
+      }
+      const updated = readRequest(data)
+      if (updated.id !== row.id || updated.workspace_id !== workspaceId)
+        throw new Error('Invalid request')
+      readEpoch.current++
+      retryKeys.current.delete(operation)
+      setRequests((current) =>
+        current.map((item) => (item.id === row.id ? updated : item))
+      )
+      if (invitation && updated.share_url) {
+        copyEpoch.current++
+        invitationPhase.current = 'result'
+        setCreated(updated)
+        setResultKind('invitation')
+        setCreateOpen(true)
+        setCopied(false)
+        resultDisplayed = true
+      }
+      if (action === 'revoke') setRevokeTarget(null)
+    } catch {
+      if (alive.current)
+        setActionErrors((current) => ({
+          ...current,
+          [row.id]:
+            'The result could not be confirmed. Retry the same action to check its outcome.',
+        }))
+    } finally {
+      activeWrites.current.delete(resource)
+      if (alive.current) {
+        if (invitation && !resultDisplayed) {
+          invitationPhase.current = null
+          setInvitationBusy(false)
+        }
+        setPending((current) => ({ ...current, [row.id]: false }))
+        if (action === 'revoke') setRevokeTarget(null)
+      }
+    }
   }
 
   const qnrName = (id: number | null) => {
-    if (!id) return '—'
-    const q = questionnaires.find((q) => q.id === id)
-    return q ? q.filename : `#${id}`
+    if (!id) return 'General request'
+    return (
+      questionnaires.find((q) => q.id === id)?.filename ??
+      'Questionnaire unavailable'
+    )
   }
 
   return (
     <div className="min-w-0 space-y-6 pb-8">
       {/* Header */}
-      <div className="flex items-start justify-between gap-4">
+      <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-[var(--tc-text)]">Requests</h1>
           <p className="mt-1 text-sm text-[var(--tc-muted)] max-w-xl">
@@ -303,25 +545,39 @@ export default function RequestsPage() {
             responses securely.
           </p>
         </div>
-        {canAdmin && (
-          <Button onClick={() => setCreateOpen(true)}>Create Request</Button>
-        )}
+        <div className="flex flex-wrap gap-2">
+          <Button
+            variant="secondary"
+            onClick={load}
+            disabled={loading || Object.values(pending).some(Boolean)}
+            aria-label="Refresh requests"
+          >
+            Refresh
+          </Button>
+          {canAdmin && (
+            <Button
+              disabled={invitationBusy || Object.values(pending).some(Boolean)}
+              onClick={() => {
+                if (!invitationPhase.current) setCreateOpen(true)
+              }}
+            >
+              Create Request
+            </Button>
+          )}
+        </div>
       </div>
 
       {/* Requests table */}
       <Card className="p-0 overflow-hidden">
         {loadFailure ? (
           <div className="p-6">
-            <ErrorState
-              failure={loadFailure}
-              onRetry={() => setLoadAttempt((value) => value + 1)}
-            />
+            <ErrorState failure={loadFailure} onRetry={load} />
           </div>
         ) : loading ? (
           <LoadingState
             label="Loading requests"
             resetKey={loadAttempt}
-            onRetry={() => setLoadAttempt((value) => value + 1)}
+            onRetry={load}
           >
             <p className="p-6 text-center text-tc-label text-tc-muted">
               Loading requests
@@ -330,10 +586,7 @@ export default function RequestsPage() {
         ) : (
           <>
             {partialFailed.length > 0 ? (
-              <PartialSuccess
-                failed={partialFailed}
-                onRetry={() => setLoadAttempt((value) => value + 1)}
-              />
+              <PartialSuccess failed={partialFailed} onRetry={load} />
             ) : null}
             {requests.length === 0 ? (
               <div className="p-10 text-center">
@@ -349,14 +602,22 @@ export default function RequestsPage() {
                   <Button
                     className="mt-4"
                     size="sm"
-                    onClick={() => setCreateOpen(true)}
+                    disabled={invitationBusy}
+                    onClick={() => {
+                      if (!invitationPhase.current) setCreateOpen(true)
+                    }}
                   >
                     Create First Request
                   </Button>
                 )}
               </div>
             ) : (
-              <div className="overflow-x-auto">
+              <div
+                className="overflow-x-auto"
+                role="region"
+                aria-label="Outbound requests"
+                tabIndex={0}
+              >
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="border-b border-[var(--tc-border)] text-[10px] uppercase tracking-wider text-[var(--tc-muted)]">
@@ -378,59 +639,140 @@ export default function RequestsPage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {requests.map((req) => (
-                      <tr
-                        key={req.id}
-                        className="border-b border-[var(--tc-border)] last:border-0 hover:bg-white/[0.02] transition"
-                      >
-                        <td className="px-5 py-3">
-                          <span className="text-[var(--tc-text)] font-medium">
-                            {req.vendor_email}
-                          </span>
-                        </td>
-                        <td className="px-5 py-3 text-[var(--tc-muted)]">
-                          {qnrName(req.questionnaire_id)}
-                        </td>
-                        <td className="px-5 py-3">{statusBadge(req.status)}</td>
-                        <td className="px-5 py-3 text-[var(--tc-muted)] text-xs">
-                          {timeAgo(req.created_at)}
-                        </td>
-                        <td className="px-5 py-3">
-                          <div className="flex items-center justify-end gap-2">
-                            {req.link_token && (
-                              <button
-                                onClick={() =>
-                                  copyLink(
-                                    `/vendor-response?token=${req.link_token}`
-                                  )
-                                }
-                                className="text-[11px] text-[var(--tc-primary)] hover:underline"
-                              >
-                                Copy Link
-                              </button>
+                    {requests.map((req) => {
+                      const status = currentStatus(req)
+                      const terminal =
+                        status === 'completed' || status === 'revoked'
+                      const uncertain =
+                        req.delivery_status === 'sending' ||
+                        req.delivery_status === 'uncertain'
+                      return (
+                        <tr
+                          key={req.id}
+                          className="border-b border-[var(--tc-border)] last:border-0 hover:bg-white/[0.02] transition"
+                        >
+                          <td className="px-5 py-3">
+                            <span className="text-[var(--tc-text)] font-medium break-all">
+                              {req.vendor_email}
+                            </span>
+                          </td>
+                          <td className="px-5 py-3 text-[var(--tc-muted)] break-words max-w-xs">
+                            {qnrName(req.questionnaire_id)}
+                          </td>
+                          <td className="px-5 py-3 min-w-48">
+                            {statusBadge(status)}
+                            <p className="mt-2 text-xs text-tc-muted">
+                              {DELIVERY_LABELS[req.delivery_status]}
+                            </p>
+                            <p className="mt-1 text-xs text-tc-muted">
+                              {req.expires_at
+                                ? `Link expires ${new Date(req.expires_at).toLocaleDateString()}`
+                                : 'Expiry not recorded'}
+                            </p>
+                            {req.submitted_at && (
+                              <p className="mt-1 text-xs text-tc-muted">
+                                Response submitted{' '}
+                                {new Date(
+                                  req.submitted_at
+                                ).toLocaleDateString()}
+                              </p>
                             )}
-                            {canAdmin && req.status !== 'completed' && (
-                              <select
-                                value=""
-                                onChange={(e) => {
-                                  if (e.target.value)
-                                    updateStatus(req.id, e.target.value)
-                                }}
-                                className="text-[11px] rounded border border-[var(--tc-border)] bg-transparent text-[var(--tc-muted)] px-1.5 py-0.5 cursor-pointer"
-                              >
-                                <option value="">Update...</option>
-                                {req.status !== 'in_progress' && (
-                                  <option value="in_progress">
-                                    In Progress
-                                  </option>
-                                )}
-                                <option value="completed">Completed</option>
-                              </select>
+                            {uncertain && (
+                              <p className="mt-1 text-xs text-tc-muted">
+                                Reconcile the previous delivery before sending
+                                again.
+                              </p>
                             )}
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
+                          </td>
+                          <td className="px-5 py-3 text-[var(--tc-muted)] text-xs">
+                            {timeAgo(req.created_at)}
+                          </td>
+                          <td className="px-5 py-3">
+                            <div className="flex flex-wrap items-center justify-end gap-2 min-w-44">
+                              {canAdmin && !terminal && !uncertain && (
+                                <Button
+                                  size="sm"
+                                  variant="secondary"
+                                  disabled={pending[req.id] || invitationBusy}
+                                  onClick={() =>
+                                    void mutate(
+                                      req,
+                                      req.delivery_status === 'accepted'
+                                        ? 'resend'
+                                        : 'send'
+                                    )
+                                  }
+                                >
+                                  {req.delivery_status === 'accepted'
+                                    ? 'Resend invitation'
+                                    : 'Send invitation'}
+                                </Button>
+                              )}
+                              {canAdmin && !terminal && (
+                                <>
+                                  {status !== 'expired' && (
+                                    <select
+                                      value=""
+                                      disabled={pending[req.id]}
+                                      aria-label={`Update progress for ${req.vendor_email}`}
+                                      onChange={(event) => {
+                                        if (event.target.value)
+                                          void mutate(
+                                            req,
+                                            'progress',
+                                            event.target.value
+                                          )
+                                      }}
+                                      className="text-xs rounded border border-tc-border-strong bg-tc-surface-overlay text-tc-text px-2 py-2"
+                                    >
+                                      <option value="">Update...</option>
+                                      {status !== 'in_progress' && (
+                                        <option value="in_progress">
+                                          In Progress
+                                        </option>
+                                      )}
+                                      {status !== 'pending' && (
+                                        <option value="pending">Pending</option>
+                                      )}
+                                    </select>
+                                  )}
+                                  <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    disabled={pending[req.id]}
+                                    onClick={() => setRevokeTarget(req)}
+                                  >
+                                    Revoke link
+                                  </Button>
+                                </>
+                              )}
+                            </div>
+                            {pending[req.id] && (
+                              <p
+                                role="status"
+                                className="mt-2 text-xs text-tc-muted"
+                              >
+                                Waiting for acknowledgment…
+                              </p>
+                            )}
+                            {canAdmin && !terminal && !uncertain && (
+                              <p className="mt-2 text-xs text-tc-muted">
+                                Sending issues a new link and replaces any
+                                previous link.
+                              </p>
+                            )}
+                            {actionErrors[req.id] && (
+                              <p
+                                role="alert"
+                                className="mt-2 text-xs text-tc-danger"
+                              >
+                                {actionErrors[req.id]}
+                              </p>
+                            )}
+                          </td>
+                        </tr>
+                      )
+                    })}
                   </tbody>
                 </table>
               </div>
@@ -442,32 +784,48 @@ export default function RequestsPage() {
       {/* Create Request Modal */}
       <Modal
         isOpen={createOpen}
-        title={created ? 'Request Created' : 'Create Request'}
+        title={
+          created
+            ? resultKind === 'create'
+              ? 'Request Created'
+              : 'Invitation result'
+            : 'Create Request'
+        }
+        closeDisabled={submitting || (invitationBusy && !created)}
         onClose={resetForm}
       >
         {created ? (
           <div className="space-y-4">
-            <p className="text-sm text-[var(--tc-text)]">
-              Your request has been created. Share this secure link with the
-              vendor:
+            <p className="text-sm text-tc-text">
+              {resultKind === 'create'
+                ? 'Your request has been created.'
+                : DELIVERY_LABELS[created.delivery_status]}
             </p>
-            <div className="flex items-center gap-2 p-3 rounded-lg bg-white/5 border border-[var(--tc-border)]">
-              <code className="flex-1 text-xs text-[var(--tc-text)] break-all">
-                {window.location.origin}
-                {created.share_url}
-              </code>
-              <Button
-                size="sm"
-                variant="secondary"
-                onClick={() => copyLink(created.share_url)}
-              >
-                {copied ? 'Copied!' : 'Copy'}
-              </Button>
-            </div>
-            <p className="text-xs text-[var(--tc-muted)]">
-              The vendor can use this link to view the request and submit their
-              response.
-            </p>
+            {created.share_url ? (
+              <>
+                <p className="text-sm text-tc-muted">
+                  Copy this one-time secure link now. Later list reads do not
+                  return it.
+                </p>
+                <div className="flex flex-wrap items-center gap-2 p-3 rounded-lg bg-tc-surface-raised border border-tc-border">
+                  <code className="min-w-0 flex-1 text-xs text-tc-text break-all">
+                    {new URL(created.share_url, window.location.origin).href}
+                  </code>
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    onClick={() => void copyLink(created.share_url!)}
+                  >
+                    {copied ? 'Copied!' : 'Copy'}
+                  </Button>
+                </div>
+              </>
+            ) : (
+              <p className="text-sm text-tc-muted">
+                The one-time link is not available on this response. The request
+                is saved; its delivery state is shown in the list.
+              </p>
+            )}
             <div className="flex justify-end">
               <Button onClick={resetForm}>Done</Button>
             </div>
@@ -475,10 +833,16 @@ export default function RequestsPage() {
         ) : (
           <form onSubmit={onCreate} className="space-y-4">
             <div>
-              <label className="block text-xs font-medium text-[var(--tc-muted)] mb-1">
+              <label
+                htmlFor="vendor-email"
+                className="block text-xs font-medium text-[var(--tc-muted)] mb-1"
+              >
                 Vendor Email <span className="text-red-400">*</span>
               </label>
               <Input
+                id="vendor-email"
+                maxLength={255}
+                disabled={submitting}
                 type="email"
                 placeholder="vendor@example.com"
                 value={email}
@@ -488,29 +852,42 @@ export default function RequestsPage() {
             </div>
 
             <div>
-              <label className="block text-xs font-medium text-[var(--tc-muted)] mb-1">
+              <label
+                htmlFor="vendor-questionnaire"
+                className="block text-xs font-medium text-[var(--tc-muted)] mb-1"
+              >
                 Questionnaire
               </label>
               <select
+                id="vendor-questionnaire"
+                disabled={submitting}
                 value={qnrId}
                 onChange={(e) => setQnrId(e.target.value)}
                 className="w-full rounded-lg border border-[var(--tc-border)] bg-[var(--tc-panel)] px-3 py-2 text-sm text-[var(--tc-text)]"
               >
                 <option value="">No questionnaire (general request)</option>
-                {questionnaires.map((q) => (
-                  <option key={q.id} value={q.id}>
-                    {q.filename}
-                  </option>
-                ))}
+                {questionnaires
+                  .filter((q) => q.status === 'completed')
+                  .map((q) => (
+                    <option key={q.id} value={q.id}>
+                      {q.filename}
+                    </option>
+                  ))}
               </select>
             </div>
 
             <div>
-              <label className="block text-xs font-medium text-[var(--tc-muted)] mb-1">
+              <label
+                htmlFor="vendor-message"
+                className="block text-xs font-medium text-[var(--tc-muted)] mb-1"
+              >
                 Message{' '}
                 <span className="text-[var(--tc-muted)]">(optional)</span>
               </label>
               <textarea
+                id="vendor-message"
+                disabled={submitting}
+                maxLength={10000}
                 placeholder="Add context or instructions for the vendor..."
                 value={message}
                 onChange={(e) => setMessage(e.target.value)}
@@ -519,10 +896,19 @@ export default function RequestsPage() {
               />
             </div>
 
-            {error && <p className="text-xs text-red-400">{error}</p>}
+            {error && (
+              <p role="alert" className="text-xs text-tc-danger">
+                {error}
+              </p>
+            )}
 
             <div className="flex justify-end gap-2 pt-2">
-              <Button type="button" variant="secondary" onClick={resetForm}>
+              <Button
+                type="button"
+                variant="secondary"
+                disabled={submitting}
+                onClick={resetForm}
+              >
                 Cancel
               </Button>
               <Button type="submit" disabled={submitting}>
@@ -533,6 +919,17 @@ export default function RequestsPage() {
         )}
       </Modal>
 
+      <ConfirmDialog
+        open={revokeTarget !== null}
+        title="Revoke vendor link?"
+        description="The vendor will no longer be able to use this invitation link."
+        confirmLabel="Revoke link"
+        busy={revokeTarget ? pending[revokeTarget.id] : false}
+        onClose={() => setRevokeTarget(null)}
+        onConfirm={() => {
+          if (revokeTarget) void mutate(revokeTarget, 'revoke')
+        }}
+      />
       {toast && (
         <ToastNotice
           title={toast.type === 'success' ? 'Success' : 'Error'}
