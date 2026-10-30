@@ -77,3 +77,34 @@ The test preserves committed images and fails if the registry denies a pull. It
 does not log in, substitute images, create accounts, call models, repair old
 volumes, or change checkout ownership. A dev `.next` write-permission failure
 would be retained as a source/runtime blocker, not worked around by the harness.
+
+## First Docker CI result and dev output repair — 2026-10-30
+
+| Item | Observed evidence |
+|---|---|
+| Tested commit | `8afe9c8339ece620a9e1a6292d8e6b07d34a76c0` |
+| Push run / job | [40986919877 / 123839978909](https://github.com/Johnathan-u/trust-copilot/actions/runs/40986919877/job/123839978909) |
+| Uploaded artifact | `12946989052`, `compose-acceptance-40986919877-1` |
+| Dev dependency install | `npm ci` added 399 packages in 8 seconds |
+| Dev startup | Failed: `EACCES: permission denied, mkdir '/app/.next/dev'` |
+| Checkout/runtime identity | Checkout UID 1001; committed web runtime UID 1000 |
+| Production | `minio/minio:latest` pull access denied/not found; startup and persistence not executed |
+| Cleanup | Dev and production project cleanup both passed |
+| Overall acceptance | Failed; no startup/restart/persistence pass claimed |
+
+The sanitized uploaded result is preserved as
+[`runtime-ci-40986919877.json`](runtime-ci-40986919877.json). The `EACCES` path and
+successful package-install excerpt above are from that artifact's `dev.log`.
+
+The bounded repair adds a dev-only `web_next:/app/.next` named volume and prepares
+`/app/.next` with node ownership in the dev image. It preserves the source bind,
+`web_node_modules`, runtime user, read-only root, dropped capabilities and existing
+acceptance assertions. No host source ownership change or existing data-volume
+operation is included. The harness's dev-volume map retains `web_next` so the
+test exercises the committed mount. Production Compose and the denied MinIO
+image remain unchanged; public ACME is still outside this test.
+
+Local validation for the follow-up: 15 Compose/harness tests passed, Ruff and
+format checks passed, and `git diff --check` passed. These checks do not establish
+that the container now starts; the new source head still requires independent
+review and fresh Docker CI. The MinIO registry failure remains unresolved.

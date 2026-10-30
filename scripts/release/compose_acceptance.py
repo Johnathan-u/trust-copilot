@@ -46,7 +46,9 @@ def isolate(model: dict, project: str, mode: str, caddyfile: Path) -> dict:
         raise ValueError("invalid acceptance project identity")
     if mode == "dev":
         model["services"] = {"web": model["services"]["web"]}
-        model["volumes"] = {"web_node_modules": model["volumes"]["web_node_modules"]}
+        model["volumes"] = {
+            name: model["volumes"][name] for name in ("web_node_modules", "web_next")
+        }
         model["networks"] = {"trustnet": model["networks"]["trustnet"]}
     model["name"] = project
     for kind in ("volumes", "networks"):

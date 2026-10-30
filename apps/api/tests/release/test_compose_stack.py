@@ -67,8 +67,12 @@ def test_each_service_is_least_privilege_with_named_volumes(filename: str) -> No
     assert "caddy_config" in _volume_names(doc["services"]["caddy"])
     assert doc["networks"]["datanet"]["internal"] is True
     if filename == "docker-compose.yml":
-        assert "web_node_modules" in doc["volumes"]
-        assert "web_node_modules" in _volume_names(doc["services"]["web"])
+        for volume, target in (
+            ("web_node_modules", "/app/node_modules"),
+            ("web_next", "/app/.next"),
+        ):
+            assert volume in doc["volumes"]
+            assert f"{volume}:{target}" in doc["services"]["web"]["volumes"]
 
 
 def test_prod_database_and_storage_are_not_published() -> None:
