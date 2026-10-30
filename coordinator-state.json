@@ -2,13 +2,13 @@
   "schema_version": 1,
   "lease_owner": "codex-2026-10-30T00:14:08.013Z-72294qfbkc",
   "lease_expires_at": "2026-10-30T02:14:08.013Z",
-  "updated_at": "2026-10-30T00:14:08.013Z",
+  "updated_at": "2026-10-30T00:56:16.722Z",
   "automation_id": "6ae3c75d14788191b6f3e0838035bcef",
-  "last_master_sha": "499f8af76c427dab5ef2f8ca7ffc2a257129e6ed",
-  "checkpoint": "Master499f8af76c427dab5ef2f8ca7ffc2a257129e6ed CI40972978492 fully GREEN. No merges this batch. #111 fixture repair published253ecc463f582e94a5222d9e1b6359e81518cdbd (independent review passed, only syntheticcookie+URLassertion; all7behaviorcases retained), push40976864989/PR40976872158 running. #91 resumed: pure merge dd6b1cee and separate migration reparent/evidence cd74f998798cad454a594428ab342671855e1d49; exacttreea7523c8 reviewed, 13schema/headpass independently, onebranchheadtc17004_faq_review parenttc18001_reviewed_replies; push40976819720/PR40976828998 running. #112 unchanged285c7b7ae285066747ac5f5388b0508bdd25cf84 push40972889007 bothgreen; PR40972904037 webgreen, originalbuildfailed PostgreSQLstartup, rerunbuild123805769187 now running afterpassingstartup. Await exact4green beforeeachmerge. #91 owns nextmigration slot; other migrations must serialize afteractualhead. Frontend TC15-025 AC6/TC15-024 and singleControlsSidebarentry stillauthorized, claimfilesbeforeedits. No workersactive; local work disposable. Batch evidence #85 comment6511481182.",
+  "last_master_sha": "22952fa4b6a8e1a5ad4cb417085cb335dd695db3",
+  "checkpoint": "Active run; lease retained. Merged #112 (2f9d65a), #111 (807364c), #91 (58c9e56), #114 (af4a57f), #77 (22952fa4b6a8e1a5ad4cb417085cb335dd695db3), each independent review and exact-head build/web-release-e2e success on push+pull_request. Master af4a57f push40981333944 green; new master22952fa push40982696557 running. #95 final61f7e4c6a569f3ca1d2f0fb20c266882d0c36101 reviewed, both runs40981853444/40981859787 green; qualify jobs and merge next migration tc19010_inbox_receipts parenttc17004_faq_review. AC3 integrated API/UI/process-restart still unclaimed. #107 final2ece68abd8f948978c12d532af890645b6fafb31 reviewed, runs40981936571/40981941732 pending. #11548bbe343 browser has2failures; notification_spec_repair owns narrow repair. #93 local43cff2484b0ff5164b0e2cd7dae0e484c65e7ba8 finished27new/936combinedpassing; independent_queue_review examining security; do not publish before review/masterintegration/reparent. #96 faq_ci_repair actively repairing atomic idempotency/losslessrollback/mixedcurrencies/legacyconsumer. SingleControls navigation followup claimed but deferred. No lease release; workers active.",
   "blocked_items": [
-    "#91 and #111 all final-head CI pending; #112 PRbuild rerun pending after transient PostgreSQL startup failure.",
-    "Master migration remains tc18001_reviewed_replies until91lands; serialize93/96/95;95 AC3needs111.",
-    "Local browser unavailable; no localDB/fullsuite acceptance claimed for91. Owner-only rights/accounts/spend/sale/production gates unchanged."
+    "#115 exact-head browser failures need repair/review/new four-job qualification.",
+    "#93 security review and actual migration serialization pending; #96 concrete defects being repaired. Reparent only after actual landed #95.",
+    "Local PostgreSQL/Chromium unavailable; CI supplies acceptance evidence. Owner-only spend/accounts/rights/legal/sale/production/destructive gates unchanged."
   ]
 }
