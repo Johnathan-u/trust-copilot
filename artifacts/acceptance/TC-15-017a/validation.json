@@ -1,0 +1,86 @@
+{
+  "quality": {
+    "command": "npm run quality",
+    "exit": 0,
+    "test_files": 44,
+    "tests_passed": 446
+  },
+  "focused_unit": {
+    "tests_passed": 25
+  },
+  "synthetic_browser": {
+    "tests_passed": 4,
+    "failed": 0,
+    "skipped": 0,
+    "flaky": 0,
+    "browser": "Chromium Headless Shell 156.0.8078.4 / Playwright revision 1248",
+    "axe": [
+      {
+        "file": "axe-acknowledged-1440.json",
+        "width": 1440,
+        "state": "acknowledged",
+        "violations": 0
+      },
+      {
+        "file": "axe-acknowledged-360.json",
+        "width": 360,
+        "state": "acknowledged",
+        "violations": 0
+      },
+      {
+        "file": "axe-acknowledged-768.json",
+        "width": 768,
+        "state": "acknowledged",
+        "violations": 0
+      },
+      {
+        "file": "axe-metadata-error-1440.json",
+        "width": 1440,
+        "state": "metadata-error",
+        "violations": 0
+      },
+      {
+        "file": "axe-metadata-error-360.json",
+        "width": 360,
+        "state": "metadata-error",
+        "violations": 0
+      },
+      {
+        "file": "axe-metadata-error-768.json",
+        "width": 768,
+        "state": "metadata-error",
+        "violations": 0
+      },
+      {
+        "file": "axe-restore-error-1440.json",
+        "width": 1440,
+        "state": "restore-error",
+        "violations": 0
+      },
+      {
+        "file": "axe-restore-error-360.json",
+        "width": 360,
+        "state": "restore-error",
+        "violations": 0
+      },
+      {
+        "file": "axe-restore-error-768.json",
+        "width": 768,
+        "state": "restore-error",
+        "violations": 0
+      }
+    ]
+  },
+  "backend_static": {
+    "ruff": "passed",
+    "compileall": "passed"
+  },
+  "real_postgresql_browser": {
+    "exit": 3,
+    "tests_run": 0,
+    "reason": "Required Alembic migration gate failed: no PostgreSQL listener at 127.0.0.1:5432",
+    "qualification": "pending mandatory CI"
+  },
+  "independent_review": "pending coordinator review",
+  "publication": "none"
+}

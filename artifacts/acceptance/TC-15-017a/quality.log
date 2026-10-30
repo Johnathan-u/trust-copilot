@@ -1,0 +1,43 @@
+npm warn Unknown env config "http-proxy". This will stop working in the next major version of npm.
+
+> trust-copilot-web@0.1.0 quality
+> npm run typecheck && npm run lint && npm run format:check && npm run test:unit
+
+npm warn Unknown env config "http-proxy". This will stop working in the next major version of npm.
+
+> trust-copilot-web@0.1.0 typecheck
+> next typegen && tsc --noEmit -p .
+
+Generating route types...
+✓ Types generated successfully
+npm warn Unknown env config "http-proxy". This will stop working in the next major version of npm.
+
+> trust-copilot-web@0.1.0 lint
+> eslint . --max-warnings=0
+
+npm warn Unknown env config "http-proxy". This will stop working in the next major version of npm.
+
+> trust-copilot-web@0.1.0 format:check
+> prettier --check "**/*.{ts,tsx,js,jsx,json,md}"
+
+Checking formatting...
+All matched files use Prettier code style!
+npm warn Unknown env config "http-proxy". This will stop working in the next major version of npm.
+
+> trust-copilot-web@0.1.0 test:unit
+> vitest run
+
+(!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+  - ESM syntax in a file loaded as CommonJS (vitest.config.ts:1:1). Use a `.mjs` extension or set `"type": "module"` in the closest package.json
+Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.
+
+ RUN  v5.0.5 /workspace/scratch/1d3d4d8034b5/tc-questionnaire-ack/apps/web
+
+
+ Test Files  44 passed (44)
+      Tests  446 passed (446)
+   Start at  06:30:34
+   Duration  10.82s (tests 49%, environment 21%, import 16%, transform 12%, worker 1%)
+
+    Isolate  44 workers spawned · ~658ms startup each (spawn + environment, per file)
+             at least ~3.48s faster with isolate: false — reuses workers across files instead of one per file

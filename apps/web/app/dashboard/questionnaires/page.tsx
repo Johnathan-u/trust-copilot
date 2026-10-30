@@ -42,6 +42,11 @@ import {
 import { actionVerb, confirmedActionNotice } from '@/lib/action-copy'
 
 export default function QuestionnairesPage() {
+  const { user, workspace } = useAuth()
+  return <QuestionnairesRegistry key={`${user?.id}:${workspace?.id}`} />
+}
+
+function QuestionnairesRegistry() {
   const { workspace, permissions } = useAuth()
   const workspaceId = workspace?.id
   const canUpload = permissions.can_edit
@@ -97,6 +102,32 @@ export default function QuestionnairesPage() {
     frameworks?: string[]
     subject_areas?: string[]
   } | null>(null)
+  const [savingMetadata, setSavingMetadata] = useState(false)
+  const [metadataError, setMetadataError] = useState<string | null>(null)
+  const [restoringIds, setRestoringIds] = useState<Set<number>>(new Set())
+  const [restoreErrors, setRestoreErrors] = useState<Record<number, string>>({})
+  const [mutationMessage, setMutationMessage] = useState<string | null>(null)
+  const metadataBusy = useRef(false)
+  const restoreBusy = useRef(new Set<number>())
+  const rowActions = useRef(new Map<number, HTMLFieldSetElement>())
+  const mutationGeneration = useRef(0)
+  useEffect(() => {
+    mutationGeneration.current += 1
+    return () => {
+      mutationGeneration.current += 1
+    }
+  }, [])
+  const focusActions = (id: number) => {
+    requestAnimationFrame(() =>
+      rowActions.current.get(id)?.querySelector('button')?.focus()
+    )
+  }
+  const closeMetadata = () => {
+    if (metadataBusy.current) return
+    if (editQnr) focusActions(editQnr.id)
+    setEditQnr(null)
+    setMetadataError(null)
+  }
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set())
   const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false)
   const [bulkDeleting, setBulkDeleting] = useState(false)
@@ -380,46 +411,123 @@ export default function QuestionnairesPage() {
     setDeleteUnmodeledWarning(data?.unmodeled_warning || null)
   }
 
+  const requireAcknowledgement = async (response: Response, id?: number) => {
+    const data = await response.json().catch(() => null)
+    if (!response.ok) {
+      const notice = mutationFailureNotice(response.status, data, 'Try again.')
+      throw new Error(`${notice.title}: ${notice.message}`)
+    }
+    if (!data || data.ok !== true || (id !== undefined && data.id !== id)) {
+      throw new Error('The response could not be confirmed. Try again.')
+    }
+  }
+
   const restoreQnr = async (id: number) => {
-    if (!workspaceId) return
-    await fetch(
-      `/api/questionnaires/${id}/restore?workspace_id=${workspaceId}`,
-      { method: 'POST', credentials: 'include' }
-    )
-    setQnrs((prev) =>
-      prev.map((q) => (q.id === id ? { ...q, deleted_at: null } : q))
-    )
+    if (!workspaceId || restoreBusy.current.has(id)) return
+    restoreBusy.current.add(id)
+    setRestoringIds(new Set(restoreBusy.current))
+    setRestoreErrors((prev) => {
+      const next = { ...prev }
+      delete next[id]
+      return next
+    })
+    setMutationMessage(null)
+    const generation = mutationGeneration.current
+    try {
+      const response = await fetch(
+        `/api/questionnaires/${id}/restore?workspace_id=${workspaceId}`,
+        { method: 'POST', credentials: 'include' }
+      )
+      await requireAcknowledgement(response, id)
+      if (generation !== mutationGeneration.current) return
+      setQnrs((prev) =>
+        prev.map((q) => (q.id === id ? { ...q, deleted_at: null } : q))
+      )
+      setMutationMessage('Questionnaire restored.')
+    } catch (error: unknown) {
+      if (generation !== mutationGeneration.current) return
+      setRestoreErrors((prev) => ({
+        ...prev,
+        [id]:
+          error instanceof Error && !(error instanceof TypeError)
+            ? error.message
+            : 'Could not confirm the restore. Try again.',
+      }))
+    } finally {
+      if (generation === mutationGeneration.current) {
+        restoreBusy.current.delete(id)
+        setRestoringIds(new Set(restoreBusy.current))
+        focusActions(id)
+      }
+    }
   }
 
   const saveMetadata = async (
     id: number,
     payload: { frameworks: string[]; subject_areas: string[] }
   ) => {
-    if (!workspaceId) return
-    await fetch(
-      `/api/questionnaires/${id}/metadata?workspace_id=${workspaceId}`,
-      {
-        method: 'PATCH',
-        credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      }
+    if (!workspaceId || metadataBusy.current) return
+    metadataBusy.current = true
+    setEditQnr((current) =>
+      current?.id === id ? { ...current, ...payload } : current
     )
-    setQnrs((prev) =>
-      prev.map((q) =>
-        q.id === id
-          ? {
-              ...q,
-              frameworks: payload.frameworks,
-              subject_areas: payload.subject_areas,
-            }
-          : q
+    setSavingMetadata(true)
+    setMetadataError(null)
+    setMutationMessage(null)
+    const generation = mutationGeneration.current
+    try {
+      const response = await fetch(
+        `/api/questionnaires/${id}/metadata?workspace_id=${workspaceId}`,
+        {
+          method: 'PATCH',
+          credentials: 'include',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        }
       )
-    )
+      await requireAcknowledgement(response)
+      if (generation !== mutationGeneration.current) return
+      // The existing API canonicalizes an empty label list to Other.
+      const confirmed = {
+        frameworks: normalizeLabels(payload.frameworks),
+        subject_areas: normalizeLabels(payload.subject_areas),
+      }
+      setEditQnr((current) =>
+        current?.id === id ? { ...current, ...confirmed } : current
+      )
+      setQnrs((prev) =>
+        prev.map((q) =>
+          q.id === id
+            ? {
+                ...q,
+                frameworks: confirmed.frameworks,
+                subject_areas: confirmed.subject_areas,
+              }
+            : q
+        )
+      )
+      setMutationMessage('Metadata saved.')
+    } catch (error: unknown) {
+      if (generation !== mutationGeneration.current) return
+      setMetadataError(
+        error instanceof Error && !(error instanceof TypeError)
+          ? error.message
+          : 'Could not confirm the changes. Your selections are still here. Try again.'
+      )
+    } finally {
+      if (generation === mutationGeneration.current) {
+        metadataBusy.current = false
+        setSavingMetadata(false)
+      }
+    }
   }
 
   return (
-    <div className="p-7">
+    <div
+      className="p-4 md:p-7"
+      role="region"
+      aria-label="Questionnaire registry"
+    >
       <div className="mb-6 flex items-center gap-3">
         <h1 className="text-2xl font-bold text-[var(--tc-text)]">
           Questionnaires
@@ -461,11 +569,13 @@ export default function QuestionnairesPage() {
           <input
             className="rounded-xl border border-[var(--tc-border)] bg-white/5 px-3 py-2 text-sm"
             placeholder="Search by ID, filename, framework, subject, status"
+            aria-label="Search questionnaires"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
           <select
             className="rounded-xl border border-[var(--tc-border)] bg-white/5 px-3 py-2 text-sm"
+            aria-label="Framework"
             value={framework}
             onChange={(e) => setFramework(e.target.value)}
           >
@@ -478,6 +588,7 @@ export default function QuestionnairesPage() {
           </select>
           <select
             className="rounded-xl border border-[var(--tc-border)] bg-white/5 px-3 py-2 text-sm"
+            aria-label="Subject area"
             value={subjectArea}
             onChange={(e) => setSubjectArea(e.target.value)}
           >
@@ -491,17 +602,20 @@ export default function QuestionnairesPage() {
           <input
             type="datetime-local"
             className="rounded-xl border border-[var(--tc-border)] bg-white/5 px-3 py-2 text-sm"
+            aria-label="Created from"
             value={createdFrom}
             onChange={(e) => setCreatedFrom(e.target.value)}
           />
           <input
             type="datetime-local"
             className="rounded-xl border border-[var(--tc-border)] bg-white/5 px-3 py-2 text-sm"
+            aria-label="Created to"
             value={createdTo}
             onChange={(e) => setCreatedTo(e.target.value)}
           />
           <select
             className="rounded-xl border border-[var(--tc-border)] bg-white/5 px-3 py-2 text-sm"
+            aria-label="Status"
             value={status}
             onChange={(e) => setStatus(e.target.value)}
           >
@@ -516,6 +630,7 @@ export default function QuestionnairesPage() {
           </select>
           <select
             className="rounded-xl border border-[var(--tc-border)] bg-white/5 px-3 py-2 text-sm"
+            aria-label="Archive filter"
             value={archivedMode}
             onChange={(e) =>
               setArchivedMode(e.target.value as 'active' | 'include' | 'only')
@@ -527,6 +642,11 @@ export default function QuestionnairesPage() {
           </select>
         </div>
       </Card>
+      {mutationMessage && !editQnr && (
+        <p role="status" className="mb-3 text-sm">
+          {mutationMessage}
+        </p>
+      )}
       <Card>
         {error && (
           <div className="mb-4 rounded-xl bg-[var(--tc-danger)]/10 p-3 text-sm text-[var(--tc-danger)]">
@@ -594,7 +714,7 @@ export default function QuestionnairesPage() {
               {(Array.isArray(qnrs) ? qnrs : []).map((q) => (
                 <li
                   key={q.id}
-                  className="flex items-start justify-between gap-4 py-3"
+                  className="flex flex-wrap items-start justify-between gap-4 py-3"
                 >
                   {canUpload && (
                     <div
@@ -615,10 +735,10 @@ export default function QuestionnairesPage() {
                     </div>
                   )}
                   <div className="min-w-0 flex-1 space-y-1">
-                    <div className="flex items-center justify-between gap-2">
+                    <div className="flex flex-wrap items-center gap-2">
                       <Link
                         href={`/dashboard/questionnaires/${q.id}`}
-                        className="truncate font-medium text-[var(--tc-text)] hover:text-[var(--tc-soft)]"
+                        className="w-full truncate font-medium text-[var(--tc-text)] hover:text-[var(--tc-soft)] md:w-auto md:flex-1"
                       >
                         {q.filename}
                       </Link>
@@ -639,55 +759,85 @@ export default function QuestionnairesPage() {
                       frameworks={normalizeLabels(q.frameworks)}
                       subjectAreas={normalizeLabels(q.subject_areas)}
                     />
+                    {restoringIds.has(q.id) && (
+                      <span role="status" className="text-sm">
+                        Restoring…
+                      </span>
+                    )}
+                    {restoreErrors[q.id] && (
+                      <div className="max-w-xs space-y-2">
+                        <p
+                          role="alert"
+                          className="text-sm text-[var(--tc-danger)]"
+                        >
+                          {restoreErrors[q.id]}
+                        </p>
+                        <Button size="sm" onClick={() => restoreQnr(q.id)}>
+                          Retry restore
+                        </Button>
+                      </div>
+                    )}
                   </div>
-                  <RegistryRowActionsMenu
-                    aria-label={`Actions for ${q.display_id}`}
-                    actions={[
-                      {
-                        id: 'copy_id',
-                        label: 'Copy ID',
-                        onClick: () =>
-                          navigator.clipboard?.writeText(q.display_id),
-                      },
-                      {
-                        id: 'open',
-                        label: 'Open',
-                        href: `/dashboard/review/${q.id}`,
-                      },
-                      {
-                        id: 'edit_metadata',
-                        label: 'Edit metadata',
-                        onClick: () =>
-                          setEditQnr({
-                            id: q.id,
-                            display_id: q.display_id,
-                            frameworks: q.frameworks,
-                            subject_areas: q.subject_areas,
-                          }),
-                      },
-                      ...(q.deleted_at
-                        ? [
-                            {
-                              id: 'restore' as const,
-                              label: 'Restore',
-                              onClick: () => restoreQnr(q.id),
-                            },
-                          ]
-                        : [
-                            {
-                              id: 'delete' as const,
-                              label: 'Delete',
-                              onClick: () =>
-                                openDelete({
-                                  id: q.id,
-                                  display_id: q.display_id,
-                                  filename: q.filename,
-                                }),
-                              variant: 'danger' as const,
-                            },
-                          ]),
-                    ]}
-                  />
+                  <fieldset
+                    disabled={restoringIds.has(q.id)}
+                    className="w-full min-w-0 shrink-0 text-right md:w-auto"
+                    ref={(element) => {
+                      if (element) rowActions.current.set(q.id, element)
+                      else rowActions.current.delete(q.id)
+                    }}
+                  >
+                    <RegistryRowActionsMenu
+                      aria-label={`Actions for ${q.display_id}`}
+                      actions={[
+                        {
+                          id: 'copy_id',
+                          label: 'Copy ID',
+                          onClick: () =>
+                            navigator.clipboard?.writeText(q.display_id),
+                        },
+                        {
+                          id: 'open',
+                          label: 'Open',
+                          href: `/dashboard/review/${q.id}`,
+                        },
+                        {
+                          id: 'edit_metadata',
+                          label: 'Edit metadata',
+                          onClick: () => {
+                            setMetadataError(null)
+                            setMutationMessage(null)
+                            setEditQnr({
+                              id: q.id,
+                              display_id: q.display_id,
+                              frameworks: q.frameworks,
+                              subject_areas: q.subject_areas,
+                            })
+                          },
+                        },
+                        ...(q.deleted_at
+                          ? [
+                              {
+                                id: 'restore' as const,
+                                label: 'Restore',
+                                onClick: () => restoreQnr(q.id),
+                              },
+                            ]
+                          : [
+                              {
+                                id: 'delete' as const,
+                                label: 'Delete',
+                                onClick: () =>
+                                  openDelete({
+                                    id: q.id,
+                                    display_id: q.display_id,
+                                    filename: q.filename,
+                                  }),
+                                variant: 'danger' as const,
+                              },
+                            ]),
+                      ]}
+                    />
+                  </fieldset>
                 </li>
               ))}
             </ul>
@@ -720,11 +870,20 @@ export default function QuestionnairesPage() {
       {editQnr && (
         <MetadataEditorModal
           isOpen={!!editQnr}
-          onClose={() => setEditQnr(null)}
+          onClose={closeMetadata}
           title={`Edit metadata · ${editQnr.display_id}`}
-          frameworks={normalizeLabels(editQnr.frameworks)}
-          subjectAreas={normalizeLabels(editQnr.subject_areas)}
+          frameworks={editQnr.frameworks ?? []}
+          subjectAreas={editQnr.subject_areas ?? []}
           onSave={(payload) => saveMetadata(editQnr.id, payload)}
+          saving={savingMetadata}
+          saveMessage={
+            savingMetadata
+              ? 'Saving…'
+              : mutationMessage === 'Metadata saved.'
+                ? mutationMessage
+                : null
+          }
+          error={metadataError}
         />
       )}
       <Modal

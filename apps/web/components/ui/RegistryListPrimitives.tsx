@@ -280,6 +280,8 @@ export function MetadataEditorModal({
   subjectAreas,
   onClose,
   onSave,
+  saveMessage,
+  error,
   saving,
 }: {
   isOpen: boolean
@@ -288,6 +290,8 @@ export function MetadataEditorModal({
   subjectAreas: string[]
   onClose: () => void
   onSave: (payload: { frameworks: string[]; subject_areas: string[] }) => void
+  saveMessage?: string | null
+  error?: string | null
   saving?: boolean
 }) {
   const toggle = (list: string[], value: string) =>
@@ -295,7 +299,12 @@ export function MetadataEditorModal({
   const selectedFrameworks = frameworks
   const selectedSubjects = subjectAreas
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title={title || 'Edit metadata'}>
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      title={title || 'Edit metadata'}
+      closeDisabled={saving}
+    >
       <div className="space-y-3">
         <div>
           <p className="mb-2 text-xs text-[var(--tc-muted)]">Frameworks</p>
@@ -303,6 +312,8 @@ export function MetadataEditorModal({
             {FRAMEWORK_OPTIONS.map((f) => (
               <button
                 key={f}
+                disabled={saving}
+                aria-pressed={selectedFrameworks.includes(f)}
                 type="button"
                 onClick={() =>
                   onSave({
@@ -323,6 +334,8 @@ export function MetadataEditorModal({
             {SUBJECT_AREA_OPTIONS.map((s) => (
               <button
                 key={s}
+                disabled={saving}
+                aria-pressed={selectedSubjects.includes(s)}
                 type="button"
                 onClick={() =>
                   onSave({
@@ -337,10 +350,34 @@ export function MetadataEditorModal({
             ))}
           </div>
         </div>
+        {saveMessage && (
+          <p role="status" className="text-sm">
+            {saveMessage}
+          </p>
+        )}
+        {error && (
+          <p role="alert" className="text-sm text-[var(--tc-danger)]">
+            {error}
+          </p>
+        )}
         <div className="flex justify-end gap-2">
           <Button size="sm" variant="ghost" onClick={onClose} disabled={saving}>
             Close
           </Button>
+          {error && (
+            <Button
+              size="sm"
+              loading={saving}
+              onClick={() =>
+                onSave({
+                  frameworks: selectedFrameworks,
+                  subject_areas: selectedSubjects,
+                })
+              }
+            >
+              {saving ? 'Saving…' : 'Retry saving'}
+            </Button>
+          )}
         </div>
       </div>
     </Modal>
