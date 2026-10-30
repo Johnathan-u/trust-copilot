@@ -1,0 +1,63 @@
+TC-06-003e local verification — 2026-10-30
+Base: 46603ee17b686d22d86da14227c58a7dad9a4e94
+Worktree: tc-credential-authorization
+Branch: codex/TC-06-003e-credential-authorization
+Claims: #85/6516617322; timestamp-only amendment #85/6516679370.
+Runtime scope: check_rotation_due comparison only; no other runtime change.
+
+Environment: existing unchanged /tmp/tc-backend-venv, Python 3.12.14.
+Tests run the normal test safety setup: provider environment scrubbed and
+outbound guard active. No provider/model/object-storage calls are needed.
+
+From apps/api, before the runtime amendment:
+/tmp/tc-backend-venv/bin/python -m pytest tests/release/test_authorization_expanded_credentials.py -q -k sqlite --tb=short
+  Exit 1: 2 passed, 1 failed, 3 deselected.
+  Populated rotation-due failed at credential_store_service.py:136:
+  TypeError: can't compare offset-naive and offset-aware datetimes.
+  Fixture used real persisted DateTime values; no timezone adapter was installed.
+
+After the comparison fix and completed matrix:
+/tmp/tc-backend-venv/bin/python -m pytest tests/release/test_authorization_expanded_credentials.py -q -k 'not postgres' --tb=short
+  Exit 0: 91 passed, 79 deselected.
+  79 SQLite HTTP cases and 12 explicit datetime comparison controls.
+/tmp/tc-backend-venv/bin/python -m pytest tests/release/test_authorization_expanded_credentials.py --collect-only -q
+  Exit 0: 170 collected, including all 79 PostgreSQL counterparts.
+TC_REQUIRE_DB=1 /tmp/tc-backend-venv/bin/python -m pytest tests/release/test_authorization_expanded_credentials.py -q -k 'postgres and collections' --tb=short
+  Required DB setup aborted: PostgreSQL localhost ::1 and 127.0.0.1:5432 refused.
+  No PostgreSQL cases qualified; CI must execute them against migrated PostgreSQL.
+
+Negative controls were performed in separate Python processes using the real
+module source compiled in memory. No disk runtime edits were made:
+1. list_credentials: remove .filter(CredentialStore.workspace_id == workspace_id).
+   Select 'sqlite and collections and labels0': 1 failed, 169 deselected (foreign IDs).
+2. store_credential: remove its workspace_id predicate.
+   Select 'sqlite and update_reactivates and False': 1 failed, 169 deselected
+   (foreign duplicate ID returned instead of own ID).
+3. credentials routes: substitute require_session for require_can_admin.
+   Select 'sqlite and authority_denial and editor and list': 1 failed,
+   169 deselected (200 versus required 403).
+4. check_rotation_due: replace tzinfo=UTC unconditionally, including aware inputs.
+   Select 'comparison_preserves and 330 and True': 2 failed, 168 deselected
+   (a due instant was shifted to the future).
+Each negative-control pytest invocation returned 1 for the intended assertions.
+
+Related and static checks from apps/api:
+/tmp/tc-backend-venv/bin/python -m pytest tests/release/test_principal_contract.py tests/release/test_session_validation.py tests/test_credential_store.py::TestCredentialStoreService::test_encryption_roundtrip -q -k 'sqlite or encryption_roundtrip' --tb=short
+  Exit 0: 71 passed, 71 deselected.
+/tmp/tc-backend-venv/bin/python -m pytest tests/release/test_safe_collection.py -q --tb=short
+  Exit 0: 29 passed.
+/tmp/tc-backend-venv/bin/ruff check app/services/credential_store_service.py tests/release/test_authorization_expanded_credentials.py
+/tmp/tc-backend-venv/bin/ruff format --check app/services/credential_store_service.py tests/release/test_authorization_expanded_credentials.py
+  Both exit 0.
+Existing SQLAlchemy model datetime.utcnow deprecation warnings remain; the
+counterfactual pytest-in-process harness also warns about already-imported anyio.
+
+From repository root:
+python -m py_compile apps/api/app/services/credential_store_service.py apps/api/tests/release/test_authorization_expanded_credentials.py
+  Exit 0 with the same /tmp/tc-backend-venv Python.
+Existing locked Prettier on the child Markdown files: exit 0.
+scripts/security/secret_inventory.py paths over all five claimed files: exit 0,
+  zero findings. git diff --check: exit 0.
+
+No credential plaintext or raw database row values are retained here.
+Actual PostgreSQL, exact-head CI and independent review remain release gates.
