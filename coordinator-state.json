@@ -1,14 +1,16 @@
 {
   "schema_version": 1,
   "lease_owner": "codex-2026-10-30T00:14:08.013Z-72294qfbkc",
-  "lease_expires_at": "2026-10-30T02:14:08.013Z",
-  "updated_at": "2026-10-30T00:56:16.722Z",
+  "lease_expires_at": "2026-10-30T03:11:33.120Z",
+  "updated_at": "2026-10-30T01:11:33.120Z",
   "automation_id": "6ae3c75d14788191b6f3e0838035bcef",
-  "last_master_sha": "22952fa4b6a8e1a5ad4cb417085cb335dd695db3",
-  "checkpoint": "Active run; lease retained. Merged #112 (2f9d65a), #111 (807364c), #91 (58c9e56), #114 (af4a57f), #77 (22952fa4b6a8e1a5ad4cb417085cb335dd695db3), each independent review and exact-head build/web-release-e2e success on push+pull_request. Master af4a57f push40981333944 green; new master22952fa push40982696557 running. #95 final61f7e4c6a569f3ca1d2f0fb20c266882d0c36101 reviewed, both runs40981853444/40981859787 green; qualify jobs and merge next migration tc19010_inbox_receipts parenttc17004_faq_review. AC3 integrated API/UI/process-restart still unclaimed. #107 final2ece68abd8f948978c12d532af890645b6fafb31 reviewed, runs40981936571/40981941732 pending. #11548bbe343 browser has2failures; notification_spec_repair owns narrow repair. #93 local43cff2484b0ff5164b0e2cd7dae0e484c65e7ba8 finished27new/936combinedpassing; independent_queue_review examining security; do not publish before review/masterintegration/reparent. #96 faq_ci_repair actively repairing atomic idempotency/losslessrollback/mixedcurrencies/legacyconsumer. SingleControls navigation followup claimed but deferred. No lease release; workers active.",
+  "last_master_sha": "5c4ffa0d550b0890ee4d8328d207eb96888535e2",
+  "checkpoint": "Active run; lease renewed, workers active. Merged #112,#111,#91,#114,#77,#95,#107 with independent reviews and four exact-head CI jobs green. Master5c4ffa0d550b0890ee4d8328d207eb96888535e2 push40983072227 both green. Actual Alembic headtc19010_inbox_receipts. #116Controlsnav0c449d4e2f17fc51a671edaea41fc3a3f82429d7 source reviewed; push40983420247 green, PR40983435102 build pending/web green. #1154ebe70d browser104pass1fail: missing questionnaire-stats fixture; reviewed local a8312c6361b38b09d6db1185d455b5c429c8f8ec/tree7a002cc180dd2344eff1b4b99ecc17e80ccb5249 ready for publication. #93securityrepair43cff248 approved, puremerge0418fadd onto5c4ffa0, parent/evidence8098052 to actualtc19010; independent review found lossy signing_key_id downgrade, notification_spec_repair repairing only migration/tests/docs. #96fee9c1bdc31c747cbdb5dc7c486084b2e2d88fe8 localrepair in independent review, do not reparent until93lands. faq_ci_repair now on108 atomicidempotency/lifecyclelocking/honestemptyUI in tc-alerts-repair. gap_provenance builds95AC3 realAPI/UI/processrestart acceptance in tc-inbox-acceptance; owns ci.yml narrowly. #105 local6595e6a+puremerge92d61e6341f7772394c1ca896a0bc5c57b0baf05 reviewed source repair fordevnpmwritepaths; publication next, fullDocker/MinIOruntime evidence stillpending. #5 remains93/08-001dependent; oldCIprecommitfailure and processlocalidempotencyseam needlaterrepair. No workers released.",
   "blocked_items": [
-    "#115 exact-head browser failures need repair/review/new four-job qualification.",
-    "#93 security review and actual migration serialization pending; #96 concrete defects being repaired. Reparent only after actual landed #95.",
-    "Local PostgreSQL/Chromium unavailable; CI supplies acceptance evidence. Owner-only spend/accounts/rights/legal/sale/production/destructive gates unchanged."
+    "#93 lossless session key archive repair/review/PGCI before nextmigration; #96 and108 must serialize actuallandedparents.",
+    "#115 destinationstatsfixture repair must pass new exactheadCI; #116 PRbuildpending.",
+    "#95AC3 realAPI/UI/fullprocessrestart acceptance is being implemented; do not callticketDone.",
+    "#105 full isolatedCompose startup/persistence evidence unavailable locally (noDocker; historicalMinIOregistrydenial isruntimegap, notownerapproval). Sourcefixalone cannotqualifymerge.",
+    "Owner-only newaccounts/spend/rights/legal/sale/production/destructive gates unchanged. No automatic approval rejection occurred."
   ]
 }
