@@ -1,0 +1,11 @@
+Command: npx playwright test e2e/release/screen-trust-requests.spec.ts --workers=1 --retries=0
+Exit: 1
+Executed browser cases: 0
+Next server: uv_interface_addresses returned Unknown system error 1
+Final runner error: Timed out waiting 120000ms from config.webServer.
+
+Independent diagnostic: locked Playwright chromium.launch({headless:true, timeout:10000})
+Result: browserType.launch: Executable doesn't exist at
+/root/.cache/ms-playwright/chromium_headless_shell-1248/chrome-headless-shell-linux64/chrome-headless-shell
+No browser/dependency installation was attempted.
+No Chromium, screenshots, axe, integrated backend or provider pass is claimed.
