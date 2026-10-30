@@ -2,6 +2,55 @@
 
 No credential values are recorded here. Synthetic rows only.
 
+## Lossless migration repair, 2026-10-30
+
+This repair is based on `8098052043b7ec2a9e2b8d32c0a6fe2270eb703a`, with the already
+serialized parent `tc19010_inbox_receipts` unchanged. It addresses the independent review's
+lossless-downgrade blocker under issue #85's ruling; it changes only the migration, its tests,
+this evidence, and the ticket description.
+
+Downgrade takes a PostgreSQL table lock, snapshots non-null signing-key metadata to a
+migration-owned archive, and drops the column in the same transaction. Re-upgrade restores
+only rows whose original primary key, user id, session id and creation time still match
+(null-safe), then removes only successfully restored entries. Deleted sessions are never
+inserted; replacement/reassigned sessions and new downgraded sessions keep a null key.
+Unmatched entries remain archived across repeated cycles. A deliberately recreated row with
+all four identity fields identical is indistinguishable from the original; this repair does
+not introduce session lifecycle tracking or migration triggers.
+
+Local Python 3.12.14 and Ruff 0.5.6, using `/tmp/tc-backend-venv`. The new SQLite tests import
+and run the actual migration functions through Alembic Operations with transactional DDL.
+They cover non-default and null keys, null and non-null creation time, deletion, primary-key
+reuse with changed token/owner/time, reassignment, new rows, repeated cycles with changed keys,
+unmatched archive retention, and rollback/retry after an injected restore failure. The test
+failure injection uses a SQLite trigger; the production migration installs no triggers.
+
+Commands from `apps/api`:
+
+```sh
+/tmp/tc-backend-venv/bin/python -m pytest tests/release/test_session_signing_key_migration.py -m unit -q
+/tmp/tc-backend-venv/bin/python -m pytest tests/release/test_keyring_compatibility.py tests/release/test_mfa_reenrol_security.py -q
+/tmp/tc-backend-venv/bin/python -m pytest tests/release/test_secret_inventory.py -q
+TRUST_COPILOT_TESTING=1 /tmp/tc-backend-venv/bin/python -m alembic heads
+TRUST_COPILOT_TESTING=1 /tmp/tc-backend-venv/bin/python -m alembic upgrade tc19010_inbox_receipts:tc07002_session_key_id --sql
+TRUST_COPILOT_TESTING=1 /tmp/tc-backend-venv/bin/python -m alembic downgrade tc07002_session_key_id:tc19010_inbox_receipts --sql
+```
+
+The migration regressions first reproduced the loss with **9 failures** on the original
+migration, then passed **9 tests, 1 deselected** with the repair. The separate keyring/MFA
+checks passed **27 tests** with 70 existing `datetime.utcnow()` deprecation warnings;
+secret-inventory checks passed **276 tests**. All commands exited 0 after repair.
+Alembic reports one head, `tc07002_session_key_id`; both
+PostgreSQL offline SQL directions render successfully, including the downgrade table lock.
+
+Ruff check/format check on the migration and its test, plus `git diff --check`, passed.
+The isolated PostgreSQL test now requires `v1` to survive the first round trip and `v2` the
+second, checks null/replacement/new rows and unmatched archive retention, and accepts a
+later descendant as the single head. PostgreSQL is unavailable locally, so that test and
+actual PostgreSQL locking/DDL remain for CI; offline SQL and SQLite do not qualify them.
+The known database-blocked full suite was not repeated. Independent review and exact-head
+CI remain coordinator work; historical results below are not qualification for this repair.
+
 ## Landing integration, 2026-10-30
 
 Pure master merge `0418fadd08d9546dc9e78980d837114ad6542ec5` incorporates
