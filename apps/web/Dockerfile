@@ -47,5 +47,8 @@ HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
 # Uses the lockfile as-is (npm ci) so a bind-mounted checkout never rewrites it.
 FROM deps AS dev
 COPY apps/web /app
+# Fresh named dependency volumes inherit this directory's ownership.
+RUN chown -R node:node /app/node_modules
+ENV npm_config_cache=/tmp/npm-cache
 USER node
 CMD ["sh", "-c", "npm ci --ignore-scripts --no-audit --no-fund && npm run dev -- -H 0.0.0.0 -p 3000"]

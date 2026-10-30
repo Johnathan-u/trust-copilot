@@ -2,6 +2,25 @@
 
 Synthetic data only. No credential values are recorded here. No deploy was run.
 
+## Dev write-path repair, 2026-10-30
+
+Independent source review found that the dependency stage installs as root while
+the dev stage runs `npm ci` as node against a named dependency volume. The dev
+stage now owns that image directory as node before a fresh volume is populated,
+and directs npm's cache to the existing writable `/tmp`. Production-stage output,
+non-root runtime users, read-only root filesystems and capability limits are unchanged.
+
+Docker is unavailable in the coordinator runtime. This configuration repair does
+not establish successful container startup, a full Compose smoke test, or MinIO
+persistence. Those runtime acceptance gates remain pending. The seven existing
+Compose checks cover declared hardening and volumes, not live filesystem access.
+
+An existing root-owned `web_node_modules` volume does not acquire new ownership
+when the image is rebuilt. Inspect that dependency-only volume before reusing it;
+a local operator must arrange its node ownership separately. Do not recursively
+chown the host source checkout or any database/object-storage volume. No such
+operation was performed by this repair.
+
 | Item | Value |
 |---|---|
 | Baseline | `80607881320e1fa2c6416c55730eb98a56449f26` |
