@@ -1,0 +1,248 @@
+{
+  "ticket": "TC-06-003d",
+  "date": "2026-10-30",
+  "points": 2,
+  "status": "locally implemented acceptance only; independent review and PostgreSQL/CI qualification pending",
+  "claim": "https://github.com/Johnathan-u/trust-copilot/issues/85#issuecomment-6516168689",
+  "base_commit": "ab928ad4807e947a5a6b6bad829efb5854581bcf",
+  "test_commit": "995d27c25e2613da4f8e6f8b307a3c59766dea11",
+  "test_tree": "9909045ae0aefdff35f4815d51321497b75ec394",
+  "test_blob": "bb0f69f9370f3812bc37ad37c94914fee7439e47",
+  "unchanged_production_tree": "1918f089e50392d2f8bcb48dc478a5b7efacbb3a",
+  "unchanged_source_blobs": {
+    "apps/api/app/api/routes/contracts.py": "229eae42df563ce4845eb8271d2932fb5dcedbe7",
+    "apps/api/app/services/contract_service.py": "6006f0cd8a74401cda761dce552f7f56aaede7fe",
+    "apps/api/app/api/routes/promises.py": "5c7ac5098c846dcc0c23b2b3227801c540b6545c",
+    "apps/api/app/api/routes/proof_graph.py": "53c416dea3e96d996fec3fd81cae26cfe940cf70",
+    "apps/api/app/services/proof_graph_service.py": "11b9803ae9028329a1bf8931c771dd5a9a057949",
+    "apps/api/app/core/workspace_refs.py": "451ed39b5ac0b891370d1370dead03141616064e",
+    "apps/api/tests/test_contracts.py": "caa9eab198d01b93d0ac8d8f2311ced9c2e7cf6c",
+    "apps/api/tests/release/test_body_reference_workspace_scope.py": "3946a38dda3fe5331d81cef60f4a110c059a39c9"
+  },
+  "scope": {
+    "changed": [
+      "One new release acceptance test file and this child documentation/evidence"
+    ],
+    "preserved": [
+      "All production code",
+      "Four existing contract tests and existing body-reference matrix",
+      "Current session/admin permissions, scoped list and reference behavior",
+      "Existing contract status visibility and hard deletion semantics",
+      "Existing deterministic extraction and ingestion outputs",
+      "Public capability and domain policies"
+    ],
+    "excluded": [
+      "Production defect repair",
+      "Schema substitutes or bypasses",
+      "Role, dependency, provider, AI and storage changes",
+      "Full parent qualification"
+    ]
+  },
+  "environment": {
+    "python": "3.12.14",
+    "dependencies": "Existing locked /tmp/tc-backend-venv; no dependency edits",
+    "postgresql": "Unavailable at localhost:5432",
+    "provider_storage_model_calls": 0,
+    "default_command_cwd": "apps/api"
+  },
+  "matrix": {
+    "sqlite_cases": 40,
+    "postgres_shared_cases": 40,
+    "postgres_extra_cases": 4,
+    "new_total": 84,
+    "legacy_total": 4,
+    "sqlite": "The 39 intake checks plus isolation before foreign/moved clause decoding",
+    "postgres_extra": [
+      "Default ingestion creates owned document and promises",
+      "Multi-clause ingestion preserves all owned rows and links",
+      "Forged body scope/actor fields cannot redirect ingestion ownership",
+      "Own contract reference creates an owned promise"
+    ],
+    "permission_cases": [
+      "admin",
+      "editor",
+      "reviewer",
+      "session_only",
+      "suspended membership",
+      "removed membership",
+      "removed session",
+      "anonymous"
+    ],
+    "references": [
+      "own",
+      "foreign",
+      "moved",
+      "hard-deleted",
+      "missing"
+    ],
+    "aliases": [
+      "contract_document",
+      "contract_documents"
+    ]
+  },
+  "fixture": {
+    "auth": "Real stored users/memberships/sessions and signed cookies with explicit expiry; only get_db overridden",
+    "sqlite": "FK ON asserted; actual relevant model tables; no Deal/TrustPromise schema substitutes",
+    "postgresql": "Existing migrated_db fixture and PostgreSQL SessionLocal; actual constraints/models; no mocks",
+    "sqlite_snapshot_tables": [
+      "artifact_integrity_hashes",
+      "contract_documents",
+      "audit_events",
+      "user_mfa",
+      "user_sessions",
+      "api_keys",
+      "custom_roles",
+      "workspace_members",
+      "users",
+      "workspaces"
+    ],
+    "postgres_extra_snapshot_tables": [
+      "trust_promises"
+    ],
+    "read_denial_invariants": "Full-row counts/hashes and ORM state unchanged; no observed INSERT/UPDATE/DELETE including writes later rolled back",
+    "positive_write_invariants": "Only asserted new owned rows may differ; all prior rows across all snapshot tables remain identical",
+    "cleanup": "Capture exact fixture/API row IDs, including session after_flush IDs; delete only those IDs in FK order; compare complete original snapshot; no sequence resets",
+    "collection": "No fixture creation or database connection during collection"
+  },
+  "checks": [
+    {
+      "name": "SQLite acceptance of unchanged implementation",
+      "command": "/tmp/tc-backend-venv/bin/python -m pytest tests/release/test_authorization_contracts.py -m unit -q --tb=short",
+      "exit_code": 0,
+      "passed": 40,
+      "deselected": 44,
+      "warnings": "324 existing datetime.utcnow deprecation warnings"
+    },
+    {
+      "name": "new and unchanged legacy collection",
+      "command": "/tmp/tc-backend-venv/bin/python -m pytest tests/release/test_authorization_contracts.py tests/test_contracts.py --collect-only -q",
+      "exit_code": 0,
+      "collected": 88,
+      "new_cases": 84,
+      "legacy_cases": 4
+    },
+    {
+      "name": "required full pytest",
+      "command": "TC_REQUIRE_DB=1 /tmp/tc-backend-venv/bin/python -m pytest -q",
+      "exit_code": 3,
+      "tests_executed": 0,
+      "reason": "PostgreSQL localhost:5432 connection refused; existing session hook exits before tests"
+    },
+    {
+      "name": "repository collection safety",
+      "command": "/tmp/tc-backend-venv/bin/python -m pytest tests/release/test_safe_collection.py -q",
+      "exit_code": 0,
+      "passed": 29
+    },
+    {
+      "name": "scoped lint",
+      "command": "/tmp/tc-backend-venv/bin/python -m ruff check apps/api/tests/release/test_authorization_contracts.py",
+      "cwd": "repository",
+      "exit_code": 0
+    },
+    {
+      "name": "scoped formatting",
+      "command": "/tmp/tc-backend-venv/bin/python -m ruff format --check apps/api/tests/release/test_authorization_contracts.py",
+      "cwd": "repository",
+      "exit_code": 0
+    },
+    {
+      "name": "test secret inventory",
+      "command": "/tmp/tc-backend-venv/bin/python scripts/security/secret_inventory.py paths apps/api/tests/release/test_authorization_contracts.py --root . --fail-on block",
+      "cwd": "repository",
+      "exit_code": 0,
+      "findings": 0
+    },
+    {
+      "name": "whitespace",
+      "command": "git diff --check; git diff --cached --check",
+      "cwd": "repository",
+      "exit_code": 0
+    },
+    {
+      "name": "production and legacy freeze",
+      "command": "git diff ab928ad4807e947a5a6b6bad829efb5854581bcf -- apps/api/app apps/api/tests/test_contracts.py apps/api/tests/release/test_body_reference_workspace_scope.py",
+      "cwd": "repository",
+      "exit_code": 0,
+      "result": "empty diff"
+    },
+    {
+      "name": "documentation secret inventory",
+      "command": "/tmp/tc-backend-venv/bin/python scripts/security/secret_inventory.py paths docs/release/tickets/TC-06-003d.md artifacts/acceptance/TC-06-003d --root . --fail-on block",
+      "cwd": "repository",
+      "exit_code": 0,
+      "findings": 0
+    },
+    {
+      "name": "evidence consistency",
+      "command": "Python JSON parse; git hash-object and base blob/tree comparisons; relative Markdown link existence checks",
+      "cwd": "repository",
+      "exit_code": 0
+    }
+  ],
+  "negative_controls": [
+    {
+      "name": "unscoped_list",
+      "source_file": "apps/api/app/services/contract_service.py",
+      "function": "list_contracts",
+      "selected_test": "tests/release/test_authorization_contracts.py::TestContractAuthorization::test_list_uses_current_workspace_and_preserves_status_visibility[admin-sqlite]",
+      "exit_code": 1,
+      "failed": 1,
+      "expected_assertion": "Extra items",
+      "isolation": "Copied app package in TemporaryDirectory; pytest imports asserted to resolve there; repository sources untouched"
+    },
+    {
+      "name": "unscoped_hash",
+      "source_file": "apps/api/app/api/routes/proof_graph.py",
+      "function": "record_hash",
+      "selected_test": "tests/release/test_authorization_contracts.py::TestContractAuthorization::test_contract_hash_aliases_require_current_reference[hash-contract_document-foreign-sqlite]",
+      "exit_code": 1,
+      "failed": 1,
+      "expected_assertion": "assert 200 == 404",
+      "isolation": "Copied app package in TemporaryDirectory; pytest imports asserted to resolve there; repository sources untouched"
+    },
+    {
+      "name": "unscoped_verify",
+      "source_file": "apps/api/app/api/routes/proof_graph.py",
+      "function": "verify_hash",
+      "selected_test": "tests/release/test_authorization_contracts.py::TestContractAuthorization::test_contract_hash_aliases_require_current_reference[verify-contract_document-foreign-sqlite]",
+      "exit_code": 1,
+      "failed": 1,
+      "expected_assertion": "assert 200 == 404",
+      "isolation": "Copied app package in TemporaryDirectory; pytest imports asserted to resolve there; repository sources untouched"
+    },
+    {
+      "name": "write_during_verification",
+      "source_file": "apps/api/app/services/proof_graph_service.py",
+      "function": "verify_artifact_hash",
+      "selected_test": "tests/release/test_authorization_contracts.py::TestContractAuthorization::test_owned_contract_hash_aliases_preserve_success[verify-contract_document-sqlite]",
+      "exit_code": 1,
+      "failed": 1,
+      "expected_assertion": "Read/denial must not write SQL",
+      "isolation": "Copied app package in TemporaryDirectory; pytest imports asserted to resolve there; repository sources untouched"
+    }
+  ],
+  "negative_control_method": "Copy app package to TemporaryDirectory; mutate only copied file; anchor app import and assert its file path before pytest; run selected real test; remove temporary directory; repository sources never mutated",
+  "excluded_initial_control_attempt": {
+    "runner_exit_code": 1,
+    "selected_test_exit_code": 0,
+    "selected_test_passed": 1,
+    "reason": "Pytest reset the import path after find_spec and loaded unchanged checkout instead of copied mutation",
+    "correction": "Import and anchor the copied app package before pytest; all four corrected controls then fail with intended assertions"
+  },
+  "acceptance_only": "Existing implementation passes; no defect baseline or production repair is claimed",
+  "not_claimed": [
+    "PostgreSQL execution success",
+    "Execution success for four legacy database cases",
+    "Full pytest success",
+    "Future CI success",
+    "Full TC-06-001 or TC-06-003 closure",
+    "Publication or merge"
+  ],
+  "remaining_gates": [
+    "Independent review of final test/docs head",
+    "Actual 44 new PostgreSQL cases and four unchanged contract cases",
+    "Exact final head build and web-release-e2e for both push and pull_request",
+    "Coordinator publication capacity and merge authority"
+  ]
+}
