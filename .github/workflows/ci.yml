@@ -246,6 +246,7 @@ jobs:
           rm -f ../../artifacts/acceptance/TC-15-042/axe-*.json
           rm -f ../../artifacts/acceptance/TC-14-008/axe-*.json
           rm -f ../../artifacts/acceptance/TC-15-024/axe-*.json
+          rm -f ../../artifacts/acceptance/TC-15-038b/axe-*.json
 
           candidates=(
             e2e/release/screen-trust-requests.spec.ts
@@ -262,6 +263,7 @@ jobs:
             e2e/release/ui-23.spec.ts
             e2e/release/notification-inbox.spec.ts
             e2e/release/ui-22.spec.ts
+            e2e/release/screen-jobs.spec.ts
           )
           specs=()
           for spec in "${candidates[@]}"; do
@@ -320,7 +322,10 @@ jobs:
             --min-tests 7 \
             --axe-dir ../../artifacts/acceptance/TC-15-024 \
             --require-spec e2e/release/ui-22.spec.ts \
-            --min-tests 22
+            --min-tests 22 \
+            --axe-dir ../../artifacts/acceptance/TC-15-038b \
+            --require-spec e2e/release/screen-jobs.spec.ts \
+            --min-tests 39
           checker_status=$?
           set -e
           echo "playwright exit ${playwright_status}; axe check exit ${checker_status}"
@@ -433,6 +438,15 @@ jobs:
         with:
           name: microcopy-states-axe-json
           path: artifacts/acceptance/TC-14-008/axe-*.json
+          if-no-files-found: warn
+          retention-days: 14
+
+      - name: Upload jobs axe JSON
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: jobs-axe-json
+          path: artifacts/acceptance/TC-15-038b/axe-*.json
           if-no-files-found: warn
           retention-days: 14
 

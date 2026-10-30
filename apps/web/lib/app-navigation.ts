@@ -69,6 +69,12 @@ export const appNavItems: readonly AppNavItem[] = [
   },
   { href: '/dashboard/exports', label: 'Exports', icon: '⬇', section: 'core' },
   {
+    href: '/dashboard/jobs',
+    label: 'Jobs',
+    icon: '◷',
+    section: 'core',
+  },
+  {
     href: '/dashboard/compliance-gaps',
     label: 'Coverage',
     icon: '📊',
