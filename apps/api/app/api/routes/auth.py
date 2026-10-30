@@ -1849,7 +1849,7 @@ def me(request: Request, db: Session = Depends(get_db)):
     session = verify_token(cookie)
     if not session:
         raise HTTPException(status_code=401, detail="Invalid session")
-    enforce_session_record(session, db)
+    session_expires_at = enforce_session_record(session, db)
     enforce_mfa_enrol_session(request, session, db)
     session = resolve_current_membership(request, session, db)
     user_id = session.get("user_id")
@@ -1860,6 +1860,8 @@ def me(request: Request, db: Session = Depends(get_db)):
         raise HTTPException(status_code=401, detail="User not found")
     if workspace_id == 0 and role == "pending":
         return {
+            "session_expires_at": session_expires_at,
+            "server_time": time.time(),
             "id": user.id,
             "email": user.email or "",
             "display_name": getattr(user, "display_name", None) or "User",
@@ -1888,6 +1890,8 @@ def me(request: Request, db: Session = Depends(get_db)):
             "role": "mfa_enrol",
         }
         return {
+            "session_expires_at": session_expires_at,
+            "server_time": time.time(),
             **_user_response(user),
             "workspace_id": workspace_id,
             "workspace_name": workspace["name"],
@@ -1935,6 +1939,8 @@ def me(request: Request, db: Session = Depends(get_db)):
     user_has_mfa = bool(mfa_row)
     ws_mfa_required = bool(current_ws and getattr(current_ws, "mfa_required", False))
     return {
+        "session_expires_at": session_expires_at,
+        "server_time": time.time(),
         "id": user.id,
         "email": user.email or "",
         "display_name": getattr(user, "display_name", None) or "User",

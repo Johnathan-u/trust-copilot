@@ -1,0 +1,64 @@
+const {chromium,expect}=require('/workspace/scratch/1d3d4d8034b5/tc-session-warning/apps/web/node_modules/@playwright/test');
+const AxeBuilder=require('/workspace/scratch/1d3d4d8034b5/tc-session-warning/apps/web/node_modules/@axe-core/playwright').default;
+const fs=require('node:fs');
+const out='/tmp/tc-session-warning-local-browser';
+(async()=>{
+ const browser=await chromium.launch({executablePath:'/tmp/tc-pr149-pinned-chrome/chrome-headless-shell-linux64/chrome-headless-shell'});
+ try {
+ const context=await browser.newContext({baseURL:'http://127.0.0.1:13249'});
+ let remaining=301, failure=false, denied=false, calls=0;
+ const external=[];
+ const me={id:42,email:'synthetic@example.com',display_name:'Synthetic Reviewer',workspace_id:7,workspace_name:'Synthetic Workspace',role:'reviewer',workspaces:[],permissions:{can_edit:false,can_review:true,can_admin:false,can_export:false},needs_onboarding:false,mfa_enrolled:true};
+ await context.route('**/*',route=>{
+  const url=new URL(route.request().url());
+  if(url.origin!=='http://127.0.0.1:13249'){external.push(url.origin);return route.abort();}
+  if(!url.pathname.startsWith('/api/'))return route.continue();
+  let body={};
+  if(url.pathname==='/api/auth/me'){
+   calls++;
+   if(failure)return route.abort('internetdisconnected');
+   if(denied)return route.fulfill({status:401,json:{detail:'Session expired'}});
+   const server=Date.now()/1000;
+   body={...me,session_expires_at:server+remaining,server_time:server};
+  } else if(url.pathname==='/api/auth/sessions')body={sessions:[]};
+  else if(url.pathname==='/api/auth/mfa/status')body={enabled:true};
+  else if(url.pathname==='/api/auth/alerts')body={alerts:[]};
+  else if(url.pathname==='/api/in-app-notifications/unread-count')body={count:0};
+  else if(url.pathname==='/api/workspaces/current')body={id:7,name:'Synthetic Workspace',role:'reviewer'};
+  return route.fulfill({json:body});
+ });
+ await context.addCookies([{name:'tc_session',value:'synthetic-ui-control',url:'http://127.0.0.1:13249',httpOnly:true,sameSite:'Lax'}]);
+ const page=await context.newPage();
+ await page.goto('/dashboard/security');
+ await expect(page.getByRole('region',{name:'Active sessions',exact:true})).toBeVisible();
+ const banner=page.getByRole('status',{name:'Session expiry',exact:true});
+ await expect(banner).toHaveCount(0);
+ await expect(banner).toContainText('about 5 minutes',{timeout:5000});
+ const results=[];
+ for(const width of [360,768,1440]){
+  await page.setViewportSize({width,height:900});
+  const axe=await new AxeBuilder({page}).include('[role="status"][aria-label="Session expiry"]').withTags(['wcag2a','wcag2aa','wcag21a','wcag21aa']).analyze();
+  const result={width,state:'warning',violationCount:axe.violations.length,violations:axe.violations};
+  fs.writeFileSync(`${out}/axe-warning-${width}.json`,JSON.stringify(result,null,2));
+  await page.screenshot({path:`${out}/warning-${width}.png`});
+  expect(axe.violations).toEqual([]);
+  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
+  results.push(result);
+ }
+ failure=true;
+ await page.evaluate(()=>document.dispatchEvent(new Event('visibilitychange')));
+ await expect(banner).toContainText('Could not check');
+ const axe=await new AxeBuilder({page}).include('[role="status"][aria-label="Session expiry"]').withTags(['wcag2a','wcag2aa','wcag21a','wcag21aa']).analyze();
+ fs.writeFileSync(`${out}/axe-unavailable-1440.json`,JSON.stringify({width:1440,state:'unavailable',violationCount:axe.violations.length,violations:axe.violations},null,2));
+ await page.screenshot({path:`${out}/unavailable-1440.png`});
+ expect(axe.violations).toEqual([]);
+ failure=false; remaining=2;
+ await banner.getByRole('button',{name:'Check session'}).press('Enter');
+ await expect(banner).toContainText('less than a minute');
+ denied=true;
+ await expect(page).toHaveURL(/\/login(?:\?|$)/,{timeout:10000});
+ expect(external).toEqual([]);
+ fs.writeFileSync(`${out}/result.json`,JSON.stringify({passed:true,browserVersion:browser.version(),kind:'local mocked-transport UI control; not PostgreSQL acceptance',calls,axeReports:4,externalRequests:external.length},null,2));
+ console.log('Local Chromium UI control passed; 4 axe reports, zero violations. Not real API/PostgreSQL acceptance.');
+ }finally{await browser.close();}
+})().catch(error=>{console.error(error);process.exitCode=1;});

@@ -1,0 +1,1 @@
+Local Chromium UI control passed; 4 axe reports, zero violations. Not real API/PostgreSQL acceptance.

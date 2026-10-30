@@ -1,0 +1,25 @@
+import os, signal, socket, subprocess, time, urllib.request
+from pathlib import Path
+root=Path.cwd()
+log=open('/tmp/tc-session-warning-preview-server.log','w')
+server=subprocess.Popen(['node','.next/standalone/server.js'],cwd=root,env={**os.environ,'NEXT_TELEMETRY_DISABLED':'1','HOSTNAME':'127.0.0.1','PORT':'13249'},stdout=log,stderr=subprocess.STDOUT,start_new_session=True)
+try:
+    for _ in range(120):
+        if server.poll() is not None: raise RuntimeError('Preview server stopped')
+        try:
+            urllib.request.urlopen('http://127.0.0.1:13249/login',timeout=1)
+            break
+        except Exception: time.sleep(.5)
+    else: raise RuntimeError('Preview server did not become ready')
+    with open('/tmp/tc-session-warning-local-browser/run.log','w') as output:
+        result=subprocess.run(['node','/tmp/tc-session-warning-local-browser/check.cjs'],stdout=output,stderr=subprocess.STDOUT,timeout=120)
+    print(Path('/tmp/tc-session-warning-local-browser/run.log').read_text())
+    raise SystemExit(result.returncode)
+finally:
+    os.killpg(server.pid,signal.SIGTERM)
+    try: server.wait(timeout=10)
+    except subprocess.TimeoutExpired:
+        os.killpg(server.pid,signal.SIGKILL); server.wait()
+    log.close()
+    with socket.socket() as sock:
+        assert sock.connect_ex(('127.0.0.1',13249)) != 0

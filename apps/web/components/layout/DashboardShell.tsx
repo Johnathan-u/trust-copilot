@@ -9,6 +9,7 @@ import { Button, ErrorState, LoadingState } from '@/components/ui'
 import { MfaRequiredBanner } from './MfaRequiredBanner'
 import { NavDrawer } from './NavDrawer'
 import { SecurityAlertsBanner } from './SecurityAlertsBanner'
+import { SessionExpiryWarning } from './SessionExpiryWarning'
 import { ShellAlertsProvider } from './ShellAlerts'
 import { Sidebar } from './Sidebar'
 import { Topbar } from './Topbar'
@@ -147,6 +148,7 @@ export function DashboardShell({ children }: DashboardShellProps) {
             />
             <div className="shrink-0">
               <MfaRequiredBanner />
+              <SessionExpiryWarning />
               <SecurityAlertsBanner />
             </div>
             <div className="grid min-h-0 min-w-0 flex-1 grid-cols-1 md:grid-cols-[minmax(200px,240px)_minmax(0,1fr)] lg:grid-cols-[minmax(220px,260px)_minmax(0,1fr)] xl:grid-cols-[280px_minmax(0,1fr)]">
