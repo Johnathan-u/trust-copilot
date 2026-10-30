@@ -1239,7 +1239,27 @@ test('closing the resolver and changing workspace ignores an old evidence respon
       gaps: changed ? [] : [gap],
     })
   )
+  await page.route('**/api/compliance-coverage', (route) =>
+    json(route, {
+      ...coverage,
+      recommended_evidence: changed
+        ? [
+            {
+              title: 'Second workspace recommendation',
+              improves_questions: 1,
+              evidence_ids: [],
+              control_ids: [],
+              question_ids: [],
+              question_sources: [],
+            },
+          ]
+        : [recommendation],
+    })
+  )
   await page.goto('/dashboard/compliance-gaps')
+  await expect(
+    page.getByText(recommendation.title, { exact: true })
+  ).toBeVisible()
   await page.getByRole('button', { name: 'Resolve gap', exact: true }).click()
   try {
     await expect.poll(() => requested).toBe(true)
@@ -1250,6 +1270,9 @@ test('closing the resolver and changing workspace ignores an old evidence respon
     await page.getByLabel('Workspace', { exact: true }).selectOption('8')
     await expect(
       page.getByText('No evidence gaps', { exact: true })
+    ).toBeVisible()
+    await expect(
+      page.getByText('Second workspace recommendation', { exact: true })
     ).toBeVisible()
   } finally {
     release()

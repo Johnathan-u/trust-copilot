@@ -1,6 +1,6 @@
 // @vitest-environment happy-dom
 
-import { createElement } from 'react'
+import { createElement, StrictMode } from 'react'
 import {
   act,
   cleanup,
@@ -205,6 +205,57 @@ describe('recommendation provenance', () => {
       )
     )
     expect(fetcher.mock.calls[0][1].signal.aborted).toBe(true)
+  })
+
+  it('starts only one read per disclosure when StrictMode replays mount effects', async () => {
+    const fetcher = vi.fn((url: string) =>
+      Promise.resolve(
+        reply(url.includes('/evidence/') ? evidence : questionnaire)
+      )
+    )
+    vi.stubGlobal('fetch', fetcher)
+    const view = render(
+      createElement(
+        StrictMode,
+        null,
+        createElement(Recommendations, {
+          recommendations: [recommendation],
+          workspaceId: 7,
+        })
+      )
+    )
+    expect(fetcher).not.toHaveBeenCalled()
+    await act(async () =>
+      fireEvent.click(
+        view.getByRole('button', { name: 'View evidence source 1' })
+      )
+    )
+    expect(view.getByText('Quarterly review')).toBeTruthy()
+    await act(async () =>
+      fireEvent.click(
+        view.getByRole('button', { name: 'View question source 1' })
+      )
+    )
+    expect(view.getByText('How do you review access?')).toBeTruthy()
+    expect(fetcher.mock.calls.map(([url]) => url)).toEqual([
+      '/api/compliance/evidence/71',
+      '/api/questionnaires/21?workspace_id=7',
+    ])
+    await act(async () =>
+      fireEvent.click(
+        view.getByRole('button', { name: 'Hide evidence source 1' })
+      )
+    )
+    await act(async () =>
+      fireEvent.click(
+        view.getByRole('button', { name: 'View evidence source 1' })
+      )
+    )
+    expect(fetcher.mock.calls.map(([url]) => url)).toEqual([
+      '/api/compliance/evidence/71',
+      '/api/questionnaires/21?workspace_id=7',
+      '/api/compliance/evidence/71',
+    ])
   })
 
   it('labels sources by list position while retaining arbitrary identifiers in requests and links', async () => {

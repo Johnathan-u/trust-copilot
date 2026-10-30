@@ -208,3 +208,45 @@ The direct Chromium launch prerequisite check still exits 1 because
 unqualified locally; no repeat production build or browser pass is claimed for
 this correction. Independent review and exact final-head CI are still required.
 The final local commit/tree are returned to the coordinator for the live ledger.
+
+## CI disclosure and workspace-fixture repair
+
+Local base: `fa12957ee2a69ad85763795ff6544ed08240baee`; exclusive repair claim:
+#85 comment 6512213604. The fetched logs for push run `40981535069`, browser job
+`123822510438`, show 103 passed and two failed release cases. The disclosure case
+recorded two GETs each for evidence and questionnaire detail. The workspace case
+still found one match for `Quarterly access review` after switching.
+
+A new real-component StrictMode regression reproduced the same duplicate GET
+sequence before the fix. The source effect now defers request start one microtask,
+allowing cleanup of the discarded StrictMode setup before it sends a request.
+The surviving disclosure still performs a fresh read; close/reopen is explicitly
+verified to read again. Existing abort, timeout, retry, workspace checks and
+internal-only source identifiers remain unchanged.
+
+The workspace browser fixture returned the original recommendation title in its
+coverage response for both workspaces. That title also matched the stale evidence
+picker assertion. The fixture now returns a distinct recommendation for the
+second workspace, and the test confirms both old and new coverage snapshots.
+All existing absence assertions and all 29 browser cases remain intact. No API,
+auth, shared UI, workflow, dependency, or other product surface changed.
+
+Verification from `apps/web`, Node 24.22.1 / npm 11.9.0:
+
+| Command | Result |
+| --- | --- |
+| `npx --no-install vitest run tests/unit/compliance-gap-provenance.test.ts -t 'StrictMode replays'` before fix | 1 failed: duplicate evidence and questionnaire GETs |
+| `npx --no-install vitest run tests/unit/compliance-gap-provenance.test.ts` after fix | 14 passed |
+| `npm run test:unit` | 32 files, 215 passed |
+| `npm run typecheck` | passed |
+| `npm run lint` | passed, full frontend |
+| Prettier check of the three changed web files | passed |
+| `npx --no-install playwright test e2e/release/ui-23.spec.ts --list` | 29 cases discovered |
+| Direct Chromium launch prerequisite check | exit 1: chromium_headless_shell-1248 executable absent |
+| `git diff --check` | passed |
+
+Tested blobs: `recommendations.tsx` `0b5586fb51881b12b54a013ecd710e316a100663`;
+`compliance-gap-provenance.test.ts` `77ceef92f65d9ee81e09b7403e8030544fb2fad5`;
+`ui-23.spec.ts` `0e783da0735e364ff25a122f17f1031fe7b951da`.
+Local browser, screenshot and axe execution remain unqualified. Independent
+review and exact-final-head push/pull-request CI checks are still required.

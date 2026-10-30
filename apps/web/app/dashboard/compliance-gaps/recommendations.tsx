@@ -41,17 +41,23 @@ function useRecommendationSource<T>(
           ),
         })
     }, 15000)
-    void fetch(url, {
-      credentials: 'include',
-      signal: controller.signal,
-    })
-      .then(readSectionJson)
-      .then(parse)
-      .then((data) => {
+    void (async () => {
+      // StrictMode replays mount effects. Let cleanup cancel the discarded setup
+      // before it sends an HTTP request, while keeping real disclosures uncached.
+      await Promise.resolve()
+      if (!active) return
+      try {
+        const data = parse(
+          await readSectionJson(
+            await fetch(url, {
+              credentials: 'include',
+              signal: controller.signal,
+            })
+          )
+        )
         if (active && !controller.signal.aborted)
           setResult({ url, workspaceId, parse, data, failure: null })
-      })
-      .catch((error: unknown) => {
+      } catch (error: unknown) {
         if (active)
           setResult({
             url,
@@ -60,8 +66,10 @@ function useRecommendationSource<T>(
             data: null,
             failure: failureOf(error),
           })
-      })
-      .finally(() => clearTimeout(timeout))
+      } finally {
+        clearTimeout(timeout)
+      }
+    })()
     return () => {
       active = false
       clearTimeout(timeout)
