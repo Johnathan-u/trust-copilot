@@ -1,0 +1,178 @@
+{
+  "ticket": "TC-04-007a",
+  "date": "2026-10-30",
+  "status": "Local SQLite passed; independent review and PostgreSQL/exact-head CI pending",
+  "claim": "https://github.com/Johnathan-u/trust-copilot/issues/85#issuecomment-6532815699",
+  "base_commit": "90146e0cfe2220beb3e43f98f6073262f7c0abfb",
+  "tested_source_blobs": {
+    "apps/api/app/api/routes/auth.py": "2e29e4b2a03107b7dabf2c19d292f14dc724ccfe",
+    "apps/api/tests/release/test_auth_enumeration.py": "47d4008b03487cdea42012aae4330bb24c171d22"
+  },
+  "provenance": "Fresh tests ran on the working tree identified by these Git blob IDs. Source and tests are committed together with this evidence; the final commit is recorded by the coordinator. Recovered historical logs are not counted as current execution.",
+  "environment": {
+    "python": "3.12.14",
+    "runtime": "/tmp/tc-backend-venv",
+    "default_command_cwd": "apps/api",
+    "postgres": "Unavailable locally",
+    "provider_calls": 0
+  },
+  "scope": {
+    "changed_functions": [
+      "verify_code",
+      "forgot_password"
+    ],
+    "preserved": [
+      "User-bound hashed proof and expiry validation",
+      "Expired-proof deletion and existing error bodies",
+      "Verified/unverified success wording after legitimate proof",
+      "Newly verified audit only; no new session",
+      "Reset response, configured limiter policy, unused-token replacement, audit and mail construction"
+    ],
+    "excluded": [
+      "Timing equalization",
+      "Distributed rate-limit qualification",
+      "Other login/resend/invite abuse controls",
+      "Schema, sessions, shared limiter, frontend and external provider qualification"
+    ]
+  },
+  "matrix": {
+    "sqlite": 22,
+    "postgres": 22,
+    "accounts": [
+      "missing",
+      "unverified",
+      "verified"
+    ],
+    "reset_limit": "10 accepted attempts, denial at the eleventh and at 59.999 seconds, recovery at 60 seconds",
+    "reset_environments": [
+      "development",
+      "production"
+    ],
+    "verification": [
+      "wrong code",
+      "another user valid code",
+      "valid proof",
+      "consumption and replay",
+      "expired proof",
+      "normalized email/code",
+      "missing required field"
+    ]
+  },
+  "fixture": {
+    "storage": "Real model tables with SQLite FK ON; migrated_db/db_session for PostgreSQL",
+    "rows": [
+      "users",
+      "user_sessions",
+      "email_verification_tokens",
+      "password_reset_tokens",
+      "audit_events"
+    ],
+    "denials": "No SQL INSERT/UPDATE/DELETE and unchanged full rows",
+    "success": "Exact token/audit effects; unrelated tokens/users/sessions remain unchanged",
+    "cleanup": "Recorded exact created IDs, FK order, original full-row snapshot equality",
+    "doubles": "Controlled clocks and local outbox transport only; actual proof, DB, limiter, HTTP routes, mail builder and background thread execute"
+  },
+  "checks": [
+    {
+      "name": "fresh red baseline",
+      "command": "/tmp/tc-backend-venv/bin/python -m pytest tests/release/test_auth_enumeration.py -k sqlite -q --tb=short",
+      "runtime_commit": "90146e0cfe2220beb3e43f98f6073262f7c0abfb",
+      "exit_code": 1,
+      "passed": 12,
+      "failed": 10,
+      "deselected": 22,
+      "seconds": 4.12,
+      "failed_cases": [
+        "tests/release/test_auth_enumeration.py::test_wrong_code_never_discloses_account_or_verification_state[sqlite-False-verified]",
+        "tests/release/test_auth_enumeration.py::test_wrong_code_never_discloses_account_or_verification_state[sqlite-True-verified]",
+        "tests/release/test_auth_enumeration.py::test_another_users_valid_code_is_not_proof_for_this_email[sqlite-verified]",
+        "tests/release/test_auth_enumeration.py::test_valid_user_bound_proof_is_consumed_and_cannot_be_replayed[sqlite-False-unverified]",
+        "tests/release/test_auth_enumeration.py::test_valid_user_bound_proof_is_consumed_and_cannot_be_replayed[sqlite-False-verified]",
+        "tests/release/test_auth_enumeration.py::test_valid_user_bound_proof_is_consumed_and_cannot_be_replayed[sqlite-True-unverified]",
+        "tests/release/test_auth_enumeration.py::test_valid_user_bound_proof_is_consumed_and_cannot_be_replayed[sqlite-True-verified]",
+        "tests/release/test_auth_enumeration.py::test_expired_proof_keeps_expiry_denial_and_deletes_only_that_token[sqlite-verified]",
+        "tests/release/test_auth_enumeration.py::test_forgot_password_same_limit_and_window_regardless_of_account[sqlite-False-missing]",
+        "tests/release/test_auth_enumeration.py::test_forgot_password_same_limit_and_window_regardless_of_account[sqlite-True-missing]"
+      ]
+    },
+    {
+      "name": "verification repair only",
+      "command": "/tmp/tc-backend-venv/bin/python -m pytest tests/release/test_auth_enumeration.py -k 'sqlite and not forgot_password' -q --tb=short",
+      "exit_code": 0,
+      "passed": 16,
+      "deselected": 28,
+      "seconds": 2.51
+    },
+    {
+      "name": "complete SQLite green",
+      "command": "/tmp/tc-backend-venv/bin/python -m pytest tests/release/test_auth_enumeration.py -k sqlite -q --tb=short",
+      "exit_code": 0,
+      "passed": 22,
+      "deselected": 22,
+      "warnings": 354,
+      "seconds": 4.19
+    },
+    {
+      "name": "SQLite and PostgreSQL collection",
+      "command": "/tmp/tc-backend-venv/bin/python -m pytest tests/release/test_auth_enumeration.py --collect-only -q",
+      "exit_code": 0,
+      "collected": 44,
+      "seconds": 1.55
+    },
+    {
+      "name": "repository collection safety",
+      "command": "/tmp/tc-backend-venv/bin/python -m pytest tests/release/test_safe_collection.py -q",
+      "exit_code": 0,
+      "passed": 29,
+      "seconds": 50.31
+    },
+    {
+      "name": "required full suite",
+      "command": "TC_REQUIRE_DB=1 /tmp/tc-backend-venv/bin/python -m pytest -q",
+      "exit_code": 3,
+      "tests_executed": 0,
+      "reason": "PostgreSQL at 127.0.0.1:5432 refused the connection before collection; no infrastructure installed or schema weakened.",
+      "environment": {
+        "TC_TEST_DATABASE_URL": "Local PostgreSQL at 127.0.0.1:5432/tc_auth_enumeration_test; synthetic development credentials omitted"
+      }
+    },
+    {
+      "name": "scoped lint",
+      "cwd": "repository root",
+      "command": "/tmp/tc-backend-venv/bin/python -m ruff check apps/api/app/api/routes/auth.py apps/api/tests/release/test_auth_enumeration.py",
+      "exit_code": 0
+    },
+    {
+      "name": "scoped formatting",
+      "cwd": "repository root",
+      "command": "/tmp/tc-backend-venv/bin/python -m ruff format --check apps/api/app/api/routes/auth.py apps/api/tests/release/test_auth_enumeration.py",
+      "exit_code": 0
+    },
+    {
+      "name": "code secret inventory",
+      "cwd": "repository root",
+      "command": "/tmp/tc-backend-venv/bin/python scripts/security/secret_inventory.py paths apps/api/app/api/routes/auth.py apps/api/tests/release/test_auth_enumeration.py --root . --fail-on block",
+      "exit_code": 0,
+      "findings": 0
+    },
+    {
+      "name": "runtime scope",
+      "cwd": "repository root",
+      "command": "Python AST comparison of auth.py against base, excluding only verify_code and forgot_password",
+      "exit_code": 0,
+      "result": "All other module code unchanged"
+    }
+  ],
+  "remaining_gates": [
+    "Independent review",
+    "All 22 PostgreSQL variants and legacy regressions on migrated PostgreSQL",
+    "Exact final-head build and web-release-e2e on push and pull_request"
+  ],
+  "not_claimed": [
+    "Full pytest pass",
+    "Local PostgreSQL pass",
+    "External mail delivery",
+    "Full TC-04-007 closure",
+    "Remote publication or merge"
+  ]
+}
