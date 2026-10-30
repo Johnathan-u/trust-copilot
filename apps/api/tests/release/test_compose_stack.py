@@ -6,6 +6,9 @@ production Caddyfile. No credentials are read or printed.
 
 from __future__ import annotations
 
+import copy
+import importlib.util
+import secrets
 from pathlib import Path
 
 import pytest
@@ -122,3 +125,137 @@ def test_production_caddyfile_serves_tls_and_not_data_ports() -> None:
     assert "reverse_proxy web:3000" in text
     for forbidden in (":5432", ":9000", ":9001"):
         assert forbidden not in text
+
+
+@pytest.fixture
+def acceptance():
+    """Import the stdlib-only runner without starting Docker during collection."""
+    spec = importlib.util.spec_from_file_location(
+        "compose_acceptance", REPO_ROOT / "scripts/release/compose_acceptance.py"
+    )
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def _runtime_model(project: str) -> dict:
+    model = _compose("docker-compose.prod.yml")
+    for kind in ("volumes", "networks"):
+        model[kind] = {
+            name: {**(resource or {}), "name": f"{project}_{name}"}
+            for name, resource in model[kind].items()
+        }
+    # The runner gets this canonical long mount form from Compose config.
+    model["services"]["caddy"]["volumes"] = [
+        {
+            "type": "bind",
+            "source": "/checkout/Caddyfile",
+            "target": "/etc/caddy/Caddyfile",
+            "read_only": True,
+        },
+        {"type": "volume", "source": "caddy_data", "target": "/data"},
+        {"type": "volume", "source": "caddy_config", "target": "/config"},
+    ]
+    return model
+
+
+def test_runtime_isolation_preserves_committed_images_commands_and_hardening(acceptance) -> None:
+    project = "tc03002-12-1-abcdef123456-prod"
+    original = _runtime_model(project)
+    isolated = acceptance.isolate(copy.deepcopy(original), project, "prod", Path("/tmp/test-caddy"))
+    for name, service in original["services"].items():
+        actual = isolated["services"][name]
+        for key in (
+            "image",
+            "build",
+            "user",
+            "read_only",
+            "cap_add",
+            "cap_drop",
+            "security_opt",
+            "command",
+            "tmpfs",
+            "networks",
+        ):
+            assert actual.get(key) == service.get(key), (name, key)
+        assert actual["container_name"] == f"{project}-{name}"
+    assert isolated["services"]["caddy"]["ports"] == [
+        {"target": 443, "published": "0", "host_ip": "127.0.0.1"}
+    ]
+    assert isolated["networks"]["datanet"]["internal"] is True
+
+
+@pytest.mark.parametrize(
+    "unsafe",
+    [{"external": True}, {"driver_opts": {"device": "/data"}}, {"name": "production-data"}],
+)
+def test_runtime_refuses_external_or_shared_resources(acceptance, unsafe) -> None:
+    project = "tc03002-12-1-abcdef123456-prod"
+    model = _runtime_model(project)
+    model["volumes"]["postgres_data"].update(unsafe)
+    with pytest.raises(ValueError, match="refusing"):
+        acceptance.isolate(model, project, "prod", Path("/tmp/test-caddy"))
+
+
+def test_runtime_redacts_generated_credentials_and_dsn(acceptance) -> None:
+    value = "generated-credential-value"
+    url_value = secrets.token_hex(16)
+    output = acceptance.sanitize(
+        f"key={value} postgresql://person:{url_value}@postgres/db", [value]
+    )
+    assert value not in output
+    assert url_value not in output
+    assert output.count("[REDACTED]") == 2
+
+
+def test_runtime_refuses_non_disposable_runner_before_docker(acceptance, monkeypatch) -> None:
+    monkeypatch.setenv("GITHUB_ACTIONS", "true")
+    monkeypatch.setenv("RUNNER_ENVIRONMENT", "self-hosted")
+    with pytest.raises(SystemExit, match="Only disposable"):
+        acceptance.main()
+
+
+def test_runtime_cleanup_rechecks_ownership_before_removal(
+    acceptance, monkeypatch, tmp_path
+) -> None:
+    monkeypatch.setenv("GITHUB_RUN_ID", "12")
+    monkeypatch.setenv("GITHUB_RUN_ATTEMPT", "1")
+    runner = acceptance.Acceptance(tmp_path)
+    calls = []
+
+    def command(args, *unused):
+        calls.append(args)
+        if "inspect" in args:
+            return '[{"Config":{"Labels":{"com.docker.compose.project":"production"}}}]'
+        return "some-container-id\n"
+
+    runner.run = command
+    with pytest.raises(RuntimeError, match="unowned"):
+        runner.cleanup("prod")
+    assert all("rm" not in command for command in calls)
+    project = f"{runner.prefix}-prod"
+    assert acceptance.owned({"Labels": {"com.docker.compose.project": project}}, project)
+    assert not acceptance.owned(
+        {"Labels": {"com.docker.compose.project": "production"}}, "production"
+    )
+
+
+def test_runtime_failure_is_nonzero_and_does_not_skip_other_phase(
+    acceptance, monkeypatch, tmp_path
+) -> None:
+    monkeypatch.setenv("GITHUB_RUN_ID", "12")
+    monkeypatch.setenv("GITHUB_RUN_ATTEMPT", "1")
+    monkeypatch.setattr(acceptance, "EVIDENCE", tmp_path / "evidence")
+    runner = acceptance.Acceptance(tmp_path)
+    attempts = []
+
+    def failure():
+        attempts.append("dev")
+        raise RuntimeError("EACCES: /app/.next")
+
+    runner.dev = failure
+    runner.prod = lambda: attempts.append("prod")
+    assert runner.execute() == 1
+    assert attempts == ["dev", "prod"]
+    assert runner.report["status"] == "failed"
+    assert "EACCES" in runner.report["checks"]["dev"]["failed"]
