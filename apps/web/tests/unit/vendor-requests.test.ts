@@ -1,12 +1,13 @@
 // @vitest-environment happy-dom
 
-import { createElement } from 'react'
+import { createElement, StrictMode } from 'react'
 import {
   act,
   cleanup,
   fireEvent,
   render,
   screen,
+  waitFor,
   within,
 } from '@testing-library/react'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
@@ -46,7 +47,9 @@ function deferred<T>() {
   return { promise, resolve }
 }
 let rows: unknown[]
-let reads: () => Promise<Response>
+let reads: (init: RequestInit) => Promise<Response>
+let readCalls: string[]
+let questionnaires: unknown[]
 let mutation: (path: string, init: RequestInit) => Promise<Response>
 let writes: Array<{ path: string; init: RequestInit }>
 beforeEach(() => {
@@ -54,6 +57,8 @@ beforeEach(() => {
   context.permissions = { can_edit: true, can_admin: true, can_review: true }
   rows = [request]
   reads = async () => json(rows)
+  readCalls = []
+  questionnaires = []
   writes = []
   mutation = async () => json(request)
   vi.stubGlobal('fetch', (input: RequestInfo | URL, init: RequestInit = {}) => {
@@ -62,9 +67,10 @@ beforeEach(() => {
       writes.push({ path, init })
       return mutation(path, init)
     }
-    if (path === '/api/vendor-requests') return reads()
+    readCalls.push(path)
+    if (path === '/api/vendor-requests') return reads(init)
     if (path.startsWith('/api/questionnaires?'))
-      return Promise.resolve(json([]))
+      return Promise.resolve(json(questionnaires))
     throw new Error(`Unexpected URL: ${path}`)
   })
 })
@@ -86,6 +92,52 @@ async function create() {
 }
 const key = (n: number) =>
   new Headers(writes[n].init.headers).get('Idempotency-Key')
+
+it('starts each business read once under Strict Mode effect replay', async () => {
+  render(createElement(StrictMode, null, createElement(RequestsPage)))
+  await screen.findByText('vendor@example.com')
+  expect(readCalls).toEqual([
+    '/api/vendor-requests',
+    '/api/questionnaires?workspace_id=7',
+  ])
+})
+
+it('handles the owned pending read rejection when unmounted', async () => {
+  let signal: AbortSignal | null | undefined
+  reads = (init) => {
+    signal = init.signal
+    return new Promise<Response>((_resolve, reject) => {
+      signal?.addEventListener('abort', () =>
+        reject(new DOMException('Read cancelled', 'AbortError'))
+      )
+    })
+  }
+  const view = render(createElement(RequestsPage))
+  await waitFor(() => expect(signal).toBeDefined())
+  await act(async () => view.unmount())
+  expect(signal?.aborted).toBe(true)
+  // Vitest must observe no unhandled rejection; no global error handler is installed.
+  await new Promise((resolve) => setTimeout(resolve, 0))
+})
+
+it('keeps a failed requests list as an error when questionnaires load, then retries once', async () => {
+  questionnaires = [
+    { id: 999, filename: 'Ready questionnaire', status: 'completed' },
+  ]
+  reads = async () => json({ detail: 'Synthetic failure' }, 500)
+  render(createElement(StrictMode, null, createElement(RequestsPage)))
+  await screen.findByRole('heading', { name: 'Something went wrong' })
+  expect(screen.queryByText('No requests yet')).toBeNull()
+  reads = async () => json([request])
+  fireEvent.click(screen.getByRole('button', { name: 'Try again' }))
+  await screen.findByText('vendor@example.com')
+  expect(
+    readCalls.filter((path) => path === '/api/vendor-requests')
+  ).toHaveLength(2)
+  expect(
+    readCalls.filter((path) => path.startsWith('/api/questionnaires?'))
+  ).toHaveLength(2)
+})
 
 it('allows reviewer reads while withholding administrator mutations', async () => {
   context.permissions = { can_edit: false, can_admin: false, can_review: true }
@@ -470,6 +522,11 @@ it('discards a late list response after switching workspace', async () => {
   const pending = deferred<Response>()
   reads = () => pending.promise
   const view = render(createElement(RequestsPage))
+  await waitFor(() =>
+    expect(
+      readCalls.filter((path) => path === '/api/vendor-requests')
+    ).toHaveLength(1)
+  )
   context.workspace = { id: 8 }
   reads = async () =>
     json([

@@ -1,0 +1,151 @@
+{
+  "ticket": "TC-15-024",
+  "claim": "https://github.com/Johnathan-u/trust-copilot/issues/85#issuecomment-6513403408",
+  "status": "local_repair_verified_review_and_browser_ci_pending",
+  "local_base_sha": "b492341260d6f68f6355173b5b3c4a95dedd6633",
+  "published_failing_sha": "570ad2050ec60ff3d200980741eced1489a2fd2b",
+  "identical_base_tree": "2a385b666c7ecd84e0555d4d1b1a784184c94c34",
+  "tested_source_blobs": {
+    "apps/web/app/dashboard/requests/page.tsx": "3a24c65e7a80ac5c98d03075b04000b31c2e45ee",
+    "apps/web/e2e/release/ui-22.spec.ts": "bb7b3788f3e97f2ac6df328a2423484b0155dee2",
+    "apps/web/tests/unit/vendor-requests.test.ts": "24d400f2b9b9c73b79960e2f9cb1c6a86c43123b"
+  },
+  "prior_ci": {
+    "push_run": "40990778241",
+    "push_web_job": "123852377643",
+    "push_log_directly_read": true,
+    "pull_request_run": "40990791296",
+    "pull_request_web_job": "123852420096",
+    "ui_22_passed": 17,
+    "ui_22_failed": 5,
+    "ui_22_skipped": 0,
+    "ui_22_flaky": 0,
+    "ticket_axe_reports": 6,
+    "ticket_axe_violations": 0,
+    "failures": [
+      "Duplicate same-destination framenavigated event at original ui-22 line 220",
+      "Primary list error heading absent at original line 278",
+      "Global alert matched unrelated toast/Next announcer at original line 380",
+      "Global alert matched toast/business error/Next announcer at original line 391",
+      "Two initial business GETs instead of one at original line 580"
+    ],
+    "additional_error": "Browser unhandledRejection AbortError at requests/page.tsx effect cleanup, original line 286",
+    "qualification": "These results belong to the failing published head, not the repaired code."
+  },
+  "root_causes": [
+    "Effect setup starts fetch immediately, so Strict Mode setup/cleanup/replay issues duplicate business reads.",
+    "loadSection rethrows AbortError; Promise.all(...).then(...) had no rejection handler.",
+    "Shared pageMode treats successful supplementary questionnaires as partial success even when the primary requests list failed, allowing a false empty list.",
+    "Next history.replaceState during hydration emits a same-document navigation event; framenavigated was not a document-navigation count.",
+    "Global role=alert assertions matched unrelated live regions before the business error could settle."
+  ],
+  "repairs": [
+    "Defer each effect's read start by one microtask and skip an already-disposed setup; retain workspace/epoch fencing.",
+    "Await aggregate reads in a local catch; ignore owned cancellation/stale work, and present unexpected current failures. No global suppression.",
+    "Keep the primary requests failure visible regardless of supplementary questionnaire success.",
+    "Count successful main-frame document navigation responses while retaining the exact one-destination, HTTP307, Back, one-business-fetch and zero-analytics assertions.",
+    "Scope mutation alerts to the affected row and additionally assert its actual business-error text."
+  ],
+  "environment": {
+    "node": "v24.22.1",
+    "next": "16.4.3",
+    "react": "19.3.1",
+    "dependencies_changed": false,
+    "chromium": "unavailable locally; repaired browser cases not executed",
+    "working_directory": "apps/web"
+  },
+  "checks": [
+    {
+      "command": "npm run test:unit -- tests/unit/vendor-requests.test.ts -t 'Strict Mode|owned pending|failed requests list'",
+      "phase": "before production repair",
+      "exit_code": 1,
+      "failed": 2,
+      "passed": 1,
+      "filtered_out": 25,
+      "unhandled_errors": 1,
+      "meaning": "Reproduced duplicate reads and missing primary error; the abort case also caused Vitest's unhandled-rejection failure."
+    },
+    {
+      "command": "npm run typecheck",
+      "phase": "first repair attempt",
+      "exit_code": 2,
+      "failure": "TS2339 accessing failure on SectionResult; corrected to use the existing sectionFailure helper without a cast or suppression."
+    },
+    {
+      "command": "npm run test:unit -- tests/unit/vendor-requests.test.ts",
+      "exit_code": 0,
+      "passed": 28,
+      "unhandled_errors": 0
+    },
+    {
+      "command": "npm run test:unit",
+      "phase": "final restored source",
+      "exit_code": 0,
+      "passed": 279,
+      "files_passed": 37,
+      "unhandled_errors": 0
+    },
+    {
+      "command": "npm run typecheck",
+      "phase": "after sectionFailure correction",
+      "exit_code": 0
+    },
+    {
+      "command": "npx --no-install eslint app/dashboard/requests/page.tsx tests/unit/vendor-requests.test.ts e2e/release/ui-22.spec.ts --max-warnings=0",
+      "exit_code": 0
+    },
+    {
+      "command": "npx --no-install prettier --check app/dashboard/requests/page.tsx tests/unit/vendor-requests.test.ts e2e/release/ui-22.spec.ts",
+      "exit_code": 0
+    },
+    {
+      "command": "npm run build",
+      "exit_code": 0,
+      "scope": "Production compilation, type checking and route generation; not browser execution."
+    },
+    {
+      "command": "npx --no-install playwright test e2e/release/ui-22.spec.ts --list",
+      "exit_code": 0,
+      "discovered": 22,
+      "scope": "Discovery only; all original scenarios retained."
+    },
+    {
+      "command": "git diff --check",
+      "exit_code": 0
+    }
+  ],
+  "negative_controls": [
+    {
+      "mutation": "Remove the microtask deferral",
+      "test_filter": "Strict Mode effect replay",
+      "exit_code": 1,
+      "result": "Read-count assertion fails again."
+    },
+    {
+      "mutation": "Rethrow the caught owned read cancellation",
+      "test_filter": "owned pending read rejection",
+      "exit_code": 1,
+      "result": "Vitest detects an unhandled AbortError again."
+    },
+    {
+      "mutation": "Remove primary request failure priority",
+      "test_filter": "failed requests list",
+      "exit_code": 1,
+      "result": "Expected error heading is absent again."
+    }
+  ],
+  "restoration": "Each temporary mutation ran alone and the exact original source was restored in a finally block; final source equality was asserted and all web unit tests rerun green.",
+  "boundaries": {
+    "ui_22_cases": 22,
+    "minimum_count_22_gate": "unchanged",
+    "shared_ci_or_dependencies": "unchanged",
+    "global_error_or_strict_mode_suppression": false,
+    "alias_handler_and_backend": "unchanged",
+    "provider_or_persistence_qualification": "not claimed"
+  },
+  "remaining": [
+    "Independent review of final local commit/tree",
+    "Both existing CI jobs on push and pull_request for the exact published repair head",
+    "Fresh repaired ui-22 browser outcomes, Back behavior, screenshots and axe evidence"
+  ]
+}

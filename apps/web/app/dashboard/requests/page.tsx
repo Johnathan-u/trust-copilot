@@ -18,6 +18,7 @@ import {
   type ApiFailurePresentation,
 } from '@/lib/api-error'
 import {
+  failureOf,
   listFromPayload,
   loadSection,
   sectionFailure,
@@ -222,28 +223,36 @@ function WorkspaceRequests({
     if (!canReview || !workspaceId) return
     const epoch = ++readEpoch.current
     const controller = new AbortController()
-    const options = {
-      credentials: 'include' as const,
-      signal: controller.signal,
-    }
-    const requestPromise = loadSection(
-      fetch('/api/vendor-requests', options),
-      (data) =>
-        listFromPayload<unknown>(data, ['items', 'requests'])
-          .map(readRequest)
-          .map((row) => {
-            if (row.workspace_id !== workspaceId)
-              throw new Error('Invalid workspace')
-            return row
-          })
-    )
-    const questionnairePromise = loadSection(
-      fetch(`/api/questionnaires?workspace_id=${workspaceId}`, options),
-      (data) =>
-        listFromPayload<Questionnaire>(data, ['items', 'questionnaires'])
-    )
-    void Promise.all([requestPromise, questionnairePromise]).then(
-      ([requestResult, questionnaireResult]) => {
+    const read = async () => {
+      // Strict Mode replays setup/cleanup synchronously. Do not start business
+      // reads for a setup that has already been disposed before this microtask.
+      await Promise.resolve()
+      if (controller.signal.aborted) return
+      try {
+        const options = {
+          credentials: 'include' as const,
+          signal: controller.signal,
+        }
+        const requestPromise = loadSection(
+          fetch('/api/vendor-requests', options),
+          (data) =>
+            listFromPayload<unknown>(data, ['items', 'requests'])
+              .map(readRequest)
+              .map((row) => {
+                if (row.workspace_id !== workspaceId)
+                  throw new Error('Invalid workspace')
+                return row
+              })
+        )
+        const questionnairePromise = loadSection(
+          fetch(`/api/questionnaires?workspace_id=${workspaceId}`, options),
+          (data) =>
+            listFromPayload<Questionnaire>(data, ['items', 'questionnaires'])
+        )
+        const [requestResult, questionnaireResult] = await Promise.all([
+          requestPromise,
+          questionnairePromise,
+        ])
         if (
           !alive.current ||
           controller.signal.aborted ||
@@ -277,11 +286,32 @@ function WorkspaceRequests({
         setQuestionnaires(
           questionnaireResult.ok ? questionnaireResult.data : []
         )
-        setLoadFailure(mode.mode === 'error' ? mode.failure : null)
-        setPartialFailed(mode.mode === 'partial' ? mode.failed : [])
+        // The questionnaire selector is supplementary; it cannot turn a failed
+        // request list into an apparent empty list or a successful page.
+        setLoadFailure(
+          !requestResult.ok
+            ? sectionFailure(requestResult)
+            : mode.mode === 'error'
+              ? mode.failure
+              : null
+        )
+        setPartialFailed(
+          requestResult.ok && mode.mode === 'partial' ? mode.failed : []
+        )
+        setLoading(false)
+      } catch (error) {
+        if (
+          !alive.current ||
+          controller.signal.aborted ||
+          epoch !== readEpoch.current
+        )
+          return
+        setLoadFailure(failureOf(error))
+        setPartialFailed([])
         setLoading(false)
       }
-    )
+    }
+    void read()
     return () => {
       controller.abort()
     }

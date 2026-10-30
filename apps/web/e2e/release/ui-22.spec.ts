@@ -209,9 +209,17 @@ test('bookmark navigation commits only the destination and Back returns to the p
     page.getByRole('heading', { name: 'Dashboard', exact: true })
   ).toBeVisible()
   const navigations: string[] = []
-  page.on('framenavigated', (frame) => {
-    if (frame === page.mainFrame())
-      navigations.push(new URL(frame.url()).pathname)
+  // Same-document history.replaceState during Next hydration also emits
+  // framenavigated. Count successful document navigations, retaining the exact
+  // destination count plus the independent Back/history and business-read checks.
+  page.on('response', (response) => {
+    const request = response.request()
+    if (
+      request.isNavigationRequest() &&
+      request.frame() === page.mainFrame() &&
+      response.status() === 200
+    )
+      navigations.push(new URL(response.url()).pathname)
   })
   await open(page)
   await expect(
@@ -377,7 +385,14 @@ test('progress rejection keeps the current state and reports the server failure'
   const progress = page.getByRole('combobox', { name: /Update progress/ })
   await expect(progress.locator('option[value="completed"]')).toHaveCount(0)
   await progress.selectOption('in_progress')
-  await expect(page.getByRole('alert')).toBeVisible()
+  const failure = page
+    .getByRole('row')
+    .filter({ hasText: 'vendor@example.com' })
+    .getByRole('alert')
+  await expect(failure).toBeVisible()
+  await expect(failure).toHaveText(
+    'Completion requires a submitted vendor response.'
+  )
   await expect(page.getByText('Pending', { exact: true })).toBeVisible()
 })
 
@@ -388,7 +403,12 @@ test('send retry preserves its key after a network failure and only confirms pro
   state.mutation = (route) => route.abort('failed')
   await open(page)
   await page.getByRole('button', { name: 'Send invitation' }).click()
-  await expect(page.getByRole('alert')).toBeVisible()
+  const failure = page
+    .getByRole('row')
+    .filter({ hasText: 'vendor@example.com' })
+    .getByRole('alert')
+  await expect(failure).toBeVisible()
+  await expect(failure).toContainText('The result could not be confirmed.')
   state.mutation = (route) =>
     json(route, { ...record, delivery_status: 'accepted' })
   await page.getByRole('button', { name: 'Send invitation' }).click()

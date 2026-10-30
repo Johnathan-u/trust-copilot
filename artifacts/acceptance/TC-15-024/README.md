@@ -7,6 +7,30 @@ All commands below run from `apps/web`, with Node v24.22.1 and the existing lock
 dependencies. No dependency changes are included. Coordinator commit `26bca0e`
 subsequently integrated the CI candidate/count/axe configuration.
 
+## CI failure repair — claim 6513403408
+
+The original published snapshot `570ad2050ec60ff3d200980741eced1489a2fd2b`
+(local `b492341`, identical tree `2a385b666c7ecd84e0555d4d1b1a784184c94c34`)
+failed five ui-22 cases on push run `40990778241`/job `123852377643` and PR run
+`40990791296`/job `123852420096`. Seventeen ui-22 cases and all other release
+cases passed; six fresh ticket axe reports contained zero violations. The push
+job log was fetched directly during this investigation.
+
+The repair addresses eager duplicate Strict Mode reads, unhandled owned
+cancellation, and supplementary questionnaire success masking a primary-list
+failure. Browser assertions retain exactly one destination document, one business
+fetch, no analytics and Back behavior. Same-document Next history bookkeeping is
+no longer counted as a second document navigation. Mutation assertions target the
+actual row alert and its message rather than global live regions.
+
+New focused tests first produced two assertion failures and one unhandled abort.
+After repair, 28 focused component cases and all 279 web units pass. Three
+temporary negative controls each reintroduced a detected defect; original source
+was restored before final checks. Discovery still lists 22 ui-22 cases. Shared
+workflow/minimum-count/axe gates, aliases, public-form flow and dependencies are
+unchanged. `ci-repair-verification.json` records precise results and tested source
+blobs. Independent review and fresh browser/CI qualification remain pending.
+
 ## Review repair — claim 6513040014
 
 Repair base: `26bca0ea84a212247da4312dd5fe7f90509079ca`, after coordinator integration.
@@ -121,9 +145,10 @@ recorded by the coordinator.
 
 ## Remaining qualification
 
-Twenty-one browser cases, screenshots, keyboard/Back behavior and axe outcomes are
-pending. The attempted UI launch failed before assertions; no local browser pass
-or visual inspection is claimed. The two legacy full-stack specs were updated and
+The repaired twenty-one browser cases, screenshots, keyboard/Back behavior and axe
+outcomes still need fresh qualification. The earlier local UI launch failed before
+assertions; subsequent CI executed the suite and exposed the five failures above.
+No local browser pass or visual inspection is claimed. The two legacy full-stack specs were updated and
 type-checked but not executed against a database/API stack. Synthetic UI fixtures
 prove control paths only and cannot qualify provider delivery or persistence.
 
