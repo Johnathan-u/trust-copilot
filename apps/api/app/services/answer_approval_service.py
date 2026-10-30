@@ -11,17 +11,44 @@ from sqlalchemy.orm import Session
 
 from app.models.answer_approval_event import AnswerApprovalEvent
 from app.models.golden_answer import GoldenAnswer
+from app.models.user import WorkspaceMember
 
 logger = logging.getLogger(__name__)
 
 VALID_STATUSES = ("draft", "pending_review", "approved", "rejected", "changes_requested", "expired")
 
 
+def _get_answer(db: Session, ga_id: int, workspace_id: int) -> GoldenAnswer | None:
+    return (
+        db.query(GoldenAnswer)
+        .filter(GoldenAnswer.id == ga_id, GoldenAnswer.workspace_id == workspace_id)
+        .first()
+    )
+
+
+def _active_assignee(db: Session, user_id: int, workspace_id: int) -> bool:
+    return (
+        db.query(WorkspaceMember.id)
+        .filter(
+            WorkspaceMember.user_id == user_id,
+            WorkspaceMember.workspace_id == workspace_id,
+            WorkspaceMember.suspended.is_(False),
+        )
+        .first()
+        is not None
+    )
+
+
 def assign_owner(
-    db: Session, ga_id: int, owner_user_id: int, actor_user_id: int | None = None
+    db: Session,
+    ga_id: int,
+    owner_user_id: int,
+    actor_user_id: int | None = None,
+    *,
+    workspace_id: int,
 ) -> dict | None:
-    ga = db.query(GoldenAnswer).filter(GoldenAnswer.id == ga_id).first()
-    if not ga:
+    ga = _get_answer(db, ga_id, workspace_id)
+    if not ga or not _active_assignee(db, owner_user_id, workspace_id):
         return None
     ga.owner_user_id = owner_user_id
     _log_event(db, ga_id, "owner_assigned", actor_user_id)
@@ -30,10 +57,15 @@ def assign_owner(
 
 
 def assign_reviewer(
-    db: Session, ga_id: int, reviewer_user_id: int, actor_user_id: int | None = None
+    db: Session,
+    ga_id: int,
+    reviewer_user_id: int,
+    actor_user_id: int | None = None,
+    *,
+    workspace_id: int,
 ) -> dict | None:
-    ga = db.query(GoldenAnswer).filter(GoldenAnswer.id == ga_id).first()
-    if not ga:
+    ga = _get_answer(db, ga_id, workspace_id)
+    if not ga or not _active_assignee(db, reviewer_user_id, workspace_id):
         return None
     ga.reviewer_user_id = reviewer_user_id
     _log_event(db, ga_id, "reviewer_assigned", actor_user_id)
@@ -41,8 +73,10 @@ def assign_reviewer(
     return _serialize(ga)
 
 
-def submit_for_review(db: Session, ga_id: int, actor_user_id: int | None = None) -> dict | None:
-    ga = db.query(GoldenAnswer).filter(GoldenAnswer.id == ga_id).first()
+def submit_for_review(
+    db: Session, ga_id: int, actor_user_id: int | None = None, *, workspace_id: int
+) -> dict | None:
+    ga = _get_answer(db, ga_id, workspace_id)
     if not ga:
         return None
     if ga.status not in ("draft", "changes_requested"):
@@ -57,9 +91,9 @@ def submit_for_review(db: Session, ga_id: int, actor_user_id: int | None = None)
 
 
 def approve_answer(
-    db: Session, ga_id: int, reviewer_id: int, comment: str | None = None
+    db: Session, ga_id: int, reviewer_id: int, comment: str | None = None, *, workspace_id: int
 ) -> dict | None:
-    ga = db.query(GoldenAnswer).filter(GoldenAnswer.id == ga_id).first()
+    ga = _get_answer(db, ga_id, workspace_id)
     if not ga:
         return None
     if ga.status != "pending_review":
@@ -74,9 +108,9 @@ def approve_answer(
 
 
 def reject_answer(
-    db: Session, ga_id: int, reviewer_id: int, reason: str | None = None
+    db: Session, ga_id: int, reviewer_id: int, reason: str | None = None, *, workspace_id: int
 ) -> dict | None:
-    ga = db.query(GoldenAnswer).filter(GoldenAnswer.id == ga_id).first()
+    ga = _get_answer(db, ga_id, workspace_id)
     if not ga:
         return None
     if ga.status != "pending_review":
@@ -88,9 +122,9 @@ def reject_answer(
 
 
 def request_changes(
-    db: Session, ga_id: int, reviewer_id: int, comments: str | None = None
+    db: Session, ga_id: int, reviewer_id: int, comments: str | None = None, *, workspace_id: int
 ) -> dict | None:
-    ga = db.query(GoldenAnswer).filter(GoldenAnswer.id == ga_id).first()
+    ga = _get_answer(db, ga_id, workspace_id)
     if not ga:
         return None
     if ga.status != "pending_review":
@@ -143,11 +177,21 @@ def get_overdue_reviews(db: Session, workspace_id: int) -> list[dict]:
     return overdue
 
 
-def bulk_approve(db: Session, ga_ids: list[int], reviewer_id: int) -> dict:
+def bulk_approve(
+    db: Session, ga_ids: list[int], reviewer_id: int, *, workspace_id: int
+) -> dict | None:
+    authorized_ids = {
+        row.id
+        for row in db.query(GoldenAnswer.id)
+        .filter(GoldenAnswer.id.in_(ga_ids), GoldenAnswer.workspace_id == workspace_id)
+        .all()
+    }
+    if authorized_ids != set(ga_ids):
+        return None
     approved = []
     skipped = []
     for ga_id in ga_ids:
-        result = approve_answer(db, ga_id, reviewer_id)
+        result = approve_answer(db, ga_id, reviewer_id, workspace_id=workspace_id)
         if result and "error" not in result:
             approved.append(ga_id)
         else:
@@ -156,7 +200,9 @@ def bulk_approve(db: Session, ga_ids: list[int], reviewer_id: int) -> dict:
     return {"approved": approved, "skipped": skipped}
 
 
-def get_approval_history(db: Session, ga_id: int) -> list[dict]:
+def get_approval_history(db: Session, ga_id: int, *, workspace_id: int) -> list[dict] | None:
+    if _get_answer(db, ga_id, workspace_id) is None:
+        return None
     events = (
         db.query(AnswerApprovalEvent)
         .filter(

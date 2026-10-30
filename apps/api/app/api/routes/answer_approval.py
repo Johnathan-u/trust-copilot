@@ -28,7 +28,13 @@ class BulkApproveBody(BaseModel):
 async def assign_owner(
     body: AssignBody, session: dict = Depends(require_can_admin), db: Session = Depends(get_db)
 ):
-    result = svc.assign_owner(db, body.golden_answer_id, body.user_id, session.get("user_id"))
+    result = svc.assign_owner(
+        db,
+        body.golden_answer_id,
+        body.user_id,
+        session.get("user_id"),
+        workspace_id=session["workspace_id"],
+    )
     if not result:
         raise HTTPException(status_code=404)
     db.commit()
@@ -39,7 +45,13 @@ async def assign_owner(
 async def assign_reviewer(
     body: AssignBody, session: dict = Depends(require_can_admin), db: Session = Depends(get_db)
 ):
-    result = svc.assign_reviewer(db, body.golden_answer_id, body.user_id, session.get("user_id"))
+    result = svc.assign_reviewer(
+        db,
+        body.golden_answer_id,
+        body.user_id,
+        session.get("user_id"),
+        workspace_id=session["workspace_id"],
+    )
     if not result:
         raise HTTPException(status_code=404)
     db.commit()
@@ -50,7 +62,9 @@ async def assign_reviewer(
 async def submit_for_review(
     ga_id: int, session: dict = Depends(require_session), db: Session = Depends(get_db)
 ):
-    result = svc.submit_for_review(db, ga_id, session.get("user_id"))
+    result = svc.submit_for_review(
+        db, ga_id, session.get("user_id"), workspace_id=session["workspace_id"]
+    )
     if not result:
         raise HTTPException(status_code=404)
     if "error" in result:
@@ -66,7 +80,9 @@ async def approve(
     session: dict = Depends(require_can_review),
     db: Session = Depends(get_db),
 ):
-    result = svc.approve_answer(db, ga_id, session.get("user_id"), body.comment)
+    result = svc.approve_answer(
+        db, ga_id, session.get("user_id"), body.comment, workspace_id=session["workspace_id"]
+    )
     if not result:
         raise HTTPException(status_code=404)
     if "error" in result:
@@ -82,7 +98,9 @@ async def reject(
     session: dict = Depends(require_can_review),
     db: Session = Depends(get_db),
 ):
-    result = svc.reject_answer(db, ga_id, session.get("user_id"), body.comment)
+    result = svc.reject_answer(
+        db, ga_id, session.get("user_id"), body.comment, workspace_id=session["workspace_id"]
+    )
     if not result:
         raise HTTPException(status_code=404)
     if "error" in result:
@@ -98,7 +116,9 @@ async def request_changes(
     session: dict = Depends(require_can_review),
     db: Session = Depends(get_db),
 ):
-    result = svc.request_changes(db, ga_id, session.get("user_id"), body.comment)
+    result = svc.request_changes(
+        db, ga_id, session.get("user_id"), body.comment, workspace_id=session["workspace_id"]
+    )
     if not result:
         raise HTTPException(status_code=404)
     if "error" in result:
@@ -123,7 +143,11 @@ async def bulk_approve(
     session: dict = Depends(require_can_review),
     db: Session = Depends(get_db),
 ):
-    result = svc.bulk_approve(db, body.golden_answer_ids, session.get("user_id"))
+    result = svc.bulk_approve(
+        db, body.golden_answer_ids, session.get("user_id"), workspace_id=session["workspace_id"]
+    )
+    if result is None:
+        raise HTTPException(status_code=404)
     db.commit()
     return result
 
@@ -132,4 +156,7 @@ async def bulk_approve(
 async def history(
     ga_id: int, session: dict = Depends(require_session), db: Session = Depends(get_db)
 ):
-    return {"events": svc.get_approval_history(db, ga_id)}
+    events = svc.get_approval_history(db, ga_id, workspace_id=session["workspace_id"])
+    if events is None:
+        raise HTTPException(status_code=404)
+    return {"events": events}
