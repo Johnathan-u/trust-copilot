@@ -23,6 +23,7 @@ from app.models import (
     Document,
     EvidenceItem,
     User,
+    UserSession,
     Workspace,
     WorkspaceMember,
 )
@@ -41,6 +42,7 @@ def domain(client, db_session):
         "workspaces",
         "users",
         "workspace_members",
+        "user_sessions",
         "security_faq",
         "security_faq_sources",
         "security_faq_revisions",
@@ -67,6 +69,7 @@ def domain(client, db_session):
         db_session.add(user)
         db_session.flush()
         db_session.add(WorkspaceMember(workspace_id=ids[0], user_id=user.id, role=role))
+        db_session.add(UserSession(user_id=user.id, session_id=f"faq-{suffix}-{role}"))
         actors[role] = user.id
     evidence = [
         EvidenceItem(
@@ -101,7 +104,14 @@ def domain(client, db_session):
         client.cookies.clear()
         client.cookies.set(
             "tc_session",
-            sign_session(actors[role], f"faq-{suffix}-{role}@example.com", ids[0], role),
+            sign_session(
+                actors[role],
+                f"faq-{suffix}-{role}@example.com",
+                ids[0],
+                role,
+                session_id=f"faq-{suffix}-{role}",
+                max_age_seconds=3600,
+            ),
         )
 
     state["login"] = login
@@ -130,6 +140,9 @@ def domain(client, db_session):
         synchronize_session=False
     )
     db_session.query(CustomRole).filter(CustomRole.workspace_id.in_(ids)).delete(
+        synchronize_session=False
+    )
+    db_session.query(UserSession).filter(UserSession.user_id.in_(actors.values())).delete(
         synchronize_session=False
     )
     db_session.query(User).filter(User.id.in_(actors.values())).delete(synchronize_session=False)

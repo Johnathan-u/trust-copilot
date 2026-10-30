@@ -455,16 +455,21 @@ def test_uncertain_delivery_is_persisted_without_automatic_retry(domain):
 @pytest.mark.parametrize("operation", ["create", "patch", "send", "resend", "revoke"])
 def test_stale_admin_session_cannot_mutate(domain, change, operation):
     from app.core.session import sign_session
-    from app.models import User, WorkspaceMember
+    from app.models import User, UserSession, WorkspaceMember
 
+    session_count = domain["db"].query(UserSession).count()
     user = User(email=domain["suffix"] + "-actor@example.com", password_hash="synthetic-unused")
     domain["db"].add(user)
     domain["db"].flush()
     member = WorkspaceMember(workspace_id=1, user_id=user.id, role="admin", suspended=False)
     domain["db"].add(member)
+    session_id = f"{domain['suffix']}-stale"
+    domain["db"].add(UserSession(user_id=user.id, session_id=session_id))
     domain["db"].commit()
     user_id = user.id
-    token = sign_session(user_id, user.email, 1, "admin")
+    token = sign_session(
+        user_id, user.email, 1, "admin", session_id=session_id, max_age_seconds=3600
+    )
     if change == "removed":
         domain["db"].delete(member)
     elif change == "demoted":
@@ -498,6 +503,9 @@ def test_stale_admin_session_cannot_mutate(domain, change, operation):
         domain["db"].query(WorkspaceMember).filter(WorkspaceMember.user_id == user_id).delete(
             synchronize_session=False
         )
+        domain["db"].query(UserSession).filter(UserSession.user_id == user_id).delete(
+            synchronize_session=False
+        )
         domain["db"].query(User).filter(User.id == user_id).delete(synchronize_session=False)
         domain["db"].commit()
         assert (
@@ -505,6 +513,7 @@ def test_stale_admin_session_cannot_mutate(domain, change, operation):
             == 0
         )
         assert domain["db"].get(User, user_id) is None
+        assert domain["db"].query(UserSession).count() == session_count
 
 
 def test_migration_round_trip_preserves_non_default_lifecycle(domain):
@@ -816,11 +825,11 @@ def test_authorization_is_rechecked_after_idempotency_commit(
     from app.core import idempotency
     from app.core.database import SessionLocal
     from app.core.session import sign_session
-    from app.models import CustomRole, User, WorkspaceMember
+    from app.models import CustomRole, User, UserSession, WorkspaceMember
     from app.services import email_service
 
     db = domain["db"]
-    models = (User, WorkspaceMember, CustomRole)
+    models = (User, WorkspaceMember, CustomRole, UserSession)
     before = {model: db.query(model).count() for model in models}
     custom = CustomRole(workspace_id=1, name=domain["suffix"], can_admin=True)
     user = User(
@@ -835,6 +844,8 @@ def test_authorization_is_rechecked_after_idempotency_commit(
         role=custom.name if change == "custom_permission" else "admin",
     )
     db.add(member)
+    session_id = f"after-claim-{domain['suffix']}"
+    db.add(UserSession(user_id=user_id, session_id=session_id))
     db.commit()
     original_claim = idempotency.claim
     delivered = []
@@ -872,7 +883,12 @@ def test_authorization_is_rechecked_after_idempotency_commit(
     if change == "api_key":
         headers.update(domain["headers"]["admin"])
     else:
-        domain["client"].cookies.set("tc_session", sign_session(user_id, user.email, 1, "admin"))
+        domain["client"].cookies.set(
+            "tc_session",
+            sign_session(
+                user_id, user.email, 1, "admin", session_id=session_id, max_age_seconds=3600
+            ),
+        )
     request_count = db.query(VendorRequest).count()
     try:
         if operation == "create":
@@ -894,6 +910,7 @@ def test_authorization_is_rechecked_after_idempotency_commit(
         domain["client"].cookies.clear()
         db.rollback()
         db.query(WorkspaceMember).filter_by(user_id=user_id).delete(synchronize_session=False)
+        db.query(UserSession).filter_by(user_id=user_id).delete(synchronize_session=False)
         db.query(User).filter_by(id=user_id).delete(synchronize_session=False)
         db.query(CustomRole).filter_by(id=custom_id).delete(synchronize_session=False)
         db.commit()

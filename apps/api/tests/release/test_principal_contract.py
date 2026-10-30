@@ -318,7 +318,19 @@ def test_uidless_cookie_cannot_impersonate_an_api_key_or_admin(authority):
     state = authority
     state["client"].cookies.clear()
     state["client"].cookies.set(
-        "tc_session", sign_session(None, "synthetic@example.com", state["ws"][0], "admin")
+        "tc_session",
+        sign_session(
+            None,
+            "synthetic@example.com",
+            state["ws"][0],
+            "admin",
+            session_id=state["db"]
+            .query(UserSession)
+            .filter_by(user_id=state["users"][0])
+            .one()
+            .session_id,
+            max_age_seconds=3600,
+        ),
     )
     before = counts(state["db"])
     assert state["client"].get("/authority/can_admin").status_code == 403

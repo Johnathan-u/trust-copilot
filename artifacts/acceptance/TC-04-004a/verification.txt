@@ -1,0 +1,16 @@
+TC-04-004a strict session validation, 2026-10-30 UTC
+Base: 765589e9d3af2992e62f0d1e0cfc03296f444813
+Claim: #85 comment 6514312794
+
+Baseline new HTTP controls: 18 failed, 8 passed, 25 deselected; exit 1.
+Repaired new local controls: 26 passed, 25 deselected; exit 0.
+Combined local session/principal/MFA/signing/key controls: 97 passed, 77 deselected; exit 0.
+Collection (new file plus six fixture files): 410 cases, including 51 new session cases.
+New session cases: 25 SQLite, 25 PostgreSQL, one expiry-boundary control.
+Strict PostgreSQL: exit 3 before execution, localhost:5432 connection refused.
+New restart case runs/reaps three fresh Python interpreters with real HTTP auth routes and persistent isolated state.
+No existing assertion or intentionally invalid credential is removed.
+No provider/browser/production-lifespan qualification claimed.
+Broad backend unit selection with proxy variables unset: 698 passed, 11 skipped, 3238 deselected; exit 0.
+Ruff check/format, compileall, git diff --check: exit 0.
+AST review: only verify_token; new enforce_session_record and require_session; auth.me/logout changed. Every prior assertion AST in the six fixture files is retained.
