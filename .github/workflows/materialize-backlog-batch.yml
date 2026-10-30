@@ -1,0 +1,51 @@
+name: Materialize reviewed backlog batch once
+on:
+  push:
+    branches: [codex/pm-autonomous-implementation-batch]
+    paths:
+      - .github/workflows/materialize-backlog-batch.yml
+      - scripts/materialize_backlog_batch.py
+      - docs/planning/autonomy-materialization.patch.json
+permissions:
+  contents: read
+jobs:
+  materialize:
+    if: github.repository == 'Johnathan-u/trust-copilot' && github.ref == 'refs/heads/codex/pm-autonomous-implementation-batch'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Verify current coordinator and branch
+        env:
+          EXPECTED_HEAD: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          git fetch origin codex/coordinator-state
+          git show FETCH_HEAD:coordinator-state.json > "$RUNNER_TEMP/lease.json"
+          python scripts/materialize_backlog_batch.py check-lease "$RUNNER_TEMP/lease.json"
+          test "$(git ls-remote origin refs/heads/codex/pm-autonomous-implementation-batch | cut -f1)" = "$EXPECTED_HEAD"
+          cp scripts/materialize_backlog_batch.py "$RUNNER_TEMP/materialize_backlog_batch.py"
+      - name: Reproduce the independently reviewed files and verify cleanup tree
+        run: python scripts/materialize_backlog_batch.py prepare
+      - name: Publish generated files to the same branch for connector cleanup
+        env:
+          EXPECTED_HEAD: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          git fetch origin codex/coordinator-state
+          git show FETCH_HEAD:coordinator-state.json > "$RUNNER_TEMP/lease.json"
+          python "$RUNNER_TEMP/materialize_backlog_batch.py" check-lease "$RUNNER_TEMP/lease.json"
+          test "$(git ls-remote origin refs/heads/codex/pm-autonomous-implementation-batch | cut -f1)" = "$EXPECTED_HEAD"
+          test "$(git rev-parse :docs/planning/backlog-state.json)" = a14625c7977204efa719812e994c772cd290d028
+          test "$(git rev-parse :docs/tracker/data.js)" = 8eded0c2f71bb2c4593301ec24072ea853123f89
+          test "$(git diff --cached --name-only)" = "$(printf '%s\n' docs/planning/backlog-state.json docs/tracker/data.js)"
+          git -c user.name='Codex coordinator' -c user.email='noreply@openai.com' commit -m 'Generate reviewed backlog files pending connector cleanup and CI'
+          git push origin HEAD:refs/heads/codex/pm-autonomous-implementation-batch
