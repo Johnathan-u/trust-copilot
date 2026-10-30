@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, useRef } from 'react'
 import { Button, Card, Input, useDestructiveConfirm } from '@/components/ui'
 import { ErrorState, LoadingState } from '@/components/ui'
 import { useAuth } from '@/contexts/AuthContext'
@@ -864,6 +864,7 @@ function SessionsSection({
 }) {
   const [revoking, setRevoking] = useState(false)
   const [error, setError] = useState('')
+  const mutationPending = useRef<Promise<void> | null>(null)
   const { confirm, dialog: confirmDialog } = useDestructiveConfirm()
 
   const revokeOthers = () => {
@@ -872,6 +873,11 @@ function SessionsSection({
       description: 'You will stay signed in on this device.',
       confirmLabel: 'Sign out others',
       onConfirm: async () => {
+        if (mutationPending.current) return mutationPending.current
+        let complete!: () => void
+        mutationPending.current = new Promise<void>((resolve) => {
+          complete = resolve
+        })
         setError('')
         setRevoking(true)
         try {
@@ -886,7 +892,62 @@ function SessionsSection({
           }
           onReload()
         } finally {
+          complete()
+          mutationPending.current = null
           setRevoking(false)
+        }
+      },
+    })
+  }
+
+  const signOutEverywhere = () => {
+    confirm({
+      title: 'Sign out everywhere?',
+      description:
+        'This signs you out on this device and all your other devices. You will need to sign in again.',
+      confirmLabel: 'Sign out everywhere',
+      onConfirm: async () => {
+        if (mutationPending.current) return mutationPending.current
+        let complete!: () => void
+        mutationPending.current = new Promise<void>((resolve) => {
+          complete = resolve
+        })
+        setError('')
+        setRevoking(true)
+        let acknowledged = false
+        const unconfirmed =
+          'Could not confirm sign-out. Try again or sign in again.'
+        try {
+          const res = await fetch('/api/auth/sessions/revoke-all', {
+            method: 'POST',
+            credentials: 'include',
+          })
+          const data = await res.json().catch(() => null)
+          if (!res.ok) {
+            setError(
+              mutationFailureNotice(res.status, data, unconfirmed).message
+            )
+            return
+          }
+          if (
+            data?.ok !== true ||
+            !Number.isSafeInteger(data.revoked) ||
+            data.revoked < 0
+          ) {
+            setError(unconfirmed)
+            return
+          }
+          acknowledged = true
+          // Discard this authenticated page only after the server confirms revocation.
+          window.location.replace('/login')
+        } catch {
+          setError(unconfirmed)
+        } finally {
+          complete()
+          if (!acknowledged) {
+            mutationPending.current = null
+            setRevoking(false)
+          }
         }
       },
     })
@@ -897,51 +958,65 @@ function SessionsSection({
 
   return (
     <>
-      <Card className="p-4">
-        <div className="flex items-center justify-between mb-1">
-          <div className="flex items-center gap-2">
-            <span className="text-base">💻</span>
-            <h3 className="text-sm font-semibold text-[var(--tc-text)]">
-              Active Sessions
-            </h3>
+      <section aria-label="Active sessions">
+        <Card className="p-4">
+          <div className="flex items-center justify-between mb-1">
+            <div className="flex items-center gap-2">
+              <span className="text-base">💻</span>
+              <h3 className="text-sm font-semibold text-[var(--tc-text)]">
+                Active Sessions
+              </h3>
+            </div>
+            <span className="text-xs text-[var(--tc-muted)]">
+              {sessions.length} active session{sessions.length !== 1 ? 's' : ''}
+            </span>
           </div>
-          <span className="text-xs text-[var(--tc-muted)]">
-            {sessions.length} active session{sessions.length !== 1 ? 's' : ''}
-          </span>
-        </div>
-        <p className="text-xs text-[var(--tc-muted)] mb-4">
-          Devices and browsers where your account is currently signed in.
-        </p>
+          <p className="text-xs text-[var(--tc-muted)] mb-4">
+            Devices and browsers where your account is currently signed in.
+          </p>
 
-        <div className="space-y-2">
-          {/* Current session first */}
-          {currentSession && <SessionRow session={currentSession} isCurrent />}
+          <div className="space-y-2">
+            {/* Current session first */}
+            {currentSession && (
+              <SessionRow session={currentSession} isCurrent />
+            )}
 
-          {/* Other sessions */}
-          {others.map((s) => (
-            <SessionRow key={s.id} session={s} isCurrent={false} />
-          ))}
-        </div>
+            {/* Other sessions */}
+            {others.map((s) => (
+              <SessionRow key={s.id} session={s} isCurrent={false} />
+            ))}
+          </div>
 
-        {otherSessions.length > 0 && (
-          <div className="mt-4 pt-3 border-t border-white/10">
+          <div className="mt-4 pt-3 border-t border-white/10 flex flex-wrap gap-2">
+            {otherSessions.length > 0 && (
+              <Button
+                size="sm"
+                variant="ghost"
+                className="text-red-400"
+                onClick={revokeOthers}
+                disabled={revoking}
+              >
+                {revoking
+                  ? 'Signing out...'
+                  : `Sign out all other devices (${otherSessions.length})`}
+              </Button>
+            )}
             <Button
               size="sm"
-              variant="ghost"
-              className="text-red-400"
-              onClick={revokeOthers}
+              variant="danger"
+              onClick={signOutEverywhere}
               disabled={revoking}
             >
-              {revoking
-                ? 'Signing out...'
-                : `Sign out all other devices (${otherSessions.length})`}
+              Sign out everywhere
             </Button>
           </div>
-        )}
-        {error && (
-          <p className="mt-2 text-xs text-[var(--tc-danger)]">{error}</p>
-        )}
-      </Card>
+          {error && (
+            <p role="alert" className="mt-2 text-xs text-[var(--tc-danger)]">
+              {error}
+            </p>
+          )}
+        </Card>
+      </section>
       {confirmDialog}
     </>
   )

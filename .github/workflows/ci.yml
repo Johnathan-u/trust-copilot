@@ -179,6 +179,17 @@ jobs:
           if-no-files-found: warn
           retention-days: 14
 
+      - name: Upload logout-all browser acceptance report
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: logout-all-acceptance
+          path: |
+            apps/web/playwright-report/logout-all/
+            apps/web/test-results/logout-all/
+          if-no-files-found: warn
+          retention-days: 14
+
       - name: Type-check frontend
         working-directory: apps/web
         run: npm run typecheck
