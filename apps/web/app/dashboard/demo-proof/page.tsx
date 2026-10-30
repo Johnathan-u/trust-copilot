@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import { Button, Card, EmptyState } from '@/components/ui'
 import { useAuth } from '@/contexts/AuthContext'
@@ -52,9 +52,11 @@ export default function DemoProofPage() {
     JSON.stringify([workspace?.id, windowStart, windowEnd])
   )
   const summaryGeneration = summaryKey.generation
+  const activeGeneration = useRef<number | null>(null)
 
   const requestSummary = useCallback(
     (method: 'GET' | 'POST') => {
+      const isCurrent = () => activeGeneration.current === summaryGeneration
       const params = new URLSearchParams()
       if (windowStart.trim()) params.set('window_start', windowStart.trim())
       if (windowEnd.trim()) params.set('window_end', windowEnd.trim())
@@ -65,6 +67,7 @@ export default function DemoProofPage() {
       })
         .then(async (response) => {
           const body = await response.json().catch(() => null)
+          if (!isCurrent()) return
           if (!response.ok) {
             setPresented(null)
             if (method === 'POST') setSavedGeneration(null)
@@ -85,10 +88,12 @@ export default function DemoProofPage() {
           }
         })
         .catch(() => {
+          if (!isCurrent()) return
           setPresented(null)
           setError('Network error loading the demonstration summary.')
         })
         .finally(() => {
+          if (!isCurrent()) return
           if (method === 'POST') setSaving(false)
           else setLoading(false)
         })
@@ -110,12 +115,18 @@ export default function DemoProofPage() {
 
   if (summaryKey.changed) {
     setLoading(true)
+    setSaving(false)
     setError(null)
+    setPresented(null)
   }
 
   useEffect(() => {
+    activeGeneration.current = summaryGeneration
     void requestSummary('GET')
-  }, [requestSummary])
+    return () => {
+      activeGeneration.current = null
+    }
+  }, [requestSummary, summaryGeneration])
 
   const showRows = presented && presented.rows.length > 0 && !error
 
