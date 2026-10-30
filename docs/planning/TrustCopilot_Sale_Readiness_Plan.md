@@ -1,5 +1,10 @@
 # TrustCopilot full product handoff implementation plan
 
+> **Current execution status:** use the [shared tracker](../tracker/index.html),
+> [state ledger](backlog-state.json) and [Grok/Codex PM protocol](../release/PM_BACKLOG_PROTOCOL.md).
+> This document and its initial NOT STARTED values preserve the original planning
+> snapshot. The shared tracker records reconciled progress and evidence.
+
 > For agentic workers: REQUIRED SUB-SKILL for later authorized implementation: `superpowers:subagent-driven-development` or `superpowers:executing-plans`. This request creates a backlog only. No source changes, public deployments, account changes, paid calls or issue publication have occurred.
 
 **Goal:** Complete the entire existing TrustCopilot suite, polished user experience and traffic/product analytics, and prove that a buyer can independently install, operate and take it over.
