@@ -220,6 +220,68 @@ def test_create_persists_typed_fields_across_restart_and_retry(isolated, db_sess
     assert same_key_update.json()["deal_value_arr"] == AMOUNT
 
 
+def test_response_failure_rolls_back_create_before_same_key_retry(isolated, monkeypatch):
+    from app.api.routes import deals as routes
+
+    client = isolated["client"]
+    original_set = routes.idempotency_set
+
+    def fail_response(*args, **kwargs):
+        raise RuntimeError("synthetic response persistence failure")
+
+    monkeypatch.setattr(routes, "idempotency_set", fail_response)
+    body = {"company_name": "Synthetic Retry Co", "deal_value_arr": "1.23", "currency": CURRENCY}
+    headers = {"Idempotency-Key": "synthetic-failed-response"}
+    with pytest.raises(RuntimeError, match="synthetic response persistence failure"):
+        client.post("/api/deals", json=body, headers=headers)
+    with SessionLocal() as fresh:
+        assert fresh.query(Deal).filter(Deal.workspace_id == isolated["workspace_id"]).count() == 0
+    monkeypatch.setattr(routes, "idempotency_set", original_set)
+    retry = client.post("/api/deals", json=body, headers=headers)
+    assert retry.status_code == 200, retry.text
+    replay = client.post("/api/deals", json=body, headers=headers)
+    assert replay.status_code == 200 and replay.json() == retry.json()
+    with SessionLocal() as fresh:
+        assert fresh.query(Deal).filter(Deal.workspace_id == isolated["workspace_id"]).count() == 1
+
+
+def test_reclaimed_owner_prevents_domain_commit(isolated, monkeypatch):
+    from app.api.routes import deals as routes
+
+    original_claim = routes.idempotency_claim
+    claimed = []
+
+    def reclaimed_claim(db, key):
+        owner = original_claim(db, key)
+        claimed.append(key)
+        with SessionLocal() as other:
+            other.execute(
+                text("""
+                UPDATE idempotency_keys SET owner_token = 'synthetic-new-owner'
+                WHERE idempotency_key = :key
+            """),
+                {"key": key},
+            )
+            other.commit()
+        return owner
+
+    monkeypatch.setattr(routes, "idempotency_claim", reclaimed_claim)
+    response = isolated["client"].post(
+        "/api/deals",
+        json={"company_name": "Synthetic Lost Owner Co"},
+        headers={"Idempotency-Key": "synthetic-lost-owner"},
+    )
+    assert response.status_code == 409, response.text
+    with SessionLocal() as fresh:
+        assert fresh.query(Deal).filter(Deal.workspace_id == isolated["workspace_id"]).count() == 0
+        assert fresh.execute(
+            text("""
+            SELECT owner_token, response_body FROM idempotency_keys WHERE idempotency_key = :key
+        """),
+            {"key": claimed[0]},
+        ).one() == ("synthetic-new-owner", None)
+
+
 def test_refs_validate_the_tenant_and_a_partial_failure_writes_nothing(isolated, db_session):
     client = isolated["client"]
     workspace_id = isolated["workspace_id"]
@@ -383,11 +445,45 @@ def test_analytics_use_stored_amounts_and_do_not_invent_a_win_rate(isolated):
     assert created.status_code == 200, created.text
     filled = client.get("/api/deals/analytics")
     assert filled.json()["revenue_won"] == AMOUNT
+    assert filled.json()["revenue_won_currency"] == CURRENCY
+    assert filled.json()["revenue_won_unavailable_reason"] is None
     assert filled.json()["win_rate"] == "100.0"
     assert filled.json()["closed_won"] == 1
     unblocked = client.get("/api/deals/revenue-unblocked")
     assert unblocked.json()["total_revenue_unblocked"] == AMOUNT
+    assert unblocked.json()["currency"] == CURRENCY
+    assert unblocked.json()["unavailable_reason"] is None
     assert unblocked.json()["details"][0]["value"] == AMOUNT
+
+
+@pytest.mark.parametrize("currency,reason", [("JPY", "mixed_currency"), (None, "unknown_currency")])
+def test_analytics_do_not_sum_mixed_or_unknown_currencies(isolated, db_session, currency, reason):
+    from decimal import Decimal
+
+    for stage in ("closed_won", "evaluation"):
+        for code in ("USD", currency):
+            db_session.add(
+                Deal(
+                    workspace_id=isolated["workspace_id"],
+                    company_name="Synthetic Currency Co",
+                    deal_value_arr=Decimal("100.00"),
+                    currency=code,
+                    stage=stage,
+                )
+            )
+    db_session.commit()
+    analytics = isolated["client"].get("/api/deals/analytics")
+    assert analytics.status_code == 200, analytics.text
+    for field in ("revenue_won", "revenue_pipeline"):
+        assert analytics.json()[field] is None
+        assert analytics.json()[f"{field}_currency"] is None
+        assert analytics.json()[f"{field}_unavailable_reason"] == reason
+    unblocked = isolated["client"].get("/api/deals/revenue-unblocked")
+    assert unblocked.status_code == 200, unblocked.text
+    assert unblocked.json()["total_revenue_unblocked"] is None
+    assert unblocked.json()["unavailable_reason"] == reason
+    assert unblocked.json()["deals_closed"] == 2
+    assert {row["currency"] for row in unblocked.json()["details"]} == {"USD", currency}
 
 
 @pytest.mark.parametrize("method,path,body", READ_ROUTES)

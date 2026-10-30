@@ -2,7 +2,35 @@
 
 Framework catalogs stay **BLOCKED** pending **TC-01-007**. Amounts in the tests are synthetic.
 
-## Command
+## PR #96 review repair (2026-10-30)
+
+This repair builds on `a392f9358fc5f782150d3e262c8d7009fe9641cd`, preserving the original implementation. Assignment: [#85](https://github.com/Johnathan-u/trust-copilot/issues/85#issuecomment-6512133723). Review blockers: [#96](https://github.com/Johnathan-u/trust-copilot/pull/96#issuecomment-6511935044). The repair commit and exact tree are returned to the coordinator for independent review; no publication or migration re-parenting is performed by this worker.
+
+- Domain effects and the owner-fenced idempotency response now share one transaction. SQLite controls execute the real response writer and prove rollback on cache failure, stale ownership, and final commit failure. They also check one effect after retry. These are transaction controls, not PostgreSQL qualification.
+- Downgrade stores exact typed snapshots before projection. Re-upgrade restores unchanged values by row/workspace/creation identity, preserves older-version edits, and validates current references. Partial/conflicted/unmatched snapshots remain recoverable with `restore_issue`; legacy float holds are durable and cannot replace corrected amounts.
+- The consumer accepts legacy/CRM amounts with null currency. API create remains strict.
+- Mixed or unknown currencies return null aggregates with additive reason/currency fields; one known currency retains exact Decimal sums, and the empty sum remains `0.00`. No exchange rates or conversion policy were added.
+
+Local interpreter: `/tmp/tc-backend-venv/bin/python` (Python 3.12); web: Node 24.22.1. Locked web dependencies were copied from a sibling worktree after `package-lock.json` equality was verified.
+
+| Check | Result |
+| --- | --- |
+| Before repair: `pytest tests/test_deal_integrity_controls.py -q` | 8 failed, reproducing committed domain effects on response failure, missing owner fencing, and unconditional currency sums |
+| Before repair: `npx vitest run lib/dealConsumer.test.ts` | 2 failed / 3 passed, reproducing legacy currency and unavailable-total rejection |
+| After repair: `pytest tests/test_deal_integrity_controls.py -q` | 9 passed, including an additional final-commit failure control |
+| `pytest tests/test_deal_integrity_controls.py tests/release/test_domain_deals.py tests/release/test_deal_migration_recovery.py --collect-only -q` | 46 collected; collection does not qualify database behavior |
+| `TC_REQUIRE_DB=1 pytest tests/release/test_domain_deals.py tests/release/test_deal_migration_recovery.py -q` | Blocked before test execution: PostgreSQL connection refused on localhost:5432 |
+| Alembic `upgrade tc10001_job_leases:tc23001_deal_types --sql` and reverse `downgrade ... --sql` | Both rendered successfully; offline rendering does not execute PostgreSQL SQL |
+| Ruff check/format check and Python compileall on the six changed Python files | Passed |
+| `npm run typecheck` | Passed |
+| `npm run lint` and `npm run format:check` (also focused checks on both consumer files) | Passed |
+| `npm run test:unit` | 27 files, 175 tests passed |
+
+`test_domain_deals.py` adds actual PostgreSQL response-failure/reclaimed-owner and mixed/unknown-currency route regressions, preserving existing permissions, tenant/ref, create, and legacy round-trip checks. `test_deal_migration_recovery.py` defines 12 real PostgreSQL cases: corrected held legacy amounts; exact large/max new typed values and all added fields across two cycles; real writes in the downgraded parent schema plus newly inserted rows; archive preservation across later cycles; unavailable/malformed/foreign refs; deletion, changed workspace, and reused row ids. Synthetic rows and their recovery records are cleaned up explicitly. Foreign archive references are negative restore fixtures backed by real foreign rows; no workspace constraints are disabled.
+
+Remaining gates: execute the PostgreSQL cases, independently review the repair, merge current master and re-parent only after the reserved PR #93 migration actually lands, then require both push and pull-request `build`/`web-release-e2e` checks for the final exact head. The earlier evidence below belongs to the original implementation and does not qualify this repair.
+
+## Original implementation command
 
 Working directory `apps/api`. Interpreter `/tmp/tc-venv/bin/python`. Database `trustcopilot_test` on PostgreSQL 16.15.
 

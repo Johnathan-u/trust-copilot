@@ -34,6 +34,23 @@ function deal(overrides: Record<string, unknown> = {}) {
 }
 
 describe('deal consumer', () => {
+  it('preserves a legacy amount with explicitly unknown currency', () => {
+    const parsed = parseDeal(
+      deal({ deal_value_arr: '100000.00', currency: null })
+    )
+    expect(parsed.deal_value_arr).toBe('100000.00')
+    expect(parsed.currency).toBeNull()
+  })
+
+  it('accepts unavailable monetary totals without turning them into zero', () => {
+    expect(
+      parseDealAnalytics({
+        revenue_won: null,
+        revenue_pipeline: null,
+        win_rate: null,
+      })
+    ).toEqual({ revenue_won: null, revenue_pipeline: null, win_rate: null })
+  })
   it('reads a decimal amount, typed dates, stage, owner, and refs', () => {
     const parsed = parseDeal(deal())
     expect(parsed.deal_value_arr).toBe('990001.23')

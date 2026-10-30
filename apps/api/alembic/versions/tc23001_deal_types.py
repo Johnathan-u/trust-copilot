@@ -10,11 +10,11 @@ expected_close_date is backfilled from close_date::date. That is the date part
 of the existing naive UTC timestamp. actual_close_date, currency, room_id, and
 linked_document_ids start null. They are not invented for old rows.
 
-Downgrade restores held float text, casts exact numeric values back to
-double precision, and drops the columns this revision added. Re-upgrade
-re-holds the same float text and does not invent currency, room, document, or
-actual-close values that were never stored on the old row. close_date is left
-in place, so the expected-close backfill can be derived again.
+Downgrade archives exact typed values before projecting into the old schema.
+Re-upgrade restores unchanged projections for the same row/workspace/creation
+identity. Old-version edits win. Invalid references remain unset, and conflicts
+or unmatched identities keep their archive for explicit recovery. Quarantined
+legacy float text is retained separately and never overwrites a later correction.
 
 down_revision is the single alembic head on master when this file is
 parented. Re-parent by changing that one assignment. The revision id is
@@ -32,7 +32,15 @@ branch_labels = None
 depends_on = None
 
 _HOLD = "tc23001_deal_amount_hold"
+_ARCHIVE = "tc23001_deal_state_archive"
 _REASON = "float value is not exactly representable as numeric(18,2)"
+# CASE avoids casting non-finite floats into numeric(18,2).
+_UNSAFE_AMOUNT = """deal_value_arr IS NOT NULL AND CASE
+    WHEN deal_value_arr::text IN ('NaN', 'Infinity', '-Infinity') THEN true
+    ELSE abs(round(deal_value_arr::numeric, 2)) > 9999999999999999.99
+        OR round(deal_value_arr::numeric, 2)::double precision
+            IS DISTINCT FROM deal_value_arr
+    END"""
 _STAGES = (
     "prospect",
     "discovery",
@@ -43,7 +51,36 @@ _STAGES = (
 )
 
 
+def _archives() -> None:
+    # These tables deliberately survive downgrade. No foreign keys: deleting or
+    # moving a live row must not erase its only exact recovery copy.
+    op.execute(
+        sa.text(f"""
+        CREATE TABLE IF NOT EXISTS {_HOLD} (
+            id serial PRIMARY KEY, deal_id integer NOT NULL,
+            workspace_id integer NOT NULL, original_text text NOT NULL,
+            reason text NOT NULL, row_created_at timestamp, row_updated_at timestamp
+        )
+    """)
+    )
+    # Also safe when downgrading a database upgraded by the original PR revision.
+    op.execute(sa.text(f"ALTER TABLE {_HOLD} ADD COLUMN IF NOT EXISTS row_created_at timestamp"))
+    op.execute(sa.text(f"ALTER TABLE {_HOLD} ADD COLUMN IF NOT EXISTS row_updated_at timestamp"))
+    op.execute(
+        sa.text(f"""
+        CREATE TABLE IF NOT EXISTS {_ARCHIVE} (
+            archive_id bigserial PRIMARY KEY, deal_id integer NOT NULL,
+            workspace_id integer NOT NULL, row_created_at timestamp NOT NULL,
+            amount_text text, currency varchar(3), expected_close_date date,
+            actual_close_date date, linked_document_ids text, room_id integer,
+            close_date timestamp, rollback_amount_text text, restore_issue text
+        )
+    """)
+    )
+
+
 def upgrade() -> None:
+    _archives()
     op.add_column("deals", sa.Column("currency", sa.String(length=3), nullable=True))
     op.add_column("deals", sa.Column("expected_close_date", sa.Date(), nullable=True))
     op.add_column("deals", sa.Column("actual_close_date", sa.Date(), nullable=True))
@@ -60,26 +97,44 @@ def upgrade() -> None:
         ["id"],
         ondelete="SET NULL",
     )
-    op.create_table(
-        _HOLD,
-        sa.Column("id", sa.Integer(), primary_key=True, autoincrement=True),
-        sa.Column("deal_id", sa.Integer(), nullable=False),
-        sa.Column("workspace_id", sa.Integer(), nullable=False),
-        sa.Column("original_text", sa.Text(), nullable=False),
-        sa.Column("reason", sa.Text(), nullable=False),
+    op.execute(
+        sa.text(f"""
+        CREATE TEMP TABLE tc23001_restore ON COMMIT DROP AS
+        SELECT DISTINCT ON (a.deal_id) a.*,
+            d.deal_value_arr::text IS NOT DISTINCT FROM a.rollback_amount_text AS amount_matches,
+            d.close_date IS NOT DISTINCT FROM a.close_date AS close_matches
+        FROM {_ARCHIVE} a JOIN deals d ON d.id = a.deal_id
+            AND d.workspace_id = a.workspace_id AND d.created_at = a.row_created_at
+        ORDER BY a.deal_id, a.archive_id DESC
+    """)
+    )
+    # Even the float projection of the numeric maximum can exceed numeric(18,2).
+    # Keep unchanged projections out of float conversion; restore exact text below.
+    op.execute(
+        sa.text("""
+        UPDATE deals d SET deal_value_arr = NULL FROM tc23001_restore a
+        WHERE d.id = a.deal_id AND a.amount_matches
+    """)
     )
     op.execute(
         sa.text(
             f"""
-            INSERT INTO {_HOLD} (deal_id, workspace_id, original_text, reason)
+            INSERT INTO {_HOLD} (
+                deal_id, workspace_id, original_text, reason, row_created_at, row_updated_at
+            )
             SELECT id,
                    workspace_id,
                    deal_value_arr::text,
-                   '{_REASON}'
-            FROM deals
-            WHERE deal_value_arr IS NOT NULL
-              AND round(deal_value_arr::numeric, 2)::double precision
-                  IS DISTINCT FROM deal_value_arr
+                   '{_REASON}', created_at, updated_at
+            FROM deals d
+            WHERE {_UNSAFE_AMOUNT}
+              AND NOT EXISTS (
+                  SELECT 1 FROM {_HOLD} h WHERE h.deal_id = d.id
+                    AND h.workspace_id = d.workspace_id
+                    AND h.row_created_at = d.created_at
+                    AND h.row_updated_at = d.updated_at
+                    AND h.original_text = d.deal_value_arr::text
+              )
             """
         )
     )
@@ -88,7 +143,7 @@ def upgrade() -> None:
             f"""
             UPDATE deals
             SET deal_value_arr = NULL
-            WHERE id IN (SELECT deal_id FROM {_HOLD})
+            WHERE {_UNSAFE_AMOUNT}
             """
         )
     )
@@ -114,6 +169,7 @@ def upgrade() -> None:
             """
         )
     )
+    _restore_archives()
     stage_list = ", ".join("'" + stage + "'" for stage in _STAGES)
     op.execute(
         sa.text(
@@ -145,7 +201,105 @@ def upgrade() -> None:
     )
 
 
+def _restore_archives() -> None:
+    op.execute(
+        sa.text(f"""
+        UPDATE {_ARCHIVE} a SET restore_issue = 'row_missing_or_identity_changed'
+        WHERE NOT EXISTS (
+            SELECT 1 FROM deals d WHERE d.id = a.deal_id
+              AND d.workspace_id = a.workspace_id AND d.created_at = a.row_created_at
+        );
+        DO $$
+        DECLARE
+            snapshot record;
+            docs jsonb;
+            docs_valid boolean;
+            room_valid boolean;
+            issues text[];
+        BEGIN
+            FOR snapshot IN SELECT * FROM tc23001_restore LOOP
+                issues := ARRAY[]::text[];
+                IF NOT snapshot.amount_matches THEN
+                    issues := array_append(issues, 'rollback_amount_changed');
+                END IF;
+                IF NOT snapshot.close_matches THEN
+                    issues := array_append(issues, 'rollback_close_date_changed');
+                END IF;
+                docs_valid := true;
+                IF snapshot.linked_document_ids IS NOT NULL THEN
+                    BEGIN
+                        docs := snapshot.linked_document_ids::jsonb;
+                        docs_valid := jsonb_typeof(docs) = 'array';
+                        IF docs_valid THEN
+                            SELECT NOT EXISTS (
+                                SELECT 1 FROM jsonb_array_elements(docs) AS entries(entry)
+                                WHERE jsonb_typeof(entry) <> 'number'
+                                   OR entry::text !~ '^[1-9][0-9]*$'
+                                   OR NOT EXISTS (
+                                       SELECT 1 FROM documents d
+                                       WHERE d.id::text = entry::text
+                                         AND d.workspace_id = snapshot.workspace_id
+                                         AND d.deleted_at IS NULL
+                                   )
+                            ) INTO docs_valid;
+                        END IF;
+                    EXCEPTION WHEN invalid_text_representation THEN
+                        docs_valid := false;
+                    END;
+                END IF;
+                IF NOT docs_valid THEN
+                    issues := array_append(issues, 'invalid_document_refs');
+                END IF;
+                room_valid := snapshot.room_id IS NULL OR EXISTS (
+                    SELECT 1 FROM shareable_spaces s WHERE s.id = snapshot.room_id
+                      AND s.workspace_id = snapshot.workspace_id
+                );
+                IF NOT room_valid THEN
+                    issues := array_append(issues, 'invalid_room_reference');
+                END IF;
+                UPDATE deals SET
+                    deal_value_arr = CASE WHEN snapshot.amount_matches
+                        THEN snapshot.amount_text::numeric(18,2) ELSE deal_value_arr END,
+                    currency = snapshot.currency,
+                    expected_close_date = CASE WHEN snapshot.close_matches
+                        THEN snapshot.expected_close_date ELSE expected_close_date END,
+                    actual_close_date = snapshot.actual_close_date,
+                    linked_document_ids = CASE WHEN docs_valid
+                        THEN snapshot.linked_document_ids ELSE NULL END,
+                    room_id = CASE WHEN room_valid THEN snapshot.room_id ELSE NULL END
+                WHERE id = snapshot.deal_id AND workspace_id = snapshot.workspace_id
+                  AND created_at = snapshot.row_created_at;
+                IF cardinality(issues) = 0 THEN
+                    DELETE FROM {_ARCHIVE} WHERE archive_id = snapshot.archive_id;
+                ELSE
+                    UPDATE {_ARCHIVE} SET restore_issue = array_to_string(issues, ',')
+                    WHERE archive_id = snapshot.archive_id;
+                END IF;
+            END LOOP;
+        END $$;
+    """)
+    )
+
+
 def downgrade() -> None:
+    _archives()
+    # Snapshot and projection must observe the same rows even with active writers.
+    op.execute(sa.text("LOCK TABLE deals IN ACCESS EXCLUSIVE MODE"))
+    op.execute(
+        sa.text(f"""
+        CREATE TEMP TABLE tc23001_saved (archive_id bigint, deal_id integer) ON COMMIT DROP;
+        WITH saved AS (
+            INSERT INTO {_ARCHIVE} (
+                deal_id, workspace_id, row_created_at, amount_text, currency,
+                expected_close_date, actual_close_date, linked_document_ids, room_id, close_date
+            )
+            SELECT id, workspace_id, created_at, deal_value_arr::text, currency,
+                   expected_close_date, actual_close_date, linked_document_ids, room_id, close_date
+            FROM deals
+            RETURNING archive_id, deal_id
+        ) INSERT INTO tc23001_saved SELECT * FROM saved
+    """)
+    )
     op.drop_constraint("ck_deals_currency", "deals", type_="check")
     op.drop_constraint("ck_deals_stage", "deals", type_="check")
     op.execute(
@@ -163,9 +317,18 @@ def downgrade() -> None:
             UPDATE deals AS d
             SET deal_value_arr = h.original_text::double precision
             FROM {_HOLD} AS h
-            WHERE d.id = h.deal_id
+            WHERE d.id = h.deal_id AND d.workspace_id = h.workspace_id
+              AND d.created_at = h.row_created_at AND d.updated_at = h.row_updated_at
+              AND d.deal_value_arr IS NULL
             """
         )
+    )
+    op.execute(
+        sa.text(f"""
+        UPDATE {_ARCHIVE} a SET rollback_amount_text = d.deal_value_arr::text
+        FROM deals d, tc23001_saved s
+        WHERE a.archive_id = s.archive_id AND d.id = s.deal_id
+    """)
     )
     op.drop_constraint("fk_deals_room_id_shareable_spaces", "deals", type_="foreignkey")
     op.drop_column("deals", "room_id")
@@ -173,4 +336,3 @@ def downgrade() -> None:
     op.drop_column("deals", "actual_close_date")
     op.drop_column("deals", "expected_close_date")
     op.drop_column("deals", "currency")
-    op.drop_table(_HOLD)

@@ -88,9 +88,6 @@ export function parseDeal(value: unknown): DealRecord {
   const currency = nullableString(value.currency, 'currency')
   if (currency !== null && !CURRENCY.test(currency))
     throw new Error('currency is invalid')
-  if (dealAmount !== null && currency === null) {
-    throw new Error('currency is required when an amount is set')
-  }
   const expected = nullableString(
     value.expected_close_date,
     'expected close date'
@@ -148,16 +145,13 @@ export function parseDealList(value: unknown): DealRecord[] {
 }
 
 export function parseDealAnalytics(value: unknown): {
-  revenue_won: string
-  revenue_pipeline: string
+  revenue_won: string | null
+  revenue_pipeline: string | null
   win_rate: string | null
 } {
   if (!isRecord(value)) throw new Error('deal analytics is missing')
   const revenueWon = amount(value.revenue_won)
   const revenuePipeline = amount(value.revenue_pipeline)
-  if (revenueWon === null || revenuePipeline === null) {
-    throw new Error('deal analytics amounts are missing')
-  }
   const winRateValue = value.win_rate
   let winRate: string | null
   if (winRateValue === null) {

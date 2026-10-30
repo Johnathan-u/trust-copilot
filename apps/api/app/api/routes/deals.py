@@ -190,18 +190,14 @@ def _claim_or_replay(db: Session, key: str | None) -> tuple[JSONResponse | None,
 def _mutate(db: Session, key: str | None, owner: str | None, work) -> dict | JSONResponse:
     try:
         payload = work()
+        if key and owner:
+            idempotency_set(db, key, 200, payload, owner=owner, commit=False)
         db.commit()
     except Exception:
         db.rollback()
         if key and owner:
             idempotency_release(db, key, owner=owner)
         raise
-    if key and owner:
-        try:
-            idempotency_set(db, key, 200, payload, owner=owner)
-        except Exception:
-            db.rollback()
-            idempotency_set(db, key, 200, payload, owner=owner)
     return payload
 
 
