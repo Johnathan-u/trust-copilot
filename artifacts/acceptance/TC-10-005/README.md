@@ -102,3 +102,23 @@ Tested source blobs:
 
 Fresh independent review, current-master integration, and exact-final-head CI
 remain required before merge.
+
+## Post-merge SQLite fixture compatibility
+
+Base: `55cb97a6fd6caacc12d72f7dfd989d705182ce1b`, the coordinator's separate
+master merge. The landed trust-request CHECK constraint calls PostgreSQL's
+`char_length`; SQLite fixture creation failed with that function missing. The
+fixture now registers equivalent character-count/NULL behavior before creating
+the unchanged model tables and constraints. No production code changed.
+
+The review selector (`sweep_spares_export_retry or stale_attempt_cleanup or
+dry_run_protects or recovery_preserves_cancellation or idle_sweep_waits_out_the_grace`)
+changed from 10 fixture errors and 1 pass to **11 passed**. The related six-suite
+command above passed again: **61 passed, 159 skipped** without local PostgreSQL.
+A direct fixture check confirmed NULL and Unicode character counts, rejected
+empty and 10,001-character intake messages through the actual CHECK constraint,
+and accepted a valid Unicode message. Ruff lint/format and `git diff --check`
+passed. The known-blocked full suite was not rerun.
+
+Tested spec blob: `4938ffd181f95ba47650e253949cf2e0630d8f2f`. PostgreSQL locking,
+independent review, and exact-final-head CI gates remain outstanding.

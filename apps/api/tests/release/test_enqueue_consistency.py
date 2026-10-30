@@ -186,6 +186,10 @@ def local_db():
     """
     engine = create_engine("sqlite://")
     with engine.begin() as connection:
+        # Keep PostgreSQL model CHECK constraints intact on the local SQLite fixture.
+        connection.connection.driver_connection.create_function(
+            "char_length", 1, lambda value: len(value) if value is not None else None
+        )
         for model in (
             Document,
             Questionnaire,
