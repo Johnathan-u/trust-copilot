@@ -95,3 +95,27 @@ describe('deal consumer', () => {
     ).toThrow(/decimal string/)
   })
 })
+
+it.each([
+  { id: 0 },
+  { id: 1.5 },
+  { workspace_id: Number.MAX_SAFE_INTEGER + 1 },
+  { owner_user_id: -1 },
+  { linked_document_ids: [NaN] },
+  { expected_close_date: '2026-02-30' },
+  { actual_close_date: '0000-01-01' },
+  { deal_value_arr: '10000000000000000.00' },
+])('rejects an invalid typed deal acknowledgment: %j', (fields) => {
+  expect(() => parseDeal(deal(fields))).toThrow()
+})
+
+it('preserves the largest supported exact amount and a leap day', () => {
+  expect(
+    parseDeal(
+      deal({
+        deal_value_arr: '9999999999999999.99',
+        expected_close_date: '2028-02-29',
+      })
+    ).deal_value_arr
+  ).toBe('9999999999999999.99')
+})
