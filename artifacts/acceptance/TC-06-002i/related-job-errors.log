@@ -1,0 +1,12 @@
+........................................                                 [100%]
+=============================== warnings summary ===============================
+tests/release/test_job_retries.py::test_write_guard_does_not_protect_llm_error_placeholders
+  /workspace/scratch/1d3d4d8034b5/tc-export-worker/apps/api/tests/release/test_job_retries.py:912: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    cutoff = datetime.utcnow() - timedelta(hours=1)
+
+tests/release/test_job_retries.py::test_write_guard_does_not_protect_llm_error_placeholders
+  /workspace/scratch/1d3d4d8034b5/tc-export-worker/apps/api/tests/release/test_job_retries.py:914: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    newer = datetime.utcnow()
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+40 passed, 30 deselected, 2 warnings in 1.83s
