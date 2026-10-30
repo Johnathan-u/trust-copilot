@@ -223,7 +223,11 @@ def _freshness_bucket(node: ProofGraphNode, db: Session) -> str:
         return "aging"
     now = _now()
     if node.ref_table == "evidence_items":
-        ev = db.query(EvidenceItem).filter(EvidenceItem.id == node.ref_id).first()
+        ev = (
+            db.query(EvidenceItem)
+            .filter(EvidenceItem.id == node.ref_id, EvidenceItem.workspace_id == node.workspace_id)
+            .first()
+        )
         if not ev or not ev.created_at:
             return "stale"
         dt = ev.created_at
@@ -231,7 +235,11 @@ def _freshness_bucket(node: ProofGraphNode, db: Session) -> str:
             dt = dt.replace(tzinfo=timezone.utc)
         age = now - dt
     elif node.ref_table == "golden_answers":
-        ga = db.query(GoldenAnswer).filter(GoldenAnswer.id == node.ref_id).first()
+        ga = (
+            db.query(GoldenAnswer)
+            .filter(GoldenAnswer.id == node.ref_id, GoldenAnswer.workspace_id == node.workspace_id)
+            .first()
+        )
         if not ga:
             return "stale"
         dt = ga.last_reviewed_at or ga.updated_at or ga.created_at
@@ -247,7 +255,14 @@ def _freshness_bucket(node: ProofGraphNode, db: Session) -> str:
             if now > exp:
                 return "stale"
     elif node.ref_table == "workspace_controls":
-        wc = db.query(WorkspaceControl).filter(WorkspaceControl.id == node.ref_id).first()
+        wc = (
+            db.query(WorkspaceControl)
+            .filter(
+                WorkspaceControl.id == node.ref_id,
+                WorkspaceControl.workspace_id == node.workspace_id,
+            )
+            .first()
+        )
         if not wc:
             return "stale"
         dt = wc.verified_at or wc.updated_at or wc.created_at
@@ -257,7 +272,13 @@ def _freshness_bucket(node: ProofGraphNode, db: Session) -> str:
             dt = dt.replace(tzinfo=timezone.utc)
         age = now - dt
     elif node.ref_table == "answers":
-        ans = db.query(Answer).filter(Answer.id == node.ref_id).first()
+        ans = (
+            db.query(Answer)
+            .join(Question, Answer.question_id == Question.id)
+            .join(Questionnaire, Question.questionnaire_id == Questionnaire.id)
+            .filter(Answer.id == node.ref_id, Questionnaire.workspace_id == node.workspace_id)
+            .first()
+        )
         if not ans or not ans.updated_at:
             return "aging"
         dt = ans.updated_at
@@ -279,6 +300,19 @@ def _freshness_bucket(node: ProofGraphNode, db: Session) -> str:
 
 def chain_for_answer(db: Session, workspace_id: int, answer_id: int) -> dict | None:
     """Return answer node and upstream nodes via golden/evidence/control edges."""
+    current_answer = (
+        db.query(Answer.id)
+        .join(Question, Answer.question_id == Question.id)
+        .join(Questionnaire, Question.questionnaire_id == Questionnaire.id)
+        .filter(
+            Answer.id == answer_id,
+            Questionnaire.workspace_id == workspace_id,
+            Questionnaire.deleted_at.is_(None),
+        )
+        .first()
+    )
+    if current_answer is None:
+        return None
     ans_node = (
         db.query(ProofGraphNode)
         .filter(
@@ -298,7 +332,11 @@ def chain_for_answer(db: Session, workspace_id: int, answer_id: int) -> dict | N
         if nid in visited:
             return
         visited.add(nid)
-        n = db.query(ProofGraphNode).filter(ProofGraphNode.id == nid).first()
+        n = (
+            db.query(ProofGraphNode)
+            .filter(ProofGraphNode.id == nid, ProofGraphNode.workspace_id == workspace_id)
+            .first()
+        )
         if not n:
             return
         chain.append(
