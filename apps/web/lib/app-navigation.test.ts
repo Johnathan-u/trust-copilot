@@ -45,6 +45,7 @@ describe('application navigation', () => {
     const hrefs = appNavItems.map((item) => item.href)
     expect(new Set(hrefs).size).toBe(hrefs.length)
     expect(hrefs).toContain('/dashboard')
+    expect(hrefs).toContain('/dashboard/trust-requests')
     expect(hrefs).toContain('/dashboard/compliance-frameworks')
     expect(hrefs).toContain('/dashboard/case-studies')
     expect(hrefs).toContain('/dashboard/demo-proof')
@@ -62,6 +63,9 @@ describe('application navigation', () => {
       '/dashboard/requests'
     )
     expect(reviewer.map((item) => item.href)).toContain('/dashboard/exports')
+    expect(reviewer.map((item) => item.href)).toContain(
+      '/dashboard/trust-requests'
+    )
 
     const admin = appNavItemsFor({ can_edit: true, can_admin: true })
     expect(admin.map((item) => item.label)).toContain('Alerts / Notifications')

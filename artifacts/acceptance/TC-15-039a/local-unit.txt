@@ -1,0 +1,22 @@
+npm warn Unknown env config "http-proxy". This will stop working in the next major version of npm.
+
+> trust-copilot-web@0.1.0 test:unit
+> vitest run
+
+(!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+  - ESM syntax in a file loaded as CommonJS (vitest.config.ts:1:1). Use a `.mjs` extension or set `"type": "module"` in the closest package.json
+Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.
+
+ RUN  v5.0.5 /workspace/scratch/ac0fa793e50b/tc-trust-inbox-ui/apps/web
+
+
+ Test Files  38 passed (38)
+      Tests  281 passed (281)
+   Start at  03:49:11
+   Duration  4.14s (tests 36%, environment 35%, import 17%, transform 10%, worker 2%)
+
+    Isolate  38 workers spawned · ~427ms startup each (spawn + environment, per file)
+             at least ~1.89s faster with isolate: false — reuses workers across files instead of one per file
+
+
+Exit: 0
