@@ -62,8 +62,12 @@ def get_space(db: Session, space_id: int) -> dict | None:
     return _serialize(s) if s else None
 
 
-def deactivate_space(db: Session, space_id: int) -> dict | None:
-    s = db.query(ShareableSpace).filter(ShareableSpace.id == space_id).first()
+def deactivate_space(db: Session, space_id: int, *, workspace_id: int) -> dict | None:
+    s = (
+        db.query(ShareableSpace)
+        .filter(ShareableSpace.id == space_id, ShareableSpace.workspace_id == workspace_id)
+        .first()
+    )
     if not s:
         return None
     s.is_active = False

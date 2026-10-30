@@ -1,0 +1,248 @@
+{
+  "ticket": "TC-06-003c",
+  "date": "2026-10-30",
+  "points": 3,
+  "status": "locally implemented; independent review and PostgreSQL/CI qualification pending",
+  "claim": "https://github.com/Johnathan-u/trust-copilot/issues/85#issuecomment-6515913255",
+  "base_commit": "d0ec3fe33233e1cc0aa10b92cd7c8fbf2d2d5b5a",
+  "base_dependency": "Actual landed master; no approval or golden-library child dependency",
+  "code_commit": "d1e0d0f99f4199e783ee473fe65f476e51d15397",
+  "code_tree": "3bb76cb837676d775b7e969c1dbbf60071a3ec7c",
+  "source_blobs": {
+    "apps/api/app/api/routes/nda_access.py": "449455543f0795453a3ca45bc276b6262b34ee61",
+    "apps/api/app/api/routes/shareable_spaces.py": "d94d5a07662eb3347ab068f689cd429a7b03a090",
+    "apps/api/app/services/nda_access_service.py": "d659b5a9d570e46bb4f963273ca1ef8adff7bd9c",
+    "apps/api/app/services/shareable_space_service.py": "ab960b44a11e52c348a2826844b5f1968bc81bfb",
+    "apps/api/tests/release/test_authorization_nda_shares.py": "b983fe9e9147482cd8d9ed3aac4f40e17784e4a5",
+    "apps/api/tests/test_nda_access.py": "24a71bb34f1dab88fa90ce29bf5d117e2d142803",
+    "apps/api/tests/test_shareable_spaces.py": "c098ed22599544021269b4bc0095acd511d3a75a"
+  },
+  "scope": {
+    "changed": [
+      "Four service mutation lookups require explicit current workspace before projection/mutation",
+      "Four route calls pass authenticated workspace",
+      "Exactly seven NDA-test calls and one share-test call gain the required workspace argument"
+    ],
+    "preserved": [
+      "Current admin permissions and per-route missing/deleted 404 bodies",
+      "All existing NDA status transitions, token rotation and access duration",
+      "Repeated share deactivation and serialized fields",
+      "Scoped lists and unauthenticated token capabilities including valid foreign tokens",
+      "Current token validity and expiry semantics"
+    ],
+    "excluded": [
+      "Public request workspace-1 policy",
+      "Unused get_space helper",
+      "Create/reference policies",
+      "Schema, migrations, providers, dependencies, roles and UI"
+    ]
+  },
+  "environment": {
+    "python": "3.12.14",
+    "dependencies": "Existing locked development environment /tmp/tc-backend-venv; no repository dependency changes",
+    "postgresql": "Unavailable at localhost:5432",
+    "provider_calls": 0,
+    "default_command_cwd": "apps/api"
+  },
+  "fixture": {
+    "sqlite": "FK ON asserted; actual stored users, memberships, session and signed cookie with explicit expiry; only get_db overridden",
+    "postgresql": "Same 75 cases through existing migrated_db fixture; required mode aborts on missing service",
+    "full_row_snapshot_tables": [
+      "nda_access_requests",
+      "shareable_spaces",
+      "audit_events",
+      "user_mfa",
+      "user_sessions",
+      "api_keys",
+      "custom_roles",
+      "workspace_members",
+      "users",
+      "workspaces"
+    ],
+    "denials": "Full-row hashes/counts unchanged, no pending ORM mutations, no observed INSERT/UPDATE/DELETE even if later rolled back, and unchanged public token outcome",
+    "cleanup": "Only exact owned IDs in FK order; entire original snapshot compared; no sequence resets",
+    "collection": "Store creation and connection occur only during fixture execution",
+    "public_controls": "Separate client asserted to have no cookies; valid foreign tokens intentionally remain valid capabilities"
+  },
+  "checks": [
+    {
+      "name": "unchanged-master baseline",
+      "command": "/tmp/tc-backend-venv/bin/python -m pytest tests/release/test_authorization_nda_shares.py -m unit -q --tb=short",
+      "tested_source": "d0ec3fe route/service with new tests",
+      "exit_code": 1,
+      "failed": 8,
+      "passed": 67,
+      "deselected": 75,
+      "reason": "Foreign and moved IDs returned HTTP 200 for all four mutations"
+    },
+    {
+      "name": "repaired SQLite and final rerun after controls",
+      "command": "/tmp/tc-backend-venv/bin/python -m pytest tests/release/test_authorization_nda_shares.py -m unit -q --tb=short",
+      "exit_code": 0,
+      "passed": 75,
+      "deselected": 75,
+      "warnings": "401 existing datetime.utcnow deprecation warnings"
+    },
+    {
+      "name": "new and existing collection",
+      "command": "/tmp/tc-backend-venv/bin/python -m pytest tests/release/test_authorization_nda_shares.py tests/test_nda_access.py tests/test_shareable_spaces.py --collect-only -q",
+      "exit_code": 0,
+      "collected": 171,
+      "new_cases": 150,
+      "existing_cases": 21
+    },
+    {
+      "name": "required PostgreSQL",
+      "command": "TC_REQUIRE_DB=1 /tmp/tc-backend-venv/bin/python -m pytest tests/release/test_authorization_nda_shares.py tests/test_nda_access.py tests/test_shareable_spaces.py -m integration -q --tb=short",
+      "exit_code": 3,
+      "tests_executed": 0,
+      "reason": "localhost:5432 connection refused; existing session hook exits before tests"
+    },
+    {
+      "name": "repository collection safety",
+      "command": "/tmp/tc-backend-venv/bin/python -m pytest tests/release/test_safe_collection.py -q",
+      "exit_code": 0,
+      "passed": 29
+    },
+    {
+      "name": "scoped lint",
+      "command": "/tmp/tc-backend-venv/bin/python -m ruff check apps/api/app/api/routes/nda_access.py apps/api/app/api/routes/shareable_spaces.py apps/api/app/services/nda_access_service.py apps/api/app/services/shareable_space_service.py apps/api/tests/release/test_authorization_nda_shares.py apps/api/tests/test_nda_access.py apps/api/tests/test_shareable_spaces.py",
+      "cwd": "repository",
+      "exit_code": 0
+    },
+    {
+      "name": "scoped formatting",
+      "command": "/tmp/tc-backend-venv/bin/python -m ruff format --check apps/api/app/api/routes/nda_access.py apps/api/app/api/routes/shareable_spaces.py apps/api/app/services/nda_access_service.py apps/api/app/services/shareable_space_service.py apps/api/tests/release/test_authorization_nda_shares.py apps/api/tests/test_nda_access.py apps/api/tests/test_shareable_spaces.py",
+      "cwd": "repository",
+      "exit_code": 0
+    },
+    {
+      "name": "code secret inventory",
+      "command": "/tmp/tc-backend-venv/bin/python scripts/security/secret_inventory.py paths apps/api/app/api/routes/nda_access.py apps/api/app/api/routes/shareable_spaces.py apps/api/app/services/nda_access_service.py apps/api/app/services/shareable_space_service.py apps/api/tests/release/test_authorization_nda_shares.py apps/api/tests/test_nda_access.py apps/api/tests/test_shareable_spaces.py --root . --fail-on block",
+      "cwd": "repository",
+      "exit_code": 0,
+      "findings": 0
+    },
+    {
+      "name": "whitespace",
+      "command": "git diff --check",
+      "cwd": "repository",
+      "exit_code": 0
+    },
+    {
+      "name": "documentation secret inventory",
+      "command": "/tmp/tc-backend-venv/bin/python scripts/security/secret_inventory.py paths docs/release/tickets/TC-06-003c.md artifacts/acceptance/TC-06-003c --root . --fail-on block",
+      "cwd": "repository",
+      "exit_code": 0,
+      "findings": 0
+    },
+    {
+      "name": "evidence consistency",
+      "command": "Python JSON parse, git hash-object comparison for all seven code/test blobs and relative Markdown link existence checks",
+      "cwd": "repository",
+      "exit_code": 0
+    }
+  ],
+  "negative_controls": [
+    {
+      "name": "unscoped_approve_request",
+      "command": [
+        "/tmp/tc-backend-venv/bin/python",
+        "-m",
+        "pytest",
+        "tests/release/test_authorization_nda_shares.py::test_unavailable_object_denied_without_changing_capability[sqlite-foreign-approve]",
+        "-q",
+        "--tb=short"
+      ],
+      "exit_code": 1,
+      "failed": 1,
+      "assertion": "assert 200 == 404"
+    },
+    {
+      "name": "unscoped_reject_request",
+      "command": [
+        "/tmp/tc-backend-venv/bin/python",
+        "-m",
+        "pytest",
+        "tests/release/test_authorization_nda_shares.py::test_unavailable_object_denied_without_changing_capability[sqlite-foreign-reject]",
+        "-q",
+        "--tb=short"
+      ],
+      "exit_code": 1,
+      "failed": 1,
+      "assertion": "assert 200 == 404"
+    },
+    {
+      "name": "unscoped_revoke_access",
+      "command": [
+        "/tmp/tc-backend-venv/bin/python",
+        "-m",
+        "pytest",
+        "tests/release/test_authorization_nda_shares.py::test_unavailable_object_denied_without_changing_capability[sqlite-foreign-revoke]",
+        "-q",
+        "--tb=short"
+      ],
+      "exit_code": 1,
+      "failed": 1,
+      "assertion": "assert 200 == 404"
+    },
+    {
+      "name": "unscoped_deactivate_space",
+      "command": [
+        "/tmp/tc-backend-venv/bin/python",
+        "-m",
+        "pytest",
+        "tests/release/test_authorization_nda_shares.py::test_unavailable_object_denied_without_changing_capability[sqlite-foreign-deactivate]",
+        "-q",
+        "--tb=short"
+      ],
+      "exit_code": 1,
+      "failed": 1,
+      "assertion": "assert 200 == 404"
+    },
+    {
+      "name": "late_approve_request",
+      "command": [
+        "/tmp/tc-backend-venv/bin/python",
+        "-m",
+        "pytest",
+        "tests/release/test_authorization_nda_shares.py::test_unavailable_object_denied_without_changing_capability[sqlite-foreign-approve]",
+        "-q",
+        "--tb=short"
+      ],
+      "exit_code": 1,
+      "failed": 1,
+      "assertion": "Authorization must precede writes"
+    },
+    {
+      "name": "late_deactivate_space",
+      "command": [
+        "/tmp/tc-backend-venv/bin/python",
+        "-m",
+        "pytest",
+        "tests/release/test_authorization_nda_shares.py::test_unavailable_object_denied_without_changing_capability[sqlite-foreign-deactivate]",
+        "-q",
+        "--tb=short"
+      ],
+      "exit_code": 1,
+      "failed": 1,
+      "assertion": "Authorization must precede writes"
+    }
+  ],
+  "negative_control_restoration": "Both services restored in finally; final 75-case rerun, Ruff, formatting, secret scan and whitespace checks pass",
+  "late_check_controls": "Approve and deactivate variants return HTTP 404 and roll back, but SQL observer catches UPDATE before authorization; each test fails",
+  "not_claimed": [
+    "PostgreSQL execution success",
+    "Execution success for 21 existing database cases",
+    "Full pytest success",
+    "Future CI success",
+    "Full TC-06-001 or TC-06-003 closure",
+    "Publication or merge"
+  ],
+  "remaining_gates": [
+    "Independent review of final code/test/docs head",
+    "75 new PostgreSQL cases plus 21 existing NDA/share cases",
+    "Build and web-release-e2e for exact head on both push and pull_request",
+    "Coordinator publication capacity and merge authority"
+  ]
+}
