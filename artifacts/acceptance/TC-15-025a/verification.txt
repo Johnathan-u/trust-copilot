@@ -1,0 +1,44 @@
+TC-15-025a local verification
+Base: 8f0cc07872057007d635e7bee17687f5fadc696b
+Worktree: /workspace/scratch/ac0fa793e50b/tc-gap-refresh-recovery
+Node: v24.22.1
+Dependencies: existing locked node_modules copied from tc-notifications-ui;
+package-lock.json SHA256 matched 351e7d2d85d5bd102e5d29fa06adfb455bc339e6c990a135e6555a4cf717075e.
+No dependency or runtime changes.
+
+Commands below ran from apps/web unless otherwise stated.
+
+./node_modules/.bin/vitest run --config /tmp/tc-gap-order-recovery/vitest.config.ts
+Exit 0: 1 file passed; 2 tests passed.
+Temporary happy-dom diagnostic with real EvidenceGapList/GapActionDialog,
+controlled post-decision fetch completion, both automatic/manual denial orders.
+Not a browser result; temporary test/config are outside the repository.
+Vite warned about ESM syntax in the temporary CommonJS-loaded config.
+
+./node_modules/.bin/playwright test e2e/release/ui-23.spec.ts --list
+Exit 0: 30 tests in 1 file. Collection only, no browser execution.
+29 existing cases retained; one automatic post-decision 403 case added.
+
+npm run typecheck
+Exit 0: next typegen && tsc --noEmit -p .
+
+npm run test:unit
+Exit 0: 42 files passed; 403 tests passed.
+
+./node_modules/.bin/eslint e2e/release/ui-23.spec.ts --max-warnings=0
+Exit 0.
+
+./node_modules/.bin/prettier --check e2e/release/ui-23.spec.ts
+Exit 0: all matched files use Prettier code style.
+
+Chromium launch probe via Playwright chromium.launch({headless:true})
+Exit 1: executable does not exist at
+/root/.cache/ms-playwright/chromium_headless_shell-1248/chrome-headless-shell-linux64/chrome-headless-shell
+Browser execution blocked locally. No browser/axe/screenshot pass claimed.
+
+Prior master failure (not a run of this repair):
+run 41003220218; job 123892180051; artifact 12954536591;
+239 passed, 1 failed (Refresh gaps detached during click).
+
+Required after local commit: independent review and exact-head build plus
+web-release-e2e on both push and pull_request, then repaired master CI.
