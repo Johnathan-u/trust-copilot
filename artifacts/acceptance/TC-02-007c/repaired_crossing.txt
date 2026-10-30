@@ -1,0 +1,20 @@
+bound=signed issued_at=1793356221 exp=1793442621 max_age=86400
+observed_remaining=86399
+.bound=current-policy issued_at=1793356221 exp=1793356251 max_age=30
+observed_remaining=29
+.bound=new-workspace-default issued_at=1793356222 exp=1793960992 max_age=604770
+observed_remaining=604769
+.
+=============================== warnings summary ===============================
+tests/release/test_session_persistence.py: 30 warnings
+  /tmp/tc-backend-venv/lib/python3.12/site-packages/sqlalchemy/sql/schema.py:3627: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    return util.wrap_callable(lambda ctx: fn(), fn)  # type: ignore
+
+tests/release/test_session_persistence.py::test_creation_preserves_the_existing_and_target_absolute_deadlines[sqlite-signed]
+tests/release/test_session_persistence.py::test_creation_preserves_the_existing_and_target_absolute_deadlines[sqlite-current-policy]
+tests/release/test_session_persistence.py::test_creation_preserves_the_existing_and_target_absolute_deadlines[sqlite-new-workspace-default]
+  /workspace/scratch/3faeebcaa421/trust-copilot-ci-repair/apps/api/app/api/routes/workspaces.py:149: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    now = datetime.utcnow()
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+3 passed, 93 deselected, 33 warnings in 2.68s
