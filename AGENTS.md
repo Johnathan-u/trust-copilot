@@ -25,6 +25,13 @@ and merge gates below remain mandatory. `docs/release/CODEX_HANDOFF.md` and
 `docs/planning/BACKLOG_STATUS.md` are historical starting points; current status
 comes from the tracker reconciled with master, PRs and later rulings.
 
+After **every wakeup, resume, interruption or context compaction**, the delivery
+manager must perform the recovery and quality check in `CODEX_AUTONOMY.md` before
+editing or reassigning work. Preserve unfinished changes; verify each retained
+worker's actual task, allowed files, dependencies and evidence against current
+acceptance criteria. Correct duplicate assignments, stale assumptions and scope
+drift before continuing. A passing test suite alone does not establish acceptance.
+
 ## Scope discipline
 
 - Implement the assigned ticket's acceptance criteria using existing patterns.
