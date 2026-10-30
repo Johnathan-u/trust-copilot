@@ -9,10 +9,12 @@ import re
 import secrets
 import shutil
 import socket
+import struct
 import subprocess
 import sys
 import time
 import zipfile
+import zlib
 from pathlib import Path
 
 import pytest
@@ -420,12 +422,42 @@ def _assert_credential_free_reports(roots, credential):
                 continue
             try:
                 unsafe = any(needle in payload for payload in _report_payloads(path))
-            except (ValueError, zipfile.BadZipFile):
+            except (ValueError, zipfile.BadZipFile, zlib.error):
                 unsafe = True
             if unsafe:
                 rejected.append(path.relative_to(root).as_posix())
                 path.unlink()
     assert not rejected, "Credential-bearing or unreadable report files were withheld from upload"
+
+
+@pytest.mark.unit
+def test_corrupt_embedded_report_is_withheld_without_removing_safe_diagnostics(tmp_path):
+    reports = tmp_path / "reports"
+    reports.mkdir()
+    marker = "SYNTHETIC_CORRUPT_REPORT_CREDENTIAL"
+    packed = io.BytesIO()
+    with zipfile.ZipFile(packed, "w", zipfile.ZIP_DEFLATED) as archive:
+        archive.writestr("report.json", json.dumps({"title": marker}))
+    corrupt = bytearray(packed.getvalue())
+    name_length, extra_length = struct.unpack_from("<HH", corrupt, 26)
+    # A reserved DEFLATE block type makes the real member decoder reject this ZIP.
+    corrupt[30 + name_length + extra_length] = 7
+    unsafe = reports / "index.html"
+    unsafe.write_bytes(
+        b"<p>"
+        + marker.encode()
+        + b'</p><template id="playwrightReportBase64">data:application/zip;base64,'
+        + base64.b64encode(corrupt)
+        + b"</template>"
+    )
+    safe = reports / "safe.json"
+    safe.write_text('{"failure":"Safe failure diagnostics"}')
+
+    with pytest.raises(AssertionError, match="withheld from upload"):
+        _assert_credential_free_reports((reports,), marker)
+
+    assert not unsafe.exists()
+    assert safe.read_text() == '{"failure":"Safe failure diagnostics"}'
 
 
 @pytest.mark.unit
