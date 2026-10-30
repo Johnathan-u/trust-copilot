@@ -2,6 +2,14 @@
 
 import hashlib
 import importlib.util
+import json
+import os
+import shutil
+import signal
+import socket
+import subprocess
+import sys
+import time
 import uuid
 from concurrent.futures import ThreadPoolExecutor
 from contextlib import contextmanager
@@ -9,6 +17,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from threading import Barrier
 
+import httpx
 import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import bindparam, inspect, text
@@ -44,6 +53,7 @@ TABLE_KEYS = (
     ("user_sessions", "id"),
     ("api_keys", "id"),
     ("custom_roles", "id"),
+    ("tags", "id"),  # Real API startup may insert missing global system tags.
     ("workspace_members", "id"),
     ("users", "id"),
     ("workspaces", "id"),
@@ -605,3 +615,257 @@ def test_concurrent_broadcast_reads_create_one_receipt(actors, action):
         assert first.get("/api/in-app-notifications/unread-count").json() == {"count": 0}
     with SessionLocal() as db:
         assert db.get(InAppNotification, shared).is_read is False
+
+
+@contextmanager
+def _inbox_service(command, cwd, env, log_path):
+    """Own and reap only this acceptance test's service process group."""
+    with log_path.open("w") as log:
+        process = subprocess.Popen(
+            command,
+            cwd=cwd,
+            env=env,
+            stdout=log,
+            stderr=subprocess.STDOUT,
+            start_new_session=True,
+        )
+        try:
+            yield process
+        finally:
+            try:
+                os.killpg(process.pid, signal.SIGTERM)
+            except ProcessLookupError:
+                pass
+            try:
+                process.wait(timeout=20)
+            except subprocess.TimeoutExpired:
+                os.killpg(process.pid, signal.SIGKILL)
+                process.wait(timeout=10)
+            assert process.returncode is not None, "Acceptance service was not reaped"
+
+
+def _inbox_wait_ready(process, url):
+    deadline = time.monotonic() + 120
+    with httpx.Client(trust_env=False, timeout=2) as client:
+        while time.monotonic() < deadline:
+            assert process.poll() is None, "Acceptance service exited before becoming ready"
+            try:
+                if client.get(url).status_code == 200:
+                    return
+            except httpx.TransportError:
+                pass
+            time.sleep(0.2)
+    pytest.fail("Acceptance service did not become ready within 120 seconds")
+
+
+def test_inbox_ui_api_and_database_agree_after_full_process_restart(actors, tmp_path):
+    """Catch page-sized counts, lost durable reads and cross-recipient broadcast updates.
+
+    No route mocks: Chromium -> Next proxy -> a real API process -> PostgreSQL.
+    Both service processes are terminated/reaped between phases; the second
+    Playwright invocation also creates a fresh browser context.
+    """
+    from tests import _safety
+
+    api_root = Path(__file__).resolve().parents[2]
+    web_root = api_root.parent / "web"
+    node = shutil.which("node")
+    next_cli = web_root / "node_modules/next/dist/bin/next"
+    playwright_cli = web_root / "node_modules/@playwright/test/cli.js"
+    # Deliberately fail, never skip: CI's TC_REQUIRE_DB / web-toolchain gates
+    # must not report AC3 green when its actual browser or database is absent.
+    assert node and next_cli.is_file() and playwright_cli.is_file(), "Web toolchain required"
+    _safety.validate_test_database_url(os.environ["DATABASE_URL"])
+
+    visible = [
+        {"id": note(actors, title=f"Personal item {index}"), "title": f"Personal item {index}"}
+        for index in range(23)
+    ]
+    broadcasts = [
+        {
+            "id": note(actors, role=None, title=f"Shared item {index}"),
+            "title": f"Shared item {index}",
+        }
+        for index in range(2)
+    ]
+    visible.extend(broadcasts)
+    hidden = [
+        {
+            "id": note(actors, admin_only=True, title="Hidden admin item"),
+            "title": "Hidden admin item",
+        },
+        {
+            "id": note(actors, role="reviewer", title="Other recipient item"),
+            "title": "Other recipient item",
+        },
+        {
+            "id": note(actors, role="other", workspace=actors["other_ws"], title="Foreign item"),
+            "title": "Foreign item",
+        },
+    ]
+    persisted_query = text(
+        "SELECT * FROM in_app_notifications " "WHERE workspace_id IN (:ws, :other_ws) ORDER BY id"
+    )
+    workspace_ids = {"ws": actors["ws"], "other_ws": actors["other_ws"]}
+    with SessionLocal() as db:
+        seeded_rows = [dict(row) for row in db.execute(persisted_query, workspace_ids).mappings()]
+    assert len(seeded_rows) == 28
+    fixture = {
+        "email": actors["editor"]["email"],
+        "reviewerEmail": actors["reviewer"]["email"],
+        "password": "test-password",
+        "visible": list(reversed(visible)),
+        "hidden": hidden,
+        "personal": visible[22],
+        "shared": broadcasts[0],
+        "reviewerVisible": [hidden[1], *reversed(broadcasts)],
+    }
+    # Bind both ports simultaneously before releasing them, avoiding accidental
+    # reuse of the same ephemeral port. Never kill a pre-existing listener.
+    with socket.socket() as api_socket, socket.socket() as web_socket:
+        api_socket.bind(("127.0.0.1", 0))
+        web_socket.bind(("127.0.0.1", 0))
+        api_port, web_port = api_socket.getsockname()[1], web_socket.getsockname()[1]
+    api_url, web_url = f"http://127.0.0.1:{api_port}", f"http://127.0.0.1:{web_port}"
+    env = {
+        **os.environ,
+        "APP_ENV": "test",
+        "TRUST_COPILOT_TESTING": "1",
+        "TC_INBOX_API_PORT": str(api_port),
+        "TC_INBOX_BASE_URL": web_url,
+        "TC_INBOX_FIXTURE": json.dumps(fixture),
+        "API_UPSTREAM": api_url,
+        "FRONTEND_URL": web_url,
+        "APP_BASE_URL": web_url,
+        "TRUSTED_ORIGINS": web_url,
+        # Inbox acceptance has no storage dependency. The optional startup
+        # bucket initializer rejects missing credentials before any storage I/O.
+        "S3_ACCESS_KEY": "",
+        "S3_SECRET_KEY": "",
+        "NEXT_DIST_DIR": ".next",
+        "NEXT_TELEMETRY_DISABLED": "1",
+        "PLAYWRIGHT_HTML_OPEN": "never",
+    }
+    _safety.scrub_provider_env(env)
+    assert env.get("SESSION_SECRET"), "A stable signing secret is required across process restarts"
+    # The child has a new interpreter, so install the existing egress guard there
+    # before importing the application. Keep the exact signing secret across runs.
+    bootstrap = (
+        "import os; from tests import _safety; "
+        "_safety.scrub_provider_env(); "
+        "_safety.validate_test_database_url(os.environ['DATABASE_URL']); "
+        "_safety.install_network_guard(); "
+        "import uvicorn; uvicorn.run('app.main:app', host='127.0.0.1', "
+        "port=int(os.environ['TC_INBOX_API_PORT']))"
+    )
+    output = web_root / "test-results/inbox-restart"
+    output.mkdir(parents=True, exist_ok=True)
+    for name in ("before.json", "after.json", "processes.json"):
+        (output / name).unlink(missing_ok=True)
+    checkpoints = []
+    first_receipts = None
+    for phase in ("before", "after"):
+        phase_env = {
+            **env,
+            "TC_INBOX_PHASE": phase,
+            "PLAYWRIGHT_JSON_OUTPUT_FILE": str(output / f"{phase}.json"),
+            "PLAYWRIGHT_HTML_OUTPUT_DIR": str(web_root / "playwright-report/inbox-restart" / phase),
+        }
+        with (
+            _inbox_service(
+                [sys.executable, "-c", bootstrap],
+                api_root,
+                phase_env,
+                tmp_path / f"api-{phase}.log",
+            ) as api,
+            _inbox_service(
+                [node, str(next_cli), "dev", "--hostname", "127.0.0.1", "--port", str(web_port)],
+                web_root,
+                phase_env,
+                tmp_path / f"web-{phase}.log",
+            ) as web,
+        ):
+            _inbox_wait_ready(api, f"{api_url}/healthz")
+            _inbox_wait_ready(web, f"{web_url}/login")
+            browser_log = tmp_path / f"browser-{phase}.log"
+            with _inbox_service(
+                [
+                    node,
+                    str(playwright_cli),
+                    "test",
+                    "--config=playwright.inbox.config.ts",
+                    "--grep",
+                    f"{phase} restart:",
+                ],
+                cwd=web_root,
+                env=phase_env,
+                log_path=browser_log,
+            ) as browser:
+                browser.wait(timeout=240)
+            assert browser.returncode == 0, browser_log.read_text()
+            report = json.loads((output / f"{phase}.json").read_text())
+            assert report["stats"]["expected"] == 1
+            assert all(report["stats"][key] == 0 for key in ("unexpected", "skipped", "flaky"))
+        # Context exit must actually reap both old processes before the next
+        # phase starts. A new client or engine.dispose() is not a restart.
+        checkpoints.append(
+            {
+                "phase": phase,
+                "api_pid": api.pid,
+                "web_pid": web.pid,
+                "api_exit": api.returncode,
+                "web_exit": web.returncode,
+            }
+        )
+        (output / "processes.json").write_text(json.dumps(checkpoints, indent=2) + "\n")
+        for port in (api_port, web_port):
+            deadline = time.monotonic() + 10
+            while True:
+                with socket.socket() as probe:
+                    if probe.connect_ex(("127.0.0.1", port)) != 0:
+                        break
+                assert time.monotonic() < deadline, "Old service still listening"
+                time.sleep(0.1)
+        recorded = receipts(broadcasts[0]["id"])
+        assert len(recorded) == 1
+        assert recorded[0].read_at is not None
+        assert tuple(recorded[0][:3]) == (actors["ws"], broadcasts[0]["id"], actors["editor"]["id"])
+        if first_receipts is None:
+            first_receipts = recorded
+        else:
+            assert (
+                recorded == first_receipts
+            ), "Restart/retry changed the original receipt timestamp"
+        read_personal_ids = (
+            {visible[22]["id"]} if phase == "before" else {row["id"] for row in visible[:23]}
+        )
+        with SessionLocal() as db:
+            # Compare every persisted field, not just booleans: hidden/broadcast
+            # rows must be unchanged, with no new notifications or lost rows.
+            assert [dict(row) for row in db.execute(persisted_query, workspace_ids).mappings()] == [
+                {**row, "is_read": row["id"] in read_personal_ids} for row in seeded_rows
+            ]
+            receipt_ids = (
+                db.execute(
+                    text(
+                        "SELECT notification_id FROM in_app_notification_receipts "
+                        "WHERE workspace_id IN (:ws, :other_ws) ORDER BY notification_id"
+                    ),
+                    workspace_ids,
+                )
+                .scalars()
+                .all()
+            )
+            assert receipt_ids == [row["id"] for row in broadcasts[: 1 if phase == "before" else 2]]
+        second_receipts = receipts(broadcasts[1]["id"])
+        assert len(second_receipts) == (0 if phase == "before" else 1)
+        if second_receipts:
+            assert tuple(second_receipts[0][:3]) == (
+                actors["ws"],
+                broadcasts[1]["id"],
+                actors["editor"]["id"],
+            )
+            assert second_receipts[0].read_at is not None
+    assert checkpoints[0]["api_pid"] != checkpoints[1]["api_pid"]
+    assert checkpoints[0]["web_pid"] != checkpoints[1]["web_pid"]
+    (output / "processes.json").write_text(json.dumps(checkpoints, indent=2) + "\n")
