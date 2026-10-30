@@ -94,11 +94,13 @@ jobs:
           docker run -d --name tc-ci-pg \
             -e POSTGRES_USER=tc_ci -e POSTGRES_PASSWORD="$PG_PASSWORD" -e POSTGRES_DB="$PG_DB" \
             -p 127.0.0.1:5432:5432 "$PG_IMAGE"
+          # The entrypoint's temporary initialization server accepts only socket connections.
+          # Wait for the final TCP server used by the database URL below.
           for i in $(seq 1 60); do
-            docker exec tc-ci-pg pg_isready -U tc_ci -d "$PG_DB" >/dev/null 2>&1 && break
+            docker exec tc-ci-pg pg_isready -h 127.0.0.1 -U tc_ci -d "$PG_DB" >/dev/null 2>&1 && break
             sleep 1
           done
-          docker exec tc-ci-pg pg_isready -U tc_ci -d "$PG_DB"
+          docker exec tc-ci-pg pg_isready -h 127.0.0.1 -U tc_ci -d "$PG_DB"
           URL="postgresql://tc_ci:$PG_PASSWORD@127.0.0.1:5432/$PG_DB"
           echo "DATABASE_URL=$URL" >> "$GITHUB_ENV"
           echo "TC_TEST_DATABASE_URL=$URL" >> "$GITHUB_ENV"
@@ -174,6 +176,17 @@ jobs:
           path: |
             apps/web/playwright-report/trust-requests-restart/
             apps/web/test-results/trust-requests-restart/
+          if-no-files-found: warn
+          retention-days: 14
+
+      - name: Upload logout-all browser acceptance report
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: logout-all-acceptance
+          path: |
+            apps/web/playwright-report/logout-all/
+            apps/web/test-results/logout-all/
           if-no-files-found: warn
           retention-days: 14
 

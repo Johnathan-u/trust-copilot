@@ -161,6 +161,7 @@ def sign_session(
     mfa_enrol_only: bool = False,
     *,
     expires_at: int | None = None,
+    cookie_persistent: bool = False,
 ) -> str:
     """Create a session; an established absolute expiry takes precedence over relative age."""
     payload = {
@@ -168,6 +169,7 @@ def sign_session(
         "email": email,
         "workspace_id": workspace_id,
         "role": role,
+        "cookie_persistent": cookie_persistent is True,
     }
     if session_id:
         payload["session_id"] = session_id

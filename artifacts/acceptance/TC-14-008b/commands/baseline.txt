@@ -1,0 +1,156 @@
+
+Running 3 tests using 1 worker
+
+(node:205131) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  1 [chromium] › e2e/release/microcopy-states.spec.ts:596:9 › confirmed action and failure copy › ghost export labels keep contrast during theme changes at 360px (3.3s)
+(node:205239) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  2 [chromium] › e2e/release/microcopy-states.spec.ts:596:9 › confirmed action and failure copy › ghost export labels keep contrast during theme changes at 768px (3.9s)
+(node:205356) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  3 [chromium] › e2e/release/microcopy-states.spec.ts:596:9 › confirmed action and failure copy › ghost export labels keep contrast during theme changes at 1440px (3.5s)
+
+
+  1) [chromium] › e2e/release/microcopy-states.spec.ts:596:9 › confirmed action and failure copy › ghost export labels keep contrast during theme changes at 360px
+
+    Error: [
+      {
+        "id": "color-contrast",
+        "impact": "serious",
+        "help": "Elements must meet minimum color contrast ratio thresholds",
+        "nodes": 2
+      }
+    ]
+
+    expect(received).toEqual(expected) // deep equality
+
+    - Expected  - 1
+    + Received  + 8
+
+    - Array []
+    + Array [
+    +   Object {
+    +     "help": "Elements must meet minimum color contrast ratio thresholds",
+    +     "id": "color-contrast",
+    +     "impact": "serious",
+    +     "nodes": 2,
+    +   },
+    + ]
+
+      316 |     (item) => item.impact === 'critical' || item.impact === 'serious'
+      317 |   )
+    > 318 |   expect(blocking, JSON.stringify(violations, null, 2)).toEqual([])
+          |                                                         ^
+      319 |   expect(violations, JSON.stringify(violations, null, 2)).toEqual([])
+      320 | }
+      321 |
+        at writeAxe (/tmp/tc-14-008b-work/snapshot/apps/web/e2e/release/microcopy-states.spec.ts:318:57)
+        at /tmp/tc-14-008b-work/snapshot/apps/web/e2e/release/microcopy-states.spec.ts:637:11
+
+    attachment #2: axe-ghost-theme-switch-light-360 (application/json) ─────────────────────────────
+    ../../../results-red/release-microcopy-states-c-35f9b-ring-theme-changes-at-360px-chromium/attachments/axe-ghost-theme-switch-light-360-fb2456631a4ac8fe51c665fc2335b2a34ecb570f.json
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #3: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ../../../results-red/release-microcopy-states-c-35f9b-ring-theme-changes-at-360px-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ../../../results-red/release-microcopy-states-c-35f9b-ring-theme-changes-at-360px-chromium/error-context.md
+
+  2) [chromium] › e2e/release/microcopy-states.spec.ts:596:9 › confirmed action and failure copy › ghost export labels keep contrast during theme changes at 768px
+
+    Error: [
+      {
+        "id": "color-contrast",
+        "impact": "serious",
+        "help": "Elements must meet minimum color contrast ratio thresholds",
+        "nodes": 2
+      }
+    ]
+
+    expect(received).toEqual(expected) // deep equality
+
+    - Expected  - 1
+    + Received  + 8
+
+    - Array []
+    + Array [
+    +   Object {
+    +     "help": "Elements must meet minimum color contrast ratio thresholds",
+    +     "id": "color-contrast",
+    +     "impact": "serious",
+    +     "nodes": 2,
+    +   },
+    + ]
+
+      316 |     (item) => item.impact === 'critical' || item.impact === 'serious'
+      317 |   )
+    > 318 |   expect(blocking, JSON.stringify(violations, null, 2)).toEqual([])
+          |                                                         ^
+      319 |   expect(violations, JSON.stringify(violations, null, 2)).toEqual([])
+      320 | }
+      321 |
+        at writeAxe (/tmp/tc-14-008b-work/snapshot/apps/web/e2e/release/microcopy-states.spec.ts:318:57)
+        at /tmp/tc-14-008b-work/snapshot/apps/web/e2e/release/microcopy-states.spec.ts:637:11
+
+    attachment #2: axe-ghost-theme-switch-light-768 (application/json) ─────────────────────────────
+    ../../../results-red/release-microcopy-states-c-1767c-ring-theme-changes-at-768px-chromium/attachments/axe-ghost-theme-switch-light-768-59cfc6240c79e996799d94d2fba650925e800327.json
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #3: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ../../../results-red/release-microcopy-states-c-1767c-ring-theme-changes-at-768px-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ../../../results-red/release-microcopy-states-c-1767c-ring-theme-changes-at-768px-chromium/error-context.md
+
+  3) [chromium] › e2e/release/microcopy-states.spec.ts:596:9 › confirmed action and failure copy › ghost export labels keep contrast during theme changes at 1440px
+
+    Error: [
+      {
+        "id": "color-contrast",
+        "impact": "serious",
+        "help": "Elements must meet minimum color contrast ratio thresholds",
+        "nodes": 2
+      }
+    ]
+
+    expect(received).toEqual(expected) // deep equality
+
+    - Expected  - 1
+    + Received  + 8
+
+    - Array []
+    + Array [
+    +   Object {
+    +     "help": "Elements must meet minimum color contrast ratio thresholds",
+    +     "id": "color-contrast",
+    +     "impact": "serious",
+    +     "nodes": 2,
+    +   },
+    + ]
+
+      316 |     (item) => item.impact === 'critical' || item.impact === 'serious'
+      317 |   )
+    > 318 |   expect(blocking, JSON.stringify(violations, null, 2)).toEqual([])
+          |                                                         ^
+      319 |   expect(violations, JSON.stringify(violations, null, 2)).toEqual([])
+      320 | }
+      321 |
+        at writeAxe (/tmp/tc-14-008b-work/snapshot/apps/web/e2e/release/microcopy-states.spec.ts:318:57)
+        at /tmp/tc-14-008b-work/snapshot/apps/web/e2e/release/microcopy-states.spec.ts:637:11
+
+    attachment #2: axe-ghost-theme-switch-light-1440 (application/json) ────────────────────────────
+    ../../../results-red/release-microcopy-states-c-dbac2-ing-theme-changes-at-1440px-chromium/attachments/axe-ghost-theme-switch-light-1440-d5ee773997350c7dde876efa949b993f90392453.json
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #3: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ../../../results-red/release-microcopy-states-c-dbac2-ing-theme-changes-at-1440px-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ../../../results-red/release-microcopy-states-c-dbac2-ing-theme-changes-at-1440px-chromium/error-context.md
+
+  3 failed
+    [chromium] › e2e/release/microcopy-states.spec.ts:596:9 › confirmed action and failure copy › ghost export labels keep contrast during theme changes at 360px
+    [chromium] › e2e/release/microcopy-states.spec.ts:596:9 › confirmed action and failure copy › ghost export labels keep contrast during theme changes at 768px
+    [chromium] › e2e/release/microcopy-states.spec.ts:596:9 › confirmed action and failure copy › ghost export labels keep contrast during theme changes at 1440px

@@ -472,16 +472,16 @@ for (const width of [360, 768, 1440]) {
     writeFileSync(
       axePath,
       JSON.stringify(
-        { width, violationCount: violations.length, violations },
+        {
+          width,
+          violationCount: violations.length,
+          violations,
+          violationDetails: result.violations,
+        },
         null,
         2
       )
     )
-    expect(
-      violations.filter((item) =>
-        ['critical', 'serious'].includes(item.impact || '')
-      )
-    ).toEqual([])
     const screenshot = path.join(dir, 'screenshots', `incoming-${width}.png`)
     await page.screenshot({ path: screenshot, fullPage: true })
     await testInfo.attach(`incoming-${width}`, {
@@ -492,6 +492,11 @@ for (const width of [360, 768, 1440]) {
       path: axePath,
       contentType: 'application/json',
     })
+    expect(
+      violations.filter((item) =>
+        ['critical', 'serious'].includes(item.impact || '')
+      )
+    ).toEqual([])
   })
 }
 
@@ -567,3 +572,178 @@ test('backend internal notes remain visible beside actionable replies', async ({
   ).toBeVisible()
   await expect(page.locator('#main-content').getByRole('alert')).toHaveCount(0)
 })
+
+for (const theme of ['dark', 'light'] as const) {
+  for (const width of [360, 768, 1440]) {
+    test(`approval palette is readable immediately after native keyboard enable in ${theme} at ${width}px`, async ({
+      page,
+    }, testInfo) => {
+      const api = await installApi(page)
+      await page.setViewportSize({ width, height: 900 })
+      await openRequest(page)
+      const button = page.getByRole('button', {
+        name: 'Approve revision',
+        exact: true,
+      })
+      const reviewed = page.getByLabel(/I reviewed saved revision/)
+      await page.evaluate((value) => {
+        document.documentElement.setAttribute('data-theme', value)
+      }, theme)
+      // Settle the initial theme only, before observing native disabled removal.
+      await button.evaluate((element) => {
+        getComputedStyle(element).getPropertyValue('color')
+        for (const animation of element.getAnimations()) animation.finish()
+      })
+      await expect(button).toBeDisabled()
+      const probe = await button.evaluateHandle((element) => {
+        const control = element as HTMLButtonElement
+        const sample = () => {
+          const style = getComputedStyle(control)
+          return {
+            disabled: control.disabled,
+            disabledSelector: control.matches(':disabled'),
+            focused: document.activeElement === control,
+            color: style.color,
+            backgroundColor: style.backgroundColor,
+            outlineWidth: style.outlineWidth,
+            transitionProperty: style.transitionProperty,
+            transitionDuration: style.transitionDuration,
+            transitionTimingFunction: style.transitionTimingFunction,
+          }
+        }
+        const state = {
+          before: sample(),
+          removal: null as null | {
+            held: ReturnType<typeof sample>
+            transitions: {
+              property: string
+              keyframes: ComputedKeyframe[]
+            }[]
+          },
+        }
+        const palette: CSSTransition[] = []
+        const observer = new MutationObserver(() => {
+          if (control.disabled) return
+          // Flush the real enabled styles, then hold browser-created palette
+          // transitions at their start. No color or eligibility is injected.
+          getComputedStyle(control).getPropertyValue('color')
+          const transitions = control
+            .getAnimations()
+            .filter((animation) => animation instanceof CSSTransition)
+          for (const animation of transitions) {
+            if (
+              ['color', 'background-color'].includes(
+                animation.transitionProperty
+              )
+            ) {
+              palette.push(animation)
+              animation.pause()
+              animation.currentTime = 0
+            }
+          }
+          state.removal = {
+            held: sample(),
+            transitions: transitions.map((animation) => ({
+              property: animation.transitionProperty,
+              keyframes: (animation.effect as KeyframeEffect).getKeyframes(),
+            })),
+          }
+          observer.disconnect()
+        })
+        observer.observe(control, {
+          attributes: true,
+          attributeFilter: ['disabled'],
+        })
+        return {
+          state,
+          sample,
+          cleanup: () => {
+            observer.disconnect()
+            for (const animation of palette) animation.finish()
+          },
+        }
+      })
+      try {
+        await page.getByLabel('Reply 21 text').focus()
+        await page.keyboard.press('Tab')
+        await expect(reviewed).toBeFocused()
+        await page.keyboard.press('Space')
+        await page.keyboard.press('Tab')
+        await expect(button).toBeEnabled()
+        await expect(button).toBeFocused()
+        const state = await probe.evaluate((value) => value.state)
+        const enabled = await probe.evaluate((value) => value.sample())
+        const result = await new AxeBuilder({ page })
+          .include('#main-content')
+          .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'])
+          .analyze()
+        const dir = path.resolve('../../artifacts/acceptance/TC-15-039d')
+        mkdirSync(dir, { recursive: true })
+        const stem = `approval-${theme}-${width}`
+        const attachJson = async (name: string, value: unknown) => {
+          const file = path.join(dir, `${stem}-${name}.json`)
+          writeFileSync(file, JSON.stringify(value, null, 2) + '\n')
+          await testInfo.attach(`${stem}-${name}`, {
+            path: file,
+            contentType: 'application/json',
+          })
+        }
+        await attachJson('state', { theme, width, state, enabled })
+        await attachJson('axe', {
+          theme,
+          width,
+          violationCount: result.violations.length,
+          violations: result.violations.map((item) => ({
+            id: item.id,
+            impact: item.impact,
+            nodes: item.nodes.length,
+          })),
+          violationDetails: result.violations,
+        })
+        const screenshot = path.join(dir, `${stem}.png`)
+        await page.screenshot({ path: screenshot, fullPage: true })
+        await testInfo.attach(stem, {
+          path: screenshot,
+          contentType: 'image/png',
+        })
+        expect(state.removal).not.toBeNull()
+        expect(state.before.disabled).toBe(true)
+        expect(state.removal?.held.disabled).toBe(false)
+        expect(
+          result.violations.filter((item) =>
+            ['critical', 'serious'].includes(item.impact || '')
+          )
+        ).toEqual([])
+        expect(enabled).toMatchObject({
+          disabled: false,
+          focused: true,
+          color: 'rgb(255, 255, 255)',
+          backgroundColor:
+            theme === 'dark' ? 'rgb(62, 78, 192)' : 'rgb(15, 118, 110)',
+          outlineWidth: '2px',
+        })
+        await button.hover()
+        const hover = await probe.evaluate((value) => value.sample())
+        await attachJson('hover', { theme, width, hover })
+        expect(hover).toMatchObject({
+          disabled: false,
+          focused: true,
+          color: 'rgb(255, 255, 255)',
+          backgroundColor:
+            theme === 'dark' ? 'rgb(47, 63, 163)' : 'rgb(17, 94, 89)',
+          outlineWidth: '2px',
+        })
+        await reviewed.focus()
+        await page.keyboard.press('Space')
+        await expect(reviewed).not.toBeChecked()
+        await expect(button).toBeDisabled()
+        expect(
+          api.calls.filter((call) => call.path.endsWith('/approve'))
+        ).toHaveLength(0)
+      } finally {
+        await probe.evaluate((value) => value.cleanup())
+        await probe.dispose()
+      }
+    })
+  }
+}
