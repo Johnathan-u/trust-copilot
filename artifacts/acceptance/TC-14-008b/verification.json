@@ -1,0 +1,478 @@
+{
+  "ticket": "TC-14-008b",
+  "parent_acceptance": "PENDING",
+  "supplemental_points": 3,
+  "base_commit": "ac7f6ab990ae031a4d705d59afd7f22d045cccf2",
+  "tested_runtime_blobs": {
+    "apps/web/components/ui/Button.tsx": "f736d3a32e0ea8d1bd8d7d5d7307e8fe52f6b15f",
+    "apps/web/e2e/release/microcopy-states.spec.ts": "f427e6f2f91a10829b5a6cf52f4a65e2183cfcd1"
+  },
+  "tested_source_note": "The commit containing this evidence carries these exact tested runtime blobs; all other runtime/config/dependency files equal the base. Final commit/tree are supplied in the coordinator handoff.",
+  "environment": {
+    "node": "24.22.1",
+    "next": "16.4.3",
+    "playwright": "1.64.1",
+    "chromium": "156.0.8078.4",
+    "axe_core_playwright": "4.14.0",
+    "vitest": "5.0.5",
+    "app": "isolated exact source snapshot, Next dev/Turbopack on127.0.0.1:13251",
+    "dependencies": "copy of existing pinned installation; no installs or version changes",
+    "api": "existing synthetic route fixtures from owning spec; real React, CSS, Chromium and axe"
+  },
+  "commands": {
+    "browser": "TC_GHOST_PHASE=<phase> node node_modules/@playwright/test/cli.js test --config=/tmp/tc-14-008b-work/playwright.config.cjs --project=chromium --retries=0 [--grep <case>]",
+    "types": [
+      "node node_modules/next/dist/bin/next typegen",
+      "node node_modules/typescript/bin/tsc --noEmit -p ."
+    ],
+    "lint": "node node_modules/eslint/bin/eslint.js components/ui/Button.tsx e2e/release/microcopy-states.spec.ts --max-warnings=0",
+    "format": "node node_modules/prettier/bin/prettier.cjs --config <repo>/.prettierrc --check components/ui/Button.tsx e2e/release/microcopy-states.spec.ts",
+    "units": "node node_modules/vitest/vitest.mjs run --maxWorkers=1"
+  },
+  "browser_runs": {
+    "red": {
+      "stats": {
+        "startTime": "2026-10-30T14:16:28.207Z",
+        "duration": 17025.686999999998,
+        "expected": 0,
+        "skipped": 0,
+        "unexpected": 3,
+        "flaky": 0
+      },
+      "tests": [
+        {
+          "title": "ghost export labels keep contrast during theme changes at 360px",
+          "project": "chromium",
+          "status": "unexpected",
+          "results": [
+            {
+              "status": "failed",
+              "duration_ms": 3346,
+              "retry": 0,
+              "error": "Error: [\n  {\n    \"id\": \"color-contrast\",\n    \"impact\": \"serious\",\n    \"help\": \"Elements must meet minimum color contrast ratio thresholds\",\n    \"nodes\": 2\n  }\n]\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoEqual\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // deep equality\u001b[22m\n\n\u001b[32m- Expected  - 1\u001b[39m\n\u001b[31m+ Received  + 8\u001b[39m\n\n\u001b[32m- Array []\u001b[39m\n\u001b[31m+ Array [\u001b[39m\n\u001b[31m+   Object {\u001b[39m\n\u001b[31m+     \"help\": \"Elements must meet minimum color contrast ratio thresholds\",\u001b[39m\n\u001b[31m+     \"id\": \"color-contrast\",\u001b[39m\n\u001b[31m+     \"impact\": \"serious\",\u001b[39m\n\u001b[31m+     \"nodes\": 2,\u001b[39m\n\u001b[31m+   },\u001b[39m\n\u001b[31m+ ]\u001b[39m"
+            }
+          ]
+        },
+        {
+          "title": "ghost export labels keep contrast during theme changes at 768px",
+          "project": "chromium",
+          "status": "unexpected",
+          "results": [
+            {
+              "status": "failed",
+              "duration_ms": 3935,
+              "retry": 0,
+              "error": "Error: [\n  {\n    \"id\": \"color-contrast\",\n    \"impact\": \"serious\",\n    \"help\": \"Elements must meet minimum color contrast ratio thresholds\",\n    \"nodes\": 2\n  }\n]\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoEqual\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // deep equality\u001b[22m\n\n\u001b[32m- Expected  - 1\u001b[39m\n\u001b[31m+ Received  + 8\u001b[39m\n\n\u001b[32m- Array []\u001b[39m\n\u001b[31m+ Array [\u001b[39m\n\u001b[31m+   Object {\u001b[39m\n\u001b[31m+     \"help\": \"Elements must meet minimum color contrast ratio thresholds\",\u001b[39m\n\u001b[31m+     \"id\": \"color-contrast\",\u001b[39m\n\u001b[31m+     \"impact\": \"serious\",\u001b[39m\n\u001b[31m+     \"nodes\": 2,\u001b[39m\n\u001b[31m+   },\u001b[39m\n\u001b[31m+ ]\u001b[39m"
+            }
+          ]
+        },
+        {
+          "title": "ghost export labels keep contrast during theme changes at 1440px",
+          "project": "chromium",
+          "status": "unexpected",
+          "results": [
+            {
+              "status": "failed",
+              "duration_ms": 3473,
+              "retry": 0,
+              "error": "Error: [\n  {\n    \"id\": \"color-contrast\",\n    \"impact\": \"serious\",\n    \"help\": \"Elements must meet minimum color contrast ratio thresholds\",\n    \"nodes\": 2\n  }\n]\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoEqual\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // deep equality\u001b[22m\n\n\u001b[32m- Expected  - 1\u001b[39m\n\u001b[31m+ Received  + 8\u001b[39m\n\n\u001b[32m- Array []\u001b[39m\n\u001b[31m+ Array [\u001b[39m\n\u001b[31m+   Object {\u001b[39m\n\u001b[31m+     \"help\": \"Elements must meet minimum color contrast ratio thresholds\",\u001b[39m\n\u001b[31m+     \"id\": \"color-contrast\",\u001b[39m\n\u001b[31m+     \"impact\": \"serious\",\u001b[39m\n\u001b[31m+     \"nodes\": 2,\u001b[39m\n\u001b[31m+   },\u001b[39m\n\u001b[31m+ ]\u001b[39m"
+            }
+          ]
+        }
+      ],
+      "raw_report_sha256": "d786e5b38b17e0c963447eb968912395abd9dc9eab2aeaa15c10d4b7994a24c0"
+    },
+    "focused-green": {
+      "stats": {
+        "startTime": "2026-10-30T14:17:52.623Z",
+        "duration": 17590.681,
+        "expected": 3,
+        "skipped": 0,
+        "unexpected": 0,
+        "flaky": 0
+      },
+      "tests": [
+        {
+          "title": "ghost export labels keep contrast during theme changes at 360px",
+          "project": "chromium",
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "duration_ms": 5129,
+              "retry": 0,
+              "error": null
+            }
+          ]
+        },
+        {
+          "title": "ghost export labels keep contrast during theme changes at 768px",
+          "project": "chromium",
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "duration_ms": 4329,
+              "retry": 0,
+              "error": null
+            }
+          ]
+        },
+        {
+          "title": "ghost export labels keep contrast during theme changes at 1440px",
+          "project": "chromium",
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "duration_ms": 6201,
+              "retry": 0,
+              "error": null
+            }
+          ]
+        }
+      ],
+      "raw_report_sha256": "c9442c5ff71d048a60224a148b429b415530bfa01ee4467c783dc76f8287f21d"
+    },
+    "full-green": {
+      "stats": {
+        "startTime": "2026-10-30T14:19:20.109Z",
+        "duration": 72190.151,
+        "expected": 14,
+        "skipped": 0,
+        "unexpected": 0,
+        "flaky": 0
+      },
+      "tests": [
+        {
+          "title": "save stays unconfirmed until the server accepts",
+          "project": "chromium",
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "duration_ms": 3779,
+              "retry": 0,
+              "error": null
+            }
+          ]
+        },
+        {
+          "title": "upload stays unconfirmed until the server accepts",
+          "project": "chromium",
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "duration_ms": 4169,
+              "retry": 0,
+              "error": null
+            }
+          ]
+        },
+        {
+          "title": "generate stays pending until the job completes",
+          "project": "chromium",
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "duration_ms": 6147,
+              "retry": 0,
+              "error": null
+            }
+          ]
+        },
+        {
+          "title": "export stays pending until the job completes",
+          "project": "chromium",
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "duration_ms": 5601,
+              "retry": 0,
+              "error": null
+            }
+          ]
+        },
+        {
+          "title": "approve stays pending until the server accepts",
+          "project": "chromium",
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "duration_ms": 3616,
+              "retry": 0,
+              "error": null
+            }
+          ]
+        },
+        {
+          "title": "an unsupported model is distinct and does not claim success",
+          "project": "chromium",
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "duration_ms": 4295,
+              "retry": 0,
+              "error": null
+            }
+          ]
+        },
+        {
+          "title": "an unsupported file format is distinct and does not claim the file is stored",
+          "project": "chromium",
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "duration_ms": 3141,
+              "retry": 0,
+              "error": null
+            }
+          ]
+        },
+        {
+          "title": "no supporting evidence is distinct from an abstention",
+          "project": "chromium",
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "duration_ms": 2104,
+              "retry": 0,
+              "error": null
+            }
+          ]
+        },
+        {
+          "title": "a permission denial is distinct and does not echo the server detail",
+          "project": "chromium",
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "duration_ms": 3473,
+              "retry": 0,
+              "error": null
+            }
+          ]
+        },
+        {
+          "title": "keyboard reaches the action and dismisses the result",
+          "project": "chromium",
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "duration_ms": 4867,
+              "retry": 0,
+              "error": null
+            }
+          ]
+        },
+        {
+          "title": "action and message regions have no axe violations",
+          "project": "chromium",
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "duration_ms": 9616,
+              "retry": 0,
+              "error": null
+            }
+          ]
+        },
+        {
+          "title": "ghost export labels keep contrast during theme changes at 360px",
+          "project": "chromium",
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "duration_ms": 8429,
+              "retry": 0,
+              "error": null
+            }
+          ]
+        },
+        {
+          "title": "ghost export labels keep contrast during theme changes at 768px",
+          "project": "chromium",
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "duration_ms": 4209,
+              "retry": 0,
+              "error": null
+            }
+          ]
+        },
+        {
+          "title": "ghost export labels keep contrast during theme changes at 1440px",
+          "project": "chromium",
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "duration_ms": 6268,
+              "retry": 0,
+              "error": null
+            }
+          ]
+        }
+      ],
+      "raw_report_sha256": "a41ec8e73c330b4d230ea5bcf0e9cefbaf89ad60b7450a922f96f6a8088063db"
+    },
+    "negative-original": {
+      "stats": {
+        "startTime": "2026-10-30T14:21:35.468Z",
+        "duration": 5454.335999999999,
+        "expected": 0,
+        "skipped": 0,
+        "unexpected": 1,
+        "flaky": 0
+      },
+      "tests": [
+        {
+          "title": "ghost export labels keep contrast during theme changes at 360px",
+          "project": "chromium",
+          "status": "unexpected",
+          "results": [
+            {
+              "status": "failed",
+              "duration_ms": 3486,
+              "retry": 0,
+              "error": "Error: [\n  {\n    \"id\": \"color-contrast\",\n    \"impact\": \"serious\",\n    \"help\": \"Elements must meet minimum color contrast ratio thresholds\",\n    \"nodes\": 2\n  }\n]\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoEqual\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // deep equality\u001b[22m\n\n\u001b[32m- Expected  - 1\u001b[39m\n\u001b[31m+ Received  + 8\u001b[39m\n\n\u001b[32m- Array []\u001b[39m\n\u001b[31m+ Array [\u001b[39m\n\u001b[31m+   Object {\u001b[39m\n\u001b[31m+     \"help\": \"Elements must meet minimum color contrast ratio thresholds\",\u001b[39m\n\u001b[31m+     \"id\": \"color-contrast\",\u001b[39m\n\u001b[31m+     \"impact\": \"serious\",\u001b[39m\n\u001b[31m+     \"nodes\": 2,\u001b[39m\n\u001b[31m+   },\u001b[39m\n\u001b[31m+ ]\u001b[39m"
+            }
+          ]
+        }
+      ],
+      "raw_report_sha256": "1a38e008eb4bc8b02edee766227c34b66cc0456b5ebc6815f72f17f2e19bbfb6"
+    },
+    "negative-hover": {
+      "stats": {
+        "startTime": "2026-10-30T14:22:35.912Z",
+        "duration": 6914.876,
+        "expected": 0,
+        "skipped": 0,
+        "unexpected": 1,
+        "flaky": 0
+      },
+      "tests": [
+        {
+          "title": "ghost export labels keep contrast during theme changes at 360px",
+          "project": "chromium",
+          "status": "unexpected",
+          "results": [
+            {
+              "status": "failed",
+              "duration_ms": 4772,
+              "retry": 0,
+              "error": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoContain\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // indexOf\u001b[22m\n\nExpected value: \u001b[32m\"background-color\"\u001b[39m\nReceived array: \u001b[31m[]\u001b[39m"
+            }
+          ]
+        }
+      ],
+      "raw_report_sha256": "fb259a407938931948578ac0138d7cec76eba872c8444063f64f0562496fb22f"
+    },
+    "restored-green": {
+      "stats": {
+        "startTime": "2026-10-30T14:23:39.071Z",
+        "duration": 15043.692,
+        "expected": 1,
+        "skipped": 0,
+        "unexpected": 0,
+        "flaky": 0
+      },
+      "tests": [
+        {
+          "title": "ghost export labels keep contrast during theme changes at 360px",
+          "project": "chromium",
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "duration_ms": 12963,
+              "retry": 0,
+              "error": null
+            }
+          ]
+        }
+      ],
+      "raw_report_sha256": "9a1a265e51b9f60a303807bb62939ae7af8bdee589d28c761d30b4e8527aef54"
+    }
+  },
+  "static_exit_status": {
+    "next_typegen": 0,
+    "typescript": 0,
+    "eslint": 0,
+    "prettier_with_repo_config": 0
+  },
+  "web_unit_result": {
+    "passed": 403,
+    "files_passed": 42,
+    "exit_status": 0
+  },
+  "axe_reports": {
+    "original_six_all_zero": true,
+    "added_six_all_zero": true,
+    "baseline_three_each_serious_color_contrast_two_nodes": true,
+    "baseline_foreground": "#707788",
+    "baseline_background": "#ffffff",
+    "baseline_ratio": 4.48,
+    "required_ratio": 4.5
+  },
+  "controls": {
+    "negative_original": "only the temporary app Button replaced by exact base blob78e71ee9;360case fails unchanged serious axe assertion with two4.48 nodes",
+    "negative_hover": "only the temporary app ghost class replaced with transition-none;contrast passes but actual hover-background assertion fails",
+    "restoration": "temporary app component/spec byte-equal candidate after both controls;360case passes"
+  },
+  "preservation": {
+    "old_expectations": 58,
+    "new_expectations": 67,
+    "all_original_expectation_expressions_identical": true,
+    "entire_original_source_preserved_except_final_describe_closure": true,
+    "original_themes": [
+      "dark",
+      "light"
+    ],
+    "original_widths": [
+      360,
+      768,
+      1440
+    ],
+    "original_scan_count": 6,
+    "original_helper_and_scan_bytes_identical": true,
+    "only_product_change": "ghost transition list excludes color; every other byte in Button matches the baseline after reversing that one expression",
+    "component_blob": "f736d3a32e0ea8d1bd8d7d5d7307e8fe52f6b15f",
+    "spec_blob": "f427e6f2f91a10829b5a6cf52f4a65e2183cfcd1"
+  },
+  "visual_review": "Six attached dark/light360/768/1440 screenshots inspected. Export text is readable. Existing review-page min-width1120 clips content at narrow widths; unchanged and outside this child. No full-parent responsive acceptance claimed.",
+  "setup_notes": [
+    "The first isolated Prettier check used default formatting because the snapshot omitted the repository-root .prettierrc. The corrected check uses that exact unchanged config and passes; no source formatting was changed to satisfy the default.",
+    "Runner logs retain pre-existing NO_COLOR/FORCE_COLOR and Vite future config-loader notices. Scoped lint has zero warnings."
+  ],
+  "remaining_gates": [
+    "Independent review by codex_role_grants",
+    "build and web-release-e2e on both push and pull_request for the exact published final head",
+    "Coordinator merge and current-master CI"
+  ],
+  "limits": [
+    "Owning browser fixture uses synthetic API responses; no real-provider or PostgreSQL qualification claimed.",
+    "Only the owning14-case browser spec ran locally; full release/backend qualification remains CI.",
+    "Original TC-14-008 two AC and six DoD dispositions remain NOT_VERIFIED; no original point credit."
+  ],
+  "ci_cause_provenance": {
+    "head": "c2502cb0644026cbe5a21d7a702de0ed33c08ed7",
+    "run": 41066077500,
+    "web_job": 124097709130,
+    "axe_artifact": 12982124194,
+    "source": "observed-ci/axe-actions-light-360.json"
+  }
+}
