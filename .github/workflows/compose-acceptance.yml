@@ -1,0 +1,48 @@
+name: Compose acceptance
+
+on:
+  push:
+    paths:
+      - 'docker-compose*.yml'
+      - 'apps/api/**'
+      - 'apps/web/**'
+      - 'infra/**'
+      - '.dockerignore'
+      - 'scripts/release/compose_acceptance.py'
+      - '.github/workflows/compose-acceptance.yml'
+  pull_request:
+    paths:
+      - 'docker-compose*.yml'
+      - 'apps/api/**'
+      - 'apps/web/**'
+      - 'infra/**'
+      - '.dockerignore'
+      - 'scripts/release/compose_acceptance.py'
+      - '.github/workflows/compose-acceptance.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  compose-acceptance:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Exercise hardened Compose startup and persistence
+        timeout-minutes: 33
+        run: python scripts/release/compose_acceptance.py
+      - name: Upload sanitized acceptance evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: compose-acceptance-${{ github.run_id }}-${{ github.run_attempt }}
+          path: artifacts/acceptance/TC-03-002/runtime-ci/
+          if-no-files-found: error
+          retention-days: 14

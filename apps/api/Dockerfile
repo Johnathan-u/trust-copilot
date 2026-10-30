@@ -9,7 +9,11 @@ RUN pip install --no-cache-dir --require-hashes -r /app/requirements.lock
 COPY apps/api /app
 RUN pip install --no-cache-dir --no-deps . \
     && pip check \
-    && chmod +x /app/docker-entrypoint.sh
+    && chmod +x /app/docker-entrypoint.sh \
+    && groupadd --gid 10001 app \
+    && useradd --uid 10001 --gid 10001 --home-dir /tmp --shell /usr/sbin/nologin --no-create-home app \
+    && chown -R app:app /app
+USER app
 
 # Stage: production (no reload, with healthcheck)
 FROM base AS production

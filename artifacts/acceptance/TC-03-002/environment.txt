@@ -1,0 +1,9 @@
+Cloud agent VM. Local Docker was used here; the deviation recorded on the PR is that the developer machine had lost Docker.
+
+Python 3.12.3, venv /tmp/tc-venv, ruff 0.5.6 (pre-commit rev v0.5.6).
+Node 24.22.1 at /tmp/node-v24.22.1-linux-x64/bin (TC_REQUIRE_WEB_TOOLCHAIN=1).
+Postgres image pgvector/pgvector:pg16, container tc-ci-pg, host 127.0.0.1:5432.
+Fresh suite database name tc03002_fresh_test. Credentials not recorded.
+SESSION_SECRET=test-secret. TRUST_COPILOT_TESTING=1. TC_REQUIRE_DB=1.
+Docker Compose plugin v2.32.4 was installed on this VM so the runtime check could run. It is not part of the commit.
+Baseline 80607881320e1fa2c6416c55730eb98a56449f26.

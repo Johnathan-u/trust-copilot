@@ -1,0 +1,15 @@
+command: cd apps/api && python -m pytest -rs --tb=line
+sha: 16930e9405fa0f704bc695cbbe52b049c584adac (merge of origin/master b70ba0f into the implementation)
+env: TC_REQUIRE_DB=1 TC_REQUIRE_WEB_TOOLCHAIN=1 TRUST_COPILOT_TESTING=1 SESSION_SECRET=test-secret
+     fresh database tc03002_fresh_test on pgvector/pgvector:pg16 (credentials not recorded)
+exit: 0
+totals: 3281 passed, 1 skipped, 10396 warnings in 241.82s
+
+Same command before the merge, on the implementation tree: 3275 passed, 1 skipped, exit 0.
+
+skipped: tests/test_trust_scoring_blind.py external_data pack not checked in
+
+Earlier run on the long-lived shared database: 1 failed, 3274 passed, 1 skipped, exit 1.
+The failure was tests/test_notification_fire_points.py::TestControlVerifiedFirePoint::test_control_verified_notifies
+(assert 0 > 0). POST /api/compliance/controls/20/verify returned 200 for a control that was already
+verified; the handler returns without a new notification in that case. Fresh database does not fail it.

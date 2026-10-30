@@ -1,0 +1,23 @@
+{
+  "commit": "8afe9c8339ece620a9e1a6292d8e6b07d34a76c0",
+  "checks": {
+    "dev_fresh_dependencies": "pending",
+    "dev_populated_dependencies_restart": "pending",
+    "production_startup_and_write": "pending",
+    "full_stack_restart_persistence": "pending",
+    "full_stack_recreation_persistence": "pending",
+    "dev": {
+      "failed": "dev/web exited during startup"
+    },
+    "prod": {
+      "failed": "command failed (1): ['docker', 'compose', '-p']\n Image minio/minio:latest Pulling \n Image pgvector/pgvector:pg16 Pulling \n Image minio/minio:latest Error pull access denied for minio/minio, repository does not exist or may require 'docker login'\n Image pgvector/pgvector:pg16 Interrupted \nError response from daemon: pull access denied for minio/minio, repository does not exist or may require 'docker login'\n"
+    }
+  },
+  "cleanup": {
+    "dev": "passed",
+    "prod": "passed"
+  },
+  "scope": "Isolated localhost/internal TLS; public ACME and real providers unqualified",
+  "status": "failed",
+  "checkout_web_uid": 1001
+}

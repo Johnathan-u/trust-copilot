@@ -1,0 +1,5 @@
+command: cd apps/api && python -m pytest tests/release/test_compose_stack.py -q --tb=line
+sha: 16930e9405fa0f704bc695cbbe52b049c584adac
+env: no database (static file assertions)
+exit: 0
+totals: 7 passed (re-run after the master merge, together with the job-lease tests: 33 passed)

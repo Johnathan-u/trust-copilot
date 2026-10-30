@@ -1,0 +1,13 @@
+command: cd apps/api && python -m pytest tests/release/test_compose_stack.py -q --tb=line
+sha: 80607881320e1fa2c6416c55730eb98a56449f26
+env: no database (static file assertions)
+exit: 1
+totals: 5 failed, 2 passed
+
+test_each_service_is_least_privilege_with_named_volumes[docker-compose.yml] KeyError cap_drop
+test_each_service_is_least_privilege_with_named_volumes[docker-compose.prod.yml] KeyError cap_drop
+test_prod_database_and_storage_are_not_published AssertionError ['trustnet'] == ['datanet']
+test_dev_database_and_storage_bind_localhost_only AssertionError 5432:5432 does not start with 127.0.0.1:
+test_images_do_not_bake_secrets FileNotFoundError infra/caddy/Dockerfile
+test_entrypoint_only_applies_additive_migrations passed
+test_production_caddyfile_serves_tls_and_not_data_ports passed
