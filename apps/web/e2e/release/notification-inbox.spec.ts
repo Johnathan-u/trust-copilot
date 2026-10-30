@@ -78,8 +78,18 @@ async function openInbox(page: Page, width = 1440) {
       return json(route, { cards: [], has_custom: false })
     return json(route, {})
   })
+  // Route fixtures run in the browser; middleware needs its session cookie first.
+  await page.context().addCookies([
+    {
+      name: 'tc_session',
+      value: 'synthetic-session',
+      domain: '127.0.0.1',
+      path: '/',
+    },
+  ])
   await page.setViewportSize({ width, height: 900 })
   await page.goto('/dashboard')
+  await expect(page).toHaveURL(/\/dashboard$/)
   const bell = page.getByRole('button', { name: 'Notifications', exact: true })
   await expect(bell).toContainText('25')
   await bell.click()
