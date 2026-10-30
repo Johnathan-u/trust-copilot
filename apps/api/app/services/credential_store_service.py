@@ -132,7 +132,10 @@ def check_rotation_due(db: Session, workspace_id: int) -> list[dict]:
     now = datetime.now(timezone.utc)
     for r in rows:
         if r.last_rotated_at and r.rotation_interval_days:
-            next_rotation = r.last_rotated_at + timedelta(days=r.rotation_interval_days)
+            rotated = r.last_rotated_at
+            if rotated.tzinfo is None:
+                rotated = rotated.replace(tzinfo=timezone.utc)
+            next_rotation = rotated + timedelta(days=r.rotation_interval_days)
             if now >= next_rotation:
                 due.append(_serialize(r, include_value=False))
     return due
