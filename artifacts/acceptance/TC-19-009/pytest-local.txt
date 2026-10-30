@@ -1,0 +1,9 @@
+Tested code SHA: d633d65e10cba6a01f9fcf975cbc38388e721913
+
+Schema/template/credential selection:
+.............                                                            [100%]
+13 passed, 68 deselected in 1.41s
+
+Published OpenAPI:
+.....                                                                    [100%]
+5 passed in 1.51s

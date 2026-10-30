@@ -1,0 +1,34 @@
+FFFFF                                                                    [100%]
+=================================== FAILURES ===================================
+_______ test_schema_rejects_unbounded_or_unsafe_content[question-limit] ________
+tests/release/test_domain_security_faq.py:221: in test_schema_rejects_unbounded_or_unsafe_content
+    with pytest.raises(ValidationError):
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   Failed: DID NOT RAISE ValidationError
+________ test_schema_rejects_unbounded_or_unsafe_content[answer-limit] _________
+tests/release/test_domain_security_faq.py:221: in test_schema_rejects_unbounded_or_unsafe_content
+    with pytest.raises(ValidationError):
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   Failed: DID NOT RAISE ValidationError
+_______ test_schema_rejects_unbounded_or_unsafe_content[category-limit] ________
+tests/release/test_domain_security_faq.py:221: in test_schema_rejects_unbounded_or_unsafe_content
+    with pytest.raises(ValidationError):
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   Failed: DID NOT RAISE ValidationError
+_____________ test_schema_rejects_unbounded_or_unsafe_content[nul] _____________
+tests/release/test_domain_security_faq.py:221: in test_schema_rejects_unbounded_or_unsafe_content
+    with pytest.raises(ValidationError):
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   Failed: DID NOT RAISE ValidationError
+____________ test_schema_rejects_unbounded_or_unsafe_content[blank] ____________
+tests/release/test_domain_security_faq.py:221: in test_schema_rejects_unbounded_or_unsafe_content
+    with pytest.raises(ValidationError):
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   Failed: DID NOT RAISE ValidationError
+=========================== short test summary info ============================
+FAILED tests/release/test_domain_security_faq.py::test_schema_rejects_unbounded_or_unsafe_content[question-limit]
+FAILED tests/release/test_domain_security_faq.py::test_schema_rejects_unbounded_or_unsafe_content[answer-limit]
+FAILED tests/release/test_domain_security_faq.py::test_schema_rejects_unbounded_or_unsafe_content[category-limit]
+FAILED tests/release/test_domain_security_faq.py::test_schema_rejects_unbounded_or_unsafe_content[nul]
+FAILED tests/release/test_domain_security_faq.py::test_schema_rejects_unbounded_or_unsafe_content[blank]
+5 failed, 13 deselected in 0.56s

@@ -407,6 +407,36 @@ test('list load recovers from error and malformed data is not an empty success',
   await expect(page.locator('[data-state="error"]')).toHaveCount(0)
 })
 
+test('library evaluation stays loading until the coverage response completes', async ({
+  page,
+}) => {
+  await installApi(page)
+  let release: () => void = () => {}
+  const held = new Promise<void>((resolve) => {
+    release = resolve
+  })
+  await page.route('**/api/compliance-coverage**', async (route) => {
+    await held
+    await route.fallback()
+  })
+  await page.goto('/dashboard/controls')
+  const row = page.getByRole('row').filter({
+    has: page.getByRole('link', { name: 'Access review', exact: true }),
+  })
+  try {
+    await expect(
+      row.getByText('Loading evaluation…', { exact: true })
+    ).toBeVisible()
+    await expect(row).not.toContainText('Unknown')
+  } finally {
+    release()
+  }
+  await expect(row.getByText('Stale evidence', { exact: true })).toBeVisible()
+  await expect(
+    row.getByText('Loading evaluation…', { exact: true })
+  ).toHaveCount(0)
+})
+
 test('evaluation failure preserves control details without inventing a pass', async ({
   page,
 }) => {
@@ -479,7 +509,11 @@ for (const width of [360, 768, 1440]) {
       const name = route.endsWith('41') ? 'detail' : 'library'
       writeFileSync(
         path.join(evidenceDir, `axe-${name}-${width}.json`),
-        JSON.stringify({ width, violations }, null, 2)
+        JSON.stringify(
+          { width, violationCount: violations.length, violations },
+          null,
+          2
+        )
       )
       expect(
         violations.filter((item) =>

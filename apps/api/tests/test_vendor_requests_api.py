@@ -11,8 +11,39 @@ from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 
 from app.core.password import hash_password
-from app.models import Questionnaire, User, WorkspaceMember
+from app.models import AuditEvent, Questionnaire, User, VendorRequest, WorkspaceMember
 from app.models.vendor_request import VENDOR_REQUEST_STATUSES
+
+
+@pytest.fixture(autouse=True)
+def cleanup_vendor_rows(client: TestClient, db_session: Session):
+    """Restore rows created by this module; login residue has its shared fixture."""
+    models = (VendorRequest, User, WorkspaceMember)
+    before = {model: {row[0] for row in db_session.query(model.id).all()} for model in models}
+    audit_before = (
+        db_session.query(AuditEvent).filter(AuditEvent.resource_type == "vendor_request").count()
+    )
+    yield
+    db_session.rollback()
+    created = {
+        model: {row[0] for row in db_session.query(model.id).all()} - before[model]
+        for model in models
+    }
+    db_session.query(AuditEvent).filter(
+        AuditEvent.resource_type == "vendor_request",
+        AuditEvent.resource_id.in_([str(i) for i in created[VendorRequest]]),
+    ).delete(synchronize_session=False)
+    for model in (VendorRequest, WorkspaceMember, User):
+        db_session.query(model).filter(model.id.in_(created[model])).delete(
+            synchronize_session=False
+        )
+    db_session.commit()
+    for model in models:
+        assert {row[0] for row in db_session.query(model.id).all()} == before[model]
+    assert (
+        db_session.query(AuditEvent).filter(AuditEvent.resource_type == "vendor_request").count()
+        == audit_before
+    )
 
 
 @pytest.fixture
@@ -193,7 +224,7 @@ def test_list_returns_created_requests(client: TestClient, admin_user: User) -> 
 
 
 def test_list_does_not_expose_share_url(client: TestClient, admin_user: User) -> None:
-    """List endpoint returns link_token but not share_url (only create does)."""
+    """List retains the link_token key but never returns a raw grant."""
     _login_admin(client, admin_user)
     client.post("/api/vendor-requests/", json={"vendor_email": "nourl@test.com"})
     r = client.get("/api/vendor-requests")
@@ -239,13 +270,14 @@ def test_update_status_to_in_progress(client: TestClient, admin_user: User) -> N
 
 
 def test_update_status_to_completed(client: TestClient, admin_user: User) -> None:
-    """PATCH transitions pending → completed."""
+    """A status patch cannot stand in for a submitted response."""
     _login_admin(client, admin_user)
     create = client.post("/api/vendor-requests/", json={"vendor_email": "done@test.com"})
     req_id = create.json()["id"]
     r = client.patch(f"/api/vendor-requests/{req_id}", json={"status": "completed"})
-    assert r.status_code == 200
-    assert r.json()["status"] == "completed"
+    assert r.status_code == 409
+    listing = client.get("/api/vendor-requests").json()
+    assert next(row for row in listing if row["id"] == req_id)["status"] == "pending"
 
 
 def test_update_status_invalid_rejected(client: TestClient, admin_user: User) -> None:
@@ -279,18 +311,18 @@ def test_status_persists_across_list(client: TestClient, admin_user: User) -> No
     _login_admin(client, admin_user)
     create = client.post("/api/vendor-requests/", json={"vendor_email": "persist@test.com"})
     req_id = create.json()["id"]
-    client.patch(f"/api/vendor-requests/{req_id}", json={"status": "completed"})
+    client.patch(f"/api/vendor-requests/{req_id}", json={"status": "in_progress"})
     r = client.get("/api/vendor-requests")
     hit = next((i for i in r.json() if i["id"] == req_id), None)
     assert hit is not None
-    assert hit["status"] == "completed"
+    assert hit["status"] == "in_progress"
 
 
 # ── Full lifecycle ────────────────────────────────────────────────────────
 
 
 def test_full_lifecycle_create_update_list(client: TestClient, admin_user: User) -> None:
-    """End-to-end: create → verify pending → update in_progress → update completed → list confirms."""
+    """Create and track progress; a cosmetic completion attempt preserves that progress."""
     _login_admin(client, admin_user)
 
     cr = client.post(
@@ -307,15 +339,15 @@ def test_full_lifecycle_create_update_list(client: TestClient, admin_user: User)
     assert r1.json()["status"] == "in_progress"
 
     r2 = client.patch(f"/api/vendor-requests/{req_id}", json={"status": "completed"})
-    assert r2.json()["status"] == "completed"
+    assert r2.status_code == 409
 
     listing = client.get("/api/vendor-requests")
     hit = next((i for i in listing.json() if i["id"] == req_id), None)
     assert hit is not None
-    assert hit["status"] == "completed"
+    assert hit["status"] == "in_progress"
     assert hit["vendor_email"] == "lifecycle@vendor.com"
     assert hit["message"] == "Please review"
-    assert hit["link_token"] is not None
+    assert hit["link_token"] is None
 
 
 # ── Model statuses match spec ────────────────────────────────────────────

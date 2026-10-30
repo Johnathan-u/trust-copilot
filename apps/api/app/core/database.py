@@ -50,6 +50,30 @@ def get_db():
         db.close()
 
 
+def warn_if_database_time_zone_is_not_utc(bind=None) -> None:
+    """Log when the session TimeZone is not UTC. Do not refuse to start.
+
+    ``jobs.updated_at`` and ``jobs.started_at`` are timestamps without a time zone. The
+    NULL-lease grace compares them to ``now()``, which is only UTC when the session TimeZone is UTC.
+    """
+    import logging
+
+    from sqlalchemy import text
+
+    target = engine if bind is None else bind
+    try:
+        with target.connect() as conn:
+            zone = conn.execute(text("SHOW TimeZone")).scalar()
+    except Exception:
+        logging.getLogger(__name__).warning("could not read database TimeZone", exc_info=True)
+        return
+    if str(zone) not in {"UTC", "Etc/UTC"}:
+        logging.getLogger(__name__).warning(
+            "database session TimeZone is %s; NULL-lease grace compares timestamps to now() and assumes UTC",
+            zone,
+        )
+
+
 # --- TC-08-005: per-thread / per-task Session isolation helpers -------------------------------
 # A SQLAlchemy Session (and the DBAPI connection it holds) is NOT thread-safe. Code that fans work
 # out to threads must give each task its own short-lived Session on its own pooled connection,

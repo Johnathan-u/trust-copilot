@@ -16,7 +16,17 @@ import {
 } from '@/components/ui'
 import type { TagData } from '@/components/ui'
 import { useAuth } from '@/contexts/AuthContext'
-import type { ApiFailurePresentation } from '@/lib/api-error'
+import {
+  mutationFailureNotice,
+  presentActionFailure,
+  type ApiFailurePresentation,
+} from '@/lib/api-error'
+import {
+  actionVerb,
+  confirmedActionNotice,
+  rowSaveLabel,
+  type RowSavePhase,
+} from '@/lib/action-copy'
 import { failureOf, isAbortError, readSectionJson } from '@/lib/section-load'
 import { useAISettings } from '@/contexts/AISettingsContext'
 import { useKeyedGeneration } from '@/components/ui/useKeyedGeneration'
@@ -78,6 +88,7 @@ export default function ReviewPage() {
   const [qnr, setQnr] = useState<Qnr | null>(null)
   const [genJobId, setGenJobId] = useState<number | null>(null)
   const [exportJobId, setExportJobId] = useState<number | null>(null)
+  const [exportPending, setExportPending] = useState(false)
   const [exportRecords, setExportRecords] = useState<
     { id: number; filename: string; created_at: string }[]
   >([])
@@ -96,12 +107,25 @@ export default function ReviewPage() {
   } | null>(null)
   const [genSuccessToast, setGenSuccessToast] = useState(false)
   const [errorToast, setErrorToast] = useState<string | null>(null)
+  const [errorTitle, setErrorTitle] = useState('Could not complete that')
+  const [approving, setApproving] = useState(false)
+  const [approveToast, setApproveToast] = useState(false)
+  const [savePhase, setSavePhase] = useState<Record<number, RowSavePhase>>({})
+  const saveSeq = useRef<Map<number, number>>(new Map())
   const [isGenerateRequestInFlight, setIsGenerateRequestInFlight] =
     useState(false)
   const [loadError, setLoadError] = useState<boolean>(false)
   const [loadFailure, setLoadFailure] = useState<ApiFailurePresentation | null>(
     null
   )
+  const showFailure = useCallback(
+    (message: string, title = 'Could not complete that') => {
+      setErrorTitle(title)
+      setErrorToast(message)
+    },
+    []
+  )
+
   const pendingSaves = useRef<
     Map<
       number,
@@ -226,6 +250,15 @@ export default function ReviewPage() {
     queryReview()
   }, [queryReview])
 
+  const clearSavePhase = useCallback((questionId: number) => {
+    setSavePhase((prev) => {
+      if (!(questionId in prev)) return prev
+      const next = { ...prev }
+      delete next[questionId]
+      return next
+    })
+  }, [])
+
   const saveAnswer = useCallback(
     async (
       questionId: number,
@@ -233,44 +266,78 @@ export default function ReviewPage() {
       answerId?: number,
       status?: string
     ) => {
+      const seq = (saveSeq.current.get(questionId) ?? 0) + 1
+      saveSeq.current.set(questionId, seq)
+      const approvingRow = status === 'approved'
+      setSavePhase((prev) => ({
+        ...prev,
+        [questionId]: approvingRow ? 'approving' : 'saving',
+      }))
+      const stillCurrent = () => saveSeq.current.get(questionId) === seq
       const base = `/api/answers`
       const payload: { text?: string; status?: string } = { text }
       if (status) payload.status = status
-      if (answerId) {
-        await fetch(`${base}/${answerId}`, {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload),
-          credentials: 'include',
-        })
-      } else {
-        await fetch(base, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            question_id: questionId,
-            text,
-            status: status || 'draft',
-          }),
-          credentials: 'include',
-        })
+      try {
+        const response = answerId
+          ? await fetch(`${base}/${answerId}`, {
+              method: 'PATCH',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(payload),
+              credentials: 'include',
+            })
+          : await fetch(base, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                question_id: questionId,
+                text,
+                status: status || 'draft',
+              }),
+              credentials: 'include',
+            })
+        if (!stillCurrent()) return
+        const data = await response.json().catch(() => null)
+        if (!stillCurrent()) return
+        if (!response.ok) {
+          clearSavePhase(questionId)
+          const notice = mutationFailureNotice(
+            response.status,
+            data,
+            'The change was not saved. Try again.'
+          )
+          showFailure(notice.message, notice.title)
+          return
+        }
+        setSavePhase((prev) => ({
+          ...prev,
+          [questionId]: approvingRow ? 'approved' : 'saved',
+        }))
+        refresh()
+      } catch {
+        if (!stillCurrent()) return
+        clearSavePhase(questionId)
+        showFailure('The change was not saved. Try again.')
       }
-      refresh()
     },
-    [refresh]
+    [clearSavePhase, refresh, showFailure]
   )
 
   const scheduleSave = useCallback(
     (questionId: number, text: string, answerId?: number) => {
       const prev = pendingSaves.current.get(questionId)
       if (prev?.timer) clearTimeout(prev.timer)
+      saveSeq.current.set(
+        questionId,
+        (saveSeq.current.get(questionId) ?? 0) + 1
+      )
+      clearSavePhase(questionId)
       const timer = setTimeout(() => {
         saveAnswer(questionId, text, answerId)
         pendingSaves.current.delete(questionId)
       }, AUTOSAVE_DELAY_MS)
       pendingSaves.current.set(questionId, { text, answerId, timer })
     },
-    [saveAnswer]
+    [clearSavePhase, saveAnswer]
   )
 
   const updateAnswerText = useCallback((questionId: number, text: string) => {
@@ -306,34 +373,57 @@ export default function ReviewPage() {
   const bulkUpdate = useCallback(
     async (status: string) => {
       if (selected.size === 0) return
-      await fetch(`/api/answers/bulk`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ question_ids: Array.from(selected), status }),
-        credentials: 'include',
-      })
-      setSelected(new Set())
-      refresh()
+      const isApprove = status === 'approved'
+      if (isApprove) {
+        setApproving(true)
+        setApproveToast(false)
+      }
+      try {
+        const response = await fetch(`/api/answers/bulk`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ question_ids: Array.from(selected), status }),
+          credentials: 'include',
+        })
+        const data = await response.json().catch(() => null)
+        if (!response.ok) {
+          const notice = mutationFailureNotice(
+            response.status,
+            data,
+            'The change was not saved. Try again.'
+          )
+          showFailure(notice.message, notice.title)
+          return
+        }
+        if (isApprove) setApproveToast(true)
+        setSelected(new Set())
+        refresh()
+      } catch {
+        showFailure('The change was not saved. Try again.')
+      } finally {
+        if (isApprove) setApproving(false)
+      }
     },
-    [selected, refresh]
+    [refresh, selected, showFailure]
   )
 
   const GENERATE_REQUEST_TIMEOUT_MS = 20000 // 20s for initial enqueue; worker does the rest
 
   const handleGenerate = () => {
     if (workspaceId == null) {
-      setErrorToast('Workspace not loaded. Please refresh the page.')
+      showFailure('Workspace not loaded. Please refresh the page.')
       return
     }
     if (isGenerateRequestInFlight || genJobId) return
     const qnrId = typeof id === 'string' ? parseInt(id, 10) : Number(id)
     if (Number.isNaN(qnrId)) {
-      setErrorToast('Invalid questionnaire. Refresh and try again.')
+      showFailure('Invalid questionnaire. Refresh and try again.')
       return
     }
     setIsGenerateRequestInFlight(true)
+    setGenSuccessToast(false)
     setErrorToast(null)
-    // Defer fetch so "Generating..." paints immediately and the UI stays responsive
+    // Defer fetch so the pending label paints before the request settles.
     const doRequest = async () => {
       const controller = new AbortController()
       const timeoutId = setTimeout(
@@ -362,20 +452,25 @@ export default function ReviewPage() {
           setGenJobBackendStatus(null)
           setGenJobId(data.job_id)
         } else {
-          const raw =
-            apiErrorMessage(data?.error as ApiErrorInfo | undefined) ||
-            (data?.detail as string) ||
-            (Array.isArray(data?.detail)
-              ? data.detail.map((x: { msg?: string }) => x.msg).join(', ')
-              : '')
-          const msg =
-            r.status === 404 &&
-            (raw?.toLowerCase().includes('not found') || !raw)
-              ? 'Questionnaire not found. It may have been deleted or you may not have access.'
-              : r.status === 503 && raw
-                ? raw
-                : raw || 'Generate failed'
-          setErrorToast(msg)
+          const mapped = presentActionFailure({ status: r.status, data })
+          if (mapped) {
+            showFailure(mapped.message, mapped.title)
+          } else {
+            const raw =
+              apiErrorMessage(data?.error as ApiErrorInfo | undefined) ||
+              (typeof data?.detail === 'string' ? data.detail : '') ||
+              (Array.isArray(data?.detail)
+                ? data.detail.map((x: { msg?: string }) => x.msg).join(', ')
+                : '')
+            const msg =
+              r.status === 404 &&
+              (raw?.toLowerCase().includes('not found') || !raw)
+                ? 'Questionnaire not found. It may have been deleted or you may not have access.'
+                : r.status === 503 && raw
+                  ? raw
+                  : raw || 'The draft was not started. Try again.'
+            showFailure(msg)
+          }
         }
       } catch (e) {
         clearTimeout(timeoutId)
@@ -387,7 +482,7 @@ export default function ReviewPage() {
             : isFailedFetch
               ? 'Cannot reach the API. Start the full stack (e.g. node scripts/dev-all.js) so the API runs on port 8000, then try again.'
               : 'Network error. Ensure the API is running on port 8000.'
-        setErrorToast(message)
+        showFailure(message)
       } finally {
         setIsGenerateRequestInFlight(false)
       }
@@ -397,9 +492,12 @@ export default function ReviewPage() {
 
   const handleExport = async (format: 'xlsx' | 'docx' = 'xlsx') => {
     if (workspaceId == null) {
-      setErrorToast('Workspace not loaded. Please refresh the page.')
+      showFailure('Workspace not loaded. Please refresh the page.')
       return
     }
+    setExportPending(true)
+    setExportReadyToast(null)
+    setErrorToast(null)
     try {
       const r = await fetch(
         `/api/exports/export/${id}?workspace_id=${workspaceId}`,
@@ -414,15 +512,18 @@ export default function ReviewPage() {
       if (r.ok && data?.job_id) {
         exportPollStartedAt.current = Date.now()
         setExportJobId(data.job_id)
-      } else
-        setErrorToast(
-          (data?.detail as string) ||
-            (Array.isArray(data?.detail)
-              ? data.detail.map((x: { msg?: string }) => x.msg).join(', ')
-              : 'Export failed')
+      } else {
+        const notice = mutationFailureNotice(
+          r.status,
+          data,
+          'The export was not started. Try again.'
         )
+        showFailure(notice.message, notice.title)
+      }
     } catch {
-      setErrorToast('Network error. Try again.')
+      showFailure('Network error. Try again.')
+    } finally {
+      setExportPending(false)
     }
   }
 
@@ -435,7 +536,12 @@ export default function ReviewPage() {
       )
       if (!r.ok) {
         const data = await r.json().catch(() => ({}))
-        setErrorToast((data?.detail as string) || 'Download failed')
+        const notice = mutationFailureNotice(
+          r.status,
+          data,
+          'The download did not start. Try again.'
+        )
+        showFailure(notice.message, notice.title)
         return
       }
       const blob = await r.blob()
@@ -458,7 +564,7 @@ export default function ReviewPage() {
       document.body.removeChild(a)
       URL.revokeObjectURL(url)
     } catch {
-      setErrorToast('Download failed. Try again.')
+      showFailure('The download did not start. Try again.')
     }
   }
 
@@ -491,7 +597,7 @@ export default function ReviewPage() {
               setGenJobBackendStatus(null)
             }
             if (kind === 'export') clearExportPollTimer()
-            setErrorToast(
+            showFailure(
               status >= 500
                 ? 'Server error. Try again later.'
                 : 'Could not check job status. Try refreshing.'
@@ -529,18 +635,29 @@ export default function ReviewPage() {
               setGenJobBackendStatus(null)
             }
             if (kind === 'export') clearExportPollTimer()
-            const detail =
-              apiErrorMessage(j.error_detail as ApiErrorInfo | undefined) ||
-              (j.error ? String(j.error).slice(0, 160) : '')
-            const fallback =
-              kind === 'gen'
-                ? 'Answer generation did not finish. Check that the worker is running and try again.'
-                : 'Export did not finish. Try again.'
-            setErrorToast(
-              detail
-                ? `${kind === 'gen' ? 'Answer generation failed' : 'Export failed'}: ${detail}`
-                : fallback
-            )
+            const mapped = presentActionFailure({
+              data: {
+                code: j.error_code,
+                error: j.error_detail,
+                detail: typeof j.error === 'string' ? j.error : undefined,
+              },
+            })
+            if (mapped) {
+              showFailure(mapped.message, mapped.title)
+            } else {
+              const detail =
+                apiErrorMessage(j.error_detail as ApiErrorInfo | undefined) ||
+                (j.error ? String(j.error).slice(0, 160) : '')
+              const fallback =
+                kind === 'gen'
+                  ? 'Answer generation did not finish. Check that the worker is running and try again.'
+                  : 'Export did not finish. Try again.'
+              showFailure(
+                detail
+                  ? `${kind === 'gen' ? 'Answer generation failed' : 'Export failed'}: ${detail}`
+                  : fallback
+              )
+            }
           }
         })
         .catch(() => {
@@ -551,7 +668,7 @@ export default function ReviewPage() {
             setGenJobBackendStatus(null)
           }
           if (kind === 'export') clearExportPollTimer()
-          setErrorToast('Could not check job status. Try refreshing.')
+          showFailure('Could not check job status. Try refreshing.')
         })
     },
     [
@@ -560,6 +677,7 @@ export default function ReviewPage() {
       qnr?.filename,
       clearGenPollTimer,
       clearExportPollTimer,
+      showFailure,
     ]
   )
 
@@ -574,7 +692,7 @@ export default function ReviewPage() {
           setGenJobId(null)
           setGenJobBackendStatus(null)
           setGenElapsedSeconds(0)
-          setErrorToast(
+          showFailure(
             'Answer generation is taking too long. If you use Docker, ensure the worker container is running (`docker compose ps`), then refresh and try again.'
           )
           return
@@ -589,7 +707,7 @@ export default function ReviewPage() {
         ) {
           exportPollStartedAt.current = null
           setExportJobId(null)
-          setErrorToast(
+          showFailure(
             'Export is taking too long. Ensure the worker is running, then refresh and try again.'
           )
           return
@@ -598,7 +716,7 @@ export default function ReviewPage() {
       }
     }, 2000)
     return () => clearInterval(t)
-  }, [genJobId, exportJobId, pollJob])
+  }, [genJobId, exportJobId, pollJob, showFailure])
 
   const generationTicking = Boolean(genJobId) || isGenerateRequestInFlight
   const generationKey = useKeyedGeneration(generationTicking ? '1' : '0', {
@@ -692,10 +810,18 @@ export default function ReviewPage() {
   ).length
 
   const isGenerating = !!(genJobId || isGenerateRequestInFlight)
+  const generateLabel = isGenerating
+    ? actionVerb('generate', 'pending')
+    : actionVerb('generate', 'idle')
+  const exportBusy = exportPending || !!exportJobId
+  const exportLabel = (format: 'XLSX' | 'DOCX') =>
+    exportBusy
+      ? actionVerb('export', 'pending')
+      : `${actionVerb('export', 'idle')} ${format}`
   const generationBanner = isGenerateRequestInFlight
     ? {
-        title: 'Starting request…',
-        subtitle: 'Sending your questionnaire to the answer service.',
+        title: actionVerb('generate', 'pending'),
+        subtitle: 'The request has not finished.',
       }
     : genJobId
       ? generationPhaseMessage(genJobBackendStatus)
@@ -766,46 +892,52 @@ export default function ReviewPage() {
             </p>
             <div className="mt-5 flex flex-wrap items-center gap-3">
               {canExport && (
-                <>
+                <div className="contents" data-microcopy="actions">
                   <Button
                     onClick={handleGenerate}
+                    loading={isGenerating}
+                    aria-busy={isGenerating}
+                    data-generate-state={isGenerating ? 'pending' : 'idle'}
                     disabled={
                       apiReachable === false ||
                       !!genJobId ||
                       isGenerateRequestInFlight
                     }
                   >
-                    {isGenerateRequestInFlight
-                      ? 'Starting…'
-                      : isGenerating
-                        ? `Generating… ${genElapsedSeconds > 0 ? formatGenerationElapsed(genElapsedSeconds) : ''}`.trim()
-                        : 'Generate draft answers'}
+                    {generateLabel}
                   </Button>
-                  {isGenerating && (
-                    <span className="text-xs text-[var(--tc-muted)]">
-                      Large questionnaires can take several minutes. You can
-                      keep using this page while drafts are prepared.
-                    </span>
-                  )}
                   <Button
                     variant="ghost"
                     onClick={() => handleExport('xlsx')}
-                    disabled={!!exportJobId}
+                    loading={exportBusy}
+                    aria-busy={exportBusy}
+                    data-export-state={exportBusy ? 'pending' : 'idle'}
+                    disabled={exportBusy}
                   >
-                    {exportJobId ? 'Exporting…' : 'Export XLSX'}
+                    {exportLabel('XLSX')}
                   </Button>
                   <Button
                     variant="ghost"
                     onClick={() => handleExport('docx')}
-                    disabled={!!exportJobId}
+                    loading={exportBusy}
+                    aria-busy={exportBusy}
+                    disabled={exportBusy}
                   >
-                    Export DOCX
+                    {exportLabel('DOCX')}
                   </Button>
-                  <span className="text-xs text-[var(--tc-muted)]">
-                    AI settings: {aiModel || 'gpt-4o-mini'} · style{' '}
-                    {responseStyle}
-                  </span>
-                </>
+                </div>
+              )}
+              {canExport && isGenerating && (
+                <span className="text-xs text-[var(--tc-muted)]">
+                  Large questionnaires can take several minutes. You can keep
+                  using this page while drafts are prepared.
+                </span>
+              )}
+              {canExport && (
+                <span className="text-xs text-[var(--tc-muted)]">
+                  AI settings: {aiModel || 'gpt-4o-mini'} · style{' '}
+                  {responseStyle}
+                </span>
               )}
             </div>
             <p className="mt-3 max-w-[740px] text-xs leading-relaxed text-[var(--tc-muted)]">
@@ -896,33 +1028,35 @@ export default function ReviewPage() {
                     <Button
                       size="sm"
                       onClick={handleGenerate}
+                      loading={isGenerating}
+                      aria-busy={isGenerating}
                       disabled={
                         apiReachable === false ||
                         !!genJobId ||
                         isGenerateRequestInFlight
                       }
                     >
-                      {isGenerateRequestInFlight
-                        ? 'Starting…'
-                        : isGenerating
-                          ? `Generating… ${genElapsedSeconds > 0 ? formatGenerationElapsed(genElapsedSeconds) : ''}`.trim()
-                          : 'Generate draft answers'}
+                      {generateLabel}
                     </Button>
                     <Button
                       size="sm"
                       variant="ghost"
                       onClick={() => handleExport('xlsx')}
-                      disabled={!!exportJobId}
+                      loading={exportBusy}
+                      aria-busy={exportBusy}
+                      disabled={exportBusy}
                     >
-                      Export XLSX
+                      {exportLabel('XLSX')}
                     </Button>
                     <Button
                       size="sm"
                       variant="ghost"
                       onClick={() => handleExport('docx')}
-                      disabled={!!exportJobId}
+                      loading={exportBusy}
+                      aria-busy={exportBusy}
+                      disabled={exportBusy}
                     >
-                      Export DOCX
+                      {exportLabel('DOCX')}
                     </Button>
                   </>
                 )}
@@ -961,8 +1095,14 @@ export default function ReviewPage() {
                   size="sm"
                   variant="secondary"
                   onClick={() => bulkUpdate('approved')}
+                  loading={approving}
+                  aria-busy={approving}
+                  data-approve-state={approving ? 'pending' : 'idle'}
+                  disabled={approving}
                 >
-                  Approve selected
+                  {approving
+                    ? actionVerb('approve', 'pending')
+                    : actionVerb('approve', 'idle')}
                 </Button>
                 <Button
                   size="sm"
@@ -1027,7 +1167,6 @@ export default function ReviewPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {/* eslint-disable-next-line react-hooks/refs -- pre-existing row ref registration during render; tracked as a TC-02-006 follow-up */}
                   {filtered.map((q, i) => {
                     const status = q.answer?.status ?? 'pending'
                     const statusClass =
@@ -1079,10 +1218,8 @@ export default function ReviewPage() {
                               placeholder="Edit draft answer…"
                             />
                             <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-[var(--tc-muted)]">
-                              <span>
-                                {pendingSaves.current.has(q.id)
-                                  ? 'Saving…'
-                                  : 'Saved'}
+                              <span data-save-state={savePhase[q.id] ?? 'idle'}>
+                                {rowSaveLabel(savePhase[q.id])}
                               </span>
                               <span>·</span>
                               <span>
@@ -1099,7 +1236,9 @@ export default function ReviewPage() {
                                     data-outcome-code={q.answer.outcome.code}
                                     title={q.answer.outcome.code}
                                   >
-                                    {q.answer.outcome.message}
+                                    {presentActionFailure({
+                                      data: q.answer.outcome,
+                                    })?.message ?? q.answer.outcome.message}
                                   </span>
                                 </>
                               ) : null}
@@ -1367,27 +1506,35 @@ export default function ReviewPage() {
         )}
       </Modal>
 
-      {(exportReadyToast || genSuccessToast || errorToast) && (
+      {(exportReadyToast || genSuccessToast || approveToast || errorToast) && (
         <ToastViewport>
           {exportReadyToast && (
             <Toast
-              title="Export ready — Download"
-              message={`${exportReadyToast.filename} has been generated with preserved formatting and evidence-backed answers.`}
+              title={confirmedActionNotice('export').title}
+              message={`${exportReadyToast.filename}. ${confirmedActionNotice('export').message}`}
               type="success"
               onDismiss={() => setExportReadyToast(null)}
             />
           )}
           {genSuccessToast && (
             <Toast
-              title="Draft answers ready"
-              message="New or updated drafts appear in the table. Review supporting evidence, edit text if needed, then approve and export when ready."
+              title={confirmedActionNotice('generate').title}
+              message={confirmedActionNotice('generate').message}
               type="success"
               onDismiss={() => setGenSuccessToast(false)}
             />
           )}
+          {approveToast && (
+            <Toast
+              title={confirmedActionNotice('approve').title}
+              message={confirmedActionNotice('approve').message}
+              type="success"
+              onDismiss={() => setApproveToast(false)}
+            />
+          )}
           {errorToast && (
             <Toast
-              title="Error"
+              title={errorTitle}
               message={errorToast}
               type="error"
               onDismiss={() => setErrorToast(null)}

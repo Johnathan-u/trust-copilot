@@ -7,7 +7,7 @@ from app.services import security_faq_service as faq_svc
 
 def get_public_security_page(db: Session, workspace_id: int) -> dict:
     """Generate the public-facing security page content."""
-    faqs = faq_svc.list_faqs(db, workspace_id)
+    faqs = faq_svc.list_published_faqs(db, workspace_id)
     categories = faq_svc.get_categories(db, workspace_id)  # noqa: F841
 
     sections = {}

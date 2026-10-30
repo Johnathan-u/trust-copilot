@@ -1,0 +1,4 @@
+SHA bfcc33ed364c73ef1d171e8adce344775292cbff
+command: python -m pytest tests/release/test_domain_evidence_gaps.py -q
+17 passed, 146 warnings in 6.20s
+exit status: 0

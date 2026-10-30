@@ -1,0 +1,23 @@
+..........ssssssssssssssssssssssssssssssss..ssssssssssssssssss.sssssssss [ 32%]
+sssss..s....ssssssssssssssssssssssssssssssssssssssssssssssssssssssssssss [ 65%]
+ssssss........................................ssssssssssssssssssssssssss [ 98%]
+..ss                                                                     [100%]
+=============================== warnings summary ===============================
+tests/release/test_enqueue_consistency.py::test_sweep_spares_export_retry_uploaded_after_the_listing[.xlsx-queued]
+tests/release/test_enqueue_consistency.py::test_sweep_spares_export_retry_uploaded_after_the_listing[.xlsx-running]
+tests/release/test_enqueue_consistency.py::test_sweep_spares_export_retry_uploaded_after_the_listing[.docx-queued]
+tests/release/test_enqueue_consistency.py::test_sweep_spares_export_retry_uploaded_after_the_listing[.docx-running]
+tests/release/test_enqueue_consistency.py::test_stale_attempt_cleanup_keeps_winners_uncommitted_export
+  /tmp/tc-backend-venv/lib/python3.12/site-packages/sqlalchemy/sql/schema.py:3627: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    return util.wrap_callable(lambda ctx: fn(), fn)  # type: ignore
+
+tests/release/test_job_retries.py::test_write_guard_does_not_protect_llm_error_placeholders
+  /workspace/scratch/ac0fa793e50b/tc-enqueue-repair/apps/api/tests/release/test_job_retries.py:912: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    cutoff = datetime.utcnow() - timedelta(hours=1)
+
+tests/release/test_job_retries.py::test_write_guard_does_not_protect_llm_error_placeholders
+  /workspace/scratch/ac0fa793e50b/tc-enqueue-repair/apps/api/tests/release/test_job_retries.py:914: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    newer = datetime.utcnow()
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+61 passed, 159 skipped, 7 warnings in 3.19s

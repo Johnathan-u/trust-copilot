@@ -9,6 +9,7 @@ Uses a mock DB session so no Postgres is needed — pure logic verification.
 
 import json
 from datetime import datetime
+from types import SimpleNamespace
 from unittest.mock import MagicMock
 
 
@@ -63,7 +64,7 @@ def _cits(n):
     return json.dumps([{"chunk_id": i, "snippet": f"s{i}"} for i in range(n)])
 
 
-def _make_db(total_questions, answer_rows, signal_rows, gap_rows):
+def _make_db(total_questions, answer_rows, signal_rows, gap_rows, question_rows=None):
     """Build a mock DB session that returns *controlled* data in the exact
     call-order that ``get_compliance_coverage`` issues its queries:
 
@@ -83,6 +84,7 @@ def _make_db(total_questions, answer_rows, signal_rows, gap_rows):
         _Chain(),  # 5
         _Chain(signal_rows),  # 6
         _Chain(gap_rows),  # 7
+        _Chain(question_rows),  # 8: live question parents for inferred recommendations
     ]
     idx = {"n": 0}
 
@@ -468,6 +470,9 @@ class TestComplianceCoverageComputation:
         assert len(items) == 3
         assert items[0]["title"] == "Vendor Risk Management Policy"
         assert items[0]["improves_questions"] == 3
+        assert items[0]["evidence_ids"] == []
+        assert items[0]["control_ids"] == []
+        assert items[0]["question_ids"] == []
         assert items[1]["title"] == "Incident Response Plan"
         assert items[1]["improves_questions"] == 2
 
@@ -480,6 +485,37 @@ class TestComplianceCoverageComputation:
         assert any("Incident Response" in t for t in titles)
         for item in items:
             assert item["improves_questions"] >= 1
+            assert item["evidence_ids"] == []
+            assert item["control_ids"] == []
+            assert isinstance(item["question_ids"], list)
+
+    def test_fallback_question_sources_keep_parent_associations_and_answer_count(self):
+        from app.services.compliance_coverage import get_compliance_coverage
+
+        answers = [
+            (i, qid, "insufficient_evidence", 10, _cats([], ["Backups"]), "[]", None)
+            for i, qid in [(1, 105), (2, 101), (3, 101)]
+        ]
+        db = _make_db(
+            2,
+            answers,
+            [],
+            [],
+            question_rows=[
+                SimpleNamespace(id=105, questionnaire_id=11),
+                SimpleNamespace(id=101, questionnaire_id=22),
+            ],
+        )
+
+        items = get_compliance_coverage(db, 1)["recommended_evidence"]
+
+        assert len(items) == 1
+        assert items[0]["question_ids"] == [101, 105]
+        assert items[0]["question_sources"] == [
+            {"question_id": 101, "questionnaire_id": 22},
+            {"question_id": 105, "questionnaire_id": 11},
+        ]
+        assert items[0]["improves_questions"] == 3
 
     # ── Edge cases ─────────────────────────────────────────────────────────
 

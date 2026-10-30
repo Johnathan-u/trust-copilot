@@ -1,6 +1,36 @@
 """Tests for the security and data-handling FAQ system (P0-12)."""
 
 import pytest
+from sqlalchemy import text
+
+
+@pytest.fixture(autouse=True)
+def restore_faq_rows(db_session):
+    """Each legacy test restores its own committed FAQ, version, source and audit rows."""
+    from tests.conftest import _login_residue_delete, _login_residue_snapshot
+
+    auth_bounds = _login_residue_snapshot()
+    tables = ("security_faq", "security_faq_sources", "security_faq_revisions", "audit_events")
+    before = {t: db_session.execute(text(f"SELECT count(*) FROM {t}")).scalar() for t in tables}
+    faq_ids = set(db_session.execute(text("SELECT id FROM security_faq")).scalars())
+    audit_ids = set(db_session.execute(text("SELECT id FROM audit_events")).scalars())
+    db_session.rollback()
+    yield
+    db_session.rollback()
+    from app.models import AuditEvent
+    from app.models.security_faq import SecurityFAQ
+
+    # Only remove new FAQ rows; no trigger or FK disabling, and cascades remove children.
+    db_session.query(SecurityFAQ).filter(SecurityFAQ.id.notin_(faq_ids)).delete(
+        synchronize_session=False
+    )
+    db_session.query(AuditEvent).filter(
+        AuditEvent.id.notin_(audit_ids), AuditEvent.action.like("faq.%")
+    ).delete(synchronize_session=False)
+    db_session.commit()
+    _login_residue_delete(auth_bounds)
+    after = {t: db_session.execute(text(f"SELECT count(*) FROM {t}")).scalar() for t in tables}
+    assert before == after
 
 
 @pytest.fixture
@@ -218,4 +248,4 @@ class TestSecurityFAQAPI:
                 "answer": "A.",
             },
         )
-        assert r.status_code == 400
+        assert r.status_code == 422
