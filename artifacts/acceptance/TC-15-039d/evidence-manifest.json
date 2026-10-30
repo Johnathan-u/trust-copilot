@@ -1,0 +1,236 @@
+{
+  "algorithm": "sha256",
+  "scope": "Every retained child evidence file except this manifest itself.",
+  "files": [
+    {
+      "path": "README.md",
+      "bytes": 9035,
+      "sha256": "67d6a7344ad94fd7bbee0e65a3af2c71930860f7032b02876ccdff659b03b722"
+    },
+    {
+      "path": "artifact-hooks.json",
+      "bytes": 4257,
+      "sha256": "00271703c5cf57c919cdb24f995b7ea4ae35065ebd6daa84fec1185eef1fd504"
+    },
+    {
+      "path": "assertion-preservation.json",
+      "bytes": 674,
+      "sha256": "5f98089d3b8384334c321b329087f723e500d36821f54f2cd87e60a7746209e8"
+    },
+    {
+      "path": "candidate/approval-dark-1440-axe.json",
+      "bytes": 108,
+      "sha256": "c4944291e335a497d186306e7468f2420b9072292d9a5ce949b0d9fc3f0daefb"
+    },
+    {
+      "path": "candidate/approval-dark-1440-hover.json",
+      "bytes": 412,
+      "sha256": "41f92a6c6acb88be312f5346160ad738154ede686466f872b5251e7e99ae77a0"
+    },
+    {
+      "path": "candidate/approval-dark-1440-state.json",
+      "bytes": 3406,
+      "sha256": "599ff73a83608a5f2ddcf06a64063dcbfbc7f27efddd0bcee13b15261b5eeb96"
+    },
+    {
+      "path": "candidate/approval-dark-1440.png",
+      "bytes": 110877,
+      "sha256": "29c26d69ef56c5542868ad23738d9e2cbefbe54ce4c6115afd269b7292ea9001"
+    },
+    {
+      "path": "candidate/approval-dark-360-axe.json",
+      "bytes": 107,
+      "sha256": "0b81c929918a045cb602e647ae7798f0a7f31d04e8b712cc4b81c22ea8cb85e5"
+    },
+    {
+      "path": "candidate/approval-dark-360-hover.json",
+      "bytes": 411,
+      "sha256": "1fb68db53a885433bcf4114784bbc4c83502edebddf791ebb07b1092434132f7"
+    },
+    {
+      "path": "candidate/approval-dark-360-state.json",
+      "bytes": 3405,
+      "sha256": "a058643907e64c2837ac007e962a5459dbf61a184b3b2dfdcbc7179b26d815a7"
+    },
+    {
+      "path": "candidate/approval-dark-360.png",
+      "bytes": 49284,
+      "sha256": "b6d4408e1c6dc3fbce3c84b3c2534c969c511238d2f4cec52408fddbf64986f1"
+    },
+    {
+      "path": "candidate/approval-dark-768-axe.json",
+      "bytes": 107,
+      "sha256": "c393b1f3132c2dc8fbcf10843c75e136c00ba9ca741985682f646bb0e57afbdc"
+    },
+    {
+      "path": "candidate/approval-dark-768-hover.json",
+      "bytes": 411,
+      "sha256": "ac87b425b78bc3acc8b0a3cb5d3e63ad4beb2066d140ad03adf4614b27d038f5"
+    },
+    {
+      "path": "candidate/approval-dark-768-state.json",
+      "bytes": 3405,
+      "sha256": "95bd198b1ec74307aeae9e81be17fe1652fde15f1c53da94717894f43aa91bec"
+    },
+    {
+      "path": "candidate/approval-dark-768.png",
+      "bytes": 88840,
+      "sha256": "23ad7647aabdb2dd7de51dae65165a0e8954b8614efd3b2b3927df390f59514a"
+    },
+    {
+      "path": "candidate/approval-light-1440-axe.json",
+      "bytes": 109,
+      "sha256": "77be1d8f6b9ace8bfa693d7e54c20d6eadc35334e5e128dad7f072779a91ee5b"
+    },
+    {
+      "path": "candidate/approval-light-1440-hover.json",
+      "bytes": 412,
+      "sha256": "aab864d39c41325fbb2dcd06af68628f9297cf2a32d2484a4754af56e703e097"
+    },
+    {
+      "path": "candidate/approval-light-1440-state.json",
+      "bytes": 3412,
+      "sha256": "ea8671c313a471724b880f42f5ec432a5d9ac7e446322275e99c9d3f0a8dc78b"
+    },
+    {
+      "path": "candidate/approval-light-1440.png",
+      "bytes": 109274,
+      "sha256": "c2e6111074b2178426d18d7060717f2c0b902baa4776c3d06bdacae8af9ee32b"
+    },
+    {
+      "path": "candidate/approval-light-360-axe.json",
+      "bytes": 108,
+      "sha256": "c5b24b35cbab9db81d83851da339113c85f87c2488119b5e6c6aac2fbc522100"
+    },
+    {
+      "path": "candidate/approval-light-360-hover.json",
+      "bytes": 411,
+      "sha256": "a0db31cb4c06bc050aad1bf7958224c1bcee7a2cf50c259bd95e7daf46cff9e8"
+    },
+    {
+      "path": "candidate/approval-light-360-state.json",
+      "bytes": 3411,
+      "sha256": "b0f22f403daaa496c9a79f1e8a3d841e2bb4e7f359b20e0876ef8808c1debafb"
+    },
+    {
+      "path": "candidate/approval-light-360.png",
+      "bytes": 48689,
+      "sha256": "a890a0a7fba1b5dc1b1dc7db3f4c0a5c26868981923d715133c07b306d0db512"
+    },
+    {
+      "path": "candidate/approval-light-768-axe.json",
+      "bytes": 108,
+      "sha256": "b8da996899a4f4d365af53d04da3b97b9f5896fa071eebb151ed2c54482c1590"
+    },
+    {
+      "path": "candidate/approval-light-768-hover.json",
+      "bytes": 411,
+      "sha256": "71744957a2a8977b7a31a7b7226938214ac1cc1adad4e743a230b705ba758b50"
+    },
+    {
+      "path": "candidate/approval-light-768-state.json",
+      "bytes": 3411,
+      "sha256": "e31ce6060c4ef2175dcddb45df1cb66662dddbe6ce783a08684be01a5caa54fc"
+    },
+    {
+      "path": "candidate/approval-light-768.png",
+      "bytes": 87958,
+      "sha256": "278573982f9f2241bce88364a3a1c49c521292e136662d5b8df06481611055fe"
+    },
+    {
+      "path": "ci/failing-incoming-768.json",
+      "bytes": 2387,
+      "sha256": "c3feeb2c7d7b6f6b1b6ef5e47725d5ac322a469b796362eefeef827e9c65899e"
+    },
+    {
+      "path": "ci/provenance.json",
+      "bytes": 489,
+      "sha256": "6c3a1f79cf380263fa3221a01e3d0c86ecafc80c2ccf51adabcab95b51eacbb6"
+    },
+    {
+      "path": "commands/eslint.txt",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "commands/final-owning-suite.txt",
+      "bytes": 4747,
+      "sha256": "9d8da6331483523e0e8a25e6f8bc9d06603573b88d72ffd665a08426c1cce546"
+    },
+    {
+      "path": "commands/local-playwright.config.cjs",
+      "bytes": 791,
+      "sha256": "d6ea1d1cb96aa68a2e182519e5950efa502d8f2c54910a0b7853b1cd3afe4ddf"
+    },
+    {
+      "path": "commands/owning-unit.txt",
+      "bytes": 592,
+      "sha256": "b5a1ca127c4487edb444cb6691e2b1b33db7a3dd681b49b0222b9a9a4252cde6"
+    },
+    {
+      "path": "commands/prettier.txt",
+      "bytes": 66,
+      "sha256": "17aa973d3f004560237d9a95171210b0671deff23d61628eecf7322ff5938f20"
+    },
+    {
+      "path": "commands/typecheck.txt",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "commands/typegen.txt",
+      "bytes": 59,
+      "sha256": "adba4af9194e10e47dda75ff0fd0f8c2b756474896d0eba5612799c527ff372a"
+    },
+    {
+      "path": "controls/baseline-dark-768.png",
+      "bytes": 87823,
+      "sha256": "79b32dc6f5349f82ce6445cac07477066bcfa8106a396516287e66a79c8a1283"
+    },
+    {
+      "path": "controls/baseline-light-768.png",
+      "bytes": 86907,
+      "sha256": "5bc26ad362140e42cd29c95534e562bcdc503caa34fbc5ac0566e780e1a408d6"
+    },
+    {
+      "path": "controls/baseline-six-cases.json",
+      "bytes": 47283,
+      "sha256": "33e9e5181bf450403486931a062ec3aeb5ca480068a84c878f9d12ac6efe61cf"
+    },
+    {
+      "path": "controls/final-original-dark-768.json",
+      "bytes": 7413,
+      "sha256": "2b38c0236dd49d31d54503779a9167ac6f2049330ae4e1d8bcd11ce29dcacf5a"
+    },
+    {
+      "path": "controls/foreground-only-light-768.json",
+      "bytes": 6939,
+      "sha256": "e35fbc0331c4057a72e36174378b0658beb330fad1e03d360c13561239f7562d"
+    },
+    {
+      "path": "original-scans/axe-incoming-1440.json",
+      "bytes": 89,
+      "sha256": "33fe3a8411a2431d78ac39d5bdd981045bbdd581153cc7d07fd262bfa5436d31"
+    },
+    {
+      "path": "original-scans/axe-incoming-360.json",
+      "bytes": 88,
+      "sha256": "dd812370532182eb91ece7eba008f54ac2bec545f8cd3886d517f094828111eb"
+    },
+    {
+      "path": "original-scans/axe-incoming-768.json",
+      "bytes": 88,
+      "sha256": "ecaf52410c5f406e02b256e456183837fca979574326efcb38b2df5e449d7f1e"
+    },
+    {
+      "path": "source-proof.json",
+      "bytes": 1818,
+      "sha256": "f6130097f8b8969c727624dfd14a643f5c5f9de34fe913925db4c4e1610b6c1b"
+    },
+    {
+      "path": "validation.json",
+      "bytes": 40976,
+      "sha256": "be8268dfac3b7dcb81dc53e6e44705c7e08c2acbc81f4355b7e6e3507da4b2c7"
+    }
+  ]
+}

@@ -34,6 +34,7 @@ from app.core.audit import audit_log
 from app.core.config import get_settings
 from app.core.auth_deps import require_can_edit, require_can_review, require_session
 from app.core.database import get_db
+from app.core.workspace_refs import require_refs
 from app.models import (
     Answer,
     Document,
@@ -1181,6 +1182,17 @@ def update_questionnaire_mapping(
     ws = session.get("workspace_id")
     if not ws:
         raise HTTPException(status_code=403, detail="No workspace")
+    # Validate the active parent and every new reference before changing any
+    # mapping field. Zero retains the existing explicit-clear behavior.
+    require_refs(
+        db,
+        ws,
+        [
+            ("questionnaire", qnr_id),
+            ("control", body.preferred_control_id or None),
+            ("tag", body.preferred_tag_id or None),
+        ],
+    )
     m = (
         db.query(QuestionMappingPreference)
         .filter(

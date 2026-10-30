@@ -1,0 +1,119 @@
+{
+  "theme": "light",
+  "width": 360,
+  "state": {
+    "before": {
+      "disabled": true,
+      "disabledSelector": true,
+      "focused": false,
+      "color": "rgb(100, 116, 139)",
+      "backgroundColor": "rgb(226, 232, 240)",
+      "outlineWidth": "3px",
+      "transitionProperty": "border-color, text-decoration-color, fill, stroke",
+      "transitionDuration": "0.15s",
+      "transitionTimingFunction": "cubic-bezier(0.2, 0, 0, 1)"
+    },
+    "removal": {
+      "held": {
+        "disabled": false,
+        "disabledSelector": false,
+        "focused": false,
+        "color": "rgb(255, 255, 255)",
+        "backgroundColor": "rgb(15, 118, 110)",
+        "outlineWidth": "3px",
+        "transitionProperty": "border-color, text-decoration-color, fill, stroke",
+        "transitionDuration": "0.15s",
+        "transitionTimingFunction": "cubic-bezier(0.2, 0, 0, 1)"
+      },
+      "transitions": [
+        {
+          "property": "border-bottom-color",
+          "keyframes": [
+            {
+              "offset": 0,
+              "easing": "linear",
+              "composite": "auto",
+              "borderBottomColor": "rgb(100, 116, 139)",
+              "computedOffset": 0
+            },
+            {
+              "offset": 1,
+              "easing": "linear",
+              "composite": "auto",
+              "borderBottomColor": "rgba(0, 0, 0, 0)",
+              "computedOffset": 1
+            }
+          ]
+        },
+        {
+          "property": "border-left-color",
+          "keyframes": [
+            {
+              "offset": 0,
+              "easing": "linear",
+              "composite": "auto",
+              "borderLeftColor": "rgb(100, 116, 139)",
+              "computedOffset": 0
+            },
+            {
+              "offset": 1,
+              "easing": "linear",
+              "composite": "auto",
+              "borderLeftColor": "rgba(0, 0, 0, 0)",
+              "computedOffset": 1
+            }
+          ]
+        },
+        {
+          "property": "border-right-color",
+          "keyframes": [
+            {
+              "offset": 0,
+              "easing": "linear",
+              "composite": "auto",
+              "borderRightColor": "rgb(100, 116, 139)",
+              "computedOffset": 0
+            },
+            {
+              "offset": 1,
+              "easing": "linear",
+              "composite": "auto",
+              "borderRightColor": "rgba(0, 0, 0, 0)",
+              "computedOffset": 1
+            }
+          ]
+        },
+        {
+          "property": "border-top-color",
+          "keyframes": [
+            {
+              "offset": 0,
+              "easing": "linear",
+              "composite": "auto",
+              "borderTopColor": "rgb(100, 116, 139)",
+              "computedOffset": 0
+            },
+            {
+              "offset": 1,
+              "easing": "linear",
+              "composite": "auto",
+              "borderTopColor": "rgba(0, 0, 0, 0)",
+              "computedOffset": 1
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "enabled": {
+    "disabled": false,
+    "disabledSelector": false,
+    "focused": true,
+    "color": "rgb(255, 255, 255)",
+    "backgroundColor": "rgb(15, 118, 110)",
+    "outlineWidth": "2px",
+    "transitionProperty": "border-color, text-decoration-color, fill, stroke",
+    "transitionDuration": "0.15s",
+    "transitionTimingFunction": "cubic-bezier(0.2, 0, 0, 1)"
+  }
+}

@@ -1,0 +1,225 @@
+{
+  "ticket": "TC-06-003a",
+  "date": "2026-10-30",
+  "points": 5,
+  "status": "locally implemented; independent review and PostgreSQL/CI qualification pending",
+  "claim": "https://github.com/Johnathan-u/trust-copilot/issues/85#issuecomment-6515545874",
+  "base_commit": "8f0cc07872057007d635e7bee17687f5fadc696b",
+  "code_commit": "1743532ab2414ffa6d18e39e024029732df20525",
+  "code_tree": "f41fcd786561a5cd8263d4659565eeec53c39cc0",
+  "source_blobs": {
+    "apps/api/app/api/routes/answer_approval.py": "8be330f7b264e4962a03760fe3f4e705c19ca0c3",
+    "apps/api/app/services/answer_approval_service.py": "4fd01494b7bb96765b6f30831a8e1724aab8a28f",
+    "apps/api/tests/release/test_authorization_answer_approval.py": "4c6b8440da30e206c348e46566f769e1c6934507",
+    "apps/api/tests/test_answer_approval.py": "b5262af0904e91732ee481f26b3e44f44ce5a7dc"
+  },
+  "scope": {
+    "changed": [
+      "Required explicit workspace on approval service parent operations",
+      "Current scoped parent before status/projection/mutation; neutral 404 for unavailable parent/history",
+      "Current nonsuspended tenant member required for assignment",
+      "Full bulk authorization preflight before any writes"
+    ],
+    "preserved": [
+      "Route permission dependencies",
+      "Authorized state transitions, status skips, duplicate and empty-batch behavior",
+      "Event fields, review cycles and timestamps",
+      "Own empty history; queue and overdue scope",
+      "No recipient-role restrictions"
+    ],
+    "excluded": [
+      "Golden-library routes",
+      "Document or source-answer eligibility",
+      "Auth or role changes",
+      "Schema, migration, providers, dependencies and UI"
+    ]
+  },
+  "environment": {
+    "python": "3.12.14",
+    "dependencies": "Existing locked development dependencies in /tmp/tc-backend-venv; no lock changes",
+    "postgresql": "Unavailable at localhost:5432",
+    "provider_calls": 0,
+    "default_command_cwd": "apps/api"
+  },
+  "fixture": {
+    "sqlite": "Real FK-enforced SQL, stored users/memberships/session, signed cookie with explicit expiry; only get_db overridden",
+    "postgresql": "Existing migrated_db prerequisite; same 106 cases, required CI mode fails on missing service",
+    "full_row_snapshot_tables": [
+      "answer_approval_events",
+      "golden_answers",
+      "audit_events",
+      "user_mfa",
+      "user_sessions",
+      "api_keys",
+      "custom_roles",
+      "workspace_members",
+      "users",
+      "workspaces"
+    ],
+    "denials": "Full-row hashes/counts unchanged, no pending ORM mutations, and actual SQL observer rejects any INSERT/UPDATE/DELETE even if rolled back",
+    "cleanup": "Exact fixture-owned IDs; route-created events resolved by owned parent IDs, then deleted by exact IDs; full original snapshot equality",
+    "collection": "No fixture database creation or connection during import/collection"
+  },
+  "checks": [
+    {
+      "name": "unchanged-source baseline, repeated with final tests",
+      "command": "/tmp/tc-backend-venv/bin/python -m pytest tests/release/test_authorization_answer_approval.py -m unit -q --tb=short",
+      "tested_source": "base route/service files temporarily restored, final new test file retained",
+      "exit_code": 1,
+      "failed": 40,
+      "passed": 66,
+      "deselected": 106,
+      "note": "Failures include foreign 200/status disclosure and missing-assignee FK exceptions; all expected defects were repaired"
+    },
+    {
+      "name": "repaired SQLite and final restored-source rerun",
+      "command": "/tmp/tc-backend-venv/bin/python -m pytest tests/release/test_authorization_answer_approval.py -m unit -q --tb=short",
+      "exit_code": 0,
+      "passed": 106,
+      "deselected": 106,
+      "warnings": "716 existing datetime.utcnow deprecation warnings"
+    },
+    {
+      "name": "new and existing approval collection",
+      "command": "/tmp/tc-backend-venv/bin/python -m pytest tests/release/test_authorization_answer_approval.py tests/test_answer_approval.py --collect-only -q",
+      "exit_code": 0,
+      "collected": 227,
+      "new_cases": 212,
+      "existing_cases": 15
+    },
+    {
+      "name": "required PostgreSQL",
+      "command": "TC_REQUIRE_DB=1 /tmp/tc-backend-venv/bin/python -m pytest tests/release/test_authorization_answer_approval.py tests/test_answer_approval.py -m integration -q --tb=short",
+      "exit_code": 3,
+      "tests_executed": 0,
+      "reason": "localhost:5432 connection refused; existing session hook aborts before tests"
+    },
+    {
+      "name": "repository collection safety",
+      "command": "/tmp/tc-backend-venv/bin/python -m pytest tests/release/test_safe_collection.py -q",
+      "exit_code": 0,
+      "passed": 29
+    },
+    {
+      "name": "scoped lint",
+      "command": "/tmp/tc-backend-venv/bin/python -m ruff check apps/api/app/api/routes/answer_approval.py apps/api/app/services/answer_approval_service.py apps/api/tests/release/test_authorization_answer_approval.py apps/api/tests/test_answer_approval.py",
+      "cwd": "repository",
+      "exit_code": 0
+    },
+    {
+      "name": "scoped formatting",
+      "command": "/tmp/tc-backend-venv/bin/python -m ruff format --check apps/api/app/api/routes/answer_approval.py apps/api/app/services/answer_approval_service.py apps/api/tests/release/test_authorization_answer_approval.py apps/api/tests/test_answer_approval.py",
+      "cwd": "repository",
+      "exit_code": 0
+    },
+    {
+      "name": "code secret inventory",
+      "command": "/tmp/tc-backend-venv/bin/python scripts/security/secret_inventory.py paths apps/api/app/api/routes/answer_approval.py apps/api/app/services/answer_approval_service.py apps/api/tests/release/test_authorization_answer_approval.py apps/api/tests/test_answer_approval.py --root . --fail-on block",
+      "cwd": "repository",
+      "exit_code": 0,
+      "findings": 0
+    },
+    {
+      "name": "whitespace",
+      "command": "git diff --check",
+      "cwd": "repository",
+      "exit_code": 0
+    }
+  ],
+  "negative_controls": [
+    {
+      "name": "parent_workspace",
+      "command": [
+        "/tmp/tc-backend-venv/bin/python",
+        "-m",
+        "pytest",
+        "tests/release/test_authorization_answer_approval.py::test_unavailable_parent_is_neutral_404_before_any_write[sqlite-foreign-approve]",
+        "-q",
+        "--tb=short"
+      ],
+      "exit_code": 1,
+      "expected": "1 failed"
+    },
+    {
+      "name": "history_parent",
+      "command": [
+        "/tmp/tc-backend-venv/bin/python",
+        "-m",
+        "pytest",
+        "tests/release/test_authorization_answer_approval.py::test_unavailable_parent_is_neutral_404_before_any_write[sqlite-foreign-history]",
+        "-q",
+        "--tb=short"
+      ],
+      "exit_code": 1,
+      "expected": "1 failed"
+    },
+    {
+      "name": "assignee_workspace",
+      "command": [
+        "/tmp/tc-backend-venv/bin/python",
+        "-m",
+        "pytest",
+        "tests/release/test_authorization_answer_approval.py::test_assignment_requires_current_active_workspace_member[sqlite-foreign-assign-owner]",
+        "-q",
+        "--tb=short"
+      ],
+      "exit_code": 1,
+      "expected": "1 failed"
+    },
+    {
+      "name": "assignee_suspension",
+      "command": [
+        "/tmp/tc-backend-venv/bin/python",
+        "-m",
+        "pytest",
+        "tests/release/test_authorization_answer_approval.py::test_assignment_requires_current_active_workspace_member[sqlite-suspended-assign-owner]",
+        "-q",
+        "--tb=short"
+      ],
+      "exit_code": 1,
+      "expected": "1 failed"
+    },
+    {
+      "name": "bulk_preflight_removed",
+      "command": [
+        "/tmp/tc-backend-venv/bin/python",
+        "-m",
+        "pytest",
+        "tests/release/test_authorization_answer_approval.py::test_bulk_preflights_every_parent_before_any_write[sqlite-False-foreign]",
+        "-q",
+        "--tb=short"
+      ],
+      "exit_code": 1,
+      "expected": "1 failed"
+    },
+    {
+      "name": "bulk_preflight_late",
+      "command": [
+        "/tmp/tc-backend-venv/bin/python",
+        "-m",
+        "pytest",
+        "tests/release/test_authorization_answer_approval.py::test_bulk_preflights_every_parent_before_any_write[sqlite-False-foreign]",
+        "-q",
+        "--tb=short"
+      ],
+      "exit_code": 1,
+      "expected": "1 failed"
+    }
+  ],
+  "negative_control_restoration": "Both route and service restored in finally; final 106-case SQLite rerun, Ruff, formatting, secret scan and diff check all pass",
+  "strong_late_preflight_control": "Moving rejection after the loop preserves HTTP 404 and rollback, but the SQL observer detects an event INSERT and golden-answer UPDATE; the test fails on pre-write authorization ordering",
+  "not_claimed": [
+    "PostgreSQL execution success",
+    "Execution success of the 15 existing PostgreSQL approval tests",
+    "Full pytest success",
+    "Future CI success",
+    "Full TC-06-001 or TC-06-003 closure",
+    "Publication or merge"
+  ],
+  "remaining_gates": [
+    "Independent review of exact code/test/docs head",
+    "106 new PostgreSQL cases and 15 existing approval tests execute successfully",
+    "Build and web-release-e2e on both push and pull_request for exact final head",
+    "Coordinator publication capacity and merge authority"
+  ]
+}

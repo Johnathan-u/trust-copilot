@@ -1,0 +1,1313 @@
+{
+  "qualification": "Local real pinned Chromium with existing synthetic HTTP fixtures; exact-head remote CI and full-parent acceptance remain pending.",
+  "browser_setup": {
+    "app": "/tmp/tc-15-039d-work/snapshot/apps/web",
+    "server_command": "NEXT_DIST_DIR=.next-approval-contrast NEXT_TELEMETRY_DISABLED=1 API_UPSTREAM=http://127.0.0.1:18099 /opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node node_modules/next/dist/bin/next dev --port 13255",
+    "config_path": "/tmp/tc-15-039d-work/playwright.config.cjs",
+    "config_sha256": "d6ea1d1cb96aa68a2e182519e5950efa502d8f2c54910a0b7853b1cd3afe4ddf",
+    "workers": 1,
+    "retries": 0,
+    "default_timeout_ms": 30000,
+    "pinned_browser": "/tmp/tc-pr149-pinned-chrome/chrome-headless-shell-linux64/chrome-headless-shell",
+    "dependencies": "Existing locked dependency copy; no install/version/dependency change.",
+    "warmup": "One authenticated synthetic-cookie GET before each phase to compile the local route; no new test wait, scan delay or retry."
+  },
+  "final_browser_commands": [
+    {
+      "phase": "final-baseline-dark-768",
+      "command": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+        "node_modules/@playwright/test/cli.js",
+        "test",
+        "--config",
+        "/tmp/tc-15-039d-work/playwright.config.cjs",
+        "--project=chromium",
+        "--retries=0",
+        "--grep",
+        "approval palette.*dark at 768px"
+      ],
+      "exit_code": 1,
+      "stats": {
+        "startTime": "2026-10-30T15:54:55.835Z",
+        "duration": 4672.795,
+        "expected": 0,
+        "skipped": 0,
+        "unexpected": 1,
+        "flaky": 0
+      },
+      "page_sha256": "664e8d018b4f7f82843ff06155fc4b1991120c610cbbf4e883e587f8e5fb85b1",
+      "spec_sha256": "7d47f4034fa229f7d107da6f8517bcce2d894a3eada63957ad10166448b58ee2"
+    },
+    {
+      "phase": "foreground-only-light",
+      "command": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+        "node_modules/@playwright/test/cli.js",
+        "test",
+        "--config",
+        "/tmp/tc-15-039d-work/playwright.config.cjs",
+        "--project=chromium",
+        "--retries=0",
+        "--grep",
+        "approval palette.*light at 768px"
+      ],
+      "exit_code": 1,
+      "stats": {
+        "startTime": "2026-10-30T15:55:02.302Z",
+        "duration": 5502.5,
+        "expected": 0,
+        "skipped": 0,
+        "unexpected": 1,
+        "flaky": 0
+      },
+      "page_sha256": "794565a237342bd89a637f0e9c21e49db0b9b20d86241e6515068a8cf8949def",
+      "spec_sha256": "7d47f4034fa229f7d107da6f8517bcce2d894a3eada63957ad10166448b58ee2"
+    },
+    {
+      "phase": "final-owning-suite",
+      "command": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+        "node_modules/@playwright/test/cli.js",
+        "test",
+        "--config",
+        "/tmp/tc-15-039d-work/playwright.config.cjs",
+        "--project=chromium",
+        "--retries=0"
+      ],
+      "exit_code": 0,
+      "stats": {
+        "startTime": "2026-10-30T15:55:09.674Z",
+        "duration": 75656.39099999999,
+        "expected": 28,
+        "skipped": 0,
+        "unexpected": 0,
+        "flaky": 0
+      },
+      "page_sha256": "d8beaa8c914d2835ffdc2236785a283365bd873dfdab31eff07524fb9e85d8b2",
+      "spec_sha256": "7d47f4034fa229f7d107da6f8517bcce2d894a3eada63957ad10166448b58ee2"
+    }
+  ],
+  "reports": [
+    {
+      "phase": "baseline",
+      "stats": {
+        "startTime": "2026-10-30T15:50:41.594Z",
+        "duration": 41588.58,
+        "expected": 0,
+        "skipped": 0,
+        "unexpected": 6,
+        "flaky": 0
+      },
+      "global_errors": [],
+      "raw_report_path": "/tmp/tc-15-039d-work/reports/baseline.json",
+      "raw_report_sha256": "bec1312824132d60b879cf0cbd04ffe5c4a2797b96ac72f4f8b1cab63dc1425c",
+      "raw_log_sha256": "dc763017d057116934ef5de87decc0149826e43cd9d0c99c6861760bb680198d",
+      "cases": [
+        {
+          "title": "approval palette is readable immediately after native keyboard enable in dark at 360px",
+          "line": 578,
+          "status": "unexpected",
+          "results": [
+            {
+              "status": "failed",
+              "retry": 0,
+              "duration_ms": 3854,
+              "error_locations": [
+                {
+                  "file": "/tmp/tc-15-039d-work/snapshot/apps/web/e2e/release/screen-trust-requests.spec.ts",
+                  "column": 11,
+                  "line": 716
+                }
+              ],
+              "attachment_names": [
+                "approval-dark-360-state",
+                "approval-dark-360-axe",
+                "approval-dark-360",
+                "screenshot",
+                "error-context"
+              ]
+            }
+          ]
+        },
+        {
+          "title": "approval palette is readable immediately after native keyboard enable in dark at 768px",
+          "line": 578,
+          "status": "unexpected",
+          "results": [
+            {
+              "status": "failed",
+              "retry": 0,
+              "duration_ms": 4224,
+              "error_locations": [
+                {
+                  "file": "/tmp/tc-15-039d-work/snapshot/apps/web/e2e/release/screen-trust-requests.spec.ts",
+                  "column": 11,
+                  "line": 716
+                }
+              ],
+              "attachment_names": [
+                "approval-dark-768-state",
+                "approval-dark-768-axe",
+                "approval-dark-768",
+                "screenshot",
+                "error-context"
+              ]
+            }
+          ]
+        },
+        {
+          "title": "approval palette is readable immediately after native keyboard enable in dark at 1440px",
+          "line": 578,
+          "status": "unexpected",
+          "results": [
+            {
+              "status": "failed",
+              "retry": 0,
+              "duration_ms": 4398,
+              "error_locations": [
+                {
+                  "file": "/tmp/tc-15-039d-work/snapshot/apps/web/e2e/release/screen-trust-requests.spec.ts",
+                  "column": 11,
+                  "line": 716
+                }
+              ],
+              "attachment_names": [
+                "approval-dark-1440-state",
+                "approval-dark-1440-axe",
+                "approval-dark-1440",
+                "screenshot",
+                "error-context"
+              ]
+            }
+          ]
+        },
+        {
+          "title": "approval palette is readable immediately after native keyboard enable in light at 360px",
+          "line": 578,
+          "status": "unexpected",
+          "results": [
+            {
+              "status": "failed",
+              "retry": 0,
+              "duration_ms": 4085,
+              "error_locations": [
+                {
+                  "file": "/tmp/tc-15-039d-work/snapshot/apps/web/e2e/release/screen-trust-requests.spec.ts",
+                  "column": 11,
+                  "line": 716
+                }
+              ],
+              "attachment_names": [
+                "approval-light-360-state",
+                "approval-light-360-axe",
+                "approval-light-360",
+                "screenshot",
+                "error-context"
+              ]
+            }
+          ]
+        },
+        {
+          "title": "approval palette is readable immediately after native keyboard enable in light at 768px",
+          "line": 578,
+          "status": "unexpected",
+          "results": [
+            {
+              "status": "failed",
+              "retry": 0,
+              "duration_ms": 5361,
+              "error_locations": [
+                {
+                  "file": "/tmp/tc-15-039d-work/snapshot/apps/web/e2e/release/screen-trust-requests.spec.ts",
+                  "column": 11,
+                  "line": 716
+                }
+              ],
+              "attachment_names": [
+                "approval-light-768-state",
+                "approval-light-768-axe",
+                "approval-light-768",
+                "screenshot",
+                "error-context"
+              ]
+            }
+          ]
+        },
+        {
+          "title": "approval palette is readable immediately after native keyboard enable in light at 1440px",
+          "line": 578,
+          "status": "unexpected",
+          "results": [
+            {
+              "status": "failed",
+              "retry": 0,
+              "duration_ms": 5781,
+              "error_locations": [
+                {
+                  "file": "/tmp/tc-15-039d-work/snapshot/apps/web/e2e/release/screen-trust-requests.spec.ts",
+                  "column": 11,
+                  "line": 716
+                }
+              ],
+              "attachment_names": [
+                "approval-light-1440-state",
+                "approval-light-1440-axe",
+                "approval-light-1440",
+                "screenshot",
+                "error-context"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "phase": "owning-suite",
+      "stats": {
+        "startTime": "2026-10-30T15:52:20.078Z",
+        "duration": 94692.69,
+        "expected": 28,
+        "skipped": 0,
+        "unexpected": 0,
+        "flaky": 0
+      },
+      "global_errors": [],
+      "raw_report_path": "/tmp/tc-15-039d-work/reports/owning-suite.json",
+      "raw_report_sha256": "ee2d7ed34e3590704f29631764326b9334a2e470bd2549608a55078d8c26ccc0",
+      "raw_log_sha256": "e3925ac864294182f2c5f6e2ee16c0b52a69c2a188a6bcdf9dd3eb2949e8e98c",
+      "cases": [
+        {
+          "title": "saved draft, edited revision and approved send use separate acknowledged actions",
+          "line": 221,
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "retry": 0,
+              "duration_ms": 4503,
+              "error_locations": [],
+              "attachment_names": []
+            }
+          ]
+        },
+        {
+          "title": "rejected 403 save retains text and refresh requires review of the latest revision",
+          "line": 268,
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "retry": 0,
+              "duration_ms": 2578,
+              "error_locations": [],
+              "attachment_names": []
+            }
+          ]
+        },
+        {
+          "title": "rejected 404 save retains text and refresh requires review of the latest revision",
+          "line": 268,
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "retry": 0,
+              "duration_ms": 1998,
+              "error_locations": [],
+              "attachment_names": []
+            }
+          ]
+        },
+        {
+          "title": "rejected 409 save retains text and refresh requires review of the latest revision",
+          "line": 268,
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "retry": 0,
+              "duration_ms": 2476,
+              "error_locations": [],
+              "attachment_names": []
+            }
+          ]
+        },
+        {
+          "title": "rejected 500 save retains text and refresh requires review of the latest revision",
+          "line": 268,
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "retry": 0,
+              "duration_ms": 2027,
+              "error_locations": [],
+              "attachment_names": []
+            }
+          ]
+        },
+        {
+          "title": "uncertain is truthful and does not trigger an automatic or blind repeat send",
+          "line": 307,
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "retry": 0,
+              "duration_ms": 1652,
+              "error_locations": [],
+              "attachment_names": []
+            }
+          ]
+        },
+        {
+          "title": "sending is truthful and does not trigger an automatic or blind repeat send",
+          "line": 307,
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "retry": 0,
+              "duration_ms": 1673,
+              "error_locations": [],
+              "attachment_names": []
+            }
+          ]
+        },
+        {
+          "title": "unavailable is truthful and does not trigger an automatic or blind repeat send",
+          "line": 307,
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "retry": 0,
+              "duration_ms": 3656,
+              "error_locations": [],
+              "attachment_names": []
+            }
+          ]
+        },
+        {
+          "title": "admin follows current can_review permission without invented roles",
+          "line": 343,
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "retry": 0,
+              "duration_ms": 2463,
+              "error_locations": [],
+              "attachment_names": []
+            }
+          ]
+        },
+        {
+          "title": "editor follows current can_review permission without invented roles",
+          "line": 343,
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "retry": 0,
+              "duration_ms": 3240,
+              "error_locations": [],
+              "attachment_names": []
+            }
+          ]
+        },
+        {
+          "title": "reviewer follows current can_review permission without invented roles",
+          "line": 343,
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "retry": 0,
+              "duration_ms": 1613,
+              "error_locations": [],
+              "attachment_names": []
+            }
+          ]
+        },
+        {
+          "title": "custom-reviewer follows current can_review permission without invented roles",
+          "line": 343,
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "retry": 0,
+              "duration_ms": 1366,
+              "error_locations": [],
+              "attachment_names": []
+            }
+          ]
+        },
+        {
+          "title": "custom-denied follows current can_review permission without invented roles",
+          "line": 343,
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "retry": 0,
+              "duration_ms": 1382,
+              "error_locations": [],
+              "attachment_names": []
+            }
+          ]
+        },
+        {
+          "title": "download uses the protected attachment endpoint and surfaces denial",
+          "line": 359,
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "retry": 0,
+              "duration_ms": 1596,
+              "error_locations": [],
+              "attachment_names": []
+            }
+          ]
+        },
+        {
+          "title": "empty, failed list, failed detail and partial notes have separate recovery states",
+          "line": 376,
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "retry": 0,
+              "duration_ms": 3372,
+              "error_locations": [],
+              "attachment_names": []
+            }
+          ]
+        },
+        {
+          "title": "switching workspace clears private rows and ignores late old-workspace detail",
+          "line": 414,
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "retry": 0,
+              "duration_ms": 1791,
+              "error_locations": [],
+              "attachment_names": []
+            }
+          ]
+        },
+        {
+          "title": "incoming list and reply editor are keyboard accessible at 360px",
+          "line": 442,
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "retry": 0,
+              "duration_ms": 7622,
+              "error_locations": [],
+              "attachment_names": [
+                "incoming-360",
+                "axe-incoming-360"
+              ]
+            }
+          ]
+        },
+        {
+          "title": "incoming list and reply editor are keyboard accessible at 768px",
+          "line": 442,
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "retry": 0,
+              "duration_ms": 9148,
+              "error_locations": [],
+              "attachment_names": [
+                "incoming-768",
+                "axe-incoming-768"
+              ]
+            }
+          ]
+        },
+        {
+          "title": "incoming list and reply editor are keyboard accessible at 1440px",
+          "line": 442,
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "retry": 0,
+              "duration_ms": 9804,
+              "error_locations": [],
+              "attachment_names": [
+                "incoming-1440",
+                "axe-incoming-1440"
+              ]
+            }
+          ]
+        },
+        {
+          "title": "unconfirmed new draft stays editable and cannot be submitted twice without inspection",
+          "line": 503,
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "retry": 0,
+              "duration_ms": 1526,
+              "error_locations": [],
+              "attachment_names": []
+            }
+          ]
+        },
+        {
+          "title": "lost send response blocks repetition until authoritative saved state is reloaded",
+          "line": 526,
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "retry": 0,
+              "duration_ms": 2950,
+              "error_locations": [],
+              "attachment_names": []
+            }
+          ]
+        },
+        {
+          "title": "backend internal notes remain visible beside actionable replies",
+          "line": 558,
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "retry": 0,
+              "duration_ms": 2278,
+              "error_locations": [],
+              "attachment_names": []
+            }
+          ]
+        },
+        {
+          "title": "approval palette is readable immediately after native keyboard enable in dark at 360px",
+          "line": 578,
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "retry": 0,
+              "duration_ms": 2524,
+              "error_locations": [],
+              "attachment_names": [
+                "approval-dark-360-state",
+                "approval-dark-360-axe",
+                "approval-dark-360",
+                "approval-dark-360-hover"
+              ]
+            }
+          ]
+        },
+        {
+          "title": "approval palette is readable immediately after native keyboard enable in dark at 768px",
+          "line": 578,
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "retry": 0,
+              "duration_ms": 2616,
+              "error_locations": [],
+              "attachment_names": [
+                "approval-dark-768-state",
+                "approval-dark-768-axe",
+                "approval-dark-768",
+                "approval-dark-768-hover"
+              ]
+            }
+          ]
+        },
+        {
+          "title": "approval palette is readable immediately after native keyboard enable in dark at 1440px",
+          "line": 578,
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "retry": 0,
+              "duration_ms": 3190,
+              "error_locations": [],
+              "attachment_names": [
+                "approval-dark-1440-state",
+                "approval-dark-1440-axe",
+                "approval-dark-1440",
+                "approval-dark-1440-hover"
+              ]
+            }
+          ]
+        },
+        {
+          "title": "approval palette is readable immediately after native keyboard enable in light at 360px",
+          "line": 578,
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "retry": 0,
+              "duration_ms": 3738,
+              "error_locations": [],
+              "attachment_names": [
+                "approval-light-360-state",
+                "approval-light-360-axe",
+                "approval-light-360",
+                "approval-light-360-hover"
+              ]
+            }
+          ]
+        },
+        {
+          "title": "approval palette is readable immediately after native keyboard enable in light at 768px",
+          "line": 578,
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "retry": 0,
+              "duration_ms": 3764,
+              "error_locations": [],
+              "attachment_names": [
+                "approval-light-768-state",
+                "approval-light-768-axe",
+                "approval-light-768",
+                "approval-light-768-hover"
+              ]
+            }
+          ]
+        },
+        {
+          "title": "approval palette is readable immediately after native keyboard enable in light at 1440px",
+          "line": 578,
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "retry": 0,
+              "duration_ms": 4437,
+              "error_locations": [],
+              "attachment_names": [
+                "approval-light-1440-state",
+                "approval-light-1440-axe",
+                "approval-light-1440",
+                "approval-light-1440-hover"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "phase": "final-baseline-dark-768",
+      "stats": {
+        "startTime": "2026-10-30T15:54:55.835Z",
+        "duration": 4672.795,
+        "expected": 0,
+        "skipped": 0,
+        "unexpected": 1,
+        "flaky": 0
+      },
+      "global_errors": [],
+      "raw_report_path": "/tmp/tc-15-039d-work/reports/final-baseline-dark-768.json",
+      "raw_report_sha256": "52ea6fc540416b522b03f335ffd31e70479c396cf2af7bbadd248a203f218abc",
+      "raw_log_sha256": "4c3fcb40f3fcb5e4105346b82fb3c66275ffbeb2733bc37a7ebe9e40667ee95f",
+      "cases": [
+        {
+          "title": "approval palette is readable immediately after native keyboard enable in dark at 768px",
+          "line": 578,
+          "status": "unexpected",
+          "results": [
+            {
+              "status": "failed",
+              "retry": 0,
+              "duration_ms": 2874,
+              "error_locations": [
+                {
+                  "file": "/tmp/tc-15-039d-work/snapshot/apps/web/e2e/release/screen-trust-requests.spec.ts",
+                  "column": 11,
+                  "line": 716
+                }
+              ],
+              "attachment_names": [
+                "approval-dark-768-state",
+                "approval-dark-768-axe",
+                "approval-dark-768",
+                "screenshot",
+                "error-context"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "phase": "foreground-only-light",
+      "stats": {
+        "startTime": "2026-10-30T15:55:02.302Z",
+        "duration": 5502.5,
+        "expected": 0,
+        "skipped": 0,
+        "unexpected": 1,
+        "flaky": 0
+      },
+      "global_errors": [],
+      "raw_report_path": "/tmp/tc-15-039d-work/reports/foreground-only-light.json",
+      "raw_report_sha256": "ac7e776a894ac92af6bed8a86ba789742cd9e68a87616196202e74f47a794f62",
+      "raw_log_sha256": "709921983f20752ffc7b57e04e22fb91d4752700e38525cf77f6938f2b7aaeee",
+      "cases": [
+        {
+          "title": "approval palette is readable immediately after native keyboard enable in light at 768px",
+          "line": 578,
+          "status": "unexpected",
+          "results": [
+            {
+              "status": "failed",
+              "retry": 0,
+              "duration_ms": 4101,
+              "error_locations": [
+                {
+                  "file": "/tmp/tc-15-039d-work/snapshot/apps/web/e2e/release/screen-trust-requests.spec.ts",
+                  "column": 11,
+                  "line": 716
+                }
+              ],
+              "attachment_names": [
+                "approval-light-768-state",
+                "approval-light-768-axe",
+                "approval-light-768",
+                "screenshot",
+                "error-context"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "phase": "final-owning-suite",
+      "stats": {
+        "startTime": "2026-10-30T15:55:09.674Z",
+        "duration": 75656.39099999999,
+        "expected": 28,
+        "skipped": 0,
+        "unexpected": 0,
+        "flaky": 0
+      },
+      "global_errors": [],
+      "raw_report_path": "/tmp/tc-15-039d-work/reports/final-owning-suite.json",
+      "raw_report_sha256": "83e9d682f29407783f892dfcd90f427a88d34caf0c26be5fd1d18a2f14effbe8",
+      "raw_log_sha256": "9d8da6331483523e0e8a25e6f8bc9d06603573b88d72ffd665a08426c1cce546",
+      "cases": [
+        {
+          "title": "saved draft, edited revision and approved send use separate acknowledged actions",
+          "line": 221,
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "retry": 0,
+              "duration_ms": 3582,
+              "error_locations": [],
+              "attachment_names": []
+            }
+          ]
+        },
+        {
+          "title": "rejected 403 save retains text and refresh requires review of the latest revision",
+          "line": 268,
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "retry": 0,
+              "duration_ms": 2577,
+              "error_locations": [],
+              "attachment_names": []
+            }
+          ]
+        },
+        {
+          "title": "rejected 404 save retains text and refresh requires review of the latest revision",
+          "line": 268,
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "retry": 0,
+              "duration_ms": 2115,
+              "error_locations": [],
+              "attachment_names": []
+            }
+          ]
+        },
+        {
+          "title": "rejected 409 save retains text and refresh requires review of the latest revision",
+          "line": 268,
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "retry": 0,
+              "duration_ms": 2283,
+              "error_locations": [],
+              "attachment_names": []
+            }
+          ]
+        },
+        {
+          "title": "rejected 500 save retains text and refresh requires review of the latest revision",
+          "line": 268,
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "retry": 0,
+              "duration_ms": 2048,
+              "error_locations": [],
+              "attachment_names": []
+            }
+          ]
+        },
+        {
+          "title": "uncertain is truthful and does not trigger an automatic or blind repeat send",
+          "line": 307,
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "retry": 0,
+              "duration_ms": 2173,
+              "error_locations": [],
+              "attachment_names": []
+            }
+          ]
+        },
+        {
+          "title": "sending is truthful and does not trigger an automatic or blind repeat send",
+          "line": 307,
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "retry": 0,
+              "duration_ms": 1669,
+              "error_locations": [],
+              "attachment_names": []
+            }
+          ]
+        },
+        {
+          "title": "unavailable is truthful and does not trigger an automatic or blind repeat send",
+          "line": 307,
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "retry": 0,
+              "duration_ms": 2067,
+              "error_locations": [],
+              "attachment_names": []
+            }
+          ]
+        },
+        {
+          "title": "admin follows current can_review permission without invented roles",
+          "line": 343,
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "retry": 0,
+              "duration_ms": 5132,
+              "error_locations": [],
+              "attachment_names": []
+            }
+          ]
+        },
+        {
+          "title": "editor follows current can_review permission without invented roles",
+          "line": 343,
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "retry": 0,
+              "duration_ms": 4346,
+              "error_locations": [],
+              "attachment_names": []
+            }
+          ]
+        },
+        {
+          "title": "reviewer follows current can_review permission without invented roles",
+          "line": 343,
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "retry": 0,
+              "duration_ms": 1404,
+              "error_locations": [],
+              "attachment_names": []
+            }
+          ]
+        },
+        {
+          "title": "custom-reviewer follows current can_review permission without invented roles",
+          "line": 343,
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "retry": 0,
+              "duration_ms": 1841,
+              "error_locations": [],
+              "attachment_names": []
+            }
+          ]
+        },
+        {
+          "title": "custom-denied follows current can_review permission without invented roles",
+          "line": 343,
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "retry": 0,
+              "duration_ms": 1080,
+              "error_locations": [],
+              "attachment_names": []
+            }
+          ]
+        },
+        {
+          "title": "download uses the protected attachment endpoint and surfaces denial",
+          "line": 359,
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "retry": 0,
+              "duration_ms": 1639,
+              "error_locations": [],
+              "attachment_names": []
+            }
+          ]
+        },
+        {
+          "title": "empty, failed list, failed detail and partial notes have separate recovery states",
+          "line": 376,
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "retry": 0,
+              "duration_ms": 2726,
+              "error_locations": [],
+              "attachment_names": []
+            }
+          ]
+        },
+        {
+          "title": "switching workspace clears private rows and ignores late old-workspace detail",
+          "line": 414,
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "retry": 0,
+              "duration_ms": 1790,
+              "error_locations": [],
+              "attachment_names": []
+            }
+          ]
+        },
+        {
+          "title": "incoming list and reply editor are keyboard accessible at 360px",
+          "line": 442,
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "retry": 0,
+              "duration_ms": 2429,
+              "error_locations": [],
+              "attachment_names": [
+                "incoming-360",
+                "axe-incoming-360"
+              ]
+            }
+          ]
+        },
+        {
+          "title": "incoming list and reply editor are keyboard accessible at 768px",
+          "line": 442,
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "retry": 0,
+              "duration_ms": 2947,
+              "error_locations": [],
+              "attachment_names": [
+                "incoming-768",
+                "axe-incoming-768"
+              ]
+            }
+          ]
+        },
+        {
+          "title": "incoming list and reply editor are keyboard accessible at 1440px",
+          "line": 442,
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "retry": 0,
+              "duration_ms": 3949,
+              "error_locations": [],
+              "attachment_names": [
+                "incoming-1440",
+                "axe-incoming-1440"
+              ]
+            }
+          ]
+        },
+        {
+          "title": "unconfirmed new draft stays editable and cannot be submitted twice without inspection",
+          "line": 503,
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "retry": 0,
+              "duration_ms": 1405,
+              "error_locations": [],
+              "attachment_names": []
+            }
+          ]
+        },
+        {
+          "title": "lost send response blocks repetition until authoritative saved state is reloaded",
+          "line": 526,
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "retry": 0,
+              "duration_ms": 2281,
+              "error_locations": [],
+              "attachment_names": []
+            }
+          ]
+        },
+        {
+          "title": "backend internal notes remain visible beside actionable replies",
+          "line": 558,
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "retry": 0,
+              "duration_ms": 1784,
+              "error_locations": [],
+              "attachment_names": []
+            }
+          ]
+        },
+        {
+          "title": "approval palette is readable immediately after native keyboard enable in dark at 360px",
+          "line": 578,
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "retry": 0,
+              "duration_ms": 2584,
+              "error_locations": [],
+              "attachment_names": [
+                "approval-dark-360-state",
+                "approval-dark-360-axe",
+                "approval-dark-360",
+                "approval-dark-360-hover"
+              ]
+            }
+          ]
+        },
+        {
+          "title": "approval palette is readable immediately after native keyboard enable in dark at 768px",
+          "line": 578,
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "retry": 0,
+              "duration_ms": 3840,
+              "error_locations": [],
+              "attachment_names": [
+                "approval-dark-768-state",
+                "approval-dark-768-axe",
+                "approval-dark-768",
+                "approval-dark-768-hover"
+              ]
+            }
+          ]
+        },
+        {
+          "title": "approval palette is readable immediately after native keyboard enable in dark at 1440px",
+          "line": 578,
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "retry": 0,
+              "duration_ms": 3473,
+              "error_locations": [],
+              "attachment_names": [
+                "approval-dark-1440-state",
+                "approval-dark-1440-axe",
+                "approval-dark-1440",
+                "approval-dark-1440-hover"
+              ]
+            }
+          ]
+        },
+        {
+          "title": "approval palette is readable immediately after native keyboard enable in light at 360px",
+          "line": 578,
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "retry": 0,
+              "duration_ms": 2819,
+              "error_locations": [],
+              "attachment_names": [
+                "approval-light-360-state",
+                "approval-light-360-axe",
+                "approval-light-360",
+                "approval-light-360-hover"
+              ]
+            }
+          ]
+        },
+        {
+          "title": "approval palette is readable immediately after native keyboard enable in light at 768px",
+          "line": 578,
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "retry": 0,
+              "duration_ms": 4167,
+              "error_locations": [],
+              "attachment_names": [
+                "approval-light-768-state",
+                "approval-light-768-axe",
+                "approval-light-768",
+                "approval-light-768-hover"
+              ]
+            }
+          ]
+        },
+        {
+          "title": "approval palette is readable immediately after native keyboard enable in light at 1440px",
+          "line": 578,
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "retry": 0,
+              "duration_ms": 3035,
+              "error_locations": [],
+              "attachment_names": [
+                "approval-light-1440-state",
+                "approval-light-1440-axe",
+                "approval-light-1440",
+                "approval-light-1440-hover"
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "static_checks": [
+    {
+      "check": "eslint",
+      "command": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+        "node_modules/eslint/bin/eslint.js",
+        "app/dashboard/trust-requests/page.tsx",
+        "e2e/release/screen-trust-requests.spec.ts",
+        "--max-warnings=0"
+      ],
+      "exit_code": 0
+    },
+    {
+      "check": "prettier",
+      "command": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+        "node_modules/prettier/bin/prettier.cjs",
+        "--config",
+        "/workspace/scratch/3faeebcaa421/trust-copilot-approval-contrast/.prettierrc",
+        "--check",
+        "app/dashboard/trust-requests/page.tsx",
+        "e2e/release/screen-trust-requests.spec.ts"
+      ],
+      "exit_code": 0
+    },
+    {
+      "check": "typegen",
+      "command": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+        "node_modules/next/dist/bin/next",
+        "typegen"
+      ],
+      "exit_code": 0
+    },
+    {
+      "check": "typecheck",
+      "command": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+        "node_modules/typescript/bin/tsc",
+        "--noEmit",
+        "-p",
+        "."
+      ],
+      "exit_code": 0
+    }
+  ],
+  "owning_unit": {
+    "command": [
+      "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+      "node_modules/vitest/vitest.mjs",
+      "run",
+      "lib/trust-request-consumer.test.ts",
+      "--maxWorkers=1"
+    ],
+    "exit_code": 0,
+    "files_passed": 1,
+    "tests_passed": 25,
+    "log_sha256": "36e6b4774a821d754bd96c85df6fe5328ff7799013e49e1b6890f10cbf15e6aa"
+  },
+  "initial_test_lint_detail": "The first six red controls and initial 28 green run used two property reads expressed as .color. ESLint required explicit getPropertyValue calls. All expectations and behavior remained unchanged. The final-source dark baseline and foreground-only light negative were then checked before the final 28-pass owning run.",
+  "visual_review": "Implementer inspected final dark/light screenshots at 360/768/1440: readable enabled palette and visible focus outline at all widths; native disabled Save control remains distinct.",
+  "original_scans": 3,
+  "new_scans": 6,
+  "all_candidate_scan_violation_counts_zero": true,
+  "parent_acceptance": "PENDING",
+  "scope_credit": "3 supplemental child points; no original-parent completion credit."
+}

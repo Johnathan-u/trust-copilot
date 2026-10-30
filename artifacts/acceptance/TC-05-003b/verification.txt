@@ -1,0 +1,59 @@
+TC-05-003b fresh reconstruction verification — 2026-10-30
+Base:01914a0e67e0d3c9eba5c19c6960e22f1713d529, published #130 parent.
+Worktree:tc-role-grants-recovery; branch:codex/TC-05-003b-grants-recovery.
+Earlier unpublished local object was lost; this is new source and fresh execution.
+Environment:/tmp/tc-backend-venv restored from unchanged requirements-dev.lock.
+
+From apps/api, before runtime repair:
+python -m pytest tests/release/test_role_grant_entrypoints.py -k sqlite -q --tb=no
+  Exit1:24 failed,35 passed,59 deselected in19.99s.
+  Grant failures:6 isolated custom grants,9 builtin grants,2 self assignments,
+  1 default editor key,3 isolated key permissions,3 current-permission revocations.
+  Existing datetime.utcnow warnings remain. No assertion weakened.
+
+Initial adapter:16 added lines, three handlers plus existing actor-snapshot reuse.
+python -m pytest tests/release/test_role_grant_entrypoints.py tests/release/test_custom_role_grants.py -k sqlite -q --tb=short
+  Initial adapter exit0:83 passed,83 deselected in21.99s (59 new,24 parent).
+python -m pytest tests/release/test_principal_contract.py tests/release/test_session_validation.py -k 'sqlite or expiry_boundary' -q
+  Initial adapter exit0:71 passed,70 deselected in25.86s.
+python -m pytest tests/release/test_safe_collection.py -q
+  Exit0:29 passed in26.90s.
+python -m pytest tests/test_login_email_regression.py::TestInviteEmailPath::test_invite_email_failure_returns_false tests/release/test_role_grant_entrypoints.py -k 'failure_returns_false or (sqlite and builtin_admin_can_grant_full_authority)' -q --tb=short
+  Exit0:4 passed,115 deselected in1.25s. Real console selection survives a
+  preceding legacy test that leaves a mocked provider cached.
+TC_REQUIRE_DB=1 python -m pytest -q
+  Exit3 before execution:localhost5432 IPv4/IPv6 connection refused.
+  No PostgreSQL/full-suite qualification claimed.
+
+Fail-closed follow-up inside the claimed adapter:
+  A real stored-auth HTTP probe injected failure only on the requested custom
+  role's second read (after validation); initial adapter returned200 and persisted
+  edit-only while actor lacked edit. Its boolean resolver had swallowed the error.
+  First fault-test setup used a persistent TestClient context whose AnyIO worker
+  outlived each request. Switched that test to the existing fixture's transient
+  client lifetime before counting the product reproduction below.
+python -m pytest tests/release/test_role_grant_entrypoints.py -k 'sqlite and target_role_lookup_failure' -q --tb=short
+  Corrected initial-adapter controls:2 failed,120 deselected in1.30s, both200
+  instead of the required failure response with unchanged full rows.
+Final target-role repair:read custom target directly once; use existing builtin
+permission constants; preserve actor helper and all validation/last-admin behavior.
+Final runtime diff:25 added,1 removed line in members.py only.
+python -m pytest tests/release/test_role_grant_entrypoints.py tests/release/test_custom_role_grants.py -k sqlite -q --tb=short
+  Final exit0:85 passed,85 deselected in10.38s (61 new,24 parent), including
+  both injected target-read failures and unchanged full-row assertions.
+  Existing datetime.utcnow warnings:1812; no new suppression.
+python -m pytest tests/release/test_principal_contract.py tests/release/test_session_validation.py -k 'sqlite or expiry_boundary' -q
+  Final exit0:71 passed,70 deselected in12.82s.
+python -m pytest tests/release/test_role_grant_entrypoints.py --collect-only -q
+  Final exit0:122 collected in0.82s (61 SQLite,61 PostgreSQL).
+python -m pytest tests/release/test_safe_collection.py -q
+  Final exit0:29 passed in14.66s after the target-read failure cases were added.
+ruff check and format --check on members.py and test_role_grant_entrypoints.py;
+python -m py_compile on those files; git diff --check:
+  Exit0.
+python scripts/security/secret_inventory.py paths <the five changed files>
+  Exit0:zero findings.
+
+PostgreSQL remains unavailable locally; no required DB case is claimed passed.
+Independent review, actual landed-parent integration, exact-head CI and an open
+worker PR slot remain required. Coordinator owns publication; no worker push.

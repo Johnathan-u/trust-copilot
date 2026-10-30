@@ -1,0 +1,156 @@
+{
+  "ticket": "TC-12-001",
+  "claim": "https://github.com/Johnathan-u/trust-copilot/issues/85#issuecomment-6514520243",
+  "status": "implemented locally; independent review and exact-head PostgreSQL/CI qualification pending",
+  "base": "5928f061e2967e9ca717879b0517a66f22f4d6c2",
+  "implementation_commit": "1e5614a999202c2de9e3a72b505c08fabcf7216d",
+  "source_blobs": {
+    "apps/api/app/api/routes/answers.py": "80913973d8bda4457a8c6e4c931992e7b2386506",
+    "apps/api/tests/release/test_answer_routing.py": "e53182b61f5e823750a726e74a176a7e95cf6347"
+  },
+  "environment": {
+    "python": "3.12.14",
+    "ruff": "0.5.6",
+    "runtime": "/tmp/tc-backend-venv",
+    "sqlite": "in-memory, foreign_keys=ON",
+    "postgresql": "localhost:5432 unavailable; connection refused"
+  },
+  "checks": [
+    {
+      "cwd": "apps/api",
+      "command": "python -m pytest tests/release/test_answer_routing.py -m unit -q --tb=short",
+      "exit_code": 0,
+      "passed": 67,
+      "deselected": 67,
+      "warnings": 805,
+      "warning_note": "Existing model datetime.utcnow defaults emit deprecation warnings; no suppression added."
+    },
+    {
+      "cwd": "apps/api",
+      "command": "python -m pytest tests/release/test_answer_routing.py --collect-only -q",
+      "exit_code": 0,
+      "collected": 134,
+      "sqlite": 67,
+      "postgresql": 67
+    },
+    {
+      "cwd": "apps/api",
+      "command": "TC_REQUIRE_DB=1 python -m pytest tests/release/test_answer_routing.py -m integration -q --tb=short",
+      "exit_code": 3,
+      "passed": 0,
+      "reason": "Required PostgreSQL setup fails before tests: localhost:5432 refuses connection; no migration stamp/FK bypass."
+    },
+    {
+      "cwd": "apps/api",
+      "command": "python -m pytest tests/release/test_safe_collection.py -q",
+      "exit_code": 0,
+      "passed": 29
+    },
+    {
+      "cwd": "apps/api",
+      "command": "ruff check app/api/routes/answers.py tests/release/test_answer_routing.py",
+      "exit_code": 0
+    },
+    {
+      "cwd": "apps/api",
+      "command": "ruff format --check app/api/routes/answers.py tests/release/test_answer_routing.py",
+      "exit_code": 0
+    },
+    {
+      "cwd": ".",
+      "command": "python scripts/security/secret_inventory.py paths apps/api/app/api/routes/answers.py apps/api/tests/release/test_answer_routing.py --root . --fail-on block",
+      "exit_code": 0,
+      "findings": 0
+    },
+    {
+      "cwd": ".",
+      "command": "git diff --check",
+      "exit_code": 0
+    }
+  ],
+  "red_green": {
+    "initial_fixture_attempt": {
+      "command": "python -m pytest tests/release/test_answer_routing.py -m unit -q --tb=short",
+      "exit_code": 1,
+      "failed": 47,
+      "passed": 20,
+      "deselected": 67,
+      "fixture_correction": "Assigned nonexistent revoked_at attribute was replaced with real UserSession deletion; invalid-body422 assertions now require body rather than path errors."
+    },
+    "corrected_baseline": {
+      "command": "python -m pytest tests/release/test_answer_routing.py -m unit -q --tb=no",
+      "failed": 50,
+      "passed": 17,
+      "deselected": 67,
+      "exit_note": "Pytest failure totals captured; surrounding log-tail wrapper returned0 and did not preserve the pytest process exit code. This is a failed baseline, never a passing check.",
+      "failures": [
+        "Slashless POST returned307 rather than reaching the handler.",
+        "Bulk requests were parsed as dynamic answer IDs and returned422 instead of bulk success or the specified neutral/error responses."
+      ]
+    },
+    "repaired_passed": 67
+  },
+  "negative_controls": [
+    {
+      "control": "workspace_filter",
+      "case": "test_bulk_unavailable_question_is_neutral_and_atomic[sqlite-False-foreign]",
+      "exit_code": 1,
+      "tail": "1 failed, 15 warnings in 0.57s",
+      "source_restored": true
+    },
+    {
+      "control": "available_parent",
+      "case": "test_bulk_unavailable_question_is_neutral_and_atomic[sqlite-False-deleted]",
+      "exit_code": 1,
+      "tail": "1 failed, 15 warnings in 0.68s",
+      "source_restored": true
+    },
+    {
+      "control": "complete_set",
+      "case": "test_bulk_unavailable_question_is_neutral_and_atomic[sqlite-False-foreign]",
+      "exit_code": 1,
+      "tail": "1 failed, 15 warnings in 0.78s",
+      "source_restored": true
+    },
+    {
+      "control": "duplicates",
+      "case": "test_bulk_invalid_request_is_unchanged[sqlite-duplicate-existing]",
+      "exit_code": 1,
+      "tail": "1 failed, 11 warnings in 0.62s",
+      "source_restored": true
+    },
+    {
+      "control": "strict_ids",
+      "case": "test_bulk_invalid_request_is_unchanged[sqlite-string]",
+      "exit_code": 1,
+      "tail": "1 failed, 11 warnings in 0.58s",
+      "source_restored": true
+    }
+  ],
+  "fixture": {
+    "auth": "Production route, real signing and stored User/WorkspaceMember/UserSession; only get_db injected. Current permission/membership/session changes occur after cookie signing.",
+    "atomicity": "Full-row snapshots across12 relevant domain/auth tables for denied requests; successes allow only intended answer fields/rows and affected updated_at timestamps.",
+    "cleanup": "Record exact inserted IDs and capture request-created Answer IDs only through exact fixture-owned Question IDs; delete in FK order and compare original full rows. Always close owned connections.",
+    "constraints": "SQLite foreign keys enabled. PostgreSQL uses migrated_db. No trigger/FK bypass, truncation, sequence reset or unrelated row deletion.",
+    "collection": "Both database variants resolve their prerequisites only inside runtime fixtures."
+  },
+  "preserved_contracts": [
+    "Both POST forms use one existing create/upsert handler and successful response fields.",
+    "Individual PATCH handler behavior unchanged.",
+    "Existing require_can_review and admin/editor/reviewer permissions.",
+    "Bulk status vocabulary includes pending as well as draft/approved/rejected/flagged/insufficient_evidence.",
+    "Existing answer text, outcome, confidence, citations and other fields are preserved by status-only bulk writes."
+  ],
+  "changed_contracts": [
+    "Slashless POST no longer redirects; literal bulk PATCH is reachable.",
+    "Bulk requires positive signed-32-bit strict integer IDs without duplicates; invalid types422, semantic invalidity400.",
+    "Entire request resolves through current-workspace nondeleted parents before writes; unavailable/missing/foreign entries return identical404 atomically.",
+    "Successful updated count represents unique authorized questions; repeated successful requests create no duplicate answers."
+  ],
+  "remaining_gates": [
+    "Independent review.",
+    "Final published-head build and web-release-e2e on push and pull_request, including67 PostgreSQL cases without required skips.",
+    "Full TC-11-003, TC-11-001 and TC-06-001 prerequisite closure; none is completed by this repair.",
+    "Production startup/middleware, browser workflow and model/provider execution not qualified by this isolated HTTP harness."
+  ]
+}

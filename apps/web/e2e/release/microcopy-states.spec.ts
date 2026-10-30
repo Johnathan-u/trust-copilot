@@ -302,11 +302,16 @@ async function writeAxe(
         viewport,
         violationCount: violations.length,
         violations,
+        violationDetails: axe.violations,
       },
       null,
       2
     )}\n`
   )
+  await test.info().attach(`axe-${state}-${theme}-${viewport}`, {
+    path: path.join(evidenceDir, `axe-${state}-${theme}-${viewport}.json`),
+    contentType: 'application/json',
+  })
   const blocking = violations.filter(
     (item) => item.impact === 'critical' || item.impact === 'serious'
   )
@@ -586,4 +591,117 @@ test.describe('confirmed action and failure copy', () => {
       }
     }
   })
+
+  for (const width of [360, 768, 1440] as const) {
+    test(`ghost export labels keep contrast during theme changes at ${width}px`, async ({
+      page,
+    }) => {
+      await openApp(page, '/dashboard/review/9', width)
+      const exports = page
+        .locator('[data-microcopy="actions"]')
+        .getByRole('button', { name: /^Export (XLSX|DOCX)$/ })
+      await expect(exports).toHaveCount(2)
+      await expect(exports.first()).toBeVisible()
+
+      for (const theme of ['light', 'dark'] as const) {
+        const colors = await exports.evaluateAll((buttons, value) => {
+          // Establish the outgoing style before changing the real theme.
+          buttons.forEach((button) => getComputedStyle(button).color)
+          document.documentElement.setAttribute('data-theme', value)
+          const immediate = buttons.map(
+            (button) => getComputedStyle(button).color
+          )
+          // Hold any actual foreground transition at the phase that reproduced
+          // the CI defect. A settled-only scan could otherwise miss the bug.
+          for (const button of buttons) {
+            for (const animation of button.getAnimations()) {
+              if (
+                animation instanceof CSSTransition &&
+                animation.transitionProperty === 'color'
+              ) {
+                animation.pause()
+                animation.currentTime = 33.3
+              }
+            }
+          }
+          return {
+            immediate,
+            sampled: buttons.map((button) => getComputedStyle(button).color),
+          }
+        }, theme)
+        await test.info().attach(`ghost-theme-${theme}-${width}-colors`, {
+          body: JSON.stringify(colors, null, 2),
+          contentType: 'application/json',
+        })
+        try {
+          await writeAxe(page, 'ghost-theme-switch', theme, width)
+          const foreground =
+            theme === 'light' ? 'rgb(15, 23, 42)' : 'rgb(232, 238, 251)'
+          expect(colors.immediate).toEqual([foreground, foreground])
+          expect(colors.sampled).toEqual([foreground, foreground])
+          await test.info().attach(`ghost-theme-${theme}-${width}`, {
+            body: await page.screenshot({ fullPage: true }),
+            contentType: 'image/png',
+          })
+        } finally {
+          await exports.evaluateAll((buttons) => {
+            for (const button of buttons) {
+              for (const animation of button.getAnimations()) animation.finish()
+            }
+          })
+        }
+      }
+
+      const exportXlsx = exports.first()
+      await exportXlsx.evaluate((button) => {
+        button.addEventListener(
+          'pointerenter',
+          () => {
+            // Observe the real hover event before a fast renderer can finish it.
+            for (const animation of button.getAnimations()) {
+              if (
+                animation instanceof CSSTransition &&
+                animation.transitionProperty === 'background-color'
+              ) {
+                animation.pause()
+                animation.currentTime =
+                  Number(animation.effect!.getTiming().duration) / 2
+              }
+            }
+          },
+          { once: true }
+        )
+      })
+      await exportXlsx.hover()
+      const hover = await exportXlsx.evaluate((button) => {
+        const style = getComputedStyle(button)
+        return {
+          background: style.backgroundColor,
+          properties: style.transitionProperty.split(',').map((p) => p.trim()),
+          active: button
+            .getAnimations()
+            .filter((animation) => animation instanceof CSSTransition)
+            .map((animation) => animation.transitionProperty),
+        }
+      })
+      expect(hover.active).toContain('background-color')
+      expect(hover.properties).toContain('border-color')
+      expect(hover.background).not.toBe('rgba(0, 0, 0, 0)')
+      await exportXlsx.evaluate((button) => {
+        for (const animation of button.getAnimations()) animation.finish()
+      })
+
+      await page
+        .locator('[data-microcopy="actions"]')
+        .getByRole('button', { name: 'Generate', exact: true })
+        .focus()
+      await page.keyboard.press('Tab')
+      await expect(exportXlsx).toBeFocused()
+      expect(
+        await exportXlsx.evaluate((button) =>
+          parseFloat(getComputedStyle(button).outlineWidth)
+        )
+      ).toBeGreaterThan(0)
+    })
+  }
 })

@@ -1,4 +1,9 @@
-# Backlog status
+# Backlog status — historical PR inventory
+
+> **Superseded for current status on 2026-10-30.** Use the [shared tracker](../tracker/index.html),
+> [machine-readable state](backlog-state.json) and [PM protocol](../release/PM_BACKLOG_PROTOCOL.md).
+> This dated PR-title inventory is retained for traceability. Its merged counts
+> are not accepted-ticket completion and must not be used as the current percentage.
 
 Generated 2026-10-29 from master d9ab8b6 and public PR titles (last 100 merged PRs). Status is inferred from PR titles; confirm on #85 before claiming.
 
