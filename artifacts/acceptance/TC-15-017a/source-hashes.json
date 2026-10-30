@@ -1,0 +1,12 @@
+{
+  "base": "d64e3803df975d25622cf28a2556178828db3c60",
+  "sha256": {
+    "apps/web/app/dashboard/questionnaires/page.tsx": "be8095c43c3cf97dd161c86dddba846fbb4b991a16cf271441653b03906fb6ba",
+    "apps/web/components/ui/RegistryListPrimitives.tsx": "75e5c27971110b58888a269d704c1dc18b0c1ade92d85959a23028b8ea7c6d7b",
+    "apps/web/tests/unit/questionnaire-ack.test.ts": "a28a8827fec0626f184edfdddd64e21e6484408b81acbd97ec0e1836a7556dcf",
+    "apps/web/e2e/release/ui-16.spec.ts": "5246548deb6db7558139c2855e4bbb12c765828e9fd91255ac67adc212b9e067",
+    "apps/web/e2e/integration/questionnaire-ack.acceptance.ts": "b1387973c63f574d9cb002d55b24daf919a6fa801446c05489d190f7e090bb7a",
+    "apps/web/playwright.questionnaire-ack.config.ts": "e989ea5c6b140905d3385055a75f2744ebb17eb371aeb48d8ec71744aa9e0681",
+    "apps/api/tests/release/test_questionnaire_ack_browser.py": "74b9a03519015eb2103e7839e7d88f64e518afa18d11d5c23a085e5077581061"
+  }
+}

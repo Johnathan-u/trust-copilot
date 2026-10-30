@@ -1,0 +1,271 @@
+{
+  "config": {
+    "argv": [
+      "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+      "/workspace/scratch/1d3d4d8034b5/tc-questionnaire-ack/apps/web/node_modules/.bin/playwright",
+      "test",
+      "--config=playwright.questionnaire-local.config.ts"
+    ],
+    "configFile": "/workspace/scratch/1d3d4d8034b5/tc-questionnaire-ack/apps/web/playwright.questionnaire-local.config.ts",
+    "rootDir": "/workspace/scratch/1d3d4d8034b5/tc-questionnaire-ack/apps/web/e2e/release",
+    "failOnFlakyTests": false,
+    "forbidOnly": false,
+    "fullyParallel": false,
+    "globalSetup": null,
+    "globalTeardown": null,
+    "globalTimeout": 0,
+    "grep": {},
+    "grepInvert": null,
+    "maxFailures": 0,
+    "metadata": {
+      "actualWorkers": 1
+    },
+    "preserveOutput": "always",
+    "projects": [
+      {
+        "outputDir": "/workspace/scratch/1d3d4d8034b5/tc-questionnaire-ack/apps/web/test-results",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "",
+        "name": "",
+        "testDir": "/workspace/scratch/1d3d4d8034b5/tc-questionnaire-ack/apps/web/e2e/release",
+        "testIgnore": [],
+        "testMatch": [
+          "ui-16.spec.ts"
+        ],
+        "timeout": 60000
+      }
+    ],
+    "filteredProjects": [
+      {
+        "grep": {},
+        "grepInvert": null,
+        "outputDir": "/workspace/scratch/1d3d4d8034b5/tc-questionnaire-ack/apps/web/test-results",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "name": "",
+        "testDir": "/workspace/scratch/1d3d4d8034b5/tc-questionnaire-ack/apps/web/e2e/release",
+        "snapshotDir": "/workspace/scratch/1d3d4d8034b5/tc-questionnaire-ack/apps/web/e2e/release",
+        "testIgnore": [],
+        "testMatch": "ui-16.spec.ts",
+        "timeout": 60000,
+        "use": {
+          "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/156.0.8078.4 Safari/537.36",
+          "viewport": {
+            "width": 1280,
+            "height": 720
+          },
+          "screen": {
+            "width": 1920,
+            "height": 1080
+          },
+          "deviceScaleFactor": 1,
+          "isMobile": false,
+          "hasTouch": false,
+          "defaultBrowserType": "chromium",
+          "baseURL": "http://127.0.0.1:3421",
+          "trace": "off",
+          "launchOptions": {
+            "executablePath": "/tmp/tc-pr149-pinned-chrome/chrome-headless-shell-linux64/chrome-headless-shell"
+          }
+        },
+        "dependencies": [],
+        "ignoreSnapshots": false,
+        "__projectId": ""
+      }
+    ],
+    "quiet": false,
+    "reporter": [
+      [
+        "list",
+        null
+      ],
+      [
+        "json",
+        {
+          "outputFile": "test-results/questionnaire-local.json"
+        }
+      ]
+    ],
+    "reportSlowTests": {
+      "max": 5,
+      "threshold": 300000
+    },
+    "shard": null,
+    "tags": [],
+    "updateSnapshots": "default",
+    "updateSourceMethod": "patch",
+    "version": "1.64.1",
+    "workers": 1,
+    "webServer": {
+      "command": "node_modules/.bin/next dev --webpack --hostname 127.0.0.1 --port 3421",
+      "url": "http://127.0.0.1:3421",
+      "timeout": 120000,
+      "env": {
+        "API_UPSTREAM": "http://127.0.0.1:8421",
+        "NEXT_TELEMETRY_DISABLED": "1"
+      }
+    }
+  },
+  "suites": [
+    {
+      "title": "ui-16.spec.ts",
+      "file": "ui-16.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "metadata and restore failure/retry, keyboard and axe at 360",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 8222,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-30T21:29:24.311Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "19aa47d8846b5e6c1378-05a2a08460fb301be57f",
+          "file": "ui-16.spec.ts",
+          "line": 154,
+          "column": 7
+        },
+        {
+          "title": "metadata and restore failure/retry, keyboard and axe at 768",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 5977,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-30T21:29:32.801Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "19aa47d8846b5e6c1378-51b6fc0ed01d8e43f0d2",
+          "file": "ui-16.spec.ts",
+          "line": 154,
+          "column": 7
+        },
+        {
+          "title": "metadata and restore failure/retry, keyboard and axe at 1440",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 9421,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-30T21:29:38.805Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "19aa47d8846b5e6c1378-4c0557b3640bad4638d4",
+          "file": "ui-16.spec.ts",
+          "line": 154,
+          "column": 7
+        },
+        {
+          "title": "synthetic transport abort preserves draft and archive state separately from API rejection",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 2227,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-30T21:29:48.240Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "19aa47d8846b5e6c1378-1ada039f36e3dbe4f4a7",
+          "file": "ui-16.spec.ts",
+          "line": 229,
+          "column": 5
+        }
+      ]
+    }
+  ],
+  "errors": [],
+  "stats": {
+    "startTime": "2026-10-30T21:29:07.479Z",
+    "duration": 43122.142,
+    "expected": 4,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0
+  }
+}
