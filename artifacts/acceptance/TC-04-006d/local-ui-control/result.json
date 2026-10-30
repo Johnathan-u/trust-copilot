@@ -1,0 +1,8 @@
+{
+  "passed": true,
+  "browserVersion": "156.0.8078.4",
+  "kind": "local mocked-transport UI control; not PostgreSQL acceptance",
+  "calls": 4,
+  "axeReports": 4,
+  "externalRequests": 0
+}
