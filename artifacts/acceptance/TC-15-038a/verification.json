@@ -1,0 +1,171 @@
+{
+  "schema_version": 1,
+  "ticket": "TC-15-038a",
+  "parent_ticket": "TC-15-038",
+  "parent_status": "open",
+  "points": 3,
+  "claim": "https://github.com/Johnathan-u/trust-copilot/issues/85#issuecomment-6513097120",
+  "status": "implementation_complete_acceptance_pending",
+  "base_sha": "c2ac170f2a1572811342af67abfa4e703b14a628",
+  "tested_implementation_sha": "5084a53dfb4bc5032963773c1cb2b2008b20c4f3",
+  "implementation_tree_sha": "6c0ce6943cc67b49c2825800f3d7b13b6f0a2b65",
+  "source_blobs": {
+    "apps/api/app/api/routes/jobs.py": "452ec39cba1f279405607c1256f5bc247d1bfee5",
+    "apps/api/tests/release/test_job_history.py": "5738f24b721479401965fb2e888866f9a791394c"
+  },
+  "environment": {
+    "python": "3.12.14",
+    "ruff": "0.5.6",
+    "python_executable": "/tmp/tc-backend-venv/bin/python",
+    "test_working_directory": "apps/api",
+    "postgresql": "unavailable: localhost IPv4/IPv6 port 5432 connection refused",
+    "local_sqlite_scope": "route, SQL filtering, pagination and safe-projection control paths only; injected principal; not PostgreSQL or real-auth acceptance",
+    "provider_calls": false
+  },
+  "checks": [
+    {
+      "command": "python -m pytest tests/release/test_job_history.py -m unit -q --maxfail=2",
+      "phase": "before implementation",
+      "exit_code": 1,
+      "failed": 2,
+      "reason": "Expected red: GET /api/jobs returned 404 because the collection route did not exist."
+    },
+    {
+      "command": "python -m pytest tests/release/test_job_history.py::test_history_positive_cursor_above_existing_id_range_is_valid -q",
+      "phase": "contract correction before implementation commit",
+      "exit_code": 1,
+      "failed": 1,
+      "reason": "Expected red: an unintended maximum cursor bound returned 422 for a positive cursor; the frozen contract only requires a positive cursor. Bound removed and test included in the green run."
+    },
+    {
+      "command": "python -m pytest tests/release/test_job_history.py -m unit -q",
+      "exit_code": 0,
+      "passed": 16,
+      "deselected": 32,
+      "scope": "SQLite control checks only"
+    },
+    {
+      "command": "python -m pytest tests/release/test_job_history.py tests/release/test_job_cancellation.py tests/release/test_job_retries.py tests/release/test_job_idempotency.py -m unit -q",
+      "exit_code": 0,
+      "passed": 17,
+      "deselected": 163,
+      "scope": "Local control checks and the existing non-string/unknown job status fence regression; database cases were not selected."
+    },
+    {
+      "command": "python -m pytest tests/release/test_job_history.py --collect-only -q",
+      "exit_code": 0,
+      "collected": 48,
+      "unit_cases": 16,
+      "postgresql_cases": 32
+    },
+    {
+      "command": "python -m pytest --collect-only -q -rs",
+      "exit_code": 0,
+      "collected": 3853,
+      "skipped": 1,
+      "skip_reason": "tests/test_trust_scoring_blind.py:33: external_data blind test pack not checked in",
+      "scope": "Collection only; used to identify the skip reported by the blocked full-suite run."
+    },
+    {
+      "command": "python -m pytest tests/release/test_safe_collection.py -q",
+      "exit_code": 0,
+      "passed": 29
+    },
+    {
+      "command": "python -m pytest tests/release/test_job_history.py -m integration -q --maxfail=1",
+      "exit_code": 1,
+      "errors": 1,
+      "deselected": 15,
+      "phase": "before the extra positive-cursor unit case",
+      "failed_at": "test_postgres_history_uses_existing_permission_contract[None-401] fixture setup",
+      "reason": "PostgreSQL unavailable; fixture explicitly fails rather than skipping acceptance. No PostgreSQL case executed."
+    },
+    {
+      "command": "TC_REQUIRE_DB=1 python -m pytest tests/release/test_job_history.py -m integration -q --maxfail=1",
+      "exit_code": 3,
+      "postgresql_cases_executed": 0,
+      "reason": "Existing required-database setup aborts after alembic cannot connect to localhost:5432. This is not acceptance success."
+    },
+    {
+      "command": "python -m pytest -q --maxfail=1",
+      "exit_code": 1,
+      "errors": 1,
+      "skipped": 1,
+      "failed_at": "tests/release/test_answer_sweep_direct_evidence.py::test_direct_subject_citing_only_export_like_docs_is_reclassified",
+      "reason": "Existing database-dependent fixture failed because PostgreSQL was unavailable. The full suite stopped at its first error; no suite pass is claimed. A subsequent collection-only run identified the single skip as the existing external blind-data pack."
+    },
+    {
+      "command": "ruff check apps/api/app/api/routes/jobs.py apps/api/tests/release/test_job_history.py",
+      "working_directory": "repository root",
+      "exit_code": 0
+    },
+    {
+      "command": "ruff format --check apps/api/app/api/routes/jobs.py apps/api/tests/release/test_job_history.py",
+      "working_directory": "repository root",
+      "exit_code": 0,
+      "files_checked": 2
+    },
+    {
+      "command": "python scripts/security/secret_inventory.py tree --root .",
+      "working_directory": "repository root",
+      "exit_code": 0,
+      "blocking_findings": 0,
+      "review_findings": 184
+    },
+    {
+      "command": "git diff --check",
+      "working_directory": "repository root",
+      "exit_code": 0
+    }
+  ],
+  "negative_controls": [
+    {
+      "mutation": "Remove the collection Job.workspace_id filter",
+      "test": "test_history_sql_control_scopes_and_cursors_after_insert",
+      "exit_code": 1,
+      "assertion_failures": 1
+    },
+    {
+      "mutation": "Expose raw job.payload in the history projection",
+      "test": "test_history_projection_never_exposes_raw_stored_text",
+      "exit_code": 1,
+      "assertion_failures": 1
+    },
+    {
+      "mutation": "Remove the object workspace filter",
+      "test": "test_history_object_reference_is_current_and_authorized",
+      "exit_code": 1,
+      "assertion_failures": 1
+    },
+    {
+      "mutation": "Remove the object deleted_at filter",
+      "test": "test_history_object_reference_is_current_and_authorized",
+      "exit_code": 1,
+      "assertion_failures": 1
+    }
+  ],
+  "negative_control_restoration": "Each mutation changed only the owned route file temporarily, ran the named test, and was restored in a finally block. Original source equality was asserted; the restored final implementation passed local unit checks.",
+  "compatibility_review": "AST comparison against the base confirms all six pre-existing jobs route/helper functions are unchanged. Real PostgreSQL detail/cancel/retry regression tests are included but unexecuted locally.",
+  "postgresql_acceptance": {
+    "status": "pending",
+    "coverage": [
+      "unauthenticated, all three built-in roles, all sixteen custom permission combinations, missing/foreign custom roles and suspended caller",
+      "current custom-role permission changes",
+      "foreign workspace denial, default 25/max 100, descending ID cursor after insertion and a fresh client",
+      "current tenant and deleted-state checks for all five existing job kinds' document/questionnaire references",
+      "malformed payload/result JSON, safe fields, retry lifecycle and charge-uncertain ledger state",
+      "unchanged full rows for GETs and exact fixture cleanup across fourteen monitored tables",
+      "unchanged existing detail/cancel/retry response contracts"
+    ]
+  },
+  "independent_review": "pending coordinator review at evidence preparation",
+  "ci": {
+    "status": "not published or run by this worker",
+    "required": "build and web-release-e2e on push and pull_request for the exact final published head"
+  },
+  "remaining_parent_scope": [
+    "job/activity center UI, reload and action workflows",
+    "explicit sync-history contract",
+    "owner/viewer planning-versus-current-principal semantics"
+  ]
+}
