@@ -86,7 +86,7 @@ guides recovery; it is not a substitute for current evidence.
 Independent review, meaningful acceptance evidence, exact-final-head required CI
 and the serialized master gate remain mandatory. Recovery never waives them or
 requires routine owner approval. The same checks apply when a context summary
-preserves a previous coordinator token: revalidate the live lease before acting.
+preserves previous coordinator ownership. Revalidate the live lease before acting.
 
 ## Each run
 
