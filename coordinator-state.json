@@ -2,15 +2,15 @@
   "schema_version": 1,
   "lease_owner": "codex-2026-10-30T00:14:08.013Z-72294qfbkc",
   "lease_expires_at": "2026-10-30T03:11:33.120Z",
-  "updated_at": "2026-10-30T01:11:33.120Z",
+  "updated_at": "2026-10-30T01:30:38.227Z",
   "automation_id": "6ae3c75d14788191b6f3e0838035bcef",
-  "last_master_sha": "5c4ffa0d550b0890ee4d8328d207eb96888535e2",
-  "checkpoint": "Active run; lease renewed, workers active. Merged #112,#111,#91,#114,#77,#95,#107 with independent reviews and four exact-head CI jobs green. Master5c4ffa0d550b0890ee4d8328d207eb96888535e2 push40983072227 both green. Actual Alembic headtc19010_inbox_receipts. #116Controlsnav0c449d4e2f17fc51a671edaea41fc3a3f82429d7 source reviewed; push40983420247 green, PR40983435102 build pending/web green. #1154ebe70d browser104pass1fail: missing questionnaire-stats fixture; reviewed local a8312c6361b38b09d6db1185d455b5c429c8f8ec/tree7a002cc180dd2344eff1b4b99ecc17e80ccb5249 ready for publication. #93securityrepair43cff248 approved, puremerge0418fadd onto5c4ffa0, parent/evidence8098052 to actualtc19010; independent review found lossy signing_key_id downgrade, notification_spec_repair repairing only migration/tests/docs. #96fee9c1bdc31c747cbdb5dc7c486084b2e2d88fe8 localrepair in independent review, do not reparent until93lands. faq_ci_repair now on108 atomicidempotency/lifecyclelocking/honestemptyUI in tc-alerts-repair. gap_provenance builds95AC3 realAPI/UI/processrestart acceptance in tc-inbox-acceptance; owns ci.yml narrowly. #105 local6595e6a+puremerge92d61e6341f7772394c1ca896a0bc5c57b0baf05 reviewed source repair fordevnpmwritepaths; publication next, fullDocker/MinIOruntime evidence stillpending. #5 remains93/08-001dependent; oldCIprecommitfailure and processlocalidempotencyseam needlaterrepair. No workers released.",
+  "last_master_sha": "35384fd1907ac9235922a74a575a1630aa0519ec",
+  "checkpoint": "Active run retained lease. Nine reviewed/exact-head-four-green PRs merged:112,111,91,114,77,95,107,116,115. Actual master35384fd1907ac9235922a74a575a1630aa0519ec; push40985527147 pending (prior64db2c9 green40984602717). #93 security/migration repair reviewed; final6e7154a451b62f3b595ca8a2a1149853f344e806/tree34717d15ae60da7fb2b4398b6bdc4405d3e6a0da published after generated-MFA-marker safe-collection correction,56tests independently pass. Runs40985958368/40985963871 pending. Actual landed migration stilltc19010_inbox_receipts;93slotnext,96then108. #96localfee9c1bdc31c747cbdb5dc7c486084b2e2d88fe8 independentlyapproved; wait93landingthenpuremerge/reparent/newCI. #108local02611842b32b21c6a6da2ac05ff8f20d8fde1535 independentlyapprovedsource,10SQLite/179webtests, PGunavailable; migrationfullreviewongoing,wait96actualhead. #95AC3 local94b5b627add1f32f865866bf0a7342a5e02b07b8/treec8e8c6cfa54d7409914fca8b07bef4ca2db664a0 sixfiles realAPI/UIrestartacceptance, separate reviewactive; no livePG/browser local. #105source7347a8c4f6121bfc3004141d88e79545883c9fae publisheddraft; compose_acceptance activelyadds dedicatedboundedDockerCIharness5files perclaim6512581031 in tc-compose-repair. alerts_resume nowimplements authorizedTC15-024 outboundconsumer/serveralias in tc-vendor-ui perclaim6512668742; preserve fullportalTC18-003scopegate. Runtime toolreset recovered afterverifyingownlease/remoteheads; originalworkersgone, replacementworkersactive; allworktreesretained. Never release whileworkersactive.",
   "blocked_items": [
-    "#93 lossless session key archive repair/review/PGCI before nextmigration; #96 and108 must serialize actuallandedparents.",
-    "#115 destinationstatsfixture repair must pass new exactheadCI; #116 PRbuildpending.",
-    "#95AC3 realAPI/UI/fullprocessrestart acceptance is being implemented; do not callticketDone.",
-    "#105 full isolatedCompose startup/persistence evidence unavailable locally (noDocker; historicalMinIOregistrydenial isruntimegap, notownerapproval). Sourcefixalone cannotqualifymerge.",
-    "Owner-only newaccounts/spend/rights/legal/sale/production/destructive gates unchanged. No automatic approval rejection occurred."
+    "#93 new exactheadCI pending after safe-collectionfixturefix; migrationqueue96/108waitactuallandings.",
+    "#95AC3 independentreview and realPG/browserCI pending; source testimplementation is not acceptance.",
+    "#105 dedicatedCompose runtimeharness beingimplemented; localDocker absent, registry failuresmustnotbypassimages/accounts.",
+    "TC15-024 consumer implementationactive; coordinator mustadd ui-22 releasecandidate/mincount/axe after currentCIownershipintegration.",
+    "Owneronly spend/accounts/legal/rights/sale/production/destructive gates unchanged; #5 retains93/08-001dependency gates."
   ]
 }
