@@ -1,0 +1,11 @@
+{
+  "width": 768,
+  "violationCount": 1,
+  "violations": [
+    {
+      "id": "color-contrast",
+      "impact": "serious",
+      "nodes": 1
+    }
+  ]
+}
