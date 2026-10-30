@@ -6,6 +6,7 @@ low-confidence answers, stale evidence, unapproved answers, and unresolved gaps.
 
 import json
 import logging
+from decimal import Decimal
 
 from sqlalchemy.orm import Session
 
@@ -14,6 +15,7 @@ from app.models.deal import Deal
 from app.models.evidence_item import EvidenceItem
 from app.models.golden_answer import GoldenAnswer  # noqa: F401
 from app.models.questionnaire import Question, Questionnaire
+from app.services.deal_service import money_text
 
 logger = logging.getLogger(__name__)
 
@@ -69,20 +71,22 @@ def score_deal(db: Session, deal_id: int, *, workspace_id: int) -> dict:
     )
 
     risk_factors = unanswered * 3 + low_confidence * 2 + unapproved * 1 + stale_evidence * 2
-    deal_value = deal.deal_value_arr or 0
-    risk_amount = (
-        round(deal_value * min(risk_factors / max(total_questions, 1), 1.0), 2)
-        if total_questions
-        else 0
-    )
+    deal_value = None if deal.deal_value_arr is None else Decimal(deal.deal_value_arr)
+    if deal_value is None:
+        risk_amount = None
+    elif total_questions:
+        ratio = min(Decimal(risk_factors) / Decimal(total_questions), Decimal(1))
+        risk_amount = (deal_value * ratio).quantize(Decimal("0.01"))
+    else:
+        risk_amount = Decimal("0.00")
 
     return {
         "deal_id": deal.id,
         "company_name": deal.company_name,
-        "deal_value_arr": deal_value,
+        "deal_value_arr": money_text(deal_value),
         "stage": deal.stage,
         "risk_score": risk_factors,
-        "revenue_at_risk": risk_amount,
+        "revenue_at_risk": money_text(risk_amount),
         "breakdown": {
             "unanswered_questions": unanswered,
             "low_confidence_answers": low_confidence,
@@ -96,6 +100,13 @@ def score_deal(db: Session, deal_id: int, *, workspace_id: int) -> dict:
 def rank_deals_by_risk(db: Session, workspace_id: int) -> list[dict]:
     deals = db.query(Deal).filter(Deal.workspace_id == workspace_id).all()
     scored = [score_deal(db, d.id, workspace_id=workspace_id) for d in deals]
-    scored = [s for s in scored if "error" not in s]
-    scored.sort(key=lambda s: s["revenue_at_risk"], reverse=True)
+    scored = [row for row in scored if "error" not in row]
+    scored.sort(key=_risk_sort_key)
     return scored
+
+
+def _risk_sort_key(row: dict) -> tuple[bool, Decimal]:
+    raw = row.get("revenue_at_risk")
+    if raw is None:
+        return (True, Decimal("0"))
+    return (False, -Decimal(raw))

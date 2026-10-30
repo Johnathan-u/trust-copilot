@@ -1,0 +1,21 @@
+SHA fd5221e9b429da14a974d5177a120061fc348480
+parents: cf8048a12eae34cdd17d66e184f32dba8d622ab5 d9ab8b652b93e56ed8b741b67e571004e17d551a
+tree matches git merge-tree --write-tree
+working directory: apps/api
+interpreter: /tmp/tc-venv/bin/python
+migration parent: tc10001_job_leases
+
+command: python -m pytest tests/release -q
+1820 passed, 1 failed, 7216 warnings in 176.04s
+failed: tests/release/test_job_idempotency.py::test_replay_returns_same_error_body_as_live_response
+cause: 429 AI job quota exceeded for workspace 1 from earlier local runs
+rerun after resetting that hour's ai_jobs counter: 1 passed
+
+command: npx vitest run
+Test Files  27 passed
+Tests  173 passed
+exit status: 0
+
+typecheck fix sha: 89af4f3df776ef5a5f7284a0f84a1dd152ff4cc8
+npm run typecheck: exit 0
+dealConsumer.test.ts: 3 passed
