@@ -1,6 +1,7 @@
 """Workspace settings API (ENT-202)."""
 
 import re
+import time
 from datetime import datetime
 
 from fastapi import APIRouter, Depends, HTTPException, Request, Response
@@ -8,7 +9,7 @@ from pydantic import BaseModel
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
-from app.core.auth_deps import require_can_admin, require_session
+from app.core.auth_deps import enforce_session_record, require_can_admin, require_session
 from app.core.config import SIGNUP_POLICY_SELF_SIGNUP, get_settings
 from app.core.database import get_db
 from app.core.rate_limit import (
@@ -27,14 +28,16 @@ SESSION_COOKIE = "tc_session"
 SESSION_MAX_AGE = 86400 * 7
 
 
-def _session_cookie_kwargs(max_age: int) -> dict:
-    return {
+def _session_cookie_kwargs(max_age: int, *, persistent: bool) -> dict:
+    kwargs = {
         "httponly": True,
         "samesite": "lax",
         "path": "/",
         "secure": is_production_env(),
-        "max_age": max_age,
     }
+    if persistent:
+        kwargs["max_age"] = max_age
+    return kwargs
 
 
 class CreateWorkspaceBody(BaseModel):
@@ -139,30 +142,46 @@ async def create_workspace(
     existing = db.query(Workspace).filter(Workspace.slug == slug).first()
     if existing:
         raise HTTPException(status_code=400, detail="A workspace with this name already exists")
+    # A context change does not renew the stored session or its current deadline.
+    current_deadline = enforce_session_record(session, db)
+    if int(current_deadline) <= time.time():
+        raise HTTPException(status_code=401, detail="Session expired")
     now = datetime.utcnow()
     ws = Workspace(name=name, slug=slug, created_at=now, updated_at=now)
-    db.add(ws)
-    db.flush()
-    db.add(WorkspaceMember(workspace_id=ws.id, user_id=user_id, role="admin"))
-    db.commit()
-    db.refresh(ws)
-    record_attempt(rate_key, max_attempts=per_hour, window_sec=_CREATE_WINDOW_SEC)
     session_id = session.get("session_id")
-    if session_id:
+    persistent = session.get("cookie_persistent") is True
+    try:
+        db.add(ws)
+        db.flush()
+        target_deadline = enforce_session_record({**session, "workspace_id": ws.id}, db)
+        expires_at = int(min(current_deadline, target_deadline))
+        if expires_at <= time.time():
+            raise HTTPException(status_code=401, detail="Session expired")
         token = sign_session(
             user_id=user_id,
             email=session.get("email", ""),
             workspace_id=ws.id,
             role="admin",
             session_id=session_id,
-            max_age_seconds=SESSION_MAX_AGE,
+            expires_at=expires_at,
+            cookie_persistent=persistent,
         )
-        response.set_cookie(
-            key=SESSION_COOKIE,
-            value=token,
-            **_session_cookie_kwargs(SESSION_MAX_AGE),
-        )
-    return {"id": ws.id, "name": ws.name, "slug": ws.slug}
+        max_age = expires_at - int(time.time())
+        if max_age <= 0:
+            raise HTTPException(status_code=401, detail="Session expired")
+        db.add(WorkspaceMember(workspace_id=ws.id, user_id=user_id, role="admin"))
+        result = {"id": ws.id, "name": ws.name, "slug": ws.slug}
+        db.commit()
+    except Exception:
+        db.rollback()
+        raise
+    record_attempt(rate_key, max_attempts=per_hour, window_sec=_CREATE_WINDOW_SEC)
+    response.set_cookie(
+        key=SESSION_COOKIE,
+        value=token,
+        **_session_cookie_kwargs(max_age, persistent=persistent),
+    )
+    return result
 
 
 @router.get("/creation-policy")

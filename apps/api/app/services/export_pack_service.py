@@ -128,6 +128,17 @@ def generate_evidence_bundle(
     questionnaire_id: int,
 ) -> dict:
     """Generate an evidence bundle manifest listing all documents referenced."""
+    qnr = (
+        db.query(Questionnaire.id)
+        .filter(
+            Questionnaire.id == questionnaire_id,
+            Questionnaire.workspace_id == workspace_id,
+        )
+        .first()
+    )
+    if not qnr:
+        raise ValueError("Questionnaire not found")
+
     questions = db.query(Question).filter(Question.questionnaire_id == questionnaire_id).all()
     q_ids = [q.id for q in questions]
 
@@ -135,8 +146,7 @@ def generate_evidence_bundle(
     if q_ids:
         answers = db.query(Answer).filter(Answer.question_id.in_(q_ids)).all()
 
-    doc_ids = set()
-    cited_sources = []
+    cited_document_ids = []
     for a in answers:
         if a.citations:
             try:
@@ -147,21 +157,23 @@ def generate_evidence_bundle(
                     for cite in cites:
                         if isinstance(cite, dict):
                             did = cite.get("document_id")
-                            if did:
-                                doc_ids.add(did)
-                            cited_sources.append(
-                                {
-                                    "question_id": a.question_id,
-                                    "document_id": did,
-                                    "chunk_text": cite.get("text", "")[:200],
-                                }
-                            )
-            except Exception:
+                            # Stored citations are references, not authority.
+                            # Do not coerce bools/strings/floats into database IDs.
+                            if type(did) is int and 0 < did <= 2147483647:
+                                cited_document_ids.append(did)
+            except (TypeError, ValueError, RecursionError):
                 pass
 
     documents = []
-    if doc_ids:
-        docs = db.query(Document).filter(Document.id.in_(doc_ids)).all()
+    if cited_document_ids:
+        docs = (
+            db.query(Document)
+            .filter(
+                Document.id.in_(set(cited_document_ids)),
+                Document.workspace_id == workspace_id,
+            )
+            .all()
+        )
         for d in docs:
             documents.append(
                 {
@@ -170,6 +182,7 @@ def generate_evidence_bundle(
                     "upload_date": d.created_at.isoformat() if d.created_at else None,
                 }
             )
+    authorized_ids = {document["id"] for document in documents}
 
     # TC-02-BUG-018: gaps closed by regeneration are not listed as gaps; only their count is
     # reported, separately, under evidence_gaps_resolved.
@@ -190,9 +203,9 @@ def generate_evidence_bundle(
     ]
 
     return {
-        "total_documents_cited": len(doc_ids),
+        "total_documents_cited": len(authorized_ids),
         "documents": documents,
-        "total_citations": len(cited_sources),
+        "total_citations": sum(did in authorized_ids for did in cited_document_ids),
         "evidence_gaps": gap_list,
         "evidence_gaps_resolved": resolved_gaps,
         "bundle_generated_at": datetime.now(timezone.utc).isoformat(),

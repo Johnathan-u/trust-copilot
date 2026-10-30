@@ -1,0 +1,47 @@
+TC-14-008a initial diagnostic verification — 2026-10-30
+Base f20eb4de326203bed30340a9e0b74a6d637227ca.
+Worktree tc-microcopy-axe-diagnostics; branch codex/TC-14-008a-axe-diagnostics.
+Claim #85/6515951957. Only the existing spec and child ticket/evidence change.
+
+Read apps/web/AGENTS.md and the installed Next app-router Playwright guide.
+Reused the existing locked node_modules via a temporary owned symlink.
+Both this tree and tc-web-fixes package-lock SHA256:
+351e7d2d85d5bd102e5d29fa06adfb455bc339e6c990a135e6555a4cf717075e
+No installation or dependency/configuration edits.
+
+From apps/web:
+./node_modules/.bin/eslint e2e/release/microcopy-states.spec.ts --max-warnings=0
+  Exit 0.
+npm run typecheck
+  Exit 0: Next typegen and tsc --noEmit -p .
+  Existing npm unknown http-proxy environment-option warning.
+./node_modules/.bin/playwright test e2e/release/microcopy-states.spec.ts --list --project=chromium
+  Exit 0: 11 tests in one file.
+
+From the repository root:
+node apps/web/node_modules/prettier/bin/prettier.cjs --check apps/web/e2e/release/microcopy-states.spec.ts
+  Exit 0 before and after the diagnostic addition.
+Inline Node/TypeScript comparison against git HEAD:
+  Exit 0: all58 assertion ASTs and exact expressions unchanged; scan construction,
+  summary map, blocking filter and every original report property unchanged.
+  Removing the exact five new lines reconstructs the entire original file.
+Extracted writeAxe helper with synthetic axe data and real Playwright expect:
+  Exit 0: serious -> attachment -> first assertion fails;
+  moderate -> attachment -> first passes -> second fails;
+  zero -> attachment -> both pass.
+  Full node selector, HTML, check/color data survive serialization; metadata and
+  integer violationCount/summary-array schema remain intact. No browser executed.
+  Only the helper's uniquely created temporary directory was removed.
+Locked Playwright Chromium executable presence:
+  false. No browser execution or contrast qualification claimed.
+
+Final Prettier check on the spec/new Markdown/JSON; git diff --check:
+  Exit 0.
+Historical JSON comparison with the downloaded actions/light360 artifact:
+  Equal. Summary metadata and the two-node serious violation are retained.
+Secret inventory over all five claimed files:
+  Exit 0; zero findings.
+Removed only the temporary node_modules symlink after verifying its exact target.
+Runtime link/generated outputs are excluded from the local implementation commit.
+Independent review and actual CI remain required. Transition causation is unproven;
+no product, timing, threshold, retry, skip or scan-scope change was made.

@@ -42,7 +42,7 @@ class TestShareableSpaceService:
         ws = db_session.query(Workspace).first()
         space = ss.create_space(db_session, ws.id, "Deactivate Test", 1)
         db_session.commit()
-        ss.deactivate_space(db_session, space["id"])
+        ss.deactivate_space(db_session, space["id"], workspace_id=ws.id)
         db_session.commit()
         result = ss.access_space_by_token(db_session, space["access_token"])
         assert result["valid"] is False

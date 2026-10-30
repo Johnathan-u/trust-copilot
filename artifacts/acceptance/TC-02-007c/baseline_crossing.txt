@@ -1,0 +1,49 @@
+bound=signed issued_at=1793356197 exp=1793442596 max_age=86399
+observed_remaining=86398
+Fbound=current-policy issued_at=1793356197 exp=1793356227 max_age=30
+observed_remaining=29
+Fbound=new-workspace-default issued_at=1793356198 exp=1793960968 max_age=604770
+observed_remaining=604769
+F
+=================================== FAILURES ===================================
+_ test_creation_preserves_the_existing_and_target_absolute_deadlines[sqlite-signed] _
+tests/release/test_session_persistence.py:232: in test_creation_preserves_the_existing_and_target_absolute_deadlines
+    assert int(issued_cookie(response)["max-age"]) <= deadline - int(time.time())
+E   AssertionError: assert 86399 <= (1793442596 - 1793356198)
+E    +  where 86399 = int('86399')
+E    +  and   1793356198 = int(1793356198.1)
+E    +    where 1793356198.1 = <function Probe.pytest_runtest_call.<locals>.reissue_then_cross_second.<locals>.<lambda> at 0x7f7a3ca59760>()
+E    +      where <function Probe.pytest_runtest_call.<locals>.reissue_then_cross_second.<locals>.<lambda> at 0x7f7a3ca59760> = time.time
+_ test_creation_preserves_the_existing_and_target_absolute_deadlines[sqlite-current-policy] _
+tests/release/test_session_persistence.py:232: in test_creation_preserves_the_existing_and_target_absolute_deadlines
+    assert int(issued_cookie(response)["max-age"]) <= deadline - int(time.time())
+E   AssertionError: assert 30 <= (1793356227 - 1793356198)
+E    +  where 30 = int('30')
+E    +  and   1793356198 = int(1793356198.1)
+E    +    where 1793356198.1 = <function Probe.pytest_runtest_call.<locals>.reissue_then_cross_second.<locals>.<lambda> at 0x7f7a3c88bf60>()
+E    +      where <function Probe.pytest_runtest_call.<locals>.reissue_then_cross_second.<locals>.<lambda> at 0x7f7a3c88bf60> = time.time
+_ test_creation_preserves_the_existing_and_target_absolute_deadlines[sqlite-new-workspace-default] _
+tests/release/test_session_persistence.py:232: in test_creation_preserves_the_existing_and_target_absolute_deadlines
+    assert int(issued_cookie(response)["max-age"]) <= deadline - int(time.time())
+E   AssertionError: assert 604770 <= (1793960968 - 1793356199)
+E    +  where 604770 = int('604770')
+E    +  and   1793356199 = int(1793356199.1)
+E    +    where 1793356199.1 = <function Probe.pytest_runtest_call.<locals>.reissue_then_cross_second.<locals>.<lambda> at 0x7f7a3cbc0860>()
+E    +      where <function Probe.pytest_runtest_call.<locals>.reissue_then_cross_second.<locals>.<lambda> at 0x7f7a3cbc0860> = time.time
+=============================== warnings summary ===============================
+tests/release/test_session_persistence.py: 30 warnings
+  /tmp/tc-backend-venv/lib/python3.12/site-packages/sqlalchemy/sql/schema.py:3627: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    return util.wrap_callable(lambda ctx: fn(), fn)  # type: ignore
+
+tests/release/test_session_persistence.py::test_creation_preserves_the_existing_and_target_absolute_deadlines[sqlite-signed]
+tests/release/test_session_persistence.py::test_creation_preserves_the_existing_and_target_absolute_deadlines[sqlite-current-policy]
+tests/release/test_session_persistence.py::test_creation_preserves_the_existing_and_target_absolute_deadlines[sqlite-new-workspace-default]
+  /workspace/scratch/3faeebcaa421/trust-copilot-ci-repair/apps/api/app/api/routes/workspaces.py:149: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    now = datetime.utcnow()
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED tests/release/test_session_persistence.py::test_creation_preserves_the_existing_and_target_absolute_deadlines[sqlite-signed]
+FAILED tests/release/test_session_persistence.py::test_creation_preserves_the_existing_and_target_absolute_deadlines[sqlite-current-policy]
+FAILED tests/release/test_session_persistence.py::test_creation_preserves_the_existing_and_target_absolute_deadlines[sqlite-new-workspace-default]
+3 failed, 93 deselected, 33 warnings in 4.45s
