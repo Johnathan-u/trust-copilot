@@ -242,8 +242,6 @@ def verify_code(req: VerifyCodeRequest, db: Session = Depends(get_db)):
     user = db.query(User).filter(User.email == email).first()
     if not user:
         raise HTTPException(status_code=400, detail="Invalid code")
-    if user.email_verified:
-        return {"message": "Email already verified."}
     h = _token_hash(code)
     evt = (
         db.query(EmailVerificationToken)
@@ -263,6 +261,10 @@ def verify_code(req: VerifyCodeRequest, db: Session = Depends(get_db)):
         db.delete(evt)
         db.commit()
         raise HTTPException(status_code=400, detail="Code expired. Please register again.")
+    if user.email_verified:
+        db.delete(evt)
+        db.commit()
+        return {"message": "Email already verified."}
     user.email_verified = True
     db.delete(evt)
     db.commit()
@@ -304,10 +306,10 @@ def forgot_password(req: ForgotPasswordRequest, request: Request, db: Session = 
     ip_key = f"reset:ip:{get_client_ip(request)}"
     if is_rate_limited(ip_key):
         raise HTTPException(status_code=429, detail="Too many requests. Try again later.")
+    record_attempt(ip_key)
     user = db.query(User).filter(User.email == email).first()
     if not user:
         return {"message": "If that email is registered, you will receive a reset link."}
-    record_attempt(ip_key)
     db.query(PasswordResetToken).filter(
         PasswordResetToken.user_id == user.id,
         PasswordResetToken.used_at.is_(None),
