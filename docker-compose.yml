@@ -48,6 +48,8 @@ services:
       - ./apps/web:/app
       - web_node_modules:/app/node_modules
       - web_next:/app/.next
+      # Next dev uses .next/dev imports; keep its declaration off the source bind.
+      - ./infra/web/next-env.dev.d.ts:/app/next-env.d.ts:ro
     expose:
       - "3000"
     healthcheck:

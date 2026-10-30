@@ -9,6 +9,8 @@ from __future__ import annotations
 import copy
 import importlib.util
 import secrets
+import shutil
+import subprocess
 from pathlib import Path
 
 import pytest
@@ -131,6 +133,58 @@ def test_production_caddyfile_serves_tls_and_not_data_ports() -> None:
         assert forbidden not in text
 
 
+def test_dev_declaration_matches_installed_generator_without_rewrite(tmp_path) -> None:
+    """Use the locked Next implementation; stale fixtures must fail, never skip."""
+    node = shutil.which("node")
+    assert node, "Node is required for the installed Next declaration check"
+    script = r"""
+const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const path = require('node:path');
+const loadConfig = require('next/dist/server/config').default;
+const {PHASE_DEVELOPMENT_SERVER} = require('next/constants');
+const {writeAppTypeDeclarations} = require('next/dist/lib/typescript/writeAppTypeDeclarations');
+(async () => {
+  const [web, temp, fixture] = process.argv.slice(1);
+  const expectedVersion = JSON.parse(fs.readFileSync(path.join(web, 'package.json'))).dependencies.next;
+  assert.equal(require('next/package.json').version, expectedVersion);
+  const config = await loadConfig(PHASE_DEVELOPMENT_SERVER, web, {silent: true});
+  const options = {
+    baseDir: temp, distDir: config.distDir,
+    imageImportsEnabled: !config.images.disableStaticImages,
+    hasAppDir: fs.existsSync(path.join(web, 'app')),
+    hasPagesDir: fs.existsSync(path.join(web, 'pages')),
+    strictRouteTypes: Boolean(config.experimental.strictRouteTypes),
+    typedRoutes: config.typedRoutes,
+  };
+  await writeAppTypeDeclarations(options);
+  const declaration = path.join(temp, 'next-env.d.ts');
+  assert.deepEqual(fs.readFileSync(declaration), fs.readFileSync(fixture));
+  // A matching declaration must take Next's read-only-file no-write branch.
+  // Only the temporary generated file's timestamp is changed, never checkout files.
+  fs.utimesSync(declaration, new Date(0), new Date(0));
+  await writeAppTypeDeclarations(options);
+  assert.equal(fs.statSync(declaration).mtimeMs, 0, 'matching declaration was rewritten');
+})().catch(error => { console.error(error); process.exitCode = 1; });
+"""
+    result = subprocess.run(
+        [
+            node,
+            "-e",
+            script,
+            str(REPO_ROOT / "apps/web"),
+            str(tmp_path),
+            str(REPO_ROOT / "infra/web/next-env.dev.d.ts"),
+        ],
+        cwd=REPO_ROOT / "apps/web",
+        capture_output=True,
+        text=True,
+        timeout=30,
+        check=False,
+    )
+    assert result.returncode == 0, result.stdout + result.stderr
+
+
 @pytest.fixture
 def acceptance():
     """Import the stdlib-only runner without starting Docker during collection."""
@@ -142,8 +196,8 @@ def acceptance():
     return module
 
 
-def _runtime_model(project: str) -> dict:
-    model = _compose("docker-compose.prod.yml")
+def _runtime_model(project: str, filename: str = "docker-compose.prod.yml") -> dict:
+    model = _compose(filename)
     for kind in ("volumes", "networks"):
         model[kind] = {
             name: {**(resource or {}), "name": f"{project}_{name}"}
@@ -187,6 +241,29 @@ def test_runtime_isolation_preserves_committed_images_commands_and_hardening(acc
         {"target": 443, "published": "0", "host_ip": "127.0.0.1"}
     ]
     assert isolated["networks"]["datanet"]["internal"] is True
+
+
+def test_runtime_dev_isolation_retains_read_only_declaration_overlay(acceptance) -> None:
+    project = "tc03002-12-1-abcdef123456-dev"
+    original = _runtime_model(project, "docker-compose.yml")
+    overlay = "./infra/web/next-env.dev.d.ts:/app/next-env.d.ts:ro"
+    assert overlay in original["services"]["web"]["volumes"]
+    # Compose config resolves bind mounts to this canonical form before isolate.
+    mounts = original["services"]["web"]["volumes"]
+    mounts[mounts.index(overlay)] = {
+        "type": "bind",
+        "source": str(REPO_ROOT / "infra/web/next-env.dev.d.ts"),
+        "target": "/app/next-env.d.ts",
+        "read_only": True,
+    }
+    isolated = acceptance.isolate(copy.deepcopy(original), project, "dev", Path("/tmp/test-caddy"))
+    assert isolated["services"]["web"]["volumes"] == original["services"]["web"]["volumes"]
+    declaration = next(
+        mount for mount in isolated["services"]["web"]["volumes"] if isinstance(mount, dict)
+    )
+    assert declaration["target"] == "/app/next-env.d.ts" and declaration["read_only"] is True
+    assert set(isolated["volumes"]) == {"web_node_modules", "web_next"}
+    assert "next-env.dev.d.ts" not in (REPO_ROOT / "docker-compose.prod.yml").read_text()
 
 
 @pytest.mark.parametrize(
