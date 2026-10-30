@@ -137,6 +137,12 @@ jobs:
           TC_REQUIRE_DB: '1'
         run: python -m pytest tests/release/test_python_lock.py -q
 
+      - name: Install Chromium for integrated inbox acceptance
+        working-directory: apps/web
+        # Reuse the locked Playwright dependency in the job that already owns
+        # PostgreSQL/Python. Missing browser support must fail AC3, not skip it.
+        run: npx --no-install playwright install --with-deps chromium
+
       - name: Run backend tests
         working-directory: apps/api
         env:
@@ -148,6 +154,17 @@ jobs:
           TC_REQUIRE_WEB_TOOLCHAIN: '1'
         # DATABASE_URL / TC_TEST_DATABASE_URL come from the isolated Postgres step via GITHUB_ENV.
         run: pytest -rs
+
+      - name: Upload integrated inbox restart report
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: inbox-restart-acceptance
+          path: |
+            apps/web/playwright-report/inbox-restart/
+            apps/web/test-results/inbox-restart/
+          if-no-files-found: warn
+          retention-days: 14
 
       - name: Type-check frontend
         working-directory: apps/web
