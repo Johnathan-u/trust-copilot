@@ -1,4 +1,10 @@
-import { expect, test, type BrowserContext, type Page } from '@playwright/test'
+import {
+  expect,
+  test,
+  type BrowserContext,
+  type CDPSession,
+  type Page,
+} from '@playwright/test'
 import AxeBuilder from '@axe-core/playwright'
 import { existsSync, mkdirSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
@@ -121,6 +127,7 @@ for (const width of [360, 768, 1440]) {
     const data = JSON.parse(raw) as Fixture
     const contexts: BrowserContext[] = []
     let release = () => {}
+    let responseObserver: CDPSession | undefined
     try {
       for (let index = 0; index < 3; index++) {
         contexts.push(
@@ -246,6 +253,12 @@ for (const width of [360, 768, 1440]) {
         })
       ).toBeDisabled()
       await expect(a).toHaveURL(/\/dashboard\/security$/)
+      // Retain the real response across native navigation without delaying it.
+      responseObserver = await a.context().newCDPSession(a)
+      await responseObserver.send('Network.enable')
+      await responseObserver.send('Network.configureDurableMessages', {
+        maxTotalBufferSize: 1024 * 1024,
+      })
       release()
       const acknowledged = await response
       expect(acknowledged.status()).toBe(200)
@@ -273,7 +286,11 @@ for (const width of [360, 768, 1440]) {
       await checkpoint('after', width)
     } finally {
       release()
-      await Promise.all(contexts.map((context) => context.close()))
+      try {
+        await responseObserver?.detach()
+      } finally {
+        await Promise.all(contexts.map((context) => context.close()))
+      }
     }
   })
 }
