@@ -1,6 +1,6 @@
 """User model for auth."""
 
-from sqlalchemy import Boolean, Column, DateTime, ForeignKey, Integer, String
+from sqlalchemy import Boolean, Column, DateTime, ForeignKey, Integer, String, UniqueConstraint
 
 from app.core.database import Base, utc_now
 
@@ -23,6 +23,11 @@ class WorkspaceMember(Base):
     """User membership in workspaces with role."""
 
     __tablename__ = "workspace_members"
+    __table_args__ = (
+        UniqueConstraint(
+            "workspace_id", "user_id", name="uq_workspace_members_workspace_id_user_id"
+        ),
+    )
 
     id = Column(Integer, primary_key=True, index=True)
     workspace_id = Column(Integer, ForeignKey("workspaces.id", ondelete="CASCADE"), nullable=False)

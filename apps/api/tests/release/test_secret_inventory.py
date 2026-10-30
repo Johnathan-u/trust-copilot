@@ -1005,9 +1005,9 @@ def test_web_login_bundle_has_no_demo_password_literal():
 # ---------------------------------------------------------------------------
 
 _KEY_CONSUMERS = [
-    ("app.services.credential_store_service", "_get_fernet"),
-    ("app.core.mfa", "_fernet"),
-    ("app.services.slack_service", "_fernet"),
+    ("app.core.keys", "load_session_keyring"),
+    ("app.core.keys", "load_mfa_keyring"),
+    ("app.core.keys", "load_connector_keyring"),
 ]
 
 

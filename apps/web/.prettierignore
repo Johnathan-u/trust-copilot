@@ -1,6 +1,7 @@
 # TC-02-006: generated or third-party output; never hand-formatted.
 node_modules/
 .next/
+.next-e2e-sales/
 out/
 coverage/
 playwright-report/

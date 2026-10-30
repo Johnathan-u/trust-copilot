@@ -1,0 +1,20 @@
+{
+  "node": "v24.22.1",
+  "unitTests": { "files": 26, "passed": 173, "failed": 0, "skipped": 0 },
+  "releasePlaywright": {
+    "passed": 57,
+    "failed": 0,
+    "skipped": 0,
+    "specs": {
+      "design-tokens.spec.ts": 4,
+      "responsive-shell.spec.ts": 8,
+      "dialog-toast.spec.ts": 8,
+      "settings-access.spec.ts": 3,
+      "state-components.spec.ts": 9,
+      "drawer-followups.spec.ts": 3,
+      "workspace-create-denied.spec.ts": 8,
+      "workspace-creation-policy.spec.ts": 14
+    }
+  },
+  "axeViolations": 0
+}

@@ -75,6 +75,12 @@ export const appNavItems: readonly AppNavItem[] = [
     section: 'compliance',
   },
   {
+    href: '/dashboard/controls',
+    label: 'Controls',
+    icon: '☑',
+    section: 'compliance',
+  },
+  {
     href: '/dashboard/trust-center',
     label: 'Trust Center',
     icon: '🛡️',

@@ -1,0 +1,28 @@
+FFFF                                                                     [100%]
+=================================== FAILURES ===================================
+_______ test_lifecycle_requires_credentials_before_database_access[send] _______
+tests/release/test_domain_vendor_requests.py:596: in test_lifecycle_requires_credentials_before_database_access
+    assert result.status_code == 401
+E   assert 404 == 401
+E    +  where 404 = <Response [404 Not Found]>.status_code
+______ test_lifecycle_requires_credentials_before_database_access[resend] ______
+tests/release/test_domain_vendor_requests.py:596: in test_lifecycle_requires_credentials_before_database_access
+    assert result.status_code == 401
+E   assert 404 == 401
+E    +  where 404 = <Response [404 Not Found]>.status_code
+______ test_lifecycle_requires_credentials_before_database_access[revoke] ______
+tests/release/test_domain_vendor_requests.py:596: in test_lifecycle_requires_credentials_before_database_access
+    assert result.status_code == 401
+E   assert 404 == 401
+E    +  where 404 = <Response [404 Not Found]>.status_code
+___________ test_final_submit_validates_body_before_database_access ____________
+tests/release/test_domain_vendor_requests.py:610: in test_final_submit_validates_body_before_database_access
+    assert result.status_code == 422
+E   assert 404 == 422
+E    +  where 404 = <Response [404 Not Found]>.status_code
+=========================== short test summary info ============================
+FAILED tests/release/test_domain_vendor_requests.py::test_lifecycle_requires_credentials_before_database_access[send]
+FAILED tests/release/test_domain_vendor_requests.py::test_lifecycle_requires_credentials_before_database_access[resend]
+FAILED tests/release/test_domain_vendor_requests.py::test_lifecycle_requires_credentials_before_database_access[revoke]
+FAILED tests/release/test_domain_vendor_requests.py::test_final_submit_validates_body_before_database_access
+4 failed, 60 deselected in 0.71s

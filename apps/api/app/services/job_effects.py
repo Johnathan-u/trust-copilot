@@ -13,8 +13,9 @@ crash, a lease takeover (TC-10-001) or a retry (TC-10-002). This module makes re
     (``reconcile_previous_attempts`` on the next claim, ``mark_unsettled_uncertain`` on failure), so a
     possible provider charge for discarded work is recorded rather than silently lost.
 
-The interface is deliberately small so TC-10-001 (leases/heartbeats), TC-10-002 (retries) and TC-10-005
-(outbox/storage reconciliation) can build on it without changing call sites.
+The interface is deliberately small so later recovery can build on it without changing call sites.
+TC-10-005 re-enqueues a committed row that has no job and sweeps unreferenced objects. It does not
+add an outbox table.
 """
 
 from __future__ import annotations

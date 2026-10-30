@@ -466,14 +466,14 @@ def test_storage_delete_failure_still_returns_409_without_a_row(
     model_mark = _mark(db, route["model"])
     hold_key, _hold_id = _hold_queued_slot(db, route["kind"])
     store["fail_delete"] = True
-    with caplog.at_level(logging.WARNING, logger="app.services.upload_enqueue"):
+    with caplog.at_level(logging.WARNING, logger="app.services.storage_reconcile"):
         with _force_enqueue_conflict(route, hold_key):
             conflicted = _post(client, route, content=b"Synthetic delete failure.")
     _assert_retryable_conflict(conflicted)
     assert _rows(db, route["model"], model_mark) == []
     assert store["data"], "the failed delete leaves the object; the row must still be gone"
     assert store["deletes"] >= 1
-    assert "failed to delete stored object" in caplog.text
+    assert "failed to delete unreferenced storage object" in caplog.text
 
 
 @pytest.mark.parametrize("route_name", _ROUTES)

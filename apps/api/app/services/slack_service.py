@@ -1,7 +1,5 @@
 """Phase D: Slack notification delivery service. Provider interface, dev stub, HTTP client."""
 
-import base64
-import hashlib
 import json
 import logging
 import time
@@ -31,21 +29,16 @@ logger = logging.getLogger(__name__)
 # ---------------------------------------------------------------------------
 
 
-def _fernet():
-    from cryptography.fernet import Fernet
-    from app.core.session import get_session_secret
-
-    raw = hashlib.sha256(get_session_secret().encode()).digest()
-    key = base64.urlsafe_b64encode(raw)
-    return Fernet(key)
-
-
 def encrypt_token(token: str) -> str:
-    return _fernet().encrypt(token.encode()).decode()
+    from app.core.keys import seal
+
+    return seal("connector", token)
 
 
 def decrypt_token(encrypted: str) -> str:
-    return _fernet().decrypt(encrypted.encode()).decode()
+    from app.core.keys import open_sealed
+
+    return open_sealed("connector", encrypted)
 
 
 # ---------------------------------------------------------------------------

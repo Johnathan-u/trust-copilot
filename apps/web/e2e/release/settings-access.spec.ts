@@ -79,6 +79,9 @@ async function installApi(page: Page, role: RoleName, holdMe = false) {
       return fulfillJson(route, { alerts: [] })
     if (pathname.includes('/api/in-app-notifications'))
       return fulfillJson(route, { items: [] })
+    if (pathname.replace(/\/$/, '') === '/api/workspaces/creation-policy') {
+      return fulfillJson(route, { can_create_workspace: true })
+    }
     return fulfillJson(route, {})
   })
   return releaseMe

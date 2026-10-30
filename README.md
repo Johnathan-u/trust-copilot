@@ -91,6 +91,25 @@ are **retired** (owner statement 2026-10-27, TC-07-001) and must never be reused
   config contract: see [docs/release/config-contract.md](docs/release/config-contract.md) and run
   `cd apps/api && python -m app.core.config_contract check`.
 
+### Key rotation
+
+Session signing, OAuth state, MFA and connector encryption can each have a versioned keyring
+(`SESSION_KEYRING`, `OAUTH_STATE_KEYRING`, `MFA_KEYRING`, `CONNECTOR_KEYRING`). The first
+`kid:secret` is current; the rest are retired. Leave a variable unset to keep deriving
+`v0-legacy` from `SESSION_SECRET`. Explicit keyrings must retain the previous root as
+`v0-legacy` to read legacy ciphertext; retired session cookies are rejected, including
+unprefixed cookies. Rehearse on a copy, never on production:
+
+`cd apps/api && python scripts/rotate_purpose_keys.py --dry-run`
+
+The command prints counts only. An MFA secret it cannot open is marked `reenrol.<kid>`.
+Password login then fails with `mfa_reset_required` and does not start a session. An
+active administrator of that workspace authorizes enrollment with
+`POST /api/members/clear-mfa-reenrol/{user_id}`. The next password login grants only a
+five-minute enrollment session; workspace access resumes after successful TOTP confirmation.
+See [docs/release/config-contract.md](docs/release/config-contract.md)
+and [docs/release/tickets/TC-07-002.md](docs/release/tickets/TC-07-002.md).
+
 See `.env.example`. Required: `DATABASE_URL`, `SESSION_SECRET`, `S3_*`. Optional: `OPENAI_API_KEY` (needed for embeddings and answer generation).
 
 ## Commands

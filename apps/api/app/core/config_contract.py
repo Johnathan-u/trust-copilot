@@ -149,7 +149,39 @@ CONTRACT: tuple[ConfigVar, ...] = (
         "required",
         True,
         "random per-process key (dev/test only)",
-        "Signs `tc_session` cookies and OAuth state; derives MFA/Slack/credential-store keys. Placeholders rejected.",
+        "Signs legacy cookies and derives purpose keys when a purpose keyring is unset. Placeholders rejected.",
+    ),
+    ConfigVar(
+        "SESSION_KEYRING",
+        "kid:secret,kid:secret",
+        "optional",
+        True,
+        "unset (HKDF from SESSION_SECRET, id v0-legacy)",
+        "Session signing keys. First entry is current; later entries are retired. No value is echoed.",
+    ),
+    ConfigVar(
+        "OAUTH_STATE_KEYRING",
+        "kid:secret,kid:secret",
+        "optional",
+        True,
+        "unset (HKDF from SESSION_SECRET, id v0-legacy)",
+        "OAuth state signing keys. CSRF stays an Origin/Referer check. No value is echoed.",
+    ),
+    ConfigVar(
+        "MFA_KEYRING",
+        "kid:secret,kid:secret",
+        "optional",
+        True,
+        "unset (HKDF from SESSION_SECRET, id v0-legacy)",
+        "MFA secret encryption keys. First entry is current; later entries decrypt only. No value is echoed.",
+    ),
+    ConfigVar(
+        "CONNECTOR_KEYRING",
+        "kid:secret,kid:secret",
+        "optional",
+        True,
+        "unset (HKDF from SESSION_SECRET, id v0-legacy)",
+        "Connector token encryption keys (credential store, Slack, Gmail). No value is echoed.",
     ),
     ConfigVar(
         "DATABASE_URL",
@@ -577,6 +609,22 @@ CONTRACT: tuple[ConfigVar, ...] = (
         False,
         "15",
         "How often the owner renews that lease. Clamped to 1-1200 and kept below the lease.",
+    ),
+    ConfigVar(
+        "JOB_NULL_LEASE_GRACE_SECONDS",
+        "int",
+        "optional",
+        False,
+        "3600",
+        "How long a running job with a NULL lease is left alone. Clamped to at least 5 times JOB_LEASE_SECONDS and at most 86400.",
+    ),
+    ConfigVar(
+        "STORAGE_ORPHAN_GRACE_SECONDS",
+        "int",
+        "optional",
+        False,
+        "7200",
+        "How long an unreferenced storage object is kept. The sweep deletes it only when it is strictly older. Clamped to 60-604800.",
     ),
     ConfigVar(
         "RETRIEVAL_MAX_THREADS",
@@ -1149,6 +1197,10 @@ def validate_environment(env: Mapping[str, str] | None = None) -> list[Problem]:
                 "characters (unset, short or placeholder values are refused)",
             )
         )
+    from app.core.keys import production_key_problems
+
+    for name, reason in production_key_problems(dict(env)):
+        problems.append(Problem(name, reason))
     _check_database_url(env, problems)
 
     access = env.get("S3_ACCESS_KEY")

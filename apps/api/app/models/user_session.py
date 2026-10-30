@@ -15,6 +15,7 @@ class UserSession(Base):
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
     session_id = Column(String(64), nullable=False, unique=True, index=True)
+    signing_key_id = Column(String(64), nullable=True)
     user_agent = Column(String(512), nullable=True)
     ip_address = Column(String(64), nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)

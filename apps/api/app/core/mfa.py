@@ -1,29 +1,63 @@
 """MFA helpers (AUTH-211): TOTP secret encryption and verification."""
 
-import base64
-import hashlib
-
 import pyotp
-from cryptography.fernet import Fernet
+from sqlalchemy.orm import Session
+
+from app.core.keys import (
+    REENROL_MARK,
+    REENROL_PENDING_MARK,
+    KeyErrorSafe,
+    MfaReenrolRequired,
+    open_sealed,
+    seal,
+)
 
 
-def _fernet() -> Fernet:
-    """Fernet key derived from session secret (32 bytes for key)."""
-    from app.core.session import get_session_secret
-
-    raw = hashlib.sha256(get_session_secret().encode()).digest()
-    key = base64.urlsafe_b64encode(raw)
-    return Fernet(key)
-
-
-def encrypt_totp_secret(secret: str) -> str:
+def encrypt_totp_secret(secret: str, *, reenrol_pending: bool = False) -> str:
     """Encrypt TOTP base32 secret for storage."""
-    return _fernet().encrypt(secret.encode()).decode()
+    encrypted = seal("mfa", secret)
+    return f"{REENROL_PENDING_MARK}.{encrypted}" if reenrol_pending else encrypted
 
 
 def decrypt_totp_secret(encrypted: str) -> str:
     """Decrypt stored secret to base32."""
-    return _fernet().decrypt(encrypted.encode()).decode()
+    return open_sealed("mfa", encrypted)
+
+
+def mfa_reenrol_required(encrypted: str | None) -> bool:
+    """True when the stored MFA secret is the undecryptable ``reenrol.<kid>`` marker."""
+    return bool(encrypted) and encrypted.startswith(f"{REENROL_MARK}.")
+
+
+def mfa_reenrol_pending(encrypted: str | None) -> bool:
+    """An administrator authorized setup, but the new factor is not confirmed."""
+    return bool(encrypted) and encrypted.startswith(f"{REENROL_PENDING_MARK}.")
+
+
+def decrypt_mfa_for_user(
+    db: Session,
+    *,
+    user_id: int,
+    encrypted: str,
+    resource_id: int | None = None,
+) -> str:
+    """Open an MFA secret. A failure is audited with user id, key id and reason only."""
+    try:
+        return decrypt_totp_secret(encrypted)
+    except (KeyErrorSafe, MfaReenrolRequired) as exc:
+        from app.core.audit import record_decrypt_failure
+
+        reason = "reenrol_marker" if isinstance(exc, MfaReenrolRequired) else "decrypt_failed"
+        record_decrypt_failure(
+            db,
+            user_id=user_id,
+            stored=encrypted,
+            reason=reason,
+            resource_type="user_mfa",
+            resource_id=resource_id,
+            commit=True,
+        )
+        raise
 
 
 def generate_totp_secret() -> str:

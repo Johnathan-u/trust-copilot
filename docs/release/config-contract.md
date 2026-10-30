@@ -19,6 +19,32 @@ Source of truth: `apps/api/app/core/config_contract.py`. The table between the m
 * Error messages list variable names and reasons only, never values.
 * **Non-production**: only malformed values that would crash `Settings()` and unknown `APP_ENV` values are fatal;
   everything else is reported as a warning.
+* **Key rotation.** Session signing, OAuth state, MFA and connector encryption each have an optional
+  keyring (`SESSION_KEYRING`, `OAUTH_STATE_KEYRING`, `MFA_KEYRING`, `CONNECTOR_KEYRING`). The first
+  `kid:secret` is the current key; later entries are retired. Unset keyrings derive `v0-legacy` from
+  `SESSION_SECRET` with HKDF and a purpose label; explicitly retaining `v0-legacy` preserves that
+  derivation. Unprefixed ciphertext and cookies use the retained legacy entry's previous SHA256
+  or raw HMAC derivation. Explicit keyrings do not implicitly trust `SESSION_SECRET`; legacy
+  session cookies obey retirement just like prefixed cookies. Only an explicit `v0-legacy`
+  entry also supports the older prefixed SHA256 format. Production rejects a weak purpose key, a repeated key id,
+  and the same key material used for two purposes. Errors name the variable only.
+  Rehearse rotation on a database copy, never against production:
+
+  `cd apps/api && python scripts/rotate_purpose_keys.py --dry-run`
+
+  The command prints counts only. It re-encrypts rows onto the current key id, skips rows already
+  there, and can resume with `--after-id`. An MFA secret that cannot be opened is marked
+  `reenrol.<kid>` and stays enabled. Password login then fails with `mfa_reset_required` and
+  issues no session, so setup is unreachable until an administrator of that workspace calls
+  `POST /api/members/clear-mfa-reenrol/{user_id}`. That rechecks current active administrator
+  membership, sets an explicit pending-enrollment marker, revokes the target's sessions,
+  login challenges and recovery codes, and writes an audit row (actor, target, workspace).
+  The next password login grants only a five-minute setup session with no workspace privileges.
+  Successful TOTP confirmation checks current active membership and atomically replaces it
+  with a normal session using the current role. Ordinary disabled optional MFA is unaffected.
+  Failed decrypts are audited with user id, key id and reason only.
+  Sessions whose signing key id is retired, or missing once a non-legacy session key is current,
+  are deleted. Custody is versioned env keyrings, not a KMS.
 * **Rate limiting.** Unless `REDIS_URL` is set, the limiter in `app.core.rate_limit` is in-memory and
   per-process. The Redis backend fails open on store errors for every route except `POST /api/workspaces`.
   In production that route fails closed (HTTP 503, a generic detail, and `Retry-After`) because workspace
@@ -43,7 +69,11 @@ Source of truth: `apps/api/app/core/config_contract.py`. The table between the m
 | Variable | Type | Production | Secret | Non-production default | Description | Owner prerequisite |
 |---|---|---|---|---|---|---|
 | `APP_ENV` | enum(development|test|staging|production) | required | no | development | Runtime mode. Only `production` enables the fail-closed checks below; unknown values are rejected. |  |
-| `SESSION_SECRET` | secret string (>=32 chars, >=8 distinct chars) | required | yes | random per-process key (dev/test only) | Signs `tc_session` cookies and OAuth state; derives MFA/Slack/credential-store keys. Placeholders rejected. |  |
+| `SESSION_SECRET` | secret string (>=32 chars, >=8 distinct chars) | required | yes | random per-process key (dev/test only) | Signs legacy cookies and derives purpose keys when a purpose keyring is unset. Placeholders rejected. |  |
+| `SESSION_KEYRING` | kid:secret,kid:secret | optional | yes | unset (HKDF from SESSION_SECRET, id v0-legacy) | Session signing keys. First entry is current; later entries are retired. No value is echoed. |  |
+| `OAUTH_STATE_KEYRING` | kid:secret,kid:secret | optional | yes | unset (HKDF from SESSION_SECRET, id v0-legacy) | OAuth state signing keys. CSRF stays an Origin/Referer check. No value is echoed. |  |
+| `MFA_KEYRING` | kid:secret,kid:secret | optional | yes | unset (HKDF from SESSION_SECRET, id v0-legacy) | MFA secret encryption keys. First entry is current; later entries decrypt only. No value is echoed. |  |
+| `CONNECTOR_KEYRING` | kid:secret,kid:secret | optional | yes | unset (HKDF from SESSION_SECRET, id v0-legacy) | Connector token encryption keys (credential store, Slack, Gmail). No value is echoed. |  |
 | `DATABASE_URL` | postgresql URL with user and password | required | yes | local dev URL on localhost:5432 (dev only) | Postgres DSN. Production: must be set explicitly; vendor-default/placeholder or short (<16) passwords rejected. | Managed or self-hosted PostgreSQL 16 + pgvector |
 | `POSTGRES_USER` | string | conditional | no | compose dev default | Postgres container superuser (compose). If visible to the app in production, must not be a vendor default. |  |
 | `POSTGRES_PASSWORD` | secret string (>=16 chars) | conditional | yes | compose dev default | Postgres container password (compose). If visible in production, defaults/placeholders/short values rejected. |  |
@@ -106,6 +136,8 @@ Source of truth: `apps/api/app/core/config_contract.py`. The table between the m
 | `WORKER_HEARTBEAT_FILE` | path | optional | no | /tmp/trustcopilot-worker.heartbeat | Heartbeat file read by the worker container probe. |  |
 | `JOB_LEASE_SECONDS` | int | optional | no | 60 | How long a worker owns a running job before another worker may recover it. Clamped to 10-3600. |  |
 | `JOB_LEASE_HEARTBEAT_SECONDS` | int | optional | no | 15 | How often the owner renews that lease. Clamped to 1-1200 and kept below the lease. |  |
+| `JOB_NULL_LEASE_GRACE_SECONDS` | int | optional | no | 3600 | How long a running job with a NULL lease is left alone. Clamped to at least 5 times JOB_LEASE_SECONDS and at most 86400. |  |
+| `STORAGE_ORPHAN_GRACE_SECONDS` | int | optional | no | 7200 | How long an unreferenced storage object is kept. The sweep deletes it only when it is strictly older. Clamped to 60-604800. |  |
 | `RETRIEVAL_MAX_THREADS` | int | optional | no | 8 | Max worker threads for batched retrieval (1-32); also capped by the DB pool size. |  |
 | `TRUST_COPILOT_IN_DOCKER` | bool | optional | no | auto (/.dockerenv) | Keeps `postgres` hostname in DATABASE_URL. |  |
 | `COMPLETION_MODEL` | string | optional | no | gpt-4o-mini | Answer-generation model. |  |

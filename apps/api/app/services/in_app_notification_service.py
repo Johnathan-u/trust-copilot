@@ -22,6 +22,13 @@ def notify_user(
 ) -> InAppNotification | None:
     """Create a single in-app notification for a specific user."""
     try:
+        member = (
+            db.query(WorkspaceMember)
+            .filter_by(workspace_id=workspace_id, user_id=user_id, suspended=False)
+            .first()
+        )
+        if member is None:
+            return None
         n = InAppNotification(
             workspace_id=workspace_id,
             user_id=user_id,
