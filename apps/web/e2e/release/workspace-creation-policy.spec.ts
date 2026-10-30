@@ -20,8 +20,12 @@ const hiddenDetail = 'HIDDEN_CAP_VALUE'
 const invitationCopy =
   'Access is set up by invitation. Ask your workspace administrator for an invite.'
 const unavailableCopy = 'Workspace creation could not be checked. Try again.'
+const salesOrigin = `http://127.0.0.1:${process.env.E2E_SALES_WEB_PORT || '3100'}`
+const configuredContact =
+  'mailto:owner.contact@example.com?subject=Workspace%20access'
 
-type PolicyMode = 'allowed' | 'denied' | 'error' | 'extra' | 'hold' | 'retry'
+type PolicyMode =
+  'allowed' | 'denied' | 'error' | 'extra' | 'hold' | 'retry' | 'anonymous'
 
 test.beforeAll(() => {
   mkdirSync(screenshotDir, { recursive: true })
@@ -123,6 +127,7 @@ async function installApi(
     policy: PolicyMode
     held?: Promise<void>
     create?: CreateMock
+    anonymous?: boolean
   }
 ) {
   const creates: string[] = []
@@ -141,6 +146,10 @@ async function installApi(
     const pathname = pathnameOf(request.url())
     if (isCreationPolicy(request.url(), request.method())) {
       policyReads += 1
+      if (options.policy === 'anonymous') {
+        await fulfillJson(route, { detail: 'Not authenticated' }, 401)
+        return
+      }
       if (options.policy === 'hold' && options.held) await options.held
       if (
         options.policy === 'error' ||
@@ -180,7 +189,11 @@ async function installApi(
       return
     }
     if (pathname === '/api/auth/me') {
-      await fulfillJson(route, syntheticMe())
+      await fulfillJson(
+        route,
+        options.anonymous ? { detail: 'Not authenticated' } : syntheticMe(),
+        options.anonymous ? 401 : 200
+      )
       return
     }
     if (pathname.includes('/unread-count')) {
@@ -206,7 +219,7 @@ async function installApi(
     }
     await fulfillJson(route, {})
   })
-  return { creates, consoleText }
+  return { creates, consoleText, policyReads: () => policyReads }
 }
 
 async function expectNoLeak(page: Page, consoleText: string[]) {
@@ -576,67 +589,102 @@ test.describe('workspace creation policy', () => {
     await captureState(page, 'main', 'onboarding-unavailable')
   })
 
-  test('checkout keeps the invitation when creation is allowed', async ({
+  test('anonymous pricing visitors reach checkout without an authenticated policy read', async ({
     page,
   }) => {
-    const tracked = await installApi(page, { policy: 'allowed' })
+    const tracked = await installApi(page, {
+      policy: 'anonymous',
+      anonymous: true,
+    })
     await quietDevOverlay(page)
     await page.setViewportSize({ width: 1440, height: 900 })
-    await page.goto('/checkout')
+    await page.goto('/pricing')
+    await page
+      .getByRole('link', { name: 'Get Started', exact: true })
+      .first()
+      .click()
+    await expect(page).toHaveURL(/\/checkout/)
     const notice = page.getByTestId('workspace-invitation-notice')
     await expect(notice).toContainText(invitationCopy)
     await expect(page.getByLabel('Workspace name')).toHaveCount(0)
     await expect(
       page.getByRole('button', { name: 'Create workspace' })
     ).toHaveCount(0)
+    await expect(page.locator('form')).toHaveCount(0)
+    await expect(page.getByRole('button', { name: 'Try again' })).toHaveCount(0)
+    await expect(page.getByRole('link', { name: 'Contact sales' })).toHaveCount(
+      0
+    )
     await expect(page.getByRole('link', { name: 'Back' })).toHaveAttribute(
       'href',
       '/pricing'
     )
     expect(tracked.creates).toEqual([])
+    expect(tracked.policyReads()).toBe(0)
     await expectNoLeak(page, tracked.consoleText)
     await captureState(
       page,
       '[data-testid="workspace-invitation"]',
-      'checkout-allowed'
+      'checkout-anonymous'
     )
   })
 
-  test('checkout explains invitation access when creation is not allowed', async ({
+  test('anonymous checkout retains configured sales contact without reading policy', async ({
     page,
   }) => {
-    const tracked = await installApi(page, { policy: 'denied' })
+    const tracked = await installApi(page, {
+      policy: 'anonymous',
+      anonymous: true,
+    })
     await quietDevOverlay(page)
     await page.setViewportSize({ width: 1440, height: 900 })
-    await page.goto('/checkout')
+    await page.goto(`${salesOrigin}/checkout`)
     await expect(page.getByTestId('workspace-invitation-notice')).toContainText(
       invitationCopy
     )
     await expect(page.getByLabel('Workspace name')).toHaveCount(0)
+    await expect(page.locator('form')).toHaveCount(0)
+    await expect(
+      page.getByRole('link', { name: 'Contact sales' })
+    ).toHaveAttribute('href', configuredContact)
+    await expect(page.getByRole('button', { name: 'Try again' })).toHaveCount(0)
     expect(tracked.creates).toEqual([])
+    expect(tracked.policyReads()).toBe(0)
     await expectNoLeak(page, tracked.consoleText)
+    await captureState(
+      page,
+      '[data-testid="workspace-invitation"]',
+      'checkout-contact'
+    )
   })
 
-  test('checkout hides creation when the policy cannot be read', async ({
+  test('public checkout invitation and navigation do not depend on policy availability', async ({
     page,
   }) => {
-    const tracked = await installApi(page, { policy: 'error' })
+    const tracked = await installApi(page, { policy: 'error', anonymous: true })
     await quietDevOverlay(page)
     await page.setViewportSize({ width: 1440, height: 900 })
     await page.goto('/checkout')
     await expect(
       page.getByRole('heading', { name: 'Trust Copilot', level: 1 })
     ).toBeVisible()
+    await expect(page.getByTestId('workspace-invitation-notice')).toContainText(
+      invitationCopy
+    )
     await expect(
       page.getByTestId('workspace-creation-unavailable')
-    ).toContainText(unavailableCopy)
+    ).toHaveCount(0)
+    await expect(page.getByRole('button', { name: 'Try again' })).toHaveCount(0)
     await expect(page.getByLabel('Workspace name')).toHaveCount(0)
+    await expect(page.locator('form')).toHaveCount(0)
     await expect(page.getByRole('link', { name: 'Back' })).toHaveAttribute(
       'href',
       '/pricing'
     )
     expect(tracked.creates).toEqual([])
+    expect(tracked.policyReads()).toBe(0)
     await expectNoLeak(page, tracked.consoleText)
-    await captureState(page, 'main', 'checkout-unavailable')
+    await page.getByRole('link', { name: 'Back' }).click()
+    await expect(page).toHaveURL(/\/pricing/)
   })
 })

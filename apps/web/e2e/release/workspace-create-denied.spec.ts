@@ -127,11 +127,19 @@ async function fulfillJson(
   })
 }
 
-async function installInvitationRoutes(page: Page) {
+async function installInvitationRoutes(page: Page, signedIn: boolean) {
+  const policyReads: string[] = []
   await page.route('**/api/**', async (route) => {
     const request = route.request()
     if (isCreationPolicy(request.url(), request.method())) {
-      await fulfillJson(route, { can_create_workspace: false })
+      policyReads.push(request.url())
+      await fulfillJson(
+        route,
+        signedIn
+          ? { can_create_workspace: false }
+          : { detail: 'Not authenticated' },
+        signedIn ? 200 : 401
+      )
       return
     }
     if (isWorkspaceCreate(request.url(), request.method())) {
@@ -140,6 +148,7 @@ async function installInvitationRoutes(page: Page) {
     }
     await fulfillJson(route, {})
   })
+  return policyReads
 }
 
 type WorkspaceMock = {
@@ -243,10 +252,17 @@ async function openInvitation(
 ) {
   const calls = trackWorkspaceCreates(page)
   await quietDevOverlay(page)
-  await installInvitationRoutes(page)
+  const policyReads = await installInvitationRoutes(
+    page,
+    route === '/onboarding'
+  )
   if (route === '/onboarding') await allowSyntheticSession(page)
   await page.setViewportSize({ width: 1440, height: 900 })
   await page.goto(`${origin}${route}`)
+  if (route === '/checkout') {
+    await expect(page.getByTestId('workspace-invitation-notice')).toBeVisible()
+    expect(policyReads).toEqual([])
+  }
   return calls
 }
 
