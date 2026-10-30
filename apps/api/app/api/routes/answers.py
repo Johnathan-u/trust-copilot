@@ -99,7 +99,7 @@ def bulk_update_status(
     session: dict = Depends(require_can_review),
     db: Session = Depends(get_db),
 ):
-    """Bulk update answer status (REV-07). Creates answers if missing."""
+    """Bulk update answer status. Creates answers if missing."""
     if not body.question_ids or body.status not in (
         "draft",
         "approved",

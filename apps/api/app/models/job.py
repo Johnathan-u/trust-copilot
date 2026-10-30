@@ -40,6 +40,11 @@ class Job(Base):
             unique=True,
             postgresql_where=text("status = 'queued' AND idempotency_key IS NOT NULL"),
         ),
+        Index(
+            "ix_jobs_running_lease_expires_at",
+            "lease_expires_at",
+            postgresql_where=text("status = 'running' AND lease_expires_at IS NOT NULL"),
+        ),
     )
 
     id = Column(Integer, primary_key=True, index=True)
@@ -62,6 +67,10 @@ class Job(Base):
     # TC-10-002: for a QUEUED retry, the earliest time it may be claimed (nullable/additive). TC-10-002 also
     # writes error_code above (TC-11-001 model_* codes for model failures, app.core.job_errors codes otherwise).
     next_attempt_at = Column(DateTime, nullable=True)
+    # TC-10-001: owner token and expiry. NULL is not an expired lease. TC-10-001b abandons it
+    # only after JOB_NULL_LEASE_GRACE_SECONDS.
+    lease_owner = Column(String(64), nullable=True)
+    lease_expires_at = Column(DateTime, nullable=True)
     started_at = Column(DateTime, nullable=True)
     completed_at = Column(DateTime, nullable=True)
     created_at = Column(DateTime, default=utc_now)

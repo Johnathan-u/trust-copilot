@@ -1,0 +1,30 @@
+Tested local commit: a1f18645989f1a25e32bf9a0d72cdf684552ddda
+Tree: 9d1496a71a818669860a014a48d948c38aea0a3e
+Command: npx playwright test e2e/release/screen-controls.spec.ts --list
+Exit: 0
+
+npm warn Unknown env config "http-proxy". This will stop working in the next major version of npm.
+Listing tests:
+  [chromium] › release/screen-controls.spec.ts:207:5 › library and detail keep verified lifecycle separate from expired evidence
+  [chromium] › release/screen-controls.spec.ts:240:7 › owner receives only granted control actions
+  [chromium] › release/screen-controls.spec.ts:240:7 › admin receives only granted control actions
+  [chromium] › release/screen-controls.spec.ts:240:7 › editor receives only granted control actions
+  [chromium] › release/screen-controls.spec.ts:240:7 › reviewer receives only granted control actions
+  [chromium] › release/screen-controls.spec.ts:240:7 › viewer receives only granted control actions
+  [chromium] › release/screen-controls.spec.ts:267:5 › save sends selected member, waits for acknowledgement and keeps rejected edits
+  [chromium] › release/screen-controls.spec.ts:318:5 › unsaved edits require confirmation before leaving detail
+  [chromium] › release/screen-controls.spec.ts:336:5 › failed evidence verification stays unconfirmed and does not change lifecycle
+  [chromium] › release/screen-controls.spec.ts:362:7 › control detail handles 403 without exposing a row
+  [chromium] › release/screen-controls.spec.ts:362:7 › control detail handles 404 without exposing a row
+  [chromium] › release/screen-controls.spec.ts:362:7 › control detail handles 500 without exposing a row
+  [chromium] › release/screen-controls.spec.ts:378:5 › list load recovers from error and malformed data is not an empty success
+  [chromium] › release/screen-controls.spec.ts:410:5 › library evaluation stays loading until the coverage response completes
+  [chromium] › release/screen-controls.spec.ts:440:5 › evaluation failure preserves control details without inventing a pass
+  [chromium] › release/screen-controls.spec.ts:462:5 › control library route serves the page instead of a missing route
+  [chromium] › release/screen-controls.spec.ts:472:7 › control screens remain usable at 360px with keyboard and accessibility checks
+  [chromium] › release/screen-controls.spec.ts:472:7 › control screens remain usable at 768px with keyboard and accessibility checks
+  [chromium] › release/screen-controls.spec.ts:472:7 › control screens remain usable at 1440px with keyboard and accessibility checks
+  [chromium] › release/screen-controls.spec.ts:539:5 › successful evidence review refreshes expiry and verification state
+  [chromium] › release/screen-controls.spec.ts:586:5 › unverifying an old link refreshes its newly stale freshness
+  [chromium] › release/screen-controls.spec.ts:630:5 › confirmed review with failed freshness read remains an explicit partial success
+Total: 22 tests in 1 file

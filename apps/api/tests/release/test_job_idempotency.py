@@ -982,7 +982,47 @@ def _idem_count(db, client_key: str) -> int:
     ).scalar()
 
 
-def test_replay_returns_same_error_body_as_live_response(client: TestClient, db):
+@pytest.fixture
+def reset_workspace_ai_jobs(db):
+    """Zero workspace 1's current-hour ``ai_jobs`` count, then put the saved count back.
+
+    Earlier tests in this module can spend the hourly limit of 10. This test expects 400,
+    and a full counter turns that request into 429. The quota service is not changed.
+    """
+    from app.services.quota_service import _current_window_start
+
+    window = _current_window_start()
+    rows = (
+        db.query(WorkspaceUsage)
+        .filter(
+            WorkspaceUsage.workspace_id == WS,
+            WorkspaceUsage.resource_type == "ai_jobs",
+            WorkspaceUsage.window_start == window,
+        )
+        .all()
+    )
+    saved = [(row.id, int(row.count)) for row in rows]
+    for row in rows:
+        row.count = 0
+    if saved:
+        db.commit()
+    try:
+        yield
+    finally:
+        db.rollback()
+        db.expire_all()
+        for row_id, count in saved:
+            row = db.get(WorkspaceUsage, row_id)
+            if row is None:
+                continue
+            row.count = count
+        if saved:
+            db.commit()
+
+
+def test_replay_returns_same_error_body_as_live_response(
+    client: TestClient, db, reset_workspace_ai_jobs
+):
     """TC-10-003a (b): an idempotent replay of a 4xx returns exactly the live status and body."""
     _login(client)
     qnr = _route_qnr(db)

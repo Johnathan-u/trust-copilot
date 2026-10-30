@@ -373,12 +373,32 @@ def test_threaded_workers_keep_typed_outcomes_and_hide_raw_errors(monkeypatch):
                 captured.append(exc)
                 raise
 
+        def _session_for_status_fence():
+            """Return a session whose status-fence query is a real running row.
+
+            The failure path locks the job and reads ``(status, lease_owner)``. This job has
+            no lease, so the owner column is NULL. Other statements stay mocks.
+            """
+            session = MagicMock()
+
+            def execute(statement, *args, **kwargs):
+                del args, kwargs
+                sql = str(getattr(statement, "text", statement))
+                if "SELECT status, lease_owner FROM jobs WHERE id" in sql:
+                    found = MagicMock()
+                    found.fetchone.return_value = ("running", None)
+                    return found
+                return MagicMock()
+
+            session.execute.side_effect = execute
+            return session
+
         saved = (worker.last_usage_cleanup_run, worker.last_compliance_webhook_run)
         worker.last_usage_cleanup_run = ag.time.time()
         worker.last_compliance_webhook_run = ag.time.time()
         try:
             with (
-                patch.object(worker, "SessionFactory", return_value=MagicMock()),
+                patch.object(worker, "SessionFactory", side_effect=_session_for_status_fence),
                 patch.object(worker, "claim_job", return_value=job),
                 patch.object(worker, "run_job", side_effect=_run),
                 patch.object(

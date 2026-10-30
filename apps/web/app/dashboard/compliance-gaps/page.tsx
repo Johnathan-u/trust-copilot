@@ -1,10 +1,18 @@
 'use client'
 
-import { useCallback, useEffect, useState } from 'react'
+import { useState } from 'react'
+import { useAuth } from '@/contexts/AuthContext'
+import { presentHttpFailure } from '@/lib/api-error'
+import { recordFromPayload } from '@/lib/section-load'
+import { EvidenceGapList, SnapshotNote, useSnapshot } from './gap-report'
 import { Card, ErrorState, LoadingState } from '@/components/ui'
 import { ListSkeleton } from '@/components/ui/Skeleton'
-import type { ApiFailurePresentation } from '@/lib/api-error'
-import { failureOf, isAbortError, readSectionJson } from '@/lib/section-load'
+import {
+  denominatorNotes,
+  parseCoverageResponse,
+  type ControlCoverage,
+  type RecommendedEvidence,
+} from '@/lib/coverageConsumer'
 import {
   BarChart,
   Bar,
@@ -45,7 +53,6 @@ type EvidenceStrength = {
   avg_evidence_count: number
   total_answers: number
 }
-type RecommendedEvidence = { title: string; improves_questions: number }
 type TrendPoint = {
   date: string
   coverage_pct: number
@@ -70,6 +77,7 @@ type CoverageData = {
   recommended_evidence: RecommendedEvidence[]
   trends: TrendPoint[]
   drill_down: DrillRow[]
+  control_coverage: ControlCoverage
 }
 
 const BLUES = ['#5b7cff', '#7c93ff', '#3b5bdb', '#4263eb', '#5c7cfa', '#748ffc']
@@ -137,98 +145,213 @@ function HBar({
 }) {
   const h = height ?? Math.max(180, data.length * 36 + 40)
   return (
-    <div style={{ width: '100%', height: h }}>
-      <ResponsiveContainer width="100%" height="100%">
-        <BarChart
-          data={data}
-          layout="vertical"
-          margin={{ left: 140, right: 24, top: 4, bottom: 4 }}
-        >
-          <XAxis
-            type="number"
-            allowDecimals={false}
-            tick={{ fill: 'var(--tc-muted)', fontSize: 11 }}
-          />
-          <YAxis
-            type="category"
-            dataKey={nameKey}
-            width={130}
-            tick={{ fill: 'var(--tc-text)', fontSize: 11 }}
-            tickLine={false}
-          />
-          <Tooltip
-            contentStyle={{
-              background: 'var(--tc-panel)',
-              border: '1px solid var(--tc-border)',
-              borderRadius: 8,
-              fontSize: 12,
-            }}
-            labelStyle={{ color: 'var(--tc-text)', fontWeight: 600 }}
-            itemStyle={{ color: 'var(--tc-muted)' }}
-          />
-          <Bar dataKey={dataKey} radius={[0, 4, 4, 0]} barSize={18}>
-            {data.map((_, i) => (
-              <Cell key={i} fill={colors[i % colors.length]} />
+    <div>
+      <div aria-hidden="true" style={{ width: '100%', height: h }}>
+        <ResponsiveContainer width="100%" height="100%">
+          <BarChart
+            accessibilityLayer={false}
+            data={data}
+            layout="vertical"
+            margin={{ left: 0, right: 12, top: 4, bottom: 4 }}
+          >
+            <XAxis
+              type="number"
+              allowDecimals={false}
+              tick={{ fill: 'var(--tc-muted)', fontSize: 11 }}
+            />
+            <YAxis
+              type="category"
+              dataKey={nameKey}
+              width={100}
+              tickFormatter={(value: string) =>
+                value.length > 22 ? `${value.slice(0, 22)}…` : value
+              }
+              tick={{ fill: 'var(--tc-text)', fontSize: 11 }}
+              tickLine={false}
+            />
+            <Tooltip
+              contentStyle={{
+                background: 'var(--tc-panel)',
+                border: '1px solid var(--tc-border)',
+                borderRadius: 8,
+                fontSize: 12,
+              }}
+              labelStyle={{ color: 'var(--tc-text)', fontWeight: 600 }}
+              itemStyle={{ color: 'var(--tc-muted)' }}
+            />
+            <Bar dataKey={dataKey} radius={[0, 4, 4, 0]} barSize={18}>
+              {data.map((_, i) => (
+                <Cell key={i} fill={colors[i % colors.length]} />
+              ))}
+            </Bar>
+          </BarChart>
+        </ResponsiveContainer>
+      </div>
+      <details className="mt-3 text-tc-label text-tc-text">
+        <summary className="min-h-11 cursor-pointer py-3">
+          View chart data
+        </summary>
+        <table className="w-full table-fixed text-left">
+          <caption className="sr-only">Chart values</caption>
+          <thead>
+            <tr>
+              <th scope="col">Category</th>
+              <th scope="col">Value</th>
+            </tr>
+          </thead>
+          <tbody>
+            {data.map((row, index) => (
+              <tr key={index}>
+                <th scope="row" className="break-words py-2 pr-3 font-medium">
+                  {String(row[nameKey])}
+                </th>
+                <td>{String(row[dataKey])}</td>
+              </tr>
             ))}
-          </Bar>
-        </BarChart>
-      </ResponsiveContainer>
+          </tbody>
+        </table>
+      </details>
     </div>
   )
 }
 
 export default function ComplianceCoveragePage() {
-  const [data, setData] = useState<CoverageData | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [loadFailure, setLoadFailure] = useState<ApiFailurePresentation | null>(
-    null
+  const { permissions, workspace, loading, refresh } = useAuth()
+  if (loading)
+    return (
+      <LoadingState label="Loading workspace" onRetry={() => void refresh()} />
+    )
+  if (!permissions.can_review || !workspace)
+    return (
+      <ErrorState
+        failure={presentHttpFailure({ status: 403 })}
+        onRetry={() => void refresh()}
+      />
+    )
+  return (
+    <div
+      key={`${workspace.id}:${permissions.can_export}:${permissions.can_admin}`}
+      className="min-w-0 space-y-8"
+    >
+      <header>
+        <h1 className="text-tc-headline font-semibold text-tc-text">
+          Compliance coverage and gaps
+        </h1>
+        <p className="mt-2 text-tc-body text-tc-muted">
+          Questionnaire coverage is not certification or a statement of control
+          compliance. Review the evidence and evaluation behind each result.
+        </p>
+      </header>
+      <EvidenceGapList
+        canExport={permissions.can_export}
+        canAdmin={permissions.can_admin}
+      />
+      <CoverageReport />
+    </div>
   )
+}
+
+function readCoverage(value: unknown) {
+  const data = parseCoverageResponse(value)
+  const kpi = recordFromPayload(data.kpi)
+  for (const field of [
+    'total_questions',
+    'total_answered',
+    'total_drafted',
+    'total_insufficient',
+    'coverage_pct',
+    'high_confidence_pct',
+    'insufficient_pct',
+    'blind_spot_count',
+  ]) {
+    if (
+      typeof kpi[field] !== 'number' ||
+      !Number.isFinite(kpi[field]) ||
+      Number(kpi[field]) < 0
+    )
+      throw new Error('Incomplete coverage totals')
+  }
+  const sections: Array<[unknown, string[], string[]]> = [
+    [
+      data.framework_coverage,
+      ['framework'],
+      ['total', 'drafted', 'insufficient', 'coverage_pct'],
+    ],
+    [data.blind_spots, ['subject'], ['insufficient_count', 'total']],
+    [data.weak_areas, ['subject'], ['avg_confidence', 'count']],
+    [
+      data.evidence_strength,
+      ['subject'],
+      ['avg_evidence_count', 'total_answers'],
+    ],
+    [data.recommended_evidence, ['title'], ['improves_questions']],
+    [
+      data.trends,
+      ['date'],
+      ['coverage_pct', 'insufficient_pct', 'low_confidence_pct'],
+    ],
+    [
+      data.drill_down,
+      ['subject', 'framework'],
+      ['questions_seen', 'answered', 'low_confidence', 'insufficient'],
+    ],
+  ]
+  for (const [rows, strings, numbers] of sections) {
+    if (!Array.isArray(rows)) throw new Error('Incomplete coverage section')
+    for (const item of rows) {
+      const row = recordFromPayload(item)
+      if (
+        strings.some((field) => typeof row[field] !== 'string') ||
+        numbers.some(
+          (field) =>
+            typeof row[field] !== 'number' || !Number.isFinite(row[field])
+        )
+      )
+        throw new Error('Incomplete coverage row')
+    }
+  }
+  return data as CoverageData
+}
+const evaluationStates: Record<string, string> = {
+  stale: 'Stale evidence',
+  unknown: 'Unknown',
+  disabled: 'Disabled',
+  blocked: 'Blocked',
+  failed: 'Failed',
+  gap: 'Evidence gap',
+  qualified: 'Qualified evidence',
+}
+const evaluationRules: Record<string, string> = {
+  expired: 'Evidence has expired',
+  stale: 'Evidence needs a refresh',
+  unknown: 'No current evaluation is available',
+  disabled: 'Control is disabled',
+  framework_disabled: 'Framework is disabled',
+  missing_evidence: 'Evidence is missing',
+  unapproved: 'Evidence is awaiting approval',
+  pending_rights: 'Framework content is awaiting approval',
+}
+function CoverageReport() {
+  const result = useSnapshot('/api/compliance-coverage', readCoverage)
+  const { data, failure: loadFailure } = result
+  const loading = !data && !loadFailure
+  const fetchData = result.retry
   const [showDrillDown, setShowDrillDown] = useState(false)
-
-  const queryCoverage = useCallback(() => {
-    fetch('/api/compliance-coverage', { credentials: 'include' })
-      .then((r) => readSectionJson(r))
-      .then((d) => {
-        setData(d as CoverageData)
-        setLoadFailure(null)
-      })
-      .catch((error: unknown) => {
-        if (isAbortError(error)) return
-        setLoadFailure(failureOf(error))
-      })
-      .finally(() => setLoading(false))
-  }, [])
-
-  const fetchData = useCallback(() => {
-    setLoadFailure(null)
-    queryCoverage()
-  }, [queryCoverage])
-
-  useEffect(() => {
-    queryCoverage()
-  }, [queryCoverage])
-
-  useEffect(() => {
-    const id = setInterval(fetchData, 60_000)
-    return () => clearInterval(id)
-  }, [fetchData])
-
   if (loading) {
     return (
       <div className="min-w-0 space-y-6">
         <div>
-          <h1 className="text-2xl font-bold text-[var(--tc-text)]">
-            Compliance Coverage
-          </h1>
+          <h2 className="text-tc-title font-semibold text-tc-text">
+            Questionnaire coverage
+          </h2>
           <p className="mt-1 text-sm text-[var(--tc-muted)]">
-            See where your evidence is strong, weak, and missing.
+            Workspace questionnaire answer statistics.
           </p>
         </div>
         <Card className="p-6">
           <LoadingState
             label="Loading coverage"
             onRetry={() => {
-              setLoading(true)
               fetchData()
             }}
           >
@@ -239,15 +362,15 @@ export default function ComplianceCoveragePage() {
     )
   }
 
-  if (loadFailure || !data) {
+  if (!data) {
     return (
       <div className="min-w-0 space-y-6">
         <div>
-          <h1 className="text-2xl font-bold text-[var(--tc-text)]">
-            Compliance Coverage
-          </h1>
+          <h2 className="text-tc-title font-semibold text-tc-text">
+            Questionnaire coverage
+          </h2>
           <p className="mt-1 text-sm text-[var(--tc-muted)]">
-            See where your evidence is strong, weak, and missing.
+            Workspace questionnaire answer statistics.
           </p>
         </div>
         <ErrorState
@@ -259,7 +382,6 @@ export default function ComplianceCoveragePage() {
             }
           }
           onRetry={() => {
-            setLoading(true)
             fetchData()
           }}
         />
@@ -276,6 +398,7 @@ export default function ComplianceCoveragePage() {
     recommended_evidence,
     trends,
     drill_down,
+    control_coverage,
   } = data
 
   const isEmpty = kpi.total_questions === 0
@@ -284,19 +407,57 @@ export default function ComplianceCoveragePage() {
     <div className="min-w-0 space-y-6 pb-8">
       {/* Page header */}
       <div>
-        <h1 className="text-2xl font-bold text-[var(--tc-text)]">
-          Compliance Coverage
-        </h1>
+        <h2 className="text-tc-title font-semibold text-tc-text">
+          Questionnaire coverage
+        </h2>
         <p className="mt-1 text-sm text-[var(--tc-muted)]">
-          See where your evidence is strong, weak, and missing.
+          Workspace questionnaire answer statistics.
         </p>
       </div>
 
+      <SnapshotNote {...result} />
+      <p className="text-tc-label text-tc-muted">
+        Scope: all questionnaire questions and retained answer records in this
+        workspace. Drafted answers may still require review. Historical trends
+        are cumulative, not a comparison between reporting periods.
+      </p>
+      <Card className="p-5">
+        <SectionHeader
+          title="Control denominator"
+          sub={`${control_coverage.numerator} qualified of ${control_coverage.denominator} applicable`}
+        />
+        {denominatorNotes(control_coverage).length === 0 ? (
+          <p className="text-xs text-[var(--tc-muted)]">
+            No disabled, unknown, stale, or denominator changes.
+          </p>
+        ) : (
+          <ul className="space-y-1 text-xs text-[var(--tc-text)]">
+            {denominatorNotes(control_coverage).map((item) => (
+              <li key={item.control_id}>
+                Control evaluation:{' '}
+                {evaluationStates[item.state] || 'Review needed'} (
+                {evaluationRules[item.rule] ||
+                  'Review the control evaluation for details'}
+                {item.denominator_changed
+                  ? ', left out of the denominator'
+                  : ''}
+                )
+              </li>
+            ))}
+          </ul>
+        )}
+      </Card>
+
+      <p className="text-tc-label text-tc-muted">
+        Draft and insufficient percentages are answer-record counts divided by
+        questionnaire questions. Retained revisions can make these ratios exceed
+        100%; they do not count distinct answered questions.
+      </p>
       {isEmpty ? (
         <Card className="p-6">
           <p className="text-[var(--tc-muted)]">
             No questionnaire data yet. Upload a questionnaire and generate
-            answers to see your compliance coverage.
+            answers to see questionnaire coverage.
           </p>
         </Card>
       ) : (
@@ -304,21 +465,21 @@ export default function ComplianceCoveragePage() {
           {/* SECTION 1 — KPI Cards */}
           <div className="flex flex-wrap gap-3">
             <KPICard
-              label="Coverage"
+              label="Draft records per question"
               value={`${kpi.coverage_pct}%`}
-              sub={`${kpi.total_drafted} of ${kpi.total_questions} questions answered`}
+              sub={`${kpi.total_drafted} draft answer records / ${kpi.total_questions} questions`}
               color="#10b981"
             />
             <KPICard
               label="High Confidence"
               value={`${kpi.high_confidence_pct}%`}
-              sub="of drafted answers"
+              sub="of draft answer records"
               color="#5b7cff"
             />
             <KPICard
-              label="Insufficient"
+              label="Insufficient records per question"
               value={`${kpi.insufficient_pct}%`}
-              sub={`${kpi.total_insufficient} questions lack evidence`}
+              sub={`${kpi.total_insufficient} insufficient answer records / ${kpi.total_questions} questions`}
               color={kpi.insufficient_pct > 20 ? '#ef4444' : '#f59e0b'}
             />
             <KPICard
@@ -334,7 +495,7 @@ export default function ComplianceCoveragePage() {
             <Card className="p-5">
               <SectionHeader
                 title="Framework Coverage"
-                sub="Answer coverage by detected framework"
+                sub="Draft answer records divided by all answer records, by detected framework"
               />
               <HBar
                 data={framework_coverage.map((f) => ({
@@ -348,7 +509,10 @@ export default function ComplianceCoveragePage() {
               />
               <div className="mt-2 flex flex-wrap gap-4 text-[11px] text-[var(--tc-muted)] px-1">
                 {framework_coverage.map((f) => (
-                  <span key={f.framework}>
+                  <span
+                    key={f.framework}
+                    className="min-w-0 max-w-full break-words"
+                  >
                     {f.framework}:{' '}
                     <span className="text-[var(--tc-text)] font-medium">
                       {f.drafted}
@@ -430,26 +594,28 @@ export default function ComplianceCoveragePage() {
             <Card className="p-5">
               <SectionHeader
                 title="Recommended Next Evidence"
-                sub="Upload these documents to close the most gaps"
+                sub="Suggested documents to review against missing evidence"
               />
               <div className="space-y-2">
                 {recommended_evidence.map((r, i) => (
                   <div
                     key={i}
-                    className="flex items-center justify-between rounded-lg border border-[var(--tc-border)] px-4 py-3 hover:bg-white/[0.02] transition"
+                    className="flex flex-wrap gap-3 items-center justify-between rounded-lg border border-[var(--tc-border)] px-4 py-3 hover:bg-white/[0.02] transition"
                   >
-                    <div className="flex items-center gap-3">
+                    <div className="min-w-0 flex items-center gap-3">
                       <span className="text-lg">📄</span>
-                      <span className="text-sm text-[var(--tc-text)] font-medium">
+                      <span className="min-w-0 break-words text-sm text-[var(--tc-text)] font-medium">
                         {r.title}
+                        <span className="mt-1 block text-tc-caption font-normal text-tc-muted">
+                          Source detail is unavailable for this recommendation.
+                        </span>
                       </span>
                     </div>
                     <span className="text-xs text-[var(--tc-muted)] whitespace-nowrap">
-                      improves{' '}
+                      Reported suggestion count:{' '}
                       <span className="text-[var(--tc-text)] font-semibold">
                         {r.improves_questions}
-                      </span>{' '}
-                      questions
+                      </span>
                     </span>
                   </div>
                 ))}
@@ -464,9 +630,10 @@ export default function ComplianceCoveragePage() {
                 title="Coverage Trends"
                 sub="How coverage, insufficients, and low-confidence answers have changed over time"
               />
-              <div style={{ width: '100%', height: 260 }}>
+              <div aria-hidden="true" style={{ width: '100%', height: 260 }}>
                 <ResponsiveContainer width="100%" height="100%">
                   <LineChart
+                    accessibilityLayer={false}
                     data={trends}
                     margin={{ left: 8, right: 16, top: 8, bottom: 4 }}
                   >
@@ -524,6 +691,38 @@ export default function ComplianceCoveragePage() {
                   </LineChart>
                 </ResponsiveContainer>
               </div>
+              <details className="mt-3 text-tc-label text-tc-text">
+                <summary className="min-h-11 cursor-pointer py-3">
+                  View trend data
+                </summary>
+                <div className="overflow-x-auto">
+                  <table className="w-full table-fixed text-left">
+                    <caption className="sr-only">
+                      Cumulative historical answer records
+                    </caption>
+                    <thead>
+                      <tr>
+                        <th scope="col">Date</th>
+                        <th scope="col">Draft coverage (%)</th>
+                        <th scope="col">Insufficient (%)</th>
+                        <th scope="col">Low confidence (%)</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {trends.map((point) => (
+                        <tr key={point.date}>
+                          <th scope="row" className="py-2 pr-3 font-medium">
+                            {point.date}
+                          </th>
+                          <td>{point.coverage_pct}</td>
+                          <td>{point.insufficient_pct}</td>
+                          <td>{point.low_confidence_pct}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </details>
             </Card>
           )}
 
@@ -536,6 +735,7 @@ export default function ComplianceCoveragePage() {
                   sub="Subject × framework breakdown"
                 />
                 <button
+                  aria-expanded={showDrillDown}
                   onClick={() => setShowDrillDown(!showDrillDown)}
                   className="text-xs text-[var(--tc-primary)] hover:underline"
                 >
@@ -545,24 +745,42 @@ export default function ComplianceCoveragePage() {
               {showDrillDown && (
                 <div className="overflow-x-auto">
                   <table className="w-full text-xs">
+                    <caption className="sr-only">
+                      Questionnaire coverage by subject and framework
+                    </caption>
                     <thead>
                       <tr className="border-b border-[var(--tc-border)] text-[var(--tc-muted)]">
-                        <th className="text-left py-2 pr-4 font-medium">
+                        <th
+                          scope="col"
+                          className="text-left py-2 pr-4 font-medium"
+                        >
                           Subject
                         </th>
-                        <th className="text-left py-2 pr-4 font-medium">
+                        <th
+                          scope="col"
+                          className="text-left py-2 pr-4 font-medium"
+                        >
                           Framework
                         </th>
-                        <th className="text-right py-2 pr-4 font-medium">
+                        <th
+                          scope="col"
+                          className="text-right py-2 pr-4 font-medium"
+                        >
                           Seen
                         </th>
-                        <th className="text-right py-2 pr-4 font-medium">
+                        <th
+                          scope="col"
+                          className="text-right py-2 pr-4 font-medium"
+                        >
                           Answered
                         </th>
-                        <th className="text-right py-2 pr-4 font-medium">
+                        <th
+                          scope="col"
+                          className="text-right py-2 pr-4 font-medium"
+                        >
                           Low Conf.
                         </th>
-                        <th className="text-right py-2 font-medium">
+                        <th scope="col" className="text-right py-2 font-medium">
                           Insufficient
                         </th>
                       </tr>

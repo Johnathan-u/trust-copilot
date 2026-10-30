@@ -22,7 +22,7 @@ from unittest.mock import patch
 import pytest
 from fastapi import HTTPException
 from fastapi.testclient import TestClient
-from sqlalchemy import inspect
+from sqlalchemy import inspect, text
 from sqlalchemy.exc import OperationalError
 
 from app.core import job_errors as je
@@ -247,16 +247,58 @@ def test_embed_texts_records_last_error_for_classification(monkeypatch):
 # ---------------------------------------------------------------------------------------------------------
 
 
+# Children before parents. These tests commit rows, so teardown must delete them.
+_LEAK_TABLES = (
+    "evidence_gaps",
+    "answers",
+    "questions",
+    "chunks",
+    "job_effects",
+    "in_app_notifications",
+    "audit_events",
+    "jobs",
+    "documents",
+    "questionnaires",
+)
+
+
 @pytest.fixture
 def db(_ensure_test_data):
+    """Snapshot every table this module commits. Delete only new ids. No setval."""
     if not _ensure_test_data:
         pytest.skip("Postgres test DB unavailable")
-    s = SessionLocal()
+    session = SessionLocal()
+    snap: dict[str, tuple[int, int]] = {}
+    for table in _LEAK_TABLES:
+        max_id, count = session.execute(
+            text(f"SELECT COALESCE(MAX(id), 0), COUNT(*) FROM {table}")
+        ).one()
+        snap[table] = (int(max_id), int(count))
+    session.commit()
     try:
-        yield s
+        yield session
     finally:
-        s.rollback()
-        s.close()
+        try:
+            session.rollback()
+        except Exception:
+            pass
+        try:
+            session.close()
+        except Exception:
+            pass
+        cleanup = SessionLocal()
+        try:
+            for table in _LEAK_TABLES:
+                cleanup.execute(
+                    text(f"DELETE FROM {table} WHERE id > :max_id"),
+                    {"max_id": snap[table][0]},
+                )
+            cleanup.commit()
+            for table in _LEAK_TABLES:
+                got = cleanup.execute(text(f"SELECT COUNT(*) FROM {table}")).scalar()
+                assert int(got) == snap[table][1], table
+        finally:
+            cleanup.close()
 
 
 @pytest.fixture
