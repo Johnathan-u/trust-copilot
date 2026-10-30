@@ -1,6 +1,9 @@
 """Tests for answer approval workflows (P1-72)."""
 
+import uuid
+
 import pytest
+from app.models import User, WorkspaceMember
 from app.models.workspace import Workspace
 from app.services import answer_approval_service as svc
 from app.services import golden_answer_service as ga
@@ -22,30 +25,55 @@ def editor_client(client):
     return client
 
 
+@pytest.fixture
+def owned_assignee(db_session, migrated_db):
+    ws = db_session.query(Workspace).first()
+    user = User(email=f"approval-assignee-{uuid.uuid4().hex}@example.com", password_hash="unused")
+    db_session.add(user)
+    db_session.flush()
+    member = WorkspaceMember(workspace_id=ws.id, user_id=user.id, role="reviewer")
+    db_session.add(member)
+    db_session.commit()
+    user_id, member_id = user.id, member.id
+    try:
+        yield ws, user_id
+    finally:
+        db_session.rollback()
+        db_session.query(WorkspaceMember).filter(WorkspaceMember.id == member_id).delete(
+            synchronize_session=False
+        )
+        db_session.query(User).filter(User.id == user_id).delete(synchronize_session=False)
+        db_session.commit()
+
+
 class TestAnswerApprovalService:
-    def test_assign_owner(self, db_session):
-        ws = db_session.query(Workspace).first()
+    def test_assign_owner(self, db_session, owned_assignee):
+        ws, user_id = owned_assignee
         created = ga.create_golden_answer(db_session, ws.id, "Owner Q", "Owner A")
         db_session.commit()
-        result = svc.assign_owner(db_session, created["id"], 1, actor_user_id=1)
+        result = svc.assign_owner(
+            db_session, created["id"], user_id, actor_user_id=user_id, workspace_id=ws.id
+        )
         db_session.commit()
-        assert result["owner_user_id"] == 1
+        assert result["owner_user_id"] == user_id
 
-    def test_assign_reviewer(self, db_session):
-        ws = db_session.query(Workspace).first()
+    def test_assign_reviewer(self, db_session, owned_assignee):
+        ws, user_id = owned_assignee
         created = ga.create_golden_answer(db_session, ws.id, "Reviewer Q", "Reviewer A")
         db_session.commit()
-        result = svc.assign_reviewer(db_session, created["id"], 2, actor_user_id=1)
+        result = svc.assign_reviewer(
+            db_session, created["id"], user_id, actor_user_id=user_id, workspace_id=ws.id
+        )
         db_session.commit()
-        assert result["reviewer_user_id"] == 2
+        assert result["reviewer_user_id"] == user_id
 
     def test_submit_for_review(self, db_session):
         ws = db_session.query(Workspace).first()
         created = ga.create_golden_answer(db_session, ws.id, "Submit Q", "Submit A")
         db_session.commit()
-        ga.update_golden_answer(db_session, created["id"], status="draft")
+        ga.update_golden_answer(db_session, created["id"], status="draft", workspace_id=ws.id)
         db_session.commit()
-        result = svc.submit_for_review(db_session, created["id"])
+        result = svc.submit_for_review(db_session, created["id"], workspace_id=ws.id)
         db_session.commit()
         assert result["status"] == "pending_review"
         assert result["submitted_at"] is not None
@@ -54,11 +82,11 @@ class TestAnswerApprovalService:
         ws = db_session.query(Workspace).first()
         created = ga.create_golden_answer(db_session, ws.id, "Approve Q", "Approve A")
         db_session.commit()
-        ga.update_golden_answer(db_session, created["id"], status="draft")
+        ga.update_golden_answer(db_session, created["id"], status="draft", workspace_id=ws.id)
         db_session.commit()
-        svc.submit_for_review(db_session, created["id"])
+        svc.submit_for_review(db_session, created["id"], workspace_id=ws.id)
         db_session.commit()
-        result = svc.approve_answer(db_session, created["id"], 1, "Looks good")
+        result = svc.approve_answer(db_session, created["id"], 1, "Looks good", workspace_id=ws.id)
         db_session.commit()
         assert result["status"] == "approved"
 
@@ -66,11 +94,13 @@ class TestAnswerApprovalService:
         ws = db_session.query(Workspace).first()
         created = ga.create_golden_answer(db_session, ws.id, "Reject Q", "Reject A")
         db_session.commit()
-        ga.update_golden_answer(db_session, created["id"], status="draft")
+        ga.update_golden_answer(db_session, created["id"], status="draft", workspace_id=ws.id)
         db_session.commit()
-        svc.submit_for_review(db_session, created["id"])
+        svc.submit_for_review(db_session, created["id"], workspace_id=ws.id)
         db_session.commit()
-        result = svc.reject_answer(db_session, created["id"], 1, "Needs improvement")
+        result = svc.reject_answer(
+            db_session, created["id"], 1, "Needs improvement", workspace_id=ws.id
+        )
         db_session.commit()
         assert result["status"] == "rejected"
 
@@ -78,11 +108,13 @@ class TestAnswerApprovalService:
         ws = db_session.query(Workspace).first()
         created = ga.create_golden_answer(db_session, ws.id, "Changes Q", "Changes A")
         db_session.commit()
-        ga.update_golden_answer(db_session, created["id"], status="draft")
+        ga.update_golden_answer(db_session, created["id"], status="draft", workspace_id=ws.id)
         db_session.commit()
-        svc.submit_for_review(db_session, created["id"])
+        svc.submit_for_review(db_session, created["id"], workspace_id=ws.id)
         db_session.commit()
-        result = svc.request_changes(db_session, created["id"], 1, "Fix wording")
+        result = svc.request_changes(
+            db_session, created["id"], 1, "Fix wording", workspace_id=ws.id
+        )
         db_session.commit()
         assert result["status"] == "changes_requested"
 
@@ -90,9 +122,9 @@ class TestAnswerApprovalService:
         ws = db_session.query(Workspace).first()
         created = ga.create_golden_answer(db_session, ws.id, "Queue Q", "Queue A")
         db_session.commit()
-        ga.update_golden_answer(db_session, created["id"], status="draft")
+        ga.update_golden_answer(db_session, created["id"], status="draft", workspace_id=ws.id)
         db_session.commit()
-        svc.submit_for_review(db_session, created["id"])
+        svc.submit_for_review(db_session, created["id"], workspace_id=ws.id)
         db_session.commit()
         queue = svc.get_review_queue(db_session, ws.id)
         assert len(queue) >= 1
@@ -102,22 +134,22 @@ class TestAnswerApprovalService:
         ws = db_session.query(Workspace).first()
         created = ga.create_golden_answer(db_session, ws.id, "Bad Flow Q", "Bad Flow A")
         db_session.commit()
-        ga.update_golden_answer(db_session, created["id"], status="draft")
+        ga.update_golden_answer(db_session, created["id"], status="draft", workspace_id=ws.id)
         db_session.commit()
-        result = svc.approve_answer(db_session, created["id"], 1)
+        result = svc.approve_answer(db_session, created["id"], 1, workspace_id=ws.id)
         assert "error" in result
 
     def test_approval_history(self, db_session):
         ws = db_session.query(Workspace).first()
         created = ga.create_golden_answer(db_session, ws.id, "History Q", "History A")
         db_session.commit()
-        ga.update_golden_answer(db_session, created["id"], status="draft")
+        ga.update_golden_answer(db_session, created["id"], status="draft", workspace_id=ws.id)
         db_session.commit()
-        svc.submit_for_review(db_session, created["id"])
-        svc.approve_answer(db_session, created["id"], 1, "LGTM")
+        svc.submit_for_review(db_session, created["id"], workspace_id=ws.id)
+        svc.approve_answer(db_session, created["id"], 1, "LGTM", workspace_id=ws.id)
         db_session.commit()
         # This will fail because approve needs pending_review, let's just check history after submit
-        history = svc.get_approval_history(db_session, created["id"])
+        history = svc.get_approval_history(db_session, created["id"], workspace_id=ws.id)
         assert len(history) >= 1
 
     def test_bulk_approve(self, db_session):
@@ -126,12 +158,12 @@ class TestAnswerApprovalService:
         for i in range(3):
             c = ga.create_golden_answer(db_session, ws.id, f"Bulk Q{i}", f"Bulk A{i}")
             db_session.commit()
-            ga.update_golden_answer(db_session, c["id"], status="draft")
+            ga.update_golden_answer(db_session, c["id"], status="draft", workspace_id=ws.id)
             db_session.commit()
-            svc.submit_for_review(db_session, c["id"])
+            svc.submit_for_review(db_session, c["id"], workspace_id=ws.id)
             db_session.commit()
             ids.append(c["id"])
-        result = svc.bulk_approve(db_session, ids, 1)
+        result = svc.bulk_approve(db_session, ids, 1, workspace_id=ws.id)
         db_session.commit()
         assert len(result["approved"]) == 3
 

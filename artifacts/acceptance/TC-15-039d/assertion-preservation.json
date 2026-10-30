@@ -1,0 +1,17 @@
+{
+  "original_expectation_expressions": 63,
+  "original_outer_assertion_matchers": 62,
+  "original_asymmetric_matchers": 1,
+  "candidate_expectations": 76,
+  "all_original_full_expectation_expressions_identical": true,
+  "entire_original_spec_is_literal_prefix": true,
+  "original_bytes": 20124,
+  "candidate_bytes": 26782,
+  "original_test_cases": 22,
+  "appended_cases": 6,
+  "original_scan_count": 3,
+  "appended_scan_count": 6,
+  "original_scan_and_attachment_order_bytes_preserved": true,
+  "original_sha256": "ce1a2c85c711caeab63e9040ac8d01c1d6b8161dea5ebba6258f629725b9c6cd",
+  "candidate_sha256": "7d47f4034fa229f7d107da6f8517bcce2d894a3eada63957ad10166448b58ee2"
+}

@@ -1,0 +1,149 @@
+{
+  "ticket": "TC-06-002c",
+  "claim": "https://github.com/Johnathan-u/trust-copilot/issues/85#issuecomment-6514783890",
+  "parent": "TC-06-002",
+  "frozen_acceptance": ["TC-06-002-AC1", "TC-06-002-AC2"],
+  "points": 3,
+  "status": "implemented locally; independent review and exact-head PostgreSQL/CI qualification pending",
+  "base": "57dbccab91fa328adde1bbbc8bb4a4b07c0584c9",
+  "implementation_commit": "b8ec8174e7697388e509899b04e1135ce10082d2",
+  "source_blobs": {
+    "apps/api/app/api/routes/questionnaires.py": "007b55056041e289ae592b5d9a5e5218e484cea5",
+    "apps/api/tests/release/test_authorization_questionnaire_mappings.py": "36280e0a7406770993eb950cbd4d1055e0ec76e2"
+  },
+  "scope": "Production change limited to update_questionnaire_mapping plus required import; existing workspace_refs helper unchanged.",
+  "environment": {
+    "python": "3.12.14",
+    "ruff": "0.5.6",
+    "runtime": "/tmp/tc-backend-venv",
+    "sqlite": "in-memory, foreign_keys=ON",
+    "postgresql": "localhost:5432 unavailable; connection refused"
+  },
+  "checks": [
+    {
+      "cwd": "apps/api",
+      "command": "python -m pytest tests/release/test_authorization_questionnaire_mappings.py -m unit -q --tb=short",
+      "exit_code": 0,
+      "passed": 37,
+      "deselected": 37,
+      "warnings": 408,
+      "warning_note": "Existing model datetime.utcnow defaults emit deprecation warnings; no suppression added."
+    },
+    {
+      "cwd": "apps/api",
+      "command": "python -m pytest tests/release/test_authorization_questionnaire_mappings.py --collect-only -q",
+      "exit_code": 0,
+      "collected": 74,
+      "sqlite": 37,
+      "postgresql": 37
+    },
+    {
+      "cwd": "apps/api",
+      "command": "TC_REQUIRE_DB=1 python -m pytest tests/release/test_authorization_questionnaire_mappings.py -m integration -q --tb=short",
+      "exit_code": 3,
+      "passed": 0,
+      "reason": "Required PostgreSQL setup fails before tests; localhost:5432 connection refused. No migration stamp or constraint bypass."
+    },
+    {
+      "cwd": "apps/api",
+      "command": "python -m pytest tests/release/test_safe_collection.py -q",
+      "exit_code": 0,
+      "passed": 29
+    },
+    {
+      "cwd": "apps/api",
+      "command": "ruff check app/api/routes/questionnaires.py tests/release/test_authorization_questionnaire_mappings.py",
+      "exit_code": 0
+    },
+    {
+      "cwd": "apps/api",
+      "command": "ruff format --check app/api/routes/questionnaires.py tests/release/test_authorization_questionnaire_mappings.py",
+      "exit_code": 0
+    },
+    {
+      "cwd": ".",
+      "command": "python scripts/security/secret_inventory.py paths apps/api/app/api/routes/questionnaires.py apps/api/tests/release/test_authorization_questionnaire_mappings.py --root . --fail-on block",
+      "exit_code": 0,
+      "findings": 0
+    },
+    {
+      "cwd": ".",
+      "command": "git diff --check",
+      "exit_code": 0
+    }
+  ],
+  "red_green": {
+    "baseline_command": "python -m pytest tests/release/test_authorization_questionnaire_mappings.py -m unit -q --tb=short",
+    "baseline_exit_code": 1,
+    "baseline_failed": 11,
+    "baseline_passed": 26,
+    "deselected": 37,
+    "failures": [
+      "Foreign controls/tags returned200 and persisted unauthorized references.",
+      "Missing controls/tags returned500.",
+      "Moved references remained assignable.",
+      "Archived/moved parents remained editable; missing/foreign/removed parents lacked the uniform reference error."
+    ],
+    "repaired_passed": 37
+  },
+  "negative_controls": [
+    {
+      "control": "parent",
+      "case": "test_parent_must_be_current_and_available[sqlite-archived]",
+      "exit_code": 1,
+      "tail": "1 failed, 11 warnings in 0.67s",
+      "source_restored": true
+    },
+    {
+      "control": "control",
+      "case": "test_every_supplied_reference_is_validated_before_any_mutation[sqlite-foreign-preferred_control_id-controls]",
+      "exit_code": 1,
+      "tail": "1 failed, 11 warnings in 0.70s",
+      "source_restored": true
+    },
+    {
+      "control": "tag",
+      "case": "test_every_supplied_reference_is_validated_before_any_mutation[sqlite-foreign-preferred_tag_id-tags]",
+      "exit_code": 1,
+      "tail": "1 failed, 11 warnings in 0.63s",
+      "source_restored": true
+    },
+    {
+      "control": "late_validation",
+      "case": "test_every_supplied_reference_is_validated_before_any_mutation[sqlite-foreign-preferred_tag_id-tags]",
+      "exit_code": 1,
+      "tail": "1 failed, 11 warnings in 0.61s",
+      "source_restored": true
+    },
+    {
+      "control": "zero_clear",
+      "case": "test_omitted_null_and_zero_clear_contract[sqlite-body4-changes4]",
+      "exit_code": 1,
+      "tail": "1 failed, 11 warnings in 0.66s",
+      "source_restored": true
+    }
+  ],
+  "negative_control_note": "Moving validation after field assignments still returned404, but the full-row comparison detected autoflushed changes; rollback did not mask the failure.",
+  "fixture": {
+    "auth": "Real production router, signing and stored User/WorkspaceMember/UserSession; only get_db injected. Authority changes occur after cookie signing.",
+    "atomicity": "Check pending ORM state and full-row snapshots across16 relevant domain/auth tables. Success allows only specified mapping fields and its updated_at timestamp.",
+    "cleanup": "Record exact inserted IDs; delete only those IDs in FK order; compare original full rows/counts; always close owned connections.",
+    "constraints": "SQLite foreign keys enabled. PostgreSQL uses migrated_db. Physical parent removal uses existing cascades. No FK/trigger bypass, truncation or sequence reset.",
+    "collection": "Database setup is deferred to fixture execution."
+  },
+  "preserved_contracts": [
+    "Existing require_can_edit and admin/editor authorization.",
+    "Successful mapping response fields and mapping-ID/parent/workspace scoping.",
+    "Own controls, own tags and global tags.",
+    "Omitted/null field handling and zero control/tag clearing.",
+    "Empty framework key clearing without catalog redesign.",
+    "Existing statuses, approval and manual-source transition behavior."
+  ],
+  "changed_contract": "Current available parent and all supplied nonzero control/tag references are authorized together before any mapping field mutation; missing/foreign/unavailable references return the existing neutral404.",
+  "remaining_gates": [
+    "Independent review.",
+    "Exact final published-head build and web-release-e2e on both push and pull_request, including37 required PostgreSQL cases.",
+    "Full TC-06-001 and TC-06-002 remain unresolved.",
+    "Production startup/middleware, browser workflow and model/provider execution are not qualified by this isolated HTTP harness."
+  ]
+}

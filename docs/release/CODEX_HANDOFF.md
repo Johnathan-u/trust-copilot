@@ -2,10 +2,16 @@
 
 Written 2026-10-29 by TC Coordinator (Grok). Master at d9ab8b6.
 
+> **Current PM workflow (2026-10-30):** Grok PM and Codex PM now use the
+> [shared backlog protocol](PM_BACKLOG_PROTOCOL.md),
+> [tracker](../tracker/index.html) and [state](../planning/backlog-state.json).
+> The queues/status tables below are historical. Reconcile current evidence and
+> issue #85 before acting; do not calculate progress from this dated handoff.
+
 ## Purpose
 The coordinator is running low on usage. This gives the Codex workers (backend, frontend, integrations) what they need to keep going. Issue #85 stays the ledger. Unless the owner (Johnathan-u) says otherwise, only the owner or the coordinator merges. If the coordinator goes quiet, keep working your queues and keep PRs green and ready. The owner can merge any PR that meets the checklist below.
 
-Source of truth for remaining work: `docs/planning/` (the full planning package: 30 epics, 384 tickets) and `docs/planning/BACKLOG_STATUS.md`. Acceptance criteria are in the ticket docs under `docs/release/tickets` and `docs/planning/tickets`. Once your queue is empty, take the next free ticket from BACKLOG_STATUS (status backlog, with all dependencies merged). Claim it on #85 before you start.
+Source of truth for scope: `docs/planning/` (the full planning package: 30 epics, 384 tickets). Current execution and acceptance state: `docs/planning/backlog-state.json`, rendered in `docs/tracker/index.html`. Acceptance criteria are in the ticket docs under `docs/release/tickets` and `docs/planning/tickets`. Once your queue is empty, take the next executable ticket from the shared tracker after verifying its current dependencies and assignment. Claim it on #85 before you start.
 
 ## Merge checklist
 - Squash merge pinned to the head sha, with all 4 checks green on that exact sha (build x2, web-release-e2e x2).
