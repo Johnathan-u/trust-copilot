@@ -82,9 +82,38 @@ def issued_cookie(response):
 
 
 def current_row(state):
-    payload = session.verify_token(state["client"].cookies.get("tc_session"))
+    cookie = SimpleCookie()
+    cookie.load(f"tc_session={state['client'].cookies.get('tc_session')}")
+    payload = session.verify_token(cookie["tc_session"].value)
     row = state["db"].query(UserSession).filter_by(session_id=payload["session_id"]).one()
     return payload, row
+
+
+@pytest.mark.parametrize("quoted", (False, True), ids=("unquoted", "quoted"))
+def test_current_row_reads_real_login_cookie_encodings(policy_state, quoted):
+    state = policy_state
+    user = state["db"].get(User, state["users"][0])
+    original_email = user.email
+    # Payload lengths change base64 padding and therefore Set-Cookie quoting.
+    # Exercise both actual server encodings without replacing cookies or signing.
+    for padding in range(3):
+        user.email = "x" * padding + original_email
+        state["db"].commit()
+        email, _ = prepare_login(state)
+        response = password_login(state, email, False)
+        assert response.status_code == 200
+        raw = state["client"].cookies.get("tc_session")
+        if (raw.startswith('"') and raw.endswith('"')) == quoted:
+            break
+    else:
+        pytest.fail("Real login did not produce the requested cookie encoding")
+    expected = session.verify_token(issued_cookie(response).value)
+    assert expected is not None
+    assert state["client"].get("/api/auth/me").status_code == 200
+    payload, row = current_row(state)
+    assert payload == expected
+    assert row.session_id == expected["session_id"]
+    assert row.user_id == state["users"][0]
 
 
 def assert_expired_authority(state):

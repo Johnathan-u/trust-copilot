@@ -28,3 +28,42 @@ Absolute expiry survives real signer clock advance; expired-during-signing retur
 Second policy-query MFA failure preserves every row and no cookie; successful retry returns recovery codes/new session.
 Initial harness cookie quoting/domain issues corrected before counted baseline reproduction.
 No prior assertion removed, verifier relaxed, or PostgreSQL qualification claimed.
+
+Recovery CI-helper repair, #85 comment 6515297056
+Base: 5ede7b6cd476965ef0b1ed36ef2d80e6ad862427, published #131 head.
+Actual push run41003527180/job123893133838: 14 failed,4064 passed,1 skipped.
+Failures are current_row subscripting None after verifying quoted jar cookies.
+
+Restored the missing local environment with the unchanged committed lock:
+uv venv /tmp/tc-backend-venv --python python3.12
+uv pip sync --python /tmp/tc-backend-venv/bin/python --require-hashes apps/api/requirements-dev.lock
+  Both exit0; Python3.12.14,67 exact locked packages installed. No repo dependency edits.
+
+Read-only real HTTP/stored SQLite reproduction varied fixture email length:
+  Unquoted jar: parsed token valid, /auth/me200, old current_row succeeds.
+  Quoted jar (two payload lengths): parsed token valid, /auth/me200,
+  old current_row raises TypeError from subscripting None.
+  Owned fixture cleanup completed. No token/password included in evidence.
+python -m pytest tests/release/test_remember_policy.py -k 'sqlite and cookie_encodings' -q --tb=short
+  Before helper repair:1 failed,1 passed,86 deselected in4.15s.
+  The failing quoted-cookie case reproduces the CI helper error.
+Repair: parse the jar cookie with SimpleCookie before unchanged verify_token.
+Only the helper and two new real-login encoding cases per backend change in Python.
+All original assertions and all production files remain unchanged.
+python -m pytest tests/release/test_remember_policy.py tests/release/test_session_validation.py tests/release/test_principal_contract.py tests/release/test_mfa_reenrol_security.py tests/release/test_session_signing_key_migration.py tests/release/test_key_rotation.py -q -k 'not postgres and not fresh_database and not reencrypts and not resumes_from and not mfa_reenrol_when and not failures_are_audited and not helper_audits and not retired_session_rows'
+  Exit0:141 passed,121 deselected in58.06s, including all44 SQLite policy cases.
+  Existing datetime.utcnow warnings remain (1073); no suppression added.
+python -m pytest tests/release/test_remember_policy.py --collect-only -q
+  Exit0:88 cases collected in0.96s (44 SQLite,44 PostgreSQL).
+python -m pytest tests/release/test_safe_collection.py -q
+  Exit0:29 passed in52.00s.
+TC_REQUIRE_DB=1 python -m pytest -q
+  Exit3 before execution: localhost5432 IPv4/IPv6 connection refused.
+  PostgreSQL and full-suite success remain unqualified locally.
+ruff check/format --check, py_compile on the changed test, git diff --check:
+  Exit0. No runtime, dependency, fixture, schema, migration or CI changes.
+AST comparison against repair base: all19 prior functions except current_row
+  are identical; only the real-cookie-encoding test is added.
+secret_inventory.py paths <the four changed test/evidence/release files>:
+  Exit0,zero findings.
+Independent review and four final-head CI jobs remain required before merge.

@@ -35,3 +35,31 @@ Independent-review repair, scope extension [#85 comment 6514900298](https://gith
 - `python -m pytest tests/release/test_remember_policy.py -q -k 'not postgres and (clock_advances or pending_mfa_policy_failure)'`: corrected controls against unchanged review-base runtime **5 failed / 79 deselected**, then repaired runtime **5 passed / 79 deselected**. Clock controls advance time before the real signer and cover original/target deadlines both before and after expiration; no sleep or mocked signer result is used. Policy failure is injected only on the second Workspace SELECT.
 - Initial new-test setup needed two corrections before this counted red/green run: parse the quoted enrollment response cookie, and isolate the replacement cookie from the fixture's original domainless cookie. These harness failures are not counted as product reproduction. Original assertions and all earlier test cases remain intact.
 - Final related selection **139 passed / 119 deselected**; final broad unit **714 passed / 11 skipped / 3354 deselected**; all 84 policy cases collect; Ruff/format/compileall/diff checks pass. PostgreSQL remains unavailable locally; its 42 counterparts require actual CI.
+
+CI cookie-helper repair, recovery claim
+[#85 comment 6515297056](https://github.com/Johnathan-u/trust-copilot/issues/85#issuecomment-6515297056):
+
+- Repair base: published `5ede7b6cd476965ef0b1ed36ef2d80e6ad862427` in a fresh
+  `codex/TC-04-004b-cookie-helper-repair` worktree. The restored runtime had no
+  backend environment; the existing hash-locked requirements restored it without
+  dependency or repository lock changes.
+- Actual push [run 41003527180, job 123893133838](https://github.com/Johnathan-u/trust-copilot/actions/runs/41003527180/job/123893133838)
+  reported 14 failures, 4064 passes and one skip. The failing policy cases reached
+  `current_row` after real login; direct verification of the HTTPX jar's quoted
+  cookie returned `None`. Parsed response-cookie verification and expiry assertions
+  had passed. This is a test-helper defect, not evidence that the runtime accepts
+  invalid signed cookies.
+- A local real-HTTP/stored-SQLite probe varied the owned user's email length across
+  three values. One produced an unquoted cookie and two produced quoted cookies.
+  All three authenticated `/api/auth/me` and verified the parsed response token;
+  the old helper failed only for the two quoted values. No credential is retained
+  in this evidence.
+- Two explicit real-login encoding regressions per backend reproduce both forms.
+  Before the helper repair, SQLite returned **1 failed / 1 passed**; the quoted
+  case raised the same `NoneType` error as CI. The helper now uses the existing
+  `SimpleCookie` parser before the unchanged `verify_token`, matching the existing
+  response-cookie handling. Every earlier assertion and production file remains
+  unchanged. The suite now has 88 cases, 44 per backend.
+- Final repair verification and remaining PostgreSQL/CI gates are recorded in
+  [verification.txt](verification.txt). The prior local results above remain
+  historical evidence; they do not qualify the repaired head's PostgreSQL cases.
