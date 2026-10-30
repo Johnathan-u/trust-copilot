@@ -1,8 +1,8 @@
 {
   "schema_version": 1,
-  "lease_owner": null,
-  "lease_expires_at": null,
-  "updated_at": "2026-10-30T00:04:04.436Z",
+  "lease_owner": "codex-2026-10-30T00:14:08.013Z-72294qfbkc",
+  "lease_expires_at": "2026-10-30T02:14:08.013Z",
+  "updated_at": "2026-10-30T00:14:08.013Z",
   "automation_id": "6ae3c75d14788191b6f3e0838035bcef",
   "last_master_sha": "499f8af76c427dab5ef2f8ca7ffc2a257129e6ed",
   "checkpoint": "Master499f8af76c427dab5ef2f8ca7ffc2a257129e6ed CI40972978492 fully GREEN. No merges this batch. #111 fixture repair published253ecc463f582e94a5222d9e1b6359e81518cdbd (independent review passed, only syntheticcookie+URLassertion; all7behaviorcases retained), push40976864989/PR40976872158 running. #91 resumed: pure merge dd6b1cee and separate migration reparent/evidence cd74f998798cad454a594428ab342671855e1d49; exacttreea7523c8 reviewed, 13schema/headpass independently, onebranchheadtc17004_faq_review parenttc18001_reviewed_replies; push40976819720/PR40976828998 running. #112 unchanged285c7b7ae285066747ac5f5388b0508bdd25cf84 push40972889007 bothgreen; PR40972904037 webgreen, originalbuildfailed PostgreSQLstartup, rerunbuild123805769187 now running afterpassingstartup. Await exact4green beforeeachmerge. #91 owns nextmigration slot; other migrations must serialize afteractualhead. Frontend TC15-025 AC6/TC15-024 and singleControlsSidebarentry stillauthorized, claimfilesbeforeedits. No workersactive; local work disposable. Batch evidence #85 comment6511481182.",
