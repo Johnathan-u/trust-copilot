@@ -52,6 +52,42 @@ bookkeeping, never application changes. Product and instruction PRs use normal C
 If state is missing or unreadable, do not perform uncoordinated writes: report the
 specific infrastructure blocker and continue read-only diagnosis.
 
+## Recovery and quality check after every wakeup
+
+The delivery manager performs this check after every scheduled wakeup, resume,
+interruption or context compaction, before edits or reassignment. A checkpoint
+guides recovery; it is not a substitute for current evidence.
+
+1. Fetch and verify the coordinator lease first. A different unexpired owner
+   means no repository mutation or worker dispatch. Preserve the existing single
+   continuation automation; do not create a competing coordinator.
+   Read back its enabled state and persisted recovery instructions after every
+   wakeup and before ending a delivery batch. Keep it enabled until the entire
+   original backlog is verified accepted, unless the owner explicitly pauses it;
+   record and correct configuration drift within the current authorization.
+2. Reread current `AGENTS.md`, this protocol and acceptance decisions. Reconcile
+   canonical `backlog-state.json`, relevant latest #85 assignments and rulings,
+   actual master, open PR heads and current CI. Keep the original acceptance and
+   owner-only gates separate from engineering progress.
+3. Confirm which workers are actually alive. For every retained task, inspect
+   its worktree/head/diff, allowed files, dependencies and unfinished changes.
+   Compare those with current assignments and landed work. Preserve commits and
+   attribution; resolve duplicate or stale assignments before reassignment.
+4. Check recent changes against the ticket's acceptance criteria and definition
+   of done. Detect scope drift, regressions, missing evidence and invalidated
+   dependencies; repair or explicitly gate them before proceeding. Passing tests
+   alone never proves ticket acceptance. Reuse prior review only for unchanged,
+   verified source and applicable integration; do not repeat unchanged green work.
+5. Record concise recovery findings, actual worker liveness, next actions and
+   blockers in the operational checkpoint, and in #85 after a meaningful batch.
+   Update the shared tracker through its revisioned CLI as required. Assign the
+   next executable work immediately, continuing around independent blockers.
+
+Independent review, meaningful acceptance evidence, exact-final-head required CI
+and the serialized master gate remain mandatory. Recovery never waives them or
+requires routine owner approval. The same checks apply when a context summary
+preserves previous coordinator ownership. Revalidate the live lease before acting.
+
 ## Each run
 
 1. Read root instructions, release decisions, the latest relevant #85 entries,
