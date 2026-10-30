@@ -82,8 +82,6 @@ from app.services.compliance_event_service import evaluate_and_fire_compliance_e
 from app.services.job_effects import (  # noqa: E402
     EnqueueConflictError,
     JobEffects,
-    enqueue_job,
-    job_idempotency_key,
     mark_unsettled_uncertain,
     reconcile_previous_attempts,
 )
@@ -634,6 +632,8 @@ def run_export(job: Job, session, payload: dict) -> None:
     from app.services.fallback_export import create_fallback_pack_docx
     from app.services.xlsx_writer import create_export_from_questionnaire
 
+    # Keep this attempt's token even if a rollback/refresh later sees a newer owner.
+    owner = _lease_owner(job)
     qnr_id = payload.get("questionnaire_id")
     ws_id = payload.get("workspace_id")
     if not qnr_id or not ws_id:
@@ -722,8 +722,16 @@ def run_export(job: Job, session, payload: dict) -> None:
         base = (qnr.filename or "export").rsplit(".", 1)[0]
         out_filename = f"{base}_answers_fallback.docx"
 
-    # Deterministic per-job key: a re-run overwrites the same object instead of orphaning a new one.
-    key = file_svc.upload_export(ws_id, out_bytes, out_filename, job_id=job.id)
+    # The deterministic key is shared by retries. Serialize the final PUT/record commit with
+    # claims, cancellation and orphan deletion using the existing job row lock. Render first,
+    # so the lock does not cover expensive document work. A stale owner must never PUT.
+    if owner:
+        confirm_lease_for_commit(session, job.id, owner)
+    try:
+        key = file_svc.upload_export(ws_id, out_bytes, out_filename, job_id=job.id)
+    except Exception:
+        session.rollback()
+        raise
     rec = ExportRecord(
         workspace_id=ws_id,
         questionnaire_id=qnr_id,
@@ -734,7 +742,9 @@ def run_export(job: Job, session, payload: dict) -> None:
     )
     session.add(rec)
     effects.mark_applied(EFFECT_EXPORT, {"storage_key": key})
-    session.commit()
+    from app.services.storage_reconcile import commit_or_discard_object
+
+    commit_or_discard_object(session, storage, storage.bucket_exports, key)
     session.refresh(rec)
     job.result = json.dumps({"export_record_id": rec.id, "storage_key": key})
 
@@ -1090,40 +1100,35 @@ def _handle_job_failure(
     session.commit()
 
 
+_last_orphan_sweep_monotonic = 0.0
+
+
 def enqueue_missing_index_jobs(session) -> None:
-    """At startup, queue index_document for any doc still 'uploaded' with no pending job (fixes backlogs)."""
-    pending_doc_ids = set()
-    for job in (
-        session.query(Job)
-        .filter(
-            Job.kind == "index_document",
-            Job.status.in_([JobStatus.QUEUED.value, JobStatus.RUNNING.value]),
-        )
-        .all()
-    ):
-        try:
-            payload = json.loads(job.payload or "{}")
-            if "document_id" in payload:
-                pending_doc_ids.add(payload["document_id"])
-        except Exception:
-            pass
-    added = 0
-    for doc in session.query(Document).filter(Document.status == "uploaded").all():
-        if doc.id in pending_doc_ids:
-            continue
-        _job, created = enqueue_job(
-            session,
-            workspace_id=doc.workspace_id,
-            kind="index_document",
-            payload={"document_id": doc.id},
-            idempotency_key=job_idempotency_key(
-                "index_document", doc.workspace_id, doc.id, doc.storage_key
-            ),
-            input_version=doc.storage_key,
-        )
-        added += 1 if created else 0
-    if added:
-        print(f"Worker: enqueued {added} index_document job(s) for previously uploaded docs.")
+    """Startup hook: missing index and parse jobs, then the orphan sweep.
+
+    The name is kept so a probe test can replace this whole hook. The sweep logs and continues
+    when storage is unavailable. It does not raise.
+    """
+    global _last_orphan_sweep_monotonic
+    from app.services.storage_reconcile import startup_reconcile
+
+    startup_reconcile(session)
+    _last_orphan_sweep_monotonic = time.monotonic()
+
+
+def _maybe_sweep_orphans() -> None:
+    """On an idle loop, sweep again only after a full grace period since the last attempt."""
+    global _last_orphan_sweep_monotonic
+    from app.services.storage_reconcile import orphan_grace_seconds, sweep_orphans_best_effort
+
+    if time.monotonic() - _last_orphan_sweep_monotonic < orphan_grace_seconds():
+        return
+    _last_orphan_sweep_monotonic = time.monotonic()
+    session = SessionFactory()
+    try:
+        sweep_orphans_best_effort(session)
+    finally:
+        session.close()
 
 
 def _lease_owner(job) -> str | None:
@@ -1495,6 +1500,7 @@ def main():
         had_work = _process_one_job()
         _adapt_thread_count(had_work)
         if not had_work:
+            _maybe_sweep_orphans()
             time.sleep(2)
 
 

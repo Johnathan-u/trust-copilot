@@ -331,13 +331,13 @@ def test_cancel_racing_lease_recovery_stays_cancelled(db, monkeypatch):
             session.close()
 
     threads = [threading.Thread(target=recover), threading.Thread(target=cancel)]
-    for thread in threads:
-        thread.start()
     try:
-        pass
+        for thread in threads:
+            thread.start()
     finally:
         for thread in threads:
-            thread.join(timeout=10)
+            if thread.ident is not None:
+                thread.join(timeout=10)
         for thread in threads:
             assert not thread.is_alive()
     assert errors == []
@@ -451,13 +451,13 @@ def test_two_manual_retries_one_wins(db):
             client.close()
 
     threads = [threading.Thread(target=retry), threading.Thread(target=retry)]
-    for thread in threads:
-        thread.start()
     try:
-        pass
+        for thread in threads:
+            thread.start()
     finally:
         for thread in threads:
-            thread.join(timeout=15)
+            if thread.ident is not None:
+                thread.join(timeout=15)
         for thread in threads:
             assert not thread.is_alive()
     assert errors == []
