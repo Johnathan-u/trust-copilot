@@ -42,3 +42,21 @@ python scripts/security/secret_inventory.py paths <the five changed source/evide
 
 Remaining: independent review, actual migrated-PostgreSQL execution and required
 build/web-release-e2e on push and PR for the exact final publication head.
+
+Strict-session integration repair (#85 comment 6514852508):
+  Original source commit d5912ea9059e003191788513ee359da85a3ab310 preserved.
+  Exact master 5e8b15230ec2b2d9912700c68361556d6c33a22d integrated in separate
+  pure merge e38308d6d4b9bac9559e1f59e87747e3ba5822ca.
+  Post-merge run reproduced 7 failures / 1 pass because the positive fixture
+  omitted the now-required exp claim. Added only max_age_seconds=3600 to its
+  signed-cookie issuance; all assertions and citation runtime code unchanged.
+python -m pytest tests/release/test_authorization_core_citations.py -k sqlite -q
+  Exit 0: 8 passed, 8 deselected in 0.96s.
+python -m pytest tests/release/test_principal_contract.py tests/release/test_session_validation.py -k 'sqlite or expiry_boundary' -q
+  Exit 0: 71 passed, 70 deselected in 9.76s.
+python -m pytest tests/release/test_authorization_core_citations.py --collect-only -q
+  Exit 0: 16 cases collected.
+python -m pytest tests/release/test_safe_collection.py -q
+  Exit 0: 29 passed in 12.48s.
+  Ruff/format/compile/diff checks pass. Actual PostgreSQL and final-head CI are
+  still required; prior published-head checks do not qualify this repaired head.

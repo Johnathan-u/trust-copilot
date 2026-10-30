@@ -168,7 +168,9 @@ def citations(request):
         client = TestClient(app)
         client.cookies.set(
             "tc_session",
-            sign_session(user.id, user.email, own.id, "reviewer", session_id=sid),
+            sign_session(
+                user.id, user.email, own.id, "reviewer", session_id=sid, max_age_seconds=3600
+            ),
         )
         yield {
             "db": db,
