@@ -17,7 +17,7 @@ import {
   parseTrustRequests,
   replyActions,
   trustFailure,
-} from './trust-request-consumer'
+} from '@/lib/trust-request-consumer'
 
 const request = {
   id: 11,

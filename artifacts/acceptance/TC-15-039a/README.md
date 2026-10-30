@@ -67,3 +67,14 @@ rejected. After repair: 29 focused tests passed (consumer plus navigation), full
 unit suite 281 passed / 38 files, typecheck passed, focused lint passed, 22 browser
 cases collected. The added browser case still requires Chromium execution.
 All four parent gates and earlier local browser/build limitations remain unchanged.
+
+## CI unit-discovery repair
+
+The PR build in run `40994457550` failed the runtime-module coverage discovery
+check because this test used a relative helper import. The existing scanner
+recognizes canonical `@/lib/...` imports. The exact failure was reproduced locally;
+the real import now uses `@/lib/trust-request-consumer`, with all existing tests and
+assertions preserved and no scanner change. The targeted quality test and all
+25 consumer cases pass locally; the full integrated-branch suite passes 309 tests
+across 39 files. See `ci-unit-discovery-repair.txt`; repaired-head
+CI is still required, and the browser specification remains 22 cases.
