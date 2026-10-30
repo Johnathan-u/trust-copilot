@@ -2,15 +2,15 @@
   "schema_version": 1,
   "lease_owner": "codex-2026-10-30T00:14:08.013Z-72294qfbkc",
   "lease_expires_at": "2026-10-30T03:11:33.120Z",
-  "updated_at": "2026-10-30T01:30:38.227Z",
+  "updated_at": "2026-10-30T01:51:37.129Z",
   "automation_id": "6ae3c75d14788191b6f3e0838035bcef",
-  "last_master_sha": "35384fd1907ac9235922a74a575a1630aa0519ec",
-  "checkpoint": "Active run retained lease. Nine reviewed/exact-head-four-green PRs merged:112,111,91,114,77,95,107,116,115. Actual master35384fd1907ac9235922a74a575a1630aa0519ec; push40985527147 pending (prior64db2c9 green40984602717). #93 security/migration repair reviewed; final6e7154a451b62f3b595ca8a2a1149853f344e806/tree34717d15ae60da7fb2b4398b6bdc4405d3e6a0da published after generated-MFA-marker safe-collection correction,56tests independently pass. Runs40985958368/40985963871 pending. Actual landed migration stilltc19010_inbox_receipts;93slotnext,96then108. #96localfee9c1bdc31c747cbdb5dc7c486084b2e2d88fe8 independentlyapproved; wait93landingthenpuremerge/reparent/newCI. #108local02611842b32b21c6a6da2ac05ff8f20d8fde1535 independentlyapprovedsource,10SQLite/179webtests, PGunavailable; migrationfullreviewongoing,wait96actualhead. #95AC3 local94b5b627add1f32f865866bf0a7342a5e02b07b8/treec8e8c6cfa54d7409914fca8b07bef4ca2db664a0 sixfiles realAPI/UIrestartacceptance, separate reviewactive; no livePG/browser local. #105source7347a8c4f6121bfc3004141d88e79545883c9fae publisheddraft; compose_acceptance activelyadds dedicatedboundedDockerCIharness5files perclaim6512581031 in tc-compose-repair. alerts_resume nowimplements authorizedTC15-024 outboundconsumer/serveralias in tc-vendor-ui perclaim6512668742; preserve fullportalTC18-003scopegate. Runtime toolreset recovered afterverifyingownlease/remoteheads; originalworkersgone, replacementworkersactive; allworktreesretained. Never release whileworkersactive.",
+  "last_master_sha": "2ce464d7cbdcc25c336714cb1b642c8d8cb396d7",
+  "checkpoint": "Active run; ten independently reviewed PRs merged with exact-head push+PR build and web-release-e2e green:112,111,91,114,77,95,107,116,115,93. Actual master2ce464d7cbdcc25c336714cb1b642c8d8cb396d7 green run40987099900 jobs123840561771/123840562120. Landed Alembic headtc07002_session_key_id. #96 final476c9f0af366e2bb3d5c3bf1c53daf363d44562f integrated/reviewed; runs40987773382/40987778483 webgreen/backendpending. #117 finalccaf7ef1c65096f889e138332e319dbaa6c55572 independentlyreviewed real inbox API/UI two-process restart acceptance; runs40987358839/40987369004 webgreen/backendpending. AC3 remains pending execution. #108 localb9f7a18710bde5ee600387c13fbb2c796e3b6164 reviewed atomicity/concurrency/lossless migration repairs; wait96actualmerge thenpuremerge/reparent. #105 finalpublished8afe9c8339ece620a9e1a6292d8e6b07d34a76c0 dedicatedCompose runs failed: dev/app/.next EACCES andproductionminio/minio:latestpull denied. Devfixlocal7303c15c7c8e98b32cd7edc5b8257b398612e902 treeca231b47f0df3c81acf7c7ae8144014a40a87c17 in independentreview,15localtests. MinIOreadonlyresearch found no verified artifact-preserving available registry; do not blindlyswitchprovider/version/newaccount. TC15-024 outboundconsumer+legacy307alias activein tc-vendor-ui;20focused/271unitspass,21ui-22collect; coordinatorCIgateintegration pending. Workers/reviewers active; retainlease.",
   "blocked_items": [
-    "#93 new exactheadCI pending after safe-collectionfixturefix; migrationqueue96/108waitactuallandings.",
-    "#95AC3 independentreview and realPG/browserCI pending; source testimplementation is not acceptance.",
-    "#105 dedicatedCompose runtimeharness beingimplemented; localDocker absent, registry failuresmustnotbypassimages/accounts.",
-    "TC15-024 consumer implementationactive; coordinator mustadd ui-22 releasecandidate/mincount/axe after currentCIownershipintegration.",
-    "Owneronly spend/accounts/legal/rights/sale/production/destructive gates unchanged; #5 retains93/08-001dependency gates."
+    "#96/#117 exacthead builds pending; #117 actual integrated acceptance stillunqualified.",
+    "#108 migration integration waits96actualAlembichead; reviewed localchanges retained.",
+    "#105 .nextvolumefix reviewed/publish next; MinIOoriginalartifactidentityunknown,registryavailabilitygate, noaccounts/provider/versionchange authorized by assumptions.",
+    "TC15-024 finishreview + coordinator-ownedui-22 gates after117CIintegration.",
+    "#5/TC08-001 dependency intake ongoing; owneronlyspend/accounts/legal/rights/sale/production/destructivegates unchanged."
   ]
 }
