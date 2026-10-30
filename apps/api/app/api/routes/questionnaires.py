@@ -54,7 +54,8 @@ from app.services.compliance_hooks import (
 from app.services.mapping_llm_rerank import get_rerank_perf_snapshot, reset_rerank_perf_stats
 from app.services.file_service import FileService
 from app.services.job_effects import enqueue_job, job_idempotency_key
-from app.services.upload_enqueue import UPLOAD_IDEMPOTENCY_RESOURCE, discard_stored_upload
+from app.services.storage_reconcile import discard_if_unreferenced
+from app.services.upload_enqueue import UPLOAD_IDEMPOTENCY_RESOURCE
 from app.services.questionnaire_mapping_evidence import (
     batch_supporting_evidence_for_workspace_controls,
     suggest_documents_for_mapping_review,
@@ -156,7 +157,8 @@ def upload_questionnaire(
 
     The questionnaire, its parse job, and the optional Idempotency-Key response commit once.
     A retryable enqueue conflict rolls that transaction back and deletes the stored object
-    so the client's retry does not create a second row.
+    when no row references it, so the client's retry does not create a second row. A failed
+    delete is logged. The orphan sweep removes the object after the grace period.
     """
     # Authorize before the idempotency store or object storage: a 403 is never cached or stored.
     if session.get("workspace_id") != workspace_id:
@@ -220,7 +222,7 @@ def upload_questionnaire(
         db.commit()
     except Exception:
         db.rollback()
-        discard_stored_upload(file_svc._storage, stored_key)
+        discard_if_unreferenced(db, file_svc._storage, file_svc._storage.bucket_raw, stored_key)
         _release_upload_claim(db, idem_key, idem_owner)
         raise
     audit_log(

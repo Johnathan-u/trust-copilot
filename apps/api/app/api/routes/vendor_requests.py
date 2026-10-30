@@ -1,38 +1,72 @@
-"""Vendor risk: send questionnaire to vendor (TC-R-B6)."""
+"""Outbound vendor requests and invitation lifecycle."""
 
-import secrets
+import re
 
-from fastapi import APIRouter, Depends, HTTPException
-from pydantic import BaseModel
+from fastapi import APIRouter, Depends, Header, HTTPException, Request
+from pydantic import BaseModel, Field, field_validator
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
-from app.core.auth_deps import require_can_admin, require_can_review
+from app.core.auth_deps import require_session
 from app.core.database import get_db
 from app.models import Questionnaire, VendorRequest
 from app.models.vendor_request import VENDOR_REQUEST_STATUSES
+from app.services import vendor_request_service as service
 
 router = APIRouter(prefix="/vendor-requests", tags=["vendor-requests"])
 
 
+def _current_permission(permission: str):
+    async def dependency(request: Request, db: Session = Depends(get_db)) -> dict:
+        session = await require_session(request, db)
+        if session.get("email") == "api-key":
+            session = {
+                **session,
+                "_api_key_hash": service.digest(request.headers["Authorization"][7:].strip()),
+            }
+        return service.current_permission(db, session, permission)
+
+    return dependency
+
+
+require_vendor_admin = _current_permission("can_admin")
+require_vendor_review = _current_permission("can_review")
+
+
 class VendorRequestCreate(BaseModel):
-    vendor_email: str
-    questionnaire_id: int | None = None
-    message: str | None = None
+    vendor_email: str = Field(max_length=255)
+    questionnaire_id: int | None = Field(default=None, gt=0)
+    message: str | None = Field(default=None, max_length=10000)
+    expires_in_days: int = Field(default=7, ge=1, le=90)
+
+    @field_validator("vendor_email")
+    @classmethod
+    def validate_vendor_email(cls, value: str) -> str:
+        if not value.isascii():
+            raise ValueError("Enter a valid email address")
+        value = value.strip(" ").lower()
+        atom = r"[a-z0-9!#$%&'*+/=?^_`{|}~-]+"
+        label = r"[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?"
+        if not re.fullmatch(rf"{atom}(?:\.{atom})*@(?:{label}\.)+[a-z]{{2,63}}", value):
+            raise ValueError("Enter a valid email address")
+        if len(value.split("@", 1)[0]) > 64:
+            raise ValueError("Enter a valid email address")
+        return value
+
+    @field_validator("message")
+    @classmethod
+    def validate_message(cls, value: str | None) -> str | None:
+        if value is not None and "\x00" in value:
+            raise ValueError("Message contains an unsupported character")
+        return value
 
 
 class VendorRequestUpdate(BaseModel):
     status: str | None = None
 
 
-# Same status and body for "no such questionnaire" and "questionnaire in another workspace",
-# so the response never reveals whether an id exists elsewhere (TC-06-BUG-011, TC-02-BUG-010).
-QUESTIONNAIRE_NOT_FOUND = "Questionnaire not found"
-
-
 def _require_workspace_questionnaire(db: Session, ws: int, questionnaire_id: int) -> int:
-    """Return questionnaire_id if it is a live questionnaire in workspace ws, else raise 404."""
-    found = (
+    row = (
         db.query(Questionnaire.id)
         .filter(
             Questionnaire.id == questionnaire_id,
@@ -41,114 +75,108 @@ def _require_workspace_questionnaire(db: Session, ws: int, questionnaire_id: int
         )
         .first()
     )
-    if found is None:
-        raise HTTPException(status_code=404, detail=QUESTIONNAIRE_NOT_FOUND)
+    if row is None:
+        raise HTTPException(status_code=404, detail="Questionnaire not found")
     return questionnaire_id
-
-
-def _to_dict(v: VendorRequest) -> dict:
-    return {
-        "id": v.id,
-        "workspace_id": v.workspace_id,
-        "vendor_email": v.vendor_email,
-        "questionnaire_id": v.questionnaire_id,
-        "message": v.message,
-        "status": v.status,
-        "link_token": v.link_token,
-        "created_at": v.created_at.isoformat() if v.created_at else None,
-    }
 
 
 @router.get("/")
 @router.get("")
 def list_vendor_requests(
-    session: dict = Depends(require_can_review),
-    db: Session = Depends(get_db),
+    session: dict = Depends(require_vendor_review), db: Session = Depends(get_db)
 ):
-    """List vendor requests for workspace."""
-    ws = session.get("workspace_id")
-    if ws is None:
-        return []
+    """List the current workspace's vendor requests without changing their state."""
     rows = (
         db.query(VendorRequest)
-        .filter(VendorRequest.workspace_id == ws)
+        .filter(VendorRequest.workspace_id == session["workspace_id"])
         .order_by(VendorRequest.created_at.desc())
         .all()
     )
-    return [_to_dict(r) for r in rows]
+    return [service.serialize(row) for row in rows]
 
 
 @router.post("/")
+@router.post("")
 def create_vendor_request(
     body: VendorRequestCreate,
-    session: dict = Depends(require_can_admin),
+    session: dict = Depends(require_vendor_admin),
     db: Session = Depends(get_db),
+    idempotency_key: str | None = Header(default=None),
 ):
-    """Create a vendor request; generates a shareable link token. Requires admin."""
-    ws = session.get("workspace_id")
-    if not ws:
-        raise HTTPException(status_code=403, detail="No workspace")
-    email = (body.vendor_email or "").strip().lower()
-    if not email:
-        raise HTTPException(status_code=400, detail="vendor_email is required")
-    questionnaire_id = None
+    """Create an expiring invitation. Its raw link is returned once."""
+    ws = session["workspace_id"]
     if body.questionnaire_id is not None:
-        questionnaire_id = _require_workspace_questionnaire(db, ws, body.questionnaire_id)
-    link_token = secrets.token_urlsafe(32)
-    v = VendorRequest(
-        workspace_id=ws,
-        vendor_email=email,
-        questionnaire_id=questionnaire_id,
-        message=body.message,
-        status="pending",
-        link_token=link_token,
-    )
-    db.add(v)
+        _require_workspace_questionnaire(db, ws, body.questionnaire_id)
     try:
-        db.commit()
+        return service.create_request(
+            db,
+            ws,
+            body.vendor_email,
+            body.questionnaire_id,
+            body.message,
+            body.expires_in_days,
+            idempotency_key,
+            session,
+        )
     except IntegrityError:
-        # The questionnaire was hard-deleted between the check and the insert (FK violation).
         db.rollback()
-        if questionnaire_id is None:
+        if body.questionnaire_id is None:
             raise
-        raise HTTPException(status_code=404, detail=QUESTIONNAIRE_NOT_FOUND) from None
-    db.refresh(v)
-    d = _to_dict(v)
-    d["share_url"] = f"/vendor-response?token={link_token}"
-    return d
+        raise HTTPException(status_code=404, detail="Questionnaire not found") from None
 
 
 @router.patch("/{request_id}")
 def update_vendor_request(
     request_id: int,
     body: VendorRequestUpdate,
-    session: dict = Depends(require_can_admin),
+    session: dict = Depends(require_vendor_admin),
     db: Session = Depends(get_db),
 ):
-    """Update vendor request status."""
-    ws = session.get("workspace_id")
-    if not ws:
-        raise HTTPException(status_code=403, detail="No workspace")
-    v = (
-        db.query(VendorRequest)
-        .filter(
-            VendorRequest.id == request_id,
-            VendorRequest.workspace_id == ws,
-        )
-        .first()
-    )
-    if not v:
-        raise HTTPException(status_code=404, detail="Request not found")
+    """Update progress. Completion requires the vendor's submitted response."""
+    row = service.scoped_request(db, session["workspace_id"], request_id, lock=True)
     if body.status is not None:
-        if body.status not in VENDOR_REQUEST_STATUSES:
+        if body.status == "completed":
             raise HTTPException(
-                status_code=400,
-                detail=f"Invalid status. Must be one of: {', '.join(VENDOR_REQUEST_STATUSES)}",
+                status_code=409, detail="Completion requires a submitted vendor response."
             )
-        v.status = body.status
+        if body.status not in VENDOR_REQUEST_STATUSES:
+            raise HTTPException(status_code=400, detail="Invalid status")
+        if row.submitted_at is not None or row.revoked_at is not None:
+            raise HTTPException(
+                status_code=409, detail="This request no longer accepts progress changes."
+            )
+        row.status = body.status
+        service.audit(db, row, "progress_updated", session)
     db.commit()
-    db.refresh(v)
-    return _to_dict(v)
+    db.refresh(row)
+    return service.serialize(row)
 
 
-router.add_api_route("", create_vendor_request, methods=["POST"])
+@router.post("/{request_id}/send")
+def send_vendor_request(
+    request_id: int,
+    session: dict = Depends(require_vendor_admin),
+    db: Session = Depends(get_db),
+    idempotency_key: str | None = Header(default=None),
+):
+    """Send an invitation with a durable delivery outcome and replay protection."""
+    return service.send(db, session["workspace_id"], request_id, idempotency_key, False, session)
+
+
+@router.post("/{request_id}/resend")
+def resend_vendor_request(
+    request_id: int,
+    session: dict = Depends(require_vendor_admin),
+    db: Session = Depends(get_db),
+    idempotency_key: str | None = Header(default=None),
+):
+    """Rotate the previous link and explicitly send another invitation."""
+    return service.send(db, session["workspace_id"], request_id, idempotency_key, True, session)
+
+
+@router.post("/{request_id}/revoke")
+def revoke_vendor_request(
+    request_id: int, session: dict = Depends(require_vendor_admin), db: Session = Depends(get_db)
+):
+    """Revoke public access to this request's invitation."""
+    return service.revoke(db, session["workspace_id"], request_id, session)

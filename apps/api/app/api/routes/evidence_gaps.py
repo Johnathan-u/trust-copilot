@@ -473,7 +473,24 @@ def _public_payload(stored: dict) -> dict:
     return payload
 
 
-def _replay_matching_body(db: Session, key: str, body_hash: str) -> JSONResponse | None:
+_IDENTITY_FIELDS = ("gap_type", "control_id", "question_id")
+
+
+def _legacy_identity_matches(stored: dict, body: EnsureGapBody) -> bool:
+    """A stored create with no body hash replays only when the gap identity matches.
+
+    Identity is gap type, control, and question. A missing field is not a match,
+    so the caller keeps the 409 instead of replaying another gap.
+    """
+    if any(field not in stored for field in _IDENTITY_FIELDS):
+        return False
+    requested = body.model_dump()
+    return all(stored.get(field) == requested.get(field) for field in _IDENTITY_FIELDS)
+
+
+def _replay_matching_body(
+    db: Session, key: str, body_hash: str, body: EnsureGapBody
+) -> JSONResponse | None:
     record = _idempotency_record(db, key)
     if record is None:
         return None
@@ -484,9 +501,11 @@ def _replay_matching_body(db: Session, key: str, body_hash: str) -> JSONResponse
             status_code=422,
             detail="Idempotency-Key was already used with a different request body",
         )
-    if status == 0 or not stored or not isinstance(recorded, str):
+    if status == 0 or not stored:
         return None
-    return JSONResponse(content=_public_payload(stored), status_code=status)
+    if isinstance(recorded, str) or _legacy_identity_matches(stored, body):
+        return JSONResponse(content=_public_payload(stored), status_code=status)
+    return None
 
 
 def _remember_body_hash(db: Session, key: str, owner: str, body_hash: str) -> None:
@@ -593,12 +612,12 @@ def ensure_open_gap(
     key = _idempotency_key(request, workspace_id, "create", "new")
     owner = None
     if key:
-        cached = _replay_matching_body(db, key, body_hash)
+        cached = _replay_matching_body(db, key, body_hash, body)
         if cached is not None:
             return cached
         owner = idempotency_claim(db, key)
         if owner is None:
-            cached = _replay_matching_body(db, key, body_hash)
+            cached = _replay_matching_body(db, key, body_hash, body)
             if cached is not None:
                 return cached
             raise HTTPException(

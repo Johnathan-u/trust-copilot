@@ -74,6 +74,23 @@ class StorageClient:
         """Delete object."""
         self._client.delete_object(Bucket=bucket, Key=key)
 
+    def list_objects(self, bucket: str) -> list[dict]:
+        """List every object in ``bucket``.
+
+        Each item is ``{"key", "last_modified"}``. ``last_modified`` is the object store's clock
+        (``LastModified``), or None when the store did not send one. Callers use it to tell an
+        in-flight upload from an orphan. This does not add a database column.
+        """
+        paginator = self._client.get_paginator("list_objects_v2")
+        found: list[dict] = []
+        for page in paginator.paginate(Bucket=bucket):
+            for item in page.get("Contents") or []:
+                key = item.get("Key")
+                if not key:
+                    continue
+                found.append({"key": key, "last_modified": item.get("LastModified")})
+        return found
+
     def exists(self, bucket: str, key: str) -> bool:
         """Check if object exists."""
         try:

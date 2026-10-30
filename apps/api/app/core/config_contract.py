@@ -587,6 +587,14 @@ CONTRACT: tuple[ConfigVar, ...] = (
         "How long a running job with a NULL lease is left alone. Clamped to at least 5 times JOB_LEASE_SECONDS and at most 86400.",
     ),
     ConfigVar(
+        "STORAGE_ORPHAN_GRACE_SECONDS",
+        "int",
+        "optional",
+        False,
+        "7200",
+        "How long an unreferenced storage object is kept. The sweep deletes it only when it is strictly older. Clamped to 60-604800.",
+    ),
+    ConfigVar(
         "RETRIEVAL_MAX_THREADS",
         "int",
         "optional",

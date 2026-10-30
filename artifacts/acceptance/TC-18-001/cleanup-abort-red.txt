@@ -1,0 +1,44 @@
+FF                                                                       [100%]
+=================================== FAILURES ===================================
+_______ test_abort_failure_does_not_prevent_storage_compensation[False] ________
+tests/release/test_domain_trust_requests.py:326: in upload
+    raise TimeoutError("PRIVATE-UPLOAD-ERROR")
+E   TimeoutError: PRIVATE-UPLOAD-ERROR
+
+During handling of the above exception, another exception occurred:
+tests/release/test_domain_trust_requests.py:345: in test_abort_failure_does_not_prevent_storage_compensation
+    _persist_intake(body, request, db, None, upload, storage)
+app/api/routes/trust_requests.py:259: in _persist_intake
+    trust_svc.abort_intake(db, key, owner)
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/unittest/mock.py:1139: in __call__
+    return self._mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/unittest/mock.py:1143: in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/unittest/mock.py:1198: in _execute_mock_call
+    raise effect
+E   RuntimeError: PRIVATE-DB-ERROR
+________ test_abort_failure_does_not_prevent_storage_compensation[True] ________
+tests/release/test_domain_trust_requests.py:326: in upload
+    raise TimeoutError("PRIVATE-UPLOAD-ERROR")
+E   TimeoutError: PRIVATE-UPLOAD-ERROR
+
+During handling of the above exception, another exception occurred:
+tests/release/test_domain_trust_requests.py:345: in test_abort_failure_does_not_prevent_storage_compensation
+    _persist_intake(body, request, db, None, upload, storage)
+app/api/routes/trust_requests.py:259: in _persist_intake
+    trust_svc.abort_intake(db, key, owner)
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/unittest/mock.py:1139: in __call__
+    return self._mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/unittest/mock.py:1143: in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/unittest/mock.py:1198: in _execute_mock_call
+    raise effect
+E   RuntimeError: PRIVATE-DB-ERROR
+=========================== short test summary info ============================
+FAILED tests/release/test_domain_trust_requests.py::test_abort_failure_does_not_prevent_storage_compensation[False]
+FAILED tests/release/test_domain_trust_requests.py::test_abort_failure_does_not_prevent_storage_compensation[True]
+2 failed, 80 deselected in 0.75s

@@ -2,7 +2,7 @@
 
 from datetime import datetime, timezone
 
-from sqlalchemy import Column, DateTime, ForeignKey, Integer, String, Text
+from sqlalchemy import CheckConstraint, Column, DateTime, ForeignKey, Integer, String, Text
 
 from app.core.database import Base
 
@@ -16,6 +16,13 @@ class TrustRequest(Base):
 
     __tablename__ = "trust_requests"
 
+    __table_args__ = (
+        CheckConstraint(
+            "intake_version IS NULL OR (intake_version = 1 AND char_length(message) BETWEEN 1 AND 10000)",
+            name="ck_trust_request_intake_bound",
+        ),
+    )
+    intake_version = Column(Integer, nullable=True)
     id = Column(Integer, primary_key=True, index=True)
     workspace_id = Column(
         Integer, ForeignKey("workspaces.id", ondelete="SET NULL"), nullable=True, index=True

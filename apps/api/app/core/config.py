@@ -300,6 +300,9 @@ class Settings:
         self.job_lease_seconds: int = lease_seconds()
         self.job_lease_heartbeat_seconds: int = lease_heartbeat_seconds()
         self.job_null_lease_grace_seconds: int = null_lease_grace_seconds()
+        from app.core.orphan_grace import orphan_grace_seconds
+
+        self.storage_orphan_grace_seconds: int = orphan_grace_seconds()
         try:
             self.readiness_timeout_sec: float = max(
                 0.1, float(os.getenv("READINESS_TIMEOUT_SEC", "3") or "3")

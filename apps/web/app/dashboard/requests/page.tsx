@@ -12,7 +12,10 @@ import {
   ToastNotice,
 } from '@/components/ui'
 import { useAuth } from '@/contexts/AuthContext'
-import type { ApiFailurePresentation } from '@/lib/api-error'
+import {
+  mutationFailureNotice,
+  type ApiFailurePresentation,
+} from '@/lib/api-error'
 import {
   listFromPayload,
   loadSection,
@@ -234,7 +237,13 @@ export default function RequestsPage() {
       })
       const d = await r.json().catch(() => ({}))
       if (!r.ok) {
-        setError(d.detail || 'Failed to create request')
+        setError(
+          mutationFailureNotice(
+            r.status,
+            d,
+            'The request was not created. Try again.'
+          ).message
+        )
         return
       }
       setCreated({ share_url: d.share_url, link_token: d.link_token })

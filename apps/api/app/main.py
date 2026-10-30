@@ -204,6 +204,9 @@ async def lifespan(app: FastAPI):
     s = get_settings()
     print(f"FRONTEND_URL={s.frontend_url!r} trusted_origins={s.trusted_origins!r}", flush=True)
     _verify_db_connectivity()
+    from app.core.database import warn_if_database_time_zone_is_not_utc
+
+    warn_if_database_time_zone_is_not_utc()
     try:
         storage = StorageClient()
         storage.ensure_buckets()

@@ -1,10 +1,39 @@
 """Tests for public security page (P0-82)."""
 
+import secrets
+
 import pytest
-from app.core.database import SessionLocal
+from sqlalchemy import text
+
+from app.models.security_faq import SecurityFAQ
 from app.models.workspace import Workspace
 from app.services import security_page_service as sp
 from app.services import security_faq_service as faq_svc
+
+
+@pytest.fixture
+def page_workspace(db_session):
+    tables = ("workspaces", "security_faq", "security_faq_sources", "security_faq_revisions")
+    before = {t: db_session.execute(text(f"SELECT count(*) FROM {t}")).scalar() for t in tables}
+    workspace = Workspace(
+        id=900_000_000 + secrets.randbelow(100_000_000),
+        name="Synthetic security page",
+        slug=f"security-page-{secrets.token_hex(8)}",
+    )
+    db_session.add(workspace)
+    db_session.commit()
+    workspace_id = workspace.id
+    try:
+        yield db_session, workspace_id
+    finally:
+        db_session.rollback()
+        db_session.query(SecurityFAQ).filter_by(workspace_id=workspace_id).delete(
+            synchronize_session=False
+        )
+        db_session.query(Workspace).filter_by(id=workspace_id).delete(synchronize_session=False)
+        db_session.commit()
+        after = {t: db_session.execute(text(f"SELECT count(*) FROM {t}")).scalar() for t in tables}
+        assert after == before
 
 
 @pytest.fixture
@@ -24,63 +53,39 @@ def editor_client(client):
 
 
 class TestSecurityPageService:
-    def _get_workspace(self, db):
-        ws = db.query(Workspace).first()
-        assert ws
-        return ws
+    def test_page_structure(self, page_workspace):
+        db, workspace_id = page_workspace
+        faq_svc.seed_defaults(db, workspace_id)
+        db.commit()
+        page = sp.get_public_security_page(db, workspace_id)
+        assert page["title"] == "Security & Data Handling"
+        assert "sections" in page
+        assert "certifications" in page
+        assert "infrastructure_highlights" in page
+        assert "contact" in page
+        assert page["sections"] == []
 
-    def test_page_structure(self):
-        db = SessionLocal()
-        try:
-            ws = self._get_workspace(db)
-            faq_svc.seed_defaults(db, ws.id)
-            db.commit()
-            page = sp.get_public_security_page(db, ws.id)
-            assert page["title"] == "Security & Data Handling"
-            assert "sections" in page
-            assert "certifications" in page
-            assert "infrastructure_highlights" in page
-            assert "contact" in page
-            assert len(page["sections"]) > 0
-        finally:
-            db.close()
+    def test_certifications(self, page_workspace):
+        db, workspace_id = page_workspace
+        page = sp.get_public_security_page(db, workspace_id)
+        certs = page["certifications"]
+        assert len(certs) >= 3
+        assert any(c["name"] == "SOC 2 Type II" for c in certs)
 
-    def test_certifications(self):
-        db = SessionLocal()
-        try:
-            ws = self._get_workspace(db)
-            page = sp.get_public_security_page(db, ws.id)
-            certs = page["certifications"]
-            assert len(certs) >= 3
-            assert any(c["name"] == "SOC 2 Type II" for c in certs)
-        finally:
-            db.close()
+    def test_infrastructure_highlights(self, page_workspace):
+        db, workspace_id = page_workspace
+        page = sp.get_public_security_page(db, workspace_id)
+        highlights = page["infrastructure_highlights"]
+        assert len(highlights) >= 5
+        assert any("AES-256" in h for h in highlights)
 
-    def test_infrastructure_highlights(self):
-        db = SessionLocal()
-        try:
-            ws = self._get_workspace(db)
-            page = sp.get_public_security_page(db, ws.id)
-            highlights = page["infrastructure_highlights"]
-            assert len(highlights) >= 5
-            assert any("AES-256" in h for h in highlights)
-        finally:
-            db.close()
-
-    def test_section_items_have_frameworks(self):
-        db = SessionLocal()
-        try:
-            ws = self._get_workspace(db)
-            faq_svc.seed_defaults(db, ws.id)
-            db.commit()
-            page = sp.get_public_security_page(db, ws.id)
-            for section in page["sections"]:
-                for item in section["items"]:
-                    assert "question" in item
-                    assert "answer" in item
-                    assert "frameworks" in item
-        finally:
-            db.close()
+    def test_unreviewed_templates_have_no_public_items(self, page_workspace):
+        db, workspace_id = page_workspace
+        assert faq_svc.seed_defaults(db, workspace_id) > 0
+        db.commit()
+        assert faq_svc.list_faqs(db, workspace_id)
+        # The reviewed-publication domain test covers the positive item shape.
+        assert sp.get_public_security_page(db, workspace_id)["sections"] == []
 
 
 class TestSecurityPageAPI:
