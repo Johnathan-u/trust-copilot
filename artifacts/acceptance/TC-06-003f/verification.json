@@ -1,0 +1,301 @@
+{
+  "ticket": "TC-06-003f",
+  "date": "2026-10-30",
+  "points": 5,
+  "status": "locally implemented; independent review and PostgreSQL/CI qualification pending",
+  "claim": "https://github.com/Johnathan-u/trust-copilot/issues/85#issuecomment-6516712806",
+  "base_commit": "da6d6eedb8c256d1e5e775fcfdf8b1a3250f34bb",
+  "code_commit": "89f4db6d74cf85dd9b1ee3d8f135ece198caf564",
+  "code_tree": "221c1414540159aecae91fe5330030113fb83ab6",
+  "source_blobs": {
+    "apps/api/app/services/proof_graph_service.py": "fef4e534c34fba745128dd6d69cc495c0af75a76",
+    "apps/api/tests/release/test_authorization_proof_graph.py": "2ad7ce27e963cdc9b8a3c40d97f6844e4d04a84f",
+    "apps/api/app/api/routes/proof_graph.py": "53c416dea3e96d996fec3fd81cae26cfe940cf70",
+    "apps/api/tests/test_buyer_portal_proof_graph.py": "a4dbed7752575d7e036aef2c2b13d08567789d5d"
+  },
+  "unchanged_service_function_ast_sha256": {
+    "_now": "932dc03fdfb3ee80c84bc910978df9e0627efb2f7835240a8303e5003c8bc1a3",
+    "sync_workspace_graph": "b0dfcdcb410f52c67bc57da6c22e46a3809e5f412738b5b0b7ebe4c80e12583f",
+    "list_nodes": "3eec7f15dfdfd876e8c3b7e323a6172a663c8fdd0471fdd84aa4d30d89c4f29e",
+    "list_edges": "51804890eb374c01f4e7e72637dab3b6b61918642763e8690e108a3ce0f75f00",
+    "record_artifact_hash": "970afbd02e11e46d0a4ec9f3ff06575338d3019b68a3a4632b3b9aa67776d02f",
+    "verify_artifact_hash": "03b63d75ae4f9cb8249930e9891bcb4e991678c76969e0bf6e04bea3bcd5935e",
+    "record_graph_diff": "987013ba2cb6c3c6519f65d85634e8dea960afa5bbaa27a3854d4c11a3cf1319",
+    "list_graph_diffs": "3334194ae8e1b534250843ff52e7dbaa798be848652ed42cb36546736a449040",
+    "record_reuse_provenance": "c5ab7f1c118f3ca30e6146a7708d3e3157e9a96d1204a828f64e884ab4ee15ca",
+    "list_reuse_for_answer": "6246b015cae4d33c33fa1bc223004f8bf0ea87ce580cd8d6377f30f26ba2bafb",
+    "snapshot_graph_json": "b34302be07c1b40a92b58151464d3970bbb47d984c77f73f12bce1d909fd5718",
+    "sync_with_diff_record": "467973ea7e61c4cae3033f000850f812feab36358f35bc7ef0c2c3166bd9fbb5",
+    "freshness_for_node": "e3b505008de47b75204d6d40a3cc66984935df9635938492161f81b312cb8104",
+    "_node_dict": "3659968f72f47fe37eaa4dd8443738abfaa7a40a6aa2e586db64a051e64dd640"
+  },
+  "scope": {
+    "changed": [
+      "Four current-workspace live source lookups in _freshness_bucket",
+      "Current active answer parent before cached chain root lookup",
+      "Workspace predicate on every traversed graph node"
+    ],
+    "preserved": [
+      "All routes and existing session-only read permissions",
+      "Own output fields, age buckets and golden expiry logic",
+      "Missing/foreign source fallbacks: evidence/golden/control stale; answer aging",
+      "Owned archived-answer direct freshness age behavior",
+      "Existing Answer not in proof graph and Node not found 404 shapes",
+      "Cached fields of still-owned nodes without dereferencing foreign dates",
+      "All other service functions and existing tests"
+    ],
+    "excluded": [
+      "Snapshot/history/deletion retention policy",
+      "Stable semantic graph IDs",
+      "Atomic rebuild",
+      "Authoritative-byte hashing",
+      "Widgets, deals and contract hash acceptance",
+      "Auth, model/schema, provider, dependency and storage changes"
+    ]
+  },
+  "environment": {
+    "python": "3.12.14",
+    "dependencies": "Existing locked /tmp/tc-backend-venv; no dependency changes",
+    "postgresql": "Unavailable at localhost:5432",
+    "provider_model_storage_calls": 0,
+    "default_command_cwd": "apps/api"
+  },
+  "matrix": {
+    "sqlite_cases": 69,
+    "postgres_cases": 69,
+    "legacy_cases": 6,
+    "live_source_kinds": [
+      "evidence_items",
+      "golden_answers",
+      "workspace_controls",
+      "answers"
+    ],
+    "parent_cases": [
+      "owned active",
+      "archived",
+      "moved",
+      "foreign",
+      "cascaded parent deletion",
+      "cascaded question deletion",
+      "answer deletion",
+      "unknown answer",
+      "moved graph root",
+      "uncached active answer"
+    ],
+    "authority": [
+      "admin",
+      "editor",
+      "reviewer",
+      "session_only custom role",
+      "suspended membership",
+      "removed membership",
+      "removed session",
+      "anonymous"
+    ]
+  },
+  "fixture": {
+    "graphs": "Produced by real HTTP sync in two newly owned workspaces, including evidence/control/golden/answer nodes and real edges/diffs",
+    "auth": "Actual stored users/memberships/sessions with expiring signed cookies; only get_db overridden",
+    "sqlite": "Actual model tables; FK ON asserted; no schema substitutes",
+    "postgresql": "Existing migrated_db and SessionLocal; actual FK/trigger constraints unchanged",
+    "full_row_snapshot_tables": [
+      "proof_graph_edges",
+      "proof_graph_nodes",
+      "proof_graph_diffs",
+      "answers",
+      "questions",
+      "questionnaires",
+      "golden_answers",
+      "workspace_controls",
+      "framework_controls",
+      "frameworks",
+      "evidence_items",
+      "documents",
+      "audit_events",
+      "user_mfa",
+      "user_sessions",
+      "api_keys",
+      "custom_roles",
+      "workspace_members",
+      "users",
+      "workspaces"
+    ],
+    "moves_deletions": "Ordinary updates/deletes of fixture-owned rows after sync; no FK/trigger bypass or fabricated impossible source orphan",
+    "read_invariants": "HTTP response and complete table counts/hashes preserved; no SQL INSERT/UPDATE/DELETE even if later rolled back",
+    "cleanup": "Exact fixture and API after_flush row IDs; delete only those IDs in FK order; complete original snapshot comparison; no sequence resets",
+    "collection": "No fixture/store/connection creation during collection"
+  },
+  "checks": [
+    {
+      "name": "initial unchanged-runtime baseline",
+      "command": "/tmp/tc-backend-venv/bin/python -m pytest tests/release/test_authorization_proof_graph.py -m unit -q --tb=short",
+      "runtime_commit": "da6d6eedb8c256d1e5e775fcfdf8b1a3250f34bb",
+      "exit_code": 1,
+      "failed": 16,
+      "passed": 52,
+      "deselected": 68,
+      "note": "Before adding the one owned archived-freshness preservation case"
+    },
+    {
+      "name": "additional archived-freshness preservation baseline",
+      "command": "/tmp/tc-backend-venv/bin/python -m pytest tests/release/test_authorization_proof_graph.py -m unit -k own_archived_answer_freshness -q --tb=short",
+      "runtime_commit": "da6d6eedb8c256d1e5e775fcfdf8b1a3250f34bb",
+      "exit_code": 0,
+      "passed": 1,
+      "deselected": 137
+    },
+    {
+      "name": "repaired SQLite matrix",
+      "command": "/tmp/tc-backend-venv/bin/python -m pytest tests/release/test_authorization_proof_graph.py -m unit -q --tb=short",
+      "exit_code": 0,
+      "passed": 69,
+      "deselected": 69,
+      "warnings": "1400 existing datetime.utcnow deprecation warnings"
+    },
+    {
+      "name": "new and existing collection",
+      "command": "/tmp/tc-backend-venv/bin/python -m pytest tests/release/test_authorization_proof_graph.py tests/test_buyer_portal_proof_graph.py --collect-only -q",
+      "exit_code": 0,
+      "collected": 144,
+      "new_cases": 138,
+      "legacy_cases": 6
+    },
+    {
+      "name": "required full pytest",
+      "command": "TC_REQUIRE_DB=1 /tmp/tc-backend-venv/bin/python -m pytest -q",
+      "exit_code": 3,
+      "tests_executed": 0,
+      "reason": "PostgreSQL localhost:5432 connection refused; existing required session hook exits before tests"
+    },
+    {
+      "name": "repository collection safety",
+      "command": "/tmp/tc-backend-venv/bin/python -m pytest tests/release/test_safe_collection.py -q",
+      "exit_code": 0,
+      "passed": 29
+    },
+    {
+      "name": "scoped lint",
+      "command": "/tmp/tc-backend-venv/bin/python -m ruff check apps/api/app/services/proof_graph_service.py apps/api/tests/release/test_authorization_proof_graph.py",
+      "cwd": "repository",
+      "exit_code": 0
+    },
+    {
+      "name": "scoped formatting",
+      "command": "/tmp/tc-backend-venv/bin/python -m ruff format --check apps/api/app/services/proof_graph_service.py apps/api/tests/release/test_authorization_proof_graph.py",
+      "cwd": "repository",
+      "exit_code": 0
+    },
+    {
+      "name": "code secret inventory",
+      "command": "/tmp/tc-backend-venv/bin/python scripts/security/secret_inventory.py paths apps/api/app/services/proof_graph_service.py apps/api/tests/release/test_authorization_proof_graph.py --root . --fail-on block",
+      "cwd": "repository",
+      "exit_code": 0,
+      "findings": 0
+    },
+    {
+      "name": "whitespace",
+      "command": "git diff --check; git diff --cached --check",
+      "cwd": "repository",
+      "exit_code": 0
+    },
+    {
+      "name": "runtime scope and legacy freeze",
+      "command": "Python AST comparison against base: only _freshness_bucket/chain_for_answer differ; git diff confirms only claimed service runtime file changed and legacy tests unchanged",
+      "cwd": "repository",
+      "exit_code": 0
+    },
+    {
+      "name": "documentation secret inventory",
+      "command": "/tmp/tc-backend-venv/bin/python scripts/security/secret_inventory.py paths docs/release/tickets/TC-06-003f.md artifacts/acceptance/TC-06-003f --root . --fail-on block",
+      "cwd": "repository",
+      "exit_code": 0,
+      "findings": 0
+    },
+    {
+      "name": "evidence consistency",
+      "command": "Python JSON/source-blob/unchanged-function AST/matrix-count/relative-link assertions against code and base commits",
+      "cwd": "repository",
+      "exit_code": 0
+    }
+  ],
+  "negative_controls": [
+    {
+      "name": "evidence_scope",
+      "function": "_freshness_bucket",
+      "selected_test": "tests/release/test_authorization_proof_graph.py::test_freshness_does_not_read_current_foreign_source_dates[sqlite-1-evidence_items]",
+      "exit_code": 1,
+      "failed": 1,
+      "expected_assertion": "'live'"
+    },
+    {
+      "name": "golden_scope",
+      "function": "_freshness_bucket",
+      "selected_test": "tests/release/test_authorization_proof_graph.py::test_freshness_does_not_read_current_foreign_source_dates[sqlite-1-golden_answers]",
+      "exit_code": 1,
+      "failed": 1,
+      "expected_assertion": "'live'"
+    },
+    {
+      "name": "control_scope",
+      "function": "_freshness_bucket",
+      "selected_test": "tests/release/test_authorization_proof_graph.py::test_freshness_does_not_read_current_foreign_source_dates[sqlite-1-workspace_controls]",
+      "exit_code": 1,
+      "failed": 1,
+      "expected_assertion": "'live'"
+    },
+    {
+      "name": "answer_scope",
+      "function": "_freshness_bucket",
+      "selected_test": "tests/release/test_authorization_proof_graph.py::test_freshness_does_not_read_current_foreign_source_dates[sqlite-1-answers]",
+      "exit_code": 1,
+      "failed": 1,
+      "expected_assertion": "'live'"
+    },
+    {
+      "name": "chain_current_parent",
+      "function": "chain_for_answer",
+      "selected_test": "tests/release/test_authorization_proof_graph.py::test_chain_requires_current_active_answer_parent_and_cached_owned_node[sqlite-archived]",
+      "exit_code": 1,
+      "failed": 1,
+      "expected_assertion": "assert 200 == 404"
+    },
+    {
+      "name": "chain_node_scope",
+      "function": "chain_for_answer",
+      "selected_test": "tests/release/test_authorization_proof_graph.py::test_chain_never_traverses_a_current_foreign_graph_node[sqlite-golden_answers]",
+      "exit_code": 1,
+      "failed": 1,
+      "expected_assertion": "Extra items"
+    },
+    {
+      "name": "read_only_freshness",
+      "function": "_freshness_bucket",
+      "selected_test": "tests/release/test_authorization_proof_graph.py::test_owned_source_age_buckets_remain_unchanged[sqlite-1-live-evidence_items]",
+      "exit_code": 1,
+      "failed": 1,
+      "expected_assertion": "Graph reads must not write SQL"
+    }
+  ],
+  "negative_control_method": "Copy app into TemporaryDirectory; anchor and verify copied app import before pytest; mutate copied function; selected real test must fail once; remove temporary copy. Repository sources never mutated by controls.",
+  "negative_control_coverage": [
+    "Each missing live-source workspace predicate exposes current foreign freshness",
+    "Missing active-parent gate returns cached chain200 for archived root",
+    "Missing traversal predicate exposes current foreign node fields",
+    "A freshness UPDATE returns200 and rolls back but SQL observer still fails"
+  ],
+  "not_claimed": [
+    "Local PostgreSQL execution success",
+    "Execution success for six existing database cases",
+    "Full pytest success",
+    "Future CI success",
+    "TC-23-004 broader graph qualification",
+    "Full TC-06-001 or TC-06-003 closure",
+    "Publication or merge"
+  ],
+  "remaining_gates": [
+    "Independent review of final code/test/docs head",
+    "69 new PostgreSQL cases and six existing buyer-portal/proof-graph cases",
+    "Exact-head build and web-release-e2e for both push and pull_request",
+    "Coordinator publication capacity and merge authority"
+  ]
+}
