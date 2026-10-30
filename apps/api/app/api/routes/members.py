@@ -11,7 +11,7 @@ from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
 from app.core.audit import persist_audit
-from app.core.auth_deps import require_can_admin, require_session  # noqa: F401
+from app.core.auth_deps import _resolve_permission, require_can_admin, require_session  # noqa: F401
 from app.core.config import get_settings
 from app.core.database import get_db
 from app.core.invite_codes import generate_invite_code_pair, hash_invite_code
@@ -22,6 +22,7 @@ from app.models import (
     CustomRole,
     Invite,
     MfaRecoveryCode,
+    MfaLoginToken,
     User,
     UserMfa,
     UserSession,
@@ -564,10 +565,26 @@ async def admin_clear_mfa_reenrol(
     """Clear an undecryptable MFA secret so the user can enrol again.
 
     The MFA row stays, recovery codes for the dead secret are removed, and
-    enrolment is still required. The next password login uses the normal setup flow.
+    enrolment is still required. Password login grants only access to setup.
     """
     workspace_id = session["workspace_id"]
     admin_uid = session.get("user_id")
+    actor = (
+        db.query(WorkspaceMember)
+        .filter(
+            WorkspaceMember.user_id == admin_uid,
+            WorkspaceMember.workspace_id == workspace_id,
+        )
+        .populate_existing()
+        .with_for_update()
+        .first()
+    )
+    if (
+        not actor
+        or actor.suspended
+        or not _resolve_permission(actor.role, "can_admin", workspace_id, db)
+    ):
+        raise HTTPException(status_code=403, detail="Current administrator membership required")
     target_mem = (
         db.query(WorkspaceMember)
         .filter(
@@ -578,12 +595,14 @@ async def admin_clear_mfa_reenrol(
     )
     if not target_mem:
         raise HTTPException(status_code=404, detail="User not found in this workspace")
-    row = db.query(UserMfa).filter(UserMfa.user_id == user_id).first()
+    row = db.query(UserMfa).filter(UserMfa.user_id == user_id).with_for_update().first()
     if not row or not mfa_reenrol_required(row.totp_secret_encrypted):
         raise HTTPException(status_code=409, detail="MFA is not awaiting an administrator reset")
-    row.totp_secret_encrypted = encrypt_totp_secret(generate_totp_secret())
+    row.totp_secret_encrypted = encrypt_totp_secret(generate_totp_secret(), reenrol_pending=True)
     row.enabled = False
     db.query(MfaRecoveryCode).filter(MfaRecoveryCode.user_id == user_id).delete()
+    db.query(MfaLoginToken).filter(MfaLoginToken.user_id == user_id).delete()
+    db.query(UserSession).filter(UserSession.user_id == user_id).delete(synchronize_session=False)
     db.commit()
     target = db.query(User).filter(User.id == user_id).first()
     persist_audit(

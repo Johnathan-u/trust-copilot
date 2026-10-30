@@ -2,8 +2,9 @@
 
 Each purpose has its own keyring. When the purpose env var is unset, the
 current key id is ``v0-legacy`` and the key is HKDF(SESSION_SECRET, purpose).
-Ciphertext and signatures with no key id still use today's sha256(SESSION_SECRET)
-derivation so existing rows and cookies stay readable.
+Unprefixed ciphertext and signatures use the retained v0-legacy entry's old
+SHA256 or raw HMAC derivation. Explicit keyrings do not implicitly trust
+SESSION_SECRET, and signatures always obey the caller's retirement policy.
 
 Custody is versioned environment keyrings, not a KMS. CSRF itself checks
 Origin/Referer and does not use a signing key; the oauth-state purpose covers
@@ -34,6 +35,8 @@ PURPOSE_ENV = {
 _KID_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_-]{0,31}$")
 _FERNET_PREFIX = "gAAAA"
 REENROL_MARK = "reenrol"
+# The punctuation prevents collision with a configured key id.
+REENROL_PENDING_MARK = "reenrol-pending!"
 
 
 class KeyErrorSafe(Exception):
@@ -131,12 +134,19 @@ def keyring_for(purpose: str, env: dict[str, str] | None = None) -> Keyring:
     return Keyring(purpose, current, retired)
 
 
-def _material(entry: KeyEntry, purpose: str, *, legacy_hkdf: bool) -> bytes:
-    if legacy_hkdf and entry.kid == LEGACY_KID:
-        return _hkdf(entry.secret, purpose, LEGACY_KID)
-    if entry.kid == LEGACY_KID and not legacy_hkdf:
-        return _legacy_sha256(entry.secret)
+def _material(entry: KeyEntry, purpose: str) -> bytes:
+    # A prefixed key id has the same derivation before and after configuration.
     return _hkdf(entry.secret, purpose, entry.kid)
+
+
+def _read_materials(entry: KeyEntry, purpose: str, env: dict[str, str] | None) -> tuple[bytes, ...]:
+    material = _material(entry, purpose)
+    source = os.environ if env is None else env
+    if entry.kid == LEGACY_KID and (source.get(PURPOSE_ENV[purpose]) or "").strip():
+        # Earlier explicit v0-legacy writers used SHA256. Only the explicitly
+        # retained entry for this purpose may supply that compatibility key.
+        return material, _legacy_sha256(entry.secret)
+    return (material,)
 
 
 def _fernet(material: bytes) -> Fernet:
@@ -145,8 +155,7 @@ def _fernet(material: bytes) -> Fernet:
 
 def seal(purpose: str, plaintext: str, env: dict[str, str] | None = None) -> str:
     ring = keyring_for(purpose, env)
-    explicit = bool((os.environ if env is None else env).get(PURPOSE_ENV[purpose], "").strip())
-    material = _material(ring.current, purpose, legacy_hkdf=not explicit)
+    material = _material(ring.current, purpose)
     token = _fernet(material).encrypt(plaintext.encode()).decode()
     sealed = f"{ring.current.kid}.{token}"
     if purpose == "mfa" and len(sealed) > 512:
@@ -161,6 +170,8 @@ def stored_key_id(stored: str | None) -> str:
     """
     if not isinstance(stored, str) or not stored:
         return "unknown"
+    if stored.startswith(f"{REENROL_PENDING_MARK}."):
+        stored = stored.split(".", 1)[1]
     if stored.startswith(f"{REENROL_MARK}."):
         kid = stored.split(".", 1)[1]
     elif stored.startswith(_FERNET_PREFIX):
@@ -175,22 +186,27 @@ def stored_key_id(stored: str | None) -> str:
 
 
 def open_sealed(purpose: str, stored: str, env: dict[str, str] | None = None) -> str:
+    if purpose == "mfa" and stored.startswith(f"{REENROL_PENDING_MARK}."):
+        stored = stored.split(".", 1)[1]
     if stored.startswith(f"{REENROL_MARK}."):
         raise MfaReenrolRequired("mfa secret must be enrolled again")
     ring = keyring_for(purpose, env)
-    session_secret = _session_secret(env)
     try:
         if stored.startswith(_FERNET_PREFIX):
-            return _fernet(_legacy_sha256(session_secret)).decrypt(stored.encode()).decode()
+            legacy = ring.find(LEGACY_KID)
+            if legacy is None:
+                raise KeyErrorSafe("legacy key is not retained")
+            return _fernet(_legacy_sha256(legacy.secret)).decrypt(stored.encode()).decode()
         kid, token = stored.split(".", 1)
         entry = ring.find(kid)
         if entry is None:
             raise KeyErrorSafe("unknown key id")
-        explicit = bool((os.environ if env is None else env).get(PURPOSE_ENV[purpose], "").strip())
-        material = _material(entry, purpose, legacy_hkdf=not explicit or kid != LEGACY_KID)
-        if not explicit and kid == LEGACY_KID:
-            material = _hkdf(entry.secret, purpose, LEGACY_KID)
-        return _fernet(material).decrypt(token.encode()).decode()
+        for material in _read_materials(entry, purpose, env):
+            try:
+                return _fernet(material).decrypt(token.encode()).decode()
+            except InvalidToken:
+                continue
+        raise KeyErrorSafe("ciphertext could not be opened")
     except MfaReenrolRequired:
         raise
     except (InvalidToken, KeyErrorSafe, ValueError):
@@ -199,8 +215,7 @@ def open_sealed(purpose: str, stored: str, env: dict[str, str] | None = None) ->
 
 def sign_with_purpose(purpose: str, data: str, env: dict[str, str] | None = None) -> str:
     ring = keyring_for(purpose, env)
-    explicit = bool((os.environ if env is None else env).get(PURPOSE_ENV[purpose], "").strip())
-    material = _material(ring.current, purpose, legacy_hkdf=not explicit)
+    material = _material(ring.current, purpose)
     sig = hmac.new(material, data.encode(), "sha256").hexdigest()
     return f"{ring.current.kid}.{data}.{sig}"
 
@@ -208,37 +223,33 @@ def sign_with_purpose(purpose: str, data: str, env: dict[str, str] | None = None
 def verify_with_purpose(
     purpose: str, token: str, *, accept_retired: bool, env: dict[str, str] | None = None
 ) -> str | None:
-    """Return the signed payload when the current key matches.
+    """Return a verified payload only when its key is allowed by the caller.
 
-    Retired keys are checked so a forged token is distinct from a retired one,
-    but a retired key never returns the payload. Unprefixed tokens use today's
-    raw SESSION_SECRET HMAC.
+    Unprefixed tokens belong to v0-legacy and use that entry's raw HMAC key.
+    An explicit keyring never implicitly trusts SESSION_SECRET as another key.
     """
     if not token or token.count(".") not in (1, 2):
         return None
     ring = keyring_for(purpose, env)
-    session_secret = _session_secret(env)
     try:
         if token.count(".") == 1:
             data, sig = token.split(".", 1)
-            expected = hmac.new(session_secret.encode(), data.encode(), "sha256").hexdigest()
+            legacy = ring.find(LEGACY_KID)
+            if legacy is None or (ring.current.kid != LEGACY_KID and not accept_retired):
+                return None
+            expected = hmac.new(legacy.secret.encode(), data.encode(), "sha256").hexdigest()
             if hmac.compare_digest(sig, expected):
                 return data
             return None
         kid, data, sig = token.split(".", 2)
         entry = ring.find(kid)
-        if entry is None:
+        if entry is None or (kid != ring.current.kid and not accept_retired):
             return None
-        explicit = bool((os.environ if env is None else env).get(PURPOSE_ENV[purpose], "").strip())
-        material = _material(entry, purpose, legacy_hkdf=not explicit)
-        if not explicit and kid == LEGACY_KID:
-            material = _hkdf(entry.secret, purpose, LEGACY_KID)
-        expected = hmac.new(material, data.encode(), "sha256").hexdigest()
-        if not hmac.compare_digest(sig, expected):
-            return None
-        if kid != ring.current.kid and not accept_retired:
-            return None
-        return data
+        for material in _read_materials(entry, purpose, env):
+            expected = hmac.new(material, data.encode(), "sha256").hexdigest()
+            if hmac.compare_digest(sig, expected):
+                return data
+        return None
     except KeyErrorSafe:
         return None
 

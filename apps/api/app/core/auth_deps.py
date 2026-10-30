@@ -5,11 +5,22 @@ from fastapi import Depends, HTTPException, Request
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
+from app.core.mfa import mfa_reenrol_pending, mfa_reenrol_required
 from app.core.roles import BUILTIN_ROLES, can_admin, can_edit, can_export, can_review
 from app.core.session import verify_token
-from app.models import ApiKey, CustomRole, UserSession, WorkspaceMember
+from app.models import ApiKey, CustomRole, UserMfa, UserSession, WorkspaceMember
 
 SESSION_COOKIE = "tc_session"
+_MFA_ENROL_ROUTES = frozenset(
+    {
+        ("GET", "/api/auth/me"),
+        ("GET", "/api/auth/mfa/status"),
+        ("GET", "/api/auth/sessions"),
+        ("POST", "/api/auth/mfa/setup"),
+        ("POST", "/api/auth/mfa/confirm"),
+        ("POST", "/api/auth/logout"),
+    }
+)
 
 
 def get_session(request: Request) -> dict | None:
@@ -17,7 +28,42 @@ def get_session(request: Request) -> dict | None:
     token = request.cookies.get(SESSION_COOKIE)
     if not token:
         return None
-    return verify_token(token)
+    session = verify_token(token)
+    if (
+        session
+        and session.get("mfa_enrol_only")
+        and (request.method, request.url.path) not in _MFA_ENROL_ROUTES
+    ):
+        return None
+    return session
+
+
+def enforce_mfa_enrol_session(request: Request, session: dict, db: Session) -> None:
+    """Keep the administrator-reset flow restricted, including old normal cookies."""
+    uid = session.get("user_id")
+    if not uid:
+        return
+    factor = db.query(UserMfa).filter(UserMfa.user_id == uid).first()
+    pending = bool(factor and mfa_reenrol_pending(factor.totp_secret_encrypted))
+    if factor and mfa_reenrol_required(factor.totp_secret_encrypted):
+        raise HTTPException(status_code=403, detail="MFA requires an administrator reset")
+    if pending and not session.get("mfa_enrol_only"):
+        raise HTTPException(status_code=403, detail="Sign in again to complete MFA enrollment")
+    if session.get("mfa_enrol_only"):
+        if not pending or not session.get("session_id"):
+            raise HTTPException(status_code=401, detail="MFA enrollment session expired")
+        if (request.method, request.url.path) not in _MFA_ENROL_ROUTES:
+            raise HTTPException(status_code=403, detail="Complete MFA enrollment first")
+        member = (
+            db.query(WorkspaceMember)
+            .filter(
+                WorkspaceMember.user_id == uid,
+                WorkspaceMember.workspace_id == session.get("workspace_id"),
+            )
+            .first()
+        )
+        if not member or member.suspended:
+            raise HTTPException(status_code=403, detail="Active workspace membership required")
 
 
 def get_api_key_context(request: Request, db: Session) -> dict | None:
@@ -68,6 +114,7 @@ async def require_session(request: Request, db: Session = Depends(get_db)) -> di
         row = db.query(UserSession).filter(UserSession.session_id == session_id).first()
         if not row:
             raise HTTPException(status_code=401, detail="Session invalidated")
+    enforce_mfa_enrol_session(request, session, db)
     _set_request_workspace_id(request, session.get("workspace_id"))
     uid = session.get("user_id")
     wid = session.get("workspace_id")
@@ -108,6 +155,10 @@ async def require_valid_session_optional(
         row = db.query(UserSession).filter(UserSession.session_id == session_id).first()
         if not row:
             return None
+    try:
+        enforce_mfa_enrol_session(request, session, db)
+    except HTTPException:
+        return None
     _set_request_workspace_id(request, session.get("workspace_id"))
     return session
 

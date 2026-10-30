@@ -3,12 +3,20 @@
 import pyotp
 from sqlalchemy.orm import Session
 
-from app.core.keys import REENROL_MARK, KeyErrorSafe, MfaReenrolRequired, open_sealed, seal
+from app.core.keys import (
+    REENROL_MARK,
+    REENROL_PENDING_MARK,
+    KeyErrorSafe,
+    MfaReenrolRequired,
+    open_sealed,
+    seal,
+)
 
 
-def encrypt_totp_secret(secret: str) -> str:
+def encrypt_totp_secret(secret: str, *, reenrol_pending: bool = False) -> str:
     """Encrypt TOTP base32 secret for storage."""
-    return seal("mfa", secret)
+    encrypted = seal("mfa", secret)
+    return f"{REENROL_PENDING_MARK}.{encrypted}" if reenrol_pending else encrypted
 
 
 def decrypt_totp_secret(encrypted: str) -> str:
@@ -19,6 +27,11 @@ def decrypt_totp_secret(encrypted: str) -> str:
 def mfa_reenrol_required(encrypted: str | None) -> bool:
     """True when the stored MFA secret is the undecryptable ``reenrol.<kid>`` marker."""
     return bool(encrypted) and encrypted.startswith(f"{REENROL_MARK}.")
+
+
+def mfa_reenrol_pending(encrypted: str | None) -> bool:
+    """An administrator authorized setup, but the new factor is not confirmed."""
+    return bool(encrypted) and encrypted.startswith(f"{REENROL_PENDING_MARK}.")
 
 
 def decrypt_mfa_for_user(

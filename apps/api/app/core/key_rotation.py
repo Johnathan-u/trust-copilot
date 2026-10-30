@@ -15,6 +15,7 @@ from app.core.keys import (
     LEGACY_KID,
     MfaReenrolRequired,
     REENROL_MARK,
+    REENROL_PENDING_MARK,
     KeyErrorSafe,
     keyring_for,
     open_sealed,
@@ -38,6 +39,8 @@ def _refuse_production() -> None:
 
 
 def _already_current(stored: str, purpose: str) -> bool:
+    if purpose == "mfa" and stored.startswith(f"{REENROL_PENDING_MARK}."):
+        stored = stored.split(".", 1)[1]
     kid = keyring_for(purpose).current.kid
     return stored.startswith(f"{kid}.")
 
@@ -94,7 +97,10 @@ def _rotate_column(
                 counts["failed"] += 1
             continue
         if not dry_run:
-            write(row, seal(purpose, plain))
+            replacement = seal(purpose, plain)
+            if purpose == "mfa" and stored.startswith(f"{REENROL_PENDING_MARK}."):
+                replacement = f"{REENROL_PENDING_MARK}.{replacement}"
+            write(row, replacement)
         counts["reencrypted"] += 1
     return counts
 

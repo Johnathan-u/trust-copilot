@@ -144,15 +144,24 @@ def test_reenrol_login_issues_no_session_and_admin_reset_restores_enrolment(
     )
     assert logged_user.status_code == 200
     assert logged_user.headers.get("set-cookie")
+    assert logged_user.json()["requires_mfa_enrol"] is True
+    pending_cookie = client.cookies.get("tc_session")
+    assert not any(client.get("/api/auth/me").json()["permissions"].values())
+    assert client.post(
+        "/api/auth/switch-workspace", json={"workspace_id": workspace.id}
+    ).status_code in (401, 403)
     started = client.post("/api/auth/mfa/setup")
     assert started.status_code == 200
     secret = started.json()["secret"]
     confirmed = client.post("/api/auth/mfa/confirm", json={"code": pyotp.TOTP(secret).now()})
     assert confirmed.status_code == 200
+    assert client.cookies.get("tc_session") != pending_cookie
+    assert client.get("/api/auth/me").json()["permissions"]["can_edit"] is True
     db_session.expire_all()
     enrolled = db_session.query(UserMfa).filter(UserMfa.user_id == user.id).one()
     assert enrolled.enabled is True
     assert not enrolled.totp_secret_encrypted.startswith("reenrol.")
+    assert not enrolled.totp_secret_encrypted.startswith("reenrol-pending!.")
 
     login_audit = (
         db_session.query(AuditEvent)

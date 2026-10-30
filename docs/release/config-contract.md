@@ -22,8 +22,11 @@ Source of truth: `apps/api/app/core/config_contract.py`. The table between the m
 * **Key rotation.** Session signing, OAuth state, MFA and connector encryption each have an optional
   keyring (`SESSION_KEYRING`, `OAUTH_STATE_KEYRING`, `MFA_KEYRING`, `CONNECTOR_KEYRING`). The first
   `kid:secret` is the current key; later entries are retired. Unset keyrings derive `v0-legacy` from
-  `SESSION_SECRET` with HKDF and a purpose label. Unprefixed ciphertext and cookies still open with
-  the previous sha256 or HMAC derivation. Production rejects a weak purpose key, a repeated key id,
+  `SESSION_SECRET` with HKDF and a purpose label; explicitly retaining `v0-legacy` preserves that
+  derivation. Unprefixed ciphertext and cookies use the retained legacy entry's previous SHA256
+  or raw HMAC derivation. Explicit keyrings do not implicitly trust `SESSION_SECRET`; legacy
+  session cookies obey retirement just like prefixed cookies. Only an explicit `v0-legacy`
+  entry also supports the older prefixed SHA256 format. Production rejects a weak purpose key, a repeated key id,
   and the same key material used for two purposes. Errors name the variable only.
   Rehearse rotation on a database copy, never against production:
 
@@ -33,9 +36,13 @@ Source of truth: `apps/api/app/core/config_contract.py`. The table between the m
   there, and can resume with `--after-id`. An MFA secret that cannot be opened is marked
   `reenrol.<kid>` and stays enabled. Password login then fails with `mfa_reset_required` and
   issues no session, so setup is unreachable until an administrator of that workspace calls
-  `POST /api/members/clear-mfa-reenrol/{user_id}`. That clears the marker, writes an audit row
-  (actor, target, workspace), and leaves MFA required. The user enrols with the normal setup
-  flow on the next login. Failed decrypts are audited with user id, key id and reason only.
+  `POST /api/members/clear-mfa-reenrol/{user_id}`. That rechecks current active administrator
+  membership, sets an explicit pending-enrollment marker, revokes the target's sessions,
+  login challenges and recovery codes, and writes an audit row (actor, target, workspace).
+  The next password login grants only a five-minute setup session with no workspace privileges.
+  Successful TOTP confirmation checks current active membership and atomically replaces it
+  with a normal session using the current role. Ordinary disabled optional MFA is unaffected.
+  Failed decrypts are audited with user id, key id and reason only.
   Sessions whose signing key id is retired, or missing once a non-legacy session key is current,
   are deleted. Custody is versioned env keyrings, not a KMS.
 * **Rate limiting.** Unless `REDIS_URL` is set, the limiter in `app.core.rate_limit` is in-memory and

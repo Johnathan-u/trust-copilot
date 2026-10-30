@@ -158,6 +158,7 @@ def sign_session(
     role: str = "editor",
     session_id: str | None = None,
     max_age_seconds: int | None = None,
+    mfa_enrol_only: bool = False,
 ) -> str:
     """Create session token. ENT-202: max_age_seconds sets exp claim (per-workspace policy)."""
     payload = {
@@ -168,6 +169,8 @@ def sign_session(
     }
     if session_id:
         payload["session_id"] = session_id
+    if mfa_enrol_only:
+        payload["mfa_enrol_only"] = True
     if max_age_seconds is not None:
         payload["exp"] = int(time.time()) + max_age_seconds
     return sign_token(payload)

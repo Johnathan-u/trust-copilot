@@ -23,7 +23,12 @@ from sqlalchemy.orm import Session  # noqa: E402
 from app.core.api_errors import ApiError, api_error_response, current_request_id  # noqa: E402
 from app.core.audit import audit_log, persist_audit, record_decrypt_failure  # noqa: E402
 from app.core.debug_session_log import append_session_debug  # noqa: E402
-from app.core.auth_deps import get_session, require_session, require_valid_session  # noqa: E402
+from app.core.auth_deps import (  # noqa: E402
+    enforce_mfa_enrol_session,
+    get_session,
+    require_session,
+    require_valid_session,
+)
 from app.core.config import get_settings  # noqa: E402
 from app.core.database import get_db  # noqa: E402
 from app.core.keys import KeyErrorSafe, MfaReenrolRequired  # noqa: E402
@@ -33,6 +38,7 @@ from app.core.mfa import (  # noqa: E402
     generate_totp_secret,
     get_totp_uri,
     mfa_reenrol_required,
+    mfa_reenrol_pending,
     verify_totp,
 )
 from app.core.password import hash_password, verify_password  # noqa: E402
@@ -546,9 +552,7 @@ def _login_impl(req: LoginRequest, request: Request, response: Response, db: Ses
         )
         return {"user": _user_response(user), "needs_onboarding": True}
 
-    mfa_row = (
-        db.query(UserMfa).filter(UserMfa.user_id == user.id, UserMfa.enabled.is_(True)).first()
-    )
+    mfa_row = db.query(UserMfa).filter(UserMfa.user_id == user.id).first()
     if mfa_row and mfa_reenrol_required(mfa_row.totp_secret_encrypted):
         record_decrypt_failure(
             db,
@@ -570,7 +574,10 @@ def _login_impl(req: LoginRequest, request: Request, response: Response, db: Ses
             ),
             403,
         )
-    if mfa_row:
+    reenrol_pending = bool(mfa_row and mfa_reenrol_pending(mfa_row.totp_secret_encrypted))
+    if reenrol_pending and member.suspended:
+        raise HTTPException(status_code=403, detail="Active workspace membership required")
+    if mfa_row and mfa_row.enabled and not reenrol_pending:
         mfa_token_raw = secrets.token_urlsafe(32)
         mfa_token_hash_val = _token_hash(mfa_token_raw)
         expires_at = datetime.now(timezone.utc) + timedelta(minutes=5)
@@ -610,20 +617,28 @@ def _login_impl(req: LoginRequest, request: Request, response: Response, db: Ses
         )
     )
     db.commit()
-    remember = bool(req.remember_me)
-    max_age = _effective_session_max_age_seconds(db, member.workspace_id, remember)
+    remember = bool(req.remember_me) and not reenrol_pending
+    max_age = (
+        300
+        if reenrol_pending
+        else _effective_session_max_age_seconds(db, member.workspace_id, remember)
+    )
     token = sign_session(
         user_id=user.id,
         email=user.email,
         workspace_id=member.workspace_id,
-        role=member.role,
+        role="mfa_enrol" if reenrol_pending else member.role,
         session_id=session_id,
         max_age_seconds=max_age,
+        mfa_enrol_only=reenrol_pending,
     )
     response.set_cookie(
         key=SESSION_COOKIE, value=token, **_session_cookie_kwargs(max_age, persistent=remember)
     )
-    return {"user": _user_response(user), "workspace_id": member.workspace_id}
+    result = {"user": _user_response(user), "workspace_id": member.workspace_id}
+    if reenrol_pending:
+        result["requires_mfa_enrol"] = True
+    return result
 
 
 @router.post("/logout")
@@ -662,12 +677,10 @@ async def list_sessions(
     """List current user's sessions (device/location)."""
     user_id = session.get("user_id")
     current_sid = session.get("session_id")
-    rows = (
-        db.query(UserSession)
-        .filter(UserSession.user_id == user_id)
-        .order_by(UserSession.created_at.desc())
-        .all()
-    )
+    query = db.query(UserSession).filter(UserSession.user_id == user_id)
+    if session.get("mfa_enrol_only"):
+        query = query.filter(UserSession.session_id == current_sid)
+    rows = query.order_by(UserSession.created_at.desc()).all()
     return {
         "sessions": [
             {
@@ -1805,6 +1818,7 @@ def me(request: Request, db: Session = Depends(get_db)):
         row = db.query(UserSession).filter(UserSession.session_id == session_id).first()
         if not row:
             raise HTTPException(status_code=401, detail="Session invalidated")
+    enforce_mfa_enrol_session(request, session, db)
     user_id = session.get("user_id")
     workspace_id = session.get("workspace_id", 1)
     role = session.get("role", "editor")
@@ -1833,6 +1847,28 @@ def me(request: Request, db: Session = Depends(get_db)):
             "workspace_auth_policy": {"mfa_required": False, "session_max_age_seconds": None},
         }
     current_ws = db.query(Workspace).filter(Workspace.id == workspace_id).first()
+    if session.get("mfa_enrol_only"):
+        workspace = {
+            "id": workspace_id,
+            "name": current_ws.name if current_ws else "Workspace",
+            "slug": current_ws.slug if current_ws else "",
+            "role": "mfa_enrol",
+        }
+        return {
+            **_user_response(user),
+            "workspace_id": workspace_id,
+            "workspace_name": workspace["name"],
+            "workspace_slug": workspace["slug"],
+            "role": "mfa_enrol",
+            "workspaces": [workspace],
+            "permissions": {
+                name: False for name in ("can_edit", "can_review", "can_admin", "can_export")
+            },
+            "needs_onboarding": False,
+            "mfa_enrolled": False,
+            "mfa_required_for_workspace": True,
+            "workspace_auth_policy": {"mfa_required": True, "session_max_age_seconds": 300},
+        }
     memberships = (
         db.query(WorkspaceMember, Workspace)
         .join(Workspace, WorkspaceMember.workspace_id == Workspace.id)
@@ -2090,11 +2126,24 @@ async def mfa_setup(request: Request, db: Session = Depends(get_db)):
     user = db.query(User).filter(User.id == user_id).first()
     if not user:
         raise HTTPException(status_code=401, detail="User not found")
-    existing = db.query(UserMfa).filter(UserMfa.user_id == user_id).first()
+    existing = (
+        db.query(UserMfa)
+        .filter(UserMfa.user_id == user_id)
+        .populate_existing()
+        .with_for_update()
+        .first()
+    )
     if existing and existing.enabled:
         raise HTTPException(status_code=400, detail="MFA is already enabled")
+    if session.get("mfa_enrol_only") and not (
+        existing and mfa_reenrol_pending(existing.totp_secret_encrypted)
+    ):
+        raise HTTPException(status_code=401, detail="MFA enrollment session expired")
     secret = generate_totp_secret()
-    encrypted = encrypt_totp_secret(secret)
+    encrypted = encrypt_totp_secret(
+        secret,
+        reenrol_pending=bool(existing and mfa_reenrol_pending(existing.totp_secret_encrypted)),
+    )
     if existing:
         existing.totp_secret_encrypted = encrypted
         existing.enabled = False
@@ -2109,18 +2158,58 @@ async def mfa_setup(request: Request, db: Session = Depends(get_db)):
 
 
 @router.post("/mfa/confirm")
-async def mfa_confirm(req: MfaConfirmRequest, request: Request, db: Session = Depends(get_db)):
+async def mfa_confirm(
+    req: MfaConfirmRequest, request: Request, response: Response, db: Session = Depends(get_db)
+):
     """Verify TOTP code and enable MFA; generate and return recovery codes (one-time display)."""
     session = await require_session(request, db)
     user_id = session.get("user_id")
     user = db.query(User).filter(User.id == user_id).first()
     if not user:
         raise HTTPException(status_code=401, detail="User not found")
-    row = db.query(UserMfa).filter(UserMfa.user_id == user_id).first()
+    row = (
+        db.query(UserMfa)
+        .filter(UserMfa.user_id == user_id)
+        .populate_existing()
+        .with_for_update()
+        .first()
+    )
     if not row:
         raise HTTPException(status_code=400, detail="Start MFA setup first")
     if row.enabled:
         raise HTTPException(status_code=400, detail="MFA is already enabled")
+    pending = mfa_reenrol_pending(row.totp_secret_encrypted)
+    if session.get("mfa_enrol_only") and not pending:
+        raise HTTPException(status_code=401, detail="MFA enrollment session expired")
+    member = None
+    old_session = None
+    if pending:
+        if not session.get("mfa_enrol_only"):
+            raise HTTPException(status_code=403, detail="Sign in again to complete MFA enrollment")
+        member = (
+            db.query(WorkspaceMember)
+            .filter(
+                WorkspaceMember.user_id == user_id,
+                WorkspaceMember.workspace_id == session.get("workspace_id"),
+            )
+            .populate_existing()
+            .with_for_update()
+            .first()
+        )
+        if not member or member.suspended:
+            raise HTTPException(status_code=403, detail="Active workspace membership required")
+        old_session = (
+            db.query(UserSession)
+            .filter(
+                UserSession.user_id == user_id,
+                UserSession.session_id == session.get("session_id"),
+            )
+            .populate_existing()
+            .with_for_update()
+            .first()
+        )
+        if not old_session:
+            raise HTTPException(status_code=401, detail="MFA enrollment session expired")
     try:
         secret = decrypt_mfa_for_user(
             db,
@@ -2134,6 +2223,20 @@ async def mfa_confirm(req: MfaConfirmRequest, request: Request, db: Session = De
         persist_audit(db, "auth.mfa_confirm_failed", user_id=user_id, email=user.email)
         raise HTTPException(status_code=400, detail="Invalid code")
     row.enabled = True
+    new_session_id = None
+    if pending:
+        row.totp_secret_encrypted = encrypt_totp_secret(secret)
+        db.delete(old_session)
+        new_session_id = secrets.token_urlsafe(32)
+        db.add(
+            UserSession(
+                user_id=user_id,
+                session_id=new_session_id,
+                signing_key_id=_session_key_id(),
+                user_agent=request.headers.get("user-agent"),
+                ip_address=get_client_ip(request),
+            )
+        )
     recovery_codes_raw = []
     for _ in range(10):
         code = secrets.token_hex(4).upper()
@@ -2141,6 +2244,19 @@ async def mfa_confirm(req: MfaConfirmRequest, request: Request, db: Session = De
         recovery_codes_raw.append(code)
         db.add(MfaRecoveryCode(user_id=user_id, code_hash=_recovery_code_hash(code)))
     db.commit()
+    if new_session_id:
+        max_age = _session_max_age_seconds(db, member.workspace_id)
+        token = sign_session(
+            user_id,
+            user.email,
+            member.workspace_id,
+            member.role,
+            session_id=new_session_id,
+            max_age_seconds=max_age,
+        )
+        response.set_cookie(
+            key=SESSION_COOKIE, value=token, **_session_cookie_kwargs(max_age, persistent=False)
+        )
     persist_audit(db, "auth.mfa_enabled", user_id=user_id, email=user.email)
     return {"recovery_codes": recovery_codes_raw}
 
