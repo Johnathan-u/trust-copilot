@@ -41,3 +41,13 @@ response with the same no-write invariant.
 See `verification.txt` for commands and actual outcomes. Independent review and
 both push/PR build and web-release-e2e checks on the exact final head are pending.
 No publication, external storage, provider calls, or account actions were performed.
+
+The first actual build (`41010994109` / `123916590609`) exposed a fixture selector
+error in both PostgreSQL move cases: SQLAlchemy names the dialect `postgresql`,
+while `move_owned_parent` checked `postgres`. It therefore skipped the expected
+trigger-rejection assertion and the committed detach. The later move failed at
+the caller's commit with the original `23514`/`23503` protection intact. Correcting
+that single literal selects the intended branch; all 31 assertion ASTs and all
+runtime bytes are unchanged. The configured-engine condition was independently
+evaluated before and after without opening a database connection. Actual repaired
+PostgreSQL acceptance remains pending; no constraint or assertion was bypassed.

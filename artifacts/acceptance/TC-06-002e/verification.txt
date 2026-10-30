@@ -61,3 +61,30 @@ Required remaining gates: independent review and all 73 migrated-PostgreSQL case
 plus both standard jobs on push and pull_request for the final published head.
 No parent-ticket completion, positive storage/download, provider, action-authority,
 or fourth-PR claim. Coordinator owns publication.
+
+CI fixture repair — 2026-10-30:
+  Published preservation head a0d5e87d86759b5d6b1adeccbe26f52cb9fd7717.
+  Push41010994109 / build123916590609:2 failed,4187 passed,1 skipped in585.22s.
+  Failures: test_current_questionnaire_parent_is_required[postgres-moved]
+  at line306; test_export_record_must_match_job_workspace_and_questionnaire
+  [postgres-foreign_workspace] at line352. The final caller commits received
+  the intact23514/23503 trigger errors.
+  Exact source: move_owned_parent compared dialect.name to "postgres".
+  Configured SQLAlchemy engine.dialect.name is "postgresql". Importing the
+  scrubbed test environment and comparing the helper AST literal to the actual
+  configured engine, without connecting, proved False before and True after
+  changing only that literal. The rejection/detach branch had never executed;
+  no flush-ordering change is needed or made.
+  Full-file comparison confirms this is the only test-source change; all31
+  assertion ASTs and jobs.py's full runtime blob are unchanged.
+  Fresh repair checks:
+    python -m pytest tests/release/test_authorization_core_job_artifacts.py -k sqlite -q --tb=short
+      Exit0:73 passed,73 deselected in11.00s.
+    python -m pytest tests/release/test_job_history.py -m unit -q --tb=short
+      Exit0:16 passed,32 deselected in1.85s.
+    python -m pytest tests/release/test_authorization_core_job_artifacts.py --collect-only -q
+      Exit0:146 collected in0.79s; no case removed or skipped by the repair.
+    ruff check/format, py_compile, git diff --check:exit0.
+    Secret inventory over the four repair files:exit0,zero findings.
+  The repaired PostgreSQL branch still requires actual CI. No local PostgreSQL
+  execution or passing trigger-scenario claim is made from the dialect probe.

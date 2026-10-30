@@ -225,7 +225,7 @@ def read(state, *, job_id=None, workspace=None, expected=200, suffix="", method=
 
 def move_owned_parent(state, row, error_code):
     db = state["db"]
-    if db.get_bind().dialect.name == "postgres":
+    if db.get_bind().dialect.name == "postgresql":
         # Migrated PostgreSQL rejects this inconsistent write before any route
         # can see it. Prove that protection; never disable its trigger/FK.
         before = snapshot(db)
