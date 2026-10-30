@@ -21,6 +21,23 @@ _MFA_ENROL_ROUTES = frozenset(
         ("POST", "/api/auth/logout"),
     }
 )
+_PENDING_ACCOUNT_ROUTES = frozenset(
+    {
+        ("GET", "/api/auth/me"),
+        ("GET", "/api/auth/sessions"),
+        ("GET", "/api/auth/alerts"),
+        ("POST", "/api/auth/sessions/revoke-others"),
+        ("POST", "/api/auth/change-password"),
+        ("POST", "/api/auth/logout"),
+        ("GET", "/api/auth/mfa/status"),
+        ("POST", "/api/auth/mfa/setup"),
+        ("POST", "/api/auth/mfa/confirm"),
+        ("POST", "/api/auth/mfa/disable"),
+        ("POST", "/api/auth/switch-workspace"),
+        ("GET", "/api/workspaces/creation-policy"),
+        ("POST", "/api/workspaces"),
+    }
+)
 
 
 def get_session(request: Request) -> dict | None:
@@ -100,6 +117,29 @@ def _set_request_workspace_id(request: Request, workspace_id: int | None) -> Non
         pass
 
 
+def resolve_current_membership(request: Request, session: dict, db: Session) -> dict:
+    """Resolve human workspace authority after credential and MFA validation."""
+    uid, wid = session.get("user_id"), session.get("workspace_id")
+    if not uid:
+        raise HTTPException(status_code=403, detail="Active workspace membership required")
+    if wid == 0 and session.get("role") == "pending":
+        # The existing onboarding credential has account authority only. Never
+        # treat workspace zero as membership or let it reach tenant operations.
+        if (request.method, request.url.path) not in _PENDING_ACCOUNT_ROUTES:
+            raise HTTPException(status_code=403, detail="Complete workspace setup first")
+        return session
+    member = (
+        db.query(WorkspaceMember)
+        .filter(WorkspaceMember.user_id == uid, WorkspaceMember.workspace_id == wid)
+        .populate_existing()
+        .first()
+    )
+    if member is None or member.suspended:
+        raise HTTPException(status_code=403, detail="Active workspace membership required")
+    # MFA enrollment stays account-only even when the current member is admin.
+    return {**session, "role": "mfa_enrol" if session.get("mfa_enrol_only") else member.role}
+
+
 async def require_session(request: Request, db: Session = Depends(get_db)) -> dict:
     """Dependency: require valid session or valid API key, or raise 401."""
     api_ctx = get_api_key_context(request, db)
@@ -115,22 +155,8 @@ async def require_session(request: Request, db: Session = Depends(get_db)) -> di
         if not row:
             raise HTTPException(status_code=401, detail="Session invalidated")
     enforce_mfa_enrol_session(request, session, db)
+    session = resolve_current_membership(request, session, db)
     _set_request_workspace_id(request, session.get("workspace_id"))
-    uid = session.get("user_id")
-    wid = session.get("workspace_id")
-    if uid and wid:
-        mem = (
-            db.query(WorkspaceMember)
-            .filter(
-                WorkspaceMember.user_id == uid,
-                WorkspaceMember.workspace_id == wid,
-            )
-            .first()
-        )
-        if mem and mem.suspended:
-            raise HTTPException(
-                status_code=403, detail="Your account has been suspended in this workspace"
-            )
     return session
 
 
@@ -143,24 +169,10 @@ async def require_valid_session_optional(
     request: Request, db: Session = Depends(get_db)
 ) -> dict | None:
     """Return session or API key context if present; else None. Use for routes that allow optional auth."""
-    api_ctx = get_api_key_context(request, db)
-    if api_ctx is not None:
-        _set_request_workspace_id(request, api_ctx.get("workspace_id"))
-        return api_ctx
-    session = get_session(request)
-    if not session:
-        return None
-    session_id = session.get("session_id")
-    if session_id:
-        row = db.query(UserSession).filter(UserSession.session_id == session_id).first()
-        if not row:
-            return None
     try:
-        enforce_mfa_enrol_session(request, session, db)
+        return await require_session(request, db)
     except HTTPException:
         return None
-    _set_request_workspace_id(request, session.get("workspace_id"))
-    return session
 
 
 def _resolve_permission(
