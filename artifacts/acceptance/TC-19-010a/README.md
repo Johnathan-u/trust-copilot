@@ -32,3 +32,39 @@ configuration-format warnings were present; neither caused verification failure.
 The separate CI commit adds only this spec and its minimum-seven-tests gate.
 Independent review and all four final-head push/pull-request build and
 web-release-e2e checks remain required before merge and consumer completion.
+
+## CI fixture and locator repair (2026-10-30)
+
+Repair base: `253ecc463f582e94a5222d9e1b6359e81518cdbd` (PR #111).
+Tested spec blob: `44dadfd8f34bfbc3c95b87bdf937ced34a42a0d5`.
+
+The rejected mark-one/mark-all cases used a page-wide alert locator, which also
+matched unrelated alert regions. The helper now follows the notification bell's
+existing `aria-controls` relationship to its panel. Each rejected mutation must
+show that panel's alert with the expected `forbidden` (403) or `server` (500)
+failure kind, while all original unread-row and badge checks remain in place.
+
+The admin dashboard also requests `/api/dashboard/cards/allowed-routes`. The
+generic empty-object fallback omitted `routes`, causing `CardFormModal` to throw
+at `allowedMeta.routes[0]`. Its fixture now supplies the four existing metadata
+arrays (`routes`, `icons`, `sizes`, `visibility_scopes`), matching the API contract
+and other release fixtures. The helper verifies the Dashboard heading and its
+empty shortcuts state before opening the inbox.
+
+Fresh local checks used Node 24.22.1 and unchanged locked dependencies:
+
+| Check | Observed result |
+| --- | --- |
+| `npx --no-install prettier --check e2e/release/notification-inbox.spec.ts` | passed |
+| `npx --no-install eslint e2e/release/notification-inbox.spec.ts --max-warnings=0` | exit 0 |
+| `npm run typecheck` | exit 0 |
+| `npm run test:unit -- tests/unit/notifications-panel.test.ts` | 8 passed |
+| `npx --no-install playwright test e2e/release/notification-inbox.spec.ts --list` | all 7 existing scenarios discovered |
+| `npx --no-install playwright install chromium --only-shell` | failed: downloaded archive was truncated or not a ZIP |
+| Direct `chromium.launch()` preflight | blocked: chromium_headless_shell-1248 executable absent |
+| `git diff --check` | passed |
+
+No browser execution pass is claimed for this repair. The seven scenarios and
+minimum-seven-tests CI gate are unchanged; this commit changes only the browser
+spec and this evidence. Independent review and all four exact-final-head CI
+checks remain required before merge.

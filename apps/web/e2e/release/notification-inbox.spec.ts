@@ -76,6 +76,13 @@ async function openInbox(page: Page, width = 1440) {
     }
     if (pathname.endsWith('/api/dashboard/cards'))
       return json(route, { cards: [], has_custom: false })
+    if (pathname.endsWith('/api/dashboard/cards/allowed-routes'))
+      return json(route, {
+        routes: ['/dashboard/documents'],
+        icons: ['document'],
+        sizes: ['medium'],
+        visibility_scopes: ['all'],
+      })
     return json(route, {})
   })
   // Route fixtures run in the browser; middleware needs its session cookie first.
@@ -90,12 +97,22 @@ async function openInbox(page: Page, width = 1440) {
   await page.setViewportSize({ width, height: 900 })
   await page.goto('/dashboard')
   await expect(page).toHaveURL(/\/dashboard$/)
+  await expect(
+    page.getByRole('heading', { name: 'Dashboard', exact: true })
+  ).toBeVisible()
+  await expect(
+    page.getByRole('heading', { name: 'No shortcuts yet', exact: true })
+  ).toBeVisible()
   const bell = page.getByRole('button', { name: 'Notifications', exact: true })
   await expect(bell).toContainText('25')
+  const panelId = await bell.getAttribute('aria-controls')
+  expect(panelId).toBeTruthy()
+  const panel = page.locator(`[id="${panelId}"]`)
   await bell.click()
+  await expect(panel).toBeVisible()
   await expect(page.getByText('Notification 20', { exact: true })).toBeVisible()
   await expect(page.getByText('25 unread', { exact: true })).toBeVisible()
-  return { state, bell }
+  return { state, bell, panel }
 }
 
 for (const width of [360, 1440]) {
@@ -112,14 +129,19 @@ for (const mode of ['one', 'all']) {
   test(`rejected mark-${mode} keeps unread rows and the badge`, async ({
     page,
   }) => {
-    const { state, bell } = await openInbox(page)
+    const { state, bell, panel } = await openInbox(page)
     state.mutationStatus = mode === 'one' ? 403 : 500
     await (
       mode === 'one'
         ? page.getByText('Notification 1', { exact: true })
         : page.getByRole('button', { name: 'Mark all read' })
     ).click()
-    await expect(page.getByRole('alert')).toBeVisible()
+    const rejection = panel.getByRole('alert')
+    await expect(rejection).toBeVisible()
+    await expect(rejection).toHaveAttribute(
+      'data-failure',
+      mode === 'one' ? 'forbidden' : 'server'
+    )
     await expect(page.getByTitle('Unread', { exact: true })).toHaveCount(20)
     await expect(page.getByText('25 unread', { exact: true })).toBeVisible()
     await expect(bell).toContainText('25')
