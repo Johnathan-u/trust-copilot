@@ -634,27 +634,41 @@ def run_export(job: Job, session, payload: dict) -> None:
 
     # Keep this attempt's token even if a rollback/refresh later sees a newer owner.
     owner = _lease_owner(job)
+    unavailable = "Export references are unavailable"
+    if not isinstance(payload, dict):
+        raise ValueError(unavailable)
     qnr_id = payload.get("questionnaire_id")
     ws_id = payload.get("workspace_id")
-    if not qnr_id or not ws_id:
-        raise ValueError("Missing questionnaire_id or workspace_id")
+    # Enqueue emits JSON integers. Never coerce booleans, floats or strings into
+    # authority, or pass out-of-range Integer references to the database.
+    if any(type(value) is not int or not 0 < value <= 2147483647 for value in (qnr_id, ws_id)):
+        raise ValueError(unavailable)
+    current_workspace = session.query(Job.workspace_id).filter(Job.id == job.id).scalar()
+    if ws_id != job.workspace_id or ws_id != current_workspace:
+        raise ValueError(unavailable)
     qnr = (
         session.query(Questionnaire)
         .filter(
             Questionnaire.id == qnr_id,
             Questionnaire.workspace_id == ws_id,
+            Questionnaire.deleted_at.is_(None),
         )
+        .populate_existing()
         .first()
     )
     if not qnr or not qnr.storage_key:
-        raise ValueError("Questionnaire not found or has no file")
-    effects = JobEffects(session, job)
+        raise ValueError(unavailable)
     existing_rec = (
         session.query(ExportRecord)
-        .filter(ExportRecord.job_id == job.id, ExportRecord.workspace_id == ws_id)
+        .filter(ExportRecord.job_id == job.id)
+        .populate_existing()
         .first()
     )
     if existing_rec is not None:
+        # A mismatched job-linked record is unavailable, not permission to render
+        # again. Check current columns before exposing any replay metadata.
+        if existing_rec.workspace_id != ws_id or existing_rec.questionnaire_id != qnr_id:
+            raise ValueError(unavailable)
         # A previous attempt committed the record (and therefore uploaded its object): reuse it.
         job.result = json.dumps(
             {
@@ -664,6 +678,7 @@ def run_export(job: Job, session, payload: dict) -> None:
             }
         )
         return
+    effects = JobEffects(session, job)
     _record_usage_once(session, job, effects, "exports")
     storage = StorageClient()
     file_svc = FileService(storage)

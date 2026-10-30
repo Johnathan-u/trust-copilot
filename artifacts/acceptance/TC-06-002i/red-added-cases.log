@@ -1,0 +1,172 @@
+{"control": "baseline_added_cases", "source_sha256": "f9ee40654fa2d78405a8259ea3132542fbf3fec3fb785795657e4ef59802099c", "selection": "sqlite and (job_deleted or parent_without_file_stale_identity)"}
+FFFF                                                                     [100%]
+=================================== FAILURES ===================================
+_ test_current_job_payload_and_active_parent_must_agree[sqlite-new-export-job_deleted] _
+/tmp/tc-backend-venv/lib/python3.12/site-packages/sqlalchemy/engine/base.py:1976: in _exec_single_context
+    self.dialect.do_execute(
+/tmp/tc-backend-venv/lib/python3.12/site-packages/sqlalchemy/engine/default.py:964: in do_execute
+    cursor.execute(statement, parameters)
+E   sqlite3.IntegrityError: FOREIGN KEY constraint failed
+
+The above exception was the direct cause of the following exception:
+tests/release/test_authorization_export_worker.py:320: in test_current_job_payload_and_active_parent_must_agree
+    assert_denied_without_effects(c)
+tests/release/test_authorization_export_worker.py:229: in assert_denied_without_effects
+    worker.run_job(case.job, case.db)
+app/worker.py:790: in run_job
+    run_export(job, session, payload)
+<negative-control:baseline_added_cases>:48: in run_export
+    ???
+/tmp/tc-backend-venv/lib/python3.12/site-packages/sqlalchemy/orm/query.py:2711: in all
+    return self._iter().all()  # type: ignore
+           ^^^^^^^^^^^^
+/tmp/tc-backend-venv/lib/python3.12/site-packages/sqlalchemy/orm/query.py:2864: in _iter
+    result: Union[ScalarResult[_T], Result[_T]] = self.session.execute(
+/tmp/tc-backend-venv/lib/python3.12/site-packages/sqlalchemy/orm/session.py:2373: in execute
+    return self._execute_internal(
+/tmp/tc-backend-venv/lib/python3.12/site-packages/sqlalchemy/orm/session.py:2250: in _execute_internal
+    ) = compile_state_cls.orm_pre_session_exec(
+/tmp/tc-backend-venv/lib/python3.12/site-packages/sqlalchemy/orm/context.py:577: in orm_pre_session_exec
+    session._autoflush()
+/tmp/tc-backend-venv/lib/python3.12/site-packages/sqlalchemy/orm/session.py:3073: in _autoflush
+    raise e.with_traceback(sys.exc_info()[2])
+/tmp/tc-backend-venv/lib/python3.12/site-packages/sqlalchemy/orm/session.py:3062: in _autoflush
+    self.flush()
+/tmp/tc-backend-venv/lib/python3.12/site-packages/sqlalchemy/orm/session.py:4353: in flush
+    self._flush(objects)
+/tmp/tc-backend-venv/lib/python3.12/site-packages/sqlalchemy/orm/session.py:4488: in _flush
+    with util.safe_reraise():
+         ^^^^^^^^^^^^^^^^^^^
+/tmp/tc-backend-venv/lib/python3.12/site-packages/sqlalchemy/util/langhelpers.py:122: in __exit__
+    raise exc_value.with_traceback(exc_tb)
+/tmp/tc-backend-venv/lib/python3.12/site-packages/sqlalchemy/orm/session.py:4449: in _flush
+    flush_context.execute()
+/tmp/tc-backend-venv/lib/python3.12/site-packages/sqlalchemy/orm/unitofwork.py:465: in execute
+    rec.execute(self)
+/tmp/tc-backend-venv/lib/python3.12/site-packages/sqlalchemy/orm/unitofwork.py:641: in execute
+    util.preloaded.orm_persistence.save_obj(
+/tmp/tc-backend-venv/lib/python3.12/site-packages/sqlalchemy/orm/persistence.py:94: in save_obj
+    _emit_insert_statements(
+/tmp/tc-backend-venv/lib/python3.12/site-packages/sqlalchemy/orm/persistence.py:1234: in _emit_insert_statements
+    result = connection.execute(
+/tmp/tc-backend-venv/lib/python3.12/site-packages/sqlalchemy/engine/base.py:1428: in execute
+    return meth(
+/tmp/tc-backend-venv/lib/python3.12/site-packages/sqlalchemy/sql/elements.py:526: in _execute_on_connection
+    return connection._execute_clauseelement(
+/tmp/tc-backend-venv/lib/python3.12/site-packages/sqlalchemy/engine/base.py:1650: in _execute_clauseelement
+    ret = self._execute_context(
+/tmp/tc-backend-venv/lib/python3.12/site-packages/sqlalchemy/engine/base.py:1855: in _execute_context
+    return self._exec_single_context(
+/tmp/tc-backend-venv/lib/python3.12/site-packages/sqlalchemy/engine/base.py:1995: in _exec_single_context
+    self._handle_dbapi_exception(
+/tmp/tc-backend-venv/lib/python3.12/site-packages/sqlalchemy/engine/base.py:2372: in _handle_dbapi_exception
+    raise sqlalchemy_exception.with_traceback(exc_info[2]) from e
+/tmp/tc-backend-venv/lib/python3.12/site-packages/sqlalchemy/engine/base.py:1976: in _exec_single_context
+    self.dialect.do_execute(
+/tmp/tc-backend-venv/lib/python3.12/site-packages/sqlalchemy/engine/default.py:964: in do_execute
+    cursor.execute(statement, parameters)
+E   sqlalchemy.exc.IntegrityError: (raised as a result of Query-invoked autoflush; consider using a session.no_autoflush block if this flush is occurring prematurely)
+E   (sqlite3.IntegrityError) FOREIGN KEY constraint failed
+E   [SQL: INSERT INTO job_effects (job_id, workspace_id, effect, attempt, state, detail, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)]
+E   [parameters: (1, 1, 'usage:exports', 0, 'applied', '{"by_attempt": 1}', '2026-10-30 21:10:29.682580', '2026-10-30 21:10:29.682583')]
+E   (Background on this error at: https://sqlalche.me/e/20/gkpj)
+_ test_current_job_payload_and_active_parent_must_agree[sqlite-new-export-parent_without_file_stale_identity] _
+tests/release/test_authorization_export_worker.py:320: in test_current_job_payload_and_active_parent_must_agree
+    assert_denied_without_effects(c)
+tests/release/test_authorization_export_worker.py:228: in assert_denied_without_effects
+    with pytest.raises(ValueError) as caught:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^
+E   Failed: DID NOT RAISE ValueError
+_ test_current_job_payload_and_active_parent_must_agree[sqlite-replay-job_deleted] _
+/tmp/tc-backend-venv/lib/python3.12/site-packages/sqlalchemy/engine/base.py:1976: in _exec_single_context
+    self.dialect.do_execute(
+/tmp/tc-backend-venv/lib/python3.12/site-packages/sqlalchemy/engine/default.py:964: in do_execute
+    cursor.execute(statement, parameters)
+E   sqlite3.IntegrityError: FOREIGN KEY constraint failed
+
+The above exception was the direct cause of the following exception:
+tests/release/test_authorization_export_worker.py:320: in test_current_job_payload_and_active_parent_must_agree
+    assert_denied_without_effects(c)
+tests/release/test_authorization_export_worker.py:229: in assert_denied_without_effects
+    worker.run_job(case.job, case.db)
+app/worker.py:790: in run_job
+    run_export(job, session, payload)
+<negative-control:baseline_added_cases>:48: in run_export
+    ???
+/tmp/tc-backend-venv/lib/python3.12/site-packages/sqlalchemy/orm/query.py:2711: in all
+    return self._iter().all()  # type: ignore
+           ^^^^^^^^^^^^
+/tmp/tc-backend-venv/lib/python3.12/site-packages/sqlalchemy/orm/query.py:2864: in _iter
+    result: Union[ScalarResult[_T], Result[_T]] = self.session.execute(
+/tmp/tc-backend-venv/lib/python3.12/site-packages/sqlalchemy/orm/session.py:2373: in execute
+    return self._execute_internal(
+/tmp/tc-backend-venv/lib/python3.12/site-packages/sqlalchemy/orm/session.py:2250: in _execute_internal
+    ) = compile_state_cls.orm_pre_session_exec(
+/tmp/tc-backend-venv/lib/python3.12/site-packages/sqlalchemy/orm/context.py:577: in orm_pre_session_exec
+    session._autoflush()
+/tmp/tc-backend-venv/lib/python3.12/site-packages/sqlalchemy/orm/session.py:3073: in _autoflush
+    raise e.with_traceback(sys.exc_info()[2])
+/tmp/tc-backend-venv/lib/python3.12/site-packages/sqlalchemy/orm/session.py:3062: in _autoflush
+    self.flush()
+/tmp/tc-backend-venv/lib/python3.12/site-packages/sqlalchemy/orm/session.py:4353: in flush
+    self._flush(objects)
+/tmp/tc-backend-venv/lib/python3.12/site-packages/sqlalchemy/orm/session.py:4488: in _flush
+    with util.safe_reraise():
+         ^^^^^^^^^^^^^^^^^^^
+/tmp/tc-backend-venv/lib/python3.12/site-packages/sqlalchemy/util/langhelpers.py:122: in __exit__
+    raise exc_value.with_traceback(exc_tb)
+/tmp/tc-backend-venv/lib/python3.12/site-packages/sqlalchemy/orm/session.py:4449: in _flush
+    flush_context.execute()
+/tmp/tc-backend-venv/lib/python3.12/site-packages/sqlalchemy/orm/unitofwork.py:465: in execute
+    rec.execute(self)
+/tmp/tc-backend-venv/lib/python3.12/site-packages/sqlalchemy/orm/unitofwork.py:641: in execute
+    util.preloaded.orm_persistence.save_obj(
+/tmp/tc-backend-venv/lib/python3.12/site-packages/sqlalchemy/orm/persistence.py:94: in save_obj
+    _emit_insert_statements(
+/tmp/tc-backend-venv/lib/python3.12/site-packages/sqlalchemy/orm/persistence.py:1234: in _emit_insert_statements
+    result = connection.execute(
+/tmp/tc-backend-venv/lib/python3.12/site-packages/sqlalchemy/engine/base.py:1428: in execute
+    return meth(
+/tmp/tc-backend-venv/lib/python3.12/site-packages/sqlalchemy/sql/elements.py:526: in _execute_on_connection
+    return connection._execute_clauseelement(
+/tmp/tc-backend-venv/lib/python3.12/site-packages/sqlalchemy/engine/base.py:1650: in _execute_clauseelement
+    ret = self._execute_context(
+/tmp/tc-backend-venv/lib/python3.12/site-packages/sqlalchemy/engine/base.py:1855: in _execute_context
+    return self._exec_single_context(
+/tmp/tc-backend-venv/lib/python3.12/site-packages/sqlalchemy/engine/base.py:1995: in _exec_single_context
+    self._handle_dbapi_exception(
+/tmp/tc-backend-venv/lib/python3.12/site-packages/sqlalchemy/engine/base.py:2372: in _handle_dbapi_exception
+    raise sqlalchemy_exception.with_traceback(exc_info[2]) from e
+/tmp/tc-backend-venv/lib/python3.12/site-packages/sqlalchemy/engine/base.py:1976: in _exec_single_context
+    self.dialect.do_execute(
+/tmp/tc-backend-venv/lib/python3.12/site-packages/sqlalchemy/engine/default.py:964: in do_execute
+    cursor.execute(statement, parameters)
+E   sqlalchemy.exc.IntegrityError: (raised as a result of Query-invoked autoflush; consider using a session.no_autoflush block if this flush is occurring prematurely)
+E   (sqlite3.IntegrityError) FOREIGN KEY constraint failed
+E   [SQL: INSERT INTO job_effects (job_id, workspace_id, effect, attempt, state, detail, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)]
+E   [parameters: (1, 1, 'usage:exports', 0, 'applied', '{"by_attempt": 1}', '2026-10-30 21:10:30.749972', '2026-10-30 21:10:30.749977')]
+E   (Background on this error at: https://sqlalche.me/e/20/gkpj)
+_ test_current_job_payload_and_active_parent_must_agree[sqlite-replay-parent_without_file_stale_identity] _
+tests/release/test_authorization_export_worker.py:320: in test_current_job_payload_and_active_parent_must_agree
+    assert_denied_without_effects(c)
+tests/release/test_authorization_export_worker.py:228: in assert_denied_without_effects
+    with pytest.raises(ValueError) as caught:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^
+E   Failed: DID NOT RAISE ValueError
+=============================== warnings summary ===============================
+../../../../../../tmp/tc-backend-venv/lib/python3.12/site-packages/_pytest/config/__init__.py:1345
+  /tmp/tc-backend-venv/lib/python3.12/site-packages/_pytest/config/__init__.py:1345: PytestAssertRewriteWarning: Module already imported so cannot be rewritten; anyio
+    self._mark_plugins_for_rewrite(hook, disable_autoload)
+
+tests/release/test_authorization_export_worker.py: 27 warnings
+  /tmp/tc-backend-venv/lib/python3.12/site-packages/sqlalchemy/sql/schema.py:3627: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    return util.wrap_callable(lambda ctx: fn(), fn)  # type: ignore
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED tests/release/test_authorization_export_worker.py::test_current_job_payload_and_active_parent_must_agree[sqlite-new-export-job_deleted]
+FAILED tests/release/test_authorization_export_worker.py::test_current_job_payload_and_active_parent_must_agree[sqlite-new-export-parent_without_file_stale_identity]
+FAILED tests/release/test_authorization_export_worker.py::test_current_job_payload_and_active_parent_must_agree[sqlite-replay-job_deleted]
+FAILED tests/release/test_authorization_export_worker.py::test_current_job_payload_and_active_parent_must_agree[sqlite-replay-parent_without_file_stale_identity]
+4 failed, 136 deselected, 28 warnings in 2.39s
+{"control": "baseline_added_cases", "expected_test_exit": 1, "source_unchanged": true}
