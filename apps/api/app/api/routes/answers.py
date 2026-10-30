@@ -11,6 +11,7 @@ from sqlalchemy.orm import Session
 
 from app.core.auth_deps import require_can_review
 from app.core.database import get_db
+from app.core.workspace_refs import require_in_workspace
 from app.models import Answer, Question, Questionnaire
 
 router = APIRouter(prefix="/answers", tags=["answers"])
@@ -44,8 +45,9 @@ def create_answer(
     if not q:
         raise HTTPException(status_code=404, detail="Question not found")
     qnr = db.query(Questionnaire).filter(Questionnaire.id == q.questionnaire_id).first()
-    if not qnr or qnr.workspace_id != session.get("workspace_id"):
+    if qnr and qnr.workspace_id != session.get("workspace_id"):
         raise HTTPException(status_code=403, detail="Access denied")
+    require_in_workspace(db, session.get("workspace_id"), "question", body.question_id)
     existing = db.query(Answer).filter(Answer.question_id == body.question_id).first()
     if existing:
         if body.text and body.text != existing.text:
@@ -133,6 +135,7 @@ def update_answer(
         qnr = db.query(Questionnaire).filter(Questionnaire.id == q.questionnaire_id).first()
         if qnr and qnr.workspace_id != session.get("workspace_id"):
             raise HTTPException(status_code=403, detail="Access denied")
+    require_in_workspace(db, session.get("workspace_id"), "answer", answer_id)
     if body.text is not None:
         if body.text != a.text:
             a.outcome_code = None  # TC-11-001: human-authored text has no model outcome
