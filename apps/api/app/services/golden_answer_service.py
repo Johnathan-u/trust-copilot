@@ -62,13 +62,21 @@ def list_golden_answers(
     return [_serialize(ga) for ga in q.order_by(GoldenAnswer.created_at.desc()).all()]
 
 
-def get_golden_answer(db: Session, ga_id: int) -> dict | None:
-    ga = db.query(GoldenAnswer).filter(GoldenAnswer.id == ga_id).first()
+def get_golden_answer(db: Session, ga_id: int, *, workspace_id: int) -> dict | None:
+    ga = (
+        db.query(GoldenAnswer)
+        .filter(GoldenAnswer.id == ga_id, GoldenAnswer.workspace_id == workspace_id)
+        .first()
+    )
     return _serialize(ga) if ga else None
 
 
-def update_golden_answer(db: Session, ga_id: int, **updates) -> dict | None:
-    ga = db.query(GoldenAnswer).filter(GoldenAnswer.id == ga_id).first()
+def update_golden_answer(db: Session, ga_id: int, *, workspace_id: int, **updates) -> dict | None:
+    ga = (
+        db.query(GoldenAnswer)
+        .filter(GoldenAnswer.id == ga_id, GoldenAnswer.workspace_id == workspace_id)
+        .first()
+    )
     if not ga:
         return None
     allowed = {
@@ -88,9 +96,13 @@ def update_golden_answer(db: Session, ga_id: int, **updates) -> dict | None:
     return _serialize(ga)
 
 
-def review_golden_answer(db: Session, ga_id: int) -> dict | None:
+def review_golden_answer(db: Session, ga_id: int, *, workspace_id: int) -> dict | None:
     """Mark a golden answer as reviewed, resetting its expiry."""
-    ga = db.query(GoldenAnswer).filter(GoldenAnswer.id == ga_id).first()
+    ga = (
+        db.query(GoldenAnswer)
+        .filter(GoldenAnswer.id == ga_id, GoldenAnswer.workspace_id == workspace_id)
+        .first()
+    )
     if not ga:
         return None
     ga.last_reviewed_at = datetime.now(timezone.utc)
@@ -118,9 +130,13 @@ def get_expiring(db: Session, workspace_id: int, within_days: int = 14) -> list[
     return [_serialize(ga) for ga in answers]
 
 
-def get_lineage(db: Session, ga_id: int) -> dict:
+def get_lineage(db: Session, ga_id: int, *, workspace_id: int) -> dict:
     """Get answer lineage - source, evidence, controls, reuse (P1-76)."""
-    ga = db.query(GoldenAnswer).filter(GoldenAnswer.id == ga_id).first()
+    ga = (
+        db.query(GoldenAnswer)
+        .filter(GoldenAnswer.id == ga_id, GoldenAnswer.workspace_id == workspace_id)
+        .first()
+    )
     if not ga:
         return {"error": "Golden answer not found"}
     return {
@@ -139,9 +155,13 @@ def get_lineage(db: Session, ga_id: int) -> dict:
     }
 
 
-def record_reuse(db: Session, ga_id: int) -> dict | None:
+def record_reuse(db: Session, ga_id: int, *, workspace_id: int) -> dict | None:
     """Increment reuse counter (P1-73 tracking)."""
-    ga = db.query(GoldenAnswer).filter(GoldenAnswer.id == ga_id).first()
+    ga = (
+        db.query(GoldenAnswer)
+        .filter(GoldenAnswer.id == ga_id, GoldenAnswer.workspace_id == workspace_id)
+        .first()
+    )
     if not ga:
         return None
     ga.reuse_count = (ga.reuse_count or 0) + 1

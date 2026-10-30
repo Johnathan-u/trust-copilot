@@ -90,7 +90,7 @@ async def get_one(
     session: dict = Depends(require_session),
     db: Session = Depends(get_db),
 ):
-    result = ga.get_golden_answer(db, ga_id)
+    result = ga.get_golden_answer(db, ga_id, workspace_id=session["workspace_id"])
     if not result:
         raise HTTPException(status_code=404)
     return result
@@ -102,7 +102,7 @@ async def lineage(
     session: dict = Depends(require_session),
     db: Session = Depends(get_db),
 ):
-    result = ga.get_lineage(db, ga_id)
+    result = ga.get_lineage(db, ga_id, workspace_id=session["workspace_id"])
     if "error" in result:
         raise HTTPException(status_code=404, detail=result["error"])
     return result
@@ -116,7 +116,7 @@ async def update(
     db: Session = Depends(get_db),
 ):
     updates = {k: v for k, v in body.model_dump().items() if v is not None}
-    result = ga.update_golden_answer(db, ga_id, **updates)
+    result = ga.update_golden_answer(db, ga_id, workspace_id=session["workspace_id"], **updates)
     if not result:
         raise HTTPException(status_code=404)
     db.commit()
@@ -129,7 +129,7 @@ async def review(
     session: dict = Depends(require_can_admin),
     db: Session = Depends(get_db),
 ):
-    result = ga.review_golden_answer(db, ga_id)
+    result = ga.review_golden_answer(db, ga_id, workspace_id=session["workspace_id"])
     if not result:
         raise HTTPException(status_code=404)
     db.commit()
@@ -142,7 +142,7 @@ async def reuse(
     session: dict = Depends(require_session),
     db: Session = Depends(get_db),
 ):
-    result = ga.record_reuse(db, ga_id)
+    result = ga.record_reuse(db, ga_id, workspace_id=session["workspace_id"])
     if not result:
         raise HTTPException(status_code=404)
     db.commit()

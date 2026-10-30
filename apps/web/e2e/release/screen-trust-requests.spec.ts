@@ -472,16 +472,16 @@ for (const width of [360, 768, 1440]) {
     writeFileSync(
       axePath,
       JSON.stringify(
-        { width, violationCount: violations.length, violations },
+        {
+          width,
+          violationCount: violations.length,
+          violations,
+          violationDetails: result.violations,
+        },
         null,
         2
       )
     )
-    expect(
-      violations.filter((item) =>
-        ['critical', 'serious'].includes(item.impact || '')
-      )
-    ).toEqual([])
     const screenshot = path.join(dir, 'screenshots', `incoming-${width}.png`)
     await page.screenshot({ path: screenshot, fullPage: true })
     await testInfo.attach(`incoming-${width}`, {
@@ -492,6 +492,11 @@ for (const width of [360, 768, 1440]) {
       path: axePath,
       contentType: 'application/json',
     })
+    expect(
+      violations.filter((item) =>
+        ['critical', 'serious'].includes(item.impact || '')
+      )
+    ).toEqual([])
   })
 }
 
