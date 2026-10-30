@@ -1,0 +1,11 @@
+{
+  "head": "d57becc57f6f1bdc164f78f1f12ce0c7e8d94ffb",
+  "tree": "239e73dc7e4ee13a6bed2cc0ee62962501010ce9",
+  "event": "push",
+  "run": 41079072723,
+  "job": 124143016499,
+  "job_url": "https://github.com/Johnathan-u/trust-copilot/actions/runs/41079072723/job/124143016499",
+  "artifact_id": 12989376033,
+  "artifact_archive_sha256": "371e6ef304ae9ec269894ffa759ac0562c7f4cf7a6fb1580ca6cad58e23e24f3",
+  "meaning": "Historical failure input, not fresh CI qualification of this child."
+}

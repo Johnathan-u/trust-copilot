@@ -267,6 +267,8 @@ def test_switch_preserves_absolute_deadline_when_real_signing_clock_advances(
     policy_state, monkeypatch, bound, expires_during_signing
 ):
     state = policy_state
+    email, _ = prepare_login(state)
+    assert password_login(state, email, True).status_code == 200
     payload, row = current_row(state)
     target = state["db"].get(Workspace, state["ws"][1])
     target.session_max_age_seconds = 60 if bound == "target" else 604800

@@ -597,6 +597,10 @@ function ReplyEditor({
         {actions.approve && (
           <Button
             disabled={busy || blocked || dirty || !reviewed}
+            style={{
+              transitionProperty:
+                'border-color, text-decoration-color, fill, stroke',
+            }}
             onClick={() => void act('approve')}
           >
             Approve revision

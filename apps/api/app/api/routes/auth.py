@@ -534,6 +534,7 @@ def _login_impl(req: LoginRequest, request: Request, response: Response, db: Ses
             role="pending",
             session_id=session_id,
             max_age_seconds=max_age,
+            cookie_persistent=False,
         )
         response.set_cookie(
             key=SESSION_COOKIE, value=token, **_session_cookie_kwargs(max_age, persistent=False)
@@ -619,6 +620,7 @@ def _login_impl(req: LoginRequest, request: Request, response: Response, db: Ses
         session_id=session_id,
         max_age_seconds=max_age,
         mfa_enrol_only=reenrol_pending,
+        cookie_persistent=remember,
     )
     response.set_cookie(
         key=SESSION_COOKIE, value=token, **_session_cookie_kwargs(max_age, persistent=remember)
@@ -715,6 +717,44 @@ async def revoke_other_sessions(
         user_id=user_id,
         email=session.get("email"),
         details={"count": deleted},
+    )
+    return {"ok": True, "revoked": deleted}
+
+
+@router.post("/sessions/revoke-all")
+async def revoke_all_sessions(
+    response: Response,
+    session: dict = Depends(require_valid_session),
+    db: Session = Depends(get_db),
+):
+    """Sign this human account out of every stored session, including this one."""
+    user_id = session.get("user_id")
+    if type(user_id) is not int or user_id < 1:
+        # API-key contexts have no human session to revoke.
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    try:
+        deleted = (
+            db.query(UserSession)
+            .filter(UserSession.user_id == user_id)
+            .delete(synchronize_session=False)
+        )
+        # persist_audit commits its Session: keep the deletion and audit in
+        # that same transaction, rather than acknowledging a partial revoke.
+        persist_audit(
+            db,
+            "auth.sessions_revoked_all",
+            user_id=user_id,
+            email=session.get("email"),
+            workspace_id=session.get("workspace_id"),
+            details={"count": deleted},
+        )
+    except SQLAlchemyError as exc:
+        db.rollback()
+        raise HTTPException(
+            status_code=503, detail="Unable to sign out sessions. Try again."
+        ) from exc
+    response.delete_cookie(
+        SESSION_COOKIE, path="/", samesite="lax", httponly=True, secure=is_production_env()
     )
     return {"ok": True, "revoked": deleted}
 
@@ -822,6 +862,7 @@ def _oauth_set_session_and_redirect(
         role=role,
         session_id=session_id,
         max_age_seconds=max_age,
+        cookie_persistent=True,
     )
     frontend = get_settings().frontend_url.rstrip("/")
     redirect_url = f"{frontend}/dashboard"
@@ -1948,6 +1989,7 @@ async def switch_workspace(
     existing_session_id = session.get("session_id")
     if not existing_session_id:
         raise HTTPException(status_code=400, detail="Cannot switch workspace for legacy session")
+    persistent = session.get("cookie_persistent") is True
     token = sign_session(
         user_id=user_id,
         email=email,
@@ -1955,11 +1997,14 @@ async def switch_workspace(
         role=member.role,
         session_id=existing_session_id,
         expires_at=expires_at,
+        cookie_persistent=persistent,
     )
     max_age = expires_at - int(time.time())
     if max_age <= 0:
         raise HTTPException(status_code=401, detail="Session expired")
-    response.set_cookie(key=SESSION_COOKIE, value=token, **_session_cookie_kwargs(max_age))
+    response.set_cookie(
+        key=SESSION_COOKIE, value=token, **_session_cookie_kwargs(max_age, persistent=persistent)
+    )
     persist_audit(
         db,
         "auth.workspace_switch",
@@ -2252,6 +2297,7 @@ async def mfa_confirm(
             member.role,
             session_id=new_session_id,
             max_age_seconds=max_age,
+            cookie_persistent=False,
         )
         response.set_cookie(
             key=SESSION_COOKIE, value=token, **_session_cookie_kwargs(max_age, persistent=False)
@@ -2377,6 +2423,7 @@ def mfa_verify_login(
         role=mlt.role,
         session_id=session_id,
         max_age_seconds=max_age,
+        cookie_persistent=remember,
     )
     response.set_cookie(
         key=SESSION_COOKIE, value=token, **_session_cookie_kwargs(max_age, persistent=remember)

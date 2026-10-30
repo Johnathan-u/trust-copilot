@@ -1,0 +1,235 @@
+{
+  "ticket": "TC-06-003b",
+  "date": "2026-10-30",
+  "points": 3,
+  "status": "locally implemented; independent review and PostgreSQL/CI qualification pending",
+  "claim": "https://github.com/Johnathan-u/trust-copilot/issues/85#issuecomment-6515743132",
+  "base_commit": "24b348dc5908aba6e40169a67ea8dafb88255731",
+  "base_dependency": "Approved TC-06-003a preservation commit; eventual landed parent must be integrated before final qualification",
+  "code_commit": "e7d00c926409983910356fb88d6e3a699a72fdb0",
+  "code_tree": "6cd4f407129583df54a1c44b27ee0a088352a417",
+  "source_blobs": {
+    "apps/api/app/api/routes/golden_answers.py": "32197ab683412b27255ca6ca598a9cc059319b21",
+    "apps/api/app/services/golden_answer_service.py": "38b2e0717bfe9b23b855e07adf7bbfff13664ea8",
+    "apps/api/tests/release/test_authorization_golden_answers.py": "612c2b8272b2f83541008d7a0f8b0279f3b048c9",
+    "apps/api/tests/test_answer_approval.py": "43b7c8b1f80afe841ed86cb0fd68758b41cd08ea",
+    "apps/api/tests/test_golden_answers.py": "1523176efd27940a8bcd46b3e86f7c2fd3284f4b"
+  },
+  "scope": {
+    "changed": [
+      "Five service parent lookups require explicit current workspace before projection/mutation",
+      "Five route calls pass authenticated workspace",
+      "Exactly five golden-test and eight approval-test direct calls gain required workspace argument"
+    ],
+    "preserved": [
+      "Existing session/admin route permissions",
+      "Per-route missing/deleted 404 bodies",
+      "Status and null/omitted update semantics",
+      "Review from every existing status and review_cycle_days or 90 expiry behavior",
+      "Status-independent persisted reuse counts",
+      "List, expiring, similar and approval production code"
+    ],
+    "excluded": [
+      "Create-time source/reference validation",
+      "Source eligibility",
+      "Schema, migrations, providers, dependencies and UI",
+      "Permission expansion"
+    ]
+  },
+  "environment": {
+    "python": "3.12.14",
+    "dependencies": "Existing locked development environment /tmp/tc-backend-venv; no repository dependency changes",
+    "postgresql": "Unavailable at localhost:5432",
+    "provider_calls": 0,
+    "default_command_cwd": "apps/api"
+  },
+  "fixture": {
+    "sqlite": "FK ON asserted; actual stored users, memberships, session and signed cookie with explicit expiry; only get_db overridden",
+    "postgresql": "Same 87 cases through existing migrated_db fixture; required mode aborts on missing service",
+    "full_row_snapshot_tables": [
+      "answer_approval_events",
+      "golden_answers",
+      "audit_events",
+      "user_mfa",
+      "user_sessions",
+      "api_keys",
+      "custom_roles",
+      "workspace_members",
+      "users",
+      "workspaces"
+    ],
+    "denials": "Full-row hashes/counts unchanged, no pending ORM mutations and no observed INSERT/UPDATE/DELETE even if later rolled back",
+    "cleanup": "Only exact owned IDs in FK order; event IDs resolved from exact owned parents; entire original snapshot compared",
+    "collection": "Fixture store creation/connection only during test execution"
+  },
+  "checks": [
+    {
+      "name": "unchanged-parent baseline",
+      "command": "/tmp/tc-backend-venv/bin/python -m pytest tests/release/test_authorization_golden_answers.py -m unit -q --tb=short",
+      "tested_source": "24b348dc route/service with new tests",
+      "exit_code": 1,
+      "failed": 11,
+      "passed": 76,
+      "deselected": 87,
+      "note": "Includes foreign/moved HTTP 200 and foreign malformed lineage JSON decoded before authorization"
+    },
+    {
+      "name": "repaired SQLite and final rerun after controls",
+      "command": "/tmp/tc-backend-venv/bin/python -m pytest tests/release/test_authorization_golden_answers.py -m unit -q --tb=short",
+      "exit_code": 0,
+      "passed": 87,
+      "deselected": 87,
+      "warnings": "579 existing datetime.utcnow deprecation warnings"
+    },
+    {
+      "name": "new and existing collection",
+      "command": "/tmp/tc-backend-venv/bin/python -m pytest tests/release/test_authorization_golden_answers.py tests/test_golden_answers.py tests/test_answer_approval.py --collect-only -q",
+      "exit_code": 0,
+      "collected": 204,
+      "new_cases": 174,
+      "existing_cases": 30
+    },
+    {
+      "name": "required PostgreSQL",
+      "command": "TC_REQUIRE_DB=1 /tmp/tc-backend-venv/bin/python -m pytest tests/release/test_authorization_golden_answers.py tests/test_golden_answers.py tests/test_answer_approval.py -m integration -q --tb=short",
+      "exit_code": 3,
+      "tests_executed": 0,
+      "reason": "localhost:5432 connection refused; existing session hook exits before tests"
+    },
+    {
+      "name": "repository collection safety",
+      "command": "/tmp/tc-backend-venv/bin/python -m pytest tests/release/test_safe_collection.py -q",
+      "exit_code": 0,
+      "passed": 29
+    },
+    {
+      "name": "scoped lint",
+      "command": "/tmp/tc-backend-venv/bin/python -m ruff check apps/api/app/api/routes/golden_answers.py apps/api/app/services/golden_answer_service.py apps/api/tests/release/test_authorization_golden_answers.py apps/api/tests/test_answer_approval.py apps/api/tests/test_golden_answers.py",
+      "cwd": "repository",
+      "exit_code": 0
+    },
+    {
+      "name": "scoped formatting",
+      "command": "/tmp/tc-backend-venv/bin/python -m ruff format --check apps/api/app/api/routes/golden_answers.py apps/api/app/services/golden_answer_service.py apps/api/tests/release/test_authorization_golden_answers.py apps/api/tests/test_answer_approval.py apps/api/tests/test_golden_answers.py",
+      "cwd": "repository",
+      "exit_code": 0
+    },
+    {
+      "name": "code secret inventory",
+      "command": "/tmp/tc-backend-venv/bin/python scripts/security/secret_inventory.py paths apps/api/app/api/routes/golden_answers.py apps/api/app/services/golden_answer_service.py apps/api/tests/release/test_authorization_golden_answers.py apps/api/tests/test_answer_approval.py apps/api/tests/test_golden_answers.py --root . --fail-on block",
+      "cwd": "repository",
+      "exit_code": 0,
+      "findings": 0
+    },
+    {
+      "name": "whitespace",
+      "command": "git diff --check",
+      "cwd": "repository",
+      "exit_code": 0
+    },
+    {
+      "name": "approval production freeze",
+      "command": "git diff 24b348dc -- apps/api/app/api/routes/answer_approval.py apps/api/app/services/answer_approval_service.py",
+      "cwd": "repository",
+      "exit_code": 0,
+      "result": "empty diff"
+    }
+  ],
+  "negative_controls": [
+    {
+      "name": "get_golden_answer",
+      "command": [
+        "/tmp/tc-backend-venv/bin/python",
+        "-m",
+        "pytest",
+        "tests/release/test_authorization_golden_answers.py::test_unavailable_parent_preserves_neutral_route_404[sqlite-foreign-get]",
+        "-q",
+        "--tb=short"
+      ],
+      "exit_code": 1,
+      "expected": "one assertion failure"
+    },
+    {
+      "name": "get_lineage",
+      "command": [
+        "/tmp/tc-backend-venv/bin/python",
+        "-m",
+        "pytest",
+        "tests/release/test_authorization_golden_answers.py::test_unavailable_parent_preserves_neutral_route_404[sqlite-foreign-lineage]",
+        "-q",
+        "--tb=short"
+      ],
+      "exit_code": 1,
+      "expected": "one assertion failure"
+    },
+    {
+      "name": "update_golden_answer",
+      "command": [
+        "/tmp/tc-backend-venv/bin/python",
+        "-m",
+        "pytest",
+        "tests/release/test_authorization_golden_answers.py::test_unavailable_parent_preserves_neutral_route_404[sqlite-foreign-update]",
+        "-q",
+        "--tb=short"
+      ],
+      "exit_code": 1,
+      "expected": "one assertion failure"
+    },
+    {
+      "name": "late_update_scope",
+      "command": [
+        "/tmp/tc-backend-venv/bin/python",
+        "-m",
+        "pytest",
+        "tests/release/test_authorization_golden_answers.py::test_unavailable_parent_preserves_neutral_route_404[sqlite-foreign-update]",
+        "-q",
+        "--tb=short"
+      ],
+      "exit_code": 1,
+      "expected": "one assertion failure"
+    },
+    {
+      "name": "review_golden_answer",
+      "command": [
+        "/tmp/tc-backend-venv/bin/python",
+        "-m",
+        "pytest",
+        "tests/release/test_authorization_golden_answers.py::test_unavailable_parent_preserves_neutral_route_404[sqlite-foreign-review]",
+        "-q",
+        "--tb=short"
+      ],
+      "exit_code": 1,
+      "expected": "one assertion failure"
+    },
+    {
+      "name": "record_reuse",
+      "command": [
+        "/tmp/tc-backend-venv/bin/python",
+        "-m",
+        "pytest",
+        "tests/release/test_authorization_golden_answers.py::test_unavailable_parent_preserves_neutral_route_404[sqlite-foreign-reuse]",
+        "-q",
+        "--tb=short"
+      ],
+      "exit_code": 1,
+      "expected": "one assertion failure"
+    }
+  ],
+  "negative_control_restoration": "Service restored in finally; final 87-case rerun, Ruff, formatting, secret scan and whitespace checks pass",
+  "late_update_control": "HTTP 404 and rollback still occur, but SQL observer catches UPDATE golden_answers before authorization; test fails",
+  "not_claimed": [
+    "PostgreSQL execution success",
+    "Execution success for 30 existing database cases",
+    "Full pytest success",
+    "Future CI success",
+    "Full TC-06-001 or TC-06-003 closure",
+    "Publication or merge"
+  ],
+  "remaining_gates": [
+    "Independent review of final code/test/docs head",
+    "87 new PostgreSQL cases plus 30 existing golden-library/approval cases",
+    "Integrate eventual landed TC-06-003a parent",
+    "Build and web-release-e2e for exact head on both push and pull_request",
+    "Coordinator publication capacity and merge authority"
+  ]
+}

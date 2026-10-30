@@ -46,9 +46,15 @@ def approve_request(
     request_id: int,
     approved_by_user_id: int,
     access_days: int = DEFAULT_ACCESS_DAYS,
+    *,
+    workspace_id: int,
 ) -> dict | None:
     """Approve a pending request, generating a time-limited access token."""
-    req = db.query(NdaAccessRequest).filter(NdaAccessRequest.id == request_id).first()
+    req = (
+        db.query(NdaAccessRequest)
+        .filter(NdaAccessRequest.id == request_id, NdaAccessRequest.workspace_id == workspace_id)
+        .first()
+    )
     if not req:
         return None
 
@@ -60,9 +66,13 @@ def approve_request(
     return _serialize(req)
 
 
-def reject_request(db: Session, request_id: int) -> dict | None:
+def reject_request(db: Session, request_id: int, *, workspace_id: int) -> dict | None:
     """Reject a pending access request."""
-    req = db.query(NdaAccessRequest).filter(NdaAccessRequest.id == request_id).first()
+    req = (
+        db.query(NdaAccessRequest)
+        .filter(NdaAccessRequest.id == request_id, NdaAccessRequest.workspace_id == workspace_id)
+        .first()
+    )
     if not req:
         return None
     req.status = "rejected"
@@ -70,9 +80,13 @@ def reject_request(db: Session, request_id: int) -> dict | None:
     return _serialize(req)
 
 
-def revoke_access(db: Session, request_id: int) -> dict | None:
+def revoke_access(db: Session, request_id: int, *, workspace_id: int) -> dict | None:
     """Revoke a previously approved access."""
-    req = db.query(NdaAccessRequest).filter(NdaAccessRequest.id == request_id).first()
+    req = (
+        db.query(NdaAccessRequest)
+        .filter(NdaAccessRequest.id == request_id, NdaAccessRequest.workspace_id == workspace_id)
+        .first()
+    )
     if not req:
         return None
     req.status = "revoked"
