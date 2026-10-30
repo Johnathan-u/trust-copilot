@@ -1,0 +1,54 @@
+TC-05-003a local verification — 2026-10-30
+Base: 0948b2608b2a8cde142ebfac66b7d7d121411a4d plus this change.
+Python: existing /tmp/tc-backend-venv; no dependency changes.
+
+From apps/api, before changing members.py:
+python -m pytest tests/release/test_custom_role_grants.py -k sqlite -q
+  Exit 1: 11 failed, 13 passed, 24 deselected in 2.08s.
+  Failures returned 200 instead of required 403:
+  - create absent can_edit/can_review/can_export (3)
+  - creation's default can_review grant (1)
+  - self-definition enables an absent permission (3)
+  - another definition enables an absent permission among allowed fields (3)
+  - grant after current permission revocation with the same signed cookie (1)
+  Existing model datetime.utcnow defaults emitted 310 deprecation warnings.
+
+After the pre-mutation permission snapshot/check:
+python -m pytest tests/release/test_custom_role_grants.py -k sqlite -q
+  Exit 0: 24 passed, 24 deselected. Existing datetime.utcnow warnings remain.
+python -m pytest tests/release/test_custom_role_grants.py --collect-only -q
+  Exit 0: 48 cases (24 SQLite, 24 PostgreSQL).
+python -m pytest tests/release/test_safe_collection.py -q
+  Exit 0: 29 passed in 19.44s.
+TC_REQUIRE_DB=1 python -m pytest -q
+  Exit 3 during Alembic/database setup: localhost:5432 connection refused.
+  No full-suite or PostgreSQL pass claimed; CI must execute required cases.
+
+From repository root:
+ruff check apps/api/app/api/routes/members.py apps/api/tests/release/test_custom_role_grants.py
+ruff format --check apps/api/app/api/routes/members.py apps/api/tests/release/test_custom_role_grants.py
+python -m py_compile apps/api/app/api/routes/members.py apps/api/tests/release/test_custom_role_grants.py
+git diff --check
+  Exit 0.
+python scripts/security/secret_inventory.py paths <the five changed source/evidence files>
+  Exit 0: zero findings.
+
+Remaining: independent review and final-head PostgreSQL/CI; assignment/invite/
+API-key grant ceilings; owner/viewer semantics/migration; full role/principal
+contract. No auth or schema changes.
+
+Strict-session integration repair:
+  Exact master 5e8b15230ec2b2d9912700c68361556d6c33a22d integrated separately
+  in pure merge 61c00b73384ad1ee1c664fedf61fe3e3014ce016.
+  Post-merge run reproduced 23 failures / 1 pass: fixture cookies omitted the
+  now-required exp claim. Added only max_age_seconds=3600 to fixture issuance;
+  stale admin claims, all assertions and production grant code remain unchanged.
+python -m pytest tests/release/test_custom_role_grants.py -k sqlite -q
+  Exit 0: 24 passed, 24 deselected in 2.27s.
+python -m pytest tests/release/test_principal_contract.py tests/release/test_session_validation.py -k 'sqlite or expiry_boundary' -q
+  Exit 0: 71 passed, 70 deselected in 9.85s.
+python -m pytest tests/release/test_custom_role_grants.py --collect-only -q
+  Exit 0: 48 cases collected.
+python -m pytest tests/release/test_safe_collection.py -q
+  Exit 0: 29 passed in 12.72s.
+  Ruff/format/diff checks pass. PostgreSQL qualification remains required in CI.
