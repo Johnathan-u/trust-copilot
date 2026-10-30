@@ -55,6 +55,12 @@ export const appNavItems: readonly AppNavItem[] = [
   },
   { href: '/dashboard/review', label: 'Review', icon: '✅', section: 'core' },
   {
+    href: '/dashboard/deals',
+    label: 'Deals',
+    icon: '💼',
+    section: 'core',
+  },
+  {
     href: '/dashboard/requests',
     label: 'Requests',
     icon: '📨',

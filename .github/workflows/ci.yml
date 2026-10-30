@@ -234,6 +234,7 @@ jobs:
           mkdir -p test-results
           # The specs rewrite these files. Remove the checkout copies first so a
           # stale committed report cannot satisfy the axe gate. The job never commits.
+          rm -f ../../artifacts/acceptance/TC-15-049a/axe-*.json
           rm -f ../../artifacts/acceptance/TC-15-039a/axe-*.json
           rm -f ../../artifacts/acceptance/TC-14-001/axe-*.json
           rm -f ../../artifacts/acceptance/TC-14-006/axe-*.json
@@ -248,6 +249,7 @@ jobs:
           rm -f ../../artifacts/acceptance/TC-15-024/axe-*.json
 
           candidates=(
+            e2e/release/screen-deals.spec.ts
             e2e/release/screen-trust-requests.spec.ts
             e2e/release/design-tokens.spec.ts
             e2e/release/responsive-shell.spec.ts
@@ -283,6 +285,9 @@ jobs:
           node ../../scripts/ci/check-release-e2e-report.mjs \
             --report test-results/release-e2e.json \
             --html-report playwright-report \
+            --axe-dir ../../artifacts/acceptance/TC-15-049a \
+            --require-spec e2e/release/screen-deals.spec.ts \
+            --min-tests 31 \
             --axe-dir ../../artifacts/acceptance/TC-15-039a \
             --require-spec e2e/release/screen-trust-requests.spec.ts \
             --min-tests 22 \
@@ -327,6 +332,15 @@ jobs:
           if [[ "$playwright_status" -ne 0 || "$checker_status" -ne 0 ]]; then
             exit 1
           fi
+
+      - name: Upload deals axe JSON
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: deals-axe-json
+          path: artifacts/acceptance/TC-15-049a/axe-*.json
+          if-no-files-found: warn
+          retention-days: 14
 
       - name: Upload incoming trust requests axe JSON
         if: ${{ !cancelled() }}

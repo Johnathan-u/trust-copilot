@@ -1,0 +1,23 @@
+TC-15-049a verification summary, 2026-10-30 UTC
+Base: 91db7baf9ae252b2fb11688aae92c663318cb0c6
+Worker branch: codex/TC-15-049a-deals-ui
+
+Parser negative control: 8 failed, 6 passed (invalid typed response values accepted before fix).
+Final focused tests: 46 passed (32 page, 14 parser).
+Full web units: 297 passed in 38 files on final source.
+Typecheck: exit 0.
+ESLint: exit 0.
+Format: initial browser spec failed formatting; corrected check exit 0.
+Production build: exit 0.
+Browser collection: 31 tests in screen-deals.spec.ts.
+Browser attempt: exit 1, missing Chromium executable before any UI test body executes.
+No local browser screenshots, axe output or database/provider claims.
+Independent review and exact final-head CI are coordinator gates.
+
+CI LOCATOR REPAIR
+Base local 6f6089b53af298deb095238407814ec435a2bd2e / published a2939b7e78d88275b895177526e20d93e5840da3
+Push 40996072090 / web 123869378797: 18 passed, 13 failed, 0 skipped, 0 flaky; 6 fresh deals axe reports with 0 violations.
+Downloaded Playwright artifact 12951577085: all 13 snapshots show expected combined company/contact rowheader.
+Repair changes only test locators, one focused DOM control and evidence/docs.
+Focused: 47 passed. Browser collection: 31 cases. Typecheck/lint/format/diff final: exit 0.
+No local Chromium execution; fresh exact-head CI and independent review required.
