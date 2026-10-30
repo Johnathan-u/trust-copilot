@@ -1,0 +1,58 @@
+TC-06-003i fresh local verification — 2026-10-30
+Base: 90146e0cfe2220beb3e43f98f6073262f7c0abfb
+Branch: codex/TC-06-003i-trust-article-ownership
+Worktree: /workspace/scratch/1d3d4d8034b5/tc-trust-articles
+Runtime: existing /tmp/tc-backend-venv/bin/python, Python 3.12; no dependency changes.
+All pytest commands run from apps/api. No historical pass count is reused.
+
+Before production changes:
+python -m pytest tests/release/test_authorization_trust_articles.py -k sqlite -q --tb=short
+  Exit 1: 13 failed, 51 passed, 64 deselected in 7.37s.
+  Failures are actual HTTP/persistence assertions: omitted/null/zero ownership,
+  duplicate lookup, foreign/null-owned slug coexistence, null-owner PATCH/DELETE,
+  and custom-admin create ownership. Source was unchanged master at this point.
+
+After exactly four substitutions in create/update/delete:
+python -m pytest tests/release/test_authorization_trust_articles.py -k sqlite -q --tb=short
+  Exit 0: 64 passed, 64 deselected in 8.04s.
+  Existing datetime.utcnow deprecation warnings remain (935).
+
+python -m pytest tests/release/test_authorization_trust_articles.py tests/test_trust_articles_api.py --collect-only -q
+  Exit 0: 139 tests collected (128 new, 11 existing).
+python -m pytest tests/release/test_safe_collection.py -q --tb=short
+  Exit 0: 29 passed in 38.45s.
+TC_REQUIRE_DB=1 python -m pytest -q --tb=short
+  Exit 3 before any tests execute: Alembic cannot connect to localhost:5432,
+  both IPv4/IPv6 connection refused. No full-suite or PostgreSQL pass is claimed.
+
+Four separate-process in-memory negative controls, each modifying only one
+substitution before collecting the actual tests:
+  Duplicate lookup restored to body.workspace_id:
+    -k 'sqlite and duplicate_lookup and omitted'
+    Exit 1: 1 failed, 127 deselected in 1.41s (500 instead of required400).
+  Persistence restored to body.workspace_id:
+    -k 'sqlite and create_binds and omitted'
+    Exit 1: 1 failed, 127 deselected in 0.59s (null owner instead of current workspace).
+  PATCH null-owner exemption restored:
+    -k 'sqlite and mutations_require and null_0 and PATCH'
+    Exit 1: 1 failed, 127 deselected in 0.83s (200 instead of required403).
+  DELETE null-owner exemption restored:
+    -k 'sqlite and mutations_require and null_0 and DELETE'
+    Exit 1: 1 failed, 127 deselected in 0.66s (200 instead of required403).
+  Production source bytes were never edited for these controls.
+
+Ruff check and format --check for the route and new suite: exit 0.
+AST comparison against master: only create/update/delete changed; all public/read/
+acknowledgment handlers, schemas and renderer are identical.
+git diff --check: exit 0.
+
+Required remaining gates: independent source review, all 64 migrated-PostgreSQL
+cases and owning API regressions, complete CI, and build/web-release-e2e on both
+push and pull_request for the exact final head. No full parent completion claim.
+
+Tested source SHA-256 (before commit; coordinator records final commit):
+  2db453bce248c0a44f25cdbf7679e98ab619cd95e92c7c6a5ddaa91bc58ed597  apps/api/app/api/routes/trust_articles.py
+  101816d0a90a850629dd6e17a9d163d8ffae187a13df2a93fabe67107fd23355  apps/api/tests/release/test_authorization_trust_articles.py
+
+Final static checks: Ruff check/format, py_compile and git diff --check exit 0.
+Secret inventory over route, new suite, ticket and evidence directory: exit 0, zero findings.
