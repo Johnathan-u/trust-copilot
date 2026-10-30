@@ -1,0 +1,48 @@
+TC-06-002f local verification — 2026-10-30
+Base ab928ad4807e947a5a6b6bad829efb5854581bcf.
+Worktree tc-question-routing-authorization; branch codex/TC-06-002f-question-routing.
+Runtime /tmp/tc-backend-venv, unchanged locked dependencies and Python3.12.
+
+From apps/api before runtime edits:
+python -m pytest tests/release/test_authorization_core_question_routing.py -k sqlite -q --tb=short
+  Exit1: 18 failed, 28 passed, 46 deselected in7.88s.
+  Foreign/moved/archived/deleted/missing parents, reparented questions and the
+  injected parent lookup failure reproduced the missing handler guard.
+After adding exactly one import and three preflight calls:
+python -m pytest tests/release/test_authorization_core_question_routing.py -k sqlite -q --tb=short
+  Exit0: 46 passed, 46 deselected in8.30s;506 existing datetime warnings.
+
+Three temporary source negative controls, each restored exactly:
+  Remove the question guard; select sqlite-foreign-question:
+    Exit1:1 failed,91 deselected in1.19s.
+  Remove the queue guard; select sqlite-foreign-queue:
+    Exit1:1 failed,91 deselected in0.89s.
+  Validate body.question_ids[:1] instead of the full batch; select sqlite-foreign-batch:
+    Exit1:1 failed,91 deselected in0.93s.
+
+python -m pytest tests/test_confidence_routing.py -k 'TestConfidenceRoutingService and (test_thresholds or test_set_thresholds)' -q
+  Exit0:2 passed,6 deselected in0.67s.
+Exact-source comparison:
+  Removing the four added lines reconstructs the original router byte for byte.
+  confidence_routing_service.py and workspace_refs.py equal their base blobs.
+ruff check/format --check on the two Python files and git diff --check:
+  Exit0 after the initial implementation.
+
+After restoring the exact source:
+python -m pytest tests/release/test_authorization_core_question_routing.py -k sqlite -q --tb=short
+  Exit0:46 passed,46 deselected in7.32s.
+python -m pytest tests/release/test_principal_contract.py tests/release/test_session_validation.py -k 'sqlite or expiry_boundary' -q --tb=short
+  Exit0:71 passed,70 deselected in23.82s.
+python -m pytest tests/release/test_safe_collection.py -q
+  Exit0:29 passed in38.07s.
+python -m pytest tests/release/test_authorization_core_question_routing.py --collect-only -q
+  Exit0:92 cases in0.75s (46 SQLite/46 PostgreSQL).
+TC_REQUIRE_DB=1 python -m pytest tests/release/test_authorization_core_question_routing.py -k postgres -q --tb=short
+  Exit3 before execution: localhost5432 IPv4/IPv6 connection refused during
+  Alembic setup. No PostgreSQL execution/qualification claimed.
+
+Final ruff check/format, py_compile and git diff --check: exit0.
+Secret inventory on all five claimed files: exit0, zero findings.
+Independent review and exact-head push/PR build/web-release-e2e remain
+required. No parent completion, provider/storage call, shared helper/service
+change, answer mutation change, publication or fourth PR is claimed.
