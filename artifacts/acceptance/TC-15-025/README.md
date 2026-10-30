@@ -164,3 +164,47 @@ mistaking the historical heads for this follow-up:
 | `app/dashboard/compliance-gaps/recommendations.tsx` | `5d9d0abf14478595a290ee9379fc47b42db33332` |
 | `tests/unit/compliance-gap-provenance.test.ts` | `b120ee6cee972319553ffcb584b6de5f7ea3f247` |
 | `e2e/release/ui-23.spec.ts` | `14bbd5b42df7440da230395b8bc7fc63c74bcd2a` |
+
+## Review correction — source labels without internal IDs
+
+Assigned by [#85 comment6511936256](https://github.com/Johnathan-u/trust-copilot/issues/85#issuecomment-6511936256).
+Base implementation `1a66b62f943aa7bcd3a38b401ed8a765c6a2bb9b` and its authorship
+are preserved; this narrow correction is a separate child commit.
+
+Independent review found that disclosure/link labels exposed raw evidence,
+control and question identifiers. They now use per-list positions, for example
+`View evidence source 1`, `View control source 1` and `View question source 1`.
+Actual IDs remain unchanged in React keys, scoped source requests and navigation
+URLs. No data, permissions, request lifecycle or other product behavior changed.
+
+The added real-component regression uses multiple arbitrary six-digit IDs in
+reverse order. It checks that none appear in visible text before or after opening
+sources, each ordinal targets its original item, selected evidence/question
+reads retain their exact IDs and workspace, and the verified questionnaire link
+retains its original parent ID. Before the label correction, this test failed on
+visible `View evidence 871002` / `View control 841002` / `View question 831002` text.
+
+The browser spec keeps all 29 cases. Existing interaction selectors now use the
+human labels. The previous uppercase-only `Control 41` absence assertion is now
+case-insensitive, and the recommendation case additionally checks that source
+IDs are absent from visible text while retaining the exact control/questionnaire
+hrefs and the two expected GET source requests.
+
+Verification from `apps/web`, Node 24.22.1 / npm 11.9.0:
+
+| Command | Result |
+| --- | --- |
+| `npx --no-install vitest run tests/unit/compliance-gap-provenance.test.ts -t 'labels sources by list position'` before correction | 1 failed on visible IDs, 12 unselected tests skipped |
+| `npx --no-install vitest run tests/unit/compliance-gap-provenance.test.ts` after correction | 13 passed |
+| `npm run test:unit` | 32 files, 214 passed |
+| `npm run lint` | Passed, full frontend ESLint |
+| `npm run format:check` | Passed, full frontend Prettier |
+| `npm run typecheck` | Passed, route types and TypeScript |
+| `npx --no-install playwright test e2e/release/ui-23.spec.ts --list` | 29 cases collected |
+| `git diff --check` | Passed |
+
+The direct Chromium launch prerequisite check still exits 1 because
+`chromium_headless_shell-1248` is absent. Browser/axe/screenshot execution remains
+unqualified locally; no repeat production build or browser pass is claimed for
+this correction. Independent review and exact final-head CI are still required.
+The final local commit/tree are returned to the coordinator for the live ledger.

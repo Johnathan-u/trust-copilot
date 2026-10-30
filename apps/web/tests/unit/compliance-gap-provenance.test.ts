@@ -174,17 +174,23 @@ describe('recommendation provenance', () => {
     )
     expect(fetcher).not.toHaveBeenCalled()
     expect(
-      view.getByRole('link', { name: 'View control 41' }).getAttribute('href')
+      view
+        .getByRole('link', { name: 'View control source 1' })
+        .getAttribute('href')
     ).toBe('/dashboard/controls/41')
     await act(async () =>
-      fireEvent.click(view.getByRole('button', { name: 'View evidence 71' }))
+      fireEvent.click(
+        view.getByRole('button', { name: 'View evidence source 1' })
+      )
     )
     expect(view.getByText('Quarterly review')).toBeTruthy()
     expect(
       view.queryByRole('link', { name: 'Open source questionnaire' })
     ).toBeNull()
     await act(async () =>
-      fireEvent.click(view.getByRole('button', { name: 'View question 31' }))
+      fireEvent.click(
+        view.getByRole('button', { name: 'View question source 1' })
+      )
     )
     expect(view.getByText('How do you review access?')).toBeTruthy()
     expect(
@@ -194,9 +200,86 @@ describe('recommendation provenance', () => {
     ).toBe('/dashboard/questionnaires/21')
     expect(fetcher).toHaveBeenCalledTimes(2)
     await act(async () =>
-      fireEvent.click(view.getByRole('button', { name: 'Hide evidence 71' }))
+      fireEvent.click(
+        view.getByRole('button', { name: 'Hide evidence source 1' })
+      )
     )
     expect(fetcher.mock.calls[0][1].signal.aborted).toBe(true)
+  })
+
+  it('labels sources by list position while retaining arbitrary identifiers in requests and links', async () => {
+    const sources = {
+      ...recommendation,
+      evidence_ids: [871002, 871001],
+      control_ids: [841002, 841001],
+      question_ids: [831002, 831001],
+      question_sources: [
+        { question_id: 831002, questionnaire_id: 821002 },
+        { question_id: 831001, questionnaire_id: 821001 },
+      ],
+    }
+    const fetcher = vi
+      .fn()
+      .mockResolvedValueOnce(reply({ ...evidence, id: 871002 }))
+      .mockResolvedValueOnce(
+        reply({
+          ...questionnaire,
+          id: 821001,
+          questions: [{ ...questionnaire.questions[0], id: 831001 }],
+        })
+      )
+    vi.stubGlobal('fetch', fetcher)
+    const view = render(
+      createElement(Recommendations, {
+        recommendations: [sources],
+        workspaceId: 7,
+      })
+    )
+    const identifiers =
+      /\b(?:871002|871001|841002|841001|831002|831001|821002|821001)\b/
+    expect(view.container.textContent).not.toMatch(identifiers)
+    expect(
+      view
+        .getByRole('link', { name: 'View control source 1' })
+        .getAttribute('href')
+    ).toBe('/dashboard/controls/841002')
+    expect(
+      view
+        .getByRole('link', { name: 'View control source 2' })
+        .getAttribute('href')
+    ).toBe('/dashboard/controls/841001')
+    expect(
+      view.getByRole('button', { name: 'View evidence source 2' })
+    ).toBeTruthy()
+    expect(
+      view.getByRole('button', { name: 'View question source 1' })
+    ).toBeTruthy()
+
+    await act(async () =>
+      fireEvent.click(
+        view.getByRole('button', { name: 'View evidence source 1' })
+      )
+    )
+    await act(async () =>
+      fireEvent.click(
+        view.getByRole('button', { name: 'View question source 2' })
+      )
+    )
+
+    expect(view.getByText('Quarterly review')).toBeTruthy()
+    expect(view.getByText('How do you review access?')).toBeTruthy()
+    expect(view.container.textContent).not.toMatch(identifiers)
+    expect(
+      view
+        .getByRole('link', { name: 'Open source questionnaire' })
+        .getAttribute('href')
+    ).toBe('/dashboard/questionnaires/821001')
+    expect(fetcher.mock.calls.map(([url]) => url)).toEqual([
+      '/api/compliance/evidence/871002',
+      '/api/questionnaires/821001?workspace_id=7',
+    ])
+    for (const [, options] of fetcher.mock.calls)
+      expect(options.method).toBeUndefined()
   })
 
   it('fails malformed lists or identifiers instead of silently dropping a recommendation', () => {

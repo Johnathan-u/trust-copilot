@@ -204,7 +204,9 @@ test('reviewer sees resolution, ownership and source links without administrator
   await expect(
     page.getByText(/Questionnaire coverage is not certification/)
   ).toBeVisible()
-  await expect(page.locator('#main-content')).not.toContainText('Control 41')
+  await expect(page.locator('#main-content')).not.toContainText(
+    /\bcontrol\s+41\b/i
+  )
   await expect(
     page.getByRole('button', { name: /Dismiss|Accept gap/ })
   ).toHaveCount(0)
@@ -307,6 +309,7 @@ test('recommendations disclose real evidence and matching questions on demand wi
     name: 'Recommended Next Evidence',
   })
   await expect(recommendations.getByText(recommendation.title)).toBeVisible()
+  await expect(recommendations).not.toContainText(/\b(?:71|41|31)\b/)
   expect(
     calls.filter(
       (call) =>
@@ -315,16 +318,16 @@ test('recommendations disclose real evidence and matching questions on demand wi
     )
   ).toEqual([])
   await expect(
-    recommendations.getByRole('link', { name: 'View control 41' })
+    recommendations.getByRole('link', { name: 'View control source 1' })
   ).toHaveAttribute('href', '/dashboard/controls/41')
   await recommendations
-    .getByRole('button', { name: 'View evidence 71' })
+    .getByRole('button', { name: 'View evidence source 1' })
     .click()
   await expect(
     recommendations.getByText('Quarterly access review', { exact: true })
   ).toBeVisible()
   await recommendations
-    .getByRole('button', { name: 'View question 31' })
+    .getByRole('button', { name: 'View question source 1' })
     .click()
   await expect(
     recommendations.getByText(questionnaire.questions[0].text)
@@ -339,6 +342,17 @@ test('recommendations disclose real evidence and matching questions on demand wi
     'href',
     '/dashboard/questionnaires/21'
   )
+  await expect(recommendations).not.toContainText(/\b(?:71|41|31|21)\b/)
+  expect(
+    calls.filter(
+      (call) =>
+        call.path.startsWith('/api/compliance/evidence/') ||
+        call.path.startsWith('/api/questionnaires/')
+    )
+  ).toEqual([
+    { path: '/api/compliance/evidence/71', method: 'GET' },
+    { path: '/api/questionnaires/21', method: 'GET' },
+  ])
   expect(calls.filter((call) => call.method !== 'GET')).toEqual([])
   await questionnaireLink.click()
   await expect(page).toHaveURL(/\/dashboard\/questionnaires\/21$/)
@@ -419,7 +433,7 @@ test('malformed recommendation provenance fails the coverage read and retry reco
   malformed = false
   await error.getByRole('button', { name: 'Try again' }).click()
   await expect(
-    page.getByRole('link', { name: 'View control 41' })
+    page.getByRole('link', { name: 'View control source 1' })
   ).toBeVisible()
   await expect(error).toHaveCount(0)
 })
@@ -473,7 +487,7 @@ for (const failure of [
     })
     await recommendations
       .getByRole('button', {
-        name: question ? 'View question 31' : 'View evidence 71',
+        name: question ? 'View question source 1' : 'View evidence source 1',
       })
       .click()
     await expect(
@@ -595,17 +609,19 @@ for (const width of [360, 768, 1440]) {
       name: 'Recommended Next Evidence',
     })
     await recommendationRegion
-      .getByRole('button', { name: 'View evidence 71' })
+      .getByRole('button', { name: 'View evidence source 1' })
       .focus()
     await page.keyboard.press('Enter')
     await expect(
-      recommendationRegion.getByRole('button', { name: 'Hide evidence 71' })
+      recommendationRegion.getByRole('button', {
+        name: 'Hide evidence source 1',
+      })
     ).toBeFocused()
     await expect(
       recommendationRegion.getByText('Quarterly access review', { exact: true })
     ).toBeVisible()
     await recommendationRegion
-      .getByRole('button', { name: 'View question 31' })
+      .getByRole('button', { name: 'View question source 1' })
       .focus()
     await page.keyboard.press('Enter')
     await expect(
@@ -756,11 +772,11 @@ test('changing workspace clears the previous snapshot before the new read comple
   await expect(
     page.getByText('Access review record', { exact: true })
   ).toBeVisible()
-  await page.getByRole('button', { name: 'View evidence 71' }).click()
+  await page.getByRole('button', { name: 'View evidence source 1' }).click()
   await expect(
     page.getByText('Quarterly access review', { exact: true })
   ).toBeVisible()
-  await page.getByRole('button', { name: 'View question 31' }).click()
+  await page.getByRole('button', { name: 'View question source 1' }).click()
   await expect(
     page.getByText('Loading question source', { exact: true })
   ).toBeVisible()

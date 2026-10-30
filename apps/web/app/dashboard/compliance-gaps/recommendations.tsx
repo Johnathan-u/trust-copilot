@@ -273,33 +273,33 @@ export function Recommendations({
                   {row.improves_questions}
                 </span>
               </p>
-              {row.evidence_ids.map((id) => (
+              {row.evidence_ids.map((id, sourceIndex) => (
                 <SourceDisclosure
                   key={`${workspaceId}:${id}`}
-                  label={`evidence ${id}`}
+                  label={`evidence source ${sourceIndex + 1}`}
                 >
                   <EvidenceDetail id={id} workspaceId={workspaceId} />
                 </SourceDisclosure>
               ))}
               {row.control_ids.length > 0 ? (
                 <ul className="flex flex-wrap gap-x-4 gap-y-2">
-                  {row.control_ids.map((id) => (
+                  {row.control_ids.map((id, sourceIndex) => (
                     <li key={id}>
                       <Link
                         prefetch={false}
                         className={sourceLinkClass}
                         href={`/dashboard/controls/${id}`}
                       >
-                        View control {id}
+                        View control source {sourceIndex + 1}
                       </Link>
                     </li>
                   ))}
                 </ul>
               ) : null}
-              {row.question_sources.map((source) => (
+              {row.question_sources.map((source, sourceIndex) => (
                 <SourceDisclosure
                   key={`${workspaceId}:${source.question_id}:${source.questionnaire_id}`}
-                  label={`question ${source.question_id}`}
+                  label={`question source ${sourceIndex + 1}`}
                 >
                   <QuestionDetail source={source} workspaceId={workspaceId} />
                 </SourceDisclosure>
