@@ -1,0 +1,230 @@
+{
+  "ticket": "TC-15-038b",
+  "claim": "https://github.com/Johnathan-u/trust-copilot/issues/85#issuecomment-6513665053",
+  "base_commit": "91db7baf9ae252b2fb11688aae92c663318cb0c6",
+  "implementation_commit": "52b57bbf98a2cbd78a7979c63f225f00bfe1cf34",
+  "implementation_tree": "35aaa5a6705e2a11078a1c84ad439e19605a7486",
+  "source_blobs": {
+    "apps/web/app/dashboard/jobs/page.tsx": "1c66aeb5c82b3c02cce7da471cc87d689b176f37",
+    "apps/web/lib/job-history-consumer.ts": "ce1062f36405caf76f0ad89c290f57dba1fc030c",
+    "apps/web/tests/unit/job-history-consumer.test.ts": "689e7f6885bf3617bef61410d09794aeb48c399b",
+    "apps/web/tests/unit/jobs-page.test.ts": "bac6983d6335f931faddcbe659e79f6a4b8d637f",
+    "apps/web/e2e/release/screen-jobs.spec.ts": "305595aa6a116d9fc13ddbcadf8e11d9657ee943"
+  },
+  "status": "implemented locally; independent review and required final-head CI pending",
+  "environment": {
+    "node": "24.22.1",
+    "npm": "11.9.0",
+    "next": "16.4.3",
+    "react": "19.3.1",
+    "dependencies": "Existing locked node_modules copied locally from tc-vendor-ui after a temporary symlink failed Turbopack root containment; no install, version, lockfile or manifest change.",
+    "chromium_executable": "/root/.cache/ms-playwright/chromium-1248/chrome-linux64/chrome",
+    "chromium_exists": false
+  },
+  "checks": [
+    {
+      "cwd": "apps/web",
+      "command": "npm run test:unit",
+      "exit_code": 0,
+      "test_files_passed": 39,
+      "tests_passed": 308
+    },
+    {
+      "cwd": "apps/web",
+      "command": "npm run test:unit -- tests/unit/job-history-consumer.test.ts tests/unit/jobs-page.test.ts",
+      "exit_code": 0,
+      "test_files_passed": 2,
+      "tests_passed": 52,
+      "consumer_cases": 17,
+      "page_cases": 35
+    },
+    {
+      "cwd": "apps/web",
+      "command": "npm run typecheck",
+      "exit_code": 0
+    },
+    {
+      "cwd": "apps/web",
+      "command": "npm run build",
+      "exit_code": 0,
+      "route": "/dashboard/jobs",
+      "note": "Production compilation, TypeScript, page-data collection and 40-page generation completed."
+    },
+    {
+      "cwd": "apps/web",
+      "command": "npx eslint app/dashboard/jobs/page.tsx lib/job-history-consumer.ts tests/unit/job-history-consumer.test.ts tests/unit/jobs-page.test.ts e2e/release/screen-jobs.spec.ts --max-warnings=0",
+      "exit_code": 0
+    },
+    {
+      "cwd": "apps/web",
+      "command": "npx prettier --check app/dashboard/jobs/page.tsx lib/job-history-consumer.ts tests/unit/job-history-consumer.test.ts tests/unit/jobs-page.test.ts e2e/release/screen-jobs.spec.ts",
+      "exit_code": 0
+    },
+    {
+      "cwd": "apps/web",
+      "command": "npx playwright test e2e/release/screen-jobs.spec.ts --list",
+      "exit_code": 0,
+      "tests_discovered": 39,
+      "browser_execution": false
+    },
+    {
+      "cwd": ".",
+      "command": "python scripts/security/secret_inventory.py paths apps/web/app/dashboard/jobs/page.tsx apps/web/lib/job-history-consumer.ts apps/web/tests/unit/job-history-consumer.test.ts apps/web/tests/unit/jobs-page.test.ts apps/web/e2e/release/screen-jobs.spec.ts --root . --fail-on block",
+      "exit_code": 0,
+      "blocking_findings": 0,
+      "total_findings": 0
+    },
+    {
+      "cwd": ".",
+      "command": "git diff --check",
+      "exit_code": 0
+    }
+  ],
+  "observed_failures_and_resolution": [
+    {
+      "check": "initial consumer and page test runs",
+      "result": "Two failing suites because the new implementation modules did not exist yet; expected test-first import failures, not counted as behavioral negative controls."
+    },
+    {
+      "check": "first scoped ESLint",
+      "exit_code": 1,
+      "result": "Two react-hooks/set-state-in-effect failures. State resets moved to the explicit reload/action/detail event handlers; no rule suppression."
+    },
+    {
+      "check": "first npm run build",
+      "exit_code": 1,
+      "result": "Turbopack could not resolve Next through a symlink outside this worktree root. Replaced only that temporary symlink with a copy of existing locked packages. Final builds passed."
+    },
+    {
+      "check": "access-loss regression red run",
+      "exit_code": 1,
+      "tests_failed": 3,
+      "result": "Previously loaded rows remained after a later history 401/403/404. Clearing those rows and links fixed all three cases."
+    },
+    {
+      "check": "first negative-control wrapper",
+      "exit_code": 1,
+      "result": "Stopped after the workspace-key control because it expected the literal AssertionError text. The targeted test correctly failed with TestingLibraryElementError: the old confirmation dialog remained and hid current-workspace content. Sources restored in finally; the remaining two controls were executed separately and all six logs confirmed one targeted test failure each."
+    },
+    {
+      "check": "independent-review authority-loss red regressions",
+      "exit_code": 1,
+      "tests_failed": 11,
+      "result": "Detail read denial retained prior history; list denial did not invalidate detail; mutation denial lacked session invalidation/read-authority revalidation. Shared page-local invalidation and authoritative revalidation fixed all 11 cases."
+    }
+  ],
+  "negative_controls": [
+    {
+      "name": "raw_payload",
+      "exit_code": 1,
+      "result": "expected targeted test failed",
+      "source_restored": true
+    },
+    {
+      "name": "ack_identity",
+      "exit_code": 1,
+      "result": "expected targeted test failed",
+      "source_restored": true
+    },
+    {
+      "name": "current_admin",
+      "exit_code": 1,
+      "result": "expected targeted test failed",
+      "source_restored": true
+    },
+    {
+      "name": "workspace_ownership",
+      "exit_code": 1,
+      "result": "expected targeted test failed",
+      "source_restored": true
+    },
+    {
+      "name": "strict_mode",
+      "exit_code": 1,
+      "result": "expected targeted test failed",
+      "source_restored": true
+    },
+    {
+      "name": "cursor_workspace",
+      "exit_code": 1,
+      "result": "expected targeted test failed",
+      "source_restored": true
+    }
+  ],
+  "negative_control_commands": [
+    "node node_modules/vitest/vitest.mjs run tests/unit/job-history-consumer.test.ts -t 'projects history'",
+    "node node_modules/vitest/vitest.mjs run tests/unit/job-history-consumer.test.ts -t 'requires the expected identity'",
+    "node node_modules/vitest/vitest.mjs run tests/unit/job-history-consumer.test.ts -t 'requires current admin'",
+    "node node_modules/vitest/vitest.mjs run tests/unit/jobs-page.test.ts -t 'clears detail, mutation'",
+    "node node_modules/vitest/vitest.mjs run tests/unit/jobs-page.test.ts -t 'reads once in StrictMode'",
+    "node node_modules/vitest/vitest.mjs run tests/unit/job-history-consumer.test.ts -t 'binds reload cursors'"
+  ],
+  "browser_acceptance": {
+    "spec": "apps/web/e2e/release/screen-jobs.spec.ts",
+    "discovered_cases": 39,
+    "executed_locally": false,
+    "api_mode": "deterministic Playwright route fixtures; UI control paths only",
+    "viewports": [360, 768, 1440],
+    "expected_axe_files": [
+      "axe-page-360.json",
+      "axe-page-768.json",
+      "axe-page-1440.json",
+      "axe-dialog-360.json",
+      "axe-dialog-768.json",
+      "axe-dialog-1440.json"
+    ],
+    "axe_schema": {
+      "width": "integer viewport width",
+      "surface": "page or dialog",
+      "violationCount": "integer equal to violations.length",
+      "violations": "array of id, impact, node count"
+    },
+    "screenshots_expected": 6,
+    "actual_axe_results": null,
+    "actual_screenshots": null,
+    "required_ci": "Coordinator-owned wiring must clear generated evidence, run all 39 cases, validate the six fresh reports, and require build plus web-release-e2e for push and pull_request on the final published head.",
+    "original_29_cases_preserved": true
+  },
+  "limitations": [
+    "No local Chromium executable; no local browser, screenshot, axe or integrated browser/API/DB run is claimed.",
+    "PostgreSQL and real provider execution are outside these frontend control-path checks.",
+    "Only existing parse/index/generate/export job types. No sync-history contract or owner/viewer role invention.",
+    "Checked document references link to the existing document library; there is no individual document detail route.",
+    "No navigation or CI workflow changes in the worker commit; coordinator owns those files.",
+    "Parent TC-15-038 remains open for its remaining full acceptance, sync-history, planned-role policy and integrated qualification."
+  ],
+  "initial_implementation_commit": "22516e769f106e61684786787e2765b583bdcfa9",
+  "initial_implementation_tree": "f90f3907b9961593beb89edf7ae1bda4d4258801",
+  "authority_loss_repair": {
+    "reviewer": "/root/review_alerts_and_ci",
+    "parent_commit": "dffb6870d44340d8480607ecf2400b4bb2074551",
+    "implementation_commit": "52b57bbf98a2cbd78a7979c63f225f00bfe1cf34",
+    "review_status": "independent re-review pending",
+    "red_command": "npm run test:unit -- tests/unit/jobs-page.test.ts -t 'detail read denial|history read denial|history denial also|mutation401|mutation403'",
+    "red_exit_code": 1,
+    "red_tests_failed": 11,
+    "fixed_behavior": [
+      "Abort every owned pending list/detail/mutation before clearing private rows, object references, detail/dialogs, confirmations and notices.",
+      "List401/403/404, detail401/403 and mutation401 invalidate workspace-private state. Individual detail404 remains scoped.",
+      "Mutation403 clears caches and blocks administrative actions for this consumer; only a successful authoritative history reread restores read-only rows/links. Failed or denied rereads cannot retain stale rows."
+    ],
+    "negative_controls": [
+      {
+        "name": "late_history_after_denial",
+        "exit_code": 1,
+        "failure": "Removing history abort caused both detail-denial cases to fail.",
+        "restored": true
+      },
+      {
+        "name": "admin_denial_cache",
+        "exit_code": 1,
+        "failure": "Retaining history during invalidation exposed stale rows while authoritative revalidation was pending.",
+        "restored": true
+      }
+    ],
+    "harness_note": "The initial broad action403 negative control removed the entire invalidation call and correctly failed with TestingLibraryElementError because the confirmation remained. Its wrapper expected literal AssertionError and stopped. The control was narrowed to retaining only cached history; it then failed directly on the stale-article assertion. Sources were restored after every probe.",
+    "browser_new_cases": 10,
+    "browser_execution_local": false,
+    "final_checks": "308 web unit tests / 39 files, 52 focused tests / 2 files, TypeScript, production build, scoped ESLint/Prettier, diff check and zero-finding secret scan passed."
+  }
+}
