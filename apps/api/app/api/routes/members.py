@@ -16,7 +16,7 @@ from app.core.config import get_settings
 from app.core.database import get_db
 from app.core.invite_codes import generate_invite_code_pair, hash_invite_code
 from app.core.mfa import encrypt_totp_secret, generate_totp_secret, mfa_reenrol_required
-from app.core.roles import BUILTIN_ROLES
+from app.core.roles import BUILTIN_PERMISSIONS, BUILTIN_ROLES
 from app.models import (
     ApiKey,
     CustomRole,
@@ -183,6 +183,7 @@ async def create_invite(
     )
     if pending:
         raise HTTPException(status_code=400, detail="Invite already sent to this email")
+    _require_assignment_grants(db, session, role)
     token_raw = secrets.token_urlsafe(32)
     token_hash_val = _token_hash(token_raw)
     code_display, _code_norm = generate_invite_code_pair()
@@ -326,6 +327,7 @@ async def update_member_role(
                 status_code=400,
                 detail="Transfer ownership to another admin before changing your role",
             )
+    _require_assignment_grants(db, session, role, previous_role=mem.role)
     mem.role = role
     db.commit()
     db.refresh(mem)
@@ -640,6 +642,7 @@ async def create_api_key(
     role = (req.role or "editor").lower()
     if role not in ("editor", "reviewer", "admin"):
         raise HTTPException(status_code=400, detail="role must be editor, reviewer, or admin")
+    _require_assignment_grants(db, session, role)
     raw_key = secrets.token_urlsafe(32)
     key_hash = hashlib.sha256(raw_key.encode()).hexdigest()
     api_key = ApiKey(
@@ -723,6 +726,40 @@ class UpdateCustomRoleRequest(BaseModel):
     can_admin: bool | None = None
 
 
+_ROLE_PERMISSION_FIELDS = ("can_edit", "can_review", "can_export", "can_admin")
+
+
+def _require_role_grants(db: Session, session: dict, newly_enabled: list[str]) -> None:
+    # Snapshot before touching the target: it may be the actor's own custom role.
+    permissions = {
+        field: _resolve_permission(session.get("role"), field, session["workspace_id"], db)
+        for field in _ROLE_PERMISSION_FIELDS
+    }
+    if any(not permissions[field] for field in newly_enabled):
+        raise HTTPException(status_code=403, detail="Cannot grant permissions you do not have")
+
+
+def _require_assignment_grants(
+    db: Session, session: dict, role: str, previous_role: str | None = None
+) -> None:
+    workspace_id = session["workspace_id"]
+    permissions = BUILTIN_PERMISSIONS.get(role)
+    if permissions is None:
+        # A failed target lookup must not be mistaken for a role with no grants.
+        target = (
+            db.query(CustomRole)
+            .filter(CustomRole.workspace_id == workspace_id, CustomRole.name == role)
+            .one()
+        )
+        permissions = {field: bool(getattr(target, field)) for field in _ROLE_PERMISSION_FIELDS}
+    newly_enabled = [
+        field
+        for field in _ROLE_PERMISSION_FIELDS
+        if permissions[field] and not _resolve_permission(previous_role, field, workspace_id, db)
+    ]
+    _require_role_grants(db, session, newly_enabled)
+
+
 def _role_to_dict(cr: CustomRole) -> dict:
     return {
         "id": cr.id,
@@ -779,6 +816,9 @@ async def create_custom_role(
     )
     if existing:
         raise HTTPException(status_code=400, detail=f"Role '{name}' already exists")
+    _require_role_grants(
+        db, session, [field for field in _ROLE_PERMISSION_FIELDS if getattr(req, field)]
+    )
     cr = CustomRole(
         workspace_id=workspace_id,
         name=name,
@@ -825,10 +865,19 @@ async def update_custom_role(
     )
     if not cr:
         raise HTTPException(status_code=404, detail="Custom role not found")
+    _require_role_grants(
+        db,
+        session,
+        [
+            field
+            for field in _ROLE_PERMISSION_FIELDS
+            if getattr(req, field) is True and not getattr(cr, field)
+        ],
+    )
     changes = {}
     if req.description is not None:
         cr.description = req.description.strip() or None
-    for field in ("can_edit", "can_review", "can_export", "can_admin"):
+    for field in _ROLE_PERMISSION_FIELDS:
         val = getattr(req, field)
         if val is not None:
             old = getattr(cr, field)

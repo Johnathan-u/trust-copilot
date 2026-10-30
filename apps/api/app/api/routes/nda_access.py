@@ -56,7 +56,9 @@ async def approve(
     session: dict = Depends(require_can_admin),
     db: Session = Depends(get_db),
 ):
-    result = nda.approve_request(db, request_id, session["user_id"], access_days)
+    result = nda.approve_request(
+        db, request_id, session["user_id"], access_days, workspace_id=session["workspace_id"]
+    )
     if not result:
         raise HTTPException(status_code=404, detail="Request not found")
     db.commit()
@@ -69,7 +71,7 @@ async def reject(
     session: dict = Depends(require_can_admin),
     db: Session = Depends(get_db),
 ):
-    result = nda.reject_request(db, request_id)
+    result = nda.reject_request(db, request_id, workspace_id=session["workspace_id"])
     if not result:
         raise HTTPException(status_code=404, detail="Request not found")
     db.commit()
@@ -82,7 +84,7 @@ async def revoke(
     session: dict = Depends(require_can_admin),
     db: Session = Depends(get_db),
 ):
-    result = nda.revoke_access(db, request_id)
+    result = nda.revoke_access(db, request_id, workspace_id=session["workspace_id"])
     if not result:
         raise HTTPException(status_code=404, detail="Request not found")
     db.commit()

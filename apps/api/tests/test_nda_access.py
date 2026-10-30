@@ -58,7 +58,9 @@ class TestNdaAccessService:
             nda_accepted=True,
         )
         db_session.commit()
-        approved = nda.approve_request(db_session, req["id"], approved_by_user_id=1)
+        approved = nda.approve_request(
+            db_session, req["id"], approved_by_user_id=1, workspace_id=ws.id
+        )
         db_session.commit()
         assert approved["status"] == "approved"
         assert approved["access_token"] is not None
@@ -74,7 +76,9 @@ class TestNdaAccessService:
             nda_accepted=True,
         )
         db_session.commit()
-        approved = nda.approve_request(db_session, req["id"], approved_by_user_id=1)
+        approved = nda.approve_request(
+            db_session, req["id"], approved_by_user_id=1, workspace_id=ws.id
+        )
         db_session.commit()
         valid = nda.validate_access_token(db_session, approved["access_token"])
         assert valid["valid"] is True
@@ -90,7 +94,7 @@ class TestNdaAccessService:
             nda_accepted=True,
         )
         db_session.commit()
-        rejected = nda.reject_request(db_session, req["id"])
+        rejected = nda.reject_request(db_session, req["id"], workspace_id=ws.id)
         db_session.commit()
         assert rejected["status"] == "rejected"
 
@@ -104,9 +108,9 @@ class TestNdaAccessService:
             nda_accepted=True,
         )
         db_session.commit()
-        nda.approve_request(db_session, req["id"], approved_by_user_id=1)
+        nda.approve_request(db_session, req["id"], approved_by_user_id=1, workspace_id=ws.id)
         db_session.commit()
-        revoked = nda.revoke_access(db_session, req["id"])
+        revoked = nda.revoke_access(db_session, req["id"], workspace_id=ws.id)
         db_session.commit()
         assert revoked["status"] == "revoked"
 
@@ -120,9 +124,11 @@ class TestNdaAccessService:
             nda_accepted=True,
         )
         db_session.commit()
-        approved = nda.approve_request(db_session, req["id"], approved_by_user_id=1)
+        approved = nda.approve_request(
+            db_session, req["id"], approved_by_user_id=1, workspace_id=ws.id
+        )
         db_session.commit()
-        nda.revoke_access(db_session, req["id"])
+        nda.revoke_access(db_session, req["id"], workspace_id=ws.id)
         db_session.commit()
         valid = nda.validate_access_token(db_session, approved["access_token"])
         assert valid["valid"] is False
