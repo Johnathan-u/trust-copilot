@@ -1,0 +1,58 @@
+TC-04-006a verification
+Base: 7b3ea6e5369a550960ae7d98f7565c7897c2087f
+Worktree: /workspace/scratch/ac0fa793e50b/tc-session-persistence
+Branch: codex/TC-04-006a-session-persistence
+Runtime: /tmp/tc-backend-venv/bin/python (Python 3.12)
+No new dependencies; no provider calls; no repository publication.
+
+Read-only intake (source 2a62a4d38caf8399803c4c96ba5c7ac9b3b5adbb;
+same production files as #131 final):
+PYTHONPATH=. python -m pytest -p tests.conftest /tmp/tc-persistence-intake/test_persistence_diagnostic.py -k sqlite -q -s --tb=short
+Exit 1: 5 expected failures, 2 positive controls passed, 7 PostgreSQL cases deselected.
+Four persistence regressions and one independent creation-expiry regression.
+No cookie tokens/passwords are reproduced in this evidence.
+
+New repository matrix before runtime edits:
+python -m pytest tests/release/test_session_persistence.py -k sqlite -q --tb=short
+Exit 1: 42 failed, 5 passed, 47 deselected; additional teardown assertion caught
+the wrongly committed workspace after the old post-commit lookup failure.
+After correcting ownership bookkeeping and the independent signed-bound setup:
+python -m pytest tests/release/test_session_persistence.py -k 'sqlite and (absolute_deadlines or policy_lookup_failure)' -q --tb=short
+Exit 1: 4 intended failures, 1 passed, 89 deselected; no teardown error.
+
+Initial green new matrix:
+python -m pytest tests/release/test_session_persistence.py -k sqlite -q --tb=short
+Exit 0: 47 passed, 47 deselected.
+Added a current-policy recheck failure control, yielding 48 cases per database.
+
+Final combined verification (from apps/api):
+python -m pytest tests/release/test_session_persistence.py tests/release/test_remember_policy.py tests/release/test_principal_contract.py tests/release/test_session_validation.py tests/release/test_mfa_reenrol_security.py -k 'not postgres' -q --tb=short
+Exit 0: 174 passed, 162 deselected; existing datetime deprecation warnings.
+48 new SQLite cases plus 126 related auth/MFA cases.
+The preceding related run had 124 passes and two failures in
+test_switch_preserves_absolute_deadline_when_real_signing_clock_advances
+[sqlite-False-signed] and [sqlite-False-target], due to int('') on session-only
+Max-Age. Approved setup now uses real remembered login. Python AST comparison:
+all 8 original assertions unchanged, one login-success assertion added.
+
+env -u HTTP_PROXY -u HTTPS_PROXY -u ALL_PROXY -u http_proxy -u https_proxy -u all_proxy python -m pytest -m unit -q --tb=short
+Exit 0: 714 passed, 11 existing skipped, 3452 deselected, 12 warnings.
+This run preceded the final additional current-policy recheck test; runtime unchanged.
+
+python -m pytest tests/release/test_session_persistence.py --collect-only -q
+Exit 0: 96 tests collected (48 SQLite and 48 PostgreSQL).
+
+TC_REQUIRE_DB=1 TC_TEST_DATABASE_URL=postgresql://postgres:postgres@localhost:5432/trustcopilot_test python -m pytest tests/release/test_session_persistence.py -k postgres -q --tb=short
+Exit 3: local PostgreSQL unavailable, localhost:5432 connection refused.
+No PostgreSQL cases executed; CI qualification still required.
+
+ruff check app/core/session.py app/api/routes/auth.py app/api/routes/workspaces.py tests/release/test_session_persistence.py tests/release/test_remember_policy.py
+Exit 0: all checks passed.
+ruff format --check (same five files)
+Exit 0: all five files already formatted.
+git diff --check
+Exit 0.
+
+No real-browser restart, live provider or new exact-head CI result is claimed.
+Pending: independent review, #131 integration, required PostgreSQL matrix,
+build and web-release-e2e on both push and pull_request, coordinator merge.

@@ -159,19 +159,25 @@ def sign_session(
     session_id: str | None = None,
     max_age_seconds: int | None = None,
     mfa_enrol_only: bool = False,
+    *,
+    expires_at: int | None = None,
+    cookie_persistent: bool = False,
 ) -> str:
-    """Create session token. ENT-202: max_age_seconds sets exp claim (per-workspace policy)."""
+    """Create a session; an established absolute expiry takes precedence over relative age."""
     payload = {
         "user_id": user_id,
         "email": email,
         "workspace_id": workspace_id,
         "role": role,
+        "cookie_persistent": cookie_persistent is True,
     }
     if session_id:
         payload["session_id"] = session_id
     if mfa_enrol_only:
         payload["mfa_enrol_only"] = True
-    if max_age_seconds is not None:
+    if expires_at is not None:
+        payload["exp"] = expires_at
+    elif max_age_seconds is not None:
         payload["exp"] = int(time.time()) + max_age_seconds
     return sign_token(payload)
 

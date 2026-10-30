@@ -1294,49 +1294,108 @@ test('closing the resolver and changing workspace ignores an old evidence respon
   await expect(page.getByText(/resolved confirmed/)).toHaveCount(0)
 })
 
-test('permission revocation clears a confirmed private gap title and action state', async ({
-  page,
-}) => {
-  await installApi(page, 'admin')
-  let denied = false
-  let current = { ...gap }
-  await page.route('**/api/evidence-gaps', (route) =>
-    denied
-      ? json(route, {}, 403)
-      : json(route, {
-          schema_version: 'evidence-gap-ownership/v1',
-          gaps: [current],
+for (const [trigger, title] of [
+  [
+    'manual',
+    'permission revocation clears a confirmed private gap title and action state',
+  ],
+  [
+    'automatic',
+    'post-decision permission revocation clears confirmed private state before a manual refresh',
+  ],
+] as const) {
+  test(title, async ({ page }) => {
+    await installApi(page, 'admin')
+    let denied = false
+    let current = { ...gap }
+    let postDecisionRequested = false
+    let deniedReads = 0
+    let release: () => void = () => {}
+    const postDecision = new Promise<void>((resolve) => {
+      release = resolve
+    })
+    const authoritativeReason =
+      'Accepted gap returned by the post-decision reload.'
+    await page.route('**/api/evidence-gaps', async (route) => {
+      const afterDecision =
+        current.status === 'accepted' && !postDecisionRequested
+      if (afterDecision) {
+        postDecisionRequested = true
+        await postDecision
+      }
+      if (denied) {
+        deniedReads++
+        return json(route, {}, 403)
+      }
+      return json(route, {
+        schema_version: 'evidence-gap-ownership/v1',
+        gaps: [
+          afterDecision ? { ...current, reason: authoritativeReason } : current,
+        ],
+      })
+    })
+    await page.route('**/api/evidence-gaps/91/decision', (route) => {
+      current = closedGap('accepted')
+      return json(route, current)
+    })
+    await page.goto('/dashboard/compliance-gaps')
+    await page.getByRole('button', { name: 'Accept gap', exact: true }).click()
+    await page
+      .getByRole('dialog')
+      .getByRole('button', { name: 'Confirm accept' })
+      .click()
+    try {
+      await expect(
+        page.getByText('Access review record: accepted confirmed.', {
+          exact: true,
         })
-  )
-  await page.route('**/api/evidence-gaps/91/decision', (route) => {
-    current = closedGap('accepted')
-    return json(route, current)
+      ).toBeFocused()
+      await expect.poll(() => postDecisionRequested).toBe(true)
+      if (trigger === 'automatic') {
+        // Reproduce access loss on the already pending post-decision read.
+        denied = true
+        release()
+      } else {
+        release()
+        // Notice focus follows the mutation acknowledgment, not completion of
+        // its automatic GET. Wait for content only that GET can have supplied.
+        await expect(
+          page.getByText(authoritativeReason, { exact: true })
+        ).toBeVisible()
+        denied = true
+        await page
+          .getByRole('button', { name: 'Refresh gaps', exact: true })
+          .click()
+      }
+      await expect.poll(() => deniedReads).toBe(1)
+      const region = page.getByRole('region', {
+        name: 'Evidence gaps',
+        exact: true,
+      })
+      await expect(region.locator('[data-state="error"]')).toBeVisible()
+      await expect(region).not.toContainText('Access review record')
+      await expect(
+        region.getByRole('button', { name: 'Refresh gaps', exact: true })
+      ).toHaveCount(0)
+      await expect(page.getByRole('dialog')).toHaveCount(0)
+      denied = false
+      await region
+        .getByRole('button', { name: 'Try again', exact: true })
+        .click()
+      await expect(
+        region.getByRole('heading', {
+          name: 'Access review record',
+          exact: true,
+        })
+      ).toBeVisible()
+      await expect(
+        page.getByText('Access review record: accepted confirmed.', {
+          exact: true,
+        })
+      ).toHaveCount(0)
+      await expect(page.getByRole('dialog')).toHaveCount(0)
+    } finally {
+      release()
+    }
   })
-  await page.goto('/dashboard/compliance-gaps')
-  await page.getByRole('button', { name: 'Accept gap', exact: true }).click()
-  await page
-    .getByRole('dialog')
-    .getByRole('button', { name: 'Confirm accept' })
-    .click()
-  await expect(
-    page.getByText('Access review record: accepted confirmed.', { exact: true })
-  ).toBeFocused()
-  denied = true
-  await page.getByRole('button', { name: 'Refresh gaps', exact: true }).click()
-  const region = page.getByRole('region', {
-    name: 'Evidence gaps',
-    exact: true,
-  })
-  await expect(region.locator('[data-state="error"]')).toBeVisible()
-  await expect(region).not.toContainText('Access review record')
-  await expect(page.getByRole('dialog')).toHaveCount(0)
-  denied = false
-  await region.getByRole('button', { name: 'Try again', exact: true }).click()
-  await expect(
-    region.getByRole('heading', { name: 'Access review record', exact: true })
-  ).toBeVisible()
-  await expect(
-    page.getByText('Access review record: accepted confirmed.', { exact: true })
-  ).toHaveCount(0)
-  await expect(page.getByRole('dialog')).toHaveCount(0)
-})
+}
