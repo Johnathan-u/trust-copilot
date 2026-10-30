@@ -20,6 +20,7 @@
  *     --axe-dir artifacts/acceptance/TC-14-006b \
  *     --axe-dir artifacts/acceptance/TC-14-005 \
  *     --axe-dir artifacts/acceptance/TC-04-001a-web \
+ *     --axe-dir artifacts/acceptance/TC-04-001b-web \
  *     --axe-dir artifacts/acceptance/TC-14-008 \
  *     --require-spec e2e/release/design-tokens.spec.ts --min-tests 4 \
  *     --require-spec e2e/release/responsive-shell.spec.ts --min-tests 8 \
@@ -28,6 +29,7 @@
  *     --require-spec e2e/release/state-components.spec.ts --min-tests 9 \
  *     --require-spec e2e/release/drawer-followups.spec.ts --min-tests 3 \
  *     --require-spec e2e/release/workspace-create-denied.spec.ts --min-tests 8 \
+ *     --require-spec e2e/release/workspace-creation-policy.spec.ts --min-tests 14 \
  *     --require-spec e2e/release/microcopy-states.spec.ts --min-tests 11
  */
 import { existsSync, readFileSync, readdirSync } from 'node:fs'

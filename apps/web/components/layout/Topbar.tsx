@@ -31,6 +31,7 @@ import {
 import { disclosureTriggerProps } from '@/lib/disclosure'
 import { inactiveSearch } from '@/lib/render-state'
 import { useKeyedGeneration } from '@/components/ui/useKeyedGeneration'
+import { useWorkspaceCreationPolicy } from '@/components/useWorkspaceCreationPolicy'
 
 function initials(displayName: string | null, email: string): string {
   if (displayName?.trim()) {
@@ -113,6 +114,7 @@ export function Topbar({ navOpen, onToggleNav, menuButtonRef }: TopbarProps) {
   )
   const [aiSaveError, setAiSaveError] = useState<string | null>(null)
   const [automateEverything, setAutomateEverything] = useState(false)
+  const creationPolicy = useWorkspaceCreationPolicy()
 
   const visibleNav = useMemo(
     () =>
@@ -422,7 +424,11 @@ export function Topbar({ navOpen, onToggleNav, menuButtonRef }: TopbarProps) {
         onSelect: () => navigateAndClose('/dashboard/settings'),
       },
       { id: 'action-signout', label: 'Sign out', onSelect: logout },
-    ]
+    ].filter(
+      (item) =>
+        item.id !== 'action-create-workspace' ||
+        creationPolicy.phase === 'allowed'
+    )
     if (
       !qLower ||
       actionItems.some((a) => a.label.toLowerCase().includes(qLower))
@@ -430,7 +436,15 @@ export function Topbar({ navOpen, onToggleNav, menuButtonRef }: TopbarProps) {
       sections.push({ title: 'Actions', items: actionItems })
     }
     return sections
-  }, [query, searchDocs, searchQnrs, navigateAndClose, logout, jumpNav])
+  }, [
+    query,
+    searchDocs,
+    searchQnrs,
+    navigateAndClose,
+    logout,
+    jumpNav,
+    creationPolicy.phase,
+  ])
 
   const userEmail = user?.email ?? ''
   const userName = user?.display_name || userEmail.split('@')[0] || 'User'
