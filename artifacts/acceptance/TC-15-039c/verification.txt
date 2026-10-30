@@ -1,0 +1,42 @@
+TC-15-039c initial diagnostic increment — 2026-10-30
+Base:8f0cc07872057007d635e7bee17687f5fadc696b.
+Only the incoming-request release spec and this child ticket/evidence change.
+
+Existing toolchain:Node24.22.1; Next16.4.3; Playwright1.64.1; axe-playwright4.14.0.
+Own package-lock and available tc-web-fixes package-lock SHA256 both:
+351e7d2d85d5bd102e5d29fa06adfb455bc339e6c990a135e6555a4cf717075e
+Temporarily linked that existing node_modules for checks; no installs/dependency edits.
+Read the installed Next app-router Playwright guide before editing.
+
+From apps/web:
+./node_modules/.bin/eslint e2e/release/screen-trust-requests.spec.ts --max-warnings=0
+  Exit0.
+npm run typecheck
+  Exit0:next typegen and tsc --noEmit -p .
+  npm emitted its existing unknown http-proxy environment-option warning.
+./node_modules/.bin/playwright test e2e/release/screen-trust-requests.spec.ts --list --project=chromium
+  Exit0:22 tests in1 file; existing360/768/1440 viewport cases retained.
+
+From repository root:
+node apps/web/node_modules/prettier/bin/prettier.cjs --check apps/web/e2e/release/screen-trust-requests.spec.ts
+  Exit0.
+Inline Node/TypeScript AST and exact-source comparison with git HEAD:
+  Exit0:all63 assertion ASTs and source expressions identical; summary map and
+  width/violationCount/violations report property ASTs identical.
+Inline report-block failure-preservation control:
+  Exit0:complete synthetic node target/HTML/check-color data survives JSON;
+  integer violationCount equals summary violations.length; unchanged real
+  Playwright assertion fails after events screenshot,incoming-768,
+  axe-incoming-768. Screenshot/attachment functions were stubbed.
+  No browser ran; test-owned temporary output directory removed.
+Locked Playwright chromium executable presence check:
+  false. No install, alternate browser, renderer, or real-browser pass claimed.
+Prettier check on the changed spec and new Markdown/JSON evidence:
+  Exit0. Secret inventory over all five changed files:exit0,zero findings.
+git diff --check:
+  Exit0. Downloaded768px failure summary and recorded JSON compare equal.
+  Removed only the temporary node_modules symlink after verifying its exact
+  target; no runtime link or generated type/build output is included in commit.
+
+Independent review and preservation-branch CI remain pending. Existing contrast
+failure cause is unresolved; no product/style/threshold/retry/skip change made.

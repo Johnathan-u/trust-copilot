@@ -1,0 +1,8 @@
+
+Running 1 test using 1 worker
+
+(node:207224) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  1 [chromium] › e2e/release/microcopy-states.spec.ts:596:9 › confirmed action and failure copy › ghost export labels keep contrast during theme changes at 360px (13.0s)
+
+  1 passed (15.0s)

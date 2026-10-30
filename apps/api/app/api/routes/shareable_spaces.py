@@ -61,7 +61,7 @@ async def deactivate(
     session: dict = Depends(require_can_admin),
     db: Session = Depends(get_db),
 ):
-    result = ss.deactivate_space(db, space_id)
+    result = ss.deactivate_space(db, space_id, workspace_id=session["workspace_id"])
     if not result:
         raise HTTPException(status_code=404)
     db.commit()

@@ -721,6 +721,44 @@ async def revoke_other_sessions(
     return {"ok": True, "revoked": deleted}
 
 
+@router.post("/sessions/revoke-all")
+async def revoke_all_sessions(
+    response: Response,
+    session: dict = Depends(require_valid_session),
+    db: Session = Depends(get_db),
+):
+    """Sign this human account out of every stored session, including this one."""
+    user_id = session.get("user_id")
+    if type(user_id) is not int or user_id < 1:
+        # API-key contexts have no human session to revoke.
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    try:
+        deleted = (
+            db.query(UserSession)
+            .filter(UserSession.user_id == user_id)
+            .delete(synchronize_session=False)
+        )
+        # persist_audit commits its Session: keep the deletion and audit in
+        # that same transaction, rather than acknowledging a partial revoke.
+        persist_audit(
+            db,
+            "auth.sessions_revoked_all",
+            user_id=user_id,
+            email=session.get("email"),
+            workspace_id=session.get("workspace_id"),
+            details={"count": deleted},
+        )
+    except SQLAlchemyError as exc:
+        db.rollback()
+        raise HTTPException(
+            status_code=503, detail="Unable to sign out sessions. Try again."
+        ) from exc
+    response.delete_cookie(
+        SESSION_COOKIE, path="/", samesite="lax", httponly=True, secure=is_production_env()
+    )
+    return {"ok": True, "revoked": deleted}
+
+
 # ----- ENT-201: OAuth (Google, Microsoft) -----
 
 

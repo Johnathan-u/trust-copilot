@@ -224,14 +224,18 @@ def test_creation_preserves_the_existing_and_target_absolute_deadlines(
         "current-policy": int(created + 60),
         "new-workspace-default": int(created + 604800),
     }[bound]
+    # Max-Age is fixed at issuance, so observe it against that same second.
+    issued_at = int(time.time())
+    monkeypatch.setattr(session.time, "time", lambda: issued_at)
     response = reissue(state, "create")
     assert response.status_code == 200, response.text
     issued = assert_cookie(response, True)
     assert issued["exp"] == deadline
     assert issued["session_id"] == original["session_id"]
-    assert int(issued_cookie(response)["max-age"]) <= deadline - int(time.time())
+    assert int(issued_cookie(response)["max-age"]) == deadline - issued_at
     assert state["client"].get("/api/auth/me").status_code == 200
     monkeypatch.setattr(session.time, "time", lambda: deadline)
+    assert session.verify_token(issued_cookie(response).value) is None
     assert state["client"].get("/api/auth/me").status_code == 401
 
 

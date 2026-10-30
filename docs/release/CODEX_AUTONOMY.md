@@ -13,6 +13,15 @@ restart mechanism, not a promise of a continuously running process. Usage limits
 service availability and connection permissions still apply. A scheduled task's
 existence is not evidence that a run executed successfully.
 
+Read `docs/release/PM_BACKLOG_PROTOCOL.md` and the shared
+`docs/planning/backlog-state.json` at the start of every run. The human radiator is
+`docs/tracker/index.html`. Grok PM and Codex PM use the same state and accepted
+original-parent points / 1,864 formula; an unverified baseline remains pending.
+Update the tracker after each meaningful batch through its validated revisioned
+CLI, regenerate the snapshot and run `python scripts/backlog_tracker.py check`.
+The tracker records product progress; `coordinator-state.json` below still owns
+the operational lease and resumable checkpoint. Do not merge or conflate them.
+
 Use the existing repo, worktrees, PRs, test suites and issue #85. No new application
 service, paid runner or orchestration dependency is required. The root AGENTS.md
 defines scope and merge rules. Use existing available model settings; do not
