@@ -61,7 +61,7 @@ qualify real catalog rights or integrated backend acceptance.
 - AC1 licensed-framework activation remains rights-blocked by owner decision
   TC-01-007, accepted-pending in Coordinator review 6504688809. The UI shows the
   API's rights state; licensed activation is not claimed complete.
-- Sidebar discovery awaits #75 and Coordinator notice. No shared UI changed.
+- Sidebar discovery was pending at this checkpoint. The later authorized navigation follow-up is recorded below.
 - Page-local links and beforeunload guard dirty edits. Browser Back and workspace
   switching remain follow-up TC-14-014 under ruling 6503678126.
 - Member names are admin-only; other roles see team / assigned-member labels.
@@ -114,3 +114,32 @@ response regression or bounded CI evidence changes. Local Chromium is unavailabl
 final browser/axe results will be recorded in the PR and #85 without rewriting
 this tested-code checkpoint. Licensed activation and TC-14-014 navigation limits
 from #90 remain unchanged.
+
+## Authorized Controls navigation follow-up, 2026-10-30
+
+Claims: #85 comments 6512147328 and 6512246459, after #75 and Coordinator notice.
+Local branch: `codex/TC-15-042-controls-navigation`; base:
+`af4a57f6518ca5ca9c46ba629a03eb7615651833`.
+
+The only product change adds `Controls` → `/dashboard/controls` immediately after
+Frameworks in `apps/web/lib/app-navigation.ts`. Existing consumers supply the
+Sidebar, top bar and command palette. The link shares Frameworks' visibility;
+there are no component, style or permission changes and no new test framework.
+
+Environment: Node 24.22.1, npm 11.9.0. Dependencies were copied from the installed
+sibling worktree after `cmp apps/web/package-lock.json ../tc-gap-provenance/apps/web/package-lock.json`
+confirmed identical lockfiles. No dependency or lockfile changes.
+
+| Command (from `apps/web`) | Exit | Result |
+| --- | --- | --- |
+| `npm run test:unit -- lib/app-navigation.test.ts lib/controlContract.test.ts lib/frameworkCatalog.test.ts lib/coverageConsumer.test.ts` | 0 | 4 files, 19 tests passed |
+| `npm run typecheck` | 0 | Route type generation and TypeScript passed |
+| `npx eslint lib/app-navigation.ts --max-warnings=0` | 0 | No lint errors or warnings |
+| `npx prettier --check lib/app-navigation.ts` | 0 | Formatting passed |
+| `git diff --check` (repository root) | 0 | No whitespace errors |
+
+Existing npm proxy-configuration and Vite future-loader notices were emitted.
+No browser, full production build or new exact-head CI result is claimed for this
+small navigation follow-up. The earlier browser results above qualify their
+recorded commits, not this change. Independent review and required final-head CI
+remain with the Coordinator. Rights and TC-14-014 limits remain unchanged.
