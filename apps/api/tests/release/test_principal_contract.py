@@ -16,7 +16,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy.pool import StaticPool
 from sqlalchemy.schema import CreateTable
 
-from app.api.routes import auth, members, trust_articles, workspaces
+from app.api.routes import auth, demo_proof, members, trust_articles, workspaces
 from app.core import auth_deps
 from app.core.config import SIGNUP_POLICY_SELF_SIGNUP, get_settings
 from app.core.database import get_db
@@ -135,7 +135,13 @@ def authority(request, monkeypatch):
     private_id = db.query(TrustArticle.id).filter_by(slug=f"private-{suffix}").scalar()
     public_id = db.query(TrustArticle.id).filter_by(slug=f"public-{suffix}").scalar()
     app = FastAPI()
-    for router in (auth.router, members.router, trust_articles.router, workspaces.router):
+    for router in (
+        auth.router,
+        demo_proof.router,
+        members.router,
+        trust_articles.router,
+        workspaces.router,
+    ):
         app.include_router(router, prefix="/api")
 
     # Explicit HTTP probes exercise every existing permission dependency; actual
@@ -268,6 +274,80 @@ def test_anonymous_optional_auth_never_exposes_unpublished_articles(authority):
     assert state["client"].get("/authority/required").status_code == 401
     assert state["client"].get(f"/api/trust-articles/{state['private']}").status_code == 404
     assert state["client"].get(f"/api/trust-articles/{state['public']}").status_code == 200
+
+
+@pytest.mark.parametrize("change", ("removed", "suspended", "pending"))
+@pytest.mark.parametrize(
+    "method,path",
+    (
+        ("GET", "/api/demo-proof"),
+        ("POST", "/api/demo-proof"),
+        ("GET", "/api/demo-proof/summaries/999"),
+        ("GET", "/api/demo-proof/questionnaire"),
+        ("GET", "/api/demo-proof/coverage"),
+        ("GET", "/api/demo-proof/gaps"),
+        ("GET", "/api/demo-proof/walkthrough"),
+    ),
+)
+def test_demo_proof_preserves_membership_denial_contract(authority, change, method, path):
+    state = authority
+    if change == "removed":
+        state["db"].delete(state["actor"])
+    elif change == "suspended":
+        state["actor"].suspended = True
+    else:
+        state["cookie"](pending=True)
+    state["db"].commit()
+    before = counts(state["db"])
+    # This fixture does not create demo summary/source tables: passing through
+    # to persistence/aggregation instead of denying cannot silently succeed.
+    response = state["client"].request(method, path)
+    assert response.status_code == 403
+    if change == "suspended":
+        assert response.json() == {"detail": "Your account has been suspended in this workspace"}
+    else:
+        data = response.json()
+        assert data["code"] == "not_a_member"
+        assert data["retryable"] is False
+        assert data["request_id"]
+        assert "proof_summary" not in data
+    assert counts(state["db"]) == before
+
+
+def test_uidless_cookie_cannot_impersonate_an_api_key_or_admin(authority):
+    state = authority
+    state["client"].cookies.clear()
+    state["client"].cookies.set(
+        "tc_session", sign_session(None, "synthetic@example.com", state["ws"][0], "admin")
+    )
+    before = counts(state["db"])
+    assert state["client"].get("/authority/can_admin").status_code == 403
+    assert state["client"].get("/api/auth/me").status_code == 403
+    assert state["client"].get(f"/api/trust-articles/{state['private']}").status_code == 404
+    denied = state["client"].post("/api/demo-proof")
+    assert denied.status_code == 403
+    assert denied.json()["code"] == "not_a_member"
+    assert counts(state["db"]) == before
+
+
+def test_demo_adapter_preserves_anonymous_and_read_key_contracts(authority):
+    state = authority
+    state["client"].cookies.clear()
+    assert state["client"].get("/api/demo-proof/questionnaire").status_code == 401
+    raw = secrets.token_urlsafe(24)
+    state["db"].add(
+        ApiKey(
+            workspace_id=state["ws"][0],
+            key_hash=hashlib.sha256(raw.encode()).hexdigest(),
+            role="read",
+        )
+    )
+    state["db"].commit()
+    headers = {"Authorization": f"Bearer {raw}"}
+    assert state["client"].get("/api/demo-proof/questionnaire", headers=headers).status_code == 200
+    denied = state["client"].post("/api/demo-proof", headers=headers)
+    assert denied.status_code == 403
+    assert denied.json()["code"] == "api_key_cannot_save"
 
 
 def test_membership_and_custom_permission_changes_apply_on_the_next_request(authority):

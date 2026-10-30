@@ -134,8 +134,12 @@ def resolve_current_membership(request: Request, session: dict, db: Session) -> 
         .populate_existing()
         .first()
     )
-    if member is None or member.suspended:
+    if member is None:
         raise HTTPException(status_code=403, detail="Active workspace membership required")
+    if member.suspended:
+        raise HTTPException(
+            status_code=403, detail="Your account has been suspended in this workspace"
+        )
     # MFA enrollment stays account-only even when the current member is admin.
     return {**session, "role": "mfa_enrol" if session.get("mfa_enrol_only") else member.role}
 

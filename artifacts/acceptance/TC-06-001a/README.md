@@ -11,17 +11,37 @@ existing environment: Python 3.12.14, FastAPI 0.162.0, SQLAlchemy 2.0.55, pytest
 request sessions, with foreign keys enabled. They do not qualify PostgreSQL,
 production middleware/startup, external providers or browser behavior.
 
-## Results
+## CI compatibility repair (2026-10-30)
 
-| Command/control | Result |
-| --- | --- |
+The published original tree at PR #120 head `15c2397b3260068e1a7ab4a76f1965720007d80d` exposed two concrete CI failures: the historical suspended-member detail changed, and a trust-request fixture signed a `user_id=None` human cookie. Claims [6513908710](https://github.com/Johnathan-u/trust-copilot/issues/85#issuecomment-6513908710) and [6513969824](https://github.com/Johnathan-u/trust-copilot/issues/85#issuecomment-6513969824) authorize this bounded compatibility repair.
+
+Local real-HTTP reproduction also exposed the next assertions in the same demo-proof test: removed and pending users lost the existing top-level `not_a_member` error envelope when strict membership validation denied them before the route guard. Three added SQLite controls failed on the original runtime: one detail mismatch and two missing error codes. No existing demo-proof assertion is changed.
+
+The shared resolver now preserves the exact original suspension detail while continuing to deny missing and suspended membership. A demo-proof-only dependency calls strict `require_session` and translates only its two known membership/setup 403 messages into the existing error response. It explicitly returns `dict | JSONResponse`; all seven routes return a denial before business logic. It never parses cookies, fabricates a principal, admits pending users, or changes API-key, 401, MFA or other error handling. The trust-request regression creates a real active workspace-2 administrator, retains the 400 and unchanged-status assertions, also checks unchanged assignee and table counts, and removes precisely its actor/membership/audit rows in `finally` with baseline counts verified.
+
+| Command/control                                                                                                           | Result                                                                                                                                                                        |
+| ------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `python -m pytest tests/release/test_principal_contract.py -q -k 'sqlite and demo_proof'` before the compatibility repair | 3 failed / 47 deselected; actual runtime error-envelope/detail regressions                                                                                                    |
+| `python -m pytest tests/release/test_principal_contract.py -k sqlite -q` after repair                                     | 45 passed / 45 deselected; includes every demo route with removed, suspended and pending authority, uid-less human-cookie denial, anonymous denial and read-key compatibility |
+| Existing MFA/key/signing subset command recorded below                                                                    | 26 passed / 7 deselected                                                                                                                                                      |
+| Three affected release test files with `--collect-only -q`                                                                | 189 collected, including 90 principal cases (45 SQLite + 45 PostgreSQL)                                                                                                       |
+| Strict `TC_REQUIRE_DB=1` run of the principal file and both originally failing test functions                             | Exit 3 before execution: localhost PostgreSQL unavailable; original PG failures still require CI qualification                                                                |
+| Ruff check/format and compileall on four changed Python files                                                             | Passed                                                                                                                                                                        |
+| `git diff --check`                                                                                                        | Passed                                                                                                                                                                        |
+
+No PostgreSQL success is claimed. Independent review and all four exact-head CI checks must run again. The records below preserve the original implementation's evidence and source identity; they do not claim to qualify this follow-up tree.
+
+## Original implementation results (712d349)
+
+| Command/control                                                                                                               | Result                                                                                        |
+| ----------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------- |
 | `python -m pytest tests/release/test_principal_contract.py -k sqlite -q` against exact base versions of the two runtime files | 14 failed, 8 passed, 22 deselected; exit 1. Both files restored immediately after the control |
-| Same command against repaired runtime files | 22 passed, 22 deselected; exit 0 |
-| `python -m pytest tests/release/test_principal_contract.py --collect-only -q` | 44 collected; exit 0 |
-| `TC_REQUIRE_DB=1 python -m pytest tests/release/test_principal_contract.py -k postgres -q` | Exit 3 before test execution; localhost PostgreSQL connection refused |
-| `ruff check app/core/auth_deps.py app/api/routes/auth.py tests/release/test_principal_contract.py` | Exit 0 |
-| `ruff format --check app/core/auth_deps.py app/api/routes/auth.py tests/release/test_principal_contract.py` | Exit 0; all three formatted |
-| `git diff --check` | Exit 0 |
+| Same command against repaired runtime files                                                                                   | 22 passed, 22 deselected; exit 0                                                              |
+| `python -m pytest tests/release/test_principal_contract.py --collect-only -q`                                                 | 44 collected; exit 0                                                                          |
+| `TC_REQUIRE_DB=1 python -m pytest tests/release/test_principal_contract.py -k postgres -q`                                    | Exit 3 before test execution; localhost PostgreSQL connection refused                         |
+| `ruff check app/core/auth_deps.py app/api/routes/auth.py tests/release/test_principal_contract.py`                            | Exit 0                                                                                        |
+| `ruff format --check app/core/auth_deps.py app/api/routes/auth.py tests/release/test_principal_contract.py`                   | Exit 0; all three formatted                                                                   |
+| `git diff --check`                                                                                                            | Exit 0                                                                                        |
 
 The baseline failed on current role resolution, required missing-membership
 denial, optional removed/suspended-member denial, `/me` authority, suspended
@@ -57,10 +77,10 @@ still require PostgreSQL; new SQLite HTTP coverage is additional evidence only.
 
 ## Tested code identity and remaining gates
 
-| File | Git blob |
-| --- | --- |
-| `app/core/auth_deps.py` | `88f944cdc613a55ae615990031ab8f9ea84b8203` |
-| `app/api/routes/auth.py` | `b8abea0f54f5c0d4fe5ec54346ffede0c8e8b17d` |
+| File                                       | Git blob                                   |
+| ------------------------------------------ | ------------------------------------------ |
+| `app/core/auth_deps.py`                    | `88f944cdc613a55ae615990031ab8f9ea84b8203` |
+| `app/api/routes/auth.py`                   | `b8abea0f54f5c0d4fe5ec54346ffede0c8e8b17d` |
 | `tests/release/test_principal_contract.py` | `afc0e41a848d8342d7da97bee3e1803dd31c0082` |
 
 `verification.txt` preserves selected actual output, with synthetic bearer values

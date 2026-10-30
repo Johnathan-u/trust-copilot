@@ -132,3 +132,15 @@ ERROR tests/release/test_key_rotation.py::test_rotation_and_mfa_decrypt_failures
 ERROR tests/release/test_key_rotation.py::test_mfa_helper_audits_a_failed_decrypt
 ERROR tests/release/test_key_rotation.py::test_retired_session_rows_are_revoked
 1 failed, 32 passed, 28 skipped, 70 warnings, 8 errors in 6.41s
+
+
+CI COMPATIBILITY FOLLOW-UP (2026-10-30)
+Original published head: 15c2397b3260068e1a7ab4a76f1965720007d80d
+Claims #85/6513908710 and #85/6513969824.
+Pre-repair local HTTP: 3 failed, 47 deselected; suspended detail mismatch and removed/pending missing code.
+Final principal SQLite HTTP: 45 passed, 45 deselected.
+Existing local MFA/key/signing: 26 passed, 7 deselected.
+Principal + domain trust requests + domain demo proof collection: 189 tests. Principal alone: 90 (45 per database).
+Strict PG principal + original two CI failures: exit 3, PostgreSQL connection refused; no tests executed.
+Ruff check, Ruff format check, compileall and git diff --check: exit 0.
+Independent review and new exact-head CI remain required.
