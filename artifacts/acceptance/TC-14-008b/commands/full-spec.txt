@@ -1,0 +1,21 @@
+
+Running 14 tests using 1 worker
+
+(node:206051) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓   1 [chromium] › e2e/release/microcopy-states.spec.ts:325:7 › confirmed action and failure copy › save stays unconfirmed until the server accepts (3.8s)
+  ✓   2 [chromium] › e2e/release/microcopy-states.spec.ts:347:7 › confirmed action and failure copy › upload stays unconfirmed until the server accepts (4.2s)
+  ✓   3 [chromium] › e2e/release/microcopy-states.spec.ts:378:7 › confirmed action and failure copy › generate stays pending until the job completes (6.1s)
+  ✓   4 [chromium] › e2e/release/microcopy-states.spec.ts:404:7 › confirmed action and failure copy › export stays pending until the job completes (5.6s)
+  ✓   5 [chromium] › e2e/release/microcopy-states.spec.ts:430:7 › confirmed action and failure copy › approve stays pending until the server accepts (3.6s)
+  ✓   6 [chromium] › e2e/release/microcopy-states.spec.ts:452:7 › confirmed action and failure copy › an unsupported model is distinct and does not claim success (4.3s)
+  ✓   7 [chromium] › e2e/release/microcopy-states.spec.ts:477:7 › confirmed action and failure copy › an unsupported file format is distinct and does not claim the file is stored (3.1s)
+  ✓   8 [chromium] › e2e/release/microcopy-states.spec.ts:507:7 › confirmed action and failure copy › no supporting evidence is distinct from an abstention (2.1s)
+  ✓   9 [chromium] › e2e/release/microcopy-states.spec.ts:521:7 › confirmed action and failure copy › a permission denial is distinct and does not echo the server detail (3.5s)
+  ✓  10 [chromium] › e2e/release/microcopy-states.spec.ts:545:7 › confirmed action and failure copy › keyboard reaches the action and dismisses the result (4.9s)
+  ✓  11 [chromium] › e2e/release/microcopy-states.spec.ts:577:7 › confirmed action and failure copy › action and message regions have no axe violations (9.6s)
+  ✓  12 [chromium] › e2e/release/microcopy-states.spec.ts:596:9 › confirmed action and failure copy › ghost export labels keep contrast during theme changes at 360px (8.4s)
+  ✓  13 [chromium] › e2e/release/microcopy-states.spec.ts:596:9 › confirmed action and failure copy › ghost export labels keep contrast during theme changes at 768px (4.2s)
+  ✓  14 [chromium] › e2e/release/microcopy-states.spec.ts:596:9 › confirmed action and failure copy › ghost export labels keep contrast during theme changes at 1440px (6.3s)
+
+  14 passed (1.2m)

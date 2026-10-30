@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#142630">
+    <meta name="description" content="TrustCopilot release backlog: original scope, acceptance evidence, release gates, and the shared PM handoff.">
+    <title>TrustCopilot · Backlog</title>
+    <link rel="icon" href="data:,">
+    <link rel="stylesheet" href="styles.css">
+    <script src="data.js" defer></script>
+    <script src="app.js" defer></script>
+  </head>
+  <body>
+    <a class="skip-link" href="#main">Skip to content</a>
+    <aside class="sidebar" aria-label="Project workspace">
+      <a class="brand" href="#overview" aria-label="TrustCopilot overview">
+        <span class="brand-mark" aria-hidden="true"><svg viewBox="0 0 32 32"><path d="M7 7h18v5h-6v13h-6V12H7z" fill="currentColor"/></svg></span>
+        <span>TrustCopilot<span class="brand-subtitle">DELIVERY WORKSPACE</span></span>
+      </a>
+      <div class="sidebar-label">RELEASE READINESS</div>
+      <nav class="project-nav" aria-label="Project navigation">
+        <a href="#overview" data-view="overview"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg><span>Overview</span></a>
+        <a href="#backlog" data-view="backlog"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5h12M9 12h12M9 19h12M3 5h1M3 12h1M3 19h1"/></svg><span>Backlog</span><span class="nav-count" id="nav-backlog-count" aria-hidden="true">—</span></a>
+        <a href="#epics" data-view="epics"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m12 3 10 5-10 5L2 8l10-5ZM2 12l10 5 10-5M2 16l10 5 10-5"/></svg><span>Epics</span><span class="nav-count" id="nav-epic-count" aria-hidden="true">—</span></a>
+        <a href="#gates" data-view="gates"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m12 3 8 3v6c0 5-8 9-8 9s-8-4-8-9V6l8-3Z"/><path d="M9 12h6M12 9v6"/></svg><span>Release gates</span></a>
+        <a href="#handoff" data-view="handoff"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4h12v16H4zM8 8h4M8 12h4M17 8l4 4-4 4M16 12h5"/></svg><span>PM handoff</span></a>
+        <a href="#history" data-view="history"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 10a9 9 0 1 1 1 7M3 4v6h6M12 7v5l3 2"/></svg><span>History</span></a>
+      </nav>
+      <div class="sidebar-footer">
+        <span class="workspace-indicator"><span aria-hidden="true"></span> Repository source of truth</span>
+        <p>Original scope. Recorded evidence.<br>Shared context for humans and AI.</p>
+        <div class="sidebar-version" id="sidebar-version">Versioned backlog</div>
+      </div>
+    </aside>
+    <div class="workspace-main">
+      <header class="topbar">
+        <div class="breadcrumb">TrustCopilot <span aria-hidden="true">/</span> <strong id="view-label">Release overview</strong></div>
+        <div id="snapshot-provenance" class="snapshot-provenance" aria-label="Snapshot provenance">
+          <span class="snapshot-kind"><span aria-hidden="true"></span> Static snapshot</span>
+          <span id="source-time">Source time unavailable</span>
+          <code id="source-sha">Source SHA unavailable</code>
+        </div>
+      </header>
+      <main id="main" tabindex="-1">
+        <div id="boot-status" class="empty-state" role="status">
+          <h1>Loading backlog</h1>
+          <p>Reading the versioned repository snapshot.</p>
+        </div>
+        <noscript><p class="notice">Enable JavaScript to search and inspect the static dashboard. The full backlog and current state remain available in <a href="../planning/TrustCopilot_Execution_Backlog.json">the canonical scope</a> and <a href="../planning/backlog-state.json">the state ledger</a>.</p></noscript>
+      </main>
+      <footer class="workspace-footer"><span>TRUSTCOPILOT / INFORMATION RADIATOR</span><span>Evidence-backed acceptance · Original scope preserved</span></footer>
+    </div>
+    <dialog id="ticket-dialog" class="ticket-dialog" aria-labelledby="ticket-title"></dialog>
+    <div id="announcer" class="visually-hidden" role="status" aria-live="polite"></div>
+  </body>
+</html>

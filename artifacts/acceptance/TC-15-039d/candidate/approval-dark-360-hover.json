@@ -1,0 +1,15 @@
+{
+  "theme": "dark",
+  "width": 360,
+  "hover": {
+    "disabled": false,
+    "disabledSelector": false,
+    "focused": true,
+    "color": "rgb(255, 255, 255)",
+    "backgroundColor": "rgb(47, 63, 163)",
+    "outlineWidth": "2px",
+    "transitionProperty": "border-color, text-decoration-color, fill, stroke",
+    "transitionDuration": "0.15s",
+    "transitionTimingFunction": "cubic-bezier(0.2, 0, 0, 1)"
+  }
+}
