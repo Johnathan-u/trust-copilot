@@ -1,0 +1,30 @@
+TC-04-004b current absolute session policy, 2026-10-30 UTC
+Claim: #85 comment 6514687779
+Base: a97b947454b63d849097207b5f79a01323b06d3a
+
+Initial local HTTP regressions: 23 failed / 12 passed / 35 deselected; exit 1.
+Repaired initial local HTTP regressions: 35 passed / 35 deselected; exit 0.
+Final related local session/principal/MFA/signing/key selection: 134 passed / 114 deselected; exit 0.
+Final new policy suite: 74 collected, 37 SQLite + 37 PostgreSQL.
+Required whole PostgreSQL suite: exit 3 before execution, localhost:5432 connection refused.
+Initial broad unit attempt: 1 failed / 748 passed / 46 skipped; new synthetic literal triggered unchanged secret scanner.
+Repair: generate test password per run; explicitly classify imported DB fixture suite as integration.
+Final broad unit selection (proxy variables unset): 714 passed / 11 skipped / 3344 deselected; exit 0.
+Ruff check/format, Python compileall and git diff --check: exit 0.
+Real auth/HTTP and stored SQLite state; injected DB query error controls explicitly bounded.
+Full-row denial invariants, external-row preservation, exact owned cleanup; no existing fixture edits.
+No provider/browser/production-lifespan/PostgreSQL qualification claimed.
+Publication waits separate integration of landed #127, independent review and exact-head CI.
+
+Independent-review repair, #85 scope extension 6514900298
+Review base: 5f9dad0b4cf60f3dba7d4f4a0d61dcf50b9be08d; landed #127 integrated separately.
+Corrected new HTTP controls on unchanged reviewed runtime: 5 failed / 79 deselected; exit 1.
+Same new controls after repair: 5 passed / 79 deselected; exit 0.
+Final related local selection: 139 passed / 119 deselected; exit 0.
+Final broad unit selection: 714 passed / 11 skipped / 3354 deselected; exit 0.
+Final policy collection: 84 cases, 42 SQLite + 42 PostgreSQL.
+Ruff check/format, compileall on four changed Python files and git diff --check: exit 0.
+Absolute expiry survives real signer clock advance; expired-during-signing returns denial without cookie/audit writes.
+Second policy-query MFA failure preserves every row and no cookie; successful retry returns recovery codes/new session.
+Initial harness cookie quoting/domain issues corrected before counted baseline reproduction.
+No prior assertion removed, verifier relaxed, or PostgreSQL qualification claimed.

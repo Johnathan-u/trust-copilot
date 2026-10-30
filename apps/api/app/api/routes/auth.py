@@ -24,12 +24,14 @@ from app.core.api_errors import ApiError, api_error_response, current_request_id
 from app.core.audit import audit_log, persist_audit, record_decrypt_failure  # noqa: E402
 from app.core.debug_session_log import append_session_debug  # noqa: E402
 from app.core.auth_deps import (  # noqa: E402
+    DEFAULT_SESSION_MAX_AGE_SECONDS,
     enforce_mfa_enrol_session,
     enforce_session_record,
     get_session,
     require_session,
     require_valid_session,
     resolve_current_membership,
+    workspace_session_max_age_seconds,
 )
 from app.core.config import get_settings  # noqa: E402
 from app.core.database import get_db  # noqa: E402
@@ -92,9 +94,7 @@ from app.services.sso_service import (  # noqa: E402
 router = APIRouter(prefix="/auth", tags=["auth"])
 
 SESSION_COOKIE = "tc_session"
-SESSION_MAX_AGE = 86400 * 7  # 7 days default (ENT-202: workspace can override)
-# "Remember me" extends cookie/JWT lifetime to at least this many seconds (30 days), capped upward by workspace policy.
-REMEMBER_ME_MAX_AGE_SECONDS = 86400 * 30
+SESSION_MAX_AGE = DEFAULT_SESSION_MAX_AGE_SECONDS
 
 
 def _session_cookie_kwargs(max_age: int, persistent: bool = True) -> dict:
@@ -118,23 +118,12 @@ def _session_cookie_kwargs(max_age: int, persistent: bool = True) -> dict:
 
 def _session_max_age_seconds(db: Session, workspace_id: int) -> int:
     """ENT-202: Per-workspace session lifetime, or default."""
-    try:
-        ws = db.query(Workspace).filter(Workspace.id == workspace_id).first()
-        if ws:
-            age = getattr(ws, "session_max_age_seconds", None)
-            if age is not None and age > 0:
-                return int(age)
-    except Exception:
-        db.rollback()
-    return SESSION_MAX_AGE
+    return workspace_session_max_age_seconds(db, workspace_id)
 
 
 def _effective_session_max_age_seconds(db: Session, workspace_id: int, remember_me: bool) -> int:
-    """Session cookie max-age: workspace policy, optionally extended for 'remember me'."""
-    base = _session_max_age_seconds(db, workspace_id)
-    if remember_me:
-        return max(base, REMEMBER_ME_MAX_AGE_SECONDS)
-    return base
+    """Remember-me changes cookie persistence, never the tenant's lifetime cap."""
+    return _session_max_age_seconds(db, workspace_id)
 
 
 class LoginRequest(BaseModel):
@@ -601,6 +590,9 @@ def _login_impl(req: LoginRequest, request: Request, response: Response, db: Ses
         )
         return {"requires_mfa": True, "mfa_token": mfa_token_raw}
 
+    remember = bool(req.remember_me) and not reenrol_pending
+    policy_age = _effective_session_max_age_seconds(db, member.workspace_id, remember)
+    max_age = min(300, policy_age) if reenrol_pending else policy_age
     audit_log("auth.login", user_id=user.id, email=user.email, workspace_id=member.workspace_id)
     try:
         persist_audit(
@@ -619,12 +611,6 @@ def _login_impl(req: LoginRequest, request: Request, response: Response, db: Ses
         )
     )
     db.commit()
-    remember = bool(req.remember_me) and not reenrol_pending
-    max_age = (
-        300
-        if reenrol_pending
-        else _effective_session_max_age_seconds(db, member.workspace_id, remember)
-    )
     token = sign_session(
         user_id=user.id,
         email=user.email,
@@ -1954,19 +1940,25 @@ async def switch_workspace(
     )
     if not member or member.suspended:
         raise HTTPException(status_code=403, detail="Not a member of this workspace")
+    deadline = enforce_session_record({**session, "workspace_id": member.workspace_id}, db)
+    expires_at = int(deadline)
+    if expires_at <= time.time():
+        raise HTTPException(status_code=401, detail="Session expired")
     ws = db.query(Workspace).filter(Workspace.id == body.workspace_id).first()
     existing_session_id = session.get("session_id")
     if not existing_session_id:
         raise HTTPException(status_code=400, detail="Cannot switch workspace for legacy session")
-    max_age = _session_max_age_seconds(db, member.workspace_id)
     token = sign_session(
         user_id=user_id,
         email=email,
         workspace_id=member.workspace_id,
         role=member.role,
         session_id=existing_session_id,
-        max_age_seconds=max_age,
+        expires_at=expires_at,
     )
+    max_age = expires_at - int(time.time())
+    if max_age <= 0:
+        raise HTTPException(status_code=401, detail="Session expired")
     response.set_cookie(key=SESSION_COOKIE, value=token, **_session_cookie_kwargs(max_age))
     persist_audit(
         db,
@@ -2217,6 +2209,7 @@ async def mfa_confirm(
         )
         if not old_session:
             raise HTTPException(status_code=401, detail="MFA enrollment session expired")
+        max_age = _session_max_age_seconds(db, member.workspace_id)
     try:
         secret = decrypt_mfa_for_user(
             db,
@@ -2252,7 +2245,6 @@ async def mfa_confirm(
         db.add(MfaRecoveryCode(user_id=user_id, code_hash=_recovery_code_hash(code)))
     db.commit()
     if new_session_id:
-        max_age = _session_max_age_seconds(db, member.workspace_id)
         token = sign_session(
             user_id,
             user.email,
@@ -2328,6 +2320,8 @@ def mfa_verify_login(
             ),
             403,
         )
+    remember = bool(req.remember_me)
+    max_age = _effective_session_max_age_seconds(db, mlt.workspace_id, remember)
     verified = False
     if len(code) == 6 and code.isdigit():
         try:
@@ -2376,8 +2370,6 @@ def mfa_verify_login(
     persist_audit(
         db, "auth.login", user_id=user.id, email=user.email, workspace_id=mlt.workspace_id
     )
-    remember = bool(req.remember_me)
-    max_age = _effective_session_max_age_seconds(db, mlt.workspace_id, remember)
     token = sign_session(
         user_id=user.id,
         email=user.email,
