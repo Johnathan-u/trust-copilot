@@ -1,0 +1,44 @@
+TC-06-003g local verification — 2026-10-30
+Base: d4f8f38e482532e14d08c28ba0baf6ccc0002a06
+Branch: codex/TC-06-003g-control-timeline-authorization
+Worktree: tc-control-timeline-authorization
+Claim: #85/6516966183, 3 points.
+Existing locked /tmp/tc-backend-venv, Python 3.12.14; no dependency changes.
+
+From apps/api, before the runtime change:
+/tmp/tc-backend-venv/bin/python -m pytest tests/release/test_authorization_expanded_control_timeline.py -q -k sqlite --tb=short
+  Exit 1: 4 failed, 21 passed, 25 deselected.
+  Mixed-link limits 1/50, foreign-only and moved-evidence regressions failed at
+  actual response assertions: foreign metadata and inflated total_events.
+
+After adding only EvidenceItem.workspace_id == workspace_id:
+Same command: exit 0, 25 passed, 25 deselected.
+/tmp/tc-backend-venv/bin/python -m pytest tests/release/test_authorization_expanded_control_timeline.py --collect-only -q
+  Exit 0: 50 collected.
+TC_REQUIRE_DB=1 /tmp/tc-backend-venv/bin/python -m pytest tests/release/test_authorization_expanded_control_timeline.py -q -k 'postgres and mixed_links' --tb=short
+  Exit 3: migrated_db setup could not connect to localhost ::1/127.0.0.1:5432.
+  No PostgreSQL case or constraint-protection branch is locally qualified.
+
+/tmp/tc-backend-venv/bin/python -m pytest tests/release/test_authorization_core_citations.py tests/release/test_principal_contract.py tests/release/test_session_validation.py -q -k sqlite --tb=short
+  Exit 0: 78 passed, 79 deselected.
+/tmp/tc-backend-venv/bin/python -m pytest tests/release/test_safe_collection.py -q --tb=short
+  Exit 0: 29 passed.
+
+Two separate-process, in-memory negative controls (no runtime disk edits):
+1. Remove EvidenceItem.workspace_id predicate from get_control_timeline.
+   Select 'sqlite and mixed_links and 1': pytest exit 1, 1 failed/49 deselected.
+   Foreign Jan20 event displaces own Jan1 event and total_events changes 1->2.
+2. Remove WorkspaceControl.workspace_id predicate from get_control_timeline.
+   Select 'sqlite and unavailable_control and foreign': pytest exit 1,
+   1 failed/49 deselected, observed 200 versus required404.
+
+Ruff check/format on the service and new test: exit 0.
+Final SQLite rerun after adding guard diagnostics: exit 0, 25 passed/25 deselected.
+Python py_compile of both Python files: exit 0.
+Existing locked Prettier on the child Markdown: exit 0.
+Secret inventory over all five claimed paths: exit 0, zero findings.
+git diff --check: exit 0. Exact source comparison verifies that reverting the
+new evidence-query block reconstructs the complete base service byte-for-byte.
+Existing model datetime.utcnow deprecations remain; the in-memory negative
+control harness also warns about already-imported anyio. No external calls.
+PostgreSQL and exact-head CI remain required after independent source review.
