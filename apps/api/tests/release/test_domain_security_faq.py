@@ -841,21 +841,22 @@ def test_missing_and_unavailable_document_sources_are_equal_404(domain, change):
     from datetime import datetime, timezone
 
     d = domain
+    evidence_id = d["foreign_evidence"] if change == "foreign" else d["evidence"]
+    # Foreign evidence and its document must belong to the same foreign workspace;
+    # moving a referenced local document would correctly fail the database guard.
     document = Document(
-        workspace_id=d["ws"],
+        workspace_id=d["foreign_ws"] if change == "foreign" else d["ws"],
         storage_key=f"synthetic/{d['suffix']}/source.txt",
         filename="Source.txt",
     )
     d["db"].add(document)
     d["db"].flush()
-    d["db"].get(EvidenceItem, d["evidence"]).document_id = document.id
+    d["db"].get(EvidenceItem, evidence_id).document_id = document.id
     d["db"].commit()
     if change == "deleted":
         document.deleted_at = datetime.now(timezone.utc)
-    else:
-        document.workspace_id = d["foreign_ws"]
-    d["db"].commit()
-    unavailable = create(d)
+        d["db"].commit()
+    unavailable = create(d, source_evidence_ids=[evidence_id])
     missing = create(d, source_evidence_ids=[2147483647])
     assert unavailable.status_code == missing.status_code == 404
     assert unavailable.json() == missing.json()
