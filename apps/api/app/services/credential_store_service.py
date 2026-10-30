@@ -1,34 +1,23 @@
 """Credential store service — encrypted storage with rotation tracking."""
 
-import base64
-import hashlib
 import json
 import logging
 from datetime import datetime, timedelta, timezone
 
-from cryptography.fernet import Fernet
 from sqlalchemy.orm import Session
 
+from app.core.keys import open_sealed, seal
 from app.models.credential_store import CredentialStore
 
 logger = logging.getLogger(__name__)
 
 
-def _get_fernet() -> Fernet:
-    """Derive a Fernet key from SESSION_SECRET (same approach as existing Slack/Gmail token encryption)."""
-    from app.core.session import get_session_secret
-
-    secret = get_session_secret()
-    key = base64.urlsafe_b64encode(hashlib.sha256(secret.encode()).digest()[:32])
-    return Fernet(key)
-
-
 def encrypt(value: str) -> str:
-    return _get_fernet().encrypt(value.encode()).decode()
+    return seal("connector", value)
 
 
 def decrypt(encrypted: str) -> str:
-    return _get_fernet().decrypt(encrypted.encode()).decode()
+    return open_sealed("connector", encrypted)
 
 
 def store_credential(

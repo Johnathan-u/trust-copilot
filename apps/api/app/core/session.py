@@ -1,7 +1,6 @@
 """Session handling with signed cookies (AUTH-02, SESS-01)."""
 
 import base64
-import hmac
 import json
 import time
 from typing import Mapping
@@ -147,13 +146,9 @@ def sign_token(payload: dict) -> str:
         data = base64.urlsafe_b64encode(
             json.dumps({k: str(v) for k, v in payload.items()}).encode()
         ).decode()
-    secret = _get_session_secret()
-    sig = hmac.new(
-        secret.encode("utf-8", "replace"),
-        data.encode("utf-8"),
-        "sha256",
-    ).hexdigest()
-    return f"{data}.{sig}"
+    from app.core.keys import sign_with_purpose
+
+    return sign_with_purpose("session", data)
 
 
 def sign_session(
@@ -163,6 +158,7 @@ def sign_session(
     role: str = "editor",
     session_id: str | None = None,
     max_age_seconds: int | None = None,
+    mfa_enrol_only: bool = False,
 ) -> str:
     """Create session token. ENT-202: max_age_seconds sets exp claim (per-workspace policy)."""
     payload = {
@@ -173,6 +169,8 @@ def sign_session(
     }
     if session_id:
         payload["session_id"] = session_id
+    if mfa_enrol_only:
+        payload["mfa_enrol_only"] = True
     if max_age_seconds is not None:
         payload["exp"] = int(time.time()) + max_age_seconds
     return sign_token(payload)
@@ -183,14 +181,10 @@ def verify_token(token: str) -> dict | None:
     try:
         if not token or "." not in token:
             return None
-        data, sig = token.rsplit(".", 1)
-        secret = _get_session_secret()
-        expected = hmac.new(
-            secret.encode("utf-8", "replace"),
-            data.encode("utf-8"),
-            "sha256",
-        ).hexdigest()
-        if not hmac.compare_digest(sig, expected):
+        from app.core.keys import verify_with_purpose
+
+        data = verify_with_purpose("session", token, accept_retired=False)
+        if data is None:
             return None
         payload = json.loads(base64.urlsafe_b64decode(data).decode())
         exp = payload.get("exp")

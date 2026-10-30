@@ -76,3 +76,56 @@ def persist_audit(
     if isinstance(db, Session):
         raise RuntimeError("audit event id was not assigned")
     return 0
+
+
+_DECRYPT_REASONS = frozenset({"reenrol_marker", "unknown_key_id", "decrypt_failed"})
+
+
+def record_decrypt_failure(
+    db: Session,
+    *,
+    user_id: int | None,
+    stored: str | None,
+    reason: str,
+    resource_type: str,
+    resource_id: int | str | None = None,
+    workspace_id: int | None = None,
+    commit: bool = False,
+) -> None:
+    """Audit one failed decrypt. Details are the key id and reason only."""
+    from app.core.keys import stored_key_id
+
+    safe_reason = reason if reason in _DECRYPT_REASONS else "decrypt_failed"
+    details = {"key_id": stored_key_id(stored), "reason": safe_reason}
+    audit_log(
+        "crypto.decrypt_failed",
+        user_id=user_id,
+        workspace_id=workspace_id,
+        resource_type=resource_type,
+        resource_id=resource_id,
+        details=details,
+    )
+    if commit:
+        persist_audit(
+            db,
+            "crypto.decrypt_failed",
+            user_id=user_id,
+            workspace_id=workspace_id,
+            resource_type=resource_type,
+            resource_id=resource_id,
+            details=details,
+        )
+        return
+    from app.models import AuditEvent
+
+    db.add(
+        AuditEvent(
+            action="crypto.decrypt_failed",
+            user_id=user_id,
+            workspace_id=workspace_id,
+            resource_type=resource_type,
+            resource_id=str(resource_id) if resource_id is not None else None,
+            details=json.dumps(details),
+        )
+    )
+    db.flush()
