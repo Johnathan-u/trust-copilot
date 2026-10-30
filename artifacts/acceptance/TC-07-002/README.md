@@ -2,6 +2,20 @@
 
 No credential values are recorded here. Synthetic rows only.
 
+## Landing integration, 2026-10-30
+
+Pure master merge `0418fadd08d9546dc9e78980d837114ad6542ec5` incorporates
+`5c4ffa0d550b0890ee4d8328d207eb96888535e2` without conflicts. A separate parent
+change points this revision and its round-trip test to the actual landed
+`tc19010_inbox_receipts`. `alembic heads` reports only `tc07002_session_key_id`;
+the 27 focused keyring/MFA recovery regressions pass after integration.
+
+Independent review found an additional release blocker: the original downgrade
+discards non-null signing-key metadata and its old round-trip assertion expects
+that loss. The lossless-downgrade ruling in issue #85 applies here. Repair and
+non-default round-trip evidence are required before this branch qualifies.
+No PostgreSQL migration execution or final CI pass is claimed locally.
+
 ## Local security repair, 2026-10-30
 
 Branch: `codex/TC-07-002-repair-local`, based on existing PR #93 head

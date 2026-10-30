@@ -17,7 +17,7 @@ from sqlalchemy import create_engine, text
 
 API_ROOT = Path(__file__).resolve().parents[2]
 REVISION = "tc07002_session_key_id"
-PARENT = "tc02001a_parent_ws_move"
+PARENT = "tc19010_inbox_receipts"
 FRESH_NAME = "tc07002_signing_key_roundtrip_test"
 
 
