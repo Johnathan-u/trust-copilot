@@ -33,7 +33,7 @@ from app.core.api_errors import (
 from app.core.auth_deps import require_can_admin, require_can_review
 from app.core.database import get_db
 from app.core.job_errors import effective_max_attempts, is_known_code, is_retryable_code
-from app.models import Document, Job, JobKind, JobStatus, Questionnaire
+from app.models import Document, ExportRecord, Job, JobKind, JobStatus, Questionnaire
 from app.services.job_control import cancel_job, retry_job
 from app.services.job_effects import charge_uncertain
 
@@ -56,7 +56,9 @@ def _conflict(request: Request, code: str, message: str) -> JSONResponse:
 
 def _public_job(request: Request, db: Session, job: Job) -> dict:
     result_payload = None
-    if job.result:
+    if job.kind == JobKind.EXPORT.value:
+        result_payload = _export_artifact_result(db, job)
+    elif job.result:
         try:
             result_payload = json.loads(job.result)
         except json.JSONDecodeError:
@@ -99,6 +101,41 @@ def _history_json(raw: str | None) -> dict:
     except (TypeError, ValueError, RecursionError):
         return {}
     return value if isinstance(value, dict) else {}
+
+
+def _export_artifact_result(db: Session, job: Job) -> dict | None:
+    payload, result = _history_json(job.payload), _history_json(job.result)
+    questionnaire_id, record_id = payload.get("questionnaire_id"), result.get("export_record_id")
+    if (
+        type(payload.get("workspace_id")) is not int
+        or payload["workspace_id"] != job.workspace_id
+        or any(
+            type(value) is not int or not 0 < value <= 2147483647
+            for value in (questionnaire_id, record_id)
+        )
+    ):
+        return None
+    # Stored job JSON is not an artifact grant. Resolve both current parents
+    # before projecting the canonical record; the lifecycle stays readable.
+    record = (
+        db.query(ExportRecord)
+        .join(Questionnaire, Questionnaire.id == ExportRecord.questionnaire_id)
+        .filter(
+            ExportRecord.id == record_id,
+            ExportRecord.workspace_id == job.workspace_id,
+            ExportRecord.job_id == job.id,
+            Questionnaire.id == questionnaire_id,
+            Questionnaire.workspace_id == job.workspace_id,
+            Questionnaire.deleted_at.is_(None),
+        )
+        .first()
+    )
+    if record is None:
+        return None
+    projected = {"export_record_id": record.id, "storage_key": record.storage_key}
+    if result.get("outcome") in ("already_applied", "reconciled", "superseded"):
+        projected["outcome"] = result["outcome"]
+    return projected
 
 
 def _history_object(db: Session, job: Job, payload: dict) -> dict | None:
