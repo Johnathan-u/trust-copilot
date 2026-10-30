@@ -302,11 +302,16 @@ async function writeAxe(
         viewport,
         violationCount: violations.length,
         violations,
+        violationDetails: axe.violations,
       },
       null,
       2
     )}\n`
   )
+  await test.info().attach(`axe-${state}-${theme}-${viewport}`, {
+    path: path.join(evidenceDir, `axe-${state}-${theme}-${viewport}.json`),
+    contentType: 'application/json',
+  })
   const blocking = violations.filter(
     (item) => item.impact === 'critical' || item.impact === 'serious'
   )
