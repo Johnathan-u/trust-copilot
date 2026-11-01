@@ -86,6 +86,7 @@ from app.models.operator_queue import (
     OPERATOR_ITEM_STATUSES,
     OPERATOR_ITEM_PRIORITIES,
 )
+from app.models.security_claim import SecurityClaim
 from app.models.security_faq import SecurityFAQ
 from app.models.source_registry import SourceRegistry
 from app.models.credential_store import CredentialStore
@@ -227,6 +228,7 @@ __all__ = [
     "OperatorQueueItem",
     "OPERATOR_ITEM_STATUSES",
     "OPERATOR_ITEM_PRIORITIES",
+    "SecurityClaim",
     "SecurityFAQ",
     "SourceRegistry",
     "CredentialStore",
