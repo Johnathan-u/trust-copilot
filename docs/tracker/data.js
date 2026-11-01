@@ -4,8 +4,8 @@ window.TRUSTCOPILOT_BACKLOG = {
     "title": "TrustCopilot backlog information radiator",
     "schema_version": 1,
     "scope_version": 1,
-    "revision": 6,
-    "as_of_utc": "2026-11-01T11:11:55Z",
+    "revision": 7,
+    "as_of_utc": "2026-11-01T14:23:59Z",
     "source_sha": "90146e0cfe2220beb3e43f98f6073262f7c0abfb",
     "baseline_status": "PENDING",
     "metric_label": "Accepted original-parent points",
@@ -15,18 +15,18 @@ window.TRUSTCOPILOT_BACKLOG = {
   "summary": {
     "accepted_points": null,
     "completion_percentage": null,
-    "assessed_tickets": 2,
+    "assessed_tickets": 8,
     "total_tickets": 384,
     "total_points": 1864,
     "state_counts": {
       "BASELINE_RECONCILIATION": 304,
       "BLOCKED": 3,
-      "DONE": 2,
-      "EVIDENCE_RECONCILIATION": 53,
+      "DONE": 8,
+      "EVIDENCE_RECONCILIATION": 47,
       "IMPLEMENTATION_GAPS_IDENTIFIED": 22
     },
-    "accepted_claim_points": 6,
-    "accepted_tickets": 2,
+    "accepted_claim_points": 32,
+    "accepted_tickets": 8,
     "baseline_status": "PENDING"
   },
   "source_metadata": {
@@ -128,13 +128,13 @@ window.TRUSTCOPILOT_BACKLOG = {
       "rollup": {
         "total_tickets": 9,
         "total_points": 36,
-        "assessed_tickets": 1,
-        "accepted_tickets": 1,
+        "assessed_tickets": 2,
+        "accepted_tickets": 2,
         "accepted_points": null,
         "state_counts": {
           "BASELINE_RECONCILIATION": 4,
-          "DONE": 1,
-          "EVIDENCE_RECONCILIATION": 4
+          "DONE": 2,
+          "EVIDENCE_RECONCILIATION": 3
         }
       }
     },
@@ -172,14 +172,13 @@ window.TRUSTCOPILOT_BACKLOG = {
       "rollup": {
         "total_tickets": 7,
         "total_points": 27,
-        "assessed_tickets": 1,
-        "accepted_tickets": 1,
+        "assessed_tickets": 2,
+        "accepted_tickets": 2,
         "accepted_points": null,
         "state_counts": {
           "BASELINE_RECONCILIATION": 4,
           "BLOCKED": 1,
-          "DONE": 1,
-          "EVIDENCE_RECONCILIATION": 1
+          "DONE": 2
         }
       }
     },
@@ -357,12 +356,13 @@ window.TRUSTCOPILOT_BACKLOG = {
       "rollup": {
         "total_tickets": 14,
         "total_points": 57,
-        "assessed_tickets": 0,
-        "accepted_tickets": 0,
+        "assessed_tickets": 1,
+        "accepted_tickets": 1,
         "accepted_points": null,
         "state_counts": {
           "BASELINE_RECONCILIATION": 12,
-          "EVIDENCE_RECONCILIATION": 2
+          "DONE": 1,
+          "EVIDENCE_RECONCILIATION": 1
         }
       }
     },
@@ -869,12 +869,12 @@ window.TRUSTCOPILOT_BACKLOG = {
       "rollup": {
         "total_tickets": 10,
         "total_points": 51,
-        "assessed_tickets": 0,
-        "accepted_tickets": 0,
+        "assessed_tickets": 1,
+        "accepted_tickets": 1,
         "accepted_points": null,
         "state_counts": {
           "BASELINE_RECONCILIATION": 9,
-          "EVIDENCE_RECONCILIATION": 1
+          "DONE": 1
         }
       }
     },
@@ -1286,12 +1286,12 @@ window.TRUSTCOPILOT_BACKLOG = {
       "rollup": {
         "total_tickets": 11,
         "total_points": 55,
-        "assessed_tickets": 0,
-        "accepted_tickets": 0,
+        "assessed_tickets": 2,
+        "accepted_tickets": 2,
         "accepted_points": null,
         "state_counts": {
           "BASELINE_RECONCILIATION": 9,
-          "EVIDENCE_RECONCILIATION": 2
+          "DONE": 2
         }
       }
     },
@@ -3433,72 +3433,115 @@ window.TRUSTCOPILOT_BACKLOG = {
       "release_gate_dependencies": [],
       "dependency_ruling_ids": [],
       "current": {
-        "status": "EVIDENCE_RECONCILIATION",
-        "evidence_state": "EVIDENCE_RECONCILIATION",
+        "status": "DONE",
+        "evidence_state": "VERIFIED_ACCEPTED",
         "owner": null,
         "blockers": [],
-        "next_action": "Reconcile existing implementation and evidence against all original acceptance criteria before declaring Done or estimating only the remaining scope.",
-        "updated_at": "2026-10-30T09:49:19Z",
-        "source_sha": "b2bd1e0df5cdeb03b8d0cd240f5a161835ea621d",
+        "next_action": "Accepted. Reopen only on regression.",
+        "updated_at": "2026-11-01T14:23:59Z",
+        "source_sha": "90146e0cfe2220beb3e43f98f6073262f7c0abfb",
         "acceptance": {
-          "state": "PENDING",
-          "assessed_by": null,
-          "assessed_at": null,
-          "assessed_sha": null,
-          "assessment_evidence_urls": [],
-          "tested_sha": null,
-          "implemented_by": [],
-          "independent_reviewer": null,
-          "reviewed_at": null,
-          "reviewed_sha": null,
-          "review_evidence_urls": [],
+          "state": "ACCEPTED",
+          "assessed_by": "claude-reviewer",
+          "assessed_at": "2026-11-01T14:23:58Z",
+          "assessed_sha": "951c81e3f338c93a88e988d9b1ac5d9cbdffaa88",
+          "assessment_evidence_urls": [
+            "https://github.com/Johnathan-u/trust-copilot/actions/runs/41139637051",
+            "https://github.com/Johnathan-u/trust-copilot/issues/85#issuecomment-6559232272"
+          ],
+          "tested_sha": "951c81e3f338c93a88e988d9b1ac5d9cbdffaa88",
+          "implemented_by": [
+            "Johnathan-u",
+            "cursor-agent"
+          ],
+          "independent_reviewer": "claude-reviewer",
+          "reviewed_at": "2026-11-01T14:23:58Z",
+          "reviewed_sha": "951c81e3f338c93a88e988d9b1ac5d9cbdffaa88",
+          "review_evidence_urls": [
+            "https://github.com/Johnathan-u/trust-copilot/issues/85#issuecomment-6559232272"
+          ],
           "criteria": [
             {
               "id": "TC-02-003-AC1",
-              "status": "NOT_VERIFIED",
-              "evidence_urls": [],
-              "tested_sha": null
+              "status": "PASS",
+              "evidence_urls": [
+                "https://github.com/Johnathan-u/trust-copilot/actions/runs/41139637051",
+                "https://github.com/Johnathan-u/trust-copilot/blob/951c81e3f338c93a88e988d9b1ac5d9cbdffaa88/apps/api/tests/release/test_web_lock.py",
+                "https://github.com/Johnathan-u/trust-copilot/blob/951c81e3f338c93a88e988d9b1ac5d9cbdffaa88/artifacts/acceptance/TC-02-003/README.md",
+                "https://github.com/Johnathan-u/trust-copilot/blob/951c81e3f338c93a88e988d9b1ac5d9cbdffaa88/docs/release/tickets/TC-02-003.md"
+              ],
+              "tested_sha": "951c81e3f338c93a88e988d9b1ac5d9cbdffaa88"
             },
             {
               "id": "TC-02-003-AC2",
-              "status": "NOT_VERIFIED",
-              "evidence_urls": [],
-              "tested_sha": null
+              "status": "PASS",
+              "evidence_urls": [
+                "https://github.com/Johnathan-u/trust-copilot/actions/runs/41139637051",
+                "https://github.com/Johnathan-u/trust-copilot/blob/951c81e3f338c93a88e988d9b1ac5d9cbdffaa88/apps/api/tests/release/test_web_lock.py",
+                "https://github.com/Johnathan-u/trust-copilot/blob/951c81e3f338c93a88e988d9b1ac5d9cbdffaa88/artifacts/acceptance/TC-02-003/README.md",
+                "https://github.com/Johnathan-u/trust-copilot/blob/951c81e3f338c93a88e988d9b1ac5d9cbdffaa88/docs/release/tickets/TC-02-003.md"
+              ],
+              "tested_sha": "951c81e3f338c93a88e988d9b1ac5d9cbdffaa88"
             }
           ],
           "definition_of_done": [
             {
               "id": "TC-02-003-DOD1",
-              "status": "NOT_VERIFIED",
-              "evidence_urls": [],
-              "tested_sha": null
+              "status": "PASS",
+              "evidence_urls": [
+                "https://github.com/Johnathan-u/trust-copilot/actions/runs/41139637051",
+                "https://github.com/Johnathan-u/trust-copilot/blob/951c81e3f338c93a88e988d9b1ac5d9cbdffaa88/apps/api/tests/release/test_web_lock.py",
+                "https://github.com/Johnathan-u/trust-copilot/blob/951c81e3f338c93a88e988d9b1ac5d9cbdffaa88/artifacts/acceptance/TC-02-003/README.md",
+                "https://github.com/Johnathan-u/trust-copilot/blob/951c81e3f338c93a88e988d9b1ac5d9cbdffaa88/docs/release/tickets/TC-02-003.md"
+              ],
+              "tested_sha": "951c81e3f338c93a88e988d9b1ac5d9cbdffaa88"
             },
             {
               "id": "TC-02-003-DOD2",
-              "status": "NOT_VERIFIED",
-              "evidence_urls": [],
-              "tested_sha": null
+              "status": "PASS",
+              "evidence_urls": [
+                "https://github.com/Johnathan-u/trust-copilot/actions/runs/41139637051",
+                "https://github.com/Johnathan-u/trust-copilot/blob/951c81e3f338c93a88e988d9b1ac5d9cbdffaa88/apps/api/tests/release/test_web_lock.py",
+                "https://github.com/Johnathan-u/trust-copilot/blob/951c81e3f338c93a88e988d9b1ac5d9cbdffaa88/artifacts/acceptance/TC-02-003/README.md",
+                "https://github.com/Johnathan-u/trust-copilot/blob/951c81e3f338c93a88e988d9b1ac5d9cbdffaa88/docs/release/tickets/TC-02-003.md"
+              ],
+              "tested_sha": "951c81e3f338c93a88e988d9b1ac5d9cbdffaa88"
             },
             {
               "id": "TC-02-003-DOD3",
-              "status": "NOT_VERIFIED",
-              "evidence_urls": [],
-              "tested_sha": null
+              "status": "PASS",
+              "evidence_urls": [
+                "https://github.com/Johnathan-u/trust-copilot/actions/runs/41139637051",
+                "https://github.com/Johnathan-u/trust-copilot/blob/951c81e3f338c93a88e988d9b1ac5d9cbdffaa88/apps/api/tests/release/test_web_lock.py",
+                "https://github.com/Johnathan-u/trust-copilot/blob/951c81e3f338c93a88e988d9b1ac5d9cbdffaa88/artifacts/acceptance/TC-02-003/README.md",
+                "https://github.com/Johnathan-u/trust-copilot/blob/951c81e3f338c93a88e988d9b1ac5d9cbdffaa88/docs/release/tickets/TC-02-003.md"
+              ],
+              "tested_sha": "951c81e3f338c93a88e988d9b1ac5d9cbdffaa88"
             },
             {
               "id": "TC-02-003-DOD4",
-              "status": "NOT_VERIFIED",
-              "evidence_urls": [],
-              "tested_sha": null
+              "status": "PASS",
+              "evidence_urls": [
+                "https://github.com/Johnathan-u/trust-copilot/actions/runs/41139637051",
+                "https://github.com/Johnathan-u/trust-copilot/blob/951c81e3f338c93a88e988d9b1ac5d9cbdffaa88/apps/api/tests/release/test_web_lock.py",
+                "https://github.com/Johnathan-u/trust-copilot/blob/951c81e3f338c93a88e988d9b1ac5d9cbdffaa88/artifacts/acceptance/TC-02-003/README.md",
+                "https://github.com/Johnathan-u/trust-copilot/blob/951c81e3f338c93a88e988d9b1ac5d9cbdffaa88/docs/release/tickets/TC-02-003.md"
+              ],
+              "tested_sha": "951c81e3f338c93a88e988d9b1ac5d9cbdffaa88"
             },
             {
               "id": "TC-02-003-DOD5",
-              "status": "NOT_VERIFIED",
-              "evidence_urls": [],
-              "tested_sha": null
+              "status": "PASS",
+              "evidence_urls": [
+                "https://github.com/Johnathan-u/trust-copilot/actions/runs/41139637051",
+                "https://github.com/Johnathan-u/trust-copilot/blob/951c81e3f338c93a88e988d9b1ac5d9cbdffaa88/apps/api/tests/release/test_web_lock.py",
+                "https://github.com/Johnathan-u/trust-copilot/blob/951c81e3f338c93a88e988d9b1ac5d9cbdffaa88/artifacts/acceptance/TC-02-003/README.md",
+                "https://github.com/Johnathan-u/trust-copilot/blob/951c81e3f338c93a88e988d9b1ac5d9cbdffaa88/docs/release/tickets/TC-02-003.md"
+              ],
+              "tested_sha": "951c81e3f338c93a88e988d9b1ac5d9cbdffaa88"
             }
           ],
-          "note": "Full original-parent acceptance is pending baseline validation; merged work and artifact presence alone confer no acceptance."
+          "note": "Accepted on exact-SHA master CI (build + web-release-e2e green) and review of code, tests and evidence; implemented via PR #9."
         },
         "pr_links": [
           {
@@ -5159,72 +5202,115 @@ window.TRUSTCOPILOT_BACKLOG = {
       "release_gate_dependencies": [],
       "dependency_ruling_ids": [],
       "current": {
-        "status": "EVIDENCE_RECONCILIATION",
-        "evidence_state": "EVIDENCE_RECONCILIATION",
+        "status": "DONE",
+        "evidence_state": "VERIFIED_ACCEPTED",
         "owner": null,
         "blockers": [],
-        "next_action": "Reconcile existing implementation and evidence against all original acceptance criteria before declaring Done or estimating only the remaining scope.",
-        "updated_at": "2026-10-30T09:49:19Z",
-        "source_sha": "b2bd1e0df5cdeb03b8d0cd240f5a161835ea621d",
+        "next_action": "Accepted. Reopen only on regression.",
+        "updated_at": "2026-11-01T14:23:59Z",
+        "source_sha": "90146e0cfe2220beb3e43f98f6073262f7c0abfb",
         "acceptance": {
-          "state": "PENDING",
-          "assessed_by": null,
-          "assessed_at": null,
-          "assessed_sha": null,
-          "assessment_evidence_urls": [],
-          "tested_sha": null,
-          "implemented_by": [],
-          "independent_reviewer": null,
-          "reviewed_at": null,
-          "reviewed_sha": null,
-          "review_evidence_urls": [],
+          "state": "ACCEPTED",
+          "assessed_by": "claude-reviewer",
+          "assessed_at": "2026-11-01T14:23:58Z",
+          "assessed_sha": "951c81e3f338c93a88e988d9b1ac5d9cbdffaa88",
+          "assessment_evidence_urls": [
+            "https://github.com/Johnathan-u/trust-copilot/actions/runs/41139637051",
+            "https://github.com/Johnathan-u/trust-copilot/issues/85#issuecomment-6559232272"
+          ],
+          "tested_sha": "951c81e3f338c93a88e988d9b1ac5d9cbdffaa88",
+          "implemented_by": [
+            "Johnathan-u",
+            "cursor-agent"
+          ],
+          "independent_reviewer": "claude-reviewer",
+          "reviewed_at": "2026-11-01T14:23:58Z",
+          "reviewed_sha": "951c81e3f338c93a88e988d9b1ac5d9cbdffaa88",
+          "review_evidence_urls": [
+            "https://github.com/Johnathan-u/trust-copilot/issues/85#issuecomment-6559232272"
+          ],
           "criteria": [
             {
               "id": "TC-03-001-AC1",
-              "status": "NOT_VERIFIED",
-              "evidence_urls": [],
-              "tested_sha": null
+              "status": "PASS",
+              "evidence_urls": [
+                "https://github.com/Johnathan-u/trust-copilot/actions/runs/41139637051",
+                "https://github.com/Johnathan-u/trust-copilot/blob/951c81e3f338c93a88e988d9b1ac5d9cbdffaa88/apps/api/tests/release/test_config_contract.py",
+                "https://github.com/Johnathan-u/trust-copilot/blob/951c81e3f338c93a88e988d9b1ac5d9cbdffaa88/artifacts/acceptance/TC-03-001/README.md",
+                "https://github.com/Johnathan-u/trust-copilot/blob/951c81e3f338c93a88e988d9b1ac5d9cbdffaa88/docs/release/tickets/TC-03-001.md"
+              ],
+              "tested_sha": "951c81e3f338c93a88e988d9b1ac5d9cbdffaa88"
             },
             {
               "id": "TC-03-001-AC2",
-              "status": "NOT_VERIFIED",
-              "evidence_urls": [],
-              "tested_sha": null
+              "status": "PASS",
+              "evidence_urls": [
+                "https://github.com/Johnathan-u/trust-copilot/actions/runs/41139637051",
+                "https://github.com/Johnathan-u/trust-copilot/blob/951c81e3f338c93a88e988d9b1ac5d9cbdffaa88/apps/api/tests/release/test_config_contract.py",
+                "https://github.com/Johnathan-u/trust-copilot/blob/951c81e3f338c93a88e988d9b1ac5d9cbdffaa88/artifacts/acceptance/TC-03-001/README.md",
+                "https://github.com/Johnathan-u/trust-copilot/blob/951c81e3f338c93a88e988d9b1ac5d9cbdffaa88/docs/release/tickets/TC-03-001.md"
+              ],
+              "tested_sha": "951c81e3f338c93a88e988d9b1ac5d9cbdffaa88"
             }
           ],
           "definition_of_done": [
             {
               "id": "TC-03-001-DOD1",
-              "status": "NOT_VERIFIED",
-              "evidence_urls": [],
-              "tested_sha": null
+              "status": "PASS",
+              "evidence_urls": [
+                "https://github.com/Johnathan-u/trust-copilot/actions/runs/41139637051",
+                "https://github.com/Johnathan-u/trust-copilot/blob/951c81e3f338c93a88e988d9b1ac5d9cbdffaa88/apps/api/tests/release/test_config_contract.py",
+                "https://github.com/Johnathan-u/trust-copilot/blob/951c81e3f338c93a88e988d9b1ac5d9cbdffaa88/artifacts/acceptance/TC-03-001/README.md",
+                "https://github.com/Johnathan-u/trust-copilot/blob/951c81e3f338c93a88e988d9b1ac5d9cbdffaa88/docs/release/tickets/TC-03-001.md"
+              ],
+              "tested_sha": "951c81e3f338c93a88e988d9b1ac5d9cbdffaa88"
             },
             {
               "id": "TC-03-001-DOD2",
-              "status": "NOT_VERIFIED",
-              "evidence_urls": [],
-              "tested_sha": null
+              "status": "PASS",
+              "evidence_urls": [
+                "https://github.com/Johnathan-u/trust-copilot/actions/runs/41139637051",
+                "https://github.com/Johnathan-u/trust-copilot/blob/951c81e3f338c93a88e988d9b1ac5d9cbdffaa88/apps/api/tests/release/test_config_contract.py",
+                "https://github.com/Johnathan-u/trust-copilot/blob/951c81e3f338c93a88e988d9b1ac5d9cbdffaa88/artifacts/acceptance/TC-03-001/README.md",
+                "https://github.com/Johnathan-u/trust-copilot/blob/951c81e3f338c93a88e988d9b1ac5d9cbdffaa88/docs/release/tickets/TC-03-001.md"
+              ],
+              "tested_sha": "951c81e3f338c93a88e988d9b1ac5d9cbdffaa88"
             },
             {
               "id": "TC-03-001-DOD3",
-              "status": "NOT_VERIFIED",
-              "evidence_urls": [],
-              "tested_sha": null
+              "status": "PASS",
+              "evidence_urls": [
+                "https://github.com/Johnathan-u/trust-copilot/actions/runs/41139637051",
+                "https://github.com/Johnathan-u/trust-copilot/blob/951c81e3f338c93a88e988d9b1ac5d9cbdffaa88/apps/api/tests/release/test_config_contract.py",
+                "https://github.com/Johnathan-u/trust-copilot/blob/951c81e3f338c93a88e988d9b1ac5d9cbdffaa88/artifacts/acceptance/TC-03-001/README.md",
+                "https://github.com/Johnathan-u/trust-copilot/blob/951c81e3f338c93a88e988d9b1ac5d9cbdffaa88/docs/release/tickets/TC-03-001.md"
+              ],
+              "tested_sha": "951c81e3f338c93a88e988d9b1ac5d9cbdffaa88"
             },
             {
               "id": "TC-03-001-DOD4",
-              "status": "NOT_VERIFIED",
-              "evidence_urls": [],
-              "tested_sha": null
+              "status": "PASS",
+              "evidence_urls": [
+                "https://github.com/Johnathan-u/trust-copilot/actions/runs/41139637051",
+                "https://github.com/Johnathan-u/trust-copilot/blob/951c81e3f338c93a88e988d9b1ac5d9cbdffaa88/apps/api/tests/release/test_config_contract.py",
+                "https://github.com/Johnathan-u/trust-copilot/blob/951c81e3f338c93a88e988d9b1ac5d9cbdffaa88/artifacts/acceptance/TC-03-001/README.md",
+                "https://github.com/Johnathan-u/trust-copilot/blob/951c81e3f338c93a88e988d9b1ac5d9cbdffaa88/docs/release/tickets/TC-03-001.md"
+              ],
+              "tested_sha": "951c81e3f338c93a88e988d9b1ac5d9cbdffaa88"
             },
             {
               "id": "TC-03-001-DOD5",
-              "status": "NOT_VERIFIED",
-              "evidence_urls": [],
-              "tested_sha": null
+              "status": "PASS",
+              "evidence_urls": [
+                "https://github.com/Johnathan-u/trust-copilot/actions/runs/41139637051",
+                "https://github.com/Johnathan-u/trust-copilot/blob/951c81e3f338c93a88e988d9b1ac5d9cbdffaa88/apps/api/tests/release/test_config_contract.py",
+                "https://github.com/Johnathan-u/trust-copilot/blob/951c81e3f338c93a88e988d9b1ac5d9cbdffaa88/artifacts/acceptance/TC-03-001/README.md",
+                "https://github.com/Johnathan-u/trust-copilot/blob/951c81e3f338c93a88e988d9b1ac5d9cbdffaa88/docs/release/tickets/TC-03-001.md"
+              ],
+              "tested_sha": "951c81e3f338c93a88e988d9b1ac5d9cbdffaa88"
             }
           ],
-          "note": "Full original-parent acceptance is pending baseline validation; merged work and artifact presence alone confer no acceptance."
+          "note": "Accepted on exact-SHA master CI (build + web-release-e2e green) and review of code, tests and evidence; implemented via PR #14, #64."
         },
         "pr_links": [
           {
@@ -21108,72 +21194,115 @@ window.TRUSTCOPILOT_BACKLOG = {
       "release_gate_dependencies": [],
       "dependency_ruling_ids": [],
       "current": {
-        "status": "EVIDENCE_RECONCILIATION",
-        "evidence_state": "EVIDENCE_RECONCILIATION",
+        "status": "DONE",
+        "evidence_state": "VERIFIED_ACCEPTED",
         "owner": null,
         "blockers": [],
-        "next_action": "Reconcile existing implementation and evidence against all original acceptance criteria before declaring Done or estimating only the remaining scope.",
-        "updated_at": "2026-10-30T09:49:19Z",
-        "source_sha": "b2bd1e0df5cdeb03b8d0cd240f5a161835ea621d",
+        "next_action": "Accepted. Reopen only on regression.",
+        "updated_at": "2026-11-01T14:23:59Z",
+        "source_sha": "90146e0cfe2220beb3e43f98f6073262f7c0abfb",
         "acceptance": {
-          "state": "PENDING",
-          "assessed_by": null,
-          "assessed_at": null,
-          "assessed_sha": null,
-          "assessment_evidence_urls": [],
-          "tested_sha": null,
-          "implemented_by": [],
-          "independent_reviewer": null,
-          "reviewed_at": null,
-          "reviewed_sha": null,
-          "review_evidence_urls": [],
+          "state": "ACCEPTED",
+          "assessed_by": "claude-reviewer",
+          "assessed_at": "2026-11-01T14:23:58Z",
+          "assessed_sha": "951c81e3f338c93a88e988d9b1ac5d9cbdffaa88",
+          "assessment_evidence_urls": [
+            "https://github.com/Johnathan-u/trust-copilot/actions/runs/41139637051",
+            "https://github.com/Johnathan-u/trust-copilot/issues/85#issuecomment-6559232272"
+          ],
+          "tested_sha": "951c81e3f338c93a88e988d9b1ac5d9cbdffaa88",
+          "implemented_by": [
+            "Johnathan-u",
+            "cursor-agent"
+          ],
+          "independent_reviewer": "claude-reviewer",
+          "reviewed_at": "2026-11-01T14:23:58Z",
+          "reviewed_sha": "951c81e3f338c93a88e988d9b1ac5d9cbdffaa88",
+          "review_evidence_urls": [
+            "https://github.com/Johnathan-u/trust-copilot/issues/85#issuecomment-6559232272"
+          ],
           "criteria": [
             {
               "id": "TC-07-001-AC1",
-              "status": "NOT_VERIFIED",
-              "evidence_urls": [],
-              "tested_sha": null
+              "status": "PASS",
+              "evidence_urls": [
+                "https://github.com/Johnathan-u/trust-copilot/actions/runs/41139637051",
+                "https://github.com/Johnathan-u/trust-copilot/blob/951c81e3f338c93a88e988d9b1ac5d9cbdffaa88/apps/api/tests/release/test_secret_inventory.py",
+                "https://github.com/Johnathan-u/trust-copilot/blob/951c81e3f338c93a88e988d9b1ac5d9cbdffaa88/artifacts/acceptance/TC-07-001/README.md",
+                "https://github.com/Johnathan-u/trust-copilot/blob/951c81e3f338c93a88e988d9b1ac5d9cbdffaa88/docs/release/tickets/TC-07-001.md"
+              ],
+              "tested_sha": "951c81e3f338c93a88e988d9b1ac5d9cbdffaa88"
             },
             {
               "id": "TC-07-001-AC2",
-              "status": "NOT_VERIFIED",
-              "evidence_urls": [],
-              "tested_sha": null
+              "status": "PASS",
+              "evidence_urls": [
+                "https://github.com/Johnathan-u/trust-copilot/actions/runs/41139637051",
+                "https://github.com/Johnathan-u/trust-copilot/blob/951c81e3f338c93a88e988d9b1ac5d9cbdffaa88/apps/api/tests/release/test_secret_inventory.py",
+                "https://github.com/Johnathan-u/trust-copilot/blob/951c81e3f338c93a88e988d9b1ac5d9cbdffaa88/artifacts/acceptance/TC-07-001/README.md",
+                "https://github.com/Johnathan-u/trust-copilot/blob/951c81e3f338c93a88e988d9b1ac5d9cbdffaa88/docs/release/tickets/TC-07-001.md"
+              ],
+              "tested_sha": "951c81e3f338c93a88e988d9b1ac5d9cbdffaa88"
             }
           ],
           "definition_of_done": [
             {
               "id": "TC-07-001-DOD1",
-              "status": "NOT_VERIFIED",
-              "evidence_urls": [],
-              "tested_sha": null
+              "status": "PASS",
+              "evidence_urls": [
+                "https://github.com/Johnathan-u/trust-copilot/actions/runs/41139637051",
+                "https://github.com/Johnathan-u/trust-copilot/blob/951c81e3f338c93a88e988d9b1ac5d9cbdffaa88/apps/api/tests/release/test_secret_inventory.py",
+                "https://github.com/Johnathan-u/trust-copilot/blob/951c81e3f338c93a88e988d9b1ac5d9cbdffaa88/artifacts/acceptance/TC-07-001/README.md",
+                "https://github.com/Johnathan-u/trust-copilot/blob/951c81e3f338c93a88e988d9b1ac5d9cbdffaa88/docs/release/tickets/TC-07-001.md"
+              ],
+              "tested_sha": "951c81e3f338c93a88e988d9b1ac5d9cbdffaa88"
             },
             {
               "id": "TC-07-001-DOD2",
-              "status": "NOT_VERIFIED",
-              "evidence_urls": [],
-              "tested_sha": null
+              "status": "PASS",
+              "evidence_urls": [
+                "https://github.com/Johnathan-u/trust-copilot/actions/runs/41139637051",
+                "https://github.com/Johnathan-u/trust-copilot/blob/951c81e3f338c93a88e988d9b1ac5d9cbdffaa88/apps/api/tests/release/test_secret_inventory.py",
+                "https://github.com/Johnathan-u/trust-copilot/blob/951c81e3f338c93a88e988d9b1ac5d9cbdffaa88/artifacts/acceptance/TC-07-001/README.md",
+                "https://github.com/Johnathan-u/trust-copilot/blob/951c81e3f338c93a88e988d9b1ac5d9cbdffaa88/docs/release/tickets/TC-07-001.md"
+              ],
+              "tested_sha": "951c81e3f338c93a88e988d9b1ac5d9cbdffaa88"
             },
             {
               "id": "TC-07-001-DOD3",
-              "status": "NOT_VERIFIED",
-              "evidence_urls": [],
-              "tested_sha": null
+              "status": "PASS",
+              "evidence_urls": [
+                "https://github.com/Johnathan-u/trust-copilot/actions/runs/41139637051",
+                "https://github.com/Johnathan-u/trust-copilot/blob/951c81e3f338c93a88e988d9b1ac5d9cbdffaa88/apps/api/tests/release/test_secret_inventory.py",
+                "https://github.com/Johnathan-u/trust-copilot/blob/951c81e3f338c93a88e988d9b1ac5d9cbdffaa88/artifacts/acceptance/TC-07-001/README.md",
+                "https://github.com/Johnathan-u/trust-copilot/blob/951c81e3f338c93a88e988d9b1ac5d9cbdffaa88/docs/release/tickets/TC-07-001.md"
+              ],
+              "tested_sha": "951c81e3f338c93a88e988d9b1ac5d9cbdffaa88"
             },
             {
               "id": "TC-07-001-DOD4",
-              "status": "NOT_VERIFIED",
-              "evidence_urls": [],
-              "tested_sha": null
+              "status": "PASS",
+              "evidence_urls": [
+                "https://github.com/Johnathan-u/trust-copilot/actions/runs/41139637051",
+                "https://github.com/Johnathan-u/trust-copilot/blob/951c81e3f338c93a88e988d9b1ac5d9cbdffaa88/apps/api/tests/release/test_secret_inventory.py",
+                "https://github.com/Johnathan-u/trust-copilot/blob/951c81e3f338c93a88e988d9b1ac5d9cbdffaa88/artifacts/acceptance/TC-07-001/README.md",
+                "https://github.com/Johnathan-u/trust-copilot/blob/951c81e3f338c93a88e988d9b1ac5d9cbdffaa88/docs/release/tickets/TC-07-001.md"
+              ],
+              "tested_sha": "951c81e3f338c93a88e988d9b1ac5d9cbdffaa88"
             },
             {
               "id": "TC-07-001-DOD5",
-              "status": "NOT_VERIFIED",
-              "evidence_urls": [],
-              "tested_sha": null
+              "status": "PASS",
+              "evidence_urls": [
+                "https://github.com/Johnathan-u/trust-copilot/actions/runs/41139637051",
+                "https://github.com/Johnathan-u/trust-copilot/blob/951c81e3f338c93a88e988d9b1ac5d9cbdffaa88/apps/api/tests/release/test_secret_inventory.py",
+                "https://github.com/Johnathan-u/trust-copilot/blob/951c81e3f338c93a88e988d9b1ac5d9cbdffaa88/artifacts/acceptance/TC-07-001/README.md",
+                "https://github.com/Johnathan-u/trust-copilot/blob/951c81e3f338c93a88e988d9b1ac5d9cbdffaa88/docs/release/tickets/TC-07-001.md"
+              ],
+              "tested_sha": "951c81e3f338c93a88e988d9b1ac5d9cbdffaa88"
             }
           ],
-          "note": "Full original-parent acceptance is pending baseline validation; merged work and artifact presence alone confer no acceptance."
+          "note": "Accepted on exact-SHA master CI (build + web-release-e2e green) and review of code, tests and evidence; implemented via PR #13, #40. AC2 rests on the recorded owner statement of 2026-10-27; git-history rewrite remains an open owner item outside the criteria."
         },
         "pr_links": [
           {
@@ -80616,78 +80745,126 @@ window.TRUSTCOPILOT_BACKLOG = {
       "release_gate_dependencies": [],
       "dependency_ruling_ids": [],
       "current": {
-        "status": "EVIDENCE_RECONCILIATION",
-        "evidence_state": "EVIDENCE_RECONCILIATION",
+        "status": "DONE",
+        "evidence_state": "VERIFIED_ACCEPTED",
         "owner": null,
         "blockers": [],
-        "next_action": "Reconcile existing implementation and evidence against all original acceptance criteria before declaring Done or estimating only the remaining scope.",
-        "updated_at": "2026-10-30T09:49:19Z",
-        "source_sha": "b2bd1e0df5cdeb03b8d0cd240f5a161835ea621d",
+        "next_action": "Accepted. Reopen only on regression.",
+        "updated_at": "2026-11-01T14:23:59Z",
+        "source_sha": "90146e0cfe2220beb3e43f98f6073262f7c0abfb",
         "acceptance": {
-          "state": "PENDING",
-          "assessed_by": null,
-          "assessed_at": null,
-          "assessed_sha": null,
-          "assessment_evidence_urls": [],
-          "tested_sha": null,
-          "implemented_by": [],
-          "independent_reviewer": null,
-          "reviewed_at": null,
-          "reviewed_sha": null,
-          "review_evidence_urls": [],
+          "state": "ACCEPTED",
+          "assessed_by": "claude-reviewer",
+          "assessed_at": "2026-11-01T14:23:58Z",
+          "assessed_sha": "951c81e3f338c93a88e988d9b1ac5d9cbdffaa88",
+          "assessment_evidence_urls": [
+            "https://github.com/Johnathan-u/trust-copilot/actions/runs/41139637051",
+            "https://github.com/Johnathan-u/trust-copilot/issues/85#issuecomment-6559232272"
+          ],
+          "tested_sha": "951c81e3f338c93a88e988d9b1ac5d9cbdffaa88",
+          "implemented_by": [
+            "Johnathan-u",
+            "codex"
+          ],
+          "independent_reviewer": "claude-reviewer",
+          "reviewed_at": "2026-11-01T14:23:58Z",
+          "reviewed_sha": "951c81e3f338c93a88e988d9b1ac5d9cbdffaa88",
+          "review_evidence_urls": [
+            "https://github.com/Johnathan-u/trust-copilot/issues/85#issuecomment-6559232272"
+          ],
           "criteria": [
             {
               "id": "TC-17-004-AC1",
-              "status": "NOT_VERIFIED",
-              "evidence_urls": [],
-              "tested_sha": null
+              "status": "PASS",
+              "evidence_urls": [
+                "https://github.com/Johnathan-u/trust-copilot/actions/runs/41139637051",
+                "https://github.com/Johnathan-u/trust-copilot/blob/951c81e3f338c93a88e988d9b1ac5d9cbdffaa88/apps/api/tests/release/test_domain_security_faq.py",
+                "https://github.com/Johnathan-u/trust-copilot/blob/951c81e3f338c93a88e988d9b1ac5d9cbdffaa88/artifacts/acceptance/TC-17-004/README.md",
+                "https://github.com/Johnathan-u/trust-copilot/blob/951c81e3f338c93a88e988d9b1ac5d9cbdffaa88/docs/release/tickets/TC-17-004.md"
+              ],
+              "tested_sha": "951c81e3f338c93a88e988d9b1ac5d9cbdffaa88"
             },
             {
               "id": "TC-17-004-AC2",
-              "status": "NOT_VERIFIED",
-              "evidence_urls": [],
-              "tested_sha": null
+              "status": "PASS",
+              "evidence_urls": [
+                "https://github.com/Johnathan-u/trust-copilot/actions/runs/41139637051",
+                "https://github.com/Johnathan-u/trust-copilot/blob/951c81e3f338c93a88e988d9b1ac5d9cbdffaa88/apps/api/tests/release/test_domain_security_faq.py",
+                "https://github.com/Johnathan-u/trust-copilot/blob/951c81e3f338c93a88e988d9b1ac5d9cbdffaa88/artifacts/acceptance/TC-17-004/README.md",
+                "https://github.com/Johnathan-u/trust-copilot/blob/951c81e3f338c93a88e988d9b1ac5d9cbdffaa88/docs/release/tickets/TC-17-004.md"
+              ],
+              "tested_sha": "951c81e3f338c93a88e988d9b1ac5d9cbdffaa88"
             },
             {
               "id": "TC-17-004-AC3",
-              "status": "NOT_VERIFIED",
-              "evidence_urls": [],
-              "tested_sha": null
+              "status": "PASS",
+              "evidence_urls": [
+                "https://github.com/Johnathan-u/trust-copilot/actions/runs/41139637051",
+                "https://github.com/Johnathan-u/trust-copilot/blob/951c81e3f338c93a88e988d9b1ac5d9cbdffaa88/apps/api/tests/release/test_domain_security_faq.py",
+                "https://github.com/Johnathan-u/trust-copilot/blob/951c81e3f338c93a88e988d9b1ac5d9cbdffaa88/artifacts/acceptance/TC-17-004/README.md",
+                "https://github.com/Johnathan-u/trust-copilot/blob/951c81e3f338c93a88e988d9b1ac5d9cbdffaa88/docs/release/tickets/TC-17-004.md"
+              ],
+              "tested_sha": "951c81e3f338c93a88e988d9b1ac5d9cbdffaa88"
             }
           ],
           "definition_of_done": [
             {
               "id": "TC-17-004-DOD1",
-              "status": "NOT_VERIFIED",
-              "evidence_urls": [],
-              "tested_sha": null
+              "status": "PASS",
+              "evidence_urls": [
+                "https://github.com/Johnathan-u/trust-copilot/actions/runs/41139637051",
+                "https://github.com/Johnathan-u/trust-copilot/blob/951c81e3f338c93a88e988d9b1ac5d9cbdffaa88/apps/api/tests/release/test_domain_security_faq.py",
+                "https://github.com/Johnathan-u/trust-copilot/blob/951c81e3f338c93a88e988d9b1ac5d9cbdffaa88/artifacts/acceptance/TC-17-004/README.md",
+                "https://github.com/Johnathan-u/trust-copilot/blob/951c81e3f338c93a88e988d9b1ac5d9cbdffaa88/docs/release/tickets/TC-17-004.md"
+              ],
+              "tested_sha": "951c81e3f338c93a88e988d9b1ac5d9cbdffaa88"
             },
             {
               "id": "TC-17-004-DOD2",
-              "status": "NOT_VERIFIED",
-              "evidence_urls": [],
-              "tested_sha": null
+              "status": "PASS",
+              "evidence_urls": [
+                "https://github.com/Johnathan-u/trust-copilot/actions/runs/41139637051",
+                "https://github.com/Johnathan-u/trust-copilot/blob/951c81e3f338c93a88e988d9b1ac5d9cbdffaa88/apps/api/tests/release/test_domain_security_faq.py",
+                "https://github.com/Johnathan-u/trust-copilot/blob/951c81e3f338c93a88e988d9b1ac5d9cbdffaa88/artifacts/acceptance/TC-17-004/README.md",
+                "https://github.com/Johnathan-u/trust-copilot/blob/951c81e3f338c93a88e988d9b1ac5d9cbdffaa88/docs/release/tickets/TC-17-004.md"
+              ],
+              "tested_sha": "951c81e3f338c93a88e988d9b1ac5d9cbdffaa88"
             },
             {
               "id": "TC-17-004-DOD3",
-              "status": "NOT_VERIFIED",
-              "evidence_urls": [],
-              "tested_sha": null
+              "status": "PASS",
+              "evidence_urls": [
+                "https://github.com/Johnathan-u/trust-copilot/actions/runs/41139637051",
+                "https://github.com/Johnathan-u/trust-copilot/blob/951c81e3f338c93a88e988d9b1ac5d9cbdffaa88/apps/api/tests/release/test_domain_security_faq.py",
+                "https://github.com/Johnathan-u/trust-copilot/blob/951c81e3f338c93a88e988d9b1ac5d9cbdffaa88/artifacts/acceptance/TC-17-004/README.md",
+                "https://github.com/Johnathan-u/trust-copilot/blob/951c81e3f338c93a88e988d9b1ac5d9cbdffaa88/docs/release/tickets/TC-17-004.md"
+              ],
+              "tested_sha": "951c81e3f338c93a88e988d9b1ac5d9cbdffaa88"
             },
             {
               "id": "TC-17-004-DOD4",
-              "status": "NOT_VERIFIED",
-              "evidence_urls": [],
-              "tested_sha": null
+              "status": "PASS",
+              "evidence_urls": [
+                "https://github.com/Johnathan-u/trust-copilot/actions/runs/41139637051",
+                "https://github.com/Johnathan-u/trust-copilot/blob/951c81e3f338c93a88e988d9b1ac5d9cbdffaa88/apps/api/tests/release/test_domain_security_faq.py",
+                "https://github.com/Johnathan-u/trust-copilot/blob/951c81e3f338c93a88e988d9b1ac5d9cbdffaa88/artifacts/acceptance/TC-17-004/README.md",
+                "https://github.com/Johnathan-u/trust-copilot/blob/951c81e3f338c93a88e988d9b1ac5d9cbdffaa88/docs/release/tickets/TC-17-004.md"
+              ],
+              "tested_sha": "951c81e3f338c93a88e988d9b1ac5d9cbdffaa88"
             },
             {
               "id": "TC-17-004-DOD5",
-              "status": "NOT_VERIFIED",
-              "evidence_urls": [],
-              "tested_sha": null
+              "status": "PASS",
+              "evidence_urls": [
+                "https://github.com/Johnathan-u/trust-copilot/actions/runs/41139637051",
+                "https://github.com/Johnathan-u/trust-copilot/blob/951c81e3f338c93a88e988d9b1ac5d9cbdffaa88/apps/api/tests/release/test_domain_security_faq.py",
+                "https://github.com/Johnathan-u/trust-copilot/blob/951c81e3f338c93a88e988d9b1ac5d9cbdffaa88/artifacts/acceptance/TC-17-004/README.md",
+                "https://github.com/Johnathan-u/trust-copilot/blob/951c81e3f338c93a88e988d9b1ac5d9cbdffaa88/docs/release/tickets/TC-17-004.md"
+              ],
+              "tested_sha": "951c81e3f338c93a88e988d9b1ac5d9cbdffaa88"
             }
           ],
-          "note": "Full original-parent acceptance is pending baseline validation; merged work and artifact presence alone confer no acceptance."
+          "note": "Accepted on exact-SHA master CI (build + web-release-e2e green) and review of code, tests and evidence; implemented via PR #91."
         },
         "pr_links": [
           {
@@ -96016,78 +96193,126 @@ window.TRUSTCOPILOT_BACKLOG = {
       "release_gate_dependencies": [],
       "dependency_ruling_ids": [],
       "current": {
-        "status": "EVIDENCE_RECONCILIATION",
-        "evidence_state": "EVIDENCE_RECONCILIATION",
+        "status": "DONE",
+        "evidence_state": "VERIFIED_ACCEPTED",
         "owner": null,
         "blockers": [],
-        "next_action": "Reconcile existing implementation and evidence against all original acceptance criteria before declaring Done or estimating only the remaining scope.",
-        "updated_at": "2026-10-30T09:49:19Z",
-        "source_sha": "b2bd1e0df5cdeb03b8d0cd240f5a161835ea621d",
+        "next_action": "Accepted. Reopen only on regression.",
+        "updated_at": "2026-11-01T14:23:59Z",
+        "source_sha": "90146e0cfe2220beb3e43f98f6073262f7c0abfb",
         "acceptance": {
-          "state": "PENDING",
-          "assessed_by": null,
-          "assessed_at": null,
-          "assessed_sha": null,
-          "assessment_evidence_urls": [],
-          "tested_sha": null,
-          "implemented_by": [],
-          "independent_reviewer": null,
-          "reviewed_at": null,
-          "reviewed_sha": null,
-          "review_evidence_urls": [],
+          "state": "ACCEPTED",
+          "assessed_by": "claude-reviewer",
+          "assessed_at": "2026-11-01T14:23:58Z",
+          "assessed_sha": "951c81e3f338c93a88e988d9b1ac5d9cbdffaa88",
+          "assessment_evidence_urls": [
+            "https://github.com/Johnathan-u/trust-copilot/actions/runs/41139637051",
+            "https://github.com/Johnathan-u/trust-copilot/issues/85#issuecomment-6559232272"
+          ],
+          "tested_sha": "951c81e3f338c93a88e988d9b1ac5d9cbdffaa88",
+          "implemented_by": [
+            "Johnathan-u",
+            "cursor-agent"
+          ],
+          "independent_reviewer": "claude-reviewer",
+          "reviewed_at": "2026-11-01T14:23:58Z",
+          "reviewed_sha": "951c81e3f338c93a88e988d9b1ac5d9cbdffaa88",
+          "review_evidence_urls": [
+            "https://github.com/Johnathan-u/trust-copilot/issues/85#issuecomment-6559232272"
+          ],
           "criteria": [
             {
               "id": "TC-25-005-AC1",
-              "status": "NOT_VERIFIED",
-              "evidence_urls": [],
-              "tested_sha": null
+              "status": "PASS",
+              "evidence_urls": [
+                "https://github.com/Johnathan-u/trust-copilot/actions/runs/41139637051",
+                "https://github.com/Johnathan-u/trust-copilot/blob/951c81e3f338c93a88e988d9b1ac5d9cbdffaa88/apps/api/tests/release/test_domain_case_studies.py",
+                "https://github.com/Johnathan-u/trust-copilot/blob/951c81e3f338c93a88e988d9b1ac5d9cbdffaa88/artifacts/acceptance/TC-25-005/README.md",
+                "https://github.com/Johnathan-u/trust-copilot/blob/951c81e3f338c93a88e988d9b1ac5d9cbdffaa88/docs/release/tickets/TC-25-005.md"
+              ],
+              "tested_sha": "951c81e3f338c93a88e988d9b1ac5d9cbdffaa88"
             },
             {
               "id": "TC-25-005-AC2",
-              "status": "NOT_VERIFIED",
-              "evidence_urls": [],
-              "tested_sha": null
+              "status": "PASS",
+              "evidence_urls": [
+                "https://github.com/Johnathan-u/trust-copilot/actions/runs/41139637051",
+                "https://github.com/Johnathan-u/trust-copilot/blob/951c81e3f338c93a88e988d9b1ac5d9cbdffaa88/apps/api/tests/release/test_domain_case_studies.py",
+                "https://github.com/Johnathan-u/trust-copilot/blob/951c81e3f338c93a88e988d9b1ac5d9cbdffaa88/artifacts/acceptance/TC-25-005/README.md",
+                "https://github.com/Johnathan-u/trust-copilot/blob/951c81e3f338c93a88e988d9b1ac5d9cbdffaa88/docs/release/tickets/TC-25-005.md"
+              ],
+              "tested_sha": "951c81e3f338c93a88e988d9b1ac5d9cbdffaa88"
             },
             {
               "id": "TC-25-005-AC3",
-              "status": "NOT_VERIFIED",
-              "evidence_urls": [],
-              "tested_sha": null
+              "status": "PASS",
+              "evidence_urls": [
+                "https://github.com/Johnathan-u/trust-copilot/actions/runs/41139637051",
+                "https://github.com/Johnathan-u/trust-copilot/blob/951c81e3f338c93a88e988d9b1ac5d9cbdffaa88/apps/api/tests/release/test_domain_case_studies.py",
+                "https://github.com/Johnathan-u/trust-copilot/blob/951c81e3f338c93a88e988d9b1ac5d9cbdffaa88/artifacts/acceptance/TC-25-005/README.md",
+                "https://github.com/Johnathan-u/trust-copilot/blob/951c81e3f338c93a88e988d9b1ac5d9cbdffaa88/docs/release/tickets/TC-25-005.md"
+              ],
+              "tested_sha": "951c81e3f338c93a88e988d9b1ac5d9cbdffaa88"
             }
           ],
           "definition_of_done": [
             {
               "id": "TC-25-005-DOD1",
-              "status": "NOT_VERIFIED",
-              "evidence_urls": [],
-              "tested_sha": null
+              "status": "PASS",
+              "evidence_urls": [
+                "https://github.com/Johnathan-u/trust-copilot/actions/runs/41139637051",
+                "https://github.com/Johnathan-u/trust-copilot/blob/951c81e3f338c93a88e988d9b1ac5d9cbdffaa88/apps/api/tests/release/test_domain_case_studies.py",
+                "https://github.com/Johnathan-u/trust-copilot/blob/951c81e3f338c93a88e988d9b1ac5d9cbdffaa88/artifacts/acceptance/TC-25-005/README.md",
+                "https://github.com/Johnathan-u/trust-copilot/blob/951c81e3f338c93a88e988d9b1ac5d9cbdffaa88/docs/release/tickets/TC-25-005.md"
+              ],
+              "tested_sha": "951c81e3f338c93a88e988d9b1ac5d9cbdffaa88"
             },
             {
               "id": "TC-25-005-DOD2",
-              "status": "NOT_VERIFIED",
-              "evidence_urls": [],
-              "tested_sha": null
+              "status": "PASS",
+              "evidence_urls": [
+                "https://github.com/Johnathan-u/trust-copilot/actions/runs/41139637051",
+                "https://github.com/Johnathan-u/trust-copilot/blob/951c81e3f338c93a88e988d9b1ac5d9cbdffaa88/apps/api/tests/release/test_domain_case_studies.py",
+                "https://github.com/Johnathan-u/trust-copilot/blob/951c81e3f338c93a88e988d9b1ac5d9cbdffaa88/artifacts/acceptance/TC-25-005/README.md",
+                "https://github.com/Johnathan-u/trust-copilot/blob/951c81e3f338c93a88e988d9b1ac5d9cbdffaa88/docs/release/tickets/TC-25-005.md"
+              ],
+              "tested_sha": "951c81e3f338c93a88e988d9b1ac5d9cbdffaa88"
             },
             {
               "id": "TC-25-005-DOD3",
-              "status": "NOT_VERIFIED",
-              "evidence_urls": [],
-              "tested_sha": null
+              "status": "PASS",
+              "evidence_urls": [
+                "https://github.com/Johnathan-u/trust-copilot/actions/runs/41139637051",
+                "https://github.com/Johnathan-u/trust-copilot/blob/951c81e3f338c93a88e988d9b1ac5d9cbdffaa88/apps/api/tests/release/test_domain_case_studies.py",
+                "https://github.com/Johnathan-u/trust-copilot/blob/951c81e3f338c93a88e988d9b1ac5d9cbdffaa88/artifacts/acceptance/TC-25-005/README.md",
+                "https://github.com/Johnathan-u/trust-copilot/blob/951c81e3f338c93a88e988d9b1ac5d9cbdffaa88/docs/release/tickets/TC-25-005.md"
+              ],
+              "tested_sha": "951c81e3f338c93a88e988d9b1ac5d9cbdffaa88"
             },
             {
               "id": "TC-25-005-DOD4",
-              "status": "NOT_VERIFIED",
-              "evidence_urls": [],
-              "tested_sha": null
+              "status": "PASS",
+              "evidence_urls": [
+                "https://github.com/Johnathan-u/trust-copilot/actions/runs/41139637051",
+                "https://github.com/Johnathan-u/trust-copilot/blob/951c81e3f338c93a88e988d9b1ac5d9cbdffaa88/apps/api/tests/release/test_domain_case_studies.py",
+                "https://github.com/Johnathan-u/trust-copilot/blob/951c81e3f338c93a88e988d9b1ac5d9cbdffaa88/artifacts/acceptance/TC-25-005/README.md",
+                "https://github.com/Johnathan-u/trust-copilot/blob/951c81e3f338c93a88e988d9b1ac5d9cbdffaa88/docs/release/tickets/TC-25-005.md"
+              ],
+              "tested_sha": "951c81e3f338c93a88e988d9b1ac5d9cbdffaa88"
             },
             {
               "id": "TC-25-005-DOD5",
-              "status": "NOT_VERIFIED",
-              "evidence_urls": [],
-              "tested_sha": null
+              "status": "PASS",
+              "evidence_urls": [
+                "https://github.com/Johnathan-u/trust-copilot/actions/runs/41139637051",
+                "https://github.com/Johnathan-u/trust-copilot/blob/951c81e3f338c93a88e988d9b1ac5d9cbdffaa88/apps/api/tests/release/test_domain_case_studies.py",
+                "https://github.com/Johnathan-u/trust-copilot/blob/951c81e3f338c93a88e988d9b1ac5d9cbdffaa88/artifacts/acceptance/TC-25-005/README.md",
+                "https://github.com/Johnathan-u/trust-copilot/blob/951c81e3f338c93a88e988d9b1ac5d9cbdffaa88/docs/release/tickets/TC-25-005.md"
+              ],
+              "tested_sha": "951c81e3f338c93a88e988d9b1ac5d9cbdffaa88"
             }
           ],
-          "note": "Full original-parent acceptance is pending baseline validation; merged work and artifact presence alone confer no acceptance."
+          "note": "Accepted on exact-SHA master CI (build + web-release-e2e green) and review of code, tests and evidence; implemented via PR #25, #55."
         },
         "pr_links": [
           {
@@ -97590,78 +97815,126 @@ window.TRUSTCOPILOT_BACKLOG = {
       "release_gate_dependencies": [],
       "dependency_ruling_ids": [],
       "current": {
-        "status": "EVIDENCE_RECONCILIATION",
-        "evidence_state": "EVIDENCE_RECONCILIATION",
+        "status": "DONE",
+        "evidence_state": "VERIFIED_ACCEPTED",
         "owner": null,
         "blockers": [],
-        "next_action": "Reconcile existing implementation and evidence against all original acceptance criteria before declaring Done or estimating only the remaining scope.",
-        "updated_at": "2026-10-30T09:49:19Z",
-        "source_sha": "b2bd1e0df5cdeb03b8d0cd240f5a161835ea621d",
+        "next_action": "Accepted. Reopen only on regression.",
+        "updated_at": "2026-11-01T14:23:59Z",
+        "source_sha": "90146e0cfe2220beb3e43f98f6073262f7c0abfb",
         "acceptance": {
-          "state": "PENDING",
-          "assessed_by": null,
-          "assessed_at": null,
-          "assessed_sha": null,
-          "assessment_evidence_urls": [],
-          "tested_sha": null,
-          "implemented_by": [],
-          "independent_reviewer": null,
-          "reviewed_at": null,
-          "reviewed_sha": null,
-          "review_evidence_urls": [],
+          "state": "ACCEPTED",
+          "assessed_by": "claude-reviewer",
+          "assessed_at": "2026-11-01T14:23:58Z",
+          "assessed_sha": "951c81e3f338c93a88e988d9b1ac5d9cbdffaa88",
+          "assessment_evidence_urls": [
+            "https://github.com/Johnathan-u/trust-copilot/actions/runs/41139637051",
+            "https://github.com/Johnathan-u/trust-copilot/issues/85#issuecomment-6559232272"
+          ],
+          "tested_sha": "951c81e3f338c93a88e988d9b1ac5d9cbdffaa88",
+          "implemented_by": [
+            "Johnathan-u",
+            "cursor-agent"
+          ],
+          "independent_reviewer": "claude-reviewer",
+          "reviewed_at": "2026-11-01T14:23:58Z",
+          "reviewed_sha": "951c81e3f338c93a88e988d9b1ac5d9cbdffaa88",
+          "review_evidence_urls": [
+            "https://github.com/Johnathan-u/trust-copilot/issues/85#issuecomment-6559232272"
+          ],
           "criteria": [
             {
               "id": "TC-25-011-AC1",
-              "status": "NOT_VERIFIED",
-              "evidence_urls": [],
-              "tested_sha": null
+              "status": "PASS",
+              "evidence_urls": [
+                "https://github.com/Johnathan-u/trust-copilot/actions/runs/41139637051",
+                "https://github.com/Johnathan-u/trust-copilot/blob/951c81e3f338c93a88e988d9b1ac5d9cbdffaa88/apps/api/tests/release/test_domain_demo_proof.py",
+                "https://github.com/Johnathan-u/trust-copilot/blob/951c81e3f338c93a88e988d9b1ac5d9cbdffaa88/artifacts/acceptance/TC-25-011/README.md",
+                "https://github.com/Johnathan-u/trust-copilot/blob/951c81e3f338c93a88e988d9b1ac5d9cbdffaa88/docs/release/tickets/TC-25-011.md"
+              ],
+              "tested_sha": "951c81e3f338c93a88e988d9b1ac5d9cbdffaa88"
             },
             {
               "id": "TC-25-011-AC2",
-              "status": "NOT_VERIFIED",
-              "evidence_urls": [],
-              "tested_sha": null
+              "status": "PASS",
+              "evidence_urls": [
+                "https://github.com/Johnathan-u/trust-copilot/actions/runs/41139637051",
+                "https://github.com/Johnathan-u/trust-copilot/blob/951c81e3f338c93a88e988d9b1ac5d9cbdffaa88/apps/api/tests/release/test_domain_demo_proof.py",
+                "https://github.com/Johnathan-u/trust-copilot/blob/951c81e3f338c93a88e988d9b1ac5d9cbdffaa88/artifacts/acceptance/TC-25-011/README.md",
+                "https://github.com/Johnathan-u/trust-copilot/blob/951c81e3f338c93a88e988d9b1ac5d9cbdffaa88/docs/release/tickets/TC-25-011.md"
+              ],
+              "tested_sha": "951c81e3f338c93a88e988d9b1ac5d9cbdffaa88"
             },
             {
               "id": "TC-25-011-AC3",
-              "status": "NOT_VERIFIED",
-              "evidence_urls": [],
-              "tested_sha": null
+              "status": "PASS",
+              "evidence_urls": [
+                "https://github.com/Johnathan-u/trust-copilot/actions/runs/41139637051",
+                "https://github.com/Johnathan-u/trust-copilot/blob/951c81e3f338c93a88e988d9b1ac5d9cbdffaa88/apps/api/tests/release/test_domain_demo_proof.py",
+                "https://github.com/Johnathan-u/trust-copilot/blob/951c81e3f338c93a88e988d9b1ac5d9cbdffaa88/artifacts/acceptance/TC-25-011/README.md",
+                "https://github.com/Johnathan-u/trust-copilot/blob/951c81e3f338c93a88e988d9b1ac5d9cbdffaa88/docs/release/tickets/TC-25-011.md"
+              ],
+              "tested_sha": "951c81e3f338c93a88e988d9b1ac5d9cbdffaa88"
             }
           ],
           "definition_of_done": [
             {
               "id": "TC-25-011-DOD1",
-              "status": "NOT_VERIFIED",
-              "evidence_urls": [],
-              "tested_sha": null
+              "status": "PASS",
+              "evidence_urls": [
+                "https://github.com/Johnathan-u/trust-copilot/actions/runs/41139637051",
+                "https://github.com/Johnathan-u/trust-copilot/blob/951c81e3f338c93a88e988d9b1ac5d9cbdffaa88/apps/api/tests/release/test_domain_demo_proof.py",
+                "https://github.com/Johnathan-u/trust-copilot/blob/951c81e3f338c93a88e988d9b1ac5d9cbdffaa88/artifacts/acceptance/TC-25-011/README.md",
+                "https://github.com/Johnathan-u/trust-copilot/blob/951c81e3f338c93a88e988d9b1ac5d9cbdffaa88/docs/release/tickets/TC-25-011.md"
+              ],
+              "tested_sha": "951c81e3f338c93a88e988d9b1ac5d9cbdffaa88"
             },
             {
               "id": "TC-25-011-DOD2",
-              "status": "NOT_VERIFIED",
-              "evidence_urls": [],
-              "tested_sha": null
+              "status": "PASS",
+              "evidence_urls": [
+                "https://github.com/Johnathan-u/trust-copilot/actions/runs/41139637051",
+                "https://github.com/Johnathan-u/trust-copilot/blob/951c81e3f338c93a88e988d9b1ac5d9cbdffaa88/apps/api/tests/release/test_domain_demo_proof.py",
+                "https://github.com/Johnathan-u/trust-copilot/blob/951c81e3f338c93a88e988d9b1ac5d9cbdffaa88/artifacts/acceptance/TC-25-011/README.md",
+                "https://github.com/Johnathan-u/trust-copilot/blob/951c81e3f338c93a88e988d9b1ac5d9cbdffaa88/docs/release/tickets/TC-25-011.md"
+              ],
+              "tested_sha": "951c81e3f338c93a88e988d9b1ac5d9cbdffaa88"
             },
             {
               "id": "TC-25-011-DOD3",
-              "status": "NOT_VERIFIED",
-              "evidence_urls": [],
-              "tested_sha": null
+              "status": "PASS",
+              "evidence_urls": [
+                "https://github.com/Johnathan-u/trust-copilot/actions/runs/41139637051",
+                "https://github.com/Johnathan-u/trust-copilot/blob/951c81e3f338c93a88e988d9b1ac5d9cbdffaa88/apps/api/tests/release/test_domain_demo_proof.py",
+                "https://github.com/Johnathan-u/trust-copilot/blob/951c81e3f338c93a88e988d9b1ac5d9cbdffaa88/artifacts/acceptance/TC-25-011/README.md",
+                "https://github.com/Johnathan-u/trust-copilot/blob/951c81e3f338c93a88e988d9b1ac5d9cbdffaa88/docs/release/tickets/TC-25-011.md"
+              ],
+              "tested_sha": "951c81e3f338c93a88e988d9b1ac5d9cbdffaa88"
             },
             {
               "id": "TC-25-011-DOD4",
-              "status": "NOT_VERIFIED",
-              "evidence_urls": [],
-              "tested_sha": null
+              "status": "PASS",
+              "evidence_urls": [
+                "https://github.com/Johnathan-u/trust-copilot/actions/runs/41139637051",
+                "https://github.com/Johnathan-u/trust-copilot/blob/951c81e3f338c93a88e988d9b1ac5d9cbdffaa88/apps/api/tests/release/test_domain_demo_proof.py",
+                "https://github.com/Johnathan-u/trust-copilot/blob/951c81e3f338c93a88e988d9b1ac5d9cbdffaa88/artifacts/acceptance/TC-25-011/README.md",
+                "https://github.com/Johnathan-u/trust-copilot/blob/951c81e3f338c93a88e988d9b1ac5d9cbdffaa88/docs/release/tickets/TC-25-011.md"
+              ],
+              "tested_sha": "951c81e3f338c93a88e988d9b1ac5d9cbdffaa88"
             },
             {
               "id": "TC-25-011-DOD5",
-              "status": "NOT_VERIFIED",
-              "evidence_urls": [],
-              "tested_sha": null
+              "status": "PASS",
+              "evidence_urls": [
+                "https://github.com/Johnathan-u/trust-copilot/actions/runs/41139637051",
+                "https://github.com/Johnathan-u/trust-copilot/blob/951c81e3f338c93a88e988d9b1ac5d9cbdffaa88/apps/api/tests/release/test_domain_demo_proof.py",
+                "https://github.com/Johnathan-u/trust-copilot/blob/951c81e3f338c93a88e988d9b1ac5d9cbdffaa88/artifacts/acceptance/TC-25-011/README.md",
+                "https://github.com/Johnathan-u/trust-copilot/blob/951c81e3f338c93a88e988d9b1ac5d9cbdffaa88/docs/release/tickets/TC-25-011.md"
+              ],
+              "tested_sha": "951c81e3f338c93a88e988d9b1ac5d9cbdffaa88"
             }
           ],
-          "note": "Full original-parent acceptance is pending baseline validation; merged work and artifact presence alone confer no acceptance."
+          "note": "Accepted on exact-SHA master CI (build + web-release-e2e green) and review of code, tests and evidence; implemented via PR #30."
         },
         "pr_links": [
           {
@@ -122906,6 +123179,1226 @@ window.TRUSTCOPILOT_BACKLOG = {
           }
         }
       }
+    },
+    {
+      "revision": 7,
+      "at": "2026-11-01T14:23:59Z",
+      "actor": "claude-reviewer",
+      "reason": "Independent acceptance of TC-02-003, TC-03-001, TC-07-001, TC-17-004, TC-25-005, TC-25-011 on master 951c81e (CI 41139637051; review #85 6559232272)",
+      "source_sha": "90146e0cfe2220beb3e43f98f6073262f7c0abfb",
+      "before": {
+        "scope_version": 1,
+        "accepted_points": null,
+        "completion_percentage": null,
+        "assessed_tickets": 2,
+        "total_tickets": 384,
+        "total_points": 1864,
+        "state_counts": {
+          "BASELINE_RECONCILIATION": 304,
+          "BLOCKED": 3,
+          "DONE": 2,
+          "EVIDENCE_RECONCILIATION": 53,
+          "IMPLEMENTATION_GAPS_IDENTIFIED": 22
+        },
+        "accepted_claim_points": 6,
+        "accepted_tickets": 2,
+        "baseline_status": "PENDING"
+      },
+      "after": {
+        "scope_version": 1,
+        "accepted_points": null,
+        "completion_percentage": null,
+        "assessed_tickets": 8,
+        "total_tickets": 384,
+        "total_points": 1864,
+        "state_counts": {
+          "BASELINE_RECONCILIATION": 304,
+          "BLOCKED": 3,
+          "DONE": 8,
+          "EVIDENCE_RECONCILIATION": 47,
+          "IMPLEMENTATION_GAPS_IDENTIFIED": 22
+        },
+        "accepted_claim_points": 32,
+        "accepted_tickets": 8,
+        "baseline_status": "PENDING"
+      },
+      "changes": {
+        "tickets": {
+          "TC-02-003": {
+            "status": {
+              "before": "EVIDENCE_RECONCILIATION",
+              "after": "DONE"
+            },
+            "evidence_state": {
+              "before": "EVIDENCE_RECONCILIATION",
+              "after": "VERIFIED_ACCEPTED"
+            },
+            "next_action": {
+              "before": "Reconcile existing implementation and evidence against all original acceptance criteria before declaring Done or estimating only the remaining scope.",
+              "after": "Accepted. Reopen only on regression."
+            },
+            "updated_at": {
+              "before": "2026-10-30T09:49:19Z",
+              "after": "2026-11-01T14:23:59Z"
+            },
+            "source_sha": {
+              "before": "b2bd1e0df5cdeb03b8d0cd240f5a161835ea621d",
+              "after": "90146e0cfe2220beb3e43f98f6073262f7c0abfb"
+            },
+            "acceptance": {
+              "before": {
+                "state": "PENDING",
+                "assessed_by": null,
+                "assessed_at": null,
+                "assessed_sha": null,
+                "assessment_evidence_urls": [],
+                "tested_sha": null,
+                "implemented_by": [],
+                "independent_reviewer": null,
+                "reviewed_at": null,
+                "reviewed_sha": null,
+                "review_evidence_urls": [],
+                "criteria": [
+                  {
+                    "id": "TC-02-003-AC1",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  },
+                  {
+                    "id": "TC-02-003-AC2",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  }
+                ],
+                "definition_of_done": [
+                  {
+                    "id": "TC-02-003-DOD1",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  },
+                  {
+                    "id": "TC-02-003-DOD2",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  },
+                  {
+                    "id": "TC-02-003-DOD3",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  },
+                  {
+                    "id": "TC-02-003-DOD4",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  },
+                  {
+                    "id": "TC-02-003-DOD5",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  }
+                ],
+                "note": "Full original-parent acceptance is pending baseline validation; merged work and artifact presence alone confer no acceptance."
+              },
+              "after": {
+                "state": "ACCEPTED",
+                "assessed_by": "claude-reviewer",
+                "assessed_at": "2026-11-01T14:23:58Z",
+                "assessed_sha": "951c81e3f338c93a88e988d9b1ac5d9cbdffaa88",
+                "assessment_evidence_urls": [
+                  "https://github.com/Johnathan-u/trust-copilot/actions/runs/41139637051",
+                  "https://github.com/Johnathan-u/trust-copilot/issues/85#issuecomment-6559232272"
+                ],
+                "tested_sha": "951c81e3f338c93a88e988d9b1ac5d9cbdffaa88",
+                "implemented_by": [
+                  "Johnathan-u",
+                  "cursor-agent"
+                ],
+                "independent_reviewer": "claude-reviewer",
+                "reviewed_at": "2026-11-01T14:23:58Z",
+                "reviewed_sha": "951c81e3f338c93a88e988d9b1ac5d9cbdffaa88",
+                "review_evidence_urls": [
+                  "https://github.com/Johnathan-u/trust-copilot/issues/85#issuecomment-6559232272"
+                ],
+                "criteria": [
+                  {
+                    "id": "TC-02-003-AC1",
+                    "status": "PASS",
+                    "evidence_urls": [
+                      "https://github.com/Johnathan-u/trust-copilot/actions/runs/41139637051",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/951c81e3f338c93a88e988d9b1ac5d9cbdffaa88/apps/api/tests/release/test_web_lock.py",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/951c81e3f338c93a88e988d9b1ac5d9cbdffaa88/artifacts/acceptance/TC-02-003/README.md",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/951c81e3f338c93a88e988d9b1ac5d9cbdffaa88/docs/release/tickets/TC-02-003.md"
+                    ],
+                    "tested_sha": "951c81e3f338c93a88e988d9b1ac5d9cbdffaa88"
+                  },
+                  {
+                    "id": "TC-02-003-AC2",
+                    "status": "PASS",
+                    "evidence_urls": [
+                      "https://github.com/Johnathan-u/trust-copilot/actions/runs/41139637051",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/951c81e3f338c93a88e988d9b1ac5d9cbdffaa88/apps/api/tests/release/test_web_lock.py",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/951c81e3f338c93a88e988d9b1ac5d9cbdffaa88/artifacts/acceptance/TC-02-003/README.md",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/951c81e3f338c93a88e988d9b1ac5d9cbdffaa88/docs/release/tickets/TC-02-003.md"
+                    ],
+                    "tested_sha": "951c81e3f338c93a88e988d9b1ac5d9cbdffaa88"
+                  }
+                ],
+                "definition_of_done": [
+                  {
+                    "id": "TC-02-003-DOD1",
+                    "status": "PASS",
+                    "evidence_urls": [
+                      "https://github.com/Johnathan-u/trust-copilot/actions/runs/41139637051",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/951c81e3f338c93a88e988d9b1ac5d9cbdffaa88/apps/api/tests/release/test_web_lock.py",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/951c81e3f338c93a88e988d9b1ac5d9cbdffaa88/artifacts/acceptance/TC-02-003/README.md",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/951c81e3f338c93a88e988d9b1ac5d9cbdffaa88/docs/release/tickets/TC-02-003.md"
+                    ],
+                    "tested_sha": "951c81e3f338c93a88e988d9b1ac5d9cbdffaa88"
+                  },
+                  {
+                    "id": "TC-02-003-DOD2",
+                    "status": "PASS",
+                    "evidence_urls": [
+                      "https://github.com/Johnathan-u/trust-copilot/actions/runs/41139637051",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/951c81e3f338c93a88e988d9b1ac5d9cbdffaa88/apps/api/tests/release/test_web_lock.py",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/951c81e3f338c93a88e988d9b1ac5d9cbdffaa88/artifacts/acceptance/TC-02-003/README.md",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/951c81e3f338c93a88e988d9b1ac5d9cbdffaa88/docs/release/tickets/TC-02-003.md"
+                    ],
+                    "tested_sha": "951c81e3f338c93a88e988d9b1ac5d9cbdffaa88"
+                  },
+                  {
+                    "id": "TC-02-003-DOD3",
+                    "status": "PASS",
+                    "evidence_urls": [
+                      "https://github.com/Johnathan-u/trust-copilot/actions/runs/41139637051",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/951c81e3f338c93a88e988d9b1ac5d9cbdffaa88/apps/api/tests/release/test_web_lock.py",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/951c81e3f338c93a88e988d9b1ac5d9cbdffaa88/artifacts/acceptance/TC-02-003/README.md",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/951c81e3f338c93a88e988d9b1ac5d9cbdffaa88/docs/release/tickets/TC-02-003.md"
+                    ],
+                    "tested_sha": "951c81e3f338c93a88e988d9b1ac5d9cbdffaa88"
+                  },
+                  {
+                    "id": "TC-02-003-DOD4",
+                    "status": "PASS",
+                    "evidence_urls": [
+                      "https://github.com/Johnathan-u/trust-copilot/actions/runs/41139637051",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/951c81e3f338c93a88e988d9b1ac5d9cbdffaa88/apps/api/tests/release/test_web_lock.py",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/951c81e3f338c93a88e988d9b1ac5d9cbdffaa88/artifacts/acceptance/TC-02-003/README.md",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/951c81e3f338c93a88e988d9b1ac5d9cbdffaa88/docs/release/tickets/TC-02-003.md"
+                    ],
+                    "tested_sha": "951c81e3f338c93a88e988d9b1ac5d9cbdffaa88"
+                  },
+                  {
+                    "id": "TC-02-003-DOD5",
+                    "status": "PASS",
+                    "evidence_urls": [
+                      "https://github.com/Johnathan-u/trust-copilot/actions/runs/41139637051",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/951c81e3f338c93a88e988d9b1ac5d9cbdffaa88/apps/api/tests/release/test_web_lock.py",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/951c81e3f338c93a88e988d9b1ac5d9cbdffaa88/artifacts/acceptance/TC-02-003/README.md",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/951c81e3f338c93a88e988d9b1ac5d9cbdffaa88/docs/release/tickets/TC-02-003.md"
+                    ],
+                    "tested_sha": "951c81e3f338c93a88e988d9b1ac5d9cbdffaa88"
+                  }
+                ],
+                "note": "Accepted on exact-SHA master CI (build + web-release-e2e green) and review of code, tests and evidence; implemented via PR #9."
+              }
+            }
+          },
+          "TC-03-001": {
+            "status": {
+              "before": "EVIDENCE_RECONCILIATION",
+              "after": "DONE"
+            },
+            "evidence_state": {
+              "before": "EVIDENCE_RECONCILIATION",
+              "after": "VERIFIED_ACCEPTED"
+            },
+            "next_action": {
+              "before": "Reconcile existing implementation and evidence against all original acceptance criteria before declaring Done or estimating only the remaining scope.",
+              "after": "Accepted. Reopen only on regression."
+            },
+            "updated_at": {
+              "before": "2026-10-30T09:49:19Z",
+              "after": "2026-11-01T14:23:59Z"
+            },
+            "source_sha": {
+              "before": "b2bd1e0df5cdeb03b8d0cd240f5a161835ea621d",
+              "after": "90146e0cfe2220beb3e43f98f6073262f7c0abfb"
+            },
+            "acceptance": {
+              "before": {
+                "state": "PENDING",
+                "assessed_by": null,
+                "assessed_at": null,
+                "assessed_sha": null,
+                "assessment_evidence_urls": [],
+                "tested_sha": null,
+                "implemented_by": [],
+                "independent_reviewer": null,
+                "reviewed_at": null,
+                "reviewed_sha": null,
+                "review_evidence_urls": [],
+                "criteria": [
+                  {
+                    "id": "TC-03-001-AC1",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  },
+                  {
+                    "id": "TC-03-001-AC2",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  }
+                ],
+                "definition_of_done": [
+                  {
+                    "id": "TC-03-001-DOD1",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  },
+                  {
+                    "id": "TC-03-001-DOD2",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  },
+                  {
+                    "id": "TC-03-001-DOD3",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  },
+                  {
+                    "id": "TC-03-001-DOD4",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  },
+                  {
+                    "id": "TC-03-001-DOD5",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  }
+                ],
+                "note": "Full original-parent acceptance is pending baseline validation; merged work and artifact presence alone confer no acceptance."
+              },
+              "after": {
+                "state": "ACCEPTED",
+                "assessed_by": "claude-reviewer",
+                "assessed_at": "2026-11-01T14:23:58Z",
+                "assessed_sha": "951c81e3f338c93a88e988d9b1ac5d9cbdffaa88",
+                "assessment_evidence_urls": [
+                  "https://github.com/Johnathan-u/trust-copilot/actions/runs/41139637051",
+                  "https://github.com/Johnathan-u/trust-copilot/issues/85#issuecomment-6559232272"
+                ],
+                "tested_sha": "951c81e3f338c93a88e988d9b1ac5d9cbdffaa88",
+                "implemented_by": [
+                  "Johnathan-u",
+                  "cursor-agent"
+                ],
+                "independent_reviewer": "claude-reviewer",
+                "reviewed_at": "2026-11-01T14:23:58Z",
+                "reviewed_sha": "951c81e3f338c93a88e988d9b1ac5d9cbdffaa88",
+                "review_evidence_urls": [
+                  "https://github.com/Johnathan-u/trust-copilot/issues/85#issuecomment-6559232272"
+                ],
+                "criteria": [
+                  {
+                    "id": "TC-03-001-AC1",
+                    "status": "PASS",
+                    "evidence_urls": [
+                      "https://github.com/Johnathan-u/trust-copilot/actions/runs/41139637051",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/951c81e3f338c93a88e988d9b1ac5d9cbdffaa88/apps/api/tests/release/test_config_contract.py",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/951c81e3f338c93a88e988d9b1ac5d9cbdffaa88/artifacts/acceptance/TC-03-001/README.md",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/951c81e3f338c93a88e988d9b1ac5d9cbdffaa88/docs/release/tickets/TC-03-001.md"
+                    ],
+                    "tested_sha": "951c81e3f338c93a88e988d9b1ac5d9cbdffaa88"
+                  },
+                  {
+                    "id": "TC-03-001-AC2",
+                    "status": "PASS",
+                    "evidence_urls": [
+                      "https://github.com/Johnathan-u/trust-copilot/actions/runs/41139637051",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/951c81e3f338c93a88e988d9b1ac5d9cbdffaa88/apps/api/tests/release/test_config_contract.py",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/951c81e3f338c93a88e988d9b1ac5d9cbdffaa88/artifacts/acceptance/TC-03-001/README.md",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/951c81e3f338c93a88e988d9b1ac5d9cbdffaa88/docs/release/tickets/TC-03-001.md"
+                    ],
+                    "tested_sha": "951c81e3f338c93a88e988d9b1ac5d9cbdffaa88"
+                  }
+                ],
+                "definition_of_done": [
+                  {
+                    "id": "TC-03-001-DOD1",
+                    "status": "PASS",
+                    "evidence_urls": [
+                      "https://github.com/Johnathan-u/trust-copilot/actions/runs/41139637051",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/951c81e3f338c93a88e988d9b1ac5d9cbdffaa88/apps/api/tests/release/test_config_contract.py",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/951c81e3f338c93a88e988d9b1ac5d9cbdffaa88/artifacts/acceptance/TC-03-001/README.md",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/951c81e3f338c93a88e988d9b1ac5d9cbdffaa88/docs/release/tickets/TC-03-001.md"
+                    ],
+                    "tested_sha": "951c81e3f338c93a88e988d9b1ac5d9cbdffaa88"
+                  },
+                  {
+                    "id": "TC-03-001-DOD2",
+                    "status": "PASS",
+                    "evidence_urls": [
+                      "https://github.com/Johnathan-u/trust-copilot/actions/runs/41139637051",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/951c81e3f338c93a88e988d9b1ac5d9cbdffaa88/apps/api/tests/release/test_config_contract.py",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/951c81e3f338c93a88e988d9b1ac5d9cbdffaa88/artifacts/acceptance/TC-03-001/README.md",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/951c81e3f338c93a88e988d9b1ac5d9cbdffaa88/docs/release/tickets/TC-03-001.md"
+                    ],
+                    "tested_sha": "951c81e3f338c93a88e988d9b1ac5d9cbdffaa88"
+                  },
+                  {
+                    "id": "TC-03-001-DOD3",
+                    "status": "PASS",
+                    "evidence_urls": [
+                      "https://github.com/Johnathan-u/trust-copilot/actions/runs/41139637051",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/951c81e3f338c93a88e988d9b1ac5d9cbdffaa88/apps/api/tests/release/test_config_contract.py",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/951c81e3f338c93a88e988d9b1ac5d9cbdffaa88/artifacts/acceptance/TC-03-001/README.md",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/951c81e3f338c93a88e988d9b1ac5d9cbdffaa88/docs/release/tickets/TC-03-001.md"
+                    ],
+                    "tested_sha": "951c81e3f338c93a88e988d9b1ac5d9cbdffaa88"
+                  },
+                  {
+                    "id": "TC-03-001-DOD4",
+                    "status": "PASS",
+                    "evidence_urls": [
+                      "https://github.com/Johnathan-u/trust-copilot/actions/runs/41139637051",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/951c81e3f338c93a88e988d9b1ac5d9cbdffaa88/apps/api/tests/release/test_config_contract.py",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/951c81e3f338c93a88e988d9b1ac5d9cbdffaa88/artifacts/acceptance/TC-03-001/README.md",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/951c81e3f338c93a88e988d9b1ac5d9cbdffaa88/docs/release/tickets/TC-03-001.md"
+                    ],
+                    "tested_sha": "951c81e3f338c93a88e988d9b1ac5d9cbdffaa88"
+                  },
+                  {
+                    "id": "TC-03-001-DOD5",
+                    "status": "PASS",
+                    "evidence_urls": [
+                      "https://github.com/Johnathan-u/trust-copilot/actions/runs/41139637051",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/951c81e3f338c93a88e988d9b1ac5d9cbdffaa88/apps/api/tests/release/test_config_contract.py",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/951c81e3f338c93a88e988d9b1ac5d9cbdffaa88/artifacts/acceptance/TC-03-001/README.md",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/951c81e3f338c93a88e988d9b1ac5d9cbdffaa88/docs/release/tickets/TC-03-001.md"
+                    ],
+                    "tested_sha": "951c81e3f338c93a88e988d9b1ac5d9cbdffaa88"
+                  }
+                ],
+                "note": "Accepted on exact-SHA master CI (build + web-release-e2e green) and review of code, tests and evidence; implemented via PR #14, #64."
+              }
+            }
+          },
+          "TC-07-001": {
+            "status": {
+              "before": "EVIDENCE_RECONCILIATION",
+              "after": "DONE"
+            },
+            "evidence_state": {
+              "before": "EVIDENCE_RECONCILIATION",
+              "after": "VERIFIED_ACCEPTED"
+            },
+            "next_action": {
+              "before": "Reconcile existing implementation and evidence against all original acceptance criteria before declaring Done or estimating only the remaining scope.",
+              "after": "Accepted. Reopen only on regression."
+            },
+            "updated_at": {
+              "before": "2026-10-30T09:49:19Z",
+              "after": "2026-11-01T14:23:59Z"
+            },
+            "source_sha": {
+              "before": "b2bd1e0df5cdeb03b8d0cd240f5a161835ea621d",
+              "after": "90146e0cfe2220beb3e43f98f6073262f7c0abfb"
+            },
+            "acceptance": {
+              "before": {
+                "state": "PENDING",
+                "assessed_by": null,
+                "assessed_at": null,
+                "assessed_sha": null,
+                "assessment_evidence_urls": [],
+                "tested_sha": null,
+                "implemented_by": [],
+                "independent_reviewer": null,
+                "reviewed_at": null,
+                "reviewed_sha": null,
+                "review_evidence_urls": [],
+                "criteria": [
+                  {
+                    "id": "TC-07-001-AC1",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  },
+                  {
+                    "id": "TC-07-001-AC2",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  }
+                ],
+                "definition_of_done": [
+                  {
+                    "id": "TC-07-001-DOD1",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  },
+                  {
+                    "id": "TC-07-001-DOD2",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  },
+                  {
+                    "id": "TC-07-001-DOD3",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  },
+                  {
+                    "id": "TC-07-001-DOD4",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  },
+                  {
+                    "id": "TC-07-001-DOD5",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  }
+                ],
+                "note": "Full original-parent acceptance is pending baseline validation; merged work and artifact presence alone confer no acceptance."
+              },
+              "after": {
+                "state": "ACCEPTED",
+                "assessed_by": "claude-reviewer",
+                "assessed_at": "2026-11-01T14:23:58Z",
+                "assessed_sha": "951c81e3f338c93a88e988d9b1ac5d9cbdffaa88",
+                "assessment_evidence_urls": [
+                  "https://github.com/Johnathan-u/trust-copilot/actions/runs/41139637051",
+                  "https://github.com/Johnathan-u/trust-copilot/issues/85#issuecomment-6559232272"
+                ],
+                "tested_sha": "951c81e3f338c93a88e988d9b1ac5d9cbdffaa88",
+                "implemented_by": [
+                  "Johnathan-u",
+                  "cursor-agent"
+                ],
+                "independent_reviewer": "claude-reviewer",
+                "reviewed_at": "2026-11-01T14:23:58Z",
+                "reviewed_sha": "951c81e3f338c93a88e988d9b1ac5d9cbdffaa88",
+                "review_evidence_urls": [
+                  "https://github.com/Johnathan-u/trust-copilot/issues/85#issuecomment-6559232272"
+                ],
+                "criteria": [
+                  {
+                    "id": "TC-07-001-AC1",
+                    "status": "PASS",
+                    "evidence_urls": [
+                      "https://github.com/Johnathan-u/trust-copilot/actions/runs/41139637051",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/951c81e3f338c93a88e988d9b1ac5d9cbdffaa88/apps/api/tests/release/test_secret_inventory.py",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/951c81e3f338c93a88e988d9b1ac5d9cbdffaa88/artifacts/acceptance/TC-07-001/README.md",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/951c81e3f338c93a88e988d9b1ac5d9cbdffaa88/docs/release/tickets/TC-07-001.md"
+                    ],
+                    "tested_sha": "951c81e3f338c93a88e988d9b1ac5d9cbdffaa88"
+                  },
+                  {
+                    "id": "TC-07-001-AC2",
+                    "status": "PASS",
+                    "evidence_urls": [
+                      "https://github.com/Johnathan-u/trust-copilot/actions/runs/41139637051",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/951c81e3f338c93a88e988d9b1ac5d9cbdffaa88/apps/api/tests/release/test_secret_inventory.py",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/951c81e3f338c93a88e988d9b1ac5d9cbdffaa88/artifacts/acceptance/TC-07-001/README.md",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/951c81e3f338c93a88e988d9b1ac5d9cbdffaa88/docs/release/tickets/TC-07-001.md"
+                    ],
+                    "tested_sha": "951c81e3f338c93a88e988d9b1ac5d9cbdffaa88"
+                  }
+                ],
+                "definition_of_done": [
+                  {
+                    "id": "TC-07-001-DOD1",
+                    "status": "PASS",
+                    "evidence_urls": [
+                      "https://github.com/Johnathan-u/trust-copilot/actions/runs/41139637051",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/951c81e3f338c93a88e988d9b1ac5d9cbdffaa88/apps/api/tests/release/test_secret_inventory.py",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/951c81e3f338c93a88e988d9b1ac5d9cbdffaa88/artifacts/acceptance/TC-07-001/README.md",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/951c81e3f338c93a88e988d9b1ac5d9cbdffaa88/docs/release/tickets/TC-07-001.md"
+                    ],
+                    "tested_sha": "951c81e3f338c93a88e988d9b1ac5d9cbdffaa88"
+                  },
+                  {
+                    "id": "TC-07-001-DOD2",
+                    "status": "PASS",
+                    "evidence_urls": [
+                      "https://github.com/Johnathan-u/trust-copilot/actions/runs/41139637051",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/951c81e3f338c93a88e988d9b1ac5d9cbdffaa88/apps/api/tests/release/test_secret_inventory.py",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/951c81e3f338c93a88e988d9b1ac5d9cbdffaa88/artifacts/acceptance/TC-07-001/README.md",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/951c81e3f338c93a88e988d9b1ac5d9cbdffaa88/docs/release/tickets/TC-07-001.md"
+                    ],
+                    "tested_sha": "951c81e3f338c93a88e988d9b1ac5d9cbdffaa88"
+                  },
+                  {
+                    "id": "TC-07-001-DOD3",
+                    "status": "PASS",
+                    "evidence_urls": [
+                      "https://github.com/Johnathan-u/trust-copilot/actions/runs/41139637051",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/951c81e3f338c93a88e988d9b1ac5d9cbdffaa88/apps/api/tests/release/test_secret_inventory.py",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/951c81e3f338c93a88e988d9b1ac5d9cbdffaa88/artifacts/acceptance/TC-07-001/README.md",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/951c81e3f338c93a88e988d9b1ac5d9cbdffaa88/docs/release/tickets/TC-07-001.md"
+                    ],
+                    "tested_sha": "951c81e3f338c93a88e988d9b1ac5d9cbdffaa88"
+                  },
+                  {
+                    "id": "TC-07-001-DOD4",
+                    "status": "PASS",
+                    "evidence_urls": [
+                      "https://github.com/Johnathan-u/trust-copilot/actions/runs/41139637051",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/951c81e3f338c93a88e988d9b1ac5d9cbdffaa88/apps/api/tests/release/test_secret_inventory.py",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/951c81e3f338c93a88e988d9b1ac5d9cbdffaa88/artifacts/acceptance/TC-07-001/README.md",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/951c81e3f338c93a88e988d9b1ac5d9cbdffaa88/docs/release/tickets/TC-07-001.md"
+                    ],
+                    "tested_sha": "951c81e3f338c93a88e988d9b1ac5d9cbdffaa88"
+                  },
+                  {
+                    "id": "TC-07-001-DOD5",
+                    "status": "PASS",
+                    "evidence_urls": [
+                      "https://github.com/Johnathan-u/trust-copilot/actions/runs/41139637051",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/951c81e3f338c93a88e988d9b1ac5d9cbdffaa88/apps/api/tests/release/test_secret_inventory.py",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/951c81e3f338c93a88e988d9b1ac5d9cbdffaa88/artifacts/acceptance/TC-07-001/README.md",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/951c81e3f338c93a88e988d9b1ac5d9cbdffaa88/docs/release/tickets/TC-07-001.md"
+                    ],
+                    "tested_sha": "951c81e3f338c93a88e988d9b1ac5d9cbdffaa88"
+                  }
+                ],
+                "note": "Accepted on exact-SHA master CI (build + web-release-e2e green) and review of code, tests and evidence; implemented via PR #13, #40. AC2 rests on the recorded owner statement of 2026-10-27; git-history rewrite remains an open owner item outside the criteria."
+              }
+            }
+          },
+          "TC-17-004": {
+            "status": {
+              "before": "EVIDENCE_RECONCILIATION",
+              "after": "DONE"
+            },
+            "evidence_state": {
+              "before": "EVIDENCE_RECONCILIATION",
+              "after": "VERIFIED_ACCEPTED"
+            },
+            "next_action": {
+              "before": "Reconcile existing implementation and evidence against all original acceptance criteria before declaring Done or estimating only the remaining scope.",
+              "after": "Accepted. Reopen only on regression."
+            },
+            "updated_at": {
+              "before": "2026-10-30T09:49:19Z",
+              "after": "2026-11-01T14:23:59Z"
+            },
+            "source_sha": {
+              "before": "b2bd1e0df5cdeb03b8d0cd240f5a161835ea621d",
+              "after": "90146e0cfe2220beb3e43f98f6073262f7c0abfb"
+            },
+            "acceptance": {
+              "before": {
+                "state": "PENDING",
+                "assessed_by": null,
+                "assessed_at": null,
+                "assessed_sha": null,
+                "assessment_evidence_urls": [],
+                "tested_sha": null,
+                "implemented_by": [],
+                "independent_reviewer": null,
+                "reviewed_at": null,
+                "reviewed_sha": null,
+                "review_evidence_urls": [],
+                "criteria": [
+                  {
+                    "id": "TC-17-004-AC1",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  },
+                  {
+                    "id": "TC-17-004-AC2",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  },
+                  {
+                    "id": "TC-17-004-AC3",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  }
+                ],
+                "definition_of_done": [
+                  {
+                    "id": "TC-17-004-DOD1",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  },
+                  {
+                    "id": "TC-17-004-DOD2",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  },
+                  {
+                    "id": "TC-17-004-DOD3",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  },
+                  {
+                    "id": "TC-17-004-DOD4",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  },
+                  {
+                    "id": "TC-17-004-DOD5",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  }
+                ],
+                "note": "Full original-parent acceptance is pending baseline validation; merged work and artifact presence alone confer no acceptance."
+              },
+              "after": {
+                "state": "ACCEPTED",
+                "assessed_by": "claude-reviewer",
+                "assessed_at": "2026-11-01T14:23:58Z",
+                "assessed_sha": "951c81e3f338c93a88e988d9b1ac5d9cbdffaa88",
+                "assessment_evidence_urls": [
+                  "https://github.com/Johnathan-u/trust-copilot/actions/runs/41139637051",
+                  "https://github.com/Johnathan-u/trust-copilot/issues/85#issuecomment-6559232272"
+                ],
+                "tested_sha": "951c81e3f338c93a88e988d9b1ac5d9cbdffaa88",
+                "implemented_by": [
+                  "Johnathan-u",
+                  "codex"
+                ],
+                "independent_reviewer": "claude-reviewer",
+                "reviewed_at": "2026-11-01T14:23:58Z",
+                "reviewed_sha": "951c81e3f338c93a88e988d9b1ac5d9cbdffaa88",
+                "review_evidence_urls": [
+                  "https://github.com/Johnathan-u/trust-copilot/issues/85#issuecomment-6559232272"
+                ],
+                "criteria": [
+                  {
+                    "id": "TC-17-004-AC1",
+                    "status": "PASS",
+                    "evidence_urls": [
+                      "https://github.com/Johnathan-u/trust-copilot/actions/runs/41139637051",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/951c81e3f338c93a88e988d9b1ac5d9cbdffaa88/apps/api/tests/release/test_domain_security_faq.py",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/951c81e3f338c93a88e988d9b1ac5d9cbdffaa88/artifacts/acceptance/TC-17-004/README.md",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/951c81e3f338c93a88e988d9b1ac5d9cbdffaa88/docs/release/tickets/TC-17-004.md"
+                    ],
+                    "tested_sha": "951c81e3f338c93a88e988d9b1ac5d9cbdffaa88"
+                  },
+                  {
+                    "id": "TC-17-004-AC2",
+                    "status": "PASS",
+                    "evidence_urls": [
+                      "https://github.com/Johnathan-u/trust-copilot/actions/runs/41139637051",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/951c81e3f338c93a88e988d9b1ac5d9cbdffaa88/apps/api/tests/release/test_domain_security_faq.py",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/951c81e3f338c93a88e988d9b1ac5d9cbdffaa88/artifacts/acceptance/TC-17-004/README.md",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/951c81e3f338c93a88e988d9b1ac5d9cbdffaa88/docs/release/tickets/TC-17-004.md"
+                    ],
+                    "tested_sha": "951c81e3f338c93a88e988d9b1ac5d9cbdffaa88"
+                  },
+                  {
+                    "id": "TC-17-004-AC3",
+                    "status": "PASS",
+                    "evidence_urls": [
+                      "https://github.com/Johnathan-u/trust-copilot/actions/runs/41139637051",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/951c81e3f338c93a88e988d9b1ac5d9cbdffaa88/apps/api/tests/release/test_domain_security_faq.py",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/951c81e3f338c93a88e988d9b1ac5d9cbdffaa88/artifacts/acceptance/TC-17-004/README.md",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/951c81e3f338c93a88e988d9b1ac5d9cbdffaa88/docs/release/tickets/TC-17-004.md"
+                    ],
+                    "tested_sha": "951c81e3f338c93a88e988d9b1ac5d9cbdffaa88"
+                  }
+                ],
+                "definition_of_done": [
+                  {
+                    "id": "TC-17-004-DOD1",
+                    "status": "PASS",
+                    "evidence_urls": [
+                      "https://github.com/Johnathan-u/trust-copilot/actions/runs/41139637051",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/951c81e3f338c93a88e988d9b1ac5d9cbdffaa88/apps/api/tests/release/test_domain_security_faq.py",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/951c81e3f338c93a88e988d9b1ac5d9cbdffaa88/artifacts/acceptance/TC-17-004/README.md",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/951c81e3f338c93a88e988d9b1ac5d9cbdffaa88/docs/release/tickets/TC-17-004.md"
+                    ],
+                    "tested_sha": "951c81e3f338c93a88e988d9b1ac5d9cbdffaa88"
+                  },
+                  {
+                    "id": "TC-17-004-DOD2",
+                    "status": "PASS",
+                    "evidence_urls": [
+                      "https://github.com/Johnathan-u/trust-copilot/actions/runs/41139637051",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/951c81e3f338c93a88e988d9b1ac5d9cbdffaa88/apps/api/tests/release/test_domain_security_faq.py",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/951c81e3f338c93a88e988d9b1ac5d9cbdffaa88/artifacts/acceptance/TC-17-004/README.md",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/951c81e3f338c93a88e988d9b1ac5d9cbdffaa88/docs/release/tickets/TC-17-004.md"
+                    ],
+                    "tested_sha": "951c81e3f338c93a88e988d9b1ac5d9cbdffaa88"
+                  },
+                  {
+                    "id": "TC-17-004-DOD3",
+                    "status": "PASS",
+                    "evidence_urls": [
+                      "https://github.com/Johnathan-u/trust-copilot/actions/runs/41139637051",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/951c81e3f338c93a88e988d9b1ac5d9cbdffaa88/apps/api/tests/release/test_domain_security_faq.py",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/951c81e3f338c93a88e988d9b1ac5d9cbdffaa88/artifacts/acceptance/TC-17-004/README.md",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/951c81e3f338c93a88e988d9b1ac5d9cbdffaa88/docs/release/tickets/TC-17-004.md"
+                    ],
+                    "tested_sha": "951c81e3f338c93a88e988d9b1ac5d9cbdffaa88"
+                  },
+                  {
+                    "id": "TC-17-004-DOD4",
+                    "status": "PASS",
+                    "evidence_urls": [
+                      "https://github.com/Johnathan-u/trust-copilot/actions/runs/41139637051",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/951c81e3f338c93a88e988d9b1ac5d9cbdffaa88/apps/api/tests/release/test_domain_security_faq.py",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/951c81e3f338c93a88e988d9b1ac5d9cbdffaa88/artifacts/acceptance/TC-17-004/README.md",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/951c81e3f338c93a88e988d9b1ac5d9cbdffaa88/docs/release/tickets/TC-17-004.md"
+                    ],
+                    "tested_sha": "951c81e3f338c93a88e988d9b1ac5d9cbdffaa88"
+                  },
+                  {
+                    "id": "TC-17-004-DOD5",
+                    "status": "PASS",
+                    "evidence_urls": [
+                      "https://github.com/Johnathan-u/trust-copilot/actions/runs/41139637051",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/951c81e3f338c93a88e988d9b1ac5d9cbdffaa88/apps/api/tests/release/test_domain_security_faq.py",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/951c81e3f338c93a88e988d9b1ac5d9cbdffaa88/artifacts/acceptance/TC-17-004/README.md",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/951c81e3f338c93a88e988d9b1ac5d9cbdffaa88/docs/release/tickets/TC-17-004.md"
+                    ],
+                    "tested_sha": "951c81e3f338c93a88e988d9b1ac5d9cbdffaa88"
+                  }
+                ],
+                "note": "Accepted on exact-SHA master CI (build + web-release-e2e green) and review of code, tests and evidence; implemented via PR #91."
+              }
+            }
+          },
+          "TC-25-005": {
+            "status": {
+              "before": "EVIDENCE_RECONCILIATION",
+              "after": "DONE"
+            },
+            "evidence_state": {
+              "before": "EVIDENCE_RECONCILIATION",
+              "after": "VERIFIED_ACCEPTED"
+            },
+            "next_action": {
+              "before": "Reconcile existing implementation and evidence against all original acceptance criteria before declaring Done or estimating only the remaining scope.",
+              "after": "Accepted. Reopen only on regression."
+            },
+            "updated_at": {
+              "before": "2026-10-30T09:49:19Z",
+              "after": "2026-11-01T14:23:59Z"
+            },
+            "source_sha": {
+              "before": "b2bd1e0df5cdeb03b8d0cd240f5a161835ea621d",
+              "after": "90146e0cfe2220beb3e43f98f6073262f7c0abfb"
+            },
+            "acceptance": {
+              "before": {
+                "state": "PENDING",
+                "assessed_by": null,
+                "assessed_at": null,
+                "assessed_sha": null,
+                "assessment_evidence_urls": [],
+                "tested_sha": null,
+                "implemented_by": [],
+                "independent_reviewer": null,
+                "reviewed_at": null,
+                "reviewed_sha": null,
+                "review_evidence_urls": [],
+                "criteria": [
+                  {
+                    "id": "TC-25-005-AC1",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  },
+                  {
+                    "id": "TC-25-005-AC2",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  },
+                  {
+                    "id": "TC-25-005-AC3",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  }
+                ],
+                "definition_of_done": [
+                  {
+                    "id": "TC-25-005-DOD1",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  },
+                  {
+                    "id": "TC-25-005-DOD2",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  },
+                  {
+                    "id": "TC-25-005-DOD3",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  },
+                  {
+                    "id": "TC-25-005-DOD4",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  },
+                  {
+                    "id": "TC-25-005-DOD5",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  }
+                ],
+                "note": "Full original-parent acceptance is pending baseline validation; merged work and artifact presence alone confer no acceptance."
+              },
+              "after": {
+                "state": "ACCEPTED",
+                "assessed_by": "claude-reviewer",
+                "assessed_at": "2026-11-01T14:23:58Z",
+                "assessed_sha": "951c81e3f338c93a88e988d9b1ac5d9cbdffaa88",
+                "assessment_evidence_urls": [
+                  "https://github.com/Johnathan-u/trust-copilot/actions/runs/41139637051",
+                  "https://github.com/Johnathan-u/trust-copilot/issues/85#issuecomment-6559232272"
+                ],
+                "tested_sha": "951c81e3f338c93a88e988d9b1ac5d9cbdffaa88",
+                "implemented_by": [
+                  "Johnathan-u",
+                  "cursor-agent"
+                ],
+                "independent_reviewer": "claude-reviewer",
+                "reviewed_at": "2026-11-01T14:23:58Z",
+                "reviewed_sha": "951c81e3f338c93a88e988d9b1ac5d9cbdffaa88",
+                "review_evidence_urls": [
+                  "https://github.com/Johnathan-u/trust-copilot/issues/85#issuecomment-6559232272"
+                ],
+                "criteria": [
+                  {
+                    "id": "TC-25-005-AC1",
+                    "status": "PASS",
+                    "evidence_urls": [
+                      "https://github.com/Johnathan-u/trust-copilot/actions/runs/41139637051",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/951c81e3f338c93a88e988d9b1ac5d9cbdffaa88/apps/api/tests/release/test_domain_case_studies.py",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/951c81e3f338c93a88e988d9b1ac5d9cbdffaa88/artifacts/acceptance/TC-25-005/README.md",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/951c81e3f338c93a88e988d9b1ac5d9cbdffaa88/docs/release/tickets/TC-25-005.md"
+                    ],
+                    "tested_sha": "951c81e3f338c93a88e988d9b1ac5d9cbdffaa88"
+                  },
+                  {
+                    "id": "TC-25-005-AC2",
+                    "status": "PASS",
+                    "evidence_urls": [
+                      "https://github.com/Johnathan-u/trust-copilot/actions/runs/41139637051",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/951c81e3f338c93a88e988d9b1ac5d9cbdffaa88/apps/api/tests/release/test_domain_case_studies.py",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/951c81e3f338c93a88e988d9b1ac5d9cbdffaa88/artifacts/acceptance/TC-25-005/README.md",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/951c81e3f338c93a88e988d9b1ac5d9cbdffaa88/docs/release/tickets/TC-25-005.md"
+                    ],
+                    "tested_sha": "951c81e3f338c93a88e988d9b1ac5d9cbdffaa88"
+                  },
+                  {
+                    "id": "TC-25-005-AC3",
+                    "status": "PASS",
+                    "evidence_urls": [
+                      "https://github.com/Johnathan-u/trust-copilot/actions/runs/41139637051",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/951c81e3f338c93a88e988d9b1ac5d9cbdffaa88/apps/api/tests/release/test_domain_case_studies.py",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/951c81e3f338c93a88e988d9b1ac5d9cbdffaa88/artifacts/acceptance/TC-25-005/README.md",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/951c81e3f338c93a88e988d9b1ac5d9cbdffaa88/docs/release/tickets/TC-25-005.md"
+                    ],
+                    "tested_sha": "951c81e3f338c93a88e988d9b1ac5d9cbdffaa88"
+                  }
+                ],
+                "definition_of_done": [
+                  {
+                    "id": "TC-25-005-DOD1",
+                    "status": "PASS",
+                    "evidence_urls": [
+                      "https://github.com/Johnathan-u/trust-copilot/actions/runs/41139637051",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/951c81e3f338c93a88e988d9b1ac5d9cbdffaa88/apps/api/tests/release/test_domain_case_studies.py",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/951c81e3f338c93a88e988d9b1ac5d9cbdffaa88/artifacts/acceptance/TC-25-005/README.md",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/951c81e3f338c93a88e988d9b1ac5d9cbdffaa88/docs/release/tickets/TC-25-005.md"
+                    ],
+                    "tested_sha": "951c81e3f338c93a88e988d9b1ac5d9cbdffaa88"
+                  },
+                  {
+                    "id": "TC-25-005-DOD2",
+                    "status": "PASS",
+                    "evidence_urls": [
+                      "https://github.com/Johnathan-u/trust-copilot/actions/runs/41139637051",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/951c81e3f338c93a88e988d9b1ac5d9cbdffaa88/apps/api/tests/release/test_domain_case_studies.py",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/951c81e3f338c93a88e988d9b1ac5d9cbdffaa88/artifacts/acceptance/TC-25-005/README.md",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/951c81e3f338c93a88e988d9b1ac5d9cbdffaa88/docs/release/tickets/TC-25-005.md"
+                    ],
+                    "tested_sha": "951c81e3f338c93a88e988d9b1ac5d9cbdffaa88"
+                  },
+                  {
+                    "id": "TC-25-005-DOD3",
+                    "status": "PASS",
+                    "evidence_urls": [
+                      "https://github.com/Johnathan-u/trust-copilot/actions/runs/41139637051",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/951c81e3f338c93a88e988d9b1ac5d9cbdffaa88/apps/api/tests/release/test_domain_case_studies.py",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/951c81e3f338c93a88e988d9b1ac5d9cbdffaa88/artifacts/acceptance/TC-25-005/README.md",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/951c81e3f338c93a88e988d9b1ac5d9cbdffaa88/docs/release/tickets/TC-25-005.md"
+                    ],
+                    "tested_sha": "951c81e3f338c93a88e988d9b1ac5d9cbdffaa88"
+                  },
+                  {
+                    "id": "TC-25-005-DOD4",
+                    "status": "PASS",
+                    "evidence_urls": [
+                      "https://github.com/Johnathan-u/trust-copilot/actions/runs/41139637051",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/951c81e3f338c93a88e988d9b1ac5d9cbdffaa88/apps/api/tests/release/test_domain_case_studies.py",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/951c81e3f338c93a88e988d9b1ac5d9cbdffaa88/artifacts/acceptance/TC-25-005/README.md",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/951c81e3f338c93a88e988d9b1ac5d9cbdffaa88/docs/release/tickets/TC-25-005.md"
+                    ],
+                    "tested_sha": "951c81e3f338c93a88e988d9b1ac5d9cbdffaa88"
+                  },
+                  {
+                    "id": "TC-25-005-DOD5",
+                    "status": "PASS",
+                    "evidence_urls": [
+                      "https://github.com/Johnathan-u/trust-copilot/actions/runs/41139637051",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/951c81e3f338c93a88e988d9b1ac5d9cbdffaa88/apps/api/tests/release/test_domain_case_studies.py",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/951c81e3f338c93a88e988d9b1ac5d9cbdffaa88/artifacts/acceptance/TC-25-005/README.md",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/951c81e3f338c93a88e988d9b1ac5d9cbdffaa88/docs/release/tickets/TC-25-005.md"
+                    ],
+                    "tested_sha": "951c81e3f338c93a88e988d9b1ac5d9cbdffaa88"
+                  }
+                ],
+                "note": "Accepted on exact-SHA master CI (build + web-release-e2e green) and review of code, tests and evidence; implemented via PR #25, #55."
+              }
+            }
+          },
+          "TC-25-011": {
+            "status": {
+              "before": "EVIDENCE_RECONCILIATION",
+              "after": "DONE"
+            },
+            "evidence_state": {
+              "before": "EVIDENCE_RECONCILIATION",
+              "after": "VERIFIED_ACCEPTED"
+            },
+            "next_action": {
+              "before": "Reconcile existing implementation and evidence against all original acceptance criteria before declaring Done or estimating only the remaining scope.",
+              "after": "Accepted. Reopen only on regression."
+            },
+            "updated_at": {
+              "before": "2026-10-30T09:49:19Z",
+              "after": "2026-11-01T14:23:59Z"
+            },
+            "source_sha": {
+              "before": "b2bd1e0df5cdeb03b8d0cd240f5a161835ea621d",
+              "after": "90146e0cfe2220beb3e43f98f6073262f7c0abfb"
+            },
+            "acceptance": {
+              "before": {
+                "state": "PENDING",
+                "assessed_by": null,
+                "assessed_at": null,
+                "assessed_sha": null,
+                "assessment_evidence_urls": [],
+                "tested_sha": null,
+                "implemented_by": [],
+                "independent_reviewer": null,
+                "reviewed_at": null,
+                "reviewed_sha": null,
+                "review_evidence_urls": [],
+                "criteria": [
+                  {
+                    "id": "TC-25-011-AC1",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  },
+                  {
+                    "id": "TC-25-011-AC2",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  },
+                  {
+                    "id": "TC-25-011-AC3",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  }
+                ],
+                "definition_of_done": [
+                  {
+                    "id": "TC-25-011-DOD1",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  },
+                  {
+                    "id": "TC-25-011-DOD2",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  },
+                  {
+                    "id": "TC-25-011-DOD3",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  },
+                  {
+                    "id": "TC-25-011-DOD4",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  },
+                  {
+                    "id": "TC-25-011-DOD5",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  }
+                ],
+                "note": "Full original-parent acceptance is pending baseline validation; merged work and artifact presence alone confer no acceptance."
+              },
+              "after": {
+                "state": "ACCEPTED",
+                "assessed_by": "claude-reviewer",
+                "assessed_at": "2026-11-01T14:23:58Z",
+                "assessed_sha": "951c81e3f338c93a88e988d9b1ac5d9cbdffaa88",
+                "assessment_evidence_urls": [
+                  "https://github.com/Johnathan-u/trust-copilot/actions/runs/41139637051",
+                  "https://github.com/Johnathan-u/trust-copilot/issues/85#issuecomment-6559232272"
+                ],
+                "tested_sha": "951c81e3f338c93a88e988d9b1ac5d9cbdffaa88",
+                "implemented_by": [
+                  "Johnathan-u",
+                  "cursor-agent"
+                ],
+                "independent_reviewer": "claude-reviewer",
+                "reviewed_at": "2026-11-01T14:23:58Z",
+                "reviewed_sha": "951c81e3f338c93a88e988d9b1ac5d9cbdffaa88",
+                "review_evidence_urls": [
+                  "https://github.com/Johnathan-u/trust-copilot/issues/85#issuecomment-6559232272"
+                ],
+                "criteria": [
+                  {
+                    "id": "TC-25-011-AC1",
+                    "status": "PASS",
+                    "evidence_urls": [
+                      "https://github.com/Johnathan-u/trust-copilot/actions/runs/41139637051",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/951c81e3f338c93a88e988d9b1ac5d9cbdffaa88/apps/api/tests/release/test_domain_demo_proof.py",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/951c81e3f338c93a88e988d9b1ac5d9cbdffaa88/artifacts/acceptance/TC-25-011/README.md",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/951c81e3f338c93a88e988d9b1ac5d9cbdffaa88/docs/release/tickets/TC-25-011.md"
+                    ],
+                    "tested_sha": "951c81e3f338c93a88e988d9b1ac5d9cbdffaa88"
+                  },
+                  {
+                    "id": "TC-25-011-AC2",
+                    "status": "PASS",
+                    "evidence_urls": [
+                      "https://github.com/Johnathan-u/trust-copilot/actions/runs/41139637051",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/951c81e3f338c93a88e988d9b1ac5d9cbdffaa88/apps/api/tests/release/test_domain_demo_proof.py",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/951c81e3f338c93a88e988d9b1ac5d9cbdffaa88/artifacts/acceptance/TC-25-011/README.md",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/951c81e3f338c93a88e988d9b1ac5d9cbdffaa88/docs/release/tickets/TC-25-011.md"
+                    ],
+                    "tested_sha": "951c81e3f338c93a88e988d9b1ac5d9cbdffaa88"
+                  },
+                  {
+                    "id": "TC-25-011-AC3",
+                    "status": "PASS",
+                    "evidence_urls": [
+                      "https://github.com/Johnathan-u/trust-copilot/actions/runs/41139637051",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/951c81e3f338c93a88e988d9b1ac5d9cbdffaa88/apps/api/tests/release/test_domain_demo_proof.py",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/951c81e3f338c93a88e988d9b1ac5d9cbdffaa88/artifacts/acceptance/TC-25-011/README.md",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/951c81e3f338c93a88e988d9b1ac5d9cbdffaa88/docs/release/tickets/TC-25-011.md"
+                    ],
+                    "tested_sha": "951c81e3f338c93a88e988d9b1ac5d9cbdffaa88"
+                  }
+                ],
+                "definition_of_done": [
+                  {
+                    "id": "TC-25-011-DOD1",
+                    "status": "PASS",
+                    "evidence_urls": [
+                      "https://github.com/Johnathan-u/trust-copilot/actions/runs/41139637051",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/951c81e3f338c93a88e988d9b1ac5d9cbdffaa88/apps/api/tests/release/test_domain_demo_proof.py",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/951c81e3f338c93a88e988d9b1ac5d9cbdffaa88/artifacts/acceptance/TC-25-011/README.md",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/951c81e3f338c93a88e988d9b1ac5d9cbdffaa88/docs/release/tickets/TC-25-011.md"
+                    ],
+                    "tested_sha": "951c81e3f338c93a88e988d9b1ac5d9cbdffaa88"
+                  },
+                  {
+                    "id": "TC-25-011-DOD2",
+                    "status": "PASS",
+                    "evidence_urls": [
+                      "https://github.com/Johnathan-u/trust-copilot/actions/runs/41139637051",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/951c81e3f338c93a88e988d9b1ac5d9cbdffaa88/apps/api/tests/release/test_domain_demo_proof.py",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/951c81e3f338c93a88e988d9b1ac5d9cbdffaa88/artifacts/acceptance/TC-25-011/README.md",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/951c81e3f338c93a88e988d9b1ac5d9cbdffaa88/docs/release/tickets/TC-25-011.md"
+                    ],
+                    "tested_sha": "951c81e3f338c93a88e988d9b1ac5d9cbdffaa88"
+                  },
+                  {
+                    "id": "TC-25-011-DOD3",
+                    "status": "PASS",
+                    "evidence_urls": [
+                      "https://github.com/Johnathan-u/trust-copilot/actions/runs/41139637051",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/951c81e3f338c93a88e988d9b1ac5d9cbdffaa88/apps/api/tests/release/test_domain_demo_proof.py",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/951c81e3f338c93a88e988d9b1ac5d9cbdffaa88/artifacts/acceptance/TC-25-011/README.md",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/951c81e3f338c93a88e988d9b1ac5d9cbdffaa88/docs/release/tickets/TC-25-011.md"
+                    ],
+                    "tested_sha": "951c81e3f338c93a88e988d9b1ac5d9cbdffaa88"
+                  },
+                  {
+                    "id": "TC-25-011-DOD4",
+                    "status": "PASS",
+                    "evidence_urls": [
+                      "https://github.com/Johnathan-u/trust-copilot/actions/runs/41139637051",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/951c81e3f338c93a88e988d9b1ac5d9cbdffaa88/apps/api/tests/release/test_domain_demo_proof.py",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/951c81e3f338c93a88e988d9b1ac5d9cbdffaa88/artifacts/acceptance/TC-25-011/README.md",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/951c81e3f338c93a88e988d9b1ac5d9cbdffaa88/docs/release/tickets/TC-25-011.md"
+                    ],
+                    "tested_sha": "951c81e3f338c93a88e988d9b1ac5d9cbdffaa88"
+                  },
+                  {
+                    "id": "TC-25-011-DOD5",
+                    "status": "PASS",
+                    "evidence_urls": [
+                      "https://github.com/Johnathan-u/trust-copilot/actions/runs/41139637051",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/951c81e3f338c93a88e988d9b1ac5d9cbdffaa88/apps/api/tests/release/test_domain_demo_proof.py",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/951c81e3f338c93a88e988d9b1ac5d9cbdffaa88/artifacts/acceptance/TC-25-011/README.md",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/951c81e3f338c93a88e988d9b1ac5d9cbdffaa88/docs/release/tickets/TC-25-011.md"
+                    ],
+                    "tested_sha": "951c81e3f338c93a88e988d9b1ac5d9cbdffaa88"
+                  }
+                ],
+                "note": "Accepted on exact-SHA master CI (build + web-release-e2e green) and review of code, tests and evidence; implemented via PR #30."
+              }
+            }
+          }
+        }
+      }
     }
   ],
   "followups": [
@@ -127735,7 +129228,7 @@ window.TRUSTCOPILOT_BACKLOG = {
       "build": "python scripts/backlog_tracker.py build",
       "check": "python scripts/backlog_tracker.py check",
       "summary": "python scripts/backlog_tracker.py summary",
-      "update": "python scripts/backlog_tracker.py update --expected-revision 6 --actor YOUR_ID --reason 'Evidence reconciliation' --patch /tmp/backlog-patch.json",
+      "update": "python scripts/backlog_tracker.py update --expected-revision 7 --actor YOUR_ID --reason 'Evidence reconciliation' --patch /tmp/backlog-patch.json",
       "tests": "python -m unittest discover -s scripts/tests -p 'test_backlog_tracker.py' -v"
     }
   }
