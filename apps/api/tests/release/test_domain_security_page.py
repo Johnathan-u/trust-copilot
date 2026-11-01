@@ -5,7 +5,10 @@ database through the HTTP API and the service, covering success, denial,
 foreign references, partial failure (proof withdrawn) and restart/retry.
 """
 
+import json
 import secrets
+import subprocess
+from pathlib import Path
 
 import pytest
 from sqlalchemy import inspect, text
@@ -23,6 +26,8 @@ from app.models import (
     WorkspaceMember,
 )
 from app.services import security_page_service as sp
+
+REPO_ROOT = Path(__file__).resolve().parents[4]
 
 TABLES = (
     "workspaces",
@@ -391,3 +396,42 @@ def test_schema_matches_migration(db_session):
         "ck_security_claims_revision",
         "ck_security_claims_claimed_decided",
     } <= checks
+
+
+def _present(payload: dict) -> dict:
+    script = (
+        "import { presentSecurityPage } from './apps/web/lib/securityPage.mjs';"
+        "import { readFileSync } from 'node:fs';"
+        "const payload = JSON.parse(readFileSync(0, 'utf8'));"
+        "process.stdout.write(JSON.stringify(presentSecurityPage(payload)));"
+    )
+    result = subprocess.run(
+        ["node", "--input-type=module", "-e", script],
+        input=json.dumps(payload),
+        text=True,
+        capture_output=True,
+        cwd=str(REPO_ROOT),
+        check=False,
+    )
+    assert result.returncode == 0, result.stderr
+    return json.loads(result.stdout)
+
+
+def test_ui_consumer_shows_exactly_the_verified_claims(domain):
+    approved = domain["approved"]
+    assert (
+        _put(domain, "soc2_type2", status="claimed", evidence_item_id=approved).status_code == 200
+    )
+    contact = _put(domain, "security_contact", status="claimed", value="security@example.com")
+    assert contact.status_code == 200
+    page = _page(domain)
+    view = _present(page)
+    assert view["state"] == "ready"
+    shown = {c["name"] for c in view["certifications"] if c["attested"]}
+    api = {c["name"] for c in page["certifications"] if c["status"] == "attested"}
+    assert shown == api == {"SOC 2 Type II"}
+    assert view["contact"]["securityEmail"] == "security@example.com"
+    assert view["highlights"] == page["infrastructure_highlights"]
+    tampered = {**page, "claims": []}
+    assert not any(c["attested"] for c in _present(tampered)["certifications"])
+    assert _present({**page, "schema_version": 1})["state"] == "unsupported_schema"
