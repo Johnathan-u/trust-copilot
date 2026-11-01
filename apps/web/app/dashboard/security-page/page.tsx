@@ -51,38 +51,41 @@ export default function SecurityPageScreen() {
   const [saving, setSaving] = useState<string | null>(null)
   const [message, setMessage] = useState<string | null>(null)
 
-  const load = useCallback(async () => {
-    try {
-      const pageResponse = await fetch('/api/security-page', {
-        credentials: 'include',
-      })
-      const pageBody = await readJson(pageResponse)
-      if (!pageResponse.ok) {
-        setView(null)
-        setError(detail(pageBody, 'The security page could not be loaded.'))
-        return
-      }
-      const next = presentSecurityPage(pageBody)
-      setView(next)
-      setError(next.state === 'ready' ? null : next.reason)
-      if (canAdmin) {
-        const claimsResponse = await fetch('/api/security-page/claims', {
-          credentials: 'include',
+  // State is only set inside promise callbacks, never synchronously, so the
+  // mount effect below can start a load without cascading renders.
+  const load = useCallback(
+    () =>
+      fetch('/api/security-page', { credentials: 'include' })
+        .then(async (pageResponse) => {
+          const pageBody = await readJson(pageResponse)
+          if (!pageResponse.ok) {
+            setView(null)
+            setError(detail(pageBody, 'The security page could not be loaded.'))
+            return
+          }
+          const next = presentSecurityPage(pageBody)
+          setView(next)
+          setError(next.state === 'ready' ? null : next.reason)
+          if (!canAdmin) return
+          const claimsResponse = await fetch('/api/security-page/claims', {
+            credentials: 'include',
+          })
+          const claimsBody = await readJson(claimsResponse)
+          const claims = claimsResponse.ok ? presentClaims(claimsBody) : null
+          const nextRows = claims && claims.state === 'ready' ? claims.rows : []
+          setRows(nextRows)
+          setDrafts(
+            Object.fromEntries(nextRows.map((row) => [row.key, draftFor(row)]))
+          )
         })
-        const claimsBody = await readJson(claimsResponse)
-        const claims = claimsResponse.ok ? presentClaims(claimsBody) : null
-        const nextRows = claims && claims.state === 'ready' ? claims.rows : []
-        setRows(nextRows)
-        setDrafts(
-          Object.fromEntries(nextRows.map((row) => [row.key, draftFor(row)]))
-        )
-      }
-    } catch {
-      setError('Network error loading the security page.')
-    } finally {
-      setLoading(false)
-    }
-  }, [canAdmin])
+        .catch(() => {
+          setError('Network error loading the security page.')
+        })
+        .finally(() => {
+          setLoading(false)
+        }),
+    [canAdmin]
+  )
 
   useEffect(() => {
     void load()
