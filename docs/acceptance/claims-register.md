@@ -84,18 +84,20 @@ Line numbers in the **Location** column refer to this branch, after the edit. Fo
 | D9 | `security_page_service.py:39-49` (`@c20f949` :34-41) | Highlights: "AES-256 encryption at rest", "TLS 1.2+", "Automated daily backups with 7-day recovery", "Comprehensive audit logging", "Containerized deployment on managed infrastructure" | **Removed** (the absolute versions). Hosting controls are now prefixed "Deployment-dependent, not yet verified:". "Comprehensive" was dropped. App-level features are **Withheld**. | TC-20-010, TC-27-002, TC-27-008, TC-16-003 |
 | D10 | `security_page_service.py:52-53` (`@c20f949` :45-46) | `dpa_available: true`, `subprocessor_list_available: true` | **Removed.** Set to `false` because no DPA or subprocessor list exists in the repo. | TC-08-009, TC-15-060 |
 | D13 | `security_page_service.py:26` (`@c20f949` :26) | Subtitle "How we protect your data and maintain compliance" | **Removed.** "and maintain compliance" was dropped. | TC-17-003 |
-| D14 | `security_page_service.py:51` | `security@trustcopilot.io` contact address (implies the domain and mailbox are owned and monitored) | **Withheld pending owner domain decision** | TC-27-008; owner decision (release-decisions.md) |
+| D14 | `security_page_service.py:51` | `security@trustcopilot.io` contact address (implies the domain and mailbox are owned and monitored) | **Removed (TC-17-003).** The service no longer contains any address. `contact.security_email` is null until an owner approves a `security_contact` claim. Domain ownership is still an owner decision. | TC-17-003, TC-27-008; owner decision (release-decisions.md) |
 | D11 | `security_page_service.py:28-31` | (new) `notice` saying default FAQ answers are templates and no certifications are claimed | n/a (added) | TC-17-003 |
 | D12 | `apps/api/app/services/security_faq_service.py:14-129` (DEFAULT_FAQ) seeded at `:137,155` | 20 default answers asserting DigitalOcean US hosting, AES-256, TLS/Caddy, MFA, OIDC SSO with Okta/Azure AD/JIT, 30-day deletion, 5-day deletion SLA, audit log coverage, daily geo-separated backups, PITR, incident response with Sentry, vulnerability scanning, GDPR processor role and DPA template, no training use, 99.9% uptime target, subprocessor list and change notice, code review and CI process | **Labeled example.** New seeds are prefixed "[Template: verify against your deployment before publishing]". Each fact is withheld until verified. Entries already seeded in existing workspaces are not rewritten (no data migration). | TC-17-004, TC-08-008, TC-08-009, TC-05-001, TC-05-009, TC-27-002, TC-29-004 |
+
+**TC-17-003 update (2026-11-01):** the D8, D9, D10 and D14 assertions are no longer set in code. They come from owner decisions in `security_claims`. A certification or hosting control is shown as attested or verified only while its proof is current approved evidence in the same workspace (not deleted, not expired). Otherwise the conservative wording above is shown. See `docs/release/tickets/TC-17-003.md`.
 
 ## Counts
 
 | Status | Rows |
 |---|---|
 | Supported | 2 (A4-part: blank template and consent gate; A12 only as far as `artifacts/acceptance/TC-25-011/` goes, reviewer signoff Withheld) |
-| Removed (deleted or honestly reworded) | 20 (A9, B1, B6-part, C1, C2, C4, C5, C6, C7, C9, C10-part, C20, C21, D1, D2, D3, D8, D9-part, D10, D13) |
+| Removed (deleted or honestly reworded) | 21 (A9, B1, B6-part, C1, C2, C4, C5, C6, C7, C9, C10-part, C20, C21, D1, D2, D3, D8, D9-part, D10, D13, D14) |
 | Labeled example (synthetic or heuristic) | 6 (A2, A5, A7, A8, A10, D12) |
-| Withheld pending ticket or owner decision | 27 (A3, A4-part, A6, A11, B2-B6, C3, C8, C10-part, C11-C19, D4-D7, D9-part, D14) |
+| Withheld pending ticket or owner decision | 26 (A3, A4-part, A6, A11, B2-B6, C3, C8, C10-part, C11-C19, D4-D7, D9-part) |
 | No claim present | 1 (A1: no testimonials, customer logos, or traction figures exist) |
 
 Total: 53 rows (A1–A12, B1–B6, C1–C21, D1–D14). D11 is a notice added by the claims-register change, not a claim. A4, B6, C10, and D9 are split between two statuses, so the status counts add up to 56. A4-part is Supported only for the blank template and the consent gate in `artifacts/acceptance/TC-25-005/`. Signed consent evidence (TC-26-015) and reviewer signoff stay withheld. A12 is Supported only for the linked acceptance evidence in `artifacts/acceptance/TC-25-011/`. Reviewer signoff for A12 stays Withheld.

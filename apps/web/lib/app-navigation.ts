@@ -123,6 +123,12 @@ export const appNavItems: readonly AppNavItem[] = [
     section: 'compliance',
   },
   {
+    href: '/dashboard/security-page',
+    label: 'Security page',
+    icon: '🔐',
+    section: 'compliance',
+  },
+  {
     href: '/dashboard/members',
     label: 'Members',
     icon: '👥',
