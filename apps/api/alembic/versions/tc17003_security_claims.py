@@ -11,7 +11,8 @@ keys, so it survives the drop) before dropping the table. Upgrade restores
 archived rows whose workspace still exists; a proof or decider reference that
 no longer resolves inside the same workspace is restored as NULL, so a
 restored claim can never point at another workspace's evidence. Restored
-archive rows are removed; anything left in the archive is kept for recovery.
+archive rows are removed and an emptied archive is dropped; rows whose
+workspace is gone stay in the archive for recovery.
 
 down_revision is the single alembic head on master when this file is
 parented. Re-parent by changing that one assignment.
@@ -102,6 +103,17 @@ def upgrade() -> None:
             DELETE FROM {_ARCHIVE} a
             USING security_claims c
             WHERE c.workspace_id = a.workspace_id AND c.claim_key = a.claim_key
+            """)
+        )
+        # Fully restored: drop the archive. Unmatched rows keep it for recovery.
+        op.execute(
+            sa.text(f"""
+            DO $$
+            BEGIN
+                IF NOT EXISTS (SELECT 1 FROM {_ARCHIVE}) THEN
+                    DROP TABLE {_ARCHIVE};
+                END IF;
+            END $$
             """)
         )
 

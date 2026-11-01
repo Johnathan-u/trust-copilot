@@ -72,6 +72,12 @@ export default function SecurityPageScreen() {
           })
           const claimsBody = await readJson(claimsResponse)
           const claims = claimsResponse.ok ? presentClaims(claimsBody) : null
+          if (!claims || claims.state !== 'ready') {
+            setError(
+              claims?.reason ||
+                detail(claimsBody, 'The claim editor could not be loaded.')
+            )
+          }
           const nextRows = claims && claims.state === 'ready' ? claims.rows : []
           setRows(nextRows)
           setDrafts(
@@ -103,7 +109,13 @@ export default function SecurityPageScreen() {
     setSaving(row.key)
     setMessage(null)
     setError(null)
-    const evidence = Number.parseInt(draft.evidence, 10)
+    const evidenceText = draft.evidence.trim()
+    if (evidenceText && !/^\d+$/.test(evidenceText)) {
+      setSaving(null)
+      setError('Enter the evidence item ID as a whole number.')
+      return
+    }
+    const evidence = evidenceText ? Number(evidenceText) : NaN
     try {
       const response = await fetch(
         `/api/security-page/claims/${encodeURIComponent(row.key)}`,
@@ -208,8 +220,8 @@ export default function SecurityPageScreen() {
               Infrastructure
             </h2>
             <ul className="list-disc space-y-1 pl-5 text-sm text-[var(--tc-text)]">
-              {view.highlights.map((line) => (
-                <li key={line}>{line}</li>
+              {view.highlights.map((line, index) => (
+                <li key={`${index}-${line}`}>{line}</li>
               ))}
             </ul>
           </Card>

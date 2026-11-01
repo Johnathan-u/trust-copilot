@@ -3,9 +3,11 @@
  * The dashboard page imports this module. Release tests execute the same file
  * against real API responses.
  *
- * Fail-safe rule: a certification or infrastructure claim is shown as attested
- * or verified only when the API reports it verified AND backed by a proof
- * reference. Anything else is shown with the conservative wording.
+ * Fail-safe rule: a certification is shown as attested, and a contact detail as
+ * available, only when the API also lists a matching verified claim backed by a
+ * proof reference. Anything else is shown with the conservative wording.
+ * Infrastructure lines are rendered as the API words them: the API words a line
+ * as verified only while its claim's proof is current.
  */
 
 export const SECURITY_PAGE_SCHEMA_VERSION = 2

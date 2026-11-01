@@ -5,9 +5,13 @@ database through the HTTP API and the service, covering success, denial,
 foreign references, partial failure (proof withdrawn) and restart/retry.
 """
 
+import hashlib
 import json
+import os
 import secrets
 import subprocess
+import sys
+from datetime import datetime, timedelta
 from pathlib import Path
 
 import pytest
@@ -17,8 +21,11 @@ from sqlalchemy.orm import Session
 
 from app.core.session import sign_session
 from app.models import (
+    ApiKey,
     AuditEvent,
+    Document,
     EvidenceItem,
+    EvidenceMetadata,
     SecurityClaim,
     User,
     UserSession,
@@ -36,6 +43,9 @@ TABLES = (
     "user_sessions",
     "security_claims",
     "evidence_items",
+    "evidence_metadata",
+    "documents",
+    "api_keys",
     "audit_events",
 )
 
@@ -116,7 +126,11 @@ def domain(client, db_session):
     db_session.query(SecurityClaim).filter(SecurityClaim.workspace_id.in_(ids)).delete(
         synchronize_session=False
     )
+    db_session.query(ApiKey).filter(ApiKey.workspace_id.in_(ids)).delete(synchronize_session=False)
     db_session.query(EvidenceItem).filter(EvidenceItem.workspace_id.in_(ids)).delete(
+        synchronize_session=False
+    )
+    db_session.query(Document).filter(Document.workspace_id.in_(ids)).delete(
         synchronize_session=False
     )
     db_session.query(WorkspaceMember).filter(WorkspaceMember.workspace_id.in_(ids)).delete(
@@ -435,3 +449,194 @@ def test_ui_consumer_shows_exactly_the_verified_claims(domain):
     tampered = {**page, "claims": []}
     assert not any(c["attested"] for c in _present(tampered)["certifications"])
     assert _present({**page, "schema_version": 1})["state"] == "unsupported_schema"
+
+
+def _claims_by_key(db, workspace_id):
+    db.expire_all()
+    return {
+        r.claim_key: (r.status, r.statement, r.evidence_item_id, r.decided_by_user_id, r.revision)
+        for r in db.query(SecurityClaim).filter_by(workspace_id=workspace_id)
+    }
+
+
+def test_deleted_document_or_expired_evidence_is_not_current_proof(domain):
+    db = domain["db"]
+    doc = Document(
+        workspace_id=domain["ws"],
+        storage_key=f"claims/{secrets.token_hex(8)}",
+        filename="soc2-report.pdf",
+    )
+    db.add(doc)
+    db.flush()
+    backed = EvidenceItem(
+        workspace_id=domain["ws"],
+        document_id=doc.id,
+        source_type="manual",
+        title="SOC 2 report (document)",
+        approval_status="approved",
+    )
+    expiring = EvidenceItem(
+        workspace_id=domain["ws"],
+        source_type="manual",
+        title="ISO certificate",
+        approval_status="approved",
+    )
+    db.add_all([backed, expiring])
+    db.flush()
+    db.add(
+        EvidenceMetadata(evidence_id=expiring.id, expires_at=datetime.utcnow() + timedelta(days=30))
+    )
+    db.commit()
+    assert (
+        _put(domain, "soc2_type2", status="claimed", evidence_item_id=backed.id).status_code == 200
+    )
+    assert (
+        _put(domain, "iso27001", status="claimed", evidence_item_id=expiring.id).status_code == 200
+    )
+    page = _page(domain)
+    assert _cert(page, "SOC 2 Type II")["status"] == "attested"
+    assert _cert(page, "ISO 27001")["status"] == "attested"
+    db.execute(text("UPDATE documents SET deleted_at = now() WHERE id = :id"), {"id": doc.id})
+    db.execute(
+        text("UPDATE evidence_metadata SET expires_at = :t WHERE evidence_id = :id"),
+        {"t": datetime.utcnow() - timedelta(days=1), "id": expiring.id},
+    )
+    db.commit()
+    page = _page(domain)
+    assert _cert(page, "SOC 2 Type II")["status"] == "not_attested"
+    assert _cert(page, "ISO 27001")["status"] == "not_attested"
+    assert {_claim(page, k)["reason"] for k in ("soc2_type2", "iso27001")} == {"proof_unavailable"}
+    stale = _put(domain, "gdpr", status="claimed", evidence_item_id=backed.id)
+    assert stale.status_code == 422
+    assert stale.json()["detail"] == "That evidence is not available as approved proof"
+
+
+def test_api_key_cannot_decide_claims(domain):
+    token = secrets.token_urlsafe(32)
+    domain["db"].add(
+        ApiKey(
+            workspace_id=domain["ws"],
+            key_hash=hashlib.sha256(token.encode()).hexdigest(),
+            role="admin",
+        )
+    )
+    domain["db"].commit()
+    domain["client"].cookies.clear()
+    response = domain["client"].put(
+        "/api/security-page/claims/soc2_type2",
+        json={
+            "status": "claimed",
+            "evidence_item_id": domain["approved"],
+            "expected_revision": 0,
+        },
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    assert response.status_code == 403
+    assert domain["db"].query(SecurityClaim).filter_by(workspace_id=domain["ws"]).count() == 0
+
+
+def test_suspended_admin_cannot_decide_claims(domain):
+    db = domain["db"]
+    db.query(WorkspaceMember).filter_by(
+        workspace_id=domain["ws"], user_id=domain["actors"]["admin"]
+    ).update({"suspended": True})
+    db.commit()
+    response = _put(domain, "soc2_type2", status="claimed", evidence_item_id=domain["approved"])
+    assert response.status_code in (401, 403)
+    assert db.query(SecurityClaim).filter_by(workspace_id=domain["ws"]).count() == 0
+
+
+def test_failure_after_writes_rolls_back_claim_revision_and_audit(domain, monkeypatch):
+    approved = domain["approved"]
+    assert _put(domain, "backups", status="claimed", evidence_item_id=approved).status_code == 200
+    original = sp._audit
+
+    def fail_after_audit(*args, **kwargs):
+        original(*args, **kwargs)
+        raise IntegrityError("synthetic failure after writes", {}, Exception("rollback probe"))
+
+    monkeypatch.setattr(sp, "_audit", fail_after_audit)
+    assert _put(domain, "backups", status="not_claimed", expected_revision=1).status_code == 409
+    assert _put(domain, "gdpr", status="claimed", evidence_item_id=approved).status_code == 409
+    rows = _claims_by_key(domain["db"], domain["ws"])
+    assert rows == {"backups": ("claimed", None, approved, domain["actors"]["admin"], 1)}
+    audits = (
+        domain["db"]
+        .query(AuditEvent)
+        .filter_by(workspace_id=domain["ws"], resource_type="security_claim")
+        .count()
+    )
+    assert audits == 1
+
+
+def _alembic(*args):
+    result = subprocess.run(
+        [sys.executable, "-m", "alembic", *args],
+        cwd=Path(__file__).resolve().parents[2],
+        env={**os.environ, "TRUST_COPILOT_TESTING": "1", "PGOPTIONS": "-c lock_timeout=20000"},
+        capture_output=True,
+        text=True,
+        timeout=180,
+    )
+    assert result.returncode == 0, result.stdout[-1000:] + result.stderr[-2000:]
+
+
+def test_downgrade_archives_and_upgrade_restores_only_in_scope_references(domain):
+    db = domain["db"]
+    moved = EvidenceItem(
+        workspace_id=domain["ws"],
+        source_type="manual",
+        title="Backup runbook",
+        approval_status="approved",
+    )
+    db.add(moved)
+    db.commit()
+    moved_id = moved.id
+    soc2 = _put(
+        domain,
+        "soc2_type2",
+        status="claimed",
+        statement="SOC 2 Type II, period 2026",
+        evidence_item_id=domain["approved"],
+    )
+    assert soc2.status_code == 200
+    assert _put(domain, "backups", status="claimed", evidence_item_id=moved_id).status_code == 200
+    before = _claims_by_key(db, domain["ws"])
+    db.close()
+    try:
+        _alembic("downgrade", "tc23001_deal_types")
+        assert db.execute(text("SELECT to_regclass('public.security_claims')")).scalar() is None
+        archived = db.execute(
+            text("SELECT count(*) FROM tc17003_security_claim_archive WHERE workspace_id = :ws"),
+            {"ws": domain["ws"]},
+        ).scalar()
+        assert archived == 2
+        db.execute(
+            text("UPDATE evidence_items SET workspace_id = :foreign WHERE id = :id"),
+            {"foreign": domain["foreign_ws"], "id": moved_id},
+        )
+        db.commit()
+        db.close()
+        _alembic("upgrade", "head")
+        after = _claims_by_key(db, domain["ws"])
+        assert after["soc2_type2"] == before["soc2_type2"]
+        status, statement, _evidence, decider, revision = before["backups"]
+        assert after["backups"] == (status, statement, None, decider, revision)
+        leftover = db.execute(
+            text("SELECT to_regclass('public.tc17003_security_claim_archive')")
+        ).scalar()
+        if leftover is not None:
+            remaining = db.execute(
+                text(
+                    "SELECT count(*) FROM tc17003_security_claim_archive WHERE workspace_id = :ws"
+                ),
+                {"ws": domain["ws"]},
+            ).scalar()
+            assert remaining == 0
+        page = _page(domain)
+        assert _cert(page, "SOC 2 Type II")["status"] == "attested"
+        assert _claim(page, "backups")["reason"] == "proof_unavailable"
+    finally:
+        db.rollback()
+        db.close()
+        _alembic("upgrade", "head")

@@ -15,6 +15,7 @@ from sqlalchemy.orm import Session
 
 from app.models import AuditEvent, EvidenceItem, SecurityClaim
 from app.services import security_faq_service as faq_svc
+from app.services.compliance_coverage import _evidence_is_current
 
 SCHEMA_VERSION = 2
 STATUSES = ("not_claimed", "claimed")
@@ -100,15 +101,36 @@ class ClaimError(Exception):
 
 
 def _proof_for(db: Session, workspace_id: int, evidence_item_id: int | None):
-    """Return the evidence item only if it is approved and in this workspace."""
+    """Return the evidence item only while it is current proof for this workspace.
+
+    Uses the codebase's single rule for current evidence: same workspace, approved,
+    its document (if any) present in the workspace and not deleted, and no expired
+    metadata. Anything else is not proof.
+    """
     if evidence_item_id is None:
         return None
     item = db.get(EvidenceItem, evidence_item_id)
-    if item is None or item.workspace_id != workspace_id:
+    if item is None:
         return None
-    if (item.approval_status or "").lower() != "approved":
+    if _evidence_is_current(db, item, workspace_id, datetime.utcnow()) != "qualifies":
         return None
     return item
+
+
+def _audit(db: Session, workspace_id: int, key: str, row: SecurityClaim, actor_id: int):
+    db.add(
+        AuditEvent(
+            action=f"security_claim.{row.status}",
+            user_id=actor_id,
+            workspace_id=workspace_id,
+            resource_type="security_claim",
+            resource_id=key,
+            details=json.dumps(
+                {"revision": row.revision, "evidence_item_id": row.evidence_item_id}
+            ),
+        )
+    )
+    db.flush()
 
 
 def _iso(value):
@@ -273,17 +295,7 @@ def set_claim(
     row.decided_by_user_id = actor_id
     row.decided_at = now
     db.flush()
-    db.add(
-        AuditEvent(
-            action=f"security_claim.{status}",
-            user_id=actor_id,
-            workspace_id=workspace_id,
-            resource_type="security_claim",
-            resource_id=key,
-            details=json.dumps({"revision": row.revision, "evidence_item_id": evidence_item_id}),
-        )
-    )
-    db.flush()
+    _audit(db, workspace_id, key, row, actor_id)
     return _effective(db, workspace_id, key, row)
 
 
