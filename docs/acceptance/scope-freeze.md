@@ -1,6 +1,6 @@
 # Scope freeze: full-suite release (TC-01-001)
 
-Status: **FROZEN** at baseline `c20f949161ac12a619b396d30904448ffd74d532`. Frozen by the Trust Copilot Coordinator (scope authority, per `release-decisions.md`) on 2026-10-27. **Amended 2026-11-02** (change control, owner-approved OD-11): the inventory is reconciled to master `574f2e2` and the post-freeze epics E31–E37 are added in §11. The original 384-ticket, 1,864-point denominator is unchanged.
+Status: **FROZEN** at baseline `c20f949161ac12a619b396d30904448ffd74d532`. Frozen by the Trust Copilot Coordinator (scope authority, per `release-decisions.md`) on 2026-10-27. **Amended 2026-11-02** (change control; owner confirmation of OD-11 pending): the inventory is reconciled to master `574f2e2` and the post-freeze epics E31–E37 are added in §11. The original 384-ticket, 1,864-point denominator is unchanged.
 
 Sources: `Traceability.json` (127 surfaces), `TrustCopilot_Feature_Scope.md`, `PRODUCT_SPEC.md` §Scope, and `TrustCopilot_Execution_Backlog.json` (384 tickets, 30 epics), from the delivery package. The ticket file names this document `docs/acceptance/scope-contract.md`. This repo uses the coordinator brief's name, `scope-freeze.md`, which serves the same purpose. `scope-contract.md` should be read as an alias for this file.
 
@@ -123,13 +123,13 @@ scope-freeze amendment 2026-11-02 (inventory reconciliation, no new modules): 34
 
 | Module | Operations added | Added by |
 |---|---|---|
-| `answers` | `POST /api/answers` | TC-11-001 |
-| `auth` | `POST /api/auth/sessions/revoke-all` | TC-04-004b, TC-04-006a |
+| `answers` | `POST /api/answers` | TC-12-001 (PR #128) |
+| `auth` | `POST /api/auth/sessions/revoke-all` | TC-04-006b (PR #137) |
 | `compliance_mappings` | `POST /api/compliance/control-mappings/rollback` | TC-21-005 |
 | `deals` | `POST /api/deals/{deal_id}/links` | TC-23-001 |
 | `demo_proof` | `POST /api/demo-proof`, `GET /api/demo-proof/summaries/{summary_id}` | TC-25-011 |
 | `evidence_gaps` | `GET`/`POST /api/evidence-gaps`, `GET /{gap_id}`, `POST /{gap_id}/decision`, `POST /{gap_id}/resolve` | TC-21-013, TC-21-013a |
-| `jobs` | `GET /api/jobs`, `POST /{job_id}/cancel`, `POST /{job_id}/retry` | TC-10-002, TC-10-003, TC-10-004, TC-15-038a |
+| `jobs` | `GET /api/jobs` (TC-15-038a), `POST /{job_id}/cancel` and `POST /{job_id}/retry` (TC-10-004) | TC-15-038a, TC-10-004 |
 | `members` | `POST /api/members/clear-mfa-reenrol/{user_id}` | TC-07-002 |
 | `notifications` | `GET`/`PUT /api/notifications/channel-preferences`, `GET /delivery-attempts` | TC-19-008 |
 | `security_faq` | `GET /published`, `GET /{faq_id}/revisions`, `POST /{faq_id}/approve`, `/publish`, `/withdraw` | TC-17-004 |
@@ -137,7 +137,7 @@ scope-freeze amendment 2026-11-02 (inventory reconciliation, no new modules): 34
 | `trust_requests` | `PATCH /{request_id}/replies/{note_id}`, `POST .../approve`, `POST .../send` | TC-18-001 |
 | `vendor_requests` | `POST /api/vendor-requests`, `POST /{request_id}/send`, `/resend`, `/revoke` | TC-18-002 |
 | `vendor_response` | `POST /api/vendor-response/submit` | TC-18-002 |
-| `workspaces` | `GET /api/workspaces/creation-policy` | TC-04-001a, TC-04-006a |
+| `workspaces` | `GET /api/workspaces/creation-policy` | TC-04-001b (PR #65) |
 
 ## 4. Pages (44 inventoried routes: 43 page files plus 1 redirect)
 
@@ -164,7 +164,7 @@ scope-freeze amendment 2026-11-02 (inventory reconciliation, no new modules): 34
 | 19 | `/dashboard/settings` | `apps/web/app/dashboard/settings/page.tsx` | E15 Every screen and missing workflow UI | TC-15-034 | TC-06-005 |
 | 20 | `/dashboard/slack` | `apps/web/app/dashboard/slack/page.tsx` | E15 Every screen and missing workflow UI | TC-15-030 | TC-06-005 |
 | 21 | `/dashboard/trust-center` | `apps/web/app/dashboard/trust-center/page.tsx` | E15 Every screen and missing workflow UI | TC-15-027 | TC-06-005 |
-| 22 | `/dashboard/vendor-requests` | `apps/web/app/dashboard/vendor-requests/route.ts` (redirect to `/dashboard/requests` since TC-15-024; the page itself was merged into `/dashboard/requests`) | E15 Every screen and missing workflow UI | TC-15-024 | TC-06-005 |
+| 22 | `/dashboard/vendor-requests` | `apps/web/app/dashboard/vendor-requests/route.ts` (server redirect to `/dashboard/requests`) | E15 Every screen and missing workflow UI | TC-15-024 | TC-06-005 |
 | 23 | `/forgot-password` | `apps/web/app/forgot-password/page.tsx` | E15 Every screen and missing workflow UI | TC-15-006 | TC-06-005 |
 | 24 | `/login` | `apps/web/app/login/page.tsx` | E15 Every screen and missing workflow UI | TC-15-004 | TC-06-005 |
 | 25 | `/onboarding` | `apps/web/app/onboarding/page.tsx` | E15 Every screen and missing workflow UI | TC-15-010 | TC-06-005 |
@@ -190,7 +190,7 @@ scope-freeze amendment 2026-11-02 (inventory reconciliation, no new modules): 34
 
 scope-freeze amendment approved by coordinator 2026-10-27: `/dashboard/case-studies` is in this inventory. Baseline was 33 existing page files.
 
-scope-freeze amendment 2026-11-02: rows 35–44 are page files added by in-scope tickets after the freeze. Row 22 is not a reduction: TC-15-024 merged the outbound vendor-request screen into `/dashboard/requests` and kept the old URL as a redirect, so no workflow was removed. `/design-tokens` and `/design-dialogs` are public design-system reference pages (E14); their exposure in production is decided under TC-14-001/TC-14-003.
+scope-freeze amendment 2026-11-02: rows 35–44 are page files added by in-scope tickets after the freeze. Row 22 is not a reduction: at baseline `vendor-requests/page.tsx` was already a client-side redirect to `/dashboard/requests` that rendered nothing. TC-15-024 replaced it with a server 307 redirect (`route.ts`). The outbound-request workflow lives at `/dashboard/requests` (row 15). `/design-tokens` and `/design-dialogs` are public design-system showcase pages (E14, TC-14-001 and TC-14-003). Whether they stay public in production is an **open item** for release review; no ticket decides it yet.
 
 E15 also creates the *missing* workflow UI surfaces defined in its tickets (for example TC-15-036 connector setup, TC-15-038 job and activity center, TC-15-060 privacy, cookies, terms, subprocessors, and contact pages). Those are in scope through their tickets even though they are not existing page files.
 
@@ -214,10 +214,11 @@ E15 also creates the *missing* workflow UI surfaces defined in its tickets (for 
 | 14 | Provider event / billing webhook processing | billing routes / Stripe webhook | E24 Billing entitlements and credit ledger | TC-24-001, TC-24-003, TC-24-005 |
 | 15 | First-party product event capture (outbox) | product_events | E26 Public traffic analytics and acquisition evidence | TC-26-014, TC-26-016, TC-26-017 |
 | 16 | Job-lease heartbeat thread (renews the running job's lease) | `apps/api/app/core/job_lease.py` `JobLeaseHeartbeat`, started from `worker.py` `_start_job_lease_heartbeat` | E10 Jobs storage and consistency | TC-10-001, TC-10-001a, TC-10-001b |
-| 17 | Abandoned-job recovery and scheduled retries | `worker.py` `recover_abandoned_jobs`, `_try_schedule_retry` | E10 Jobs storage and consistency | TC-10-001, TC-10-003, TC-10-004 |
+| 17 | Abandoned-job recovery and scheduled retries | `worker.py` `recover_abandoned_jobs`, `_try_schedule_retry` | E10 Jobs storage and consistency | TC-10-001, TC-10-002, TC-10-003, TC-10-004 |
 | 18 | Storage startup reconcile and orphaned-object sweep | `services/storage_reconcile.py` `startup_reconcile`, `sweep_orphans_best_effort` (called from `worker.py`) | E10 Jobs storage and consistency | TC-10-005 |
+| 19 | Worker liveness heartbeat thread | `apps/api/app/worker_health.py` `HeartbeatThread`, started in `worker.py` | E03 Deployment and migrations | TC-03-003 |
 
-scope-freeze amendment 2026-11-02: rows 16–18 were added by in-scope E10 tickets after the freeze. The five worker job kinds are unchanged. Baseline line numbers in rows 1–11 refer to `c20f949`.
+scope-freeze amendment 2026-11-02: rows 16–19 were added by in-scope tickets after the freeze (E10; row 19 by TC-03-003, also listed in row 1). The five worker job kinds are unchanged. Baseline line numbers in rows 1–11 refer to `c20f949`.
 
 ## 6. Registered or advertised providers
 
@@ -280,6 +281,8 @@ These are open-ended or "infinite" extensions. They are **not** part of the rele
 | R3 | **New ticket TC-01-007: Framework content rights (owner decision)** | none | Add to E01. Owner: Owner/seller. Gates release (G0/G5) for TC-21-001 and TC-21-014..022. Must state, for each of the nine framework catalogs, whether redistribution rights exist (licensed, public-domain such as NIST, or not permitted) and what content may ship. | Several catalogs (for example ISO 27001, HITRUST, SIG, CAIQ) are proprietary. The spec requires "legally permitted content", which is a rights decision, not an engineering one. |
 | R4 | **E01 legal tickets gate release (G0/G5), not engineering start** | TC-01-002 (chain of title), TC-01-003 (PyMuPDF and restrictive licenses), TC-01-004 (license inventory) appear as `depends_on` of engineering tickets (new TC-01-007 applies the same way to the framework tickets): TC-02-002, TC-21-001, TC-09-007, TC-09-008, TC-21-014, TC-21-015, TC-21-016, TC-21-017, TC-21-018, TC-21-019, TC-21-020, TC-21-021, TC-21-022 | Engineering on these tickets may **start** before the legal tickets close. The legal tickets become **release gates**: none of these tickets can be marked release-qualified, and no release candidate may pass G0 (scope and rights path) or G5 (final rights clearance), until the gating legal ticket is accepted by the Owner/seller. Transfer deliverables (TC-29-006, TC-30-004) keep their hard dependency. | Rights resolution is an owner and counsel activity on a different critical path. Blocking engineering on it would idle the build without reducing legal risk. Engineering work that might be discarded (for example a PyMuPDF replacement) should be isolated behind interfaces. |
 
+Post-freeze ruling **PF-1** (2026-11-02, the release mapping in §11) is recorded in `release-decisions.md` §4.
+
 These rulings change dependency edges in the package backlog. The package JSON is not edited by this PR. The backlog owner should apply R1–R4 to `TrustCopilot_Execution_Backlog.json` and add TC-01-007 on the next package revision. Until then, this file takes precedence.
 
 ## 9. Owner-epic summary
@@ -313,25 +316,25 @@ Amended 2026-11-02: +10 pages (§4 rows 35–44). The route-module count is unch
 - **TC-01-001-AC1:** §3 covers all 94 route modules (531 static operations on master `574f2e2`; 497 after the 2026-10-27 amendment; baseline 489), §4 all 44 page routes (43 page files plus the row-22 redirect; baseline 33), §5 the dispatchers, and §6 the registered or advertised providers. Each has an owner epic and named acceptance tickets. Mechanical check: `artifacts/acceptance/TC-01-001/check_scope_freeze.py`.
 - **TC-01-001-AC2:** Freeze rule 2 forbids silent disabling as completion. §7 lists the out-of-scope extensions explicitly.
 - Post-freeze scope (2026-11-02): §11 maps every epic added after the freeze (E31–E37, 123 Jira tickets) to a release, an owner and its gates. Every §7 item moved into scope cites owner decision OD-11.
-- Owner acceptance: **accepted by the Owner/seller (Johnathan Reinhart) on 2026-11-02** with the instruction to bring the freeze up to date and resolve it (recorded as OD-11 in `release-decisions.md`). Per the ticket DoD, the named accountable owner reviews this file. The Coordinator signs for scope; the Owner/seller signs for R3/R4 rights gating (`release-decisions.md`).
+- Owner acceptance: **PENDING.** On 2026-11-02 the Owner/seller (Johnathan Reinhart) asked for the freeze to be brought up to date and resolved. Per the ticket DoD, he still has to review and accept this amended file and confirm the OD-11 text (`release-decisions.md`). The Coordinator signs for scope; the Owner/seller signs for R3/R4 rights gating (`release-decisions.md`).
 
 ## 11. Post-freeze scope (change control, 2026-11-02)
 
-Seven epics were added in Jira after the freeze. The owner approved them on 2026-11-02 (OD-11), which also records the approvals asked for in TC-32-011 and TC-34-012. They are tracked **outside** the original 384-ticket, 1,864-point denominator, as TC-01-006a requires for added work. Each row belongs to the release named here and is required only for that release; nothing in v1.1 or v2.0 blocks v1.0 acceptance.
+Seven epics were added in Jira after the freeze. The owner asked for them to be added on 2026-11-02. The exact decision is proposed as OD-11 and awaits his confirmation, including whether it replaces the planned approval checkpoints in TC-32-011 (after the Nov 30 go/kill decision) and TC-34-012 (Feb 15, 2027 checkpoint). They are tracked **outside** the original 384-ticket, 1,864-point denominator: under the shared progress rule in `release-decisions.md`, added epics and child work earn no original-parent points. For now they are tracked in Jira only; `docs/planning/backlog-state.json` covers the original 384 tickets. Each row belongs to the release named here and is required only for that release; nothing in v1.1 or v2.0 blocks v1.0 acceptance.
 
 | Epic | Jira | What it adds | Tickets | Release | Gates and notes |
 |---|---|---|---|---|---|
 | E31 Wedge validation and go-to-market (CEE vendors) | SCRUM-420 | Discovery calls, pilots, partners, pricing, the Nov 30 go/kill decision | 18 owner tasks | None (go-to-market, not product) | TC-31-015 US company and Stripe gates live billing for E35, E36 and E37 |
-| E32 Wedge product: vendor-side fidelity and DORA | SCRUM-421 | Fidelity suite, past-questionnaire import, vendor profile, DORA, NIS2 and AI-Act packs, continuity pack, EU hosting, non-English sources, consultant workspace, Google Drive and Confluence sync | 14 | **v1.0:** TC-32-001 (already in scope as an E13 extension) and TC-32-010 (consultant workspace, needed by E35). **v1.1 (by May 28, 2027):** the rest | TC-32-008 (AI provider EU data handling) stays an owner decision. TC-32-011 is approved by OD-11. Story points are still to be estimated, which is required before any completion claim (change-control rule 1) |
+| E32 Wedge product: vendor-side fidelity and DORA | SCRUM-421 | Fidelity suite, past-questionnaire import, vendor profile, DORA, NIS2 and AI-Act packs, continuity pack, EU hosting, non-English sources, consultant workspace, Google Drive and Confluence sync | 14 | **v1.0:** TC-32-010 (consultant workspace, due Nov 18, needed by E35). **v1.1 (by May 28, 2027):** the rest, including TC-32-001 (fidelity suite, due Jan 15, 2027; an E13 extension already in scope) | TC-32-008 (AI provider EU data handling) stays an owner decision. TC-32-011 is approved by OD-11. Story points are still to be estimated, which is required before any completion claim (change-control rule 1) |
 | E33 Scale the wedge to $1M ARR | SCRUM-422 | Revenue gates, regional expansion, competitor watch | 9 | None (go-to-market), except TC-33-006 browser extension after v2.0 | Revenue gates are owner decisions |
-| E34 Compliance automation platform | SCRUM-464 | Policy library and writer, policy lifecycle and acceptance, employee roster and portal, security training, on/offboarding checks, device agent, audit-readiness dashboard, pilot qualification | 12 | **v2.0 (Feb 16 to Dec 17, 2027)**, sequenced after v1.0 and E32 | TC-34-012 approved by OD-11. Policy and training content must be original (TC-01-007). Story points still to be estimated |
+| E34 Compliance automation platform | SCRUM-464 | Policy library and writer, policy lifecycle and acceptance, employee roster and portal, security training, on/offboarding checks, device agent, audit-readiness dashboard, pilot qualification | 12 | **v2.0 (Feb 16 to Dec 17, 2027)**, starting after v1.0; its first tickets (due Mar 31 to May 28, 2027) overlap E32's v1.1 window | TC-34-012 approved by OD-11. Policy and training content must be original (TC-01-007). Story points still to be estimated |
 | E35 MSP and vCISO edition | SCRUM-477 | MSP roles, client workspaces, portfolio dashboard, client switcher, isolation tests, branding, white-label exports and trust page, MSP templates, MSP billing | 14 (71 pts) | **v1.0 (Dec 15, 2026)** | Owner-approved 2026-11-01. TC-35-011 SIG, CAIQ and HECVAT templates are gated by OD-3 and TC-01-007. TC-35-012 pricing is an owner decision |
 | E36 MSP wedge: questionnaire-first, low price, full white-label | SCRUM-492 | Questionnaire-only workspaces, zero-touch provisioning, single intake, digest, pricing page, ROI calculator, self-serve trial, white-label email and portal, brand-leak test | 11 (38 pts) | **v1.0 (Dec 15, 2026)** | TC-36-005 prices are an owner decision. The ROI default must agree with billing (OD-8) |
 | E37 PDF engine and parsing API | SCRUM-505 | Owned Rust PDF engine in the separate `pdf-engine` repository, sold separately as a parsing API | 45 (204 pts) | **Separate product** (May 9, 2027). TrustCopilot scope is only TC-37-019 (pypdf replaced by the engine, Jan 31), TC-37-031 (answers filled into the vendor's own PDF, Mar 28) and TC-37-036 (evidence OCR, Apr 18), all v1.1 | Decisions TC-37-001 done 2026-11-02. API prices TC-37-041 deferred to Mar 2027. Live API billing needs TC-31-015 |
 
 **Releases.**
-- **v1.0 (Dec 15, 2026):** §3–§6 inventory, E35, E36, TC-32-001 and TC-32-010.
-- **v1.1 (by May 28, 2027):** the rest of E32, plus the three E37 TrustCopilot integration tickets.
+- **v1.0 (Dec 15, 2026):** §3–§6 inventory, E35, E36 and TC-32-010.
+- **v1.1 (by May 28, 2027):** the rest of E32 (including TC-32-001), plus the three E37 TrustCopilot integration tickets.
 - **v2.0 (by Dec 17, 2027):** E34.
 - **After v2.0:** TC-33-006.
 
