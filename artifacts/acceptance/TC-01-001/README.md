@@ -34,9 +34,9 @@ After the amendment, `check_scope_freeze.py` passes again: 94 route files and 43
 | No new providers on master. Google Drive and Confluence approved for v1.1 | §6 note |
 | §7 items moved into scope by owner decision OD-11, each with its ticket and release | §7 |
 | Epics added after the freeze (E31–E37, 123 Jira tickets) mapped to a release, gates and owner decisions | §11 |
-| Proposed owner decision OD-11 and coordinator rulings for the amendment and PF-1 | `release-decisions.md` §3, §4 |
+| Owner decision OD-11 and coordinator rulings for the amendment and PF-1 | `release-decisions.md` §3, §4 |
 
-**Owner acceptance: PENDING.** On 2026-11-02 the owner asked for the freeze to be updated and resolved. He still has to review and accept this amended file and confirm OD-11.
+**Owner acceptance:** Johnathan Reinhart (Owner/seller), 2026-11-02. The owner confirmed on 2026-11-02 in the working session, answering an explicit sign-off question about PR #173 (answer: "Approve, drop the gates"): he signs off the amended freeze, approves E31–E37 into scope, and drops the planned approval checkpoints in TC-32-011 (after the Nov 30 go/kill decision) and TC-34-012 (Feb 15, 2027). Approved tickets may start on their Jira dates.
 
 **Commands used for the reconciliation** (from the repo root):
 
