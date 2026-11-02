@@ -12,7 +12,7 @@ root = Path(__file__).resolve().parents[3]
 doc = (root / "docs/acceptance/scope-freeze.md").read_text(encoding="utf-8")
 rows = {
     m.group(1): m.group(0)
-    for m in re.finditer(r"^\|[^|]+\|[^|]+\| `([^`]+\.(?:py|tsx))` \|.*$", doc, re.M)
+    for m in re.finditer(r"^\|[^|]+\|[^|]+\| `(apps/[^`]+\.(?:py|tsx|ts))`[^|]*\|.*$", doc, re.M)
 }
 routes = sorted(
     p.relative_to(root).as_posix()
