@@ -339,4 +339,3 @@ Seven epics were added in Jira after the freeze. The owner approved them on 2026
 - **After v2.0:** TC-33-006.
 
 Any further addition follows the change-control rule (`release-decisions.md` §2) and is added to this table.
-
