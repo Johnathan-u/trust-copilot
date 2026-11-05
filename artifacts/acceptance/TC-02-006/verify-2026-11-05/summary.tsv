@@ -1,0 +1,11 @@
+01-versions	0	/agent/repos/trust-copilot/apps/web	node --version; npm --version; npx --no-install tsc --version; npx --no-install eslint --version; npx --no-install prettier --version; npx --no-install vitest --version; npx --no-install next --version
+02-lint	0	/agent/repos/trust-copilot/apps/web	npm run lint
+03-format-check	0	/agent/repos/trust-copilot/apps/web	npm run format:check
+04-unit	0	/agent/repos/trust-copilot/apps/web	npm run test:unit
+05-vitest-json	0	/agent/repos/trust-copilot/apps/web	npx vitest run --reporter=json --outputFile=/agent/repos/trust-copilot/artifacts/acceptance/TC-02-006/vitest-results-2026-11-05.json
+06-typecheck	0	/agent/repos/trust-copilot/apps/web	npm run typecheck
+07-build	0	/agent/repos/trust-copilot/apps/web	npm run build
+08-quality	0	/agent/repos/trust-copilot/apps/web	npm run quality
+09-pytest	0	/agent/repos/trust-copilot/apps/api	TC_REQUIRE_WEB_TOOLCHAIN=1 /tmp/tc-api-venv/bin/python -m pytest tests/release/test_web_quality.py -q -rs -p no:cacheprovider
+10-ruff	0	/agent/repos/trust-copilot/apps/api	/tmp/tc-api-venv/bin/ruff check tests/release/test_web_quality.py && /tmp/tc-api-venv/bin/ruff format --check tests/release/test_web_quality.py
+11-npm-ci	0	/agent/repos/trust-copilot/apps/web	npm ci --ignore-scripts --no-audit --no-fund
