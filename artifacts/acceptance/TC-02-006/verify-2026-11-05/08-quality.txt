@@ -1,0 +1,39 @@
+
+> trust-copilot-web@0.1.0 quality
+> npm run typecheck && npm run lint && npm run format:check && npm run test:unit
+
+
+> trust-copilot-web@0.1.0 typecheck
+> next typegen && tsc --noEmit -p .
+
+Generating route types...
+✓ Types generated successfully
+
+> trust-copilot-web@0.1.0 lint
+> eslint . --max-warnings=0
+
+
+> trust-copilot-web@0.1.0 format:check
+> prettier --check "**/*.{ts,tsx,js,jsx,json,md}"
+
+Checking formatting...
+All matched files use Prettier code style!
+
+> trust-copilot-web@0.1.0 test:unit
+> vitest run
+
+(!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+  - ESM syntax in a file loaded as CommonJS (vitest.config.ts:1:1). Use a `.mjs` extension or set `"type": "module"` in the closest package.json
+Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.
+
+ RUN  v5.0.5 /agent/repos/trust-copilot/apps/web
+
+
+ Test Files  44 passed (44)
+      Tests  426 passed (426)
+   Start at  20:10:47
+   Duration  4.57s (tests 51%, environment 26%, import 18%, transform 3%, worker 2%)
+
+    Isolate  44 workers spawned · ~137ms startup each (spawn + environment, per file)
+             at least ~1.87s faster with isolate: false — reuses workers across files instead of one per file
+
