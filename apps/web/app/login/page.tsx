@@ -4,6 +4,8 @@ import { Suspense, useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
 import { Card, Button, Input } from '@/components/ui'
+import { formatApiErrorDetail } from '@/lib/api-error'
+import { loginContinuation } from '@/lib/login-continuation'
 
 // TC-07-001: no demo credentials in the shipped bundle by default. The one-click demo is only
 // enabled when both variables are provided at build time (local/dev demo stacks only).
@@ -31,6 +33,13 @@ function LoginContent() {
   const [mfaStep, setMfaStep] = useState<boolean>(false)
   const [mfaToken, setMfaToken] = useState('')
   const [mfaCode, setMfaCode] = useState('')
+  const [enrolPhase, setEnrolPhase] = useState<'idle' | 'confirm' | 'recovery'>(
+    'idle'
+  )
+  const [enrolSecret, setEnrolSecret] = useState('')
+  const [enrolCode, setEnrolCode] = useState('')
+  const [recoveryCodes, setRecoveryCodes] = useState<string[]>([])
+  const [enrolBusy, setEnrolBusy] = useState(false)
   const [rememberMe, setRememberMe] = useState(false)
   // Default to showing Google and GitHub so buttons are visible; API can hide if not configured
   const [oauthProviders, setOauthProviders] = useState<OAuthProviders>({
@@ -49,6 +58,73 @@ function LoginContent() {
       .catch(() => {})
   }, [])
 
+  const beginEnrolment = async () => {
+    setEnrolBusy(true)
+    setError('')
+    try {
+      const res = await fetch('/api/auth/mfa/setup', {
+        method: 'POST',
+        credentials: 'include',
+      })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) {
+        setEnrolSecret('')
+        setError(
+          formatApiErrorDetail(data, 'Could not start authenticator setup')
+        )
+        return
+      }
+      setEnrolSecret(typeof data.secret === 'string' ? data.secret : '')
+    } catch {
+      setError('Network error. Please try again.')
+    } finally {
+      setEnrolBusy(false)
+    }
+  }
+
+  const onEnrolConfirm = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setEnrolBusy(true)
+    setError('')
+    try {
+      const res = await fetch('/api/auth/mfa/confirm', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code: enrolCode }),
+      })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) {
+        setError(formatApiErrorDetail(data, 'Invalid code'))
+        return
+      }
+      setRecoveryCodes(
+        Array.isArray(data.recovery_codes)
+          ? data.recovery_codes.filter(
+              (code: unknown): code is string => typeof code === 'string'
+            )
+          : []
+      )
+      setEnrolPhase('recovery')
+    } catch {
+      setError('Network error. Please try again.')
+    } finally {
+      setEnrolBusy(false)
+    }
+  }
+
+  const leaveEnrolment = async () => {
+    await fetch('/api/auth/logout', {
+      method: 'POST',
+      credentials: 'include',
+    }).catch(() => undefined)
+    setEnrolPhase('idle')
+    setEnrolSecret('')
+    setEnrolCode('')
+    setRecoveryCodes([])
+    setError('')
+  }
+
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError('')
@@ -59,23 +135,28 @@ function LoginContent() {
       credentials: 'include',
     })
     const data = await res.json().catch(() => ({}))
-    if (data.requires_mfa && data.mfa_token) {
-      setMfaToken(data.mfa_token)
+    const step = loginContinuation(res.status, data)
+    if (step.kind === 'mfa-challenge') {
+      setMfaToken(typeof data.mfa_token === 'string' ? data.mfa_token : '')
       setMfaStep(true)
       return
     }
-    if (!res.ok) {
-      if (res.status === 429) {
-        setError('Too many attempts. Try again later.')
-        return
-      }
-      const msg = Array.isArray(data.detail) ? data.detail[0]?.msg : data.detail
-      setError(msg || `Login failed (${res.status})`)
+    if (step.kind === 'rate-limited') {
+      setError('Too many attempts. Try again later.')
       return
     }
-    if (data.needs_onboarding) {
+    if (step.kind === 'failed') {
+      setError(step.message)
+      return
+    }
+    if (step.kind === 'onboarding') {
       // eslint-disable-next-line @next/next/no-location-assign-relative-destination -- intentional full page load to reset client auth/workspace state (pre-existing; TC-02-006)
       window.location.href = '/onboarding'
+      return
+    }
+    if (step.kind === 'mfa-enrol') {
+      setEnrolPhase('confirm')
+      void beginEnrolment()
       return
     }
     window.location.href = next
@@ -182,6 +263,90 @@ function LoginContent() {
               Sign in
             </Link>
           </p>
+        </Card>
+      </main>
+    )
+  }
+
+  if (enrolPhase !== 'idle') {
+    return (
+      <main className="flex min-h-screen items-center justify-center p-4">
+        <Card className="w-full max-w-md">
+          <h1 className="text-xl font-bold text-[var(--tc-text)]">
+            Set up your authenticator
+          </h1>
+          <p className="mt-2 mb-6 text-sm text-[var(--tc-muted)]">
+            An administrator reset multi-factor authentication. This sign-in can
+            only finish enrollment, and it expires in a few minutes.
+          </p>
+          {enrolPhase === 'recovery' ? (
+            <div className="space-y-4">
+              <p className="text-sm text-[var(--tc-muted)]">
+                Save these recovery codes. Each works once if you lose the
+                authenticator.
+              </p>
+              <div className="space-y-0.5 rounded-xl border border-[var(--tc-border)] bg-white/5 p-3 font-mono text-xs select-all">
+                {recoveryCodes.map((code, index) => (
+                  <div key={`${index}-${code.length}`}>{code}</div>
+                ))}
+              </div>
+              <Button
+                type="button"
+                className="w-full"
+                onClick={() => {
+                  window.location.href = next
+                }}
+              >
+                I&apos;ve saved these codes
+              </Button>
+            </div>
+          ) : (
+            <form onSubmit={onEnrolConfirm} className="space-y-4">
+              <p className="text-sm text-[var(--tc-muted)]">
+                Add this secret to your authenticator app, then enter the
+                6-digit code.
+              </p>
+              <p className="break-all rounded-xl border border-[var(--tc-border)] bg-white/5 p-3 font-mono text-xs select-all">
+                {enrolBusy && !enrolSecret
+                  ? 'Preparing a new secret…'
+                  : enrolSecret}
+              </p>
+              <Input
+                label="Code"
+                type="text"
+                inputMode="numeric"
+                autoComplete="one-time-code"
+                placeholder="6-digit code"
+                value={enrolCode}
+                onChange={(e) => setEnrolCode(e.target.value)}
+                maxLength={6}
+                required
+              />
+              {error && (
+                <p className="text-sm text-[var(--tc-danger)]">{error}</p>
+              )}
+              <Button type="submit" className="w-full" disabled={enrolBusy}>
+                {enrolBusy ? 'Working…' : 'Verify and continue'}
+              </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                className="w-full"
+                onClick={() => void beginEnrolment()}
+                disabled={enrolBusy}
+              >
+                Generate a new secret
+              </Button>
+            </form>
+          )}
+          <Button
+            type="button"
+            variant="ghost"
+            className="mt-4"
+            onClick={() => void leaveEnrolment()}
+          >
+            Back to sign in
+          </Button>
         </Card>
       </main>
     )
