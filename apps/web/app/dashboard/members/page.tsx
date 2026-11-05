@@ -371,6 +371,32 @@ export default function MembersPage() {
     })
   }
 
+  const clearMfaReenrol = (member: Member) => {
+    const name = member.display_name || member.email
+    openConfirm({
+      title: 'Reset MFA sign-in',
+      body: `If ${name} is blocked at sign-in because their authenticator secret cannot be opened, this starts enrollment again and signs them out. If they are not blocked, nothing changes.`,
+      confirmLabel: 'Reset MFA sign-in',
+      variant: 'warning',
+      onConfirm: async () => {
+        const res = await fetch(
+          `/api/members/clear-mfa-reenrol/${member.user_id}`,
+          { method: 'POST', credentials: 'include' }
+        )
+        const data = await res.json().catch(() => ({}))
+        if (!res.ok) {
+          throw new Error(
+            formatApiErrorDetail(data, 'Could not reset MFA sign-in')
+          )
+        }
+        showToast(
+          'MFA sign-in reset',
+          `${name} can sign in and enroll an authenticator again.`
+        )
+      },
+    })
+  }
+
   const revokeSessions = (member: Member) => {
     openConfirm({
       title: 'Revoke sessions',
@@ -569,6 +595,13 @@ export default function MembersPage() {
                           onClick={() => revokeSessions(m)}
                         >
                           Revoke sessions
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          className="text-xs text-[var(--tc-muted)]"
+                          onClick={() => clearMfaReenrol(m)}
+                        >
+                          Reset MFA sign-in
                         </Button>
                       </>
                     )}

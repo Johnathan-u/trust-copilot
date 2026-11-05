@@ -2,6 +2,31 @@
 
 No credential values are recorded here. Synthetic rows only.
 
+## Verification against master, 2026-11-05
+
+Code under test before this record: `130081c25e5414a7f9c5badb1eed37b167df8198`.
+PR #93 merged as `2ce464d` and is an ancestor. Application key custody was already present.
+This branch adds the missing web path only: sign-in stays on `requires_mfa_enrol`, and
+Members calls `POST /api/members/clear-mfa-reenrol/{user_id}`.
+
+| Criterion | Result | Evidence |
+|---|---|---|
+| TC-07-002-AC1 Session signing, MFA encryption and connector encryption have explicit versioned key custody | Pass | `apps/api/app/core/keys.py` purpose keyrings; session, MFA, credential, Slack and Gmail writers use them. `test_key_rotation.py` and `test_keyring_compatibility.py`. |
+| TC-07-002-AC2 Synthetic rotation preserves intended encrypted state or safely re-enrolls users while invalidating old sessions | Pass | Rotation re-encrypts, marks an unreadable MFA secret for re-enrolment, and deletes retired session rows. Browser: locked sign-in, Members reset, authenticator enrollment, then `/dashboard`. |
+
+Commands from `apps/api` with `TC_REQUIRE_DB=1`. Environment: Python 3.12.3, PostgreSQL 16.15, Ubuntu `postgresql-16-pgvector` 0.6.0. This is not the CI image pin. Alembic head: `tc17003_security_claims`.
+
+```sh
+python -m pytest tests/release/test_key_rotation.py -q
+python -m pytest tests/release/test_key_rotation.py tests/release/test_mfa_admin_reset.py tests/release/test_keyring_compatibility.py tests/release/test_mfa_reenrol_security.py tests/release/test_session_signing_key_migration.py -q
+```
+
+Exit 0. Totals: 12 passed, then 51 passed. Warnings were the existing `datetime.utcnow` deprecation only. From `apps/web`, `vitest run tests/unit/login-continuation.test.ts` exited 0 with 5 passed.
+
+Independent review of the final head is still outstanding. Owner decisions are listed in `docs/release/tickets/TC-07-002.md` under "Owner eyes". Historical notes below belong to their original commits.
+
+## Safe-collection fixture correction
+
 ## Safe-collection fixture correction
 
 Published head `cf5e3b22799ccfbada659678e13db7528caa28a2` failed the existing
