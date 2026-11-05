@@ -21,8 +21,10 @@ baseline verification; otherwise report the baseline as pending. PRs, children
 and epic totals do not earn additional completion credit.
 
 Agents without Jira access read the Jira backlog snapshot in
-`docs/planning/jira/backlog.md` (assignments, due dates, sprints, dependencies,
-and the text of post-freeze tickets); Jira stays the source of truth for dates.
+`docs/planning/jira/backlog.md` (planned assignments, due dates, sprints,
+dependencies, and the text of post-freeze tickets); Jira stays the source of truth
+for dates.
+
 Issue #85 remains the live assignment and decision ledger. The coordinator lease
 and merge gates below remain mandatory. `docs/release/CODEX_HANDOFF.md` and
 `docs/planning/BACKLOG_STATUS.md` are historical starting points; current status
