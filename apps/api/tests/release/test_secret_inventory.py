@@ -1067,7 +1067,9 @@ def test_credential_store_roundtrip_with_generated_secret(monkeypatch):
 
 def test_prod_compose_requires_credentials_from_env():
     text = (REPO_ROOT / "docker-compose.prod.yml").read_text()
-    for var in ("POSTGRES_PASSWORD", "POSTGRES_USER", "MINIO_ROOT_USER", "MINIO_ROOT_PASSWORD"):
+    # TC-01-003: no bundled MinIO in production; the external S3 endpoint is required instead.
+    assert "MINIO_ROOT" not in text, "docker-compose.prod.yml must not carry MinIO credentials"
+    for var in ("POSTGRES_PASSWORD", "POSTGRES_USER", "S3_ENDPOINT"):
         assert (
             f"${{{var}:?" in text
         ), f"docker-compose.prod.yml must require {var} (${{{var}:?...}})"

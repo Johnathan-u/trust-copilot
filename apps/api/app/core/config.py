@@ -151,6 +151,8 @@ class Settings:
         self.s3_bucket_raw: str = os.getenv("S3_BUCKET_RAW", "trustcopilot-raw")
         self.s3_bucket_exports: str = os.getenv("S3_BUCKET_EXPORTS", "trustcopilot-exports")
         self.s3_use_ssl: bool = os.getenv("S3_USE_SSL", "false").lower() == "true"
+        # TC-01-003: SigV4 signing region of the external S3 service (AWS S3 outside us-east-1 needs it).
+        self.s3_region: str = os.getenv("S3_REGION", "").strip() or "us-east-1"
 
         self.openai_api_key: str | None = os.getenv("OPENAI_API_KEY")
         # Completion model and tone controls for answer generation

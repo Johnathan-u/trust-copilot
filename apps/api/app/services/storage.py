@@ -1,4 +1,4 @@
-"""MinIO/S3 object storage client (FILE-01)."""
+"""S3-compatible object storage client (FILE-01). MinIO in dev compose; external S3 in production."""
 
 import io  # noqa: F401
 from typing import BinaryIO
@@ -11,7 +11,7 @@ from app.core.config import get_settings
 
 
 class StorageClient:
-    """Reusable interface for MinIO/S3 operations."""
+    """Reusable interface for S3-compatible object storage operations."""
 
     def __init__(self):
         settings = get_settings()
@@ -26,7 +26,7 @@ class StorageClient:
             aws_secret_access_key=settings.s3_secret_key,
             config=Config(signature_version="s3v4"),
             use_ssl=settings.s3_use_ssl,
-            region_name="us-east-1",
+            region_name=settings.s3_region,
         )
         self._bucket_raw = settings.s3_bucket_raw
         self._bucket_exports = settings.s3_bucket_exports
