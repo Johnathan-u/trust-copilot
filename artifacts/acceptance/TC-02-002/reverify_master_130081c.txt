@@ -1,0 +1,155 @@
+TC-02-002 re-verification on current master
+Ticket: TC-02-002 / SCRUM-43
+No paid API, production host, or external account was contacted.
+Network use was limited to public PyPI downloads of the already-locked wheels.
+The database password is a per-run random value and is not recorded here.
+
+tested_sha=130081c25e5414a7f9c5badb1eed37b167df8198
+tested_subject=docs: Jira backlog snapshot for agents without Jira access (#177)
+observation_utc=2026-11-05T20:01:30Z
+product_diff_since_lock_merge=none
+  git diff a339a55..130081c -- apps/api/pyproject.toml apps/api/requirements.lock \
+    apps/api/requirements-dev.lock apps/api/Dockerfile scripts/lock-python-deps.sh \
+    apps/api/tests/release/test_python_lock.py
+  (empty)
+
+Environment
+  OS: Linux 6.12.94+ x86_64
+  Python: 3.11.17 (uv-installed CPython; same minor as ci.yml)
+  pip: 26.3 (pip install -U pip in each venv; identical on rt-a, rt-b, dev-a, dev-b)
+  uv: 0.13.4 (same release named in the original lock evidence)
+  Postgres: PostgreSQL 16.15 (Ubuntu 16.15-0ubuntu0.24.04.1), loopback only
+  pgvector extension package: postgresql-16-pgvector 0.6.0-1
+  Python pgvector pin (from the lock, not the extension): pgvector==0.5.1
+  Database: tc_verify_test (name ends with _test). Role tc_verify. Password <generated, not shown>.
+  Provider env: OPENAI_API_KEY and STRIPE_* unset.
+
+Lock digests (unchanged files)
+  requirements.lock      sha256 597d236140b36d00d6e5095633bb0590c3c0a742291ab1d3058a89be1e017b4e
+  requirements-dev.lock  sha256 fa9fe9b2901a955812fd5dc70313b30bcc9bd7e56273e978dd516d168ff72dc1
+
+AC2 — two clean builds
+  Each venv was created with python3.11 -m venv, then:
+    python -m pip install -U pip
+    python -m pip install --no-cache-dir --require-hashes -r <lock>
+  Dev venvs then: python -m pip install --no-cache-dir --no-deps -e apps/api && python -m pip check
+  pip check on dev-a: "No broken requirements found." (exit 0)
+
+  cmp rt-a.freeze rt-b.freeze  -> exit 0, 61 packages
+  cmp dev-a.freeze dev-b.freeze -> exit 0, 67 packages
+  packages in runtime but not dev: (none)  so every runtime version is unchanged in the dev lock install
+  dev-only:
+    iniconfig==2.3.1
+    packaging==26.3
+    pluggy==1.7.0
+    Pygments==2.21.0
+    pytest==9.1.1
+    ruff==0.5.6
+  pytest/ruff/psycopg (v3) in the runtime freeze: none
+
+  Driver pins in both runtime builds and both dev builds:
+    SQLAlchemy==2.0.55
+    psycopg2-binary==2.9.13
+    pypdf==6.21.3
+
+AC1 — fresh runtime install imports the app and connects with psycopg2
+  After the runtime freeze was recorded, rt-a received only:
+    python -m pip install --no-cache-dir --no-deps -e apps/api
+  Probe (TRUST_COPILOT_TESTING=1, per-run SESSION_SECRET, DATABASE_URL pointing at tc_verify_test):
+    {"dialect": "postgresql", "driver": "psycopg2", "dbapi": "psycopg2", "select1": 1,
+     "server_major": "16", "sqlalchemy": "2.0.55", "psycopg2_binary": "2.9.13",
+     "pytest_importable": false, "ruff_importable": false}
+
+Verification command (from apps/api, interpreter installed from requirements-dev.lock)
+  TC_REQUIRE_DB=1 \
+  TC_TEST_DATABASE_URL=postgresql://tc_verify:<generated, not shown>@127.0.0.1:5432/tc_verify_test \
+  python -m pytest tests/release/test_python_lock.py -q
+  exit 0
+  ....................                                                     [100%]
+  20 passed in 3.02s
+  skips: 0
+  failures: 0
+
+Lock regeneration (uv 0.13.4, scripts/lock-python-deps.sh flags, temp copy of pyproject + locks)
+  first compile of both locks: byte-identical to the committed files
+  second compile: byte-identical to the first
+  committed locks were not rewritten
+
+Not re-executed in this environment
+  docker build --no-cache (no Docker daemon). apps/api/Dockerfile is unchanged since merge
+  a339a55 and still installs only requirements.lock, then pip install --no-deps, then pip check.
+  The two runtime venvs use that same install sequence.
+  The local Postgres extension is pgvector 0.6.0, not the CI image
+  pgvector/pgvector:pg16@sha256:7b822b0aac60967beb1ea5e576b8602c94c300a157d187f385ae3e0da199b90a
+  (pgvector 0.8.7). Alembic upgrade head still completed, which is why the release test ran.
+
+Runtime freeze (rt-a, identical to rt-b)
+alembic==1.20.1
+annotated-doc==0.0.5
+annotated-types==0.8.0
+anyio==4.15.1
+argon2-cffi==25.1.0
+argon2-cffi-bindings==26.1.0
+boto3==1.43.119
+botocore==1.43.119
+certifi==2026.10.23
+cffi==2.1.1
+charset-normalizer==3.5.2
+click==8.5.0
+cryptography==50.0.2
+et_xmlfile==2.0.0
+fastapi==0.162.0
+greenlet==3.5.6
+h11==0.16.0
+httpcore==1.0.9
+httpcore2==2.16.0
+httptools==0.9.0
+httpx==0.28.1
+httpx2==2.16.0
+idna==3.20
+jiter==0.18.0
+jmespath==1.1.0
+lxml==6.1.3
+Mako==1.4.3
+MarkupSafe==3.0.4
+openai==3.39.0
+openpyxl==3.1.5
+opentelemetry-api==1.45.1
+pgvector==0.5.1
+prometheus_client==0.26.0
+psycopg2-binary==2.9.13
+pycparser==3.12
+pydantic==2.14.1
+pydantic_core==2.50.1
+PyOTP==2.10.0
+pypdf==6.21.3
+python-dateutil==2.9.0.post0
+python-docx==1.2.0
+python-dotenv==1.2.4
+python-multipart==0.0.32
+PyYAML==6.0.3
+redis==8.1.0
+requests==2.34.2
+s3transfer==0.19.3
+sentry-sdk==2.73.0
+six==1.17.0
+sniffio==1.3.1
+SQLAlchemy==2.0.55
+starlette==1.10.0
+stripe==16.0.1
+truststore==0.10.5
+typing_extensions==4.16.0
+typing-inspection==0.4.4
+urllib3==2.8.0
+uvicorn==0.54.0
+uvloop==0.23.0
+watchfiles==1.3.0
+websockets==17.3
+
+Dev-only additions on top of that runtime set (dev-a, identical to dev-b)
+iniconfig==2.3.1
+packaging==26.3
+pluggy==1.7.0
+Pygments==2.21.0
+pytest==9.1.1
+ruff==0.5.6

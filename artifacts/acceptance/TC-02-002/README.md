@@ -4,6 +4,25 @@ All data is synthetic. No paid API, production host or external account was cont
 public PyPI and Docker Hub downloads. Each CI-mirror run used a fresh `pgvector/pgvector:pg16@sha256:7b822b0a…`
 container with a generated throwaway password, which is shown as `<generated, not shown>` / `***` and appears in no file.
 
+## Re-verification on current master (2026-11-05)
+
+| Item | Value |
+|---|---|
+| Tested SHA | `130081c25e5414a7f9c5badb1eed37b167df8198` |
+| Product change since lock merge `a339a55` | none (`pyproject.toml`, both locks, `Dockerfile`, `scripts/lock-python-deps.sh`, `tests/release/test_python_lock.py`) |
+| Command | `cd apps/api && TC_REQUIRE_DB=1 python -m pytest tests/release/test_python_lock.py -q` |
+| Exit / totals | 0 · **20 passed**, 0 skipped, 0 failed (3.02s) |
+| AC2 | two clean `--no-cache-dir --require-hashes` installs each: runtime 61 == 61, dev 67 == 67; 0 runtime versions differ; dev-only pytest, ruff, pluggy, iniconfig, packaging, Pygments |
+| AC1 | runtime venv imports `app.main`, `SELECT 1` returns 1, dialect `postgresql`, driver/DBAPI `psycopg2`, SQLAlchemy 2.0.55, psycopg2-binary 2.9.13; pytest and ruff not importable |
+| Lock regen | uv 0.13.4, two passes, both locks byte-identical to the committed files |
+| Transcript | [`reverify_master_130081c.txt`](reverify_master_130081c.txt) |
+
+This run did not repeat `docker build` (no Docker daemon). The Dockerfile install path is unchanged and was reproduced with the two runtime venvs. Local Postgres was Ubuntu 16.15 with pgvector 0.6.0, not the CI image digest (pgvector 0.8.7); migrations still reached head. Independent reviewer sign-off is not part of this file.
+
+## Historical implementation evidence
+
+The rows below are the original implementation runs (October 2026). They are not the current-master re-verification.
+
 ## Commit / baseline
 
 | Item | Value |
@@ -47,4 +66,4 @@ fresh interpreter in the locked env, imports `app.main`, and runs `SELECT 1` aga
 `postgresql`, driver/DBAPI `psycopg2`, and SQLAlchemy/psycopg2-binary at the locked versions. Without a DB it skips
 locally, but fails under `TC_REQUIRE_DB=1`.
 
-Reviewer sign-off: pending (PR review).
+Original PR review merged #42. Acceptance of the original parent still needs a reviewer other than the implementer; this re-verification does not record that sign-off.

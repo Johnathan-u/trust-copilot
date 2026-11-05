@@ -1,0 +1,79 @@
+
+> trust-copilot-web@0.1.0 build
+> next build
+
+▲ Next.js 16.4.3 (Turbopack)
+✓ Running next.config.js took 14ms
+
+⚠ The "middleware" file convention is deprecated. Please use "proxy" instead.
+
+  To migrate automatically, run:
+  npx @next/codemod@canary middleware-to-proxy .
+
+  Learn more: https://nextjs.org/docs/messages/middleware-to-proxy
+  Creating an optimized production build ...
+✓ Compiled successfully in 259ms
+  Running TypeScript ...
+  Finished TypeScript in 1582ms ...
+  Collecting page data using 3 workers ...
+  Generating static pages using 3 workers (0/43) ...
+  Generating static pages using 3 workers (10/43)
+  Generating static pages using 3 workers (21/43)
+  Generating static pages using 3 workers (32/43)
+✓ Generating static pages using 3 workers (43/43) in 320ms
+  Finalizing page optimization ...
+
+Route (app)
+┌ ○ /
+├ ○ /_not-found
+├ ○ /accept-invite
+├ ƒ /api/[[...path]]
+├ ○ /checkout
+├ ○ /dashboard
+├ ○ /dashboard/ai-governance
+├ ○ /dashboard/audit
+├ ○ /dashboard/case-studies
+├ ○ /dashboard/compliance-frameworks
+├ ○ /dashboard/compliance-gaps
+├ ○ /dashboard/controls
+├ ƒ /dashboard/controls/[id]
+├ ○ /dashboard/deals
+├ ○ /dashboard/demo-proof
+├ ○ /dashboard/documents
+├ ○ /dashboard/exports
+├ ○ /dashboard/gmail
+├ ○ /dashboard/jobs
+├ ○ /dashboard/members
+├ ○ /dashboard/notifications
+├ ○ /dashboard/proof-chain
+├ ○ /dashboard/questionnaires
+├ ƒ /dashboard/questionnaires/[id]
+├ ○ /dashboard/requests
+├ ○ /dashboard/review
+├ ƒ /dashboard/review/[id]
+├ ○ /dashboard/security
+├ ○ /dashboard/security-page
+├ ○ /dashboard/settings
+├ ○ /dashboard/slack
+├ ○ /dashboard/trust-center
+├ ○ /dashboard/trust-requests
+├ ƒ /dashboard/vendor-requests
+├ ƒ /design-dialogs
+├ ƒ /design-tokens
+├ ○ /forgot-password
+├ ○ /icon.svg
+├ ○ /login
+├ ○ /onboarding
+├ ○ /pricing
+├ ○ /register
+├ ○ /reset-password
+├ ○ /trust
+├ ƒ /trust/[slug]
+├ ○ /vendor-response
+└ ○ /verify-email
+
+
+ƒ Proxy (Middleware)
+
+○  (Static)   prerendered as static content
+ƒ  (Dynamic)  server-rendered on demand

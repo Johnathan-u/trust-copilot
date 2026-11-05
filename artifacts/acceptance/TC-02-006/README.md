@@ -1,103 +1,85 @@
-# TC-02-006 acceptance evidence: meaningful frontend unit, lint and formatting gates
+# TC-02-006 acceptance evidence
 
-- **Branch:** `tc/platform/TC-02-006`, stacked on `tc/platform/TC-02-003` (`73b9bb4`), which is based on master `f72def3`.
-- **Tested commit:** `b53037927fdc49cdbdfd72436992e512e63cc9f3` (the last code commit). The evidence/docs commit on top changes no tested input. Check with `sha256sum -c artifacts/acceptance/TC-02-006/tested-inputs.sha256` at the PR head (15 files).
-- **Baseline for the regression:** the TC-02-003 commit `73b9bb4`, checked out in a temporary worktree with this ticket's `test_web_quality.py` copied in.
-- **Run date:** 2026-10-27 (UTC). Runner: `run-evidence.sh` (`BASE=<TC-02-003 sha>`). Logs are in `logs/` and exit codes in `summary.tsv`.
-- **Environment:** Linux 6.12 x86_64 (Debian 13 box).
-  - Node v24.22.1 and npm 11.19.1.
-  - Python 3.13.5, pytest 9.1.1, ruff 0.5.6, pre-commit.
-  - `NEXT_TELEMETRY_DISABLED=1`.
-- **Pinned gate toolchain** (exact pins in `apps/web/package.json`, matching `package-lock.json`, printed in `logs/02-versions.log` and by the new CI step):
+Ticket: TC-02-006 (Jira SCRUM-47). Frontend unit, lint, and format gates.
 
-  | Tool | Version |
-  |---|---|
-  | TypeScript | 6.0.3 |
-  | ESLint | 10.13.0 |
-  | @eslint/js | 10.0.1 |
-  | typescript-eslint | 8.72.1 |
-  | eslint-plugin-react-hooks | 7.1.1 |
-  | @next/eslint-plugin-next | 16.4.3 |
-  | globals | 17.13.0 |
-  | Prettier | 3.9.10 |
-  | Vitest | 5.0.5 |
-  | Next.js | 16.4.3 |
+## Verification on master (2026-11-05)
 
-- **Data and network:** synthetic only.
-  - No credentials, no `.env` and no production hosts.
-  - The unit tests stub `fetch`, so the API proxy test opens no sockets.
-  - Network was used only for the public npm registry (install and audit) and the pre-commit hook repos.
-- **Install scripts:** every install used `npm ci --ignore-scripts`. The only locked package that declares an install script is still `fsevents`, a macOS-only optional dependency.
-  - `eslint-config-next` was deliberately not adopted. It pulls in `unrs-resolver` (postinstall) and plugins capped at ESLint 9.
+Re-ran the ticket gates on current master. No product change was required.
 
-## Results
+| Item | Value |
+|---|---|
+| Code under test | `130081c25e5414a7f9c5badb1eed37b167df8198` |
+| Date | 2026-11-05 (UTC) |
+| Host | Linux 6.12.94+ x86_64 |
+| Node / npm | v24.22.1 / 11.19.1 (`.nvmrc` is `24.22.1`) |
+| Python / pytest / ruff | 3.12.3 / 9.1.1 / 0.5.6, from `apps/api/requirements-dev.lock` |
+| AC1 | pass |
+| AC2 | pass |
+| Release test | 26 passed, 0 failed, 0 skipped |
+| Unit suite | 44 files, 426 passed, 0 failed, 0 skipped, 0 todo |
 
-| # | Command (cwd) | Exit | Result |
-|---|---|---|---|
-| 00b | `python -m pytest tests/release/test_web_quality.py -q -rs` on the **baseline** (apps/api) | 1 | **8 failed, 8 passed, 10 skipped**. The failing regression covers no-op scripts, no ESLint config, no unit suite, vitest config, `.prettierignore`, pre-commit hook, CI gates and pinned tools. The skips are explained: the baseline has no ESLint installed. |
-| 00c | baseline `npm run lint` | 1 | `Missing script: "lint"` |
-| 00d | baseline `npm run test:unit` | 1 | `No test files found` |
-| 00e | baseline `npm run format:check` | 1 | 83 files not formatted |
-| 00f | baseline source linted with this ticket's config | 0 (report) | **25 errors and 8 warnings in 20 files** (`baseline-eslint.json`). By rule: no-unused-vars 16, no-location-assign 6, no-explicit-any 4, exhaustive-deps 2, static-components 2, no-html-link-for-pages 2, refs 1. |
-| 00g | same, with `react-hooks/set-state-in-effect` enabled | 0 (report) | 56 errors and 8 warnings in 35 files, including 31 set-state-in-effect (`baseline-eslint-strict.json`). This is why that rule is off; see the ticket doc. |
-| 01 | `npm ci --ignore-scripts --no-audit --no-fund` | 0 | clean install from the lock |
-| 02 | tool versions | 0 | as tabled above |
-| 03 | `npm run typecheck` (`next typegen && tsc --noEmit -p .`) | 0 | 0 type errors |
-| 04 | `npm run lint` (`eslint . --max-warnings=0`) | 0 | 0 errors, 0 warnings |
-| 05 | `npm run format:check` | 0 | all matched files formatted |
-| 06 | `npm run test:unit` (`vitest run`) | 0 | **6 files, 46 tests passed, 0 failed, 0 skipped or todo** (`vitest-results.json`) |
-| 07 | `npm run build` | 0 | built (Next 16.4.3) |
-| 08 | `npm audit --omit=dev --audit-level=high` | 0 | 0 vulnerabilities |
-| 09 | `npm audit --audit-level=low` (includes dev tools) | 0 | 0 vulnerabilities |
-| 10 | `TC_REQUIRE_WEB_TOOLCHAIN=1 python -m pytest tests/release/test_web_quality.py tests/release/test_web_lock.py -q -rs` (apps/api) | 0 | **44 passed (26 quality + 18 lock), 0 failed, 0 skipped** |
-| 11 | `ruff check` and `ruff format --check` on `tests/release/` | 0 | clean |
-| 12 | `pre-commit run --files <every file changed since the TC-02-003 commit>` | 0 | all hooks pass, including prettier with `--ignore-path` |
-| 13 | `npm run quality` (typecheck, lint, format:check, test:unit) | 0 | pass |
+This evidence commit does not change the gate inputs. Hashes of those files at the tested SHA are in `verify-2026-11-05/tested-inputs.sha256`.
 
-## How AC1 is shown (gates run real assertions, not missing or no-tests success)
+Command outputs, exit codes, and totals are in `verify-2026-11-05/` and `vitest-results-2026-11-05.json`. `verify-2026-11-05/summary.tsv` is `name`, exit code, directory, command. Three Next.js progress lines in `07-build.txt` had trailing spaces, and five logs had an extra or missing final newline. Those were normalized so the repository end-of-file and trailing-whitespace hooks accept the files. The exit codes in `summary.tsv` are unchanged.
 
-- **Unit tests.** The suite has 46 tests: lib helpers, the auth `middleware`, and the `/api/[[...path]]` proxy (headers, CSRF origin fallback, body forwarding, upstream errors, 502 on unreachable upstream).
-  - `passWithNoTests: false` is set.
-  - The release test checks:
-    - an empty selection fails ("No test files found");
-    - a synthetic failing test makes vitest exit non-zero;
-    - the JSON report has more than 30 tests and 0 failed, skipped or todo.
-- **Lint.** `--max-warnings=0` runs over the full recommended rule sets.
-  - The release test feeds synthetic violations on stdin and requires a non-zero exit with the expected rule IDs:
-    - a hook called conditionally;
-    - an unused variable;
-    - an `any`;
-    - `<img>` (Next).
-  - Clean code must pass.
-  - The release test also requires every `eslint-disable` to name a rule. There are no blanket disables.
-- **Format.** A synthetic unformatted file fails `prettier --check` and a formatted one passes.
-  - `.prettierignore` may list only generated paths. The release test enforces this.
+| # | Command | cwd | Exit | Result |
+|---|---|---|---|---|
+| 11 | `npm ci --ignore-scripts --no-audit --no-fund` | `apps/web` | 0 | 399 packages from the lock |
+| 01 | tool versions (`node`, `npm`, `tsc`, `eslint`, `prettier`, `vitest`, `next`) | `apps/web` | 0 | pins below |
+| 02 | `npm run lint` | `apps/web` | 0 | `eslint . --max-warnings=0` |
+| 03 | `npm run format:check` | `apps/web` | 0 | all matched files formatted |
+| 04 | `npm run test:unit` | `apps/web` | 0 | 44 files, 426 tests passed |
+| 05 | `npx vitest run --reporter=json --outputFile=artifacts/acceptance/TC-02-006/vitest-results-2026-11-05.json` | `apps/web` | 0 | `numTotalTests` 426, `numFailedTests` 0, `numPendingTests` 0, `numTodoTests` 0 |
+| 06 | `npm run typecheck` | `apps/web` | 0 | `next typegen && tsc --noEmit -p .` |
+| 07 | `npm run build` | `apps/web` | 0 | Next.js 16.4.3 production build |
+| 08 | `npm run quality` | `apps/web` | 0 | typecheck, lint, format:check, test:unit |
+| 09 | `TC_REQUIRE_WEB_TOOLCHAIN=1 python -m pytest tests/release/test_web_quality.py -q -rs -p no:cacheprovider` | `apps/api` | 0 | 26 passed, 0 skipped |
+| 10 | `ruff check` and `ruff format --check` on `tests/release/test_web_quality.py` | `apps/api` | 0 | clean |
 
-## How AC2 is shown (type, build and format results with pinned versions)
+The local pytest interpreter was a venv installed with `pip install --require-hashes -r apps/api/requirements-dev.lock` and `pip install --no-deps -e apps/api`. CI installs that same lock on Python 3.11. Master push CI for this SHA is green: [run 42097709517](https://github.com/Johnathan-u/trust-copilot/actions/runs/42097709517) (`build` and `web-release-e2e`).
 
-Steps 02 to 07 record the type, build and format results next to the exact tool versions. `test_gate_tools_are_pinned_and_locked` and `test_installed_gate_tools_match_pins` require exact pins that match both the lock and the installed packages. CI prints the same versions in its "Frontend tool versions" step.
+### Pinned toolchain (installed versions match `apps/web/package.json` and the lock)
 
-## Not done here
+| Tool | Version |
+|---|---|
+| TypeScript | 6.0.3 |
+| ESLint | 10.13.0 |
+| Prettier | 3.9.10 |
+| Vitest | 5.0.5 |
+| Next.js | 16.4.3 |
+| Node | 24.22.1 |
 
-- **Reviewer sign-off** (DoD) is pending. A reviewer other than the implementer must accept this evidence.
-- **Linked follow-ups assigned by the Coordinator.** These are out of scope here and are tracked separately. Full details are in `docs/release/tickets/TC-02-006.md`.
-  - **TC-02-006a** (1 pt, TC Platform & Security, right after CI is green; needs a regression test): the `/api` proxy turns upstream 204/205/304 into 502.
-  - **TC-02-006b** (5 pts, TC Web & UX): enable `react-hooks/set-state-in-effect` and refactor the 31 effects.
-  - **TC-02-006c** (3 pts, TC Web & UX, after 006b): remove the 15 new lint suppressions.
-  - **TC-02-006d** (2 pts, TC Platform & Security, after 006a): enforce the import, jsx-a11y and react plugin rules in the ESLint 10 flat config.
-- **Coordinator decision:** the Coordinator accepted the custom ESLint 10 flat config in place of `eslint-config-next`.
-- **The branch has not been pushed**, so no CI run of this branch exists yet. Master's `build` job is red from baseline for unrelated reasons, which another workstream is fixing.
+`@eslint/js` 10.0.1, `typescript-eslint` 8.72.1, `eslint-plugin-react-hooks` 7.1.1, `@next/eslint-plugin-next` 16.4.3, and `globals` 17.13.0 are exact devDependency pins. The release test checks every gate tool pin against the lock and the installed package.
 
-## CI impact: `pre-commit run --all-files`, the CI step that is red on master
+### AC1
 
-Logs 15 and 16 come from a local run, as in CI, on master `f72def3` and on this branch.
+`npm run lint` runs ESLint with `--max-warnings=0` over the flat config (ESLint recommended, typescript-eslint recommended, react-hooks recommended, Next.js core-web-vitals). `npm run test:unit` runs Vitest with `passWithNoTests: false`. The suite has 426 real assertions across 44 files, including `middleware.test.ts`, `api-proxy.test.ts`, and `api-error.test.ts`.
 
-| Hook | master `f72def3` | this branch |
-|---|---|---|
-| ruff | Failed (479 errors, backend) | Failed (**same 479**, none in the new test file) |
-| ruff-format | Failed (423 backend files would be reformatted) | Failed (**same 423**; both release test files already formatted) |
-| prettier | **Failed** (apps/web unformatted) | **Passed** |
-| trailing-whitespace / check-yaml | Passed | Passed |
-| end-of-file-fixer | Failed (13 tracked generated files) | Failed (**identical 13-file list**) |
+`apps/api/tests/release/test_web_quality.py` checks the scripts are present and are not no-ops, the unit suite covers every top-level runtime module under `apps/web/lib/` plus `middleware.ts` and `app/api/[[...path]]/route.ts`, and Vitest fails when no tests match and when an assertion fails. With the toolchain required, it also fails lint on a conditional hook, an unused variable, an `any`, and a Next `<img>`, and fails Prettier on an unformatted file. Those denial cases passed in the 26-test run. `TC_REQUIRE_WEB_TOOLCHAIN=1` leaves zero skips.
 
-This branch causes no new CI failure. It fixes the prettier hook. The remaining failures were there before this change, are outside this ticket's scope, and are left to the CI-repair workstream.
+### AC2
+
+`npm run typecheck`, `npm run format:check`, and `npm run build` exited 0 on this SHA. The `build` CI job prints `node`, `tsc`, `eslint`, `prettier`, and `vitest` versions, then runs lint, format check, unit tests, typecheck, and build in `apps/web` after `npm ci --ignore-scripts`. The pytest step sets `TC_REQUIRE_WEB_TOOLCHAIN=1`.
+
+### Definition of done
+
+| Item | Result |
+|---|---|
+| Both acceptance criteria demonstrated, evidence attached, no required skip | pass |
+| `tests/release/test_web_quality.py` run, with command, SHA, environment, exit status, and totals recorded | pass |
+| No contract change in this verification. Synthetic inputs only. No credentials in the new evidence | pass |
+| `docs/release/tickets/TC-02-006.md` updated to this SHA | pass |
+| A reviewer other than the implementer accepts the result | outstanding |
+
+No migration or persisted state.
+
+### Still outside this ticket
+
+- TC-02-006a: `app/api/[[...path]]/route.ts` still builds `new NextResponse(responseBody, { status })` after `arrayBuffer()`, including null-body statuses 204, 205, and 304.
+- TC-02-006d: import, jsx-a11y, and react plugin rules are still not part of the ESLint 10 flat config. The Coordinator accepted that config in place of `eslint-config-next`.
+- Next.js prints a middleware-to-proxy deprecation during `npm run build`. The build exits 0. Moving `middleware.ts` is not part of this ticket.
+- Independent reviewer sign-off is outstanding.
+
+## Historical implementation record (2026-10-27)
+
+`logs/`, `summary.tsv`, `vitest-results.json`, `baseline-eslint.json`, and `baseline-eslint-strict.json` are the original landing on `b53037927fdc49cdbdfd72436992e512e63cc9f3` (branch `tc/platform/TC-02-006`, merged as #10). That run recorded 6 unit files and 46 tests, and a baseline where lint was missing and the unit script reported no test files. Later product work grew the suite to the totals above. The release test count is still 26. Follow-ups #69 (TC-02-006b) and #71 (TC-02-006c) landed after that record: `react-hooks/set-state-in-effect` is `error`, and blanket `eslint-disable` comments fail lint.
