@@ -4,8 +4,8 @@ window.TRUSTCOPILOT_BACKLOG = {
     "title": "TrustCopilot backlog information radiator",
     "schema_version": 1,
     "scope_version": 1,
-    "revision": 9,
-    "as_of_utc": "2026-11-02T19:15:08Z",
+    "revision": 10,
+    "as_of_utc": "2026-11-05T16:45:19Z",
     "source_sha": "90146e0cfe2220beb3e43f98f6073262f7c0abfb",
     "baseline_status": "PENDING",
     "metric_label": "Accepted original-parent points",
@@ -15,18 +15,18 @@ window.TRUSTCOPILOT_BACKLOG = {
   "summary": {
     "accepted_points": null,
     "completion_percentage": null,
-    "assessed_tickets": 10,
+    "assessed_tickets": 11,
     "total_tickets": 384,
     "total_points": 1864,
     "state_counts": {
       "BASELINE_RECONCILIATION": 303,
       "BLOCKED": 3,
-      "DONE": 10,
-      "EVIDENCE_RECONCILIATION": 46,
+      "DONE": 11,
+      "EVIDENCE_RECONCILIATION": 45,
       "IMPLEMENTATION_GAPS_IDENTIFIED": 22
     },
-    "accepted_claim_points": 40,
-    "accepted_tickets": 10,
+    "accepted_claim_points": 45,
+    "accepted_tickets": 11,
     "baseline_status": "PENDING"
   },
   "source_metadata": {
@@ -83,13 +83,13 @@ window.TRUSTCOPILOT_BACKLOG = {
       "rollup": {
         "total_tickets": 6,
         "total_points": 21,
-        "assessed_tickets": 1,
-        "accepted_tickets": 1,
+        "assessed_tickets": 2,
+        "accepted_tickets": 2,
         "accepted_points": null,
         "state_counts": {
           "BASELINE_RECONCILIATION": 2,
-          "DONE": 1,
-          "EVIDENCE_RECONCILIATION": 3
+          "DONE": 2,
+          "EVIDENCE_RECONCILIATION": 2
         }
       }
     },
@@ -2064,60 +2064,92 @@ window.TRUSTCOPILOT_BACKLOG = {
       "release_gate_dependencies": [],
       "dependency_ruling_ids": [],
       "current": {
-        "status": "EVIDENCE_RECONCILIATION",
-        "evidence_state": "EVIDENCE_RECONCILIATION",
+        "status": "DONE",
+        "evidence_state": "VERIFIED_ACCEPTED",
         "owner": null,
         "blockers": [],
-        "next_action": "Reconcile existing implementation and evidence against all original acceptance criteria before declaring Done or estimating only the remaining scope.",
-        "updated_at": "2026-10-30T09:49:19Z",
-        "source_sha": "b2bd1e0df5cdeb03b8d0cd240f5a161835ea621d",
+        "next_action": "Accepted. Reopen only on regression or when change control adds scope. Follow-ups: NOTICE file and LGPL source-offer wording in TC-01-004; image/secret CI checks in TC-02-008.",
+        "updated_at": "2026-11-05T16:45:19Z",
+        "source_sha": "90146e0cfe2220beb3e43f98f6073262f7c0abfb",
         "acceptance": {
-          "state": "PENDING",
-          "assessed_by": null,
-          "assessed_at": null,
-          "assessed_sha": null,
-          "assessment_evidence_urls": [],
-          "tested_sha": null,
-          "implemented_by": [],
-          "independent_reviewer": null,
-          "reviewed_at": null,
-          "reviewed_sha": null,
-          "review_evidence_urls": [],
+          "state": "ACCEPTED",
+          "assessed_by": "claude-review-agent",
+          "assessed_at": "2026-11-05T16:44:08Z",
+          "assessed_sha": "f182cad790ee6949f11874ef0d80e1630c8d5b6e",
+          "assessment_evidence_urls": [
+            "https://github.com/Johnathan-u/trust-copilot/actions/runs/42062157158",
+            "https://github.com/Johnathan-u/trust-copilot/pull/175#issuecomment-6662960752",
+            "https://github.com/Johnathan-u/trust-copilot/pull/175"
+          ],
+          "tested_sha": "f182cad790ee6949f11874ef0d80e1630c8d5b6e",
+          "implemented_by": [
+            "Johnathan-u",
+            "trust-copilot-coordinator",
+            "claude"
+          ],
+          "independent_reviewer": "claude-review-agent",
+          "reviewed_at": "2026-11-05T16:44:08Z",
+          "reviewed_sha": "f182cad790ee6949f11874ef0d80e1630c8d5b6e",
+          "review_evidence_urls": [
+            "https://github.com/Johnathan-u/trust-copilot/pull/175#issuecomment-6662960752"
+          ],
           "criteria": [
             {
               "id": "TC-01-003-AC1",
-              "status": "NOT_VERIFIED",
-              "evidence_urls": [],
-              "tested_sha": null
+              "status": "PASS",
+              "evidence_urls": [
+                "https://github.com/Johnathan-u/trust-copilot/actions/runs/42062157158",
+                "https://github.com/Johnathan-u/trust-copilot/blob/f182cad790ee6949f11874ef0d80e1630c8d5b6e/docs/acceptance/license-resolution.md",
+                "https://github.com/Johnathan-u/trust-copilot/blob/f182cad790ee6949f11874ef0d80e1630c8d5b6e/docs/acceptance/release-decisions.md",
+                "https://github.com/Johnathan-u/trust-copilot/blob/f182cad790ee6949f11874ef0d80e1630c8d5b6e/apps/api/tests/release/test_license_resolution.py",
+                "https://github.com/Johnathan-u/trust-copilot/blob/f182cad790ee6949f11874ef0d80e1630c8d5b6e/artifacts/acceptance/TC-01-003/README.md"
+              ],
+              "tested_sha": "f182cad790ee6949f11874ef0d80e1630c8d5b6e"
             },
             {
               "id": "TC-01-003-AC2",
-              "status": "NOT_VERIFIED",
-              "evidence_urls": [],
-              "tested_sha": null
+              "status": "PASS",
+              "evidence_urls": [
+                "https://github.com/Johnathan-u/trust-copilot/actions/runs/42062157158",
+                "https://github.com/Johnathan-u/trust-copilot/tree/f182cad790ee6949f11874ef0d80e1630c8d5b6e/artifacts/acceptance/TC-01-003a",
+                "https://github.com/Johnathan-u/trust-copilot/tree/f182cad790ee6949f11874ef0d80e1630c8d5b6e/artifacts/acceptance/TC-01-003b",
+                "https://github.com/Johnathan-u/trust-copilot/blob/f182cad790ee6949f11874ef0d80e1630c8d5b6e/apps/api/tests/test_pdf_text_locator_corpus.py",
+                "https://github.com/Johnathan-u/trust-copilot/blob/f182cad790ee6949f11874ef0d80e1630c8d5b6e/docs/acceptance/license-resolution.md"
+              ],
+              "tested_sha": "f182cad790ee6949f11874ef0d80e1630c8d5b6e"
             }
           ],
           "definition_of_done": [
             {
               "id": "TC-01-003-DOD1",
-              "status": "NOT_VERIFIED",
-              "evidence_urls": [],
-              "tested_sha": null
+              "status": "PASS",
+              "evidence_urls": [
+                "https://github.com/Johnathan-u/trust-copilot/blob/f182cad790ee6949f11874ef0d80e1630c8d5b6e/docs/acceptance/license-resolution.md",
+                "https://github.com/Johnathan-u/trust-copilot/actions/runs/42062157158"
+              ],
+              "tested_sha": "f182cad790ee6949f11874ef0d80e1630c8d5b6e"
             },
             {
               "id": "TC-01-003-DOD2",
-              "status": "NOT_VERIFIED",
-              "evidence_urls": [],
-              "tested_sha": null
+              "status": "PASS",
+              "evidence_urls": [
+                "https://github.com/Johnathan-u/trust-copilot/blob/f182cad790ee6949f11874ef0d80e1630c8d5b6e/artifacts/acceptance/TC-01-003/README.md",
+                "https://github.com/Johnathan-u/trust-copilot/blob/f182cad790ee6949f11874ef0d80e1630c8d5b6e/artifacts/acceptance/TC-01-003/scan_branch.txt",
+                "https://github.com/Johnathan-u/trust-copilot/actions/runs/42062157158"
+              ],
+              "tested_sha": "f182cad790ee6949f11874ef0d80e1630c8d5b6e"
             },
             {
               "id": "TC-01-003-DOD3",
-              "status": "NOT_VERIFIED",
-              "evidence_urls": [],
-              "tested_sha": null
+              "status": "PASS",
+              "evidence_urls": [
+                "https://github.com/Johnathan-u/trust-copilot/blob/f182cad790ee6949f11874ef0d80e1630c8d5b6e/docs/acceptance/release-decisions.md",
+                "https://github.com/Johnathan-u/trust-copilot/blob/f182cad790ee6949f11874ef0d80e1630c8d5b6e/docs/acceptance/license-resolution.md"
+              ],
+              "tested_sha": "f182cad790ee6949f11874ef0d80e1630c8d5b6e"
             }
           ],
-          "note": "Full original-parent acceptance is pending baseline validation; merged work and artifact presence alone confer no acceptance."
+          "note": "PyMuPDF replaced by pypdf in TC-01-003a (#11) and TC-01-003b (#22) under OD-2. Remaining restrictive licences resolved in PR #175 (merged f182cad): MinIO (AGPL) removed from production, LGPL/MPL/CC-BY components complied with. Independent reviewer approved head 49e1d20 after 2 rounds (tree identical to merge f182cad). Owner/seller accepted on 2026-11-05 (OD-12); owner review only, no outside counsel."
         },
         "pr_links": [
           {
@@ -124970,6 +125002,205 @@ window.TRUSTCOPILOT_BACKLOG = {
           }
         }
       }
+    },
+    {
+      "revision": 10,
+      "at": "2026-11-05T16:45:19Z",
+      "actor": "claude",
+      "reason": "TC-01-003 accepted: PR #175 merged f182cad, master CI green (run 42062157158), independent review approved 49e1d20 (same tree), owner ruling OD-12",
+      "source_sha": "90146e0cfe2220beb3e43f98f6073262f7c0abfb",
+      "before": {
+        "scope_version": 1,
+        "accepted_points": null,
+        "completion_percentage": null,
+        "assessed_tickets": 10,
+        "total_tickets": 384,
+        "total_points": 1864,
+        "state_counts": {
+          "BASELINE_RECONCILIATION": 303,
+          "BLOCKED": 3,
+          "DONE": 10,
+          "EVIDENCE_RECONCILIATION": 46,
+          "IMPLEMENTATION_GAPS_IDENTIFIED": 22
+        },
+        "accepted_claim_points": 40,
+        "accepted_tickets": 10,
+        "baseline_status": "PENDING"
+      },
+      "after": {
+        "scope_version": 1,
+        "accepted_points": null,
+        "completion_percentage": null,
+        "assessed_tickets": 11,
+        "total_tickets": 384,
+        "total_points": 1864,
+        "state_counts": {
+          "BASELINE_RECONCILIATION": 303,
+          "BLOCKED": 3,
+          "DONE": 11,
+          "EVIDENCE_RECONCILIATION": 45,
+          "IMPLEMENTATION_GAPS_IDENTIFIED": 22
+        },
+        "accepted_claim_points": 45,
+        "accepted_tickets": 11,
+        "baseline_status": "PENDING"
+      },
+      "changes": {
+        "tickets": {
+          "TC-01-003": {
+            "status": {
+              "before": "EVIDENCE_RECONCILIATION",
+              "after": "DONE"
+            },
+            "evidence_state": {
+              "before": "EVIDENCE_RECONCILIATION",
+              "after": "VERIFIED_ACCEPTED"
+            },
+            "next_action": {
+              "before": "Reconcile existing implementation and evidence against all original acceptance criteria before declaring Done or estimating only the remaining scope.",
+              "after": "Accepted. Reopen only on regression or when change control adds scope. Follow-ups: NOTICE file and LGPL source-offer wording in TC-01-004; image/secret CI checks in TC-02-008."
+            },
+            "updated_at": {
+              "before": "2026-10-30T09:49:19Z",
+              "after": "2026-11-05T16:45:19Z"
+            },
+            "source_sha": {
+              "before": "b2bd1e0df5cdeb03b8d0cd240f5a161835ea621d",
+              "after": "90146e0cfe2220beb3e43f98f6073262f7c0abfb"
+            },
+            "acceptance": {
+              "before": {
+                "state": "PENDING",
+                "assessed_by": null,
+                "assessed_at": null,
+                "assessed_sha": null,
+                "assessment_evidence_urls": [],
+                "tested_sha": null,
+                "implemented_by": [],
+                "independent_reviewer": null,
+                "reviewed_at": null,
+                "reviewed_sha": null,
+                "review_evidence_urls": [],
+                "criteria": [
+                  {
+                    "id": "TC-01-003-AC1",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  },
+                  {
+                    "id": "TC-01-003-AC2",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  }
+                ],
+                "definition_of_done": [
+                  {
+                    "id": "TC-01-003-DOD1",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  },
+                  {
+                    "id": "TC-01-003-DOD2",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  },
+                  {
+                    "id": "TC-01-003-DOD3",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  }
+                ],
+                "note": "Full original-parent acceptance is pending baseline validation; merged work and artifact presence alone confer no acceptance."
+              },
+              "after": {
+                "state": "ACCEPTED",
+                "assessed_by": "claude-review-agent",
+                "assessed_at": "2026-11-05T16:44:08Z",
+                "assessed_sha": "f182cad790ee6949f11874ef0d80e1630c8d5b6e",
+                "assessment_evidence_urls": [
+                  "https://github.com/Johnathan-u/trust-copilot/actions/runs/42062157158",
+                  "https://github.com/Johnathan-u/trust-copilot/pull/175#issuecomment-6662960752",
+                  "https://github.com/Johnathan-u/trust-copilot/pull/175"
+                ],
+                "tested_sha": "f182cad790ee6949f11874ef0d80e1630c8d5b6e",
+                "implemented_by": [
+                  "Johnathan-u",
+                  "trust-copilot-coordinator",
+                  "claude"
+                ],
+                "independent_reviewer": "claude-review-agent",
+                "reviewed_at": "2026-11-05T16:44:08Z",
+                "reviewed_sha": "f182cad790ee6949f11874ef0d80e1630c8d5b6e",
+                "review_evidence_urls": [
+                  "https://github.com/Johnathan-u/trust-copilot/pull/175#issuecomment-6662960752"
+                ],
+                "criteria": [
+                  {
+                    "id": "TC-01-003-AC1",
+                    "status": "PASS",
+                    "evidence_urls": [
+                      "https://github.com/Johnathan-u/trust-copilot/actions/runs/42062157158",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/f182cad790ee6949f11874ef0d80e1630c8d5b6e/docs/acceptance/license-resolution.md",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/f182cad790ee6949f11874ef0d80e1630c8d5b6e/docs/acceptance/release-decisions.md",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/f182cad790ee6949f11874ef0d80e1630c8d5b6e/apps/api/tests/release/test_license_resolution.py",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/f182cad790ee6949f11874ef0d80e1630c8d5b6e/artifacts/acceptance/TC-01-003/README.md"
+                    ],
+                    "tested_sha": "f182cad790ee6949f11874ef0d80e1630c8d5b6e"
+                  },
+                  {
+                    "id": "TC-01-003-AC2",
+                    "status": "PASS",
+                    "evidence_urls": [
+                      "https://github.com/Johnathan-u/trust-copilot/actions/runs/42062157158",
+                      "https://github.com/Johnathan-u/trust-copilot/tree/f182cad790ee6949f11874ef0d80e1630c8d5b6e/artifacts/acceptance/TC-01-003a",
+                      "https://github.com/Johnathan-u/trust-copilot/tree/f182cad790ee6949f11874ef0d80e1630c8d5b6e/artifacts/acceptance/TC-01-003b",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/f182cad790ee6949f11874ef0d80e1630c8d5b6e/apps/api/tests/test_pdf_text_locator_corpus.py",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/f182cad790ee6949f11874ef0d80e1630c8d5b6e/docs/acceptance/license-resolution.md"
+                    ],
+                    "tested_sha": "f182cad790ee6949f11874ef0d80e1630c8d5b6e"
+                  }
+                ],
+                "definition_of_done": [
+                  {
+                    "id": "TC-01-003-DOD1",
+                    "status": "PASS",
+                    "evidence_urls": [
+                      "https://github.com/Johnathan-u/trust-copilot/blob/f182cad790ee6949f11874ef0d80e1630c8d5b6e/docs/acceptance/license-resolution.md",
+                      "https://github.com/Johnathan-u/trust-copilot/actions/runs/42062157158"
+                    ],
+                    "tested_sha": "f182cad790ee6949f11874ef0d80e1630c8d5b6e"
+                  },
+                  {
+                    "id": "TC-01-003-DOD2",
+                    "status": "PASS",
+                    "evidence_urls": [
+                      "https://github.com/Johnathan-u/trust-copilot/blob/f182cad790ee6949f11874ef0d80e1630c8d5b6e/artifacts/acceptance/TC-01-003/README.md",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/f182cad790ee6949f11874ef0d80e1630c8d5b6e/artifacts/acceptance/TC-01-003/scan_branch.txt",
+                      "https://github.com/Johnathan-u/trust-copilot/actions/runs/42062157158"
+                    ],
+                    "tested_sha": "f182cad790ee6949f11874ef0d80e1630c8d5b6e"
+                  },
+                  {
+                    "id": "TC-01-003-DOD3",
+                    "status": "PASS",
+                    "evidence_urls": [
+                      "https://github.com/Johnathan-u/trust-copilot/blob/f182cad790ee6949f11874ef0d80e1630c8d5b6e/docs/acceptance/release-decisions.md",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/f182cad790ee6949f11874ef0d80e1630c8d5b6e/docs/acceptance/license-resolution.md"
+                    ],
+                    "tested_sha": "f182cad790ee6949f11874ef0d80e1630c8d5b6e"
+                  }
+                ],
+                "note": "PyMuPDF replaced by pypdf in TC-01-003a (#11) and TC-01-003b (#22) under OD-2. Remaining restrictive licences resolved in PR #175 (merged f182cad): MinIO (AGPL) removed from production, LGPL/MPL/CC-BY components complied with. Independent reviewer approved head 49e1d20 after 2 rounds (tree identical to merge f182cad). Owner/seller accepted on 2026-11-05 (OD-12); owner review only, no outside counsel."
+              }
+            }
+          }
+        }
+      }
     }
   ],
   "followups": [
@@ -129799,7 +130030,7 @@ window.TRUSTCOPILOT_BACKLOG = {
       "build": "python scripts/backlog_tracker.py build",
       "check": "python scripts/backlog_tracker.py check",
       "summary": "python scripts/backlog_tracker.py summary",
-      "update": "python scripts/backlog_tracker.py update --expected-revision 9 --actor YOUR_ID --reason 'Evidence reconciliation' --patch /tmp/backlog-patch.json",
+      "update": "python scripts/backlog_tracker.py update --expected-revision 10 --actor YOUR_ID --reason 'Evidence reconciliation' --patch /tmp/backlog-patch.json",
       "tests": "python -m unittest discover -s scripts/tests -p 'test_backlog_tracker.py' -v"
     }
   }
