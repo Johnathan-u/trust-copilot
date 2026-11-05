@@ -5,7 +5,7 @@ window.TRUSTCOPILOT_BACKLOG = {
     "schema_version": 1,
     "scope_version": 1,
     "revision": 10,
-    "as_of_utc": "2026-11-05T16:45:19Z",
+    "as_of_utc": "2026-11-05T16:48:33Z",
     "source_sha": "90146e0cfe2220beb3e43f98f6073262f7c0abfb",
     "baseline_status": "PENDING",
     "metric_label": "Accepted original-parent points",
@@ -2069,12 +2069,12 @@ window.TRUSTCOPILOT_BACKLOG = {
         "owner": null,
         "blockers": [],
         "next_action": "Accepted. Reopen only on regression or when change control adds scope. Follow-ups: NOTICE file and LGPL source-offer wording in TC-01-004; image/secret CI checks in TC-02-008.",
-        "updated_at": "2026-11-05T16:45:19Z",
+        "updated_at": "2026-11-05T16:48:33Z",
         "source_sha": "90146e0cfe2220beb3e43f98f6073262f7c0abfb",
         "acceptance": {
           "state": "ACCEPTED",
           "assessed_by": "claude-review-agent",
-          "assessed_at": "2026-11-05T16:44:08Z",
+          "assessed_at": "2026-11-05T16:45:00Z",
           "assessed_sha": "f182cad790ee6949f11874ef0d80e1630c8d5b6e",
           "assessment_evidence_urls": [
             "https://github.com/Johnathan-u/trust-copilot/actions/runs/42062157158",
@@ -2088,7 +2088,7 @@ window.TRUSTCOPILOT_BACKLOG = {
             "claude"
           ],
           "independent_reviewer": "claude-review-agent",
-          "reviewed_at": "2026-11-05T16:44:08Z",
+          "reviewed_at": "2026-11-05T16:45:00Z",
           "reviewed_sha": "f182cad790ee6949f11874ef0d80e1630c8d5b6e",
           "review_evidence_urls": [
             "https://github.com/Johnathan-u/trust-copilot/pull/175#issuecomment-6662960752"
@@ -2149,7 +2149,7 @@ window.TRUSTCOPILOT_BACKLOG = {
               "tested_sha": "f182cad790ee6949f11874ef0d80e1630c8d5b6e"
             }
           ],
-          "note": "PyMuPDF replaced by pypdf in TC-01-003a (#11) and TC-01-003b (#22) under OD-2. Remaining restrictive licences resolved in PR #175 (merged f182cad): MinIO (AGPL) removed from production, LGPL/MPL/CC-BY components complied with. Independent reviewer approved head 49e1d20 after 2 rounds (tree identical to merge f182cad). Owner/seller accepted on 2026-11-05 (OD-12); owner review only, no outside counsel."
+          "note": "PyMuPDF replaced by pypdf in TC-01-003a (#11) and TC-01-003b (#22) under OD-2. Remaining restrictive licences resolved in PR #175 (merged f182cad): MinIO (AGPL) removed from production; comply path chosen for the LGPL/MPL/CC-BY components, with the NOTICE file and LGPL source offer for distributed images still owed in TC-01-004. Independent reviewer approved head 49e1d20 after 2 rounds (tree identical to merge f182cad). Owner/seller accepted on 2026-11-05 (OD-12); owner review only, no outside counsel."
         },
         "pr_links": [
           {
@@ -125005,7 +125005,7 @@ window.TRUSTCOPILOT_BACKLOG = {
     },
     {
       "revision": 10,
-      "at": "2026-11-05T16:45:19Z",
+      "at": "2026-11-05T16:48:33Z",
       "actor": "claude",
       "reason": "TC-01-003 accepted: PR #175 merged f182cad, master CI green (run 42062157158), independent review approved 49e1d20 (same tree), owner ruling OD-12",
       "source_sha": "90146e0cfe2220beb3e43f98f6073262f7c0abfb",
@@ -125062,7 +125062,7 @@ window.TRUSTCOPILOT_BACKLOG = {
             },
             "updated_at": {
               "before": "2026-10-30T09:49:19Z",
-              "after": "2026-11-05T16:45:19Z"
+              "after": "2026-11-05T16:48:33Z"
             },
             "source_sha": {
               "before": "b2bd1e0df5cdeb03b8d0cd240f5a161835ea621d",
@@ -125120,7 +125120,7 @@ window.TRUSTCOPILOT_BACKLOG = {
               "after": {
                 "state": "ACCEPTED",
                 "assessed_by": "claude-review-agent",
-                "assessed_at": "2026-11-05T16:44:08Z",
+                "assessed_at": "2026-11-05T16:45:00Z",
                 "assessed_sha": "f182cad790ee6949f11874ef0d80e1630c8d5b6e",
                 "assessment_evidence_urls": [
                   "https://github.com/Johnathan-u/trust-copilot/actions/runs/42062157158",
@@ -125134,7 +125134,7 @@ window.TRUSTCOPILOT_BACKLOG = {
                   "claude"
                 ],
                 "independent_reviewer": "claude-review-agent",
-                "reviewed_at": "2026-11-05T16:44:08Z",
+                "reviewed_at": "2026-11-05T16:45:00Z",
                 "reviewed_sha": "f182cad790ee6949f11874ef0d80e1630c8d5b6e",
                 "review_evidence_urls": [
                   "https://github.com/Johnathan-u/trust-copilot/pull/175#issuecomment-6662960752"
@@ -125195,7 +125195,7 @@ window.TRUSTCOPILOT_BACKLOG = {
                     "tested_sha": "f182cad790ee6949f11874ef0d80e1630c8d5b6e"
                   }
                 ],
-                "note": "PyMuPDF replaced by pypdf in TC-01-003a (#11) and TC-01-003b (#22) under OD-2. Remaining restrictive licences resolved in PR #175 (merged f182cad): MinIO (AGPL) removed from production, LGPL/MPL/CC-BY components complied with. Independent reviewer approved head 49e1d20 after 2 rounds (tree identical to merge f182cad). Owner/seller accepted on 2026-11-05 (OD-12); owner review only, no outside counsel."
+                "note": "PyMuPDF replaced by pypdf in TC-01-003a (#11) and TC-01-003b (#22) under OD-2. Remaining restrictive licences resolved in PR #175 (merged f182cad): MinIO (AGPL) removed from production; comply path chosen for the LGPL/MPL/CC-BY components, with the NOTICE file and LGPL source offer for distributed images still owed in TC-01-004. Independent reviewer approved head 49e1d20 after 2 rounds (tree identical to merge f182cad). Owner/seller accepted on 2026-11-05 (OD-12); owner review only, no outside counsel."
               }
             }
           }
