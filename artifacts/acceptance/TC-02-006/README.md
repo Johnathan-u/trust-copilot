@@ -20,7 +20,7 @@ Re-ran the ticket gates on current master. No product change was required.
 
 This evidence commit does not change the gate inputs. Hashes of those files at the tested SHA are in `verify-2026-11-05/tested-inputs.sha256`.
 
-Command outputs, exit codes, and totals are in `verify-2026-11-05/` and `vitest-results-2026-11-05.json`. `verify-2026-11-05/summary.tsv` is `name`, exit code, directory, command.
+Command outputs, exit codes, and totals are in `verify-2026-11-05/` and `vitest-results-2026-11-05.json`. `verify-2026-11-05/summary.tsv` is `name`, exit code, directory, command. Three Next.js progress lines in `07-build.txt` had trailing spaces, and five logs had an extra or missing final newline. Those were normalized so the repository end-of-file and trailing-whitespace hooks accept the files. The exit codes in `summary.tsv` are unchanged.
 
 | # | Command | cwd | Exit | Result |
 |---|---|---|---|---|
