@@ -63,8 +63,8 @@ Or manually:
                            │                    │
                            ▼                    ▼
                     ┌──────────┐          ┌──────────┐
-                    │ Postgres │          │  MinIO   │
-                    │ pgvector │          │  S3      │
+                    │ Postgres │          │    S3    │
+                    │ pgvector │          │ storage  │
                     └──────────┘          └──────────┘
                            ▲
                            │
@@ -78,6 +78,7 @@ Or manually:
 - **API** — FastAPI; auth, documents, questionnaires, answers, jobs, exports, search, trust articles.
 - **Worker** — Polls jobs; runs `parse_questionnaire`, `index_document`, `generate_answers`, `export`.
 - **Postgres** — With pgvector for embeddings.
+- **Object storage** — An external S3-compatible service in production (for example AWS S3 or Cloudflare R2), set with `S3_*`; the production stack bundles no object store. MinIO runs only in the dev compose file (TC-01-003, licence: AGPL-3.0).
 
 ## Project structure
 
@@ -98,7 +99,7 @@ Or manually:
 are **retired** (owner statement 2026-10-27, TC-07-001) and must never be reused.
 
 - Generate every secret yourself, e.g. `openssl rand -hex 32` (use hex for passwords inside URLs) or `openssl rand -base64 48`. This applies to `SESSION_SECRET`, `POSTGRES_PASSWORD` (and the password in `DATABASE_URL`),
-  `MINIO_ROOT_USER`/`MINIO_ROOT_PASSWORD`, `S3_ACCESS_KEY`/`S3_SECRET_KEY`, and every provider client secret.
+  `S3_ACCESS_KEY`/`S3_SECRET_KEY` (from your S3 service), and every provider client secret.
 - Keep them only in `.env.production` (git-ignored) or your secret manager; never commit them.
 - Do not run any `seed_*` script against production; demo/QA accounts and their passwords are local-only.
 - Production startup validation of these values (refusing unset, placeholder or default values) is defined by TC-03-001's

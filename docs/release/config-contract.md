@@ -57,7 +57,7 @@ Source of truth: `apps/api/app/core/config_contract.py`. The table between the m
 |---|---|---|
 | Public hostname with DNS + TLS (Caddy ACME, `infra/caddy/Caddyfile.production`) | APP_BASE_URL, FRONTEND_URL, TRUSTED_ORIGINS | https, non-localhost |
 | PostgreSQL 16 + pgvector with a generated password | DATABASE_URL, POSTGRES_USER, POSTGRES_PASSWORD | explicit DSN, strong non-default password |
-| Private S3-compatible storage with dedicated keys | S3_ENDPOINT, S3_ACCESS_KEY, S3_SECRET_KEY, MINIO_ROOT_USER, MINIO_ROOT_PASSWORD | required, non-default |
+| Private external S3-compatible storage (e.g. AWS S3, Cloudflare R2) with dedicated keys and pre-created buckets; no bundled object store in production (TC-01-003) | S3_ENDPOINT, S3_REGION, S3_ACCESS_KEY, S3_SECRET_KEY, S3_BUCKET_RAW, S3_BUCKET_EXPORTS | endpoint and keys required, non-default |
 | Model provider account | OPENAI_API_KEY | required, not placeholder |
 | SMTP relay account (only if email delivery is enabled) | EMAIL_DELIVERY_ENABLED, SMTP_HOST, SMTP_FROM (+ SMTP_USER/SMTP_PASSWORD) | required when EMAIL_DELIVERY_ENABLED is true (or unset with SMTP_HOST set); not needed for Slack-only / no-email deploys, which suppress all email |
 | Optional identity providers / billing | OAUTH_*, OIDC_*, IDME_*, STRIPE_* | id/secret pairs complete, secrets not placeholders; webhook secret(s) with Stripe key |
@@ -77,14 +77,15 @@ Source of truth: `apps/api/app/core/config_contract.py`. The table between the m
 | `DATABASE_URL` | postgresql URL with user and password | required | yes | local dev URL on localhost:5432 (dev only) | Postgres DSN. Production: must be set explicitly; vendor-default/placeholder or short (<16) passwords rejected. | Managed or self-hosted PostgreSQL 16 + pgvector |
 | `POSTGRES_USER` | string | conditional | no | compose dev default | Postgres container superuser (compose). If visible to the app in production, must not be a vendor default. |  |
 | `POSTGRES_PASSWORD` | secret string (>=16 chars) | conditional | yes | compose dev default | Postgres container password (compose). If visible in production, defaults/placeholders/short values rejected. |  |
-| `S3_ENDPOINT` | URL | required | no | http://localhost:9000 | S3-compatible endpoint (MinIO in compose). | Private S3-compatible bucket storage |
+| `S3_ENDPOINT` | URL | required | no | http://localhost:9000 | S3-compatible endpoint (MinIO in dev compose; external S3 service in production, TC-01-003). | Private S3-compatible bucket storage |
 | `S3_ACCESS_KEY` | secret string | required | yes | none (required in every environment) | Object storage access key. Production: vendor defaults/placeholders rejected. |  |
 | `S3_SECRET_KEY` | secret string (>=16 chars) | required | yes | none (required in every environment) | Object storage secret key. Production: vendor defaults/placeholders/short values rejected. |  |
-| `MINIO_ROOT_USER` | string | conditional | no | compose dev default | MinIO root user (compose). If visible in production, vendor defaults rejected. |  |
-| `MINIO_ROOT_PASSWORD` | secret string (>=16 chars) | conditional | yes | compose dev default | MinIO root password (compose). If visible in production, defaults/placeholders/short values rejected. |  |
+| `MINIO_ROOT_USER` | string | conditional | no | compose dev default | MinIO root user (dev compose only; not in the production stack). If visible in production, vendor defaults rejected. |  |
+| `MINIO_ROOT_PASSWORD` | secret string (>=16 chars) | conditional | yes | compose dev default | MinIO root password (dev compose only; not in the production stack). If visible in production, defaults/placeholders/short values rejected. |  |
 | `S3_BUCKET_RAW` | string | optional | no | trustcopilot-raw | Bucket for uploads. |  |
 | `S3_BUCKET_EXPORTS` | string | optional | no | trustcopilot-exports | Bucket for exports. |  |
 | `S3_USE_SSL` | bool | optional | no | false | Use TLS to the S3 endpoint. |  |
+| `S3_REGION` | string | optional | no | us-east-1 | SigV4 signing region of the S3 service (set it for AWS S3 outside us-east-1). |  |
 | `APP_BASE_URL` | https URL | required | no | http://localhost:3000 | Public base URL; OAuth redirect URIs are built from it. Production: https, not localhost. | DNS record + TLS (Caddy ACME) for the public hostname |
 | `FRONTEND_URL` | https URL | required | no | http://localhost:3000 | Frontend origin for CORS/CSRF. Production: https, not localhost. |  |
 | `TRUSTED_ORIGINS` | comma-separated origins | optional | no | FRONTEND_URL (+ localhost variants outside production) | CORS/CSRF allow-list. Production: every entry must be an https origin. |  |

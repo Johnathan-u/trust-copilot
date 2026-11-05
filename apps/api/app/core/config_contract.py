@@ -214,7 +214,7 @@ CONTRACT: tuple[ConfigVar, ...] = (
         "required",
         False,
         "http://localhost:9000",
-        "S3-compatible endpoint (MinIO in compose).",
+        "S3-compatible endpoint (MinIO in dev compose; external S3 service in production, TC-01-003).",
         "Private S3-compatible bucket storage",
     ),
     ConfigVar(
@@ -239,7 +239,7 @@ CONTRACT: tuple[ConfigVar, ...] = (
         "conditional",
         False,
         "compose dev default",
-        "MinIO root user (compose). If visible in production, vendor defaults rejected.",
+        "MinIO root user (dev compose only; not in the production stack). If visible in production, vendor defaults rejected.",
     ),
     ConfigVar(
         "MINIO_ROOT_PASSWORD",
@@ -247,7 +247,7 @@ CONTRACT: tuple[ConfigVar, ...] = (
         "conditional",
         True,
         "compose dev default",
-        "MinIO root password (compose). If visible in production, defaults/placeholders/short values rejected.",
+        "MinIO root password (dev compose only; not in the production stack). If visible in production, defaults/placeholders/short values rejected.",
     ),
     ConfigVar(
         "S3_BUCKET_RAW", "string", "optional", False, "trustcopilot-raw", "Bucket for uploads."
@@ -261,6 +261,14 @@ CONTRACT: tuple[ConfigVar, ...] = (
         "Bucket for exports.",
     ),
     ConfigVar("S3_USE_SSL", "bool", "optional", False, "false", "Use TLS to the S3 endpoint."),
+    ConfigVar(
+        "S3_REGION",
+        "string",
+        "optional",
+        False,
+        "us-east-1",
+        "SigV4 signing region of the S3 service (set it for AWS S3 outside us-east-1).",
+    ),
     ConfigVar(
         "APP_BASE_URL",
         "https URL",

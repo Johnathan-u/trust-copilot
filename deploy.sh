@@ -60,7 +60,7 @@ if [ ! -f .env.production ]; then
     echo "ERROR: .env.production is missing. Create it from .env.example (all credentials required)." >&2
     exit 1
 fi
-# TC-07-001: credentials for postgres/minio are interpolated from .env.production, never committed.
+# TC-07-001: credentials for postgres and the external S3 service come from .env.production, never committed.
 docker compose --env-file .env.production -f docker-compose.prod.yml up -d --build
 
 echo ""
