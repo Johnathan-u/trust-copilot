@@ -6,6 +6,7 @@ import { useSearchParams } from 'next/navigation'
 import { Card, Button, Input } from '@/components/ui'
 import { formatApiErrorDetail } from '@/lib/api-error'
 import { loginContinuation } from '@/lib/login-continuation'
+import { safePostLoginPath } from '@/lib/post-login-path'
 
 // TC-07-001: no demo credentials in the shipped bundle by default. The one-click demo is only
 // enabled when both variables are provided at build time (local/dev demo stacks only).
@@ -23,7 +24,7 @@ type OAuthProviders = {
 
 function LoginContent() {
   const searchParams = useSearchParams()
-  const next = searchParams.get('next') || '/dashboard'
+  const next = safePostLoginPath(searchParams.get('next'))
   const isDemo = searchParams.get('demo') === 'true'
   const prefillEmail = searchParams.get('email') || ''
   const [email, setEmail] = useState(prefillEmail)
