@@ -2,23 +2,27 @@
 
 * The production Compose stack bundles no MinIO (AGPL-3.0) and takes its S3 endpoint from the
   environment; every image it ships is listed with its licence in the resolution doc.
-* No copyleft or source-available licence enters the API runtime lock or the web runtime lock
-  except the documented, complied-with exceptions; no AGPL/GPL/SSPL/BUSL package appears in any
-  lock, dev or runtime.
+* Every API runtime pin that installs on this interpreter and every web runtime lock entry has a
+  licence on a permissive allowlist, or is a documented, complied-with exception. Anything else
+  (copyleft, source-available, proprietary, unrecognised or missing) fails. No AGPL, GPL, SSPL,
+  BUSL or proprietary licence appears in any web lock entry, dev or runtime.
 
-The compose and npm checks are static. The Python check reads the installed metadata of every
-package in requirements.lock; CI installs requirements-dev.lock, which contains all of them.
+The compose and npm checks are static. The Python check reads the installed metadata of the
+runtime pins; CI installs requirements-dev.lock, which contains all of them. Pins whose
+environment marker does not apply are not installed (and not shipped) and are not checked.
 """
 
 from __future__ import annotations
 
 import json
 import re
+from email.message import Message
 from importlib import metadata
 from pathlib import Path
 
 import pytest
 import yaml
+from packaging.markers import Marker
 
 API_ROOT = Path(__file__).resolve().parents[2]
 REPO_ROOT = API_ROOT.parents[1]
@@ -43,6 +47,21 @@ PERMISSIVE = {
     "Unlicense",
     "Zlib",
 }
+# Python trove classifiers and short ``License`` names accepted as plainly permissive.
+PERMISSIVE_CLASSIFIERS = {
+    "License :: OSI Approved :: MIT License",
+    "License :: OSI Approved :: MIT No Attribution License (MIT-0)",
+    "License :: OSI Approved :: BSD License",
+    "License :: OSI Approved :: Apache Software License",
+    "License :: OSI Approved :: ISC License (ISCL)",
+    "License :: OSI Approved :: Python Software Foundation License",
+    "License :: OSI Approved :: The Unlicense (Unlicense)",
+    "License :: OSI Approved :: zlib/libpng License",
+}
+PERMISSIVE_NAME = re.compile(
+    r"^(?:MIT|BSD|Apache|ISC|PSF|Python Software Foundation|0BSD|Unlicense|Zlib)\b(?![- ]?Commons)",
+    re.IGNORECASE,
+)
 
 # Documented exceptions (license-resolution.md §2): name pattern -> licence that must match.
 PY_EXCEPTIONS = {
@@ -62,7 +81,8 @@ NPM_EXCEPTIONS = {
 # Never allowed anywhere, dev or runtime, exception or not.
 FORBIDDEN = re.compile(
     r"\bAGPL|Affero|\bSSPL|Server Side Public|\bBUSL|Business Source|Commons[- ]Clause"
-    r"|\bGPL|(?<!Lesser )General Public License",
+    r"|\bGPL|(?<!Lesser )General Public License"
+    r"|Proprietary|Commercial|\bElastic|PolyForm|\bRSAL|Redis Source Available",
     re.IGNORECASE,
 )
 # Copyleft or restrictive families that need a documented exception in the runtime set.
@@ -128,23 +148,44 @@ def test_shipped_images_are_licence_reviewed():
 
 
 def _runtime_lock() -> list[tuple[str, str]]:
+    """Runtime pins that install on this interpreter; pins whose environment marker does not
+    apply (for example ``python_full_version < '3.11.3'``) are not installed and not shipped."""
     pins = re.findall(
-        r"^([A-Za-z0-9][A-Za-z0-9._-]*)==([^\s;\\]+)",
+        r"^([A-Za-z0-9][A-Za-z0-9._-]*)==([^\s;\\]+)[ \t]*(?:;[ \t]*([^\\\n]*?))?[ \t]*\\?$",
         RUNTIME_LOCK.read_text(encoding="utf-8"),
         re.MULTILINE,
     )
     assert pins, "no pins parsed from requirements.lock"
-    return pins
+    return [(n, v) for n, v, marker in pins if not marker or Marker(marker).evaluate()]
 
 
-def _metadata_licence(dist: metadata.Distribution) -> str:
-    md = dist.metadata
-    parts = [md.get("License-Expression") or ""]
+def licence_problem(name: str, md) -> str | None:
+    """None when the metadata ``md`` shows a permissive licence or the documented exception;
+    otherwise the reason. Allowlist only: unrecognised or missing licences fail."""
+    expr = (md.get("License-Expression") or "").strip()
     raw = (md.get("License") or "").strip()
-    if raw:  # a licence name, or the first line of a full licence text
-        parts.append(raw.splitlines()[0][:200])
-    parts += [c for c in (md.get_all("Classifier") or []) if c.startswith("License ::")]
-    return " | ".join(p for p in parts if p)
+    first = raw.splitlines()[0][:200] if raw else ""
+    classifiers = [c for c in (md.get_all("Classifier") or []) if c.startswith("License ::")]
+    described = " | ".join(p for p in (expr, first, *classifiers) if p)
+    if not described:
+        return "declares no licence"
+    if FORBIDDEN.search(described):
+        return f"forbidden licence {described!r}"
+    norm = re.sub(r"[-_.]+", "-", name).lower()
+    if norm in PY_EXCEPTIONS:
+        if PY_EXCEPTIONS[norm].search(described):
+            return None
+        return f"licence {described!r} no longer matches its documented exception"
+    if expr:
+        bad = _spdx_ids(expr) - PERMISSIVE
+        return f"{expr!r} has non-permissive ids {sorted(bad)}" if bad else None
+    specific = [c for c in classifiers if c != "License :: OSI Approved"]
+    if specific:
+        bad = [c for c in specific if c not in PERMISSIVE_CLASSIFIERS]
+        return f"non-permissive classifiers {bad}" if bad else None
+    if PERMISSIVE_NAME.match(first):
+        return None
+    return f"licence {described!r} is not recognised as permissive"
 
 
 @pytest.mark.parametrize("name,version", _runtime_lock())
@@ -153,16 +194,8 @@ def test_python_runtime_licences(name, version):
         dist = metadata.distribution(name)
     except metadata.PackageNotFoundError:
         pytest.fail(f"{name}=={version} from requirements.lock is not installed")
-    licence = _metadata_licence(dist)
-    assert licence, f"{name} declares no licence"
-    assert not FORBIDDEN.search(licence), f"{name}: forbidden licence {licence!r}"
-    norm = re.sub(r"[-_.]+", "-", name).lower()
-    if norm in PY_EXCEPTIONS:
-        msg = f"{name}: licence {licence!r} no longer matches its documented exception"
-        assert PY_EXCEPTIONS[norm].search(licence), msg
-    else:
-        msg = f"{name}: {licence!r} needs a path in license-resolution.md §2"
-        assert not RESTRICTED.search(licence), msg
+    problem = licence_problem(name, dist.metadata)
+    assert problem is None, f"{name}: {problem}; it needs a path in license-resolution.md §2"
 
 
 def test_python_exceptions_are_current_and_documented():
@@ -252,3 +285,60 @@ def test_forbidden_pattern_catches_strong_copyleft(licence):
 )
 def test_forbidden_pattern_allows_weak_copyleft_and_permissive(licence):
     assert not FORBIDDEN.search(licence)
+
+
+def _md(**fields) -> Message:
+    msg = Message()
+    for key, value in fields.items():
+        for item in value if isinstance(value, list) else [value]:
+            msg[key.replace("_", "-")] = item
+    return msg
+
+
+@pytest.mark.parametrize(
+    "md",
+    [
+        _md(License_Expression="MIT"),
+        _md(License_Expression="Apache-2.0 OR BSD-3-Clause"),
+        _md(License="MIT", Classifier="License :: OSI Approved :: MIT License"),
+        _md(License="Dual License", Classifier=["License :: OSI Approved :: BSD License"]),
+        _md(License="BSD-3-Clause"),
+        _md(
+            License="Copyright (c) 2026 Someone\n\nPermission...",
+            Classifier=[
+                "License :: OSI Approved :: Apache Software License",
+            ],
+        ),
+    ],
+)
+def test_licence_allowlist_accepts_permissive_metadata(md):
+    assert licence_problem("somepkg", md) is None
+
+
+@pytest.mark.parametrize(
+    "md",
+    [
+        _md(),
+        _md(License_Expression="Elastic-2.0"),
+        _md(License_Expression="LicenseRef-Proprietary"),
+        _md(License_Expression="MIT AND OSL-3.0"),
+        _md(License="Proprietary", Classifier="License :: Other/Proprietary License"),
+        _md(License="Commercial"),
+        _md(Classifier="License :: OSI Approved :: Eclipse Public License 2.0 (EPL-2.0)"),
+        _md(License="Copyright (c) 2026 Someone. All rights reserved."),
+        _md(
+            License="LGPL",
+            Classifier="License :: OSI Approved :: GNU Lesser General Public License v3 (LGPLv3)",
+        ),
+        _md(License_Expression="MPL-2.0"),
+    ],
+)
+def test_licence_allowlist_rejects_everything_else(md):
+    assert licence_problem("somepkg", md) is not None
+
+
+def test_documented_exceptions_still_need_their_licence_family():
+    assert licence_problem("psycopg2-binary", _md(License="LGPL with exceptions")) is None
+    assert licence_problem("certifi", _md(License_Expression="MPL-2.0")) is None
+    assert licence_problem("certifi", _md(License_Expression="MIT")) is not None
+    assert licence_problem("psycopg2-binary", _md(License_Expression="GPL-3.0-only")) is not None

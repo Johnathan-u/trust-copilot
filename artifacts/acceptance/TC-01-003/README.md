@@ -16,9 +16,11 @@ The PDF part (TC-01-003-AC2) is evidenced by `artifacts/acceptance/TC-01-003a/` 
 Continuous checks, in the backend CI job (`pytest -rs` in `apps/api`):
 
 - `tests/release/test_license_resolution.py`: no MinIO in the production stack; every shipped
-  image listed in the record with its licence; every API runtime pin's installed licence metadata
-  and every web runtime lock entry permissive or a documented exception; no AGPL, GPL, SSPL or
-  BUSL in any web lock entry; the exceptions are still present and documented.
+  image listed in the record with its licence; the installed licence metadata of every API
+  runtime pin that installs on the CI interpreter (two marker-excluded pins never install) and
+  every web runtime lock entry on a permissive allowlist or a documented exception; no AGPL, GPL,
+  SSPL, BUSL or proprietary licence in any web lock entry; the exceptions still present and
+  documented; self-tests for the allowlist.
 - `tests/release/test_storage_region.py`: `S3_REGION` reaches the boto3 client (default
   `us-east-1`), for external S3 services outside that region.
 - `tests/release/test_secret_inventory.py::test_prod_compose_requires_credentials_from_env`: the

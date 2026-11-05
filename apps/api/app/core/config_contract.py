@@ -214,7 +214,7 @@ CONTRACT: tuple[ConfigVar, ...] = (
         "required",
         False,
         "http://localhost:9000",
-        "S3-compatible endpoint (MinIO in dev compose; external S3 service in production, TC-01-003).",
+        "S3-compatible endpoint (MinIO in dev compose; external S3 service in production).",
         "Private S3-compatible bucket storage",
     ),
     ConfigVar(
