@@ -253,17 +253,29 @@ def _tm_grid(n: int, cols: int = 8) -> bytes:
     return b"".join(parts)
 
 
-def test_large_page_of_32k_ops_splits_within_five_seconds(tmp_path):
-    """32k text ops used to take ~59s in the quadratic column scan. Cap + bisect stay under 5s."""
-    n = 32_000
-    path = tmp_path / "large.pdf"
+def _timed_split(tmp_path, n: int):
+    path = tmp_path / f"large-{n}.pdf"
     path.write_bytes(build_pdf([Page(raw=_tm_grid(n))]))
     page = PdfReader(path).pages[0]
     text = page.extract_text() or ""
     started = time.perf_counter()
     rows = split_rows(page, text)
-    elapsed = time.perf_counter() - started
-    assert elapsed < 5.0, f"32k-op split took {elapsed:.2f}s"
+    return time.perf_counter() - started, rows
+
+
+def test_large_page_of_32k_ops_splits_in_linear_time(tmp_path):
+    """32k text ops used to take ~59s in the quadratic column scan; cap + bisect keep it linear.
+
+    The guard measures growth, not machine speed: 8x the ops must cost well under the ~64x a
+    quadratic scan would, with an absolute ceiling far below the old 59s. A fixed 5s budget
+    flaked on slower CI runners (5.09s, 5.14s) without any code change.
+    """
+    small_n, n = 4_000, 32_000
+    small = min(_timed_split(tmp_path, small_n)[0] for _ in range(2))
+    elapsed, rows = _timed_split(tmp_path, n)
+    ratio = elapsed / max(small, 1e-3)
+    assert ratio < 24, f"32k/4k split time ratio {ratio:.1f} looks super-linear ({elapsed:.2f}s)"
+    assert elapsed < 15.0, f"32k-op split took {elapsed:.2f}s"
     # 8 columns at 60 pt is well over the candidate cap, so the page stays unsplit.
     assert rows and all(r.cells == (r.line,) for r in rows)
     assert sum(r.line.count("A") for r in rows) == n
