@@ -4,8 +4,8 @@ window.TRUSTCOPILOT_BACKLOG = {
     "title": "TrustCopilot backlog information radiator",
     "schema_version": 1,
     "scope_version": 1,
-    "revision": 11,
-    "as_of_utc": "2026-11-05T22:15:51Z",
+    "revision": 12,
+    "as_of_utc": "2026-11-06T18:03:10Z",
     "source_sha": "90146e0cfe2220beb3e43f98f6073262f7c0abfb",
     "baseline_status": "PENDING",
     "metric_label": "Accepted original-parent points",
@@ -15,18 +15,18 @@ window.TRUSTCOPILOT_BACKLOG = {
   "summary": {
     "accepted_points": null,
     "completion_percentage": null,
-    "assessed_tickets": 13,
+    "assessed_tickets": 14,
     "total_tickets": 384,
     "total_points": 1864,
     "state_counts": {
       "BASELINE_RECONCILIATION": 303,
       "BLOCKED": 3,
-      "DONE": 13,
-      "EVIDENCE_RECONCILIATION": 43,
+      "DONE": 14,
+      "EVIDENCE_RECONCILIATION": 42,
       "IMPLEMENTATION_GAPS_IDENTIFIED": 22
     },
-    "accepted_claim_points": 53,
-    "accepted_tickets": 13,
+    "accepted_claim_points": 58,
+    "accepted_tickets": 14,
     "baseline_status": "PENDING"
   },
   "source_metadata": {
@@ -357,13 +357,12 @@ window.TRUSTCOPILOT_BACKLOG = {
       "rollup": {
         "total_tickets": 14,
         "total_points": 57,
-        "assessed_tickets": 1,
-        "accepted_tickets": 1,
+        "assessed_tickets": 2,
+        "accepted_tickets": 2,
         "accepted_points": null,
         "state_counts": {
           "BASELINE_RECONCILIATION": 12,
-          "DONE": 1,
-          "EVIDENCE_RECONCILIATION": 1
+          "DONE": 2
         }
       }
     },
@@ -21871,72 +21870,140 @@ window.TRUSTCOPILOT_BACKLOG = {
       "release_gate_dependencies": [],
       "dependency_ruling_ids": [],
       "current": {
-        "status": "EVIDENCE_RECONCILIATION",
-        "evidence_state": "EVIDENCE_RECONCILIATION",
+        "status": "DONE",
+        "evidence_state": "VERIFIED_ACCEPTED",
         "owner": null,
         "blockers": [],
-        "next_action": "Reconcile existing implementation and evidence against all original acceptance criteria before declaring Done or estimating only the remaining scope.",
-        "updated_at": "2026-10-30T09:49:19Z",
-        "source_sha": "b2bd1e0df5cdeb03b8d0cd240f5a161835ea621d",
+        "next_action": "Accepted. Follow-ups: TC-07-002a (enforce four distinct production keyrings) and an operator runbook for key rotation and sole-admin MFA recovery (OD-13).",
+        "updated_at": "2026-11-06T18:03:10Z",
+        "source_sha": "90146e0cfe2220beb3e43f98f6073262f7c0abfb",
         "acceptance": {
-          "state": "PENDING",
-          "assessed_by": null,
-          "assessed_at": null,
-          "assessed_sha": null,
-          "assessment_evidence_urls": [],
-          "tested_sha": null,
-          "implemented_by": [],
-          "independent_reviewer": null,
-          "reviewed_at": null,
-          "reviewed_sha": null,
-          "review_evidence_urls": [],
+          "state": "ACCEPTED",
+          "assessed_by": "claude-review-agent",
+          "assessed_at": "2026-11-06T18:02:10Z",
+          "assessed_sha": "cfdca490c4b9722c154bfea1629d50c2dd9257bf",
+          "assessment_evidence_urls": [
+            "https://github.com/Johnathan-u/trust-copilot/actions/runs/42128715891",
+            "https://github.com/Johnathan-u/trust-copilot/pull/180#issuecomment-6671755163",
+            "https://github.com/Johnathan-u/trust-copilot/pull/180#issuecomment-6672088146",
+            "https://github.com/Johnathan-u/trust-copilot/pull/183"
+          ],
+          "tested_sha": "cfdca490c4b9722c154bfea1629d50c2dd9257bf",
+          "implemented_by": [
+            "Johnathan-u",
+            "grok"
+          ],
+          "independent_reviewer": "claude-review-agent",
+          "reviewed_at": "2026-11-06T18:02:10Z",
+          "reviewed_sha": "cfdca490c4b9722c154bfea1629d50c2dd9257bf",
+          "review_evidence_urls": [
+            "https://github.com/Johnathan-u/trust-copilot/pull/180#issuecomment-6671755163",
+            "https://github.com/Johnathan-u/trust-copilot/pull/180#issuecomment-6672088146"
+          ],
           "criteria": [
             {
               "id": "TC-07-002-AC1",
-              "status": "NOT_VERIFIED",
-              "evidence_urls": [],
-              "tested_sha": null
+              "status": "PASS",
+              "evidence_urls": [
+                "https://github.com/Johnathan-u/trust-copilot/actions/runs/42128715891",
+                "https://github.com/Johnathan-u/trust-copilot/blob/cfdca490c4b9722c154bfea1629d50c2dd9257bf/apps/api/app/core/keys.py",
+                "https://github.com/Johnathan-u/trust-copilot/blob/cfdca490c4b9722c154bfea1629d50c2dd9257bf/apps/api/app/core/key_rotation.py",
+                "https://github.com/Johnathan-u/trust-copilot/blob/cfdca490c4b9722c154bfea1629d50c2dd9257bf/apps/api/tests/release/test_key_rotation.py",
+                "https://github.com/Johnathan-u/trust-copilot/blob/cfdca490c4b9722c154bfea1629d50c2dd9257bf/artifacts/acceptance/TC-07-002/README.md",
+                "https://github.com/Johnathan-u/trust-copilot/blob/cfdca490c4b9722c154bfea1629d50c2dd9257bf/docs/release/tickets/TC-07-002.md",
+                "https://github.com/Johnathan-u/trust-copilot/pull/180#issuecomment-6671755163"
+              ],
+              "tested_sha": "cfdca490c4b9722c154bfea1629d50c2dd9257bf"
             },
             {
               "id": "TC-07-002-AC2",
-              "status": "NOT_VERIFIED",
-              "evidence_urls": [],
-              "tested_sha": null
+              "status": "PASS",
+              "evidence_urls": [
+                "https://github.com/Johnathan-u/trust-copilot/actions/runs/42128715891",
+                "https://github.com/Johnathan-u/trust-copilot/blob/cfdca490c4b9722c154bfea1629d50c2dd9257bf/apps/api/app/core/keys.py",
+                "https://github.com/Johnathan-u/trust-copilot/blob/cfdca490c4b9722c154bfea1629d50c2dd9257bf/apps/api/app/core/key_rotation.py",
+                "https://github.com/Johnathan-u/trust-copilot/blob/cfdca490c4b9722c154bfea1629d50c2dd9257bf/apps/api/tests/release/test_key_rotation.py",
+                "https://github.com/Johnathan-u/trust-copilot/blob/cfdca490c4b9722c154bfea1629d50c2dd9257bf/artifacts/acceptance/TC-07-002/README.md",
+                "https://github.com/Johnathan-u/trust-copilot/blob/cfdca490c4b9722c154bfea1629d50c2dd9257bf/docs/release/tickets/TC-07-002.md",
+                "https://github.com/Johnathan-u/trust-copilot/pull/180#issuecomment-6671755163"
+              ],
+              "tested_sha": "cfdca490c4b9722c154bfea1629d50c2dd9257bf"
             }
           ],
           "definition_of_done": [
             {
               "id": "TC-07-002-DOD1",
-              "status": "NOT_VERIFIED",
-              "evidence_urls": [],
-              "tested_sha": null
+              "status": "PASS",
+              "evidence_urls": [
+                "https://github.com/Johnathan-u/trust-copilot/actions/runs/42128715891",
+                "https://github.com/Johnathan-u/trust-copilot/blob/cfdca490c4b9722c154bfea1629d50c2dd9257bf/apps/api/app/core/keys.py",
+                "https://github.com/Johnathan-u/trust-copilot/blob/cfdca490c4b9722c154bfea1629d50c2dd9257bf/apps/api/app/core/key_rotation.py",
+                "https://github.com/Johnathan-u/trust-copilot/blob/cfdca490c4b9722c154bfea1629d50c2dd9257bf/apps/api/tests/release/test_key_rotation.py",
+                "https://github.com/Johnathan-u/trust-copilot/blob/cfdca490c4b9722c154bfea1629d50c2dd9257bf/artifacts/acceptance/TC-07-002/README.md",
+                "https://github.com/Johnathan-u/trust-copilot/blob/cfdca490c4b9722c154bfea1629d50c2dd9257bf/docs/release/tickets/TC-07-002.md",
+                "https://github.com/Johnathan-u/trust-copilot/pull/180#issuecomment-6671755163"
+              ],
+              "tested_sha": "cfdca490c4b9722c154bfea1629d50c2dd9257bf"
             },
             {
               "id": "TC-07-002-DOD2",
-              "status": "NOT_VERIFIED",
-              "evidence_urls": [],
-              "tested_sha": null
+              "status": "PASS",
+              "evidence_urls": [
+                "https://github.com/Johnathan-u/trust-copilot/actions/runs/42128715891",
+                "https://github.com/Johnathan-u/trust-copilot/blob/cfdca490c4b9722c154bfea1629d50c2dd9257bf/apps/api/app/core/keys.py",
+                "https://github.com/Johnathan-u/trust-copilot/blob/cfdca490c4b9722c154bfea1629d50c2dd9257bf/apps/api/app/core/key_rotation.py",
+                "https://github.com/Johnathan-u/trust-copilot/blob/cfdca490c4b9722c154bfea1629d50c2dd9257bf/apps/api/tests/release/test_key_rotation.py",
+                "https://github.com/Johnathan-u/trust-copilot/blob/cfdca490c4b9722c154bfea1629d50c2dd9257bf/artifacts/acceptance/TC-07-002/README.md",
+                "https://github.com/Johnathan-u/trust-copilot/blob/cfdca490c4b9722c154bfea1629d50c2dd9257bf/docs/release/tickets/TC-07-002.md",
+                "https://github.com/Johnathan-u/trust-copilot/pull/180#issuecomment-6671755163"
+              ],
+              "tested_sha": "cfdca490c4b9722c154bfea1629d50c2dd9257bf"
             },
             {
               "id": "TC-07-002-DOD3",
-              "status": "NOT_VERIFIED",
-              "evidence_urls": [],
-              "tested_sha": null
+              "status": "PASS",
+              "evidence_urls": [
+                "https://github.com/Johnathan-u/trust-copilot/actions/runs/42128715891",
+                "https://github.com/Johnathan-u/trust-copilot/blob/cfdca490c4b9722c154bfea1629d50c2dd9257bf/apps/api/app/core/keys.py",
+                "https://github.com/Johnathan-u/trust-copilot/blob/cfdca490c4b9722c154bfea1629d50c2dd9257bf/apps/api/app/core/key_rotation.py",
+                "https://github.com/Johnathan-u/trust-copilot/blob/cfdca490c4b9722c154bfea1629d50c2dd9257bf/apps/api/tests/release/test_key_rotation.py",
+                "https://github.com/Johnathan-u/trust-copilot/blob/cfdca490c4b9722c154bfea1629d50c2dd9257bf/artifacts/acceptance/TC-07-002/README.md",
+                "https://github.com/Johnathan-u/trust-copilot/blob/cfdca490c4b9722c154bfea1629d50c2dd9257bf/docs/release/tickets/TC-07-002.md",
+                "https://github.com/Johnathan-u/trust-copilot/pull/180#issuecomment-6671755163"
+              ],
+              "tested_sha": "cfdca490c4b9722c154bfea1629d50c2dd9257bf"
             },
             {
               "id": "TC-07-002-DOD4",
-              "status": "NOT_VERIFIED",
-              "evidence_urls": [],
-              "tested_sha": null
+              "status": "PASS",
+              "evidence_urls": [
+                "https://github.com/Johnathan-u/trust-copilot/actions/runs/42128715891",
+                "https://github.com/Johnathan-u/trust-copilot/blob/cfdca490c4b9722c154bfea1629d50c2dd9257bf/apps/api/app/core/keys.py",
+                "https://github.com/Johnathan-u/trust-copilot/blob/cfdca490c4b9722c154bfea1629d50c2dd9257bf/apps/api/app/core/key_rotation.py",
+                "https://github.com/Johnathan-u/trust-copilot/blob/cfdca490c4b9722c154bfea1629d50c2dd9257bf/apps/api/tests/release/test_key_rotation.py",
+                "https://github.com/Johnathan-u/trust-copilot/blob/cfdca490c4b9722c154bfea1629d50c2dd9257bf/artifacts/acceptance/TC-07-002/README.md",
+                "https://github.com/Johnathan-u/trust-copilot/blob/cfdca490c4b9722c154bfea1629d50c2dd9257bf/docs/release/tickets/TC-07-002.md",
+                "https://github.com/Johnathan-u/trust-copilot/pull/180#issuecomment-6671755163"
+              ],
+              "tested_sha": "cfdca490c4b9722c154bfea1629d50c2dd9257bf"
             },
             {
               "id": "TC-07-002-DOD5",
-              "status": "NOT_VERIFIED",
-              "evidence_urls": [],
-              "tested_sha": null
+              "status": "PASS",
+              "evidence_urls": [
+                "https://github.com/Johnathan-u/trust-copilot/actions/runs/42128715891",
+                "https://github.com/Johnathan-u/trust-copilot/blob/cfdca490c4b9722c154bfea1629d50c2dd9257bf/apps/api/app/core/keys.py",
+                "https://github.com/Johnathan-u/trust-copilot/blob/cfdca490c4b9722c154bfea1629d50c2dd9257bf/apps/api/app/core/key_rotation.py",
+                "https://github.com/Johnathan-u/trust-copilot/blob/cfdca490c4b9722c154bfea1629d50c2dd9257bf/apps/api/tests/release/test_key_rotation.py",
+                "https://github.com/Johnathan-u/trust-copilot/blob/cfdca490c4b9722c154bfea1629d50c2dd9257bf/artifacts/acceptance/TC-07-002/README.md",
+                "https://github.com/Johnathan-u/trust-copilot/blob/cfdca490c4b9722c154bfea1629d50c2dd9257bf/docs/release/tickets/TC-07-002.md",
+                "https://github.com/Johnathan-u/trust-copilot/pull/180#issuecomment-6671755163",
+                "https://github.com/Johnathan-u/trust-copilot/pull/183"
+              ],
+              "tested_sha": "cfdca490c4b9722c154bfea1629d50c2dd9257bf"
             }
           ],
-          "note": "Full original-parent acceptance is pending baseline validation; merged work and artifact presence alone confer no acceptance."
+          "note": "Implemented in #93; verified and UI completed in #180 (reviewed head aad317b, merged at 01f51a3 = aad317b plus a master merge with identical PR files; merge cfdca49 has the same tree). Independent security review accepted; master CI green. Owner sign-off on key custody recorded as OD-13 (#183). Limits: keyrings are environment variables (no KMS); four distinct production keyrings not yet enforced (TC-07-002a); no sole-admin MFA recovery and no keyring backup; no e2e test of the enrolment screen or Members reset button."
         },
         "pr_links": [
           {
@@ -22016,7 +22083,16 @@ window.TRUSTCOPILOT_BACKLOG = {
           "release_gate_ids": []
         }
       },
-      "followups": []
+      "followups": [
+        {
+          "id": "TC-07-002a",
+          "title": "Require four distinct production keyrings; key rotation and recovery runbook",
+          "parent_id": "TC-07-002",
+          "story_points": 2,
+          "source_url": "https://github.com/Johnathan-u/trust-copilot/blob/1e3da404abb1b5631dba721135c36e844bc42167/docs/release/tickets/TC-07-002a.md",
+          "source_path": "docs/release/tickets/TC-07-002a.md"
+        }
+      ]
     },
     {
       "id": "TC-07-003",
@@ -125768,6 +125844,293 @@ window.TRUSTCOPILOT_BACKLOG = {
           }
         }
       }
+    },
+    {
+      "revision": 12,
+      "at": "2026-11-06T18:03:10Z",
+      "actor": "claude",
+      "reason": "TC-07-002 accepted: #180 merged cfdca49 (master CI 42128715891), independent security review, owner sign-off OD-13 (#183); follow-up TC-07-002a (SCRUM-551) added",
+      "source_sha": "90146e0cfe2220beb3e43f98f6073262f7c0abfb",
+      "before": {
+        "scope_version": 1,
+        "accepted_points": null,
+        "completion_percentage": null,
+        "assessed_tickets": 13,
+        "total_tickets": 384,
+        "total_points": 1864,
+        "state_counts": {
+          "BASELINE_RECONCILIATION": 303,
+          "BLOCKED": 3,
+          "DONE": 13,
+          "EVIDENCE_RECONCILIATION": 43,
+          "IMPLEMENTATION_GAPS_IDENTIFIED": 22
+        },
+        "accepted_claim_points": 53,
+        "accepted_tickets": 13,
+        "baseline_status": "PENDING"
+      },
+      "after": {
+        "scope_version": 1,
+        "accepted_points": null,
+        "completion_percentage": null,
+        "assessed_tickets": 14,
+        "total_tickets": 384,
+        "total_points": 1864,
+        "state_counts": {
+          "BASELINE_RECONCILIATION": 303,
+          "BLOCKED": 3,
+          "DONE": 14,
+          "EVIDENCE_RECONCILIATION": 42,
+          "IMPLEMENTATION_GAPS_IDENTIFIED": 22
+        },
+        "accepted_claim_points": 58,
+        "accepted_tickets": 14,
+        "baseline_status": "PENDING"
+      },
+      "changes": {
+        "tickets": {
+          "TC-07-002": {
+            "status": {
+              "before": "EVIDENCE_RECONCILIATION",
+              "after": "DONE"
+            },
+            "evidence_state": {
+              "before": "EVIDENCE_RECONCILIATION",
+              "after": "VERIFIED_ACCEPTED"
+            },
+            "next_action": {
+              "before": "Reconcile existing implementation and evidence against all original acceptance criteria before declaring Done or estimating only the remaining scope.",
+              "after": "Accepted. Follow-ups: TC-07-002a (enforce four distinct production keyrings) and an operator runbook for key rotation and sole-admin MFA recovery (OD-13)."
+            },
+            "updated_at": {
+              "before": "2026-10-30T09:49:19Z",
+              "after": "2026-11-06T18:03:10Z"
+            },
+            "source_sha": {
+              "before": "b2bd1e0df5cdeb03b8d0cd240f5a161835ea621d",
+              "after": "90146e0cfe2220beb3e43f98f6073262f7c0abfb"
+            },
+            "acceptance": {
+              "before": {
+                "state": "PENDING",
+                "assessed_by": null,
+                "assessed_at": null,
+                "assessed_sha": null,
+                "assessment_evidence_urls": [],
+                "tested_sha": null,
+                "implemented_by": [],
+                "independent_reviewer": null,
+                "reviewed_at": null,
+                "reviewed_sha": null,
+                "review_evidence_urls": [],
+                "criteria": [
+                  {
+                    "id": "TC-07-002-AC1",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  },
+                  {
+                    "id": "TC-07-002-AC2",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  }
+                ],
+                "definition_of_done": [
+                  {
+                    "id": "TC-07-002-DOD1",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  },
+                  {
+                    "id": "TC-07-002-DOD2",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  },
+                  {
+                    "id": "TC-07-002-DOD3",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  },
+                  {
+                    "id": "TC-07-002-DOD4",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  },
+                  {
+                    "id": "TC-07-002-DOD5",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  }
+                ],
+                "note": "Full original-parent acceptance is pending baseline validation; merged work and artifact presence alone confer no acceptance."
+              },
+              "after": {
+                "state": "ACCEPTED",
+                "assessed_by": "claude-review-agent",
+                "assessed_at": "2026-11-06T18:02:10Z",
+                "assessed_sha": "cfdca490c4b9722c154bfea1629d50c2dd9257bf",
+                "assessment_evidence_urls": [
+                  "https://github.com/Johnathan-u/trust-copilot/actions/runs/42128715891",
+                  "https://github.com/Johnathan-u/trust-copilot/pull/180#issuecomment-6671755163",
+                  "https://github.com/Johnathan-u/trust-copilot/pull/180#issuecomment-6672088146",
+                  "https://github.com/Johnathan-u/trust-copilot/pull/183"
+                ],
+                "tested_sha": "cfdca490c4b9722c154bfea1629d50c2dd9257bf",
+                "implemented_by": [
+                  "Johnathan-u",
+                  "grok"
+                ],
+                "independent_reviewer": "claude-review-agent",
+                "reviewed_at": "2026-11-06T18:02:10Z",
+                "reviewed_sha": "cfdca490c4b9722c154bfea1629d50c2dd9257bf",
+                "review_evidence_urls": [
+                  "https://github.com/Johnathan-u/trust-copilot/pull/180#issuecomment-6671755163",
+                  "https://github.com/Johnathan-u/trust-copilot/pull/180#issuecomment-6672088146"
+                ],
+                "criteria": [
+                  {
+                    "id": "TC-07-002-AC1",
+                    "status": "PASS",
+                    "evidence_urls": [
+                      "https://github.com/Johnathan-u/trust-copilot/actions/runs/42128715891",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/cfdca490c4b9722c154bfea1629d50c2dd9257bf/apps/api/app/core/keys.py",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/cfdca490c4b9722c154bfea1629d50c2dd9257bf/apps/api/app/core/key_rotation.py",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/cfdca490c4b9722c154bfea1629d50c2dd9257bf/apps/api/tests/release/test_key_rotation.py",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/cfdca490c4b9722c154bfea1629d50c2dd9257bf/artifacts/acceptance/TC-07-002/README.md",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/cfdca490c4b9722c154bfea1629d50c2dd9257bf/docs/release/tickets/TC-07-002.md",
+                      "https://github.com/Johnathan-u/trust-copilot/pull/180#issuecomment-6671755163"
+                    ],
+                    "tested_sha": "cfdca490c4b9722c154bfea1629d50c2dd9257bf"
+                  },
+                  {
+                    "id": "TC-07-002-AC2",
+                    "status": "PASS",
+                    "evidence_urls": [
+                      "https://github.com/Johnathan-u/trust-copilot/actions/runs/42128715891",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/cfdca490c4b9722c154bfea1629d50c2dd9257bf/apps/api/app/core/keys.py",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/cfdca490c4b9722c154bfea1629d50c2dd9257bf/apps/api/app/core/key_rotation.py",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/cfdca490c4b9722c154bfea1629d50c2dd9257bf/apps/api/tests/release/test_key_rotation.py",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/cfdca490c4b9722c154bfea1629d50c2dd9257bf/artifacts/acceptance/TC-07-002/README.md",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/cfdca490c4b9722c154bfea1629d50c2dd9257bf/docs/release/tickets/TC-07-002.md",
+                      "https://github.com/Johnathan-u/trust-copilot/pull/180#issuecomment-6671755163"
+                    ],
+                    "tested_sha": "cfdca490c4b9722c154bfea1629d50c2dd9257bf"
+                  }
+                ],
+                "definition_of_done": [
+                  {
+                    "id": "TC-07-002-DOD1",
+                    "status": "PASS",
+                    "evidence_urls": [
+                      "https://github.com/Johnathan-u/trust-copilot/actions/runs/42128715891",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/cfdca490c4b9722c154bfea1629d50c2dd9257bf/apps/api/app/core/keys.py",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/cfdca490c4b9722c154bfea1629d50c2dd9257bf/apps/api/app/core/key_rotation.py",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/cfdca490c4b9722c154bfea1629d50c2dd9257bf/apps/api/tests/release/test_key_rotation.py",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/cfdca490c4b9722c154bfea1629d50c2dd9257bf/artifacts/acceptance/TC-07-002/README.md",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/cfdca490c4b9722c154bfea1629d50c2dd9257bf/docs/release/tickets/TC-07-002.md",
+                      "https://github.com/Johnathan-u/trust-copilot/pull/180#issuecomment-6671755163"
+                    ],
+                    "tested_sha": "cfdca490c4b9722c154bfea1629d50c2dd9257bf"
+                  },
+                  {
+                    "id": "TC-07-002-DOD2",
+                    "status": "PASS",
+                    "evidence_urls": [
+                      "https://github.com/Johnathan-u/trust-copilot/actions/runs/42128715891",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/cfdca490c4b9722c154bfea1629d50c2dd9257bf/apps/api/app/core/keys.py",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/cfdca490c4b9722c154bfea1629d50c2dd9257bf/apps/api/app/core/key_rotation.py",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/cfdca490c4b9722c154bfea1629d50c2dd9257bf/apps/api/tests/release/test_key_rotation.py",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/cfdca490c4b9722c154bfea1629d50c2dd9257bf/artifacts/acceptance/TC-07-002/README.md",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/cfdca490c4b9722c154bfea1629d50c2dd9257bf/docs/release/tickets/TC-07-002.md",
+                      "https://github.com/Johnathan-u/trust-copilot/pull/180#issuecomment-6671755163"
+                    ],
+                    "tested_sha": "cfdca490c4b9722c154bfea1629d50c2dd9257bf"
+                  },
+                  {
+                    "id": "TC-07-002-DOD3",
+                    "status": "PASS",
+                    "evidence_urls": [
+                      "https://github.com/Johnathan-u/trust-copilot/actions/runs/42128715891",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/cfdca490c4b9722c154bfea1629d50c2dd9257bf/apps/api/app/core/keys.py",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/cfdca490c4b9722c154bfea1629d50c2dd9257bf/apps/api/app/core/key_rotation.py",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/cfdca490c4b9722c154bfea1629d50c2dd9257bf/apps/api/tests/release/test_key_rotation.py",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/cfdca490c4b9722c154bfea1629d50c2dd9257bf/artifacts/acceptance/TC-07-002/README.md",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/cfdca490c4b9722c154bfea1629d50c2dd9257bf/docs/release/tickets/TC-07-002.md",
+                      "https://github.com/Johnathan-u/trust-copilot/pull/180#issuecomment-6671755163"
+                    ],
+                    "tested_sha": "cfdca490c4b9722c154bfea1629d50c2dd9257bf"
+                  },
+                  {
+                    "id": "TC-07-002-DOD4",
+                    "status": "PASS",
+                    "evidence_urls": [
+                      "https://github.com/Johnathan-u/trust-copilot/actions/runs/42128715891",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/cfdca490c4b9722c154bfea1629d50c2dd9257bf/apps/api/app/core/keys.py",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/cfdca490c4b9722c154bfea1629d50c2dd9257bf/apps/api/app/core/key_rotation.py",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/cfdca490c4b9722c154bfea1629d50c2dd9257bf/apps/api/tests/release/test_key_rotation.py",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/cfdca490c4b9722c154bfea1629d50c2dd9257bf/artifacts/acceptance/TC-07-002/README.md",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/cfdca490c4b9722c154bfea1629d50c2dd9257bf/docs/release/tickets/TC-07-002.md",
+                      "https://github.com/Johnathan-u/trust-copilot/pull/180#issuecomment-6671755163"
+                    ],
+                    "tested_sha": "cfdca490c4b9722c154bfea1629d50c2dd9257bf"
+                  },
+                  {
+                    "id": "TC-07-002-DOD5",
+                    "status": "PASS",
+                    "evidence_urls": [
+                      "https://github.com/Johnathan-u/trust-copilot/actions/runs/42128715891",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/cfdca490c4b9722c154bfea1629d50c2dd9257bf/apps/api/app/core/keys.py",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/cfdca490c4b9722c154bfea1629d50c2dd9257bf/apps/api/app/core/key_rotation.py",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/cfdca490c4b9722c154bfea1629d50c2dd9257bf/apps/api/tests/release/test_key_rotation.py",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/cfdca490c4b9722c154bfea1629d50c2dd9257bf/artifacts/acceptance/TC-07-002/README.md",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/cfdca490c4b9722c154bfea1629d50c2dd9257bf/docs/release/tickets/TC-07-002.md",
+                      "https://github.com/Johnathan-u/trust-copilot/pull/180#issuecomment-6671755163",
+                      "https://github.com/Johnathan-u/trust-copilot/pull/183"
+                    ],
+                    "tested_sha": "cfdca490c4b9722c154bfea1629d50c2dd9257bf"
+                  }
+                ],
+                "note": "Implemented in #93; verified and UI completed in #180 (reviewed head aad317b, merged at 01f51a3 = aad317b plus a master merge with identical PR files; merge cfdca49 has the same tree). Independent security review accepted; master CI green. Owner sign-off on key custody recorded as OD-13 (#183). Limits: keyrings are environment variables (no KMS); four distinct production keyrings not yet enforced (TC-07-002a); no sole-admin MFA recovery and no keyring backup; no e2e test of the enrolment screen or Members reset button."
+              }
+            }
+          }
+        },
+        "followups": {
+          "TC-07-002a": {
+            "id": {
+              "before": null,
+              "after": "TC-07-002a"
+            },
+            "title": {
+              "before": null,
+              "after": "Require four distinct production keyrings; key rotation and recovery runbook"
+            },
+            "parent_id": {
+              "before": null,
+              "after": "TC-07-002"
+            },
+            "story_points": {
+              "before": null,
+              "after": 2
+            },
+            "source_url": {
+              "before": null,
+              "after": "https://github.com/Johnathan-u/trust-copilot/blob/1e3da404abb1b5631dba721135c36e844bc42167/docs/release/tickets/TC-07-002a.md"
+            },
+            "source_path": {
+              "before": null,
+              "after": "docs/release/tickets/TC-07-002a.md"
+            }
+          }
+        }
+      }
     }
   ],
   "followups": [
@@ -126210,6 +126573,14 @@ window.TRUSTCOPILOT_BACKLOG = {
       "story_points": 3,
       "source_url": "https://github.com/Johnathan-u/trust-copilot/blob/10976495c581d0a5191c81be58a5a9337157d406/docs/release/tickets/TC-15-039d.md",
       "source_path": "docs/release/tickets/TC-15-039d.md"
+    },
+    {
+      "id": "TC-07-002a",
+      "title": "Require four distinct production keyrings; key rotation and recovery runbook",
+      "parent_id": "TC-07-002",
+      "story_points": 2,
+      "source_url": "https://github.com/Johnathan-u/trust-copilot/blob/1e3da404abb1b5631dba721135c36e844bc42167/docs/release/tickets/TC-07-002a.md",
+      "source_path": "docs/release/tickets/TC-07-002a.md"
     }
   ],
   "pull_requests": [
@@ -130597,7 +130968,7 @@ window.TRUSTCOPILOT_BACKLOG = {
       "build": "python scripts/backlog_tracker.py build",
       "check": "python scripts/backlog_tracker.py check",
       "summary": "python scripts/backlog_tracker.py summary",
-      "update": "python scripts/backlog_tracker.py update --expected-revision 11 --actor YOUR_ID --reason 'Evidence reconciliation' --patch /tmp/backlog-patch.json",
+      "update": "python scripts/backlog_tracker.py update --expected-revision 12 --actor YOUR_ID --reason 'Evidence reconciliation' --patch /tmp/backlog-patch.json",
       "tests": "python -m unittest discover -s scripts/tests -p 'test_backlog_tracker.py' -v"
     }
   }
