@@ -19,6 +19,7 @@ forms run the same 21 tests.
 | Item | Value |
 |---|---|
 | Base (origin/master when the branch was cut) | `2cfe041682ed1636bb4ac9a0c5dc53980b21de3f` |
+| Code commit the transcript was run against | `5c2535c5f273cc27d46f98179fb8621b18fa6627` |
 | Exit | 0 |
 | Totals | **21 passed**, 0 skipped, 0 failed (2.98s) |
 | Transcript | [`pytest-q.txt`](pytest-q.txt) |
