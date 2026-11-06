@@ -1,0 +1,8 @@
+Each file was rewritten by the Playwright spec and matches the copy already on product SHA 2cfe041. violationCount is 0 in every file. No critical or serious impact is present.
+
+axe-dark-360.json violationCount 0 viewport 360 theme dark
+axe-dark-768.json violationCount 0 viewport 768 theme dark
+axe-dark-1440.json violationCount 0 viewport 1440 theme dark
+axe-light-360.json violationCount 0 viewport 360 theme light
+axe-light-768.json violationCount 0 viewport 768 theme light
+axe-light-1440.json violationCount 0 viewport 1440 theme light

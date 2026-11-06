@@ -1,0 +1,45 @@
+{
+  "ticket": "TC-14-001",
+  "productSha": "2cfe041682ed1636bb4ac9a0c5dc53980b21de3f",
+  "observationUtc": "2026-11-06T19:01:25Z",
+  "environment": {
+    "os": "Linux 6.12.113+ x86_64",
+    "node": "v24.22.1",
+    "npm": "11.19.1",
+    "next": "16.4.3",
+    "typescript": "6.0.3",
+    "eslint": "10.13.0",
+    "prettier": "3.9.10",
+    "vitest": "5.0.5",
+    "playwright": "1.64.1",
+    "chromium": "chromium-1248",
+    "axePlaywright": "4.14.0",
+    "cwd": "apps/web"
+  },
+  "runs": [
+    {
+      "command": "npm ci --ignore-scripts --no-audit --no-fund",
+      "exitStatus": 0,
+      "packages": 399
+    },
+    {
+      "command": "npx playwright test e2e/release/design-tokens.spec.ts --retries=0",
+      "exitStatus": 0,
+      "passed": 4,
+      "failed": 0,
+      "skipped": 0,
+      "themes": ["dark", "light"],
+      "viewports": [360, 768, 1440],
+      "axeCriticalOrSerious": 0,
+      "axeViolationCount": 0
+    },
+    {
+      "command": "npm run test:unit",
+      "exitStatus": 0,
+      "filesPassed": 47,
+      "passed": 441,
+      "failed": 0
+    }
+  ],
+  "notes": "Product sources match tested-inputs.sha256 on the product SHA. Screenshots and axe JSON were rewritten by the spec and were byte-identical to that SHA. No credentials or customer data."
+}

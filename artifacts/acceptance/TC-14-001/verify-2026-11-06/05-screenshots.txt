@@ -1,0 +1,12 @@
+The spec rewrote artifacts/acceptance/TC-14-001/screenshots. git diff against 2cfe041 was empty for those PNGs and for the axe JSON, so the pixels match the files already on that commit.
+
+theme-dark-360.png 360x6114
+theme-dark-768.png 768x3634
+theme-dark-1440.png 1440x3634
+theme-light-360.png 360x6114
+theme-light-768.png 768x3634
+theme-light-1440.png 1440x3634
+
+Keyboard check: the spec tabs to the primary action, requires a focus outline of at least 2px, and requires the outline color to clear 3:1 against the page surface and the primary glow surface. The focused control stays inside the viewport.
+Reduced motion: the primary action transition duration computes to 0s.
+Unknown theme query: html does not receive data-theme=light, and --tc-bg stays the dark token.

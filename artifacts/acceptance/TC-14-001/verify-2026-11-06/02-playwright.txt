@@ -1,0 +1,17 @@
+command: npx playwright test e2e/release/design-tokens.spec.ts --retries=0
+cwd: apps/web
+product_sha: 2cfe041682ed1636bb4ac9a0c5dc53980b21de3f
+
+Running 4 tests using 1 worker
+
+  ok 1 [chromium] e2e/release/design-tokens.spec.ts:133 design tokens › dark theme renders shared tokens, contrast, focus and has no serious axe violations (3.8s)
+  ok 2 [chromium] e2e/release/design-tokens.spec.ts:133 design tokens › light theme renders shared tokens, contrast, focus and has no serious axe violations (2.4s)
+  ok 3 [chromium] e2e/release/design-tokens.spec.ts:298 design tokens › reduced motion zeroes interaction durations (533ms)
+  ok 4 [chromium] e2e/release/design-tokens.spec.ts:309 design tokens › an unknown theme query keeps the default dark tokens (493ms)
+
+4 passed (14.8s)
+exit 0
+failed 0
+skipped 0
+
+The Next dev server printed a hydration warning. The Playwright init script and the page boot script set data-theme on the html element before hydration, and the server HTML does not include that attribute. The four assertions still passed. Axe reported 0 violations on #token-showcase. This log contains no credentials or customer content.

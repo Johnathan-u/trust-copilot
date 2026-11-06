@@ -10,7 +10,7 @@ import { FRAMEWORK_OPTIONS, SUBJECT_AREA_OPTIONS } from '@/lib/listMetadata'
 
 export function DisplayIdText({ value }: { value: string }) {
   return (
-    <code className="rounded-md border border-[var(--tc-border)] bg-white/5 px-2 py-0.5 text-xs text-[var(--tc-soft)]">
+    <code className="rounded-md border border-[var(--tc-border)] bg-tc-surface-sunken px-2 py-0.5 text-xs text-[var(--tc-soft)]">
       {value}
     </code>
   )
@@ -310,7 +310,7 @@ export function MetadataEditorModal({
                     subject_areas: selectedSubjects,
                   })
                 }
-                className={`rounded-xl border px-2 py-1 text-xs ${selectedFrameworks.includes(f) ? 'border-[rgba(91,124,255,0.4)] bg-[rgba(91,124,255,0.2)]' : 'border-[var(--tc-border)] bg-white/5'}`}
+                className={`rounded-xl border px-2 py-1 text-xs text-tc-text ${selectedFrameworks.includes(f) ? 'border-[var(--tc-nav-active-border)] bg-[var(--tc-nav-active-bg)]' : 'border-[var(--tc-border)] bg-tc-surface-sunken'}`}
               >
                 {f}
               </button>
@@ -330,7 +330,7 @@ export function MetadataEditorModal({
                     subject_areas: toggle(selectedSubjects, s),
                   })
                 }
-                className={`rounded-xl border px-2 py-1 text-xs ${selectedSubjects.includes(s) ? 'border-[rgba(91,124,255,0.4)] bg-[rgba(91,124,255,0.2)]' : 'border-[var(--tc-border)] bg-white/5'}`}
+                className={`rounded-xl border px-2 py-1 text-xs text-tc-text ${selectedSubjects.includes(s) ? 'border-[var(--tc-nav-active-border)] bg-[var(--tc-nav-active-bg)]' : 'border-[var(--tc-border)] bg-tc-surface-sunken'}`}
               >
                 {s}
               </button>

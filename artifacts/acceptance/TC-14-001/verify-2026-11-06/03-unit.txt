@@ -1,0 +1,11 @@
+command: npm run test:unit
+cwd: apps/web
+product_sha: 2cfe041682ed1636bb4ac9a0c5dc53980b21de3f
+
+Test Files  47 passed (47)
+Tests  441 passed (441)
+Duration  4.82s
+exit 0
+
+The summary line lists 441 passed and does not list failed, skipped, or todo tests.
+lib/design-tokens.test.ts covers the 4px spacing scale, the light and dark CSS variables, and the WCAG 2.2 AA pairs, including the denial case that a known failing combination is rejected.
