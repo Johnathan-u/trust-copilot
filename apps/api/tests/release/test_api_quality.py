@@ -11,10 +11,13 @@ Two layers:
 * Static policy checks read repository files only. Each policy function is also
   exercised against synthetic bad inputs so it cannot pass vacuously.
 * Execution checks run ruff, mypy and ``tests/unit`` from apps/api. The unit
-  run points ``TC_TEST_DATABASE_URL`` at a closed local port. A child process
-  then patches job classification so an unexplained failure becomes retryable;
-  the unit suite must fail. Set ``TC_REQUIRE_API_QUALITY=1`` (CI does) to turn
-  a missing ruff/mypy into an error instead of a skip.
+  run points ``TC_TEST_DATABASE_URL`` at a closed local port and drops
+  ``TC_REQUIRE_DB``. CI sets that flag on the parent pytest step;
+  ``pytest_sessionstart`` would otherwise try to migrate the closed port and
+  exit 3 before any unit test runs. A child process then patches job
+  classification so an unexplained failure becomes retryable; the unit suite
+  must fail. Set ``TC_REQUIRE_API_QUALITY=1`` (CI does) to turn a missing
+  ruff or mypy into an error instead of a skip.
 
 No network, production system or external account is contacted.
 """
@@ -503,10 +506,26 @@ needs_tools = pytest.mark.skipif(
 )
 
 
-def _run(args: list[str], cwd: Path = API, env: dict | None = None, timeout: int = 180):
-    merged = os.environ.copy()
-    if env:
-        merged.update(env)
+def _run(
+    args: list[str],
+    cwd: Path = API,
+    env: dict | None = None,
+    timeout: int = 180,
+    *,
+    replace: bool = False,
+):
+    """Run a command. ``replace`` uses ``env`` as the whole environment.
+
+    The default copies the parent environment and applies ``env`` on top.
+    That copy puts ``TC_REQUIRE_DB`` back when the override only omits it,
+    so the unit-suite child passes ``replace=True``.
+    """
+    if replace:
+        merged = dict(env or {})
+    else:
+        merged = os.environ.copy()
+        if env:
+            merged.update(env)
     return subprocess.run(
         args,
         cwd=cwd,
@@ -602,24 +621,76 @@ def test_installed_ruff_and_mypy_match_the_pins():
     assert f"mypy {next(iter(specs['mypy'].specifier)).version}" in mypy.stdout
 
 
-def _unit_env(extra: dict | None = None) -> dict:
-    env = {
-        "TC_TEST_DATABASE_URL": CLOSED_DB_URL,
-        "TRUST_COPILOT_TESTING": "1",
-        "TC_REQUIRE_API_QUALITY": "",
-    }
+def child_unit_environ(extra: dict | None = None) -> dict[str, str]:
+    """Environment for a ``tests/unit`` child.
+
+    The closed port proves the suite does not open a database. ``TC_REQUIRE_DB``
+    is removed, not inherited: with it set, ``pytest_sessionstart`` migrates
+    before collection and exits 3 when that port is closed (CI sets the flag
+    on the parent).
+    """
+    env = {key: value for key, value in os.environ.items()}
+    env.pop("TC_REQUIRE_DB", None)
+    env["TC_TEST_DATABASE_URL"] = CLOSED_DB_URL
+    env["TRUST_COPILOT_TESTING"] = "1"
+    env["TC_REQUIRE_API_QUALITY"] = ""
     if extra:
         env.update(extra)
     return env
 
 
+def unit_child_env_problems(env: dict[str, str]) -> list[str]:
+    """Reject a child that still requires Postgres or no longer uses the closed port."""
+    problems = []
+    if env.get("TC_REQUIRE_DB") == "1":
+        problems.append("child still has TC_REQUIRE_DB=1")
+    url = env.get("TC_TEST_DATABASE_URL") or ""
+    if url != CLOSED_DB_URL or "127.0.0.1:1" not in url:
+        problems.append("child database URL is not the closed 127.0.0.1:1 port")
+    return problems
+
+
+def _assert_unit_child_ran(output: str) -> None:
+    assert "TC_REQUIRE_DB=1:" not in output
+    assert "Postgres test database unavailable" not in output
+
+
+def test_unit_child_env_drops_parent_database_requirement(monkeypatch):
+    """Parent CI sets TC_REQUIRE_DB=1. The child must not keep it."""
+    monkeypatch.setenv("TC_REQUIRE_DB", "1")
+    monkeypatch.setenv(
+        "TC_TEST_DATABASE_URL",
+        "postgresql://postgres:postgres@127.0.0.1:5432/trustcopilot_test",
+    )
+    env = child_unit_environ()
+    assert unit_child_env_problems(env) == []
+    assert "TC_REQUIRE_DB" not in env
+
+
+def test_rejects_a_child_env_that_still_requires_the_database():
+    kept = child_unit_environ()
+    kept["TC_REQUIRE_DB"] = "1"
+    assert unit_child_env_problems(kept) == ["child still has TC_REQUIRE_DB=1"]
+    moved = child_unit_environ()
+    moved["TC_TEST_DATABASE_URL"] = (
+        "postgresql://postgres:postgres@127.0.0.1:5432/trustcopilot_test"
+    )
+    assert unit_child_env_problems(moved) == [
+        "child database URL is not the closed 127.0.0.1:1 port"
+    ]
+
+
 @needs_tools
 def test_unit_suite_passes_with_the_database_port_closed():
+    env = child_unit_environ()
+    assert unit_child_env_problems(env) == []
     result = _run(
         [sys.executable, "-m", "pytest", "tests/unit", "-q", "-p", "no:cacheprovider", "-rs"],
-        env=_unit_env(),
+        env=env,
+        replace=True,
     )
     output = result.stdout + result.stderr
+    _assert_unit_child_ran(output)
     assert result.returncode == 0, output
     assert "skipped" not in output
     assert "failed" not in output
@@ -643,7 +714,10 @@ def test_unit_suite_fails_when_unknown_errors_become_retryable(probe_dir: Path):
         "    job_errors._classify = _regressed\n",
         encoding="utf-8",
     )
-    env = _unit_env({"PYTHONPATH": str(probe_dir) + os.pathsep + os.environ.get("PYTHONPATH", "")})
+    env = child_unit_environ(
+        {"PYTHONPATH": str(probe_dir) + os.pathsep + os.environ.get("PYTHONPATH", "")}
+    )
+    assert unit_child_env_problems(env) == []
     result = _run(
         [
             sys.executable,
@@ -657,8 +731,10 @@ def test_unit_suite_fails_when_unknown_errors_become_retryable(probe_dir: Path):
             "tc_api_quality_regression",
         ],
         env=env,
+        replace=True,
     )
     output = result.stdout + result.stderr
+    _assert_unit_child_ran(output)
     assert result.returncode != 0, output
     assert "test_unknown_exception_is_terminal" in output
     assert "unknown failures must stay terminal" in output

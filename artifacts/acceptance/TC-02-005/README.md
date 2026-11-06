@@ -1,27 +1,28 @@
 # TC-02-005 acceptance evidence: backend lint, type and unit checks
 
-No production host, paid API or external account was contacted. The unit run points
-`TC_TEST_DATABASE_URL` at `127.0.0.1:1` (closed). Postgres was not started. No credential
-values are recorded here.
+No production host, paid API or external account was contacted. The unit child points
+`TC_TEST_DATABASE_URL` at `127.0.0.1:1` (closed) and does not inherit `TC_REQUIRE_DB`.
+No credential values are recorded here.
 
 ## Command
 
 Working directory `apps/api`. Interpreter: the dev lock (`requirements-dev.lock`) on Python 3.11.
 
 ```bash
-TC_REQUIRE_API_QUALITY=1 python -m pytest tests/release/test_api_quality.py -q
+TC_REQUIRE_DB=1 TC_REQUIRE_API_QUALITY=1 python -m pytest tests/release/test_api_quality.py -q
 ```
 
-The ticket command is the same pytest invocation. `TC_REQUIRE_API_QUALITY=1` is what CI sets so a
-missing ruff or mypy fails the session instead of skipping. With both tools installed the two
-forms run the same 21 tests.
+CI sets both variables on the parent pytest step. `TC_REQUIRE_API_QUALITY=1` fails the session when
+ruff or mypy is missing. `TC_REQUIRE_DB=1` makes the parent migrate the real test database. The unit
+child drops that flag and keeps the closed port. The first transcript on `5c2535c` was 21 passed
+without `TC_REQUIRE_DB` in the parent; that is why CI then exited 3 inside the child.
 
 | Item | Value |
 |---|---|
 | Base (origin/master when the branch was cut) | `2cfe041682ed1636bb4ac9a0c5dc53980b21de3f` |
-| Code commit the transcript was run against | `5c2535c5f273cc27d46f98179fb8621b18fa6627` |
+| First code commit (21 passed, parent without `TC_REQUIRE_DB`) | `5c2535c5f273cc27d46f98179fb8621b18fa6627` |
 | Exit | 0 |
-| Totals | **21 passed**, 0 skipped, 0 failed (2.98s) |
+| Totals | **23 passed**, 0 skipped, 0 failed (3.21s) |
 | Transcript | [`pytest-q.txt`](pytest-q.txt) |
 | Unit suite alone, closed database port | **15 passed**, 0 skipped, 0 failed (0.61s) — [`unit-q.txt`](unit-q.txt) |
 | `ruff check --select E,F,I,B` on the six critical modules | exit 0 |
@@ -42,7 +43,7 @@ forms run the same 21 tests.
 `requirements.lock` is unchanged. `requirements-dev.lock` adds mypy 2.4.1 and its dependencies
 (mypy-extensions 1.2.0, pathspec 1.1.1, librt 0.16.0, ast-serialize 0.13.1).
 
-## What the 21 tests cover
+## What the 23 tests cover
 
 Static checks: the mypy `files` list is the six critical modules, mypy is strict on that list,
 ruff has no blanket ignore, the modules have no code-less `noqa` or `type: ignore`, ruff and mypy
@@ -55,6 +56,7 @@ Execution checks: ruff and mypy pass on the committed scope; ruff fails on unsor
 a mutable default (`B006`) and an undefined name (`F821`); a `# noqa` with no code hides the undefined
 name from ruff and the policy check still rejects it; mypy fails on a bare `# type: ignore`
 (`ignore-without-code`); the unit suite passes against the closed port; patching unexplained failures
-to `timeout` makes `test_unknown_exception_is_terminal` fail.
+to `timeout` makes `test_unknown_exception_is_terminal` fail. A parent `TC_REQUIRE_DB=1` is dropped
+before the child starts, and a child that still has that flag or a different database URL is rejected.
 
 Independent reviewer sign-off is not part of this file. The implementer does not accept the result.
