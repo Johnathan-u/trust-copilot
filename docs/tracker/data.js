@@ -4,8 +4,8 @@ window.TRUSTCOPILOT_BACKLOG = {
     "title": "TrustCopilot backlog information radiator",
     "schema_version": 1,
     "scope_version": 1,
-    "revision": 12,
-    "as_of_utc": "2026-11-06T18:03:10Z",
+    "revision": 13,
+    "as_of_utc": "2026-11-06T20:52:20Z",
     "source_sha": "90146e0cfe2220beb3e43f98f6073262f7c0abfb",
     "baseline_status": "PENDING",
     "metric_label": "Accepted original-parent points",
@@ -15,18 +15,18 @@ window.TRUSTCOPILOT_BACKLOG = {
   "summary": {
     "accepted_points": null,
     "completion_percentage": null,
-    "assessed_tickets": 14,
+    "assessed_tickets": 15,
     "total_tickets": 384,
     "total_points": 1864,
     "state_counts": {
-      "BASELINE_RECONCILIATION": 303,
+      "BASELINE_RECONCILIATION": 302,
       "BLOCKED": 3,
-      "DONE": 14,
+      "DONE": 15,
       "EVIDENCE_RECONCILIATION": 42,
       "IMPLEMENTATION_GAPS_IDENTIFIED": 22
     },
-    "accepted_claim_points": 58,
-    "accepted_tickets": 14,
+    "accepted_claim_points": 61,
+    "accepted_tickets": 15,
     "baseline_status": "PENDING"
   },
   "source_metadata": {
@@ -129,12 +129,12 @@ window.TRUSTCOPILOT_BACKLOG = {
       "rollup": {
         "total_tickets": 9,
         "total_points": 36,
-        "assessed_tickets": 4,
-        "accepted_tickets": 4,
+        "assessed_tickets": 5,
+        "accepted_tickets": 5,
         "accepted_points": null,
         "state_counts": {
-          "BASELINE_RECONCILIATION": 4,
-          "DONE": 4,
+          "BASELINE_RECONCILIATION": 3,
+          "DONE": 5,
           "EVIDENCE_RECONCILIATION": 1
         }
       }
@@ -4071,72 +4071,137 @@ window.TRUSTCOPILOT_BACKLOG = {
       "release_gate_dependencies": [],
       "dependency_ruling_ids": [],
       "current": {
-        "status": "BASELINE_RECONCILIATION",
-        "evidence_state": "BASELINE_RECONCILIATION",
+        "status": "DONE",
+        "evidence_state": "VERIFIED_ACCEPTED",
         "owner": null,
         "blockers": [],
-        "next_action": "Reconcile existing implementation and evidence against all original acceptance criteria before declaring Done or estimating only the remaining scope.",
-        "updated_at": "2026-10-30T09:49:19Z",
-        "source_sha": "b2bd1e0df5cdeb03b8d0cd240f5a161835ea621d",
+        "next_action": "Accepted. Reopen only on regression or when change control adds scope. Scope grows with later tickets (auth_deps.py not yet in the typed set).",
+        "updated_at": "2026-11-06T20:52:20Z",
+        "source_sha": "90146e0cfe2220beb3e43f98f6073262f7c0abfb",
         "acceptance": {
-          "state": "PENDING",
-          "assessed_by": null,
-          "assessed_at": null,
-          "assessed_sha": null,
-          "assessment_evidence_urls": [],
-          "tested_sha": null,
-          "implemented_by": [],
-          "independent_reviewer": null,
-          "reviewed_at": null,
-          "reviewed_sha": null,
-          "review_evidence_urls": [],
+          "state": "ACCEPTED",
+          "assessed_by": "claude-review-agent",
+          "assessed_at": "2026-11-06T20:52:09Z",
+          "assessed_sha": "d1405a575e423161d2b5dd94f130f32a7f22fcca",
+          "assessment_evidence_urls": [
+            "https://github.com/Johnathan-u/trust-copilot/actions/runs/42289785490",
+            "https://github.com/Johnathan-u/trust-copilot/pull/185#issuecomment-6694929691",
+            "https://github.com/Johnathan-u/trust-copilot/pull/185"
+          ],
+          "tested_sha": "d1405a575e423161d2b5dd94f130f32a7f22fcca",
+          "implemented_by": [
+            "Johnathan-u",
+            "grok"
+          ],
+          "independent_reviewer": "claude-review-agent",
+          "reviewed_at": "2026-11-06T20:52:09Z",
+          "reviewed_sha": "d1405a575e423161d2b5dd94f130f32a7f22fcca",
+          "review_evidence_urls": [
+            "https://github.com/Johnathan-u/trust-copilot/pull/185#issuecomment-6694929691"
+          ],
           "criteria": [
             {
               "id": "TC-02-005-AC1",
-              "status": "NOT_VERIFIED",
-              "evidence_urls": [],
-              "tested_sha": null
+              "status": "PASS",
+              "evidence_urls": [
+                "https://github.com/Johnathan-u/trust-copilot/actions/runs/42289785490",
+                "https://github.com/Johnathan-u/trust-copilot/blob/d1405a575e423161d2b5dd94f130f32a7f22fcca/apps/api/tests/release/test_api_quality.py",
+                "https://github.com/Johnathan-u/trust-copilot/blob/d1405a575e423161d2b5dd94f130f32a7f22fcca/artifacts/acceptance/TC-02-005/README.md",
+                "https://github.com/Johnathan-u/trust-copilot/blob/d1405a575e423161d2b5dd94f130f32a7f22fcca/artifacts/acceptance/TC-02-005/lint-type.txt",
+                "https://github.com/Johnathan-u/trust-copilot/blob/d1405a575e423161d2b5dd94f130f32a7f22fcca/artifacts/acceptance/TC-02-005/unit-q.txt",
+                "https://github.com/Johnathan-u/trust-copilot/blob/d1405a575e423161d2b5dd94f130f32a7f22fcca/docs/release/tickets/TC-02-005.md",
+                "https://github.com/Johnathan-u/trust-copilot/pull/185#issuecomment-6694929691"
+              ],
+              "tested_sha": "d1405a575e423161d2b5dd94f130f32a7f22fcca"
             },
             {
               "id": "TC-02-005-AC2",
-              "status": "NOT_VERIFIED",
-              "evidence_urls": [],
-              "tested_sha": null
+              "status": "PASS",
+              "evidence_urls": [
+                "https://github.com/Johnathan-u/trust-copilot/actions/runs/42289785490",
+                "https://github.com/Johnathan-u/trust-copilot/blob/d1405a575e423161d2b5dd94f130f32a7f22fcca/apps/api/tests/release/test_api_quality.py",
+                "https://github.com/Johnathan-u/trust-copilot/blob/d1405a575e423161d2b5dd94f130f32a7f22fcca/artifacts/acceptance/TC-02-005/README.md",
+                "https://github.com/Johnathan-u/trust-copilot/blob/d1405a575e423161d2b5dd94f130f32a7f22fcca/artifacts/acceptance/TC-02-005/lint-type.txt",
+                "https://github.com/Johnathan-u/trust-copilot/blob/d1405a575e423161d2b5dd94f130f32a7f22fcca/artifacts/acceptance/TC-02-005/unit-q.txt",
+                "https://github.com/Johnathan-u/trust-copilot/blob/d1405a575e423161d2b5dd94f130f32a7f22fcca/docs/release/tickets/TC-02-005.md",
+                "https://github.com/Johnathan-u/trust-copilot/pull/185#issuecomment-6694929691"
+              ],
+              "tested_sha": "d1405a575e423161d2b5dd94f130f32a7f22fcca"
             }
           ],
           "definition_of_done": [
             {
               "id": "TC-02-005-DOD1",
-              "status": "NOT_VERIFIED",
-              "evidence_urls": [],
-              "tested_sha": null
+              "status": "PASS",
+              "evidence_urls": [
+                "https://github.com/Johnathan-u/trust-copilot/actions/runs/42289785490",
+                "https://github.com/Johnathan-u/trust-copilot/blob/d1405a575e423161d2b5dd94f130f32a7f22fcca/apps/api/tests/release/test_api_quality.py",
+                "https://github.com/Johnathan-u/trust-copilot/blob/d1405a575e423161d2b5dd94f130f32a7f22fcca/artifacts/acceptance/TC-02-005/README.md",
+                "https://github.com/Johnathan-u/trust-copilot/blob/d1405a575e423161d2b5dd94f130f32a7f22fcca/artifacts/acceptance/TC-02-005/lint-type.txt",
+                "https://github.com/Johnathan-u/trust-copilot/blob/d1405a575e423161d2b5dd94f130f32a7f22fcca/artifacts/acceptance/TC-02-005/unit-q.txt",
+                "https://github.com/Johnathan-u/trust-copilot/blob/d1405a575e423161d2b5dd94f130f32a7f22fcca/docs/release/tickets/TC-02-005.md",
+                "https://github.com/Johnathan-u/trust-copilot/pull/185#issuecomment-6694929691"
+              ],
+              "tested_sha": "d1405a575e423161d2b5dd94f130f32a7f22fcca"
             },
             {
               "id": "TC-02-005-DOD2",
-              "status": "NOT_VERIFIED",
-              "evidence_urls": [],
-              "tested_sha": null
+              "status": "PASS",
+              "evidence_urls": [
+                "https://github.com/Johnathan-u/trust-copilot/actions/runs/42289785490",
+                "https://github.com/Johnathan-u/trust-copilot/blob/d1405a575e423161d2b5dd94f130f32a7f22fcca/apps/api/tests/release/test_api_quality.py",
+                "https://github.com/Johnathan-u/trust-copilot/blob/d1405a575e423161d2b5dd94f130f32a7f22fcca/artifacts/acceptance/TC-02-005/README.md",
+                "https://github.com/Johnathan-u/trust-copilot/blob/d1405a575e423161d2b5dd94f130f32a7f22fcca/artifacts/acceptance/TC-02-005/lint-type.txt",
+                "https://github.com/Johnathan-u/trust-copilot/blob/d1405a575e423161d2b5dd94f130f32a7f22fcca/artifacts/acceptance/TC-02-005/unit-q.txt",
+                "https://github.com/Johnathan-u/trust-copilot/blob/d1405a575e423161d2b5dd94f130f32a7f22fcca/docs/release/tickets/TC-02-005.md",
+                "https://github.com/Johnathan-u/trust-copilot/pull/185#issuecomment-6694929691"
+              ],
+              "tested_sha": "d1405a575e423161d2b5dd94f130f32a7f22fcca"
             },
             {
               "id": "TC-02-005-DOD3",
-              "status": "NOT_VERIFIED",
-              "evidence_urls": [],
-              "tested_sha": null
+              "status": "PASS",
+              "evidence_urls": [
+                "https://github.com/Johnathan-u/trust-copilot/actions/runs/42289785490",
+                "https://github.com/Johnathan-u/trust-copilot/blob/d1405a575e423161d2b5dd94f130f32a7f22fcca/apps/api/tests/release/test_api_quality.py",
+                "https://github.com/Johnathan-u/trust-copilot/blob/d1405a575e423161d2b5dd94f130f32a7f22fcca/artifacts/acceptance/TC-02-005/README.md",
+                "https://github.com/Johnathan-u/trust-copilot/blob/d1405a575e423161d2b5dd94f130f32a7f22fcca/artifacts/acceptance/TC-02-005/lint-type.txt",
+                "https://github.com/Johnathan-u/trust-copilot/blob/d1405a575e423161d2b5dd94f130f32a7f22fcca/artifacts/acceptance/TC-02-005/unit-q.txt",
+                "https://github.com/Johnathan-u/trust-copilot/blob/d1405a575e423161d2b5dd94f130f32a7f22fcca/docs/release/tickets/TC-02-005.md",
+                "https://github.com/Johnathan-u/trust-copilot/pull/185#issuecomment-6694929691"
+              ],
+              "tested_sha": "d1405a575e423161d2b5dd94f130f32a7f22fcca"
             },
             {
               "id": "TC-02-005-DOD4",
-              "status": "NOT_VERIFIED",
-              "evidence_urls": [],
-              "tested_sha": null
+              "status": "PASS",
+              "evidence_urls": [
+                "https://github.com/Johnathan-u/trust-copilot/actions/runs/42289785490",
+                "https://github.com/Johnathan-u/trust-copilot/blob/d1405a575e423161d2b5dd94f130f32a7f22fcca/apps/api/tests/release/test_api_quality.py",
+                "https://github.com/Johnathan-u/trust-copilot/blob/d1405a575e423161d2b5dd94f130f32a7f22fcca/artifacts/acceptance/TC-02-005/README.md",
+                "https://github.com/Johnathan-u/trust-copilot/blob/d1405a575e423161d2b5dd94f130f32a7f22fcca/artifacts/acceptance/TC-02-005/lint-type.txt",
+                "https://github.com/Johnathan-u/trust-copilot/blob/d1405a575e423161d2b5dd94f130f32a7f22fcca/artifacts/acceptance/TC-02-005/unit-q.txt",
+                "https://github.com/Johnathan-u/trust-copilot/blob/d1405a575e423161d2b5dd94f130f32a7f22fcca/docs/release/tickets/TC-02-005.md",
+                "https://github.com/Johnathan-u/trust-copilot/pull/185#issuecomment-6694929691"
+              ],
+              "tested_sha": "d1405a575e423161d2b5dd94f130f32a7f22fcca"
             },
             {
               "id": "TC-02-005-DOD5",
-              "status": "NOT_VERIFIED",
-              "evidence_urls": [],
-              "tested_sha": null
+              "status": "PASS",
+              "evidence_urls": [
+                "https://github.com/Johnathan-u/trust-copilot/actions/runs/42289785490",
+                "https://github.com/Johnathan-u/trust-copilot/blob/d1405a575e423161d2b5dd94f130f32a7f22fcca/apps/api/tests/release/test_api_quality.py",
+                "https://github.com/Johnathan-u/trust-copilot/blob/d1405a575e423161d2b5dd94f130f32a7f22fcca/artifacts/acceptance/TC-02-005/README.md",
+                "https://github.com/Johnathan-u/trust-copilot/blob/d1405a575e423161d2b5dd94f130f32a7f22fcca/artifacts/acceptance/TC-02-005/lint-type.txt",
+                "https://github.com/Johnathan-u/trust-copilot/blob/d1405a575e423161d2b5dd94f130f32a7f22fcca/artifacts/acceptance/TC-02-005/unit-q.txt",
+                "https://github.com/Johnathan-u/trust-copilot/blob/d1405a575e423161d2b5dd94f130f32a7f22fcca/docs/release/tickets/TC-02-005.md",
+                "https://github.com/Johnathan-u/trust-copilot/pull/185#issuecomment-6694929691"
+              ],
+              "tested_sha": "d1405a575e423161d2b5dd94f130f32a7f22fcca"
             }
           ],
-          "note": "Full original-parent acceptance is pending baseline validation; merged work and artifact presence alone confer no acceptance."
+          "note": "Implemented and verified in #185 (reviewed head 6a74e14, merged d1405a5 with the same tree). Independent reviewer accepted. Limits: the lint/type scope is six critical modules (auth_deps.py not yet covered); pathspec (MPL-2.0) is a dev-only dependency of mypy and is not shipped."
         },
         "pr_links": [],
         "evidence_links": [],
@@ -126131,6 +126196,262 @@ window.TRUSTCOPILOT_BACKLOG = {
           }
         }
       }
+    },
+    {
+      "revision": 13,
+      "at": "2026-11-06T20:52:20Z",
+      "actor": "claude",
+      "reason": "TC-02-005 accepted: #185 merged d1405a5 (master CI 42289785490), independent review on #185",
+      "source_sha": "90146e0cfe2220beb3e43f98f6073262f7c0abfb",
+      "before": {
+        "scope_version": 1,
+        "accepted_points": null,
+        "completion_percentage": null,
+        "assessed_tickets": 14,
+        "total_tickets": 384,
+        "total_points": 1864,
+        "state_counts": {
+          "BASELINE_RECONCILIATION": 303,
+          "BLOCKED": 3,
+          "DONE": 14,
+          "EVIDENCE_RECONCILIATION": 42,
+          "IMPLEMENTATION_GAPS_IDENTIFIED": 22
+        },
+        "accepted_claim_points": 58,
+        "accepted_tickets": 14,
+        "baseline_status": "PENDING"
+      },
+      "after": {
+        "scope_version": 1,
+        "accepted_points": null,
+        "completion_percentage": null,
+        "assessed_tickets": 15,
+        "total_tickets": 384,
+        "total_points": 1864,
+        "state_counts": {
+          "BASELINE_RECONCILIATION": 302,
+          "BLOCKED": 3,
+          "DONE": 15,
+          "EVIDENCE_RECONCILIATION": 42,
+          "IMPLEMENTATION_GAPS_IDENTIFIED": 22
+        },
+        "accepted_claim_points": 61,
+        "accepted_tickets": 15,
+        "baseline_status": "PENDING"
+      },
+      "changes": {
+        "tickets": {
+          "TC-02-005": {
+            "status": {
+              "before": "BASELINE_RECONCILIATION",
+              "after": "DONE"
+            },
+            "evidence_state": {
+              "before": "BASELINE_RECONCILIATION",
+              "after": "VERIFIED_ACCEPTED"
+            },
+            "next_action": {
+              "before": "Reconcile existing implementation and evidence against all original acceptance criteria before declaring Done or estimating only the remaining scope.",
+              "after": "Accepted. Reopen only on regression or when change control adds scope. Scope grows with later tickets (auth_deps.py not yet in the typed set)."
+            },
+            "updated_at": {
+              "before": "2026-10-30T09:49:19Z",
+              "after": "2026-11-06T20:52:20Z"
+            },
+            "source_sha": {
+              "before": "b2bd1e0df5cdeb03b8d0cd240f5a161835ea621d",
+              "after": "90146e0cfe2220beb3e43f98f6073262f7c0abfb"
+            },
+            "acceptance": {
+              "before": {
+                "state": "PENDING",
+                "assessed_by": null,
+                "assessed_at": null,
+                "assessed_sha": null,
+                "assessment_evidence_urls": [],
+                "tested_sha": null,
+                "implemented_by": [],
+                "independent_reviewer": null,
+                "reviewed_at": null,
+                "reviewed_sha": null,
+                "review_evidence_urls": [],
+                "criteria": [
+                  {
+                    "id": "TC-02-005-AC1",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  },
+                  {
+                    "id": "TC-02-005-AC2",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  }
+                ],
+                "definition_of_done": [
+                  {
+                    "id": "TC-02-005-DOD1",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  },
+                  {
+                    "id": "TC-02-005-DOD2",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  },
+                  {
+                    "id": "TC-02-005-DOD3",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  },
+                  {
+                    "id": "TC-02-005-DOD4",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  },
+                  {
+                    "id": "TC-02-005-DOD5",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  }
+                ],
+                "note": "Full original-parent acceptance is pending baseline validation; merged work and artifact presence alone confer no acceptance."
+              },
+              "after": {
+                "state": "ACCEPTED",
+                "assessed_by": "claude-review-agent",
+                "assessed_at": "2026-11-06T20:52:09Z",
+                "assessed_sha": "d1405a575e423161d2b5dd94f130f32a7f22fcca",
+                "assessment_evidence_urls": [
+                  "https://github.com/Johnathan-u/trust-copilot/actions/runs/42289785490",
+                  "https://github.com/Johnathan-u/trust-copilot/pull/185#issuecomment-6694929691",
+                  "https://github.com/Johnathan-u/trust-copilot/pull/185"
+                ],
+                "tested_sha": "d1405a575e423161d2b5dd94f130f32a7f22fcca",
+                "implemented_by": [
+                  "Johnathan-u",
+                  "grok"
+                ],
+                "independent_reviewer": "claude-review-agent",
+                "reviewed_at": "2026-11-06T20:52:09Z",
+                "reviewed_sha": "d1405a575e423161d2b5dd94f130f32a7f22fcca",
+                "review_evidence_urls": [
+                  "https://github.com/Johnathan-u/trust-copilot/pull/185#issuecomment-6694929691"
+                ],
+                "criteria": [
+                  {
+                    "id": "TC-02-005-AC1",
+                    "status": "PASS",
+                    "evidence_urls": [
+                      "https://github.com/Johnathan-u/trust-copilot/actions/runs/42289785490",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/d1405a575e423161d2b5dd94f130f32a7f22fcca/apps/api/tests/release/test_api_quality.py",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/d1405a575e423161d2b5dd94f130f32a7f22fcca/artifacts/acceptance/TC-02-005/README.md",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/d1405a575e423161d2b5dd94f130f32a7f22fcca/artifacts/acceptance/TC-02-005/lint-type.txt",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/d1405a575e423161d2b5dd94f130f32a7f22fcca/artifacts/acceptance/TC-02-005/unit-q.txt",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/d1405a575e423161d2b5dd94f130f32a7f22fcca/docs/release/tickets/TC-02-005.md",
+                      "https://github.com/Johnathan-u/trust-copilot/pull/185#issuecomment-6694929691"
+                    ],
+                    "tested_sha": "d1405a575e423161d2b5dd94f130f32a7f22fcca"
+                  },
+                  {
+                    "id": "TC-02-005-AC2",
+                    "status": "PASS",
+                    "evidence_urls": [
+                      "https://github.com/Johnathan-u/trust-copilot/actions/runs/42289785490",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/d1405a575e423161d2b5dd94f130f32a7f22fcca/apps/api/tests/release/test_api_quality.py",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/d1405a575e423161d2b5dd94f130f32a7f22fcca/artifacts/acceptance/TC-02-005/README.md",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/d1405a575e423161d2b5dd94f130f32a7f22fcca/artifacts/acceptance/TC-02-005/lint-type.txt",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/d1405a575e423161d2b5dd94f130f32a7f22fcca/artifacts/acceptance/TC-02-005/unit-q.txt",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/d1405a575e423161d2b5dd94f130f32a7f22fcca/docs/release/tickets/TC-02-005.md",
+                      "https://github.com/Johnathan-u/trust-copilot/pull/185#issuecomment-6694929691"
+                    ],
+                    "tested_sha": "d1405a575e423161d2b5dd94f130f32a7f22fcca"
+                  }
+                ],
+                "definition_of_done": [
+                  {
+                    "id": "TC-02-005-DOD1",
+                    "status": "PASS",
+                    "evidence_urls": [
+                      "https://github.com/Johnathan-u/trust-copilot/actions/runs/42289785490",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/d1405a575e423161d2b5dd94f130f32a7f22fcca/apps/api/tests/release/test_api_quality.py",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/d1405a575e423161d2b5dd94f130f32a7f22fcca/artifacts/acceptance/TC-02-005/README.md",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/d1405a575e423161d2b5dd94f130f32a7f22fcca/artifacts/acceptance/TC-02-005/lint-type.txt",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/d1405a575e423161d2b5dd94f130f32a7f22fcca/artifacts/acceptance/TC-02-005/unit-q.txt",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/d1405a575e423161d2b5dd94f130f32a7f22fcca/docs/release/tickets/TC-02-005.md",
+                      "https://github.com/Johnathan-u/trust-copilot/pull/185#issuecomment-6694929691"
+                    ],
+                    "tested_sha": "d1405a575e423161d2b5dd94f130f32a7f22fcca"
+                  },
+                  {
+                    "id": "TC-02-005-DOD2",
+                    "status": "PASS",
+                    "evidence_urls": [
+                      "https://github.com/Johnathan-u/trust-copilot/actions/runs/42289785490",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/d1405a575e423161d2b5dd94f130f32a7f22fcca/apps/api/tests/release/test_api_quality.py",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/d1405a575e423161d2b5dd94f130f32a7f22fcca/artifacts/acceptance/TC-02-005/README.md",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/d1405a575e423161d2b5dd94f130f32a7f22fcca/artifacts/acceptance/TC-02-005/lint-type.txt",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/d1405a575e423161d2b5dd94f130f32a7f22fcca/artifacts/acceptance/TC-02-005/unit-q.txt",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/d1405a575e423161d2b5dd94f130f32a7f22fcca/docs/release/tickets/TC-02-005.md",
+                      "https://github.com/Johnathan-u/trust-copilot/pull/185#issuecomment-6694929691"
+                    ],
+                    "tested_sha": "d1405a575e423161d2b5dd94f130f32a7f22fcca"
+                  },
+                  {
+                    "id": "TC-02-005-DOD3",
+                    "status": "PASS",
+                    "evidence_urls": [
+                      "https://github.com/Johnathan-u/trust-copilot/actions/runs/42289785490",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/d1405a575e423161d2b5dd94f130f32a7f22fcca/apps/api/tests/release/test_api_quality.py",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/d1405a575e423161d2b5dd94f130f32a7f22fcca/artifacts/acceptance/TC-02-005/README.md",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/d1405a575e423161d2b5dd94f130f32a7f22fcca/artifacts/acceptance/TC-02-005/lint-type.txt",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/d1405a575e423161d2b5dd94f130f32a7f22fcca/artifacts/acceptance/TC-02-005/unit-q.txt",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/d1405a575e423161d2b5dd94f130f32a7f22fcca/docs/release/tickets/TC-02-005.md",
+                      "https://github.com/Johnathan-u/trust-copilot/pull/185#issuecomment-6694929691"
+                    ],
+                    "tested_sha": "d1405a575e423161d2b5dd94f130f32a7f22fcca"
+                  },
+                  {
+                    "id": "TC-02-005-DOD4",
+                    "status": "PASS",
+                    "evidence_urls": [
+                      "https://github.com/Johnathan-u/trust-copilot/actions/runs/42289785490",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/d1405a575e423161d2b5dd94f130f32a7f22fcca/apps/api/tests/release/test_api_quality.py",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/d1405a575e423161d2b5dd94f130f32a7f22fcca/artifacts/acceptance/TC-02-005/README.md",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/d1405a575e423161d2b5dd94f130f32a7f22fcca/artifacts/acceptance/TC-02-005/lint-type.txt",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/d1405a575e423161d2b5dd94f130f32a7f22fcca/artifacts/acceptance/TC-02-005/unit-q.txt",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/d1405a575e423161d2b5dd94f130f32a7f22fcca/docs/release/tickets/TC-02-005.md",
+                      "https://github.com/Johnathan-u/trust-copilot/pull/185#issuecomment-6694929691"
+                    ],
+                    "tested_sha": "d1405a575e423161d2b5dd94f130f32a7f22fcca"
+                  },
+                  {
+                    "id": "TC-02-005-DOD5",
+                    "status": "PASS",
+                    "evidence_urls": [
+                      "https://github.com/Johnathan-u/trust-copilot/actions/runs/42289785490",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/d1405a575e423161d2b5dd94f130f32a7f22fcca/apps/api/tests/release/test_api_quality.py",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/d1405a575e423161d2b5dd94f130f32a7f22fcca/artifacts/acceptance/TC-02-005/README.md",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/d1405a575e423161d2b5dd94f130f32a7f22fcca/artifacts/acceptance/TC-02-005/lint-type.txt",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/d1405a575e423161d2b5dd94f130f32a7f22fcca/artifacts/acceptance/TC-02-005/unit-q.txt",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/d1405a575e423161d2b5dd94f130f32a7f22fcca/docs/release/tickets/TC-02-005.md",
+                      "https://github.com/Johnathan-u/trust-copilot/pull/185#issuecomment-6694929691"
+                    ],
+                    "tested_sha": "d1405a575e423161d2b5dd94f130f32a7f22fcca"
+                  }
+                ],
+                "note": "Implemented and verified in #185 (reviewed head 6a74e14, merged d1405a5 with the same tree). Independent reviewer accepted. Limits: the lint/type scope is six critical modules (auth_deps.py not yet covered); pathspec (MPL-2.0) is a dev-only dependency of mypy and is not shipped."
+              }
+            }
+          }
+        }
+      }
     }
   ],
   "followups": [
@@ -130968,7 +131289,7 @@ window.TRUSTCOPILOT_BACKLOG = {
       "build": "python scripts/backlog_tracker.py build",
       "check": "python scripts/backlog_tracker.py check",
       "summary": "python scripts/backlog_tracker.py summary",
-      "update": "python scripts/backlog_tracker.py update --expected-revision 12 --actor YOUR_ID --reason 'Evidence reconciliation' --patch /tmp/backlog-patch.json",
+      "update": "python scripts/backlog_tracker.py update --expected-revision 13 --actor YOUR_ID --reason 'Evidence reconciliation' --patch /tmp/backlog-patch.json",
       "tests": "python -m unittest discover -s scripts/tests -p 'test_backlog_tracker.py' -v"
     }
   }
