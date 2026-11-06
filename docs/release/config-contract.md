@@ -25,14 +25,17 @@ Source of truth: `apps/api/app/core/config_contract.py`. The table between the m
   from `SESSION_SECRET`. A missing, weak, duplicate, or `SESSION_SECRET`-equal value refuses
   startup. Errors name the variable only. Development and test may leave a keyring unset; unset
   derives `v0-legacy` from `SESSION_SECRET` with HKDF and a purpose label. The first
-  `kid:secret` is the current key; later entries are retired. Explicitly retaining `v0-legacy`
-  preserves that derivation. Unprefixed ciphertext and cookies use the retained legacy entry's
-  previous SHA256 or raw HMAC derivation. Explicit keyrings do not implicitly trust
-  `SESSION_SECRET`; legacy session cookies obey retirement just like prefixed cookies. Only an
-  explicit `v0-legacy` entry also supports the older prefixed SHA256 format. Production also
-  rejects a repeated key id. Operators back up the keyrings outside the app, rotate on a
-  database copy, then cut over. The procedure, including sole-admin MFA recovery, is
-  `docs/ops/key-rotation.md`. Rehearse rotation on a database copy, never against production:
+  `kid:secret` is the current key; later entries are retired. Outside production, retaining
+  `v0-legacy` preserves that derivation, including the older unprefixed SHA256 and raw HMAC
+  forms. Explicit keyrings do not implicitly trust `SESSION_SECRET`; legacy session cookies
+  obey retirement just like prefixed cookies. Production refuses a `v0-legacy` entry whose
+  secret is `SESSION_SECRET`, and refuses that same secret on two rings. The first migration
+  therefore rotates on a copy, outside production, with `v0-legacy` retained, then starts
+  production with the new key only. Production also rejects a repeated key id, whitespace in
+  a key, and a placeholder. Stop the API and worker before copying the database. Operators
+  back up keyrings outside the database, rotate on that copy, then cut over. The procedure,
+  including sole-admin MFA recovery, is `docs/ops/key-rotation.md`. Rehearse on a copy, never
+  against production:
 
   `cd apps/api && python scripts/rotate_purpose_keys.py --dry-run`
 

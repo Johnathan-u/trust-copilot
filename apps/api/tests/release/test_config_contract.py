@@ -143,9 +143,18 @@ def test_key_rotation_runbook_covers_backup_rotation_and_recovery():
     assert "audit_events" in text
     assert "auth.mfa_operator_recovery" in text
     assert "user_mfa" in text
+    assert "reenrol-pending!.pending" in text
+    assert "v0-legacy" in text
+    assert "maintenance" in text.lower()
     lowered = text.lower()
     assert "backup" in lowered
     assert "cut over" in lowered or "cut-over" in lowered
+    assert "before" in lowered and "copy" in lowered
+    assert "destroy" in lowered
+    assert "utc" in lowered
+    assert "approver" in lowered
+    assert "recovery code" in lowered
+    assert "every workspace" in lowered
 
 
 def test_contract_doc_is_generated_from_code():
@@ -277,6 +286,96 @@ def test_production_purpose_key_equal_to_session_secret_is_refused(name, mode):
         cc.enforce_startup_contract("api", env)
     assert any(p.name == name and p.reason == "matches SESSION_SECRET" for p in ei.value.problems)
     _assert_names_only(str(ei.value), env)
+
+
+def test_production_weak_retired_key_is_refused():
+    """TC-07-002a: a retired entry is held to the same strength rule as the current key."""
+    env = good_production_env()
+    weak = secrets.token_hex(4)
+    env["MFA_KEYRING"] = env["MFA_KEYRING"] + ",old:" + weak
+    with pytest.raises(cc.ConfigContractError) as ei:
+        cc.enforce_startup_contract("api", env)
+    assert any(p.name == "MFA_KEYRING" and "weak" in p.reason for p in ei.value.problems)
+    _assert_names_only(str(ei.value), env, weak)
+
+
+def test_production_retired_key_shared_between_rings_is_refused():
+    """TC-07-002a: a retired secret must not repeat material from another purpose."""
+    env = good_production_env()
+    shared = env["SESSION_KEYRING"].split(":", 1)[1]
+    current = env["CONNECTOR_KEYRING"]
+    env["CONNECTOR_KEYRING"] = current + ",old:" + shared
+    with pytest.raises(cc.ConfigContractError) as ei:
+        cc.enforce_startup_contract("api", env)
+    assert any(
+        p.name == "CONNECTOR_KEYRING"
+        and "reuses a key" in p.reason
+        and "SESSION_KEYRING" in p.reason
+        for p in ei.value.problems
+    )
+    _assert_names_only(str(ei.value), env)
+
+
+def test_production_duplicate_inside_one_ring_is_refused():
+    """TC-07-002a: one ring must not list the same secret twice."""
+    env = good_production_env()
+    secret = env["MFA_KEYRING"].split(":", 1)[1]
+    env["MFA_KEYRING"] = "m2:" + secret + ",m1:" + secret
+    with pytest.raises(cc.ConfigContractError) as ei:
+        cc.enforce_startup_contract("api", env)
+    assert any(
+        p.name == "MFA_KEYRING" and "reuses a key" in p.reason and "MFA_KEYRING" in p.reason
+        for p in ei.value.problems
+    )
+    _assert_names_only(str(ei.value), env)
+
+
+@pytest.mark.parametrize("raw", ["not-a-keyring", "kid-without-a-separator", ":missing-kid"])
+def test_production_malformed_keyring_names_the_variable_only(raw):
+    """TC-07-002a: an unparseable ring is refused as not a kid:secret list."""
+    env = good_production_env()
+    env["OAUTH_STATE_KEYRING"] = raw
+    with pytest.raises(cc.ConfigContractError) as ei:
+        cc.enforce_startup_contract("api", env)
+    assert any(
+        p.name == "OAUTH_STATE_KEYRING" and p.reason == "is not a kid:secret list"
+        for p in ei.value.problems
+    )
+    assert raw not in str(ei.value)
+
+
+def test_production_leading_space_does_not_hide_a_repeated_secret():
+    """TC-07-002a: whitespace must not bypass the SESSION_SECRET or cross-ring checks."""
+    env = good_production_env()
+    session_secret = env["SESSION_SECRET"]
+    env["MFA_KEYRING"] = "m: " + session_secret
+    with pytest.raises(cc.ConfigContractError) as ei:
+        cc.enforce_startup_contract("api", env)
+    reasons = [p.reason for p in ei.value.problems if p.name == "MFA_KEYRING"]
+    assert "has whitespace in a key" in reasons
+    assert "matches SESSION_SECRET" in reasons
+    _assert_names_only(str(ei.value), env)
+
+    env = good_production_env()
+    shared = env["SESSION_KEYRING"].split(":", 1)[1]
+    env["CONNECTOR_KEYRING"] = "c: " + shared
+    with pytest.raises(cc.ConfigContractError) as ei:
+        cc.enforce_startup_contract("api", env)
+    reasons = [p.reason for p in ei.value.problems if p.name == "CONNECTOR_KEYRING"]
+    assert "has whitespace in a key" in reasons
+    assert any("reuses a key" in reason and "SESSION_KEYRING" in reason for reason in reasons)
+    _assert_names_only(str(ei.value), env)
+
+
+def test_production_long_placeholder_key_is_refused():
+    """TC-07-002a: a long angle-bracket placeholder is not a purpose key."""
+    env = good_production_env()
+    placeholder = "<paste-a-long-random-secret-value-here>"
+    env["MFA_KEYRING"] = "m:" + placeholder
+    with pytest.raises(cc.ConfigContractError) as ei:
+        cc.enforce_startup_contract("api", env)
+    assert any(p.name == "MFA_KEYRING" and "placeholder" in p.reason for p in ei.value.problems)
+    assert placeholder not in str(ei.value)
 
 
 # ---------------------------------------------------------------- AC2: production fails closed

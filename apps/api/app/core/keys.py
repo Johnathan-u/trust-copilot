@@ -277,10 +277,11 @@ def _same_secret(left: str, right: str) -> bool:
 def production_key_problems(env: dict[str, str]) -> list[tuple[str, str]]:
     """Production failures for purpose keyrings. Reasons never include secret values.
 
-    Production requires every purpose keyring. Each entry must be strong, and its
-    secret must differ from the other purpose secrets and from SESSION_SECRET.
-    Development and test do not call this function.
+    Production requires every purpose keyring. Each entry must be strong, free of
+    whitespace and placeholders, and its secret must differ from the other purpose
+    secrets and from SESSION_SECRET. Development and test do not call this function.
     """
+    from app.core.config_contract import is_known_default_or_placeholder
     from app.core.session import is_weak_secret
 
     problems: list[tuple[str, str]] = []
@@ -304,13 +305,22 @@ def production_key_problems(env: dict[str, str]) -> list[tuple[str, str]]:
             if entry.kid in ids:
                 problems.append((name, "repeats a key id"))
             ids.append(entry.kid)
-            if _same_secret(entry.secret, session_secret):
+            # Compare stripped material. A leading or trailing space must not hide a
+            # duplicate or a copy of SESSION_SECRET. Whitespace itself is refused.
+            material = entry.secret.strip()
+            if any(ch.isspace() for ch in entry.secret):
+                problems.append((name, "has whitespace in a key"))
+            if _same_secret(material, session_secret):
                 problems.append((name, "matches SESSION_SECRET"))
-            elif is_weak_secret(entry.secret):
+            elif (
+                not material
+                or is_weak_secret(material)
+                or is_known_default_or_placeholder(material)
+            ):
                 problems.append((name, "has a weak or placeholder key"))
-            previous = seen_secret.get(entry.secret)
-            if previous is not None:
+            previous = seen_secret.get(material)
+            if material and previous is not None:
                 problems.append((name, f"reuses a key also configured for {previous}"))
-            else:
-                seen_secret[entry.secret] = name
+            elif material:
+                seen_secret[material] = name
     return problems

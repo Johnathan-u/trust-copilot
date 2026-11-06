@@ -67,8 +67,9 @@ services:
       APP_ENV: production
       TRUST_COPILOT_IN_DOCKER: "1"
       SESSION_SECRET: ${SESSION_SECRET:?SESSION_SECRET must be set in .env.production (see docs/release/tickets/TC-07-001.md)}
-      # TC-07-002a: production requires four distinct purpose keyrings. Compose interpolation uses the
-      # same env file as SESSION_SECRET. Values stay in .env.production; nothing here is a credential.
+      # TC-07-002a: production requires four distinct purpose keyrings. ${VAR:?} is filled from
+      # the shell, a Compose .env file, or --env-file. It is not read from env_file:. Nothing here
+      # is a credential.
       SESSION_KEYRING: ${SESSION_KEYRING:?SESSION_KEYRING must be set in .env.production (see docs/ops/key-rotation.md)}
       OAUTH_STATE_KEYRING: ${OAUTH_STATE_KEYRING:?OAUTH_STATE_KEYRING must be set in .env.production (see docs/ops/key-rotation.md)}
       MFA_KEYRING: ${MFA_KEYRING:?MFA_KEYRING must be set in .env.production (see docs/ops/key-rotation.md)}
