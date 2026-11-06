@@ -28,7 +28,7 @@ export const QuestionnaireListSkeleton = () => <ListSkeleton />
 
 export function ListSkeleton({ rows = 4 }: { rows?: number }) {
   return (
-    <ul className="divide-y divide-white/10">
+    <ul className="divide-y divide-tc-border">
       {Array.from({ length: rows }, (_, i) => (
         <li key={i} className="flex items-center justify-between py-3">
           <div className="space-y-1 min-w-0 flex-1">
@@ -61,7 +61,7 @@ export function TableSkeleton({
             ))}
           </tr>
         </thead>
-        <tbody className="divide-y divide-white/10">
+        <tbody className="divide-y divide-tc-border">
           {Array.from({ length: rows }, (_, r) => (
             <tr key={r}>
               {Array.from({ length: cols }, (_, c) => (

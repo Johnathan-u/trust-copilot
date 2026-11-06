@@ -62,7 +62,7 @@ export function RegistryRowActionsMenu({
                 <a
                   href={a.href}
                   role="menuitem"
-                  className="block px-3 py-2 text-left text-sm text-[var(--tc-text)] hover:bg-white/10"
+                  className="block px-3 py-2 text-left text-sm text-[var(--tc-text)] hover:bg-[var(--tc-hover)]"
                   onClick={() => setOpen(false)}
                 >
                   {a.label}
@@ -71,7 +71,7 @@ export function RegistryRowActionsMenu({
                 <button
                   type="button"
                   role="menuitem"
-                  className={`block w-full px-3 py-2 text-left text-sm hover:bg-white/10 ${
+                  className={`block w-full px-3 py-2 text-left text-sm hover:bg-[var(--tc-hover)] ${
                     a.id === 'delete'
                       ? 'text-[var(--tc-danger)]'
                       : 'text-[var(--tc-text)]'

@@ -43,7 +43,9 @@ Playwright covered dark and light at 360, 768 and 1440. Axe on `#token-showcase`
 
 The dev server printed a hydration warning because `data-theme` is applied on `<html>` before hydration. The assertions passed.
 
-No required test was skipped. Source hashes are `verify-2026-11-06/tested-inputs.sha256`.
+No required test was skipped. Source hashes are `verify-2026-11-06/tested-inputs.sha256`. Those hashes are the re-check of `2cfe041` before the review follow-up.
+
+The review follow-up moves `RegistryListPrimitives.tsx`, `RegistryRowActionsMenu.tsx`, and `Skeleton.tsx` onto existing tokens. `tests/unit/ui-raw-palette.test.ts` keeps raw palette classes and rgba colours out of `components/ui`. `apps/web/app/dashboard` is still in the TC-14-001 spec and still has about 320 raw palette classes across 22 files. Those dashboard classes must move to tokens in follow-up PRs, with a test that keeps them out. AC2 is not narrowed. This PR is progress toward AC2. The ticket stays open until a test shows no raw palette classes in both `components/ui` and `app/dashboard`. This evidence does not migrate `apps/web/app/dashboard`.
 
 ## Earlier run (implementation branch)
 
