@@ -149,39 +149,46 @@ CONTRACT: tuple[ConfigVar, ...] = (
         "required",
         True,
         "random per-process key (dev/test only)",
-        "Signs legacy cookies and derives purpose keys when a purpose keyring is unset. Placeholders rejected.",
+        "Signs legacy cookies. Derives a purpose key only when that keyring is unset "
+        "(development and test). Production requires separate purpose keyrings. Placeholders rejected.",
     ),
     ConfigVar(
         "SESSION_KEYRING",
         "kid:secret,kid:secret",
-        "optional",
+        "required",
         True,
         "unset (HKDF from SESSION_SECRET, id v0-legacy)",
-        "Session signing keys. First entry is current; later entries are retired. No value is echoed.",
+        "Session signing keys. Production: required, strong, distinct from the other purpose "
+        "keyrings and from SESSION_SECRET. First entry is current; later entries are retired. "
+        "No value is echoed.",
     ),
     ConfigVar(
         "OAUTH_STATE_KEYRING",
         "kid:secret,kid:secret",
-        "optional",
+        "required",
         True,
         "unset (HKDF from SESSION_SECRET, id v0-legacy)",
-        "OAuth state signing keys. CSRF stays an Origin/Referer check. No value is echoed.",
+        "OAuth state signing keys. Production: required, strong, distinct from the other purpose "
+        "keyrings and from SESSION_SECRET. CSRF stays an Origin/Referer check. No value is echoed.",
     ),
     ConfigVar(
         "MFA_KEYRING",
         "kid:secret,kid:secret",
-        "optional",
+        "required",
         True,
         "unset (HKDF from SESSION_SECRET, id v0-legacy)",
-        "MFA secret encryption keys. First entry is current; later entries decrypt only. No value is echoed.",
+        "MFA secret encryption keys. Production: required, strong, distinct from the other purpose "
+        "keyrings and from SESSION_SECRET. First entry is current; later entries decrypt only. "
+        "No value is echoed.",
     ),
     ConfigVar(
         "CONNECTOR_KEYRING",
         "kid:secret,kid:secret",
-        "optional",
+        "required",
         True,
         "unset (HKDF from SESSION_SECRET, id v0-legacy)",
-        "Connector token encryption keys (credential store, Slack, Gmail). No value is echoed.",
+        "Connector token encryption keys (credential store, Slack, Gmail). Production: required, "
+        "strong, distinct from the other purpose keyrings and from SESSION_SECRET. No value is echoed.",
     ),
     ConfigVar(
         "DATABASE_URL",

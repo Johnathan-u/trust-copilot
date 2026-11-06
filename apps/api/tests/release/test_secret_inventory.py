@@ -1069,7 +1069,15 @@ def test_prod_compose_requires_credentials_from_env():
     text = (REPO_ROOT / "docker-compose.prod.yml").read_text()
     # TC-01-003: no bundled MinIO in production; the external S3 endpoint is required instead.
     assert "MINIO_ROOT" not in text, "docker-compose.prod.yml must not carry MinIO credentials"
-    for var in ("POSTGRES_PASSWORD", "POSTGRES_USER", "S3_ENDPOINT"):
+    for var in (
+        "POSTGRES_PASSWORD",
+        "POSTGRES_USER",
+        "S3_ENDPOINT",
+        "SESSION_KEYRING",
+        "OAUTH_STATE_KEYRING",
+        "MFA_KEYRING",
+        "CONNECTOR_KEYRING",
+    ):
         assert (
             f"${{{var}:?" in text
         ), f"docker-compose.prod.yml must require {var} (${{{var}:?...}})"

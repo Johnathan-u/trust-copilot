@@ -267,15 +267,32 @@ def retired_session_key_ids(env: dict[str, str] | None = None) -> tuple[str, ...
     return tuple(ids)
 
 
+def _same_secret(left: str, right: str) -> bool:
+    """True when two non-empty secret strings are equal. The values are not returned."""
+    if not left or not right:
+        return False
+    return hmac.compare_digest(left, right)
+
+
 def production_key_problems(env: dict[str, str]) -> list[tuple[str, str]]:
-    """Production failures for purpose keyrings. Reasons never include secret values."""
+    """Production failures for purpose keyrings. Reasons never include secret values.
+
+    Production requires every purpose keyring. Each entry must be strong, and its
+    secret must differ from the other purpose secrets and from SESSION_SECRET.
+    Development and test do not call this function.
+    """
     from app.core.session import is_weak_secret
 
     problems: list[tuple[str, str]] = []
     seen_secret: dict[str, str] = {}
+    session_secret = (env.get("SESSION_SECRET") or "").strip()
     for purpose, name in PURPOSE_ENV.items():
         raw = (env.get(name) or "").strip()
         if not raw:
+            problems.append((name, "is required in production"))
+            continue
+        if _same_secret(raw, session_secret):
+            problems.append((name, "matches SESSION_SECRET"))
             continue
         try:
             current, retired = _parse_keyring(raw, purpose)
@@ -287,7 +304,9 @@ def production_key_problems(env: dict[str, str]) -> list[tuple[str, str]]:
             if entry.kid in ids:
                 problems.append((name, "repeats a key id"))
             ids.append(entry.kid)
-            if is_weak_secret(entry.secret):
+            if _same_secret(entry.secret, session_secret):
+                problems.append((name, "matches SESSION_SECRET"))
+            elif is_weak_secret(entry.secret):
                 problems.append((name, "has a weak or placeholder key"))
             previous = seen_secret.get(entry.secret)
             if previous is not None:
