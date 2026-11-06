@@ -22,8 +22,10 @@ def is_builtin_role(role: str | None) -> bool:
     return role in BUILTIN_ROLES
 
 
-def get_builtin_permissions(role: str | None) -> dict | None:
+def get_builtin_permissions(role: str | None) -> dict[str, bool] | None:
     """Return permission dict for a built-in role, or None if not built-in."""
+    if role is None:
+        return None
     return BUILTIN_PERMISSIONS.get(role)
 
 

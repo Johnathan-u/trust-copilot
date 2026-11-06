@@ -79,7 +79,8 @@ OUTCOME_CATALOG: dict[ModelOutcomeCode, OutcomeSpec] = {
     for s in (
         _spec(
             _C.GROUNDED,
-            "Draft answer generated from the supplied evidence. Review the citations before approving.",
+            "Draft answer generated from the supplied evidence. "
+            "Review the citations before approving.",
             is_failure=False,
             http_status=200,
         ),
@@ -132,7 +133,8 @@ OUTCOME_CATALOG: dict[ModelOutcomeCode, OutcomeSpec] = {
         ),
         _spec(
             _C.MODEL_QUOTA_EXHAUSTED,
-            "The model provider account has no remaining quota. Ask an administrator to check billing.",
+            "The model provider account has no remaining quota. "
+            "Ask an administrator to check billing.",
             fatal=True,
             http_status=503,
         ),

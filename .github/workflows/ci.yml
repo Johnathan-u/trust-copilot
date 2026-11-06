@@ -124,6 +124,33 @@ jobs:
         run: |
           ruff check .
 
+      - name: Backend tool versions
+        working-directory: apps/api
+        # TC-02-005: record the pinned lint and type checkers.
+        run: |
+          python --version
+          ruff --version
+          mypy --version
+
+      - name: Lint backend critical modules
+        working-directory: apps/api
+        # TC-02-005: pinned rule set on the critical contract modules. The
+        # whole-tree `ruff check .` step above stays. This select is E, F, I, B
+        # with no per-file ignore. Paths match [tool.mypy] files in pyproject.toml.
+        run: >
+          ruff check --select E,F,I,B
+          app/core/api_errors.py
+          app/core/job_errors.py
+          app/core/roles.py
+          app/schemas/job.py
+          app/services/model_outcomes.py
+          app/services/source_registry_service.py
+
+      - name: Type-check backend critical modules
+        working-directory: apps/api
+        # TC-02-005: scope is [tool.mypy] files. A bare `# type: ignore` fails.
+        run: mypy
+
       - name: Safe test collection (TC-02-001)
         # Collection must not touch the network or real credentials; fails on any egress attempt.
         working-directory: apps/api
@@ -154,6 +181,8 @@ jobs:
           TC_REQUIRE_DB: '1'
           # TC-02-006: release tests must execute the web gates, not skip them.
           TC_REQUIRE_WEB_TOOLCHAIN: '1'
+          # TC-02-005: release tests must execute ruff, mypy and the DB-free unit suite.
+          TC_REQUIRE_API_QUALITY: '1'
         # DATABASE_URL / TC_TEST_DATABASE_URL come from the isolated Postgres step via GITHUB_ENV.
         run: pytest -rs
 

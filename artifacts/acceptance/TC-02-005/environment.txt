@@ -1,0 +1,8 @@
+date: 2026-11-06T19:12:54Z
+uname: Linux cursor 6.12.113+ #1 SMP PREEMPT_DYNAMIC Thu Nov  5 16:04:51 UTC 2026 x86_64 x86_64 x86_64 GNU/Linux
+python: Python 3.11.18
+pip: pip 26.3 from /tmp/tc-api-venv/lib/python3.11/site-packages/pip (python 3.11)
+ruff: ruff 0.5.6
+mypy: mypy 2.4.1 (compiled: yes)
+uv: uv 0.13.7 (x86_64-unknown-linux-gnu)
+git: 2cfe041 (base before this change)
