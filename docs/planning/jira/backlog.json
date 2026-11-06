@@ -1,5 +1,5 @@
 {
- "snapshot": "2026-11-05",
+ "snapshot": "2026-11-06",
  "source": "https://reinhartjm294trustcopilot.atlassian.net/jira/software/projects/SCRUM/boards/1",
  "issues": [
   {
@@ -993,8 +993,8 @@
    "title": "Lock compatible Python and PostgreSQL driver dependencies",
    "type": "Task",
    "epic_key": "SCRUM-6",
-   "status": "Idea",
-   "done": false,
+   "status": "Done",
+   "done": true,
    "points": 5,
    "due": "2026-11-06",
    "start": "2026-11-04",
@@ -1020,7 +1020,7 @@
     "SCRUM-52"
    ],
    "epic": "E02",
-   "tracker_status": "EVIDENCE_RECONCILIATION",
+   "tracker_status": "DONE",
    "tracker_blockers": []
   },
   {
@@ -1099,8 +1099,8 @@
    "title": "Establish backend lint type and unit checks",
    "type": "Task",
    "epic_key": "SCRUM-6",
-   "status": "Idea",
-   "done": false,
+   "status": "Done",
+   "done": true,
    "points": 3,
    "due": "2026-11-06",
    "start": "2026-11-05",
@@ -1122,7 +1122,7 @@
     "SCRUM-48"
    ],
    "epic": "E02",
-   "tracker_status": "BASELINE_RECONCILIATION",
+   "tracker_status": "DONE",
    "tracker_blockers": []
   },
   {
@@ -1132,8 +1132,8 @@
    "title": "Add meaningful frontend unit lint and formatting gates",
    "type": "Task",
    "epic_key": "SCRUM-6",
-   "status": "Idea",
-   "done": false,
+   "status": "Done",
+   "done": true,
    "points": 3,
    "due": "2026-11-06",
    "start": "2026-11-04",
@@ -1168,7 +1168,7 @@
     "SCRUM-163"
    ],
    "epic": "E02",
-   "tracker_status": "EVIDENCE_RECONCILIATION",
+   "tracker_status": "DONE",
    "tracker_blockers": []
   },
   {
@@ -2448,8 +2448,8 @@
    "title": "Separate key purposes and rehearse credential migration",
    "type": "Task",
    "epic_key": "SCRUM-11",
-   "status": "Idea",
-   "done": false,
+   "status": "Done",
+   "done": true,
    "points": 5,
    "due": "2026-11-06",
    "start": "2026-11-04",
@@ -2478,10 +2478,11 @@
     "SCRUM-261",
     "SCRUM-262",
     "SCRUM-263",
-    "SCRUM-264"
+    "SCRUM-264",
+    "SCRUM-551"
    ],
    "epic": "E07",
-   "tracker_status": "EVIDENCE_RECONCILIATION",
+   "tracker_status": "DONE",
    "tracker_blockers": []
   },
   {
@@ -16495,6 +16496,35 @@
    "blocked_by": [],
    "blocks": [],
    "epic": "E17",
+   "tracker_status": null,
+   "tracker_blockers": []
+  },
+  {
+   "key": "SCRUM-551",
+   "url": "https://reinhartjm294trustcopilot.atlassian.net/browse/SCRUM-551",
+   "id": "TC-07-002a",
+   "title": "Require four distinct production keyrings and document key rotation and recovery",
+   "type": "Task",
+   "epic_key": "SCRUM-11",
+   "status": "Idea",
+   "done": false,
+   "points": 2,
+   "due": null,
+   "start": null,
+   "sprint": null,
+   "priority": "High",
+   "labels": [
+    "agent-ready",
+    "epic-e07",
+    "p1",
+    "phase-1",
+    "security"
+   ],
+   "blocked_by": [
+    "SCRUM-82"
+   ],
+   "blocks": [],
+   "epic": "E07",
    "tracker_status": null,
    "tracker_blockers": []
   }
