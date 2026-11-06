@@ -21,6 +21,7 @@ without `TC_REQUIRE_DB` in the parent; that is why CI then exited 3 inside the c
 |---|---|
 | Base (origin/master when the branch was cut) | `2cfe041682ed1636bb4ac9a0c5dc53980b21de3f` |
 | First code commit (21 passed, parent without `TC_REQUIRE_DB`) | `5c2535c5f273cc27d46f98179fb8621b18fa6627` |
+| CI-fix commit (23 passed, parent `TC_REQUIRE_DB=1`) | `deef4b5c17a2647b5be3c28c77badad74baebef3` |
 | Exit | 0 |
 | Totals | **23 passed**, 0 skipped, 0 failed (3.21s) |
 | Transcript | [`pytest-q.txt`](pytest-q.txt) |
