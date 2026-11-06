@@ -22,16 +22,12 @@ import {
   getNotificationCategory,
   type NotificationCategory,
 } from '@/lib/notification-labels'
+import {
+  parseComplianceAlerts,
+  type ComplianceAlert,
+} from '@/lib/complianceAlertConsumer'
 
 /* ──────────────────── Types ──────────────────── */
-
-type ActiveAlert = {
-  severity: 'high' | 'medium' | 'low'
-  title: string
-  description: string
-  metric: number
-  type: string
-}
 
 type Policy = {
   id: number
@@ -117,7 +113,7 @@ export default function ComplianceAlertsPage() {
   const { permissions } = useAuth()
   const canAdmin = permissions.can_admin
 
-  const [activeAlerts, setActiveAlerts] = useState<ActiveAlert[]>([])
+  const [activeAlerts, setActiveAlerts] = useState<ComplianceAlert[]>([])
   const [policies, setPolicies] = useState<Policy[]>([])
   const [eventTypes, setEventTypes] = useState<string[]>([])
   const [logEntries, setLogEntries] = useState<LogEntry[]>([])
@@ -216,12 +212,11 @@ export default function ComplianceAlertsPage() {
       }).then((r) => readSectionJson(r)),
     ])
       .then(([alertsData, evtData, polData, logData]) => {
-        const alerts = alertsData as { alerts?: ActiveAlert[] }
+        const alerts = parseComplianceAlerts(alertsData)
         const events = evtData as { event_types?: string[] }
         const policies = polData as { policies?: Policy[] }
         const log = logData as { entries?: LogEntry[]; total?: number }
         if (
-          !Array.isArray(alerts.alerts) ||
           !Array.isArray(events.event_types) ||
           !Array.isArray(policies.policies) ||
           !Array.isArray(log.entries)
@@ -451,9 +446,9 @@ export default function ComplianceAlertsPage() {
               </Card>
             ) : (
               <div className="space-y-2">
-                {activeAlerts.map((alert, i) => (
+                {activeAlerts.map((alert) => (
                   <div
-                    key={i}
+                    key={alert.id}
                     className={`rounded-lg border px-4 py-3 ${severityBg(alert.severity)}`}
                   >
                     <div className="flex items-start gap-3">
