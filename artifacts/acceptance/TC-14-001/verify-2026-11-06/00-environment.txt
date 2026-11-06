@@ -1,0 +1,7 @@
+product_sha 2cfe041682ed1636bb4ac9a0c5dc53980b21de3f
+observation_utc 2026-11-06T19:01:25Z
+os Linux 6.12.113+ x86_64
+node v24.22.1
+npm 11.19.1
+working_directory apps/web
+note Evidence files in this directory were written after the product SHA. They do not change token source.

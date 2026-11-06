@@ -1,0 +1,7 @@
+00-environment	0	apps/web	recorded environment for product SHA 2cfe041
+01-versions	0	apps/web	node, npm, tsc, eslint, prettier, vitest, playwright, next
+02-playwright	0	apps/web	npx playwright test e2e/release/design-tokens.spec.ts --retries=0
+03-unit	0	apps/web	npm run test:unit
+04-axe	0	artifacts/acceptance/TC-14-001	six axe reports, violationCount 0
+05-screenshots	0	artifacts/acceptance/TC-14-001/screenshots	360, 768 and 1440 for dark and light
+11-npm-ci	0	apps/web	npm ci --ignore-scripts --no-audit --no-fund

@@ -1,5 +1,7 @@
 {
   "ticket": "TC-14-001",
+  "latestVerification": "artifacts/acceptance/TC-14-001/verify-2026-11-06/result.json",
+  "latestProductSha": "2cfe041682ed1636bb4ac9a0c5dc53980b21de3f",
   "branch": "tc/web/TC-14-001",
   "testedCommit": "556c7a3c9a8f86d464af545d4399f585d138e475",
   "mergedMaster": "a64db44c2e467f6f92f62eef1e80f926f5b66dbf",
