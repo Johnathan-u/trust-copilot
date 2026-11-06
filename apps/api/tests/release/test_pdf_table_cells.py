@@ -9,6 +9,7 @@ no model calls.
 from __future__ import annotations
 
 import dataclasses
+import gc
 import json
 import re
 import time
@@ -254,21 +255,35 @@ def _tm_grid(n: int, cols: int = 8) -> bytes:
 
 
 def _timed_split(tmp_path, n: int):
+    """Time ``split_rows`` with the cyclic GC paused.
+
+    Late in the full suite the process holds a large heap, and a full collection that lands
+    inside the 32k run costs seconds regardless of ``n`` (the cause of the 5.09s/5.14s flakes).
+    Pausing GC measures this code, not the suite's heap.
+    """
     path = tmp_path / f"large-{n}.pdf"
     path.write_bytes(build_pdf([Page(raw=_tm_grid(n))]))
     page = PdfReader(path).pages[0]
     text = page.extract_text() or ""
-    started = time.perf_counter()
-    rows = split_rows(page, text)
-    return time.perf_counter() - started, rows
+    gc.collect()
+    gc.disable()
+    try:
+        started = time.perf_counter()
+        rows = split_rows(page, text)
+        elapsed = time.perf_counter() - started
+    finally:
+        gc.enable()
+    return elapsed, rows
 
 
 def test_large_page_of_32k_ops_splits_in_linear_time(tmp_path):
-    """32k text ops used to take ~59s in the quadratic column scan; cap + bisect keep it linear.
+    """A 32k-op table page stays unsplit, and the work before the cap stays linear.
 
-    The guard measures growth, not machine speed: 8x the ops must cost well under the ~64x a
-    quadratic scan would, with an absolute ceiling far below the old 59s. A fixed 5s budget
-    flaked on slower CI runners (5.09s, 5.14s) without any code change.
+    The unsplit and count assertions pin the 2,000-candidate cap; the timing guards the
+    geometry pass before it. The guard measures growth, not wall time: 8x the ops must cost
+    well under the ~64x a quadratic step would, with a 15s backstop. GC is paused while timing
+    (see ``_timed_split``); a fixed 5s budget flaked at 5.09s and 5.14s when a full collection
+    of the suite's heap landed inside the 32k run.
     """
     small_n, n = 4_000, 32_000
     small = min(_timed_split(tmp_path, small_n)[0] for _ in range(2))
