@@ -43,6 +43,7 @@ dependencies = [
 dev = [
     "pytest",
     "ruff==0.5.6",  # same rev as the ruff hook in .pre-commit-config.yaml
+    "mypy==2.4.1",  # TC-02-005: pinned type checker for the critical-module scope
 ]
 
 [tool.pytest.ini_options]
@@ -61,4 +62,34 @@ markers = [
 ]
 
 [tool.ruff]
+# Line length only. This table is the config CI uses for `ruff check .` from
+# apps/api, and it hides the repo-root ruff.toml select. TC-02-005 therefore
+# lints the critical modules with an explicit `--select E,F,I,B` (see ci.yml).
+# Do not add a blanket `ignore` or `per-file-ignores` entry for those modules.
 line-length = 100
+
+# TC-02-005: pinned type scope. `files` is the critical contract set (API error
+# envelope, job errors, built-in principal permissions, job schema, model outcome
+# catalog, source registry). `follow_imports = silent` limits reports to this
+# list; it does not suppress errors inside these files. Bare `# type: ignore`
+# fails via ignore-without-code. Regenerate the dev lock after changing mypy.
+[tool.mypy]
+python_version = "3.11"
+show_error_codes = true
+warn_unused_ignores = true
+warn_redundant_casts = true
+no_implicit_optional = true
+check_untyped_defs = true
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
+warn_return_any = true
+enable_error_code = ["ignore-without-code"]
+follow_imports = "silent"
+files = [
+    "app/core/api_errors.py",
+    "app/core/job_errors.py",
+    "app/core/roles.py",
+    "app/schemas/job.py",
+    "app/services/model_outcomes.py",
+    "app/services/source_registry_service.py",
+]

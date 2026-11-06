@@ -29,7 +29,8 @@ from app.services.model_outcomes import (
 API_ERROR_SCHEMA_VERSION = 1
 JOB_FAILED_CODE = "job_failed"
 JOB_FAILED_MESSAGE = "The job failed. Try again, or contact support with the request ID."
-# TC-10-003b: an identical enqueue raced us for the single QUEUED slot on every attempt. Transient: a retry
+# TC-10-003b: an identical enqueue raced us for the single QUEUED slot on every attempt.
+# Transient: a retry
 # (same Idempotency-Key, if any) either reuses the queued job or creates a fresh one.
 IDEMPOTENCY_CONFLICT_CODE = "idempotency_conflict"
 IDEMPOTENCY_CONFLICT_MESSAGE = (
@@ -110,7 +111,10 @@ async def model_call_error_handler(request: Request, exc: ModelCallError) -> JSO
 
 
 def idempotency_conflict_response(request: Request | None = None) -> JSONResponse:
-    """Retryable 409 ``idempotency_conflict`` in the shared ``{"detail", "error"}`` envelope (TC-10-003b)."""
+    """Retryable 409 ``idempotency_conflict`` in the shared ``{"detail", "error"}`` envelope.
+
+    TC-10-003b.
+    """
     error = ApiError(
         code=IDEMPOTENCY_CONFLICT_CODE,
         message=IDEMPOTENCY_CONFLICT_MESSAGE,

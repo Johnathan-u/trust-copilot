@@ -6,19 +6,21 @@ A job failure is classified into a stable, typed ``error_code``:
   ``upstream_unavailable`` (other 5xx), ``connection_error`` (network/DNS/refused),
   ``database_unavailable`` (DB connection lost / operational error), ``lease_expired`` (the worker
   lost its job lease before finishing; the attempt is abandoned and retried under the same cap);
-* **terminal** (retrying cannot help): ``bad_input``, ``not_found``, ``auth_failed``, ``permission_denied``,
-  ``config_error``, ``internal_error``.
+* **terminal** (retrying cannot help): ``bad_input``, ``not_found``, ``auth_failed``,
+  ``permission_denied``, ``config_error``, ``internal_error``.
 
-Model-provider failures (TC-11-001, ``app.services.model_outcomes``) keep TC-11-001's ``model_*`` code and its
-catalog ``retryable`` flag and safe message, so ``jobs.error_code`` has one vocabulary per failure source:
-``model_rate_limited`` / ``model_timeout`` / ``model_server_error`` / ``model_malformed_output`` are retried,
-fatal and other model codes are terminal.
+Model-provider failures (TC-11-001, ``app.services.model_outcomes``) keep TC-11-001's
+``model_*`` code and its catalog ``retryable`` flag and safe message, so ``jobs.error_code``
+has one vocabulary per failure source: ``model_rate_limited`` / ``model_timeout`` /
+``model_server_error`` / ``model_malformed_output`` are retried, fatal and other model codes
+are terminal.
 
-Unknown exceptions are ``internal_error`` and **terminal**: a blind retry of an unexplained failure could repeat
-side effects or burn provider quota (conservative default; see docs/release/tickets/TC-10-002.md).
+Unknown exceptions are ``internal_error`` and **terminal**: a blind retry of an unexplained
+failure could repeat side effects or burn provider quota (conservative default; see
+docs/release/tickets/TC-10-002.md).
 
-Classification is duck-typed (status codes, exception class names, lazy optional imports) so this module has
-no hard dependency on openai / httpx / botocore and never touches the network.
+Classification is duck-typed (status codes, exception class names, lazy optional imports) so
+this module has no hard dependency on openai / httpx / botocore and never touches the network.
 """
 
 from __future__ import annotations
@@ -27,11 +29,14 @@ import os
 import random
 import socket
 import zipfile
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
-# ---------------------------------------------------------------------------------------------------------
+if TYPE_CHECKING:
+    from app.services.model_outcomes import ModelFailure, OutcomeSpec
+
+# --------------------------------------------------------------------------
 # Codes
-# ---------------------------------------------------------------------------------------------------------
+# --------------------------------------------------------------------------
 
 RATE_LIMITED = "rate_limited"
 TIMEOUT = "timeout"
@@ -71,12 +76,12 @@ TERMINAL_CODES = frozenset(
 )
 ALL_CODES = RETRYABLE_CODES | TERMINAL_CODES
 
-# Codes whose provider/storage message may echo a raw upstream body: never expose ``str(exc)`` for these.
+# Codes whose provider/storage message may echo a raw upstream body: never expose ``str(exc)``.
 # ``lease_expired`` is our own message, not an upstream body.
 _UPSTREAM_CODES = (RETRYABLE_CODES - {LEASE_EXPIRED}) | {AUTH_FAILED, PERMISSION_DENIED}
 
 
-def _model_spec(code: str | None):
+def _model_spec(code: str | None) -> OutcomeSpec | None:
     """TC-11-001 catalog entry for a ``model_*`` failure code, else None."""
     if not code:
         return None
@@ -105,15 +110,15 @@ def is_fatal_code(code: str | None) -> bool:
     return bool(spec is not None and spec.fatal)
 
 
-def _model_failure(exc: BaseException):
+def _model_failure(exc: BaseException) -> ModelFailure | None:
     from app.services.model_outcomes import failure_from_exception
 
     return failure_from_exception(exc)
 
 
-# ---------------------------------------------------------------------------------------------------------
+# --------------------------------------------------------------------------
 # Typed exceptions raised by job handlers
-# ---------------------------------------------------------------------------------------------------------
+# --------------------------------------------------------------------------
 
 
 class JobError(Exception):
@@ -149,15 +154,20 @@ class TerminalJobError(JobError):
 
 
 class JobConfigError(TerminalJobError, ValueError):
-    """Missing/invalid server configuration (e.g. no OPENAI_API_KEY). Still a ``ValueError`` for callers that
-    caught the previous ``ValueError``."""
+    """Missing/invalid server configuration (e.g. no OPENAI_API_KEY).
+
+    Still a ``ValueError`` for callers that caught the previous ``ValueError``.
+    """
 
     def __init__(self, message: str):
         super().__init__(CONFIG_ERROR, message)
 
 
 def job_error_from(exc: BaseException, message: str | None = None) -> JobError:
-    """Wrap ``exc`` in a typed ``JobError`` carrying its classification (use ``raise ... from exc``)."""
+    """Wrap ``exc`` in a typed ``JobError`` carrying its classification.
+
+    Callers should ``raise ... from exc``.
+    """
     code = classify(exc)
     msg = message or safe_error_message(exc, code)
     if is_retryable_code(code):
@@ -165,9 +175,9 @@ def job_error_from(exc: BaseException, message: str | None = None) -> JobError:
     return TerminalJobError(code, msg)
 
 
-# ---------------------------------------------------------------------------------------------------------
+# --------------------------------------------------------------------------
 # Classification
-# ---------------------------------------------------------------------------------------------------------
+# --------------------------------------------------------------------------
 
 
 def _status_code(exc: BaseException) -> int | None:
@@ -178,7 +188,7 @@ def _status_code(exc: BaseException) -> int | None:
             val = getattr(obj, attr, None)
             if isinstance(val, int) and 100 <= val <= 599:
                 return val
-    # botocore ClientError: exc.response = {"ResponseMetadata": {"HTTPStatusCode": 503}, "Error": {...}}
+    # botocore ClientError: response is {"ResponseMetadata": {"HTTPStatusCode": 503}, ...}
     resp = getattr(exc, "response", None)
     if isinstance(resp, dict):
         val = (resp.get("ResponseMetadata") or {}).get("HTTPStatusCode")
@@ -222,8 +232,9 @@ _BOTO_ERROR_CODES = {
     "ExpiredToken": AUTH_FAILED,
 }
 
-# Exception class names (matched along the MRO) -> code. Covers openai, httpx, botocore/urllib3, sqlalchemy
-# without importing them. Order matters: the first match on the most-derived class wins.
+# Exception class names (matched along the MRO) -> code. Covers openai, httpx,
+# botocore, urllib3 and sqlalchemy without importing them. The first match on the
+# most-derived class wins.
 _NAME_CODES = {
     # openai
     "RateLimitError": RATE_LIMITED,
@@ -270,8 +281,9 @@ def _classify(exc: BaseException) -> str:
         return model_failure.code.value
     names = [c.__name__ for c in type(exc).__mro__]
     # botocore ClientError: prefer the service error code, then the HTTP status.
-    if "ClientError" in names and isinstance(getattr(exc, "response", None), dict):
-        err_code = (exc.response.get("Error") or {}).get("Code")
+    response = getattr(exc, "response", None)
+    if "ClientError" in names and isinstance(response, dict):
+        err_code = (response.get("Error") or {}).get("Code")
         if err_code in _BOTO_ERROR_CODES:
             return _BOTO_ERROR_CODES[err_code]
         status = _status_code(exc)
@@ -322,12 +334,12 @@ _UPSTREAM_MODULES = ("openai", "httpx", "botocore", "boto3", "urllib3", "request
 
 
 def _is_upstream_exception(exc: BaseException) -> bool:
-    """Raised by a provider / storage / HTTP client library (its message may embed the remote body)."""
+    """Raised by a provider, storage, or HTTP client (its message may embed the body)."""
     return any((c.__module__ or "").split(".")[0] in _UPSTREAM_MODULES for c in type(exc).__mro__)
 
 
 def safe_error_message(exc: BaseException, code: str | None = None) -> str:
-    """User-visible message. Provider/storage failures expose class name and status only, never the raw body."""
+    """User-visible message. Provider failures expose class name and status, not the body."""
     code = code or classify(exc)
     if isinstance(exc, JobError):
         return exc.message[:1000]
@@ -341,9 +353,9 @@ def safe_error_message(exc: BaseException, code: str | None = None) -> str:
     return (str(exc) or type(exc).__name__)[:1000]
 
 
-# ---------------------------------------------------------------------------------------------------------
+# --------------------------------------------------------------------------
 # Retry policy
-# ---------------------------------------------------------------------------------------------------------
+# --------------------------------------------------------------------------
 
 # Hard ceiling on total attempts regardless of a job's max_attempts (bounded retries).
 MAX_ATTEMPTS_CEILING = 10
@@ -368,7 +380,7 @@ def retry_max_seconds() -> float:
 
 
 def effective_max_attempts(max_attempts: int | None) -> int:
-    """Attempts allowed for a job: its ``max_attempts`` (default 3), clamped to [1, MAX_ATTEMPTS_CEILING]."""
+    """Attempts allowed: ``max_attempts`` (default 3), clamped to [1, MAX_ATTEMPTS_CEILING]."""
     n = 3 if max_attempts is None else int(max_attempts)
     return min(max(n, 1), MAX_ATTEMPTS_CEILING)
 
@@ -383,9 +395,9 @@ def backoff_delay(
 ) -> float:
     """Delay before the next attempt after ``attempt`` (1-based) failed.
 
-    Exponential ``base * 2**(attempt-1)`` capped at ``cap``, with "equal jitter" (uniform in [d/2, d]) so
-    concurrent failures do not retry in lockstep. A provider ``Retry-After`` raises the floor but is itself
-    clamped to ``cap``: the delay is always within [0, cap].
+    Exponential ``base * 2**(attempt-1)`` capped at ``cap``, with equal jitter (uniform in
+    [d/2, d]) so concurrent failures do not retry in lockstep. A provider ``Retry-After``
+    raises the floor but is itself clamped to ``cap``: the delay is always within [0, cap].
     """
     rng = rng or random
     attempt = max(int(attempt), 1)

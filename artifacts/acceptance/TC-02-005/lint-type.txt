@@ -1,0 +1,6 @@
+$ ruff check --select E,F,I,B <critical modules>
+All checks passed!
+EXIT:0
+$ mypy
+Success: no issues found in 6 source files
+EXIT:0

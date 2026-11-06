@@ -1,3 +1,6 @@
+# TC-02-005: apps/api/pyproject.toml has its own [tool.ruff] table, so
+# `ruff check .` from apps/api does not inherit this select. The critical-module
+# gate passes `--select E,F,I,B` explicitly. Keep `ignore` empty.
 line-length = 100
 target-version = "py311"
 

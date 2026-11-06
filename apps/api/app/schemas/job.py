@@ -1,9 +1,29 @@
 """Job schemas."""
 
-from datetime import datetime  # noqa: F401
+from __future__ import annotations
+
+from datetime import datetime
+from typing import Protocol
 
 
-def job_response(job) -> dict:
+class JobView(Protocol):
+    """Fields ``job_response`` reads. Structural so callers can pass a row or a stand-in."""
+
+    id: object
+    workspace_id: object
+    kind: object
+    status: object
+    payload: object
+    result: object
+    error: object
+    attempt: object
+    max_attempts: object
+    started_at: datetime | None
+    completed_at: datetime | None
+    created_at: datetime | None
+
+
+def job_response(job: JobView) -> dict[str, object]:
     """Serialize job for API."""
     return {
         "id": job.id,

@@ -1,8 +1,8 @@
 """Source registry service — manage evidence source types per workspace."""
 
-import json  # noqa: F401
 import logging
 from datetime import datetime, timezone
+from typing import Any
 
 from sqlalchemy.orm import Session
 
@@ -40,8 +40,13 @@ KNOWN_SOURCES: list[dict] = [
         "display_name": "Amazon Web Services",
         "auth_method": "iam_role_assumption",
         "sync_cadence": "daily",
-        "object_types": "iam_users,iam_policies,iam_roles,s3_buckets,cloudtrail_config,security_hub_findings",
-        "failure_modes": "credentials_invalid,role_not_assumable,insufficient_permissions,api_throttled,region_unavailable",
+        "object_types": (
+            "iam_users,iam_policies,iam_roles,s3_buckets," "cloudtrail_config,security_hub_findings"
+        ),
+        "failure_modes": (
+            "credentials_invalid,role_not_assumable,"
+            "insufficient_permissions,api_throttled,region_unavailable"
+        ),
     },
     {
         "source_type": "github",
@@ -49,7 +54,9 @@ KNOWN_SOURCES: list[dict] = [
         "auth_method": "oauth2_app",
         "sync_cadence": "daily",
         "object_types": "repos,branch_protections,collaborators,teams,security_alerts,dependabot",
-        "failure_modes": "token_expired,app_not_installed,rate_limited,repo_not_found,insufficient_scope",
+        "failure_modes": (
+            "token_expired,app_not_installed,rate_limited," "repo_not_found,insufficient_scope"
+        ),
     },
     {
         "source_type": "gcp",
@@ -65,7 +72,9 @@ KNOWN_SOURCES: list[dict] = [
         "auth_method": "service_principal",
         "sync_cadence": "daily",
         "object_types": "aad_users,aad_roles,defender_findings,resource_policies,key_vault",
-        "failure_modes": "credentials_expired,tenant_not_found,insufficient_permissions,api_throttled",
+        "failure_modes": (
+            "credentials_expired,tenant_not_found," "insufficient_permissions,api_throttled"
+        ),
     },
     {
         "source_type": "okta",
@@ -139,7 +148,7 @@ def get_source(db: Session, workspace_id: int, source_type: str) -> dict | None:
     return _serialize(row) if row else None
 
 
-def update_source(db: Session, workspace_id: int, source_type: str, **updates) -> dict | None:
+def update_source(db: Session, workspace_id: int, source_type: str, **updates: Any) -> dict | None:
     row = (
         db.query(SourceRegistry)
         .filter(
@@ -178,9 +187,13 @@ def record_sync(
         .first()
     )
     if row:
-        row.last_sync_at = datetime.now(timezone.utc)
-        row.last_sync_status = "success" if success else "failed"
-        row.last_error = error if not success else None
+        # Classic Column() attributes are not the runtime value types (SQLAlchemy 2).
+        synced_at = datetime.now(timezone.utc)
+        status = "success" if success else "failed"
+        detail = None if success else error
+        row.last_sync_at = synced_at  # type: ignore[assignment]
+        row.last_sync_status = status  # type: ignore[assignment]
+        row.last_error = detail  # type: ignore[assignment]
         db.flush()
 
 
