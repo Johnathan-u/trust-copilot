@@ -5,7 +5,7 @@ window.TRUSTCOPILOT_BACKLOG = {
     "schema_version": 1,
     "scope_version": 1,
     "revision": 14,
-    "as_of_utc": "2026-11-07T18:24:09Z",
+    "as_of_utc": "2026-11-07T18:29:31Z",
     "source_sha": "90146e0cfe2220beb3e43f98f6073262f7c0abfb",
     "baseline_status": "PENDING",
     "metric_label": "Accepted original-parent points",
@@ -15,18 +15,18 @@ window.TRUSTCOPILOT_BACKLOG = {
   "summary": {
     "accepted_points": null,
     "completion_percentage": null,
-    "assessed_tickets": 20,
+    "assessed_tickets": 19,
     "total_tickets": 384,
     "total_points": 1864,
     "state_counts": {
       "BASELINE_RECONCILIATION": 302,
       "BLOCKED": 3,
-      "DONE": 20,
-      "EVIDENCE_RECONCILIATION": 37,
+      "DONE": 19,
+      "EVIDENCE_RECONCILIATION": 38,
       "IMPLEMENTATION_GAPS_IDENTIFIED": 22
     },
-    "accepted_claim_points": 82,
-    "accepted_tickets": 20,
+    "accepted_claim_points": 77,
+    "accepted_tickets": 19,
     "baseline_status": "PENDING"
   },
   "source_metadata": {
@@ -682,13 +682,12 @@ window.TRUSTCOPILOT_BACKLOG = {
       "rollup": {
         "total_tickets": 13,
         "total_points": 52,
-        "assessed_tickets": 1,
-        "accepted_tickets": 1,
+        "assessed_tickets": 0,
+        "accepted_tickets": 0,
         "accepted_points": null,
         "state_counts": {
           "BASELINE_RECONCILIATION": 8,
-          "DONE": 1,
-          "EVIDENCE_RECONCILIATION": 3,
+          "EVIDENCE_RECONCILIATION": 4,
           "IMPLEMENTATION_GAPS_IDENTIFIED": 1
         }
       }
@@ -33357,7 +33356,7 @@ window.TRUSTCOPILOT_BACKLOG = {
         "owner": null,
         "blockers": [],
         "next_action": "Accepted. Reopen only on regression or when change control adds scope.",
-        "updated_at": "2026-11-07T18:24:09Z",
+        "updated_at": "2026-11-07T18:29:31Z",
         "source_sha": "90146e0cfe2220beb3e43f98f6073262f7c0abfb",
         "acceptance": {
           "state": "ACCEPTED",
@@ -33371,8 +33370,7 @@ window.TRUSTCOPILOT_BACKLOG = {
           ],
           "tested_sha": "55d7deece26ebcf52634f95a4554a31121c3a849",
           "implemented_by": [
-            "Johnathan-u",
-            "codex"
+            "cursor-agent"
           ],
           "independent_reviewer": "claude-review-agent",
           "reviewed_at": "2026-11-07T18:23:09Z",
@@ -33454,7 +33452,7 @@ window.TRUSTCOPILOT_BACKLOG = {
               "tested_sha": "55d7deece26ebcf52634f95a4554a31121c3a849"
             }
           ],
-          "note": "Existing work verified independently at master 55d7dee (CI run 42327658604) against every AC and DoD item; report in #191. Implemented earlier by Codex workers; see pr_links."
+          "note": "Existing work verified independently at master 55d7dee (CI run 42327658604) against every AC and DoD item; report in #191; acceptance audited separately. Implemented in #103 (Cursor agent)."
         },
         "pr_links": [
           {
@@ -33636,7 +33634,7 @@ window.TRUSTCOPILOT_BACKLOG = {
         "owner": null,
         "blockers": [],
         "next_action": "Accepted. Reopen only on regression or when change control adds scope.",
-        "updated_at": "2026-11-07T18:24:09Z",
+        "updated_at": "2026-11-07T18:29:31Z",
         "source_sha": "90146e0cfe2220beb3e43f98f6073262f7c0abfb",
         "acceptance": {
           "state": "ACCEPTED",
@@ -33650,8 +33648,9 @@ window.TRUSTCOPILOT_BACKLOG = {
           ],
           "tested_sha": "55d7deece26ebcf52634f95a4554a31121c3a849",
           "implemented_by": [
-            "Johnathan-u",
-            "codex"
+            "cursor-agent",
+            "grok",
+            "Johnathan-u"
           ],
           "independent_reviewer": "claude-review-agent",
           "reviewed_at": "2026-11-07T18:23:09Z",
@@ -33733,7 +33732,7 @@ window.TRUSTCOPILOT_BACKLOG = {
               "tested_sha": "55d7deece26ebcf52634f95a4554a31121c3a849"
             }
           ],
-          "note": "Existing work verified independently at master 55d7dee (CI run 42327658604) against every AC and DoD item; report in #191. Implemented earlier by Codex workers; see pr_links."
+          "note": "Existing work verified independently at master 55d7dee (CI run 42327658604) against every AC and DoD item; report in #191; acceptance audited separately. Implemented in #107 (Cursor agent and Grok commits, owner-account repair commits). Limit: object storage exercised with an in-memory store."
         },
         "pr_links": [
           {
@@ -36430,7 +36429,7 @@ window.TRUSTCOPILOT_BACKLOG = {
         "owner": null,
         "blockers": [],
         "next_action": "Accepted. Reopen only on regression or when change control adds scope.",
-        "updated_at": "2026-11-07T18:24:09Z",
+        "updated_at": "2026-11-07T18:29:31Z",
         "source_sha": "90146e0cfe2220beb3e43f98f6073262f7c0abfb",
         "acceptance": {
           "state": "ACCEPTED",
@@ -36444,8 +36443,8 @@ window.TRUSTCOPILOT_BACKLOG = {
           ],
           "tested_sha": "55d7deece26ebcf52634f95a4554a31121c3a849",
           "implemented_by": [
-            "Johnathan-u",
-            "codex"
+            "codex",
+            "Johnathan-u"
           ],
           "independent_reviewer": "claude-review-agent",
           "reviewed_at": "2026-11-07T18:23:09Z",
@@ -36527,7 +36526,7 @@ window.TRUSTCOPILOT_BACKLOG = {
               "tested_sha": "55d7deece26ebcf52634f95a4554a31121c3a849"
             }
           ],
-          "note": "Existing work verified independently at master 55d7dee (CI run 42327658604) against every AC and DoD item; report in #191. Implemented earlier by Codex workers; see pr_links."
+          "note": "Existing work verified independently at master 55d7dee (CI run 42327658604) against every AC and DoD item; report in #191; acceptance audited separately. Implemented in #128 (Codex)."
         },
         "pr_links": [
           {
@@ -40800,119 +40799,78 @@ window.TRUSTCOPILOT_BACKLOG = {
       "release_gate_dependencies": [],
       "dependency_ruling_ids": [],
       "current": {
-        "status": "DONE",
-        "evidence_state": "VERIFIED_ACCEPTED",
+        "status": "EVIDENCE_RECONCILIATION",
+        "evidence_state": "EVIDENCE_RECONCILIATION",
         "owner": null,
         "blockers": [],
-        "next_action": "Accepted. Reopen only on regression or when change control adds scope.",
-        "updated_at": "2026-11-07T18:24:09Z",
-        "source_sha": "90146e0cfe2220beb3e43f98f6073262f7c0abfb",
+        "next_action": "Reconcile existing implementation and evidence against all original acceptance criteria before declaring Done or estimating only the remaining scope.",
+        "updated_at": "2026-10-30T09:49:19Z",
+        "source_sha": "b2bd1e0df5cdeb03b8d0cd240f5a161835ea621d",
         "acceptance": {
-          "state": "ACCEPTED",
-          "assessed_by": "claude-review-agent",
-          "assessed_at": "2026-11-07T18:23:09Z",
-          "assessed_sha": "55d7deece26ebcf52634f95a4554a31121c3a849",
-          "assessment_evidence_urls": [
-            "https://github.com/Johnathan-u/trust-copilot/actions/runs/42327658604",
-            "https://github.com/Johnathan-u/trust-copilot/issues/191#issuecomment-6711278136",
-            "https://github.com/Johnathan-u/trust-copilot/issues/191"
-          ],
-          "tested_sha": "55d7deece26ebcf52634f95a4554a31121c3a849",
-          "implemented_by": [
-            "Johnathan-u",
-            "codex"
-          ],
-          "independent_reviewer": "claude-review-agent",
-          "reviewed_at": "2026-11-07T18:23:09Z",
-          "reviewed_sha": "55d7deece26ebcf52634f95a4554a31121c3a849",
-          "review_evidence_urls": [
-            "https://github.com/Johnathan-u/trust-copilot/issues/191#issuecomment-6711278136"
-          ],
+          "state": "PENDING",
+          "assessed_by": null,
+          "assessed_at": null,
+          "assessed_sha": null,
+          "assessment_evidence_urls": [],
+          "tested_sha": null,
+          "implemented_by": [],
+          "independent_reviewer": null,
+          "reviewed_at": null,
+          "reviewed_sha": null,
+          "review_evidence_urls": [],
           "criteria": [
             {
               "id": "TC-14-006-AC1",
-              "status": "PASS",
-              "evidence_urls": [
-                "https://github.com/Johnathan-u/trust-copilot/actions/runs/42327658604",
-                "https://github.com/Johnathan-u/trust-copilot/issues/191#issuecomment-6711278136",
-                "https://github.com/Johnathan-u/trust-copilot/blob/55d7deece26ebcf52634f95a4554a31121c3a849/apps/web/e2e/release/responsive-shell.spec.ts"
-              ],
-              "tested_sha": "55d7deece26ebcf52634f95a4554a31121c3a849"
+              "status": "NOT_VERIFIED",
+              "evidence_urls": [],
+              "tested_sha": null
             },
             {
               "id": "TC-14-006-AC2",
-              "status": "PASS",
-              "evidence_urls": [
-                "https://github.com/Johnathan-u/trust-copilot/actions/runs/42327658604",
-                "https://github.com/Johnathan-u/trust-copilot/issues/191#issuecomment-6711278136",
-                "https://github.com/Johnathan-u/trust-copilot/blob/55d7deece26ebcf52634f95a4554a31121c3a849/apps/web/e2e/release/responsive-shell.spec.ts"
-              ],
-              "tested_sha": "55d7deece26ebcf52634f95a4554a31121c3a849"
+              "status": "NOT_VERIFIED",
+              "evidence_urls": [],
+              "tested_sha": null
             }
           ],
           "definition_of_done": [
             {
               "id": "TC-14-006-DOD1",
-              "status": "PASS",
-              "evidence_urls": [
-                "https://github.com/Johnathan-u/trust-copilot/actions/runs/42327658604",
-                "https://github.com/Johnathan-u/trust-copilot/issues/191#issuecomment-6711278136",
-                "https://github.com/Johnathan-u/trust-copilot/blob/55d7deece26ebcf52634f95a4554a31121c3a849/apps/web/e2e/release/responsive-shell.spec.ts"
-              ],
-              "tested_sha": "55d7deece26ebcf52634f95a4554a31121c3a849"
+              "status": "NOT_VERIFIED",
+              "evidence_urls": [],
+              "tested_sha": null
             },
             {
               "id": "TC-14-006-DOD2",
-              "status": "PASS",
-              "evidence_urls": [
-                "https://github.com/Johnathan-u/trust-copilot/actions/runs/42327658604",
-                "https://github.com/Johnathan-u/trust-copilot/issues/191#issuecomment-6711278136",
-                "https://github.com/Johnathan-u/trust-copilot/blob/55d7deece26ebcf52634f95a4554a31121c3a849/apps/web/e2e/release/responsive-shell.spec.ts"
-              ],
-              "tested_sha": "55d7deece26ebcf52634f95a4554a31121c3a849"
+              "status": "NOT_VERIFIED",
+              "evidence_urls": [],
+              "tested_sha": null
             },
             {
               "id": "TC-14-006-DOD3",
-              "status": "PASS",
-              "evidence_urls": [
-                "https://github.com/Johnathan-u/trust-copilot/actions/runs/42327658604",
-                "https://github.com/Johnathan-u/trust-copilot/issues/191#issuecomment-6711278136",
-                "https://github.com/Johnathan-u/trust-copilot/blob/55d7deece26ebcf52634f95a4554a31121c3a849/apps/web/e2e/release/responsive-shell.spec.ts"
-              ],
-              "tested_sha": "55d7deece26ebcf52634f95a4554a31121c3a849"
+              "status": "NOT_VERIFIED",
+              "evidence_urls": [],
+              "tested_sha": null
             },
             {
               "id": "TC-14-006-DOD4",
-              "status": "PASS",
-              "evidence_urls": [
-                "https://github.com/Johnathan-u/trust-copilot/actions/runs/42327658604",
-                "https://github.com/Johnathan-u/trust-copilot/issues/191#issuecomment-6711278136",
-                "https://github.com/Johnathan-u/trust-copilot/blob/55d7deece26ebcf52634f95a4554a31121c3a849/apps/web/e2e/release/responsive-shell.spec.ts"
-              ],
-              "tested_sha": "55d7deece26ebcf52634f95a4554a31121c3a849"
+              "status": "NOT_VERIFIED",
+              "evidence_urls": [],
+              "tested_sha": null
             },
             {
               "id": "TC-14-006-DOD5",
-              "status": "PASS",
-              "evidence_urls": [
-                "https://github.com/Johnathan-u/trust-copilot/actions/runs/42327658604",
-                "https://github.com/Johnathan-u/trust-copilot/issues/191#issuecomment-6711278136",
-                "https://github.com/Johnathan-u/trust-copilot/blob/55d7deece26ebcf52634f95a4554a31121c3a849/apps/web/e2e/release/responsive-shell.spec.ts"
-              ],
-              "tested_sha": "55d7deece26ebcf52634f95a4554a31121c3a849"
+              "status": "NOT_VERIFIED",
+              "evidence_urls": [],
+              "tested_sha": null
             },
             {
               "id": "TC-14-006-DOD6",
-              "status": "PASS",
-              "evidence_urls": [
-                "https://github.com/Johnathan-u/trust-copilot/actions/runs/42327658604",
-                "https://github.com/Johnathan-u/trust-copilot/issues/191#issuecomment-6711278136",
-                "https://github.com/Johnathan-u/trust-copilot/blob/55d7deece26ebcf52634f95a4554a31121c3a849/apps/web/e2e/release/responsive-shell.spec.ts"
-              ],
-              "tested_sha": "55d7deece26ebcf52634f95a4554a31121c3a849"
+              "status": "NOT_VERIFIED",
+              "evidence_urls": [],
+              "tested_sha": null
             }
           ],
-          "note": "Existing work verified independently at master 55d7dee (CI run 42327658604) against every AC and DoD item; report in #191. Implemented earlier by Codex workers; see pr_links."
+          "note": "Full original-parent acceptance is pending baseline validation; merged work and artifact presence alone confer no acceptance."
         },
         "pr_links": [
           {
@@ -93247,7 +93205,7 @@ window.TRUSTCOPILOT_BACKLOG = {
         "owner": null,
         "blockers": [],
         "next_action": "Accepted. Reopen only on regression or when change control adds scope.",
-        "updated_at": "2026-11-07T18:24:09Z",
+        "updated_at": "2026-11-07T18:29:31Z",
         "source_sha": "90146e0cfe2220beb3e43f98f6073262f7c0abfb",
         "acceptance": {
           "state": "ACCEPTED",
@@ -93261,8 +93219,9 @@ window.TRUSTCOPILOT_BACKLOG = {
           ],
           "tested_sha": "55d7deece26ebcf52634f95a4554a31121c3a849",
           "implemented_by": [
-            "Johnathan-u",
-            "codex"
+            "cursor-agent",
+            "codex",
+            "Johnathan-u"
           ],
           "independent_reviewer": "claude-review-agent",
           "reviewed_at": "2026-11-07T18:23:09Z",
@@ -93354,7 +93313,7 @@ window.TRUSTCOPILOT_BACKLOG = {
               "tested_sha": "55d7deece26ebcf52634f95a4554a31121c3a849"
             }
           ],
-          "note": "Existing work verified independently at master 55d7dee (CI run 42327658604) against every AC and DoD item; report in #191. Implemented earlier by Codex workers; see pr_links."
+          "note": "Existing work verified independently at master 55d7dee (CI run 42327658604) against every AC and DoD item; report in #191; acceptance audited separately. Implemented in #96 (Cursor agent, with a Codex repair). Follow-up: refresh docs/release/tickets/TC-23-001.md (stale status, migration parent and web-caller lines)."
         },
         "pr_links": [
           {
@@ -126650,9 +126609,9 @@ window.TRUSTCOPILOT_BACKLOG = {
     },
     {
       "revision": 14,
-      "at": "2026-11-07T18:24:09Z",
+      "at": "2026-11-07T18:29:31Z",
       "actor": "claude",
-      "reason": "Independent verification of existing work at 55d7dee (#191): TC-10-004, TC-10-005, TC-14-006, TC-12-001 and TC-23-001 accepted",
+      "reason": "Independent verification of existing work at 55d7dee (#191), audited: TC-10-004, TC-10-005, TC-12-001 and TC-23-001 accepted",
       "source_sha": "90146e0cfe2220beb3e43f98f6073262f7c0abfb",
       "before": {
         "scope_version": 1,
@@ -126676,18 +126635,18 @@ window.TRUSTCOPILOT_BACKLOG = {
         "scope_version": 1,
         "accepted_points": null,
         "completion_percentage": null,
-        "assessed_tickets": 20,
+        "assessed_tickets": 19,
         "total_tickets": 384,
         "total_points": 1864,
         "state_counts": {
           "BASELINE_RECONCILIATION": 302,
           "BLOCKED": 3,
-          "DONE": 20,
-          "EVIDENCE_RECONCILIATION": 37,
+          "DONE": 19,
+          "EVIDENCE_RECONCILIATION": 38,
           "IMPLEMENTATION_GAPS_IDENTIFIED": 22
         },
-        "accepted_claim_points": 82,
-        "accepted_tickets": 20,
+        "accepted_claim_points": 77,
+        "accepted_tickets": 19,
         "baseline_status": "PENDING"
       },
       "changes": {
@@ -126707,7 +126666,7 @@ window.TRUSTCOPILOT_BACKLOG = {
             },
             "updated_at": {
               "before": "2026-10-30T09:49:19Z",
-              "after": "2026-11-07T18:24:09Z"
+              "after": "2026-11-07T18:29:31Z"
             },
             "source_sha": {
               "before": "b2bd1e0df5cdeb03b8d0cd240f5a161835ea621d",
@@ -126786,8 +126745,7 @@ window.TRUSTCOPILOT_BACKLOG = {
                 ],
                 "tested_sha": "55d7deece26ebcf52634f95a4554a31121c3a849",
                 "implemented_by": [
-                  "Johnathan-u",
-                  "codex"
+                  "cursor-agent"
                 ],
                 "independent_reviewer": "claude-review-agent",
                 "reviewed_at": "2026-11-07T18:23:09Z",
@@ -126869,7 +126827,7 @@ window.TRUSTCOPILOT_BACKLOG = {
                     "tested_sha": "55d7deece26ebcf52634f95a4554a31121c3a849"
                   }
                 ],
-                "note": "Existing work verified independently at master 55d7dee (CI run 42327658604) against every AC and DoD item; report in #191. Implemented earlier by Codex workers; see pr_links."
+                "note": "Existing work verified independently at master 55d7dee (CI run 42327658604) against every AC and DoD item; report in #191; acceptance audited separately. Implemented in #103 (Cursor agent)."
               }
             }
           },
@@ -126888,7 +126846,7 @@ window.TRUSTCOPILOT_BACKLOG = {
             },
             "updated_at": {
               "before": "2026-10-30T09:49:19Z",
-              "after": "2026-11-07T18:24:09Z"
+              "after": "2026-11-07T18:29:31Z"
             },
             "source_sha": {
               "before": "b2bd1e0df5cdeb03b8d0cd240f5a161835ea621d",
@@ -126967,8 +126925,9 @@ window.TRUSTCOPILOT_BACKLOG = {
                 ],
                 "tested_sha": "55d7deece26ebcf52634f95a4554a31121c3a849",
                 "implemented_by": [
-                  "Johnathan-u",
-                  "codex"
+                  "cursor-agent",
+                  "grok",
+                  "Johnathan-u"
                 ],
                 "independent_reviewer": "claude-review-agent",
                 "reviewed_at": "2026-11-07T18:23:09Z",
@@ -127050,204 +127009,7 @@ window.TRUSTCOPILOT_BACKLOG = {
                     "tested_sha": "55d7deece26ebcf52634f95a4554a31121c3a849"
                   }
                 ],
-                "note": "Existing work verified independently at master 55d7dee (CI run 42327658604) against every AC and DoD item; report in #191. Implemented earlier by Codex workers; see pr_links."
-              }
-            }
-          },
-          "TC-14-006": {
-            "status": {
-              "before": "EVIDENCE_RECONCILIATION",
-              "after": "DONE"
-            },
-            "evidence_state": {
-              "before": "EVIDENCE_RECONCILIATION",
-              "after": "VERIFIED_ACCEPTED"
-            },
-            "next_action": {
-              "before": "Reconcile existing implementation and evidence against all original acceptance criteria before declaring Done or estimating only the remaining scope.",
-              "after": "Accepted. Reopen only on regression or when change control adds scope."
-            },
-            "updated_at": {
-              "before": "2026-10-30T09:49:19Z",
-              "after": "2026-11-07T18:24:09Z"
-            },
-            "source_sha": {
-              "before": "b2bd1e0df5cdeb03b8d0cd240f5a161835ea621d",
-              "after": "90146e0cfe2220beb3e43f98f6073262f7c0abfb"
-            },
-            "acceptance": {
-              "before": {
-                "state": "PENDING",
-                "assessed_by": null,
-                "assessed_at": null,
-                "assessed_sha": null,
-                "assessment_evidence_urls": [],
-                "tested_sha": null,
-                "implemented_by": [],
-                "independent_reviewer": null,
-                "reviewed_at": null,
-                "reviewed_sha": null,
-                "review_evidence_urls": [],
-                "criteria": [
-                  {
-                    "id": "TC-14-006-AC1",
-                    "status": "NOT_VERIFIED",
-                    "evidence_urls": [],
-                    "tested_sha": null
-                  },
-                  {
-                    "id": "TC-14-006-AC2",
-                    "status": "NOT_VERIFIED",
-                    "evidence_urls": [],
-                    "tested_sha": null
-                  }
-                ],
-                "definition_of_done": [
-                  {
-                    "id": "TC-14-006-DOD1",
-                    "status": "NOT_VERIFIED",
-                    "evidence_urls": [],
-                    "tested_sha": null
-                  },
-                  {
-                    "id": "TC-14-006-DOD2",
-                    "status": "NOT_VERIFIED",
-                    "evidence_urls": [],
-                    "tested_sha": null
-                  },
-                  {
-                    "id": "TC-14-006-DOD3",
-                    "status": "NOT_VERIFIED",
-                    "evidence_urls": [],
-                    "tested_sha": null
-                  },
-                  {
-                    "id": "TC-14-006-DOD4",
-                    "status": "NOT_VERIFIED",
-                    "evidence_urls": [],
-                    "tested_sha": null
-                  },
-                  {
-                    "id": "TC-14-006-DOD5",
-                    "status": "NOT_VERIFIED",
-                    "evidence_urls": [],
-                    "tested_sha": null
-                  },
-                  {
-                    "id": "TC-14-006-DOD6",
-                    "status": "NOT_VERIFIED",
-                    "evidence_urls": [],
-                    "tested_sha": null
-                  }
-                ],
-                "note": "Full original-parent acceptance is pending baseline validation; merged work and artifact presence alone confer no acceptance."
-              },
-              "after": {
-                "state": "ACCEPTED",
-                "assessed_by": "claude-review-agent",
-                "assessed_at": "2026-11-07T18:23:09Z",
-                "assessed_sha": "55d7deece26ebcf52634f95a4554a31121c3a849",
-                "assessment_evidence_urls": [
-                  "https://github.com/Johnathan-u/trust-copilot/actions/runs/42327658604",
-                  "https://github.com/Johnathan-u/trust-copilot/issues/191#issuecomment-6711278136",
-                  "https://github.com/Johnathan-u/trust-copilot/issues/191"
-                ],
-                "tested_sha": "55d7deece26ebcf52634f95a4554a31121c3a849",
-                "implemented_by": [
-                  "Johnathan-u",
-                  "codex"
-                ],
-                "independent_reviewer": "claude-review-agent",
-                "reviewed_at": "2026-11-07T18:23:09Z",
-                "reviewed_sha": "55d7deece26ebcf52634f95a4554a31121c3a849",
-                "review_evidence_urls": [
-                  "https://github.com/Johnathan-u/trust-copilot/issues/191#issuecomment-6711278136"
-                ],
-                "criteria": [
-                  {
-                    "id": "TC-14-006-AC1",
-                    "status": "PASS",
-                    "evidence_urls": [
-                      "https://github.com/Johnathan-u/trust-copilot/actions/runs/42327658604",
-                      "https://github.com/Johnathan-u/trust-copilot/issues/191#issuecomment-6711278136",
-                      "https://github.com/Johnathan-u/trust-copilot/blob/55d7deece26ebcf52634f95a4554a31121c3a849/apps/web/e2e/release/responsive-shell.spec.ts"
-                    ],
-                    "tested_sha": "55d7deece26ebcf52634f95a4554a31121c3a849"
-                  },
-                  {
-                    "id": "TC-14-006-AC2",
-                    "status": "PASS",
-                    "evidence_urls": [
-                      "https://github.com/Johnathan-u/trust-copilot/actions/runs/42327658604",
-                      "https://github.com/Johnathan-u/trust-copilot/issues/191#issuecomment-6711278136",
-                      "https://github.com/Johnathan-u/trust-copilot/blob/55d7deece26ebcf52634f95a4554a31121c3a849/apps/web/e2e/release/responsive-shell.spec.ts"
-                    ],
-                    "tested_sha": "55d7deece26ebcf52634f95a4554a31121c3a849"
-                  }
-                ],
-                "definition_of_done": [
-                  {
-                    "id": "TC-14-006-DOD1",
-                    "status": "PASS",
-                    "evidence_urls": [
-                      "https://github.com/Johnathan-u/trust-copilot/actions/runs/42327658604",
-                      "https://github.com/Johnathan-u/trust-copilot/issues/191#issuecomment-6711278136",
-                      "https://github.com/Johnathan-u/trust-copilot/blob/55d7deece26ebcf52634f95a4554a31121c3a849/apps/web/e2e/release/responsive-shell.spec.ts"
-                    ],
-                    "tested_sha": "55d7deece26ebcf52634f95a4554a31121c3a849"
-                  },
-                  {
-                    "id": "TC-14-006-DOD2",
-                    "status": "PASS",
-                    "evidence_urls": [
-                      "https://github.com/Johnathan-u/trust-copilot/actions/runs/42327658604",
-                      "https://github.com/Johnathan-u/trust-copilot/issues/191#issuecomment-6711278136",
-                      "https://github.com/Johnathan-u/trust-copilot/blob/55d7deece26ebcf52634f95a4554a31121c3a849/apps/web/e2e/release/responsive-shell.spec.ts"
-                    ],
-                    "tested_sha": "55d7deece26ebcf52634f95a4554a31121c3a849"
-                  },
-                  {
-                    "id": "TC-14-006-DOD3",
-                    "status": "PASS",
-                    "evidence_urls": [
-                      "https://github.com/Johnathan-u/trust-copilot/actions/runs/42327658604",
-                      "https://github.com/Johnathan-u/trust-copilot/issues/191#issuecomment-6711278136",
-                      "https://github.com/Johnathan-u/trust-copilot/blob/55d7deece26ebcf52634f95a4554a31121c3a849/apps/web/e2e/release/responsive-shell.spec.ts"
-                    ],
-                    "tested_sha": "55d7deece26ebcf52634f95a4554a31121c3a849"
-                  },
-                  {
-                    "id": "TC-14-006-DOD4",
-                    "status": "PASS",
-                    "evidence_urls": [
-                      "https://github.com/Johnathan-u/trust-copilot/actions/runs/42327658604",
-                      "https://github.com/Johnathan-u/trust-copilot/issues/191#issuecomment-6711278136",
-                      "https://github.com/Johnathan-u/trust-copilot/blob/55d7deece26ebcf52634f95a4554a31121c3a849/apps/web/e2e/release/responsive-shell.spec.ts"
-                    ],
-                    "tested_sha": "55d7deece26ebcf52634f95a4554a31121c3a849"
-                  },
-                  {
-                    "id": "TC-14-006-DOD5",
-                    "status": "PASS",
-                    "evidence_urls": [
-                      "https://github.com/Johnathan-u/trust-copilot/actions/runs/42327658604",
-                      "https://github.com/Johnathan-u/trust-copilot/issues/191#issuecomment-6711278136",
-                      "https://github.com/Johnathan-u/trust-copilot/blob/55d7deece26ebcf52634f95a4554a31121c3a849/apps/web/e2e/release/responsive-shell.spec.ts"
-                    ],
-                    "tested_sha": "55d7deece26ebcf52634f95a4554a31121c3a849"
-                  },
-                  {
-                    "id": "TC-14-006-DOD6",
-                    "status": "PASS",
-                    "evidence_urls": [
-                      "https://github.com/Johnathan-u/trust-copilot/actions/runs/42327658604",
-                      "https://github.com/Johnathan-u/trust-copilot/issues/191#issuecomment-6711278136",
-                      "https://github.com/Johnathan-u/trust-copilot/blob/55d7deece26ebcf52634f95a4554a31121c3a849/apps/web/e2e/release/responsive-shell.spec.ts"
-                    ],
-                    "tested_sha": "55d7deece26ebcf52634f95a4554a31121c3a849"
-                  }
-                ],
-                "note": "Existing work verified independently at master 55d7dee (CI run 42327658604) against every AC and DoD item; report in #191. Implemented earlier by Codex workers; see pr_links."
+                "note": "Existing work verified independently at master 55d7dee (CI run 42327658604) against every AC and DoD item; report in #191; acceptance audited separately. Implemented in #107 (Cursor agent and Grok commits, owner-account repair commits). Limit: object storage exercised with an in-memory store."
               }
             }
           },
@@ -127266,7 +127028,7 @@ window.TRUSTCOPILOT_BACKLOG = {
             },
             "updated_at": {
               "before": "2026-10-30T09:49:19Z",
-              "after": "2026-11-07T18:24:09Z"
+              "after": "2026-11-07T18:29:31Z"
             },
             "source_sha": {
               "before": "b2bd1e0df5cdeb03b8d0cd240f5a161835ea621d",
@@ -127345,8 +127107,8 @@ window.TRUSTCOPILOT_BACKLOG = {
                 ],
                 "tested_sha": "55d7deece26ebcf52634f95a4554a31121c3a849",
                 "implemented_by": [
-                  "Johnathan-u",
-                  "codex"
+                  "codex",
+                  "Johnathan-u"
                 ],
                 "independent_reviewer": "claude-review-agent",
                 "reviewed_at": "2026-11-07T18:23:09Z",
@@ -127428,7 +127190,7 @@ window.TRUSTCOPILOT_BACKLOG = {
                     "tested_sha": "55d7deece26ebcf52634f95a4554a31121c3a849"
                   }
                 ],
-                "note": "Existing work verified independently at master 55d7dee (CI run 42327658604) against every AC and DoD item; report in #191. Implemented earlier by Codex workers; see pr_links."
+                "note": "Existing work verified independently at master 55d7dee (CI run 42327658604) against every AC and DoD item; report in #191; acceptance audited separately. Implemented in #128 (Codex)."
               }
             }
           },
@@ -127447,7 +127209,7 @@ window.TRUSTCOPILOT_BACKLOG = {
             },
             "updated_at": {
               "before": "2026-10-30T09:49:19Z",
-              "after": "2026-11-07T18:24:09Z"
+              "after": "2026-11-07T18:29:31Z"
             },
             "source_sha": {
               "before": "b2bd1e0df5cdeb03b8d0cd240f5a161835ea621d",
@@ -127532,8 +127294,9 @@ window.TRUSTCOPILOT_BACKLOG = {
                 ],
                 "tested_sha": "55d7deece26ebcf52634f95a4554a31121c3a849",
                 "implemented_by": [
-                  "Johnathan-u",
-                  "codex"
+                  "cursor-agent",
+                  "codex",
+                  "Johnathan-u"
                 ],
                 "independent_reviewer": "claude-review-agent",
                 "reviewed_at": "2026-11-07T18:23:09Z",
@@ -127625,7 +127388,7 @@ window.TRUSTCOPILOT_BACKLOG = {
                     "tested_sha": "55d7deece26ebcf52634f95a4554a31121c3a849"
                   }
                 ],
-                "note": "Existing work verified independently at master 55d7dee (CI run 42327658604) against every AC and DoD item; report in #191. Implemented earlier by Codex workers; see pr_links."
+                "note": "Existing work verified independently at master 55d7dee (CI run 42327658604) against every AC and DoD item; report in #191; acceptance audited separately. Implemented in #96 (Cursor agent, with a Codex repair). Follow-up: refresh docs/release/tickets/TC-23-001.md (stale status, migration parent and web-caller lines)."
               }
             }
           }
