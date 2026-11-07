@@ -1,0 +1,48 @@
+{
+  "ticket": "TC-04-001",
+  "command": "python -m pytest tests/release/test_registration.py -q",
+  "working_directory": "apps/api",
+  "git_sha": "78d33e91d0fd88fdb974c7390dfe575516fa210e",
+  "git_branch": "tc/TC-04-001-verified-registration",
+  "parent": "d6e269e3242aeebc199ef98f5bf104a0999715d0",
+  "exit_status": 0,
+  "totals": {
+    "passed": 39,
+    "failed": 0,
+    "skipped": 0,
+    "errors": 0,
+    "warnings": 146,
+    "duration_seconds": 4.5
+  },
+  "additional_runs": [
+    {
+      "command": "python -m pytest tests/release/test_workspace_creation_policy.py tests/test_invite_flow_p14.py tests/release/test_role_grant_entrypoints.py tests/test_auth_flows.py -q",
+      "working_directory": "apps/api",
+      "exit_status": 0,
+      "totals": {
+        "passed": 171,
+        "failed": 0,
+        "skipped": 0,
+        "warnings": 3171,
+        "duration_seconds": 13.62
+      }
+    }
+  ],
+  "environment": {
+    "python": "3.12.3",
+    "pytest": "9.1.1",
+    "sqlalchemy": "2.0.55",
+    "alembic": "1.20.1",
+    "fastapi": "0.162.0",
+    "ruff": "0.5.6",
+    "postgresql": "16.15",
+    "database": "trustcopilot_test",
+    "platform": "Linux 6.12.113+ x86_64"
+  },
+  "notes": [
+    "No schema migration. Provider callbacks use a mocked token exchange.",
+    "No live Google, GitHub, Microsoft, OIDC, or ID.me sandbox was called.",
+    "This evidence file was added after the tested SHA and does not change product behavior.",
+    "The implementer does not accept the result and must not merge."
+  ]
+}
