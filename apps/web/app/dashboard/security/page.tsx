@@ -801,7 +801,10 @@ function WorkspacePolicySection() {
             <input
               type="checkbox"
               checked={mfaReq}
-              onChange={(e) => setMfaReq(e.target.checked)}
+              onChange={(e) => {
+                setMfaReq(e.target.checked)
+                setSaved(false)
+              }}
               className="sr-only peer"
             />
             <div className="h-5 w-9 rounded-full bg-white/10 peer-checked:bg-[var(--tc-primary)] transition-colors" />
@@ -828,11 +831,12 @@ function WorkspacePolicySection() {
             max={90}
             placeholder="7 (default)"
             value={sessionDays}
-            onChange={(e) =>
+            onChange={(e) => {
               setSessionDays(
                 e.target.value === '' ? '' : e.target.valueAsNumber
               )
-            }
+              setSaved(false)
+            }}
             className="w-40 rounded-lg border border-white/10 bg-white/5 px-3 py-1.5 text-xs text-[var(--tc-text)] outline-none focus:border-[var(--tc-primary)]"
           />
           <p className="text-[10px] text-[var(--tc-muted)] mt-1">
