@@ -208,9 +208,13 @@ class Settings:
         self.oidc_client_id: str | None = os.getenv("OIDC_CLIENT_ID")
         self.oidc_client_secret: str | None = os.getenv("OIDC_CLIENT_SECRET")
         self.oidc_scope: str = os.getenv("OIDC_SCOPE", "openid profile email")
-        # Workspace for JIT SSO users when no claim mapping (default workspace id)
-        _oidc_ws = os.getenv("OIDC_DEFAULT_WORKSPACE_ID", "1").strip().lower()
-        self.oidc_default_workspace_id: int = 1 if _oidc_ws in ("", "default") else int(_oidc_ws)
+        # Unset, empty, or "default" selects no workspace. An explicit id is stored
+        # and is not used to place a provider identity in a tenant.
+        _oidc_raw = os.getenv("OIDC_DEFAULT_WORKSPACE_ID")
+        if _oidc_raw is None or _oidc_raw.strip().lower() in ("", "default"):
+            self.oidc_default_workspace_id: int | None = None
+        else:
+            self.oidc_default_workspace_id = int(_oidc_raw.strip())
 
         # id.me (ENT-205, ENT-206) - optional; sandbox first
         self.idme_client_id: str | None = os.getenv("IDME_CLIENT_ID")

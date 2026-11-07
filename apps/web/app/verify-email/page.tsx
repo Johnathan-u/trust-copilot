@@ -10,7 +10,8 @@ import { useKeyedGeneration } from '@/components/ui/useKeyedGeneration'
 function VerifyEmailContent() {
   const searchParams = useSearchParams()
   const token = searchParams.get('token')
-  const initialToken = verificationWithoutToken(token)
+  const userId = searchParams.get('user')
+  const initialToken = verificationWithoutToken(token && userId ? token : null)
   const [status, setStatus] = useState<'loading' | 'ok' | 'error'>(
     initialToken.status
   )
@@ -24,10 +25,11 @@ function VerifyEmailContent() {
 
   const called = useRef(false)
   useEffect(() => {
-    if (!token) return
+    if (!token || !userId) return
     if (called.current) return
     called.current = true
-    fetch(`/api/auth/verify-email?token=${encodeURIComponent(token)}`, {
+    const params = new URLSearchParams({ token, user: userId })
+    fetch(`/api/auth/verify-email?${params.toString()}`, {
       method: 'POST',
       credentials: 'include',
     })
@@ -45,7 +47,7 @@ function VerifyEmailContent() {
         setStatus('error')
         setMessage('Verification failed.')
       })
-  }, [token])
+  }, [token, userId])
 
   return (
     <main className="flex min-h-screen items-center justify-center p-4">

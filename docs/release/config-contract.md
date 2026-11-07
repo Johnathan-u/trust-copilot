@@ -121,7 +121,7 @@ Source of truth: `apps/api/app/core/config_contract.py`. The table between the m
 | `LOG_LEVEL` | enum(DEBUG|INFO|WARNING|ERROR|CRITICAL) | optional | no | INFO | Log level. |  |
 | `OPENAI_TEMPERATURE` | float | optional | no | 0.35 | Completion temperature. |  |
 | `MAPPING_RERANK_MIN_CONFIDENCE` | float | optional | no | 0.82 | Mapping rerank threshold. |  |
-| `OIDC_DEFAULT_WORKSPACE_ID` | int or 'default' | optional | no | 1 | JIT SSO workspace. |  |
+| `OIDC_DEFAULT_WORKSPACE_ID` | int or 'default' | optional | no | unset | No implicit workspace. Provider sign-in does not join a workspace; an explicit id is not applied. |  |
 | `OAUTH_GOOGLE_CLIENT_ID` | string | optional | no | unset | Google OAuth (pair with secret). |  |
 | `OAUTH_GOOGLE_CLIENT_SECRET` | secret string | optional | yes | unset | Google OAuth secret. |  |
 | `OAUTH_GITHUB_CLIENT_ID` | string | optional | no | unset | GitHub OAuth (pair with secret). |  |

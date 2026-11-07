@@ -451,8 +451,8 @@ CONTRACT: tuple[ConfigVar, ...] = (
         "int or 'default'",
         "optional",
         False,
-        "1",
-        "JIT SSO workspace.",
+        "unset",
+        "No implicit workspace. Provider sign-in does not join a workspace; an explicit id is not applied.",
     ),
     ConfigVar(
         "OAUTH_GOOGLE_CLIENT_ID",
