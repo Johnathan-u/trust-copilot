@@ -349,7 +349,9 @@ export default function ComplianceAlertsPage() {
         ))}
       </div>
       {prefError && (
-        <p className="mt-2 text-sm text-[var(--tc-danger)]">{prefError}</p>
+        <p role="alert" className="mt-2 text-sm text-[var(--tc-danger)]">
+          {prefError}
+        </p>
       )}
     </Card>
   )
@@ -513,7 +515,7 @@ export default function ComplianceAlertsPage() {
             </div>
 
             {policyError && (
-              <p className="mb-4 text-sm text-[var(--tc-danger)]">
+              <p role="alert" className="mb-4 text-sm text-[var(--tc-danger)]">
                 {policyError}
               </p>
             )}

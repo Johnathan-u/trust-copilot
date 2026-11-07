@@ -315,6 +315,16 @@ test('delayed create and its null-token replay do not fabricate a link or early 
     return json(route, { ...record, id: 42, vendor_email: 'new@example.com' })
   }
   await open(page)
+  await page
+    .getByRole('button', { name: 'Create Request', exact: true })
+    .click()
+  const pendingDialog = page.getByRole('dialog', {
+    name: 'Create Request',
+    exact: true,
+  })
+  await expect(pendingDialog.getByRole('status')).toHaveText('')
+  await page.keyboard.press('Escape')
+  await expect(pendingDialog).toHaveCount(0)
   await create(page)
   await expect(page.getByRole('button', { name: 'Creating...' })).toBeDisabled()
   await expect(
@@ -336,6 +346,9 @@ test('delayed create and its null-token replay do not fabricate a link or early 
   ).toBeTruthy()
   delayed.release()
   const dialog = page.getByRole('dialog', { name: 'Request Created' })
+  await expect(dialog.getByRole('status')).toHaveText(
+    'Your request has been created.'
+  )
   await expect(dialog.getByText(/one-time link is not available/)).toBeVisible()
   await expect(
     dialog.getByRole('button', { name: 'Copy', exact: true })
@@ -769,3 +782,38 @@ for (const width of [360, 768, 1440]) {
     })
   })
 }
+
+test('a rejected create is an alert inside the dialog and does not take focus', async ({
+  page,
+}) => {
+  const { state } = await setup(page)
+  state.mutation = async (route) =>
+    json(route, { detail: 'Vendor email is not allowed.' }, 422)
+  await open(page)
+  await page
+    .getByRole('button', { name: 'Create Request', exact: true })
+    .click()
+  const dialog = page.getByRole('dialog', {
+    name: 'Create Request',
+    exact: true,
+  })
+  await dialog.getByLabel('Vendor Email').fill('new@example.com')
+  const submit = dialog.getByRole('button', {
+    name: 'Create Link',
+    exact: true,
+  })
+  await submit.click()
+  const alert = dialog.getByRole('alert')
+  await expect(alert).toHaveText('Vendor email is not allowed.')
+  await expect(dialog.getByLabel('Vendor Email')).toHaveValue('new@example.com')
+  expect(
+    await dialog.evaluate((element) => element.contains(document.activeElement))
+  ).toBe(true)
+  expect(
+    await alert.evaluate(
+      (element) =>
+        element === document.activeElement ||
+        element.contains(document.activeElement)
+    )
+  ).toBe(false)
+})

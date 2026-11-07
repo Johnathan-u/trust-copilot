@@ -801,13 +801,20 @@ function WorkspaceRequests({
         closeDisabled={submitting || (invitationBusy && !created)}
         onClose={resetForm}
       >
+        {/* The status region is mounted with the dialog, empty, so the
+            result text is a change inside an existing live region. */}
+        <p
+          role="status"
+          className={created ? 'mb-4 text-sm text-tc-text' : 'sr-only'}
+        >
+          {created
+            ? resultKind === 'create'
+              ? 'Your request has been created.'
+              : DELIVERY_LABELS[created.delivery_status]
+            : ''}
+        </p>
         {created ? (
           <div className="space-y-4">
-            <p role="status" className="text-sm text-tc-text">
-              {resultKind === 'create'
-                ? 'Your request has been created.'
-                : DELIVERY_LABELS[created.delivery_status]}
-            </p>
             {created.share_url ? (
               <div className="flex flex-wrap items-center gap-2 p-3 rounded-lg bg-tc-surface-raised border border-tc-border">
                 <code className="min-w-0 flex-1 text-xs text-tc-text break-all">

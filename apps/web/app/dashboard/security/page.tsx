@@ -457,7 +457,9 @@ function MfaSection({
               required
             />
             {error && (
-              <p className="text-xs text-[var(--tc-danger)]">{error}</p>
+              <p role="alert" className="text-xs text-[var(--tc-danger)]">
+                {error}
+              </p>
             )}
             <div className="flex gap-2">
               <Button type="submit" size="sm" disabled={submitting}>
@@ -505,7 +507,11 @@ function MfaSection({
             onChange={(e) => setDisablePassword(e.target.value)}
             required
           />
-          {error && <p className="text-xs text-[var(--tc-danger)]">{error}</p>}
+          {error && (
+            <p role="alert" className="text-xs text-[var(--tc-danger)]">
+              {error}
+            </p>
+          )}
           <div className="flex gap-2">
             <Button
               type="submit"
@@ -615,10 +621,6 @@ function PasswordSection({
       setConfirm('')
       if (invalidateOthers) onSessionsChanged()
       setInvalidateOthers(false)
-      setTimeout(() => {
-        setSuccess('')
-        setOpen(false)
-      }, 2000)
     } finally {
       setChanging(false)
     }
@@ -677,8 +679,17 @@ function PasswordSection({
             />
             Sign out all other sessions
           </label>
-          {error && <p className="text-xs text-[var(--tc-danger)]">{error}</p>}
-          {success && <p className="text-xs text-emerald-400">{success}</p>}
+          {error && (
+            <p role="alert" className="text-xs text-[var(--tc-danger)]">
+              {error}
+            </p>
+          )}
+          <p
+            role="status"
+            className={success ? 'text-xs text-[var(--tc-success)]' : 'sr-only'}
+          >
+            {success}
+          </p>
           <div className="flex gap-2">
             <Button type="submit" size="sm" disabled={changing}>
               {changing ? 'Updating...' : 'Update Password'}
@@ -690,6 +701,7 @@ function PasswordSection({
               onClick={() => {
                 setOpen(false)
                 setError('')
+                setSuccess('')
               }}
             >
               Cancel
@@ -754,7 +766,6 @@ function WorkspacePolicySection() {
         const d = await res.json()
         setPolicy(d)
         setSaved(true)
-        setTimeout(() => setSaved(false), 2000)
       } else {
         const data = await res.json().catch(() => null)
         setSaved(false)
@@ -835,11 +846,14 @@ function WorkspacePolicySection() {
               ? actionVerb('save', 'pending')
               : `${actionVerb('save', 'idle')} policy`}
           </Button>
-          {saved && !saving && (
-            <span className="text-xs text-[var(--tc-success)]">
-              {actionVerb('save', 'success')}
-            </span>
-          )}
+          <span
+            role="status"
+            className={
+              saved && !saving ? 'text-xs text-[var(--tc-success)]' : 'sr-only'
+            }
+          >
+            {saved && !saving ? actionVerb('save', 'success') : ''}
+          </span>
           {saveError && (
             <span role="alert" className="text-xs text-[var(--tc-danger)]">
               {saveError}

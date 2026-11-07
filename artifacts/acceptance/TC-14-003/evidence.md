@@ -1,25 +1,12 @@
 # TC-14-003 acceptance evidence
 
-Synthetic data only. The showcase, screenshots and axe output contain no credentials, customer documents or personal data.
+Synthetic data only. Screenshots and axe output contain no credentials, customer documents or personal data.
 
-## Latest run
+This note does not claim that CI `build` is green. Head `7bbfb7c` failed `build` on push run 42324149162 and pull_request run 42324166892 because `test_trust_requests_browser.py` still accepted a native confirm. The review fix updates that acceptance. This machine has no Docker and no PostgreSQL, so that backend-driven browser test was not run here. CI has to show whether `build` passes.
 
-The dialog and toast behavior was already on master. This run is the working tree that closes the remaining call-site gaps (incoming Trust request confirms, in-dialog error alerts, Gmail and vendor-request descriptions) and refreshes the screenshots. The commit SHA below is the implementation commit. The evidence note does not change the suite.
+## Dialog and toast spec
 
-Tested commit: `d9fac72ea5da5060e60ee2b4e2a717daf25a77c8` on branch `tc/TC-14-003-dialog-focus`. Base master: `10220265182a872f02b13ec96a2d6a6fb9714a1d`.
-
-### Environment
-
-- OS: Linux 6.12.113+ x86_64
-- Node: v24.22.1 (`apps/web/.nvmrc`)
-- npm: 11.19.1
-- Next.js: 16.4.3 (`next start` production build, reused on `http://127.0.0.1:3000`)
-- Playwright: 1.64.1 (`apps/web/node_modules`)
-- Chromium: Playwright build chromium-1248
-- @axe-core/playwright: 4.14.0
-- Working directory: `apps/web`
-
-### Command and result
+Recorded against implementation commit `d9fac72ea5da5060e60ee2b4e2a717daf25a77c8`. Not re-run for the review fix, which does not change `dialog-toast.spec.ts` or the shared dialog and toast primitives. Re-running it would overwrite the production screenshots below.
 
 ```bash
 cd apps/web
@@ -29,50 +16,52 @@ npx playwright test e2e/release/dialog-toast.spec.ts --retries=0
 - Exit status: 0
 - Tests: 8 passed, 0 failed, 0 skipped
 - Duration: 33.6s
-- No required test was skipped
+- Server: `next start` production build on `http://127.0.0.1:3000`
+- Node: v24.22.1
+- npm: 11.19.1
+- Next.js: 16.4.3
+- Playwright: 1.64.1
+- Chromium: Playwright build chromium-1248
+- @axe-core/playwright: 4.14.0
+- OS: Linux 6.12.113+ x86_64
 
-The same command against `next dev` also exited 0 (8 passed, 43.1s). The committed screenshots are from the production server so the Next.js dev issue badge is not in the images.
+Axe on `#dialog-showcase` and `#tc-toast-live`: 0 violations for dialog, confirm and toast, dark and light, at 360, 768 and 1440 CSS px (18 reports). No critical or serious violation. Screenshots: `screenshots/{dialog,confirm}-{dark,light}-{360,768,1440}.png`.
 
-Keyboard and announcement checks on `/design-dialogs` (synthetic records only), asserted by the spec:
+## Review-fix runs
 
-- Rename dialog: focus starts on the name field, Shift+Tab and Tab wrap inside, Escape closes, focus returns to "Rename sample". The notes field is inside an `inert` ancestor while the dialog is open. The dialog name and description are exposed.
-- Delete confirmation: `role="alertdialog"`, named "Delete sample record?", description includes the archive sentence, initial focus is Cancel, Escape returns focus to the trigger.
-- Side panel (`placement="drawer-end"`): focus starts on the first destination, Tab wraps to Close, Escape returns to "Open side panel".
-- Typing " ok" in Working notes shows a polite `status` toast and leaves the field focused. The toast is gone after the 4000ms status interval.
-- Typing " err" shows an assertive `alert` toast, leaves the field focused, and is still present after the same interval. Tab reaches "Dismiss Save failed" and Enter removes it.
-- Notifications bell: `aria-expanded` and `aria-controls` are set. The open panel is not a dialog and not `aria-modal`. The notes field is not inside `[inert]`. Focus is not trapped. Escape and an outside click close the panel and return focus to the bell.
-- "Show info" shows a polite status toast that is gone after 4500ms.
-- "Show undo" shows a success toast with an Undo button that is still visible after 4500ms. Activating Undo clears it and sets Working notes to "restored".
-- `prefers-reduced-motion: reduce` computes the toast transition duration as 0s.
-- An unknown `theme` query leaves the default dark theme in place.
-- Font requests during the themed runs stayed on this origin. No third-party font host was requested.
-
-Axe (`#dialog-showcase` and `#tc-toast-live`): 0 violations for dialog+status, alertdialog+error, and error toast alone, in dark and light, at 360, 768 and 1440 CSS px. Reports: `axe-{dialog,confirm,toast}-{dark,light}-{360,768,1440}.json` (18 files, each `violationCount` 0). No critical or serious violation.
-
-Screenshots, with the dialog open and a toast on screen: `artifacts/acceptance/TC-14-003/screenshots/{dialog,confirm}-{dark,light}-{360,768,1440}.png`. The same files are written to `artifacts/acceptance/TC-14-003a/`.
-
-### Additional checks
+These ran on the working tree that contains the review fixes, before that commit's SHA existed. Environment: same OS, Node, npm, Playwright and Chromium. Server: Playwright `next dev` on `http://127.0.0.1:3000` (the dev overlay was not in the trust-switch screenshots).
 
 ```bash
 cd apps/web
-npx playwright test e2e/release/screen-trust-requests.spec.ts -g "unsaved reply leave" --retries=0
+npx playwright test e2e/release/screen-trust-requests.spec.ts --retries=0
 ```
 
 - Exit status: 0
-- Tests: 1 passed, 0 failed, 0 skipped
-- The unsaved-reply leave dialog is an alertdialog with a description, Cancel is focused, Tab stays on the confirm control, Escape restores the Documents link and the reply text, and "Discard and leave" navigates to Documents.
+- Tests: 30 passed, 0 failed, 0 skipped
+- Duration: 26.9s
+- Includes Tab wrap from the last control of "Leave this page?" and the "Discard unsaved reply text?" switch dialog.
 
 ```bash
-npx playwright test e2e/release/ui-22.spec.ts -g "delayed create|creation exposes only the returned|simultaneous row|long content, keyboard" --retries=0
+cd apps/web
+npx playwright test e2e/release/ui-22.spec.ts -g "delayed create|rejected create|long content, keyboard" --retries=0
 ```
 
 - Exit status: 0
-- Tests: 6 passed, 0 failed, 0 skipped
+- Tests: 5 passed, 0 failed, 0 skipped (plus the two trust-request tests in the same 7-test invocation)
+- The create dialog's status region is empty before the result, then reads "Your request has been created."
+- A 422 create leaves `role="alert"` inside the dialog and does not move focus onto that alert.
 
-`npm run build` (Next.js 16.4.3 production build, including TypeScript) exited 0. `npx eslint` on the changed pages and specs exited 0.
+The switch dialog axe reports are `axe-trust-switch-{360,768,1440}.json`. Each `violationCount` is 0. Screenshots: `screenshots/trust-switch-{360,768,1440}.png`. The same files are written under `artifacts/acceptance/TC-14-003a/`.
 
-### Toast timing decision
+## Not run
 
-Success, info and warning toasts auto-dismiss at 4000ms. A toast that includes an action button does not auto-dismiss. The timer is omitted, not paused on hover or focus, so the action has no time limit (WCAG 2.2.1 Timing Adjustable). Errors stay until the user dismisses them. `Toast` owns the single timer.
+```bash
+cd apps/api
+TC_REQUIRE_DB=1 TC_REQUIRE_WEB_TOOLCHAIN=1 python -m pytest tests/release/test_trust_requests_browser.py -q
+```
+
+Not run. This environment has no Docker and no PostgreSQL, so `DATABASE_URL` is unset. The Playwright file that pytest launches, `apps/web/e2e/integration/trust-requests.acceptance.ts`, now clicks "Discard and open" in the in-page alertdialog instead of accepting `window.confirm`. That is necessary for the test and is not a skip. It is not a local pass.
+
+`test_health_probes.py` was not changed. The earlier pull_request failure of that test was left as an unrelated flake.
 
 Grok (worker). The implementer does not accept this result.

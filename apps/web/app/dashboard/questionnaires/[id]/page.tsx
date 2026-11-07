@@ -397,7 +397,9 @@ export default function QuestionnaireDetailPage() {
                 </span>
               )}
               {evidenceError && (
-                <span className="text-xs text-red-400">{evidenceError}</span>
+                <span role="alert" className="text-xs text-[var(--tc-danger)]">
+                  {evidenceError}
+                </span>
               )}
             </div>
           ) : (
