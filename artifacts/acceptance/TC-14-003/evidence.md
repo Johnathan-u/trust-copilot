@@ -1,57 +1,12 @@
 # TC-14-003 acceptance evidence
 
-Synthetic data only. The showcase, screenshots and axe output contain no credentials, customer documents or personal data.
+Synthetic data only. Screenshots and axe output contain no credentials, customer documents or personal data.
 
-## Latest run
+This note does not claim that CI `build` is green. Head `7bbfb7c` failed `build` on push run 42324149162 and pull_request run 42324166892 because `test_trust_requests_browser.py` still accepted a native confirm. The review fix updates that acceptance. This machine has no Docker and no PostgreSQL, so that backend-driven browser test was not run here. CI has to show whether `build` passes.
 
-Tested commit: `4d72cdc189a8241190eb04b6c5df0429440dc00c` on branch `tc/web/TC-14-003`.
+## Dialog and toast spec
 
-That commit merges `origin/master` (`705bdde`, the squash of PR #6, plus #36, #37, #38 and #40). Token files, design-token libraries, fonts, the design-tokens page and spec, TC-14-001 docs and evidence, `package.json` and the lockfile match that master commit. This note was added afterwards and does not change the suite.
-
-### Environment
-
-- OS: Linux 6.12.94+ x86_64
-- Node: v24.22.1 (`apps/web/.nvmrc`)
-- npm: 11.19.1
-- Next.js: 16.4.3
-- Vitest: 5.0.5
-- Playwright: 1.64.1 (`apps/web/node_modules`)
-- Chromium: Playwright build chromium-1248
-- @axe-core/playwright: 4.14.0
-- Working directory: `apps/web`
-- Install: `npm ci --ignore-scripts`
-
-### Commands and results
-
-```bash
-cd apps/web
-npm run lint
-npm run format:check
-npm run typecheck
-npm run test:unit
-npm run build
-npm audit --omit=dev --audit-level=high
-```
-
-- Each exit status: 0
-- Unit test files: 13 passed
-- Unit tests: 99 passed, 0 failed, 0 skipped
-- Includes `lib/dialog.test.ts`, `lib/disclosure.test.ts` and `lib/toast.test.ts`
-- Toast policy: success, info and warning without an action dismiss at 4000ms. Any severity with an action button, and every error, returns `null`.
-- Audit: 0 vulnerabilities
-
-```bash
-cd /workspace
-python3 scripts/security/secret_inventory.py tree --root .
-pre-commit run --all-files
-ruff check apps/api
-TC_REQUIRE_WEB_TOOLCHAIN=1 python3 -m pytest apps/api/tests/release/test_web_quality.py -q --noconftest
-```
-
-- Secret tree-scan exit status: 0 (`block` 0, `review` findings only)
-- pre-commit exit status: 0 (ruff, ruff-format, prettier, trailing whitespace, end-of-file, check-yaml)
-- `ruff check apps/api` exit status: 0
-- Web quality tests: 26 passed, including the runtime-module coverage check
+Recorded against implementation commit `d9fac72ea5da5060e60ee2b4e2a717daf25a77c8`. Not re-run for the review fix, which does not change `dialog-toast.spec.ts` or the shared dialog and toast primitives. Re-running it would overwrite the production screenshots below.
 
 ```bash
 cd apps/web
@@ -59,32 +14,54 @@ npx playwright test e2e/release/dialog-toast.spec.ts --retries=0
 ```
 
 - Exit status: 0
-- Tests: 7 passed, 0 failed, 0 skipped
-- Duration: 30.7s
-- No required test was skipped
+- Tests: 8 passed, 0 failed, 0 skipped
+- Duration: 33.6s
+- Server: `next start` production build on `http://127.0.0.1:3000`
+- Node: v24.22.1
+- npm: 11.19.1
+- Next.js: 16.4.3
+- Playwright: 1.64.1
+- Chromium: Playwright build chromium-1248
+- @axe-core/playwright: 4.14.0
+- OS: Linux 6.12.113+ x86_64
 
-Keyboard checks on `/design-dialogs` (synthetic records only):
+Axe on `#dialog-showcase` and `#tc-toast-live`: 0 violations for dialog, confirm and toast, dark and light, at 360, 768 and 1440 CSS px (18 reports). No critical or serious violation. Screenshots: `screenshots/{dialog,confirm}-{dark,light}-{360,768,1440}.png`.
 
-- Rename dialog: focus starts on the name field, Shift+Tab and Tab wrap inside, Escape closes, focus returns to "Rename sample". The notes field is inside an `inert` ancestor while the dialog is open. The dialog name and description are exposed.
-- Delete confirmation: `role="alertdialog"`, named "Delete sample record?", description includes the archive sentence, initial focus is Cancel, Escape returns focus to the trigger.
-- Side panel (`placement="drawer-end"`): focus starts on the first destination, Tab wraps to Close, Escape returns to "Open side panel".
-- Typing " ok" in Working notes shows a polite `status` toast and leaves the field focused. The toast is gone after the 4000ms status interval.
-- Typing " err" shows an assertive `alert` toast, leaves the field focused, and is still present after the same interval. Tab reaches "Dismiss Save failed" and Enter removes it.
-- Notifications bell: `aria-expanded` is false while closed and true while open, and `aria-controls` is `sample-notifications`. The open panel is not a dialog and not `aria-modal`. The notes field is not inside `[inert]`, and no `[inert]` element is present. Shift+Tab from inside the panel reaches the bell. Tab from "Notification settings" reaches "Page help", so focus is not trapped. Escape closes the panel and returns focus to the bell. A click on Working notes closes the panel and returns focus to the bell.
-- "Show info" shows a polite status toast that is gone after 4500ms.
-- "Show undo" shows a success toast with an Undo button. The toast is still visible after 4500ms. Activating Undo clears it and sets Working notes to "restored".
-- `prefers-reduced-motion: reduce` computes the toast transition duration as 0s.
-- An unknown `theme` query leaves the default dark theme in place.
-- Font requests during the themed runs stayed on this origin. No third-party font host was requested.
+## Review-fix runs
 
-The notifications request from the showcase returns connection refused for the API on port 8000. The panel still renders its disclosure shell, which is what the keyboard and outside-click checks use.
+These ran on the tree committed as `b923a28ba71e52c5c6e204303035747833b3dc32`. Environment: same OS, Node, npm, Playwright and Chromium. Server: Playwright `next dev` on `http://127.0.0.1:3000`. The trust-switch screenshots do not include the Next.js dev issue badge.
 
-Axe (`#dialog-showcase`): 0 violations for dialog+status, alertdialog+error, and error toast alone, in dark and light, at 360, 768 and 1440 CSS px. Reports: `axe-{dialog,confirm,toast}-{dark,light}-{360,768,1440}.json` (18 files, each `violationCount` 0).
+```bash
+cd apps/web
+npx playwright test e2e/release/screen-trust-requests.spec.ts --retries=0
+```
 
-Screenshots, with the dialog open and a toast on screen: `artifacts/acceptance/TC-14-003/screenshots/{dialog,confirm}-{dark,light}-{360,768,1440}.png`.
+- Exit status: 0
+- Tests: 30 passed, 0 failed, 0 skipped
+- Duration: 26.9s
+- Includes Tab wrap from the last control of "Leave this page?" and the "Discard unsaved reply text?" switch dialog.
 
-While a dialog is open the toast remains visually present and is `inert`, so it is not a second focus stop. The toast-only axe pass covers the announcement when it is in the accessibility tree.
+```bash
+cd apps/web
+npx playwright test e2e/release/ui-22.spec.ts -g "delayed create|rejected create|long content, keyboard" --retries=0
+```
 
-### Toast timing decision
+- Exit status: 0
+- Tests: 5 passed, 0 failed, 0 skipped (plus the two trust-request tests in the same 7-test invocation)
+- The create dialog's status region is empty before the result, then reads "Your request has been created."
+- A 422 create leaves `role="alert"` inside the dialog and does not move focus onto that alert.
 
-Success, info and warning toasts auto-dismiss at 4000ms. A toast that includes an action button does not auto-dismiss. The timer is omitted, not paused on hover or focus, so the action has no time limit (WCAG 2.2.1 Timing Adjustable). Errors stay until the user dismisses them. `Toast` owns the single timer. The review page no longer uses 5000ms or 8000ms timers.
+The switch dialog axe reports are `axe-trust-switch-{360,768,1440}.json`. Each `violationCount` is 0. Screenshots: `screenshots/trust-switch-{360,768,1440}.png`. The same files are written under `artifacts/acceptance/TC-14-003a/`.
+
+## Not run
+
+```bash
+cd apps/api
+TC_REQUIRE_DB=1 TC_REQUIRE_WEB_TOOLCHAIN=1 python -m pytest tests/release/test_trust_requests_browser.py -q
+```
+
+Not run. This environment has no Docker and no PostgreSQL, so `DATABASE_URL` is unset. The Playwright file that pytest launches, `apps/web/e2e/integration/trust-requests.acceptance.ts`, now clicks "Discard and open" in the in-page alertdialog instead of accepting `window.confirm`. That is necessary for the test and is not a skip. It is not a local pass.
+
+`test_health_probes.py` was not changed. The earlier pull_request failure of that test was left as an unrelated flake.
+
+Grok (worker). The implementer does not accept this result.

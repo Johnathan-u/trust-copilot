@@ -175,7 +175,11 @@ export default function ProofChainPage() {
             {loading ? 'Loading…' : 'Load chain'}
           </Button>
         </div>
-        {error && <p className="mt-4 text-sm text-red-400">{error}</p>}
+        {error && (
+          <p role="alert" className="mt-4 text-sm text-[var(--tc-danger)]">
+            {error}
+          </p>
+        )}
       </Card>
 
       {loading && (

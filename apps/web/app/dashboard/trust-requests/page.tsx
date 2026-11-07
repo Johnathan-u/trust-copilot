@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { useAuth } from '@/contexts/AuthContext'
 import { Button } from '@/components/ui/Button'
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import {
   deliveryLabel,
   parseTrustNote,
@@ -66,7 +67,13 @@ function Inbox({ workspaceId }: { workspaceId: number }) {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [reload, setReload] = useState(0)
+  const [leaveOpen, setLeaveOpen] = useState(false)
+  const [pendingSelect, setPendingSelect] = useState<number | null>(null)
   const root = useRef<HTMLDivElement>(null)
+  const bypass = useRef(false)
+  const leaveOpenRef = useRef(false)
+  const leaveAfterClose = useRef(false)
+  const pendingAnchor = useRef<HTMLAnchorElement | null>(null)
   const dirty = () => !!root.current?.querySelector('[data-unsaved="true"]')
   useEffect(() => {
     const controller = new AbortController()
@@ -93,16 +100,18 @@ function Inbox({ workspaceId }: { workspaceId: number }) {
       }
     }
     const navigate = (event: MouseEvent) => {
-      if (
-        !(event.target instanceof Element) ||
-        !event.target.closest('a[href]') ||
-        !dirty()
-      )
+      if (bypass.current || leaveOpenRef.current) return
+      if (event.button !== 0) return
+      if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey)
         return
-      if (!window.confirm('Leave this page and discard unsaved reply text?')) {
-        event.preventDefault()
-        event.stopPropagation()
-      }
+      if (!(event.target instanceof Element)) return
+      const anchor = event.target.closest('a[href]')
+      if (!(anchor instanceof HTMLAnchorElement) || !dirty()) return
+      event.preventDefault()
+      event.stopPropagation()
+      pendingAnchor.current = anchor
+      leaveOpenRef.current = true
+      setLeaveOpen(true)
     }
     window.addEventListener('beforeunload', unload)
     document.addEventListener('click', navigate, true)
@@ -111,6 +120,22 @@ function Inbox({ workspaceId }: { workspaceId: number }) {
       document.removeEventListener('click', navigate, true)
     }
   }, [])
+  useEffect(() => {
+    leaveOpenRef.current = leaveOpen
+  }, [leaveOpen])
+  useEffect(() => {
+    if (leaveOpen || !leaveAfterClose.current) return
+    leaveAfterClose.current = false
+    const anchor = pendingAnchor.current
+    pendingAnchor.current = null
+    if (!anchor?.isConnected) return
+    const id = window.setTimeout(() => {
+      bypass.current = true
+      anchor.click()
+      bypass.current = false
+    }, 0)
+    return () => window.clearTimeout(id)
+  }, [leaveOpen])
   return (
     <div ref={root} className="space-y-tc-6">
       <header className="space-y-tc-2">
@@ -151,14 +176,11 @@ function Inbox({ workspaceId }: { workspaceId: number }) {
                     aria-pressed={selected === row.id}
                     className={`w-full rounded-tc-sm border p-tc-3 text-left ${selected === row.id ? 'border-tc-primary bg-tc-surface-raised' : 'border-tc-border'}`}
                     onClick={() => {
-                      if (
-                        selected === row.id ||
-                        !dirty() ||
-                        window.confirm(
-                          'Discard unsaved reply text and open another request?'
-                        )
-                      )
+                      if (selected === row.id || !dirty()) {
                         setSelected(row.id)
+                        return
+                      }
+                      setPendingSelect(row.id)
                     }}
                   >
                     <span className="block break-words font-semibold">
@@ -191,6 +213,34 @@ function Inbox({ workspaceId }: { workspaceId: number }) {
           />
         )}
       </div>
+      <ConfirmDialog
+        open={leaveOpen}
+        title="Leave this page?"
+        description="Unsaved reply text will be discarded."
+        confirmLabel="Discard and leave"
+        onClose={() => {
+          pendingAnchor.current = null
+          leaveOpenRef.current = false
+          setLeaveOpen(false)
+        }}
+        onConfirm={() => {
+          leaveAfterClose.current = true
+          leaveOpenRef.current = false
+          setLeaveOpen(false)
+        }}
+      />
+      <ConfirmDialog
+        open={pendingSelect !== null}
+        title="Discard unsaved reply text?"
+        description="Opening another request discards the reply that has not been saved."
+        confirmLabel="Discard and open"
+        onClose={() => setPendingSelect(null)}
+        onConfirm={() => {
+          const id = pendingSelect
+          setPendingSelect(null)
+          if (id !== null) setSelected(id)
+        }}
+      />
     </div>
   )
 }

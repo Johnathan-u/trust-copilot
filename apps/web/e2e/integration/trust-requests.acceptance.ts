@@ -336,10 +336,16 @@ test('after restart: approval survives fresh login, real conflicts retain input 
     expect(missing.status()).toBe(404)
     expect(await foreign.json()).toEqual({ detail: 'Trust request not found' })
     expect(await missing.json()).toEqual({ detail: 'Trust request not found' })
-    page.once('dialog', (dialog) => dialog.accept())
     await page
       .getByRole('button', { name: new RegExp(data.attachment.subject) })
       .click()
+    const discard = page.getByRole('alertdialog', {
+      name: 'Discard unsaved reply text?',
+    })
+    await expect(discard).toBeVisible()
+    await expect(discard.getByRole('button', { name: 'Cancel' })).toBeFocused()
+    await discard.getByRole('button', { name: 'Discard and open' }).click()
+    await expect(discard).toHaveCount(0)
     await page
       .getByLabel('Reply text', { exact: true })
       .fill('Local text retained after denied attachment.')
