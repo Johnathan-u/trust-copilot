@@ -744,7 +744,9 @@ export default function ComplianceAlertsPage() {
             </div>
           )}
           {formError && (
-            <p className="text-sm text-[var(--tc-danger)]">{formError}</p>
+            <p role="alert" className="text-sm text-[var(--tc-danger)]">
+              {formError}
+            </p>
           )}
           <div className="flex gap-2 justify-end pt-2">
             <Button

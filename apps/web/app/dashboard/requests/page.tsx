@@ -791,41 +791,37 @@ function WorkspaceRequests({
               : 'Invitation result'
             : 'Create Request'
         }
+        description={
+          created
+            ? created.share_url
+              ? 'Copy this one-time secure link now. Later list reads do not return it.'
+              : 'The one-time link is not available on this response. The request is saved; its delivery state is shown in the list.'
+            : undefined
+        }
         closeDisabled={submitting || (invitationBusy && !created)}
         onClose={resetForm}
       >
         {created ? (
           <div className="space-y-4">
-            <p className="text-sm text-tc-text">
+            <p role="status" className="text-sm text-tc-text">
               {resultKind === 'create'
                 ? 'Your request has been created.'
                 : DELIVERY_LABELS[created.delivery_status]}
             </p>
             {created.share_url ? (
-              <>
-                <p className="text-sm text-tc-muted">
-                  Copy this one-time secure link now. Later list reads do not
-                  return it.
-                </p>
-                <div className="flex flex-wrap items-center gap-2 p-3 rounded-lg bg-tc-surface-raised border border-tc-border">
-                  <code className="min-w-0 flex-1 text-xs text-tc-text break-all">
-                    {new URL(created.share_url, window.location.origin).href}
-                  </code>
-                  <Button
-                    size="sm"
-                    variant="secondary"
-                    onClick={() => void copyLink(created.share_url!)}
-                  >
-                    {copied ? 'Copied!' : 'Copy'}
-                  </Button>
-                </div>
-              </>
-            ) : (
-              <p className="text-sm text-tc-muted">
-                The one-time link is not available on this response. The request
-                is saved; its delivery state is shown in the list.
-              </p>
-            )}
+              <div className="flex flex-wrap items-center gap-2 p-3 rounded-lg bg-tc-surface-raised border border-tc-border">
+                <code className="min-w-0 flex-1 text-xs text-tc-text break-all">
+                  {new URL(created.share_url, window.location.origin).href}
+                </code>
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  onClick={() => void copyLink(created.share_url!)}
+                >
+                  {copied ? 'Copied!' : 'Copy'}
+                </Button>
+              </div>
+            ) : null}
             <div className="flex justify-end">
               <Button onClick={resetForm}>Done</Button>
             </div>

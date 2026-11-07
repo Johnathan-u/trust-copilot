@@ -747,3 +747,40 @@ for (const theme of ['dark', 'light'] as const) {
     })
   }
 }
+
+test('unsaved reply leave uses an alertdialog and restores focus', async ({
+  page,
+}) => {
+  await installApi(page)
+  await openRequest(page)
+  const reply = page.getByLabel('Reply 21 text')
+  await reply.fill('Keep my unsaved answer.')
+  const documents = page
+    .getByRole('navigation', { name: 'Application' })
+    .getByRole('link', { name: 'Documents', exact: true })
+  await documents.click()
+  const dialog = page.getByRole('alertdialog', { name: 'Leave this page?' })
+  await expect(dialog).toBeVisible()
+  await expect(dialog).toHaveAttribute('aria-describedby', /.+/)
+  await expect(
+    dialog.getByText('Unsaved reply text will be discarded.')
+  ).toBeVisible()
+  const cancel = dialog.getByRole('button', { name: 'Cancel' })
+  await expect(cancel).toBeFocused()
+  await page.keyboard.press('Tab')
+  await expect(
+    dialog.getByRole('button', { name: 'Discard and leave' })
+  ).toBeFocused()
+  await page.keyboard.press('Shift+Tab')
+  await expect(cancel).toBeFocused()
+  await page.keyboard.press('Escape')
+  await expect(dialog).toHaveCount(0)
+  await expect(documents).toBeFocused()
+  await expect(reply).toHaveValue('Keep my unsaved answer.')
+  await expect(page).toHaveURL(/\/dashboard\/trust-requests/)
+
+  await documents.click()
+  await expect(dialog).toBeVisible()
+  await dialog.getByRole('button', { name: 'Discard and leave' }).click()
+  await expect(page).toHaveURL(/\/dashboard\/documents/)
+})

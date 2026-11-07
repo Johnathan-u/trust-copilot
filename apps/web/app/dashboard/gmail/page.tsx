@@ -696,12 +696,9 @@ export default function GmailPage() {
         isOpen={connectOpen}
         onClose={() => setConnectOpen(false)}
         title="Connect Gmail"
+        description="Provide a Google OAuth access token to connect your Gmail account for evidence ingestion."
       >
         <form onSubmit={connect} className="space-y-4">
-          <p className="text-xs text-[var(--tc-muted)]">
-            Provide a Google OAuth access token to connect your Gmail account
-            for evidence ingestion.
-          </p>
           <Input
             label="OAuth Access Token"
             type="password"
@@ -721,7 +718,11 @@ export default function GmailPage() {
             A refresh token keeps the connection alive long-term. Without one,
             you may need to reconnect periodically.
           </p>
-          {error && <p className="text-sm text-[var(--tc-danger)]">{error}</p>}
+          {error && (
+            <p role="alert" className="text-sm text-[var(--tc-danger)]">
+              {error}
+            </p>
+          )}
           <div className="flex gap-2 justify-end pt-2">
             <Button
               type="button"
@@ -742,12 +743,9 @@ export default function GmailPage() {
         isOpen={addLabelOpen}
         onClose={() => setAddLabelOpen(false)}
         title="Add Gmail Label"
+        description="Add a Gmail label to monitor. Emails under this label will be scanned during ingestion."
       >
         <form onSubmit={addLabelSubmit} className="space-y-4">
-          <p className="text-xs text-[var(--tc-muted)]">
-            Add a Gmail label to monitor. Emails under this label will be
-            scanned during ingestion.
-          </p>
           <Input
             label="Label ID"
             value={addLabelId}
@@ -761,7 +759,11 @@ export default function GmailPage() {
             onChange={(e) => setAddLabelName(e.target.value)}
             placeholder="Compliance"
           />
-          {error && <p className="text-sm text-[var(--tc-danger)]">{error}</p>}
+          {error && (
+            <p role="alert" className="text-sm text-[var(--tc-danger)]">
+              {error}
+            </p>
+          )}
           <div className="flex gap-2 justify-end pt-2">
             <Button
               type="button"

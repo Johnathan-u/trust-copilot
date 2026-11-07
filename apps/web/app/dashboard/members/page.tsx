@@ -765,7 +765,9 @@ export default function MembersPage() {
       >
         <div className="space-y-4">
           {confirmError && (
-            <p className="text-sm text-[var(--tc-danger)]">{confirmError}</p>
+            <p role="alert" className="text-sm text-[var(--tc-danger)]">
+              {confirmError}
+            </p>
           )}
           <div className="flex gap-2 justify-end">
             <Button
@@ -871,7 +873,11 @@ export default function MembersPage() {
               </label>
             ))}
           </div>
-          {error && <p className="text-sm text-[var(--tc-danger)]">{error}</p>}
+          {error && (
+            <p role="alert" className="text-sm text-[var(--tc-danger)]">
+              {error}
+            </p>
+          )}
           <div className="flex gap-2 justify-end">
             <Button
               type="button"
@@ -922,7 +928,11 @@ export default function MembersPage() {
               ))}
             </select>
           </div>
-          {error && <p className="text-sm text-[var(--tc-danger)]">{error}</p>}
+          {error && (
+            <p role="alert" className="text-sm text-[var(--tc-danger)]">
+              {error}
+            </p>
+          )}
           <div className="flex gap-2 justify-end">
             <Button
               type="button"

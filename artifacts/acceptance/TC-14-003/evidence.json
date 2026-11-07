@@ -1,15 +1,17 @@
 {
   "ticket": "TC-14-003",
-  "commit": "4d72cdc189a8241190eb04b6c5df0429440dc00c",
-  "branch": "tc/web/TC-14-003",
+  "commit": null,
+  "branch": "tc/TC-14-003-dialog-focus",
   "base": "master",
-  "master": "705bdde9932a9f575bbd075771c280d8914f6c8f",
+  "master": "10220265182a872f02b13ec96a2d6a6fb9714a1d",
+  "implementer": "Grok (worker)",
+  "implementer_accepts": false,
   "environment": {
-    "os": "Linux 6.12.94+ x86_64",
+    "os": "Linux 6.12.113+ x86_64",
     "node": "v24.22.1",
     "npm": "11.19.1",
     "next": "16.4.3",
-    "vitest": "5.0.5",
+    "server": "next start production build reused on http://127.0.0.1:3000",
     "playwright": "1.64.1",
     "chromium": "Playwright build chromium-1248",
     "axe": "@axe-core/playwright 4.14.0",
@@ -17,24 +19,24 @@
   },
   "commands": [
     {
-      "command": "npm run test:unit",
-      "exit_status": 0,
-      "files": 13,
-      "passed": 99,
-      "failed": 0,
-      "skipped": 0
-    },
-    {
       "command": "npx playwright test e2e/release/dialog-toast.spec.ts --retries=0",
       "exit_status": 0,
-      "passed": 7,
+      "passed": 8,
       "failed": 0,
       "skipped": 0,
-      "duration_s": 30.7
+      "duration_s": 33.6
+    },
+    {
+      "command": "npx playwright test e2e/release/screen-trust-requests.spec.ts -g \"unsaved reply leave\" --retries=0",
+      "exit_status": 0,
+      "passed": 1,
+      "failed": 0,
+      "skipped": 0
     }
   ],
   "axe": {
     "violation_count": 0,
+    "critical_or_serious": 0,
     "themes": ["dark", "light"],
     "viewports": [360, 768, 1440],
     "states": ["dialog", "confirm", "toast"],
