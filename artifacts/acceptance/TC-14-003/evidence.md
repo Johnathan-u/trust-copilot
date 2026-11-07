@@ -6,7 +6,7 @@ Synthetic data only. The showcase, screenshots and axe output contain no credent
 
 The dialog and toast behavior was already on master. This run is the working tree that closes the remaining call-site gaps (incoming Trust request confirms, in-dialog error alerts, Gmail and vendor-request descriptions) and refreshes the screenshots. The commit SHA below is the implementation commit. The evidence note does not change the suite.
 
-Tested commit: recorded in `evidence.json` after that commit is created.
+Tested commit: `d9fac72ea5da5060e60ee2b4e2a717daf25a77c8` on branch `tc/TC-14-003-dialog-focus`. Base master: `10220265182a872f02b13ec96a2d6a6fb9714a1d`.
 
 ### Environment
 
