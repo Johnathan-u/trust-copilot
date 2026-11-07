@@ -29,7 +29,7 @@ Axe on `#dialog-showcase` and `#tc-toast-live`: 0 violations for dialog, confirm
 
 ## Review-fix runs
 
-These ran on the working tree that contains the review fixes, before that commit's SHA existed. Environment: same OS, Node, npm, Playwright and Chromium. Server: Playwright `next dev` on `http://127.0.0.1:3000` (the dev overlay was not in the trust-switch screenshots).
+These ran on the tree committed as `b923a28ba71e52c5c6e204303035747833b3dc32`. Environment: same OS, Node, npm, Playwright and Chromium. Server: Playwright `next dev` on `http://127.0.0.1:3000`. The trust-switch screenshots do not include the Next.js dev issue badge.
 
 ```bash
 cd apps/web

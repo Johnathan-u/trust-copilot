@@ -1,7 +1,7 @@
 {
   "ticket": "TC-14-003",
   "commit": "d9fac72ea5da5060e60ee2b4e2a717daf25a77c8",
-  "review_fix_commit": null,
+  "review_fix_commit": "b923a28ba71e52c5c6e204303035747833b3dc32",
   "branch": "tc/TC-14-003-dialog-focus",
   "base": "master",
   "master": "10220265182a872f02b13ec96a2d6a6fb9714a1d",
