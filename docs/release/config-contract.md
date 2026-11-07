@@ -19,25 +19,35 @@ Source of truth: `apps/api/app/core/config_contract.py`. The table between the m
 * Error messages list variable names and reasons only, never values.
 * **Non-production**: only malformed values that would crash `Settings()` and unknown `APP_ENV` values are fatal;
   everything else is reported as a warning.
-* **Key rotation.** Session signing, OAuth state, MFA and connector encryption each have an optional
-  keyring (`SESSION_KEYRING`, `OAUTH_STATE_KEYRING`, `MFA_KEYRING`, `CONNECTOR_KEYRING`). The first
-  `kid:secret` is the current key; later entries are retired. Unset keyrings derive `v0-legacy` from
-  `SESSION_SECRET` with HKDF and a purpose label; explicitly retaining `v0-legacy` preserves that
-  derivation. Unprefixed ciphertext and cookies use the retained legacy entry's previous SHA256
-  or raw HMAC derivation. Explicit keyrings do not implicitly trust `SESSION_SECRET`; legacy
-  session cookies obey retirement just like prefixed cookies. Only an explicit `v0-legacy`
-  entry also supports the older prefixed SHA256 format. Production rejects a weak purpose key, a repeated key id,
-  and the same key material used for two purposes. Errors name the variable only.
-  Rehearse rotation on a database copy, never against production:
+* **Key rotation.** Session signing, OAuth state, MFA and connector encryption each have a
+  keyring (`SESSION_KEYRING`, `OAUTH_STATE_KEYRING`, `MFA_KEYRING`, `CONNECTOR_KEYRING`).
+  Production requires all four. Each must be strong, different from the others, and different
+  from `SESSION_SECRET`. A missing, weak, duplicate, or `SESSION_SECRET`-equal value refuses
+  startup. Errors name the variable only. Development and test may leave a keyring unset; unset
+  derives `v0-legacy` from `SESSION_SECRET` with HKDF and a purpose label. The first
+  `kid:secret` is the current key; later entries are retired. Outside production, retaining
+  `v0-legacy` preserves that derivation, including the older unprefixed SHA256 and raw HMAC
+  forms. Explicit keyrings do not implicitly trust `SESSION_SECRET`; legacy session cookies
+  obey retirement just like prefixed cookies. Production refuses a `v0-legacy` entry whose
+  secret is `SESSION_SECRET`, and refuses that same secret on two rings. The first migration
+  therefore rotates on a copy, outside production, with `v0-legacy` retained, then starts
+  production with the new key only. Production also rejects a repeated key id, whitespace in
+  a key, and a placeholder. Stop the API and worker before copying the database. Operators
+  back up keyrings outside the database, rotate on that copy, then cut over. The procedure,
+  including sole-admin MFA recovery, is `docs/ops/key-rotation.md`. Rehearse on a copy, never
+  against production:
 
   `cd apps/api && python scripts/rotate_purpose_keys.py --dry-run`
 
-  The command prints counts only. It re-encrypts rows onto the current key id, skips rows already
-  there, and can resume with `--after-id`. An MFA secret that cannot be opened is marked
-  `reenrol.<kid>` and stays enabled. Password login then fails with `mfa_reset_required` and
-  issues no session, so setup is unreachable until an administrator of that workspace calls
-  `POST /api/members/clear-mfa-reenrol/{user_id}`. That rechecks current active administrator
-  membership, sets an explicit pending-enrollment marker, revokes the target's sessions,
+  The command refuses `APP_ENV=production`, prints counts only, and has no override. It
+  re-encrypts rows onto the current key id, skips rows already there, and can resume with
+  `--after-id`. An MFA secret that cannot be opened is marked `reenrol.<kid>` and stays
+  enabled. Password login then fails with `mfa_reset_required` and issues no session, so
+  setup is unreachable until an administrator of that workspace calls
+  `POST /api/members/clear-mfa-reenrol/{user_id}`. When that user is the only active
+  administrator, use the database procedure in `docs/ops/key-rotation.md`. The in-product
+  clear rechecks current active administrator membership, sets an explicit pending-enrollment
+  marker, revokes the target's sessions,
   login challenges and recovery codes, and writes an audit row (actor, target, workspace).
   The next password login grants only a five-minute setup session with no workspace privileges.
   Successful TOTP confirmation checks current active membership and atomically replaces it
@@ -69,11 +79,11 @@ Source of truth: `apps/api/app/core/config_contract.py`. The table between the m
 | Variable | Type | Production | Secret | Non-production default | Description | Owner prerequisite |
 |---|---|---|---|---|---|---|
 | `APP_ENV` | enum(development|test|staging|production) | required | no | development | Runtime mode. Only `production` enables the fail-closed checks below; unknown values are rejected. |  |
-| `SESSION_SECRET` | secret string (>=32 chars, >=8 distinct chars) | required | yes | random per-process key (dev/test only) | Signs legacy cookies and derives purpose keys when a purpose keyring is unset. Placeholders rejected. |  |
-| `SESSION_KEYRING` | kid:secret,kid:secret | optional | yes | unset (HKDF from SESSION_SECRET, id v0-legacy) | Session signing keys. First entry is current; later entries are retired. No value is echoed. |  |
-| `OAUTH_STATE_KEYRING` | kid:secret,kid:secret | optional | yes | unset (HKDF from SESSION_SECRET, id v0-legacy) | OAuth state signing keys. CSRF stays an Origin/Referer check. No value is echoed. |  |
-| `MFA_KEYRING` | kid:secret,kid:secret | optional | yes | unset (HKDF from SESSION_SECRET, id v0-legacy) | MFA secret encryption keys. First entry is current; later entries decrypt only. No value is echoed. |  |
-| `CONNECTOR_KEYRING` | kid:secret,kid:secret | optional | yes | unset (HKDF from SESSION_SECRET, id v0-legacy) | Connector token encryption keys (credential store, Slack, Gmail). No value is echoed. |  |
+| `SESSION_SECRET` | secret string (>=32 chars, >=8 distinct chars) | required | yes | random per-process key (dev/test only) | Signs legacy cookies. Derives a purpose key only when that keyring is unset (development and test). Production requires separate purpose keyrings. Placeholders rejected. |  |
+| `SESSION_KEYRING` | kid:secret,kid:secret | required | yes | unset (HKDF from SESSION_SECRET, id v0-legacy) | Session signing keys. Production: required, strong, distinct from the other purpose keyrings and from SESSION_SECRET. First entry is current; later entries are retired. No value is echoed. |  |
+| `OAUTH_STATE_KEYRING` | kid:secret,kid:secret | required | yes | unset (HKDF from SESSION_SECRET, id v0-legacy) | OAuth state signing keys. Production: required, strong, distinct from the other purpose keyrings and from SESSION_SECRET. CSRF stays an Origin/Referer check. No value is echoed. |  |
+| `MFA_KEYRING` | kid:secret,kid:secret | required | yes | unset (HKDF from SESSION_SECRET, id v0-legacy) | MFA secret encryption keys. Production: required, strong, distinct from the other purpose keyrings and from SESSION_SECRET. First entry is current; later entries decrypt only. No value is echoed. |  |
+| `CONNECTOR_KEYRING` | kid:secret,kid:secret | required | yes | unset (HKDF from SESSION_SECRET, id v0-legacy) | Connector token encryption keys (credential store, Slack, Gmail). Production: required, strong, distinct from the other purpose keyrings and from SESSION_SECRET. No value is echoed. |  |
 | `DATABASE_URL` | postgresql URL with user and password | required | yes | local dev URL on localhost:5432 (dev only) | Postgres DSN. Production: must be set explicitly; vendor-default/placeholder or short (<16) passwords rejected. | Managed or self-hosted PostgreSQL 16 + pgvector |
 | `POSTGRES_USER` | string | conditional | no | compose dev default | Postgres container superuser (compose). If visible to the app in production, must not be a vendor default. |  |
 | `POSTGRES_PASSWORD` | secret string (>=16 chars) | conditional | yes | compose dev default | Postgres container password (compose). If visible in production, defaults/placeholders/short values rejected. |  |

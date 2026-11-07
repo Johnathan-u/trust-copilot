@@ -108,18 +108,25 @@ are **retired** (owner statement 2026-10-27, TC-07-001) and must never be reused
 
 ### Key rotation
 
-Session signing, OAuth state, MFA and connector encryption can each have a versioned keyring
-(`SESSION_KEYRING`, `OAUTH_STATE_KEYRING`, `MFA_KEYRING`, `CONNECTOR_KEYRING`). The first
-`kid:secret` is current; the rest are retired. Leave a variable unset to keep deriving
-`v0-legacy` from `SESSION_SECRET`. Explicit keyrings must retain the previous root as
-`v0-legacy` to read legacy ciphertext; retired session cookies are rejected, including
-unprefixed cookies. Rehearse on a copy, never on production:
+Session signing, OAuth state, MFA and connector encryption each have a versioned keyring
+(`SESSION_KEYRING`, `OAUTH_STATE_KEYRING`, `MFA_KEYRING`, `CONNECTOR_KEYRING`). Production
+requires all four. Each must be strong and distinct from the others and from `SESSION_SECRET`.
+Development and test may leave a variable unset; unset derives `v0-legacy` from `SESSION_SECRET`.
+The first `kid:secret` is current; the rest are retired. Production must not keep
+`v0-legacy` set to `SESSION_SECRET`: that value is refused, and the same secret cannot
+appear in two rings. Existing ciphertext stays readable only if the first migration runs
+on a copy (outside production) with `v0-legacy` retained, then production is given the new
+key only. See [docs/ops/key-rotation.md](docs/ops/key-rotation.md). Outside production, an
+explicit ring can still retain `v0-legacy` to read older ciphertext. Retired session
+cookies are rejected, including unprefixed cookies. Stop the API and worker before copying
+the database. Backup, rotation, cut-over, and sole-admin MFA recovery are in the same
+runbook. Rehearse on a copy, never on production:
 
 `cd apps/api && python scripts/rotate_purpose_keys.py --dry-run`
 
-The command prints counts only. An MFA secret it cannot open is marked `reenrol.<kid>`.
-Password login then fails with `mfa_reset_required` and does not start a session. An
-active administrator of that workspace authorizes enrollment with
+The command prints counts only and refuses `APP_ENV=production`. An MFA secret it cannot open
+is marked `reenrol.<kid>`. Password login then fails with `mfa_reset_required` and does not
+start a session. An active administrator of that workspace authorizes enrollment with
 `POST /api/members/clear-mfa-reenrol/{user_id}`. The next password login grants only a
 five-minute enrollment session; workspace access resumes after successful TOTP confirmation.
 See [docs/release/config-contract.md](docs/release/config-contract.md)
