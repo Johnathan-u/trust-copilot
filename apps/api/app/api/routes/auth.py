@@ -46,7 +46,13 @@ from app.core.mfa import (  # noqa: E402
     verify_totp,
 )
 from app.core.password import hash_password, verify_password  # noqa: E402
-from app.core.rate_limit import get_client_ip, is_rate_limited, record_attempt  # noqa: E402
+from app.core.rate_limit import (  # noqa: E402
+    RateLimitBackendError,
+    get_client_ip,
+    is_rate_limited,
+    record_attempt,
+)
+from app.core.keys import purpose_macs  # noqa: E402
 from app.core.session import (  # noqa: E402
     is_production_env,
     sign_session,
@@ -193,10 +199,16 @@ def _token_hash(token: str) -> str:
     return hashlib.sha256(token.encode()).hexdigest()
 
 
-# Five failures per address, account, or submitted secret, then a 15-minute lockout.
+# Five attempts are allowed. The stored counter is incremented before the check,
+# so the limiter trips when the count reaches six and a parallel burst cannot pass five.
 _VERIFY_MAX_ATTEMPTS = 5
+_VERIFY_RECORDED_LIMIT = _VERIFY_MAX_ATTEMPTS + 1
 _VERIFY_LOCKOUT_SECONDS = 900
 _LINK_TOKEN_MIN_LENGTH = 32
+_RESEND_MAX_ATTEMPTS = 3
+_RESEND_RECORDED_LIMIT = _RESEND_MAX_ATTEMPTS + 1
+_RESEND_WINDOW_SECONDS = 900
+_CODE_MAC_LABEL = "email-verification-code:"
 
 
 def _is_six_digit_code(value: str) -> bool:
@@ -209,20 +221,50 @@ def _as_utc(value: datetime) -> datetime:
     return value
 
 
-def _verification_locked(*keys: str) -> bool:
-    return any(
-        is_rate_limited(key, max_attempts=_VERIFY_MAX_ATTEMPTS, window_sec=_VERIFY_LOCKOUT_SECONDS)
-        for key in keys
-    )
+def _verification_code_key(code: str) -> str:
+    """Rate-limit key for one submitted code. This is not the stored digest."""
+    return f"verify-code:submitted:{_token_hash(code)}"
 
 
-def _verification_failed(*keys: str) -> None:
+def _verification_user_key(user_id: int) -> str:
+    return f"verify-code:user:{user_id}"
+
+
+def _verification_email_key(email: str) -> str:
+    return f"verify-code:email:{email}"
+
+
+def _code_macs(code: str) -> tuple[str, ...]:
+    """HMAC of a 6-digit code under the session purpose key. The code is not stored."""
+    return purpose_macs("session", f"{_CODE_MAC_LABEL}{code}")
+
+
+def _rate_limited(*keys: str, max_attempts: int, window_sec: float) -> bool:
+    try:
+        return any(
+            is_rate_limited(
+                key,
+                max_attempts=max_attempts,
+                window_sec=window_sec,
+                fail_closed=is_production_env(),
+            )
+            for key in keys
+        )
+    except RateLimitBackendError:
+        raise HTTPException(
+            status_code=503,
+            detail="Verification is temporarily unavailable. Try again later.",
+        )
+
+
+def _verification_attempt(*keys: str) -> None:
+    """Record the attempt, then refuse once the cap is exceeded."""
     for key in keys:
-        record_attempt(key, max_attempts=_VERIFY_MAX_ATTEMPTS, window_sec=_VERIFY_LOCKOUT_SECONDS)
-
-
-def _verification_lockout() -> HTTPException:
-    return HTTPException(status_code=429, detail="Too many attempts. Try again later.")
+        record_attempt(key, max_attempts=_VERIFY_RECORDED_LIMIT, window_sec=_VERIFY_LOCKOUT_SECONDS)
+    if _rate_limited(
+        *keys, max_attempts=_VERIFY_RECORDED_LIMIT, window_sec=_VERIFY_LOCKOUT_SECONDS
+    ):
+        raise HTTPException(status_code=429, detail="Too many attempts. Try again later.")
 
 
 def _delete_verification_tokens(db: Session, user_id: int) -> None:
@@ -231,9 +273,14 @@ def _delete_verification_tokens(db: Session, user_id: int) -> None:
     )
 
 
+def _delete_user_sessions(db: Session, user_id: int) -> None:
+    db.query(UserSession).filter(UserSession.user_id == user_id).delete(synchronize_session=False)
+
+
 def _mark_email_verified(db: Session, user: User) -> None:
     user.email_verified = True
     _delete_verification_tokens(db, user.id)
+    _delete_user_sessions(db, user.id)
     db.commit()
     persist_audit(db, "auth.email_verified", user_id=user.id, email=user.email)
 
@@ -246,7 +293,7 @@ def _issue_verification(db: Session, user: User, email: str) -> None:
     db.add(
         EmailVerificationToken(
             user_id=user.id,
-            token_hash=_token_hash(code),
+            token_hash=_code_macs(code)[0],
             expires_at=now + timedelta(minutes=15),
         )
     )
@@ -311,40 +358,30 @@ def verify_code(req: VerifyCodeRequest, db: Session = Depends(get_db)):
     code = (req.code or "").strip()
     if not email or not code:
         raise HTTPException(status_code=400, detail="Email and code are required")
-    email_key = f"verify-code:email:{email}"
-    if _verification_locked(email_key):
-        raise _verification_lockout()
     user = db.query(User).filter(User.email == email).first()
-    keys = [email_key]
+    keys = [_verification_email_key(email)]
     if user is not None:
-        user_key = f"verify-code:user:{user.id}"
-        if _verification_locked(user_key):
-            raise _verification_lockout()
-        keys.append(user_key)
+        keys.append(_verification_user_key(user.id))
+    if _is_six_digit_code(code):
+        keys.append(_verification_code_key(code))
+    _verification_attempt(*keys)
     if not _is_six_digit_code(code):
-        _verification_failed(*keys)
         raise HTTPException(status_code=400, detail="Invalid code")
-    submitted_key = f"verify-code:submitted:{_token_hash(code)}"
-    if _verification_locked(submitted_key):
-        raise _verification_lockout()
-    keys.append(submitted_key)
     evt = None
     if user is not None:
         evt = (
             db.query(EmailVerificationToken)
             .filter(
                 EmailVerificationToken.user_id == user.id,
-                EmailVerificationToken.token_hash == _token_hash(code),
+                EmailVerificationToken.token_hash.in_(_code_macs(code)),
             )
             .first()
         )
     if user is None or evt is None:
-        _verification_failed(*keys)
         raise HTTPException(status_code=400, detail="Invalid code")
     if _as_utc(evt.expires_at) < datetime.now(timezone.utc):
         db.delete(evt)
         db.commit()
-        _verification_failed(*keys)
         raise HTTPException(status_code=400, detail="Code expired. Please register again.")
     _mark_email_verified(db, user)
     return {"message": "Email verified."}
@@ -368,10 +405,8 @@ def verify_email(token: str = "", user: str = "", db: Session = Depends(get_db))
         raise HTTPException(status_code=400, detail="Invalid or expired link")
     user_key = f"verify-email:user:{user_id}"
     token_key = f"verify-email:token:{_token_hash(raw)}"
-    if _verification_locked(user_key, token_key):
-        raise _verification_lockout()
+    _verification_attempt(user_key, token_key)
     if len(raw) < _LINK_TOKEN_MIN_LENGTH or _is_six_digit_code(raw):
-        _verification_failed(user_key, token_key)
         raise HTTPException(status_code=400, detail="Invalid or expired link")
     account = db.query(User).filter(User.id == user_id).first()
     evt = None
@@ -385,15 +420,40 @@ def verify_email(token: str = "", user: str = "", db: Session = Depends(get_db))
             .first()
         )
     if account is None or evt is None:
-        _verification_failed(user_key, token_key)
         raise HTTPException(status_code=400, detail="Invalid or expired link")
     if _as_utc(evt.expires_at) < datetime.now(timezone.utc):
         db.delete(evt)
         db.commit()
-        _verification_failed(user_key, token_key)
         raise HTTPException(status_code=400, detail="Link expired")
     _mark_email_verified(db, account)
     return {"message": "Email verified. You can sign in."}
+
+
+class ResendVerificationRequest(BaseModel):
+    email: str
+
+
+@router.post("/resend-verification")
+def resend_verification(
+    req: ResendVerificationRequest, request: Request, db: Session = Depends(get_db)
+):
+    """Send a fresh code and link for an unverified account. The response is generic."""
+    email = (req.email or "").strip().lower()
+    if not email or "@" not in email:
+        raise HTTPException(status_code=400, detail="Invalid email")
+    ip_key = f"resend-verify:ip:{get_client_ip(request)}"
+    email_key = f"resend-verify:email:{email}"
+    for key in (ip_key, email_key):
+        record_attempt(key, max_attempts=_RESEND_RECORDED_LIMIT, window_sec=_RESEND_WINDOW_SECONDS)
+    if _rate_limited(
+        ip_key, email_key, max_attempts=_RESEND_RECORDED_LIMIT, window_sec=_RESEND_WINDOW_SECONDS
+    ):
+        raise HTTPException(status_code=429, detail="Too many requests. Try again later.")
+    user = db.query(User).filter(User.email == email).first()
+    if user is not None and not user.email_verified:
+        _delete_verification_tokens(db, user.id)
+        _issue_verification(db, user, email)
+    return {"message": "If that email is waiting for verification, a new message is on the way."}
 
 
 @router.post("/forgot-password")
@@ -468,6 +528,7 @@ def reset_password(req: ResetPasswordRequest, request: Request, db: Session = De
         raise HTTPException(status_code=400, detail="Invalid or expired link")
     user.password_hash = hash_password(req.new_password)
     prt.used_at = now
+    _delete_user_sessions(db, user.id)
     db.commit()
     persist_audit(db, "auth.password_reset", user_id=user.id, email=user.email)
     return {"message": "Password updated. You can sign in."}
@@ -602,11 +663,25 @@ def _login_impl(req: LoginRequest, request: Request, response: Response, db: Ses
     if is_rate_limited(email_key):
         raise HTTPException(status_code=429, detail="Too many login attempts. Try again later.")
     record_attempt(ip_key)
-    user = db.query(User).filter(User.email == email).first()
+    user_query = db.query(User).filter(User.email == email)
+    if db.get_bind().dialect.name != "sqlite":
+        user_query = user_query.with_for_update()
+    user = user_query.first()
     if not user or not verify_password(password, user.password_hash):
         record_attempt(email_key)
         persist_audit(db, "auth.login_failed")
         raise HTTPException(status_code=401, detail="Invalid credentials")
+    if not user.email_verified:
+        persist_audit(db, "auth.login_unverified", user_id=user.id, email=user.email)
+        return api_error_response(
+            ApiError(
+                code="email_not_verified",
+                message="Verify your email before signing in.",
+                request_id=current_request_id(request),
+                retryable=False,
+            ),
+            403,
+        )
     member = (
         db.query(WorkspaceMember)
         .filter(WorkspaceMember.user_id == user.id)
@@ -1936,6 +2011,11 @@ def accept_invite(req: AcceptInviteRequest, db: Session = Depends(get_db)):
             )
         # A password set before the address was verified must not survive the invite.
         if not user.email_verified:
+            locked = db.query(User).filter(User.id == user.id)
+            if db.get_bind().dialect.name != "sqlite":
+                locked = locked.with_for_update()
+            user = locked.one()
+        if not user.email_verified:
             password = (req.password or "").strip()
             if len(password) < 6:
                 raise HTTPException(
@@ -1943,14 +2023,22 @@ def accept_invite(req: AcceptInviteRequest, db: Session = Depends(get_db)):
                     detail="Set a password to claim this account (at least 6 characters)",
                 )
             user.password_hash = hash_password(password)
-            db.query(UserSession).filter(UserSession.user_id == user.id).delete(
-                synchronize_session=False
-            )
+            _delete_user_sessions(db, user.id)
             db.query(PasswordResetToken).filter(
                 PasswordResetToken.user_id == user.id,
                 PasswordResetToken.used_at.is_(None),
             ).delete(synchronize_session=False)
             _delete_verification_tokens(db, user.id)
+            db.query(MfaRecoveryCode).filter(MfaRecoveryCode.user_id == user.id).delete(
+                synchronize_session=False
+            )
+            db.query(MfaLoginToken).filter(MfaLoginToken.user_id == user.id).delete(
+                synchronize_session=False
+            )
+            db.query(UserMfa).filter(UserMfa.user_id == user.id).delete(synchronize_session=False)
+            db.query(UserOAuthAccount).filter(UserOAuthAccount.user_id == user.id).delete(
+                synchronize_session=False
+            )
         user.email_verified = True
         mem = WorkspaceMember(workspace_id=inv.workspace_id, user_id=user.id, role=inv.role)
         db.add(mem)

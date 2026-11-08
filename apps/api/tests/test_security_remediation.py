@@ -379,8 +379,8 @@ class TestOAuthAutoLinkVerifiedEmail:
 
         asyncio.new_event_loop().run_until_complete(_test())
 
-    def test_microsoft_returns_email_verified_flag(self):
-        """Microsoft exchange marks email_verified=True when email comes from mail field."""
+    def test_microsoft_mail_without_verified_claim_is_not_an_email(self):
+        """Graph mail is not a verified address and is not used to link or create."""
         from app.services.oauth_service import microsoft_exchange_code
 
         token_resp = _make_resp(200, {"access_token": "test-token"})
@@ -393,12 +393,14 @@ class TestOAuthAutoLinkVerifiedEmail:
             with patch("app.services.oauth_service.httpx.AsyncClient", return_value=mock_client):
                 result = await microsoft_exchange_code("test-code", "http://localhost/callback")
                 assert result is not None
-                assert result["email_verified"] is True
+                assert result["email_verified"] is False
+                assert result["email"] is None
+                assert result["provider_user_id"] == "ms-id-123"
 
         asyncio.new_event_loop().run_until_complete(_test())
 
     def test_microsoft_upn_only_marks_unverified(self):
-        """Microsoft: when only userPrincipalName is present (no mail), email_verified is False."""
+        """A user principal name without xms_edov is not an email we will link."""
         from app.services.oauth_service import microsoft_exchange_code
 
         token_resp = _make_resp(200, {"access_token": "test-token"})
@@ -417,8 +419,139 @@ class TestOAuthAutoLinkVerifiedEmail:
                 result = await microsoft_exchange_code("test-code", "http://localhost/callback")
                 assert result is not None
                 assert result["email_verified"] is False
+                assert result["email"] is None
 
         asyncio.new_event_loop().run_until_complete(_test())
+
+    def test_microsoft_verified_claim_keys_identity_on_tenant_and_object(self):
+        """A validated id_token with xms_edov uses tid and oid, not Graph mail."""
+        import base64
+        import json
+
+        from cryptography.hazmat.primitives import hashes
+        from cryptography.hazmat.primitives.asymmetric import padding, rsa
+
+        from app.core.config import get_settings
+        from app.services.oauth_service import microsoft_exchange_code
+
+        key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
+        numbers = key.public_key().public_numbers()
+
+        def b64(raw: bytes) -> str:
+            return base64.urlsafe_b64encode(raw).rstrip(b"=").decode()
+
+        def b64int(number: int) -> str:
+            length = (number.bit_length() + 7) // 8
+            return b64(number.to_bytes(length, "big"))
+
+        tid = "9188040d-6c67-4c5b-b112-36a304b66dad"
+        oid = "01234567-89ab-cdef-0123-456789abcdef"
+        header = b64(json.dumps({"alg": "RS256", "kid": "test-key"}).encode())
+        claims = {
+            "iss": f"https://login.microsoftonline.com/{tid}/v2.0",
+            "aud": "microsoft-client",
+            "exp": int(time.time()) + 600,
+            "tid": tid,
+            "oid": oid,
+            "email": "owner@verified.example",
+            "name": "Owner",
+            "xms_edov": True,
+        }
+        payload = b64(json.dumps(claims).encode())
+        signing_input = f"{header}.{payload}".encode()
+        signature = key.sign(signing_input, padding.PKCS1v15(), hashes.SHA256())
+        id_token = f"{header}.{payload}.{b64(signature)}"
+        jwks = {
+            "keys": [
+                {"kty": "RSA", "kid": "test-key", "n": b64int(numbers.n), "e": b64int(numbers.e)}
+            ]
+        }
+        mock_client = _MockAsyncClient(
+            _make_resp(200, {"access_token": "test-token", "id_token": id_token}),
+            _make_resp(200, jwks),
+        )
+        os.environ["OAUTH_MICROSOFT_CLIENT_ID"] = "microsoft-client"
+        get_settings.cache_clear()
+
+        async def _test():
+            with patch("app.services.oauth_service.httpx.AsyncClient", return_value=mock_client):
+                result = await microsoft_exchange_code("test-code", "http://localhost/callback")
+                assert result is not None
+                assert result["email_verified"] is True
+                assert result["email"] == "owner@verified.example"
+                assert result["provider_user_id"] == f"{tid}:{oid}"
+
+        try:
+            asyncio.new_event_loop().run_until_complete(_test())
+        finally:
+            os.environ.pop("OAUTH_MICROSOFT_CLIENT_ID", None)
+            get_settings.cache_clear()
+
+    def test_microsoft_signed_token_without_verified_claim_drops_the_email(self):
+        """A valid signature with xms_edov false still does not accept the email claim."""
+        import base64
+        import json
+
+        from cryptography.hazmat.primitives import hashes
+        from cryptography.hazmat.primitives.asymmetric import padding, rsa
+
+        from app.core.config import get_settings
+        from app.services.oauth_service import microsoft_exchange_code
+
+        key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
+        numbers = key.public_key().public_numbers()
+
+        def b64(raw: bytes) -> str:
+            return base64.urlsafe_b64encode(raw).rstrip(b"=").decode()
+
+        def b64int(number: int) -> str:
+            length = (number.bit_length() + 7) // 8
+            return b64(number.to_bytes(length, "big"))
+
+        tid = "9188040d-6c67-4c5b-b112-36a304b66dad"
+        oid = "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"
+        header = b64(json.dumps({"alg": "RS256", "kid": "test-key"}).encode())
+        claims = {
+            "iss": f"https://login.microsoftonline.com/{tid}/v2.0",
+            "aud": "microsoft-client",
+            "exp": int(time.time()) + 600,
+            "tid": tid,
+            "oid": oid,
+            "email": "victim@corp.example",
+            "xms_edov": False,
+        }
+        payload = b64(json.dumps(claims).encode())
+        signing_input = f"{header}.{payload}".encode()
+        signature = key.sign(signing_input, padding.PKCS1v15(), hashes.SHA256())
+        id_token = f"{header}.{payload}.{b64(signature)}"
+        jwks = {
+            "keys": [
+                {"kty": "RSA", "kid": "test-key", "n": b64int(numbers.n), "e": b64int(numbers.e)}
+            ]
+        }
+        graph = _make_resp(
+            200, {"id": "graph-id", "mail": "victim@corp.example", "displayName": "Victim"}
+        )
+        mock_client = _MockAsyncClient(
+            _make_resp(200, {"access_token": "test-token", "id_token": id_token}),
+            [_make_resp(200, jwks), graph],
+        )
+        os.environ["OAUTH_MICROSOFT_CLIENT_ID"] = "microsoft-client"
+        get_settings.cache_clear()
+
+        async def _test():
+            with patch("app.services.oauth_service.httpx.AsyncClient", return_value=mock_client):
+                result = await microsoft_exchange_code("test-code", "http://localhost/callback")
+                assert result is not None
+                assert result["email_verified"] is False
+                assert result["email"] is None
+                assert result["provider_user_id"] == f"{tid}:{oid}"
+
+        try:
+            asyncio.new_event_loop().run_until_complete(_test())
+        finally:
+            os.environ.pop("OAUTH_MICROSOFT_CLIENT_ID", None)
+            get_settings.cache_clear()
 
 
 # ---------------------------------------------------------------------------

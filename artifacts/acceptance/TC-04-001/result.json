@@ -1,18 +1,17 @@
 {
   "ticket": "TC-04-001",
-  "command": "python -m pytest tests/release/test_registration.py -q",
+  "command": "python -m pytest tests/release/test_registration.py tests/test_security_remediation.py -q",
   "working_directory": "apps/api",
-  "git_sha": "78d33e91d0fd88fdb974c7390dfe575516fa210e",
   "git_branch": "tc/TC-04-001-verified-registration",
-  "parent": "d6e269e3242aeebc199ef98f5bf104a0999715d0",
+  "parent": "68ed30d266b54804591c9cd68954e7c18bf0d421",
   "exit_status": 0,
   "totals": {
-    "passed": 39,
+    "passed": 80,
     "failed": 0,
     "skipped": 0,
     "errors": 0,
-    "warnings": 146,
-    "duration_seconds": 4.5
+    "warnings": 214,
+    "duration_seconds": 6.11
   },
   "additional_runs": [
     {
@@ -24,7 +23,7 @@
         "failed": 0,
         "skipped": 0,
         "warnings": 3171,
-        "duration_seconds": 13.62
+        "duration_seconds": 13.37
       }
     }
   ],
@@ -34,15 +33,16 @@
     "sqlalchemy": "2.0.55",
     "alembic": "1.20.1",
     "fastapi": "0.162.0",
+    "cryptography": "50.0.2",
     "ruff": "0.5.6",
     "postgresql": "16.15",
     "database": "trustcopilot_test",
     "platform": "Linux 6.12.113+ x86_64"
   },
   "notes": [
-    "No schema migration. Provider callbacks use a mocked token exchange.",
-    "No live Google, GitHub, Microsoft, OIDC, or ID.me sandbox was called.",
-    "This evidence file was added after the tested SHA and does not change product behavior.",
+    "This file is in the same commit as the review fixes. The command was run on that tree immediately before the commit.",
+    "Microsoft coverage uses a mocked token response and a locally signed id_token. No live Entra sandbox was called.",
+    "No schema migration.",
     "The implementer does not accept the result and must not merge."
   ]
 }

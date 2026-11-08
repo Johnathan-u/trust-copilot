@@ -20,7 +20,13 @@ import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import text
 
-from app.api.routes.auth import _oauth_create_signed_state
+from app.api.routes.auth import (
+    _VERIFY_RECORDED_LIMIT,
+    _oauth_create_signed_state,
+    _verification_code_key,
+    _verification_user_key,
+)
+from app.core.rate_limit import record_attempt
 from app.core.config import get_settings
 from app.core.database import SessionLocal
 from app.core.invite_codes import generate_invite_code_pair, hash_invite_code
@@ -29,8 +35,10 @@ from app.models import (
     AuditEvent,
     EmailVerificationToken,
     Invite,
+    MfaRecoveryCode,
     PasswordResetToken,
     User,
+    UserMfa,
     UserOAuthAccount,
     UserSession,
     Workspace,
@@ -64,6 +72,13 @@ def _address(label: str) -> str:
 
 def _digest(value: str) -> str:
     return hashlib.sha256(value.encode()).hexdigest()
+
+
+def _stored_hashes(secret: str) -> tuple[str, ...]:
+    from app.core.keys import purpose_macs
+
+    macs = purpose_macs("session", f"email-verification-code:{secret}")
+    return (*macs, _digest(secret))
 
 
 def _policy(monkeypatch, policy: str) -> None:
@@ -237,7 +252,7 @@ def _expire(user_id: int, secret: str) -> None:
             db.query(EmailVerificationToken)
             .filter(
                 EmailVerificationToken.user_id == user_id,
-                EmailVerificationToken.token_hash == _digest(secret),
+                EmailVerificationToken.token_hash.in_(_stored_hashes(secret)),
             )
             .one()
         )
@@ -420,12 +435,12 @@ def test_pre_registered_invite_replaces_password_and_revokes_session(
     attacker = _password()
     _register(client, mailbox, email, attacker)
     assert _account(email)["memberships"] == []
-    signed_in = client.post("/api/auth/login", json={"email": email, "password": attacker})
-    assert signed_in.status_code == 200, signed_in.status_code
-    assert signed_in.json().get("needs_onboarding") is True
-    _deny_workspace_one(client)
-    held = client.cookies.get("tc_session")
-    assert held
+    client.cookies.clear()
+    denied_login = client.post("/api/auth/login", json={"email": email, "password": attacker})
+    assert denied_login.status_code == 403, denied_login.status_code
+    assert denied_login.json()["error"]["code"] == "email_not_verified"
+    assert "tc_session" not in denied_login.cookies
+    assert "tc_session" not in client.cookies
     formatted, _normalized = generate_invite_code_pair()
     db = SessionLocal()
     try:
@@ -452,11 +467,6 @@ def test_pre_registered_invite_replaces_password_and_revokes_session(
     chosen = _password()
     accepted = client.post("/api/auth/accept-invite", json={"token": token, "password": chosen})
     assert accepted.status_code == 200, accepted.status_code
-    client.cookies.clear()
-    client.cookies.set("tc_session", held)
-    stale = client.get("/api/auth/me")
-    assert stale.status_code == 401, stale.status_code
-    client.cookies.clear()
     denied = client.post("/api/auth/login", json={"email": email, "password": attacker})
     assert denied.status_code == 401, denied.status_code
     allowed = client.post("/api/auth/login", json={"email": email, "password": chosen})
@@ -612,10 +622,12 @@ def test_provider_refuses_unverified_pre_registered_account(
     assert account["verified"] is False
     assert account["providers"] == []
     assert account["memberships"] == []
+    client.cookies.clear()
     login = client.post("/api/auth/login", json={"email": email, "password": password})
-    assert login.status_code == 200, login.status_code
-    assert login.json().get("needs_onboarding") is True
-    _deny_workspace_one(client)
+    assert login.status_code == 403, login.status_code
+    assert login.json()["error"]["code"] == "email_not_verified"
+    assert "tc_session" not in login.cookies
+    assert "tc_session" not in client.cookies
 
 
 @pytest.mark.parametrize("provider", PROVIDERS)
@@ -651,3 +663,302 @@ def test_provider_verified_member_keeps_existing_workspace(
     assert denied.status_code == 403, denied.status_code
     login = client.post("/api/auth/login", json={"email": email, "password": password})
     assert login.status_code == 200, login.status_code
+
+
+def _plant_session(user_id: int) -> str:
+    from app.core.keys import current_session_key_id
+    from app.core.session import sign_session
+
+    session_id = secrets.token_urlsafe(16)
+    db = SessionLocal()
+    try:
+        user = db.query(User).filter(User.id == user_id).one()
+        db.add(
+            UserSession(
+                user_id=user.id,
+                session_id=session_id,
+                signing_key_id=current_session_key_id(),
+            )
+        )
+        db.commit()
+        email = user.email
+    finally:
+        db.close()
+    return sign_session(user_id, email, 0, "pending", session_id=session_id, max_age_seconds=3600)
+
+
+def test_verification_attempt_is_counted_before_the_decision(monkeypatch) -> None:
+    import app.api.routes.auth as auth_routes
+
+    calls: list[str] = []
+
+    def _record(*_args, **_kwargs):
+        calls.append("record")
+
+    def _limited(*_args, **_kwargs):
+        calls.append("check")
+        return False
+
+    monkeypatch.setattr(auth_routes, "record_attempt", _record)
+    monkeypatch.setattr(auth_routes, "_rate_limited", _limited)
+    auth_routes._verification_attempt("verify-email:user:1")
+    assert calls == ["record", "check"]
+
+
+def test_unverified_login_sets_no_cookie(client: TestClient, mailbox: _Mailbox, isolate) -> None:
+    email = isolate(_address("no-cookie"))
+    password = _password()
+    _register(client, mailbox, email, password)
+    client.cookies.clear()
+    response = client.post("/api/auth/login", json={"email": email, "password": password})
+    assert response.status_code == 403, response.status_code
+    assert response.json()["error"]["code"] == "email_not_verified"
+    assert "tc_session" not in response.cookies
+    assert "tc_session" not in client.cookies
+    assert _account(email)["sessions"] == 0
+
+
+def test_verification_and_password_reset_end_prior_sessions(
+    client: TestClient, mailbox: _Mailbox, isolate
+) -> None:
+    """A session from before verification dies, and reset kills the one after it."""
+    email = isolate(_address("owner-change"))
+    attacker = _password()
+    code, _link, user_id = _register(client, mailbox, email, attacker)
+    planted = _plant_session(int(user_id))
+    client.cookies.clear()
+    client.cookies.set("tc_session", planted)
+    assert client.get("/api/auth/me").status_code == 200
+    verified = client.post("/api/auth/verify-code", json={"email": email, "code": code})
+    assert verified.status_code == 200, verified.status_code
+    client.cookies.clear()
+    client.cookies.set("tc_session", planted)
+    assert client.get("/api/auth/me").status_code == 401
+    client.cookies.clear()
+    signed_in = client.post("/api/auth/login", json={"email": email, "password": attacker})
+    assert signed_in.status_code == 200, signed_in.status_code
+    held = client.cookies.get("tc_session")
+    assert held
+    replacement = _password()
+    raw = secrets.token_urlsafe(24)
+    db = SessionLocal()
+    try:
+        db.add(
+            PasswordResetToken(
+                user_id=int(user_id),
+                token_hash=_digest(raw),
+                expires_at=datetime.now(timezone.utc) + timedelta(hours=1),
+            )
+        )
+        db.commit()
+    finally:
+        db.close()
+    reset = client.post(
+        "/api/auth/reset-password", json={"token": raw, "new_password": replacement}
+    )
+    assert reset.status_code == 200, reset.status_code
+    client.cookies.clear()
+    client.cookies.set("tc_session", held)
+    assert client.get("/api/auth/me").status_code == 401
+    client.cookies.clear()
+    assert (
+        client.post("/api/auth/login", json={"email": email, "password": attacker}).status_code
+        == 401
+    )
+    assert (
+        client.post("/api/auth/login", json={"email": email, "password": replacement}).status_code
+        == 200
+    )
+
+
+def test_invite_claim_clears_mfa(client: TestClient, mailbox: _Mailbox, isolate) -> None:
+    email = isolate(_address("mfa-claim"))
+    attacker = _password()
+    _register(client, mailbox, email, attacker)
+    account = _account(email)
+    assert account is not None
+    db = SessionLocal()
+    try:
+        db.add(UserMfa(user_id=account["id"], totp_secret_encrypted="synthetic", enabled=True))
+        db.add(MfaRecoveryCode(user_id=account["id"], code_hash=_digest("recovery")))
+        db.add(
+            UserOAuthAccount(
+                user_id=account["id"],
+                provider="google",
+                provider_user_id=secrets.token_hex(8),
+            )
+        )
+        db.add(UserSession(user_id=account["id"], session_id=secrets.token_urlsafe(16)))
+        db.commit()
+    finally:
+        db.close()
+    formatted, _normalized = generate_invite_code_pair()
+    db = SessionLocal()
+    try:
+        db.add(
+            Invite(
+                workspace_id=1,
+                email=email,
+                role="editor",
+                token_hash=_digest(secrets.token_urlsafe(16)),
+                invite_code_hash=hash_invite_code(formatted),
+                expires_at=datetime.now(timezone.utc) + timedelta(days=2),
+            )
+        )
+        db.commit()
+    finally:
+        db.close()
+    verified = client.post("/api/auth/verify-invite-code", json={"email": email, "code": formatted})
+    assert verified.status_code == 200, verified.status_code
+    chosen = _password()
+    accepted = client.post(
+        "/api/auth/accept-invite",
+        json={"token": verified.json()["token"], "password": chosen},
+    )
+    assert accepted.status_code == 200, accepted.status_code
+    db = SessionLocal()
+    try:
+        assert db.query(UserMfa).filter(UserMfa.user_id == account["id"]).count() == 0
+        assert (
+            db.query(MfaRecoveryCode).filter(MfaRecoveryCode.user_id == account["id"]).count() == 0
+        )
+        assert (
+            db.query(UserOAuthAccount).filter(UserOAuthAccount.user_id == account["id"]).count()
+            == 0
+        )
+        assert db.query(UserSession).filter(UserSession.user_id == account["id"]).count() == 0
+    finally:
+        db.close()
+    assert (
+        client.post("/api/auth/login", json={"email": email, "password": attacker}).status_code
+        == 401
+    )
+    assert (
+        client.post("/api/auth/login", json={"email": email, "password": chosen}).status_code == 200
+    )
+
+
+def test_resend_verification_replaces_the_code(
+    client: TestClient, mailbox: _Mailbox, isolate
+) -> None:
+    email = isolate(_address("resend"))
+    code, _link, _user_id = _register(client, mailbox, email, _password())
+    unknown = client.post("/api/auth/resend-verification", json={"email": _address("missing")})
+    assert unknown.status_code == 200, unknown.status_code
+    assert len(mailbox.messages) == 1
+    resent = client.post("/api/auth/resend-verification", json={"email": email})
+    assert resent.status_code == 200, resent.status_code
+    assert len(mailbox.messages) == 2
+    new_code, _new_link, _same_user = _mailed(mailbox)
+    assert (
+        client.post("/api/auth/verify-code", json={"email": email, "code": code}).status_code == 400
+    )
+    assert (
+        client.post("/api/auth/verify-code", json={"email": email, "code": new_code}).status_code
+        == 200
+    )
+
+
+def test_resend_verification_is_rate_limited(
+    client: TestClient, mailbox: _Mailbox, isolate
+) -> None:
+    email = isolate(_address("resend-limit"))
+    _register(client, mailbox, email, _password())
+    for _ in range(3):
+        response = client.post("/api/auth/resend-verification", json={"email": email})
+        assert response.status_code == 200, response.status_code
+    locked = client.post("/api/auth/resend-verification", json={"email": email})
+    assert locked.status_code == 429, locked.status_code
+
+
+def test_verify_email_locks_after_repeated_attempts(
+    client: TestClient, mailbox: _Mailbox, isolate
+) -> None:
+    email = isolate(_address("link-lock"))
+    _code, link, user_id = _register(client, mailbox, email, _password())
+    for _ in range(5):
+        failed = client.post(
+            "/api/auth/verify-email",
+            params={"token": secrets.token_urlsafe(32), "user": user_id},
+        )
+        assert failed.status_code == 400, failed.status_code
+    locked = client.post("/api/auth/verify-email", params={"token": link, "user": user_id})
+    assert locked.status_code == 429, locked.status_code
+    assert _account(email)["verified"] is False
+
+
+def test_verify_code_user_key_alone_locks_the_account(
+    client: TestClient, mailbox: _Mailbox, isolate
+) -> None:
+    email = isolate(_address("user-key"))
+    code, _link, user_id = _register(client, mailbox, email, _password())
+    for _ in range(_VERIFY_RECORDED_LIMIT):
+        record_attempt(
+            _verification_user_key(int(user_id)),
+            max_attempts=_VERIFY_RECORDED_LIMIT,
+            window_sec=900,
+        )
+    locked = client.post("/api/auth/verify-code", json={"email": email, "code": code})
+    assert locked.status_code == 429, locked.status_code
+    assert _account(email)["verified"] is False
+
+
+def test_verify_code_submitted_key_alone_locks_that_code(
+    client: TestClient, mailbox: _Mailbox, isolate
+) -> None:
+    email = isolate(_address("submitted-key"))
+    code, _link, _user_id = _register(client, mailbox, email, _password())
+    for _ in range(_VERIFY_RECORDED_LIMIT):
+        record_attempt(
+            _verification_code_key(code),
+            max_attempts=_VERIFY_RECORDED_LIMIT,
+            window_sec=900,
+        )
+    locked = client.post("/api/auth/verify-code", json={"email": email, "code": code})
+    assert locked.status_code == 429, locked.status_code
+    assert _account(email)["verified"] is False
+
+
+def test_verification_code_is_stored_as_an_hmac(
+    client: TestClient, mailbox: _Mailbox, isolate
+) -> None:
+    email = isolate(_address("hmac"))
+    code, _link, user_id = _register(client, mailbox, email, _password())
+    from app.core.keys import purpose_macs
+
+    db = SessionLocal()
+    try:
+        stored = {
+            row.token_hash
+            for row in db.query(EmailVerificationToken)
+            .filter(EmailVerificationToken.user_id == int(user_id))
+            .all()
+        }
+    finally:
+        db.close()
+    assert _digest(code) not in stored
+    assert purpose_macs("session", f"email-verification-code:{code}")[0] in stored
+    assert _account(email) is not None
+
+
+def test_verification_lockout_fails_closed_in_production(
+    client: TestClient, mailbox: _Mailbox, isolate, monkeypatch
+) -> None:
+    import app.core.rate_limit as rate_limit
+
+    email = isolate(_address("fail-closed"))
+    code, _link, _user_id = _register(client, mailbox, email, _password())
+
+    class _Boom:
+        def check(self, *_args, **_kwargs):
+            raise RuntimeError("store down")
+
+        def record(self, *_args, **_kwargs):
+            return None
+
+    monkeypatch.setenv("APP_ENV", "production")
+    get_settings.cache_clear()
+    monkeypatch.setattr(rate_limit, "_backend_instance", lambda: _Boom())
+    response = client.post("/api/auth/verify-code", json={"email": email, "code": code})
+    assert response.status_code == 503, response.status_code
+    assert _account(email)["verified"] is False

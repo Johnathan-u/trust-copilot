@@ -508,6 +508,7 @@ def _ensure_test_data():
                     email="demo@trust.local",
                     password_hash=hash_password("j"),
                     display_name="Demo User",
+                    email_verified=True,
                 )
                 session.add(user)
                 session.commit()
@@ -549,6 +550,7 @@ def _ensure_test_data():
                     email="reviewer@trust.local",
                     password_hash=hash_password("r"),
                     display_name="Reviewer User",
+                    email_verified=True,
                 )
                 session.add(reviewer)
                 session.commit()
@@ -571,6 +573,7 @@ def _ensure_test_data():
                     email="admin@trust.local",
                     password_hash=hash_password("a"),
                     display_name="Admin User",
+                    email_verified=True,
                 )
                 session.add(admin_u)
                 session.commit()
@@ -596,6 +599,7 @@ def _ensure_test_data():
                     email="editor@trust.local",
                     password_hash=hash_password("e"),
                     display_name="Editor User",
+                    email_verified=True,
                 )
                 session.add(editor_u)
                 session.commit()
@@ -614,6 +618,11 @@ def _ensure_test_data():
             elif editor_mem.role != "editor":
                 editor_mem.role = "editor"
                 session.commit()
+            # Fixture accounts are established identities. Unverified password login is refused.
+            for account in (user, reviewer, admin_u, editor_u):
+                if account is not None and not account.email_verified:
+                    account.email_verified = True
+            session.commit()
             return True
         finally:
             session.close()
