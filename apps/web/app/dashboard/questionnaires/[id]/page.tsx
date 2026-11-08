@@ -391,11 +391,18 @@ export default function QuestionnaireDetailPage() {
                   ? actionVerb('save', 'pending')
                   : `${actionVerb('save', 'idle')} answer evidence`}
               </Button>
-              {evidenceSaved && !savingEvidence && (
-                <span className="text-xs text-[var(--tc-success)]">
-                  {actionVerb('save', 'success')}
-                </span>
-              )}
+              <span
+                role="status"
+                className={
+                  evidenceSaved && !savingEvidence
+                    ? 'text-xs text-[var(--tc-success)]'
+                    : 'sr-only'
+                }
+              >
+                {evidenceSaved && !savingEvidence
+                  ? actionVerb('save', 'success')
+                  : ''}
+              </span>
               {evidenceError && (
                 <span role="alert" className="text-xs text-[var(--tc-danger)]">
                   {evidenceError}

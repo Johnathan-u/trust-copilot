@@ -2,66 +2,42 @@
 
 Synthetic data only. Screenshots and axe output contain no credentials, customer documents or personal data.
 
-This note does not claim that CI `build` is green. Head `7bbfb7c` failed `build` on push run 42324149162 and pull_request run 42324166892 because `test_trust_requests_browser.py` still accepted a native confirm. The review fix updates that acceptance. This machine has no Docker and no PostgreSQL, so that backend-driven browser test was not run here. CI has to show whether `build` passes.
+## Completed CI at `92b0c3e`
 
-## Dialog and toast spec
+Head `92b0c3ec40b887859eca74b1a6c7bf480c0d3f27` completed CI on both events:
 
-Recorded against implementation commit `d9fac72ea5da5060e60ee2b4e2a717daf25a77c8`. Not re-run for the review fix, which does not change `dialog-toast.spec.ts` or the shared dialog and toast primitives. Re-running it would overwrite the production screenshots below.
+- push: https://github.com/Johnathan-u/trust-copilot/actions/runs/42362793798
+- pull_request: https://github.com/Johnathan-u/trust-copilot/actions/runs/42362798123
+
+Both conclusions are success. `web-release-e2e` on each run reported:
+
+- `e2e/release/screen-trust-requests.spec.ts`: 30 passed, 0 failed, 0 skipped
+- `e2e/release/dialog-toast.spec.ts`: 8 passed, 0 failed, 0 skipped
+- `e2e/release/ui-22.spec.ts`: 23 passed, 0 failed, 0 skipped
+
+An earlier note on this branch said a filtered local `ui-22` command passed 5 tests. That was a subset (`-g "delayed create|rejected create|long content, keyboard"`). It is not the CI total. The CI total for `ui-22` at `92b0c3e` is 23 passed, 0 skipped.
+
+Head `7bbfb7c` had failed `build` on push run 42324149162 and pull_request run 42324166892. That failure is not the state of `92b0c3e`.
+
+## This commit
+
+This commit is the product fix and this evidence together. It adds live regions for the Slack test result, Slack and Gmail ingest results, questionnaire answer-evidence "Saved", and the demo-proof summary "Saved". Its push and pull_request runs do not exist until after the commit is pushed. CI is left to run. This note does not invent those run IDs. The parent sitrep after CI will name the new head and those runs.
+
+No new Playwright command was required for the markup change. The shared dialog and toast spec was not re-run.
+
+## Local checks for this commit
 
 ```bash
 cd apps/web
-npx playwright test e2e/release/dialog-toast.spec.ts --retries=0
+npx eslint app/dashboard/slack/page.tsx app/dashboard/gmail/page.tsx app/dashboard/questionnaires/\[id\]/page.tsx app/dashboard/demo-proof/page.tsx --max-warnings=0
 ```
 
 - Exit status: 0
-- Tests: 8 passed, 0 failed, 0 skipped
-- Duration: 33.6s
-- Server: `next start` production build on `http://127.0.0.1:3000`
 - Node: v24.22.1
-- npm: 11.19.1
-- Next.js: 16.4.3
-- Playwright: 1.64.1
-- Chromium: Playwright build chromium-1248
-- @axe-core/playwright: 4.14.0
-- OS: Linux 6.12.113+ x86_64
+- No Playwright spec was re-run for this markup change.
 
-Axe on `#dialog-showcase` and `#tc-toast-live`: 0 violations for dialog, confirm and toast, dark and light, at 360, 768 and 1440 CSS px (18 reports). No critical or serious violation. Screenshots: `screenshots/{dialog,confirm}-{dark,light}-{360,768,1440}.png`.
+## Not claimed
 
-## Review-fix runs
-
-These ran on the tree committed as `b923a28ba71e52c5c6e204303035747833b3dc32`. Environment: same OS, Node, npm, Playwright and Chromium. Server: Playwright `next dev` on `http://127.0.0.1:3000`. The trust-switch screenshots do not include the Next.js dev issue badge.
-
-```bash
-cd apps/web
-npx playwright test e2e/release/screen-trust-requests.spec.ts --retries=0
-```
-
-- Exit status: 0
-- Tests: 30 passed, 0 failed, 0 skipped
-- Duration: 26.9s
-- Includes Tab wrap from the last control of "Leave this page?" and the "Discard unsaved reply text?" switch dialog.
-
-```bash
-cd apps/web
-npx playwright test e2e/release/ui-22.spec.ts -g "delayed create|rejected create|long content, keyboard" --retries=0
-```
-
-- Exit status: 0
-- Tests: 5 passed, 0 failed, 0 skipped (plus the two trust-request tests in the same 7-test invocation)
-- The create dialog's status region is empty before the result, then reads "Your request has been created."
-- A 422 create leaves `role="alert"` inside the dialog and does not move focus onto that alert.
-
-The switch dialog axe reports are `axe-trust-switch-{360,768,1440}.json`. Each `violationCount` is 0. Screenshots: `screenshots/trust-switch-{360,768,1440}.png`. The same files are written under `artifacts/acceptance/TC-14-003a/`.
-
-## Not run
-
-```bash
-cd apps/api
-TC_REQUIRE_DB=1 TC_REQUIRE_WEB_TOOLCHAIN=1 python -m pytest tests/release/test_trust_requests_browser.py -q
-```
-
-Not run. This environment has no Docker and no PostgreSQL, so `DATABASE_URL` is unset. The Playwright file that pytest launches, `apps/web/e2e/integration/trust-requests.acceptance.ts`, now clicks "Discard and open" in the in-page alertdialog instead of accepting `window.confirm`. That is necessary for the test and is not a skip. It is not a local pass.
-
-`test_health_probes.py` was not changed. The earlier pull_request failure of that test was left as an unrelated flake.
+This note does not say the new head is green. Modifier-clicks and `beforeunload` are unchanged. Non-blocking follow-ups from the review (unset MFA and Gmail errors that are never shown, disconnect/remove without `res.ok`, other status regions, Topbar Saved, extra security-page tests) are not in this commit.
 
 Grok (worker). The implementer does not accept this result.

@@ -1,67 +1,45 @@
 {
   "ticket": "TC-14-003",
-  "commit": "d9fac72ea5da5060e60ee2b4e2a717daf25a77c8",
-  "review_fix_commit": "b923a28ba71e52c5c6e204303035747833b3dc32",
   "branch": "tc/TC-14-003-dialog-focus",
   "base": "master",
-  "master": "10220265182a872f02b13ec96a2d6a6fb9714a1d",
   "implementer": "Grok (worker)",
   "implementer_accepts": false,
-  "ci_build_at_7bbfb7c": "failed",
-  "ci_failure": "test_trust_requests_browser.py::test_trust_reply_persistence_and_denials_after_process_restart",
-  "environment": {
-    "os": "Linux 6.12.113+ x86_64",
-    "node": "v24.22.1",
-    "npm": "11.19.1",
-    "next": "16.4.3",
-    "playwright": "1.64.1",
-    "chromium": "Playwright build chromium-1248",
-    "axe": "@axe-core/playwright 4.14.0",
-    "working_directory": "apps/web",
-    "postgres": "not available; DATABASE_URL unset; Docker not installed"
+  "completed_ci_head": "92b0c3ec40b887859eca74b1a6c7bf480c0d3f27",
+  "completed_ci": {
+    "push": {
+      "run_id": 42362793798,
+      "url": "https://github.com/Johnathan-u/trust-copilot/actions/runs/42362793798",
+      "conclusion": "success"
+    },
+    "pull_request": {
+      "run_id": 42362798123,
+      "url": "https://github.com/Johnathan-u/trust-copilot/actions/runs/42362798123",
+      "conclusion": "success"
+    },
+    "web_release_e2e": {
+      "screen-trust-requests.spec.ts": {
+        "passed": 30,
+        "failed": 0,
+        "skipped": 0
+      },
+      "dialog-toast.spec.ts": { "passed": 8, "failed": 0, "skipped": 0 },
+      "ui-22.spec.ts": { "passed": 23, "failed": 0, "skipped": 0 }
+    }
   },
-  "commands": [
+  "ui_22_note": "A filtered local run passed 5 tests. CI at 92b0c3e ran the whole ui-22 spec: 23 passed, 0 skipped.",
+  "this_commit": {
+    "sha": null,
+    "push_run": null,
+    "pull_request_run": null,
+    "reason": "Runs do not exist until after this commit is pushed. CI is left to run."
+  },
+  "local_checks": [
     {
-      "command": "npx playwright test e2e/release/dialog-toast.spec.ts --retries=0",
-      "commit": "d9fac72ea5da5060e60ee2b4e2a717daf25a77c8",
-      "server": "next start",
-      "exit_status": 0,
-      "passed": 8,
-      "failed": 0,
-      "skipped": 0,
-      "duration_s": 33.6,
-      "rerun_on_review_fix": false
-    },
-    {
-      "command": "npx playwright test e2e/release/screen-trust-requests.spec.ts --retries=0",
-      "server": "next dev",
-      "exit_status": 0,
-      "passed": 30,
-      "failed": 0,
-      "skipped": 0,
-      "duration_s": 26.9
-    },
-    {
-      "command": "npx playwright test e2e/release/ui-22.spec.ts -g \"delayed create|rejected create|long content, keyboard\" --retries=0",
-      "server": "next dev",
-      "exit_status": 0,
-      "passed": 5,
-      "failed": 0,
-      "skipped": 0
-    },
-    {
-      "command": "TC_REQUIRE_DB=1 TC_REQUIRE_WEB_TOOLCHAIN=1 python -m pytest tests/release/test_trust_requests_browser.py -q",
-      "working_directory": "apps/api",
-      "exit_status": null,
-      "ran": false,
-      "reason": "No Docker and no PostgreSQL in this environment"
+      "command": "npx eslint app/dashboard/slack/page.tsx app/dashboard/gmail/page.tsx app/dashboard/questionnaires/[id]/page.tsx app/dashboard/demo-proof/page.tsx --max-warnings=0",
+      "working_directory": "apps/web",
+      "node": "v24.22.1",
+      "exit_status": 0
     }
   ],
-  "axe": {
-    "dialog_toast_violation_count": 0,
-    "trust_switch_violation_count": 0,
-    "critical_or_serious": 0,
-    "trust_switch_viewports": [360, 768, 1440]
-  },
   "synthetic_data_only": true
 }

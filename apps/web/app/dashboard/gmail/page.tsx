@@ -17,6 +17,8 @@ import { failureOf, isAbortError, readSectionJson } from '@/lib/section-load'
 
 /* ──────────────────── Types ──────────────────── */
 
+type OutcomeNotice = { ok: boolean; message: string } | null
+
 type GmailStatus = {
   connected: boolean
   enabled?: boolean
@@ -113,7 +115,7 @@ export default function GmailPage() {
   const [statusFailure, setStatusFailure] =
     useState<ApiFailurePresentation | null>(null)
   const [ingestRunning, setIngestRunning] = useState<number | null>(null)
-  const [ingestResult, setIngestResult] = useState<string | null>(null)
+  const [ingestResult, setIngestResult] = useState<OutcomeNotice>(null)
 
   const queryStatus = useCallback(() => {
     fetch('/api/gmail/status', { credentials: 'include' })
@@ -280,8 +282,14 @@ export default function GmailPage() {
       const d = await r.json().catch(() => ({}))
       setIngestResult(
         r.ok
-          ? `Ingested ${d.ingested ?? 0} emails, ${d.attachments ?? 0} attachments, skipped ${d.skipped ?? 0}`
-          : `Error: ${d.detail || 'failed'}`
+          ? {
+              ok: true,
+              message: `Ingested ${d.ingested ?? 0} emails, ${d.attachments ?? 0} attachments, skipped ${d.skipped ?? 0}`,
+            }
+          : {
+              ok: false,
+              message: `Error: ${d.detail || 'failed'}`,
+            }
       )
       load()
     } finally {
@@ -570,9 +578,21 @@ export default function GmailPage() {
                 ))}
               </div>
             )}
-            {ingestResult && (
-              <p className="text-xs mt-3 text-emerald-400">{ingestResult}</p>
-            )}
+            <p
+              role="status"
+              className={
+                ingestResult?.ok
+                  ? 'mt-3 text-xs text-[var(--tc-success)]'
+                  : 'sr-only'
+              }
+            >
+              {ingestResult?.ok ? ingestResult.message : ''}
+            </p>
+            {ingestResult && !ingestResult.ok ? (
+              <p role="alert" className="mt-3 text-xs text-[var(--tc-danger)]">
+                {ingestResult.message}
+              </p>
+            ) : null}
 
             {/* Quick-add from available labels */}
             {availableLabels.length > 0 && (
