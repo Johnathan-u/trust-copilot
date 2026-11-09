@@ -1,29 +1,37 @@
 {
   "ticket": "TC-04-001",
-  "command": "python -m pytest tests/release/test_registration.py tests/test_security_remediation.py -q",
+  "command": "python -m pytest -rs",
+  "command_env": {
+    "SESSION_SECRET": "test-secret",
+    "TC_REQUIRE_DB": "1",
+    "TC_REQUIRE_WEB_TOOLCHAIN": "1",
+    "TC_REQUIRE_API_QUALITY": "1"
+  },
   "working_directory": "apps/api",
   "git_branch": "tc/TC-04-001-verified-registration",
-  "parent": "68ed30d266b54804591c9cd68954e7c18bf0d421",
+  "parent": "70959d8ce84cc3aa2e913d90ba7e59f98619dba5",
   "exit_status": 0,
   "totals": {
-    "passed": 80,
+    "passed": 6371,
     "failed": 0,
-    "skipped": 0,
+    "skipped": 1,
     "errors": 0,
-    "warnings": 214,
-    "duration_seconds": 6.11
+    "warnings": 34975,
+    "duration_seconds": 652.76
   },
+  "skipped_detail": "tests/test_trust_scoring_blind.py:33: external_data: blind test pack not checked in; set TC_TRUST_SCORING_BLIND_PACK to run",
   "additional_runs": [
     {
-      "command": "python -m pytest tests/release/test_workspace_creation_policy.py tests/test_invite_flow_p14.py tests/release/test_role_grant_entrypoints.py tests/test_auth_flows.py -q",
+      "command": "python -m pytest tests/release/test_registration.py tests/test_security_remediation.py -q",
       "working_directory": "apps/api",
       "exit_status": 0,
       "totals": {
-        "passed": 171,
+        "passed": 80,
         "failed": 0,
         "skipped": 0,
-        "warnings": 3171,
-        "duration_seconds": 13.37
+        "errors": 0,
+        "warnings": 214,
+        "duration_seconds": 8.21
       }
     }
   ],
@@ -40,9 +48,9 @@
     "platform": "Linux 6.12.113+ x86_64"
   },
   "notes": [
-    "This file is in the same commit as the review fixes. The command was run on that tree immediately before the commit.",
-    "Microsoft coverage uses a mocked token response and a locally signed id_token. No live Entra sandbox was called.",
-    "No schema migration.",
+    "This file is in the same commit as the fixture and seed fix. The commands were run on that tree immediately before the commit.",
+    "Password login still returns 403 email_not_verified for an unverified account. Established test users and operator seed accounts are created with email_verified set.",
+    "No schema migration and no backfill of existing unverified rows.",
     "The implementer does not accept the result and must not merge."
   ]
 }

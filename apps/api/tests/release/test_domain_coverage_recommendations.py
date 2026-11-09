@@ -18,7 +18,8 @@ from app.core.database import SessionLocal
 from app.core.password import hash_password
 from app.models import Document, EvidenceGap, EvidenceItem, Question, Questionnaire
 from app.models.answer import Answer
-from app.models.user import User, WorkspaceMember
+from app.models.user import WorkspaceMember
+from tests.conftest import established_user
 from app.models.workspace import Workspace
 from app.models.workspace_control import WorkspaceControl
 from app.services.compliance_coverage import CONTROL_COVERAGE_SCHEMA, get_compliance_coverage
@@ -131,7 +132,7 @@ def test_recommendations_carry_live_same_workspace_ids(client: TestClient, resto
         other = Workspace(name="Synthetic other", slug=f"tc21007b-other-{token}")
         session.add_all([workspace, other])
         session.flush()
-        user = User(
+        user = established_user(
             email=f"tc21007b-{token}@trust.local",
             password_hash=hash_password("example-synthetic-tc21007b"),
             display_name="Synthetic reviewer",

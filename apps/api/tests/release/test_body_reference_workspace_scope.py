@@ -40,6 +40,7 @@ from app.models.tag import Tag
 from app.models.trust_article import TrustArticle
 from app.models.trust_promise import ContractDocument, TrustPromise
 from app.models.workspace_control import WorkspaceControl
+from tests.conftest import established_user, mark_established
 
 ADMIN_EMAIL = "admin-ref-scope@trust.local"
 ADMIN_PASSWORD = "example-synthetic-test-admin-pw"
@@ -73,7 +74,9 @@ def _max_id(db: Session, model) -> int:
 def _ensure_user(db: Session, email: str, password: str, ws: int) -> User:
     user = db.query(User).filter(User.email == email).first()
     if not user:
-        user = User(email=email, password_hash=hash_password(password), display_name=email)
+        user = established_user(
+            email=email, password_hash=hash_password(password), display_name=email
+        )
         db.add(user)
         db.commit()
         db.refresh(user)
@@ -87,6 +90,7 @@ def _ensure_user(db: Session, email: str, password: str, ws: int) -> User:
     else:
         mem.role = "admin"
     db.commit()
+    mark_established(user)
     return user
 
 

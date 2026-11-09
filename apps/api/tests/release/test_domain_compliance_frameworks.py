@@ -23,6 +23,7 @@ from app.services.framework_catalog_registry import (
     CATALOG_CONTRACT_VERSION,
     ERROR_CONTRACT_VERSION,
 )
+from tests.conftest import established_user, mark_established
 
 API_ROOT = Path(__file__).resolve().parents[2]
 LEAK = "ZZ-CONTROL-TEXT-SHOULD-NOT-LEAK-TC21001"
@@ -219,7 +220,7 @@ def _setup_permission_actors() -> dict[str, int]:
         def ensure_member(email: str, password: str, display_name: str, role: str) -> User:
             user = session.query(User).filter(User.email == email).first()
             if user is None:
-                user = User(
+                user = established_user(
                     email=email,
                     password_hash=hash_password(password),
                     display_name=display_name,
@@ -248,6 +249,7 @@ def _setup_permission_actors() -> dict[str, int]:
             else:
                 membership.role = role
                 membership.suspended = False
+            mark_established(user)
             return user
 
         reviewer = ensure_member(

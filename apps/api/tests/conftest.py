@@ -486,6 +486,21 @@ def _disable_rate_limit():
     _reset_message_providers()
 
 
+def established_user(**kwargs):
+    """A test account that can sign in. Pass email_verified=False to opt out."""
+    from app.models import User
+
+    kwargs.setdefault("email_verified", True)
+    return User(**kwargs)
+
+
+def mark_established(user):
+    """An existing fixture row is an established account, not an unverified signup."""
+    if user is not None:
+        user.email_verified = True
+    return user
+
+
 @pytest.fixture(scope="session")
 def _ensure_test_data():
     """Ensure DB schema is current and workspace 1 + demo user exist."""

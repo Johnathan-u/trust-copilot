@@ -73,14 +73,22 @@ def seed_demo_user(db: Session) -> None:
             email=DEMO_EMAIL,
             password_hash=hash_password(DEMO_PASSWORD),
             display_name="Demo User",
+            email_verified=True,
         )
         db.add(user)
         db.commit()
         db.refresh(user)
         print(f"Created demo user: {user.email} (id={user.id})")
-    elif should_reset_passwords():
-        user.password_hash = hash_password(DEMO_PASSWORD)
-        db.commit()
+    else:
+        changed = False
+        if should_reset_passwords():
+            user.password_hash = hash_password(DEMO_PASSWORD)
+            changed = True
+        if not user.email_verified:
+            user.email_verified = True
+            changed = True
+        if changed:
+            db.commit()
     existing = (
         db.query(WorkspaceMember)
         .filter(
@@ -114,14 +122,22 @@ def seed_admin_user(db: Session) -> None:
             email=ADMIN_EMAIL,
             password_hash=hash_password(ADMIN_PASSWORD),
             display_name="Admin",
+            email_verified=True,
         )
         db.add(user)
         db.commit()
         db.refresh(user)
         print(f"Created admin user: {user.email} (id={user.id})")
-    elif should_reset_passwords():
-        user.password_hash = hash_password(ADMIN_PASSWORD)
-        db.commit()
+    else:
+        changed = False
+        if should_reset_passwords():
+            user.password_hash = hash_password(ADMIN_PASSWORD)
+            changed = True
+        if not user.email_verified:
+            user.email_verified = True
+            changed = True
+        if changed:
+            db.commit()
     mem = (
         db.query(WorkspaceMember)
         .filter(

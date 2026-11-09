@@ -1,20 +1,16 @@
-........................................................................ [ 90%]
-........                                                                 [100%]
-=============================== warnings summary ===============================
-tests/release/test_registration.py: 191 warnings
-tests/test_security_remediation.py: 16 warnings
-  /tmp/tc-venv/lib/python3.12/site-packages/sqlalchemy/sql/schema.py:3627: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
-    return util.wrap_callable(lambda ctx: fn(), fn)  # type: ignore
+# Parent 70959d8ce84cc3aa2e913d90ba7e59f98619dba5
+# Working directory: apps/api
+# Python 3.12.3, pytest 9.1.1, SQLAlchemy 2.0.55, Alembic 1.20.1,
+# cryptography 50.0.2, ruff 0.5.6, PostgreSQL 16.15, database trustcopilot_test
+# Commands were run on the tree immediately before the commit that contains this file.
 
-tests/release/test_registration.py::test_mail_verify_code_creates_isolated_workspace
-tests/release/test_registration.py::test_mail_verify_email_creates_isolated_workspace
-tests/release/test_registration.py::test_provider_new_identity_is_isolated[self_signup-google]
-tests/release/test_registration.py::test_provider_new_identity_is_isolated[self_signup-github]
-tests/release/test_registration.py::test_provider_new_identity_is_isolated[self_signup-microsoft]
-tests/release/test_registration.py::test_provider_new_identity_is_isolated[self_signup-oidc]
-tests/release/test_registration.py::test_provider_new_identity_is_isolated[self_signup-idme]
-  /agent/repos/trust-copilot/apps/api/app/api/routes/workspaces.py:149: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
-    now = datetime.utcnow()
+# CI build backend command
+# env: SESSION_SECRET=test-secret TC_REQUIRE_DB=1 TC_REQUIRE_WEB_TOOLCHAIN=1 TC_REQUIRE_API_QUALITY=1
+# python -m pytest -rs
+# exit 0
+SKIPPED [1] tests/test_trust_scoring_blind.py:33: external_data: blind test pack not checked in; set TC_TRUST_SCORING_BLIND_PACK to run
+6371 passed, 1 skipped, 34975 warnings in 652.76s (0:10:52)
 
--- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
-80 passed, 214 warnings in 6.11s
+# python -m pytest tests/release/test_registration.py tests/test_security_remediation.py -q
+# exit 0
+80 passed, 214 warnings in 8.21s
