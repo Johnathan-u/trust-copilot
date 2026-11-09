@@ -1,8 +1,8 @@
 {
   "schema_version": 1,
   "scope_version": 1,
-  "revision": 14,
-  "as_of_utc": "2026-11-07T18:29:31Z",
+  "revision": 15,
+  "as_of_utc": "2026-11-09T01:45:33Z",
   "source_sha": "90146e0cfe2220beb3e43f98f6073262f7c0abfb",
   "baseline_status": "PENDING",
   "scope": {
@@ -13808,78 +13808,127 @@
       }
     },
     "TC-14-003": {
-      "status": "EVIDENCE_RECONCILIATION",
-      "evidence_state": "EVIDENCE_RECONCILIATION",
+      "status": "DONE",
+      "evidence_state": "VERIFIED_ACCEPTED",
       "owner": null,
       "blockers": [],
-      "next_action": "Reconcile existing implementation and evidence against all original acceptance criteria before declaring Done or estimating only the remaining scope.",
-      "updated_at": "2026-10-30T09:49:19Z",
-      "source_sha": "b2bd1e0df5cdeb03b8d0cd240f5a161835ea621d",
+      "next_action": "Accepted. Reopen only on regression or when change control adds scope.",
+      "updated_at": "2026-11-09T01:45:33Z",
+      "source_sha": "90146e0cfe2220beb3e43f98f6073262f7c0abfb",
       "acceptance": {
-        "state": "PENDING",
-        "assessed_by": null,
-        "assessed_at": null,
-        "assessed_sha": null,
-        "assessment_evidence_urls": [],
-        "tested_sha": null,
-        "implemented_by": [],
-        "independent_reviewer": null,
-        "reviewed_at": null,
-        "reviewed_sha": null,
-        "review_evidence_urls": [],
+        "state": "ACCEPTED",
+        "assessed_by": "claude-review-agent",
+        "assessed_at": "2026-11-09T01:44:32Z",
+        "assessed_sha": "1f6b28486e79a31367c0b34f55f6cafdf74ae6df",
+        "assessment_evidence_urls": [
+          "https://github.com/Johnathan-u/trust-copilot/actions/runs/42543202478",
+          "https://github.com/Johnathan-u/trust-copilot/pull/190#issuecomment-6729732050",
+          "https://github.com/Johnathan-u/trust-copilot/blob/b0d354d902af4577a8137daac7f1fff91a880e18/artifacts/acceptance/TC-14-003/ci-master-1f6b284.md",
+          "https://github.com/Johnathan-u/trust-copilot/pull/195"
+        ],
+        "tested_sha": "1f6b28486e79a31367c0b34f55f6cafdf74ae6df",
+        "implemented_by": [
+          "Johnathan-u",
+          "grok"
+        ],
+        "independent_reviewer": "claude-review-agent",
+        "reviewed_at": "2026-11-09T01:44:32Z",
+        "reviewed_sha": "1f6b28486e79a31367c0b34f55f6cafdf74ae6df",
+        "review_evidence_urls": [
+          "https://github.com/Johnathan-u/trust-copilot/pull/190#issuecomment-6729732050",
+          "https://github.com/Johnathan-u/trust-copilot/pull/190#issuecomment-6714084571",
+          "https://github.com/Johnathan-u/trust-copilot/pull/190#issuecomment-6700776900",
+          "https://github.com/Johnathan-u/trust-copilot/pull/195#issuecomment-6730251184"
+        ],
         "criteria": [
           {
             "id": "TC-14-003-AC1",
-            "status": "NOT_VERIFIED",
-            "evidence_urls": [],
-            "tested_sha": null
+            "status": "PASS",
+            "evidence_urls": [
+              "https://github.com/Johnathan-u/trust-copilot/actions/runs/42543202478/job/128922496296",
+              "https://github.com/Johnathan-u/trust-copilot/pull/190#issuecomment-6714084571",
+              "https://github.com/Johnathan-u/trust-copilot/pull/190#issuecomment-6700776900",
+              "https://github.com/Johnathan-u/trust-copilot/blob/1f6b28486e79a31367c0b34f55f6cafdf74ae6df/apps/web/e2e/release/dialog-toast.spec.ts",
+              "https://github.com/Johnathan-u/trust-copilot/blob/1f6b28486e79a31367c0b34f55f6cafdf74ae6df/apps/web/e2e/release/screen-trust-requests.spec.ts"
+            ],
+            "tested_sha": "1f6b28486e79a31367c0b34f55f6cafdf74ae6df"
           },
           {
             "id": "TC-14-003-AC2",
-            "status": "NOT_VERIFIED",
-            "evidence_urls": [],
-            "tested_sha": null
+            "status": "PASS",
+            "evidence_urls": [
+              "https://github.com/Johnathan-u/trust-copilot/actions/runs/42543202478/job/128922496296",
+              "https://github.com/Johnathan-u/trust-copilot/pull/190#issuecomment-6729732050",
+              "https://github.com/Johnathan-u/trust-copilot/pull/190#issuecomment-6714084571",
+              "https://github.com/Johnathan-u/trust-copilot/blob/1f6b28486e79a31367c0b34f55f6cafdf74ae6df/apps/web/e2e/release/ui-22.spec.ts",
+              "https://github.com/Johnathan-u/trust-copilot/blob/1f6b28486e79a31367c0b34f55f6cafdf74ae6df/apps/web/app/dashboard/slack/page.tsx"
+            ],
+            "tested_sha": "1f6b28486e79a31367c0b34f55f6cafdf74ae6df"
           }
         ],
         "definition_of_done": [
           {
             "id": "TC-14-003-DOD1",
-            "status": "NOT_VERIFIED",
-            "evidence_urls": [],
-            "tested_sha": null
+            "status": "PASS",
+            "evidence_urls": [
+              "https://github.com/Johnathan-u/trust-copilot/actions/runs/42543202478",
+              "https://github.com/Johnathan-u/trust-copilot/pull/190#issuecomment-6729732050",
+              "https://github.com/Johnathan-u/trust-copilot/blob/b0d354d902af4577a8137daac7f1fff91a880e18/artifacts/acceptance/TC-14-003/ci-master-1f6b284.md"
+            ],
+            "tested_sha": "1f6b28486e79a31367c0b34f55f6cafdf74ae6df"
           },
           {
             "id": "TC-14-003-DOD2",
-            "status": "NOT_VERIFIED",
-            "evidence_urls": [],
-            "tested_sha": null
+            "status": "PASS",
+            "evidence_urls": [
+              "https://github.com/Johnathan-u/trust-copilot/blob/b0d354d902af4577a8137daac7f1fff91a880e18/artifacts/acceptance/TC-14-003/ci-master-1f6b284.md",
+              "https://github.com/Johnathan-u/trust-copilot/actions/runs/42543202478/job/128922496296",
+              "https://github.com/Johnathan-u/trust-copilot/blob/1f6b28486e79a31367c0b34f55f6cafdf74ae6df/apps/web/e2e/release/dialog-toast.spec.ts"
+            ],
+            "tested_sha": "1f6b28486e79a31367c0b34f55f6cafdf74ae6df"
           },
           {
             "id": "TC-14-003-DOD3",
-            "status": "NOT_VERIFIED",
-            "evidence_urls": [],
-            "tested_sha": null
+            "status": "PASS",
+            "evidence_urls": [
+              "https://github.com/Johnathan-u/trust-copilot/actions/runs/42543202478",
+              "https://github.com/Johnathan-u/trust-copilot/pull/190#issuecomment-6729732050",
+              "https://github.com/Johnathan-u/trust-copilot/pull/190#issuecomment-6714084571"
+            ],
+            "tested_sha": "1f6b28486e79a31367c0b34f55f6cafdf74ae6df"
           },
           {
             "id": "TC-14-003-DOD4",
-            "status": "NOT_VERIFIED",
-            "evidence_urls": [],
-            "tested_sha": null
+            "status": "PASS",
+            "evidence_urls": [
+              "https://github.com/Johnathan-u/trust-copilot/actions/runs/42543202478",
+              "https://github.com/Johnathan-u/trust-copilot/blob/b0d354d902af4577a8137daac7f1fff91a880e18/docs/release/tickets/TC-14-003.md"
+            ],
+            "tested_sha": "1f6b28486e79a31367c0b34f55f6cafdf74ae6df"
           },
           {
             "id": "TC-14-003-DOD5",
-            "status": "NOT_VERIFIED",
-            "evidence_urls": [],
-            "tested_sha": null
+            "status": "PASS",
+            "evidence_urls": [
+              "https://github.com/Johnathan-u/trust-copilot/pull/190#issuecomment-6729732050",
+              "https://github.com/Johnathan-u/trust-copilot/pull/190#issuecomment-6714084571",
+              "https://github.com/Johnathan-u/trust-copilot/pull/190#issuecomment-6700776900",
+              "https://github.com/Johnathan-u/trust-copilot/pull/190"
+            ],
+            "tested_sha": "1f6b28486e79a31367c0b34f55f6cafdf74ae6df"
           },
           {
             "id": "TC-14-003-DOD6",
-            "status": "NOT_VERIFIED",
-            "evidence_urls": [],
-            "tested_sha": null
+            "status": "PASS",
+            "evidence_urls": [
+              "https://github.com/Johnathan-u/trust-copilot/blob/b0d354d902af4577a8137daac7f1fff91a880e18/artifacts/acceptance/TC-14-003/ci-master-1f6b284.md",
+              "https://github.com/Johnathan-u/trust-copilot/actions/runs/42543202478/job/128922496296",
+              "https://github.com/Johnathan-u/trust-copilot/tree/1f6b28486e79a31367c0b34f55f6cafdf74ae6df/artifacts/acceptance/TC-14-003"
+            ],
+            "tested_sha": "1f6b28486e79a31367c0b34f55f6cafdf74ae6df"
           }
         ],
-        "note": "Full original-parent acceptance is pending baseline validation; merged work and artifact presence alone confer no acceptance."
+        "note": "Implemented by Grok in #190 (Cursor Agent account, co-authored by Johnathan-u). The independent reviewer requested changes twice (7bbfb7c, 92b0c3e), then approved with follow-ups at 15058e7, which was green on push 42535261494 and pull_request 42535264762. Merged as 1f6b284; master CI 42543202478 green. DOD2 and DOD6: the release-spec record at the accepted commit (command, environment, totals, axe and screenshot provenance) was added in #195 (b0d354d) and audited separately, because #190's final evidence no longer contained it. AC2 was accepted by the review. Its live-region tests and the remaining silent or late notifications are TC-14-003b."
       },
       "pr_links": [
         {
@@ -47911,6 +47960,22 @@
       "story_points": 2,
       "source_url": "https://github.com/Johnathan-u/trust-copilot/blob/1e3da404abb1b5631dba721135c36e844bc42167/docs/release/tickets/TC-07-002a.md",
       "source_path": "docs/release/tickets/TC-07-002a.md"
+    },
+    {
+      "id": "TC-14-003b",
+      "title": "Remaining notification gaps and live-region tests",
+      "parent_id": "TC-14-003",
+      "story_points": 2,
+      "source_url": "https://github.com/Johnathan-u/trust-copilot/blob/b0d354d902af4577a8137daac7f1fff91a880e18/docs/release/tickets/TC-14-003b.md",
+      "source_path": "docs/release/tickets/TC-14-003b.md"
+    },
+    {
+      "id": "TC-04-001b",
+      "title": "OAuth state binding, OIDC nonce and PKCE, provider claim hardening",
+      "parent_id": "TC-04-001",
+      "story_points": 3,
+      "source_url": "https://github.com/Johnathan-u/trust-copilot/blob/b0d354d902af4577a8137daac7f1fff91a880e18/docs/release/tickets/TC-04-001b.md",
+      "source_path": "docs/release/tickets/TC-04-001b.md"
     }
   ],
   "history": [
@@ -54859,6 +54924,312 @@
                 ],
                 "note": "Existing work verified independently at master 55d7dee (CI run 42327658604) against every AC and DoD item; report in #191; acceptance audited separately. Implemented in #96 (Cursor agent, with a Codex repair). Follow-up: refresh docs/release/tickets/TC-23-001.md (stale status, migration parent and web-caller lines)."
               }
+            }
+          }
+        }
+      }
+    },
+    {
+      "revision": 15,
+      "at": "2026-11-09T01:45:33Z",
+      "actor": "claude",
+      "reason": "Accept TC-14-003 after independent review of #190 (merged 1f6b284, master CI 42543202478) and the audited evidence record in #195; add follow-ups TC-14-003b and TC-04-001b",
+      "source_sha": "90146e0cfe2220beb3e43f98f6073262f7c0abfb",
+      "before": {
+        "scope_version": 1,
+        "accepted_points": null,
+        "completion_percentage": null,
+        "assessed_tickets": 19,
+        "total_tickets": 384,
+        "total_points": 1864,
+        "state_counts": {
+          "BASELINE_RECONCILIATION": 302,
+          "BLOCKED": 3,
+          "DONE": 19,
+          "EVIDENCE_RECONCILIATION": 38,
+          "IMPLEMENTATION_GAPS_IDENTIFIED": 22
+        },
+        "accepted_claim_points": 77,
+        "accepted_tickets": 19,
+        "baseline_status": "PENDING"
+      },
+      "after": {
+        "scope_version": 1,
+        "accepted_points": null,
+        "completion_percentage": null,
+        "assessed_tickets": 20,
+        "total_tickets": 384,
+        "total_points": 1864,
+        "state_counts": {
+          "BASELINE_RECONCILIATION": 302,
+          "BLOCKED": 3,
+          "DONE": 20,
+          "EVIDENCE_RECONCILIATION": 37,
+          "IMPLEMENTATION_GAPS_IDENTIFIED": 22
+        },
+        "accepted_claim_points": 82,
+        "accepted_tickets": 20,
+        "baseline_status": "PENDING"
+      },
+      "changes": {
+        "tickets": {
+          "TC-14-003": {
+            "status": {
+              "before": "EVIDENCE_RECONCILIATION",
+              "after": "DONE"
+            },
+            "evidence_state": {
+              "before": "EVIDENCE_RECONCILIATION",
+              "after": "VERIFIED_ACCEPTED"
+            },
+            "next_action": {
+              "before": "Reconcile existing implementation and evidence against all original acceptance criteria before declaring Done or estimating only the remaining scope.",
+              "after": "Accepted. Reopen only on regression or when change control adds scope."
+            },
+            "updated_at": {
+              "before": "2026-10-30T09:49:19Z",
+              "after": "2026-11-09T01:45:33Z"
+            },
+            "source_sha": {
+              "before": "b2bd1e0df5cdeb03b8d0cd240f5a161835ea621d",
+              "after": "90146e0cfe2220beb3e43f98f6073262f7c0abfb"
+            },
+            "acceptance": {
+              "before": {
+                "state": "PENDING",
+                "assessed_by": null,
+                "assessed_at": null,
+                "assessed_sha": null,
+                "assessment_evidence_urls": [],
+                "tested_sha": null,
+                "implemented_by": [],
+                "independent_reviewer": null,
+                "reviewed_at": null,
+                "reviewed_sha": null,
+                "review_evidence_urls": [],
+                "criteria": [
+                  {
+                    "id": "TC-14-003-AC1",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  },
+                  {
+                    "id": "TC-14-003-AC2",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  }
+                ],
+                "definition_of_done": [
+                  {
+                    "id": "TC-14-003-DOD1",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  },
+                  {
+                    "id": "TC-14-003-DOD2",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  },
+                  {
+                    "id": "TC-14-003-DOD3",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  },
+                  {
+                    "id": "TC-14-003-DOD4",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  },
+                  {
+                    "id": "TC-14-003-DOD5",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  },
+                  {
+                    "id": "TC-14-003-DOD6",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  }
+                ],
+                "note": "Full original-parent acceptance is pending baseline validation; merged work and artifact presence alone confer no acceptance."
+              },
+              "after": {
+                "state": "ACCEPTED",
+                "assessed_by": "claude-review-agent",
+                "assessed_at": "2026-11-09T01:44:32Z",
+                "assessed_sha": "1f6b28486e79a31367c0b34f55f6cafdf74ae6df",
+                "assessment_evidence_urls": [
+                  "https://github.com/Johnathan-u/trust-copilot/actions/runs/42543202478",
+                  "https://github.com/Johnathan-u/trust-copilot/pull/190#issuecomment-6729732050",
+                  "https://github.com/Johnathan-u/trust-copilot/blob/b0d354d902af4577a8137daac7f1fff91a880e18/artifacts/acceptance/TC-14-003/ci-master-1f6b284.md",
+                  "https://github.com/Johnathan-u/trust-copilot/pull/195"
+                ],
+                "tested_sha": "1f6b28486e79a31367c0b34f55f6cafdf74ae6df",
+                "implemented_by": [
+                  "Johnathan-u",
+                  "grok"
+                ],
+                "independent_reviewer": "claude-review-agent",
+                "reviewed_at": "2026-11-09T01:44:32Z",
+                "reviewed_sha": "1f6b28486e79a31367c0b34f55f6cafdf74ae6df",
+                "review_evidence_urls": [
+                  "https://github.com/Johnathan-u/trust-copilot/pull/190#issuecomment-6729732050",
+                  "https://github.com/Johnathan-u/trust-copilot/pull/190#issuecomment-6714084571",
+                  "https://github.com/Johnathan-u/trust-copilot/pull/190#issuecomment-6700776900",
+                  "https://github.com/Johnathan-u/trust-copilot/pull/195#issuecomment-6730251184"
+                ],
+                "criteria": [
+                  {
+                    "id": "TC-14-003-AC1",
+                    "status": "PASS",
+                    "evidence_urls": [
+                      "https://github.com/Johnathan-u/trust-copilot/actions/runs/42543202478/job/128922496296",
+                      "https://github.com/Johnathan-u/trust-copilot/pull/190#issuecomment-6714084571",
+                      "https://github.com/Johnathan-u/trust-copilot/pull/190#issuecomment-6700776900",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/1f6b28486e79a31367c0b34f55f6cafdf74ae6df/apps/web/e2e/release/dialog-toast.spec.ts",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/1f6b28486e79a31367c0b34f55f6cafdf74ae6df/apps/web/e2e/release/screen-trust-requests.spec.ts"
+                    ],
+                    "tested_sha": "1f6b28486e79a31367c0b34f55f6cafdf74ae6df"
+                  },
+                  {
+                    "id": "TC-14-003-AC2",
+                    "status": "PASS",
+                    "evidence_urls": [
+                      "https://github.com/Johnathan-u/trust-copilot/actions/runs/42543202478/job/128922496296",
+                      "https://github.com/Johnathan-u/trust-copilot/pull/190#issuecomment-6729732050",
+                      "https://github.com/Johnathan-u/trust-copilot/pull/190#issuecomment-6714084571",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/1f6b28486e79a31367c0b34f55f6cafdf74ae6df/apps/web/e2e/release/ui-22.spec.ts",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/1f6b28486e79a31367c0b34f55f6cafdf74ae6df/apps/web/app/dashboard/slack/page.tsx"
+                    ],
+                    "tested_sha": "1f6b28486e79a31367c0b34f55f6cafdf74ae6df"
+                  }
+                ],
+                "definition_of_done": [
+                  {
+                    "id": "TC-14-003-DOD1",
+                    "status": "PASS",
+                    "evidence_urls": [
+                      "https://github.com/Johnathan-u/trust-copilot/actions/runs/42543202478",
+                      "https://github.com/Johnathan-u/trust-copilot/pull/190#issuecomment-6729732050",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/b0d354d902af4577a8137daac7f1fff91a880e18/artifacts/acceptance/TC-14-003/ci-master-1f6b284.md"
+                    ],
+                    "tested_sha": "1f6b28486e79a31367c0b34f55f6cafdf74ae6df"
+                  },
+                  {
+                    "id": "TC-14-003-DOD2",
+                    "status": "PASS",
+                    "evidence_urls": [
+                      "https://github.com/Johnathan-u/trust-copilot/blob/b0d354d902af4577a8137daac7f1fff91a880e18/artifacts/acceptance/TC-14-003/ci-master-1f6b284.md",
+                      "https://github.com/Johnathan-u/trust-copilot/actions/runs/42543202478/job/128922496296",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/1f6b28486e79a31367c0b34f55f6cafdf74ae6df/apps/web/e2e/release/dialog-toast.spec.ts"
+                    ],
+                    "tested_sha": "1f6b28486e79a31367c0b34f55f6cafdf74ae6df"
+                  },
+                  {
+                    "id": "TC-14-003-DOD3",
+                    "status": "PASS",
+                    "evidence_urls": [
+                      "https://github.com/Johnathan-u/trust-copilot/actions/runs/42543202478",
+                      "https://github.com/Johnathan-u/trust-copilot/pull/190#issuecomment-6729732050",
+                      "https://github.com/Johnathan-u/trust-copilot/pull/190#issuecomment-6714084571"
+                    ],
+                    "tested_sha": "1f6b28486e79a31367c0b34f55f6cafdf74ae6df"
+                  },
+                  {
+                    "id": "TC-14-003-DOD4",
+                    "status": "PASS",
+                    "evidence_urls": [
+                      "https://github.com/Johnathan-u/trust-copilot/actions/runs/42543202478",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/b0d354d902af4577a8137daac7f1fff91a880e18/docs/release/tickets/TC-14-003.md"
+                    ],
+                    "tested_sha": "1f6b28486e79a31367c0b34f55f6cafdf74ae6df"
+                  },
+                  {
+                    "id": "TC-14-003-DOD5",
+                    "status": "PASS",
+                    "evidence_urls": [
+                      "https://github.com/Johnathan-u/trust-copilot/pull/190#issuecomment-6729732050",
+                      "https://github.com/Johnathan-u/trust-copilot/pull/190#issuecomment-6714084571",
+                      "https://github.com/Johnathan-u/trust-copilot/pull/190#issuecomment-6700776900",
+                      "https://github.com/Johnathan-u/trust-copilot/pull/190"
+                    ],
+                    "tested_sha": "1f6b28486e79a31367c0b34f55f6cafdf74ae6df"
+                  },
+                  {
+                    "id": "TC-14-003-DOD6",
+                    "status": "PASS",
+                    "evidence_urls": [
+                      "https://github.com/Johnathan-u/trust-copilot/blob/b0d354d902af4577a8137daac7f1fff91a880e18/artifacts/acceptance/TC-14-003/ci-master-1f6b284.md",
+                      "https://github.com/Johnathan-u/trust-copilot/actions/runs/42543202478/job/128922496296",
+                      "https://github.com/Johnathan-u/trust-copilot/tree/1f6b28486e79a31367c0b34f55f6cafdf74ae6df/artifacts/acceptance/TC-14-003"
+                    ],
+                    "tested_sha": "1f6b28486e79a31367c0b34f55f6cafdf74ae6df"
+                  }
+                ],
+                "note": "Implemented by Grok in #190 (Cursor Agent account, co-authored by Johnathan-u). The independent reviewer requested changes twice (7bbfb7c, 92b0c3e), then approved with follow-ups at 15058e7, which was green on push 42535261494 and pull_request 42535264762. Merged as 1f6b284; master CI 42543202478 green. DOD2 and DOD6: the release-spec record at the accepted commit (command, environment, totals, axe and screenshot provenance) was added in #195 (b0d354d) and audited separately, because #190's final evidence no longer contained it. AC2 was accepted by the review. Its live-region tests and the remaining silent or late notifications are TC-14-003b."
+              }
+            }
+          }
+        },
+        "followups": {
+          "TC-14-003b": {
+            "id": {
+              "before": null,
+              "after": "TC-14-003b"
+            },
+            "title": {
+              "before": null,
+              "after": "Remaining notification gaps and live-region tests"
+            },
+            "parent_id": {
+              "before": null,
+              "after": "TC-14-003"
+            },
+            "story_points": {
+              "before": null,
+              "after": 2
+            },
+            "source_url": {
+              "before": null,
+              "after": "https://github.com/Johnathan-u/trust-copilot/blob/b0d354d902af4577a8137daac7f1fff91a880e18/docs/release/tickets/TC-14-003b.md"
+            },
+            "source_path": {
+              "before": null,
+              "after": "docs/release/tickets/TC-14-003b.md"
+            }
+          },
+          "TC-04-001b": {
+            "id": {
+              "before": null,
+              "after": "TC-04-001b"
+            },
+            "title": {
+              "before": null,
+              "after": "OAuth state binding, OIDC nonce and PKCE, provider claim hardening"
+            },
+            "parent_id": {
+              "before": null,
+              "after": "TC-04-001"
+            },
+            "story_points": {
+              "before": null,
+              "after": 3
+            },
+            "source_url": {
+              "before": null,
+              "after": "https://github.com/Johnathan-u/trust-copilot/blob/b0d354d902af4577a8137daac7f1fff91a880e18/docs/release/tickets/TC-04-001b.md"
+            },
+            "source_path": {
+              "before": null,
+              "after": "docs/release/tickets/TC-04-001b.md"
             }
           }
         }
