@@ -5,7 +5,7 @@ window.TRUSTCOPILOT_BACKLOG = {
     "schema_version": 1,
     "scope_version": 1,
     "revision": 15,
-    "as_of_utc": "2026-11-09T01:43:53Z",
+    "as_of_utc": "2026-11-09T01:45:33Z",
     "source_sha": "90146e0cfe2220beb3e43f98f6073262f7c0abfb",
     "baseline_status": "PENDING",
     "metric_label": "Accepted original-parent points",
@@ -40102,12 +40102,12 @@ window.TRUSTCOPILOT_BACKLOG = {
         "owner": null,
         "blockers": [],
         "next_action": "Accepted. Reopen only on regression or when change control adds scope.",
-        "updated_at": "2026-11-09T01:43:53Z",
+        "updated_at": "2026-11-09T01:45:33Z",
         "source_sha": "90146e0cfe2220beb3e43f98f6073262f7c0abfb",
         "acceptance": {
           "state": "ACCEPTED",
           "assessed_by": "claude-review-agent",
-          "assessed_at": "2026-11-09T01:42:53Z",
+          "assessed_at": "2026-11-09T01:44:32Z",
           "assessed_sha": "1f6b28486e79a31367c0b34f55f6cafdf74ae6df",
           "assessment_evidence_urls": [
             "https://github.com/Johnathan-u/trust-copilot/actions/runs/42543202478",
@@ -40121,7 +40121,7 @@ window.TRUSTCOPILOT_BACKLOG = {
             "grok"
           ],
           "independent_reviewer": "claude-review-agent",
-          "reviewed_at": "2026-11-09T01:42:53Z",
+          "reviewed_at": "2026-11-09T01:44:32Z",
           "reviewed_sha": "1f6b28486e79a31367c0b34f55f6cafdf74ae6df",
           "review_evidence_urls": [
             "https://github.com/Johnathan-u/trust-copilot/pull/190#issuecomment-6729732050",
@@ -40217,7 +40217,7 @@ window.TRUSTCOPILOT_BACKLOG = {
               "tested_sha": "1f6b28486e79a31367c0b34f55f6cafdf74ae6df"
             }
           ],
-          "note": "Implemented by Grok in #190. The independent reviewer requested changes twice (7bbfb7c, 92b0c3e), then approved with follow-ups at 15058e7, which was green on push 42535261494 and pull_request 42535264762. Merged as 1f6b284; master CI 42543202478 green. DOD2 and DOD6: the release-spec record at the accepted commit (command, environment, totals, axe and screenshot provenance) was added in #195 (b0d354d) and audited separately, because #190's final evidence no longer contained it. AC2 was accepted by the review. Its live-region tests and the remaining silent or late notifications are TC-14-003b."
+          "note": "Implemented by Grok in #190 (Cursor Agent account, co-authored by Johnathan-u). The independent reviewer requested changes twice (7bbfb7c, 92b0c3e), then approved with follow-ups at 15058e7, which was green on push 42535261494 and pull_request 42535264762. Merged as 1f6b284; master CI 42543202478 green. DOD2 and DOD6: the release-spec record at the accepted commit (command, environment, totals, axe and screenshot provenance) was added in #195 (b0d354d) and audited separately, because #190's final evidence no longer contained it. AC2 was accepted by the review. Its live-region tests and the remaining silent or late notifications are TC-14-003b."
         },
         "pr_links": [
           {
@@ -127463,7 +127463,7 @@ window.TRUSTCOPILOT_BACKLOG = {
     },
     {
       "revision": 15,
-      "at": "2026-11-09T01:43:53Z",
+      "at": "2026-11-09T01:45:33Z",
       "actor": "claude",
       "reason": "Accept TC-14-003 after independent review of #190 (merged 1f6b284, master CI 42543202478) and the audited evidence record in #195; add follow-ups TC-14-003b and TC-04-001b",
       "source_sha": "90146e0cfe2220beb3e43f98f6073262f7c0abfb",
@@ -127520,7 +127520,7 @@ window.TRUSTCOPILOT_BACKLOG = {
             },
             "updated_at": {
               "before": "2026-10-30T09:49:19Z",
-              "after": "2026-11-09T01:43:53Z"
+              "after": "2026-11-09T01:45:33Z"
             },
             "source_sha": {
               "before": "b2bd1e0df5cdeb03b8d0cd240f5a161835ea621d",
@@ -127596,7 +127596,7 @@ window.TRUSTCOPILOT_BACKLOG = {
               "after": {
                 "state": "ACCEPTED",
                 "assessed_by": "claude-review-agent",
-                "assessed_at": "2026-11-09T01:42:53Z",
+                "assessed_at": "2026-11-09T01:44:32Z",
                 "assessed_sha": "1f6b28486e79a31367c0b34f55f6cafdf74ae6df",
                 "assessment_evidence_urls": [
                   "https://github.com/Johnathan-u/trust-copilot/actions/runs/42543202478",
@@ -127610,7 +127610,7 @@ window.TRUSTCOPILOT_BACKLOG = {
                   "grok"
                 ],
                 "independent_reviewer": "claude-review-agent",
-                "reviewed_at": "2026-11-09T01:42:53Z",
+                "reviewed_at": "2026-11-09T01:44:32Z",
                 "reviewed_sha": "1f6b28486e79a31367c0b34f55f6cafdf74ae6df",
                 "review_evidence_urls": [
                   "https://github.com/Johnathan-u/trust-copilot/pull/190#issuecomment-6729732050",
@@ -127706,7 +127706,7 @@ window.TRUSTCOPILOT_BACKLOG = {
                     "tested_sha": "1f6b28486e79a31367c0b34f55f6cafdf74ae6df"
                   }
                 ],
-                "note": "Implemented by Grok in #190. The independent reviewer requested changes twice (7bbfb7c, 92b0c3e), then approved with follow-ups at 15058e7, which was green on push 42535261494 and pull_request 42535264762. Merged as 1f6b284; master CI 42543202478 green. DOD2 and DOD6: the release-spec record at the accepted commit (command, environment, totals, axe and screenshot provenance) was added in #195 (b0d354d) and audited separately, because #190's final evidence no longer contained it. AC2 was accepted by the review. Its live-region tests and the remaining silent or late notifications are TC-14-003b."
+                "note": "Implemented by Grok in #190 (Cursor Agent account, co-authored by Johnathan-u). The independent reviewer requested changes twice (7bbfb7c, 92b0c3e), then approved with follow-ups at 15058e7, which was green on push 42535261494 and pull_request 42535264762. Merged as 1f6b284; master CI 42543202478 green. DOD2 and DOD6: the release-spec record at the accepted commit (command, environment, totals, axe and screenshot provenance) was added in #195 (b0d354d) and audited separately, because #190's final evidence no longer contained it. AC2 was accepted by the review. Its live-region tests and the remaining silent or late notifications are TC-14-003b."
               }
             }
           }
