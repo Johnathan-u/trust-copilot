@@ -392,10 +392,7 @@ class TestOAuthAutoLinkVerifiedEmail:
         async def _test():
             with patch("app.services.oauth_service.httpx.AsyncClient", return_value=mock_client):
                 result = await microsoft_exchange_code("test-code", "http://localhost/callback")
-                assert result is not None
-                assert result["email_verified"] is False
-                assert result["email"] is None
-                assert result["provider_user_id"] == "ms-id-123"
+                assert result is None
 
         asyncio.new_event_loop().run_until_complete(_test())
 
@@ -417,9 +414,7 @@ class TestOAuthAutoLinkVerifiedEmail:
         async def _test():
             with patch("app.services.oauth_service.httpx.AsyncClient", return_value=mock_client):
                 result = await microsoft_exchange_code("test-code", "http://localhost/callback")
-                assert result is not None
-                assert result["email_verified"] is False
-                assert result["email"] is None
+                assert result is None
 
         asyncio.new_event_loop().run_until_complete(_test())
 
@@ -552,6 +547,104 @@ class TestOAuthAutoLinkVerifiedEmail:
         finally:
             os.environ.pop("OAUTH_MICROSOFT_CLIENT_ID", None)
             get_settings.cache_clear()
+
+    def test_microsoft_verified_claim_without_email_rejects_preferred_username(self):
+        """xms_edov does not accept preferred_username when the email claim is absent."""
+        result = _exchange_microsoft_token(
+            {
+                "preferred_username": "person@preferred.example",
+                "xms_edov": True,
+                "name": "Person",
+            }
+        )
+        assert result is not None
+        assert result["email_verified"] is False
+        assert result["email"] is None
+        assert result["provider_user_id"].endswith(":oid-preferred")
+
+    def test_microsoft_bad_signature_is_rejected(self):
+        assert _exchange_microsoft_token({}, bad_signature=True) is None
+
+    def test_microsoft_wrong_audience_is_rejected(self):
+        assert _exchange_microsoft_token({"aud": "someone-else"}) is None
+
+    def test_microsoft_wrong_issuer_is_rejected(self):
+        assert (
+            _exchange_microsoft_token(
+                {"iss": "https://login.microsoftonline.com/other-tenant/v2.0"}
+            )
+            is None
+        )
+
+    def test_microsoft_expired_token_is_rejected(self):
+        assert _exchange_microsoft_token({"exp": int(time.time()) - 3600}) is None
+
+    def test_microsoft_non_rs256_algorithm_is_rejected(self):
+        assert _exchange_microsoft_token({}, alg="none") is None
+
+
+def _exchange_microsoft_token(
+    overrides: dict, *, alg: str = "RS256", bad_signature: bool = False
+) -> dict | None:
+    """A locally signed Microsoft id_token. One bad field must be enough to reject it."""
+    import base64
+    import json
+
+    from cryptography.hazmat.primitives import hashes
+    from cryptography.hazmat.primitives.asymmetric import padding, rsa
+
+    from app.core.config import get_settings
+    from app.services.oauth_service import microsoft_exchange_code
+
+    key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
+    other = rsa.generate_private_key(public_exponent=65537, key_size=2048)
+    numbers = key.public_key().public_numbers()
+    tid = "9188040d-6c67-4c5b-b112-36a304b66dad"
+
+    def b64(raw: bytes) -> str:
+        return base64.urlsafe_b64encode(raw).rstrip(b"=").decode()
+
+    def b64int(number: int) -> str:
+        length = max(1, (number.bit_length() + 7) // 8)
+        return b64(number.to_bytes(length, "big"))
+
+    header = b64(json.dumps({"alg": alg, "kid": "test-key"}).encode())
+    claims = {
+        "iss": f"https://login.microsoftonline.com/{tid}/v2.0",
+        "aud": "microsoft-client",
+        "exp": int(time.time()) + 600,
+        "tid": tid,
+        "oid": "oid-preferred" if "preferred_username" in overrides else "oid-negative",
+        "email": "owner@verified.example",
+        "xms_edov": True,
+    }
+    claims.update(overrides)
+    if "preferred_username" in overrides and "email" not in overrides:
+        claims.pop("email", None)
+    payload = b64(json.dumps(claims).encode())
+    signing_input = f"{header}.{payload}".encode()
+    signer = other if bad_signature else key
+    signature = signer.sign(signing_input, padding.PKCS1v15(), hashes.SHA256())
+    id_token = f"{header}.{payload}.{b64(signature)}"
+    jwks = {
+        "keys": [{"kty": "RSA", "kid": "test-key", "n": b64int(numbers.n), "e": b64int(numbers.e)}]
+    }
+    mock_client = _MockAsyncClient(
+        _make_resp(200, {"access_token": "test-token", "id_token": id_token}),
+        _make_resp(200, jwks),
+    )
+    os.environ["OAUTH_MICROSOFT_CLIENT_ID"] = "microsoft-client"
+    get_settings.cache_clear()
+
+    async def _test():
+        with patch("app.services.oauth_service.httpx.AsyncClient", return_value=mock_client):
+            return await microsoft_exchange_code("test-code", "http://localhost/callback")
+
+    try:
+        return asyncio.new_event_loop().run_until_complete(_test())
+    finally:
+        os.environ.pop("OAUTH_MICROSOFT_CLIENT_ID", None)
+        get_settings.cache_clear()
 
 
 # ---------------------------------------------------------------------------

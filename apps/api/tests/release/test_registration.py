@@ -476,6 +476,63 @@ def test_pre_registered_invite_replaces_password_and_revokes_session(
     assert _account(email)["verified"] is True
 
 
+def test_invite_claim_reread_sees_a_concurrent_verification(client: TestClient, isolate) -> None:
+    """The locked re-read must see email_verified committed by another transaction."""
+    from sqlalchemy.orm import Query
+
+    probe = SessionLocal()
+    try:
+        if probe.get_bind().dialect.name == "sqlite":
+            pytest.skip("row lock re-read is exercised on PostgreSQL")
+    finally:
+        probe.close()
+    email = isolate(_address("invite-reread"))
+    db = SessionLocal()
+    try:
+        user = User(
+            email=email,
+            password_hash=hash_password(_password()),
+            display_name="Concurrent",
+            email_verified=False,
+        )
+        db.add(user)
+        db.flush()
+        raw = secrets.token_urlsafe(24)
+        db.add(
+            Invite(
+                workspace_id=1,
+                email=email,
+                role="editor",
+                token_hash=_digest(raw),
+                expires_at=datetime.now(timezone.utc) + timedelta(days=1),
+            )
+        )
+        db.commit()
+    finally:
+        db.close()
+    flipped = {"done": False}
+    original = Query.with_for_update
+
+    def wrapped(self, *args, **kwargs):
+        if not flipped["done"]:
+            flipped["done"] = True
+            other = SessionLocal()
+            try:
+                row = other.query(User).filter(User.email == email).one()
+                row.email_verified = True
+                other.commit()
+            finally:
+                other.close()
+        return original(self, *args, **kwargs)
+
+    with patch.object(Query, "with_for_update", wrapped):
+        accepted = client.post("/api/auth/accept-invite", json={"token": raw})
+    assert flipped["done"] is True
+    assert accepted.status_code == 200, accepted.text
+    assert _account(email)["verified"] is True
+    assert _account(email)["memberships"] == [(1, "editor")]
+
+
 def test_verify_code_lockout_rejects_the_correct_code(
     client: TestClient, mailbox: _Mailbox, isolate
 ) -> None:
@@ -663,6 +720,60 @@ def test_provider_verified_member_keeps_existing_workspace(
     assert denied.status_code == 403, denied.status_code
     login = client.post("/api/auth/login", json={"email": email, "password": password})
     assert login.status_code == 200, login.status_code
+
+
+def test_microsoft_legacy_graph_id_is_rewritten_and_signs_in(client: TestClient, isolate) -> None:
+    """A link stored under the old Graph object id is rewritten to tid:oid for the same user."""
+    email = isolate(_address("ms-legacy"))
+    password = _password()
+    tid = "9188040d-6c67-4c5b-b112-36a304b66dad"
+    oid = "01234567-89ab-cdef-0123-456789abcdef"
+    db = SessionLocal()
+    try:
+        user = User(
+            email=email,
+            password_hash=hash_password(password),
+            display_name="Legacy Microsoft",
+            email_verified=True,
+        )
+        db.add(user)
+        db.flush()
+        db.add(WorkspaceMember(workspace_id=2, user_id=user.id, role="editor"))
+        db.add(
+            UserOAuthAccount(
+                user_id=user.id,
+                provider="microsoft",
+                provider_user_id=oid,
+                email=email,
+            )
+        )
+        db.commit()
+        user_id = user.id
+    finally:
+        db.close()
+    response = _callback(
+        client,
+        "microsoft",
+        email=email,
+        verified=True,
+        provider_user_id=f"{tid}:{oid}",
+    )
+    assert response.status_code == 302, response.status_code
+    me = client.get("/api/auth/me")
+    assert me.status_code == 200, me.status_code
+    assert me.json()["id"] == user_id
+    assert me.json()["email"] == email
+    assert me.json()["workspace_id"] == 2
+    db = SessionLocal()
+    try:
+        row = (
+            db.query(UserOAuthAccount)
+            .filter(UserOAuthAccount.user_id == user_id, UserOAuthAccount.provider == "microsoft")
+            .one()
+        )
+        assert row.provider_user_id == f"{tid}:{oid}"
+    finally:
+        db.close()
 
 
 def _plant_session(user_id: int) -> str:

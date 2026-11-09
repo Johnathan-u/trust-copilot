@@ -1085,6 +1085,21 @@ def _establish_provider_user(
         )
         .first()
     )
+    if oauth_row is None and provider == "microsoft" and ":" in provider_user_id:
+        oid = provider_user_id.split(":", 1)[1].strip()
+        if oid:
+            legacy = (
+                db.query(UserOAuthAccount)
+                .filter(
+                    UserOAuthAccount.provider == provider,
+                    UserOAuthAccount.provider_user_id == oid,
+                )
+                .first()
+            )
+            if legacy is not None:
+                legacy.provider_user_id = provider_user_id
+                db.commit()
+                oauth_row = legacy
     if oauth_row:
         user = db.query(User).filter(User.id == oauth_row.user_id).first()
         if user is None:
@@ -2014,7 +2029,7 @@ def accept_invite(req: AcceptInviteRequest, db: Session = Depends(get_db)):
             locked = db.query(User).filter(User.id == user.id)
             if db.get_bind().dialect.name != "sqlite":
                 locked = locked.with_for_update()
-            user = locked.one()
+            user = locked.populate_existing().one()
         if not user.email_verified:
             password = (req.password or "").strip()
             if len(password) < 6:

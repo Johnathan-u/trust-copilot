@@ -282,7 +282,7 @@ async def _microsoft_identity_from_id_token(
     verified = _claim_is_true(claims.get("xms_edov"))
     email = None
     if verified:
-        candidate = (claims.get("email") or claims.get("preferred_username") or "").strip().lower()
+        candidate = str(claims.get("email") or "").strip().lower()
         if "@" in candidate:
             email = candidate
         else:
@@ -319,26 +319,15 @@ async def microsoft_exchange_code(code: str, redirect_uri: str) -> dict | None:
         identity = None
         if tok.get("id_token"):
             identity = await _microsoft_identity_from_id_token(client, tok["id_token"])
-        if identity and identity.get("email_verified"):
-            return identity
-        ui = await client.get(
-            "https://graph.microsoft.com/v1.0/me",
-            headers={"Authorization": f"Bearer {access_token}"},
-            params={"$select": "id,displayName"},
-        )
-        graph_id = ""
-        graph_name = None
-        if ui.status_code == 200:
-            info = ui.json()
-            graph_id = str(info.get("id") or "")
-            graph_name = (info.get("displayName") or "").strip() or None
-        provider_user_id = (identity or {}).get("provider_user_id") or graph_id
+        provider_user_id = (identity or {}).get("provider_user_id") or ""
         if not provider_user_id:
             return None
+        if identity and identity.get("email_verified"):
+            return identity
         return {
             "provider_user_id": provider_user_id,
             "email": None,
-            "name": (identity or {}).get("name") or graph_name,
+            "name": (identity or {}).get("name"),
             "email_verified": False,
         }
 

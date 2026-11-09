@@ -73,6 +73,10 @@ Source of truth: `apps/api/app/core/config_contract.py`. The table between the m
 | Optional identity providers / billing | OAUTH_*, OIDC_*, IDME_*, STRIPE_* | id/secret pairs complete, secrets not placeholders; webhook secret(s) with Stripe key |
 | Initial owner account | — (no seed in production) | demo/QA/E2E seed scripts refuse `APP_ENV=production` with no override |
 
+## Microsoft sign-in
+
+In the Entra app registration, open Token configuration and add the optional claim `xms_edov` to the ID token. A Microsoft email is accepted only when that claim is true on a validated ID token. Personal Microsoft accounts may not send `xms_edov`. Without it, a Microsoft sign-in that is not already linked returns 400. The redirect URI is `{APP_BASE_URL}/api/auth/oauth/microsoft/callback`.
+
 ## Variable table
 
 <!-- BEGIN GENERATED CONFIG CONTRACT -->
@@ -126,7 +130,7 @@ Source of truth: `apps/api/app/core/config_contract.py`. The table between the m
 | `OAUTH_GOOGLE_CLIENT_SECRET` | secret string | optional | yes | unset | Google OAuth secret. |  |
 | `OAUTH_GITHUB_CLIENT_ID` | string | optional | no | unset | GitHub OAuth (pair with secret). |  |
 | `OAUTH_GITHUB_CLIENT_SECRET` | secret string | optional | yes | unset | GitHub OAuth secret. |  |
-| `OAUTH_MICROSOFT_CLIENT_ID` | string | optional | no | unset | Microsoft OAuth (pair with secret). |  |
+| `OAUTH_MICROSOFT_CLIENT_ID` | string | optional | no | unset | Microsoft OAuth (pair with secret). In Entra, Token configuration, add the optional claim xms_edov to the ID token. Personal Microsoft accounts may not send it. Without it, an unlinked Microsoft sign-in is rejected. |  |
 | `OAUTH_MICROSOFT_CLIENT_SECRET` | secret string | optional | yes | unset | Microsoft OAuth secret. |  |
 | `OIDC_ISSUER_URL` | https URL | optional | no | unset | Enterprise OIDC issuer (with client id/secret). |  |
 | `OIDC_CLIENT_ID` | string | optional | no | unset | OIDC client id. |  |
