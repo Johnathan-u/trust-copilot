@@ -3,11 +3,18 @@ import path from 'path'
 import { expect, test, type Locator, type Page } from '@playwright/test'
 import AxeBuilder from '@axe-core/playwright'
 
-const evidenceDir = path.resolve(
-  process.cwd(),
-  '../../artifacts/acceptance/TC-14-003a'
-)
-const screenshotDir = path.join(evidenceDir, 'screenshots')
+const evidenceDirs = [
+  path.resolve(process.cwd(), '../../artifacts/acceptance/TC-14-003'),
+  path.resolve(process.cwd(), '../../artifacts/acceptance/TC-14-003a'),
+]
+
+function writeEvidence(name: string, contents: string | Buffer) {
+  for (const dir of evidenceDirs) {
+    const dest = path.join(dir, name)
+    mkdirSync(path.dirname(dest), { recursive: true })
+    writeFileSync(dest, contents)
+  }
+}
 
 const viewports = [
   { name: '360', width: 360, height: 800 },
@@ -29,7 +36,9 @@ const thirdPartyFontHosts = [
 ]
 
 test.beforeAll(() => {
-  mkdirSync(screenshotDir, { recursive: true })
+  for (const dir of evidenceDirs) {
+    mkdirSync(path.join(dir, 'screenshots'), { recursive: true })
+  }
 })
 
 function watchRequests(page: Page): string[] {
@@ -431,24 +440,19 @@ test.describe('dialog focus and notifications', () => {
           ).toBeLessThanOrEqual(overflow.client + 1)
 
           if (state.id !== 'toast') {
-            await page.screenshot({
-              path: path.join(
-                screenshotDir,
-                `${state.id}-${theme}-${viewport.name}.png`
-              ),
-              fullPage: true,
-            })
+            const image = await page.screenshot({ fullPage: true })
+            writeEvidence(
+              `screenshots/${state.id}-${theme}-${viewport.name}.png`,
+              image
+            )
           }
 
           const axe = await new AxeBuilder({ page })
             .include('#dialog-showcase')
             .include('#tc-toast-live')
             .analyze()
-          writeFileSync(
-            path.join(
-              evidenceDir,
-              `axe-${state.id}-${theme}-${viewport.name}.json`
-            ),
+          writeEvidence(
+            `axe-${state.id}-${theme}-${viewport.name}.json`,
             JSON.stringify(
               {
                 theme,

@@ -1,50 +1,45 @@
 {
   "ticket": "TC-14-003",
-  "commit": "4d72cdc189a8241190eb04b6c5df0429440dc00c",
-  "branch": "tc/web/TC-14-003",
+  "branch": "tc/TC-14-003-dialog-focus",
   "base": "master",
-  "master": "705bdde9932a9f575bbd075771c280d8914f6c8f",
-  "environment": {
-    "os": "Linux 6.12.94+ x86_64",
-    "node": "v24.22.1",
-    "npm": "11.19.1",
-    "next": "16.4.3",
-    "vitest": "5.0.5",
-    "playwright": "1.64.1",
-    "chromium": "Playwright build chromium-1248",
-    "axe": "@axe-core/playwright 4.14.0",
-    "working_directory": "apps/web"
-  },
-  "commands": [
-    {
-      "command": "npm run test:unit",
-      "exit_status": 0,
-      "files": 13,
-      "passed": 99,
-      "failed": 0,
-      "skipped": 0
+  "implementer": "Grok (worker)",
+  "implementer_accepts": false,
+  "completed_ci_head": "92b0c3ec40b887859eca74b1a6c7bf480c0d3f27",
+  "completed_ci": {
+    "push": {
+      "run_id": 42362793798,
+      "url": "https://github.com/Johnathan-u/trust-copilot/actions/runs/42362793798",
+      "conclusion": "success"
     },
+    "pull_request": {
+      "run_id": 42362798123,
+      "url": "https://github.com/Johnathan-u/trust-copilot/actions/runs/42362798123",
+      "conclusion": "success"
+    },
+    "web_release_e2e": {
+      "screen-trust-requests.spec.ts": {
+        "passed": 30,
+        "failed": 0,
+        "skipped": 0
+      },
+      "dialog-toast.spec.ts": { "passed": 8, "failed": 0, "skipped": 0 },
+      "ui-22.spec.ts": { "passed": 23, "failed": 0, "skipped": 0 }
+    }
+  },
+  "ui_22_note": "A filtered local run passed 5 tests. CI at 92b0c3e ran the whole ui-22 spec: 23 passed, 0 skipped.",
+  "this_commit": {
+    "sha": null,
+    "push_run": null,
+    "pull_request_run": null,
+    "reason": "Runs do not exist until after this commit is pushed. CI is left to run."
+  },
+  "local_checks": [
     {
-      "command": "npx playwright test e2e/release/dialog-toast.spec.ts --retries=0",
-      "exit_status": 0,
-      "passed": 7,
-      "failed": 0,
-      "skipped": 0,
-      "duration_s": 30.7
+      "command": "npx eslint app/dashboard/slack/page.tsx app/dashboard/gmail/page.tsx app/dashboard/questionnaires/[id]/page.tsx app/dashboard/demo-proof/page.tsx --max-warnings=0",
+      "working_directory": "apps/web",
+      "node": "v24.22.1",
+      "exit_status": 0
     }
   ],
-  "axe": {
-    "violation_count": 0,
-    "themes": ["dark", "light"],
-    "viewports": [360, 768, 1440],
-    "states": ["dialog", "confirm", "toast"],
-    "reports": 18
-  },
-  "toast_policy": {
-    "status_dismiss_ms": 4000,
-    "action_toast": "no auto-dismiss",
-    "error": "sticky"
-  },
-  "screenshots": 12,
   "synthetic_data_only": true
 }

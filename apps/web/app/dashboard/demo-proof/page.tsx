@@ -201,11 +201,18 @@ export default function DemoProofPage() {
                   ? actionVerb('save', 'pending')
                   : `${actionVerb('save', 'idle')} summary`}
               </Button>
-              {savedGeneration === summaryGeneration && !saving ? (
-                <span className="text-sm text-[var(--tc-success)]">
-                  {actionVerb('save', 'success')}
-                </span>
-              ) : null}
+              <span
+                role="status"
+                className={
+                  savedGeneration === summaryGeneration && !saving
+                    ? 'text-sm text-[var(--tc-success)]'
+                    : 'sr-only'
+                }
+              >
+                {savedGeneration === summaryGeneration && !saving
+                  ? actionVerb('save', 'success')
+                  : ''}
+              </span>
             </>
           )}
           <Button

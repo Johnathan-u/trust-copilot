@@ -17,6 +17,8 @@ import { failureOf, isAbortError, readSectionJson } from '@/lib/section-load'
 
 /* ──────────────────── Types ──────────────────── */
 
+type OutcomeNotice = { ok: boolean; message: string } | null
+
 type GmailStatus = {
   connected: boolean
   enabled?: boolean
@@ -113,7 +115,7 @@ export default function GmailPage() {
   const [statusFailure, setStatusFailure] =
     useState<ApiFailurePresentation | null>(null)
   const [ingestRunning, setIngestRunning] = useState<number | null>(null)
-  const [ingestResult, setIngestResult] = useState<string | null>(null)
+  const [ingestResult, setIngestResult] = useState<OutcomeNotice>(null)
 
   const queryStatus = useCallback(() => {
     fetch('/api/gmail/status', { credentials: 'include' })
@@ -280,8 +282,14 @@ export default function GmailPage() {
       const d = await r.json().catch(() => ({}))
       setIngestResult(
         r.ok
-          ? `Ingested ${d.ingested ?? 0} emails, ${d.attachments ?? 0} attachments, skipped ${d.skipped ?? 0}`
-          : `Error: ${d.detail || 'failed'}`
+          ? {
+              ok: true,
+              message: `Ingested ${d.ingested ?? 0} emails, ${d.attachments ?? 0} attachments, skipped ${d.skipped ?? 0}`,
+            }
+          : {
+              ok: false,
+              message: `Error: ${d.detail || 'failed'}`,
+            }
       )
       load()
     } finally {
@@ -570,9 +578,21 @@ export default function GmailPage() {
                 ))}
               </div>
             )}
-            {ingestResult && (
-              <p className="text-xs mt-3 text-emerald-400">{ingestResult}</p>
-            )}
+            <p
+              role="status"
+              className={
+                ingestResult?.ok
+                  ? 'mt-3 text-xs text-[var(--tc-success)]'
+                  : 'sr-only'
+              }
+            >
+              {ingestResult?.ok ? ingestResult.message : ''}
+            </p>
+            {ingestResult && !ingestResult.ok ? (
+              <p role="alert" className="mt-3 text-xs text-[var(--tc-danger)]">
+                {ingestResult.message}
+              </p>
+            ) : null}
 
             {/* Quick-add from available labels */}
             {availableLabels.length > 0 && (
@@ -696,12 +716,9 @@ export default function GmailPage() {
         isOpen={connectOpen}
         onClose={() => setConnectOpen(false)}
         title="Connect Gmail"
+        description="Provide a Google OAuth access token to connect your Gmail account for evidence ingestion."
       >
         <form onSubmit={connect} className="space-y-4">
-          <p className="text-xs text-[var(--tc-muted)]">
-            Provide a Google OAuth access token to connect your Gmail account
-            for evidence ingestion.
-          </p>
           <Input
             label="OAuth Access Token"
             type="password"
@@ -721,7 +738,11 @@ export default function GmailPage() {
             A refresh token keeps the connection alive long-term. Without one,
             you may need to reconnect periodically.
           </p>
-          {error && <p className="text-sm text-[var(--tc-danger)]">{error}</p>}
+          {error && (
+            <p role="alert" className="text-sm text-[var(--tc-danger)]">
+              {error}
+            </p>
+          )}
           <div className="flex gap-2 justify-end pt-2">
             <Button
               type="button"
@@ -742,12 +763,9 @@ export default function GmailPage() {
         isOpen={addLabelOpen}
         onClose={() => setAddLabelOpen(false)}
         title="Add Gmail Label"
+        description="Add a Gmail label to monitor. Emails under this label will be scanned during ingestion."
       >
         <form onSubmit={addLabelSubmit} className="space-y-4">
-          <p className="text-xs text-[var(--tc-muted)]">
-            Add a Gmail label to monitor. Emails under this label will be
-            scanned during ingestion.
-          </p>
           <Input
             label="Label ID"
             value={addLabelId}
@@ -761,7 +779,11 @@ export default function GmailPage() {
             onChange={(e) => setAddLabelName(e.target.value)}
             placeholder="Compliance"
           />
-          {error && <p className="text-sm text-[var(--tc-danger)]">{error}</p>}
+          {error && (
+            <p role="alert" className="text-sm text-[var(--tc-danger)]">
+              {error}
+            </p>
+          )}
           <div className="flex gap-2 justify-end pt-2">
             <Button
               type="button"

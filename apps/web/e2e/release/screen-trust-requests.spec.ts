@@ -162,9 +162,17 @@ async function installApi(page: Page, role = 'reviewer', canReview = true) {
         contentType: 'application/octet-stream',
         body: 'Synthetic attachment',
       })
-    if (p.endsWith('/notes')) return json(route, state.notes, state.notesStatus)
-    if (p === '/api/trust-requests/11')
-      return json(route, request, state.detailStatus)
+    if (p.endsWith('/notes')) {
+      const owner = state.rows.find((row) =>
+        p.startsWith(`/api/trust-requests/${row.id}/`)
+      )
+      if (owner && owner.id !== request.id) return json(route, [])
+      return json(route, state.notes, state.notesStatus)
+    }
+    const detail = state.rows.find(
+      (row) => p === `/api/trust-requests/${row.id}`
+    )
+    if (detail) return json(route, detail, state.detailStatus)
     if (state.mutationStatus !== 200)
       return json(
         route,
@@ -747,3 +755,123 @@ for (const theme of ['dark', 'light'] as const) {
     })
   }
 }
+
+test('unsaved reply leave uses an alertdialog and restores focus', async ({
+  page,
+}) => {
+  await installApi(page)
+  await openRequest(page)
+  const reply = page.getByLabel('Reply 21 text')
+  await reply.fill('Keep my unsaved answer.')
+  const documents = page
+    .getByRole('navigation', { name: 'Application' })
+    .getByRole('link', { name: 'Documents', exact: true })
+  await documents.click()
+  const dialog = page.getByRole('alertdialog', { name: 'Leave this page?' })
+  await expect(dialog).toBeVisible()
+  await expect(dialog).toHaveAttribute('aria-describedby', /.+/)
+  await expect(
+    dialog.getByText('Unsaved reply text will be discarded.')
+  ).toBeVisible()
+  const cancel = dialog.getByRole('button', { name: 'Cancel' })
+  await expect(cancel).toBeFocused()
+  await page.keyboard.press('Tab')
+  const leave = dialog.getByRole('button', { name: 'Discard and leave' })
+  await expect(leave).toBeFocused()
+  await page.keyboard.press('Tab')
+  await expect(dialog.getByRole('button', { name: 'Close' })).toBeFocused()
+  await page.keyboard.press('Shift+Tab')
+  await expect(leave).toBeFocused()
+  await page.keyboard.press('Shift+Tab')
+  await expect(cancel).toBeFocused()
+  await page.keyboard.press('Escape')
+  await expect(dialog).toHaveCount(0)
+  await expect(documents).toBeFocused()
+  await expect(reply).toHaveValue('Keep my unsaved answer.')
+  await expect(page).toHaveURL(/\/dashboard\/trust-requests/)
+
+  await documents.click()
+  await expect(dialog).toBeVisible()
+  await dialog.getByRole('button', { name: 'Discard and leave' }).click()
+  await expect(page).toHaveURL(/\/dashboard\/documents/)
+})
+
+test('unsaved reply switch uses an alertdialog and keeps focus inside it', async ({
+  page,
+}) => {
+  const state = await installApi(page)
+  state.rows.push({
+    ...request,
+    id: 12,
+    subject: 'Second synthetic request',
+    display_id: 'TR-12',
+  })
+  await openRequest(page)
+  await page.getByLabel('Reply 21 text').fill('Keep my unsaved answer.')
+  await page.getByRole('button', { name: /Second synthetic request/ }).click()
+  const dialog = page.getByRole('alertdialog', {
+    name: 'Discard unsaved reply text?',
+  })
+  await expect(dialog).toBeVisible()
+  await expect(dialog).toHaveAttribute('aria-describedby', /.+/)
+  await expect(
+    dialog.getByText(
+      'Opening another request discards the reply that has not been saved.'
+    )
+  ).toBeVisible()
+  const cancel = dialog.getByRole('button', { name: 'Cancel' })
+  const confirm = dialog.getByRole('button', { name: 'Discard and open' })
+  await expect(cancel).toBeFocused()
+  await page.keyboard.press('Tab')
+  await expect(confirm).toBeFocused()
+  await page.keyboard.press('Tab')
+  await expect(dialog.getByRole('button', { name: 'Close' })).toBeFocused()
+  await page.keyboard.press('Shift+Tab')
+  await expect(confirm).toBeFocused()
+
+  const evidenceDirs = [
+    path.resolve(process.cwd(), '../../artifacts/acceptance/TC-14-003'),
+    path.resolve(process.cwd(), '../../artifacts/acceptance/TC-14-003a'),
+  ]
+  for (const width of [360, 768, 1440] as const) {
+    await page.setViewportSize({ width, height: 900 })
+    const image = await page.screenshot({ fullPage: true })
+    const axe = await new AxeBuilder({ page })
+      .include('[role="alertdialog"]')
+      .analyze()
+    const report = JSON.stringify(
+      {
+        viewport: width,
+        state: 'trust-switch',
+        violationCount: axe.violations.length,
+        violations: axe.violations.map((item) => ({
+          id: item.id,
+          impact: item.impact,
+          help: item.help,
+          nodes: item.nodes.slice(0, 3).map((node) => node.html),
+        })),
+      },
+      null,
+      2
+    )
+    for (const dir of evidenceDirs) {
+      mkdirSync(path.join(dir, 'screenshots'), { recursive: true })
+      writeFileSync(
+        path.join(dir, 'screenshots', `trust-switch-${width}.png`),
+        image
+      )
+      writeFileSync(
+        path.join(dir, `axe-trust-switch-${width}.json`),
+        report + '\n'
+      )
+    }
+    expect(axe.violations, JSON.stringify(axe.violations, null, 2)).toEqual([])
+  }
+
+  await confirm.click()
+  await expect(dialog).toHaveCount(0)
+  await expect(
+    page.getByRole('heading', { name: 'Second synthetic request', exact: true })
+  ).toBeVisible()
+  await expect(page.getByLabel('Reply 21 text')).toHaveCount(0)
+})

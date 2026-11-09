@@ -602,7 +602,10 @@ export default function TrustCenterPage() {
             />
           </div>
           {error && (
-            <div className="rounded-xl bg-[var(--tc-danger)]/10 p-3 text-sm text-[var(--tc-danger)]">
+            <div
+              role="alert"
+              className="rounded-xl bg-[var(--tc-danger)]/10 p-3 text-sm text-[var(--tc-danger)]"
+            >
               {error}
             </div>
           )}

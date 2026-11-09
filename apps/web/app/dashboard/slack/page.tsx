@@ -17,6 +17,8 @@ import { failureOf, isAbortError, readSectionJson } from '@/lib/section-load'
 
 /* ──────────────────── Types ──────────────────── */
 
+type OutcomeNotice = { ok: boolean; message: string } | null
+
 type SlackStatus = {
   connected: boolean
   enabled?: boolean
@@ -208,7 +210,7 @@ export default function SlackPage() {
   const [error, setError] = useState<string | null>(null)
   const [statusFailure, setStatusFailure] =
     useState<ApiFailurePresentation | null>(null)
-  const [testResult, setTestResult] = useState<string | null>(null)
+  const [testResult, setTestResult] = useState<OutcomeNotice>(null)
   const [tab, setTab] = useState<'notifications' | 'ingest'>('notifications')
   const [ingestChannels, setIngestChannels] = useState<IngestChannel[]>([])
   const [ingestEvidence, setIngestEvidence] = useState<IngestEvidence[]>([])
@@ -219,7 +221,7 @@ export default function SlackPage() {
   const [addChId, setAddChId] = useState('')
   const [addChName, setAddChName] = useState('')
   const [ingestRunning, setIngestRunning] = useState<number | null>(null)
-  const [ingestResult, setIngestResult] = useState<string | null>(null)
+  const [ingestResult, setIngestResult] = useState<OutcomeNotice>(null)
 
   const queryStatus = useCallback(() => {
     Promise.all([
@@ -391,7 +393,12 @@ export default function SlackPage() {
     })
     const d = await r.json().catch(() => ({}))
     setTestResult(
-      r.ok ? 'Test message sent!' : `Failed: ${d.detail || 'unknown error'}`
+      r.ok
+        ? { ok: true, message: 'Test message sent!' }
+        : {
+            ok: false,
+            message: `Failed: ${d.detail || 'unknown error'}`,
+          }
     )
   }
 
@@ -453,8 +460,14 @@ export default function SlackPage() {
       const d = await r.json().catch(() => ({}))
       setIngestResult(
         r.ok
-          ? `Ingested ${d.ingested ?? 0}, skipped ${d.skipped ?? 0}`
-          : `Error: ${d.detail || 'failed'}`
+          ? {
+              ok: true,
+              message: `Ingested ${d.ingested ?? 0}, skipped ${d.skipped ?? 0}`,
+            }
+          : {
+              ok: false,
+              message: `Error: ${d.detail || 'failed'}`,
+            }
       )
       load()
     } finally {
@@ -742,13 +755,21 @@ export default function SlackPage() {
                 </button>
               </div>
             </div>
-            {testResult && (
-              <p
-                className={`text-xs mt-3 ${testResult.startsWith('Failed') ? 'text-red-400' : 'text-emerald-400'}`}
-              >
-                {testResult}
+            <p
+              role="status"
+              className={
+                testResult?.ok
+                  ? 'mt-3 text-xs text-[var(--tc-success)]'
+                  : 'sr-only'
+              }
+            >
+              {testResult?.ok ? testResult.message : ''}
+            </p>
+            {testResult && !testResult.ok ? (
+              <p role="alert" className="mt-3 text-xs text-[var(--tc-danger)]">
+                {testResult.message}
               </p>
-            )}
+            ) : null}
           </Card>
 
           {/* Channel selector */}
@@ -911,9 +932,21 @@ export default function SlackPage() {
                 ))}
               </div>
             )}
-            {ingestResult && (
-              <p className="text-xs mt-3 text-emerald-400">{ingestResult}</p>
-            )}
+            <p
+              role="status"
+              className={
+                ingestResult?.ok
+                  ? 'mt-3 text-xs text-[var(--tc-success)]'
+                  : 'sr-only'
+              }
+            >
+              {ingestResult?.ok ? ingestResult.message : ''}
+            </p>
+            {ingestResult && !ingestResult.ok ? (
+              <p role="alert" className="mt-3 text-xs text-[var(--tc-danger)]">
+                {ingestResult.message}
+              </p>
+            ) : null}
           </Card>
 
           {ingestEvidence.length > 0 && (
@@ -1011,7 +1044,11 @@ export default function SlackPage() {
             onChange={(e) => setAddChName(e.target.value)}
             placeholder="#evidence"
           />
-          {error && <p className="text-sm text-[var(--tc-danger)]">{error}</p>}
+          {error && (
+            <p role="alert" className="text-sm text-[var(--tc-danger)]">
+              {error}
+            </p>
+          )}
           <div className="flex gap-2 justify-end pt-2">
             <Button
               type="button"
@@ -1073,7 +1110,11 @@ export default function SlackPage() {
               />
             </div>
           </div>
-          {error && <p className="text-sm text-[var(--tc-danger)]">{error}</p>}
+          {error && (
+            <p role="alert" className="text-sm text-[var(--tc-danger)]">
+              {error}
+            </p>
+          )}
           <div className="flex gap-2 justify-end pt-2">
             <Button
               type="button"

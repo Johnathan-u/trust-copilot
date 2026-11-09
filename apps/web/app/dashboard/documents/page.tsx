@@ -516,7 +516,10 @@ export default function DocumentsPage() {
       </Card>
       <Card>
         {error && (
-          <div className="mb-4 rounded-xl bg-[var(--tc-danger)]/10 p-3 text-sm text-[var(--tc-danger)]">
+          <div
+            role="alert"
+            className="mb-4 rounded-xl bg-[var(--tc-danger)]/10 p-3 text-sm text-[var(--tc-danger)]"
+          >
             {error}
           </div>
         )}
