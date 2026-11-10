@@ -8,10 +8,15 @@ from __future__ import annotations
 
 import contextlib
 import json
+import os
 import socket
+import subprocess
+import sys
 import uuid
+from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
+from urllib.parse import urlparse, urlunparse
 
 import openai
 import pytest
@@ -548,14 +553,118 @@ def test_migration_columns_present(db_session):
 
 def test_migration_has_unique_descriptive_revision_after_075():
     """Revision id stays descriptive. Parent is master's TC-21-001 head, not 075."""
-    from pathlib import Path
-
     script = _alembic_script()
     rev = script.get_revision(MIGRATION_REVISION)
     assert rev.down_revision == "tc21001_framework_catalog_rights"
     assert Path(rev.path).name == "076_tc11001_model_outcome_codes.py"
     assert "076" not in {r.revision for r in script.walk_revisions()}
     _single_head_reaches(script, MIGRATION_REVISION)
+
+
+_ROUNDTRIP_DB = "tc_model_outcome_roundtrip_test"
+
+
+def _varchar64(conn, table: str, name: str):
+    from sqlalchemy import text
+
+    return conn.execute(
+        text(
+            """
+            SELECT character_maximum_length, is_nullable
+            FROM information_schema.columns
+            WHERE table_schema = 'public'
+              AND table_name = :table
+              AND column_name = :name
+            """
+        ),
+        {"table": table, "name": name},
+    ).one_or_none()
+
+
+def test_migration_downgrade_and_upgrade_roundtrip():
+    """This revision's downgrade drops the two columns; upgrade head puts them back.
+
+    Uses a database of its own. The operator rollback does not drop the columns:
+    ``jobs.error_code`` is shared with the retry worker. This test fails when the
+    migration functions no longer do what they say.
+    """
+    from sqlalchemy import create_engine, text
+
+    script = _alembic_script()
+    parent = script.get_revision(MIGRATION_REVISION).down_revision
+    assert parent == "tc21001_framework_catalog_rights"
+    head = _single_head_reaches(script, MIGRATION_REVISION)
+    source = os.environ["DATABASE_URL"]
+    parsed = urlparse(source)
+    admin_url = urlunparse(parsed._replace(path="/postgres"))
+    fresh_url = urlunparse(parsed._replace(path=f"/{_ROUNDTRIP_DB}"))
+    api_dir = Path(__file__).resolve().parents[2]
+
+    def alembic(*args: str) -> subprocess.CompletedProcess[str]:
+        env = {**os.environ, "DATABASE_URL": fresh_url, "TRUST_COPILOT_TESTING": "1"}
+        return subprocess.run(
+            [sys.executable, "-m", "alembic", *args],
+            cwd=api_dir,
+            env=env,
+            capture_output=True,
+            text=True,
+            timeout=180,
+        )
+
+    def ok(proc: subprocess.CompletedProcess[str]) -> None:
+        assert proc.returncode == 0, (proc.stderr or proc.stdout or "")[-2000:]
+
+    admin = create_engine(admin_url, isolation_level="AUTOCOMMIT")
+    fresh = None
+    try:
+        with admin.connect() as conn:
+            conn.execute(text(f"DROP DATABASE IF EXISTS {_ROUNDTRIP_DB} WITH (FORCE)"))
+            conn.execute(text(f"CREATE DATABASE {_ROUNDTRIP_DB}"))
+        ok(alembic("upgrade", "head"))
+        fresh = create_engine(fresh_url)
+        with fresh.begin() as conn:
+            assert _varchar64(conn, "answers", "outcome_code") == (64, "YES")
+            assert _varchar64(conn, "jobs", "error_code") == (64, "YES")
+            job_id = conn.execute(
+                text(
+                    """
+                    INSERT INTO jobs (workspace_id, kind, status, error_code)
+                    VALUES (1, 'synthetic_roundtrip', 'queued', 'model_timeout')
+                    RETURNING id
+                    """
+                )
+            ).scalar_one()
+        fresh.dispose()
+        fresh = None
+        ok(alembic("downgrade", str(parent)))
+        fresh = create_engine(fresh_url)
+        with fresh.begin() as conn:
+            assert conn.execute(text("SELECT version_num FROM alembic_version")).scalar() == parent
+            assert _varchar64(conn, "answers", "outcome_code") is None
+            assert _varchar64(conn, "jobs", "error_code") is None
+            kind = conn.execute(
+                text("SELECT kind FROM jobs WHERE id = :id"), {"id": job_id}
+            ).scalar_one()
+            assert kind == "synthetic_roundtrip"
+        fresh.dispose()
+        fresh = None
+        ok(alembic("upgrade", "head"))
+        fresh = create_engine(fresh_url)
+        with fresh.begin() as conn:
+            assert conn.execute(text("SELECT version_num FROM alembic_version")).scalar() == head
+            assert _varchar64(conn, "answers", "outcome_code") == (64, "YES")
+            assert _varchar64(conn, "jobs", "error_code") == (64, "YES")
+            row = conn.execute(
+                text("SELECT kind, error_code FROM jobs WHERE id = :id"), {"id": job_id}
+            ).one()
+            assert row.kind == "synthetic_roundtrip"
+            assert row.error_code is None
+    finally:
+        if fresh is not None:
+            fresh.dispose()
+        with admin.connect() as conn:
+            conn.execute(text(f"DROP DATABASE IF EXISTS {_ROUNDTRIP_DB} WITH (FORCE)"))
+        admin.dispose()
 
 
 def test_request_ids_are_unique_per_request(client):
