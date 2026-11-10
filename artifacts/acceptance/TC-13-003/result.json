@@ -1,0 +1,74 @@
+{
+  "ticket": "TC-13-003",
+  "tested_sha": "4edcdc66fbb1730704a112f07aa1d4c1d036f357",
+  "implementation_sha": {
+    "pr": 7,
+    "head": "f708a046f0ce7eb93561c19f3ef96541ebfc7d8b",
+    "merge": "5c8f1dce33ed568ad35c0904824699211628ae6e"
+  },
+  "file": "apps/api/tests/release/test_export_literal_text.py",
+  "command": "pytest -rs",
+  "ticket_command": "python -m pytest tests/release/test_export_literal_text.py -q",
+  "working_directory": "apps/api",
+  "command_env": {
+    "SESSION_SECRET": "test-secret",
+    "TC_REQUIRE_DB": "1",
+    "TC_REQUIRE_WEB_TOOLCHAIN": "1",
+    "TC_REQUIRE_API_QUALITY": "1"
+  },
+  "exit_status": 0,
+  "file_totals": {
+    "passed": 33,
+    "failed": 0,
+    "skipped": 0
+  },
+  "log_lines": [
+    "tests/release/test_export_literal_text.py .............................. [ 51%]",
+    "...                                                                      [ 51%]"
+  ],
+  "suite_totals": {
+    "passed": 6419,
+    "failed": 0,
+    "skipped": 1,
+    "warnings": 51
+  },
+  "skipped_detail": "tests/test_trust_scoring_blind.py:33: external_data: blind test pack not checked in; set TC_TRUST_SCORING_BLIND_PACK to run",
+  "environment": {
+    "runner_image": "ubuntu-26.04",
+    "runner_image_version": "20261101.186.1",
+    "python": "3.11.18",
+    "pytest": "9.1.1",
+    "sqlalchemy": "2.0.55",
+    "psycopg2_binary": "2.9.13",
+    "pgvector": "0.5.1",
+    "postgresql_image": "pgvector/pgvector:pg16@sha256:7b822b0aac60967beb1ea5e576b8602c94c300a157d187f385ae3e0da199b90a",
+    "postgresql": "16.15"
+  },
+  "runs": [
+    {
+      "event": "push",
+      "run_id": 42862249561,
+      "url": "https://github.com/Johnathan-u/trust-copilot/actions/runs/42862249561",
+      "build_job_id": 129991173325,
+      "web_release_e2e_job_id": 129991172834,
+      "conclusion": "success",
+      "database": "tc_ci_42862249561_1_test",
+      "duration_seconds": 710.49
+    },
+    {
+      "event": "pull_request",
+      "run_id": 42862276141,
+      "url": "https://github.com/Johnathan-u/trust-copilot/actions/runs/42862276141",
+      "build_job_id": 129991263776,
+      "web_release_e2e_job_id": 129991262898,
+      "conclusion": "success",
+      "database": "tc_ci_42862276141_1_test",
+      "duration_seconds": 605.74
+    }
+  ],
+  "notes": [
+    "This file records CI of 4edcdc6. The commit that adds it is a later SHA.",
+    "Pytest wraps the file's progress line: 30 dots, then 3 dots. That is 33 passed and 0 skipped in tests/release/test_export_literal_text.py.",
+    "Reviewer signoff is still pending. This record does not accept the ticket."
+  ]
+}

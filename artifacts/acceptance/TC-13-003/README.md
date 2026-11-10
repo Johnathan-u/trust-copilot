@@ -59,3 +59,43 @@ The same synthetic export was generated on baseline and on the branch, then open
 - Branch: every answer is shown literally.
 - On both, the template's original formula `C1 = =10*10` still evaluates to `100`.
 - The branch file opened without any repair prompt.
+
+## Moved file at `4edcdc6`
+
+The file is `apps/api/tests/release/test_export_literal_text.py`. This section records
+the CI runs of commit `4edcdc66fbb1730704a112f07aa1d4c1d036f357`. The commit that
+adds this section is a later SHA, so it is not the SHA under test.
+
+Both `build` and `web-release-e2e` succeeded on the push and on the pull request.
+
+| Event | Run | Build job | web-release-e2e job |
+|---|---|---|---|
+| push | [42862249561](https://github.com/Johnathan-u/trust-copilot/actions/runs/42862249561) | 129991173325 | 129991172834 |
+| pull_request | [42862276141](https://github.com/Johnathan-u/trust-copilot/actions/runs/42862276141) | 129991263776 | 129991262898 |
+
+- Command: from `apps/api`, `pytest -rs`, with `SESSION_SECRET=test-secret`,
+  `TC_REQUIRE_DB=1`, `TC_REQUIRE_WEB_TOOLCHAIN=1` and `TC_REQUIRE_API_QUALITY=1`.
+  That is the suite that runs the ticket command
+  `python -m pytest tests/release/test_export_literal_text.py -q`.
+- Environment: GitHub-hosted `ubuntu-26.04` image `20261101.186.1`; Python 3.11.18;
+  pytest 9.1.1; SQLAlchemy 2.0.55; psycopg2-binary 2.9.13; pgvector 0.5.1.
+  PostgreSQL image `pgvector/pgvector:pg16` (16.15, vector 0.8.7), digest
+  `sha256:7b822b0aac60967beb1ea5e576b8602c94c300a157d187f385ae3e0da199b90a`.
+  Push database `tc_ci_42862249561_1_test`. Pull-request database
+  `tc_ci_42862276141_1_test`. Both on `127.0.0.1:5432`.
+- Exit status: 0 on both build jobs.
+- Totals for this file: 33 passed, 0 skipped. Pytest wraps the progress line.
+  Push build log:
+
+```
+tests/release/test_export_literal_text.py .............................. [ 51%]
+...                                                                      [ 51%]
+```
+
+  The first line has 30 progress dots and the next line has 3. Together that is
+  33 passed and 0 skipped. The pull-request build log has the same two lines.
+- Full suite, both runs: 6419 passed, 1 skipped, 51 warnings. Push duration
+  710.49s. Pull-request duration 605.74s. The skip is
+  `tests/test_trust_scoring_blind.py:33` (external data) and is unrelated.
+
+`result.json` in this directory is the same record. Reviewer signoff is still pending.
