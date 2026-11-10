@@ -1,39 +1,108 @@
 {
   "ticket": "TC-10-002",
-  "tested_sha": "3952d2daa583a90bdf226e81e97b8acc9083bb50",
+  "tested_sha": "c3ff5b4842bdae061d888546f73c1d67e739e639",
+  "implementation_sha": "3952d2daa583a90bdf226e81e97b8acc9083bb50",
   "file": "apps/api/tests/release/test_job_retries.py",
-  "command": "python -m pytest tests/release/test_job_retries.py -q",
+  "command": "pytest -rs",
   "ticket_command": "python -m pytest tests/release/test_job_retries.py -q",
   "working_directory": "apps/api",
+  "command_env": {
+    "SESSION_SECRET": "test-secret",
+    "TC_REQUIRE_DB": "1",
+    "TC_REQUIRE_WEB_TOOLCHAIN": "1",
+    "TC_REQUIRE_API_QUALITY": "1"
+  },
   "exit_status": 0,
   "file_totals": {
+    "passed": 71,
+    "failed": 0,
+    "skipped": 0
+  },
+  "log_lines": [
+    "tests/release/test_job_retries.py ...................................... [ 55%]",
+    ".................................                                        [ 55%]"
+  ],
+  "suite_totals": {
+    "passed": 6420,
+    "failed": 0,
+    "skipped": 1,
+    "warnings": 51
+  },
+  "skipped_detail": "tests/test_trust_scoring_blind.py:33: external_data: blind test pack not checked in; set TC_TRUST_SCORING_BLIND_PACK to run",
+  "environment": {
+    "runner_image": "ubuntu-26.04",
+    "runner_image_version": "20261101.186.1",
+    "python": "3.11.18",
+    "pytest": "9.1.1",
+    "sqlalchemy": "2.0.55",
+    "psycopg2_binary": "2.9.13",
+    "pgvector": "0.5.1",
+    "postgresql_image": "pgvector/pgvector:pg16@sha256:7b822b0aac60967beb1ea5e576b8602c94c300a157d187f385ae3e0da199b90a",
+    "postgresql": "16.15"
+  },
+  "runs": [
+    {
+      "event": "push",
+      "run_id": 42870916373,
+      "url": "https://github.com/Johnathan-u/trust-copilot/actions/runs/42870916373",
+      "build_job_id": 130021636225,
+      "web_release_e2e_job_id": 130021635748,
+      "conclusion": "success",
+      "build_conclusion": "success",
+      "web_release_e2e_conclusion": "success",
+      "database": "tc_ci_42870916373_1_test",
+      "pytest_duration_seconds": 637.71,
+      "suite_totals": {
+        "passed": 6420,
+        "failed": 0,
+        "skipped": 1,
+        "warnings": 51
+      }
+    },
+    {
+      "event": "pull_request",
+      "run_id": 42870961877,
+      "url": "https://github.com/Johnathan-u/trust-copilot/actions/runs/42870961877",
+      "build_job_id": 130021800483,
+      "web_release_e2e_job_id": 130021800675,
+      "conclusion": "success",
+      "build_conclusion": "success",
+      "web_release_e2e_conclusion": "success",
+      "database": "tc_ci_42870961877_1_test",
+      "pytest_duration_seconds": 747.07,
+      "suite_totals": {
+        "passed": 6420,
+        "failed": 0,
+        "skipped": 1,
+        "warnings": 51
+      }
+    }
+  ],
+  "local_run": {
+    "tested_sha": "3952d2daa583a90bdf226e81e97b8acc9083bb50",
+    "command": "python -m pytest tests/release/test_job_retries.py -q",
+    "working_directory": "apps/api",
+    "exit_status": 0,
     "passed": 43,
     "failed": 0,
-    "skipped": 28
-  },
-  "also_ran": [
-    {
+    "skipped": 28,
+    "python": "3.12.3",
+    "pytest": "9.1.1",
+    "sqlalchemy": "2.0.55",
+    "postgresql": "unavailable",
+    "config_contract": {
       "command": "python -m pytest tests/release/test_config_contract.py -q",
-      "working_directory": "apps/api",
       "exit_status": 0,
       "passed": 676,
       "failed": 0,
       "skipped": 0
     }
-  ],
-  "environment": {
-    "python": "3.12.3",
-    "pytest": "9.1.1",
-    "sqlalchemy": "2.0.55",
-    "postgresql": "unavailable",
-    "platform": "Linux-6.12.113+-x86_64-with-glibc2.39"
   },
-  "runs": [],
   "notes": [
-    "This file records the local run of 3952d2daa583a90bdf226e81e97b8acc9083bb50. The commit that adds it is a later SHA.",
-    "Postgres was not listening on localhost:5432, so 28 database tests in tests/release/test_job_retries.py skipped. Exit status was still 0. Those skips are not the CI result.",
-    "CI run ids are intentionally absent. A follow-up commit adds the real push and pull_request run ids and names the SHA they belong to.",
-    "JOB_RETRY_BASE_SECONDS default 15 clamp 0-3600 and JOB_RETRY_MAX_SECONDS default 600 clamp 0-86400 match app/core/job_errors.py. Same values as the review report.",
+    "This file records CI of c3ff5b4842bdae061d888546f73c1d67e739e639. The commit that adds these run ids is a later SHA.",
+    "The 38 dots and the following 33 dots are the 71 tests in tests/release/test_job_retries.py. None failed and none skipped. Both build logs have the same two lines.",
+    "The one suite skip is tests/test_trust_scoring_blind.py:33. It is the known external_data skip.",
+    "The local run of 3952d2d skipped 28 database tests because Postgres was not listening. Those skips are not the CI result.",
     "Reviewer signoff is still pending. This record does not accept the ticket."
   ]
 }
