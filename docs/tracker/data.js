@@ -5,7 +5,7 @@ window.TRUSTCOPILOT_BACKLOG = {
     "schema_version": 1,
     "scope_version": 1,
     "revision": 17,
-    "as_of_utc": "2026-11-10T16:11:58Z",
+    "as_of_utc": "2026-11-10T16:18:33Z",
     "source_sha": "90146e0cfe2220beb3e43f98f6073262f7c0abfb",
     "baseline_status": "PENDING",
     "metric_label": "Accepted original-parent points",
@@ -33039,12 +33039,12 @@ window.TRUSTCOPILOT_BACKLOG = {
         "owner": null,
         "blockers": [],
         "next_action": "Accepted. Reopen only on regression or when change control adds scope.",
-        "updated_at": "2026-11-10T16:11:58Z",
+        "updated_at": "2026-11-10T16:18:33Z",
         "source_sha": "90146e0cfe2220beb3e43f98f6073262f7c0abfb",
         "acceptance": {
           "state": "ACCEPTED",
           "assessed_by": "claude-review-agent",
-          "assessed_at": "2026-11-10T16:11:37Z",
+          "assessed_at": "2026-11-10T16:18:13Z",
           "assessed_sha": "2893ff7db71340b7a98a8e3edbdf18f6e12e282f",
           "assessment_evidence_urls": [
             "https://github.com/Johnathan-u/trust-copilot/actions/runs/42838058479",
@@ -33053,11 +33053,12 @@ window.TRUSTCOPILOT_BACKLOG = {
           ],
           "tested_sha": "2893ff7db71340b7a98a8e3edbdf18f6e12e282f",
           "implemented_by": [
-            "Johnathan-u",
-            "grok"
+            "cursor-agent",
+            "grok",
+            "Johnathan-u"
           ],
           "independent_reviewer": "claude-review-agent",
-          "reviewed_at": "2026-11-10T16:11:37Z",
+          "reviewed_at": "2026-11-10T16:18:13Z",
           "reviewed_sha": "2893ff7db71340b7a98a8e3edbdf18f6e12e282f",
           "review_evidence_urls": [
             "https://github.com/Johnathan-u/trust-copilot/pull/204#issuecomment-6772510541",
@@ -33125,7 +33126,7 @@ window.TRUSTCOPILOT_BACKLOG = {
               "id": "TC-10-003-DOD4",
               "status": "PASS",
               "evidence_urls": [
-                "https://github.com/Johnathan-u/trust-copilot/blob/2893ff7db71340b7a98a8e3edbdf18f6e12e282f/docs/release/tickets/TC-10-003.md"
+                "https://github.com/Johnathan-u/trust-copilot/blob/821ed451c655efbac26ab91e7abe16f36d396e17/docs/release/tickets/TC-10-003.md"
               ],
               "tested_sha": "2893ff7db71340b7a98a8e3edbdf18f6e12e282f"
             },
@@ -33140,7 +33141,7 @@ window.TRUSTCOPILOT_BACKLOG = {
               "tested_sha": "2893ff7db71340b7a98a8e3edbdf18f6e12e282f"
             }
           ],
-          "note": "Implemented by Grok in #202 (merged a2b39c8) and #204 (merged 2893ff7, titled TC-10-003f after an ID collision). Both were self-merged under OD-15 and independently reviewed after the merge. The #202 review found four gaps: llm_error placeholder edits overwritten on retry, the sweep downgrading reviewer edits, duplicate answers through the API routes, and the job row lock held during LLM waits. #204 closed all four, and its review accepted TC-10-003 at 2893ff7 with follow-ups. Master CI 42838058479 green. DOD2 is covered by the exact-SHA record from #206. Follow-up: TC-10-003h."
+          "note": "Earlier work in #28, #34 and #43 (Cursor Agent and Grok Bot) and in #63 and #74 (Cursor Agent). The final gaps were closed by Grok in #202 (merged a2b39c8) and #204 (merged 2893ff7, titled TC-10-003f after an ID collision), both on the Cursor Agent account, co-authored by Johnathan-u. Both were self-merged under OD-15 and independently reviewed after the merge. The #202 review found four gaps: llm_error placeholder edits were overwritten on retry, the sweep downgraded reviewer edits, the API routes could create duplicate answers, and the job row lock was held during LLM waits. #204 closed all four, and its review accepted TC-10-003 at 2893ff7 with follow-ups. Master CI 42838058479 green. DOD2 is covered by the exact-SHA record from #206, and #206 also documents the insufficient_reason behavior change in the release doc. Follow-up: TC-10-003h."
         },
         "pr_links": [
           {
@@ -83519,12 +83520,12 @@ window.TRUSTCOPILOT_BACKLOG = {
         "owner": null,
         "blockers": [],
         "next_action": "Accepted. Reopen only on regression or when change control adds scope.",
-        "updated_at": "2026-11-10T16:11:58Z",
+        "updated_at": "2026-11-10T16:18:33Z",
         "source_sha": "90146e0cfe2220beb3e43f98f6073262f7c0abfb",
         "acceptance": {
           "state": "ACCEPTED",
           "assessed_by": "claude-review-agent",
-          "assessed_at": "2026-11-10T16:11:37Z",
+          "assessed_at": "2026-11-10T16:18:13Z",
           "assessed_sha": "b32234f7c07ffdd9e80949d228f3a92112cf2e5e",
           "assessment_evidence_urls": [
             "https://github.com/Johnathan-u/trust-copilot/actions/runs/42844125902",
@@ -83533,11 +83534,12 @@ window.TRUSTCOPILOT_BACKLOG = {
           ],
           "tested_sha": "b32234f7c07ffdd9e80949d228f3a92112cf2e5e",
           "implemented_by": [
-            "Johnathan-u",
-            "grok"
+            "codex",
+            "grok",
+            "Johnathan-u"
           ],
           "independent_reviewer": "claude-review-agent",
-          "reviewed_at": "2026-11-10T16:11:37Z",
+          "reviewed_at": "2026-11-10T16:18:13Z",
           "reviewed_sha": "b32234f7c07ffdd9e80949d228f3a92112cf2e5e",
           "review_evidence_urls": [
             "https://github.com/Johnathan-u/trust-copilot/pull/203#issuecomment-6772510962",
@@ -83630,7 +83632,7 @@ window.TRUSTCOPILOT_BACKLOG = {
               "tested_sha": "b32234f7c07ffdd9e80949d228f3a92112cf2e5e"
             }
           ],
-          "note": "The public-intake gap (Idempotency-Key, error text, length limits) was closed by Grok in #203 (Cursor Agent account, co-authored by Johnathan-u), self-merged under OD-15 as b32234f and independently reviewed after the merge (accepted with follow-ups). The backend and reviewer UI were qualified earlier (TC-15-039a/b). Master CI 42844125902 green. DOD2 is covered by the exact-SHA record from #207. Follow-up: TC-18-001a."
+          "note": "The backend is #88 (codex branch, committed under Johnathan-u's account), with an independent root review at b57cb9b. TC-15-039a/b (#121, #124, #152) qualified the reviewer UI. The public-intake gap (Idempotency-Key, error text, length limits) was closed by Grok in #203 (Cursor Agent account, co-authored by Johnathan-u), self-merged under OD-15 as b32234f and independently reviewed after the merge, which accepted it with follow-ups. AC3's retry agreement is proven at the route, unit and mocked-browser level only. No full-stack browser → Next → API retry test exists yet, and the Next /api handler may drop Idempotency-Key if it serves /api/* (TC-18-001a criterion 1). Master CI 42844125902 green. DOD2 is covered by the exact-SHA record from #207. Follow-up: TC-18-001a."
         },
         "pr_links": [
           {
@@ -84954,12 +84956,12 @@ window.TRUSTCOPILOT_BACKLOG = {
         "owner": null,
         "blockers": [],
         "next_action": "Accepted. Reopen only on regression or when change control adds scope.",
-        "updated_at": "2026-11-10T16:11:58Z",
+        "updated_at": "2026-11-10T16:18:33Z",
         "source_sha": "90146e0cfe2220beb3e43f98f6073262f7c0abfb",
         "acceptance": {
           "state": "ACCEPTED",
           "assessed_by": "claude-review-agent",
-          "assessed_at": "2026-11-10T16:11:37Z",
+          "assessed_at": "2026-11-10T16:18:13Z",
           "assessed_sha": "f79d674b8897c3f03f74182f816b91f0bc6765b1",
           "assessment_evidence_urls": [
             "https://github.com/Johnathan-u/trust-copilot/actions/runs/42837038839",
@@ -84968,11 +84970,12 @@ window.TRUSTCOPILOT_BACKLOG = {
           ],
           "tested_sha": "f79d674b8897c3f03f74182f816b91f0bc6765b1",
           "implemented_by": [
-            "Johnathan-u",
-            "grok"
+            "cursor-agent",
+            "grok",
+            "Johnathan-u"
           ],
           "independent_reviewer": "claude-review-agent",
-          "reviewed_at": "2026-11-10T16:11:37Z",
+          "reviewed_at": "2026-11-10T16:18:13Z",
           "reviewed_sha": "f79d674b8897c3f03f74182f816b91f0bc6765b1",
           "review_evidence_urls": [
             "https://github.com/Johnathan-u/trust-copilot/pull/197#issuecomment-6768327124",
@@ -85071,7 +85074,7 @@ window.TRUSTCOPILOT_BACKLOG = {
               "tested_sha": "f79d674b8897c3f03f74182f816b91f0bc6765b1"
             }
           ],
-          "note": "Implemented by Grok in #197 (Cursor Agent account, co-authored by Johnathan-u). The independent reviewer requested changes at 62afe12 (remediation stamped verified_at on controls that weren't verified; the default bump demoted verified controls; the status was committed before the links; re-create reset the lifecycle), then approved with follow-ups at 420d8eb. That approval was conditional on #198, which gates remediation-created verified links, landing straight after. #197 merged as 302c37a; #198 merged as f79d674, and its conflict resolution bda9080 was verified identical to the approved diff. Accepted at f79d674, master CI 42837038839 green. DOD2 is covered by the exact-SHA record from #205. Follow-up: TC-21-002b."
+          "note": "Earlier work in #45 and #60 (Cursor Agent). The review gaps were closed by Grok in #197 (authored as Grok (worker), co-authored by Johnathan-u). The independent reviewer requested changes at 62afe12: remediation stamped verified_at on controls that weren't verified, the default bump demoted verified controls, the status was committed before the links, and re-create reset the lifecycle. The reviewer then approved with follow-ups at 420d8eb, conditional on #198 landing straight after, since #198 gates remediation-created verified links. #197 merged as 302c37a. #198 merged as f79d674 after the coordinator checked that its conflict resolution bda9080 matched the approved diff byte for byte, apart from a line offset (6770322236). Accepted at f79d674, master CI 42837038839 green. DOD2 is covered by the exact-SHA record from #205. Follow-up: TC-21-002b."
         },
         "pr_links": [
           {
@@ -85665,12 +85668,12 @@ window.TRUSTCOPILOT_BACKLOG = {
         "owner": null,
         "blockers": [],
         "next_action": "Accepted. Reopen only on regression or when change control adds scope.",
-        "updated_at": "2026-11-10T16:11:58Z",
+        "updated_at": "2026-11-10T16:18:33Z",
         "source_sha": "90146e0cfe2220beb3e43f98f6073262f7c0abfb",
         "acceptance": {
           "state": "ACCEPTED",
           "assessed_by": "claude-review-agent",
-          "assessed_at": "2026-11-10T16:11:37Z",
+          "assessed_at": "2026-11-10T16:18:13Z",
           "assessed_sha": "f79d674b8897c3f03f74182f816b91f0bc6765b1",
           "assessment_evidence_urls": [
             "https://github.com/Johnathan-u/trust-copilot/actions/runs/42837038839",
@@ -85679,11 +85682,12 @@ window.TRUSTCOPILOT_BACKLOG = {
           ],
           "tested_sha": "f79d674b8897c3f03f74182f816b91f0bc6765b1",
           "implemented_by": [
-            "Johnathan-u",
-            "grok"
+            "cursor-agent",
+            "grok",
+            "Johnathan-u"
           ],
           "independent_reviewer": "claude-review-agent",
-          "reviewed_at": "2026-11-10T16:11:37Z",
+          "reviewed_at": "2026-11-10T16:18:13Z",
           "reviewed_sha": "f79d674b8897c3f03f74182f816b91f0bc6765b1",
           "review_evidence_urls": [
             "https://github.com/Johnathan-u/trust-copilot/pull/198#issuecomment-6769579598",
@@ -85784,7 +85788,7 @@ window.TRUSTCOPILOT_BACKLOG = {
               "tested_sha": "f79d674b8897c3f03f74182f816b91f0bc6765b1"
             }
           ],
-          "note": "Implemented by Grok in #198 (Cursor Agent account, co-authored by Johnathan-u), stacked on #197. The independent reviewer requested changes twice. At 4d105d1: last_verified_at and the audit didn't follow verified, DELETE left a control verified with zero links, create with verified was accepted, and the control engine passed on a file count. At 352e033: the engine passed old evidence, and the demotion depended on the owner. The reviewer approved with follow-ups at e3a4aaa. The conflict resolution bda9080 after #197 merged was verified identical to the approved diff. Merged as f79d674, master CI 42837038839 green. DOD2 is covered by the exact-SHA record from #205. Follow-up: TC-21-003b (re-check on evidence rejection, expiry and retention; row locks)."
+          "note": "Earlier work in #61 and #70 (Cursor Agent). The review gaps were closed by Grok in #198 (Cursor Agent account and Grok (worker), co-authored by Johnathan-u), stacked on #197. The independent reviewer requested changes at 4d105d1: last_verified_at and the audit didn't follow verified, and DELETE left a control verified with zero links. The coordinator's addendum (6764433773) added two items: create with verified was accepted, and the control engine passed on a file count. At 352e033 the reviewer requested changes again: the engine passed old evidence, and the demotion depended on the owner. It approved with follow-ups at e3a4aaa. The coordinator checked that the conflict resolution bda9080 matched the approved diff. Merged as f79d674, master CI 42837038839 green. DOD2 is covered by the exact-SHA record from #205. Follow-up: TC-21-003b (re-check on evidence rejection, expiry and retention; row locks)."
         },
         "pr_links": [
           {
@@ -128380,7 +128384,7 @@ window.TRUSTCOPILOT_BACKLOG = {
     },
     {
       "revision": 17,
-      "at": "2026-11-10T16:11:58Z",
+      "at": "2026-11-10T16:18:33Z",
       "actor": "claude",
       "reason": "Accept TC-21-002 and TC-21-003 (at f79d674; #197, #198, records in #205), TC-10-003 (at 2893ff7; #202 and #204 self-merged under OD-15 and reviewed after the merge, record in #206) and TC-18-001 (at b32234f; #203 self-merged under OD-15 and reviewed after the merge, record in #207). Register follow-ups TC-21-002b, TC-21-003b, TC-10-003h and TC-18-001a, and merged follow-up TC-10-003f.",
       "source_sha": "90146e0cfe2220beb3e43f98f6073262f7c0abfb",
@@ -128437,7 +128441,7 @@ window.TRUSTCOPILOT_BACKLOG = {
             },
             "updated_at": {
               "before": "2026-10-30T09:49:19Z",
-              "after": "2026-11-10T16:11:58Z"
+              "after": "2026-11-10T16:18:33Z"
             },
             "source_sha": {
               "before": "b2bd1e0df5cdeb03b8d0cd240f5a161835ea621d",
@@ -128513,7 +128517,7 @@ window.TRUSTCOPILOT_BACKLOG = {
               "after": {
                 "state": "ACCEPTED",
                 "assessed_by": "claude-review-agent",
-                "assessed_at": "2026-11-10T16:11:37Z",
+                "assessed_at": "2026-11-10T16:18:13Z",
                 "assessed_sha": "f79d674b8897c3f03f74182f816b91f0bc6765b1",
                 "assessment_evidence_urls": [
                   "https://github.com/Johnathan-u/trust-copilot/actions/runs/42837038839",
@@ -128522,11 +128526,12 @@ window.TRUSTCOPILOT_BACKLOG = {
                 ],
                 "tested_sha": "f79d674b8897c3f03f74182f816b91f0bc6765b1",
                 "implemented_by": [
-                  "Johnathan-u",
-                  "grok"
+                  "cursor-agent",
+                  "grok",
+                  "Johnathan-u"
                 ],
                 "independent_reviewer": "claude-review-agent",
-                "reviewed_at": "2026-11-10T16:11:37Z",
+                "reviewed_at": "2026-11-10T16:18:13Z",
                 "reviewed_sha": "f79d674b8897c3f03f74182f816b91f0bc6765b1",
                 "review_evidence_urls": [
                   "https://github.com/Johnathan-u/trust-copilot/pull/197#issuecomment-6768327124",
@@ -128625,7 +128630,7 @@ window.TRUSTCOPILOT_BACKLOG = {
                     "tested_sha": "f79d674b8897c3f03f74182f816b91f0bc6765b1"
                   }
                 ],
-                "note": "Implemented by Grok in #197 (Cursor Agent account, co-authored by Johnathan-u). The independent reviewer requested changes at 62afe12 (remediation stamped verified_at on controls that weren't verified; the default bump demoted verified controls; the status was committed before the links; re-create reset the lifecycle), then approved with follow-ups at 420d8eb. That approval was conditional on #198, which gates remediation-created verified links, landing straight after. #197 merged as 302c37a; #198 merged as f79d674, and its conflict resolution bda9080 was verified identical to the approved diff. Accepted at f79d674, master CI 42837038839 green. DOD2 is covered by the exact-SHA record from #205. Follow-up: TC-21-002b."
+                "note": "Earlier work in #45 and #60 (Cursor Agent). The review gaps were closed by Grok in #197 (authored as Grok (worker), co-authored by Johnathan-u). The independent reviewer requested changes at 62afe12: remediation stamped verified_at on controls that weren't verified, the default bump demoted verified controls, the status was committed before the links, and re-create reset the lifecycle. The reviewer then approved with follow-ups at 420d8eb, conditional on #198 landing straight after, since #198 gates remediation-created verified links. #197 merged as 302c37a. #198 merged as f79d674 after the coordinator checked that its conflict resolution bda9080 matched the approved diff byte for byte, apart from a line offset (6770322236). Accepted at f79d674, master CI 42837038839 green. DOD2 is covered by the exact-SHA record from #205. Follow-up: TC-21-002b."
               }
             }
           },
@@ -128644,7 +128649,7 @@ window.TRUSTCOPILOT_BACKLOG = {
             },
             "updated_at": {
               "before": "2026-10-30T09:49:19Z",
-              "after": "2026-11-10T16:11:58Z"
+              "after": "2026-11-10T16:18:33Z"
             },
             "source_sha": {
               "before": "b2bd1e0df5cdeb03b8d0cd240f5a161835ea621d",
@@ -128720,7 +128725,7 @@ window.TRUSTCOPILOT_BACKLOG = {
               "after": {
                 "state": "ACCEPTED",
                 "assessed_by": "claude-review-agent",
-                "assessed_at": "2026-11-10T16:11:37Z",
+                "assessed_at": "2026-11-10T16:18:13Z",
                 "assessed_sha": "f79d674b8897c3f03f74182f816b91f0bc6765b1",
                 "assessment_evidence_urls": [
                   "https://github.com/Johnathan-u/trust-copilot/actions/runs/42837038839",
@@ -128729,11 +128734,12 @@ window.TRUSTCOPILOT_BACKLOG = {
                 ],
                 "tested_sha": "f79d674b8897c3f03f74182f816b91f0bc6765b1",
                 "implemented_by": [
-                  "Johnathan-u",
-                  "grok"
+                  "cursor-agent",
+                  "grok",
+                  "Johnathan-u"
                 ],
                 "independent_reviewer": "claude-review-agent",
-                "reviewed_at": "2026-11-10T16:11:37Z",
+                "reviewed_at": "2026-11-10T16:18:13Z",
                 "reviewed_sha": "f79d674b8897c3f03f74182f816b91f0bc6765b1",
                 "review_evidence_urls": [
                   "https://github.com/Johnathan-u/trust-copilot/pull/198#issuecomment-6769579598",
@@ -128834,7 +128840,7 @@ window.TRUSTCOPILOT_BACKLOG = {
                     "tested_sha": "f79d674b8897c3f03f74182f816b91f0bc6765b1"
                   }
                 ],
-                "note": "Implemented by Grok in #198 (Cursor Agent account, co-authored by Johnathan-u), stacked on #197. The independent reviewer requested changes twice. At 4d105d1: last_verified_at and the audit didn't follow verified, DELETE left a control verified with zero links, create with verified was accepted, and the control engine passed on a file count. At 352e033: the engine passed old evidence, and the demotion depended on the owner. The reviewer approved with follow-ups at e3a4aaa. The conflict resolution bda9080 after #197 merged was verified identical to the approved diff. Merged as f79d674, master CI 42837038839 green. DOD2 is covered by the exact-SHA record from #205. Follow-up: TC-21-003b (re-check on evidence rejection, expiry and retention; row locks)."
+                "note": "Earlier work in #61 and #70 (Cursor Agent). The review gaps were closed by Grok in #198 (Cursor Agent account and Grok (worker), co-authored by Johnathan-u), stacked on #197. The independent reviewer requested changes at 4d105d1: last_verified_at and the audit didn't follow verified, and DELETE left a control verified with zero links. The coordinator's addendum (6764433773) added two items: create with verified was accepted, and the control engine passed on a file count. At 352e033 the reviewer requested changes again: the engine passed old evidence, and the demotion depended on the owner. It approved with follow-ups at e3a4aaa. The coordinator checked that the conflict resolution bda9080 matched the approved diff. Merged as f79d674, master CI 42837038839 green. DOD2 is covered by the exact-SHA record from #205. Follow-up: TC-21-003b (re-check on evidence rejection, expiry and retention; row locks)."
               }
             }
           },
@@ -128853,7 +128859,7 @@ window.TRUSTCOPILOT_BACKLOG = {
             },
             "updated_at": {
               "before": "2026-10-30T09:49:19Z",
-              "after": "2026-11-10T16:11:58Z"
+              "after": "2026-11-10T16:18:33Z"
             },
             "source_sha": {
               "before": "b2bd1e0df5cdeb03b8d0cd240f5a161835ea621d",
@@ -128923,7 +128929,7 @@ window.TRUSTCOPILOT_BACKLOG = {
               "after": {
                 "state": "ACCEPTED",
                 "assessed_by": "claude-review-agent",
-                "assessed_at": "2026-11-10T16:11:37Z",
+                "assessed_at": "2026-11-10T16:18:13Z",
                 "assessed_sha": "2893ff7db71340b7a98a8e3edbdf18f6e12e282f",
                 "assessment_evidence_urls": [
                   "https://github.com/Johnathan-u/trust-copilot/actions/runs/42838058479",
@@ -128932,11 +128938,12 @@ window.TRUSTCOPILOT_BACKLOG = {
                 ],
                 "tested_sha": "2893ff7db71340b7a98a8e3edbdf18f6e12e282f",
                 "implemented_by": [
-                  "Johnathan-u",
-                  "grok"
+                  "cursor-agent",
+                  "grok",
+                  "Johnathan-u"
                 ],
                 "independent_reviewer": "claude-review-agent",
-                "reviewed_at": "2026-11-10T16:11:37Z",
+                "reviewed_at": "2026-11-10T16:18:13Z",
                 "reviewed_sha": "2893ff7db71340b7a98a8e3edbdf18f6e12e282f",
                 "review_evidence_urls": [
                   "https://github.com/Johnathan-u/trust-copilot/pull/204#issuecomment-6772510541",
@@ -129004,7 +129011,7 @@ window.TRUSTCOPILOT_BACKLOG = {
                     "id": "TC-10-003-DOD4",
                     "status": "PASS",
                     "evidence_urls": [
-                      "https://github.com/Johnathan-u/trust-copilot/blob/2893ff7db71340b7a98a8e3edbdf18f6e12e282f/docs/release/tickets/TC-10-003.md"
+                      "https://github.com/Johnathan-u/trust-copilot/blob/821ed451c655efbac26ab91e7abe16f36d396e17/docs/release/tickets/TC-10-003.md"
                     ],
                     "tested_sha": "2893ff7db71340b7a98a8e3edbdf18f6e12e282f"
                   },
@@ -129019,7 +129026,7 @@ window.TRUSTCOPILOT_BACKLOG = {
                     "tested_sha": "2893ff7db71340b7a98a8e3edbdf18f6e12e282f"
                   }
                 ],
-                "note": "Implemented by Grok in #202 (merged a2b39c8) and #204 (merged 2893ff7, titled TC-10-003f after an ID collision). Both were self-merged under OD-15 and independently reviewed after the merge. The #202 review found four gaps: llm_error placeholder edits overwritten on retry, the sweep downgrading reviewer edits, duplicate answers through the API routes, and the job row lock held during LLM waits. #204 closed all four, and its review accepted TC-10-003 at 2893ff7 with follow-ups. Master CI 42838058479 green. DOD2 is covered by the exact-SHA record from #206. Follow-up: TC-10-003h."
+                "note": "Earlier work in #28, #34 and #43 (Cursor Agent and Grok Bot) and in #63 and #74 (Cursor Agent). The final gaps were closed by Grok in #202 (merged a2b39c8) and #204 (merged 2893ff7, titled TC-10-003f after an ID collision), both on the Cursor Agent account, co-authored by Johnathan-u. Both were self-merged under OD-15 and independently reviewed after the merge. The #202 review found four gaps: llm_error placeholder edits were overwritten on retry, the sweep downgraded reviewer edits, the API routes could create duplicate answers, and the job row lock was held during LLM waits. #204 closed all four, and its review accepted TC-10-003 at 2893ff7 with follow-ups. Master CI 42838058479 green. DOD2 is covered by the exact-SHA record from #206, and #206 also documents the insufficient_reason behavior change in the release doc. Follow-up: TC-10-003h."
               }
             }
           },
@@ -129038,7 +129045,7 @@ window.TRUSTCOPILOT_BACKLOG = {
             },
             "updated_at": {
               "before": "2026-10-30T09:49:19Z",
-              "after": "2026-11-10T16:11:58Z"
+              "after": "2026-11-10T16:18:33Z"
             },
             "source_sha": {
               "before": "b2bd1e0df5cdeb03b8d0cd240f5a161835ea621d",
@@ -129114,7 +129121,7 @@ window.TRUSTCOPILOT_BACKLOG = {
               "after": {
                 "state": "ACCEPTED",
                 "assessed_by": "claude-review-agent",
-                "assessed_at": "2026-11-10T16:11:37Z",
+                "assessed_at": "2026-11-10T16:18:13Z",
                 "assessed_sha": "b32234f7c07ffdd9e80949d228f3a92112cf2e5e",
                 "assessment_evidence_urls": [
                   "https://github.com/Johnathan-u/trust-copilot/actions/runs/42844125902",
@@ -129123,11 +129130,12 @@ window.TRUSTCOPILOT_BACKLOG = {
                 ],
                 "tested_sha": "b32234f7c07ffdd9e80949d228f3a92112cf2e5e",
                 "implemented_by": [
-                  "Johnathan-u",
-                  "grok"
+                  "codex",
+                  "grok",
+                  "Johnathan-u"
                 ],
                 "independent_reviewer": "claude-review-agent",
-                "reviewed_at": "2026-11-10T16:11:37Z",
+                "reviewed_at": "2026-11-10T16:18:13Z",
                 "reviewed_sha": "b32234f7c07ffdd9e80949d228f3a92112cf2e5e",
                 "review_evidence_urls": [
                   "https://github.com/Johnathan-u/trust-copilot/pull/203#issuecomment-6772510962",
@@ -129220,7 +129228,7 @@ window.TRUSTCOPILOT_BACKLOG = {
                     "tested_sha": "b32234f7c07ffdd9e80949d228f3a92112cf2e5e"
                   }
                 ],
-                "note": "The public-intake gap (Idempotency-Key, error text, length limits) was closed by Grok in #203 (Cursor Agent account, co-authored by Johnathan-u), self-merged under OD-15 as b32234f and independently reviewed after the merge (accepted with follow-ups). The backend and reviewer UI were qualified earlier (TC-15-039a/b). Master CI 42844125902 green. DOD2 is covered by the exact-SHA record from #207. Follow-up: TC-18-001a."
+                "note": "The backend is #88 (codex branch, committed under Johnathan-u's account), with an independent root review at b57cb9b. TC-15-039a/b (#121, #124, #152) qualified the reviewer UI. The public-intake gap (Idempotency-Key, error text, length limits) was closed by Grok in #203 (Cursor Agent account, co-authored by Johnathan-u), self-merged under OD-15 as b32234f and independently reviewed after the merge, which accepted it with follow-ups. AC3's retry agreement is proven at the route, unit and mocked-browser level only. No full-stack browser → Next → API retry test exists yet, and the Next /api handler may drop Idempotency-Key if it serves /api/* (TC-18-001a criterion 1). Master CI 42844125902 green. DOD2 is covered by the exact-SHA record from #207. Follow-up: TC-18-001a."
               }
             }
           }
