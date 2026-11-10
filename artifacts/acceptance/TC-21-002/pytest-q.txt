@@ -1,27 +1,11 @@
-parent SHA: 02e833c78aa362d78c366a2187dcbd040b9838e1
+parent SHA: 62afe126fdb0c69fe73537c29ee54c8a6869a1e6
 branch: tc/TC-21-002-control-contract
 working directory: apps/api
 interpreter: /tmp/tc-venv/bin/python
 command: TC_REQUIRE_DB=1 python -m pytest tests/release/test_domain_controls.py -q --tb=line
-node on PATH: v24.22.1
+database: fresh trustcopilot_test
 
-...........                                                              [100%]
-=============================== warnings summary ===============================
-tests/release/test_domain_controls.py: 136 warnings
-  /tmp/tc-venv/lib/python3.12/site-packages/sqlalchemy/sql/schema.py:3627: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
-    return util.wrap_callable(lambda ctx: fn(), fn)  # type: ignore
-
-tests/release/test_domain_controls.py::test_migration_upgrade_downgrade_upgrade_again
-  /tmp/tc-venv/lib/python3.12/site-packages/alembic/config.py:604: DeprecationWarning: No path_separator found in configuration; falling back to legacy splitting on spaces, commas, and colons for prepend_sys_path.  Consider adding path_separator=os to Alembic config.
-    util.warn_deprecated(
-
-tests/release/test_domain_controls.py::test_compliance_evidence_link_and_unlink_match_legacy
-tests/release/test_domain_controls.py::test_compliance_evidence_link_and_unlink_match_legacy
-tests/release/test_domain_controls.py::test_remediation_evidence_matches_legacy_and_compliance_lists
-  /agent/repos/trust-copilot/apps/api/app/api/routes/compliance_controls.py:569: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
-    now = datetime.utcnow()
-
--- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
-11 passed, 140 warnings in 7.29s
+...............                                                          [100%]
+15 passed, 205 warnings in 7.33s
 exit status: 0
 skipped: 0

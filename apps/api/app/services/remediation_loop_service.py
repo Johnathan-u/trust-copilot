@@ -2,8 +2,9 @@
 
 import json
 import logging
-from datetime import datetime, timezone
+from datetime import datetime
 
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.models.answer import Answer
@@ -106,6 +107,9 @@ def submit_post_remediation_evidence(
 
     A bump is written through the control contract. ``None`` leaves status unchanged.
     An unknown status or ``verified`` returns an error and writes nothing.
+    The default ``implemented`` bump does not demote a control that is already verified.
+    Links and the legacy mirror are written before the status sync. Nothing is
+    committed here; the caller commits once, or rolls back if this raises.
 
     A created or updated link is verified only when the evidence qualifies: approved,
     same workspace, not expired, and not tied to a deleted document. Other evidence
@@ -121,61 +125,67 @@ def submit_post_remediation_evidence(
     ticket = db.query(RemediationTicket).filter(RemediationTicket.id == ticket_id).first()
     if not ticket:
         return None
-    existing = json.loads(ticket.linked_evidence_ids_json or "[]")
-    merged = list(dict.fromkeys(existing + evidence_ids))
-    ticket.linked_evidence_ids_json = json.dumps(merged)
-    ticket.status = "evidence_submitted"
-    wc = None
-    if ticket.control_id:
-        wc = db.query(WorkspaceControl).filter(WorkspaceControl.id == ticket.control_id).first()
-    if wc is not None and bump_control_to:
-        wc.status = bump_control_to
-        wc.verified_at = datetime.now(timezone.utc)
-        synced = sync_workspace_row(db, wc, request_id=new_request_id())
-        if synced.http_status >= 400:
-            if not synced.partial_failure:
-                db.rollback()
-            detail = synced.error or {"detail": "Control update failed"}
-            return {"error": detail, "http_status": synced.http_status}
-    link_workspace_id = wc.workspace_id if wc is not None else ticket.workspace_id
-    verified_at = datetime.utcnow()
-    link_results: list[dict] = []
-    for eid in evidence_ids:
+    try:
+        existing = json.loads(ticket.linked_evidence_ids_json or "[]")
+        merged = list(dict.fromkeys(existing + evidence_ids))
+        ticket.linked_evidence_ids_json = json.dumps(merged)
+        ticket.status = "evidence_submitted"
+        wc = None
         if ticket.control_id:
-            link = (
-                db.query(ControlEvidenceLink)
-                .filter(
-                    ControlEvidenceLink.control_id == ticket.control_id,
-                    ControlEvidenceLink.evidence_id == eid,
-                )
-                .first()
-            )
-            verified = _link_verified(db, link_workspace_id, eid)
-            if link is None:
-                db.add(
-                    ControlEvidenceLink(
-                        control_id=ticket.control_id,
-                        evidence_id=eid,
-                        verified=verified,
-                        last_verified_at=verified_at if verified else None,
+            wc = db.query(WorkspaceControl).filter(WorkspaceControl.id == ticket.control_id).first()
+        link_workspace_id = wc.workspace_id if wc is not None else ticket.workspace_id
+        verified_at = datetime.utcnow()
+        link_results: list[dict] = []
+        for eid in evidence_ids:
+            if ticket.control_id:
+                link = (
+                    db.query(ControlEvidenceLink)
+                    .filter(
+                        ControlEvidenceLink.control_id == ticket.control_id,
+                        ControlEvidenceLink.evidence_id == eid,
                     )
+                    .first()
                 )
-            elif link.verified != verified:
-                link.verified = verified
-                link.last_verified_at = verified_at if verified else None
-            link_results.append({"evidence_id": eid, "verified": verified})
-            if wc is not None:
-                mirror_evidence_link(db, wc, eid)
-    _audit(
-        db,
-        ticket.workspace_id,
-        "post_remediation_evidence",
-        actor_user_id,
-        ticket_id,
-        False,
-        {"evidence_ids": evidence_ids, "links": link_results},
-    )
-    db.flush()
+                verified = _link_verified(db, link_workspace_id, eid)
+                if link is None:
+                    db.add(
+                        ControlEvidenceLink(
+                            control_id=ticket.control_id,
+                            evidence_id=eid,
+                            verified=verified,
+                            last_verified_at=verified_at if verified else None,
+                        )
+                    )
+                elif link.verified != verified:
+                    link.verified = verified
+                    link.last_verified_at = verified_at if verified else None
+                link_results.append({"evidence_id": eid, "verified": verified})
+                if wc is not None:
+                    mirror_evidence_link(db, wc, eid)
+        # The default implemented bump must not demote a verified control.
+        apply_bump = bool(bump_control_to) and wc is not None
+        if apply_bump and wc.status == "verified" and bump_control_to == "implemented":
+            apply_bump = False
+        if apply_bump:
+            wc.status = bump_control_to
+            synced = sync_workspace_row(db, wc, request_id=new_request_id(), commit=False)
+            if synced.http_status >= 400:
+                db.rollback()
+                detail = synced.error or {"detail": "Control update failed"}
+                return {"error": detail, "http_status": synced.http_status}
+        _audit(
+            db,
+            ticket.workspace_id,
+            "post_remediation_evidence",
+            actor_user_id,
+            ticket_id,
+            False,
+            {"evidence_ids": evidence_ids, "links": link_results},
+        )
+        db.flush()
+    except IntegrityError:
+        db.rollback()
+        raise
     from app.services import remediation_service as rs
 
     return rs._serialize_ticket(ticket)

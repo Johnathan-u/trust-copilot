@@ -58,15 +58,16 @@
     "warnings": 466,
     "duration_seconds": 10.97
   },
+  "merged_parent_sha": "420d8ebac2f043cf0cd612050d4f31b9dd867ead",
   "full_suite": {
     "command": "python -m pytest -q --tb=line -rs",
     "env": ["TC_REQUIRE_DB=1", "TC_REQUIRE_WEB_TOOLCHAIN=1", "TC_REQUIRE_API_QUALITY=1"],
     "exit_status": 0,
-    "passed": 6332,
+    "passed": 6336,
     "failed": 0,
     "skipped": 1,
-    "warnings": 34991,
-    "duration_seconds": 551.26,
+    "warnings": 35052,
+    "duration_seconds": 571.56,
     "skips": [
       {
         "node": "tests/test_trust_scoring_blind.py",

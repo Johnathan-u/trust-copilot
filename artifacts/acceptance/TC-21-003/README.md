@@ -50,8 +50,10 @@ The first commit's totals are below. The review-fix commit replaced `pytest-q.tx
 
 | Command | Exit | Total |
 |---|---|---|
-| `python -m pytest tests/release/test_domain_compliance_controls.py -q --tb=line` | 0 | 22 passed, 0 skipped, 466 warnings, 10.97s |
-| `python -m pytest -q --tb=line -rs` | 0 | 6332 passed, 1 skipped, 34991 warnings, 551.26s |
+| `python -m pytest tests/release/test_domain_compliance_controls.py -q --tb=line` | 0 | 22 passed, 0 skipped |
+| `python -m pytest -q --tb=line -rs` | 0 | 6336 passed, 1 skipped, 35052 warnings, 571.56s |
+
+These totals are after merging `420d8eb` from `tc/TC-21-002-control-contract`. Remediation stays one transaction. The default `implemented` bump does not demote a verified control. Create over an existing identity is 409 `control_identity_conflict`.
 
 No test in `tests/release/test_domain_compliance_controls.py` was skipped. The one full-suite skip is `tests/test_trust_scoring_blind.py`: `external_data: blind test pack not checked in; set TC_TRUST_SCORING_BLIND_PACK to run`. It did not trip the `TC_REQUIRE_DB=1` failure hook. Output for the domain file is `pytest-q.txt`. The full-suite summary is `pytest-full.txt`.
 

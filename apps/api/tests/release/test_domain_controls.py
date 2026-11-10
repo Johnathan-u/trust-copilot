@@ -11,6 +11,7 @@ import sys
 import uuid
 from pathlib import Path
 
+import pytest
 from sqlalchemy import inspect, text
 
 from app.core.password import hash_password
@@ -215,8 +216,20 @@ def test_routes_agree_on_canonical_contract_and_retry(client):
     actors = _actors()
     _login(client, ADMIN_EMAIL, ADMIN_PASSWORD)
     first = _create(client, "C-1", owner_user_id=actors["editor_id"], owner_team="owners")
-    second = _create(client, "C-1", owner_user_id=actors["editor_id"], owner_team="owners")
-    assert second["id"] == first["id"]
+    second = client.post(
+        "/api/controls/",
+        json={
+            "framework": "TC21002",
+            "control_id": "C-1",
+            "name": "Synthetic",
+            "status": "implemented",
+            "owner_user_id": actors["editor_id"],
+            "owner_team": "other",
+        },
+    )
+    assert second.status_code == 409
+    assert second.json()["detail"]["code"] == "control_identity_conflict"
+    assert second.json()["detail"]["partial_failure"] is False
     assert first["status"] == "in_review"
     assert first["canonical"]["lifecycle"] == "in_progress"
     assert first["canonical"]["version"] is None
@@ -736,6 +749,8 @@ def test_remediation_evidence_bump_follows_the_control_contract(client):
     assert legacy["status"] == "implemented"
     assert legacy["canonical"]["lifecycle"] == "implemented"
     assert legacy["canonical"]["status_aligned"] is True
+    assert compliance["verified_at"] is None
+    assert compliance["verified_by_user_id"] is None
     assert tuple(_stored_pair(created["id"])) == (
         "implemented",
         "implemented",
@@ -830,3 +845,164 @@ def test_remediation_evidence_matches_legacy_and_compliance_lists(client):
     assert compliance["status"] == compliance["canonical"]["lifecycle"]
     assert legacy["canonical"]["status_aligned"] is True
     assert legacy["canonical"] == compliance["canonical"]
+
+
+def _mark_verified(client, control_key: str, user_id: int) -> dict:
+    legacy, compliance = _pair(client, control_key)
+    session = _fresh()
+    try:
+        session.execute(
+            text(
+                "UPDATE workspace_controls SET status = 'verified', lifecycle = 'verified', "
+                "verified_at = TIMESTAMP '2026-01-15 12:00:00', verified_by_user_id = :user_id "
+                "WHERE id = :id"
+            ),
+            {"user_id": user_id, "id": compliance["id"]},
+        )
+        session.execute(
+            text(
+                "UPDATE controls SET lifecycle = 'verified', status = 'implemented' WHERE id = :id"
+            ),
+            {"id": legacy["id"]},
+        )
+        session.commit()
+    finally:
+        session.close()
+    legacy, compliance = _pair(client, control_key)
+    assert compliance["status"] == "verified"
+    assert compliance["verified_at"] is not None
+    assert compliance["verified_by_user_id"] == user_id
+    return compliance
+
+
+def test_remediation_default_bump_keeps_a_verified_control(client):
+    actors = _actors()
+    _login(client, ADMIN_EMAIL, ADMIN_PASSWORD)
+    control_key = f"C-keep-{uuid.uuid4().hex[:12]}"
+    _create(client, control_key)
+    verified = _mark_verified(client, control_key, actors["admin_id"])
+    evidence_id, _document_id = _evidence_item(actors["workspace_id"])
+    ticket_id = _ticket(client, verified["id"])
+    posted = client.post(
+        f"/api/remediation/tickets/{ticket_id}/evidence",
+        json={"evidence_ids": [evidence_id]},
+    )
+    assert posted.status_code == 200, posted.text
+    legacy, compliance = _pair(client, control_key)
+    assert compliance["status"] == "verified"
+    assert compliance["canonical"]["lifecycle"] == "verified"
+    assert compliance["verified_at"] == verified["verified_at"]
+    assert compliance["verified_by_user_id"] == actors["admin_id"]
+    assert legacy["canonical"] == compliance["canonical"]
+    assert legacy["canonical"]["status_aligned"] is True
+    assert _evidence_row_counts(legacy["id"], compliance["id"]) == (1, 1)
+
+
+def test_remediation_leaving_verified_clears_verification_stamps(client):
+    actors = _actors()
+    _login(client, ADMIN_EMAIL, ADMIN_PASSWORD)
+    control_key = f"C-leave-{uuid.uuid4().hex[:12]}"
+    _create(client, control_key)
+    verified = _mark_verified(client, control_key, actors["admin_id"])
+    evidence_id, _document_id = _evidence_item(actors["workspace_id"])
+    ticket_id = _ticket(client, verified["id"])
+    posted = client.post(
+        f"/api/remediation/tickets/{ticket_id}/evidence",
+        json={"evidence_ids": [evidence_id], "bump_control_to": "in_progress"},
+    )
+    assert posted.status_code == 200, posted.text
+    legacy, compliance = _pair(client, control_key)
+    assert compliance["status"] == "in_progress"
+    assert compliance["canonical"]["lifecycle"] == "in_progress"
+    assert compliance["verified_at"] is None
+    assert compliance["verified_by_user_id"] is None
+    assert legacy["status"] == "in_review"
+    assert legacy["canonical"] == compliance["canonical"]
+    assert legacy["canonical"]["status_aligned"] is True
+
+
+def test_remediation_evidence_failure_persists_nothing(client):
+    actors = _actors()
+    _login(client, ADMIN_EMAIL, ADMIN_PASSWORD)
+    control_key = f"C-atom-{uuid.uuid4().hex[:12]}"
+    created = _create(client, control_key)
+    _legacy, compliance = _pair(client, control_key)
+    before = tuple(_stored_pair(created["id"]))
+    ticket_id = _ticket(client, compliance["id"])
+    from sqlalchemy.exc import IntegrityError
+
+    from app.services.remediation_loop_service import submit_post_remediation_evidence
+
+    session = _fresh()
+    try:
+        with pytest.raises(IntegrityError):
+            submit_post_remediation_evidence(
+                session,
+                ticket_id,
+                [2147483646],
+                actor_user_id=actors["admin_id"],
+                bump_control_to="implemented",
+            )
+    finally:
+        session.close()
+    assert tuple(_stored_pair(created["id"])) == before
+    assert _evidence_row_counts(created["id"], compliance["id"]) == (0, 0)
+    session = _fresh()
+    try:
+        ticket_status = session.execute(
+            text("SELECT status, linked_evidence_ids_json FROM remediation_tickets WHERE id = :id"),
+            {"id": ticket_id},
+        ).one()
+    finally:
+        session.close()
+    assert ticket_status.status == "open"
+    assert ticket_status.linked_evidence_ids_json in (None, "[]")
+
+
+def test_create_after_rename_keeps_the_existing_identity(client):
+    actors = _actors()
+    _login(client, ADMIN_EMAIL, ADMIN_PASSWORD)
+    control_key = f"A-{uuid.uuid4().hex[:12]}"
+    created = _create(
+        client,
+        control_key,
+        status="implemented",
+        owner_user_id=actors["editor_id"],
+        owner_team="owners",
+    )
+    legacy, compliance = _pair(client, control_key)
+    renamed = client.patch(
+        f"/api/compliance/controls/{compliance['id']}",
+        json={"custom_name": "B-name"},
+    )
+    assert renamed.status_code == 200, renamed.text
+    assert renamed.json()["canonical"]["id"] == created["canonical"]["id"]
+    assert renamed.json()["status"] == "implemented"
+    assert renamed.json()["custom_name"] == "B-name"
+    again = client.post(
+        "/api/controls/",
+        json={
+            "framework": "TC21002",
+            "control_id": control_key,
+            "name": "Synthetic",
+            "status": "in_review",
+            "owner_user_id": actors["admin_id"],
+            "owner_team": "other",
+        },
+    )
+    assert again.status_code == 409
+    assert again.json()["detail"]["code"] == "control_identity_conflict"
+    legacy, compliance = _pair(client, control_key)
+    assert legacy["id"] == created["id"]
+    assert compliance["status"] == "implemented"
+    assert compliance["canonical"]["lifecycle"] == "implemented"
+    assert compliance["custom_name"] == "B-name"
+    assert compliance["owner_user_id"] == actors["editor_id"]
+    assert compliance["owner_team"] == "owners"
+    assert legacy["canonical"] == compliance["canonical"]
+    assert tuple(_stored_pair(created["id"])) == (
+        "implemented",
+        "implemented",
+        "implemented",
+        "implemented",
+    )

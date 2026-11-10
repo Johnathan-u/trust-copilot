@@ -251,8 +251,21 @@ def _apply_pair(
     workspace.status = LIFECYCLE_TO_WORKSPACE[lifecycle]
     workspace.owner_user_id = owner_user_id
     workspace.owner_team = owner_team
+    if lifecycle != "verified":
+        workspace.verified_at = None
+        workspace.verified_by_user_id = None
     if name is not None:
         workspace.custom_name = name or None
+
+
+def _identity_conflict() -> dict:
+    return {
+        "contract_version": ERROR_CONTRACT_VERSION,
+        "code": "control_identity_conflict",
+        "message": "Another control already uses this framework and control id",
+        "retryable": False,
+        "partial_failure": False,
+    }
 
 
 def _record_event(
@@ -265,6 +278,7 @@ def _record_event(
     lifecycle: str,
     request_id: str | None,
     outcome: str,
+    commit: bool = True,
 ) -> str | None:
     if request_id:
         existing = (
@@ -290,7 +304,10 @@ def _record_event(
         )
     )
     try:
-        db.commit()
+        if commit:
+            db.commit()
+        else:
+            db.flush()
     except IntegrityError:
         db.rollback()
         return "foreign_key"
@@ -341,6 +358,82 @@ def _find_workspace(db: Session, workspace_id: int, key: str, linked_id: int | N
     )
 
 
+def _existing_create(
+    db: Session,
+    legacy: Control,
+    *,
+    lifecycle: str,
+    owner_user_id: int | None,
+    owner_team: str | None,
+    name: str | None,
+    key: str,
+    request_id: str | None,
+    event_workspace_id: int,
+) -> ContractResult:
+    """Return an unchanged row when a create repeats it. A different create conflicts.
+
+    The repeated call may write the missing contract event. It does not change
+    lifecycle, owner, or name.
+    """
+    workspace = workspace_for_legacy(db, legacy)
+    incoming_name = name or None
+    same = (
+        workspace is not None
+        and legacy.lifecycle == lifecycle
+        and workspace.lifecycle == lifecycle
+        and legacy.owner_user_id == owner_user_id
+        and workspace.owner_user_id == owner_user_id
+        and (legacy.owner_team or None) == owner_team
+        and (workspace.owner_team or None) == owner_team
+        and (legacy.name or None) == incoming_name
+        and legacy.canonical_key == key
+        and workspace.canonical_key == key
+    )
+    if not same:
+        return ContractResult(409, {}, error=_identity_conflict())
+    failure = _record_event(
+        db,
+        event_workspace_id=event_workspace_id,
+        legacy_id=legacy.id,
+        workspace_control_id=workspace.id,
+        key=key,
+        lifecycle=lifecycle,
+        request_id=request_id,
+        outcome="paired",
+    )
+    if failure:
+        return ContractResult(
+            409,
+            {},
+            partial_failure=True,
+            error={
+                "contract_version": ERROR_CONTRACT_VERSION,
+                "code": "control_contract_partial_failure",
+                "message": (
+                    "The control was saved. The contract event could not be written "
+                    "because a foreign-key check failed."
+                ),
+                "retryable": True,
+                "partial_failure": True,
+                "canonical_id": key,
+                "lifecycle": lifecycle,
+                "control_id": legacy.id,
+                "steps": [
+                    {"step": "control_pair", "status": "persisted"},
+                    {"step": "contract_event", "status": "failed", "reason": failure},
+                ],
+            },
+            ids={"legacy_id": legacy.id, "workspace_control_id": workspace.id},
+        )
+    legacy = db.query(Control).filter(Control.id == legacy.id).one()
+    return ContractResult(
+        200,
+        {},
+        created=False,
+        ids={"legacy_id": legacy.id, "workspace_control_id": workspace.id, "legacy": legacy},
+    )
+
+
 def upsert_legacy_control(
     db: Session,
     *,
@@ -356,10 +449,11 @@ def upsert_legacy_control(
     legacy_id: int | None = None,
     _attempt: int = 0,
 ) -> ContractResult:
-    """Create or reuse the legacy row and its compliance pair. Same input, same row.
+    """Create the legacy row and its compliance pair, or update one row by id.
 
-    A concurrent insert that loses the partial unique index retries once and
-    updates the row that won. It does not insert a second canonical key.
+    A create whose identity already exists is a conflict. It does not change
+    that row. A concurrent insert that loses the partial unique index returns
+    the same conflict. It does not update the row that won.
     """
     framework = " ".join(framework.split())
     control_key = " ".join(control_key.split())
@@ -387,21 +481,25 @@ def upsert_legacy_control(
                 return ContractResult(404, {}, error={"detail": "Control not found"})
             other = _find_legacy(db, workspace_id, key, framework, control_key)
             if other is not None and other.id != legacy.id:
-                return ContractResult(
-                    409,
-                    {},
-                    error={
-                        "contract_version": ERROR_CONTRACT_VERSION,
-                        "code": "control_identity_conflict",
-                        "message": "Another control already uses this framework and control id",
-                        "retryable": False,
-                        "partial_failure": False,
-                    },
-                )
+                return ContractResult(409, {}, error=_identity_conflict())
             created = False
         else:
             legacy = _find_legacy(db, workspace_id, key, framework, control_key)
-            created = legacy is None
+            if legacy is not None:
+                return _existing_create(
+                    db,
+                    legacy,
+                    lifecycle=lifecycle,
+                    owner_user_id=owner_user_id,
+                    owner_team=owner_team.strip() if owner_team else None,
+                    name=name,
+                    key=key,
+                    request_id=request_id,
+                    event_workspace_id=(
+                        workspace_id if event_workspace_id is None else event_workspace_id
+                    ),
+                )
+            created = True
         if legacy is None:
             legacy = Control(
                 workspace_id=workspace_id,
@@ -610,6 +708,7 @@ def sync_workspace_row(
     *,
     request_id: str | None = None,
     event_workspace_id: int | None = None,
+    commit: bool = True,
     _attempt: int = 0,
 ) -> ContractResult:
     """Copy this compliance row's lifecycle onto the legacy row. Does not insert a second pair."""
@@ -667,10 +766,13 @@ def sync_workspace_row(
             legacy_status=LIFECYCLE_TO_LEGACY[lifecycle],
             name=workspace.custom_name,
         )
-        db.commit()
+        if commit:
+            db.commit()
+        else:
+            db.flush()
     except IntegrityError as exc:
         db.rollback()
-        if _attempt or not _canonical_unique_violation(exc):
+        if not commit or _attempt or not _canonical_unique_violation(exc):
             raise
         db.refresh(workspace)
         return sync_workspace_row(
@@ -678,6 +780,7 @@ def sync_workspace_row(
             workspace,
             request_id=request_id,
             event_workspace_id=event_workspace_id,
+            commit=commit,
             _attempt=1,
         )
     db.refresh(legacy)
@@ -692,7 +795,26 @@ def sync_workspace_row(
         lifecycle=lifecycle,
         request_id=request_id,
         outcome="paired",
+        commit=commit,
     )
+    if failure and not commit:
+        return ContractResult(
+            409,
+            {},
+            error={
+                "contract_version": ERROR_CONTRACT_VERSION,
+                "code": "control_contract_partial_failure",
+                "message": (
+                    "The control was not saved. The contract event could not be written "
+                    "because a foreign-key check failed."
+                ),
+                "retryable": True,
+                "partial_failure": False,
+                "canonical_id": key,
+                "lifecycle": lifecycle,
+                "control_id": legacy.id,
+            },
+        )
     if failure:
         return ContractResult(
             409,
