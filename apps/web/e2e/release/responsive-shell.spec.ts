@@ -1,6 +1,6 @@
 import { mkdirSync, writeFileSync } from 'fs'
 import path from 'path'
-import { expect, test, type Page } from '@playwright/test'
+import { expect, test, type Page, type TestInfo } from '@playwright/test'
 import AxeBuilder from '@axe-core/playwright'
 
 const evidenceDir = path.resolve(
@@ -250,12 +250,21 @@ async function writeAxe(page: Page, name: string, include?: string) {
   ).toEqual([])
 }
 
+async function captureScreenshot(page: Page, testInfo: TestInfo, name: string) {
+  const screenshot = path.join(screenshotDir, `${name}.png`)
+  await page.screenshot({ path: screenshot })
+  await testInfo.attach(name, {
+    path: screenshot,
+    contentType: 'image/png',
+  })
+}
+
 test.describe('responsive application shell', () => {
   test.describe.configure({ timeout: 120_000 })
 
   test('360px drawer is keyboard accessible and does not squeeze the page', async ({
     page,
-  }) => {
+  }, testInfo) => {
     await openShell(page, 'dark', 360, 800)
     const openNav = page.getByRole('button', { name: 'Open navigation' })
     const main = page.locator('#main-content')
@@ -332,14 +341,10 @@ test.describe('responsive application shell', () => {
     ).toBeVisible()
     await expectNoPageOverflow(page)
 
-    await page.screenshot({
-      path: path.join(screenshotDir, 'shell-dark-360-closed.png'),
-    })
+    await captureScreenshot(page, testInfo, 'shell-dark-360-closed')
     await openNav.click()
     await expect(dialog).toBeVisible()
-    await page.screenshot({
-      path: path.join(screenshotDir, 'shell-dark-360-open.png'),
-    })
+    await captureScreenshot(page, testInfo, 'shell-dark-360-open')
     await expectUniqueLandmarkNames(page)
     await writeAxe(page, 'auth-dark-360-open')
     await page.keyboard.press('Escape')
@@ -359,7 +364,7 @@ test.describe('responsive application shell', () => {
   ] as const) {
     test(`${viewport.name}px keeps the docked sidebar, sticky header and reflow`, async ({
       page,
-    }) => {
+    }, testInfo) => {
       await openShell(page, 'dark', viewport.width, viewport.height)
       await expect(
         page.getByRole('button', { name: 'Open navigation' })
@@ -444,9 +449,7 @@ test.describe('responsive application shell', () => {
         ).toBeVisible()
       }
 
-      await page.screenshot({
-        path: path.join(screenshotDir, `shell-dark-${viewport.name}.png`),
-      })
+      await captureScreenshot(page, testInfo, `shell-dark-${viewport.name}`)
       await expectUniqueLandmarkNames(page)
       await writeAxe(page, `auth-dark-${viewport.name}`)
     })
@@ -467,13 +470,11 @@ test.describe('responsive application shell', () => {
 
   test('light theme shell passes axe and captures mobile open and closed states', async ({
     page,
-  }) => {
+  }, testInfo) => {
     await openShell(page, 'light', 1440, 900)
     await expect(page.locator('[data-sidebar-placement="dock"]')).toBeVisible()
     await expectNoPageOverflow(page)
-    await page.screenshot({
-      path: path.join(screenshotDir, 'shell-light-1440.png'),
-    })
+    await captureScreenshot(page, testInfo, 'shell-light-1440')
     await expectUniqueLandmarkNames(page)
     await writeAxe(page, 'auth-light-1440')
 
@@ -483,9 +484,7 @@ test.describe('responsive application shell', () => {
       page.getByRole('button', { name: 'Open navigation' })
     ).toBeHidden()
     await expectNoPageOverflow(page)
-    await page.screenshot({
-      path: path.join(screenshotDir, 'shell-light-768.png'),
-    })
+    await captureScreenshot(page, testInfo, 'shell-light-768')
     await expectUniqueLandmarkNames(page)
     await writeAxe(page, 'auth-light-768')
 
@@ -493,17 +492,13 @@ test.describe('responsive application shell', () => {
     const openNav = page.getByRole('button', { name: 'Open navigation' })
     await expect(openNav).toBeVisible()
     await expectNoPageOverflow(page)
-    await page.screenshot({
-      path: path.join(screenshotDir, 'shell-light-360-closed.png'),
-    })
+    await captureScreenshot(page, testInfo, 'shell-light-360-closed')
     await expectUniqueLandmarkNames(page)
     await writeAxe(page, 'auth-light-360-closed')
     await openNav.click()
     const dialog = page.getByRole('dialog', { name: 'Navigation' })
     await expect(dialog).toBeVisible()
-    await page.screenshot({
-      path: path.join(screenshotDir, 'shell-light-360-open.png'),
-    })
+    await captureScreenshot(page, testInfo, 'shell-light-360-open')
     await expectUniqueLandmarkNames(page)
     await writeAxe(page, 'auth-light-360-open')
     await page.keyboard.press('Escape')
@@ -518,7 +513,7 @@ test.describe('public layouts', () => {
   for (const theme of ['dark', 'light'] as const) {
     test(`${theme} login has no axe violations or page overflow`, async ({
       page,
-    }) => {
+    }, testInfo) => {
       await applyTheme(page)
       await installSyntheticApi(page)
       for (const viewport of [
@@ -540,12 +535,11 @@ test.describe('public layouts', () => {
         ).toHaveCount(0)
         await expect(page.locator('html')).toHaveAttribute('data-theme', theme)
         await expectNoPageOverflow(page)
-        await page.screenshot({
-          path: path.join(
-            screenshotDir,
-            `public-login-${theme}-${viewport.name}.png`
-          ),
-        })
+        await captureScreenshot(
+          page,
+          testInfo,
+          `public-login-${theme}-${viewport.name}`
+        )
         await writeAxe(page, `public-login-${theme}-${viewport.name}`)
       }
     })
@@ -553,7 +547,7 @@ test.describe('public layouts', () => {
 
   test('marketing and onboarding pages do not overflow at 360px', async ({
     page,
-  }) => {
+  }, testInfo) => {
     await applyTheme(page)
     await page.setViewportSize({ width: 360, height: 800 })
     await page.goto('/')
@@ -562,9 +556,7 @@ test.describe('public layouts', () => {
       page.getByRole('link', { name: 'Trust Copilot' }).first()
     ).toBeVisible()
     await expectNoPageOverflow(page)
-    await page.screenshot({
-      path: path.join(screenshotDir, 'public-home-dark-360.png'),
-    })
+    await captureScreenshot(page, testInfo, 'public-home-dark-360')
 
     await allowSyntheticSession(page)
     await page.goto('/onboarding')
@@ -573,8 +565,6 @@ test.describe('public layouts', () => {
       page.getByRole('heading', { name: 'Welcome to Trust Copilot' })
     ).toBeVisible()
     await expectNoPageOverflow(page)
-    await page.screenshot({
-      path: path.join(screenshotDir, 'public-onboarding-dark-360.png'),
-    })
+    await captureScreenshot(page, testInfo, 'public-onboarding-dark-360')
   })
 })

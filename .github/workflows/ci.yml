@@ -439,6 +439,15 @@ jobs:
           if-no-files-found: warn
           retention-days: 14
 
+      - name: Upload responsive shell screenshots
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: responsive-shell-screenshots
+          path: artifacts/acceptance/TC-14-006/screenshots/*.png
+          if-no-files-found: warn
+          retention-days: 14
+
       - name: Upload dialog toast axe JSON
         if: ${{ !cancelled() }}
         uses: actions/upload-artifact@v4
