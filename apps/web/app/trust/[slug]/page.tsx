@@ -6,6 +6,13 @@ import Link from 'next/link'
 import { Button, Card, Input, Modal } from '@/components/ui'
 import { MarkdownContent } from '@/components/MarkdownContent'
 import { useKeyedGeneration } from '@/components/ui/useKeyedGeneration'
+import {
+  PUBLIC_INTAKE_FIELD_MAX,
+  PUBLIC_INTAKE_MESSAGE_MAX,
+  publicIntakeClientError,
+  publicIntakeError,
+  publicIntakeFingerprint,
+} from '@/lib/public-trust-intake'
 
 const ALLOWED_EXTENSIONS = '.pdf,.docx,.doc,.xlsx,.xls,.txt'
 
@@ -78,6 +85,10 @@ export default function WorkspaceTrustPage() {
   const [formSubmitting, setFormSubmitting] = useState(false)
   const [selectedFileName, setSelectedFileName] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const submittingRef = useRef(false)
+  const intakeAttempt = useRef<{ fingerprint: string; key: string } | null>(
+    null
+  )
 
   const slugKey = useKeyedGeneration(slug)
   if (slugKey.changed && slug) setLoading(true)
@@ -126,24 +137,57 @@ export default function WorkspaceTrustPage() {
 
   const submitRequest = async (e: React.FormEvent) => {
     e.preventDefault()
-    setFormSubmitting(true)
+    if (submittingRef.current) return
+    const email = form.requester_email.trim()
+    const name = form.requester_name.trim()
+    const subject = form.subject.trim()
+    const message = form.message.trim()
     setFormSuccess(false)
+    const clientError = publicIntakeClientError({
+      email,
+      name,
+      subject,
+      message,
+    })
+    if (clientError) {
+      setFormError(clientError)
+      return
+    }
+    const file = fileInputRef.current?.files?.[0] ?? null
+    const fingerprint = publicIntakeFingerprint({
+      slug,
+      email,
+      name,
+      subject,
+      message,
+      fileName: file?.name ?? '',
+      fileSize: file?.size ?? 0,
+      fileLastModified: file?.lastModified ?? 0,
+    })
+    const attempt =
+      intakeAttempt.current?.fingerprint === fingerprint
+        ? intakeAttempt.current
+        : { fingerprint, key: crypto.randomUUID() }
+    intakeAttempt.current = attempt
+    submittingRef.current = true
+    setFormSubmitting(true)
     setFormError(null)
     try {
       const body = new FormData()
-      body.append('requester_email', form.requester_email)
-      body.append('requester_name', form.requester_name)
-      body.append('subject', form.subject)
-      body.append('message', form.message)
+      body.append('requester_email', email)
+      body.append('requester_name', name)
+      body.append('subject', subject)
+      body.append('message', message)
       body.append('workspace_slug', slug)
-      const file = fileInputRef.current?.files?.[0]
       if (file) body.append('document', file)
       const res = await fetch('/api/trust-requests/submit', {
         method: 'POST',
         body,
+        headers: { 'Idempotency-Key': attempt.key },
       })
-      const data = await res.json().catch(() => ({}))
+      const data = await res.json().catch(() => null)
       if (res.ok) {
+        intakeAttempt.current = null
         setFormSuccess(true)
         setForm({
           requester_email: '',
@@ -155,13 +199,12 @@ export default function WorkspaceTrustPage() {
         setSelectedFileName(null)
         setShowForm(false)
       } else {
-        setFormError(
-          (data?.detail as string) || 'Submission failed. Please try again.'
-        )
+        setFormError(publicIntakeError(res.status, data))
       }
     } catch {
-      setFormError('Submission failed. Please try again.')
+      setFormError(publicIntakeError(0, null))
     } finally {
+      submittingRef.current = false
       setFormSubmitting(false)
     }
   }
@@ -255,7 +298,10 @@ export default function WorkspaceTrustPage() {
               </p>
               <Card className="mt-4 p-6">
                 {formError && (
-                  <div className="mb-4 rounded-xl bg-red-500/10 p-3 text-sm text-red-400">
+                  <div
+                    role="alert"
+                    className="mb-4 rounded-xl bg-red-500/10 p-3 text-sm text-red-400"
+                  >
                     {formError}
                   </div>
                 )}
@@ -264,26 +310,44 @@ export default function WorkspaceTrustPage() {
                     label="Email"
                     type="email"
                     required
+                    maxLength={PUBLIC_INTAKE_FIELD_MAX}
                     value={form.requester_email}
                     onChange={(e) =>
                       setForm((f) => ({
                         ...f,
-                        requester_email: e.target.value,
+                        requester_email: e.target.value.slice(
+                          0,
+                          PUBLIC_INTAKE_FIELD_MAX
+                        ),
                       }))
                     }
                   />
                   <Input
                     label="Name"
+                    maxLength={PUBLIC_INTAKE_FIELD_MAX}
                     value={form.requester_name}
                     onChange={(e) =>
-                      setForm((f) => ({ ...f, requester_name: e.target.value }))
+                      setForm((f) => ({
+                        ...f,
+                        requester_name: e.target.value.slice(
+                          0,
+                          PUBLIC_INTAKE_FIELD_MAX
+                        ),
+                      }))
                     }
                   />
                   <Input
                     label="Subject"
+                    maxLength={PUBLIC_INTAKE_FIELD_MAX}
                     value={form.subject}
                     onChange={(e) =>
-                      setForm((f) => ({ ...f, subject: e.target.value }))
+                      setForm((f) => ({
+                        ...f,
+                        subject: e.target.value.slice(
+                          0,
+                          PUBLIC_INTAKE_FIELD_MAX
+                        ),
+                      }))
                     }
                   />
                   <div>
@@ -292,11 +356,18 @@ export default function WorkspaceTrustPage() {
                     </label>
                     <textarea
                       required
+                      maxLength={PUBLIC_INTAKE_MESSAGE_MAX}
                       className="w-full rounded-xl border border-[var(--tc-border)] bg-white/5 px-3 py-2.5 text-[var(--tc-text)] placeholder:text-[var(--tc-muted)] focus:border-[var(--tc-primary)] focus:outline-none focus:ring-1 focus:ring-[var(--tc-primary)] min-h-[100px]"
                       placeholder="Your message"
                       value={form.message}
                       onChange={(e) =>
-                        setForm((f) => ({ ...f, message: e.target.value }))
+                        setForm((f) => ({
+                          ...f,
+                          message: e.target.value.slice(
+                            0,
+                            PUBLIC_INTAKE_MESSAGE_MAX
+                          ),
+                        }))
                       }
                     />
                   </div>

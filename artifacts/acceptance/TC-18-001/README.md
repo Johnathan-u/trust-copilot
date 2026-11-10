@@ -1,5 +1,7 @@
 # TC-18-001 evidence
 
+Public-intake gap closure (idempotency key, validation bounds, reconciliation note) is recorded in [intake-idempotency.md](intake-idempotency.md). Independent acceptance of that head is still open. The sections below are the earlier record and are unchanged.
+
 Original backend logic at `b57cb9bb4154c645947681ba05c2bcf1da6ef194` has independent reviewer acceptance and all four exact-head CI checks GREEN. The continuation below consumes merged sensitive SMTP and the allocated migration slot; it requires fresh independent review and exact-final-head CI. Frontend consumer qualification remains pending. This is not full-ticket completion.
 
 ## Coordinator continuation — 2026-10-30
