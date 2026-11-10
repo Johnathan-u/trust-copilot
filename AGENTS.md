@@ -7,7 +7,10 @@ authorized Codex to operate the engineering workflow autonomously, including tas
 assignment, implementation, independent review, CI repair and merges. Routine
 engineering work does not wait for owner approval or for the former Grok
 coordinator. The Codex coordinator fills the Coordinator role in
-`docs/acceptance/release-decisions.md`; implementing workers never self-merge.
+`docs/acceptance/release-decisions.md`. Implementing workers do not self-merge,
+except as owner decision OD-15 allows: the worker Grok may merge its own PRs once CI
+is green on both events, except for account, authentication, authorization and
+evidence-gate work. Acceptance always needs an independent review.
 
 Read `docs/release/CODEX_AUTONOMY.md` for the run protocol and
 `docs/release/PM_BACKLOG_PROTOCOL.md` for the shared progress workflow. **Grok PM
