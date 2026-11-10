@@ -1,0 +1,76 @@
+parent SHA: 352e033dcb12846971f57de0cf478ed6df76e0be
+product code: parent (engine staleness and demotion owner check not applied)
+command: TC_REQUIRE_DB=1 python -m pytest tests/release/test_domain_compliance_controls.py -q --tb=line -k "old_qualifying or fresh_qualifying or demotion_proceeds or removing_last_qualifying or legacy_detach"
+working directory: apps/api
+interpreter: /tmp/tc-venv/bin/python
+
+FFFFF                                                                    [100%]
+=================================== FAILURES ===================================
+E   assert 0 == (0 + 1)
+     +  where 0 = _demotion_events(61)
+/agent/repos/trust-copilot/apps/api/tests/release/test_domain_compliance_controls.py:1470: assert 0 == (0 + 1)
+E   assert 0 == (0 + 1)
+     +  where 0 = _demotion_events(62)
+/agent/repos/trust-copilot/apps/api/tests/release/test_domain_compliance_controls.py:1503: assert 0 == (0 + 1)
+E   AssertionError: assert 'passing' == 'stale'
+
+      - stale
+      + passing
+/agent/repos/trust-copilot/apps/api/tests/release/test_domain_compliance_controls.py:1589: AssertionError: assert 'passing' == 'stale'
+E   assert 80 == 65
+/agent/repos/trust-copilot/apps/api/tests/release/test_domain_compliance_controls.py:1613: assert 80 == 65
+E   AssertionError: {"detail":{"contract_version":"control-contract-error/v1","code":"owner_not_in_workspace","message":"Owner not found","retryable":false,"partial_failure":false}}
+    assert 404 == 200
+     +  where 404 = <Response [404 Not Found]>.status_code
+/agent/repos/trust-copilot/apps/api/tests/release/test_domain_compliance_controls.py:1641: AssertionError: {"detail":{"contract_version":"control-contract-error/v1","code":"owner_not_in_workspace","message":"Owner not found","retryable":false,"partial_failure":false}}
+=============================== warnings summary ===============================
+tests/release/test_domain_compliance_controls.py: 94 warnings
+  /tmp/tc-venv/lib/python3.12/site-packages/sqlalchemy/sql/schema.py:3627: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    return util.wrap_callable(lambda ctx: fn(), fn)  # type: ignore
+
+tests/release/test_domain_compliance_controls.py::test_removing_last_qualifying_link_demotes_verified_control
+tests/release/test_domain_compliance_controls.py::test_removing_last_qualifying_link_demotes_verified_control
+tests/release/test_domain_compliance_controls.py::test_legacy_detach_demotes_verified_control_without_qualifying_evidence
+tests/release/test_domain_compliance_controls.py::test_legacy_detach_demotes_verified_control_without_qualifying_evidence
+tests/release/test_domain_compliance_controls.py::test_demotion_proceeds_when_the_owner_is_suspended
+  /agent/repos/trust-copilot/apps/api/app/api/routes/compliance_controls.py:545: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    now = datetime.utcnow()
+
+tests/release/test_domain_compliance_controls.py::test_removing_last_qualifying_link_demotes_verified_control
+tests/release/test_domain_compliance_controls.py::test_removing_last_qualifying_link_demotes_verified_control
+tests/release/test_domain_compliance_controls.py::test_removing_last_qualifying_link_demotes_verified_control
+tests/release/test_domain_compliance_controls.py::test_legacy_detach_demotes_verified_control_without_qualifying_evidence
+tests/release/test_domain_compliance_controls.py::test_legacy_detach_demotes_verified_control_without_qualifying_evidence
+tests/release/test_domain_compliance_controls.py::test_legacy_detach_demotes_verified_control_without_qualifying_evidence
+tests/release/test_domain_compliance_controls.py::test_demotion_proceeds_when_the_owner_is_suspended
+tests/release/test_domain_compliance_controls.py::test_demotion_proceeds_when_the_owner_is_suspended
+  /agent/repos/trust-copilot/apps/api/app/services/evidence_qualification.py:31: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    now = datetime.utcnow()
+
+tests/release/test_domain_compliance_controls.py::test_removing_last_qualifying_link_demotes_verified_control
+tests/release/test_domain_compliance_controls.py::test_legacy_detach_demotes_verified_control_without_qualifying_evidence
+tests/release/test_domain_compliance_controls.py::test_demotion_proceeds_when_the_owner_is_suspended
+  /agent/repos/trust-copilot/apps/api/app/api/routes/compliance_controls.py:490: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    now = datetime.utcnow()
+
+tests/release/test_domain_compliance_controls.py::test_control_engine_old_qualifying_evidence_is_stale
+tests/release/test_domain_compliance_controls.py::test_control_engine_fresh_qualifying_evidence_is_passing
+tests/release/test_domain_compliance_controls.py::test_control_engine_fresh_qualifying_evidence_is_passing
+tests/release/test_domain_compliance_controls.py::test_demotion_proceeds_when_the_owner_is_suspended
+  /agent/repos/trust-copilot/apps/api/tests/release/test_domain_compliance_controls.py:1557: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    {"created": datetime.utcnow() - timedelta(days=age_days), "id": evidence_id},
+
+tests/release/test_domain_compliance_controls.py::test_control_engine_old_qualifying_evidence_is_stale
+tests/release/test_domain_compliance_controls.py::test_control_engine_fresh_qualifying_evidence_is_passing
+  /agent/repos/trust-copilot/apps/api/app/services/control_engine_service.py:47: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    qualified_at = datetime.utcnow()
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED tests/release/test_domain_compliance_controls.py::test_removing_last_qualifying_link_demotes_verified_control
+FAILED tests/release/test_domain_compliance_controls.py::test_legacy_detach_demotes_verified_control_without_qualifying_evidence
+FAILED tests/release/test_domain_compliance_controls.py::test_control_engine_old_qualifying_evidence_is_stale
+FAILED tests/release/test_domain_compliance_controls.py::test_control_engine_fresh_qualifying_evidence_is_passing
+FAILED tests/release/test_domain_compliance_controls.py::test_demotion_proceeds_when_the_owner_is_suspended
+5 failed, 20 deselected, 116 warnings in 2.29s
+EXIT:1

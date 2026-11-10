@@ -13,6 +13,7 @@ from app.core.auth_deps import require_can_review
 from app.core.database import get_db
 from app.core.workspace_refs import require_in_workspace
 from app.models import Answer, Question, Questionnaire
+from app.services.answer_generation import _lock_answer_write
 
 router = APIRouter(prefix="/answers", tags=["answers"])
 
@@ -33,6 +34,14 @@ class BulkUpdateBody(BaseModel):
     status: str
 
 
+def _record_human_text(row: Answer, new_text: str) -> None:
+    """Store text a person typed. That replacement is not a model placeholder."""
+    if new_text != row.text:
+        row.outcome_code = None
+        row.insufficient_reason = None
+    row.text = new_text
+
+
 @router.post("")
 @router.post("/")
 def create_answer(
@@ -48,11 +57,11 @@ def create_answer(
     if qnr and qnr.workspace_id != session.get("workspace_id"):
         raise HTTPException(status_code=403, detail="Access denied")
     require_in_workspace(db, session.get("workspace_id"), "question", body.question_id)
+    _lock_answer_write(db, body.question_id)
     existing = db.query(Answer).filter(Answer.question_id == body.question_id).first()
     if existing:
-        if body.text and body.text != existing.text:
-            existing.outcome_code = None  # TC-11-001: human-authored text has no model outcome
-        existing.text = body.text or existing.text
+        if body.text:
+            _record_human_text(existing, body.text)
         existing.status = body.status or existing.status
         db.commit()
         db.refresh(existing)
@@ -105,6 +114,9 @@ def bulk_update_status(
     )
     if len(questions) != len(body.question_ids):
         raise HTTPException(status_code=404, detail="Question not found")
+    # Sorted ids: two overlapping bulk writes cannot lock each other in opposite orders.
+    for qid in sorted(body.question_ids):
+        _lock_answer_write(db, qid)
     answers = db.query(Answer).filter(Answer.question_id.in_(body.question_ids)).all()
     existing_qids = {a.question_id for a in answers}
     for qid in body.question_ids:
@@ -137,9 +149,7 @@ def update_answer(
             raise HTTPException(status_code=403, detail="Access denied")
     require_in_workspace(db, session.get("workspace_id"), "answer", answer_id)
     if body.text is not None:
-        if body.text != a.text:
-            a.outcome_code = None  # TC-11-001: human-authored text has no model outcome
-        a.text = body.text
+        _record_human_text(a, body.text)
     if body.status is not None:
         a.status = body.status
     db.commit()

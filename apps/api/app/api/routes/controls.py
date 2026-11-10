@@ -125,7 +125,7 @@ def create_control(
     session: dict = Depends(require_can_admin),
     db: Session = Depends(get_db),
 ):
-    """Create a control. Requires admin. Repeating the same identity reuses the row."""
+    """Create a control. Requires admin. An existing identity is a conflict."""
     ws = session.get("workspace_id")
     if not ws:
         raise HTTPException(status_code=403, detail="No workspace")
@@ -298,5 +298,7 @@ def detach_evidence(
     c = db.query(Control).filter(Control.id == control_id).first()
     if not c or c.workspace_id != session.get("workspace_id"):
         raise HTTPException(status_code=404, detail="Control not found")
-    detach_legacy_evidence(db, c, ev)
+    result = detach_legacy_evidence(db, c, ev, actor_user_id=session.get("user_id"))
+    if result.http_status >= 400:
+        raise HTTPException(status_code=result.http_status, detail=result.error)
     return {"ok": True}

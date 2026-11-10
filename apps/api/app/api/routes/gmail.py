@@ -16,7 +16,9 @@ from app.models import (
     GmailControlSuggestion,
     GmailIngestLabel,
     GmailIntegration,
+    WorkspaceControl,
 )
+from app.services.control_contract import mirror_evidence_link
 from app.services.gmail_service import decrypt_token, encrypt_token, get_gmail_provider
 from app.services.message_providers.errors import is_provider_failure, public_error_detail
 from app.services.message_providers.selection import message_provider_preflight
@@ -423,6 +425,16 @@ async def review_suggestion(
                     verified=False,
                 )
             )
+        wc = (
+            db.query(WorkspaceControl)
+            .filter(
+                WorkspaceControl.id == sug.control_id,
+                WorkspaceControl.workspace_id == ws,
+            )
+            .first()
+        )
+        if wc is not None:
+            mirror_evidence_link(db, wc, sug.evidence_id)
     db.commit()
     persist_audit(
         db,

@@ -21,7 +21,6 @@ from app.core.metrics import (
     compliance_evidence_linked_total,
 )
 from app.models import (
-    Document,
     Framework,
     FrameworkControl,
     WorkspaceControl,
@@ -33,11 +32,16 @@ from app.models import (
 )
 from app.services.control_contract import (
     canonical_payload,
+    demote_verified_without_qualifying_evidence,
+    emit_verified_demotion,
     legacy_for_workspace,
+    mirror_evidence_link,
     new_request_id,
     sync_workspace_row,
+    unmirror_evidence_link,
     upsert_workspace_control,
 )
+from app.services.evidence_qualification import evidence_qualifies, has_qualifying_evidence
 from app.services.evidence_suggestion import suggest_evidence as suggest_evidence_service
 from app.services.tag_service import list_tags_for_documents
 from app.core.compliance_rate_limit import check_compliance_write_allowed
@@ -147,33 +151,8 @@ def _count_evidence(db: Session, control_id: int) -> int:
 _VERIFY_DENIED = "Verified status requires approved, current evidence linked in this workspace"
 
 
-def _evidence_qualifies(db: Session, ev: EvidenceItem, workspace_id: int, now: datetime) -> bool:
-    """Approved, same-workspace, not expired, and not tied to a deleted document.
-
-    A missing expiry or freshness date is not treated as expired. Evidence items
-    have no deleted column; a linked document with deleted_at does.
-    """
-    if ev.workspace_id != workspace_id or ev.approval_status != "approved":
-        return False
-    if ev.document_id is not None:
-        doc = db.query(Document).filter(Document.id == ev.document_id).first()
-        if doc is None or doc.workspace_id != workspace_id or doc.deleted_at is not None:
-            return False
-    metas = db.query(EvidenceMetadata).filter(EvidenceMetadata.evidence_id == ev.id).all()
-    for meta in metas:
-        if meta.expires_at is not None and meta.expires_at <= now:
-            return False
-    return True
-
-
 def _has_qualifying_evidence(db: Session, control_id: int, workspace_id: int) -> bool:
-    now = datetime.utcnow()
-    links = db.query(ControlEvidenceLink).filter(ControlEvidenceLink.control_id == control_id).all()
-    for link in links:
-        ev = db.query(EvidenceItem).filter(EvidenceItem.id == link.evidence_id).first()
-        if ev is not None and _evidence_qualifies(db, ev, workspace_id, now):
-            return True
-    return False
+    return has_qualifying_evidence(db, control_id, workspace_id)
 
 
 def _require_qualifying_evidence(db: Session, control_id: int, workspace_id: int) -> None:
@@ -739,6 +718,7 @@ def accept_suggested_evidence(
             verified=False,
         )
         db.add(link)
+        mirror_evidence_link(db, wc, ev.id)
         db.commit()
     except Exception:
         # A failed commit leaves the session unusable until it is rolled back.
@@ -896,7 +876,7 @@ def set_evidence_verified(
         }
     if body.verified:
         ev = db.query(EvidenceItem).filter(EvidenceItem.id == link.evidence_id).first()
-        if ev is None or not _evidence_qualifies(db, ev, ws, datetime.utcnow()):
+        if ev is None or not evidence_qualifies(db, ev, ws, datetime.utcnow()):
             raise HTTPException(status_code=400, detail=_VERIFY_DENIED)
     link.verified = body.verified
     link.last_verified_at = datetime.utcnow() if body.verified else None
@@ -968,7 +948,7 @@ def link_evidence(
     )
     if not ev:
         raise HTTPException(status_code=404, detail="Evidence not found")
-    if body.verified and not _evidence_qualifies(db, ev, ws, datetime.utcnow()):
+    if body.verified and not evidence_qualifies(db, ev, ws, datetime.utcnow()):
         raise HTTPException(status_code=400, detail=_VERIFY_DENIED)
     score = body.confidence_score
     if score is not None and (score < 0 or score > 1):
@@ -982,6 +962,8 @@ def link_evidence(
         .first()
     )
     if existing:
+        mirror_evidence_link(db, wc, body.evidence_id)
+        db.commit()
         return JSONResponse(status_code=200, content=_link_dict(existing))
     link = ControlEvidenceLink(
         control_id=control_id,
@@ -1004,11 +986,15 @@ def link_evidence(
         )
         if existing is None:
             raise
+        mirror_evidence_link(db, wc, body.evidence_id)
+        db.commit()
         return JSONResponse(status_code=200, content=_link_dict(existing))
     except Exception:
         db.rollback()
         raise
     db.refresh(link)
+    mirror_evidence_link(db, wc, body.evidence_id)
+    db.commit()
     compliance_evidence_linked_total.inc()
     logger.info(
         "evidence_linked",
@@ -1024,7 +1010,11 @@ def unlink_evidence(
     session: dict = Depends(require_can_admin),
     db: Session = Depends(get_db),
 ):
-    """Remove an evidence link from a control. Requires admin."""
+    """Remove an evidence link from a control. Requires admin.
+
+    The delete always proceeds. A verified control with no qualifying evidence
+    left is stored as implemented, and that lifecycle is copied to the legacy row.
+    """
     ws = session.get("workspace_id")
     if not ws:
         raise HTTPException(status_code=403, detail="No workspace")
@@ -1041,6 +1031,13 @@ def unlink_evidence(
     )
     if not link:
         raise HTTPException(status_code=404, detail="Link not found")
+    unmirror_evidence_link(db, wc, link.evidence_id)
     db.delete(link)
+    db.flush()
+    demoted = demote_verified_without_qualifying_evidence(db, wc)
+    if demoted is not None and demoted.http_status >= 400:
+        raise HTTPException(status_code=demoted.http_status, detail=demoted.error)
     db.commit()
+    if demoted is not None:
+        emit_verified_demotion(db, wc, session.get("user_id"))
     return {"ok": True}

@@ -1,0 +1,27 @@
+parent SHA: 02e833c78aa362d78c366a2187dcbd040b9838e1
+branch: tc/TC-21-002-control-contract
+product code: parent (fix stashed)
+tests: new cases only, on the working tree
+working directory: apps/api
+interpreter: /tmp/tc-venv/bin/python
+command: TC_REQUIRE_DB=1 python -m pytest tests/release/test_domain_controls.py -q --tb=line -k "remediation_evidence or compliance_evidence_link_and_unlink"
+
+FFFFF                                                                    [100%]
+=================================== FAILURES ===================================
+E   AssertionError: assert 'implemented' == 'in_progress'
+      - in_progress
+      + implemented
+tests/release/test_domain_controls.py::test_remediation_evidence_bump_follows_the_control_contract
+E   assert 200 == 400
+tests/release/test_domain_controls.py::test_remediation_evidence_rejects_unknown_status
+E   assert 200 == 400
+tests/release/test_domain_controls.py::test_remediation_evidence_rejects_verified_status
+E   assert [] == [5]
+tests/release/test_domain_controls.py::test_compliance_evidence_link_and_unlink_match_legacy
+E   assert [] == [6]
+tests/release/test_domain_controls.py::test_remediation_evidence_matches_legacy_and_compliance_lists
+5 failed, 6 deselected, 77 warnings in 3.50s
+exit status: 1
+
+The bump failure is compliance status implemented against canonical lifecycle in_progress.
+Unknown and verified both returned 200. Both evidence tests saw an empty legacy list.

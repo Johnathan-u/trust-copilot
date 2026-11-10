@@ -2,16 +2,25 @@
 
 import json
 import logging
-from datetime import datetime, timezone
+from datetime import datetime
 
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.models.answer import Answer
 from app.models.control_evidence_link import ControlEvidenceLink
+from app.models.evidence_item import EvidenceItem
 from app.models.questionnaire import Question
 from app.models.remediation_audit import RemediationAuditEvent, RemediationAutomationSetting
 from app.models.remediation_playbook import RemediationTicket
-from app.models.workspace_control import WorkspaceControl
+from app.models.workspace_control import WORKSPACE_CONTROL_STATUSES, WorkspaceControl
+from app.services.control_contract import (
+    ERROR_CONTRACT_VERSION,
+    mirror_evidence_link,
+    new_request_id,
+    sync_workspace_row,
+)
+from app.services.evidence_qualification import evidence_qualifies
 
 logger = logging.getLogger(__name__)
 
@@ -55,6 +64,38 @@ def _audit(
     )
 
 
+def _bump_status_error(status: str) -> dict | None:
+    """Reject a remediation status that is unknown or verified.
+
+    ``verified`` is a workspace status. This path must not store it.
+    """
+    if status == "verified":
+        return {
+            "contract_version": ERROR_CONTRACT_VERSION,
+            "code": "verified_status_not_allowed",
+            "message": "Verified status cannot be set when submitting remediation evidence.",
+            "retryable": False,
+            "partial_failure": False,
+        }
+    if status not in WORKSPACE_CONTROL_STATUSES:
+        return {
+            "contract_version": ERROR_CONTRACT_VERSION,
+            "code": "invalid_control_status",
+            "message": "Status must be not_implemented, in_progress, or implemented.",
+            "retryable": False,
+            "partial_failure": False,
+        }
+    return None
+
+
+def _link_verified(db: Session, workspace_id: int, evidence_id: int) -> bool:
+    """True only when this evidence meets the compliance qualification rule."""
+    item = db.query(EvidenceItem).filter(EvidenceItem.id == evidence_id).first()
+    if item is None:
+        return False
+    return evidence_qualifies(db, item, workspace_id, datetime.utcnow())
+
+
 def submit_post_remediation_evidence(
     db: Session,
     ticket_id: int,
@@ -62,45 +103,89 @@ def submit_post_remediation_evidence(
     actor_user_id: int | None = None,
     bump_control_to: str | None = "implemented",
 ) -> dict | None:
-    """E3-17: Attach evidence to ticket, link to control, optionally bump control status."""
+    """E3-17: Attach evidence to ticket, link to control, optionally bump control status.
+
+    A bump is written through the control contract. ``None`` leaves status unchanged.
+    An unknown status or ``verified`` returns an error and writes nothing.
+    The default ``implemented`` bump does not demote a control that is already verified.
+    Links and the legacy mirror are written before the status sync. Nothing is
+    committed here; the caller commits once, or rolls back if this raises.
+
+    A created or updated link is verified only when the evidence qualifies: approved,
+    same workspace, not expired, and not tied to a deleted document. Other evidence
+    is stored with verified false, including a link that was already verified.
+    ``last_verified_at`` is set when a link is created verified or becomes verified,
+    and cleared when it stops being verified. The audit payload lists each link.
+    The legacy mirror is still written. That table has no verified column.
+    """
+    if bump_control_to:
+        problem = _bump_status_error(bump_control_to)
+        if problem:
+            return {"error": problem, "http_status": 400}
     ticket = db.query(RemediationTicket).filter(RemediationTicket.id == ticket_id).first()
     if not ticket:
         return None
-    existing = json.loads(ticket.linked_evidence_ids_json or "[]")
-    merged = list(dict.fromkeys(existing + evidence_ids))
-    ticket.linked_evidence_ids_json = json.dumps(merged)
-    ticket.status = "evidence_submitted"
-    if ticket.control_id and bump_control_to:
-        wc = db.query(WorkspaceControl).filter(WorkspaceControl.id == ticket.control_id).first()
-        if wc:
-            wc.status = bump_control_to
-            wc.verified_at = datetime.now(timezone.utc)
-    for eid in evidence_ids:
+    try:
+        existing = json.loads(ticket.linked_evidence_ids_json or "[]")
+        merged = list(dict.fromkeys(existing + evidence_ids))
+        ticket.linked_evidence_ids_json = json.dumps(merged)
+        ticket.status = "evidence_submitted"
+        wc = None
         if ticket.control_id:
-            link = (
-                db.query(ControlEvidenceLink)
-                .filter(
-                    ControlEvidenceLink.control_id == ticket.control_id,
-                    ControlEvidenceLink.evidence_id == eid,
-                )
-                .first()
-            )
-            if not link:
-                db.add(
-                    ControlEvidenceLink(
-                        control_id=ticket.control_id, evidence_id=eid, verified=True
+            wc = db.query(WorkspaceControl).filter(WorkspaceControl.id == ticket.control_id).first()
+        link_workspace_id = wc.workspace_id if wc is not None else ticket.workspace_id
+        verified_at = datetime.utcnow()
+        link_results: list[dict] = []
+        for eid in evidence_ids:
+            if ticket.control_id:
+                link = (
+                    db.query(ControlEvidenceLink)
+                    .filter(
+                        ControlEvidenceLink.control_id == ticket.control_id,
+                        ControlEvidenceLink.evidence_id == eid,
                     )
+                    .first()
                 )
-    _audit(
-        db,
-        ticket.workspace_id,
-        "post_remediation_evidence",
-        actor_user_id,
-        ticket_id,
-        False,
-        {"evidence_ids": evidence_ids},
-    )
-    db.flush()
+                verified = _link_verified(db, link_workspace_id, eid)
+                if link is None:
+                    db.add(
+                        ControlEvidenceLink(
+                            control_id=ticket.control_id,
+                            evidence_id=eid,
+                            verified=verified,
+                            last_verified_at=verified_at if verified else None,
+                        )
+                    )
+                elif link.verified != verified:
+                    link.verified = verified
+                    link.last_verified_at = verified_at if verified else None
+                link_results.append({"evidence_id": eid, "verified": verified})
+                if wc is not None:
+                    mirror_evidence_link(db, wc, eid)
+        # The default implemented bump must not demote a verified control.
+        apply_bump = bool(bump_control_to) and wc is not None
+        if apply_bump and wc.status == "verified" and bump_control_to == "implemented":
+            apply_bump = False
+        if apply_bump:
+            wc.status = bump_control_to
+            synced = sync_workspace_row(db, wc, request_id=new_request_id(), commit=False)
+            if synced.http_status >= 400:
+                db.rollback()
+                detail = synced.error or {"detail": "Control update failed"}
+                return {"error": detail, "http_status": synced.http_status}
+        _audit(
+            db,
+            ticket.workspace_id,
+            "post_remediation_evidence",
+            actor_user_id,
+            ticket_id,
+            False,
+            {"evidence_ids": evidence_ids, "links": link_results},
+        )
+        db.flush()
+    except IntegrityError:
+        db.rollback()
+        raise
     from app.services import remediation_service as rs
 
     return rs._serialize_ticket(ticket)

@@ -251,8 +251,21 @@ def _apply_pair(
     workspace.status = LIFECYCLE_TO_WORKSPACE[lifecycle]
     workspace.owner_user_id = owner_user_id
     workspace.owner_team = owner_team
+    if lifecycle != "verified":
+        workspace.verified_at = None
+        workspace.verified_by_user_id = None
     if name is not None:
         workspace.custom_name = name or None
+
+
+def _identity_conflict() -> dict:
+    return {
+        "contract_version": ERROR_CONTRACT_VERSION,
+        "code": "control_identity_conflict",
+        "message": "Another control already uses this framework and control id",
+        "retryable": False,
+        "partial_failure": False,
+    }
 
 
 def _record_event(
@@ -265,6 +278,7 @@ def _record_event(
     lifecycle: str,
     request_id: str | None,
     outcome: str,
+    commit: bool = True,
 ) -> str | None:
     if request_id:
         existing = (
@@ -290,7 +304,10 @@ def _record_event(
         )
     )
     try:
-        db.commit()
+        if commit:
+            db.commit()
+        else:
+            db.flush()
     except IntegrityError:
         db.rollback()
         return "foreign_key"
@@ -341,6 +358,82 @@ def _find_workspace(db: Session, workspace_id: int, key: str, linked_id: int | N
     )
 
 
+def _existing_create(
+    db: Session,
+    legacy: Control,
+    *,
+    lifecycle: str,
+    owner_user_id: int | None,
+    owner_team: str | None,
+    name: str | None,
+    key: str,
+    request_id: str | None,
+    event_workspace_id: int,
+) -> ContractResult:
+    """Return an unchanged row when a create repeats it. A different create conflicts.
+
+    The repeated call may write the missing contract event. It does not change
+    lifecycle, owner, or name.
+    """
+    workspace = workspace_for_legacy(db, legacy)
+    incoming_name = name or None
+    same = (
+        workspace is not None
+        and legacy.lifecycle == lifecycle
+        and workspace.lifecycle == lifecycle
+        and legacy.owner_user_id == owner_user_id
+        and workspace.owner_user_id == owner_user_id
+        and (legacy.owner_team or None) == owner_team
+        and (workspace.owner_team or None) == owner_team
+        and (legacy.name or None) == incoming_name
+        and legacy.canonical_key == key
+        and workspace.canonical_key == key
+    )
+    if not same:
+        return ContractResult(409, {}, error=_identity_conflict())
+    failure = _record_event(
+        db,
+        event_workspace_id=event_workspace_id,
+        legacy_id=legacy.id,
+        workspace_control_id=workspace.id,
+        key=key,
+        lifecycle=lifecycle,
+        request_id=request_id,
+        outcome="paired",
+    )
+    if failure:
+        return ContractResult(
+            409,
+            {},
+            partial_failure=True,
+            error={
+                "contract_version": ERROR_CONTRACT_VERSION,
+                "code": "control_contract_partial_failure",
+                "message": (
+                    "The control was saved. The contract event could not be written "
+                    "because a foreign-key check failed."
+                ),
+                "retryable": True,
+                "partial_failure": True,
+                "canonical_id": key,
+                "lifecycle": lifecycle,
+                "control_id": legacy.id,
+                "steps": [
+                    {"step": "control_pair", "status": "persisted"},
+                    {"step": "contract_event", "status": "failed", "reason": failure},
+                ],
+            },
+            ids={"legacy_id": legacy.id, "workspace_control_id": workspace.id},
+        )
+    legacy = db.query(Control).filter(Control.id == legacy.id).one()
+    return ContractResult(
+        200,
+        {},
+        created=False,
+        ids={"legacy_id": legacy.id, "workspace_control_id": workspace.id, "legacy": legacy},
+    )
+
+
 def upsert_legacy_control(
     db: Session,
     *,
@@ -356,10 +449,11 @@ def upsert_legacy_control(
     legacy_id: int | None = None,
     _attempt: int = 0,
 ) -> ContractResult:
-    """Create or reuse the legacy row and its compliance pair. Same input, same row.
+    """Create the legacy row and its compliance pair, or update one row by id.
 
-    A concurrent insert that loses the partial unique index retries once and
-    updates the row that won. It does not insert a second canonical key.
+    A create whose identity already exists is a conflict. It does not change
+    that row. A concurrent insert that loses the partial unique index returns
+    the same conflict. It does not update the row that won.
     """
     framework = " ".join(framework.split())
     control_key = " ".join(control_key.split())
@@ -387,21 +481,25 @@ def upsert_legacy_control(
                 return ContractResult(404, {}, error={"detail": "Control not found"})
             other = _find_legacy(db, workspace_id, key, framework, control_key)
             if other is not None and other.id != legacy.id:
-                return ContractResult(
-                    409,
-                    {},
-                    error={
-                        "contract_version": ERROR_CONTRACT_VERSION,
-                        "code": "control_identity_conflict",
-                        "message": "Another control already uses this framework and control id",
-                        "retryable": False,
-                        "partial_failure": False,
-                    },
-                )
+                return ContractResult(409, {}, error=_identity_conflict())
             created = False
         else:
             legacy = _find_legacy(db, workspace_id, key, framework, control_key)
-            created = legacy is None
+            if legacy is not None:
+                return _existing_create(
+                    db,
+                    legacy,
+                    lifecycle=lifecycle,
+                    owner_user_id=owner_user_id,
+                    owner_team=owner_team.strip() if owner_team else None,
+                    name=name,
+                    key=key,
+                    request_id=request_id,
+                    event_workspace_id=(
+                        workspace_id if event_workspace_id is None else event_workspace_id
+                    ),
+                )
+            created = True
         if legacy is None:
             legacy = Control(
                 workspace_id=workspace_id,
@@ -516,6 +614,20 @@ def upsert_legacy_control(
     )
 
 
+def _verified_status_rejected() -> ContractResult:
+    return ContractResult(
+        400,
+        {},
+        error={
+            "contract_version": ERROR_CONTRACT_VERSION,
+            "code": "verified_status_not_allowed",
+            "message": "Verified status cannot be set when creating a control.",
+            "retryable": False,
+            "partial_failure": False,
+        },
+    )
+
+
 def upsert_workspace_control(
     db: Session,
     *,
@@ -528,7 +640,12 @@ def upsert_workspace_control(
     request_id: str | None = None,
     event_workspace_id: int | None = None,
 ) -> ContractResult:
-    """Create or reuse a compliance control and the legacy row that shares its lifecycle."""
+    """Create or reuse a compliance control and the legacy row that shares its lifecycle.
+
+    ``verified`` is refused. A new control has no evidence links, so it cannot qualify.
+    """
+    if workspace_status == "verified":
+        return _verified_status_rejected()
     if workspace_status not in WORKSPACE_TO_LIFECYCLE:
         return ContractResult(400, {}, error={"detail": "invalid status"})
     owner_problem = _owner_error(db, workspace_id, owner_user_id)
@@ -591,17 +708,27 @@ def sync_workspace_row(
     *,
     request_id: str | None = None,
     event_workspace_id: int | None = None,
+    commit: bool = True,
+    check_owner: bool = True,
     _attempt: int = 0,
 ) -> ContractResult:
-    """Copy this compliance row's lifecycle onto the legacy row. Does not insert a second pair."""
+    """Copy this compliance row's lifecycle onto the legacy row. Does not insert a second pair.
+
+    ``check_owner`` is false when the owner is not being changed, such as a
+    demotion after evidence is removed. A suspended owner must not block that.
+    """
     if workspace.status not in WORKSPACE_TO_LIFECYCLE:
         return ContractResult(400, {}, error={"detail": "invalid status"})
-    owner_problem = _owner_error(db, workspace.workspace_id, workspace.owner_user_id)
-    if owner_problem:
-        return ContractResult(404, {}, error=owner_problem)
+    if check_owner:
+        owner_problem = _owner_error(db, workspace.workspace_id, workspace.owner_user_id)
+        if owner_problem:
+            return ContractResult(404, {}, error=owner_problem)
     framework_name = "custom"
-    control_key = " ".join((workspace.custom_name or "").split())
-    if workspace.framework_control_id is not None:
+    control_key = ""
+    # A stored key is the shared identity. The compliance display name is not.
+    if workspace.canonical_key and ":" in workspace.canonical_key:
+        framework_name, control_key = workspace.canonical_key.split(":", 1)
+    elif workspace.framework_control_id is not None:
         fc = (
             db.query(FrameworkControl)
             .filter(FrameworkControl.id == workspace.framework_control_id)
@@ -611,8 +738,8 @@ def sync_workspace_row(
             fw = db.query(Framework).filter(Framework.id == fc.framework_id).first()
             framework_name = fw.name if fw is not None and fw.name else framework_name
             control_key = fc.control_key
-    if not control_key and workspace.canonical_key and ":" in workspace.canonical_key:
-        framework_name, control_key = workspace.canonical_key.split(":", 1)
+    else:
+        control_key = " ".join((workspace.custom_name or "").split())
     if not control_key:
         control_key = f"control-{workspace.id}"
     key = canonical_key(framework_name, control_key)
@@ -645,10 +772,13 @@ def sync_workspace_row(
             legacy_status=LIFECYCLE_TO_LEGACY[lifecycle],
             name=workspace.custom_name,
         )
-        db.commit()
+        if commit:
+            db.commit()
+        else:
+            db.flush()
     except IntegrityError as exc:
         db.rollback()
-        if _attempt or not _canonical_unique_violation(exc):
+        if not commit or _attempt or not _canonical_unique_violation(exc):
             raise
         db.refresh(workspace)
         return sync_workspace_row(
@@ -656,6 +786,8 @@ def sync_workspace_row(
             workspace,
             request_id=request_id,
             event_workspace_id=event_workspace_id,
+            commit=commit,
+            check_owner=check_owner,
             _attempt=1,
         )
     db.refresh(legacy)
@@ -670,7 +802,26 @@ def sync_workspace_row(
         lifecycle=lifecycle,
         request_id=request_id,
         outcome="paired",
+        commit=commit,
     )
+    if failure and not commit:
+        return ContractResult(
+            409,
+            {},
+            error={
+                "contract_version": ERROR_CONTRACT_VERSION,
+                "code": "control_contract_partial_failure",
+                "message": (
+                    "The control was not saved. The contract event could not be written "
+                    "because a foreign-key check failed."
+                ),
+                "retryable": True,
+                "partial_failure": False,
+                "canonical_id": key,
+                "lifecycle": lifecycle,
+                "control_id": legacy.id,
+            },
+        )
     if failure:
         return ContractResult(
             409,
@@ -878,7 +1029,134 @@ def attach_legacy_evidence(
     return ContractResult(200, {}, created=created, ids={"evidence": evidence})
 
 
-def detach_legacy_evidence(db: Session, legacy: Control, evidence: ControlEvidence) -> None:
+def mirror_evidence_link(db: Session, workspace: WorkspaceControl, evidence_item_id: int) -> None:
+    """Copy one compliance evidence link onto the paired legacy control.
+
+    The legacy row is keyed by ``evidence_item_id``. A document id is copied when
+    the evidence item has one. A missing pair, or an evidence item outside this
+    workspace, is left unchanged. The caller commits.
+    """
+    legacy = legacy_for_workspace(db, workspace)
+    if legacy is None:
+        return
+    item = (
+        db.query(EvidenceItem)
+        .filter(
+            EvidenceItem.id == evidence_item_id,
+            EvidenceItem.workspace_id == workspace.workspace_id,
+        )
+        .first()
+    )
+    if item is None:
+        return
+    existing = (
+        db.query(ControlEvidence)
+        .filter(
+            ControlEvidence.control_id == legacy.id,
+            ControlEvidence.evidence_item_id == item.id,
+        )
+        .order_by(ControlEvidence.id)
+        .first()
+    )
+    if existing is None:
+        db.add(
+            ControlEvidence(
+                control_id=legacy.id,
+                document_id=item.document_id,
+                evidence_item_id=item.id,
+            )
+        )
+    elif existing.document_id is None and item.document_id is not None:
+        existing.document_id = item.document_id
+    db.flush()
+
+
+def unmirror_evidence_link(db: Session, workspace: WorkspaceControl, evidence_item_id: int) -> None:
+    """Remove legacy rows that mirror this evidence item. The caller commits."""
+    legacy = legacy_for_workspace(db, workspace)
+    if legacy is None:
+        return
+    rows = (
+        db.query(ControlEvidence)
+        .filter(
+            ControlEvidence.control_id == legacy.id,
+            ControlEvidence.evidence_item_id == evidence_item_id,
+        )
+        .all()
+    )
+    for row in rows:
+        db.delete(row)
+    if rows:
+        db.flush()
+
+
+def demote_verified_without_qualifying_evidence(
+    db: Session,
+    workspace: WorkspaceControl,
+) -> ContractResult | None:
+    """Store ``implemented`` when a verified control no longer has qualifying evidence.
+
+    The caller has already removed the link and flushed. No change returns None
+    and does not commit. A demotion clears the verified timestamps and copies
+    the lifecycle onto the legacy row without checking the owner. The caller
+    commits once, then emits the event.
+    """
+    from app.services.evidence_qualification import has_qualifying_evidence
+
+    if workspace.status != "verified":
+        return None
+    if has_qualifying_evidence(db, workspace.id, workspace.workspace_id):
+        return None
+    workspace.status = "implemented"
+    workspace.verified_at = None
+    workspace.verified_by_user_id = None
+    return sync_workspace_row(
+        db,
+        workspace,
+        request_id=new_request_id(),
+        commit=False,
+        check_owner=False,
+    )
+
+
+def emit_verified_demotion(
+    db: Session, workspace: WorkspaceControl, actor_user_id: int | None
+) -> None:
+    """Record that a verified control was stored as implemented. The caller has committed."""
+    from app.services.compliance_webhook_emitter import (
+        EVENT_CONTROL_IMPLEMENTED,
+        emit_compliance_event,
+    )
+
+    try:
+        emit_compliance_event(
+            db,
+            workspace.workspace_id,
+            EVENT_CONTROL_IMPLEMENTED,
+            {
+                "resource_type": "control",
+                "resource_id": workspace.id,
+                "status": "implemented",
+                "previous_status": "verified",
+                "reason": "no_qualifying_evidence",
+            },
+            user_id=actor_user_id,
+        )
+    except Exception:
+        pass
+
+
+def detach_legacy_evidence(
+    db: Session,
+    legacy: Control,
+    evidence: ControlEvidence,
+    *,
+    actor_user_id: int | None = None,
+) -> ContractResult:
+    """Remove one legacy evidence row and its compliance link.
+
+    A verified control with no qualifying evidence left is stored as implemented.
+    """
     workspace = workspace_for_legacy(db, legacy)
     if workspace is not None and evidence.evidence_item_id is not None:
         link = (
@@ -892,7 +1170,16 @@ def detach_legacy_evidence(db: Session, legacy: Control, evidence: ControlEviden
         if link is not None:
             db.delete(link)
     db.delete(evidence)
+    db.flush()
+    demoted = None
+    if workspace is not None:
+        demoted = demote_verified_without_qualifying_evidence(db, workspace)
+    if demoted is not None and demoted.http_status >= 400:
+        return demoted
     db.commit()
+    if demoted is not None:
+        emit_verified_demotion(db, workspace, actor_user_id)
+    return ContractResult(200, {})
 
 
 def new_request_id() -> str:

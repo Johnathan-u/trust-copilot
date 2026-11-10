@@ -1,9 +1,11 @@
-SHA d3145d20b53cc99481f3b6af03d8c5f15e2b25a7
+parent SHA: 62afe126fdb0c69fe73537c29ee54c8a6869a1e6
+branch: tc/TC-21-002-control-contract
 working directory: apps/api
-command: python -m pytest tests/release/test_domain_controls.py -q
-alembic heads: tc21002_control_contract (head)
+interpreter: /tmp/tc-venv/bin/python
+command: TC_REQUIRE_DB=1 python -m pytest tests/release/test_domain_controls.py -q --tb=line
+database: fresh trustcopilot_test
 
-......                                                                   [100%]
-6 passed, 63 warnings in 5.04s
+...............                                                          [100%]
+15 passed, 205 warnings in 7.33s
 exit status: 0
 skipped: 0

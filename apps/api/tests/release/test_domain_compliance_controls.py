@@ -3,6 +3,7 @@
 Runs on PostgreSQL. Labels are synthetic, not framework text.
 """
 
+import json
 import logging
 import os
 import subprocess
@@ -57,6 +58,8 @@ _COUNTED = (
     "compliance_webhook_outbox",
     "audit_events",
     "control_contract_events",
+    "remediation_audit_events",
+    "remediation_tickets",
     "controls",
     "workspace_controls",
     "user_sessions",
@@ -1118,3 +1121,662 @@ def test_migration_round_trip_restores_duplicate_links():
         after_counts = _counts()
         assert after_counts == before_counts, {"before": before_counts, "after": after_counts}
         print(f"TC21003_COUNTS before={before_counts} after={after_counts}")
+
+
+def _ticket(client, control_id: int) -> int:
+    response = client.post(
+        "/api/remediation/tickets",
+        json={"title": "Synthetic remediation", "control_id": control_id},
+    )
+    assert response.status_code == 200, response.text
+    return response.json()["id"]
+
+
+def _stored_control_status(control_id: int) -> str:
+    session = _db()
+    try:
+        return session.execute(
+            text("SELECT status FROM workspace_controls WHERE id = :id"),
+            {"id": control_id},
+        ).scalar()
+    finally:
+        session.close()
+
+
+def _stored_link_verified_at(control_id: int, evidence_id: int):
+    session = _db()
+    try:
+        return session.execute(
+            text(
+                "SELECT last_verified_at FROM control_evidence_links "
+                "WHERE control_id = :c AND evidence_id = :e"
+            ),
+            {"c": control_id, "e": evidence_id},
+        ).scalar()
+    finally:
+        session.close()
+
+
+def _audit_links(evidence_id: int) -> list[dict]:
+    session = _db()
+    try:
+        rows = session.execute(
+            text(
+                "SELECT payload_json FROM remediation_audit_events "
+                "WHERE action = 'post_remediation_evidence' ORDER BY id DESC LIMIT 30"
+            )
+        ).fetchall()
+    finally:
+        session.close()
+    for row in rows:
+        payload = json.loads(row[0] or "{}")
+        links = payload.get("links") or []
+        if any(item.get("evidence_id") == evidence_id for item in links):
+            return links
+    raise AssertionError(f"no remediation audit links for evidence {evidence_id}")
+
+
+def _stored_link_verified(control_id: int, evidence_id: int) -> bool:
+    session = _db()
+    try:
+        row = session.execute(
+            text(
+                "SELECT verified FROM control_evidence_links "
+                "WHERE control_id = :c AND evidence_id = :e"
+            ),
+            {"c": control_id, "e": evidence_id},
+        ).one()
+        return bool(row[0])
+    finally:
+        session.close()
+
+
+def _legacy_mirror_count(control_id: int, evidence_id: int) -> int:
+    session = _db()
+    try:
+        return int(
+            session.execute(
+                text(
+                    "SELECT count(*) FROM control_evidence ce "
+                    "JOIN controls c ON c.id = ce.control_id "
+                    "WHERE c.workspace_control_id = :c AND ce.evidence_item_id = :e"
+                ),
+                {"c": control_id, "e": evidence_id},
+            ).scalar()
+            or 0
+        )
+    finally:
+        session.close()
+
+
+def _attach_remediation(client, control_id: int, evidence_id: int, bump: str | None):
+    ticket_id = _ticket(client, control_id)
+    return client.post(
+        f"/api/remediation/tickets/{ticket_id}/evidence",
+        json={"evidence_ids": [evidence_id], "bump_control_to": bump},
+    )
+
+
+def test_remediation_evidence_does_not_verify_unqualified_links(client):
+    """Pending, expired, and deleted-document evidence stay unverified.
+
+    A link created here, and a link that was already verified, is not left
+    verified. The control status stays off verified. The legacy mirror still
+    records the evidence item.
+    """
+    actors = _actors()
+    _login(client, ADMIN_EMAIL, ADMIN_PASSWORD)
+    created = _control(client, f"Remediation gate {uuid.uuid4().hex[:8]}")
+    changed = _control(client, f"Remediation clear {uuid.uuid4().hex[:8]}")
+    session = _db()
+    try:
+        pending = _evidence(session, actors["workspace_id"], approval="pending", document_id=None)
+        already = _evidence(session, actors["workspace_id"], approval="pending", document_id=None)
+        session.add(
+            ControlEvidenceLink(
+                control_id=changed["id"],
+                evidence_id=already,
+                verified=True,
+                last_verified_at=datetime.utcnow() - timedelta(days=3),
+            )
+        )
+        expired = _evidence(session, actors["workspace_id"], approval="approved", document_id=None)
+        session.add(
+            EvidenceMetadata(
+                evidence_id=expired,
+                expires_at=datetime.utcnow() - timedelta(days=1),
+            )
+        )
+        _sync_sequence(session, "documents")
+        deleted = Document(
+            workspace_id=actors["workspace_id"],
+            storage_key=f"tc21003/{uuid.uuid4().hex}",
+            filename="deleted.txt",
+            status="uploaded",
+            deleted_at=datetime.utcnow(),
+        )
+        session.add(deleted)
+        session.flush()
+        deleted_evidence = _evidence(
+            session, actors["workspace_id"], approval="approved", document_id=deleted.id
+        )
+        blocked = _evidence(session, actors["workspace_id"], approval="pending", document_id=None)
+        session.commit()
+    finally:
+        session.close()
+
+    for evidence_id in (pending, expired, deleted_evidence):
+        posted = _attach_remediation(client, created["id"], evidence_id, "implemented")
+        assert posted.status_code == 200, posted.text
+        assert _stored_link_verified(created["id"], evidence_id) is False
+        assert _stored_link_verified_at(created["id"], evidence_id) is None
+        assert _stored_control_status(created["id"]) == "implemented"
+        assert _legacy_mirror_count(created["id"], evidence_id) == 1
+        listed_control = client.get(f"/api/compliance/controls/{created['id']}")
+        assert listed_control.status_code == 200, listed_control.text
+        assert listed_control.json()["has_verified"] is False
+        listed_links = client.get(f"/api/compliance/controls/{created['id']}/evidence")
+        assert listed_links.status_code == 200, listed_links.text
+        matched = [row for row in listed_links.json() if row["evidence_id"] == evidence_id]
+        assert matched[0]["verified"] is False
+        assert _audit_links(evidence_id) == [{"evidence_id": evidence_id, "verified": False}]
+
+    cleared = _attach_remediation(client, changed["id"], already, "implemented")
+    assert cleared.status_code == 200, cleared.text
+    assert _stored_link_verified(changed["id"], already) is False
+    assert _stored_link_verified_at(changed["id"], already) is None
+    cleared_control = client.get(f"/api/compliance/controls/{changed['id']}")
+    assert cleared_control.json()["has_verified"] is False
+    assert _audit_links(already) == [{"evidence_id": already, "verified": False}]
+
+    refused = _attach_remediation(client, created["id"], blocked, "verified")
+    assert refused.status_code == 400
+    assert refused.json()["detail"]["code"] == "verified_status_not_allowed"
+    assert _stored_control_status(created["id"]) == "implemented"
+    session = _db()
+    try:
+        missing = session.execute(
+            text(
+                "SELECT count(*) FROM control_evidence_links "
+                "WHERE control_id = :c AND evidence_id = :e"
+            ),
+            {"c": created["id"], "e": blocked},
+        ).scalar()
+        assert int(missing or 0) == 0
+    finally:
+        session.close()
+
+
+def test_remediation_evidence_verifies_only_a_qualifying_link(client):
+    """Approved, current, same-workspace evidence is the only verified link.
+
+    An existing unverified link is updated. A new link is created verified.
+    The control itself stays at the requested bump and is not verified.
+    """
+    actors = _actors()
+    _login(client, ADMIN_EMAIL, ADMIN_PASSWORD)
+    created = _control(client, f"Remediation qualify {uuid.uuid4().hex[:8]}")
+    session = _db()
+    try:
+        manual = _evidence(session, actors["workspace_id"], approval="approved", document_id=None)
+        session.add(
+            ControlEvidenceLink(control_id=created["id"], evidence_id=manual, verified=False)
+        )
+        _sync_sequence(session, "documents")
+        live = Document(
+            workspace_id=actors["workspace_id"],
+            storage_key=f"tc21003/{uuid.uuid4().hex}",
+            filename="current.txt",
+            status="uploaded",
+        )
+        session.add(live)
+        session.flush()
+        documented = _evidence(
+            session, actors["workspace_id"], approval="approved", document_id=live.id
+        )
+        session.commit()
+    finally:
+        session.close()
+
+    ticket_id = _ticket(client, created["id"])
+    posted = client.post(
+        f"/api/remediation/tickets/{ticket_id}/evidence",
+        json={"evidence_ids": [manual, documented], "bump_control_to": "implemented"},
+    )
+    assert posted.status_code == 200, posted.text
+    assert _stored_link_verified(created["id"], manual) is True
+    assert _stored_link_verified(created["id"], documented) is True
+    assert _stored_link_verified_at(created["id"], manual) is not None
+    assert _stored_link_verified_at(created["id"], documented) is not None
+    assert _stored_control_status(created["id"]) == "implemented"
+    assert _legacy_mirror_count(created["id"], manual) == 1
+    assert _legacy_mirror_count(created["id"], documented) == 1
+    assert _audit_links(manual) == [
+        {"evidence_id": manual, "verified": True},
+        {"evidence_id": documented, "verified": True},
+    ]
+
+
+def _approved_pair(workspace_id: int) -> tuple[int, int]:
+    session = _db()
+    try:
+        first = _evidence(session, workspace_id, approval="approved", document_id=None)
+        second = _evidence(session, workspace_id, approval="approved", document_id=None)
+        session.commit()
+        return first, second
+    finally:
+        session.close()
+
+
+def _link_evidence(client, control_id: int, evidence_id: int) -> int:
+    response = client.post(
+        f"/api/compliance/controls/{control_id}/evidence",
+        json={"evidence_id": evidence_id},
+    )
+    assert response.status_code == 201, response.text
+    return response.json()["id"]
+
+
+def _stored_verification(control_id: int) -> tuple:
+    session = _db()
+    try:
+        workspace = session.execute(
+            text(
+                "SELECT status, verified_at, verified_by_user_id "
+                "FROM workspace_controls WHERE id = :id"
+            ),
+            {"id": control_id},
+        ).one()
+        legacy = session.execute(
+            text(
+                "SELECT status, lifecycle FROM controls "
+                "WHERE workspace_control_id = :id ORDER BY id"
+            ),
+            {"id": control_id},
+        ).one()
+        return tuple(workspace) + tuple(legacy)
+    finally:
+        session.close()
+
+
+def _demotion_events(control_id: int) -> int:
+    session = _db()
+    try:
+        rows = session.execute(
+            text(
+                "SELECT payload_json FROM compliance_webhook_outbox "
+                "WHERE event_type = 'control.implemented'"
+            )
+        ).fetchall()
+    finally:
+        session.close()
+    found = 0
+    for row in rows:
+        payload = json.loads(row[0] or "{}")
+        if (
+            payload.get("resource_id") == control_id
+            and payload.get("status") == "implemented"
+            and payload.get("previous_status") == "verified"
+            and payload.get("reason") == "no_qualifying_evidence"
+        ):
+            found += 1
+    return found
+
+
+def _legacy_evidence_id(control_id: int, evidence_id: int) -> tuple[int, int]:
+    session = _db()
+    try:
+        legacy_id = session.execute(
+            text("SELECT id FROM controls WHERE workspace_control_id = :id ORDER BY id"),
+            {"id": control_id},
+        ).scalar()
+        evidence_row = session.execute(
+            text(
+                "SELECT id FROM control_evidence "
+                "WHERE control_id = :c AND evidence_item_id = :e ORDER BY id"
+            ),
+            {"c": legacy_id, "e": evidence_id},
+        ).scalar()
+        return int(legacy_id), int(evidence_row)
+    finally:
+        session.close()
+
+
+def test_removing_last_qualifying_link_demotes_verified_control(client):
+    actors = _actors()
+    _login(client, ADMIN_EMAIL, ADMIN_PASSWORD)
+    created = _control(client, f"Demote {uuid.uuid4().hex[:8]}")
+    first, second = _approved_pair(actors["workspace_id"])
+    first_link = _link_evidence(client, created["id"], first)
+    second_link = _link_evidence(client, created["id"], second)
+    verified = client.post(f"/api/compliance/controls/{created['id']}/verify")
+    assert verified.status_code == 200, verified.text
+    assert verified.json()["status"] == "verified"
+    before_events = _demotion_events(created["id"])
+
+    kept = client.delete(f"/api/compliance/controls/{created['id']}/evidence/{first_link}")
+    assert kept.status_code == 200, kept.text
+    status, verified_at, verified_by, legacy_status, lifecycle = _stored_verification(created["id"])
+    assert status == "verified"
+    assert verified_at is not None
+    assert lifecycle == "verified"
+    assert _demotion_events(created["id"]) == before_events
+
+    removed = client.delete(f"/api/compliance/controls/{created['id']}/evidence/{second_link}")
+    assert removed.status_code == 200, removed.text
+    status, verified_at, verified_by, legacy_status, lifecycle = _stored_verification(created["id"])
+    assert status == "implemented"
+    assert verified_at is None
+    assert verified_by is None
+    assert legacy_status == "implemented"
+    assert lifecycle == "implemented"
+    assert _demotion_events(created["id"]) == before_events + 1
+
+
+def test_legacy_detach_demotes_verified_control_without_qualifying_evidence(client):
+    actors = _actors()
+    _login(client, ADMIN_EMAIL, ADMIN_PASSWORD)
+    created = _control(client, f"Legacy demote {uuid.uuid4().hex[:8]}")
+    first, second = _approved_pair(actors["workspace_id"])
+    _link_evidence(client, created["id"], first)
+    _link_evidence(client, created["id"], second)
+    verified = client.post(f"/api/compliance/controls/{created['id']}/verify")
+    assert verified.status_code == 200, verified.text
+    first_legacy, first_evidence = _legacy_evidence_id(created["id"], first)
+    _second_legacy, second_evidence = _legacy_evidence_id(created["id"], second)
+    before_events = _demotion_events(created["id"])
+
+    kept = client.delete(f"/api/controls/{first_legacy}/evidence/{first_evidence}")
+    assert kept.status_code == 200, kept.text
+    status, _verified_at, _verified_by, _legacy_status, lifecycle = _stored_verification(
+        created["id"]
+    )
+    assert status == "verified"
+    assert lifecycle == "verified"
+    assert _demotion_events(created["id"]) == before_events
+
+    removed = client.delete(f"/api/controls/{first_legacy}/evidence/{second_evidence}")
+    assert removed.status_code == 200, removed.text
+    status, verified_at, verified_by, legacy_status, lifecycle = _stored_verification(created["id"])
+    assert status == "implemented"
+    assert verified_at is None
+    assert verified_by is None
+    assert legacy_status == "implemented"
+    assert lifecycle == "implemented"
+    assert _demotion_events(created["id"]) == before_events + 1
+
+
+def test_create_refuses_verified_status(client):
+    actors = _actors()
+    _login(client, ADMIN_EMAIL, ADMIN_PASSWORD)
+    name = f"Verified create {uuid.uuid4().hex[:8]}"
+    refused = client.post(
+        "/api/compliance/controls",
+        json={"custom_name": name, "status": "verified"},
+    )
+    assert refused.status_code == 400
+    assert refused.json()["detail"]["code"] == "verified_status_not_allowed"
+    assert refused.json()["detail"]["partial_failure"] is False
+    assert _named_control_count(actors["workspace_id"], name) == 0
+
+
+def test_control_engine_does_not_pass_on_unqualified_files(client):
+    actors = _actors()
+    _login(client, ADMIN_EMAIL, ADMIN_PASSWORD)
+    created = _control(client, f"Engine {uuid.uuid4().hex[:8]}")
+    session = _db()
+    try:
+        _sync_sequence(session, "documents")
+        document = Document(
+            workspace_id=actors["workspace_id"],
+            storage_key=f"tc21003/{uuid.uuid4().hex}",
+            filename="pending.txt",
+            status="uploaded",
+        )
+        session.add(document)
+        session.flush()
+        evidence_id = _evidence(
+            session, actors["workspace_id"], approval="pending", document_id=document.id
+        )
+        session.add(
+            ControlEvidenceLink(control_id=created["id"], evidence_id=evidence_id, verified=False)
+        )
+        session.commit()
+    finally:
+        session.close()
+    evaluated = client.post(f"/api/control-engine/evaluate/{created['id']}")
+    assert evaluated.status_code == 200, evaluated.text
+    body = evaluated.json()
+    assert body["evidence_count"] >= 1
+    assert body["status"] != "passing"
+
+
+def _aged_approved_evidence(workspace_id: int, *, age_days: int) -> int:
+    session = _db()
+    try:
+        evidence_id = _evidence(session, workspace_id, approval="approved", document_id=None)
+        session.execute(
+            text("UPDATE evidence_items SET created_at = :created WHERE id = :id"),
+            {"created": datetime.utcnow() - timedelta(days=age_days), "id": evidence_id},
+        )
+        session.commit()
+        return evidence_id
+    finally:
+        session.close()
+
+
+def _link_and_verify(client, control_id: int, evidence_id: int) -> int:
+    link_id = _link_evidence(client, control_id, evidence_id)
+    verified = client.post(f"/api/compliance/controls/{control_id}/verify")
+    assert verified.status_code == 200, verified.text
+    assert verified.json()["status"] == "verified"
+    return link_id
+
+
+def test_control_engine_old_qualifying_evidence_is_stale(client):
+    actors = _actors()
+    _login(client, ADMIN_EMAIL, ADMIN_PASSWORD)
+    created = _control(client, f"Stale engine {uuid.uuid4().hex[:8]}")
+    evidence_id = _aged_approved_evidence(actors["workspace_id"], age_days=200)
+    session = _db()
+    try:
+        session.add(
+            ControlEvidenceLink(control_id=created["id"], evidence_id=evidence_id, verified=False)
+        )
+        session.commit()
+    finally:
+        session.close()
+    evaluated = client.post(f"/api/control-engine/evaluate/{created['id']}")
+    assert evaluated.status_code == 200, evaluated.text
+    assert evaluated.json()["evidence_count"] == 1
+    assert evaluated.json()["status"] == "stale"
+
+
+def test_control_engine_fresh_qualifying_evidence_is_passing(client):
+    """A fresh qualifying item passes. An old qualifying item does not add to that count."""
+    actors = _actors()
+    _login(client, ADMIN_EMAIL, ADMIN_PASSWORD)
+    created = _control(client, f"Fresh engine {uuid.uuid4().hex[:8]}")
+    fresh = _aged_approved_evidence(actors["workspace_id"], age_days=1)
+    old = _aged_approved_evidence(actors["workspace_id"], age_days=200)
+    session = _db()
+    try:
+        session.add(
+            ControlEvidenceLink(control_id=created["id"], evidence_id=fresh, verified=False)
+        )
+        session.add(ControlEvidenceLink(control_id=created["id"], evidence_id=old, verified=False))
+        session.commit()
+    finally:
+        session.close()
+    evaluated = client.post(f"/api/control-engine/evaluate/{created['id']}")
+    assert evaluated.status_code == 200, evaluated.text
+    body = evaluated.json()
+    assert body["evidence_count"] == 2
+    assert body["status"] == "passing"
+    assert body["confidence"] == 65
+    assert body["fresh_evidence"] == 1
+
+
+def test_demotion_proceeds_when_the_owner_is_suspended(client):
+    actors = _actors()
+    _login(client, ADMIN_EMAIL, ADMIN_PASSWORD)
+    owner_id = _extra_member(actors["workspace_id"], suspended=False, remove=False)
+    name = f"Suspended owner {uuid.uuid4().hex[:8]}"
+    created = client.post(
+        "/api/compliance/controls",
+        json={"custom_name": name, "status": "not_implemented", "owner_user_id": owner_id},
+    )
+    assert created.status_code == 200, created.text
+    control_id = created.json()["id"]
+    evidence_id = _aged_approved_evidence(actors["workspace_id"], age_days=1)
+    link_id = _link_and_verify(client, control_id, evidence_id)
+    session = _db()
+    try:
+        session.query(WorkspaceMember).filter(
+            WorkspaceMember.user_id == owner_id,
+            WorkspaceMember.workspace_id == actors["workspace_id"],
+        ).update({"suspended": True})
+        session.commit()
+    finally:
+        session.close()
+    before_events = _demotion_events(control_id)
+    removed = client.delete(f"/api/compliance/controls/{control_id}/evidence/{link_id}")
+    assert removed.status_code == 200, removed.text
+    status, verified_at, verified_by, _legacy_status, lifecycle = _stored_verification(control_id)
+    assert status == "implemented"
+    assert verified_at is None
+    assert verified_by is None
+    assert lifecycle == "implemented"
+    assert _demotion_events(control_id) == before_events + 1
+    session = _db()
+    try:
+        remaining = session.execute(
+            text("SELECT count(*) FROM control_evidence_links WHERE control_id = :id"),
+            {"id": control_id},
+        ).scalar()
+        audit = session.execute(
+            text(
+                "SELECT details FROM audit_events "
+                "WHERE action = 'compliance.control.implemented' AND resource_id = :id "
+                "ORDER BY id DESC LIMIT 1"
+            ),
+            {"id": str(control_id)},
+        ).scalar()
+    finally:
+        session.close()
+    assert int(remaining or 0) == 0
+    recorded = json.loads(audit)
+    assert recorded["previous_status"] == "verified"
+    assert recorded["reason"] == "no_qualifying_evidence"
+    assert recorded["status"] == "implemented"
+
+
+def _owner_snapshot(control_id: int) -> tuple:
+    session = _db()
+    try:
+        workspace = session.execute(
+            text(
+                "SELECT status, owner_user_id, owner_team, custom_name, verified_at, updated_at "
+                "FROM workspace_controls WHERE id = :id"
+            ),
+            {"id": control_id},
+        ).one()
+        legacy = session.execute(
+            text(
+                "SELECT status, lifecycle, owner_user_id, owner_team, name "
+                "FROM controls WHERE workspace_control_id = :id ORDER BY id"
+            ),
+            {"id": control_id},
+        ).all()
+        return (tuple(workspace), tuple(tuple(row) for row in legacy))
+    finally:
+        session.close()
+
+
+def _named_control_count(workspace_id: int, name: str) -> int:
+    session = _db()
+    try:
+        workspace_rows = session.execute(
+            text(
+                "SELECT count(*) FROM workspace_controls "
+                "WHERE workspace_id = :w AND custom_name = :n"
+            ),
+            {"w": workspace_id, "n": name},
+        ).scalar()
+        legacy_rows = session.execute(
+            text("SELECT count(*) FROM controls WHERE workspace_id = :w AND name = :n"),
+            {"w": workspace_id, "n": name},
+        ).scalar()
+        return int(workspace_rows or 0) + int(legacy_rows or 0)
+    finally:
+        session.close()
+
+
+def _extra_member(workspace_id: int, *, suspended: bool, remove: bool) -> int:
+    session = _db()
+    try:
+        _sync_sequence(session, "users")
+        user = User(
+            email=f"tc21003-{uuid.uuid4().hex[:12]}@trust.local",
+            password_hash=hash_password("test-m"),
+            display_name="Synthetic member",
+        )
+        session.add(user)
+        session.flush()
+        session.add(
+            WorkspaceMember(
+                workspace_id=workspace_id,
+                user_id=user.id,
+                role="reviewer",
+                suspended=False if remove else suspended,
+            )
+        )
+        if remove:
+            session.flush()
+            session.query(WorkspaceMember).filter(WorkspaceMember.user_id == user.id).delete()
+        session.commit()
+        return user.id
+    finally:
+        session.close()
+
+
+@pytest.mark.parametrize("kind", ("foreign", "suspended", "removed"))
+def test_compliance_owner_must_be_an_active_workspace_member(client, kind):
+    """Create and patch refuse an owner who is not an active member.
+
+    Foreign, suspended, and removed memberships share owner_not_in_workspace.
+    A removed membership is the inactive member: the user row remains and the
+    membership row does not. The stored control is read back in a new session.
+    """
+    actors = _actors()
+    if kind == "foreign":
+        owner_id = actors["outsider_id"]
+    elif kind == "suspended":
+        owner_id = _extra_member(actors["workspace_id"], suspended=True, remove=False)
+    else:
+        owner_id = _extra_member(actors["workspace_id"], suspended=False, remove=True)
+    _login(client, ADMIN_EMAIL, ADMIN_PASSWORD)
+    name = f"Owner {kind} {uuid.uuid4().hex[:8]}"
+    created_attempt = client.post(
+        "/api/compliance/controls",
+        json={"custom_name": name, "status": "not_implemented", "owner_user_id": owner_id},
+    )
+    assert created_attempt.status_code == 404
+    assert created_attempt.json()["detail"]["code"] == "owner_not_in_workspace"
+    assert created_attempt.json()["detail"]["partial_failure"] is False
+    assert _named_control_count(actors["workspace_id"], name) == 0
+
+    created = _control(client, f"Keep {kind} {uuid.uuid4().hex[:8]}")
+    before = _owner_snapshot(created["id"])
+    patched = client.patch(
+        f"/api/compliance/controls/{created['id']}",
+        json={
+            "owner_user_id": owner_id,
+            "status": "in_progress",
+            "custom_name": f"Changed {kind}",
+        },
+    )
+    assert patched.status_code == 404
+    assert patched.json()["detail"]["code"] == "owner_not_in_workspace"
+    assert patched.json()["detail"]["partial_failure"] is False
+    assert _owner_snapshot(created["id"]) == before
