@@ -1,0 +1,22 @@
+parent SHA: 62afe126fdb0c69fe73537c29ee54c8a6869a1e6
+product code: that parent (review fix stashed)
+tests: review tests on the working tree
+working directory: apps/api
+interpreter: /tmp/tc-venv/bin/python
+command: TC_REQUIRE_DB=1 python -m pytest tests/release/test_domain_controls.py -q --tb=line -k "remediation_evidence_bump_follows or default_bump_keeps or leaving_verified or failure_persists or create_after_rename or routes_agree_on_canonical"
+
+FFFFFF                                                                   [100%]
+FAILED test_routes_agree_on_canonical_contract_and_retry
+  assert 200 == 409
+FAILED test_remediation_evidence_bump_follows_the_control_contract
+  assert '2026-11-10T11:08:28.268531' is None
+FAILED test_remediation_default_bump_keeps_a_verified_control
+  assert 'implemented' == 'verified'
+FAILED test_remediation_leaving_verified_clears_verification_stamps
+  assert '2026-11-10T11:08:29.260943' is None
+FAILED test_remediation_evidence_failure_persists_nothing
+  stored status became implemented while the before row was in_review / in_progress
+FAILED test_create_after_rename_keeps_the_existing_identity
+  assert 200 == 409
+6 failed, 9 deselected, 98 warnings in 3.45s
+exit status: 1
