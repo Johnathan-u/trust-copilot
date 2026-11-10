@@ -5,9 +5,6 @@ AC2: concurrent two-tenant retrieval completes without transaction corruption or
 
 Synthetic data only; no LLM / network calls (retrieval is DB-only, embeddings are hand-built).
 Requires Postgres with pgvector (skips when unavailable).
-
-Location note: the ticket proposes tests/release/test_session_concurrency.py; per Coordinator
-ruling Q3 (TC-02-001 owns the release-test tree) this file lives in tests/ for now.
 """
 
 from __future__ import annotations
