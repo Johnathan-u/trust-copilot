@@ -18,7 +18,7 @@ From `apps/api`, with `SESSION_SECRET=test-secret`, `TC_REQUIRE_DB=1`, `TC_REQUI
 pytest -rs
 ```
 
-`tests/release/test_registration.py` runs as part of the full suite. It is the ticket's `python -m pytest tests/release/test_registration.py -q`, run with every other test.
+`tests/release/test_registration.py` runs as part of the full suite, which covers the ticket's command `python -m pytest tests/release/test_registration.py -q`.
 
 ## Environment
 
@@ -39,3 +39,5 @@ pytest -rs
 
 - No live identity provider was called. Provider flows use mocked token exchanges and signed test tokens.
 - `email-verification.spec.ts` (4 passed in `web-release-e2e`) mocks every API route. The real path, from mailed link to page to API, has not been exercised end to end.
+- CI uses the in-process rate-limit store. The Redis-backed lockout never ran; fail-closed behaviour was tested with a fake store.
+- The row-lock race between a login and an invite claim was never run with real concurrency. Only the locked re-read is tested.
