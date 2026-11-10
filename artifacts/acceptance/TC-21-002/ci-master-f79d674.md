@@ -1,6 +1,10 @@
 # TC-21-002: release test run at the accepted commit
 
-This file records `tests/release/test_domain_controls.py` at the commit where TC-21-002 and TC-21-003 are accepted together. Both are accepted at the same commit because TC-21-002's evidence gate on remediation links came in #198. The coordinator wrote this record from the CI job log. GitHub deletes CI logs after their retention period, so the record is also kept here. The other files in this folder record the worker's local runs.
+This file records `tests/release/test_domain_controls.py` at the commit where TC-21-002 and TC-21-003 are accepted together. Both are accepted at the same commit because TC-21-002's evidence gate on remediation links came in #198. The coordinator wrote this record from the CI job log. GitHub deletes CI logs after their retention period, so the record is also kept here. The other files in this folder record the worker's local runs. Two of them are not raw output:
+- `pytest-q-review-without-fix.txt` is a hand-written summary of the run without the fix.
+- `pytest-q-without-fix.txt` came from an earlier version of the tests.
+
+The proof at the accepted commit is this record and the CI run.
 
 ## Commit and run
 
