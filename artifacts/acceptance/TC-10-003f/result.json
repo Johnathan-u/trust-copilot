@@ -1,5 +1,5 @@
 {
-  "ticket": "TC-10-003a",
+  "ticket": "TC-10-003f",
   "parent": "a2b39c80ce14f130285d380db87de75227675a6f",
   "command": "SESSION_SECRET=test-secret TC_REQUIRE_DB=1 TC_REQUIRE_WEB_TOOLCHAIN=1 TC_REQUIRE_API_QUALITY=1 python -m pytest -rs --tb=line -q",
   "working_directory": "apps/api",
