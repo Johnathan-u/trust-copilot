@@ -69,8 +69,39 @@ the moved path.
   Full suite: 6318 passed, 1 skipped, 51 warnings. The skip is
   `tests/test_trust_scoring_blind.py:33` (external data) and is unrelated.
 
-## Moved file
+## Moved file at `583fddf`
 
-`apps/api/tests/release/test_session_concurrency.py` is the path under test from this
-branch on. The run of that path, at this pull request's CI head, is added in a
-follow-up commit. That commit cannot name its own SHA.
+The file is `apps/api/tests/release/test_session_concurrency.py`. This section records
+the CI runs of commit `583fddf4f74425e1a1e70afa4abc43ca001dd01a`. The commit that
+adds this section is a later SHA, so it is not the SHA under test.
+
+Both `build` and `web-release-e2e` succeeded on the push and on the pull request.
+
+| Event | Run | Build job | web-release-e2e job |
+|---|---|---|---|
+| push | [42848461505](https://github.com/Johnathan-u/trust-copilot/actions/runs/42848461505) | 129942255181 | 129942255724 |
+| pull_request | [42848748003](https://github.com/Johnathan-u/trust-copilot/actions/runs/42848748003) | 129943267751 | 129943268547 |
+
+- Command: from `apps/api`, `pytest -rs`, with `SESSION_SECRET=test-secret`,
+  `TC_REQUIRE_DB=1`, `TC_REQUIRE_WEB_TOOLCHAIN=1` and `TC_REQUIRE_API_QUALITY=1`.
+  That is the suite that runs the ticket command
+  `python -m pytest tests/release/test_session_concurrency.py -q`.
+- Environment: GitHub-hosted `ubuntu-26.04` image `20261101.186.1`; Python 3.11.18;
+  pytest 9.1.1; SQLAlchemy 2.0.55; psycopg2-binary 2.9.13; pgvector 0.5.1.
+  PostgreSQL image `pgvector/pgvector:pg16` (16.15, vector 0.8.7), digest
+  `sha256:7b822b0aac60967beb1ea5e576b8602c94c300a157d187f385ae3e0da199b90a`.
+  Push database `tc_ci_42848461505_1_test`. Pull-request database
+  `tc_ci_42848748003_1_test`. Both on `127.0.0.1:5432`.
+- Exit status: 0 on both build jobs.
+- Totals for this file: 9 passed, 0 skipped. Push build log:
+
+```
+tests/release/test_session_concurrency.py .........                      [ 73%]
+```
+
+  The pull-request build log has the same line. Nine dots, no failures.
+- Full suite, both runs: 6419 passed, 1 skipped, 51 warnings. Push duration
+  644.82s. Pull-request duration 800.36s. The skip is
+  `tests/test_trust_scoring_blind.py:33` (external data) and is unrelated.
+
+`result.json` in this directory is the same record. Reviewer signoff is still pending.

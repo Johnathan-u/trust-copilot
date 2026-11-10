@@ -1,0 +1,66 @@
+{
+  "ticket": "TC-08-005",
+  "tested_sha": "583fddf4f74425e1a1e70afa4abc43ca001dd01a",
+  "file": "apps/api/tests/release/test_session_concurrency.py",
+  "command": "pytest -rs",
+  "ticket_command": "python -m pytest tests/release/test_session_concurrency.py -q",
+  "working_directory": "apps/api",
+  "command_env": {
+    "SESSION_SECRET": "test-secret",
+    "TC_REQUIRE_DB": "1",
+    "TC_REQUIRE_WEB_TOOLCHAIN": "1",
+    "TC_REQUIRE_API_QUALITY": "1"
+  },
+  "exit_status": 0,
+  "file_totals": {
+    "passed": 9,
+    "failed": 0,
+    "skipped": 0
+  },
+  "log_line": "tests/release/test_session_concurrency.py .........                      [ 73%]",
+  "suite_totals": {
+    "passed": 6419,
+    "failed": 0,
+    "skipped": 1,
+    "warnings": 51
+  },
+  "skipped_detail": "tests/test_trust_scoring_blind.py:33: external_data: blind test pack not checked in; set TC_TRUST_SCORING_BLIND_PACK to run",
+  "environment": {
+    "runner_image": "ubuntu-26.04",
+    "runner_image_version": "20261101.186.1",
+    "python": "3.11.18",
+    "pytest": "9.1.1",
+    "sqlalchemy": "2.0.55",
+    "psycopg2_binary": "2.9.13",
+    "pgvector": "0.5.1",
+    "postgresql_image": "pgvector/pgvector:pg16@sha256:7b822b0aac60967beb1ea5e576b8602c94c300a157d187f385ae3e0da199b90a",
+    "postgresql": "16.15"
+  },
+  "runs": [
+    {
+      "event": "push",
+      "run_id": 42848461505,
+      "url": "https://github.com/Johnathan-u/trust-copilot/actions/runs/42848461505",
+      "build_job_id": 129942255181,
+      "web_release_e2e_job_id": 129942255724,
+      "conclusion": "success",
+      "database": "tc_ci_42848461505_1_test",
+      "duration_seconds": 644.82
+    },
+    {
+      "event": "pull_request",
+      "run_id": 42848748003,
+      "url": "https://github.com/Johnathan-u/trust-copilot/actions/runs/42848748003",
+      "build_job_id": 129943267751,
+      "web_release_e2e_job_id": 129943268547,
+      "conclusion": "success",
+      "database": "tc_ci_42848748003_1_test",
+      "duration_seconds": 800.36
+    }
+  ],
+  "notes": [
+    "This file records CI of 583fddf. The commit that adds it is a later SHA.",
+    "The nine dots on the log line are the nine tests in tests/release/test_session_concurrency.py. None failed and none skipped.",
+    "Reviewer signoff is still pending. This record does not accept the ticket."
+  ]
+}
