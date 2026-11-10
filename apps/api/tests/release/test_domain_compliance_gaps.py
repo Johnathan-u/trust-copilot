@@ -19,6 +19,7 @@ from sqlalchemy.orm import Session
 from app.api.routes import compliance_gaps as gaps_mod
 from app.core.database import SessionLocal, engine
 from app.core.password import hash_password
+from tests.conftest import established_user, mark_established
 from app.models import (
     CONTROL_CHECK_CLOSE_REASON,
     ControlEvidenceLink,
@@ -211,7 +212,9 @@ def _actors() -> dict[str, int]:
             user = session.query(User).filter(User.email == email).one_or_none()
             if user is None:
                 _sync_sequence(session, "users")
-                user = User(email=email, password_hash=hash_password(password), display_name=email)
+                user = established_user(
+                    email=email, password_hash=hash_password(password), display_name=email
+                )
                 session.add(user)
                 session.flush()
             else:
@@ -231,6 +234,7 @@ def _actors() -> dict[str, int]:
             else:
                 row.role = role
                 row.suspended = False
+            mark_established(user)
             return user
 
         admin = member(ADMIN_EMAIL, ADMIN_PASSWORD, "admin", workspace)

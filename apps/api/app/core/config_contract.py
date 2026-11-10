@@ -451,8 +451,8 @@ CONTRACT: tuple[ConfigVar, ...] = (
         "int or 'default'",
         "optional",
         False,
-        "1",
-        "JIT SSO workspace.",
+        "unset",
+        "No implicit workspace. Provider sign-in does not join a workspace; an explicit id is not applied.",
     ),
     ConfigVar(
         "OAUTH_GOOGLE_CLIENT_ID",
@@ -492,7 +492,7 @@ CONTRACT: tuple[ConfigVar, ...] = (
         "optional",
         False,
         "unset",
-        "Microsoft OAuth (pair with secret).",
+        "Microsoft OAuth (pair with secret). In Entra, Token configuration, add the optional claim xms_edov to the ID token. Personal Microsoft accounts may not send it. Without it, an unlinked Microsoft sign-in is rejected.",
     ),
     ConfigVar(
         "OAUTH_MICROSOFT_CLIENT_SECRET",

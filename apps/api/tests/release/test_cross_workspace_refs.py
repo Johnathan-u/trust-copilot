@@ -46,6 +46,7 @@ from app.models.vendor_request import VendorRequest
 from app.models.workspace_control import WorkspaceControl
 from app.services.cross_workspace_audit import CHECKS, run_audit
 from tests.release.test_parent_workspace_move import move_parent_before_triggers
+from tests.conftest import established_user
 
 OWN_WS = 1
 OTHER_WS = 2
@@ -397,7 +398,7 @@ def test_detector_script_print_sql_needs_no_database():
 def _ensure_admin(db: Session) -> None:
     user = db.query(User).filter(User.email == ADMIN_EMAIL).first()
     if not user:
-        user = User(
+        user = established_user(
             email=ADMIN_EMAIL, password_hash=hash_password(ADMIN_PASSWORD), display_name="x"
         )
         db.add(user)

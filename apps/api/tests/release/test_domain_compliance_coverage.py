@@ -28,6 +28,7 @@ from app.models import (
 )
 from app.services import compliance_coverage as coverage_mod
 from app.services.compliance_coverage import CONTROL_COVERAGE_SCHEMA
+from tests.conftest import established_user, mark_established
 
 SLUG = "tc21007"
 ADMIN_EMAIL = "tc21007-admin@trust.local"
@@ -183,7 +184,9 @@ def _actors() -> dict[str, int]:
             user = session.query(User).filter(User.email == email).one_or_none()
             if user is None:
                 _sync_sequence(session, "users")
-                user = User(email=email, password_hash=hash_password(password), display_name=email)
+                user = established_user(
+                    email=email, password_hash=hash_password(password), display_name=email
+                )
                 session.add(user)
                 session.flush()
             else:
@@ -205,6 +208,7 @@ def _actors() -> dict[str, int]:
             else:
                 row.role = role_name
                 row.suspended = False
+            mark_established(user)
             return user
 
         admin = member(ADMIN_EMAIL, ADMIN_PASSWORD, "admin", workspace)

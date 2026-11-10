@@ -5,7 +5,10 @@ import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
 import { Card, Button, Input } from '@/components/ui'
 import { formatApiErrorDetail } from '@/lib/api-error'
-import { loginContinuation } from '@/lib/login-continuation'
+import {
+  loginContinuation,
+  requestVerificationEmail,
+} from '@/lib/login-continuation'
 import { safePostLoginPath } from '@/lib/post-login-path'
 
 // TC-07-001: no demo credentials in the shipped bundle by default. The one-click demo is only
@@ -42,6 +45,9 @@ function LoginContent() {
   const [recoveryCodes, setRecoveryCodes] = useState<string[]>([])
   const [enrolBusy, setEnrolBusy] = useState(false)
   const [rememberMe, setRememberMe] = useState(false)
+  const [canResendVerification, setCanResendVerification] = useState(false)
+  const [resendBusy, setResendBusy] = useState(false)
+  const [resendNotice, setResendNotice] = useState('')
   // Default to showing Google and GitHub so buttons are visible; API can hide if not configured
   const [oauthProviders, setOauthProviders] = useState<OAuthProviders>({
     google: true,
@@ -137,6 +143,8 @@ function LoginContent() {
     })
     const data = await res.json().catch(() => ({}))
     const step = loginContinuation(res.status, data)
+    setCanResendVerification(step.kind === 'email-not-verified')
+    setResendNotice('')
     if (step.kind === 'mfa-challenge') {
       setMfaToken(typeof data.mfa_token === 'string' ? data.mfa_token : '')
       setMfaStep(true)
@@ -146,7 +154,7 @@ function LoginContent() {
       setError('Too many attempts. Try again later.')
       return
     }
-    if (step.kind === 'failed') {
+    if (step.kind === 'email-not-verified' || step.kind === 'failed') {
       setError(step.message)
       return
     }
@@ -161,6 +169,22 @@ function LoginContent() {
       return
     }
     window.location.href = next
+  }
+
+  const onResendVerification = async () => {
+    setResendBusy(true)
+    setError('')
+    setResendNotice('')
+    try {
+      const result = await requestVerificationEmail(email)
+      if (result.kind === 'sent' || result.kind === 'rate-limited') {
+        setResendNotice(result.message)
+        return
+      }
+      setError(result.message)
+    } finally {
+      setResendBusy(false)
+    }
   }
 
   const onMfaSubmit = async (e: React.FormEvent) => {
@@ -447,6 +471,30 @@ function LoginContent() {
             Keep me signed in
           </label>
           {error && <p className="text-sm text-[var(--tc-danger)]">{error}</p>}
+          {resendNotice && (
+            <p className="text-sm text-[var(--tc-muted)]">{resendNotice}</p>
+          )}
+          {canResendVerification && (
+            <div className="space-y-2">
+              <Button
+                type="button"
+                variant="ghost"
+                className="w-full"
+                onClick={() => void onResendVerification()}
+                disabled={resendBusy}
+              >
+                {resendBusy ? 'Sending…' : 'Send a new verification email'}
+              </Button>
+              <p className="text-sm text-[var(--tc-muted)]">
+                <Link
+                  href="/verify-email"
+                  className="text-[var(--tc-soft)] underline"
+                >
+                  Enter your verification code
+                </Link>
+              </p>
+            </div>
+          )}
           <Button type="submit" className="w-full">
             Sign in
           </Button>

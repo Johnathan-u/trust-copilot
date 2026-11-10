@@ -17,6 +17,9 @@ from contextvars import ContextVar
 from datetime import datetime, timezone
 from typing import Any, Iterable, NamedTuple
 
+from sqlalchemy import and_, or_
+from sqlalchemy import text as sql_text
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.core.pipeline_logging import log_answer_gen_start, log_answer_gen_success
@@ -1656,25 +1659,37 @@ def _sweep_draft_insufficient_narratives(
         )
 
         if is_insufficient_answer_text(a.text) or no_citations or direct_ev_missing:
-            a.status = "insufficient_evidence"
+            values: dict[str, Any] = {
+                "status": "insufficient_evidence",
+                "confidence": 0,
+                "updated_at": datetime.utcnow(),
+            }
             if no_citations and not a.insufficient_reason:
-                a.insufficient_reason = "no_citations"
+                values["insufficient_reason"] = "no_citations"
             elif direct_ev_missing and not a.insufficient_reason:
                 # Same reason format as the pre-LLM gate in generate_answers_for_questionnaire.
-                a.insufficient_reason = f"direct_evidence_required:{direct_subject}"
+                values["insufficient_reason"] = f"direct_evidence_required:{direct_subject}"
             if getattr(a, "outcome_code", None) in (
                 None,
                 ModelOutcomeCode.GROUNDED.value,
                 ModelOutcomeCode.GROUNDED_UNVERIFIED.value,
             ):
-                a.outcome_code = (
+                values["outcome_code"] = (
                     # No direct evidence: same outcome as the pre-LLM direct-evidence gate.
                     ModelOutcomeCode.NO_EVIDENCE.value
                     if no_citations or direct_ev_missing
                     else ModelOutcomeCode.MODEL_ABSTAINED.value
                 )
-            a.confidence = 0
-            n += 1
+            # A fake session (unit tests) has no conditional UPDATE. Real rows use one so an
+            # approval that committed after this load matches zero rows and is kept.
+            if not isinstance(db, Session) or not isinstance(a, Answer):
+                for key, value in values.items():
+                    setattr(a, key, value)
+                n += 1
+            elif _update_answer_if_writable(db, a, values, guard, require_status="draft"):
+                n += 1
+            elif guard is not None:
+                guard.protected_qids.add(a.question_id)
     if n:
         db.commit()
     return n
@@ -1704,6 +1719,112 @@ def _adjust_run_stats_after_sweep(run_stats: dict[str, int | float], swept: int)
         run_stats["insufficient_evidence"] = int(run_stats["insufficient_evidence"]) + swept
 
 
+def _load_answer_for_write(db: Session, question_id: int, guard: AnswerWriteGuard | None) -> Any:
+    """Re-read the question's answer so a commit from another session is visible."""
+    with db.no_autoflush:
+        query = db.query(Answer).filter(Answer.question_id == question_id)
+        if guard is not None and question_id not in guard.written:
+            # A human may have approved or edited the row during this run.
+            query = query.populate_existing()
+        return query.order_by(Answer.id).first()
+
+
+def _answer_became_protected(guard: AnswerWriteGuard | None, question_id: int) -> None:
+    if guard is None:
+        return
+    guard.protected_qids.add(question_id)
+    logger.info(
+        "answer_generation: question_id=%s answer became protected mid-run; not overwritten",
+        question_id,
+    )
+
+
+def _mark_answer_written(guard: AnswerWriteGuard | None, question_id: int) -> None:
+    if guard is not None:
+        guard.written.add(question_id)
+
+
+def _update_answer_if_writable(
+    db: Session,
+    row: Any,
+    values: dict[str, Any],
+    guard: AnswerWriteGuard | None,
+    *,
+    require_status: str | None = None,
+) -> bool:
+    """Update one answer only while it is still unprotected.
+
+    The predicate is evaluated in the UPDATE itself, so an approval or a newer edit that
+    committed after this process read the row changes zero rows and is kept.
+    """
+    clauses = [Answer.id == row.id, Answer.status != "approved"]
+    if require_status is not None:
+        clauses.append(Answer.status == require_status)
+    if guard is not None and guard.cutoff is not None and row.question_id not in guard.written:
+        clauses.append(
+            or_(
+                Answer.updated_at.is_(None),
+                Answer.updated_at <= guard.cutoff,
+                and_(
+                    Answer.status == "insufficient_evidence",
+                    Answer.insufficient_reason == "llm_error",
+                ),
+            )
+        )
+    updated = db.query(Answer).filter(*clauses).update(values, synchronize_session="fetch")
+    db.expire(row)
+    return updated > 0
+
+
+def _insert_answer(db: Session, row: Answer) -> bool:
+    """Insert ``row``. False when another transaction already stored that question's answer."""
+    try:
+        with db.begin_nested():
+            db.add(row)
+            db.flush()
+    except IntegrityError:
+        return False
+    return True
+
+
+# Distinct from the evidence-gap advisory lock (150015). Held until the caller's commit.
+_ANSWER_WRITE_LOCK_NS = 100003
+
+
+def _lock_answer_write(db: Session, question_id: int) -> None:
+    """Serialize generation writes for one question until this transaction ends."""
+    db.execute(
+        sql_text("SELECT pg_advisory_xact_lock(:ns, :question_id)"),
+        {"ns": _ANSWER_WRITE_LOCK_NS, "question_id": int(question_id)},
+    )
+
+
+def _new_answer(
+    question_id: int,
+    text: str,
+    citations: list[dict],
+    confidence: int,
+    answer_status: str,
+    insufficient_reason: str | None,
+    gating_reason: str | None,
+    primary_categories_json: str | None,
+    evidence_fingerprint: str | None,
+    outcome_value: str | None,
+) -> Answer:
+    return Answer(
+        question_id=question_id,
+        text=text,
+        status=answer_status,
+        citations=json.dumps(citations),
+        confidence=confidence,
+        insufficient_reason=insufficient_reason,
+        gating_reason=gating_reason,
+        primary_categories_json=primary_categories_json,
+        evidence_fingerprint=evidence_fingerprint,
+        outcome_code=outcome_value,
+    )
+
+
 def _upsert_answer(
     db: Session,
     question_id: int,
@@ -1718,29 +1839,124 @@ def _upsert_answer(
     evidence_fingerprint: str | None = None,
     outcome_code: ModelOutcomeCode | str | None = None,
 ) -> None:
-    """Create or update an Answer for a question (never overwrites a protected answer, TC-10-003)."""
+    """Create or update an Answer for a question (never overwrites a protected answer)."""
     guard = _WRITE_GUARD.get()
     outcome_value = (
         outcome_code.value if isinstance(outcome_code, ModelOutcomeCode) else outcome_code
     )
+    if not isinstance(db, Session):
+        _upsert_answer_in_memory(
+            db,
+            question_id,
+            text,
+            citations,
+            confidence,
+            answer_status,
+            guard,
+            insufficient_reason=insufficient_reason,
+            gating_reason=gating_reason,
+            primary_categories_json=primary_categories_json,
+            evidence_fingerprint=evidence_fingerprint,
+            outcome_value=outcome_value,
+        )
+        return
+    _lock_answer_write(db, question_id)
+    values: dict[str, Any] = {
+        "text": text,
+        "citations": json.dumps(citations),
+        "status": answer_status,
+        "confidence": confidence,
+        "insufficient_reason": insufficient_reason,
+        "gating_reason": gating_reason,
+        "primary_categories_json": primary_categories_json,
+        "outcome_code": outcome_value,
+        "updated_at": datetime.utcnow(),
+    }
+    if evidence_fingerprint is not None:
+        values["evidence_fingerprint"] = evidence_fingerprint
+    existing = _load_answer_for_write(db, question_id, guard)
+    if _write_loaded_answer(db, question_id, existing, values, guard):
+        return
+    # The first read can be stale: look again under the lock before inserting.
+    existing = _load_answer_for_write(db, question_id, guard)
+    if existing is not None and _write_loaded_answer(db, question_id, existing, values, guard):
+        return
+    inserted = _insert_answer(
+        db,
+        _new_answer(
+            question_id,
+            text,
+            citations,
+            confidence,
+            answer_status,
+            insufficient_reason,
+            gating_reason,
+            primary_categories_json,
+            evidence_fingerprint,
+            outcome_value,
+        ),
+    )
+    if inserted:
+        _mark_answer_written(guard, question_id)
+        return
+    winner = _load_answer_for_write(db, question_id, guard)
+    if winner is None:
+        return
+    if not _write_loaded_answer(db, question_id, winner, values, guard):
+        _answer_became_protected(guard, question_id)
+
+
+def _write_loaded_answer(
+    db: Session,
+    question_id: int,
+    existing: Any,
+    values: dict[str, Any],
+    guard: AnswerWriteGuard | None,
+) -> bool:
+    """Apply ``values`` to ``existing``. True when this call finished the upsert."""
+    if existing is None:
+        return False
+    if guard is not None and question_id not in guard.written and guard.is_protected(existing):
+        _answer_became_protected(guard, question_id)
+        return True
+    if _update_answer_if_writable(db, existing, values, guard):
+        _mark_answer_written(guard, question_id)
+        return True
+    refreshed = _load_answer_for_write(db, question_id, guard)
+    if refreshed is not None:
+        _answer_became_protected(guard, question_id)
+        return True
+    return False
+
+
+def _upsert_answer_in_memory(
+    db: Any,
+    question_id: int,
+    text: str,
+    citations: list[dict],
+    confidence: int,
+    answer_status: str,
+    guard: AnswerWriteGuard | None,
+    *,
+    insufficient_reason: str | None,
+    gating_reason: str | None,
+    primary_categories_json: str | None,
+    evidence_fingerprint: str | None,
+    outcome_value: str | None,
+) -> None:
+    """Attribute write for fake sessions that are not a database transaction."""
     with db.no_autoflush:
-        q = db.query(Answer).filter(Answer.question_id == question_id)
+        query = db.query(Answer).filter(Answer.question_id == question_id)
         if guard is not None and question_id not in guard.written:
-            q = (
-                q.populate_existing()
-            )  # re-read: a human may have approved/edited it during this run
-        existing = q.first()
+            query = query.populate_existing()
+        existing = query.first()
     if (
         guard is not None
         and existing is not None
         and question_id not in guard.written
         and guard.is_protected(existing)
     ):
-        guard.protected_qids.add(question_id)
-        logger.info(
-            "answer_generation: question_id=%s answer became protected mid-run; not overwritten",
-            question_id,
-        )
+        _answer_became_protected(guard, question_id)
         return
     if guard is not None:
         guard.written.add(question_id)
@@ -1755,17 +1971,18 @@ def _upsert_answer(
         existing.outcome_code = outcome_value
         if evidence_fingerprint is not None:
             existing.evidence_fingerprint = evidence_fingerprint
-    else:
-        a = Answer(
-            question_id=question_id,
-            text=text,
-            status=answer_status,
-            citations=json.dumps(citations),
-            confidence=confidence,
-            insufficient_reason=insufficient_reason,
-            gating_reason=gating_reason,
-            primary_categories_json=primary_categories_json,
-            evidence_fingerprint=evidence_fingerprint,
-            outcome_code=outcome_value,
+        return
+    db.add(
+        _new_answer(
+            question_id,
+            text,
+            citations,
+            confidence,
+            answer_status,
+            insufficient_reason,
+            gating_reason,
+            primary_categories_json,
+            evidence_fingerprint,
+            outcome_value,
         )
-        db.add(a)
+    )

@@ -29,6 +29,7 @@ from app.models.shareable_space import ShareableSpace
 from app.models.user import User, WorkspaceMember
 from app.models.user_session import UserSession
 from app.models.workspace import Workspace
+from tests.conftest import established_user
 
 API_ROOT = Path(__file__).resolve().parents[2]
 REVISION = "tc23001_deal_types"
@@ -100,7 +101,7 @@ def isolated(client: TestClient, db_session: Session) -> Iterator[dict]:
     workspace = Workspace(name="Synthetic Deals", slug=f"tc23001-{token}")
     db_session.add(workspace)
     db_session.flush()
-    user = User(
+    user = established_user(
         email=f"tc23001-{token}@trust.local",
         password_hash=hash_password(PASSWORD),
         display_name="Synthetic Deal Admin",
@@ -108,7 +109,7 @@ def isolated(client: TestClient, db_session: Session) -> Iterator[dict]:
     db_session.add(user)
     db_session.flush()
     db_session.add(WorkspaceMember(workspace_id=workspace.id, user_id=user.id, role="admin"))
-    outsider = User(
+    outsider = established_user(
         email=f"tc23001-out-{token}@trust.local",
         password_hash=hash_password(PASSWORD),
         display_name="Synthetic Other Member",

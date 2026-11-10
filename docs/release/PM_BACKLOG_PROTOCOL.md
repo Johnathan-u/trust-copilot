@@ -33,7 +33,7 @@ Release gates and supplemental scope remain visible independently of this percen
 
 ## One writer and one update per meaningful batch
 
-The existing coordinator lease remains mandatory. Codex PM currently holds the coordinator role under the succession decision; Grok PM contributes through the current coordinator when it does not own that role. Workers must not race to update the shared ledger or self-merge.
+The existing coordinator lease remains mandatory. Codex PM currently holds the coordinator role under the succession decision; Grok PM contributes through the current coordinator when it does not own that role. Workers must not race to update the shared ledger or self-merge, except worker self-merges under OD-15 (`docs/acceptance/release-decisions.md`).
 
 1. Refresh master, the state revision, relevant issue #85 entries, actual PR heads and CI. Reconcile changes since the snapshot.
 2. Claim executable work and exclusive files in #85, following the existing protocol.

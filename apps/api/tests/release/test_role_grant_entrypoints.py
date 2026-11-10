@@ -143,7 +143,10 @@ def grants(request, monkeypatch, capsys):
             ("foreign", "empty", ws_ids[1]),
         ):
             user = User(
-                email=f"entry-grants-{name}-{token}@example.com", password_hash="synthetic-unused"
+                email=f"entry-grants-{name}-{token}@example.com",
+                password_hash="synthetic-unused",
+                # The invitee already proved the address, so acceptance keeps this session.
+                email_verified=name == "invitee",
             )
             db.add(user)
             db.flush()
@@ -274,7 +277,13 @@ def accept_console_invite(state):
             json={"email": state["actors"]["invitee"]["email"], "code": match.group(1)},
         )
         assert verified.status_code == 200
-        accepted = guest.post("/api/auth/accept-invite", json={"token": verified.json()["token"]})
+        accepted = guest.post(
+            "/api/auth/accept-invite",
+            json={
+                "token": verified.json()["token"],
+                "password": secrets.token_urlsafe(18),
+            },
+        )
         assert accepted.status_code == 200
     state["db"].expire_all()
     member = (

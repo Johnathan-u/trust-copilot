@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import secrets
 from datetime import datetime, timedelta, timezone
 from unittest.mock import patch
 
@@ -263,8 +264,10 @@ class TestInviteP14Backend:
         )
         assert r11.status_code == 429
 
-    def test_accept_invite_existing_user_no_password_after_verify(self, client: TestClient) -> None:
-        """Existing account: verify code then accept-invite with password omitted joins workspace."""
+    def test_accept_invite_existing_unverified_user_replaces_password(
+        self, client: TestClient
+    ) -> None:
+        """Unverified account: accepting an invite replaces the password and drops the old one."""
         email = "p14_exist@test.local"
         _cleanup_invite_email(email)
         db = SessionLocal()
@@ -308,7 +311,12 @@ class TestInviteP14Backend:
         )
         assert rv.status_code == 200
         tok = rv.json()["token"]
-        ra = client.post("/api/auth/accept-invite", json={"token": tok})
+        missing = client.post("/api/auth/accept-invite", json={"token": tok})
+        assert missing.status_code == 400
+        chosen = secrets.token_urlsafe(18)
+        ra = client.post("/api/auth/accept-invite", json={"token": tok, "password": chosen})
         assert ra.status_code == 200
-        login_r = client.post("/api/auth/login", json={"email": email, "password": "existingpw123"})
+        denied = client.post("/api/auth/login", json={"email": email, "password": "existingpw123"})
+        assert denied.status_code == 401
+        login_r = client.post("/api/auth/login", json={"email": email, "password": chosen})
         assert login_r.status_code == 200

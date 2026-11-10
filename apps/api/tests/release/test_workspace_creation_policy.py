@@ -117,6 +117,33 @@ def _login(client: TestClient, user: User) -> None:
     assert r.status_code == 200, r.text
 
 
+def _assert_unverified_login_rejected(client: TestClient, user: User) -> None:
+    client.cookies.clear()
+    response = client.post("/api/auth/login", json={"email": user.email, "password": PASSWORD})
+    assert response.status_code == 403, response.status_code
+    assert response.json()["error"]["code"] == "email_not_verified"
+    assert "tc_session" not in response.cookies
+    assert "tc_session" not in client.cookies
+
+
+def _open_session(
+    client: TestClient, db: Session, user: User, workspace_id: int, role: str
+) -> None:
+    """A session that already exists, without a password login."""
+    from app.core.keys import current_session_key_id
+    from app.core.session import sign_session
+
+    session_id = secrets.token_urlsafe(16)
+    db.add(
+        UserSession(user_id=user.id, session_id=session_id, signing_key_id=current_session_key_id())
+    )
+    db.commit()
+    token = sign_session(
+        user.id, user.email, workspace_id, role, session_id=session_id, max_age_seconds=3600
+    )
+    client.cookies.set("tc_session", token)
+
+
 def _create(client: TestClient, label: str = "ws"):
     return client.post(
         "/api/workspaces", json={"name": f"Synthetic {label} {secrets.token_hex(4)}"}
@@ -182,7 +209,8 @@ def test_invitation_only_allows_workspace_admin(
     client: TestClient, db_session: Session, make_user
 ) -> None:
     user = make_user(verified=False, memberships=((1, "admin"),))
-    _login(client, user)
+    _assert_unverified_login_rejected(client, user)
+    _open_session(client, db_session, user, 1, "admin")
     r = _create(client, "admin")
     assert r.status_code == 200, r.text
     assert _admin_memberships(db_session, user) == 2
@@ -202,11 +230,12 @@ def test_invitation_only_allows_deployment_operator(
 
 
 def test_unverified_operator_email_is_not_an_operator(
-    client: TestClient, make_user, monkeypatch
+    client: TestClient, db_session: Session, make_user, monkeypatch
 ) -> None:
     user = make_user(verified=False)
     _set_env(monkeypatch, DEPLOYMENT_OPERATOR_EMAILS=user.email)
-    _login(client, user)
+    _assert_unverified_login_rejected(client, user)
+    _open_session(client, db_session, user, 0, "pending")
     assert _create(client).status_code == 403
 
 
@@ -232,7 +261,8 @@ def test_self_signup_denies_unverified_user(
 ) -> None:
     _set_env(monkeypatch, SIGNUP_POLICY="self_signup")
     user = make_user(verified=False)
-    _login(client, user)
+    _assert_unverified_login_rejected(client, user)
+    _open_session(client, db_session, user, 0, "pending")
     r = _create(client)
     assert r.status_code == 403, r.text
     _assert_generic(r.json()["detail"])
@@ -263,7 +293,7 @@ def test_cap_of_three_admin_workspaces(
 def test_cap_counts_existing_admin_memberships(
     client: TestClient, db_session: Session, make_user
 ) -> None:
-    user = make_user(memberships=((1, "admin"), (2, "admin")))
+    user = make_user(verified=True, memberships=((1, "admin"), (2, "admin")))
     _login(client, user)
     assert _create(client, "cap-existing").status_code == 200
     assert _create(client, "cap-existing-over").status_code == 409
@@ -441,11 +471,12 @@ def test_creation_policy_self_signup_verified_is_true(
 
 
 def test_creation_policy_self_signup_unverified_is_false(
-    client: TestClient, make_user, monkeypatch
+    client: TestClient, db_session: Session, make_user, monkeypatch
 ) -> None:
     _set_env(monkeypatch, SIGNUP_POLICY="self_signup")
     user = make_user(verified=False)
-    _login(client, user)
+    _assert_unverified_login_rejected(client, user)
+    _open_session(client, db_session, user, 0, "pending")
     r = _policy(client)
     assert r.status_code == 200, r.text
     _assert_only_boolean(r.json(), False)

@@ -95,14 +95,22 @@ def ensure_user(db: Session, email: str, password: str, display_name: str) -> Us
             email=email,
             password_hash=hash_password(password),
             display_name=display_name,
+            email_verified=True,
         )
         db.add(user)
         db.commit()
         db.refresh(user)
         print(f"  Created user: {email}")
-    elif should_reset_passwords():
-        user.password_hash = hash_password(password)
-        db.commit()
+    else:
+        changed = False
+        if should_reset_passwords():
+            user.password_hash = hash_password(password)
+            changed = True
+        if not user.email_verified:
+            user.email_verified = True
+            changed = True
+        if changed:
+            db.commit()
     return user
 
 

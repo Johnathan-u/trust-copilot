@@ -327,8 +327,13 @@ def bulk_classify_and_persist(
     force: bool = False,
     on_progress: Any | None = None,
     questionnaire_framework: str | None = None,
+    effects: Any | None = None,
 ) -> dict[str, int]:
-    """Classify a batch of questions with deterministic pre-scoring + parallel LLM calls."""
+    """Classify a batch of questions with deterministic pre-scoring + parallel LLM calls.
+
+    ``effects`` records a provider marker before non-cached classification and settles it
+    in the same transaction as the persisted signals. Cached questions make no provider call.
+    """
     stats = {"classified": 0, "cached": 0, "failed": 0, "total": len(questions)}
     settings = get_settings()
     api_key = settings.openai_api_key
@@ -357,6 +362,8 @@ def bulk_classify_and_persist(
 
     classify_results: dict[int, tuple[dict[str, Any] | None, str | None, str]] = {}
     if needs_classify:
+        if effects is not None:
+            effects.provider_call_started("openai_classify")
         workers = min(_PARALLEL_WORKERS, len(needs_classify))
         with ThreadPoolExecutor(max_workers=workers) as executor:
             futures = {
@@ -404,5 +411,10 @@ def bulk_classify_and_persist(
         else:
             stats["failed"] += 1
 
+    if needs_classify and effects is not None:
+        effects.settle(
+            "openai_classify",
+            {"non_cached": len(needs_classify), "classified": int(stats["classified"])},
+        )
     db.commit()
     return stats

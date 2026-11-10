@@ -24,6 +24,7 @@ from app.core.password import hash_password
 from app.models import User, WorkspaceMember
 from app.models.deal import Deal
 from app.models.questionnaire import Question, Questionnaire
+from tests.conftest import established_user, mark_established
 
 ADMIN_EMAIL = "admin-deal-scope@trust.local"
 ADMIN_PASSWORD = "example-synthetic-test-deal-scope-pw"  # synthetic test credential
@@ -36,7 +37,7 @@ def scope_admin(db_session: Session) -> User:
     """Admin in workspace 1 only (not a member of workspace 2)."""
     user = db_session.query(User).filter(User.email == ADMIN_EMAIL).first()
     if not user:
-        user = User(
+        user = established_user(
             email=ADMIN_EMAIL,
             password_hash=hash_password(ADMIN_PASSWORD),
             display_name="Admin Deal Scope",
@@ -54,6 +55,7 @@ def scope_admin(db_session: Session) -> User:
     else:
         mem.role = "admin"
     db_session.commit()
+    mark_established(user)
     return user
 
 
