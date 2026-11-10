@@ -5,7 +5,7 @@ window.TRUSTCOPILOT_BACKLOG = {
     "schema_version": 1,
     "scope_version": 1,
     "revision": 16,
-    "as_of_utc": "2026-11-10T10:32:43Z",
+    "as_of_utc": "2026-11-10T10:33:31Z",
     "source_sha": "90146e0cfe2220beb3e43f98f6073262f7c0abfb",
     "baseline_status": "PENDING",
     "metric_label": "Accepted original-parent points",
@@ -7963,12 +7963,12 @@ window.TRUSTCOPILOT_BACKLOG = {
         "owner": null,
         "blockers": [],
         "next_action": "Accepted. Reopen only on regression or when change control adds scope.",
-        "updated_at": "2026-11-10T10:32:43Z",
+        "updated_at": "2026-11-10T10:33:31Z",
         "source_sha": "90146e0cfe2220beb3e43f98f6073262f7c0abfb",
         "acceptance": {
           "state": "ACCEPTED",
           "assessed_by": "claude-review-agent",
-          "assessed_at": "2026-11-10T10:31:43Z",
+          "assessed_at": "2026-11-10T10:33:01Z",
           "assessed_sha": "ea87cb7418f569d674d2ca0fcf5da0fb3598fd14",
           "assessment_evidence_urls": [
             "https://github.com/Johnathan-u/trust-copilot/actions/runs/42794791965",
@@ -7982,7 +7982,7 @@ window.TRUSTCOPILOT_BACKLOG = {
             "grok"
           ],
           "independent_reviewer": "claude-review-agent",
-          "reviewed_at": "2026-11-10T10:31:43Z",
+          "reviewed_at": "2026-11-10T10:33:01Z",
           "reviewed_sha": "ea87cb7418f569d674d2ca0fcf5da0fb3598fd14",
           "review_evidence_urls": [
             "https://github.com/Johnathan-u/trust-copilot/pull/193#issuecomment-6764341695",
@@ -127835,7 +127835,7 @@ window.TRUSTCOPILOT_BACKLOG = {
     },
     {
       "revision": 16,
-      "at": "2026-11-10T10:32:43Z",
+      "at": "2026-11-10T10:33:31Z",
       "actor": "claude",
       "reason": "Accept TC-04-001 after independent review of #193 (merged ea87cb7, master CI 42794791965) and the audited release-run record in #200. Add follow-ups TC-04-001c and TC-04-001d. Repoint follow-up TC-04-001b to the workspace creation limiter item it already named (#65, docs/release/bugs/TC-04-001b.md): revision 15 had registered the provider follow-up under that ID by mistake, and that follow-up is now TC-04-001d.",
       "source_sha": "90146e0cfe2220beb3e43f98f6073262f7c0abfb",
@@ -127892,7 +127892,7 @@ window.TRUSTCOPILOT_BACKLOG = {
             },
             "updated_at": {
               "before": "2026-10-30T09:49:19Z",
-              "after": "2026-11-10T10:32:43Z"
+              "after": "2026-11-10T10:33:31Z"
             },
             "source_sha": {
               "before": "b2bd1e0df5cdeb03b8d0cd240f5a161835ea621d",
@@ -127962,7 +127962,7 @@ window.TRUSTCOPILOT_BACKLOG = {
               "after": {
                 "state": "ACCEPTED",
                 "assessed_by": "claude-review-agent",
-                "assessed_at": "2026-11-10T10:31:43Z",
+                "assessed_at": "2026-11-10T10:33:01Z",
                 "assessed_sha": "ea87cb7418f569d674d2ca0fcf5da0fb3598fd14",
                 "assessment_evidence_urls": [
                   "https://github.com/Johnathan-u/trust-copilot/actions/runs/42794791965",
@@ -127976,7 +127976,7 @@ window.TRUSTCOPILOT_BACKLOG = {
                   "grok"
                 ],
                 "independent_reviewer": "claude-review-agent",
-                "reviewed_at": "2026-11-10T10:31:43Z",
+                "reviewed_at": "2026-11-10T10:33:01Z",
                 "reviewed_sha": "ea87cb7418f569d674d2ca0fcf5da0fb3598fd14",
                 "review_evidence_urls": [
                   "https://github.com/Johnathan-u/trust-copilot/pull/193#issuecomment-6764341695",
