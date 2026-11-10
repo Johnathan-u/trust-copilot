@@ -1,8 +1,8 @@
 # TC-18-001 evidence
 
-Public-intake gap closure (idempotency key, validation bounds, reconciliation note) is recorded in [intake-idempotency.md](intake-idempotency.md). Independent acceptance of that head is still open. The sections below are the earlier record and are unchanged.
+Public-intake gap closure (idempotency key, validation bounds, reconciliation note) is recorded in [intake-idempotency.md](intake-idempotency.md). An independent post-merge review accepted it with follow-ups (PR #203). The exact-SHA record is in [ci-master-b32234f.md](ci-master-b32234f.md), and the follow-ups are in TC-18-001a. (Coordinator correction, made after the merge.) The sections below are the earlier record and are unchanged.
 
-Original backend logic at `b57cb9bb4154c645947681ba05c2bcf1da6ef194` has independent reviewer acceptance and all four exact-head CI checks GREEN. The continuation below consumes merged sensitive SMTP and the allocated migration slot; it requires fresh independent review and exact-final-head CI. Frontend consumer qualification remains pending. This is not full-ticket completion.
+Original backend logic at `b57cb9bb4154c645947681ba05c2bcf1da6ef194` has independent reviewer acceptance and all four exact-head CI checks GREEN. The continuation below consumes merged sensitive SMTP and the allocated migration slot; it requires fresh independent review and exact-final-head CI. At the time of this continuation, frontend consumer qualification was still pending. It was closed later in two parts: TC-15-039a/b qualified the reviewer UI (#121, #124, #152, `test_trust_requests_browser.py`), and #203 qualified the public-intake form. (Coordinator correction, made after the merge.)
 
 ## Coordinator continuation — 2026-10-30
 
