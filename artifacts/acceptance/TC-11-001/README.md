@@ -16,7 +16,11 @@ Command, from `apps/api`:
 python -m pytest tests/release/test_provider_adapter.py -q
 ```
 
-`result.json` records that command. CI run ids are filled from the run of an earlier commit on this branch, and the file says which SHA they belong to. This record does not accept the ticket.
+| Run | SHA | Environment | Exit | Totals |
+|---|---|---|---|---|
+| Local | `65eabfe634f1608a564faccc7db1a6eade1970af` | Python 3.12.3, pytest 9.1.1, SQLAlchemy 2.0.55, Alembic 1.20.1, PostgreSQL 16.15, pgvector 0.6.0. `python3 -m pytest` because `python` is not on PATH. | 0 | 46 passed, 0 skipped, 0 failed, 13 warnings, 6.49s |
+
+`result.json` is the same local record. CI run ids are filled from the run of an earlier commit on this branch, and the file says which SHA they belong to. This record does not accept the ticket.
 
 ## Original local record (stale)
 

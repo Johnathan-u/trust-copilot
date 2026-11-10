@@ -1,0 +1,32 @@
+{
+  "ticket": "TC-11-001",
+  "file": "apps/api/tests/release/test_provider_adapter.py",
+  "command": "python -m pytest tests/release/test_provider_adapter.py -q",
+  "working_directory": "apps/api",
+  "local_run": {
+    "tested_sha": "65eabfe634f1608a564faccc7db1a6eade1970af",
+    "command": "python3 -m pytest tests/release/test_provider_adapter.py -q",
+    "working_directory": "apps/api",
+    "exit_status": 0,
+    "passed": 46,
+    "failed": 0,
+    "skipped": 0,
+    "warnings": 13,
+    "duration_seconds": 6.49,
+    "python": "3.12.3",
+    "pytest": "9.1.1",
+    "sqlalchemy": "2.0.55",
+    "alembic": "1.20.1",
+    "psycopg2": "2.9.13",
+    "postgresql": "16.15 (Ubuntu 16.15-0ubuntu0.24.04.1)",
+    "pgvector": "0.6.0",
+    "platform": "Linux 6.12.113+",
+    "note": "python is not on PATH here; python3 is 3.12.3 and was the interpreter. Postgres was a local cluster, not the CI pgvector image. The round-trip test passed, including a check that a no-op downgrade fails it. That no-op edit was not committed."
+  },
+  "notes": [
+    "This file records the local run of 65eabfe634f1608a564faccc7db1a6eade1970af. CI run ids are not here yet.",
+    "The commit that adds those run ids is later. It will name the SHA the runs belong to.",
+    "46 passed includes test_migration_downgrade_and_upgrade_roundtrip. None skipped.",
+    "Reviewer signoff is still pending. This record does not accept the ticket."
+  ]
+}
