@@ -1425,6 +1425,276 @@ def test_concurrent_reclaim_has_single_owner_and_losers_are_fenced(_ensure_test_
         check.close()
 
 
+# ---------------------------------------------------------------------------------------------------------
+# Review gaps: approval lost between read and write, duplicate answers, classification charge
+# ---------------------------------------------------------------------------------------------------------
+
+
+def _approve_on_other_session(answer_id: int) -> None:
+    other = SessionLocal()
+    try:
+        other.query(Answer).filter(Answer.id == answer_id).update(
+            {
+                "status": "approved",
+                "text": "Reviewer approved text",
+                "updated_at": datetime.utcnow(),
+            },
+            synchronize_session=False,
+        )
+        other.commit()
+    finally:
+        other.close()
+
+
+def test_upsert_keeps_approval_committed_after_reread_before_write(db):
+    """An approval that commits after the re-read and before the write must survive."""
+    _qnr, (q, *_) = _qnr_with_answers(db)
+    old = datetime.utcnow() - timedelta(hours=1)
+    answer = Answer(
+        question_id=q.id,
+        text="draft before review",
+        status="draft",
+        created_at=old,
+        updated_at=old,
+    )
+    db.add(answer)
+    db.commit()
+    guard = AnswerWriteGuard(datetime.utcnow() - timedelta(minutes=30))
+    real = AnswerWriteGuard.is_protected
+
+    def approve_after_reread(self, row):
+        verdict = real(self, row)
+        if row is not None and row.id == answer.id and not approve_after_reread.done:
+            approve_after_reread.done = True
+            _approve_on_other_session(answer.id)
+        return verdict
+
+    approve_after_reread.done = False
+    token = _WRITE_GUARD.set(guard)
+    try:
+        with patch.object(AnswerWriteGuard, "is_protected", approve_after_reread):
+            _upsert_answer(db, q.id, "regenerated", [], 0, "insufficient_evidence")
+        db.commit()
+    finally:
+        _WRITE_GUARD.reset(token)
+    db.expire_all()
+    saved = db.query(Answer).filter(Answer.question_id == q.id).one()
+    assert saved.status == "approved" and saved.text == "Reviewer approved text"
+    assert q.id in guard.protected_qids
+
+
+def test_sweep_keeps_approval_committed_after_guard_check(db):
+    """The post-generation sweep must not reclassify an answer approved after the guard check."""
+    from app.services.answer_generation import _sweep_draft_insufficient_narratives
+
+    qnr, (q, *_) = _qnr_with_answers(db)
+    old = datetime.utcnow() - timedelta(hours=1)
+    answer = Answer(
+        question_id=q.id,
+        text="Draft the reviewer is about to approve",
+        status="draft",
+        citations="[]",
+        created_at=old,
+        updated_at=old,
+    )
+    db.add(answer)
+    db.commit()
+    guard = AnswerWriteGuard(datetime.utcnow())
+    real = AnswerWriteGuard.is_protected
+
+    def approve_after_check(self, row):
+        verdict = real(self, row)
+        if row is not None and row.id == answer.id and not approve_after_check.done:
+            approve_after_check.done = True
+            _approve_on_other_session(answer.id)
+        return verdict
+
+    approve_after_check.done = False
+    with patch.object(AnswerWriteGuard, "is_protected", approve_after_check):
+        changed = _sweep_draft_insufficient_narratives(db, qnr.id, guard=guard)
+    db.rollback()
+    db.expire_all()
+    saved = db.query(Answer).filter(Answer.question_id == q.id).one()
+    assert changed == 0
+    assert saved.status == "approved" and saved.text == "Reviewer approved text"
+    assert q.id in guard.protected_qids
+
+
+def test_question_lock_stops_a_second_generation_insert(db):
+    """A generation write blocks on the question lock and then keeps the committed answer."""
+    import threading
+    import time
+
+    # Same namespace as answer_generation._ANSWER_WRITE_LOCK_NS. A different value
+    # means this test no longer sees the writer's lock.
+    lock_ns = 100003
+    _qnr, (q, *_) = _qnr_with_answers(db)
+    held = threading.Event()
+    release = threading.Event()
+    errors: list[BaseException] = []
+
+    def hold_lock() -> None:
+        side = SessionLocal()
+        try:
+            side.execute(
+                text("SELECT pg_advisory_xact_lock(:ns, :question_id)"),
+                {"ns": lock_ns, "question_id": q.id},
+            )
+            side.add(Answer(question_id=q.id, text="winner", status="insufficient_evidence"))
+            side.flush()
+            held.set()
+            assert release.wait(timeout=10)
+            side.commit()
+        except BaseException as exc:  # pragma: no cover - surfaced below
+            errors.append(exc)
+            side.rollback()
+        finally:
+            side.close()
+
+    def generate() -> None:
+        side = SessionLocal()
+        try:
+            assert held.wait(timeout=10)
+            guard = AnswerWriteGuard(datetime.utcnow() - timedelta(minutes=5))
+            token = _WRITE_GUARD.set(guard)
+            try:
+                _upsert_answer(side, q.id, "loser", [], 0, "insufficient_evidence")
+                side.commit()
+            finally:
+                _WRITE_GUARD.reset(token)
+        except BaseException as exc:  # pragma: no cover - surfaced below
+            errors.append(exc)
+            side.rollback()
+        finally:
+            side.close()
+
+    def writer_is_blocked() -> bool:
+        side = SessionLocal()
+        try:
+            return (
+                side.execute(
+                    text(
+                        "SELECT 1 FROM pg_locks "
+                        "WHERE locktype = 'advisory' AND classid = :ns "
+                        "AND objid = :question_id AND NOT granted"
+                    ),
+                    {"ns": lock_ns, "question_id": q.id},
+                ).first()
+                is not None
+            )
+        finally:
+            side.close()
+
+    holder = threading.Thread(target=hold_lock)
+    writer = threading.Thread(target=generate)
+    holder.start()
+    assert held.wait(timeout=10)
+    writer.start()
+    blocked = False
+    for _ in range(50):
+        if writer_is_blocked():
+            blocked = True
+            break
+        time.sleep(0.05)
+    assert blocked, "generation did not wait for the question lock"
+    release.set()
+    holder.join(timeout=10)
+    writer.join(timeout=10)
+    assert not errors
+    assert not holder.is_alive() and not writer.is_alive()
+    db.expire_all()
+    rows = db.query(Answer).filter(Answer.question_id == q.id).all()
+    assert len(rows) == 1
+    assert rows[0].text == "winner"
+    assert rows[0].status == "insufficient_evidence"
+
+
+def test_stale_missing_answer_read_does_not_create_a_duplicate(db):
+    """A generation write that already observed no answer must not insert a second row."""
+    from sqlalchemy.orm import Query
+
+    _qnr, (q, *_) = _qnr_with_answers(db)
+    released = {"done": False}
+    real_first = Query.first
+
+    def first_with_race(self):
+        row = real_first(self)
+        try:
+            entities = [item.get("entity") for item in self.column_descriptions]
+        except Exception:
+            entities = []
+        if not released["done"] and Answer in entities and row is None:
+            released["done"] = True
+            other = SessionLocal()
+            try:
+                other.add(
+                    Answer(
+                        question_id=q.id,
+                        text="winner",
+                        status="insufficient_evidence",
+                    )
+                )
+                other.commit()
+            finally:
+                other.close()
+            return None
+        return row
+
+    guard = AnswerWriteGuard(datetime.utcnow() - timedelta(minutes=5))
+    token = _WRITE_GUARD.set(guard)
+    try:
+        with patch.object(Query, "first", first_with_race):
+            _upsert_answer(db, q.id, "loser", [], 0, "insufficient_evidence")
+        db.commit()
+    finally:
+        _WRITE_GUARD.reset(token)
+    db.expire_all()
+    rows = db.query(Answer).filter(Answer.question_id == q.id).all()
+    assert len(rows) == 1
+    assert rows[0].text == "winner"
+    assert rows[0].status == "insufficient_evidence"
+
+
+def test_parse_crash_during_classification_records_uncertain_charge(db, store, monkeypatch):
+    """A classification call that starts and does not settle is uncertain on the next claim."""
+    from app import worker
+    from app.core.config import get_settings
+
+    monkeypatch.setenv("OPENAI_API_KEY", "sk-test-placeholder-not-a-real-key")
+    get_settings.cache_clear()
+    qnr, key = _qnr_with_file(db, store)
+    job = _claimed_job(
+        db, "parse_questionnaire", {"questionnaire_id": qnr.id, "storage_key": key}, key
+    )
+
+    def fake_llm(*_args, **_kwargs):
+        return ({"frameworks": [], "subjects": ["Other"], "confidence": 0.2}, "{}")
+
+    try:
+        with patch(
+            "app.services.mapping_llm_classify.classify_question_with_llm", side_effect=fake_llm
+        ):
+            with patch.object(je.JobEffects, "settle", side_effect=Crash("during classification")):
+                with pytest.raises(Crash):
+                    worker.run_parse_questionnaire(job, db, json.loads(job.payload))
+            db.rollback()
+            first = _n_questions(db, qnr.id)
+            assert first > 0
+            states = {(e.effect, e.state) for e in _effects(db, job.id)}
+            assert ("questions", "applied") in states
+            assert ("provider:openai_classify", EFFECT_STARTED) in states
+            job.attempt = 2
+            db.commit()
+            assert je.reconcile_previous_attempts(db, job) == 1
+            assert je.charge_uncertain(db, job.id) is True
+            worker.run_parse_questionnaire(job, db, json.loads(job.payload))
+        assert _n_questions(db, qnr.id) == first
+        assert je.charge_uncertain(db, job.id) is True
+        assert json.loads(job.result)["outcome"] == "already_applied"
+    finally:
+        get_settings.cache_clear()
+
+
 def test_owner_token_migration_downgrade_and_upgrade_roundtrip(_ensure_test_data):
     if not _ensure_test_data:
         pytest.skip("Postgres test DB unavailable")
