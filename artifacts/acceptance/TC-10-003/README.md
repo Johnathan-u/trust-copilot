@@ -1,5 +1,9 @@
 # TC-10-003 acceptance evidence
 
+## Merged
+
+Squash merge `a2b39c80` of PR #202 (branch head `f2eef45`). CI on that head was green for both events: push run [42812533846](https://github.com/Johnathan-u/trust-copilot/actions/runs/42812533846) and pull_request run [42812560479](https://github.com/Johnathan-u/trust-copilot/actions/runs/42812560479). Master CI after the merge was [42817018001](https://github.com/Johnathan-u/trust-copilot/actions/runs/42817018001). Review notes: [`review-191.md`](review-191.md). The post-merge gaps from that review are closed in [`../TC-10-003a/README.md`](../TC-10-003a/README.md).
+
 - Implementation commit: `bae6cb8` (feature), merged with `origin/master` `6641e02` in `7d7bf9e`. The tests were run at `7d7bf9e` (code tree identical to the branch head; later commits only add docs and evidence).
 - Environment: Python 3.11.18, SQLAlchemy 2.0.55, Alembic 1.20.1, FastAPI 0.162.0, pytest 9.1.1;
   PostgreSQL 16.15 with pgvector 0.8.7 (`pgvector/pgvector:pg16`) in a disposable local container on an internal

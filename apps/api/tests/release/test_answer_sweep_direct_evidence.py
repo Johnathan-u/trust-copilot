@@ -159,7 +159,7 @@ def test_direct_evidence_sweep_skips_guarded_and_stale_answers(db_session, sweep
 
     guard = AnswerWriteGuard(cutoff)
     guard.protected_qids.add(listed_qid)
-    guard.written.add(own_qid)
+    guard.written[own_qid] = newer
     assert guard.is_protected(sweep_env.answer(stale_qid))
     assert not guard.is_protected(sweep_env.answer(plain_qid))
 

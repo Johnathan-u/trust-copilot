@@ -1727,3 +1727,352 @@ def test_owner_token_migration_downgrade_and_upgrade_roundtrip(_ensure_test_data
     finally:
         alembic("upgrade", "head")
     assert "owner_token" in cols()
+
+
+# ---------------------------------------------------------------------------------------------------------
+# Answer-write gaps: human placeholder edits, sweep timestamp, API races, lease renewal
+# ---------------------------------------------------------------------------------------------------------
+
+
+_ANSWER_LOCK_NS = 100003
+
+
+def _advisory_waiters(question_id: int) -> bool:
+    side = SessionLocal()
+    try:
+        return (
+            side.execute(
+                text(
+                    "SELECT 1 FROM pg_locks "
+                    "WHERE locktype = 'advisory' AND classid = :ns "
+                    "AND objid = :question_id AND NOT granted"
+                ),
+                {"ns": _ANSWER_LOCK_NS, "question_id": question_id},
+            ).first()
+            is not None
+        )
+    finally:
+        side.close()
+
+
+def test_human_edited_llm_error_placeholder_survives_generation_retry(db, fake_ai):
+    """A person who replaces a failed placeholder keeps that text on the next attempt.
+
+    An untouched llm_error placeholder from the same job is still regenerated.
+    """
+    from app.api.routes.answers import AnswerCreate, AnswerUpdate, create_answer, update_answer
+    from app.services.answer_evidence_policy import INSUFFICIENT_EVIDENCE_TEXT
+
+    qnr, (q_patch, q_post, q_untouched, _rest) = _qnr_with_answers(db)
+    cutoff = datetime.utcnow() - timedelta(minutes=30)
+    older = cutoff - timedelta(hours=1)
+    after_cutoff = cutoff + timedelta(minutes=5)
+    auth = {"workspace_id": WS}
+    patch_row = Answer(
+        question_id=q_patch.id,
+        text="placeholder before patch",
+        status="insufficient_evidence",
+        insufficient_reason="llm_error",
+        created_at=older,
+        updated_at=older,
+    )
+    post_row = Answer(
+        question_id=q_post.id,
+        text="placeholder before post",
+        status="insufficient_evidence",
+        insufficient_reason="llm_error",
+        created_at=older,
+        updated_at=older,
+    )
+    db.add_all(
+        [
+            patch_row,
+            post_row,
+            Answer(
+                question_id=q_untouched.id,
+                text="untouched placeholder",
+                status="insufficient_evidence",
+                insufficient_reason="llm_error",
+                created_at=after_cutoff,
+                updated_at=after_cutoff,
+            ),
+        ]
+    )
+    job = Job(
+        workspace_id=WS,
+        kind="generate_answers",
+        status="running",
+        attempt=2,
+        payload=json.dumps({"questionnaire_id": qnr.id, "workspace_id": WS}),
+        created_at=cutoff,
+    )
+    db.add(job)
+    db.commit()
+    patch_text = "Reviewer rewrote the failed answer."
+    post_text = "Reviewer posted a replacement."
+    update_answer(patch_row.id, AnswerUpdate(text=patch_text), auth, db)
+    create_answer(
+        AnswerCreate(question_id=q_post.id, text=post_text, status="insufficient_evidence"),
+        auth,
+        db,
+    )
+
+    _run_generate(db, job)
+    db.expire_all()
+    by_q = {
+        a.question_id: a
+        for a in db.query(Answer).filter(
+            Answer.question_id.in_([q_patch.id, q_post.id, q_untouched.id])
+        )
+    }
+    assert by_q[q_patch.id].text == patch_text
+    assert by_q[q_patch.id].insufficient_reason != "llm_error"
+    assert by_q[q_post.id].text == post_text
+    assert by_q[q_post.id].insufficient_reason != "llm_error"
+    assert by_q[q_untouched.id].text == INSUFFICIENT_EVIDENCE_TEXT
+
+
+def test_sweep_keeps_reviewer_edit_made_after_this_run_wrote(db):
+    """A draft edited between this run's write and the sweep keeps its status."""
+    from app.services import answer_generation as ag
+
+    qnr, (q, *_) = _qnr_with_answers(db)
+    guard = AnswerWriteGuard(datetime.utcnow() - timedelta(minutes=30))
+    token = _WRITE_GUARD.set(guard)
+    try:
+        _upsert_answer(db, q.id, "Insufficient evidence.", [], 10, "draft")
+        db.commit()
+    finally:
+        _WRITE_GUARD.reset(token)
+    answer_id = db.query(Answer.id).filter(Answer.question_id == q.id).scalar()
+    reviewer = "Reviewer kept this draft."
+    real_check = ag.is_insufficient_answer_text
+
+    def edit_during_sweep(text):
+        if not edit_during_sweep.done:
+            edit_during_sweep.done = True
+            other = SessionLocal()
+            try:
+                other.query(Answer).filter(Answer.id == answer_id).update(
+                    {
+                        "text": reviewer,
+                        "status": "draft",
+                        "updated_at": datetime.utcnow(),
+                    },
+                    synchronize_session=False,
+                )
+                other.commit()
+            finally:
+                other.close()
+        return real_check(text)
+
+    edit_during_sweep.done = False
+    with patch.object(ag, "is_insufficient_answer_text", edit_during_sweep):
+        changed = ag._sweep_draft_insufficient_narratives(db, qnr.id, guard=guard)
+    db.rollback()
+    db.expire_all()
+    saved = db.query(Answer).filter(Answer.question_id == q.id).one()
+    assert changed == 0
+    assert saved.status == "draft" and saved.text == reviewer
+    assert q.id in guard.protected_qids
+
+
+def test_post_answer_waits_on_question_lock_and_does_not_duplicate(db):
+    """Two Postgres sessions: a create blocks on the question lock, then keeps one row."""
+    import threading
+    import time
+
+    from app.api.routes.answers import AnswerCreate, create_answer
+    from app.services.answer_generation import _lock_answer_write
+
+    _qnr, (q, *_) = _qnr_with_answers(db)
+    held = threading.Event()
+    release = threading.Event()
+    errors: list[BaseException] = []
+
+    def hold_lock() -> None:
+        side = SessionLocal()
+        try:
+            _lock_answer_write(side, q.id)
+            held.set()
+            assert release.wait(timeout=10)
+            side.add(Answer(question_id=q.id, text="winner", status="draft"))
+            side.commit()
+        except BaseException as exc:  # pragma: no cover - surfaced below
+            errors.append(exc)
+            held.set()
+            side.rollback()
+        finally:
+            side.close()
+
+    def post() -> None:
+        side = SessionLocal()
+        try:
+            assert held.wait(timeout=10)
+            create_answer(
+                AnswerCreate(question_id=q.id, text="loser", status="draft"),
+                {"workspace_id": WS},
+                side,
+            )
+        except BaseException as exc:  # pragma: no cover - surfaced below
+            errors.append(exc)
+            side.rollback()
+        finally:
+            side.close()
+
+    holder = threading.Thread(target=hold_lock)
+    writer = threading.Thread(target=post)
+    holder.start()
+    assert held.wait(timeout=10)
+    writer.start()
+    blocked = False
+    for _ in range(50):
+        if _advisory_waiters(q.id):
+            blocked = True
+            break
+        time.sleep(0.05)
+    release.set()
+    holder.join(timeout=10)
+    writer.join(timeout=10)
+    assert not errors
+    assert not holder.is_alive() and not writer.is_alive()
+    assert blocked, "POST /answers did not wait for the question lock"
+    db.expire_all()
+    rows = db.query(Answer).filter(Answer.question_id == q.id).all()
+    assert len(rows) == 1
+
+
+def test_bulk_answer_waits_on_sorted_question_locks_and_does_not_duplicate(db):
+    """Bulk create locks question ids in sorted order and does not insert a second row."""
+    import threading
+    import time
+
+    from app.api.routes.answers import BulkUpdateBody, bulk_update_status
+    from app.services.answer_generation import _lock_answer_write
+
+    _qnr, (q1, q2, *_) = _qnr_with_answers(db)
+    ordered = sorted((q1.id, q2.id))
+    held = threading.Event()
+    release = threading.Event()
+    errors: list[BaseException] = []
+
+    def hold_lock() -> None:
+        side = SessionLocal()
+        try:
+            for qid in ordered:
+                _lock_answer_write(side, qid)
+            held.set()
+            assert release.wait(timeout=10)
+            for qid in ordered:
+                side.add(Answer(question_id=qid, text="winner", status="draft"))
+            side.commit()
+        except BaseException as exc:  # pragma: no cover - surfaced below
+            errors.append(exc)
+            held.set()
+            side.rollback()
+        finally:
+            side.close()
+
+    def bulk() -> None:
+        side = SessionLocal()
+        try:
+            assert held.wait(timeout=10)
+            bulk_update_status(
+                BulkUpdateBody(question_ids=[q2.id, q1.id], status="approved"),
+                {"workspace_id": WS},
+                side,
+            )
+        except BaseException as exc:  # pragma: no cover - surfaced below
+            errors.append(exc)
+            side.rollback()
+        finally:
+            side.close()
+
+    holder = threading.Thread(target=hold_lock)
+    writer = threading.Thread(target=bulk)
+    holder.start()
+    assert held.wait(timeout=10)
+    writer.start()
+    blocked = False
+    for _ in range(50):
+        if _advisory_waiters(ordered[0]):
+            blocked = True
+            break
+        time.sleep(0.05)
+    release.set()
+    holder.join(timeout=10)
+    writer.join(timeout=10)
+    assert not errors
+    assert not holder.is_alive() and not writer.is_alive()
+    assert blocked, "PATCH /answers/bulk did not wait for the question lock"
+    db.expire_all()
+    rows = db.query(Answer).filter(Answer.question_id.in_(ordered)).all()
+    assert len(rows) == 2
+    assert {row.question_id for row in rows} == set(ordered)
+    assert {row.status for row in rows} == {"approved"}
+
+
+def test_lease_heartbeat_renews_while_answer_batch_is_open(db):
+    """A lease renewal commits while an answer insert transaction is still open."""
+    import threading
+
+    from app.core.job_lease import JobLeaseHeartbeat, claim_lease_expiry, renew_lease
+
+    _qnr, (q, *_) = _qnr_with_answers(db)
+    job = Job(
+        workspace_id=WS,
+        kind="generate_answers",
+        status="running",
+        attempt=1,
+        payload=json.dumps({"questionnaire_id": _qnr.id, "workspace_id": WS}),
+    )
+    db.add(job)
+    db.commit()
+    owner = "heartbeat-owner-token-0001"
+    claim_lease_expiry(db, job.id, owner, 60)
+    db.commit()
+    db.refresh(job)
+    job.result = '{"batch": "open"}'
+    guard = AnswerWriteGuard(datetime.utcnow() - timedelta(minutes=5))
+    token = _WRITE_GUARD.set(guard)
+    try:
+        _upsert_answer(db, q.id, "generated during open batch", [], 10, "draft")
+    finally:
+        _WRITE_GUARD.reset(token)
+    visible_here = db.execute(
+        text("SELECT text FROM answers WHERE question_id = :qid"),
+        {"qid": q.id},
+    ).scalar()
+    assert visible_here == "generated during open batch"
+
+    outcome: dict = {}
+    done = threading.Event()
+
+    def beat() -> None:
+        side = SessionLocal()
+        try:
+            outcome["visible"] = side.execute(
+                text("SELECT COUNT(*) FROM answers WHERE question_id = :qid"),
+                {"qid": q.id},
+            ).scalar()
+            heartbeat = JobLeaseHeartbeat(
+                lambda: renew_lease(job.id, owner, extend_seconds=60, session=side),
+                interval_sec=30,
+                sleep=lambda _seconds: None,
+            )
+            outcome["ok"] = heartbeat.beat_once()
+        except BaseException as exc:  # pragma: no cover - surfaced below
+            outcome["err"] = exc
+        finally:
+            side.close()
+            done.set()
+
+    thread = threading.Thread(target=beat)
+    thread.start()
+    renewed = done.wait(5)
+    db.rollback()
+    thread.join(timeout=5)
+    assert renewed, "lease heartbeat could not renew while the answer batch was open"
+    assert outcome.get("err") is None
+    assert outcome.get("visible") == 0
+    assert outcome.get("ok") is True

@@ -1,0 +1,36 @@
+{
+  "ticket": "TC-10-003a",
+  "parent": "a2b39c80ce14f130285d380db87de75227675a6f",
+  "command": "SESSION_SECRET=test-secret TC_REQUIRE_DB=1 TC_REQUIRE_WEB_TOOLCHAIN=1 TC_REQUIRE_API_QUALITY=1 python -m pytest -rs --tb=line -q",
+  "working_directory": "apps/api",
+  "exit_status": 0,
+  "totals": {
+    "passed": 6394,
+    "failed": 0,
+    "skipped": 1,
+    "errors": 0,
+    "warnings": 51,
+    "duration_seconds": 644.28
+  },
+  "skip": [
+    {
+      "nodeid": "tests/test_trust_scoring_blind.py:33",
+      "reason": "external_data: blind test pack not checked in; set TC_TRUST_SCORING_BLIND_PACK to run"
+    }
+  ],
+  "parent_failures": [
+    "test_human_edited_llm_error_placeholder_survives_generation_retry",
+    "test_sweep_keeps_reviewer_edit_made_after_this_run_wrote",
+    "test_post_answer_waits_on_question_lock_and_does_not_duplicate",
+    "test_bulk_answer_waits_on_sorted_question_locks_and_does_not_duplicate",
+    "test_lease_heartbeat_renews_while_answer_batch_is_open"
+  ],
+  "web": {
+    "node": "24.22.1",
+    "typecheck": "pass",
+    "lint": "pass",
+    "format_check": "pass",
+    "unit_passed": 446,
+    "build": "pass"
+  }
+}

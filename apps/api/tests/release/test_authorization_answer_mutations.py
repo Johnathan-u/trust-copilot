@@ -150,7 +150,12 @@ def test_available_parent_preserves_success_and_other_answer_fields(
         "text": "Human replacement",
         "status": "approved",
     }
-    values = {"text": "Human replacement", "status": "approved", "outcome_code": None}
+    values = {
+        "text": "Human replacement",
+        "status": "approved",
+        "outcome_code": None,
+        "insufficient_reason": None,
+    }
     if action.startswith("create"):
         assert_answer_changes(s["db"], before, created={qid: values})
     else:
@@ -193,7 +198,7 @@ def test_upsert_keeps_existing_empty_text_and_outcome_semantics(
         ({}, {}),
         ({"text": None, "status": None}, {}),
         ({"text": "existing answer"}, {}),
-        ({"text": ""}, {"text": "", "outcome_code": None}),
+        ({"text": ""}, {"text": "", "outcome_code": None, "insufficient_reason": None}),
         ({"status": "existing-custom-status"}, {"status": "existing-custom-status"}),
         ({"status": ""}, {"status": ""}),
     ],
