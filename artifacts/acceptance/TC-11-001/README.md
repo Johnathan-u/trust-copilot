@@ -7,8 +7,17 @@ The behaviour is already on master (PR #16, `1a0e614`). This repair does not cha
 * Parent, from `apps/api/alembic/versions/076_tc11001_model_outcome_codes.py`: `down_revision = "tc21001_framework_catalog_rights"`.
 * On current master, `alembic downgrade tc21001_framework_catalog_rights` reverts 27 revisions (this one and 26 descendants). The head is `tc17003_security_claims`. `alembic downgrade 075` reverts 28, those 27 plus `tc21001_framework_catalog_rights`. What that destroys, and the safe rollback, are in `docs/release/tickets/TC-11-001.md`. Leave `answers.outcome_code` and `jobs.error_code` in place. `jobs.error_code` is shared with TC-10-002 and must not be dropped while that is live. A forward migration is the alternative when a column itself has to go.
 * Current test path: `apps/api/tests/release/test_provider_adapter.py`.
-* Round trip on a fresh database: `tests/release/test_provider_adapter.py::test_migration_downgrade_and_upgrade_roundtrip`. It fails if this revision's downgrade or upgrade is broken. Its CI log line is added from the GitHub Actions run of the commit that introduces the test, and that note names the SHA.
-* The shared suite already crosses this revision: `tests/release/test_domain_compliance_frameworks.py::test_migration_upgrade_downgrade_upgrade_again` (`alembic downgrade 075`, then `alembic upgrade head`). Build job `130016659560` of run [42869507410](https://github.com/Johnathan-u/trust-copilot/actions/runs/42869507410) (push of `4d68f479ad03bb2684b1c9c94e68fa3460ec8d88`) logs `tests/release/test_domain_compliance_frameworks.py ...........           [ 42%]` (11 dots, no skip). Collection in that job lists this test 11th in the file. Alembic files are unchanged from that SHA through `4a2403ddd7f0e10854ae4370e48138cf673569c1`.
+* Round trip on a fresh database: `tests/release/test_provider_adapter.py::test_migration_downgrade_and_upgrade_roundtrip`. It fails if this revision's downgrade or upgrade is broken. On `b0f0b99eb3dd2d9f507709f4dd6af26653de20ab`, both build logs collect it as the 39th of 46 tests in that file, then the run prints 33 dots and 13 more (46, no skip, no failure):
+
+  `tests/release/test_provider_adapter.py ................................. [ 64%]`
+
+  `.............                                                            [ 64%]`
+
+* The shared suite also crosses this revision: `tests/release/test_domain_compliance_frameworks.py::test_migration_upgrade_downgrade_upgrade_again` (`alembic downgrade 075`, then `alembic upgrade head`). On the same SHA it is the 11th collected test in that file, and both build logs print 11 dots and no skip:
+
+  `tests/release/test_domain_compliance_frameworks.py ...........           [ 42%]`
+
+  Those lines are in build job `130052804875` of push run [42879828829](https://github.com/Johnathan-u/trust-copilot/actions/runs/42879828829) and build job `130052932592` of pull-request run [42879866297](https://github.com/Johnathan-u/trust-copilot/actions/runs/42879866297). The commit that quotes them is later than `b0f0b99`. An earlier chain walk, on `4d68f479ad03bb2684b1c9c94e68fa3460ec8d88`, is the same frameworks line in build job `130016659560` of run [42869507410](https://github.com/Johnathan-u/trust-copilot/actions/runs/42869507410). That run is before this round-trip test existed. Alembic files are unchanged from `4d68f47` through `4a2403d`.
 
 Command, from `apps/api`:
 
@@ -19,8 +28,10 @@ python -m pytest tests/release/test_provider_adapter.py -q
 | Run | SHA | Environment | Exit | Totals |
 |---|---|---|---|---|
 | Local | `65eabfe634f1608a564faccc7db1a6eade1970af` | Python 3.12.3, pytest 9.1.1, SQLAlchemy 2.0.55, Alembic 1.20.1, PostgreSQL 16.15, pgvector 0.6.0. `python3 -m pytest` because `python` is not on PATH. | 0 | 46 passed, 0 skipped, 0 failed, 13 warnings, 6.49s |
+| CI push | `b0f0b99eb3dd2d9f507709f4dd6af26653de20ab` | GitHub `ubuntu-26.04` image `20261101.186.1`; Python 3.11.18; pytest 9.1.1; SQLAlchemy 2.0.55; psycopg2-binary 2.9.13; pgvector 0.5.1. PostgreSQL image `pgvector/pgvector:pg16` digest `sha256:7b822b0aac60967beb1ea5e576b8602c94c300a157d187f385ae3e0da199b90a`. Database `tc_ci_42879828829_1_test`. | 0 | Full suite 6421 passed, 1 skipped, 52 warnings, 712.93s. This file is the 46 dots above, none skipped. |
+| CI pull_request | same SHA | Same image and packages. Database `tc_ci_42879866297_1_test`. | 0 | Full suite 6421 passed, 1 skipped, 52 warnings, 813.76s. Same 46 dots, none skipped. |
 
-`result.json` is the same local record. CI run ids are filled from the run of an earlier commit on this branch, and the file says which SHA they belong to. This record does not accept the ticket.
+The one suite skip is `tests/test_trust_scoring_blind.py:33` (external data). `result.json` is this record. The CI rows belong to `b0f0b99`, not to the commit that adds them. This record does not accept the ticket.
 
 ## Original local record (stale)
 

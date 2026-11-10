@@ -1,8 +1,103 @@
 {
   "ticket": "TC-11-001",
+  "tested_sha": "b0f0b99eb3dd2d9f507709f4dd6af26653de20ab",
+  "implementation_sha": "65eabfe634f1608a564faccc7db1a6eade1970af",
   "file": "apps/api/tests/release/test_provider_adapter.py",
-  "command": "python -m pytest tests/release/test_provider_adapter.py -q",
+  "command": "pytest -rs",
+  "ticket_command": "python -m pytest tests/release/test_provider_adapter.py -q",
   "working_directory": "apps/api",
+  "command_env": {
+    "SESSION_SECRET": "test-secret",
+    "TC_REQUIRE_DB": "1",
+    "TC_REQUIRE_WEB_TOOLCHAIN": "1",
+    "TC_REQUIRE_API_QUALITY": "1"
+  },
+  "exit_status": 0,
+  "file_totals": {
+    "passed": 46,
+    "failed": 0,
+    "skipped": 0
+  },
+  "log_lines": [
+    "tests/release/test_provider_adapter.py ................................. [ 64%]",
+    ".............                                                            [ 64%]"
+  ],
+  "round_trip": {
+    "test": "tests/release/test_provider_adapter.py::test_migration_downgrade_and_upgrade_roundtrip",
+    "collected_index": 39,
+    "collected_in_file": 46,
+    "chain_walk_test": "tests/release/test_domain_compliance_frameworks.py::test_migration_upgrade_downgrade_upgrade_again",
+    "chain_walk_collected_index": 11,
+    "chain_walk_collected_in_file": 11,
+    "chain_walk_log_line": "tests/release/test_domain_compliance_frameworks.py ...........           [ 42%]"
+  },
+  "suite_totals": {
+    "passed": 6421,
+    "failed": 0,
+    "skipped": 1,
+    "warnings": 52
+  },
+  "skipped_detail": "tests/test_trust_scoring_blind.py:33: external_data: blind test pack not checked in; set TC_TRUST_SCORING_BLIND_PACK to run",
+  "environment": {
+    "runner_image": "ubuntu-26.04",
+    "runner_image_version": "20261101.186.1",
+    "python": "3.11.18",
+    "pytest": "9.1.1",
+    "sqlalchemy": "2.0.55",
+    "psycopg2_binary": "2.9.13",
+    "pgvector": "0.5.1",
+    "postgresql_image": "pgvector/pgvector:pg16@sha256:7b822b0aac60967beb1ea5e576b8602c94c300a157d187f385ae3e0da199b90a",
+    "postgresql": "16.15"
+  },
+  "runs": [
+    {
+      "event": "push",
+      "sha": "b0f0b99eb3dd2d9f507709f4dd6af26653de20ab",
+      "run_id": 42879828829,
+      "url": "https://github.com/Johnathan-u/trust-copilot/actions/runs/42879828829",
+      "build_job_id": 130052804875,
+      "web_release_e2e_job_id": 130052805242,
+      "conclusion": "success",
+      "build_conclusion": "success",
+      "web_release_e2e_conclusion": "success",
+      "database": "tc_ci_42879828829_1_test",
+      "pytest_duration_seconds": 712.93,
+      "suite_totals": {
+        "passed": 6421,
+        "failed": 0,
+        "skipped": 1,
+        "warnings": 52
+      }
+    },
+    {
+      "event": "pull_request",
+      "sha": "b0f0b99eb3dd2d9f507709f4dd6af26653de20ab",
+      "run_id": 42879866297,
+      "url": "https://github.com/Johnathan-u/trust-copilot/actions/runs/42879866297",
+      "build_job_id": 130052932592,
+      "web_release_e2e_job_id": 130052932757,
+      "conclusion": "success",
+      "build_conclusion": "success",
+      "web_release_e2e_conclusion": "success",
+      "database": "tc_ci_42879866297_1_test",
+      "pytest_duration_seconds": 813.76,
+      "suite_totals": {
+        "passed": 6421,
+        "failed": 0,
+        "skipped": 1,
+        "warnings": 52
+      }
+    }
+  ],
+  "earlier_chain_walk": {
+    "sha": "4d68f479ad03bb2684b1c9c94e68fa3460ec8d88",
+    "event": "push",
+    "run_id": 42869507410,
+    "url": "https://github.com/Johnathan-u/trust-copilot/actions/runs/42869507410",
+    "build_job_id": 130016659560,
+    "log_line": "tests/release/test_domain_compliance_frameworks.py ...........           [ 42%]",
+    "note": "Secondary. This run is before test_migration_downgrade_and_upgrade_roundtrip. Alembic files are unchanged from this SHA through 4a2403ddd7f0e10854ae4370e48138cf673569c1."
+  },
   "local_run": {
     "tested_sha": "65eabfe634f1608a564faccc7db1a6eade1970af",
     "command": "python3 -m pytest tests/release/test_provider_adapter.py -q",
@@ -24,9 +119,11 @@
     "note": "python is not on PATH here; python3 is 3.12.3 and was the interpreter. Postgres was a local cluster, not the CI pgvector image. The round-trip test passed, including a check that a no-op downgrade fails it. That no-op edit was not committed."
   },
   "notes": [
-    "This file records the local run of 65eabfe634f1608a564faccc7db1a6eade1970af. CI run ids are not here yet.",
-    "The commit that adds those run ids is later. It will name the SHA the runs belong to.",
-    "46 passed includes test_migration_downgrade_and_upgrade_roundtrip. None skipped.",
+    "This file records CI of b0f0b99eb3dd2d9f507709f4dd6af26653de20ab. The commit that adds these run ids is a later SHA.",
+    "The 33 dots and the following 13 dots are the 46 tests in tests/release/test_provider_adapter.py. test_migration_downgrade_and_upgrade_roundtrip is the 39th. None failed and none skipped. Both build logs have the same two lines.",
+    "test_migration_upgrade_downgrade_upgrade_again is the 11th test in test_domain_compliance_frameworks.py. Both build logs show 11 dots and no skip.",
+    "The one suite skip is tests/test_trust_scoring_blind.py:33. It is the known external_data skip.",
+    "The local run of 65eabfe is the same 46 tests before this CI record existed.",
     "Reviewer signoff is still pending. This record does not accept the ticket."
   ]
 }
