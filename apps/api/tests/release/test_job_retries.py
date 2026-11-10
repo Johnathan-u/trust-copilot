@@ -198,6 +198,34 @@ def test_attempt_ceiling_and_env_config(monkeypatch):
     assert je.retry_max_seconds() == 0.0
 
 
+def test_retry_env_vars_match_the_config_contract(monkeypatch):
+    """Retry backoff settings are declared on the config contract with the worker's type, default and clamps.
+
+    Removing either entry, or drifting its default or clamp text from job_errors, fails this test.
+    """
+    from app.core.config_contract import CONTRACT_BY_NAME
+
+    specs = (
+        ("JOB_RETRY_BASE_SECONDS", je.retry_base_seconds, je.DEFAULT_RETRY_BASE_SECONDS),
+        ("JOB_RETRY_MAX_SECONDS", je.retry_max_seconds, je.DEFAULT_RETRY_MAX_SECONDS),
+    )
+    for name, reader, default in specs:
+        monkeypatch.delenv(name, raising=False)
+        assert name in CONTRACT_BY_NAME, name
+        entry = CONTRACT_BY_NAME[name]
+        assert entry.type == "float"
+        assert entry.production == "optional"
+        assert entry.secret is False
+        assert reader() == default
+        assert float(entry.default) == default
+        monkeypatch.setenv(name, "-1")
+        low = reader()
+        monkeypatch.setenv(name, "1000000000")
+        high = reader()
+        assert f"Clamped to {low:g}-{high:g}." in entry.description
+        monkeypatch.delenv(name, raising=False)
+
+
 def test_inner_completion_retry_uses_jittered_bounded_backoff(monkeypatch):
     from app.services import answer_generation as ag
 

@@ -1,5 +1,51 @@
 # TC-10-002 acceptance evidence
 
+## Current run (config-contract and rollback-doc repair)
+
+The original runs below are from branch `tc/core/TC-10-002`, based on `d527863`. The file and the worker have changed since then, so those totals are not the current qualification. This section is.
+
+Command, from `apps/api`:
+
+```
+python -m pytest tests/release/test_job_retries.py -q
+```
+
+Also run, from `apps/api`:
+
+```
+python -m pytest tests/release/test_config_contract.py -q
+```
+
+| Run | SHA | Environment | Exit | Totals |
+|---|---|---|---|---|
+| Ticket command | `3952d2daa583a90bdf226e81e97b8acc9083bb50` | Python 3.12.3, pytest 9.1.1, SQLAlchemy 2.0.55, Linux 6.12.113+. No PostgreSQL was listening on localhost:5432. | 0 | 43 passed, 28 skipped, 0 failed |
+| Config contract | same SHA | same interpreter and packages | 0 | 676 passed, 0 skipped, 0 failed |
+
+The 28 skips are the database cases in `tests/release/test_job_retries.py`. Without Postgres they skip; they are not an allowed skip of the ticket.
+
+`test_retry_env_vars_match_the_config_contract` failed when the two contract entries were removed (`AssertionError: JOB_RETRY_BASE_SECONDS`) and passed after they were restored. The defaults and clamps in the contract are the ones `app/core/job_errors.py` uses: base 15, clamp 0–3600; cap 600, clamp 0–86400.
+
+## CI of `c3ff5b4`
+
+This section records the GitHub Actions `CI` workflow for commit `c3ff5b4842bdae061d888546f73c1d67e739e639`. The commit that adds this section is a later SHA, so it is not the SHA under test.
+
+Both `build` and `web-release-e2e` succeeded on the push and on the pull request.
+
+| Event | Run | Build job | web-release-e2e job |
+|---|---|---|---|
+| push | [42870916373](https://github.com/Johnathan-u/trust-copilot/actions/runs/42870916373) | 130021636225 | 130021635748 |
+| pull_request | [42870961877](https://github.com/Johnathan-u/trust-copilot/actions/runs/42870961877) | 130021800483 | 130021800675 |
+
+- Command: from `apps/api`, `pytest -rs`, with `SESSION_SECRET=test-secret`, `TC_REQUIRE_DB=1`, `TC_REQUIRE_WEB_TOOLCHAIN=1` and `TC_REQUIRE_API_QUALITY=1`. That suite runs the ticket command `python -m pytest tests/release/test_job_retries.py -q`.
+- Environment: GitHub-hosted `ubuntu-26.04` image `20261101.186.1`; Python 3.11.18; pytest 9.1.1; SQLAlchemy 2.0.55; psycopg2-binary 2.9.13; pgvector 0.5.1. PostgreSQL image `pgvector/pgvector:pg16` digest `sha256:7b822b0aac60967beb1ea5e576b8602c94c300a157d187f385ae3e0da199b90a` (16.15). Push database `tc_ci_42870916373_1_test`. Pull-request database `tc_ci_42870961877_1_test`.
+- Exit status: 0 on both build jobs.
+- Totals for this file: 71 passed, 0 skipped. Pytest wraps the progress line. Both build logs show 38 dots, then 33 dots, and no `s`.
+- Full suite, both runs: 6420 passed, 1 skipped, 51 warnings. Push pytest duration 637.71s. Pull-request pytest duration 747.07s. The skip is `tests/test_trust_scoring_blind.py:33` (external data) and is unrelated.
+
+`result.json` in this directory is the same record. Reviewer signoff is still pending. This record does not accept the ticket.
+
+## Original local record (stale, `d527863`)
+
 - Branch `tc/core/TC-10-002`, based on `origin/master` `d527863` (#28 TC-10-003 merged, on top of #31 `e1c0ca7` and
   #16 TC-11-001 `1a0e614`). It is not stacked: the two commits sit directly on master. The tests ran on the final code;
   only this directory and the ticket doc were edited after the runs.
