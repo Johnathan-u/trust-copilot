@@ -1,0 +1,39 @@
+{
+  "ticket": "TC-10-002",
+  "tested_sha": "3952d2daa583a90bdf226e81e97b8acc9083bb50",
+  "file": "apps/api/tests/release/test_job_retries.py",
+  "command": "python -m pytest tests/release/test_job_retries.py -q",
+  "ticket_command": "python -m pytest tests/release/test_job_retries.py -q",
+  "working_directory": "apps/api",
+  "exit_status": 0,
+  "file_totals": {
+    "passed": 43,
+    "failed": 0,
+    "skipped": 28
+  },
+  "also_ran": [
+    {
+      "command": "python -m pytest tests/release/test_config_contract.py -q",
+      "working_directory": "apps/api",
+      "exit_status": 0,
+      "passed": 676,
+      "failed": 0,
+      "skipped": 0
+    }
+  ],
+  "environment": {
+    "python": "3.12.3",
+    "pytest": "9.1.1",
+    "sqlalchemy": "2.0.55",
+    "postgresql": "unavailable",
+    "platform": "Linux-6.12.113+-x86_64-with-glibc2.39"
+  },
+  "runs": [],
+  "notes": [
+    "This file records the local run of 3952d2daa583a90bdf226e81e97b8acc9083bb50. The commit that adds it is a later SHA.",
+    "Postgres was not listening on localhost:5432, so 28 database tests in tests/release/test_job_retries.py skipped. Exit status was still 0. Those skips are not the CI result.",
+    "CI run ids are intentionally absent. A follow-up commit adds the real push and pull_request run ids and names the SHA they belong to.",
+    "JOB_RETRY_BASE_SECONDS default 15 clamp 0-3600 and JOB_RETRY_MAX_SECONDS default 600 clamp 0-86400 match app/core/job_errors.py. Same values as the review report.",
+    "Reviewer signoff is still pending. This record does not accept the ticket."
+  ]
+}

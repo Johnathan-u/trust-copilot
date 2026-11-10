@@ -1,5 +1,34 @@
 # TC-10-002 acceptance evidence
 
+## Current run (config-contract and rollback-doc repair)
+
+The original runs below are from branch `tc/core/TC-10-002`, based on `d527863`. The file and the worker have changed since then, so those totals are not the current qualification. This section is.
+
+Command, from `apps/api`:
+
+```
+python -m pytest tests/release/test_job_retries.py -q
+```
+
+Also run, from `apps/api`:
+
+```
+python -m pytest tests/release/test_config_contract.py -q
+```
+
+| Run | SHA | Environment | Exit | Totals |
+|---|---|---|---|---|
+| Ticket command | `3952d2daa583a90bdf226e81e97b8acc9083bb50` | Python 3.12.3, pytest 9.1.1, SQLAlchemy 2.0.55, Linux 6.12.113+. No PostgreSQL was listening on localhost:5432. | 0 | 43 passed, 28 skipped, 0 failed |
+| Config contract | same SHA | same interpreter and packages | 0 | 676 passed, 0 skipped, 0 failed |
+
+The 28 skips are the database cases in `tests/release/test_job_retries.py`. Without Postgres they skip; they are not an allowed skip of the ticket. `result.json` records this local run. It does not invent CI run ids. A later commit adds the real `push` and `pull_request` ids for the SHA those workflows tested, and says which SHA that is.
+
+`test_retry_env_vars_match_the_config_contract` failed when the two contract entries were removed (`AssertionError: JOB_RETRY_BASE_SECONDS`) and passed after they were restored. The defaults and clamps in the contract are the ones `app/core/job_errors.py` uses: base 15, clamp 0–3600; cap 600, clamp 0–86400.
+
+This record does not accept the ticket.
+
+## Original local record (stale, `d527863`)
+
 - Branch `tc/core/TC-10-002`, based on `origin/master` `d527863` (#28 TC-10-003 merged, on top of #31 `e1c0ca7` and
   #16 TC-11-001 `1a0e614`). It is not stacked: the two commits sit directly on master. The tests ran on the final code;
   only this directory and the ticket doc were edited after the runs.
