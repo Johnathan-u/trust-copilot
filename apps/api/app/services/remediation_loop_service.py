@@ -8,6 +8,7 @@ from sqlalchemy.orm import Session
 
 from app.models.answer import Answer
 from app.models.control_evidence_link import ControlEvidenceLink
+from app.models.evidence_item import EvidenceItem
 from app.models.questionnaire import Question
 from app.models.remediation_audit import RemediationAuditEvent, RemediationAutomationSetting
 from app.models.remediation_playbook import RemediationTicket
@@ -18,6 +19,7 @@ from app.services.control_contract import (
     new_request_id,
     sync_workspace_row,
 )
+from app.services.evidence_qualification import evidence_qualifies
 
 logger = logging.getLogger(__name__)
 
@@ -85,6 +87,14 @@ def _bump_status_error(status: str) -> dict | None:
     return None
 
 
+def _link_verified(db: Session, workspace_id: int, evidence_id: int) -> bool:
+    """True only when this evidence meets the compliance qualification rule."""
+    item = db.query(EvidenceItem).filter(EvidenceItem.id == evidence_id).first()
+    if item is None:
+        return False
+    return evidence_qualifies(db, item, workspace_id, datetime.utcnow())
+
+
 def submit_post_remediation_evidence(
     db: Session,
     ticket_id: int,
@@ -96,6 +106,11 @@ def submit_post_remediation_evidence(
 
     A bump is written through the control contract. ``None`` leaves status unchanged.
     An unknown status or ``verified`` returns an error and writes nothing.
+
+    A created or updated link is verified only when the evidence qualifies: approved,
+    same workspace, not expired, and not tied to a deleted document. Other evidence
+    is stored with verified false, including a link that was already verified.
+    The legacy mirror is still written. That table has no verified column.
     """
     if bump_control_to:
         problem = _bump_status_error(bump_control_to)
@@ -120,6 +135,7 @@ def submit_post_remediation_evidence(
                 db.rollback()
             detail = synced.error or {"detail": "Control update failed"}
             return {"error": detail, "http_status": synced.http_status}
+    link_workspace_id = wc.workspace_id if wc is not None else ticket.workspace_id
     for eid in evidence_ids:
         if ticket.control_id:
             link = (
@@ -130,12 +146,17 @@ def submit_post_remediation_evidence(
                 )
                 .first()
             )
-            if not link:
+            verified = _link_verified(db, link_workspace_id, eid)
+            if link is None:
                 db.add(
                     ControlEvidenceLink(
-                        control_id=ticket.control_id, evidence_id=eid, verified=True
+                        control_id=ticket.control_id,
+                        evidence_id=eid,
+                        verified=verified,
                     )
                 )
+            else:
+                link.verified = verified
             if wc is not None:
                 mirror_evidence_link(db, wc, eid)
     _audit(

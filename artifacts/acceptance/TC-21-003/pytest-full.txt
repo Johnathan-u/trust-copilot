@@ -1,0 +1,538 @@
+........................................................................ [  1%]
+........................................................................ [  2%]
+........................................................................ [  3%]
+........................................................................ [  4%]
+........................................................................ [  5%]
+........................................................................ [  6%]
+........................................................................ [  7%]
+........................................................................ [  9%]
+........................................................................ [ 10%]
+........................................................................ [ 11%]
+........................................................................ [ 12%]
+........................................................................ [ 13%]
+........................................................................ [ 14%]
+........................................................................ [ 15%]
+........................................................................ [ 17%]
+........................................................................ [ 18%]
+........................................................................ [ 19%]
+........................................................................ [ 20%]
+........................................................................ [ 21%]
+........................................................................ [ 22%]
+........................................................................ [ 23%]
+........................................................................ [ 25%]
+........................................................................ [ 26%]
+........................................................................ [ 27%]
+........................................................................ [ 28%]
+........................................................................ [ 29%]
+........................................................................ [ 30%]
+........................................................................ [ 31%]
+........................................................................ [ 32%]
+........................................................................ [ 34%]
+........................................................................ [ 35%]
+........................................................................ [ 36%]
+........................................................................ [ 37%]
+........................................................................ [ 38%]
+........................................................................ [ 39%]
+........................................................................ [ 40%]
+........................................................................ [ 42%]
+........................................................................ [ 43%]
+........................................................................ [ 44%]
+........................................................................ [ 45%]
+........................................................................ [ 46%]
+........................................................................ [ 47%]
+........................................................................ [ 48%]
+........................................................................ [ 50%]
+........................................................................ [ 51%]
+........................................................................ [ 52%]
+........................................................................ [ 53%]
+........................................................................ [ 54%]
+........................................................................ [ 55%]
+........................................................................ [ 56%]
+........................................................................ [ 58%]
+........................................................................ [ 59%]
+........................................................................ [ 60%]
+........................................................................ [ 61%]
+........................................................................ [ 62%]
+........................................................................ [ 63%]
+........................................................................ [ 64%]
+........................................................................ [ 65%]
+........................................................................ [ 67%]
+........................................................................ [ 68%]
+........................................................................ [ 69%]
+........................................................................ [ 70%]
+........................................................................ [ 71%]
+........................................................................ [ 72%]
+........................................................................ [ 73%]
+........................................................................ [ 75%]
+........................................................................ [ 76%]
+........................................................................ [ 77%]
+........................................................................ [ 78%]
+........................................................................ [ 79%]
+........................................................................ [ 80%]
+........................................................................ [ 81%]
+........................................................................ [ 83%]
+........................................................................ [ 84%]
+........................................................................ [ 85%]
+........................................................................ [ 86%]
+........................................................................ [ 87%]
+........................................................................ [ 88%]
+........................................................................ [ 89%]
+........................................................................ [ 91%]
+........................................................................ [ 92%]
+........................................................................ [ 93%]
+........................................................................ [ 94%]
+........................................................................ [ 95%]
+........................................................................ [ 96%]
+........................................................................ [ 97%]
+........................................................................ [ 98%]
+................................................................         [100%]
+=============================== warnings summary ===============================
+tests/release/test_answer_routing.py: 1610 warnings
+tests/release/test_answer_sweep_direct_evidence.py: 16 warnings
+tests/release/test_authorization_answer_approval.py: 1432 warnings
+tests/release/test_authorization_answer_mutations.py: 2068 warnings
+tests/release/test_authorization_contracts.py: 695 warnings
+tests/release/test_authorization_core_citations.py: 352 warnings
+tests/release/test_authorization_core_exports.py: 304 warnings
+tests/release/test_authorization_core_job_artifacts.py: 446 warnings
+tests/release/test_authorization_core_question_routing.py: 1012 warnings
+tests/release/test_authorization_expanded_credentials.py: 810 warnings
+tests/release/test_authorization_golden_answers.py: 1158 warnings
+tests/release/test_authorization_job_retry.py: 1087 warnings
+tests/release/test_authorization_nda_shares.py: 802 warnings
+tests/release/test_authorization_questionnaire_mappings.py: 816 warnings
+tests/release/test_auto_generate_enqueue_conflict.py: 5 warnings
+tests/release/test_billing_provider.py: 37 warnings
+tests/release/test_body_reference_workspace_scope.py: 5071 warnings
+tests/release/test_case_study_idempotency_owner.py: 44 warnings
+tests/release/test_cross_workspace_refs.py: 151 warnings
+tests/release/test_custom_role_grants.py: 566 warnings
+tests/release/test_deal_questionnaire_link_scope.py: 82 warnings
+tests/release/test_domain_case_studies.py: 138 warnings
+tests/release/test_domain_compliance_controls.py: 330 warnings
+tests/release/test_domain_compliance_coverage.py: 60 warnings
+tests/release/test_domain_compliance_frameworks.py: 41 warnings
+tests/release/test_domain_compliance_gaps.py: 54 warnings
+tests/release/test_domain_compliance_mappings.py: 124 warnings
+tests/release/test_domain_controls.py: 142 warnings
+tests/release/test_domain_controls_unique_key.py: 29 warnings
+tests/release/test_domain_coverage_recommendations.py: 14 warnings
+tests/release/test_domain_deals.py: 205 warnings
+tests/release/test_domain_demo_proof.py: 44 warnings
+tests/release/test_domain_evidence_gaps.py: 146 warnings
+tests/release/test_domain_in_app_notifications.py: 190 warnings
+tests/release/test_domain_notifications.py: 298 warnings
+tests/release/test_domain_security_faq.py: 495 warnings
+tests/release/test_domain_security_page.py: 159 warnings
+tests/release/test_domain_trust_requests.py: 340 warnings
+tests/release/test_domain_vendor_requests.py: 451 warnings
+tests/release/test_enqueue_consistency.py: 30 warnings
+tests/release/test_evidence_gap_closure_columns.py: 30 warnings
+tests/release/test_evidence_gap_generation.py: 94 warnings
+tests/release/test_evidence_gap_one_open_index.py: 6 warnings
+tests/release/test_job_cancellation.py: 33 warnings
+tests/release/test_job_history.py: 1795 warnings
+tests/release/test_job_idempotency.py: 61 warnings
+tests/release/test_job_leases.py: 29 warnings
+tests/release/test_job_retries.py: 123 warnings
+tests/release/test_key_rotation.py: 16 warnings
+tests/release/test_login_residue_teardown.py: 12 warnings
+tests/release/test_logout_all.py: 856 warnings
+tests/release/test_mfa_admin_reset.py: 20 warnings
+tests/release/test_mfa_reenrol_security.py: 70 warnings
+tests/release/test_notification_delivery.py: 176 warnings
+tests/release/test_parent_workspace_move.py: 37 warnings
+tests/release/test_principal_contract.py: 740 warnings
+tests/release/test_provider_adapter.py: 9 warnings
+tests/release/test_remember_policy.py: 880 warnings
+tests/release/test_role_grant_entrypoints.py: 3058 warnings
+tests/release/test_session_persistence.py: 1062 warnings
+tests/release/test_session_validation.py: 400 warnings
+tests/release/test_trust_article_slug_workspace.py: 12 warnings
+tests/release/test_trust_requests_browser.py: 1 warning
+tests/release/test_upload_enqueue_conflict.py: 28 warnings
+tests/release/test_vendor_request_questionnaire_scope.py: 18 warnings
+tests/release/test_workspace_creation_policy.py: 46 warnings
+tests/test_ai_mappings.py: 57 warnings
+tests/test_alert_management.py: 8 warnings
+tests/test_alerting_engine.py: 12 warnings
+tests/test_answer_approval.py: 98 warnings
+tests/test_answer_generation_openai_required.py: 2 warnings
+tests/test_answer_outcomes.py: 12 warnings
+tests/test_answer_pipeline.py: 4 warnings
+tests/test_answer_tiers.py: 2 warnings
+tests/test_auth.py: 11 warnings
+tests/test_auth_flows.py: 2 warnings
+tests/test_auth_sessions_api.py: 5 warnings
+tests/test_auth_workspace.py: 10 warnings
+tests/test_automate_everything.py: 31 warnings
+tests/test_aws_connector.py: 10 warnings
+tests/test_benchmarks.py: 4 warnings
+tests/test_buyer_portal_proof_graph.py: 55 warnings
+tests/test_case_studies.py: 16 warnings
+tests/test_citation_composer.py: 10 warnings
+tests/test_cloud_connectors.py: 16 warnings
+tests/test_compliance_questionnaire_gaps_integration.py: 24 warnings
+tests/test_confidence_routing.py: 8 warnings
+tests/test_confidence_scoring.py: 9 warnings
+tests/test_connector_health.py: 6 warnings
+tests/test_connector_wizard.py: 12 warnings
+tests/test_contracts.py: 19 warnings
+tests/test_control_engine.py: 8 warnings
+tests/test_control_timeline.py: 6 warnings
+tests/test_controls_api.py: 51 warnings
+tests/test_credential_store.py: 14 warnings
+tests/test_credit_ledger.py: 22 warnings
+tests/test_credit_prompts.py: 4 warnings
+tests/test_crm_connectors.py: 20 warnings
+tests/test_dashboard_cards.py: 139 warnings
+tests/test_deals.py: 46 warnings
+tests/test_demo_proof.py: 10 warnings
+tests/test_evidence_approval.py: 13 warnings
+tests/test_evidence_cards.py: 4 warnings
+tests/test_evidence_diff.py: 4 warnings
+tests/test_evidence_search.py: 21 warnings
+tests/test_executive_dashboard.py: 4 warnings
+tests/test_export_pack.py: 10 warnings
+tests/test_feature_flags.py: 16 warnings
+tests/test_feedback_capture.py: 4 warnings
+tests/test_freshness_policies.py: 21 warnings
+tests/test_generate_export.py: 9 warnings
+tests/test_github_connector.py: 10 warnings
+tests/test_golden_answers.py: 39 warnings
+tests/test_google_connector.py: 10 warnings
+tests/test_in_app_notifications.py: 44 warnings
+tests/test_ingestion_pipeline.py: 13 warnings
+tests/test_invite_flow_p14.py: 75 warnings
+tests/test_jobs_api.py: 6 warnings
+tests/test_knowledge_packs.py: 2 warnings
+tests/test_login_email_regression.py: 8 warnings
+tests/test_members_invites.py: 49 warnings
+tests/test_monitoring.py: 4 warnings
+tests/test_multi_tenant.py: 44 warnings
+tests/test_nda_access.py: 34 warnings
+tests/test_notification_fire_points.py: 87 warnings
+tests/test_operator_queue.py: 22 warnings
+tests/test_p1_multi_tenant_hardening.py: 14 warnings
+tests/test_pdf_failure_surfacing.py: 24 warnings
+tests/test_phase_a_user_admin.py: 153 warnings
+tests/test_phase_b_custom_roles.py: 93 warnings
+tests/test_phase_c_notifications.py: 248 warnings
+tests/test_phase_d_slack.py: 189 warnings
+tests/test_phase_e_slack_ingest.py: 106 warnings
+tests/test_phase_f_gmail.py: 104 warnings
+tests/test_product_events.py: 14 warnings
+tests/test_promises.py: 21 warnings
+tests/test_proof_widgets.py: 4 warnings
+tests/test_qa_201_cross_workspace_auth.py: 12 warnings
+tests/test_questionnaire_answer_evidence.py: 4 warnings
+tests/test_questionnaire_mapping_evidence.py: 21 warnings
+tests/test_questionnaire_mappings.py: 40 warnings
+tests/test_questionnaires_exports_list_api.py: 4 warnings
+tests/test_registry_lifecycle_api.py: 48 warnings
+tests/test_remediation.py: 56 warnings
+tests/test_remediation_loop.py: 29 warnings
+tests/test_remember_me.py: 13 warnings
+tests/test_retention.py: 19 warnings
+tests/test_reuse_analytics.py: 4 warnings
+tests/test_roi_calculator.py: 4 warnings
+tests/test_security_faq.py: 30 warnings
+tests/test_security_page.py: 4 warnings
+tests/test_security_remediation.py: 16 warnings
+tests/test_session_concurrency.py: 13 warnings
+tests/test_shareable_spaces.py: 21 warnings
+tests/test_signal_mapping.py: 10 warnings
+tests/test_sla_tracking.py: 4 warnings
+tests/test_sli.py: 4 warnings
+tests/test_source_registry.py: 18 warnings
+tests/test_tags.py: 76 warnings
+tests/test_tenant_isolation.py: 28 warnings
+tests/test_trust_articles_api.py: 43 warnings
+tests/test_trust_center_analytics.py: 4 warnings
+tests/test_trust_center_publish.py: 14 warnings
+tests/test_trust_requests_api.py: 44 warnings
+tests/test_upload_parse_review.py: 2 warnings
+tests/test_vendor_requests_api.py: 73 warnings
+tests/test_vendor_response_api.py: 10 warnings
+tests/test_wave2_p13_p21_api.py: 9 warnings
+tests/test_wave3_p23_p29_api.py: 12 warnings
+tests/test_workspaces_members_api.py: 8 warnings
+  /tmp/tc-venv/lib/python3.12/site-packages/sqlalchemy/sql/schema.py:3627: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    return util.wrap_callable(lambda ctx: fn(), fn)  # type: ignore
+
+tests/release/test_billing_provider.py: 2 warnings
+tests/release/test_cross_workspace_refs.py: 6 warnings
+tests/release/test_deal_migration_recovery.py: 15 warnings
+tests/release/test_domain_compliance_controls.py: 1 warning
+tests/release/test_domain_compliance_gaps.py: 1 warning
+tests/release/test_domain_compliance_mappings.py: 1 warning
+tests/release/test_domain_controls.py: 1 warning
+tests/release/test_domain_controls_unique_key.py: 1 warning
+tests/release/test_domain_deals.py: 2 warnings
+tests/release/test_domain_demo_proof.py: 2 warnings
+tests/release/test_domain_security_faq.py: 1 warning
+tests/release/test_domain_trust_requests.py: 1 warning
+tests/release/test_domain_vendor_requests.py: 1 warning
+tests/release/test_evidence_gap_closure_columns.py: 1 warning
+tests/release/test_evidence_gap_one_open_index.py: 2 warnings
+tests/release/test_evidence_gap_status_checks.py: 2 warnings
+tests/release/test_job_leases.py: 1 warning
+tests/release/test_notification_delivery.py: 3 warnings
+tests/release/test_parent_workspace_move.py: 4 warnings
+tests/release/test_provider_adapter.py: 2 warnings
+  /tmp/tc-venv/lib/python3.12/site-packages/alembic/config.py:604: DeprecationWarning: No path_separator found in configuration; falling back to legacy splitting on spaces, commas, and colons for prepend_sys_path.  Consider adding path_separator=os to Alembic config.
+    util.warn_deprecated(
+
+tests/release/test_body_reference_workspace_scope.py: 2 warnings
+tests/release/test_domain_compliance_controls.py: 6 warnings
+tests/release/test_domain_controls.py: 2 warnings
+tests/test_remediation_loop.py: 1 warning
+  /agent/repos/trust-copilot/apps/api/app/services/remediation_loop_service.py:95: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    return evidence_qualifies(db, item, workspace_id, datetime.utcnow())
+
+tests/release/test_cross_workspace_refs.py: 1 warning
+tests/release/test_domain_compliance_controls.py: 12 warnings
+tests/release/test_domain_controls.py: 3 warnings
+  /agent/repos/trust-copilot/apps/api/app/api/routes/compliance_controls.py:550: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    now = datetime.utcnow()
+
+tests/release/test_domain_case_studies.py::test_case_study_index_names_match_the_database
+  /agent/repos/trust-copilot/apps/api/tests/release/test_domain_case_studies.py:994: SAWarning: Can't validate argument 'dialect_options'; can't locate any SQLAlchemy dialect named 'dialect'
+    diffs = compare_metadata(context, Base.metadata)
+
+tests/release/test_domain_compliance_controls.py::test_permissions_workspace_mismatch_and_read_only_gets
+  /agent/repos/trust-copilot/apps/api/app/api/routes/compliance_controls.py:237: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    now = datetime.utcnow()
+
+tests/release/test_domain_compliance_controls.py: 8 warnings
+tests/release/test_domain_controls_unique_key.py: 1 warning
+tests/test_compliance_questionnaire_gaps_integration.py: 6 warnings
+tests/test_notification_fire_points.py: 1 warning
+  /agent/repos/trust-copilot/apps/api/app/api/routes/compliance_controls.py:153: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    now = datetime.utcnow()
+
+tests/release/test_domain_compliance_controls.py::test_verify_requires_qualifying_evidence_and_retry_is_stable
+tests/release/test_domain_compliance_controls.py::test_changed_routes_deny_at_each_permission_level
+tests/release/test_domain_compliance_controls.py::test_changed_routes_deny_at_each_permission_level
+tests/release/test_domain_controls_unique_key.py::test_reviewer_verify_syncs_verified_status_and_get_stays_read_only
+tests/test_notification_fire_points.py::TestControlVerifiedFirePoint::test_control_verified_notifies
+  /agent/repos/trust-copilot/apps/api/app/api/routes/compliance_controls.py:495: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    now = datetime.utcnow()
+
+tests/release/test_domain_compliance_controls.py::test_verify_requires_qualifying_evidence_and_retry_is_stable
+  /agent/repos/trust-copilot/apps/api/tests/release/test_domain_compliance_controls.py:383: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    expires_at=datetime.utcnow() - timedelta(days=1),
+
+tests/release/test_domain_compliance_controls.py::test_deleted_document_and_link_verified_flag
+  /agent/repos/trust-copilot/apps/api/tests/release/test_domain_compliance_controls.py:469: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    deleted_at=datetime.utcnow(),
+
+tests/release/test_domain_compliance_controls.py::test_deleted_document_and_link_verified_flag
+tests/release/test_domain_compliance_controls.py::test_changed_routes_deny_at_each_permission_level
+  /agent/repos/trust-copilot/apps/api/app/api/routes/compliance_controls.py:883: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    if ev is None or not evidence_qualifies(db, ev, ws, datetime.utcnow()):
+
+tests/release/test_domain_compliance_controls.py::test_changed_routes_deny_at_each_permission_level
+  /agent/repos/trust-copilot/apps/api/app/api/routes/compliance_controls.py:886: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    link.last_verified_at = datetime.utcnow() if body.verified else None
+
+tests/release/test_domain_compliance_controls.py::test_remediation_evidence_does_not_verify_unqualified_links
+  /agent/repos/trust-copilot/apps/api/tests/release/test_domain_compliance_controls.py:1204: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    expires_at=datetime.utcnow() - timedelta(days=1),
+
+tests/release/test_domain_compliance_controls.py::test_remediation_evidence_does_not_verify_unqualified_links
+  /agent/repos/trust-copilot/apps/api/tests/release/test_domain_compliance_controls.py:1213: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    deleted_at=datetime.utcnow(),
+
+tests/release/test_domain_compliance_coverage.py: 16 warnings
+tests/release/test_domain_coverage_recommendations.py: 3 warnings
+  /agent/repos/trust-copilot/apps/api/app/services/compliance_coverage.py:442: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    now = datetime.utcnow()
+
+tests/release/test_domain_compliance_coverage.py::test_numerator_explanations_and_retry
+  /agent/repos/trust-copilot/apps/api/tests/release/test_domain_compliance_coverage.py:354: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    evidence_id=stale_evidence, expires_at=datetime.utcnow() - timedelta(days=1)
+
+tests/release/test_domain_compliance_gaps.py::test_rules_owner_and_states
+  /agent/repos/trust-copilot/apps/api/tests/release/test_domain_compliance_gaps.py:373: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    evidence_id=stale_evidence, expires_at=datetime.utcnow() - timedelta(days=1)
+
+tests/release/test_domain_compliance_mappings.py: 13 warnings
+tests/test_notification_fire_points.py: 1 warning
+  /agent/repos/trust-copilot/apps/api/app/api/routes/compliance_mappings.py:293: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    now = datetime.utcnow()
+
+tests/release/test_domain_compliance_mappings.py: 25 warnings
+tests/test_notification_fire_points.py: 2 warnings
+  /agent/repos/trust-copilot/apps/api/app/api/routes/compliance_mappings.py:189: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    stamp = datetime.utcnow().isoformat()
+
+tests/release/test_domain_compliance_mappings.py: 16 warnings
+tests/test_notification_fire_points.py: 1 warning
+  /agent/repos/trust-copilot/apps/api/app/api/routes/compliance_mappings.py:171: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    recorded_at=datetime.utcnow(),
+
+tests/release/test_domain_compliance_mappings.py::test_reads_stay_read_only_and_roles_are_denied
+tests/release/test_domain_compliance_mappings.py::test_reviewer_id_timestamp_precedence_and_audit
+tests/release/test_domain_compliance_mappings.py::test_audit_rows_for_every_state_change
+tests/release/test_domain_compliance_mappings.py::test_rollback_notifies_without_a_real_send
+  /agent/repos/trust-copilot/apps/api/app/api/routes/compliance_mappings.py:389: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    row.reviewed_at = datetime.utcnow()
+
+tests/release/test_domain_compliance_mappings.py::test_reviewer_id_timestamp_precedence_and_audit
+  /agent/repos/trust-copilot/apps/api/tests/release/test_domain_compliance_mappings.py:346: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    started = datetime.utcnow() - timedelta(seconds=5)
+
+tests/release/test_domain_compliance_mappings.py::test_audit_rows_for_every_state_change
+  /agent/repos/trust-copilot/apps/api/tests/release/test_domain_compliance_mappings.py:521: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    started = datetime.utcnow() - timedelta(seconds=5)
+
+tests/release/test_domain_security_page.py: 44 warnings
+  /agent/repos/trust-copilot/apps/api/app/services/security_page_service.py:115: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    if _evidence_is_current(db, item, workspace_id, datetime.utcnow()) != "qualifies":
+
+tests/release/test_domain_security_page.py::test_deleted_document_or_expired_evidence_is_not_current_proof
+  /agent/repos/trust-copilot/apps/api/tests/release/test_domain_security_page.py:487: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    EvidenceMetadata(evidence_id=expiring.id, expires_at=datetime.utcnow() + timedelta(days=30))
+
+tests/release/test_domain_security_page.py::test_deleted_document_or_expired_evidence_is_not_current_proof
+  /agent/repos/trust-copilot/apps/api/tests/release/test_domain_security_page.py:502: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    {"t": datetime.utcnow() - timedelta(days=1), "id": expiring.id},
+
+tests/release/test_domain_vendor_requests.py: 69 warnings
+  /agent/repos/trust-copilot/apps/api/tests/release/test_domain_vendor_requests.py:41: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    deleted_at=datetime.utcnow() if kind == "deleted" else None,
+
+tests/release/test_domain_vendor_requests.py::test_migration_round_trip_preserves_non_default_lifecycle
+  /agent/repos/trust-copilot/apps/api/tests/release/test_domain_vendor_requests.py:547: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    legacy.created_at = datetime.utcnow() - timedelta(days=8)
+
+tests/release/test_domain_vendor_requests.py::test_legacy_grant_expires_without_get_mutation
+  /agent/repos/trust-copilot/apps/api/tests/release/test_domain_vendor_requests.py:722: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    row.created_at = datetime.utcnow() - timedelta(days=8)
+
+tests/release/test_job_cancellation.py::test_cancel_retrying_job_clears_the_schedule
+  /agent/repos/trust-copilot/apps/api/tests/release/test_job_cancellation.py:268: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    next_attempt_at=datetime.utcnow() + timedelta(hours=1),
+
+tests/release/test_job_idempotency.py::test_parse_stale_input_is_superseded[deleted]
+  /agent/repos/trust-copilot/apps/api/tests/release/test_job_idempotency.py:364: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    qnr.deleted_at = datetime.utcnow()
+
+tests/release/test_job_idempotency.py::test_generate_never_overwrites_approved_or_newer_answers
+  /agent/repos/trust-copilot/apps/api/tests/release/test_job_idempotency.py:585: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    old = datetime.utcnow() - timedelta(hours=2)
+
+tests/release/test_job_idempotency.py::test_generate_never_overwrites_approved_or_newer_answers
+  /agent/repos/trust-copilot/apps/api/tests/release/test_job_idempotency.py:611: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    created_at=datetime.utcnow() - timedelta(minutes=5),
+
+tests/release/test_job_idempotency.py::test_generate_rerun_is_idempotent_and_counts_usage_once
+  /agent/repos/trust-copilot/apps/api/tests/release/test_job_idempotency.py:652: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    created_at=datetime.utcnow() - timedelta(minutes=1),
+
+tests/release/test_job_idempotency.py::test_upsert_guard_rechecks_answer_approved_mid_run
+  /agent/repos/trust-copilot/apps/api/tests/release/test_job_idempotency.py:680: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    created_at=datetime.utcnow() - timedelta(hours=1),
+
+tests/release/test_job_idempotency.py::test_upsert_guard_rechecks_answer_approved_mid_run
+  /agent/repos/trust-copilot/apps/api/tests/release/test_job_idempotency.py:681: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    updated_at=datetime.utcnow() - timedelta(hours=1),
+
+tests/release/test_job_idempotency.py::test_upsert_guard_rechecks_answer_approved_mid_run
+  /agent/repos/trust-copilot/apps/api/tests/release/test_job_idempotency.py:685: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    guard = AnswerWriteGuard(datetime.utcnow() - timedelta(minutes=30))
+
+tests/release/test_job_retries.py::test_transient_failure_schedules_bounded_retry_and_is_not_claimable_early
+  /agent/repos/trust-copilot/apps/api/tests/release/test_job_retries.py:356: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    before = datetime.utcnow()
+
+tests/release/test_job_retries.py::test_claim_increments_attempt_and_clears_schedule
+  /agent/repos/trust-copilot/apps/api/tests/release/test_job_retries.py:380: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    job.next_attempt_at = datetime.utcnow() - timedelta(seconds=1)
+
+tests/release/test_job_retries.py::test_retry_exhaustion_fails_visibly_never_completed
+  /agent/repos/trust-copilot/apps/api/tests/release/test_job_retries.py:402: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    assert not _claimable(db, job.id, now=datetime.utcnow() + timedelta(days=1))
+
+tests/release/test_job_retries.py::test_process_one_job_end_to_end_retry_then_success
+  /agent/repos/trust-copilot/apps/api/tests/release/test_job_retries.py:586: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    j.next_attempt_at = datetime.utcnow() - timedelta(seconds=1)
+
+tests/release/test_job_retries.py::test_retry_then_success_clears_only_the_stale_attempt_error
+  /agent/repos/trust-copilot/apps/api/tests/release/test_job_retries.py:659: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    j.next_attempt_at = datetime.utcnow() - timedelta(seconds=1)
+
+tests/release/test_job_retries.py::test_failure_handler_never_overwrites_a_committed_completion[exc0]
+tests/release/test_job_retries.py::test_failure_handler_never_overwrites_a_committed_completion[exc1]
+tests/release/test_job_retries.py::test_failure_handler_never_overwrites_a_committed_completion[exc2]
+  /agent/repos/trust-copilot/apps/api/tests/release/test_job_retries.py:675: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    job.completed_at = datetime.utcnow()
+
+tests/release/test_job_retries.py::test_generate_transient_llm_errors_retry_only_failed_questions
+tests/release/test_job_retries.py::test_generate_auth_error_stops_explicitly
+tests/release/test_job_retries.py::test_generate_bad_request_question_stays_visible_placeholder
+tests/release/test_job_retries.py::test_generate_missing_api_key_is_terminal_config_error
+  /agent/repos/trust-copilot/apps/api/tests/release/test_job_retries.py:797: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    created_at=datetime.utcnow() - timedelta(minutes=1),
+
+tests/release/test_job_retries.py::test_write_guard_does_not_protect_llm_error_placeholders
+  /agent/repos/trust-copilot/apps/api/tests/release/test_job_retries.py:912: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    cutoff = datetime.utcnow() - timedelta(hours=1)
+
+tests/release/test_job_retries.py::test_write_guard_does_not_protect_llm_error_placeholders
+  /agent/repos/trust-copilot/apps/api/tests/release/test_job_retries.py:914: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    newer = datetime.utcnow()
+
+tests/release/test_principal_contract.py::test_api_key_authentication_preserves_existing_workspace_role_rules[sqlite]
+tests/release/test_principal_contract.py::test_api_key_authentication_preserves_existing_workspace_role_rules[postgres]
+  /agent/repos/trust-copilot/apps/api/tests/release/test_principal_contract.py:398: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    key.expires_at = datetime.utcnow() - timedelta(seconds=1)
+
+tests/release/test_principal_contract.py::test_api_key_authentication_preserves_existing_workspace_role_rules[sqlite]
+tests/release/test_principal_contract.py::test_api_key_authentication_preserves_existing_workspace_role_rules[postgres]
+  /agent/repos/trust-copilot/apps/api/app/core/auth_deps.py:157: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    if row.expires_at and row.expires_at <= datetime.utcnow():
+
+tests/release/test_principal_contract.py: 2 warnings
+tests/release/test_session_persistence.py: 50 warnings
+tests/release/test_workspace_creation_policy.py: 19 warnings
+  /agent/repos/trust-copilot/apps/api/app/api/routes/workspaces.py:149: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    now = datetime.utcnow()
+
+tests/test_dashboard_cards.py::TestAdminCRUD::test_update_card
+  /agent/repos/trust-copilot/apps/api/app/api/routes/dashboard_cards.py:275: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    card.updated_at = datetime.utcnow()
+
+tests/test_deal_integrity_controls.py::test_response_failure_rolls_back_domain_and_same_key_retry_is_single
+tests/test_deal_integrity_controls.py::test_response_failure_rolls_back_domain_and_same_key_retry_is_single
+tests/test_deal_integrity_controls.py::test_lost_owner_rolls_back_domain_and_preserves_new_owner
+tests/test_deal_integrity_controls.py::test_commit_failure_rolls_back_both_response_and_domain
+tests/test_deal_integrity_controls.py::test_commit_failure_rolls_back_both_response_and_domain
+  /tmp/tc-venv/lib/python3.12/site-packages/sqlalchemy/engine/default.py:964: DeprecationWarning: The default datetime adapter is deprecated as of Python 3.12; see the sqlite3 documentation for suggested replacement recipes
+    cursor.execute(statement, parameters)
+
+tests/test_p1_multi_tenant_hardening.py::TestFairScheduling::test_claim_job_rotates_workspaces
+tests/test_p1_multi_tenant_hardening.py::TestFairScheduling::test_claim_job_rotates_workspaces
+tests/test_p1_multi_tenant_hardening.py::TestFairScheduling::test_claim_job_rotates_workspaces
+  /agent/repos/trust-copilot/apps/api/tests/test_p1_multi_tenant_hardening.py:185: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    created_at=datetime.utcnow(),
+
+tests/test_p1_multi_tenant_hardening.py::TestFairScheduling::test_claim_job_rotates_workspaces
+  /agent/repos/trust-copilot/apps/api/tests/test_p1_multi_tenant_hardening.py:194: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    created_at=datetime.utcnow(),
+
+tests/test_p1_multi_tenant_hardening.py::TestFairScheduling::test_claim_falls_back_when_only_one_workspace
+  /agent/repos/trust-copilot/apps/api/tests/test_p1_multi_tenant_hardening.py:237: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    created_at=datetime.utcnow(),
+
+tests/test_phase_e_slack_ingest.py::TestControlSuggestions::test_suggestion_status_review
+tests/test_phase_e_slack_ingest.py::TestControlSuggestions::test_suggestion_review_audit_logged
+  /agent/repos/trust-copilot/apps/api/app/api/routes/slack_ingest.py:329: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    sug.reviewed_at = datetime.utcnow()
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+SKIPPED [1] tests/test_trust_scoring_blind.py:33: external_data: blind test pack not checked in; set TC_TRUST_SCORING_BLIND_PACK to run
+6328 passed, 1 skipped, 34868 warnings in 573.43s (0:09:33)
+EXIT:0

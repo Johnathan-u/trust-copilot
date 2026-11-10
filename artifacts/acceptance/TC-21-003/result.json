@@ -1,0 +1,65 @@
+{
+  "ticket": "TC-21-003",
+  "branch": "tc/TC-21-003-evidence-gate",
+  "parent_sha": "62afe126fdb0c69fe73537c29ee54c8a6869a1e6",
+  "base_branch": "tc/TC-21-002-control-contract",
+  "tested_commit_note": "This file is in the same commit as the fix. That commit is the child of parent_sha. The pull request records the head SHA.",
+  "cwd": "apps/api",
+  "interpreter": "/tmp/tc-venv/bin/python",
+  "environment": {
+    "python": "3.12.3",
+    "postgresql": "16.15 (Ubuntu 16.15-0ubuntu0.24.04.1)",
+    "pgvector": "0.6.0",
+    "pgvector_note": "CI image is PostgreSQL 16.15 with pgvector 0.8.7. This run used the Ubuntu 16.15 package and pgvector 0.6.0.",
+    "sqlalchemy": "2.0.55",
+    "alembic": "1.20.1",
+    "alembic_heads": "tc17003_security_claims (head)",
+    "node": "v24.22.1",
+    "ruff": "0.5.6",
+    "database": "trustcopilot_test at 127.0.0.1:5432",
+    "TC_REQUIRE_DB": "1"
+  },
+  "ruff": {
+    "check": "ruff check .",
+    "format_check": "ruff format --check .",
+    "cwd": "apps/api",
+    "exit_status": 0
+  },
+  "without_fix": {
+    "sha": "62afe126fdb0c69fe73537c29ee54c8a6869a1e6",
+    "command": "python -m pytest tests/release/test_domain_compliance_controls.py -q --tb=line -k \"remediation_evidence_does_not_verify or remediation_evidence_verifies_only or compliance_owner_must_be\"",
+    "exit_status": 1,
+    "failed": 2,
+    "passed": 3,
+    "deselected": 13,
+    "warnings": 75,
+    "duration_seconds": 2.61,
+    "owner_tests": "The three owner cases passed on the parent. They cover existing behaviour.",
+    "evidence_tests": "Both remediation evidence cases failed on the parent."
+  },
+  "ticket_file": {
+    "command": "python -m pytest tests/release/test_domain_compliance_controls.py -q --tb=line",
+    "exit_status": 0,
+    "passed": 18,
+    "failed": 0,
+    "skipped": 0,
+    "warnings": 368,
+    "duration_seconds": 10.32
+  },
+  "full_suite": {
+    "command": "python -m pytest -q --tb=line -rs",
+    "env": ["TC_REQUIRE_DB=1", "TC_REQUIRE_WEB_TOOLCHAIN=1", "TC_REQUIRE_API_QUALITY=1"],
+    "exit_status": 0,
+    "passed": 6328,
+    "failed": 0,
+    "skipped": 1,
+    "warnings": 34868,
+    "duration_seconds": 573.43,
+    "skips": [
+      {
+        "node": "tests/test_trust_scoring_blind.py",
+        "reason": "external_data: blind test pack not checked in; set TC_TRUST_SCORING_BLIND_PACK to run"
+      }
+    ]
+  }
+}

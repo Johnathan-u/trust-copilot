@@ -57,6 +57,8 @@ _COUNTED = (
     "compliance_webhook_outbox",
     "audit_events",
     "control_contract_events",
+    "remediation_audit_events",
+    "remediation_tickets",
     "controls",
     "workspace_controls",
     "user_sessions",
@@ -1115,3 +1117,286 @@ def test_migration_round_trip_restores_duplicate_links():
         after_counts = _counts()
         assert after_counts == before_counts, {"before": before_counts, "after": after_counts}
         print(f"TC21003_COUNTS before={before_counts} after={after_counts}")
+
+
+def _ticket(client, control_id: int) -> int:
+    response = client.post(
+        "/api/remediation/tickets",
+        json={"title": "Synthetic remediation", "control_id": control_id},
+    )
+    assert response.status_code == 200, response.text
+    return response.json()["id"]
+
+
+def _stored_control_status(control_id: int) -> str:
+    session = _db()
+    try:
+        return session.execute(
+            text("SELECT status FROM workspace_controls WHERE id = :id"),
+            {"id": control_id},
+        ).scalar()
+    finally:
+        session.close()
+
+
+def _stored_link_verified(control_id: int, evidence_id: int) -> bool:
+    session = _db()
+    try:
+        row = session.execute(
+            text(
+                "SELECT verified FROM control_evidence_links "
+                "WHERE control_id = :c AND evidence_id = :e"
+            ),
+            {"c": control_id, "e": evidence_id},
+        ).one()
+        return bool(row[0])
+    finally:
+        session.close()
+
+
+def _legacy_mirror_count(control_id: int, evidence_id: int) -> int:
+    session = _db()
+    try:
+        return int(
+            session.execute(
+                text(
+                    "SELECT count(*) FROM control_evidence ce "
+                    "JOIN controls c ON c.id = ce.control_id "
+                    "WHERE c.workspace_control_id = :c AND ce.evidence_item_id = :e"
+                ),
+                {"c": control_id, "e": evidence_id},
+            ).scalar()
+            or 0
+        )
+    finally:
+        session.close()
+
+
+def _attach_remediation(client, control_id: int, evidence_id: int, bump: str | None):
+    ticket_id = _ticket(client, control_id)
+    return client.post(
+        f"/api/remediation/tickets/{ticket_id}/evidence",
+        json={"evidence_ids": [evidence_id], "bump_control_to": bump},
+    )
+
+
+def test_remediation_evidence_does_not_verify_unqualified_links(client):
+    """Pending, expired, and deleted-document evidence stay unverified.
+
+    A link created here, and a link that was already verified, is not left
+    verified. The control status stays off verified. The legacy mirror still
+    records the evidence item.
+    """
+    actors = _actors()
+    _login(client, ADMIN_EMAIL, ADMIN_PASSWORD)
+    created = _control(client, f"Remediation gate {uuid.uuid4().hex[:8]}")
+    session = _db()
+    try:
+        pending = _evidence(session, actors["workspace_id"], approval="pending", document_id=None)
+        already = _evidence(session, actors["workspace_id"], approval="pending", document_id=None)
+        session.add(
+            ControlEvidenceLink(control_id=created["id"], evidence_id=already, verified=True)
+        )
+        expired = _evidence(session, actors["workspace_id"], approval="approved", document_id=None)
+        session.add(
+            EvidenceMetadata(
+                evidence_id=expired,
+                expires_at=datetime.utcnow() - timedelta(days=1),
+            )
+        )
+        _sync_sequence(session, "documents")
+        deleted = Document(
+            workspace_id=actors["workspace_id"],
+            storage_key=f"tc21003/{uuid.uuid4().hex}",
+            filename="deleted.txt",
+            status="uploaded",
+            deleted_at=datetime.utcnow(),
+        )
+        session.add(deleted)
+        session.flush()
+        deleted_evidence = _evidence(
+            session, actors["workspace_id"], approval="approved", document_id=deleted.id
+        )
+        blocked = _evidence(session, actors["workspace_id"], approval="pending", document_id=None)
+        session.commit()
+    finally:
+        session.close()
+
+    for evidence_id in (pending, already, expired, deleted_evidence):
+        posted = _attach_remediation(client, created["id"], evidence_id, "implemented")
+        assert posted.status_code == 200, posted.text
+        assert _stored_link_verified(created["id"], evidence_id) is False
+        assert _stored_control_status(created["id"]) == "implemented"
+        assert _legacy_mirror_count(created["id"], evidence_id) == 1
+
+    refused = _attach_remediation(client, created["id"], blocked, "verified")
+    assert refused.status_code == 400
+    assert refused.json()["detail"]["code"] == "verified_status_not_allowed"
+    assert _stored_control_status(created["id"]) == "implemented"
+    session = _db()
+    try:
+        missing = session.execute(
+            text(
+                "SELECT count(*) FROM control_evidence_links "
+                "WHERE control_id = :c AND evidence_id = :e"
+            ),
+            {"c": created["id"], "e": blocked},
+        ).scalar()
+        assert int(missing or 0) == 0
+    finally:
+        session.close()
+
+
+def test_remediation_evidence_verifies_only_a_qualifying_link(client):
+    """Approved, current, same-workspace evidence is the only verified link.
+
+    An existing unverified link is updated. A new link is created verified.
+    The control itself stays at the requested bump and is not verified.
+    """
+    actors = _actors()
+    _login(client, ADMIN_EMAIL, ADMIN_PASSWORD)
+    created = _control(client, f"Remediation qualify {uuid.uuid4().hex[:8]}")
+    session = _db()
+    try:
+        manual = _evidence(session, actors["workspace_id"], approval="approved", document_id=None)
+        session.add(
+            ControlEvidenceLink(control_id=created["id"], evidence_id=manual, verified=False)
+        )
+        _sync_sequence(session, "documents")
+        live = Document(
+            workspace_id=actors["workspace_id"],
+            storage_key=f"tc21003/{uuid.uuid4().hex}",
+            filename="current.txt",
+            status="uploaded",
+        )
+        session.add(live)
+        session.flush()
+        documented = _evidence(
+            session, actors["workspace_id"], approval="approved", document_id=live.id
+        )
+        session.commit()
+    finally:
+        session.close()
+
+    ticket_id = _ticket(client, created["id"])
+    posted = client.post(
+        f"/api/remediation/tickets/{ticket_id}/evidence",
+        json={"evidence_ids": [manual, documented], "bump_control_to": "implemented"},
+    )
+    assert posted.status_code == 200, posted.text
+    assert _stored_link_verified(created["id"], manual) is True
+    assert _stored_link_verified(created["id"], documented) is True
+    assert _stored_control_status(created["id"]) == "implemented"
+    assert _legacy_mirror_count(created["id"], manual) == 1
+    assert _legacy_mirror_count(created["id"], documented) == 1
+
+
+def _owner_snapshot(control_id: int) -> tuple:
+    session = _db()
+    try:
+        workspace = session.execute(
+            text(
+                "SELECT status, owner_user_id, owner_team, custom_name, verified_at, updated_at "
+                "FROM workspace_controls WHERE id = :id"
+            ),
+            {"id": control_id},
+        ).one()
+        legacy = session.execute(
+            text(
+                "SELECT status, lifecycle, owner_user_id, owner_team, name "
+                "FROM controls WHERE workspace_control_id = :id ORDER BY id"
+            ),
+            {"id": control_id},
+        ).all()
+        return (tuple(workspace), tuple(tuple(row) for row in legacy))
+    finally:
+        session.close()
+
+
+def _named_control_count(workspace_id: int, name: str) -> int:
+    session = _db()
+    try:
+        workspace_rows = session.execute(
+            text(
+                "SELECT count(*) FROM workspace_controls "
+                "WHERE workspace_id = :w AND custom_name = :n"
+            ),
+            {"w": workspace_id, "n": name},
+        ).scalar()
+        legacy_rows = session.execute(
+            text("SELECT count(*) FROM controls WHERE workspace_id = :w AND name = :n"),
+            {"w": workspace_id, "n": name},
+        ).scalar()
+        return int(workspace_rows or 0) + int(legacy_rows or 0)
+    finally:
+        session.close()
+
+
+def _extra_member(workspace_id: int, *, suspended: bool, remove: bool) -> int:
+    session = _db()
+    try:
+        _sync_sequence(session, "users")
+        user = User(
+            email=f"tc21003-{uuid.uuid4().hex[:12]}@trust.local",
+            password_hash=hash_password("test-m"),
+            display_name="Synthetic member",
+        )
+        session.add(user)
+        session.flush()
+        session.add(
+            WorkspaceMember(
+                workspace_id=workspace_id,
+                user_id=user.id,
+                role="reviewer",
+                suspended=False if remove else suspended,
+            )
+        )
+        if remove:
+            session.flush()
+            session.query(WorkspaceMember).filter(WorkspaceMember.user_id == user.id).delete()
+        session.commit()
+        return user.id
+    finally:
+        session.close()
+
+
+@pytest.mark.parametrize("kind", ("foreign", "suspended", "removed"))
+def test_compliance_owner_must_be_an_active_workspace_member(client, kind):
+    """Create and patch refuse an owner who is not an active member.
+
+    Foreign, suspended, and removed memberships share owner_not_in_workspace.
+    A removed membership is the inactive member: the user row remains and the
+    membership row does not. The stored control is read back in a new session.
+    """
+    actors = _actors()
+    if kind == "foreign":
+        owner_id = actors["outsider_id"]
+    elif kind == "suspended":
+        owner_id = _extra_member(actors["workspace_id"], suspended=True, remove=False)
+    else:
+        owner_id = _extra_member(actors["workspace_id"], suspended=False, remove=True)
+    _login(client, ADMIN_EMAIL, ADMIN_PASSWORD)
+    name = f"Owner {kind} {uuid.uuid4().hex[:8]}"
+    created_attempt = client.post(
+        "/api/compliance/controls",
+        json={"custom_name": name, "status": "not_implemented", "owner_user_id": owner_id},
+    )
+    assert created_attempt.status_code == 404
+    assert created_attempt.json()["detail"]["code"] == "owner_not_in_workspace"
+    assert created_attempt.json()["detail"]["partial_failure"] is False
+    assert _named_control_count(actors["workspace_id"], name) == 0
+
+    created = _control(client, f"Keep {kind} {uuid.uuid4().hex[:8]}")
+    before = _owner_snapshot(created["id"])
+    patched = client.patch(
+        f"/api/compliance/controls/{created['id']}",
+        json={
+            "owner_user_id": owner_id,
+            "status": "in_progress",
+            "custom_name": f"Changed {kind}",
+        },
+    )
+    assert patched.status_code == 404
+    assert patched.json()["detail"]["code"] == "owner_not_in_workspace"
+    assert patched.json()["detail"]["partial_failure"] is False
+    assert _owner_snapshot(created["id"]) == before
