@@ -1,4 +1,6 @@
-# TC-10-003a answer-write gaps
+# TC-10-003f answer-write gaps
+
+PR #204 was merged under the title TC-10-003a, but that ID already belonged to earlier TC-10-003 work: the 5xx no-cache and enqueue retry. After the merge, the PR and this folder were renamed TC-10-003f.
 
 Parent: `a2b39c80` (squash merge of PR #202). The suite below ran on the working tree in this commit. Naming that commit here would change the SHA, so the branch head is the commit that contains this file.
 
@@ -52,6 +54,6 @@ Each new test was run against parent code at `a2b39c80` and failed. The same tes
 - Approve and PATCH still have no version check, so a reviewer can approve text they never saw.
 - Parse and index `FOR UPDATE` tests are still sequential rather than barrier threads.
 - `isinstance(db, Session)` still skips the write guard for a session wrapper that is not a `Session` subclass.
-- No unique index on `answers.question_id`. Gap regeneration still inserts a second row on purpose.
+- No unique index on `answers.question_id`. Product code no longer inserts a second answer row for a question. Only the test fixture at `apps/api/tests/test_evidence_gap_generation.py:688` creates one on purpose, to check that a sufficient row can't outvote a rejected or flagged one.
 - Historical duplicate rows, if any, are not backfilled. Readers that build a dict from `question_id` can still see one of them.
 - Pull request 105, the tracker, Jira, and backlog snapshots were not touched.
