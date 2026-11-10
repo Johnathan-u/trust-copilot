@@ -13,12 +13,10 @@ E   assert None is not None
      +  where None = _stored_link_verified_at(55, 91021314)
 /agent/repos/trust-copilot/apps/api/tests/release/test_domain_compliance_controls.py:1346: assert None is not None
 E   AssertionError: assert 'verified' == 'implemented'
-      
       - implemented
       + verified
 /agent/repos/trust-copilot/apps/api/tests/release/test_domain_compliance_controls.py:1460: AssertionError: assert 'verified' == 'implemented'
 E   AssertionError: assert 'verified' == 'implemented'
-      
       - implemented
       + verified
 /agent/repos/trust-copilot/apps/api/tests/release/test_domain_compliance_controls.py:1493: AssertionError: assert 'verified' == 'implemented'
