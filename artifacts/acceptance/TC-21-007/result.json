@@ -1,0 +1,68 @@
+{
+  "ticket": "TC-21-007",
+  "accepted": false,
+  "implementation_sha": "c9623436e9c8b2402349ca6642df6950b1497ac3",
+  "implementation_note": "Product code matches this master SHA. compliance_coverage.py and the coverage route are unchanged. The tests and this file are added in the same commit. ac5c33cd455e796656e138e89f768ee6fae0ed05 is not an object in this clone and is not reachable from master. pytest-q.txt is that older 5-passed capture.",
+  "file": "apps/api/tests/release/test_domain_compliance_coverage.py",
+  "command": "python -m pytest tests/release/test_domain_compliance_coverage.py -q",
+  "working_directory": "apps/api",
+  "interpreter": "/tmp/tc-venv/bin/python",
+  "command_env": {
+    "SESSION_SECRET": "test-secret",
+    "TC_REQUIRE_DB": "1",
+    "TRUST_COPILOT_TESTING": "1",
+    "TC_TEST_DATABASE_URL": "postgresql://postgres:postgres@127.0.0.1:5432/trustcopilot_test"
+  },
+  "exit_status": 0,
+  "totals": {
+    "passed": 7,
+    "failed": 0,
+    "skipped": 0,
+    "warnings": 108,
+    "duration_seconds": 2.8
+  },
+  "progress_line": ".......                                                                  [100%]",
+  "new_tests": [
+    "test_deleted_document_stays_in_the_denominator",
+    "test_numerator_counts_each_qualified_control_once"
+  ],
+  "environment": {
+    "python": "3.12.3",
+    "pytest": "9.1.1",
+    "sqlalchemy": "2.0.55",
+    "alembic": "1.20.1",
+    "psycopg2": "2.9.13",
+    "postgresql": "16.15 (Ubuntu 16.15-0ubuntu0.24.04.1)",
+    "pgvector": "0.6.0",
+    "database": "trustcopilot_test",
+    "host": "127.0.0.1:5432",
+    "alembic_head": "tc17003_security_claims",
+    "platform": "Linux 6.12.113+ x86_64"
+  },
+  "negative_controls": {
+    "restored": true,
+    "deleted_document_check_removed": {
+      "test": "test_deleted_document_stays_in_the_denominator",
+      "exit_status": 1,
+      "result": "1 failed",
+      "assertion": "assert 'qualified' == 'gap'"
+    },
+    "set_dedupe_removed_only": {
+      "test": "test_numerator_counts_each_qualified_control_once",
+      "exit_status": 0,
+      "result": "1 passed",
+      "note": "Each control is appended once, so removing set() does not change this fixture."
+    },
+    "per_link_count_without_set": {
+      "test": "test_numerator_counts_each_qualified_control_once",
+      "exit_status": 1,
+      "result": "1 failed",
+      "assertion": "qualified_control_ids [2, 2, 3] != [2, 3]"
+    }
+  },
+  "runs": [],
+  "notes": [
+    "CI run and job ids are added after build and web-release-e2e are green on both push and pull_request.",
+    "This record does not accept the ticket."
+  ]
+}
