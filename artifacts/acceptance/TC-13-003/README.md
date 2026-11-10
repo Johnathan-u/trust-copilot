@@ -5,8 +5,10 @@ credentials were touched. pytest ran in a container on an `--internal` Docker ne
 with `OPENAI_API_KEY` empty. The probe and generator containers ran with `--network none`.
 
 ## Environment
-- Implementation SHA: the PR head commit (branch `tc/core/TC-13-003`). Baseline and origin/master
-  are `c20f949161ac12a619b396d30904448ffd74d532`.
+- Implementation SHA: PR #7 head `f708a046f0ce7eb93561c19f3ef96541ebfc7d8b`, merge
+  `5c8f1dce33ed568ad35c0904824699211628ae6e`. The implementation branch was
+  `tc/core/TC-13-003`. Baseline and origin/master at that time were
+  `c20f949161ac12a619b396d30904448ffd74d532`.
 - Test image: `apps/api/Dockerfile` target `base` (python 3.11, openpyxl 3.1.5) plus
   `sqlalchemy<2.1`. This is the same pre-existing psycopg2 versus SQLAlchemy 2.1 environment
   finding documented for TC-08-005. It was worked around in the image only and the repo is not
@@ -16,11 +18,18 @@ with `OPENAI_API_KEY` empty. The probe and generator containers ran with `--netw
 - Real viewer: LibreOffice headless (`soffice --convert-to csv`) on the box.
 
 ## Command (from `apps/api`)
+
+The file is `apps/api/tests/release/test_export_literal_text.py`. The ticket command is:
+
+```
+python -m pytest tests/release/test_export_literal_text.py -q
+```
+
+Original local runs, before the file moved, used:
+
 ```
 python -m pytest -p no:cacheprovider tests/test_export_literal_text.py -v
 ```
-The ticket proposes `tests/release/test_export_literal_text.py`. Under Coordinator ruling Q3 the
-file lives in `tests/` instead, because `tests/release/` is owned by TC-02-001.
 
 ## Results
 | Run | Exit | Totals |

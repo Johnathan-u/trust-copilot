@@ -1,8 +1,6 @@
 """TC-13-003: formula-like answers are written as literal spreadsheet text.
 
 Synthetic data only; no DB, network, storage or model calls.
-Ticket proposes tests/release/test_export_literal_text.py; per Coordinator Q3
-this lives outside tests/release/ (owned by TC-02-001).
 """
 
 import csv
