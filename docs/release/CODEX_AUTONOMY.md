@@ -68,10 +68,11 @@ specific infrastructure blocker and continue read-only diagnosis.
    separate reviewer for each substantive PR; its findings must cite actual code.
 5. Review, fix and merge according to AGENTS.md. Dependencies, migration order and
    independent review apply even when all CI is green. Only the coordinator
-   merges, except worker self-merges under OD-15. For coordinator-authored setup/repair changes, obtain a fresh reviewer
-   before the coordinator merges. Refresh master and inspect its CI after each
-   merge. If master is red, only an independently reviewed, exact-head-green repair
-   PR may merge until master passes again.
+   merges, except worker self-merges under OD-15. For coordinator-authored
+   setup/repair changes, obtain a fresh reviewer before the coordinator merges.
+   Refresh master and inspect its CI after each merge. If master is red, only an
+   independently reviewed, exact-head-green repair PR (or, under OD-15, a worker's
+   green pure revert of its own merge) may merge until master passes again.
 6. Continue until the current run must yield, all remaining tasks have concrete
    gates, or release acceptance is complete. A blocked ticket does not block
    independent work. Record partial completion honestly; do not count it as Done.

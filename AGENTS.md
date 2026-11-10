@@ -16,8 +16,8 @@ independent review, after the merge for self-merged PRs.
 Read `docs/release/CODEX_AUTONOMY.md` for the run protocol and
 `docs/release/PM_BACKLOG_PROTOCOL.md` for the shared progress workflow. **Grok PM
 and Codex PM must use `docs/planning/backlog-state.json` and the human dashboard
-at `docs/tracker/index.html`, updating them after each meaningful work batch.** A worker does this only
-through the coordinator.
+at `docs/tracker/index.html`, updating them after each meaningful work batch.**
+A worker does this only through the coordinator.
 Original scope remains in `TrustCopilot_Execution_Backlog.json`; the tracker is
 generated with `python scripts/backlog_tracker.py build` and checked with `check`.
 Use the validated `update` command with the current revision; never hand-edit the
@@ -61,8 +61,8 @@ publishes shared-state changes and merges while holding the coordinator lease,
 except worker self-merges under OD-15, which need no lease.
 
 Workers return commits and evidence to the coordinator; they do not publish or
-merge independently, except as OD-15 allows. Reclaim abandoned Grok work only after checking its live head
-and recording the handover in #85. Preserve existing commits and attribution.
+merge independently, except as OD-15 allows. Reclaim abandoned Grok work only
+after checking its live head and recording the handover in #85. Preserve existing commits and attribution.
 
 ## Verification and merge
 
