@@ -17,7 +17,7 @@ from contextvars import ContextVar
 from datetime import datetime, timezone
 from typing import Any, Iterable, NamedTuple
 
-from sqlalchemy import and_, or_
+from sqlalchemy import and_, insert, or_
 from sqlalchemy import text as sql_text
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
@@ -651,9 +651,9 @@ class AnswerWriteGuard:
     def __init__(self, cutoff: datetime | None):
         self.cutoff = _naive_utc(cutoff)
         self.protected_qids: set[int] = set()
-        self.written: set[int] = (
-            set()
-        )  # written by this run (its own updated_at bump is not "newer work")
+        # question_id -> updated_at stored by this run. A later edit changes that
+        # timestamp, so a sweep update no longer matches the row.
+        self.written: dict[int, datetime] = {}
 
     def is_protected(self, answer: Any) -> bool:
         if answer is None:
@@ -1622,11 +1622,16 @@ def _sweep_draft_insufficient_narratives(
     doc_tier_cache: dict[int, int] = {}
     n = 0
     for a in answers:
-        # TC-10-003: never reclassify protected work. Also skip a stale row this run did not
-        # write (updated_at after the job cutoff). Rows in guard.written keep the sweep: their
-        # updated_at bump is this run's own write, same rule as _upsert_answer.
+        # Never reclassify protected work. Also skip a stale row this run did not
+        # write (updated_at after the job cutoff). A row this run wrote stays
+        # eligible only while updated_at is still the timestamp that write stored.
         if guard is not None:
-            owned_by_run = a.question_id in guard.written
+            written_ts = guard.written.get(a.question_id)
+            owned_by_run = (
+                isinstance(written_ts, datetime)
+                and isinstance(a.updated_at, datetime)
+                and _naive_utc(a.updated_at) == _naive_utc(written_ts)
+            )
             if a.question_id in guard.protected_qids or (
                 not owned_by_run and guard.is_protected(a)
             ):
@@ -1739,9 +1744,11 @@ def _answer_became_protected(guard: AnswerWriteGuard | None, question_id: int) -
     )
 
 
-def _mark_answer_written(guard: AnswerWriteGuard | None, question_id: int) -> None:
+def _mark_answer_written(
+    guard: AnswerWriteGuard | None, question_id: int, written_at: datetime | None
+) -> None:
     if guard is not None:
-        guard.written.add(question_id)
+        guard.written[question_id] = _naive_utc(written_at) or datetime.utcnow()
 
 
 def _update_answer_if_writable(
@@ -1760,7 +1767,11 @@ def _update_answer_if_writable(
     clauses = [Answer.id == row.id, Answer.status != "approved"]
     if require_status is not None:
         clauses.append(Answer.status == require_status)
-    if guard is not None and guard.cutoff is not None and row.question_id not in guard.written:
+    written_ts = None if guard is None else guard.written.get(row.question_id)
+    if isinstance(written_ts, datetime):
+        # This run's own row. Match the timestamp it stored so a later edit is kept.
+        clauses.append(Answer.updated_at == _naive_utc(written_ts))
+    elif guard is not None and guard.cutoff is not None:
         clauses.append(
             or_(
                 Answer.updated_at.is_(None),
@@ -1771,17 +1782,49 @@ def _update_answer_if_writable(
                 ),
             )
         )
-    updated = db.query(Answer).filter(*clauses).update(values, synchronize_session="fetch")
+    with db.no_autoflush:
+        updated = db.query(Answer).filter(*clauses).update(values, synchronize_session="fetch")
     db.expire(row)
     return updated > 0
 
 
 def _insert_answer(db: Session, row: Answer) -> bool:
-    """Insert ``row``. False when another transaction already stored that question's answer."""
+    """Insert ``row``. False when the database rejects the insert.
+
+    A Core insert does not flush other pending objects. A nested transaction
+    plus ``flush`` would also write a dirty job result and hold that row lock
+    until the batch committed, which blocks lease renewal during a model call.
+    """
+    now = datetime.utcnow()
+    created_at = row.created_at or now
+    updated_at = row.updated_at or now
+    row.created_at = created_at
+    row.updated_at = updated_at
+    stmt = insert(Answer.__table__).values(
+        question_id=row.question_id,
+        text=row.text,
+        status=row.status,
+        citations=row.citations,
+        confidence=row.confidence,
+        insufficient_reason=row.insufficient_reason,
+        gating_reason=row.gating_reason,
+        primary_categories_json=row.primary_categories_json,
+        evidence_fingerprint=row.evidence_fingerprint,
+        outcome_code=row.outcome_code,
+        created_at=created_at,
+        updated_at=updated_at,
+    )
     try:
-        with db.begin_nested():
-            db.add(row)
-            db.flush()
+        with db.no_autoflush:
+            # Connection savepoint, not Session.begin_nested: the session form
+            # flushes pending objects, including a dirty job row.
+            nested = db.connection().begin_nested()
+            try:
+                db.execute(stmt)
+                nested.commit()
+            except Exception:
+                nested.rollback()
+                raise
     except IntegrityError:
         return False
     return True
@@ -1792,11 +1835,15 @@ _ANSWER_WRITE_LOCK_NS = 100003
 
 
 def _lock_answer_write(db: Session, question_id: int) -> None:
-    """Serialize generation writes for one question until this transaction ends."""
-    db.execute(
-        sql_text("SELECT pg_advisory_xact_lock(:ns, :question_id)"),
-        {"ns": _ANSWER_WRITE_LOCK_NS, "question_id": int(question_id)},
-    )
+    """Serialize answer writes for one question until this transaction ends."""
+    bind = db.get_bind()
+    if bind is None or bind.dialect.name != "postgresql":
+        return
+    with db.no_autoflush:
+        db.execute(
+            sql_text("SELECT pg_advisory_xact_lock(:ns, :question_id)"),
+            {"ns": _ANSWER_WRITE_LOCK_NS, "question_id": int(question_id)},
+        )
 
 
 def _new_answer(
@@ -1881,23 +1928,22 @@ def _upsert_answer(
     existing = _load_answer_for_write(db, question_id, guard)
     if existing is not None and _write_loaded_answer(db, question_id, existing, values, guard):
         return
-    inserted = _insert_answer(
-        db,
-        _new_answer(
-            question_id,
-            text,
-            citations,
-            confidence,
-            answer_status,
-            insufficient_reason,
-            gating_reason,
-            primary_categories_json,
-            evidence_fingerprint,
-            outcome_value,
-        ),
+    row = _new_answer(
+        question_id,
+        text,
+        citations,
+        confidence,
+        answer_status,
+        insufficient_reason,
+        gating_reason,
+        primary_categories_json,
+        evidence_fingerprint,
+        outcome_value,
     )
+    row.updated_at = values["updated_at"]
+    inserted = _insert_answer(db, row)
     if inserted:
-        _mark_answer_written(guard, question_id)
+        _mark_answer_written(guard, question_id, values["updated_at"])
         return
     winner = _load_answer_for_write(db, question_id, guard)
     if winner is None:
@@ -1920,7 +1966,7 @@ def _write_loaded_answer(
         _answer_became_protected(guard, question_id)
         return True
     if _update_answer_if_writable(db, existing, values, guard):
-        _mark_answer_written(guard, question_id)
+        _mark_answer_written(guard, question_id, values.get("updated_at"))
         return True
     refreshed = _load_answer_for_write(db, question_id, guard)
     if refreshed is not None:
@@ -1959,7 +2005,7 @@ def _upsert_answer_in_memory(
         _answer_became_protected(guard, question_id)
         return
     if guard is not None:
-        guard.written.add(question_id)
+        guard.written[question_id] = datetime.utcnow()
     if existing:
         existing.text = text
         existing.citations = json.dumps(citations)

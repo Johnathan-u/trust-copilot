@@ -258,7 +258,12 @@ def test_existing_upsert_preserves_fields_and_empty_text_contract(answers_author
             f["db"],
             before,
             updates={
-                aid: {"text": "Human replacement", "status": "approved", "outcome_code": None}
+                aid: {
+                    "text": "Human replacement",
+                    "status": "approved",
+                    "outcome_code": None,
+                    "insufficient_reason": None,
+                }
             },
         )
         before = snapshot(f["db"])
@@ -289,7 +294,16 @@ def test_dynamic_update_still_reaches_individual_handler(answers_authority):
         "status": "flagged",
     }
     assert_answer_changes(
-        f["db"], before, updates={aid: {"text": "", "status": "flagged", "outcome_code": None}}
+        f["db"],
+        before,
+        updates={
+            aid: {
+                "text": "",
+                "status": "flagged",
+                "outcome_code": None,
+                "insufficient_reason": None,
+            }
+        },
     )
 
 
