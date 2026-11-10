@@ -633,6 +633,23 @@ CONTRACT: tuple[ConfigVar, ...] = (
         "3600",
         "How long a running job with a NULL lease is left alone. Clamped to at least 5 times JOB_LEASE_SECONDS and at most 86400.",
     ),
+    # Bounded retry backoff. The worker reads these on each failure; the clamps live in job_errors.
+    ConfigVar(
+        "JOB_RETRY_BASE_SECONDS",
+        "float",
+        "optional",
+        False,
+        "15",
+        "First backoff step after a retryable job failure. Clamped to 0-3600.",
+    ),
+    ConfigVar(
+        "JOB_RETRY_MAX_SECONDS",
+        "float",
+        "optional",
+        False,
+        "600",
+        "Cap on retry backoff and on a provider Retry-After. Clamped to 0-86400.",
+    ),
     ConfigVar(
         "STORAGE_ORPHAN_GRACE_SECONDS",
         "int",
