@@ -554,6 +554,159 @@ def test_public_intake_retry_is_one_persisted_request(domain):
     assert conflict.status_code == 409
 
 
+def _fresh_counts():
+    from app.core.database import SessionLocal
+
+    with SessionLocal() as fresh:
+        return {
+            name: fresh.execute(text(f"SELECT count(*) FROM {name}")).scalar() for name in TABLES
+        }
+
+
+def test_public_submit_retry_keeps_one_record_and_rejects_a_different_body(domain):
+    """Same public submit key replays one row and one upload; a different body conflicts."""
+    from app.core.database import SessionLocal
+    from app.main import app
+    from app.services.storage import get_storage
+
+    class Storage:
+        bucket_raw = "synthetic"
+        objects = {}
+        uploads = 0
+        deleted = []
+
+        def upload(self, bucket, key, content, **kwargs):
+            self.objects[key] = content
+            self.uploads += 1
+
+        def delete(self, bucket, key):
+            self.deleted.append(key)
+            self.objects.pop(key, None)
+
+    storage = Storage()
+    email = f"{domain['suffix']}@example.com"
+    headers = {"Idempotency-Key": domain["suffix"] + "-submit"}
+    data = {
+        "requester_email": email,
+        "requester_name": "Synthetic Person",
+        "subject": "Questions",
+        "message": "One public request",
+        "workspace_id": "1",
+    }
+    files = {"document": ("request.txt", b"Synthetic request", "text/plain")}
+    before = _fresh_counts()
+    previous = app.dependency_overrides.get(get_storage)
+    app.dependency_overrides[get_storage] = lambda: storage
+    try:
+        first = domain["client"].post(
+            "/api/trust-requests/submit", data=data, files=files, headers=headers
+        )
+        second = domain["client"].post(
+            "/api/trust-requests/submit", data=data, files=files, headers=headers
+        )
+        assert first.status_code == second.status_code == 200
+        assert first.json() == second.json()
+        assert storage.uploads == 1
+        assert storage.deleted == []
+        mid = _fresh_counts()
+        assert mid["trust_requests"] == before["trust_requests"] + 1
+        assert mid["idempotency_keys"] == before["idempotency_keys"] + 1
+        for name in TABLES:
+            if name not in ("trust_requests", "idempotency_keys"):
+                assert mid[name] == before[name]
+        with SessionLocal() as fresh:
+            saved = (
+                fresh.query(TrustRequest).filter(TrustRequest.message == "One public request").all()
+            )
+            assert len(saved) == 1
+            assert saved[0].id == first.json()["id"]
+            assert saved[0].requester_email == email
+            assert storage.objects[saved[0].attachment_storage_key] == b"Synthetic request"
+        conflict = domain["client"].post(
+            "/api/trust-requests/submit",
+            data={**data, "message": "A different public request"},
+            files=files,
+            headers=headers,
+        )
+        detail = conflict.json()["detail"]
+        assert conflict.status_code == 409
+        assert isinstance(detail, str)
+        assert "different" in detail.lower()
+        assert email not in detail
+        assert "One public request" not in detail
+        assert "A different public request" not in detail
+        assert "request.txt" not in detail
+        assert storage.uploads == 1
+        assert storage.deleted == []
+        assert _fresh_counts() == mid
+        with SessionLocal() as fresh:
+            assert (
+                fresh.query(TrustRequest)
+                .filter(TrustRequest.message == "One public request")
+                .count()
+                == 1
+            )
+            assert (
+                fresh.query(TrustRequest)
+                .filter(TrustRequest.message == "A different public request")
+                .count()
+                == 0
+            )
+    finally:
+        if previous is None:
+            app.dependency_overrides.pop(get_storage, None)
+        else:
+            app.dependency_overrides[get_storage] = previous
+
+
+@pytest.mark.parametrize(
+    "message",
+    ["   ", "x" * 10001],
+    ids=["blank-message", "oversize-message"],
+)
+def test_public_submit_rejects_blank_or_oversize_message_with_no_rows(domain, message):
+    before = _fresh_counts()
+    response = domain["client"].post(
+        "/api/trust-requests/submit",
+        data={
+            "requester_email": f"{domain['suffix']}@example.com",
+            "requester_name": "Synthetic Person",
+            "subject": "Questions",
+            "message": message,
+            "workspace_id": "1",
+        },
+    )
+    assert response.status_code == 422
+    body = response.json()
+    assert isinstance(body["detail"], list) and body["detail"]
+    assert all(
+        isinstance(item, dict) and "loc" in item and isinstance(item["msg"], str)
+        for item in body["detail"]
+    )
+    assert _fresh_counts() == before
+
+
+def test_intake_reconciliation_runbook_covers_uncertain_save_and_cleanup():
+    from pathlib import Path
+
+    path = Path(__file__).resolve().parents[4] / "docs" / "ops" / "trust-intake-reconciliation.md"
+    assert path.is_file()
+    body = path.read_text()
+    for line in (
+        "trust intake save outcome requires reconciliation",
+        "trust attachment cleanup requires reconciliation",
+        "trust intake database cleanup requires reconciliation",
+    ):
+        assert line in body
+    lowered = body.lower()
+    assert "request_id" in body
+    assert "storage_key" in body
+    assert "do not delete" in lowered
+    assert "filename" in lowered
+    assert "idempotency-key" in lowered
+    assert "message" in lowered
+
+
 @pytest.mark.parametrize(
     "field,value",
     [

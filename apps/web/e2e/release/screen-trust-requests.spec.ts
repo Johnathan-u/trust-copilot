@@ -8,6 +8,8 @@ const request = {
   id: 11,
   workspace_id: 7,
   assignee_id: null,
+  assignee_email: null as string | null,
+  assignee_display_name: null as string | null,
   requester_email: 'buyer@example.com',
   requester_name: 'Synthetic Buyer',
   subject: 'Security questions',
@@ -874,4 +876,76 @@ test('unsaved reply switch uses an alertdialog and keeps focus inside it', async
     page.getByRole('heading', { name: 'Second synthetic request', exact: true })
   ).toBeVisible()
   await expect(page.getByLabel('Reply 21 text')).toHaveCount(0)
+})
+
+test('saved assignee is shown read-only', async ({ page }) => {
+  const state = await installApi(page)
+  state.rows[0] = {
+    ...request,
+    assignee_display_name: 'Synthetic Owner',
+    assignee_email: 'owner@example.com',
+  }
+  await openRequest(page)
+  const detail = page.getByRole('region', { name: 'Request detail' })
+  await expect(detail).toContainText('Assigned to: Synthetic Owner')
+  await expect(detail.getByRole('combobox')).toHaveCount(0)
+  await expect(detail.getByRole('textbox', { name: /assignee/i })).toHaveCount(
+    0
+  )
+})
+
+test('public intake keeps one key across a lost response and refuses blank or oversize text', async ({
+  page,
+}) => {
+  const posts: Array<{ key: string | null }> = []
+  let failNext = true
+  await page.route('**/api/**', async (route) => {
+    const url = new URL(route.request().url())
+    const path = url.pathname
+    if (path === '/api/workspaces/by-slug/acme')
+      return json(route, { id: 7, name: 'Acme', slug: 'acme' })
+    if (path.startsWith('/api/trust-articles')) return json(route, [])
+    if (path === '/api/trust-requests/submit') {
+      posts.push({
+        key: route.request().headers()['idempotency-key'] ?? null,
+      })
+      if (failNext) {
+        failNext = false
+        return route.abort('failed')
+      }
+      return json(route, { id: 9 })
+    }
+    return json(route, {}, 404)
+  })
+  await page.goto('/trust/acme')
+  await page
+    .getByRole('button', { name: 'Request trust information from Acme' })
+    .click()
+  await page.getByLabel('Email').fill('buyer@example.com')
+  await page.getByLabel('Name').fill('Synthetic Buyer')
+  await page.getByLabel('Subject').fill('Security questions')
+  const message = page.getByPlaceholder('Your message')
+  await expect(message).toHaveAttribute('maxlength', '10000')
+  await expect(page.getByLabel('Email')).toHaveAttribute('maxlength', '255')
+  await expect(page.getByLabel('Name')).toHaveAttribute('maxlength', '255')
+  await expect(page.getByLabel('Subject')).toHaveAttribute('maxlength', '255')
+  await message.fill('   ')
+  await page.getByRole('button', { name: 'Submit to Acme' }).click()
+  await expect(
+    page.getByRole('alert').filter({ hasText: /message/i })
+  ).toBeVisible()
+  expect(posts).toHaveLength(0)
+  await message.fill('x'.repeat(10001))
+  await expect(message).toHaveValue(/^x{1,10000}$/)
+  expect(await message.inputValue()).toHaveLength(10000)
+  await message.fill('Please review our questions.')
+  await page.getByRole('button', { name: 'Submit to Acme' }).click()
+  await expect(
+    page.getByRole('alert').filter({ hasText: /could not be confirmed/i })
+  ).toBeVisible()
+  await page.getByRole('button', { name: 'Submit to Acme' }).click()
+  await expect(page.getByText(/has been sent to/)).toBeVisible()
+  expect(posts).toHaveLength(2)
+  expect(posts[0].key).toMatch(/^[A-Za-z0-9._:-]{1,255}$/)
+  expect(posts[1].key).toBe(posts[0].key)
 })
