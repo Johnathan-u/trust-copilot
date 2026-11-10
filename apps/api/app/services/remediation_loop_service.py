@@ -2,12 +2,14 @@
 
 import json
 import logging
+from datetime import datetime
 
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.models.answer import Answer
 from app.models.control_evidence_link import ControlEvidenceLink
+from app.models.evidence_item import EvidenceItem
 from app.models.questionnaire import Question
 from app.models.remediation_audit import RemediationAuditEvent, RemediationAutomationSetting
 from app.models.remediation_playbook import RemediationTicket
@@ -18,6 +20,7 @@ from app.services.control_contract import (
     new_request_id,
     sync_workspace_row,
 )
+from app.services.evidence_qualification import evidence_qualifies
 
 logger = logging.getLogger(__name__)
 
@@ -85,6 +88,14 @@ def _bump_status_error(status: str) -> dict | None:
     return None
 
 
+def _link_verified(db: Session, workspace_id: int, evidence_id: int) -> bool:
+    """True only when this evidence meets the compliance qualification rule."""
+    item = db.query(EvidenceItem).filter(EvidenceItem.id == evidence_id).first()
+    if item is None:
+        return False
+    return evidence_qualifies(db, item, workspace_id, datetime.utcnow())
+
+
 def submit_post_remediation_evidence(
     db: Session,
     ticket_id: int,
@@ -99,6 +110,13 @@ def submit_post_remediation_evidence(
     The default ``implemented`` bump does not demote a control that is already verified.
     Links and the legacy mirror are written before the status sync. Nothing is
     committed here; the caller commits once, or rolls back if this raises.
+
+    A created or updated link is verified only when the evidence qualifies: approved,
+    same workspace, not expired, and not tied to a deleted document. Other evidence
+    is stored with verified false, including a link that was already verified.
+    ``last_verified_at`` is set when a link is created verified or becomes verified,
+    and cleared when it stops being verified. The audit payload lists each link.
+    The legacy mirror is still written. That table has no verified column.
     """
     if bump_control_to:
         problem = _bump_status_error(bump_control_to)
@@ -115,6 +133,9 @@ def submit_post_remediation_evidence(
         wc = None
         if ticket.control_id:
             wc = db.query(WorkspaceControl).filter(WorkspaceControl.id == ticket.control_id).first()
+        link_workspace_id = wc.workspace_id if wc is not None else ticket.workspace_id
+        verified_at = datetime.utcnow()
+        link_results: list[dict] = []
         for eid in evidence_ids:
             if ticket.control_id:
                 link = (
@@ -125,12 +146,20 @@ def submit_post_remediation_evidence(
                     )
                     .first()
                 )
-                if not link:
+                verified = _link_verified(db, link_workspace_id, eid)
+                if link is None:
                     db.add(
                         ControlEvidenceLink(
-                            control_id=ticket.control_id, evidence_id=eid, verified=True
+                            control_id=ticket.control_id,
+                            evidence_id=eid,
+                            verified=verified,
+                            last_verified_at=verified_at if verified else None,
                         )
                     )
+                elif link.verified != verified:
+                    link.verified = verified
+                    link.last_verified_at = verified_at if verified else None
+                link_results.append({"evidence_id": eid, "verified": verified})
                 if wc is not None:
                     mirror_evidence_link(db, wc, eid)
         # The default implemented bump must not demote a verified control.
@@ -151,7 +180,7 @@ def submit_post_remediation_evidence(
             actor_user_id,
             ticket_id,
             False,
-            {"evidence_ids": evidence_ids},
+            {"evidence_ids": evidence_ids, "links": link_results},
         )
         db.flush()
     except IntegrityError:

@@ -1,0 +1,36 @@
+parent SHA: 62afe126fdb0c69fe73537c29ee54c8a6869a1e6
+branch: tc/TC-21-003-evidence-gate
+product code: parent (fix not applied)
+tests: new cases only
+working directory: apps/api
+interpreter: /tmp/tc-venv/bin/python
+command: TC_REQUIRE_DB=1 python -m pytest tests/release/test_domain_compliance_controls.py -q --tb=line -k "remediation_evidence_does_not_verify or remediation_evidence_verifies_only or compliance_owner_must_be"
+note: the three owner cases passed on this parent. They cover existing behaviour. The two remediation evidence cases failed.
+
+FF...                                                                    [100%]
+=================================== FAILURES ===================================
+E   assert True is False
+     +  where True = _stored_link_verified(6, 2)
+/agent/repos/trust-copilot/apps/api/tests/release/test_domain_compliance_controls.py:1228: assert True is False
+E   assert False is True
+     +  where False = _stored_link_verified(7, 2)
+/agent/repos/trust-copilot/apps/api/tests/release/test_domain_compliance_controls.py:1287: assert False is True
+=============================== warnings summary ===============================
+tests/release/test_domain_compliance_controls.py: 73 warnings
+  /tmp/tc-venv/lib/python3.12/site-packages/sqlalchemy/sql/schema.py:3627: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    return util.wrap_callable(lambda ctx: fn(), fn)  # type: ignore
+
+tests/release/test_domain_compliance_controls.py::test_remediation_evidence_does_not_verify_unqualified_links
+  /agent/repos/trust-copilot/apps/api/tests/release/test_domain_compliance_controls.py:1204: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    expires_at=datetime.utcnow() - timedelta(days=1),
+
+tests/release/test_domain_compliance_controls.py::test_remediation_evidence_does_not_verify_unqualified_links
+  /agent/repos/trust-copilot/apps/api/tests/release/test_domain_compliance_controls.py:1213: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    deleted_at=datetime.utcnow(),
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED tests/release/test_domain_compliance_controls.py::test_remediation_evidence_does_not_verify_unqualified_links
+FAILED tests/release/test_domain_compliance_controls.py::test_remediation_evidence_verifies_only_a_qualifying_link
+2 failed, 3 passed, 13 deselected, 75 warnings in 2.61s
+exit: 1

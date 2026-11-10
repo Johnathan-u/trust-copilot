@@ -12,6 +12,7 @@ logger = logging.getLogger(__name__)
 
 EVENT_EVIDENCE_VERIFIED = "evidence.verified"
 EVENT_CONTROL_VERIFIED = "control.verified"
+EVENT_CONTROL_IMPLEMENTED = "control.implemented"
 EVENT_MAPPING_CONFIRMED = "mapping.confirmed"
 EVENT_MAPPING_OVERRIDDEN = "mapping.overridden"
 

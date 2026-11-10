@@ -1,0 +1,89 @@
+{
+  "ticket": "TC-21-003",
+  "branch": "tc/TC-21-003-evidence-gate",
+  "parent_sha": "352e033dcb12846971f57de0cf478ed6df76e0be",
+  "base_branch": "tc/TC-21-002-control-contract",
+  "tested_commit_note": "This file is in the same commit as the engine and demotion fix. That commit is the child of parent_sha 352e033. The pull request records the head SHA.",
+  "cwd": "apps/api",
+  "interpreter": "/tmp/tc-venv/bin/python",
+  "environment": {
+    "python": "3.12.3",
+    "postgresql": "16.15 (Ubuntu 16.15-0ubuntu0.24.04.1)",
+    "pgvector": "0.6.0",
+    "pgvector_note": "CI image is PostgreSQL 16.15 with pgvector 0.8.7. This run used the Ubuntu 16.15 package and pgvector 0.6.0.",
+    "sqlalchemy": "2.0.55",
+    "alembic": "1.20.1",
+    "alembic_heads": "tc17003_security_claims (head)",
+    "node": "v24.22.1",
+    "ruff": "0.5.6",
+    "database": "trustcopilot_test at 127.0.0.1:5432",
+    "TC_REQUIRE_DB": "1"
+  },
+  "ruff": {
+    "check": "ruff check .",
+    "format_check": "ruff format --check .",
+    "cwd": "apps/api",
+    "exit_status": 0
+  },
+  "without_fix": {
+    "sha": "62afe126fdb0c69fe73537c29ee54c8a6869a1e6",
+    "command": "python -m pytest tests/release/test_domain_compliance_controls.py -q --tb=line -k \"remediation_evidence_does_not_verify or remediation_evidence_verifies_only or compliance_owner_must_be\"",
+    "exit_status": 1,
+    "failed": 2,
+    "passed": 3,
+    "deselected": 13,
+    "warnings": 75,
+    "duration_seconds": 2.61,
+    "owner_tests": "The three owner cases passed on the parent. They cover existing behaviour.",
+    "evidence_tests": "Both remediation evidence cases failed on the parent."
+  },
+  "review_parent_sha": "4d105d1bfded47a749ecdefb478a562406aa2fa1",
+  "review_without_fix": {
+    "sha": "4d105d1bfded47a749ecdefb478a562406aa2fa1",
+    "command": "python -m pytest tests/release/test_domain_compliance_controls.py -q --tb=line -k \"remediation_evidence or removing_last_qualifying or legacy_detach_demotes or create_refuses_verified or control_engine_does_not_pass\"",
+    "exit_status": 1,
+    "failed": 6,
+    "passed": 0,
+    "deselected": 16,
+    "warnings": 130,
+    "duration_seconds": 2.66,
+    "output": "pytest-q-review-without-fix.txt"
+  },
+  "engine_demotion_without_fix": {
+    "sha": "352e033dcb12846971f57de0cf478ed6df76e0be",
+    "command": "python -m pytest tests/release/test_domain_compliance_controls.py -q --tb=line -k \"old_qualifying or fresh_qualifying or demotion_proceeds or removing_last_qualifying or legacy_detach\"",
+    "exit_status": 1,
+    "failed": 5,
+    "passed": 0,
+    "deselected": 20,
+    "warnings": 116,
+    "duration_seconds": 2.29,
+    "output": "pytest-q-engine-without-fix.txt"
+  },
+  "ticket_file": {
+    "command": "python -m pytest tests/release/test_domain_compliance_controls.py -q --tb=line",
+    "exit_status": 0,
+    "passed": 25,
+    "failed": 0,
+    "skipped": 0,
+    "warnings": 521,
+    "duration_seconds": 11.59
+  },
+  "merged_parent_sha": "420d8ebac2f043cf0cd612050d4f31b9dd867ead",
+  "full_suite": {
+    "command": "python -m pytest -q --tb=line -rs",
+    "env": ["TC_REQUIRE_DB=1", "TC_REQUIRE_WEB_TOOLCHAIN=1", "TC_REQUIRE_API_QUALITY=1"],
+    "exit_status": 0,
+    "passed": 6339,
+    "failed": 0,
+    "skipped": 1,
+    "warnings": 35109,
+    "duration_seconds": 569.08,
+    "skips": [
+      {
+        "node": "tests/test_trust_scoring_blind.py",
+        "reason": "external_data: blind test pack not checked in; set TC_TRUST_SCORING_BLIND_PACK to run"
+      }
+    ]
+  }
+}
