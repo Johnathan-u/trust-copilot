@@ -17,11 +17,10 @@ from app.models import (
     NotificationDeliveryAttempt,
     NotificationLog,
     NotificationPolicy,
-    User,
     Workspace,
     WorkspaceMember,
 )
-from tests.conftest import TEST_HEADERS
+from tests.conftest import TEST_HEADERS, established_user
 
 pytestmark = pytest.mark.integration
 TABLE_KEYS = (
@@ -91,7 +90,7 @@ def actors(_ensure_test_data):
             db.flush()
             data.update(ws=ws.id, other_ws=other.id)
             for role in ("admin", "editor", "reviewer", "suspended", "other"):
-                user = User(
+                user = established_user(
                     email=f"notification-{role}-{token}@test.local",
                     display_name=role,
                     password_hash=hash_password("test-password"),

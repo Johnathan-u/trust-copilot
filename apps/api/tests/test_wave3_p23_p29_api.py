@@ -12,6 +12,7 @@ from sqlalchemy.orm import Session
 
 from app.core.password import hash_password
 from app.models import User, WorkspaceMember
+from tests.conftest import established_user
 
 
 @pytest.fixture
@@ -19,7 +20,7 @@ def vendor_admin_ws1(db_session: Session):
     """Use a scoped admin and restore user/member state after the test."""
     user_count = db_session.query(User).count()
     member_count = db_session.query(WorkspaceMember).count()
-    user = User(
+    user = established_user(
         email=f"vendor-admin-{uuid.uuid4().hex}@example.com",
         password_hash=hash_password("a"),
         display_name="Synthetic Vendor Admin",

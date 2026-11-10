@@ -76,6 +76,53 @@ def test_login_rejects_empty_credentials(client: TestClient) -> None:
     assert r.status_code in (400, 401, 422)
 
 
+def test_seeded_demo_and_admin_can_log_in(client: TestClient) -> None:
+    """Operator seed accounts are verified, so password login is not refused."""
+    import secrets
+
+    import scripts.seed_qa_test_data as qa
+    from app.core.database import SessionLocal
+    from app.core.password import hash_password
+    from app.models import User
+
+    email = f"seed-login-{secrets.token_hex(4)}@example.test"
+    password = secrets.token_urlsafe(18)
+    db = SessionLocal()
+    try:
+        db.add(
+            User(
+                email=email,
+                password_hash=hash_password(password),
+                display_name="Unverified seed",
+                email_verified=False,
+            )
+        )
+        db.commit()
+        user = qa.ensure_user(db, email, password, "Seeded operator")
+        assert user.email_verified is True
+    finally:
+        db.close()
+    created = client.post("/api/auth/login", json={"email": email, "password": password})
+    assert created.status_code == 200, created.status_code
+    assert "tc_session" in client.cookies
+    client.cookies.clear()
+    for fixture_email, fixture_password in (
+        ("demo@trust.local", "j"),
+        ("admin@trust.local", "a"),
+    ):
+        response = client.post(
+            "/api/auth/login", json={"email": fixture_email, "password": fixture_password}
+        )
+        assert response.status_code == 200, response.status_code
+        client.cookies.clear()
+    db = SessionLocal()
+    try:
+        db.query(User).filter(User.email == email).delete()
+        db.commit()
+    finally:
+        db.close()
+
+
 def test_login_rejects_wrong_password(client: TestClient) -> None:
     """POST /api/auth/login with wrong password returns 401."""
     r = client.post("/api/auth/login", json={"email": "demo@trust.local", "password": "wrong"})

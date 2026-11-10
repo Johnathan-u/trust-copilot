@@ -185,13 +185,13 @@ function AcceptInviteContent() {
           Accept invitation
         </h1>
         <p className="mt-2 mb-6 text-sm text-[var(--tc-muted)]">
-          If you do not have an account yet, set a password to create one. If
-          you already have an account, leave password blank and submit to join
-          the workspace.
+          Set a password to create an account. If this email is already
+          registered but not verified, a new password is required and replaces
+          the old one. A verified account can leave the password blank.
         </p>
         <form onSubmit={onSubmitAccept} className="space-y-4">
           <Input
-            label="Password (for new accounts)"
+            label="Password"
             type="password"
             autoComplete="new-password"
             placeholder="Min 6 characters"

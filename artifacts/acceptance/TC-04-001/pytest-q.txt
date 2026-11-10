@@ -1,0 +1,16 @@
+# Parent 75cb6d711acf2803f1d07cd328e32731a3b5b511
+# Working directory: apps/api
+# Python 3.12.3, pytest 9.1.1, SQLAlchemy 2.0.55, Alembic 1.20.1,
+# cryptography 50.0.2, ruff 0.5.6, PostgreSQL 16.15, database trustcopilot_test
+# Commands were run on the tree immediately before the commit that contains this file.
+
+# CI build backend command
+# env: SESSION_SECRET=test-secret TC_REQUIRE_DB=1 TC_REQUIRE_WEB_TOOLCHAIN=1 TC_REQUIRE_API_QUALITY=1
+# python -m pytest -rs
+# exit 0
+SKIPPED [1] tests/test_trust_scoring_blind.py:33: external_data: blind test pack not checked in; set TC_TRUST_SCORING_BLIND_PACK to run
+6384 passed, 1 skipped, 35054 warnings in 620.49s (0:10:20)
+
+# python -m pytest tests/release/test_registration.py tests/test_security_remediation.py -q
+# exit 0
+88 passed, 219 warnings in 8.90s

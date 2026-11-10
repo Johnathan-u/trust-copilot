@@ -1,10 +1,17 @@
 """OAuth 2.0 token exchange and userinfo (ENT-201). Uses httpx."""
 
+import base64
+import json
 import logging
 import secrets
+import time
 from urllib.parse import urlencode
 
 import httpx
+from cryptography.exceptions import InvalidSignature
+from cryptography.hazmat.primitives import hashes
+from cryptography.hazmat.primitives.asymmetric import padding
+from cryptography.hazmat.primitives.asymmetric.rsa import RSAPublicNumbers
 
 from app.core.config import get_settings
 
@@ -16,6 +23,7 @@ GOOGLE_USERINFO_URL = "https://www.googleapis.com/oauth2/v2/userinfo"
 
 MICROSOFT_AUTH_URL = "https://login.microsoftonline.com/common/oauth2/v2.0/authorize"
 MICROSOFT_TOKEN_URL = "https://login.microsoftonline.com/common/oauth2/v2.0/token"
+MICROSOFT_JWKS_URL = "https://login.microsoftonline.com/common/discovery/v2.0/keys"
 MICROSOFT_SCOPE = "openid profile email"
 
 GITHUB_AUTH_URL = "https://github.com/login/oauth/authorize"
@@ -204,8 +212,92 @@ async def google_exchange_code(code: str, redirect_uri: str) -> dict | None:
         }
 
 
+def _b64url_decode(segment: str) -> bytes:
+    padding_chars = "=" * (-len(segment) % 4)
+    return base64.urlsafe_b64decode(segment + padding_chars)
+
+
+def _b64url_int(segment: str) -> int:
+    raw = _b64url_decode(segment)
+    return int.from_bytes(raw, "big")
+
+
+def _claim_is_true(value: object) -> bool:
+    if value is True or value == 1:
+        return True
+    return isinstance(value, str) and value.strip().lower() in {"true", "1"}
+
+
+async def _microsoft_identity_from_id_token(
+    client: httpx.AsyncClient, id_token: str
+) -> dict | None:
+    """Trust a Microsoft email only when a validated id_token has xms_edov.
+
+    Graph ``mail`` and ``userPrincipalName`` are not used. The identity key is
+    the tenant id plus the object id.
+    """
+    parts = (id_token or "").split(".")
+    if len(parts) != 3:
+        return None
+    try:
+        header = json.loads(_b64url_decode(parts[0]))
+        if header.get("alg") != "RS256" or not header.get("kid"):
+            return None
+        jwks = await client.get(MICROSOFT_JWKS_URL)
+        if jwks.status_code != 200:
+            return None
+        keys = jwks.json().get("keys") or []
+        jwk = next((item for item in keys if item.get("kid") == header["kid"]), None)
+        if not jwk or not jwk.get("n") or not jwk.get("e"):
+            return None
+        public = RSAPublicNumbers(_b64url_int(jwk["e"]), _b64url_int(jwk["n"])).public_key()
+        public.verify(
+            _b64url_decode(parts[2]),
+            f"{parts[0]}.{parts[1]}".encode(),
+            padding.PKCS1v15(),
+            hashes.SHA256(),
+        )
+        claims = json.loads(_b64url_decode(parts[1]))
+    except (InvalidSignature, ValueError, json.JSONDecodeError, KeyError, TypeError):
+        return None
+    now = int(time.time())
+    try:
+        exp = int(claims.get("exp"))
+    except (TypeError, ValueError):
+        return None
+    if exp < now - 120:
+        return None
+    tid = str(claims.get("tid") or "").strip()
+    oid = str(claims.get("oid") or "").strip()
+    if not tid or not oid:
+        return None
+    issuer = f"https://login.microsoftonline.com/{tid}/v2.0"
+    if claims.get("iss") != issuer:
+        return None
+    audience = claims.get("aud")
+    client_id = get_settings().oauth_microsoft_client_id
+    audiences = audience if isinstance(audience, list) else [audience]
+    if not client_id or client_id not in audiences:
+        return None
+    verified = _claim_is_true(claims.get("xms_edov"))
+    email = None
+    if verified:
+        candidate = str(claims.get("email") or "").strip().lower()
+        if "@" in candidate:
+            email = candidate
+        else:
+            verified = False
+    name = (claims.get("name") or "").strip() or None
+    return {
+        "provider_user_id": f"{tid}:{oid}",
+        "email": email,
+        "name": name,
+        "email_verified": verified,
+    }
+
+
 async def microsoft_exchange_code(code: str, redirect_uri: str) -> dict | None:
-    """Exchange code for tokens and return userinfo from Microsoft Graph."""
+    """Exchange a Microsoft code. Email is taken only from a validated id_token."""
     data = {
         "client_id": get_settings().oauth_microsoft_client_id,
         "client_secret": get_settings().oauth_microsoft_client_secret,
@@ -224,22 +316,19 @@ async def microsoft_exchange_code(code: str, redirect_uri: str) -> dict | None:
         access_token = tok.get("access_token")
         if not access_token:
             return None
-        ui = await client.get(
-            "https://graph.microsoft.com/v1.0/me",
-            headers={"Authorization": f"Bearer {access_token}"},
-            params={"$select": "id,mail,userPrincipalName,displayName"},
-        )
-        if ui.status_code != 200:
+        identity = None
+        if tok.get("id_token"):
+            identity = await _microsoft_identity_from_id_token(client, tok["id_token"])
+        provider_user_id = (identity or {}).get("provider_user_id") or ""
+        if not provider_user_id:
             return None
-        info = ui.json()
-        mail = (info.get("mail") or "").strip().lower() or None
-        upn = (info.get("userPrincipalName") or "").strip().lower() or None
-        email = mail or upn
+        if identity and identity.get("email_verified"):
+            return identity
         return {
-            "provider_user_id": str(info.get("id", "")),
-            "email": email,
-            "name": (info.get("displayName") or "").strip() or None,
-            "email_verified": bool(mail),
+            "provider_user_id": provider_user_id,
+            "email": None,
+            "name": (identity or {}).get("name"),
+            "email_verified": False,
         }
 
 

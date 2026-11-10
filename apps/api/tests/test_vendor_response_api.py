@@ -9,6 +9,7 @@ from sqlalchemy.orm import Session
 from app.core.password import hash_password
 from app.models import AuditEvent, User, VendorRequest, WorkspaceMember
 from app.models.questionnaire import Question, Questionnaire
+from tests.conftest import established_user, mark_established
 
 
 @pytest.fixture(autouse=True)
@@ -47,7 +48,9 @@ def admin_user(db_session: Session) -> User:
     email = "admin-vr@trust.local"
     user = db_session.query(User).filter(User.email == email).first()
     if not user:
-        user = User(email=email, password_hash=hash_password("a"), display_name="Admin VR")
+        user = established_user(
+            email=email, password_hash=hash_password("a"), display_name="Admin VR"
+        )
         db_session.add(user)
         db_session.commit()
         db_session.refresh(user)
@@ -59,6 +62,7 @@ def admin_user(db_session: Session) -> User:
     if not mem:
         db_session.add(WorkspaceMember(workspace_id=1, user_id=user.id, role="admin"))
         db_session.commit()
+    mark_established(user)
     return user
 
 

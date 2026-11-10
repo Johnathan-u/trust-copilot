@@ -8,6 +8,7 @@ from sqlalchemy.orm import Session
 
 from app.core.password import hash_password
 from app.models import TrustArticle, User, WorkspaceMember
+from tests.conftest import established_user, mark_established
 
 
 def _unique_slug(prefix: str = "ev") -> str:
@@ -20,7 +21,9 @@ def admin_user(db_session: Session) -> User:
     email = "admin-ctrl@trust.local"
     user = db_session.query(User).filter(User.email == email).first()
     if not user:
-        user = User(email=email, password_hash=hash_password("a"), display_name="Admin Ctrl")
+        user = established_user(
+            email=email, password_hash=hash_password("a"), display_name="Admin Ctrl"
+        )
         db_session.add(user)
         db_session.commit()
         db_session.refresh(user)
@@ -35,6 +38,7 @@ def admin_user(db_session: Session) -> User:
     else:
         mem.role = "admin"
         db_session.commit()
+    mark_established(user)
     return user
 
 

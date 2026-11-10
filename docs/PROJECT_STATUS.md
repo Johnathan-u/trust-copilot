@@ -207,11 +207,9 @@ CI runs linting (ruff), unit tests (pytest), and frontend build. There are no en
 
 These scripts use the old heuristic `question_to_controls` pipeline. They are not part of normal operation but will break or produce misleading results if run by a developer who doesn't know the heuristic was deprecated.
 
-### 5.3 `OIDC_DEFAULT_WORKSPACE_ID` Defaults to 1
+### 5.3 Provider sign-in does not join workspace 1
 
-**File**: `apps/api/app/core/config.py`, line 142
-
-When a user logs in via SSO and no workspace claim mapping is configured, they are silently placed in workspace ID 1. If workspace 1 doesn't exist or is the wrong tenant, the user either gets an error or sees another tenant's data.
+New Google, GitHub, Microsoft, OIDC, and ID.me identities are not placed in workspace 1. Unset, empty, and `default` for `OIDC_DEFAULT_WORKSPACE_ID` do not select a workspace, and an explicit id is not applied to membership. See `docs/release/tickets/TC-04-001.md`.
 
 ### 5.4 Silent Failure During Document Indexing
 

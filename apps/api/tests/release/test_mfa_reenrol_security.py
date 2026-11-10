@@ -29,6 +29,7 @@ from app.core.key_rotation import _rotate_column
 from app.core.keys import open_sealed
 from app.core.password import hash_password
 from app.core.session import sign_session, verify_token
+from tests.conftest import established_user
 from app.models import (
     ApiKey,
     AuditEvent,
@@ -96,10 +97,10 @@ def isolated_db(monkeypatch):
                 Workspace(
                     id=1, name="Synthetic workspace", slug="synthetic-reenrol", mfa_required=True
                 ),
-                User(
+                established_user(
                     id=1, email="synthetic-admin@example.com", password_hash=hash_password(PASSWORD)
                 ),
-                User(
+                established_user(
                     id=2,
                     email="synthetic-target@example.com",
                     password_hash=hash_password(PASSWORD),

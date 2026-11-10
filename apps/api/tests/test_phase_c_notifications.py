@@ -73,17 +73,21 @@ def _ensure_test_user(email: str, password: str = "testpass123") -> int:
     from app.core.database import SessionLocal
     from app.core.password import hash_password
     from app.models import User
+    from tests.conftest import established_user, mark_established
 
     db = SessionLocal()
     try:
         user = db.query(User).filter(User.email == email).first()
         if not user:
-            user = User(
+            user = established_user(
                 email=email, password_hash=hash_password(password), display_name=email.split("@")[0]
             )
             db.add(user)
             db.commit()
             db.refresh(user)
+        else:
+            mark_established(user)
+            db.commit()
         return user.id
     finally:
         db.close()
@@ -426,15 +430,19 @@ class TestDeliveryLog:
         user_ids: list[int] = []
 
         def _user(db, email: str) -> User:
+            from tests.conftest import established_user, mark_established
+
             user = db.query(User).filter(User.email == email).one_or_none()
             if user is None:
-                user = User(
+                user = established_user(
                     email=email,
                     password_hash=hash_password("j"),
                     display_name=email,
                 )
                 db.add(user)
                 db.flush()
+            else:
+                mark_established(user)
             return user
 
         def _admin(db, user: User, workspace_id: int) -> None:

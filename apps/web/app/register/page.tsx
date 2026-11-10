@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { Card, Button, Input } from '@/components/ui'
+import { requestVerificationEmail } from '@/lib/login-continuation'
 
 export default function RegisterPage() {
   const [email, setEmail] = useState('')
@@ -10,6 +11,8 @@ export default function RegisterPage() {
   const [displayName, setDisplayName] = useState('')
   const [error, setError] = useState('')
   const [success, setSuccess] = useState(false)
+  const [resendBusy, setResendBusy] = useState(false)
+  const [resendNotice, setResendNotice] = useState('')
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -32,6 +35,22 @@ export default function RegisterPage() {
     setSuccess(true)
   }
 
+  const onResendVerification = async () => {
+    setResendBusy(true)
+    setError('')
+    setResendNotice('')
+    try {
+      const result = await requestVerificationEmail(email)
+      if (result.kind === 'sent' || result.kind === 'rate-limited') {
+        setResendNotice(result.message)
+        return
+      }
+      setError(result.message)
+    } finally {
+      setResendBusy(false)
+    }
+  }
+
   if (success) {
     return (
       <main className="flex min-h-screen items-center justify-center p-4">
@@ -42,6 +61,31 @@ export default function RegisterPage() {
           <p className="mt-2 text-sm text-[var(--tc-muted)]">
             If that email is not yet registered, you will receive a verification
             link. Click it to verify, then sign in.
+          </p>
+          {resendNotice && (
+            <p className="mt-3 text-sm text-[var(--tc-muted)]">
+              {resendNotice}
+            </p>
+          )}
+          {error && (
+            <p className="mt-3 text-sm text-[var(--tc-danger)]">{error}</p>
+          )}
+          <Button
+            type="button"
+            variant="ghost"
+            className="mt-4 w-full"
+            onClick={() => void onResendVerification()}
+            disabled={resendBusy}
+          >
+            {resendBusy ? 'Sending…' : 'Send a new verification email'}
+          </Button>
+          <p className="mt-3 text-sm text-[var(--tc-muted)]">
+            <Link
+              href="/verify-email"
+              className="text-[var(--tc-soft)] underline"
+            >
+              Enter your verification code
+            </Link>
           </p>
           <Link href="/login" className="mt-4 inline-block">
             <Button variant="ghost">Back to sign in</Button>

@@ -1,0 +1,79 @@
+{
+  "ticket": "TC-04-001",
+  "command": "python -m pytest -rs",
+  "command_env": {
+    "SESSION_SECRET": "test-secret",
+    "TC_REQUIRE_DB": "1",
+    "TC_REQUIRE_WEB_TOOLCHAIN": "1",
+    "TC_REQUIRE_API_QUALITY": "1"
+  },
+  "working_directory": "apps/api",
+  "git_branch": "tc/TC-04-001-verified-registration",
+  "parent": "75cb6d711acf2803f1d07cd328e32731a3b5b511",
+  "exit_status": 0,
+  "totals": {
+    "passed": 6384,
+    "failed": 0,
+    "skipped": 1,
+    "errors": 0,
+    "warnings": 35054,
+    "duration_seconds": 620.49
+  },
+  "skipped_detail": "tests/test_trust_scoring_blind.py:33: external_data: blind test pack not checked in; set TC_TRUST_SCORING_BLIND_PACK to run",
+  "additional_runs": [
+    {
+      "command": "python -m pytest tests/release/test_registration.py tests/test_security_remediation.py -q",
+      "working_directory": "apps/api",
+      "exit_status": 0,
+      "totals": {
+        "passed": 88,
+        "failed": 0,
+        "skipped": 0,
+        "errors": 0,
+        "warnings": 219,
+        "duration_seconds": 8.9
+      }
+    },
+    {
+      "command": "npm run test:unit",
+      "working_directory": "apps/web",
+      "exit_status": 0,
+      "totals": {
+        "files": 48,
+        "passed": 446,
+        "failed": 0,
+        "duration_seconds": 5.11
+      },
+      "node": "24.22.1",
+      "vitest": "5.0.5"
+    },
+    {
+      "command": "npx playwright test e2e/release/email-verification.spec.ts --retries=0",
+      "working_directory": "apps/web",
+      "exit_status": 0,
+      "totals": {
+        "passed": 4,
+        "failed": 0
+      }
+    }
+  ],
+  "environment": {
+    "python": "3.12.3",
+    "pytest": "9.1.1",
+    "sqlalchemy": "2.0.55",
+    "alembic": "1.20.1",
+    "fastapi": "0.162.0",
+    "cryptography": "50.0.2",
+    "ruff": "0.5.6",
+    "postgresql": "16.15",
+    "database": "trustcopilot_test",
+    "platform": "Linux 6.12.113+ x86_64"
+  },
+  "notes": [
+    "This file is in the same commit as the review fixes. The commands were run on that tree immediately before the commit.",
+    "Unverified password login still returns 403 email_not_verified. The web app can resend a code and accept it on the verify-email page.",
+    "Microsoft identity keys are tid:oid. A stored Graph object id is rewritten to that key for the same user.",
+    "No schema migration and no backfill of existing unverified rows.",
+    "The implementer does not accept the result and must not merge."
+  ]
+}

@@ -176,19 +176,35 @@ def send_verification_email(to: str, verify_url: str) -> bool:
     return get_email_provider().send(msg)
 
 
-def send_verification_code_email(to: str, code: str) -> bool:
-    """Send a 6-digit verification code for email verification."""
+def send_verification_code_email(to: str, code: str, verify_url: str | None = None) -> bool:
+    """Send a 6-digit verification code and, when set, a separate verification link."""
+    link_text = ""
+    link_html = ""
+    if verify_url:
+        link_text = f"\n\nOr open this link:\n  {verify_url}\n\nThe link expires in 24 hours."
+        link_html = (
+            f'<p style="color:#94a3b8;font-size:0.85rem;">Or open this link. '
+            f"It expires in 24 hours.</p>"
+            f'<p><a href="{verify_url}">{verify_url}</a></p>'
+        )
     msg = EmailMessage(
         to=to,
         subject=f"Your verification code: {code} - Trust Copilot",
-        body_text=f"Your Trust Copilot verification code is:\n\n  {code}\n\nEnter this code to verify your email. It expires in 15 minutes.",
+        body_text=(
+            "Your Trust Copilot verification code is:\n\n"
+            f"  {code}\n\n"
+            "Enter this code to verify your email. It expires in 15 minutes."
+            f"{link_text}"
+        ),
         body_html=(
-            f'<div style="font-family:sans-serif;max-width:400px;margin:0 auto;">'
-            f'<h2 style="color:#e2e8f0;">Verify your email</h2>'
-            f'<p style="color:#94a3b8;">Your verification code is:</p>'
-            f'<p style="font-size:2rem;letter-spacing:0.15em;font-family:monospace;font-weight:bold;color:#5b7cff;text-align:center;padding:16px 0;">{code}</p>'
-            f'<p style="color:#94a3b8;font-size:0.85rem;">Enter this code to complete your registration. It expires in 15 minutes.</p>'
-            f"</div>"
+            '<div style="font-family:sans-serif;max-width:400px;margin:0 auto;">'
+            '<h2 style="color:#e2e8f0;">Verify your email</h2>'
+            '<p style="color:#94a3b8;">Your verification code is:</p>'
+            '<p style="font-size:2rem;letter-spacing:0.15em;font-family:monospace;'
+            "font-weight:bold;color:#5b7cff;text-align:center;padding:16px 0;"
+            f'">{code}</p>'
+            '<p style="color:#94a3b8;font-size:0.85rem;">Enter this code to complete '
+            f"your registration. It expires in 15 minutes.</p>{link_html}</div>"
         ),
     )
     return get_email_provider().send(msg)

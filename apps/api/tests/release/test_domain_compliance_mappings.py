@@ -20,7 +20,7 @@ from app.core.database import SessionLocal, engine
 from app.core.password import hash_password
 from app.main import app
 from app.models import User, Workspace, WorkspaceControl, WorkspaceMember
-from tests.conftest import TEST_HEADERS, TEST_ORIGIN
+from tests.conftest import TEST_HEADERS, TEST_ORIGIN, established_user, mark_established
 
 API_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
 PARENT = "bug018a_gap_closed_at_reason"
@@ -153,7 +153,9 @@ def _actors() -> dict[str, int]:
             user = session.query(User).filter(User.email == email).one_or_none()
             if user is None:
                 _sync_sequence(session, "users")
-                user = User(email=email, password_hash=hash_password(password), display_name=email)
+                user = established_user(
+                    email=email, password_hash=hash_password(password), display_name=email
+                )
                 session.add(user)
                 session.flush()
             else:
@@ -173,6 +175,7 @@ def _actors() -> dict[str, int]:
             else:
                 row.role = role
                 row.suspended = False
+            mark_established(user)
             return user
 
         admin = member(ADMIN_EMAIL, ADMIN_PASSWORD, "admin", workspace)

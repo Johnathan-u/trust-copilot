@@ -213,6 +213,22 @@ def open_sealed(purpose: str, stored: str, env: dict[str, str] | None = None) ->
         raise KeyErrorSafe("ciphertext could not be opened") from None
 
 
+def purpose_macs(purpose: str, data: str, env: dict[str, str] | None = None) -> tuple[str, ...]:
+    """HMAC-SHA256 hex of ``data`` under the current purpose key, then retired keys.
+
+    The plaintext is not part of the result. Callers store only the digest.
+    """
+    ring = keyring_for(purpose, env)
+    macs: list[str] = []
+    for entry in (ring.current, *ring.retired):
+        digest = hmac.new(_material(entry, purpose), data.encode(), "sha256").hexdigest()
+        if digest not in macs:
+            macs.append(digest)
+    if not macs:
+        raise KeyErrorSafe("no key material")
+    return tuple(macs)
+
+
 def sign_with_purpose(purpose: str, data: str, env: dict[str, str] | None = None) -> str:
     ring = keyring_for(purpose, env)
     material = _material(ring.current, purpose)

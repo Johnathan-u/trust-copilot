@@ -15,6 +15,7 @@ from sqlalchemy import inspect, text
 
 from app.core.password import hash_password
 from app.models import Control, User, Workspace, WorkspaceMember
+from tests.conftest import established_user, mark_established
 
 API_ROOT = Path(__file__).resolve().parents[2]
 REPO_ROOT = API_ROOT.parents[1]
@@ -67,7 +68,7 @@ def _actors() -> dict[str, int]:
             user = session.query(User).filter(User.email == email).first()
             if user is None:
                 _sync_sequence(session, "users")
-                user = User(
+                user = established_user(
                     email=email,
                     password_hash=hash_password(password),
                     display_name=email,
@@ -96,6 +97,7 @@ def _actors() -> dict[str, int]:
             else:
                 row.role = role
                 row.suspended = False
+            mark_established(user)
             return user
 
         editor = member(EDITOR_EMAIL, EDITOR_PASSWORD, "editor", workspace)
