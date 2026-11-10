@@ -600,8 +600,11 @@ def sync_workspace_row(
     if owner_problem:
         return ContractResult(404, {}, error=owner_problem)
     framework_name = "custom"
-    control_key = " ".join((workspace.custom_name or "").split())
-    if workspace.framework_control_id is not None:
+    control_key = ""
+    # A stored key is the shared identity. The compliance display name is not.
+    if workspace.canonical_key and ":" in workspace.canonical_key:
+        framework_name, control_key = workspace.canonical_key.split(":", 1)
+    elif workspace.framework_control_id is not None:
         fc = (
             db.query(FrameworkControl)
             .filter(FrameworkControl.id == workspace.framework_control_id)
@@ -611,8 +614,8 @@ def sync_workspace_row(
             fw = db.query(Framework).filter(Framework.id == fc.framework_id).first()
             framework_name = fw.name if fw is not None and fw.name else framework_name
             control_key = fc.control_key
-    if not control_key and workspace.canonical_key and ":" in workspace.canonical_key:
-        framework_name, control_key = workspace.canonical_key.split(":", 1)
+    else:
+        control_key = " ".join((workspace.custom_name or "").split())
     if not control_key:
         control_key = f"control-{workspace.id}"
     key = canonical_key(framework_name, control_key)
@@ -876,6 +879,69 @@ def attach_legacy_evidence(
         )
     evidence = db.query(ControlEvidence).filter(ControlEvidence.id == evidence_id).one()
     return ContractResult(200, {}, created=created, ids={"evidence": evidence})
+
+
+def mirror_evidence_link(db: Session, workspace: WorkspaceControl, evidence_item_id: int) -> None:
+    """Copy one compliance evidence link onto the paired legacy control.
+
+    The legacy row is keyed by ``evidence_item_id``. A document id is copied when
+    the evidence item has one. A missing pair, or an evidence item outside this
+    workspace, is left unchanged. The caller commits.
+    """
+    legacy = legacy_for_workspace(db, workspace)
+    if legacy is None:
+        return
+    item = (
+        db.query(EvidenceItem)
+        .filter(
+            EvidenceItem.id == evidence_item_id,
+            EvidenceItem.workspace_id == workspace.workspace_id,
+        )
+        .first()
+    )
+    if item is None:
+        return
+    existing = (
+        db.query(ControlEvidence)
+        .filter(
+            ControlEvidence.control_id == legacy.id,
+            ControlEvidence.evidence_item_id == item.id,
+        )
+        .order_by(ControlEvidence.id)
+        .first()
+    )
+    if existing is None:
+        db.add(
+            ControlEvidence(
+                control_id=legacy.id,
+                document_id=item.document_id,
+                evidence_item_id=item.id,
+            )
+        )
+    elif existing.document_id is None and item.document_id is not None:
+        existing.document_id = item.document_id
+    db.flush()
+
+
+def unmirror_evidence_link(
+    db: Session, workspace: WorkspaceControl, evidence_item_id: int
+) -> None:
+    """Remove legacy rows that mirror this evidence item. The caller commits."""
+    legacy = legacy_for_workspace(db, workspace)
+    if legacy is None:
+        return
+    rows = (
+        db.query(ControlEvidence)
+        .filter(
+            ControlEvidence.control_id == legacy.id,
+            ControlEvidence.evidence_item_id == evidence_item_id,
+        )
+        .all()
+    )
+    for row in rows:
+        db.delete(row)
+    if rows:
+        db.flush()
 
 
 def detach_legacy_evidence(db: Session, legacy: Control, evidence: ControlEvidence) -> None:

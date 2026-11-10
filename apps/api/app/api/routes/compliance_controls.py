@@ -34,8 +34,10 @@ from app.models import (
 from app.services.control_contract import (
     canonical_payload,
     legacy_for_workspace,
+    mirror_evidence_link,
     new_request_id,
     sync_workspace_row,
+    unmirror_evidence_link,
     upsert_workspace_control,
 )
 from app.services.evidence_suggestion import suggest_evidence as suggest_evidence_service
@@ -739,6 +741,7 @@ def accept_suggested_evidence(
             verified=False,
         )
         db.add(link)
+        mirror_evidence_link(db, wc, ev.id)
         db.commit()
     except Exception:
         # A failed commit leaves the session unusable until it is rolled back.
@@ -982,6 +985,8 @@ def link_evidence(
         .first()
     )
     if existing:
+        mirror_evidence_link(db, wc, body.evidence_id)
+        db.commit()
         return JSONResponse(status_code=200, content=_link_dict(existing))
     link = ControlEvidenceLink(
         control_id=control_id,
@@ -1004,11 +1009,15 @@ def link_evidence(
         )
         if existing is None:
             raise
+        mirror_evidence_link(db, wc, body.evidence_id)
+        db.commit()
         return JSONResponse(status_code=200, content=_link_dict(existing))
     except Exception:
         db.rollback()
         raise
     db.refresh(link)
+    mirror_evidence_link(db, wc, body.evidence_id)
+    db.commit()
     compliance_evidence_linked_total.inc()
     logger.info(
         "evidence_linked",
@@ -1041,6 +1050,7 @@ def unlink_evidence(
     )
     if not link:
         raise HTTPException(status_code=404, detail="Link not found")
+    unmirror_evidence_link(db, wc, link.evidence_id)
     db.delete(link)
     db.commit()
     return {"ok": True}

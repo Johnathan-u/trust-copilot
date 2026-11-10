@@ -587,3 +587,248 @@ def test_migration_upgrade_downgrade_upgrade_again(client):
     from tests.release.test_billing_provider import _revision_is_applied, _revision_token
 
     assert _revision_is_applied(_revision_token(heads_out), REVISION)
+
+
+def _explicit_id(session, table: str) -> int:
+    """Pick an unused id without moving the serial sequence.
+
+    Other release tests rename evidence rows onto the 88021000 band and then
+    set the sequence to the current maximum. A nextval here would consume those
+    marker ids.
+    """
+    current = int(session.execute(text(f"SELECT COALESCE(MAX(id), 0) FROM {table}")).scalar() or 0)
+    return max(current + 1, 91021002)
+
+
+def _evidence_item(workspace_id: int) -> tuple[int, int]:
+    session = _fresh()
+    try:
+        from app.models import Document, EvidenceItem
+
+        document_id = _explicit_id(session, "documents")
+        document = Document(
+            id=document_id,
+            workspace_id=workspace_id,
+            storage_key=f"tc21002/{uuid.uuid4().hex}",
+            filename="evidence.txt",
+            status="uploaded",
+        )
+        session.add(document)
+        session.flush()
+        item_id = _explicit_id(session, "evidence_items")
+        item = EvidenceItem(
+            id=item_id,
+            workspace_id=workspace_id,
+            document_id=document.id,
+            source_type="document",
+            title="Synthetic evidence",
+            approval_status="pending",
+        )
+        session.add(item)
+        session.commit()
+        return item.id, document.id
+    finally:
+        session.close()
+
+
+def _stored_pair(legacy_id: int):
+    session = _fresh()
+    try:
+        return session.execute(
+            text(
+                "SELECT c.status, c.lifecycle, w.status, w.lifecycle "
+                "FROM controls c "
+                "JOIN workspace_controls w ON w.id = c.workspace_control_id "
+                "WHERE c.id = :id"
+            ),
+            {"id": legacy_id},
+        ).one()
+    finally:
+        session.close()
+
+
+def _evidence_row_counts(legacy_id: int, workspace_control_id: int) -> tuple[int, int]:
+    session = _fresh()
+    try:
+        legacy_count = session.execute(
+            text("SELECT count(*) FROM control_evidence WHERE control_id = :id"),
+            {"id": legacy_id},
+        ).scalar()
+        canonical_count = session.execute(
+            text("SELECT count(*) FROM control_evidence_links WHERE control_id = :id"),
+            {"id": workspace_control_id},
+        ).scalar()
+        return int(legacy_count or 0), int(canonical_count or 0)
+    finally:
+        session.close()
+
+
+def _ticket(client, workspace_control_id: int) -> int:
+    response = client.post(
+        "/api/remediation/tickets",
+        json={"title": "Synthetic remediation", "control_id": workspace_control_id},
+    )
+    assert response.status_code == 200, response.text
+    return response.json()["id"]
+
+
+def _assert_listed_evidence(client, control_key: str, evidence_id: int, document_id: int) -> int:
+    legacy, compliance = _pair(client, control_key)
+    legacy_list = client.get(f"/api/controls/{legacy['id']}/evidence")
+    compliance_list = client.get(f"/api/compliance/controls/{compliance['id']}/evidence")
+    assert legacy_list.status_code == 200, legacy_list.text
+    assert compliance_list.status_code == 200, compliance_list.text
+    legacy_rows = legacy_list.json()
+    compliance_rows = compliance_list.json()
+    assert [row["canonical"]["evidence_item_id"] for row in legacy_rows] == [evidence_id]
+    assert [row["evidence_id"] for row in compliance_rows] == [evidence_id]
+    assert legacy_rows[0]["document_id"] == document_id
+    summary = legacy["canonical"]["evidence"]
+    assert summary == compliance["canonical"]["evidence"]
+    assert legacy["canonical"] == compliance["canonical"]
+    assert summary["mirrored"] is True
+    assert summary["legacy_count"] == summary["canonical_count"] == 1
+    assert _evidence_row_counts(legacy["id"], compliance["id"]) == (1, 1)
+    return compliance_rows[0]["id"]
+
+
+def _assert_no_listed_evidence(client, control_key: str) -> None:
+    legacy, compliance = _pair(client, control_key)
+    legacy_list = client.get(f"/api/controls/{legacy['id']}/evidence")
+    compliance_list = client.get(f"/api/compliance/controls/{compliance['id']}/evidence")
+    assert legacy_list.status_code == 200, legacy_list.text
+    assert compliance_list.status_code == 200, compliance_list.text
+    assert legacy_list.json() == []
+    assert compliance_list.json() == []
+    summary = legacy["canonical"]["evidence"]
+    assert summary == compliance["canonical"]["evidence"]
+    assert summary["legacy_count"] == 0
+    assert summary["canonical_count"] == 0
+    assert summary["mirrored"] is True
+    assert _evidence_row_counts(legacy["id"], compliance["id"]) == (0, 0)
+
+
+def test_remediation_evidence_bump_follows_the_control_contract(client):
+    actors = _actors()
+    _login(client, ADMIN_EMAIL, ADMIN_PASSWORD)
+    control_key = f"C-rem-{uuid.uuid4().hex[:12]}"
+    created = _create(client, control_key)
+    legacy, compliance = _pair(client, control_key)
+    assert compliance["status"] == "in_progress"
+    assert legacy["canonical"]["lifecycle"] == "in_progress"
+    assert legacy["canonical"] == compliance["canonical"]
+    assert legacy["canonical"]["status_aligned"] is True
+    canonical_id = legacy["canonical"]["id"]
+    evidence_id, _document_id = _evidence_item(actors["workspace_id"])
+    ticket_id = _ticket(client, compliance["id"])
+    bumped = client.post(
+        f"/api/remediation/tickets/{ticket_id}/evidence",
+        json={"evidence_ids": [evidence_id], "bump_control_to": "implemented"},
+    )
+    assert bumped.status_code == 200, bumped.text
+    legacy, compliance = _pair(client, control_key)
+    assert legacy["canonical"] == compliance["canonical"]
+    assert legacy["canonical"]["id"] == canonical_id
+    assert legacy["framework"] == "TC21002"
+    assert legacy["control_id"] == control_key
+    assert compliance["status"] == "implemented"
+    assert compliance["status"] == compliance["canonical"]["lifecycle"]
+    assert legacy["status"] == "implemented"
+    assert legacy["canonical"]["lifecycle"] == "implemented"
+    assert legacy["canonical"]["status_aligned"] is True
+    assert tuple(_stored_pair(created["id"])) == (
+        "implemented",
+        "implemented",
+        "implemented",
+        "implemented",
+    )
+
+
+def test_remediation_evidence_rejects_unknown_status(client):
+    actors = _actors()
+    _login(client, ADMIN_EMAIL, ADMIN_PASSWORD)
+    control_key = f"C-bad-{uuid.uuid4().hex[:12]}"
+    created = _create(client, control_key)
+    _legacy, compliance = _pair(client, control_key)
+    before = tuple(_stored_pair(created["id"]))
+    evidence_id, _document_id = _evidence_item(actors["workspace_id"])
+    ticket_id = _ticket(client, compliance["id"])
+    refused = client.post(
+        f"/api/remediation/tickets/{ticket_id}/evidence",
+        json={"evidence_ids": [evidence_id], "bump_control_to": "enabled"},
+    )
+    assert refused.status_code == 400
+    assert refused.json()["detail"]["code"] == "invalid_control_status"
+    assert tuple(_stored_pair(created["id"])) == before
+    assert _evidence_row_counts(created["id"], compliance["id"]) == (0, 0)
+    legacy, compliance = _pair(client, control_key)
+    assert compliance["status"] == "in_progress"
+    assert compliance["status"] == compliance["canonical"]["lifecycle"]
+    assert legacy["canonical"]["status_aligned"] is True
+
+
+def test_remediation_evidence_rejects_verified_status(client):
+    actors = _actors()
+    _login(client, ADMIN_EMAIL, ADMIN_PASSWORD)
+    control_key = f"C-ver-{uuid.uuid4().hex[:12]}"
+    created = _create(client, control_key)
+    _legacy, compliance = _pair(client, control_key)
+    before = tuple(_stored_pair(created["id"]))
+    evidence_id, _document_id = _evidence_item(actors["workspace_id"])
+    ticket_id = _ticket(client, compliance["id"])
+    refused = client.post(
+        f"/api/remediation/tickets/{ticket_id}/evidence",
+        json={"evidence_ids": [evidence_id], "bump_control_to": "verified"},
+    )
+    assert refused.status_code == 400
+    assert refused.json()["detail"]["code"] == "verified_status_not_allowed"
+    assert tuple(_stored_pair(created["id"])) == before
+    assert _evidence_row_counts(created["id"], compliance["id"]) == (0, 0)
+    legacy, compliance = _pair(client, control_key)
+    assert compliance["status"] != "verified"
+    assert compliance["status"] == compliance["canonical"]["lifecycle"]
+    assert legacy["canonical"] == compliance["canonical"]
+    assert legacy["canonical"]["status_aligned"] is True
+
+
+def test_compliance_evidence_link_and_unlink_match_legacy(client):
+    actors = _actors()
+    _login(client, ADMIN_EMAIL, ADMIN_PASSWORD)
+    control_key = f"C-link-{uuid.uuid4().hex[:12]}"
+    _create(client, control_key)
+    _legacy, compliance = _pair(client, control_key)
+    evidence_id, document_id = _evidence_item(actors["workspace_id"])
+    linked = client.post(
+        f"/api/compliance/controls/{compliance['id']}/evidence",
+        json={"evidence_id": evidence_id},
+    )
+    assert linked.status_code == 201, linked.text
+    link_id = _assert_listed_evidence(client, control_key, evidence_id, document_id)
+    removed = client.delete(
+        f"/api/compliance/controls/{compliance['id']}/evidence/{link_id}"
+    )
+    assert removed.status_code == 200, removed.text
+    assert removed.json()["ok"] is True
+    _assert_no_listed_evidence(client, control_key)
+
+
+def test_remediation_evidence_matches_legacy_and_compliance_lists(client):
+    actors = _actors()
+    _login(client, ADMIN_EMAIL, ADMIN_PASSWORD)
+    control_key = f"C-rev-{uuid.uuid4().hex[:12]}"
+    _create(client, control_key)
+    legacy, compliance = _pair(client, control_key)
+    assert compliance["status"] == "in_progress"
+    evidence_id, document_id = _evidence_item(actors["workspace_id"])
+    ticket_id = _ticket(client, compliance["id"])
+    posted = client.post(
+        f"/api/remediation/tickets/{ticket_id}/evidence",
+        json={"evidence_ids": [evidence_id], "bump_control_to": None},
+    )
+    assert posted.status_code == 200, posted.text
+    _assert_listed_evidence(client, control_key, evidence_id, document_id)
+    legacy, compliance = _pair(client, control_key)
+    assert compliance["status"] == "in_progress"
+    assert compliance["status"] == compliance["canonical"]["lifecycle"]
+    assert legacy["canonical"]["status_aligned"] is True
+    assert legacy["canonical"] == compliance["canonical"]

@@ -160,6 +160,10 @@ async def submit_evidence(
     result = loop_svc.submit_post_remediation_evidence(
         db, ticket_id, body.evidence_ids, session.get("user_id"), body.bump_control_to
     )
+    if isinstance(result, dict) and "error" in result and "id" not in result:
+        status = int(result.get("http_status") or 400)
+        db.rollback()
+        raise HTTPException(status_code=status, detail=result["error"])
     if not result:
         raise HTTPException(status_code=404)
     db.commit()

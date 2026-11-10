@@ -11,7 +11,13 @@ from app.models.control_evidence_link import ControlEvidenceLink
 from app.models.questionnaire import Question
 from app.models.remediation_audit import RemediationAuditEvent, RemediationAutomationSetting
 from app.models.remediation_playbook import RemediationTicket
-from app.models.workspace_control import WorkspaceControl
+from app.models.workspace_control import WORKSPACE_CONTROL_STATUSES, WorkspaceControl
+from app.services.control_contract import (
+    ERROR_CONTRACT_VERSION,
+    mirror_evidence_link,
+    new_request_id,
+    sync_workspace_row,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -55,6 +61,30 @@ def _audit(
     )
 
 
+def _bump_status_error(status: str) -> dict | None:
+    """Reject a remediation status that is unknown or verified.
+
+    ``verified`` is a workspace status. This path must not store it.
+    """
+    if status == "verified":
+        return {
+            "contract_version": ERROR_CONTRACT_VERSION,
+            "code": "verified_status_not_allowed",
+            "message": "Verified status cannot be set when submitting remediation evidence.",
+            "retryable": False,
+            "partial_failure": False,
+        }
+    if status not in WORKSPACE_CONTROL_STATUSES:
+        return {
+            "contract_version": ERROR_CONTRACT_VERSION,
+            "code": "invalid_control_status",
+            "message": "Status must be not_implemented, in_progress, or implemented.",
+            "retryable": False,
+            "partial_failure": False,
+        }
+    return None
+
+
 def submit_post_remediation_evidence(
     db: Session,
     ticket_id: int,
@@ -62,7 +92,15 @@ def submit_post_remediation_evidence(
     actor_user_id: int | None = None,
     bump_control_to: str | None = "implemented",
 ) -> dict | None:
-    """E3-17: Attach evidence to ticket, link to control, optionally bump control status."""
+    """E3-17: Attach evidence to ticket, link to control, optionally bump control status.
+
+    A bump is written through the control contract. ``None`` leaves status unchanged.
+    An unknown status or ``verified`` returns an error and writes nothing.
+    """
+    if bump_control_to:
+        problem = _bump_status_error(bump_control_to)
+        if problem:
+            return {"error": problem, "http_status": 400}
     ticket = db.query(RemediationTicket).filter(RemediationTicket.id == ticket_id).first()
     if not ticket:
         return None
@@ -70,11 +108,18 @@ def submit_post_remediation_evidence(
     merged = list(dict.fromkeys(existing + evidence_ids))
     ticket.linked_evidence_ids_json = json.dumps(merged)
     ticket.status = "evidence_submitted"
-    if ticket.control_id and bump_control_to:
+    wc = None
+    if ticket.control_id:
         wc = db.query(WorkspaceControl).filter(WorkspaceControl.id == ticket.control_id).first()
-        if wc:
-            wc.status = bump_control_to
-            wc.verified_at = datetime.now(timezone.utc)
+    if wc is not None and bump_control_to:
+        wc.status = bump_control_to
+        wc.verified_at = datetime.now(timezone.utc)
+        synced = sync_workspace_row(db, wc, request_id=new_request_id())
+        if synced.http_status >= 400:
+            if not synced.partial_failure:
+                db.rollback()
+            detail = synced.error or {"detail": "Control update failed"}
+            return {"error": detail, "http_status": synced.http_status}
     for eid in evidence_ids:
         if ticket.control_id:
             link = (
@@ -91,6 +136,8 @@ def submit_post_remediation_evidence(
                         control_id=ticket.control_id, evidence_id=eid, verified=True
                     )
                 )
+            if wc is not None:
+                mirror_evidence_link(db, wc, eid)
     _audit(
         db,
         ticket.workspace_id,
