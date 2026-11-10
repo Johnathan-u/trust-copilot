@@ -43,29 +43,38 @@ def evaluate_control(db: Session, workspace_id: int, control_id: int) -> dict:
     evidence_count = len(evidence_links)
 
     fresh_count = 0
-    qualifying_count = 0
+    qualifying_fresh = 0
+    qualifying_stale = 0
     qualified_at = datetime.utcnow()
+    now_utc = datetime.now(timezone.utc)
     for link in evidence_links:
         evidence = db.query(EvidenceItem).filter(EvidenceItem.id == link.evidence_id).first()
         if evidence is None:
             continue
-        if evidence_qualifies(db, evidence, workspace_id, qualified_at):
-            qualifying_count += 1
+        qualifies = evidence_qualifies(db, evidence, workspace_id, qualified_at)
+        is_fresh = False
         if evidence.created_at:
             created = evidence.created_at
             if created.tzinfo is None:
                 created = created.replace(tzinfo=timezone.utc)
-            age_days = (datetime.now(timezone.utc) - created).days
-            if age_days < 180:
+            if (now_utc - created).days < 180:
+                is_fresh = True
                 fresh_count += 1
+        if qualifies and is_fresh:
+            qualifying_fresh += 1
+        elif qualifies:
+            qualifying_stale += 1
 
-    # Passing requires qualifying evidence. A file count, including fresh files, is not a pass.
+    # Passing needs qualifying evidence that is also fresh. A file count is not a pass.
     if evidence_count == 0:
         status = "not_assessed"
         confidence = 0
-    elif qualifying_count >= PASS_THRESHOLD:
+    elif qualifying_fresh >= PASS_THRESHOLD:
         status = "passing"
-        confidence = min(100, 50 + qualifying_count * 15)
+        confidence = min(100, 50 + qualifying_fresh * 15)
+    elif qualifying_stale >= PASS_THRESHOLD:
+        status = "stale"
+        confidence = 30
     else:
         status = "failing"
         confidence = 10

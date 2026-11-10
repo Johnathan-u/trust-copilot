@@ -46,14 +46,16 @@ The full-suite database was dropped and recreated before that run. An earlier fu
 
 ## Totals
 
-The first commit's totals are below. The review-fix commit replaced `pytest-q.txt` and `pytest-full.txt` with the later run.
+Current totals, after the engine and demotion review fixes. Parent of this commit is `352e033dcb12846971f57de0cf478ed6df76e0be`.
 
 | Command | Exit | Total |
 |---|---|---|
-| `python -m pytest tests/release/test_domain_compliance_controls.py -q --tb=line` | 0 | 22 passed, 0 skipped |
-| `python -m pytest -q --tb=line -rs` | 0 | 6336 passed, 1 skipped, 35052 warnings, 571.56s |
+| `python -m pytest tests/release/test_domain_compliance_controls.py -q --tb=line` | 0 | 25 passed, 0 skipped, 521 warnings, 11.59s |
+| `python -m pytest -q --tb=line -rs` | 0 | 6339 passed, 1 skipped, 35109 warnings, 569.08s |
 
-These totals are after merging `420d8eb` from `tc/TC-21-002-control-contract`. Remediation stays one transaction. The default `implemented` bump does not demote a verified control. Create over an existing identity is 409 `control_identity_conflict`.
+Web checks from `apps/web`: `npm run quality` exit 0 (typecheck, lint, format check, 443 unit tests).
+
+These totals include the merge of `420d8eb` from `tc/TC-21-002-control-contract`. Remediation stays one transaction. The default `implemented` bump does not demote a verified control. Create over an existing identity is 409 `control_identity_conflict`.
 
 No test in `tests/release/test_domain_compliance_controls.py` was skipped. The one full-suite skip is `tests/test_trust_scoring_blind.py`: `external_data: blind test pack not checked in; set TC_TRUST_SCORING_BLIND_PACK to run`. It did not trip the `TC_REQUIRE_DB=1` failure hook. Output for the domain file is `pytest-q.txt`. The full-suite summary is `pytest-full.txt`.
 
@@ -68,3 +70,5 @@ Parent for this round is `4d105d1bfded47a749ecdefb478a562406aa2fa1`. The six aff
 | Deleting the last qualifying link demotes a verified control, on the compliance route and on legacy detach. Another qualifying link leaves it verified. | Fail. Status stayed `verified`. | Pass |
 | Create with `status=verified` returns 400 `verified_status_not_allowed` | Fail. The route returned 200. | Pass |
 | Control engine `passing` requires qualifying evidence | Fail. A pending file was `passing`. | Pass |
+| Passing also requires the qualifying evidence to be fresh. A 200-day approved item is `stale`. A fresh qualifying item is `passing` and is the only one counted in the confidence. | Fail on `352e033`. The old item was `passing`. The fresh case scored 80 instead of 65. Output: `pytest-q-engine-without-fix.txt`. | Pass |
+| Demotion does not check the owner. A suspended owner does not block deleting the last link. The caller commits once, then emits `control.implemented` with `previous_status` `verified` and `reason` `no_qualifying_evidence`. | Fail on `352e033`. The delete returned 404 `owner_not_in_workspace`. The earlier demotion tests also failed once the event payload required those two fields. | Pass |

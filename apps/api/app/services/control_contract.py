@@ -709,14 +709,20 @@ def sync_workspace_row(
     request_id: str | None = None,
     event_workspace_id: int | None = None,
     commit: bool = True,
+    check_owner: bool = True,
     _attempt: int = 0,
 ) -> ContractResult:
-    """Copy this compliance row's lifecycle onto the legacy row. Does not insert a second pair."""
+    """Copy this compliance row's lifecycle onto the legacy row. Does not insert a second pair.
+
+    ``check_owner`` is false when the owner is not being changed, such as a
+    demotion after evidence is removed. A suspended owner must not block that.
+    """
     if workspace.status not in WORKSPACE_TO_LIFECYCLE:
         return ContractResult(400, {}, error={"detail": "invalid status"})
-    owner_problem = _owner_error(db, workspace.workspace_id, workspace.owner_user_id)
-    if owner_problem:
-        return ContractResult(404, {}, error=owner_problem)
+    if check_owner:
+        owner_problem = _owner_error(db, workspace.workspace_id, workspace.owner_user_id)
+        if owner_problem:
+            return ContractResult(404, {}, error=owner_problem)
     framework_name = "custom"
     control_key = ""
     # A stored key is the shared identity. The compliance display name is not.
@@ -781,6 +787,7 @@ def sync_workspace_row(
             request_id=request_id,
             event_workspace_id=event_workspace_id,
             commit=commit,
+            check_owner=check_owner,
             _attempt=1,
         )
     db.refresh(legacy)
@@ -1086,19 +1093,14 @@ def unmirror_evidence_link(db: Session, workspace: WorkspaceControl, evidence_it
 def demote_verified_without_qualifying_evidence(
     db: Session,
     workspace: WorkspaceControl,
-    *,
-    actor_user_id: int | None = None,
 ) -> ContractResult | None:
     """Store ``implemented`` when a verified control no longer has qualifying evidence.
 
     The caller has already removed the link and flushed. No change returns None
-    and does not commit. A demotion clears the verified timestamps, copies the
-    lifecycle onto the legacy row, and emits ``control.implemented``.
+    and does not commit. A demotion clears the verified timestamps and copies
+    the lifecycle onto the legacy row without checking the owner. The caller
+    commits once, then emits the event.
     """
-    from app.services.compliance_webhook_emitter import (
-        EVENT_CONTROL_IMPLEMENTED,
-        emit_compliance_event,
-    )
     from app.services.evidence_qualification import has_qualifying_evidence
 
     if workspace.status != "verified":
@@ -1108,23 +1110,40 @@ def demote_verified_without_qualifying_evidence(
     workspace.status = "implemented"
     workspace.verified_at = None
     workspace.verified_by_user_id = None
-    synced = sync_workspace_row(db, workspace, request_id=new_request_id())
-    if synced.http_status < 400:
-        try:
-            emit_compliance_event(
-                db,
-                workspace.workspace_id,
-                EVENT_CONTROL_IMPLEMENTED,
-                {
-                    "resource_type": "control",
-                    "resource_id": workspace.id,
-                    "status": "implemented",
-                },
-                user_id=actor_user_id,
-            )
-        except Exception:
-            pass
-    return synced
+    return sync_workspace_row(
+        db,
+        workspace,
+        request_id=new_request_id(),
+        commit=False,
+        check_owner=False,
+    )
+
+
+def emit_verified_demotion(
+    db: Session, workspace: WorkspaceControl, actor_user_id: int | None
+) -> None:
+    """Record that a verified control was stored as implemented. The caller has committed."""
+    from app.services.compliance_webhook_emitter import (
+        EVENT_CONTROL_IMPLEMENTED,
+        emit_compliance_event,
+    )
+
+    try:
+        emit_compliance_event(
+            db,
+            workspace.workspace_id,
+            EVENT_CONTROL_IMPLEMENTED,
+            {
+                "resource_type": "control",
+                "resource_id": workspace.id,
+                "status": "implemented",
+                "previous_status": "verified",
+                "reason": "no_qualifying_evidence",
+            },
+            user_id=actor_user_id,
+        )
+    except Exception:
+        pass
 
 
 def detach_legacy_evidence(
@@ -1154,13 +1173,13 @@ def detach_legacy_evidence(
     db.flush()
     demoted = None
     if workspace is not None:
-        demoted = demote_verified_without_qualifying_evidence(
-            db, workspace, actor_user_id=actor_user_id
-        )
-    if demoted is None:
-        db.commit()
-        return ContractResult(200, {})
-    return demoted
+        demoted = demote_verified_without_qualifying_evidence(db, workspace)
+    if demoted is not None and demoted.http_status >= 400:
+        return demoted
+    db.commit()
+    if demoted is not None:
+        emit_verified_demotion(db, workspace, actor_user_id)
+    return ContractResult(200, {})
 
 
 def new_request_id() -> str:

@@ -1,9 +1,9 @@
 {
   "ticket": "TC-21-003",
   "branch": "tc/TC-21-003-evidence-gate",
-  "parent_sha": "62afe126fdb0c69fe73537c29ee54c8a6869a1e6",
+  "parent_sha": "352e033dcb12846971f57de0cf478ed6df76e0be",
   "base_branch": "tc/TC-21-002-control-contract",
-  "tested_commit_note": "This file is in the same commit as the fix. That commit is the child of parent_sha. The pull request records the head SHA.",
+  "tested_commit_note": "This file is in the same commit as the engine and demotion fix. That commit is the child of parent_sha 352e033. The pull request records the head SHA.",
   "cwd": "apps/api",
   "interpreter": "/tmp/tc-venv/bin/python",
   "environment": {
@@ -49,25 +49,36 @@
     "duration_seconds": 2.66,
     "output": "pytest-q-review-without-fix.txt"
   },
+  "engine_demotion_without_fix": {
+    "sha": "352e033dcb12846971f57de0cf478ed6df76e0be",
+    "command": "python -m pytest tests/release/test_domain_compliance_controls.py -q --tb=line -k \"old_qualifying or fresh_qualifying or demotion_proceeds or removing_last_qualifying or legacy_detach\"",
+    "exit_status": 1,
+    "failed": 5,
+    "passed": 0,
+    "deselected": 20,
+    "warnings": 116,
+    "duration_seconds": 2.29,
+    "output": "pytest-q-engine-without-fix.txt"
+  },
   "ticket_file": {
     "command": "python -m pytest tests/release/test_domain_compliance_controls.py -q --tb=line",
     "exit_status": 0,
-    "passed": 22,
+    "passed": 25,
     "failed": 0,
     "skipped": 0,
-    "warnings": 466,
-    "duration_seconds": 10.97
+    "warnings": 521,
+    "duration_seconds": 11.59
   },
   "merged_parent_sha": "420d8ebac2f043cf0cd612050d4f31b9dd867ead",
   "full_suite": {
     "command": "python -m pytest -q --tb=line -rs",
     "env": ["TC_REQUIRE_DB=1", "TC_REQUIRE_WEB_TOOLCHAIN=1", "TC_REQUIRE_API_QUALITY=1"],
     "exit_status": 0,
-    "passed": 6336,
+    "passed": 6339,
     "failed": 0,
     "skipped": 1,
-    "warnings": 35052,
-    "duration_seconds": 571.56,
+    "warnings": 35109,
+    "duration_seconds": 569.08,
     "skips": [
       {
         "node": "tests/test_trust_scoring_blind.py",

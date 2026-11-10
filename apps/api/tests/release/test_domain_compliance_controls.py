@@ -1410,7 +1410,12 @@ def _demotion_events(control_id: int) -> int:
     found = 0
     for row in rows:
         payload = json.loads(row[0] or "{}")
-        if payload.get("resource_id") == control_id and payload.get("status") == "implemented":
+        if (
+            payload.get("resource_id") == control_id
+            and payload.get("status") == "implemented"
+            and payload.get("previous_status") == "verified"
+            and payload.get("reason") == "no_qualifying_evidence"
+        ):
             found += 1
     return found
 
@@ -1541,6 +1546,126 @@ def test_control_engine_does_not_pass_on_unqualified_files(client):
     body = evaluated.json()
     assert body["evidence_count"] >= 1
     assert body["status"] != "passing"
+
+
+def _aged_approved_evidence(workspace_id: int, *, age_days: int) -> int:
+    session = _db()
+    try:
+        evidence_id = _evidence(session, workspace_id, approval="approved", document_id=None)
+        session.execute(
+            text("UPDATE evidence_items SET created_at = :created WHERE id = :id"),
+            {"created": datetime.utcnow() - timedelta(days=age_days), "id": evidence_id},
+        )
+        session.commit()
+        return evidence_id
+    finally:
+        session.close()
+
+
+def _link_and_verify(client, control_id: int, evidence_id: int) -> int:
+    link_id = _link_evidence(client, control_id, evidence_id)
+    verified = client.post(f"/api/compliance/controls/{control_id}/verify")
+    assert verified.status_code == 200, verified.text
+    assert verified.json()["status"] == "verified"
+    return link_id
+
+
+def test_control_engine_old_qualifying_evidence_is_stale(client):
+    actors = _actors()
+    _login(client, ADMIN_EMAIL, ADMIN_PASSWORD)
+    created = _control(client, f"Stale engine {uuid.uuid4().hex[:8]}")
+    evidence_id = _aged_approved_evidence(actors["workspace_id"], age_days=200)
+    session = _db()
+    try:
+        session.add(
+            ControlEvidenceLink(control_id=created["id"], evidence_id=evidence_id, verified=False)
+        )
+        session.commit()
+    finally:
+        session.close()
+    evaluated = client.post(f"/api/control-engine/evaluate/{created['id']}")
+    assert evaluated.status_code == 200, evaluated.text
+    assert evaluated.json()["evidence_count"] == 1
+    assert evaluated.json()["status"] == "stale"
+
+
+def test_control_engine_fresh_qualifying_evidence_is_passing(client):
+    """A fresh qualifying item passes. An old qualifying item does not add to that count."""
+    actors = _actors()
+    _login(client, ADMIN_EMAIL, ADMIN_PASSWORD)
+    created = _control(client, f"Fresh engine {uuid.uuid4().hex[:8]}")
+    fresh = _aged_approved_evidence(actors["workspace_id"], age_days=1)
+    old = _aged_approved_evidence(actors["workspace_id"], age_days=200)
+    session = _db()
+    try:
+        session.add(
+            ControlEvidenceLink(control_id=created["id"], evidence_id=fresh, verified=False)
+        )
+        session.add(ControlEvidenceLink(control_id=created["id"], evidence_id=old, verified=False))
+        session.commit()
+    finally:
+        session.close()
+    evaluated = client.post(f"/api/control-engine/evaluate/{created['id']}")
+    assert evaluated.status_code == 200, evaluated.text
+    body = evaluated.json()
+    assert body["evidence_count"] == 2
+    assert body["status"] == "passing"
+    assert body["confidence"] == 65
+    assert body["fresh_evidence"] == 1
+
+
+def test_demotion_proceeds_when_the_owner_is_suspended(client):
+    actors = _actors()
+    _login(client, ADMIN_EMAIL, ADMIN_PASSWORD)
+    owner_id = _extra_member(actors["workspace_id"], suspended=False, remove=False)
+    name = f"Suspended owner {uuid.uuid4().hex[:8]}"
+    created = client.post(
+        "/api/compliance/controls",
+        json={"custom_name": name, "status": "not_implemented", "owner_user_id": owner_id},
+    )
+    assert created.status_code == 200, created.text
+    control_id = created.json()["id"]
+    evidence_id = _aged_approved_evidence(actors["workspace_id"], age_days=1)
+    link_id = _link_and_verify(client, control_id, evidence_id)
+    session = _db()
+    try:
+        session.query(WorkspaceMember).filter(
+            WorkspaceMember.user_id == owner_id,
+            WorkspaceMember.workspace_id == actors["workspace_id"],
+        ).update({"suspended": True})
+        session.commit()
+    finally:
+        session.close()
+    before_events = _demotion_events(control_id)
+    removed = client.delete(f"/api/compliance/controls/{control_id}/evidence/{link_id}")
+    assert removed.status_code == 200, removed.text
+    status, verified_at, verified_by, _legacy_status, lifecycle = _stored_verification(control_id)
+    assert status == "implemented"
+    assert verified_at is None
+    assert verified_by is None
+    assert lifecycle == "implemented"
+    assert _demotion_events(control_id) == before_events + 1
+    session = _db()
+    try:
+        remaining = session.execute(
+            text("SELECT count(*) FROM control_evidence_links WHERE control_id = :id"),
+            {"id": control_id},
+        ).scalar()
+        audit = session.execute(
+            text(
+                "SELECT details FROM audit_events "
+                "WHERE action = 'compliance.control.implemented' AND resource_id = :id "
+                "ORDER BY id DESC LIMIT 1"
+            ),
+            {"id": str(control_id)},
+        ).scalar()
+    finally:
+        session.close()
+    assert int(remaining or 0) == 0
+    recorded = json.loads(audit)
+    assert recorded["previous_status"] == "verified"
+    assert recorded["reason"] == "no_qualifying_evidence"
+    assert recorded["status"] == "implemented"
 
 
 def _owner_snapshot(control_id: int) -> tuple:

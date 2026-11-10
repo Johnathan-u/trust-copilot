@@ -33,6 +33,7 @@ from app.models import (
 from app.services.control_contract import (
     canonical_payload,
     demote_verified_without_qualifying_evidence,
+    emit_verified_demotion,
     legacy_for_workspace,
     mirror_evidence_link,
     new_request_id,
@@ -1033,11 +1034,10 @@ def unlink_evidence(
     unmirror_evidence_link(db, wc, link.evidence_id)
     db.delete(link)
     db.flush()
-    demoted = demote_verified_without_qualifying_evidence(
-        db, wc, actor_user_id=session.get("user_id")
-    )
-    if demoted is None:
-        db.commit()
-    elif demoted.http_status >= 400:
+    demoted = demote_verified_without_qualifying_evidence(db, wc)
+    if demoted is not None and demoted.http_status >= 400:
         raise HTTPException(status_code=demoted.http_status, detail=demoted.error)
+    db.commit()
+    if demoted is not None:
+        emit_verified_demotion(db, wc, session.get("user_id"))
     return {"ok": True}
