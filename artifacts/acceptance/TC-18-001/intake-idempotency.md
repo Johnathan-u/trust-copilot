@@ -2,7 +2,7 @@
 
 Parent for fail-on-parent: `a2b39c80ce14f130285d380db87de75227675a6f` (master, TC-10-003).
 
-The pass-with-fix commands below ran on the working tree that this commit records. No product, test, or doc file changed after those commands. This file is part of that commit. The published head SHA is `git rev-parse HEAD` on `tc/TC-18-001-intake-idempotency` and is the pull request head. Independent acceptance is not claimed.
+The pass-with-fix commands below ran on the working tree that this commit records. No product, test, or doc file changed after those commands. This file is part of that commit. The commits were: this record at `857ba48`, the PR head `fa743c0d3a992b2ea092b39fac3fd33c581974aa` (a merge of master into `857ba48` that doesn't touch the intake code or this evidence), and the squash merge `b32234f7c07ffdd9e80949d228f3a92112cf2e5e`. CI on the head was green on push run 42840591024 and pull_request run 42840607497. Master CI at the squash was run 42844125902. The exact-SHA record is in [ci-master-b32234f.md](ci-master-b32234f.md). (Coordinator correction, made after the merge.) Independent acceptance is not claimed.
 
 No schema change. No migration and no downgrade. Persisted idempotency rows already exist; this change does not alter them.
 
