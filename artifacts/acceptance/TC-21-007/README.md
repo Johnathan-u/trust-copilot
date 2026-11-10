@@ -47,4 +47,19 @@ Both edits below were restored. `git diff` on `compliance_coverage.py` is empty.
 
 ## CI
 
-GitHub Actions run and job ids for `build` and `web-release-e2e`, on both `push` and `pull_request`, are recorded in `result.json` after those runs finish. They are not in this section yet.
+These runs are for tests commit `799e682accdc749702b6ad7a43f4a42fece685ee`. The commit that records them is later and does not change the tests.
+
+Both `push` and `pull_request` `CI` workflows are green. `build` and `web-release-e2e` succeeded on each.
+
+| Event | Run | build job | web-release-e2e job |
+|---|---|---|---|
+| push | [42898074404](https://github.com/Johnathan-u/trust-copilot/actions/runs/42898074404) | [130116408863](https://github.com/Johnathan-u/trust-copilot/actions/runs/42898074404/job/130116408863) | [130116408118](https://github.com/Johnathan-u/trust-copilot/actions/runs/42898074404/job/130116408118) |
+| pull_request | [42898125999](https://github.com/Johnathan-u/trust-copilot/actions/runs/42898125999) | [130116588304](https://github.com/Johnathan-u/trust-copilot/actions/runs/42898125999/job/130116588304) | [130116587700](https://github.com/Johnathan-u/trust-copilot/actions/runs/42898125999/job/130116587700) |
+
+CI build logs, `Run backend tests`, for `tests/release/test_domain_compliance_coverage.py`:
+
+```text
+tests/release/test_domain_compliance_coverage.py .......                 [ 42%]
+```
+
+Seven dots, no skip marker. The same line is in both build logs. The suite total on push is `6425 passed, 1 skipped, 52 warnings in 574.30s`. On pull_request it is `6425 passed, 1 skipped, 52 warnings in 723.50s`. The only skip is `tests/test_trust_scoring_blind.py:33`. Python 3.11.18, pytest 9.1.1, database `tc_ci_<run_id>_1_test`, runner image `ubuntu-26.04`.

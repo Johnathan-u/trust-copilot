@@ -2,6 +2,7 @@
   "ticket": "TC-21-007",
   "accepted": false,
   "implementation_sha": "c9623436e9c8b2402349ca6642df6950b1497ac3",
+  "tests_sha": "799e682accdc749702b6ad7a43f4a42fece685ee",
   "implementation_note": "Product code matches this master SHA. compliance_coverage.py and the coverage route are unchanged. The tests and this file are added in the same commit. ac5c33cd455e796656e138e89f768ee6fae0ed05 is not an object in this clone and is not reachable from master. pytest-q.txt is that older 5-passed capture.",
   "file": "apps/api/tests/release/test_domain_compliance_coverage.py",
   "command": "python -m pytest tests/release/test_domain_compliance_coverage.py -q",
@@ -60,9 +61,72 @@
       "assertion": "qualified_control_ids [2, 2, 3] != [2, 3]"
     }
   },
-  "runs": [],
+  "ci_file_result": {
+    "log_line": "tests/release/test_domain_compliance_coverage.py .......                 [ 42%]",
+    "dots": 7,
+    "skipped_in_file": 0,
+    "collected": [
+      "test_denial_at_each_permission_level",
+      "test_missing_and_foreign_control_ids_share_the_404",
+      "test_numerator_explanations_and_retry",
+      "test_foreign_workspace_evidence_is_outside_the_numerator",
+      "test_partial_failure_keeps_the_other_control",
+      "test_deleted_document_stays_in_the_denominator",
+      "test_numerator_counts_each_qualified_control_once"
+    ]
+  },
+  "runs": [
+    {
+      "event": "push",
+      "sha": "799e682accdc749702b6ad7a43f4a42fece685ee",
+      "run_id": 42898074404,
+      "url": "https://github.com/Johnathan-u/trust-copilot/actions/runs/42898074404",
+      "build_job_id": 130116408863,
+      "web_release_e2e_job_id": 130116408118,
+      "conclusion": "success",
+      "build_conclusion": "success",
+      "web_release_e2e_conclusion": "success",
+      "database": "tc_ci_42898074404_1_test",
+      "pytest_duration_seconds": 574.3,
+      "suite_totals": {
+        "passed": 6425,
+        "failed": 0,
+        "skipped": 1,
+        "warnings": 52
+      },
+      "coverage_log_line": "tests/release/test_domain_compliance_coverage.py .......                 [ 42%]"
+    },
+    {
+      "event": "pull_request",
+      "sha": "799e682accdc749702b6ad7a43f4a42fece685ee",
+      "run_id": 42898125999,
+      "url": "https://github.com/Johnathan-u/trust-copilot/actions/runs/42898125999",
+      "build_job_id": 130116588304,
+      "web_release_e2e_job_id": 130116587700,
+      "conclusion": "success",
+      "build_conclusion": "success",
+      "web_release_e2e_conclusion": "success",
+      "database": "tc_ci_42898125999_1_test",
+      "pytest_duration_seconds": 723.5,
+      "suite_totals": {
+        "passed": 6425,
+        "failed": 0,
+        "skipped": 1,
+        "warnings": 52
+      },
+      "coverage_log_line": "tests/release/test_domain_compliance_coverage.py .......                 [ 42%]"
+    }
+  ],
+  "ci_environment": {
+    "runner_image": "ubuntu-26.04",
+    "python": "3.11.18",
+    "pytest": "9.1.1"
+  },
+  "skipped_detail": "tests/test_trust_scoring_blind.py:33: external_data: blind test pack not checked in; set TC_TRUST_SCORING_BLIND_PACK to run",
   "notes": [
-    "CI run and job ids are added after build and web-release-e2e are green on both push and pull_request.",
+    "The runs above are CI of 799e682accdc749702b6ad7a43f4a42fece685ee. The commit that adds these run ids is a later SHA and does not change the tests.",
+    "The seven dots are the seven tests in tests/release/test_domain_compliance_coverage.py. None failed and none skipped. Both build logs have the same line.",
+    "The one suite skip is tests/test_trust_scoring_blind.py:33. It is the known external_data skip.",
     "This record does not accept the ticket."
   ]
 }
