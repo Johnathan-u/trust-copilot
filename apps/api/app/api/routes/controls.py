@@ -125,7 +125,7 @@ def create_control(
     session: dict = Depends(require_can_admin),
     db: Session = Depends(get_db),
 ):
-    """Create a control. Requires admin. Repeating the same identity reuses the row."""
+    """Create a control. Requires admin. An existing identity is a conflict."""
     ws = session.get("workspace_id")
     if not ws:
         raise HTTPException(status_code=403, detail="No workspace")

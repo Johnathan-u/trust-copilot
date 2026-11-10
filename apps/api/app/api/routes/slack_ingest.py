@@ -16,7 +16,9 @@ from app.models import (
     SlackControlSuggestion,
     SlackIngestChannel,
     SlackIntegration,
+    WorkspaceControl,
 )
+from app.services.control_contract import mirror_evidence_link
 from app.services.slack_ingest_service import (
     fetch_and_ingest_channel,
     suggest_controls_for_evidence,
@@ -344,6 +346,16 @@ async def review_suggestion(
                     verified=False,
                 )
             )
+        wc = (
+            db.query(WorkspaceControl)
+            .filter(
+                WorkspaceControl.id == sug.control_id,
+                WorkspaceControl.workspace_id == ws,
+            )
+            .first()
+        )
+        if wc is not None:
+            mirror_evidence_link(db, wc, sug.evidence_id)
 
     db.commit()
     persist_audit(

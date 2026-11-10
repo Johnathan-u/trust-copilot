@@ -1,52 +1,67 @@
-# TC-21-002: Legacy and canonical control contract reconciliation
+# TC-21-002: remediation status and evidence follow the control contract
 
-Framework catalogs stay **BLOCKED** pending **TC-01-007**. This run did not add framework control text.
+This run closes the two AC1 gaps found at `55d7deece26ebcf52634f95a4554a31121c3a849`. Framework catalogs stay blocked pending TC-01-007. No framework control text was added.
 
-| AC | Result |
+| Gap | Result |
 |---|---|
-| AC1 Both routes agree on canonical ID, version, owner, lifecycle, and evidence | Met by `apps/api/tests/release/test_domain_controls.py`. Legacy and compliance payloads share one canonical object. A drifted stored lifecycle is reported, not rewritten, by GET. |
-| AC2 Positive, negative, and partial-failure cases on PostgreSQL | Met by the same file. Admin is required to write. Reviewer and editor are refused. A workspace mismatch is 404. A foreign document and a foreign owner are rejected. A failed evidence mirror and a failed contract event stay retryable and do not insert a second row. |
-| AC3 Public schema, UI consumer, and persisted outcome agree across retry | Met by the same file. The nested `canonical` object is `control-contract/v1`. Node 24 loads `apps/web/lib/controlContract.ts` and accepts the same block from either route. Retry returns the saved row. |
+| Remediation evidence writes status through the contract and cannot set `verified` | Met by `test_remediation_evidence_bump_follows_the_control_contract`, `test_remediation_evidence_rejects_unknown_status`, and `test_remediation_evidence_rejects_verified_status` |
+| Compliance link, unlink, and remediation evidence agree with the legacy evidence list | Met by `test_compliance_evidence_link_and_unlink_match_legacy` and `test_remediation_evidence_matches_legacy_and_compliance_lists` |
 
 ## Command
 
-Working directory `apps/api`. Interpreter `/tmp/tc-venv/bin/python`.
+Working directory `apps/api`. Interpreter `/tmp/tc-venv/bin/python`. `TC_REQUIRE_DB=1`. Node `v24.22.1` first on `PATH`.
 
 ```text
-python -m pytest tests/release/test_domain_controls.py -q
+python -m pytest tests/release/test_domain_controls.py -q --tb=line
+python -m pytest -q --tb=line
 ```
 
 ## SHA
 
-Tests ran on `d3145d20b53cc99481f3b6af03d8c5f15e2b25a7` (merge of `1c8456be724f66f7979a9e775ea7bc20c54a296e` with `origin/master` `58b8c879612ad21759805ab614fb2c4f59f39ada`). This evidence file was added after that commit and does not change the code under test.
+Parent `02e833c78aa362d78c366a2187dcbd040b9838e1` (`origin/master` at the time of the run). Branch `tc/TC-21-002-control-contract`. This evidence is in the same commit as the fix, so the commit SHA is the child of that parent. CI run IDs are not in this file. They are reported with the pull request after `build` and `web-release-e2e` finish on that commit.
+
+## Tests without the fix
+
+The five new tests were run against the parent product code, with the fix stashed and only the new tests present. Command and output are in `pytest-q-without-fix.txt`. Exit 1. 5 failed, 6 deselected, 77 warnings, 3.50s.
+
+- A remediation bump to `implemented` left compliance `status` at `implemented` and canonical lifecycle at `in_progress`.
+- `bump_control_to` `enabled` and `verified` both returned 200.
+- A compliance evidence link and a remediation evidence link each left `GET /api/controls/{id}/evidence` empty.
 
 ## Environment
 
 - Python 3.12.3
-- PostgreSQL 16.15, database `trustcopilot_test` at `localhost:5432`, user `postgres`
+- PostgreSQL 16.15, database `trustcopilot_test` at `127.0.0.1:5432`, user `postgres`
 - SQLAlchemy 2.0.55
 - Alembic 1.20.1
-- Node 24.22.1 for the UI reader imported by the agreement test
-- `alembic heads`: `tc21002_control_contract (head)`, parent `tc06001_same_workspace_refs`
+- Node 24.22.1
+- `alembic heads`: `tc17003_security_claims (head)`
+- `ruff check .` from `apps/api`: exit 0
+
+The full-suite database was dropped and recreated before that run. Web unit tests were not run. This change does not touch `apps/web`.
 
 ## Totals
 
+The first implementation, parent `62afe126fdb0c69fe73537c29ee54c8a6869a1e6`, recorded 11 passed in this file and 6316 passed in the full suite. The review fixes below are the current run.
+
 | Command | Exit | Total |
 |---|---|---|
-| `python -m pytest tests/release/test_domain_controls.py -q` | 0 | 6 passed, 0 skipped, 63 warnings, 5.04s |
+| `python -m pytest tests/release/test_domain_controls.py -q --tb=line` | 0 | 15 passed, 0 skipped, 205 warnings, 7.33s |
+| `python -m pytest -q --tb=line` | 0 | 6320 passed, 8 skipped, 34815 warnings, 580.77s |
 
-No test in that file was skipped.
+No test in `tests/release/test_domain_controls.py` was skipped. The full-suite skips did not trip the `TC_REQUIRE_DB=1` failure hook. One collected external-data skip is `tests/test_trust_scoring_blind.py`. Output for the domain file is `pytest-q.txt`.
 
-## CI repair
+## Review fixes
 
-The first push of `e4e983619387be84c8fa0e0527660de03f42d71a` failed because the agreement test launched Node from `~/.nvm/versions/node/v24.22.1/bin/node`. GitHub Actions installs Node 24 from `apps/web/.nvmrc` onto `PATH` and does not create that path. The same `FileNotFoundError` failed push run 40522261910 and pull_request run 40522329512.
+Parent for the fail-without-fix run is `62afe126fdb0c69fe73537c29ee54c8a6869a1e6`. Product code was that parent. The new assertions were on the working tree. Output is `pytest-q-review-without-fix.txt`: exit 1, 6 failed, 9 deselected, 3.45s. The same file then passed on a fresh database: 15 passed, exit 0.
 
-The test now uses `node` on `PATH` and requires a `v24` version. Re-run from `apps/api` with Node 24.22.1 first on `PATH`:
+| Test | Without the fix | With the fix |
+|---|---|---|
+| `test_remediation_evidence_bump_follows_the_control_contract` | `verified_at` was a timestamp | `verified_at` is null |
+| `test_remediation_default_bump_keeps_a_verified_control` | status became `implemented` | status stayed `verified` |
+| `test_remediation_leaving_verified_clears_verification_stamps` | `verified_at` was stamped again | `verified_at` and `verified_by_user_id` are null |
+| `test_remediation_evidence_failure_persists_nothing` | status was committed as `implemented` before the evidence write failed | status, ticket, and links stayed unchanged |
+| `test_create_after_rename_keeps_the_existing_identity` | create returned 200 | create returned 409 `control_identity_conflict` and the renamed row stayed `implemented` |
+| `test_routes_agree_on_canonical_contract_and_retry` | a second create returned 200 | a second create with a different status returned 409 |
 
-```text
-python -m pytest tests/release/test_domain_controls.py -q
-```
-
-Exit 0. 6 passed, 0 skipped, 63 warnings, 4.40s.
-
-Master then added `tc10003b_idempotency_owner_token` (parent `tc24001_stripe_webhook_events`). `tc21002_control_contract` was re-parented onto that revision. `alembic heads` showed one head, `tc21002_control_contract (head)`. The same pytest command passed again: exit 0, 6 passed, 0 skipped, 63 warnings, 4.29s.
+A repeat with the same lifecycle, owner, and name still returns the existing row and does not change it. That is the contract-event retry. A create that would change any of those is the 409.
