@@ -1,15 +1,17 @@
 {
   "ticket": "TC-19-010",
   "status": "IN_REVIEW",
-  "scope": "Personal inbox API and broadcast receipts landed; acceptance-only AC3 real API/UI process-restart follow-up",
+  "scope": "Personal inbox API and broadcast receipts landed. The restart acceptance passes in CI of 78b3a32bf823e148ce491f9e687d71a81890ace6. Independent review is still pending. This record does not accept the ticket.",
   "acceptance": {
     "AC1": "Backend #95 landed; coordinator records landing checks at https://github.com/Johnathan-u/trust-copilot/issues/85#issuecomment-6512246459",
     "AC2": "Backend #95 landed; coordinator records landing checks at https://github.com/Johnathan-u/trust-copilot/issues/85#issuecomment-6512246459",
-    "AC3": "Real API/UI restart acceptance test implemented locally; actual PostgreSQL/Chromium execution, independent review and exact-head CI remain pending"
+    "AC3": "Merged in #117 (58b7822). CI of 78b3a32bf823e148ce491f9e687d71a81890ace6 ran pytest -rs in the build job on push 42912599974 and pull_request 42912630298. tests/release/test_domain_in_app_notifications.py passed 35 and skipped 0, including test_inbox_ui_api_and_database_agree_after_full_process_restart. Independent review is still pending. This record does not accept AC3."
   },
   "coordinator_ruling": "https://github.com/Johnathan-u/trust-copilot/issues/85#issuecomment-6504557554",
   "observed_runs": [
     {
+      "label": "historical",
+      "historical": true,
       "sha": "f88e4ebd6f9354260b7bde94b036c94f0fc40e75",
       "workflow_run_id": 40925575446,
       "job_id": 123630050157,
@@ -19,6 +21,8 @@
       "exit_status": 1
     },
     {
+      "label": "historical",
+      "historical": true,
       "sha": "98e8781c749e0c9bffc11dd5a8d2767f656c053b",
       "workflow_run_id": 40929390488,
       "job_id": 123643467469,
@@ -26,6 +30,219 @@
       "environment": "Existing CI, Python 3.11.17, pinned PostgreSQL 16.15/pgvector 0.8.7",
       "exit_status": 1,
       "outcome": "RED: 24 intended domain failures (14 baseline + 8 missing receipt-table assertions + 2 missing-migration assertions), 3216 passed, 1 external blind-data skip, 19 existing Alembic warnings; no fixture setup/cleanup failure"
+    },
+    {
+      "label": "current",
+      "historical": false,
+      "sha": "78b3a32bf823e148ce491f9e687d71a81890ace6",
+      "command": "pytest -rs",
+      "command_context": "GitHub Actions workflow CI, job build, step Run backend tests, working directory apps/api. TC_REQUIRE_DB=1 and TC_REQUIRE_WEB_TOOLCHAIN=1 are set by that step.",
+      "exit_status": 0,
+      "exit_status_source": "The Run backend tests step concluded success, and pytest printed a pass summary. Pytest returns 0 for that summary.",
+      "environment": {
+        "python": "3.11.18",
+        "python_log_lines": [
+          "Python 3.11.18",
+          "platform linux -- Python 3.11.18, pytest-9.1.1, pluggy-1.7.0"
+        ],
+        "pytest": "9.1.1",
+        "postgresql_from_log": "pgvector/pgvector:pg16@sha256:7b822b0aac60967beb1ea5e576b8602c94c300a157d187f385ae3e0da199b90a",
+        "postgresql_note": "Both build logs print this PG_IMAGE value and do not print SELECT version(). The workflow comment on that same digest names PostgreSQL 16.15 and pgvector 0.8.7."
+      },
+      "session_totals": {
+        "passed": 6425,
+        "failed": 0,
+        "skipped": 1,
+        "warnings": 52
+      },
+      "skipped_detail": "SKIPPED [1] tests/test_trust_scoring_blind.py:33: external_data: blind test pack not checked in; set TC_TRUST_SCORING_BLIND_PACK to run",
+      "module": {
+        "file": "tests/release/test_domain_in_app_notifications.py",
+        "passed": 35,
+        "failed": 0,
+        "skipped": 0,
+        "progress_glyphs": "35 dots across two log lines; no s, F, or x",
+        "log_lines": [
+          "tests/release/test_domain_in_app_notifications.py ...................... [ 44%]",
+          ".............                                                            [ 44%]"
+        ],
+        "includes": "test_inbox_ui_api_and_database_agree_after_full_process_restart",
+        "collected_tests": [
+          "test_mark_one_applies_the_same_visibility_as_list",
+          "test_removed_member_loses_inbox_access_immediately[]",
+          "test_removed_member_loses_inbox_access_immediately[/unread-count]",
+          "test_removed_member_loses_inbox_access_immediately[/read-all]",
+          "test_removed_member_loses_inbox_access_immediately[/2000000000/read]",
+          "test_inbox_mutations_require_a_personal_authenticated_session[/read-all]",
+          "test_inbox_mutations_require_a_personal_authenticated_session[/2000000000/read]",
+          "test_inbox_uses_current_role_for_admin_only_content",
+          "test_custom_admin_permission_controls_admin_only_visibility",
+          "test_api_key_cannot_mark_personal_notifications[one]",
+          "test_api_key_cannot_mark_personal_notifications[all]",
+          "test_foreign_and_other_recipient_notification_match_missing",
+          "test_pagination_unread_counts_and_retries_reconcile_without_get_writes",
+          "test_shared_legacy_notification_read_state_is_personal[one]",
+          "test_shared_legacy_notification_read_state_is_personal[all]",
+          "test_dispatch_does_not_create_an_inbox_item_for_an_unauthorized_recipient[other]",
+          "test_dispatch_does_not_create_an_inbox_item_for_an_unauthorized_recipient[suspended]",
+          "test_dispatch_does_not_create_an_inbox_item_for_an_unauthorized_recipient[missing]",
+          "test_dispatch_database_failure_rolls_back_without_a_partial_notification",
+          "test_personal_preference_is_visible_only_to_its_user",
+          "test_broadcast_read_creates_only_callers_receipt_and_preserves_timestamp[one]",
+          "test_broadcast_read_creates_only_callers_receipt_and_preserves_timestamp[all]",
+          "test_legacy_read_broadcast_stays_read_without_backfilling_receipts[one]",
+          "test_legacy_read_broadcast_stays_read_without_backfilling_receipts[all]",
+          "test_receipts_reject_cross_workspace_references[insert-notification]",
+          "test_receipts_reject_cross_workspace_references[insert-member]",
+          "test_receipts_reject_cross_workspace_references[update-notification]",
+          "test_receipts_reject_cross_workspace_references[update-member]",
+          "test_receipt_migration_roundtrip_preserves_nondefault_data_and_legacy_rows",
+          "test_receipt_migration_restore_fails_closed_if_membership_was_removed",
+          "test_concurrent_broadcast_reads_create_one_receipt[one]",
+          "test_concurrent_broadcast_reads_create_one_receipt[all]",
+          "test_inbox_cleanup_kills_term_ignoring_child_after_parent_exit[False]",
+          "test_inbox_cleanup_kills_term_ignoring_child_after_parent_exit[True]",
+          "test_inbox_ui_api_and_database_agree_after_full_process_restart"
+        ]
+      },
+      "runs": [
+        {
+          "event": "push",
+          "sha": "78b3a32bf823e148ce491f9e687d71a81890ace6",
+          "run_id": 42912599974,
+          "url": "https://github.com/Johnathan-u/trust-copilot/actions/runs/42912599974",
+          "build_job_id": 130166820305,
+          "web_release_e2e_job_id": 130166819629,
+          "conclusion": "success",
+          "build_conclusion": "success",
+          "web_release_e2e_conclusion": "success",
+          "run_backend_tests_conclusion": "success",
+          "database": "tc_ci_42912599974_1_test",
+          "pytest_summary": "6425 passed, 1 skipped, 52 warnings in 760.25s (0:12:40)",
+          "pytest_duration_seconds": 760.25,
+          "module_log_lines": [
+            "tests/release/test_domain_in_app_notifications.py ...................... [ 44%]",
+            ".............                                                            [ 44%]"
+          ],
+          "inbox_restart_artifact": {
+            "name": "inbox-restart-acceptance",
+            "id": 13808528138,
+            "url": "https://github.com/Johnathan-u/trust-copilot/actions/runs/42912599974/artifacts/13808528138",
+            "files": [
+              "playwright-report/inbox-restart/before/index.html",
+              "playwright-report/inbox-restart/after/index.html",
+              "test-results/inbox-restart/before.json",
+              "test-results/inbox-restart/after.json",
+              "test-results/inbox-restart/processes.json"
+            ],
+            "playwright": {
+              "before": {
+                "title": "before restart: UI reads agree with real API pagination and visibility",
+                "expected": 1,
+                "skipped": 0,
+                "unexpected": 0,
+                "flaky": 0,
+                "ok": true
+              },
+              "after": {
+                "title": "after restart: persisted reads, retries and other recipients still agree",
+                "expected": 1,
+                "skipped": 0,
+                "unexpected": 0,
+                "flaky": 0,
+                "ok": true
+              }
+            },
+            "processes": [
+              {
+                "phase": "before",
+                "api_pid": 50569,
+                "web_pid": 50570,
+                "api_exit": -15,
+                "web_exit": 0
+              },
+              {
+                "phase": "after",
+                "api_pid": 50775,
+                "web_pid": 50776,
+                "api_exit": -15,
+                "web_exit": 0
+              }
+            ]
+          }
+        },
+        {
+          "event": "pull_request",
+          "sha": "78b3a32bf823e148ce491f9e687d71a81890ace6",
+          "run_id": 42912630298,
+          "url": "https://github.com/Johnathan-u/trust-copilot/actions/runs/42912630298",
+          "build_job_id": 130166923805,
+          "web_release_e2e_job_id": 130166923273,
+          "conclusion": "success",
+          "build_conclusion": "success",
+          "web_release_e2e_conclusion": "success",
+          "run_backend_tests_conclusion": "success",
+          "database": "tc_ci_42912630298_1_test",
+          "pytest_summary": "6425 passed, 1 skipped, 52 warnings in 820.57s (0:13:40)",
+          "pytest_duration_seconds": 820.57,
+          "module_log_lines": [
+            "tests/release/test_domain_in_app_notifications.py ...................... [ 44%]",
+            ".............                                                            [ 44%]"
+          ],
+          "inbox_restart_artifact": {
+            "name": "inbox-restart-acceptance",
+            "id": 13808743140,
+            "url": "https://github.com/Johnathan-u/trust-copilot/actions/runs/42912630298/artifacts/13808743140",
+            "files": [
+              "playwright-report/inbox-restart/before/index.html",
+              "playwright-report/inbox-restart/after/index.html",
+              "test-results/inbox-restart/before.json",
+              "test-results/inbox-restart/after.json",
+              "test-results/inbox-restart/processes.json"
+            ],
+            "playwright": {
+              "before": {
+                "title": "before restart: UI reads agree with real API pagination and visibility",
+                "expected": 1,
+                "skipped": 0,
+                "unexpected": 0,
+                "flaky": 0,
+                "ok": true
+              },
+              "after": {
+                "title": "after restart: persisted reads, retries and other recipients still agree",
+                "expected": 1,
+                "skipped": 0,
+                "unexpected": 0,
+                "flaky": 0,
+                "ok": true
+              }
+            },
+            "processes": [
+              {
+                "phase": "before",
+                "api_pid": 50769,
+                "web_pid": 50770,
+                "api_exit": -15,
+                "web_exit": 0
+              },
+              {
+                "phase": "after",
+                "api_pid": 50992,
+                "web_pid": 50993,
+                "api_exit": -15,
+                "web_exit": 0
+              }
+            ]
+          }
+        }
+      ],
+      "notes": [
+        "These runs are CI of 78b3a32bf823e148ce491f9e687d71a81890ace6. The commit that adds this record is a later SHA. It does not change product code or tests.",
+        "Both build logs show the same two progress lines for tests/release/test_domain_in_app_notifications.py: 35 passing dots and 0 skips. The collected node ids are the same on both logs and include test_inbox_ui_api_and_database_agree_after_full_process_restart.",
+        "The one suite skip is tests/test_trust_scoring_blind.py:33. It is outside this module.",
+        "Each build job uploaded the inbox-restart-acceptance artifact. Both phases report expected 1, skipped 0, unexpected 0, flaky 0. Replacement API and web PIDs differ. This record does not accept the ticket."
+      ]
     }
   ],
   "receipt_red_sha": "98e8781c749e0c9bffc11dd5a8d2767f656c053b",
@@ -91,15 +308,15 @@
     "unique_parent_preflight": "Duplicate workspace_members(workspace_id,user_id) fails upgrade without data deletion; no compatible unique key existed at the base"
   },
   "limitations": [
-    "The local focused AC3 command exits 3 at TC_REQUIRE_DB=1 because 127.0.0.1:5432 refuses connections; no real API/Next restart or integrated browser run executed locally",
-    "Locked Chromium executable is absent locally; CI installs it from the existing locked Playwright package",
-    "Collection, unit, tooling and helper lifecycle checks are implementation evidence only, not AC3 qualification",
-    "No product or dependency changes, real provider calls, GitHub publication or merge by this worker",
-    "Independent review and build/web-release-e2e on both push and pull_request for the exact final published head remain required"
+    "Historical local limit: the focused AC3 command exited 3 because 127.0.0.1:5432 refused connections. That local attempt is not the CI result recorded in observed_runs.",
+    "Historical local limit: the locked Chromium executable was absent locally. The CI build installs it from the locked Playwright package before pytest -rs.",
+    "Historical local collection, unit, tooling, and helper lifecycle checks are implementation evidence only.",
+    "No product-code or test changes are in the recorded CI head. This record does not accept the ticket.",
+    "Independent review of the restart acceptance remains pending."
   ],
   "local_code_checkpoint": "3c90cdc4b8981dc7c006793f33b9914a5424dd2d",
   "local_code_tree": "e82a4c5139c207d9dc08a8982c1791795bdffa51",
-  "implementation_postgresql_status": "Backend #95 landed; coordinator landing evidence: https://github.com/Johnathan-u/trust-copilot/issues/85#issuecomment-6512246459; new AC3 acceptance is not qualified",
+  "implementation_postgresql_status": "Backend #95 landed. AC3 restart acceptance passes in CI of 78b3a32bf823e148ce491f9e687d71a81890ace6. Independent review is still pending. This record does not accept the ticket.",
   "independent_review": {
     "reviewer": "root independent agent",
     "local_sha": "3c90cdc4b8981dc7c006793f33b9914a5424dd2d",
@@ -140,7 +357,7 @@
       ".github/workflows/ci.yml": "338a910d3350b5cfd1ca30266977a8d0c069e372"
     },
     "environment": "Local Python 3.12.14 in /tmp/tc-backend-venv, Node v24.22.1, existing locked node_modules; no PostgreSQL or Chromium",
-    "status": "IMPLEMENTED_PENDING_INDEPENDENT_REVIEW_AND_EXACT_HEAD_CI",
+    "status": "CI_PASSED_PENDING_INDEPENDENT_REVIEW",
     "coverage": [
       "23 personal plus 2 broadcast visible rows; hidden administrative, other-recipient and foreign-workspace fixtures",
       "Real UI login, paginated public response schema, rendered first-page titles/read indicators and total unread badge; no authentication/inbox response mocks",
@@ -229,9 +446,32 @@
         "outcome": "0 block findings; 184 review findings (synthetic/dev defaults) across the tracked tree"
       }
     ],
-    "qualified_restart_runs": [],
+    "qualified_restart_runs": [
+      {
+        "event": "push",
+        "sha": "78b3a32bf823e148ce491f9e687d71a81890ace6",
+        "run_id": 42912599974,
+        "build_job_id": 130166820305,
+        "command": "pytest -rs",
+        "exit_status": 0,
+        "test": "test_inbox_ui_api_and_database_agree_after_full_process_restart",
+        "module_result": "tests/release/test_domain_in_app_notifications.py: 35 passed, 0 failed, 0 skipped",
+        "artifact": "inbox-restart-acceptance 13808528138"
+      },
+      {
+        "event": "pull_request",
+        "sha": "78b3a32bf823e148ce491f9e687d71a81890ace6",
+        "run_id": 42912630298,
+        "build_job_id": 130166923805,
+        "command": "pytest -rs",
+        "exit_status": 0,
+        "test": "test_inbox_ui_api_and_database_agree_after_full_process_restart",
+        "module_result": "tests/release/test_domain_in_app_notifications.py: 35 passed, 0 failed, 0 skipped",
+        "artifact": "inbox-restart-acceptance 13808743140"
+      }
+    ],
     "independent_review": "PENDING coordinator-assigned reviewer",
-    "exact_head_ci": "PENDING coordinator publication; four required build/web-release-e2e push/pull_request checks",
+    "exact_head_ci": "CI of 78b3a32bf823e148ce491f9e687d71a81890ace6 is green for build and web-release-e2e on push 42912599974 (build 130166820305, web-release-e2e 130166819629) and pull_request 42912630298 (build 130166923805, web-release-e2e 130166923273). The commit that records these ids is a later SHA. Independent review is still pending. This record does not accept the ticket.",
     "review_followup": {
       "claim": "https://github.com/Johnathan-u/trust-copilot/issues/85#issuecomment-6512733201",
       "base_sha": "94b5b627add1f32f865866bf0a7342a5e02b07b8",
@@ -313,8 +553,13 @@
           "outcome": "29 passed in 11.54s"
         }
       ],
-      "remaining_limits": "Real PostgreSQL/Chromium AC3 execution remains unavailable locally; prior prerequisite failures remain current limits. No CI, independent re-review, publication or merge claimed.",
+      "remaining_limits": "Historical: at that review-follow-up checkpoint, a PostgreSQL and Chromium run had not been recorded locally. CI of 78b3a32bf823e148ce491f9e687d71a81890ace6 has since passed pytest -rs, including the restart test, with 0 skips in this module. Independent review is still pending. This record does not accept the ticket.",
       "diagnostic_note": "Initial full default discovery without TC_SEED_DEMO_PASSWORD/TC_SEED_ADMIN_PASSWORD exited 1 in existing seed-dependent specs. Supplying synthetic discovery-only values enabled collection; no actual login or browser execution was attempted."
     }
+  },
+  "real_provider_sandbox": {
+    "status": "AWAITING_COORDINATOR_RULING",
+    "issue": "https://github.com/Johnathan-u/trust-copilot/issues/85",
+    "note": "Real-provider sandbox evidence awaits a coordinator ruling on #85: either N/A for the in-app inbox, or owner sandbox accounts are needed. This record does not decide that question."
   }
 }
