@@ -29,7 +29,7 @@ temporary negative controls each reintroduced a detected defect; original source
 was restored before final checks. Discovery still lists 22 ui-22 cases. Shared
 workflow/minimum-count/axe gates, aliases, public-form flow and dependencies are
 unchanged. `ci-repair-verification.json` records precise results and tested source
-blobs. Independent review and fresh browser/CI qualification remain pending.
+blobs. Independent review of that repair was still outstanding then. Browser qualification of head `35db89926252070db6aeca4383bfdb3ae5294b2b` is in Remaining qualification.
 
 ## Review repair — claim 6513040014
 
@@ -50,9 +50,9 @@ workspace's pending guard or expose their token.
 | `npm run build` | Production compilation/type checking and route generation passed, exit 0 |
 | `npx --no-install playwright test e2e/release/ui-22.spec.ts --list` | 22 cases collected, exit 0; new two-row browser regression is included |
 
-`invitation-serialization-verification.txt` contains actual command output. The
-configured Chromium executable remains absent; no new browser run or screenshot
-is claimed. The unchanged HTTP alias was not rerun for this page-only repair.
+`invitation-serialization-verification.txt` contains actual command output. That
+repair did not launch Chromium. The later browser run and screenshots are in
+Remaining qualification. The unchanged HTTP alias was not rerun for this page-only repair.
 The shared CI file was not edited by this worker; its current minimum is 21 and
 the coordinator has been told the new count is 22.
 
@@ -92,8 +92,9 @@ fixtures stayed outside acceptance artifact directories and were deleted.
 
 The runner and actual checker output are preserved in
 `axe-writer-compatibility-verification.txt`. Tested spec blob:
-`e27ac63ea51bc2ae87e146f7121d404456d7f6d3`. Browser/visual/axe qualification remains
-pending; the prior application checks were not repeated for this report-only fix.
+`e27ac63ea51bc2ae87e146f7121d404456d7f6d3`. This report-only fix did not repeat
+the browser run. Browser, visual and axe qualification of head
+`35db89926252070db6aeca4383bfdb3ae5294b2b` is in Remaining qualification.
 
 ## Original implementation results (cdf5b01)
 
@@ -145,16 +146,59 @@ recorded by the coordinator.
 
 ## Remaining qualification
 
-The repaired twenty-one browser cases, screenshots, keyboard/Back behavior and axe
-outcomes still need fresh qualification. The earlier local UI launch failed before
-assertions; subsequent CI executed the suite and exposed the five failures above.
-No local browser pass or visual inspection is claimed. The two legacy full-stack specs were updated and
-type-checked but not executed against a database/API stack. Synthetic UI fixtures
-prove control paths only and cannot qualify provider delivery or persistence.
+Browser qualification for head `35db89926252070db6aeca4383bfdb3ae5294b2b` is
+recorded in `ci-qualification.json`. The command is `npx playwright test
+e2e/release/ui-22.spec.ts`, run inside the `web-release-e2e` job from `apps/web`.
+That job invokes the spec with the other release candidates:
 
-The coordinator has added `ui-22.spec.ts` to the release candidate list, configured
-stale axe artifact removal before each run, and included `artifacts/acceptance/TC-15-024`
-in the axe gate. Commit `9bbc9c2` raises the minimum count to 22. The spec writes list/dialog axe JSON
-and screenshots at 360/768/1440 and attaches them to the report. It contains no
-required skips. Exact final-head build and web-release-e2e must pass on push and
-pull_request, with independent review, before merge. This is not Done.
+`npx --no-install playwright test <candidates including e2e/release/ui-22.spec.ts> --retries=0 --reporter=list,html,json`
+
+The checker requires the spec at a minimum of 22 tests and reads the six
+`artifacts/acceptance/TC-15-024/axe-*.json` reports after deleting any checkout
+copies. Both logs print `ui-22.spec.ts: 23 passed, 0 failed, 0 skipped, 0 flaky`,
+then the six reports at 0 violations, then `playwright exit 0; axe check exit 0`.
+
+| Event | Run | build job | web-release-e2e job | Result |
+| --- | --- | --- | --- | --- |
+| push | [42905431313](https://github.com/Johnathan-u/trust-copilot/actions/runs/42905431313) | 130142072405 | 130142071167 | success |
+| pull_request | [42905467898](https://github.com/Johnathan-u/trust-copilot/actions/runs/42905467898) | 130142198970 | 130142199308 | success |
+
+Environment on both `web-release-e2e` jobs: Ubuntu 26.04.1 LTS, runner image
+`ubuntu-26.04` version `20261101.186.1`, Node v24.22.1 from `apps/web/.nvmrc`,
+npm 11.19.1, Playwright 1.64.1. The Chromium cache hit, so the log does not
+reprint the browser build id. The six axe reports are
+`axe-dialog-{360,768,1440}.json` and `axe-list-{360,768,1440}.json`, each
+`0 violations`. The spec has no required skip. The commit that writes this
+record is later than `35db899` and does not change product code or
+`e2e/release/ui-22.spec.ts`.
+
+### Screenshots
+
+Regenerated locally from product tree `d853ce07559a2fb9e61399aaf5aa58ed2116eef2`
+(parent of the screenshot commit; no product change) and committed in
+`35db89926252070db6aeca4383bfdb3ae5294b2b`. Command, from `apps/web`, using
+`apps/web/playwright.config.ts` with `CI=true` and `--retries=0`, the same config
+the `web-release-e2e` job loads:
+
+`npx --no-install playwright test e2e/release/ui-22.spec.ts --retries=0`
+
+Local result: Playwright 1.64.1, Node v24.22.1, exit 0, 23 passed. There is no
+Actions run id for these pixels. They were not downloaded from
+`playwright-html-report`. Each file is a non-blank RGB render of the synthetic
+outbound-requests fixture (`vendor@example.com` and a repeated example address)
+at the CSS width in its name and viewport height 900.
+
+| File | Actions run id | SHA | Width |
+| --- | --- | --- | --- |
+| `screenshots/requests-list-360.png` | none (local regeneration) | `35db89926252070db6aeca4383bfdb3ae5294b2b` | 360 |
+| `screenshots/requests-list-768.png` | none (local regeneration) | `35db89926252070db6aeca4383bfdb3ae5294b2b` | 768 |
+| `screenshots/requests-list-1440.png` | none (local regeneration) | `35db89926252070db6aeca4383bfdb3ae5294b2b` | 1440 |
+| `screenshots/requests-dialog-360.png` | none (local regeneration) | `35db89926252070db6aeca4383bfdb3ae5294b2b` | 360 |
+| `screenshots/requests-dialog-768.png` | none (local regeneration) | `35db89926252070db6aeca4383bfdb3ae5294b2b` | 768 |
+| `screenshots/requests-dialog-1440.png` | none (local regeneration) | `35db89926252070db6aeca4383bfdb3ae5294b2b` | 1440 |
+
+The two legacy full-stack specs were updated and type-checked during the original
+work and were not executed against a database/API stack. Synthetic UI fixtures
+prove control paths only and do not qualify provider delivery or persistence.
+Independent acceptance is outstanding. The workflow minimum for this spec remains
+22, from commit `9bbc9c2`.
