@@ -256,7 +256,7 @@ def _control(
         session.close()
 
 
-def _evidence(workspace_id: int, *, approval: str) -> int:
+def _evidence(workspace_id: int, *, approval: str, document_deleted: bool = False) -> int:
     session = _db()
     try:
         _sync_sequence(session, "documents")
@@ -265,6 +265,7 @@ def _evidence(workspace_id: int, *, approval: str) -> int:
             storage_key=f"tc21007/{uuid.uuid4().hex}",
             filename="synthetic.txt",
             status="uploaded",
+            deleted_at=datetime.utcnow() if document_deleted else None,
         )
         session.add(doc)
         session.flush()
@@ -522,3 +523,72 @@ def test_partial_failure_keeps_the_other_control(client):
     assert coverage["numerator"] == 1
     assert coverage["denominator"] == 2
     assert coverage["qualified_control_ids"] == [kept]
+
+
+def test_deleted_document_stays_in_the_denominator(client):
+    actors = _actors()
+    deleted = _control(actors["workspace_id"], f"Deleted doc {uuid.uuid4().hex[:8]}")
+    deleted_evidence = _evidence(actors["workspace_id"], approval="approved", document_deleted=True)
+    _link(deleted, deleted_evidence)
+    kept = _control(actors["workspace_id"], f"Kept beside deleted {uuid.uuid4().hex[:8]}")
+    kept_evidence = _evidence(actors["workspace_id"], approval="approved")
+    _link(kept, kept_evidence)
+    session = _db()
+    try:
+        evidence = session.get(EvidenceItem, deleted_evidence)
+        document = session.get(Document, evidence.document_id)
+        assert evidence.approval_status == "approved"
+        assert document.deleted_at is not None
+        assert document.workspace_id == actors["workspace_id"]
+    finally:
+        session.close()
+    _login(client, REVIEWER_EMAIL, REVIEWER_PASSWORD)
+    before = _counts()
+    response = _coverage(client)
+    assert response.status_code == 200, response.text
+    assert _counts() == before
+    coverage = response.json()["control_coverage"]
+    by_id = {item["control_id"]: item for item in coverage["explanations"]}
+    assert by_id[deleted]["state"] == "gap"
+    assert by_id[deleted]["rule"] == "deleted_document"
+    assert by_id[deleted]["effect"] == "excluded_from_numerator"
+    assert by_id[deleted]["denominator_changed"] is False
+    applicable = [
+        item["control_id"]
+        for item in coverage["explanations"]
+        if item["effect"] != "excluded_from_denominator"
+    ]
+    assert deleted in applicable
+    assert kept in applicable
+    assert coverage["denominator"] == len(applicable) == 2
+    assert coverage["numerator"] == 1
+    assert deleted not in coverage["qualified_control_ids"]
+    assert coverage["qualified_control_ids"] == [kept]
+
+
+def test_numerator_counts_each_qualified_control_once(client):
+    actors = _actors()
+    shared = _control(actors["workspace_id"], f"Two evidence {uuid.uuid4().hex[:8]}")
+    first = _evidence(actors["workspace_id"], approval="approved")
+    second = _evidence(actors["workspace_id"], approval="approved")
+    _link(shared, first)
+    _link(shared, second)
+    other = _control(actors["workspace_id"], f"Second qualified {uuid.uuid4().hex[:8]}")
+    other_evidence = _evidence(actors["workspace_id"], approval="approved")
+    _link(other, other_evidence)
+    _login(client, REVIEWER_EMAIL, REVIEWER_PASSWORD)
+    before = _counts()
+    response = _coverage(client)
+    assert response.status_code == 200, response.text
+    assert _counts() == before
+    coverage = response.json()["control_coverage"]
+    qualified = coverage["qualified_control_ids"]
+    assert qualified == sorted([shared, other])
+    assert len(qualified) == len(set(qualified))
+    assert coverage["numerator"] == len(qualified) == 2
+    assert coverage["denominator"] == 2
+    by_id = {item["control_id"]: item for item in coverage["explanations"]}
+    assert by_id[shared]["state"] == "qualified"
+    assert by_id[shared]["effect"] == "counted"
+    assert by_id[other]["state"] == "qualified"
+    assert list(by_id) == sorted([shared, other])
