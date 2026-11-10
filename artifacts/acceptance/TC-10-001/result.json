@@ -1,19 +1,97 @@
 {
   "ticket": "TC-10-001",
+  "tested_sha": "4ad1853b8ae50e0e8534871e62e0c970a612d0b3",
   "file": "apps/api/tests/release/test_job_leases.py",
-  "command": "python -m pytest tests/release/test_job_leases.py -q",
+  "command": "pytest -rs",
+  "ticket_command": "python -m pytest tests/release/test_job_leases.py -q",
   "working_directory": "apps/api",
+  "command_env": {
+    "SESSION_SECRET": "test-secret",
+    "TC_REQUIRE_DB": "1",
+    "TC_REQUIRE_WEB_TOOLCHAIN": "1",
+    "TC_REQUIRE_API_QUALITY": "1"
+  },
   "exit_status": 0,
-  "passed": 28,
-  "failed": 0,
-  "skipped": 0,
-  "warnings": 32,
-  "duration_seconds": 16.35,
+  "file_totals": {
+    "passed": 28,
+    "failed": 0,
+    "skipped": 0
+  },
+  "log_line": "tests/release/test_job_leases.py ............................            [ 54%]",
   "new_tests": [
     "test_heartbeat_keeps_the_lease_during_long_work",
     "test_long_work_without_a_heartbeat_loses_the_lease"
   ],
+  "suite_totals": {
+    "passed": 6423,
+    "failed": 0,
+    "skipped": 1,
+    "warnings": 52
+  },
+  "skipped_detail": "tests/test_trust_scoring_blind.py:33: external_data: blind test pack not checked in; set TC_TRUST_SCORING_BLIND_PACK to run",
   "environment": {
+    "runner_image": "ubuntu-26.04",
+    "runner_image_version": "20261101.186.1",
+    "python": "3.11.18",
+    "pytest": "9.1.1",
+    "sqlalchemy": "2.0.55",
+    "psycopg2_binary": "2.9.13",
+    "pgvector": "0.5.1",
+    "postgresql_image": "pgvector/pgvector:pg16@sha256:7b822b0aac60967beb1ea5e576b8602c94c300a157d187f385ae3e0da199b90a"
+  },
+  "runs": [
+    {
+      "event": "push",
+      "sha": "4ad1853b8ae50e0e8534871e62e0c970a612d0b3",
+      "run_id": 42888689793,
+      "url": "https://github.com/Johnathan-u/trust-copilot/actions/runs/42888689793",
+      "build_job_id": 130083731126,
+      "web_release_e2e_job_id": 130083730506,
+      "conclusion": "success",
+      "build_conclusion": "success",
+      "web_release_e2e_conclusion": "success",
+      "database": "tc_ci_42888689793_1_test",
+      "pytest_duration_seconds": 815.99,
+      "file_log_line": "tests/release/test_job_leases.py ............................            [ 54%]",
+      "suite_totals": {
+        "passed": 6423,
+        "failed": 0,
+        "skipped": 1,
+        "warnings": 52
+      }
+    },
+    {
+      "event": "pull_request",
+      "sha": "4ad1853b8ae50e0e8534871e62e0c970a612d0b3",
+      "run_id": 42888729722,
+      "url": "https://github.com/Johnathan-u/trust-copilot/actions/runs/42888729722",
+      "build_job_id": 130083872306,
+      "web_release_e2e_job_id": 130083871747,
+      "conclusion": "success",
+      "build_conclusion": "success",
+      "web_release_e2e_conclusion": "success",
+      "database": "tc_ci_42888729722_1_test",
+      "pytest_duration_seconds": 793.27,
+      "file_log_line": "tests/release/test_job_leases.py ............................            [ 54%]",
+      "suite_totals": {
+        "passed": 6423,
+        "failed": 0,
+        "skipped": 1,
+        "warnings": 52
+      }
+    }
+  ],
+  "local_run": {
+    "tested_sha": "4ad1853b8ae50e0e8534871e62e0c970a612d0b3",
+    "command": "python -m pytest tests/release/test_job_leases.py -q",
+    "extra_flags": "--tb=line -p no:cacheprovider",
+    "working_directory": "apps/api",
+    "exit_status": 0,
+    "passed": 28,
+    "failed": 0,
+    "skipped": 0,
+    "warnings": 32,
+    "duration_seconds": 16.35,
     "python": "3.12.3",
     "pytest": "9.1.1",
     "sqlalchemy": "2.0.55",
@@ -42,9 +120,9 @@
   "product_code_changed": true,
   "product_change": "lease_is_held compares lease_expires_at to statement_timestamp() so an open job transaction does not freeze the fence clock.",
   "notes": [
-    "Local run of the ticket command. Neither new test skipped.",
-    "The two new tests sleep 6.0s each. The module finished in 16.35s, including the existing migration round trip.",
-    "CI run ids are not in this commit. The follow-up records the real GitHub Actions CI runs for this commit's SHA.",
-    "This record does not accept the ticket."
+    "This file records CI of 4ad1853b8ae50e0e8534871e62e0c970a612d0b3. The commit that adds these run ids is a later SHA.",
+    "The 28 dots are the 28 tests in tests/release/test_job_leases.py. None failed and none skipped. Both build logs have the same progress line.",
+    "The one suite skip is tests/test_trust_scoring_blind.py:33. It is the known external_data skip.",
+    "Reviewer signoff is still pending. This record does not accept the ticket."
   ]
 }

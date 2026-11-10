@@ -12,7 +12,7 @@ python -m pytest tests/release/test_job_leases.py -q
 
 | Run | SHA | Environment | Exit | Totals |
 |---|---|---|---|---|
-| Local | the commit that adds this section. The CI follow-up names that SHA. | Python 3.12.3, pytest 9.1.1, SQLAlchemy 2.0.55, Alembic 1.20.1, psycopg2 2.9.13, PostgreSQL 16.15 (Ubuntu 16.15-0ubuntu0.24.04.1), pgvector 0.6.0, database `trustcopilot_test` on 127.0.0.1, Linux 6.12.113+. `python` here is the venv interpreter. The captured process also passed `--tb=line -p no:cacheprovider`, which does not add or skip tests. | 0 | 28 passed, 0 failed, 0 skipped, 32 warnings, 16.35s |
+| Local | `4ad1853b8ae50e0e8534871e62e0c970a612d0b3` | Python 3.12.3, pytest 9.1.1, SQLAlchemy 2.0.55, Alembic 1.20.1, psycopg2 2.9.13, PostgreSQL 16.15 (Ubuntu 16.15-0ubuntu0.24.04.1), pgvector 0.6.0, database `trustcopilot_test` on 127.0.0.1, Linux 6.12.113+. `python` here is the venv interpreter. The captured process also passed `--tb=line -p no:cacheprovider`, which does not add or skip tests. | 0 | 28 passed, 0 failed, 0 skipped, 32 warnings, 16.35s |
 
 The 28 are the previous 26 plus `test_heartbeat_keeps_the_lease_during_long_work` and `test_long_work_without_a_heartbeat_loses_the_lease`. Neither skipped. The file slept about 12s inside those two tests (6.0s each) and finished in 16.35s with the rest of the module, including the migration round trip. Postgres was listening. These are not an allowed skip.
 
@@ -53,7 +53,28 @@ The control stayed `completed` until the fence clock changed. `reconcile_previou
 
 On master `edd332013d09af4222b9c700a489f9b4c7709091` the alembic chain is linear, one head, `tc17003_security_claims`. Eight revisions sit above `tc10001_job_leases`. `alembic downgrade bug018c_one_open_gap` walks those eight and then this revision. The list and the safe lease-only rollback are in `docs/release/tickets/TC-10-001.md`.
 
-`result.json` in this directory is the same local record. It has no GitHub Actions run ids. Those are added in a follow-up commit after CI finishes for the commit that contains this section, and that follow-up names the SHA they belong to. This record does not accept the ticket.
+## CI of `4ad1853`
+
+This section records the GitHub Actions `CI` workflow for commit `4ad1853b8ae50e0e8534871e62e0c970a612d0b3`. The commit that adds this section is a later SHA, so it is not the SHA under test.
+
+Both `build` and `web-release-e2e` succeeded on the push and on the pull request.
+
+| Event | Run | Build job | web-release-e2e job |
+|---|---|---|---|
+| push | [42888689793](https://github.com/Johnathan-u/trust-copilot/actions/runs/42888689793) | 130083731126 | 130083730506 |
+| pull_request | [42888729722](https://github.com/Johnathan-u/trust-copilot/actions/runs/42888729722) | 130083872306 | 130083871747 |
+
+- Command: from `apps/api`, `pytest -rs`, with `SESSION_SECRET=test-secret`, `TC_REQUIRE_DB=1`, `TC_REQUIRE_WEB_TOOLCHAIN=1` and `TC_REQUIRE_API_QUALITY=1`. That suite runs `tests/release/test_job_leases.py`.
+- Environment: GitHub-hosted `ubuntu-26.04` image `20261101.186.1`; Python 3.11.18; pytest 9.1.1; SQLAlchemy 2.0.55; psycopg2-binary 2.9.13; pgvector 0.5.1. PostgreSQL image `pgvector/pgvector:pg16` digest `sha256:7b822b0aac60967beb1ea5e576b8602c94c300a157d187f385ae3e0da199b90a`. Push database `tc_ci_42888689793_1_test`. Pull-request database `tc_ci_42888729722_1_test`.
+- Exit status: 0 on both build jobs.
+- Totals for this file: 28 passed, 0 skipped. Both build logs show one progress line and no `s`:
+
+  `tests/release/test_job_leases.py ............................            [ 54%]`
+
+  That is 28 dots. The two new tests are in that line. Neither skipped.
+- Full suite, both runs: 6423 passed, 1 skipped, 52 warnings. Push pytest duration 815.99s. Pull-request pytest duration 793.27s. The skip is `tests/test_trust_scoring_blind.py:33` (external data). It is not in `test_job_leases.py`.
+
+`result.json` in this directory is the same record. Reviewer signoff is still pending. This record does not accept the ticket.
 
 ## Re-parent run
 
