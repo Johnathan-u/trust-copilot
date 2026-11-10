@@ -110,6 +110,8 @@ def submit_post_remediation_evidence(
     A created or updated link is verified only when the evidence qualifies: approved,
     same workspace, not expired, and not tied to a deleted document. Other evidence
     is stored with verified false, including a link that was already verified.
+    ``last_verified_at`` is set when a link is created verified or becomes verified,
+    and cleared when it stops being verified. The audit payload lists each link.
     The legacy mirror is still written. That table has no verified column.
     """
     if bump_control_to:
@@ -136,6 +138,8 @@ def submit_post_remediation_evidence(
             detail = synced.error or {"detail": "Control update failed"}
             return {"error": detail, "http_status": synced.http_status}
     link_workspace_id = wc.workspace_id if wc is not None else ticket.workspace_id
+    verified_at = datetime.utcnow()
+    link_results: list[dict] = []
     for eid in evidence_ids:
         if ticket.control_id:
             link = (
@@ -153,10 +157,13 @@ def submit_post_remediation_evidence(
                         control_id=ticket.control_id,
                         evidence_id=eid,
                         verified=verified,
+                        last_verified_at=verified_at if verified else None,
                     )
                 )
-            else:
+            elif link.verified != verified:
                 link.verified = verified
+                link.last_verified_at = verified_at if verified else None
+            link_results.append({"evidence_id": eid, "verified": verified})
             if wc is not None:
                 mirror_evidence_link(db, wc, eid)
     _audit(
@@ -166,7 +173,7 @@ def submit_post_remediation_evidence(
         actor_user_id,
         ticket_id,
         False,
-        {"evidence_ids": evidence_ids},
+        {"evidence_ids": evidence_ids, "links": link_results},
     )
     db.flush()
     from app.services import remediation_service as rs

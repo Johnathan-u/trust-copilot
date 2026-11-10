@@ -32,6 +32,7 @@ from app.models import (
 )
 from app.services.control_contract import (
     canonical_payload,
+    demote_verified_without_qualifying_evidence,
     legacy_for_workspace,
     mirror_evidence_link,
     new_request_id,
@@ -39,7 +40,7 @@ from app.services.control_contract import (
     unmirror_evidence_link,
     upsert_workspace_control,
 )
-from app.services.evidence_qualification import evidence_qualifies
+from app.services.evidence_qualification import evidence_qualifies, has_qualifying_evidence
 from app.services.evidence_suggestion import suggest_evidence as suggest_evidence_service
 from app.services.tag_service import list_tags_for_documents
 from app.core.compliance_rate_limit import check_compliance_write_allowed
@@ -150,13 +151,7 @@ _VERIFY_DENIED = "Verified status requires approved, current evidence linked in 
 
 
 def _has_qualifying_evidence(db: Session, control_id: int, workspace_id: int) -> bool:
-    now = datetime.utcnow()
-    links = db.query(ControlEvidenceLink).filter(ControlEvidenceLink.control_id == control_id).all()
-    for link in links:
-        ev = db.query(EvidenceItem).filter(EvidenceItem.id == link.evidence_id).first()
-        if ev is not None and evidence_qualifies(db, ev, workspace_id, now):
-            return True
-    return False
+    return has_qualifying_evidence(db, control_id, workspace_id)
 
 
 def _require_qualifying_evidence(db: Session, control_id: int, workspace_id: int) -> None:
@@ -1014,7 +1009,11 @@ def unlink_evidence(
     session: dict = Depends(require_can_admin),
     db: Session = Depends(get_db),
 ):
-    """Remove an evidence link from a control. Requires admin."""
+    """Remove an evidence link from a control. Requires admin.
+
+    The delete always proceeds. A verified control with no qualifying evidence
+    left is stored as implemented, and that lifecycle is copied to the legacy row.
+    """
     ws = session.get("workspace_id")
     if not ws:
         raise HTTPException(status_code=403, detail="No workspace")
@@ -1033,5 +1032,12 @@ def unlink_evidence(
         raise HTTPException(status_code=404, detail="Link not found")
     unmirror_evidence_link(db, wc, link.evidence_id)
     db.delete(link)
-    db.commit()
+    db.flush()
+    demoted = demote_verified_without_qualifying_evidence(
+        db, wc, actor_user_id=session.get("user_id")
+    )
+    if demoted is None:
+        db.commit()
+    elif demoted.http_status >= 400:
+        raise HTTPException(status_code=demoted.http_status, detail=demoted.error)
     return {"ok": True}

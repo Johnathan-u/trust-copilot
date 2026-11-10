@@ -1,0 +1,80 @@
+parent SHA: 4d105d1bfded47a749ecdefb478a562406aa2fa1
+product code: parent (review fixes not applied)
+tests: review-fix cases
+command: TC_REQUIRE_DB=1 python -m pytest tests/release/test_domain_compliance_controls.py -q --tb=line -k "remediation_evidence or removing_last_qualifying or legacy_detach_demotes or create_refuses_verified or control_engine_does_not_pass"
+working directory: apps/api
+interpreter: /tmp/tc-venv/bin/python
+
+FFFFFF                                                                   [100%]
+=================================== FAILURES ===================================
+E   AssertionError: no remediation audit links for evidence 91021314
+/agent/repos/trust-copilot/apps/api/tests/release/test_domain_compliance_controls.py:1173: AssertionError: no remediation audit links for evidence 91021314
+E   assert None is not None
+     +  where None = _stored_link_verified_at(55, 91021314)
+/agent/repos/trust-copilot/apps/api/tests/release/test_domain_compliance_controls.py:1346: assert None is not None
+E   AssertionError: assert 'verified' == 'implemented'
+      
+      - implemented
+      + verified
+/agent/repos/trust-copilot/apps/api/tests/release/test_domain_compliance_controls.py:1460: AssertionError: assert 'verified' == 'implemented'
+E   AssertionError: assert 'verified' == 'implemented'
+      
+      - implemented
+      + verified
+/agent/repos/trust-copilot/apps/api/tests/release/test_domain_compliance_controls.py:1493: AssertionError: assert 'verified' == 'implemented'
+E   assert 200 == 400
+     +  where 200 = <Response [200 OK]>.status_code
+/agent/repos/trust-copilot/apps/api/tests/release/test_domain_compliance_controls.py:1509: assert 200 == 400
+E   AssertionError: assert 'passing' != 'passing'
+/agent/repos/trust-copilot/apps/api/tests/release/test_domain_compliance_controls.py:1543: AssertionError: assert 'passing' != 'passing'
+=============================== warnings summary ===============================
+tests/release/test_domain_compliance_controls.py: 115 warnings
+  /tmp/tc-venv/lib/python3.12/site-packages/sqlalchemy/sql/schema.py:3627: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    return util.wrap_callable(lambda ctx: fn(), fn)  # type: ignore
+
+tests/release/test_domain_compliance_controls.py::test_remediation_evidence_does_not_verify_unqualified_links
+  /agent/repos/trust-copilot/apps/api/tests/release/test_domain_compliance_controls.py:1237: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    last_verified_at=datetime.utcnow() - timedelta(days=3),
+
+tests/release/test_domain_compliance_controls.py::test_remediation_evidence_does_not_verify_unqualified_links
+  /agent/repos/trust-copilot/apps/api/tests/release/test_domain_compliance_controls.py:1244: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    expires_at=datetime.utcnow() - timedelta(days=1),
+
+tests/release/test_domain_compliance_controls.py::test_remediation_evidence_does_not_verify_unqualified_links
+  /agent/repos/trust-copilot/apps/api/tests/release/test_domain_compliance_controls.py:1253: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    deleted_at=datetime.utcnow(),
+
+tests/release/test_domain_compliance_controls.py::test_remediation_evidence_does_not_verify_unqualified_links
+tests/release/test_domain_compliance_controls.py::test_remediation_evidence_verifies_only_a_qualifying_link
+tests/release/test_domain_compliance_controls.py::test_remediation_evidence_verifies_only_a_qualifying_link
+  /agent/repos/trust-copilot/apps/api/app/services/remediation_loop_service.py:95: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    return evidence_qualifies(db, item, workspace_id, datetime.utcnow())
+
+tests/release/test_domain_compliance_controls.py::test_remediation_evidence_does_not_verify_unqualified_links
+tests/release/test_domain_compliance_controls.py::test_removing_last_qualifying_link_demotes_verified_control
+tests/release/test_domain_compliance_controls.py::test_removing_last_qualifying_link_demotes_verified_control
+tests/release/test_domain_compliance_controls.py::test_legacy_detach_demotes_verified_control_without_qualifying_evidence
+tests/release/test_domain_compliance_controls.py::test_legacy_detach_demotes_verified_control_without_qualifying_evidence
+  /agent/repos/trust-copilot/apps/api/app/api/routes/compliance_controls.py:550: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    now = datetime.utcnow()
+
+tests/release/test_domain_compliance_controls.py::test_removing_last_qualifying_link_demotes_verified_control
+tests/release/test_domain_compliance_controls.py::test_legacy_detach_demotes_verified_control_without_qualifying_evidence
+  /agent/repos/trust-copilot/apps/api/app/api/routes/compliance_controls.py:153: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    now = datetime.utcnow()
+
+tests/release/test_domain_compliance_controls.py::test_removing_last_qualifying_link_demotes_verified_control
+tests/release/test_domain_compliance_controls.py::test_legacy_detach_demotes_verified_control_without_qualifying_evidence
+  /agent/repos/trust-copilot/apps/api/app/api/routes/compliance_controls.py:495: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    now = datetime.utcnow()
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED tests/release/test_domain_compliance_controls.py::test_remediation_evidence_does_not_verify_unqualified_links
+FAILED tests/release/test_domain_compliance_controls.py::test_remediation_evidence_verifies_only_a_qualifying_link
+FAILED tests/release/test_domain_compliance_controls.py::test_removing_last_qualifying_link_demotes_verified_control
+FAILED tests/release/test_domain_compliance_controls.py::test_legacy_detach_demotes_verified_control_without_qualifying_evidence
+FAILED tests/release/test_domain_compliance_controls.py::test_create_refuses_verified_status
+FAILED tests/release/test_domain_compliance_controls.py::test_control_engine_does_not_pass_on_unqualified_files
+6 failed, 16 deselected, 130 warnings in 2.66s
+EXIT:1

@@ -11,6 +11,7 @@ from app.models.control_evidence_link import ControlEvidenceLink
 from app.models.control_state import ControlStateSnapshot
 from app.models.evidence_item import EvidenceItem
 from app.models.workspace_control import WorkspaceControl
+from app.services.evidence_qualification import evidence_qualifies
 
 logger = logging.getLogger(__name__)
 
@@ -42,9 +43,15 @@ def evaluate_control(db: Session, workspace_id: int, control_id: int) -> dict:
     evidence_count = len(evidence_links)
 
     fresh_count = 0
+    qualifying_count = 0
+    qualified_at = datetime.utcnow()
     for link in evidence_links:
         evidence = db.query(EvidenceItem).filter(EvidenceItem.id == link.evidence_id).first()
-        if evidence and evidence.created_at:
+        if evidence is None:
+            continue
+        if evidence_qualifies(db, evidence, workspace_id, qualified_at):
+            qualifying_count += 1
+        if evidence.created_at:
             created = evidence.created_at
             if created.tzinfo is None:
                 created = created.replace(tzinfo=timezone.utc)
@@ -52,15 +59,13 @@ def evaluate_control(db: Session, workspace_id: int, control_id: int) -> dict:
             if age_days < 180:
                 fresh_count += 1
 
+    # Passing requires qualifying evidence. A file count, including fresh files, is not a pass.
     if evidence_count == 0:
         status = "not_assessed"
         confidence = 0
-    elif fresh_count >= PASS_THRESHOLD:
+    elif qualifying_count >= PASS_THRESHOLD:
         status = "passing"
-        confidence = min(100, 50 + fresh_count * 15)
-    elif evidence_count >= PASS_THRESHOLD:
-        status = "stale"
-        confidence = 30
+        confidence = min(100, 50 + qualifying_count * 15)
     else:
         status = "failing"
         confidence = 10

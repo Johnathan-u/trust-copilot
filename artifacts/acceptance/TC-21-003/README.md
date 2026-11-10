@@ -46,9 +46,23 @@ The full-suite database was dropped and recreated before that run. An earlier fu
 
 ## Totals
 
+The first commit's totals are below. The review-fix commit replaced `pytest-q.txt` and `pytest-full.txt` with the later run.
+
 | Command | Exit | Total |
 |---|---|---|
-| `python -m pytest tests/release/test_domain_compliance_controls.py -q --tb=line` | 0 | 18 passed, 0 skipped, 368 warnings, 10.32s |
-| `python -m pytest -q --tb=line -rs` | 0 | 6328 passed, 1 skipped, 34868 warnings, 573.43s |
+| `python -m pytest tests/release/test_domain_compliance_controls.py -q --tb=line` | 0 | 22 passed, 0 skipped, 466 warnings, 10.97s |
+| `python -m pytest -q --tb=line -rs` | 0 | 6332 passed, 1 skipped, 34991 warnings, 551.26s |
 
 No test in `tests/release/test_domain_compliance_controls.py` was skipped. The one full-suite skip is `tests/test_trust_scoring_blind.py`: `external_data: blind test pack not checked in; set TC_TRUST_SCORING_BLIND_PACK to run`. It did not trip the `TC_REQUIRE_DB=1` failure hook. Output for the domain file is `pytest-q.txt`. The full-suite summary is `pytest-full.txt`.
+
+## Review fixes
+
+Parent for this round is `4d105d1bfded47a749ecdefb478a562406aa2fa1`. The six affected tests were run against that product code. Output is `pytest-q-review-without-fix.txt`. Exit 1. 6 failed, 16 deselected, 130 warnings, 2.66s. The same tests pass with the fix.
+
+| Review item | Without the fix, on `4d105d1` | With the fix |
+|---|---|---|
+| `last_verified_at` follows `verified`, and the audit payload lists `links` | Fail. Qualifying links kept `last_verified_at` null. The audit payload had no `links` list. | Pass |
+| Pending, expired, and deleted-document remediation links report `verified` false and `has_verified` false | The flag assertions already passed on `4d105d1`. The same test failed on the missing audit `links` list. On `62afe12` those links were stored verified. | Pass |
+| Deleting the last qualifying link demotes a verified control, on the compliance route and on legacy detach. Another qualifying link leaves it verified. | Fail. Status stayed `verified`. | Pass |
+| Create with `status=verified` returns 400 `verified_status_not_allowed` | Fail. The route returned 200. | Pass |
+| Control engine `passing` requires qualifying evidence | Fail. A pending file was `passing`. | Pass |

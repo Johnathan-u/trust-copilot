@@ -516,6 +516,20 @@ def upsert_legacy_control(
     )
 
 
+def _verified_status_rejected() -> ContractResult:
+    return ContractResult(
+        400,
+        {},
+        error={
+            "contract_version": ERROR_CONTRACT_VERSION,
+            "code": "verified_status_not_allowed",
+            "message": "Verified status cannot be set when creating a control.",
+            "retryable": False,
+            "partial_failure": False,
+        },
+    )
+
+
 def upsert_workspace_control(
     db: Session,
     *,
@@ -528,7 +542,12 @@ def upsert_workspace_control(
     request_id: str | None = None,
     event_workspace_id: int | None = None,
 ) -> ContractResult:
-    """Create or reuse a compliance control and the legacy row that shares its lifecycle."""
+    """Create or reuse a compliance control and the legacy row that shares its lifecycle.
+
+    ``verified`` is refused. A new control has no evidence links, so it cannot qualify.
+    """
+    if workspace_status == "verified":
+        return _verified_status_rejected()
     if workspace_status not in WORKSPACE_TO_LIFECYCLE:
         return ContractResult(400, {}, error={"detail": "invalid status"})
     owner_problem = _owner_error(db, workspace_id, owner_user_id)
@@ -942,7 +961,61 @@ def unmirror_evidence_link(db: Session, workspace: WorkspaceControl, evidence_it
         db.flush()
 
 
-def detach_legacy_evidence(db: Session, legacy: Control, evidence: ControlEvidence) -> None:
+def demote_verified_without_qualifying_evidence(
+    db: Session,
+    workspace: WorkspaceControl,
+    *,
+    actor_user_id: int | None = None,
+) -> ContractResult | None:
+    """Store ``implemented`` when a verified control no longer has qualifying evidence.
+
+    The caller has already removed the link and flushed. No change returns None
+    and does not commit. A demotion clears the verified timestamps, copies the
+    lifecycle onto the legacy row, and emits ``control.implemented``.
+    """
+    from app.services.compliance_webhook_emitter import (
+        EVENT_CONTROL_IMPLEMENTED,
+        emit_compliance_event,
+    )
+    from app.services.evidence_qualification import has_qualifying_evidence
+
+    if workspace.status != "verified":
+        return None
+    if has_qualifying_evidence(db, workspace.id, workspace.workspace_id):
+        return None
+    workspace.status = "implemented"
+    workspace.verified_at = None
+    workspace.verified_by_user_id = None
+    synced = sync_workspace_row(db, workspace, request_id=new_request_id())
+    if synced.http_status < 400:
+        try:
+            emit_compliance_event(
+                db,
+                workspace.workspace_id,
+                EVENT_CONTROL_IMPLEMENTED,
+                {
+                    "resource_type": "control",
+                    "resource_id": workspace.id,
+                    "status": "implemented",
+                },
+                user_id=actor_user_id,
+            )
+        except Exception:
+            pass
+    return synced
+
+
+def detach_legacy_evidence(
+    db: Session,
+    legacy: Control,
+    evidence: ControlEvidence,
+    *,
+    actor_user_id: int | None = None,
+) -> ContractResult:
+    """Remove one legacy evidence row and its compliance link.
+
+    A verified control with no qualifying evidence left is stored as implemented.
+    """
     workspace = workspace_for_legacy(db, legacy)
     if workspace is not None and evidence.evidence_item_id is not None:
         link = (
@@ -956,7 +1029,16 @@ def detach_legacy_evidence(db: Session, legacy: Control, evidence: ControlEviden
         if link is not None:
             db.delete(link)
     db.delete(evidence)
-    db.commit()
+    db.flush()
+    demoted = None
+    if workspace is not None:
+        demoted = demote_verified_without_qualifying_evidence(
+            db, workspace, actor_user_id=actor_user_id
+        )
+    if demoted is None:
+        db.commit()
+        return ContractResult(200, {})
+    return demoted
 
 
 def new_request_id() -> str:

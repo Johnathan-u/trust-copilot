@@ -37,24 +37,36 @@
     "owner_tests": "The three owner cases passed on the parent. They cover existing behaviour.",
     "evidence_tests": "Both remediation evidence cases failed on the parent."
   },
+  "review_parent_sha": "4d105d1bfded47a749ecdefb478a562406aa2fa1",
+  "review_without_fix": {
+    "sha": "4d105d1bfded47a749ecdefb478a562406aa2fa1",
+    "command": "python -m pytest tests/release/test_domain_compliance_controls.py -q --tb=line -k \"remediation_evidence or removing_last_qualifying or legacy_detach_demotes or create_refuses_verified or control_engine_does_not_pass\"",
+    "exit_status": 1,
+    "failed": 6,
+    "passed": 0,
+    "deselected": 16,
+    "warnings": 130,
+    "duration_seconds": 2.66,
+    "output": "pytest-q-review-without-fix.txt"
+  },
   "ticket_file": {
     "command": "python -m pytest tests/release/test_domain_compliance_controls.py -q --tb=line",
     "exit_status": 0,
-    "passed": 18,
+    "passed": 22,
     "failed": 0,
     "skipped": 0,
-    "warnings": 368,
-    "duration_seconds": 10.32
+    "warnings": 466,
+    "duration_seconds": 10.97
   },
   "full_suite": {
     "command": "python -m pytest -q --tb=line -rs",
     "env": ["TC_REQUIRE_DB=1", "TC_REQUIRE_WEB_TOOLCHAIN=1", "TC_REQUIRE_API_QUALITY=1"],
     "exit_status": 0,
-    "passed": 6328,
+    "passed": 6332,
     "failed": 0,
     "skipped": 1,
-    "warnings": 34868,
-    "duration_seconds": 573.43,
+    "warnings": 34991,
+    "duration_seconds": 551.26,
     "skips": [
       {
         "node": "tests/test_trust_scoring_blind.py",
