@@ -5,7 +5,8 @@ owner token. A second ``claim_job`` will not take that row, and nothing sends it
 retry cap, so a killed worker leaves the job running. These tests fail on that code.
 
 Fakes only: no network, no real keys, a side ``*_test`` database. Lease instants are the
-database clock. Tests move ``lease_expires_at`` relative to ``now()``; they do not sleep.
+database clock. Most tests move ``lease_expires_at`` relative to ``now()`` and do not sleep.
+The long-work tests sleep on a short lease so the worker's real heartbeat thread has to renew it.
 """
 
 from __future__ import annotations
@@ -16,6 +17,7 @@ import os
 import subprocess
 import sys
 import threading
+import time
 import uuid
 from datetime import datetime
 from pathlib import Path
@@ -957,6 +959,144 @@ def test_worker_loop_does_not_retry_after_a_lost_lease_exception(db, monkeypatch
     assert not _audits(db, job_id, "job.failed")
     assert not _audits(db, job_id, "job.retry_scheduled")
     assert not _audits(db, job_id, "job.completed")
+
+
+# Short enough to finish both tests in well under 15s, long enough that one late beat still fits.
+# The env clamp floors JOB_LEASE_SECONDS at 10, so these patch the names the worker calls.
+_E2E_LEASE_SECONDS = 2
+_E2E_HEARTBEAT_SECONDS = 0.3
+_E2E_WORK_SECONDS = 6.0  # three times the lease
+
+
+class _NoHeartbeat:
+    """Stand-in that never renews. ``lost`` stays false so the commit fence is what fails."""
+
+    lost = False
+
+    def stop(self) -> None:
+        return None
+
+
+def _fresh_expiry(job_id: int):
+    """Committed ``lease_expires_at`` from a session that is not the worker's."""
+    from app.core.database import SessionLocal
+
+    session = SessionLocal()
+    try:
+        return session.execute(
+            text("SELECT lease_expires_at FROM jobs WHERE id = :id"),
+            {"id": job_id},
+        ).scalar()
+    finally:
+        session.close()
+
+
+def _use_short_lease(monkeypatch) -> None:
+    from app import worker
+
+    monkeypatch.setattr(worker, "lease_seconds", lambda: _E2E_LEASE_SECONDS)
+    monkeypatch.setattr(worker, "lease_heartbeat_seconds", lambda: _E2E_HEARTBEAT_SECONDS)
+
+
+def _queued_evidence_job(db) -> int:
+    from app.models import Job, JobStatus
+
+    job = Job(
+        workspace_id=WS,
+        kind="parse_evidence",
+        status=JobStatus.QUEUED.value,
+        payload="{}",
+        attempt=0,
+        max_attempts=3,
+    )
+    db.add(job)
+    db.commit()
+    return int(job.id)
+
+
+def _sample_expiry_across_long_work(job_id: int, samples: list) -> None:
+    """Sleep the whole long run, recording the committed expiry near each end."""
+    time.sleep(_E2E_HEARTBEAT_SECONDS)
+    samples.append(_fresh_expiry(job_id))
+    time.sleep(_E2E_WORK_SECONDS - _E2E_HEARTBEAT_SECONDS)
+    samples.append(_fresh_expiry(job_id))
+
+
+def test_heartbeat_keeps_the_lease_during_long_work(db, monkeypatch):
+    """The worker heartbeat renews a job that runs about three times its lease.
+
+    ``_process_one_job`` starts ``JobLeaseHeartbeat`` after the claim. The handler sleeps
+    on the real clock. The job still completes, nothing audits ``job.lease_lost``, and
+    ``lease_expires_at`` moves forward while the handler is in that sleep.
+    """
+    from app.models import Job, JobStatus
+
+    samples: list = []
+
+    def fake_run(running, session):
+        del session
+        running.result = '{"from":"long-work"}'
+        _sample_expiry_across_long_work(running.id, samples)
+
+    _use_short_lease(monkeypatch)
+    job_id = _queued_evidence_job(db)
+    _refuse_foreign_eligible(db)
+    worker = _prepare_worker_loop(monkeypatch, job_id)
+    monkeypatch.setattr(worker, "run_job", fake_run)
+    with _only(job_id):
+        assert worker._process_one_job() is True
+    assert len(samples) == 2
+    earlier, later = samples
+    assert earlier is not None and later is not None
+    gap = (later - earlier).total_seconds()
+    assert gap >= _E2E_LEASE_SECONDS, (earlier, later, gap)
+    db.expire_all()
+    stored = db.get(Job, job_id)
+    assert stored.status == JobStatus.COMPLETED.value
+    assert stored.result == '{"from":"long-work"}'
+    assert _audits(db, job_id, "job.lease_lost") == []
+    assert len(_audits(db, job_id, "job.completed")) == 1
+
+
+def test_long_work_without_a_heartbeat_loses_the_lease(db, monkeypatch):
+    """The same long run is not committed when the heartbeat start is a no-op.
+
+    ``_process_one_job`` catches ``LeaseLost`` from the commit fence, rolls the result
+    back, and audits ``job.lease_lost``. That is the control for the test above: the
+    pass depends on the heartbeat, not on the lease being long enough by itself.
+    """
+    from app.models import Job, JobStatus
+
+    def fake_run(running, session):
+        del session
+        running.result = '{"from":"should-not-commit"}'
+        time.sleep(_E2E_WORK_SECONDS)
+
+    def noop_heartbeat(job_id, owner):
+        del job_id, owner
+        return _NoHeartbeat()
+
+    _use_short_lease(monkeypatch)
+    job_id = _queued_evidence_job(db)
+    _refuse_foreign_eligible(db)
+    worker = _prepare_worker_loop(monkeypatch, job_id)
+    monkeypatch.setattr(worker, "run_job", fake_run)
+    monkeypatch.setattr(worker, "_start_job_lease_heartbeat", noop_heartbeat)
+    with _only(job_id):
+        assert worker._process_one_job() is True
+    db.expire_all()
+    stored = db.get(Job, job_id)
+    assert stored.status == JobStatus.RUNNING.value
+    assert stored.result is None
+    assert stored.attempt == 1
+    assert stored.lease_owner
+    (lost,) = _audits(db, job_id, "job.lease_lost")
+    assert _details(lost)["reason"] == "lease_lost"
+    assert len(_details(lost)["owner_prefix"]) == 8
+    assert stored.lease_owner not in json.dumps(_details(lost))
+    assert not _audits(db, job_id, "job.completed")
+    assert not _audits(db, job_id, "job.failed")
+    assert not _audits(db, job_id, "job.retry_scheduled")
 
 
 def _age_job(db, job_id: int, *, updated_age: float | None, started_age: float | None) -> None:

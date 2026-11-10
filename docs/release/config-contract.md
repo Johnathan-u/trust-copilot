@@ -150,7 +150,7 @@ In the Entra app registration, open Token configuration and add the optional cla
 | `WORKER_LOOP_STALL_SEC` | int | optional | no | 120 | Claim-loop stall after which the heartbeat stops being refreshed. |  |
 | `WORKER_HEARTBEAT_FILE` | path | optional | no | /tmp/trustcopilot-worker.heartbeat | Heartbeat file read by the worker container probe. |  |
 | `JOB_LEASE_SECONDS` | int | optional | no | 60 | How long a worker owns a running job before another worker may recover it. Clamped to 10-3600. |  |
-| `JOB_LEASE_HEARTBEAT_SECONDS` | int | optional | no | 15 | How often the owner renews that lease. Clamped to 1-1200 and kept below the lease. |  |
+| `JOB_LEASE_HEARTBEAT_SECONDS` | int | optional | no | 15 | How often the owner renews that lease. Clamped to 1-1200 and at most half the lease. |  |
 | `JOB_NULL_LEASE_GRACE_SECONDS` | int | optional | no | 3600 | How long a running job with a NULL lease is left alone. Clamped to at least 5 times JOB_LEASE_SECONDS and at most 86400. |  |
 | `JOB_RETRY_BASE_SECONDS` | float | optional | no | 15 | First backoff step after a retryable job failure. Clamped to 0-3600. |  |
 | `JOB_RETRY_MAX_SECONDS` | float | optional | no | 600 | Cap on retry backoff and on a provider Retry-After. Clamped to 0-86400. |  |
