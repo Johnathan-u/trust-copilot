@@ -804,9 +804,7 @@ def test_compliance_evidence_link_and_unlink_match_legacy(client):
     )
     assert linked.status_code == 201, linked.text
     link_id = _assert_listed_evidence(client, control_key, evidence_id, document_id)
-    removed = client.delete(
-        f"/api/compliance/controls/{compliance['id']}/evidence/{link_id}"
-    )
+    removed = client.delete(f"/api/compliance/controls/{compliance['id']}/evidence/{link_id}")
     assert removed.status_code == 200, removed.text
     assert removed.json()["ok"] is True
     _assert_no_listed_evidence(client, control_key)

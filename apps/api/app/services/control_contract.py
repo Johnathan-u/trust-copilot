@@ -923,9 +923,7 @@ def mirror_evidence_link(db: Session, workspace: WorkspaceControl, evidence_item
     db.flush()
 
 
-def unmirror_evidence_link(
-    db: Session, workspace: WorkspaceControl, evidence_item_id: int
-) -> None:
+def unmirror_evidence_link(db: Session, workspace: WorkspaceControl, evidence_item_id: int) -> None:
     """Remove legacy rows that mirror this evidence item. The caller commits."""
     legacy = legacy_for_workspace(db, workspace)
     if legacy is None:
