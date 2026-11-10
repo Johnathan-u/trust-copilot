@@ -1,0 +1,93 @@
+{
+  "ticket": "TC-15-024",
+  "accepted": false,
+  "head_sha": "35db89926252070db6aeca4383bfdb3ae5294b2b",
+  "command": "npx playwright test e2e/release/ui-22.spec.ts",
+  "command_context": "Inside the CI job web-release-e2e, working directory apps/web. The job runs this spec as one release candidate: npx --no-install playwright test <candidates including e2e/release/ui-22.spec.ts> --retries=0 --reporter=list,html,json. scripts/ci/check-release-e2e-report.mjs then requires e2e/release/ui-22.spec.ts with --min-tests 22 and reads artifacts/acceptance/TC-15-024/axe-*.json after the job deletes any checkout copies.",
+  "playwright_exit": 0,
+  "axe_check_exit": 0,
+  "log_line": "playwright exit 0; axe check exit 0",
+  "totals": {
+    "passed": 23,
+    "failed": 0,
+    "skipped": 0,
+    "flaky": 0,
+    "log_line": "ui-22.spec.ts: 23 passed, 0 failed, 0 skipped, 0 flaky"
+  },
+  "axe_reports": [
+    {"file": "TC-15-024/axe-dialog-1440.json", "violations": 0},
+    {"file": "TC-15-024/axe-dialog-360.json", "violations": 0},
+    {"file": "TC-15-024/axe-dialog-768.json", "violations": 0},
+    {"file": "TC-15-024/axe-list-1440.json", "violations": 0},
+    {"file": "TC-15-024/axe-list-360.json", "violations": 0},
+    {"file": "TC-15-024/axe-list-768.json", "violations": 0}
+  ],
+  "environment": {
+    "job": "web-release-e2e",
+    "runs_on": "ubuntu-latest",
+    "runner_image": "ubuntu-26.04",
+    "runner_image_version": "20261101.186.1",
+    "os": "Ubuntu 26.04.1 LTS",
+    "node": "v24.22.1",
+    "npm": "11.19.1",
+    "playwright": "1.64.1",
+    "node_source": "apps/web/.nvmrc",
+    "working_directory": "apps/web",
+    "browsers_path": "/home/runner/.cache/ms-playwright"
+  },
+  "runs": [
+    {
+      "event": "push",
+      "sha": "35db89926252070db6aeca4383bfdb3ae5294b2b",
+      "run_id": 42905431313,
+      "url": "https://github.com/Johnathan-u/trust-copilot/actions/runs/42905431313",
+      "workflow": "CI",
+      "build_job_id": 130142072405,
+      "web_release_e2e_job_id": 130142071167,
+      "conclusion": "success",
+      "build_conclusion": "success",
+      "web_release_e2e_conclusion": "success",
+      "playwright_exit": 0,
+      "axe_check_exit": 0,
+      "ui22_log_line": "ui-22.spec.ts: 23 passed, 0 failed, 0 skipped, 0 flaky",
+      "axe_log_lines": [
+        "TC-15-024/axe-dialog-1440.json: 0 violations",
+        "TC-15-024/axe-dialog-360.json: 0 violations",
+        "TC-15-024/axe-dialog-768.json: 0 violations",
+        "TC-15-024/axe-list-1440.json: 0 violations",
+        "TC-15-024/axe-list-360.json: 0 violations",
+        "TC-15-024/axe-list-768.json: 0 violations"
+      ]
+    },
+    {
+      "event": "pull_request",
+      "sha": "35db89926252070db6aeca4383bfdb3ae5294b2b",
+      "run_id": 42905467898,
+      "url": "https://github.com/Johnathan-u/trust-copilot/actions/runs/42905467898",
+      "workflow": "CI",
+      "build_job_id": 130142198970,
+      "web_release_e2e_job_id": 130142199308,
+      "conclusion": "success",
+      "build_conclusion": "success",
+      "web_release_e2e_conclusion": "success",
+      "playwright_exit": 0,
+      "axe_check_exit": 0,
+      "ui22_log_line": "ui-22.spec.ts: 23 passed, 0 failed, 0 skipped, 0 flaky",
+      "axe_log_lines": [
+        "TC-15-024/axe-dialog-1440.json: 0 violations",
+        "TC-15-024/axe-dialog-360.json: 0 violations",
+        "TC-15-024/axe-dialog-768.json: 0 violations",
+        "TC-15-024/axe-list-1440.json: 0 violations",
+        "TC-15-024/axe-list-360.json: 0 violations",
+        "TC-15-024/axe-list-768.json: 0 violations"
+      ]
+    }
+  ],
+  "notes": [
+    "The runs above are CI of 35db89926252070db6aeca4383bfdb3ae5294b2b. The commit that adds this file is a later SHA. It does not change product code or e2e/release/ui-22.spec.ts.",
+    "Both web-release-e2e logs print the same ui-22 totals and the same six axe lines at 0 violations, then playwright exit 0; axe check exit 0.",
+    "The workflow minimum for ui-22.spec.ts remains 22. This head ran 23 tests, with no failed, skipped, or flaky result.",
+    "The checker total line on both logs is axe violations: 0. That total covers every gated axe directory, not only TC-15-024.",
+    "This record does not accept the ticket. Independent acceptance is outstanding."
+  ]
+}
