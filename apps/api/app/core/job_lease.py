@@ -4,7 +4,8 @@ A running job is owned by one worker, named by an unguessable ``lease_owner`` to
 construction as ``idempotency.new_owner_token``). The lease is valid until ``lease_expires_at``.
 Renewal is an ``UPDATE ... WHERE lease_owner = :owner AND lease_expires_at > :now RETURNING``,
 so a stale owner cannot extend it. A commit fence takes the same row ``FOR UPDATE`` and refuses
-the commit when that token no longer holds a live lease.
+the commit when that token no longer holds a live lease. The fence uses ``statement_timestamp()``
+so an open job transaction does not freeze the clock at its start.
 
 Lease instants use the database clock (``now()``), not the worker process clock.
 Abandoned jobs (``running`` and ``lease_expires_at <= now()``) are locked with
@@ -271,7 +272,12 @@ def claim_lease_expiry(session: Session, job_id: int, owner: str, seconds: int) 
 
 
 def lease_is_held(session: Session, job_id: int, owner: str, *, lock: bool) -> bool:
-    """True when this owner still has a running lease with ``lease_expires_at > now()``."""
+    """True when this owner still has a running lease past the time of this check.
+
+    ``statement_timestamp()`` is the database clock at the start of this statement.
+    ``now()`` would stay at the start of the job's transaction, so a handler that kept
+    that transaction open would still look leased after the expiry had passed.
+    """
     suffix = " FOR UPDATE" if lock else ""
     with session.no_autoflush:
         row = session.execute(
@@ -282,7 +288,7 @@ def lease_is_held(session: Session, job_id: int, owner: str, *, lock: bool) -> b
                 WHERE id = :id
                   AND lease_owner = :owner
                   AND status = 'running'
-                  AND lease_expires_at > now()
+                  AND lease_expires_at > statement_timestamp()
                 {suffix}
                 """
             ),
@@ -294,8 +300,8 @@ def lease_is_held(session: Session, job_id: int, owner: str, *, lock: bool) -> b
 def confirm_lease_for_commit(session: Session, job_id: int, owner: str) -> None:
     """Lock the job row and raise LeaseLost unless ``owner`` still holds a live lease.
 
-    The comparison is ``lease_expires_at > now()`` in the database. Call this before writing
-    the completion, then commit in the same transaction.
+    The comparison is ``lease_expires_at > statement_timestamp()`` in the database. Call this
+    before writing the completion, then commit in the same transaction.
     """
     if not lease_is_held(session, job_id, owner, lock=True):
         session.rollback()
@@ -305,10 +311,11 @@ def confirm_lease_for_commit(session: Session, job_id: int, owner: str) -> None:
 def install_commit_fence(session: Session, job_id: int, owner: str) -> None:
     """Refuse ``session.commit`` unless this owner still holds a live lease.
 
-    The check is ``lease_expires_at > now()`` under ``FOR UPDATE``, with autoflush off, so a
-    pending completion is not written before the lease is confirmed. The row lock is held until
-    the commit. After the job is no longer running for this owner, later commits in the same
-    session (notifications) are allowed.
+    The check is ``lease_expires_at > statement_timestamp()`` under ``FOR UPDATE``, with autoflush
+    off, so a pending completion is not written before the lease is confirmed. ``now()`` is not
+    used: it would stay at the start of this transaction. The row lock is held until the commit.
+    After the job is no longer running for this owner, later commits in the same session
+    (notifications) are allowed.
     """
     if getattr(session, "_lease_fence_original", None) is not None:
         return

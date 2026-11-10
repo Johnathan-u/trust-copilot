@@ -623,7 +623,7 @@ CONTRACT: tuple[ConfigVar, ...] = (
         "optional",
         False,
         "15",
-        "How often the owner renews that lease. Clamped to 1-1200 and kept below the lease.",
+        "How often the owner renews that lease. Clamped to 1-1200 and at most half the lease.",
     ),
     ConfigVar(
         "JOB_NULL_LEASE_GRACE_SECONDS",

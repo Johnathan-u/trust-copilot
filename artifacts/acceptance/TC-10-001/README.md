@@ -1,5 +1,60 @@
 # TC-10-001 acceptance evidence
 
+## Current run (heartbeat end-to-end and rollback runbook)
+
+The behaviour on master was missing an end-to-end heartbeat check, and the rollback bullet described a one-step downgrade that is no longer one step. This run adds those. The sections below are the original local record. Their SHAs and totals are not this run.
+
+Command, from `apps/api`:
+
+```
+python -m pytest tests/release/test_job_leases.py -q
+```
+
+| Run | SHA | Environment | Exit | Totals |
+|---|---|---|---|---|
+| Local | the commit that adds this section. The CI follow-up names that SHA. | Python 3.12.3, pytest 9.1.1, SQLAlchemy 2.0.55, Alembic 1.20.1, psycopg2 2.9.13, PostgreSQL 16.15 (Ubuntu 16.15-0ubuntu0.24.04.1), pgvector 0.6.0, database `trustcopilot_test` on 127.0.0.1, Linux 6.12.113+. `python` here is the venv interpreter. The captured process also passed `--tb=line -p no:cacheprovider`, which does not add or skip tests. | 0 | 28 passed, 0 failed, 0 skipped, 32 warnings, 16.35s |
+
+The 28 are the previous 26 plus `test_heartbeat_keeps_the_lease_during_long_work` and `test_long_work_without_a_heartbeat_loses_the_lease`. Neither skipped. The file slept about 12s inside those two tests (6.0s each) and finished in 16.35s with the rest of the module, including the migration round trip. Postgres was listening. These are not an allowed skip.
+
+`test_heartbeat_keeps_the_lease_during_long_work` calls `_process_one_job` with `worker.lease_seconds` patched to 2 and `worker.lease_heartbeat_seconds` patched to 0.3. The handler sleeps 6s, three times the lease. The job ends `completed`, there is no `job.lease_lost` audit, and the committed `lease_expires_at` moved forward by at least 2s during the sleep. The env clamp would turn a 2s lease into 10s, so the test patches the names the worker calls.
+
+`test_long_work_without_a_heartbeat_loses_the_lease` is the same run with `_start_job_lease_heartbeat` replaced by a no-op. The job stays `running`, the result is not committed, and one `job.lease_lost` audit is written. `_process_one_job` catches `LeaseLost` from the commit fence.
+
+### Deleting the heartbeat start (not committed)
+
+On this same tree, the call at `apps/api/app/worker.py:1399` was deleted and then restored. The deletion was not committed.
+
+```
+lease_heartbeat = _start_job_lease_heartbeat(leased_job_id, owner)
+```
+
+Command, from `apps/api`:
+
+```
+python -m pytest tests/release/test_job_leases.py::test_heartbeat_keeps_the_lease_during_long_work -q --tb=short
+```
+
+Exit 1. 1 failed, 1 warning, 6.60s. The failure is the expiry check, before the completion assert:
+
+```
+tests/release/test_job_leases.py:1052: in test_heartbeat_keeps_the_lease_during_long_work
+    assert gap >= _E2E_LEASE_SECONDS, (earlier, later, gap)
+E   AssertionError: (datetime.datetime(2026, 11, 10, 19, 45, 13, 660634), datetime.datetime(2026, 11, 10, 19, 45, 13, 660634), 0.0)
+E   assert 0.0 >= 2
+```
+
+`lease_expires_at` was the same timestamp at both samples. With the line restored, that test passes in the 28 above.
+
+### Why product code changed
+
+The control stayed `completed` until the fence clock changed. `reconcile_previous_attempts` runs an `UPDATE` and, when it matches nothing, does not commit, so the job transaction stays open across the handler. `now()` is the start of that transaction. A 6s sleep still looked leased on a 2s expiry, with or without a heartbeat. `lease_is_held` now compares `lease_expires_at` to `statement_timestamp()`, the database clock at the check. Renewal still uses `now()` in the heartbeat's own short transaction. After that change the control loses the lease, and the deletion above fails the main test.
+
+### Rollback count
+
+On master `edd332013d09af4222b9c700a489f9b4c7709091` the alembic chain is linear, one head, `tc17003_security_claims`. Eight revisions sit above `tc10001_job_leases`. `alembic downgrade bug018c_one_open_gap` walks those eight and then this revision. The list and the safe lease-only rollback are in `docs/release/tickets/TC-10-001.md`.
+
+`result.json` in this directory is the same local record. It has no GitHub Actions run ids. Those are added in a follow-up commit after CI finishes for the commit that contains this section, and that follow-up names the SHA they belong to. This record does not accept the ticket.
+
 ## Re-parent run
 
 These commands ran on `d5dc642c6a3e8ccba32461fb8e926f8f5b2df297` (`d5dc642`), after merge `dc7979e` of `origin/master` `76ae791` and the re-parent of `tc10001_job_leases` onto `bug018c_one_open_gap`. This README commit does not change that code.

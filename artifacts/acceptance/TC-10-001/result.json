@@ -1,0 +1,50 @@
+{
+  "ticket": "TC-10-001",
+  "file": "apps/api/tests/release/test_job_leases.py",
+  "command": "python -m pytest tests/release/test_job_leases.py -q",
+  "working_directory": "apps/api",
+  "exit_status": 0,
+  "passed": 28,
+  "failed": 0,
+  "skipped": 0,
+  "warnings": 32,
+  "duration_seconds": 16.35,
+  "new_tests": [
+    "test_heartbeat_keeps_the_lease_during_long_work",
+    "test_long_work_without_a_heartbeat_loses_the_lease"
+  ],
+  "environment": {
+    "python": "3.12.3",
+    "pytest": "9.1.1",
+    "sqlalchemy": "2.0.55",
+    "alembic": "1.20.1",
+    "psycopg2": "2.9.13",
+    "postgresql": "16.15 (Ubuntu 16.15-0ubuntu0.24.04.1)",
+    "pgvector": "0.6.0",
+    "database": "trustcopilot_test",
+    "platform": "Linux 6.12.113+"
+  },
+  "heartbeat_deletion": {
+    "committed": false,
+    "file": "apps/api/app/worker.py",
+    "line": 1399,
+    "removed": "lease_heartbeat = _start_job_lease_heartbeat(leased_job_id, owner)",
+    "command": "python -m pytest tests/release/test_job_leases.py::test_heartbeat_keeps_the_lease_during_long_work -q --tb=short",
+    "exit_status": 1,
+    "failed": 1,
+    "duration_seconds": 6.6,
+    "assertion": "gap >= _E2E_LEASE_SECONDS",
+    "gap_seconds": 0.0
+  },
+  "revisions_above_tc10001_job_leases": 8,
+  "alembic_head": "tc17003_security_claims",
+  "counted_on": "edd332013d09af4222b9c700a489f9b4c7709091",
+  "product_code_changed": true,
+  "product_change": "lease_is_held compares lease_expires_at to statement_timestamp() so an open job transaction does not freeze the fence clock.",
+  "notes": [
+    "Local run of the ticket command. Neither new test skipped.",
+    "The two new tests sleep 6.0s each. The module finished in 16.35s, including the existing migration round trip.",
+    "CI run ids are not in this commit. The follow-up records the real GitHub Actions CI runs for this commit's SHA.",
+    "This record does not accept the ticket."
+  ]
+}

@@ -119,8 +119,8 @@ services:
       JOB_RETRY_BASE_SECONDS: ${JOB_RETRY_BASE_SECONDS:-15}
       JOB_RETRY_MAX_SECONDS: ${JOB_RETRY_MAX_SECONDS:-600}
       # TC-10-001: a running job is owned until JOB_LEASE_SECONDS. The worker renews that lease every
-      # JOB_LEASE_HEARTBEAT_SECONDS (must be shorter than the lease). An expired lease is recovered
-      # through the same retry cap as any other retryable failure.
+      # JOB_LEASE_HEARTBEAT_SECONDS (at most half the lease, so one missed beat still fits). An expired
+      # lease is recovered through the same retry cap as any other retryable failure.
       JOB_LEASE_SECONDS: ${JOB_LEASE_SECONDS:-60}
       JOB_LEASE_HEARTBEAT_SECONDS: ${JOB_LEASE_HEARTBEAT_SECONDS:-15}
       # TC-10-001b: a pre-deploy running job has a NULL lease. Recover it only after this grace,
