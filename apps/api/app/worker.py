@@ -296,7 +296,7 @@ def run_parse_questionnaire(job: Job, session, payload: dict) -> None:
     if effects.is_applied(EFFECT_QUESTIONS):
         # A previous attempt committed the questions; only the (cached, idempotent) classification may remain.
         _set_outcome(job, "already_applied", effect=EFFECT_QUESTIONS)
-        _auto_classify_questionnaire(session, qnr_id, job.workspace_id)
+        _auto_classify_questionnaire(session, qnr_id, job.workspace_id, effects)
         return
     stale = _parse_stale_reason(qnr, storage_key)
     if stale:
@@ -344,7 +344,7 @@ def run_parse_questionnaire(job: Job, session, payload: dict) -> None:
             )
             _set_outcome(job, "reconciled", effect=EFFECT_QUESTIONS, count=existing)
             session.commit()
-            _auto_classify_questionnaire(session, qnr_id, job.workspace_id)
+            _auto_classify_questionnaire(session, qnr_id, job.workspace_id, effects)
             return
         for q in questions:
             session.add(
@@ -362,7 +362,7 @@ def run_parse_questionnaire(job: Job, session, payload: dict) -> None:
         effects.mark_applied(EFFECT_QUESTIONS, {"count": len(questions)})
         session.commit()
 
-        _auto_classify_questionnaire(session, qnr_id, job.workspace_id)
+        _auto_classify_questionnaire(session, qnr_id, job.workspace_id, effects)
     finally:
         Path(path).unlink(missing_ok=True)
 
@@ -376,7 +376,31 @@ def _parse_stale_reason(qnr: Questionnaire, storage_key: str) -> str | None:
     return None
 
 
-def _auto_classify_questionnaire(session, qnr_id: int, workspace_id: int) -> None:
+def _classification_charge_unsettled(session, effects) -> bool:
+    """True when this attempt started a classification call that has not been settled."""
+    from sqlalchemy import text
+
+    from app.models.job_effect import EFFECT_STARTED
+    from app.services.job_effects import PROVIDER_PREFIX
+
+    job = effects.job
+    row = None
+    with session.get_bind().connect() as conn:
+        row = conn.execute(
+            text(
+                "SELECT state FROM job_effects "
+                "WHERE job_id = :job_id AND effect = :effect AND attempt = :attempt"
+            ),
+            {
+                "job_id": job.id,
+                "effect": PROVIDER_PREFIX + "openai_classify",
+                "attempt": int(job.attempt or 0),
+            },
+        ).first()
+    return row is not None and row[0] == EFFECT_STARTED
+
+
+def _auto_classify_questionnaire(session, qnr_id: int, workspace_id: int, effects=None) -> None:
     """Auto-detect frameworks and subject areas from parsed questions and update questionnaire metadata."""
     try:
         from app.services.mapping_llm_classify import bulk_classify_and_persist
@@ -386,7 +410,9 @@ def _auto_classify_questionnaire(session, qnr_id: int, workspace_id: int) -> Non
             return
 
         sample = questions[:60] if len(questions) > 60 else questions
-        stats = bulk_classify_and_persist(session, sample, workspace_id, questionnaire_id=qnr_id)
+        stats = bulk_classify_and_persist(
+            session, sample, workspace_id, questionnaire_id=qnr_id, effects=effects
+        )
         logging.getLogger(__name__).info(
             "auto_classify questionnaire=%s classified=%s failed=%s",
             qnr_id,
@@ -440,9 +466,24 @@ def _auto_classify_questionnaire(session, qnr_id: int, workspace_id: int) -> Non
                 qnr.frameworks_json,
                 qnr.subject_areas_json,
             )
-    except Exception as e:
+    except Exception as exc:
+        # A paid classification call whose result was not committed must fail the attempt
+        # so the next claim records the charge as uncertain. Failures before any call
+        # stay best-effort and do not fail the parse.
+        if effects is not None:
+            try:
+                unsettled = _classification_charge_unsettled(session, effects)
+            except Exception:
+                logging.getLogger(__name__).warning(
+                    "auto_classify could not read the provider ledger for questionnaire %s",
+                    qnr_id,
+                    exc_info=True,
+                )
+                raise exc
+            if unsettled:
+                raise
         logging.getLogger(__name__).warning(
-            "auto_classify failed for questionnaire %s: %s", qnr_id, e
+            "auto_classify failed for questionnaire %s: %s", qnr_id, exc
         )
 
 
