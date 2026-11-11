@@ -1,0 +1,25 @@
+Command (after the final-response form):
+  cd apps/web
+  npx vitest run tests/unit/vendor-response.test.ts --reporter=verbose
+
+Node: v24.22.1
+Vitest: 5.0.5
+Exit: 0
+Parent: dad086216f323f0caf1b39ec0eb4115515ec54eb
+
+ RUN  v5.0.5 /agent/repos/trust-copilot/apps/web
+
+ ✓ tests/unit/vendor-response.test.ts > submits the grant token and the final response 39ms
+ ✓ tests/unit/vendor-response.test.ts > does not present completion before the submit response 11ms
+ ✓ tests/unit/vendor-response.test.ts > keeps a second click from sending another request, then accepts the original receipt 11ms
+ ✓ tests/unit/vendor-response.test.ts > treats an identical retry after a lost response as the completed receipt 11ms
+ ✓ tests/unit/vendor-response.test.ts > shows one generic message when submit rejects the revoked grant 9ms
+ ✓ tests/unit/vendor-response.test.ts > shows one generic message when submit rejects the expired grant 10ms
+ ✓ tests/unit/vendor-response.test.ts > shows one generic message when submit rejects the missing grant 8ms
+ ✓ tests/unit/vendor-response.test.ts > keeps a conflicting retry on the form 10ms
+ ✓ tests/unit/vendor-response.test.ts > does not submit a blank response 8ms
+
+ Test Files  1 passed (1)
+      Tests  9 passed (9)
+   Start at  09:36:30
+   Duration  441ms (environment 40%, tests 32%, import 16%, transform 11%, worker 1%)

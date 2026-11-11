@@ -32,3 +32,23 @@ Offline SQL rendering and Ruff/diff checks passed. Final exact-head CI for this 
 - `13dec51` stopped before database tests at safe collection: its synthetic SMTP fixture lacked the scanner's recognized test prefix. The fixture-only correction uses `test-only`; safe collection plus transport checks then passed all 34 locally.
 
 Local runtime is Python 3.12 with the repository's locked dependencies. PostgreSQL is unavailable locally; `local-db-attempt.txt` records that environment failure, not a behavior RED. CI provisions the pinned PostgreSQL 16/pgvector container and Python 3.11. The final acceptance command is `TC_REQUIRE_DB=1 python -m pytest tests/release/test_domain_vendor_requests.py -q`, exercised as a subset of the required full CI suite. Raw early schema/route regression diagnostics and local isolated GREEN are retained alongside this file.
+
+## UI qualification
+
+Parent `dad086216f323f0caf1b39ec0eb4115515ec54eb`. The public page had no final-response control, so completion could not be reached from the product UI. The unit run below failed before that form existed and passed after it. The PostgreSQL browser test then drove `/dashboard/requests` and the public form with no API mocks, restarted the API and Next processes, and checked the saved rows.
+
+```sh
+cd apps/web
+npx vitest run tests/unit/vendor-response.test.ts --reporter=verbose
+```
+
+- `completion-ui-red.txt`: exit 1, 9 failed. Every failure is `Unable to find a label with the text of: Final response`.
+- `completion-ui-green.txt`: exit 0, 9 passed. Node v24.22.1, Vitest 5.0.5.
+
+```sh
+cd apps/api
+TC_TEST_DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:5432/trustcopilot_test \
+  python -m pytest tests/release/test_vendor_requests_browser.py -q --tb=line
+```
+
+Local result: 1 passed, 32 warnings, exit 0, 12.19s. Python 3.12.3, PostgreSQL 16 with the vector extension, Node v24.22.1. Both browser phases reported `expected: 1`, `unexpected: 0`, `skipped: 0`, `flaky: 0`. The API process ids differed across the restart (`7483` then `7665`) and the Next process ids differed (`7484` then `7666`). The saved `vendor_requests` rows were unchanged after the restart. This local database is not the CI container. Exact-head `build` and `web-release-e2e` on the pushed commit remain the qualification record. The public form is one final response; questionnaire collection remains TC-18-003. No CI workflow or test-harness gate file was changed.
