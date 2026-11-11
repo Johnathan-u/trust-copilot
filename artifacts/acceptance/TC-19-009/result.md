@@ -4,7 +4,7 @@ Status: the rules form now stores an active workspace member by user id. Editabl
 
 ## UI and API contract
 
-Tested on the working tree that this note's code commit contains. Python 3.12.3, pytest 9.1.1, Node 24.22.1, Vitest 5.0.5, PostgreSQL 16.15, database `trustcopilot_test`. No provider network call.
+Tested commit: `16c7f1cf346ccc9f4581f92e82bfc7be4c032240`. This sentence is the only later edit. Python 3.12.3, pytest 9.1.1, Node 24.22.1, Vitest 5.0.5, PostgreSQL 16.15, database `trustcopilot_test`. No provider network call.
 
 Parent page, before the form change (`git show HEAD:apps/web/app/dashboard/notifications/page.tsx` at `8dc9a94cc30904c99407e56d1f23888103ef7774`):
 
