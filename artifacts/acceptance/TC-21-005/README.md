@@ -48,3 +48,7 @@ The new API test captures suggest, confirm, override, and rollback payloads from
 Local Playwright Chromium against the coverage page, with the API mocked, passed 10 tests in `e2e/release/ui-23.spec.ts`: question disclosure, source retry, workspace change, and the 360/768/1440 accessibility checks. CI workflow files were not changed.
 
 Those checks ran on the tree committed as `1beeca7f1e8b2fa7893cb8a18d5a8849cc36fe8e`. This paragraph is the only later edit.
+
+## CI repair
+
+Push and pull_request `build` on `db6571d370f4fb57e2b6bd9ce7a0c8f0fa14148f` each failed one test: `test_unit_suite_covers_runtime_modules_with_real_assertions` reported `lib/controlMappingClient: runtime module has no unit test`. The same logs reported 6440 passed and 1 skipped (`tests/test_trust_scoring_blind.py:33`). Both `web-release-e2e` runs passed. `apps/web/lib/controlMappingClient.test.ts` now imports and exercises the client.
