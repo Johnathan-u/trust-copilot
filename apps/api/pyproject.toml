@@ -59,6 +59,7 @@ markers = [
     "provider: calls a real third-party provider; skipped unless TC_ALLOW_PROVIDER_TESTS=1",
     "live_stack: needs a running local stack (API/worker/web); skipped unless TC_LIVE_STACK_TESTS=1",
     "external_data: needs a dataset that is not checked in; skipped with an explicit reason",
+    "storage: calls the disposable S3-compatible test service; a skip fails when TC_REQUIRE_STORAGE=1",
 ]
 
 [tool.ruff]

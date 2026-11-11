@@ -82,9 +82,11 @@ TRACER = textwrap.dedent(
 def _clean_env(tmp_path: Path, **extra: str) -> dict[str, str]:
     env = {k: v for k, v in os.environ.items() if not k.startswith(("PYTEST_", "TC_TEST_", "COV_"))}
     env.pop("TRUST_COPILOT_TESTING", None)
-    # Hermetic collection runs must never open a DB connection (libpq bypasses the socket tracer);
-    # CI's TC_REQUIRE_DB=1 would make the child connect at session start, so drop it here.
+    # Hermetic collection runs must never open a DB or object-store connection (libpq bypasses
+    # the socket tracer; boto3 does not). CI's TC_REQUIRE_DB=1 / TC_REQUIRE_STORAGE=1 would make
+    # the child connect at session start, so drop both here.
     env.pop("TC_REQUIRE_DB", None)
+    env.pop("TC_REQUIRE_STORAGE", None)
     env.pop(_safety.PROVIDER_OPT_IN_ENV, None)
     env.update(CANARY_ENV)
     (tmp_path / "sitecustomize.py").write_text(TRACER)
