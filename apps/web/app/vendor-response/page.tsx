@@ -1,6 +1,6 @@
 'use client'
 
-import { Suspense, useEffect, useState } from 'react'
+import { Suspense, useEffect, useRef, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { useKeyedGeneration } from '@/components/ui/useKeyedGeneration'
 import { vendorRequestWithoutToken } from '@/lib/render-state'
@@ -21,6 +21,8 @@ const STATUS_LABELS: Record<string, string> = {
   in_progress: 'In Progress',
   completed: 'Completed',
 }
+
+const GENERIC_LINK_ERROR = 'This link is invalid or has expired.'
 
 export default function VendorResponsePage() {
   return (
@@ -46,7 +48,6 @@ function VendorResponseContent() {
   const initialToken = vendorRequestWithoutToken(token)
   const [loading, setLoading] = useState(initialToken.loading)
   const [error, setError] = useState<string | null>(initialToken.error)
-  const [started, setStarted] = useState(false)
   const tokenKey = useKeyedGeneration(token ?? '', { runOnMount: false })
   if (tokenKey.changed) {
     const next = vendorRequestWithoutToken(token)
@@ -65,7 +66,7 @@ function VendorResponseContent() {
       .then((d) => setData(d as RequestData))
       .catch((e) => {
         if (e.message === 'invalid') {
-          setError('This link is invalid or has expired.')
+          setError(GENERIC_LINK_ERROR)
         } else {
           setError('Something went wrong. Please try again later.')
         }
@@ -125,28 +126,7 @@ function VendorResponseContent() {
     )
   }
 
-  if (started) {
-    return (
-      <Shell>
-        <div className="text-center py-16 px-4">
-          <div className="text-4xl mb-4">🚧</div>
-          <h2 className="text-lg font-semibold text-[var(--tc-text)]">
-            Questionnaire Interface Coming Soon
-          </h2>
-          <p className="mt-2 text-sm text-[var(--tc-muted)] max-w-sm mx-auto">
-            The online questionnaire response feature is being built. You will
-            be able to answer questions directly from this link soon.
-          </p>
-          <button
-            onClick={() => setStarted(false)}
-            className="mt-6 text-xs text-[#5b7cff] hover:underline"
-          >
-            ← Back to request details
-          </button>
-        </div>
-      </Shell>
-    )
-  }
+  if (!token) return null
 
   return (
     <Shell>
@@ -207,16 +187,11 @@ function VendorResponseContent() {
           )}
         </div>
 
-        {/* CTA */}
         {hasQuestionnaire ? (
-          <button
-            onClick={() => setStarted(true)}
-            className="w-full rounded-lg bg-[#5b7cff] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[#4a6ae8] active:bg-[#3b5bdb] focus:outline-none focus:ring-2 focus:ring-[#5b7cff]/40"
-          >
-            {data.status === 'in_progress'
-              ? 'Continue Questionnaire'
-              : 'Start Questionnaire'}
-          </button>
+          <p className="text-sm text-[var(--tc-muted)]">
+            Answering each question on this page is not available yet. Submit
+            your final response below.
+          </p>
         ) : (
           <div className="rounded-xl border border-[var(--tc-border)] bg-[var(--tc-panel)] p-5 text-center">
             <p className="text-sm text-[var(--tc-muted)]">
@@ -226,12 +201,119 @@ function VendorResponseContent() {
           </div>
         )}
 
+        <FinalResponseForm
+          token={token}
+          onCompleted={() =>
+            setData((current) =>
+              current ? { ...current, status: 'completed' } : current
+            )
+          }
+          onGrantRejected={() => setError(GENERIC_LINK_ERROR)}
+        />
+
         {/* Footer */}
         <p className="text-center text-[10px] text-[var(--tc-muted)] pt-2">
           This is a secure link. Do not share it with others.
         </p>
       </div>
     </Shell>
+  )
+}
+
+function FinalResponseForm({
+  token,
+  onCompleted,
+  onGrantRejected,
+}: {
+  token: string
+  onCompleted: () => void
+  onGrantRejected: () => void
+}) {
+  const [text, setText] = useState('')
+  const [submitting, setSubmitting] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const lock = useRef(false)
+
+  async function onSubmit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    if (lock.current) return
+    if (!text.trim()) {
+      setError('Enter a final response.')
+      return
+    }
+    lock.current = true
+    setSubmitting(true)
+    setError(null)
+    try {
+      const result = await fetch('/api/vendor-response/submit', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token, response: text }),
+      })
+      if (result.status === 404) {
+        onGrantRejected()
+        return
+      }
+      if (result.status === 409) {
+        setError('A different final response was already submitted.')
+        return
+      }
+      const body = (await result.json().catch(() => null)) as {
+        status?: unknown
+        submitted_at?: unknown
+      } | null
+      if (
+        !result.ok ||
+        !body ||
+        body.status !== 'completed' ||
+        typeof body.submitted_at !== 'string'
+      ) {
+        setError('The response was not saved. Try again.')
+        return
+      }
+      onCompleted()
+    } catch {
+      setError('Something went wrong. Please try again later.')
+    } finally {
+      lock.current = false
+      setSubmitting(false)
+    }
+  }
+
+  return (
+    <form onSubmit={onSubmit} className="space-y-3" aria-busy={submitting}>
+      <div>
+        <label
+          htmlFor="final-response"
+          className="block text-xs font-medium text-[var(--tc-muted)] uppercase tracking-wide mb-1"
+        >
+          Final response
+        </label>
+        <textarea
+          id="final-response"
+          name="response"
+          required
+          maxLength={20000}
+          rows={5}
+          value={text}
+          disabled={submitting}
+          onChange={(event) => setText(event.target.value)}
+          className="w-full rounded-lg border border-[var(--tc-border)] bg-[var(--tc-panel)] px-3 py-2 text-sm text-[var(--tc-text)] placeholder:text-[var(--tc-muted)] resize-none focus:border-[#5b7cff] focus:outline-none focus:ring-2 focus:ring-[#5b7cff]/40"
+        />
+      </div>
+      {error ? (
+        <p role="alert" className="text-sm text-red-400">
+          {error}
+        </p>
+      ) : null}
+      <button
+        type="submit"
+        disabled={submitting}
+        className="w-full rounded-lg bg-[#5b7cff] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[#4a6ae8] active:bg-[#3b5bdb] focus:outline-none focus:ring-2 focus:ring-[#5b7cff]/40 disabled:opacity-60"
+      >
+        {submitting ? 'Submitting...' : 'Submit response'}
+      </button>
+    </form>
   )
 }
 
