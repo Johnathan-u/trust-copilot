@@ -112,6 +112,7 @@ export function Sidebar({
   const items = appNavItemsFor({
     can_edit: permissions.can_edit,
     can_admin: permissions.can_admin,
+    can_review: permissions.can_review,
   })
   const core = items.filter((item) => item.section === 'core')
   const compliance = items.filter((item) => item.section === 'compliance')

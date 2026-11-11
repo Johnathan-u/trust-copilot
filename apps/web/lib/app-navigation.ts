@@ -1,7 +1,7 @@
 /**
  * One route list for the application sidebar, the wide top bar, and the
- * command palette. Permission flags match the sidebar rules that already
- * gated Requests and Admin.
+ * command palette. Permission flags match the page gates: Requests needs
+ * edit, Jobs needs review, and Admin needs admin.
  */
 
 export const APP_NAV_DOCK_MIN_PX = 768
@@ -32,11 +32,13 @@ export type AppNavItem = {
   section: AppNavSection
   requiresEdit?: boolean
   requiresAdmin?: boolean
+  requiresReview?: boolean
 }
 
 export type AppNavPermissions = {
   can_edit: boolean
   can_admin: boolean
+  can_review: boolean
 }
 
 export const appNavItems: readonly AppNavItem[] = [
@@ -79,6 +81,7 @@ export const appNavItems: readonly AppNavItem[] = [
     label: 'Jobs',
     icon: '◷',
     section: 'core',
+    requiresReview: true,
   },
   {
     href: '/dashboard/compliance-gaps',
@@ -195,6 +198,7 @@ export function appNavItemsFor(permissions: AppNavPermissions): AppNavItem[] {
   return appNavItems.filter((item) => {
     if (item.requiresAdmin && !permissions.can_admin) return false
     if (item.requiresEdit && !permissions.can_edit) return false
+    if (item.requiresReview && !permissions.can_review) return false
     return true
   })
 }

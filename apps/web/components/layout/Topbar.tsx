@@ -118,8 +118,12 @@ export function Topbar({ navOpen, onToggleNav, menuButtonRef }: TopbarProps) {
 
   const visibleNav = useMemo(
     () =>
-      appNavItemsFor({ can_edit: permissions.can_edit, can_admin: isAdmin }),
-    [permissions.can_edit, isAdmin]
+      appNavItemsFor({
+        can_edit: permissions.can_edit,
+        can_admin: isAdmin,
+        can_review: permissions.can_review,
+      }),
+    [permissions.can_edit, permissions.can_review, isAdmin]
   )
   const coreNav = useMemo(
     () => visibleNav.filter((item) => item.section === 'core'),

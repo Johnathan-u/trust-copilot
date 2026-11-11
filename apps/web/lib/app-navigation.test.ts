@@ -54,21 +54,44 @@ describe('application navigation', () => {
       '/dashboard/security',
     ])
 
-    const editor = appNavItemsFor({ can_edit: true, can_admin: false })
+    const editor = appNavItemsFor({
+      can_edit: true,
+      can_admin: false,
+      can_review: true,
+    })
     expect(editor.map((item) => item.href)).toContain('/dashboard/requests')
+    expect(editor.map((item) => item.href)).toContain('/dashboard/jobs')
     expect(editor.some((item) => item.section === 'admin')).toBe(false)
 
-    const reviewer = appNavItemsFor({ can_edit: false, can_admin: false })
+    const reviewer = appNavItemsFor({
+      can_edit: false,
+      can_admin: false,
+      can_review: true,
+    })
     expect(reviewer.map((item) => item.href)).not.toContain(
       '/dashboard/requests'
     )
+    expect(reviewer.map((item) => item.href)).toContain('/dashboard/jobs')
     expect(reviewer.map((item) => item.href)).toContain('/dashboard/exports')
     expect(reviewer.map((item) => item.href)).toContain(
       '/dashboard/trust-requests'
     )
 
-    const admin = appNavItemsFor({ can_edit: true, can_admin: true })
+    const noReview = appNavItemsFor({
+      can_edit: false,
+      can_admin: false,
+      can_review: false,
+    })
+    expect(noReview.map((item) => item.href)).not.toContain('/dashboard/jobs')
+    expect(noReview.map((item) => item.href)).toContain('/dashboard/exports')
+
+    const admin = appNavItemsFor({
+      can_edit: true,
+      can_admin: true,
+      can_review: true,
+    })
     expect(admin.map((item) => item.label)).toContain('Alerts / Notifications')
+    expect(admin.map((item) => item.href)).toContain('/dashboard/jobs')
     expect(admin.map((item) => item.href)).not.toContain('/dashboard/security')
   })
 })
