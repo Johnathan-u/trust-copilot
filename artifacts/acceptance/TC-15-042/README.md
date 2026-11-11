@@ -143,3 +143,45 @@ No browser, full production build or new exact-head CI result is claimed for thi
 small navigation follow-up. The earlier browser results above qualify their
 recorded commits, not this change. Independent review and required final-head CI
 remain with the Coordinator. Rights and TC-14-014 limits remain unchanged.
+
+## Enable path, unsaved edits, and keyboard evidence, 2026-11-11
+
+Product commit `0cb6e3ae6b1e0005c0ae0e8decca98c60c4d7af0`. The green CI
+head `90587c9e92ec8f18b5c5a911ad67a48e9540554d` has the same tree
+`60ab5e39e186603614f9f7221ad6fe578d7f6418`. Earlier runs of that tree failed
+before any test because the runner could not resolve the Ubuntu archive mirrors.
+After that outage was mitigated, both events passed.
+
+| Event | Run | build | web-release-e2e |
+| --- | --- | --- | --- |
+| push | [43103896309](https://github.com/Johnathan-u/trust-copilot/actions/runs/43103896309) | [130802083491](https://github.com/Johnathan-u/trust-copilot/actions/runs/43103896309/job/130802083491) | [130802082850](https://github.com/Johnathan-u/trust-copilot/actions/runs/43103896309/job/130802082850) |
+| pull_request | [43103903172](https://github.com/Johnathan-u/trust-copilot/actions/runs/43103903172) | [130802106884](https://github.com/Johnathan-u/trust-copilot/actions/runs/43103903172/job/130802106884) | [130802105900](https://github.com/Johnathan-u/trust-copilot/actions/runs/43103903172/job/130802105900) |
+
+Environment: Ubuntu 26.04 runner image `ubuntu26/20261101.186`, Node v24.22.1,
+Playwright 1.64.1, Chromium installed with `npx --no-install playwright install --with-deps chromium`.
+The release command from `apps/web` is `npx --no-install playwright test` on the
+explicit release spec list, including `e2e/release/screen-controls.spec.ts`,
+with `--retries=0`. Playwright exit 0 and axe check exit 0 on both events.
+`screen-controls.spec.ts`: **38 passed, 0 failed, 0 skipped, 0 flaky**.
+`build` pytest: **6450 passed, 1 skipped**. The only skip is
+`tests/test_trust_scoring_blind.py:33`.
+
+The six `axe-{library,detail}-{360,768,1440}.json` files in this directory are
+the `control-screens-axe-json` artifact from push run 43103896309. Each has
+`violationCount` 0. The checker reported `TC-15-042/axe-*.json: 0 violations`
+and `axe violations: 0` on both events. The six screenshots are the
+`library-*` and `detail-*` attachments from that run's Playwright HTML report,
+saved as `screenshots/library-{360,768,1440}.png` and
+`screenshots/detail-{360,768,1440}.png`.
+
+Visual review at `90587c9`: no overlap and no page-level horizontal overflow.
+At 360 the library uses the navigation drawer, and the control table scrolls
+inside its region, so Lifecycle and Evidence evaluation sit past the first
+viewport. At 768 that evidence column is still slightly clipped inside the
+same region. At 1440 the row is fully visible, with Verified lifecycle beside
+Stale evidence, and SOC 2 still says Pending content licensing. Detail stacks
+the owner, team, and lifecycle fields at 360; Save changes and backing evidence
+continue in the scrolling main region below the first 900px. At 768 and 1440
+the verified lifecycle stays separate from the stale evidence evaluation, and
+Save changes and Reset changes are visible. The search or filter focus ring in
+the library shots is the keyboard check that runs before the screenshot.

@@ -30,15 +30,28 @@ import {
 
 function readCatalogs(value: unknown): FrameworkCatalogItem[] {
   if (!Array.isArray(value)) throw new Error('Invalid catalogs')
-  return value.map((item) => {
-    const row = record(item)
-    if (
-      typeof row.name !== 'string' ||
-      row.contract_version !== 'framework-catalog/v1'
-    )
-      throw new Error('Invalid catalog')
-    return row as FrameworkCatalogItem
-  })
+  return value.map((item) => readCatalogItem(item))
+}
+
+function readCatalogItem(value: unknown): FrameworkCatalogItem {
+  const row = record(value)
+  if (
+    typeof row.name !== 'string' ||
+    row.contract_version !== 'framework-catalog/v1'
+  )
+    throw new Error('Invalid catalog')
+  return row as FrameworkCatalogItem
+}
+
+/** The enable POST body is the acknowledgement. A later list read is not. */
+function readAcknowledgedFramework(
+  value: unknown,
+  catalogKey: string
+): FrameworkCatalogItem {
+  const item = readCatalogItem(value)
+  if (item.catalog_key !== catalogKey || !isProductionCatalogEnabled(item))
+    throw new Error('Unconfirmed')
+  return item
 }
 
 export default function ControlLibraryPage() {
@@ -321,24 +334,17 @@ function FrameworkCard({
     setBusy(true)
     setMessage('')
     try {
-      await readSectionJson(
-        await fetch('/api/compliance/frameworks/enable', {
-          method: 'POST',
-          credentials: 'include',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ catalog_key: current.catalog_key }),
-        })
-      )
-      const list = readCatalogs(
+      const acknowledged = readAcknowledgedFramework(
         await readSectionJson(
-          await fetch('/api/compliance/frameworks', { credentials: 'include' })
-        )
+          await fetch('/api/compliance/frameworks/enable', {
+            method: 'POST',
+            credentials: 'include',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ catalog_key: current.catalog_key }),
+          })
+        ),
+        current.catalog_key ?? ''
       )
-      const acknowledged = list.find(
-        (value) => value.catalog_key === current.catalog_key
-      )
-      if (!acknowledged || !isProductionCatalogEnabled(acknowledged))
-        throw new Error('Unconfirmed')
       setCurrent(acknowledged)
       setMessage('Framework enabled')
     } catch {
