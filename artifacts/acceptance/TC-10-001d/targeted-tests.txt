@@ -1,0 +1,26 @@
+........................................................................ [ 93%]
+.....                                                                    [100%]
+=============================== warnings summary ===============================
+tests/release/test_job_leases.py: 37 warnings
+tests/release/test_enqueue_consistency.py: 30 warnings
+  /tmp/tc-venv/lib/python3.12/site-packages/sqlalchemy/sql/schema.py:3627: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    return util.wrap_callable(lambda ctx: fn(), fn)  # type: ignore
+
+tests/release/test_job_leases.py::test_migration_upgrade_downgrade_upgrade_is_lossless
+  /tmp/tc-venv/lib/python3.12/site-packages/alembic/config.py:604: DeprecationWarning: No path_separator found in configuration; falling back to legacy splitting on spaces, commas, and colons for prepend_sys_path.  Consider adding path_separator=os to Alembic config.
+    util.warn_deprecated(
+
+tests/release/test_job_idempotency.py::test_lease_heartbeat_renews_while_answer_batch_is_open
+  /agent/repos/trust-copilot/apps/api/tests/release/test_job_idempotency.py:2036: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    guard = AnswerWriteGuard(datetime.utcnow() - timedelta(minutes=5))
+
+tests/release/test_job_idempotency.py::test_lease_heartbeat_renews_while_answer_batch_is_open
+  /agent/repos/trust-copilot/apps/api/app/services/answer_generation.py:1920: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    "updated_at": datetime.utcnow(),
+
+tests/release/test_job_idempotency.py::test_lease_heartbeat_renews_while_answer_batch_is_open
+  /agent/repos/trust-copilot/apps/api/app/services/answer_generation.py:1798: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    now = datetime.utcnow()
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+77 passed, 71 warnings in 23.13s
