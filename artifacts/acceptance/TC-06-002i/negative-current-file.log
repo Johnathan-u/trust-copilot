@@ -1,0 +1,30 @@
+{"control": "current_file", "source_sha256": "f9ee40654fa2d78405a8259ea3132542fbf3fec3fb785795657e4ef59802099c", "selection": "sqlite and new-export and parent_without_file_stale_identity"}
+F                                                                        [100%]
+=================================== FAILURES ===================================
+_ test_current_job_payload_and_active_parent_must_agree[sqlite-new-export-parent_without_file_stale_identity] _
+tests/release/test_authorization_export_worker.py:320: in test_current_job_payload_and_active_parent_must_agree
+    assert_denied_without_effects(c)
+tests/release/test_authorization_export_worker.py:228: in assert_denied_without_effects
+    with pytest.raises(ValueError) as caught:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^
+E   Failed: DID NOT RAISE ValueError
+=============================== warnings summary ===============================
+../../../../../../tmp/tc-backend-venv/lib/python3.12/site-packages/_pytest/config/__init__.py:1345
+  /tmp/tc-backend-venv/lib/python3.12/site-packages/_pytest/config/__init__.py:1345: PytestAssertRewriteWarning: Module already imported so cannot be rewritten; anyio
+    self._mark_plugins_for_rewrite(hook, disable_autoload)
+
+tests/release/test_authorization_export_worker.py::test_current_job_payload_and_active_parent_must_agree[sqlite-new-export-parent_without_file_stale_identity]
+tests/release/test_authorization_export_worker.py::test_current_job_payload_and_active_parent_must_agree[sqlite-new-export-parent_without_file_stale_identity]
+tests/release/test_authorization_export_worker.py::test_current_job_payload_and_active_parent_must_agree[sqlite-new-export-parent_without_file_stale_identity]
+tests/release/test_authorization_export_worker.py::test_current_job_payload_and_active_parent_must_agree[sqlite-new-export-parent_without_file_stale_identity]
+tests/release/test_authorization_export_worker.py::test_current_job_payload_and_active_parent_must_agree[sqlite-new-export-parent_without_file_stale_identity]
+tests/release/test_authorization_export_worker.py::test_current_job_payload_and_active_parent_must_agree[sqlite-new-export-parent_without_file_stale_identity]
+tests/release/test_authorization_export_worker.py::test_current_job_payload_and_active_parent_must_agree[sqlite-new-export-parent_without_file_stale_identity]
+  /tmp/tc-backend-venv/lib/python3.12/site-packages/sqlalchemy/sql/schema.py:3627: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    return util.wrap_callable(lambda ctx: fn(), fn)  # type: ignore
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED tests/release/test_authorization_export_worker.py::test_current_job_payload_and_active_parent_must_agree[sqlite-new-export-parent_without_file_stale_identity]
+1 failed, 139 deselected, 8 warnings in 1.01s
+{"control": "current_file", "expected_test_exit": 1, "source_unchanged": true}
