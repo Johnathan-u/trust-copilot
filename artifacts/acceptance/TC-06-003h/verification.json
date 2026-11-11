@@ -1,0 +1,257 @@
+{
+  "ticket": "TC-06-003h",
+  "date": "2026-10-30",
+  "points": 2,
+  "status": "acceptance implemented locally; independent review and PostgreSQL/CI qualification pending",
+  "claim": "https://github.com/Johnathan-u/trust-copilot/issues/85#issuecomment-6517057783",
+  "base_commit": "d4f8f38e482532e14d08c28ba0baf6ccc0002a06",
+  "test_commit": "46a8e3791c9a526c02b66f30150c03c9d1bab56a",
+  "test_tree": "8db85bc4531c5bb70ce562b44d256616b2ced1df",
+  "source_blobs": {
+    "apps/api/tests/release/test_authorization_proof_widgets.py": "e71e5db56c4d7a8d448679bb5fce8f9d04ad0738",
+    "apps/api/app/services/proof_widgets_service.py": "7268d32f1eb1a673c887089333ee67bd20106eb7",
+    "apps/api/app/api/routes/proof_widgets.py": "c70339ab127fa61faea9eb286ed8ad922b1bf769",
+    "apps/api/tests/test_proof_widgets.py": "1ef8f9a9d8b1aa3ddb3f8e18682e787d2025ab2c",
+    "apps/api/app/core/auth_deps.py": "95a9b4bb22c41423936a43937e6cf3ba155177d6"
+  },
+  "runtime_changes": [],
+  "scope": {
+    "endpoint": "GET /api/proof-widgets",
+    "preserved": [
+      "Current session-only permission including existing built-in and custom role behavior",
+      "Five current-workspace source queries",
+      "Current archived-row counting and labelled heuristic",
+      "All production and four legacy tests"
+    ],
+    "excluded": [
+      "TC-23-005 counter correctness, lifecycle and API/UI/persisted-outcome qualification",
+      "Proof graph, deals and other authorization children",
+      "Auth, schema, provider, storage and dependency changes"
+    ]
+  },
+  "environment": {
+    "python": "3.12.14",
+    "dependencies": "Existing locked /tmp/tc-backend-venv; no dependency changes",
+    "postgresql": "localhost:5432 connection refused",
+    "provider_model_storage_calls": 0,
+    "default_command_cwd": "apps/api"
+  },
+  "matrix": {
+    "sqlite_cases": 30,
+    "postgres_cases": 30,
+    "legacy_cases": 4,
+    "cases": {
+      "two_tenant_positives": 2,
+      "foreign_deletions": 5,
+      "bidirectional_workspace_moves": 3,
+      "question_parent_move": 1,
+      "own_deletions_and_cascades": 5,
+      "archived_count_preservation": 2,
+      "current_roles": 4,
+      "current_authority_loss": 6,
+      "query_workspace_override": 1,
+      "empty_tenant": 1
+    },
+    "read_roles": [
+      "admin",
+      "editor",
+      "reviewer",
+      "session_only custom role with all flags false"
+    ],
+    "denials": [
+      "suspended membership",
+      "removed membership",
+      "moved membership",
+      "removed session",
+      "reassigned session",
+      "anonymous"
+    ]
+  },
+  "fixture": {
+    "auth": "Actual stored users/memberships/sessions with expiring signed cookies; only get_db overridden; stale admin cookie reused after stored changes",
+    "sqlite": "Actual model tables; FK ON asserted; no schema substitution",
+    "postgresql": "Existing migrated_db and SessionLocal; actual foreign keys and same-workspace triggers unchanged",
+    "source_changes": "Ordinary fixture-owned row updates/deletes; nullable export links remain null for legitimate independent moves; real cascades, no fabricated impossible orphan",
+    "full_row_snapshot_tables": [
+      "export_records",
+      "answers",
+      "questions",
+      "questionnaires",
+      "documents",
+      "jobs",
+      "audit_events",
+      "user_mfa",
+      "user_sessions",
+      "api_keys",
+      "custom_roles",
+      "workspace_members",
+      "users",
+      "workspaces"
+    ],
+    "read_invariants": "All HTTP successes and denials preserve complete table counts/hashes; only SQL SELECT allowed during the request, even if writes later roll back",
+    "cleanup": "Exact fixture and API after_flush row IDs; only those IDs deleted in FK order; compare complete original snapshot; no global deletion or sequence reset",
+    "collection": "No fixture/store/connection creation during collection"
+  },
+  "checks": [
+    {
+      "name": "unchanged-runtime SQLite acceptance",
+      "command": "/tmp/tc-backend-venv/bin/python -m pytest tests/release/test_authorization_proof_widgets.py -m unit -q --tb=short",
+      "exit_code": 0,
+      "passed": 30,
+      "deselected": 30,
+      "warnings": "390 existing datetime.utcnow deprecation warnings"
+    },
+    {
+      "name": "new and legacy collection",
+      "command": "/tmp/tc-backend-venv/bin/python -m pytest tests/release/test_authorization_proof_widgets.py tests/test_proof_widgets.py --collect-only -q",
+      "exit_code": 0,
+      "collected": 64,
+      "new_cases": 60,
+      "legacy_cases": 4
+    },
+    {
+      "name": "repository collection safety",
+      "command": "/tmp/tc-backend-venv/bin/python -m pytest tests/release/test_safe_collection.py -q",
+      "exit_code": 0,
+      "passed": 29
+    },
+    {
+      "name": "required full pytest",
+      "command": "TC_REQUIRE_DB=1 /tmp/tc-backend-venv/bin/python -m pytest -q",
+      "exit_code": 3,
+      "tests_executed": 0,
+      "reason": "Required session setup exits before tests: PostgreSQL localhost:5432 connection refused"
+    },
+    {
+      "name": "scoped lint",
+      "command": "/tmp/tc-backend-venv/bin/python -m ruff check apps/api/tests/release/test_authorization_proof_widgets.py",
+      "cwd": "repository",
+      "exit_code": 0
+    },
+    {
+      "name": "scoped formatting",
+      "command": "/tmp/tc-backend-venv/bin/python -m ruff format --check apps/api/tests/release/test_authorization_proof_widgets.py",
+      "cwd": "repository",
+      "exit_code": 0
+    },
+    {
+      "name": "test secret inventory",
+      "command": "/tmp/tc-backend-venv/bin/python scripts/security/secret_inventory.py paths apps/api/tests/release/test_authorization_proof_widgets.py --root . --fail-on block",
+      "cwd": "repository",
+      "exit_code": 0,
+      "findings": 0
+    },
+    {
+      "name": "production and legacy freeze",
+      "command": "git diff --exit-code d4f8f38e482532e14d08c28ba0baf6ccc0002a06 -- apps/api/app apps/api/tests/test_proof_widgets.py",
+      "cwd": "repository",
+      "exit_code": 0
+    },
+    {
+      "name": "whitespace",
+      "command": "git diff --check and git diff --cached --check",
+      "cwd": "repository",
+      "exit_code": 0
+    },
+    {
+      "name": "documentation secret inventory",
+      "command": "/tmp/tc-backend-venv/bin/python scripts/security/secret_inventory.py paths docs/release/tickets/TC-06-003h.md artifacts/acceptance/TC-06-003h --root . --fail-on block",
+      "cwd": "repository",
+      "exit_code": 0,
+      "findings": 0
+    },
+    {
+      "name": "evidence consistency",
+      "command": "Python JSON/source-blob/frozen-file/matrix-count/control-count/relative-link assertions against test and base commits",
+      "cwd": "repository",
+      "exit_code": 0
+    }
+  ],
+  "negative_controls": [
+    {
+      "name": "question_scope",
+      "copied_file": "services/proof_widgets_service.py",
+      "selected_test": "tests/release/test_authorization_proof_widgets.py::test_each_current_tenant_receives_only_its_existing_counts[sqlite-0-expected0]",
+      "exit_code": 1,
+      "failed": 1,
+      "expected_assertion": "coverage_pct"
+    },
+    {
+      "name": "answer_scope",
+      "copied_file": "services/proof_widgets_service.py",
+      "selected_test": "tests/release/test_authorization_proof_widgets.py::test_each_current_tenant_receives_only_its_existing_counts[sqlite-0-expected0]",
+      "exit_code": 1,
+      "failed": 1,
+      "expected_assertion": "questions_answered"
+    },
+    {
+      "name": "questionnaire_scope",
+      "copied_file": "services/proof_widgets_service.py",
+      "selected_test": "tests/release/test_authorization_proof_widgets.py::test_each_current_tenant_receives_only_its_existing_counts[sqlite-0-expected0]",
+      "exit_code": 1,
+      "failed": 1,
+      "expected_assertion": "questionnaires_processed"
+    },
+    {
+      "name": "document_scope",
+      "copied_file": "services/proof_widgets_service.py",
+      "selected_test": "tests/release/test_authorization_proof_widgets.py::test_each_current_tenant_receives_only_its_existing_counts[sqlite-0-expected0]",
+      "exit_code": 1,
+      "failed": 1,
+      "expected_assertion": "documents_indexed"
+    },
+    {
+      "name": "export_scope",
+      "copied_file": "services/proof_widgets_service.py",
+      "selected_test": "tests/release/test_authorization_proof_widgets.py::test_each_current_tenant_receives_only_its_existing_counts[sqlite-0-expected0]",
+      "exit_code": 1,
+      "failed": 1,
+      "expected_assertion": "exports_delivered"
+    },
+    {
+      "name": "current_membership",
+      "copied_file": "core/auth_deps.py",
+      "selected_test": "tests/release/test_authorization_proof_widgets.py::test_current_authority_loss_denies_without_counts_or_writes[sqlite-suspended-403-Your account has been suspended in this workspace]",
+      "exit_code": 1,
+      "failed": 1,
+      "expected_assertion": "assert 200 == 403"
+    },
+    {
+      "name": "stored_session",
+      "copied_file": "core/auth_deps.py",
+      "selected_test": "tests/release/test_authorization_proof_widgets.py::test_current_authority_loss_denies_without_counts_or_writes[sqlite-session_removed-401-Session invalidated]",
+      "exit_code": 1,
+      "failed": 1,
+      "expected_assertion": "assert 200 == 401"
+    },
+    {
+      "name": "select_only",
+      "copied_file": "services/proof_widgets_service.py",
+      "selected_test": "tests/release/test_authorization_proof_widgets.py::test_each_current_tenant_receives_only_its_existing_counts[sqlite-0-expected0]",
+      "exit_code": 1,
+      "failed": 1,
+      "expected_assertion": "Widget reads must execute SELECT only"
+    }
+  ],
+  "negative_control_method": "Copy app into TemporaryDirectory; anchor and verify copied app import before pytest; mutate only copied source; selected real test must fail once at intended assertion; remove copy. Repository production files never changed.",
+  "negative_control_coverage": [
+    "Every one of five source predicates prevents foreign data changing an own metric",
+    "Current membership bypass exposes widgets after suspension",
+    "Stored session bypass exposes widgets after revocation",
+    "An injected UPDATE returns200 and rolls back but SELECT-only assertion still fails"
+  ],
+  "not_claimed": [
+    "Production defect or fix",
+    "Local PostgreSQL or full-suite execution success",
+    "Execution success for four unchanged legacy database cases",
+    "Future CI success",
+    "TC-23-005 or full authorization parent completion",
+    "Publication or merge"
+  ],
+  "remaining_gates": [
+    "Independent final-head review",
+    "30 new PostgreSQL and four legacy database cases",
+    "Exact-head build and web-release-e2e on both push and pull_request",
+    "Coordinator publication capacity and merge authority"
+  ]
+}
