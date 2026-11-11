@@ -1,0 +1,23 @@
+============================= test session starts ==============================
+platform linux -- Python 3.12.3, pytest-9.1.1, pluggy-1.7.0 -- /tmp/tc-venv/bin/python
+rootdir: /agent/repos/trust-copilot/apps/api
+configfile: pyproject.toml
+plugins: anyio-4.15.1
+collecting ... collected 3 items
+
+tests/release/test_job_leases.py::test_export_upload_longer_than_the_lease_commits PASSED [ 33%]
+tests/release/test_job_leases.py::test_taken_over_lease_is_still_lost_at_commit PASSED [ 66%]
+tests/release/test_job_leases.py::test_locked_row_still_rejects_a_different_token PASSED [100%]
+
+=============================== warnings summary ===============================
+tests/release/test_job_leases.py::test_export_upload_longer_than_the_lease_commits
+tests/release/test_job_leases.py::test_export_upload_longer_than_the_lease_commits
+tests/release/test_job_leases.py::test_export_upload_longer_than_the_lease_commits
+tests/release/test_job_leases.py::test_export_upload_longer_than_the_lease_commits
+tests/release/test_job_leases.py::test_export_upload_longer_than_the_lease_commits
+tests/release/test_job_leases.py::test_export_upload_longer_than_the_lease_commits
+  /tmp/tc-venv/lib/python3.12/site-packages/sqlalchemy/sql/schema.py:3627: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    return util.wrap_callable(lambda ctx: fn(), fn)  # type: ignore
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+======================== 3 passed, 6 warnings in 5.17s =========================

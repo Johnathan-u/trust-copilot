@@ -2,12 +2,17 @@
 
 A running job is owned by one worker, named by an unguessable ``lease_owner`` token (the same
 construction as ``idempotency.new_owner_token``). The lease is valid until ``lease_expires_at``.
-Renewal is an ``UPDATE ... WHERE lease_owner = :owner AND lease_expires_at > :now RETURNING``,
-so a stale owner cannot extend it. A commit fence takes the same row ``FOR UPDATE`` and refuses
-the commit when that token no longer holds a live lease. The fence uses ``statement_timestamp()``
-so an open job transaction does not freeze the clock at its start.
+Renewal is an ``UPDATE ... WHERE lease_owner = :owner AND lease_expires_at > clock_timestamp()``,
+so a stale owner cannot extend it. ``clock_timestamp()`` keeps moving if that update waits, so
+the new expiry is not taken from the start of the wait. A commit fence takes the same row
+``FOR UPDATE`` and refuses the commit when that token no longer matches. If this transaction
+already holds the row lock, the fence extends the lease from ``clock_timestamp()`` instead of
+failing when the timestamp passed while the lock blocked renewal. Otherwise the fence uses
+``statement_timestamp()`` so an open job transaction does not freeze the clock at its start.
 
-Lease instants use the database clock (``now()``), not the worker process clock.
+Lease instants use the database clock, not the worker process clock. Renewal and a lock-held
+fence extension use ``clock_timestamp()``. A fence that does not already hold the row uses
+``statement_timestamp()``. Claim and recovery still use ``now()``.
 Abandoned jobs (``running`` and ``lease_expires_at <= now()``) are locked with
 ``FOR UPDATE SKIP LOCKED``. The token swap and the retry classification commit together.
 A NULL lease is not an expired lease. It is abandoned only after
@@ -144,8 +149,10 @@ def renew_lease(
 ) -> bool:
     """Extend the lease. True only when ``owner`` still holds a running, unexpired lease.
 
-    Expiry is the database clock: ``lease_expires_at > now()``, and the new expiry is
-    ``now()`` plus ``extend_seconds``. A Python clock is not consulted.
+    Expiry is the database clock: ``lease_expires_at > clock_timestamp()``, and the new expiry
+    is ``clock_timestamp()`` plus ``extend_seconds``. ``now()`` would stay at the start of this
+    transaction, so a renewal that waited on a row lock could store an expiry already in the
+    past. A Python clock is not consulted.
     """
     close = session is None
     if session is None:
@@ -157,11 +164,11 @@ def renew_lease(
             text(
                 """
                 UPDATE jobs
-                SET lease_expires_at = now() + make_interval(secs => :seconds)
+                SET lease_expires_at = clock_timestamp() + make_interval(secs => :seconds)
                 WHERE id = :id
                   AND lease_owner = :owner
                   AND status = 'running'
-                  AND lease_expires_at > now()
+                  AND lease_expires_at > clock_timestamp()
                 RETURNING id
                 """
             ),
@@ -271,15 +278,78 @@ def claim_lease_expiry(session: Session, job_id: int, owner: str, seconds: int) 
     )
 
 
+def _transaction_locks_job(session: Session, job_id: int) -> bool:
+    """True when this transaction already holds the job row.
+
+    ``FOR UPDATE`` and ``UPDATE`` store this transaction's id on the tuple, including a
+    subtransaction id. ``pg_locks`` shows that id as a granted ``transactionid`` lock of this
+    backend. A row this transaction has not locked does not match. The read takes no new lock,
+    so it does not by itself make a later check look locked.
+    """
+    row = session.execute(
+        text(
+            """
+            SELECT 1
+            FROM jobs AS j
+            WHERE j.id = :id
+              AND EXISTS (
+                    SELECT 1
+                    FROM pg_locks AS held
+                    WHERE held.locktype = 'transactionid'
+                      AND held.pid = pg_backend_pid()
+                      AND held.granted
+                      AND (
+                            held.transactionid = j.xmax
+                            OR held.transactionid = j.xmin
+                          )
+                  )
+            """
+        ),
+        {"id": job_id},
+    ).fetchone()
+    return row is not None
+
+
+def _extend_lease_already_locked(session: Session, job_id: int, owner: str) -> bool:
+    """Owner still matches the locked row. Move the expiry forward from the database clock.
+
+    No expiry predicate: the lock blocked renewal, and recovery skips a locked row, so the
+    timestamp may have passed without another worker taking the token. A different owner
+    changes no row.
+    """
+    row = session.execute(
+        text(
+            """
+            UPDATE jobs
+            SET lease_expires_at = clock_timestamp() + make_interval(secs => :seconds)
+            WHERE id = :id
+              AND lease_owner = :owner
+              AND status = 'running'
+            RETURNING id
+            """
+        ),
+        {"id": job_id, "owner": owner, "seconds": float(lease_seconds())},
+    ).fetchone()
+    return row is not None
+
+
 def lease_is_held(session: Session, job_id: int, owner: str, *, lock: bool) -> bool:
     """True when this owner still has a running lease past the time of this check.
 
     ``statement_timestamp()`` is the database clock at the start of this statement.
     ``now()`` would stay at the start of the job's transaction, so a handler that kept
     that transaction open would still look leased after the expiry had passed.
+
+    When ``lock`` is true and this transaction already holds the row, the heartbeat cannot
+    renew and recovery cannot take the row. The same locked update checks the owner token
+    and sets ``lease_expires_at`` to ``clock_timestamp()`` plus the lease. A different token
+    does not match. A transaction that does not already hold the row still requires
+    ``lease_expires_at > statement_timestamp()``.
     """
-    suffix = " FOR UPDATE" if lock else ""
     with session.no_autoflush:
+        if lock and _transaction_locks_job(session, job_id):
+            return _extend_lease_already_locked(session, job_id, owner)
+        suffix = " FOR UPDATE" if lock else ""
         row = session.execute(
             text(
                 f"""
@@ -298,10 +368,12 @@ def lease_is_held(session: Session, job_id: int, owner: str, *, lock: bool) -> b
 
 
 def confirm_lease_for_commit(session: Session, job_id: int, owner: str) -> None:
-    """Lock the job row and raise LeaseLost unless ``owner`` still holds a live lease.
+    """Lock the job row and raise LeaseLost unless ``owner`` may still commit.
 
-    The comparison is ``lease_expires_at > statement_timestamp()`` in the database. Call this
-    before writing the completion, then commit in the same transaction.
+    If this transaction already holds the row, the owner token must still match and the lease
+    is extended from ``clock_timestamp()``. Otherwise the row is locked and ``lease_expires_at``
+    must be after ``statement_timestamp()``. Call this before writing the completion, then commit
+    in the same transaction.
     """
     if not lease_is_held(session, job_id, owner, lock=True):
         session.rollback()
@@ -309,11 +381,14 @@ def confirm_lease_for_commit(session: Session, job_id: int, owner: str) -> None:
 
 
 def install_commit_fence(session: Session, job_id: int, owner: str) -> None:
-    """Refuse ``session.commit`` unless this owner still holds a live lease.
+    """Refuse ``session.commit`` unless this owner may still commit.
 
-    The check is ``lease_expires_at > statement_timestamp()`` under ``FOR UPDATE``, with autoflush
-    off, so a pending completion is not written before the lease is confirmed. ``now()`` is not
-    used: it would stay at the start of this transaction. The row lock is held until the commit.
+    The check goes through ``lease_is_held`` under ``FOR UPDATE``, with autoflush off, so a
+    pending completion is not written before the lease is confirmed. A transaction that already
+    holds the row extends the lease instead of failing when the timestamp passed while it held
+    the lock. A transaction that does not hold the row still requires
+    ``lease_expires_at > statement_timestamp()``. ``now()`` is not used for that comparison: it
+    would stay at the start of this transaction. The row lock is held until the commit.
     After the job is no longer running for this owner, later commits in the same session
     (notifications) are allowed.
     """

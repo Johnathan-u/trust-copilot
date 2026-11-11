@@ -1099,6 +1099,213 @@ def test_long_work_without_a_heartbeat_loses_the_lease(db, monkeypatch):
     assert not _audits(db, job_id, "job.retry_scheduled")
 
 
+# Longer than ``_E2E_LEASE_SECONDS`` so the upload outlasts a lease taken just before the PUT.
+_EXPORT_UPLOAD_SECONDS = 4.0
+
+
+class _ExportStorage:
+    """In-memory buckets for one export. No network and no credentials."""
+
+    def __init__(self) -> None:
+        self.bucket_raw = "test-raw"
+        self.bucket_exports = "test-exports"
+        self.objects: dict[tuple[str, str], bytes] = {}
+
+    def put(self, bucket: str, key: str, body: bytes) -> str:
+        self.objects[(bucket, key)] = body
+        return key
+
+    def upload(self, bucket, key, body, content_type=None):
+        return self.put(bucket, key, body)
+
+    def download(self, bucket, key):
+        return self.objects[(bucket, key)]
+
+
+def test_export_upload_longer_than_the_lease_commits(db, monkeypatch):
+    """An export whose upload outlasts the lease still commits the artifact.
+
+    The worker lease is 2s and the upload sleeps 4s. ``confirm_lease_for_commit`` holds the job
+    row across that sleep, so the heartbeat cannot renew. The attempt must stay the one claim
+    counted, with no ``LeaseLost`` and no retry.
+    """
+    from app.models import ExportRecord, Job, JobStatus, Question, Questionnaire
+
+    store = _ExportStorage()
+    source_key = f"raw/{WS}/slow-export.xlsx"
+    store.put(store.bucket_raw, source_key, b"synthetic-source")
+    questionnaire = Questionnaire(
+        workspace_id=WS,
+        storage_key=source_key,
+        filename="source.xlsx",
+        status="parsed",
+    )
+    db.add(questionnaire)
+    db.commit()
+    db.add(Question(questionnaire_id=questionnaire.id, text="synthetic question"))
+    job = Job(
+        workspace_id=WS,
+        kind="export",
+        status=JobStatus.QUEUED.value,
+        payload=json.dumps(
+            {"workspace_id": WS, "questionnaire_id": questionnaire.id, "format": "xlsx"}
+        ),
+        attempt=0,
+        max_attempts=3,
+    )
+    db.add(job)
+    db.commit()
+    job_id = int(job.id)
+    questionnaire_id = int(questionnaire.id)
+
+    def slow_upload(bucket, key, body, content_type=None):
+        time.sleep(_EXPORT_UPLOAD_SECONDS)
+        return store.put(bucket, key, body)
+
+    _use_short_lease(monkeypatch)
+    _refuse_foreign_eligible(db)
+    worker = _prepare_worker_loop(monkeypatch, job_id)
+    monkeypatch.setattr(worker, "StorageClient", lambda: store)
+    monkeypatch.setattr(worker, "_record_usage_once", lambda *_args, **_kwargs: None)
+    monkeypatch.setattr(store, "upload", slow_upload)
+    monkeypatch.setattr(
+        "app.services.xlsx_writer.create_export_from_questionnaire",
+        lambda *_args, **_kwargs: b"slow-export-bytes",
+    )
+    try:
+        with _only(job_id):
+            assert worker._process_one_job() is True
+        db.expire_all()
+        stored = db.get(Job, job_id)
+        assert stored.status == JobStatus.COMPLETED.value
+        assert stored.attempt == 1
+        assert stored.result and "storage_key" in stored.result
+        assert _audits(db, job_id, "job.lease_lost") == []
+        assert _audits(db, job_id, "job.abandoned") == []
+        assert _audits(db, job_id, "job.retry_scheduled") == []
+        assert _audits(db, job_id, "job.failed") == []
+        record = db.query(ExportRecord).filter(ExportRecord.job_id == job_id).one()
+        assert store.objects[(store.bucket_exports, record.storage_key)] == b"slow-export-bytes"
+    finally:
+        db.rollback()
+        db.execute(text("DELETE FROM export_records WHERE job_id = :id"), {"id": job_id})
+        db.execute(
+            text("DELETE FROM questions WHERE questionnaire_id = :id"),
+            {"id": questionnaire_id},
+        )
+        db.execute(text("DELETE FROM questionnaires WHERE id = :id"), {"id": questionnaire_id})
+        db.commit()
+
+
+def test_taken_over_lease_is_still_lost_at_commit(db):
+    """A commit still raises LeaseLost after another worker has taken the token.
+
+    This session does not hold the row. A different owner now has a live lease. The old token
+    must not commit.
+    """
+    from app import worker
+    from app.core.database import SessionLocal
+    from app.core.job_lease import install_commit_fence
+    from app.models import Job, JobStatus
+
+    job = Job(
+        workspace_id=WS,
+        kind="parse_evidence",
+        status=JobStatus.QUEUED.value,
+        payload="{}",
+        attempt=0,
+        max_attempts=3,
+    )
+    db.add(job)
+    db.commit()
+    job_id = int(job.id)
+    with _only(job_id):
+        claimed = worker.claim_job(db)
+    owner = claimed.lease_owner
+    taken = "d" * 32
+    other = SessionLocal()
+    try:
+        # The old lease is gone: a different token now holds a live lease.
+        other.execute(
+            text(
+                """
+                UPDATE jobs
+                SET lease_owner = :token,
+                    lease_expires_at = now() + interval '1 hour'
+                WHERE id = :id
+                """
+            ),
+            {"token": taken, "id": job_id},
+        )
+        other.commit()
+    finally:
+        other.close()
+
+    session = SessionLocal()
+    try:
+        stale = session.get(Job, job_id)
+        stale.result = '{"from":"old-owner"}'
+        install_commit_fence(session, job_id, owner)
+        with pytest.raises(LeaseLost):
+            session.commit()
+    finally:
+        session.rollback()
+        session.close()
+    db.expire_all()
+    stored = db.get(Job, job_id)
+    assert stored.result is None
+    assert stored.status == JobStatus.RUNNING.value
+    assert stored.lease_owner == taken
+    assert stored.attempt == 1
+
+
+def test_locked_row_still_rejects_a_different_token(db):
+    """Holding the row lock does not let a different owner commit.
+
+    This transaction already has ``FOR UPDATE``. The token on the row is not the one passed to
+    the fence. The commit must raise LeaseLost and leave the previous owner in place.
+    """
+    from app.core.database import SessionLocal
+    from app.core.job_lease import install_commit_fence
+    from app.models import Job, JobStatus
+
+    owner = "e" * 32
+    job = Job(
+        workspace_id=WS,
+        kind="parse_evidence",
+        status=JobStatus.RUNNING.value,
+        payload="{}",
+        attempt=1,
+        max_attempts=3,
+        lease_owner=owner,
+    )
+    db.add(job)
+    db.commit()
+    job_id = int(job.id)
+    _set_lease_offset(db, job_id, -1)
+    session = SessionLocal()
+    try:
+        session.execute(text("SELECT id FROM jobs WHERE id = :id FOR UPDATE"), {"id": job_id})
+        session.execute(
+            text("UPDATE jobs SET lease_owner = :token WHERE id = :id"),
+            {"token": "f" * 32, "id": job_id},
+        )
+        stale = session.get(Job, job_id)
+        stale.result = '{"from":"different-token"}'
+        install_commit_fence(session, job_id, owner)
+        with pytest.raises(LeaseLost):
+            session.commit()
+    finally:
+        session.rollback()
+        session.close()
+    db.expire_all()
+    stored = db.get(Job, job_id)
+    assert stored.result is None
+    assert stored.status == JobStatus.RUNNING.value
+    assert stored.lease_owner == owner
+    assert stored.attempt == 1
+
+
 def _age_job(db, job_id: int, *, updated_age: float | None, started_age: float | None) -> None:
     """Move timestamps relative to the database clock. None stores NULL."""
     db.execute(

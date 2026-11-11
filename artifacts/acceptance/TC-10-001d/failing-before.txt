@@ -1,0 +1,50 @@
+Command, from apps/api, against master's job_lease.py (the new tests were present; the fence change was not):
+
+SESSION_SECRET=test-secret TRUST_COPILOT_TESTING=1 python -m pytest \
+  tests/release/test_job_leases.py::test_export_upload_longer_than_the_lease_commits \
+  tests/release/test_job_leases.py::test_taken_over_lease_is_still_lost_at_commit \
+  tests/release/test_job_leases.py::test_locked_row_still_rejects_a_different_token \
+  -vv --tb=short -p no:cacheprovider
+
+============================= test session starts ==============================
+platform linux -- Python 3.12.3, pytest-9.1.1, pluggy-1.7.0 -- /tmp/tc-venv/bin/python
+rootdir: /agent/repos/trust-copilot/apps/api
+configfile: pyproject.toml
+plugins: anyio-4.15.1
+collecting ... collected 3 items
+
+tests/release/test_job_leases.py::test_export_upload_longer_than_the_lease_commits FAILED [ 33%]
+tests/release/test_job_leases.py::test_taken_over_lease_is_still_lost_at_commit PASSED [ 66%]
+tests/release/test_job_leases.py::test_locked_row_still_rejects_a_different_token PASSED [100%]
+
+=================================== FAILURES ===================================
+_______________ test_export_upload_longer_than_the_lease_commits _______________
+tests/release/test_job_leases.py:1180: in test_export_upload_longer_than_the_lease_commits
+    assert stored.status == JobStatus.COMPLETED.value
+E   AssertionError: assert 'running' == 'completed'
+E     
+E     - completed
+E     + running
+------------------------------ Captured log call -------------------------------
+WARNING  app.services.storage_reconcile:storage_reconcile.py:214 storage commit failed; rolling back and discarding an unreferenced object bucket=test-exports key=exports/1/job-3.xlsx
+Traceback (most recent call last):
+  File "/agent/repos/trust-copilot/apps/api/app/services/storage_reconcile.py", line 212, in commit_or_discard_object
+    session.commit()
+  File "/agent/repos/trust-copilot/apps/api/app/core/job_lease.py", line 330, in fenced_commit
+    raise LeaseLost(job_id)
+app.core.job_lease.LeaseLost: job 3 lease is no longer held by this worker
+WARNING  app.services.storage_reconcile:storage_reconcile.py:187 refusing to delete storage object; a row still references it bucket=test-exports key=exports/1/job-3.xlsx
+=============================== warnings summary ===============================
+tests/release/test_job_leases.py::test_export_upload_longer_than_the_lease_commits
+  /tmp/tc-venv/lib/python3.12/site-packages/sqlalchemy/sql/schema.py:3627: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    return util.wrap_callable(lambda ctx: fn(), fn)  # type: ignore
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED tests/release/test_job_leases.py::test_export_upload_longer_than_the_lease_commits - AssertionError: assert 'running' == 'completed'
+  
+  - completed
+  + running
+==================== 1 failed, 2 passed, 1 warning in 5.46s ====================
+
+Exit 1. The stack is the pre-change fence (`job_lease.py` line 330). The job stayed `running`. `LeaseLost` was raised from the export commit. The two negative controls passed on that same tree.
