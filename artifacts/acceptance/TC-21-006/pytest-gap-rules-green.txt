@@ -1,0 +1,15 @@
+SHA 836695366552d42012e1190c2b55271e18fd13cf
+parent of the evidence commit: 836695366552d42012e1190c2b55271e18fd13cf
+working directory: apps/api
+command: python -m pytest tests/release/test_domain_compliance_gaps.py -q --tb=short
+interpreter: /tmp/tc-venv/bin/python
+python: Python 3.12.3
+pytest: pytest 9.1.1
+node: v24.22.1
+database: trustcopilot_test at 127.0.0.1:5432 user postgres
+postgresql: PostgreSQL 16.15 (Ubuntu 16.15-0ubuntu0.24.04.1)
+alembic heads: tc17003_security_claims (head)
+
+................                                                         [100%]
+16 passed, 107 warnings in 8.58s
+exit status: 0

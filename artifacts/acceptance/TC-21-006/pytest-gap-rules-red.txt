@@ -1,0 +1,19 @@
+base d0464193504fde8a656e616f158230cf9ddfedcb
+product fix not applied; applicability, non-applicable close, and cooldown tests present
+consumer tests not present
+working directory: apps/api
+command: python -m pytest tests/release/test_domain_compliance_gaps.py -q --tb=line
+interpreter: /tmp/tc-venv/bin/python
+python: Python 3.12.3
+pytest: pytest 9.1.1
+database: trustcopilot_test at 127.0.0.1:5432 user postgres
+postgresql: PostgreSQL 16.15 (Ubuntu 16.15-0ubuntu0.24.04.1)
+alembic heads: tc17003_security_claims (head)
+
+...........FF.                                                           [100%]
+FAILED tests/release/test_domain_compliance_gaps.py::test_non_applicable_control_is_not_closed_as_sufficient
+AssertionError: assert 'resolved' == 'open'
+FAILED tests/release/test_domain_compliance_gaps.py::test_cooldown_persists_without_a_second_notification
+assert 2 == 1
+2 failed, 12 passed, 95 warnings in 7.29s
+exit status: 1
