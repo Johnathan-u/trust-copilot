@@ -1,6 +1,60 @@
 # Notification rules and logs evidence
 
-Status: tested code has all four required CI checks green and independent review has no remaining blocker. Coordinator review remains pending; any evidence-only follow-up head must pass its own checks before readiness.
+Status: the rules form now stores an active workspace member by user id. Editable templates stay deferred under the Coordinator ruling. Real-provider sandbox evidence stays blocked on owner accounts. Independent review of this follow-up is not claimed.
+
+## UI and API contract
+
+Tested on the working tree that this note's code commit contains. Python 3.12.3, pytest 9.1.1, Node 24.22.1, Vitest 5.0.5, PostgreSQL 16.15, database `trustcopilot_test`. No provider network call.
+
+Parent page, before the form change (`git show HEAD:apps/web/app/dashboard/notifications/page.tsx` at `8dc9a94cc30904c99407e56d1f23888103ef7774`):
+
+`npx vitest run tests/unit/notification-rules-page.test.ts`
+
+Exit 1. **3 failed.** Each failure still found the label `User email or ID`.
+
+After the form change:
+
+`npx vitest run lib/notification-rule-form.test.ts tests/unit/notification-rules-page.test.ts`
+
+Exit 0. **5 passed** (2 helper cases, 3 page cases). The page case submits user id `17`, not membership id `90`, and a 422 `detail` list renders the fixed string.
+
+`npx vitest run` from `apps/web`: exit 0. **57 files, 479 passed.**
+
+PostgreSQL qualification, from `apps/api`:
+
+```
+env -u HTTP_PROXY -u HTTPS_PROXY -u ALL_PROXY -u http_proxy -u https_proxy -u all_proxy \
+  TC_TEST_DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:5432/trustcopilot_test \
+  TC_REQUIRE_DB=1 TC_REQUIRE_WEB_TOOLCHAIN=1 PYTHONPATH=. \
+  python -m pytest tests/release/test_notification_rules_browser.py -vv --tb=short
+```
+
+Exit 0. **1 passed in 17.07s.** The admin created a `member.joined` rule for the editor's user id, disabled it, and re-enabled it. The delivery log row stayed `failed` / `dead-lettered` / `delivered_to_provider` false / `provider_mode` fixture. API process pids were 7540 then 7748; web pids were 7541 then 7749. After the restart the same `notification_policies` and `notification_log` rows were still there, and the editor saw no Add rule, Disable, Enable, Remove, Alert Rules, Recent Activity, or Delivery attempts controls. Policies and the log returned 403 for that editor.
+
+`python -m pytest tests/release/test_domain_notifications.py -q` with the same database flags: exit 0. **53 passed.** This file was not changed.
+
+Screenshots and axe, from `apps/web`:
+
+```
+npx playwright test --config=playwright.rules-evidence.config.ts --retries=0
+```
+
+Exit 0. **3 passed.** `axe-rules-form-360.json`, `axe-rules-form-768.json`, and `axe-rules-form-1440.json` each have `violationCount` 0. Screenshots are `screenshots/rules-form-360.png`, `rules-form-768.png`, and `rules-form-1440.png`.
+
+`python scripts/security/secret_inventory.py paths` on the changed source and this evidence directory: **block 0**.
+
+The new browser test is collected by the existing `pytest -rs` step and uses the Chromium install already in the build job. No workflow, candidate list, or evidence-checker edit is required for it to run. #230's pytest total was 6451 passed and 1 skipped. This branch adds one test, so the expected full total is 6452 passed and 1 skipped, with the only skip `tests/test_trust_scoring_blind.py:33`. Confirm that on the final head's CI log.
+
+## Still open
+
+- Real Slack and SMTP/Gmail sandbox evidence (DoD6) needs owner accounts. It is not claimed.
+- Editable templates remain follow-up TC-19-009a under [issue #85 comment 6503678126](https://github.com/Johnathan-u/trust-copilot/issues/85#issuecomment-6503678126).
+- Independent review of this follow-up has not been done.
+- Optional CI retention, not applied here: upload `apps/web/playwright-report/rules-restart/` and `apps/web/test-results/rules-restart/` the same way the inbox restart report is uploaded.
+
+## Earlier API qualification
+
+Status at the earlier code SHA: tested code had all four required CI checks green and independent review had no remaining blocker. Coordinator review remained pending.
 
 ## Before the fix
 
