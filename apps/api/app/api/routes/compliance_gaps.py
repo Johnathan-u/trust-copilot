@@ -170,12 +170,24 @@ def _gap_row(
     }
 
 
-def evaluate_control(db: Session, wc: WorkspaceControl, workspace_id: int) -> dict | None:
-    """Return a gap, unknown, stale, or failed result. None means the control is clear."""
+class _SkippedControl:
+    """A control the check does not score. A saved row for it stays as stored."""
+
+    def __init__(self, control_id: int) -> None:
+        self.control_id = control_id
+
+
+def evaluate_control(
+    db: Session, wc: WorkspaceControl, workspace_id: int
+) -> dict | _SkippedControl | None:
+    """Return a gap, unknown, stale, or failed result.
+
+    None means the control is clear. A skipped control is not clear and is not a gap.
+    """
     try:
         scope = _scope(db, wc)
         if scope == "skipped":
-            return None
+            return _SkippedControl(wc.id)
         if scope == "unknown":
             return _gap_row(db, wc, "unknown", "missing_framework", [])
         now = datetime.now(timezone.utc).replace(tzinfo=None)
@@ -206,20 +218,23 @@ def global_gaps_list(
     db: Session,
     workspace_id: int,
     low_confidence_threshold: float,
-) -> list[dict]:
-    """Applicable controls that are gap, unknown, stale, or failed.
+) -> tuple[list[dict], set[int]]:
+    """Applicable controls that are gap, unknown, stale, or failed, plus skipped ids.
 
     ``low_confidence_threshold`` is accepted for callers and is not a pass.
-    A count of linked files is not a pass.
+    A count of linked files is not a pass. Skipped controls are not gaps.
     """
     del low_confidence_threshold
     rows = db.query(WorkspaceControl).filter(WorkspaceControl.workspace_id == workspace_id).all()
-    out = []
+    out: list[dict] = []
+    skipped: set[int] = set()
     for wc in rows:
         item = evaluate_control(db, wc, workspace_id)
-        if item is not None:
+        if isinstance(item, _SkippedControl):
+            skipped.add(item.control_id)
+        elif item is not None:
             out.append(item)
-    return out
+    return out, skipped
 
 
 def questionnaire_evidence_gaps_list(db: Session, workspace_id: int) -> list[dict]:
@@ -348,7 +363,7 @@ def list_gaps(
     if ws is None:
         return {"gaps": [], "questionnaire_evidence_gaps": []}
     chosen = _controls_for_read(db, ws, control_id)
-    gaps = global_gaps_list(db, ws, low_confidence_threshold)
+    gaps, _skipped = global_gaps_list(db, ws, low_confidence_threshold)
     if chosen is not None:
         gaps = [item for item in gaps if item["control_id"] == chosen.id]
     return {
@@ -416,14 +431,20 @@ def _lock_control_gap_writes(db: Session, control_id: int) -> None:
     )
 
 
-def _persist_control_checks(db: Session, workspace_id: int, gaps: list[dict]) -> set[int]:
-    """Update open control-check rows. Return control ids a reviewer already decided.
+def _persist_control_checks(
+    db: Session, workspace_id: int, gaps: list[dict], skipped: set[int]
+) -> tuple[set[int], int]:
+    """Update open control-check rows.
 
-    Accepted, dismissed, and any other non-open status stay as stored. A decided
-    control does not get a second open row, and it is not included in the notify set.
+    Return the control ids a reviewer already decided, and how many rows this
+    call wrote. Accepted, dismissed, and any other non-open status stay as
+    stored. A decided control does not get a second open row, and it is not
+    included in the notify set. A skipped control is left as stored: an open
+    row is not closed because the control is absent from ``gaps``. ``written``
+    counts inserted, updated, and closed rows, not rows left unchanged.
     """
     if not isinstance(db, Session):
-        return set()
+        return set(), 0
     rows = (
         db.query(EvidenceGap)
         .filter(
@@ -443,6 +464,7 @@ def _persist_control_checks(db: Session, workspace_id: int, gaps: list[dict]) ->
         else:
             decided.add(row.control_id)
     seen: set[int] = set()
+    written = 0
     now = datetime.now(timezone.utc)
     for item in gaps:
         control_id = int(item["control_id"])
@@ -476,6 +498,7 @@ def _persist_control_checks(db: Session, workspace_id: int, gaps: list[dict]) ->
                     owner_user_id=item["next_step"]["owner_user_id"],
                 )
             )
+            written += 1
         else:
             for row in open_rows:
                 row.reason = json.dumps(item["reason"])
@@ -485,15 +508,17 @@ def _persist_control_checks(db: Session, workspace_id: int, gaps: list[dict]) ->
                 row.next_action = item["next_step"]["action"]
                 row.owner_user_id = item["next_step"]["owner_user_id"]
                 row.updated_at = now
+                written += 1
     for control_id, open_rows in open_by_control.items():
-        if control_id in seen or control_id in decided:
+        if control_id in seen or control_id in decided or control_id in skipped:
             continue
         for row in open_rows:
             row.status = "resolved"
             row.closed_at = now
             row.close_reason = CONTROL_CHECK_CLOSE_REASON
             row.updated_at = now
-    return decided
+            written += 1
+    return decided, written
 
 
 @router.post("/scan-and-notify", response_model=dict)
@@ -505,8 +530,10 @@ def scan_and_notify_gaps(
 ):
     """Run a gap scan, persist the explainable results, then notify admins.
 
-    Rate-limited to once per hour per workspace. A failed notification does not
-    roll back the saved results. Idempotency-Key is optional.
+    Saved rows are written on every scan. Admin notification is limited to once
+    per hour per workspace. A failed notification does not roll back the saved
+    results. Idempotency-Key is optional. The same key replays the stored
+    response and does not send again.
     """
     ws = session.get("workspace_id")
     if ws is None:
@@ -521,41 +548,39 @@ def scan_and_notify_gaps(
         last = _last_gap_notify.get(ws)
         # No previous notification means no cooldown. (Defaulting to 0 put every workspace in
         # cooldown for the first hour after host boot, which made CI runners flaky.)
+        gaps, skipped = global_gaps_list(db, ws, low_confidence_threshold)
+        decided, written = _persist_control_checks(db, ws, gaps, skipped)
+        if isinstance(db, Session):
+            db.commit()
+        actionable = [item for item in gaps if int(item["control_id"]) not in decided]
+        payload = {
+            "gaps": len(gaps),
+            "notified": False,
+            "persisted": written,
+            "states": sorted({item.get("state", "gap") for item in gaps}),
+        }
         if last is not None and now - last < GAP_NOTIFY_COOLDOWN:
-            gaps = global_gaps_list(db, ws, low_confidence_threshold)
-            payload = {"gaps": len(gaps), "notified": False, "reason": "cooldown"}
-        else:
-            gaps = global_gaps_list(db, ws, low_confidence_threshold)
-            decided = _persist_control_checks(db, ws, gaps)
-            if isinstance(db, Session):
-                db.commit()
-            actionable = [item for item in gaps if int(item["control_id"]) not in decided]
-            payload = {
-                "gaps": len(gaps),
-                "notified": False,
-                "persisted": len(gaps),
-                "states": sorted({item.get("state", "gap") for item in gaps}),
-            }
-            if actionable:
-                try:
-                    body = ", ".join(
-                        f"{item.get('state', 'gap')}:{item.get('rule', item.get('gap_reason', 'gap'))}"
-                        for item in actionable[:12]
-                    )
-                    notify_admins(
-                        db,
-                        ws,
-                        f"{len(actionable)} compliance gap(s) detected",
-                        body,
-                        category="warning",
-                        link="/dashboard/compliance-gaps",
-                    )
-                    _last_gap_notify[ws] = now
-                    payload["notified"] = True
-                except Exception:
-                    db.rollback()
-                    payload["notified"] = False
-                    payload["notification_error"] = "delivery_failed"
+            payload["reason"] = "cooldown"
+        elif actionable:
+            try:
+                body = ", ".join(
+                    f"{item.get('state', 'gap')}:{item.get('rule', item.get('gap_reason', 'gap'))}"
+                    for item in actionable[:12]
+                )
+                notify_admins(
+                    db,
+                    ws,
+                    f"{len(actionable)} compliance gap(s) detected",
+                    body,
+                    category="warning",
+                    link="/dashboard/compliance-gaps",
+                )
+                _last_gap_notify[ws] = now
+                payload["notified"] = True
+            except Exception:
+                db.rollback()
+                payload["notified"] = False
+                payload["notification_error"] = "delivery_failed"
         return payload
     except Exception:
         db.rollback()

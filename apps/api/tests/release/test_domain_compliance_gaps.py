@@ -6,6 +6,7 @@ Notification delivery is stubbed. Nothing is sent.
 
 import json
 import os
+import shutil
 import subprocess
 import sys
 import uuid
@@ -27,6 +28,8 @@ from app.models import (
     EvidenceGap,
     EvidenceItem,
     EvidenceMetadata,
+    Framework,
+    FrameworkControl,
     User,
     Workspace,
     WorkspaceControl,
@@ -34,6 +37,7 @@ from app.models import (
 )
 
 API_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
+REPO_ROOT = os.path.dirname(os.path.dirname(API_ROOT))
 PARENT = "tc21005_mapping_version"
 REVISION = "tc21006_gap_evaluation"
 CONTROL_INDEX = "ix_evidence_gaps_control_id"
@@ -54,6 +58,8 @@ _COUNTED = (
     "evidence_items",
     "documents",
     "workspace_controls",
+    "framework_controls",
+    "frameworks",
     "in_app_notifications",
     "idempotency_keys",
     "audit_events",
@@ -309,6 +315,164 @@ def _link(control_id: int, evidence_id: int) -> None:
             ControlEvidenceLink(control_id=control_id, evidence_id=evidence_id, verified=False)
         )
         session.commit()
+    finally:
+        session.close()
+
+
+def _framework_backed_control(
+    workspace_id: int,
+    name: str,
+    *,
+    rights_status: str | None = None,
+    omit_framework: bool = False,
+) -> int:
+    """Workspace control on a synthetic framework row, or on a control with no framework."""
+    session = _db()
+    try:
+        if omit_framework:
+            _sync_sequence(session, "framework_controls")
+            session.execute(text("SET session_replication_role = replica"))
+            framework_control_id = session.execute(
+                text(
+                    "INSERT INTO framework_controls "
+                    "(framework_id, control_key, title, criticality, created_at) "
+                    "VALUES (999999993, :key, 'Synthetic', 'medium', NOW()) RETURNING id"
+                ),
+                {"key": f"SYN-{uuid.uuid4().hex[:12]}"},
+            ).scalar()
+            session.execute(text("SET session_replication_role = DEFAULT"))
+        else:
+            _sync_sequence(session, "frameworks")
+            framework = Framework(
+                name=f"SYN-{uuid.uuid4().hex[:8]}",
+                catalog_key=f"syn-{uuid.uuid4().hex[:12]}",
+                rights_status=rights_status,
+                enablement_state="blocked",
+                production_catalog=False,
+            )
+            session.add(framework)
+            session.flush()
+            _sync_sequence(session, "framework_controls")
+            template = FrameworkControl(
+                framework_id=framework.id,
+                control_key=f"SYN-{uuid.uuid4().hex[:8]}",
+                title="Synthetic template",
+                criticality="medium",
+            )
+            session.add(template)
+            session.flush()
+            framework_control_id = template.id
+        _sync_sequence(session, "workspace_controls")
+        row = WorkspaceControl(
+            workspace_id=workspace_id,
+            status="not_implemented",
+            custom_name=name,
+            framework_control_id=framework_control_id,
+        )
+        session.add(row)
+        session.commit()
+        return row.id
+    except Exception:
+        session.rollback()
+        raise
+    finally:
+        try:
+            session.execute(text("SET session_replication_role = DEFAULT"))
+            session.commit()
+        except Exception:
+            session.rollback()
+        session.close()
+
+
+def _attach_blocked_framework(control_id: int) -> None:
+    session = _db()
+    try:
+        _sync_sequence(session, "frameworks")
+        framework = Framework(
+            name=f"SYN-{uuid.uuid4().hex[:8]}",
+            catalog_key=f"syn-{uuid.uuid4().hex[:12]}",
+            rights_status="blocked_pending_rights",
+            enablement_state="blocked",
+            production_catalog=False,
+        )
+        session.add(framework)
+        session.flush()
+        _sync_sequence(session, "framework_controls")
+        template = FrameworkControl(
+            framework_id=framework.id,
+            control_key=f"SYN-{uuid.uuid4().hex[:8]}",
+            title="Synthetic template",
+            criticality="medium",
+        )
+        session.add(template)
+        session.flush()
+        control = session.get(WorkspaceControl, control_id)
+        assert control is not None
+        control.framework_control_id = template.id
+        session.commit()
+    except Exception:
+        session.rollback()
+        raise
+    finally:
+        session.close()
+
+
+def _evidence_on_foreign_document(workspace_id: int, document_workspace_id: int) -> int:
+    """Approved evidence here whose document row belongs to another workspace.
+
+    The same-workspace trigger rejects this write. The read rule still reports
+    the document as missing when the row is already stored, so the insert runs
+    with triggers off, the same way a dangling evidence id is inserted.
+    """
+    session = _db()
+    try:
+        _sync_sequence(session, "documents")
+        doc = Document(
+            workspace_id=document_workspace_id,
+            storage_key=f"tc21006/{uuid.uuid4().hex}",
+            filename="synthetic.txt",
+            status="uploaded",
+        )
+        session.add(doc)
+        session.flush()
+        _sync_sequence(session, "evidence_items")
+        session.execute(text("SET session_replication_role = replica"))
+        row = EvidenceItem(
+            workspace_id=workspace_id,
+            document_id=doc.id,
+            source_type="document",
+            title="Synthetic evidence",
+            approval_status="approved",
+        )
+        session.add(row)
+        session.flush()
+        evidence_id = row.id
+        session.execute(text("SET session_replication_role = DEFAULT"))
+        session.commit()
+        return evidence_id
+    except Exception:
+        session.rollback()
+        raise
+    finally:
+        try:
+            session.execute(text("SET session_replication_role = DEFAULT"))
+            session.commit()
+        except Exception:
+            session.rollback()
+        session.close()
+
+
+def _stored_checks(control_id: int) -> list:
+    session = _db()
+    try:
+        return session.execute(
+            text(
+                "SELECT id, status, close_reason, evaluation_state, rule_code "
+                "FROM evidence_gaps WHERE control_id = :id AND gap_type = 'control_check' "
+                "ORDER BY id"
+            ),
+            {"id": control_id},
+        ).fetchall()
     finally:
         session.close()
 
@@ -668,6 +832,250 @@ def test_foreign_evidence_ids_are_omitted(client):
         assert row.evidence_refs == "[]"
         assert row.evaluation_state == "unknown"
         assert row.rule_code == "missing_evidence_row"
+
+
+def test_blocked_rights_control_is_absent_and_creates_no_scan_row(client):
+    actors = _actors()
+    control_id = _framework_backed_control(
+        actors["workspace_id"],
+        f"Blocked {uuid.uuid4().hex[:8]}",
+        rights_status="blocked_pending_rights",
+    )
+    _login(client, REVIEWER_EMAIL, REVIEWER_PASSWORD)
+    assert _gap_for(client, control_id) is None
+    _login(client, ADMIN_EMAIL, ADMIN_PASSWORD)
+    with patch("app.api.routes.compliance_gaps.notify_admins"):
+        scanned = client.post("/api/compliance/gaps/scan-and-notify")
+    assert scanned.status_code == 200, scanned.text
+    assert _stored_checks(control_id) == []
+
+
+def test_missing_framework_is_unknown(client):
+    actors = _actors()
+    control_id = _framework_backed_control(
+        actors["workspace_id"],
+        f"No framework {uuid.uuid4().hex[:8]}",
+        omit_framework=True,
+    )
+    _login(client, REVIEWER_EMAIL, REVIEWER_PASSWORD)
+    gap = _gap_for(client, control_id)
+    assert gap["state"] == "unknown"
+    assert gap["rule"] == "missing_framework"
+    assert gap["reason"]["control_id"] == control_id
+    assert gap["reason"]["evidence_ids"] == []
+    assert gap["next_step"]["action"] == "resolve_reference"
+
+
+def test_deleted_document_is_a_gap(client):
+    actors = _actors()
+    control_id = _control(actors["workspace_id"], f"Deleted doc {uuid.uuid4().hex[:8]}")
+    evidence_id = _evidence(actors["workspace_id"], approval="approved", document_deleted=True)
+    _link(control_id, evidence_id)
+    _login(client, REVIEWER_EMAIL, REVIEWER_PASSWORD)
+    gap = _gap_for(client, control_id)
+    assert gap["state"] == "gap"
+    assert gap["rule"] == "deleted_document"
+    assert gap["evidence_ids"] == [evidence_id]
+    assert gap["next_step"]["action"] == "replace_deleted_evidence"
+
+
+def test_document_in_another_workspace_is_missing(client):
+    actors = _actors()
+    control_id = _control(actors["workspace_id"], f"Foreign doc {uuid.uuid4().hex[:8]}")
+    evidence_id = _evidence_on_foreign_document(
+        actors["workspace_id"], actors["other_workspace_id"]
+    )
+    _link(control_id, evidence_id)
+    _login(client, REVIEWER_EMAIL, REVIEWER_PASSWORD)
+    gap = _gap_for(client, control_id)
+    assert gap["state"] == "unknown"
+    assert gap["rule"] == "missing_document"
+    assert gap["evidence_ids"] == [evidence_id]
+    assert gap["next_step"]["action"] == "resolve_reference"
+
+
+def test_non_applicable_control_is_not_closed_as_sufficient(client):
+    actors = _actors()
+    control_id = _control(actors["workspace_id"], f"Becomes blocked {uuid.uuid4().hex[:8]}")
+    _login(client, ADMIN_EMAIL, ADMIN_PASSWORD)
+    with patch("app.api.routes.compliance_gaps.notify_admins"):
+        opened = client.post("/api/compliance/gaps/scan-and-notify")
+    assert opened.status_code == 200, opened.text
+    stored = _stored_checks(control_id)
+    assert len(stored) == 1
+    assert stored[0].status == "open"
+    assert stored[0].close_reason is None
+    _attach_blocked_framework(control_id)
+    assert _gap_for(client, control_id) is None
+    # The wrong close happens when the scan writes. A cooldown skip would hide it.
+    gaps_mod._last_gap_notify.pop(actors["workspace_id"], None)
+    with patch("app.api.routes.compliance_gaps.notify_admins"):
+        scanned = client.post("/api/compliance/gaps/scan-and-notify")
+    assert scanned.status_code == 200, scanned.text
+    stored = _stored_checks(control_id)
+    assert len(stored) == 1
+    assert stored[0].status == "open"
+    assert stored[0].close_reason is None
+    assert stored[0].close_reason != CONTROL_CHECK_CLOSE_REASON
+
+
+def test_cooldown_persists_without_a_second_notification(client):
+    actors = _actors()
+    open_control = _control(actors["workspace_id"], f"Cooldown {uuid.uuid4().hex[:8]}")
+    decided_control = _control(actors["workspace_id"], f"Decided {uuid.uuid4().hex[:8]}")
+    session = _db()
+    try:
+        _sync_sequence(session, "evidence_gaps")
+        decided = EvidenceGap(
+            workspace_id=actors["workspace_id"],
+            gap_type="control_check",
+            reason='{"rule": "no_evidence", "kept": "accepted"}',
+            status="accepted",
+            control_id=decided_control,
+            evaluation_state="gap",
+            rule_code="no_evidence",
+            evidence_refs="[]",
+            next_action="collect_evidence",
+        )
+        session.add(decided)
+        session.commit()
+        decided_id = decided.id
+    finally:
+        session.close()
+    before_decided = _decision_snapshot([decided_id])
+    before_notes = _counts()["in_app_notifications"]
+    _login(client, ADMIN_EMAIL, ADMIN_PASSWORD)
+    first = client.post("/api/compliance/gaps/scan-and-notify")
+    assert first.status_code == 200, first.text
+    assert first.json()["notified"] is True
+    assert first.json()["gaps"] == 2
+    assert first.json()["persisted"] == 1
+    assert _counts()["in_app_notifications"] == before_notes + 1
+    opened = _stored_checks(open_control)
+    assert len(opened) == 1
+    assert opened[0].rule_code == "no_evidence"
+    pending = _evidence(actors["workspace_id"], approval="pending")
+    _link(open_control, pending)
+    live = _gap_for(client, open_control)
+    assert live["state"] == "gap"
+    assert live["rule"] == "not_approved"
+    second = client.post("/api/compliance/gaps/scan-and-notify")
+    assert second.status_code == 200, second.text
+    assert second.json()["notified"] is False
+    assert second.json()["reason"] == "cooldown"
+    assert second.json()["persisted"] == 1
+    assert second.json()["gaps"] == 2
+    assert _counts()["in_app_notifications"] == before_notes + 1
+    updated = _stored_checks(open_control)
+    assert len(updated) == 1
+    assert updated[0].id == opened[0].id
+    assert updated[0].status == "open"
+    assert updated[0].rule_code == "not_approved"
+    assert updated[0].evaluation_state == "gap"
+    assert _decision_snapshot([decided_id]) == before_decided
+
+
+def _reader_accepts(module: str, export: str, samples: dict, malformed: dict) -> dict:
+    """Run a web reader on captured payloads. Node comes from PATH, as CI does."""
+    node = shutil.which("node")
+    assert node, "node is not on PATH"
+    version = subprocess.run([node, "--version"], capture_output=True, text=True, check=False)
+    assert version.returncode == 0, version.stderr
+    assert version.stdout.startswith("v24."), version.stdout
+    script = (
+        f"import {{ {export} }} from './apps/web/lib/{module}.ts';"
+        "const fs = await import('node:fs');"
+        "const payload = JSON.parse(fs.readFileSync(0, 'utf8'));"
+        "const accepted = {};"
+        "for (const [name, body] of Object.entries(payload.samples)) {"
+        f"  accepted[name] = {export}(body);"
+        "}"
+        "let rejected = false;"
+        f"try {{ {export}(payload.malformed); }}"
+        "catch { rejected = true; }"
+        "if (!rejected) throw new Error('malformed payload was accepted');"
+        "process.stdout.write(JSON.stringify(accepted));"
+    )
+    proc = subprocess.run(
+        [node, "--experimental-strip-types", "--input-type=module", "-e", script],
+        input=json.dumps({"samples": samples, "malformed": malformed}),
+        text=True,
+        capture_output=True,
+        cwd=REPO_ROOT,
+        check=False,
+    )
+    assert proc.returncode == 0, proc.stderr
+    return json.loads(proc.stdout)
+
+
+def test_web_reader_accepts_compliance_gaps_payload(client):
+    actors = _actors()
+    control_id = _control(actors["workspace_id"], f"Reader {uuid.uuid4().hex[:8]}")
+    _login(client, REVIEWER_EMAIL, REVIEWER_PASSWORD)
+    listed = client.get("/api/compliance/gaps", params={"control_id": control_id})
+    assert listed.status_code == 200, listed.text
+    body = listed.json()
+    hit = [item for item in body["gaps"] if item["control_id"] == control_id]
+    assert len(hit) == 1
+    assert hit[0]["state"] == "gap"
+    assert hit[0]["rule"] == "no_evidence"
+    engine.dispose()
+    _reset_login_limit()
+    from fastapi.testclient import TestClient
+
+    from app.main import app
+    from tests.conftest import TEST_HEADERS, TEST_ORIGIN
+
+    fresh = TestClient(app, base_url=TEST_ORIGIN, headers=TEST_HEADERS)
+    try:
+        _login(fresh, REVIEWER_EMAIL, REVIEWER_PASSWORD)
+        again = fresh.get("/api/compliance/gaps", params={"control_id": control_id})
+        assert again.status_code == 200, again.text
+        assert again.json() == body
+    finally:
+        fresh.close()
+    accepted = _reader_accepts(
+        "complianceGapConsumer",
+        "parseComplianceGaps",
+        {"listed": body, "fresh": again.json()},
+        {"gaps": [], "questionnaire_evidence_gaps": [{"gap_kind": "other"}]},
+    )
+    assert accepted["listed"] == accepted["fresh"]
+    parsed = [item for item in accepted["listed"]["gaps"] if item["control_id"] == control_id]
+    assert parsed[0]["state"] == "gap"
+    assert parsed[0]["rule"] == "no_evidence"
+    assert parsed[0]["next_step"]["action"] == "collect_evidence"
+    assert parsed[0]["next_step"]["owner_missing"] is True
+
+
+def test_scan_row_matches_the_evidence_gap_consumer(client):
+    actors = _actors()
+    control_id = _control(actors["workspace_id"], f"Stored {uuid.uuid4().hex[:8]}")
+    _login(client, ADMIN_EMAIL, ADMIN_PASSWORD)
+    with patch("app.api.routes.compliance_gaps.notify_admins"):
+        scanned = client.post("/api/compliance/gaps/scan-and-notify")
+    assert scanned.status_code == 200, scanned.text
+    listed = client.get("/api/evidence-gaps")
+    assert listed.status_code == 200, listed.text
+    rows = [
+        item
+        for item in listed.json()["gaps"]
+        if item["control_id"] == control_id and item["gap_type"] == "control_check"
+    ]
+    assert len(rows) == 1
+    assert rows[0]["status"] == "open"
+    accepted = _reader_accepts(
+        "evidenceGapConsumer",
+        "parseEvidenceGap",
+        {"row": rows[0]},
+        {"schema_version": "other"},
+    )
+    assert accepted["row"]["schema_version"] == rows[0]["schema_version"]
+    assert accepted["row"]["id"] == rows[0]["id"]
+    assert accepted["row"]["status"] == "open"
+    assert accepted["row"]["gap_type"] == "control_check"
+    assert accepted["row"]["control_id"] == control_id
+    assert accepted["row"]["owner_missing"] is True
 
 
 def test_migration_round_trip_restores_gap_evaluation():
