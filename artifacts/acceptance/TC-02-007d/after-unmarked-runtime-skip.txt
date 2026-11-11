@@ -1,0 +1,12 @@
+conftest: branch apps/api/tests/conftest.py (this change)
+scenario: unmarked-runtime-skip
+flags: TC_REQUIRE_DB=1, TC_REQUIRE_STORAGE unset
+exit: 1
+---
+.F                                                                       [100%]
+=================================== FAILURES ===================================
+__________________________ test_unmarked_runtime_skip __________________________
+TC_REQUIRE_DB=1: test skipped instead of running: Skipped: deliberate unmarked skip
+=========================== short test summary info ============================
+FAILED tests/.tc02007d-cd3f69d93db848ecb306d9241e2d16d6/test_probe.py::test_unmarked_runtime_skip
+1 failed, 1 passed in 0.13s

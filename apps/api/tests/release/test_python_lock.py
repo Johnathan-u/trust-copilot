@@ -426,7 +426,8 @@ def test_db_test_skip_fails_when_db_is_required(tmp_path):
     assert got["test_db_skip"] == "FAILED"
     assert got["test_db_fixture_skip"] == "ERROR"  # skip raised in setup -> setup error
     assert got["test_db_external_data_skip"] == "SKIPPED"
-    assert got["test_unit_skip"] == "SKIPPED"
+    # Any skip that is not provider, live_stack or external_data fails, including unit.
+    assert got["test_unit_skip"] == "FAILED"
     assert got["test_db_xfail"] == "XFAIL"
     assert got["_rc"] == "1"
 

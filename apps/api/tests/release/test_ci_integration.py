@@ -2,7 +2,8 @@
 
 Parses `.github/workflows/ci.yml` and runs the gates against deliberate failures.
 The database, storage and browser steps are not started here. Negative controls
-use a child pytest, the release-spec shell, or the e2e report checker.
+use a child pytest from a temporary directory, the release-spec shell, or the
+e2e report checker.
 """
 
 from __future__ import annotations
@@ -10,7 +11,6 @@ from __future__ import annotations
 import json
 import os
 import re
-import shutil
 import subprocess
 import sys
 import uuid
@@ -84,28 +84,55 @@ def _redact(text: str) -> str:
 
 
 def _run_child(
-    source: str, *, updates: dict[str, str], drops: tuple[str, ...]
+    source: str,
+    *,
+    updates: dict[str, str],
+    drops: tuple[str, ...],
+    tmp_path: Path,
+    directory_conftest: str | None = None,
 ) -> subprocess.CompletedProcess[str]:
-    directory = API / "tests" / "release" / f"_tc02007_{uuid.uuid4().hex}"
+    """Run a child pytest whose files live under ``tmp_path``.
+
+    Pytest only loads ``tests/conftest.py`` for a path under ``tests/``. The
+    invocation path is a short-lived symlink there, outside ``tests/release``,
+    so the child hits the same path-local gate CI loads. The files themselves
+    stay in the temporary directory.
+    """
+    directory = tmp_path / "child"
     directory.mkdir()
-    try:
-        (directory / "test_probe.py").write_text(source, encoding="utf-8")
-        # A collected test keeps pytest from exiting 5 when the only other
-        # module is a collection-time skip. The full suite has the same shape.
-        (directory / "test_anchor.py").write_text(
-            "def test_anchor():\n    assert True\n",
+    if directory_conftest is not None:
+        nested = directory / "nested"
+        nested.mkdir()
+        (nested / "conftest.py").write_text(directory_conftest, encoding="utf-8")
+        (nested / "test_hidden.py").write_text(
+            "def test_hidden():\n"
+            "    raise AssertionError('directory skip should have prevented this')\n",
             encoding="utf-8",
         )
+    if source:
+        (directory / "test_probe.py").write_text(source, encoding="utf-8")
+    # A collected test keeps pytest from exiting 5 when the only other
+    # module is a collection-time skip. The full suite has the same shape.
+    (directory / "test_anchor.py").write_text(
+        "def test_anchor():\n    assert True\n",
+        encoding="utf-8",
+    )
+    link = API / "tests" / f".tc02007d-{uuid.uuid4().hex}"
+    link.symlink_to(directory, target_is_directory=True)
+    try:
         env = os.environ.copy()
         for key in drops:
             env.pop(key, None)
         env.update(updates)
+        # A relative path keeps the symlink unresolved, so rootdir stays apps/api
+        # and tests/conftest.py is an ancestor. An absolute path follows the link
+        # out of the tree and the gate is never loaded.
         return subprocess.run(
             [
                 sys.executable,
                 "-m",
                 "pytest",
-                str(directory),
+                link.relative_to(API).as_posix(),
                 "-q",
                 "-p",
                 "no:cacheprovider",
@@ -118,7 +145,7 @@ def _run_child(
             check=False,
         )
     finally:
-        shutil.rmtree(directory, ignore_errors=True)
+        link.unlink(missing_ok=True)
 
 
 def test_database_storage_and_chromium_wait_until_ready():
@@ -141,6 +168,9 @@ def test_database_storage_and_chromium_wait_until_ready():
     assert "@sha256:" in image
     assert "minio" not in image.lower()
     assert "seq 1 60" in s3_script
+    assert "--max-time 15" in s3_script
+    assert "moto.__version__" in s3_script
+    assert 'print("moto version:"' in s3_script
     assert s3_script.count("/moto-api/") == 2
     assert s3_script.rindex("/moto-api/") > s3_done
     assert "127.0.0.1:9000:5000" in s3_script
@@ -284,7 +314,7 @@ def test_blind_pack_module_is_marked_external_data():
     assert names == {"external_data"}
 
 
-def test_deliberate_integration_skip_fails_under_tc_require_db():
+def test_deliberate_integration_skip_fails_under_tc_require_db(tmp_path):
     proc = _run_child(
         "import pytest\n"
         "pytestmark = pytest.mark.integration\n"
@@ -292,13 +322,14 @@ def test_deliberate_integration_skip_fails_under_tc_require_db():
         "    pytest.skip('deliberate integration skip')\n",
         updates={"TC_REQUIRE_DB": "1"},
         drops=("TC_REQUIRE_STORAGE",),
+        tmp_path=tmp_path,
     )
     output = proc.stdout + proc.stderr
     assert proc.returncode != 0, _redact(output)
     assert "DB (integration) test skipped instead of running" in output
 
 
-def test_unmarked_module_skip_fails_under_tc_require_db():
+def test_unmarked_module_skip_fails_under_tc_require_db(tmp_path):
     proc = _run_child(
         "import pytest\n"
         "def test_should_not_run():\n"
@@ -306,26 +337,72 @@ def test_unmarked_module_skip_fails_under_tc_require_db():
         "pytest.skip('unmarked module-level skip', allow_module_level=True)\n",
         updates={"TC_REQUIRE_DB": "1"},
         drops=("TC_REQUIRE_STORAGE",),
+        tmp_path=tmp_path,
     )
     output = proc.stdout + proc.stderr
     assert proc.returncode != 0, _redact(output)
     assert "collection-time skip is not allowed" in output
 
 
-def test_marked_external_data_module_skip_stays_allowed():
+def test_marked_external_data_module_skip_stays_allowed(tmp_path):
     proc = _run_child(
         "import pytest\n"
         "pytestmark = pytest.mark.external_data\n"
         "pytest.skip('external_data: synthetic allowed skip', allow_module_level=True)\n",
         updates={"TC_REQUIRE_DB": "1"},
         drops=("TC_REQUIRE_STORAGE",),
+        tmp_path=tmp_path,
     )
     output = proc.stdout + proc.stderr
     assert "collection-time skip is not allowed" not in output
     assert proc.returncode == 0, _redact(output)
 
 
-def test_storage_unavailability_fails_under_tc_require_storage():
+def test_subdirectory_conftest_skip_fails_under_tc_require_db(tmp_path):
+    proc = _run_child(
+        "",
+        updates={"TC_REQUIRE_DB": "1"},
+        drops=("TC_REQUIRE_STORAGE",),
+        tmp_path=tmp_path,
+        directory_conftest=(
+            "import pytest\n" "pytest.skip('subdirectory conftest skip', allow_module_level=True)\n"
+        ),
+    )
+    output = proc.stdout + proc.stderr
+    assert proc.returncode != 0, _redact(output)
+    assert "collection-time skip is not allowed" in output
+
+
+def test_unmarked_runtime_skip_fails_under_tc_require_db(tmp_path):
+    proc = _run_child(
+        "import pytest\n"
+        "def test_unmarked_runtime_skip():\n"
+        "    pytest.skip('deliberate unmarked skip')\n",
+        updates={"TC_REQUIRE_DB": "1"},
+        drops=("TC_REQUIRE_STORAGE",),
+        tmp_path=tmp_path,
+    )
+    output = proc.stdout + proc.stderr
+    assert proc.returncode != 0, _redact(output)
+    assert "TC_REQUIRE_DB=1: test skipped instead of running" in output
+
+
+def test_storage_marked_skip_fails_under_tc_require_db(tmp_path):
+    proc = _run_child(
+        "import pytest\n"
+        "pytestmark = pytest.mark.storage\n"
+        "def test_storage_marked_skip():\n"
+        "    pytest.skip('deliberate storage skip')\n",
+        updates={"TC_REQUIRE_DB": "1"},
+        drops=("TC_REQUIRE_STORAGE",),
+        tmp_path=tmp_path,
+    )
+    output = proc.stdout + proc.stderr
+    assert proc.returncode != 0, _redact(output)
+    assert "TC_REQUIRE_DB=1: test skipped instead of running" in output
+
+
+def test_storage_unavailability_fails_under_tc_require_storage(tmp_path):
     proc = _run_child(
         "def test_storage_gate_reaches_the_test():\n    assert True\n",
         updates={
@@ -333,7 +410,20 @@ def test_storage_unavailability_fails_under_tc_require_storage():
             "TC_TEST_S3_ENDPOINT": "http://127.0.0.1:1",
         },
         drops=("TC_REQUIRE_DB",),
+        tmp_path=tmp_path,
     )
     output = proc.stdout + proc.stderr
     assert proc.returncode != 0, _redact(output)
     assert "TC_REQUIRE_STORAGE=1: object storage unavailable" in output
+
+
+def test_moto_readiness_timeout_and_licence_match_ci():
+    doc = (ROOT / "docs" / "release" / "tickets" / "TC-02-007.md").read_text(encoding="utf-8")
+    assert "limited to 15 seconds" in doc
+    assert "limited to 5 seconds" not in doc
+    licence = (ROOT / "docs" / "acceptance" / "license-resolution.md").read_text(encoding="utf-8")
+    section = licence.split("## 6. Development and test tools", 1)[1].split("\n## ", 1)[0]
+    assert "`motoserver/moto:5.2.5`" in section
+    assert "Apache-2.0" in section
+    assert "test-only" in section
+    assert "not shipped" in section
