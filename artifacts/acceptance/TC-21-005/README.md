@@ -46,3 +46,5 @@ Local checks, Python 3.12.3, Node 24.22.1, PostgreSQL 16.15 database `trustcopil
 The new API test captures suggest, confirm, override, and rollback payloads from PostgreSQL. A confirm after an override stays `overridden` with `precedence_held`. A new client, after `engine.dispose()`, reads that same suggestion. The web reader accepts those payloads and rejects a malformed one. The vitest remounts the mapping panel and still shows Overridden. No test was skipped.
 
 Local Playwright Chromium against the coverage page, with the API mocked, passed 10 tests in `e2e/release/ui-23.spec.ts`: question disclosure, source retry, workspace change, and the 360/768/1440 accessibility checks. CI workflow files were not changed.
+
+Those checks ran on the tree committed as `1beeca7f1e8b2fa7893cb8a18d5a8849cc36fe8e`. This paragraph is the only later edit.
