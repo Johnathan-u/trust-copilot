@@ -1,0 +1,104 @@
+{
+  "ticket": "TC-09-001a",
+  "estimate_child_points": 3,
+  "claim": "https://github.com/Johnathan-u/trust-copilot/issues/85#issuecomment-6534340084",
+  "base_commit": "14737c8ab2847db87a95391a6f7b6ab7b9b5fd13",
+  "branch": "codex/TC-09-001a-xlsx-question-detection",
+  "tested_revision": "Working tree based on the base commit; exact final source SHA-256 values below. Evidence is committed with these source bytes.",
+  "environment": {
+    "python": "3.12.14",
+    "pytest": "9.1.1",
+    "ruff": "0.5.6",
+    "openpyxl": "3.1.5",
+    "workdir": "apps/api",
+    "python_executable": "/tmp/tc-backend-venv/bin/python",
+    "synthetic_data_only": true,
+    "external_providers_used": false
+  },
+  "source_sha256": {
+    "apps/api/app/services/xlsx_questionnaire_parser.py": "4f2035fbbd07261b83243db73c51fda5c4e22a62f84966524fa6dcdb5fc87d84",
+    "apps/api/tests/release/test_question_detection.py": "dcb34bab53c9d1926f0b692885d3f8670f3e37932b45a64c1b4a673ab50cc98b",
+    "apps/api/app/services/question_detector.py": "1933a5474dfd0b31acb2ee9eb81f096ffe401171151f6846869b1e3eafd2b071",
+    "apps/api/app/services/xlsx_parser.py": "646ff2e3311b5c80c70eeb7d18785e9adfe28755017b64cf429b761db8b55e16",
+    "apps/api/app/services/docx_questionnaire_parser.py": "c3e3ac1ad6d139c4683eeba43b6fe16e7273c3d7595b1e8008754d8e5a386851",
+    "apps/api/app/services/pdf_questionnaire_parser.py": "22a782e994dccafcd2a3862e95ae981d481d01d52dee89ece0b8b8ef5961424a",
+    "apps/api/app/services/question_normalizer.py": "c11ce4a9671acfb9c7729fba68e7573d8b95adb834fe34bc5b3e62f28adbcc31",
+    "apps/api/app/services/answer_type.py": "e91ddd85b33048a0a7f0bbddf5350aa93b20a23b0c83f7a44acb396aa19133f7"
+  },
+  "checks": [
+    {
+      "name": "Original regression before implementation",
+      "command": "PYTHONDONTWRITEBYTECODE=1 /tmp/tc-backend-venv/bin/python -m pytest tests/release/test_question_detection.py -q",
+      "source": "Unchanged production at base commit; initial two tests before adding six ambiguous heading negatives",
+      "exit_code": 1,
+      "result": "1 failed, 1 passed; only 2 of 7 expected questions returned",
+      "stdout": "F.                                                                       [100%]\n=================================== FAILURES ===================================\n_________ test_xlsx_detects_seven_questions_without_replacing_sections _________\n\ntmp_path = PosixPath('/tmp/pytest-of-root/pytest-89/test_xlsx_detects_seven_questi0')\n\n    def test_xlsx_detects_seven_questions_without_replacing_sections(tmp_path: Path) -> None:\n        \"\"\"Numbering and uppercase text must not turn questions into section labels.\"\"\"\n        workbook = Workbook()\n        access = workbook.active\n        access.title = \"Access\"\n        for row in [\n            [\"ACCESS CONTROL\"],\n            [None, \"  DO YOU REQUIRE MFA?  \"],\n            [12, None, \"1. Do you encrypt customer data?\"],\n            [\"2. ACCESS MANAGEMENT\"],\n            [None, \"Q3) DESCRIBE YOUR ACCESS REVIEW PROCESS\", \"Do you review accounts?\"],\n            [None, None, \"ЧИ ЗАХИЩЕНІ ВАШІ ДАНІ?\"],\n            [\" Do you \\n review access annually? \"],\n        ]:\n            access.append(row)\n        recovery = workbook.create_sheet(\"Recovery\")\n        for row in [\n            [\"Describe your recovery process\"],\n            [\"RECOVERY\"],\n            [\"1. BACKUP AND RECOVERY\"],\n            [None, \"1.1. DO YOU TEST RESTORES?\"],\n        ]:\n            recovery.append(row)\n        path = tmp_path / \"question-heading-corpus.xlsx\"\n        workbook.save(path)\n        workbook.close()\n    \n        questions = parse_xlsx_questionnaire(path)\n    \n>       assert [question[\"text\"] for question in questions] == [\n            \"do you require mfa\",\n            \"1. do you encrypt customer data\",\n            \"q3) describe your access review process\",\n            \"чи захищені ваші дані\",\n            \"do you review access annually\",\n            \"describe your recovery process\",\n            \"1.1. do you test restores\",\n        ]\nE       AssertionError: assert ['do you revi...very process'] == ['do you requ...process', ...]\nE         \nE         At index 0 diff: 'do you review access annually' != 'do you require mfa'\nE         Right contains 5 more items, first extra item: 'q3) describe your access review process'\nE         Use -v to get more diff\n\ntests/release/test_question_detection.py:40: AssertionError\n=========================== short test summary info ============================\nFAILED tests/release/test_question_detection.py::test_xlsx_detects_seven_questions_without_replacing_sections\n1 failed, 1 passed in 1.16s\n"
+    },
+    {
+      "name": "Negative corpus rejects the initial unguarded candidate",
+      "command": "PYTHONDONTWRITEBYTECODE=1 /tmp/tc-backend-venv/bin/python -m pytest tests/release/test_question_detection.py -q",
+      "source": "Intermediate XLSX-only candidate before the explicit-notation guard; final thirteen-heading negative corpus",
+      "exit_code": 1,
+      "result": "1 failed, 1 passed; six headings incorrectly emitted as questions",
+      "stdout": ".F                                                                       [100%]\n=================================== FAILURES ===================================\n_________ test_xlsx_numbered_and_uppercase_headings_are_not_questions __________\n\ntmp_path = PosixPath('/tmp/pytest-of-root/pytest-92/test_xlsx_numbered_and_upperca0')\n\n    def test_xlsx_numbered_and_uppercase_headings_are_not_questions(tmp_path: Path) -> None:\n        \"\"\"A numbering marker alone is not sufficient to override a real heading.\"\"\"\n        workbook = Workbook()\n        sheet = workbook.active\n        for heading in [\n            \"ACCESS CONTROL\",\n            \"2. ACCESS MANAGEMENT\",\n            \"1. BACKUP AND RECOVERY\",\n            \"1.0 CONTROL ENVIRONMENT\",\n            \"1.2. Risk Assessment\",\n            \"Q3) ACCESS MANAGEMENT\",\n            \"УПРАВЛІННЯ ДОСТУПОМ\",\n            \"DOCUMENT RETENTION\",\n            \"LIST OF POLICIES\",\n            \"STATE LAWS\",\n            \"ADDRESS INFORMATION\",\n            \"1. Document Retention\",\n            \"1.1. List of Policies\",\n        ]:\n            sheet.append([heading])\n        path = tmp_path / \"headings.xlsx\"\n        workbook.save(path)\n        workbook.close()\n    \n>       assert parse_xlsx_questionnaire(path) == []\nE       assert [{'text': 'do...l\": 1}', ...}] == []\nE         \nE         Left contains 6 more items, first extra item: {'text': 'document retention', 'section': 'УПРАВЛІННЯ ДОСТУПОМ', 'answer_type': 'evidence', 'source_location': '{\"file...p/pytest-of-root/pytest-92/test_xlsx_numbered_and_upperca0/headings.xlsx\", \"sheet\": \"Sheet\", \"row\": 8, \"col\": 1}', ...}\nE         Use -v to get more diff\n\ntests/release/test_question_detection.py:103: AssertionError\n=========================== short test summary info ============================\nFAILED tests/release/test_question_detection.py::test_xlsx_numbered_and_uppercase_headings_are_not_questions\n1 failed, 1 passed in 0.60s\n"
+    },
+    {
+      "name": "Final formatted focused suite",
+      "command": "PYTHONDONTWRITEBYTECODE=1 /tmp/tc-backend-venv/bin/python -m pytest tests/release/test_question_detection.py tests/test_questionnaire_parser.py -q",
+      "exit_code": 0,
+      "result": "6 passed",
+      "stdout": "......                                                                   [100%]\n6 passed in 0.80s\n"
+    },
+    {
+      "name": "Final exact-source focused and related golden suites",
+      "command": "PYTHONDONTWRITEBYTECODE=1 /tmp/tc-backend-venv/bin/python -m pytest tests/release/test_question_detection.py tests/test_questionnaire_parser.py tests/test_pdf_text_locator_corpus.py tests/release/test_pdf_table_cells.py -q",
+      "exit_code": 0,
+      "result": "146 passed; no skips",
+      "stdout": "........................................................................ [ 49%]\n........................................................................ [ 98%]\n..                                                                       [100%]\n146 passed in 10.22s\n"
+    },
+    {
+      "name": "Required complete backend suite",
+      "command": "PYTHONDONTWRITEBYTECODE=1 TC_TEST_DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:5432/trustcopilot_test TC_REQUIRE_DB=1 /tmp/tc-backend-venv/bin/python -m pytest -q",
+      "source": "Attempted during implementation; no tests executed because session-start PostgreSQL readiness gate failed",
+      "exit_code": 3,
+      "result": "PostgreSQL 127.0.0.1:5432 connection refused; full suite remains unqualified",
+      "stdout": "WARNING: test DB setup failed: alembic upgrade head failed (do not stamp on error):\nstdout:\n\nstderr:\nTraceback (most recent call last):\n  File \"/tmp/tc-backend-venv/lib/python3.12/site-packages/sqlalchemy/engine/base.py\", line 144, in __init__\n    self._dbapi_connection = engine.raw_connection()\n                             ^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/tmp/tc-backend-venv/lib/python3.12/site-packages/sqlalchemy/engine/base.py\", line 3326, in raw_connection\n    return self.pool.connect()\n           ^^^^^^^^^^^^^^^^^^^\n  File \"/tmp/tc-backend-venv/lib/python3.12/site-packages/sqlalchemy/pool/base.py\", line 448, in connect\n    return _ConnectionFairy._checkout(self)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/tmp/tc-backend-venv/lib/python3.12/site-packages/sqlalchemy/pool/base.py\", line 1320, in _checkout\n    fairy = _ConnectionRecord.checkout(pool)\n            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/tmp/tc-backend-venv/lib/python3.12/site-packages/sqlalchemy/pool/base.py\", line 712, in checkout\n    rec = pool._do_get()\n          ^^^^^^^^^^^^^^\n  File \"/tmp/tc-backend-venv/lib/python3.12/site-packages/sqlalchemy/pool/impl.py\", line 307, in _do_get\n    return self._create_connection()\n           ^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/tmp/tc-backend-venv/lib/python3.12/site-packages/sqlalchemy/pool/base.py\", line 389, in _create_connection\n    return _ConnectionRecord(self)\n           ^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/tmp/tc-backend-venv/lib/python3.12/site-packages/sqlalchemy/pool/base.py\", line 674, in __init__\n    self.__connect()\n  File \"/tmp/tc-backend-venv/lib/python3.12/site-packages/sqlalchemy/pool/base.py\", line 921, in __connect\n    with util.safe_reraise():\n         ^^^^^^^^^^^^^^^^^^^\n  File \"/tmp/tc-backend-venv/lib/python3.12/site-packages/sqlalchemy/util/langhelpers.py\", line 122, in __exit__\n    raise exc_value.with_traceback(exc_tb)\n  File \"/tmp/tc-backend-venv/lib/python3.12/site-packages/sqlalchemy/pool/base.py\", line 917, in __connect\n    self.dbapi_connection = connection = pool._invoke_creator(self)\n                                         ^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/tmp/tc-backend-venv/lib/python3.12/site-packages/sqlalchemy/engine/create.py\", line 667, in connect\n    return dialect.connect(*cargs_tup, **cparams)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/tmp/tc-backend-venv/lib/python3.12/site-packages/sqlalchemy/engine/default.py\", line 642, in connect\n    return self.loaded_dbapi.connect(*cargs, **cparams)  # type: ignore[no-any-return]  # NOQA: E501\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/tmp/tc-backend-venv/lib/python3.12/site-packages/psycopg2/__init__.py\", line 122, in connect\n    conn = _connect(dsn, connection_factory=connection_factory, **kwasync)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\npsycopg2.OperationalError: connection to server at \"127.0.0.1\", port 5432 failed: Connection refused\n\tIs the server running on that host and accepting TCP/IP connections?\n\n\nThe above exception was the direct cause of the following exception:\n\nTraceback (most recent call last):\n  File \"<frozen runpy>\", line 198, in _run_module_as_main\n  File \"<frozen runpy>\", line 88, in _run_code\n  File \"/tmp/tc-backend-venv/lib/python3.12/site-packages/alembic/__main__.py\", line 4, in <module>\n    main(prog=\"alembic\")\n  File \"/tmp/tc-backend-venv/lib/python3.12/site-packages/alembic/config.py\", line 1039, in main\n    CommandLine(prog=prog).main(argv=argv)\n  File \"/tmp/tc-backend-venv/lib/python3.12/site-packages/alembic/config.py\", line 1029, in main\n    self.run_cmd(cfg, options)\n  File \"/tmp/tc-backend-venv/lib/python3.12/site-packages/alembic/config.py\", line 963, in run_cmd\n    fn(\n  File \"/tmp/tc-backend-venv/lib/python3.12/site-packages/alembic/command.py\", line 487, in upgrade\n    script.run_env()\n  File \"/tmp/tc-backend-venv/lib/python3.12/site-packages/alembic/script/base.py\", line 550, in run_env\n    util.load_python_file(self.dir, \"env.py\")\n  File \"/tmp/tc-backend-venv/lib/python3.12/site-packages/alembic/util/pyfiles.py\", line 114, in load_python_file\n    module = load_module_py(module_id, path)\n             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/tmp/tc-backend-venv/lib/python3.12/site-packages/alembic/util/pyfiles.py\", line 132, in load_module_py\n    spec.loader.exec_module(module)  # type: ignore\n    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"<frozen importlib._bootstrap_external>\", line 999, in exec_module\n  File \"<frozen importlib._bootstrap>\", line 488, in _call_with_frames_removed\n  File \"/workspace/scratch/1d3d4d8034b5/tc-xlsx-question/apps/api/alembic/env.py\", line 73, in <module>\n    run_migrations_online()\n  File \"/workspace/scratch/1d3d4d8034b5/tc-xlsx-question/apps/api/alembic/env.py\", line 64, in run_migrations_online\n    with connectable.connect() as connection:\n         ^^^^^^^^^^^^^^^^^^^^^\n  File \"/tmp/tc-backend-venv/lib/python3.12/site-packages/sqlalchemy/engine/base.py\", line 3302, in connect\n    return self._connection_cls(self)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/tmp/tc-backend-venv/lib/python3.12/site-packages/sqlalchemy/engine/base.py\", line 146, in __init__\n    Connection._handle_dbapi_exception_noconnection(\n  File \"/tmp/tc-backend-venv/lib/python3.12/site-packages/sqlalchemy/engine/base.py\", line 2457, in _handle_dbapi_exception_noconnection\n    raise sqlalchemy_exception.with_traceback(exc_info[2]) from e\n  File \"/tmp/tc-backend-venv/lib/python3.12/site-packages/sqlalchemy/engine/base.py\", line 144, in __init__\n    self._dbapi_connection = engine.raw_connection()\n                             ^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/tmp/tc-backend-venv/lib/python3.12/site-packages/sqlalchemy/engine/base.py\", line 3326, in raw_connection\n    return self.pool.connect()\n           ^^^^^^^^^^^^^^^^^^^\n  File \"/tmp/tc-backend-venv/lib/python3.12/site-packages/sqlalchemy/pool/base.py\", line 448, in connect\n    return _ConnectionFairy._checkout(self)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/tmp/tc-backend-venv/lib/python3.12/site-packages/sqlalchemy/pool/base.py\", line 1320, in _checkout\n    fairy = _ConnectionRecord.checkout(pool)\n            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/tmp/tc-backend-venv/lib/python3.12/site-packages/sqlalchemy/pool/base.py\", line 712, in checkout\n    rec = pool._do_get()\n          ^^^^^^^^^^^^^^\n  File \"/tmp/tc-backend-venv/lib/python3.12/site-packages/sqlalchemy/pool/impl.py\", line 307, in _do_get\n    return self._create_connection()\n           ^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/tmp/tc-backend-venv/lib/python3.12/site-packages/sqlalchemy/pool/base.py\", line 389, in _create_connection\n    return _ConnectionRecord(self)\n           ^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/tmp/tc-backend-venv/lib/python3.12/site-packages/sqlalchemy/pool/base.py\", line 674, in __init__\n    self.__connect()\n  File \"/tmp/tc-backend-venv/lib/python3.12/site-packages/sqlalchemy/pool/base.py\", line 921, in __connect\n    with util.safe_reraise():\n         ^^^^^^^^^^^^^^^^^^^\n  File \"/tmp/tc-backend-venv/lib/python3.12/site-packages/sqlalchemy/util/langhelpers.py\", line 122, in __exit__\n    raise exc_value.with_traceback(exc_tb)\n  File \"/tmp/tc-backend-venv/lib/python3.12/site-packages/sqlalchemy/pool/base.py\", line 917, in __connect\n    self.dbapi_connection = connection = pool._invoke_creator(self)\n                                         ^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/tmp/tc-backend-venv/lib/python3.12/site-packages/sqlalchemy/engine/create.py\", line 667, in connect\n    return dialect.connect(*cargs_tup, **cparams)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/tmp/tc-backend-venv/lib/python3.12/site-packages/sqlalchemy/engine/default.py\", line 642, in connect\n    return self.loaded_dbapi.connect(*cargs, **cparams)  # type: ignore[no-any-return]  # NOQA: E501\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/tmp/tc-backend-venv/lib/python3.12/site-packages/psycopg2/__init__.py\", line 122, in connect\n    conn = _connect(dsn, connection_factory=connection_factory, **kwasync)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nsqlalchemy.exc.OperationalError: (psycopg2.OperationalError) connection to server at \"127.0.0.1\", port 5432 failed: Connection refused\n\tIs the server running on that host and accepting TCP/IP connections?\n\n(Background on this error at: https://sqlalche.me/e/20/e3q8)\n\nExit: TC_REQUIRE_DB=1: Postgres test database unavailable or incompatible (see 'WARNING: test DB setup failed' above; start the local test Postgres or set TC_TEST_DATABASE_URL to a local *_test database)\n! _pytest.outcomes.Exit: TC_REQUIRE_DB=1: Postgres test database unavailable or incompatible (see 'WARNING: test DB setup failed' above; start the local test Postgres or set TC_TEST_DATABASE_URL to a local *_test database) !\n"
+    },
+    {
+      "name": "Ruff and formatting final files",
+      "command": "/tmp/tc-backend-venv/bin/python -m ruff check app/services/xlsx_questionnaire_parser.py tests/release/test_question_detection.py && /tmp/tc-backend-venv/bin/python -m ruff format --check app/services/xlsx_questionnaire_parser.py tests/release/test_question_detection.py",
+      "exit_code": 0,
+      "result": "All checks passed; 2 files already formatted",
+      "note": "Initial formatting checks requested line wrapping in the new test and then the new helper; ruff format corrected both before final verification."
+    },
+    {
+      "name": "Changed-file secret inventory",
+      "workdir": "repository root",
+      "command": "/tmp/tc-backend-venv/bin/python scripts/security/secret_inventory.py paths apps/api/app/services/xlsx_questionnaire_parser.py apps/api/tests/release/test_question_detection.py docs/release/tickets/TC-09-001a.md artifacts/acceptance/TC-09-001a/README.md artifacts/acceptance/TC-09-001a/verification.json --fail-on block",
+      "exit_code": 0,
+      "result": "Zero blocking findings; one review finding for the synthetic local postgres:postgres test URL recorded in the failed full-suite command. This is a local development default, not a production/provider credential."
+    },
+    {
+      "name": "Shared callers and out-of-scope files unchanged",
+      "workdir": "repository root",
+      "command": "git diff --exit-code 14737c8ab2847db87a95391a6f7b6ab7b9b5fd13 -- apps/api/app/services/question_detector.py apps/api/app/services/xlsx_parser.py apps/api/app/services/docx_questionnaire_parser.py apps/api/app/services/pdf_questionnaire_parser.py apps/api/app/services/question_normalizer.py apps/api/app/services/answer_type.py apps/api/app/worker.py",
+      "exit_code": 0,
+      "result": "No changes"
+    }
+  ],
+  "corpus": {
+    "positive_questions": 7,
+    "negative_headings": 13,
+    "source_locations": "Exact file, sheet, one-based row and column asserted for all seven outputs",
+    "metadata": "Exact sections, normalized text, answer types and confidence",
+    "layout": "Two sheets; blank/numeric leading cells; one question per row; section reset between sheets"
+  },
+  "limitations": [
+    "Candidate headings still need explicit question notation to be promoted. Unmarked, unpunctuated numbered/uppercase requests retain the prior conservative heading interpretation.",
+    "The corpus does not prove arbitrary language/layout detection or full TC-09-001-AC1.",
+    "TC-09-001-AC2 zero-question/corrupt-workbook failure state is separate; worker unchanged.",
+    "Full backend/database test suite was blocked by unavailable local PostgreSQL.",
+    "Parent dependencies TC-07-006 and TC-03-004 remain unqualified; no original parent acceptance credit.",
+    "Independent review, final push and pull-request build/web-release-e2e, publication and merge remain coordinator actions."
+  ]
+}
