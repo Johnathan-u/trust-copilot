@@ -1,0 +1,132 @@
+FFF.FFF.FF.......FFFF...................F.......................         [100%]
+=================================== FAILURES ===================================
+_ test_create_binds_effective_workspace_and_is_readable_by_creator[sqlite-omitted] _
+tests/release/test_authorization_trust_articles.py:251: in test_create_binds_effective_workspace_and_is_readable_by_creator
+    assert result["workspace_id"] == state["workspaces"][0].id
+E   assert None == 615279855
+E    +  where 615279855 = <app.models.workspace.Workspace object at 0x7f6a785d6090>.id
+------------------------------ Captured log call -------------------------------
+INFO     trustcopilot.audit:audit.py:34 audit {"ts": "2026-10-30T20:31:16.280963+00:00", "action": "trust_article.create", "email": "article-own-a9bb779863633b84@example.com", "resource_type": "trust_article", "resource_id": 7, "slug": "new-a9bb779863633b84"}
+_ test_create_binds_effective_workspace_and_is_readable_by_creator[sqlite-null] _
+tests/release/test_authorization_trust_articles.py:251: in test_create_binds_effective_workspace_and_is_readable_by_creator
+    assert result["workspace_id"] == state["workspaces"][0].id
+E   assert None == 716300478
+E    +  where 716300478 = <app.models.workspace.Workspace object at 0x7f6a78312930>.id
+------------------------------ Captured log call -------------------------------
+INFO     trustcopilot.audit:audit.py:34 audit {"ts": "2026-10-30T20:31:16.413365+00:00", "action": "trust_article.create", "email": "article-own-7b1b2843d372ee3c@example.com", "resource_type": "trust_article", "resource_id": 7, "slug": "new-7b1b2843d372ee3c"}
+_ test_create_binds_effective_workspace_and_is_readable_by_creator[sqlite-zero] _
+tests/release/test_authorization_trust_articles.py:248: in test_create_binds_effective_workspace_and_is_readable_by_creator
+    result = call(state, "POST", PATH + "/", body=body, writable=True)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/release/test_authorization_trust_articles.py:225: in call
+    assert response.status_code == status, response.text
+E   AssertionError: Internal Server Error
+E   assert 500 == 200
+E    +  where 500 = <Response [500 Internal Server Error]>.status_code
+_ test_duplicate_lookup_uses_effective_workspace_without_writing[sqlite-omitted] _
+tests/release/test_authorization_trust_articles.py:273: in test_duplicate_lookup_uses_effective_workspace_without_writing
+    result = call(
+tests/release/test_authorization_trust_articles.py:225: in call
+    assert response.status_code == status, response.text
+E   AssertionError: {"id":7,"workspace_id":null,"slug":"91fb0736907e98f2-own-0","category":null,"title":"Created article","content":"","published":0,"is_policy":false,"created_at":"2026-10-30T20:31:16.717106","updated_at":"2026-10-30T20:31:16.717112"}
+E   assert 200 == 400
+E    +  where 200 = <Response [200 OK]>.status_code
+------------------------------ Captured log call -------------------------------
+INFO     trustcopilot.audit:audit.py:34 audit {"ts": "2026-10-30T20:31:16.719850+00:00", "action": "trust_article.create", "email": "article-own-91fb0736907e98f2@example.com", "resource_type": "trust_article", "resource_id": 7, "slug": "91fb0736907e98f2-own-0"}
+_ test_duplicate_lookup_uses_effective_workspace_without_writing[sqlite-null] __
+tests/release/test_authorization_trust_articles.py:273: in test_duplicate_lookup_uses_effective_workspace_without_writing
+    result = call(
+tests/release/test_authorization_trust_articles.py:225: in call
+    assert response.status_code == status, response.text
+E   AssertionError: {"id":7,"workspace_id":null,"slug":"65224dade9ffa453-own-0","category":null,"title":"Created article","content":"","published":0,"is_policy":false,"created_at":"2026-10-30T20:31:16.806836","updated_at":"2026-10-30T20:31:16.806959"}
+E   assert 200 == 400
+E    +  where 200 = <Response [200 OK]>.status_code
+------------------------------ Captured log call -------------------------------
+INFO     trustcopilot.audit:audit.py:34 audit {"ts": "2026-10-30T20:31:16.808082+00:00", "action": "trust_article.create", "email": "article-own-65224dade9ffa453@example.com", "resource_type": "trust_article", "resource_id": 7, "slug": "65224dade9ffa453-own-0"}
+_ test_duplicate_lookup_uses_effective_workspace_without_writing[sqlite-zero] __
+tests/release/test_authorization_trust_articles.py:273: in test_duplicate_lookup_uses_effective_workspace_without_writing
+    result = call(
+tests/release/test_authorization_trust_articles.py:225: in call
+    assert response.status_code == status, response.text
+E   AssertionError: Internal Server Error
+E   assert 500 == 400
+E    +  where 500 = <Response [500 Internal Server Error]>.status_code
+__ test_foreign_or_unowned_slug_does_not_block_owned_creation[sqlite-foreign] __
+tests/release/test_authorization_trust_articles.py:290: in test_foreign_or_unowned_slug_does_not_block_owned_creation
+    assert result["workspace_id"] == articles["workspaces"][0].id and result["slug"] == slug
+E   assert (None == 516668589)
+E    +  where 516668589 = <app.models.workspace.Workspace object at 0x7f6a76c83fe0>.id
+------------------------------ Captured log call -------------------------------
+INFO     trustcopilot.audit:audit.py:34 audit {"ts": "2026-10-30T20:31:17.032848+00:00", "action": "trust_article.create", "email": "article-own-840f734c9fa950d6@example.com", "resource_type": "trust_article", "resource_id": 7, "slug": "840f734c9fa950d6-foreign-0"}
+___ test_foreign_or_unowned_slug_does_not_block_owned_creation[sqlite-null] ____
+tests/release/test_authorization_trust_articles.py:286: in test_foreign_or_unowned_slug_does_not_block_owned_creation
+    result = call(
+tests/release/test_authorization_trust_articles.py:225: in call
+    assert response.status_code == status, response.text
+E   AssertionError: {"detail":"Slug 'e7249f6b068487ad-null-0' already exists"}
+E   assert 400 == 200
+E    +  where 400 = <Response [400 Bad Request]>.status_code
+___ test_mutations_require_current_exact_article_owner[sqlite-null_0-PATCH] ____
+tests/release/test_authorization_trust_articles.py:323: in test_mutations_require_current_exact_article_owner
+    result = call(
+tests/release/test_authorization_trust_articles.py:225: in call
+    assert response.status_code == status, response.text
+E   AssertionError: {"id":5,"workspace_id":null,"slug":"be6e78785de634f3-null-0","category":"security","title":"Unauthorized rewrite","content":"Synthetic null private content 0","published":0,"is_policy":true,"created_at":"2026-10-30T20:31:17.741549","updated_at":"2026-10-30T20:31:17.769502"}
+E   assert 200 == 403
+E    +  where 200 = <Response [200 OK]>.status_code
+___ test_mutations_require_current_exact_article_owner[sqlite-null_0-DELETE] ___
+tests/release/test_authorization_trust_articles.py:323: in test_mutations_require_current_exact_article_owner
+    result = call(
+tests/release/test_authorization_trust_articles.py:225: in call
+    assert response.status_code == status, response.text
+E   AssertionError: {"ok":true}
+E   assert 200 == 403
+E    +  where 200 = <Response [200 OK]>.status_code
+------------------------------ Captured log call -------------------------------
+INFO     trustcopilot.audit:audit.py:34 audit {"ts": "2026-10-30T20:31:17.854323+00:00", "action": "trust_article.delete", "email": "article-own-c7bd77e5220bc962@example.com", "resource_type": "trust_article", "resource_id": 5, "slug": "c7bd77e5220bc962-null-0"}
+___ test_mutations_require_current_exact_article_owner[sqlite-null_1-PATCH] ____
+tests/release/test_authorization_trust_articles.py:323: in test_mutations_require_current_exact_article_owner
+    result = call(
+tests/release/test_authorization_trust_articles.py:225: in call
+    assert response.status_code == status, response.text
+E   AssertionError: {"id":6,"workspace_id":null,"slug":"3ea70311e06f06b1-null-1","category":"security","title":"Unauthorized rewrite","content":"Synthetic null private content 1","published":1,"is_policy":true,"created_at":"2026-10-30T20:31:17.909217","updated_at":"2026-10-30T20:31:17.946024"}
+E   assert 200 == 403
+E    +  where 200 = <Response [200 OK]>.status_code
+___ test_mutations_require_current_exact_article_owner[sqlite-null_1-DELETE] ___
+tests/release/test_authorization_trust_articles.py:323: in test_mutations_require_current_exact_article_owner
+    result = call(
+tests/release/test_authorization_trust_articles.py:225: in call
+    assert response.status_code == status, response.text
+E   AssertionError: {"ok":true}
+E   assert 200 == 403
+E    +  where 200 = <Response [200 OK]>.status_code
+------------------------------ Captured log call -------------------------------
+INFO     trustcopilot.audit:audit.py:34 audit {"ts": "2026-10-30T20:31:18.028232+00:00", "action": "trust_article.delete", "email": "article-own-be4de85933a136ce@example.com", "resource_type": "trust_article", "resource_id": 6, "slug": "be4de85933a136ce-null-1"}
+___ test_current_custom_admin_retains_owned_mutation_permission[sqlite-POST] ___
+tests/release/test_authorization_trust_articles.py:404: in test_current_custom_admin_retains_owned_mutation_permission
+    assert result["workspace_id"] == state["workspaces"][0].id
+E   assert None == 460456838
+E    +  where 460456838 = <app.models.workspace.Workspace object at 0x7f6a75978830>.id
+------------------------------ Captured log call -------------------------------
+INFO     trustcopilot.audit:audit.py:34 audit {"ts": "2026-10-30T20:31:19.845370+00:00", "action": "trust_article.create", "email": "article-own-dcef815785c53bdf@example.com", "resource_type": "trust_article", "resource_id": 7, "slug": "new-dcef815785c53bdf"}
+=============================== warnings summary ===============================
+tests/release/test_authorization_trust_articles.py: 941 warnings
+  /tmp/tc-backend-venv/lib/python3.12/site-packages/sqlalchemy/sql/schema.py:3627: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    return util.wrap_callable(lambda ctx: fn(), fn)  # type: ignore
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED tests/release/test_authorization_trust_articles.py::test_create_binds_effective_workspace_and_is_readable_by_creator[sqlite-omitted]
+FAILED tests/release/test_authorization_trust_articles.py::test_create_binds_effective_workspace_and_is_readable_by_creator[sqlite-null]
+FAILED tests/release/test_authorization_trust_articles.py::test_create_binds_effective_workspace_and_is_readable_by_creator[sqlite-zero]
+FAILED tests/release/test_authorization_trust_articles.py::test_duplicate_lookup_uses_effective_workspace_without_writing[sqlite-omitted]
+FAILED tests/release/test_authorization_trust_articles.py::test_duplicate_lookup_uses_effective_workspace_without_writing[sqlite-null]
+FAILED tests/release/test_authorization_trust_articles.py::test_duplicate_lookup_uses_effective_workspace_without_writing[sqlite-zero]
+FAILED tests/release/test_authorization_trust_articles.py::test_foreign_or_unowned_slug_does_not_block_owned_creation[sqlite-foreign]
+FAILED tests/release/test_authorization_trust_articles.py::test_foreign_or_unowned_slug_does_not_block_owned_creation[sqlite-null]
+FAILED tests/release/test_authorization_trust_articles.py::test_mutations_require_current_exact_article_owner[sqlite-null_0-PATCH]
+FAILED tests/release/test_authorization_trust_articles.py::test_mutations_require_current_exact_article_owner[sqlite-null_0-DELETE]
+FAILED tests/release/test_authorization_trust_articles.py::test_mutations_require_current_exact_article_owner[sqlite-null_1-PATCH]
+FAILED tests/release/test_authorization_trust_articles.py::test_mutations_require_current_exact_article_owner[sqlite-null_1-DELETE]
+FAILED tests/release/test_authorization_trust_articles.py::test_current_custom_admin_retains_owned_mutation_permission[sqlite-POST]
+13 failed, 51 passed, 64 deselected, 941 warnings in 7.37s
