@@ -250,7 +250,10 @@ export default function ComplianceCoveragePage() {
         canExport={permissions.can_export}
         canAdmin={permissions.can_admin}
       />
-      <CoverageReport workspaceId={workspace.id} />
+      <CoverageReport
+        workspaceId={workspace.id}
+        canAdmin={permissions.can_admin}
+      />
     </div>
   )
 }
@@ -338,7 +341,13 @@ const evaluationRules: Record<string, string> = {
   unapproved: 'Evidence is awaiting approval',
   pending_rights: 'Framework content is awaiting approval',
 }
-function CoverageReport({ workspaceId }: { workspaceId: number }) {
+function CoverageReport({
+  workspaceId,
+  canAdmin,
+}: {
+  workspaceId: number
+  canAdmin: boolean
+}) {
   const result = useSnapshot('/api/compliance-coverage', readCoverage)
   const { data, failure: loadFailure } = result
   const loading = !data && !loadFailure
@@ -458,6 +467,7 @@ function CoverageReport({ workspaceId }: { workspaceId: number }) {
       <Recommendations
         recommendations={recommended_evidence}
         workspaceId={workspaceId}
+        canAdmin={canAdmin}
       />
       <p className="text-tc-label text-tc-muted">
         Draft and insufficient percentages are answer-record counts divided by

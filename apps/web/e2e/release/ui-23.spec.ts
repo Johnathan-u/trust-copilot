@@ -178,6 +178,19 @@ async function installApi(page: Page, role = 'reviewer') {
     if (p === '/api/evidence-search') return json(route, evidencePage())
     if (p === '/api/compliance/evidence/71') return json(route, evidence)
     if (p === '/api/questionnaires/21') return json(route, questionnaire)
+    if (p === '/api/compliance/control-mappings/suggest')
+      return json(route, {
+        control_ids: [],
+        confidence: 0,
+        has_override: false,
+        reason: 'No matching controls found.',
+        state: 'proposed',
+        version: null,
+        precedence: 1,
+        rationale: null,
+        reviewed_by_user_id: null,
+        reviewed_at: null,
+      })
     if (p === '/api/ai-governance/questionnaire-answer-stats/21')
       return json(route, {
         questionnaire_id: 21,

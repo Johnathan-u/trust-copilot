@@ -19,6 +19,7 @@ import {
   useRecommendationEvidence,
   useRecommendationQuestion,
 } from '@/app/dashboard/compliance-gaps/recommendations'
+import { mappingSuggestPath } from '@/lib/controlMappingConsumer'
 
 const questionSource = { question_id: 31, questionnaire_id: 21 }
 const questionnaire = {
@@ -47,6 +48,19 @@ const evidence = {
 }
 const reply = (body: unknown = evidence, status = 200) =>
   new Response(JSON.stringify(body), { status })
+const mappingSuggestion = {
+  control_ids: [],
+  confidence: 0,
+  has_override: false,
+  reason: 'No matching controls found.',
+  state: 'proposed',
+  version: null,
+  precedence: 1,
+  rationale: null,
+  reviewed_by_user_id: null,
+  reviewed_at: null,
+}
+const suggestUrl = mappingSuggestPath('How do you review access?')
 
 afterEach(() => {
   cleanup()
@@ -161,10 +175,17 @@ describe('recommendation provenance', () => {
   })
 
   it('fetches a source only on disclosure and shows only verified navigation targets', async () => {
-    const fetcher = vi
-      .fn()
-      .mockResolvedValueOnce(reply(evidence))
-      .mockResolvedValueOnce(reply(questionnaire))
+    const fetcher = vi.fn((url: string, _init?: RequestInit) =>
+      Promise.resolve(
+        reply(
+          url.includes('/evidence/')
+            ? evidence
+            : url.includes('/control-mappings/suggest')
+              ? mappingSuggestion
+              : questionnaire
+        )
+      )
+    )
     vi.stubGlobal('fetch', fetcher)
     const view = render(
       createElement(Recommendations, {
@@ -198,7 +219,11 @@ describe('recommendation provenance', () => {
         .getByRole('link', { name: 'Open source questionnaire' })
         .getAttribute('href')
     ).toBe('/dashboard/questionnaires/21')
-    expect(fetcher).toHaveBeenCalledTimes(2)
+    expect(fetcher.mock.calls.map(([url]) => url)).toEqual([
+      '/api/compliance/evidence/71',
+      '/api/questionnaires/21?workspace_id=7',
+      suggestUrl,
+    ])
     await act(async () =>
       fireEvent.click(
         view.getByRole('button', { name: 'Hide evidence source 1' })
@@ -208,9 +233,15 @@ describe('recommendation provenance', () => {
   })
 
   it('starts only one read per disclosure when StrictMode replays mount effects', async () => {
-    const fetcher = vi.fn((url: string) =>
+    const fetcher = vi.fn((url: string, _init?: RequestInit) =>
       Promise.resolve(
-        reply(url.includes('/evidence/') ? evidence : questionnaire)
+        reply(
+          url.includes('/evidence/')
+            ? evidence
+            : url.includes('/control-mappings/suggest')
+              ? mappingSuggestion
+              : questionnaire
+        )
       )
     )
     vi.stubGlobal('fetch', fetcher)
@@ -240,6 +271,7 @@ describe('recommendation provenance', () => {
     expect(fetcher.mock.calls.map(([url]) => url)).toEqual([
       '/api/compliance/evidence/71',
       '/api/questionnaires/21?workspace_id=7',
+      suggestUrl,
     ])
     await act(async () =>
       fireEvent.click(
@@ -254,6 +286,7 @@ describe('recommendation provenance', () => {
     expect(fetcher.mock.calls.map(([url]) => url)).toEqual([
       '/api/compliance/evidence/71',
       '/api/questionnaires/21?workspace_id=7',
+      suggestUrl,
       '/api/compliance/evidence/71',
     ])
   })
@@ -269,16 +302,22 @@ describe('recommendation provenance', () => {
         { question_id: 831001, questionnaire_id: 821001 },
       ],
     }
-    const fetcher = vi
-      .fn()
-      .mockResolvedValueOnce(reply({ ...evidence, id: 871002 }))
-      .mockResolvedValueOnce(
-        reply({
-          ...questionnaire,
-          id: 821001,
-          questions: [{ ...questionnaire.questions[0], id: 831001 }],
-        })
+    const sourceQuestionnaire = {
+      ...questionnaire,
+      id: 821001,
+      questions: [{ ...questionnaire.questions[0], id: 831001 }],
+    }
+    const fetcher = vi.fn((url: string, _init?: RequestInit) =>
+      Promise.resolve(
+        reply(
+          url.includes('/evidence/')
+            ? { ...evidence, id: 871002 }
+            : url.includes('/control-mappings/suggest')
+              ? mappingSuggestion
+              : sourceQuestionnaire
+        )
       )
+    )
     vi.stubGlobal('fetch', fetcher)
     const view = render(
       createElement(Recommendations, {
@@ -328,6 +367,7 @@ describe('recommendation provenance', () => {
     expect(fetcher.mock.calls.map(([url]) => url)).toEqual([
       '/api/compliance/evidence/871002',
       '/api/questionnaires/821001?workspace_id=7',
+      suggestUrl,
     ])
     for (const [, options] of fetcher.mock.calls)
       expect(options.method).toBeUndefined()
