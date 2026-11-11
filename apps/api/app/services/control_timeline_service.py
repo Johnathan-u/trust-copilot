@@ -70,7 +70,14 @@ def get_control_timeline(
     )
 
     for link in evidence_links:
-        evidence = db.query(EvidenceItem).filter(EvidenceItem.id == link.evidence_id).first()
+        evidence = (
+            db.query(EvidenceItem)
+            .filter(
+                EvidenceItem.id == link.evidence_id,
+                EvidenceItem.workspace_id == workspace_id,
+            )
+            .first()
+        )
         if evidence:
             events.append(
                 {
