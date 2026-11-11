@@ -1,44 +1,116 @@
 {
   "ticket": "TC-14-006",
-  "branch": "tc/web/TC-14-006",
-  "testedCommit": "abafb2990351ebcfb50c9b9e3d6108cf03cd25f7",
-  "baseline": "58b8c87",
-  "mergedMaster": "58b8c87",
-  "environment": {
-    "os": "Linux 6.12.94+ x86_64",
-    "node": "v24.22.1",
-    "npm": "11.19.1",
-    "next": "16.4.3",
-    "vitest": "5.0.5",
-    "playwright": "1.64.1",
-    "chromium": "chromium-1248",
-    "axePlaywright": "4.14.0",
-    "cwd": "apps/web"
-  },
-  "runs": [
-    {
-      "command": "npm run test:unit",
-      "exitStatus": 0,
-      "passed": 102,
-      "failed": 0,
-      "skipped": 0,
-      "filesPassed": 14
+  "current": {
+    "branch": "tc/TC-14-006-fresh-evidence",
+    "testedCommit": "de5d7c11d9f545525994ab3029dd1edb200ff40e",
+    "accepted": false,
+    "screenshots": {
+      "source": "GitHub Actions artifact responsive-shell-screenshots",
+      "runId": 42922310461,
+      "event": "push",
+      "renderedLocally": false
     },
-    {
-      "command": "npx playwright test e2e/release/responsive-shell.spec.ts --retries=0",
-      "exitStatus": 0,
+    "environment": {
+      "runner": "GitHub-hosted ubuntu-latest",
+      "node": "v24.22.1",
+      "npm": "11.19.1",
+      "playwright": "1.64.1",
+      "chromium": "chromium-1248",
+      "chromiumBrowserVersion": "156.0.8078.4",
+      "chromiumSource": "Revision pinned by Playwright 1.64.1. The CI install step restored the browser cache and did not print a version line.",
+      "cwd": "apps/web"
+    },
+    "ci": {
+      "push": {
+        "runId": 42922310461,
+        "url": "https://github.com/Johnathan-u/trust-copilot/actions/runs/42922310461",
+        "conclusion": "success",
+        "jobs": {
+          "build": 130199945865,
+          "web-release-e2e": 130199946227
+        }
+      },
+      "pull_request": {
+        "runId": 42922327515,
+        "url": "https://github.com/Johnathan-u/trust-copilot/actions/runs/42922327515",
+        "conclusion": "success",
+        "jobs": {
+          "build": 130200003074,
+          "web-release-e2e": 130200002731
+        }
+      }
+    },
+    "responsiveShell": {
+      "spec": "e2e/release/responsive-shell.spec.ts",
       "passed": 8,
       "failed": 0,
       "skipped": 0,
-      "themes": ["dark", "light"],
-      "viewports": [360, 768, 1440],
-      "zoomReflowViewport": {
-        "width": 720,
-        "height": 450,
-        "represents": "1440 at 200% zoom"
+      "flaky": 0,
+      "checkerLine": "responsive-shell.spec.ts: 8 passed, 0 failed, 0 skipped, 0 flaky"
+    },
+    "axe": [
+      { "file": "TC-14-006/axe-auth-dark-1440.json", "violations": 0 },
+      { "file": "TC-14-006/axe-auth-dark-360-closed.json", "violations": 0 },
+      { "file": "TC-14-006/axe-auth-dark-360-open.json", "violations": 0 },
+      { "file": "TC-14-006/axe-auth-dark-768.json", "violations": 0 },
+      { "file": "TC-14-006/axe-auth-light-1440.json", "violations": 0 },
+      { "file": "TC-14-006/axe-auth-light-360-closed.json", "violations": 0 },
+      { "file": "TC-14-006/axe-auth-light-360-open.json", "violations": 0 },
+      { "file": "TC-14-006/axe-auth-light-768.json", "violations": 0 },
+      { "file": "TC-14-006/axe-public-login-dark-1440.json", "violations": 0 },
+      { "file": "TC-14-006/axe-public-login-dark-360.json", "violations": 0 },
+      { "file": "TC-14-006/axe-public-login-dark-768.json", "violations": 0 },
+      { "file": "TC-14-006/axe-public-login-light-1440.json", "violations": 0 },
+      { "file": "TC-14-006/axe-public-login-light-360.json", "violations": 0 },
+      { "file": "TC-14-006/axe-public-login-light-768.json", "violations": 0 }
+    ],
+    "axeViolations": 0,
+    "checkerExit": "playwright exit 0; axe check exit 0",
+    "notes": "Evidence files and refreshed PNGs were committed after the tested SHA and do not change the suite. Synthetic session and mocked API responses only. No credentials or customer data. This record does not accept the ticket."
+  },
+  "historical": {
+    "label": "historical",
+    "branch": "tc/web/TC-14-006",
+    "testedCommit": "abafb2990351ebcfb50c9b9e3d6108cf03cd25f7",
+    "baseline": "58b8c87",
+    "mergedMaster": "58b8c87",
+    "screenshotCommit": "5ec7bbe",
+    "environment": {
+      "os": "Linux 6.12.94+ x86_64",
+      "node": "v24.22.1",
+      "npm": "11.19.1",
+      "next": "16.4.3",
+      "vitest": "5.0.5",
+      "playwright": "1.64.1",
+      "chromium": "chromium-1248",
+      "axePlaywright": "4.14.0",
+      "cwd": "apps/web"
+    },
+    "runs": [
+      {
+        "command": "npm run test:unit",
+        "exitStatus": 0,
+        "passed": 102,
+        "failed": 0,
+        "skipped": 0,
+        "filesPassed": 14
       },
-      "axeViolations": 0
-    }
-  ],
-  "notes": "Evidence files were committed after the tested SHA and do not change the suite. Synthetic session and mocked API responses only. No credentials or customer data. Node 24 is required. package.json and package-lock.json match master, including @axe-core/playwright@4.14.0."
+      {
+        "command": "npx playwright test e2e/release/responsive-shell.spec.ts --retries=0",
+        "exitStatus": 0,
+        "passed": 8,
+        "failed": 0,
+        "skipped": 0,
+        "themes": ["dark", "light"],
+        "viewports": [360, 768, 1440],
+        "zoomReflowViewport": {
+          "width": 720,
+          "height": 450,
+          "represents": "1440 at 200% zoom"
+        },
+        "axeViolations": 0
+      }
+    ],
+    "notes": "Evidence files were committed after the tested SHA and do not change the suite. Synthetic session and mocked API responses only. No credentials or customer data. Node 24 is required. package.json and package-lock.json match master, including @axe-core/playwright@4.14.0."
+  }
 }

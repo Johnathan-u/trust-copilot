@@ -2,6 +2,71 @@
 
 Synthetic data only. The shell, login, and these artifacts contain no credentials or customer content. The signed-in fixture is `synthetic.reviewer@example.com` in Synthetic Workspace.
 
+This file records a screenshot and axe refresh. It does not accept the ticket.
+
+## Current CI
+
+Tested commit `de5d7c11d9f545525994ab3029dd1edb200ff40e` on branch `tc/TC-14-006-fresh-evidence`.
+
+That commit attaches each screenshot to the Playwright report and uploads the PNGs. This evidence note and the refreshed PNGs were added in the following commit and do not change the suite or the shell.
+
+Committed PNGs were downloaded from the push run's `responsive-shell-screenshots` artifact. They were not rendered locally. The pull_request run of the same commit also uploaded that artifact.
+
+### Runs
+
+Both conclusions are success.
+
+- push: https://github.com/Johnathan-u/trust-copilot/actions/runs/42922310461
+  - `build` job 130199945865
+  - `web-release-e2e` job 130199946227
+- pull_request: https://github.com/Johnathan-u/trust-copilot/actions/runs/42922327515
+  - `build` job 130200003074
+  - `web-release-e2e` job 130200002731
+
+### Environment
+
+Printed by the `Frontend tool versions` step on both `web-release-e2e` jobs:
+
+- Node: v24.22.1
+- npm: 11.19.1
+- Playwright: 1.64.1
+- Chromium: Playwright build chromium-1248 (Chrome for Testing 156.0.8078.4), the browser pinned by Playwright 1.64.1. The install step restored the browser cache and did not print a version line.
+- Runner: GitHub-hosted `ubuntu-latest`
+- Working directory: `apps/web`
+
+### `responsive-shell.spec.ts`
+
+Both `web-release-e2e` jobs printed:
+
+```text
+responsive-shell.spec.ts: 8 passed, 0 failed, 0 skipped, 0 flaky
+```
+
+### Axe
+
+The checker deleted the committed `axe-*.json` files and read the copies the spec wrote. Both jobs printed 0 violations for all 14 files, then `axe violations: 0` and `playwright exit 0; axe check exit 0`.
+
+- `TC-14-006/axe-auth-dark-1440.json`: 0 violations
+- `TC-14-006/axe-auth-dark-360-closed.json`: 0 violations
+- `TC-14-006/axe-auth-dark-360-open.json`: 0 violations
+- `TC-14-006/axe-auth-dark-768.json`: 0 violations
+- `TC-14-006/axe-auth-light-1440.json`: 0 violations
+- `TC-14-006/axe-auth-light-360-closed.json`: 0 violations
+- `TC-14-006/axe-auth-light-360-open.json`: 0 violations
+- `TC-14-006/axe-auth-light-768.json`: 0 violations
+- `TC-14-006/axe-public-login-dark-1440.json`: 0 violations
+- `TC-14-006/axe-public-login-dark-360.json`: 0 violations
+- `TC-14-006/axe-public-login-dark-768.json`: 0 violations
+- `TC-14-006/axe-public-login-light-1440.json`: 0 violations
+- `TC-14-006/axe-public-login-light-360.json`: 0 violations
+- `TC-14-006/axe-public-login-light-768.json`: 0 violations
+
+Screenshots: `artifacts/acceptance/TC-14-006/screenshots/`. Shell captures are 360 closed, 360 open, 768, and 1440 in dark and light. Public login captures are dark and light at 360, 768, and 1440. The same artifact also replaced the public home and onboarding 360px captures.
+
+## Historical record (2026-10-29)
+
+The section below is the previous evidence, kept unchanged. Its screenshots were last regenerated in `5ec7bbe`. Its tested commit is not the current shell.
+
 ## Tested commit
 
 `abafb2990351ebcfb50c9b9e3d6108cf03cd25f7` on branch `tc/web/TC-14-006`.
