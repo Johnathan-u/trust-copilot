@@ -55,3 +55,11 @@ Eighteen dots and no skip marker: 18 passed in that file. The same line is in bo
 | pull_request | [43010799033](https://github.com/Johnathan-u/trust-copilot/actions/runs/43010799033) | success | success | 6442 passed, 1 skipped, 52 warnings, 856.89s | 0 |
 
 The only skip is `tests/test_trust_scoring_blind.py:33` (`external_data: blind test pack not checked in`). Master before this branch was 6441 passed, 1 skipped. This branch adds one test.
+
+## Evidence commit `78cf12a`
+
+`78cf12a0a833a0a1fa846e0f353e10c7ed5ab811` only appends the section above. The test file is unchanged.
+
+Push run [43013750669](https://github.com/Johnathan-u/trust-copilot/actions/runs/43013750669): `build` success, `web-release-e2e` success. Python 3.11.18, pytest 9.1.1. Database `tc_ci_43013750669_1_test` at `127.0.0.1:5432` (`pg_isready`: `127.0.0.1:5432 - accepting connections`). The file line is 18 dots. Suite exit 0: `6442 passed, 1 skipped, 52 warnings in 842.77s`. The only skip is `tests/test_trust_scoring_blind.py:33`.
+
+Pull-request run [43013757129](https://github.com/Johnathan-u/trust-copilot/actions/runs/43013757129): `web-release-e2e` success, `build` failure. The suite was `1 failed, 6441 passed, 1 skipped, 52 warnings in 618.33s`. The failure is `tests/release/test_job_leases.py:1052` in `test_heartbeat_keeps_the_lease_during_long_work`: the two `lease_expires_at` samples were the same timestamp and the gap was `0.0`, which is below `_E2E_LEASE_SECONDS` (2). That test is outside this ticket. The same tree passed it on the push run.
