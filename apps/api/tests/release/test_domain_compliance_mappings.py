@@ -3,10 +3,13 @@
 Runs on PostgreSQL. Labels are synthetic, not framework text.
 """
 
+import json
 import os
+import shutil
 import subprocess
 import sys
 import uuid
+from pathlib import Path
 from urllib.parse import quote
 from datetime import datetime, timedelta
 from unittest.mock import patch
@@ -1061,3 +1064,141 @@ def test_migration_round_trip_restores_mapping_history():
         after_counts = _counts()
         assert after_counts == before_counts, {"before": before_counts, "after": after_counts}
         print(f"TC21005_COUNTS before={before_counts} after={after_counts}")
+
+
+def _reader_accepts(samples: dict, malformed: dict) -> dict:
+    """Run the web reader on captured payloads. Node comes from PATH, as CI does."""
+    node = shutil.which("node")
+    assert node, "node is not on PATH"
+    version = subprocess.run([node, "--version"], capture_output=True, text=True, check=False)
+    assert version.returncode == 0, version.stderr
+    assert version.stdout.startswith("v24."), version.stdout
+    root = Path(__file__).resolve().parents[2].parents[1]
+    script = (
+        "import { acceptMappingContract } from './apps/web/lib/controlMappingConsumer.ts';"
+        "const fs = await import('node:fs');"
+        "const payload = JSON.parse(fs.readFileSync(0, 'utf8'));"
+        "const accepted = {};"
+        "for (const [name, item] of Object.entries(payload.samples)) {"
+        "  accepted[name] = acceptMappingContract(item.kind, item.body);"
+        "}"
+        "let rejected = false;"
+        "try { acceptMappingContract('suggest', payload.malformed); }"
+        "catch { rejected = true; }"
+        "if (!rejected) throw new Error('malformed payload was accepted');"
+        "process.stdout.write(JSON.stringify(accepted));"
+    )
+    proc = subprocess.run(
+        [node, "--experimental-strip-types", "--input-type=module", "-e", script],
+        input=json.dumps({"samples": samples, "malformed": malformed}),
+        text=True,
+        capture_output=True,
+        cwd=str(root),
+        check=False,
+    )
+    assert proc.returncode == 0, proc.stderr
+    return json.loads(proc.stdout)
+
+
+def test_web_reader_accepts_api_payload_across_fresh_session(client):
+    """Captured route payloads match the web reader, including after a new session.
+
+    Confirmation does not replace an override. A disposed pool and a new client
+    read that same overridden decision back from PostgreSQL.
+    """
+    from app.core.database import SessionLocal, engine
+    from tests.conftest import TEST_HEADERS, TEST_ORIGIN
+
+    actors = _actors()
+    control_id = _control(actors["workspace_id"], f"Reader {uuid.uuid4().hex[:8]}")
+    question = f"synthetic reader {uuid.uuid4().hex[:8]}"
+    _login(client, ADMIN_EMAIL, ADMIN_PASSWORD)
+    proposed = client.get("/api/compliance/control-mappings/suggest", params={"question": question})
+    assert proposed.status_code == 200, proposed.text
+    assert proposed.json()["state"] == "proposed"
+    assert proposed.json()["version"] is None
+    overridden = client.post(
+        "/api/compliance/control-mappings/override",
+        json={
+            "question": question,
+            "control_ids": [control_id],
+            "rationale": "synthetic reader override",
+        },
+    )
+    assert overridden.status_code == 200, overridden.text
+    assert overridden.json()["state"] == "overridden"
+    question_hash = overridden.json()["question_hash"]
+    held = client.post(
+        "/api/compliance/control-mappings/confirm",
+        json={"question": question, "control_ids": []},
+    )
+    assert held.status_code == 200, held.text
+    assert held.json()["state"] == "overridden"
+    assert held.json()["precedence_held"] is True
+    assert held.json()["updated"] is False
+    assert held.json()["control_ids"] == [control_id]
+    assert held.json()["rationale"] == "synthetic reader override"
+    current = client.get("/api/compliance/control-mappings/suggest", params={"question": question})
+    assert current.status_code == 200, current.text
+    assert current.json()["state"] == "overridden"
+    assert current.json()["has_override"] is True
+    assert current.json()["precedence"] == 3
+
+    engine.dispose()
+    _reset_login_limit()
+    fresh = TestClient(app, base_url=TEST_ORIGIN, headers=TEST_HEADERS)
+    restarted = None
+    rolled = None
+    try:
+        _login(fresh, ADMIN_EMAIL, ADMIN_PASSWORD)
+        restarted = fresh.get(
+            "/api/compliance/control-mappings/suggest", params={"question": question}
+        )
+        assert restarted.status_code == 200, restarted.text
+        assert restarted.json() == current.json()
+        session = SessionLocal()
+        try:
+            stored = session.execute(
+                text(
+                    "SELECT state, rationale, override_control_ids FROM control_mapping_override "
+                    "WHERE workspace_id = :ws AND question_hash = :question_hash"
+                ),
+                {"ws": actors["workspace_id"], "question_hash": question_hash},
+            ).one()
+            assert stored.state == "overridden"
+            assert stored.rationale == "synthetic reader override"
+            assert stored.override_control_ids == [control_id]
+        finally:
+            session.close()
+        rolled = fresh.post(
+            "/api/compliance/control-mappings/rollback", json={"question": question}
+        )
+        assert rolled.status_code == 200, rolled.text
+    finally:
+        fresh.close()
+
+    assert restarted is not None and rolled is not None
+    accepted = _reader_accepts(
+        {
+            "proposed": {"kind": "suggest", "body": proposed.json()},
+            "override": {"kind": "decision", "body": overridden.json()},
+            "held": {"kind": "decision", "body": held.json()},
+            "current": {"kind": "suggest", "body": current.json()},
+            "fresh": {"kind": "suggest", "body": restarted.json()},
+            "rollback": {"kind": "decision", "body": rolled.json()},
+        },
+        {"state": "overridden", "precedence": 1, "has_override": True},
+    )
+    assert accepted["proposed"]["state"] == "proposed"
+    assert accepted["proposed"]["version"] is None
+    assert accepted["proposed"]["precedence_held"] is False
+    assert accepted["override"]["state"] == "overridden"
+    assert accepted["override"]["control_ids"] == [control_id]
+    assert accepted["held"]["state"] == "overridden"
+    assert accepted["held"]["precedence_held"] is True
+    assert accepted["held"]["precedence"] == 3
+    assert accepted["current"] == accepted["fresh"]
+    assert accepted["fresh"]["state"] == "overridden"
+    assert accepted["fresh"]["control_ids"] == [control_id]
+    assert accepted["rollback"]["state"] == rolled.json()["state"]
+    assert accepted["rollback"]["precedence_held"] is False
