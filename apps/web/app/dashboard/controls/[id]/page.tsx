@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { useParams, useRouter } from 'next/navigation'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import {
   Button,
   Card,
@@ -240,6 +240,27 @@ function ControlDetail({ id, canAdmin }: { id: string; canAdmin: boolean }) {
   )
 }
 
+type LeaveRequest =
+  | { kind: 'link'; href: string }
+  | { kind: 'workspace'; workspaceId: number }
+  | { kind: 'back' }
+
+const unsavedGuardDepth = new Map<number, number>()
+
+function historyMarksUnsaved(state: unknown): boolean {
+  return Boolean(
+    state &&
+    typeof state === 'object' &&
+    (state as { tcControlUnsaved?: boolean }).tcControlUnsaved
+  )
+}
+
+function withUnsavedMark(state: unknown): Record<string, unknown> {
+  const base =
+    state && typeof state === 'object' ? (state as Record<string, unknown>) : {}
+  return { ...base, tcControlUnsaved: true }
+}
+
 function ControlForm({
   control,
   members,
@@ -250,6 +271,8 @@ function ControlForm({
   membersReady: boolean
 }) {
   const router = useRouter()
+  const { workspace, switchWorkspace } = useAuth()
+  const allowTraverseRef = useRef(false)
   const [baseline, setBaseline] = useState(control.canonical)
   const [owner, setOwner] = useState(
     control.canonical.owner_user_id?.toString() ?? ''
@@ -259,11 +282,16 @@ function ControlForm({
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
   const [saved, setSaved] = useState(false)
-  const [destination, setDestination] = useState<string | null>(null)
+  const [leave, setLeave] = useState<LeaveRequest | null>(null)
+  const savedNoticeRef = useRef<HTMLParagraphElement>(null)
   const dirty =
     owner !== (baseline.owner_user_id?.toString() ?? '') ||
     team !== (baseline.owner_team ?? '') ||
     lifecycle !== baseline.lifecycle
+
+  useEffect(() => {
+    if (saved && !dirty) savedNoticeRef.current?.focus()
+  }, [saved, dirty])
 
   useEffect(() => {
     if (!dirty) return
@@ -297,15 +325,53 @@ function ControlForm({
         return
       event.preventDefault()
       event.stopPropagation()
-      setDestination(url.pathname + url.search + url.hash)
+      setLeave({ kind: 'link', href: url.pathname + url.search + url.hash })
+    }
+    const guardKey = control.id
+    unsavedGuardDepth.set(guardKey, (unsavedGuardDepth.get(guardKey) ?? 0) + 1)
+    if (!historyMarksUnsaved(window.history.state)) {
+      window.history.pushState(withUnsavedMark(window.history.state), '')
+    }
+    const currentWorkspaceId = workspace?.id
+    const onWorkspaceChange = (event: Event) => {
+      const target = event.target
+      if (!(target instanceof HTMLSelectElement)) return
+      if (target.id !== 'sidebar-workspace-select') return
+      const next = Number(target.value)
+      if (
+        !Number.isInteger(next) ||
+        currentWorkspaceId == null ||
+        next === currentWorkspaceId
+      )
+        return
+      event.preventDefault()
+      event.stopPropagation()
+      target.value = String(currentWorkspaceId)
+      setLeave({ kind: 'workspace', workspaceId: next })
+    }
+    const onPopState = () => {
+      if (allowTraverseRef.current) return
+      window.history.pushState(withUnsavedMark(window.history.state), '')
+      setLeave({ kind: 'back' })
     }
     window.addEventListener('beforeunload', beforeUnload)
     document.addEventListener('click', navigate, true)
+    window.addEventListener('change', onWorkspaceChange, true)
+    window.addEventListener('popstate', onPopState)
     return () => {
       window.removeEventListener('beforeunload', beforeUnload)
       document.removeEventListener('click', navigate, true)
+      window.removeEventListener('change', onWorkspaceChange, true)
+      window.removeEventListener('popstate', onPopState)
+      const remaining = (unsavedGuardDepth.get(guardKey) ?? 1) - 1
+      unsavedGuardDepth.set(guardKey, remaining)
+      window.setTimeout(() => {
+        if ((unsavedGuardDepth.get(guardKey) ?? 0) > 0) return
+        if (allowTraverseRef.current) return
+        if (historyMarksUnsaved(window.history.state)) window.history.back()
+      }, 0)
     }
-  }, [dirty])
+  }, [dirty, workspace?.id, control.id])
 
   async function save(event: React.FormEvent) {
     event.preventDefault()
@@ -436,7 +502,12 @@ function ControlForm({
           </p>
         ) : null}
         {saved && !dirty ? (
-          <p role="status" className="text-tc-text">
+          <p
+            ref={savedNoticeRef}
+            tabIndex={-1}
+            role="status"
+            className="text-tc-text outline-none focus:outline focus:outline-2 focus:outline-offset-2"
+          >
             Changes saved
           </p>
         ) : null}
@@ -461,15 +532,43 @@ function ControlForm({
         </div>
       </form>
       <ConfirmDialog
-        open={destination !== null}
+        open={leave !== null}
         title="Discard unsaved changes?"
         description="Your changes have not been saved. You can stay here to finish editing."
         confirmLabel="Discard changes"
         busy={busy}
-        onClose={() => setDestination(null)}
+        onClose={() => setLeave(null)}
         onConfirm={() => {
-          if (destination) router.push(destination)
-          setDestination(null)
+          const pending = leave
+          setLeave(null)
+          if (!pending) return
+          allowTraverseRef.current = true
+          const continueLeave = () => {
+            if (pending.kind === 'link') router.push(pending.href)
+            else if (pending.kind === 'workspace')
+              void switchWorkspace(pending.workspaceId)
+            else window.history.back()
+          }
+          if (
+            pending.kind !== 'back' &&
+            historyMarksUnsaved(window.history.state)
+          ) {
+            const afterSentinel = () => {
+              window.removeEventListener('popstate', afterSentinel)
+              continueLeave()
+            }
+            window.addEventListener('popstate', afterSentinel)
+            window.history.back()
+            return
+          }
+          if (
+            pending.kind === 'back' &&
+            historyMarksUnsaved(window.history.state)
+          ) {
+            window.history.go(-2)
+            return
+          }
+          continueLeave()
         }}
       />
     </Card>

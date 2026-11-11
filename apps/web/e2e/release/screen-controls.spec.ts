@@ -43,6 +43,44 @@ const control = {
   },
 }
 
+const blockedFramework = {
+  id: null,
+  name: 'SOC 2',
+  version: null,
+  created_at: null,
+  catalog_key: 'soc2',
+  source_provenance: {},
+  rights_status: 'blocked_pending_rights',
+  licence_status: 'blocked_pending_rights',
+  enablement_state: 'blocked',
+  catalog_kind: 'advertised',
+  production_catalog: false,
+  contract_version: 'framework-catalog/v1',
+  content_version: null,
+  content_origin: null,
+  blocked_reason: 'Rights review pending.',
+  synthetic_dev_content_present: false,
+  dev_test_only: false,
+  stored_control_count: 0,
+  controls_are_production_catalog: false,
+}
+
+const licensedFramework = {
+  ...blockedFramework,
+  rights_status: 'cleared',
+  licence_status: 'cleared',
+  production_catalog: true,
+  enablement_state: 'available',
+  content_version: '2026.1',
+  blocked_reason: null,
+}
+
+const enabledFramework = {
+  ...licensedFramework,
+  id: 9,
+  enablement_state: 'enabled',
+}
+
 async function json(route: Route, body: unknown, status = 200) {
   await route.fulfill({
     status,
@@ -51,7 +89,11 @@ async function json(route: Route, body: unknown, status = 200) {
   })
 }
 
-async function installApi(page: Page, role = 'admin') {
+async function installApi(
+  page: Page,
+  role = 'admin',
+  options: { extraWorkspace?: boolean; frameworks?: unknown } = {}
+) {
   const canAdmin = role === 'admin' || role === 'owner'
   const canReview = role !== 'viewer'
   await page.context().addCookies([
@@ -75,6 +117,9 @@ async function installApi(page: Page, role = 'admin') {
         role,
         workspaces: [
           { id: 7, name: 'Synthetic workspace', slug: 'synthetic', role },
+          ...(options.extraWorkspace
+            ? [{ id: 8, name: 'Second workspace', slug: 'second', role }]
+            : []),
         ],
         permissions: {
           can_admin: canAdmin,
@@ -151,30 +196,19 @@ async function installApi(page: Page, role = 'admin') {
           ],
         },
       })
+    if (p === '/api/auth/switch-workspace') {
+      const body = route.request().postDataJSON() as { workspace_id?: number }
+      const id = body.workspace_id
+      if (id !== 7 && id !== 8) return json(route, { detail: 'Unknown' }, 404)
+      return json(route, {
+        workspace_id: id,
+        workspace_name: id === 8 ? 'Second workspace' : 'Synthetic workspace',
+        workspace_slug: id === 8 ? 'second' : 'synthetic',
+        role,
+      })
+    }
     if (p === '/api/compliance/frameworks')
-      return json(route, [
-        {
-          id: null,
-          name: 'SOC 2',
-          version: null,
-          created_at: null,
-          catalog_key: 'soc2',
-          source_provenance: {},
-          rights_status: 'blocked_pending_rights',
-          licence_status: 'blocked_pending_rights',
-          enablement_state: 'blocked',
-          catalog_kind: 'advertised',
-          production_catalog: false,
-          contract_version: 'framework-catalog/v1',
-          content_version: null,
-          content_origin: null,
-          blocked_reason: 'Rights review pending.',
-          synthetic_dev_content_present: false,
-          dev_test_only: false,
-          stored_control_count: 0,
-          controls_are_production_catalog: false,
-        },
-      ])
+      return json(route, options.frameworks ?? [blockedFramework])
     if (p === '/api/members')
       return json(route, {
         members: [
@@ -201,6 +235,101 @@ async function installApi(page: Page, role = 'admin') {
     if (p.includes('unread-count')) return json(route, { count: 0 })
     if (p.includes('/auth/alerts')) return json(route, { alerts: [] })
     return json(route, {})
+  })
+}
+
+async function acknowledgeControlPatch(page: Page) {
+  await page.route('**/api/compliance/controls/41', async (route) => {
+    if (route.request().method() !== 'PATCH') return route.fallback()
+    const body = route.request().postDataJSON() as {
+      owner_team?: string
+      owner_user_id?: number
+      status?: string
+    }
+    return json(route, {
+      ...control,
+      owner_team: body.owner_team ?? control.owner_team,
+      owner_user_id: body.owner_user_id ?? control.owner_user_id,
+      status: body.status ?? control.status,
+      canonical: {
+        ...control.canonical,
+        owner_team: body.owner_team ?? control.canonical.owner_team,
+        owner_user_id: body.owner_user_id ?? control.canonical.owner_user_id,
+        lifecycle: body.status ?? control.canonical.lifecycle,
+      },
+    })
+  })
+}
+
+async function unloadBlocked(page: Page) {
+  return page.evaluate(() => {
+    const event = new Event('beforeunload', { cancelable: true })
+    window.dispatchEvent(event)
+    return event.defaultPrevented
+  })
+}
+
+async function focusedLabel(page: Page) {
+  return page.evaluate(() => {
+    const el = document.activeElement
+    if (!el || el === document.body) return 'body'
+    const labelledby = el.getAttribute('aria-labelledby')
+    if (labelledby) {
+      const text = labelledby
+        .split(/\s+/)
+        .map((id) => document.getElementById(id)?.textContent?.trim() ?? '')
+        .filter(Boolean)
+        .join(' ')
+      if (text) return text
+    }
+    const aria = el.getAttribute('aria-label')
+    if (aria) return aria
+    if (
+      el instanceof HTMLInputElement ||
+      el instanceof HTMLSelectElement ||
+      el instanceof HTMLTextAreaElement
+    ) {
+      const wrap = el.closest('label')
+      if (wrap) {
+        const copy = wrap.cloneNode(true) as HTMLElement
+        copy
+          .querySelectorAll('input,select,textarea')
+          .forEach((node) => node.remove())
+        const text = copy.textContent?.replace(/\s+/g, ' ').trim()
+        if (text) return text
+      }
+    }
+    return (el.textContent || '').replace(/\s+/g, ' ').trim().slice(0, 80)
+  })
+}
+
+/** The controlled select is reverted before Playwright can observe selectOption. */
+async function chooseWorkspace(page: Page, id: string) {
+  await page.locator('#sidebar-workspace-select').evaluate((node, value) => {
+    const select = node as HTMLSelectElement
+    select.value = value
+    select.dispatchEvent(new Event('change', { bubbles: true }))
+  }, id)
+}
+
+async function routeFrameworkEnable(
+  page: Page,
+  enableBody: unknown,
+  enableStatus = 200,
+  options: { laterList?: unknown; hold?: Promise<void> } = {}
+) {
+  let posted = false
+  await page.route('**/api/compliance/frameworks**', async (route) => {
+    const path = new URL(route.request().url()).pathname
+    if (path.endsWith('/enable')) {
+      posted = true
+      if (options.hold) await options.hold
+      return json(route, enableBody, enableStatus)
+    }
+    return json(
+      route,
+      posted ? (options.laterList ?? [licensedFramework]) : [licensedFramework]
+    )
   })
 }
 
@@ -331,6 +460,275 @@ test('unsaved edits require confirmation before leaving detail', async ({
     .getByRole('button', { name: 'Discard changes', exact: true })
     .click()
   await expect(page).toHaveURL(/\/dashboard\/controls$/)
+})
+
+for (const role of ['owner', 'admin', 'editor', 'reviewer', 'viewer']) {
+  test(`${role} enablement on the library follows the admin grant`, async ({
+    page,
+  }) => {
+    await installApi(page, role, { frameworks: [licensedFramework] })
+    await page.goto('/dashboard/controls')
+    const enable = page.getByRole('button', {
+      name: 'Enable framework',
+      exact: true,
+    })
+    if (role === 'viewer') {
+      await expect(
+        page.getByRole('heading', { name: 'This section is not available' })
+      ).toBeVisible()
+      await expect(
+        page.getByRole('heading', { name: 'Control library', exact: true })
+      ).toHaveCount(0)
+      await expect(enable).toHaveCount(0)
+      return
+    }
+    await expect(
+      page.getByRole('heading', { name: 'Control library', exact: true })
+    ).toBeVisible()
+    await expect(
+      page.getByText('Licensed content available', { exact: true })
+    ).toBeVisible()
+    await expect(enable).toHaveCount(
+      role === 'admin' || role === 'owner' ? 1 : 0
+    )
+  })
+}
+
+test('Framework enabled appears only after an acknowledging enable response', async ({
+  page,
+}) => {
+  let release = () => {}
+  const hold = new Promise<void>((resolve) => {
+    release = resolve
+  })
+  let posted: unknown
+  await installApi(page, 'admin', { frameworks: [licensedFramework] })
+  await page.route('**/api/compliance/frameworks**', async (route) => {
+    const path = new URL(route.request().url()).pathname
+    if (path.endsWith('/enable')) {
+      posted = route.request().postDataJSON()
+      await hold
+      return json(route, enabledFramework)
+    }
+    return json(route, [licensedFramework])
+  })
+  await page.goto('/dashboard/controls')
+  await page
+    .getByRole('button', { name: 'Enable framework', exact: true })
+    .click()
+  await expect(
+    page.getByRole('button', { name: 'Activating…', exact: true })
+  ).toBeVisible()
+  await expect(
+    page.getByText('Framework enabled', { exact: true })
+  ).toHaveCount(0)
+  expect(posted).toEqual({ catalog_key: 'soc2' })
+  release()
+  await expect(
+    page.getByText('Framework enabled', { exact: true })
+  ).toBeVisible()
+  await expect(page.getByText('Enabled', { exact: true })).toBeVisible()
+  await expect(
+    page.getByRole('button', { name: 'Enable framework', exact: true })
+  ).toHaveCount(0)
+})
+
+test('an enable body that is not a production catalog shows no success', async ({
+  page,
+}) => {
+  await installApi(page, 'admin', { frameworks: [licensedFramework] })
+  await routeFrameworkEnable(page, licensedFramework, 200, {
+    laterList: [enabledFramework],
+  })
+  await page.goto('/dashboard/controls')
+  await page
+    .getByRole('button', { name: 'Enable framework', exact: true })
+    .click()
+  await expect(
+    page.getByText('Framework activation could not be confirmed')
+  ).toBeVisible()
+  await expect(
+    page.getByText('Framework enabled', { exact: true })
+  ).toHaveCount(0)
+  await expect(
+    page.getByRole('button', { name: 'Enable framework', exact: true })
+  ).toBeVisible()
+})
+
+test('a malformed enable success shows no success', async ({ page }) => {
+  await installApi(page, 'admin', { frameworks: [licensedFramework] })
+  await routeFrameworkEnable(page, { ok: true }, 200, {
+    laterList: [enabledFramework],
+  })
+  await page.goto('/dashboard/controls')
+  await page
+    .getByRole('button', { name: 'Enable framework', exact: true })
+    .click()
+  await expect(
+    page.getByText('Framework activation could not be confirmed')
+  ).toBeVisible()
+  await expect(
+    page.getByText('Framework enabled', { exact: true })
+  ).toHaveCount(0)
+  await expect(page.getByText('ok', { exact: true })).toHaveCount(0)
+})
+
+for (const status of [403, 409, 500]) {
+  test(`enable ${status} shows no success`, async ({ page }) => {
+    await installApi(page, 'admin', { frameworks: [licensedFramework] })
+    await routeFrameworkEnable(
+      page,
+      { detail: 'secret-enable-failure' },
+      status,
+      { laterList: [enabledFramework] }
+    )
+    await page.goto('/dashboard/controls')
+    await page
+      .getByRole('button', { name: 'Enable framework', exact: true })
+      .click()
+    await expect(
+      page.getByText('Framework activation could not be confirmed')
+    ).toBeVisible()
+    await expect(
+      page.getByText('Framework enabled', { exact: true })
+    ).toHaveCount(0)
+    await expect(page.locator('#main-content')).not.toContainText(
+      'secret-enable-failure'
+    )
+    await expect(
+      page.getByRole('button', { name: 'Enable framework', exact: true })
+    ).toBeVisible()
+  })
+}
+
+test('cancelling a workspace switch keeps unsaved control edits', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1440, height: 900 })
+  await installApi(page, 'admin', { extraWorkspace: true })
+  let switches = 0
+  page.on('request', (request) => {
+    if (new URL(request.url()).pathname === '/api/auth/switch-workspace')
+      switches += 1
+  })
+  await page.goto('/dashboard/controls/41')
+  await page.getByLabel('Owner team').fill('Kept team')
+  await expect.poll(() => unloadBlocked(page)).toBe(true)
+  await chooseWorkspace(page, '8')
+  const dialog = page.getByRole('alertdialog', {
+    name: 'Discard unsaved changes?',
+  })
+  await expect(dialog).toBeVisible()
+  await expect(
+    dialog.getByRole('button', { name: 'Cancel', exact: true })
+  ).toBeFocused()
+  expect(switches).toBe(0)
+  await dialog.getByRole('button', { name: 'Cancel', exact: true }).click()
+  await expect(dialog).toHaveCount(0)
+  await expect(page.getByLabel('Owner team')).toHaveValue('Kept team')
+  await expect(page.getByLabel('Workspace', { exact: true })).toHaveValue('7')
+  await expect(page).toHaveURL(/\/dashboard\/controls\/41$/)
+  await expect.poll(() => unloadBlocked(page)).toBe(true)
+  expect(switches).toBe(0)
+})
+
+test('confirming a workspace switch discards unsaved control edits', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1440, height: 900 })
+  await installApi(page, 'admin', { extraWorkspace: true })
+  let switches = 0
+  page.on('request', (request) => {
+    if (new URL(request.url()).pathname === '/api/auth/switch-workspace')
+      switches += 1
+  })
+  await page.goto('/dashboard/controls/41')
+  await page.getByLabel('Owner team').fill('Kept team')
+  await chooseWorkspace(page, '8')
+  const dialog = page.getByRole('alertdialog', {
+    name: 'Discard unsaved changes?',
+  })
+  await dialog
+    .getByRole('button', { name: 'Discard changes', exact: true })
+    .click()
+  await expect(page.getByLabel('Workspace', { exact: true })).toHaveValue('8')
+  await expect(page.getByLabel('Owner team')).toHaveValue('Security')
+  await expect(page).toHaveURL(/\/dashboard\/controls\/41$/)
+  await expect.poll(() => unloadBlocked(page)).toBe(false)
+  expect(switches).toBe(1)
+})
+
+test('cancelling client-side Back keeps unsaved control edits', async ({
+  page,
+}) => {
+  await installApi(page)
+  await page.goto('/dashboard/controls')
+  await page.goto('/dashboard/controls/41')
+  await page.getByLabel('Owner team').fill('Kept team')
+  await expect(page.getByText('Unsaved changes', { exact: true })).toBeVisible()
+  await page.evaluate(() => history.back())
+  const dialog = page.getByRole('alertdialog', {
+    name: 'Discard unsaved changes?',
+  })
+  await expect(dialog).toBeVisible()
+  await expect(
+    dialog.getByRole('button', { name: 'Cancel', exact: true })
+  ).toBeFocused()
+  await expect(page).toHaveURL(/\/dashboard\/controls\/41$/)
+  await dialog.getByRole('button', { name: 'Cancel', exact: true }).click()
+  await expect(page.getByLabel('Owner team')).toHaveValue('Kept team')
+  await expect(page).toHaveURL(/\/dashboard\/controls\/41$/)
+  await expect.poll(() => unloadBlocked(page)).toBe(true)
+})
+
+test('confirming client-side Back discards unsaved control edits', async ({
+  page,
+}) => {
+  await installApi(page)
+  await page.goto('/dashboard/controls')
+  await page.goto('/dashboard/controls/41')
+  await page.getByLabel('Owner team').fill('Kept team')
+  await expect(page.getByText('Unsaved changes', { exact: true })).toBeVisible()
+  await page.evaluate(() => history.back())
+  const dialog = page.getByRole('alertdialog', {
+    name: 'Discard unsaved changes?',
+  })
+  await dialog
+    .getByRole('button', { name: 'Discard changes', exact: true })
+    .click()
+  await expect(page).toHaveURL(/\/dashboard\/controls$/)
+  await expect(
+    page.getByRole('heading', { name: 'Control library', exact: true })
+  ).toBeVisible()
+  await expect(page.getByLabel('Owner team')).toHaveCount(0)
+})
+
+test('beforeunload is set while control edits are dirty and cleared after save or discard', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1440, height: 900 })
+  await installApi(page, 'admin', { extraWorkspace: true })
+  await acknowledgeControlPatch(page)
+  await page.goto('/dashboard/controls/41')
+  await expect.poll(() => unloadBlocked(page)).toBe(false)
+  await page.getByLabel('Owner team').fill('Kept team')
+  await expect.poll(() => unloadBlocked(page)).toBe(true)
+  await chooseWorkspace(page, '8')
+  const dialog = page.getByRole('alertdialog', {
+    name: 'Discard unsaved changes?',
+  })
+  await expect(dialog).toBeVisible()
+  await dialog.getByRole('button', { name: 'Cancel', exact: true }).click()
+  await expect(page.getByLabel('Owner team')).toHaveValue('Kept team')
+  await expect.poll(() => unloadBlocked(page)).toBe(true)
+  await page.getByRole('button', { name: 'Save changes', exact: true }).click()
+  await expect(page.getByText('Changes saved', { exact: true })).toBeVisible()
+  await expect.poll(() => unloadBlocked(page)).toBe(false)
+  await page.getByLabel('Owner team').fill('Discard me')
+  await expect.poll(() => unloadBlocked(page)).toBe(true)
+  await page.getByRole('button', { name: 'Reset changes', exact: true }).click()
+  await expect(page.getByLabel('Owner team')).toHaveValue('Kept team')
+  await expect.poll(() => unloadBlocked(page)).toBe(false)
 })
 
 test('failed evidence verification stays unconfirmed and does not change lifecycle', async ({
@@ -473,6 +871,7 @@ for (const width of [360, 768, 1440]) {
     page,
   }, testInfo) => {
     await installApi(page)
+    await acknowledgeControlPatch(page)
     await page.setViewportSize({ width, height: 900 })
     const evidenceDir = path.resolve('../../artifacts/acceptance/TC-15-042')
     mkdirSync(path.join(evidenceDir, 'screenshots'), { recursive: true })
@@ -487,12 +886,13 @@ for (const width of [360, 768, 1440]) {
       await expect(
         page.locator('#main-content [data-state="loading"]')
       ).toHaveCount(0)
-      const target = route.endsWith('41')
-        ? page.getByLabel('Owner', { exact: true })
-        : page.getByLabel('Search controls')
-      await target.focus()
-      await expect(target).toBeFocused()
-      await page.keyboard.press('Tab')
+      if (!route.endsWith('41')) {
+        const search = page.getByLabel('Search controls')
+        await search.focus()
+        await expect(search).toBeFocused()
+        await page.keyboard.press('Tab')
+        await expect(page.getByLabel('Filter lifecycle')).toBeFocused()
+      }
       await expect(page.locator('#main-content')).toHaveJSProperty(
         'scrollWidth',
         await page.locator('#main-content').evaluate((el) => el.clientWidth)
@@ -532,6 +932,36 @@ for (const width of [360, 768, 1440]) {
         path: path.join(evidenceDir, `axe-${name}-${width}.json`),
         contentType: 'application/json',
       })
+      if (!route.endsWith('41')) continue
+      const steps: string[] = []
+      const team = page.getByLabel('Owner team')
+      for (let index = 0; index < 80; index += 1) {
+        await page.keyboard.press('Tab')
+        const label = await focusedLabel(page)
+        steps.push(label)
+        expect(label, steps.join(' > ')).not.toBe('')
+        expect(label, steps.join(' > ')).not.toBe('body')
+        if (await team.evaluate((el) => el === document.activeElement)) break
+      }
+      expect(steps.at(-1), steps.join(' > ')).toBe('Owner team')
+      expect(steps.at(-2), steps.join(' > ')).toBe('Owner')
+      await expect(team).toBeFocused()
+      await page.keyboard.press('End')
+      await page.keyboard.type(' ops')
+      await expect(team).toBeFocused()
+      await expect(team).toHaveValue('Security ops')
+      await page.keyboard.press('Tab')
+      await expect(page.getByLabel('Lifecycle', { exact: true })).toBeFocused()
+      await page.keyboard.press('Tab')
+      const save = page.getByRole('button', {
+        name: 'Save changes',
+        exact: true,
+      })
+      await expect(save).toBeFocused()
+      await page.keyboard.press('Enter')
+      const saved = page.getByText('Changes saved', { exact: true })
+      await expect(saved).toBeVisible()
+      await expect(saved).toBeFocused()
     }
   })
 }
