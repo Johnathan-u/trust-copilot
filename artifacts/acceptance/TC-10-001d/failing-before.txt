@@ -1,4 +1,4 @@
-Command, from apps/api, against master's job_lease.py (the new tests were present; the fence change was not):
+Command, from apps/api, against master's job_lease.py (the new tests were present; the fence change was not). Two blank pytest lines below had trailing spaces removed so the whitespace hook accepts this file. The failure text is otherwise the captured output.
 
 SESSION_SECRET=test-secret TRUST_COPILOT_TESTING=1 python -m pytest \
   tests/release/test_job_leases.py::test_export_upload_longer_than_the_lease_commits \
@@ -22,7 +22,7 @@ _______________ test_export_upload_longer_than_the_lease_commits _______________
 tests/release/test_job_leases.py:1180: in test_export_upload_longer_than_the_lease_commits
     assert stored.status == JobStatus.COMPLETED.value
 E   AssertionError: assert 'running' == 'completed'
-E     
+E
 E     - completed
 E     + running
 ------------------------------ Captured log call -------------------------------
@@ -42,7 +42,7 @@ tests/release/test_job_leases.py::test_export_upload_longer_than_the_lease_commi
 -- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
 =========================== short test summary info ============================
 FAILED tests/release/test_job_leases.py::test_export_upload_longer_than_the_lease_commits - AssertionError: assert 'running' == 'completed'
-  
+
   - completed
   + running
 ==================== 1 failed, 2 passed, 1 warning in 5.46s ====================
