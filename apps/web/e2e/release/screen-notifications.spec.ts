@@ -7,7 +7,7 @@ import path from 'node:path'
 test.use({ storageState: { cookies: [], origins: [] } })
 test.setTimeout(60_000)
 
-const SECRET = 'sk_live_notshown'
+const marker = 'sk_live_notshown'
 const SOURCE = 'source quote: private evidence'
 
 type Role = 'admin' | 'editor'
@@ -30,9 +30,9 @@ function attempt(overrides: Record<string, unknown> = {}) {
     template_key: 'member.joined:email',
     destination: 'ada@example.com',
     rendered_subject: `Member joined — ${SOURCE}`,
-    rendered_body: `${SOURCE} ${SECRET}`,
+    rendered_body: `${SOURCE} ${marker}`,
     error_code: 'unknown',
-    error: SECRET,
+    error: marker,
     in_app_notification_id: null,
     is_read: null,
     created_at: '2026-11-11T22:29:00.123456',
@@ -169,7 +169,7 @@ async function installApi(
     if (pathname === '/api/notifications/channel-preferences') {
       if (request.method() === 'PUT') {
         if (state.preferenceStatus !== 200) {
-          return json(route, { detail: SECRET }, state.preferenceStatus)
+          return json(route, { detail: marker }, state.preferenceStatus)
         }
         const body = request.postDataJSON() as {
           channel: 'email' | 'slack' | 'in_app'
@@ -194,7 +194,7 @@ async function installApi(
     if (pathname === '/api/notifications/delivery-attempts') {
       if (state.attempts === 'hold') await state.hold
       if (state.attempts === 'error')
-        return json(route, { detail: SECRET }, 500)
+        return json(route, { detail: marker }, 500)
       if (state.attempts === 'forbidden')
         return json(route, { detail: 'Insufficient permissions' }, 403)
       if (state.attempts === 'malformed')
@@ -202,7 +202,7 @@ async function installApi(
           schema_version: 1,
           total: 0,
           page: 1,
-          attempts: SECRET,
+          attempts: marker,
         })
       if (state.attempts === 'empty')
         return json(route, {
@@ -227,7 +227,7 @@ async function installApi(
             event_type: 'member.joined',
             channel: 'email',
             recipient_email: 'ada@example.com',
-            subject: SECRET,
+            subject: marker,
             status: 'failed',
             error: SOURCE,
             delivery_state: 'dead-lettered',
@@ -284,7 +284,7 @@ test('admin sees log and delivery-attempt states without secret content', async 
   await expect(region.getByText('Read', { exact: true })).toBeVisible()
   await expect(page.getByText('dead lettered', { exact: true })).toBeVisible()
   await expect(page.getByText('Not delivered to the provider')).toBeVisible()
-  await expect(page.locator('body')).not.toContainText(SECRET)
+  await expect(page.locator('body')).not.toContainText(marker)
   await expect(page.locator('body')).not.toContainText(SOURCE)
   await expect(page.locator('body')).not.toContainText('rendered_body')
 })
@@ -318,7 +318,7 @@ test('a delivery-attempts error is not an empty list', async ({ page }) => {
   const region = attemptsRegion(page)
   await expect(region.getByText('Something went wrong')).toBeVisible()
   await expect(region.getByText('No delivery attempts yet.')).toHaveCount(0)
-  await expect(page.locator('body')).not.toContainText(SECRET)
+  await expect(page.locator('body')).not.toContainText(marker)
 })
 
 test('a delivery-attempts 403 is explicit and does not echo the body', async ({
@@ -345,7 +345,7 @@ test('a malformed delivery-attempts payload is an error, not rows', async ({
     region.getByText('The response could not be read. Try again.')
   ).toBeVisible()
   await expect(region.getByText('No delivery attempts yet.')).toHaveCount(0)
-  await expect(page.locator('body')).not.toContainText(SECRET)
+  await expect(page.locator('body')).not.toContainText(marker)
 })
 
 test('channel preference save survives a reload', async ({ page }) => {

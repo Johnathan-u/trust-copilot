@@ -7,7 +7,7 @@ import {
   type DeliveryAttemptsPage,
 } from '@/lib/delivery-attempts'
 
-const SECRET = 'sk_live_notshown'
+const marker = 'sk_live_notshown'
 const SOURCE = 'source quote: private evidence'
 
 function attempt(overrides: Record<string, unknown> = {}) {
@@ -26,9 +26,9 @@ function attempt(overrides: Record<string, unknown> = {}) {
     template_key: 'member.joined:email',
     destination: 'ada@example.com',
     rendered_subject: `Member joined — ${SOURCE}`,
-    rendered_body: `${SOURCE} ${SECRET}`,
+    rendered_body: `${SOURCE} ${marker}`,
     error_code: 'unknown',
-    error: SECRET,
+    error: marker,
     in_app_notification_id: null,
     is_read: null,
     created_at: '2026-11-11T22:29:00.123456',
@@ -116,7 +116,7 @@ describe('parseDeliveryAttempts', () => {
     expect(parsed.attempts[4]?.is_read).toBe(false)
     expect(parsed.attempts[5]?.is_read).toBe(true)
     const encoded = JSON.stringify(parsed)
-    expect(encoded).not.toContain(SECRET)
+    expect(encoded).not.toContain(marker)
     expect(encoded).not.toContain('source quote')
     expect(encoded).not.toContain('rendered_body')
     expect(encoded).toContain('ada@example.com')
@@ -133,7 +133,7 @@ describe('parseDeliveryAttempts', () => {
       page([attempt({ state: 'claimed' })]),
       page([attempt({ attempt_number: '3' })]),
       page([attempt({ is_read: 'true' })]),
-      page([attempt({ destination: SECRET })]),
+      page([attempt({ destination: marker })]),
       page([attempt({ id: 1.5 })]),
       page([attempt({ channel: 'sms' })]),
       page([attempt({ in_app_notification_id: 4, is_read: null })]),
@@ -168,7 +168,7 @@ describe('parseDeliveryAttempts', () => {
       attempts: '0',
       read: 'No in-app message',
     })
-    expect(JSON.stringify(display)).not.toContain(SECRET)
+    expect(JSON.stringify(display)).not.toContain(marker)
     expect(JSON.stringify(display)).not.toContain(SOURCE)
   })
 })
