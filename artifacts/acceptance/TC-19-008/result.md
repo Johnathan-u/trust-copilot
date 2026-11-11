@@ -82,3 +82,47 @@ Signed in as `demo@trust.local` on `http://127.0.0.1:3000/dashboard/notification
 ## Not in this run
 
 `tests/test_alerts_api.py` and `tests/test_coverage_api.py` are not in the test tree on this branch (they were moved out of `tests/` on master). They were not run.
+
+## Delivery-attempt visibility
+
+Appended for the admin delivery-attempt list, the notifications screen spec, and the doc refresh. Earlier sections above are unchanged.
+
+Real Slack, Gmail, and SMTP qualification stays **BLOCKED**. No sandbox account was used and no real provider was called.
+
+Local environment:
+
+- Node v24.22.1 (`.nvmrc` is 24.22.1). Python 3.12.3, pytest 9.1.1, ruff 0.5.6.
+- PostgreSQL 16 on localhost. Database `trustcopilot_test`.
+- The release Playwright job lists specs by name. `e2e/release/screen-notifications.spec.ts` is not in that list, so this local run is the UI evidence.
+
+```bash
+cd apps/web && npx vitest run lib/delivery-attempts.test.ts
+```
+
+Exit status: **0**. Totals: **3 passed**.
+
+```bash
+cd apps/web && npx playwright test e2e/release/screen-notifications.spec.ts --retries=0 --reporter=list
+```
+
+Exit status: **0**. Totals: **12 passed**, 0 failed, 0 skipped.
+
+Axe JSON under this directory, each with `violationCount` 0:
+
+| File | Width | violationCount |
+|---|---|---|
+| `axe-notifications-360.json` | 360 | 0 |
+| `axe-notifications-768.json` | 768 | 0 |
+| `axe-notifications-1440.json` | 1440 | 0 |
+
+Screenshots: `screenshots/notifications-360.png`, `screenshots/notifications-768.png`, `screenshots/notifications-1440.png`.
+
+```bash
+cd apps/api && TC_REQUIRE_DB=1 python -m pytest tests/release/test_domain_notifications.py -q --tb=line -p no:warnings
+```
+
+Exit status: **0**. Totals: **53 passed**, 0 failed, 0 skipped. The new case is `test_delivery_attempts_payload_matches_the_web_reader`. It reads a PostgreSQL delivery-attempts payload that includes `dead-lettered` and `deduped` (`error_code` `claimed`) and checks `acceptDeliveryAttemptsContract` accepts it. That import is absent on master, so the test fails there.
+
+The full API suite total is the `build` job on this pull request's head, not a local rerun. The only allowed skip remains `tests/test_trust_scoring_blind.py:33`.
+
+Tested commit: filled in after this section is committed. The code under test is that commit; a later edit of this paragraph does not change the product code.
