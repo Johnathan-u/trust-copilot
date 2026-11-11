@@ -54,21 +54,45 @@ describe('application navigation', () => {
       '/dashboard/security',
     ])
 
-    const editor = appNavItemsFor({ can_edit: true, can_admin: false })
-    expect(editor.map((item) => item.href)).toContain('/dashboard/requests')
+    const editor = appNavItemsFor({
+      can_edit: true,
+      can_review: true,
+      can_admin: false,
+    })
     expect(editor.some((item) => item.section === 'admin')).toBe(false)
 
-    const reviewer = appNavItemsFor({ can_edit: false, can_admin: false })
-    expect(reviewer.map((item) => item.href)).not.toContain(
-      '/dashboard/requests'
-    )
+    const reviewer = appNavItemsFor({
+      can_edit: false,
+      can_review: true,
+      can_admin: false,
+    })
     expect(reviewer.map((item) => item.href)).toContain('/dashboard/exports')
     expect(reviewer.map((item) => item.href)).toContain(
       '/dashboard/trust-requests'
     )
 
-    const admin = appNavItemsFor({ can_edit: true, can_admin: true })
+    const admin = appNavItemsFor({
+      can_edit: true,
+      can_review: true,
+      can_admin: true,
+    })
     expect(admin.map((item) => item.label)).toContain('Alerts / Notifications')
     expect(admin.map((item) => item.href)).not.toContain('/dashboard/security')
+  })
+
+  it.each([
+    ['viewer', { can_edit: false, can_review: false, can_admin: false }, false],
+    [
+      'editor without review',
+      { can_edit: true, can_review: false, can_admin: false },
+      false,
+    ],
+    ['editor', { can_edit: true, can_review: true, can_admin: false }, true],
+    ['reviewer', { can_edit: false, can_review: true, can_admin: false }, true],
+    ['admin', { can_edit: true, can_review: true, can_admin: true }, true],
+  ])('%s Requests link follows can_review', (_label, permissions, visible) => {
+    const hrefs = appNavItemsFor(permissions).map((item) => item.href)
+    if (visible) expect(hrefs).toContain('/dashboard/requests')
+    else expect(hrefs).not.toContain('/dashboard/requests')
   })
 })
