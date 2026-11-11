@@ -125,4 +125,4 @@ Exit status: **0**. Totals: **53 passed**, 0 failed, 0 skipped. The new case is 
 
 The full API suite total is the `build` job on this pull request's head, not a local rerun. The only allowed skip remains `tests/test_trust_scoring_blind.py:33`.
 
-Tested commit: filled in after this section is committed. The code under test is that commit; a later edit of this paragraph does not change the product code.
+Tested code commit: `88174accf15799aa0f2cc6645120d589b076d1d1`. Product code, tests, screenshots, and axe JSON are in that commit. This paragraph records that SHA and does not change the product code.
