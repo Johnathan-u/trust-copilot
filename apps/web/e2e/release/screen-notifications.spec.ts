@@ -447,7 +447,7 @@ for (const width of [360, 768, 1440]) {
     const axePath = path.join(evidence, `axe-notifications-${width}.json`)
     writeFileSync(
       axePath,
-      JSON.stringify(
+      `${JSON.stringify(
         {
           width,
           surface: 'notifications',
@@ -456,7 +456,7 @@ for (const width of [360, 768, 1440]) {
         },
         null,
         2
-      )
+      )}\n`
     )
     const screenshot = path.join(
       evidence,
