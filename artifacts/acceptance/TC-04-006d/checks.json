@@ -1,0 +1,82 @@
+{
+  "base": "dea5f5afe87dfa73a0321a0f0311847ed233432f",
+  "api_sqlite": {
+    "focused_passed": 12,
+    "related_passed": 101
+  },
+  "safe_collection_passed": 29,
+  "api_collection": {
+    "sqlite": 12,
+    "postgres": 12,
+    "real_browser_orchestration": 1
+  },
+  "web_quality": {
+    "typecheck": "passed",
+    "lint": "passed",
+    "format": "passed",
+    "unit_files": 45,
+    "unit_tests_passed": 444,
+    "new_focused_tests_passed": 23
+  },
+  "production_build": "passed",
+  "python_ruff": "passed",
+  "diff_check": "passed",
+  "postgres_real_browser": {
+    "qualified": false,
+    "local_exit": 3,
+    "reason": "Local PostgreSQL connection refused; mandatory CI execution remains."
+  },
+  "browser_collection_only": {
+    "tests": 2,
+    "executed": false
+  },
+  "local_ui_control": {
+    "passed": true,
+    "browserVersion": "156.0.8078.4",
+    "kind": "local mocked-transport UI control; not PostgreSQL acceptance",
+    "calls": 4,
+    "axeReports": 4,
+    "externalRequests": 0
+  },
+  "raw_log_sha256": {
+    "api_red": "d1b1ff232d2eb304a5f15584948d644e0300d5fac4d90a5d04789aeeee2e9e8e",
+    "api_green": "ed115d10cea8494437e38dc623841c926874896843eec0f41d68095dd119992c",
+    "context_red": "d37fa43cc9669cac15eb0418ffd2c6a739bd067ec48d4eaa5dd7ec4f3a1e6b65",
+    "banner_red": "d817166487cab285902edb393f8e871ca4868e56c01108560f3de523774f1491",
+    "latency_red": "430034f5a5e7f3e3b77be64cad2bf2cf8b965163e89283cad74b523a06f76d16",
+    "switch_red": "bc13991bee4ba466f9664ed0460366371d690a6cb713ee824ebdb88e1e7f367d",
+    "api_related": "bedeac26e24fc6a855f02cf446730c239b7b71d06a4b2ac7760ccd4573ea81a1",
+    "safe_collection": "d0e10925aef50e4808f83970b966e50502132920bc9e63447957825f134325b9",
+    "quality": "9c5fe6739f5d6f11959b552e5e60e2f8d106be04e4847e42dc9b609969551a6b",
+    "build": "1edc3f3bfe05a2d2c077d17ddb521a6a27b87efb0b390ca2c7f40c366d219854",
+    "postgres_attempt": "75717d9bb30e6fc350d76bc77ad6a4ef5bdda7062d396ed586a9c06157b3be32"
+  },
+  "review_repair": {
+    "base": "50b81d311cb19445cd748770d8ec0286d72713bd",
+    "finding": "P2 acknowledged workspace switch retained previous authority after failed confirmation",
+    "red": {
+      "context_failed": 11,
+      "context_passed": 19
+    },
+    "focused": {
+      "files_passed": 2,
+      "tests_passed": 34
+    },
+    "web_quality": {
+      "typecheck": "passed",
+      "lint": "passed",
+      "format": "passed",
+      "unit_files": 45,
+      "unit_tests_passed": 455
+    },
+    "production_build": "passed",
+    "diff_check": "passed",
+    "browser_execution": "Not rerun for this bounded context repair; prior mocked control is historical evidence. Mandatory real API/PostgreSQL CI remains.",
+    "raw_log_sha256": {
+      "red": "fd19b2a80265e82c6b0ba95d6572d1e99ea062ee03bca0487a249c0f4ff14575",
+      "green": "8775834a18275e1b2d27b3335cc5ed25c5dae8ca2cc245722d42d9bb00ae0d3e",
+      "quality": "be0701fd69300028ea817027292f024943f4b00a0a978f04cb217554dbb148c0",
+      "build": "b978b31d7ba732384910a6e57a6eb538f0ab8e8fbd9bbb055656bfe193b89a13"
+    }
+  }
+}

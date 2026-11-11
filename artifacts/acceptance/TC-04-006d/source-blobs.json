@@ -1,0 +1,16 @@
+{
+  "base": "dea5f5afe87dfa73a0321a0f0311847ed233432f",
+  "git_blob_sha1": {
+    "apps/api/app/api/routes/auth.py": "d0eb13350e1f6d82e93907f626fdb2eaf7b9b25a",
+    "apps/api/tests/release/test_session_expiry_warning.py": "ac97e54914dd6b67d315eb5ead3663c8e9aea84f",
+    "apps/api/tests/release/test_session_expiry_browser.py": "0c31172fc35bc7ed7b6680ae984f627b8da0edc7",
+    "apps/web/contexts/AuthContext.tsx": "bb6d1fcbb5cfd83dad9f048768c49119d1b9394a",
+    "apps/web/lib/auth-types.ts": "b1962502e6aa861bb7b4adadf2d85258cdcd9f1c",
+    "apps/web/components/layout/DashboardShell.tsx": "3e52d3b09c4b1a885c19a26728dfc96b80609d29",
+    "apps/web/components/layout/SessionExpiryWarning.tsx": "24b99a96f54d282532102306acc3a53ee74cb362",
+    "apps/web/tests/unit/session-expiry.test.ts": "b12f2bf4df3c440079171fb8f9d971ead7318b55",
+    "apps/web/tests/unit/session-expiry-warning.test.ts": "3d06bd6a49c16cf9500568e6260a50f671c7230a",
+    "apps/web/playwright.session-expiry.config.ts": "09dc3038f736a1c8fb143330e4c4cf0222860b80",
+    "apps/web/e2e/integration/session-expiry.acceptance.ts": "36642ca8048401f543291f4c93f19016b3fb6ec5"
+  }
+}

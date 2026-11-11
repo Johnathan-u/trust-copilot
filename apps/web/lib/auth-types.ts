@@ -36,6 +36,13 @@ export interface AuthState {
   error: string | null
   failure: ApiFailurePresentation | null
   requestId: number
+  /** Server expiry anchored to the browser's monotonic clock, in milliseconds. */
+  session_expiry?: {
+    expires_at: number
+    deadline: number
+    check_at: number
+  } | null
+  session_expiry_status?: 'ready' | 'checking' | 'unavailable'
   needs_onboarding?: boolean
   subscription?: SubscriptionInfo
   mfa_enrolled?: boolean
@@ -47,6 +54,8 @@ export interface AuthState {
 }
 
 export interface MeResponse {
+  session_expires_at?: number
+  server_time?: number
   id: number
   email: string
   display_name: string
