@@ -1,0 +1,66 @@
+{
+  "ticket": "TC-02-007",
+  "base_sha": "354166555acab43576a4e2261eaafbfa8f60cfc9",
+  "tested_sha": "2f5ffb040161fd7a4d4b5f59b3a7d14f2b976b77",
+  "command": "cd apps/api && pytest -rs",
+  "focused_command": "cd apps/api && python -m pytest tests/release/test_ci_integration.py tests/release/test_ci_storage_roundtrip.py -q",
+  "working_directory": "apps/api",
+  "exit_status": 0,
+  "environment": {
+    "python": "3.11.18",
+    "pytest": "9.1.1",
+    "postgres_image": "pgvector/pgvector:pg16@sha256:7b822b0aac60967beb1ea5e576b8602c94c300a157d187f385ae3e0da199b90a",
+    "storage_image": "motoserver/moto:5.2.5@sha256:59a1965d845249b04def37a0e2565f9cc6c44543cb89b68e90f28f344b3b0d1a",
+    "storage_project": "moto",
+    "storage_license": "Apache-2.0",
+    "playwright": "1.64.1",
+    "chromium": "Chrome for Testing 156.0.8078.4 (playwright chromium v1248)"
+  },
+  "session": {
+    "passed": 6436,
+    "failed": 0,
+    "skipped": 1,
+    "errors": 0,
+    "warnings": 52,
+    "push_duration_seconds": 847.48,
+    "pull_request_duration_seconds": 809.21,
+    "totals_line_push": "6436 passed, 1 skipped, 52 warnings in 847.48s (0:14:07)",
+    "totals_line_pull_request": "6436 passed, 1 skipped, 52 warnings in 809.21s (0:13:29)",
+    "skip": [
+      {
+        "nodeid": "tests/test_trust_scoring_blind.py:33",
+        "reason": "external_data: blind test pack not checked in; set TC_TRUST_SCORING_BLIND_PACK to run"
+      }
+    ]
+  },
+  "focused": {
+    "test_ci_integration.py": {
+      "passed": 10,
+      "skipped": 0,
+      "failed": 0,
+      "line_push": "tests/release/test_ci_integration.py ..........                          [ 29%]",
+      "line_pull_request": "tests/release/test_ci_integration.py ..........                          [ 29%]"
+    },
+    "test_ci_storage_roundtrip.py": {
+      "passed": 1,
+      "skipped": 0,
+      "failed": 0,
+      "line_push": "tests/release/test_ci_storage_roundtrip.py .                             [ 29%]",
+      "line_pull_request": "tests/release/test_ci_storage_roundtrip.py .                             [ 29%]"
+    }
+  },
+  "push": {
+    "run_id": 42932293744,
+    "url": "https://github.com/Johnathan-u/trust-copilot/actions/runs/42932293744",
+    "build_job_id": 130233765516,
+    "web_release_e2e_job_id": 130233765114,
+    "conclusion": "success"
+  },
+  "pull_request": {
+    "run_id": 42932316388,
+    "url": "https://github.com/Johnathan-u/trust-copilot/actions/runs/42932316388",
+    "build_job_id": 130233839626,
+    "web_release_e2e_job_id": 130233840251,
+    "conclusion": "success"
+  }
+}

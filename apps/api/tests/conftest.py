@@ -1,5 +1,6 @@
 """Pytest fixtures for Trust Copilot API tests. Enterprise test suite (auth, RBAC, API contracts)."""
 
+import ast
 import os
 import subprocess
 import sys
@@ -32,12 +33,14 @@ os.environ["DATABASE_URL"] = _safety.validate_test_database_url(
 import secrets as _secrets  # noqa: E402
 
 os.environ["SESSION_SECRET"] = _secrets.token_urlsafe(48)
-os.environ["S3_ENDPOINT"] = _safety.validate_test_s3_endpoint(
+# CI points this at the disposable moto service and generates masked credentials
+# (TC_TEST_S3_*). Local runs keep localhost:9000 and the synthetic dev pair.
+_s3_endpoint = os.environ.get("TC_TEST_S3_ENDPOINT") or (
     f"http://{'minio' if _in_docker_env else 'localhost'}:9000"
 )
-# Synthetic local-MinIO credentials (match docker-compose dev defaults; not a real secret).
-os.environ["S3_ACCESS_KEY"] = "minio"
-os.environ["S3_SECRET_KEY"] = "minio123"
+os.environ["S3_ENDPOINT"] = _safety.validate_test_s3_endpoint(_s3_endpoint)
+os.environ["S3_ACCESS_KEY"] = os.environ.get("TC_TEST_S3_ACCESS_KEY") or "minio"
+os.environ["S3_SECRET_KEY"] = os.environ.get("TC_TEST_S3_SECRET_KEY") or "minio123"
 os.environ["S3_BUCKET_RAW"] = "test-raw"
 os.environ["S3_BUCKET_EXPORTS"] = "test-exports"
 os.environ["TRUSTED_ORIGINS"] = (
@@ -142,20 +145,138 @@ def pytest_runtest_setup(item):
 # (fixture skip, "Postgres not available", missing seed rows, ...) is reported as a failure.
 # Only the explicit opt-in categories keep their skips; they carry their own marker and reason.
 _SKIP_ALLOWED_MARKERS = frozenset({"provider", "live_stack", "external_data"})
+# Collection-time skips recorded by pytest_collectreport and judged in pytest_sessionfinish.
+_collection_skips: list[tuple[str, str]] = []
+
+
+def _mark_names_from_expr(expr: ast.AST | None) -> set[str]:
+    if expr is None:
+        return set()
+    if isinstance(expr, (ast.List, ast.Tuple, ast.Set)):
+        names: set[str] = set()
+        for elt in expr.elts:
+            names |= _mark_names_from_expr(elt)
+        return names
+    if isinstance(expr, ast.Call):
+        return _mark_names_from_expr(expr.func)
+    if isinstance(expr, ast.Attribute) and expr.attr in _SKIP_ALLOWED_MARKERS:
+        return {expr.attr}
+    return set()
+
+
+def _pytestmark_names(path: Path) -> set[str]:
+    """Module-level pytestmark names. Fail closed when the file cannot be parsed."""
+    try:
+        tree = ast.parse(path.read_text(encoding="utf-8"))
+    except (OSError, SyntaxError):
+        return set()
+    names: set[str] = set()
+    for node in tree.body:
+        targets: list[ast.AST] = []
+        value: ast.AST | None = None
+        if isinstance(node, ast.Assign):
+            targets = list(node.targets)
+            value = node.value
+        elif isinstance(node, ast.AnnAssign):
+            targets = [node.target]
+            value = node.value
+        if any(isinstance(target, ast.Name) and target.id == "pytestmark" for target in targets):
+            names |= _mark_names_from_expr(value)
+    return names
+
+
+def _module_path(nodeid: str) -> Path | None:
+    rel = nodeid.split("::", 1)[0]
+    for candidate in (Path(rel), _API_ROOT / rel):
+        if candidate.is_file():
+            return candidate
+    return None
+
+
+def _collect_skip_reason(report) -> str:
+    longrepr = getattr(report, "longrepr", "")
+    if isinstance(longrepr, tuple) and len(longrepr) >= 3:
+        return str(longrepr[2])
+    return str(longrepr)
+
+
+def pytest_collectreport(report):
+    """Record a collection-time skip of a module that is not an allowed opt-in category."""
+    if not _db_required() or not getattr(report, "skipped", False):
+        return
+    nodeid = str(getattr(report, "nodeid", "") or "")
+    if not nodeid.endswith(".py"):
+        return
+    path = _module_path(nodeid)
+    if path is not None and _pytestmark_names(path) & _SKIP_ALLOWED_MARKERS:
+        return
+    _collection_skips.append((nodeid, _collect_skip_reason(report)))
+
+
+def pytest_sessionfinish(session, exitstatus):
+    """Fail the session when TC_REQUIRE_DB=1 saw a disallowed collection-time skip."""
+    del exitstatus
+    if not _db_required() or not _collection_skips:
+        return
+    lines = [
+        "TC_REQUIRE_DB=1: collection-time skip is not allowed "
+        "(module is not marked provider, live_stack or external_data):"
+    ]
+    lines.extend(f"{nodeid}: {reason}" for nodeid, reason in _collection_skips)
+    sys.stderr.write("\n".join(lines) + "\n")
+    if session.exitstatus in (0, 5):
+        session.exitstatus = 1
+
+
+def _storage_required() -> bool:
+    return os.environ.get("TC_REQUIRE_STORAGE") == "1"
+
+
+def _storage_reachable() -> bool:
+    """True when the configured local S3 endpoint accepts a StorageClient ping."""
+    import socket
+    from urllib.parse import urlparse
+
+    parsed = urlparse(os.environ.get("S3_ENDPOINT", ""))
+    host = parsed.hostname
+    if not host:
+        return False
+    port = parsed.port or (443 if parsed.scheme == "https" else 80)
+    try:
+        with socket.create_connection((host, port), timeout=2):
+            pass
+    except OSError:
+        return False
+    try:
+        from app.core.config import get_settings
+        from app.services.storage import StorageClient
+
+        get_settings.cache_clear()
+        StorageClient().ping()
+    except Exception:
+        return False
+    return True
 
 
 @pytest.hookimpl(hookwrapper=True)
 def pytest_runtest_makereport(item, call):
     outcome = yield
     rep = outcome.get_result()
-    if not rep.skipped or hasattr(rep, "wasxfail") or not _db_required():
+    if not rep.skipped or hasattr(rep, "wasxfail"):
         return
     names = {m.name for m in item.iter_markers()}
-    if "integration" not in names or names & _SKIP_ALLOWED_MARKERS:
+    if names & _SKIP_ALLOWED_MARKERS:
         return
     reason = rep.longrepr[2] if isinstance(rep.longrepr, tuple) else str(rep.longrepr)
-    rep.outcome = "failed"
-    rep.longrepr = f"TC_REQUIRE_DB=1: DB (integration) test skipped instead of running: {reason}"
+    if _db_required() and "integration" in names:
+        rep.outcome = "failed"
+        rep.longrepr = (
+            f"TC_REQUIRE_DB=1: DB (integration) test skipped instead of running: {reason}"
+        )
+        return
+    if _storage_required() and "storage" in names:
+        rep.outcome = "failed"
+        rep.longrepr = f"TC_REQUIRE_STORAGE=1: storage test skipped instead of running: {reason}"
 
 
 def pytest_terminal_summary(terminalreporter, exitstatus, config):
@@ -658,9 +779,15 @@ _DB_UNAVAILABLE_MSG = (
 
 
 def pytest_sessionstart(session):
-    """Fail the whole run up front when the DB is required but unusable."""
+    """Fail the whole run up front when a required service is unusable."""
     if _db_required() and not _ensure_db_schema():
         pytest.exit(f"TC_REQUIRE_DB=1: {_DB_UNAVAILABLE_MSG}", returncode=3)
+    if _storage_required() and not _storage_reachable():
+        endpoint = os.environ.get("S3_ENDPOINT", "")
+        pytest.exit(
+            f"TC_REQUIRE_STORAGE=1: object storage unavailable at {endpoint}",
+            returncode=3,
+        )
 
 
 @pytest.fixture
