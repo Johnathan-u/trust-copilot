@@ -283,7 +283,10 @@ def test_rules_ui_api_and_database_agree_after_full_process_restart(actors, tmp_
         "TRUSTED_ORIGINS": web_url,
         "S3_ACCESS_KEY": "",
         "S3_SECRET_KEY": "",
-        "NEXT_DIST_DIR": ".next-rules-acceptance",
+        # Stay inside the tree ESLint and Prettier already ignore. A separate
+        # dist directory is linted by the later web quality checks, and Next
+        # rewrites tsconfig.json to point at it.
+        "NEXT_DIST_DIR": ".next",
         "NEXT_TELEMETRY_DISABLED": "1",
         "PLAYWRIGHT_HTML_OPEN": "never",
     }
