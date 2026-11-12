@@ -1,8 +1,12 @@
 """Notification rule, preference and delivery-log boundaries on PostgreSQL."""
 
+import json
+import shutil
+import subprocess
 import uuid
 from contextlib import contextmanager
 from datetime import datetime
+from pathlib import Path
 
 import pytest
 from fastapi.testclient import TestClient
@@ -549,3 +553,139 @@ def test_personal_mutations_recheck_membership(actors, change, method, path, pay
             method, "/api/notifications" + path, **({"json": payload} if payload else {})
         )
         assert response.status_code == 403
+
+
+def _reader_accepts_delivery_attempts(sample: dict, malformed: dict) -> dict:
+    """Run the web reader on a captured payload. Node comes from PATH, as CI does."""
+    node = shutil.which("node")
+    assert node, "node is not on PATH"
+    version = subprocess.run([node, "--version"], capture_output=True, text=True, check=False)
+    assert version.returncode == 0, version.stderr
+    assert version.stdout.startswith("v24."), version.stdout
+    root = Path(__file__).resolve().parents[2].parents[1]
+    script = (
+        "import { acceptDeliveryAttemptsContract } from './apps/web/lib/delivery-attempts.ts';"
+        "const fs = await import('node:fs');"
+        "const payload = JSON.parse(fs.readFileSync(0, 'utf8'));"
+        "const accepted = acceptDeliveryAttemptsContract(payload.sample);"
+        "let rejected = false;"
+        "try { acceptDeliveryAttemptsContract(payload.malformed); }"
+        "catch { rejected = true; }"
+        "if (!rejected) throw new Error('malformed payload was accepted');"
+        "process.stdout.write(JSON.stringify(accepted));"
+    )
+    proc = subprocess.run(
+        [node, "--experimental-strip-types", "--input-type=module", "-e", script],
+        input=json.dumps({"sample": sample, "malformed": malformed}),
+        text=True,
+        capture_output=True,
+        cwd=str(root),
+        check=False,
+    )
+    assert proc.returncode == 0, proc.stderr
+    return json.loads(proc.stdout)
+
+
+def test_delivery_attempts_payload_matches_the_web_reader(actors, monkeypatch):
+    """A PostgreSQL delivery-attempts payload, including dedupe and dead-letter, matches the reader.
+
+    The reader module is not on master, so this test fails there.
+    """
+    from app.services import notification_service
+
+    class ScriptedEmail:
+        provider_mode = "fixture"
+        counts_as_provider = True
+
+        def __init__(self):
+            self.fail = True
+
+        def send(self, _message):
+            return not self.fail
+
+    provider = ScriptedEmail()
+    monkeypatch.setattr(notification_service, "get_email_provider", lambda: provider)
+    detail = "SOURCE-QUOTE-MARKER"
+    with client_for(actors) as client:
+        created = client.post(
+            "/api/notifications/policies",
+            json={
+                "event_type": "member.joined",
+                "recipient_type": "user",
+                "recipient_value": str(actors["editor"]["id"]),
+            },
+        )
+        assert created.status_code == 200, created.text
+        with SessionLocal() as db:
+            dead = notification_service.fire_notification(
+                db,
+                actors["ws"],
+                "member.joined",
+                detail,
+                "Workspace",
+                event_id="dead-letter-event",
+            )
+        assert dead == 0
+        provider.fail = False
+        with SessionLocal() as db:
+            sent = notification_service.fire_notification(
+                db,
+                actors["ws"],
+                "member.joined",
+                detail,
+                "Workspace",
+                event_id="dedupe-event",
+            )
+            again = notification_service.fire_notification(
+                db,
+                actors["ws"],
+                "member.joined",
+                detail,
+                "Workspace",
+                event_id="dedupe-event",
+            )
+        assert sent == 1
+        assert again == 0
+        engine.dispose()
+        with SessionLocal() as db:
+            stored = db.execute(
+                text(
+                    "SELECT state, error_code, channel, template_key, destination "
+                    "FROM notification_delivery_attempts WHERE workspace_id = :ws"
+                ),
+                {"ws": actors["ws"]},
+            ).fetchall()
+        stored_states = {row.state for row in stored}
+        assert "dead-lettered" in stored_states
+        assert "deduped" in stored_states
+        assert any(row.state == "deduped" and row.error_code == "claimed" for row in stored)
+        response = client.get("/api/notifications/delivery-attempts?page_size=50")
+        assert response.status_code == 200, response.text
+        body = response.json()
+        assert body["schema_version"] == 1
+        assert any(row["state"] == "dead-lettered" for row in body["attempts"])
+        deduped = next(row for row in body["attempts"] if row["state"] == "deduped")
+        assert deduped["error_code"] == "claimed"
+        assert deduped["destination"] == actors["editor"]["email"]
+        assert detail in json.dumps(body)
+        accepted = _reader_accepts_delivery_attempts(
+            body,
+            {
+                "schema_version": 1,
+                "total": 1,
+                "page": 1,
+                "attempts": [{"id": 1, "state": "claimed"}],
+            },
+        )
+    assert any(row["state"] == "dead-lettered" for row in accepted["attempts"])
+    accepted_deduped = next(row for row in accepted["attempts"] if row["state"] == "deduped")
+    assert accepted_deduped["claimed"] is True
+    assert accepted_deduped["error_code"] == "claimed"
+    assert accepted_deduped["channel"] == "email"
+    assert accepted_deduped["template_key"] == "member.joined:email"
+    assert accepted_deduped["attempt_number"] == 0
+    assert accepted_deduped["is_read"] is None
+    encoded = json.dumps(accepted)
+    assert detail not in encoded
+    assert "rendered_body" not in encoded
+    assert "rendered_subject" not in encoded
