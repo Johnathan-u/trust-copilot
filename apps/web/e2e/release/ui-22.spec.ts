@@ -54,7 +54,16 @@ function gate() {
   })
   return { wait, release }
 }
-async function setup(page: Page, role = 'admin') {
+async function setup(
+  page: Page,
+  role = 'admin',
+  permissionOverrides: {
+    can_admin?: boolean
+    can_edit?: boolean
+    can_review?: boolean
+    can_export?: boolean
+  } = {}
+) {
   const state = {
     workspace: 7,
     rows: [record],
@@ -108,6 +117,7 @@ async function setup(page: Page, role = 'admin') {
         can_edit: role === 'admin' || role === 'editor',
         can_review: role !== 'viewer',
         can_export: role === 'admin',
+        ...permissionOverrides,
       },
       needs_onboarding: false,
       subscription: { status: 'trialing', plan: 'synthetic' },
@@ -181,6 +191,34 @@ async function setup(page: Page, role = 'admin') {
   })
   return { state, calls }
 }
+async function expectRequestsNavigation(page: Page, visible: boolean) {
+  const sidebar = page.getByRole('navigation', { name: 'Application' })
+  const topbar = page.getByRole('navigation', { name: 'Primary' })
+  await expect(
+    sidebar.getByRole('link', { name: 'Home', exact: true })
+  ).toBeVisible()
+  await expect(
+    topbar.getByRole('link', { name: 'Home', exact: true })
+  ).toBeVisible()
+  const sidebarRequests = sidebar.getByRole('link', {
+    name: 'Requests',
+    exact: true,
+  })
+  const topbarRequests = topbar.getByRole('link', {
+    name: 'Requests',
+    exact: true,
+  })
+  if (visible) {
+    await expect(sidebarRequests).toBeVisible()
+    await expect(topbarRequests).toBeVisible()
+    await expect(sidebarRequests).toHaveAttribute('href', '/dashboard/requests')
+    await expect(topbarRequests).toHaveAttribute('href', '/dashboard/requests')
+  } else {
+    await expect(sidebarRequests).toHaveCount(0)
+    await expect(topbarRequests).toHaveCount(0)
+  }
+}
+
 async function open(page: Page) {
   await page.goto('/dashboard/vendor-requests')
   await expect(page).toHaveURL(/\/dashboard\/requests$/)
@@ -262,6 +300,77 @@ for (const role of ['reviewer', 'viewer']) {
     ).toHaveCount(0)
   })
 }
+
+for (const item of [
+  { role: 'editor', visible: true, slug: 'editor' },
+  { role: 'reviewer', visible: true, slug: 'reviewer' },
+] as const) {
+  test(`${item.role} Requests navigation matches review access in the sidebar, top bar, and direct visit`, async ({
+    page,
+  }, testInfo) => {
+    const { calls } = await setup(page, item.role)
+    await page.setViewportSize({ width: 1440, height: 900 })
+    await page.goto('/dashboard')
+    await expect(
+      page.getByRole('heading', { name: 'Dashboard', exact: true })
+    ).toBeVisible()
+    await expectRequestsNavigation(page, item.visible)
+    await page.goto('/dashboard/requests')
+    await expect(
+      page.getByText('vendor@example.com', { exact: true })
+    ).toBeVisible()
+    await expectRequestsNavigation(page, true)
+    expect(
+      calls.filter((call) => call.path === '/api/vendor-requests').length
+    ).toBeGreaterThan(0)
+    const evidenceDir = path.resolve(
+      '../../artifacts/acceptance/TC-15-024a/screenshots'
+    )
+    mkdirSync(evidenceDir, { recursive: true })
+    const screenshot = path.join(evidenceDir, `requests-nav-${item.slug}.png`)
+    await page.screenshot({ path: screenshot, fullPage: true })
+    await testInfo.attach(`requests-nav-${item.slug}`, {
+      path: screenshot,
+      contentType: 'image/png',
+    })
+  })
+}
+
+test('editor without review access hides Requests in the sidebar and top bar and the direct visit stays denied', async ({
+  page,
+}, testInfo) => {
+  const { calls } = await setup(page, 'editor', { can_review: false })
+  await page.setViewportSize({ width: 1440, height: 900 })
+  await page.goto('/dashboard')
+  await expect(
+    page.getByRole('heading', { name: 'Dashboard', exact: true })
+  ).toBeVisible()
+  await expectRequestsNavigation(page, false)
+  await page.goto('/dashboard/requests')
+  await expect(
+    page.getByText('You need review access to view requests.')
+  ).toBeVisible()
+  await expectRequestsNavigation(page, false)
+  expect(
+    calls.filter((call) => call.path === '/api/vendor-requests')
+  ).toHaveLength(0)
+  await expect(
+    page.getByRole('button', { name: 'Create Request', exact: true })
+  ).toHaveCount(0)
+  const evidenceDir = path.resolve(
+    '../../artifacts/acceptance/TC-15-024a/screenshots'
+  )
+  mkdirSync(evidenceDir, { recursive: true })
+  const screenshot = path.join(
+    evidenceDir,
+    'requests-nav-editor-without-review.png'
+  )
+  await page.screenshot({ path: screenshot, fullPage: true })
+  await testInfo.attach('requests-nav-editor-without-review', {
+    path: screenshot,
+    contentType: 'image/png',
+  })
+})
 
 test('empty requests remain an honest empty state with an available create action', async ({
   page,

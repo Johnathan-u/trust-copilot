@@ -1,7 +1,7 @@
 /**
  * One route list for the application sidebar, the wide top bar, and the
- * command palette. Permission flags match the page gates: Requests needs
- * edit, Jobs needs review, and Admin needs admin.
+ * command palette. Requests and Jobs follow can_review. Admin destinations
+ * follow can_admin.
  */
 
 export const APP_NAV_DOCK_MIN_PX = 768
@@ -31,14 +31,14 @@ export type AppNavItem = {
   icon: string
   section: AppNavSection
   requiresEdit?: boolean
-  requiresAdmin?: boolean
   requiresReview?: boolean
+  requiresAdmin?: boolean
 }
 
 export type AppNavPermissions = {
   can_edit: boolean
-  can_admin: boolean
   can_review: boolean
+  can_admin: boolean
 }
 
 export const appNavItems: readonly AppNavItem[] = [
@@ -67,7 +67,7 @@ export const appNavItems: readonly AppNavItem[] = [
     label: 'Requests',
     icon: '📨',
     section: 'core',
-    requiresEdit: true,
+    requiresReview: true,
   },
   {
     href: '/dashboard/trust-requests',
@@ -197,8 +197,8 @@ export function isAppNavActive(pathname: string, href: string): boolean {
 export function appNavItemsFor(permissions: AppNavPermissions): AppNavItem[] {
   return appNavItems.filter((item) => {
     if (item.requiresAdmin && !permissions.can_admin) return false
-    if (item.requiresEdit && !permissions.can_edit) return false
     if (item.requiresReview && !permissions.can_review) return false
+    if (item.requiresEdit && !permissions.can_edit) return false
     return true
   })
 }

@@ -671,7 +671,10 @@ def run_export(job: Job, session, payload: dict) -> None:
     from app.services.answer_evidence_policy import answer_text_for_export
     from app.services.docx_writer import create_export_from_questionnaire_docx
     from app.services.fallback_export import create_fallback_pack_docx
-    from app.services.xlsx_writer import create_export_from_questionnaire
+    from app.services.xlsx_writer import (
+        UnsupportedWorkbookStructure,
+        create_export_from_questionnaire,
+    )
 
     # Keep this attempt's token even if a rollback/refresh later sees a newer owner.
     owner = _lease_owner(job)
@@ -758,7 +761,12 @@ def run_export(job: Job, session, payload: dict) -> None:
                 raw_bytes, question_list, question_to_answer, answer_col_offset=offset
             )
             out_filename = qnr.filename or "export.xlsx"
+    except UnsupportedWorkbookStructure:
+        # Parts the workbook writer would drop or rewrite fail the job. A DOCX
+        # substitute would hide that loss, so this error is not converted.
+        raise
     except Exception:
+        # Corrupt packages and unexpected writer errors still return the DOCX pack.
         out_bytes = create_fallback_pack_docx(question_list, question_to_answer)
         base = (qnr.filename or "export").rsplit(".", 1)[0]
         out_filename = f"{base}_answers_fallback.docx"

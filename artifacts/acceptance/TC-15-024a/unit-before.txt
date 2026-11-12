@@ -1,0 +1,51 @@
+(!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+  - ESM syntax in a file loaded as CommonJS (vitest.config.ts:1:1). Use a `.mjs` extension or set `"type": "module"` in the closest package.json
+Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.
+
+ RUN  v5.0.5 /agent/repos/trust-copilot/apps/web
+
+ ✓ lib/app-navigation.test.ts > application navigation > docks the sidebar at the 768px md breakpoint and uses a drawer below it 1ms
+ ✓ lib/app-navigation.test.ts > application navigation > marks the current route without treating every dashboard path as Home 0ms
+ ✓ lib/app-navigation.test.ts > application navigation > names the sidebar region and its navigation differently 1ms
+ ✓ lib/app-navigation.test.ts > application navigation > keeps one permission-aware list for sidebar, top bar and palette 1ms
+ ✓ lib/app-navigation.test.ts > application navigation > viewer Requests link follows can_review 0ms
+ × lib/app-navigation.test.ts > application navigation > editor without review Requests link follows can_review 3ms
+   → expected [ '/dashboard', …(16) ] to not include '/dashboard/requests'
+ ✓ lib/app-navigation.test.ts > application navigation > editor Requests link follows can_review 0ms
+ × lib/app-navigation.test.ts > application navigation > reviewer Requests link follows can_review 0ms
+   → expected [ '/dashboard', …(15) ] to include '/dashboard/requests'
+ ✓ lib/app-navigation.test.ts > application navigation > admin Requests link follows can_review 0ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  lib/app-navigation.test.ts > application navigation > editor without review Requests link follows can_review
+AssertionError: expected [ '/dashboard', …(16) ] to not include '/dashboard/requests'
+ ❯ lib/app-navigation.test.ts:96:28
+     94|     const hrefs = appNavItemsFor(permissions).map((item) => item.href)
+     95|     if (visible) expect(hrefs).toContain('/dashboard/requests')
+     96|     else expect(hrefs).not.toContain('/dashboard/requests')
+       |                            ^
+     97|   })
+     98| })
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯
+
+ FAIL  lib/app-navigation.test.ts > application navigation > reviewer Requests link follows can_review
+AssertionError: expected [ '/dashboard', …(15) ] to include '/dashboard/requests'
+ ❯ lib/app-navigation.test.ts:95:32
+     93|   ])('%s Requests link follows can_review', (_label, permissions, visi…
+     94|     const hrefs = appNavItemsFor(permissions).map((item) => item.href)
+     95|     if (visible) expect(hrefs).toContain('/dashboard/requests')
+       |                                ^
+     96|     else expect(hrefs).not.toContain('/dashboard/requests')
+     97|   })
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/2]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  2 failed | 7 passed (9)
+   Start at  08:43:08
+   Duration  195ms (transform 48%, import 20%, tests 18%, worker 13%)
+
+EXIT:1

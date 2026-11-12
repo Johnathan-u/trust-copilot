@@ -1,6 +1,6 @@
 import { expect, test, type Page, type Route } from '@playwright/test'
 import AxeBuilder from '@axe-core/playwright'
-import { mkdirSync, writeFileSync } from 'node:fs'
+import { mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import path from 'node:path'
 
 const recommendation = {
@@ -301,9 +301,31 @@ test('filters and permitted export reflect the displayed snapshot', async ({
   await expect(
     page.getByText('Access review record', { exact: true })
   ).toHaveCount(0)
-  const download = page.waitForEvent('download')
+  const downloadPromise = page.waitForEvent('download')
   await page.getByRole('button', { name: 'Export displayed gaps' }).click()
-  await expect((await download).suggestedFilename()).toBe('evidence-gaps.csv')
+  const download = await downloadPromise
+  expect(download.suggestedFilename()).toBe('evidence-gaps.csv')
+  const downloadPath = await download.path()
+  if (!downloadPath) throw new Error('missing downloaded csv')
+  const csv = readFileSync(downloadPath, 'utf8')
+  const lines = csv.split('\r\n')
+  const snapshot = /^"Snapshot retrieved","([^"]+)"$/.exec(lines[0] ?? '')
+  if (!snapshot) throw new Error('missing snapshot header')
+  const retrievedAt = snapshot[1]
+  expect(lines.slice(0, 8)).toEqual([
+    `"Snapshot retrieved","${retrievedAt}"`,
+    '"Scope","Displayed filtered evidence gaps"',
+    '"Search","none"',
+    '"Status","Resolved"',
+    '"Priority","none"',
+    '"Rows","1","Returned rows","2"',
+    `"Period","All history through ${retrievedAt}"`,
+    '"Title","Reason","Status","Priority","Age in days","Owner"',
+  ])
+  expect(lines[8]).toBe(
+    '"Historic record","Current access review evidence is missing.","Resolved","Settled","28","Unassigned"'
+  )
+  expect(csv).not.toMatch(/questionnaire_id|owner_user_id|workspace_id/)
 })
 
 test('viewer receives denial without fetching private gap data', async ({
@@ -678,7 +700,11 @@ for (const width of [360, 768, 1440]) {
     mkdirSync(path.join(evidenceDir, 'screenshots'), { recursive: true })
     writeFileSync(
       path.join(evidenceDir, `axe-${width}.json`),
-      JSON.stringify({ width, violations }, null, 2)
+      JSON.stringify(
+        { width, violationCount: violations.length, violations },
+        null,
+        2
+      )
     )
     expect(
       violations.filter((item) =>
@@ -736,7 +762,15 @@ for (const width of [360, 768, 1440]) {
     const actionAxePath = path.join(evidenceDir, `axe-actions-${width}.json`)
     writeFileSync(
       actionAxePath,
-      JSON.stringify({ width, violations: actionViolations }, null, 2)
+      JSON.stringify(
+        {
+          width,
+          violationCount: actionViolations.length,
+          violations: actionViolations,
+        },
+        null,
+        2
+      )
     )
     await testInfo.attach(`axe-actions-${width}`, {
       path: actionAxePath,
