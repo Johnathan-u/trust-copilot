@@ -1,0 +1,46 @@
+[WebServer] ⚠ The "middleware" file convention is deprecated. Please use "proxy" instead.
+[WebServer]
+[WebServer]   To migrate automatically, run:
+[WebServer]   npx @next/codemod@canary middleware-to-proxy .
+[WebServer]
+[WebServer]   Learn more: https://nextjs.org/docs/messages/middleware-to-proxy
+[WebServer] ⚠ The "middleware" file convention is deprecated. Please use "proxy" instead.
+[WebServer]
+[WebServer]   To migrate automatically, run:
+[WebServer]   npx @next/codemod@canary middleware-to-proxy .
+[WebServer]
+[WebServer]   Learn more: https://nextjs.org/docs/messages/middleware-to-proxy
+
+Running 26 tests using 1 worker
+
+(node:4538) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓   1 [chromium] › e2e/release/ui-22.spec.ts:8:5 › legacy bookmark is a server redirect with no approved query parameters (222ms)
+  ✓   2 [chromium] › e2e/release/ui-22.spec.ts:241:5 › bookmark navigation commits only the destination and Back returns to the preceding page (1.7s)
+  ✓   3 [chromium] › e2e/release/ui-22.spec.ts:278:7 › reviewer gets the actual read permission without administrator actions (462ms)
+  ✓   4 [chromium] › e2e/release/ui-22.spec.ts:278:7 › viewer gets the actual read permission without administrator actions (392ms)
+  ✓   5 [chromium] › e2e/release/ui-22.spec.ts:308:7 › editor Requests navigation matches review access in the sidebar, top bar, and direct visit (703ms)
+  ✓   6 [chromium] › e2e/release/ui-22.spec.ts:308:7 › reviewer Requests navigation matches review access in the sidebar, top bar, and direct visit (759ms)
+  ✓   7 [chromium] › e2e/release/ui-22.spec.ts:339:5 › editor without review access hides Requests in the sidebar and top bar and the direct visit stays denied (635ms)
+  ✓   8 [chromium] › e2e/release/ui-22.spec.ts:375:5 › empty requests remain an honest empty state with an available create action (436ms)
+  ✓   9 [chromium] › e2e/release/ui-22.spec.ts:387:5 › list failure remains an error and retry obtains the acknowledged list (493ms)
+  ✓  10 [chromium] › e2e/release/ui-22.spec.ts:404:5 › questionnaire failure retains requests and does not display internal ids (449ms)
+  ✓  11 [chromium] › e2e/release/ui-22.spec.ts:417:5 › delayed create and its null-token replay do not fabricate a link or early success (694ms)
+  ✓  12 [chromium] › e2e/release/ui-22.spec.ts:468:5 › creation exposes only the returned one-time link and copy waits for clipboard acknowledgment (735ms)
+  ✓  13 [chromium] › e2e/release/ui-22.spec.ts:496:5 › progress rejection keeps the current state and reports the server failure (461ms)
+  ✓  14 [chromium] › e2e/release/ui-22.spec.ts:521:5 › send retry preserves its key after a network failure and only confirms provider acceptance (695ms)
+  ✓  15 [chromium] › e2e/release/ui-22.spec.ts:556:5 › simultaneous row invitations preserve each one-time link until its result is closed (761ms)
+  ✓  16 [chromium] › e2e/release/ui-22.spec.ts:637:7 › unavailable never appears as accepted or delivered (434ms)
+  ✓  17 [chromium] › e2e/release/ui-22.spec.ts:637:7 › uncertain never appears as accepted or delivered (458ms)
+  ✓  18 [chromium] › e2e/release/ui-22.spec.ts:637:7 › sending never appears as accepted or delivered (461ms)
+  ✓  19 [chromium] › e2e/release/ui-22.spec.ts:652:5 › revoke requires confirmation and an acknowledged response before displaying revoked (612ms)
+  ✓  20 [chromium] › e2e/release/ui-22.spec.ts:683:5 › only recorded submission presents completed state, while an expired grant remains explicit (447ms)
+  ✓  21 [chromium] › e2e/release/ui-22.spec.ts:710:5 › late old-workspace reads cannot replace the new workspace list (539ms)
+  ✓  22 [chromium] › e2e/release/ui-22.spec.ts:736:5 › late old-workspace send cannot show its token or result in the new workspace (580ms)
+  ✓  23 [chromium] › e2e/release/ui-22.spec.ts:778:7 › long content, keyboard dialog and accessibility at 360px (1.4s)
+  ✓  24 [chromium] › e2e/release/ui-22.spec.ts:778:7 › long content, keyboard dialog and accessibility at 768px (1.5s)
+  ✓  25 [chromium] › e2e/release/ui-22.spec.ts:778:7 › long content, keyboard dialog and accessibility at 1440px (1.7s)
+  ✓  26 [chromium] › e2e/release/ui-22.spec.ts:895:5 › a rejected create is an alert inside the dialog and does not take focus (666ms)
+
+  26 passed (27.6s)
+EXIT:0

@@ -1,0 +1,22 @@
+(!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+  - ESM syntax in a file loaded as CommonJS (vitest.config.ts:1:1). Use a `.mjs` extension or set `"type": "module"` in the closest package.json
+Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.
+
+ RUN  v5.0.5 /agent/repos/trust-copilot/apps/web
+
+ ✓ lib/app-navigation.test.ts > application navigation > docks the sidebar at the 768px md breakpoint and uses a drawer below it 1ms
+ ✓ lib/app-navigation.test.ts > application navigation > marks the current route without treating every dashboard path as Home 0ms
+ ✓ lib/app-navigation.test.ts > application navigation > names the sidebar region and its navigation differently 1ms
+ ✓ lib/app-navigation.test.ts > application navigation > keeps one permission-aware list for sidebar, top bar and palette 1ms
+ ✓ lib/app-navigation.test.ts > application navigation > viewer Requests link follows can_review 0ms
+ ✓ lib/app-navigation.test.ts > application navigation > editor without review Requests link follows can_review 0ms
+ ✓ lib/app-navigation.test.ts > application navigation > editor Requests link follows can_review 0ms
+ ✓ lib/app-navigation.test.ts > application navigation > reviewer Requests link follows can_review 0ms
+ ✓ lib/app-navigation.test.ts > application navigation > admin Requests link follows can_review 0ms
+
+ Test Files  1 passed (1)
+      Tests  9 passed (9)
+   Start at  08:44:24
+   Duration  182ms (transform 57%, import 22%, tests 13%, worker 8%)
+
+EXIT:0
