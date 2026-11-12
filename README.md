@@ -51,7 +51,7 @@ Or manually:
 1. **Documents** — Upload evidence (PDF, DOCX, XLSX). Files are parsed, chunked, and embedded for retrieval.
 2. **Questionnaires** — Upload questionnaires (XLSX). Questions are parsed and linked to source cells.
 3. **Review** — Open a questionnaire, click **Generate answers** (requires `OPENAI_API_KEY`). Edit answers inline, set status, use filters and bulk actions.
-4. **Export** — Click **Export XLSX** to produce an XLSX with answers written back into the uploaded workbook. Download from Recent exports. (Exact placement in the original layout is not yet verified; see TC-13-001/TC-13-002.)
+4. **Export** — Click **Export XLSX** to produce an XLSX with answers written back into the uploaded workbook. Download from Recent exports. The export keeps styles, formulas outside answer cells, defined names, data validation, hidden and very-hidden sheets, images, charts, and merged cells. Workbooks that contain macros, shapes, form controls, pivot tables, external links, slicers, or the other unsupported parts listed in [the export runbook](docs/release/tickets/TC-13-002.md) fail the export instead of being silently rewritten. Exact cell placement is still the question column plus a fixed offset and is not yet verified (TC-13-001).
 
 ## Architecture
 
