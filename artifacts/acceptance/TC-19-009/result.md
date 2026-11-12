@@ -4,7 +4,18 @@ Status: the rules form now stores an active workspace member by user id. Editabl
 
 ## UI and API contract
 
-Tested commit: `16c7f1cf346ccc9f4581f92e82bfc7be4c032240`. This sentence is the only later edit. Python 3.12.3, pytest 9.1.1, Node 24.22.1, Vitest 5.0.5, PostgreSQL 16.15, database `trustcopilot_test`. No provider network call.
+Code verified by CI: `6870007e0ba0ee5a4e448d270f73614464181b4a`. This note is the only later edit. Python 3.12.3, pytest 9.1.1, Node 24.22.1, Vitest 5.0.5, PostgreSQL 16.15, database `trustcopilot_test`. No provider network call.
+
+Head `44b6ad30be3cdedb69fa3f6aff4fb1f27cfc2bcb` failed `build` on both events because the rules test wrote Next output to `.next-rules-acceptance`. The later web quality checks linted that generated code, and Next rewrote `tsconfig.json`. `web-release-e2e` passed on both events. The follow-up keeps the acceptance build inside `.next`, which ESLint and Prettier already ignore.
+
+Exact-head CI of `6870007e0ba0ee5a4e448d270f73614464181b4a`:
+
+| Event | Run | build | web-release-e2e |
+|---|---|---|---|
+| push | [43125311480](https://github.com/Johnathan-u/trust-copilot/actions/runs/43125311480) | job 130875767634, success | job 130875768510, success |
+| pull_request | [43125318094](https://github.com/Johnathan-u/trust-copilot/actions/runs/43125318094) | job 130875790257, success | job 130875790623, success |
+
+Both build logs: **6452 passed, 1 skipped, 52 warnings**. The only skip is `tests/test_trust_scoring_blind.py:33` (`external_data`: blind test pack not checked in). Push build took 924.83s. Pull request build took 726.49s. Both `web-release-e2e` jobs ended `playwright exit 0; axe check exit 0`.
 
 Parent page, before the form change (`git show HEAD:apps/web/app/dashboard/notifications/page.tsx` at `8dc9a94cc30904c99407e56d1f23888103ef7774`):
 
@@ -43,7 +54,7 @@ Exit 0. **3 passed.** `axe-rules-form-360.json`, `axe-rules-form-768.json`, and 
 
 `python scripts/security/secret_inventory.py paths` on the changed source and this evidence directory: **block 0**.
 
-The new browser test is collected by the existing `pytest -rs` step and uses the Chromium install already in the build job. No workflow, candidate list, or evidence-checker edit is required for it to run. #230's pytest total was 6451 passed and 1 skipped. This branch adds one test, so the expected full total is 6452 passed and 1 skipped, with the only skip `tests/test_trust_scoring_blind.py:33`. Confirm that on the final head's CI log.
+The new browser test is collected by the existing `pytest -rs` step and uses the Chromium install already in the build job. No workflow, candidate list, or evidence-checker edit is required for it to run. #230's pytest total was 6451 passed and 1 skipped. This branch adds one test. The CI totals above are 6452 passed and 1 skipped. The local qualification was re-run after the dist-directory fix: **1 passed in 16.13s**, and `tsconfig.json` was not rewritten.
 
 ## Still open
 
