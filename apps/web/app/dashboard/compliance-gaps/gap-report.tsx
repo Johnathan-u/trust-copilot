@@ -111,7 +111,21 @@ const fieldClass =
 const titleOf = (gap: Gap) =>
   gap.suggested_evidence_doc_title ||
   (gap.control_id ? 'Control evidence gap' : 'Questionnaire evidence gap')
-export function gapCsv(gaps: Gap[], fetchedAt: string) {
+function documentedFilter(value: string, labels?: { [key: string]: string }) {
+  const applied = value.trim()
+  if (applied === '' || applied === 'all') return 'none'
+  return labels?.[applied] ?? applied
+}
+export function gapCsv(
+  gaps: Gap[],
+  fetchedAt: string,
+  filters: {
+    search: string
+    status: string
+    priority: string
+    returnedRows: number
+  }
+) {
   const escape = (value: string | number) => {
     const cell = String(value)
     return `"${(/^[\s]*[=+@-]/.test(cell) ? "'" + cell : cell).replaceAll('"', '""')}"`
@@ -119,7 +133,11 @@ export function gapCsv(gaps: Gap[], fetchedAt: string) {
   return [
     ['Snapshot retrieved', fetchedAt],
     ['Scope', 'Displayed filtered evidence gaps'],
-    ['Rows', gaps.length],
+    ['Search', documentedFilter(filters.search)],
+    ['Status', documentedFilter(filters.status, statusLabels)],
+    ['Priority', documentedFilter(filters.priority, priorityLabels)],
+    ['Rows', gaps.length, 'Returned rows', filters.returnedRows],
+    ['Period', `All history through ${fetchedAt}`],
     ['Title', 'Reason', 'Status', 'Priority', 'Age in days', 'Owner'],
     ...gaps.map((gap) => [
       titleOf(gap),
@@ -206,11 +224,21 @@ export function EvidenceGapList({
   const currentPage = Math.min(page, pages)
   const displayed = filtered.slice((currentPage - 1) * 25, currentPage * 25)
   function exportRows() {
-    if (!canExport || !result.fetchedAt) return
+    if (!canExport || !result.fetchedAt || !result.data) return
     const url = URL.createObjectURL(
-      new Blob([gapCsv(filtered, result.fetchedAt)], {
-        type: 'text/csv;charset=utf-8',
-      })
+      new Blob(
+        [
+          gapCsv(filtered, result.fetchedAt, {
+            search,
+            status,
+            priority,
+            returnedRows: result.data.length,
+          }),
+        ],
+        {
+          type: 'text/csv;charset=utf-8',
+        }
+      )
     )
     const anchor = document.createElement('a')
     anchor.href = url

@@ -262,3 +262,75 @@ returns the real statistics response shape, including empty breakdown objects.
 The click, URL and question-text assertions are unchanged, and all 29 UI-23
 cases still collect. Scoped Prettier and whitespace checks pass. No product
 navigation change or local browser pass is claimed; final-head CI is required.
+
+## CSV period, ui-23 guard and axe evidence
+
+Product code under test: `f083389d9f913a76cd27fb87095b670b9d999816`.
+This section and the files named below are the evidence commit. They do not
+change the page. The release job runs from `apps/web`:
+
+```sh
+npx --no-install playwright test "${candidates[@]}" --retries=0 --reporter=list,html,json
+```
+
+`candidates` includes `e2e/release/ui-23.spec.ts`. The same step then runs
+`node ../../scripts/ci/check-release-e2e-report.mjs` with the existing
+`--require-spec e2e/release/ui-23.spec.ts --min-tests 30` and the added
+`--axe-dir ../../artifacts/acceptance/TC-15-025`. The step deletes
+`axe-*.json` in that directory before Playwright, then the spec rewrites it.
+
+Environment, both browser jobs: Ubuntu 26.04 (`ubuntu-26.04`), Node v24.22.1,
+npm 11.19.1, Playwright 1.64.1, Chromium 156.0.8078.4 (playwright chromium
+revision 1248).
+
+| Event | Run | web-release-e2e job | Exit |
+| --- | --- | --- | --- |
+| push | [43026490625](https://github.com/Johnathan-u/trust-copilot/actions/runs/43026490625) | [130542397315](https://github.com/Johnathan-u/trust-copilot/actions/runs/43026490625/job/130542397315) | playwright 0; axe check 0 |
+| pull_request | [43026528300](https://github.com/Johnathan-u/trust-copilot/actions/runs/43026528300) | [130542519860](https://github.com/Johnathan-u/trust-copilot/actions/runs/43026528300/job/130542519860) | playwright 0; axe check 0 |
+
+The pull_request job checks out the merge of `f083389` into `e62987d`
+(`bf0c0849573682362aa75a7cc41eaad90ad6a3b2`). The push job checks out
+`f083389`. Both printed:
+
+```text
+ui-23.spec.ts: 30 passed, 0 failed, 0 skipped, 0 flaky
+TC-15-025/axe-360.json: 0 violations
+TC-15-025/axe-768.json: 0 violations
+TC-15-025/axe-1440.json: 0 violations
+TC-15-025/axe-actions-360.json: 0 violations
+TC-15-025/axe-actions-768.json: 0 violations
+TC-15-025/axe-actions-1440.json: 0 violations
+axe violations: 0
+playwright exit 0; axe check exit 0
+```
+
+Each committed axe file has `violationCount` 0 and `violations` `[]`, so there
+are no critical or serious violations. The six axe files and the three
+`gaps-*` screenshots are byte-identical between the two jobs. The three
+`gap-actions-*` screenshots differ in bytes and show the same dialog. The
+copies committed here are from the push artifact `compliance-gaps-evidence`
+on run 43026490625, which is the exact head `f083389`. Each JSON file has one
+added trailing newline so the text file ends on a newline. The parsed objects
+are unchanged.
+
+On that same push, `build` job
+[130542396592](https://github.com/Johnathan-u/trust-copilot/actions/runs/43026490625/job/130542396592)
+reported `6450 passed, 1 skipped`. The skip is
+`tests/test_trust_scoring_blind.py:33`. The pull_request `build` job
+[130542519574](https://github.com/Johnathan-u/trust-copilot/actions/runs/43026528300/job/130542519574)
+failed only
+`tests/release/test_job_leases.py::test_heartbeat_keeps_the_lease_during_long_work`
+(`1 failed, 6449 passed, 1 skipped`). That test was not changed.
+
+Visual review of the committed screenshots: at 360 the navigation collapses
+to a menu, the long recommendation title wraps inside its card, and the open
+evidence and question disclosures stay inside that card. The questionnaire
+link has a visible focus outline. The resolve dialog fits the width; the
+paging buttons stack, and "Resolve with selected evidence" sits on its own
+row under Cancel. At 768 the sidebar and the report sit side by side, and
+Cancel shares a row with the resolve button inside a centered dialog. At 1440
+the scope sentence (all questionnaire questions, cumulative rather than a
+comparison between reporting periods) and the control denominator ("0
+qualified of 1 applicable", stale evidence) are visible above the same
+recommendation. No labels overlap or run out of the card or the dialog. The
+fixtures are synthetic.
