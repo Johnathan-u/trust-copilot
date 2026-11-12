@@ -1,0 +1,12 @@
+conftest: branch apps/api/tests/conftest.py (this change)
+scenario: storage-marked-skip
+flags: TC_REQUIRE_DB=1, TC_REQUIRE_STORAGE unset
+exit: 1
+---
+.F                                                                       [100%]
+=================================== FAILURES ===================================
+___________________________ test_storage_marked_skip ___________________________
+TC_REQUIRE_DB=1: test skipped instead of running: Skipped: deliberate storage skip
+=========================== short test summary info ============================
+FAILED tests/.tc02007d-5e84d744116e4c30977bad7a9555c686/test_probe.py::test_storage_marked_skip
+1 failed, 1 passed in 0.13s

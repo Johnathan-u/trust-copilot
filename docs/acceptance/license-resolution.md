@@ -72,6 +72,9 @@ vitest).
 MPL-2.0 dev tools are used unmodified and are not distributed. The extra Python dev pins in
 `requirements-dev.lock` (pytest, ruff, pluggy, iniconfig, packaging, pygments, colorama) are MIT,
 Apache-2.0 or BSD. MinIO runs only in `docker-compose.yml` for local development and E2E tests.
+CI's `build` job also starts `motoserver/moto:5.2.5` (Apache-2.0), pinned by digest in
+`.github/workflows/ci.yml`, as a disposable S3 stand-in. That image is test-only: it is not in
+a lock file, a Dockerfile or a production compose file, and it is not shipped.
 No AGPL, GPL (other than LGPL), SSPL or BUSL package exists in either lock file, dev or runtime.
 CI checks every npm entry and every installed API runtime pin; the extra Python dev pins are not
 machine-checked.

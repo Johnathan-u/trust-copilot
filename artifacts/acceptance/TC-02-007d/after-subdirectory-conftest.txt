@@ -1,0 +1,10 @@
+conftest: branch apps/api/tests/conftest.py (this change)
+scenario: subdirectory-conftest
+flags: TC_REQUIRE_DB=1, TC_REQUIRE_STORAGE unset
+exit: 1
+---
+.                                                                        [100%]
+1 passed, 1 skipped in 0.12s
+
+TC_REQUIRE_DB=1: collection-time skip is not allowed (module is not marked provider, live_stack or external_data):
+tests/.tc02007d-f6fdc700fe84493792c3fef4db18bd12/nested: Skipped: subdirectory conftest skip

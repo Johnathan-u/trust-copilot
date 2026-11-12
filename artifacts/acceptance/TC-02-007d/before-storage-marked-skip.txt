@@ -1,0 +1,7 @@
+conftest: master dad086216f323f0caf1b39ec0eb4115515ec54eb apps/api/tests/conftest.py
+scenario: storage-marked-skip
+flags: TC_REQUIRE_DB=1, TC_REQUIRE_STORAGE unset
+exit: 0
+---
+.s                                                                       [100%]
+1 passed, 1 skipped in 0.12s

@@ -141,9 +141,11 @@ def pytest_runtest_setup(item):
     _safety.set_phase(f"run {item.nodeid}")
 
 
-# TC-02-002: with TC_REQUIRE_DB=1 (CI) a DB-backed test must run. A skip of an `integration` test
-# (fixture skip, "Postgres not available", missing seed rows, ...) is reported as a failure.
-# Only the explicit opt-in categories keep their skips; they carry their own marker and reason.
+# With TC_REQUIRE_DB=1 (CI) a skipped test must run. A skip of any test (runtime
+# pytest.skip, skipif, importorskip) is a failure unless the item is marked
+# provider, live_stack or external_data. The same flag fails the session on a
+# collection-time skip of any node (module, directory, package or conftest)
+# unless that module carries one of those markers.
 _SKIP_ALLOWED_MARKERS = frozenset({"provider", "live_stack", "external_data"})
 # Collection-time skips recorded by pytest_collectreport and judged in pytest_sessionfinish.
 _collection_skips: list[tuple[str, str]] = []
@@ -200,17 +202,29 @@ def _collect_skip_reason(report) -> str:
     return str(longrepr)
 
 
-def pytest_collectreport(report):
-    """Record a collection-time skip of a module that is not an allowed opt-in category."""
+def _record_collection_skip(report) -> None:
+    """Record a collection-time skip that is not an allowed opt-in category."""
     if not _db_required() or not getattr(report, "skipped", False):
         return
     nodeid = str(getattr(report, "nodeid", "") or "")
-    if not nodeid.endswith(".py"):
-        return
     path = _module_path(nodeid)
     if path is not None and _pytestmark_names(path) & _SKIP_ALLOWED_MARKERS:
         return
     _collection_skips.append((nodeid, _collect_skip_reason(report)))
+
+
+class _CollectionSkipGate:
+    """Record collection skips a path-local conftest hook never sees.
+
+    When a subdirectory conftest skips at import, pytest omits that directory's
+    conftest modules from the path-local hook proxy, so ``pytest_collectreport``
+    on this module is not called for the directory node. A plugin registered on
+    the manager still receives the report. The node id is often the directory,
+    not a ``.py`` file.
+    """
+
+    def pytest_collectreport(self, report):
+        _record_collection_skip(report)
 
 
 def pytest_sessionfinish(session, exitstatus):
@@ -268,11 +282,13 @@ def pytest_runtest_makereport(item, call):
     if names & _SKIP_ALLOWED_MARKERS:
         return
     reason = rep.longrepr[2] if isinstance(rep.longrepr, tuple) else str(rep.longrepr)
-    if _db_required() and "integration" in names:
+    if _db_required():
         rep.outcome = "failed"
-        rep.longrepr = (
-            f"TC_REQUIRE_DB=1: DB (integration) test skipped instead of running: {reason}"
-        )
+        if "integration" in names:
+            detail = "DB (integration) test skipped instead of running"
+        else:
+            detail = "test skipped instead of running"
+        rep.longrepr = f"TC_REQUIRE_DB=1: {detail}: {reason}"
         return
     if _storage_required() and "storage" in names:
         rep.outcome = "failed"
@@ -302,6 +318,8 @@ def pytest_configure(config):
         get_settings.cache_clear()
     except Exception:
         pass
+    if not config.pluginmanager.has_plugin("tc-collection-skip-gate"):
+        config.pluginmanager.register(_CollectionSkipGate(), "tc-collection-skip-gate")
 
 
 def _create_test_db_if_needed():
