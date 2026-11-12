@@ -89,13 +89,13 @@ def _embed_png(package: bytes, png: bytes, *, col: int, row: int) -> bytes:
     drawing_name = "xl/drawings/drawing1.xml"
     rels_name = "xl/drawings/_rels/drawing1.xml.rels"
     rels = files.get(rels_name, b"")
-    numbers = [int(item) for item in re.findall(br'Id="rId(\d+)"', rels)]
+    numbers = [int(item) for item in re.findall(rb'Id="rId(\d+)"', rels)]
     rid = f"rId{max(numbers) + 1 if numbers else 1}"
     anchor = (
         "<oneCellAnchor>"
         f"<from><col>{col}</col><colOff>0</colOff><row>{row}</row><rowOff>0</rowOff></from>"
         '<ext cx="76200" cy="76200"/>'
-        "<pic><nvPicPr><cNvPr id=\"9\" name=\"Picture 1\"/><cNvPicPr/></nvPicPr>"
+        '<pic><nvPicPr><cNvPr id="9" name="Picture 1"/><cNvPicPr/></nvPicPr>'
         "<blipFill>"
         '<a:blip xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" '
         'xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" '
@@ -140,7 +140,7 @@ def _embed_png(package: bytes, png: bytes, *, col: int, row: int) -> bytes:
         ).encode("utf-8")
         sheet = files["xl/worksheets/sheet1.xml"].decode("utf-8")
         sheet_rels = files.get("xl/worksheets/_rels/sheet1.xml.rels", b"")
-        sheet_numbers = [int(item) for item in re.findall(br'Id="rId(\d+)"', sheet_rels)]
+        sheet_numbers = [int(item) for item in re.findall(rb'Id="rId(\d+)"', sheet_rels)]
         sheet_rid = f"rId{max(sheet_numbers) + 1 if sheet_numbers else 1}"
         drawing_tag = f'<drawing xmlns:r="{_DRAWING_REL}" r:id="{sheet_rid}"/>'
         files["xl/worksheets/sheet1.xml"] = sheet.replace(
@@ -432,9 +432,7 @@ def _cells(files: dict[str, bytes], path: str, skip: set[str]) -> dict:
 
 def _merges(files: dict[str, bytes], path: str) -> list[str]:
     root = ET.fromstring(files[path])
-    return sorted(
-        el.attrib.get("ref", "") for el in root.iter() if _local(el.tag) == "mergeCell"
-    )
+    return sorted(el.attrib.get("ref", "") for el in root.iter() if _local(el.tag) == "mergeCell")
 
 
 def _validations(files: dict[str, bytes], path: str) -> list[tuple]:
@@ -743,7 +741,7 @@ _UNSUPPORTED = [
     (
         "protected ranges",
         "protected-range",
-        _with_sheet("<protectedRanges><protectedRange sqref=\"A1:A1\"/></protectedRanges>"),
+        _with_sheet('<protectedRanges><protectedRange sqref="A1:A1"/></protectedRanges>'),
     ),
     ("custom ribbon", "custom-ribbon", _with_part("customUI/customUI.xml", b"<customUI/>")),
     (
