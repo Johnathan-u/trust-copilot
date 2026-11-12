@@ -1,6 +1,13 @@
 'use client'
 
-import { useEffect, useId, useRef, useState, type FormEvent } from 'react'
+import {
+  useCallback,
+  useEffect,
+  useId,
+  useRef,
+  useState,
+  type FormEvent,
+} from 'react'
 import { useAuth } from '@/contexts/AuthContext'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
@@ -8,6 +15,7 @@ import { Modal } from '@/components/ui/Modal'
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { ErrorState } from '@/components/ui/ErrorState'
 import { LoadingState } from '@/components/ui/LoadingState'
+import { DealLinksPanel } from './DealLinksPanel'
 import {
   ApiRequestError,
   mutationFailureNotice,
@@ -290,6 +298,20 @@ function WorkspaceDeals({
   const [saving, setSaving] = useState(false)
   const [saveError, setSaveError] = useState<string | null>(null)
   const [saved, setSaved] = useState(false)
+  const [selectedId, setSelectedId] = useState<number | null>(null)
+  const [linkDirty, setLinkDirty] = useState(false)
+  const [linkBusy, setLinkBusy] = useState(false)
+  const [linkDiscard, setLinkDiscard] = useState(false)
+  const [pendingLinks, setPendingLinks] = useState<number | 'close' | null>(
+    null
+  )
+  const [linkReceipt, setLinkReceipt] = useState<{
+    dealId: number
+    questionnaireId: number
+  } | null>(null)
+  const onLinkBusy = useCallback((value: boolean) => {
+    setLinkBusy(value)
+  }, [])
   const busy = useRef(false)
   const generation = useRef(0)
   const mutationController = useRef<AbortController | null>(null)
@@ -345,14 +367,14 @@ function WorkspaceDeals({
     }
   }, [workspaceId, revision])
   useEffect(() => {
-    if (!dirty) return
+    if (!dirty && !linkDirty) return
     function preventLoss(event: BeforeUnloadEvent) {
       event.preventDefault()
       event.returnValue = ''
     }
     window.addEventListener('beforeunload', preventLoss)
     return () => window.removeEventListener('beforeunload', preventLoss)
-  }, [dirty])
+  }, [dirty, linkDirty])
   function reload() {
     setList({ kind: 'loading' })
     setRevision((value) => value + 1)
@@ -367,6 +389,46 @@ function WorkspaceDeals({
     if (busy.current) return
     if (dirty) setDiscard(true)
     else setEditor(null)
+  }
+  function finishLinks(next: number | 'close' | null) {
+    const previous = selectedId
+    setLinkDiscard(false)
+    setLinkDirty(false)
+    setPendingLinks(null)
+    if (next == null || next === 'close') {
+      setSelectedId(null)
+      if (previous != null)
+        requestAnimationFrame(() =>
+          document.getElementById(`links-${previous}`)?.focus()
+        )
+      return
+    }
+    if (linkReceipt && linkReceipt.dealId !== next) setLinkReceipt(null)
+    setSelectedId(next)
+  }
+  function openLinks(id: number) {
+    if (linkBusy || id === selectedId) return
+    if (linkDirty) {
+      setPendingLinks(id)
+      setLinkDiscard(true)
+      return
+    }
+    finishLinks(id)
+  }
+  function requestCloseLinks() {
+    if (linkBusy) return
+    if (linkDirty) {
+      setPendingLinks('close')
+      setLinkDiscard(true)
+      return
+    }
+    finishLinks('close')
+  }
+  function acceptLink(questionnaireId: number) {
+    if (selectedId == null) return
+    setLinkDirty(false)
+    setLinkReceipt({ dealId: selectedId, questionnaireId })
+    reload()
   }
   async function save(body: Payload) {
     if (!canAdmin || busy.current || editor === null) return
@@ -458,6 +520,36 @@ function WorkspaceDeals({
               : 'Deal saved.'}
         </p>
       )}
+      {linkReceipt && (
+        <p
+          role={
+            list.kind === 'ready' &&
+            (!list.rows.some((row) => row.id === linkReceipt.dealId) ||
+              !list.rows
+                .find((row) => row.id === linkReceipt.dealId)
+                ?.linked_questionnaire_ids.includes(
+                  linkReceipt.questionnaireId
+                ))
+              ? 'alert'
+              : 'status'
+          }
+          className="text-tc-label text-tc-text"
+        >
+          {list.kind === 'loading'
+            ? 'Questionnaire linked. Refreshing the list…'
+            : list.kind === 'error'
+              ? 'Questionnaire linked, but the list could not be refreshed. Try again to load it.'
+              : list.rows.some((row) => row.id === linkReceipt.dealId)
+                ? list.rows
+                    .find((row) => row.id === linkReceipt.dealId)
+                    ?.linked_questionnaire_ids.includes(
+                      linkReceipt.questionnaireId
+                    )
+                  ? 'Questionnaire linked.'
+                  : 'The refreshed deal does not include that questionnaire.'
+                : 'Questionnaire linked, but that deal is no longer in this list.'}
+        </p>
+      )}
       {list.kind === 'loading' && (
         <LoadingState
           label="Loading deals"
@@ -483,84 +575,117 @@ function WorkspaceDeals({
             </p>
           </div>
         ) : (
-          <div
-            role="region"
-            aria-label="Deals list"
-            tabIndex={0}
-            className="max-w-full overflow-x-auto rounded-tc border border-tc-border-strong"
-          >
-            <table className="w-full text-left text-tc-label text-tc-text">
-              <caption className="sr-only">Deals in this workspace</caption>
-              <thead className="bg-tc-surface-raised">
-                <tr>
-                  {[
-                    'Company',
-                    'Stage',
-                    'ARR amount',
-                    'Expected close',
-                    'Actual close',
-                    ...(canAdmin ? ['Actions'] : []),
-                  ].map((label) => (
-                    <th
-                      scope="col"
-                      key={label}
-                      className="whitespace-nowrap p-tc-3 font-semibold"
+          <>
+            <div
+              role="region"
+              aria-label="Deals list"
+              tabIndex={0}
+              className="max-w-full overflow-x-auto rounded-tc border border-tc-border-strong"
+            >
+              <table className="w-full text-left text-tc-label text-tc-text">
+                <caption className="sr-only">Deals in this workspace</caption>
+                <thead className="bg-tc-surface-raised">
+                  <tr>
+                    {[
+                      'Company',
+                      'Stage',
+                      'ARR amount',
+                      'Expected close',
+                      'Actual close',
+                      'Links',
+                      ...(canAdmin ? ['Actions'] : []),
+                    ].map((label) => (
+                      <th
+                        scope="col"
+                        key={label}
+                        className="whitespace-nowrap p-tc-3 font-semibold"
+                      >
+                        {label}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {list.rows.map((row) => (
+                    <tr
+                      key={row.id}
+                      className="border-t border-tc-border-strong"
                     >
-                      {label}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {list.rows.map((row) => (
-                  <tr key={row.id} className="border-t border-tc-border-strong">
-                    <th
-                      scope="row"
-                      className="min-w-40 max-w-64 break-words p-tc-3 font-medium"
-                    >
-                      {row.company_name || 'Unnamed company'}
-                      {(row.buyer_contact_name || row.buyer_contact_email) && (
-                        <p className="mt-tc-1 font-normal text-tc-muted">
-                          {[row.buyer_contact_name, row.buyer_contact_email]
-                            .filter(Boolean)
-                            .join(' · ')}
-                        </p>
-                      )}
-                    </th>
-                    <td className="whitespace-nowrap p-tc-3">
-                      {stageLabels[row.stage]}
-                    </td>
-                    <td className="whitespace-nowrap p-tc-3">
-                      {row.deal_value_arr === null
-                        ? 'Amount not recorded'
-                        : `${row.deal_value_arr}${row.currency ? ` ${row.currency}` : ''}`}
-                      {!row.currency && (
-                        <p className="text-tc-muted">Currency not recorded</p>
-                      )}
-                    </td>
-                    <td className="whitespace-nowrap p-tc-3">
-                      {row.expected_close_date ?? 'Not recorded'}
-                    </td>
-                    <td className="whitespace-nowrap p-tc-3">
-                      {row.actual_close_date ?? 'Not recorded'}
-                    </td>
-                    {canAdmin && (
+                      <th
+                        scope="row"
+                        className="min-w-40 max-w-64 break-words p-tc-3 font-medium"
+                      >
+                        {row.company_name || 'Unnamed company'}
+                        {(row.buyer_contact_name ||
+                          row.buyer_contact_email) && (
+                          <p className="mt-tc-1 font-normal text-tc-muted">
+                            {[row.buyer_contact_name, row.buyer_contact_email]
+                              .filter(Boolean)
+                              .join(' · ')}
+                          </p>
+                        )}
+                      </th>
+                      <td className="whitespace-nowrap p-tc-3">
+                        {stageLabels[row.stage]}
+                      </td>
+                      <td className="whitespace-nowrap p-tc-3">
+                        {row.deal_value_arr === null
+                          ? 'Amount not recorded'
+                          : `${row.deal_value_arr}${row.currency ? ` ${row.currency}` : ''}`}
+                        {!row.currency && (
+                          <p className="text-tc-muted">Currency not recorded</p>
+                        )}
+                      </td>
+                      <td className="whitespace-nowrap p-tc-3">
+                        {row.expected_close_date ?? 'Not recorded'}
+                      </td>
+                      <td className="whitespace-nowrap p-tc-3">
+                        {row.actual_close_date ?? 'Not recorded'}
+                      </td>
                       <td className="p-tc-3">
                         <Button
+                          id={`links-${row.id}`}
                           size="sm"
                           variant="secondary"
-                          aria-label={`Edit ${row.company_name || 'unnamed company'}`}
-                          onClick={() => openEditor(row)}
+                          type="button"
+                          disabled={linkBusy}
+                          aria-label={`Links and risk for ${row.company_name || 'unnamed company'}`}
+                          onClick={() => openLinks(row.id)}
                         >
-                          Edit
+                          Links and risk
                         </Button>
                       </td>
-                    )}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                      {canAdmin && (
+                        <td className="p-tc-3">
+                          <Button
+                            size="sm"
+                            variant="secondary"
+                            aria-label={`Edit ${row.company_name || 'unnamed company'}`}
+                            onClick={() => openEditor(row)}
+                          >
+                            Edit
+                          </Button>
+                        </td>
+                      )}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            {list.rows.some((row) => row.id === selectedId) && (
+              <DealLinksPanel
+                key={selectedId}
+                deal={list.rows.find((row) => row.id === selectedId)!}
+                workspaceId={workspaceId}
+                canAdmin={canAdmin}
+                onDirty={setLinkDirty}
+                onBusy={onLinkBusy}
+                onClose={requestCloseLinks}
+                onLinkAttempt={() => setLinkReceipt(null)}
+                onLinked={acceptLink}
+              />
+            )}
+          </>
         ))}
       <Modal
         isOpen={editor !== null}
@@ -594,6 +719,14 @@ function WorkspaceDeals({
           setDirty(false)
           setSaveError(null)
         }}
+      />
+      <ConfirmDialog
+        open={linkDiscard}
+        title="Discard unsaved changes?"
+        description="The questionnaire id has not been linked."
+        confirmLabel="Discard changes"
+        onClose={() => setLinkDiscard(false)}
+        onConfirm={() => finishLinks(pendingLinks)}
       />
     </div>
   )
