@@ -158,6 +158,198 @@ export function parseDealList(value: unknown): DealRecord[] {
   return value.deals.map((deal) => parseDeal(deal))
 }
 
+export type DealRisk = {
+  deal_id: number
+  company_name: string
+  deal_value_arr: string | null
+  stage: DealStage
+  risk_score: number
+  revenue_at_risk: string | null
+  breakdown: {
+    unanswered_questions: number
+    low_confidence_answers: number
+    unapproved_answers: number
+    stale_evidence: number
+    total_questions: number
+  }
+}
+
+export type DealRoomQuestion = {
+  question_id: number
+  text: string
+  answer_status: 'proven' | 'draft' | 'pending'
+  answer_text: string | null
+}
+
+export type DealRoomQuestionnaire = {
+  questionnaire_id: number
+  name: string
+  proven: number
+  pending: number
+  total: number
+  questions: DealRoomQuestion[]
+}
+
+export type DealRoom = {
+  deal_id: number
+  company_name: string
+  stage: DealStage
+  questionnaires: DealRoomQuestionnaire[]
+  trust_center_articles: { id: number; title: string; slug: string }[]
+  summary: { total_questionnaires: number; total_articles: number }
+}
+
+const ANSWER_STATUS = ['proven', 'draft', 'pending'] as const
+
+function count(value: unknown, label: string): number {
+  if (typeof value !== 'number' || !Number.isSafeInteger(value) || value < 0)
+    throw new Error(`${label} is invalid`)
+  return value
+}
+
+function stageOf(value: unknown): DealStage {
+  if (typeof value !== 'string' || !DEAL_STAGES.includes(value as DealStage))
+    throw new Error('deal stage is unknown')
+  return value as DealStage
+}
+
+function uniqueIds(ids: number[], label: string) {
+  if (new Set(ids).size !== ids.length)
+    throw new Error(`${label} must be unique`)
+}
+
+export function parseDealRisk(value: unknown): DealRisk {
+  if (!isRecord(value)) throw new Error('deal risk is missing')
+  if (!validId(value.deal_id)) throw new Error('deal id is invalid')
+  if (typeof value.company_name !== 'string')
+    throw new Error('deal company is invalid')
+  const breakdown = value.breakdown
+  if (!isRecord(breakdown)) throw new Error('deal risk breakdown is missing')
+  return {
+    deal_id: value.deal_id,
+    company_name: value.company_name,
+    deal_value_arr: amount(value.deal_value_arr),
+    stage: stageOf(value.stage),
+    risk_score: count(value.risk_score, 'risk score'),
+    revenue_at_risk: amount(value.revenue_at_risk),
+    breakdown: {
+      unanswered_questions: count(
+        breakdown.unanswered_questions,
+        'unanswered questions'
+      ),
+      low_confidence_answers: count(
+        breakdown.low_confidence_answers,
+        'low-confidence answers'
+      ),
+      unapproved_answers: count(
+        breakdown.unapproved_answers,
+        'unapproved answers'
+      ),
+      stale_evidence: count(breakdown.stale_evidence, 'stale evidence'),
+      total_questions: count(breakdown.total_questions, 'questions in scope'),
+    },
+  }
+}
+
+export function parseDealRoom(value: unknown): DealRoom {
+  if (!isRecord(value)) throw new Error('deal room is missing')
+  if (!validId(value.deal_id)) throw new Error('deal id is invalid')
+  if (typeof value.company_name !== 'string')
+    throw new Error('deal company is invalid')
+  // The route mints a fresh unstored token on every read. Require it so a
+  // partial body cannot pass, and drop it so the page cannot render it.
+  if (typeof value.access_token !== 'string' || !value.access_token.trim())
+    throw new Error('deal room is incomplete')
+  if (!Array.isArray(value.questionnaires))
+    throw new Error('deal room questionnaires are missing')
+  if (!Array.isArray(value.trust_center_articles))
+    throw new Error('deal room articles are missing')
+  const summary = value.summary
+  if (!isRecord(summary)) throw new Error('deal room summary is missing')
+  const questionnaires = value.questionnaires.map((item) => {
+    if (!isRecord(item)) throw new Error('deal room questionnaire is invalid')
+    if (!validId(item.questionnaire_id))
+      throw new Error('questionnaire id is invalid')
+    if (typeof item.name !== 'string')
+      throw new Error('questionnaire name is invalid')
+    if (!Array.isArray(item.questions))
+      throw new Error('questionnaire questions are missing')
+    const questions = item.questions.map((question) => {
+      if (!isRecord(question)) throw new Error('question is invalid')
+      if (!validId(question.question_id))
+        throw new Error('question id is invalid')
+      if (typeof question.text !== 'string')
+        throw new Error('question text is invalid')
+      const status = question.answer_status
+      if (
+        typeof status !== 'string' ||
+        !ANSWER_STATUS.includes(status as (typeof ANSWER_STATUS)[number])
+      )
+        throw new Error('answer status is unknown')
+      return {
+        question_id: question.question_id,
+        text: question.text,
+        answer_status: status as DealRoomQuestion['answer_status'],
+        answer_text: nullableString(question.answer_text, 'answer text'),
+      }
+    })
+    uniqueIds(
+      questions.map((question) => question.question_id),
+      'questions'
+    )
+    const proven = count(item.proven, 'proven')
+    const pending = count(item.pending, 'pending')
+    const total = count(item.total, 'total')
+    if (proven + pending !== total || questions.length !== total)
+      throw new Error('questionnaire counts do not match')
+    return {
+      questionnaire_id: item.questionnaire_id,
+      name: item.name,
+      proven,
+      pending,
+      total,
+      questions,
+    }
+  })
+  uniqueIds(
+    questionnaires.map((item) => item.questionnaire_id),
+    'questionnaires'
+  )
+  const articles = value.trust_center_articles.map((item) => {
+    if (!isRecord(item) || !validId(item.id))
+      throw new Error('article id is invalid')
+    if (typeof item.title !== 'string' || typeof item.slug !== 'string')
+      throw new Error('article is invalid')
+    if (!item.slug.trim()) throw new Error('article is invalid')
+    return { id: item.id, title: item.title, slug: item.slug }
+  })
+  uniqueIds(
+    articles.map((item) => item.id),
+    'articles'
+  )
+  const totalQuestionnaires = count(
+    summary.total_questionnaires,
+    'questionnaire total'
+  )
+  const totalArticles = count(summary.total_articles, 'article total')
+  if (
+    totalQuestionnaires !== questionnaires.length ||
+    totalArticles !== articles.length
+  )
+    throw new Error('deal room summary does not match')
+  return {
+    deal_id: value.deal_id,
+    company_name: value.company_name,
+    stage: stageOf(value.stage),
+    questionnaires,
+    trust_center_articles: articles,
+    summary: {
+      total_questionnaires: totalQuestionnaires,
+      total_articles: totalArticles,
+    },
+  }
+}
+
 export function parseDealAnalytics(value: unknown): {
   revenue_won: string | null
   revenue_pipeline: string | null
