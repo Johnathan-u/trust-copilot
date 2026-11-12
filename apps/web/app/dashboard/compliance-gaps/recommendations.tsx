@@ -5,6 +5,7 @@ import { useCallback, useEffect, useId, useState, type ReactNode } from 'react'
 import { Button, Card, ErrorState, LoadingState } from '@/components/ui'
 import type { ApiFailurePresentation } from '@/lib/api-error'
 import { failureOf, readSectionJson } from '@/lib/section-load'
+import { MappingDecision } from './mapping-decision'
 import {
   readRecommendationEvidence,
   readRecommendationQuestion,
@@ -203,9 +204,11 @@ const sourceLinkClass =
 function QuestionDetail({
   source,
   workspaceId,
+  canAdmin,
 }: {
   source: QuestionSource
   workspaceId: number
+  canAdmin: boolean
 }) {
   const result = useRecommendationQuestion(source, workspaceId)
   if (result.failure)
@@ -239,6 +242,7 @@ function QuestionDetail({
       >
         Open source questionnaire
       </Link>
+      <MappingDecision question={result.data.text} canAdmin={canAdmin} />
     </div>
   )
 }
@@ -246,9 +250,11 @@ function QuestionDetail({
 export function Recommendations({
   recommendations,
   workspaceId,
+  canAdmin = false,
 }: {
   recommendations: Recommendation[]
   workspaceId: number
+  canAdmin?: boolean
 }) {
   if (!recommendations.length) return null
   return (
@@ -309,7 +315,11 @@ export function Recommendations({
                   key={`${workspaceId}:${source.question_id}:${source.questionnaire_id}`}
                   label={`question source ${sourceIndex + 1}`}
                 >
-                  <QuestionDetail source={source} workspaceId={workspaceId} />
+                  <QuestionDetail
+                    source={source}
+                    workspaceId={workspaceId}
+                    canAdmin={canAdmin}
+                  />
                 </SourceDisclosure>
               ))}
               {row.question_ids.length > row.question_sources.length ? (

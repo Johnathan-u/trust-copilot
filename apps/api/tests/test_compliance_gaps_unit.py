@@ -26,15 +26,18 @@ def _fake_session(ws: int = 1) -> dict:
 
 
 def _fake_gaps(*_args, **_kwargs):
-    """Simulate two gaps."""
-    return [
-        {"control_id": 1, "gap_reason": "no_evidence"},
-        {"control_id": 2, "gap_reason": "low_confidence"},
-    ]
+    """Simulate two gaps and no skipped controls."""
+    return (
+        [
+            {"control_id": 1, "gap_reason": "no_evidence"},
+            {"control_id": 2, "gap_reason": "low_confidence"},
+        ],
+        set(),
+    )
 
 
 def _fake_no_gaps(*_args, **_kwargs):
-    return []
+    return [], set()
 
 
 class TestScanAndNotifyCooldown:

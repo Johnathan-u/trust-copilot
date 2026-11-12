@@ -59,12 +59,52 @@ describe('evidence gap read contract', () => {
         },
       ])
     )
-    const csv = gapCsv(gaps, '2026-10-29T18:00:00Z')
+    const csv = gapCsv(gaps, '2026-10-29T18:00:00Z', {
+      search: '   ',
+      status: 'all',
+      priority: 'all',
+      returnedRows: gaps.length,
+    })
+    expect(csv).toBe(
+      [
+        '"Snapshot retrieved","2026-10-29T18:00:00Z"',
+        '"Scope","Displayed filtered evidence gaps"',
+        '"Search","none"',
+        '"Status","none"',
+        '"Priority","none"',
+        '"Rows","1","Returned rows","1"',
+        '"Period","All history through 2026-10-29T18:00:00Z"',
+        '"Title","Reason","Status","Priority","Age in days","Owner"',
+        '"\'=SUM(1,2)","One ""quoted"" line\nNext line","Open","High","28","Unassigned"',
+      ].join('\r\n')
+    )
     expect(csv).toContain('"\'=SUM(1,2)"')
     expect(csv).toContain('"One ""quoted"" line\nNext line"')
     expect(csv).toContain('2026-10-29T18:00:00Z')
     expect(csv).toContain('"Rows","1"')
     expect(csv).not.toMatch(/questionnaire_id|owner_user_id|workspace_id/)
+  })
+  it('documents applied filters beside the returned total and protects formula search text', () => {
+    const gaps = parseGaps(body())
+    const csv = gapCsv(gaps, '2026-10-29T18:00:00Z', {
+      search: '=1+1',
+      status: 'resolved',
+      priority: 'high',
+      returnedRows: 4,
+    })
+    expect(csv).toBe(
+      [
+        '"Snapshot retrieved","2026-10-29T18:00:00Z"',
+        '"Scope","Displayed filtered evidence gaps"',
+        '"Search","\'=1+1"',
+        '"Status","Resolved"',
+        '"Priority","High"',
+        '"Rows","1","Returned rows","4"',
+        '"Period","All history through 2026-10-29T18:00:00Z"',
+        '"Title","Reason","Status","Priority","Age in days","Owner"',
+        '"Review record","Missing current evidence","Open","High","28","Unassigned"',
+      ].join('\r\n')
+    )
   })
   it('pauses hidden polling, retains a failed snapshot, and clears failure after recovery', async () => {
     vi.useFakeTimers()

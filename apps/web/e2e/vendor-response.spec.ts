@@ -128,6 +128,77 @@ test.describe('Vendor Response landing page — public, unauthenticated', () => 
     })
   })
 
+  test('final response form completes the request and an identical retry stays completed', async ({
+    page,
+  }) => {
+    await loginAsAdmin(page)
+    const { link_token } = await createRequestViaAPI(page)
+
+    await page.goto(`/vendor-response?token=${link_token}`)
+    await page.waitForLoadState('networkidle')
+    await expect(
+      page.getByRole('heading', { name: 'Request Completed' })
+    ).toHaveCount(0)
+    await page
+      .getByLabel('Final response')
+      .fill('Synthetic final vendor response')
+    const submitted = page.waitForResponse(
+      (response) =>
+        new URL(response.url()).pathname === '/api/vendor-response/submit' &&
+        response.request().method() === 'POST'
+    )
+    await page.getByRole('button', { name: 'Submit response' }).click()
+    expect((await submitted).ok()).toBeTruthy()
+    await expect(
+      page.getByRole('heading', { name: 'Request Completed' })
+    ).toBeVisible({ timeout: 10_000 })
+    await expect(page.getByLabel('Final response')).toHaveCount(0)
+
+    const again = await page.request.post('/api/vendor-response/submit', {
+      data: { token: link_token, response: 'Synthetic final vendor response' },
+    })
+    expect(again.ok()).toBeTruthy()
+    expect((await again.json()).status).toBe('completed')
+    const changed = await page.request.post('/api/vendor-response/submit', {
+      data: {
+        token: link_token,
+        response: 'A different final vendor response',
+      },
+    })
+    expect(changed.status()).toBe(409)
+    await page.reload()
+    await page.waitForLoadState('networkidle')
+    await expect(page.getByText(/already been completed/i)).toBeVisible()
+    await expect(page.getByText(/revoked|expired grant/i)).toHaveCount(0)
+  })
+
+  test('revoked and unknown grants show the same message', async ({ page }) => {
+    await page.goto('/vendor-response?token=this-token-does-not-exist-at-all')
+    await page.waitForLoadState('networkidle')
+    await expect(
+      page.getByText('This link is invalid or has expired.')
+    ).toBeVisible({ timeout: 10_000 })
+    await expect(
+      page.getByRole('heading', { name: 'Link Not Found' })
+    ).toBeVisible()
+
+    await loginAsAdmin(page)
+    const { id, link_token } = await createRequestViaAPI(page)
+    const revoked = await page.request.post(`/api/vendor-requests/${id}/revoke`)
+    expect(revoked.ok()).toBeTruthy()
+
+    await page.goto(`/vendor-response?token=${link_token}`)
+    await page.waitForLoadState('networkidle')
+    await expect(
+      page.getByText('This link is invalid or has expired.')
+    ).toBeVisible({ timeout: 10_000 })
+    await expect(
+      page.getByRole('heading', { name: 'Link Not Found' })
+    ).toBeVisible()
+    await expect(page.getByText(/\brevoked\b/i)).toHaveCount(0)
+    await expect(page.getByLabel('Final response')).toHaveCount(0)
+  })
+
   test('completed request shows completion state', async ({ page }) => {
     await loginAsAdmin(page)
     const { link_token } = await createRequestViaAPI(page)

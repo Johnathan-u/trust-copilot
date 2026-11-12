@@ -25,6 +25,7 @@ from app.models import (
     Document,
     EvidenceGap,
     EvidenceItem,
+    EvidenceMetadata,
     Question,
     Questionnaire,
     User,
@@ -320,6 +321,77 @@ def _unchanged(gap_id: int, stored: tuple, before_audit: int, before_keys: int) 
     assert _counts()["idempotency_keys"] == before_keys
 
 
+def _question_citing(workspace_id: int, document_id: int | None) -> int:
+    """Question whose draft answer cites a chunk of document_id, or cites nothing."""
+    session = _db()
+    try:
+        _sync_sequence(session, "questionnaires")
+        questionnaire = Questionnaire(workspace_id=workspace_id, filename="q.txt", status="parsed")
+        session.add(questionnaire)
+        session.flush()
+        _sync_sequence(session, "questions")
+        question = Question(questionnaire_id=questionnaire.id, text="Synthetic question")
+        session.add(question)
+        session.flush()
+        citations = "[]"
+        if document_id is not None:
+            _sync_sequence(session, "chunks")
+            chunk = Chunk(
+                workspace_id=workspace_id,
+                document_id=document_id,
+                text="synthetic chunk",
+            )
+            session.add(chunk)
+            session.flush()
+            citations = json.dumps([{"chunk_id": chunk.id, "snippet": "synthetic"}])
+        _sync_sequence(session, "answers")
+        session.add(Answer(question_id=question.id, status="draft", citations=citations))
+        session.commit()
+        return question.id
+    finally:
+        session.close()
+
+
+def _expire_evidence(evidence_id: int) -> None:
+    session = _db()
+    try:
+        session.add(
+            EvidenceMetadata(
+                evidence_id=evidence_id,
+                expires_at=datetime.now(timezone.utc).replace(tzinfo=None) - timedelta(days=1),
+            )
+        )
+        session.commit()
+    finally:
+        session.close()
+
+
+def _delete_document(document_id: int) -> None:
+    session = _db()
+    try:
+        document = session.get(Document, document_id)
+        assert document is not None
+        document.deleted_at = datetime.now(timezone.utc).replace(tzinfo=None)
+        session.commit()
+    finally:
+        session.close()
+
+
+def _refuse_question_resolve(client, gap_id: int, evidence_id: int, rule: str) -> None:
+    stored = _row(gap_id)
+    assert stored[0] == "open"
+    before = _counts()
+    refused = client.post(
+        f"/api/evidence-gaps/{gap_id}/resolve",
+        json={"evidence_id": evidence_id},
+        headers={"Idempotency-Key": f"refuse-{uuid.uuid4().hex}"},
+    )
+    assert refused.status_code == 400, refused.text
+    assert refused.json()["detail"] == {"rule": rule, "resolved": False}
+    assert _counts()["evidence_gaps"] == before["evidence_gaps"]
+    _unchanged(gap_id, stored, before["audit_events"], before["idempotency_keys"])
+
+
 def test_create_decision_and_resolve_permissions(client):
     actors = _actors()
     control_id = _control(actors["workspace_id"], f"Denied {uuid.uuid4().hex[:8]}")
@@ -507,10 +579,16 @@ def test_resolve_requires_eligible_backing_evidence(client):
     again = client.get(f"/api/evidence-gaps/{gap_id}")
     assert again.json()["age_days"] == body["age_days"]
     assert again.json()["priority"] == body["priority"]
+    stored = _row(gap_id)
+    before = _counts()
     refused = client.post(f"/api/evidence-gaps/{gap_id}/resolve", json={"evidence_id": pending})
     assert refused.status_code == 400, refused.text
+    assert _counts()["evidence_gaps"] == before["evidence_gaps"]
+    _unchanged(gap_id, stored, before["audit_events"], before["idempotency_keys"])
     unlinked = client.post(f"/api/evidence-gaps/{gap_id}/resolve", json={"evidence_id": approved})
     assert unlinked.status_code == 400, unlinked.text
+    assert _counts()["evidence_gaps"] == before["evidence_gaps"]
+    _unchanged(gap_id, stored, before["audit_events"], before["idempotency_keys"])
     _link(control_id, approved)
     key = f"resolve-{uuid.uuid4().hex}"
     with patch("app.api.routes.evidence_gaps.notify_admins") as notify:
@@ -1215,3 +1293,45 @@ def test_question_gap_resolves_only_when_the_answer_cites_the_document(client):
     assert resolved.json()["status"] == "resolved"
     assert resolved.json()["close_reason"] == "answer_sufficient"
     assert resolved.json()["question_id"] == question_id
+
+
+def test_question_gap_refuses_uncited_expired_and_deleted_evidence(client):
+    actors = _actors()
+    workspace_id = actors["workspace_id"]
+    _login(client, ADMIN_EMAIL, ADMIN_PASSWORD)
+
+    uncited, _document = _evidence(workspace_id, approval="approved")
+    uncited_gap = _gap(
+        workspace_id,
+        gap_type="missing_evidence",
+        question_id=_question_citing(workspace_id, None),
+    )
+    _refuse_question_resolve(client, uncited_gap, uncited, "not_linked")
+
+    cited_evidence, cited_document = _evidence(workspace_id, approval="approved")
+    _other_evidence, other_document = _evidence(workspace_id, approval="approved")
+    assert cited_document != other_document
+    different_gap = _gap(
+        workspace_id,
+        gap_type="missing_evidence",
+        question_id=_question_citing(workspace_id, other_document),
+    )
+    _refuse_question_resolve(client, different_gap, cited_evidence, "not_linked")
+
+    expired, expired_document = _evidence(workspace_id, approval="approved")
+    _expire_evidence(expired)
+    expired_gap = _gap(
+        workspace_id,
+        gap_type="missing_evidence",
+        question_id=_question_citing(workspace_id, expired_document),
+    )
+    _refuse_question_resolve(client, expired_gap, expired, "expired")
+
+    deleted, deleted_document = _evidence(workspace_id, approval="approved")
+    deleted_gap = _gap(
+        workspace_id,
+        gap_type="missing_evidence",
+        question_id=_question_citing(workspace_id, deleted_document),
+    )
+    _delete_document(deleted_document)
+    _refuse_question_resolve(client, deleted_gap, deleted, "deleted_document")

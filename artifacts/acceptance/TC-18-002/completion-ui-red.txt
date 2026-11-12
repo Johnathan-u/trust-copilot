@@ -1,0 +1,50 @@
+Command (before the final-response form existed):
+  cd apps/web
+  npx vitest run tests/unit/vendor-response.test.ts --reporter=verbose
+
+Node: v24.22.1
+Vitest: 5.0.5
+Exit: 1
+Parent: dad086216f323f0caf1b39ec0eb4115515ec54eb
+
+The page rendered the request and the "No questionnaire is attached" note, and it
+did not render a Final response field or a submit control. All 9 tests failed on
+that missing label, including the assertion that completion is absent until submit
+and the assertions that invalid, expired, and revoked grants share one message.
+
+   → Unable to find a label with the text of: Final response
+   → Unable to find a label with the text of: Final response
+   → Unable to find a label with the text of: Final response
+   → Unable to find a label with the text of: Final response
+   → Unable to find a label with the text of: Final response
+   → Unable to find a label with the text of: Final response
+   → Unable to find a label with the text of: Final response
+   → Unable to find a label with the text of: Final response
+   → Unable to find a label with the text of: Final response
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 9 ⎯⎯⎯⎯⎯⎯⎯
+ FAIL  tests/unit/vendor-response.test.ts > submits the grant token and the final response
+TestingLibraryElementError: Unable to find a label with the text of: Final response
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/9]⎯
+ FAIL  tests/unit/vendor-response.test.ts > does not present completion before the submit response
+TestingLibraryElementError: Unable to find a label with the text of: Final response
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/9]⎯
+ FAIL  tests/unit/vendor-response.test.ts > keeps a second click from sending another request, then accepts the original receipt
+TestingLibraryElementError: Unable to find a label with the text of: Final response
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/9]⎯
+ FAIL  tests/unit/vendor-response.test.ts > treats an identical retry after a lost response as the completed receipt
+TestingLibraryElementError: Unable to find a label with the text of: Final response
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/9]⎯
+ FAIL  tests/unit/vendor-response.test.ts > shows the same generic message when submit is rejected for a revoked grant
+ FAIL  tests/unit/vendor-response.test.ts > shows the same generic message when submit is rejected for a expired grant
+ FAIL  tests/unit/vendor-response.test.ts > shows the same generic message when submit is rejected for a missing grant
+TestingLibraryElementError: Unable to find a label with the text of: Final response
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/9]⎯
+ FAIL  tests/unit/vendor-response.test.ts > keeps a conflicting retry on the form
+TestingLibraryElementError: Unable to find a label with the text of: Final response
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/9]⎯
+ FAIL  tests/unit/vendor-response.test.ts > does not submit a blank response
+TestingLibraryElementError: Unable to find a label with the text of: Final response
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[7/9]⎯
+ Test Files  1 failed (1)
+      Tests  9 failed (9)
+   Duration  446ms (environment 45%, tests 20%, transform 18%, import 16%, worker 1%)
