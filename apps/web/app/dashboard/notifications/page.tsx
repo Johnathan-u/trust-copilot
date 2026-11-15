@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import {
   Button,
   Card,
@@ -11,10 +11,22 @@ import {
 } from '@/components/ui'
 import { useAuth } from '@/contexts/AuthContext'
 import type { ApiFailurePresentation } from '@/lib/api-error'
-import { failureOf, isAbortError, readSectionJson } from '@/lib/section-load'
+import {
+  failureOf,
+  isAbortError,
+  loadSection,
+  readSectionJson,
+  type SectionResult,
+} from '@/lib/section-load'
 import { useKeyedGeneration } from '@/components/ui/useKeyedGeneration'
 import { deleteNotificationPolicy } from '@/lib/notification-policy-delete'
 import { toggleNotificationPolicy } from '@/lib/notification-policy-toggle'
+import {
+  DELIVERY_ATTEMPTS_PATH,
+  displayDeliveryAttempt,
+  parseDeliveryAttempts,
+  type DeliveryAttemptsPage,
+} from '@/lib/delivery-attempts'
 import {
   CATEGORY_META,
   getNotificationMeta,
@@ -111,6 +123,89 @@ function timeAgo(iso: string | null): string {
   return new Date(iso).toLocaleDateString()
 }
 
+function DeliveryAttemptsPanel({
+  loading,
+  result,
+  onRetry,
+}: {
+  loading: boolean
+  result: SectionResult<DeliveryAttemptsPage> | null
+  onRetry: () => void
+}) {
+  let body: React.ReactNode
+  if (loading || result === null) {
+    body = (
+      <LoadingState label="Loading delivery attempts" onRetry={onRetry}>
+        <p className="text-sm text-[var(--tc-muted)]">
+          Loading delivery attempts
+        </p>
+      </LoadingState>
+    )
+  } else if (result.ok === false) {
+    body = <ErrorState failure={result.failure} onRetry={onRetry} />
+  } else if (result.data.attempts.length === 0) {
+    body = (
+      <p data-state="empty" className="text-sm text-[var(--tc-muted)]">
+        No delivery attempts yet.
+      </p>
+    )
+  } else {
+    body = (
+      <div className="space-y-1">
+        {result.data.attempts.map((attempt) => {
+          const row = displayDeliveryAttempt(attempt)
+          return (
+            <article
+              key={attempt.id}
+              className="min-w-0 rounded-lg border border-[var(--tc-border)] px-4 py-2.5"
+            >
+              <div className="flex min-w-0 flex-wrap gap-x-3 gap-y-1 text-sm text-[var(--tc-text)]">
+                <span className="text-xs uppercase text-[var(--tc-muted)]">
+                  {row.channel}
+                </span>
+                <span className="min-w-0 break-words">{row.template}</span>
+                <span className="min-w-0 break-words text-[var(--tc-muted)]">
+                  {row.event}
+                </span>
+              </div>
+              <div className="mt-1 flex min-w-0 flex-wrap gap-x-3 gap-y-1 text-xs text-[var(--tc-muted)]">
+                <span className="min-w-0 break-words">
+                  Destination {row.destination}
+                </span>
+                <span className="inline-flex flex-wrap gap-x-1">
+                  <span>State</span>
+                  <span>{row.state}</span>
+                  {row.claimed ? <span>claimed</span> : null}
+                </span>
+                <span>Attempts {row.attempts}</span>
+                <span>{row.read}</span>
+              </div>
+            </article>
+          )
+        })}
+      </div>
+    )
+  }
+
+  return (
+    <Card className="p-5">
+      <section aria-labelledby="delivery-attempts-heading">
+        <h2
+          id="delivery-attempts-heading"
+          className="text-sm font-semibold text-[var(--tc-text)]"
+        >
+          Delivery attempts
+        </h2>
+        <p className="text-xs text-[var(--tc-muted)] mt-0.5 mb-4">
+          Recent tries for this workspace. The destination is the redacted value
+          returned by the API.
+        </p>
+        {body}
+      </section>
+    </Card>
+  )
+}
+
 /* ──────────────────── Component ──────────────────── */
 
 export default function ComplianceAlertsPage() {
@@ -142,6 +237,11 @@ export default function ComplianceAlertsPage() {
     in_app: false,
   })
   const [prefError, setPrefError] = useState<string | null>(null)
+  const [prefSaved, setPrefSaved] = useState<string | null>(null)
+  const savingPref = useRef(false)
+  const [attemptResult, setAttemptResult] =
+    useState<SectionResult<DeliveryAttemptsPage> | null>(null)
+  const [attemptsLoading, setAttemptsLoading] = useState(true)
 
   const loadPreferences = useCallback(() => {
     fetch('/api/notifications/channel-preferences', { credentials: 'include' })
@@ -166,19 +266,60 @@ export default function ComplianceAlertsPage() {
     channel: keyof ChannelSwitches,
     enabled: boolean
   ) => {
+    if (savingPref.current) return
+    savingPref.current = true
     setPrefError(null)
-    setChannels((prev) => ({ ...prev, [channel]: enabled }))
-    const r = await fetch('/api/notifications/channel-preferences', {
-      method: 'PUT',
-      credentials: 'include',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ channel, enabled }),
-    })
-    if (!r.ok) {
+    setPrefSaved(null)
+    try {
+      const r = await fetch('/api/notifications/channel-preferences', {
+        method: 'PUT',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ channel, enabled }),
+      })
+      if (!r.ok) {
+        setPrefError('Could not save that channel preference.')
+        return
+      }
+      setChannels((prev) => ({ ...prev, [channel]: enabled }))
+      setPrefSaved('Channel preference saved.')
+    } catch {
       setPrefError('Could not save that channel preference.')
-      loadPreferences()
+    } finally {
+      savingPref.current = false
     }
   }
+
+  const requestAttempts = useCallback((signal?: AbortSignal) => {
+    return loadSection(
+      fetch(`${DELIVERY_ATTEMPTS_PATH}?page=1&page_size=50`, {
+        credentials: 'include',
+        signal,
+      }),
+      parseDeliveryAttempts
+    )
+  }, [])
+
+  useEffect(() => {
+    if (!canAdmin) return
+    const controller = new AbortController()
+    let active = true
+    requestAttempts(controller.signal)
+      .then((result) => {
+        if (!active) return
+        setAttemptResult(result)
+        setAttemptsLoading(false)
+      })
+      .catch((error: unknown) => {
+        if (!active || isAbortError(error)) return
+        setAttemptResult({ ok: false, failure: failureOf(error) })
+        setAttemptsLoading(false)
+      })
+    return () => {
+      active = false
+      controller.abort()
+    }
+  }, [canAdmin, requestAttempts])
 
   useEffect(() => {
     if (!canAdmin) return
@@ -343,11 +484,21 @@ export default function ComplianceAlertsPage() {
               type="checkbox"
               checked={channels[key]}
               onChange={(e) => setChannel(key, e.target.checked)}
+              onKeyDown={(event) => {
+                if (event.key !== 'Enter') return
+                event.preventDefault()
+                void setChannel(key, !channels[key])
+              }}
             />
             {label}
           </label>
         ))}
       </div>
+      {prefSaved && (
+        <p role="status" className="mt-2 text-sm text-[var(--tc-text)]">
+          {prefSaved}
+        </p>
+      )}
       {prefError && (
         <p role="alert" className="mt-2 text-sm text-[var(--tc-danger)]">
           {prefError}
@@ -426,6 +577,18 @@ export default function ComplianceAlertsPage() {
       )}
 
       {channelCard}
+
+      <DeliveryAttemptsPanel
+        loading={attemptsLoading}
+        result={attemptResult}
+        onRetry={() => {
+          setAttemptsLoading(true)
+          void requestAttempts().then((result) => {
+            setAttemptResult(result)
+            setAttemptsLoading(false)
+          })
+        }}
+      />
 
       {loadFailure ? (
         <ErrorState failure={loadFailure} onRetry={() => void load()} />
@@ -607,9 +770,9 @@ export default function ComplianceAlertsPage() {
                     return (
                       <div
                         key={entry.id}
-                        className="flex items-center justify-between rounded-lg border border-[var(--tc-border)] px-4 py-2.5 hover:bg-white/[0.02] transition"
+                        className="flex min-w-0 flex-wrap items-center justify-between gap-2 rounded-lg border border-[var(--tc-border)] px-4 py-2.5 hover:bg-white/[0.02] transition"
                       >
-                        <div className="flex items-center gap-3 min-w-0">
+                        <div className="flex min-w-0 items-center gap-3">
                           <span
                             className={`inline-block h-2 w-2 rounded-full shrink-0 ${severityDot(meta.severity)}`}
                           />
@@ -622,7 +785,7 @@ export default function ComplianceAlertsPage() {
                             </span>
                           </div>
                         </div>
-                        <div className="flex items-center gap-3 shrink-0">
+                        <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1">
                           <span className="text-[10px] uppercase text-[var(--tc-muted)]">
                             {entry.channel || 'email'}
                           </span>
@@ -640,7 +803,7 @@ export default function ComplianceAlertsPage() {
                               Not delivered to the provider
                             </span>
                           )}
-                          <span className="text-xs text-[var(--tc-muted)] w-16 text-right">
+                          <span className="text-xs text-[var(--tc-muted)]">
                             {timeAgo(entry.created_at)}
                           </span>
                         </div>
