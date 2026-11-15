@@ -22,6 +22,16 @@ import { useKeyedGeneration } from '@/components/ui/useKeyedGeneration'
 import { deleteNotificationPolicy } from '@/lib/notification-policy-delete'
 import { toggleNotificationPolicy } from '@/lib/notification-policy-toggle'
 import {
+  RECIPIENT_VALUE_MAX_LENGTH,
+  ROLE_RECIPIENT_LABEL,
+  USER_RECIPIENT_HELP,
+  USER_RECIPIENT_LABEL,
+  activeWorkspaceMembers,
+  policyCreateErrorMessage,
+  readWorkspaceMembers,
+  type WorkspaceMemberOption,
+} from '@/lib/notification-rule-form'
+import {
   DELIVERY_ATTEMPTS_PATH,
   displayDeliveryAttempt,
   parseDeliveryAttempts,
@@ -228,6 +238,9 @@ export default function ComplianceAlertsPage() {
   const [addRecipVal, setAddRecipVal] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [formError, setFormError] = useState<string | null>(null)
+  const [members, setMembers] = useState<WorkspaceMemberOption[]>([])
+  const [membersError, setMembersError] = useState<string | null>(null)
+  const [membersLoading, setMembersLoading] = useState(false)
   const [policyError, setPolicyError] = useState<string | null>(null)
   const { confirm, dialog: confirmDialog } = useDestructiveConfirm()
   const [stubProviders, setStubProviders] = useState<string[]>([])
@@ -261,6 +274,24 @@ export default function ComplianceAlertsPage() {
   useEffect(() => {
     loadPreferences()
   }, [loadPreferences])
+
+  const loadMembers = useCallback(() => {
+    setMembersLoading(true)
+    setMembersError(null)
+    fetch('/api/members', { credentials: 'include' })
+      .then(async (response) => {
+        if (!response.ok) throw new Error('unavailable')
+        return response.json()
+      })
+      .then((data) => {
+        setMembers(readWorkspaceMembers(data))
+      })
+      .catch(() => {
+        setMembers([])
+        setMembersError('Workspace members could not be loaded.')
+      })
+      .finally(() => setMembersLoading(false))
+  }, [])
 
   const setChannel = async (
     channel: keyof ChannelSwitches,
@@ -430,6 +461,14 @@ export default function ComplianceAlertsPage() {
       setFormError('Select an event')
       return
     }
+    if (addRecipType === 'user' && !/^[1-9]\d*$/.test(addRecipVal)) {
+      setFormError('Select a workspace member')
+      return
+    }
+    if (addRecipType === 'role' && !addRecipVal.trim()) {
+      setFormError('Enter a role name')
+      return
+    }
     setSubmitting(true)
     setFormError(null)
     try {
@@ -445,7 +484,11 @@ export default function ComplianceAlertsPage() {
       })
       const d = await r.json().catch(() => ({}))
       if (!r.ok) {
-        setFormError(d.detail || 'Failed')
+        const detail =
+          d && typeof d === 'object' && 'detail' in d
+            ? (d as { detail?: unknown }).detail
+            : undefined
+        setFormError(policyCreateErrorMessage(detail))
         return
       }
       setAddOpen(false)
@@ -657,7 +700,9 @@ export default function ComplianceAlertsPage() {
                   Alert Rules
                 </h2>
                 <p className="text-xs text-[var(--tc-muted)] mt-0.5">
-                  Configure which events trigger email notifications
+                  Configure which events trigger email notifications. A specific
+                  user is an active workspace member, stored by that member's
+                  user id.
                 </p>
               </div>
               <Button
@@ -665,6 +710,7 @@ export default function ComplianceAlertsPage() {
                 onClick={() => {
                   setAddOpen(true)
                   setFormError(null)
+                  if (addRecipType === 'user') loadMembers()
                   const first =
                     groupedAvailable.compliance[0] ||
                     groupedAvailable.system[0] ||
@@ -847,10 +893,14 @@ export default function ComplianceAlertsPage() {
       >
         <form onSubmit={addPolicy} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-[var(--tc-text)] mb-2">
+            <label
+              htmlFor="rule-event"
+              className="block text-sm font-medium text-[var(--tc-text)] mb-2"
+            >
               Event
             </label>
             <select
+              id="rule-event"
               className="w-full rounded border border-[var(--tc-border)] bg-[var(--tc-panel)] px-3 py-2 text-sm text-[var(--tc-text)]"
               value={addEvt}
               onChange={(e) => setAddEvt(e.target.value)}
@@ -876,13 +926,23 @@ export default function ComplianceAlertsPage() {
             )}
           </div>
           <div>
-            <label className="block text-sm font-medium text-[var(--tc-text)] mb-2">
+            <label
+              htmlFor="rule-recipients"
+              className="block text-sm font-medium text-[var(--tc-text)] mb-2"
+            >
               Recipients
             </label>
             <select
+              id="rule-recipients"
               className="w-full rounded border border-[var(--tc-border)] bg-[var(--tc-panel)] px-3 py-2 text-sm text-[var(--tc-text)]"
               value={addRecipType}
-              onChange={(e) => setAddRecipType(e.target.value)}
+              onChange={(e) => {
+                const nextType = e.target.value
+                setAddRecipType(nextType)
+                setAddRecipVal('')
+                setFormError(null)
+                if (nextType === 'user') loadMembers()
+              }}
             >
               {RECIPIENT_TYPES.map((rt) => (
                 <option key={rt.value} value={rt.value}>
@@ -891,21 +951,63 @@ export default function ComplianceAlertsPage() {
               ))}
             </select>
           </div>
-          {(addRecipType === 'role' || addRecipType === 'user') && (
+          {addRecipType === 'role' && (
             <div>
-              <label className="block text-sm font-medium text-[var(--tc-text)] mb-2">
-                {addRecipType === 'role' ? 'Role name' : 'User email or ID'}
+              <label
+                htmlFor="rule-role"
+                className="block text-sm font-medium text-[var(--tc-text)] mb-2"
+              >
+                {ROLE_RECIPIENT_LABEL}
               </label>
               <input
+                id="rule-role"
                 className="w-full rounded border border-[var(--tc-border)] bg-[var(--tc-panel)] px-3 py-2 text-sm text-[var(--tc-text)]"
                 value={addRecipVal}
+                maxLength={RECIPIENT_VALUE_MAX_LENGTH}
                 onChange={(e) => setAddRecipVal(e.target.value)}
-                placeholder={
-                  addRecipType === 'role'
-                    ? 'e.g. editor'
-                    : 'e.g. user@company.com'
-                }
+                placeholder="e.g. editor"
               />
+            </div>
+          )}
+          {addRecipType === 'user' && (
+            <div>
+              <label
+                htmlFor="rule-member"
+                className="block text-sm font-medium text-[var(--tc-text)] mb-2"
+              >
+                {USER_RECIPIENT_LABEL}
+              </label>
+              <select
+                id="rule-member"
+                className="w-full rounded border border-[var(--tc-border)] bg-[var(--tc-panel)] px-3 py-2 text-sm text-[var(--tc-text)]"
+                value={addRecipVal}
+                aria-describedby="rule-member-help"
+                disabled={membersLoading || Boolean(membersError)}
+                onChange={(e) => setAddRecipVal(e.target.value)}
+              >
+                <option value="">
+                  {membersLoading ? 'Loading members' : 'Select a member'}
+                </option>
+                {activeWorkspaceMembers(members).map((member) => (
+                  <option key={member.user_id} value={member.user_id}>
+                    {member.display_name || member.email}
+                  </option>
+                ))}
+              </select>
+              <p
+                id="rule-member-help"
+                className="mt-1.5 text-xs text-[var(--tc-muted)]"
+              >
+                {USER_RECIPIENT_HELP}
+              </p>
+              {membersError && (
+                <p
+                  role="alert"
+                  className="mt-1.5 text-sm text-[var(--tc-danger)]"
+                >
+                  {membersError}
+                </p>
+              )}
             </div>
           )}
           {formError && (
