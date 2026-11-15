@@ -94,12 +94,9 @@ HEADINGS = [
     "privacy controls",
 ]
 
-UNREADABLE = (
-    "Workbook is corrupt or unreadable. Re-export it as an .xlsx file and upload it again."
-)
+UNREADABLE = "Workbook is corrupt or unreadable. Re-export it as an .xlsx file and upload it again."
 NO_QUESTIONS = (
-    "No questions were detected in this workbook. "
-    "Review the file or upload a corrected copy."
+    "No questions were detected in this workbook. " "Review the file or upload a corrected copy."
 )
 
 _GREEK = "ΕΦΑΡΜΟΖΕΤΕ ΠΟΛΥΠΑΡΑΓΟΝΤΙΚΗ ΤΑΥΤΟΠΟΙΗΣΗ ΓΙΑ ΟΛΟΥΣ ΤΟΥΣ ΔΙΑΧΕΙΡΙΣΤΕΣ\u037e"
