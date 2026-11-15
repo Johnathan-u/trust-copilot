@@ -1,6 +1,7 @@
 Command, from apps/api, after the detection and workbook-outcome change. Exit status 0. 7 passed. No skips.
 Environment: Linux, CPython 3.12.3, pytest 9.1.1. No database, network, or model calls.
-Base: 6af195d11d1cb03e0ce8ab1297adf8fdf5812458. Commit SHA is recorded below once this tree is committed.
+Base: 6af195d11d1cb03e0ce8ab1297adf8fdf5812458.
+Tested product commit: 08465b0ee2262e5ede3ce2247809283e604570bc.
 
 SESSION_SECRET=test-secret TRUST_COPILOT_TESTING=1 python -m pytest tests/release/test_question_detection.py -vv --tb=short -p no:cacheprovider
 
