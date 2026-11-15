@@ -29,6 +29,12 @@ DOCX_FAILED = "export_docx_failed"
 DOCX_FAILED_MESSAGE = "The DOCX export could not be written. No substitute file was produced."
 STORAGE_FAILED = "export_storage_failed"
 STORAGE_FAILED_MESSAGE = "The export could not be stored. No substitute file was produced."
+MAPPING_STALE = "export_mapping_stale"
+MAPPING_STALE_MESSAGE = (
+    "The workbook no longer matches the stored cell mapping. No answers were written."
+)
+_MAPPED_QUESTION = "Do you encrypt data at rest?"
+_MAPPED_ANSWER = "Approved encryption control PRIVATE-ANSWER"
 XLSX_MEDIA = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
 DOCX_MEDIA = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
 SHA256_HEADER = "x-content-sha256"
@@ -160,7 +166,7 @@ def _questionnaire(filename: str):
     )
 
 
-def _prepare(monkeypatch, blob: bytes, *, filename: str, fmt: str):
+def _prepare(monkeypatch, blob: bytes, *, filename: str, fmt: str, questions=None, answers=None):
     from app import worker
 
     store = _Store(blob)
@@ -180,8 +186,8 @@ def _prepare(monkeypatch, blob: bytes, *, filename: str, fmt: str):
         {
             Questionnaire: questionnaire,
             ExportRecord: None,
-            Question: [],
-            Answer: [],
+            Question: list(questions or []),
+            Answer: list(answers or []),
         }
     )
     job = SimpleNamespace(
@@ -544,3 +550,137 @@ def test_explicit_docx_failure_does_not_change_format(monkeypatch) -> None:
     assert record.status == "failed"
     assert record.filename.endswith(".docx")
     assert _PRIVATE not in str(record.filename)
+
+
+def _mapped_workbook(question_text: str = _MAPPED_QUESTION) -> bytes:
+    """Question in A, owner in B, answer in C. Offset placement would hit the owner."""
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Security"
+    ws["A1"] = "Question"
+    ws["B1"] = "Owner"
+    ws["C1"] = "Answer"
+    ws["A2"] = question_text
+    ws["B2"] = "Alice"
+    buf = io.BytesIO()
+    wb.save(buf)
+    return buf.getvalue()
+
+
+def _mapped_question(
+    blob: bytes, *, file_digest: str | None = None, stored_text: str | None = None
+):
+    from app.services.cell_mapping import content_hash, file_hash
+    from app.services.question_normalizer import normalize_question
+
+    text = stored_text or _MAPPED_QUESTION
+    return SimpleNamespace(
+        id=1,
+        text=text,
+        source_location=json.dumps({"sheet": "Security", "row": 2, "col": 1}),
+        content_hash=content_hash(normalize_question(text)),
+        original_file_hash=file_hash(blob) if file_digest is None else file_digest,
+        sheet="Security",
+        question_cell="A2",
+        answer_cell="C2",
+        mapping_version=1,
+    )
+
+
+def _mapped_answer():
+    return SimpleNamespace(question_id=1, text=_MAPPED_ANSWER, status="approved")
+
+
+def _cell(blob: bytes, coordinate: str) -> str:
+    from openpyxl import load_workbook
+
+    wb = load_workbook(io.BytesIO(blob))
+    value = wb["Security"][coordinate].value
+    return "" if value is None else str(value)
+
+
+def _assert_mapping_conflict(caught, failure_db, store: _Store) -> None:
+    _assert_fixed(caught.value, MAPPING_STALE, MAPPING_STALE_MESSAGE)
+    assert _MAPPED_QUESTION not in str(caught.value)
+    assert "PRIVATE-ANSWER" not in str(caught.value)
+    assert store.uploads == []
+    record = _failed_record(failure_db)
+    assert record.status == "failed"
+    assert record.filename.endswith(".xlsx")
+    assert "PRIVATE-ANSWER" not in str(record.filename)
+    assert "PRIVATE-ANSWER" not in str(record.storage_key)
+
+
+def test_stale_workbook_fingerprint_does_not_write_answers(monkeypatch) -> None:
+    blob = _mapped_workbook()
+    question = _mapped_question(blob, file_digest="ab" * 32)
+    worker, _job, session, store, failure_db, payload = _prepare(
+        monkeypatch,
+        blob,
+        filename="customer.xlsx",
+        fmt="xlsx",
+        questions=[question],
+        answers=[_mapped_answer()],
+    )
+    with pytest.raises(Exception) as caught:
+        worker.run_export(_job, session, payload)
+    _assert_mapping_conflict(caught, failure_db, store)
+
+
+def test_stale_question_cell_does_not_write_answers(monkeypatch) -> None:
+    blob = _mapped_workbook("Where is the office located today?")
+    question = _mapped_question(blob, stored_text=_MAPPED_QUESTION)
+    worker, job, session, store, failure_db, payload = _prepare(
+        monkeypatch,
+        blob,
+        filename="customer.xlsx",
+        fmt="xlsx",
+        questions=[question],
+        answers=[_mapped_answer()],
+    )
+    with pytest.raises(Exception) as caught:
+        worker.run_export(job, session, payload)
+    _assert_mapping_conflict(caught, failure_db, store)
+
+
+def test_current_mapping_writes_the_answer_cell_not_the_neighbor(monkeypatch) -> None:
+    blob = _mapped_workbook()
+    question = _mapped_question(blob)
+    worker, job, session, store, _failure_db, payload = _prepare(
+        monkeypatch,
+        blob,
+        filename="customer.xlsx",
+        fmt="xlsx",
+        questions=[question],
+        answers=[_mapped_answer()],
+    )
+    worker.run_export(job, session, payload)
+    assert len(store.uploads) == 1
+    _key, body, content_type = store.uploads[0]
+    assert content_type == XLSX_MEDIA
+    assert _cell(body, "C2") == _MAPPED_ANSWER
+    assert _cell(body, "B2") == "Alice"
+    assert _MAPPED_ANSWER not in _cell(body, "B2")
+
+
+def test_download_of_stale_mapping_is_the_mapping_conflict() -> None:
+    from app.api.routes.exports import get_download_url
+
+    record = _route_record(
+        status="failed", filename="customer.xlsx", storage_key="exports/1/job-7.failed"
+    )
+    job = _route_job(None, code=MAPPING_STALE, error=_PRIVATE + " " + _MAPPED_QUESTION)
+    response = get_download_url(
+        record_id=record.id,
+        workspace_id=1,
+        session={"workspace_id": 1, "email": "reviewer@example.com"},
+        db=_RouteDB(record, job),
+        storage=_DownloadStore(b"PK\x03\x04 wrong-cell"),
+    )
+    assert response.status_code == 409
+    payload = json.loads(response.body)
+    assert payload["error"]["code"] == MAPPING_STALE
+    assert payload["error"]["message"] == MAPPING_STALE_MESSAGE
+    assert _PRIVATE not in response.body.decode()
+    assert _MAPPED_QUESTION not in response.body.decode()
+    assert b"wrong-cell" not in response.body

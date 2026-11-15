@@ -9,6 +9,7 @@ from sqlalchemy.orm import Session
 
 from app.core.job_errors import (
     EXPORT_DOCX_FAILED,
+    EXPORT_MAPPING_STALE,
     EXPORT_STORAGE_FAILED,
     EXPORT_XLSX_FAILED,
 )
@@ -33,6 +34,9 @@ EXPORT_DOCX_FAILED_MESSAGE = (
     "The DOCX export could not be written. No substitute file was produced."
 )
 EXPORT_STORAGE_FAILED_MESSAGE = "The export could not be stored. No substitute file was produced."
+EXPORT_MAPPING_STALE_MESSAGE = (
+    "The workbook no longer matches the stored cell mapping. No answers were written."
+)
 XLSX_MEDIA_TYPE = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
 DOCX_MEDIA_TYPE = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
 _EXPORT_MEDIA = {"xlsx": XLSX_MEDIA_TYPE, "docx": DOCX_MEDIA_TYPE}
@@ -40,6 +44,7 @@ _FIXED_EXPORT_ERRORS = {
     EXPORT_XLSX_FAILED: EXPORT_XLSX_FAILED_MESSAGE,
     EXPORT_DOCX_FAILED: EXPORT_DOCX_FAILED_MESSAGE,
     EXPORT_STORAGE_FAILED: EXPORT_STORAGE_FAILED_MESSAGE,
+    EXPORT_MAPPING_STALE: EXPORT_MAPPING_STALE_MESSAGE,
 }
 
 
@@ -171,6 +176,79 @@ def media_type_for_filename(filename: str) -> str | None:
 
 def sha256_hex(data: bytes) -> str:
     return hashlib.sha256(data).hexdigest()
+
+
+def _mapping_version(question: dict) -> int:
+    raw = question.get("mapping_version")
+    if isinstance(raw, bool) or not isinstance(raw, int):
+        return 0
+    return raw
+
+
+def _sheet_name(question: dict) -> str | None:
+    sheet = question.get("sheet")
+    if isinstance(sheet, str) and sheet:
+        return sheet
+    raw = question.get("source_location")
+    if isinstance(raw, str) and raw:
+        try:
+            loaded = json.loads(raw)
+        except json.JSONDecodeError:
+            return None
+        if isinstance(loaded, dict) and isinstance(loaded.get("sheet"), str) and loaded["sheet"]:
+            return loaded["sheet"]
+    return None
+
+
+def export_mapping_is_stale(questions: list[dict], workbook: bytes) -> bool:
+    """True when a stored cell mapping must not be used to write answers.
+
+    A file hash that does not match these bytes is stale. A ruleset of 1 or
+    newer is also stale when its question cell text, sheet or answer cell no
+    longer matches. Legacy rows (version 0 and no file hash) are not stale:
+    they still use the column offset. This never returns cell text or hashes.
+    """
+    from app.services.cell_mapping import content_hash, parse_cell_ref
+    from app.services.question_normalizer import normalize_question
+
+    digest = sha256_hex(workbook)
+    explicit: list[dict] = []
+    for question in questions:
+        stored = _valid_sha256(question.get("original_file_hash"))
+        if stored is not None and stored != digest:
+            return True
+        if _mapping_version(question) >= 1:
+            explicit.append(question)
+    if not explicit:
+        return False
+    from io import BytesIO
+
+    from openpyxl import load_workbook
+
+    try:
+        book = load_workbook(BytesIO(workbook), data_only=False)
+    except Exception:
+        return False
+    try:
+        for question in explicit:
+            sheet_name = _sheet_name(question)
+            if not sheet_name or sheet_name not in book.sheetnames:
+                return True
+            question_at = parse_cell_ref(question.get("question_cell"))
+            expected = _valid_sha256(question.get("content_hash"))
+            if question_at is None or expected is None:
+                return True
+            row, column = question_at
+            value = book[sheet_name].cell(row=row, column=column).value
+            current = content_hash(normalize_question("" if value is None else str(value)))
+            if current != expected:
+                return True
+            answer_ref = question.get("answer_cell")
+            if answer_ref and parse_cell_ref(answer_ref) is None:
+                return True
+    finally:
+        book.close()
+    return False
 
 
 def public_export_failure(code: str | None) -> tuple[str, str]:

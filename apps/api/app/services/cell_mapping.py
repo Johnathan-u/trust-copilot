@@ -62,6 +62,37 @@ def cell_ref(row: int, col: int) -> str:
     return f"{column_letter(col)}{row}"
 
 
+def parse_cell_ref(ref: str | None) -> tuple[int, int] | None:
+    """Parse an A1 reference into ``(row, column)``, both 1-based.
+
+    Sheet-qualified names, page locators and anything that is not a single
+    cell are rejected. Callers must not guess a neighboring column.
+    """
+    if not isinstance(ref, str):
+        return None
+    text = ref.strip()
+    letters: list[str] = []
+    digits: list[str] = []
+    for char in text:
+        if char.isalpha() and not digits:
+            letters.append(char.upper())
+        elif char.isdigit() and letters:
+            digits.append(char)
+        else:
+            return None
+    if not letters or not digits or len(letters) > 3:
+        return None
+    if digits[0] == "0":
+        return None
+    column = 0
+    for char in letters:
+        column = column * 26 + (ord(char) - 64)
+    row = int("".join(digits))
+    if row < 1 or row > 1048576 or column < 1 or column > 16384:
+        return None
+    return row, column
+
+
 def find_column_map(rows: list[list]) -> dict[str, int | None]:
     """Header columns for question, owner and answer.
 

@@ -60,6 +60,10 @@ INTERNAL_ERROR = "internal_error"
 EXPORT_XLSX_FAILED = "export_xlsx_failed"
 EXPORT_DOCX_FAILED = "export_docx_failed"
 EXPORT_STORAGE_FAILED = "export_storage_failed"
+# The stored workbook fingerprint or answer cell no longer matches. Terminal:
+# writing anyway would put answers in the wrong cells, and a retry cannot
+# repair the workbook.
+EXPORT_MAPPING_STALE = "export_mapping_stale"
 
 RETRYABLE_CODES = frozenset(
     {
@@ -82,6 +86,7 @@ TERMINAL_CODES = frozenset(
         EXPORT_XLSX_FAILED,
         EXPORT_DOCX_FAILED,
         EXPORT_STORAGE_FAILED,
+        EXPORT_MAPPING_STALE,
     }
 )
 ALL_CODES = RETRYABLE_CODES | TERMINAL_CODES

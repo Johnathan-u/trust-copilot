@@ -71,3 +71,30 @@ FAILED tests/release/test_export_failure.py::test_list_exposes_failed_export_wit
 FAILED tests/release/test_export_failure.py::test_list_includes_recorded_sha256_for_a_completed_export
 FAILED tests/release/test_export_failure.py::test_explicit_docx_failure_does_not_change_format
 16 failed in 0.89s
+
+## Stale cell mapping, before the fix
+
+command: python -m pytest tests/release/test_export_failure.py -q --tb=line
+exit status: 1
+
+................FFFF                                                     [100%]
+=================================== FAILURES ===================================
+E   Failed: DID NOT RAISE Exception
+/agent/repos/trust-copilot/apps/api/tests/release/test_export_failure.py:625: Failed: DID NOT RAISE Exception
+E   Failed: DID NOT RAISE Exception
+/agent/repos/trust-copilot/apps/api/tests/release/test_export_failure.py:641: Failed: DID NOT RAISE Exception
+E   AssertionError: assert '' == 'Approved enc...RIVATE-ANSWER'
+
+      - Approved encryption control PRIVATE-ANSWER
+/agent/repos/trust-copilot/apps/api/tests/release/test_export_failure.py:661: AssertionError: assert '' == 'Approved enc...RIVATE-ANSWER'
+E   AssertionError: assert 'export_xlsx_failed' == 'export_mapping_stale'
+
+      - export_mapping_stale
+      + export_xlsx_failed
+/agent/repos/trust-copilot/apps/api/tests/release/test_export_failure.py:682: AssertionError: assert 'export_xlsx_failed' == 'export_mapping_stale'
+=========================== short test summary info ============================
+FAILED tests/release/test_export_failure.py::test_stale_workbook_fingerprint_does_not_write_answers
+FAILED tests/release/test_export_failure.py::test_stale_question_cell_does_not_write_answers
+FAILED tests/release/test_export_failure.py::test_current_mapping_writes_the_answer_cell_not_the_neighbor
+FAILED tests/release/test_export_failure.py::test_download_of_stale_mapping_is_the_mapping_conflict
+4 failed, 16 passed in 0.77s

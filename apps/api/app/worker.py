@@ -747,7 +747,18 @@ def run_export(job: Job, session, payload: dict) -> None:
         .all()
     }
     question_list = [
-        {"id": q.id, "source_location": q.source_location, "text": q.text or ""} for q in questions
+        {
+            "id": q.id,
+            "source_location": q.source_location,
+            "text": q.text or "",
+            "content_hash": getattr(q, "content_hash", None),
+            "original_file_hash": getattr(q, "original_file_hash", None),
+            "sheet": getattr(q, "sheet", None),
+            "question_cell": getattr(q, "question_cell", None),
+            "answer_cell": getattr(q, "answer_cell", None),
+            "mapping_version": getattr(q, "mapping_version", 0) or 0,
+        }
+        for q in questions
     ]
     question_to_answer = {
         q.id: answer_text_for_export(
@@ -757,9 +768,11 @@ def run_export(job: Job, session, payload: dict) -> None:
         for q in questions
     }
     offset = settings.export_answer_col_offset
-    from app.core.job_errors import TerminalJobError
+    from app.core.job_errors import EXPORT_MAPPING_STALE, TerminalJobError
     from app.services.export_service import (
+        EXPORT_MAPPING_STALE_MESSAGE,
         export_filename,
+        export_mapping_is_stale,
         export_result_json,
         media_type_for_format,
         requested_format,
@@ -768,6 +781,9 @@ def run_export(job: Job, session, payload: dict) -> None:
 
     wanted = requested_format(payload.get("format"))
     ext = Path(qnr.filename or qnr.storage_key or "export.xlsx").suffix.lower()
+    if wanted == "xlsx" and ext == ".xlsx" and export_mapping_is_stale(question_list, raw_bytes):
+        _record_failed_export(job, payload)
+        raise TerminalJobError(EXPORT_MAPPING_STALE, EXPORT_MAPPING_STALE_MESSAGE) from None
 
     def fail_requested() -> None:
         # Persist on its own connection, then raise. The worker rollback must not
