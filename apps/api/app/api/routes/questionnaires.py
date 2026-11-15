@@ -396,6 +396,12 @@ def get_questionnaire(
                 "section": q.section,
                 "answer_type": q.answer_type,
                 "source_location": q.source_location,
+                "content_hash": q.content_hash,
+                "original_file_hash": q.original_file_hash,
+                "sheet": q.sheet,
+                "question_cell": q.question_cell,
+                "answer_cell": q.answer_cell,
+                "mapping_version": q.mapping_version,
                 "answer": (
                     {
                         "id": answers[q.id].id,
