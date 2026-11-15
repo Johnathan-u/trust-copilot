@@ -36,6 +36,32 @@ ORDER BY id DESC;
 A deduped row has `state = 'deduped'` and `error_code = 'claimed'`. That is a
 claim that was already held. It is not a dead letter and it is not a send.
 
+## All recipients opted out
+
+`skipped_all_opted_out` means every resolved Slack recipient opted out, so the
+workspace channel post was not sent. It is a deliberate skip. It is not a
+failure and not a dead letter. Each opted-out person still has a
+`suppressed-by-preference` attempt. The channel row stores the same token in
+`state` and `error_code`, with `delivered_to_provider` false, and it does not
+write a `notification_log` row. The audit action
+`notification.slack_skipped_all_opted_out` records that reason.
+
+One recipient who is still opted in is enough for the channel post to go out.
+Zero resolved recipients returns before Slack dispatch and does not write this
+row. A disabled integration or an event filter that excludes the event also
+writes no Slack row.
+
+The skip does not take a dedupe claim. Firing the same event again writes
+another `skipped_all_opted_out` row. That repeat is expected. A recipient who
+opts back in can still receive a later post for that event.
+
+```sql
+SELECT id, channel, event_type, state, error_code, destination, created_at
+FROM notification_delivery_attempts
+WHERE state = 'skipped_all_opted_out'
+ORDER BY id DESC;
+```
+
 ## Dedupe-claim pruning
 
 `prune_dedupe_claims` deletes a claim only when `released_at` is set or

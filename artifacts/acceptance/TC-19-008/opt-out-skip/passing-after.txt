@@ -1,0 +1,38 @@
+# Passing tests after the skip record
+
+Commands, same files as failing-before.txt:
+
+    cd apps/api && python -m pytest tests/release/test_slack_all_opted_out.py tests/release/test_notification_delivery.py::test_slack_opt_out_records_suppression_and_does_not_post --tb=short
+    cd apps/web && npx vitest run lib/delivery-attempts.test.ts
+
+API exit 0 (5 passed). Web exit 0 (4 passed).
+Repeated SQLAlchemy utcnow deprecation warnings are omitted.
+
+============================= test session starts ==============================
+platform linux -- Python 3.12.3, pytest-9.1.1, pluggy-1.7.0
+rootdir: /agent/repos/trust-copilot/apps/api
+configfile: pyproject.toml
+plugins: anyio-4.15.1
+collected 5 items
+
+tests/release/test_slack_all_opted_out.py ....                           [ 80%]
+tests/release/test_notification_delivery.py .                            [100%]
+
+======================== 5 passed, 77 warnings in 2.13s ========================
+API_EXIT:0
+
+# Web unit test
+
+(!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+  - ESM syntax in a file loaded as CommonJS (vitest.config.ts:1:1). Use a `.mjs` extension or set `"type": "module"` in the closest package.json
+Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.
+
+ RUN  v5.0.5 /agent/repos/trust-copilot/apps/web
+
+
+ Test Files  1 passed (1)
+      Tests  4 passed (4)
+   Start at  15:33:02
+   Duration  185ms (transform 57%, import 21%, tests 15%, worker 7%)
+
+WEB_EXIT:0

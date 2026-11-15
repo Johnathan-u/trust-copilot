@@ -1,0 +1,83 @@
+# Failing tests on master before the skip record
+
+Head under test: 0e8cb32 (origin/master, includes 73333d2).
+Product code was unchanged. Commands:
+
+    cd apps/api && python -m pytest tests/release/test_slack_all_opted_out.py --tb=short
+    cd apps/web && npx vitest run lib/delivery-attempts.test.ts
+
+API exit 1. Web exit 1.
+The three unchanged-behavior API tests passed. The all-opted-out test failed
+because the channel post is already skipped, but no delivery attempt and no
+audit row use skipped_all_opted_out. The web reader rejects that state.
+
+Repeated SQLAlchemy utcnow deprecation warnings are omitted below.
+
+============================= test session starts ==============================
+platform linux -- Python 3.12.3, pytest-9.1.1, pluggy-1.7.0
+rootdir: /agent/repos/trust-copilot/apps/api
+configfile: pyproject.toml
+plugins: anyio-4.15.1
+collected 4 items
+
+tests/release/test_slack_all_opted_out.py F...                           [100%]
+
+=================================== FAILURES ===================================
+_________ test_every_opted_out_recipient_skips_the_slack_channel_post __________
+tests/release/test_slack_all_opted_out.py:312: in test_every_opted_out_recipient_skips_the_slack_channel_post
+    assert skip and audits, {
+E   AssertionError: {'slack_states': ['suppressed-by-preference', 'suppressed-by-preference'], 'skip_rows': 0, 'audit_rows': 0, 'slack_calls': []}
+E   assert ([])
+----------------------------- Captured stdout call -----------------------------
+[EMAIL] Provider: Console (SMTP_HOST not set; emails logged to stdout)
+[EMAIL] To: slack-opt-e01ea257017f4c1c8c6ac0855e4c1b8d@test.local
+Subject: [Workspace] New member invited — plain detail
+
+[Workspace] New member invited — plain detail
+
+Event: member.invited
+plain detail
+
+=========================== short test summary info ============================
+
+FAILED tests/release/test_slack_all_opted_out.py::test_every_opted_out_recipient_skips_the_slack_channel_post
+=================== 1 failed, 3 passed, 59 warnings in 3.34s ===================
+API_EXIT:1
+
+# Web unit test
+
+(!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+  - ESM syntax in a file loaded as CommonJS (vitest.config.ts:1:1). Use a `.mjs` extension or set `"type": "module"` in the closest package.json
+Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.
+
+ RUN  v5.0.5 /agent/repos/trust-copilot/apps/web
+
+ ❯ lib/delivery-attempts.test.ts (4 tests | 1 failed) 8ms
+   ❯ parseDeliveryAttempts (4)
+     × renders skipped_all_opted_out as a deliberate skip 3ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  lib/delivery-attempts.test.ts > parseDeliveryAttempts > renders skipped_all_opted_out as a deliberate skip
+Error: delivery attempts response is malformed: state
+ ❯ malformed lib/delivery-attempts.ts:58:9
+     56|
+     57| function malformed(detail: string): never {
+     58|   throw new Error(`delivery attempts response is malformed: ${detail}`)
+       |         ^
+     59| }
+     60|
+ ❯ oneAttempt lib/delivery-attempts.ts:133:5
+ ❯ lib/delivery-attempts.ts:186:48
+ ❯ parseDeliveryAttempts lib/delivery-attempts.ts:186:34
+ ❯ lib/delivery-attempts.test.ts:176:20
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 3 passed (4)
+   Start at  15:30:51
+   Duration  200ms (transform 58%, import 21%, tests 16%, worker 6%)
+
+WEB_EXIT:1

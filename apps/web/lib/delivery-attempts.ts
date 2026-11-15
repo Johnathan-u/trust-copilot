@@ -11,6 +11,7 @@ export const DELIVERY_ATTEMPT_STATES = [
   'deduped',
   'dead-lettered',
   'suppressed-by-preference',
+  'skipped_all_opted_out',
 ] as const
 
 export const DELIVERY_ATTEMPT_CHANNELS = ['email', 'slack', 'in_app'] as const
@@ -49,6 +50,16 @@ export type DeliveryAttemptDisplay = {
   claimed: boolean
   attempts: string
   read: string
+}
+
+const DELIVERY_ATTEMPT_STATE_LABELS: Partial<
+  Record<DeliveryAttemptState, string>
+> = {
+  skipped_all_opted_out: 'Skipped: all recipients opted out',
+}
+
+function deliveryAttemptStateLabel(state: DeliveryAttemptState): string {
+  return DELIVERY_ATTEMPT_STATE_LABELS[state] ?? state
 }
 
 const UNSAFE_TEXT =
@@ -209,7 +220,7 @@ export function displayDeliveryAttempt(
     template: attempt.template_key ?? attempt.event_type,
     event: attempt.event_type,
     destination: attempt.destination ?? '—',
-    state: attempt.state,
+    state: deliveryAttemptStateLabel(attempt.state),
     claimed: attempt.claimed,
     attempts: String(attempt.attempt_number),
     read:
