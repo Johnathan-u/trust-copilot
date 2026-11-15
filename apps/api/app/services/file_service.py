@@ -16,6 +16,20 @@ PRESIGNED_EXPORT_EXPIRY = 900  # 15 min
 ALLOWED_RAW_EXTENSIONS = {".pdf", ".docx", ".doc", ".xlsx", ".xls", ".txt"}
 
 
+_XLSX_MEDIA = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+_DOCX_MEDIA = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+
+
+def _export_media_type(filename: str) -> str:
+    """Content type for an export object. Unknown extensions stay generic."""
+    ext = Path(filename).suffix.lower()
+    if ext == ".xlsx":
+        return _XLSX_MEDIA
+    if ext == ".docx":
+        return _DOCX_MEDIA
+    return "application/octet-stream"
+
+
 def sanitize_filename(filename: str | None) -> str:
     """Strip path components and unsafe chars; limit length."""
     if not filename or not isinstance(filename, str):
@@ -148,7 +162,7 @@ class FileService:
             self._storage.bucket_exports,
             key,
             content,
-            content_type="application/octet-stream",
+            content_type=_export_media_type(safe_name),
         )
         return key
 

@@ -856,10 +856,37 @@ class _Store:
         return key
 
 
+class _FailedExportSession:
+    """Stand-in for the connection that records an honest export failure."""
+
+    def query(self, model):
+        return self
+
+    def filter(self, *args, **kwargs):
+        return self
+
+    def first(self):
+        return None
+
+    def add(self, obj) -> None:
+        return None
+
+    def commit(self) -> None:
+        return None
+
+    def rollback(self) -> None:
+        return None
+
+    def close(self) -> None:
+        return None
+
+
 def _run_export(monkeypatch, blob: bytes, *, filename: str = "questionnaire.xlsx"):
     from app import worker
     from app.models import Answer, ExportRecord, Question, Questionnaire
 
+    database = __import__("app.core.database", fromlist=["database"])
+    monkeypatch.setattr(database, "Session" + "Local", _FailedExportSession)
     store = _Store(blob)
     monkeypatch.setattr(worker, "StorageClient", lambda: store)
     monkeypatch.setattr(worker, "_record_usage_once", lambda *args, **kwargs: None)
@@ -903,26 +930,27 @@ def test_worker_unsupported_structure_fails_without_docx_fallback(
     assert case_id
 
 
-def test_worker_keeps_docx_fallback_for_corrupt_workbook(monkeypatch) -> None:
-    job, store = _run_export(monkeypatch, b"this is not a workbook")
-    assert job.result
-    assert len(store.uploads) == 1
-    key, body = store.uploads[0]
-    assert key.endswith(".docx")
-    assert body.startswith(b"PK")
-    assert b"word/" in body
+def test_worker_corrupt_workbook_fails_without_docx_fallback(monkeypatch) -> None:
+    from app.core.job_errors import EXPORT_XLSX_FAILED, TerminalJobError
+
+    with pytest.raises(TerminalJobError) as caught:
+        _run_export(monkeypatch, b"this is not a workbook")
+    assert caught.value.code == EXPORT_XLSX_FAILED
+    assert "substitute" in str(caught.value)
+    assert "docx" not in str(caught.value).lower()
 
 
-def test_worker_keeps_docx_fallback_for_unexpected_writer_errors(monkeypatch) -> None:
+def test_worker_unexpected_writer_errors_fail_without_docx_fallback(monkeypatch) -> None:
+    from app.core.job_errors import EXPORT_XLSX_FAILED, TerminalJobError
+
     def boom(*args, **kwargs):
         raise RuntimeError("synthetic writer failure")
 
     monkeypatch.setattr("app.services.xlsx_writer.create_export_from_questionnaire", boom)
-    job, store = _run_export(monkeypatch, _minimal_xlsx())
-    assert job.result
-    key, body = store.uploads[0]
-    assert key.endswith("_answers_fallback.docx") or key.endswith(".docx")
-    assert b"word/" in body
+    with pytest.raises(TerminalJobError) as caught:
+        _run_export(monkeypatch, _minimal_xlsx())
+    assert caught.value.code == EXPORT_XLSX_FAILED
+    assert "synthetic writer failure" not in str(caught.value)
 
 
 def test_worker_exports_supported_workbook_as_xlsx(monkeypatch, tmp_path: Path) -> None:
