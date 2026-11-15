@@ -1,32 +1,29 @@
 'use client'
 
-import { useEffect, useState, useCallback, useRef } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
+import Link from 'next/link'
 import {
-  Card,
   Button,
-  Modal,
+  Card,
+  CategoryChipsRow,
+  CreatedTimestampText,
+  Dialog,
+  DisplayIdText,
   DocumentListSkeleton,
   EmptyState,
   ErrorState,
+  Input,
   LoadingState,
-  DisplayIdText,
-  CreatedTimestampText,
-  CategoryChipsRow,
-  DeleteConfirmationModal,
-  BulkSelectionBar,
-  BulkDeleteConfirmationModal,
-  MetadataEditorModal,
   RegistryRowActionsMenu,
   Toast,
-  ToastViewport,
 } from '@/components/ui'
+import type { RowAction } from '@/components/ui/RegistryRowActionsMenu'
 import { useAuth } from '@/contexts/AuthContext'
 import {
   mutationFailureNotice,
   type ApiFailurePresentation,
 } from '@/lib/api-error'
 import { actionVerb, confirmedActionNotice } from '@/lib/action-copy'
-import { useKeyedGeneration } from '@/components/ui/useKeyedGeneration'
 import { listLoadFlags } from '@/lib/render-state'
 import {
   failureOf,
@@ -39,6 +36,8 @@ import {
   SUBJECT_AREA_OPTIONS,
   normalizeLabels,
 } from '@/lib/listMetadata'
+import { dialogAttributes } from '@/lib/dialog'
+import { jobsHref, parseJobHistory } from '@/lib/job-history-consumer'
 
 type Doc = {
   id: number
@@ -51,17 +50,144 @@ type Doc = {
   deleted_at?: string | null
   frameworks?: string[]
   subject_areas?: string[]
+  source_eligibility?: string | null
+  eligibility?: string | null
+  freshness?: string | null
+  version?: string | null
+  content_version?: string | null
+  source_preview_url?: string | null
 }
 
-type DeletePreviewPayload = {
-  dependencies?: Record<string, number | string>
-  unmodeled_warning?: string | null
+type IndexJob = { id: number; status: string }
+type IndexPhase = 'queued' | 'indexed' | 'failed'
+type ActiveDialog =
+  | { kind: 'archive'; doc: Doc }
+  | { kind: 'delete'; doc: Doc }
+  | { kind: 'restore'; doc: Doc }
+  | { kind: 'bulk' }
+
+/** Extensions accepted by FileService.ALLOWED_RAW_EXTENSIONS. */
+const ACCEPT_ATTRIBUTE = '.pdf,.docx,.doc,.xlsx,.xls,.txt'
+const FORMAT_LINE = 'Accepted formats: PDF, DOCX, DOC, XLSX, XLS, and TXT.'
+/** Documented default of MAX_UPLOAD_BYTES. The document API does not return it. */
+const SIZE_LINE = 'Size limit: 50 MB.'
+const LIST_CONTRACT =
+  'The document list returns every match in one response, sorted by newest first. It does not accept page, page size, or sort parameters.'
+const SELECTION_SCOPE =
+  'Selection applies to every document in this result for the current workspace. Changing the workspace or a filter clears it. This result is not a page.'
+const REINDEX_NOTE =
+  'Reindex is not offered. The document API has no reindex route. An administrator can retry a failed index job when that job is on the newest job page.'
+const DELETE_NOTE =
+  'Permanent deletion is not available. The document API archives a document and does not erase one document.'
+const SEARCH_DEBOUNCE_MS = 300
+const FIELD_CLASS =
+  'w-full min-w-0 rounded-tc-xs border border-tc-border-strong bg-tc-surface-overlay px-tc-2 py-tc-2 text-tc-label text-tc-text'
+const LABEL_CLASS = 'mb-tc-1 block text-tc-label font-medium text-tc-muted'
+
+function delay(ms: number, signal: AbortSignal) {
+  return new Promise<void>((resolve, reject) => {
+    if (signal.aborted) {
+      reject(new DOMException('Aborted', 'AbortError'))
+      return
+    }
+    const onAbort = () => {
+      window.clearTimeout(id)
+      reject(new DOMException('Aborted', 'AbortError'))
+    }
+    const id = window.setTimeout(() => {
+      signal.removeEventListener('abort', onAbort)
+      resolve()
+    }, ms)
+    signal.addEventListener('abort', onAbort, { once: true })
+  })
+}
+
+function readPositiveInt(data: unknown, key: string): number | null {
+  if (!data || typeof data !== 'object') return null
+  const value = (data as Record<string, unknown>)[key]
+  return typeof value === 'number' && Number.isInteger(value) && value > 0
+    ? value
+    : null
+}
+
+function readStatus(data: unknown): string | null {
+  if (!data || typeof data !== 'object') return null
+  const status = (data as { status?: unknown }).status
+  return typeof status === 'string' ? status : null
+}
+
+function acknowledged(data: unknown): boolean {
+  return Boolean(
+    data && typeof data === 'object' && (data as { ok?: unknown }).ok === true
+  )
+}
+
+function isoFromLocal(value: string): string | null {
+  if (!value) return null
+  const parsed = new Date(value)
+  if (Number.isNaN(parsed.getTime())) return null
+  return parsed.toISOString()
+}
+
+function listUrl(input: {
+  workspaceId: number
+  search: string
+  framework: string
+  subjectArea: string
+  status: string
+  createdFrom: string
+  createdTo: string
+  archivedMode: string
+}): string {
+  const params = new URLSearchParams({
+    workspace_id: String(input.workspaceId),
+  })
+  if (input.search) params.set('search', input.search)
+  if (input.framework) params.set('framework', input.framework)
+  if (input.subjectArea) params.set('subject_area', input.subjectArea)
+  if (input.status) params.set('status', input.status)
+  const createdFrom = isoFromLocal(input.createdFrom)
+  const createdTo = isoFromLocal(input.createdTo)
+  if (createdFrom) params.set('created_from', createdFrom)
+  if (createdTo) params.set('created_to', createdTo)
+  params.set('archived', input.archivedMode)
+  return `/api/documents/?${params.toString()}`
+}
+
+function reported(row: Doc, keys: Array<keyof Doc>): string | null {
+  const record = row as unknown as Record<string, unknown>
+  for (const key of keys) {
+    const value = record[key]
+    if (typeof value === 'string' && value.trim()) return value.trim()
+  }
+  return null
+}
+
+function previewPath(value: string | null | undefined): string | null {
+  if (!value || !value.startsWith('/') || value.startsWith('//')) return null
+  if (value.includes('://') || value.includes('\\')) return null
+  return value
+}
+
+function statusLabel(status: string): string {
+  if (status === 'failed') return 'Indexing failed'
+  if (status === 'indexed') return 'Indexed'
+  if (status === 'indexing') return 'Indexing'
+  if (status === 'uploaded') return 'Uploaded'
+  return status
+}
+
+function toggleValue(list: string[], value: string): string[] {
+  return list.includes(value)
+    ? list.filter((item) => item !== value)
+    : [...list, value]
 }
 
 export default function DocumentsPage() {
-  const { workspace, permissions } = useAuth()
+  const { workspace, permissions, loading: authLoading } = useAuth()
   const workspaceId = workspace?.id
-  const canUpload = permissions.can_edit
+  const canEdit = permissions.can_edit
+  const canAdmin = permissions.can_admin
   const [docs, setDocs] = useState<Doc[]>([])
   const [loading, setLoading] = useState(true)
   const [loadFailure, setLoadFailure] = useState<ApiFailurePresentation | null>(
@@ -69,13 +195,7 @@ export default function DocumentsPage() {
   )
   const [loadAttempt, setLoadAttempt] = useState(0)
   const [refreshing, setRefreshing] = useState(false)
-  const [uploading, setUploading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-  const [uploadNotice, setUploadNotice] = useState<{
-    title: string
-    message: string
-    type: 'success' | 'error'
-  } | null>(null)
+  const [searchInput, setSearchInput] = useState('')
   const [search, setSearch] = useState('')
   const [framework, setFramework] = useState('')
   const [subjectArea, setSubjectArea] = useState('')
@@ -85,103 +205,36 @@ export default function DocumentsPage() {
   const [archivedMode, setArchivedMode] = useState<
     'active' | 'include' | 'only'
   >('active')
-  const [deleteDoc, setDeleteDoc] = useState<Doc | null>(null)
-  const [deleteDeps, setDeleteDeps] = useState<Record<string, number | string>>(
-    {}
-  )
-  const [deleteUnmodeledWarning, setDeleteUnmodeledWarning] = useState<
-    string | null
-  >(null)
-  const [deleting, setDeleting] = useState(false)
-  const [editDoc, setEditDoc] = useState<Doc | null>(null)
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set())
-  const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false)
-  const [bulkDeleting, setBulkDeleting] = useState(false)
+  const [indexJobs, setIndexJobs] = useState<Map<number, IndexJob>>(new Map())
+  const [indexProgress, setIndexProgress] = useState<IndexPhase | null>(null)
+  const [uploading, setUploading] = useState(false)
   const [uploadFile, setUploadFile] = useState<File | null>(null)
   const [uploadModalOpen, setUploadModalOpen] = useState(false)
   const [uploadFrameworks, setUploadFrameworks] = useState<string[]>([])
   const [uploadSubjects, setUploadSubjects] = useState<string[]>([])
-
-  const activeDocs = docs.filter((d) => !d.deleted_at)
-  const selectAll =
-    activeDocs.length > 0 && activeDocs.every((d) => selectedIds.has(d.id))
-  const selectSome = activeDocs.some((d) => selectedIds.has(d.id))
-  const toggleSelect = (id: number) => {
-    setSelectedIds((prev) => {
-      const next = new Set(prev)
-      if (next.has(id)) next.delete(id)
-      else next.add(id)
-      return next
-    })
-  }
-  const toggleSelectAll = () => {
-    if (selectAll) setSelectedIds(new Set())
-    else setSelectedIds(new Set(activeDocs.map((d) => d.id)))
-  }
-
+  const [uploadNotice, setUploadNotice] = useState<{
+    title: string
+    message: string
+    type: 'success' | 'error'
+  } | null>(null)
+  const [dialog, setDialog] = useState<ActiveDialog | null>(null)
+  const [metadataDoc, setMetadataDoc] = useState<Doc | null>(null)
+  const [preview, setPreview] = useState<{
+    docId: number
+    deps: Record<string, number | string>
+  } | null>(null)
+  const [busy, setBusy] = useState(false)
+  const [outcome, setOutcome] = useState<string | null>(null)
+  const [dialogError, setDialogError] = useState<string | null>(null)
+  const [retryingId, setRetryingId] = useState<number | null>(null)
+  const [retryNotice, setRetryNotice] = useState<string | null>(null)
+  const [actionError, setActionError] = useState<string | null>(null)
+  const generation = useRef(0)
+  const indexPoll = useRef<AbortController | null>(null)
   const selectAllRef = useRef<HTMLInputElement>(null)
-  useEffect(() => {
-    const el = selectAllRef.current
-    if (el)
-      (el as HTMLInputElement & { indeterminate?: boolean }).indeterminate =
-        selectSome && !selectAll
-  }, [selectSome, selectAll])
 
-  const requestDocs = useCallback(() => {
-    if (workspaceId == null) return
-    const params = new URLSearchParams({ workspace_id: String(workspaceId) })
-    if (search.trim()) params.set('search', search.trim())
-    if (framework) params.set('framework', framework)
-    if (subjectArea) params.set('subject_area', subjectArea)
-    if (status) params.set('status', status)
-    if (createdFrom)
-      params.set('created_from', new Date(createdFrom).toISOString())
-    if (createdTo) params.set('created_to', new Date(createdTo).toISOString())
-    params.set('archived', archivedMode)
-    const url = `/api/documents/?${params.toString()}`
-    fetch(url, { credentials: 'include' })
-      .then(async (res) => {
-        const data = await readSectionJson(res)
-        return listFromPayload<Doc>(data, ['items', 'documents'])
-      })
-      .then((rows) => {
-        setDocs(rows)
-        setLoadFailure(null)
-      })
-      .catch((error: unknown) => {
-        if (isAbortError(error)) return
-        setDocs([])
-        setLoadFailure(failureOf(error))
-      })
-      .finally(() => {
-        setLoading(false)
-        setRefreshing(false)
-      })
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- loadAttempt is not read in the callback; it is listed so a retry changes the callback and refetches
-  }, [
-    workspaceId,
-    search,
-    framework,
-    subjectArea,
-    status,
-    createdFrom,
-    createdTo,
-    archivedMode,
-    loadAttempt,
-  ])
-
-  const fetchDocs = useCallback(() => {
-    if (workspaceId == null) {
-      setLoading(false)
-      return
-    }
-    setLoadFailure(null)
-    setLoading((prev) => (docs.length === 0 ? true : prev))
-    setRefreshing(true)
-    requestDocs()
-  }, [workspaceId, docs.length, requestDocs])
-
-  const docsKey = [
+  const loadKey = [
     workspaceId ?? '',
     search,
     framework,
@@ -192,66 +245,337 @@ export default function DocumentsPage() {
     archivedMode,
     loadAttempt,
   ].join('\n')
-  const docsGen = useKeyedGeneration(docsKey)
-  if (docsGen.changed) {
+  const [seenLoadKey, setSeenLoadKey] = useState<string | null>(null)
+  if (!authLoading && seenLoadKey !== loadKey) {
+    setSeenLoadKey(loadKey)
     const flags = listLoadFlags({
       enabled: workspaceId != null,
       hasRows: docs.length > 0,
     })
     if (flags.loading !== null) setLoading(flags.loading)
-    if (flags.refreshing) setRefreshing(true)
+    setRefreshing(flags.refreshing)
     if (flags.clearFailure) setLoadFailure(null)
   }
 
+  const selectionScopeKey = [
+    workspaceId ?? '',
+    search,
+    framework,
+    subjectArea,
+    status,
+    createdFrom,
+    createdTo,
+    archivedMode,
+  ].join('\n')
+  const [seenSelection, setSeenSelection] = useState<string | null>(null)
+  if (seenSelection !== selectionScopeKey) {
+    setSeenSelection(selectionScopeKey)
+    if (seenSelection !== null) setSelectedIds(new Set())
+  }
+
+  const [seenWorkspace, setSeenWorkspace] = useState<number | null>(null)
+  if ((workspaceId ?? null) !== seenWorkspace) {
+    setSeenWorkspace(workspaceId ?? null)
+    if (seenWorkspace !== null) {
+      setIndexJobs(new Map())
+      setIndexProgress(null)
+      setRetryNotice(null)
+    }
+  }
+
+  const filters = {
+    workspaceId: workspaceId ?? 0,
+    search,
+    framework,
+    subjectArea,
+    status,
+    createdFrom,
+    createdTo,
+    archivedMode,
+  }
+
+  const loadJobs = useCallback(
+    async (signal: AbortSignal, gen: number, rows: Doc[]) => {
+      if (workspaceId == null || rows.length === 0) {
+        if (gen === generation.current) setIndexJobs(new Map())
+        return
+      }
+      try {
+        const response = await fetch(
+          `/api/jobs?workspace_id=${workspaceId}&limit=25`,
+          { credentials: 'include', signal, cache: 'no-store' }
+        )
+        if (!response.ok || signal.aborted || gen !== generation.current) return
+        const history = parseJobHistory(await readSectionJson(response))
+        if (signal.aborted || gen !== generation.current) return
+        const next = new Map<number, IndexJob>()
+        for (const job of history.items) {
+          if (
+            job.kind !== 'index_document' ||
+            job.objectRef?.type !== 'document' ||
+            !job.status
+          ) {
+            continue
+          }
+          if (!next.has(job.objectRef.id)) {
+            next.set(job.objectRef.id, { id: job.id, status: job.status })
+          }
+        }
+        setIndexJobs(next)
+      } catch (error) {
+        if (isAbortError(error) || signal.aborted) return
+        if (gen === generation.current) setIndexJobs(new Map())
+      }
+    },
+    [workspaceId]
+  )
+
   useEffect(() => {
     if (workspaceId == null) return
-    requestDocs()
-  }, [workspaceId, requestDocs])
+    const controller = new AbortController()
+    const gen = ++generation.current
+    const url = listUrl({
+      workspaceId,
+      search,
+      framework,
+      subjectArea,
+      status,
+      createdFrom,
+      createdTo,
+      archivedMode,
+    })
+    void (async () => {
+      await Promise.resolve()
+      if (controller.signal.aborted) return
+      try {
+        const response = await fetch(url, {
+          credentials: 'include',
+          signal: controller.signal,
+          cache: 'no-store',
+        })
+        const data = await readSectionJson(response)
+        const rows = listFromPayload<Doc>(data, ['items', 'documents'])
+        if (controller.signal.aborted || gen !== generation.current) return
+        setDocs(rows)
+        setLoadFailure(null)
+        void loadJobs(controller.signal, gen, rows)
+      } catch (error) {
+        if (controller.signal.aborted || isAbortError(error)) return
+        if (gen !== generation.current) return
+        setDocs([])
+        setIndexJobs(new Map())
+        setLoadFailure(failureOf(error))
+      } finally {
+        if (!controller.signal.aborted && gen === generation.current) {
+          setLoading(false)
+          setRefreshing(false)
+        }
+      }
+    })()
+    return () => controller.abort()
+  }, [
+    workspaceId,
+    search,
+    framework,
+    subjectArea,
+    status,
+    createdFrom,
+    createdTo,
+    archivedMode,
+    loadAttempt,
+    loadJobs,
+  ])
 
-  const onFileSelected = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (!file) return
-    e.target.value = ''
-    setUploadFile(file)
-    setUploadFrameworks([])
-    setUploadSubjects([])
-    setUploadModalOpen(true)
+  useEffect(() => {
+    const id = window.setTimeout(() => {
+      setSearch(searchInput.trim())
+    }, SEARCH_DEBOUNCE_MS)
+    return () => window.clearTimeout(id)
+  }, [searchInput])
+
+  useEffect(() => {
+    return () => {
+      indexPoll.current?.abort()
+    }
+  }, [workspaceId])
+
+  const activeDocs = docs.filter((row) => !row.deleted_at)
+  const selectAll =
+    activeDocs.length > 0 && activeDocs.every((row) => selectedIds.has(row.id))
+  const selectSome = activeDocs.some((row) => selectedIds.has(row.id))
+  useEffect(() => {
+    const element = selectAllRef.current
+    if (element) element.indeterminate = selectSome && !selectAll
+  }, [selectSome, selectAll])
+
+  const narrowed = Boolean(
+    search ||
+    framework ||
+    subjectArea ||
+    status ||
+    createdFrom ||
+    createdTo ||
+    archivedMode !== 'active'
+  )
+
+  const clearSearch = () => {
+    setSearchInput('')
+    setSearch('')
   }
 
-  const toggleUploadFw = (fw: string) => {
-    setUploadFrameworks((prev) =>
-      prev.includes(fw) ? prev.filter((f) => f !== fw) : [...prev, fw]
-    )
+  const clearFilters = () => {
+    clearSearch()
+    setFramework('')
+    setSubjectArea('')
+    setStatus('')
+    setCreatedFrom('')
+    setCreatedTo('')
+    setArchivedMode('active')
   }
-  const toggleUploadSubj = (s: string) => {
-    setUploadSubjects((prev) =>
-      prev.includes(s) ? prev.filter((x) => x !== s) : [...prev, s]
-    )
+
+  const chips: Array<{
+    id: string
+    label: string
+    removeName: string
+    onRemove: () => void
+  }> = []
+  if (searchInput.trim()) {
+    chips.push({
+      id: 'search',
+      label: searchInput.trim(),
+      removeName: searchInput.trim(),
+      onRemove: clearSearch,
+    })
+  }
+  if (framework) {
+    chips.push({
+      id: 'framework',
+      label: framework,
+      removeName: framework,
+      onRemove: () => setFramework(''),
+    })
+  }
+  if (subjectArea) {
+    chips.push({
+      id: 'subject',
+      label: subjectArea,
+      removeName: subjectArea,
+      onRemove: () => setSubjectArea(''),
+    })
+  }
+  if (createdFrom) {
+    chips.push({
+      id: 'from',
+      label: 'Created from',
+      removeName: 'Created from',
+      onRemove: () => setCreatedFrom(''),
+    })
+  }
+  if (createdTo) {
+    chips.push({
+      id: 'to',
+      label: 'Created to',
+      removeName: 'Created to',
+      onRemove: () => setCreatedTo(''),
+    })
+  }
+  if (status) {
+    chips.push({
+      id: 'status',
+      label: status,
+      removeName: status,
+      onRemove: () => setStatus(''),
+    })
+  }
+  if (archivedMode !== 'active') {
+    const label = archivedMode === 'only' ? 'Archived only' : 'Include archived'
+    chips.push({
+      id: 'archived',
+      label,
+      removeName: label,
+      onRemove: () => setArchivedMode('active'),
+    })
+  }
+
+  const watchIndex = async (jobId: number, docId: number) => {
+    if (workspaceId == null) return
+    indexPoll.current?.abort()
+    const controller = new AbortController()
+    indexPoll.current = controller
+    const url = listUrl({ ...filters, workspaceId })
+    try {
+      for (let attempt = 0; attempt < 6; attempt += 1) {
+        const response = await fetch(
+          `/api/jobs/${jobId}?workspace_id=${workspaceId}`,
+          {
+            credentials: 'include',
+            signal: controller.signal,
+            cache: 'no-store',
+          }
+        )
+        if (controller.signal.aborted) return
+        if (!response.ok) return
+        const jobStatus = readStatus(await response.json().catch(() => null))
+        if (jobStatus === 'queued' || jobStatus === 'running') {
+          setIndexProgress('queued')
+          await delay(1000, controller.signal)
+          continue
+        }
+        if (jobStatus === 'failed' || jobStatus === 'cancelled') {
+          setIndexProgress('failed')
+          return
+        }
+        if (jobStatus === 'completed') {
+          const listed = await fetch(url, {
+            credentials: 'include',
+            signal: controller.signal,
+            cache: 'no-store',
+          })
+          const rows = listFromPayload<Doc>(await readSectionJson(listed), [
+            'items',
+            'documents',
+          ])
+          if (controller.signal.aborted) return
+          setDocs(rows)
+          const row = rows.find((item) => item.id === docId)
+          if (row?.status === 'indexed') setIndexProgress('indexed')
+          else if (row?.status === 'failed') setIndexProgress('failed')
+          else setIndexProgress('queued')
+          return
+        }
+        return
+      }
+    } catch (error) {
+      if (!isAbortError(error)) return
+    }
   }
 
   const confirmUpload = () => {
     if (!uploadFile || workspaceId == null) return
+    const file = uploadFile
     setUploading(true)
     setUploadModalOpen(false)
-    setError(null)
     setUploadNotice(null)
-    const fd = new FormData()
-    fd.append('workspace_id', String(workspaceId))
-    fd.append('file', uploadFile)
-    if (uploadFrameworks.length > 0)
-      fd.append('frameworks', uploadFrameworks.join(','))
-    if (uploadSubjects.length > 0)
-      fd.append('subject_areas', uploadSubjects.join(','))
-    fetch('/api/documents/upload', {
+    setIndexProgress(null)
+    const body = new FormData()
+    body.append('workspace_id', String(workspaceId))
+    body.append('file', file)
+    if (uploadFrameworks.length > 0) {
+      body.append('frameworks', uploadFrameworks.join(','))
+    }
+    if (uploadSubjects.length > 0) {
+      body.append('subject_areas', uploadSubjects.join(','))
+    }
+    void fetch('/api/documents/upload', {
       method: 'POST',
       credentials: 'include',
-      body: fd,
+      body,
     })
-      .then(async (r) => {
-        const data = await r.json().catch(() => null)
-        if (!r.ok) {
+      .then(async (response) => {
+        const data = await response.json().catch(() => null)
+        if (!response.ok) {
           const notice = mutationFailureNotice(
-            r.status,
+            response.status,
             data,
             'The file was not stored. Try again.'
           )
@@ -262,7 +586,10 @@ export default function DocumentsPage() {
           ...confirmedActionNotice('upload'),
           type: 'success',
         })
-        fetchDocs()
+        const jobId = readPositiveInt(data, 'job_id')
+        const docId = readPositiveInt(data, 'id')
+        if (jobId && docId) void watchIndex(jobId, docId)
+        else setLoadAttempt((value) => value + 1)
       })
       .catch(() =>
         setUploadNotice({
@@ -277,72 +604,99 @@ export default function DocumentsPage() {
       })
   }
 
-  const openDelete = (doc: Doc) => {
-    setDeleteDoc(doc)
-    setDeleteUnmodeledWarning(null)
-    if (!workspaceId) return
-    fetch(
-      `/api/documents/${doc.id}/delete-preview?workspace_id=${workspaceId}`,
+  const openArchive = (doc: Doc) => {
+    if (workspaceId == null) return
+    const docId = doc.id
+    setMetadataDoc(null)
+    setDialog({ kind: 'archive', doc })
+    setPreview(null)
+    setOutcome(null)
+    setDialogError(null)
+    void fetch(
+      `/api/documents/${docId}/delete-preview?workspace_id=${workspaceId}`,
       { credentials: 'include' }
     )
-      .then((r) => (r.ok ? r.json() : Promise.resolve({})))
+      .then(async (response) => (response.ok ? response.json() : null))
       .then((data: unknown) => {
-        const d = data as DeletePreviewPayload
-        setDeleteDeps(d.dependencies || {})
-        setDeleteUnmodeledWarning(d.unmodeled_warning ?? null)
+        if (!data || typeof data !== 'object') return
+        const dependencies = (data as { dependencies?: unknown }).dependencies
+        if (dependencies && typeof dependencies === 'object') {
+          setPreview({
+            docId,
+            deps: dependencies as Record<string, number | string>,
+          })
+        }
       })
-      .catch(() => setDeleteDeps({}))
+      .catch(() => {})
   }
 
-  const confirmDelete = async () => {
-    if (!workspaceId || !deleteDoc) return
-    setDeleting(true)
+  const confirmArchive = async () => {
+    if (workspaceId == null || dialog?.kind !== 'archive') return
+    setBusy(true)
+    setOutcome(null)
+    setDialogError(null)
     try {
-      const r = await fetch(
-        `/api/documents/${deleteDoc.id}?workspace_id=${workspaceId}`,
-        {
-          method: 'DELETE',
-          credentials: 'include',
-        }
+      const response = await fetch(
+        `/api/documents/${dialog.doc.id}?workspace_id=${workspaceId}`,
+        { method: 'DELETE', credentials: 'include' }
       )
-      const data = (await r.json().catch(() => ({}))) as {
-        detail?: string
-        dependencies?: Record<string, number | string>
-      }
-      if (!r.ok) {
-        setError(
+      const data = await response.json().catch(() => null)
+      if (!response.ok || !acknowledged(data)) {
+        setDialogError(
           mutationFailureNotice(
-            r.status,
+            response.status,
             data,
-            'The document was not removed. Try again.'
+            'The document was not archived. Try again.'
           ).message
         )
-      } else {
-        setDeleteDeps(data.dependencies || {})
-        setDeleteDoc(null)
-        fetchDocs()
+        return
       }
+      setOutcome('Archived.')
+      setLoadAttempt((value) => value + 1)
     } catch {
-      setError('Delete failed')
+      setDialogError('The document was not archived. Try again.')
     } finally {
-      setDeleting(false)
+      setBusy(false)
     }
   }
 
-  const restoreDoc = async (doc: Doc) => {
-    if (!workspaceId) return
-    await fetch(
-      `/api/documents/${doc.id}/restore?workspace_id=${workspaceId}`,
-      { method: 'POST', credentials: 'include' }
-    )
-    fetchDocs()
+  const confirmRestore = async () => {
+    if (workspaceId == null || dialog?.kind !== 'restore') return
+    setBusy(true)
+    setOutcome(null)
+    setDialogError(null)
+    try {
+      const response = await fetch(
+        `/api/documents/${dialog.doc.id}/restore?workspace_id=${workspaceId}`,
+        { method: 'POST', credentials: 'include' }
+      )
+      const data = await response.json().catch(() => null)
+      if (!response.ok || !acknowledged(data)) {
+        setDialogError(
+          mutationFailureNotice(
+            response.status,
+            data,
+            'The document was not restored. Try again.'
+          ).message
+        )
+        return
+      }
+      setOutcome('Restored.')
+      setLoadAttempt((value) => value + 1)
+    } catch {
+      setDialogError('The document was not restored. Try again.')
+    } finally {
+      setBusy(false)
+    }
   }
 
-  const confirmBulkDelete = async () => {
-    if (!workspaceId || selectedIds.size === 0) return
-    setBulkDeleting(true)
+  const confirmBulk = async () => {
+    if (workspaceId == null || selectedIds.size === 0) return
+    setBusy(true)
+    setOutcome(null)
+    setDialogError(null)
     try {
-      const r = await fetch(
+      const response = await fetch(
         `/api/documents/bulk-delete?workspace_id=${workspaceId}`,
         {
           method: 'POST',
@@ -351,184 +705,293 @@ export default function DocumentsPage() {
           body: JSON.stringify({ ids: Array.from(selectedIds) }),
         }
       )
-      const data = await r.json().catch(() => ({}))
-      if (!r.ok) {
-        setError(
+      const data = (await response.json().catch(() => null)) as {
+        deleted?: unknown
+      } | null
+      if (!response.ok || !data || typeof data.deleted !== 'number') {
+        setDialogError(
           mutationFailureNotice(
-            r.status,
+            response.status,
             data,
-            'The documents were not removed. Try again.'
+            'The documents were not archived. Try again.'
           ).message
         )
-      } else {
-        setSelectedIds(new Set())
-        setBulkDeleteOpen(false)
-        fetchDocs()
+        return
       }
+      setOutcome('Archived.')
+      setSelectedIds(new Set())
+      setLoadAttempt((value) => value + 1)
     } catch {
-      setError('Bulk delete failed')
+      setDialogError('The documents were not archived. Try again.')
     } finally {
-      setBulkDeleting(false)
+      setBusy(false)
     }
   }
 
-  const saveMetadata = async (
-    doc: Doc,
-    payload: { frameworks: string[]; subject_areas: string[] }
-  ) => {
-    if (!workspaceId) return
-    await fetch(
-      `/api/documents/${doc.id}/metadata?workspace_id=${workspaceId}`,
-      {
-        method: 'PATCH',
-        credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      }
-    )
-    setEditDoc({
-      ...doc,
-      frameworks: payload.frameworks,
-      subject_areas: payload.subject_areas,
-    })
-    setDocs((prev) =>
-      prev.map((d) =>
-        d.id === doc.id
-          ? {
-              ...d,
-              frameworks: payload.frameworks,
-              subject_areas: payload.subject_areas,
-            }
-          : d
+  const retryIndex = async (doc: Doc, job: IndexJob) => {
+    if (workspaceId == null) return
+    setRetryingId(doc.id)
+    setRetryNotice(null)
+    setActionError(null)
+    try {
+      const response = await fetch(
+        `/api/jobs/${job.id}/retry?workspace_id=${workspaceId}`,
+        { method: 'POST', credentials: 'include' }
       )
-    )
+      const data = await response.json().catch(() => null)
+      if (!response.ok || readStatus(data) !== 'queued') {
+        setActionError(
+          mutationFailureNotice(
+            response.status,
+            data,
+            'Indexing was not queued. Try again.'
+          ).message
+        )
+        return
+      }
+      setRetryNotice(`Indexing queued for ${doc.display_id}`)
+    } catch {
+      setActionError('Indexing was not queued. Try again.')
+    } finally {
+      setRetryingId(null)
+    }
   }
 
+  const closeDialog = () => {
+    if (busy) return
+    setDialog(null)
+    setOutcome(null)
+    setDialogError(null)
+  }
+
+  const selectedCount = selectedIds.size
+  const archiveDoc = dialog?.kind === 'archive' ? dialog.doc : null
+  const shownDeps =
+    preview && archiveDoc && preview.docId === archiveDoc.id ? preview.deps : {}
+  const deleteDoc = dialog?.kind === 'delete' ? dialog.doc : null
+  const restoreDoc = dialog?.kind === 'restore' ? dialog.doc : null
+
   return (
-    <div className="p-7">
-      <div className="mb-6 flex items-center gap-3">
-        <h1 className="text-2xl font-bold text-[var(--tc-text)]">Documents</h1>
+    <div className="min-w-0 max-w-full overflow-x-hidden p-tc-4 sm:p-tc-7">
+      <div className="mb-tc-4 flex min-w-0 items-center gap-tc-3">
+        <h1 className="text-tc-headline font-semibold text-tc-text">
+          Documents
+        </h1>
         {refreshing && !loading && (
-          <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-[var(--tc-muted)] border-t-[var(--tc-primary)]" />
+          <span
+            aria-hidden="true"
+            className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-tc-border border-t-tc-primary"
+          />
         )}
       </div>
-      {canUpload && (
-        <Card className="mb-6">
-          <label className="flex cursor-pointer items-center gap-3">
-            <span className="text-sm font-medium text-[var(--tc-muted)]">
-              Upload evidence document
-            </span>
-            <input
-              id="doc-upload"
-              type="file"
-              className="hidden"
-              onChange={onFileSelected}
-              disabled={uploading}
-              accept=".pdf,.docx,.xlsx"
-            />
-            <Button
-              type="button"
-              loading={uploading}
-              aria-busy={uploading}
-              data-upload-state={uploading ? 'pending' : 'idle'}
-              onClick={(e) => {
-                e.preventDefault()
-                document.getElementById('doc-upload')?.click()
-              }}
+      {workspaceId != null && (
+        <p className="mb-tc-4 max-w-3xl text-tc-label text-tc-muted">
+          {LIST_CONTRACT}
+        </p>
+      )}
+      {canEdit && workspaceId != null && (
+        <p className="mb-tc-4 max-w-3xl text-tc-label text-tc-text">
+          {SELECTION_SCOPE}
+        </p>
+      )}
+      {workspaceId != null && (
+        <p className="mb-tc-4 max-w-3xl text-tc-label text-tc-muted">
+          {REINDEX_NOTE}
+        </p>
+      )}
+      {canEdit && (
+        <Card className="mb-tc-4">
+          <p
+            id="doc-upload-constraints"
+            className="mb-tc-3 text-tc-label text-tc-muted"
+          >
+            {FORMAT_LINE} {SIZE_LINE} This is the server default. The document
+            API does not return the configured limit.
+          </p>
+          <input
+            id="doc-upload"
+            type="file"
+            className="hidden"
+            accept={ACCEPT_ATTRIBUTE}
+            aria-describedby="doc-upload-constraints"
+            onChange={(event) => {
+              const file = event.target.files?.[0]
+              if (!file) return
+              event.target.value = ''
+              setUploadFile(file)
+              setUploadFrameworks([])
+              setUploadSubjects([])
+              setUploadModalOpen(true)
+            }}
+            disabled={uploading}
+          />
+          <Button
+            type="button"
+            loading={uploading}
+            aria-describedby="doc-upload-constraints"
+            data-upload-state={uploading ? 'pending' : 'idle'}
+            onClick={() => document.getElementById('doc-upload')?.click()}
+          >
+            {uploading
+              ? actionVerb('upload', 'pending')
+              : actionVerb('upload', 'idle')}
+          </Button>
+          {indexProgress && (
+            <p
+              role="status"
+              data-index-progress={indexProgress}
+              className="mt-tc-3 text-tc-label text-tc-text"
             >
-              {uploading
-                ? actionVerb('upload', 'pending')
-                : actionVerb('upload', 'idle')}
-            </Button>
-          </label>
+              {indexProgress === 'queued'
+                ? 'Queued'
+                : indexProgress === 'indexed'
+                  ? 'Indexed'
+                  : 'Failed'}
+            </p>
+          )}
         </Card>
       )}
-      <Card className="mb-4">
-        <div className="grid gap-2 md:grid-cols-6">
-          <input
-            className="rounded-xl border border-[var(--tc-border)] bg-white/5 px-3 py-2 text-sm"
-            placeholder="Search by ID, filename, framework, subject, status"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-          />
-          <select
-            className="rounded-xl border border-[var(--tc-border)] bg-white/5 px-3 py-2 text-sm"
-            value={framework}
-            onChange={(e) => setFramework(e.target.value)}
-          >
-            <option value="">All frameworks</option>
-            {FRAMEWORK_OPTIONS.map((f) => (
-              <option key={f} value={f}>
-                {f}
-              </option>
-            ))}
-          </select>
-          <select
-            className="rounded-xl border border-[var(--tc-border)] bg-white/5 px-3 py-2 text-sm"
-            value={subjectArea}
-            onChange={(e) => setSubjectArea(e.target.value)}
-          >
-            <option value="">All subject areas</option>
-            {SUBJECT_AREA_OPTIONS.map((s) => (
-              <option key={s} value={s}>
-                {s}
-              </option>
-            ))}
-          </select>
-          <input
-            type="datetime-local"
-            className="rounded-xl border border-[var(--tc-border)] bg-white/5 px-3 py-2 text-sm"
-            value={createdFrom}
-            onChange={(e) => setCreatedFrom(e.target.value)}
-          />
-          <input
-            type="datetime-local"
-            className="rounded-xl border border-[var(--tc-border)] bg-white/5 px-3 py-2 text-sm"
-            value={createdTo}
-            onChange={(e) => setCreatedTo(e.target.value)}
-          />
-          <select
-            className="rounded-xl border border-[var(--tc-border)] bg-white/5 px-3 py-2 text-sm"
-            value={status}
-            onChange={(e) => setStatus(e.target.value)}
-          >
-            <option value="">All statuses</option>
-            {['uploaded', 'indexing', 'indexed', 'failed', 'archived'].map(
-              (st) => (
-                <option key={st} value={st}>
-                  {st}
-                </option>
-              )
-            )}
-          </select>
-          <select
-            className="rounded-xl border border-[var(--tc-border)] bg-white/5 px-3 py-2 text-sm"
-            value={archivedMode}
-            onChange={(e) =>
-              setArchivedMode(e.target.value as 'active' | 'include' | 'only')
-            }
-          >
-            <option value="active">Active only</option>
-            <option value="include">Include archived</option>
-            <option value="only">Archived only</option>
-          </select>
-        </div>
-      </Card>
-      <Card>
-        {error && (
-          <div
-            role="alert"
-            className="mb-4 rounded-xl bg-[var(--tc-danger)]/10 p-3 text-sm text-[var(--tc-danger)]"
-          >
-            {error}
+      {workspaceId != null && (
+        <Card className="mb-tc-4">
+          <div className="grid grid-cols-1 gap-tc-3 md:grid-cols-2 xl:grid-cols-3">
+            <Input
+              id="doc-search"
+              label="Search documents"
+              value={searchInput}
+              onChange={(event) => setSearchInput(event.target.value)}
+              placeholder="ID, filename, framework, subject, or status"
+            />
+            <div className="min-w-0">
+              <label htmlFor="doc-framework" className={LABEL_CLASS}>
+                Framework
+              </label>
+              <select
+                id="doc-framework"
+                className={FIELD_CLASS}
+                value={framework}
+                onChange={(event) => setFramework(event.target.value)}
+              >
+                <option value="">All frameworks</option>
+                {FRAMEWORK_OPTIONS.map((option) => (
+                  <option key={option} value={option}>
+                    {option}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="min-w-0">
+              <label htmlFor="doc-subject" className={LABEL_CLASS}>
+                Subject area
+              </label>
+              <select
+                id="doc-subject"
+                className={FIELD_CLASS}
+                value={subjectArea}
+                onChange={(event) => setSubjectArea(event.target.value)}
+              >
+                <option value="">All subject areas</option>
+                {SUBJECT_AREA_OPTIONS.map((option) => (
+                  <option key={option} value={option}>
+                    {option}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="min-w-0">
+              <label htmlFor="doc-created-from" className={LABEL_CLASS}>
+                Created from
+              </label>
+              <input
+                id="doc-created-from"
+                type="datetime-local"
+                className={FIELD_CLASS}
+                value={createdFrom}
+                onChange={(event) => setCreatedFrom(event.target.value)}
+              />
+            </div>
+            <div className="min-w-0">
+              <label htmlFor="doc-created-to" className={LABEL_CLASS}>
+                Created to
+              </label>
+              <input
+                id="doc-created-to"
+                type="datetime-local"
+                className={FIELD_CLASS}
+                value={createdTo}
+                onChange={(event) => setCreatedTo(event.target.value)}
+              />
+            </div>
+            <div className="min-w-0">
+              <label htmlFor="doc-status" className={LABEL_CLASS}>
+                Document status
+              </label>
+              <select
+                id="doc-status"
+                className={FIELD_CLASS}
+                value={status}
+                onChange={(event) => setStatus(event.target.value)}
+              >
+                <option value="">All statuses</option>
+                {['uploaded', 'indexing', 'indexed', 'failed'].map((option) => (
+                  <option key={option} value={option}>
+                    {option}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="min-w-0">
+              <label htmlFor="doc-archived" className={LABEL_CLASS}>
+                Archive filter
+              </label>
+              <select
+                id="doc-archived"
+                className={FIELD_CLASS}
+                value={archivedMode}
+                onChange={(event) =>
+                  setArchivedMode(
+                    event.target.value as 'active' | 'include' | 'only'
+                  )
+                }
+              >
+                <option value="active">Active only</option>
+                <option value="include">Include archived</option>
+                <option value="only">Archived only</option>
+              </select>
+            </div>
           </div>
+          {chips.length > 0 && (
+            <ul
+              aria-label="Selected filters"
+              className="mt-tc-3 flex flex-wrap gap-tc-2"
+            >
+              {chips.map((chip) => (
+                <li key={chip.id}>
+                  <button
+                    type="button"
+                    aria-label={`Remove ${chip.removeName} filter`}
+                    onClick={chip.onRemove}
+                    className="inline-flex min-h-11 items-center rounded-full border border-tc-border bg-tc-surface-raised px-tc-3 text-tc-label text-tc-text"
+                  >
+                    {chip.label}
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </Card>
+      )}
+      <Card>
+        {actionError && (
+          <p role="alert" className="mb-tc-3 text-tc-label text-tc-danger">
+            {actionError}
+          </p>
         )}
-        {loadFailure ? (
-          <ErrorState
-            failure={loadFailure}
-            onRetry={() => setLoadAttempt((value) => value + 1)}
-          />
-        ) : loading ? (
+        {retryNotice && (
+          <p role="status" className="mb-tc-3 text-tc-label text-tc-text">
+            {retryNotice}
+          </p>
+        )}
+        {authLoading || (workspaceId != null && loading) ? (
           <LoadingState
             label="Loading documents"
             resetKey={loadAttempt}
@@ -536,271 +999,745 @@ export default function DocumentsPage() {
           >
             <DocumentListSkeleton />
           </LoadingState>
-        ) : docs.length === 0 ? (
+        ) : workspaceId == null ? (
           <EmptyState
-            title="No documents yet"
-            description={
-              canUpload
-                ? 'Upload PDF, DOCX, or XLSX files to use as evidence for questionnaire answers.'
-                : 'Ask an editor to upload evidence documents.'
-            }
-            action={
-              canUpload && (
-                <Button
-                  onClick={() => document.getElementById('doc-upload')?.click()}
-                >
-                  Upload your first document
-                </Button>
-              )
-            }
+            title="No workspace is selected"
+            description="Choose a workspace to see its documents."
           />
+        ) : loadFailure ? (
+          <ErrorState
+            failure={loadFailure}
+            onRetry={() => setLoadAttempt((value) => value + 1)}
+          />
+        ) : docs.length === 0 ? (
+          narrowed ? (
+            <EmptyState
+              title="No matching documents"
+              description="No documents match the current search or filters."
+              action={
+                <Button type="button" onClick={clearFilters}>
+                  Clear filters
+                </Button>
+              }
+            />
+          ) : (
+            <EmptyState
+              title="No documents yet"
+              description={
+                canEdit
+                  ? 'Upload PDF, DOCX, DOC, XLSX, XLS, or TXT files to use as evidence.'
+                  : 'Ask an editor to upload evidence documents.'
+              }
+              action={
+                canEdit && (
+                  <Button
+                    type="button"
+                    onClick={() =>
+                      document.getElementById('doc-upload')?.click()
+                    }
+                  >
+                    Upload your first document
+                  </Button>
+                )
+              }
+            />
+          )
         ) : (
-          <>
-            {canUpload && activeDocs.length > 0 && (
-              <BulkSelectionBar
-                selectedCount={selectedIds.size}
-                itemLabel="document"
-                onClear={() => setSelectedIds(new Set())}
-                onDelete={() => setBulkDeleteOpen(true)}
-                deleting={bulkDeleting}
-              />
+          <div aria-busy={refreshing ? true : undefined}>
+            {canEdit && selectedCount > 0 && (
+              <div
+                role="status"
+                className="mb-tc-3 flex flex-wrap items-center justify-between gap-tc-2 rounded-tc border border-tc-border bg-tc-surface-raised px-tc-3 py-tc-2"
+              >
+                <span className="text-tc-label text-tc-text">
+                  {selectedCount}{' '}
+                  {selectedCount === 1 ? 'document' : 'documents'} selected in
+                  this result
+                </span>
+                <div className="flex flex-wrap gap-tc-2">
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setSelectedIds(new Set())}
+                  >
+                    Clear selection
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="danger"
+                    size="sm"
+                    onClick={() => {
+                      setOutcome(null)
+                      setDialogError(null)
+                      setDialog({ kind: 'bulk' })
+                    }}
+                  >
+                    Archive selected
+                  </Button>
+                </div>
+              </div>
             )}
-            {canUpload && activeDocs.length > 0 && (
-              <div className="flex items-center gap-3 border-b border-white/10 py-2 text-sm text-[var(--tc-muted)]">
-                <label className="flex cursor-pointer items-center gap-2">
+            {canEdit && activeDocs.length > 0 && (
+              <div className="flex items-center gap-tc-2 border-b border-tc-border py-tc-2 text-tc-label text-tc-muted">
+                <label className="flex min-h-11 cursor-pointer items-center gap-tc-2">
                   <input
                     type="checkbox"
                     checked={selectAll}
                     ref={selectAllRef}
-                    onChange={toggleSelectAll}
-                    aria-label="Select all documents on this page"
-                    className="h-4 w-4 rounded border-[var(--tc-border)]"
+                    onChange={() => {
+                      setSelectedIds(
+                        selectAll
+                          ? new Set()
+                          : new Set(activeDocs.map((row) => row.id))
+                      )
+                    }}
+                    aria-label="Select all documents in this result"
+                    className="h-4 w-4 rounded border-tc-border"
                   />
-                  Select all
+                  Select all documents in this result
                 </label>
               </div>
             )}
-            <ul className="divide-y divide-white/10">
-              {(Array.isArray(docs) ? docs : []).map((d) => (
-                <li
-                  key={d.id}
-                  className="flex items-start justify-between gap-4 py-3"
-                >
-                  {canUpload && (
-                    <div
-                      className="flex shrink-0 items-start pt-0.5"
-                      onClick={(e) => e.stopPropagation()}
-                    >
-                      {!d.deleted_at ? (
-                        <input
-                          type="checkbox"
-                          checked={selectedIds.has(d.id)}
-                          onChange={() => toggleSelect(d.id)}
-                          aria-label={`Select ${d.display_id}`}
-                          className="h-4 w-4 rounded border-[var(--tc-border)]"
-                        />
-                      ) : (
-                        <span className="h-4 w-4" aria-hidden />
-                      )}
-                    </div>
-                  )}
-                  <div className="min-w-0 flex-1 space-y-1">
-                    <div className="flex items-center justify-between gap-2">
-                      <span className="truncate font-medium text-[var(--tc-text)]">
-                        {d.filename}
-                      </span>
-                      <span
-                        className={
-                          d.status === 'failed'
-                            ? 'rounded-xl border border-[var(--tc-danger)]/50 bg-[var(--tc-danger)]/10 px-2 py-1 text-xs text-[var(--tc-danger)] shrink-0'
-                            : 'rounded-xl border border-[var(--tc-border)] bg-white/5 px-2 py-1 text-xs text-[var(--tc-muted)] shrink-0'
-                        }
-                      >
-                        {d.status === 'failed' ? 'Indexing failed' : d.status}
-                      </span>
-                      {d.deleted_at && (
-                        <span className="rounded-xl border border-amber-500/40 bg-amber-500/15 px-2 py-1 text-xs text-amber-200">
-                          Archived
-                        </span>
-                      )}
-                    </div>
-                    <div className="flex flex-wrap items-center gap-2">
-                      <DisplayIdText value={d.display_id} />
-                      <CreatedTimestampText value={d.created_at} />
-                      <span className="text-xs text-[var(--tc-muted)] uppercase">
-                        {d.file_type || 'file'}
-                      </span>
-                    </div>
-                    <CategoryChipsRow
-                      frameworks={normalizeLabels(d.frameworks)}
-                      subjectAreas={normalizeLabels(d.subject_areas)}
-                    />
-                    {d.status === 'failed' && d.index_error && (
-                      <p
-                        className="text-xs text-[var(--tc-muted)]"
-                        title={d.index_error}
-                      >
-                        {d.index_error}
-                      </p>
+            <ul
+              aria-label="Documents"
+              className="min-w-0 divide-y divide-tc-border"
+            >
+              {docs.map((row) => {
+                const job = indexJobs.get(row.id) ?? null
+                const canRetry =
+                  canAdmin &&
+                  job !== null &&
+                  (job.status === 'failed' || job.status === 'cancelled') &&
+                  !row.deleted_at
+                const source = previewPath(row.source_preview_url)
+                const actions: RowAction[] = [
+                  {
+                    id: 'copy_id',
+                    label: 'Copy ID',
+                    onClick: () => {
+                      void navigator.clipboard?.writeText(row.display_id)
+                    },
+                  },
+                  {
+                    id: 'edit_metadata',
+                    label: 'Edit metadata',
+                    onClick: () => {
+                      setDialog(null)
+                      setMetadataDoc(row)
+                    },
+                  },
+                ]
+                if (row.deleted_at) {
+                  actions.push({
+                    id: 'restore',
+                    label: 'Restore',
+                    onClick: () => {
+                      setMetadataDoc(null)
+                      setOutcome(null)
+                      setDialogError(null)
+                      setDialog({ kind: 'restore', doc: row })
+                    },
+                  })
+                } else {
+                  actions.push(
+                    {
+                      id: 'archive',
+                      label: 'Archive',
+                      onClick: () => openArchive(row),
+                    },
+                    {
+                      id: 'delete',
+                      label: 'Delete',
+                      onClick: () => {
+                        setMetadataDoc(null)
+                        setOutcome(null)
+                        setDialogError(null)
+                        setDialog({ kind: 'delete', doc: row })
+                      },
+                    }
+                  )
+                }
+                return (
+                  <li
+                    key={row.id}
+                    className="flex min-w-0 flex-col gap-tc-3 py-tc-3 sm:flex-row sm:items-start"
+                  >
+                    {canEdit && (
+                      <div className="pt-tc-1">
+                        {!row.deleted_at ? (
+                          <input
+                            type="checkbox"
+                            checked={selectedIds.has(row.id)}
+                            onChange={() => {
+                              setSelectedIds((current) => {
+                                const next = new Set(current)
+                                if (next.has(row.id)) next.delete(row.id)
+                                else next.add(row.id)
+                                return next
+                              })
+                            }}
+                            aria-label={`Select ${row.display_id}`}
+                            className="h-4 w-4 rounded border-tc-border"
+                          />
+                        ) : (
+                          <span className="inline-block h-4 w-4" aria-hidden />
+                        )}
+                      </div>
                     )}
-                  </div>
-                  <RegistryRowActionsMenu
-                    aria-label={`Actions for ${d.display_id}`}
-                    actions={[
-                      {
-                        id: 'copy_id',
-                        label: 'Copy ID',
-                        onClick: () =>
-                          navigator.clipboard?.writeText(d.display_id),
-                      },
-                      {
-                        id: 'edit_metadata',
-                        label: 'Edit metadata',
-                        onClick: () => setEditDoc(d),
-                      },
-                      ...(d.deleted_at
-                        ? [
-                            {
-                              id: 'restore' as const,
-                              label: 'Restore',
-                              onClick: () => restoreDoc(d),
-                            },
-                          ]
-                        : [
-                            {
-                              id: 'delete' as const,
-                              label: 'Delete',
-                              onClick: () => openDelete(d),
-                              variant: 'danger' as const,
-                            },
-                          ]),
-                    ]}
-                  />
-                </li>
-              ))}
+                    <div className="min-w-0 flex-1 space-y-tc-2">
+                      <div className="flex min-w-0 flex-wrap items-center gap-tc-2">
+                        <span className="min-w-0 break-all font-medium text-tc-text">
+                          {row.filename}
+                        </span>
+                        <span className="rounded-tc-xs border border-tc-border px-tc-2 py-tc-1 text-tc-caption text-tc-muted">
+                          {statusLabel(row.status)}
+                        </span>
+                        {row.deleted_at && (
+                          <span
+                            className="rounded-tc-xs border px-tc-2 py-tc-1 text-tc-caption"
+                            style={{
+                              background: 'var(--tc-warning-surface)',
+                              color: 'var(--tc-warning)',
+                              borderColor: 'var(--tc-warning)',
+                            }}
+                          >
+                            Archived
+                          </span>
+                        )}
+                      </div>
+                      <div className="flex min-w-0 flex-wrap items-center gap-tc-2">
+                        <DisplayIdText value={row.display_id} />
+                        <CreatedTimestampText value={row.created_at} />
+                        <span className="text-tc-caption uppercase text-tc-muted">
+                          {row.file_type || 'file'}
+                        </span>
+                      </div>
+                      <CategoryChipsRow
+                        frameworks={normalizeLabels(row.frameworks)}
+                        subjectAreas={normalizeLabels(row.subject_areas)}
+                      />
+                      <p className="break-words text-tc-label text-tc-text">
+                        Source eligibility:{' '}
+                        {reported(row, ['source_eligibility', 'eligibility']) ??
+                          'Not reported'}
+                      </p>
+                      <p className="break-words text-tc-label text-tc-text">
+                        Freshness:{' '}
+                        {reported(row, ['freshness']) ?? 'Not reported'}
+                      </p>
+                      <p className="break-words text-tc-label text-tc-text">
+                        Version:{' '}
+                        {reported(row, ['version', 'content_version']) ??
+                          'Not reported'}
+                      </p>
+                      {source ? (
+                        <Link
+                          href={source}
+                          className="inline-flex min-h-11 items-center text-tc-label text-tc-primary underline"
+                        >
+                          View source
+                        </Link>
+                      ) : (
+                        <p className="text-tc-label text-tc-muted">
+                          Source preview is not available.
+                        </p>
+                      )}
+                      {job && workspaceId != null && (
+                        <Link
+                          href={jobsHref(workspaceId)}
+                          className="inline-flex min-h-11 items-center text-tc-label text-tc-primary underline"
+                        >
+                          View index job {job.id}
+                        </Link>
+                      )}
+                      {row.status === 'failed' && row.index_error && (
+                        <p className="break-words text-tc-label text-tc-muted">
+                          {row.index_error}
+                        </p>
+                      )}
+                      {canRetry && job && (
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="secondary"
+                          disabled={retryingId === row.id}
+                          aria-busy={retryingId === row.id}
+                          onClick={() => void retryIndex(row, job)}
+                        >
+                          {retryingId === row.id
+                            ? 'Retrying'
+                            : `Retry indexing for ${row.display_id}`}
+                        </Button>
+                      )}
+                    </div>
+                    {canEdit && (
+                      <div className="shrink-0">
+                        <RegistryRowActionsMenu
+                          aria-label={`Actions for ${row.display_id}`}
+                          actions={actions}
+                        />
+                      </div>
+                    )}
+                  </li>
+                )
+              })}
             </ul>
-          </>
+          </div>
         )}
       </Card>
-      <BulkDeleteConfirmationModal
-        isOpen={bulkDeleteOpen}
-        onClose={() => setBulkDeleteOpen(false)}
-        onConfirm={confirmBulkDelete}
-        deleting={bulkDeleting}
-        itemLabel="document"
-        displayIds={docs
-          .filter((d) => selectedIds.has(d.id))
-          .map((d) => d.display_id)}
-      />
-      <DeleteConfirmationModal
-        isOpen={!!deleteDoc}
-        onClose={() => {
-          setDeleteDoc(null)
-          setDeleteUnmodeledWarning(null)
-        }}
-        onConfirm={confirmDelete}
-        deleting={deleting}
-        recordLabel={deleteDoc?.filename || ''}
-        displayId={deleteDoc?.display_id || ''}
-        dependencies={deleteDeps}
-        unmodeledWarning={deleteUnmodeledWarning}
-      />
-      {editDoc && (
-        <MetadataEditorModal
-          isOpen={!!editDoc}
-          onClose={() => setEditDoc(null)}
-          title={`Edit metadata · ${editDoc.display_id}`}
-          frameworks={normalizeLabels(editDoc.frameworks)}
-          subjectAreas={normalizeLabels(editDoc.subject_areas)}
-          onSave={(payload) => saveMetadata(editDoc, payload)}
+      <Dialog
+        open={Boolean(archiveDoc)}
+        onClose={closeDialog}
+        title="Archive document?"
+        description="Archiving hides this document from the active list. It can be restored. This is not permanent deletion."
+        role="alertdialog"
+        closeDisabled={busy}
+      >
+        {archiveDoc && (
+          <div className="space-y-tc-3">
+            <p className="break-all font-medium text-tc-text">
+              {archiveDoc.filename}
+            </p>
+            <p className="text-tc-label text-tc-muted">
+              ID: {archiveDoc.display_id}
+            </p>
+            {Object.entries(shownDeps).some(
+              ([, value]) => typeof value === 'number' && value > 0
+            ) && (
+              <ul className="text-tc-label text-tc-text">
+                {Object.entries(shownDeps)
+                  .filter(([, value]) => typeof value === 'number' && value > 0)
+                  .map(([key, value]) => (
+                    <li key={key}>
+                      {value} {key.replace(/_/g, ' ')}
+                    </li>
+                  ))}
+              </ul>
+            )}
+            {dialogError && (
+              <p role="alert" className="text-tc-label text-tc-danger">
+                {dialogError}
+              </p>
+            )}
+            {outcome && (
+              <p role="status" className="text-tc-label text-tc-text">
+                {outcome}
+              </p>
+            )}
+            <div className="flex flex-wrap justify-end gap-tc-2">
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={closeDialog}
+                disabled={busy}
+                {...{
+                  [dialogAttributes.initial]: dialogAttributes.initialDismiss,
+                }}
+              >
+                Cancel
+              </Button>
+              <Button
+                type="button"
+                variant="danger"
+                size="sm"
+                onClick={() => void confirmArchive()}
+                disabled={busy || Boolean(outcome)}
+              >
+                {busy ? 'Archiving' : 'Archive'}
+              </Button>
+            </div>
+          </div>
+        )}
+      </Dialog>
+      <Dialog
+        open={Boolean(deleteDoc)}
+        onClose={closeDialog}
+        title="Delete record?"
+        description={DELETE_NOTE}
+        role="alertdialog"
+      >
+        {deleteDoc && (
+          <div className="space-y-tc-3">
+            <p className="break-all font-medium text-tc-text">
+              {deleteDoc.filename}
+            </p>
+            <p className="text-tc-label text-tc-muted">
+              ID: {deleteDoc.display_id}
+            </p>
+            <div className="flex flex-wrap justify-end gap-tc-2">
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={closeDialog}
+                {...{
+                  [dialogAttributes.initial]: dialogAttributes.initialDismiss,
+                }}
+              >
+                Cancel
+              </Button>
+              <Button type="button" variant="danger" size="sm" disabled>
+                Delete permanently
+              </Button>
+            </div>
+          </div>
+        )}
+      </Dialog>
+      <Dialog
+        open={Boolean(restoreDoc)}
+        onClose={closeDialog}
+        title="Restore document?"
+        description="Restoring returns this archived document to the active list after the server accepts it."
+        role="alertdialog"
+        closeDisabled={busy}
+      >
+        {restoreDoc && (
+          <div className="space-y-tc-3">
+            <p className="break-all font-medium text-tc-text">
+              {restoreDoc.filename}
+            </p>
+            <p className="text-tc-label text-tc-muted">
+              ID: {restoreDoc.display_id}
+            </p>
+            {dialogError && (
+              <p role="alert" className="text-tc-label text-tc-danger">
+                {dialogError}
+              </p>
+            )}
+            {outcome && (
+              <p role="status" className="text-tc-label text-tc-text">
+                {outcome}
+              </p>
+            )}
+            <div className="flex flex-wrap justify-end gap-tc-2">
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={closeDialog}
+                disabled={busy}
+                {...{
+                  [dialogAttributes.initial]: dialogAttributes.initialDismiss,
+                }}
+              >
+                Cancel
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                onClick={() => void confirmRestore()}
+                disabled={busy || Boolean(outcome)}
+              >
+                {busy ? 'Restoring' : 'Restore'}
+              </Button>
+            </div>
+          </div>
+        )}
+      </Dialog>
+      <Dialog
+        open={dialog?.kind === 'bulk'}
+        onClose={closeDialog}
+        title="Archive selected documents?"
+        description="Archiving hides the selected documents from the active list. They can be restored. This is not permanent deletion."
+        role="alertdialog"
+        closeDisabled={busy}
+      >
+        <div className="space-y-tc-3">
+          <p className="break-words text-tc-label text-tc-muted">
+            {docs
+              .filter((row) => selectedIds.has(row.id))
+              .map((row) => row.display_id)
+              .join(', ')}
+          </p>
+          {dialogError && (
+            <p role="alert" className="text-tc-label text-tc-danger">
+              {dialogError}
+            </p>
+          )}
+          {outcome && (
+            <p role="status" className="text-tc-label text-tc-text">
+              {outcome}
+            </p>
+          )}
+          <div className="flex flex-wrap justify-end gap-tc-2">
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={closeDialog}
+              disabled={busy}
+              {...{
+                [dialogAttributes.initial]: dialogAttributes.initialDismiss,
+              }}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              variant="danger"
+              size="sm"
+              onClick={() => void confirmBulk()}
+              disabled={busy || Boolean(outcome)}
+            >
+              {busy ? 'Archiving' : 'Archive'}
+            </Button>
+          </div>
+        </div>
+      </Dialog>
+      {metadataDoc && workspaceId != null && (
+        <MetadataDialog
+          doc={metadataDoc}
+          workspaceId={workspaceId}
+          onClose={() => setMetadataDoc(null)}
+          onSaved={(id, frameworks, subjectAreas) => {
+            setDocs((current) =>
+              current.map((row) =>
+                row.id === id
+                  ? {
+                      ...row,
+                      frameworks,
+                      subject_areas: subjectAreas,
+                    }
+                  : row
+              )
+            )
+            setMetadataDoc((current) =>
+              current && current.id === id
+                ? {
+                    ...current,
+                    frameworks,
+                    subject_areas: subjectAreas,
+                  }
+                : current
+            )
+          }}
         />
       )}
-      <Modal
-        isOpen={uploadModalOpen}
+      <Dialog
+        open={uploadModalOpen}
         onClose={() => {
+          if (uploading) return
           setUploadModalOpen(false)
           setUploadFile(null)
         }}
         title="Upload Evidence Document"
       >
-        <div className="space-y-5">
-          <div className="flex items-center gap-3 rounded-xl border border-[var(--tc-border)] bg-white/5 px-4 py-3">
-            <span className="text-lg">📄</span>
-            <span className="text-sm font-medium text-[var(--tc-text)] truncate">
-              {uploadFile?.name}
-            </span>
-          </div>
-
+        <div className="space-y-tc-4">
+          <p className="break-all text-tc-label text-tc-text">
+            {uploadFile?.name}
+          </p>
           <div>
-            <p className="mb-2 text-xs font-medium text-[var(--tc-muted)] uppercase tracking-wide">
+            <p className="mb-tc-2 text-tc-caption font-medium uppercase tracking-wide text-tc-muted">
               Frameworks
             </p>
-            <div className="flex flex-wrap gap-1.5">
-              {FRAMEWORK_OPTIONS.map((fw) => (
+            <div className="flex flex-wrap gap-tc-2">
+              {FRAMEWORK_OPTIONS.map((option) => (
                 <button
-                  key={fw}
+                  key={option}
                   type="button"
-                  onClick={() => toggleUploadFw(fw)}
-                  className={`rounded-full border px-3 py-1 text-xs font-medium transition ${
-                    uploadFrameworks.includes(fw)
-                      ? 'border-[var(--tc-primary)] bg-[rgba(91,124,255,0.15)] text-[var(--tc-primary)]'
-                      : 'border-[var(--tc-border)] text-[var(--tc-muted)] hover:border-[var(--tc-muted)]'
+                  onClick={() =>
+                    setUploadFrameworks((current) =>
+                      toggleValue(current, option)
+                    )
+                  }
+                  className={`rounded-full border px-tc-3 py-tc-1 text-tc-caption ${
+                    uploadFrameworks.includes(option)
+                      ? 'border-tc-primary text-tc-primary'
+                      : 'border-tc-border text-tc-muted'
                   }`}
+                  aria-pressed={uploadFrameworks.includes(option)}
                 >
-                  {fw}
+                  {option}
                 </button>
               ))}
             </div>
           </div>
-
           <div>
-            <p className="mb-2 text-xs font-medium text-[var(--tc-muted)] uppercase tracking-wide">
-              Subject Areas
+            <p className="mb-tc-2 text-tc-caption font-medium uppercase tracking-wide text-tc-muted">
+              Subject areas
             </p>
-            <div className="flex flex-wrap gap-1.5">
-              {SUBJECT_AREA_OPTIONS.map((s) => (
+            <div className="flex flex-wrap gap-tc-2">
+              {SUBJECT_AREA_OPTIONS.map((option) => (
                 <button
-                  key={s}
+                  key={option}
                   type="button"
-                  onClick={() => toggleUploadSubj(s)}
-                  className={`rounded-full border px-3 py-1 text-xs font-medium transition ${
-                    uploadSubjects.includes(s)
-                      ? 'border-[var(--tc-success)] bg-[rgba(16,185,129,0.15)] text-[var(--tc-success)]'
-                      : 'border-[var(--tc-border)] text-[var(--tc-muted)] hover:border-[var(--tc-muted)]'
+                  onClick={() =>
+                    setUploadSubjects((current) => toggleValue(current, option))
+                  }
+                  className={`rounded-full border px-tc-3 py-tc-1 text-tc-caption ${
+                    uploadSubjects.includes(option)
+                      ? 'border-tc-primary text-tc-primary'
+                      : 'border-tc-border text-tc-muted'
                   }`}
+                  aria-pressed={uploadSubjects.includes(option)}
                 >
-                  {s}
+                  {option}
                 </button>
               ))}
             </div>
           </div>
-
-          <div className="flex items-center justify-end gap-3 pt-2">
-            <button
+          <div className="flex justify-end gap-tc-2">
+            <Button
+              type="button"
+              variant="ghost"
               onClick={() => {
                 setUploadModalOpen(false)
                 setUploadFile(null)
               }}
-              className="rounded-xl px-4 py-2 text-sm text-[var(--tc-muted)] transition hover:text-[var(--tc-text)]"
             >
               Cancel
-            </button>
-            <Button onClick={confirmUpload}>
+            </Button>
+            <Button type="button" onClick={confirmUpload}>
               {actionVerb('upload', 'idle')}
             </Button>
           </div>
         </div>
-      </Modal>
+      </Dialog>
       {uploadNotice && (
-        <ToastViewport>
-          <Toast
-            title={uploadNotice.title}
-            message={uploadNotice.message}
-            type={uploadNotice.type}
-            onDismiss={() => setUploadNotice(null)}
-          />
-        </ToastViewport>
+        <Toast
+          title={uploadNotice.title}
+          message={uploadNotice.message}
+          type={uploadNotice.type}
+          onDismiss={() => setUploadNotice(null)}
+        />
       )}
     </div>
+  )
+}
+
+function MetadataDialog({
+  doc,
+  workspaceId,
+  onClose,
+  onSaved,
+}: {
+  doc: Doc
+  workspaceId: number
+  onClose: () => void
+  onSaved: (id: number, frameworks: string[], subjectAreas: string[]) => void
+}) {
+  const [frameworks, setFrameworks] = useState(() =>
+    normalizeLabels(doc.frameworks)
+  )
+  const [subjects, setSubjects] = useState(() =>
+    normalizeLabels(doc.subject_areas)
+  )
+  const [saving, setSaving] = useState(false)
+  const [saved, setSaved] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  const save = async () => {
+    setSaving(true)
+    setSaved(false)
+    setError(null)
+    try {
+      const response = await fetch(
+        `/api/documents/${doc.id}/metadata?workspace_id=${workspaceId}`,
+        {
+          method: 'PATCH',
+          credentials: 'include',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            frameworks,
+            subject_areas: subjects,
+          }),
+        }
+      )
+      const data = await response.json().catch(() => null)
+      if (!response.ok || !acknowledged(data)) {
+        setError(
+          mutationFailureNotice(
+            response.status,
+            data,
+            'The metadata was not saved. Try again.'
+          ).message
+        )
+        return
+      }
+      onSaved(doc.id, frameworks, subjects)
+      setSaved(true)
+    } catch {
+      setError('The metadata was not saved. Try again.')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  return (
+    <Dialog
+      open
+      onClose={onClose}
+      title={`Edit metadata · ${doc.display_id}`}
+      closeDisabled={saving}
+    >
+      <div className="space-y-tc-4">
+        <div>
+          <p className="mb-tc-2 text-tc-label text-tc-muted">Frameworks</p>
+          <div className="flex flex-wrap gap-tc-2">
+            {FRAMEWORK_OPTIONS.map((option) => (
+              <button
+                key={option}
+                type="button"
+                aria-pressed={frameworks.includes(option)}
+                onClick={() =>
+                  setFrameworks((current) => toggleValue(current, option))
+                }
+                className={`rounded-tc-xs border px-tc-2 py-tc-1 text-tc-label text-tc-text ${
+                  frameworks.includes(option)
+                    ? 'border-[var(--tc-nav-active-border)] bg-[var(--tc-nav-active-bg)]'
+                    : 'border-tc-border bg-tc-surface-sunken'
+                }`}
+              >
+                {option}
+              </button>
+            ))}
+          </div>
+        </div>
+        <div>
+          <p className="mb-tc-2 text-tc-label text-tc-muted">Subject areas</p>
+          <div className="flex flex-wrap gap-tc-2">
+            {SUBJECT_AREA_OPTIONS.map((option) => (
+              <button
+                key={option}
+                type="button"
+                aria-pressed={subjects.includes(option)}
+                onClick={() =>
+                  setSubjects((current) => toggleValue(current, option))
+                }
+                className={`rounded-tc-xs border px-tc-2 py-tc-1 text-tc-label text-tc-text ${
+                  subjects.includes(option)
+                    ? 'border-[var(--tc-nav-active-border)] bg-[var(--tc-nav-active-bg)]'
+                    : 'border-tc-border bg-tc-surface-sunken'
+                }`}
+              >
+                {option}
+              </button>
+            ))}
+          </div>
+        </div>
+        {error && (
+          <p role="alert" className="text-tc-label text-tc-danger">
+            {error}
+          </p>
+        )}
+        {saved && (
+          <p role="status" className="text-tc-label text-tc-text">
+            Metadata saved.
+          </p>
+        )}
+        <div className="flex justify-end gap-tc-2">
+          <Button
+            type="button"
+            size="sm"
+            onClick={() => void save()}
+            disabled={saving}
+          >
+            {saving ? 'Saving' : 'Save metadata'}
+          </Button>
+        </div>
+      </div>
+    </Dialog>
   )
 }
