@@ -2,9 +2,22 @@
 
 Status: the rules form now stores an active workspace member by user id. Editable templates stay deferred under the Coordinator ruling. Real-provider sandbox evidence stays blocked on owner accounts. Independent review of this follow-up is not claimed.
 
+## Master merge
+
+A normal merge of `origin/master` `0e8cb32496a7847a727d89ed54753990b91a3127` (#228, after #230) produced `d6b126fd02656230563adb6b30f6c55b0ac40f67`. No conflicts. Local recheck on that tree: web unit tests **531 passed**; `tests/release/test_notification_rules_browser.py` **1 passed in 17.90s**.
+
+Exact-head CI of `d6b126fd02656230563adb6b30f6c55b0ac40f67`:
+
+| Event | Run | build | web-release-e2e |
+|---|---|---|---|
+| push | [43729778054](https://github.com/Johnathan-u/trust-copilot/actions/runs/43729778054) | job 132859449838, success | job 132859450267, success |
+| pull_request | [43729783151](https://github.com/Johnathan-u/trust-copilot/actions/runs/43729783151) | job 132859466010, success | job 132859465746, success |
+
+Both build logs: **6516 passed, 1 skipped, 52 warnings**. The only skip is `tests/test_trust_scoring_blind.py:33` (`external_data`: blind test pack not checked in). Push build took 898.24s. Pull request build took 793.98s. Both `web-release-e2e` jobs ended `playwright exit 0; axe check exit 0`. This note is the only later edit.
+
 ## UI and API contract
 
-Code verified by CI: `6870007e0ba0ee5a4e448d270f73614464181b4a`. This note is the only later edit. Python 3.12.3, pytest 9.1.1, Node 24.22.1, Vitest 5.0.5, PostgreSQL 16.15, database `trustcopilot_test`. No provider network call.
+Earlier code CI, before the master merge: `6870007e0ba0ee5a4e448d270f73614464181b4a`. Python 3.12.3, pytest 9.1.1, Node 24.22.1, Vitest 5.0.5, PostgreSQL 16.15, database `trustcopilot_test`. No provider network call.
 
 Head `44b6ad30be3cdedb69fa3f6aff4fb1f27cfc2bcb` failed `build` on both events because the rules test wrote Next output to `.next-rules-acceptance`. The later web quality checks linted that generated code, and Next rewrote `tsconfig.json`. `web-release-e2e` passed on both events. The follow-up keeps the acceptance build inside `.next`, which ESLint and Prettier already ignore.
 
@@ -54,7 +67,7 @@ Exit 0. **3 passed.** `axe-rules-form-360.json`, `axe-rules-form-768.json`, and 
 
 `python scripts/security/secret_inventory.py paths` on the changed source and this evidence directory: **block 0**.
 
-The new browser test is collected by the existing `pytest -rs` step and uses the Chromium install already in the build job. No workflow, candidate list, or evidence-checker edit is required for it to run. #230's pytest total was 6451 passed and 1 skipped. This branch adds one test. The CI totals above are 6452 passed and 1 skipped. The local qualification was re-run after the dist-directory fix: **1 passed in 16.13s**, and `tsconfig.json` was not rewritten.
+The new browser test is collected by the existing `pytest -rs` step and uses the Chromium install already in the build job. No workflow, candidate list, or evidence-checker edit is required for it to run. #230's pytest total was 6451 passed and 1 skipped. The pre-merge CI total was 6452 passed and 1 skipped. After merging master the total is 6516 passed and 1 skipped, recorded above. The local qualification was re-run after the dist-directory fix: **1 passed in 16.13s**, and `tsconfig.json` was not rewritten.
 
 ## Still open
 
