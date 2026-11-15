@@ -339,6 +339,8 @@ jobs:
           rm -f ../../artifacts/acceptance/TC-15-049/axe-*.json
           rm -f ../../artifacts/acceptance/TC-19-008/axe-*.json
           rm -f ../../artifacts/acceptance/TC-19-009/axe-*.json
+          rm -f ../../artifacts/acceptance/TC-15-016/axe-*.json
+          rm -f ../../artifacts/acceptance/TC-15-017/axe-*.json
 
           candidates=(
             e2e/release/screen-deals.spec.ts
@@ -353,6 +355,8 @@ jobs:
             e2e/release/workspace-creation-policy.spec.ts
             e2e/release/microcopy-states.spec.ts
             e2e/release/screen-controls.spec.ts
+            e2e/release/ui-15.spec.ts
+            e2e/release/ui-16.spec.ts
             e2e/release/ui-23.spec.ts
             e2e/release/notification-inbox.spec.ts
             e2e/release/screen-notifications.spec.ts
@@ -417,6 +421,12 @@ jobs:
             --axe-dir ../../artifacts/acceptance/TC-14-008 \
             --require-spec e2e/release/microcopy-states.spec.ts \
             --min-tests 11 \
+            --axe-dir ../../artifacts/acceptance/TC-15-016 \
+            --require-spec e2e/release/ui-15.spec.ts \
+            --min-tests 14 \
+            --axe-dir ../../artifacts/acceptance/TC-15-017 \
+            --require-spec e2e/release/ui-16.spec.ts \
+            --min-tests 14 \
             --axe-dir ../../artifacts/acceptance/TC-15-025 \
             --require-spec e2e/release/ui-23.spec.ts \
             --min-tests 30 \
