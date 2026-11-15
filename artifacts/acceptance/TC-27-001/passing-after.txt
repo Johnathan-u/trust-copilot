@@ -1,0 +1,9 @@
+# TC-27-001 passing tests after the backup script change
+
+Command: python -m pytest tests/release/test_backup_failure.py -q
+Working directory: apps/api
+Exit status: 0
+Result: 7 passed
+
+.......                                                                  [100%]
+7 passed in 0.31s
