@@ -74,6 +74,10 @@ from app.services.storage import StorageClient  # noqa: E402
 from app.services.docx_questionnaire_parser import parse_docx_questionnaire  # noqa: E402
 from app.services.pdf_questionnaire_parser import parse_pdf_questionnaire  # noqa: E402  (hard-imports pypdf: fails at worker startup if missing)
 from app.services.pdf_text import PdfTextError  # noqa: E402
+from app.services.xlsx_parser import (  # noqa: E402
+    WorkbookUnreadable,
+    mark_workbook_needs_review,
+)
 from app.services.xlsx_questionnaire_parser import parse_xlsx_questionnaire  # noqa: E402
 from app.services.compliance_webhook_delivery import process_compliance_webhook_outbox  # noqa: E402
 from app.services.in_app_notification_service import notify_admins, notify_workspace  # noqa: E402
@@ -334,6 +338,12 @@ def run_parse_questionnaire(job: Job, session, payload: dict) -> None:
             _set_outcome(job, "superseded", reason=stale)
             return
         existing = session.query(Question).filter(Question.questionnaire_id == qnr_id).count()
+        if not questions and ext in (".xlsx", ".xls") and not existing:
+            mark_workbook_needs_review(qnr)
+            effects.mark_applied(EFFECT_QUESTIONS, {"count": 0, "outcome": "needs_review"})
+            _set_outcome(job, "needs_review", effect=EFFECT_QUESTIONS, count=0)
+            session.commit()
+            return
         if existing:
             # Questions already exist (another job, or pre-ledger code): never duplicate them and never
             # delete them (answers / approvals hang off them). Reconcile instead.
@@ -365,6 +375,20 @@ def run_parse_questionnaire(job: Job, session, payload: dict) -> None:
         _auto_classify_questionnaire(session, qnr_id, job.workspace_id, effects)
     finally:
         Path(path).unlink(missing_ok=True)
+
+
+def apply_questionnaire_parse_failure(qnr, exc: BaseException) -> bool:
+    """Store a readable parse failure on the questionnaire.
+
+    Used for an unreadable workbook and for a PDF that has no text, is encrypted
+    or cannot be read. Returns False for any other error so the caller leaves the
+    questionnaire untouched. The stored text is ``str(exc)`` and nothing else.
+    """
+    if not isinstance(exc, (PdfTextError, WorkbookUnreadable)):
+        return False
+    qnr.status = "failed"
+    qnr.parse_metadata = json.dumps({"count": 0, "error": str(exc)})
+    return True
 
 
 def _parse_stale_reason(qnr: Questionnaire, storage_key: str) -> str | None:
@@ -1136,15 +1160,14 @@ def _handle_job_failure(
                 doc.status = "failed"
                 doc.index_error = message[:512] if message else None
                 session.merge(doc)
-    if job.kind == "parse_questionnaire" and isinstance(exc, PdfTextError):
-        # Image-only / encrypted / corrupt PDF (TC-01-003a): surface the readable message on the questionnaire
-        # too, instead of leaving it "uploaded". PdfTextError is a ValueError, so it is terminal (bad_input).
+    if job.kind == "parse_questionnaire" and isinstance(exc, (PdfTextError, WorkbookUnreadable)):
+        # Image-only / encrypted / corrupt PDF (TC-01-003a), and a workbook that cannot
+        # be opened: surface the readable message on the questionnaire instead of leaving
+        # it "uploaded". Both errors are ValueError, so the job is terminal (bad_input).
         qnr_id = payload.get("questionnaire_id")
         if qnr_id:
             qnr = session.query(Questionnaire).filter(Questionnaire.id == qnr_id).first()
-            if qnr:
-                qnr.status = "failed"
-                qnr.parse_metadata = json.dumps({"count": 0, "error": str(exc)})
+            if qnr and apply_questionnaire_parse_failure(qnr, exc):
                 session.merge(qnr)
     session.commit()
 

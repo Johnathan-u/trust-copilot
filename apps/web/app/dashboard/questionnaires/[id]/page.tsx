@@ -279,12 +279,13 @@ export default function QuestionnaireDetailPage() {
       </p>
     )
 
-  let meta: { count?: number } | null = null
+  let meta: { count?: number; error?: string; review?: string } | null = null
   try {
     meta = qnr.parse_metadata ? JSON.parse(qnr.parse_metadata) : null
   } catch {
     /* ignore */
   }
+  const parseNotice = meta?.error || meta?.review || ''
 
   return (
     <div>
@@ -316,6 +317,16 @@ export default function QuestionnaireDetailPage() {
             Review answers
           </Link>
         </div>
+        {parseNotice && (
+          <p
+            role={meta?.error ? 'alert' : 'status'}
+            className={`mt-3 max-w-2xl text-sm ${
+              meta?.error ? 'text-[var(--tc-danger)]' : 'text-[var(--tc-warning)]'
+            }`}
+          >
+            {parseNotice}
+          </p>
+        )}
 
         <div className="mt-6 pt-6 border-t border-[var(--tc-border)]">
           <h2 className="text-sm font-semibold text-[var(--tc-text)] mb-1">

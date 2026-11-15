@@ -6,13 +6,13 @@ from pathlib import Path
 from app.services.answer_type import infer_answer_type
 from app.services.question_detector import looks_like_question, looks_like_section_header
 from app.services.question_normalizer import normalize_question as normalize
-from app.services.xlsx_parser import get_cell_value, iter_sheets  # noqa: F401
+from app.services.xlsx_parser import get_cell_value, iter_questionnaire_sheets  # noqa: F401
 
 
 def parse_xlsx_questionnaire(path: str | Path) -> list[dict]:
     """Parse XLSX into questions with source locations and metadata."""
     results = []
-    for sheet_name, rows in iter_sheets(path):
+    for sheet_name, rows in iter_questionnaire_sheets(path):
         section = None
         for ri, row in enumerate(rows):
             try:

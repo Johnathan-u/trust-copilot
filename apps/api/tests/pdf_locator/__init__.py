@@ -155,8 +155,11 @@ def _questionnaire() -> Case:
 
 
 def _questionnaire_numbered() -> Case:
-    """Numbered questions. The baseline treats "1. Do ..." lines as section headers
-    (question_detector quirk, pre-existing); kept so parity with the baseline is checked."""
+    """Numbered questions under one section heading.
+
+    "1. Do ..." and "2. How often ...?" are questions. The section stays
+    "SECTION A: ACCESS CONTROL".
+    """
     return Case(
         "questionnaire_numbered",
         build_pdf(
@@ -455,8 +458,8 @@ def _rows_two_question_cells() -> Case:
 
 
 def _rows_numbered() -> Case:
-    """Question-number cell, question cell, answer cell. Joined, "1.1 Do ..." was read as a
-    section header (question_detector quirk); cell by cell the question is kept."""
+    """Question-number cell, question cell, answer cell. The number cell is not a
+    question; the question cell is kept and the answer cell stays out of the text."""
     sec = "SECTION K: ASSETS"
     rows = [
         ("1.1", "Do you maintain an asset inventory?", "Yes"),
