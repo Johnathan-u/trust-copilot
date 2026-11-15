@@ -1,6 +1,6 @@
 # Scripts
 
-- **Operational:** `backup_db.sh`, `run-migrations.ps1` — see [docs/ops/BACKUP_RESTORE.md](../docs/ops/BACKUP_RESTORE.md) and [docs/ops/DATABASE_MIGRATIONS.md](../docs/ops/DATABASE_MIGRATIONS.md).
+- **Operational:** `backup_db.sh`, `run-migrations.ps1` — see [docs/ops/BACKUP_RESTORE.md](../docs/ops/BACKUP_RESTORE.md) and [docs/ops/DATABASE_MIGRATIONS.md](../docs/ops/DATABASE_MIGRATIONS.md). A failed `pg_dump`, compress, checksum, or publish in `backup_db.sh` exits nonzero, deletes its partial file, and does not leave a new `trustcopilot_*.sql.gz`. The `BACKUP_FAILURE` line names the stage, exit code, and message, and does not include `DATABASE_URL`.
 - **Demo-only (do not run in production):** `seed-demo.ps1` — seeds a demo workspace and demo user (e.g. demo@trust.local). Use for local demos only; see [docs/DEMO_SCRIPT.md](../docs/DEMO_SCRIPT.md).
 - **Dev/local:** `start.ps1`, `start-docker-db.ps1`, `run-api-tests.ps1`, `check-port-*.js`, etc. — local development helpers.
 

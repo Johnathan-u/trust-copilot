@@ -1,0 +1,152 @@
+# TC-27-001 failing tests before the backup script change
+
+Command: python -m pytest tests/release/test_backup_failure.py -q
+Working directory: apps/api
+Script under test: scripts/backup_db.sh at base 71e4a7cb32f338324acb991dbb7a700ddb8134e1 (unchanged)
+Exit status: 1
+Result: 6 failed, 1 passed
+
+The passing test is the missing DATABASE_URL guard, which already exits nonzero.
+pg_dump exit 42 and broken compression still exit 0. A full disk leaves a
+trustcopilot_*.sql.gz. No checksum is published. No BACKUP_FAILURE line is logged.
+
+FFFFFF.                                                                  [100%]
+=================================== FAILURES ===================================
+_ test_failed_stage_exits_nonzero_and_publishes_nothing[exit42-ok-dump-42-pg_dump] _
+
+tmp_path = PosixPath('/tmp/pytest-of-ubuntu/pytest-1/test_failed_stage_exits_nonzer0')
+dump_mode = 'exit42', gzip_mode = 'ok', stage = 'dump', code = 42
+message_part = 'pg_dump'
+
+    @pytest.mark.parametrize(
+        ("dump_mode", "gzip_mode", "stage", "code", "message_part"),
+        [
+            ("exit42", "ok", "dump", 42, "pg_dump"),
+            ("ok", "broken", "compress", 1, "integrity"),
+            ("ok", "full", "compress", 1, "No space left on device"),
+        ],
+    )
+    def test_failed_stage_exits_nonzero_and_publishes_nothing(
+        tmp_path: Path,
+        dump_mode: str,
+        gzip_mode: str,
+        stage: str,
+        code: int,
+        message_part: str,
+    ) -> None:
+        proc, backup_dir, gzip_log = _run(tmp_path, dump_mode=dump_mode, gzip_mode=gzip_mode)
+        if proc.returncode != code:
+>           raise AssertionError(f"expected exit {code}, got {proc.returncode}")
+E           AssertionError: expected exit 42, got 0
+
+tests/release/test_backup_failure.py:203: AssertionError
+_ test_failed_stage_exits_nonzero_and_publishes_nothing[ok-broken-compress-1-integrity] _
+
+tmp_path = PosixPath('/tmp/pytest-of-ubuntu/pytest-1/test_failed_stage_exits_nonzer1')
+dump_mode = 'ok', gzip_mode = 'broken', stage = 'compress', code = 1
+message_part = 'integrity'
+
+    @pytest.mark.parametrize(
+        ("dump_mode", "gzip_mode", "stage", "code", "message_part"),
+        [
+            ("exit42", "ok", "dump", 42, "pg_dump"),
+            ("ok", "broken", "compress", 1, "integrity"),
+            ("ok", "full", "compress", 1, "No space left on device"),
+        ],
+    )
+    def test_failed_stage_exits_nonzero_and_publishes_nothing(
+        tmp_path: Path,
+        dump_mode: str,
+        gzip_mode: str,
+        stage: str,
+        code: int,
+        message_part: str,
+    ) -> None:
+        proc, backup_dir, gzip_log = _run(tmp_path, dump_mode=dump_mode, gzip_mode=gzip_mode)
+        if proc.returncode != code:
+>           raise AssertionError(f"expected exit {code}, got {proc.returncode}")
+E           AssertionError: expected exit 1, got 0
+
+tests/release/test_backup_failure.py:203: AssertionError
+_ test_failed_stage_exits_nonzero_and_publishes_nothing[ok-full-compress-1-No space left on device] _
+
+tmp_path = PosixPath('/tmp/pytest-of-ubuntu/pytest-1/test_failed_stage_exits_nonzer2')
+dump_mode = 'ok', gzip_mode = 'full', stage = 'compress', code = 1
+message_part = 'No space left on device'
+
+    @pytest.mark.parametrize(
+        ("dump_mode", "gzip_mode", "stage", "code", "message_part"),
+        [
+            ("exit42", "ok", "dump", 42, "pg_dump"),
+            ("ok", "broken", "compress", 1, "integrity"),
+            ("ok", "full", "compress", 1, "No space left on device"),
+        ],
+    )
+    def test_failed_stage_exits_nonzero_and_publishes_nothing(
+        tmp_path: Path,
+        dump_mode: str,
+        gzip_mode: str,
+        stage: str,
+        code: int,
+        message_part: str,
+    ) -> None:
+        proc, backup_dir, gzip_log = _run(tmp_path, dump_mode=dump_mode, gzip_mode=gzip_mode)
+        if proc.returncode != code:
+            raise AssertionError(f"expected exit {code}, got {proc.returncode}")
+        if "Backup written" in proc.stdout:
+            raise AssertionError("failure printed a success line")
+        if _published_archives(backup_dir) or _checksums(backup_dir):
+>           raise AssertionError("failure left a backup that looks successful")
+E           AssertionError: failure left a backup that looks successful
+
+tests/release/test_backup_failure.py:207: AssertionError
+____________________ test_checksum_failure_does_not_publish ____________________
+
+tmp_path = PosixPath('/tmp/pytest-of-ubuntu/pytest-1/test_checksum_failure_does_not0')
+
+    def test_checksum_failure_does_not_publish(tmp_path: Path) -> None:
+        proc, backup_dir, gzip_log = _run(tmp_path, fake_sha256sum=True)
+        if proc.returncode != 3:
+>           raise AssertionError(f"expected exit 3, got {proc.returncode}")
+E           AssertionError: expected exit 3, got 0
+
+tests/release/test_backup_failure.py:227: AssertionError
+_______________ test_failure_keeps_an_existing_published_backup ________________
+
+tmp_path = PosixPath('/tmp/pytest-of-ubuntu/pytest-1/test_failure_keeps_an_existing0')
+
+    def test_failure_keeps_an_existing_published_backup(tmp_path: Path) -> None:
+        backup_dir = tmp_path / "backups"
+        backup_dir.mkdir()
+        existing = backup_dir / "trustcopilot_20000101_000000.sql.gz"
+        payload = b"pre-existing-backup"
+        existing.write_bytes(payload)
+        proc, backup_dir, _gzip_log = _run(tmp_path, dump_mode="exit42")
+        if proc.returncode == 0:
+>           raise AssertionError("expected a failed backup to return nonzero")
+E           AssertionError: expected a failed backup to return nonzero
+
+tests/release/test_backup_failure.py:249: AssertionError
+_______________ test_success_publishes_checksum_after_temp_write _______________
+
+tmp_path = PosixPath('/tmp/pytest-of-ubuntu/pytest-1/test_success_publishes_checksu0')
+
+    def test_success_publishes_checksum_after_temp_write(tmp_path: Path) -> None:
+        proc, backup_dir, gzip_log = _run(tmp_path)
+        if proc.returncode != 0:
+            raise AssertionError(f"expected exit 0, got {proc.returncode}")
+        archives = _published_archives(backup_dir)
+        checksums = _checksums(backup_dir)
+        if len(archives) != 1 or len(checksums) != 1:
+>           raise AssertionError("success did not publish one archive and one checksum")
+E           AssertionError: success did not publish one archive and one checksum
+
+tests/release/test_backup_failure.py:263: AssertionError
+=========================== short test summary info ============================
+FAILED tests/release/test_backup_failure.py::test_failed_stage_exits_nonzero_and_publishes_nothing[exit42-ok-dump-42-pg_dump]
+FAILED tests/release/test_backup_failure.py::test_failed_stage_exits_nonzero_and_publishes_nothing[ok-broken-compress-1-integrity]
+FAILED tests/release/test_backup_failure.py::test_failed_stage_exits_nonzero_and_publishes_nothing[ok-full-compress-1-No space left on device]
+FAILED tests/release/test_backup_failure.py::test_checksum_failure_does_not_publish
+FAILED tests/release/test_backup_failure.py::test_failure_keeps_an_existing_published_backup
+FAILED tests/release/test_backup_failure.py::test_success_publishes_checksum_after_temp_write
+6 failed, 1 passed in 0.26s
