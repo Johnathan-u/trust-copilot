@@ -1,0 +1,20 @@
+command: python -m pytest tests/release/test_audit_export_csv.py -q --tb=line
+cwd: apps/api
+product_code: audit export neutralizes text cells with neutralize_csv_cell
+also_ran: python -m pytest tests/release/test_audit_export_csv.py tests/release/test_export_literal_text.py -q --tb=short -> 65 passed
+
+................................                                         [100%]
+=============================== warnings summary ===============================
+tests/release/test_audit_export_csv.py::test_endpoint_neutralizes_formula_text_and_keeps_benign_cells
+tests/release/test_audit_export_csv.py::test_endpoint_neutralizes_formula_text_and_keeps_benign_cells
+tests/release/test_audit_export_csv.py::test_endpoint_quotes_neutralized_carriage_return_cells
+tests/release/test_audit_export_csv.py::test_endpoint_quotes_neutralized_carriage_return_cells
+tests/release/test_audit_export_csv.py::test_endpoint_neutralizes_each_text_cell_once
+tests/release/test_audit_export_csv.py::test_endpoint_neutralizes_each_text_cell_once
+tests/release/test_audit_export_csv.py::test_json_export_keeps_formula_text_unchanged
+tests/release/test_audit_export_csv.py::test_json_export_keeps_formula_text_unchanged
+  /tmp/tc-api-venv/lib/python3.12/site-packages/sqlalchemy/sql/schema.py:3627: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    return util.wrap_callable(lambda ctx: fn(), fn)  # type: ignore
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+32 passed, 8 warnings in 1.77s
