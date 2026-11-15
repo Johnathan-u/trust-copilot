@@ -667,6 +667,10 @@ class EndpointConnectionError(Exception):
     """Shape-compatible with botocore's connection error. Classification is by class name."""
 
 
+class ReadTimeoutError(Exception):
+    """Shape-compatible with urllib3's read timeout. Classification is by class name."""
+
+
 class ClientError(Exception):
     """Shape-compatible with botocore ClientError. The body is not a safe message."""
 
@@ -692,7 +696,14 @@ def _flaky_upload(store: _Store, exc: BaseException):
 
 @pytest.mark.parametrize(
     "exc",
-    [EndpointConnectionError("PRIVATE endpoint"), ClientError("ServiceUnavailable", 503)],
+    [
+        EndpointConnectionError("PRIVATE endpoint"),
+        ReadTimeoutError("PRIVATE timeout"),
+        ClientError("ServiceUnavailable", 503),
+        ClientError("InternalError", 500),
+        ClientError("Throttling", 400),
+        ClientError("SlowDown", 503),
+    ],
 )
 def test_transient_storage_error_retries_then_completes(monkeypatch, exc: Exception) -> None:
     from app.core.job_errors import classify, is_retryable_code
@@ -717,6 +728,29 @@ def test_transient_storage_error_retries_then_completes(monkeypatch, exc: Except
     completed = [obj for obj in session.added if type(obj).__name__ == "ExportRecord"]
     assert completed and completed[-1].status == "completed"
     assert failure_db.added == []
+
+
+def test_permanent_storage_error_fails_on_the_first_attempt(monkeypatch) -> None:
+    blob = _xlsx_bytes()
+    worker, job, session, store, failure_db, payload = _prepare(
+        monkeypatch, blob, filename="customer.xlsx", fmt="xlsx"
+    )
+    job.attempt = 1
+    job.max_attempts = 3
+
+    def explode(*args, **kwargs):
+        raise ClientError("AccessDenied", 403)
+
+    store.upload = explode
+    with pytest.raises(Exception) as caught:
+        worker.run_export(job, session, payload)
+    _assert_fixed(caught.value, STORAGE_FAILED, STORAGE_FAILED_MESSAGE)
+    assert "PRIVATE" not in str(caught.value)
+    assert "AccessDenied" not in str(caught.value)
+    assert store.uploads == []
+    record = _failed_record(failure_db)
+    assert record.status == "failed"
+    assert record.filename.endswith(".xlsx")
 
 
 def test_persistent_storage_error_fails_on_the_last_attempt(monkeypatch) -> None:
