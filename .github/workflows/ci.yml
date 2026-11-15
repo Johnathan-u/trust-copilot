@@ -336,6 +336,9 @@ jobs:
           rm -f ../../artifacts/acceptance/TC-15-024/axe-*.json
           rm -f ../../artifacts/acceptance/TC-15-038b/axe-*.json
           rm -f ../../artifacts/acceptance/TC-15-025/axe-*.json
+          rm -f ../../artifacts/acceptance/TC-15-049/axe-*.json
+          rm -f ../../artifacts/acceptance/TC-19-008/axe-*.json
+          rm -f ../../artifacts/acceptance/TC-19-009/axe-*.json
 
           candidates=(
             e2e/release/screen-deals.spec.ts
@@ -352,6 +355,7 @@ jobs:
             e2e/release/screen-controls.spec.ts
             e2e/release/ui-23.spec.ts
             e2e/release/notification-inbox.spec.ts
+            e2e/release/screen-notifications.spec.ts
             e2e/release/ui-22.spec.ts
             e2e/release/screen-jobs.spec.ts
             e2e/release/email-verification.spec.ts
@@ -365,14 +369,21 @@ jobs:
           done
 
           set +e
+          # TC-19-009 writes axe-rules-form-*.json through its own config: a dead
+          # local upstream and a separate Next port. Drop the release reporter
+          # paths so this run cannot replace release-e2e.json.
+          env -u PLAYWRIGHT_JSON_OUTPUT_FILE -u PLAYWRIGHT_HTML_OUTPUT_DIR -u PLAYWRIGHT_HTML_OPEN \
+            npx --no-install playwright test --config=playwright.rules-evidence.config.ts --retries=0 --reporter=list
+          rules_status=$?
           npx --no-install playwright test "${candidates[@]}" --retries=0 --reporter=list,html,json
           playwright_status=$?
           node ../../scripts/ci/check-release-e2e-report.mjs \
             --report test-results/release-e2e.json \
             --html-report playwright-report \
             --axe-dir ../../artifacts/acceptance/TC-15-049a \
+            --axe-dir ../../artifacts/acceptance/TC-15-049 \
             --require-spec e2e/release/screen-deals.spec.ts \
-            --min-tests 31 \
+            --min-tests 62 \
             --axe-dir ../../artifacts/acceptance/TC-15-039a \
             --require-spec e2e/release/screen-trust-requests.spec.ts \
             --min-tests 22 \
@@ -402,7 +413,7 @@ jobs:
             --require-spec e2e/release/workspace-creation-policy.spec.ts \
             --min-tests 14 \
             --require-spec e2e/release/screen-controls.spec.ts \
-            --min-tests 22 \
+            --min-tests 38 \
             --axe-dir ../../artifacts/acceptance/TC-14-008 \
             --require-spec e2e/release/microcopy-states.spec.ts \
             --min-tests 11 \
@@ -411,9 +422,13 @@ jobs:
             --min-tests 30 \
             --require-spec e2e/release/notification-inbox.spec.ts \
             --min-tests 7 \
+            --axe-dir ../../artifacts/acceptance/TC-19-008 \
+            --require-spec e2e/release/screen-notifications.spec.ts \
+            --min-tests 12 \
+            --axe-dir ../../artifacts/acceptance/TC-19-009 \
             --axe-dir ../../artifacts/acceptance/TC-15-024 \
             --require-spec e2e/release/ui-22.spec.ts \
-            --min-tests 22 \
+            --min-tests 26 \
             --axe-dir ../../artifacts/acceptance/TC-15-038b \
             --require-spec e2e/release/screen-jobs.spec.ts \
             --min-tests 39 \
@@ -421,8 +436,8 @@ jobs:
             --min-tests 4
           checker_status=$?
           set -e
-          echo "playwright exit ${playwright_status}; axe check exit ${checker_status}"
-          if [[ "$playwright_status" -ne 0 || "$checker_status" -ne 0 ]]; then
+          echo "rules evidence exit ${rules_status}; playwright exit ${playwright_status}; axe check exit ${checker_status}"
+          if [[ "$rules_status" -ne 0 || "$playwright_status" -ne 0 || "$checker_status" -ne 0 ]]; then
             exit 1
           fi
 
@@ -579,5 +594,32 @@ jobs:
             artifacts/acceptance/TC-15-025/axe-*.json
             artifacts/acceptance/TC-15-025/screenshots/gaps-*.png
             artifacts/acceptance/TC-15-025/screenshots/gap-actions-*.png
+          if-no-files-found: warn
+          retention-days: 14
+
+      - name: Upload deals list and links axe JSON
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: deals-list-links-axe-json
+          path: artifacts/acceptance/TC-15-049/axe-*.json
+          if-no-files-found: warn
+          retention-days: 14
+
+      - name: Upload notification delivery axe JSON
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: notification-delivery-axe-json
+          path: artifacts/acceptance/TC-19-008/axe-*.json
+          if-no-files-found: warn
+          retention-days: 14
+
+      - name: Upload notification rules axe JSON
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: notification-rules-axe-json
+          path: artifacts/acceptance/TC-19-009/axe-*.json
           if-no-files-found: warn
           retention-days: 14
