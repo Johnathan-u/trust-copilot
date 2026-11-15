@@ -171,4 +171,31 @@ describe('parseDeliveryAttempts', () => {
     expect(JSON.stringify(display)).not.toContain(marker)
     expect(JSON.stringify(display)).not.toContain(SOURCE)
   })
+
+  it('renders skipped_all_opted_out as a deliberate skip', () => {
+    const parsed = parseDeliveryAttempts(
+      page([
+        attempt({
+          channel: 'slack',
+          state: 'skipped_all_opted_out',
+          attempt_number: 0,
+          error_code: 'skipped_all_opted_out',
+          provider_mode: null,
+          user_id: null,
+          template_key: 'member.invited:slack',
+          destination: 'C_PREF',
+          recipient: '#prefs',
+        }),
+      ])
+    )
+    const row = parsed.attempts[0]
+    expect(row).toBeDefined()
+    expect(row?.state).toBe('skipped_all_opted_out')
+    const display = displayDeliveryAttempt(row as NonNullable<typeof row>)
+    expect(display.state).toBe('Skipped: all recipients opted out')
+    expect(display.state.toLowerCase()).not.toMatch(/fail|dead-letter/)
+    expect(display.channel).toBe('slack')
+    expect(display.destination).toBe('C_PREF')
+    expect(display.claimed).toBe(false)
+  })
 })
