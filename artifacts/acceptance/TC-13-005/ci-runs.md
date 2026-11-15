@@ -2,6 +2,17 @@
 
 Verified heads, each with `build` and `web-release-e2e` succeeded on `push` and `pull_request`. Not merged.
 
+## Storage-retry head
+
+`df600c675fceaa1876dce1ed1f7e0c4c6edc37e9`. A retryable upload error is classified and re-raised. `export_storage_failed` is recorded only for a terminal storage error or the last attempt.
+
+| Event | Run | Job | Conclusion |
+|---|---|---|---|
+| push | [43746726811](https://github.com/Johnathan-u/trust-copilot/actions/runs/43746726811) | [build 132911551078](https://github.com/Johnathan-u/trust-copilot/actions/runs/43746726811/job/132911551078) | success |
+| push | [43746726811](https://github.com/Johnathan-u/trust-copilot/actions/runs/43746726811) | [web-release-e2e 132911550889](https://github.com/Johnathan-u/trust-copilot/actions/runs/43746726811/job/132911550889) | success |
+| pull_request | [43746730249](https://github.com/Johnathan-u/trust-copilot/actions/runs/43746730249) | [build 132911561954](https://github.com/Johnathan-u/trust-copilot/actions/runs/43746730249/job/132911561954) | success |
+| pull_request | [43746730249](https://github.com/Johnathan-u/trust-copilot/actions/runs/43746730249) | [web-release-e2e 132911561703](https://github.com/Johnathan-u/trust-copilot/actions/runs/43746730249/job/132911561703) | success |
+
 ## Stale-mapping head
 
 `d97b5386b6ce3aae7b4d5f525a95da6a6de8361d`. This is the product head that fails a stale workbook fingerprint or mapped cell as `export_mapping_stale` and writes a current version-1 answer only into the stored answer cell. Master `71e4a7c` and `960fe4f` are ancestors.
