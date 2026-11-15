@@ -9,6 +9,8 @@ apps/api/.env.*
 node_modules/
 .next/
 .next-e2e-sales/
+.next-rules-acceptance/
+.next-rules-evidence/
 __pycache__/
 *.py[cod]
 *.egg-info/

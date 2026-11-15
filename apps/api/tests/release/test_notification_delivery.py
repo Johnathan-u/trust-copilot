@@ -1108,7 +1108,10 @@ def test_slack_opt_out_records_suppression_and_does_not_post(client: TestClient)
         db.close()
     assert sent == 1  # console email still accepted
     assert slack_logs == []
-    assert _states("slack") == ["suppressed-by-preference"]
+    assert _states("slack") == [
+        "suppressed-by-preference",
+        "skipped_all_opted_out",
+    ]
 
 
 def test_effective_preferences_default_email_and_slack_on(client: TestClient):

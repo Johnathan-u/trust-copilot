@@ -48,6 +48,7 @@ DELIVERY_STATES = (
     "deduped",
     "dead-lettered",
     "suppressed-by-preference",
+    "skipped_all_opted_out",
 )
 
 # No preference row: email and Slack stay on (today's behavior). In-app through
@@ -162,10 +163,10 @@ class NotificationChannelPreference(Base):
 class NotificationDeliveryAttempt(Base):
     """One visible state of a delivery try.
 
-    States are queued, sent, retrying, deduped, dead-lettered, and
-    suppressed-by-preference. ``deduped`` means a database claim was already
-    held. Several rows share one dedupe key, so the column is indexed and
-    not unique. Stored text is redacted before insert.
+    States are queued, sent, retrying, deduped, dead-lettered,
+    suppressed-by-preference, and skipped_all_opted_out. ``deduped`` means a
+    database claim was already held. Several rows share one dedupe key, so
+    the column is indexed and not unique. Stored text is redacted before insert.
     """
 
     __tablename__ = "notification_delivery_attempts"
