@@ -1,0 +1,466 @@
+command: npx playwright test e2e/release/ui-16.spec.ts --retries=0
+cwd: /agent/repos/trust-copilot/apps/web
+node: v24.22.1
+npm: 11.19.1
+playwright: Version 1.64.1
+started_utc: 2026-11-15T19:45:46Z
+git: 960fe4f97772ac72ba6f726d24e49b0ef57f2eb1
+---
+[WebServer] ⚠ The "middleware" file convention is deprecated. Please use "proxy" instead.
+[WebServer]
+[WebServer]   To migrate automatically, run:
+[WebServer]   npx @next/codemod@canary middleware-to-proxy .
+[WebServer]
+[WebServer]   Learn more: https://nextjs.org/docs/messages/middleware-to-proxy
+[WebServer] ⚠ The "middleware" file convention is deprecated. Please use "proxy" instead.
+[WebServer]
+[WebServer]   To migrate automatically, run:
+[WebServer]   npx @next/codemod@canary middleware-to-proxy .
+[WebServer]
+[WebServer]   Learn more: https://nextjs.org/docs/messages/middleware-to-proxy
+
+Running 14 tests using 1 worker
+
+(node:7772) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘   1 [chromium] › e2e/release/ui-16.spec.ts:394:5 › search is debounced, stale responses are dropped, and page or sort are not sent (5.9s)
+(node:7860) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘   2 [chromium] › e2e/release/ui-16.spec.ts:447:5 › selection resets when the filter or workspace changes and states its scope (5.5s)
+(node:7946) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘   3 [chromium] › e2e/release/ui-16.spec.ts:484:5 › no questionnaires, no matches, and a failed read are different states (1.5m)
+(node:8035) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘   4 [chromium] › e2e/release/ui-16.spec.ts:515:5 › upload keeps the active filters and waits to say the file is stored (5.4s)
+(node:8117) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘   5 [chromium] › e2e/release/ui-16.spec.ts:585:5 › a failed parse job is not shown as parsed (5.6s)
+(node:8204) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘   6 [chromium] › e2e/release/ui-16.spec.ts:613:5 › retry follows a listed parse job, and missing progress stays unreported (5.4s)
+(node:8285) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘   7 [chromium] › e2e/release/ui-16.spec.ts:703:5 › editors do not see parse retry (5.5s)
+(node:8369) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘   8 [chromium] › e2e/release/ui-16.spec.ts:728:5 › metadata and restore dialogs wait for the response before confirming (1.5m)
+(node:8451) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘   9 [chromium] › e2e/release/ui-16.spec.ts:796:5 › archive and delete are different destructive actions (5.6s)
+(node:8536) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  10 [chromium] › e2e/release/ui-16.spec.ts:851:5 › reviewers do not see upload, row actions, or delete (5.5s)
+(node:8615) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  11 [chromium] › e2e/release/ui-16.spec.ts:871:5 › date and filter fields are labelled and selected filters are chips (5.4s)
+(node:8696) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  12 [chromium] › e2e/release/ui-16.spec.ts:905:7 › questionnaires stay usable at 360px (1.5m)
+(node:8776) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  13 [chromium] › e2e/release/ui-16.spec.ts:905:7 › questionnaires stay usable at 768px (1.5m)
+(node:8861) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  14 [chromium] › e2e/release/ui-16.spec.ts:905:7 › questionnaires stay usable at 1440px (1.5m)
+
+
+  1) [chromium] › e2e/release/ui-16.spec.ts:394:5 › search is debounced, stale responses are dropped, and page or sort are not sent
+
+    Error: expect(locator).toBeVisible() failed
+
+    Locator: getByText('The questionnaire list returns every match in one response, sorted by newest first. It does not accept page, page size, or sort parameters.')
+    Expected: visible
+    Timeout: 5000ms
+    Error: element(s) not found
+
+    Call log:
+      - Expect "toBeVisible" getByText('The questionnaire list returns every match in one response, sorted by newest first. It does not accept page, page size, or sort parameters.') with timeout 5000ms
+      - waiting for getByText('The questionnaire list returns every match in one response, sorted by newest first. It does not accept page, page size, or sort parameters.')
+
+
+      409 |       'The questionnaire list returns every match in one response, sorted by newest first. It does not accept page, page size, or sort parameters.'
+      410 |     )
+    > 411 |   ).toBeVisible()
+          |     ^
+      412 |   const initial = listReads(calls)
+      413 |   expect(initial.length).toBeGreaterThan(0)
+      414 |   for (const call of initial) {
+        at /agent/repos/trust-copilot/apps/web/e2e/release/ui-16.spec.ts:411:5
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/release-ui-16-search-is-de-0124d-d-page-or-sort-are-not-sent-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/release-ui-16-search-is-de-0124d-d-page-or-sort-are-not-sent-chromium/error-context.md
+
+  2) [chromium] › e2e/release/ui-16.spec.ts:447:5 › selection resets when the filter or workspace changes and states its scope
+
+    Error: expect(locator).toBeVisible() failed
+
+    Locator: getByText('Selection applies to every questionnaire in this result for the current workspace. Changing the workspace or a filter clears it. This result is not a page.')
+    Expected: visible
+    Timeout: 5000ms
+    Error: element(s) not found
+
+    Call log:
+      - Expect "toBeVisible" getByText('Selection applies to every questionnaire in this result for the current workspace. Changing the workspace or a filter clears it. This result is not a page.') with timeout 5000ms
+      - waiting for getByText('Selection applies to every questionnaire in this result for the current workspace. Changing the workspace or a filter clears it. This result is not a page.')
+
+
+      455 |       'Selection applies to every questionnaire in this result for the current workspace. Changing the workspace or a filter clears it. This result is not a page.'
+      456 |     )
+    > 457 |   ).toBeVisible()
+          |     ^
+      458 |   await page.getByRole('checkbox', { name: 'Select QNR-3' }).check()
+      459 |   await expect(
+      460 |     page.getByText('1 questionnaire selected in this result')
+        at /agent/repos/trust-copilot/apps/web/e2e/release/ui-16.spec.ts:457:5
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/release-ui-16-selection-re-22fa4-hanges-and-states-its-scope-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/release-ui-16-selection-re-22fa4-hanges-and-states-its-scope-chromium/error-context.md
+
+  3) [chromium] › e2e/release/ui-16.spec.ts:484:5 › no questionnaires, no matches, and a failed read are different states
+
+    Test timeout of 90000ms exceeded.
+
+    Error: locator.fill: Test timeout of 90000ms exceeded.
+    Call log:
+      - waiting for getByLabel('Search questionnaires')
+
+
+      495 |     page.getByRole('heading', { name: 'Something went wrong' })
+      496 |   ).toHaveCount(0)
+    > 497 |   await page.getByLabel('Search questionnaires').fill('zzzz')
+          |                                                  ^
+      498 |   await expect(page.getByText('No matching questionnaires')).toBeVisible()
+      499 |   await expect(page.getByText('No questionnaires yet')).toHaveCount(0)
+      500 |   await expect(
+        at /agent/repos/trust-copilot/apps/web/e2e/release/ui-16.spec.ts:497:50
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/release-ui-16-no-questionn-f2698-d-read-are-different-states-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/release-ui-16-no-questionn-f2698-d-read-are-different-states-chromium/error-context.md
+
+  4) [chromium] › e2e/release/ui-16.spec.ts:515:5 › upload keeps the active filters and waits to say the file is stored
+
+    Error: expect(locator).toBeVisible() failed
+
+    Locator: getByText('Accepted formats: PDF, DOCX, DOC, XLSX, XLS, and TXT.')
+    Expected: visible
+    Timeout: 5000ms
+    Error: element(s) not found
+
+    Call log:
+      - Expect "toBeVisible" getByText('Accepted formats: PDF, DOCX, DOC, XLSX, XLS, and TXT.') with timeout 5000ms
+      - waiting for getByText('Accepted formats: PDF, DOCX, DOC, XLSX, XLS, and TXT.')
+
+
+      524 |   await expect(
+      525 |     page.getByText('Accepted formats: PDF, DOCX, DOC, XLSX, XLS, and TXT.')
+    > 526 |   ).toBeVisible()
+          |     ^
+      527 |   await expect(page.getByText('Size limit: 50 MB.')).toBeVisible()
+      528 |   await expect(
+      529 |     page.getByText(
+        at /agent/repos/trust-copilot/apps/web/e2e/release/ui-16.spec.ts:526:5
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/release-ui-16-upload-keeps-69bb1-s-to-say-the-file-is-stored-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/release-ui-16-upload-keeps-69bb1-s-to-say-the-file-is-stored-chromium/error-context.md
+
+  5) [chromium] › e2e/release/ui-16.spec.ts:585:5 › a failed parse job is not shown as parsed ──────
+
+    Error: expect(locator).toBeVisible() failed
+
+    Locator: getByRole('status').filter({ hasText: 'Queued' })
+    Expected: visible
+    Timeout: 5000ms
+    Error: element(s) not found
+
+    Call log:
+      - Expect "toBeVisible" getByRole('status').filter({ hasText: 'Queued' }) with timeout 5000ms
+      - waiting for getByRole('status').filter({ hasText: 'Queued' })
+
+
+      602 |   await expect(
+      603 |     page.getByRole('status').filter({ hasText: 'Queued' })
+    > 604 |   ).toBeVisible()
+          |     ^
+      605 |   await expect(
+      606 |     page.getByRole('status').filter({ hasText: 'Failed' })
+      607 |   ).toBeVisible()
+        at /agent/repos/trust-copilot/apps/web/e2e/release/ui-16.spec.ts:604:5
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/release-ui-16-a-failed-parse-job-is-not-shown-as-parsed-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/release-ui-16-a-failed-parse-job-is-not-shown-as-parsed-chromium/error-context.md
+
+  6) [chromium] › e2e/release/ui-16.spec.ts:613:5 › retry follows a listed parse job, and missing progress stays unreported
+
+    Error: expect(locator).toBeVisible() failed
+
+    Locator: locator('li').filter({ hasText: 'Vendor.xlsx' }).getByText('Questions: 0')
+    Expected: visible
+    Timeout: 5000ms
+    Error: element(s) not found
+
+    Call log:
+      - Expect "toBeVisible" locator('li').filter({ hasText: 'Vendor.xlsx' }).getByText('Questions: 0') with timeout 5000ms
+      - waiting for locator('li').filter({ hasText: 'Vendor.xlsx' }).getByText('Questions: 0')
+
+
+      655 |   await open(page)
+      656 |   const failed = page.locator('li').filter({ hasText: 'Vendor.xlsx' })
+    > 657 |   await expect(failed.getByText('Questions: 0')).toBeVisible()
+          |                                                  ^
+      658 |   await expect(failed.getByText('Review progress: Not reported')).toBeVisible()
+      659 |   await expect(failed.getByText('Job progress: Not reported')).toBeVisible()
+      660 |   await expect(failed.getByText('Mapping: Not reported')).toBeVisible()
+        at /agent/repos/trust-copilot/apps/web/e2e/release/ui-16.spec.ts:657:50
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/release-ui-16-retry-follow-46be1-g-progress-stays-unreported-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/release-ui-16-retry-follow-46be1-g-progress-stays-unreported-chromium/error-context.md
+
+  7) [chromium] › e2e/release/ui-16.spec.ts:703:5 › editors do not see parse retry ─────────────────
+
+    Error: expect(locator).toBeVisible() failed
+
+    Locator: getByText('There is no questionnaire reparse route. An administrator can retry a failed parse job when that job is on the newest job page.')
+    Expected: visible
+    Timeout: 5000ms
+    Error: element(s) not found
+
+    Call log:
+      - Expect "toBeVisible" getByText('There is no questionnaire reparse route. An administrator can retry a failed parse job when that job is on the newest job page.') with timeout 5000ms
+      - waiting for getByText('There is no questionnaire reparse route. An administrator can retry a failed parse job when that job is on the newest job page.')
+
+
+      723 |       'There is no questionnaire reparse route. An administrator can retry a failed parse job when that job is on the newest job page.'
+      724 |     )
+    > 725 |   ).toBeVisible()
+          |     ^
+      726 | })
+      727 |
+      728 | test('metadata and restore dialogs wait for the response before confirming', async ({
+        at /agent/repos/trust-copilot/apps/web/e2e/release/ui-16.spec.ts:725:5
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/release-ui-16-editors-do-not-see-parse-retry-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/release-ui-16-editors-do-not-see-parse-retry-chromium/error-context.md
+
+  8) [chromium] › e2e/release/ui-16.spec.ts:728:5 › metadata and restore dialogs wait for the response before confirming
+
+    Test timeout of 90000ms exceeded.
+
+    Error: locator.click: Test timeout of 90000ms exceeded.
+    Call log:
+      - waiting for getByRole('dialog', { name: /Edit metadata/ }).getByRole('button', { name: 'Save metadata', exact: true })
+
+
+      754 |   await metadataDialog
+      755 |     .getByRole('button', { name: 'Save metadata', exact: true })
+    > 756 |     .click()
+          |      ^
+      757 |   const row = page.locator('li').filter({ hasText: 'Vendor.xlsx' })
+      758 |   await expect(row).not.toContainText('HIPAA')
+      759 |   await expect(metadataDialog.getByText('Metadata saved.')).toHaveCount(0)
+        at /agent/repos/trust-copilot/apps/web/e2e/release/ui-16.spec.ts:756:6
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/release-ui-16-metadata-and-e217d--response-before-confirming-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/release-ui-16-metadata-and-e217d--response-before-confirming-chromium/error-context.md
+
+  9) [chromium] › e2e/release/ui-16.spec.ts:796:5 › archive and delete are different destructive actions
+
+    Error: expect(locator).toBeVisible() failed
+
+    Locator: getByRole('alertdialog', { name: 'Delete record?' }).getByText('Permanent deletion is not available. The questionnaire API archives a questionnaire and does not erase one questionnaire.')
+    Expected: visible
+    Timeout: 5000ms
+    Error: element(s) not found
+
+    Call log:
+      - Expect "toBeVisible" getByRole('alertdialog', { name: 'Delete record?' }).getByText('Permanent deletion is not available. The questionnaire API archives a questionnaire and does not erase one questionnaire.') with timeout 5000ms
+      - waiting for getByRole('alertdialog', { name: 'Delete record?' }).getByText('Permanent deletion is not available. The questionnaire API archives a questionnaire and does not erase one questionnaire.')
+
+
+      809 |       'Permanent deletion is not available. The questionnaire API archives a questionnaire and does not erase one questionnaire.'
+      810 |     )
+    > 811 |   ).toBeVisible()
+          |     ^
+      812 |   await expect(
+      813 |     remove.getByRole('button', { name: 'Delete permanently' })
+      814 |   ).toBeDisabled()
+        at /agent/repos/trust-copilot/apps/web/e2e/release/ui-16.spec.ts:811:5
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/release-ui-16-archive-and--217e9-fferent-destructive-actions-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/release-ui-16-archive-and--217e9-fferent-destructive-actions-chromium/error-context.md
+
+  10) [chromium] › e2e/release/ui-16.spec.ts:851:5 › reviewers do not see upload, row actions, or delete
+
+    Error: expect(locator).toHaveCount(expected) failed
+
+    Locator:  getByRole('button', { name: /Actions for/ })
+    Expected: 0
+    Received: 1
+    Timeout:  5000ms
+
+    Call log:
+      - Expect "toHaveCount" getByRole('button', { name: /Actions for/ }) with timeout 5000ms
+      - waiting for getByRole('button', { name: /Actions for/ })
+        14 × locator resolved to 1 element
+           - unexpected value "1"
+
+
+      859 |   ).toHaveCount(0)
+      860 |   await expect(page.locator('#qnr-upload')).toHaveCount(0)
+    > 861 |   await expect(page.getByRole('button', { name: /Actions for/ })).toHaveCount(0)
+          |                                                                   ^
+      862 |   await expect(page.getByRole('checkbox')).toHaveCount(0)
+      863 |   await expect(
+      864 |     page.getByRole('button', { name: /Archive|Delete/ })
+        at /agent/repos/trust-copilot/apps/web/e2e/release/ui-16.spec.ts:861:67
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/release-ui-16-reviewers-do-dfc93-pload-row-actions-or-delete-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/release-ui-16-reviewers-do-dfc93-pload-row-actions-or-delete-chromium/error-context.md
+
+  11) [chromium] › e2e/release/ui-16.spec.ts:871:5 › date and filter fields are labelled and selected filters are chips
+
+    Error: expect(locator).toBeVisible() failed
+
+    Locator: getByLabel('Search questionnaires')
+    Expected: visible
+    Timeout: 5000ms
+    Error: element(s) not found
+
+    Call log:
+      - Expect "toBeVisible" getByLabel('Search questionnaires') with timeout 5000ms
+      - waiting for getByLabel('Search questionnaires')
+
+
+      874 |   const { calls } = await setup(page)
+      875 |   await open(page)
+    > 876 |   await expect(page.getByLabel('Search questionnaires')).toBeVisible()
+          |                                                          ^
+      877 |   await expect(page.getByLabel('Framework')).toBeVisible()
+      878 |   await expect(page.getByLabel('Subject area')).toBeVisible()
+      879 |   await expect(page.getByLabel('Created from')).toBeVisible()
+        at /agent/repos/trust-copilot/apps/web/e2e/release/ui-16.spec.ts:876:58
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/release-ui-16-date-and-fil-87eec--selected-filters-are-chips-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/release-ui-16-date-and-fil-87eec--selected-filters-are-chips-chromium/error-context.md
+
+  12) [chromium] › e2e/release/ui-16.spec.ts:905:7 › questionnaires stay usable at 360px ───────────
+
+    Test timeout of 90000ms exceeded.
+
+    Error: locator.focus: Test timeout of 90000ms exceeded.
+    Call log:
+      - waiting for getByLabel('Search questionnaires')
+
+
+      922 |     await noHorizontalOverflow(page)
+      923 |     const search = page.getByLabel('Search questionnaires')
+    > 924 |     await search.focus()
+          |                  ^
+      925 |     await page.keyboard.press('Tab')
+      926 |     await expect(page.getByLabel('Framework')).toBeFocused()
+      927 |     await page.keyboard.press('Shift+Tab')
+        at /agent/repos/trust-copilot/apps/web/e2e/release/ui-16.spec.ts:924:18
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/release-ui-16-questionnaires-stay-usable-at-360px-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/release-ui-16-questionnaires-stay-usable-at-360px-chromium/error-context.md
+
+  13) [chromium] › e2e/release/ui-16.spec.ts:905:7 › questionnaires stay usable at 768px ───────────
+
+    Test timeout of 90000ms exceeded.
+
+    Error: locator.focus: Test timeout of 90000ms exceeded.
+    Call log:
+      - waiting for getByLabel('Search questionnaires')
+
+
+      922 |     await noHorizontalOverflow(page)
+      923 |     const search = page.getByLabel('Search questionnaires')
+    > 924 |     await search.focus()
+          |                  ^
+      925 |     await page.keyboard.press('Tab')
+      926 |     await expect(page.getByLabel('Framework')).toBeFocused()
+      927 |     await page.keyboard.press('Shift+Tab')
+        at /agent/repos/trust-copilot/apps/web/e2e/release/ui-16.spec.ts:924:18
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/release-ui-16-questionnaires-stay-usable-at-768px-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/release-ui-16-questionnaires-stay-usable-at-768px-chromium/error-context.md
+
+  14) [chromium] › e2e/release/ui-16.spec.ts:905:7 › questionnaires stay usable at 1440px ──────────
+
+    Test timeout of 90000ms exceeded.
+
+    Error: locator.focus: Test timeout of 90000ms exceeded.
+    Call log:
+      - waiting for getByLabel('Search questionnaires')
+
+
+      922 |     await noHorizontalOverflow(page)
+      923 |     const search = page.getByLabel('Search questionnaires')
+    > 924 |     await search.focus()
+          |                  ^
+      925 |     await page.keyboard.press('Tab')
+      926 |     await expect(page.getByLabel('Framework')).toBeFocused()
+      927 |     await page.keyboard.press('Shift+Tab')
+        at /agent/repos/trust-copilot/apps/web/e2e/release/ui-16.spec.ts:924:18
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/release-ui-16-questionnaires-stay-usable-at-1440px-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/release-ui-16-questionnaires-stay-usable-at-1440px-chromium/error-context.md
+
+  14 failed
+    [chromium] › e2e/release/ui-16.spec.ts:394:5 › search is debounced, stale responses are dropped, and page or sort are not sent
+    [chromium] › e2e/release/ui-16.spec.ts:447:5 › selection resets when the filter or workspace changes and states its scope
+    [chromium] › e2e/release/ui-16.spec.ts:484:5 › no questionnaires, no matches, and a failed read are different states
+    [chromium] › e2e/release/ui-16.spec.ts:515:5 › upload keeps the active filters and waits to say the file is stored
+    [chromium] › e2e/release/ui-16.spec.ts:585:5 › a failed parse job is not shown as parsed ───────
+    [chromium] › e2e/release/ui-16.spec.ts:613:5 › retry follows a listed parse job, and missing progress stays unreported
+    [chromium] › e2e/release/ui-16.spec.ts:703:5 › editors do not see parse retry ──────────────────
+    [chromium] › e2e/release/ui-16.spec.ts:728:5 › metadata and restore dialogs wait for the response before confirming
+    [chromium] › e2e/release/ui-16.spec.ts:796:5 › archive and delete are different destructive actions
+    [chromium] › e2e/release/ui-16.spec.ts:851:5 › reviewers do not see upload, row actions, or delete
+    [chromium] › e2e/release/ui-16.spec.ts:871:5 › date and filter fields are labelled and selected filters are chips
+    [chromium] › e2e/release/ui-16.spec.ts:905:7 › questionnaires stay usable at 360px ─────────────
+    [chromium] › e2e/release/ui-16.spec.ts:905:7 › questionnaires stay usable at 768px ─────────────
+    [chromium] › e2e/release/ui-16.spec.ts:905:7 › questionnaires stay usable at 1440px ────────────
+exit: 1

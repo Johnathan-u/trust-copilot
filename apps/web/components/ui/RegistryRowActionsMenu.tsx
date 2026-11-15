@@ -7,6 +7,7 @@ export type RowAction =
   | { id: 'copy_id'; label: string; onClick: () => void }
   | { id: 'open'; label: string; href: string }
   | { id: 'edit_metadata'; label: string; onClick: () => void }
+  | { id: 'archive'; label: string; onClick: () => void }
   | { id: 'delete'; label: string; onClick: () => void; variant?: 'danger' }
   | { id: 'restore'; label: string; onClick: () => void }
 
@@ -72,7 +73,7 @@ export function RegistryRowActionsMenu({
                   type="button"
                   role="menuitem"
                   className={`block w-full px-3 py-2 text-left text-sm hover:bg-[var(--tc-hover)] ${
-                    a.id === 'delete'
+                    a.id === 'delete' || a.id === 'archive'
                       ? 'text-[var(--tc-danger)]'
                       : 'text-[var(--tc-text)]'
                   }`}
