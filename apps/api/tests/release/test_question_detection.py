@@ -164,6 +164,52 @@ def test_numbered_uppercase_and_unicode_questions_keep_their_sections(tmp_path) 
         assert not text.endswith(" yes") and not text.endswith(" no")
 
 
+def test_short_imperative_titles_stay_headings(tmp_path) -> None:
+    """A title that starts with Document, List, Identify or State is not a question.
+
+    A request that ends with a period, or that is a full sentence, still is.
+    """
+    path = tmp_path / "imperative-titles.xlsx"
+    _write(
+        path,
+        {
+            "Controls": [
+                ["3. Document Control"],
+                ["Does the company keep a document control procedure?"],
+                ["4.1 Identify Management"],
+                ["Is asset ownership identified for every production system?"],
+                ["List of Subprocessors"],
+                ["Describe how backups are encrypted"],
+                ["5. State Requirements"],
+                ["3. Document your incident response process."],
+            ]
+        },
+    )
+    located = _located(parse_xlsx_questionnaire(path))
+    assert located == [
+        (
+            "does the company keep a document control procedure",
+            "3. Document Control",
+            "Controls",
+        ),
+        (
+            "is asset ownership identified for every production system",
+            "4.1 Identify Management",
+            "Controls",
+        ),
+        (
+            "describe how backups are encrypted",
+            "List of Subprocessors",
+            "Controls",
+        ),
+        (
+            "3. document your incident response process",
+            "5. State Requirements",
+            "Controls",
+        ),
+    ]
+
+
 def test_each_sheet_starts_its_own_section(tmp_path) -> None:
     """A heading on a later sheet must not keep the previous sheet's section."""
     path = tmp_path / "two-sheets.xlsx"
