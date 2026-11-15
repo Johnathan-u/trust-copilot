@@ -94,7 +94,7 @@ def _quoted_field(value: str) -> str:
 
 
 def _needs_quotes(value: str) -> bool:
-    return any(char in value for char in ",\"\r\n")
+    return any(char in value for char in ',"\r\n')
 
 
 @pytest.mark.parametrize("payload", FORMULA_PAYLOADS)
@@ -112,9 +112,7 @@ def test_shared_neutralizer_leaves_benign_text_unchanged(payload: str) -> None:
 
 
 def _login(client: TestClient) -> int:
-    response = client.post(
-        "/api/auth/login", json={"email": "editor@trust.local", "password": "e"}
-    )
+    response = client.post("/api/auth/login", json={"email": "editor@trust.local", "password": "e"})
     assert response.status_code == 200, response.text
     return int(response.json()["workspace_id"])
 
@@ -424,7 +422,7 @@ def test_endpoint_neutralizes_each_text_cell_once(
         problems: list[str] = []
         for column in ("action", "actor", "email", "resource_type", "resource_id"):
             if row[COL[column]] != "'=1+1":
-                problems.append(f"{column}: expected \"'=1+1\" got {row[COL[column]]!r}")
+                problems.append(f'{column}: expected "\'=1+1" got {row[COL[column]]!r}')
         if row[COL["user_id"]] != "11":
             problems.append(f"user_id changed: {row[COL['user_id']]!r}")
         if calls.count("=1+1") != 5:
@@ -444,9 +442,7 @@ def test_endpoint_neutralizes_each_text_cell_once(
             db_session.commit()
 
 
-def test_json_export_keeps_formula_text_unchanged(
-    client: TestClient, db_session: Session
-) -> None:
+def test_json_export_keeps_formula_text_unchanged(client: TestClient, db_session: Session) -> None:
     """JSON is not a spreadsheet. Formula text stays exactly as stored."""
     workspace_id = _login(client)
     event_id: int | None = None
