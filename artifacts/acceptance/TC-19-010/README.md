@@ -42,6 +42,6 @@ The two earlier PostgreSQL runs stay in `verification.json` and are labeled `his
 
 ## Real-provider sandbox
 
-Real-provider sandbox evidence awaits a coordinator ruling on [#85](https://github.com/Johnathan-u/trust-copilot/issues/85): either the item is N/A for the in-app inbox, or owner sandbox accounts are needed. This note does not decide that question.
+**Not applicable (coordinator ruling, 2026-11-11):** the inbox is in-app only and makes no external provider call. Real-provider preference qualification belongs to TC-19-008's DoD6. See the [review on #216](https://github.com/Johnathan-u/trust-copilot/pull/216#issuecomment-6789725702) and `docs/acceptance/release-decisions.md` §4. (Coordinator correction, made after the merge.)
 
 The commit that adds these run ids is later than `78b3a32`. It does not change product code or tests.
