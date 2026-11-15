@@ -8,6 +8,8 @@ from datetime import datetime, timedelta, timezone
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
+from app.core.audit import audit_log
+from app.models.audit_event import AuditEvent
 from app.models.in_app_notification import InAppNotification
 from app.models.notification import (
     NOTIFICATION_EVENT_TYPES,
@@ -45,6 +47,8 @@ STATE_RETRYING = "retrying"
 STATE_DEDUPED = "deduped"
 STATE_DEAD = "dead-lettered"
 STATE_SUPPRESSED = "suppressed-by-preference"
+STATE_SKIPPED_ALL_OPTED_OUT = "skipped_all_opted_out"
+AUDIT_SLACK_SKIPPED_ALL_OPTED_OUT = "notification.slack_skipped_all_opted_out"
 
 
 DEDUPE_ERROR_CODE = "claimed"
@@ -709,6 +713,60 @@ def _slack_event_allowed(si: SlackIntegration, event_type: str) -> bool:
     return event_type in enabled_types
 
 
+def _record_slack_skipped_all_opted_out(
+    db: Session,
+    *,
+    workspace_id: int,
+    event_type: str,
+    recipients: list[tuple[int, str]],
+    rendered: RenderedNotification,
+    si: SlackIntegration,
+    destination: str,
+    channel_key: str,
+) -> None:
+    """Record a deliberate channel skip. Does not call Slack or take a claim."""
+    label = f"#{si.channel_name or si.channel_id}"
+    _add_attempt(
+        db,
+        workspace_id=workspace_id,
+        event_type=event_type,
+        channel="slack",
+        recipient=label,
+        user_id=None,
+        dedupe_key=channel_key,
+        state=STATE_SKIPPED_ALL_OPTED_OUT,
+        attempt_number=0,
+        max_attempts=DEFAULT_MAX_ATTEMPTS,
+        rendered=rendered,
+        destination=destination,
+        error_code=STATE_SKIPPED_ALL_OPTED_OUT,
+        delivered_to_provider=False,
+        provider_mode=None,
+    )
+    details = {
+        "reason": STATE_SKIPPED_ALL_OPTED_OUT,
+        "channel": "slack",
+        "event_type": event_type,
+        "recipient_count": len(recipients),
+    }
+    audit_log(
+        AUDIT_SLACK_SKIPPED_ALL_OPTED_OUT,
+        workspace_id=workspace_id,
+        resource_type="slack_channel",
+        resource_id=si.channel_id,
+        details=details,
+    )
+    db.add(
+        AuditEvent(
+            action=AUDIT_SLACK_SKIPPED_ALL_OPTED_OUT,
+            workspace_id=workspace_id,
+            resource_type="slack_channel",
+            resource_id=str(si.channel_id)[:128] if si.channel_id else None,
+            details=json.dumps(details),
+        )
+    )
+
+
 def _fire_slack_notification(
     db: Session,
     workspace_id: int,
@@ -717,7 +775,12 @@ def _fire_slack_notification(
     rendered: RenderedNotification,
     event_id: str | None = None,
 ) -> int:
-    """Post once to the workspace Slack channel when at least one recipient allows it."""
+    """Post once to the workspace Slack channel when at least one recipient allows it.
+
+    When every resolved recipient opted out, record skipped_all_opted_out and
+    do not call the provider. Zero recipients and a disabled integration still
+    write no Slack row.
+    """
     channel_key = ""
     hold_claim = False
     send_started = False
@@ -764,6 +827,17 @@ def _fire_slack_notification(
                 provider_mode=None,
             )
         if not allowed:
+            if recipients and len(suppressed) == len(recipients):
+                _record_slack_skipped_all_opted_out(
+                    db,
+                    workspace_id=workspace_id,
+                    event_type=event_type,
+                    recipients=recipients,
+                    rendered=rendered,
+                    si=si,
+                    destination=destination,
+                    channel_key=channel_key,
+                )
             return 0
 
         if _duplicate_send(channel_key, event_id):
