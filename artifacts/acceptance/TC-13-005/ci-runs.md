@@ -2,6 +2,17 @@
 
 Verified heads, each with `build` and `web-release-e2e` succeeded on `push` and `pull_request`. Not merged.
 
+## Retry-coverage head
+
+`f1974412e253291b262cc308a563a01ff2323032`. Same storage-retry rule as `df600c6`, with tests for 500, 503, throttling, connection errors, read timeouts, a permanent denial on attempt 1, and a 503 on the last attempt.
+
+| Event | Run | Job | Conclusion |
+|---|---|---|---|
+| push | [43749878638](https://github.com/Johnathan-u/trust-copilot/actions/runs/43749878638) | [build 132921280819](https://github.com/Johnathan-u/trust-copilot/actions/runs/43749878638/job/132921280819) | success |
+| push | [43749878638](https://github.com/Johnathan-u/trust-copilot/actions/runs/43749878638) | [web-release-e2e 132921280513](https://github.com/Johnathan-u/trust-copilot/actions/runs/43749878638/job/132921280513) | success |
+| pull_request | [43749885384](https://github.com/Johnathan-u/trust-copilot/actions/runs/43749885384) | [build 132921297226](https://github.com/Johnathan-u/trust-copilot/actions/runs/43749885384/job/132921297226) | success |
+| pull_request | [43749885384](https://github.com/Johnathan-u/trust-copilot/actions/runs/43749885384) | [web-release-e2e 132921297431](https://github.com/Johnathan-u/trust-copilot/actions/runs/43749885384/job/132921297431) | success |
+
 ## Storage-retry head
 
 `df600c675fceaa1876dce1ed1f7e0c4c6edc37e9`. A retryable upload error is classified and re-raised. `export_storage_failed` is recorded only for a terminal storage error or the last attempt.
