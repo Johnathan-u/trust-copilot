@@ -51,6 +51,10 @@ Zero resolved recipients returns before Slack dispatch and does not write this
 row. A disabled integration or an event filter that excludes the event also
 writes no Slack row.
 
+The skip does not take a dedupe claim. Firing the same event again writes
+another `skipped_all_opted_out` row. That repeat is expected. A recipient who
+opts back in can still receive a later post for that event.
+
 ```sql
 SELECT id, channel, event_type, state, error_code, destination, created_at
 FROM notification_delivery_attempts

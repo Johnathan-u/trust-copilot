@@ -162,9 +162,7 @@ def _unsubscribe(user_id: int) -> None:
 
     db = SessionLocal()
     try:
-        db.add(
-            NotificationUnsubscribe(workspace_id=1, user_id=user_id, event_type=EVENT)
-        )
+        db.add(NotificationUnsubscribe(workspace_id=1, user_id=user_id, event_type=EVENT))
         db.commit()
     finally:
         db.close()
@@ -198,11 +196,7 @@ def _attempts(client: TestClient) -> list[dict]:
     assert listed.status_code == 200, listed.text
     body = listed.json()
     assert body["schema_version"] == 1
-    return [
-        row
-        for row in body["attempts"]
-        if row["event_type"] == EVENT
-    ]
+    return [row for row in body["attempts"] if row["event_type"] == EVENT]
 
 
 def _slack_logs() -> list:
@@ -297,9 +291,7 @@ def test_every_opted_out_recipient_skips_the_slack_channel_post(client: TestClie
         assert recorder.calls == []
         assert _slack_logs() == []
         assert sent == 1
-        suppressed = [
-            row for row in slack if row["state"] == "suppressed-by-preference"
-        ]
+        suppressed = [row for row in slack if row["state"] == "suppressed-by-preference"]
         assert {row["user_id"] for row in suppressed} == {preference_off, unsubscribed}
         email_by_user = {
             row["user_id"]: row["state"]
