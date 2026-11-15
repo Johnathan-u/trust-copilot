@@ -1,0 +1,233 @@
+command: python -m pytest tests/release/test_audit_export_csv.py -q --tb=line
+cwd: apps/api
+product_code: master 0e8cb32496a7847a727d89ed54753990b91a3127 (audit export unfixed; only the new test module is added)
+venv: /tmp/tc-api-venv
+
+........................FFF.FFFF                                         [100%]
+=================================== FAILURES ===================================
+E   AssertionError: audit CSV cells
+      '=1+1 action: expected "'=1+1" got '=1+1'
+      '=1+1 action: exported cell is still formula-like: '=1+1'
+      '=1+1 actor: expected "'=1+1" got '=1+1'
+      '=1+1 actor: exported cell is still formula-like: '=1+1'
+      '=1+1 email: expected "'=1+1" got '=1+1'
+      '=1+1 email: exported cell is still formula-like: '=1+1'
+      '=1+1 resource_type: expected "'=1+1" got '=1+1'
+      '=1+1 resource_type: exported cell is still formula-like: '=1+1'
+      '=1+1 resource_id: expected "'=1+1" got '=1+1'
+      '=1+1 resource_id: exported cell is still formula-like: '=1+1'
+      '=HYPERLINK("http://example.invalid/x","click") action: expected '\'=HYPERLINK("http://example.invalid/x","click")' got '=HYPERLINK("http://example.invalid/x","click")'
+      '=HYPERLINK("http://example.invalid/x","click") action: CSV did not quote '\'=HYPERLINK("http://example.invalid/x","click")'
+      '=HYPERLINK("http://example.invalid/x","click") action: exported cell is still formula-like: '=HYPERLINK("http://example.invalid/x","click")'
+      '=HYPERLINK("http://example.invalid/x","click") actor: expected '\'=HYPERLINK("http://example.invalid/x","click")' got '=HYPERLINK("http://example.invalid/x","click")'
+      '=HYPERLINK("http://example.invalid/x","click") actor: CSV did not quote '\'=HYPERLINK("http://example.invalid/x","click")'
+      '=HYPERLINK("http://example.invalid/x","click") actor: exported cell is still formula-like: '=HYPERLINK("http://example.invalid/x","click")'
+      '=HYPERLINK("http://example.invalid/x","click") email: expected '\'=HYPERLINK("http://example.invalid/x","click")' got '=HYPERLINK("http://example.invalid/x","click")'
+      '=HYPERLINK("http://example.invalid/x","click") email: CSV did not quote '\'=HYPERLINK("http://example.invalid/x","click")'
+      '=HYPERLINK("http://example.invalid/x","click") email: exported cell is still formula-like: '=HYPERLINK("http://example.invalid/x","click")'
+      '=HYPERLINK("http://example.invalid/x","click") resource_type: expected '\'=HYPERLINK("http://example.invalid/x","click")' got '=HYPERLINK("http://example.invalid/x","click")'
+      '=HYPERLINK("http://example.invalid/x","click") resource_type: CSV did not quote '\'=HYPERLINK("http://example.invalid/x","click")'
+      '=HYPERLINK("http://example.invalid/x","click") resource_type: exported cell is still formula-like: '=HYPERLINK("http://example.invalid/x","click")'
+      '=HYPERLINK("http://example.invalid/x","click") resource_id: expected '\'=HYPERLINK("http://example.invalid/x","click")' got '=HYPERLINK("http://example.invalid/x","click")'
+      '=HYPERLINK("http://example.invalid/x","click") resource_id: CSV did not quote '\'=HYPERLINK("http://example.invalid/x","click")'
+      '=HYPERLINK("http://example.invalid/x","click") resource_id: exported cell is still formula-like: '=HYPERLINK("http://example.invalid/x","click")'
+      '+SUM(A1:A3) action: expected "'+SUM(A1:A3)" got '+SUM(A1:A3)'
+      '+SUM(A1:A3) action: exported cell is still formula-like: '+SUM(A1:A3)'
+      '+SUM(A1:A3) actor: expected "'+SUM(A1:A3)" got '+SUM(A1:A3)'
+      '+SUM(A1:A3) actor: exported cell is still formula-like: '+SUM(A1:A3)'
+      '+SUM(A1:A3) email: expected "'+SUM(A1:A3)" got '+SUM(A1:A3)'
+      '+SUM(A1:A3) email: exported cell is still formula-like: '+SUM(A1:A3)'
+      '+SUM(A1:A3) resource_type: expected "'+SUM(A1:A3)" got '+SUM(A1:A3)'
+      '+SUM(A1:A3) resource_type: exported cell is still formula-like: '+SUM(A1:A3)'
+      '+SUM(A1:A3) resource_id: expected "'+SUM(A1:A3)" got '+SUM(A1:A3)'
+      '+SUM(A1:A3) resource_id: exported cell is still formula-like: '+SUM(A1:A3)'
+      '-2+3 action: expected "'-2+3" got '-2+3'
+      '-2+3 action: exported cell is still formula-like: '-2+3'
+      '-2+3 actor: expected "'-2+3" got '-2+3'
+      '-2+3 actor: exported cell is still formula-like: '-2+3'
+      '-2+3 email: expected "'-2+3" got '-2+3'
+      '-2+3 email: exported cell is still formula-like: '-2+3'
+      '-2+3 resource_type: expected "'-2+3" got '-2+3'
+      '-2+3 resource_type: exported cell is still formula-like: '-2+3'
+      '-2+3 resource_id: expected "'-2+3" got '-2+3'
+      '-2+3 resource_id: exported cell is still formula-like: '-2+3'
+      '@SUM(A1) action: expected "'@SUM(A1)" got '@SUM(A1)'
+      '@SUM(A1) action: exported cell is still formula-like: '@SUM(A1)'
+      '@SUM(A1) actor: expected "'@SUM(A1)" got '@SUM(A1)'
+      '@SUM(A1) actor: exported cell is still formula-like: '@SUM(A1)'
+      '@SUM(A1) email: expected "'@SUM(A1)" got '@SUM(A1)'
+      '@SUM(A1) email: exported cell is still formula-like: '@SUM(A1)'
+      '@SUM(A1) resource_type: expected "'@SUM(A1)" got '@SUM(A1)'
+      '@SUM(A1) resource_type: exported cell is still formula-like: '@SUM(A1)'
+      '@SUM(A1) resource_id: expected "'@SUM(A1)" got '@SUM(A1)'
+      '@SUM(A1) resource_id: exported cell is still formula-like: '@SUM(A1)'
+      '=cmd|' /C calc'!A0 action: expected "'=cmd|' /C calc'!A0" got "=cmd|' /C calc'!A0"
+      '=cmd|' /C calc'!A0 action: exported cell is still formula-like: "=cmd|' /C calc'!A0"
+      '=cmd|' /C calc'!A0 actor: expected "'=cmd|' /C calc'!A0" got "=cmd|' /C calc'!A0"
+      '=cmd|' /C calc'!A0 actor: exported cell is still formula-like: "=cmd|' /C calc'!A0"
+      '=cmd|' /C calc'!A0 email: expected "'=cmd|' /C calc'!A0" got "=cmd|' /C calc'!A0"
+      '=cmd|' /C calc'!A0 email: exported cell is still formula-like: "=cmd|' /C calc'!A0"
+      '=cmd|' /C calc'!A0 resource_type: expected "'=cmd|' /C calc'!A0" got "=cmd|' /C calc'!A0"
+      '=cmd|' /C calc'!A0 resource_type: exported cell is still formula-like: "=cmd|' /C calc'!A0"
+      '=cmd|' /C calc'!A0 resource_id: expected "'=cmd|' /C calc'!A0" got "=cmd|' /C calc'!A0"
+      '=cmd|' /C calc'!A0 resource_id: exported cell is still formula-like: "=cmd|' /C calc'!A0"
+      '	=1+1 action: expected "'\t=1+1" got '\t=1+1'
+      '	=1+1 action: exported cell is still formula-like: '\t=1+1'
+      '	=1+1 actor: expected "'\t=1+1" got '\t=1+1'
+      '	=1+1 actor: exported cell is still formula-like: '\t=1+1'
+      '	=1+1 email: expected "'\t=1+1" got '\t=1+1'
+      '	=1+1 email: exported cell is still formula-like: '\t=1+1'
+      '	=1+1 resource_type: expected "'\t=1+1" got '\t=1+1'
+      '	=1+1 resource_type: exported cell is still formula-like: '\t=1+1'
+      '	=1+1 resource_id: expected "'\t=1+1" got '\t=1+1'
+      '	=1+1 resource_id: exported cell is still formula-like: '\t=1+1'
+      ' =1+1 action: expected "' =1+1" got ' =1+1'
+      ' =1+1 action: exported cell is still formula-like: ' =1+1'
+      ' =1+1 actor: expected "' =1+1" got ' =1+1'
+      ' =1+1 actor: exported cell is still formula-like: ' =1+1'
+      ' =1+1 email: expected "' =1+1" got ' =1+1'
+      ' =1+1 email: exported cell is still formula-like: ' =1+1'
+      ' =1+1 resource_type: expected "' =1+1" got ' =1+1'
+      ' =1+1 resource_type: exported cell is still formula-like: ' =1+1'
+      ' =1+1 resource_id: expected "' =1+1" got ' =1+1'
+      ' =1+1 resource_id: exported cell is still formula-like: ' =1+1'
+      '＝1+1 action: expected "'＝1+1" got '＝1+1'
+      '＝1+1 action: exported cell is still formula-like: '＝1+1'
+      '＝1+1 actor: expected "'＝1+1" got '＝1+1'
+      '＝1+1 actor: exported cell is still formula-like: '＝1+1'
+      '＝1+1 email: expected "'＝1+1" got '＝1+1'
+      '＝1+1 email: exported cell is still formula-like: '＝1+1'
+      '＝1+1 resource_type: expected "'＝1+1" got '＝1+1'
+      '＝1+1 resource_type: exported cell is still formula-like: '＝1+1'
+      '＝1+1 resource_id: expected "'＝1+1" got '＝1+1'
+      '＝1+1 resource_id: exported cell is still formula-like: '＝1+1'
+      '  =1+1 action: expected "'  =1+1" got '  =1+1'
+      '  =1+1 action: exported cell is still formula-like: '  =1+1'
+      '  =1+1 actor: expected "'  =1+1" got '  =1+1'
+      '  =1+1 actor: exported cell is still formula-like: '  =1+1'
+      '  =1+1 email: expected "'  =1+1" got '  =1+1'
+      '  =1+1 email: exported cell is still formula-like: '  =1+1'
+      '  =1+1 resource_type: expected "'  =1+1" got '  =1+1'
+      '  =1+1 resource_type: exported cell is still formula-like: '  =1+1'
+      '  =1+1 resource_id: expected "'  =1+1" got '  =1+1'
+      '  =1+1 resource_id: exported cell is still formula-like: '  =1+1'
+      '   +SUM(A1) action: expected "'   +SUM(A1)" got '   +SUM(A1)'
+      '   +SUM(A1) action: exported cell is still formula-like: '   +SUM(A1)'
+      '   +SUM(A1) actor: expected "'   +SUM(A1)" got '   +SUM(A1)'
+      '   +SUM(A1) actor: exported cell is still formula-like: '   +SUM(A1)'
+      '   +SUM(A1) email: expected "'   +SUM(A1)" got '   +SUM(A1)'
+      '   +SUM(A1) email: exported cell is still formula-like: '   +SUM(A1)'
+      '   +SUM(A1) resource_type: expected "'   +SUM(A1)" got '   +SUM(A1)'
+      '   +SUM(A1) resource_type: exported cell is still formula-like: '   +SUM(A1)'
+      '   +SUM(A1) resource_id: expected "'   +SUM(A1)" got '   +SUM(A1)'
+      '   +SUM(A1) resource_id: exported cell is still formula-like: '   +SUM(A1)'
+      ' -2+3 action: expected "' -2+3" got ' -2+3'
+      ' -2+3 action: exported cell is still formula-like: ' -2+3'
+      ' -2+3 actor: expected "' -2+3" got ' -2+3'
+      ' -2+3 actor: exported cell is still formula-like: ' -2+3'
+      ' -2+3 email: expected "' -2+3" got ' -2+3'
+      ' -2+3 email: exported cell is still formula-like: ' -2+3'
+      ' -2+3 resource_type: expected "' -2+3" got ' -2+3'
+      ' -2+3 resource_type: exported cell is still formula-like: ' -2+3'
+      ' -2+3 resource_id: expected "' -2+3" got ' -2+3'
+      ' -2+3 resource_id: exported cell is still formula-like: ' -2+3'
+      '	@SUM(A1) action: expected "'\t@SUM(A1)" got '\t@SUM(A1)'
+      '	@SUM(A1) action: exported cell is still formula-like: '\t@SUM(A1)'
+      '	@SUM(A1) actor: expected "'\t@SUM(A1)" got '\t@SUM(A1)'
+      '	@SUM(A1) actor: exported cell is still formula-like: '\t@SUM(A1)'
+      '	@SUM(A1) email: expected "'\t@SUM(A1)" got '\t@SUM(A1)'
+      '	@SUM(A1) email: exported cell is still formula-like: '\t@SUM(A1)'
+      '	@SUM(A1) resource_type: expected "'\t@SUM(A1)" got '\t@SUM(A1)'
+      '	@SUM(A1) resource_type: exported cell is still formula-like: '\t@SUM(A1)'
+      '	@SUM(A1) resource_id: expected "'\t@SUM(A1)" got '\t@SUM(A1)'
+      '	@SUM(A1) resource_id: exported cell is still formula-like: '\t@SUM(A1)'
+      ' 	=1+1 action: expected "' \t=1+1" got ' \t=1+1'
+      ' 	=1+1 action: exported cell is still formula-like: ' \t=1+1'
+      ' 	=1+1 actor: expected "' \t=1+1" got ' \t=1+1'
+      ' 	=1+1 actor: exported cell is still formula-like: ' \t=1+1'
+      ' 	=1+1 email: expected "' \t=1+1" got ' \t=1+1'
+      ' 	=1+1 email: exported cell is still formula-like: ' \t=1+1'
+      ' 	=1+1 resource_type: expected "' \t=1+1" got ' \t=1+1'
+      ' 	=1+1 resource_type: exported cell is still formula-like: ' \t=1+1'
+      ' 	=1+1 resource_id: expected "' \t=1+1" got ' \t=1+1'
+      ' 	=1+1 resource_id: exported cell is still formula-like: ' \t=1+1'
+      '@auditor.example action: expected "'@auditor.example" got '@auditor.example'
+      '@auditor.example action: exported cell is still formula-like: '@auditor.example'
+      '@auditor.example actor: expected "'@auditor.example" got '@auditor.example'
+      '@auditor.example actor: exported cell is still formula-like: '@auditor.example'
+      '@auditor.example email: expected "'@auditor.example" got '@auditor.example'
+      '@auditor.example email: exported cell is still formula-like: '@auditor.example'
+      '@auditor.example resource_type: expected "'@auditor.example" got '@auditor.example'
+      '@auditor.example resource_type: exported cell is still formula-like: '@auditor.example'
+      '@auditor.example resource_id: expected "'@auditor.example" got '@auditor.example'
+      '@auditor.example resource_id: exported cell is still formula-like: '@auditor.example'
+      auditor@example.invalid details: expected "'-42" got '-42'
+      auditor@example.invalid details: exported cell is still formula-like: '-42'
+    assert not ['\'=1+1 action: expected "\'=1+1" got \'=1+1\'', "'=1+1 action: exported cell is still formula-like: '=1+1'", '\'=1+1...1+1'", '\'=1+1 email: expected "\'=1+1" got \'=1+1\'', "'=1+1 email: exported cell is still formula-like: '=1+1'", ...]
+/agent/repos/trust-copilot/apps/api/tests/release/test_audit_export_csv.py:331: AssertionError: audit CSV cells
+E   AssertionError: carriage-return audit cells
+      missing quoted neutralized cell '"\'\r=1+1"' for '\r=1+1'
+      raw formula cell still present for '\r=1+1'
+      missing quoted neutralized cell '"\'\r+1"' for '\r+1'
+      raw formula cell still present for '\r+1'
+      missing quoted neutralized cell '"\' \r=1+1"' for ' \r=1+1'
+      raw formula cell still present for ' \r=1+1'
+      action not neutralized once: ' \r=1+1'
+      action still formula-like: ' \r=1+1'
+      email not neutralized once: ' \r=1+1'
+      email still formula-like: ' \r=1+1'
+      resource_id not neutralized once: ' \r=1+1'
+      resource_id still formula-like: ' \r=1+1'
+      action not neutralized once: '\r+1'
+      action still formula-like: '\r+1'
+      email not neutralized once: '\r+1'
+      email still formula-like: '\r+1'
+      resource_id not neutralized once: '\r+1'
+      resource_id still formula-like: '\r+1'
+      action not neutralized once: '\r=1+1'
+      action still formula-like: '\r=1+1'
+      email not neutralized once: '\r=1+1'
+      email still formula-like: '\r=1+1'
+      resource_id not neutralized once: '\r=1+1'
+      resource_id still formula-like: '\r=1+1'
+    assert not ['missing quoted neutralized cell \'"\\\'\\r=1+1"\' for \'\\r=1+1\'', "raw formula cell still present for '\\r=1+1'", ...ing quoted neutralized cell \'"\\\' \\r=1+1"\' for \' \\r=1+1\'', "raw formula cell still present for ' \\r=1+1'", ...]
+/agent/repos/trust-copilot/apps/api/tests/release/test_audit_export_csv.py:383: AssertionError: carriage-return audit cells
+E   AssertionError: audit export neutralizer
+      action: expected "'=1+1" got '=1+1'
+      actor: expected "'=1+1" got '=1+1'
+      email: expected "'=1+1" got '=1+1'
+      resource_type: expected "'=1+1" got '=1+1'
+      resource_id: expected "'=1+1" got '=1+1'
+      neutralize_csv_cell calls for '=1+1': 0 (expected 5); calls=[]
+    assert not ['action: expected "\'=1+1" got \'=1+1\'', 'actor: expected "\'=1+1" got \'=1+1\'', 'email: expected "\'=1+1" got \'=1...+1\'', 'resource_id: expected "\'=1+1" got \'=1+1\'', "neutralize_csv_cell calls for '=1+1': 0 (expected 5); calls=[]"]
+/agent/repos/trust-copilot/apps/api/tests/release/test_audit_export_csv.py:438: AssertionError: audit export neutralizer
+E   ImportError: cannot import name 'render_audit_history_csv' from 'app.api.routes.compliance_audit' (/agent/repos/trust-copilot/apps/api/app/api/routes/compliance_audit.py)
+/agent/repos/trust-copilot/apps/api/tests/release/test_audit_export_csv.py:492: ImportError: cannot import name 'render_audit_history_csv' from 'app.api.routes.compliance_audit' (/agent/repos/trust-copilot/apps/api/app/api/routes/compliance_audit.py)
+E   ImportError: cannot import name 'render_audit_history_csv' from 'app.api.routes.compliance_audit' (/agent/repos/trust-copilot/apps/api/app/api/routes/compliance_audit.py)
+/agent/repos/trust-copilot/apps/api/tests/release/test_audit_export_csv.py:492: ImportError: cannot import name 'render_audit_history_csv' from 'app.api.routes.compliance_audit' (/agent/repos/trust-copilot/apps/api/app/api/routes/compliance_audit.py)
+E   ImportError: cannot import name 'render_audit_history_csv' from 'app.api.routes.compliance_audit' (/agent/repos/trust-copilot/apps/api/app/api/routes/compliance_audit.py)
+/agent/repos/trust-copilot/apps/api/tests/release/test_audit_export_csv.py:492: ImportError: cannot import name 'render_audit_history_csv' from 'app.api.routes.compliance_audit' (/agent/repos/trust-copilot/apps/api/app/api/routes/compliance_audit.py)
+E   ImportError: cannot import name 'render_audit_history_csv' from 'app.api.routes.compliance_audit' (/agent/repos/trust-copilot/apps/api/app/api/routes/compliance_audit.py)
+/agent/repos/trust-copilot/apps/api/tests/release/test_audit_export_csv.py:492: ImportError: cannot import name 'render_audit_history_csv' from 'app.api.routes.compliance_audit' (/agent/repos/trust-copilot/apps/api/app/api/routes/compliance_audit.py)
+=============================== warnings summary ===============================
+tests/release/test_audit_export_csv.py::test_endpoint_neutralizes_formula_text_and_keeps_benign_cells
+tests/release/test_audit_export_csv.py::test_endpoint_neutralizes_formula_text_and_keeps_benign_cells
+tests/release/test_audit_export_csv.py::test_endpoint_quotes_neutralized_carriage_return_cells
+tests/release/test_audit_export_csv.py::test_endpoint_quotes_neutralized_carriage_return_cells
+tests/release/test_audit_export_csv.py::test_endpoint_neutralizes_each_text_cell_once
+tests/release/test_audit_export_csv.py::test_endpoint_neutralizes_each_text_cell_once
+tests/release/test_audit_export_csv.py::test_json_export_keeps_formula_text_unchanged
+tests/release/test_audit_export_csv.py::test_json_export_keeps_formula_text_unchanged
+  /tmp/tc-api-venv/lib/python3.12/site-packages/sqlalchemy/sql/schema.py:3627: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    return util.wrap_callable(lambda ctx: fn(), fn)  # type: ignore
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED tests/release/test_audit_export_csv.py::test_endpoint_neutralizes_formula_text_and_keeps_benign_cells
+FAILED tests/release/test_audit_export_csv.py::test_endpoint_quotes_neutralized_carriage_return_cells
+FAILED tests/release/test_audit_export_csv.py::test_endpoint_neutralizes_each_text_cell_once
+FAILED tests/release/test_audit_export_csv.py::test_writer_neutralizes_formula_text_once
+FAILED tests/release/test_audit_export_csv.py::test_writer_keeps_negative_integers_and_neutralizes_the_same_text
+FAILED tests/release/test_audit_export_csv.py::test_writer_applies_neutralizer_once_per_text_cell
+FAILED tests/release/test_audit_export_csv.py::test_writer_empty_export_is_the_header_only
+7 failed, 25 passed, 8 warnings in 2.06s
