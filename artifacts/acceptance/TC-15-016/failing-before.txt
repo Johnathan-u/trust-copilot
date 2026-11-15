@@ -1,14 +1,14 @@
 [WebServer] ⚠ The "middleware" file convention is deprecated. Please use "proxy" instead.
-[WebServer] 
+[WebServer]
 [WebServer]   To migrate automatically, run:
 [WebServer]   npx @next/codemod@canary middleware-to-proxy .
-[WebServer] 
+[WebServer]
 [WebServer]   Learn more: https://nextjs.org/docs/messages/middleware-to-proxy
 [WebServer] ⚠ The "middleware" file convention is deprecated. Please use "proxy" instead.
-[WebServer] 
+[WebServer]
 [WebServer]   To migrate automatically, run:
 [WebServer]   npx @next/codemod@canary middleware-to-proxy .
-[WebServer] 
+[WebServer]
 [WebServer]   Learn more: https://nextjs.org/docs/messages/middleware-to-proxy
 
 Running 14 tests using 1 worker
@@ -57,7 +57,7 @@ Running 14 tests using 1 worker
   ✘  14 [chromium] › e2e/release/ui-15.spec.ts:781:7 › documents stay usable at 1440px (1.5m)
 
 
-  1) [chromium] › e2e/release/ui-15.spec.ts:351:5 › search is debounced, stale responses are dropped, and page or sort are not sent 
+  1) [chromium] › e2e/release/ui-15.spec.ts:351:5 › search is debounced, stale responses are dropped, and page or sort are not sent
 
     Error: expect(locator).toBeVisible() failed
 
@@ -86,7 +86,7 @@ Running 14 tests using 1 worker
 
     Error Context: test-results/release-ui-15-search-is-de-6a970-d-page-or-sort-are-not-sent-chromium/error-context.md
 
-  2) [chromium] › e2e/release/ui-15.spec.ts:410:5 › selection resets when the filter or workspace changes and states its scope 
+  2) [chromium] › e2e/release/ui-15.spec.ts:410:5 › selection resets when the filter or workspace changes and states its scope
 
     Error: expect(locator).toBeVisible() failed
 
@@ -115,7 +115,7 @@ Running 14 tests using 1 worker
 
     Error Context: test-results/release-ui-15-selection-re-a2c2b-hanges-and-states-its-scope-chromium/error-context.md
 
-  3) [chromium] › e2e/release/ui-15.spec.ts:445:5 › no documents, no matches, and a failed read are different states 
+  3) [chromium] › e2e/release/ui-15.spec.ts:445:5 › no documents, no matches, and a failed read are different states
 
     Test timeout of 90000ms exceeded.
 
@@ -139,7 +139,7 @@ Running 14 tests using 1 worker
 
     Error Context: test-results/release-ui-15-no-documents-0221c-d-read-are-different-states-chromium/error-context.md
 
-  4) [chromium] › e2e/release/ui-15.spec.ts:467:5 › accepted formats and the size limit show before a file is chosen 
+  4) [chromium] › e2e/release/ui-15.spec.ts:467:5 › accepted formats and the size limit show before a file is chosen
 
     Error: expect(locator).toBeVisible() failed
 
@@ -197,7 +197,7 @@ Running 14 tests using 1 worker
 
     Error Context: test-results/release-ui-15-a-failed-index-job-is-not-shown-as-indexed-chromium/error-context.md
 
-  6) [chromium] › e2e/release/ui-15.spec.ts:544:5 › retry follows a listed index job, and missing source fields stay unreported 
+  6) [chromium] › e2e/release/ui-15.spec.ts:544:5 › retry follows a listed index job, and missing source fields stay unreported
 
     Error: expect(locator).toBeVisible() failed
 
@@ -255,7 +255,7 @@ Running 14 tests using 1 worker
 
     Error Context: test-results/release-ui-15-editors-do-not-see-index-retry-chromium/error-context.md
 
-  8) [chromium] › e2e/release/ui-15.spec.ts:613:5 › metadata and restore dialogs wait for the response before confirming 
+  8) [chromium] › e2e/release/ui-15.spec.ts:613:5 › metadata and restore dialogs wait for the response before confirming
 
     Test timeout of 90000ms exceeded.
 
@@ -279,7 +279,7 @@ Running 14 tests using 1 worker
 
     Error Context: test-results/release-ui-15-metadata-and-fbdc7--response-before-confirming-chromium/error-context.md
 
-  9) [chromium] › e2e/release/ui-15.spec.ts:677:5 › archive and delete are different destructive actions 
+  9) [chromium] › e2e/release/ui-15.spec.ts:677:5 › archive and delete are different destructive actions
 
     Error: expect(locator).toBeVisible() failed
 
@@ -308,7 +308,7 @@ Running 14 tests using 1 worker
 
     Error Context: test-results/release-ui-15-archive-and--d8856-fferent-destructive-actions-chromium/error-context.md
 
-  10) [chromium] › e2e/release/ui-15.spec.ts:728:5 › reviewers do not see upload, row actions, or delete 
+  10) [chromium] › e2e/release/ui-15.spec.ts:728:5 › reviewers do not see upload, row actions, or delete
 
     Error: expect(locator).toHaveCount(expected) failed
 
@@ -339,7 +339,7 @@ Running 14 tests using 1 worker
 
     Error Context: test-results/release-ui-15-reviewers-do-910e3-pload-row-actions-or-delete-chromium/error-context.md
 
-  11) [chromium] › e2e/release/ui-15.spec.ts:747:5 › date and filter fields are labelled and selected filters are chips 
+  11) [chromium] › e2e/release/ui-15.spec.ts:747:5 › date and filter fields are labelled and selected filters are chips
 
     Error: expect(locator).toBeVisible() failed
 
@@ -448,17 +448,17 @@ Running 14 tests using 1 worker
     Error Context: test-results/release-ui-15-documents-stay-usable-at-1440px-chromium/error-context.md
 
   14 failed
-    [chromium] › e2e/release/ui-15.spec.ts:351:5 › search is debounced, stale responses are dropped, and page or sort are not sent 
-    [chromium] › e2e/release/ui-15.spec.ts:410:5 › selection resets when the filter or workspace changes and states its scope 
-    [chromium] › e2e/release/ui-15.spec.ts:445:5 › no documents, no matches, and a failed read are different states 
-    [chromium] › e2e/release/ui-15.spec.ts:467:5 › accepted formats and the size limit show before a file is chosen 
+    [chromium] › e2e/release/ui-15.spec.ts:351:5 › search is debounced, stale responses are dropped, and page or sort are not sent
+    [chromium] › e2e/release/ui-15.spec.ts:410:5 › selection resets when the filter or workspace changes and states its scope
+    [chromium] › e2e/release/ui-15.spec.ts:445:5 › no documents, no matches, and a failed read are different states
+    [chromium] › e2e/release/ui-15.spec.ts:467:5 › accepted formats and the size limit show before a file is chosen
     [chromium] › e2e/release/ui-15.spec.ts:517:5 › a failed index job is not shown as indexed ──────
-    [chromium] › e2e/release/ui-15.spec.ts:544:5 › retry follows a listed index job, and missing source fields stay unreported 
+    [chromium] › e2e/release/ui-15.spec.ts:544:5 › retry follows a listed index job, and missing source fields stay unreported
     [chromium] › e2e/release/ui-15.spec.ts:599:5 › editors do not see index retry ──────────────────
-    [chromium] › e2e/release/ui-15.spec.ts:613:5 › metadata and restore dialogs wait for the response before confirming 
-    [chromium] › e2e/release/ui-15.spec.ts:677:5 › archive and delete are different destructive actions 
-    [chromium] › e2e/release/ui-15.spec.ts:728:5 › reviewers do not see upload, row actions, or delete 
-    [chromium] › e2e/release/ui-15.spec.ts:747:5 › date and filter fields are labelled and selected filters are chips 
+    [chromium] › e2e/release/ui-15.spec.ts:613:5 › metadata and restore dialogs wait for the response before confirming
+    [chromium] › e2e/release/ui-15.spec.ts:677:5 › archive and delete are different destructive actions
+    [chromium] › e2e/release/ui-15.spec.ts:728:5 › reviewers do not see upload, row actions, or delete
+    [chromium] › e2e/release/ui-15.spec.ts:747:5 › date and filter fields are labelled and selected filters are chips
     [chromium] › e2e/release/ui-15.spec.ts:781:7 › documents stay usable at 360px ──────────────────
     [chromium] › e2e/release/ui-15.spec.ts:781:7 › documents stay usable at 768px ──────────────────
     [chromium] › e2e/release/ui-15.spec.ts:781:7 › documents stay usable at 1440px ─────────────────

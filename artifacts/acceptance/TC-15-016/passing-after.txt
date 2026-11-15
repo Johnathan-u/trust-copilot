@@ -1,14 +1,14 @@
 [WebServer] ⚠ The "middleware" file convention is deprecated. Please use "proxy" instead.
-[WebServer] 
+[WebServer]
 [WebServer]   To migrate automatically, run:
 [WebServer]   npx @next/codemod@canary middleware-to-proxy .
-[WebServer] 
+[WebServer]
 [WebServer]   Learn more: https://nextjs.org/docs/messages/middleware-to-proxy
 [WebServer] ⚠ The "middleware" file convention is deprecated. Please use "proxy" instead.
-[WebServer] 
+[WebServer]
 [WebServer]   To migrate automatically, run:
 [WebServer]   npx @next/codemod@canary middleware-to-proxy .
-[WebServer] 
+[WebServer]
 [WebServer]   Learn more: https://nextjs.org/docs/messages/middleware-to-proxy
 
 Running 14 tests using 1 worker
