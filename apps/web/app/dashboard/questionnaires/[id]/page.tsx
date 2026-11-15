@@ -321,7 +321,9 @@ export default function QuestionnaireDetailPage() {
           <p
             role={meta?.error ? 'alert' : 'status'}
             className={`mt-3 max-w-2xl text-sm ${
-              meta?.error ? 'text-[var(--tc-danger)]' : 'text-[var(--tc-warning)]'
+              meta?.error
+                ? 'text-[var(--tc-danger)]'
+                : 'text-[var(--tc-warning)]'
             }`}
           >
             {parseNotice}
