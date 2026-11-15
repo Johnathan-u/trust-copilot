@@ -663,6 +663,84 @@ def test_current_mapping_writes_the_answer_cell_not_the_neighbor(monkeypatch) ->
     assert _MAPPED_ANSWER not in _cell(body, "B2")
 
 
+class EndpointConnectionError(Exception):
+    """Shape-compatible with botocore's connection error. Classification is by class name."""
+
+
+class ClientError(Exception):
+    """Shape-compatible with botocore ClientError. The body is not a safe message."""
+
+    def __init__(self, code: str, status: int) -> None:
+        super().__init__(f"An error occurred ({code}) PRIVATE storage body")
+        self.response = {"Error": {"Code": code}, "ResponseMetadata": {"HTTPStatusCode": status}}
+
+
+def _flaky_upload(store: _Store, exc: BaseException):
+    calls = {"n": 0}
+
+    def upload(bucket: str, key: str, body, content_type: str | None = None) -> str:
+        calls["n"] += 1
+        if calls["n"] == 1:
+            raise exc
+        data = body.read() if hasattr(body, "read") else body
+        store.uploads.append((key, bytes(data), content_type))
+        return key
+
+    store.upload = upload
+    return calls
+
+
+@pytest.mark.parametrize(
+    "exc",
+    [EndpointConnectionError("PRIVATE endpoint"), ClientError("ServiceUnavailable", 503)],
+)
+def test_transient_storage_error_retries_then_completes(monkeypatch, exc: Exception) -> None:
+    from app.core.job_errors import classify, is_retryable_code
+
+    blob = _xlsx_bytes()
+    worker, job, session, store, failure_db, payload = _prepare(
+        monkeypatch, blob, filename="customer.xlsx", fmt="xlsx"
+    )
+    job.attempt = 1
+    job.max_attempts = 3
+    _flaky_upload(store, exc)
+    with pytest.raises(type(exc)) as caught:
+        worker.run_export(job, session, payload)
+    assert is_retryable_code(classify(caught.value)) is True
+    assert "PRIVATE" not in failure_db.added.__repr__()
+    assert failure_db.added == []
+    assert failure_db.committed is False
+    job.attempt = 2
+    worker.run_export(job, session, payload)
+    assert len(store.uploads) == 1
+    assert store.uploads[0][0].endswith(".xlsx")
+    completed = [obj for obj in session.added if type(obj).__name__ == "ExportRecord"]
+    assert completed and completed[-1].status == "completed"
+    assert failure_db.added == []
+
+
+def test_persistent_storage_error_fails_on_the_last_attempt(monkeypatch) -> None:
+    blob = _xlsx_bytes()
+    worker, job, session, store, failure_db, payload = _prepare(
+        monkeypatch, blob, filename="customer.xlsx", fmt="xlsx"
+    )
+    job.attempt = 3
+    job.max_attempts = 3
+
+    def explode(*args, **kwargs):
+        raise ClientError("ServiceUnavailable", 503)
+
+    store.upload = explode
+    with pytest.raises(Exception) as caught:
+        worker.run_export(job, session, payload)
+    _assert_fixed(caught.value, STORAGE_FAILED, STORAGE_FAILED_MESSAGE)
+    assert "PRIVATE" not in str(caught.value)
+    assert store.uploads == []
+    record = _failed_record(failure_db)
+    assert record.status == "failed"
+    assert record.filename.endswith(".xlsx")
+
+
 def test_download_of_stale_mapping_is_the_mapping_conflict() -> None:
     from app.api.routes.exports import get_download_url
 

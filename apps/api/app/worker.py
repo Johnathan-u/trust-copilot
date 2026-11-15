@@ -835,8 +835,17 @@ def run_export(job: Job, session, payload: dict) -> None:
         confirm_lease_for_commit(session, job.id, owner)
     try:
         key = file_svc.upload_export(ws_id, out_bytes, out_filename, job_id=job.id)
-    except Exception:
+    except Exception as exc:
+        # TC-10-002 still retries a transient storage error. A failed export row
+        # is recorded only when the error cannot be retried or this is the last
+        # attempt. The stored message stays the fixed one either way.
+        attempt = int(getattr(job, "attempt", None) or 0)
+        remaining = is_retryable_code(classify(exc)) and attempt < effective_max_attempts(
+            getattr(job, "max_attempts", None)
+        )
         session.rollback()
+        if remaining:
+            raise
         _record_failed_export(job, payload)
         from app.core.job_errors import EXPORT_STORAGE_FAILED
         from app.services.export_service import EXPORT_STORAGE_FAILED_MESSAGE
