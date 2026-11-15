@@ -71,6 +71,8 @@ from app.core.job_lease import (  # noqa: E402
 )
 from app.services.file_service import FileService  # noqa: E402
 from app.services.storage import StorageClient  # noqa: E402
+from app.services.cell_mapping import annotate_question_provenance  # noqa: E402
+from app.services.csv_questionnaire_parser import parse_csv_questionnaire  # noqa: E402
 from app.services.docx_questionnaire_parser import parse_docx_questionnaire  # noqa: E402
 from app.services.pdf_questionnaire_parser import parse_pdf_questionnaire  # noqa: E402  (hard-imports pypdf: fails at worker startup if missing)
 from app.services.pdf_text import PdfTextError  # noqa: E402
@@ -307,7 +309,7 @@ def run_parse_questionnaire(job: Job, session, payload: dict) -> None:
         _set_outcome(job, "superseded", reason=stale)
         return
     ext = Path(qnr.filename or storage_key or "").suffix.lower()
-    if ext not in (".xlsx", ".xls", ".docx", ".doc", ".pdf"):
+    if ext not in (".xlsx", ".xls", ".docx", ".doc", ".pdf", ".csv"):
         ext = ".xlsx"
     storage = StorageClient()
     file_svc = FileService(storage)
@@ -319,7 +321,11 @@ def run_parse_questionnaire(job: Job, session, payload: dict) -> None:
         if ext in (".docx", ".doc"):
             questions = parse_docx_questionnaire(path)
         elif ext == ".pdf":
-            questions = parse_pdf_questionnaire(path)
+            questions = annotate_question_provenance(
+                parse_pdf_questionnaire(path), content, kind="pdf"
+            )
+        elif ext == ".csv":
+            questions = parse_csv_questionnaire(path)
         else:
             questions = parse_xlsx_questionnaire(path)
         # Serialize concurrent parses of the same questionnaire and re-check under the lock.
@@ -364,6 +370,12 @@ def run_parse_questionnaire(job: Job, session, payload: dict) -> None:
                     section=q.get("section"),
                     answer_type=q.get("answer_type"),
                     source_location=q.get("source_location"),
+                    content_hash=q.get("content_hash"),
+                    original_file_hash=q.get("original_file_hash"),
+                    sheet=q.get("sheet"),
+                    question_cell=q.get("question_cell"),
+                    answer_cell=q.get("answer_cell"),
+                    mapping_version=q.get("mapping_version") or 0,
                     confidence=q.get("confidence"),
                 )
             )

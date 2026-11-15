@@ -55,5 +55,15 @@ class Question(Base):
     section = Column(String(255), nullable=True)
     answer_type = Column(String(64), nullable=True)
     source_location = Column(Text, nullable=True)
+    # SHA-256 of the stored question text. Null on rows that predate the column
+    # until a migration backfill or a new parse fills it.
+    content_hash = Column(String(64), nullable=True)
+    # SHA-256 of the original file bytes. Null when those bytes were not kept.
+    original_file_hash = Column(String(64), nullable=True)
+    sheet = Column(String(255), nullable=True)
+    question_cell = Column(String(64), nullable=True)
+    answer_cell = Column(String(64), nullable=True)
+    # 0 means no explicit answer cell was stored. Later imports store the ruleset.
+    mapping_version = Column(Integer, nullable=False, default=0, server_default="0")
     confidence = Column(Integer, nullable=True)
     created_at = Column(DateTime, default=_utc_now)

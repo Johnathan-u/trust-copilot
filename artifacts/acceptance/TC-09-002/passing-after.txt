@@ -1,0 +1,18 @@
+command: python -m pytest tests/release/test_cell_mapping.py -q
+tested_sha: fb14e22f7c2b90d7a96b458cc422aaf20274a424
+master_sha: 0e8cb32496a7847a727d89ed54753990b91a3127
+when: 2026-11-15T16:13:39Z
+python: Python 3.12.3
+postgres: 16.15 (Ubuntu 16.15-0ubuntu0.24.04.1)
+cwd: apps/api
+----
+...........                                                              [100%]
+=============================== warnings summary ===============================
+tests/release/test_cell_mapping.py::test_parsed_questions_keep_mapping_on_the_questionnaire
+tests/release/test_cell_mapping.py::test_parsed_questions_keep_mapping_on_the_questionnaire
+  /tmp/tc-venv/lib/python3.12/site-packages/sqlalchemy/sql/schema.py:3627: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    return util.wrap_callable(lambda ctx: fn(), fn)  # type: ignore
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+11 passed, 2 warnings in 5.75s
+exit_status: 0

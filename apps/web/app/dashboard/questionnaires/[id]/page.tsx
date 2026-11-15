@@ -18,6 +18,23 @@ interface ParsedQuestion {
   text: string
   section: string | null
   answer_type: string | null
+  sheet?: string | null
+  question_cell?: string | null
+  answer_cell?: string | null
+  content_hash?: string | null
+  original_file_hash?: string | null
+  mapping_version?: number | null
+}
+
+function sourceLabel(question: ParsedQuestion): string {
+  const origin = [question.sheet, question.question_cell]
+    .filter(Boolean)
+    .join(' ')
+  if (question.answer_cell) {
+    return origin ? `${origin} → ${question.answer_cell}` : question.answer_cell
+  }
+  if (origin) return `${origin} (no answer cell)`
+  return '—'
 }
 
 interface DocRow {
@@ -511,6 +528,12 @@ export default function QuestionnaireDetailPage() {
           <h2 className="font-semibold text-[var(--tc-text)]">
             Parsed questions
           </h2>
+          <p className="mt-1 text-xs text-[var(--tc-muted)]">
+            Each question keeps its text hash, the original file hash, and the
+            sheet, question cell and answer cell from import. The answer cell is
+            that stored target. A column between them, such as owner, is not the
+            answer.
+          </p>
         </div>
         {qnr.questions?.length > 0 ? (
           <div className="overflow-x-auto">
@@ -532,6 +555,9 @@ export default function QuestionnaireDetailPage() {
                   <th className="text-left p-3 font-medium text-[var(--tc-muted)]">
                     Type
                   </th>
+                  <th className="text-left p-3 font-medium text-[var(--tc-muted)]">
+                    Source
+                  </th>
                 </tr>
               </thead>
               <tbody>
@@ -544,6 +570,26 @@ export default function QuestionnaireDetailPage() {
                     </td>
                     <td className="p-3 text-[var(--tc-muted)]">
                       {q.answer_type || '-'}
+                    </td>
+                    <td
+                      className="p-3 text-[var(--tc-muted)]"
+                      title={[
+                        q.content_hash ? `Text hash ${q.content_hash}` : '',
+                        q.original_file_hash
+                          ? `File hash ${q.original_file_hash}`
+                          : '',
+                        `Mapping version ${q.mapping_version ?? 0}`,
+                      ]
+                        .filter(Boolean)
+                        .join('\n')}
+                    >
+                      <div>{sourceLabel(q)}</div>
+                      <div className="text-xs">
+                        v{q.mapping_version ?? 0}
+                        {q.content_hash
+                          ? ` · ${q.content_hash.slice(0, 8)}`
+                          : ''}
+                      </div>
                     </td>
                   </tr>
                 ))}

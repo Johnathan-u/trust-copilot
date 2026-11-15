@@ -64,6 +64,38 @@ def looks_like_question(text: str | None) -> bool:
     return "?" in t[-50:]
 
 
+_COLUMN_ROLES = {
+    "question": "question",
+    "questions": "question",
+    "question text": "question",
+    "inquiry": "question",
+    "requirement": "question",
+    "owner": "owner",
+    "owners": "owner",
+    "assigned to": "owner",
+    "assignee": "owner",
+    "responsible": "owner",
+    "responsible party": "owner",
+    "answer": "answer",
+    "answers": "answer",
+    "response": "answer",
+    "responses": "answer",
+    "reply": "answer",
+    "vendor response": "answer",
+    "vendor answer": "answer",
+    "answer text": "answer",
+}
+
+
+def column_role(text: str | None) -> str | None:
+    """Return question, owner or answer when the cell is exactly that column header."""
+    if not text or not isinstance(text, str):
+        return None
+    label = re.sub(r"\s+", " ", text.strip().lower())
+    label = re.sub(r"[:*]+$", "", label).strip()
+    return _COLUMN_ROLES.get(label)
+
+
 def looks_like_section_header(text: str | None) -> bool:
     """Heuristic: does this look like a section header?"""
     if not text or not isinstance(text, str):

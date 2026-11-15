@@ -12,6 +12,7 @@ from sqlalchemy.orm import Session
 from app.core.auth_deps import require_can_admin, require_can_export, require_can_review
 from app.core.database import get_db
 from app.models import AuditEvent, User, Workspace, WorkspaceMember
+from app.services.fallback_export import neutralize_csv_cell
 
 router = APIRouter(prefix="/compliance", tags=["compliance-audit"])
 
@@ -57,6 +58,66 @@ def _audit_rows(db: Session, workspace_id: int, limit: int) -> list[dict]:
     return out
 
 
+# id and user_id are database integers, not attacker-controlled text. They are
+# written as canonical decimals, including a leading minus, so a spreadsheet
+# keeps them as numbers. A non-integer in those columns is text and is
+# neutralized. Every other column is untrusted text and is neutralized once.
+_AUDIT_CSV_HEADER = (
+    "id",
+    "occurred_at",
+    "action",
+    "actor",
+    "user_id",
+    "email",
+    "resource_type",
+    "resource_id",
+    "details",
+)
+_AUDIT_CSV_INTEGER_COLUMNS = frozenset({"id", "user_id"})
+
+
+def _audit_csv_integer(value: object) -> object:
+    if value is None or value == "":
+        return ""
+    if isinstance(value, int) and not isinstance(value, bool):
+        return value
+    return neutralize_csv_cell(value)
+
+
+def render_audit_history_csv(rows: list[dict]) -> str:
+    """Serialize audit rows to CSV with formula-like text cells neutralized once."""
+    if not rows:
+        return "id,occurred_at,action,actor,user_id,email,resource_type,resource_id,details\n"
+    out = io.StringIO()
+    writer = csv.writer(out)
+    writer.writerow(_AUDIT_CSV_HEADER)
+    for row in rows:
+        details = row.get("details")
+        details_text = json.dumps(details) if details is not None else ""
+        values = {
+            "id": row.get("id"),
+            "occurred_at": row.get("occurred_at"),
+            "action": row.get("action"),
+            "actor": row.get("actor"),
+            "user_id": row.get("user_id"),
+            "email": row.get("email"),
+            "resource_type": row.get("resource_type"),
+            "resource_id": row.get("resource_id"),
+            "details": details_text,
+        }
+        writer.writerow(
+            [
+                (
+                    _audit_csv_integer(values[column])
+                    if column in _AUDIT_CSV_INTEGER_COLUMNS
+                    else neutralize_csv_cell(values[column])
+                )
+                for column in _AUDIT_CSV_HEADER
+            ]
+        )
+    return out.getvalue()
+
+
 @router.get("/audit-history", response_model=list)
 def get_compliance_audit_history(
     limit: int = Query(200, ge=1, le=500),
@@ -83,40 +144,7 @@ def export_compliance_audit_history(
         raise HTTPException(status_code=403, detail="No workspace")
     data = _audit_rows(db, ws, limit)
     if (format or "").lower() == "csv":
-        if not data:
-            body = "id,occurred_at,action,actor,user_id,email,resource_type,resource_id,details\n"
-        else:
-            out = io.StringIO()
-            writer = csv.writer(out)
-            writer.writerow(
-                [
-                    "id",
-                    "occurred_at",
-                    "action",
-                    "actor",
-                    "user_id",
-                    "email",
-                    "resource_type",
-                    "resource_id",
-                    "details",
-                ]
-            )
-            for row in data:
-                details_str = json.dumps(row["details"]) if row.get("details") is not None else ""
-                writer.writerow(
-                    [
-                        row.get("id"),
-                        row.get("occurred_at"),
-                        row.get("action"),
-                        row.get("actor"),
-                        row.get("user_id"),
-                        row.get("email"),
-                        row.get("resource_type"),
-                        row.get("resource_id"),
-                        details_str,
-                    ]
-                )
-            body = out.getvalue()
+        body = render_audit_history_csv(data)
         return Response(
             content=body,
             media_type="text/csv",
