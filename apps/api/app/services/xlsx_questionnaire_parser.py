@@ -3,16 +3,20 @@
 from pathlib import Path
 
 from app.services.cell_mapping import file_hash, questions_from_grid
-from app.services.xlsx_parser import iter_sheets
+from app.services.xlsx_parser import iter_questionnaire_sheets
 
 
 def parse_xlsx_questionnaire(path: str | Path) -> list[dict]:
-    """Parse XLSX into questions with source locations and answer-cell targets."""
+    """Parse XLSX into questions with source locations and answer-cell targets.
+
+    A workbook that cannot be opened raises WorkbookUnreadable. A readable
+    workbook with no questions returns an empty list.
+    """
     file_path = Path(path)
     data = file_path.read_bytes()
     digest = file_hash(data)
     results: list[dict] = []
-    for sheet_name, rows in iter_sheets(file_path):
+    for sheet_name, rows in iter_questionnaire_sheets(file_path):
 
         def source_for(row: int, col: int, sheet: str = sheet_name) -> dict:
             return {"file": str(file_path), "sheet": sheet, "row": row, "col": col}

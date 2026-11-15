@@ -1,0 +1,198 @@
+Command, from apps/api, against origin/master 6af195d11d1cb03e0ce8ab1297adf8fdf5812458 (product code unchanged; only this test module was present). Exit status 1. 6 failed, 1 passed.
+
+SESSION_SECRET=test-secret TRUST_COPILOT_TESTING=1 python -m pytest tests/release/test_question_detection.py -vv --tb=line -p no:cacheprovider
+
+============================= test session starts ==============================
+platform linux -- Python 3.12.3, pytest-9.1.1, pluggy-1.7.0 -- /tmp/tc-venv/bin/python
+rootdir: /agent/repos/trust-copilot/apps/api
+configfile: pyproject.toml
+plugins: anyio-4.15.1
+collecting ... collected 7 items
+
+tests/release/test_question_detection.py::test_numbered_uppercase_and_unicode_questions_keep_their_sections FAILED [ 14%]
+tests/release/test_question_detection.py::test_each_sheet_starts_its_own_section PASSED [ 28%]
+tests/release/test_question_detection.py::test_corrupt_workbook_fails_with_a_fixed_message[text] FAILED [ 42%]
+tests/release/test_question_detection.py::test_corrupt_workbook_fails_with_a_fixed_message[empty] FAILED [ 57%]
+tests/release/test_question_detection.py::test_corrupt_workbook_fails_with_a_fixed_message[truncated-zip] FAILED [ 71%]
+tests/release/test_question_detection.py::test_zero_question_workbook_is_readable_and_needs_review FAILED [ 85%]
+tests/release/test_question_detection.py::test_corrupt_workbook_fails_before_it_is_marked_parsed FAILED [100%]
+
+=================================== FAILURES ===================================
+E   AssertionError: assert [('¿la organización aplica autenticación multifactor a todos los administradores', 'DO YOU RETAIN AUDIT LOGS FOR AT LEAST ONE YEAR', 'Security'), ('does the company verify mailing addresses for new vendor accounts', 'ADDRESS VERIFICATION', 'Security'), ('is physical access to the production data centre logged and reviewed', '1. ACCESS CONTROL', 'Security'), ('4) is a data processing agreement in place with each subprocessor', 'PRIVACY CONTROLS', 'Privacy'), ('q12. does the company honor data subject access requests within thirty days', 'PRIVACY CONTROLS', 'Privacy')] == [('1. do you enforce multi-factor authentication for all administrators', '1.0 CONTROL ENVIRONMENT', 'Security'), ('2. do you encrypt customer data at rest using aes-256', '1.0 CONTROL ENVIRONMENT', 'Security'), ('do you perform annual risk assessments for every production system', '2.0 RISK ASSESSMENT', 'Security'), ('3. describe the incident response process used after a confirmed breach', '2.0 RISK ASSESSMENT', 'Security'), ('do you retain audit logs for at least one year', '2.0 RISK ASSESSMENT', 'Security'), ('¿la organización aplica autenticación multifactor a todos los administradores', '2.0 RISK ASSESSMENT', 'Security'), ('贵公司是否对所有管理员强制执行多因素认证？', '2.0 RISK ASSESSMENT', 'Security'), ('هل تطبق المؤسسة تشفير البيانات أثناء النقل للعملاء؟', '2.0 RISK ASSESSMENT', 'Security'), ('εφαρμοζετε πολυπαραγοντικη ταυτοποιηση για ολους τους διαχειριστες;', '2.0 RISK ASSESSMENT', 'Security'), ('does the company verify mailing addresses for new vendor accounts', 'ADDRESS VERIFICATION', 'Security'), ('is physical access to the production data centre logged and reviewed', '1. ACCESS CONTROL', 'Security'), ('4) is a data processing agreement in place with each subprocessor', 'PRIVACY CONTROLS', 'Privacy'), ('q12. does the company honor data subject access requests within thirty days', 'PRIVACY CONTROLS', 'Privacy')]
+
+      At index 0 diff: ('¿la organización aplica autenticación multifactor a todos los administradores', 'DO YOU RETAIN AUDIT LOGS FOR AT LEAST ONE YEAR', 'Security') != ('1. do you enforce multi-factor authentication for all administrators', '1.0 CONTROL ENVIRONMENT', 'Security')
+      Right contains 8 more items, first extra item: ('¿la organización aplica autenticación multifactor a todos los administradores', '2.0 RISK ASSESSMENT', 'Security')
+
+      Full diff:
+        [
+      -     (
+      -         '1. do you enforce multi-factor authentication for all administrators',
+      -         '1.0 CONTROL ENVIRONMENT',
+      -         'Security',
+      -     ),
+      -     (
+      -         '2. do you encrypt customer data at rest using aes-256',
+      -         '1.0 CONTROL ENVIRONMENT',
+      -         'Security',
+      -     ),
+      -     (
+      -         'do you perform annual risk assessments for every production system',
+      -         '2.0 RISK ASSESSMENT',
+      -         'Security',
+      -     ),
+      -     (
+      -         '3. describe the incident response process used after a confirmed '
+      -         'breach',
+      -         '2.0 RISK ASSESSMENT',
+      -         'Security',
+      -     ),
+      -     (
+      -         'do you retain audit logs for at least one year',
+      -         '2.0 RISK ASSESSMENT',
+      -         'Security',
+      -     ),
+            (
+                '¿la organización aplica autenticación multifactor a todos los '
+                'administradores',
+      +         'DO YOU RETAIN AUDIT LOGS FOR AT LEAST ONE YEAR',
+      -         '2.0 RISK ASSESSMENT',
+      -         'Security',
+      -     ),
+      -     (
+      -         '贵公司是否对所有管理员强制执行多因素认证？',
+      -         '2.0 RISK ASSESSMENT',
+      -         'Security',
+      -     ),
+      -     (
+      -         'هل تطبق المؤسسة تشفير البيانات أثناء النقل للعملاء؟',
+      -         '2.0 RISK ASSESSMENT',
+      -         'Security',
+      -     ),
+      -     (
+      -         'εφαρμοζετε πολυπαραγοντικη ταυτοποιηση για ολους τους διαχειριστες;',
+      -         '2.0 RISK ASSESSMENT',
+                'Security',
+            ),
+            (
+                'does the company verify mailing addresses for new vendor accounts',
+                'ADDRESS VERIFICATION',
+                'Security',
+            ),
+            (
+                'is physical access to the production data centre logged and reviewed',
+                '1. ACCESS CONTROL',
+                'Security',
+            ),
+            (
+                '4) is a data processing agreement in place with each subprocessor',
+                'PRIVACY CONTROLS',
+                'Privacy',
+            ),
+            (
+                'q12. does the company honor data subject access requests within '
+                'thirty days',
+                'PRIVACY CONTROLS',
+                'Privacy',
+            ),
+        ]
+/agent/repos/trust-copilot/apps/api/tests/release/test_question_detection.py:162: AssertionError: assert [('¿la organización aplica autenticación multifactor a todos los administradores', 'DO YOU RETAIN AUDIT LOGS FOR AT LEAST ONE YEAR', 'Security'), ('does the company verify mailing addresses for new vendor accounts', 'ADDRESS VERIFICATION', 'Security'), ('is physical access to the production data centre logged and reviewed', '1. ACCESS CONTROL', 'Security'), ('4) is a data processing agreement in place with each subprocessor', 'PRIVACY CONTROLS', 'Privacy'), ('q12. does the company honor data subject access requests within thirty days', 'PRIVACY CONTROLS', 'Privacy')] == [('1. do you enforce multi-factor authentication for all administrators', '1.0 CONTROL ENVIRONMENT', 'Security'), ('2. do you encrypt customer data at rest using aes-256', '1.0 CONTROL ENVIRONMENT', 'Security'), ('do you perform annual risk assessments for every production system', '2.0 RISK ASSESSMENT', 'Security'), ('3. describe the incident response process used after a confirmed breach', '2.0 RISK ASSESSMENT', 'Security'), ('do you retain audit logs for at least one year', '2.0 RISK ASSESSMENT', 'Security'), ('¿la organización aplica autenticación multifactor a todos los administradores', '2.0 RISK ASSESSMENT', 'Security'), ('贵公司是否对所有管理员强制执行多因素认证？', '2.0 RISK ASSESSMENT', 'Security'), ('هل تطبق المؤسسة تشفير البيانات أثناء النقل للعملاء؟', '2.0 RISK ASSESSMENT', 'Security'), ('εφαρμοζετε πολυπαραγοντικη ταυτοποιηση για ολους τους διαχειριστες;', '2.0 RISK ASSESSMENT', 'Security'), ('does the company verify mailing addresses for new vendor accounts', 'ADDRESS VERIFICATION', 'Security'), ('is physical access to the production data centre logged and reviewed', '1. ACCESS CONTROL', 'Security'), ('4) is a data processing agreement in place with each subprocessor', 'PRIVACY CONTROLS', 'Privacy'), ('q12. does the company honor data subject access requests within thirty days', 'PRIVACY CONTROLS', 'Privacy')]
+E   Failed: DID NOT RAISE Exception
+/agent/repos/trust-copilot/apps/api/tests/release/test_question_detection.py:191: Failed: DID NOT RAISE Exception
+E   Failed: DID NOT RAISE Exception
+/agent/repos/trust-copilot/apps/api/tests/release/test_question_detection.py:191: Failed: DID NOT RAISE Exception
+E   Failed: DID NOT RAISE Exception
+/agent/repos/trust-copilot/apps/api/tests/release/test_question_detection.py:191: Failed: DID NOT RAISE Exception
+E   AssertionError: assert 'parsed' == 'needs_review'
+
+      - needs_review
+      + parsed
+/agent/repos/trust-copilot/apps/api/tests/release/test_question_detection.py:260: AssertionError: assert 'parsed' == 'needs_review'
+E   Failed: DID NOT RAISE Exception
+/agent/repos/trust-copilot/apps/api/tests/release/test_question_detection.py:302: Failed: DID NOT RAISE Exception
+=========================== short test summary info ============================
+FAILED tests/release/test_question_detection.py::test_numbered_uppercase_and_unicode_questions_keep_their_sections - AssertionError: assert [('¿la organización aplica autenticación multifactor a todos los administradores', 'DO YOU RETAIN AUDIT LOGS FOR AT LEAST ONE YEAR', 'Security'), ('does the company verify mailing addresses for new vendor accounts', 'ADDRESS VERIFICATION', 'Security'), ('is physical access to the production data centre logged and reviewed', '1. ACCESS CONTROL', 'Security'), ('4) is a data processing agreement in place with each subprocessor', 'PRIVACY CONTROLS', 'Privacy'), ('q12. does the company honor data subject access requests within thirty days', 'PRIVACY CONTROLS', 'Privacy')] == [('1. do you enforce multi-factor authentication for all administrators', '1.0 CONTROL ENVIRONMENT', 'Security'), ('2. do you encrypt customer data at rest using aes-256', '1.0 CONTROL ENVIRONMENT', 'Security'), ('do you perform annual risk assessments for every production system', '2.0 RISK ASSESSMENT', 'Security'), ('3. describe the incident response process used after a confirmed breach', '2.0 RISK ASSESSMENT', 'Security'), ('do you retain audit logs for at least one year', '2.0 RISK ASSESSMENT', 'Security'), ('¿la organización aplica autenticación multifactor a todos los administradores', '2.0 RISK ASSESSMENT', 'Security'), ('贵公司是否对所有管理员强制执行多因素认证？', '2.0 RISK ASSESSMENT', 'Security'), ('هل تطبق المؤسسة تشفير البيانات أثناء النقل للعملاء؟', '2.0 RISK ASSESSMENT', 'Security'), ('εφαρμοζετε πολυπαραγοντικη ταυτοποιηση για ολους τους διαχειριστες;', '2.0 RISK ASSESSMENT', 'Security'), ('does the company verify mailing addresses for new vendor accounts', 'ADDRESS VERIFICATION', 'Security'), ('is physical access to the production data centre logged and reviewed', '1. ACCESS CONTROL', 'Security'), ('4) is a data processing agreement in place with each subprocessor', 'PRIVACY CONTROLS', 'Privacy'), ('q12. does the company honor data subject access requests within thirty days', 'PRIVACY CONTROLS', 'Privacy')]
+
+  At index 0 diff: ('¿la organización aplica autenticación multifactor a todos los administradores', 'DO YOU RETAIN AUDIT LOGS FOR AT LEAST ONE YEAR', 'Security') != ('1. do you enforce multi-factor authentication for all administrators', '1.0 CONTROL ENVIRONMENT', 'Security')
+  Right contains 8 more items, first extra item: ('¿la organización aplica autenticación multifactor a todos los administradores', '2.0 RISK ASSESSMENT', 'Security')
+
+  Full diff:
+    [
+  -     (
+  -         '1. do you enforce multi-factor authentication for all administrators',
+  -         '1.0 CONTROL ENVIRONMENT',
+  -         'Security',
+  -     ),
+  -     (
+  -         '2. do you encrypt customer data at rest using aes-256',
+  -         '1.0 CONTROL ENVIRONMENT',
+  -         'Security',
+  -     ),
+  -     (
+  -         'do you perform annual risk assessments for every production system',
+  -         '2.0 RISK ASSESSMENT',
+  -         'Security',
+  -     ),
+  -     (
+  -         '3. describe the incident response process used after a confirmed '
+  -         'breach',
+  -         '2.0 RISK ASSESSMENT',
+  -         'Security',
+  -     ),
+  -     (
+  -         'do you retain audit logs for at least one year',
+  -         '2.0 RISK ASSESSMENT',
+  -         'Security',
+  -     ),
+        (
+            '¿la organización aplica autenticación multifactor a todos los '
+            'administradores',
+  +         'DO YOU RETAIN AUDIT LOGS FOR AT LEAST ONE YEAR',
+  -         '2.0 RISK ASSESSMENT',
+  -         'Security',
+  -     ),
+  -     (
+  -         '贵公司是否对所有管理员强制执行多因素认证？',
+  -         '2.0 RISK ASSESSMENT',
+  -         'Security',
+  -     ),
+  -     (
+  -         'هل تطبق المؤسسة تشفير البيانات أثناء النقل للعملاء؟',
+  -         '2.0 RISK ASSESSMENT',
+  -         'Security',
+  -     ),
+  -     (
+  -         'εφαρμοζετε πολυπαραγοντικη ταυτοποιηση για ολους τους διαχειριστες;',
+  -         '2.0 RISK ASSESSMENT',
+            'Security',
+        ),
+        (
+            'does the company verify mailing addresses for new vendor accounts',
+            'ADDRESS VERIFICATION',
+            'Security',
+        ),
+        (
+            'is physical access to the production data centre logged and reviewed',
+            '1. ACCESS CONTROL',
+            'Security',
+        ),
+        (
+            '4) is a data processing agreement in place with each subprocessor',
+            'PRIVACY CONTROLS',
+            'Privacy',
+        ),
+        (
+            'q12. does the company honor data subject access requests within '
+            'thirty days',
+            'PRIVACY CONTROLS',
+            'Privacy',
+        ),
+    ]
+FAILED tests/release/test_question_detection.py::test_corrupt_workbook_fails_with_a_fixed_message[text] - Failed: DID NOT RAISE Exception
+FAILED tests/release/test_question_detection.py::test_corrupt_workbook_fails_with_a_fixed_message[empty] - Failed: DID NOT RAISE Exception
+FAILED tests/release/test_question_detection.py::test_corrupt_workbook_fails_with_a_fixed_message[truncated-zip] - Failed: DID NOT RAISE Exception
+FAILED tests/release/test_question_detection.py::test_zero_question_workbook_is_readable_and_needs_review - AssertionError: assert 'parsed' == 'needs_review'
+
+  - needs_review
+  + parsed
+FAILED tests/release/test_question_detection.py::test_corrupt_workbook_fails_before_it_is_marked_parsed - Failed: DID NOT RAISE Exception
+========================= 6 failed, 1 passed in 0.50s ==========================

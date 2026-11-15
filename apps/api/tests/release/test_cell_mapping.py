@@ -27,6 +27,7 @@ from app.services.docx_questionnaire_parser import parse_docx_questionnaire
 from app.services.pdf_questionnaire_parser import parse_pdf_questionnaire
 from app.services.question_normalizer import normalize_question
 from app.services.synthetic_pdf import Page, build_pdf, text_block
+from app.services.xlsx_parser import WorkbookUnreadable
 from app.services.xlsx_questionnaire_parser import parse_xlsx_questionnaire
 
 API_ROOT = Path(__file__).resolve().parents[2]
@@ -253,13 +254,14 @@ def test_csv_uses_the_same_explicit_cells_without_a_sheet(tmp_path: Path) -> Non
     assert grid[1][3] == "Approved"
 
 
-def test_empty_and_unreadable_workbooks_return_no_questions(tmp_path: Path) -> None:
+def test_empty_workbook_has_no_questions_and_unreadable_fails(tmp_path: Path) -> None:
     empty_xlsx = tmp_path / "empty.xlsx"
     _write_grid(empty_xlsx, {"Sheet1": []})
     assert parse_xlsx_questionnaire(empty_xlsx) == []
     garbage = tmp_path / "garbage.xlsx"
     garbage.write_bytes(b"this is not a workbook")
-    assert parse_xlsx_questionnaire(garbage) == []
+    with pytest.raises(WorkbookUnreadable, match="corrupt or unreadable"):
+        parse_xlsx_questionnaire(garbage)
     empty_csv = tmp_path / "empty.csv"
     empty_csv.write_text("", encoding="utf-8")
     from app.services.csv_questionnaire_parser import parse_csv_questionnaire

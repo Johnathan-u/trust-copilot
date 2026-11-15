@@ -84,7 +84,29 @@
     {
      "answer_type": "yes_no",
      "confidence": 70,
-     "section": "2. How often are user access reviews performed?",
+     "section": "SECTION A: ACCESS CONTROL",
+     "source_location": {
+      "file": "<path>",
+      "page": 1,
+      "type": "pdf"
+     },
+     "text": "1. do you enforce multi-factor authentication for all administrators"
+    },
+    {
+     "answer_type": "yes_no",
+     "confidence": 70,
+     "section": "SECTION A: ACCESS CONTROL",
+     "source_location": {
+      "file": "<path>",
+      "page": 1,
+      "type": "pdf"
+     },
+     "text": "2. how often are user access reviews performed"
+    },
+    {
+     "answer_type": "yes_no",
+     "confidence": 70,
+     "section": "SECTION A: ACCESS CONTROL",
      "source_location": {
       "file": "<path>",
       "page": 1,

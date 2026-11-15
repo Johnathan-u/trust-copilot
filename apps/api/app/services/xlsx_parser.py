@@ -1,9 +1,24 @@
 """XLSX workbook and sheet walker (QNR-03)."""
 
+import json
 from pathlib import Path
 from typing import Iterator
 
 import openpyxl
+
+UNREADABLE_WORKBOOK = (
+    "Workbook is corrupt or unreadable. Re-export it as an .xlsx file and upload it again."
+)
+NO_QUESTIONS_REVIEW = (
+    "No questions were detected in this workbook. Review the file or upload a corrected copy."
+)
+
+
+class WorkbookUnreadable(ValueError):
+    """A spreadsheet that could not be opened. ``str(err)`` is safe to show."""
+
+    def __init__(self) -> None:
+        super().__init__(UNREADABLE_WORKBOOK)
 
 
 def iter_sheets(path: str | Path) -> Iterator[tuple[str, list[list]]]:
@@ -22,6 +37,46 @@ def iter_sheets(path: str | Path) -> Iterator[tuple[str, list[list]]]:
                 continue
     finally:
         wb.close()
+
+
+def iter_questionnaire_sheets(path: str | Path) -> Iterator[tuple[str, list[list]]]:
+    """Yield (sheet_name, rows) for questionnaire parsing.
+
+    A file that cannot be opened, or whose every sheet fails to read, raises
+    WorkbookUnreadable with a fixed message. The message does not include the
+    path or the parser's own exception text. A readable workbook with no rows
+    yields nothing; that is an empty questionnaire, not a corrupt file.
+    """
+    try:
+        workbook = openpyxl.load_workbook(path, read_only=True, data_only=True)
+    except Exception as exc:
+        raise WorkbookUnreadable() from exc
+    try:
+        try:
+            sheets = list(workbook.worksheets)
+        except Exception as exc:
+            raise WorkbookUnreadable() from exc
+        failed = 0
+        for sheet in sheets:
+            try:
+                rows = [list(row) for row in sheet.iter_rows(values_only=True)]
+            except Exception:
+                failed += 1
+                continue
+            if rows:
+                yield sheet.title, rows
+        if sheets and failed == len(sheets):
+            raise WorkbookUnreadable()
+    finally:
+        workbook.close()
+
+
+def mark_workbook_needs_review(questionnaire) -> None:
+    """A readable workbook contained no questions. Leave it for a person to review."""
+    questionnaire.status = "needs_review"
+    questionnaire.parse_metadata = json.dumps(
+        {"count": 0, "questions": [], "review": NO_QUESTIONS_REVIEW}
+    )
 
 
 def get_cell_value(rows: list[list], row_idx: int, col_idx: int) -> str | int | float | None:

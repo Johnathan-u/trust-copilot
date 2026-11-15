@@ -1,0 +1,23 @@
+Command, from apps/api, after the detection and workbook-outcome change. Exit status 0. 7 passed. No skips.
+Environment: Linux, CPython 3.12.3, pytest 9.1.1. No database, network, or model calls.
+Base: 6af195d11d1cb03e0ce8ab1297adf8fdf5812458.
+Tested product commit: 08465b0ee2262e5ede3ce2247809283e604570bc.
+
+SESSION_SECRET=test-secret TRUST_COPILOT_TESTING=1 python -m pytest tests/release/test_question_detection.py -vv --tb=short -p no:cacheprovider
+
+============================= test session starts ==============================
+platform linux -- Python 3.12.3, pytest-9.1.1, pluggy-1.7.0 -- /tmp/tc-venv/bin/python
+rootdir: /agent/repos/trust-copilot/apps/api
+configfile: pyproject.toml
+plugins: anyio-4.15.1
+collecting ... collected 7 items
+
+tests/release/test_question_detection.py::test_numbered_uppercase_and_unicode_questions_keep_their_sections PASSED [ 14%]
+tests/release/test_question_detection.py::test_each_sheet_starts_its_own_section PASSED [ 28%]
+tests/release/test_question_detection.py::test_corrupt_workbook_fails_with_a_fixed_message[text] PASSED [ 42%]
+tests/release/test_question_detection.py::test_corrupt_workbook_fails_with_a_fixed_message[empty] PASSED [ 57%]
+tests/release/test_question_detection.py::test_corrupt_workbook_fails_with_a_fixed_message[truncated-zip] PASSED [ 71%]
+tests/release/test_question_detection.py::test_zero_question_workbook_is_readable_and_needs_review PASSED [ 85%]
+tests/release/test_question_detection.py::test_corrupt_workbook_fails_before_it_is_marked_parsed PASSED [100%]
+
+============================== 7 passed in 0.71s ===============================
