@@ -1,0 +1,35 @@
+[WebServer] ⚠ The "middleware" file convention is deprecated. Please use "proxy" instead.
+[WebServer]
+[WebServer]   To migrate automatically, run:
+[WebServer]   npx @next/codemod@canary middleware-to-proxy .
+[WebServer]
+[WebServer]   Learn more: https://nextjs.org/docs/messages/middleware-to-proxy
+[WebServer] ⚠ The "middleware" file convention is deprecated. Please use "proxy" instead.
+[WebServer]
+[WebServer]   To migrate automatically, run:
+[WebServer]   npx @next/codemod@canary middleware-to-proxy .
+[WebServer]
+[WebServer]   Learn more: https://nextjs.org/docs/messages/middleware-to-proxy
+
+Running 14 tests using 1 worker
+
+(node:9670) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓   1 [chromium] › e2e/release/ui-15.spec.ts:366:5 › search is debounced, stale responses are dropped, and page or sort are not sent (2.4s)
+  ✓   2 [chromium] › e2e/release/ui-15.spec.ts:421:5 › selection resets when the filter or workspace changes and states its scope (783ms)
+  ✓   3 [chromium] › e2e/release/ui-15.spec.ts:458:5 › no documents, no matches, and a failed read are different states (1.4s)
+  ✓   4 [chromium] › e2e/release/ui-15.spec.ts:480:5 › accepted formats and the size limit show before a file is chosen (1.9s)
+  ✓   5 [chromium] › e2e/release/ui-15.spec.ts:528:5 › a failed index job is not shown as indexed (2.0s)
+[WebServer] [browser] Detected `scroll-behavior: smooth` on the `<html>` element. To disable smooth scrolling during route transitions, add `data-scroll-behavior="smooth"` to your <html> element. Learn more: https://nextjs.org/docs/messages/missing-data-scroll-behavior
+  ✓   6 [chromium] › e2e/release/ui-15.spec.ts:555:5 › retry follows a listed index job, and missing source fields stay unreported (711ms)
+  ✓   7 [chromium] › e2e/release/ui-15.spec.ts:604:5 › editors do not see index retry (458ms)
+  ✓   8 [chromium] › e2e/release/ui-15.spec.ts:618:5 › metadata and restore dialogs wait for the response before confirming (1.4s)
+  ✓   9 [chromium] › e2e/release/ui-15.spec.ts:688:5 › archive and delete are different destructive actions (1.1s)
+  ✓  10 [chromium] › e2e/release/ui-15.spec.ts:745:5 › reviewers do not see upload, row actions, or delete (441ms)
+  ✓  11 [chromium] › e2e/release/ui-15.spec.ts:762:5 › date and filter fields are labelled and selected filters are chips (598ms)
+  ✓  12 [chromium] › e2e/release/ui-15.spec.ts:796:7 › documents stay usable at 360px (2.5s)
+  ✓  13 [chromium] › e2e/release/ui-15.spec.ts:796:7 › documents stay usable at 768px (3.0s)
+  ✓  14 [chromium] › e2e/release/ui-15.spec.ts:796:7 › documents stay usable at 1440px (3.0s)
+
+  14 passed (26.0s)
+EXIT:0
