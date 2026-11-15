@@ -21,15 +21,15 @@ tmp_path = PosixPath('/tmp/pytest-of-ubuntu/pytest-1/test_identical_file_keeps_h
         wb = openpyxl.load_workbook(changed)
         wb["Security"]["B2"] = "Does the company encrypt data in transit?"
         wb.save(changed)
-    
+
         first = parse_xlsx_questionnaire(original)
         second = parse_xlsx_questionnaire(copy)
         edited = parse_xlsx_questionnaire(changed)
 >       encrypt = _by_text(first, Q_ENCRYPT)
                   ^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-tests/release/test_cell_mapping.py:127: 
-_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/release/test_cell_mapping.py:127:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
 
 questions = [{'text': 'does the company encrypt data at rest', 'section': None, 'answer_type': 'yes_no', 'source_location': '{"fil...test-of-ubuntu/pytest-1/test_identical_file_keeps_hash0/original.xlsx", "sheet": "Privacy", "row": 2, "col": 2}', ...}]
 needle = 'Does the company encrypt data at rest?'
@@ -143,7 +143,7 @@ tmp_path = PosixPath('/tmp/pytest-of-ubuntu/pytest-1/test_pdf_provenance_keeps_t
         assert "answer_cell" not in raw[0]
         assert _loc(raw[0])["type"] == "pdf"
         assert _loc(raw[0])["page"] == 1
-    
+
 >       from app.services.cell_mapping import annotate_question_provenance
 E       ModuleNotFoundError: No module named 'app.services.cell_mapping'
 
@@ -174,7 +174,7 @@ client = <starlette.testclient.TestClient object at 0x7f49953bcb90>
         from app.core.database import SessionLocal
         from app.models import Job
         from app.worker import run_parse_questionnaire
-    
+
         login = client.post("/api/auth/login", json={"email": "demo@trust.local", "password": "j"})
         assert login.status_code == 200
         workbook = BytesIO()
@@ -186,14 +186,14 @@ client = <starlette.testclient.TestClient object at 0x7f49953bcb90>
         wb.save(workbook)
         payload = workbook.getvalue()
         stored: dict[tuple[str, str], bytes] = {}
-    
+
         def fake_upload(bucket: str, key: str, body, **kwargs) -> str:
             stored[(bucket, key)] = body.read() if hasattr(body, "read") else body
             return key
-    
+
         def fake_download(bucket: str, key: str) -> bytes:
             return stored[(bucket, key)]
-    
+
         with (
             patch("app.services.storage.StorageClient.upload", side_effect=fake_upload),
             patch("app.services.storage.StorageClient.download", side_effect=fake_download),
@@ -219,7 +219,7 @@ client = <starlette.testclient.TestClient object at 0x7f49953bcb90>
             session.commit()
         finally:
             session.close()
-    
+
         fetched = client.get(f"/api/questionnaires/{body['id']}?workspace_id=1")
         assert fetched.status_code == 200, fetched.text
         questions = fetched.json()["questions"]

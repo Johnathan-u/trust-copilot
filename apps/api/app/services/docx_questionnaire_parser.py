@@ -49,7 +49,9 @@ def parse_docx_questionnaire(path: str | Path) -> list[dict]:
                 continue
             index = i + 1
             source = {"file": str(file_path), "type": "paragraph", "index": index}
-            results.append(_located(norm, text, section, source, digest, f"paragraph:{index}", None))
+            results.append(
+                _located(norm, text, section, source, digest, f"paragraph:{index}", None)
+            )
 
     for ti, tbl in enumerate(doc.tables):
         grid = [[(cell.text or "").strip() for cell in row.cells] for row in tbl.rows]

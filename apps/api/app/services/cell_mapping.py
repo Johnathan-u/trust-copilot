@@ -125,9 +125,7 @@ def questions_from_grid(
     column_map = find_column_map(rows)
     question_col = column_map["question"]
     answer_col = column_map["answer"]
-    explicit = (
-        question_col is not None and answer_col is not None and question_col != answer_col
-    )
+    explicit = question_col is not None and answer_col is not None and question_col != answer_col
     results: list[dict] = []
     for row_index, row in enumerate(rows):
         try:
