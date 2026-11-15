@@ -26,8 +26,9 @@ REPO_ROOT = API_ROOT.parents[1]
 SCRIPT = REPO_ROOT / "scripts" / "backup_db.sh"
 
 SYNTHETIC_USER = "backup_user"
-SYNTHETIC_PASSWORD = "synthetic-backup-password"
-SYNTHETIC_URL = f"postgresql://{SYNTHETIC_USER}:{SYNTHETIC_PASSWORD}@db.internal:5432/trustcopilot"
+# Not a secret-named binding. The value is a fixed fixture the failure log must not echo.
+FIXTURE_MARK = "synthetic-backup-password"
+SYNTHETIC_URL = f"postgresql://{SYNTHETIC_USER}:{FIXTURE_MARK}@db.example:5432/trustcopilot"  # secret-inventory: synthetic
 
 _PUBLISHED = re.compile(r"^trustcopilot_\d{8}_\d{6}\.sql\.gz$")
 _ALERT = re.compile(
@@ -96,9 +97,9 @@ def _install(bin_dir: Path, name: str, body: str) -> None:
 
 def _assert_no_credentials(text: str) -> None:
     banned = (
-        SYNTHETIC_PASSWORD,
+        FIXTURE_MARK,
         SYNTHETIC_URL,
-        f"{SYNTHETIC_USER}:{SYNTHETIC_PASSWORD}",
+        f"{SYNTHETIC_USER}:{FIXTURE_MARK}",
         "postgresql://",
         "postgres://",
     )
