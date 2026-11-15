@@ -1,0 +1,252 @@
+command: python -m pytest tests/release/test_cell_mapping.py -q
+git_sha: 0e8cb32496a7847a727d89ed54753990b91a3127
+master_sha: 0e8cb32496a7847a727d89ed54753990b91a3127
+when: 2026-11-15T16:05:03Z
+python: Python 3.12.3
+note: product code is unchanged from master; the new test module is the only addition
+----
+FFFFFFFFFFF                                                              [100%]
+=================================== FAILURES ===================================
+________ test_identical_file_keeps_hashes_and_text_change_updates_them _________
+
+tmp_path = PosixPath('/tmp/pytest-of-ubuntu/pytest-1/test_identical_file_keeps_hash0')
+
+    def test_identical_file_keeps_hashes_and_text_change_updates_them(tmp_path: Path) -> None:
+        original = tmp_path / "original.xlsx"
+        copy = tmp_path / "copy.xlsx"
+        changed = tmp_path / "changed.xlsx"
+        _layout_workbook(original)
+        copy.write_bytes(original.read_bytes())
+        _layout_workbook(changed)
+        wb = openpyxl.load_workbook(changed)
+        wb["Security"]["B2"] = "Does the company encrypt data in transit?"
+        wb.save(changed)
+    
+        first = parse_xlsx_questionnaire(original)
+        second = parse_xlsx_questionnaire(copy)
+        edited = parse_xlsx_questionnaire(changed)
+>       encrypt = _by_text(first, Q_ENCRYPT)
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/release/test_cell_mapping.py:127: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+questions = [{'text': 'does the company encrypt data at rest', 'section': None, 'answer_type': 'yes_no', 'source_location': '{"fil...test-of-ubuntu/pytest-1/test_identical_file_keeps_hash0/original.xlsx", "sheet": "Privacy", "row": 2, "col": 2}', ...}]
+needle = 'Does the company encrypt data at rest?'
+
+    def _by_text(questions: list[dict], needle: str) -> dict:
+        wanted = normalize_question(needle)
+        matches = [q for q in questions if q["text"] == wanted]
+>       assert len(matches) == 1, [q["text"] for q in questions]
+E       AssertionError: ['does the company encrypt data at rest', 'is access reviewed at least quarterly', 'does the owner review access every quarter', 'does the company encrypt data at rest']
+E       assert 2 == 1
+E        +  where 2 = len([{'text': 'does the company encrypt data at rest', 'section': None, 'answer_type': 'yes_no', 'source_location': '{"fil...test-of-ubuntu/pytest-1/test_identical_file_keeps_hash0/original.xlsx", "sheet": "Privacy", "row": 2, "col": 2}', ...}])
+
+tests/release/test_cell_mapping.py:109: AssertionError
+________ test_explicit_answer_column_targets_d_and_leaves_owner_column _________
+
+tmp_path = PosixPath('/tmp/pytest-of-ubuntu/pytest-1/test_explicit_answer_column_ta0')
+
+    def test_explicit_answer_column_targets_d_and_leaves_owner_column(tmp_path: Path) -> None:
+        path = tmp_path / "layout.xlsx"
+        _layout_workbook(path)
+        questions = parse_xlsx_questionnaire(path)
+>       security = [q for q in questions if q["sheet"] == "Security"]
+                                            ^^^^^^^^^^
+E       KeyError: 'sheet'
+
+tests/release/test_cell_mapping.py:149: KeyError
+___ test_answer_header_without_question_header_still_names_the_answer_column ___
+
+    def test_answer_header_without_question_header_still_names_the_answer_column() -> None:
+        questions = parse_xlsx_questionnaire(FIXTURES / "simple_soc2.xlsx")
+        first = questions[0]
+        assert _loc(first)["sheet"] == "CC1"
+        assert _loc(first)["row"] == 2
+        assert _loc(first)["col"] == 1
+>       assert first["sheet"] == "CC1"
+               ^^^^^^^^^^^^^^
+E       KeyError: 'sheet'
+
+tests/release/test_cell_mapping.py:201: KeyError
+___________ test_missing_answer_header_does_not_use_the_next_column ____________
+
+tmp_path = PosixPath('/tmp/pytest-of-ubuntu/pytest-1/test_missing_answer_header_doe0')
+
+    def test_missing_answer_header_does_not_use_the_next_column(tmp_path: Path) -> None:
+        path = tmp_path / "no-header.xlsx"
+        _write_grid(
+            path,
+            {"Sheet1": [["ID", Q_ENCRYPT, "Alice"], ["ID", Q_ACCESS, "Bob"]]},
+        )
+        questions = parse_xlsx_questionnaire(path)
+        assert len(questions) == 2
+>       assert questions[0]["question_cell"] == "B1"
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       KeyError: 'question_cell'
+
+tests/release/test_cell_mapping.py:217: KeyError
+____________ test_csv_uses_the_same_explicit_cells_without_a_sheet _____________
+
+tmp_path = PosixPath('/tmp/pytest-of-ubuntu/pytest-1/test_csv_uses_the_same_explici0')
+
+    def test_csv_uses_the_same_explicit_cells_without_a_sheet(tmp_path: Path) -> None:
+        path = tmp_path / "layout.csv"
+        _csv_file(path)
+>       from app.services.csv_questionnaire_parser import parse_csv_questionnaire
+E       ModuleNotFoundError: No module named 'app.services.csv_questionnaire_parser'
+
+tests/release/test_cell_mapping.py:226: ModuleNotFoundError
+___________ test_empty_and_unreadable_workbooks_return_no_questions ____________
+
+tmp_path = PosixPath('/tmp/pytest-of-ubuntu/pytest-1/test_empty_and_unreadable_work0')
+
+    def test_empty_and_unreadable_workbooks_return_no_questions(tmp_path: Path) -> None:
+        empty_xlsx = tmp_path / "empty.xlsx"
+        _write_grid(empty_xlsx, {"Sheet1": []})
+        assert parse_xlsx_questionnaire(empty_xlsx) == []
+        garbage = tmp_path / "garbage.xlsx"
+        garbage.write_bytes(b"this is not a workbook")
+        assert parse_xlsx_questionnaire(garbage) == []
+        empty_csv = tmp_path / "empty.csv"
+        empty_csv.write_text("", encoding="utf-8")
+>       from app.services.csv_questionnaire_parser import parse_csv_questionnaire
+E       ModuleNotFoundError: No module named 'app.services.csv_questionnaire_parser'
+
+tests/release/test_cell_mapping.py:263: ModuleNotFoundError
+_ test_docx_paragraphs_have_no_answer_cell_and_tables_target_the_answer_column _
+
+tmp_path = PosixPath('/tmp/pytest-of-ubuntu/pytest-1/test_docx_paragraphs_have_no_a0')
+
+    def test_docx_paragraphs_have_no_answer_cell_and_tables_target_the_answer_column(
+        tmp_path: Path,
+    ) -> None:
+        paragraphs = parse_docx_questionnaire(FIXTURES / "simple_soc2.docx")
+        assert paragraphs
+        first = paragraphs[0]
+>       assert first["sheet"] is None
+               ^^^^^^^^^^^^^^
+E       KeyError: 'sheet'
+
+tests/release/test_cell_mapping.py:274: KeyError
+______ test_pdf_provenance_keeps_the_page_and_has_no_workbook_answer_cell ______
+
+tmp_path = PosixPath('/tmp/pytest-of-ubuntu/pytest-1/test_pdf_provenance_keeps_the_0')
+
+    def test_pdf_provenance_keeps_the_page_and_has_no_workbook_answer_cell(tmp_path: Path) -> None:
+        path = tmp_path / "questions.pdf"
+        path.write_bytes(
+            build_pdf([Page(texts=text_block(72, 90, ["1.0 CONTROL ENVIRONMENT", Q_ENCRYPT]))])
+        )
+        raw = parse_pdf_questionnaire(path)
+        assert raw
+        assert "answer_cell" not in raw[0]
+        assert _loc(raw[0])["type"] == "pdf"
+        assert _loc(raw[0])["page"] == 1
+    
+>       from app.services.cell_mapping import annotate_question_provenance
+E       ModuleNotFoundError: No module named 'app.services.cell_mapping'
+
+tests/release/test_cell_mapping.py:314: ModuleNotFoundError
+____________ test_ruleset_version_is_newer_than_the_legacy_default _____________
+
+    def test_ruleset_version_is_newer_than_the_legacy_default() -> None:
+>       from app.services.cell_mapping import CELL_MAPPING_VERSION
+E       ModuleNotFoundError: No module named 'app.services.cell_mapping'
+
+tests/release/test_cell_mapping.py:328: ModuleNotFoundError
+_____________ test_migration_backfills_legacy_rows_and_round_trips _____________
+
+roundtrip_db = 'postgresql://postgres:postgres@localhost:5432/cellmap_roundtrip_test'
+
+    def test_migration_backfills_legacy_rows_and_round_trips(roundtrip_db: str) -> None:
+>       assert MIGRATION.is_file()
+E       AssertionError: assert False
+E        +  where False = is_file()
+E        +    where is_file = PosixPath('/agent/repos/trust-copilot/apps/api/alembic/versions/question_cell_mapping.py').is_file
+
+tests/release/test_cell_mapping.py:387: AssertionError
+___________ test_parsed_questions_keep_mapping_on_the_questionnaire ____________
+
+client = <starlette.testclient.TestClient object at 0x7f49953bcb90>
+
+    def test_parsed_questions_keep_mapping_on_the_questionnaire(client) -> None:
+        from app.core.database import SessionLocal
+        from app.models import Job
+        from app.worker import run_parse_questionnaire
+    
+        login = client.post("/api/auth/login", json={"email": "demo@trust.local", "password": "j"})
+        assert login.status_code == 200
+        workbook = BytesIO()
+        wb = openpyxl.Workbook()
+        ws = wb.active
+        ws.title = "Security"
+        for row in _owner_answer_grid():
+            ws.append(row)
+        wb.save(workbook)
+        payload = workbook.getvalue()
+        stored: dict[tuple[str, str], bytes] = {}
+    
+        def fake_upload(bucket: str, key: str, body, **kwargs) -> str:
+            stored[(bucket, key)] = body.read() if hasattr(body, "read") else body
+            return key
+    
+        def fake_download(bucket: str, key: str) -> bytes:
+            return stored[(bucket, key)]
+    
+        with (
+            patch("app.services.storage.StorageClient.upload", side_effect=fake_upload),
+            patch("app.services.storage.StorageClient.download", side_effect=fake_download),
+        ):
+            uploaded = client.post(
+                "/api/questionnaires/upload",
+                data={"workspace_id": "1"},
+                files={
+                    "file": (
+                        "layout.xlsx",
+                        payload,
+                        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                    )
+                },
+            )
+        assert uploaded.status_code == 200, uploaded.text
+        body = uploaded.json()
+        session = SessionLocal()
+        try:
+            job = session.query(Job).filter(Job.id == body["job_id"]).first()
+            with patch("app.services.storage.StorageClient.download", side_effect=fake_download):
+                run_parse_questionnaire(job, session, json.loads(job.payload))
+            session.commit()
+        finally:
+            session.close()
+    
+        fetched = client.get(f"/api/questionnaires/{body['id']}?workspace_id=1")
+        assert fetched.status_code == 200, fetched.text
+        questions = fetched.json()["questions"]
+        encrypt = _by_text(questions, Q_ENCRYPT)
+>       assert encrypt["sheet"] == "Security"
+               ^^^^^^^^^^^^^^^^
+E       KeyError: 'sheet'
+
+tests/release/test_cell_mapping.py:604: KeyError
+=============================== warnings summary ===============================
+tests/release/test_cell_mapping.py::test_parsed_questions_keep_mapping_on_the_questionnaire
+tests/release/test_cell_mapping.py::test_parsed_questions_keep_mapping_on_the_questionnaire
+  /tmp/tc-venv/lib/python3.12/site-packages/sqlalchemy/sql/schema.py:3627: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    return util.wrap_callable(lambda ctx: fn(), fn)  # type: ignore
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED tests/release/test_cell_mapping.py::test_identical_file_keeps_hashes_and_text_change_updates_them
+FAILED tests/release/test_cell_mapping.py::test_explicit_answer_column_targets_d_and_leaves_owner_column
+FAILED tests/release/test_cell_mapping.py::test_answer_header_without_question_header_still_names_the_answer_column
+FAILED tests/release/test_cell_mapping.py::test_missing_answer_header_does_not_use_the_next_column
+FAILED tests/release/test_cell_mapping.py::test_csv_uses_the_same_explicit_cells_without_a_sheet
+FAILED tests/release/test_cell_mapping.py::test_empty_and_unreadable_workbooks_return_no_questions
+FAILED tests/release/test_cell_mapping.py::test_docx_paragraphs_have_no_answer_cell_and_tables_target_the_answer_column
+FAILED tests/release/test_cell_mapping.py::test_pdf_provenance_keeps_the_page_and_has_no_workbook_answer_cell
+FAILED tests/release/test_cell_mapping.py::test_ruleset_version_is_newer_than_the_legacy_default
+FAILED tests/release/test_cell_mapping.py::test_migration_backfills_legacy_rows_and_round_trips
+FAILED tests/release/test_cell_mapping.py::test_parsed_questions_keep_mapping_on_the_questionnaire
+11 failed, 2 warnings in 3.77s
+exit_status: 1
