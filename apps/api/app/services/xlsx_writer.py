@@ -136,9 +136,14 @@ def place_answers_into_workbook(
         if not sheet_name or sheet_name not in wb.sheetnames:
             continue
         ws = wb[sheet_name]
-        answer_col = col + answer_col_offset
         question_cell = ws.cell(row=row, column=col)
-        answer_cell = ws.cell(row=row, column=answer_col)
+        answer_row = p.get("answer_row")
+        answer_column = p.get("answer_col")
+        if isinstance(answer_row, int) and isinstance(answer_column, int):
+            # Explicit mapped cell. Do not step across by the column offset.
+            answer_cell = ws.cell(row=answer_row, column=answer_column)
+        else:
+            answer_cell = ws.cell(row=row, column=col + answer_col_offset)
         if cell_has_formula(answer_cell):
             _logger.warning(
                 "EXPORT: skipped answer placement; target holds original formula sheet=%r cell=%s",
@@ -181,15 +186,35 @@ def placements_from_questions_and_answers(
             loc = json.loads(loc_raw) if isinstance(loc_raw, str) else loc_raw
         except (json.JSONDecodeError, TypeError):
             continue
-        placements.append(
-            {
-                "sheet": loc.get("sheet"),
-                "row": loc.get("row", 1),
-                "col": loc.get("col", 1),
-                "text": text,
-            }
-        )
+        row = loc.get("row", 1)
+        col = loc.get("col", 1)
+        placement = {
+            "sheet": loc.get("sheet"),
+            "row": row,
+            "col": col,
+            "text": text,
+        }
+        if _mapping_version(q) >= 1:
+            from app.services.cell_mapping import parse_cell_ref
+
+            target = parse_cell_ref(q.get("answer_cell"))
+            if target is None:
+                # An explicit ruleset with no answer cell must not guess the next column.
+                continue
+            answer_row, answer_col = target
+            sheet = q.get("sheet") if isinstance(q.get("sheet"), str) and q.get("sheet") else None
+            placement["sheet"] = sheet or placement["sheet"]
+            placement["answer_row"] = answer_row
+            placement["answer_col"] = answer_col
+        placements.append(placement)
     return placements
+
+
+def _mapping_version(question: dict) -> int:
+    raw = question.get("mapping_version")
+    if isinstance(raw, bool) or not isinstance(raw, int):
+        return 0
+    return raw
 
 
 class UnsupportedWorkbookStructure(ValueError):

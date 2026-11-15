@@ -698,9 +698,20 @@ def _raise_for_generation_errors(job: Job, session) -> None:
     )
 
 
+def _record_failed_export(job, payload: dict) -> None:
+    """Save a failed export row. A database error must not replace the export error."""
+    from app.services.export_service import persist_failed_export_record
+
+    try:
+        persist_failed_export_record(job, payload)
+    except Exception:
+        logging.getLogger(__name__).warning(
+            "export failure record was not saved job_id=%s", getattr(job, "id", None)
+        )
+
+
 def run_export(job: Job, session, payload: dict) -> None:
     """Export questionnaire with answers to XLSX or DOCX (EXP-07, EXP-05)."""
-    import json
     from pathlib import Path
 
     from app.models import Answer, ExportRecord, Question, Questionnaire
@@ -734,14 +745,18 @@ def run_export(job: Job, session, payload: dict) -> None:
         .filter(ExportRecord.job_id == job.id, ExportRecord.workspace_id == ws_id)
         .first()
     )
-    if existing_rec is not None:
-        # A previous attempt committed the record (and therefore uploaded its object): reuse it.
-        job.result = json.dumps(
-            {
-                "export_record_id": existing_rec.id,
-                "storage_key": existing_rec.storage_key,
-                "outcome": "already_applied",
-            }
+    if existing_rec is not None and (existing_rec.status or "completed") == "completed":
+        # A previous attempt committed the file. Reuse it and keep the recorded hash.
+        from app.services.export_service import export_result_json, recorded_export_file
+
+        prior = recorded_export_file(job.result)
+        job.result = export_result_json(
+            export_record_id=existing_rec.id,
+            storage_key=existing_rec.storage_key,
+            sha256=prior["sha256"] if prior else None,
+            content_type=prior["content_type"] if prior else None,
+            filename=prior["filename"] if prior else existing_rec.filename,
+            outcome="already_applied",
         )
         return
     _record_usage_once(session, job, effects, "exports")
@@ -756,7 +771,18 @@ def run_export(job: Job, session, payload: dict) -> None:
         .all()
     }
     question_list = [
-        {"id": q.id, "source_location": q.source_location, "text": q.text or ""} for q in questions
+        {
+            "id": q.id,
+            "source_location": q.source_location,
+            "text": q.text or "",
+            "content_hash": getattr(q, "content_hash", None),
+            "original_file_hash": getattr(q, "original_file_hash", None),
+            "sheet": getattr(q, "sheet", None),
+            "question_cell": getattr(q, "question_cell", None),
+            "answer_cell": getattr(q, "answer_cell", None),
+            "mapping_version": getattr(q, "mapping_version", 0) or 0,
+        }
+        for q in questions
     ]
     question_to_answer = {
         q.id: answer_text_for_export(
@@ -766,46 +792,65 @@ def run_export(job: Job, session, payload: dict) -> None:
         for q in questions
     }
     offset = settings.export_answer_col_offset
-    wanted = (payload.get("format") or "xlsx").lower()
-    if wanted not in ("xlsx", "docx"):
-        wanted = "xlsx"
+    from app.core.job_errors import EXPORT_MAPPING_STALE, TerminalJobError
+    from app.services.export_service import (
+        EXPORT_MAPPING_STALE_MESSAGE,
+        export_filename,
+        export_mapping_is_stale,
+        export_result_json,
+        media_type_for_format,
+        requested_format,
+        sha256_hex,
+    )
+
+    wanted = requested_format(payload.get("format"))
     ext = Path(qnr.filename or qnr.storage_key or "export.xlsx").suffix.lower()
-    use_fallback = ext == ".pdf"
+    if wanted == "xlsx" and ext == ".xlsx" and export_mapping_is_stale(question_list, raw_bytes):
+        _record_failed_export(job, payload)
+        raise TerminalJobError(EXPORT_MAPPING_STALE, EXPORT_MAPPING_STALE_MESSAGE) from None
+
+    def fail_requested() -> None:
+        # Persist on its own connection, then raise. The worker rollback must not
+        # drop the failed row, and the exception text must not become the message.
+        _record_failed_export(job, payload)
+        from app.core.job_errors import EXPORT_DOCX_FAILED, EXPORT_XLSX_FAILED
+        from app.services.export_service import (
+            EXPORT_DOCX_FAILED_MESSAGE,
+            EXPORT_XLSX_FAILED_MESSAGE,
+        )
+
+        if wanted == "docx":
+            raise TerminalJobError(EXPORT_DOCX_FAILED, EXPORT_DOCX_FAILED_MESSAGE) from None
+        raise TerminalJobError(EXPORT_XLSX_FAILED, EXPORT_XLSX_FAILED_MESSAGE) from None
 
     try:
         if wanted == "docx":
-            if use_fallback or ext not in (".docx", ".doc"):
-                out_bytes = create_fallback_pack_docx(question_list, question_to_answer)
-                base = (qnr.filename or "export").rsplit(".", 1)[0]
-                out_filename = f"{base}_answers.docx"
-            else:
+            # DOCX was requested. A pack is the requested format, not a substitute.
+            if ext in (".docx", ".doc"):
                 out_bytes = create_export_from_questionnaire_docx(
                     raw_bytes, question_list, question_to_answer, answer_col_offset=offset
                 )
-                out_filename = qnr.filename or "export.docx"
-        elif use_fallback or (wanted == "xlsx" and ext in (".docx", ".doc")):
-            out_bytes = create_fallback_pack_docx(question_list, question_to_answer)
-            base = (qnr.filename or "export").rsplit(".", 1)[0]
-            out_filename = f"{base}_answers.docx"
-        elif ext in (".docx", ".doc"):
-            out_bytes = create_export_from_questionnaire_docx(
-                raw_bytes, question_list, question_to_answer, answer_col_offset=offset
-            )
-            out_filename = qnr.filename or "export.docx"
+                out_filename = export_filename(qnr.filename, "docx")
+            else:
+                out_bytes = create_fallback_pack_docx(question_list, question_to_answer)
+                out_filename = export_filename(qnr.filename, "docx", pack=True)
+        elif ext != ".xlsx":
+            # An XLSX was requested. PDF, DOCX and other sources are not rewritten as DOCX.
+            fail_requested()
         else:
             out_bytes = create_export_from_questionnaire(
                 raw_bytes, question_list, question_to_answer, answer_col_offset=offset
             )
-            out_filename = qnr.filename or "export.xlsx"
+            out_filename = export_filename(qnr.filename, "xlsx")
     except UnsupportedWorkbookStructure:
         # Parts the workbook writer would drop or rewrite fail the job. A DOCX
         # substitute would hide that loss, so this error is not converted.
         raise
+    except TerminalJobError:
+        raise
     except Exception:
-        # Corrupt packages and unexpected writer errors still return the DOCX pack.
-        out_bytes = create_fallback_pack_docx(question_list, question_to_answer)
-        base = (qnr.filename or "export").rsplit(".", 1)[0]
-        out_filename = f"{base}_answers_fallback.docx"
+        fail_requested()
+    content_type = media_type_for_format(wanted)
 
     # The deterministic key is shared by retries. Serialize the final PUT/record commit with
     # claims, cancellation and orphan deletion using the existing job row lock. Render first,
@@ -814,24 +859,49 @@ def run_export(job: Job, session, payload: dict) -> None:
         confirm_lease_for_commit(session, job.id, owner)
     try:
         key = file_svc.upload_export(ws_id, out_bytes, out_filename, job_id=job.id)
-    except Exception:
+    except Exception as exc:
+        # TC-10-002 still retries a transient storage error. A failed export row
+        # is recorded only when the error cannot be retried or this is the last
+        # attempt. The stored message stays the fixed one either way.
+        attempt = int(getattr(job, "attempt", None) or 0)
+        remaining = is_retryable_code(classify(exc)) and attempt < effective_max_attempts(
+            getattr(job, "max_attempts", None)
+        )
         session.rollback()
-        raise
-    rec = ExportRecord(
-        workspace_id=ws_id,
-        questionnaire_id=qnr_id,
-        storage_key=key,
-        filename=out_filename,
-        status="completed",
-        job_id=job.id,
-    )
-    session.add(rec)
+        if remaining:
+            raise
+        _record_failed_export(job, payload)
+        from app.core.job_errors import EXPORT_STORAGE_FAILED
+        from app.services.export_service import EXPORT_STORAGE_FAILED_MESSAGE
+
+        raise TerminalJobError(EXPORT_STORAGE_FAILED, EXPORT_STORAGE_FAILED_MESSAGE) from None
+    if existing_rec is not None:
+        existing_rec.storage_key = key
+        existing_rec.filename = out_filename
+        existing_rec.status = "completed"
+        rec = existing_rec
+    else:
+        rec = ExportRecord(
+            workspace_id=ws_id,
+            questionnaire_id=qnr_id,
+            storage_key=key,
+            filename=out_filename,
+            status="completed",
+            job_id=job.id,
+        )
+        session.add(rec)
     effects.mark_applied(EFFECT_EXPORT, {"storage_key": key})
     from app.services.storage_reconcile import commit_or_discard_object
 
     commit_or_discard_object(session, storage, storage.bucket_exports, key)
     session.refresh(rec)
-    job.result = json.dumps({"export_record_id": rec.id, "storage_key": key})
+    job.result = export_result_json(
+        export_record_id=rec.id,
+        storage_key=key,
+        sha256=sha256_hex(out_bytes),
+        content_type=content_type,
+        filename=out_filename,
+    )
 
 
 def _record_usage_once(session, job: Job, effects: JobEffects, resource_type: str) -> None:
@@ -1164,6 +1234,13 @@ def _handle_job_failure(
             )
         except Exception:
             pass
+    if job.kind == "export" and code in (
+        "export_xlsx_failed",
+        "export_docx_failed",
+        "export_storage_failed",
+    ):
+        # The attempt may already have committed this row. Repeating it is an update.
+        _record_failed_export(job, payload if isinstance(payload, dict) else {})
     if job.kind == "index_document":
         doc_id = payload.get("document_id")
         if doc_id:

@@ -4,7 +4,7 @@ import logging
 from urllib.parse import quote
 
 from fastapi import APIRouter, Body, Depends, HTTPException, Query, Request
-from fastapi.responses import JSONResponse, StreamingResponse
+from fastapi.responses import JSONResponse, Response, StreamingResponse
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
@@ -28,8 +28,16 @@ from app.core.idempotency import (
     scoped_key as idempotency_scoped_key,
     set as idempotency_set,
 )
-from app.models import ExportRecord, Question, Questionnaire
-from app.services.export_service import enqueue_export_job, enqueue_generate_answers_job
+from app.models import ExportRecord, Job, Question, Questionnaire
+from app.services.export_service import (
+    EXPORT_STORAGE_FAILED,
+    enqueue_export_job,
+    enqueue_generate_answers_job,
+    media_type_for_filename,
+    public_export_failure,
+    recorded_export_file,
+    sha256_hex,
+)
 from app.services.model_outcomes import ModelFailure, ModelOutcomeCode
 from app.services.storage import get_storage, StorageClient
 
@@ -291,16 +299,54 @@ def list_export_records(
         .limit(50)
         .all()
     )
-    return [
+    job_ids = [r.job_id for r in recs if isinstance(r.job_id, int)]
+    jobs = (
         {
-            "id": r.id,
-            "questionnaire_id": r.questionnaire_id,
-            "filename": r.filename,
-            "status": r.status,
-            "created_at": r.created_at.isoformat() if r.created_at else None,
+            row.id: row
+            for row in db.query(Job)
+            .filter(Job.id.in_(job_ids), Job.workspace_id == workspace_id)
+            .all()
         }
-        for r in recs
-    ]
+        if job_ids
+        else {}
+    )
+    return [_export_record_item(r, jobs.get(r.job_id)) for r in recs]
+
+
+def _export_record_item(record: ExportRecord, job: Job | None) -> dict:
+    """List row. Failures use a fixed code and message; successes include the recorded hash."""
+    item = {
+        "id": record.id,
+        "questionnaire_id": record.questionnaire_id,
+        "filename": record.filename,
+        "status": record.status,
+        "created_at": record.created_at.isoformat() if record.created_at else None,
+        "error_code": None,
+        "error": None,
+        "sha256": None,
+        "content_type": None,
+    }
+    if (record.status or "completed") != "completed":
+        code, message = public_export_failure(job.error_code if job is not None else None)
+        item["error_code"] = code
+        item["error"] = message
+        return item
+    recorded = recorded_export_file(job.result if job is not None else None)
+    if recorded is not None:
+        item["sha256"] = recorded["sha256"]
+        item["content_type"] = recorded["content_type"]
+    return item
+
+
+def _export_failure_response(code: str | None) -> JSONResponse:
+    failure_code, message = public_export_failure(code)
+    error = ApiError(
+        code=failure_code,
+        message=message,
+        request_id=current_request_id(),
+        retryable=False,
+    )
+    return api_error_response(error, 409)
 
 
 @router.get("/records/{record_id}/download")
@@ -334,14 +380,43 @@ def get_download_url(
         resource_id=record_id,
         details={"filename": rec.filename},
     )
+    if (rec.status or "completed") != "completed":
+        job = _export_job(db, rec)
+        code = job.error_code if job is not None else None
+        return _export_failure_response(code)
+    safe_filename = rec.filename or "export.xlsx"
+    disposition = f"attachment; filename*=UTF-8''{quote(safe_filename)}"
+    job = _export_job(db, rec)
+    recorded = recorded_export_file(job.result if job is not None else None)
+    named_type = media_type_for_filename(safe_filename)
+    if recorded is not None:
+        if named_type is None or recorded["content_type"] != named_type:
+            return _export_failure_response(EXPORT_STORAGE_FAILED)
+        from app.services.file_service import validate_storage_key
+
+        validate_storage_key(rec.storage_key)
+        try:
+            payload = storage.download(storage.bucket_exports, rec.storage_key)
+        except Exception:
+            _log.warning("export download failed record_id=%s", record_id)
+            return _export_failure_response(EXPORT_STORAGE_FAILED)
+        if sha256_hex(payload) != recorded["sha256"]:
+            return _export_failure_response(EXPORT_STORAGE_FAILED)
+        return Response(
+            content=payload,
+            media_type=recorded["content_type"],
+            headers={
+                "Content-Disposition": disposition,
+                "X-Content-SHA256": recorded["sha256"],
+            },
+        )
+    # Exports written before the hash was recorded still download by extension.
     from app.services.file_service import validate_storage_key
 
     validate_storage_key(rec.storage_key)
     if not storage.exists(storage.bucket_exports, rec.storage_key):
         raise HTTPException(status_code=404, detail="Export file not found")
     stream = storage.download_stream(storage.bucket_exports, rec.storage_key)
-    safe_filename = rec.filename or "export.xlsx"
-    disposition = f"attachment; filename*=UTF-8''{quote(safe_filename)}"
     ext = (safe_filename.rsplit(".", 1)[-1].lower() if "." in safe_filename else "") or "xlsx"
     media_type = (
         "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
@@ -352,4 +427,14 @@ def get_download_url(
         stream,
         media_type=media_type,
         headers={"Content-Disposition": disposition},
+    )
+
+
+def _export_job(db: Session, record: ExportRecord) -> Job | None:
+    if not isinstance(record.job_id, int):
+        return None
+    return (
+        db.query(Job)
+        .filter(Job.id == record.job_id, Job.workspace_id == record.workspace_id)
+        .first()
     )

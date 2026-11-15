@@ -1,0 +1,21 @@
+head 4272dff (implementation commit follows this evidence run)
+branch tc/TC-13-005-export-failures
+working directory: apps/api
+command: python -m pytest tests/release/test_export_failure.py -q --tb=line
+interpreter: /usr/bin/python3
+Python 3.12.3
+pytest 9.1.1
+database: not used (unit tests)
+
+exit status: 0
+
+................                                                         [100%]
+16 passed in 0.67s
+
+## Stale cell mapping, after the fix
+
+command: python -m pytest tests/release/test_export_failure.py -q --tb=line
+exit status: 0
+
+....................                                                     [100%]
+20 passed in 0.69s

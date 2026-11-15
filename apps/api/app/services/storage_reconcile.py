@@ -106,7 +106,8 @@ def referenced_storage_keys(session: Session) -> set[str]:
     """Explicitly referenced keys a sweep must not delete. Raises if the database cannot be read.
 
     Soft-deleted rows are included. An archived document is still an original. Deterministic
-    export ownership is checked separately because a requested XLSX may produce a DOCX fallback.
+    export ownership is checked separately because the object extension follows the
+    requested format (xlsx or docx), including a failed export's ``.failed`` sentinel.
     """
     keys: set[str] = set()
     columns = (

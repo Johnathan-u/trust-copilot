@@ -7,7 +7,8 @@ A job failure is classified into a stable, typed ``error_code``:
   ``database_unavailable`` (DB connection lost / operational error), ``lease_expired`` (the worker
   lost its job lease before finishing; the attempt is abandoned and retried under the same cap);
 * **terminal** (retrying cannot help): ``bad_input``, ``not_found``, ``auth_failed``,
-  ``permission_denied``, ``config_error``, ``internal_error``.
+  ``permission_denied``, ``config_error``, ``internal_error``, and the export codes
+  ``export_xlsx_failed``, ``export_docx_failed``, ``export_storage_failed`` (TC-13-005).
 
 Model-provider failures (TC-11-001, ``app.services.model_outcomes``) keep TC-11-001's
 ``model_*`` code and its catalog ``retryable`` flag and safe message, so ``jobs.error_code``
@@ -53,6 +54,16 @@ AUTH_FAILED = "auth_failed"
 PERMISSION_DENIED = "permission_denied"
 CONFIG_ERROR = "config_error"
 INTERNAL_ERROR = "internal_error"
+# TC-13-005: a failed export stays on the requested format. These are terminal because
+# substituting a DOCX (or any other file) would hide the failure, and retrying a rejected
+# workbook does not make that workbook writable.
+EXPORT_XLSX_FAILED = "export_xlsx_failed"
+EXPORT_DOCX_FAILED = "export_docx_failed"
+EXPORT_STORAGE_FAILED = "export_storage_failed"
+# The stored workbook fingerprint or answer cell no longer matches. Terminal:
+# writing anyway would put answers in the wrong cells, and a retry cannot
+# repair the workbook.
+EXPORT_MAPPING_STALE = "export_mapping_stale"
 
 RETRYABLE_CODES = frozenset(
     {
@@ -72,6 +83,10 @@ TERMINAL_CODES = frozenset(
         PERMISSION_DENIED,
         CONFIG_ERROR,
         INTERNAL_ERROR,
+        EXPORT_XLSX_FAILED,
+        EXPORT_DOCX_FAILED,
+        EXPORT_STORAGE_FAILED,
+        EXPORT_MAPPING_STALE,
     }
 )
 ALL_CODES = RETRYABLE_CODES | TERMINAL_CODES

@@ -1,4 +1,8 @@
-"""Fallback export pack when in-file placement is not possible (EXP-08)."""
+"""DOCX pack used only when the client explicitly requested DOCX (EXP-08, TC-13-005).
+
+This is not a substitute for a failed XLSX export. Callers must not invoke it to hide
+a workbook or storage failure.
+"""
 
 import csv
 from io import BytesIO, StringIO
@@ -21,15 +25,27 @@ def neutralize_csv_cell(value: Any) -> str:
     return text
 
 
+# Same fixed sentence as an explicit DOCX job failure. No path, exception text, or CSV body.
+DOCX_PACK_UNAVAILABLE = "The DOCX export could not be written. No substitute file was produced."
+
+
+class DocxExportUnavailable(RuntimeError):
+    """DOCX bytes could not be produced. Callers must not substitute another format."""
+
+
 def create_fallback_pack_docx(
     questions: list[dict],
     question_to_answer: dict[int, str],
 ) -> bytes:
-    """Create a simple DOCX with Question | Answer table."""
+    """Create a simple DOCX with a Question | Answer table.
+
+    Used only for an export the client asked to receive as DOCX. A missing DOCX
+    library fails this export; it does not return CSV under a DOCX name.
+    """
     try:
         from docx import Document
-    except ImportError:
-        return create_fallback_pack_csv(questions, question_to_answer)
+    except ImportError as exc:
+        raise DocxExportUnavailable(DOCX_PACK_UNAVAILABLE) from exc
 
     doc = Document()
     doc.add_heading("Questionnaire Answers (Fallback Export)", 0)
