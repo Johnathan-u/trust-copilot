@@ -50,7 +50,7 @@ left as it was. Partial files from the failed attempt are removed.
 | `compress` | `gzip` exits nonzero, including a full disk while the archive is written, or the bytes are not a gzip stream | gzip's exit code, or 1 for a bad stream |
 | `checksum` | `sha256sum` fails, the sidecar cannot be written, or the digest does not match | that exit code, or 1 |
 | `publish` | the rename fails, or the published bytes no longer match the digest | that exit code, or 1 |
-| `upload` | `aws s3 cp` fails after a local publish | that exit code |
+| `upload` | `aws` is not on `PATH`, or `aws s3 cp` fails, after a local publish | 127 when `aws` is missing, otherwise `aws`'s exit code |
 
 `dump`, `compress`, `checksum`, and `publish` delete the partial and do not
 rename a new archive into place. `upload` is different: the local archive and
@@ -72,6 +72,6 @@ A full disk while `gzip` is writing looks like gzip's own error, for example
 `gzip: stdout: No space left on device`, and the stage is `compress`. A full disk
 while `sha256sum` is writing is stage `checksum`.
 
-If `BACKUP_S3_BUCKET` is set but the `aws` CLI is not installed, the script still
-exits 0 after the local publish. That skip is unchanged. Install the CLI or unset
-the bucket when an off-host copy is required.
+If `BACKUP_S3_BUCKET` is set and the `aws` CLI is not on `PATH`, the script exits
+127 with `stage=upload` and message `aws CLI not found for configured BACKUP_S3_BUCKET`.
+The local archive and sidecar stay. Install the CLI or unset the bucket.

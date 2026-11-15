@@ -136,6 +136,18 @@ def _gzip_target(log_path: Path) -> Path:
     return Path(line)
 
 
+def _path_without_aws(path: str) -> str:
+    kept: list[str] = []
+    for entry in path.split(os.pathsep):
+        if not entry:
+            continue
+        aws = Path(entry) / "aws"
+        if aws.exists() or aws.with_suffix(".exe").exists():
+            continue
+        kept.append(entry)
+    return os.pathsep.join(kept)
+
+
 def _run(
     tmp_path: Path,
     *,
@@ -143,6 +155,8 @@ def _run(
     gzip_mode: str = "ok",
     database_url: str | None = SYNTHETIC_URL,
     fake_sha256sum: bool = False,
+    s3_bucket: str | None = None,
+    hide_aws: bool = False,
 ) -> tuple[subprocess.CompletedProcess[str], Path, Path]:
     backup_dir = tmp_path / "backups"
     backup_dir.mkdir(exist_ok=True)
@@ -157,8 +171,11 @@ def _run(
     if not real_gzip:
         raise AssertionError("gzip is not installed")
     gzip_log = tmp_path / "gzip-output.txt"
+    inherited = os.environ.get("PATH", "")
+    if hide_aws:
+        inherited = _path_without_aws(inherited)
     env = {
-        "PATH": str(bin_dir) + os.pathsep + os.environ.get("PATH", ""),
+        "PATH": str(bin_dir) + os.pathsep + inherited,
         "HOME": str(tmp_path),
         "TMPDIR": str(tmp_path / "tmp"),
         "LANG": "C.UTF-8",
@@ -171,6 +188,8 @@ def _run(
     }
     if database_url is not None:
         env["DATABASE_URL"] = database_url
+    if s3_bucket is not None:
+        env["BACKUP_S3_BUCKET"] = s3_bucket
     proc = subprocess.run(
         ["bash", str(SCRIPT)],
         env=env,
@@ -293,6 +312,27 @@ def test_success_publishes_checksum_after_temp_write(tmp_path: Path) -> None:
     )
     if b"-- synthetic dump" not in plain.stdout:
         raise AssertionError("published backup did not contain the dump")
+    _assert_no_credentials(proc.stdout + proc.stderr)
+
+
+def test_configured_bucket_without_aws_keeps_the_local_archive(tmp_path: Path) -> None:
+    proc, backup_dir, gzip_log = _run(tmp_path, s3_bucket="synthetic-bucket", hide_aws=True)
+    if proc.returncode != 127:
+        raise AssertionError(f"expected exit 127, got {proc.returncode}")
+    if "Backup written" not in proc.stdout or "Uploaded" in proc.stdout:
+        raise AssertionError("missing aws did not keep the local publish")
+    archives = _published_archives(backup_dir)
+    checksums = _checksums(backup_dir)
+    if len(archives) != 1 or len(checksums) != 1:
+        raise AssertionError("missing aws removed the verified local archive")
+    target = _gzip_target(gzip_log)
+    if _PUBLISHED.match(target.name) or target.exists():
+        raise AssertionError("missing aws wrote the published name or left a partial")
+    alert = _alert(proc.stderr)
+    if alert.group("stage") != "upload" or int(alert.group("code")) != 127:
+        raise AssertionError("missing aws alert did not name the upload stage")
+    if alert.group("message") != "aws CLI not found for configured BACKUP_S3_BUCKET":
+        raise AssertionError("missing aws alert message did not match")
     _assert_no_credentials(proc.stdout + proc.stderr)
 
 

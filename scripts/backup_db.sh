@@ -10,8 +10,8 @@
 # partial, and does not leave that new trustcopilot_*.sql.gz or its .sha256.
 # The failure line names the stage, the exit code, and a message. It never
 # includes DATABASE_URL, a password, or a connection string.
-# An S3 upload failure still exits nonzero and logs that stage. The local
-# verified archive is already published and is left in place.
+# An S3 upload failure, including a configured bucket with no aws CLI, exits
+# nonzero and logs that stage. The local verified archive is left in place.
 
 set -euo pipefail
 
@@ -219,19 +219,20 @@ printf 'Backup written: %s\n' "$FINAL"
 printf 'Checksum: %s  %s\n' "$hash" "$base"
 
 if [ -n "${BACKUP_S3_BUCKET:-}" ]; then
-  if command -v aws >/dev/null 2>&1; then
-    set +e
-    aws s3 cp "$FINAL" "s3://${BACKUP_S3_BUCKET}/$(basename "$FINAL")" --only-show-errors \
-      2>"$secret_tmp/aws.err"
-    aws_status=$?
-    set -e
-    if [ "$aws_status" -ne 0 ]; then
-      detail=$(read_redacted "$secret_tmp/aws.err")
-      if [ -n "$detail" ]; then
-        fail upload "$aws_status" "s3 upload failed: ${detail}"
-      fi
-      fail upload "$aws_status" "s3 upload failed"
-    fi
-    printf 'Uploaded to s3://%s/%s\n' "$BACKUP_S3_BUCKET" "$(basename "$FINAL")"
+  if ! command -v aws >/dev/null 2>&1; then
+    fail upload 127 "aws CLI not found for configured BACKUP_S3_BUCKET"
   fi
+  set +e
+  aws s3 cp "$FINAL" "s3://${BACKUP_S3_BUCKET}/$(basename "$FINAL")" --only-show-errors \
+    2>"$secret_tmp/aws.err"
+  aws_status=$?
+  set -e
+  if [ "$aws_status" -ne 0 ]; then
+    detail=$(read_redacted "$secret_tmp/aws.err")
+    if [ -n "$detail" ]; then
+      fail upload "$aws_status" "s3 upload failed: ${detail}"
+    fi
+    fail upload "$aws_status" "s3 upload failed"
+  fi
+  printf 'Uploaded to s3://%s/%s\n' "$BACKUP_S3_BUCKET" "$(basename "$FINAL")"
 fi

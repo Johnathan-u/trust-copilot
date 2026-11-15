@@ -3,7 +3,10 @@
 Command: python -m pytest tests/release/test_backup_failure.py -q
 Working directory: apps/api
 Exit status: 0
-Result: 7 passed
+Result: 8 passed
 
-.......                                                                  [100%]
-7 passed in 0.31s
+The first green run of the failure-stage fix was 7 passed. Review added the
+configured-bucket case where aws is not on PATH. That case is included here.
+
+........                                                                 [100%]
+8 passed in 0.35s
