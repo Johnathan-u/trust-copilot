@@ -1,6 +1,17 @@
 # TC-13-005 CI runs
 
-Verified heads, both with `build` and `web-release-e2e` succeeded on `push` and `pull_request`. Not merged.
+Verified heads, each with `build` and `web-release-e2e` succeeded on `push` and `pull_request`. Not merged.
+
+## Stale-mapping head
+
+`d97b5386b6ce3aae7b4d5f525a95da6a6de8361d`. This is the product head that fails a stale workbook fingerprint or mapped cell as `export_mapping_stale` and writes a current version-1 answer only into the stored answer cell. Master `71e4a7c` and `960fe4f` are ancestors.
+
+| Event | Run | Job | Conclusion |
+|---|---|---|---|
+| push | [43742714941](https://github.com/Johnathan-u/trust-copilot/actions/runs/43742714941) | [build 132899183550](https://github.com/Johnathan-u/trust-copilot/actions/runs/43742714941/job/132899183550) | success |
+| push | [43742714941](https://github.com/Johnathan-u/trust-copilot/actions/runs/43742714941) | [web-release-e2e 132899183886](https://github.com/Johnathan-u/trust-copilot/actions/runs/43742714941/job/132899183886) | success |
+| pull_request | [43742719776](https://github.com/Johnathan-u/trust-copilot/actions/runs/43742719776) | [build 132899199125](https://github.com/Johnathan-u/trust-copilot/actions/runs/43742719776/job/132899199125) | success |
+| pull_request | [43742719776](https://github.com/Johnathan-u/trust-copilot/actions/runs/43742719776) | [web-release-e2e 132899198823](https://github.com/Johnathan-u/trust-copilot/actions/runs/43742719776/job/132899198823) | success |
 
 ## Implementation head
 
@@ -24,4 +35,4 @@ Verified heads, both with `build` and `web-release-e2e` succeeded on `push` and 
 | pull_request | [43740266701](https://github.com/Johnathan-u/trust-copilot/actions/runs/43740266701) | [build 132891664844](https://github.com/Johnathan-u/trust-copilot/actions/runs/43740266701/job/132891664844) | success |
 | pull_request | [43740266701](https://github.com/Johnathan-u/trust-copilot/actions/runs/43740266701) | [web-release-e2e 132891665148](https://github.com/Johnathan-u/trust-copilot/actions/runs/43740266701/job/132891665148) | success |
 
-Master moved again to `960fe4f` (TC-09-002 CI record only) while that run was finishing. That commit is merged in the same change as this file. CI for that head is separate from the tables above.
+Master `960fe4f` (TC-09-002 CI record only) is an ancestor of the stale-mapping head above.
