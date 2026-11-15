@@ -558,8 +558,7 @@
     }
   },
   "real_provider_sandbox": {
-    "status": "AWAITING_COORDINATOR_RULING",
-    "issue": "https://github.com/Johnathan-u/trust-copilot/issues/85",
-    "note": "Real-provider sandbox evidence awaits a coordinator ruling on #85: either N/A for the in-app inbox, or owner sandbox accounts are needed. This record does not decide that question."
+    "status": "NOT_APPLICABLE",
+    "ruling": "Coordinator ruling (2026-11-11, test-scope ruling under OD-14, recorded in docs/acceptance/release-decisions.md section 4): DoD6 does not apply to TC-19-010. The inbox is in-app only and makes no external provider call, and TC-19-010's code doesn't deliver anything by preference. Preferences are stored by TC-19-008 (#27) and enforced in TC-19-008's dispatcher, so real-provider preference qualification belongs to TC-19-008's DoD6 (owner sandbox accounts under OD-5 if needed). Review: https://github.com/Johnathan-u/trust-copilot/pull/216#issuecomment-6789725702"
   }
 }
