@@ -469,6 +469,23 @@ it('lets a reader open links and risk without a link control', async () => {
   expect(writes).toHaveLength(0)
 })
 
+it('shows the room when a reader is not given the token', async () => {
+  context.permissions = {
+    can_admin: false,
+    can_edit: false,
+    can_review: false,
+  }
+  roomResult = roomPayload({ access_token: null })
+  await open()
+  await openLinks()
+  expect(
+    await screen.findByText(
+      'No questionnaires from this workspace are in the room.'
+    )
+  ).toBeTruthy()
+  expect(screen.queryByText('synthetic-room-marker')).toBeNull()
+})
+
 it('shows an empty room without inventing revenue', async () => {
   riskResult = riskPayload({ revenue_at_risk: null, deal_value_arr: null })
   await open()
