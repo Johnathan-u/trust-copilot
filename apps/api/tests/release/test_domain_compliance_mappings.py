@@ -8,6 +8,7 @@ import os
 import shutil
 import subprocess
 import sys
+import threading
 import uuid
 from pathlib import Path
 from urllib.parse import quote
@@ -1202,3 +1203,250 @@ def test_web_reader_accepts_api_payload_across_fresh_session(client):
     assert accepted["fresh"]["control_ids"] == [control_id]
     assert accepted["rollback"]["state"] == rolled.json()["state"]
     assert accepted["rollback"]["precedence_held"] is False
+
+
+def _json_list(value) -> list:
+    if isinstance(value, str):
+        value = json.loads(value)
+    return list(value or [])
+
+
+def _stored_decision(workspace_id: int, question_hash: str):
+    session = _db()
+    try:
+        row = session.execute(
+            text(
+                "SELECT id, version, state, rationale, override_control_ids "
+                "FROM control_mapping_override "
+                "WHERE workspace_id = :ws AND question_hash = :question_hash"
+            ),
+            {"ws": workspace_id, "question_hash": question_hash},
+        ).one()
+        history = session.execute(
+            text(
+                "SELECT version, state, rationale, control_ids "
+                "FROM tc21005_mapping_history WHERE mapping_id = :id ORDER BY id"
+            ),
+            {"id": row.id},
+        ).fetchall()
+        return row, history
+    finally:
+        session.close()
+
+
+def _race(calls: list):
+    """Start each call together. Two sessions, two threads, one Postgres."""
+    start = threading.Barrier(len(calls))
+    found: list = []
+    errors: list[BaseException] = []
+    guard = threading.Lock()
+
+    def run(call) -> None:
+        try:
+            start.wait(timeout=10)
+            value = call()
+            with guard:
+                found.append(value)
+        except BaseException as exc:  # noqa: BLE001 - report the thread failure
+            errors.append(exc)
+
+    threads = [threading.Thread(target=run, args=(call,)) for call in calls]
+    for thread in threads:
+        thread.start()
+    for thread in threads:
+        thread.join(timeout=30)
+    assert [thread.is_alive() for thread in threads] == [False, False]
+    return found, errors
+
+
+def test_concurrent_first_decisions_return_conflict_not_500(client):
+    """Two first confirms, no Idempotency-Key. The unique index must be a 409.
+
+    On an unlocked insert the loser hits ix_control_mapping_override_workspace_hash
+    and the API answers 500. One row is kept. A retry of the loser is a later version.
+    """
+    del client
+    from app.core import compliance_rate_limit
+
+    import app.api.routes.compliance_mappings as mappings
+
+    compliance_rate_limit._workspace_timestamps.clear()
+    actors = _actors()
+    left = _control(actors["workspace_id"], f"Race left {uuid.uuid4().hex[:8]}")
+    right = _control(actors["workspace_id"], f"Race right {uuid.uuid4().hex[:8]}")
+    question = f"synthetic first race {uuid.uuid4().hex}"
+    target = mappings._question_hash(question)
+    gate = threading.Barrier(2)
+    real_load = mappings._load
+
+    def racing_load(db, workspace_id, question_hash, **kwargs):
+        row = real_load(db, workspace_id, question_hash, **kwargs)
+        if row is None and question_hash == target:
+            gate.wait(timeout=10)
+        return row
+
+    http_left = TestClient(
+        app, base_url=TEST_ORIGIN, headers=TEST_HEADERS, raise_server_exceptions=False
+    )
+    http_right = TestClient(
+        app, base_url=TEST_ORIGIN, headers=TEST_HEADERS, raise_server_exceptions=False
+    )
+    try:
+        _login(http_left, ADMIN_EMAIL, ADMIN_PASSWORD)
+        _login(http_right, ADMIN_EMAIL, ADMIN_PASSWORD)
+
+        def post(http, control_id: int, label: str):
+            response = http.post(
+                "/api/compliance/control-mappings/confirm",
+                json={"question": question, "control_ids": [control_id]},
+            )
+            return label, control_id, http, response
+
+        with patch.object(mappings, "_load", racing_load):
+            found, errors = _race(
+                [
+                    lambda: post(http_left, left, "left"),
+                    lambda: post(http_right, right, "right"),
+                ]
+            )
+        assert errors == [], errors
+        codes = sorted(item[3].status_code for item in found)
+        detail = [
+            {
+                "label": item[0],
+                "status": item[3].status_code,
+                "body": item[3].text[:500],
+            }
+            for item in found
+        ]
+        assert codes == [200, 409], {
+            "codes": codes,
+            "saw_500": 500 in codes,
+            "responses": detail,
+        }
+        winner = next(item for item in found if item[3].status_code == 200)
+        loser = next(item for item in found if item[3].status_code == 409)
+        assert winner[3].json()["version"] == 2
+        assert winner[3].json()["control_ids"] == [winner[1]]
+        assert loser[3].json()["detail"] == mappings.MAPPING_DECISION_CONFLICT
+        row, history = _stored_decision(actors["workspace_id"], target)
+        assert row.version == 2
+        assert _json_list(row.override_control_ids) == [winner[1]]
+        assert [item.version for item in history] == [1]
+        retry = loser[2].post(
+            "/api/compliance/control-mappings/confirm",
+            json={"question": question, "control_ids": [loser[1]]},
+        )
+        assert retry.status_code == 200, retry.text
+        assert retry.json()["version"] == 3
+        assert retry.json()["control_ids"] == [loser[1]]
+        assert "Idempotency-Key" not in retry.request.headers
+        print(
+            "TC21005A_FIRST",
+            {"codes": codes, "winner_version": 2, "retry_version": retry.json()["version"]},
+        )
+    finally:
+        http_left.close()
+        http_right.close()
+
+
+def test_concurrent_updates_write_strictly_sequential_versions(client):
+    """Two updates of version N must store N+1 and N+2, not two copies of N+1.
+
+    Both sessions read the row, then wait until the other has also read or one
+    second passes. Without a row lock both keep version N and both write N+1.
+    SELECT FOR UPDATE holds the first transaction across that wait, so the
+    second read starts only after N+1 is committed.
+    """
+    from app.core import compliance_rate_limit
+
+    import app.api.routes.compliance_mappings as mappings
+
+    compliance_rate_limit._workspace_timestamps.clear()
+    actors = _actors()
+    seed = _control(actors["workspace_id"], f"Race seed {uuid.uuid4().hex[:8]}")
+    first = _control(actors["workspace_id"], f"Race one {uuid.uuid4().hex[:8]}")
+    second = _control(actors["workspace_id"], f"Race two {uuid.uuid4().hex[:8]}")
+    question = f"synthetic update race {uuid.uuid4().hex}"
+    _login(client, ADMIN_EMAIL, ADMIN_PASSWORD)
+    created = client.post(
+        "/api/compliance/control-mappings/confirm",
+        json={"question": question, "control_ids": [seed]},
+    )
+    assert created.status_code == 200, created.text
+    assert created.json()["version"] == 2
+    target = created.json()["question_hash"]
+    start = 2
+    loaded: list[int] = []
+    release = threading.Event()
+    guard = threading.Lock()
+    real_load = mappings._load
+
+    def racing_load(db, workspace_id, question_hash, **kwargs):
+        row = real_load(db, workspace_id, question_hash, **kwargs)
+        if row is not None and question_hash == target:
+            with guard:
+                loaded.append(int(row.version))
+                if len(loaded) >= 2:
+                    release.set()
+            # A lock holder must not wait forever: the other session is blocked
+            # inside the locked read. One second is enough for that session to
+            # be waiting, and long enough that an unlocked pair both observe N.
+            release.wait(timeout=1)
+        return row
+
+    http_one = TestClient(
+        app, base_url=TEST_ORIGIN, headers=TEST_HEADERS, raise_server_exceptions=False
+    )
+    http_two = TestClient(
+        app, base_url=TEST_ORIGIN, headers=TEST_HEADERS, raise_server_exceptions=False
+    )
+    try:
+        _login(http_one, ADMIN_EMAIL, ADMIN_PASSWORD)
+        _login(http_two, ADMIN_EMAIL, ADMIN_PASSWORD)
+
+        def post(http, control_id: int, rationale: str):
+            response = http.post(
+                "/api/compliance/control-mappings/override",
+                json={
+                    "question": question,
+                    "control_ids": [control_id],
+                    "rationale": rationale,
+                },
+            )
+            return rationale, control_id, response
+
+        with patch.object(mappings, "_load", racing_load):
+            found, errors = _race(
+                [
+                    lambda: post(http_one, first, "race-one"),
+                    lambda: post(http_two, second, "race-two"),
+                ]
+            )
+        assert errors == [], errors
+        codes = [item[2].status_code for item in found]
+        versions = sorted(item[2].json()["version"] for item in found)
+        row, history = _stored_decision(actors["workspace_id"], target)
+        history_versions = [item.version for item in history]
+        stored_rationales = {item.rationale for item in history} | {row.rationale}
+        stored_ids = set()
+        for item in history:
+            stored_ids.update(_json_list(item.control_ids))
+        stored_ids.update(_json_list(row.override_control_ids))
+        report = (
+            f"codes={codes} response_versions={versions} current_version={row.version} "
+            f"history_versions={history_versions} "
+            f"stored_rationales={sorted(item for item in stored_rationales if item)} "
+            f"stored_control_ids={sorted(stored_ids)} loaded_versions={loaded} "
+            f"bodies={[item[2].text[:180] for item in found]}"
+        )
+        assert codes == [200, 200], report
+        assert versions == [start + 1, start + 2], report
+        assert row.version == start + 2, report
+        assert history_versions == [1, start, start + 1], report
+        assert "race-one" in stored_rationales and "race-two" in stored_rationales, report
+        assert first in stored_ids and second in stored_ids, report
+        print("TC21005A_UPDATE", report)
+    finally:
+        http_one.close()
+        http_two.close()
