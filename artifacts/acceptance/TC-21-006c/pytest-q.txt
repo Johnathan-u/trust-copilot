@@ -1,0 +1,20 @@
+.................                                                        [100%]
+=============================== warnings summary ===============================
+tests/release/test_domain_compliance_gaps.py: 114 warnings
+  /tmp/tc-venv/lib/python3.12/site-packages/sqlalchemy/sql/schema.py:3627: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    return util.wrap_callable(lambda ctx: fn(), fn)  # type: ignore
+
+tests/release/test_domain_compliance_gaps.py::test_rules_owner_and_states
+  /agent/repos/trust-copilot/apps/api/tests/release/test_domain_compliance_gaps.py:541: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    evidence_id=stale_evidence, expires_at=datetime.utcnow() - timedelta(days=1)
+
+tests/release/test_domain_compliance_gaps.py::test_deleted_document_is_a_gap
+  /agent/repos/trust-copilot/apps/api/tests/release/test_domain_compliance_gaps.py:292: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    deleted_at=datetime.utcnow() if document_deleted else None,
+
+tests/release/test_domain_compliance_gaps.py::test_migration_round_trip_restores_gap_evaluation
+  /tmp/tc-venv/lib/python3.12/site-packages/alembic/config.py:604: DeprecationWarning: No path_separator found in configuration; falling back to legacy splitting on spaces, commas, and colons for prepend_sys_path.  Consider adding path_separator=os to Alembic config.
+    util.warn_deprecated(
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+17 passed, 117 warnings in 7.27s

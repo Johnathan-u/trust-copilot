@@ -183,35 +183,43 @@ def evaluate_control(
     """Return a gap, unknown, stale, or failed result.
 
     None means the control is clear. A skipped control is not clear and is not a gap.
+    The check runs in a savepoint. A database error rolls back only that savepoint.
+    The failed result is read after the rollback, so later controls still commit.
     """
     try:
-        scope = _scope(db, wc)
-        if scope == "skipped":
-            return _SkippedControl(wc.id)
-        if scope == "unknown":
-            return _gap_row(db, wc, "unknown", "missing_framework", [])
-        now = datetime.now(timezone.utc).replace(tzinfo=None)
-        links = db.query(ControlEvidenceLink).filter(ControlEvidenceLink.control_id == wc.id).all()
-        if not links:
-            return _gap_row(db, wc, "gap", "no_evidence", [])
-        best: tuple[str, str, int] | None = None
-        evidence_ids: list[int] = []
-        for link in links:
-            ev = db.query(EvidenceItem).filter(EvidenceItem.id == link.evidence_id).first()
-            state, rule, evidence_id = _classify_evidence(
-                db, ev, link.evidence_id, workspace_id, now
-            )
-            if state == "clear":
-                return None
-            if evidence_id is not None:
-                evidence_ids.append(evidence_id)
-            if best is None or _SEVERITY[state] > _SEVERITY[best[0]]:
-                best = (state, rule, evidence_id)
-        assert best is not None
-        return _gap_row(db, wc, best[0], best[1], evidence_ids)
+        with db.begin_nested():
+            scored = _score_control(db, wc, workspace_id)
     except Exception:
         logger.exception("compliance gap check failed", extra={"control_id": wc.id})
         return _gap_row(db, wc, "failed", "check_error", [])
+    return scored
+
+
+def _score_control(
+    db: Session, wc: WorkspaceControl, workspace_id: int
+) -> dict | _SkippedControl | None:
+    scope = _scope(db, wc)
+    if scope == "skipped":
+        return _SkippedControl(wc.id)
+    if scope == "unknown":
+        return _gap_row(db, wc, "unknown", "missing_framework", [])
+    now = datetime.now(timezone.utc).replace(tzinfo=None)
+    links = db.query(ControlEvidenceLink).filter(ControlEvidenceLink.control_id == wc.id).all()
+    if not links:
+        return _gap_row(db, wc, "gap", "no_evidence", [])
+    best: tuple[str, str, int] | None = None
+    evidence_ids: list[int] = []
+    for link in links:
+        ev = db.query(EvidenceItem).filter(EvidenceItem.id == link.evidence_id).first()
+        state, rule, evidence_id = _classify_evidence(db, ev, link.evidence_id, workspace_id, now)
+        if state == "clear":
+            return None
+        if evidence_id is not None:
+            evidence_ids.append(evidence_id)
+        if best is None or _SEVERITY[state] > _SEVERITY[best[0]]:
+            best = (state, rule, evidence_id)
+    assert best is not None
+    return _gap_row(db, wc, best[0], best[1], evidence_ids)
 
 
 def global_gaps_list(

@@ -1,0 +1,296 @@
+F                                                                        [100%]
+=================================== FAILURES ===================================
+__________ test_database_error_on_one_control_does_not_abort_the_scan __________
+/tmp/tc-venv/lib/python3.12/site-packages/sqlalchemy/engine/base.py:1976: in _exec_single_context
+    self.dialect.do_execute(
+/tmp/tc-venv/lib/python3.12/site-packages/sqlalchemy/engine/default.py:964: in do_execute
+    cursor.execute(statement, parameters)
+E   psycopg2.errors.NotNullViolation: null value in column "workspace_id" of relation "evidence_gaps" violates not-null constraint
+E   DETAIL:  Failing row contains (3, null, null, null, null, control_check, tc21006c-constraint, null, null, null, open, 2026-11-16 14:41:59.650322, 2026-11-16 14:41:59.650322, null, null, null, null, null, null, null, null).
+
+The above exception was the direct cause of the following exception:
+tests/release/test_domain_compliance_gaps.py:1118: in scope_with_constraint_violation
+    db.execute(
+/tmp/tc-venv/lib/python3.12/site-packages/sqlalchemy/orm/session.py:2373: in execute
+    return self._execute_internal(
+/tmp/tc-venv/lib/python3.12/site-packages/sqlalchemy/orm/session.py:2280: in _execute_internal
+    result = conn.execute(
+/tmp/tc-venv/lib/python3.12/site-packages/sqlalchemy/engine/base.py:1428: in execute
+    return meth(
+/tmp/tc-venv/lib/python3.12/site-packages/sqlalchemy/sql/elements.py:526: in _execute_on_connection
+    return connection._execute_clauseelement(
+/tmp/tc-venv/lib/python3.12/site-packages/sqlalchemy/engine/base.py:1650: in _execute_clauseelement
+    ret = self._execute_context(
+/tmp/tc-venv/lib/python3.12/site-packages/sqlalchemy/engine/base.py:1855: in _execute_context
+    return self._exec_single_context(
+/tmp/tc-venv/lib/python3.12/site-packages/sqlalchemy/engine/base.py:1995: in _exec_single_context
+    self._handle_dbapi_exception(
+/tmp/tc-venv/lib/python3.12/site-packages/sqlalchemy/engine/base.py:2372: in _handle_dbapi_exception
+    raise sqlalchemy_exception.with_traceback(exc_info[2]) from e
+/tmp/tc-venv/lib/python3.12/site-packages/sqlalchemy/engine/base.py:1976: in _exec_single_context
+    self.dialect.do_execute(
+/tmp/tc-venv/lib/python3.12/site-packages/sqlalchemy/engine/default.py:964: in do_execute
+    cursor.execute(statement, parameters)
+E   sqlalchemy.exc.IntegrityError: (psycopg2.errors.NotNullViolation) null value in column "workspace_id" of relation "evidence_gaps" violates not-null constraint
+E   DETAIL:  Failing row contains (3, null, null, null, null, control_check, tc21006c-constraint, null, null, null, open, 2026-11-16 14:41:59.650322, 2026-11-16 14:41:59.650322, null, null, null, null, null, null, null, null).
+E
+E   [SQL: INSERT INTO evidence_gaps (workspace_id, gap_type, reason, status) VALUES (NULL, 'control_check', %(reason)s, 'open')]
+E   [parameters: {'reason': 'tc21006c-constraint'}]
+E   (Background on this error at: https://sqlalche.me/e/20/gkpj)
+
+During handling of the above exception, another exception occurred:
+/tmp/tc-venv/lib/python3.12/site-packages/sqlalchemy/engine/base.py:1976: in _exec_single_context
+    self.dialect.do_execute(
+/tmp/tc-venv/lib/python3.12/site-packages/sqlalchemy/engine/default.py:964: in do_execute
+    cursor.execute(statement, parameters)
+E   psycopg2.errors.InFailedSqlTransaction: current transaction is aborted, commands ignored until end of transaction block
+
+The above exception was the direct cause of the following exception:
+tests/release/test_domain_compliance_gaps.py:1135: in test_database_error_on_one_control_does_not_abort_the_scan
+    scanned = client.post("/api/compliance/gaps/scan-and-notify")
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/tmp/tc-venv/lib/python3.12/site-packages/httpx2/_client.py:1203: in post
+    return self.request(
+/tmp/tc-venv/lib/python3.12/site-packages/starlette/testclient.py:518: in request
+    return super().request(
+/tmp/tc-venv/lib/python3.12/site-packages/httpx2/_client.py:796: in request
+    return self.send(request, auth=auth, follow_redirects=follow_redirects)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/tmp/tc-venv/lib/python3.12/site-packages/httpx2/_client.py:993: in send
+    raise exc
+/tmp/tc-venv/lib/python3.12/site-packages/httpx2/_client.py:987: in send
+    response.read()
+/tmp/tc-venv/lib/python3.12/site-packages/httpx2/_models.py:877: in read
+    self._content = b"".join(self.iter_bytes())
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/tmp/tc-venv/lib/python3.12/site-packages/httpx2/_models.py:893: in iter_bytes
+    for raw_bytes in self.iter_raw():
+/tmp/tc-venv/lib/python3.12/site-packages/httpx2/_models.py:948: in iter_raw
+    for raw_stream_bytes in self.stream:
+/tmp/tc-venv/lib/python3.12/site-packages/httpx2/_client.py:143: in __iter__
+    yield from self._stream
+/tmp/tc-venv/lib/python3.12/site-packages/starlette/testclient.py:384: in iter_body
+    exit_stack.close()
+/usr/lib/python3.12/contextlib.py:618: in close
+    self.__exit__(None, None, None)
+/usr/lib/python3.12/contextlib.py:610: in __exit__
+    raise exc_details[1]
+/usr/lib/python3.12/contextlib.py:595: in __exit__
+    if cb(*exc_details):
+       ^^^^^^^^^^^^^^^^
+/tmp/tc-venv/lib/python3.12/site-packages/starlette/testclient.py:399: in close_app
+    raise exception
+/tmp/tc-venv/lib/python3.12/site-packages/anyio/from_thread.py:265: in _call_func
+    retval = await retval_or_awaitable
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+/tmp/tc-venv/lib/python3.12/site-packages/starlette/testclient.py:366: in run_app
+    await self.app(scope, receive, send)
+/tmp/tc-venv/lib/python3.12/site-packages/fastapi/applications.py:1194: in __call__
+    await super().__call__(scope, receive, send)
+/tmp/tc-venv/lib/python3.12/site-packages/starlette/applications.py:96: in __call__
+    await self.middleware_stack(scope, receive, send)
+/tmp/tc-venv/lib/python3.12/site-packages/starlette/middleware/errors.py:186: in __call__
+    raise exc
+/tmp/tc-venv/lib/python3.12/site-packages/starlette/middleware/errors.py:164: in __call__
+    await self.app(scope, receive, _send)
+/tmp/tc-venv/lib/python3.12/site-packages/fastapi/telemetry/_asgi.py:151: in __call__
+    await self.app(scope, receive, send)
+/tmp/tc-venv/lib/python3.12/site-packages/starlette/middleware/cors.py:91: in __call__
+    await self.simple_response(scope, receive, send, request_headers=headers)
+/tmp/tc-venv/lib/python3.12/site-packages/starlette/middleware/cors.py:149: in simple_response
+    await self.app(scope, receive, send)
+/tmp/tc-venv/lib/python3.12/site-packages/starlette/middleware/base.py:203: in __call__
+    response = await self.dispatch_func(request, call_next)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+app/main.py:317: in dispatch
+    return await call_next(request)
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+/tmp/tc-venv/lib/python3.12/site-packages/starlette/middleware/base.py:179: in call_next
+    raise app_exc from app_exc.__cause__ or app_exc.__context__
+/tmp/tc-venv/lib/python3.12/site-packages/starlette/middleware/base.py:149: in coro
+    await self.app(scope, receive_or_disconnect, send_no_error)
+/tmp/tc-venv/lib/python3.12/site-packages/starlette/middleware/base.py:203: in __call__
+    response = await self.dispatch_func(request, call_next)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+app/main.py:364: in dispatch
+    return await call_next(request)
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+/tmp/tc-venv/lib/python3.12/site-packages/starlette/middleware/base.py:179: in call_next
+    raise app_exc from app_exc.__cause__ or app_exc.__context__
+/tmp/tc-venv/lib/python3.12/site-packages/starlette/middleware/base.py:149: in coro
+    await self.app(scope, receive_or_disconnect, send_no_error)
+/tmp/tc-venv/lib/python3.12/site-packages/starlette/middleware/base.py:203: in __call__
+    response = await self.dispatch_func(request, call_next)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+app/main.py:273: in dispatch
+    response = await call_next(request)
+               ^^^^^^^^^^^^^^^^^^^^^^^^
+/tmp/tc-venv/lib/python3.12/site-packages/starlette/middleware/base.py:179: in call_next
+    raise app_exc from app_exc.__cause__ or app_exc.__context__
+/tmp/tc-venv/lib/python3.12/site-packages/starlette/middleware/base.py:149: in coro
+    await self.app(scope, receive_or_disconnect, send_no_error)
+/tmp/tc-venv/lib/python3.12/site-packages/starlette/middleware/exceptions.py:63: in __call__
+    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+/tmp/tc-venv/lib/python3.12/site-packages/starlette/_exception_handler.py:53: in wrapped_app
+    raise exc
+/tmp/tc-venv/lib/python3.12/site-packages/starlette/_exception_handler.py:42: in wrapped_app
+    await app(scope, receive, sender)
+/tmp/tc-venv/lib/python3.12/site-packages/fastapi/middleware/asyncexitstack.py:18: in __call__
+    await self.app(scope, receive, send)
+/tmp/tc-venv/lib/python3.12/site-packages/starlette/routing.py:683: in __call__
+    await self.middleware_stack(scope, receive, send)
+/tmp/tc-venv/lib/python3.12/site-packages/fastapi/routing.py:2811: in app
+    await route.handle(scope, receive, send)
+/tmp/tc-venv/lib/python3.12/site-packages/fastapi/routing.py:1839: in handle
+    await self.original_router.handle(scope, receive, send)
+/tmp/tc-venv/lib/python3.12/site-packages/fastapi/routing.py:2894: in handle
+    await included_router._handle_selected(scope, receive, send)
+/tmp/tc-venv/lib/python3.12/site-packages/fastapi/routing.py:1865: in _handle_selected
+    await original_route.handle(scope, receive, send)
+/tmp/tc-venv/lib/python3.12/site-packages/fastapi/routing.py:1328: in handle
+    await effective_context.app(scope, receive, send)
+/tmp/tc-venv/lib/python3.12/site-packages/fastapi/routing.py:166: in app
+    await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+/tmp/tc-venv/lib/python3.12/site-packages/starlette/_exception_handler.py:53: in wrapped_app
+    raise exc
+/tmp/tc-venv/lib/python3.12/site-packages/starlette/_exception_handler.py:42: in wrapped_app
+    await app(scope, receive, sender)
+/tmp/tc-venv/lib/python3.12/site-packages/fastapi/routing.py:152: in app
+    response = await f(request)
+               ^^^^^^^^^^^^^^^^
+/tmp/tc-venv/lib/python3.12/site-packages/fastapi/routing.py:745: in app
+    raw_response = await run_endpoint_function(
+/tmp/tc-venv/lib/python3.12/site-packages/fastapi/routing.py:374: in run_endpoint_function
+    return await run_in_threadpool(
+/tmp/tc-venv/lib/python3.12/site-packages/starlette/concurrency.py:34: in run_in_threadpool
+    return await anyio.to_thread.run_sync(func)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/tmp/tc-venv/lib/python3.12/site-packages/anyio/to_thread.py:65: in run_sync
+    return await get_async_backend().run_sync_in_worker_thread(
+/tmp/tc-venv/lib/python3.12/site-packages/anyio/_backends/_asyncio.py:2706: in run_sync_in_worker_thread
+    return await future
+           ^^^^^^^^^^^^
+/tmp/tc-venv/lib/python3.12/site-packages/anyio/_backends/_asyncio.py:1100: in run
+    result = context.run(func, *args)
+             ^^^^^^^^^^^^^^^^^^^^^^^^
+/tmp/tc-venv/lib/python3.12/site-packages/fastapi/telemetry/_api.py:244: in _run_sync_endpoint
+    return function(**arguments)
+           ^^^^^^^^^^^^^^^^^^^^^
+app/api/routes/compliance_gaps.py:551: in scan_and_notify_gaps
+    gaps, skipped = global_gaps_list(db, ws, low_confidence_threshold)
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+app/api/routes/compliance_gaps.py:232: in global_gaps_list
+    item = evaluate_control(db, wc, workspace_id)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+app/api/routes/compliance_gaps.py:214: in evaluate_control
+    return _gap_row(db, wc, "failed", "check_error", [])
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+app/api/routes/compliance_gaps.py:152: in _gap_row
+    ).first()
+      ^^^^^^^
+/tmp/tc-venv/lib/python3.12/site-packages/sqlalchemy/orm/query.py:2766: in first
+    return self.limit(1)._iter().first()  # type: ignore
+           ^^^^^^^^^^^^^^^^^^^^^
+/tmp/tc-venv/lib/python3.12/site-packages/sqlalchemy/orm/query.py:2864: in _iter
+    result: Union[ScalarResult[_T], Result[_T]] = self.session.execute(
+/tmp/tc-venv/lib/python3.12/site-packages/sqlalchemy/orm/session.py:2373: in execute
+    return self._execute_internal(
+/tmp/tc-venv/lib/python3.12/site-packages/sqlalchemy/orm/session.py:2271: in _execute_internal
+    result: Result[Any] = compile_state_cls.orm_execute_statement(
+/tmp/tc-venv/lib/python3.12/site-packages/sqlalchemy/orm/context.py:306: in orm_execute_statement
+    result = conn.execute(
+/tmp/tc-venv/lib/python3.12/site-packages/sqlalchemy/engine/base.py:1428: in execute
+    return meth(
+/tmp/tc-venv/lib/python3.12/site-packages/sqlalchemy/sql/elements.py:526: in _execute_on_connection
+    return connection._execute_clauseelement(
+/tmp/tc-venv/lib/python3.12/site-packages/sqlalchemy/engine/base.py:1650: in _execute_clauseelement
+    ret = self._execute_context(
+/tmp/tc-venv/lib/python3.12/site-packages/sqlalchemy/engine/base.py:1855: in _execute_context
+    return self._exec_single_context(
+/tmp/tc-venv/lib/python3.12/site-packages/sqlalchemy/engine/base.py:1995: in _exec_single_context
+    self._handle_dbapi_exception(
+/tmp/tc-venv/lib/python3.12/site-packages/sqlalchemy/engine/base.py:2372: in _handle_dbapi_exception
+    raise sqlalchemy_exception.with_traceback(exc_info[2]) from e
+/tmp/tc-venv/lib/python3.12/site-packages/sqlalchemy/engine/base.py:1976: in _exec_single_context
+    self.dialect.do_execute(
+/tmp/tc-venv/lib/python3.12/site-packages/sqlalchemy/engine/default.py:964: in do_execute
+    cursor.execute(statement, parameters)
+E   sqlalchemy.exc.InternalError: (psycopg2.errors.InFailedSqlTransaction) current transaction is aborted, commands ignored until end of transaction block
+E
+E   [SQL: SELECT count(control_evidence_links.id) AS count_1, max(control_evidence_links.confidence_score) AS max_1
+E   FROM control_evidence_links
+E   WHERE control_evidence_links.control_id = %(control_id_1)s
+E    LIMIT %(param_1)s]
+E   [parameters: {'control_id_1': 3, 'param_1': 1}]
+E   (Background on this error at: https://sqlalche.me/e/20/2j85)
+------------------------------ Captured log call -------------------------------
+ERROR    app.api.routes.compliance_gaps:compliance_gaps.py:213 compliance gap check failed
+Traceback (most recent call last):
+  File "/tmp/tc-venv/lib/python3.12/site-packages/sqlalchemy/engine/base.py", line 1976, in _exec_single_context
+    self.dialect.do_execute(
+  File "/tmp/tc-venv/lib/python3.12/site-packages/sqlalchemy/engine/default.py", line 964, in do_execute
+    cursor.execute(statement, parameters)
+psycopg2.errors.NotNullViolation: null value in column "workspace_id" of relation "evidence_gaps" violates not-null constraint
+DETAIL:  Failing row contains (3, null, null, null, null, control_check, tc21006c-constraint, null, null, null, open, 2026-11-16 14:41:59.650322, 2026-11-16 14:41:59.650322, null, null, null, null, null, null, null, null).
+
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/agent/repos/trust-copilot/apps/api/app/api/routes/compliance_gaps.py", line 188, in evaluate_control
+    scope = _scope(db, wc)
+            ^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/unittest/mock.py", line 1134, in __call__
+    return self._mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/unittest/mock.py", line 1138, in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/unittest/mock.py", line 1199, in _execute_mock_call
+    result = effect(*args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/agent/repos/trust-copilot/apps/api/tests/release/test_domain_compliance_gaps.py", line 1118, in scope_with_constraint_violation
+    db.execute(
+  File "/tmp/tc-venv/lib/python3.12/site-packages/sqlalchemy/orm/session.py", line 2373, in execute
+    return self._execute_internal(
+           ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/tmp/tc-venv/lib/python3.12/site-packages/sqlalchemy/orm/session.py", line 2280, in _execute_internal
+    result = conn.execute(
+             ^^^^^^^^^^^^^
+  File "/tmp/tc-venv/lib/python3.12/site-packages/sqlalchemy/engine/base.py", line 1428, in execute
+    return meth(
+           ^^^^^
+  File "/tmp/tc-venv/lib/python3.12/site-packages/sqlalchemy/sql/elements.py", line 526, in _execute_on_connection
+    return connection._execute_clauseelement(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/tmp/tc-venv/lib/python3.12/site-packages/sqlalchemy/engine/base.py", line 1650, in _execute_clauseelement
+    ret = self._execute_context(
+          ^^^^^^^^^^^^^^^^^^^^^^
+  File "/tmp/tc-venv/lib/python3.12/site-packages/sqlalchemy/engine/base.py", line 1855, in _execute_context
+    return self._exec_single_context(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/tmp/tc-venv/lib/python3.12/site-packages/sqlalchemy/engine/base.py", line 1995, in _exec_single_context
+    self._handle_dbapi_exception(
+  File "/tmp/tc-venv/lib/python3.12/site-packages/sqlalchemy/engine/base.py", line 2372, in _handle_dbapi_exception
+    raise sqlalchemy_exception.with_traceback(exc_info[2]) from e
+  File "/tmp/tc-venv/lib/python3.12/site-packages/sqlalchemy/engine/base.py", line 1976, in _exec_single_context
+    self.dialect.do_execute(
+  File "/tmp/tc-venv/lib/python3.12/site-packages/sqlalchemy/engine/default.py", line 964, in do_execute
+    cursor.execute(statement, parameters)
+sqlalchemy.exc.IntegrityError: (psycopg2.errors.NotNullViolation) null value in column "workspace_id" of relation "evidence_gaps" violates not-null constraint
+DETAIL:  Failing row contains (3, null, null, null, null, control_check, tc21006c-constraint, null, null, null, open, 2026-11-16 14:41:59.650322, 2026-11-16 14:41:59.650322, null, null, null, null, null, null, null, null).
+
+[SQL: INSERT INTO evidence_gaps (workspace_id, gap_type, reason, status) VALUES (NULL, 'control_check', %(reason)s, 'open')]
+[parameters: {'reason': 'tc21006c-constraint'}]
+(Background on this error at: https://sqlalche.me/e/20/gkpj)
+--------------------------- Captured stdout teardown ---------------------------
+TC21006_COUNTS before={'tc21006_gap_eval_hold': 0, 'evidence_gaps': 0, 'control_evidence_links': 0, 'evidence_metadata': 0, 'evidence_items': 0, 'documents': 0, 'workspace_controls': 0, 'framework_controls': 0, 'frameworks': 9, 'in_app_notifications': 0, 'idempotency_keys': 0, 'audit_events': 0, 'user_sessions': 0, 'workspace_members': 5, 'users': 4, 'workspaces': 3} after={'tc21006_gap_eval_hold': 0, 'evidence_gaps': 0, 'control_evidence_links': 0, 'evidence_metadata': 0, 'evidence_items': 0, 'documents': 0, 'workspace_controls': 0, 'framework_controls': 0, 'frameworks': 9, 'in_app_notifications': 0, 'idempotency_keys': 0, 'audit_events': 0, 'user_sessions': 0, 'workspace_members': 5, 'users': 4, 'workspaces': 3}
+=============================== warnings summary ===============================
+tests/release/test_domain_compliance_gaps.py: 10 warnings
+  /tmp/tc-venv/lib/python3.12/site-packages/sqlalchemy/sql/schema.py:3627: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    return util.wrap_callable(lambda ctx: fn(), fn)  # type: ignore
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED tests/release/test_domain_compliance_gaps.py::test_database_error_on_one_control_does_not_abort_the_scan
+1 failed, 10 warnings in 2.36s
