@@ -1,0 +1,30 @@
+Qualifying head c3525e899f94e919d6a976c49ab187040e17c2f5
+
+CI workflow CI. build and web-release-e2e are success on both events.
+
+push
+  run 43957871776 conclusion success
+  https://github.com/Johnathan-u/trust-copilot/actions/runs/43957871776
+  build 133617130185 success
+  web-release-e2e 133617129327 success
+
+pull_request
+  run 43957884607 conclusion success
+  https://github.com/Johnathan-u/trust-copilot/actions/runs/43957884607
+  build 133617160937 success
+  web-release-e2e 133617161703 success
+
+Earlier head 8ed0506c9a4f5b9734d75a7f7b08cd6a6fd872b6 is not qualifying.
+pre-commit failed on ruff-format and the evidence file ending.
+
+push
+  run 43956802862 conclusion failure
+  https://github.com/Johnathan-u/trust-copilot/actions/runs/43956802862
+  build failure
+  web-release-e2e success
+
+pull_request
+  run 43956831960 conclusion failure
+  https://github.com/Johnathan-u/trust-copilot/actions/runs/43956831960
+  build failure
+  web-release-e2e success
