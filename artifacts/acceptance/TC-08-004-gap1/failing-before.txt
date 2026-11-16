@@ -1,0 +1,117 @@
+# TC-08-004 gap 1 / TC-08-006 gap 2 failing-before
+# apps/api on master a365c34757800e1f8da58acde155bd3f8e8f8813, before the retrieval filter.
+# From apps/api, TC_REQUIRE_DB=1, local database trustcopilot_test:
+#   python -m pytest tests/test_retrieval_excludes_deleted_documents.py -q --tb=line
+# Python 3.12.3, PostgreSQL 16.15, database trustcopilot_test.
+# Result: 17 failed. Keyword, pgvector, fallback, rerank, batch search, and an
+# explicit document allow-list still returned and cited the soft-deleted document.
+# Retrieval and answer caches served it. Delete and bulk delete did not bump the
+# corpus version. Evidence search, citation composition, mapping evidence, and
+# citation-chunk tag resolution still returned the deleted document. A live
+# document in the same workspace was still present in those results.
+
+FFFFFFFFFFFFFFFFF                                                        [100%]
+=================================== FAILURES ===================================
+E   AssertionError: assert 'deleted_at is null' in '\n                select id, text, metadata_, document_id,\n                       1 - (embedding <=> cast(:vec as ve...               \n                order by embedding <=> cast(:vec as vector)\n                limit :lim\n            '
+/agent/repos/trust-copilot/apps/api/tests/test_retrieval_excludes_deleted_documents.py:281: AssertionError: assert 'deleted_at is null' in '\n                select id, text, metadata_, document_id,\n                       1 - (embedding <=> cast(:vec as ve...               \n                order by embedding <=> cast(:vec as vector)\n                limit :lim\n            '
+E   AssertionError: assert ['deleted doc...nt was cited'] == []
+
+      Left contains 2 more items, first extra item: 'deleted document was retrieved'
+      Use -v to get more diff
+/agent/repos/trust-copilot/apps/api/tests/test_retrieval_excludes_deleted_documents.py:290: AssertionError: assert ['deleted doc...nt was cited'] == []
+E   AssertionError: assert ['deleted doc...nt was cited'] == []
+
+      Left contains 2 more items, first extra item: 'deleted document was retrieved'
+      Use -v to get more diff
+/agent/repos/trust-copilot/apps/api/tests/test_retrieval_excludes_deleted_documents.py:298: AssertionError: assert ['deleted doc...nt was cited'] == []
+E   AssertionError: assert ['deleted doc...nt was cited'] == []
+
+      Left contains 2 more items, first extra item: 'deleted document was retrieved'
+      Use -v to get more diff
+------------------------------ Captured log call -------------------------------
+WARNING  app.services.retrieval:retrieval.py:331 retrieval using semantic fallback (pgvector disabled or unavailable) workspace_id=2 limit=10
+/agent/repos/trust-copilot/apps/api/tests/test_retrieval_excludes_deleted_documents.py:304: AssertionError: assert ['deleted doc...nt was cited'] == []
+E   AssertionError: assert ['deleted doc...nt was cited'] == []
+
+      Left contains 2 more items, first extra item: 'deleted document was retrieved'
+      Use -v to get more diff
+/agent/repos/trust-copilot/apps/api/tests/test_retrieval_excludes_deleted_documents.py:317: AssertionError: assert ['deleted doc...nt was cited'] == []
+E   AssertionError: assert ['deleted doc...nt was cited'] == []
+
+      Left contains 2 more items, first extra item: 'deleted document was retrieved'
+      Use -v to get more diff
+------------------------------ Captured log call -------------------------------
+WARNING  app.services.retrieval:retrieval.py:331 retrieval using semantic fallback (pgvector disabled or unavailable) workspace_id=2 limit=10
+/agent/repos/trust-copilot/apps/api/tests/test_retrieval_excludes_deleted_documents.py:330: AssertionError: assert ['deleted doc...nt was cited'] == []
+E   AssertionError: assert ['deleted doc...nt was cited'] == []
+
+      Left contains 2 more items, first extra item: 'deleted document was retrieved'
+      Use -v to get more diff
+/agent/repos/trust-copilot/apps/api/tests/test_retrieval_excludes_deleted_documents.py:341: AssertionError: assert ['deleted doc...nt was cited'] == []
+E   AssertionError: assert ['deleted doc...nt was cited'] == []
+
+      Left contains 2 more items, first extra item: 'deleted document was retrieved'
+      Use -v to get more diff
+/agent/repos/trust-copilot/apps/api/tests/test_retrieval_excludes_deleted_documents.py:352: AssertionError: assert ['deleted doc...nt was cited'] == []
+E   AssertionError: assert [{'id': 3, 'text': 'deleted evidence', 'metadata': {'document_id': 3, 'filename': 'deleted.txt'}, 'score': 0.99}, {'id': 2, 'text': 'live evidence', 'metadata': {'document_id': 2, 'filename': 'live.txt'}, 'score': 0.4}] is None
+     +  where [{'id': 3, 'text': 'deleted evidence', 'metadata': {'document_id': 3, 'filename': 'deleted.txt'}, 'score': 0.99}, {'id': 2, 'text': 'live evidence', 'metadata': {'document_id': 2, 'filename': 'live.txt'}, 'score': 0.4}] = retrieval_cache_get(<sqlalchemy.orm.session.Session object at 0x7f5e01ae4b60>, 2, '502913eaa89c20e45acc0a3b22fb700a')
+     +    where <sqlalchemy.orm.session.Session object at 0x7f5e01ae4b60> = Corpus(db=<sqlalchemy.orm.session.Session object at 0x7f5e01ae4b60>, ws=2, other_ws=3, token='594a3f58b915', query='59....01, 0.01, 0.01], live_doc=2, live_chunk=2, deleted_doc=3, deleted_chunk=3, other_doc=4, other_chunk=4, orphan_chunk=5).db
+     +    and   2 = Corpus(db=<sqlalchemy.orm.session.Session object at 0x7f5e01ae4b60>, ws=2, other_ws=3, token='594a3f58b915', query='59....01, 0.01, 0.01], live_doc=2, live_chunk=2, deleted_doc=3, deleted_chunk=3, other_doc=4, other_chunk=4, orphan_chunk=5).ws
+/agent/repos/trust-copilot/apps/api/tests/test_retrieval_excludes_deleted_documents.py:378: AssertionError: assert [{'id': 3, 'text': 'deleted evidence', 'metadata': {'document_id': 3, 'filename': 'deleted.txt'}, 'score': 0.99}, {'id': 2, 'text': 'live evidence', 'metadata': {'document_id': 2, 'filename': 'live.txt'}, 'score': 0.4}] is None
+E   AssertionError: assert {'text': 'We follow the archived policy.', 'citations': [{'chunk_id': 3, 'document_id': 3, 'snippet': 'deleted evidence', 'filename': 'deleted.txt'}], 'confidence': 80} is None
+     +  where {'text': 'We follow the archived policy.', 'citations': [{'chunk_id': 3, 'document_id': 3, 'snippet': 'deleted evidence', 'filename': 'deleted.txt'}], 'confidence': 80} = answer_cache_get(<sqlalchemy.orm.session.Session object at 0x7f5e01ae7d40>, 2, '093890e9c2e136935cbf4458e25da41f', 'balanced', '4e07408562bedb8b60ce05c1decfe3ad')
+     +    where <sqlalchemy.orm.session.Session object at 0x7f5e01ae7d40> = Corpus(db=<sqlalchemy.orm.session.Session object at 0x7f5e01ae7d40>, ws=2, other_ws=3, token='641659bf1088', query='64....01, 0.01, 0.01], live_doc=2, live_chunk=2, deleted_doc=3, deleted_chunk=3, other_doc=4, other_chunk=4, orphan_chunk=5).db
+     +    and   2 = Corpus(db=<sqlalchemy.orm.session.Session object at 0x7f5e01ae7d40>, ws=2, other_ws=3, token='641659bf1088', query='64....01, 0.01, 0.01], live_doc=2, live_chunk=2, deleted_doc=3, deleted_chunk=3, other_doc=4, other_chunk=4, orphan_chunk=5).ws
+/agent/repos/trust-copilot/apps/api/tests/test_retrieval_excludes_deleted_documents.py:420: AssertionError: assert {'text': 'We follow the archived policy.', 'citations': [{'chunk_id': 3, 'document_id': 3, 'snippet': 'deleted evidence', 'filename': 'deleted.txt'}], 'confidence': 80} is None
+E   AssertionError: assert 'ed2893bf554dcf47e0fdad0d' != 'ed2893bf554dcf47e0fdad0d'
+     +  where 'ed2893bf554dcf47e0fdad0d' = get_corpus_version(<sqlalchemy.orm.session.Session object at 0x7f5e01b1eba0>, 2)
+     +    where <sqlalchemy.orm.session.Session object at 0x7f5e01b1eba0> = Corpus(db=<sqlalchemy.orm.session.Session object at 0x7f5e01b1eba0>, ws=2, other_ws=3, token='9b5061bbc445', query='9b....01, 0.01, 0.01], live_doc=2, live_chunk=2, deleted_doc=3, deleted_chunk=3, other_doc=4, other_chunk=4, orphan_chunk=5).db
+     +    and   2 = Corpus(db=<sqlalchemy.orm.session.Session object at 0x7f5e01b1eba0>, ws=2, other_ws=3, token='9b5061bbc445', query='9b....01, 0.01, 0.01], live_doc=2, live_chunk=2, deleted_doc=3, deleted_chunk=3, other_doc=4, other_chunk=4, orphan_chunk=5).ws
+/agent/repos/trust-copilot/apps/api/tests/test_retrieval_excludes_deleted_documents.py:494: AssertionError: assert 'ed2893bf554dcf47e0fdad0d' != 'ed2893bf554dcf47e0fdad0d'
+E   AssertionError: assert '27f388b5fd56694f0660eef7' != '27f388b5fd56694f0660eef7'
+     +  where '27f388b5fd56694f0660eef7' = get_corpus_version(<sqlalchemy.orm.session.Session object at 0x7f5e01b23da0>, 2)
+     +    where <sqlalchemy.orm.session.Session object at 0x7f5e01b23da0> = Corpus(db=<sqlalchemy.orm.session.Session object at 0x7f5e01b23da0>, ws=2, other_ws=3, token='2fc1adfc8051', query='2f....01, 0.01, 0.01], live_doc=2, live_chunk=2, deleted_doc=3, deleted_chunk=3, other_doc=4, other_chunk=4, orphan_chunk=5).db
+     +    and   2 = Corpus(db=<sqlalchemy.orm.session.Session object at 0x7f5e01b23da0>, ws=2, other_ws=3, token='2fc1adfc8051', query='2f....01, 0.01, 0.01], live_doc=2, live_chunk=2, deleted_doc=3, deleted_chunk=3, other_doc=4, other_chunk=4, orphan_chunk=5).ws
+/agent/repos/trust-copilot/apps/api/tests/test_retrieval_excludes_deleted_documents.py:519: AssertionError: assert '27f388b5fd56694f0660eef7' != '27f388b5fd56694f0660eef7'
+E   assert 6 not in {2, 3, 5, 6}
+/agent/repos/trust-copilot/apps/api/tests/test_retrieval_excludes_deleted_documents.py:531: assert 6 not in {2, 3, 5, 6}
+E   AssertionError: assert 'deleted evidence 91c41de7216d' not in {'deleted evidence 91c41de7216d', 'live evidence 91c41de7216d', 'manual evidence 91c41de7216d'}
+     +  where 'deleted evidence 91c41de7216d' = <app.models.evidence_item.EvidenceItem object at 0x7f5e01b1d730>.title
+/agent/repos/trust-copilot/apps/api/tests/test_retrieval_excludes_deleted_documents.py:566: AssertionError: assert 'deleted evidence 91c41de7216d' not in {'deleted evidence 91c41de7216d', 'live evidence 91c41de7216d', 'manual evidence 91c41de7216d'}
+E   AssertionError: assert 'deleted citation f18332b87371' not in {'deleted citation f18332b87371', 'live citation f18332b87371'}
+     +  where 'deleted citation f18332b87371' = <app.models.evidence_item.EvidenceItem object at 0x7f5e01b23290>.title
+/agent/repos/trust-copilot/apps/api/tests/test_retrieval_excludes_deleted_documents.py:623: AssertionError: assert 'deleted citation f18332b87371' not in {'deleted citation f18332b87371', 'live citation f18332b87371'}
+E   AssertionError: assert 3 not in {2, 3}
+     +  where 3 = Corpus(db=<sqlalchemy.orm.session.Session object at 0x7f5e01983bf0>, ws=2, other_ws=3, token='bcbb2b7fd0b8', query='bc....01, 0.01, 0.01], live_doc=2, live_chunk=2, deleted_doc=3, deleted_chunk=3, other_doc=4, other_chunk=4, orphan_chunk=5).deleted_doc
+/agent/repos/trust-copilot/apps/api/tests/test_retrieval_excludes_deleted_documents.py:656: AssertionError: assert 3 not in {2, 3}
+E   AssertionError: assert {'Deleted ef5da9e1a52e'} == set()
+
+      Extra items in the left set:
+      'Deleted ef5da9e1a52e'
+      Use -v to get more diff
+/agent/repos/trust-copilot/apps/api/tests/test_retrieval_excludes_deleted_documents.py:701: AssertionError: assert {'Deleted ef5da9e1a52e'} == set()
+=============================== warnings summary ===============================
+tests/test_retrieval_excludes_deleted_documents.py: 91 warnings
+  /tmp/tc-api-venv/lib/python3.12/site-packages/sqlalchemy/sql/schema.py:3627: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    return util.wrap_callable(lambda ctx: fn(), fn)  # type: ignore
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED tests/test_retrieval_excludes_deleted_documents.py::test_pgvector_sql_excludes_soft_deleted_documents
+FAILED tests/test_retrieval_excludes_deleted_documents.py::test_keyword_search_excludes_deleted_and_keeps_live
+FAILED tests/test_retrieval_excludes_deleted_documents.py::test_semantic_pgvector_excludes_deleted_and_keeps_live
+FAILED tests/test_retrieval_excludes_deleted_documents.py::test_semantic_fallback_excludes_deleted_and_keeps_live
+FAILED tests/test_retrieval_excludes_deleted_documents.py::test_search_rerank_citations_exclude_deleted
+FAILED tests/test_retrieval_excludes_deleted_documents.py::test_search_fallback_rerank_citations_exclude_deleted
+FAILED tests/test_retrieval_excludes_deleted_documents.py::test_batch_search_excludes_deleted
+FAILED tests/test_retrieval_excludes_deleted_documents.py::test_document_scope_still_drops_deleted_ids
+FAILED tests/test_retrieval_excludes_deleted_documents.py::test_retrieval_cache_does_not_serve_deleted_document
+FAILED tests/test_retrieval_excludes_deleted_documents.py::test_answer_cache_does_not_serve_deleted_citation
+FAILED tests/test_retrieval_excludes_deleted_documents.py::test_soft_delete_bumps_corpus_and_drops_cached_citations
+FAILED tests/test_retrieval_excludes_deleted_documents.py::test_bulk_delete_excludes_documents_and_bumps_once
+FAILED tests/test_retrieval_excludes_deleted_documents.py::test_restore_makes_document_retrievable_again
+FAILED tests/test_retrieval_excludes_deleted_documents.py::test_evidence_search_excludes_deleted_document
+FAILED tests/test_retrieval_excludes_deleted_documents.py::test_citation_composer_excludes_deleted_document
+FAILED tests/test_retrieval_excludes_deleted_documents.py::test_mapping_evidence_excludes_deleted_document
+FAILED tests/test_retrieval_excludes_deleted_documents.py::test_citation_chunk_resolution_skips_deleted_document
+17 failed, 91 warnings in 0.74s
