@@ -356,7 +356,7 @@ export default function GmailPage() {
       {status.provider_mode === 'dev-stub' && (
         <div
           role="status"
-          className="rounded-lg border border-amber-500/40 bg-amber-500/10 px-4 py-3 text-sm text-amber-100"
+          className="rounded-lg border border-tc-warning bg-[var(--tc-warning-surface)] px-4 py-3 text-sm text-tc-warning"
         >
           <strong className="font-semibold">Development stub.</strong> Gmail is
           not called. Mailbox data on this page is fixture data. Production
@@ -443,7 +443,7 @@ export default function GmailPage() {
           <Card className="p-5">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <span className="inline-block h-2.5 w-2.5 rounded-full bg-emerald-400" />
+                <span className="inline-block h-2.5 w-2.5 rounded-full bg-tc-success" />
                 <div>
                   <h2 className="text-sm font-semibold text-[var(--tc-text)]">
                     Connected
@@ -464,7 +464,7 @@ export default function GmailPage() {
               </div>
               <button
                 onClick={disconnect}
-                className="text-xs px-3 py-1.5 rounded-lg border border-red-500/20 text-red-400/70 hover:text-red-400 transition"
+                className="text-xs px-3 py-1.5 rounded-lg border border-tc-danger text-tc-danger hover:text-tc-danger transition"
               >
                 Disconnect
               </button>
@@ -499,7 +499,7 @@ export default function GmailPage() {
                   <p className="text-xs text-[var(--tc-muted)]">
                     Pending review
                   </p>
-                  <p className="text-lg font-bold text-amber-400">
+                  <p className="text-lg font-bold text-tc-warning">
                     {suggestions.length}
                   </p>
                 </div>
@@ -532,8 +532,8 @@ export default function GmailPage() {
             </div>
 
             {ingestLabels.length === 0 ? (
-              <div className="rounded-lg border border-amber-500/20 bg-amber-500/[0.06] px-4 py-3">
-                <p className="text-xs text-amber-300">
+              <div className="rounded-lg border border-tc-warning bg-[var(--tc-warning-surface)] px-4 py-3">
+                <p className="text-xs text-tc-warning">
                   <strong>No labels configured.</strong> Add a Gmail label to
                   start ingesting evidence from email.
                 </p>
@@ -543,7 +543,7 @@ export default function GmailPage() {
                 {ingestLabels.map((l) => (
                   <div
                     key={l.id}
-                    className="flex items-center justify-between rounded-lg border border-[var(--tc-border)] px-4 py-2.5 hover:bg-white/[0.02] transition"
+                    className="flex items-center justify-between rounded-lg border border-[var(--tc-border)] px-4 py-2.5 hover:bg-[var(--tc-hover)] transition"
                   >
                     <div className="flex items-center gap-3 min-w-0">
                       <span className="text-sm">🏷️</span>
@@ -569,7 +569,7 @@ export default function GmailPage() {
                       </button>
                       <button
                         onClick={() => removeLabel(l.id)}
-                        className="text-xs px-3 py-1.5 rounded-lg border border-red-500/20 text-red-400/70 hover:text-red-400 transition"
+                        className="text-xs px-3 py-1.5 rounded-lg border border-tc-danger text-tc-danger hover:text-tc-danger transition"
                       >
                         Remove
                       </button>
@@ -605,7 +605,7 @@ export default function GmailPage() {
                     <button
                       key={l.id}
                       onClick={() => addLabel(l.id, l.name)}
-                      className="rounded-lg border border-[var(--tc-border)] px-2.5 py-1 text-xs text-[var(--tc-muted)] hover:text-[var(--tc-text)] hover:border-[rgba(91,124,255,0.3)] transition"
+                      className="rounded-lg border border-[var(--tc-border)] px-2.5 py-1 text-xs text-[var(--tc-muted)] hover:text-[var(--tc-text)] hover:border-[var(--tc-primary)] transition"
                       title={`Add "${l.name}" to monitored labels`}
                     >
                       + {l.name}
@@ -635,7 +635,7 @@ export default function GmailPage() {
                 {evidence.map((ev) => (
                   <div
                     key={ev.id}
-                    className="flex items-center justify-between rounded-lg border border-[var(--tc-border)] px-4 py-2.5 hover:bg-white/[0.02] transition"
+                    className="flex items-center justify-between rounded-lg border border-[var(--tc-border)] px-4 py-2.5 hover:bg-[var(--tc-hover)] transition"
                   >
                     <div className="flex items-center gap-3 min-w-0">
                       <span className="text-sm shrink-0">
@@ -678,7 +678,7 @@ export default function GmailPage() {
                 {suggestions.map((s) => (
                   <div
                     key={s.id}
-                    className="flex items-center justify-between rounded-lg border border-[var(--tc-border)] px-4 py-2.5 hover:bg-white/[0.02] transition"
+                    className="flex items-center justify-between rounded-lg border border-[var(--tc-border)] px-4 py-2.5 hover:bg-[var(--tc-hover)] transition"
                   >
                     <div className="text-sm text-[var(--tc-text)]">
                       Evidence #{s.evidence_id}
@@ -691,7 +691,7 @@ export default function GmailPage() {
                     <div className="flex gap-1.5 shrink-0">
                       <button
                         onClick={() => reviewSuggestion(s.id, 'approve')}
-                        className="text-xs px-3 py-1.5 rounded-lg border border-emerald-500/20 text-emerald-400 hover:bg-emerald-500/10 transition"
+                        className="text-xs px-3 py-1.5 rounded-lg border border-tc-success text-tc-success hover:bg-[var(--tc-success-surface)] transition"
                       >
                         Approve
                       </button>

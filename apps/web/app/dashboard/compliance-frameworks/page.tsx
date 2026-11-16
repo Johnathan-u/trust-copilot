@@ -109,7 +109,7 @@ export default function ComplianceFrameworksPage() {
       {banner && (
         <div
           role="alert"
-          className="rounded-xl border border-[var(--tc-border)] bg-white/5 px-4 py-3 text-sm text-[var(--tc-text)]"
+          className="rounded-xl border border-[var(--tc-border)] bg-tc-surface-sunken px-4 py-3 text-sm text-[var(--tc-text)]"
         >
           <p>{banner.text}</p>
           {banner.partial && (
@@ -174,7 +174,7 @@ export default function ComplianceFrameworksPage() {
                 const key = `${item.catalog_key || 'row'}-${item.id ?? item.name}`
                 const production = isProductionCatalogEnabled(item)
                 return (
-                  <tr key={key} className="border-b border-white/5 align-top">
+                  <tr key={key} className="border-b border-tc-border align-top">
                     <th
                       scope="row"
                       className="py-3 pr-4 font-medium text-[var(--tc-text)]"

@@ -37,7 +37,7 @@ function draftFor(row: ClaimRow): Draft {
 }
 
 const inputClass =
-  'w-full rounded-lg border border-[var(--tc-border)] bg-white/5 px-3 py-2 text-sm text-[var(--tc-text)]'
+  'w-full rounded-lg border border-[var(--tc-border)] bg-tc-surface-sunken px-3 py-2 text-sm text-[var(--tc-text)]'
 const labelClass = 'mb-1 block text-xs font-medium text-[var(--tc-muted)]'
 
 export default function SecurityPageScreen() {
@@ -192,7 +192,7 @@ export default function SecurityPageScreen() {
                     className={`rounded-full px-2 py-0.5 text-xs font-semibold ${
                       item.attested
                         ? 'bg-[var(--tc-success-surface)] text-[var(--tc-success)]'
-                        : 'bg-white/5 text-[var(--tc-muted)]'
+                        : 'bg-tc-surface-sunken text-[var(--tc-muted)]'
                     }`}
                   >
                     {item.label}

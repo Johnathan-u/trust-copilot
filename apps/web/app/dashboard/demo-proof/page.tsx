@@ -172,7 +172,7 @@ export default function DemoProofPage() {
               value={windowStart}
               onChange={(event) => setWindowStart(event.target.value)}
               placeholder="2026-01-01T00:00:00Z"
-              className="w-full rounded-lg border border-[var(--tc-border)] bg-white/5 px-3 py-2 text-sm text-[var(--tc-text)]"
+              className="w-full rounded-lg border border-[var(--tc-border)] bg-tc-surface-sunken px-3 py-2 text-sm text-[var(--tc-text)]"
             />
           </div>
           <div className="min-w-[220px] flex-1">
@@ -187,7 +187,7 @@ export default function DemoProofPage() {
               value={windowEnd}
               onChange={(event) => setWindowEnd(event.target.value)}
               placeholder="2026-02-01T00:00:00Z"
-              className="w-full rounded-lg border border-[var(--tc-border)] bg-white/5 px-3 py-2 text-sm text-[var(--tc-text)]"
+              className="w-full rounded-lg border border-[var(--tc-border)] bg-tc-surface-sunken px-3 py-2 text-sm text-[var(--tc-text)]"
             />
           </div>
           {canEdit && (

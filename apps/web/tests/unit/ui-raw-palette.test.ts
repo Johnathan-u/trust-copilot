@@ -3,10 +3,13 @@ import path from 'path'
 import { describe, expect, it } from 'vitest'
 
 /**
- * Shared UI must use --tc-* tokens. A raw Tailwind palette class or an
- * rgb/rgba/hsl/hex colour in components/ui fails this test.
+ * Shared UI, the dashboard and the shell layout must use --tc-* tokens.
+ * A raw Tailwind palette class or an rgb/rgba/hsl/hex colour in those
+ * directories fails this test.
  */
 const uiDir = path.join(process.cwd(), 'components/ui')
+const dashboardDir = path.join(process.cwd(), 'app/dashboard')
+const layoutDir = path.join(process.cwd(), 'components/layout')
 
 const paletteClass =
   /(?<![A-Za-z0-9_-])(?:[A-Za-z-]+:)*?(?:bg|text|border|divide|ring|outline|from|to|via|fill|stroke|placeholder|decoration|accent|caret|shadow)-(?:slate|gray|zinc|neutral|stone|red|orange|amber|yellow|lime|green|emerald|teal|cyan|sky|blue|indigo|violet|purple|fuchsia|pink|rose|white|black)(?:-\d{2,3})?(?:\/\d{1,3})?(?![A-Za-z0-9_-])/g
@@ -42,6 +45,29 @@ function sourceFiles(dir: string): string[] {
   return out
 }
 
+function directoryHits(
+  label: string,
+  dir: string
+): { hits: string[]; summary: string } {
+  const perFile = new Map<string, number>()
+  const hits: string[] = []
+  for (const file of sourceFiles(dir)) {
+    const fileHits = rawPaletteHits(readFileSync(file, 'utf8'))
+    if (fileHits.length === 0) continue
+    const rel = path.relative(dir, file)
+    perFile.set(rel, fileHits.length)
+    for (const hit of fileHits) hits.push(`${rel} ${hit}`)
+  }
+  const lines = [...perFile.entries()]
+    .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
+    .map(([file, count]) => `${count} ${file}`)
+  const summary = [
+    `${label} hits=${hits.length} files=${perFile.size}`,
+    ...lines,
+  ].join('\n')
+  return { hits, summary }
+}
+
 describe('components/ui raw colours', () => {
   it('flags palette classes and rgba colours, and allows token utilities', () => {
     expect(rawPaletteHits('bg-white/5')).toEqual(['1: bg-white/5'])
@@ -67,5 +93,23 @@ describe('components/ui raw colours', () => {
       )
     )
     expect(hits).toEqual([])
+  })
+})
+
+describe('dashboard and layout raw colours', () => {
+  it('keeps raw palette classes and hex/rgb colours out of app/dashboard', () => {
+    const { hits, summary } = directoryHits(
+      'apps/web/app/dashboard',
+      dashboardDir
+    )
+    expect(hits, summary).toEqual([])
+  })
+
+  it('keeps raw palette classes and hex/rgb colours out of components/layout', () => {
+    const { hits, summary } = directoryHits(
+      'apps/web/components/layout',
+      layoutDir
+    )
+    expect(hits, summary).toEqual([])
   })
 })
