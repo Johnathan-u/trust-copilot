@@ -139,6 +139,13 @@ export const appNavItems: readonly AppNavItem[] = [
     requiresAdmin: true,
   },
   {
+    href: '/dashboard/shareable-spaces',
+    label: 'Shareable spaces',
+    icon: '⧉',
+    section: 'admin',
+    requiresAdmin: true,
+  },
+  {
     href: '/dashboard/notifications',
     label: 'Alerts / Notifications',
     icon: '🔔',

@@ -1,0 +1,78 @@
+# TC-17-005a AC4 failing-before
+# Tests written before POST /api/shareable-spaces/{id}/rotate existed.
+# From apps/api, TC_REQUIRE_DB=1, local database trustcopilot_test.
+# Python 3.12.3, PostgreSQL 16.15.
+# Command:
+#   python -m pytest tests/test_shareable_space_token_gate.py -q --tb=line -k "rotate or rotation or inactive_and_expired or other_workspace_rotate or custom_admin_can or unauthenticated_rotate"
+# Result: 13 failed, 20 deselected. The route was not registered, so every
+# call returned 404. Non-admins did not get 403, inactive and expired spaces
+# did not get 409, and no rotation could return a new token.
+
+FFFFFFFFFFFFF                                                            [100%]
+=================================== FAILURES ===================================
+E   AssertionError: {"detail":"Not Found"}
+    assert 404 == 200
+     +  where 404 = <Response [404 Not Found]>.status_code
+/agent/repos/trust-copilot/apps/api/tests/test_shareable_space_token_gate.py:549: AssertionError: {"detail":"Not Found"}
+E   AssertionError: {"detail":"Not Found"}
+    assert 404 == 403
+     +  where 404 = <Response [404 Not Found]>.status_code
+/agent/repos/trust-copilot/apps/api/tests/test_shareable_space_token_gate.py:626: AssertionError: {"detail":"Not Found"}
+E   AssertionError: {"detail":"Not Found"}
+    assert 404 == 403
+     +  where 404 = <Response [404 Not Found]>.status_code
+/agent/repos/trust-copilot/apps/api/tests/test_shareable_space_token_gate.py:626: AssertionError: {"detail":"Not Found"}
+E   AssertionError: {"detail":"Not Found"}
+    assert 404 == 403
+     +  where 404 = <Response [404 Not Found]>.status_code
+/agent/repos/trust-copilot/apps/api/tests/test_shareable_space_token_gate.py:626: AssertionError: {"detail":"Not Found"}
+E   AssertionError: {"detail":"Not Found"}
+    assert 404 == 403
+     +  where 404 = <Response [404 Not Found]>.status_code
+/agent/repos/trust-copilot/apps/api/tests/test_shareable_space_token_gate.py:626: AssertionError: {"detail":"Not Found"}
+E   AssertionError: {"detail":"Not Found"}
+    assert 404 == 403
+     +  where 404 = <Response [404 Not Found]>.status_code
+/agent/repos/trust-copilot/apps/api/tests/test_shareable_space_token_gate.py:626: AssertionError: {"detail":"Not Found"}
+E   AssertionError: {"detail":"Not Found"}
+    assert 404 == 403
+     +  where 404 = <Response [404 Not Found]>.status_code
+/agent/repos/trust-copilot/apps/api/tests/test_shareable_space_token_gate.py:626: AssertionError: {"detail":"Not Found"}
+E   AssertionError: {"detail":"Not Found"}
+    assert 404 == 403
+     +  where 404 = <Response [404 Not Found]>.status_code
+/agent/repos/trust-copilot/apps/api/tests/test_shareable_space_token_gate.py:655: AssertionError: {"detail":"Not Found"}
+E   AssertionError: {"detail":"Not Found"}
+    assert 404 == 200
+     +  where 404 = <Response [404 Not Found]>.status_code
+/agent/repos/trust-copilot/apps/api/tests/test_shareable_space_token_gate.py:711: AssertionError: {"detail":"Not Found"}
+E   AssertionError: {"detail":"Not Found"}
+    assert 404 == 409
+     +  where 404 = <Response [404 Not Found]>.status_code
+/agent/repos/trust-copilot/apps/api/tests/test_shareable_space_token_gate.py:738: AssertionError: {"detail":"Not Found"}
+E   AssertionError: {"detail":"Not Found"}
+    assert 404 == 200
+     +  where 404 = <Response [404 Not Found]>.status_code
+/agent/repos/trust-copilot/apps/api/tests/test_shareable_space_token_gate.py:780: AssertionError: {"detail":"Not Found"}
+E   AssertionError: {"detail":"Not Found"}
+    assert 404 == 200
+     +  where 404 = <Response [404 Not Found]>.status_code
+/agent/repos/trust-copilot/apps/api/tests/test_shareable_space_token_gate.py:824: AssertionError: {"detail":"Not Found"}
+E   assert 404 == 401
+     +  where 404 = <Response [404 Not Found]>.status_code
+/agent/repos/trust-copilot/apps/api/tests/test_shareable_space_token_gate.py:836: assert 404 == 401
+=========================== short test summary info ============================
+FAILED tests/test_shareable_space_token_gate.py::test_rotation_replaces_token_and_preserves_the_space
+FAILED tests/test_shareable_space_token_gate.py::test_non_admin_roles_cannot_rotate[builtin-editor]
+FAILED tests/test_shareable_space_token_gate.py::test_non_admin_roles_cannot_rotate[builtin-reviewer]
+FAILED tests/test_shareable_space_token_gate.py::test_non_admin_roles_cannot_rotate[member]
+FAILED tests/test_shareable_space_token_gate.py::test_non_admin_roles_cannot_rotate[edit]
+FAILED tests/test_shareable_space_token_gate.py::test_non_admin_roles_cannot_rotate[export]
+FAILED tests/test_shareable_space_token_gate.py::test_non_admin_roles_cannot_rotate[review]
+FAILED tests/test_shareable_space_token_gate.py::test_api_key_rotate_follows_can_admin
+FAILED tests/test_shareable_space_token_gate.py::test_other_workspace_rotate_is_404
+FAILED tests/test_shareable_space_token_gate.py::test_inactive_and_expired_spaces_cannot_be_rotated
+FAILED tests/test_shareable_space_token_gate.py::test_rotation_audit_holds_space_id_only
+FAILED tests/test_shareable_space_token_gate.py::test_custom_admin_can_rotate
+FAILED tests/test_shareable_space_token_gate.py::test_unauthenticated_rotate_is_401
+13 failed, 20 deselected, 212 warnings in 6.11s

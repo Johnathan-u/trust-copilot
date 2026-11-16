@@ -1,0 +1,28 @@
+# TC-17-005a AC4 passing-after
+# Same interpreter and local database trustcopilot_test, after the endpoint,
+# admin list, and runbook. No new Alembic revision. Head remains
+# tc17005a_share_token.
+# Python 3.12.3, PostgreSQL 16.15.
+# No rotation was run against a deployed environment.
+#
+# Rotation tests, same -k filter as failing-before: 13 passed, 20 deselected.
+# Full gate file tests/test_shareable_space_token_gate.py: 33 passed.
+# Gate file plus tests/test_shareable_spaces.py,
+# tests/test_deal_room_token_gate.py, and
+# tests/release/test_authorization_nda_shares.py: 203 passed.
+# Frontend, from apps/web:
+#   npx vitest run tests/unit/shareable-spaces-page.test.ts lib/shareable-space-link.test.ts lib/app-navigation.test.ts
+#   Test Files  3 passed (3)
+#   Tests  15 passed (15)
+#   npx tsc --noEmit -p . exited 0.
+
+.............                                                            [100%]
+13 passed, 20 deselected, 239 warnings in 4.95s
+
+.................................                                        [100%]
+33 passed, 557 warnings in 10.31s
+
+........................................................................ [ 35%]
+........................................................................ [ 70%]
+...........................................................              [100%]
+203 passed, 1613 warnings in 22.60s

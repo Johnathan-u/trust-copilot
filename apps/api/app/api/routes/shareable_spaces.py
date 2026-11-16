@@ -79,6 +79,26 @@ async def deactivate(
     return result
 
 
+@router.post("/{space_id}/rotate")
+async def rotate_space(
+    space_id: int,
+    session: dict = Depends(require_can_admin),
+    db: Session = Depends(get_db),
+):
+    """Issue a new token for a live space. Another workspace is a 404.
+
+    Inactive and expired spaces are 409 and are left unchanged. 409 matches
+    other state refusals: the row exists, and this action does not apply.
+    """
+    try:
+        result = ss.rotate_space(db, space_id, workspace_id=session["workspace_id"])
+    except ss.RotationRefused as refused:
+        raise HTTPException(status_code=409, detail=refused.detail) from refused
+    if not result:
+        raise HTTPException(status_code=404)
+    return result
+
+
 @router.get("/access")
 async def access_space(
     token: str = Query(...),

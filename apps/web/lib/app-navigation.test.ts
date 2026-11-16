@@ -93,6 +93,15 @@ describe('application navigation', () => {
     })
     expect(admin.map((item) => item.label)).toContain('Alerts / Notifications')
     expect(admin.map((item) => item.href)).toContain('/dashboard/jobs')
+    expect(admin.map((item) => item.href)).toContain(
+      '/dashboard/shareable-spaces'
+    )
+    expect(editor.map((item) => item.href)).not.toContain(
+      '/dashboard/shareable-spaces'
+    )
+    expect(noReview.map((item) => item.href)).not.toContain(
+      '/dashboard/shareable-spaces'
+    )
     expect(admin.map((item) => item.href)).not.toContain('/dashboard/security')
   })
 

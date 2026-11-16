@@ -17,6 +17,7 @@ from app.core.password import hash_password
 from app.models.api_key import ApiKey
 from app.models.audit_event import AuditEvent
 from app.models.custom_role import CustomRole
+from app.models.deal import Deal
 from app.models.shareable_space import ShareableSpace
 from app.models.user import User, WorkspaceMember
 from app.models.user_session import UserSession
@@ -449,3 +450,391 @@ def test_no_detail_route_returns_the_token(gate):
     assert response.status_code in (404, 405)
     assert gate["raw"] not in response.text
     assert gate["digest"] not in response.text
+
+
+def _rotation_audits(db, space_id):
+    _see(db)
+    return (
+        db.query(AuditEvent)
+        .filter(
+            AuditEvent.action == "shareable_space.rotated",
+            AuditEvent.resource_id == str(space_id),
+        )
+        .order_by(AuditEvent.id)
+        .all()
+    )
+
+
+def _identity(row):
+    return {
+        "id": row.id,
+        "workspace_id": row.workspace_id,
+        "name": row.name,
+        "buyer_company": row.buyer_company,
+        "buyer_email": row.buyer_email,
+        "opportunity_id": row.opportunity_id,
+        "description": row.description,
+        "article_ids_json": row.article_ids_json,
+        "answer_ids_json": row.answer_ids_json,
+        "document_ids_json": row.document_ids_json,
+        "is_active": row.is_active,
+        "expires_at": row.expires_at,
+        "created_by_user_id": row.created_by_user_id,
+        "created_at": row.created_at,
+        "access_token": row.access_token,
+    }
+
+
+def _stamp_contents(db, space_id):
+    _see(db)
+    row = db.get(ShareableSpace, space_id)
+    row.buyer_email = "buyer@example.com"
+    row.opportunity_id = "opp-synthetic"
+    row.description = "room notes"
+    db.commit()
+    return row
+
+
+def _issue_key(gate, role):
+    db = gate["db"]
+    raw_key = secrets.token_urlsafe(32)
+    record = ApiKey(
+        workspace_id=1,
+        key_hash=hashlib.sha256(raw_key.encode()).hexdigest(),
+        label=f"rotate-{role}-{gate['suffix']}",
+        role=role,
+    )
+    db.add(record)
+    db.commit()
+    db.refresh(record)
+    gate["key_ids"].append(record.id)
+    return raw_key
+
+
+def _rotate(client, space_id, **kwargs):
+    return client.post(f"/api/shareable-spaces/{space_id}/rotate", **kwargs)
+
+
+_DENIED_ACTORS = (
+    "builtin-editor",
+    "builtin-reviewer",
+    "member",
+    "edit",
+    "export",
+    "review",
+)
+
+
+def test_rotation_replaces_token_and_preserves_the_space(gate):
+    """Old token dies, the new one works, and the deal room link stays put."""
+    client = gate["client"]
+    db = gate["db"]
+    _stamp_contents(db, gate["space_id"])
+    deal = Deal(
+        workspace_id=1,
+        company_name="Synthetic Buyer",
+        room_id=gate["space_id"],
+    )
+    db.add(deal)
+    db.commit()
+    db.refresh(deal)
+    deal_id = deal.id
+    try:
+        _see(db)
+        before = db.get(ShareableSpace, gate["space_id"])
+        preserved = _identity(before)
+        previous_hash = before.token_hash
+        _login(client, "admin@trust.local", "a")
+        response = _rotate(client, gate["space_id"])
+        assert response.status_code == 200, response.text
+        body = response.json()
+        raw = body["access_token"]
+        assert isinstance(raw, str) and raw.strip()
+        assert raw != gate["raw"]
+        assert set(body) == {
+            "id",
+            "workspace_id",
+            "name",
+            "buyer_company",
+            "buyer_email",
+            "opportunity_id",
+            "access_token",
+            "is_active",
+            "expires_at",
+            "created_at",
+            "has_access_token",
+        }
+        assert body["id"] == gate["space_id"]
+        assert body["has_access_token"] is True
+        assert body["is_active"] is True
+        assert body["buyer_email"] == "buyer@example.com"
+        assert body["opportunity_id"] == "opp-synthetic"
+        assert body["name"] == preserved["name"]
+        assert body["expires_at"]
+        _see(db)
+        row = db.get(ShareableSpace, gate["space_id"])
+        assert _identity(row) == preserved
+        assert row.token_hash == _digest(raw)
+        assert row.token_hash != previous_hash
+        assert row.access_token is None
+        linked = db.get(Deal, deal_id)
+        assert linked.room_id == gate["space_id"]
+        client.cookies.clear()
+        old = client.get("/api/shareable-spaces/access", params={"token": gate["raw"]})
+        assert old.status_code == 200, old.text
+        assert old.json() == {"valid": False, "reason": "Space not found"}
+        opened = client.get("/api/shareable-spaces/access", params={"token": raw})
+        assert opened.status_code == 200, opened.text
+        assert opened.json()["valid"] is True
+        assert opened.json()["space"]["id"] == gate["space_id"]
+        assert opened.json()["article_ids"] == [11]
+        assert opened.json()["answer_ids"] == [22]
+        assert opened.json()["document_ids"] == [33]
+        assert opened.json()["space"]["access_token"] is None
+        assert raw not in opened.text
+        _login(client, "admin@trust.local", "a")
+        listed = client.get("/api/shareable-spaces")
+        assert listed.status_code == 200, listed.text
+        item = _space_from(listed, gate["space_id"])
+        _assert_hidden(listed, item, raw, _digest(raw), indicator=True)
+        assert gate["raw"] not in listed.text
+        detail = ss.get_space(db, gate["space_id"], include_admin_indicator=True)
+        encoded = json.dumps(detail)
+        assert detail["access_token"] is None
+        assert detail["has_access_token"] is True
+        assert raw not in encoded
+        assert _digest(raw) not in encoded
+        missing = _rotate(client, 99999999)
+        assert missing.status_code == 404
+    finally:
+        _see(db)
+        db.query(Deal).filter(Deal.id == deal_id).delete(synchronize_session=False)
+        db.commit()
+
+
+@pytest.mark.parametrize("actor", _DENIED_ACTORS)
+def test_non_admin_roles_cannot_rotate(gate, actor):
+    client = gate["client"]
+    db = gate["db"]
+    email, password = _credentials(gate, actor)
+    _login(client, email, password)
+    _see(db)
+    before = db.get(ShareableSpace, gate["space_id"])
+    preserved = _identity(before)
+    previous_hash = before.token_hash
+    response = _rotate(client, gate["space_id"])
+    assert response.status_code == 403, response.text
+    assert gate["raw"] not in response.text
+    assert gate["digest"] not in response.text
+    _see(db)
+    row = db.get(ShareableSpace, gate["space_id"])
+    assert _identity(row) == preserved
+    assert row.token_hash == previous_hash
+    assert _rotation_audits(db, gate["space_id"]) == []
+
+
+def test_api_key_rotate_follows_can_admin(gate):
+    client = gate["client"]
+    db = gate["db"]
+    client.cookies.clear()
+    denied = (
+        (gate["roles"]["member"], False),
+        (gate["roles"]["edit"], False),
+        (gate["roles"]["export"], False),
+        (gate["roles"]["review"], False),
+        ("editor", False),
+        ("reviewer", False),
+    )
+    _see(db)
+    before = db.get(ShareableSpace, gate["space_id"])
+    preserved = _identity(before)
+    previous_hash = before.token_hash
+    for role, _allowed in denied:
+        raw_key = _issue_key(gate, role)
+        response = _rotate(client, gate["space_id"], headers={"Authorization": f"Bearer {raw_key}"})
+        assert response.status_code == 403, response.text
+        assert gate["raw"] not in response.text
+    _see(db)
+    row = db.get(ShareableSpace, gate["space_id"])
+    assert _identity(row) == preserved
+    assert row.token_hash == previous_hash
+    admin_key = _issue_key(gate, "admin")
+    custom_key = _issue_key(gate, gate["roles"]["adminflag"])
+    first = _rotate(client, gate["space_id"], headers={"Authorization": f"Bearer {admin_key}"})
+    assert first.status_code == 200, first.text
+    rotated = first.json()["access_token"]
+    assert isinstance(rotated, str) and rotated != gate["raw"]
+    listed = client.get(
+        "/api/shareable-spaces",
+        headers={"Authorization": f"Bearer {custom_key}"},
+    )
+    assert listed.status_code == 200, listed.text
+    item = _space_from(listed, gate["space_id"])
+    _assert_hidden(listed, item, rotated, _digest(rotated), indicator=True)
+    second = _rotate(client, gate["space_id"], headers={"Authorization": f"Bearer {custom_key}"})
+    assert second.status_code == 200, second.text
+    again = second.json()["access_token"]
+    assert again != rotated
+    client.cookies.clear()
+    dead = client.get("/api/shareable-spaces/access", params={"token": gate["raw"]})
+    assert dead.json()["valid"] is False
+    mid = client.get("/api/shareable-spaces/access", params={"token": rotated})
+    assert mid.json()["valid"] is False
+    live = client.get("/api/shareable-spaces/access", params={"token": again})
+    assert live.json()["valid"] is True
+    assert live.json()["space"]["id"] == gate["space_id"]
+
+
+def test_other_workspace_rotate_is_404(gate):
+    client = gate["client"]
+    db = gate["db"]
+    foreign_raw = secrets.token_urlsafe(32)
+    foreign = ShareableSpace(
+        workspace_id=2,
+        name=f"Other workspace {gate['suffix']}",
+        buyer_company="Other Buyer",
+        buyer_email="other-buyer@example.com",
+        access_token=None,
+        token_hash=_digest(foreign_raw),
+        is_active=True,
+        expires_at=datetime.now(timezone.utc).replace(tzinfo=None) + timedelta(days=4),
+        article_ids_json=json.dumps([9]),
+    )
+    db.add(foreign)
+    db.commit()
+    db.refresh(foreign)
+    gate["space_ids"].append(foreign.id)
+    preserved = _identity(foreign)
+    previous_hash = foreign.token_hash
+    _login(client, "admin@trust.local", "a")
+    own = _rotate(client, gate["space_id"])
+    assert own.status_code == 200, own.text
+    response = _rotate(client, foreign.id)
+    assert response.status_code == 404, response.text
+    assert foreign_raw not in response.text
+    assert previous_hash not in response.text
+    assert "Other Buyer" not in response.text
+    _see(db)
+    row = db.get(ShareableSpace, foreign.id)
+    assert _identity(row) == preserved
+    assert row.token_hash == previous_hash
+    client.cookies.clear()
+    opened = client.get("/api/shareable-spaces/access", params={"token": foreign_raw})
+    assert opened.json()["valid"] is True
+
+
+def test_inactive_and_expired_spaces_cannot_be_rotated(gate):
+    client = gate["client"]
+    db = gate["db"]
+    _login(client, "admin@trust.local", "a")
+    _see(db)
+    row = db.get(ShareableSpace, gate["space_id"])
+    row.expires_at = datetime.now(timezone.utc).replace(tzinfo=None) - timedelta(days=1)
+    db.commit()
+    _see(db)
+    expired_before = _identity(db.get(ShareableSpace, gate["space_id"]))
+    expired_hash = db.get(ShareableSpace, gate["space_id"]).token_hash
+    expired = _rotate(client, gate["space_id"])
+    assert expired.status_code == 409, expired.text
+    assert expired.json()["detail"] == ss.ROTATION_EXPIRED
+    assert gate["raw"] not in expired.text
+    _see(db)
+    after_expired = db.get(ShareableSpace, gate["space_id"])
+    assert _identity(after_expired) == expired_before
+    assert after_expired.token_hash == expired_hash
+    assert after_expired.is_active is True
+    assert _rotation_audits(db, gate["space_id"]) == []
+    client.cookies.clear()
+    still_expired = client.get("/api/shareable-spaces/access", params={"token": gate["raw"]})
+    assert still_expired.json() == {"valid": False, "reason": "Space expired"}
+    _login(client, "admin@trust.local", "a")
+    _see(db)
+    row = db.get(ShareableSpace, gate["space_id"])
+    row.is_active = False
+    row.expires_at = datetime.now(timezone.utc).replace(tzinfo=None) + timedelta(days=3)
+    db.commit()
+    _see(db)
+    inactive_before = _identity(db.get(ShareableSpace, gate["space_id"]))
+    inactive_hash = db.get(ShareableSpace, gate["space_id"]).token_hash
+    inactive = _rotate(client, gate["space_id"])
+    assert inactive.status_code == 409, inactive.text
+    assert inactive.json()["detail"] == ss.ROTATION_INACTIVE
+    _see(db)
+    after_inactive = db.get(ShareableSpace, gate["space_id"])
+    assert _identity(after_inactive) == inactive_before
+    assert after_inactive.token_hash == inactive_hash
+    assert after_inactive.is_active is False
+    assert _rotation_audits(db, gate["space_id"]) == []
+    client.cookies.clear()
+    still_inactive = client.get("/api/shareable-spaces/access", params={"token": gate["raw"]})
+    assert still_inactive.json() == {"valid": False, "reason": "Space deactivated"}
+
+
+def test_rotation_audit_holds_space_id_only(gate, caplog):
+    client = gate["client"]
+    db = gate["db"]
+    _stamp_contents(db, gate["space_id"])
+    _login(client, "admin@trust.local", "a")
+    with caplog.at_level("INFO", logger="app.services.shareable_space_service"):
+        response = _rotate(client, gate["space_id"])
+    assert response.status_code == 200, response.text
+    raw = response.json()["access_token"]
+    rows = _rotation_audits(db, gate["space_id"])
+    assert len(rows) == 1
+    row = rows[0]
+    assert row.action == "shareable_space.rotated"
+    assert row.resource_type == "shareable_space"
+    assert row.resource_id == str(gate["space_id"])
+    assert row.workspace_id == 1
+    assert row.user_id is None
+    assert row.email is None
+    assert json.loads(row.details) == {"space_id": gate["space_id"]}
+    blob = " ".join(
+        str(part or "")
+        for part in (
+            row.action,
+            row.email,
+            row.user_id,
+            row.resource_type,
+            row.resource_id,
+            row.details,
+        )
+    )
+    assert gate["raw"] not in blob
+    assert raw not in blob
+    assert gate["digest"] not in blob
+    assert _digest(raw) not in blob
+    assert "buyer@example.com" not in blob
+    assert "Synthetic Buyer" not in blob
+    assert "opp-synthetic" not in blob
+    log_text = caplog.text
+    assert "shareable_space.rotated" in log_text
+    assert gate["raw"] not in log_text
+    assert raw not in log_text
+    assert gate["digest"] not in log_text
+    assert _digest(raw) not in log_text
+    assert "buyer@example.com" not in log_text
+
+
+def test_custom_admin_can_rotate(gate):
+    client = gate["client"]
+    email, password = _credentials(gate, "adminflag")
+    _login(client, email, password)
+    response = _rotate(client, gate["space_id"])
+    assert response.status_code == 200, response.text
+    raw = response.json()["access_token"]
+    assert isinstance(raw, str) and raw != gate["raw"]
+    listed = client.get("/api/shareable-spaces")
+    item = _space_from(listed, gate["space_id"])
+    _assert_hidden(listed, item, raw, _digest(raw), indicator=True)
+
+
+def test_unauthenticated_rotate_is_401(gate):
+    client = gate["client"]
+    client.cookies.clear()
+    response = _rotate(client, gate["space_id"])
+    assert response.status_code == 401
+    assert gate["raw"] not in response.text
+    _see(gate["db"])
+    row = gate["db"].get(ShareableSpace, gate["space_id"])
+    assert row.token_hash == gate["digest"]
