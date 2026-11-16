@@ -285,6 +285,15 @@ def _transaction_locks_job(session: Session, job_id: int) -> bool:
     subtransaction id. ``pg_locks`` shows that id as a granted ``transactionid`` lock of this
     backend. A row this transaction has not locked does not match. The read takes no new lock,
     so it does not by itself make a later check look locked.
+
+    A concurrent key-share lock stores a multixact id in ``xmax`` instead of this backend's
+    transaction id, so the comparison misses. ``FOR SHARE`` beside ``FOR KEY SHARE`` does the
+    same. ``lease_is_held`` then does not call ``_extend_lease_already_locked``. It requires
+    ``lease_expires_at > statement_timestamp()`` (and ``FOR UPDATE`` when ``lock`` is true).
+    That fails safe. An expired lease, or a different owner, raises ``LeaseLost`` and the
+    commit is rolled back. The worst case is a retry of the attempt. The fence does not commit
+    a result after the lease has expired. A lone ``FOR UPDATE`` still matches: it conflicts
+    with key-share, and ``xmax`` stays this transaction's id.
     """
     row = session.execute(
         text(
