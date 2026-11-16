@@ -1,0 +1,19 @@
+# TC-23-001a web unit tests after the parser accepts a withheld token
+
+Command: npx vitest run lib/dealConsumer.test.ts tests/unit/deals-page.test.ts
+Working directory: apps/web
+Node: v24.22.3
+
+(!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+  - ESM syntax in a file loaded as CommonJS (vitest.config.ts:1:1). Use a `.mjs` extension or set `"type": "module"` in the closest package.json
+Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.
+
+ RUN  v5.0.5 /agent/repos/trust-copilot/apps/web
+
+
+ Test Files  2 passed (2)
+      Tests  95 passed (95)
+   Start at  11:41:29
+   Duration  1.34s (tests 78%, environment 13%, import 7%, transform 2%)
+
+EXIT:0

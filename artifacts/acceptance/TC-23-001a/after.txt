@@ -1,0 +1,18 @@
+# TC-23-001a passing tests after the room-token gate
+
+Command: python -m pytest tests/test_deal_room_token_gate.py tests/test_deals.py -q --tb=line
+Working directory: apps/api
+Interpreter: Python 3.12 (/tmp/tc-backend-venv)
+Exit status: 0
+Result: 32 passed
+
+................................                                         [100%]
+=============================== warnings summary ===============================
+tests/test_deal_room_token_gate.py: 191 warnings
+tests/test_deals.py: 46 warnings
+  /tmp/tc-backend-venv/lib/python3.12/site-packages/sqlalchemy/sql/schema.py:3627: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    return util.wrap_callable(lambda ctx: fn(), fn)  # type: ignore
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+32 passed, 237 warnings in 6.43s
+EXIT:0

@@ -18,7 +18,9 @@ from app.models.trust_article import TrustArticle
 logger = logging.getLogger(__name__)
 
 
-def generate_deal_room(db: Session, deal_id: int, *, workspace_id: int) -> dict:
+def generate_deal_room(
+    db: Session, deal_id: int, *, workspace_id: int, include_access_token: bool = True
+) -> dict:
     deal = db.query(Deal).filter(Deal.id == deal_id, Deal.workspace_id == workspace_id).first()
     if not deal:
         return {"error": "Deal not found"}
@@ -87,7 +89,8 @@ def generate_deal_room(db: Session, deal_id: int, *, workspace_id: int) -> dict:
     )
     article_data = [{"id": a.id, "title": a.title, "slug": a.slug} for a in articles]
 
-    access_token = secrets.token_urlsafe(32)
+    # Unstored marker. The route passes include_access_token only for can_review or can_admin.
+    access_token = secrets.token_urlsafe(32) if include_access_token else None
 
     return {
         "deal_id": deal.id,

@@ -7,7 +7,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, field_validator, model_validator
 
-from app.core.auth_deps import require_can_admin, require_session
+from app.core.auth_deps import _resolve_permission, require_can_admin, require_session
 from app.core.database import get_db
 from app.core.idempotency import (
     IdempotencyKeyError,
@@ -318,11 +318,28 @@ async def risk_score(
     return result
 
 
+def _room_token_visible(session: dict, db: Session) -> bool:
+    """Same checks as require_can_review and require_can_admin, without denying the read.
+
+    can_admin is included so a custom role that has admin and not review still sees the marker.
+    """
+    role = session.get("role")
+    workspace_id = session.get("workspace_id")
+    return _resolve_permission(role, "can_review", workspace_id, db) or _resolve_permission(
+        role, "can_admin", workspace_id, db
+    )
+
+
 @router.get("/{deal_id}/room")
 async def deal_room(
     deal_id: int, session: dict = Depends(require_session), db: Session = Depends(get_db)
 ):
-    result = drs.generate_deal_room(db, deal_id, workspace_id=session["workspace_id"])
+    result = drs.generate_deal_room(
+        db,
+        deal_id,
+        workspace_id=session["workspace_id"],
+        include_access_token=_room_token_visible(session, db),
+    )
     if "error" in result:
         raise _deal_not_found()
     return result

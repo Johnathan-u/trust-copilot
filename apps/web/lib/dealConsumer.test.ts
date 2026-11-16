@@ -188,6 +188,17 @@ describe('deal risk and room consumers', () => {
     expect(JSON.stringify(parsed)).not.toContain('synthetic-room-marker')
   })
 
+  it('accepts a withheld token and still drops a real one', () => {
+    for (const accessToken of [null, undefined]) {
+      const parsed = parseDealRoom(room({ access_token: accessToken }))
+      expect(parsed).not.toHaveProperty('access_token')
+      expect(parsed.deal_id).toBe(7)
+    }
+    const omitted = room()
+    delete omitted.access_token
+    expect(parseDealRoom(omitted)).not.toHaveProperty('access_token')
+  })
+
   it('accepts an empty room without turning it into an error', () => {
     expect(
       parseDealRoom(

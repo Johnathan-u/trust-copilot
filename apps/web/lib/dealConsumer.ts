@@ -256,9 +256,12 @@ export function parseDealRoom(value: unknown): DealRoom {
   if (!validId(value.deal_id)) throw new Error('deal id is invalid')
   if (typeof value.company_name !== 'string')
     throw new Error('deal company is invalid')
-  // The route mints a fresh unstored token on every read. Require it so a
-  // partial body cannot pass, and drop it so the page cannot render it.
-  if (typeof value.access_token !== 'string' || !value.access_token.trim())
+  // The route mints a fresh unstored token on every read and returns it only
+  // for can_review or can_admin. A lower role gets null or no field. Reject a
+  // blank string, drop a real token so the page cannot render it, and accept
+  // null or absence so the room still loads.
+  const token = value.access_token
+  if (token != null && (typeof token !== 'string' || !token.trim()))
     throw new Error('deal room is incomplete')
   if (!Array.isArray(value.questionnaires))
     throw new Error('deal room questionnaires are missing')

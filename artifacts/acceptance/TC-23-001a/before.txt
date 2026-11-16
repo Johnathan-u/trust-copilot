@@ -1,0 +1,45 @@
+# TC-23-001a failing tests before the room-token gate
+
+Command: python -m pytest tests/test_deal_room_token_gate.py -q --tb=short
+Working directory: apps/api
+Interpreter: Python 3.12 (/tmp/tc-backend-venv)
+Base: af6e742f85f8aa9c1115bfe2776e1bdd2d0041da (master, route still returned the marker to every session)
+Exit status: 1
+Result: 4 failed, 8 passed
+
+Failures are the roles and the API key that must not receive access_token.
+The 8 passes are can_review and can_admin callers, unauthenticated 401,
+deal list/detail/risk omitting the marker, and the marker not being stored
+or accepted by the public token routes.
+
+FFF.....F...                                                             [100%]
+=================================== FAILURES ===================================
+__________ test_room_token_follows_can_review_or_admin[member-False] ___________
+tests/test_deal_room_token_gate.py:163: in test_room_token_follows_can_review_or_admin
+    assert token is None
+E   AssertionError: assert '-qt4rEwADKcgycy2Pm3hSWnZHATJKj8bvVFRtV2FNV4' is None
+___________ test_room_token_follows_can_review_or_admin[edit-False] ____________
+tests/test_deal_room_token_gate.py:163: in test_room_token_follows_can_review_or_admin
+    assert token is None
+E   AssertionError: assert 'V5SMNIDbY4mTt5TN2CY4EECt7AWOT1L6-T9BLWyu5SA' is None
+__________ test_room_token_follows_can_review_or_admin[export-False] ___________
+tests/test_deal_room_token_gate.py:163: in test_room_token_follows_can_review_or_admin
+    assert token is None
+E   AssertionError: assert 'qcbrREN-wlB6LNOmRqzZlrX2scP_T04vRRpohW_pVMo' is None
+_____________ test_api_key_room_token_follows_the_same_permission ______________
+tests/test_deal_room_token_gate.py:197: in test_api_key_room_token_follows_the_same_permission
+    assert token is None
+E   AssertionError: assert 'By2JwhImHdl4wL2UHE9SdPeL7xFdldWNCBIxvMntlBo' is None
+=============================== warnings summary ===============================
+tests/test_deal_room_token_gate.py: 189 warnings
+  /tmp/tc-backend-venv/lib/python3.12/site-packages/sqlalchemy/sql/schema.py:3627: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    return util.wrap_callable(lambda ctx: fn(), fn)  # type: ignore
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED tests/test_deal_room_token_gate.py::test_room_token_follows_can_review_or_admin[member-False]
+FAILED tests/test_deal_room_token_gate.py::test_room_token_follows_can_review_or_admin[edit-False]
+FAILED tests/test_deal_room_token_gate.py::test_room_token_follows_can_review_or_admin[export-False]
+FAILED tests/test_deal_room_token_gate.py::test_api_key_room_token_follows_the_same_permission
+4 failed, 8 passed, 189 warnings in 4.60s
+EXIT:1
