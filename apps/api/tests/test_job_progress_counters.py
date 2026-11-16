@@ -215,7 +215,12 @@ def test_parse_evidence_records_parsed_item_counts(monkeypatch):
     from app import worker
     from app.services import evidence_parser
 
-    items = [{"text": "control a"}, {"text": "control b"}, {"text": "control c"}, {"text": "control d"}]
+    items = [
+        {"text": "control a"},
+        {"text": "control b"},
+        {"text": "control c"},
+        {"text": "control d"},
+    ]
     session = _Session()
     session.document = SimpleNamespace(
         id=8,
@@ -352,7 +357,10 @@ def test_history_projects_pairs_for_workers_that_record_them(monkeypatch):
         ("export", 5, 5),
         ("generate_answers", 2, 5),
     ):
-        job = _job(kind, result=json.dumps({"generated": generated, "total": total, "storage_key": "PRIVATE"}))
+        job = _job(
+            kind,
+            result=json.dumps({"generated": generated, "total": total, "storage_key": "PRIVATE"}),
+        )
         item = routes._history_job(request, None, job)
         assert item["progress"] == {"generated": generated, "total": total}
         assert "PRIVATE" not in json.dumps(item["progress"])

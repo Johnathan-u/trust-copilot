@@ -49,11 +49,7 @@ _PROGRESS_LIMIT = 9007199254740991
 def _progress_pair(result: dict) -> dict | None:
     """A real generated/total pair, or None when the result did not record one."""
     generated, total = result.get("generated"), result.get("total")
-    if (
-        type(generated) is int
-        and type(total) is int
-        and 0 <= generated <= total <= _PROGRESS_LIMIT
-    ):
+    if type(generated) is int and type(total) is int and 0 <= generated <= total <= _PROGRESS_LIMIT:
         return {"generated": generated, "total": total}
     return None
 
