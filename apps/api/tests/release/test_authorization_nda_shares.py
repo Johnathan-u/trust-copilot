@@ -86,6 +86,7 @@ def store(request):
         db = Session(engine)
     before = snapshot(db)
     owned = {model: [] for model in MODELS}
+    initial_audit_ids = {row[0] for row in db.execute(select(AuditEvent.id)).all()}
     clients = []
 
     def add(model, **fields):
@@ -128,15 +129,13 @@ def store(request):
             if target == "missing":
                 return {"id": 2147483647, "kind": kind, "token": token}
             index = 1 if target == "foreign" else 0
-            fields = dict(
-                workspace_id=workspaces[index].id,
-                access_token=token,
-                expires_at=now() + timedelta(days=10),
-            )
+            expires_at = now() + timedelta(days=10)
             if kind == "nda":
                 row = add(
                     NdaAccessRequest,
-                    **fields,
+                    workspace_id=workspaces[index].id,
+                    access_token=token,
+                    expires_at=expires_at,
                     requester_name="Synthetic Buyer",
                     requester_email="synthetic-buyer@example.com",
                     requester_company="Synthetic Company",
@@ -149,7 +148,10 @@ def store(request):
             else:
                 row = add(
                     ShareableSpace,
-                    **fields,
+                    workspace_id=workspaces[index].id,
+                    access_token=None,
+                    token_hash=hashlib.sha256(token.encode("utf-8")).hexdigest(),
+                    expires_at=expires_at,
                     name="Synthetic private share",
                     buyer_company="Synthetic Company",
                     buyer_email="synthetic-buyer@example.com",
@@ -206,6 +208,14 @@ def store(request):
             client.close()
         db.rollback()
         try:
+            extra_audits = [
+                audit_id
+                for (audit_id,) in db.execute(
+                    select(AuditEvent.id).where(AuditEvent.action == "shareable_space.accessed")
+                )
+                if audit_id not in initial_audit_ids
+            ]
+            owned[AuditEvent].extend(extra_audits)
             for model in MODELS:
                 if owned[model]:
                     db.query(model).filter(model.id.in_(owned[model])).delete(
@@ -244,10 +254,37 @@ def call(store, action, record, days=None):
     return store["client"].post(route, params={} if days is None else {"access_days": days})
 
 
+def _expect_access_audits(db, before, after, record, expected):
+    for table, value in before.items():
+        if table != "audit_events":
+            assert after[table] == value, table
+    assert after["audit_events"][0] - before["audit_events"][0] == expected
+    digest = hashlib.sha256(record["token"].encode("utf-8")).hexdigest()
+    rows = (
+        db.query(AuditEvent)
+        .filter(
+            AuditEvent.action == "shareable_space.accessed",
+            AuditEvent.resource_id == str(record["id"]),
+        )
+        .all()
+    )
+    assert len(rows) >= expected
+    for row in rows:
+        assert row.resource_type == "shareable_space"
+        assert row.user_id is None and row.email is None
+        assert json.loads(row.details) == {"space_id": record["id"]}
+        blob = " ".join(
+            str(part or "") for part in (row.resource_id, row.details, row.email, row.action)
+        )
+        assert record["token"] not in blob
+        assert digest not in blob
+
+
 def deny_without_writes(store, action, record, status=404, days=None):
     db = store["db"]
-    before = snapshot(db)
     original_capability = capability(store, record)
+    db.rollback()
+    before = snapshot(db)
     writes = []
 
     def capture(_conn, _cursor, statement, _parameters, _context, _executemany):
@@ -267,7 +304,13 @@ def deny_without_writes(store, action, record, status=404, days=None):
     assert not writes, "Authorization must precede writes, even writes later rolled back"
     assert not db.new and not db.dirty and not db.deleted
     assert capability(store, record) == original_capability
-    assert snapshot(db) == before
+    db.rollback()
+    after = snapshot(db)
+    expected = 1 if record["kind"] == "share" and original_capability.get("valid") else 0
+    if expected:
+        _expect_access_audits(db, before, after, record, expected)
+    else:
+        assert after == before
 
 
 @pytest.mark.parametrize("action", ACTIONS)
@@ -360,10 +403,14 @@ def test_owned_share_deactivation_is_repeatable_and_preserves_projection(store):
     response = call(store, "deactivate", record)
     assert response.status_code == 200
     body = response.json()
-    assert body["workspace_id"] == store["ws"][0] and body["access_token"] == record["token"]
+    assert body["workspace_id"] == store["ws"][0] and body["access_token"] is None
+    assert body["has_access_token"] is True
     assert body["buyer_email"] == "synthetic-buyer@example.com" and body["is_active"] is False
+    assert record["token"] not in response.text
     store["db"].expire_all()
-    assert store["db"].get(ShareableSpace, record["id"]).is_active is False
+    row = store["db"].get(ShareableSpace, record["id"])
+    assert row.is_active is False and row.access_token is None
+    assert row.token_hash == hashlib.sha256(record["token"].encode("utf-8")).hexdigest()
     assert capability(store, record) == {"valid": False, "reason": "Space deactivated"}
     before = snapshot(store["db"])
     again = call(store, "deactivate", record)
@@ -394,9 +441,16 @@ def test_public_capability_semantics_remain_unchanged(store, kind, state):
             assert result["workspace_id"] == store["ws"][1]
         else:
             assert result["space"]["workspace_id"] == store["ws"][1]
+            assert result["space"]["access_token"] is None
             assert result["article_ids"] == [101] and result["answer_ids"] == [201]
             assert result["document_ids"] == [301]
-    assert snapshot(store["db"]) == before
+            assert record["token"] not in json.dumps(result)
+    store["db"].rollback()
+    after = snapshot(store["db"])
+    if kind == "share" and state == "valid":
+        _expect_access_audits(store["db"], before, after, record, 1)
+    else:
+        assert after == before
 
 
 @pytest.mark.parametrize("kind", ["nda", "share"])

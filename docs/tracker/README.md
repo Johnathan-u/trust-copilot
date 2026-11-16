@@ -29,7 +29,7 @@ python scripts/backlog_tracker.py check
 python -m unittest discover -s scripts/tests -p 'test_backlog_tracker.py'
 ```
 
-The browser regression suite uses the repository's existing locked Playwright dependency. After installing `apps/web` dependencies and its Chromium browser, run `node --test docs/tracker/tests/browser.test.cjs` from the repository root. The dedicated Backlog tracker workflow runs both suites and checks the generated snapshot on affected pushes and pull requests.
+The browser regression suite uses the repository's existing locked Playwright dependency. After installing `apps/web` dependencies and its Chromium browser, run `node --test docs/tracker/tests/browser.test.cjs` from the repository root. The dedicated Backlog tracker workflow runs both suites and checks the generated snapshot on affected pushes and pull requests. Its path filter does not include `docs/release/tickets`, so a records commit that only edits a ticket note does not start this workflow.
 
 Use the validated `update` command and expected revision for state changes. Commit the state and generated snapshot together through the existing review process. The view is a repository snapshot; it does not write to GitHub, save shared changes in browser storage or automatically poll external services.
 

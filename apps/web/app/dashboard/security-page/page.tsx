@@ -2,8 +2,19 @@
 
 import { useCallback, useEffect, useState } from 'react'
 import Link from 'next/link'
-import { Button, Card } from '@/components/ui'
+import {
+  Button,
+  Card,
+  EmptyState,
+  ErrorState,
+  LoadingState,
+} from '@/components/ui'
 import { useAuth } from '@/contexts/AuthContext'
+import {
+  presentHttpFailure,
+  type ApiFailurePresentation,
+} from '@/lib/api-error'
+import { failureOf, isAbortError } from '@/lib/section-load'
 import { presentClaims, presentSecurityPage } from '@/lib/securityPage.mjs'
 
 type PageView = ReturnType<typeof presentSecurityPage>
@@ -45,53 +56,95 @@ export default function SecurityPageScreen() {
   const canAdmin = permissions.can_admin
   const [view, setView] = useState<PageView | null>(null)
   const [rows, setRows] = useState<ClaimRow[]>([])
+  const [claimsLoaded, setClaimsLoaded] = useState(false)
   const [drafts, setDrafts] = useState<Record<string, Draft>>({})
   const [loading, setLoading] = useState(true)
+  const [loadFailure, setLoadFailure] = useState<ApiFailurePresentation | null>(
+    null
+  )
+  const [claimsFailure, setClaimsFailure] =
+    useState<ApiFailurePresentation | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [saving, setSaving] = useState<string | null>(null)
   const [message, setMessage] = useState<string | null>(null)
 
   // State is only set inside promise callbacks, never synchronously, so the
   // mount effect below can start a load without cascading renders.
-  const load = useCallback(
-    () =>
-      fetch('/api/security-page', { credentials: 'include' })
-        .then(async (pageResponse) => {
-          const pageBody = await readJson(pageResponse)
-          if (!pageResponse.ok) {
-            setView(null)
-            setError(detail(pageBody, 'The security page could not be loaded.'))
-            return
-          }
-          const next = presentSecurityPage(pageBody)
-          setView(next)
-          setError(next.state === 'ready' ? null : next.reason)
-          if (!canAdmin) return
-          const claimsResponse = await fetch('/api/security-page/claims', {
-            credentials: 'include',
-          })
-          const claimsBody = await readJson(claimsResponse)
-          const claims = claimsResponse.ok ? presentClaims(claimsBody) : null
-          if (!claims || claims.state !== 'ready') {
-            setError(
-              claims?.reason ||
-                detail(claimsBody, 'The claim editor could not be loaded.')
-            )
-          }
-          const nextRows = claims && claims.state === 'ready' ? claims.rows : []
-          setRows(nextRows)
-          setDrafts(
-            Object.fromEntries(nextRows.map((row) => [row.key, draftFor(row)]))
+  const load = useCallback(() => {
+    return fetch('/api/security-page', { credentials: 'include' })
+      .then(async (pageResponse) => {
+        if (!pageResponse.ok) {
+          setView(null)
+          setRows([])
+          setClaimsLoaded(false)
+          setLoadFailure(presentHttpFailure({ status: pageResponse.status }))
+          return
+        }
+        const pageBody = await readJson(pageResponse)
+        const next = presentSecurityPage(pageBody)
+        if (next.state !== 'ready') {
+          setView(null)
+          setRows([])
+          setClaimsLoaded(false)
+          setLoadFailure(presentHttpFailure({ malformed: true }))
+          return
+        }
+        setView(next)
+        setLoadFailure(null)
+        setClaimsFailure(null)
+        if (!canAdmin) {
+          setRows([])
+          setClaimsLoaded(false)
+          return
+        }
+        const claimsResponse = await fetch('/api/security-page/claims', {
+          credentials: 'include',
+        })
+        if (!claimsResponse.ok) {
+          setRows([])
+          setClaimsLoaded(true)
+          setClaimsFailure(
+            presentHttpFailure({ status: claimsResponse.status })
           )
-        })
-        .catch(() => {
-          setError('Network error loading the security page.')
-        })
-        .finally(() => {
-          setLoading(false)
-        }),
-    [canAdmin]
-  )
+          return
+        }
+        const claimsBody = await readJson(claimsResponse)
+        const claims = presentClaims(claimsBody)
+        if (claims.state !== 'ready') {
+          setRows([])
+          setClaimsLoaded(true)
+          setClaimsFailure(presentHttpFailure({ malformed: true }))
+          return
+        }
+        setClaimsFailure(null)
+        setRows(claims.rows)
+        setClaimsLoaded(true)
+        setDrafts(
+          Object.fromEntries(claims.rows.map((row) => [row.key, draftFor(row)]))
+        )
+      })
+      .catch((caught: unknown) => {
+        if (isAbortError(caught)) return
+        setView(null)
+        setRows([])
+        setClaimsLoaded(false)
+        setLoadFailure(
+          caught instanceof TypeError
+            ? presentHttpFailure({ offline: true })
+            : failureOf(caught)
+        )
+      })
+      .finally(() => {
+        setLoading(false)
+      })
+  }, [canAdmin])
+
+  const retryLoad = useCallback(() => {
+    setLoading(true)
+    setLoadFailure(null)
+    setClaimsFailure(null)
+    void load()
+  }, [load])
 
   useEffect(() => {
     void load()
@@ -175,56 +228,74 @@ export default function SecurityPageScreen() {
           {message}
         </p>
       )}
-      {loading && (
-        <p className="text-sm text-[var(--tc-muted)]">Loading security page…</p>
+      {loading && !view && (
+        <LoadingState label="Loading security page" onRetry={retryLoad}>
+          <p className="text-sm text-[var(--tc-muted)]">
+            Loading security page…
+          </p>
+        </LoadingState>
+      )}
+
+      {!loading && loadFailure && !view && (
+        <ErrorState failure={loadFailure} onRetry={retryLoad} />
       )}
 
       {view && view.state === 'ready' && (
         <div className="space-y-6">
-          <Card className="p-5">
-            <h2 className="mb-3 text-lg font-semibold text-[var(--tc-text)]">
-              Certifications
-            </h2>
-            <ul className="space-y-3">
-              {view.certifications.map((item) => (
-                <li key={item.name} className="flex items-start gap-3">
-                  <span
-                    className={`rounded-full px-2 py-0.5 text-xs font-semibold ${
-                      item.attested
-                        ? 'bg-[var(--tc-success-surface)] text-[var(--tc-success)]'
-                        : 'bg-white/5 text-[var(--tc-muted)]'
-                    }`}
-                  >
-                    {item.label}
-                  </span>
-                  <div>
-                    <p className="text-sm font-medium text-[var(--tc-text)]">
-                      {item.name}
-                    </p>
-                    <p className="text-sm text-[var(--tc-muted)]">
-                      {item.description}
-                    </p>
-                    {item.proofTitle && (
-                      <p className="text-xs text-[var(--tc-muted)]">
-                        Proof: {item.proofTitle}
-                      </p>
-                    )}
-                  </div>
-                </li>
-              ))}
-            </ul>
-          </Card>
+          {view.certifications.length === 0 && view.highlights.length === 0 ? (
+            <EmptyState
+              title="No security claims are published"
+              description="Approved evidence is what this page can show as attested."
+              action={<Link href="/dashboard/documents">Open documents</Link>}
+            />
+          ) : (
+            <>
+              <Card className="p-5">
+                <h2 className="mb-3 text-lg font-semibold text-[var(--tc-text)]">
+                  Certifications
+                </h2>
+                <ul className="space-y-3">
+                  {view.certifications.map((item) => (
+                    <li key={item.name} className="flex items-start gap-3">
+                      <span
+                        className={`rounded-full px-2 py-0.5 text-xs font-semibold ${
+                          item.attested
+                            ? 'bg-[var(--tc-success-surface)] text-[var(--tc-success)]'
+                            : 'bg-white/5 text-[var(--tc-muted)]'
+                        }`}
+                      >
+                        {item.label}
+                      </span>
+                      <div>
+                        <p className="text-sm font-medium text-[var(--tc-text)]">
+                          {item.name}
+                        </p>
+                        <p className="text-sm text-[var(--tc-muted)]">
+                          {item.description}
+                        </p>
+                        {item.proofTitle && (
+                          <p className="text-xs text-[var(--tc-muted)]">
+                            Proof: {item.proofTitle}
+                          </p>
+                        )}
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              </Card>
 
-          <Card className="p-5">
-            <h2 className="mb-3 text-lg font-semibold text-[var(--tc-text)]">
-              Infrastructure
-            </h2>
-            <ul className="list-disc space-y-1 pl-5 text-sm text-[var(--tc-text)]">
-              {view.highlights.map((line, index) => (
-                <li key={`${index}-${line}`}>{line}</li>
-              ))}
-            </ul>
-          </Card>
+              <Card className="p-5">
+                <h2 className="mb-3 text-lg font-semibold text-[var(--tc-text)]">
+                  Infrastructure
+                </h2>
+                <ul className="list-disc space-y-1 pl-5 text-sm text-[var(--tc-text)]">
+                  {view.highlights.map((line, index) => (
+                    <li key={`${index}-${line}`}>{line}</li>
+                  ))}
+                </ul>
+              </Card>
+            </>
+          )}
 
           <Card className="p-5">
             <h2 className="mb-3 text-lg font-semibold text-[var(--tc-text)]">
@@ -250,7 +321,17 @@ export default function SecurityPageScreen() {
             </dl>
           </Card>
 
-          {canAdmin && rows.length > 0 && (
+          {canAdmin && claimsFailure && (
+            <ErrorState failure={claimsFailure} onRetry={retryLoad} />
+          )}
+          {canAdmin && claimsLoaded && !claimsFailure && rows.length === 0 && (
+            <EmptyState
+              title="No claims to review"
+              description="Owner-approved claims appear here after evidence is added."
+              action={<Link href="/dashboard/documents">Open documents</Link>}
+            />
+          )}
+          {canAdmin && !claimsFailure && rows.length > 0 && (
             <Card className="p-5">
               <h2 className="mb-1 text-lg font-semibold text-[var(--tc-text)]">
                 Owner-approved claims

@@ -138,7 +138,9 @@ describe('incoming trust request consumer boundaries', () => {
     expect(deliveryLabel(null)).toMatch(/Unknown/)
   })
   it('gives fixed recovery copy for denied, missing, stale and unconfirmed operations', () => {
-    expect(trustFailure(403)).toMatch(/permission/)
+    expect(trustFailure(403)).not.toMatch(/permission/i)
+    expect(trustFailure(403)).toMatch(/cannot complete that action/)
+    expect(trustFailure(403)).toMatch(/Your text is kept here/)
     expect(trustFailure(404)).toMatch(/unavailable/)
     expect(trustFailure(409)).toMatch(/Reload/)
     expect(trustFailure(0)).toMatch(/not confirmed/)

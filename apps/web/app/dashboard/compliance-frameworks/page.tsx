@@ -1,9 +1,22 @@
 'use client'
 
 import { useCallback, useEffect, useState } from 'react'
-import { Button, Card } from '@/components/ui'
+import Link from 'next/link'
+import {
+  Button,
+  Card,
+  EmptyState,
+  ErrorState,
+  LoadingState,
+} from '@/components/ui'
 import { useAuth } from '@/contexts/AuthContext'
 import { useKeyedGeneration } from '@/components/ui/useKeyedGeneration'
+import {
+  ApiRequestError,
+  presentHttpFailure,
+  type ApiFailurePresentation,
+} from '@/lib/api-error'
+import { failureOf, isAbortError, readSectionJson } from '@/lib/section-load'
 import {
   catalogStatusLabel,
   catalogRightsLabel,
@@ -22,41 +35,39 @@ export default function ComplianceFrameworksPage() {
   const { permissions } = useAuth()
   const [items, setItems] = useState<FrameworkCatalogItem[]>([])
   const [loading, setLoading] = useState(true)
-  const [loadError, setLoadError] = useState<string | null>(null)
+  const [loadFailure, setLoadFailure] = useState<ApiFailurePresentation | null>(
+    null
+  )
   const [banner, setBanner] = useState<Banner | null>(null)
   const [busyKey, setBusyKey] = useState<string | null>(null)
 
   const queryCatalogs = useCallback(() => {
     return fetch('/api/compliance/frameworks', { credentials: 'include' })
       .then(async (res) => {
-        const body = await res.json().catch(() => null)
-        if (!res.ok) {
-          const parsed = parseEnableError(body)
-          setLoadError(
-            parsed.message || 'Framework catalogs could not be loaded.'
-          )
-          setItems([])
-          return
+        const body = await readSectionJson(res)
+        if (!Array.isArray(body)) {
+          throw new ApiRequestError(presentHttpFailure({ malformed: true }))
         }
         setItems(parseCatalogList(body))
+        setLoadFailure(null)
       })
-      .catch(() => {
-        setLoadError('Framework catalogs could not be loaded.')
-        setItems([])
+      .catch((error: unknown) => {
+        if (isAbortError(error)) return
+        setLoadFailure(failureOf(error))
       })
       .finally(() => setLoading(false))
   }, [])
 
   const load = useCallback(() => {
     setLoading(true)
-    setLoadError(null)
+    setLoadFailure(null)
     return queryCatalogs()
   }, [queryCatalogs])
 
   const catalogKey = useKeyedGeneration('catalogs')
   if (catalogKey.changed) {
     setLoading(true)
-    setLoadError(null)
+    setLoadFailure(null)
   }
 
   useEffect(() => {
@@ -120,30 +131,30 @@ export default function ComplianceFrameworksPage() {
         </div>
       )}
 
-      {loadError && (
-        <Card className="p-4">
-          <p role="alert" className="text-sm text-[var(--tc-text)]">
-            {loadError}
+      {loading && (
+        <LoadingState
+          label="Loading framework catalogs"
+          onRetry={() => void load()}
+        >
+          <p className="text-sm text-[var(--tc-muted)]">
+            Loading framework catalogs…
           </p>
-          <Button
-            type="button"
-            variant="secondary"
-            size="sm"
-            className="mt-3"
-            onClick={() => void load()}
-          >
-            Retry
-          </Button>
-        </Card>
+        </LoadingState>
       )}
 
-      {loading && !loadError && (
-        <p className="text-sm text-[var(--tc-muted)]">
-          Loading framework catalogs…
-        </p>
+      {!loading && loadFailure && (
+        <ErrorState failure={loadFailure} onRetry={() => void load()} />
       )}
 
-      {!loading && !loadError && (
+      {!loading && !loadFailure && items.length === 0 && (
+        <EmptyState
+          title="No framework catalogs were returned"
+          description="Advertised catalogs show up here when the service returns them. Enablement stays blocked until content licensing is cleared."
+          action={<Link href="/dashboard/controls">Open control library</Link>}
+        />
+      )}
+
+      {!loading && !loadFailure && items.length > 0 && (
         <Card className="overflow-x-auto p-4">
           <table className="w-full min-w-[640px] text-left text-sm">
             <caption className="sr-only">
@@ -232,11 +243,6 @@ export default function ComplianceFrameworksPage() {
               })}
             </tbody>
           </table>
-          {items.length === 0 && (
-            <p className="pt-4 text-sm text-[var(--tc-muted)]">
-              No framework catalogs were returned.
-            </p>
-          )}
           <p className="pt-4 text-xs text-[var(--tc-muted)]">
             Production catalogs enabled: {enabledCount}. Blocked and dev/test
             rows are not production catalogs.
