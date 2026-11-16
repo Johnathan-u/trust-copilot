@@ -1078,6 +1078,106 @@ def test_scan_row_matches_the_evidence_gap_consumer(client):
     assert accepted["row"]["owner_missing"] is True
 
 
+def test_database_error_on_one_control_does_not_abort_the_scan(client):
+    """A constraint violation in one control rolls back only that control.
+
+    The other controls are still scored and saved, the broken control is stored
+    as failed, and the scan commits. The failed row is written after the
+    savepoint rolls back, so a real database error does not poison the scan.
+    """
+    actors = _actors()
+    gap_id = _control(actors["workspace_id"], f"Gap {uuid.uuid4().hex[:8]}")
+    bad_id = _control(actors["workspace_id"], f"Bad {uuid.uuid4().hex[:8]}")
+    clear_id = _control(actors["workspace_id"], f"Clear {uuid.uuid4().hex[:8]}")
+    approved = _evidence(actors["workspace_id"], approval="approved")
+    _link(clear_id, approved)
+    session = _db()
+    try:
+        _sync_sequence(session, "evidence_gaps")
+        open_row = EvidenceGap(
+            workspace_id=actors["workspace_id"],
+            gap_type="control_check",
+            reason='{"rule": "no_evidence"}',
+            status="open",
+            control_id=clear_id,
+            evaluation_state="gap",
+            rule_code="no_evidence",
+            evidence_refs="[]",
+            next_action="collect_evidence",
+        )
+        session.add(open_row)
+        session.commit()
+        open_gap_id = open_row.id
+    finally:
+        session.close()
+
+    real_scope = gaps_mod._scope
+
+    def scope_with_constraint_violation(db, wc):
+        if wc.id == bad_id:
+            db.execute(
+                text(
+                    "INSERT INTO evidence_gaps (workspace_id, gap_type, reason, status) "
+                    "VALUES (NULL, 'control_check', :reason, 'open')"
+                ),
+                {"reason": "tc21006c-constraint"},
+            )
+        return real_scope(db, wc)
+
+    _login(client, ADMIN_EMAIL, ADMIN_PASSWORD)
+    with (
+        patch("app.api.routes.compliance_gaps.notify_admins"),
+        patch(
+            "app.api.routes.compliance_gaps._scope",
+            side_effect=scope_with_constraint_violation,
+        ),
+    ):
+        scanned = client.post("/api/compliance/gaps/scan-and-notify")
+    assert scanned.status_code == 200, scanned.text
+    assert "failed" in scanned.json()["states"]
+    assert "gap" in scanned.json()["states"]
+    assert scanned.json()["persisted"] >= 3
+
+    session = _db()
+    try:
+        rows = session.execute(
+            text(
+                "SELECT id, control_id, status, evaluation_state, rule_code, "
+                "next_action, close_reason "
+                "FROM evidence_gaps WHERE control_id IN :ids AND gap_type = 'control_check' "
+                "ORDER BY control_id"
+            ).bindparams(bindparam("ids", expanding=True)),
+            {"ids": [gap_id, bad_id, clear_id]},
+        ).fetchall()
+        poison = session.execute(
+            text("SELECT count(*) FROM evidence_gaps WHERE reason = :reason"),
+            {"reason": "tc21006c-constraint"},
+        ).scalar()
+    finally:
+        session.close()
+    assert poison == 0
+    by_control = {row.control_id: row for row in rows}
+    assert set(by_control) == {gap_id, bad_id, clear_id}
+    gap = by_control[gap_id]
+    assert (gap.status, gap.evaluation_state, gap.rule_code, gap.next_action) == (
+        "open",
+        "gap",
+        "no_evidence",
+        "collect_evidence",
+    )
+    bad = by_control[bad_id]
+    assert (bad.status, bad.evaluation_state, bad.rule_code, bad.next_action) == (
+        "open",
+        "failed",
+        "check_error",
+        "retry_check",
+    )
+    cleared = by_control[clear_id]
+    assert cleared.id == open_gap_id
+    assert cleared.status == "resolved"
+    assert cleared.close_reason == CONTROL_CHECK_CLOSE_REASON
+
+
 def test_migration_round_trip_restores_gap_evaluation():
     before_counts = _counts()
     before_ids = _ids()
