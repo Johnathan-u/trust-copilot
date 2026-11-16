@@ -1,0 +1,15 @@
+utc: 2026-11-16T13:02:34Z
+PostgreSQL 16.15 (Ubuntu 16.15-0ubuntu0.24.04.1) on x86_64-pc-linux-gnu, compiled by gcc (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0, 64-bit
+job 83
+--- lone FOR UPDATE: detection matches ---
+A FOR UPDATE: xmax=2206 xid=2206 xmax_is_our_xid=True detection=True
+--- FOR KEY SHARE while FOR UPDATE is held ---
+key share blocked: LockNotAvailable
+--- two FOR KEY SHARE: xmax is a multixact, detection misses ---
+A key share alone: xmax=2207 xid=2207 xmax_is_our_xid=True detection=True
+A after concurrent key share: xmax=17 xid=2207 xmax_is_our_xid=False detection=False
+B concurrent key share: xmax=17 xid=2208 xmax_is_our_xid=False detection=False
+--- FOR SHARE plus FOR KEY SHARE: detection misses ---
+A share: xmax=18 xid=2209 xmax_is_our_xid=False detection=False
+B key share: xmax=18 xid=2210 xmax_is_our_xid=False detection=False
+row 83 deleted after both transactions were released
