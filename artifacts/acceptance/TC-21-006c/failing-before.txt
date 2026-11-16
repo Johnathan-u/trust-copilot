@@ -33,7 +33,7 @@ tests/release/test_domain_compliance_gaps.py:1118: in scope_with_constraint_viol
     cursor.execute(statement, parameters)
 E   sqlalchemy.exc.IntegrityError: (psycopg2.errors.NotNullViolation) null value in column "workspace_id" of relation "evidence_gaps" violates not-null constraint
 E   DETAIL:  Failing row contains (3, null, null, null, null, control_check, tc21006c-constraint, null, null, null, open, 2026-11-16 14:41:59.650322, 2026-11-16 14:41:59.650322, null, null, null, null, null, null, null, null).
-E   
+E
 E   [SQL: INSERT INTO evidence_gaps (workspace_id, gap_type, reason, status) VALUES (NULL, 'control_check', %(reason)s, 'open')]
 E   [parameters: {'reason': 'tc21006c-constraint'}]
 E   (Background on this error at: https://sqlalche.me/e/20/gkpj)
@@ -216,10 +216,10 @@ app/api/routes/compliance_gaps.py:152: in _gap_row
 /tmp/tc-venv/lib/python3.12/site-packages/sqlalchemy/engine/default.py:964: in do_execute
     cursor.execute(statement, parameters)
 E   sqlalchemy.exc.InternalError: (psycopg2.errors.InFailedSqlTransaction) current transaction is aborted, commands ignored until end of transaction block
-E   
-E   [SQL: SELECT count(control_evidence_links.id) AS count_1, max(control_evidence_links.confidence_score) AS max_1 
-E   FROM control_evidence_links 
-E   WHERE control_evidence_links.control_id = %(control_id_1)s 
+E
+E   [SQL: SELECT count(control_evidence_links.id) AS count_1, max(control_evidence_links.confidence_score) AS max_1
+E   FROM control_evidence_links
+E   WHERE control_evidence_links.control_id = %(control_id_1)s
 E    LIMIT %(param_1)s]
 E   [parameters: {'control_id_1': 3, 'param_1': 1}]
 E   (Background on this error at: https://sqlalche.me/e/20/2j85)
