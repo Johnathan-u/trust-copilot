@@ -1,0 +1,22 @@
+# TC-17-005a AC4 CI runs
+# Workflow: CI (.github/workflows/ci.yml)
+# Required jobs: build, web-release-e2e
+
+# Head 2f33ceef0e9f9458b7e5fd304d10731b0f3b8f49
+# The runbook used token= placeholders. tests/release/test_secret_inventory.py failed
+# in build. web-release-e2e succeeded. Pre-commit, including trailing whitespace, succeeded.
+# push https://github.com/Johnathan-u/trust-copilot/actions/runs/43961990572 conclusion failure
+#   build failure
+#   web-release-e2e success
+# pull_request https://github.com/Johnathan-u/trust-copilot/actions/runs/43962033504 conclusion failure
+#   build failure
+#   web-release-e2e success
+
+# Head c470a4c97e44700e6c7a5a089f33a6a0f1b8b703
+# Runbook wording no longer looks like a credential assignment.
+# push https://github.com/Johnathan-u/trust-copilot/actions/runs/43965354578 conclusion success
+#   build success
+#   web-release-e2e success
+# pull_request https://github.com/Johnathan-u/trust-copilot/actions/runs/43965365182 conclusion success
+#   build success
+#   web-release-e2e success
