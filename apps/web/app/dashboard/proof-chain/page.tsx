@@ -1,11 +1,24 @@
 'use client'
 
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
-import { Button, Card, Input, Skeleton } from '@/components/ui'
+import {
+  Button,
+  Card,
+  EmptyState,
+  ErrorState,
+  Input,
+  LoadingState,
+  Skeleton,
+} from '@/components/ui'
 import { useKeyedGeneration } from '@/components/ui/useKeyedGeneration'
+import {
+  presentHttpFailure,
+  type ApiFailurePresentation,
+} from '@/lib/api-error'
 import { proofChainRequest } from '@/lib/render-state'
+import { failureOf, isAbortError } from '@/lib/section-load'
 
 type ChainNode = {
   id: number
@@ -62,44 +75,71 @@ export default function ProofChainPage() {
 
   const [answerIdInput, setAnswerIdInput] = useState(initialId)
   const [loading, setLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  const [notice, setNotice] = useState<string | null>(null)
+  const [failure, setFailure] = useState<ApiFailurePresentation | null>(null)
   const [data, setData] = useState<ChainResponse | null>(null)
+  const activeLoad = useRef<AbortController | null>(null)
 
   const queryChain = useCallback((id: number) => {
+    activeLoad.current?.abort()
+    const controller = new AbortController()
+    activeLoad.current = controller
     return fetch(`/api/proof-graph/chain/answer/${id}`, {
       credentials: 'include',
+      signal: controller.signal,
     })
       .then(async (r) => {
+        if (controller.signal.aborted) return
         if (r.status === 404) {
-          setError(
+          setFailure(null)
+          setData(null)
+          setNotice(
             'No proof chain for this answer. Run proof graph sync (API POST /api/proof-graph/sync) after linking answers to your golden library, or use Review after generation.'
           )
           return
         }
         if (!r.ok) {
-          setError(`Could not load chain (${r.status}).`)
+          setNotice(null)
+          setData(null)
+          setFailure(presentHttpFailure({ status: r.status }))
           return
         }
         const body = (await r.json()) as ChainResponse
+        if (controller.signal.aborted) return
+        setNotice(null)
+        setFailure(null)
         setData(body)
       })
-      .catch(() => {
-        setError('Network error loading proof chain.')
+      .catch((error: unknown) => {
+        if (controller.signal.aborted || isAbortError(error)) return
+        setNotice(null)
+        setData(null)
+        setFailure(
+          error instanceof TypeError
+            ? presentHttpFailure({ offline: true })
+            : failureOf(error)
+        )
       })
-      .finally(() => setLoading(false))
+      .finally(() => {
+        if (activeLoad.current === controller) setLoading(false)
+      })
   }, [])
 
   const loadChain = useCallback(
     (raw: string) => {
       const request = proofChainRequest(raw)
       if (request.error) {
-        setError(request.error)
+        activeLoad.current?.abort()
+        activeLoad.current = null
+        setNotice(request.error)
+        setFailure(null)
         setData(null)
         setLoading(false)
         return
       }
       setLoading(true)
-      setError(null)
+      setNotice(null)
+      setFailure(null)
       setData(null)
       return queryChain(request.id)
     },
@@ -110,12 +150,14 @@ export default function ProofChainPage() {
   if (chainKey.changed && initialId) {
     const request = proofChainRequest(initialId)
     if (request.error) {
-      setError(request.error)
+      setNotice(request.error)
+      setFailure(null)
       setData(null)
       setLoading(false)
     } else {
       setLoading(true)
-      setError(null)
+      setNotice(null)
+      setFailure(null)
       setData(null)
     }
   }
@@ -175,23 +217,36 @@ export default function ProofChainPage() {
             {loading ? 'Loading…' : 'Load chain'}
           </Button>
         </div>
-        {error && (
+        {notice && !failure && (
           <p role="alert" className="mt-4 text-sm text-[var(--tc-danger)]">
-            {error}
+            {notice}
           </p>
+        )}
+        {failure && (
+          <div className="mt-4">
+            <ErrorState
+              failure={failure}
+              onRetry={() => void loadChain(answerIdInput)}
+            />
+          </div>
         )}
       </Card>
 
       {loading && (
-        <Card className="p-6">
-          <Skeleton height={20} className="mb-4 w-2/3" />
-          <Skeleton height={64} className="mb-3" />
-          <Skeleton height={64} className="mb-3" />
-          <Skeleton height={64} />
-        </Card>
+        <LoadingState
+          label="Loading proof chain"
+          onRetry={() => void loadChain(answerIdInput)}
+        >
+          <Card className="p-6">
+            <Skeleton height={20} className="mb-4 w-2/3" />
+            <Skeleton height={64} className="mb-3" />
+            <Skeleton height={64} className="mb-3" />
+            <Skeleton height={64} />
+          </Card>
+        </LoadingState>
       )}
 
-      {!loading && data && steps.length > 0 && (
+      {!loading && !failure && data && steps.length > 0 && (
         <div>
           <p className="mb-4 text-xs font-semibold uppercase tracking-wider text-[var(--tc-muted)]">
             Chain for answer #{data.answer_id} ({steps.length} nodes) — source →
@@ -252,10 +307,14 @@ export default function ProofChainPage() {
         </div>
       )}
 
-      {!loading && data && steps.length === 0 && (
-        <p className="text-sm text-[var(--tc-muted)]">
-          Chain is empty for this answer.
-        </p>
+      {!loading && !failure && data && steps.length === 0 && (
+        <EmptyState
+          title="Chain is empty for this answer"
+          description="Nothing is linked yet. Open a questionnaire review and generate an answer to build a chain."
+          action={
+            <Link href="/dashboard/questionnaires">Open questionnaires</Link>
+          }
+        />
       )}
     </div>
   )

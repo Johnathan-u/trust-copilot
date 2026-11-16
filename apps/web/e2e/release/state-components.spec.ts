@@ -48,12 +48,39 @@ const syntheticCards = [
 
 type CardsMode = 'ok' | 'empty' | '500' | '403' | '404' | 'offline' | 'hold'
 type AlertsMode = 'empty' | '500'
+type ReadMode = 'ok' | 'empty' | '500'
 
 let cardsMode: CardsMode = 'ok'
 let alertsMode: AlertsMode = 'empty'
 let sessionMode: 'ok' | '500' = 'ok'
 let cardsSeq = 0
 let fulfillFromId = Number.POSITIVE_INFINITY
+let exportsMode: ReadMode = 'ok'
+let proofMode: ReadMode = 'ok'
+let catalogMode: ReadMode = 'ok'
+let trustMode: ReadMode = 'ok'
+
+const syntheticQuestionnaire = {
+  id: 9,
+  filename: 'Synthetic questionnaire.xlsx',
+  questions: [{ id: 1, text: 'Synthetic question', answer: null }],
+}
+
+const syntheticChain = {
+  answer_id: 42,
+  chain: [
+    {
+      id: 1,
+      node_type: 'evidence',
+      ref_table: 'documents',
+      ref_id: 3,
+      label: 'Synthetic evidence',
+      meta_json: null,
+      version: 1,
+      freshness: 'live',
+    },
+  ],
+}
 
 test.beforeAll(() => {
   mkdirSync(screenshotDir, { recursive: true })
@@ -110,6 +137,64 @@ async function installApi(page: Page) {
     if (pathname.includes('/api/in-app-notifications')) {
       return json(route, { notifications: [] })
     }
+    if (pathname.includes('/api/exports/records')) {
+      if (exportsMode === '500') {
+        return json(route, { detail: 'Insufficient permissions' }, 500)
+      }
+      if (exportsMode === 'empty') return json(route, [])
+      return json(route, [
+        {
+          id: 1,
+          filename: 'synthetic-export.xlsx',
+          created_at: '2026-01-01T00:00:00Z',
+        },
+      ])
+    }
+    if (/\/api\/questionnaires\/\d+/.test(pathname)) {
+      return json(route, syntheticQuestionnaire)
+    }
+    if (pathname.includes('/api/proof-graph/chain/')) {
+      if (proofMode === '500') {
+        return json(route, { detail: 'Insufficient permissions' }, 500)
+      }
+      if (proofMode === 'empty')
+        return json(route, { answer_id: 42, chain: [] })
+      return json(route, syntheticChain)
+    }
+    if (pathname.endsWith('/api/compliance/frameworks')) {
+      if (catalogMode === '500') {
+        return json(route, { detail: 'Insufficient permissions' }, 500)
+      }
+      if (catalogMode === 'empty') return json(route, [])
+      return json(route, [
+        {
+          id: 1,
+          name: 'Synthetic SOC',
+          version: '2026',
+          catalog_key: 'synthetic-soc',
+          contract_version: 'framework-catalog/v1',
+        },
+      ])
+    }
+    if (pathname === '/api/trust-requests') {
+      if (trustMode === '500') {
+        return json(route, { detail: 'Insufficient permissions' }, 500)
+      }
+      if (trustMode === 'empty') return json(route, [])
+      return json(route, [
+        {
+          id: 11,
+          workspace_id: 7,
+          requester_email: 'buyer@example.com',
+          requester_name: 'Synthetic Buyer',
+          subject: 'Synthetic request',
+          message: 'Synthetic message. No customer content.',
+          status: 'new',
+          attachment_filename: null,
+          assignee_display_name: null,
+        },
+      ])
+    }
     return json(route, {})
   })
 
@@ -144,7 +229,7 @@ async function installApi(page: Page) {
   })
 }
 
-async function openDashboard(page: Page, width = 1440, height = 900) {
+async function openApp(page: Page, target: string, width = 1440, height = 900) {
   await page.addInitScript(() => {
     const removeDevPortal = () => {
       document.querySelectorAll('nextjs-portal').forEach((el) => {
@@ -168,7 +253,11 @@ async function openDashboard(page: Page, width = 1440, height = 900) {
     },
   ])
   await page.setViewportSize({ width, height })
-  await page.goto('/dashboard')
+  await page.goto(target)
+}
+
+async function openDashboard(page: Page, width = 1440, height = 900) {
+  await openApp(page, '/dashboard', width, height)
 }
 
 async function shoot(page: Page, name: string) {
@@ -223,6 +312,10 @@ test.describe('loading, empty, error, retry, and partial success', () => {
     sessionMode = 'ok'
     cardsSeq = 0
     fulfillFromId = Number.POSITIVE_INFINITY
+    exportsMode = 'ok'
+    proofMode = 'ok'
+    catalogMode = 'ok'
+    trustMode = 'ok'
   })
 
   test('a successful response renders the cards', async ({ page }) => {
@@ -407,5 +500,95 @@ test.describe('loading, empty, error, retry, and partial success', () => {
     ).toHaveCount(0)
     await expect(page.locator('[data-sidebar-workspace]')).toHaveCount(0)
     await expect(page.getByText('Insufficient permissions')).toHaveCount(0)
+  })
+
+  test('a 500 from review exports is not an empty export list', async ({
+    page,
+  }) => {
+    exportsMode = '500'
+    await openApp(page, '/dashboard/review/9')
+    await expect(
+      page.getByRole('heading', {
+        name: 'Synthetic questionnaire.xlsx',
+        level: 2,
+      })
+    ).toBeVisible()
+    const alert = page.locator('#main-content [data-state="error"]')
+    await expect(alert).toBeVisible()
+    await expect(
+      alert.getByRole('heading', { name: 'Something went wrong', level: 2 })
+    ).toBeVisible()
+    await expect(alert).toHaveAttribute('data-failure', 'server')
+    await expect(page.getByText(/no exports/i)).toHaveCount(0)
+    await expect(page.getByText('Insufficient permissions')).toHaveCount(0)
+    await expect(page.getByText(/\(500\)/)).toHaveCount(0)
+    await expect(page.locator('[data-state="empty"]')).toHaveCount(0)
+    await expect(page.getByRole('button', { name: 'Try again' })).toBeVisible()
+  })
+
+  test('a 500 from the proof chain is not an empty chain', async ({ page }) => {
+    proofMode = '500'
+    await openApp(page, '/dashboard/proof-chain?answer_id=42')
+    await expect(
+      page.getByRole('heading', { name: 'Proof chain', level: 1 })
+    ).toBeVisible()
+    const alert = page.locator('#main-content [data-state="error"]')
+    await expect(alert).toBeVisible()
+    await expect(
+      alert.getByRole('heading', { name: 'Something went wrong', level: 2 })
+    ).toBeVisible()
+    await expect(alert).toHaveAttribute('data-failure', 'server')
+    await expect(page.getByText(/Chain is empty/i)).toHaveCount(0)
+    await expect(page.getByText(/Could not load chain/i)).toHaveCount(0)
+    await expect(page.getByText('Insufficient permissions')).toHaveCount(0)
+    await expect(page.getByText(/\(500\)/)).toHaveCount(0)
+    await expect(page.locator('[data-state="empty"]')).toHaveCount(0)
+    await expect(page.locator('[data-state="loading"]')).toHaveCount(0)
+    await expect(page.getByRole('button', { name: 'Try again' })).toBeVisible()
+  })
+
+  test('a 500 from framework catalogs is not an empty catalog', async ({
+    page,
+  }) => {
+    catalogMode = '500'
+    await openApp(page, '/dashboard/compliance-frameworks')
+    await expect(
+      page.getByRole('heading', { name: 'Framework catalogs', level: 1 })
+    ).toBeVisible()
+    const alert = page.locator('#main-content [data-state="error"]')
+    await expect(alert).toBeVisible()
+    await expect(
+      alert.getByRole('heading', { name: 'Something went wrong', level: 2 })
+    ).toBeVisible()
+    await expect(alert).toHaveAttribute('data-failure', 'server')
+    await expect(
+      page.getByText('No framework catalogs were returned')
+    ).toHaveCount(0)
+    await expect(page.getByText('Insufficient permissions')).toHaveCount(0)
+    await expect(page.locator('[data-state="empty"]')).toHaveCount(0)
+    await expect(page.getByRole('button', { name: 'Try again' })).toBeVisible()
+  })
+
+  test('a 500 from incoming requests is not an empty request list', async ({
+    page,
+  }) => {
+    trustMode = '500'
+    await openApp(page, '/dashboard/trust-requests')
+    await expect(
+      page.getByRole('heading', { name: 'Incoming Trust requests', level: 1 })
+    ).toBeVisible()
+    const alert = page.locator('#main-content [data-state="error"]')
+    await expect(alert).toBeVisible()
+    await expect(
+      alert.getByRole('heading', { name: 'Something went wrong', level: 2 })
+    ).toBeVisible()
+    await expect(alert).toHaveAttribute('data-failure', 'server')
+    await expect(
+      page.getByText('No incoming requests', { exact: true })
+    ).toHaveCount(0)
+    await expect(page.getByText('Insufficient permissions')).toHaveCount(0)
+    await expect(page.getByText(/permission/i)).toHaveCount(0)
+    await expect(page.locator('[data-state="empty"]')).toHaveCount(0)
+    await expect(page.getByRole('button', { name: 'Try again' })).toBeVisible()
   })
 })

@@ -379,7 +379,7 @@ test('after restart: approval survives fresh login, real conflicts retain input 
     expect(denied.status()).toBe(403)
     await expect(
       page.getByRole('region', { name: 'Request detail' }).getByRole('alert')
-    ).toContainText('permission')
+    ).toContainText('This account cannot complete that action')
     await expect(page.getByLabel('Reply text', { exact: true })).toHaveValue(
       'Local text retained after denied attachment.'
     )

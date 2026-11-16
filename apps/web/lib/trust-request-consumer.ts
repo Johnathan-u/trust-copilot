@@ -155,7 +155,7 @@ export function deliveryLabel(status: string | null): string {
 }
 export function trustFailure(status: number): string {
   if (status === 403)
-    return 'You do not have permission for this action. Your text is kept here.'
+    return 'This account cannot complete that action. Your text is kept here.'
   if (status === 404)
     return 'This request or reply is unavailable. Your text is kept here.'
   if (status === 409)

@@ -409,7 +409,7 @@ jobs:
             --require-spec e2e/release/settings-access.spec.ts \
             --min-tests 3 \
             --require-spec e2e/release/state-components.spec.ts \
-            --min-tests 9 \
+            --min-tests 13 \
             --require-spec e2e/release/drawer-followups.spec.ts \
             --min-tests 3 \
             --require-spec e2e/release/workspace-create-denied.spec.ts \
@@ -529,6 +529,15 @@ jobs:
         with:
           name: state-components-axe-json
           path: artifacts/acceptance/TC-14-005/axe-*.json
+          if-no-files-found: warn
+          retention-days: 14
+
+      - name: Upload state components screenshots
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: state-components-screenshots
+          path: artifacts/acceptance/TC-14-005/screenshots/*.png
           if-no-files-found: warn
           retention-days: 14
 

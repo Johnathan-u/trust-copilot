@@ -26,7 +26,7 @@
  *     --require-spec e2e/release/responsive-shell.spec.ts --min-tests 8 \
  *     --require-spec e2e/release/dialog-toast.spec.ts --min-tests 8 \
  *     --require-spec e2e/release/settings-access.spec.ts --min-tests 3 \
- *     --require-spec e2e/release/state-components.spec.ts --min-tests 9 \
+ *     --require-spec e2e/release/state-components.spec.ts --min-tests 13 \
  *     --require-spec e2e/release/drawer-followups.spec.ts --min-tests 3 \
  *     --require-spec e2e/release/workspace-create-denied.spec.ts --min-tests 8 \
  *     --require-spec e2e/release/workspace-creation-policy.spec.ts --min-tests 14 \

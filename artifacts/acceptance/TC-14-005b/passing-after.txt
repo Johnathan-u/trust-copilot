@@ -1,0 +1,25 @@
+Command: npx --no-install playwright test e2e/release/state-components.spec.ts --retries=0 --reporter=list
+Working directory: apps/web
+Node: v24.22.1
+Playwright: Version 1.64.1
+Exit: 0
+
+Running 13 tests using 1 worker
+
+(node:8651) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓   1 [chromium] › e2e/release/state-components.spec.ts:321:7 › loading, empty, error, retry, and partial success › a successful response renders the cards (587ms)
+  ✓   2 [chromium] › e2e/release/state-components.spec.ts:336:7 › loading, empty, error, retry, and partial success › an empty successful response shows an action, not an error (1.0s)
+  ✓   3 [chromium] › e2e/release/state-components.spec.ts:358:7 › loading, empty, error, retry, and partial success › a 500 response is an error with retry, not an empty list (1.0s)
+  ✓   4 [chromium] › e2e/release/state-components.spec.ts:387:7 › loading, empty, error, retry, and partial success › an aborted route renders the offline state (451ms)
+  ✓   5 [chromium] › e2e/release/state-components.spec.ts:401:7 › loading, empty, error, retry, and partial success › a 403 response uses neutral copy (464ms)
+  ✓   6 [chromium] › e2e/release/state-components.spec.ts:420:7 › loading, empty, error, retry, and partial success › a 404 response is distinct from an empty list (417ms)
+  ✓   7 [chromium] › e2e/release/state-components.spec.ts:434:7 › loading, empty, error, retry, and partial success › a hung request leaves the skeleton and retry succeeds (9.4s)
+  ✓   8 [chromium] › e2e/release/state-components.spec.ts:461:7 › loading, empty, error, retry, and partial success › one failed section keeps the sections that loaded (691ms)
+  ✓   9 [chromium] › e2e/release/state-components.spec.ts:483:7 › loading, empty, error, retry, and partial success › a failed session does not render an empty workspace (407ms)
+  ✓  10 [chromium] › e2e/release/state-components.spec.ts:505:7 › loading, empty, error, retry, and partial success › a 500 from review exports is not an empty export list (721ms)
+  ✓  11 [chromium] › e2e/release/state-components.spec.ts:529:7 › loading, empty, error, retry, and partial success › a 500 from the proof chain is not an empty chain (431ms)
+  ✓  12 [chromium] › e2e/release/state-components.spec.ts:550:7 › loading, empty, error, retry, and partial success › a 500 from framework catalogs is not an empty catalog (434ms)
+  ✓  13 [chromium] › e2e/release/state-components.spec.ts:572:7 › loading, empty, error, retry, and partial success › a 500 from incoming requests is not an empty request list (430ms)
+
+  13 passed (20.0s)

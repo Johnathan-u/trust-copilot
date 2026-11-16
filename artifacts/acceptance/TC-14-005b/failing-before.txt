@@ -1,0 +1,146 @@
+Command: npx --no-install playwright test e2e/release/state-components.spec.ts -g "is not an empty" --retries=0 --reporter=list
+Working directory: apps/web
+Node: v24.22.1
+Pages under test: master f305b4e8911471eed249d749f53fdeeec31380b9 (new spec assertions only)
+Exit: 1
+
+Running 4 tests using 1 worker
+
+(node:6151) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  1 [chromium] › e2e/release/state-components.spec.ts:509:7 › loading, empty, error, retry, and partial success › a 500 from review exports is not an empty export list (6.2s)
+(node:6247) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  2 [chromium] › e2e/release/state-components.spec.ts:533:7 › loading, empty, error, retry, and partial success › a 500 from the proof chain is not an empty chain (5.6s)
+(node:6328) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  3 [chromium] › e2e/release/state-components.spec.ts:554:7 › loading, empty, error, retry, and partial success › a 500 from framework catalogs is not an empty catalog (5.6s)
+(node:6412) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  4 [chromium] › e2e/release/state-components.spec.ts:576:7 › loading, empty, error, retry, and partial success › a 500 from incoming requests is not an empty request list (5.6s)
+
+
+  1) [chromium] › e2e/release/state-components.spec.ts:509:7 › loading, empty, error, retry, and partial success › a 500 from review exports is not an empty export list 
+
+    Error: expect(locator).toBeVisible() failed
+
+    Locator: locator('#main-content [data-state="error"]')
+    Expected: visible
+    Timeout: 5000ms
+    Error: element(s) not found
+
+    Call log:
+      - Expect "toBeVisible" locator('#main-content [data-state="error"]') with timeout 5000ms
+      - waiting for locator('#main-content [data-state="error"]')
+
+
+      519 |     ).toBeVisible()
+      520 |     const alert = page.locator('#main-content [data-state="error"]')
+    > 521 |     await expect(alert).toBeVisible()
+          |                         ^
+      522 |     await expect(
+      523 |       alert.getByRole('heading', { name: 'Something went wrong', level: 2 })
+      524 |     ).toBeVisible()
+        at /agent/repos/trust-copilot/apps/web/e2e/release/state-components.spec.ts:521:25
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/release-state-components-l-ca21d-is-not-an-empty-export-list-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/release-state-components-l-ca21d-is-not-an-empty-export-list-chromium/error-context.md
+
+  2) [chromium] › e2e/release/state-components.spec.ts:533:7 › loading, empty, error, retry, and partial success › a 500 from the proof chain is not an empty chain 
+
+    Error: expect(locator).toBeVisible() failed
+
+    Locator: locator('#main-content [data-state="error"]')
+    Expected: visible
+    Timeout: 5000ms
+    Error: element(s) not found
+
+    Call log:
+      - Expect "toBeVisible" locator('#main-content [data-state="error"]') with timeout 5000ms
+      - waiting for locator('#main-content [data-state="error"]')
+
+
+      538 |     ).toBeVisible()
+      539 |     const alert = page.locator('#main-content [data-state="error"]')
+    > 540 |     await expect(alert).toBeVisible()
+          |                         ^
+      541 |     await expect(
+      542 |       alert.getByRole('heading', { name: 'Something went wrong', level: 2 })
+      543 |     ).toBeVisible()
+        at /agent/repos/trust-copilot/apps/web/e2e/release/state-components.spec.ts:540:25
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/release-state-components-l-e1dfe-chain-is-not-an-empty-chain-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/release-state-components-l-e1dfe-chain-is-not-an-empty-chain-chromium/error-context.md
+
+  3) [chromium] › e2e/release/state-components.spec.ts:554:7 › loading, empty, error, retry, and partial success › a 500 from framework catalogs is not an empty catalog 
+
+    Error: expect(locator).toBeVisible() failed
+
+    Locator: locator('#main-content [data-state="error"]')
+    Expected: visible
+    Timeout: 5000ms
+    Error: element(s) not found
+
+    Call log:
+      - Expect "toBeVisible" locator('#main-content [data-state="error"]') with timeout 5000ms
+      - waiting for locator('#main-content [data-state="error"]')
+
+
+      561 |     ).toBeVisible()
+      562 |     const alert = page.locator('#main-content [data-state="error"]')
+    > 563 |     await expect(alert).toBeVisible()
+          |                         ^
+      564 |     await expect(
+      565 |       alert.getByRole('heading', { name: 'Something went wrong', level: 2 })
+      566 |     ).toBeVisible()
+        at /agent/repos/trust-copilot/apps/web/e2e/release/state-components.spec.ts:563:25
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/release-state-components-l-db538-ogs-is-not-an-empty-catalog-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/release-state-components-l-db538-ogs-is-not-an-empty-catalog-chromium/error-context.md
+
+  4) [chromium] › e2e/release/state-components.spec.ts:576:7 › loading, empty, error, retry, and partial success › a 500 from incoming requests is not an empty request list 
+
+    Error: expect(locator).toBeVisible() failed
+
+    Locator: locator('#main-content [data-state="error"]')
+    Expected: visible
+    Timeout: 5000ms
+    Error: element(s) not found
+
+    Call log:
+      - Expect "toBeVisible" locator('#main-content [data-state="error"]') with timeout 5000ms
+      - waiting for locator('#main-content [data-state="error"]')
+
+
+      583 |     ).toBeVisible()
+      584 |     const alert = page.locator('#main-content [data-state="error"]')
+    > 585 |     await expect(alert).toBeVisible()
+          |                         ^
+      586 |     await expect(
+      587 |       alert.getByRole('heading', { name: 'Something went wrong', level: 2 })
+      588 |     ).toBeVisible()
+        at /agent/repos/trust-copilot/apps/web/e2e/release/state-components.spec.ts:585:25
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/release-state-components-l-0419e-s-not-an-empty-request-list-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/release-state-components-l-0419e-s-not-an-empty-request-list-chromium/error-context.md
+
+  4 failed
+    [chromium] › e2e/release/state-components.spec.ts:509:7 › loading, empty, error, retry, and partial success › a 500 from review exports is not an empty export list 
+    [chromium] › e2e/release/state-components.spec.ts:533:7 › loading, empty, error, retry, and partial success › a 500 from the proof chain is not an empty chain 
+    [chromium] › e2e/release/state-components.spec.ts:554:7 › loading, empty, error, retry, and partial success › a 500 from framework catalogs is not an empty catalog 
+    [chromium] › e2e/release/state-components.spec.ts:576:7 › loading, empty, error, retry, and partial success › a 500 from incoming requests is not an empty request list 
+EXIT:1
+NODE:v24.22.1
+SHA:f305b4e8911471eed249d749f53fdeeec31380b9
