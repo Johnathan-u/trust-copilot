@@ -183,10 +183,10 @@ it.each(['http', 'network'])(
     render(createElement(DemoProofPage))
     const alert = await screen.findByRole('alert')
     expect(alert.textContent).toContain(
-      kind === 'http'
-        ? 'Current request failed'
-        : 'Network error loading the demonstration summary.'
+      kind === 'http' ? 'Something went wrong' : 'Offline'
     )
+    expect(alert.textContent).not.toContain('Current request failed')
+    expect(alert.textContent).not.toContain('Current network failure')
     expect(
       (screen.getByRole('button', { name: 'Retry' }) as HTMLButtonElement)
         .disabled

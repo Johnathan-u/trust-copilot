@@ -377,7 +377,7 @@ test('download uses the protected attachment endpoint and surfaces denial', asyn
   state.attachmentStatus = 403
   await page.getByRole('button', { name: 'Download attachment' }).click()
   await expect(page.locator('#main-content').getByRole('alert')).toContainText(
-    'permission'
+    'This account cannot complete that action'
   )
   expect(state.calls.some((c) => c.path.includes('must-not-be-used'))).toBe(
     false

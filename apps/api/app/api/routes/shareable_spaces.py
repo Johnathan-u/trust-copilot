@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
-from app.core.auth_deps import require_can_admin, require_session
+from app.core.auth_deps import _resolve_permission, require_can_admin, require_session
 from app.core.database import get_db
 from app.services import shareable_space_service as ss
 
@@ -47,12 +47,23 @@ async def create_space(
     return result
 
 
+def _caller_can_admin(session: dict, db: Session) -> bool:
+    """Same bar as require_can_admin, without denying the list or detail read."""
+    return _resolve_permission(session.get("role"), "can_admin", session.get("workspace_id"), db)
+
+
 @router.get("")
 async def list_spaces(
     session: dict = Depends(require_session),
     db: Session = Depends(get_db),
 ):
-    return {"spaces": ss.list_spaces(db, session["workspace_id"])}
+    return {
+        "spaces": ss.list_spaces(
+            db,
+            session["workspace_id"],
+            include_admin_indicator=_caller_can_admin(session, db),
+        )
+    }
 
 
 @router.post("/{space_id}/deactivate")

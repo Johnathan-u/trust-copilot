@@ -1,9 +1,18 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
+import Link from 'next/link'
 import { useAuth } from '@/contexts/AuthContext'
 import { Button } from '@/components/ui/Button'
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
+import { EmptyState } from '@/components/ui/EmptyState'
+import { ErrorState } from '@/components/ui/ErrorState'
+import { LoadingState } from '@/components/ui/LoadingState'
+import {
+  presentHttpFailure,
+  type ApiFailurePresentation,
+} from '@/lib/api-error'
+import { failureOf } from '@/lib/section-load'
 import {
   deliveryLabel,
   parseTrustNote,
@@ -25,6 +34,16 @@ const panel =
   'min-w-0 space-y-tc-4 rounded-tc border border-tc-border bg-tc-surface p-tc-4'
 const failure = (error: unknown) =>
   trustFailure(error instanceof TrustApiError ? error.status : 0)
+function loadPresentation(error: unknown): ApiFailurePresentation {
+  if (error instanceof TrustApiError) {
+    return presentHttpFailure({ status: error.status })
+  }
+  return failureOf(error)
+}
+function loadCopy(error: unknown): string {
+  const presented = loadPresentation(error)
+  return `${presented.title}. ${presented.description}`
+}
 function Notice({ children }: { children: string }) {
   return (
     <p
@@ -65,7 +84,9 @@ function Inbox({ workspaceId }: { workspaceId: number }) {
   const [rows, setRows] = useState<TrustRequest[]>([])
   const [selected, setSelected] = useState<number | null>(null)
   const [loading, setLoading] = useState(true)
-  const [error, setError] = useState('')
+  const [loadFailure, setLoadFailure] = useState<ApiFailurePresentation | null>(
+    null
+  )
   const [reload, setReload] = useState(0)
   const [leaveOpen, setLeaveOpen] = useState(false)
   const [pendingSelect, setPendingSelect] = useState<number | null>(null)
@@ -82,10 +103,13 @@ function Inbox({ workspaceId }: { workspaceId: number }) {
     })
       .then((value) => {
         const next = parseTrustRequests(value, workspaceId)
-        if (!controller.signal.aborted) setRows(next)
+        if (!controller.signal.aborted) {
+          setRows(next)
+          setLoadFailure(null)
+        }
       })
-      .catch((e) => {
-        if (!controller.signal.aborted) setError(failure(e))
+      .catch((e: unknown) => {
+        if (!controller.signal.aborted) setLoadFailure(loadPresentation(e))
       })
       .finally(() => {
         if (!controller.signal.aborted) setLoading(false)
@@ -154,7 +178,7 @@ function Inbox({ workspaceId }: { workspaceId: number }) {
               disabled={loading}
               onClick={() => {
                 setLoading(true)
-                setError('')
+                setLoadFailure(null)
                 setReload((n) => n + 1)
               }}
             >
@@ -162,11 +186,33 @@ function Inbox({ workspaceId }: { workspaceId: number }) {
             </Button>
           </div>
           {loading ? (
-            <p role="status">Loading incoming requests…</p>
-          ) : error ? (
-            <Notice>{error}</Notice>
+            <LoadingState
+              label="Loading incoming requests"
+              onRetry={() => {
+                setLoading(true)
+                setLoadFailure(null)
+                setReload((n) => n + 1)
+              }}
+            >
+              <p role="status">Loading incoming requests…</p>
+            </LoadingState>
+          ) : loadFailure ? (
+            <ErrorState
+              failure={loadFailure}
+              onRetry={() => {
+                setLoading(true)
+                setLoadFailure(null)
+                setReload((n) => n + 1)
+              }}
+            />
           ) : rows.length === 0 ? (
-            <p>No incoming requests</p>
+            <EmptyState
+              title="No incoming requests"
+              description="Requests submitted on your Trust page show up here."
+              action={
+                <Link href="/dashboard/trust-center">Open Trust page</Link>
+              }
+            />
           ) : (
             <ul className="space-y-tc-2">
               {rows.map((row) => (
@@ -274,8 +320,8 @@ function RequestDetail({
         const next = parseTrustRequest(value, workspaceId, id)
         if (!controller.signal.aborted) setRequest(next)
       })
-      .catch((e) => {
-        if (!controller.signal.aborted) setDetailError(failure(e))
+      .catch((e: unknown) => {
+        if (!controller.signal.aborted) setDetailError(loadCopy(e))
       })
     return () => controller.abort()
   }, [id, workspaceId, detailReload])
@@ -289,8 +335,8 @@ function RequestDetail({
           setNotesReady(true)
         }
       })
-      .catch((e) => {
-        if (!controller.signal.aborted) setNotesError(failure(e))
+      .catch((e: unknown) => {
+        if (!controller.signal.aborted) setNotesError(loadCopy(e))
       })
     return () => controller.abort()
   }, [id])
@@ -314,7 +360,7 @@ function RequestDetail({
         setDraftError('')
       }
     } catch (e) {
-      if (alive.current) setNotesError(failure(e))
+      if (alive.current) setNotesError(loadCopy(e))
     } finally {
       busy.current = false
       if (alive.current) setPending('')
@@ -414,7 +460,18 @@ function RequestDetail({
         </Button>
       </section>
     )
-  if (!request) return <p role="status">Loading request…</p>
+  if (!request)
+    return (
+      <LoadingState
+        label="Loading request"
+        onRetry={() => {
+          setDetailError('')
+          setDetailReload((n) => n + 1)
+        }}
+      >
+        <p role="status">Loading request…</p>
+      </LoadingState>
+    )
   return (
     <section aria-label="Request detail" className={panel}>
       <h2 className="break-words text-tc-h2">
@@ -454,9 +511,27 @@ function RequestDetail({
       </div>
       {notesError && <Notice>{notesError}</Notice>}
       {!notesReady && !notesError && (
-        <p role="status">Loading saved replies…</p>
+        <LoadingState
+          label="Loading saved replies"
+          onRetry={() => void reloadNotes()}
+        >
+          <p role="status">Loading saved replies…</p>
+        </LoadingState>
       )}
-      {notesReady && notes.length === 0 && <p>No saved replies or notes</p>}
+      {notesReady && notes.length === 0 && (
+        <EmptyState
+          title="No saved replies or notes"
+          description="Save a draft reply before approving or sending it."
+          action={
+            <Button
+              type="button"
+              onClick={() => document.getElementById(`draft-${id}`)?.focus()}
+            >
+              Write a reply
+            </Button>
+          }
+        />
+      )}
       {notes.map((note) =>
         note.note_type === 'internal_note' ? (
           <article key={note.id} className={panel}>

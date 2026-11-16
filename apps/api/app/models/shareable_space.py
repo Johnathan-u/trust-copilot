@@ -18,7 +18,9 @@ class ShareableSpace(Base):
     buyer_company = Column(String(255), nullable=True)
     buyer_email = Column(String(255), nullable=True)
     opportunity_id = Column(String(128), nullable=True)
+    # Plaintext retired by TC-17-005a. New rows leave this null; token_hash is the credential.
     access_token = Column(String(255), nullable=True, unique=True, index=True)
+    token_hash = Column(String(64), nullable=True, unique=True, index=True)
     description = Column(Text, nullable=True)
     article_ids_json = Column(Text, nullable=True)
     answer_ids_json = Column(Text, nullable=True)

@@ -2,30 +2,32 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
-import { Button, Card, EmptyState } from '@/components/ui'
+import {
+  Button,
+  Card,
+  EmptyState,
+  ErrorState,
+  LoadingState,
+} from '@/components/ui'
 import { useAuth } from '@/contexts/AuthContext'
 import { presentDemoProof } from '@/lib/demoProofSummary.mjs'
-import { presentActionFailure } from '@/lib/api-error'
+import {
+  presentActionFailure,
+  presentHttpFailure,
+  type ApiFailurePresentation,
+} from '@/lib/api-error'
 import { actionVerb } from '@/lib/action-copy'
+import { isAbortError } from '@/lib/section-load'
 import { useKeyedGeneration } from '@/components/ui/useKeyedGeneration'
 
 type Presented = ReturnType<typeof presentDemoProof>
 
-function errorMessage(status: number, body: unknown): string {
+function mutationError(status: number, body: unknown): string {
   const mapped = presentActionFailure({ status, data: body })
   if (mapped) return mapped.message
-  if (body && typeof body === 'object') {
-    const record = body as {
-      message?: unknown
-      detail?: unknown
-      field_errors?: unknown
-    }
-    if (typeof record.message === 'string' && record.message)
-      return record.message
-    if (typeof record.detail === 'string' && record.detail) return record.detail
-  }
   if (status === 401) return 'Sign in to view this summary.'
-  return 'The summary could not be loaded.'
+  const failure = presentHttpFailure({ status })
+  return `${failure.title}. ${failure.description}`
 }
 
 function windowText(row: {
@@ -46,6 +48,9 @@ export default function DemoProofPage() {
   const [loading, setLoading] = useState(false)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [loadFailure, setLoadFailure] = useState<ApiFailurePresentation | null>(
+    null
+  )
   const [savedGeneration, setSavedGeneration] = useState<number | null>(null)
   const [presented, setPresented] = useState<Presented | null>(null)
   const summaryKey = useKeyedGeneration(
@@ -70,12 +75,19 @@ export default function DemoProofPage() {
           if (!isCurrent()) return
           if (!response.ok) {
             setPresented(null)
-            if (method === 'POST') setSavedGeneration(null)
-            setError(errorMessage(response.status, body))
+            if (method === 'POST') {
+              setSavedGeneration(null)
+              setLoadFailure(null)
+              setError(mutationError(response.status, body))
+            } else {
+              setError(null)
+              setLoadFailure(presentHttpFailure({ status: response.status }))
+            }
             return
           }
           const next = presentDemoProof(body)
           setPresented(next)
+          setLoadFailure(null)
           if (
             next.state === 'rejected' ||
             next.state === 'unsupported_schema' ||
@@ -87,10 +99,17 @@ export default function DemoProofPage() {
             setSavedGeneration(summaryGeneration)
           }
         })
-        .catch(() => {
+        .catch((caught: unknown) => {
           if (!isCurrent()) return
+          if (isAbortError(caught)) return
           setPresented(null)
-          setError('Network error loading the demonstration summary.')
+          if (method === 'GET') {
+            setError(null)
+            setLoadFailure(presentHttpFailure({ offline: true }))
+          } else {
+            setLoadFailure(null)
+            setError('Network error loading the demonstration summary.')
+          }
         })
         .finally(() => {
           if (!isCurrent()) return
@@ -104,6 +123,7 @@ export default function DemoProofPage() {
   const load = useCallback(() => {
     setLoading(true)
     setError(null)
+    setLoadFailure(null)
     return requestSummary('GET')
   }, [requestSummary])
   const save = useCallback(() => {
@@ -117,6 +137,7 @@ export default function DemoProofPage() {
     setLoading(true)
     setSaving(false)
     setError(null)
+    setLoadFailure(null)
     setPresented(null)
   }
 
@@ -230,6 +251,23 @@ export default function DemoProofPage() {
         </p>
       </Card>
 
+      {loading && !presented && !loadFailure && !error && (
+        <LoadingState
+          label="Loading demonstration summary"
+          onRetry={() => void load()}
+        >
+          <p className="text-sm text-[var(--tc-muted)]">
+            Loading demonstration summary…
+          </p>
+        </LoadingState>
+      )}
+
+      {loadFailure && (
+        <div className="mb-6">
+          <ErrorState failure={loadFailure} onRetry={() => void load()} />
+        </div>
+      )}
+
       {error && (
         <Card className="mb-6 p-5">
           <p role="alert" className="text-sm text-[var(--tc-text)]">
@@ -238,18 +276,24 @@ export default function DemoProofPage() {
         </Card>
       )}
 
-      {!presented && !error && !loading && (
+      {!presented && !error && !loadFailure && !loading && (
         <EmptyState
           title="No summary loaded"
           description="Counts come from records stored in this workspace. An empty workspace is shown as no data, not as a sample result."
+          action={
+            <Button type="button" onClick={() => void load()}>
+              Load summary
+            </Button>
+          }
         />
       )}
 
-      {presented && presented.status === 'no_data' && (
+      {presented && presented.status === 'no_data' && !loadFailure && (
         <Card className="mb-6 p-5">
           <EmptyState
             title="No data"
             description="No stored records were found for this window. The synthetic sample is not used to fill this summary."
+            action={<Link href="/dashboard/documents">Open documents</Link>}
           />
         </Card>
       )}

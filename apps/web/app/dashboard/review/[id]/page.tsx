@@ -27,7 +27,12 @@ import {
   rowSaveLabel,
   type RowSavePhase,
 } from '@/lib/action-copy'
-import { failureOf, isAbortError, readSectionJson } from '@/lib/section-load'
+import {
+  failureOf,
+  isAbortError,
+  listFromPayload,
+  readSectionJson,
+} from '@/lib/section-load'
 import { useAISettings } from '@/contexts/AISettingsContext'
 import { useKeyedGeneration } from '@/components/ui/useKeyedGeneration'
 import {
@@ -92,6 +97,9 @@ export default function ReviewPage() {
   const [exportRecords, setExportRecords] = useState<
     { id: number; filename: string; created_at: string }[]
   >([])
+  const [exportFailure, setExportFailure] =
+    useState<ApiFailurePresentation | null>(null)
+  const exportRequest = useRef(0)
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState<string | null>(null)
   const [selected, setSelected] = useState<Set<number>>(new Set())
@@ -206,34 +214,24 @@ export default function ReviewPage() {
         setLoadError(true)
         setLoadFailure(failureOf(error))
       })
+    const requestId = ++exportRequest.current
     fetch(`/api/exports/records?workspace_id=${workspaceId}`, {
       credentials: 'include',
     })
       .then((r) => readSectionJson(r))
       .then((data) => {
-        if (Array.isArray(data)) setExportRecords(data)
-        else if (
-          data &&
-          typeof data === 'object' &&
-          Array.isArray((data as { records?: unknown }).records)
-        ) {
-          setExportRecords((data as { records: typeof exportRecords }).records)
-        } else if (
-          data &&
-          typeof data === 'object' &&
-          Array.isArray((data as { items?: unknown }).items)
-        ) {
-          setExportRecords((data as { items: typeof exportRecords }).items)
-        } else {
-          throw new Error('malformed')
-        }
+        if (exportRequest.current !== requestId) return
+        setExportRecords(
+          listFromPayload<{ id: number; filename: string; created_at: string }>(
+            data,
+            ['records', 'items']
+          )
+        )
+        setExportFailure(null)
       })
       .catch((error: unknown) => {
-        if (isAbortError(error)) return
-        setExportRecords([])
-        if (!isAbortError(error)) {
-          setLoadFailure((current) => current ?? failureOf(error))
-        }
+        if (isAbortError(error) || exportRequest.current !== requestId) return
+        setExportFailure(failureOf(error))
       })
   }, [id, workspaceId])
 
@@ -1447,7 +1445,20 @@ export default function ReviewPage() {
               </div>
             </div>
 
-            {exportRecords.length > 0 && (
+            {exportFailure ? (
+              <div
+                className="rounded-3xl border border-[var(--tc-border)] p-5"
+                style={{
+                  background: 'var(--tc-panel)',
+                  boxShadow: 'var(--tc-shadow)',
+                }}
+              >
+                <h3 className="mb-3 text-[13px] font-semibold uppercase tracking-wider text-[var(--tc-muted)]">
+                  Recent exports
+                </h3>
+                <ErrorState failure={exportFailure} onRetry={() => refresh()} />
+              </div>
+            ) : exportRecords.length > 0 ? (
               <div
                 className="rounded-3xl border border-[var(--tc-border)] p-5"
                 style={{
@@ -1480,7 +1491,7 @@ export default function ReviewPage() {
                   ))}
                 </ul>
               </div>
-            )}
+            ) : null}
           </div>
         </section>
       </div>

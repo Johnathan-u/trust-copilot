@@ -1,0 +1,103 @@
+# TC-17-005a failing-before
+# apps/api on master f305b4e8911471eed249d749f53fdeeec31380b9, before this fix.
+# From apps/api, TC_REQUIRE_DB=1, local database trustcopilot_test:
+#   python -m pytest tests/test_shareable_space_token_gate.py -q --tb=line
+# Python 3.12.3, PostgreSQL 16.15, database trustcopilot_test.
+# Quoted synthetic token strings in assertion diffs are replaced with <synthetic-token>.
+# Result: 16 failed, 3 passed. List and detail returned the raw token to every
+# role, the stored access_token equalled that raw secret, plaintext lookup
+# succeeded, and a successful /access wrote no audit row.
+
+FFFFFFFFF.FFFFF.FF.                                                      [100%]
+=================================== FAILURES ===================================
+E   AssertionError: assert '<synthetic-token>' is None
+     +  where '<synthetic-token>' = <built-in method get of dict object at 0x7f291d35bb40>('access_token')
+     +    where <built-in method get of dict object at 0x7f291d35bb40> = {'id': 1, 'workspace_id': 1, 'name': 'Token gate 0e507cf5', 'buyer_company': 'Synthetic Buyer', ...}.get
+/agent/repos/trust-copilot/apps/api/tests/test_shareable_space_token_gate.py:84: AssertionError: assert '<synthetic-token>' is None
+E   AssertionError: assert '<synthetic-token>' is None
+     +  where '<synthetic-token>' = <built-in method get of dict object at 0x7f291ce7ff00>('access_token')
+     +    where <built-in method get of dict object at 0x7f291ce7ff00> = {'id': 2, 'workspace_id': 1, 'name': 'Token gate f6802dfe', 'buyer_company': 'Synthetic Buyer', ...}.get
+/agent/repos/trust-copilot/apps/api/tests/test_shareable_space_token_gate.py:84: AssertionError: assert '<synthetic-token>' is None
+E   AssertionError: assert '<synthetic-token>' is None
+     +  where '<synthetic-token>' = <built-in method get of dict object at 0x7f291ce6ed00>('access_token')
+     +    where <built-in method get of dict object at 0x7f291ce6ed00> = {'id': 3, 'workspace_id': 1, 'name': 'Token gate 53132745', 'buyer_company': 'Synthetic Buyer', ...}.get
+/agent/repos/trust-copilot/apps/api/tests/test_shareable_space_token_gate.py:84: AssertionError: assert '<synthetic-token>' is None
+E   AssertionError: assert '<synthetic-token>' is None
+     +  where '<synthetic-token>' = <built-in method get of dict object at 0x7f291d1dd880>('access_token')
+     +    where <built-in method get of dict object at 0x7f291d1dd880> = {'id': 4, 'workspace_id': 1, 'name': 'Token gate b05851f9', 'buyer_company': 'Synthetic Buyer', ...}.get
+/agent/repos/trust-copilot/apps/api/tests/test_shareable_space_token_gate.py:84: AssertionError: assert '<synthetic-token>' is None
+E   AssertionError: assert '<synthetic-token>' is None
+     +  where '<synthetic-token>' = <built-in method get of dict object at 0x7f291ce88840>('access_token')
+     +    where <built-in method get of dict object at 0x7f291ce88840> = {'id': 5, 'workspace_id': 1, 'name': 'Token gate 8faccc0c', 'buyer_company': 'Synthetic Buyer', ...}.get
+/agent/repos/trust-copilot/apps/api/tests/test_shareable_space_token_gate.py:84: AssertionError: assert '<synthetic-token>' is None
+E   AssertionError: assert '<synthetic-token>' is None
+     +  where '<synthetic-token>' = <built-in method get of dict object at 0x7f291d13acc0>('access_token')
+     +    where <built-in method get of dict object at 0x7f291d13acc0> = {'id': 6, 'workspace_id': 1, 'name': 'Token gate d67edd21', 'buyer_company': 'Synthetic Buyer', ...}.get
+/agent/repos/trust-copilot/apps/api/tests/test_shareable_space_token_gate.py:84: AssertionError: assert '<synthetic-token>' is None
+E   AssertionError: assert '<synthetic-token>' is None
+     +  where '<synthetic-token>' = <built-in method get of dict object at 0x7f291cebb080>('access_token')
+     +    where <built-in method get of dict object at 0x7f291cebb080> = {'id': 7, 'workspace_id': 1, 'name': 'Token gate 07808b0d', 'buyer_company': 'Synthetic Buyer', ...}.get
+/agent/repos/trust-copilot/apps/api/tests/test_shareable_space_token_gate.py:84: AssertionError: assert '<synthetic-token>' is None
+E   AssertionError: assert '<synthetic-token>' is None
+     +  where '<synthetic-token>' = <built-in method get of dict object at 0x7f291ce8b280>('access_token')
+     +    where <built-in method get of dict object at 0x7f291ce8b280> = {'id': 8, 'workspace_id': 1, 'name': 'Token gate 4f130673', 'buyer_company': 'Synthetic Buyer', ...}.get
+/agent/repos/trust-copilot/apps/api/tests/test_shareable_space_token_gate.py:84: AssertionError: assert '<synthetic-token>' is None
+E   AssertionError: assert '<synthetic-token>' is None
+     +  where '<synthetic-token>' = <built-in method get of dict object at 0x7f291ce5a500>('access_token')
+     +    where <built-in method get of dict object at 0x7f291ce5a500> = {'id': 9, 'workspace_id': 1, 'name': 'Token gate bba77eac', 'buyer_company': 'Synthetic Buyer', ...}.get
+/agent/repos/trust-copilot/apps/api/tests/test_shareable_space_token_gate.py:84: AssertionError: assert '<synthetic-token>' is None
+E   AssertionError: assert '<synthetic-token>' is None
+     +  where '<synthetic-token>' = <built-in method get of dict object at 0x7f291cd096c0>('access_token')
+     +    where <built-in method get of dict object at 0x7f291cd096c0> = {'id': 12, 'workspace_id': 1, 'name': '<synthetic-token>', 'buyer_company': None, ...}.get
+/agent/repos/trust-copilot/apps/api/tests/test_shareable_space_token_gate.py:84: AssertionError: assert '<synthetic-token>' is None
+E   AssertionError: stored access_token is the raw secret
+    assert '<synthetic-token>' != '<synthetic-token>'
+     +  where '<synthetic-token>' = <app.models.shareable_space.ShareableSpace object at 0x7f291ced5a30>.access_token
+/agent/repos/trust-copilot/apps/api/tests/test_shareable_space_token_gate.py:297: AssertionError: stored access_token is the raw secret
+E   AssertionError: assert {'valid': Tru...ids': [], ...} == {'valid': Fal...ce not found'}
+
+      Differing items:
+      {'valid': True} != {'valid': False}
+      Left contains 4 more items:
+      {'answer_ids': [],
+       'article_ids': [],
+       'document_ids': [],...
+
+      ...Full output truncated (13 lines hidden), use '-vv' to show
+/agent/repos/trust-copilot/apps/api/tests/test_shareable_space_token_gate.py:322: AssertionError: assert {'valid': Tru...ids': [], ...} == {'valid': Fal...ce not found'}
+E   AssertionError: assert '<synthetic-token>' is None
+/agent/repos/trust-copilot/apps/api/tests/test_shareable_space_token_gate.py:338: AssertionError: assert '<synthetic-token>' is None
+E   assert 0 == (0 + 1)
+     +  where 0 = len([])
+     +  and   0 = len([])
+/agent/repos/trust-copilot/apps/api/tests/test_shareable_space_token_gate.py:355: assert 0 == (0 + 1)
+E   AssertionError: assert None is True
+     +  where None = <built-in method get of dict object at 0x7f291cece100>('has_access_token')
+     +    where <built-in method get of dict object at 0x7f291cece100> = {'id': 19, 'workspace_id': 1, 'name': 'Token gate 3339ef97', 'buyer_company': 'Synthetic Buyer', ...}.get
+/agent/repos/trust-copilot/apps/api/tests/test_shareable_space_token_gate.py:412: AssertionError: assert None is True
+E   AssertionError: assert '<synthetic-token>' is None
+/agent/repos/trust-copilot/apps/api/tests/test_shareable_space_token_gate.py:424: AssertionError: assert '<synthetic-token>' is None
+=============================== warnings summary ===============================
+tests/test_shareable_space_token_gate.py: 306 warnings
+  /tmp/tc-venv/lib/python3.12/site-packages/sqlalchemy/sql/schema.py:3627: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    return util.wrap_callable(lambda ctx: fn(), fn)  # type: ignore
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED tests/test_shareable_space_token_gate.py::test_list_hides_the_raw_token_below_can_admin[member-False]
+FAILED tests/test_shareable_space_token_gate.py::test_list_hides_the_raw_token_below_can_admin[edit-False]
+FAILED tests/test_shareable_space_token_gate.py::test_list_hides_the_raw_token_below_can_admin[export-False]
+FAILED tests/test_shareable_space_token_gate.py::test_list_hides_the_raw_token_below_can_admin[review-False]
+FAILED tests/test_shareable_space_token_gate.py::test_list_hides_the_raw_token_below_can_admin[adminflag-True]
+FAILED tests/test_shareable_space_token_gate.py::test_list_hides_the_raw_token_below_can_admin[builtin-admin-True]
+FAILED tests/test_shareable_space_token_gate.py::test_list_hides_the_raw_token_below_can_admin[builtin-editor-False]
+FAILED tests/test_shareable_space_token_gate.py::test_list_hides_the_raw_token_below_can_admin[builtin-reviewer-False]
+FAILED tests/test_shareable_space_token_gate.py::test_api_key_list_follows_can_admin
+FAILED tests/test_shareable_space_token_gate.py::test_create_remains_can_admin_and_returns_the_raw_token_once
+FAILED tests/test_shareable_space_token_gate.py::test_stored_credential_is_the_sha256_digest
+FAILED tests/test_shareable_space_token_gate.py::test_plaintext_column_is_not_accepted
+FAILED tests/test_shareable_space_token_gate.py::test_public_access_returns_ids_without_echoing_the_token
+FAILED tests/test_shareable_space_token_gate.py::test_successful_access_audits_space_id_only
+FAILED tests/test_shareable_space_token_gate.py::test_deactivate_redacts_the_token_and_keeps_inactive
+FAILED tests/test_shareable_space_token_gate.py::test_detail_serializer_redacts_the_token
+16 failed, 3 passed, 306 warnings in 6.10s
