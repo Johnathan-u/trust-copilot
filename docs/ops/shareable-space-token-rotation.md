@@ -75,11 +75,9 @@ Copy `access_token` out of the response into the operator secret store or
 straight into the message you send the buyer. Do not write the response body
 to a log, a CI transcript, or a ticket.
 
-The buyer link is:
-
-`{origin}/api/shareable-spaces/access?token={access_token}`
-
-`{origin}` is the application origin the buyer already uses.
+The buyer link is the application origin the buyer already uses, plus the
+path `/api/shareable-spaces/access`, with the query name `token` set to the
+new raw value from that response.
 
 ## Tell the buyer
 
@@ -92,7 +90,8 @@ link. Do not put the link in a ticket.
 Call the public access route with the previous token. Do not log the query
 string.
 
-`GET /api/shareable-spaces/access?token={previous}`
+Call `GET /api/shareable-spaces/access` and pass the previous raw value as the
+`token` query parameter. Do not write that value into the command transcript.
 
 A rotated token comes back as `{"valid": false, "reason": "Space not found"}`.
 The new token, until the space expires or is deactivated, comes back with
