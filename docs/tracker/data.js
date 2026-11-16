@@ -4,9 +4,9 @@ window.TRUSTCOPILOT_BACKLOG = {
     "title": "TrustCopilot backlog information radiator",
     "schema_version": 1,
     "scope_version": 1,
-    "revision": 20,
-    "as_of_utc": "2026-11-15T20:51:05Z",
-    "source_sha": "a5f86f4e93c5ed29c204a328736399c741baa34e",
+    "revision": 21,
+    "as_of_utc": "2026-11-16T11:33:36Z",
+    "source_sha": "af6e742f85f8aa9c1115bfe2776e1bdd2d0041da",
     "baseline_status": "PENDING",
     "metric_label": "Accepted original-parent points",
     "formula": "Accepted original-parent points / 1,864; unknown until every original parent is assessed.",
@@ -2755,8 +2755,8 @@ window.TRUSTCOPILOT_BACKLOG = {
         "owner": "codex-pm",
         "blockers": [],
         "next_action": "Qualify and merge the independently reviewed shared-tracker change, then use it for both PMs after every meaningful batch. Reconcile the original release-decision contract separately; implementing child TC-01-006a does not grant parent acceptance.",
-        "updated_at": "2026-10-30T11:12:00Z",
-        "source_sha": "5e4093f3208b390855fb7bafbb4db3fdacad0adc",
+        "updated_at": "2026-11-16T11:33:36Z",
+        "source_sha": "af6e742f85f8aa9c1115bfe2776e1bdd2d0041da",
         "acceptance": {
           "state": "PENDING",
           "assessed_by": null,
@@ -2803,7 +2803,7 @@ window.TRUSTCOPILOT_BACKLOG = {
               "tested_sha": null
             }
           ],
-          "note": "Full original-parent acceptance is pending baseline validation; merged work and artifact presence alone confer no acceptance."
+          "note": "Full original-parent acceptance is pending baseline validation; merged work and artifact presence alone confer no acceptance. R10 closure (#85 comment 6896794377), recorded by Grok (worker). Status and acceptance unchanged. Closed unmerged; branches kept. #166 TC-01-006b branch codex/TC-01-006b-wakeup-quality https://github.com/Johnathan-u/trust-copilot/pull/166#issuecomment-6915231070. Not yet implemented on master; ticket remains open in the tracker. #169 has no product ticket id. It proposed tracker revision 6 on branch codex/pm-autonomous-implementation-batch https://github.com/Johnathan-u/trust-copilot/pull/169#issuecomment-6915232971. That snapshot did not merge. Master revision 6 is #170 merge e3a74943344440ef82c7d0888d96e47cf9fa98aa, different content."
         },
         "pr_links": [
           {
@@ -12295,8 +12295,8 @@ window.TRUSTCOPILOT_BACKLOG = {
         "owner": "codex-pm",
         "blockers": [],
         "next_action": "TC-04-006c / #149 is merged as 90146e0cfe2220beb3e43f98f6073262f7c0abfb after independent source and pure-integration review and four successful exact c1f4905 jobs. codex_role_grants qualified both actual browser/API/migrated-PostgreSQL artifact sets: all 360, 768 and 1440 cases passed on the first attempt, with six zero-violation scans, six screenshots, all own-session/foreign-row/other-row/audit checkpoints and private report controls on each event. The approved response observer and both landed contrast repairs are retained. codex-pm now owns reconciliation and assignment of the remaining idle/activity policy, visible expiry warning, complete parent evidence/runbook and independent original-parent acceptance. Preserve the 47e8, c250 and d57 failure history and honest source-recovery provenance. No active implementation assignment is inferred from the completed UI child.",
-        "updated_at": "2026-10-30T17:05:48Z",
-        "source_sha": "90146e0cfe2220beb3e43f98f6073262f7c0abfb",
+        "updated_at": "2026-11-16T11:33:36Z",
+        "source_sha": "af6e742f85f8aa9c1115bfe2776e1bdd2d0041da",
         "acceptance": {
           "state": "PENDING",
           "assessed_by": null,
@@ -12355,7 +12355,7 @@ window.TRUSTCOPILOT_BACKLOG = {
               "tested_sha": null
             }
           ],
-          "note": "Full original-parent acceptance is pending baseline validation; child delivery alone confers no original-parent acceptance. Merged TC-04-006a covers persistence and absolute reissue bounds; TC-04-006b covers the self logout-all API. Recovered TC-04-006c is now merged after four exact c1f4905 job successes and independently qualified actual browser/API/migrated-PostgreSQL evidence at all three widths. Its 43 browser expectations and 21 database assertions remain intact, including independent browser sessions, foreign-row preservation, audit and safe report controls. Prior response-body and contrast failures are retained as resolved history. Idle/activity policy, visible expiry warnings, complete parent evidence/runbook and independent parent acceptance remain unaccepted. Source recovery does not imply that the unavailable original Git history was recovered."
+          "note": "Full original-parent acceptance is pending baseline validation; child delivery alone confers no original-parent acceptance. Merged TC-04-006a covers persistence and absolute reissue bounds; TC-04-006b covers the self logout-all API. Recovered TC-04-006c is now merged after four exact c1f4905 job successes and independently qualified actual browser/API/migrated-PostgreSQL evidence at all three widths. Its 43 browser expectations and 21 database assertions remain intact, including independent browser sessions, foreign-row preservation, audit and safe report controls. Prior response-body and contrast failures are retained as resolved history. Idle/activity policy, visible expiry warnings, complete parent evidence/runbook and independent parent acceptance remain unaccepted. Source recovery does not imply that the unavailable original Git history was recovered. R10 closure (#85 comment 6896794377), recorded by Grok (worker). Status and acceptance unchanged. Closed unmerged; branch kept. #168 TC-04-006d branch codex/TC-04-006d-session-expiry-warning https://github.com/Johnathan-u/trust-copilot/pull/168#issuecomment-6915232222. Not yet implemented on master; ticket remains open in the tracker."
         },
         "pr_links": [
           {
@@ -12685,8 +12685,8 @@ window.TRUSTCOPILOT_BACKLOG = {
         "owner": null,
         "blockers": [],
         "next_action": "Reconcile existing implementation and evidence against all original acceptance criteria before declaring Done or estimating only the remaining scope.",
-        "updated_at": "2026-10-30T09:49:19Z",
-        "source_sha": "b2bd1e0df5cdeb03b8d0cd240f5a161835ea621d",
+        "updated_at": "2026-11-16T11:33:36Z",
+        "source_sha": "af6e742f85f8aa9c1115bfe2776e1bdd2d0041da",
         "acceptance": {
           "state": "PENDING",
           "assessed_by": null,
@@ -12745,7 +12745,7 @@ window.TRUSTCOPILOT_BACKLOG = {
               "tested_sha": null
             }
           ],
-          "note": "Full original-parent acceptance is pending baseline validation; merged work and artifact presence alone confer no acceptance."
+          "note": "Full original-parent acceptance is pending baseline validation; merged work and artifact presence alone confer no acceptance. R10 closure (#85 comment 6896794377), recorded by Grok (worker). Status and acceptance unchanged. Closed unmerged; branch kept. #161 TC-04-007a branch codex/TC-04-007a-auth-enumeration https://github.com/Johnathan-u/trust-copilot/pull/161#issuecomment-6915229698. Not yet implemented on master; ticket remains open in the tracker."
         },
         "pr_links": [],
         "evidence_links": [],
@@ -20392,8 +20392,8 @@ window.TRUSTCOPILOT_BACKLOG = {
         "owner": "codex-pm",
         "blockers": [],
         "next_action": "TC-06-002g / #141 is merged. codex-pm should retain the export, citation, mapping and individual-answer increments and reconcile every original authorization criterion for originals, chunks, questions, answers, jobs, exports and citations, including foreign IDs and mixed bulk requests. The preserved-source queue is TC-06-002f question routing first, then disjoint TC-06-002e job artifacts after this UI/PM batch. Read-only intake found remote heads 9fc5372dc31fc38a1a82a57beb98a9a34cedc432 on codex/TC-06-002f-question-routing and e68bf400064b194777d0a8332bc2d1414cfe7daa on codex/TC-06-002e-job-artifacts, no existing PRs, and clean prospective integrations against intake source 0333bf2 preserving all five files of each child. Neither has a new worker assignment. The coordinator must record an exclusive resume claim and assess the then-current master before isolated integration. Preserve both histories and qualify current principal behavior: 46 SQLite and 46 real PostgreSQL routing cases, then 73 SQLite and 73 real PostgreSQL artifact cases. The artifact child also needs actual execution of the repaired postgresql trigger-fixture branches and newer session-policy coverage. Historical results do not qualify future integrations. Require independent review and four exact-head jobs before each merge, then complete original-parent matrix and DoD acceptance.",
-        "updated_at": "2026-10-30T17:05:48Z",
-        "source_sha": "90146e0cfe2220beb3e43f98f6073262f7c0abfb",
+        "updated_at": "2026-11-16T11:33:36Z",
+        "source_sha": "af6e742f85f8aa9c1115bfe2776e1bdd2d0041da",
         "acceptance": {
           "state": "PENDING",
           "assessed_by": null,
@@ -20452,7 +20452,7 @@ window.TRUSTCOPILOT_BACKLOG = {
               "tested_sha": null
             }
           ],
-          "note": "Full original-parent acceptance is pending baseline validation; merged work and artifact presence alone confer no acceptance. Existing export, citation and mapping children and merged TC-06-002g individual-answer parent guards cover bounded portions only. Full originals/chunks/questions/answers/jobs/exports/citations parent-workspace and foreign-ID/mixed-bulk coverage, the complete core authorization matrix, parent runbook/evidence and independent original-parent acceptance remain unverified."
+          "note": "Full original-parent acceptance is pending baseline validation; merged work and artifact presence alone confer no acceptance. Existing export, citation and mapping children and merged TC-06-002g individual-answer parent guards cover bounded portions only. Full originals/chunks/questions/answers/jobs/exports/citations parent-workspace and foreign-ID/mixed-bulk coverage, the complete core authorization matrix, parent runbook/evidence and independent original-parent acceptance remain unverified. R10 closure (#85 comment 6896794377), recorded by Grok (worker). Status and acceptance unchanged. Closed unmerged; branch kept. #163 TC-06-002i branch codex/TC-06-002i-export-worker-authorization https://github.com/Johnathan-u/trust-copilot/pull/163#issuecomment-6915230719. Not yet implemented on master; ticket remains open in the tracker."
         },
         "pr_links": [
           {
@@ -20733,8 +20733,8 @@ window.TRUSTCOPILOT_BACKLOG = {
         "owner": "codex-pm",
         "blockers": [],
         "next_action": "TC-06-003a / #136, TC-06-003c / #139 and TC-06-003b / #150 are merged. codex_answer_approvals preserved the existing golden-library implementation; codex-pm independently reviewed it and verified all four exact-head CI jobs at e8012a0ac5f631f35926ff8bedf5a58a95c3d285. Both golden backend builds passed 5,409 cases with only the existing external blind-pack skip, including the 174-case golden matrix and 30 legacy golden/approval cases. codex-pm should reconcile source/reference eligibility and the remaining controls/deals/contracts/credentials/confidence authorization, assign bounded gaps, and qualify the complete expanded-domain matrix and original parent DoD. No new implementation worker is assigned by the completed golden child.",
-        "updated_at": "2026-10-30T17:05:48Z",
-        "source_sha": "90146e0cfe2220beb3e43f98f6073262f7c0abfb",
+        "updated_at": "2026-11-16T11:33:36Z",
+        "source_sha": "af6e742f85f8aa9c1115bfe2776e1bdd2d0041da",
         "acceptance": {
           "state": "PENDING",
           "assessed_by": null,
@@ -20793,7 +20793,7 @@ window.TRUSTCOPILOT_BACKLOG = {
               "tested_sha": null
             }
           ],
-          "note": "Full original-parent acceptance is pending baseline validation; merged work and artifact presence alone confer no acceptance. Merged TC-06-003a covers golden-answer approval/history, assignees and bulk workspace scope. Merged TC-06-003c covers NDA/share administrative authorization, with public request/create-reference policies still unqualified. Merged TC-06-003b supplies golden-library detail/lineage/update/review/reuse guards, independently reviewed and qualified through real PostgreSQL and four exact-head CI jobs. Source/reference eligibility, controls/deals/contracts/credentials/confidence authorization, the complete expanded-domain matrix and independent original-parent acceptance remain unaccepted."
+          "note": "Full original-parent acceptance is pending baseline validation; merged work and artifact presence alone confer no acceptance. Merged TC-06-003a covers golden-answer approval/history, assignees and bulk workspace scope. Merged TC-06-003c covers NDA/share administrative authorization, with public request/create-reference policies still unqualified. Merged TC-06-003b supplies golden-library detail/lineage/update/review/reuse guards, independently reviewed and qualified through real PostgreSQL and four exact-head CI jobs. Source/reference eligibility, controls/deals/contracts/credentials/confidence authorization, the complete expanded-domain matrix and independent original-parent acceptance remain unaccepted. R10 closure (#85 comment 6896794377), recorded by Grok (worker). Status and acceptance unchanged. Closed unmerged; branches kept. #157 TC-06-003f branch codex/TC-06-003f-proof-graph-authorization https://github.com/Johnathan-u/trust-copilot/pull/157#issuecomment-6915228738. #158 TC-06-003g branch codex/TC-06-003g-control-timeline-authorization https://github.com/Johnathan-u/trust-copilot/pull/158#issuecomment-6915228883. #160 TC-06-003h branch codex/TC-06-003h-proof-widget-authorization https://github.com/Johnathan-u/trust-copilot/pull/160#issuecomment-6915229278. #162 TC-06-003i branch codex/TC-06-003i-trust-article-ownership https://github.com/Johnathan-u/trust-copilot/pull/162#issuecomment-6915230314. None of these child ids is implemented on master; each ticket remains open in the tracker."
         },
         "pr_links": [
           {
@@ -67441,8 +67441,8 @@ window.TRUSTCOPILOT_BACKLOG = {
           "Questionnaires list API still lacks pagination and sort, job progress, a mapping-confirmation route, needs_review, and row metadata for question counts, review counts and job ids. ui-16 does not run in CI. Tracked on TC-15-017b."
         ],
         "next_action": "Merged as progress, not DONE. Gaps are tracked on child TC-15-017b.",
-        "updated_at": "2026-11-15T20:51:05Z",
-        "source_sha": "a5f86f4e93c5ed29c204a328736399c741baa34e",
+        "updated_at": "2026-11-16T11:33:36Z",
+        "source_sha": "af6e742f85f8aa9c1115bfe2776e1bdd2d0041da",
         "acceptance": {
           "state": "PENDING",
           "assessed_by": null,
@@ -67549,7 +67549,7 @@ window.TRUSTCOPILOT_BACKLOG = {
               "tested_sha": null
             }
           ],
-          "note": "Merged as progress, not DONE. #247 merged as a5f86f4e93c5ed29c204a328736399c741baa34e from head c18302010b4962195db289b41d5bc86189e2175e (pull/247 comment 6901075936; issue #85 comment 6901076574). Gaps are tracked on child TC-15-017b. Status stays IMPLEMENTATION_GAPS_IDENTIFIED and the parent is not accepted. Recorded by Grok (worker)."
+          "note": "Merged as progress, not DONE. #247 merged as a5f86f4e93c5ed29c204a328736399c741baa34e from head c18302010b4962195db289b41d5bc86189e2175e (pull/247 comment 6901075936; issue #85 comment 6901076574). Gaps are tracked on child TC-15-017b. Status stays IMPLEMENTATION_GAPS_IDENTIFIED and the parent is not accepted. Recorded by Grok (worker). R10 closure (#85 comment 6896794377), recorded by Grok (worker). Status and acceptance unchanged. Closed unmerged; branch kept. #167 TC-15-017a branch codex/TC-15-017a-questionnaire-acknowledgement https://github.com/Johnathan-u/trust-copilot/pull/167#issuecomment-6915231743. Not yet implemented on master under TC-15-017a; ticket remains open in the tracker. Parent progress in #247 does not name this child."
         },
         "pr_links": [
           {
@@ -142446,6 +142446,917 @@ window.TRUSTCOPILOT_BACKLOG = {
           }
         }
       }
+    },
+    {
+      "revision": 21,
+      "at": "2026-11-16T11:33:36Z",
+      "actor": "grok",
+      "reason": "Record R10 closures of stale codex PRs 157, 158, 160-163 and 166-169. Notes only; status, acceptance state and DONE counts unchanged.",
+      "source_sha": "af6e742f85f8aa9c1115bfe2776e1bdd2d0041da",
+      "before": {
+        "scope_version": 1,
+        "accepted_points": null,
+        "completion_percentage": null,
+        "assessed_tickets": 49,
+        "total_tickets": 384,
+        "total_points": 1864,
+        "state_counts": {
+          "BASELINE_RECONCILIATION": 302,
+          "BLOCKED": 3,
+          "DONE": 46,
+          "EVIDENCE_RECONCILIATION": 12,
+          "IMPLEMENTATION_GAPS_IDENTIFIED": 21
+        },
+        "accepted_claim_points": 209,
+        "accepted_tickets": 46,
+        "baseline_status": "PENDING"
+      },
+      "after": {
+        "scope_version": 1,
+        "accepted_points": null,
+        "completion_percentage": null,
+        "assessed_tickets": 49,
+        "total_tickets": 384,
+        "total_points": 1864,
+        "state_counts": {
+          "BASELINE_RECONCILIATION": 302,
+          "BLOCKED": 3,
+          "DONE": 46,
+          "EVIDENCE_RECONCILIATION": 12,
+          "IMPLEMENTATION_GAPS_IDENTIFIED": 21
+        },
+        "accepted_claim_points": 209,
+        "accepted_tickets": 46,
+        "baseline_status": "PENDING"
+      },
+      "changes": {
+        "tickets": {
+          "TC-06-003": {
+            "updated_at": {
+              "before": "2026-10-30T17:05:48Z",
+              "after": "2026-11-16T11:33:36Z"
+            },
+            "source_sha": {
+              "before": "90146e0cfe2220beb3e43f98f6073262f7c0abfb",
+              "after": "af6e742f85f8aa9c1115bfe2776e1bdd2d0041da"
+            },
+            "acceptance": {
+              "before": {
+                "state": "PENDING",
+                "assessed_by": null,
+                "assessed_at": null,
+                "assessed_sha": null,
+                "assessment_evidence_urls": [],
+                "tested_sha": null,
+                "implemented_by": [],
+                "independent_reviewer": null,
+                "reviewed_at": null,
+                "reviewed_sha": null,
+                "review_evidence_urls": [],
+                "criteria": [
+                  {
+                    "id": "TC-06-003-AC1",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  },
+                  {
+                    "id": "TC-06-003-AC2",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  }
+                ],
+                "definition_of_done": [
+                  {
+                    "id": "TC-06-003-DOD1",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  },
+                  {
+                    "id": "TC-06-003-DOD2",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  },
+                  {
+                    "id": "TC-06-003-DOD3",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  },
+                  {
+                    "id": "TC-06-003-DOD4",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  },
+                  {
+                    "id": "TC-06-003-DOD5",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  }
+                ],
+                "note": "Full original-parent acceptance is pending baseline validation; merged work and artifact presence alone confer no acceptance. Merged TC-06-003a covers golden-answer approval/history, assignees and bulk workspace scope. Merged TC-06-003c covers NDA/share administrative authorization, with public request/create-reference policies still unqualified. Merged TC-06-003b supplies golden-library detail/lineage/update/review/reuse guards, independently reviewed and qualified through real PostgreSQL and four exact-head CI jobs. Source/reference eligibility, controls/deals/contracts/credentials/confidence authorization, the complete expanded-domain matrix and independent original-parent acceptance remain unaccepted."
+              },
+              "after": {
+                "state": "PENDING",
+                "assessed_by": null,
+                "assessed_at": null,
+                "assessed_sha": null,
+                "assessment_evidence_urls": [],
+                "tested_sha": null,
+                "implemented_by": [],
+                "independent_reviewer": null,
+                "reviewed_at": null,
+                "reviewed_sha": null,
+                "review_evidence_urls": [],
+                "criteria": [
+                  {
+                    "id": "TC-06-003-AC1",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  },
+                  {
+                    "id": "TC-06-003-AC2",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  }
+                ],
+                "definition_of_done": [
+                  {
+                    "id": "TC-06-003-DOD1",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  },
+                  {
+                    "id": "TC-06-003-DOD2",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  },
+                  {
+                    "id": "TC-06-003-DOD3",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  },
+                  {
+                    "id": "TC-06-003-DOD4",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  },
+                  {
+                    "id": "TC-06-003-DOD5",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  }
+                ],
+                "note": "Full original-parent acceptance is pending baseline validation; merged work and artifact presence alone confer no acceptance. Merged TC-06-003a covers golden-answer approval/history, assignees and bulk workspace scope. Merged TC-06-003c covers NDA/share administrative authorization, with public request/create-reference policies still unqualified. Merged TC-06-003b supplies golden-library detail/lineage/update/review/reuse guards, independently reviewed and qualified through real PostgreSQL and four exact-head CI jobs. Source/reference eligibility, controls/deals/contracts/credentials/confidence authorization, the complete expanded-domain matrix and independent original-parent acceptance remain unaccepted. R10 closure (#85 comment 6896794377), recorded by Grok (worker). Status and acceptance unchanged. Closed unmerged; branches kept. #157 TC-06-003f branch codex/TC-06-003f-proof-graph-authorization https://github.com/Johnathan-u/trust-copilot/pull/157#issuecomment-6915228738. #158 TC-06-003g branch codex/TC-06-003g-control-timeline-authorization https://github.com/Johnathan-u/trust-copilot/pull/158#issuecomment-6915228883. #160 TC-06-003h branch codex/TC-06-003h-proof-widget-authorization https://github.com/Johnathan-u/trust-copilot/pull/160#issuecomment-6915229278. #162 TC-06-003i branch codex/TC-06-003i-trust-article-ownership https://github.com/Johnathan-u/trust-copilot/pull/162#issuecomment-6915230314. None of these child ids is implemented on master; each ticket remains open in the tracker."
+              }
+            }
+          },
+          "TC-04-007": {
+            "updated_at": {
+              "before": "2026-10-30T09:49:19Z",
+              "after": "2026-11-16T11:33:36Z"
+            },
+            "source_sha": {
+              "before": "b2bd1e0df5cdeb03b8d0cd240f5a161835ea621d",
+              "after": "af6e742f85f8aa9c1115bfe2776e1bdd2d0041da"
+            },
+            "acceptance": {
+              "before": {
+                "state": "PENDING",
+                "assessed_by": null,
+                "assessed_at": null,
+                "assessed_sha": null,
+                "assessment_evidence_urls": [],
+                "tested_sha": null,
+                "implemented_by": [],
+                "independent_reviewer": null,
+                "reviewed_at": null,
+                "reviewed_sha": null,
+                "review_evidence_urls": [],
+                "criteria": [
+                  {
+                    "id": "TC-04-007-AC1",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  },
+                  {
+                    "id": "TC-04-007-AC2",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  }
+                ],
+                "definition_of_done": [
+                  {
+                    "id": "TC-04-007-DOD1",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  },
+                  {
+                    "id": "TC-04-007-DOD2",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  },
+                  {
+                    "id": "TC-04-007-DOD3",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  },
+                  {
+                    "id": "TC-04-007-DOD4",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  },
+                  {
+                    "id": "TC-04-007-DOD5",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  }
+                ],
+                "note": "Full original-parent acceptance is pending baseline validation; merged work and artifact presence alone confer no acceptance."
+              },
+              "after": {
+                "state": "PENDING",
+                "assessed_by": null,
+                "assessed_at": null,
+                "assessed_sha": null,
+                "assessment_evidence_urls": [],
+                "tested_sha": null,
+                "implemented_by": [],
+                "independent_reviewer": null,
+                "reviewed_at": null,
+                "reviewed_sha": null,
+                "review_evidence_urls": [],
+                "criteria": [
+                  {
+                    "id": "TC-04-007-AC1",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  },
+                  {
+                    "id": "TC-04-007-AC2",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  }
+                ],
+                "definition_of_done": [
+                  {
+                    "id": "TC-04-007-DOD1",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  },
+                  {
+                    "id": "TC-04-007-DOD2",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  },
+                  {
+                    "id": "TC-04-007-DOD3",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  },
+                  {
+                    "id": "TC-04-007-DOD4",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  },
+                  {
+                    "id": "TC-04-007-DOD5",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  }
+                ],
+                "note": "Full original-parent acceptance is pending baseline validation; merged work and artifact presence alone confer no acceptance. R10 closure (#85 comment 6896794377), recorded by Grok (worker). Status and acceptance unchanged. Closed unmerged; branch kept. #161 TC-04-007a branch codex/TC-04-007a-auth-enumeration https://github.com/Johnathan-u/trust-copilot/pull/161#issuecomment-6915229698. Not yet implemented on master; ticket remains open in the tracker."
+              }
+            }
+          },
+          "TC-06-002": {
+            "updated_at": {
+              "before": "2026-10-30T17:05:48Z",
+              "after": "2026-11-16T11:33:36Z"
+            },
+            "source_sha": {
+              "before": "90146e0cfe2220beb3e43f98f6073262f7c0abfb",
+              "after": "af6e742f85f8aa9c1115bfe2776e1bdd2d0041da"
+            },
+            "acceptance": {
+              "before": {
+                "state": "PENDING",
+                "assessed_by": null,
+                "assessed_at": null,
+                "assessed_sha": null,
+                "assessment_evidence_urls": [],
+                "tested_sha": null,
+                "implemented_by": [],
+                "independent_reviewer": null,
+                "reviewed_at": null,
+                "reviewed_sha": null,
+                "review_evidence_urls": [],
+                "criteria": [
+                  {
+                    "id": "TC-06-002-AC1",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  },
+                  {
+                    "id": "TC-06-002-AC2",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  }
+                ],
+                "definition_of_done": [
+                  {
+                    "id": "TC-06-002-DOD1",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  },
+                  {
+                    "id": "TC-06-002-DOD2",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  },
+                  {
+                    "id": "TC-06-002-DOD3",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  },
+                  {
+                    "id": "TC-06-002-DOD4",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  },
+                  {
+                    "id": "TC-06-002-DOD5",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  }
+                ],
+                "note": "Full original-parent acceptance is pending baseline validation; merged work and artifact presence alone confer no acceptance. Existing export, citation and mapping children and merged TC-06-002g individual-answer parent guards cover bounded portions only. Full originals/chunks/questions/answers/jobs/exports/citations parent-workspace and foreign-ID/mixed-bulk coverage, the complete core authorization matrix, parent runbook/evidence and independent original-parent acceptance remain unverified."
+              },
+              "after": {
+                "state": "PENDING",
+                "assessed_by": null,
+                "assessed_at": null,
+                "assessed_sha": null,
+                "assessment_evidence_urls": [],
+                "tested_sha": null,
+                "implemented_by": [],
+                "independent_reviewer": null,
+                "reviewed_at": null,
+                "reviewed_sha": null,
+                "review_evidence_urls": [],
+                "criteria": [
+                  {
+                    "id": "TC-06-002-AC1",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  },
+                  {
+                    "id": "TC-06-002-AC2",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  }
+                ],
+                "definition_of_done": [
+                  {
+                    "id": "TC-06-002-DOD1",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  },
+                  {
+                    "id": "TC-06-002-DOD2",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  },
+                  {
+                    "id": "TC-06-002-DOD3",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  },
+                  {
+                    "id": "TC-06-002-DOD4",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  },
+                  {
+                    "id": "TC-06-002-DOD5",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  }
+                ],
+                "note": "Full original-parent acceptance is pending baseline validation; merged work and artifact presence alone confer no acceptance. Existing export, citation and mapping children and merged TC-06-002g individual-answer parent guards cover bounded portions only. Full originals/chunks/questions/answers/jobs/exports/citations parent-workspace and foreign-ID/mixed-bulk coverage, the complete core authorization matrix, parent runbook/evidence and independent original-parent acceptance remain unverified. R10 closure (#85 comment 6896794377), recorded by Grok (worker). Status and acceptance unchanged. Closed unmerged; branch kept. #163 TC-06-002i branch codex/TC-06-002i-export-worker-authorization https://github.com/Johnathan-u/trust-copilot/pull/163#issuecomment-6915230719. Not yet implemented on master; ticket remains open in the tracker."
+              }
+            }
+          },
+          "TC-01-006": {
+            "updated_at": {
+              "before": "2026-10-30T11:12:00Z",
+              "after": "2026-11-16T11:33:36Z"
+            },
+            "source_sha": {
+              "before": "5e4093f3208b390855fb7bafbb4db3fdacad0adc",
+              "after": "af6e742f85f8aa9c1115bfe2776e1bdd2d0041da"
+            },
+            "acceptance": {
+              "before": {
+                "state": "PENDING",
+                "assessed_by": null,
+                "assessed_at": null,
+                "assessed_sha": null,
+                "assessment_evidence_urls": [],
+                "tested_sha": null,
+                "implemented_by": [],
+                "independent_reviewer": null,
+                "reviewed_at": null,
+                "reviewed_sha": null,
+                "review_evidence_urls": [],
+                "criteria": [
+                  {
+                    "id": "TC-01-006-AC1",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  },
+                  {
+                    "id": "TC-01-006-AC2",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  }
+                ],
+                "definition_of_done": [
+                  {
+                    "id": "TC-01-006-DOD1",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  },
+                  {
+                    "id": "TC-01-006-DOD2",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  },
+                  {
+                    "id": "TC-01-006-DOD3",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  }
+                ],
+                "note": "Full original-parent acceptance is pending baseline validation; merged work and artifact presence alone confer no acceptance."
+              },
+              "after": {
+                "state": "PENDING",
+                "assessed_by": null,
+                "assessed_at": null,
+                "assessed_sha": null,
+                "assessment_evidence_urls": [],
+                "tested_sha": null,
+                "implemented_by": [],
+                "independent_reviewer": null,
+                "reviewed_at": null,
+                "reviewed_sha": null,
+                "review_evidence_urls": [],
+                "criteria": [
+                  {
+                    "id": "TC-01-006-AC1",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  },
+                  {
+                    "id": "TC-01-006-AC2",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  }
+                ],
+                "definition_of_done": [
+                  {
+                    "id": "TC-01-006-DOD1",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  },
+                  {
+                    "id": "TC-01-006-DOD2",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  },
+                  {
+                    "id": "TC-01-006-DOD3",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  }
+                ],
+                "note": "Full original-parent acceptance is pending baseline validation; merged work and artifact presence alone confer no acceptance. R10 closure (#85 comment 6896794377), recorded by Grok (worker). Status and acceptance unchanged. Closed unmerged; branches kept. #166 TC-01-006b branch codex/TC-01-006b-wakeup-quality https://github.com/Johnathan-u/trust-copilot/pull/166#issuecomment-6915231070. Not yet implemented on master; ticket remains open in the tracker. #169 has no product ticket id. It proposed tracker revision 6 on branch codex/pm-autonomous-implementation-batch https://github.com/Johnathan-u/trust-copilot/pull/169#issuecomment-6915232971. That snapshot did not merge. Master revision 6 is #170 merge e3a74943344440ef82c7d0888d96e47cf9fa98aa, different content."
+              }
+            }
+          },
+          "TC-15-017": {
+            "updated_at": {
+              "before": "2026-11-15T20:51:05Z",
+              "after": "2026-11-16T11:33:36Z"
+            },
+            "source_sha": {
+              "before": "a5f86f4e93c5ed29c204a328736399c741baa34e",
+              "after": "af6e742f85f8aa9c1115bfe2776e1bdd2d0041da"
+            },
+            "acceptance": {
+              "before": {
+                "state": "PENDING",
+                "assessed_by": null,
+                "assessed_at": null,
+                "assessed_sha": null,
+                "assessment_evidence_urls": [],
+                "tested_sha": null,
+                "implemented_by": [],
+                "independent_reviewer": null,
+                "reviewed_at": null,
+                "reviewed_sha": null,
+                "review_evidence_urls": [],
+                "criteria": [
+                  {
+                    "id": "TC-15-017-AC1",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  },
+                  {
+                    "id": "TC-15-017-AC2",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  },
+                  {
+                    "id": "TC-15-017-AC3",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  },
+                  {
+                    "id": "TC-15-017-AC4",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  },
+                  {
+                    "id": "TC-15-017-AC5",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  },
+                  {
+                    "id": "TC-15-017-AC6",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  },
+                  {
+                    "id": "TC-15-017-AC7",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  },
+                  {
+                    "id": "TC-15-017-AC8",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  },
+                  {
+                    "id": "TC-15-017-AC9",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  }
+                ],
+                "definition_of_done": [
+                  {
+                    "id": "TC-15-017-DOD1",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  },
+                  {
+                    "id": "TC-15-017-DOD2",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  },
+                  {
+                    "id": "TC-15-017-DOD3",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  },
+                  {
+                    "id": "TC-15-017-DOD4",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  },
+                  {
+                    "id": "TC-15-017-DOD5",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  },
+                  {
+                    "id": "TC-15-017-DOD6",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  }
+                ],
+                "note": "Merged as progress, not DONE. #247 merged as a5f86f4e93c5ed29c204a328736399c741baa34e from head c18302010b4962195db289b41d5bc86189e2175e (pull/247 comment 6901075936; issue #85 comment 6901076574). Gaps are tracked on child TC-15-017b. Status stays IMPLEMENTATION_GAPS_IDENTIFIED and the parent is not accepted. Recorded by Grok (worker)."
+              },
+              "after": {
+                "state": "PENDING",
+                "assessed_by": null,
+                "assessed_at": null,
+                "assessed_sha": null,
+                "assessment_evidence_urls": [],
+                "tested_sha": null,
+                "implemented_by": [],
+                "independent_reviewer": null,
+                "reviewed_at": null,
+                "reviewed_sha": null,
+                "review_evidence_urls": [],
+                "criteria": [
+                  {
+                    "id": "TC-15-017-AC1",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  },
+                  {
+                    "id": "TC-15-017-AC2",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  },
+                  {
+                    "id": "TC-15-017-AC3",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  },
+                  {
+                    "id": "TC-15-017-AC4",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  },
+                  {
+                    "id": "TC-15-017-AC5",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  },
+                  {
+                    "id": "TC-15-017-AC6",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  },
+                  {
+                    "id": "TC-15-017-AC7",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  },
+                  {
+                    "id": "TC-15-017-AC8",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  },
+                  {
+                    "id": "TC-15-017-AC9",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  }
+                ],
+                "definition_of_done": [
+                  {
+                    "id": "TC-15-017-DOD1",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  },
+                  {
+                    "id": "TC-15-017-DOD2",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  },
+                  {
+                    "id": "TC-15-017-DOD3",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  },
+                  {
+                    "id": "TC-15-017-DOD4",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  },
+                  {
+                    "id": "TC-15-017-DOD5",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  },
+                  {
+                    "id": "TC-15-017-DOD6",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  }
+                ],
+                "note": "Merged as progress, not DONE. #247 merged as a5f86f4e93c5ed29c204a328736399c741baa34e from head c18302010b4962195db289b41d5bc86189e2175e (pull/247 comment 6901075936; issue #85 comment 6901076574). Gaps are tracked on child TC-15-017b. Status stays IMPLEMENTATION_GAPS_IDENTIFIED and the parent is not accepted. Recorded by Grok (worker). R10 closure (#85 comment 6896794377), recorded by Grok (worker). Status and acceptance unchanged. Closed unmerged; branch kept. #167 TC-15-017a branch codex/TC-15-017a-questionnaire-acknowledgement https://github.com/Johnathan-u/trust-copilot/pull/167#issuecomment-6915231743. Not yet implemented on master under TC-15-017a; ticket remains open in the tracker. Parent progress in #247 does not name this child."
+              }
+            }
+          },
+          "TC-04-006": {
+            "updated_at": {
+              "before": "2026-10-30T17:05:48Z",
+              "after": "2026-11-16T11:33:36Z"
+            },
+            "source_sha": {
+              "before": "90146e0cfe2220beb3e43f98f6073262f7c0abfb",
+              "after": "af6e742f85f8aa9c1115bfe2776e1bdd2d0041da"
+            },
+            "acceptance": {
+              "before": {
+                "state": "PENDING",
+                "assessed_by": null,
+                "assessed_at": null,
+                "assessed_sha": null,
+                "assessment_evidence_urls": [],
+                "tested_sha": null,
+                "implemented_by": [],
+                "independent_reviewer": null,
+                "reviewed_at": null,
+                "reviewed_sha": null,
+                "review_evidence_urls": [],
+                "criteria": [
+                  {
+                    "id": "TC-04-006-AC1",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  },
+                  {
+                    "id": "TC-04-006-AC2",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  }
+                ],
+                "definition_of_done": [
+                  {
+                    "id": "TC-04-006-DOD1",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  },
+                  {
+                    "id": "TC-04-006-DOD2",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  },
+                  {
+                    "id": "TC-04-006-DOD3",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  },
+                  {
+                    "id": "TC-04-006-DOD4",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  },
+                  {
+                    "id": "TC-04-006-DOD5",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  }
+                ],
+                "note": "Full original-parent acceptance is pending baseline validation; child delivery alone confers no original-parent acceptance. Merged TC-04-006a covers persistence and absolute reissue bounds; TC-04-006b covers the self logout-all API. Recovered TC-04-006c is now merged after four exact c1f4905 job successes and independently qualified actual browser/API/migrated-PostgreSQL evidence at all three widths. Its 43 browser expectations and 21 database assertions remain intact, including independent browser sessions, foreign-row preservation, audit and safe report controls. Prior response-body and contrast failures are retained as resolved history. Idle/activity policy, visible expiry warnings, complete parent evidence/runbook and independent parent acceptance remain unaccepted. Source recovery does not imply that the unavailable original Git history was recovered."
+              },
+              "after": {
+                "state": "PENDING",
+                "assessed_by": null,
+                "assessed_at": null,
+                "assessed_sha": null,
+                "assessment_evidence_urls": [],
+                "tested_sha": null,
+                "implemented_by": [],
+                "independent_reviewer": null,
+                "reviewed_at": null,
+                "reviewed_sha": null,
+                "review_evidence_urls": [],
+                "criteria": [
+                  {
+                    "id": "TC-04-006-AC1",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  },
+                  {
+                    "id": "TC-04-006-AC2",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  }
+                ],
+                "definition_of_done": [
+                  {
+                    "id": "TC-04-006-DOD1",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  },
+                  {
+                    "id": "TC-04-006-DOD2",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  },
+                  {
+                    "id": "TC-04-006-DOD3",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  },
+                  {
+                    "id": "TC-04-006-DOD4",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  },
+                  {
+                    "id": "TC-04-006-DOD5",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  }
+                ],
+                "note": "Full original-parent acceptance is pending baseline validation; child delivery alone confers no original-parent acceptance. Merged TC-04-006a covers persistence and absolute reissue bounds; TC-04-006b covers the self logout-all API. Recovered TC-04-006c is now merged after four exact c1f4905 job successes and independently qualified actual browser/API/migrated-PostgreSQL evidence at all three widths. Its 43 browser expectations and 21 database assertions remain intact, including independent browser sessions, foreign-row preservation, audit and safe report controls. Prior response-body and contrast failures are retained as resolved history. Idle/activity policy, visible expiry warnings, complete parent evidence/runbook and independent parent acceptance remain unaccepted. Source recovery does not imply that the unavailable original Git history was recovered. R10 closure (#85 comment 6896794377), recorded by Grok (worker). Status and acceptance unchanged. Closed unmerged; branch kept. #168 TC-04-006d branch codex/TC-04-006d-session-expiry-warning https://github.com/Johnathan-u/trust-copilot/pull/168#issuecomment-6915232222. Not yet implemented on master; ticket remains open in the tracker."
+              }
+            }
+          }
+        }
+      }
     }
   ],
   "followups": [
@@ -147523,7 +148434,7 @@ window.TRUSTCOPILOT_BACKLOG = {
       "build": "python scripts/backlog_tracker.py build",
       "check": "python scripts/backlog_tracker.py check",
       "summary": "python scripts/backlog_tracker.py summary",
-      "update": "python scripts/backlog_tracker.py update --expected-revision 20 --actor YOUR_ID --reason 'Evidence reconciliation' --patch /tmp/backlog-patch.json",
+      "update": "python scripts/backlog_tracker.py update --expected-revision 21 --actor YOUR_ID --reason 'Evidence reconciliation' --patch /tmp/backlog-patch.json",
       "tests": "python -m unittest discover -s scripts/tests -p 'test_backlog_tracker.py' -v"
     }
   }
