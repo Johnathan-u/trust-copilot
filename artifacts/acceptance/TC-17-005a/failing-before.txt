@@ -55,14 +55,14 @@ E   AssertionError: stored access_token is the raw secret
      +  where '<synthetic-token>' = <app.models.shareable_space.ShareableSpace object at 0x7f291ced5a30>.access_token
 /agent/repos/trust-copilot/apps/api/tests/test_shareable_space_token_gate.py:297: AssertionError: stored access_token is the raw secret
 E   AssertionError: assert {'valid': Tru...ids': [], ...} == {'valid': Fal...ce not found'}
-      
+
       Differing items:
       {'valid': True} != {'valid': False}
       Left contains 4 more items:
       {'answer_ids': [],
        'article_ids': [],
        'document_ids': [],...
-      
+
       ...Full output truncated (13 lines hidden), use '-vv' to show
 /agent/repos/trust-copilot/apps/api/tests/test_shareable_space_token_gate.py:322: AssertionError: assert {'valid': Tru...ids': [], ...} == {'valid': Fal...ce not found'}
 E   AssertionError: assert '<synthetic-token>' is None
