@@ -1,0 +1,113 @@
+# TC-21-005a failing tests before the route change
+
+Command: python -m pytest tests/release/test_domain_compliance_mappings.py::test_concurrent_first_decisions_return_conflict_not_500 tests/release/test_domain_compliance_mappings.py::test_concurrent_updates_write_strictly_sequential_versions -vv --tb=line
+Working directory: apps/api
+Route under test: apps/api/app/api/routes/compliance_mappings.py at master af6e742f85f8aa9c1115bfe2776e1bdd2d0041da (unchanged)
+Tests: the TC-21-005a concurrency tests in this change
+Interpreter: Python 3.12.3, pytest 9.1.1
+Database: PostgreSQL 16.15, trustcopilot_test at 127.0.0.1:5432
+Exit status: 1
+Result: 2 failed
+
+Concurrent first confirms without an Idempotency-Key: statuses 200 and 500 (Internal Server Error).
+Concurrent overrides of version 2: both responses say version 3, current_version=3, history_versions=[1, 2, 2], loaded_versions=[2, 2]. One rationale is missing from the stored row.
+
+============================= test session starts ==============================
+platform linux -- Python 3.12.3, pytest-9.1.1, pluggy-1.7.0 -- /tmp/tc-venv/bin/python
+cachedir: .pytest_cache
+rootdir: /agent/repos/trust-copilot/apps/api
+configfile: pyproject.toml
+plugins: anyio-4.15.1
+collecting ... collected 2 items
+
+tests/release/test_domain_compliance_mappings.py::test_concurrent_first_decisions_return_conflict_not_500 FAILED [ 50%]
+tests/release/test_domain_compliance_mappings.py::test_concurrent_updates_write_strictly_sequential_versions FAILED [100%]
+
+=================================== FAILURES ===================================
+E   AssertionError: {'codes': [200, 500], 'saw_500': True, 'responses': [{'label': 'left', 'status': 500, 'body': 'Internal Server Error'}, {'label': 'right', 'status': 200, 'body': '{"id":10,"question_hash":"836d0add003b8b672413500ab80eb5c5","control_ids":[3],"state":"confirmed","version":2,"rationale":null,"precedence":2,"reviewed_by_user_id":5,"reviewed_at":"2026-11-16T14:01:55.179178","updated":true,"precedence_held":false}'}]}
+    assert [200, 500] == [200, 409]
+      
+      At index 1 diff: 500 != 409
+      
+      Full diff:
+        [
+            200,
+      -     409,
+      ?     ^ ^
+      +     500,
+      ?     ^ ^
+        ]
+/agent/repos/trust-copilot/apps/api/tests/release/test_domain_compliance_mappings.py:1322: AssertionError: {'codes': [200, 500], 'saw_500': True, 'responses': [{'label': 'left', 'status': 500, 'body': 'Internal Server Error'}, {'label': 'right', 'status': 200, 'body': '{"id":10,"question_hash":"836d0add003b8b672413500ab80eb5c5","control_ids":[3],"state":"confirmed","version":2,"rationale":null,"precedence":2,"reviewed_by_user_id":5,"reviewed_at":"2026-11-16T14:01:55.179178","updated":true,"precedence_held":false}'}]}
+E   AssertionError: codes=[200, 200] response_versions=[3, 3] current_version=3 history_versions=[1, 2, 2] stored_rationales=['race-two'] stored_control_ids=[2, 4] loaded_versions=[2, 2] bodies=['{"id":12,"question_hash":"539c8a2eb1c2868e6e0ee20f34351a5a","control_ids":[3],"state":"overridden","version":3,"rationale":"race-one","precedence":3,"reviewed_by_user_id":5,"review', '{"id":12,"question_hash":"539c8a2eb1c2868e6e0ee20f34351a5a","control_ids":[4],"state":"overridden","version":3,"rationale":"race-two","precedence":3,"reviewed_by_user_id":5,"review']
+    assert [3, 3] == [3, 4]
+      
+      At index 1 diff: 3 != 4
+      
+      Full diff:
+        [
+            3,
+      -     4,
+      ?     ^
+      +     3,
+      ?     ^
+        ]
+/agent/repos/trust-copilot/apps/api/tests/release/test_domain_compliance_mappings.py:1440: AssertionError: codes=[200, 200] response_versions=[3, 3] current_version=3 history_versions=[1, 2, 2] stored_rationales=['race-two'] stored_control_ids=[2, 4] loaded_versions=[2, 2] bodies=['{"id":12,"question_hash":"539c8a2eb1c2868e6e0ee20f34351a5a","control_ids":[3],"state":"overridden","version":3,"rationale":"race-one","precedence":3,"reviewed_by_user_id":5,"review', '{"id":12,"question_hash":"539c8a2eb1c2868e6e0ee20f34351a5a","control_ids":[4],"state":"overridden","version":3,"rationale":"race-two","precedence":3,"reviewed_by_user_id":5,"review']
+=============================== warnings summary ===============================
+tests/release/test_domain_compliance_mappings.py: 41 warnings
+  /tmp/tc-venv/lib/python3.12/site-packages/sqlalchemy/sql/schema.py:3627: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    return util.wrap_callable(lambda ctx: fn(), fn)  # type: ignore
+
+tests/release/test_domain_compliance_mappings.py::test_concurrent_first_decisions_return_conflict_not_500
+tests/release/test_domain_compliance_mappings.py::test_concurrent_first_decisions_return_conflict_not_500
+tests/release/test_domain_compliance_mappings.py::test_concurrent_updates_write_strictly_sequential_versions
+tests/release/test_domain_compliance_mappings.py::test_concurrent_updates_write_strictly_sequential_versions
+tests/release/test_domain_compliance_mappings.py::test_concurrent_updates_write_strictly_sequential_versions
+  /agent/repos/trust-copilot/apps/api/app/api/routes/compliance_mappings.py:293: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    now = datetime.utcnow()
+
+tests/release/test_domain_compliance_mappings.py::test_concurrent_first_decisions_return_conflict_not_500
+tests/release/test_domain_compliance_mappings.py::test_concurrent_first_decisions_return_conflict_not_500
+tests/release/test_domain_compliance_mappings.py::test_concurrent_updates_write_strictly_sequential_versions
+tests/release/test_domain_compliance_mappings.py::test_concurrent_updates_write_strictly_sequential_versions
+tests/release/test_domain_compliance_mappings.py::test_concurrent_updates_write_strictly_sequential_versions
+tests/release/test_domain_compliance_mappings.py::test_concurrent_updates_write_strictly_sequential_versions
+  /agent/repos/trust-copilot/apps/api/app/api/routes/compliance_mappings.py:189: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    stamp = datetime.utcnow().isoformat()
+
+tests/release/test_domain_compliance_mappings.py::test_concurrent_first_decisions_return_conflict_not_500
+tests/release/test_domain_compliance_mappings.py::test_concurrent_updates_write_strictly_sequential_versions
+tests/release/test_domain_compliance_mappings.py::test_concurrent_updates_write_strictly_sequential_versions
+tests/release/test_domain_compliance_mappings.py::test_concurrent_updates_write_strictly_sequential_versions
+  /agent/repos/trust-copilot/apps/api/app/api/routes/compliance_mappings.py:171: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    recorded_at=datetime.utcnow(),
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED tests/release/test_domain_compliance_mappings.py::test_concurrent_first_decisions_return_conflict_not_500 - AssertionError: {'codes': [200, 500], 'saw_500': True, 'responses': [{'label': 'left', 'status': 500, 'body': 'Internal Server Error'}, {'label': 'right', 'status': 200, 'body': '{"id":10,"question_hash":"836d0add003b8b672413500ab80eb5c5","control_ids":[3],"state":"confirmed","version":2,"rationale":null,"precedence":2,"reviewed_by_user_id":5,"reviewed_at":"2026-11-16T14:01:55.179178","updated":true,"precedence_held":false}'}]}
+assert [200, 500] == [200, 409]
+  
+  At index 1 diff: 500 != 409
+  
+  Full diff:
+    [
+        200,
+  -     409,
+  ?     ^ ^
+  +     500,
+  ?     ^ ^
+    ]
+FAILED tests/release/test_domain_compliance_mappings.py::test_concurrent_updates_write_strictly_sequential_versions - AssertionError: codes=[200, 200] response_versions=[3, 3] current_version=3 history_versions=[1, 2, 2] stored_rationales=['race-two'] stored_control_ids=[2, 4] loaded_versions=[2, 2] bodies=['{"id":12,"question_hash":"539c8a2eb1c2868e6e0ee20f34351a5a","control_ids":[3],"state":"overridden","version":3,"rationale":"race-one","precedence":3,"reviewed_by_user_id":5,"review', '{"id":12,"question_hash":"539c8a2eb1c2868e6e0ee20f34351a5a","control_ids":[4],"state":"overridden","version":3,"rationale":"race-two","precedence":3,"reviewed_by_user_id":5,"review']
+assert [3, 3] == [3, 4]
+  
+  At index 1 diff: 3 != 4
+  
+  Full diff:
+    [
+        3,
+  -     4,
+  ?     ^
+  +     3,
+  ?     ^
+    ]
+======================== 2 failed, 56 warnings in 1.67s ========================
+EXIT:1

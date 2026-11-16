@@ -1,0 +1,63 @@
+# TC-21-005a concurrency tests after the route change
+
+Command: python -m pytest tests/release/test_domain_compliance_mappings.py::test_concurrent_first_decisions_return_conflict_not_500 tests/release/test_domain_compliance_mappings.py::test_concurrent_updates_write_strictly_sequential_versions -vv --tb=short -s
+Working directory: apps/api
+Parent: af6e742f85f8aa9c1115bfe2776e1bdd2d0041da
+Interpreter: Python 3.12.3, pytest 9.1.1
+Database: PostgreSQL 16.15, trustcopilot_test at 127.0.0.1:5432
+Exit status: 0
+Result: 2 passed
+
+First decisions: codes [200, 409], winner version 2, retry of the loser version 3.
+Updates: response_versions [3, 4], current_version 4, history_versions [1, 2, 3], loaded_versions [2, 3]. Both rationales and both control ids are stored.
+
+============================= test session starts ==============================
+platform linux -- Python 3.12.3, pytest-9.1.1, pluggy-1.7.0 -- /tmp/tc-venv/bin/python
+cachedir: .pytest_cache
+rootdir: /agent/repos/trust-copilot/apps/api
+configfile: pyproject.toml
+plugins: anyio-4.15.1
+collecting ... collected 2 items
+
+tests/release/test_domain_compliance_mappings.py::test_concurrent_first_decisions_return_conflict_not_500 TC21005A_FIRST {'codes': [200, 409], 'winner_version': 2, 'retry_version': 3}
+PASSEDTC21005_COUNTS before={'tc21005_mapping_hold': 0, 'tc21005_mapping_history': 0, 'control_mapping_override': 0, 'audit_events': 0, 'idempotency_keys': 0, 'in_app_notifications': 0, 'compliance_webhook_outbox': 0, 'workspace_controls': 0, 'user_sessions': 0, 'workspace_members': 5, 'users': 4, 'workspaces': 3} after={'tc21005_mapping_hold': 0, 'tc21005_mapping_history': 0, 'control_mapping_override': 0, 'audit_events': 0, 'idempotency_keys': 0, 'in_app_notifications': 0, 'compliance_webhook_outbox': 0, 'workspace_controls': 0, 'user_sessions': 0, 'workspace_members': 5, 'users': 4, 'workspaces': 3}
+
+tests/release/test_domain_compliance_mappings.py::test_concurrent_updates_write_strictly_sequential_versions TC21005A_UPDATE codes=[200, 200] response_versions=[3, 4] current_version=4 history_versions=[1, 2, 3] stored_rationales=['race-one', 'race-two'] stored_control_ids=[2, 3, 4] loaded_versions=[2, 3] bodies=['{"id":29,"question_hash":"7b6e9875d30a80ac3d185a077fc02692","control_ids":[4],"state":"overridden","version":3,"rationale":"race-two","precedence":3,"reviewed_by_user_id":5,"review', '{"id":29,"question_hash":"7b6e9875d30a80ac3d185a077fc02692","control_ids":[3],"state":"overridden","version":4,"rationale":"race-one","precedence":3,"reviewed_by_user_id":5,"review']
+PASSEDTC21005_COUNTS before={'tc21005_mapping_hold': 0, 'tc21005_mapping_history': 0, 'control_mapping_override': 0, 'audit_events': 0, 'idempotency_keys': 0, 'in_app_notifications': 0, 'compliance_webhook_outbox': 0, 'workspace_controls': 0, 'user_sessions': 0, 'workspace_members': 5, 'users': 4, 'workspaces': 3} after={'tc21005_mapping_hold': 0, 'tc21005_mapping_history': 0, 'control_mapping_override': 0, 'audit_events': 0, 'idempotency_keys': 0, 'in_app_notifications': 0, 'compliance_webhook_outbox': 0, 'workspace_controls': 0, 'user_sessions': 0, 'workspace_members': 5, 'users': 4, 'workspaces': 3}
+
+
+=============================== warnings summary ===============================
+tests/release/test_domain_compliance_mappings.py: 45 warnings
+  /tmp/tc-venv/lib/python3.12/site-packages/sqlalchemy/sql/schema.py:3627: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    return util.wrap_callable(lambda ctx: fn(), fn)  # type: ignore
+
+tests/release/test_domain_compliance_mappings.py::test_concurrent_first_decisions_return_conflict_not_500
+tests/release/test_domain_compliance_mappings.py::test_concurrent_first_decisions_return_conflict_not_500
+tests/release/test_domain_compliance_mappings.py::test_concurrent_first_decisions_return_conflict_not_500
+tests/release/test_domain_compliance_mappings.py::test_concurrent_updates_write_strictly_sequential_versions
+tests/release/test_domain_compliance_mappings.py::test_concurrent_updates_write_strictly_sequential_versions
+tests/release/test_domain_compliance_mappings.py::test_concurrent_updates_write_strictly_sequential_versions
+  /agent/repos/trust-copilot/apps/api/app/api/routes/compliance_mappings.py:322: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    now = datetime.utcnow()
+
+tests/release/test_domain_compliance_mappings.py::test_concurrent_first_decisions_return_conflict_not_500
+tests/release/test_domain_compliance_mappings.py::test_concurrent_first_decisions_return_conflict_not_500
+tests/release/test_domain_compliance_mappings.py::test_concurrent_first_decisions_return_conflict_not_500
+tests/release/test_domain_compliance_mappings.py::test_concurrent_updates_write_strictly_sequential_versions
+tests/release/test_domain_compliance_mappings.py::test_concurrent_updates_write_strictly_sequential_versions
+tests/release/test_domain_compliance_mappings.py::test_concurrent_updates_write_strictly_sequential_versions
+tests/release/test_domain_compliance_mappings.py::test_concurrent_updates_write_strictly_sequential_versions
+  /agent/repos/trust-copilot/apps/api/app/api/routes/compliance_mappings.py:218: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    stamp = datetime.utcnow().isoformat()
+
+tests/release/test_domain_compliance_mappings.py::test_concurrent_first_decisions_return_conflict_not_500
+tests/release/test_domain_compliance_mappings.py::test_concurrent_first_decisions_return_conflict_not_500
+tests/release/test_domain_compliance_mappings.py::test_concurrent_updates_write_strictly_sequential_versions
+tests/release/test_domain_compliance_mappings.py::test_concurrent_updates_write_strictly_sequential_versions
+tests/release/test_domain_compliance_mappings.py::test_concurrent_updates_write_strictly_sequential_versions
+  /agent/repos/trust-copilot/apps/api/app/api/routes/compliance_mappings.py:200: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    recorded_at=datetime.utcnow(),
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+======================== 2 passed, 63 warnings in 2.73s ========================
+EXIT:0

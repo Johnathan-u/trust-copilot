@@ -1,0 +1,51 @@
+# TC-21-005a related module
+
+Command: python -m pytest tests/release/test_domain_compliance_mappings.py -q --tb=line
+Working directory: apps/api
+Parent: af6e742f85f8aa9c1115bfe2776e1bdd2d0041da
+Interpreter: Python 3.12.3, pytest 9.1.1, Node v24.22.3 (web reader)
+Database: PostgreSQL 16.15, trustcopilot_test at 127.0.0.1:5432
+Exit status: 0
+Result: 13 passed, 272 warnings, 9.13s
+
+.............                                                            [100%]
+=============================== warnings summary ===============================
+tests/release/test_domain_compliance_mappings.py: 185 warnings
+  /tmp/tc-venv/lib/python3.12/site-packages/sqlalchemy/sql/schema.py:3627: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    return util.wrap_callable(lambda ctx: fn(), fn)  # type: ignore
+
+tests/release/test_domain_compliance_mappings.py: 21 warnings
+  /agent/repos/trust-copilot/apps/api/app/api/routes/compliance_mappings.py:322: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    now = datetime.utcnow()
+
+tests/release/test_domain_compliance_mappings.py: 35 warnings
+  /agent/repos/trust-copilot/apps/api/app/api/routes/compliance_mappings.py:218: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    stamp = datetime.utcnow().isoformat()
+
+tests/release/test_domain_compliance_mappings.py: 23 warnings
+  /agent/repos/trust-copilot/apps/api/app/api/routes/compliance_mappings.py:200: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    recorded_at=datetime.utcnow(),
+
+tests/release/test_domain_compliance_mappings.py::test_reads_stay_read_only_and_roles_are_denied
+tests/release/test_domain_compliance_mappings.py::test_reviewer_id_timestamp_precedence_and_audit
+tests/release/test_domain_compliance_mappings.py::test_audit_rows_for_every_state_change
+tests/release/test_domain_compliance_mappings.py::test_rollback_notifies_without_a_real_send
+tests/release/test_domain_compliance_mappings.py::test_web_reader_accepts_api_payload_across_fresh_session
+  /agent/repos/trust-copilot/apps/api/app/api/routes/compliance_mappings.py:418: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    row.reviewed_at = datetime.utcnow()
+
+tests/release/test_domain_compliance_mappings.py::test_reviewer_id_timestamp_precedence_and_audit
+  /agent/repos/trust-copilot/apps/api/tests/release/test_domain_compliance_mappings.py:353: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    started = datetime.utcnow() - timedelta(seconds=5)
+
+tests/release/test_domain_compliance_mappings.py::test_audit_rows_for_every_state_change
+  /agent/repos/trust-copilot/apps/api/tests/release/test_domain_compliance_mappings.py:528: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    started = datetime.utcnow() - timedelta(seconds=5)
+
+tests/release/test_domain_compliance_mappings.py::test_migration_round_trip_restores_mapping_history
+  /tmp/tc-venv/lib/python3.12/site-packages/alembic/config.py:604: DeprecationWarning: No path_separator found in configuration; falling back to legacy splitting on spaces, commas, and colons for prepend_sys_path.  Consider adding path_separator=os to Alembic config.
+    util.warn_deprecated(
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+13 passed, 272 warnings in 9.13s
+EXIT:0

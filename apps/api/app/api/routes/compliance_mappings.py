@@ -11,6 +11,7 @@ from datetime import datetime
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, ConfigDict
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.core.audit import audit_log
@@ -46,6 +47,14 @@ router = APIRouter(prefix="/compliance/control-mappings", tags=["compliance-mapp
 PRECEDENCE = {"proposed": 1, "confirmed": 2, "overridden": 3}
 CONTROL_NOT_FOUND = "Control not found"
 MAPPING_NOT_FOUND = "Mapping not found"
+# Same answer as an in-progress Idempotency-Key on this route: the other
+# decision is already saved. A 200 would claim this request's control ids were
+# stored. The caller reloads and sends the decision again, which then follows
+# the normal update and precedence rules.
+MAPPING_DECISION_CONFLICT = (
+    "A mapping decision for this question was saved at the same time. Reload and retry."
+)
+_MAPPING_UNIQUE = "ix_control_mapping_override_workspace_hash"
 
 
 class ConfirmMappingBody(BaseModel):
@@ -145,15 +154,35 @@ def _require_same_workspace(db: Session, workspace_id: int, control_ids: list[in
         raise HTTPException(status_code=404, detail=CONTROL_NOT_FOUND)
 
 
-def _load(db: Session, workspace_id: int, question_hash: str) -> ControlMappingOverride | None:
-    return (
-        db.query(ControlMappingOverride)
-        .filter(
-            ControlMappingOverride.workspace_id == workspace_id,
-            ControlMappingOverride.question_hash == question_hash,
-        )
-        .first()
+def _load(
+    db: Session, workspace_id: int, question_hash: str, *, lock: bool = False
+) -> ControlMappingOverride | None:
+    """Load the workspace question decision. Mutations pass ``lock=True``.
+
+    ``SELECT … FOR UPDATE`` plus ``populate_existing`` so a second writer waits
+    and then reads the committed version. A plain ``FOR UPDATE`` can return the
+    identity-map row this session already loaded. Reads stay unlocked.
+    """
+    query = db.query(ControlMappingOverride).filter(
+        ControlMappingOverride.workspace_id == workspace_id,
+        ControlMappingOverride.question_hash == question_hash,
     )
+    if lock and db.get_bind().dialect.name == "postgresql":
+        query = query.with_for_update().populate_existing()
+    return query.first()
+
+
+def _unique_mapping_violation(exc: BaseException) -> bool:
+    """True only for the one-row-per-workspace-question unique index."""
+    if not isinstance(exc, IntegrityError):
+        return False
+    orig = getattr(exc, "orig", None)
+    if getattr(orig, "pgcode", None) != "23505":
+        return False
+    name = getattr(getattr(orig, "diag", None), "constraint_name", None)
+    if name:
+        return name == _MAPPING_UNIQUE
+    return _MAPPING_UNIQUE in str(orig)
 
 
 def _snapshot(db: Session, row: ControlMappingOverride) -> None:
@@ -291,7 +320,7 @@ def _apply_decision(
         _require_same_workspace(db, workspace_id, [int(source_control_id)])
     actor = session.get("user_id")
     now = datetime.utcnow()
-    row = _load(db, workspace_id, question_hash)
+    row = _load(db, workspace_id, question_hash, lock=True)
     if row is not None and state == "confirmed" and row.state == "overridden":
         return _public(row, updated=False, precedence_held=True)
     if row is None:
@@ -368,7 +397,7 @@ def _apply_rollback(db: Session, session: dict, *, workspace_id: int, question: 
     question_hash = _question_hash(question)
     if not question_hash:
         raise HTTPException(status_code=400, detail="question is required")
-    row = _load(db, workspace_id, question_hash)
+    row = _load(db, workspace_id, question_hash, lock=True)
     if row is None:
         raise HTTPException(status_code=404, detail=MAPPING_NOT_FOUND)
     prior = (
@@ -416,10 +445,19 @@ def _run_mutation(db: Session, request: Request, session: dict, action: str, que
         return cached
     try:
         payload = writer()
-    except Exception:
+    except Exception as exc:
         db.rollback()
         if key:
             idempotency_release(db, key, owner=owner)
+        if _unique_mapping_violation(exc):
+            # The insert lost to the unique index. The other transaction committed
+            # its first decision. This one did not write a second version.
+            logger.info(
+                "mapping decision conflict action=%s workspace_id=%s",
+                action,
+                workspace_id,
+            )
+            raise HTTPException(status_code=409, detail=MAPPING_DECISION_CONFLICT) from exc
         raise
     try:
         if payload.get("updated") and action in ("confirm", "override", "rollback"):
