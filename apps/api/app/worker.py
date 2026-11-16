@@ -248,6 +248,23 @@ def _set_outcome(job: Job, outcome: str, **extra) -> None:
     job.result = json.dumps({"outcome": outcome, **extra})
 
 
+def _record_progress(job: Job, generated: int, total: int) -> None:
+    """Merge a real generated/total pair into the job result, keeping other fields.
+
+    The same shape ``generate_answers`` stores. Callers pass counts from the work
+    just performed. This does not invent a pair for a run that did not measure one.
+    """
+    try:
+        data = json.loads(getattr(job, "result", None) or "{}")
+    except (TypeError, ValueError):
+        data = {}
+    if not isinstance(data, dict):
+        data = {}
+    data["generated"] = int(generated)
+    data["total"] = int(total)
+    job.result = json.dumps(data)
+
+
 def _record_auto_generate_enqueue_conflict(job: Job) -> None:
     """Note a lost auto-generate enqueue on the parse job. The session was just rolled back.
 
@@ -301,7 +318,9 @@ def run_parse_questionnaire(job: Job, session, payload: dict) -> None:
     effects = JobEffects(session, job)
     if effects.is_applied(EFFECT_QUESTIONS):
         # A previous attempt committed the questions; only the (cached, idempotent) classification may remain.
+        saved = session.query(Question).filter(Question.questionnaire_id == qnr_id).count()
         _set_outcome(job, "already_applied", effect=EFFECT_QUESTIONS)
+        _record_progress(job, saved, saved)
         _auto_classify_questionnaire(session, qnr_id, job.workspace_id, effects)
         return
     stale = _parse_stale_reason(qnr, storage_key)
@@ -348,6 +367,7 @@ def run_parse_questionnaire(job: Job, session, payload: dict) -> None:
             mark_workbook_needs_review(qnr)
             effects.mark_applied(EFFECT_QUESTIONS, {"count": 0, "outcome": "needs_review"})
             _set_outcome(job, "needs_review", effect=EFFECT_QUESTIONS, count=0)
+            _record_progress(job, 0, 0)
             session.commit()
             return
         if existing:
@@ -359,10 +379,12 @@ def run_parse_questionnaire(job: Job, session, payload: dict) -> None:
                 EFFECT_QUESTIONS, {"reconciled": "existing_questions", "count": existing}
             )
             _set_outcome(job, "reconciled", effect=EFFECT_QUESTIONS, count=existing)
+            _record_progress(job, existing, existing)
             session.commit()
             _auto_classify_questionnaire(session, qnr_id, job.workspace_id, effects)
             return
-        for q in questions:
+        total = len(questions)
+        for done, q in enumerate(questions, start=1):
             session.add(
                 Question(
                     questionnaire_id=qnr_id,
@@ -379,6 +401,9 @@ def run_parse_questionnaire(job: Job, session, payload: dict) -> None:
                     confidence=q.get("confidence"),
                 )
             )
+            _record_progress(job, done, total)
+        if total == 0:
+            _record_progress(job, 0, 0)
         qnr.status = "parsed"
         qnr.parse_metadata = json.dumps({"count": len(questions), "questions": questions[:50]})
         effects.mark_applied(EFFECT_QUESTIONS, {"count": len(questions)})
@@ -540,7 +565,9 @@ def run_index_document(job: Job, session, payload: dict) -> None:
 
     effects = JobEffects(session, job)
     if effects.is_applied(EFFECT_CHUNKS):
+        indexed = session.query(Chunk).filter(Chunk.document_id == doc_id).count()
         _set_outcome(job, "already_applied", effect=EFFECT_CHUNKS)
+        _record_progress(job, indexed, indexed)
         # The post-commit cache invalidation may not have run before a crash; repeating it is harmless.
         _bump_corpus_version_best_effort(session, doc.workspace_id)
         return
@@ -564,13 +591,12 @@ def run_index_document(job: Job, session, payload: dict) -> None:
         session.rollback()
         _set_outcome(job, "superseded", reason="input_version_changed")
         return
-    if (
-        doc.status == "indexed"
-        and session.query(Chunk.id).filter(Chunk.document_id == doc_id).first()
-    ):
+    indexed = session.query(Chunk).filter(Chunk.document_id == doc_id).count()
+    if doc.status == "indexed" and indexed:
         # Another job already indexed this exact input: do not re-embed (cost) or rewrite chunks.
         effects.mark_applied(EFFECT_CHUNKS, {"reconciled": "already_indexed"})
         _set_outcome(job, "reconciled", effect=EFFECT_CHUNKS)
+        _record_progress(job, indexed, indexed)
         session.commit()
         return
     storage = StorageClient()
@@ -583,6 +609,7 @@ def run_index_document(job: Job, session, payload: dict) -> None:
         job_id=job.id,
         effects=effects,
         effect_name=EFFECT_CHUNKS,
+        progress=lambda generated, total: _record_progress(job, generated, total),
     )
 
 
@@ -597,6 +624,47 @@ def _bump_corpus_version_best_effort(session, workspace_id: int) -> None:
         logging.getLogger(__name__).debug(
             "corpus version bump failed ws=%s", workspace_id, exc_info=True
         )
+
+
+def run_parse_evidence(job: Job, session, payload: dict) -> None:
+    """Parse an evidence file and record how many items were read.
+
+    Indexing still owns chunks and embeddings. This job measures the parse itself:
+    ``generated`` and ``total`` are both the number of items ``parse_evidence`` returned.
+    """
+    doc_id = payload.get("document_id")
+    if not doc_id:
+        raise ValueError("Missing document_id")
+    doc = session.query(Document).filter(Document.id == doc_id).first()
+    if not doc:
+        raise ValueError(f"Document {doc_id} not found")
+    if doc.workspace_id != job.workspace_id:
+        raise ValueError(
+            f"Document {doc_id} workspace_id {doc.workspace_id} does not match "
+            f"job workspace_id {job.workspace_id}"
+        )
+    if getattr(doc, "deleted_at", None) is not None:
+        _set_outcome(job, "superseded", reason="document_deleted")
+        return
+    if getattr(job, "input_version", None) and doc.storage_key != job.input_version:
+        _set_outcome(job, "superseded", reason="input_version_changed")
+        return
+    from app.services.evidence_parser import parse_evidence
+
+    storage = StorageClient()
+    file_svc = FileService(storage)
+    content = file_svc.download_raw(doc.storage_key)
+    ext = Path(doc.filename or "").suffix or ".bin"
+    suffix = ext if ext.startswith(".") else f".{ext}"
+    with tempfile.NamedTemporaryFile(suffix=suffix, delete=False) as handle:
+        handle.write(content)
+        path = handle.name
+    try:
+        items = parse_evidence(path)
+    finally:
+        Path(path).unlink(missing_ok=True)
+    count = len(items)
+    _record_progress(job, count, count)
 
 
 def run_generate_answers(job: Job, session, payload: dict) -> None:
@@ -750,6 +818,7 @@ def run_export(job: Job, session, payload: dict) -> None:
         from app.services.export_service import export_result_json, recorded_export_file
 
         prior = recorded_export_file(job.result)
+        written = session.query(Question).filter(Question.questionnaire_id == qnr_id).count()
         job.result = export_result_json(
             export_record_id=existing_rec.id,
             storage_key=existing_rec.storage_key,
@@ -758,6 +827,7 @@ def run_export(job: Job, session, payload: dict) -> None:
             filename=prior["filename"] if prior else existing_rec.filename,
             outcome="already_applied",
         )
+        _record_progress(job, written, written)
         return
     _record_usage_once(session, job, effects, "exports")
     storage = StorageClient()
@@ -902,6 +972,7 @@ def run_export(job: Job, session, payload: dict) -> None:
         content_type=content_type,
         filename=out_filename,
     )
+    _record_progress(job, len(questions), len(questions))
 
 
 def _record_usage_once(session, job: Job, effects: JobEffects, resource_type: str) -> None:
@@ -921,7 +992,7 @@ def run_job(job: Job, session) -> None:
     if job.kind == "parse_questionnaire":
         run_parse_questionnaire(job, session, payload)
     elif job.kind == "parse_evidence":
-        pass
+        run_parse_evidence(job, session, payload)
     elif job.kind == "index_document":
         run_index_document(job, session, payload)
     elif job.kind == "generate_answers":

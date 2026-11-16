@@ -1,0 +1,297 @@
+$ cd apps/api && python -m pytest tests/test_job_progress_counters.py -q --tb=short
+
+FFFFFF                                                                   [100%]
+=================================== FAILURES ===================================
+____________ test_parse_questionnaire_records_saved_question_counts ____________
+tests/test_job_progress_counters.py:208: in test_parse_questionnaire_records_saved_question_counts
+    data = _pair(job)
+           ^^^^^^^^^^
+tests/test_job_progress_counters.py:148: in _pair
+    assert job.result, "worker recorded no result"
+E   AssertionError: worker recorded no result
+E   assert None
+E    +  where None = namespace(id=7, workspace_id=1, kind='parse_questionnaire', status='running', attempt=1, max_attempts=3, result=None, ...=None, lease_owner=None, input_version=None, next_attempt_at=None, created_at=None, started_at=None, completed_at=None).result
+________________ test_parse_evidence_records_parsed_item_counts ________________
+tests/test_job_progress_counters.py:232: in test_parse_evidence_records_parsed_item_counts
+    data = _pair(job)
+           ^^^^^^^^^^
+tests/test_job_progress_counters.py:148: in _pair
+    assert job.result, "worker recorded no result"
+E   AssertionError: worker recorded no result
+E   assert None
+E    +  where None = namespace(id=7, workspace_id=1, kind='parse_evidence', status='running', attempt=1, max_attempts=3, result=None, paylo...=None, lease_owner=None, input_version=None, next_attempt_at=None, created_at=None, started_at=None, completed_at=None).result
+____________ test_index_document_records_embedded_and_chunk_counts _____________
+tests/test_job_progress_counters.py:278: in test_index_document_records_embedded_and_chunk_counts
+    data = _pair(job)
+           ^^^^^^^^^^
+tests/test_job_progress_counters.py:148: in _pair
+    assert job.result, "worker recorded no result"
+E   AssertionError: worker recorded no result
+E   assert None
+E    +  where None = namespace(id=7, workspace_id=1, kind='index_document', status='running', attempt=1, max_attempts=3, result=None, paylo...=None, lease_owner=None, input_version=None, next_attempt_at=None, created_at=None, started_at=None, completed_at=None).result
+_____________________ test_export_records_question_counts ______________________
+tests/test_job_progress_counters.py:336: in test_export_records_question_counts
+    data = _pair(job)
+           ^^^^^^^^^^
+tests/test_job_progress_counters.py:150: in _pair
+    assert type(data["generated"]) is int
+                ^^^^^^^^^^^^^^^^^
+E   KeyError: 'generated'
+___________ test_history_projects_pairs_for_workers_that_record_them ___________
+tests/test_job_progress_counters.py:357: in test_history_projects_pairs_for_workers_that_record_them
+    assert item["progress"] == {"generated": generated, "total": total}
+E   AssertionError: assert None == {'generated': 2, 'total': 2}
+_______ test_export_detail_keeps_the_pair_and_drops_other_result_fields ________
+tests/test_job_progress_counters.py:395: in test_export_detail_keeps_the_pair_and_drops_other_result_fields
+    assert projected == {
+E   AssertionError: assert {'export_reco...1/job-7.xlsx'} == {'export_reco...2, 'total': 4}
+E
+E     Omitting 2 identical items, use -vv to show
+E     Right contains 2 more items:
+E     {'generated': 2, 'total': 4}
+E     Use -v to get more diff
+=========================== short test summary info ============================
+FAILED tests/test_job_progress_counters.py::test_parse_questionnaire_records_saved_question_counts
+FAILED tests/test_job_progress_counters.py::test_parse_evidence_records_parsed_item_counts
+FAILED tests/test_job_progress_counters.py::test_index_document_records_embedded_and_chunk_counts
+FAILED tests/test_job_progress_counters.py::test_export_records_question_counts
+FAILED tests/test_job_progress_counters.py::test_history_projects_pairs_for_workers_that_record_them
+FAILED tests/test_job_progress_counters.py::test_export_detail_keeps_the_pair_and_drops_other_result_fields
+6 failed in 0.61s
+
+$ cd apps/web && npx vitest run tests/unit/jobs-page.test.ts -t "shows recorded counts"
+
+ RUN  v5.0.5 /agent/repos/trust-copilot/apps/web
+
+ × tests/unit/jobs-page.test.ts > shows recorded counts for parse, evidence parse, index and export 60ms
+   → Unable to find an element with the text: 2 of 6 questions parsed. This could be because the text is broken up by multiple elements. In this case, you can provide a function for your text matcher to make your matcher more flexible.
+
+Ignored nodes: comments, script, style
+[36m<article[39m
+  [33maria-label[39m=[32m"Parse questionnaire"[39m
+[36m>[39m
+  [36m<div[39m
+    [33mclass[39m=[32m"rounded-tc border border-tc-border shadow-[var(--tc-shadow)] backdrop-blur-[20px] p-tc-6 "[39m
+    [33mstyle[39m=[32m"background: var(--tc-panel);"[39m
+  [36m>[39m
+    [36m<h2[39m
+      [33mclass[39m=[32m"mb-tc-3 text-tc-title font-semibold text-tc-text"[39m
+    [36m>[39m
+      [0mParse questionnaire[0m
+    [36m</h2>[39m
+    [36m<div[39m
+      [33mclass[39m=[32m"space-y-tc-3 text-tc-label text-tc-text"[39m
+    [36m>[39m
+      [36m<p[39m
+        [33mclass[39m=[32m"font-semibold"[39m
+      [36m>[39m
+        [0mRunning[0m
+      [36m</p>[39m
+      [36m<dl[39m
+        [33mclass[39m=[32m"grid gap-tc-2 sm:grid-cols-2"[39m
+      [36m>[39m
+        [36m<div>[39m
+          [36m<dt[39m
+            [33mclass[39m=[32m"text-tc-muted"[39m
+          [36m>[39m
+            [0mCreated[0m
+          [36m</dt>[39m
+          [36m<dd>[39m
+            [0m10/30/2026, 12:00:00 PM UTC[0m
+          [36m</dd>[39m
+        [36m</div>[39m
+        [36m<div>[39m
+          [36m<dt[39m
+            [33mclass[39m=[32m"text-tc-muted"[39m
+          [36m>[39m
+            [0mCompleted[0m
+          [36m</dt>[39m
+          [36m<dd>[39m
+            [0mNot reported[0m
+          [36m</dd>[39m
+        [36m</div>[39m
+        [36m<div>[39m
+          [36m<dt[39m
+            [33mclass[39m=[32m"text-tc-muted"[39m
+          [36m>[39m
+            [0mAttempts[0m
+          [36m</dt>[39m
+          [36m<dd>[39m
+            [0m1[0m
+            [0m of 3[0m
+          [36m</dd>[39m
+        [36m</div>[39m
+      [36m</dl>[39m
+      [36m<p[39m
+        [33mclass[39m=[32m"text-tc-muted"[39m
+      [36m>[39m
+        [0mProgress not reported[0m
+      [36m</p>[39m
+    [36m</div>[39m
+    [36m<div[39m
+      [33mclass[39m=[32m"mt-tc-4 flex flex-wrap items-center gap-tc-3"[39m
+    [36m>[39m
+      [36m<button[39m
+        [33mclass[39m=[32m"inline-flex items-center justify-center gap-tc-2 font-semibold transition-colors duration-[var(--tc-duration-fast)] ease-[var(--tc-ease)] disabled:cursor-not-allowed disabled:border-[var(--tc-disabled-border)] disabled:bg-[var(--tc-disabled-bg)] disabled:text-[var(--tc-disabled-fg)] disabled:hover:bg-[var(--tc-disabled-bg)] border border-tc-border-strong bg-tc-surface-raised text-tc-text hover:bg-[var(--tc-hover)] min-h-tc-8 rounded-tc-sm px-tc-4 py-tc-3 text-tc-label "[39m
+      [36m>[39m
+        [0mView details[0m
+      [36m</button>[39m
+      [36m<a[39m
+        [33mclass[39m=[32m"text-tc-primary underline"[39m
+        [33mhref[39m=[32m"/dashboard/questionnaires/9"[39m
+      [36m>[39m
+        [0mOpen questionnaire[0m
+      [36m</a>[39m
+      [36m<button[39m
+        [33mclass[39m=[32m"inline-flex items-center justify-center gap-tc-2 font-semibold transition-colors duration-[var(--tc-duration-fast)] ease-[var(--tc-ease)] disabled:cursor-not-allowed disabled:border-[var(--tc-disabled-border)] disabled:bg-[var(--tc-disabled-bg)] disabled:text-[var(--tc-disabled-fg)] disabled:hover:bg-[var(--tc-disabled-bg)] border border-transparent bg-[var(--tc-danger-solid)] text-[var(--tc-on-danger)] hover:bg-[var(--tc-danger-solid-hover)] min-h-tc-8 rounded-tc-sm px-tc-4 py-tc-3 text-tc-label "[39m
+      [36m>[39m
+        [0mCancel job[0m
+      [36m</button>[39m
+    [36m</div>[39m
+  [36m</div>[39m
+[36m</article>[39m
+ ↓ tests/unit/jobs-page.test.ts > reads once in StrictMode and displays safe progress and authorized links
+ ↓ tests/unit/jobs-page.test.ts > keeps cursor pagination in a workspace-bound URL, including a fresh mount
+ ↓ tests/unit/jobs-page.test.ts > uses current capability flags, can_review=false
+ ↓ tests/unit/jobs-page.test.ts > uses current capability flags, can_review=true
+ ↓ tests/unit/jobs-page.test.ts > discards a late list response and old cursor when the workspace changes
+ ↓ tests/unit/jobs-page.test.ts > consumes its aborted promise on unmount without an unhandled rejection
+ ↓ tests/unit/jobs-page.test.ts > shows malformed success as an error and recovers on explicit reload
+ ↓ tests/unit/jobs-page.test.ts > filters legacy detail and does not derive an object link from its raw payload
+ ↓ tests/unit/jobs-page.test.ts > waits for the exact cancellation acknowledgment and prevents duplicate submissions
+ ↓ tests/unit/jobs-page.test.ts > never announces success after denied, failed or malformed acknowledgment 409
+ ↓ tests/unit/jobs-page.test.ts > never announces success after denied, failed or malformed acknowledgment 403
+ ↓ tests/unit/jobs-page.test.ts > never announces success after denied, failed or malformed acknowledgment 404
+ ↓ tests/unit/jobs-page.test.ts > never announces success after denied, failed or malformed acknowledgment 500
+ ↓ tests/unit/jobs-page.test.ts > never announces success after denied, failed or malformed acknowledgment 200
+ ↓ tests/unit/jobs-page.test.ts > clears detail, mutation and notices when access or workspace changes
+ ↓ tests/unit/jobs-page.test.ts > discards detail that resolves after moving to another workspace
+ ↓ tests/unit/jobs-page.test.ts > revoking admin capability dismisses confirmation without sending a mutation
+ ↓ tests/unit/jobs-page.test.ts > retains an acknowledged retry when refreshing history fails, with an explicit partial state
+ ↓ tests/unit/jobs-page.test.ts > clears a previous acknowledgment before starting another action
+ ↓ tests/unit/jobs-page.test.ts > rejects invalid saved cursor without making a business request
+ ↓ tests/unit/jobs-page.test.ts > shows unavailable detail separately from the successful history
+ ↓ tests/unit/jobs-page.test.ts > clears previously loaded history when its next read loses access (401)
+ ↓ tests/unit/jobs-page.test.ts > clears previously loaded history when its next read loses access (403)
+ ↓ tests/unit/jobs-page.test.ts > clears previously loaded history when its next read loses access (404)
+ ↓ tests/unit/jobs-page.test.ts > detail read denial 401 invalidates history and rejects a late history response
+ ↓ tests/unit/jobs-page.test.ts > detail read denial 403 invalidates history and rejects a late history response
+ ↓ tests/unit/jobs-page.test.ts > history read denial 401 closes pending detail and rejects its late response
+ ↓ tests/unit/jobs-page.test.ts > history read denial 403 closes pending detail and rejects its late response
+ ↓ tests/unit/jobs-page.test.ts > history read denial 404 closes pending detail and rejects its late response
+ ↓ tests/unit/jobs-page.test.ts > a history denial also removes already loaded detail
+ ↓ tests/unit/jobs-page.test.ts > mutation401 clears session-owned history without declaring success
+ ↓ tests/unit/jobs-page.test.ts > mutation403 requires a new history acknowledgment before restoring read-only rows
+ ↓ tests/unit/jobs-page.test.ts > mutation403 followed by history403 never restores stale rows
+ ↓ tests/unit/jobs-page.test.ts > mutation403 followed by history404 never restores stale rows
+ ↓ tests/unit/jobs-page.test.ts > mutation403 followed by history500 never restores stale rows
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/unit/jobs-page.test.ts > shows recorded counts for parse, evidence parse, index and export
+TestingLibraryElementError: Unable to find an element with the text: 2 of 6 questions parsed. This could be because the text is broken up by multiple elements. In this case, you can provide a function for your text matcher to make your matcher more flexible.
+
+Ignored nodes: comments, script, style
+[36m<article[39m
+  [33maria-label[39m=[32m"Parse questionnaire"[39m
+[36m>[39m
+  [36m<div[39m
+    [33mclass[39m=[32m"rounded-tc border border-tc-border shadow-[var(--tc-shadow)] backdrop-blur-[20px] p-tc-6 "[39m
+    [33mstyle[39m=[32m"background: var(--tc-panel);"[39m
+  [36m>[39m
+    [36m<h2[39m
+      [33mclass[39m=[32m"mb-tc-3 text-tc-title font-semibold text-tc-text"[39m
+    [36m>[39m
+      [0mParse questionnaire[0m
+    [36m</h2>[39m
+    [36m<div[39m
+      [33mclass[39m=[32m"space-y-tc-3 text-tc-label text-tc-text"[39m
+    [36m>[39m
+      [36m<p[39m
+        [33mclass[39m=[32m"font-semibold"[39m
+      [36m>[39m
+        [0mRunning[0m
+      [36m</p>[39m
+      [36m<dl[39m
+        [33mclass[39m=[32m"grid gap-tc-2 sm:grid-cols-2"[39m
+      [36m>[39m
+        [36m<div>[39m
+          [36m<dt[39m
+            [33mclass[39m=[32m"text-tc-muted"[39m
+          [36m>[39m
+            [0mCreated[0m
+          [36m</dt>[39m
+          [36m<dd>[39m
+            [0m10/30/2026, 12:00:00 PM UTC[0m
+          [36m</dd>[39m
+        [36m</div>[39m
+        [36m<div>[39m
+          [36m<dt[39m
+            [33mclass[39m=[32m"text-tc-muted"[39m
+          [36m>[39m
+            [0mCompleted[0m
+          [36m</dt>[39m
+          [36m<dd>[39m
+            [0mNot reported[0m
+          [36m</dd>[39m
+        [36m</div>[39m
+        [36m<div>[39m
+          [36m<dt[39m
+            [33mclass[39m=[32m"text-tc-muted"[39m
+          [36m>[39m
+            [0mAttempts[0m
+          [36m</dt>[39m
+          [36m<dd>[39m
+            [0m1[0m
+            [0m of 3[0m
+          [36m</dd>[39m
+        [36m</div>[39m
+      [36m</dl>[39m
+      [36m<p[39m
+        [33mclass[39m=[32m"text-tc-muted"[39m
+      [36m>[39m
+        [0mProgress not reported[0m
+      [36m</p>[39m
+    [36m</div>[39m
+    [36m<div[39m
+      [33mclass[39m=[32m"mt-tc-4 flex flex-wrap items-center gap-tc-3"[39m
+    [36m>[39m
+      [36m<button[39m
+        [33mclass[39m=[32m"inline-flex items-center justify-center gap-tc-2 font-semibold transition-colors duration-[var(--tc-duration-fast)] ease-[var(--tc-ease)] disabled:cursor-not-allowed disabled:border-[var(--tc-disabled-border)] disabled:bg-[var(--tc-disabled-bg)] disabled:text-[var(--tc-disabled-fg)] disabled:hover:bg-[var(--tc-disabled-bg)] border border-tc-border-strong bg-tc-surface-raised text-tc-text hover:bg-[var(--tc-hover)] min-h-tc-8 rounded-tc-sm px-tc-4 py-tc-3 text-tc-label "[39m
+      [36m>[39m
+        [0mView details[0m
+      [36m</button>[39m
+      [36m<a[39m
+        [33mclass[39m=[32m"text-tc-primary underline"[39m
+        [33mhref[39m=[32m"/dashboard/questionnaires/9"[39m
+      [36m>[39m
+        [0mOpen questionnaire[0m
+      [36m</a>[39m
+      [36m<button[39m
+        [33mclass[39m=[32m"inline-flex items-center justify-center gap-tc-2 font-semibold transition-colors duration-[var(--tc-duration-fast)] ease-[var(--tc-ease)] disabled:cursor-not-allowed disabled:border-[var(--tc-disabled-border)] disabled:bg-[var(--tc-disabled-bg)] disabled:text-[var(--tc-disabled-fg)] disabled:hover:bg-[var(--tc-disabled-bg)] border border-transparent bg-[var(--tc-danger-solid)] text-[var(--tc-on-danger)] hover:bg-[var(--tc-danger-solid-hover)] min-h-tc-8 rounded-tc-sm px-tc-4 py-tc-3 text-tc-label "[39m
+      [36m>[39m
+        [0mCancel job[0m
+      [36m</button>[39m
+    [36m</div>[39m
+  [36m</div>[39m
+[36m</article>[39m
+ ❯ Object.getElementError node_modules/@testing-library/dom/dist/config.js:37:19
+ ❯ node_modules/@testing-library/dom/dist/query-helpers.js:76:38
+ ❯ node_modules/@testing-library/dom/dist/query-helpers.js:52:17
+ ❯ node_modules/@testing-library/dom/dist/query-helpers.js:95:19
+ ❯ tests/unit/jobs-page.test.ts:115:28
+    113|   for (const [, title, text] of kinds) {
+    114|     const article = await screen.findByRole('article', { name: title })
+    115|     expect(within(article).getByText(text)).toBeTruthy()
+       |                            ^
+    116|     expect(within(article).queryByText('Progress not reported')).toBeN…
+    117|   }
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 35 skipped (36)
+   Start at  21:04:21
+   Duration  437ms (environment 46%, import 25%, tests 17%, transform 10%, worker 1%)
+

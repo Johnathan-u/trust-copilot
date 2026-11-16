@@ -4,7 +4,8 @@ Exposes lifecycle fields for UI polling. Status values match ``JobStatus`` in ``
 ``queued`` → ``running`` → ``completed`` | ``failed`` | ``cancelled``.
 ``charge_uncertain`` is true when a paid provider call of an interrupted or failed attempt may have been charged
 (TC-10-003). A no-op run records ``result.outcome`` = ``already_applied`` | ``reconciled`` | ``superseded``.
-For ``generate_answers`` jobs, ``result`` may contain JSON ``{"generated": N, "total": M}`` while running.
+Job results may contain JSON ``{"generated": N, "total": M}`` while running. The history
+projection returns that pair for every current job kind that recorded one.
 Failed jobs expose ``error_code`` and ``error_detail`` (``ApiError``: code/message/request_id/retryable).
 
 TC-10-002 (additive): ``error_code`` (the column TC-11-001 added) is the typed class of the last failure: the
@@ -42,6 +43,19 @@ _log = logging.getLogger(__name__)
 
 _NOT_CANCELLABLE = "This job is already finished and cannot be cancelled."
 _NOT_RETRYABLE = "Only a failed or cancelled job can be retried."
+_PROGRESS_LIMIT = 9007199254740991
+
+
+def _progress_pair(result: dict) -> dict | None:
+    """A real generated/total pair, or None when the result did not record one."""
+    generated, total = result.get("generated"), result.get("total")
+    if (
+        type(generated) is int
+        and type(total) is int
+        and 0 <= generated <= total <= _PROGRESS_LIMIT
+    ):
+        return {"generated": generated, "total": total}
+    return None
 
 
 def _conflict(request: Request, code: str, message: str) -> JSONResponse:
@@ -135,6 +149,9 @@ def _export_artifact_result(db: Session, job: Job) -> dict | None:
     projected = {"export_record_id": record.id, "storage_key": record.storage_key}
     if result.get("outcome") in ("already_applied", "reconciled", "superseded"):
         projected["outcome"] = result["outcome"]
+    pair = _progress_pair(result)
+    if pair is not None:
+        projected.update(pair)
     return projected
 
 
@@ -170,14 +187,8 @@ def _history_object(db: Session, job: Job, payload: dict) -> dict | None:
 def _history_job(request: Request, db: Session, job: Job) -> dict:
     result = _history_json(job.result)
     progress = None
-    if job.kind == JobKind.GENERATE_ANSWERS.value:
-        generated, total = result.get("generated"), result.get("total")
-        if (
-            type(generated) is int
-            and type(total) is int
-            and 0 <= generated <= total <= 9007199254740991
-        ):
-            progress = {"generated": generated, "total": total}
+    if job.kind in {kind.value for kind in JobKind}:
+        progress = _progress_pair(result)
     outcome = result.get("outcome")
     if outcome not in ("already_applied", "reconciled", "superseded"):
         outcome = None

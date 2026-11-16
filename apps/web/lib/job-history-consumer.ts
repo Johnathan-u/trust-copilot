@@ -146,10 +146,7 @@ function project(data: unknown, legacy: boolean): SafeJob {
     retriesExhausted: status === 'failed' && r.retries_exhausted === true,
     chargeUncertain: r.charge_uncertain === true,
     failureMessage: status === 'failed' ? failureMessage(r.error_code) : null,
-    progress:
-      kind === 'generate_answers'
-        ? progress(legacy ? result : r.progress)
-        : null,
+    progress: kind ? progress(legacy ? result : r.progress) : null,
     outcome,
     objectRef,
   }

@@ -1,0 +1,68 @@
+$ cd apps/api && python -m pytest tests/test_job_progress_counters.py -q --tb=short
+
+......                                                                   [100%]
+6 passed in 0.55s
+
+$ cd apps/web && npx vitest run tests/unit/jobs-page.test.ts tests/unit/job-history-consumer.test.ts
+
+
+ RUN  v5.0.5 /agent/repos/trust-copilot/apps/web
+
+ ✓ tests/unit/job-history-consumer.test.ts > safe persisted job consumer > projects history and never retains arbitrary data 2ms
+ ✓ tests/unit/job-history-consumer.test.ts > safe persisted job consumer > rejects malformed pages instead of a false empty state: {} 1ms
+ ✓ tests/unit/job-history-consumer.test.ts > safe persisted job consumer > rejects malformed pages instead of a false empty state: {"items":null,"next_before_id":null} 0ms
+ ✓ tests/unit/job-history-consumer.test.ts > safe persisted job consumer > rejects malformed pages instead of a false empty state: {"items":[],"next_before_id":1} 0ms
+ ✓ tests/unit/job-history-consumer.test.ts > safe persisted job consumer > rejects malformed pages instead of a false empty state: {"items":[{"id":41,"kind":"generate_answers","status":"running","attempt":1,"max_attempts":3,"created_at":"2026-10-30T12:00:00","started_at":null,"completed_at":null,"next_attempt_at":null,"retry_scheduled":false,"retries_exhausted":false,"charge_uncertain":true,"progress":{"generated":2,"total":5},"outcome":null,"object_ref":{"type":"questionnaire","id":9}},{"id":41,"kind":"generate_answers","status":"running","attempt":1,"max_attempts":3,"created_at":"2026-10-30T12:00:00","started_at":null,"completed_at":null,"next_attempt_at":null,"retry_scheduled":false,"retries_exhausted":false,"charge_uncertain":true,"progress":{"generated":2,"total":5},"outcome":null,"object_ref":{"type":"questionnaire","id":9}}],"next_before_id":null} 0ms
+ ✓ tests/unit/job-history-consumer.test.ts > safe persisted job consumer > rejects malformed pages instead of a false empty state: {"items":[{"id":41,"kind":"generate_answers","status":"running","attempt":1,"max_attempts":3,"created_at":"2026-10-30T12:00:00","started_at":null,"completed_at":null,"next_attempt_at":null,"retry_scheduled":false,"retries_exhausted":false,"charge_uncertain":true,"progress":{"generated":2,"total":5},"outcome":null,"object_ref":{"type":"questionnaire","id":9}}],"next_before_id":42} 0ms
+ ✓ tests/unit/job-history-consumer.test.ts > safe persisted job consumer > checks descending order and the requested cursor 0ms
+ ✓ tests/unit/job-history-consumer.test.ts > safe persisted job consumer > shows unknown kinds and states without echoing server strings or actions 0ms
+ ✓ tests/unit/job-history-consumer.test.ts > safe persisted job consumer > drops unsafe progress {"generated":-1,"total":4} 0ms
+ ✓ tests/unit/job-history-consumer.test.ts > safe persisted job consumer > drops unsafe progress {"generated":5,"total":4} 0ms
+ ✓ tests/unit/job-history-consumer.test.ts > safe persisted job consumer > drops unsafe progress {"generated":true,"total":4} 0ms
+ ✓ tests/unit/job-history-consumer.test.ts > safe persisted job consumer > drops unsafe progress {"generated":1,"total":9007199254740992} 0ms
+ ✓ tests/unit/job-history-consumer.test.ts > safe persisted job consumer > legacy detail projects counters, but cannot grant object access or expose provider text 0ms
+ ✓ tests/unit/job-history-consumer.test.ts > safe persisted job consumer > requires the expected identity and actual action acknowledgment 0ms
+ ✓ tests/unit/job-history-consumer.test.ts > safe persisted job consumer > uses only current checked history links with matching type 0ms
+ ✓ tests/unit/job-history-consumer.test.ts > safe persisted job consumer > binds reload cursors to the current workspace and rejects invalid saved cursors 1ms
+ ✓ tests/unit/job-history-consumer.test.ts > safe persisted job consumer > requires current admin permission and known eligible lifecycle for actions 0ms
+ ✓ tests/unit/jobs-page.test.ts > shows recorded counts for parse, evidence parse, index and export 55ms
+ ✓ tests/unit/jobs-page.test.ts > reads once in StrictMode and displays safe progress and authorized links 14ms
+ ✓ tests/unit/jobs-page.test.ts > keeps cursor pagination in a workspace-bound URL, including a fresh mount 20ms
+ ✓ tests/unit/jobs-page.test.ts > uses current capability flags, can_review=false 3ms
+ ✓ tests/unit/jobs-page.test.ts > uses current capability flags, can_review=true 8ms
+ ✓ tests/unit/jobs-page.test.ts > discards a late list response and old cursor when the workspace changes 59ms
+ ✓ tests/unit/jobs-page.test.ts > consumes its aborted promise on unmount without an unhandled rejection 53ms
+ ✓ tests/unit/jobs-page.test.ts > shows malformed success as an error and recovers on explicit reload 10ms
+ ✓ tests/unit/jobs-page.test.ts > filters legacy detail and does not derive an object link from its raw payload 17ms
+ ✓ tests/unit/jobs-page.test.ts > waits for the exact cancellation acknowledgment and prevents duplicate submissions 18ms
+ ✓ tests/unit/jobs-page.test.ts > never announces success after denied, failed or malformed acknowledgment 409 21ms
+ ✓ tests/unit/jobs-page.test.ts > never announces success after denied, failed or malformed acknowledgment 403 20ms
+ ✓ tests/unit/jobs-page.test.ts > never announces success after denied, failed or malformed acknowledgment 404 16ms
+ ✓ tests/unit/jobs-page.test.ts > never announces success after denied, failed or malformed acknowledgment 500 16ms
+ ✓ tests/unit/jobs-page.test.ts > never announces success after denied, failed or malformed acknowledgment 200 16ms
+ ✓ tests/unit/jobs-page.test.ts > clears detail, mutation and notices when access or workspace changes 16ms
+ ✓ tests/unit/jobs-page.test.ts > discards detail that resolves after moving to another workspace 64ms
+ ✓ tests/unit/jobs-page.test.ts > revoking admin capability dismisses confirmation without sending a mutation 14ms
+ ✓ tests/unit/jobs-page.test.ts > retains an acknowledged retry when refreshing history fails, with an explicit partial state 15ms
+ ✓ tests/unit/jobs-page.test.ts > clears a previous acknowledgment before starting another action 17ms
+ ✓ tests/unit/jobs-page.test.ts > rejects invalid saved cursor without making a business request 2ms
+ ✓ tests/unit/jobs-page.test.ts > shows unavailable detail separately from the successful history 12ms
+ ✓ tests/unit/jobs-page.test.ts > clears previously loaded history when its next read loses access (401) 9ms
+ ✓ tests/unit/jobs-page.test.ts > clears previously loaded history when its next read loses access (403) 9ms
+ ✓ tests/unit/jobs-page.test.ts > clears previously loaded history when its next read loses access (404) 12ms
+ ✓ tests/unit/jobs-page.test.ts > detail read denial 401 invalidates history and rejects a late history response 62ms
+ ✓ tests/unit/jobs-page.test.ts > detail read denial 403 invalidates history and rejects a late history response 63ms
+ ✓ tests/unit/jobs-page.test.ts > history read denial 401 closes pending detail and rejects its late response 114ms
+ ✓ tests/unit/jobs-page.test.ts > history read denial 403 closes pending detail and rejects its late response 112ms
+ ✓ tests/unit/jobs-page.test.ts > history read denial 404 closes pending detail and rejects its late response 112ms
+ ✓ tests/unit/jobs-page.test.ts > a history denial also removes already loaded detail 66ms
+ ✓ tests/unit/jobs-page.test.ts > mutation401 clears session-owned history without declaring success 19ms
+ ✓ tests/unit/jobs-page.test.ts > mutation403 requires a new history acknowledgment before restoring read-only rows 65ms
+ ✓ tests/unit/jobs-page.test.ts > mutation403 followed by history403 never restores stale rows 13ms
+ ✓ tests/unit/jobs-page.test.ts > mutation403 followed by history404 never restores stale rows 14ms
+ ✓ tests/unit/jobs-page.test.ts > mutation403 followed by history500 never restores stale rows 13ms
+
+ Test Files  2 passed (2)
+      Tests  53 passed (53)
+   Start at  21:06:45
+   Duration  1.57s (tests 78%, environment 12%, import 7%, transform 3%)
