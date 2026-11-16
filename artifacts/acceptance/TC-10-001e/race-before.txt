@@ -9,7 +9,7 @@ single sample taken before the heartbeat commit
 earlier=datetime.datetime(2026, 11, 16, 12, 46, 37, 181326)
 later=datetime.datetime(2026, 11, 16, 12, 46, 37, 181326)
 gap=0.0
-AssertionError: 
+AssertionError:
 assert 0.0 >= 2
 poll the same baseline until the heartbeat advances it
 polled_later=datetime.datetime(2026, 11, 16, 12, 46, 39, 387605)
