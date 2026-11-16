@@ -966,6 +966,9 @@ def test_worker_loop_does_not_retry_after_a_lost_lease_exception(db, monkeypatch
 _E2E_LEASE_SECONDS = 2
 _E2E_HEARTBEAT_SECONDS = 0.3
 _E2E_WORK_SECONDS = 6.0  # three times the lease
+# Reads of the committed expiry. The deadline bounds the wait; the required advance does not change.
+_E2E_POLL_INTERVAL_SECONDS = 0.05
+_E2E_POLL_GRACE_SECONDS = 1.0
 
 
 class _NoHeartbeat:
@@ -1014,12 +1017,47 @@ def _queued_evidence_job(db) -> int:
     return int(job.id)
 
 
+def _poll_committed_expiry(job_id: int, earlier, deadline: float):
+    """Read the committed expiry until it is one lease ahead of ``earlier``, or ``deadline``.
+
+    ``deadline`` is a ``time.monotonic`` instant. Reads are separated by a short sleep.
+    The latest sample and its delta in seconds are returned either way. Callers still
+    require ``delta >= _E2E_LEASE_SECONDS``; this wait does not lower that bar.
+    """
+    later = earlier
+    gap = 0.0
+    while True:
+        observed = _fresh_expiry(job_id)
+        if earlier is not None and observed is not None:
+            later = observed
+            gap = (later - earlier).total_seconds()
+            if gap >= _E2E_LEASE_SECONDS:
+                return later, gap
+        if time.monotonic() >= deadline:
+            return later, gap
+        remaining = deadline - time.monotonic()
+        time.sleep(min(_E2E_POLL_INTERVAL_SECONDS, max(0.0, remaining)))
+
+
 def _sample_expiry_across_long_work(job_id: int, samples: list) -> None:
-    """Sleep the whole long run, recording the committed expiry near each end."""
+    """Occupy the long run, polling until the committed expiry advances by one lease.
+
+    The baseline is the first committed expiry, taken after one heartbeat interval.
+    Later reads repeat until that baseline has moved by ``_E2E_LEASE_SECONDS`` or the
+    deadline passes. One sample at a fixed instant can land before the heartbeat
+    commit is visible (the observed ``0.0 >= 2``). The handler still stays for the
+    whole long-work window, so the job outlasts the lease.
+    """
+    started = time.monotonic()
     time.sleep(_E2E_HEARTBEAT_SECONDS)
-    samples.append(_fresh_expiry(job_id))
-    time.sleep(_E2E_WORK_SECONDS - _E2E_HEARTBEAT_SECONDS)
-    samples.append(_fresh_expiry(job_id))
+    earlier = _fresh_expiry(job_id)
+    deadline = started + _E2E_WORK_SECONDS + _E2E_POLL_GRACE_SECONDS
+    later, _gap = _poll_committed_expiry(job_id, earlier, deadline)
+    remaining = (started + _E2E_WORK_SECONDS) - time.monotonic()
+    if remaining > 0:
+        time.sleep(remaining)
+    samples.append(earlier)
+    samples.append(later)
 
 
 def test_heartbeat_keeps_the_lease_during_long_work(db, monkeypatch):
@@ -1027,7 +1065,9 @@ def test_heartbeat_keeps_the_lease_during_long_work(db, monkeypatch):
 
     ``_process_one_job`` starts ``JobLeaseHeartbeat`` after the claim. The handler sleeps
     on the real clock. The job still completes, nothing audits ``job.lease_lost``, and
-    ``lease_expires_at`` moves forward while the handler is in that sleep.
+    ``lease_expires_at`` moves forward by at least ``_E2E_LEASE_SECONDS`` while the
+    handler runs. That forward check polls until the advance is visible or the deadline
+    passes. The required advance is unchanged.
     """
     from app.models import Job, JobStatus
 
@@ -1049,7 +1089,11 @@ def test_heartbeat_keeps_the_lease_during_long_work(db, monkeypatch):
     earlier, later = samples
     assert earlier is not None and later is not None
     gap = (later - earlier).total_seconds()
-    assert gap >= _E2E_LEASE_SECONDS, (earlier, later, gap)
+    assert gap >= _E2E_LEASE_SECONDS, (
+        "lease heartbeat did not advance lease_expires_at by at least "
+        f"{_E2E_LEASE_SECONDS}s before the deadline; last observed delta was {gap} "
+        f"(earlier={earlier!r}, later={later!r})"
+    )
     db.expire_all()
     stored = db.get(Job, job_id)
     assert stored.status == JobStatus.COMPLETED.value
