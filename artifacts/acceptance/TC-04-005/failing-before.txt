@@ -1,0 +1,86 @@
+# TC-04-005 failing tests with the membership re-read disabled
+
+Command: python -m pytest tests/release/test_session_revocation.py -q --tb=short
+Working directory: apps/api
+Auth under test: apps/api/app/core/auth_deps.py with resolve_current_membership
+returning the signed session immediately after the pending-account branch.
+The WorkspaceMember query below that return did not run. No other file was
+edited. The edit was not committed. Parent auth is 0fb552fc449c70b947406c855e10be170ed8f26a.
+Python 3.12.3, pytest 9.1.1, SQLAlchemy 2.0.55, FastAPI 0.162.0.
+SQLite in memory, and PostgreSQL 16.15 database trustcopilot_test on localhost.
+Exit status: 1
+Result: 8 failed, 2 passed, 0 skipped
+
+The two passes are test_admin_revoke_sessions_invalidates_the_cookie_and_leaves_api_keys
+on sqlite and postgres. That route deletes the user_sessions row and does not
+use the membership re-read. Demotion returned the signed role stale instead of
+reviewer. Suspension, removal, and the suspended member's /api/auth/me returned
+200 instead of 403.
+
+FFFFFFFF..                                                               [100%]
+=================================== FAILURES ===================================
+___ test_demotion_applies_on_the_existing_cookie_and_other_workspace[sqlite] ___
+tests/release/test_session_revocation.py:315: in test_demotion_applies_on_the_existing_cookie_and_other_workspace
+    assert body["role"] == DEMOTED_ROLE
+E   AssertionError: assert 'stale' == 'reviewer'
+E     
+E     - reviewer
+E     + stale
+__ test_demotion_applies_on_the_existing_cookie_and_other_workspace[postgres] __
+tests/release/test_session_revocation.py:315: in test_demotion_applies_on_the_existing_cookie_and_other_workspace
+    assert body["role"] == DEMOTED_ROLE
+E   AssertionError: assert 'stale' == 'reviewer'
+E     
+E     - reviewer
+E     + stale
+__ test_suspension_denies_the_existing_cookie_and_blocks_switch_back[sqlite] ___
+tests/release/test_session_revocation.py:338: in test_suspension_denies_the_existing_cookie_and_blocks_switch_back
+    assert info.status_code == 403
+E   assert 200 == 403
+E    +  where 200 = <Response [200 OK]>.status_code
+_ test_suspension_denies_the_existing_cookie_and_blocks_switch_back[postgres] __
+tests/release/test_session_revocation.py:338: in test_suspension_denies_the_existing_cookie_and_blocks_switch_back
+    assert info.status_code == 403
+E   assert 200 == 403
+E    +  where 200 = <Response [200 OK]>.status_code
+_____ test_removal_denies_that_workspace_and_keeps_only_the_other[sqlite] ______
+tests/release/test_session_revocation.py:377: in test_removal_denies_that_workspace_and_keeps_only_the_other
+    assert info.status_code == 403
+E   assert 200 == 403
+E    +  where 200 = <Response [200 OK]>.status_code
+____ test_removal_denies_that_workspace_and_keeps_only_the_other[postgres] _____
+tests/release/test_session_revocation.py:377: in test_removal_denies_that_workspace_and_keeps_only_the_other
+    assert info.status_code == 403
+E   assert 200 == 403
+E    +  where 200 = <Response [200 OK]>.status_code
+_____ test_suspending_a_member_does_not_revoke_workspace_api_keys[sqlite] ______
+tests/release/test_session_revocation.py:433: in test_suspending_a_member_does_not_revoke_workspace_api_keys
+    assert me.status_code == 403
+E   assert 200 == 403
+E    +  where 200 = <Response [200 OK]>.status_code
+____ test_suspending_a_member_does_not_revoke_workspace_api_keys[postgres] _____
+tests/release/test_session_revocation.py:433: in test_suspending_a_member_does_not_revoke_workspace_api_keys
+    assert me.status_code == 403
+E   assert 200 == 403
+E    +  where 200 = <Response [200 OK]>.status_code
+=============================== warnings summary ===============================
+tests/release/test_session_revocation.py: 10 warnings
+  /agent/repos/trust-copilot/apps/api/tests/release/test_session_revocation.py:221: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    created = datetime.utcnow()
+
+tests/release/test_session_revocation.py: 20 warnings
+  /tmp/tc-api-venv/lib/python3.12/site-packages/sqlalchemy/sql/schema.py:3627: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    return util.wrap_callable(lambda ctx: fn(), fn)  # type: ignore
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED tests/release/test_session_revocation.py::test_demotion_applies_on_the_existing_cookie_and_other_workspace[sqlite]
+FAILED tests/release/test_session_revocation.py::test_demotion_applies_on_the_existing_cookie_and_other_workspace[postgres]
+FAILED tests/release/test_session_revocation.py::test_suspension_denies_the_existing_cookie_and_blocks_switch_back[sqlite]
+FAILED tests/release/test_session_revocation.py::test_suspension_denies_the_existing_cookie_and_blocks_switch_back[postgres]
+FAILED tests/release/test_session_revocation.py::test_removal_denies_that_workspace_and_keeps_only_the_other[sqlite]
+FAILED tests/release/test_session_revocation.py::test_removal_denies_that_workspace_and_keeps_only_the_other[postgres]
+FAILED tests/release/test_session_revocation.py::test_suspending_a_member_does_not_revoke_workspace_api_keys[sqlite]
+FAILED tests/release/test_session_revocation.py::test_suspending_a_member_does_not_revoke_workspace_api_keys[postgres]
+8 failed, 2 passed, 30 warnings in 2.00s
+EXIT:1
