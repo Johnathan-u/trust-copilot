@@ -266,4 +266,41 @@ describe('logout-all mocked response controls (not real API/browser qualificatio
     expect(writes()[0][0]).toBe('/api/auth/sessions/revoke-others')
     expect(navigate).not.toHaveBeenCalled()
   })
+
+  it('password change always signs out other sessions and does not offer to keep them', async () => {
+    render(createElement(SecurityPage))
+    fireEvent.click(
+      await screen.findByRole('button', { name: 'Change Password' })
+    )
+    expect(screen.queryByRole('checkbox')).toBeNull()
+    expect(
+      screen.getByText(
+        /Changing your password signs out every other session\. This session stays signed in\./
+      )
+    ).toBeTruthy()
+    fireEvent.change(screen.getByPlaceholderText('Current password'), {
+      target: { value: 'current-pass' },
+    })
+    fireEvent.change(screen.getByPlaceholderText('New password'), {
+      target: { value: 'new-pass' },
+    })
+    fireEvent.change(screen.getByPlaceholderText('Confirm new password'), {
+      target: { value: 'new-pass' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Update Password' }))
+    expect(
+      await screen.findByText(
+        'Password updated. Other sessions were signed out.'
+      )
+    ).toBeTruthy()
+    const change = writes().find(
+      ([url]) => String(url) === '/api/auth/change-password'
+    )
+    expect(change).toBeTruthy()
+    expect(JSON.parse(String(change?.[1].body))).toEqual({
+      current_password: 'current-pass',
+      new_password: 'new-pass',
+      invalidate_other_sessions: true,
+    })
+  })
 })

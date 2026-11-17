@@ -1,0 +1,43 @@
+# TC-04-003 failing tests before the auth change
+
+Command: python -m pytest tests/release/test_password_reset.py -q --tb=line
+Working directory: apps/api
+Auth under test: apps/api/app/api/routes/auth.py at parent 787976e9d7aee40c3cf0a5d5a94d74155fba32c1 (unchanged)
+Tests: apps/api/tests/release/test_password_reset.py in this change
+Interpreter: Python 3.12.3, pytest 9.1.1, SQLAlchemy 2.0.55, FastAPI 0.162.0
+Database: PostgreSQL 16.15, trustcopilot_test at 127.0.0.1:5432
+Environment: TC_REQUIRE_DB=1, TC_TEST_DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:5432/trustcopilot_test
+Exit status: 1
+Result: 3 failed, 2 passed, 0 skipped
+
+A successful reset left the other unused reset token usable (HTTP 200, expected 400).
+change_password with invalidate_other_sessions false, and with the flag omitted, left the second session's cookie at HTTP 200 on GET /api/auth/me (expected 401).
+The two passes are the flag set to true, which already revoked other sessions, and a wrong current password, which must not revoke anyone.
+
+FF.F.                                                                    [100%]
+=================================== FAILURES ===================================
+E   AssertionError: 200
+    assert 200 == 400
+     +  where 200 = <Response [200 OK]>.status_code
+/agent/repos/trust-copilot/apps/api/tests/release/test_password_reset.py:258: AssertionError: 200
+E   AssertionError: assert 200 == 401
+     +  where 200 = <Response [200 OK]>.status_code
+     +    where <Response [200 OK]> = get('/api/auth/me')
+     +      where get = <starlette.testclient.TestClient object at 0x7f3c0aa74b90>.get
+/agent/repos/trust-copilot/apps/api/tests/release/test_password_reset.py:336: AssertionError: assert 200 == 401
+E   AssertionError: assert 200 == 401
+     +  where 200 = <Response [200 OK]>.status_code
+     +    where <Response [200 OK]> = get('/api/auth/me')
+     +      where get = <starlette.testclient.TestClient object at 0x7f3c0b7c3d40>.get
+/agent/repos/trust-copilot/apps/api/tests/release/test_password_reset.py:336: AssertionError: assert 200 == 401
+=============================== warnings summary ===============================
+tests/release/test_password_reset.py: 77 warnings
+  /tmp/tc-venv/lib/python3.12/site-packages/sqlalchemy/sql/schema.py:3627: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    return util.wrap_callable(lambda ctx: fn(), fn)  # type: ignore
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED tests/release/test_password_reset.py::test_successful_reset_rejects_every_other_unused_token
+FAILED tests/release/test_password_reset.py::test_change_password_revokes_the_other_session[keep-requested]
+FAILED tests/release/test_password_reset.py::test_change_password_revokes_the_other_session[flag-omitted]
+3 failed, 2 passed, 77 warnings in 2.42s

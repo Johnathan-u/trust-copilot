@@ -581,7 +581,6 @@ function PasswordSection({
   const [current, setCurrent] = useState('')
   const [newPw, setNewPw] = useState('')
   const [confirm, setConfirm] = useState('')
-  const [invalidateOthers, setInvalidateOthers] = useState(false)
   const [changing, setChanging] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
@@ -607,7 +606,9 @@ function PasswordSection({
         body: JSON.stringify({
           current_password: current,
           new_password: newPw,
-          invalidate_other_sessions: invalidateOthers,
+          // The server accepts this field and ignores it. Other sessions are
+          // always signed out. Sending true keeps an older server on the same rule.
+          invalidate_other_sessions: true,
         }),
       })
       const data = await res.json().catch(() => ({}))
@@ -615,12 +616,11 @@ function PasswordSection({
         setError(data.detail || 'Failed to change password.')
         return
       }
-      setSuccess('Password updated successfully.')
+      setSuccess('Password updated. Other sessions were signed out.')
       setCurrent('')
       setNewPw('')
       setConfirm('')
-      if (invalidateOthers) onSessionsChanged()
-      setInvalidateOthers(false)
+      onSessionsChanged()
     } finally {
       setChanging(false)
     }
@@ -671,14 +671,10 @@ function PasswordSection({
             required
             minLength={6}
           />
-          <label className="flex items-center gap-2 text-xs text-[var(--tc-muted)] cursor-pointer">
-            <input
-              type="checkbox"
-              checked={invalidateOthers}
-              onChange={(e) => setInvalidateOthers(e.target.checked)}
-            />
-            Sign out all other sessions
-          </label>
+          <p className="text-xs text-[var(--tc-muted)]">
+            Changing your password signs out every other session. This session
+            stays signed in.
+          </p>
           {error && (
             <p role="alert" className="text-xs text-[var(--tc-danger)]">
               {error}
