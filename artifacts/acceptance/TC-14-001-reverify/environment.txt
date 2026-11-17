@@ -1,0 +1,13 @@
+sha: 1241fe47b43cb8fb4627f7263b516e7634cee214
+includes: 9737c85ebb91b4496e88cca94d83cb4d72001954 (#261 TC-14-001c)
+os: Linux 6.12.113+ x86_64
+node: v24.22.1
+npm: 11.19.1
+vitest: 5.0.5
+playwright: 1.64.1
+chromium: chromium-1248
+next: 16.4.3
+cwd: apps/web
+master CI run: 44000166121
+build job: 133761937999
+web-release-e2e job: 133761938537

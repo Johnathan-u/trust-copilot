@@ -1,0 +1,33 @@
+command: ./node_modules/.bin/vitest run tests/unit/ui-raw-palette.test.ts lib/design-tokens.test.ts --reporter=verbose
+cwd: apps/web
+node: v24.22.1
+npm: 11.19.1
+sha: 1241fe47b43cb8fb4627f7263b516e7634cee214
+
+ RUN  v5.0.5 /agent/repos/trust-copilot/apps/web
+
+ ✓ lib/design-tokens.test.ts > design token contract > documents a 4px spacing scale of 4, 8, 12, 16, 24, 32 and 48 2ms
+ ✓ lib/design-tokens.test.ts > design token contract > keeps typography and interaction tokens in the dark root and out of the light override 1ms
+ ✓ lib/design-tokens.test.ts > design token contract > matches semantic color variables for the dark and light themes 1ms
+ ✓ lib/design-tokens.test.ts > design token contract > reads the shorthand hex Chrome uses for white 1ms
+ ✓ lib/design-tokens.test.ts > design token contract > derives decorative glow surfaces from the published alphas 0ms
+ ✓ lib/design-tokens.test.ts > WCAG 2.2 AA contrast targets > dark theme text, status, fill and non-text pairs meet their targets 1ms
+ ✓ lib/design-tokens.test.ts > WCAG 2.2 AA contrast targets > light theme text, status, fill and non-text pairs meet their targets 0ms
+ ✓ lib/design-tokens.test.ts > WCAG 2.2 AA contrast targets > keeps disabled text visible without treating it as an active 4.5:1 pair 0ms
+ ✓ lib/design-tokens.test.ts > WCAG 2.2 AA contrast targets > rejects a known failing combination so the guard is not vacuous 0ms
+ ✓ lib/design-tokens.test.ts > WCAG 2.2 AA contrast targets > keeps text tokens at 4.5:1 on the translucent dark panel over each glow 0ms
+ ✓ lib/design-tokens.test.ts > API error presentation > returns a string detail unchanged 0ms
+ ✓ lib/design-tokens.test.ts > API error presentation > uses the first validation message and ignores unrelated fields 0ms
+ ✓ lib/design-tokens.test.ts > API error presentation > reads an object detail message and falls back otherwise 0ms
+ ✓ lib/design-tokens.test.ts > API error presentation > maps every failure and denial to the danger status token 0ms
+ ✓ tests/unit/ui-raw-palette.test.ts > components/ui raw colours > flags palette classes and rgba colours, and allows token utilities 3ms
+ ✓ tests/unit/ui-raw-palette.test.ts > components/ui raw colours > keeps raw palette classes and rgba colours out of components/ui 5ms
+ ✓ tests/unit/ui-raw-palette.test.ts > dashboard and layout raw colours > keeps raw palette classes and hex/rgb colours out of app/dashboard 36ms
+ ✓ tests/unit/ui-raw-palette.test.ts > dashboard and layout raw colours > keeps raw palette classes and hex/rgb colours out of components/layout 3ms
+
+ Test Files  2 passed (2)
+      Tests  18 passed (18)
+   Start at  03:16:16
+   Duration  216ms (tests 58%, import 25%, transform 10%, worker 6%)
+
+exit: 0

@@ -1,0 +1,22 @@
+command: node scan using the regex in apps/web/tests/unit/ui-raw-palette.test.ts:14-18
+cwd: apps/web
+regex: apps/web/tests/unit/ui-raw-palette.test.ts:14-18
+sha: 1241fe47b43cb8fb4627f7263b516e7634cee214
+apps/web/components/ui hits=0 files_with_hits=0 files_scanned=23
+apps/web/app/dashboard hits=0 files_with_hits=0 files_scanned=41
+apps/web/components/layout hits=0 files_with_hits=0 files_scanned=8
+apps/web/app/onboarding hits=0 files_with_hits=0 files_scanned=1
+apps/web/lib/api-error.ts hits=0 files_with_hits=0 files_scanned=1
+--- outside the gate ---
+app+components outside ui/dashboard/layout hits=190 files=9
+95 app/globals.css
+31 app/page.tsx
+22 app/vendor-response/page.tsx
+16 app/pricing/page.tsx
+15 app/login/page.tsx
+5 app/register/page.tsx
+3 app/trust/[slug]/page.tsx
+2 components/CommandPalette.tsx
+  190: bg-white/10
+  191: hover:bg-white/5
+1 app/forgot-password/page.tsx

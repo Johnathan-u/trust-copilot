@@ -1,0 +1,32 @@
+command: npx playwright test e2e/release/design-tokens.spec.ts --retries=0
+cwd: apps/web
+node: v24.22.1
+npm: 11.19.1
+playwright: 1.64.1
+chromium: chromium-1248
+sha: 1241fe47b43cb8fb4627f7263b516e7634cee214
+
+The first start exited 1. Next.js 16.4.3 stopped npm run dev on a security advisory. A second start continued the server on port 3000 and stopped the server on port 3100, because each dist directory keeps its own retry receipt. Receipts were then present for both .next and .next-e2e-sales, and the same command was run again. This run does not upgrade Next.
+
+Both servers printed: Your version of Next.js is affected by a known security vulnerability. This command is continuing after the upgrade reminder.
+Reference: https://registry.npmjs.org/-/npm/v1/security/advisories/bulk
+
+The dev overlay printed a hydration mismatch for the html data-theme attribute. The four assertions passed.
+
+  ✓  1 [chromium] › e2e/release/design-tokens.spec.ts:133:9 › design tokens › dark theme renders shared tokens, contrast, focus and has no serious axe violations (3.5s)
+  ✓  2 [chromium] › e2e/release/design-tokens.spec.ts:133:9 › design tokens › light theme renders shared tokens, contrast, focus and has no serious axe violations (2.3s)
+  ✓  3 [chromium] › e2e/release/design-tokens.spec.ts:298:7 › design tokens › reduced motion zeroes interaction durations (518ms)
+  ✓  4 [chromium] › e2e/release/design-tokens.spec.ts:309:7 › design tokens › an unknown theme query keeps the default dark tokens (476ms)
+
+  4 passed (13.8s)
+exit: 0
+
+Local axe reports written by this command, each violationCount 0:
+axe-dark-1440.json dark 1440 0
+axe-dark-360.json dark 360 0
+axe-dark-768.json dark 768 0
+axe-light-1440.json light 1440 0
+axe-light-360.json light 360 0
+axe-light-768.json light 768 0
+
+The command also rewrote the six committed screenshots. Those bytes differ from the CI artifact for this SHA. They were restored with git checkout and are not part of this PR. The committed PNGs match the CI artifact byte for byte (master-ci-excerpts.txt).

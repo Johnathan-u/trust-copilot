@@ -1,0 +1,50 @@
+master sha: 1241fe47b43cb8fb4627f7263b516e7634cee214
+run: 44000166121
+build job: 133761937999
+web-release-e2e job: 133761938537
+
+build log
+502: ✓ lib/design-tokens.test.ts (14 tests) 23ms
+524: ✓ tests/unit/ui-raw-palette.test.ts (4 tests) 70ms
+552: Test Files  59 passed (59)
+553: Tests  543 passed (543)
+8513: SKIPPED [1] tests/test_trust_scoring_blind.py:33: external_data: blind test pack not checked in; set TC_TRUST_SCORING_BLIND_PACK to run
+8514: =========== 6683 passed, 1 skipped, 55 warnings in 930.36s (0:15:30) ===========
+
+web-release-e2e log
+380: rm -f ../../artifacts/acceptance/TC-14-001/axe-*.json
+599: ✓    1 [chromium] › e2e/release/design-tokens.spec.ts:133:9 › design tokens › dark theme renders shared tokens, contrast, focus and has no serious axe violations (4.5s)
+635: ✓    2 [chromium] › e2e/release/design-tokens.spec.ts:133:9 › design tokens › light theme renders shared tokens, contrast, focus and has no serious axe violations (2.7s)
+671: ✓    3 [chromium] › e2e/release/design-tokens.spec.ts:298:7 › design tokens › reduced motion zeroes interaction durations (675ms)
+672: ✓    4 [chromium] › e2e/release/design-tokens.spec.ts:309:7 › design tokens › an unknown theme query keeps the default dark tokens (573ms)
+1642: 353 passed (6.6m)
+1645: design-tokens.spec.ts: 4 passed, 0 failed, 0 skipped, 0 flaky
+1678: TC-14-001/axe-dark-1440.json: 0 violations
+1679: TC-14-001/axe-dark-360.json: 0 violations
+1680: TC-14-001/axe-dark-768.json: 0 violations
+1681: TC-14-001/axe-light-1440.json: 0 violations
+1682: TC-14-001/axe-light-360.json: 0 violations
+1683: TC-14-001/axe-light-768.json: 0 violations
+1823: rules evidence exit 0; playwright exit 0; axe check exit 0
+1904: name: design-tokens-axe-json
+1916: With the provided path, there will be 6 files uploaded
+1926: Artifact design-tokens-axe-json has been successfully uploaded! Final size is 1173 bytes. Artifact ID is 14292915169
+1930: name: theme-screenshots
+1931: path: artifacts/acceptance/TC-14-001/screenshots/theme-*.png
+1942: With the provided path, there will be 6 files uploaded
+1952: Artifact theme-screenshots has been successfully uploaded! Final size is 2809766 bytes. Artifact ID is 14292187538
+
+committed screenshots match CI artifact theme-screenshots from run 44000166121 (sha256 prefix):
+theme-dark-1440.png 840751 f7f69fb1e59e
+theme-dark-360.png 520277 bbe536b1d30d
+theme-dark-768.png 688716 8f8e8092c9ad
+theme-light-1440.png 304447 c7d504cec888
+theme-light-360.png 316711 1e0fad343a43
+theme-light-768.png 287699 65d17fd13f24
+axe from the same run, each violationCount 0:
+axe-dark-1440.json dark 1440
+axe-dark-360.json dark 360
+axe-dark-768.json dark 768
+axe-light-1440.json light 1440
+axe-light-360.json light 360
+axe-light-768.json light 768
