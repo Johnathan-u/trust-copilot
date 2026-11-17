@@ -10,7 +10,7 @@ The backlog command is the same file with `-q` only. `--tb=short` is how the sav
 
 ## SHA
 
-Production auth in both runs is `0fb552fc449c70b947406c855e10be170ed8f26a`. That commit already demotes, suspends, and removes by rewriting the membership row, then reads that row on the next request. The parent commit therefore passes this test once the file exists. It cannot show a failing-before log. The failing run below disables the re-read in the working tree and does not commit that edit.
+Production auth in both runs is `0fb552fc449c70b947406c855e10be170ed8f26a`. That commit already demotes, suspends, and removes by rewriting the membership row, then reads that row on the next request. The parent commit therefore passes this test once the file exists. It cannot show a failing-before log. The failing run below disables the re-read in the working tree and does not commit that edit. Master `41db7562` (#270) changes only the tracker and `docs/release/tickets/TC-14-001d.md`. It does not change the auth files cited in the ticket note.
 
 `git diff apps/api/app/core/auth_deps.py` was empty before the passing run.
 

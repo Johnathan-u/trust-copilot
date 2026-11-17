@@ -23,14 +23,14 @@ ___ test_demotion_applies_on_the_existing_cookie_and_other_workspace[sqlite] ___
 tests/release/test_session_revocation.py:315: in test_demotion_applies_on_the_existing_cookie_and_other_workspace
     assert body["role"] == DEMOTED_ROLE
 E   AssertionError: assert 'stale' == 'reviewer'
-E     
+E
 E     - reviewer
 E     + stale
 __ test_demotion_applies_on_the_existing_cookie_and_other_workspace[postgres] __
 tests/release/test_session_revocation.py:315: in test_demotion_applies_on_the_existing_cookie_and_other_workspace
     assert body["role"] == DEMOTED_ROLE
 E   AssertionError: assert 'stale' == 'reviewer'
-E     
+E
 E     - reviewer
 E     + stale
 __ test_suspension_denies_the_existing_cookie_and_blocks_switch_back[sqlite] ___
