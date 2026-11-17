@@ -5,7 +5,7 @@ import re
 import time
 from concurrent.futures import ThreadPoolExecutor
 
-from sqlalchemy import and_, or_, text
+from sqlalchemy import or_, text
 from sqlalchemy.orm import Session
 
 from app.core.config import get_settings
@@ -22,6 +22,7 @@ from app.core.pipeline_logging import (
 )
 from app.core.metrics import RETRIEVAL_DURATION_SECONDS
 from app.models import Chunk
+from app.services.active_sources import eligible_chunk_query
 from app.services.vector_util import embedding_to_vector_literal, validate_embedding_dimension
 
 logger = logging.getLogger(__name__)
@@ -223,6 +224,13 @@ class RetrievalService:
                 out.append(r)
         return out
 
+    def _eligible_chunks(self, workspace_id: int, doc_scope: frozenset[int] | None):
+        """Chunks that may be retrieved: this workspace, excluding soft-deleted documents."""
+        query = eligible_chunk_query(self._db, workspace_id)
+        if doc_scope:
+            query = query.filter(Chunk.document_id.in_(list(doc_scope)))
+        return query
+
     def _keyword_search(
         self, workspace_id: int, query: str, limit: int, doc_scope: frozenset[int] | None
     ) -> list[dict]:
@@ -232,17 +240,14 @@ class RetrievalService:
         terms = _extract_terms(query)
         if not terms:
             return []
-        base = Chunk.workspace_id == workspace_id
-        if doc_scope:
-            base = and_(base, Chunk.document_id.in_(list(doc_scope)))
         all_cond = or_(*[Chunk.text.ilike(f"%{t}%") for t in terms])
         seen_ids = set()
         out = []
         rare = [t for t in terms if t in ("designated", "ciso", "training", "audit", "assess")]
         if rare:
             rows = (
-                self._db.query(Chunk)
-                .filter(base, or_(*[Chunk.text.ilike(f"%{t}%") for t in rare]))
+                self._eligible_chunks(workspace_id, doc_scope)
+                .filter(or_(*[Chunk.text.ilike(f"%{t}%") for t in rare]))
                 .limit(limit)
                 .all()
             )
@@ -253,7 +258,7 @@ class RetrievalService:
                         r.metadata_ if isinstance(r.metadata_, dict) else None, r.document_id
                     )
                     out.append({"id": r.id, "text": r.text, "metadata": md, "score": 0.85})
-        rows = self._db.query(Chunk).filter(base, all_cond).limit(limit).all()
+        rows = self._eligible_chunks(workspace_id, doc_scope).filter(all_cond).limit(limit).all()
         for r in rows:
             if r.id not in seen_ids:
                 seen_ids.add(r.id)
@@ -289,22 +294,30 @@ class RetrievalService:
     ) -> list[dict]:
         """Use pgvector index: ORDER BY embedding <=> query LIMIT. Cosine distance -> 1-distance for score."""
         vec_str = embedding_to_vector_literal(embedding)
+        # Same eligibility as eligible_chunk_query: this workspace, and the parent
+        # document is not soft-deleted. Orphan chunks (no document_id) stay.
         scope_sql = ""
         params: dict = {"vec": vec_str, "ws": workspace_id, "lim": limit * 2}
         if doc_scope:
             ids = sorted(doc_scope)
             placeholders = ", ".join(f":d{i}" for i in range(len(ids)))
-            scope_sql = f" AND document_id IN ({placeholders})"
+            scope_sql = f" AND c.document_id IN ({placeholders})"
             for i, did in enumerate(ids):
                 params[f"d{i}"] = did
         rows = self._db.execute(
             text(f"""
-                SELECT id, text, metadata_, document_id,
-                       1 - (embedding <=> CAST(:vec AS vector)) AS score
-                FROM chunks
-                WHERE workspace_id = :ws AND embedding IS NOT NULL
+                SELECT c.id, c.text, c.metadata_, c.document_id,
+                       1 - (c.embedding <=> CAST(:vec AS vector)) AS score
+                FROM chunks c
+                LEFT JOIN documents d
+                  ON d.id = c.document_id
+                 AND d.workspace_id = :ws
+                 AND d.deleted_at IS NULL
+                WHERE c.workspace_id = :ws
+                  AND c.embedding IS NOT NULL
+                  AND (c.document_id IS NULL OR d.id IS NOT NULL)
                 {scope_sql}
-                ORDER BY embedding <=> CAST(:vec AS vector)
+                ORDER BY c.embedding <=> CAST(:vec AS vector)
                 LIMIT :lim
             """),
             params,
@@ -333,11 +346,7 @@ class RetrievalService:
             workspace_id,
             limit,
         )
-        q = self._db.query(Chunk).filter(
-            Chunk.workspace_id == workspace_id, Chunk.embedding.isnot(None)
-        )
-        if doc_scope:
-            q = q.filter(Chunk.document_id.in_(list(doc_scope)))
+        q = self._eligible_chunks(workspace_id, doc_scope).filter(Chunk.embedding.isnot(None))
         rows = q.limit(FALLBACK_MAX_CHUNKS).all()
         if len(rows) >= FALLBACK_MAX_CHUNKS:
             logger.warning(

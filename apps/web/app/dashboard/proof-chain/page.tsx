@@ -38,23 +38,23 @@ const FRESHNESS_STYLE: Record<
   { bg: string; border: string; label: string }
 > = {
   live: {
-    bg: 'rgba(34, 197, 94, 0.12)',
-    border: 'rgba(34, 197, 94, 0.35)',
+    bg: 'var(--tc-success-surface)',
+    border: 'var(--tc-success)',
     label: 'Live',
   },
   recent: {
-    bg: 'rgba(91, 124, 255, 0.14)',
-    border: 'rgba(91, 124, 255, 0.35)',
+    bg: 'var(--tc-info-surface)',
+    border: 'var(--tc-primary)',
     label: 'Recent',
   },
   aging: {
-    bg: 'rgba(245, 158, 11, 0.12)',
-    border: 'rgba(245, 158, 11, 0.35)',
+    bg: 'var(--tc-warning-surface)',
+    border: 'var(--tc-warning)',
     label: 'Aging',
   },
   stale: {
-    bg: 'rgba(239, 68, 68, 0.1)',
-    border: 'rgba(239, 68, 68, 0.3)',
+    bg: 'var(--tc-danger-surface)',
+    border: 'var(--tc-danger)',
     label: 'Stale',
   },
 }
@@ -271,7 +271,7 @@ export default function ProofChainPage() {
                     style={{ background: fs.bg, borderColor: fs.border }}
                   >
                     <div className="mb-2 flex flex-wrap items-center gap-2">
-                      <span className="rounded-md border border-[var(--tc-border)] bg-white/5 px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-[var(--tc-text)]">
+                      <span className="rounded-md border border-[var(--tc-border)] bg-tc-surface-sunken px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-[var(--tc-text)]">
                         {nodeTypeLabel(node.node_type)}
                       </span>
                       <span
@@ -295,7 +295,7 @@ export default function ProofChainPage() {
                       </p>
                     )}
                     {node.meta_json && (
-                      <pre className="mt-2 max-h-24 overflow-auto rounded-lg border border-[var(--tc-border)] bg-black/20 p-2 text-[10px] text-[var(--tc-muted)]">
+                      <pre className="mt-2 max-h-24 overflow-auto rounded-lg border border-[var(--tc-border)] bg-tc-surface-sunken p-2 text-[10px] text-[var(--tc-muted)]">
                         {node.meta_json}
                       </pre>
                     )}

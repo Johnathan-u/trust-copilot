@@ -64,20 +64,20 @@ type CoverageData = {
 type GovSettings = Record<string, any>
 
 const QUALITY_LABELS: Record<string, { label: string; color: string }> = {
-  llm_structured: { label: 'LLM structured', color: 'bg-emerald-500' },
-  llm_rerank: { label: 'LLM re-ranked', color: 'bg-blue-500' },
-  heuristic_fallback: { label: 'Heuristic fallback', color: 'bg-amber-500' },
-  unknown: { label: 'Unknown', color: 'bg-gray-500' },
+  llm_structured: { label: 'LLM structured', color: 'bg-tc-success' },
+  llm_rerank: { label: 'LLM re-ranked', color: 'bg-tc-primary' },
+  heuristic_fallback: { label: 'Heuristic fallback', color: 'bg-tc-warning' },
+  unknown: { label: 'Unknown', color: 'bg-tc-muted' },
 }
 
 const FAILURE_COLORS: Record<string, string> = {
-  no_evidence: '#ef4444',
-  retrieval_noise_floor: '#f97316',
-  weak_control_path: '#eab308',
-  weak_control_path_low_tier: '#a3e635',
-  weak_retrieval_no_control: '#22d3ee',
-  weak_retrieval_low_tier_docs: '#818cf8',
-  unknown: '#94a3b8',
+  no_evidence: 'var(--tc-danger)',
+  retrieval_noise_floor: 'var(--tc-warning)',
+  weak_control_path: 'var(--tc-warning)',
+  weak_control_path_low_tier: 'var(--tc-warning)',
+  weak_retrieval_no_control: 'var(--tc-info)',
+  weak_retrieval_low_tier_docs: 'var(--tc-primary)',
+  unknown: 'var(--tc-muted)',
 }
 
 function pct(n: number, d: number): string {
@@ -100,7 +100,7 @@ function HBar({
 }) {
   const w = max > 0 ? Math.max(2, (value / max) * 100) : 0
   return (
-    <div className="h-3 w-full rounded-full bg-white/5 overflow-hidden">
+    <div className="h-3 w-full rounded-full bg-tc-surface-sunken overflow-hidden">
       <div
         className="h-full rounded-full transition-all"
         style={{ width: `${w}%`, backgroundColor: color }}
@@ -306,31 +306,31 @@ export default function AIInsightsPage() {
             label="Answers generated"
             value={p.total_answers}
             sub={`from ${p.total_questions} questions`}
-            color="#3b82f6"
+            color="var(--tc-primary)"
           />
           <KPICard
             label="High confidence"
             value={`${pct(p.confidence_distribution.high, totalConf)}%`}
             sub={`${p.confidence_distribution.high} answers >= 70`}
-            color="#10b981"
+            color="var(--tc-success)"
           />
           <KPICard
             label="Medium confidence"
             value={`${pct(p.confidence_distribution.medium, totalConf)}%`}
             sub={`${p.confidence_distribution.medium} answers 40-69`}
-            color="#eab308"
+            color="var(--tc-warning)"
           />
           <KPICard
             label="Insufficient"
             value={`${pct(p.insufficient, p.total_answers)}%`}
             sub={`${p.insufficient} answers`}
-            color="#ef4444"
+            color="var(--tc-danger)"
           />
           <KPICard
             label="Avg. confidence"
             value={p.avg_confidence}
             sub="across all answers"
-            color="#8b5cf6"
+            color="var(--tc-primary)"
           />
         </div>
 
@@ -339,32 +339,32 @@ export default function AIInsightsPage() {
           <div className="text-xs font-medium text-[var(--tc-muted)] mb-2">
             Confidence Distribution
           </div>
-          <div className="flex h-4 rounded-full overflow-hidden bg-white/5">
+          <div className="flex h-4 rounded-full overflow-hidden bg-tc-surface-sunken">
             {totalConf > 0 && (
               <>
                 <div
-                  className="bg-emerald-500 transition-all"
+                  className="bg-tc-success transition-all"
                   style={{
                     width: `${(p.confidence_distribution.high / totalConf) * 100}%`,
                   }}
                   title={`High: ${p.confidence_distribution.high}`}
                 />
                 <div
-                  className="bg-yellow-500 transition-all"
+                  className="bg-tc-warning transition-all"
                   style={{
                     width: `${(p.confidence_distribution.medium / totalConf) * 100}%`,
                   }}
                   title={`Medium: ${p.confidence_distribution.medium}`}
                 />
                 <div
-                  className="bg-red-500 transition-all"
+                  className="bg-tc-danger transition-all"
                   style={{
                     width: `${(p.confidence_distribution.low / totalConf) * 100}%`,
                   }}
                   title={`Low: ${p.confidence_distribution.low}`}
                 />
                 <div
-                  className="bg-gray-600 transition-all"
+                  className="bg-tc-muted transition-all"
                   style={{
                     width: `${(p.confidence_distribution.none / totalConf) * 100}%`,
                   }}
@@ -375,19 +375,19 @@ export default function AIInsightsPage() {
           </div>
           <div className="flex gap-4 mt-2 text-[10px] text-[var(--tc-muted)]">
             <span className="flex items-center gap-1">
-              <span className="inline-block w-2 h-2 rounded-full bg-emerald-500" />{' '}
+              <span className="inline-block w-2 h-2 rounded-full bg-tc-success" />{' '}
               High ({p.confidence_distribution.high})
             </span>
             <span className="flex items-center gap-1">
-              <span className="inline-block w-2 h-2 rounded-full bg-yellow-500" />{' '}
+              <span className="inline-block w-2 h-2 rounded-full bg-tc-warning" />{' '}
               Medium ({p.confidence_distribution.medium})
             </span>
             <span className="flex items-center gap-1">
-              <span className="inline-block w-2 h-2 rounded-full bg-red-500" />{' '}
+              <span className="inline-block w-2 h-2 rounded-full bg-tc-danger" />{' '}
               Low ({p.confidence_distribution.low})
             </span>
             <span className="flex items-center gap-1">
-              <span className="inline-block w-2 h-2 rounded-full bg-gray-600" />{' '}
+              <span className="inline-block w-2 h-2 rounded-full bg-tc-muted" />{' '}
               No score ({p.confidence_distribution.none})
             </span>
           </div>
@@ -424,7 +424,11 @@ export default function AIInsightsPage() {
                         {s.avg_confidence}% avg · {s.count} answers
                       </span>
                     </div>
-                    <HBar value={s.count} max={maxWeak} color="#eab308" />
+                    <HBar
+                      value={s.count}
+                      max={maxWeak}
+                      color="var(--tc-warning)"
+                    />
                   </div>
                 ))}
               </div>
@@ -458,7 +462,7 @@ export default function AIInsightsPage() {
                     <HBar
                       value={s.insufficient_count}
                       max={maxInsuff}
-                      color="#ef4444"
+                      color="var(--tc-danger)"
                     />
                   </div>
                 ))}
@@ -484,7 +488,7 @@ export default function AIInsightsPage() {
               </div>
             </div>
             <div className="text-center">
-              <div className="text-2xl font-bold text-amber-400">
+              <div className="text-2xl font-bold text-tc-warning">
                 {insights.mapping_quality.questions_without_signals}
               </div>
               <div className="text-[10px] uppercase tracking-wide text-[var(--tc-muted)]">
@@ -505,7 +509,7 @@ export default function AIInsightsPage() {
           <div className="text-xs font-medium text-[var(--tc-muted)] mb-2">
             Signal Quality Breakdown
           </div>
-          <div className="flex h-5 rounded-full overflow-hidden bg-white/5">
+          <div className="flex h-5 rounded-full overflow-hidden bg-tc-surface-sunken">
             {insights.mapping_quality.total_signals > 0 &&
               Object.entries(insights.mapping_quality.by_quality).map(
                 ([key, count]) => {
@@ -567,12 +571,12 @@ export default function AIInsightsPage() {
                     <HBar
                       value={e.answer_count}
                       max={maxEvBucket}
-                      color="#3b82f6"
+                      color="var(--tc-primary)"
                     />
                   </div>
                   <div className="w-16 text-right">
                     <span
-                      className={`text-xs font-bold ${e.avg_confidence >= 70 ? 'text-emerald-400' : e.avg_confidence >= 40 ? 'text-yellow-400' : 'text-red-400'}`}
+                      className={`text-xs font-bold ${e.avg_confidence >= 70 ? 'text-tc-success' : e.avg_confidence >= 40 ? 'text-tc-warning' : 'text-tc-danger'}`}
                     >
                       {e.avg_confidence}%
                     </span>
@@ -613,12 +617,12 @@ export default function AIInsightsPage() {
                     <HBar
                       value={f.count}
                       max={maxFailure}
-                      color={FAILURE_COLORS[f.reason] || '#94a3b8'}
+                      color={FAILURE_COLORS[f.reason] || 'var(--tc-muted)'}
                     />
                   </div>
                 ))}
               </div>
-              <div className="mt-4 pt-3 border-t border-white/10 text-[10px] text-[var(--tc-muted)] space-y-1">
+              <div className="mt-4 pt-3 border-t border-tc-border text-[10px] text-[var(--tc-muted)] space-y-1">
                 <div>
                   <strong className="text-[var(--tc-text)]">
                     No evidence available
@@ -665,7 +669,7 @@ export default function AIInsightsPage() {
                 {recommendations.map((r, i) => (
                   <div
                     key={i}
-                    className="flex items-start gap-3 py-2 border-b border-white/5 last:border-0"
+                    className="flex items-start gap-3 py-2 border-b border-tc-border last:border-0"
                   >
                     <span className="text-lg mt-0.5">📎</span>
                     <div className="flex-1 min-w-0">
@@ -674,7 +678,7 @@ export default function AIInsightsPage() {
                       </div>
                       <div className="text-[10px] text-[var(--tc-muted)]">
                         Could improve{' '}
-                        <strong className="text-emerald-400">
+                        <strong className="text-tc-success">
                           {r.improves_questions}
                         </strong>{' '}
                         questions
@@ -871,7 +875,7 @@ function AdvancedSettings({ onToast }: { onToast: (m: string) => void }) {
         />
       </div>
 
-      <div className="border-t border-white/10 pt-4">
+      <div className="border-t border-tc-border pt-4">
         <h4 className="text-xs font-semibold text-[var(--tc-muted)] uppercase mb-3">
           Confidence Thresholds
         </h4>
@@ -889,7 +893,7 @@ function AdvancedSettings({ onToast }: { onToast: (m: string) => void }) {
         </div>
       </div>
 
-      <div className="border-t border-white/10 pt-4">
+      <div className="border-t border-tc-border pt-4">
         <h4 className="text-xs font-semibold text-[var(--tc-muted)] uppercase mb-3">
           Retrieval Boost Values
         </h4>
@@ -958,11 +962,11 @@ function ToggleSetting({
           onChange={(e) => onChange(e.target.checked)}
           className="sr-only peer"
         />
-        <div className="h-5 w-9 rounded-full bg-white/10 peer-checked:bg-[var(--tc-primary)] transition-colors" />
-        <div className="absolute top-0.5 left-0.5 h-4 w-4 rounded-full bg-white/80 transition-transform peer-checked:translate-x-4" />
+        <div className="h-5 w-9 rounded-full bg-[var(--tc-disabled-bg)] peer-checked:bg-tc-primary transition-colors" />
+        <div className="absolute top-0.5 left-0.5 h-4 w-4 rounded-full bg-tc-on-primary transition-transform peer-checked:translate-x-4" />
       </div>
       <div>
-        <span className="text-xs font-medium text-[var(--tc-text)] group-hover:text-white">
+        <span className="text-xs font-medium text-[var(--tc-text)] group-hover:text-tc-text">
           {label}
         </span>
         {hint && (
@@ -994,7 +998,7 @@ function NumberSetting({
         onChange={(e) =>
           onChange(e.target.value === '' ? null : parseFloat(e.target.value))
         }
-        className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-1.5 text-xs text-[var(--tc-text)] outline-none focus:border-[var(--tc-primary)]"
+        className="w-full rounded-lg border border-tc-border bg-tc-surface-sunken px-3 py-1.5 text-xs text-[var(--tc-text)] outline-none focus:border-[var(--tc-primary)]"
       />
     </div>
   )

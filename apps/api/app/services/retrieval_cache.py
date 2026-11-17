@@ -8,6 +8,7 @@ from sqlalchemy import text
 from sqlalchemy.orm import Session
 
 from app.core.corpus_version import get_corpus_version
+from app.services.active_sources import retrieval_rows_are_stale
 
 logger = logging.getLogger(__name__)
 
@@ -41,9 +42,16 @@ def get(
     if row[1] != current_version:
         return None
     try:
-        return json.loads(row[0])
+        parsed = json.loads(row[0])
     except Exception:
         return None
+    if not isinstance(parsed, list):
+        return None
+    # A row written before the document was archived can still match the current
+    # corpus version. Do not serve it; the caller searches again.
+    if retrieval_rows_are_stale(db, workspace_id, parsed):
+        return None
+    return parsed
 
 
 def set(
@@ -75,6 +83,20 @@ def set(
         },
     )
     db.commit()
+
+
+def invalidate_after_document_visibility_change(db: Session, workspace_id: int) -> None:
+    """Bump the corpus version and drop this workspace's retrieval and answer caches.
+
+    Call after a document is soft-deleted or restored. The retrieval cache key
+    includes the corpus version. The answer cache does not, so it is cleared too.
+    """
+    from app.core.corpus_version import bump_corpus_version
+    from app.services.answer_cache import invalidate_workspace as invalidate_answers
+
+    bump_corpus_version(db, workspace_id)
+    invalidate_workspace(db, workspace_id)
+    invalidate_answers(db, workspace_id)
 
 
 def invalidate_workspace(db: Session, workspace_id: int) -> int:

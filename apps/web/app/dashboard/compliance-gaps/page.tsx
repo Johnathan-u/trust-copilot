@@ -84,20 +84,34 @@ type CoverageData = {
   control_coverage: ControlCoverage
 }
 
-const BLUES = ['#5b7cff', '#7c93ff', '#3b5bdb', '#4263eb', '#5c7cfa', '#748ffc']
-const WARM = [
-  '#f59e0b',
-  '#ef4444',
-  '#f97316',
-  '#ec4899',
-  '#e11d48',
-  '#d97706',
-  '#dc2626',
-  '#ea580c',
-  '#db2777',
-  '#be123c',
+const BLUES = [
+  'var(--tc-primary)',
+  'var(--tc-primary-2)',
+  'var(--tc-primary-solid)',
+  'var(--tc-primary-solid)',
+  'var(--tc-primary)',
+  'var(--tc-primary-2)',
 ]
-const TEAL = ['#10b981', '#06b6d4', '#14b8a6', '#0ea5e9', '#059669', '#0891b2']
+const WARM = [
+  'var(--tc-warning)',
+  'var(--tc-danger)',
+  'var(--tc-warning)',
+  'var(--tc-danger)',
+  'var(--tc-danger)',
+  'var(--tc-warning)',
+  'var(--tc-danger)',
+  'var(--tc-warning)',
+  'var(--tc-danger)',
+  'var(--tc-danger)',
+]
+const TEAL = [
+  'var(--tc-success)',
+  'var(--tc-info)',
+  'var(--tc-success)',
+  'var(--tc-info)',
+  'var(--tc-success)',
+  'var(--tc-info)',
+]
 
 function KPICard({
   label,
@@ -489,25 +503,33 @@ function CoverageReport({
               label="Draft records per question"
               value={`${kpi.coverage_pct}%`}
               sub={`${kpi.total_drafted} draft answer records / ${kpi.total_questions} questions`}
-              color="#10b981"
+              color="var(--tc-success)"
             />
             <KPICard
               label="High Confidence"
               value={`${kpi.high_confidence_pct}%`}
               sub="of draft answer records"
-              color="#5b7cff"
+              color="var(--tc-primary)"
             />
             <KPICard
               label="Insufficient records per question"
               value={`${kpi.insufficient_pct}%`}
               sub={`${kpi.total_insufficient} insufficient answer records / ${kpi.total_questions} questions`}
-              color={kpi.insufficient_pct > 20 ? '#ef4444' : '#f59e0b'}
+              color={
+                kpi.insufficient_pct > 20
+                  ? 'var(--tc-danger)'
+                  : 'var(--tc-warning)'
+              }
             />
             <KPICard
               label="Blind Spots"
               value={String(kpi.blind_spot_count)}
               sub="subject areas with gaps"
-              color={kpi.blind_spot_count > 3 ? '#ef4444' : '#f59e0b'}
+              color={
+                kpi.blind_spot_count > 3
+                  ? 'var(--tc-danger)'
+                  : 'var(--tc-warning)'
+              }
             />
           </div>
 
@@ -540,7 +562,7 @@ function CoverageReport({
                     </span>
                     /{f.total} drafted
                     {f.insufficient > 0 && (
-                      <span className="text-amber-400 ml-1">
+                      <span className="text-tc-warning ml-1">
                         ({f.insufficient} insufficient)
                       </span>
                     )}
@@ -626,7 +648,7 @@ function CoverageReport({
                   >
                     <CartesianGrid
                       strokeDasharray="3 3"
-                      stroke="rgba(255,255,255,0.06)"
+                      stroke="var(--tc-grid)"
                     />
                     <XAxis
                       dataKey="date"
@@ -655,7 +677,7 @@ function CoverageReport({
                       type="monotone"
                       dataKey="coverage_pct"
                       name="Coverage %"
-                      stroke="#10b981"
+                      stroke="var(--tc-success)"
                       strokeWidth={2}
                       dot={false}
                     />
@@ -663,7 +685,7 @@ function CoverageReport({
                       type="monotone"
                       dataKey="insufficient_pct"
                       name="Insufficient %"
-                      stroke="#ef4444"
+                      stroke="var(--tc-danger)"
                       strokeWidth={2}
                       dot={false}
                     />
@@ -671,7 +693,7 @@ function CoverageReport({
                       type="monotone"
                       dataKey="low_confidence_pct"
                       name="Low Confidence %"
-                      stroke="#f59e0b"
+                      stroke="var(--tc-warning)"
                       strokeWidth={2}
                       dot={false}
                     />
@@ -776,7 +798,7 @@ function CoverageReport({
                       {drill_down.map((row, i) => (
                         <tr
                           key={i}
-                          className="border-b border-[var(--tc-border)] border-opacity-30 hover:bg-white/[0.02]"
+                          className="border-b border-[var(--tc-border)] border-opacity-30 hover:bg-[var(--tc-hover)]"
                         >
                           <td className="py-2 pr-4 text-[var(--tc-text)]">
                             {row.subject}
@@ -794,7 +816,7 @@ function CoverageReport({
                             <span
                               className={
                                 row.low_confidence > 0
-                                  ? 'text-amber-400'
+                                  ? 'text-tc-warning'
                                   : 'text-[var(--tc-muted)]'
                               }
                             >
@@ -805,7 +827,7 @@ function CoverageReport({
                             <span
                               className={
                                 row.insufficient > 0
-                                  ? 'text-red-400'
+                                  ? 'text-tc-danger'
                                   : 'text-[var(--tc-muted)]'
                               }
                             >

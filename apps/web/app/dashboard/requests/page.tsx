@@ -55,20 +55,26 @@ type Questionnaire = {
 /* ──────────────────── Helpers ──────────────────── */
 
 const STATUS_STYLE: Record<string, { label: string; color: string }> = {
-  pending: { label: 'Pending', color: 'bg-amber-500/15 text-amber-400' },
-  in_progress: { label: 'In Progress', color: 'bg-blue-500/15 text-blue-400' },
+  pending: {
+    label: 'Pending',
+    color: 'bg-[var(--tc-warning-surface)] text-tc-warning',
+  },
+  in_progress: {
+    label: 'In Progress',
+    color: 'bg-[var(--tc-info-surface)] text-tc-info',
+  },
   expired: { label: 'Expired', color: 'bg-tc-surface-raised text-tc-muted' },
   revoked: { label: 'Revoked', color: 'bg-tc-surface-raised text-tc-muted' },
   completed: {
     label: 'Completed',
-    color: 'bg-emerald-500/15 text-emerald-400',
+    color: 'bg-[var(--tc-success-surface)] text-tc-success',
   },
 }
 
 function statusBadge(status: string) {
   const s = STATUS_STYLE[status] ?? {
     label: status,
-    color: 'bg-slate-500/15 text-slate-400',
+    color: 'bg-tc-surface-sunken text-tc-muted',
   }
   return (
     <span
@@ -649,7 +655,7 @@ function WorkspaceRequests({
                       return (
                         <tr
                           key={req.id}
-                          className="border-b border-[var(--tc-border)] last:border-0 hover:bg-white/[0.02] transition"
+                          className="border-b border-[var(--tc-border)] last:border-0 hover:bg-[var(--tc-hover)] transition"
                         >
                           <td className="px-5 py-3">
                             <span className="text-[var(--tc-text)] font-medium break-all">
@@ -840,7 +846,7 @@ function WorkspaceRequests({
                 htmlFor="vendor-email"
                 className="block text-xs font-medium text-[var(--tc-muted)] mb-1"
               >
-                Vendor Email <span className="text-red-400">*</span>
+                Vendor Email <span className="text-tc-danger">*</span>
               </label>
               <Input
                 id="vendor-email"

@@ -372,7 +372,7 @@ export default function QuestionnaireDetailPage() {
                   key={d.id}
                   className={`inline-flex cursor-pointer items-center gap-2 rounded-xl border px-3 py-2 text-xs transition ${
                     selectedIds.has(d.id)
-                      ? 'border-[rgba(91,124,255,0.45)] bg-[rgba(91,124,255,0.12)] text-[var(--tc-text)]'
+                      ? 'border-[var(--tc-primary)] bg-[var(--tc-info-surface)] text-[var(--tc-text)]'
                       : 'border-[var(--tc-border)] bg-[var(--tc-panel-2)] text-[var(--tc-muted)] hover:border-[var(--tc-border-strong)]'
                   }`}
                 >
@@ -400,7 +400,7 @@ export default function QuestionnaireDetailPage() {
                 {selectedList.map((d) => (
                   <li
                     key={d.id}
-                    className="rounded-lg border border-[var(--tc-border)] bg-white/5 px-2.5 py-1 text-xs text-[var(--tc-text)] max-w-[280px] truncate"
+                    className="rounded-lg border border-[var(--tc-border)] bg-tc-surface-sunken px-2.5 py-1 text-xs text-[var(--tc-text)] max-w-[280px] truncate"
                     title={d.filename}
                   >
                     {d.filename}
@@ -465,7 +465,7 @@ export default function QuestionnaireDetailPage() {
               <div className="text-[10px] uppercase tracking-wide text-[var(--tc-muted)]">
                 Answered
               </div>
-              <div className="text-xl font-bold text-emerald-400">
+              <div className="text-xl font-bold text-tc-success">
                 {answerStats.answered}
               </div>
             </div>
@@ -473,7 +473,7 @@ export default function QuestionnaireDetailPage() {
               <div className="text-[10px] uppercase tracking-wide text-[var(--tc-muted)]">
                 Not answered
               </div>
-              <div className="text-xl font-bold text-amber-400">
+              <div className="text-xl font-bold text-tc-warning">
                 {answerStats.not_answered}
               </div>
             </div>
@@ -512,7 +512,7 @@ export default function QuestionnaireDetailPage() {
                 {Object.entries(answerStats.gating_breakdown).map(([k, v]) => (
                   <span
                     key={k}
-                    className="rounded-full border border-amber-500/30 bg-amber-500/10 px-2.5 py-0.5 text-xs text-amber-400"
+                    className="rounded-full border border-tc-warning bg-[var(--tc-warning-surface)] px-2.5 py-0.5 text-xs text-tc-warning"
                   >
                     {GATING_LABELS[k] ?? k}: <strong>{v}</strong>
                   </span>
