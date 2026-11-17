@@ -1,6 +1,7 @@
 # TC-17-005a AC4 CI runs
 # Workflow: CI (.github/workflows/ci.yml)
 # Required jobs: build, web-release-e2e
+# Local rotation filter after the master merge: 13 passed, 20 deselected.
 
 # Head 2f33ceef0e9f9458b7e5fd304d10731b0f3b8f49
 # The runbook used token= placeholders. tests/release/test_secret_inventory.py failed
@@ -19,4 +20,23 @@
 #   web-release-e2e success
 # pull_request https://github.com/Johnathan-u/trust-copilot/actions/runs/43965365182 conclusion success
 #   build success
+#   web-release-e2e success
+
+# Head cf550f4a8d2a0b35253c390df4339741921f0456
+# Evidence-only commit of the runs above.
+# push https://github.com/Johnathan-u/trust-copilot/actions/runs/43968646815 conclusion success
+#   build success
+#   web-release-e2e success
+# pull_request https://github.com/Johnathan-u/trust-copilot/actions/runs/43968661988 conclusion success
+#   build success
+#   web-release-e2e success
+
+# Head 9ecb158ad40342ea43e05b76b27b38df52e8e23d
+# Merged master through f6bd5f30 and kept both ticket notes.
+# Superseded by the merge of 761c0d49 before build finished.
+# push https://github.com/Johnathan-u/trust-copilot/actions/runs/43985481075
+#   build in progress when this file was written
+#   web-release-e2e success
+# pull_request https://github.com/Johnathan-u/trust-copilot/actions/runs/43985488671
+#   build in progress when this file was written
 #   web-release-e2e success
