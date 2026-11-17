@@ -40,6 +40,7 @@ from app.services.registry_lifecycle import (
     soft_delete_record,
     update_metadata_json_fields,
 )
+from app.services.retrieval_cache import invalidate_after_document_visibility_change
 from app.services.storage import StorageClient, get_storage
 from app.services.tag_service import list_tags_for_documents
 
@@ -311,6 +312,8 @@ def bulk_delete_documents(
             details={"display_id": doc.display_id},
         )
     db.commit()
+    if docs:
+        invalidate_after_document_visibility_change(db, workspace_id)
     return {"deleted": len(docs), "errors": []}
 
 
@@ -338,6 +341,7 @@ def delete_document(
     preview = build_delete_preview("document", db, workspace_id, document_id)
     soft_delete_record(doc, session.get("user_id"))
     db.commit()
+    invalidate_after_document_visibility_change(db, workspace_id)
     persist_audit(
         db,
         "document.soft_delete",
@@ -416,6 +420,7 @@ def restore_document(
         raise HTTPException(status_code=404, detail="Archived document not found")
     restore_record(doc)
     db.commit()
+    invalidate_after_document_visibility_change(db, workspace_id)
     persist_audit(
         db,
         "document.restore",

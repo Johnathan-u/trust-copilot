@@ -83,6 +83,8 @@ def batch_supporting_evidence_for_workspace_controls(
         if not ev:
             continue
         doc = doc_by_id.get(ev.document_id) if ev.document_id else None
+        if ev.document_id and doc is None:
+            continue
         conf = ln.confidence_score if ln.confidence_score is not None else 0.0
         verified = bool(ln.verified)
         sort_key = (0 if verified else 1, -conf, ev.id)

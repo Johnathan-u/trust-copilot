@@ -7,11 +7,14 @@ Turns evidence into reusable infrastructure.
 import logging
 from datetime import datetime, timezone  # noqa: F401
 
+from sqlalchemy import and_, or_
 from sqlalchemy.orm import Session
 
 from app.models.control_evidence_link import ControlEvidenceLink
+from app.models.document import Document
 from app.models.evidence_item import EvidenceItem
 from app.models.evidence_metadata import EvidenceMetadata  # noqa: F401
+from app.services.active_sources import document_is_citable
 
 logger = logging.getLogger(__name__)
 
@@ -29,6 +32,15 @@ def search(
     offset: int = 0,
 ) -> dict:
     q = db.query(EvidenceItem).filter(EvidenceItem.workspace_id == workspace_id)
+    q = q.outerjoin(Document, Document.id == EvidenceItem.document_id).filter(
+        or_(
+            EvidenceItem.document_id.is_(None),
+            and_(
+                Document.workspace_id == workspace_id,
+                Document.deleted_at.is_(None),
+            ),
+        )
+    )
 
     if control_id is not None:
         evidence_ids = [
@@ -81,7 +93,7 @@ def get_by_control(db: Session, workspace_id: int, control_id: int) -> list[dict
             )
             .first()
         )
-        if ev:
+        if ev and document_is_citable(db, workspace_id, ev.document_id):
             d = _serialize(ev)
             d["confidence_score"] = link.confidence_score
             d["verified"] = link.verified
