@@ -46,4 +46,4 @@ The logs contain the synthetic fixture host `example.com` and the string `javasc
 
 ## CI
 
-`ci-runs.md` is added after `build` and `web-release-e2e` are green on both `push` and `pull_request` for the commit that contains these logs. That follow-up commit records those run IDs. The follow-up commit's own run IDs are in the pull request body.
+`build` and `web-release-e2e` run IDs for qualifying head `b89eef73128f645fa7efc61f369eef2d7954aa24` are in [ci-runs.md](ci-runs.md). That head was squash-merged as `00ee1f7cf75ea3cb218f3eabcee5a0d0c19c1620` (#273).
