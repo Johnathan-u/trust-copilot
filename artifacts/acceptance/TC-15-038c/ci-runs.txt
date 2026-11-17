@@ -1,30 +1,20 @@
-Qualifying head c3525e899f94e919d6a976c49ab187040e17c2f5
+Qualifying head 5d54262badc8e522b1a1b630eab4b1bc8a1c599a
 
 CI workflow CI. build and web-release-e2e are success on both events.
+This head drops the evidence-parse worker and publishes parse and index
+progress on a separate session.
 
 push
-  run 43957871776 conclusion success
-  https://github.com/Johnathan-u/trust-copilot/actions/runs/43957871776
-  build 133617130185 success
-  web-release-e2e 133617129327 success
+  run 43988439601 conclusion success
+  https://github.com/Johnathan-u/trust-copilot/actions/runs/43988439601
+  build 133722522278 success
+  web-release-e2e 133722522675 success
 
 pull_request
-  run 43957884607 conclusion success
-  https://github.com/Johnathan-u/trust-copilot/actions/runs/43957884607
-  build 133617160937 success
-  web-release-e2e 133617161703 success
+  run 43988448424 conclusion success
+  https://github.com/Johnathan-u/trust-copilot/actions/runs/43988448424
+  build 133722556028 success
+  web-release-e2e 133722555718 success
 
-Earlier head 8ed0506c9a4f5b9734d75a7f7b08cd6a6fd872b6 is not qualifying.
-pre-commit failed on ruff-format and the evidence file ending.
-
-push
-  run 43956802862 conclusion failure
-  https://github.com/Johnathan-u/trust-copilot/actions/runs/43956802862
-  build failure
-  web-release-e2e success
-
-pull_request
-  run 43956831960 conclusion failure
-  https://github.com/Johnathan-u/trust-copilot/actions/runs/43956831960
-  build failure
-  web-release-e2e success
+Earlier head 6400bae2 is the review base. Its live-observation tests fail
+because another session sees no committed pair while the job is running.
