@@ -53,6 +53,7 @@ def index_document(
     job_id: int | None = None,
     effects=None,
     effect_name: str = "chunks",
+    progress=None,
 ) -> int:
     """
     Parse document, create chunks with metadata, generate embeddings, persist.
@@ -62,6 +63,7 @@ def index_document(
 
     ``effects`` (TC-10-003, optional ``JobEffects``): records a provider-call marker before the paid embedding
     call, and commits the ``effect_name`` applied marker atomically with the chunks so a re-run skips re-embedding.
+    ``progress``, when set, is called with ``(embedded, total_chunks)`` as embeddings are written.
     """
     doc = db.query(Document).filter(Document.id == document_id).first()
     if not doc:
@@ -145,6 +147,7 @@ def index_document(
         embeddings = embed_texts(texts)
 
         embedded_count = 0
+        total_chunks = len(chunks)
         for ch, emb in zip(chunks, embeddings):
             if emb is None:
                 continue
@@ -158,9 +161,13 @@ def index_document(
                 {"v": vec_str, "id": ch.id},
             )
             embedded_count += 1
+            if progress is not None:
+                progress(embedded_count, total_chunks)
 
         # No false "indexed": require at least one embedded chunk (Fix 2). Single commit (Fix 3).
         if embedded_count == 0:
+            if progress is not None:
+                progress(0, total_chunks)
             doc.status = "failed"
             doc.index_error = (
                 "No embeddings could be written (API error or dimension mismatch); document not indexed"

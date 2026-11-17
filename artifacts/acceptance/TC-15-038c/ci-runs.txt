@@ -1,0 +1,20 @@
+Qualifying head 5d54262badc8e522b1a1b630eab4b1bc8a1c599a
+
+CI workflow CI. build and web-release-e2e are success on both events.
+This head drops the evidence-parse worker and publishes parse and index
+progress on a separate session.
+
+push
+  run 43988439601 conclusion success
+  https://github.com/Johnathan-u/trust-copilot/actions/runs/43988439601
+  build 133722522278 success
+  web-release-e2e 133722522675 success
+
+pull_request
+  run 43988448424 conclusion success
+  https://github.com/Johnathan-u/trust-copilot/actions/runs/43988448424
+  build 133722556028 success
+  web-release-e2e 133722555718 success
+
+Earlier head 6400bae2 is the review base. Its live-observation tests fail
+because another session sees no committed pair while the job is running.

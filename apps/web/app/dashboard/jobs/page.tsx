@@ -41,7 +41,29 @@ const outcomes = {
   reconciled: 'The existing result was recovered.',
   superseded: 'A newer operation replaced this result.',
 }
+function progressFacts(job: SafeJob): { text: string; label: string } | null {
+  if (!job.progress) return null
+  const counts = `${job.progress.generated} of ${job.progress.total}`
+  switch (job.kind) {
+    case 'parse_questionnaire':
+      return { text: `${counts} questions parsed`, label: 'Questions parsed' }
+    case 'parse_evidence':
+      return {
+        text: `${counts} evidence items parsed`,
+        label: 'Evidence items parsed',
+      }
+    case 'index_document':
+      return { text: `${counts} chunks indexed`, label: 'Chunks indexed' }
+    case 'export':
+      return { text: `${counts} answers exported`, label: 'Answers exported' }
+    case 'generate_answers':
+      return { text: `${counts} answers generated`, label: 'Answers generated' }
+    default:
+      return null
+  }
+}
 function JobFacts({ job }: { job: SafeJob }) {
+  const measured = progressFacts(job)
   return (
     <div className="space-y-tc-3 text-tc-label text-tc-text">
       <p className="font-semibold">
@@ -70,15 +92,13 @@ function JobFacts({ job }: { job: SafeJob }) {
           </dd>
         </div>
       </dl>
-      {job.progress ? (
+      {measured && job.progress ? (
         <div>
-          <p>
-            {job.progress.generated} of {job.progress.total} answers generated
-          </p>
+          <p>{measured.text}</p>
           {job.progress.total > 0 && (
             <progress
               className="w-full"
-              aria-label="Answers generated"
+              aria-label={measured.label}
               value={job.progress.generated}
               max={job.progress.total}
             />

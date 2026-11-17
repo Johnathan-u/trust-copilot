@@ -77,6 +77,48 @@ async function open() {
   await screen.findByRole('article', { name: 'Generate answers' })
   return view
 }
+it('shows recorded counts for parse, evidence parse, index and export', async () => {
+  const kinds = [
+    ['parse_questionnaire', 'Parse questionnaire', '2 of 6 questions parsed'],
+    ['parse_evidence', 'Parse evidence', '3 of 7 evidence items parsed'],
+    ['index_document', 'Index document', '4 of 8 chunks indexed'],
+    ['export', 'Export questionnaire', '5 of 9 answers exported'],
+  ] as const
+  fetcher = async () =>
+    json({
+      items: [
+        ...kinds.map(([kind], index) => ({
+          ...row,
+          id: 50 - index,
+          kind,
+          charge_uncertain: false,
+          progress: { generated: index + 2, total: index + 6 },
+          object_ref:
+            kind === 'index_document' || kind === 'parse_evidence'
+              ? { type: 'document', id: 8 }
+              : { type: 'questionnaire', id: 9 },
+        })),
+        {
+          ...row,
+          id: 40,
+          kind: 'export',
+          charge_uncertain: false,
+          progress: null,
+          object_ref: { type: 'questionnaire', id: 9 },
+        },
+      ],
+      next_before_id: null,
+    })
+  render(createElement(JobsPage))
+  await screen.findByText('2 of 6 questions parsed')
+  for (const [, title, text] of kinds) {
+    const article = screen.getByText(text).closest('article')
+    expect(article?.getAttribute('aria-label')).toBe(title)
+    expect(article?.textContent).not.toContain('Progress not reported')
+  }
+  const quiet = screen.getByText('Progress not reported').closest('article')
+  expect(quiet?.getAttribute('aria-label')).toBe('Export questionnaire')
+})
 it('reads once in StrictMode and displays safe progress and authorized links', async () => {
   render(createElement(StrictMode, null, createElement(JobsPage)))
   await screen.findByText('2 of 5 answers generated')
