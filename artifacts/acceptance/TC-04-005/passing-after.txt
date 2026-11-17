@@ -1,0 +1,24 @@
+# TC-04-005 passing tests with the membership re-read restored
+
+Command: python -m pytest tests/release/test_session_revocation.py -q --tb=short
+Working directory: apps/api
+Auth under test: restored to 0fb552fc449c70b947406c855e10be170ed8f26a.
+git diff apps/api/app/core/auth_deps.py was empty.
+Python 3.12.3, pytest 9.1.1, SQLAlchemy 2.0.55, FastAPI 0.162.0.
+SQLite in memory, and PostgreSQL 16.15 database trustcopilot_test on localhost.
+Exit status: 0
+Result: 10 passed, 0 failed, 0 skipped
+
+..........                                                               [100%]
+=============================== warnings summary ===============================
+tests/release/test_session_revocation.py: 10 warnings
+  /agent/repos/trust-copilot/apps/api/tests/release/test_session_revocation.py:221: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    created = datetime.utcnow()
+
+tests/release/test_session_revocation.py: 24 warnings
+  /tmp/tc-api-venv/lib/python3.12/site-packages/sqlalchemy/sql/schema.py:3627: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    return util.wrap_callable(lambda ctx: fn(), fn)  # type: ignore
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+10 passed, 34 warnings in 2.03s
+EXIT:0
