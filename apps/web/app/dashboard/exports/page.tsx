@@ -155,7 +155,7 @@ export default function ExportsPage() {
                     <td className="p-3 text-[var(--tc-text)]">{r.filename}</td>
                     <td className="p-3">
                       <span
-                        className={`px-2 py-0.5 rounded text-xs ${r.status === 'completed' ? 'bg-green-500/20 text-green-400' : 'bg-white/10 text-[var(--tc-muted)]'}`}
+                        className={`px-2 py-0.5 rounded text-xs ${r.status === 'completed' ? 'bg-[var(--tc-success-surface)] text-tc-success' : 'bg-tc-surface-sunken text-[var(--tc-muted)]'}`}
                       >
                         {r.status}
                       </span>

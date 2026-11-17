@@ -644,7 +644,7 @@ export function Topbar({ navOpen, onToggleNav, menuButtonRef }: TopbarProps) {
               style={{ background: 'var(--tc-surface-overlay)' }}
             >
               {/* Header */}
-              <div className="px-4 py-3 border-b border-white/5">
+              <div className="px-4 py-3 border-b border-tc-border">
                 <div className="flex items-center gap-3">
                   <div
                     className="grid h-9 w-9 shrink-0 place-items-center rounded-full font-bold text-sm text-tc-on-primary"
@@ -662,7 +662,7 @@ export function Topbar({ navOpen, onToggleNav, menuButtonRef }: TopbarProps) {
                   </div>
                 </div>
                 <div className="flex items-center gap-2 mt-2">
-                  <span className="inline-flex items-center rounded-full border border-white/10 bg-white/5 px-2 py-0.5 text-[10px] font-medium text-[var(--tc-muted)]">
+                  <span className="inline-flex items-center rounded-full border border-tc-border bg-tc-surface-sunken px-2 py-0.5 text-[10px] font-medium text-[var(--tc-muted)]">
                     {userRole}
                   </span>
                   {workspace && (
@@ -698,7 +698,7 @@ export function Topbar({ navOpen, onToggleNav, menuButtonRef }: TopbarProps) {
               {/* Admin AI Settings */}
               {isAdmin && (
                 <>
-                  <div className="border-t border-white/5" />
+                  <div className="border-t border-tc-border" />
                   <div className="px-4 py-3">
                     <div className="text-[10px] font-semibold uppercase tracking-wider text-[var(--tc-muted)] mb-2">
                       AI Settings
@@ -727,7 +727,7 @@ export function Topbar({ navOpen, onToggleNav, menuButtonRef }: TopbarProps) {
                         type="button"
                         onClick={saveAiSettings}
                         disabled={aiSaving}
-                        className="w-full rounded-lg border border-white/10 bg-white/5 py-1.5 text-[11px] font-medium text-[var(--tc-text)] hover:bg-white/10 disabled:opacity-50 transition-colors"
+                        className="w-full rounded-lg border border-tc-border bg-tc-surface-sunken py-1.5 text-[11px] font-medium text-[var(--tc-text)] hover:bg-[var(--tc-hover)] disabled:opacity-50 transition-colors"
                       >
                         {aiSaving
                           ? actionVerb('save', 'pending')
@@ -749,14 +749,14 @@ export function Topbar({ navOpen, onToggleNav, menuButtonRef }: TopbarProps) {
                       ) : null}
                     </div>
 
-                    <div className="mt-3 pt-3 border-t border-white/5">
+                    <div className="mt-3 pt-3 border-t border-tc-border">
                       <label className="flex items-center gap-2.5 cursor-pointer">
                         <div
-                          className={`relative w-8 h-[18px] rounded-full transition-colors ${automateEverything ? 'bg-[rgba(91,124,255,0.5)]' : 'bg-white/10'}`}
+                          className={`relative w-8 h-[18px] rounded-full transition-colors ${automateEverything ? 'bg-tc-primary' : 'bg-[var(--tc-disabled-bg)]'}`}
                           onClick={toggleAutomate}
                         >
                           <div
-                            className={`absolute top-[2px] left-[2px] w-[14px] h-[14px] rounded-full bg-white transition-transform ${automateEverything ? 'translate-x-[14px]' : ''}`}
+                            className={`absolute top-[2px] left-[2px] w-[14px] h-[14px] rounded-full bg-tc-on-primary transition-transform ${automateEverything ? 'translate-x-[14px]' : ''}`}
                           />
                         </div>
                         <div>

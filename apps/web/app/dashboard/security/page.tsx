@@ -101,9 +101,9 @@ const EVENT_SEVERITY: Record<string, 'high' | 'medium' | 'low'> = {
 
 function severityDot(action: string): string {
   const sev = EVENT_SEVERITY[action]
-  if (sev === 'high') return 'bg-red-500'
-  if (sev === 'medium') return 'bg-amber-500'
-  return 'bg-emerald-500'
+  if (sev === 'high') return 'bg-tc-danger'
+  if (sev === 'medium') return 'bg-tc-warning'
+  return 'bg-tc-success'
 }
 
 function timeAgo(ts: string): string {
@@ -207,20 +207,20 @@ export default function SecurityPage() {
   const riskConfig = {
     low: {
       label: 'Good',
-      color: '#10b981',
-      bg: 'bg-emerald-500/10 border-emerald-500/20',
+      color: 'var(--tc-success)',
+      bg: 'bg-[var(--tc-success-surface)] border-tc-success',
       icon: '✅',
     },
     medium: {
       label: 'Fair',
-      color: '#eab308',
-      bg: 'bg-yellow-500/10 border-yellow-500/20',
+      color: 'var(--tc-warning)',
+      bg: 'bg-[var(--tc-warning-surface)] border-tc-warning',
       icon: '⚠️',
     },
     high: {
       label: 'At Risk',
-      color: '#ef4444',
-      bg: 'bg-red-500/10 border-red-500/20',
+      color: 'var(--tc-danger)',
+      bg: 'bg-[var(--tc-danger-surface)] border-tc-danger',
       icon: '🔴',
     },
   }
@@ -288,14 +288,14 @@ export default function SecurityPage() {
           <div className="space-y-1.5 mt-2">
             {warnings.map((w, i) => (
               <div key={i} className="flex items-start gap-2 text-xs">
-                <span className="mt-0.5 inline-block w-1.5 h-1.5 rounded-full bg-amber-500 flex-shrink-0" />
+                <span className="mt-0.5 inline-block w-1.5 h-1.5 rounded-full bg-tc-warning flex-shrink-0" />
                 <span className="text-[var(--tc-text)]">{w}</span>
               </div>
             ))}
           </div>
         )}
         {!mfaEnabled && (
-          <div className="mt-3 pt-3 border-t border-white/10">
+          <div className="mt-3 pt-3 border-t border-tc-border">
             <p className="text-xs text-[var(--tc-muted)] mb-2">
               Enabling two-factor authentication is the single most effective
               way to protect your account.
@@ -442,7 +442,7 @@ function MfaSection({
             Add this secret to your authenticator app (Google Authenticator,
             Authy, etc.):
           </p>
-          <p className="font-mono text-xs bg-white/5 p-2.5 rounded border border-[var(--tc-border)] mb-3 break-all select-all">
+          <p className="font-mono text-xs bg-tc-surface-sunken p-2.5 rounded border border-[var(--tc-border)] mb-3 break-all select-all">
             {secret}
           </p>
           <form onSubmit={confirmMfa} className="space-y-2">
@@ -485,7 +485,7 @@ function MfaSection({
             Save these recovery codes in a safe place. Each can be used once if
             you lose your authenticator.
           </p>
-          <div className="font-mono text-xs bg-white/5 p-3 rounded border border-[var(--tc-border)] mb-3 space-y-0.5 select-all">
+          <div className="font-mono text-xs bg-tc-surface-sunken p-3 rounded border border-[var(--tc-border)] mb-3 space-y-0.5 select-all">
             {recoveryCodes.map((c, i) => (
               <div key={i}>{c}</div>
             ))}
@@ -517,7 +517,7 @@ function MfaSection({
               type="submit"
               size="sm"
               variant="ghost"
-              className="text-red-400"
+              className="text-tc-danger"
               disabled={submitting}
             >
               {submitting ? 'Disabling...' : 'Disable MFA'}
@@ -539,7 +539,7 @@ function MfaSection({
         <div>
           <div className="flex items-center gap-2 mb-3">
             <span
-              className={`inline-block w-2 h-2 rounded-full ${mfaEnabled ? 'bg-emerald-500' : 'bg-red-500'}`}
+              className={`inline-block w-2 h-2 rounded-full ${mfaEnabled ? 'bg-tc-success' : 'bg-tc-danger'}`}
             />
             <span className="text-sm text-[var(--tc-text)]">
               {mfaEnabled ? 'Enabled' : 'Not enabled'}
@@ -554,7 +554,7 @@ function MfaSection({
             <Button
               size="sm"
               variant="ghost"
-              className="text-red-400"
+              className="text-tc-danger"
               onClick={() => setStep('disable')}
             >
               Disable MFA
@@ -807,8 +807,8 @@ function WorkspacePolicySection() {
               }}
               className="sr-only peer"
             />
-            <div className="h-5 w-9 rounded-full bg-white/10 peer-checked:bg-[var(--tc-primary)] transition-colors" />
-            <div className="absolute top-0.5 left-0.5 h-4 w-4 rounded-full bg-white/80 transition-transform peer-checked:translate-x-4" />
+            <div className="h-5 w-9 rounded-full bg-[var(--tc-disabled-bg)] peer-checked:bg-tc-primary transition-colors" />
+            <div className="absolute top-0.5 left-0.5 h-4 w-4 rounded-full bg-tc-on-primary transition-transform peer-checked:translate-x-4" />
           </div>
           <div>
             <span className="text-xs font-medium text-[var(--tc-text)]">
@@ -837,7 +837,7 @@ function WorkspacePolicySection() {
               )
               setSaved(false)
             }}
-            className="w-40 rounded-lg border border-white/10 bg-white/5 px-3 py-1.5 text-xs text-[var(--tc-text)] outline-none focus:border-[var(--tc-primary)]"
+            className="w-40 rounded-lg border border-tc-border bg-tc-surface-sunken px-3 py-1.5 text-xs text-[var(--tc-text)] outline-none focus:border-[var(--tc-primary)]"
           />
           <p className="text-[10px] text-[var(--tc-muted)] mt-1">
             Leave empty for default (7 days). Maximum 90 days.
@@ -1005,12 +1005,12 @@ function SessionsSection({
             ))}
           </div>
 
-          <div className="mt-4 pt-3 border-t border-white/10 flex flex-wrap gap-2">
+          <div className="mt-4 pt-3 border-t border-tc-border flex flex-wrap gap-2">
             {otherSessions.length > 0 && (
               <Button
                 size="sm"
                 variant="ghost"
-                className="text-red-400"
+                className="text-tc-danger"
                 onClick={revokeOthers}
                 disabled={revoking}
               >
@@ -1074,7 +1074,7 @@ function SessionRow({
             {device}
           </span>
           {isCurrent && (
-            <span className="inline-flex items-center rounded-full border border-emerald-500/30 bg-emerald-500/10 px-1.5 py-0 text-[9px] font-medium text-emerald-400">
+            <span className="inline-flex items-center rounded-full border border-tc-success bg-[var(--tc-success-surface)] px-1.5 py-0 text-[9px] font-medium text-tc-success">
               This device
             </span>
           )}
@@ -1114,7 +1114,7 @@ function SecurityActivitySection({ events }: { events: SecurityEvent[] }) {
           return (
             <div
               key={ev.id}
-              className="flex items-center gap-2.5 py-1.5 border-b border-white/5 last:border-0"
+              className="flex items-center gap-2.5 py-1.5 border-b border-tc-border last:border-0"
             >
               <span
                 className={`inline-block w-1.5 h-1.5 rounded-full flex-shrink-0 ${severityDot(ev.action)}`}

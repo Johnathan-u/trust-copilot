@@ -508,7 +508,7 @@ export default function TrustCenterPage() {
             }
           />
         ) : (
-          <ul className="divide-y divide-white/10">
+          <ul className="divide-y divide-tc-border">
             {articles.map((a) => (
               <li
                 key={a.id}
