@@ -4,9 +4,9 @@ window.TRUSTCOPILOT_BACKLOG = {
     "title": "TrustCopilot backlog information radiator",
     "schema_version": 1,
     "scope_version": 1,
-    "revision": 22,
-    "as_of_utc": "2026-11-16T17:19:42Z",
-    "source_sha": "f305b4e8911471eed249d749f53fdeeec31380b9",
+    "revision": 23,
+    "as_of_utc": "2026-11-16T21:29:42Z",
+    "source_sha": "a365c34757800e1f8da58acde155bd3f8e8f8813",
     "baseline_status": "PENDING",
     "metric_label": "Accepted original-parent points",
     "formula": "Accepted original-parent points / 1,864; unknown until every original parent is assessed.",
@@ -19,11 +19,11 @@ window.TRUSTCOPILOT_BACKLOG = {
     "total_tickets": 384,
     "total_points": 1864,
     "state_counts": {
-      "BASELINE_RECONCILIATION": 302,
+      "BASELINE_RECONCILIATION": 294,
       "BLOCKED": 3,
       "DONE": 46,
       "EVIDENCE_RECONCILIATION": 12,
-      "IMPLEMENTATION_GAPS_IDENTIFIED": 21
+      "IMPLEMENTATION_GAPS_IDENTIFIED": 29
     },
     "accepted_claim_points": 209,
     "accepted_tickets": 46,
@@ -176,9 +176,10 @@ window.TRUSTCOPILOT_BACKLOG = {
         "accepted_tickets": 2,
         "accepted_points": null,
         "state_counts": {
-          "BASELINE_RECONCILIATION": 4,
+          "BASELINE_RECONCILIATION": 3,
           "BLOCKED": 1,
-          "DONE": 2
+          "DONE": 2,
+          "IMPLEMENTATION_GAPS_IDENTIFIED": 1
         }
       }
     },
@@ -361,8 +362,9 @@ window.TRUSTCOPILOT_BACKLOG = {
         "accepted_tickets": 2,
         "accepted_points": null,
         "state_counts": {
-          "BASELINE_RECONCILIATION": 12,
-          "DONE": 2
+          "BASELINE_RECONCILIATION": 11,
+          "DONE": 2,
+          "IMPLEMENTATION_GAPS_IDENTIFIED": 1
         }
       }
     },
@@ -409,8 +411,9 @@ window.TRUSTCOPILOT_BACKLOG = {
         "accepted_tickets": 1,
         "accepted_points": null,
         "state_counts": {
-          "BASELINE_RECONCILIATION": 10,
-          "DONE": 1
+          "BASELINE_RECONCILIATION": 7,
+          "DONE": 1,
+          "IMPLEMENTATION_GAPS_IDENTIFIED": 3
         }
       }
     },
@@ -594,9 +597,9 @@ window.TRUSTCOPILOT_BACKLOG = {
         "accepted_tickets": 1,
         "accepted_points": null,
         "state_counts": {
-          "BASELINE_RECONCILIATION": 12,
+          "BASELINE_RECONCILIATION": 11,
           "DONE": 1,
-          "IMPLEMENTATION_GAPS_IDENTIFIED": 1
+          "IMPLEMENTATION_GAPS_IDENTIFIED": 2
         }
       }
     },
@@ -1051,8 +1054,9 @@ window.TRUSTCOPILOT_BACKLOG = {
         "accepted_tickets": 0,
         "accepted_points": null,
         "state_counts": {
-          "BASELINE_RECONCILIATION": 53,
-          "BLOCKED": 1
+          "BASELINE_RECONCILIATION": 51,
+          "BLOCKED": 1,
+          "IMPLEMENTATION_GAPS_IDENTIFIED": 2
         }
       }
     },
@@ -6408,13 +6412,13 @@ window.TRUSTCOPILOT_BACKLOG = {
       "release_gate_dependencies": [],
       "dependency_ruling_ids": [],
       "current": {
-        "status": "BASELINE_RECONCILIATION",
-        "evidence_state": "BASELINE_RECONCILIATION",
+        "status": "IMPLEMENTATION_GAPS_IDENTIFIED",
+        "evidence_state": "IMPLEMENTATION_GAPS_IDENTIFIED",
         "owner": null,
         "blockers": [],
-        "next_action": "Reconcile existing implementation and evidence against all original acceptance criteria before declaring Done or estimating only the remaining scope.",
-        "updated_at": "2026-10-30T09:49:19Z",
-        "source_sha": "b2bd1e0df5cdeb03b8d0cd240f5a161835ea621d",
+        "next_action": "Gaps from docs/release/verification/TC-03-004.md (PARTIAL, accepted by Claude on #85 comment 6929698422; PR #258 merge 5a52580295992bf773a08c2526fc4eac3a621fcd): add an audited-SHA synthetic snapshot (schema plus rows for documents with storage_key, answers, and their foreign keys, stamped at a recorded parent revision) and upgrade it to question_cell_mapping; the fresh empty-database path already runs in CI. Assert survival and write an explicit backfill report comparing table row counts, foreign-key constraints, sampled file keys, and sampled answer text before and after that upgrade. Add apps/api/tests/release/test_migration_baseline.py, artifacts/acceptance/TC-03-004/ (command, SHA, environment, exit status, totals, and the backfill report), and docs/release/tickets/TC-03-004.md. Not accepted.",
+        "updated_at": "2026-11-16T21:29:42Z",
+        "source_sha": "a365c34757800e1f8da58acde155bd3f8e8f8813",
         "acceptance": {
           "state": "PENDING",
           "assessed_by": null,
@@ -6473,10 +6477,32 @@ window.TRUSTCOPILOT_BACKLOG = {
               "tested_sha": null
             }
           ],
-          "note": "Full original-parent acceptance is pending baseline validation; merged work and artifact presence alone confer no acceptance."
+          "note": "Full original-parent acceptance is pending baseline validation; merged work and artifact presence alone confer no acceptance. Claude accepted the PARTIAL verdict on #85 comment 6929698422. Report docs/release/verification/TC-03-004.md in PR #258 (merge 5a52580295992bf773a08c2526fc4eac3a621fcd). Status is IMPLEMENTATION_GAPS_IDENTIFIED. This record does not accept the ticket. Recorded by Grok (worker) from Claude's review. Grok is not the independent reviewer."
         },
-        "pr_links": [],
-        "evidence_links": [],
+        "pr_links": [
+          {
+            "number": 258,
+            "title": "docs: baseline reconciliation batch 1 — TC-03-004, TC-07-006, TC-08-003, TC-08-004",
+            "url": "https://github.com/Johnathan-u/trust-copilot/pull/258",
+            "state": "merged",
+            "draft": false,
+            "head_sha": "8d360bb1b841e33397afffe783671668439f6c77",
+            "merge_commit_sha": "5a52580295992bf773a08c2526fc4eac3a621fcd",
+            "merged_at": "2026-11-16T21:17:00Z",
+            "scope_ids": [
+              "TC-03-004"
+            ],
+            "mapping_basis": [
+              "PR title"
+            ]
+          }
+        ],
+        "evidence_links": [
+          "https://github.com/Johnathan-u/trust-copilot/blob/5a52580295992bf773a08c2526fc4eac3a621fcd/docs/release/verification/TC-03-004.md",
+          "https://github.com/Johnathan-u/trust-copilot/pull/258",
+          "https://github.com/Johnathan-u/trust-copilot/commit/5a52580295992bf773a08c2526fc4eac3a621fcd",
+          "https://github.com/Johnathan-u/trust-copilot/issues/85#issuecomment-6929698422"
+        ],
         "audit": {
           "original_epic": "E03",
           "original_source_status": "NOT STARTED",
@@ -23507,13 +23533,13 @@ window.TRUSTCOPILOT_BACKLOG = {
       "release_gate_dependencies": [],
       "dependency_ruling_ids": [],
       "current": {
-        "status": "BASELINE_RECONCILIATION",
-        "evidence_state": "BASELINE_RECONCILIATION",
+        "status": "IMPLEMENTATION_GAPS_IDENTIFIED",
+        "evidence_state": "IMPLEMENTATION_GAPS_IDENTIFIED",
         "owner": null,
         "blockers": [],
-        "next_action": "Reconcile existing implementation and evidence against all original acceptance criteria before declaring Done or estimating only the remaining scope.",
-        "updated_at": "2026-10-30T09:49:19Z",
-        "source_sha": "b2bd1e0df5cdeb03b8d0cd240f5a161835ea621d",
+        "next_action": "Gaps from docs/release/verification/TC-07-006.md (PARTIAL, accepted by Claude on #85 comment 6929698422; PR #258 merge 5a52580295992bf773a08c2526fc4eac3a621fcd): stop document and questionnaire uploads before the rest of the body is read, with a counted read that raises 413 at max_upload_bytes and does not keep the extra bytes; use the same helper for trust intake and delete or align the unused upload_trust_request_attachment. Make the proxy return 413 above 50 MiB without buffering the body (production Caddy has no request_body limit; the Next.js proxy copies the request into an ArrayBuffer); the limit has to follow MAX_UPLOAD_BYTES. Prove a rejected or interrupted upload leaves no document, questionnaire, job, or stored object, including a client disconnect during the body. Add apps/api/tests/release/test_upload_stream.py, artifacts/acceptance/TC-07-006/, and docs/release/tickets/TC-07-006.md. Not accepted.",
+        "updated_at": "2026-11-16T21:29:42Z",
+        "source_sha": "a365c34757800e1f8da58acde155bd3f8e8f8813",
         "acceptance": {
           "state": "PENDING",
           "assessed_by": null,
@@ -23572,10 +23598,32 @@ window.TRUSTCOPILOT_BACKLOG = {
               "tested_sha": null
             }
           ],
-          "note": "Full original-parent acceptance is pending baseline validation; merged work and artifact presence alone confer no acceptance."
+          "note": "Full original-parent acceptance is pending baseline validation; merged work and artifact presence alone confer no acceptance. Claude accepted the PARTIAL verdict on #85 comment 6929698422. Report docs/release/verification/TC-07-006.md in PR #258 (merge 5a52580295992bf773a08c2526fc4eac3a621fcd). Status is IMPLEMENTATION_GAPS_IDENTIFIED. This record does not accept the ticket. Recorded by Grok (worker) from Claude's review. Grok is not the independent reviewer."
         },
-        "pr_links": [],
-        "evidence_links": [],
+        "pr_links": [
+          {
+            "number": 258,
+            "title": "docs: baseline reconciliation batch 1 — TC-03-004, TC-07-006, TC-08-003, TC-08-004",
+            "url": "https://github.com/Johnathan-u/trust-copilot/pull/258",
+            "state": "merged",
+            "draft": false,
+            "head_sha": "8d360bb1b841e33397afffe783671668439f6c77",
+            "merge_commit_sha": "5a52580295992bf773a08c2526fc4eac3a621fcd",
+            "merged_at": "2026-11-16T21:17:00Z",
+            "scope_ids": [
+              "TC-07-006"
+            ],
+            "mapping_basis": [
+              "PR title"
+            ]
+          }
+        ],
+        "evidence_links": [
+          "https://github.com/Johnathan-u/trust-copilot/blob/5a52580295992bf773a08c2526fc4eac3a621fcd/docs/release/verification/TC-07-006.md",
+          "https://github.com/Johnathan-u/trust-copilot/pull/258",
+          "https://github.com/Johnathan-u/trust-copilot/commit/5a52580295992bf773a08c2526fc4eac3a621fcd",
+          "https://github.com/Johnathan-u/trust-copilot/issues/85#issuecomment-6929698422"
+        ],
         "audit": {
           "original_epic": "E07",
           "original_source_status": "NOT STARTED",
@@ -26759,13 +26807,13 @@ window.TRUSTCOPILOT_BACKLOG = {
       "release_gate_dependencies": [],
       "dependency_ruling_ids": [],
       "current": {
-        "status": "BASELINE_RECONCILIATION",
-        "evidence_state": "BASELINE_RECONCILIATION",
+        "status": "IMPLEMENTATION_GAPS_IDENTIFIED",
+        "evidence_state": "IMPLEMENTATION_GAPS_IDENTIFIED",
         "owner": null,
         "blockers": [],
-        "next_action": "Reconcile existing implementation and evidence against all original acceptance criteria before declaring Done or estimating only the remaining scope.",
-        "updated_at": "2026-10-30T09:49:19Z",
-        "source_sha": "b2bd1e0df5cdeb03b8d0cd240f5a161835ea621d",
+        "next_action": "Gaps from docs/release/verification/TC-08-003.md (PARTIAL, accepted by Claude on #85 comment 6929698422; PR #258 merge 5a52580295992bf773a08c2526fc4eac3a621fcd): do not leave a retrievable corpus when embedding fails or is incomplete; commit indexed only when every chunk has a vector of EMBEDDING_DIM, and on a None batch or a raised embed call roll back the chunk insert instead of committing null-embedding rows. Keyword search should not return chunks whose document is not indexed or whose embedding is null. Reindex when the embedding model or dimension changes: persist the model id and dimension with the chunks, and a mismatch should enqueue one new complete version rather than skip an indexed document or continue past a bad vector. Add apps/api/tests/release/test_index_atomicity.py (all-None embed_texts, a mixed batch, a dimension ValueError, and a retry that leaves exactly one complete version), artifacts/acceptance/TC-08-003/, and docs/release/tickets/TC-08-003.md. Not accepted.",
+        "updated_at": "2026-11-16T21:29:42Z",
+        "source_sha": "a365c34757800e1f8da58acde155bd3f8e8f8813",
         "acceptance": {
           "state": "PENDING",
           "assessed_by": null,
@@ -26824,10 +26872,32 @@ window.TRUSTCOPILOT_BACKLOG = {
               "tested_sha": null
             }
           ],
-          "note": "Full original-parent acceptance is pending baseline validation; merged work and artifact presence alone confer no acceptance."
+          "note": "Full original-parent acceptance is pending baseline validation; merged work and artifact presence alone confer no acceptance. Claude accepted the PARTIAL verdict on #85 comment 6929698422. Report docs/release/verification/TC-08-003.md in PR #258 (merge 5a52580295992bf773a08c2526fc4eac3a621fcd). Status is IMPLEMENTATION_GAPS_IDENTIFIED. This record does not accept the ticket. Recorded by Grok (worker) from Claude's review. Grok is not the independent reviewer."
         },
-        "pr_links": [],
-        "evidence_links": [],
+        "pr_links": [
+          {
+            "number": 258,
+            "title": "docs: baseline reconciliation batch 1 — TC-03-004, TC-07-006, TC-08-003, TC-08-004",
+            "url": "https://github.com/Johnathan-u/trust-copilot/pull/258",
+            "state": "merged",
+            "draft": false,
+            "head_sha": "8d360bb1b841e33397afffe783671668439f6c77",
+            "merge_commit_sha": "5a52580295992bf773a08c2526fc4eac3a621fcd",
+            "merged_at": "2026-11-16T21:17:00Z",
+            "scope_ids": [
+              "TC-08-003"
+            ],
+            "mapping_basis": [
+              "PR title"
+            ]
+          }
+        ],
+        "evidence_links": [
+          "https://github.com/Johnathan-u/trust-copilot/blob/5a52580295992bf773a08c2526fc4eac3a621fcd/docs/release/verification/TC-08-003.md",
+          "https://github.com/Johnathan-u/trust-copilot/pull/258",
+          "https://github.com/Johnathan-u/trust-copilot/commit/5a52580295992bf773a08c2526fc4eac3a621fcd",
+          "https://github.com/Johnathan-u/trust-copilot/issues/85#issuecomment-6929698422"
+        ],
         "audit": {
           "original_epic": "E08",
           "original_source_status": "NOT STARTED",
@@ -26988,13 +27058,13 @@ window.TRUSTCOPILOT_BACKLOG = {
       "release_gate_dependencies": [],
       "dependency_ruling_ids": [],
       "current": {
-        "status": "BASELINE_RECONCILIATION",
-        "evidence_state": "BASELINE_RECONCILIATION",
+        "status": "IMPLEMENTATION_GAPS_IDENTIFIED",
+        "evidence_state": "IMPLEMENTATION_GAPS_IDENTIFIED",
         "owner": null,
         "blockers": [],
-        "next_action": "Reconcile existing implementation and evidence against all original acceptance criteria before declaring Done or estimating only the remaining scope.",
-        "updated_at": "2026-10-30T09:49:19Z",
-        "source_sha": "b2bd1e0df5cdeb03b8d0cd240f5a161835ea621d",
+        "next_action": "Gaps from docs/release/verification/TC-08-004.md (PARTIAL, accepted by Claude on #85 comment 6929698422; PR #258 merge 5a52580295992bf773a08c2526fc4eac3a621fcd): exclude ineligible sources at retrieval time (soft-deleted, not indexed, or superseded) and have soft delete remove or tombstone those chunks and bump the corpus version. Put corpus version, prompt version, and model id on the answer cache key, and invalidate that cache when the corpus version bumps; a stale hit should return None. Apply the caller's permission policy when searching, not only the workspace id. Add apps/api/tests/release/test_retrieval_isolation.py (the same question in two workspaces, caches and citations do not cross, and both caches miss after a corpus bump), artifacts/acceptance/TC-08-004/, and docs/release/tickets/TC-08-004.md. Tighten the stale retrieval assertion so a stale hit must be None. Not accepted.",
+        "updated_at": "2026-11-16T21:29:42Z",
+        "source_sha": "a365c34757800e1f8da58acde155bd3f8e8f8813",
         "acceptance": {
           "state": "PENDING",
           "assessed_by": null,
@@ -27053,10 +27123,32 @@ window.TRUSTCOPILOT_BACKLOG = {
               "tested_sha": null
             }
           ],
-          "note": "Full original-parent acceptance is pending baseline validation; merged work and artifact presence alone confer no acceptance."
+          "note": "Full original-parent acceptance is pending baseline validation; merged work and artifact presence alone confer no acceptance. Claude accepted the PARTIAL verdict on #85 comment 6929698422. Report docs/release/verification/TC-08-004.md in PR #258 (merge 5a52580295992bf773a08c2526fc4eac3a621fcd). Status is IMPLEMENTATION_GAPS_IDENTIFIED. This record does not accept the ticket. Recorded by Grok (worker) from Claude's review. Grok is not the independent reviewer."
         },
-        "pr_links": [],
-        "evidence_links": [],
+        "pr_links": [
+          {
+            "number": 258,
+            "title": "docs: baseline reconciliation batch 1 — TC-03-004, TC-07-006, TC-08-003, TC-08-004",
+            "url": "https://github.com/Johnathan-u/trust-copilot/pull/258",
+            "state": "merged",
+            "draft": false,
+            "head_sha": "8d360bb1b841e33397afffe783671668439f6c77",
+            "merge_commit_sha": "5a52580295992bf773a08c2526fc4eac3a621fcd",
+            "merged_at": "2026-11-16T21:17:00Z",
+            "scope_ids": [
+              "TC-08-004"
+            ],
+            "mapping_basis": [
+              "PR title"
+            ]
+          }
+        ],
+        "evidence_links": [
+          "https://github.com/Johnathan-u/trust-copilot/blob/5a52580295992bf773a08c2526fc4eac3a621fcd/docs/release/verification/TC-08-004.md",
+          "https://github.com/Johnathan-u/trust-copilot/pull/258",
+          "https://github.com/Johnathan-u/trust-copilot/commit/5a52580295992bf773a08c2526fc4eac3a621fcd",
+          "https://github.com/Johnathan-u/trust-copilot/issues/85#issuecomment-6929698422"
+        ],
         "audit": {
           "original_epic": "E08",
           "original_source_status": "NOT STARTED",
@@ -27572,13 +27664,13 @@ window.TRUSTCOPILOT_BACKLOG = {
       "release_gate_dependencies": [],
       "dependency_ruling_ids": [],
       "current": {
-        "status": "BASELINE_RECONCILIATION",
-        "evidence_state": "BASELINE_RECONCILIATION",
+        "status": "IMPLEMENTATION_GAPS_IDENTIFIED",
+        "evidence_state": "IMPLEMENTATION_GAPS_IDENTIFIED",
         "owner": null,
         "blockers": [],
-        "next_action": "Reconcile existing implementation and evidence against all original acceptance criteria before declaring Done or estimating only the remaining scope.",
-        "updated_at": "2026-10-30T09:49:19Z",
-        "source_sha": "b2bd1e0df5cdeb03b8d0cd240f5a161835ea621d",
+        "next_action": "Gaps from docs/release/verification/TC-08-006.md (PARTIAL, accepted by Claude on #85 comment 6929698422; PR #259 merge aff1e310ab45a83f656425781bd904eff9f02c7a): keep the approved answer visible and mark that revision stale when its source is archived or replaced; bind the revision to the supporting document and set the stale marker instead of leaving status approved. Stop retrieval from returning chunks whose document is soft-deleted or replaced, and bump the corpus version on archive. Block final export while an included answer cites a revoked source or is still the stale revision; allow the file after a new revision is approved against a document that is still active. Add apps/api/tests/release/test_archive_revalidation.py, artifacts/acceptance/TC-08-006/, and docs/release/tickets/TC-08-006.md. Not accepted.",
+        "updated_at": "2026-11-16T21:29:42Z",
+        "source_sha": "a365c34757800e1f8da58acde155bd3f8e8f8813",
         "acceptance": {
           "state": "PENDING",
           "assessed_by": null,
@@ -27637,10 +27729,32 @@ window.TRUSTCOPILOT_BACKLOG = {
               "tested_sha": null
             }
           ],
-          "note": "Full original-parent acceptance is pending baseline validation; merged work and artifact presence alone confer no acceptance."
+          "note": "Full original-parent acceptance is pending baseline validation; merged work and artifact presence alone confer no acceptance. Claude accepted the PARTIAL verdict on #85 comment 6929698422. Report docs/release/verification/TC-08-006.md in PR #259 (merge aff1e310ab45a83f656425781bd904eff9f02c7a). Status is IMPLEMENTATION_GAPS_IDENTIFIED. This record does not accept the ticket. Recorded by Grok (worker) from Claude's review. Grok is not the independent reviewer."
         },
-        "pr_links": [],
-        "evidence_links": [],
+        "pr_links": [
+          {
+            "number": 259,
+            "title": "docs: baseline reconciliation batch 2 — TC-08-006, TC-12-002, TC-20-050, TC-20-053",
+            "url": "https://github.com/Johnathan-u/trust-copilot/pull/259",
+            "state": "merged",
+            "draft": false,
+            "head_sha": "cb3f9ae3ecc963a174152113388dea3c452859e2",
+            "merge_commit_sha": "aff1e310ab45a83f656425781bd904eff9f02c7a",
+            "merged_at": "2026-11-16T21:17:24Z",
+            "scope_ids": [
+              "TC-08-006"
+            ],
+            "mapping_basis": [
+              "PR title"
+            ]
+          }
+        ],
+        "evidence_links": [
+          "https://github.com/Johnathan-u/trust-copilot/blob/aff1e310ab45a83f656425781bd904eff9f02c7a/docs/release/verification/TC-08-006.md",
+          "https://github.com/Johnathan-u/trust-copilot/pull/259",
+          "https://github.com/Johnathan-u/trust-copilot/commit/aff1e310ab45a83f656425781bd904eff9f02c7a",
+          "https://github.com/Johnathan-u/trust-copilot/issues/85#issuecomment-6929698422"
+        ],
         "audit": {
           "original_epic": "E08",
           "original_source_status": "NOT STARTED",
@@ -37764,13 +37878,13 @@ window.TRUSTCOPILOT_BACKLOG = {
       "release_gate_dependencies": [],
       "dependency_ruling_ids": [],
       "current": {
-        "status": "BASELINE_RECONCILIATION",
-        "evidence_state": "BASELINE_RECONCILIATION",
+        "status": "IMPLEMENTATION_GAPS_IDENTIFIED",
+        "evidence_state": "IMPLEMENTATION_GAPS_IDENTIFIED",
         "owner": null,
         "blockers": [],
-        "next_action": "Reconcile existing implementation and evidence against all original acceptance criteria before declaring Done or estimating only the remaining scope.",
-        "updated_at": "2026-10-30T09:49:19Z",
-        "source_sha": "b2bd1e0df5cdeb03b8d0cd240f5a161835ea621d",
+        "next_action": "Gaps from docs/release/verification/TC-12-002.md (PARTIAL, accepted by Claude on #85 comment 6929698422; PR #259 merge aff1e310ab45a83f656425781bd904eff9f02c7a): persist an answer revision and require the revision the editor loaded; a mismatch returns 409 and leaves the stored row unchanged. The advisory lock can stay; it serializes commits and does not detect a stale editor. Prove the row save keeps the typed text and stays on Not saved yet for HTTP 403, 409, and 500. Add apps/api/tests/release/test_answer_revisions.py (two clients save the same answer, the stale client gets 409, and a later read returns the winner's text), artifacts/acceptance/TC-12-002/, and docs/release/tickets/TC-12-002.md. Not accepted.",
+        "updated_at": "2026-11-16T21:29:42Z",
+        "source_sha": "a365c34757800e1f8da58acde155bd3f8e8f8813",
         "acceptance": {
           "state": "PENDING",
           "assessed_by": null,
@@ -37829,10 +37943,32 @@ window.TRUSTCOPILOT_BACKLOG = {
               "tested_sha": null
             }
           ],
-          "note": "Full original-parent acceptance is pending baseline validation; merged work and artifact presence alone confer no acceptance."
+          "note": "Full original-parent acceptance is pending baseline validation; merged work and artifact presence alone confer no acceptance. Claude accepted the PARTIAL verdict on #85 comment 6929698422. Report docs/release/verification/TC-12-002.md in PR #259 (merge aff1e310ab45a83f656425781bd904eff9f02c7a). Status is IMPLEMENTATION_GAPS_IDENTIFIED. This record does not accept the ticket. Recorded by Grok (worker) from Claude's review. Grok is not the independent reviewer."
         },
-        "pr_links": [],
-        "evidence_links": [],
+        "pr_links": [
+          {
+            "number": 259,
+            "title": "docs: baseline reconciliation batch 2 — TC-08-006, TC-12-002, TC-20-050, TC-20-053",
+            "url": "https://github.com/Johnathan-u/trust-copilot/pull/259",
+            "state": "merged",
+            "draft": false,
+            "head_sha": "cb3f9ae3ecc963a174152113388dea3c452859e2",
+            "merge_commit_sha": "aff1e310ab45a83f656425781bd904eff9f02c7a",
+            "merged_at": "2026-11-16T21:17:24Z",
+            "scope_ids": [
+              "TC-12-002"
+            ],
+            "mapping_basis": [
+              "PR title"
+            ]
+          }
+        ],
+        "evidence_links": [
+          "https://github.com/Johnathan-u/trust-copilot/blob/aff1e310ab45a83f656425781bd904eff9f02c7a/docs/release/verification/TC-12-002.md",
+          "https://github.com/Johnathan-u/trust-copilot/pull/259",
+          "https://github.com/Johnathan-u/trust-copilot/commit/aff1e310ab45a83f656425781bd904eff9f02c7a",
+          "https://github.com/Johnathan-u/trust-copilot/issues/85#issuecomment-6929698422"
+        ],
         "audit": {
           "original_epic": "E12",
           "original_source_status": "NOT STARTED",
@@ -41955,9 +42091,9 @@ window.TRUSTCOPILOT_BACKLOG = {
         "evidence_state": "EVIDENCE_RECONCILIATION",
         "owner": null,
         "blockers": [],
-        "next_action": "Gaps from docs/release/verification/TC-14-005.md are child TC-14-005b: failed export reads must not look empty, proof chain needs LoadingState, remaining dashboard loaders need the shared contract, the spec must cover those pages, and regenerated screenshots must be uploaded. Not accepted.",
-        "updated_at": "2026-11-15T19:09:57Z",
-        "source_sha": "960fe4f97772ac72ba6f726d24e49b0ef57f2eb1",
+        "next_action": "Child TC-14-005b is closed by #260 (merge a365c34757800e1f8da58acde155bd3f8e8f8813), with the state-components floor raised from 9 to 13. Ruling: #85 comment 6929698422. The child is not counted toward DONE. The parent stays IMPLEMENTATION_GAPS_IDENTIFIED and is not accepted. Re-verification of the original parent is still pending.",
+        "updated_at": "2026-11-16T21:29:42Z",
+        "source_sha": "a365c34757800e1f8da58acde155bd3f8e8f8813",
         "acceptance": {
           "state": "NOT_ACCEPTED",
           "assessed_by": "claude-review-agent",
@@ -42085,7 +42221,7 @@ window.TRUSTCOPILOT_BACKLOG = {
               "tested_sha": "0e8cb32496a7847a727d89ed54753990b91a3127"
             }
           ],
-          "note": "IMPLEMENTATION_GAPS_IDENTIFIED from the TC-14-005 verification report (PARTIAL) at 0e8cb32496a7847a727d89ed54753990b91a3127, adopted by Claude in issue #85 comment 6898105489. AC1 and AC2 fail on the review-export empty path, the unbounded proof-chain skeleton, and the remaining dashboard loaders. DoD1 and DoD5 fail with those gaps. The gaps are child TC-14-005b. Report PR #238 merge 61fed611cf7971ee78effceabc3f3d49907d0d4b. Recorded by Grok (worker). Grok wrote the report and is not the independent reviewer."
+          "note": "IMPLEMENTATION_GAPS_IDENTIFIED from the TC-14-005 verification report (PARTIAL) at 0e8cb32496a7847a727d89ed54753990b91a3127, adopted by Claude in issue #85 comment 6898105489. AC1 and AC2 fail on the review-export empty path, the unbounded proof-chain skeleton, and the remaining dashboard loaders. DoD1 and DoD5 fail with those gaps. The gaps are child TC-14-005b. Report PR #238 merge 61fed611cf7971ee78effceabc3f3d49907d0d4b. Recorded by Grok (worker). Grok wrote the report and is not the independent reviewer. Child TC-14-005b is closed by #260 (merge a365c34757800e1f8da58acde155bd3f8e8f8813), state-components floor 9 to 13. Ruling: #85 comment 6929698422. The child is not counted toward DONE. The parent is not accepted; re-verification is still pending."
         },
         "pr_links": [
           {
@@ -42127,6 +42263,22 @@ window.TRUSTCOPILOT_BACKLOG = {
             "state": "merged",
             "head_sha": "65895b67e91032102ce81c8423ea03133e71a479",
             "merge_commit_sha": "61fed611cf7971ee78effceabc3f3d49907d0d4b"
+          },
+          {
+            "number": 260,
+            "title": "TC-14-005b: failed reads never render as empty data or an endless skeleton",
+            "url": "https://github.com/Johnathan-u/trust-copilot/pull/260",
+            "state": "merged",
+            "draft": false,
+            "head_sha": "3ad593ab0e64e56d070ef77a5cc4500708dde91d",
+            "merge_commit_sha": "a365c34757800e1f8da58acde155bd3f8e8f8813",
+            "merged_at": "2026-11-16T21:18:21Z",
+            "scope_ids": [
+              "TC-14-005b"
+            ],
+            "mapping_basis": [
+              "PR title"
+            ]
           }
         ],
         "evidence_links": [
@@ -42137,7 +42289,10 @@ window.TRUSTCOPILOT_BACKLOG = {
           "https://github.com/Johnathan-u/trust-copilot/blob/61fed611cf7971ee78effceabc3f3d49907d0d4b/docs/release/verification/TC-14-005.md",
           "https://github.com/Johnathan-u/trust-copilot/pull/238",
           "https://github.com/Johnathan-u/trust-copilot/commit/61fed611cf7971ee78effceabc3f3d49907d0d4b",
-          "https://github.com/Johnathan-u/trust-copilot/issues/85#issuecomment-6896794377"
+          "https://github.com/Johnathan-u/trust-copilot/issues/85#issuecomment-6896794377",
+          "https://github.com/Johnathan-u/trust-copilot/pull/260",
+          "https://github.com/Johnathan-u/trust-copilot/commit/a365c34757800e1f8da58acde155bd3f8e8f8813",
+          "https://github.com/Johnathan-u/trust-copilot/issues/85#issuecomment-6929698422"
         ],
         "audit": {
           "original_epic": "E14",
@@ -42196,10 +42351,10 @@ window.TRUSTCOPILOT_BACKLOG = {
         },
         {
           "id": "TC-14-005b",
-          "title": "stop failed reads rendering as empty data or an endless skeleton",
+          "title": "stop failed reads rendering as empty data or an endless skeleton (closed, #260)",
           "parent_id": "TC-14-005",
           "story_points": null,
-          "source_url": "https://github.com/Johnathan-u/trust-copilot/issues/85#issuecomment-6898105489",
+          "source_url": "https://github.com/Johnathan-u/trust-copilot/issues/85#issuecomment-6929698422",
           "source_path": "docs/release/tickets/TC-14-005b.md"
         }
       ]
@@ -84070,10 +84225,12 @@ window.TRUSTCOPILOT_BACKLOG = {
         "status": "BASELINE_RECONCILIATION",
         "evidence_state": "BASELINE_RECONCILIATION",
         "owner": null,
-        "blockers": [],
-        "next_action": "Baseline reconciliation of the original parent is still pending. Open child TC-17-005a (P1, security, auth; not started) tracks the shareable-space access_token exposure. Owner Grok (worker). Pre-merge review by Claude required.",
-        "updated_at": "2026-11-16T17:19:42Z",
-        "source_sha": "f305b4e8911471eed249d749f53fdeeec31380b9",
+        "blockers": [
+          "TC-17-005a AC4 (token rotation) remains owner-blocked for live spaces. #85 comment 6929751304: the owner approved rotating every space that was live before #257. The child is closed for the admin-only hashed token and /access audit. AC4 is not complete."
+        ],
+        "next_action": "Baseline reconciliation of the original parent is still pending. Child TC-17-005a is closed by #257 (merge 8e264eca9928253aa3fffc56670eb0a13c54cffb): the shareable-space token is admin-only, SHA-256 at rest, and /access is audited. Ruling: #85 comment 6929698422. The child is not counted toward DONE. AC4 (token rotation) remains owner-blocked for live spaces per #85 comment 6929751304 (the owner approved the rotation; the live rotation is not done). Not accepted.",
+        "updated_at": "2026-11-16T21:29:42Z",
+        "source_sha": "a365c34757800e1f8da58acde155bd3f8e8f8813",
         "acceptance": {
           "state": "PENDING",
           "assessed_by": null,
@@ -84138,11 +84295,32 @@ window.TRUSTCOPILOT_BACKLOG = {
               "tested_sha": null
             }
           ],
-          "note": "Full original-parent acceptance is pending baseline validation; merged work and artifact presence alone confer no acceptance. Open child TC-17-005a is registered and not accepted. Filed by Claude on #85 comment 6921992737. Owner Grok (worker). Pre-merge review by Claude required."
+          "note": "Full original-parent acceptance is pending baseline validation; merged work and artifact presence alone confer no acceptance. Child TC-17-005a is closed by #257 (merge 8e264eca9928253aa3fffc56670eb0a13c54cffb) and is not an original-parent acceptance. Ruling: #85 comment 6929698422. Filed by Claude on #85 comment 6921992737. AC4 (token rotation) remains owner-blocked for live spaces per #85 comment 6929751304: the owner approved rotating every space that was live before that merge. AC4 is not complete. Recorded by Grok (worker) from Claude's review. Grok is not the independent reviewer."
         },
-        "pr_links": [],
+        "pr_links": [
+          {
+            "number": 257,
+            "title": "TC-17-005a: admin-only shareable-space token, SHA-256 at rest, /access audit",
+            "url": "https://github.com/Johnathan-u/trust-copilot/pull/257",
+            "state": "merged",
+            "draft": false,
+            "head_sha": "09d3e38635a510979841460ce49693eeff17addd",
+            "merge_commit_sha": "8e264eca9928253aa3fffc56670eb0a13c54cffb",
+            "merged_at": "2026-11-16T21:15:41Z",
+            "scope_ids": [
+              "TC-17-005a"
+            ],
+            "mapping_basis": [
+              "PR title"
+            ]
+          }
+        ],
         "evidence_links": [
-          "https://github.com/Johnathan-u/trust-copilot/issues/85#issuecomment-6921992737"
+          "https://github.com/Johnathan-u/trust-copilot/issues/85#issuecomment-6921992737",
+          "https://github.com/Johnathan-u/trust-copilot/pull/257",
+          "https://github.com/Johnathan-u/trust-copilot/commit/8e264eca9928253aa3fffc56670eb0a13c54cffb",
+          "https://github.com/Johnathan-u/trust-copilot/issues/85#issuecomment-6929698422",
+          "https://github.com/Johnathan-u/trust-copilot/issues/85#issuecomment-6929751304"
         ],
         "audit": {
           "original_epic": "E17",
@@ -84175,10 +84353,10 @@ window.TRUSTCOPILOT_BACKLOG = {
       "followups": [
         {
           "id": "TC-17-005a",
-          "title": "Shareable-space access_token exposure: admin-only token, hashed at rest, /access audit",
+          "title": "Shareable-space access_token exposure: admin-only token, hashed at rest, /access audit (closed, #257)",
           "parent_id": "TC-17-005",
           "story_points": null,
-          "source_url": "https://github.com/Johnathan-u/trust-copilot/issues/85#issuecomment-6921992737",
+          "source_url": "https://github.com/Johnathan-u/trust-copilot/issues/85#issuecomment-6929698422",
           "source_path": "docs/release/tickets/TC-17-005a.md"
         }
       ]
@@ -116037,13 +116215,15 @@ window.TRUSTCOPILOT_BACKLOG = {
       "release_gate_dependencies": [],
       "dependency_ruling_ids": [],
       "current": {
-        "status": "BASELINE_RECONCILIATION",
-        "evidence_state": "BASELINE_RECONCILIATION",
+        "status": "IMPLEMENTATION_GAPS_IDENTIFIED",
+        "evidence_state": "IMPLEMENTATION_GAPS_IDENTIFIED",
         "owner": null,
-        "blockers": [],
-        "next_action": "Reconcile existing implementation and evidence against all original acceptance criteria before declaring Done or estimating only the remaining scope. Supplemental AC row (R2, not an original criterion id; docs/release/tickets/TC-20-050.md): Introduce a persisted sync job kind and show its history in the activity center, including progress, retry/cancel and object links across reload. Moved from TC-15-038 AC1 because no persisted sync job kind exists. TC-20-050 is the ticket that introduces that kind (first incremental CRM sync, Salesforce, POST /crm/sync/salesforce). TC-20-053 reuses the kind rather than introducing a second one. Ruling: https://github.com/Johnathan-u/trust-copilot/issues/85#issuecomment-6896794377.",
-        "updated_at": "2026-11-15T19:09:57Z",
-        "source_sha": "960fe4f97772ac72ba6f726d24e49b0ef57f2eb1",
+        "blockers": [
+          "Salesforce developer org for real sync, with credentials through the secret store only. Real sync cannot be qualified against the current demo stubs. Owner-blocked per #85 comment 6929698422."
+        ],
+        "next_action": "Gaps from docs/release/verification/TC-20-050.md (PARTIAL, accepted by Claude on #85 comment 6929698422; PR #259 merge aff1e310ab45a83f656425781bd904eff9f02c7a): replace the fixed sf-opp-001 / sf-opp-002 list with a paginated read of the selected Salesforce pipeline; persist close date, currency, and an id that is stable for one workspace, connection, provider, and external id; stop setting mock: True. Add Unique(workspace, connection, provider, external_id), store the sync cursor, delete or tombstone records the provider removed, and do not overwrite a manual edit or insert a second row on retry of the same page. Add one persisted sync job kind and show it on the jobs history page with progress, retry, cancel, and an object link that survive reload (the R2 row; TC-20-053 reuses this kind). Add apps/api/tests/release/test_crm_salesforce_data.py and artifacts/acceptance/TC-20-050/, including authorized sandbox evidence. Mocks stay unit evidence and do not close DoD6. Not accepted.",
+        "updated_at": "2026-11-16T21:29:42Z",
+        "source_sha": "a365c34757800e1f8da58acde155bd3f8e8f8813",
         "acceptance": {
           "state": "PENDING",
           "assessed_by": null,
@@ -116108,11 +116288,32 @@ window.TRUSTCOPILOT_BACKLOG = {
               "tested_sha": null
             }
           ],
-          "note": "Full original-parent acceptance is pending baseline validation; merged work and artifact presence alone confer no acceptance. Supplemental AC row (R2, not an original criterion id; docs/release/tickets/TC-20-050.md): Introduce a persisted sync job kind and show its history in the activity center, including progress, retry/cancel and object links across reload. Moved from TC-15-038 AC1 because no persisted sync job kind exists. TC-20-050 is the ticket that introduces that kind (first incremental CRM sync, Salesforce, POST /crm/sync/salesforce). TC-20-053 reuses the kind rather than introducing a second one. Ruling: https://github.com/Johnathan-u/trust-copilot/issues/85#issuecomment-6896794377."
+          "note": "Full original-parent acceptance is pending baseline validation; merged work and artifact presence alone confer no acceptance. Supplemental AC row (R2, not an original criterion id; docs/release/tickets/TC-20-050.md): Introduce a persisted sync job kind and show its history in the activity center, including progress, retry/cancel and object links across reload. Moved from TC-15-038 AC1 because no persisted sync job kind exists. TC-20-050 is the ticket that introduces that kind (first incremental CRM sync, Salesforce, POST /crm/sync/salesforce). TC-20-053 reuses the kind rather than introducing a second one. Ruling: https://github.com/Johnathan-u/trust-copilot/issues/85#issuecomment-6896794377. Claude accepted the PARTIAL verdict on #85 comment 6929698422. Report docs/release/verification/TC-20-050.md in PR #259 (merge aff1e310ab45a83f656425781bd904eff9f02c7a). Status is IMPLEMENTATION_GAPS_IDENTIFIED. This record does not accept the ticket. Recorded by Grok (worker) from Claude's review. Grok is not the independent reviewer. CRM sandbox remains owner-blocked: a Salesforce developer org, credentials through the secret store only (#85 comment 6929698422)."
         },
-        "pr_links": [],
+        "pr_links": [
+          {
+            "number": 259,
+            "title": "docs: baseline reconciliation batch 2 — TC-08-006, TC-12-002, TC-20-050, TC-20-053",
+            "url": "https://github.com/Johnathan-u/trust-copilot/pull/259",
+            "state": "merged",
+            "draft": false,
+            "head_sha": "cb3f9ae3ecc963a174152113388dea3c452859e2",
+            "merge_commit_sha": "aff1e310ab45a83f656425781bd904eff9f02c7a",
+            "merged_at": "2026-11-16T21:17:24Z",
+            "scope_ids": [
+              "TC-20-050"
+            ],
+            "mapping_basis": [
+              "PR title"
+            ]
+          }
+        ],
         "evidence_links": [
-          "https://github.com/Johnathan-u/trust-copilot/issues/85#issuecomment-6896794377"
+          "https://github.com/Johnathan-u/trust-copilot/issues/85#issuecomment-6896794377",
+          "https://github.com/Johnathan-u/trust-copilot/blob/aff1e310ab45a83f656425781bd904eff9f02c7a/docs/release/verification/TC-20-050.md",
+          "https://github.com/Johnathan-u/trust-copilot/pull/259",
+          "https://github.com/Johnathan-u/trust-copilot/commit/aff1e310ab45a83f656425781bd904eff9f02c7a",
+          "https://github.com/Johnathan-u/trust-copilot/issues/85#issuecomment-6929698422"
         ],
         "audit": {
           "original_epic": "E20",
@@ -116803,13 +117004,15 @@ window.TRUSTCOPILOT_BACKLOG = {
       "release_gate_dependencies": [],
       "dependency_ruling_ids": [],
       "current": {
-        "status": "BASELINE_RECONCILIATION",
-        "evidence_state": "BASELINE_RECONCILIATION",
+        "status": "IMPLEMENTATION_GAPS_IDENTIFIED",
+        "evidence_state": "IMPLEMENTATION_GAPS_IDENTIFIED",
         "owner": null,
-        "blockers": [],
-        "next_action": "Reconcile existing implementation and evidence against all original acceptance criteria before declaring Done or estimating only the remaining scope.",
-        "updated_at": "2026-10-30T09:49:19Z",
-        "source_sha": "b2bd1e0df5cdeb03b8d0cd240f5a161835ea621d",
+        "blockers": [
+          "HubSpot developer test account for real sync, with credentials through the secret store only. Real sync cannot be qualified against the current demo stubs. Owner-blocked per #85 comment 6929698422."
+        ],
+        "next_action": "Gaps from docs/release/verification/TC-20-053.md (PARTIAL, accepted by Claude on #85 comment 6929698422; PR #259 merge aff1e310ab45a83f656425781bd904eff9f02c7a): replace the fixed hs-deal-001 list with a paginated read of the selected HubSpot pipeline; persist close date, currency, and an id that is stable for one workspace, connection, provider, and external id; stop setting mock: True; include the provider in the lookup so a Salesforce external id in the same workspace is a different row. Use Unique(workspace, connection, provider, external_id), store the sync cursor, delete or tombstone records the provider removed, and do not overwrite a manual edit or insert a second row on retry of the same page. Enqueue HubSpot sync on the sync job kind TC-20-050 introduces and show that job on the jobs history page with progress, retry, cancel, and an object link that survive reload. Add apps/api/tests/release/test_crm_hubspot_data.py, artifacts/acceptance/TC-20-053/ including authorized sandbox evidence, and docs/release/tickets/TC-20-053.md. Mocks stay unit evidence and do not close DoD6. Not accepted.",
+        "updated_at": "2026-11-16T21:29:42Z",
+        "source_sha": "a365c34757800e1f8da58acde155bd3f8e8f8813",
         "acceptance": {
           "state": "PENDING",
           "assessed_by": null,
@@ -116874,10 +117077,32 @@ window.TRUSTCOPILOT_BACKLOG = {
               "tested_sha": null
             }
           ],
-          "note": "Full original-parent acceptance is pending baseline validation; merged work and artifact presence alone confer no acceptance."
+          "note": "Full original-parent acceptance is pending baseline validation; merged work and artifact presence alone confer no acceptance. Claude accepted the PARTIAL verdict on #85 comment 6929698422. Report docs/release/verification/TC-20-053.md in PR #259 (merge aff1e310ab45a83f656425781bd904eff9f02c7a). Status is IMPLEMENTATION_GAPS_IDENTIFIED. This record does not accept the ticket. Recorded by Grok (worker) from Claude's review. Grok is not the independent reviewer. CRM sandbox remains owner-blocked: a HubSpot developer test account, credentials through the secret store only (#85 comment 6929698422)."
         },
-        "pr_links": [],
-        "evidence_links": [],
+        "pr_links": [
+          {
+            "number": 259,
+            "title": "docs: baseline reconciliation batch 2 — TC-08-006, TC-12-002, TC-20-050, TC-20-053",
+            "url": "https://github.com/Johnathan-u/trust-copilot/pull/259",
+            "state": "merged",
+            "draft": false,
+            "head_sha": "cb3f9ae3ecc963a174152113388dea3c452859e2",
+            "merge_commit_sha": "aff1e310ab45a83f656425781bd904eff9f02c7a",
+            "merged_at": "2026-11-16T21:17:24Z",
+            "scope_ids": [
+              "TC-20-053"
+            ],
+            "mapping_basis": [
+              "PR title"
+            ]
+          }
+        ],
+        "evidence_links": [
+          "https://github.com/Johnathan-u/trust-copilot/blob/aff1e310ab45a83f656425781bd904eff9f02c7a/docs/release/verification/TC-20-053.md",
+          "https://github.com/Johnathan-u/trust-copilot/pull/259",
+          "https://github.com/Johnathan-u/trust-copilot/commit/aff1e310ab45a83f656425781bd904eff9f02c7a",
+          "https://github.com/Johnathan-u/trust-copilot/issues/85#issuecomment-6929698422"
+        ],
         "audit": {
           "original_epic": "E20",
           "original_source_status": "NOT STARTED",
@@ -145451,6 +145676,2094 @@ window.TRUSTCOPILOT_BACKLOG = {
           }
         }
       }
+    },
+    {
+      "revision": 23,
+      "at": "2026-11-16T21:29:42Z",
+      "actor": "grok",
+      "reason": "Record coordinator closures of children TC-17-005a and TC-14-005b, and Claude's accepted PARTIAL verdicts for TC-03-004, TC-07-006, TC-08-003, TC-08-004, TC-08-006, TC-12-002, TC-20-050 and TC-20-053 as IMPLEMENTATION_GAPS_IDENTIFIED. Children are not original parents. Nothing is marked DONE or accepted. DONE stays 46.",
+      "source_sha": "a365c34757800e1f8da58acde155bd3f8e8f8813",
+      "before": {
+        "scope_version": 1,
+        "accepted_points": null,
+        "completion_percentage": null,
+        "assessed_tickets": 49,
+        "total_tickets": 384,
+        "total_points": 1864,
+        "state_counts": {
+          "BASELINE_RECONCILIATION": 302,
+          "BLOCKED": 3,
+          "DONE": 46,
+          "EVIDENCE_RECONCILIATION": 12,
+          "IMPLEMENTATION_GAPS_IDENTIFIED": 21
+        },
+        "accepted_claim_points": 209,
+        "accepted_tickets": 46,
+        "baseline_status": "PENDING"
+      },
+      "after": {
+        "scope_version": 1,
+        "accepted_points": null,
+        "completion_percentage": null,
+        "assessed_tickets": 49,
+        "total_tickets": 384,
+        "total_points": 1864,
+        "state_counts": {
+          "BASELINE_RECONCILIATION": 294,
+          "BLOCKED": 3,
+          "DONE": 46,
+          "EVIDENCE_RECONCILIATION": 12,
+          "IMPLEMENTATION_GAPS_IDENTIFIED": 29
+        },
+        "accepted_claim_points": 209,
+        "accepted_tickets": 46,
+        "baseline_status": "PENDING"
+      },
+      "changes": {
+        "tickets": {
+          "TC-03-004": {
+            "status": {
+              "before": "BASELINE_RECONCILIATION",
+              "after": "IMPLEMENTATION_GAPS_IDENTIFIED"
+            },
+            "evidence_state": {
+              "before": "BASELINE_RECONCILIATION",
+              "after": "IMPLEMENTATION_GAPS_IDENTIFIED"
+            },
+            "next_action": {
+              "before": "Reconcile existing implementation and evidence against all original acceptance criteria before declaring Done or estimating only the remaining scope.",
+              "after": "Gaps from docs/release/verification/TC-03-004.md (PARTIAL, accepted by Claude on #85 comment 6929698422; PR #258 merge 5a52580295992bf773a08c2526fc4eac3a621fcd): add an audited-SHA synthetic snapshot (schema plus rows for documents with storage_key, answers, and their foreign keys, stamped at a recorded parent revision) and upgrade it to question_cell_mapping; the fresh empty-database path already runs in CI. Assert survival and write an explicit backfill report comparing table row counts, foreign-key constraints, sampled file keys, and sampled answer text before and after that upgrade. Add apps/api/tests/release/test_migration_baseline.py, artifacts/acceptance/TC-03-004/ (command, SHA, environment, exit status, totals, and the backfill report), and docs/release/tickets/TC-03-004.md. Not accepted."
+            },
+            "updated_at": {
+              "before": "2026-10-30T09:49:19Z",
+              "after": "2026-11-16T21:29:42Z"
+            },
+            "source_sha": {
+              "before": "b2bd1e0df5cdeb03b8d0cd240f5a161835ea621d",
+              "after": "a365c34757800e1f8da58acde155bd3f8e8f8813"
+            },
+            "acceptance": {
+              "before": {
+                "state": "PENDING",
+                "assessed_by": null,
+                "assessed_at": null,
+                "assessed_sha": null,
+                "assessment_evidence_urls": [],
+                "tested_sha": null,
+                "implemented_by": [],
+                "independent_reviewer": null,
+                "reviewed_at": null,
+                "reviewed_sha": null,
+                "review_evidence_urls": [],
+                "criteria": [
+                  {
+                    "id": "TC-03-004-AC1",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  },
+                  {
+                    "id": "TC-03-004-AC2",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  }
+                ],
+                "definition_of_done": [
+                  {
+                    "id": "TC-03-004-DOD1",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  },
+                  {
+                    "id": "TC-03-004-DOD2",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  },
+                  {
+                    "id": "TC-03-004-DOD3",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  },
+                  {
+                    "id": "TC-03-004-DOD4",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  },
+                  {
+                    "id": "TC-03-004-DOD5",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  }
+                ],
+                "note": "Full original-parent acceptance is pending baseline validation; merged work and artifact presence alone confer no acceptance."
+              },
+              "after": {
+                "state": "PENDING",
+                "assessed_by": null,
+                "assessed_at": null,
+                "assessed_sha": null,
+                "assessment_evidence_urls": [],
+                "tested_sha": null,
+                "implemented_by": [],
+                "independent_reviewer": null,
+                "reviewed_at": null,
+                "reviewed_sha": null,
+                "review_evidence_urls": [],
+                "criteria": [
+                  {
+                    "id": "TC-03-004-AC1",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  },
+                  {
+                    "id": "TC-03-004-AC2",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  }
+                ],
+                "definition_of_done": [
+                  {
+                    "id": "TC-03-004-DOD1",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  },
+                  {
+                    "id": "TC-03-004-DOD2",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  },
+                  {
+                    "id": "TC-03-004-DOD3",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  },
+                  {
+                    "id": "TC-03-004-DOD4",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  },
+                  {
+                    "id": "TC-03-004-DOD5",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  }
+                ],
+                "note": "Full original-parent acceptance is pending baseline validation; merged work and artifact presence alone confer no acceptance. Claude accepted the PARTIAL verdict on #85 comment 6929698422. Report docs/release/verification/TC-03-004.md in PR #258 (merge 5a52580295992bf773a08c2526fc4eac3a621fcd). Status is IMPLEMENTATION_GAPS_IDENTIFIED. This record does not accept the ticket. Recorded by Grok (worker) from Claude's review. Grok is not the independent reviewer."
+              }
+            },
+            "pr_links": {
+              "before": [],
+              "after": [
+                {
+                  "number": 258,
+                  "title": "docs: baseline reconciliation batch 1 — TC-03-004, TC-07-006, TC-08-003, TC-08-004",
+                  "url": "https://github.com/Johnathan-u/trust-copilot/pull/258",
+                  "state": "merged",
+                  "draft": false,
+                  "head_sha": "8d360bb1b841e33397afffe783671668439f6c77",
+                  "merge_commit_sha": "5a52580295992bf773a08c2526fc4eac3a621fcd",
+                  "merged_at": "2026-11-16T21:17:00Z",
+                  "scope_ids": [
+                    "TC-03-004"
+                  ],
+                  "mapping_basis": [
+                    "PR title"
+                  ]
+                }
+              ]
+            },
+            "evidence_links": {
+              "before": [],
+              "after": [
+                "https://github.com/Johnathan-u/trust-copilot/blob/5a52580295992bf773a08c2526fc4eac3a621fcd/docs/release/verification/TC-03-004.md",
+                "https://github.com/Johnathan-u/trust-copilot/pull/258",
+                "https://github.com/Johnathan-u/trust-copilot/commit/5a52580295992bf773a08c2526fc4eac3a621fcd",
+                "https://github.com/Johnathan-u/trust-copilot/issues/85#issuecomment-6929698422"
+              ]
+            }
+          },
+          "TC-07-006": {
+            "status": {
+              "before": "BASELINE_RECONCILIATION",
+              "after": "IMPLEMENTATION_GAPS_IDENTIFIED"
+            },
+            "evidence_state": {
+              "before": "BASELINE_RECONCILIATION",
+              "after": "IMPLEMENTATION_GAPS_IDENTIFIED"
+            },
+            "next_action": {
+              "before": "Reconcile existing implementation and evidence against all original acceptance criteria before declaring Done or estimating only the remaining scope.",
+              "after": "Gaps from docs/release/verification/TC-07-006.md (PARTIAL, accepted by Claude on #85 comment 6929698422; PR #258 merge 5a52580295992bf773a08c2526fc4eac3a621fcd): stop document and questionnaire uploads before the rest of the body is read, with a counted read that raises 413 at max_upload_bytes and does not keep the extra bytes; use the same helper for trust intake and delete or align the unused upload_trust_request_attachment. Make the proxy return 413 above 50 MiB without buffering the body (production Caddy has no request_body limit; the Next.js proxy copies the request into an ArrayBuffer); the limit has to follow MAX_UPLOAD_BYTES. Prove a rejected or interrupted upload leaves no document, questionnaire, job, or stored object, including a client disconnect during the body. Add apps/api/tests/release/test_upload_stream.py, artifacts/acceptance/TC-07-006/, and docs/release/tickets/TC-07-006.md. Not accepted."
+            },
+            "updated_at": {
+              "before": "2026-10-30T09:49:19Z",
+              "after": "2026-11-16T21:29:42Z"
+            },
+            "source_sha": {
+              "before": "b2bd1e0df5cdeb03b8d0cd240f5a161835ea621d",
+              "after": "a365c34757800e1f8da58acde155bd3f8e8f8813"
+            },
+            "acceptance": {
+              "before": {
+                "state": "PENDING",
+                "assessed_by": null,
+                "assessed_at": null,
+                "assessed_sha": null,
+                "assessment_evidence_urls": [],
+                "tested_sha": null,
+                "implemented_by": [],
+                "independent_reviewer": null,
+                "reviewed_at": null,
+                "reviewed_sha": null,
+                "review_evidence_urls": [],
+                "criteria": [
+                  {
+                    "id": "TC-07-006-AC1",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  },
+                  {
+                    "id": "TC-07-006-AC2",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  }
+                ],
+                "definition_of_done": [
+                  {
+                    "id": "TC-07-006-DOD1",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  },
+                  {
+                    "id": "TC-07-006-DOD2",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  },
+                  {
+                    "id": "TC-07-006-DOD3",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  },
+                  {
+                    "id": "TC-07-006-DOD4",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  },
+                  {
+                    "id": "TC-07-006-DOD5",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  }
+                ],
+                "note": "Full original-parent acceptance is pending baseline validation; merged work and artifact presence alone confer no acceptance."
+              },
+              "after": {
+                "state": "PENDING",
+                "assessed_by": null,
+                "assessed_at": null,
+                "assessed_sha": null,
+                "assessment_evidence_urls": [],
+                "tested_sha": null,
+                "implemented_by": [],
+                "independent_reviewer": null,
+                "reviewed_at": null,
+                "reviewed_sha": null,
+                "review_evidence_urls": [],
+                "criteria": [
+                  {
+                    "id": "TC-07-006-AC1",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  },
+                  {
+                    "id": "TC-07-006-AC2",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  }
+                ],
+                "definition_of_done": [
+                  {
+                    "id": "TC-07-006-DOD1",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  },
+                  {
+                    "id": "TC-07-006-DOD2",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  },
+                  {
+                    "id": "TC-07-006-DOD3",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  },
+                  {
+                    "id": "TC-07-006-DOD4",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  },
+                  {
+                    "id": "TC-07-006-DOD5",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  }
+                ],
+                "note": "Full original-parent acceptance is pending baseline validation; merged work and artifact presence alone confer no acceptance. Claude accepted the PARTIAL verdict on #85 comment 6929698422. Report docs/release/verification/TC-07-006.md in PR #258 (merge 5a52580295992bf773a08c2526fc4eac3a621fcd). Status is IMPLEMENTATION_GAPS_IDENTIFIED. This record does not accept the ticket. Recorded by Grok (worker) from Claude's review. Grok is not the independent reviewer."
+              }
+            },
+            "pr_links": {
+              "before": [],
+              "after": [
+                {
+                  "number": 258,
+                  "title": "docs: baseline reconciliation batch 1 — TC-03-004, TC-07-006, TC-08-003, TC-08-004",
+                  "url": "https://github.com/Johnathan-u/trust-copilot/pull/258",
+                  "state": "merged",
+                  "draft": false,
+                  "head_sha": "8d360bb1b841e33397afffe783671668439f6c77",
+                  "merge_commit_sha": "5a52580295992bf773a08c2526fc4eac3a621fcd",
+                  "merged_at": "2026-11-16T21:17:00Z",
+                  "scope_ids": [
+                    "TC-07-006"
+                  ],
+                  "mapping_basis": [
+                    "PR title"
+                  ]
+                }
+              ]
+            },
+            "evidence_links": {
+              "before": [],
+              "after": [
+                "https://github.com/Johnathan-u/trust-copilot/blob/5a52580295992bf773a08c2526fc4eac3a621fcd/docs/release/verification/TC-07-006.md",
+                "https://github.com/Johnathan-u/trust-copilot/pull/258",
+                "https://github.com/Johnathan-u/trust-copilot/commit/5a52580295992bf773a08c2526fc4eac3a621fcd",
+                "https://github.com/Johnathan-u/trust-copilot/issues/85#issuecomment-6929698422"
+              ]
+            }
+          },
+          "TC-08-003": {
+            "status": {
+              "before": "BASELINE_RECONCILIATION",
+              "after": "IMPLEMENTATION_GAPS_IDENTIFIED"
+            },
+            "evidence_state": {
+              "before": "BASELINE_RECONCILIATION",
+              "after": "IMPLEMENTATION_GAPS_IDENTIFIED"
+            },
+            "next_action": {
+              "before": "Reconcile existing implementation and evidence against all original acceptance criteria before declaring Done or estimating only the remaining scope.",
+              "after": "Gaps from docs/release/verification/TC-08-003.md (PARTIAL, accepted by Claude on #85 comment 6929698422; PR #258 merge 5a52580295992bf773a08c2526fc4eac3a621fcd): do not leave a retrievable corpus when embedding fails or is incomplete; commit indexed only when every chunk has a vector of EMBEDDING_DIM, and on a None batch or a raised embed call roll back the chunk insert instead of committing null-embedding rows. Keyword search should not return chunks whose document is not indexed or whose embedding is null. Reindex when the embedding model or dimension changes: persist the model id and dimension with the chunks, and a mismatch should enqueue one new complete version rather than skip an indexed document or continue past a bad vector. Add apps/api/tests/release/test_index_atomicity.py (all-None embed_texts, a mixed batch, a dimension ValueError, and a retry that leaves exactly one complete version), artifacts/acceptance/TC-08-003/, and docs/release/tickets/TC-08-003.md. Not accepted."
+            },
+            "updated_at": {
+              "before": "2026-10-30T09:49:19Z",
+              "after": "2026-11-16T21:29:42Z"
+            },
+            "source_sha": {
+              "before": "b2bd1e0df5cdeb03b8d0cd240f5a161835ea621d",
+              "after": "a365c34757800e1f8da58acde155bd3f8e8f8813"
+            },
+            "acceptance": {
+              "before": {
+                "state": "PENDING",
+                "assessed_by": null,
+                "assessed_at": null,
+                "assessed_sha": null,
+                "assessment_evidence_urls": [],
+                "tested_sha": null,
+                "implemented_by": [],
+                "independent_reviewer": null,
+                "reviewed_at": null,
+                "reviewed_sha": null,
+                "review_evidence_urls": [],
+                "criteria": [
+                  {
+                    "id": "TC-08-003-AC1",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  },
+                  {
+                    "id": "TC-08-003-AC2",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  }
+                ],
+                "definition_of_done": [
+                  {
+                    "id": "TC-08-003-DOD1",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  },
+                  {
+                    "id": "TC-08-003-DOD2",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  },
+                  {
+                    "id": "TC-08-003-DOD3",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  },
+                  {
+                    "id": "TC-08-003-DOD4",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  },
+                  {
+                    "id": "TC-08-003-DOD5",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  }
+                ],
+                "note": "Full original-parent acceptance is pending baseline validation; merged work and artifact presence alone confer no acceptance."
+              },
+              "after": {
+                "state": "PENDING",
+                "assessed_by": null,
+                "assessed_at": null,
+                "assessed_sha": null,
+                "assessment_evidence_urls": [],
+                "tested_sha": null,
+                "implemented_by": [],
+                "independent_reviewer": null,
+                "reviewed_at": null,
+                "reviewed_sha": null,
+                "review_evidence_urls": [],
+                "criteria": [
+                  {
+                    "id": "TC-08-003-AC1",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  },
+                  {
+                    "id": "TC-08-003-AC2",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  }
+                ],
+                "definition_of_done": [
+                  {
+                    "id": "TC-08-003-DOD1",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  },
+                  {
+                    "id": "TC-08-003-DOD2",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  },
+                  {
+                    "id": "TC-08-003-DOD3",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  },
+                  {
+                    "id": "TC-08-003-DOD4",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  },
+                  {
+                    "id": "TC-08-003-DOD5",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  }
+                ],
+                "note": "Full original-parent acceptance is pending baseline validation; merged work and artifact presence alone confer no acceptance. Claude accepted the PARTIAL verdict on #85 comment 6929698422. Report docs/release/verification/TC-08-003.md in PR #258 (merge 5a52580295992bf773a08c2526fc4eac3a621fcd). Status is IMPLEMENTATION_GAPS_IDENTIFIED. This record does not accept the ticket. Recorded by Grok (worker) from Claude's review. Grok is not the independent reviewer."
+              }
+            },
+            "pr_links": {
+              "before": [],
+              "after": [
+                {
+                  "number": 258,
+                  "title": "docs: baseline reconciliation batch 1 — TC-03-004, TC-07-006, TC-08-003, TC-08-004",
+                  "url": "https://github.com/Johnathan-u/trust-copilot/pull/258",
+                  "state": "merged",
+                  "draft": false,
+                  "head_sha": "8d360bb1b841e33397afffe783671668439f6c77",
+                  "merge_commit_sha": "5a52580295992bf773a08c2526fc4eac3a621fcd",
+                  "merged_at": "2026-11-16T21:17:00Z",
+                  "scope_ids": [
+                    "TC-08-003"
+                  ],
+                  "mapping_basis": [
+                    "PR title"
+                  ]
+                }
+              ]
+            },
+            "evidence_links": {
+              "before": [],
+              "after": [
+                "https://github.com/Johnathan-u/trust-copilot/blob/5a52580295992bf773a08c2526fc4eac3a621fcd/docs/release/verification/TC-08-003.md",
+                "https://github.com/Johnathan-u/trust-copilot/pull/258",
+                "https://github.com/Johnathan-u/trust-copilot/commit/5a52580295992bf773a08c2526fc4eac3a621fcd",
+                "https://github.com/Johnathan-u/trust-copilot/issues/85#issuecomment-6929698422"
+              ]
+            }
+          },
+          "TC-08-004": {
+            "status": {
+              "before": "BASELINE_RECONCILIATION",
+              "after": "IMPLEMENTATION_GAPS_IDENTIFIED"
+            },
+            "evidence_state": {
+              "before": "BASELINE_RECONCILIATION",
+              "after": "IMPLEMENTATION_GAPS_IDENTIFIED"
+            },
+            "next_action": {
+              "before": "Reconcile existing implementation and evidence against all original acceptance criteria before declaring Done or estimating only the remaining scope.",
+              "after": "Gaps from docs/release/verification/TC-08-004.md (PARTIAL, accepted by Claude on #85 comment 6929698422; PR #258 merge 5a52580295992bf773a08c2526fc4eac3a621fcd): exclude ineligible sources at retrieval time (soft-deleted, not indexed, or superseded) and have soft delete remove or tombstone those chunks and bump the corpus version. Put corpus version, prompt version, and model id on the answer cache key, and invalidate that cache when the corpus version bumps; a stale hit should return None. Apply the caller's permission policy when searching, not only the workspace id. Add apps/api/tests/release/test_retrieval_isolation.py (the same question in two workspaces, caches and citations do not cross, and both caches miss after a corpus bump), artifacts/acceptance/TC-08-004/, and docs/release/tickets/TC-08-004.md. Tighten the stale retrieval assertion so a stale hit must be None. Not accepted."
+            },
+            "updated_at": {
+              "before": "2026-10-30T09:49:19Z",
+              "after": "2026-11-16T21:29:42Z"
+            },
+            "source_sha": {
+              "before": "b2bd1e0df5cdeb03b8d0cd240f5a161835ea621d",
+              "after": "a365c34757800e1f8da58acde155bd3f8e8f8813"
+            },
+            "acceptance": {
+              "before": {
+                "state": "PENDING",
+                "assessed_by": null,
+                "assessed_at": null,
+                "assessed_sha": null,
+                "assessment_evidence_urls": [],
+                "tested_sha": null,
+                "implemented_by": [],
+                "independent_reviewer": null,
+                "reviewed_at": null,
+                "reviewed_sha": null,
+                "review_evidence_urls": [],
+                "criteria": [
+                  {
+                    "id": "TC-08-004-AC1",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  },
+                  {
+                    "id": "TC-08-004-AC2",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  }
+                ],
+                "definition_of_done": [
+                  {
+                    "id": "TC-08-004-DOD1",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  },
+                  {
+                    "id": "TC-08-004-DOD2",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  },
+                  {
+                    "id": "TC-08-004-DOD3",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  },
+                  {
+                    "id": "TC-08-004-DOD4",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  },
+                  {
+                    "id": "TC-08-004-DOD5",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  }
+                ],
+                "note": "Full original-parent acceptance is pending baseline validation; merged work and artifact presence alone confer no acceptance."
+              },
+              "after": {
+                "state": "PENDING",
+                "assessed_by": null,
+                "assessed_at": null,
+                "assessed_sha": null,
+                "assessment_evidence_urls": [],
+                "tested_sha": null,
+                "implemented_by": [],
+                "independent_reviewer": null,
+                "reviewed_at": null,
+                "reviewed_sha": null,
+                "review_evidence_urls": [],
+                "criteria": [
+                  {
+                    "id": "TC-08-004-AC1",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  },
+                  {
+                    "id": "TC-08-004-AC2",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  }
+                ],
+                "definition_of_done": [
+                  {
+                    "id": "TC-08-004-DOD1",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  },
+                  {
+                    "id": "TC-08-004-DOD2",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  },
+                  {
+                    "id": "TC-08-004-DOD3",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  },
+                  {
+                    "id": "TC-08-004-DOD4",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  },
+                  {
+                    "id": "TC-08-004-DOD5",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  }
+                ],
+                "note": "Full original-parent acceptance is pending baseline validation; merged work and artifact presence alone confer no acceptance. Claude accepted the PARTIAL verdict on #85 comment 6929698422. Report docs/release/verification/TC-08-004.md in PR #258 (merge 5a52580295992bf773a08c2526fc4eac3a621fcd). Status is IMPLEMENTATION_GAPS_IDENTIFIED. This record does not accept the ticket. Recorded by Grok (worker) from Claude's review. Grok is not the independent reviewer."
+              }
+            },
+            "pr_links": {
+              "before": [],
+              "after": [
+                {
+                  "number": 258,
+                  "title": "docs: baseline reconciliation batch 1 — TC-03-004, TC-07-006, TC-08-003, TC-08-004",
+                  "url": "https://github.com/Johnathan-u/trust-copilot/pull/258",
+                  "state": "merged",
+                  "draft": false,
+                  "head_sha": "8d360bb1b841e33397afffe783671668439f6c77",
+                  "merge_commit_sha": "5a52580295992bf773a08c2526fc4eac3a621fcd",
+                  "merged_at": "2026-11-16T21:17:00Z",
+                  "scope_ids": [
+                    "TC-08-004"
+                  ],
+                  "mapping_basis": [
+                    "PR title"
+                  ]
+                }
+              ]
+            },
+            "evidence_links": {
+              "before": [],
+              "after": [
+                "https://github.com/Johnathan-u/trust-copilot/blob/5a52580295992bf773a08c2526fc4eac3a621fcd/docs/release/verification/TC-08-004.md",
+                "https://github.com/Johnathan-u/trust-copilot/pull/258",
+                "https://github.com/Johnathan-u/trust-copilot/commit/5a52580295992bf773a08c2526fc4eac3a621fcd",
+                "https://github.com/Johnathan-u/trust-copilot/issues/85#issuecomment-6929698422"
+              ]
+            }
+          },
+          "TC-08-006": {
+            "status": {
+              "before": "BASELINE_RECONCILIATION",
+              "after": "IMPLEMENTATION_GAPS_IDENTIFIED"
+            },
+            "evidence_state": {
+              "before": "BASELINE_RECONCILIATION",
+              "after": "IMPLEMENTATION_GAPS_IDENTIFIED"
+            },
+            "next_action": {
+              "before": "Reconcile existing implementation and evidence against all original acceptance criteria before declaring Done or estimating only the remaining scope.",
+              "after": "Gaps from docs/release/verification/TC-08-006.md (PARTIAL, accepted by Claude on #85 comment 6929698422; PR #259 merge aff1e310ab45a83f656425781bd904eff9f02c7a): keep the approved answer visible and mark that revision stale when its source is archived or replaced; bind the revision to the supporting document and set the stale marker instead of leaving status approved. Stop retrieval from returning chunks whose document is soft-deleted or replaced, and bump the corpus version on archive. Block final export while an included answer cites a revoked source or is still the stale revision; allow the file after a new revision is approved against a document that is still active. Add apps/api/tests/release/test_archive_revalidation.py, artifacts/acceptance/TC-08-006/, and docs/release/tickets/TC-08-006.md. Not accepted."
+            },
+            "updated_at": {
+              "before": "2026-10-30T09:49:19Z",
+              "after": "2026-11-16T21:29:42Z"
+            },
+            "source_sha": {
+              "before": "b2bd1e0df5cdeb03b8d0cd240f5a161835ea621d",
+              "after": "a365c34757800e1f8da58acde155bd3f8e8f8813"
+            },
+            "acceptance": {
+              "before": {
+                "state": "PENDING",
+                "assessed_by": null,
+                "assessed_at": null,
+                "assessed_sha": null,
+                "assessment_evidence_urls": [],
+                "tested_sha": null,
+                "implemented_by": [],
+                "independent_reviewer": null,
+                "reviewed_at": null,
+                "reviewed_sha": null,
+                "review_evidence_urls": [],
+                "criteria": [
+                  {
+                    "id": "TC-08-006-AC1",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  },
+                  {
+                    "id": "TC-08-006-AC2",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  }
+                ],
+                "definition_of_done": [
+                  {
+                    "id": "TC-08-006-DOD1",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  },
+                  {
+                    "id": "TC-08-006-DOD2",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  },
+                  {
+                    "id": "TC-08-006-DOD3",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  },
+                  {
+                    "id": "TC-08-006-DOD4",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  },
+                  {
+                    "id": "TC-08-006-DOD5",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  }
+                ],
+                "note": "Full original-parent acceptance is pending baseline validation; merged work and artifact presence alone confer no acceptance."
+              },
+              "after": {
+                "state": "PENDING",
+                "assessed_by": null,
+                "assessed_at": null,
+                "assessed_sha": null,
+                "assessment_evidence_urls": [],
+                "tested_sha": null,
+                "implemented_by": [],
+                "independent_reviewer": null,
+                "reviewed_at": null,
+                "reviewed_sha": null,
+                "review_evidence_urls": [],
+                "criteria": [
+                  {
+                    "id": "TC-08-006-AC1",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  },
+                  {
+                    "id": "TC-08-006-AC2",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  }
+                ],
+                "definition_of_done": [
+                  {
+                    "id": "TC-08-006-DOD1",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  },
+                  {
+                    "id": "TC-08-006-DOD2",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  },
+                  {
+                    "id": "TC-08-006-DOD3",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  },
+                  {
+                    "id": "TC-08-006-DOD4",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  },
+                  {
+                    "id": "TC-08-006-DOD5",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  }
+                ],
+                "note": "Full original-parent acceptance is pending baseline validation; merged work and artifact presence alone confer no acceptance. Claude accepted the PARTIAL verdict on #85 comment 6929698422. Report docs/release/verification/TC-08-006.md in PR #259 (merge aff1e310ab45a83f656425781bd904eff9f02c7a). Status is IMPLEMENTATION_GAPS_IDENTIFIED. This record does not accept the ticket. Recorded by Grok (worker) from Claude's review. Grok is not the independent reviewer."
+              }
+            },
+            "pr_links": {
+              "before": [],
+              "after": [
+                {
+                  "number": 259,
+                  "title": "docs: baseline reconciliation batch 2 — TC-08-006, TC-12-002, TC-20-050, TC-20-053",
+                  "url": "https://github.com/Johnathan-u/trust-copilot/pull/259",
+                  "state": "merged",
+                  "draft": false,
+                  "head_sha": "cb3f9ae3ecc963a174152113388dea3c452859e2",
+                  "merge_commit_sha": "aff1e310ab45a83f656425781bd904eff9f02c7a",
+                  "merged_at": "2026-11-16T21:17:24Z",
+                  "scope_ids": [
+                    "TC-08-006"
+                  ],
+                  "mapping_basis": [
+                    "PR title"
+                  ]
+                }
+              ]
+            },
+            "evidence_links": {
+              "before": [],
+              "after": [
+                "https://github.com/Johnathan-u/trust-copilot/blob/aff1e310ab45a83f656425781bd904eff9f02c7a/docs/release/verification/TC-08-006.md",
+                "https://github.com/Johnathan-u/trust-copilot/pull/259",
+                "https://github.com/Johnathan-u/trust-copilot/commit/aff1e310ab45a83f656425781bd904eff9f02c7a",
+                "https://github.com/Johnathan-u/trust-copilot/issues/85#issuecomment-6929698422"
+              ]
+            }
+          },
+          "TC-12-002": {
+            "status": {
+              "before": "BASELINE_RECONCILIATION",
+              "after": "IMPLEMENTATION_GAPS_IDENTIFIED"
+            },
+            "evidence_state": {
+              "before": "BASELINE_RECONCILIATION",
+              "after": "IMPLEMENTATION_GAPS_IDENTIFIED"
+            },
+            "next_action": {
+              "before": "Reconcile existing implementation and evidence against all original acceptance criteria before declaring Done or estimating only the remaining scope.",
+              "after": "Gaps from docs/release/verification/TC-12-002.md (PARTIAL, accepted by Claude on #85 comment 6929698422; PR #259 merge aff1e310ab45a83f656425781bd904eff9f02c7a): persist an answer revision and require the revision the editor loaded; a mismatch returns 409 and leaves the stored row unchanged. The advisory lock can stay; it serializes commits and does not detect a stale editor. Prove the row save keeps the typed text and stays on Not saved yet for HTTP 403, 409, and 500. Add apps/api/tests/release/test_answer_revisions.py (two clients save the same answer, the stale client gets 409, and a later read returns the winner's text), artifacts/acceptance/TC-12-002/, and docs/release/tickets/TC-12-002.md. Not accepted."
+            },
+            "updated_at": {
+              "before": "2026-10-30T09:49:19Z",
+              "after": "2026-11-16T21:29:42Z"
+            },
+            "source_sha": {
+              "before": "b2bd1e0df5cdeb03b8d0cd240f5a161835ea621d",
+              "after": "a365c34757800e1f8da58acde155bd3f8e8f8813"
+            },
+            "acceptance": {
+              "before": {
+                "state": "PENDING",
+                "assessed_by": null,
+                "assessed_at": null,
+                "assessed_sha": null,
+                "assessment_evidence_urls": [],
+                "tested_sha": null,
+                "implemented_by": [],
+                "independent_reviewer": null,
+                "reviewed_at": null,
+                "reviewed_sha": null,
+                "review_evidence_urls": [],
+                "criteria": [
+                  {
+                    "id": "TC-12-002-AC1",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  },
+                  {
+                    "id": "TC-12-002-AC2",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  }
+                ],
+                "definition_of_done": [
+                  {
+                    "id": "TC-12-002-DOD1",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  },
+                  {
+                    "id": "TC-12-002-DOD2",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  },
+                  {
+                    "id": "TC-12-002-DOD3",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  },
+                  {
+                    "id": "TC-12-002-DOD4",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  },
+                  {
+                    "id": "TC-12-002-DOD5",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  }
+                ],
+                "note": "Full original-parent acceptance is pending baseline validation; merged work and artifact presence alone confer no acceptance."
+              },
+              "after": {
+                "state": "PENDING",
+                "assessed_by": null,
+                "assessed_at": null,
+                "assessed_sha": null,
+                "assessment_evidence_urls": [],
+                "tested_sha": null,
+                "implemented_by": [],
+                "independent_reviewer": null,
+                "reviewed_at": null,
+                "reviewed_sha": null,
+                "review_evidence_urls": [],
+                "criteria": [
+                  {
+                    "id": "TC-12-002-AC1",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  },
+                  {
+                    "id": "TC-12-002-AC2",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  }
+                ],
+                "definition_of_done": [
+                  {
+                    "id": "TC-12-002-DOD1",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  },
+                  {
+                    "id": "TC-12-002-DOD2",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  },
+                  {
+                    "id": "TC-12-002-DOD3",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  },
+                  {
+                    "id": "TC-12-002-DOD4",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  },
+                  {
+                    "id": "TC-12-002-DOD5",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  }
+                ],
+                "note": "Full original-parent acceptance is pending baseline validation; merged work and artifact presence alone confer no acceptance. Claude accepted the PARTIAL verdict on #85 comment 6929698422. Report docs/release/verification/TC-12-002.md in PR #259 (merge aff1e310ab45a83f656425781bd904eff9f02c7a). Status is IMPLEMENTATION_GAPS_IDENTIFIED. This record does not accept the ticket. Recorded by Grok (worker) from Claude's review. Grok is not the independent reviewer."
+              }
+            },
+            "pr_links": {
+              "before": [],
+              "after": [
+                {
+                  "number": 259,
+                  "title": "docs: baseline reconciliation batch 2 — TC-08-006, TC-12-002, TC-20-050, TC-20-053",
+                  "url": "https://github.com/Johnathan-u/trust-copilot/pull/259",
+                  "state": "merged",
+                  "draft": false,
+                  "head_sha": "cb3f9ae3ecc963a174152113388dea3c452859e2",
+                  "merge_commit_sha": "aff1e310ab45a83f656425781bd904eff9f02c7a",
+                  "merged_at": "2026-11-16T21:17:24Z",
+                  "scope_ids": [
+                    "TC-12-002"
+                  ],
+                  "mapping_basis": [
+                    "PR title"
+                  ]
+                }
+              ]
+            },
+            "evidence_links": {
+              "before": [],
+              "after": [
+                "https://github.com/Johnathan-u/trust-copilot/blob/aff1e310ab45a83f656425781bd904eff9f02c7a/docs/release/verification/TC-12-002.md",
+                "https://github.com/Johnathan-u/trust-copilot/pull/259",
+                "https://github.com/Johnathan-u/trust-copilot/commit/aff1e310ab45a83f656425781bd904eff9f02c7a",
+                "https://github.com/Johnathan-u/trust-copilot/issues/85#issuecomment-6929698422"
+              ]
+            }
+          },
+          "TC-20-050": {
+            "status": {
+              "before": "BASELINE_RECONCILIATION",
+              "after": "IMPLEMENTATION_GAPS_IDENTIFIED"
+            },
+            "evidence_state": {
+              "before": "BASELINE_RECONCILIATION",
+              "after": "IMPLEMENTATION_GAPS_IDENTIFIED"
+            },
+            "blockers": {
+              "before": [],
+              "after": [
+                "Salesforce developer org for real sync, with credentials through the secret store only. Real sync cannot be qualified against the current demo stubs. Owner-blocked per #85 comment 6929698422."
+              ]
+            },
+            "next_action": {
+              "before": "Reconcile existing implementation and evidence against all original acceptance criteria before declaring Done or estimating only the remaining scope. Supplemental AC row (R2, not an original criterion id; docs/release/tickets/TC-20-050.md): Introduce a persisted sync job kind and show its history in the activity center, including progress, retry/cancel and object links across reload. Moved from TC-15-038 AC1 because no persisted sync job kind exists. TC-20-050 is the ticket that introduces that kind (first incremental CRM sync, Salesforce, POST /crm/sync/salesforce). TC-20-053 reuses the kind rather than introducing a second one. Ruling: https://github.com/Johnathan-u/trust-copilot/issues/85#issuecomment-6896794377.",
+              "after": "Gaps from docs/release/verification/TC-20-050.md (PARTIAL, accepted by Claude on #85 comment 6929698422; PR #259 merge aff1e310ab45a83f656425781bd904eff9f02c7a): replace the fixed sf-opp-001 / sf-opp-002 list with a paginated read of the selected Salesforce pipeline; persist close date, currency, and an id that is stable for one workspace, connection, provider, and external id; stop setting mock: True. Add Unique(workspace, connection, provider, external_id), store the sync cursor, delete or tombstone records the provider removed, and do not overwrite a manual edit or insert a second row on retry of the same page. Add one persisted sync job kind and show it on the jobs history page with progress, retry, cancel, and an object link that survive reload (the R2 row; TC-20-053 reuses this kind). Add apps/api/tests/release/test_crm_salesforce_data.py and artifacts/acceptance/TC-20-050/, including authorized sandbox evidence. Mocks stay unit evidence and do not close DoD6. Not accepted."
+            },
+            "updated_at": {
+              "before": "2026-11-15T19:09:57Z",
+              "after": "2026-11-16T21:29:42Z"
+            },
+            "source_sha": {
+              "before": "960fe4f97772ac72ba6f726d24e49b0ef57f2eb1",
+              "after": "a365c34757800e1f8da58acde155bd3f8e8f8813"
+            },
+            "acceptance": {
+              "before": {
+                "state": "PENDING",
+                "assessed_by": null,
+                "assessed_at": null,
+                "assessed_sha": null,
+                "assessment_evidence_urls": [],
+                "tested_sha": null,
+                "implemented_by": [],
+                "independent_reviewer": null,
+                "reviewed_at": null,
+                "reviewed_sha": null,
+                "review_evidence_urls": [],
+                "criteria": [
+                  {
+                    "id": "TC-20-050-AC1",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  },
+                  {
+                    "id": "TC-20-050-AC2",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  }
+                ],
+                "definition_of_done": [
+                  {
+                    "id": "TC-20-050-DOD1",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  },
+                  {
+                    "id": "TC-20-050-DOD2",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  },
+                  {
+                    "id": "TC-20-050-DOD3",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  },
+                  {
+                    "id": "TC-20-050-DOD4",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  },
+                  {
+                    "id": "TC-20-050-DOD5",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  },
+                  {
+                    "id": "TC-20-050-DOD6",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  }
+                ],
+                "note": "Full original-parent acceptance is pending baseline validation; merged work and artifact presence alone confer no acceptance. Supplemental AC row (R2, not an original criterion id; docs/release/tickets/TC-20-050.md): Introduce a persisted sync job kind and show its history in the activity center, including progress, retry/cancel and object links across reload. Moved from TC-15-038 AC1 because no persisted sync job kind exists. TC-20-050 is the ticket that introduces that kind (first incremental CRM sync, Salesforce, POST /crm/sync/salesforce). TC-20-053 reuses the kind rather than introducing a second one. Ruling: https://github.com/Johnathan-u/trust-copilot/issues/85#issuecomment-6896794377."
+              },
+              "after": {
+                "state": "PENDING",
+                "assessed_by": null,
+                "assessed_at": null,
+                "assessed_sha": null,
+                "assessment_evidence_urls": [],
+                "tested_sha": null,
+                "implemented_by": [],
+                "independent_reviewer": null,
+                "reviewed_at": null,
+                "reviewed_sha": null,
+                "review_evidence_urls": [],
+                "criteria": [
+                  {
+                    "id": "TC-20-050-AC1",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  },
+                  {
+                    "id": "TC-20-050-AC2",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  }
+                ],
+                "definition_of_done": [
+                  {
+                    "id": "TC-20-050-DOD1",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  },
+                  {
+                    "id": "TC-20-050-DOD2",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  },
+                  {
+                    "id": "TC-20-050-DOD3",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  },
+                  {
+                    "id": "TC-20-050-DOD4",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  },
+                  {
+                    "id": "TC-20-050-DOD5",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  },
+                  {
+                    "id": "TC-20-050-DOD6",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  }
+                ],
+                "note": "Full original-parent acceptance is pending baseline validation; merged work and artifact presence alone confer no acceptance. Supplemental AC row (R2, not an original criterion id; docs/release/tickets/TC-20-050.md): Introduce a persisted sync job kind and show its history in the activity center, including progress, retry/cancel and object links across reload. Moved from TC-15-038 AC1 because no persisted sync job kind exists. TC-20-050 is the ticket that introduces that kind (first incremental CRM sync, Salesforce, POST /crm/sync/salesforce). TC-20-053 reuses the kind rather than introducing a second one. Ruling: https://github.com/Johnathan-u/trust-copilot/issues/85#issuecomment-6896794377. Claude accepted the PARTIAL verdict on #85 comment 6929698422. Report docs/release/verification/TC-20-050.md in PR #259 (merge aff1e310ab45a83f656425781bd904eff9f02c7a). Status is IMPLEMENTATION_GAPS_IDENTIFIED. This record does not accept the ticket. Recorded by Grok (worker) from Claude's review. Grok is not the independent reviewer. CRM sandbox remains owner-blocked: a Salesforce developer org, credentials through the secret store only (#85 comment 6929698422)."
+              }
+            },
+            "pr_links": {
+              "before": [],
+              "after": [
+                {
+                  "number": 259,
+                  "title": "docs: baseline reconciliation batch 2 — TC-08-006, TC-12-002, TC-20-050, TC-20-053",
+                  "url": "https://github.com/Johnathan-u/trust-copilot/pull/259",
+                  "state": "merged",
+                  "draft": false,
+                  "head_sha": "cb3f9ae3ecc963a174152113388dea3c452859e2",
+                  "merge_commit_sha": "aff1e310ab45a83f656425781bd904eff9f02c7a",
+                  "merged_at": "2026-11-16T21:17:24Z",
+                  "scope_ids": [
+                    "TC-20-050"
+                  ],
+                  "mapping_basis": [
+                    "PR title"
+                  ]
+                }
+              ]
+            },
+            "evidence_links": {
+              "before": [
+                "https://github.com/Johnathan-u/trust-copilot/issues/85#issuecomment-6896794377"
+              ],
+              "after": [
+                "https://github.com/Johnathan-u/trust-copilot/issues/85#issuecomment-6896794377",
+                "https://github.com/Johnathan-u/trust-copilot/blob/aff1e310ab45a83f656425781bd904eff9f02c7a/docs/release/verification/TC-20-050.md",
+                "https://github.com/Johnathan-u/trust-copilot/pull/259",
+                "https://github.com/Johnathan-u/trust-copilot/commit/aff1e310ab45a83f656425781bd904eff9f02c7a",
+                "https://github.com/Johnathan-u/trust-copilot/issues/85#issuecomment-6929698422"
+              ]
+            }
+          },
+          "TC-20-053": {
+            "status": {
+              "before": "BASELINE_RECONCILIATION",
+              "after": "IMPLEMENTATION_GAPS_IDENTIFIED"
+            },
+            "evidence_state": {
+              "before": "BASELINE_RECONCILIATION",
+              "after": "IMPLEMENTATION_GAPS_IDENTIFIED"
+            },
+            "blockers": {
+              "before": [],
+              "after": [
+                "HubSpot developer test account for real sync, with credentials through the secret store only. Real sync cannot be qualified against the current demo stubs. Owner-blocked per #85 comment 6929698422."
+              ]
+            },
+            "next_action": {
+              "before": "Reconcile existing implementation and evidence against all original acceptance criteria before declaring Done or estimating only the remaining scope.",
+              "after": "Gaps from docs/release/verification/TC-20-053.md (PARTIAL, accepted by Claude on #85 comment 6929698422; PR #259 merge aff1e310ab45a83f656425781bd904eff9f02c7a): replace the fixed hs-deal-001 list with a paginated read of the selected HubSpot pipeline; persist close date, currency, and an id that is stable for one workspace, connection, provider, and external id; stop setting mock: True; include the provider in the lookup so a Salesforce external id in the same workspace is a different row. Use Unique(workspace, connection, provider, external_id), store the sync cursor, delete or tombstone records the provider removed, and do not overwrite a manual edit or insert a second row on retry of the same page. Enqueue HubSpot sync on the sync job kind TC-20-050 introduces and show that job on the jobs history page with progress, retry, cancel, and an object link that survive reload. Add apps/api/tests/release/test_crm_hubspot_data.py, artifacts/acceptance/TC-20-053/ including authorized sandbox evidence, and docs/release/tickets/TC-20-053.md. Mocks stay unit evidence and do not close DoD6. Not accepted."
+            },
+            "updated_at": {
+              "before": "2026-10-30T09:49:19Z",
+              "after": "2026-11-16T21:29:42Z"
+            },
+            "source_sha": {
+              "before": "b2bd1e0df5cdeb03b8d0cd240f5a161835ea621d",
+              "after": "a365c34757800e1f8da58acde155bd3f8e8f8813"
+            },
+            "acceptance": {
+              "before": {
+                "state": "PENDING",
+                "assessed_by": null,
+                "assessed_at": null,
+                "assessed_sha": null,
+                "assessment_evidence_urls": [],
+                "tested_sha": null,
+                "implemented_by": [],
+                "independent_reviewer": null,
+                "reviewed_at": null,
+                "reviewed_sha": null,
+                "review_evidence_urls": [],
+                "criteria": [
+                  {
+                    "id": "TC-20-053-AC1",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  },
+                  {
+                    "id": "TC-20-053-AC2",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  }
+                ],
+                "definition_of_done": [
+                  {
+                    "id": "TC-20-053-DOD1",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  },
+                  {
+                    "id": "TC-20-053-DOD2",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  },
+                  {
+                    "id": "TC-20-053-DOD3",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  },
+                  {
+                    "id": "TC-20-053-DOD4",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  },
+                  {
+                    "id": "TC-20-053-DOD5",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  },
+                  {
+                    "id": "TC-20-053-DOD6",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  }
+                ],
+                "note": "Full original-parent acceptance is pending baseline validation; merged work and artifact presence alone confer no acceptance."
+              },
+              "after": {
+                "state": "PENDING",
+                "assessed_by": null,
+                "assessed_at": null,
+                "assessed_sha": null,
+                "assessment_evidence_urls": [],
+                "tested_sha": null,
+                "implemented_by": [],
+                "independent_reviewer": null,
+                "reviewed_at": null,
+                "reviewed_sha": null,
+                "review_evidence_urls": [],
+                "criteria": [
+                  {
+                    "id": "TC-20-053-AC1",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  },
+                  {
+                    "id": "TC-20-053-AC2",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  }
+                ],
+                "definition_of_done": [
+                  {
+                    "id": "TC-20-053-DOD1",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  },
+                  {
+                    "id": "TC-20-053-DOD2",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  },
+                  {
+                    "id": "TC-20-053-DOD3",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  },
+                  {
+                    "id": "TC-20-053-DOD4",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  },
+                  {
+                    "id": "TC-20-053-DOD5",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  },
+                  {
+                    "id": "TC-20-053-DOD6",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  }
+                ],
+                "note": "Full original-parent acceptance is pending baseline validation; merged work and artifact presence alone confer no acceptance. Claude accepted the PARTIAL verdict on #85 comment 6929698422. Report docs/release/verification/TC-20-053.md in PR #259 (merge aff1e310ab45a83f656425781bd904eff9f02c7a). Status is IMPLEMENTATION_GAPS_IDENTIFIED. This record does not accept the ticket. Recorded by Grok (worker) from Claude's review. Grok is not the independent reviewer. CRM sandbox remains owner-blocked: a HubSpot developer test account, credentials through the secret store only (#85 comment 6929698422)."
+              }
+            },
+            "pr_links": {
+              "before": [],
+              "after": [
+                {
+                  "number": 259,
+                  "title": "docs: baseline reconciliation batch 2 — TC-08-006, TC-12-002, TC-20-050, TC-20-053",
+                  "url": "https://github.com/Johnathan-u/trust-copilot/pull/259",
+                  "state": "merged",
+                  "draft": false,
+                  "head_sha": "cb3f9ae3ecc963a174152113388dea3c452859e2",
+                  "merge_commit_sha": "aff1e310ab45a83f656425781bd904eff9f02c7a",
+                  "merged_at": "2026-11-16T21:17:24Z",
+                  "scope_ids": [
+                    "TC-20-053"
+                  ],
+                  "mapping_basis": [
+                    "PR title"
+                  ]
+                }
+              ]
+            },
+            "evidence_links": {
+              "before": [],
+              "after": [
+                "https://github.com/Johnathan-u/trust-copilot/blob/aff1e310ab45a83f656425781bd904eff9f02c7a/docs/release/verification/TC-20-053.md",
+                "https://github.com/Johnathan-u/trust-copilot/pull/259",
+                "https://github.com/Johnathan-u/trust-copilot/commit/aff1e310ab45a83f656425781bd904eff9f02c7a",
+                "https://github.com/Johnathan-u/trust-copilot/issues/85#issuecomment-6929698422"
+              ]
+            }
+          },
+          "TC-17-005": {
+            "blockers": {
+              "before": [],
+              "after": [
+                "TC-17-005a AC4 (token rotation) remains owner-blocked for live spaces. #85 comment 6929751304: the owner approved rotating every space that was live before #257. The child is closed for the admin-only hashed token and /access audit. AC4 is not complete."
+              ]
+            },
+            "next_action": {
+              "before": "Baseline reconciliation of the original parent is still pending. Open child TC-17-005a (P1, security, auth; not started) tracks the shareable-space access_token exposure. Owner Grok (worker). Pre-merge review by Claude required.",
+              "after": "Baseline reconciliation of the original parent is still pending. Child TC-17-005a is closed by #257 (merge 8e264eca9928253aa3fffc56670eb0a13c54cffb): the shareable-space token is admin-only, SHA-256 at rest, and /access is audited. Ruling: #85 comment 6929698422. The child is not counted toward DONE. AC4 (token rotation) remains owner-blocked for live spaces per #85 comment 6929751304 (the owner approved the rotation; the live rotation is not done). Not accepted."
+            },
+            "updated_at": {
+              "before": "2026-11-16T17:19:42Z",
+              "after": "2026-11-16T21:29:42Z"
+            },
+            "source_sha": {
+              "before": "f305b4e8911471eed249d749f53fdeeec31380b9",
+              "after": "a365c34757800e1f8da58acde155bd3f8e8f8813"
+            },
+            "acceptance": {
+              "before": {
+                "state": "PENDING",
+                "assessed_by": null,
+                "assessed_at": null,
+                "assessed_sha": null,
+                "assessment_evidence_urls": [],
+                "tested_sha": null,
+                "implemented_by": [],
+                "independent_reviewer": null,
+                "reviewed_at": null,
+                "reviewed_sha": null,
+                "review_evidence_urls": [],
+                "criteria": [
+                  {
+                    "id": "TC-17-005-AC1",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  },
+                  {
+                    "id": "TC-17-005-AC2",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  },
+                  {
+                    "id": "TC-17-005-AC3",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  }
+                ],
+                "definition_of_done": [
+                  {
+                    "id": "TC-17-005-DOD1",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  },
+                  {
+                    "id": "TC-17-005-DOD2",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  },
+                  {
+                    "id": "TC-17-005-DOD3",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  },
+                  {
+                    "id": "TC-17-005-DOD4",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  },
+                  {
+                    "id": "TC-17-005-DOD5",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  }
+                ],
+                "note": "Full original-parent acceptance is pending baseline validation; merged work and artifact presence alone confer no acceptance. Open child TC-17-005a is registered and not accepted. Filed by Claude on #85 comment 6921992737. Owner Grok (worker). Pre-merge review by Claude required."
+              },
+              "after": {
+                "state": "PENDING",
+                "assessed_by": null,
+                "assessed_at": null,
+                "assessed_sha": null,
+                "assessment_evidence_urls": [],
+                "tested_sha": null,
+                "implemented_by": [],
+                "independent_reviewer": null,
+                "reviewed_at": null,
+                "reviewed_sha": null,
+                "review_evidence_urls": [],
+                "criteria": [
+                  {
+                    "id": "TC-17-005-AC1",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  },
+                  {
+                    "id": "TC-17-005-AC2",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  },
+                  {
+                    "id": "TC-17-005-AC3",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  }
+                ],
+                "definition_of_done": [
+                  {
+                    "id": "TC-17-005-DOD1",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  },
+                  {
+                    "id": "TC-17-005-DOD2",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  },
+                  {
+                    "id": "TC-17-005-DOD3",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  },
+                  {
+                    "id": "TC-17-005-DOD4",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  },
+                  {
+                    "id": "TC-17-005-DOD5",
+                    "status": "NOT_VERIFIED",
+                    "evidence_urls": [],
+                    "tested_sha": null
+                  }
+                ],
+                "note": "Full original-parent acceptance is pending baseline validation; merged work and artifact presence alone confer no acceptance. Child TC-17-005a is closed by #257 (merge 8e264eca9928253aa3fffc56670eb0a13c54cffb) and is not an original-parent acceptance. Ruling: #85 comment 6929698422. Filed by Claude on #85 comment 6921992737. AC4 (token rotation) remains owner-blocked for live spaces per #85 comment 6929751304: the owner approved rotating every space that was live before that merge. AC4 is not complete. Recorded by Grok (worker) from Claude's review. Grok is not the independent reviewer."
+              }
+            },
+            "pr_links": {
+              "before": [],
+              "after": [
+                {
+                  "number": 257,
+                  "title": "TC-17-005a: admin-only shareable-space token, SHA-256 at rest, /access audit",
+                  "url": "https://github.com/Johnathan-u/trust-copilot/pull/257",
+                  "state": "merged",
+                  "draft": false,
+                  "head_sha": "09d3e38635a510979841460ce49693eeff17addd",
+                  "merge_commit_sha": "8e264eca9928253aa3fffc56670eb0a13c54cffb",
+                  "merged_at": "2026-11-16T21:15:41Z",
+                  "scope_ids": [
+                    "TC-17-005a"
+                  ],
+                  "mapping_basis": [
+                    "PR title"
+                  ]
+                }
+              ]
+            },
+            "evidence_links": {
+              "before": [
+                "https://github.com/Johnathan-u/trust-copilot/issues/85#issuecomment-6921992737"
+              ],
+              "after": [
+                "https://github.com/Johnathan-u/trust-copilot/issues/85#issuecomment-6921992737",
+                "https://github.com/Johnathan-u/trust-copilot/pull/257",
+                "https://github.com/Johnathan-u/trust-copilot/commit/8e264eca9928253aa3fffc56670eb0a13c54cffb",
+                "https://github.com/Johnathan-u/trust-copilot/issues/85#issuecomment-6929698422",
+                "https://github.com/Johnathan-u/trust-copilot/issues/85#issuecomment-6929751304"
+              ]
+            }
+          },
+          "TC-14-005": {
+            "next_action": {
+              "before": "Gaps from docs/release/verification/TC-14-005.md are child TC-14-005b: failed export reads must not look empty, proof chain needs LoadingState, remaining dashboard loaders need the shared contract, the spec must cover those pages, and regenerated screenshots must be uploaded. Not accepted.",
+              "after": "Child TC-14-005b is closed by #260 (merge a365c34757800e1f8da58acde155bd3f8e8f8813), with the state-components floor raised from 9 to 13. Ruling: #85 comment 6929698422. The child is not counted toward DONE. The parent stays IMPLEMENTATION_GAPS_IDENTIFIED and is not accepted. Re-verification of the original parent is still pending."
+            },
+            "updated_at": {
+              "before": "2026-11-15T19:09:57Z",
+              "after": "2026-11-16T21:29:42Z"
+            },
+            "source_sha": {
+              "before": "960fe4f97772ac72ba6f726d24e49b0ef57f2eb1",
+              "after": "a365c34757800e1f8da58acde155bd3f8e8f8813"
+            },
+            "acceptance": {
+              "before": {
+                "state": "NOT_ACCEPTED",
+                "assessed_by": "claude-review-agent",
+                "assessed_at": "2026-11-15T17:05:03Z",
+                "assessed_sha": "0e8cb32496a7847a727d89ed54753990b91a3127",
+                "assessment_evidence_urls": [
+                  "https://github.com/Johnathan-u/trust-copilot/issues/85#issuecomment-6898105489",
+                  "https://github.com/Johnathan-u/trust-copilot/blob/61fed611cf7971ee78effceabc3f3d49907d0d4b/docs/release/verification/TC-14-005.md",
+                  "https://github.com/Johnathan-u/trust-copilot/pull/238",
+                  "https://github.com/Johnathan-u/trust-copilot/commit/61fed611cf7971ee78effceabc3f3d49907d0d4b",
+                  "https://github.com/Johnathan-u/trust-copilot/issues/85#issuecomment-6896794377"
+                ],
+                "tested_sha": "0e8cb32496a7847a727d89ed54753990b91a3127",
+                "implemented_by": [
+                  "grok",
+                  "Johnathan-u"
+                ],
+                "independent_reviewer": "claude-review-agent",
+                "reviewed_at": "2026-11-15T17:05:03Z",
+                "reviewed_sha": "0e8cb32496a7847a727d89ed54753990b91a3127",
+                "review_evidence_urls": [
+                  "https://github.com/Johnathan-u/trust-copilot/issues/85#issuecomment-6898105489",
+                  "https://github.com/Johnathan-u/trust-copilot/blob/61fed611cf7971ee78effceabc3f3d49907d0d4b/docs/release/verification/TC-14-005.md",
+                  "https://github.com/Johnathan-u/trust-copilot/pull/238",
+                  "https://github.com/Johnathan-u/trust-copilot/commit/61fed611cf7971ee78effceabc3f3d49907d0d4b",
+                  "https://github.com/Johnathan-u/trust-copilot/issues/85#issuecomment-6896794377"
+                ],
+                "criteria": [
+                  {
+                    "id": "TC-14-005-AC1",
+                    "status": "FAIL",
+                    "evidence_urls": [
+                      "https://github.com/Johnathan-u/trust-copilot/issues/85#issuecomment-6898105489",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/61fed611cf7971ee78effceabc3f3d49907d0d4b/docs/release/verification/TC-14-005.md",
+                      "https://github.com/Johnathan-u/trust-copilot/pull/238",
+                      "https://github.com/Johnathan-u/trust-copilot/commit/61fed611cf7971ee78effceabc3f3d49907d0d4b",
+                      "https://github.com/Johnathan-u/trust-copilot/issues/85#issuecomment-6896794377"
+                    ],
+                    "tested_sha": "0e8cb32496a7847a727d89ed54753990b91a3127"
+                  },
+                  {
+                    "id": "TC-14-005-AC2",
+                    "status": "FAIL",
+                    "evidence_urls": [
+                      "https://github.com/Johnathan-u/trust-copilot/issues/85#issuecomment-6898105489",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/61fed611cf7971ee78effceabc3f3d49907d0d4b/docs/release/verification/TC-14-005.md",
+                      "https://github.com/Johnathan-u/trust-copilot/pull/238",
+                      "https://github.com/Johnathan-u/trust-copilot/commit/61fed611cf7971ee78effceabc3f3d49907d0d4b",
+                      "https://github.com/Johnathan-u/trust-copilot/issues/85#issuecomment-6896794377"
+                    ],
+                    "tested_sha": "0e8cb32496a7847a727d89ed54753990b91a3127"
+                  }
+                ],
+                "definition_of_done": [
+                  {
+                    "id": "TC-14-005-DOD1",
+                    "status": "FAIL",
+                    "evidence_urls": [
+                      "https://github.com/Johnathan-u/trust-copilot/issues/85#issuecomment-6898105489",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/61fed611cf7971ee78effceabc3f3d49907d0d4b/docs/release/verification/TC-14-005.md",
+                      "https://github.com/Johnathan-u/trust-copilot/pull/238",
+                      "https://github.com/Johnathan-u/trust-copilot/commit/61fed611cf7971ee78effceabc3f3d49907d0d4b",
+                      "https://github.com/Johnathan-u/trust-copilot/issues/85#issuecomment-6896794377"
+                    ],
+                    "tested_sha": "0e8cb32496a7847a727d89ed54753990b91a3127"
+                  },
+                  {
+                    "id": "TC-14-005-DOD2",
+                    "status": "PASS",
+                    "evidence_urls": [
+                      "https://github.com/Johnathan-u/trust-copilot/issues/85#issuecomment-6898105489",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/61fed611cf7971ee78effceabc3f3d49907d0d4b/docs/release/verification/TC-14-005.md",
+                      "https://github.com/Johnathan-u/trust-copilot/pull/238",
+                      "https://github.com/Johnathan-u/trust-copilot/commit/61fed611cf7971ee78effceabc3f3d49907d0d4b",
+                      "https://github.com/Johnathan-u/trust-copilot/issues/85#issuecomment-6896794377"
+                    ],
+                    "tested_sha": "0e8cb32496a7847a727d89ed54753990b91a3127"
+                  },
+                  {
+                    "id": "TC-14-005-DOD3",
+                    "status": "PASS",
+                    "evidence_urls": [
+                      "https://github.com/Johnathan-u/trust-copilot/issues/85#issuecomment-6898105489",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/61fed611cf7971ee78effceabc3f3d49907d0d4b/docs/release/verification/TC-14-005.md",
+                      "https://github.com/Johnathan-u/trust-copilot/pull/238",
+                      "https://github.com/Johnathan-u/trust-copilot/commit/61fed611cf7971ee78effceabc3f3d49907d0d4b",
+                      "https://github.com/Johnathan-u/trust-copilot/issues/85#issuecomment-6896794377"
+                    ],
+                    "tested_sha": "0e8cb32496a7847a727d89ed54753990b91a3127"
+                  },
+                  {
+                    "id": "TC-14-005-DOD4",
+                    "status": "PASS",
+                    "evidence_urls": [
+                      "https://github.com/Johnathan-u/trust-copilot/issues/85#issuecomment-6898105489",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/61fed611cf7971ee78effceabc3f3d49907d0d4b/docs/release/verification/TC-14-005.md",
+                      "https://github.com/Johnathan-u/trust-copilot/pull/238",
+                      "https://github.com/Johnathan-u/trust-copilot/commit/61fed611cf7971ee78effceabc3f3d49907d0d4b",
+                      "https://github.com/Johnathan-u/trust-copilot/issues/85#issuecomment-6896794377"
+                    ],
+                    "tested_sha": "0e8cb32496a7847a727d89ed54753990b91a3127"
+                  },
+                  {
+                    "id": "TC-14-005-DOD5",
+                    "status": "FAIL",
+                    "evidence_urls": [
+                      "https://github.com/Johnathan-u/trust-copilot/issues/85#issuecomment-6898105489",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/61fed611cf7971ee78effceabc3f3d49907d0d4b/docs/release/verification/TC-14-005.md",
+                      "https://github.com/Johnathan-u/trust-copilot/pull/238",
+                      "https://github.com/Johnathan-u/trust-copilot/commit/61fed611cf7971ee78effceabc3f3d49907d0d4b",
+                      "https://github.com/Johnathan-u/trust-copilot/issues/85#issuecomment-6896794377"
+                    ],
+                    "tested_sha": "0e8cb32496a7847a727d89ed54753990b91a3127"
+                  },
+                  {
+                    "id": "TC-14-005-DOD6",
+                    "status": "PASS",
+                    "evidence_urls": [
+                      "https://github.com/Johnathan-u/trust-copilot/issues/85#issuecomment-6898105489",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/61fed611cf7971ee78effceabc3f3d49907d0d4b/docs/release/verification/TC-14-005.md",
+                      "https://github.com/Johnathan-u/trust-copilot/pull/238",
+                      "https://github.com/Johnathan-u/trust-copilot/commit/61fed611cf7971ee78effceabc3f3d49907d0d4b",
+                      "https://github.com/Johnathan-u/trust-copilot/issues/85#issuecomment-6896794377"
+                    ],
+                    "tested_sha": "0e8cb32496a7847a727d89ed54753990b91a3127"
+                  }
+                ],
+                "note": "IMPLEMENTATION_GAPS_IDENTIFIED from the TC-14-005 verification report (PARTIAL) at 0e8cb32496a7847a727d89ed54753990b91a3127, adopted by Claude in issue #85 comment 6898105489. AC1 and AC2 fail on the review-export empty path, the unbounded proof-chain skeleton, and the remaining dashboard loaders. DoD1 and DoD5 fail with those gaps. The gaps are child TC-14-005b. Report PR #238 merge 61fed611cf7971ee78effceabc3f3d49907d0d4b. Recorded by Grok (worker). Grok wrote the report and is not the independent reviewer."
+              },
+              "after": {
+                "state": "NOT_ACCEPTED",
+                "assessed_by": "claude-review-agent",
+                "assessed_at": "2026-11-15T17:05:03Z",
+                "assessed_sha": "0e8cb32496a7847a727d89ed54753990b91a3127",
+                "assessment_evidence_urls": [
+                  "https://github.com/Johnathan-u/trust-copilot/issues/85#issuecomment-6898105489",
+                  "https://github.com/Johnathan-u/trust-copilot/blob/61fed611cf7971ee78effceabc3f3d49907d0d4b/docs/release/verification/TC-14-005.md",
+                  "https://github.com/Johnathan-u/trust-copilot/pull/238",
+                  "https://github.com/Johnathan-u/trust-copilot/commit/61fed611cf7971ee78effceabc3f3d49907d0d4b",
+                  "https://github.com/Johnathan-u/trust-copilot/issues/85#issuecomment-6896794377"
+                ],
+                "tested_sha": "0e8cb32496a7847a727d89ed54753990b91a3127",
+                "implemented_by": [
+                  "grok",
+                  "Johnathan-u"
+                ],
+                "independent_reviewer": "claude-review-agent",
+                "reviewed_at": "2026-11-15T17:05:03Z",
+                "reviewed_sha": "0e8cb32496a7847a727d89ed54753990b91a3127",
+                "review_evidence_urls": [
+                  "https://github.com/Johnathan-u/trust-copilot/issues/85#issuecomment-6898105489",
+                  "https://github.com/Johnathan-u/trust-copilot/blob/61fed611cf7971ee78effceabc3f3d49907d0d4b/docs/release/verification/TC-14-005.md",
+                  "https://github.com/Johnathan-u/trust-copilot/pull/238",
+                  "https://github.com/Johnathan-u/trust-copilot/commit/61fed611cf7971ee78effceabc3f3d49907d0d4b",
+                  "https://github.com/Johnathan-u/trust-copilot/issues/85#issuecomment-6896794377"
+                ],
+                "criteria": [
+                  {
+                    "id": "TC-14-005-AC1",
+                    "status": "FAIL",
+                    "evidence_urls": [
+                      "https://github.com/Johnathan-u/trust-copilot/issues/85#issuecomment-6898105489",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/61fed611cf7971ee78effceabc3f3d49907d0d4b/docs/release/verification/TC-14-005.md",
+                      "https://github.com/Johnathan-u/trust-copilot/pull/238",
+                      "https://github.com/Johnathan-u/trust-copilot/commit/61fed611cf7971ee78effceabc3f3d49907d0d4b",
+                      "https://github.com/Johnathan-u/trust-copilot/issues/85#issuecomment-6896794377"
+                    ],
+                    "tested_sha": "0e8cb32496a7847a727d89ed54753990b91a3127"
+                  },
+                  {
+                    "id": "TC-14-005-AC2",
+                    "status": "FAIL",
+                    "evidence_urls": [
+                      "https://github.com/Johnathan-u/trust-copilot/issues/85#issuecomment-6898105489",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/61fed611cf7971ee78effceabc3f3d49907d0d4b/docs/release/verification/TC-14-005.md",
+                      "https://github.com/Johnathan-u/trust-copilot/pull/238",
+                      "https://github.com/Johnathan-u/trust-copilot/commit/61fed611cf7971ee78effceabc3f3d49907d0d4b",
+                      "https://github.com/Johnathan-u/trust-copilot/issues/85#issuecomment-6896794377"
+                    ],
+                    "tested_sha": "0e8cb32496a7847a727d89ed54753990b91a3127"
+                  }
+                ],
+                "definition_of_done": [
+                  {
+                    "id": "TC-14-005-DOD1",
+                    "status": "FAIL",
+                    "evidence_urls": [
+                      "https://github.com/Johnathan-u/trust-copilot/issues/85#issuecomment-6898105489",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/61fed611cf7971ee78effceabc3f3d49907d0d4b/docs/release/verification/TC-14-005.md",
+                      "https://github.com/Johnathan-u/trust-copilot/pull/238",
+                      "https://github.com/Johnathan-u/trust-copilot/commit/61fed611cf7971ee78effceabc3f3d49907d0d4b",
+                      "https://github.com/Johnathan-u/trust-copilot/issues/85#issuecomment-6896794377"
+                    ],
+                    "tested_sha": "0e8cb32496a7847a727d89ed54753990b91a3127"
+                  },
+                  {
+                    "id": "TC-14-005-DOD2",
+                    "status": "PASS",
+                    "evidence_urls": [
+                      "https://github.com/Johnathan-u/trust-copilot/issues/85#issuecomment-6898105489",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/61fed611cf7971ee78effceabc3f3d49907d0d4b/docs/release/verification/TC-14-005.md",
+                      "https://github.com/Johnathan-u/trust-copilot/pull/238",
+                      "https://github.com/Johnathan-u/trust-copilot/commit/61fed611cf7971ee78effceabc3f3d49907d0d4b",
+                      "https://github.com/Johnathan-u/trust-copilot/issues/85#issuecomment-6896794377"
+                    ],
+                    "tested_sha": "0e8cb32496a7847a727d89ed54753990b91a3127"
+                  },
+                  {
+                    "id": "TC-14-005-DOD3",
+                    "status": "PASS",
+                    "evidence_urls": [
+                      "https://github.com/Johnathan-u/trust-copilot/issues/85#issuecomment-6898105489",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/61fed611cf7971ee78effceabc3f3d49907d0d4b/docs/release/verification/TC-14-005.md",
+                      "https://github.com/Johnathan-u/trust-copilot/pull/238",
+                      "https://github.com/Johnathan-u/trust-copilot/commit/61fed611cf7971ee78effceabc3f3d49907d0d4b",
+                      "https://github.com/Johnathan-u/trust-copilot/issues/85#issuecomment-6896794377"
+                    ],
+                    "tested_sha": "0e8cb32496a7847a727d89ed54753990b91a3127"
+                  },
+                  {
+                    "id": "TC-14-005-DOD4",
+                    "status": "PASS",
+                    "evidence_urls": [
+                      "https://github.com/Johnathan-u/trust-copilot/issues/85#issuecomment-6898105489",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/61fed611cf7971ee78effceabc3f3d49907d0d4b/docs/release/verification/TC-14-005.md",
+                      "https://github.com/Johnathan-u/trust-copilot/pull/238",
+                      "https://github.com/Johnathan-u/trust-copilot/commit/61fed611cf7971ee78effceabc3f3d49907d0d4b",
+                      "https://github.com/Johnathan-u/trust-copilot/issues/85#issuecomment-6896794377"
+                    ],
+                    "tested_sha": "0e8cb32496a7847a727d89ed54753990b91a3127"
+                  },
+                  {
+                    "id": "TC-14-005-DOD5",
+                    "status": "FAIL",
+                    "evidence_urls": [
+                      "https://github.com/Johnathan-u/trust-copilot/issues/85#issuecomment-6898105489",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/61fed611cf7971ee78effceabc3f3d49907d0d4b/docs/release/verification/TC-14-005.md",
+                      "https://github.com/Johnathan-u/trust-copilot/pull/238",
+                      "https://github.com/Johnathan-u/trust-copilot/commit/61fed611cf7971ee78effceabc3f3d49907d0d4b",
+                      "https://github.com/Johnathan-u/trust-copilot/issues/85#issuecomment-6896794377"
+                    ],
+                    "tested_sha": "0e8cb32496a7847a727d89ed54753990b91a3127"
+                  },
+                  {
+                    "id": "TC-14-005-DOD6",
+                    "status": "PASS",
+                    "evidence_urls": [
+                      "https://github.com/Johnathan-u/trust-copilot/issues/85#issuecomment-6898105489",
+                      "https://github.com/Johnathan-u/trust-copilot/blob/61fed611cf7971ee78effceabc3f3d49907d0d4b/docs/release/verification/TC-14-005.md",
+                      "https://github.com/Johnathan-u/trust-copilot/pull/238",
+                      "https://github.com/Johnathan-u/trust-copilot/commit/61fed611cf7971ee78effceabc3f3d49907d0d4b",
+                      "https://github.com/Johnathan-u/trust-copilot/issues/85#issuecomment-6896794377"
+                    ],
+                    "tested_sha": "0e8cb32496a7847a727d89ed54753990b91a3127"
+                  }
+                ],
+                "note": "IMPLEMENTATION_GAPS_IDENTIFIED from the TC-14-005 verification report (PARTIAL) at 0e8cb32496a7847a727d89ed54753990b91a3127, adopted by Claude in issue #85 comment 6898105489. AC1 and AC2 fail on the review-export empty path, the unbounded proof-chain skeleton, and the remaining dashboard loaders. DoD1 and DoD5 fail with those gaps. The gaps are child TC-14-005b. Report PR #238 merge 61fed611cf7971ee78effceabc3f3d49907d0d4b. Recorded by Grok (worker). Grok wrote the report and is not the independent reviewer. Child TC-14-005b is closed by #260 (merge a365c34757800e1f8da58acde155bd3f8e8f8813), state-components floor 9 to 13. Ruling: #85 comment 6929698422. The child is not counted toward DONE. The parent is not accepted; re-verification is still pending."
+              }
+            },
+            "pr_links": {
+              "before": [
+                {
+                  "number": 68,
+                  "title": "TC-14-005a: unit test LoadingState slow-load switch",
+                  "url": "https://github.com/Johnathan-u/trust-copilot/pull/68",
+                  "state": "merged",
+                  "draft": false,
+                  "head_sha": "f018f5782d536212d9b5f20299851d5a7bcc9d9e",
+                  "merge_commit_sha": "c11523eb8e8c72b7e21f09601510729267c6e97e",
+                  "merged_at": "2026-10-29T13:48:17Z",
+                  "scope_ids": [
+                    "TC-14-005a"
+                  ],
+                  "mapping_basis": [
+                    "PR title"
+                  ]
+                },
+                {
+                  "number": 66,
+                  "title": "TC-14-005: Unify loading, empty, error, retry and partial-success states",
+                  "url": "https://github.com/Johnathan-u/trust-copilot/pull/66",
+                  "state": "merged",
+                  "draft": false,
+                  "head_sha": "21af2996c6a1026a71e7d8b7737be78d10f41a94",
+                  "merge_commit_sha": "e17d8e5b83d2554938dcc1de16b38554bde7fe38",
+                  "merged_at": "2026-10-29T12:57:09Z",
+                  "scope_ids": [
+                    "TC-14-005"
+                  ],
+                  "mapping_basis": [
+                    "PR title"
+                  ]
+                },
+                {
+                  "number": 238,
+                  "title": "docs: reconciliation reports for TC-14-001 and TC-14-005",
+                  "url": "https://github.com/Johnathan-u/trust-copilot/pull/238",
+                  "state": "merged",
+                  "head_sha": "65895b67e91032102ce81c8423ea03133e71a479",
+                  "merge_commit_sha": "61fed611cf7971ee78effceabc3f3d49907d0d4b"
+                }
+              ],
+              "after": [
+                {
+                  "number": 68,
+                  "title": "TC-14-005a: unit test LoadingState slow-load switch",
+                  "url": "https://github.com/Johnathan-u/trust-copilot/pull/68",
+                  "state": "merged",
+                  "draft": false,
+                  "head_sha": "f018f5782d536212d9b5f20299851d5a7bcc9d9e",
+                  "merge_commit_sha": "c11523eb8e8c72b7e21f09601510729267c6e97e",
+                  "merged_at": "2026-10-29T13:48:17Z",
+                  "scope_ids": [
+                    "TC-14-005a"
+                  ],
+                  "mapping_basis": [
+                    "PR title"
+                  ]
+                },
+                {
+                  "number": 66,
+                  "title": "TC-14-005: Unify loading, empty, error, retry and partial-success states",
+                  "url": "https://github.com/Johnathan-u/trust-copilot/pull/66",
+                  "state": "merged",
+                  "draft": false,
+                  "head_sha": "21af2996c6a1026a71e7d8b7737be78d10f41a94",
+                  "merge_commit_sha": "e17d8e5b83d2554938dcc1de16b38554bde7fe38",
+                  "merged_at": "2026-10-29T12:57:09Z",
+                  "scope_ids": [
+                    "TC-14-005"
+                  ],
+                  "mapping_basis": [
+                    "PR title"
+                  ]
+                },
+                {
+                  "number": 238,
+                  "title": "docs: reconciliation reports for TC-14-001 and TC-14-005",
+                  "url": "https://github.com/Johnathan-u/trust-copilot/pull/238",
+                  "state": "merged",
+                  "head_sha": "65895b67e91032102ce81c8423ea03133e71a479",
+                  "merge_commit_sha": "61fed611cf7971ee78effceabc3f3d49907d0d4b"
+                },
+                {
+                  "number": 260,
+                  "title": "TC-14-005b: failed reads never render as empty data or an endless skeleton",
+                  "url": "https://github.com/Johnathan-u/trust-copilot/pull/260",
+                  "state": "merged",
+                  "draft": false,
+                  "head_sha": "3ad593ab0e64e56d070ef77a5cc4500708dde91d",
+                  "merge_commit_sha": "a365c34757800e1f8da58acde155bd3f8e8f8813",
+                  "merged_at": "2026-11-16T21:18:21Z",
+                  "scope_ids": [
+                    "TC-14-005b"
+                  ],
+                  "mapping_basis": [
+                    "PR title"
+                  ]
+                }
+              ]
+            },
+            "evidence_links": {
+              "before": [
+                "https://github.com/Johnathan-u/trust-copilot/blob/b2bd1e0df5cdeb03b8d0cd240f5a161835ea621d/docs/release/tickets/TC-14-005.md",
+                "https://github.com/Johnathan-u/trust-copilot/blob/b2bd1e0df5cdeb03b8d0cd240f5a161835ea621d/docs/release/tickets/TC-14-005a.md",
+                "https://github.com/Johnathan-u/trust-copilot/tree/b2bd1e0df5cdeb03b8d0cd240f5a161835ea621d/artifacts/acceptance/TC-14-005",
+                "https://github.com/Johnathan-u/trust-copilot/issues/85#issuecomment-6898105489",
+                "https://github.com/Johnathan-u/trust-copilot/blob/61fed611cf7971ee78effceabc3f3d49907d0d4b/docs/release/verification/TC-14-005.md",
+                "https://github.com/Johnathan-u/trust-copilot/pull/238",
+                "https://github.com/Johnathan-u/trust-copilot/commit/61fed611cf7971ee78effceabc3f3d49907d0d4b",
+                "https://github.com/Johnathan-u/trust-copilot/issues/85#issuecomment-6896794377"
+              ],
+              "after": [
+                "https://github.com/Johnathan-u/trust-copilot/blob/b2bd1e0df5cdeb03b8d0cd240f5a161835ea621d/docs/release/tickets/TC-14-005.md",
+                "https://github.com/Johnathan-u/trust-copilot/blob/b2bd1e0df5cdeb03b8d0cd240f5a161835ea621d/docs/release/tickets/TC-14-005a.md",
+                "https://github.com/Johnathan-u/trust-copilot/tree/b2bd1e0df5cdeb03b8d0cd240f5a161835ea621d/artifacts/acceptance/TC-14-005",
+                "https://github.com/Johnathan-u/trust-copilot/issues/85#issuecomment-6898105489",
+                "https://github.com/Johnathan-u/trust-copilot/blob/61fed611cf7971ee78effceabc3f3d49907d0d4b/docs/release/verification/TC-14-005.md",
+                "https://github.com/Johnathan-u/trust-copilot/pull/238",
+                "https://github.com/Johnathan-u/trust-copilot/commit/61fed611cf7971ee78effceabc3f3d49907d0d4b",
+                "https://github.com/Johnathan-u/trust-copilot/issues/85#issuecomment-6896794377",
+                "https://github.com/Johnathan-u/trust-copilot/pull/260",
+                "https://github.com/Johnathan-u/trust-copilot/commit/a365c34757800e1f8da58acde155bd3f8e8f8813",
+                "https://github.com/Johnathan-u/trust-copilot/issues/85#issuecomment-6929698422"
+              ]
+            }
+          }
+        },
+        "followups": {
+          "TC-17-005a": {
+            "title": {
+              "before": "Shareable-space access_token exposure: admin-only token, hashed at rest, /access audit",
+              "after": "Shareable-space access_token exposure: admin-only token, hashed at rest, /access audit (closed, #257)"
+            },
+            "source_url": {
+              "before": "https://github.com/Johnathan-u/trust-copilot/issues/85#issuecomment-6921992737",
+              "after": "https://github.com/Johnathan-u/trust-copilot/issues/85#issuecomment-6929698422"
+            }
+          },
+          "TC-14-005b": {
+            "title": {
+              "before": "stop failed reads rendering as empty data or an endless skeleton",
+              "after": "stop failed reads rendering as empty data or an endless skeleton (closed, #260)"
+            },
+            "source_url": {
+              "before": "https://github.com/Johnathan-u/trust-copilot/issues/85#issuecomment-6898105489",
+              "after": "https://github.com/Johnathan-u/trust-copilot/issues/85#issuecomment-6929698422"
+            }
+          }
+        }
+      }
     }
   ],
   "followups": [
@@ -146120,10 +148433,10 @@ window.TRUSTCOPILOT_BACKLOG = {
     },
     {
       "id": "TC-14-005b",
-      "title": "stop failed reads rendering as empty data or an endless skeleton",
+      "title": "stop failed reads rendering as empty data or an endless skeleton (closed, #260)",
       "parent_id": "TC-14-005",
       "story_points": null,
-      "source_url": "https://github.com/Johnathan-u/trust-copilot/issues/85#issuecomment-6898105489",
+      "source_url": "https://github.com/Johnathan-u/trust-copilot/issues/85#issuecomment-6929698422",
       "source_path": "docs/release/tickets/TC-14-005b.md"
     },
     {
@@ -146144,10 +148457,10 @@ window.TRUSTCOPILOT_BACKLOG = {
     },
     {
       "id": "TC-17-005a",
-      "title": "Shareable-space access_token exposure: admin-only token, hashed at rest, /access audit",
+      "title": "Shareable-space access_token exposure: admin-only token, hashed at rest, /access audit (closed, #257)",
       "parent_id": "TC-17-005",
       "story_points": null,
-      "source_url": "https://github.com/Johnathan-u/trust-copilot/issues/85#issuecomment-6921992737",
+      "source_url": "https://github.com/Johnathan-u/trust-copilot/issues/85#issuecomment-6929698422",
       "source_path": "docs/release/tickets/TC-17-005a.md"
     }
   ],
@@ -150536,7 +152849,7 @@ window.TRUSTCOPILOT_BACKLOG = {
       "build": "python scripts/backlog_tracker.py build",
       "check": "python scripts/backlog_tracker.py check",
       "summary": "python scripts/backlog_tracker.py summary",
-      "update": "python scripts/backlog_tracker.py update --expected-revision 22 --actor YOUR_ID --reason 'Evidence reconciliation' --patch /tmp/backlog-patch.json",
+      "update": "python scripts/backlog_tracker.py update --expected-revision 23 --actor YOUR_ID --reason 'Evidence reconciliation' --patch /tmp/backlog-patch.json",
       "tests": "python -m unittest discover -s scripts/tests -p 'test_backlog_tracker.py' -v"
     }
   }
