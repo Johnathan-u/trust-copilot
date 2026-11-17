@@ -15,7 +15,22 @@ from app.models.shareable_space import ShareableSpace
 logger = logging.getLogger(__name__)
 
 ACCESS_AUDIT_ACTION = "shareable_space.accessed"
+ROTATE_AUDIT_ACTION = "shareable_space.rotated"
+ROTATION_INACTIVE = "This space is inactive and cannot be rotated."
+ROTATION_EXPIRED = "This space has expired and cannot be rotated."
 _MAX_TOKEN_LENGTH = 512
+
+
+class RotationRefused(Exception):
+    """The space is in this workspace, but rotation would bring a dead link back."""
+
+    def __init__(self, detail: str) -> None:
+        super().__init__(detail)
+        self.detail = detail
+
+
+def _new_raw_token() -> str:
+    return secrets.token_urlsafe(32)
 
 
 def _digest(token: str) -> str | None:
@@ -32,6 +47,15 @@ def _same_hash(stored: str | None, digest: str) -> bool:
     return hmac.compare_digest(stored, digest)
 
 
+def _is_expired(space: ShareableSpace, *, now: datetime | None = None) -> bool:
+    if not space.expires_at:
+        return False
+    exp = space.expires_at
+    if exp.tzinfo is None:
+        exp = exp.replace(tzinfo=timezone.utc)
+    return exp < (now or datetime.now(timezone.utc))
+
+
 def create_space(
     db: Session,
     workspace_id: int,
@@ -46,7 +70,7 @@ def create_space(
     document_ids: list[int] | None = None,
     expires_days: int = 30,
 ) -> dict:
-    raw = secrets.token_urlsafe(32)
+    raw = _new_raw_token()
     space = ShareableSpace(
         workspace_id=workspace_id,
         name=name,
@@ -111,14 +135,8 @@ def access_space_by_token(db: Session, token: str) -> dict:
         return {"valid": False, "reason": "Space not found"}
     if not s.is_active:
         return {"valid": False, "reason": "Space deactivated"}
-    if s.expires_at:
-        exp = (
-            s.expires_at.replace(tzinfo=timezone.utc)
-            if s.expires_at.tzinfo is None
-            else s.expires_at
-        )
-        if exp < datetime.now(timezone.utc):
-            return {"valid": False, "reason": "Space expired"}
+    if _is_expired(s):
+        return {"valid": False, "reason": "Space expired"}
     payload = {
         "valid": True,
         "space": _serialize(s),
@@ -136,6 +154,48 @@ def access_space_by_token(db: Session, token: str) -> dict:
         resource_id=s.id,
         details={"space_id": s.id},
     )
+    return payload
+
+
+def rotate_space(db: Session, space_id: int, *, workspace_id: int) -> dict | None:
+    """Replace the stored hash. The raw token is returned once, like create.
+
+    The id, contents, expiry, active flag, and any deal ``room_id`` stay as they
+    are. Inactive and expired rows are refused before any assignment, so a dead
+    link is not brought back. ``None`` means the id is not in this workspace.
+    The hash write and the audit row commit in the same transaction.
+    """
+    space = (
+        db.query(ShareableSpace)
+        .filter(ShareableSpace.id == space_id, ShareableSpace.workspace_id == workspace_id)
+        .populate_existing()
+        .with_for_update()
+        .first()
+    )
+    if space is None:
+        return None
+    if not space.is_active:
+        raise RotationRefused(ROTATION_INACTIVE)
+    if _is_expired(space):
+        raise RotationRefused(ROTATION_EXPIRED)
+    raw = _new_raw_token()
+    digest = _digest(raw)
+    if digest is None:
+        raise RuntimeError("rotation token could not be hashed")
+    space.access_token = None
+    space.token_hash = digest
+    db.flush()
+    payload = _serialize(space, raw_token=raw, include_admin_indicator=True)
+    # Space id only. Never the new token, its hash, or buyer fields.
+    persist_audit(
+        db,
+        ROTATE_AUDIT_ACTION,
+        workspace_id=space.workspace_id,
+        resource_type="shareable_space",
+        resource_id=space.id,
+        details={"space_id": space.id},
+    )
+    logger.info("shareable_space.rotated space_id=%s", space.id)
     return payload
 
 
