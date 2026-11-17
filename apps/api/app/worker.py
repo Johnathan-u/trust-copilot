@@ -249,10 +249,10 @@ def _set_outcome(job: Job, outcome: str, **extra) -> None:
 
 
 def _record_progress(job: Job, generated: int, total: int) -> None:
-    """Merge a real generated/total pair into the job result, keeping other fields.
+    """Merge a real generated/total pair into the in-memory job result.
 
-    The same shape ``generate_answers`` stores. Callers pass counts from the work
-    just performed. This does not invent a pair for a run that did not measure one.
+    The job transaction's final commit keeps this pair. Mid-run readers use
+    ``publish_running_progress``, which writes the same pair on another connection.
     """
     try:
         data = json.loads(getattr(job, "result", None) or "{}")
@@ -263,6 +263,93 @@ def _record_progress(job: Job, generated: int, total: int) -> None:
     data["generated"] = int(generated)
     data["total"] = int(total)
     job.result = json.dumps(data)
+
+
+# A reader should see movement, not a write per item. The last pair is always published.
+PROGRESS_PUBLISH_INTERVAL = 1.0
+_progress_publish_lock = threading.Lock()
+_progress_published_at: dict[tuple[int, str], float] = {}
+
+
+def publish_running_progress(
+    job_id: int,
+    owner: str | None,
+    generated: int,
+    total: int,
+    *,
+    session_factory=None,
+    min_interval: float | None = None,
+    force: bool = False,
+) -> bool:
+    """Commit ``generated``/``total`` while the job is still running.
+
+    Uses a short session of its own, so the worker transaction stays uncommitted.
+    The update matches only a row this owner still has in ``running``, the same
+    guard as ``renew_lease``. A lost lease writes nothing and does not fail the job.
+    """
+    if not isinstance(owner, str) or not owner:
+        return False
+    if type(job_id) is not int:
+        return False
+    generated = int(generated)
+    total = int(total)
+    interval = PROGRESS_PUBLISH_INTERVAL if min_interval is None else min_interval
+    now = time.monotonic()
+    key = (job_id, owner)
+    with _progress_publish_lock:
+        previous = _progress_published_at.get(key)
+        if not force and previous is not None and (now - previous) < interval:
+            return False
+        _progress_published_at[key] = now
+    factory = SessionFactory if session_factory is None else session_factory
+    session = factory()
+    try:
+        row = session.execute(
+            text(
+                """
+                SELECT result
+                FROM jobs
+                WHERE id = :id
+                  AND lease_owner = :owner
+                  AND status = 'running'
+                FOR UPDATE
+                """
+            ),
+            {"id": job_id, "owner": owner},
+        ).fetchone()
+        if row is None:
+            session.rollback()
+            return False
+        try:
+            data = json.loads(row[0] or "{}")
+        except (TypeError, ValueError):
+            data = {}
+        if not isinstance(data, dict):
+            data = {}
+        data["generated"] = generated
+        data["total"] = total
+        session.execute(
+            text(
+                """
+                UPDATE jobs
+                SET result = :result
+                WHERE id = :id
+                  AND lease_owner = :owner
+                  AND status = 'running'
+                """
+            ),
+            {"id": job_id, "owner": owner, "result": json.dumps(data)},
+        )
+        session.commit()
+        return True
+    except Exception:
+        session.rollback()
+        logging.getLogger(__name__).warning(
+            "progress publish failed job_id=%s", job_id, exc_info=True
+        )
+        return False
+    finally:
+        session.close()
 
 
 def _record_auto_generate_enqueue_conflict(job: Job) -> None:
@@ -384,6 +471,7 @@ def run_parse_questionnaire(job: Job, session, payload: dict) -> None:
             _auto_classify_questionnaire(session, qnr_id, job.workspace_id, effects)
             return
         total = len(questions)
+        owner = _lease_owner(job)
         for done, q in enumerate(questions, start=1):
             session.add(
                 Question(
@@ -401,9 +489,11 @@ def run_parse_questionnaire(job: Job, session, payload: dict) -> None:
                     confidence=q.get("confidence"),
                 )
             )
-            _record_progress(job, done, total)
+            # Another connection can read this before the question commit.
+            publish_running_progress(job.id, owner, done, total, force=(done == total))
         if total == 0:
-            _record_progress(job, 0, 0)
+            publish_running_progress(job.id, owner, 0, 0, force=True)
+        _record_progress(job, total, total)
         qnr.status = "parsed"
         qnr.parse_metadata = json.dumps({"count": len(questions), "questions": questions[:50]})
         effects.mark_applied(EFFECT_QUESTIONS, {"count": len(questions)})
@@ -601,6 +691,19 @@ def run_index_document(job: Job, session, payload: dict) -> None:
         return
     storage = StorageClient()
     file_svc = FileService(storage)
+    observed: dict[str, int] = {}
+
+    def _note(generated: int, total: int) -> None:
+        observed["generated"] = generated
+        observed["total"] = total
+        publish_running_progress(
+            job.id,
+            _lease_owner(job),
+            generated,
+            total,
+            force=generated == total,
+        )
+
     index_document(
         session,
         doc_id,
@@ -609,8 +712,17 @@ def run_index_document(job: Job, session, payload: dict) -> None:
         job_id=job.id,
         effects=effects,
         effect_name=EFFECT_CHUNKS,
-        progress=lambda generated, total: _record_progress(job, generated, total),
+        progress=_note,
     )
+    if "total" in observed:
+        publish_running_progress(
+            job.id,
+            _lease_owner(job),
+            observed["generated"],
+            observed["total"],
+            force=True,
+        )
+        _record_progress(job, observed["generated"], observed["total"])
 
 
 def _bump_corpus_version_best_effort(session, workspace_id: int) -> None:
@@ -624,47 +736,6 @@ def _bump_corpus_version_best_effort(session, workspace_id: int) -> None:
         logging.getLogger(__name__).debug(
             "corpus version bump failed ws=%s", workspace_id, exc_info=True
         )
-
-
-def run_parse_evidence(job: Job, session, payload: dict) -> None:
-    """Parse an evidence file and record how many items were read.
-
-    Indexing still owns chunks and embeddings. This job measures the parse itself:
-    ``generated`` and ``total`` are both the number of items ``parse_evidence`` returned.
-    """
-    doc_id = payload.get("document_id")
-    if not doc_id:
-        raise ValueError("Missing document_id")
-    doc = session.query(Document).filter(Document.id == doc_id).first()
-    if not doc:
-        raise ValueError(f"Document {doc_id} not found")
-    if doc.workspace_id != job.workspace_id:
-        raise ValueError(
-            f"Document {doc_id} workspace_id {doc.workspace_id} does not match "
-            f"job workspace_id {job.workspace_id}"
-        )
-    if getattr(doc, "deleted_at", None) is not None:
-        _set_outcome(job, "superseded", reason="document_deleted")
-        return
-    if getattr(job, "input_version", None) and doc.storage_key != job.input_version:
-        _set_outcome(job, "superseded", reason="input_version_changed")
-        return
-    from app.services.evidence_parser import parse_evidence
-
-    storage = StorageClient()
-    file_svc = FileService(storage)
-    content = file_svc.download_raw(doc.storage_key)
-    ext = Path(doc.filename or "").suffix or ".bin"
-    suffix = ext if ext.startswith(".") else f".{ext}"
-    with tempfile.NamedTemporaryFile(suffix=suffix, delete=False) as handle:
-        handle.write(content)
-        path = handle.name
-    try:
-        items = parse_evidence(path)
-    finally:
-        Path(path).unlink(missing_ok=True)
-    count = len(items)
-    _record_progress(job, count, count)
 
 
 def run_generate_answers(job: Job, session, payload: dict) -> None:
@@ -992,7 +1063,7 @@ def run_job(job: Job, session) -> None:
     if job.kind == "parse_questionnaire":
         run_parse_questionnaire(job, session, payload)
     elif job.kind == "parse_evidence":
-        run_parse_evidence(job, session, payload)
+        pass
     elif job.kind == "index_document":
         run_index_document(job, session, payload)
     elif job.kind == "generate_answers":

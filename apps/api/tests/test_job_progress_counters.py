@@ -211,32 +211,29 @@ def test_parse_questionnaire_records_saved_question_counts(monkeypatch):
     assert data["total"] == len(questions)
 
 
-def test_parse_evidence_records_parsed_item_counts(monkeypatch):
+def test_parse_evidence_stays_a_noop(monkeypatch):
     from app import worker
-    from app.services import evidence_parser
 
-    items = [
-        {"text": "control a"},
-        {"text": "control b"},
-        {"text": "control c"},
-        {"text": "control d"},
-    ]
-    session = _Session()
-    session.document = SimpleNamespace(
-        id=8,
-        workspace_id=1,
-        filename="policy.txt",
-        storage_key="raw/1/policy.txt",
-        status="uploaded",
-        deleted_at=None,
-    )
-    _patch_storage(monkeypatch, worker, b"policy text")
-    monkeypatch.setattr(evidence_parser, "parse_evidence", lambda path: list(items))
+    opened = {"n": 0}
+
+    def _storage():
+        opened["n"] += 1
+        raise AssertionError("parse_evidence must not touch storage")
+
+    monkeypatch.setattr(worker, "StorageClient", _storage)
     job = _job("parse_evidence", payload=json.dumps({"document_id": 8}))
-    worker.run_job(job, session)
-    data = _pair(job)
-    assert data["generated"] == len(items)
-    assert data["total"] == len(items)
+    worker.run_job(job, _Session())
+    assert job.result is None
+    assert opened["n"] == 0
+
+
+def test_publish_without_a_lease_owner_does_not_open_a_session():
+    from app import worker
+
+    def factory():
+        raise AssertionError("no session without an owner")
+
+    assert worker.publish_running_progress(7, None, 1, 3, session_factory=factory) is False
 
 
 def test_index_document_records_embedded_and_chunk_counts(monkeypatch):
