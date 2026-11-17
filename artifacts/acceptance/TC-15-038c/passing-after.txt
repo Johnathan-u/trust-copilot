@@ -66,3 +66,18 @@ $ cd apps/web && npx vitest run tests/unit/jobs-page.test.ts tests/unit/job-hist
       Tests  53 passed (53)
    Start at  21:06:45
    Duration  1.57s (tests 78%, environment 12%, import 7%, transform 3%)
+
+After the separate-session publish, the same tests pass.
+
+$ cd apps/api && python -m pytest tests/release/test_job_progress_live.py tests/test_job_progress_counters.py -q --tb=short
+
+.........                                                                [100%]
+=============================== warnings summary ===============================
+tests/release/test_job_progress_live.py::test_index_progress_is_visible_to_another_session_while_running
+tests/release/test_job_progress_live.py::test_index_progress_is_visible_to_another_session_while_running
+tests/release/test_job_progress_live.py::test_index_progress_is_visible_to_another_session_while_running
+  /tmp/tc-venv/lib/python3.12/site-packages/sqlalchemy/sql/schema.py:3627: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    return util.wrap_callable(lambda ctx: fn(), fn)  # type: ignore
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+9 passed, 3 warnings in 1.25s

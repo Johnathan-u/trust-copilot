@@ -1,7 +1,7 @@
-"""A second session can read parse progress before the parse transaction commits.
+"""A second session can read parse and index progress before the job commits.
 
-The worker publishes ``generated``/``total`` on its own short connection. The
-question rows stay in the worker transaction until the end.
+The worker publishes ``generated``/``total`` on its own short connection.
+Question rows and chunk writes stay in the worker transaction until the end.
 """
 
 from __future__ import annotations
@@ -12,8 +12,8 @@ import threading
 import pytest
 from sqlalchemy import text
 
-TABLES = ("questions", "job_effects", "jobs", "questionnaires")
-DELETE_ORDER = ("questions", "job_effects", "jobs", "questionnaires")
+TABLES = ("chunks", "questions", "job_effects", "jobs", "documents", "questionnaires")
+DELETE_ORDER = ("chunks", "questions", "job_effects", "jobs", "documents", "questionnaires")
 
 
 class _Store:
@@ -66,6 +66,54 @@ def db(_ensure_test_data):
             cleanup.close()
 
 
+def _hold_at_first_item(monkeypatch):
+    """Pause after the first item so another session can read a mid-run pair.
+
+    The fixed worker publishes that pair on its own connection. The reviewed
+    worker only mutates the in-memory result, so this hold is on that write.
+    """
+    from app import worker
+
+    seen = threading.Event()
+    release = threading.Event()
+    if hasattr(worker, "publish_running_progress"):
+        real = worker.publish_running_progress
+
+        def wrapped(published_job_id, owner, generated, total, **kwargs):
+            wrote = real(published_job_id, owner, generated, total, **kwargs)
+            if generated == 1 and wrote:
+                seen.set()
+                assert release.wait(5)
+            return wrote
+
+        monkeypatch.setattr(worker, "publish_running_progress", wrapped)
+    else:
+        real = worker._record_progress
+
+        def wrapped(job, generated, total):
+            real(job, generated, total)
+            if generated == 1:
+                seen.set()
+                assert release.wait(5)
+
+        monkeypatch.setattr(worker, "_record_progress", wrapped)
+    return seen, release
+
+
+def _read_pair(job_id: int) -> dict | None:
+    from app.core.database import SessionLocal
+    from app.models import Job
+
+    reader = SessionLocal()
+    try:
+        raw = reader.get(Job, job_id).result
+    finally:
+        reader.close()
+    if not raw:
+        return None
+    return json.loads(raw)
+
+
 def test_parse_progress_is_visible_to_another_session_while_running(db, monkeypatch):
     from app import worker
     from app.core.database import SessionLocal
@@ -99,18 +147,7 @@ def test_parse_progress_is_visible_to_another_session_while_running(db, monkeypa
     monkeypatch.setattr(worker, "parse_xlsx_questionnaire", lambda path: list(questions))
     monkeypatch.setattr(worker, "_auto_classify_questionnaire", lambda *args, **kwargs: None)
     monkeypatch.setattr(worker, "StorageClient", lambda: _Store(b"workbook"))
-    seen = threading.Event()
-    release = threading.Event()
-    real = worker.publish_running_progress
-
-    def wrapped(published_job_id, owner, generated, total, **kwargs):
-        wrote = real(published_job_id, owner, generated, total, **kwargs)
-        if generated == 1 and wrote:
-            seen.set()
-            assert release.wait(5)
-        return wrote
-
-    monkeypatch.setattr(worker, "publish_running_progress", wrapped)
+    seen, release = _hold_at_first_item(monkeypatch)
     errors: list[BaseException] = []
 
     def run() -> None:
@@ -132,11 +169,8 @@ def test_parse_progress_is_visible_to_another_session_while_running(db, monkeypa
     thread.start()
     try:
         assert seen.wait(5), errors
-        reader = SessionLocal()
-        try:
-            mid = json.loads(reader.get(Job, job_id).result)
-        finally:
-            reader.close()
+        mid = _read_pair(job_id)
+        assert mid is not None, "other session saw no committed progress while the job was running"
         assert 0 < mid["generated"] < mid["total"]
         assert mid["total"] == len(questions)
     finally:
@@ -150,3 +184,91 @@ def test_parse_progress_is_visible_to_another_session_while_running(db, monkeypa
     finally:
         reader.close()
     assert done["generated"] == done["total"] == len(questions)
+
+
+def test_index_progress_is_visible_to_another_session_while_running(db, monkeypatch):
+    from app import worker
+    from app.core.database import SessionLocal
+    from app.models import Document, Job, JobStatus
+
+    document = Document(
+        workspace_id=1,
+        filename="policy.txt",
+        storage_key="raw/1/policy.txt",
+        status="uploaded",
+    )
+    db.add(document)
+    db.commit()
+    db.refresh(document)
+    job = Job(
+        workspace_id=1,
+        kind="index_document",
+        status=JobStatus.RUNNING.value,
+        payload=json.dumps({"document_id": document.id}),
+        attempt=1,
+        max_attempts=3,
+        lease_owner="owner-token",
+    )
+    db.add(job)
+    db.commit()
+    db.refresh(job)
+    job_id = job.id
+    chunks = [
+        {"text": "a", "metadata": {}},
+        {"text": "b", "metadata": {}},
+        {"text": "c", "metadata": {}},
+    ]
+    embedding = [0.01] * 1536
+    monkeypatch.setattr(worker, "StorageClient", lambda: _Store(b"policy text"))
+    monkeypatch.setattr(
+        "app.services.index_service.parse_evidence",
+        lambda path: [{"text": "policy"}],
+    )
+    monkeypatch.setattr(
+        "app.services.index_service.chunk_evidence",
+        lambda parsed: list(chunks),
+    )
+    monkeypatch.setattr(
+        "app.services.index_service.embed_texts",
+        lambda texts: [embedding for _ in texts],
+    )
+    monkeypatch.setattr("app.services.tag_service.auto_tag_document", lambda *args, **kwargs: 0)
+    monkeypatch.setattr("app.core.corpus_version.bump_corpus_version", lambda *args, **kwargs: None)
+    monkeypatch.setattr(
+        "app.services.retrieval_cache.invalidate_workspace",
+        lambda *args, **kwargs: None,
+    )
+    seen, release = _hold_at_first_item(monkeypatch)
+    errors: list[BaseException] = []
+
+    def run() -> None:
+        session = SessionLocal()
+        try:
+            current = session.get(Job, job_id)
+            worker.run_index_document(current, session, {"document_id": document.id})
+            session.commit()
+        except Exception as exc:
+            errors.append(exc)
+            release.set()
+        finally:
+            session.close()
+
+    thread = threading.Thread(target=run)
+    thread.start()
+    try:
+        assert seen.wait(5), errors
+        mid = _read_pair(job_id)
+        assert mid is not None, "other session saw no committed progress while the job was running"
+        assert 0 < mid["generated"] < mid["total"]
+        assert mid["total"] == len(chunks)
+    finally:
+        release.set()
+        thread.join(5)
+    assert not thread.is_alive()
+    assert errors == []
+    reader = SessionLocal()
+    try:
+        done = json.loads(reader.get(Job, job_id).result)
+    finally:
+        reader.close()
+    assert done["generated"] == done["total"] == len(chunks)

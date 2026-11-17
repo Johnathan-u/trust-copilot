@@ -294,3 +294,34 @@ Ignored nodes: comments, script, style
       Tests  1 failed | 35 skipped (36)
    Start at  21:04:21
    Duration  437ms (environment 46%, import 25%, tests 17%, transform 10%, worker 1%)
+
+Reviewed head 6400bae2 keeps progress only in the worker transaction.
+Another session sees no pair while parse and index are still running.
+
+$ git show 6400bae2:apps/api/app/worker.py > apps/api/app/worker.py
+$ cd apps/api && python -m pytest tests/release/test_job_progress_live.py -q --tb=short
+
+FF                                                                       [100%]
+=================================== FAILURES ===================================
+_______ test_parse_progress_is_visible_to_another_session_while_running ________
+tests/release/test_job_progress_live.py:173: in test_parse_progress_is_visible_to_another_session_while_running
+    assert mid is not None, "other session saw no committed progress while the job was running"
+E   AssertionError: other session saw no committed progress while the job was running
+E   assert None is not None
+_______ test_index_progress_is_visible_to_another_session_while_running ________
+tests/release/test_job_progress_live.py:261: in test_index_progress_is_visible_to_another_session_while_running
+    assert mid is not None, "other session saw no committed progress while the job was running"
+E   AssertionError: other session saw no committed progress while the job was running
+E   assert None is not None
+=============================== warnings summary ===============================
+tests/release/test_job_progress_live.py::test_index_progress_is_visible_to_another_session_while_running
+tests/release/test_job_progress_live.py::test_index_progress_is_visible_to_another_session_while_running
+tests/release/test_job_progress_live.py::test_index_progress_is_visible_to_another_session_while_running
+  /tmp/tc-venv/lib/python3.12/site-packages/sqlalchemy/sql/schema.py:3627: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    return util.wrap_callable(lambda ctx: fn(), fn)  # type: ignore
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED tests/release/test_job_progress_live.py::test_parse_progress_is_visible_to_another_session_while_running
+FAILED tests/release/test_job_progress_live.py::test_index_progress_is_visible_to_another_session_while_running
+2 failed, 3 warnings in 1.18s
