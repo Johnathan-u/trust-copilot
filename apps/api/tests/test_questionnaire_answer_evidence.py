@@ -68,7 +68,10 @@ def test_retrieval_search_applies_document_scope_keyword():
     mock_chunk.document_id = 5
     rows.append(mock_chunk)
     qmock = MagicMock()
-    qmock.filter.return_value.limit.return_value.all.return_value = rows
+    # eligible_chunk_query is query().outerjoin().filter(), then document scope, then terms.
+    (
+        qmock.outerjoin.return_value.filter.return_value.filter.return_value.filter.return_value.limit.return_value.all.return_value
+    ) = rows
     db.query.return_value = qmock
     out = svc._keyword_search(1, "password policy requirements", 10, scope)
     assert len(out) == 1

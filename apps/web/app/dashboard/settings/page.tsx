@@ -61,7 +61,7 @@ function BillingSection() {
           Billing
         </h2>
         <div className="flex items-center gap-3 mb-3">
-          <span className="inline-flex items-center gap-1.5 rounded-full bg-[rgba(34,197,94,0.12)] border border-[rgba(34,197,94,0.18)] px-2.5 py-0.5 text-xs font-medium text-[var(--tc-success)]">
+          <span className="inline-flex items-center gap-1.5 rounded-full bg-[var(--tc-success-surface)] border border-[var(--tc-success)] px-2.5 py-0.5 text-xs font-medium text-[var(--tc-success)]">
             Active
           </span>
           <span className="text-sm text-[var(--tc-muted)]">

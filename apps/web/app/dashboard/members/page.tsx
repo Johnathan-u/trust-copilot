@@ -535,7 +535,7 @@ export default function MembersPage() {
               {members.map((m) => (
                 <tr
                   key={m.id}
-                  className={`border-b border-white/5 ${m.suspended ? 'opacity-50' : ''}`}
+                  className={`border-b border-tc-border ${m.suspended ? 'opacity-50' : ''}`}
                 >
                   <td className="py-3 pr-4 text-[var(--tc-text)]">
                     {m.display_name || m.email}
@@ -565,11 +565,11 @@ export default function MembersPage() {
                   </td>
                   <td className="py-3 pr-4">
                     {m.suspended ? (
-                      <span className="inline-block rounded-full bg-red-500/15 px-2 py-0.5 text-xs font-medium text-red-400">
+                      <span className="inline-block rounded-full bg-[var(--tc-danger-surface)] px-2 py-0.5 text-xs font-medium text-tc-danger">
                         Suspended
                       </span>
                     ) : (
-                      <span className="inline-block rounded-full bg-emerald-500/15 px-2 py-0.5 text-xs font-medium text-emerald-400">
+                      <span className="inline-block rounded-full bg-[var(--tc-success-surface)] px-2 py-0.5 text-xs font-medium text-tc-success">
                         Active
                       </span>
                     )}
@@ -584,7 +584,7 @@ export default function MembersPage() {
                       <>
                         <Button
                           variant="ghost"
-                          className={`text-xs ${m.suspended ? 'text-emerald-400' : 'text-amber-400'}`}
+                          className={`text-xs ${m.suspended ? 'text-tc-success' : 'text-tc-warning'}`}
                           onClick={() => toggleSuspend(m, !m.suspended)}
                         >
                           {m.suspended ? 'Activate' : 'Suspend'}
@@ -651,7 +651,7 @@ export default function MembersPage() {
                   return (
                     <tr
                       key={inv.id}
-                      className={`border-b border-white/5 ${expired ? 'opacity-50' : ''}`}
+                      className={`border-b border-tc-border ${expired ? 'opacity-50' : ''}`}
                     >
                       <td className="py-3 pr-4 text-[var(--tc-text)]">
                         {inv.email}
@@ -721,7 +721,7 @@ export default function MembersPage() {
             </thead>
             <tbody>
               {roles.map((r) => (
-                <tr key={r.name} className="border-b border-white/5">
+                <tr key={r.name} className="border-b border-tc-border">
                   <td className="py-3 pr-4 text-[var(--tc-text)]">
                     {r.name}
                     {r.builtin && (

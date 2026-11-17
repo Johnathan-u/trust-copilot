@@ -182,8 +182,8 @@ function severityBadge(severity?: 'high' | 'medium') {
     <span
       className={`ml-2 text-[10px] uppercase font-semibold px-1.5 py-0.5 rounded ${
         severity === 'high'
-          ? 'bg-red-500/15 text-red-400'
-          : 'bg-amber-500/15 text-amber-400'
+          ? 'bg-[var(--tc-danger-surface)] text-tc-danger'
+          : 'bg-[var(--tc-warning-surface)] text-tc-warning'
       }`}
     >
       {severity}
@@ -542,8 +542,8 @@ export default function SlackPage() {
                       size === 'compact' ? 'py-1.5' : 'py-2'
                     } ${
                       isChecked
-                        ? 'border-[rgba(91,124,255,0.3)] bg-[rgba(91,124,255,0.06)]'
-                        : 'border-[var(--tc-border)] hover:bg-white/[0.02]'
+                        ? 'border-[var(--tc-primary)] bg-[var(--tc-info-surface)]'
+                        : 'border-[var(--tc-border)] hover:bg-[var(--tc-hover)]'
                     }`}
                   >
                     <input
@@ -616,7 +616,7 @@ export default function SlackPage() {
       {status.provider_mode === 'dev-stub' && (
         <div
           role="status"
-          className="rounded-lg border border-amber-500/40 bg-amber-500/10 px-4 py-3 text-sm text-amber-100"
+          className="rounded-lg border border-tc-warning bg-[var(--tc-warning-surface)] px-4 py-3 text-sm text-tc-warning"
         >
           <strong className="font-semibold">Development stub.</strong> Slack is
           not called. Test messages are labelled as not delivered. Production
@@ -628,13 +628,13 @@ export default function SlackPage() {
         <div className="flex gap-2">
           <button
             onClick={() => setTab('notifications')}
-            className={`px-4 py-2 rounded-lg text-sm font-medium transition ${tab === 'notifications' ? 'bg-[rgba(91,124,255,0.14)] text-[var(--tc-text)] border border-[rgba(91,124,255,0.22)]' : 'text-[var(--tc-muted)] hover:text-[var(--tc-text)] border border-transparent'}`}
+            className={`px-4 py-2 rounded-lg text-sm font-medium transition ${tab === 'notifications' ? 'bg-[var(--tc-info-surface)] text-[var(--tc-text)] border border-[var(--tc-primary)]' : 'text-[var(--tc-muted)] hover:text-[var(--tc-text)] border border-transparent'}`}
           >
             Notifications
           </button>
           <button
             onClick={() => setTab('ingest')}
-            className={`px-4 py-2 rounded-lg text-sm font-medium transition ${tab === 'ingest' ? 'bg-[rgba(91,124,255,0.14)] text-[var(--tc-text)] border border-[rgba(91,124,255,0.22)]' : 'text-[var(--tc-muted)] hover:text-[var(--tc-text)] border border-transparent'}`}
+            className={`px-4 py-2 rounded-lg text-sm font-medium transition ${tab === 'ingest' ? 'bg-[var(--tc-info-surface)] text-[var(--tc-text)] border border-[var(--tc-primary)]' : 'text-[var(--tc-muted)] hover:text-[var(--tc-text)] border border-transparent'}`}
           >
             Evidence Ingest
           </button>
@@ -715,7 +715,7 @@ export default function SlackPage() {
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <span
-                  className={`inline-block h-2.5 w-2.5 rounded-full ${status.enabled ? 'bg-emerald-400' : 'bg-slate-500'}`}
+                  className={`inline-block h-2.5 w-2.5 rounded-full ${status.enabled ? 'bg-tc-success' : 'bg-tc-muted'}`}
                 />
                 <div>
                   <h2 className="text-sm font-semibold text-[var(--tc-text)]">
@@ -749,7 +749,7 @@ export default function SlackPage() {
                 </button>
                 <button
                   onClick={disconnect}
-                  className="text-xs px-3 py-1.5 rounded-lg border border-red-500/20 text-red-400/70 hover:text-red-400 transition"
+                  className="text-xs px-3 py-1.5 rounded-lg border border-tc-danger text-tc-danger hover:text-tc-danger transition"
                 >
                   Disconnect
                 </button>
@@ -805,8 +805,8 @@ export default function SlackPage() {
             </div>
 
             {hasNoSelection && (
-              <div className="rounded-lg border border-amber-500/20 bg-amber-500/[0.06] px-4 py-2.5 mb-4">
-                <p className="text-xs text-amber-300">
+              <div className="rounded-lg border border-tc-warning bg-[var(--tc-warning-surface)] px-4 py-2.5 mb-4">
+                <p className="text-xs text-tc-warning">
                   <strong>No events selected.</strong> All events will be sent
                   to Slack by default. We recommend selecting specific events
                   below to keep your channel focused and actionable.
@@ -830,7 +830,7 @@ export default function SlackPage() {
             <p className="text-xs text-[var(--tc-muted)] mb-3">
               Example of what alerts look like in Slack
             </p>
-            <div className="rounded-lg border border-[var(--tc-border)] bg-[rgba(0,0,0,0.2)] p-4 space-y-2.5">
+            <div className="rounded-lg border border-[var(--tc-border)] bg-[var(--tc-surface-sunken)] p-4 space-y-2.5">
               {(currentEvents.length > 0
                 ? currentEvents.slice(0, 4)
                 : [
@@ -844,8 +844,8 @@ export default function SlackPage() {
                   meta?.preview ?? `${eventLabel(evt)} event triggered`
                 return (
                   <div key={evt} className="flex items-start gap-2.5">
-                    <div className="w-5 h-5 rounded bg-[#4A154B] flex items-center justify-center shrink-0 mt-0.5">
-                      <span className="text-[10px] text-white font-bold">
+                    <div className="w-5 h-5 rounded bg-[var(--tc-brand-mark)] flex items-center justify-center shrink-0 mt-0.5">
+                      <span className="text-[10px] text-tc-on-primary font-bold">
                         S
                       </span>
                     </div>
@@ -898,7 +898,7 @@ export default function SlackPage() {
                 {ingestChannels.map((ch) => (
                   <div
                     key={ch.id}
-                    className="flex items-center justify-between rounded-lg border border-[var(--tc-border)] px-4 py-2.5 hover:bg-white/[0.02] transition"
+                    className="flex items-center justify-between rounded-lg border border-[var(--tc-border)] px-4 py-2.5 hover:bg-[var(--tc-hover)] transition"
                   >
                     <div className="min-w-0">
                       <span className="text-sm text-[var(--tc-text)] font-medium">
@@ -923,7 +923,7 @@ export default function SlackPage() {
                       </button>
                       <button
                         onClick={() => removeIngestChannel(ch.id)}
-                        className="text-xs px-3 py-1.5 rounded-lg border border-red-500/20 text-red-400/70 hover:text-red-400 transition"
+                        className="text-xs px-3 py-1.5 rounded-lg border border-tc-danger text-tc-danger hover:text-tc-danger transition"
                       >
                         Remove
                       </button>
@@ -958,7 +958,7 @@ export default function SlackPage() {
                 {ingestEvidence.map((ev) => (
                   <div
                     key={ev.id}
-                    className="flex items-center justify-between rounded-lg border border-[var(--tc-border)] px-4 py-2.5 hover:bg-white/[0.02] transition"
+                    className="flex items-center justify-between rounded-lg border border-[var(--tc-border)] px-4 py-2.5 hover:bg-[var(--tc-hover)] transition"
                   >
                     <div className="min-w-0">
                       <span className="text-sm text-[var(--tc-text)]">
@@ -991,7 +991,7 @@ export default function SlackPage() {
                 {ingestSuggestions.map((s) => (
                   <div
                     key={s.id}
-                    className="flex items-center justify-between rounded-lg border border-[var(--tc-border)] px-4 py-2.5 hover:bg-white/[0.02] transition"
+                    className="flex items-center justify-between rounded-lg border border-[var(--tc-border)] px-4 py-2.5 hover:bg-[var(--tc-hover)] transition"
                   >
                     <div className="text-sm text-[var(--tc-text)]">
                       Evidence #{s.evidence_id}
@@ -1004,7 +1004,7 @@ export default function SlackPage() {
                     <div className="flex gap-1.5 shrink-0">
                       <button
                         onClick={() => reviewSuggestion(s.id, 'approve')}
-                        className="text-xs px-3 py-1.5 rounded-lg border border-emerald-500/20 text-emerald-400 hover:bg-emerald-500/10 transition"
+                        className="text-xs px-3 py-1.5 rounded-lg border border-tc-success text-tc-success hover:bg-[var(--tc-success-surface)] transition"
                       >
                         Approve
                       </button>

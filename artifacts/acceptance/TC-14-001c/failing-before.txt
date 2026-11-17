@@ -1,0 +1,486 @@
+TC-14-001c failing-before
+Extended detector: apps/web/tests/unit/ui-raw-palette.test.ts
+Command (cwd apps/web): npx vitest run tests/unit/ui-raw-palette.test.ts --reporter=verbose
+Scanned tree: master f305b4e8911471eed249d749f53fdeeec31380b9 (dashboard and layout unchanged)
+Node: v24.22.1
+apps/web/app/dashboard hits=346 files=20
+apps/web/components/layout hits=25 files=3
+Exit: 1 (dashboard and layout assertions failed; components/ui stayed green)
+
+(!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+  - ESM syntax in a file loaded as CommonJS (vitest.config.ts:1:1). Use a `.mjs` extension or set `"type": "module"` in the closest package.json
+Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.
+
+ RUN  v5.0.5 /agent/repos/trust-copilot/apps/web
+
+ ✓ tests/unit/ui-raw-palette.test.ts > components/ui raw colours > flags palette classes and rgba colours, and allows token utilities 3ms
+ ✓ tests/unit/ui-raw-palette.test.ts > components/ui raw colours > keeps raw palette classes and rgba colours out of components/ui 4ms
+ × tests/unit/ui-raw-palette.test.ts > dashboard and layout raw colours > keeps raw palette classes and hex/rgb colours out of app/dashboard 45ms
+   → apps/web/app/dashboard hits=346 files=20
+60 review/[id]/page.tsx
+45 ai-governance/page.tsx
+36 compliance-gaps/page.tsx
+34 slack/page.tsx
+30 security/page.tsx
+26 notifications/page.tsx
+21 gmail/page.tsx
+16 audit/page.tsx
+16 case-studies/page.tsx
+13 page.tsx
+10 proof-chain/page.tsx
+10 requests/page.tsx
+9 members/page.tsx
+8 questionnaires/[id]/page.tsx
+3 exports/page.tsx
+2 compliance-frameworks/page.tsx
+2 demo-proof/page.tsx
+2 security-page/page.tsx
+2 settings/page.tsx
+1 trust-center/page.tsx: expected [ …(346) ] to deeply equal []
+ × tests/unit/ui-raw-palette.test.ts > dashboard and layout raw colours > keeps raw palette classes and hex/rgb colours out of components/layout 4ms
+   → apps/web/components/layout hits=25 files=3
+13 NotificationsPanel.tsx
+11 Topbar.tsx
+1 MfaRequiredBanner.tsx: expected [ …(25) ] to deeply equal []
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/unit/ui-raw-palette.test.ts > dashboard and layout raw colours > keeps raw palette classes and hex/rgb colours out of app/dashboard
+AssertionError: apps/web/app/dashboard hits=346 files=20
+60 review/[id]/page.tsx
+45 ai-governance/page.tsx
+36 compliance-gaps/page.tsx
+34 slack/page.tsx
+30 security/page.tsx
+26 notifications/page.tsx
+21 gmail/page.tsx
+16 audit/page.tsx
+16 case-studies/page.tsx
+13 page.tsx
+10 proof-chain/page.tsx
+10 requests/page.tsx
+9 members/page.tsx
+8 questionnaires/[id]/page.tsx
+3 exports/page.tsx
+2 compliance-frameworks/page.tsx
+2 demo-proof/page.tsx
+2 security-page/page.tsx
+2 settings/page.tsx
+1 trust-center/page.tsx: expected [ …(346) ] to deeply equal []
+
+- Expected
++ Received
+
+- []
++ [
++   "ai-governance/page.tsx 67: bg-emerald-500",
++   "ai-governance/page.tsx 68: bg-blue-500",
++   "ai-governance/page.tsx 69: bg-amber-500",
++   "ai-governance/page.tsx 70: bg-gray-500",
++   "ai-governance/page.tsx 74: #ef4444",
++   "ai-governance/page.tsx 75: #f97316",
++   "ai-governance/page.tsx 76: #eab308",
++   "ai-governance/page.tsx 77: #a3e635",
++   "ai-governance/page.tsx 78: #22d3ee",
++   "ai-governance/page.tsx 79: #818cf8",
++   "ai-governance/page.tsx 80: #94a3b8",
++   "ai-governance/page.tsx 103: bg-white/5",
++   "ai-governance/page.tsx 309: #3b82f6",
++   "ai-governance/page.tsx 315: #10b981",
++   "ai-governance/page.tsx 321: #eab308",
++   "ai-governance/page.tsx 327: #ef4444",
++   "ai-governance/page.tsx 333: #8b5cf6",
++   "ai-governance/page.tsx 342: bg-white/5",
++   "ai-governance/page.tsx 346: bg-emerald-500",
++   "ai-governance/page.tsx 353: bg-yellow-500",
++   "ai-governance/page.tsx 360: bg-red-500",
++   "ai-governance/page.tsx 367: bg-gray-600",
++   "ai-governance/page.tsx 378: bg-emerald-500",
++   "ai-governance/page.tsx 382: bg-yellow-500",
++   "ai-governance/page.tsx 386: bg-red-500",
++   "ai-governance/page.tsx 390: bg-gray-600",
++   "ai-governance/page.tsx 427: #eab308",
++   "ai-governance/page.tsx 461: #ef4444",
++   "ai-governance/page.tsx 487: text-amber-400",
++   "ai-governance/page.tsx 508: bg-white/5",
++   "ai-governance/page.tsx 570: #3b82f6",
++   "ai-governance/page.tsx 575: text-emerald-400",
++   "ai-governance/page.tsx 575: text-yellow-400",
++   "ai-governance/page.tsx 575: text-red-400",
++   "ai-governance/page.tsx 616: #94a3b8",
++   "ai-governance/page.tsx 621: border-white/10",
++   "ai-governance/page.tsx 668: border-white/5",
++   "ai-governance/page.tsx 677: text-emerald-400",
++   "ai-governance/page.tsx 874: border-white/10",
++   "ai-governance/page.tsx 892: border-white/10",
++   "ai-governance/page.tsx 961: bg-white/10",
++   "ai-governance/page.tsx 962: bg-white/80",
++   "ai-governance/page.tsx 965: group-hover:text-white",
++   "ai-governance/page.tsx 997: border-white/10",
++   "ai-governance/page.tsx 997: bg-white/5",
++   "audit/page.tsx 444: bg-blue-500/15",
++   "audit/page.tsx 444: text-blue-400",
++   "audit/page.tsx 448: bg-slate-500/15",
++   "audit/page.tsx 448: text-slate-400",
++   "audit/page.tsx 450: bg-purple-500/15",
++   "audit/page.tsx 450: text-purple-400",
++   "audit/page.tsx 454: bg-amber-500/15",
++   "audit/page.tsx 454: text-amber-400",
++   "audit/page.tsx 459: bg-teal-500/15",
++   "audit/page.tsx 459: text-teal-400",
++   "audit/page.tsx 623: bg-red-400",
++   "audit/page.tsx 624: bg-amber-400",
++   "audit/page.tsx 625: bg-emerald-400",
++   "audit/page.tsx 626: bg-slate-500",
++   "audit/page.tsx 817: hover:bg-white",
++   "audit/page.tsx 860: rgba(0,0,0,0.15)",
++   "case-studies/page.tsx 198: border-red-500/40",
++   "case-studies/page.tsx 198: bg-red-500/10",
++   "case-studies/page.tsx 198: text-red-200",
++   "case-studies/page.tsx 228: bg-white/5",
++   "case-studies/page.tsx 256: bg-white/5",
++   "case-studies/page.tsx 270: bg-white/5",
++   "case-studies/page.tsx 284: bg-white/5",
++   "case-studies/page.tsx 299: bg-white/5",
++   "case-studies/page.tsx 313: bg-white/5",
++   "case-studies/page.tsx 353: bg-white/10",
++   "case-studies/page.tsx 353: rgba(91,124,255,0.45)",
++   "case-studies/page.tsx 354: bg-white/5",
++   "case-studies/page.tsx 539: bg-white/5",
++   "case-studies/page.tsx 551: bg-white/5",
++   "case-studies/page.tsx 584: bg-white/5",
++   "case-studies/page.tsx 596: bg-white/5",
++   "compliance-frameworks/page.tsx 112: bg-white/5",
++   "compliance-frameworks/page.tsx 177: border-white/5",
++   "compliance-gaps/page.tsx 87: #5b7cff",
++   "compliance-gaps/page.tsx 87: #7c93ff",
++   "compliance-gaps/page.tsx 87: #3b5bdb",
++   "compliance-gaps/page.tsx 87: #4263eb",
++   "compliance-gaps/page.tsx 87: #5c7cfa",
++   "compliance-gaps/page.tsx 87: #748ffc",
++   "compliance-gaps/page.tsx 89: #f59e0b",
++   "compliance-gaps/page.tsx 90: #ef4444",
++   "compliance-gaps/page.tsx 91: #f97316",
++   "compliance-gaps/page.tsx 92: #ec4899",
++   "compliance-gaps/page.tsx 93: #e11d48",
++   "compliance-gaps/page.tsx 94: #d97706",
++   "compliance-gaps/page.tsx 95: #dc2626",
++   "compliance-gaps/page.tsx 96: #ea580c",
++   "compliance-gaps/page.tsx 97: #db2777",
++   "compliance-gaps/page.tsx 98: #be123c",
++   "compliance-gaps/page.tsx 100: #10b981",
++   "compliance-gaps/page.tsx 100: #06b6d4",
++   "compliance-gaps/page.tsx 100: #14b8a6",
++   "compliance-gaps/page.tsx 100: #0ea5e9",
++   "compliance-gaps/page.tsx 100: #059669",
++   "compliance-gaps/page.tsx 100: #0891b2",
++   "compliance-gaps/page.tsx 492: #10b981",
++   "compliance-gaps/page.tsx 498: #5b7cff",
++   "compliance-gaps/page.tsx 504: #ef4444",
++   "compliance-gaps/page.tsx 504: #f59e0b",
++   "compliance-gaps/page.tsx 510: #ef4444",
++   "compliance-gaps/page.tsx 510: #f59e0b",
++   "compliance-gaps/page.tsx 543: text-amber-400",
++   "compliance-gaps/page.tsx 629: rgba(255,255,255,0.06)",
++   "compliance-gaps/page.tsx 658: #10b981",
++   "compliance-gaps/page.tsx 666: #ef4444",
++   "compliance-gaps/page.tsx 674: #f59e0b",
++   "compliance-gaps/page.tsx 779: hover:bg-white",
++   "compliance-gaps/page.tsx 797: text-amber-400",
++   "compliance-gaps/page.tsx 808: text-red-400",
++   "demo-proof/page.tsx 175: bg-white/5",
++   "demo-proof/page.tsx 190: bg-white/5",
++   "exports/page.tsx 158: bg-green-500/20",
++   "exports/page.tsx 158: text-green-400",
++   "exports/page.tsx 158: bg-white/10",
++   "gmail/page.tsx 359: border-amber-500/40",
++   "gmail/page.tsx 359: bg-amber-500/10",
++   "gmail/page.tsx 359: text-amber-100",
++   "gmail/page.tsx 446: bg-emerald-400",
++   "gmail/page.tsx 467: border-red-500/20",
++   "gmail/page.tsx 467: text-red-400/70",
++   "gmail/page.tsx 467: hover:text-red-400",
++   "gmail/page.tsx 502: text-amber-400",
++   "gmail/page.tsx 535: border-amber-500/20",
++   "gmail/page.tsx 535: bg-amber-500",
++   "gmail/page.tsx 536: text-amber-300",
++   "gmail/page.tsx 546: hover:bg-white",
++   "gmail/page.tsx 572: border-red-500/20",
++   "gmail/page.tsx 572: text-red-400/70",
++   "gmail/page.tsx 572: hover:text-red-400",
++   "gmail/page.tsx 608: rgba(91,124,255,0.3)",
++   "gmail/page.tsx 638: hover:bg-white",
++   "gmail/page.tsx 681: hover:bg-white",
++   "gmail/page.tsx 694: border-emerald-500/20",
++   "gmail/page.tsx 694: text-emerald-400",
++   "gmail/page.tsx 694: hover:bg-emerald-500/10",
++   "members/page.tsx 538: border-white/5",
++   "members/page.tsx 568: bg-red-500/15",
++   "members/page.tsx 568: text-red-400",
++   "members/page.tsx 572: bg-emerald-500/15",
++   "members/page.tsx 572: text-emerald-400",
++   "members/page.tsx 587: text-emerald-400",
++   "members/page.tsx 587: text-amber-400",
++   "members/page.tsx 654: border-white/5",
++   "members/page.tsx 724: border-white/5",
++   "notifications/page.tsx 99: text-red-400",
++   "notifications/page.tsx 100: text-amber-400",
++   "notifications/page.tsx 105: border-red-500/30",
++   "notifications/page.tsx 105: bg-red-500",
++   "notifications/page.tsx 106: border-amber-500/30",
++   "notifications/page.tsx 106: bg-amber-500",
++   "notifications/page.tsx 107: bg-white",
++   "notifications/page.tsx 111: bg-red-400",
++   "notifications/page.tsx 112: bg-amber-400",
++   "notifications/page.tsx 113: bg-slate-400",
++   "notifications/page.tsx 118: text-emerald-400",
++   "notifications/page.tsx 119: text-red-400",
++   "notifications/page.tsx 120: text-amber-300",
++   "notifications/page.tsx 612: border-amber-500/40",
++   "notifications/page.tsx 612: bg-amber-500/10",
++   "notifications/page.tsx 612: text-amber-100",
++   "notifications/page.tsx 679: bg-red-500/20",
++   "notifications/page.tsx 679: text-red-300",
++   "notifications/page.tsx 679: bg-amber-500/20",
++   "notifications/page.tsx 679: text-amber-300",
++   "notifications/page.tsx 755: hover:bg-white",
++   "notifications/page.tsx 759: bg-emerald-400",
++   "notifications/page.tsx 759: bg-slate-500",
++   "notifications/page.tsx 784: hover:text-red-400",
++   "notifications/page.tsx 819: hover:bg-white",
++   "notifications/page.tsx 848: text-amber-300",
++   "page.tsx 385: bg-blue-500/20",
++   "page.tsx 385: text-blue-300",
++   "page.tsx 392: bg-yellow-500/20",
++   "page.tsx 392: text-yellow-300",
++   "page.tsx 399: bg-red-500/20",
++   "page.tsx 399: text-red-300",
++   "page.tsx 418: hover:bg-white/10",
++   "page.tsx 429: hover:bg-white/10",
++   "page.tsx 440: hover:bg-white/10",
++   "page.tsx 450: text-red-400",
++   "page.tsx 450: hover:bg-red-500/10",
++   "page.tsx 619: bg-white/5",
++   "page.tsx 631: bg-white/5",
++   "proof-chain/page.tsx 28: rgba(34, 197, 94, 0.12)",
++   "proof-chain/page.tsx 29: rgba(34, 197, 94, 0.35)",
++   "proof-chain/page.tsx 33: rgba(91, 124, 255, 0.14)",
++   "proof-chain/page.tsx 34: rgba(91, 124, 255, 0.35)",
++   "proof-chain/page.tsx 38: rgba(245, 158, 11, 0.12)",
++   "proof-chain/page.tsx 39: rgba(245, 158, 11, 0.35)",
++   "proof-chain/page.tsx 43: rgba(239, 68, 68, 0.1)",
++   "proof-chain/page.tsx 44: rgba(239, 68, 68, 0.3)",
++   "proof-chain/page.tsx 219: bg-white/5",
++   "proof-chain/page.tsx 243: bg-black/20",
++   "questionnaires/[id]/page.tsx 375: rgba(91,124,255,0.45)",
++   "questionnaires/[id]/page.tsx 375: rgba(91,124,255,0.12)",
++   "questionnaires/[id]/page.tsx 403: bg-white/5",
++   "questionnaires/[id]/page.tsx 468: text-emerald-400",
++   "questionnaires/[id]/page.tsx 476: text-amber-400",
++   "questionnaires/[id]/page.tsx 515: border-amber-500/30",
++   "questionnaires/[id]/page.tsx 515: bg-amber-500/10",
++   "questionnaires/[id]/page.tsx 515: text-amber-400",
++   "requests/page.tsx 58: bg-amber-500/15",
++   "requests/page.tsx 58: text-amber-400",
++   "requests/page.tsx 59: bg-blue-500/15",
++   "requests/page.tsx 59: text-blue-400",
++   "requests/page.tsx 64: bg-emerald-500/15",
++   "requests/page.tsx 64: text-emerald-400",
++   "requests/page.tsx 71: bg-slate-500/15",
++   "requests/page.tsx 71: text-slate-400",
++   "requests/page.tsx 652: hover:bg-white",
++   "requests/page.tsx 843: text-red-400",
++   "review/[id]/page.tsx 833: border-amber-500/40",
++   "review/[id]/page.tsx 833: bg-amber-500/10",
++   "review/[id]/page.tsx 833: text-amber-200",
++   "review/[id]/page.tsx 836: bg-black/20",
++   "review/[id]/page.tsx 838: bg-black/20",
++   "review/[id]/page.tsx 845: rgba(91,124,255,0.25)",
++   "review/[id]/page.tsx 846: rgba(91,124,255,0.08)",
++   "review/[id]/page.tsx 876: rgba(91,124,255,0.1)",
++   "review/[id]/page.tsx 877: rgba(91,124,255,0.18)",
++   "review/[id]/page.tsx 950: border-white/10",
++   "review/[id]/page.tsx 950: bg-white/5",
++   "review/[id]/page.tsx 960: bg-white/5",
++   "review/[id]/page.tsx 964: border-white/10",
++   "review/[id]/page.tsx 964: bg-white/5",
++   "review/[id]/page.tsx 974: bg-white/5",
++   "review/[id]/page.tsx 981: border-white/10",
++   "review/[id]/page.tsx 981: bg-white/5",
++   "review/[id]/page.tsx 991: bg-white/5",
++   "review/[id]/page.tsx 1008: border-white/10",
++   "review/[id]/page.tsx 1008: from-white/5",
++   "review/[id]/page.tsx 1019: bg-white/5",
++   "review/[id]/page.tsx 1066: border-white/10",
++   "review/[id]/page.tsx 1066: bg-white/5",
++   "review/[id]/page.tsx 1073: rgba(91,124,255,0.22)",
++   "review/[id]/page.tsx 1073: rgba(91,124,255,0.14)",
++   "review/[id]/page.tsx 1074: bg-white/5",
++   "review/[id]/page.tsx 1074: hover:bg-white/10",
++   "review/[id]/page.tsx 1083: bg-white/5",
++   "review/[id]/page.tsx 1090: rgba(91,124,255,0.12)",
++   "review/[id]/page.tsx 1090: rgba(91,124,255,0.08)",
++   "review/[id]/page.tsx 1123: bg-white/5",
++   "review/[id]/page.tsx 1123: hover:bg-white/10",
++   "review/[id]/page.tsx 1134: border-white/10",
++   "review/[id]/page.tsx 1134: bg-white/5",
++   "review/[id]/page.tsx 1143: bg-white/5",
++   "review/[id]/page.tsx 1190: border-white/10",
++   "review/[id]/page.tsx 1190: hover:bg-white",
++   "review/[id]/page.tsx 1197: bg-white/5",
++   "review/[id]/page.tsx 1207: border-white/10",
++   "review/[id]/page.tsx 1207: bg-white/5",
++   "review/[id]/page.tsx 1207: #d7e1f6",
++   "review/[id]/page.tsx 1286: bg-white/5",
++   "review/[id]/page.tsx 1286: hover:bg-white/10",
++   "review/[id]/page.tsx 1357: border-white/10",
++   "review/[id]/page.tsx 1357: bg-white/5",
++   "review/[id]/page.tsx 1363: bg-white/5",
++   "review/[id]/page.tsx 1405: border-white/10",
++   "review/[id]/page.tsx 1405: bg-white/5",
++   "review/[id]/page.tsx 1405: hover:bg-white/10",
++   "review/[id]/page.tsx 1413: bg-white/5",
++   "review/[id]/page.tsx 1419: border-white/10",
++   "review/[id]/page.tsx 1419: bg-white/5",
++   "review/[id]/page.tsx 1419: hover:bg-white/10",
++   "review/[id]/page.tsx 1427: bg-white/5",
++   "review/[id]/page.tsx 1433: border-white/10",
++   "review/[id]/page.tsx 1433: bg-white/5",
++   "review/[id]/page.tsx 1433: hover:bg-white/10",
++   "review/[id]/page.tsx 1441: bg-white/5",
++   "review/[id]/page.tsx 1499: border-white/10",
++   "review/[id]/page.tsx 1499: bg-white/5",
++   "security/page.tsx 104: bg-red-500",
++   "security/page.tsx 105: bg-amber-500",
++   "security/page.tsx 106: bg-emerald-500",
++   "security/page.tsx 210: #10b981",
++   "security/page.tsx 211: bg-emerald-500/10",
++   "security/page.tsx 211: border-emerald-500/20",
++   "security/page.tsx 216: #eab308",
++   "security/page.tsx 217: bg-yellow-500/10",
++   "security/page.tsx 217: border-yellow-500/20",
++   "security/page.tsx 222: #ef4444",
++   "security/page.tsx 223: bg-red-500/10",
++   "security/page.tsx 223: border-red-500/20",
++   "security/page.tsx 291: bg-amber-500",
++   "security/page.tsx 298: border-white/10",
++   "security/page.tsx 445: bg-white/5",
++   "security/page.tsx 488: bg-white/5",
++   "security/page.tsx 520: text-red-400",
++   "security/page.tsx 542: bg-emerald-500",
++   "security/page.tsx 542: bg-red-500",
++   "security/page.tsx 557: text-red-400",
++   "security/page.tsx 810: bg-white/10",
++   "security/page.tsx 811: bg-white/80",
++   "security/page.tsx 840: border-white/10",
++   "security/page.tsx 840: bg-white/5",
++   "security/page.tsx 1008: border-white/10",
++   "security/page.tsx 1013: text-red-400",
++   "security/page.tsx 1077: border-emerald-500/30",
++   "security/page.tsx 1077: bg-emerald-500/10",
++   "security/page.tsx 1077: text-emerald-400",
++   "security/page.tsx 1117: border-white/5",
++   "security-page/page.tsx 40: bg-white/5",
++   "security-page/page.tsx 195: bg-white/5",
++   "settings/page.tsx 64: rgba(34,197,94,0.12)",
++   "settings/page.tsx 64: rgba(34,197,94,0.18)",
++   "slack/page.tsx 185: bg-red-500/15",
++   "slack/page.tsx 185: text-red-400",
++   "slack/page.tsx 186: bg-amber-500/15",
++   "slack/page.tsx 186: text-amber-400",
++   "slack/page.tsx 545: rgba(91,124,255,0.3)",
++   "slack/page.tsx 545: rgba(91,124,255,0.06)",
++   "slack/page.tsx 546: hover:bg-white",
++   "slack/page.tsx 619: border-amber-500/40",
++   "slack/page.tsx 619: bg-amber-500/10",
++   "slack/page.tsx 619: text-amber-100",
++   "slack/page.tsx 631: rgba(91,124,255,0.14)",
++   "slack/page.tsx 631: rgba(91,124,255,0.22)",
++   "slack/page.tsx 637: rgba(91,124,255,0.14)",
++   "slack/page.tsx 637: rgba(91,124,255,0.22)",
++   "slack/page.tsx 718: bg-emerald-400",
++   "slack/page.tsx 718: bg-slate-500",
++   "slack/page.tsx 752: border-red-500/20",
++   "slack/page.tsx 752: text-red-400/70",
++   "slack/page.tsx 752: hover:text-red-400",
++   "slack/page.tsx 808: border-amber-500/20",
++   "slack/page.tsx 808: bg-amber-500",
++   "slack/page.tsx 809: text-amber-300",
++   "slack/page.tsx 833: rgba(0,0,0,0.2)",
++   "slack/page.tsx 847: #4A154B",
++   "slack/page.tsx 848: text-white",
++   "slack/page.tsx 901: hover:bg-white",
++   "slack/page.tsx 926: border-red-500/20",
++   "slack/page.tsx 926: text-red-400/70",
++   "slack/page.tsx 926: hover:text-red-400",
++   "slack/page.tsx 961: hover:bg-white",
++   "slack/page.tsx 994: hover:bg-white",
++   "slack/page.tsx 1007: border-emerald-500/20",
++   "slack/page.tsx 1007: text-emerald-400",
++   "slack/page.tsx 1007: hover:bg-emerald-500/10",
++   "trust-center/page.tsx 511: divide-white/10",
++ ]
+
+ ❯ tests/unit/ui-raw-palette.test.ts:105:27
+    103|       dashboardDir
+    104|     )
+    105|     expect(hits, summary).toEqual([])
+       |                           ^
+    106|   })
+    107|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯
+
+ FAIL  tests/unit/ui-raw-palette.test.ts > dashboard and layout raw colours > keeps raw palette classes and hex/rgb colours out of components/layout
+AssertionError: apps/web/components/layout hits=25 files=3
+13 NotificationsPanel.tsx
+11 Topbar.tsx
+1 MfaRequiredBanner.tsx: expected [ …(25) ] to deeply equal []
+
+- Expected
++ Received
+
+- []
++ [
++   "MfaRequiredBanner.tsx 13: #f59e0b",
++   "NotificationsPanel.tsx 34: rgba(91,124,255,0.12)",
++   "NotificationsPanel.tsx 35: rgb(140,165,255)",
++   "NotificationsPanel.tsx 39: rgba(168,85,247,0.12)",
++   "NotificationsPanel.tsx 40: rgb(192,132,252)",
++   "NotificationsPanel.tsx 44: rgba(245,158,11,0.12)",
++   "NotificationsPanel.tsx 45: rgb(251,191,36)",
++   "NotificationsPanel.tsx 49: rgba(239,68,68,0.12)",
++   "NotificationsPanel.tsx 50: rgb(248,113,113)",
++   "NotificationsPanel.tsx 54: rgba(34,197,94,0.12)",
++   "NotificationsPanel.tsx 55: rgb(74,222,128)",
++   "NotificationsPanel.tsx 351: bg-white",
++   "NotificationsPanel.tsx 387: border-white/5",
++   "NotificationsPanel.tsx 387: hover:bg-white",
++   "Topbar.tsx 647: border-white/5",
++   "Topbar.tsx 665: border-white/10",
++   "Topbar.tsx 665: bg-white/5",
++   "Topbar.tsx 701: border-white/5",
++   "Topbar.tsx 730: border-white/10",
++   "Topbar.tsx 730: bg-white/5",
++   "Topbar.tsx 730: hover:bg-white/10",
++   "Topbar.tsx 752: border-white/5",
++   "Topbar.tsx 755: bg-white/10",
++   "Topbar.tsx 755: rgba(91,124,255,0.5)",
++   "Topbar.tsx 759: bg-white",
++ ]
+
+ ❯ tests/unit/ui-raw-palette.test.ts:113:27
+    111|       layoutDir
+    112|     )
+    113|     expect(hits, summary).toEqual([])
+       |                           ^
+    114|   })
+    115| })
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/2]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  2 failed | 2 passed (4)
+   Start at  20:03:37
+   Duration  252ms (tests 58%, transform 30%, import 9%, worker 3%)

@@ -487,6 +487,15 @@ jobs:
           if-no-files-found: warn
           retention-days: 14
 
+      - name: Upload theme screenshots
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: theme-screenshots
+          path: artifacts/acceptance/TC-14-001/screenshots/theme-*.png
+          if-no-files-found: warn
+          retention-days: 14
+
       - name: Upload responsive shell axe JSON
         if: ${{ !cancelled() }}
         uses: actions/upload-artifact@v4

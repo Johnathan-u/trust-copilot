@@ -828,20 +828,22 @@ export default function ReviewPage() {
   return (
     <div className="min-w-0 p-7">
       {apiReachable === false && (
-        <div className="mb-4 rounded-xl border border-amber-500/40 bg-amber-500/10 px-4 py-3 text-sm text-amber-200">
+        <div className="mb-4 rounded-xl border border-tc-warning bg-[var(--tc-warning-surface)] px-4 py-3 text-sm text-tc-warning">
           <strong>Cannot reach the app backend.</strong> Draft answers and
           exports need the API running. If you use Docker:{' '}
-          <code className="rounded bg-black/20 px-1">docker compose up -d</code>{' '}
+          <code className="rounded bg-tc-surface-sunken px-1">
+            docker compose up -d
+          </code>{' '}
           from the project folder. If you develop locally:{' '}
-          <code className="rounded bg-black/20 px-1">
+          <code className="rounded bg-tc-surface-sunken px-1">
             node scripts/dev-all.js
           </code>
         </div>
       )}
       {generationBanner && (
         <div
-          className="mb-4 rounded-xl border border-[rgba(91,124,255,0.25)] px-4 py-3 text-sm"
-          style={{ background: 'rgba(91,124,255,0.08)' }}
+          className="mb-4 rounded-xl border border-[var(--tc-primary)] px-4 py-3 text-sm"
+          style={{ background: 'var(--tc-info-surface)' }}
         >
           <p className="font-semibold text-[var(--tc-text)]">
             {generationBanner.title}
@@ -871,8 +873,8 @@ export default function ReviewPage() {
             <div
               className="inline-flex items-center gap-2 rounded-full border px-3 py-2 text-xs"
               style={{
-                background: 'rgba(91,124,255,0.1)',
-                borderColor: 'rgba(91,124,255,0.18)',
+                background: 'var(--tc-info-surface)',
+                borderColor: 'var(--tc-primary)',
                 color: 'var(--tc-soft)',
               }}
             >
@@ -945,7 +947,7 @@ export default function ReviewPage() {
             </p>
           </div>
           <div className="flex flex-col justify-center gap-3">
-            <div className="flex items-center justify-between rounded-2xl border border-white/10 bg-white/5 px-4 py-4">
+            <div className="flex items-center justify-between rounded-2xl border border-tc-border bg-tc-surface-sunken px-4 py-4">
               <div>
                 <strong className="text-xl text-[var(--tc-text)]">
                   {totalCount}
@@ -955,11 +957,11 @@ export default function ReviewPage() {
                   Questions in this file
                 </span>
               </div>
-              <span className="rounded-xl border border-[var(--tc-border)] bg-white/5 px-2 py-1 text-xs">
+              <span className="rounded-xl border border-[var(--tc-border)] bg-tc-surface-sunken px-2 py-1 text-xs">
                 In progress
               </span>
             </div>
-            <div className="flex items-center justify-between rounded-2xl border border-white/10 bg-white/5 px-4 py-4">
+            <div className="flex items-center justify-between rounded-2xl border border-tc-border bg-tc-surface-sunken px-4 py-4">
               <div>
                 <strong className="text-xl text-[var(--tc-text)]">
                   {draftReadyCount} / {totalCount}
@@ -969,14 +971,14 @@ export default function ReviewPage() {
                   Draft answers (real drafts)
                 </span>
               </div>
-              <span className="rounded-xl border border-[var(--tc-border)] bg-white/5 px-2 py-1 text-xs">
+              <span className="rounded-xl border border-[var(--tc-border)] bg-tc-surface-sunken px-2 py-1 text-xs">
                 {totalCount
                   ? Math.round((draftReadyCount / totalCount) * 100)
                   : 0}
                 % drafted
               </span>
             </div>
-            <div className="flex items-center justify-between rounded-2xl border border-white/10 bg-white/5 px-4 py-4">
+            <div className="flex items-center justify-between rounded-2xl border border-tc-border bg-tc-surface-sunken px-4 py-4">
               <div>
                 <strong className="text-xl text-[var(--tc-text)]">
                   {insufficientCount}
@@ -986,7 +988,7 @@ export default function ReviewPage() {
                   Need more evidence
                 </span>
               </div>
-              <span className="rounded-xl border border-[var(--tc-border)] bg-white/5 px-2 py-1 text-xs">
+              <span className="rounded-xl border border-[var(--tc-border)] bg-tc-surface-sunken px-2 py-1 text-xs">
                 {approvedCount} approved
               </span>
             </div>
@@ -1003,7 +1005,7 @@ export default function ReviewPage() {
               backdropFilter: 'blur(20px)',
             }}
           >
-            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-white/10 bg-gradient-to-b from-white/5 to-transparent px-6 py-4">
+            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-tc-border bg-gradient-to-b from-tc-surface-sunken to-transparent px-6 py-4">
               <div>
                 <h2 className="text-xl font-semibold tracking-tight text-[var(--tc-text)]">
                   {qnr.filename}
@@ -1014,7 +1016,7 @@ export default function ReviewPage() {
               </div>
               <div className="flex flex-wrap items-center gap-2">
                 {isGenerating && (
-                  <span className="rounded-xl border border-[var(--tc-border)] bg-white/5 px-3 py-2 text-sm text-[var(--tc-muted)]">
+                  <span className="rounded-xl border border-[var(--tc-border)] bg-tc-surface-sunken px-3 py-2 text-sm text-[var(--tc-muted)]">
                     Generating…{' '}
                     {genElapsedSeconds > 0
                       ? formatGenerationElapsed(genElapsedSeconds)
@@ -1061,15 +1063,15 @@ export default function ReviewPage() {
               </div>
             </div>
 
-            <div className="flex flex-wrap items-center gap-2 border-b border-white/10 bg-white/5 px-6 py-4">
+            <div className="flex flex-wrap items-center gap-2 border-b border-tc-border bg-tc-surface-sunken px-6 py-4">
               {statusChips.map((s) => (
                 <button
                   key={s.label}
                   onClick={() => setStatusFilter(s.value)}
                   className={`rounded-xl border px-3 py-2 text-xs transition ${
                     statusFilter === s.value
-                      ? 'border-[rgba(91,124,255,0.22)] bg-[rgba(91,124,255,0.14)] text-[var(--tc-text)]'
-                      : 'border-[var(--tc-border)] bg-white/5 text-[var(--tc-muted)] hover:bg-white/10 hover:text-[var(--tc-text)]'
+                      ? 'border-[var(--tc-primary)] bg-[var(--tc-info-surface)] text-[var(--tc-text)]'
+                      : 'border-[var(--tc-border)] bg-tc-surface-sunken text-[var(--tc-muted)] hover:bg-[var(--tc-hover)] hover:text-[var(--tc-text)]'
                   }`}
                 >
                   {s.label}
@@ -1078,14 +1080,14 @@ export default function ReviewPage() {
               <input
                 type="search"
                 placeholder="Search questions…"
-                className="ml-auto min-w-[200px] rounded-xl border border-[var(--tc-border)] bg-white/5 px-3 py-2 text-sm text-[var(--tc-text)] placeholder:text-[var(--tc-muted)] focus:border-[var(--tc-primary)] focus:outline-none"
+                className="ml-auto min-w-[200px] rounded-xl border border-[var(--tc-border)] bg-tc-surface-sunken px-3 py-2 text-sm text-[var(--tc-text)] placeholder:text-[var(--tc-muted)] focus:border-[var(--tc-primary)] focus:outline-none"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
               />
             </div>
 
             {selected.size > 0 && (
-              <div className="flex flex-wrap items-center gap-2 border-b border-[rgba(91,124,255,0.12)] bg-[rgba(91,124,255,0.08)] px-6 py-3">
+              <div className="flex flex-wrap items-center gap-2 border-b border-[var(--tc-primary)] bg-[var(--tc-info-surface)] px-6 py-3">
                 <span className="text-sm text-[var(--tc-text)]">
                   {selected.size} selected
                 </span>
@@ -1118,7 +1120,7 @@ export default function ReviewPage() {
                 </Button>
                 <button
                   type="button"
-                  className="rounded-xl border border-[var(--tc-border)] bg-white/5 px-2.5 py-1.5 text-xs text-[var(--tc-text)] hover:bg-white/10"
+                  className="rounded-xl border border-[var(--tc-border)] bg-tc-surface-sunken px-2.5 py-1.5 text-xs text-[var(--tc-text)] hover:bg-[var(--tc-hover)]"
                   onClick={() => setSelected(new Set())}
                 >
                   Clear selection
@@ -1129,7 +1131,7 @@ export default function ReviewPage() {
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b border-white/10 bg-white/5">
+                  <tr className="border-b border-tc-border bg-tc-surface-sunken">
                     <th className="w-14 px-6 py-3.5 text-left text-xs font-semibold uppercase tracking-wider text-[var(--tc-muted)]">
                       <input
                         type="checkbox"
@@ -1138,7 +1140,7 @@ export default function ReviewPage() {
                           selected.size === filtered.length
                         }
                         onChange={toggleSelectAll}
-                        className="h-4 w-4 rounded border-[var(--tc-border-strong)] bg-white/5"
+                        className="h-4 w-4 rounded border-[var(--tc-border-strong)] bg-tc-surface-sunken"
                       />
                     </th>
                     <th className="w-16 px-6 py-3.5 text-left text-xs font-semibold uppercase tracking-wider text-[var(--tc-muted)]">
@@ -1185,14 +1187,14 @@ export default function ReviewPage() {
                     return (
                       <tr
                         key={q.id}
-                        className="border-b border-white/10 hover:bg-white/[0.02]"
+                        className="border-b border-tc-border hover:bg-[var(--tc-hover)]"
                       >
                         <td className="px-6 py-4">
                           <input
                             type="checkbox"
                             checked={selected.has(q.id)}
                             onChange={() => toggleSelect(q.id)}
-                            className="h-4 w-4 rounded border-[var(--tc-border-strong)] bg-white/5"
+                            className="h-4 w-4 rounded border-[var(--tc-border-strong)] bg-tc-surface-sunken"
                           />
                         </td>
                         <td className="px-6 py-4 text-[var(--tc-muted)]">
@@ -1202,7 +1204,7 @@ export default function ReviewPage() {
                           {q.text}
                         </td>
                         <td className="px-6 py-4">
-                          <div className="min-w-[300px] rounded-2xl border border-white/10 bg-white/5 p-3.5 text-[#d7e1f6] leading-snug shadow-inner">
+                          <div className="min-w-[300px] rounded-2xl border border-tc-border bg-tc-surface-sunken p-3.5 text-[var(--tc-text)] leading-snug shadow-inner">
                             <textarea
                               data-question-id={q.id}
                               className="w-full min-h-[80px] resize-y rounded-lg border-0 bg-transparent p-0 text-[var(--tc-text)] placeholder:text-[var(--tc-muted)] focus:ring-0"
@@ -1281,7 +1283,7 @@ export default function ReviewPage() {
                           {citations.length > 0 ? (
                             <button
                               type="button"
-                              className="rounded-xl border border-[var(--tc-border)] bg-white/5 px-2.5 py-2 text-xs text-[var(--tc-text)] hover:bg-white/10"
+                              className="rounded-xl border border-[var(--tc-border)] bg-tc-surface-sunken px-2.5 py-2 text-xs text-[var(--tc-text)] hover:bg-[var(--tc-hover)]"
                               onClick={() =>
                                 setCitationDrawer({
                                   questionText: q.text,
@@ -1352,13 +1354,13 @@ export default function ReviewPage() {
                   return (
                     <div
                       key={i}
-                      className="mb-3 rounded-2xl border border-white/10 bg-white/5 p-3.5"
+                      className="mb-3 rounded-2xl border border-tc-border bg-tc-surface-sunken p-3.5"
                     >
                       <div className="mb-2 flex justify-between gap-2 text-[13px]">
                         <span className="font-semibold text-[var(--tc-text)]">
                           Document
                         </span>
-                        <span className="rounded-lg border border-[var(--tc-border)] bg-white/5 px-2 py-0.5 text-xs">
+                        <span className="rounded-lg border border-[var(--tc-border)] bg-tc-surface-sunken px-2 py-0.5 text-xs">
                           Snippet
                         </span>
                       </div>
@@ -1400,7 +1402,7 @@ export default function ReviewPage() {
               <div className="grid gap-3">
                 <Link
                   href="/dashboard/documents"
-                  className="flex items-center justify-between gap-3 rounded-xl border border-white/10 bg-white/5 px-3.5 py-3 text-[13px] text-[var(--tc-text)] hover:bg-white/10"
+                  className="flex items-center justify-between gap-3 rounded-xl border border-tc-border bg-tc-surface-sunken px-3.5 py-3 text-[13px] text-[var(--tc-text)] hover:bg-[var(--tc-hover)]"
                 >
                   <div>
                     <div>Upload evidence</div>
@@ -1408,13 +1410,13 @@ export default function ReviewPage() {
                       Drag PDF, DOCX, XLSX
                     </div>
                   </div>
-                  <span className="rounded-lg border border-[var(--tc-border)] bg-white/5 px-2 py-1 text-xs">
+                  <span className="rounded-lg border border-[var(--tc-border)] bg-tc-surface-sunken px-2 py-1 text-xs">
                     Docs
                   </span>
                 </Link>
                 <Link
                   href="/dashboard/questionnaires"
-                  className="flex items-center justify-between gap-3 rounded-xl border border-white/10 bg-white/5 px-3.5 py-3 text-[13px] text-[var(--tc-text)] hover:bg-white/10"
+                  className="flex items-center justify-between gap-3 rounded-xl border border-tc-border bg-tc-surface-sunken px-3.5 py-3 text-[13px] text-[var(--tc-text)] hover:bg-[var(--tc-hover)]"
                 >
                   <div>
                     <div>Upload questionnaire</div>
@@ -1422,13 +1424,13 @@ export default function ReviewPage() {
                       Parse and preview instantly
                     </div>
                   </div>
-                  <span className="rounded-lg border border-[var(--tc-border)] bg-white/5 px-2 py-1 text-xs">
+                  <span className="rounded-lg border border-[var(--tc-border)] bg-tc-surface-sunken px-2 py-1 text-xs">
                     Qnrs
                   </span>
                 </Link>
                 <Link
                   href="/dashboard/questionnaires"
-                  className="flex items-center justify-between gap-3 rounded-xl border border-white/10 bg-white/5 px-3.5 py-3 text-[13px] text-[var(--tc-text)] hover:bg-white/10"
+                  className="flex items-center justify-between gap-3 rounded-xl border border-tc-border bg-tc-surface-sunken px-3.5 py-3 text-[13px] text-[var(--tc-text)] hover:bg-[var(--tc-hover)]"
                 >
                   <div>
                     <div>Continue review</div>
@@ -1436,7 +1438,7 @@ export default function ReviewPage() {
                       Jump back into the last draft
                     </div>
                   </div>
-                  <span className="rounded-lg border border-[var(--tc-border)] bg-white/5 px-2 py-1 text-xs">
+                  <span className="rounded-lg border border-[var(--tc-border)] bg-tc-surface-sunken px-2 py-1 text-xs">
                     Open
                   </span>
                 </Link>
@@ -1507,7 +1509,7 @@ export default function ReviewPage() {
               {citationDrawer.citations.map((cit, i) => (
                 <div
                   key={i}
-                  className="rounded-xl border border-white/10 bg-white/5 p-3 text-sm text-[var(--tc-text)]"
+                  className="rounded-xl border border-tc-border bg-tc-surface-sunken p-3 text-sm text-[var(--tc-text)]"
                 >
                   {cit.snippet || '—'}
                 </div>

@@ -1,0 +1,36 @@
+TC-14-001c CI
+Workflow: CI (.github/workflows/ci.yml)
+Head: 5899a72038927d9374dafe280f28bb6085b1e7ec
+Required jobs: build, web-release-e2e
+
+push run 43946215021 conclusion=success
+https://github.com/Johnathan-u/trust-copilot/actions/runs/43946215021
+build success
+web-release-e2e success
+artifact theme-screenshots size_in_bytes=2809766
+
+pull_request run 43946264629 conclusion=success
+https://github.com/Johnathan-u/trust-copilot/actions/runs/43946264629
+build success
+web-release-e2e success
+artifact theme-screenshots size_in_bytes=2809766
+files: theme-dark-360.png theme-dark-768.png theme-dark-1440.png theme-light-360.png theme-light-768.png theme-light-1440.png
+
+Vitest has no --min-tests floor. Release-spec --min-tests values were not changed.
+
+Merge of master a365c347 (TC-14-005b, state-components floor 13)
+Head: 36f13555056206701b34e4126c00fd62393fbd4f
+
+push run 43959904308 conclusion=success
+https://github.com/Johnathan-u/trust-copilot/actions/runs/43959904308
+build success
+web-release-e2e success
+artifact theme-screenshots size_in_bytes=2809766
+artifact state-components-screenshots size_in_bytes=673096
+
+pull_request run 43959915772 conclusion=success
+https://github.com/Johnathan-u/trust-copilot/actions/runs/43959915772
+build success
+web-release-e2e success
+artifact theme-screenshots size_in_bytes=2809766
+artifact state-components-screenshots size_in_bytes=673096

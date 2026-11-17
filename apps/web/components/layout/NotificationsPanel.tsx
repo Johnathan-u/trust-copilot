@@ -31,28 +31,28 @@ const CATEGORY_STYLES: Record<
   { bg: string; text: string; label: string }
 > = {
   info: {
-    bg: 'rgba(91,124,255,0.12)',
-    text: 'rgb(140,165,255)',
+    bg: 'var(--tc-info-surface)',
+    text: 'var(--tc-info)',
     label: 'Info',
   },
   admin: {
-    bg: 'rgba(168,85,247,0.12)',
-    text: 'rgb(192,132,252)',
+    bg: 'var(--tc-nav-active-bg)',
+    text: 'var(--tc-text)',
     label: 'Admin',
   },
   warning: {
-    bg: 'rgba(245,158,11,0.12)',
-    text: 'rgb(251,191,36)',
+    bg: 'var(--tc-warning-surface)',
+    text: 'var(--tc-warning)',
     label: 'Warning',
   },
   error: {
-    bg: 'rgba(239,68,68,0.12)',
-    text: 'rgb(248,113,113)',
+    bg: 'var(--tc-danger-surface)',
+    text: 'var(--tc-danger)',
     label: 'Error',
   },
   success: {
-    bg: 'rgba(34,197,94,0.12)',
-    text: 'rgb(74,222,128)',
+    bg: 'var(--tc-success-surface)',
+    text: 'var(--tc-success)',
     label: 'Success',
   },
 }
@@ -348,7 +348,7 @@ export function NotificationsPanel({
               const style = CATEGORY_STYLES[n.category] || CATEGORY_STYLES.info
               const content = (
                 <div
-                  className={`px-4 py-3 transition ${!n.is_read ? 'bg-white/[0.03]' : ''}`}
+                  className={`px-4 py-3 transition ${!n.is_read ? 'bg-[var(--tc-grid)]' : ''}`}
                 >
                   <div className="flex items-start gap-2">
                     <div
@@ -384,7 +384,7 @@ export function NotificationsPanel({
               return (
                 <li
                   key={n.id}
-                  className="border-b border-white/5 last:border-0 cursor-pointer hover:bg-white/[0.02]"
+                  className="border-b border-tc-border last:border-0 cursor-pointer hover:bg-[var(--tc-hover)]"
                   onClick={() => {
                     if (!n.is_read) markRead(n.id)
                   }}

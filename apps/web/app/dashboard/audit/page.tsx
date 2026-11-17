@@ -441,22 +441,30 @@ const CATEGORY_META: Record<
   Category,
   { label: string; icon: string; color: string }
 > = {
-  user: { label: 'User', icon: '👤', color: 'bg-blue-500/15 text-blue-400' },
+  user: {
+    label: 'User',
+    icon: '👤',
+    color: 'bg-[var(--tc-info-surface)] text-tc-info',
+  },
   system: {
     label: 'System',
     icon: '⚙️',
-    color: 'bg-slate-500/15 text-slate-400',
+    color: 'bg-tc-surface-sunken text-tc-muted',
   },
-  ai: { label: 'AI', icon: '🤖', color: 'bg-purple-500/15 text-purple-400' },
+  ai: {
+    label: 'AI',
+    icon: '🤖',
+    color: 'bg-[var(--tc-nav-active-bg)] text-tc-text',
+  },
   admin: {
     label: 'Admin',
     icon: '🔑',
-    color: 'bg-amber-500/15 text-amber-400',
+    color: 'bg-[var(--tc-warning-surface)] text-tc-warning',
   },
   integration: {
     label: 'Integration',
     icon: '🔗',
-    color: 'bg-teal-500/15 text-teal-400',
+    color: 'bg-[var(--tc-success-surface)] text-tc-success',
   },
 }
 
@@ -620,10 +628,10 @@ function getConfig(action: string): EventConfig {
 }
 
 function severityDot(sev: Severity): string {
-  if (sev === 'high') return 'bg-red-400'
-  if (sev === 'medium') return 'bg-amber-400'
-  if (sev === 'low') return 'bg-emerald-400'
-  return 'bg-slate-500'
+  if (sev === 'high') return 'bg-tc-danger'
+  if (sev === 'medium') return 'bg-tc-warning'
+  if (sev === 'low') return 'bg-tc-success'
+  return 'bg-tc-muted'
 }
 
 function timeAgo(iso: string | null): string {
@@ -814,7 +822,7 @@ export default function AuditPage() {
                 >
                   <button
                     onClick={() => setExpanded(isExpanded ? null : ev.id)}
-                    className="w-full text-left px-5 py-3 hover:bg-white/[0.02] transition flex items-start gap-3"
+                    className="w-full text-left px-5 py-3 hover:bg-[var(--tc-hover)] transition flex items-start gap-3"
                   >
                     {/* Severity dot */}
                     <span
@@ -857,7 +865,7 @@ export default function AuditPage() {
                   {/* Expanded detail */}
                   {isExpanded && (
                     <div className="px-5 pb-4 pl-10 space-y-1.5">
-                      <div className="rounded-lg border border-[var(--tc-border)] bg-[rgba(0,0,0,0.15)] p-3 text-xs space-y-1">
+                      <div className="rounded-lg border border-[var(--tc-border)] bg-[var(--tc-surface-sunken)] p-3 text-xs space-y-1">
                         <div className="flex gap-8">
                           <div>
                             <span className="text-[var(--tc-muted)]">

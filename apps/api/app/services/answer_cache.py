@@ -7,6 +7,8 @@ from datetime import datetime, timezone
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
+from app.services.active_sources import citations_are_stale
+
 logger = logging.getLogger(__name__)
 
 
@@ -42,6 +44,8 @@ def get(
             citations = json.loads(row[1])
         except Exception:
             pass
+    if citations_are_stale(db, workspace_id, citations):
+        return None
     return {"text": row[0] or "", "citations": citations, "confidence": row[2] or 0}
 
 

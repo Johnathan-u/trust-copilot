@@ -1,0 +1,24 @@
+TC-14-001c passing-after
+Extended detector: apps/web/tests/unit/ui-raw-palette.test.ts
+Command (cwd apps/web): npx vitest run tests/unit/ui-raw-palette.test.ts --reporter=verbose
+Scanned tree: token migration on top of master f305b4e8911471eed249d749f53fdeeec31380b9
+Node: v24.22.1
+apps/web/app/dashboard hits=0 files=0
+apps/web/components/layout hits=0 files=0
+Exit: 0
+
+(!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+  - ESM syntax in a file loaded as CommonJS (vitest.config.ts:1:1). Use a `.mjs` extension or set `"type": "module"` in the closest package.json
+Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.
+
+ RUN  v5.0.5 /agent/repos/trust-copilot/apps/web
+
+ ✓ tests/unit/ui-raw-palette.test.ts > components/ui raw colours > flags palette classes and rgba colours, and allows token utilities 3ms
+ ✓ tests/unit/ui-raw-palette.test.ts > components/ui raw colours > keeps raw palette classes and rgba colours out of components/ui 4ms
+ ✓ tests/unit/ui-raw-palette.test.ts > dashboard and layout raw colours > keeps raw palette classes and hex/rgb colours out of app/dashboard 41ms
+ ✓ tests/unit/ui-raw-palette.test.ts > dashboard and layout raw colours > keeps raw palette classes and hex/rgb colours out of components/layout 3ms
+
+ Test Files  1 passed (1)
+      Tests  4 passed (4)
+   Start at  20:04:48
+   Duration  219ms (tests 74%, import 12%, transform 8%, worker 5%)
