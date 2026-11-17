@@ -1,0 +1,14 @@
+# CI for TC-08-004 gap 1 / TC-08-006 gap 2
+
+Implementation head: `1400e30414eca9ad378a4b2297c8a8ab943a0108`
+
+`build` and `web-release-e2e` on the CI workflow are success for that commit on both `push` and `pull_request`. No migration. The change is not accepted.
+
+| Event | Run | Job | Conclusion |
+|---|---|---|---|
+| push | [43970296040](https://github.com/Johnathan-u/trust-copilot/actions/runs/43970296040) | build (133660377969) | success |
+| push | 43970296040 | web-release-e2e (133660377144) | success |
+| pull_request | [43970322540](https://github.com/Johnathan-u/trust-copilot/actions/runs/43970322540) | build (133660473163) | success |
+| pull_request | 43970322540 | web-release-e2e (133660472736) | success |
+
+Local tests before the filter: 17 failed (`failing-before.txt`). After the filter: 17 passed (`passing-after.txt`).

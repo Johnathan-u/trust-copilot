@@ -13,6 +13,7 @@ from app.models.control_evidence_link import ControlEvidenceLink
 from app.models.evidence_item import EvidenceItem
 from app.models.framework_control import FrameworkControl
 from app.models.workspace_control import WorkspaceControl
+from app.services.active_sources import document_is_citable
 
 logger = logging.getLogger(__name__)
 
@@ -47,7 +48,7 @@ def compose_citations(db: Session, workspace_id: int, control_id: int) -> dict:
             )
             .first()
         )
-        if not ev:
+        if not ev or not document_is_citable(db, workspace_id, ev.document_id):
             continue
         citation = {
             "evidence_id": ev.id,

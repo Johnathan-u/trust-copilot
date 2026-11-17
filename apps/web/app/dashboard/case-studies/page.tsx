@@ -195,7 +195,7 @@ export default function CaseStudiesPage() {
       {error && (
         <p
           role="alert"
-          className="rounded-xl border border-red-500/40 bg-red-500/10 px-3 py-2 text-sm text-red-200"
+          className="rounded-xl border border-tc-danger bg-[var(--tc-danger-surface)] px-3 py-2 text-sm text-tc-danger"
         >
           {error}
         </p>
@@ -225,7 +225,7 @@ export default function CaseStudiesPage() {
                 onChange={(event) =>
                   setForm({ ...form, title: event.target.value })
                 }
-                className="rounded-xl border border-[var(--tc-border)] bg-white/5 px-3 py-2 text-[var(--tc-text)]"
+                className="rounded-xl border border-[var(--tc-border)] bg-tc-surface-sunken px-3 py-2 text-[var(--tc-text)]"
               />
             </label>
             <label
@@ -253,7 +253,7 @@ export default function CaseStudiesPage() {
                 onChange={(event) =>
                   setForm({ ...form, company_name: event.target.value })
                 }
-                className="rounded-xl border border-[var(--tc-border)] bg-white/5 px-3 py-2 text-[var(--tc-text)]"
+                className="rounded-xl border border-[var(--tc-border)] bg-tc-surface-sunken px-3 py-2 text-[var(--tc-text)]"
               />
             </label>
             <label
@@ -267,7 +267,7 @@ export default function CaseStudiesPage() {
                 onChange={(event) =>
                   setForm({ ...form, quote: event.target.value })
                 }
-                className="min-h-20 rounded-xl border border-[var(--tc-border)] bg-white/5 px-3 py-2 text-[var(--tc-text)]"
+                className="min-h-20 rounded-xl border border-[var(--tc-border)] bg-tc-surface-sunken px-3 py-2 text-[var(--tc-text)]"
               />
             </label>
             <label
@@ -281,7 +281,7 @@ export default function CaseStudiesPage() {
                 onChange={(event) =>
                   setForm({ ...form, results: event.target.value })
                 }
-                className="min-h-20 rounded-xl border border-[var(--tc-border)] bg-white/5 px-3 py-2 text-[var(--tc-text)]"
+                className="min-h-20 rounded-xl border border-[var(--tc-border)] bg-tc-surface-sunken px-3 py-2 text-[var(--tc-text)]"
               />
             </label>
             <div className="grid gap-3 sm:grid-cols-2">
@@ -296,7 +296,7 @@ export default function CaseStudiesPage() {
                   onChange={(event) =>
                     setForm({ ...form, metric_key: event.target.value })
                   }
-                  className="rounded-xl border border-[var(--tc-border)] bg-white/5 px-3 py-2 text-[var(--tc-text)]"
+                  className="rounded-xl border border-[var(--tc-border)] bg-tc-surface-sunken px-3 py-2 text-[var(--tc-text)]"
                 />
               </label>
               <label
@@ -310,7 +310,7 @@ export default function CaseStudiesPage() {
                   onChange={(event) =>
                     setForm({ ...form, metric_value: event.target.value })
                   }
-                  className="rounded-xl border border-[var(--tc-border)] bg-white/5 px-3 py-2 text-[var(--tc-text)]"
+                  className="rounded-xl border border-[var(--tc-border)] bg-tc-surface-sunken px-3 py-2 text-[var(--tc-text)]"
                 />
               </label>
             </div>
@@ -350,8 +350,8 @@ export default function CaseStudiesPage() {
                   onClick={() => setSelectedId(study.id)}
                   className={`w-full rounded-2xl border px-4 py-3 text-left ${
                     selectedId === study.id
-                      ? 'border-[rgba(91,124,255,0.45)] bg-white/10'
-                      : 'border-[var(--tc-border)] bg-white/5'
+                      ? 'border-[var(--tc-nav-active-border)] bg-[var(--tc-nav-active-bg)]'
+                      : 'border-[var(--tc-border)] bg-tc-surface-sunken'
                   }`}
                 >
                   <span className="block text-sm font-medium text-[var(--tc-text)]">
@@ -536,7 +536,7 @@ function StudyDetail({
               id="consent-org"
               value={organizationName}
               onChange={(event) => setOrganizationName(event.target.value)}
-              className="rounded-xl border border-[var(--tc-border)] bg-white/5 px-3 py-2 text-[var(--tc-text)]"
+              className="rounded-xl border border-[var(--tc-border)] bg-tc-surface-sunken px-3 py-2 text-[var(--tc-text)]"
             />
           </label>
           <label
@@ -548,7 +548,7 @@ function StudyDetail({
               id="consent-ref"
               value={consentReference}
               onChange={(event) => setConsentReference(event.target.value)}
-              className="rounded-xl border border-[var(--tc-border)] bg-white/5 px-3 py-2 text-[var(--tc-text)]"
+              className="rounded-xl border border-[var(--tc-border)] bg-tc-surface-sunken px-3 py-2 text-[var(--tc-text)]"
             />
           </label>
           <Button type="submit" disabled={saving || !organizationName.trim()}>
@@ -581,7 +581,7 @@ function StudyDetail({
               inputMode="numeric"
               value={consentId}
               onChange={(event) => setConsentId(event.target.value)}
-              className="rounded-xl border border-[var(--tc-border)] bg-white/5 px-3 py-2 text-[var(--tc-text)]"
+              className="rounded-xl border border-[var(--tc-border)] bg-tc-surface-sunken px-3 py-2 text-[var(--tc-text)]"
             />
           </label>
           <label
@@ -593,7 +593,7 @@ function StudyDetail({
               id="permission-result"
               value={resultKey}
               onChange={(event) => setResultKey(event.target.value)}
-              className="rounded-xl border border-[var(--tc-border)] bg-white/5 px-3 py-2 text-[var(--tc-text)]"
+              className="rounded-xl border border-[var(--tc-border)] bg-tc-surface-sunken px-3 py-2 text-[var(--tc-text)]"
             />
           </label>
           <Button

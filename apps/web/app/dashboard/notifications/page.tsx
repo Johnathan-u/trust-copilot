@@ -96,28 +96,30 @@ const RECIPIENT_TYPES = [
 ]
 
 function severityColor(severity: string): string {
-  if (severity === 'high') return 'text-red-400'
-  if (severity === 'medium') return 'text-amber-400'
+  if (severity === 'high') return 'text-tc-danger'
+  if (severity === 'medium') return 'text-tc-warning'
   return 'text-[var(--tc-muted)]'
 }
 
 function severityBg(severity: string): string {
-  if (severity === 'high') return 'border-red-500/30 bg-red-500/[0.06]'
-  if (severity === 'medium') return 'border-amber-500/30 bg-amber-500/[0.06]'
-  return 'border-[var(--tc-border)] bg-white/[0.02]'
+  if (severity === 'high')
+    return 'border-tc-danger bg-[var(--tc-danger-surface)]'
+  if (severity === 'medium')
+    return 'border-tc-warning bg-[var(--tc-warning-surface)]'
+  return 'border-[var(--tc-border)] bg-[var(--tc-grid)]'
 }
 
 function severityDot(severity: string): string {
-  if (severity === 'high') return 'bg-red-400'
-  if (severity === 'medium') return 'bg-amber-400'
-  return 'bg-slate-400'
+  if (severity === 'high') return 'bg-tc-danger'
+  if (severity === 'medium') return 'bg-tc-warning'
+  return 'bg-tc-muted'
 }
 
 function deliveryTone(entry: LogEntry): string {
   const state = entry.delivery_state || entry.status
-  if (state === 'sent') return 'text-emerald-400'
-  if (state === 'failed' || state === 'dead-lettered') return 'text-red-400'
-  return 'text-amber-300'
+  if (state === 'sent') return 'text-tc-success'
+  if (state === 'failed' || state === 'dead-lettered') return 'text-tc-danger'
+  return 'text-tc-warning'
 }
 
 function timeAgo(iso: string | null): string {
@@ -609,7 +611,7 @@ export default function ComplianceAlertsPage() {
       {stubProviders.length > 0 && (
         <div
           role="status"
-          className="rounded-lg border border-amber-500/40 bg-amber-500/10 px-4 py-3 text-sm text-amber-100"
+          className="rounded-lg border border-tc-warning bg-[var(--tc-warning-surface)] px-4 py-3 text-sm text-tc-warning"
         >
           <strong className="font-semibold">Development stub.</strong>{' '}
           {stubProviders.join(' and ')}{' '}
@@ -676,7 +678,7 @@ export default function ComplianceAlertsPage() {
                             {alert.title}
                           </span>
                           <span
-                            className={`text-[10px] uppercase font-medium px-1.5 py-0.5 rounded ${alert.severity === 'high' ? 'bg-red-500/20 text-red-300' : 'bg-amber-500/20 text-amber-300'}`}
+                            className={`text-[10px] uppercase font-medium px-1.5 py-0.5 rounded ${alert.severity === 'high' ? 'bg-[var(--tc-danger-surface)] text-tc-danger' : 'bg-[var(--tc-warning-surface)] text-tc-warning'}`}
                           >
                             {alert.severity}
                           </span>
@@ -752,11 +754,11 @@ export default function ComplianceAlertsPage() {
                         {catPolicies.map((p) => (
                           <div
                             key={p.id}
-                            className="flex items-center justify-between rounded-lg border border-[var(--tc-border)] px-4 py-2.5 hover:bg-white/[0.02] transition"
+                            className="flex items-center justify-between rounded-lg border border-[var(--tc-border)] px-4 py-2.5 hover:bg-[var(--tc-hover)] transition"
                           >
                             <div className="flex items-center gap-3 min-w-0">
                               <span
-                                className={`inline-block h-2 w-2 rounded-full shrink-0 ${p.enabled ? 'bg-emerald-400' : 'bg-slate-500'}`}
+                                className={`inline-block h-2 w-2 rounded-full shrink-0 ${p.enabled ? 'bg-tc-success' : 'bg-tc-muted'}`}
                               />
                               <div className="min-w-0">
                                 <span className="text-sm text-[var(--tc-text)]">
@@ -781,7 +783,7 @@ export default function ComplianceAlertsPage() {
                               </button>
                               <button
                                 onClick={() => deletePolicy(p)}
-                                className="text-xs px-2 py-1 rounded text-[var(--tc-muted)] hover:text-red-400 transition"
+                                className="text-xs px-2 py-1 rounded text-[var(--tc-muted)] hover:text-tc-danger transition"
                               >
                                 Remove
                               </button>
@@ -816,7 +818,7 @@ export default function ComplianceAlertsPage() {
                     return (
                       <div
                         key={entry.id}
-                        className="flex min-w-0 flex-wrap items-center justify-between gap-2 rounded-lg border border-[var(--tc-border)] px-4 py-2.5 hover:bg-white/[0.02] transition"
+                        className="flex min-w-0 flex-wrap items-center justify-between gap-2 rounded-lg border border-[var(--tc-border)] px-4 py-2.5 hover:bg-[var(--tc-hover)] transition"
                       >
                         <div className="flex min-w-0 items-center gap-3">
                           <span
@@ -845,7 +847,7 @@ export default function ComplianceAlertsPage() {
                             ).replaceAll('-', ' ')}
                           </span>
                           {entry.provider_mode === 'dev-stub' && (
-                            <span className="text-[10px] uppercase font-medium text-amber-300">
+                            <span className="text-[10px] uppercase font-medium text-tc-warning">
                               Not delivered to the provider
                             </span>
                           )}

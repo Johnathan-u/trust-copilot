@@ -382,21 +382,21 @@ export default function DashboardPage() {
                             </p>
                           )}
                           {showCustomize && isBuiltin && (
-                            <span className="mt-1 inline-block rounded bg-blue-500/20 px-1.5 py-0.5 text-[10px] font-medium text-blue-300">
+                            <span className="mt-1 inline-block rounded bg-[var(--tc-info-surface)] px-1.5 py-0.5 text-[10px] font-medium text-tc-info">
                               Built-in
                             </span>
                           )}
                           {showCustomize &&
                             !isBuiltin &&
                             card.visibility_scope === 'admin' && (
-                              <span className="mt-1 inline-block rounded bg-yellow-500/20 px-1.5 py-0.5 text-[10px] font-medium text-yellow-300">
+                              <span className="mt-1 inline-block rounded bg-[var(--tc-warning-surface)] px-1.5 py-0.5 text-[10px] font-medium text-tc-warning">
                                 Admin only
                               </span>
                             )}
                           {showCustomize &&
                             !isBuiltin &&
                             card.is_enabled === false && (
-                              <span className="mt-1 ml-1 inline-block rounded bg-red-500/20 px-1.5 py-0.5 text-[10px] font-medium text-red-300">
+                              <span className="mt-1 ml-1 inline-block rounded bg-[var(--tc-danger-surface)] px-1.5 py-0.5 text-[10px] font-medium text-tc-danger">
                                 Disabled
                               </span>
                             )}
@@ -415,7 +415,7 @@ export default function DashboardPage() {
                             handleMoveUp(customIdx)
                           }}
                           disabled={customIdx === 0}
-                          className="rounded px-1.5 py-0.5 text-xs text-[var(--tc-muted)] hover:bg-white/10 disabled:opacity-30"
+                          className="rounded px-1.5 py-0.5 text-xs text-[var(--tc-muted)] hover:bg-[var(--tc-hover)] disabled:opacity-30"
                           title="Move up"
                         >
                           ↑
@@ -426,7 +426,7 @@ export default function DashboardPage() {
                             handleMoveDown(customIdx)
                           }}
                           disabled={customIdx === customCards.length - 1}
-                          className="rounded px-1.5 py-0.5 text-xs text-[var(--tc-muted)] hover:bg-white/10 disabled:opacity-30"
+                          className="rounded px-1.5 py-0.5 text-xs text-[var(--tc-muted)] hover:bg-[var(--tc-hover)] disabled:opacity-30"
                           title="Move down"
                         >
                           ↓
@@ -437,7 +437,7 @@ export default function DashboardPage() {
                             setEditCard(card)
                             setShowAddModal(true)
                           }}
-                          className="rounded px-1.5 py-0.5 text-xs text-[var(--tc-muted)] hover:bg-white/10"
+                          className="rounded px-1.5 py-0.5 text-xs text-[var(--tc-muted)] hover:bg-[var(--tc-hover)]"
                           title="Edit"
                         >
                           ✏️
@@ -447,7 +447,7 @@ export default function DashboardPage() {
                             e.preventDefault()
                             requestDelete(card.id!)
                           }}
-                          className="rounded px-1.5 py-0.5 text-xs text-red-400 hover:bg-red-500/10"
+                          className="rounded px-1.5 py-0.5 text-xs text-tc-danger hover:bg-[var(--tc-danger-surface)]"
                           title="Delete"
                         >
                           🗑
@@ -616,7 +616,7 @@ function CardFormModal({
           <input
             value={title}
             onChange={(e) => setTitle(e.target.value)}
-            className="w-full rounded-lg border border-[var(--tc-border)] bg-white/5 px-3 py-2 text-sm text-[var(--tc-text)] focus:outline-none focus:ring-1 focus:ring-[var(--tc-primary)]"
+            className="w-full rounded-lg border border-[var(--tc-border)] bg-tc-surface-sunken px-3 py-2 text-sm text-[var(--tc-text)] focus:outline-none focus:ring-1 focus:ring-[var(--tc-primary)]"
             maxLength={128}
             required
           />
@@ -628,7 +628,7 @@ function CardFormModal({
           <textarea
             value={description}
             onChange={(e) => setDescription(e.target.value)}
-            className="w-full rounded-lg border border-[var(--tc-border)] bg-white/5 px-3 py-2 text-sm text-[var(--tc-text)] focus:outline-none focus:ring-1 focus:ring-[var(--tc-primary)] resize-none"
+            className="w-full rounded-lg border border-[var(--tc-border)] bg-tc-surface-sunken px-3 py-2 text-sm text-[var(--tc-text)] focus:outline-none focus:ring-1 focus:ring-[var(--tc-primary)] resize-none"
             rows={2}
             maxLength={500}
           />
