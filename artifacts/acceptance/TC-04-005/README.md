@@ -34,4 +34,4 @@ Local cloud VM, Linux x86_64. Python 3.12.3. pytest 9.1.1. SQLAlchemy 2.0.55. Fa
 
 ## CI
 
-`build` and `web-release-e2e` run IDs for the qualifying head are in [ci-runs.md](ci-runs.md). That file is updated after those jobs are green on the committed head.
+`build` and `web-release-e2e` run IDs for qualifying head `d397e8e8259037a510efa678a3c320708c8e55db` are in [ci-runs.md](ci-runs.md). That head was squash-merged as `480b4ae19d14fc46b3638b341dad8d90f2fcec2f`.
