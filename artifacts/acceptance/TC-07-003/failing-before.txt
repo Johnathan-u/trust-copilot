@@ -1,0 +1,153 @@
+
+ RUN  v5.0.5 /agent/repos/trust-copilot/apps/web
+
+ ❯ lib/post-login-path.test.ts (7 tests | 4 failed) 9ms
+   ❯ safePostLoginPath (7)
+     ✓ keeps same-origin relative paths, including query strings and hashes 1ms
+     ✓ falls back when next is missing 0ms
+     × rejects absolute URLs, protocol-relative URLs, and other non-paths 5ms
+     × rejects backslash tricks 1ms
+     × rejects javascript: and data: schemes 1ms
+     × rejects encoded absolute, protocol-relative, scheme, and backslash variants 1ms
+     ✓ keeps an encoded slash that stays inside a query string 0ms
+ ✓ tests/unit/middleware.test.ts (4 tests) 6ms
+ ❯ tests/unit/login-next.test.ts (3 tests | 3 failed) 86ms
+   ❯ sign-in next redirect (3)
+     × honours a safe next path and ignores an unsafe one 54ms
+     × sends the MFA continuation to the same safe path 14ms
+     × sends the MFA enrolment recovery-codes continuation through the validated next 18ms
+
+ Test Files  2 failed | 1 passed (3)
+      Tests  7 failed | 7 passed (14)
+   Start at  22:51:58
+   Duration  461ms (environment 38%, import 29%, tests 21%, transform 9%, worker 2%)
+
+JSON report written to /tmp/pytest-of-ubuntu/pytest-1/test_login_redirect_web_checks0/vitest.json
+(!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+  - ESM syntax in a file loaded as CommonJS (vitest.config.ts:1:1). Use a `.mjs` extension or set `"type": "module"` in the closest package.json
+Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 7 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  lib/post-login-path.test.ts > safePostLoginPath > rejects absolute URLs, protocol-relative URLs, and other non-paths
+AssertionError: expected 'https://example.com' to be '/dashboard' // Object.is equality
+
+Expected: "/dashboard"
+Received: "https://example.com"
+
+ ❯ lib/post-login-path.test.ts:51:40
+     49|     ]
+     50|     for (const value of rejected) {
+     51|       expect(safePostLoginPath(value)).toBe(fallback)
+       |                                        ^
+     52|     }
+     53|   })
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/7]⎯
+
+ FAIL  lib/post-login-path.test.ts > safePostLoginPath > rejects backslash tricks
+AssertionError: expected '/\example.com' to be '/dashboard' // Object.is equality
+
+Expected: "/dashboard"
+Received: "/\example.com"
+
+ ❯ lib/post-login-path.test.ts:66:40
+     64|     ]
+     65|     for (const value of rejected) {
+     66|       expect(safePostLoginPath(value)).toBe(fallback)
+       |                                        ^
+     67|     }
+     68|   })
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/7]⎯
+
+ FAIL  lib/post-login-path.test.ts > safePostLoginPath > rejects javascript: and data: schemes
+AssertionError: expected 'javascript:alert(1)' to be '/dashboard' // Object.is equality
+
+Expected: "/dashboard"
+Received: "javascript:alert(1)"
+
+ ❯ lib/post-login-path.test.ts:81:40
+     79|     ]
+     80|     for (const value of rejected) {
+     81|       expect(safePostLoginPath(value)).toBe(fallback)
+       |                                        ^
+     82|     }
+     83|   })
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/7]⎯
+
+ FAIL  lib/post-login-path.test.ts > safePostLoginPath > rejects encoded absolute, protocol-relative, scheme, and backslash variants
+AssertionError: expected '%2F%2Fexample.com' to be '/dashboard' // Object.is equality
+
+Expected: "/dashboard"
+Received: "%2F%2Fexample.com"
+
+ ❯ lib/post-login-path.test.ts:106:40
+    104|     ]
+    105|     for (const value of rejected) {
+    106|       expect(safePostLoginPath(value)).toBe(fallback)
+       |                                        ^
+    107|     }
+    108|   })
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/7]⎯
+
+ FAIL  tests/unit/login-next.test.ts > sign-in next redirect > honours a safe next path and ignores an unsafe one
+AssertionError: expected 'https://example.com' to be 'http://localhost:3000' // Object.is equality
+
+Expected: "http://localhost:3000"
+Received: "https://example.com"
+
+ ❯ tests/unit/login-next.test.ts:85:36
+     83|     )
+     84|     await signIn()
+     85|     expect(window.location.origin).toBe('http://localhost:3000')
+       |                                    ^
+     86|     expect(window.location.pathname).toBe('/dashboard')
+     87|     expect(window.location.search).toBe('')
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/7]⎯
+
+ FAIL  tests/unit/login-next.test.ts > sign-in next redirect > sends the MFA continuation to the same safe path
+AssertionError: expected 'https://example.com' to be 'http://localhost:3000' // Object.is equality
+
+Expected: "http://localhost:3000"
+Received: "https://example.com"
+
+ ❯ tests/unit/login-next.test.ts:103:36
+    101|     await act(async () => {})
+    102|
+    103|     expect(window.location.origin).toBe('http://localhost:3000')
+       |                                    ^
+    104|     expect(window.location.pathname).toBe('/dashboard/security')
+    105|   })
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/7]⎯
+
+ FAIL  tests/unit/login-next.test.ts > sign-in next redirect > sends the MFA enrolment recovery-codes continuation through the validated next
+AssertionError: expected 'https://example.com' to be 'http://localhost:3000' // Object.is equality
+
+Expected: "http://localhost:3000"
+Received: "https://example.com"
+
+ ❯ tests/unit/login-next.test.ts:123:36
+    121|     )
+    122|     await act(async () => {})
+    123|     expect(window.location.origin).toBe('http://localhost:3000')
+       |                                    ^
+    124|     expect(window.location.pathname).toBe('/dashboard/security')
+    125|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[7/7]⎯
+
+
+F
+=================================== FAILURES ===================================
+________________________ test_login_redirect_web_checks ________________________
+tests/release/test_login_redirect.py:90: in test_login_redirect_web_checks
+    assert code == 0
+E   assert 1 == 0
+=========================== short test summary info ============================
+FAILED tests/release/test_login_redirect.py::test_login_redirect_web_checks
+1 failed in 0.88s
