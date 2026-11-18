@@ -1,0 +1,5 @@
+SHA: 69a5230ff8f1e197419644ee0cdf5fe326379f41
+Node: v24.11.1
+npm: 11.6.2
+Vitest: 5.0.5
+PostgreSQL: not used

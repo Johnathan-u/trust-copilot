@@ -1,0 +1,8 @@
+# SHA 69a5230ff8f1e197419644ee0cdf5fe326379f41
+# cwd apps/api
+# Python 3.12.3, pytest 9.1.1
+# PostgreSQL: not used (app.openapi() only)
+python -m pytest tests/release/test_openapi_ticket_ids.py -q --tb=line
+...............                                                          [100%]
+15 passed in 1.61s
+exit 0
