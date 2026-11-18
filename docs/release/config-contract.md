@@ -67,6 +67,14 @@ Source of truth: `apps/api/app/core/config_contract.py`. The table between the m
   In production that route fails closed (HTTP 503, a generic detail, and `Retry-After`) because workspace
   creation is rare and abuse-sensitive. Development and test keep the fail-open behaviour and log a warning.
   The log does not include store addresses or other secret values.
+* **Trusted proxies (TC-07-004).** `TRUSTED_PROXY_IPS` is the only list of direct peers allowed to set
+  `X-Forwarded-For`, `X-Forwarded-Host`, and `X-Forwarded-Proto`. Entries are IP addresses or CIDRs.
+  Unset or empty trusts none of those headers. A browser `Origin` that is not in `TRUSTED_ORIGINS`,
+  including the literal `null`, is rejected before Referer or the forwarded headers are considered.
+  Production Caddy overwrites `X-Forwarded-Host` and `X-Forwarded-Proto` with the host and scheme it
+  received (`infra/caddy/Caddyfile.production`). Set `TRUSTED_PROXY_IPS` to the Caddy container's
+  address on `trustnet`, or to that network's CIDR, when a cookie request with no Origin should be
+  accepted from the proxy's public host.
 
 ## Owner-account / infrastructure prerequisites
 
@@ -125,7 +133,7 @@ In the Entra app registration, open Token configuration and add the optional cla
 | `WORKSPACE_ADMIN_CAP_PER_USER` | int >= 1 | optional | no | 3 | Most workspaces one user may own or administer; creating beyond it is refused. |  |
 | `WORKSPACE_CREATE_PER_HOUR` | int >= 1 | optional | no | 5 | Most workspaces one user may create per hour; beyond it the request is throttled. |  |
 | `DEPLOYMENT_OPERATOR_EMAILS` | comma-separated emails | optional | no | unset | Deployment operator accounts (case-insensitive; email must be verified). Operators may create workspaces under `invitation_only`. |  |
-| `TRUSTED_PROXY_IPS` | comma-separated IPs | optional | no | unset | Proxies allowed to set X-Forwarded-For. |  |
+| `TRUSTED_PROXY_IPS` | comma-separated IPs or CIDRs | optional | no | unset | Direct peers allowed to set X-Forwarded-For, X-Forwarded-Host, and X-Forwarded-Proto. Unset trusts none of those headers. |  |
 | `MAX_UPLOAD_BYTES` | int > 0 | optional | no | 52428800 | Upload size limit. |  |
 | `EXPORT_ANSWER_COL_OFFSET` | int | optional | no | 1 | Export answer column offset. |  |
 | `AUDIT_RETENTION_DAYS` | int >= 0 | optional | no | 90 | Audit purge horizon (0 disables). |  |

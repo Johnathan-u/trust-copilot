@@ -117,7 +117,11 @@ def test_csrf_safe_no_cookie_ignored() -> None:
 
 
 def test_csrf_safe_x_forwarded_host_matches_trusted() -> None:
-    """Behind Caddy/nginx: X-Forwarded-Host + Proto can match trusted list (browser Host preserved)."""
+    """Behind a configured proxy, X-Forwarded-Host + Proto can match the trusted origin list.
+
+    Before TC-07-004 this passed with no peer. Any client could supply the headers.
+    The direct peer now has to be listed in trusted_proxy_ips.
+    """
     allowed = ["http://localhost:3000"]
     assert (
         is_csrf_safe(
@@ -129,6 +133,8 @@ def test_csrf_safe_x_forwarded_host_matches_trusted() -> None:
             request_host="api",
             x_forwarded_host="localhost:3000",
             x_forwarded_proto="http",
+            client_ip="10.0.0.8",
+            trusted_proxy_ips="10.0.0.8",
         )
         is True
     )

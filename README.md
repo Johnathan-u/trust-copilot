@@ -134,6 +134,8 @@ and [docs/release/tickets/TC-07-002.md](docs/release/tickets/TC-07-002.md).
 
 See `.env.example`. Required: `DATABASE_URL`, `SESSION_SECRET`, `S3_*`. Optional: `OPENAI_API_KEY` (needed for embeddings and answer generation).
 
+`TRUSTED_PROXY_IPS` (comma-separated IPs or CIDRs) is the only set of direct peers allowed to supply `X-Forwarded-For`, `X-Forwarded-Host`, and `X-Forwarded-Proto`. Unset trusts none of those headers. Production Caddy replaces `X-Forwarded-Host` and `X-Forwarded-Proto` with the host and scheme it received. A state-changing request that carries `tc_session` is rejected when `Origin` is present and is not in `TRUSTED_ORIGINS`, including the value `null`, before Referer or the forwarded headers are considered. See [docs/release/tickets/TC-07-004.md](docs/release/tickets/TC-07-004.md).
+
 ## Commands
 
 | Command | Purpose |

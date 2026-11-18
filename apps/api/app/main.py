@@ -310,7 +310,12 @@ class StructuredLoggingMiddleware(BaseHTTPMiddleware):
 
 
 class CSRFMiddleware(BaseHTTPMiddleware):
-    """SEC-201: Reject state-changing requests with session cookie if Origin/Referer not allowed."""
+    """SEC-201: Reject state-changing requests with session cookie if Origin/Referer not allowed.
+
+    A present Origin that is not in trusted_origins is rejected before Referer or
+    X-Forwarded-* (TC-07-004). X-Forwarded-Host and X-Forwarded-Proto are passed
+    through and count only when the direct peer is in TRUSTED_PROXY_IPS.
+    """
 
     async def dispatch(self, request: Request, call_next):
         if os.environ.get("TRUST_COPILOT_TESTING") == "1":
@@ -324,6 +329,8 @@ class CSRFMiddleware(BaseHTTPMiddleware):
                 host = request.url.hostname if request.url else None
                 xfh = request.headers.get("x-forwarded-host")
                 xfp = request.headers.get("x-forwarded-proto")
+                client_ip = request.client.host if request.client else None
+                trusted_proxy_ips = os.environ.get("TRUSTED_PROXY_IPS", "")
                 if not is_csrf_safe(
                     request.method,
                     origin,
@@ -333,6 +340,8 @@ class CSRFMiddleware(BaseHTTPMiddleware):
                     request_host=host,
                     x_forwarded_host=xfh,
                     x_forwarded_proto=xfp,
+                    client_ip=client_ip,
+                    trusted_proxy_ips=trusted_proxy_ips,
                 ):
                     import logging
 
