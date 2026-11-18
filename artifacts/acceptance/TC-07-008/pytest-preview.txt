@@ -1,0 +1,8 @@
+# SHA 69a5230ff8f1e197419644ee0cdf5fe326379f41
+# cwd apps/api
+# Python 3.12.3, pytest 9.1.1, PostgreSQL 16.15
+# database postgresql://postgres:postgres@127.0.0.1:5432/trustcopilot_test
+python -m pytest tests/release/test_tc_15_016a_documents_list.py::test_tc_15_016a_content_preview_stays_in_workspace_and_hides_the_storage_key -q --tb=line
+.                                                                        [100%]
+1 passed in 0.50s
+exit 0
