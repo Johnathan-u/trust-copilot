@@ -193,6 +193,10 @@ def test_reenrol_reset_denies_non_admin_and_cross_workspace_admin(
     _member(db_session, home, user, "editor")
     _member(db_session, home, editor, "editor")
     _member(db_session, other, outsider, "admin")
+    # These callers need a normal session. With mfa_required and no factor the
+    # login is enrolment-only, so the denial would be 401 before the role check.
+    home.mfa_required = False
+    other.mfa_required = False
     _reenrol(db_session, user)
     db_session.commit()
 
