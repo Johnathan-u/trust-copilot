@@ -163010,7 +163010,7 @@ window.TRUSTCOPILOT_BACKLOG = {
       "revision": 33,
       "at": "2026-11-18T16:16:39Z",
       "actor": "grok",
-      "reason": "Record Claude's #85 comment 6983773499 and the landed heads: close child TC-05-001a (#297 merge 3882d44fc31923d779cadf1a0978dd0606181f01, head d307c8c90a8b6d17ed4fa9cfe1282e3fd31c76cc) and child TC-27-001a (#298 merge 968c3013041d0ba48fb5fdddf6926038ba6b518c, head 59498c29587a77f7dccb9c69db6cedd3a6584a32). Register open child TC-05-001b (P3, parent TC-05-001) for the provider-login MFA token in the redirect query. Record Claude's accepted batch-7 PARTIAL verdicts on #299 comment 6984081800: TC-07-004, TC-16-001, TC-16-006 and TC-17-001 move to IMPLEMENTATION_GAPS_IDENTIFIED, pointing at the docs/release/verification reports in PR #299 (merge e8ed98aaa3490c03aff2f8724f7221a6148582b1). No original parent is marked DONE. DONE stays 54 of 384. Accepted claim points stay 244. Assessed tickets stay 55.",
+      "reason": "Record Claude's #85 comment 6983773499. Close child TC-05-001a (#297, merge 3882d44f) and child TC-27-001a (#298, merge 968c3013). Register open child TC-05-001b (P3, parent TC-05-001) for the provider-login MFA token in the redirect query. Record Claude's accepted batch-7 PARTIAL verdicts on #299 comment 6984081800: TC-07-004, TC-16-001, TC-16-006 and TC-17-001 move to IMPLEMENTATION_GAPS_IDENTIFIED, pointing at the verification reports in PR #299 (merge e8ed98aa). No original parent is marked DONE. DONE stays 54 of 384. Accepted claim points stay 244. Assessed tickets stay 55.",
       "source_sha": "e8ed98aaa3490c03aff2f8724f7221a6148582b1",
       "before": {
         "scope_version": 1,
