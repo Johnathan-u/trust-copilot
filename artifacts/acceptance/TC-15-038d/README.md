@@ -34,4 +34,4 @@ The locked case's call duration was 0.35s, inside the 1.5 second bound. The othe
 
 ## CI
 
-`build` and `web-release-e2e` run IDs are recorded in [ci-runs.md](ci-runs.md) once both events are green at the head.
+`build` and `web-release-e2e` are green on push and pull_request for `2c1a357bdbc0d3564108ee860364b25f260f2bbe`. Run IDs are in [ci-runs.md](ci-runs.md). Pull request: https://github.com/Johnathan-u/trust-copilot/pull/285.
