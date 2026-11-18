@@ -159,8 +159,38 @@ def enforce_session_record(session: dict, db: Session, *, enforce_revocation: bo
     return min(deadline.timestamp(), session["exp"])
 
 
+def workspace_requires_unmet_mfa(db: Session, user_id: int, workspace_id, factor=None) -> bool:
+    """True when this workspace demands MFA and the user has no enabled factor.
+
+    An undecryptable secret is not an enrolment case. An enabled factor must use
+    the login challenge. Administrator re-enrolment is a separate session check.
+    """
+    if type(workspace_id) is not int or workspace_id < 1 or type(user_id) is not int:
+        return False
+    try:
+        workspace = (
+            db.query(Workspace).filter(Workspace.id == workspace_id).populate_existing().first()
+        )
+        if factor is None:
+            factor = (
+                db.query(UserMfa).filter(UserMfa.user_id == user_id).populate_existing().first()
+            )
+    except SQLAlchemyError as exc:
+        raise HTTPException(status_code=503, detail="Session policy unavailable") from exc
+    if workspace is None or not bool(workspace.mfa_required):
+        return False
+    if factor is None:
+        return True
+    stored = factor.totp_secret_encrypted
+    if mfa_reenrol_required(stored):
+        return False
+    if factor.enabled and not mfa_reenrol_pending(stored):
+        return False
+    return True
+
+
 def enforce_mfa_enrol_session(request: Request, session: dict, db: Session) -> None:
-    """Keep the administrator-reset flow restricted, including old normal cookies."""
+    """Keep enrolment sessions off workspace routes, including old normal cookies."""
     uid = session.get("user_id")
     if not uid:
         return
@@ -171,7 +201,10 @@ def enforce_mfa_enrol_session(request: Request, session: dict, db: Session) -> N
     if pending and not session.get("mfa_enrol_only"):
         raise HTTPException(status_code=403, detail="Sign in again to complete MFA enrollment")
     if session.get("mfa_enrol_only"):
-        if not pending or not session.get("session_id"):
+        if not session.get("session_id"):
+            raise HTTPException(status_code=401, detail="MFA enrollment session expired")
+        policy_enrol = workspace_requires_unmet_mfa(db, uid, session.get("workspace_id"), factor)
+        if not pending and not policy_enrol:
             raise HTTPException(status_code=401, detail="MFA enrollment session expired")
         if (request.method, request.url.path) not in _MFA_ENROL_ROUTES:
             raise HTTPException(status_code=403, detail="Complete MFA enrollment first")

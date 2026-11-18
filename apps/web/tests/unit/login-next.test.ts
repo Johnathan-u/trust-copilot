@@ -143,4 +143,76 @@ describe('sign-in next redirect', () => {
     expect(window.location.search).toBe('')
     expect(window.location.hash).toBe('')
   })
+
+  it('opens the MFA challenge from a provider redirect and drops the token', async () => {
+    const token = 'synthetic-provider-mfa-token-32chars'
+    navigation.params = new URLSearchParams(
+      `mfa_token=${token}&next=/dashboard/security`
+    )
+    window.history.replaceState(
+      null,
+      '',
+      `/login?mfa_token=${token}&next=/dashboard/security`
+    )
+    render(createElement(LoginPage))
+    await act(async () => {})
+    expect(
+      screen.getByRole('heading', { name: 'Two-factor authentication' })
+    ).toBeTruthy()
+    expect(window.location.pathname).toBe('/login')
+    expect(window.location.search).toContain('next=')
+    expect(window.location.search).not.toContain('mfa_token')
+
+    fireEvent.change(screen.getByLabelText('Code'), {
+      target: { value: '123456' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Verify' }))
+    await act(async () => {})
+    const verify = vi
+      .mocked(fetch)
+      .mock.calls.find((call) => String(call[0]).includes('verify-login'))
+    expect(verify).toBeTruthy()
+    expect(JSON.parse(String(verify?.[1]?.body)).mfa_token).toBe(token)
+    expect(window.location.pathname).toBe('/dashboard/security')
+  })
+
+  it('opens authenticator setup from a provider enrolment redirect', async () => {
+    navigation.params = new URLSearchParams('mfa_enrol=1')
+    window.history.replaceState(null, '', '/login?mfa_enrol=1')
+    render(createElement(LoginPage))
+    await act(async () => {})
+    expect(
+      screen.getByRole('heading', { name: 'Set up your authenticator' })
+    ).toBeTruthy()
+    expect(window.location.search).toBe('')
+    expect(
+      vi
+        .mocked(fetch)
+        .mock.calls.some((call) => String(call[0]) === '/api/auth/mfa/setup')
+    ).toBe(true)
+    expect(screen.getByText('synthetic-secret')).toBeTruthy()
+  })
+
+  it('shows the reset message from a provider redirect and ignores a short token', async () => {
+    navigation.params = new URLSearchParams('error=mfa_reset_required')
+    window.history.replaceState(null, '', '/login?error=mfa_reset_required')
+    render(createElement(LoginPage))
+    await act(async () => {})
+    expect(
+      screen.getByText(
+        'An administrator must reset multi-factor authentication before you can sign in.'
+      )
+    ).toBeTruthy()
+    expect(window.location.search).toBe('')
+
+    cleanup()
+    window.history.replaceState(null, '', '/login?mfa_token=too-short')
+    navigation.params = new URLSearchParams('mfa_token=too-short')
+    render(createElement(LoginPage))
+    await act(async () => {})
+    expect(screen.getByLabelText('Email')).toBeTruthy()
+    expect(
+      screen.queryByRole('heading', { name: 'Two-factor authentication' })
+    ).toBeNull()
+  })
 })

@@ -220,6 +220,9 @@ def test_reset_invalidates_existing_sessions_and_blocks_legacy_cookie(isolated_d
 
 
 def test_normal_disabled_optional_mfa_preserves_existing_login_behavior(isolated_db):
+    # The shared fixture turns workspace policy on for the reset cases. This
+    # control is a disabled factor with no policy, which must stay a normal login.
+    isolated_db.query(Workspace).filter_by(id=1).one().mfa_required = False
     row = isolated_db.query(UserMfa).filter_by(user_id=2).one()
     row.enabled = False
     row.totp_secret_encrypted = encrypt_totp_secret(pyotp.random_base32())

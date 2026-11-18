@@ -142,11 +142,14 @@ Both routes require a current active administrator of that workspace.
 
 ### Try a recovery code first
 
-If password sign-in still returns an MFA challenge, the user submits a recovery code to
-`POST /api/auth/mfa/verify-login`. Do not change the database while an unused recovery
-code can do that. Continue here only when no unused recovery code remains, or when
-sign-in returns `mfa_reset_required` and will not accept a code (the stored secret is the
-`reenrol.` marker).
+If sign-in still returns an MFA challenge, the user submits a recovery code to
+`POST /api/auth/mfa/verify-login`. Password login returns that challenge in the JSON body.
+Google, GitHub, Microsoft, OIDC SSO and ID.me redirect the browser to the same challenge
+on `/login` and do not set a privileged session cookie first. Do not change the database
+while an unused recovery code can do that. Continue here only when no unused recovery
+code remains, or when sign-in returns `mfa_reset_required` and will not accept a code
+(the stored secret is the `reenrol.` marker). Provider callbacks redirect that case to
+`/login?error=mfa_reset_required` and also set no session.
 
 ### Identity check and a second approval
 
@@ -220,7 +223,8 @@ If the update reports zero rows, roll back and stop. There is no MFA row to clea
 
 Before `COMMIT`, this check must return one row, `enabled` false, and `marker_ok` true.
 If it does not, roll back. A marker without the exclamation mark leaves `enabled` false
-and no pending marker, and the next password login would issue a full session without MFA.
+and no pending marker. The next sign-in, including Google, GitHub, Microsoft, OIDC SSO
+and ID.me, would then issue a full session unless that workspace has `mfa_required` set.
 
 ```sql
 SELECT user_mfa.enabled,
@@ -260,9 +264,10 @@ INSERT INTO audit_events (
 COMMIT;
 ```
 
-The next password login grants only a five-minute enrolment session with no workspace
-privileges. Workspace access returns after the user confirms a new authenticator. Confirm
-the audit row:
+The next sign-in on any path (password, Google, GitHub, Microsoft, OIDC SSO or ID.me)
+grants only a five-minute enrolment session with no workspace privileges. Provider
+callbacks send the browser to `/login?mfa_enrol=1` with that cookie. Workspace access
+returns after the user confirms a new authenticator. Confirm the audit row:
 
 ```sql
 SELECT id, occurred_at, action, email, workspace_id, resource_type, resource_id, details
