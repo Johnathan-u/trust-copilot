@@ -808,6 +808,34 @@ def pytest_sessionstart(session):
         )
 
 
+@pytest.fixture(autouse=True)
+def _join_identity_mail_after_testclient():
+    """Issuance returns before the provider. Join that work before the test reads it.
+
+    A timing test sets ``skip_identity_mail_drain`` so the measured request is
+    not held until the provider returns. This fixture does not request
+    ``monkeypatch``: that would set the patcher up before other autouse
+    teardown and make a test's ``Session.commit`` stub run during login cleanup.
+    """
+    from fastapi.testclient import TestClient
+
+    original = TestClient.request
+
+    def wrapped(self, method, url, **kwargs):
+        response = original(self, method, url, **kwargs)
+        from app.api.routes import auth as auth_routes
+
+        if not auth_routes.skip_identity_mail_drain():
+            auth_routes.drain_identity_mail()
+        return response
+
+    TestClient.request = wrapped
+    try:
+        yield
+    finally:
+        TestClient.request = original
+
+
 @pytest.fixture
 def client(_ensure_test_data) -> Generator[TestClient, None, None]:
     """FastAPI TestClient with CSRF-safe headers and test data ensured.
