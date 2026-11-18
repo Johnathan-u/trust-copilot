@@ -30,61 +30,61 @@ E   AssertionError: assert {'user_id': 1, 'email': 'mfa-f2f362558b635e64@example
 E   KeyError: 'requires_mfa_enrol'
 /agent/repos/trust-copilot/apps/api/tests/release/test_mfa_enroll.py:343: KeyError: 'requires_mfa_enrol'
 E   AssertionError: assert '/dashboard' == '/login'
-      
+
       - /login
       + /dashboard
 /agent/repos/trust-copilot/apps/api/tests/release/test_mfa_enroll.py:348: AssertionError: assert '/dashboard' == '/login'
 E   AssertionError: assert '/dashboard' == '/login'
-      
+
       - /login
       + /dashboard
 /agent/repos/trust-copilot/apps/api/tests/release/test_mfa_enroll.py:348: AssertionError: assert '/dashboard' == '/login'
 E   AssertionError: assert '/dashboard' == '/login'
-      
+
       - /login
       + /dashboard
 /agent/repos/trust-copilot/apps/api/tests/release/test_mfa_enroll.py:348: AssertionError: assert '/dashboard' == '/login'
 E   AssertionError: assert '/dashboard' == '/login'
-      
+
       - /login
       + /dashboard
 /agent/repos/trust-copilot/apps/api/tests/release/test_mfa_enroll.py:348: AssertionError: assert '/dashboard' == '/login'
 E   AssertionError: assert '/dashboard' == '/login'
-      
-      - /login
-      + /dashboard
-/agent/repos/trust-copilot/apps/api/tests/release/test_mfa_enroll.py:348: AssertionError: assert '/dashboard' == '/login'
-E   KeyError: 'requires_mfa_enrol'
-/agent/repos/trust-copilot/apps/api/tests/release/test_mfa_enroll.py:343: KeyError: 'requires_mfa_enrol'
-E   AssertionError: assert '/dashboard' == '/login'
-      
-      - /login
-      + /dashboard
-/agent/repos/trust-copilot/apps/api/tests/release/test_mfa_enroll.py:348: AssertionError: assert '/dashboard' == '/login'
-E   AssertionError: assert '/dashboard' == '/login'
-      
-      - /login
-      + /dashboard
-/agent/repos/trust-copilot/apps/api/tests/release/test_mfa_enroll.py:348: AssertionError: assert '/dashboard' == '/login'
-E   AssertionError: assert '/dashboard' == '/login'
-      
-      - /login
-      + /dashboard
-/agent/repos/trust-copilot/apps/api/tests/release/test_mfa_enroll.py:348: AssertionError: assert '/dashboard' == '/login'
-E   AssertionError: assert '/dashboard' == '/login'
-      
-      - /login
-      + /dashboard
-/agent/repos/trust-copilot/apps/api/tests/release/test_mfa_enroll.py:348: AssertionError: assert '/dashboard' == '/login'
-E   AssertionError: assert '/dashboard' == '/login'
-      
+
       - /login
       + /dashboard
 /agent/repos/trust-copilot/apps/api/tests/release/test_mfa_enroll.py:348: AssertionError: assert '/dashboard' == '/login'
 E   KeyError: 'requires_mfa_enrol'
 /agent/repos/trust-copilot/apps/api/tests/release/test_mfa_enroll.py:343: KeyError: 'requires_mfa_enrol'
 E   AssertionError: assert '/dashboard' == '/login'
-      
+
+      - /login
+      + /dashboard
+/agent/repos/trust-copilot/apps/api/tests/release/test_mfa_enroll.py:348: AssertionError: assert '/dashboard' == '/login'
+E   AssertionError: assert '/dashboard' == '/login'
+
+      - /login
+      + /dashboard
+/agent/repos/trust-copilot/apps/api/tests/release/test_mfa_enroll.py:348: AssertionError: assert '/dashboard' == '/login'
+E   AssertionError: assert '/dashboard' == '/login'
+
+      - /login
+      + /dashboard
+/agent/repos/trust-copilot/apps/api/tests/release/test_mfa_enroll.py:348: AssertionError: assert '/dashboard' == '/login'
+E   AssertionError: assert '/dashboard' == '/login'
+
+      - /login
+      + /dashboard
+/agent/repos/trust-copilot/apps/api/tests/release/test_mfa_enroll.py:348: AssertionError: assert '/dashboard' == '/login'
+E   AssertionError: assert '/dashboard' == '/login'
+
+      - /login
+      + /dashboard
+/agent/repos/trust-copilot/apps/api/tests/release/test_mfa_enroll.py:348: AssertionError: assert '/dashboard' == '/login'
+E   KeyError: 'requires_mfa_enrol'
+/agent/repos/trust-copilot/apps/api/tests/release/test_mfa_enroll.py:343: KeyError: 'requires_mfa_enrol'
+E   AssertionError: assert '/dashboard' == '/login'
+
       - /login
       + /dashboard
 /agent/repos/trust-copilot/apps/api/tests/release/test_mfa_enroll.py:348: AssertionError: assert '/dashboard' == '/login'
@@ -92,12 +92,12 @@ E   AssertionError: assert 1 == 0
      +  where 1 = session_rows({'db': <sqlalchemy.orm.session.Session object at 0x7f2c8eb05f70>, 'client': <starlette.testclient.TestClient object at 0x7f2c8e32e9f0>, 'user_id': 1, 'ws_id': 1, ...})
 /agent/repos/trust-copilot/apps/api/tests/release/test_mfa_enroll.py:450: AssertionError: assert 1 == 0
 E   AssertionError: assert '/dashboard' == '/login'
-      
+
       - /login
       + /dashboard
 /agent/repos/trust-copilot/apps/api/tests/release/test_mfa_enroll.py:348: AssertionError: assert '/dashboard' == '/login'
 E   AssertionError: assert '/dashboard' == '/login'
-      
+
       - /login
       + /dashboard
 /agent/repos/trust-copilot/apps/api/tests/release/test_mfa_enroll.py:467: AssertionError: assert '/dashboard' == '/login'
