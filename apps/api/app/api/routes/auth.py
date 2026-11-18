@@ -6,7 +6,6 @@ import hashlib
 import json
 import logging
 import secrets
-import threading
 import time
 from datetime import datetime, timedelta, timezone
 from urllib.parse import urlsplit
@@ -463,53 +462,157 @@ def resend_verification(
     return {"message": "If that email is waiting for verification, a new message is on the way."}
 
 
+_RESET_GENERIC = "If that email is registered, you will receive a reset link."
+
+
+def _generic_reset_message() -> dict:
+    return {"message": _RESET_GENERIC}
+
+
+def _dev_reset_url_enabled() -> bool:
+    """The raw link is a dev aid. Production never returns it, and a failed send does not."""
+    if is_production_env():
+        return False
+    flag = os.environ.get("TRUST_COPILOT_DEV_RETURN_RESET_URL", "").strip().lower()
+    return flag in ("1", "true", "yes")
+
+
+def _rollback_unsent_reset(db: Session, token_id: int | None) -> None:
+    """Drop an uncommitted reset row. Delete that id if a commit already landed it."""
+    try:
+        db.rollback()
+    except Exception:
+        logger.warning("Password reset issuance rollback failed for token_id=%s", token_id)
+    if token_id is None:
+        return
+    try:
+        db.query(PasswordResetToken).filter(PasswordResetToken.id == token_id).delete(
+            synchronize_session=False
+        )
+        db.commit()
+    except Exception:
+        logger.warning("Could not delete unsent password reset token id=%s", token_id)
+        try:
+            db.rollback()
+        except Exception:
+            logger.warning("Rollback after an unsent-token delete failed for token_id=%s", token_id)
+
+
+def _audit_reset(
+    db: Session,
+    action: str,
+    user_id: int,
+    email: str,
+    details: dict | None = None,
+) -> None:
+    """Record a reset audit without changing the HTTP response when the write fails."""
+    try:
+        persist_audit(db, action, user_id=user_id, email=email, details=details)
+    except Exception:
+        logger.warning("Password reset audit %s failed for user_id=%s", action, user_id)
+
+
 @router.post("/forgot-password")
 def forgot_password(req: ForgotPasswordRequest, request: Request, db: Session = Depends(get_db)):
-    """Request password reset. Generic response; send email if account exists."""
+    """Request a password reset. The response does not say whether the address exists.
+
+    The new token row stays uncommitted until the provider accepts the message.
+    A false return or a raised send rolls that row back, so a previously delivered
+    unused link is left in place. Older unused rows are deleted only in the commit
+    that follows an accepted send, and only when their id is lower than the new
+    row, so a concurrent later issuance is not removed here. The failure is logged
+    and stored as ``auth.reset_send_failed``. Known and unknown addresses, and a
+    failed send, all return the same sentence.
+    """
     email = (req.email or "").strip().lower()
     ip_key = f"reset:ip:{get_client_ip(request)}"
     if is_rate_limited(ip_key):
         raise HTTPException(status_code=429, detail="Too many requests. Try again later.")
     user = db.query(User).filter(User.email == email).first()
     if not user:
-        return {"message": "If that email is registered, you will receive a reset link."}
+        return _generic_reset_message()
     record_attempt(ip_key)
-    db.query(PasswordResetToken).filter(
-        PasswordResetToken.user_id == user.id,
-        PasswordResetToken.used_at.is_(None),
-    ).delete(synchronize_session=False)
+    user_id = user.id
     token_raw = secrets.token_urlsafe(32)
-    token_hash_val = _token_hash(token_raw)
-    expires_at = datetime.now(timezone.utc) + timedelta(hours=1)
-    prt = PasswordResetToken(user_id=user.id, token_hash=token_hash_val, expires_at=expires_at)
-    db.add(prt)
-    db.commit()
-    base = get_settings().frontend_url.rstrip("/")
-    reset_url = f"{base}/reset-password?token={token_raw}"
-    persist_audit(db, "auth.reset_requested", user_id=user.id, email=email)
-    msg = {"message": "If that email is registered, you will receive a reset link."}
-    if not is_production_env() and os.environ.get(
-        "TRUST_COPILOT_DEV_RETURN_RESET_URL", ""
-    ).strip().lower() in ("1", "true", "yes"):
+    prt = PasswordResetToken(
+        user_id=user_id,
+        token_hash=_token_hash(token_raw),
+        expires_at=datetime.now(timezone.utc) + timedelta(hours=1),
+    )
+    token_id: int | None = None
+    try:
+        db.add(prt)
+        db.flush()
+        if isinstance(prt.id, int) and not isinstance(prt.id, bool):
+            token_id = prt.id
+    except Exception:
+        logger.warning("Password reset token was not issued for user_id=%s", user_id)
+        _rollback_unsent_reset(db, None)
+        _audit_reset(db, "auth.reset_send_failed", user_id, email, {"reason": "store_failed"})
+        return _generic_reset_message()
+    if token_id is None:
+        logger.warning("Password reset token id was not assigned for user_id=%s", user_id)
+        _rollback_unsent_reset(db, None)
+        _audit_reset(db, "auth.reset_send_failed", user_id, email, {"reason": "store_failed"})
+        return _generic_reset_message()
+
+    reset_url = f"{get_settings().frontend_url.rstrip('/')}/reset-password?token={token_raw}"
+    sent = False
+    reason = "provider_rejected"
+    try:
+        sent = bool(send_password_reset_email(email, reset_url))
+    except Exception as exc:
+        sent = False
+        reason = "provider_error"
+        logger.warning(
+            "Password reset email send failed for %s (user_id=%s, %s)",
+            email,
+            user_id,
+            type(exc).__name__,
+        )
+    if not sent:
+        if reason == "provider_rejected":
+            logger.warning(
+                "Password reset email was not accepted for delivery to %s (user_id=%s)",
+                email,
+                user_id,
+            )
+        _rollback_unsent_reset(db, token_id)
+        _audit_reset(db, "auth.reset_send_failed", user_id, email, {"reason": reason})
+        return _generic_reset_message()
+
+    try:
+        # Only older unused rows. A concurrent issuance with a higher id has its
+        # own send, and deleting it here can leave both callers with a dead link.
+        db.query(PasswordResetToken).filter(
+            PasswordResetToken.user_id == user_id,
+            PasswordResetToken.used_at.is_(None),
+            PasswordResetToken.id < token_id,
+        ).delete(synchronize_session=False)
+        persist_audit(db, "auth.reset_requested", user_id=user_id, email=email)
+    except Exception:
+        logger.warning(
+            "Password reset link was sent but the new token was not kept for user_id=%s",
+            user_id,
+        )
+        _rollback_unsent_reset(db, token_id)
+        _audit_reset(db, "auth.reset_send_failed", user_id, email, {"reason": "store_failed"})
+        return _generic_reset_message()
+
+    msg = _generic_reset_message()
+    if _dev_reset_url_enabled():
         msg["reset_url"] = reset_url
-
-    _email = email
-
-    def _bg_reset_email():
-        try:
-            ok = send_password_reset_email(_email, reset_url)
-            if not ok:
-                logger.warning("Password reset email not accepted for delivery to %s", _email)
-        except Exception as exc:
-            logger.warning("Password reset email background send failed for %s: %s", _email, exc)
-
-    threading.Thread(target=_bg_reset_email, daemon=True).start()
     return msg
 
 
 @router.post("/reset-password")
 def reset_password(req: ResetPasswordRequest, request: Request, db: Session = Depends(get_db)):
-    """Set new password from token. Do not auto-sign in. Rate limited by IP."""
+    """Set a new password from one token. Do not auto-sign in. Rate limited by IP.
+
+    The account row is locked first, then the unused token row (``SELECT ... FOR
+    UPDATE``). A second submit of that same token waits, re-reads, and finds no
+    row. SQLite compiles the lock clause away; PostgreSQL holds it until commit.
+    """
     ip_key = f"reset_password:ip:{get_client_ip(request)}"
     if is_rate_limited(ip_key):
         raise HTTPException(status_code=429, detail="Too many attempts. Try again later.")
@@ -517,9 +620,24 @@ def reset_password(req: ResetPasswordRequest, request: Request, db: Session = De
         raise HTTPException(status_code=400, detail="Invalid request")
     record_attempt(ip_key)
     h = _token_hash(req.token)
+    preview = (
+        db.query(PasswordResetToken)
+        .filter(PasswordResetToken.token_hash == h, PasswordResetToken.used_at.is_(None))
+        .first()
+    )
+    if not preview:
+        raise HTTPException(status_code=400, detail="Invalid or expired link")
+    # Lock the account before the token. Two different links that each locked a
+    # token and then deleted every unused row could deadlock. One account lock
+    # is the order for every reset of this user.
+    user = db.query(User).filter(User.id == preview.user_id).with_for_update().first()
+    if not user:
+        raise HTTPException(status_code=400, detail="Invalid or expired link")
     prt = (
         db.query(PasswordResetToken)
         .filter(PasswordResetToken.token_hash == h, PasswordResetToken.used_at.is_(None))
+        .populate_existing()
+        .with_for_update()
         .first()
     )
     if not prt:
@@ -530,9 +648,6 @@ def reset_password(req: ResetPasswordRequest, request: Request, db: Session = De
         exp = exp.replace(tzinfo=timezone.utc)
     if exp < now:
         raise HTTPException(status_code=400, detail="Link expired")
-    user = db.query(User).filter(User.id == prt.user_id).first()
-    if not user:
-        raise HTTPException(status_code=400, detail="Invalid or expired link")
     user.password_hash = hash_password(req.new_password)
     # Retire every unused reset link for this user, including the one just
     # presented. Email-verification rows and MFA recovery codes stay: they are
