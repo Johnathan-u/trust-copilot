@@ -1,0 +1,57 @@
+# TC-04-002 failing tests before the auth change
+
+Command: python -m pytest tests/release/test_identity_tokens.py -q --tb=line
+Working directory: apps/api
+Auth under test: apps/api/app/api/routes/auth.py at parent d69109e720df3a697ff4af9eb1b222ae1553a628 (unchanged)
+Tests: apps/api/tests/release/test_identity_tokens.py in this change
+Interpreter: Python 3.12.3, pytest 9.1.1, SQLAlchemy 2.0.55, FastAPI 0.162.0, Alembic 1.20.1, cryptography 50.0.2, ruff 0.5.6
+Database: PostgreSQL 16.15, trustcopilot_test at 127.0.0.1:5432, user postgres
+Environment: TC_REQUIRE_DB=1, TC_TEST_DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:5432/trustcopilot_test
+Exit status: 1
+Result: 4 failed, 3 passed, 0 skipped
+
+A rejected or raised reset send left a different unused token hash than the link that had already been delivered, and the first failed send left an unused row. The compared values are SHA-256 hex digests, not raw reset links. Two simultaneous redeems of one token both returned 200 (arrived=2, so both passed the lookup before either commit).
+
+The three passes are a later accepted send still replacing the older link, a used token rejected on the second submit, and the same JSON body for a known address and an unknown one when the dev reset URL flag is off.
+
+FFF...F                                                                  [100%]
+=================================== FAILURES ===================================
+E   AssertionError: assert ['c64c3a059a6...3a6092641d50'] == ['1029fbe7f9e...768cf3b67340']
+
+      At index 0 diff: 'c64c3a059a61c91ea7c834720e6bab94924ada34ff25dd1fef0a3a6092641d50' != '1029fbe7f9ee3a5b7b0af4bf2d3de7b8e789d730d2b2008ed7b7768cf3b67340'
+      Use -v to get more diff
+------------------------------ Captured log call -------------------------------
+WARNING  app.api.routes.auth:auth.py:502 Password reset email not accepted for delivery to reset-token-rejected-6d25698f@example.test
+/agent/repos/trust-copilot/apps/api/tests/release/test_identity_tokens.py:222: AssertionError: assert ['c64c3a059a6...3a6092641d50'] == ['1029fbe7f9e...768cf3b67340']
+E   AssertionError: assert ['c5e4bd5ca7c...49f3d9cb109c'] == ['55da1e0666e...45bc5c18b118']
+
+      At index 0 diff: 'c5e4bd5ca7c494116ce26432e52ef4e3c4c32b10638a789eabe549f3d9cb109c' != '55da1e0666e0b2dfcc484260936da868f9d4b901e7bdcfeb19fc45bc5c18b118'
+      Use -v to get more diff
+------------------------------ Captured log call -------------------------------
+WARNING  app.api.routes.auth:auth.py:504 Password reset email background send failed for reset-token-raised-164452a3@example.test: smtp down
+/agent/repos/trust-copilot/apps/api/tests/release/test_identity_tokens.py:222: AssertionError: assert ['c5e4bd5ca7c...49f3d9cb109c'] == ['55da1e0666e...45bc5c18b118']
+E   AssertionError: assert ['794522ab2e2...11e43ee4cd19'] == []
+
+      Left contains one more item: '794522ab2e2f0a1c502003454d61cf3d654eadbd1040fe21352511e43ee4cd19'
+      Use -v to get more diff
+------------------------------ Captured log call -------------------------------
+WARNING  app.api.routes.auth:auth.py:502 Password reset email not accepted for delivery to reset-token-first-fail-52adb632@example.test
+/agent/repos/trust-copilot/apps/api/tests/release/test_identity_tokens.py:262: AssertionError: assert ['794522ab2e2...11e43ee4cd19'] == []
+E   AssertionError: {'codes': [200, 200], 'arrived': 2, 'bodies': ['{"message":"Password updated. You can sign in."}', '{"message":"Password updated. You can sign in."}']}
+    assert [200, 200] == [200, 400]
+
+      At index 1 diff: 200 != 400
+      Use -v to get more diff
+/agent/repos/trust-copilot/apps/api/tests/release/test_identity_tokens.py:423: AssertionError: {'codes': [200, 200], 'arrived': 2, 'bodies': ['{"message":"Password updated. You can sign in."}', '{"message":"Password updated. You can sign in."}']}
+=============================== warnings summary ===============================
+tests/release/test_identity_tokens.py: 55 warnings
+  /tmp/tc-venv/lib/python3.12/site-packages/sqlalchemy/sql/schema.py:3627: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    return util.wrap_callable(lambda ctx: fn(), fn)  # type: ignore
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED tests/release/test_identity_tokens.py::test_failed_reset_send_keeps_the_previous_token[rejected]
+FAILED tests/release/test_identity_tokens.py::test_failed_reset_send_keeps_the_previous_token[raised]
+FAILED tests/release/test_identity_tokens.py::test_failed_first_reset_send_leaves_no_token
+FAILED tests/release/test_identity_tokens.py::test_concurrent_redeem_of_one_reset_token_succeeds_once
+4 failed, 3 passed, 55 warnings in 2.25s
