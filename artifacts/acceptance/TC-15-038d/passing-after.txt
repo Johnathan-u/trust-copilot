@@ -1,0 +1,24 @@
+$ cd apps/api && /tmp/tc-venv/bin/python -m pytest tests/release/test_tc15038d_publisher_lock_timeout.py tests/test_job_progress_counters.py tests/release/test_job_progress_live.py -q --tb=short --durations=10
+
+...........                                                              [100%]
+=============================== warnings summary ===============================
+tests/release/test_job_progress_live.py::test_index_progress_is_visible_to_another_session_while_running
+tests/release/test_job_progress_live.py::test_index_progress_is_visible_to_another_session_while_running
+tests/release/test_job_progress_live.py::test_index_progress_is_visible_to_another_session_while_running
+  /tmp/tc-venv/lib/python3.12/site-packages/sqlalchemy/sql/schema.py:3627: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    return util.wrap_callable(lambda ctx: fn(), fn)  # type: ignore
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+============================= slowest 10 durations =============================
+0.90s setup    tests/release/test_tc15038d_publisher_lock_timeout.py::test_locked_job_row_skips_running_progress_quickly
+0.35s call     tests/release/test_tc15038d_publisher_lock_timeout.py::test_locked_job_row_skips_running_progress_quickly
+0.03s call     tests/release/test_job_progress_live.py::test_index_progress_is_visible_to_another_session_while_running
+0.03s call     tests/release/test_job_progress_live.py::test_parse_progress_is_visible_to_another_session_while_running
+0.02s call     tests/test_job_progress_counters.py::test_history_projects_pairs_for_workers_that_record_them
+0.01s call     tests/test_job_progress_counters.py::test_export_records_question_counts
+0.01s teardown tests/release/test_job_progress_live.py::test_parse_progress_is_visible_to_another_session_while_running
+
+(3 durations < 0.005s hidden.  Use -vv to show these durations.)
+11 passed, 3 warnings in 1.53s
+
+exit status: 0

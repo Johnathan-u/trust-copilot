@@ -1,0 +1,16 @@
+$ cd apps/api && /tmp/tc-venv/bin/python -m pytest tests/release/test_tc15038d_publisher_lock_timeout.py -q --tb=short
+
+F.                                                                       [100%]
+=================================== FAILURES ===================================
+______________ test_locked_job_row_skips_running_progress_quickly ______________
+tests/release/test_tc15038d_publisher_lock_timeout.py:114: in test_locked_job_row_skips_running_progress_quickly
+    assert (
+E   AssertionError: publish_running_progress did not return while the job row stayed locked
+E   assert not True
+E    +  where True = is_alive()
+E    +    where is_alive = <Thread(Thread-1 (run), started daemon 139698672498368)>.is_alive
+=========================== short test summary info ============================
+FAILED tests/release/test_tc15038d_publisher_lock_timeout.py::test_locked_job_row_skips_running_progress_quickly
+1 failed, 1 passed in 2.67s
+
+exit status: 1
