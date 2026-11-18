@@ -4,7 +4,7 @@ _____________ test_cors_lists_match_the_routes_and_client_headers ______________
 tests/release/test_csrf_proxy.py:301: in test_cors_lists_match_the_routes_and_client_headers
     assert methods == CORS_METHODS
 E   AssertionError: assert ['*'] == ['GET', 'POST...E', 'OPTIONS']
-E     
+E
 E     At index 0 diff: '*' != 'GET'
 E     Right contains 5 more items, first extra item: 'POST'
 E     Use -v to get more diff

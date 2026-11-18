@@ -320,8 +320,7 @@ def test_cors_preflight_allows_origin_method_and_header() -> None:
     }
     assert "POST" in allow_methods
     allow_headers = {
-        item.strip().lower()
-        for item in response.headers["access-control-allow-headers"].split(",")
+        item.strip().lower() for item in response.headers["access-control-allow-headers"].split(",")
     }
     assert {"content-type", "idempotency-key", "authorization"} <= allow_headers
 
@@ -331,9 +330,7 @@ def test_cors_preflight_rejects_disallowed_method() -> None:
     response = _preflight(ALLOWED_ORIGIN, "QUERY", "content-type")
     assert response.status_code == 400
     assert "method" in response.text
-    allowed = {
-        item.strip() for item in response.headers["access-control-allow-methods"].split(",")
-    }
+    allowed = {item.strip() for item in response.headers["access-control-allow-methods"].split(",")}
     assert "QUERY" not in allowed
 
 
