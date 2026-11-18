@@ -1,0 +1,7 @@
+# SHA fa8697840108c8e6928705dc1ab10059466f2b7d
+# cwd apps/api
+# Python 3.12.3, pytest 9.1.1, PostgreSQL 16.15
+python -m pytest tests/release/test_remember_policy.py -k 'mfa and real_login' -q --tb=line --disable-warnings
+............                                                             [100%]
+12 passed, 76 deselected, 168 warnings in 2.66s
+exit 0
