@@ -1,0 +1,56 @@
+# TC-16-006 gap 2, red run
+# Working directory: apps/api
+# Interpreter: /tmp/tc-venv/bin/python
+# Python 3.12.3, pytest 9.1.1
+# PostgreSQL 16.15, database trustcopilot_test on localhost
+# Product code: this branch, with one temporary injection that is not committed.
+# Injection, apps/api/app/core/csrf.py inside is_csrf_safe, then removed:
+#   from app.services.feature_flags import is_enabled
+#   if not is_enabled(None, 1, "csrf.enforce"):
+#       return True
+# Command:
+#   python -m pytest tests/release/test_feature_flags.py::test_security_modules_do_not_look_up_flags -vv --tb=short
+# Exit: 1
+# Total: 1 failed in 0.55s
+
+============================= test session starts ==============================
+platform linux -- Python 3.12.3, pytest-9.1.1, pluggy-1.7.0 -- /tmp/tc-venv/bin/python
+cachedir: .pytest_cache
+rootdir: /agent/repos/trust-copilot/apps/api
+configfile: pyproject.toml
+plugins: anyio-4.15.1
+collecting ... collected 1 item
+
+tests/release/test_feature_flags.py::test_security_modules_do_not_look_up_flags FAILED [100%]
+
+=================================== FAILURES ===================================
+__________________ test_security_modules_do_not_look_up_flags __________________
+tests/release/test_feature_flags.py:510: in test_security_modules_do_not_look_up_flags
+    assert findings == []
+E   assert ['apps/api/app/core/csrf.py:139: app.services.feature_flags: from app.services.feature_flags import is_enabled', 'apps/api/app/core/csrf.py:141: is_enabled(: if not is_enabled(None, 1, "csrf.enforce"):'] == []
+E
+E     Left contains 2 more items, first extra item: 'apps/api/app/core/csrf.py:139: app.services.feature_flags: from app.services.feature_flags import is_enabled'
+E
+E     Full diff:
+E     - []
+E     + [
+E     +     'apps/api/app/core/csrf.py:139: app.services.feature_flags: from '
+E     +     'app.services.feature_flags import is_enabled',
+E     +     'apps/api/app/core/csrf.py:141: is_enabled(: if not is_enabled(None, 1, '
+E     +     '"csrf.enforce"):',
+E     + ]
+=========================== short test summary info ============================
+FAILED tests/release/test_feature_flags.py::test_security_modules_do_not_look_up_flags - assert ['apps/api/app/core/csrf.py:139: app.services.feature_flags: from app.services.feature_flags import is_enabled', 'apps/api/app/core/csrf.py:141: is_enabled(: if not is_enabled(None, 1, "csrf.enforce"):'] == []
+
+  Left contains 2 more items, first extra item: 'apps/api/app/core/csrf.py:139: app.services.feature_flags: from app.services.feature_flags import is_enabled'
+
+  Full diff:
+  - []
+  + [
+  +     'apps/api/app/core/csrf.py:139: app.services.feature_flags: from '
+  +     'app.services.feature_flags import is_enabled',
+  +     'apps/api/app/core/csrf.py:141: is_enabled(: if not is_enabled(None, 1, '
+  +     '"csrf.enforce"):',
+  + ]
+============================== 1 failed in 0.55s ===============================
+EXIT:1

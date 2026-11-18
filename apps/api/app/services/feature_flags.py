@@ -25,6 +25,11 @@ Each entry maps flag_name -> (default_enabled, description).
 transaction as the row change. A repeat of the stored value still writes that
 event and does not rewrite the row. ``seed_defaults`` inserts missing defaults
 and does not write this event.
+
+A name that would gate a security control is refused. ``is_enabled`` and
+``set_flag`` raise ``SecurityFlagError`` instead of returning or storing false.
+Permissions, CSRF, sessions, authentication, MFA, audit, rate limits and tenant
+isolation are not flags.
 """
 
 import logging
@@ -41,6 +46,58 @@ logger = logging.getLogger(__name__)
 
 # Durable record of a flag write. The feature_flags table has no actor column.
 FLAG_UPDATED_ACTION = "feature_flag.updated"
+
+
+class SecurityFlagError(ValueError):
+    """A feature flag must not name a security control.
+
+    ``is_enabled`` raises this instead of returning false, so a caller cannot
+    treat "off" as permission to skip the control.
+    """
+
+
+# Path segments that name a security control. Compared after strip, lower-case
+# and hyphen-to-underscore. A segment matches when it equals a token or starts
+# with ``<token>_`` (``csrf_enforce``, ``auth_bypass``). ``release.tc16006.row``
+# does not match. ``audit.write`` and ``session.cookie`` do.
+SECURITY_FLAG_TOKENS = frozenset(
+    {
+        "permission",
+        "permissions",
+        "authz",
+        "authorization",
+        "csrf",
+        "session",
+        "sessions",
+        "auth",
+        "authentication",
+        "login",
+        "mfa",
+        "audit",
+        "auditing",
+        "rate_limit",
+        "ratelimit",
+        "tenant",
+        "tenancy",
+        "isolation",
+    }
+)
+
+
+def is_security_sensitive_flag(flag_name: str) -> bool:
+    """True when this name would gate a security control if a caller read it."""
+    name = flag_name.strip().lower().replace("-", "_")
+    if not name:
+        return False
+    for part in name.split("."):
+        if not part:
+            continue
+        if part in SECURITY_FLAG_TOKENS:
+            return True
+        for token in SECURITY_FLAG_TOKENS:
+            if part.startswith(token + "_"):
+                return True
+    return False
 
 
 KNOWN_FLAGS: dict[str, tuple[bool, str]] = {
@@ -101,7 +158,13 @@ def _resolve_enabled(row: Optional[FeatureFlag], flag_name: str) -> tuple[bool, 
 
 
 def is_enabled(db: Session, workspace_id: int, flag_name: str) -> bool:
-    """Check whether a feature flag is enabled for a workspace."""
+    """Check whether a feature flag is enabled for a workspace.
+
+    A security-control name raises ``SecurityFlagError`` before any read.
+    It does not resolve to false.
+    """
+    if is_security_sensitive_flag(flag_name):
+        raise SecurityFlagError("Security controls are not feature flags")
     row = (
         db.query(FeatureFlag)
         .filter(FeatureFlag.workspace_id == workspace_id, FeatureFlag.flag_name == flag_name)
@@ -158,13 +221,16 @@ def set_flag(
     Every call writes one audit event, including a no-op. A no-op is a row that
     already stores ``enabled``: the event records ``old_enabled == new_enabled``
     and ``changed: false``, and the row is left as it is. Creating a row records
-    ``old_enabled: null``. A rejected request never reaches this function, so it
-    writes no event.
+    ``old_enabled: null``. A rejected request, including a security-control
+    name, writes no event. ``SecurityFlagError`` is raised before any read
+    or write.
 
     ``persist_audit`` commits ``db``. The flag change is still pending on that
     session, so the row and the event commit together. This function does not
     commit on its own.
     """
+    if is_security_sensitive_flag(flag_name):
+        raise SecurityFlagError("Security controls are not feature flags")
     requested = bool(enabled)
     row = (
         db.query(FeatureFlag)
@@ -225,7 +291,8 @@ def seed_defaults(db: Session, workspace_id: int) -> int:
     """Seed all known flags for a workspace (skip existing rows). Returns count created.
 
     Does not write ``feature_flag.updated``. Seeding inserts missing defaults
-    and leaves an existing row's value alone.
+    and leaves an existing row's value alone. A security-control name is
+    skipped and is not inserted.
     """
     existing = {
         r.flag_name
@@ -235,6 +302,8 @@ def seed_defaults(db: Session, workspace_id: int) -> int:
     }
     created = 0
     for flag_name, (default, description) in KNOWN_FLAGS.items():
+        if is_security_sensitive_flag(flag_name):
+            continue
         if flag_name not in existing:
             db.add(
                 FeatureFlag(

@@ -1,0 +1,35 @@
+# TC-16-006 gap 2, green run
+# Working directory: apps/api
+# Interpreter: /tmp/tc-venv/bin/python
+# Python 3.12.3, pytest 9.1.1
+# PostgreSQL 16.15, database trustcopilot_test on localhost
+# The csrf.py injection from the red run is not in this tree.
+# Commands:
+#   python -m pytest tests/release/test_feature_flags.py -q --tb=short
+#   python -m pytest tests/test_feature_flags.py -q --tb=short
+# Exit: 0 and 0
+# Totals: 31 passed, 27 warnings, 3.62s; 17 passed, 18 warnings, 2.80s
+# Before this change the release file was 12 passed and the unit file was 17 passed.
+# The unit file is still 17 passed. The release file is 19 new tests (31 passed).
+
+# --- python -m pytest tests/release/test_feature_flags.py -q --tb=short ---
+...............................                                          [100%]
+=============================== warnings summary ===============================
+tests/release/test_feature_flags.py: 27 warnings
+  /tmp/tc-venv/lib/python3.12/site-packages/sqlalchemy/sql/schema.py:3627: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    return util.wrap_callable(lambda ctx: fn(), fn)  # type: ignore
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+31 passed, 27 warnings in 3.62s
+EXIT:0
+
+# --- python -m pytest tests/test_feature_flags.py -q --tb=short ---
+.................                                                        [100%]
+=============================== warnings summary ===============================
+tests/test_feature_flags.py: 18 warnings
+  /tmp/tc-venv/lib/python3.12/site-packages/sqlalchemy/sql/schema.py:3627: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    return util.wrap_callable(lambda ctx: fn(), fn)  # type: ignore
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+17 passed, 18 warnings in 2.80s
+EXIT:0
