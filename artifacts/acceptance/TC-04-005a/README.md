@@ -38,4 +38,4 @@ The members confirm copy was checked with `npx --yes prettier@3.9.10 --check app
 
 ## CI
 
-Run IDs for `build` and `web-release-e2e` on push and pull_request are recorded in [ci-runs.md](ci-runs.md) after those runs finish.
+`build` and `web-release-e2e` are green on push and pull_request for `ab403a6dcd107215d9aa21a7982cc9e83f45b50a`. That head was squash-merged as `538a81815da61164065a17328f03448fdcea5489` (#278). Run IDs are in [ci-runs.md](ci-runs.md).
