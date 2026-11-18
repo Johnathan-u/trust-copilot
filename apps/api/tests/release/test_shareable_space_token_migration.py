@@ -1,7 +1,8 @@
 """TC-17-005a migration hashes existing share tokens and downgrade is lossy.
 
-The chain stays a single head. Parent is question_cell_mapping. Re-upgrade cannot
-rebuild a raw token that downgrade already discarded.
+Parent is question_cell_mapping. A later revision may be the single head; this
+revision stays on that chain. Re-upgrade cannot rebuild a raw token that
+downgrade already discarded.
 """
 
 import hashlib
@@ -40,13 +41,32 @@ def _heads() -> list[str]:
     return list(script.get_heads())
 
 
+def _on_single_chain(revision: str) -> bool:
+    heads = _heads()
+    if len(heads) != 1:
+        return False
+    script = ScriptDirectory.from_config(Config(str(API_ROOT / "alembic.ini")))
+    current: str | None = heads[0]
+    seen: set[str] = set()
+    while current and current not in seen:
+        if current == revision:
+            return True
+        seen.add(current)
+        down = script.get_revision(current).down_revision
+        if not isinstance(down, str):
+            return False
+        current = down
+    return False
+
+
 def test_revision_is_the_single_head():
     script = ScriptDirectory.from_config(Config(str(API_ROOT / "alembic.ini")))
     revision = script.get_revision(REVISION)
     assert revision is not None
     assert isinstance(revision.down_revision, str)
     assert revision.down_revision == PARENT
-    assert _heads() == [REVISION]
+    # TC-04-005a added a child. This revision stays on the only chain.
+    assert _on_single_chain(REVISION)
     source = (API_ROOT / "alembic" / "versions" / "tc17005a_share_token.py").read_text()
     assert "import app" not in source and "from app" not in source
 
@@ -148,6 +168,7 @@ def test_upgrade_hashes_plaintext_and_downgrade_cannot_restore_it(migrated_db):
         for space_id in ids:
             run("DELETE FROM shareable_spaces WHERE id = :id", id=space_id)
         engine.dispose()
-    heads = _alembic("heads")
-    assert heads.strip().splitlines() == [f"{REVISION} (head)"]
-    assert _heads() == [REVISION]
+    reported = _alembic("heads")
+    lines = [line.strip() for line in reported.splitlines() if line.strip()]
+    assert len(lines) == 1 and lines[0].endswith("(head)")
+    assert _on_single_chain(REVISION)

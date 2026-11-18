@@ -34,4 +34,8 @@ class WorkspaceMember(Base):
     user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
     role = Column(String(32), nullable=False)
     suspended = Column(Boolean, default=False, nullable=False)
+    # Set by an admin of this workspace. Sessions created at or before this
+    # instant cannot use this workspace. Other memberships are unaffected.
+    # Null means this workspace has not revoked existing sessions.
+    sessions_revoked_at = Column(DateTime, nullable=True)
     created_at = Column(DateTime, default=utc_now)

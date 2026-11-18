@@ -1,0 +1,62 @@
+============================= test session starts ==============================
+platform linux -- Python 3.12.3, pytest-9.1.1, pluggy-1.7.0
+rootdir: /agent/repos/trust-copilot/apps/api
+configfile: pyproject.toml
+plugins: anyio-4.15.1
+collected 18 items
+
+tests/release/test_tc04005a_revoke_scope.py .s.s.s.                      [ 38%]
+tests/release/test_session_revocation.py .s.s.s.s.s                      [ 94%]
+tests/release/test_shareable_space_token_migration.py .                  [100%]
+
+=============================== warnings summary ===============================
+tests/release/test_tc04005a_revoke_scope.py::test_workspace_revoke_leaves_the_other_workspace_session[sqlite]
+tests/release/test_tc04005a_revoke_scope.py::test_revoke_sessions_rejects_a_member_outside_the_caller_workspace[sqlite]
+tests/release/test_tc04005a_revoke_scope.py::test_self_service_revoke_all_still_deletes_every_session[sqlite]
+  /agent/repos/trust-copilot/apps/api/tests/release/test_tc04005a_revoke_scope.py:173: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    created = datetime.utcnow() - timedelta(days=1)
+
+tests/release/test_tc04005a_revoke_scope.py::test_workspace_revoke_leaves_the_other_workspace_session[sqlite]
+tests/release/test_session_revocation.py::test_admin_revoke_sessions_invalidates_the_cookie_and_leaves_api_keys[sqlite]
+  /agent/repos/trust-copilot/apps/api/app/api/routes/members.py:518: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    cutoff = datetime.utcnow()
+
+tests/release/test_tc04005a_revoke_scope.py: 5 warnings
+tests/release/test_session_revocation.py: 12 warnings
+  /tmp/tc-venv/lib/python3.12/site-packages/sqlalchemy/sql/schema.py:3627: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    return util.wrap_callable(lambda ctx: fn(), fn)  # type: ignore
+
+tests/release/test_tc04005a_revoke_scope.py: 40 warnings
+  /agent/repos/trust-copilot/apps/api/tests/release/test_tc04005a_revoke_scope.py:115: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    while datetime.utcnow() < target and time.time() < deadline:
+
+tests/release/test_tc04005a_revoke_scope.py::test_workspace_revoke_leaves_the_other_workspace_session[sqlite]
+  /agent/repos/trust-copilot/apps/api/tests/release/test_tc04005a_revoke_scope.py:117: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    now = datetime.utcnow()
+
+tests/release/test_tc04005a_revoke_scope.py::test_member_revocation_migration_is_the_single_head
+tests/release/test_shareable_space_token_migration.py::test_revision_is_the_single_head
+tests/release/test_shareable_space_token_migration.py::test_revision_is_the_single_head
+tests/release/test_shareable_space_token_migration.py::test_revision_is_the_single_head
+  /tmp/tc-venv/lib/python3.12/site-packages/alembic/config.py:604: DeprecationWarning: No path_separator found in configuration; falling back to legacy splitting on spaces, commas, and colons for prepend_sys_path.  Consider adding path_separator=os to Alembic config.
+    util.warn_deprecated(
+
+tests/release/test_session_revocation.py::test_demotion_applies_on_the_existing_cookie_and_other_workspace[sqlite]
+tests/release/test_session_revocation.py::test_suspension_denies_the_existing_cookie_and_blocks_switch_back[sqlite]
+tests/release/test_session_revocation.py::test_removal_denies_that_workspace_and_keeps_only_the_other[sqlite]
+tests/release/test_session_revocation.py::test_suspending_a_member_does_not_revoke_workspace_api_keys[sqlite]
+tests/release/test_session_revocation.py::test_admin_revoke_sessions_invalidates_the_cookie_and_leaves_api_keys[sqlite]
+  /agent/repos/trust-copilot/apps/api/tests/release/test_session_revocation.py:221: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    created = datetime.utcnow()
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+SKIPPED [1] tests/release/test_tc04005a_revoke_scope.py:255: Postgres test database unavailable or incompatible (see 'WARNING: test DB setup failed' above; start the local test Postgres or set TC_TEST_DATABASE_URL to a local *_test database)
+SKIPPED [1] tests/release/test_tc04005a_revoke_scope.py:366: Postgres test database unavailable or incompatible (see 'WARNING: test DB setup failed' above; start the local test Postgres or set TC_TEST_DATABASE_URL to a local *_test database)
+SKIPPED [1] tests/release/test_tc04005a_revoke_scope.py:385: Postgres test database unavailable or incompatible (see 'WARNING: test DB setup failed' above; start the local test Postgres or set TC_TEST_DATABASE_URL to a local *_test database)
+SKIPPED [1] tests/release/test_session_revocation.py:301: Postgres test database unavailable or incompatible (see 'WARNING: test DB setup failed' above; start the local test Postgres or set TC_TEST_DATABASE_URL to a local *_test database)
+SKIPPED [1] tests/release/test_session_revocation.py:330: Postgres test database unavailable or incompatible (see 'WARNING: test DB setup failed' above; start the local test Postgres or set TC_TEST_DATABASE_URL to a local *_test database)
+SKIPPED [1] tests/release/test_session_revocation.py:370: Postgres test database unavailable or incompatible (see 'WARNING: test DB setup failed' above; start the local test Postgres or set TC_TEST_DATABASE_URL to a local *_test database)
+SKIPPED [1] tests/release/test_session_revocation.py:418: Postgres test database unavailable or incompatible (see 'WARNING: test DB setup failed' above; start the local test Postgres or set TC_TEST_DATABASE_URL to a local *_test database)
+SKIPPED [1] tests/release/test_session_revocation.py:444: Postgres test database unavailable or incompatible (see 'WARNING: test DB setup failed' above; start the local test Postgres or set TC_TEST_DATABASE_URL to a local *_test database)
+================== 10 passed, 8 skipped, 72 warnings in 3.81s ==================
