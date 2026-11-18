@@ -21,6 +21,10 @@ python -m pytest tests/release/test_csrf_proxy.py -q --tb=short
 
 The four security failures are `assert True is False`: a hostile `Origin` was accepted because the Referer or `X-Forwarded-Host` matched, `Origin: null` fell through to that Referer, and forwarded headers were accepted from a peer that is not a configured proxy. `test_forwarded_headers_from_trusted_proxy_are_honoured` passed on that code because every caller was treated as the proxy. The Caddy assertion failed because `Caddyfile.production` did not replace the forwarded headers. The allowed-Origin and same-origin tests passed. Log: `failing-before.txt`.
 
+## SHA
+
+The green tests ran on `e8010631481a70ea4cc4027088622f7f08c86ae2`. A later commit that only records this SHA does not change the code under test.
+
 ## Green command
 
 Same interpreter and tests, after the check, the proxy setting, and the Caddy change.

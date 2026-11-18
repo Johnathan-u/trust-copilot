@@ -1,4 +1,5 @@
 # TC-07-004 passing after the origin and trusted-proxy change
+# product commit e8010631481a70ea4cc4027088622f7f08c86ae2
 # cwd apps/api
 # interpreter /tmp/tc-venv/bin/python
 # Python 3.12.3
